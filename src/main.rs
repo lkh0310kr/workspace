@@ -43,7 +43,9 @@ impl Workspace {
         self.active_tab_id = tab_id;
     }
 
-    fn close_tab(self) {}
+    fn close_tab(&mut self, tab_id: TabId) {
+        self.tabs.retain(|tab| tab.id != tab_id);
+    }
 
     // getters
     fn tab_titles(&self) -> ModelRc<slint::SharedString> {
@@ -139,14 +141,34 @@ fn main() -> Result<(), slint::PlatformError> {
     }
 
     {
-        ui.on_select_tab(|index| {
-            println!("select tab: {index}");
+        let workspace = Rc::clone(&workspace);
+        let ui_weak = ui.as_weak();
+
+        ui.on_select_tab(move |index| {
+            let ui = ui_weak.unwrap();
+            let mut workspace = workspace.borrow_mut();
+
+            workspace.select_tab(index);
+
+            ui.set_tabs(workspace.tab_titles());
+            ui.set_active_tab(workspace.active_tab_id);
         });
     }
 
-    ui.on_close_tab(|index| {
-        println!("close tab: {index}");
-    });
+    {
+        let workspace = Rc::clone(&workspace);
+        let ui_weak = ui.as_weak();
+
+        ui.on_close_tab(move |index| {
+            let ui = ui_weak.unwrap();
+            let mut workspace = workspace.borrow_mut();
+
+            workspace.close_tab(index);
+
+            ui.set_tabs(workspace.tab_titles());
+            ui.set_active_tab(workspace.active_tab_id);
+        });
+    }
 
     ui.run()
 }
