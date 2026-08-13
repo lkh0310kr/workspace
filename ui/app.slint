@@ -1,0 +1,50 @@
+export component AppWindow inherits Window {
+    width: 1200px;
+    height: 800px;
+    background: white;
+
+    in-out property <[string]> tabs;
+    in-out property <int> active-tab: 0;
+
+    callback add-tab();
+    callback select-tab(int);
+    callback close-tab(int);
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        VerticalLayout {
+            for tab[index] in tabs: Rectangle {
+                width: 280px;
+                height: 60px;
+                background: index == active-tab ? #f4f5f9 : #ffffff;
+
+                Text {
+                    text: tab;
+                }
+
+                TouchArea {
+                    clicked => {
+                        root.select-tab(index);
+                    }
+                }
+            }
+
+            Rectangle {
+                width: 60px;
+                height: 60px;
+                background: #f4f5f9;
+
+                Text {
+                    text: "+";
+                }
+
+                TouchArea {
+                    clicked => {
+                        root.add-tab()
+                    }
+                }
+            }
+        }
+    }
+}
