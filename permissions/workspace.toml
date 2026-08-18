@@ -1,0 +1,24 @@
+[[permission]]
+identifier = "allow-workspace"
+description = "Workspace PTY, files, and browser commands."
+commands.allow = [
+    "get_workspace_state",
+    "pty_write",
+    "pty_resize",
+    "spawn_terminal",
+    "add_tab",
+    "close_tab",
+    "select_tab",
+    "set_tab_layout",
+    "list_dir",
+    "read_file",
+    "write_file",
+    "browser_report_frame",
+    "browser_navigate",
+    "browser_back",
+    "browser_forward",
+    "browser_reload",
+    "browser_hide_all",
+    "browser_detach",
+    "browser_cleanup_all",
+]

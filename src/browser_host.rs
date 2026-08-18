@@ -1,0 +1,382 @@
+use std::collections::HashMap;
+
+use parking_lot::Mutex;
+use tauri::webview::{PageLoadEvent, WebviewBuilder};
+use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, State, WebviewUrl, WindowEvent};
+use url::Url;
+
+/// macOS: child webviews (`add_child`) are positioned relative to the
+/// window's full content view, but this (main) webview's own DOM coordinates
+/// start below the title bar — so a child placed at the DOM's reported y
+/// renders one title-bar-height too high, covering whatever sits at the top
+/// of the pane (e.g. the browser toolbar). Measured empirically for the
+/// default titled/resizable window in tauri.conf.json; revisit if the
+/// window's title bar style changes.
+const TITLE_BAR_INSET: f64 = 32.0;
+
+
+#[derive(Clone)]
+struct Frame {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+#[derive(Clone)]
+struct BrowserPane {
+    url: String,
+    content: Frame,
+    visible: bool,
+}
+
+pub struct BrowserHost {
+    panes: HashMap<String, BrowserPane>,
+    applied_frames: HashMap<String, Frame>,
+}
+
+impl BrowserHost {
+    pub fn new() -> Self {
+        Self {
+            panes: HashMap::new(),
+            applied_frames: HashMap::new(),
+        }
+    }
+
+    fn content_frame(content: &Frame) -> Option<Frame> {
+        if content.width < 1.0 || content.height < 1.0 {
+            return None;
+        }
+        Some(content.clone())
+    }
+}
+
+fn webview_label(pane_id: &str) -> String {
+    let sanitized: String = pane_id
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '-' | ':' | '_' | '/') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    format!("browser-{sanitized}")
+}
+
+fn parse_url(raw: &str) -> Result<Url, String> {
+    raw.parse().map_err(|e: url::ParseError| e.to_string())
+}
+
+fn main_window(app: &AppHandle) -> Result<tauri::Window, String> {
+    app.get_window("main")
+        .ok_or_else(|| "main window not found".to_string())
+}
+
+pub fn cleanup_browser_webviews(app: &AppHandle) {
+    for (label, webview) in app.webviews() {
+        if label.starts_with("browser-") {
+            let _ = webview.close();
+        }
+    }
+}
+
+// All browser panes share one persistent session: `WebviewBuilder::new(...)` here
+// never calls `.incognito(true)` or `.data_store_identifier(...)`, so every
+// `browser-{pane_id}` webview uses wry's default `WKWebsiteDataStore::defaultDataStore`
+// on macOS — cookies, localStorage, and IndexedDB are already shared across every
+// browser pane, like tabs in one browser profile. Do not add per-pane isolation here
+// without a deliberate reason.
+fn create_child_webview(
+    app: &AppHandle,
+    pane_id: &str,
+    pane: &BrowserPane,
+    position: LogicalPosition<f64>,
+    size: LogicalSize<f64>,
+) -> Result<(), String> {
+    let label = webview_label(pane_id);
+    let window = main_window(app)?;
+    let parsed = parse_url(&pane.url)?;
+    let load_app = app.clone();
+    let load_pane_id = pane_id.to_string();
+    // Deliberately not overriding the user agent: WKWebView's real UA already
+    // identifies it as WebKit/Safari-based, which is truthful. Spoofing a
+    // Chrome UA string without the Client Hints headers/`navigator.userAgentData`
+    // a real Chrome would send is an inconsistency bot-detection systems (e.g.
+    // Google's) actively look for — it made things worse, not better, and is
+    // suspected to have contributed to a CAPTCHA challenge during testing.
+    let builder = WebviewBuilder::new(&label, WebviewUrl::External(parsed))
+        .on_page_load(move |_webview, payload| {
+            let loading = matches!(payload.event(), PageLoadEvent::Started);
+            let _ = load_app.emit(
+                "browser-loading",
+                serde_json::json!({ "paneId": load_pane_id, "loading": loading }),
+            );
+        });
+    window
+        .add_child(builder, position, size)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn apply_pane(
+    app: &AppHandle,
+    host: &mut BrowserHost,
+    pane_id: &str,
+    pane: &BrowserPane,
+) -> Result<(), String> {
+    let label = webview_label(pane_id);
+
+    if !pane.visible {
+        if let Some(webview) = app.get_webview(&label) {
+            webview.hide().map_err(|e| e.to_string())?;
+        }
+        return Ok(());
+    }
+
+    // A degenerate (sub-1px) size is almost always a transient mid-reflow
+    // measurement during a split/resize, not a real "this pane is gone" signal
+    // — real invisibility is already handled by the `!pane.visible` check
+    // above. Hiding here causes a WKWebView hide/show cycle that can leave
+    // the view painted black until something forces a repaint (e.g. the user
+    // re-navigating), so just skip this update and wait for the next
+    // (settled) frame report instead.
+    let Some(content) = BrowserHost::content_frame(&pane.content) else {
+        return Ok(());
+    };
+
+    let position = LogicalPosition::new(content.x, content.y);
+    let size = LogicalSize::new(content.width, content.height);
+    let window = main_window(app)?;
+    let scale = window.scale_factor().unwrap_or(1.0);
+
+    if let Some(webview) = app.get_webview(&label) {
+        webview
+            .set_position(position)
+            .map_err(|e| e.to_string())?;
+        webview.set_size(size).map_err(|e| e.to_string())?;
+
+        let actual_y = webview
+            .position()
+            .ok()
+            .map(|p| p.y as f64 / scale)
+            .unwrap_or(-1.0);
+
+        if (actual_y - content.y).abs() > 1.0 {
+            // Platform failed to honor the vertical reposition; only now
+            // fall back to destroy+recreate (loses page state).
+            webview.close().map_err(|e| e.to_string())?;
+            host.applied_frames.remove(pane_id);
+        } else {
+            webview.show().map_err(|e| e.to_string())?;
+            host.applied_frames.insert(pane_id.to_string(), content);
+            return Ok(());
+        }
+    }
+
+    create_child_webview(app, pane_id, pane, position, size)?;
+    host.applied_frames.insert(pane_id.to_string(), content);
+    Ok(())
+}
+
+fn sync_all_visible(app: &AppHandle, host: &mut BrowserHost) -> Result<(), String> {
+    let pane_ids: Vec<String> = host.panes.keys().cloned().collect();
+    for pane_id in pane_ids {
+        if let Some(pane) = host.panes.get(&pane_id).cloned() {
+            apply_pane(app, host, &pane_id, &pane)?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_report_frame(
+    app: AppHandle,
+    host: State<'_, Mutex<BrowserHost>>,
+    pane_id: String,
+    url: String,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+    visible: bool,
+) -> Result<(), String> {
+    // Child webviews are positioned relative to the window's content view,
+    // which on macOS is taller than this (the main) webview's own viewport
+    // by the title bar height — `add_child` coordinates and this webview's
+    // DOM coordinates don't share an origin. Compensate with the measured
+    // constant inset (see TITLE_BAR_INSET).
+    let content = Frame {
+        x,
+        y: y + TITLE_BAR_INSET,
+        width,
+        height,
+    };
+
+    let label = webview_label(&pane_id);
+    let should_navigate = {
+        let guard = host.lock();
+        guard
+            .panes
+            .get(&pane_id)
+            .is_none_or(|stored| stored.url != url)
+    };
+
+    {
+        let mut guard = host.lock();
+        guard.panes.insert(
+            pane_id.clone(),
+            BrowserPane {
+                url: url.clone(),
+                content,
+                visible,
+            },
+        );
+    }
+
+    let pane = host.lock().panes.get(&pane_id).cloned();
+    let Some(pane) = pane else {
+        return Ok(());
+    };
+
+    {
+        let mut guard = host.lock();
+        apply_pane(&app, &mut guard, &pane_id, &pane)?;
+    }
+
+    if should_navigate {
+        if let Some(webview) = app.get_webview(&label) {
+            webview
+                .navigate(parse_url(&url)?)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_navigate(
+    app: AppHandle,
+    host: State<'_, Mutex<BrowserHost>>,
+    pane_id: String,
+    url: String,
+) -> Result<(), String> {
+    let label = webview_label(&pane_id);
+    let webview = app
+        .get_webview(&label)
+        .ok_or_else(|| "browser webview not found".to_string())?;
+    webview
+        .navigate(parse_url(&url)?)
+        .map_err(|e| e.to_string())?;
+    if let Some(pane) = host.lock().panes.get_mut(&pane_id) {
+        pane.url = url;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_back(app: AppHandle, pane_id: String) -> Result<(), String> {
+    let label = webview_label(&pane_id);
+    let webview = app
+        .get_webview(&label)
+        .ok_or_else(|| "browser webview not found".to_string())?;
+    webview
+        .eval("window.history.back()")
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn browser_forward(app: AppHandle, pane_id: String) -> Result<(), String> {
+    let label = webview_label(&pane_id);
+    let webview = app
+        .get_webview(&label)
+        .ok_or_else(|| "browser webview not found".to_string())?;
+    webview
+        .eval("window.history.forward()")
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn browser_reload(app: AppHandle, pane_id: String) -> Result<(), String> {
+    let label = webview_label(&pane_id);
+    let webview = app
+        .get_webview(&label)
+        .ok_or_else(|| "browser webview not found".to_string())?;
+    webview.reload().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn browser_toggle_devtools(app: AppHandle, pane_id: String) -> Result<bool, String> {
+    let label = webview_label(&pane_id);
+    let webview = app
+        .get_webview(&label)
+        .ok_or_else(|| "browser webview not found".to_string())?;
+    if webview.is_devtools_open() {
+        webview.close_devtools();
+    } else {
+        webview.open_devtools();
+    }
+    Ok(webview.is_devtools_open())
+}
+
+#[tauri::command]
+pub async fn browser_hide_all(
+    app: AppHandle,
+    host: State<'_, Mutex<BrowserHost>>,
+) -> Result<(), String> {
+    let pane_ids: Vec<String> = host.lock().panes.keys().cloned().collect();
+    for pane_id in pane_ids {
+        if let Some(pane) = host.lock().panes.get_mut(&pane_id) {
+            pane.visible = false;
+        }
+        let label = webview_label(&pane_id);
+        if let Some(webview) = app.get_webview(&label) {
+            webview.hide().map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_cleanup_all(
+    app: AppHandle,
+    host: State<'_, Mutex<BrowserHost>>,
+) -> Result<(), String> {
+    cleanup_browser_webviews(&app);
+    let mut guard = host.lock();
+    guard.panes.clear();
+    guard.applied_frames.clear();
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_detach(
+    app: AppHandle,
+    host: State<'_, Mutex<BrowserHost>>,
+    pane_id: String,
+) -> Result<(), String> {
+    let label = webview_label(&pane_id);
+    if let Some(webview) = app.get_webview(&label) {
+        webview.close().map_err(|e| e.to_string())?;
+    }
+    let mut guard = host.lock();
+    guard.panes.remove(&pane_id);
+    guard.applied_frames.remove(&pane_id);
+    Ok(())
+}
+
+pub fn attach_window_events(app: &AppHandle) {
+    let Some(window) = app.get_window("main") else {
+        return;
+    };
+    let app_handle = app.clone();
+    window.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Resized(_) | WindowEvent::Moved(_)) {
+            let host = app_handle.state::<Mutex<BrowserHost>>();
+            let mut guard = host.lock();
+            let _ = sync_all_visible(&app_handle, &mut guard);
+        }
+    });
+}

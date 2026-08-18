@@ -1,0 +1,17 @@
+[package]
+name = "terminal-gpu"
+version = "0.1.0"
+edition = "2024"
+description = "Archived GPU terminal renderer (wgpu + alacritty grid)"
+
+[dependencies]
+portable-pty = "0.9.0"
+alacritty_terminal = "0.26.0"
+wgpu = "29"
+fontdue = "0.9"
+arboard = "3"
+bytemuck = "1"
+regex = "1"
+
+[features]
+default = []
