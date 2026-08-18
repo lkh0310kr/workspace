@@ -1,12 +1,53 @@
 import { memo, useEffect, useRef } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { SerializeAddon } from "@xterm/addon-serialize";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import "@xterm/xterm/css/xterm.css";
 import { onPtyOutput, ptyResize, ptyWrite } from "../tauri";
 
 interface Props {
   terminalId: number;
   active: boolean;
+}
+
+// The PTY session outlives the React component (it's only killed when its
+// workspace tab is closed, not on unmount — e.g. switching workspace tabs
+// remounts every pane). xterm's own buffer doesn't survive that remount, so
+// stash a serialized snapshot here and replay it before live output resumes,
+// otherwise scrollback visually resets to blank on every tab switch.
+const scrollbackCache = new Map<number, string>();
+
+// Best-effort addon loading: none of these are essential to a working
+// terminal, so one failing (unsupported API, odd webview environment) must
+// not take the whole pane down with it.
+function loadOptionalAddons(term: Terminal): SerializeAddon | null {
+  let serialize: SerializeAddon | null = null;
+  try {
+    serialize = new SerializeAddon();
+    term.loadAddon(serialize);
+  } catch (err) {
+    console.error("terminal: serialize addon failed to load", err);
+    serialize = null;
+  }
+  try {
+    term.loadAddon(new Unicode11Addon());
+    term.unicode.activeVersion = "11";
+  } catch (err) {
+    console.error("terminal: unicode11 addon failed to load", err);
+  }
+  try {
+    term.loadAddon(
+      new WebLinksAddon((_event, uri) => {
+        openUrl(uri).catch(console.error);
+      }),
+    );
+  } catch (err) {
+    console.error("terminal: web-links addon failed to load", err);
+  }
+  return serialize;
 }
 
 function TerminalPaneInner({ terminalId, active }: Props) {
@@ -32,8 +73,12 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(host);
+    const serialize = loadOptionalAddons(term);
     termRef.current = term;
     fitRef.current = fit;
+
+    const cached = scrollbackCache.get(terminalId);
+    if (cached) term.write(cached);
 
     const syncSize = () => {
       fit.fit();
@@ -59,6 +104,13 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     host.addEventListener("mousedown", focusTerm);
 
     return () => {
+      if (serialize) {
+        try {
+          scrollbackCache.set(terminalId, serialize.serialize());
+        } catch (err) {
+          console.error("terminal: failed to serialize scrollback", err);
+        }
+      }
       host.removeEventListener("mousedown", focusTerm);
       window.removeEventListener("resize", syncSize);
       resizeObserver.disconnect();

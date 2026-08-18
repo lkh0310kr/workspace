@@ -19,7 +19,7 @@ export function BrowserToolbar() {
         <button
           type="button"
           className="browser-nav-btn browser-nav-btn-devtools"
-          title="Toggle DevTools (also: right-click the page → Inspect Element)"
+          title="Toggle DevTools — if this doesn't open a window, use Safari → Develop menu instead (enable it in Safari Settings → Advanced first); WKWebView doesn't support right-click Inspect Element"
           onClick={toggleDevtools}
         >
           {"</>"}

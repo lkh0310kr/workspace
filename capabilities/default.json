@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Default capability",
   "windows": ["main"],
-  "permissions": ["core:default", "core:event:default", "allow-workspace"]
+  "permissions": ["core:default", "core:event:default", "allow-workspace", "opener:default"]
 }

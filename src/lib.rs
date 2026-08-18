@@ -11,6 +11,7 @@ use tauri::{AppHandle, Emitter, State};
 use workspace_core::Workspace;
 
 mod browser_host;
+mod cef_host;
 
 pub struct AppState {
     pub workspace: Mutex<Workspace>,
@@ -160,7 +161,8 @@ pub fn run() {
 
     let poll_state = Arc::clone(&state);
 
-    tauri::Builder::default()
+    let mut app = tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .manage(state)
         .manage(browser_host)
         .setup(move |app| {
@@ -194,6 +196,44 @@ pub fn run() {
             browser_host::browser_detach,
             browser_host::browser_cleanup_all,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    let cef_enabled = std::env::var("NO_CEF").is_err();
+    if cef_enabled {
+        cef_host::initialize_cef();
+    } else {
+        eprintln!("[app] NO_CEF set — skipping CEF init to isolate the exit cause");
+    }
+
+    let mut probe_spawned = false;
+    let exit = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    #[allow(deprecated)]
+    loop {
+        if cef_enabled {
+            cef_host::pump();
+            if !probe_spawned && cef_host::is_ready() {
+                probe_spawned = true;
+                cef_host::spawn_probe_browser("https://example.com");
+            }
+        }
+        let exit_flag = Arc::clone(&exit);
+        app.run_iteration(move |_app, event| {
+            if matches!(event, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit) {
+                eprintln!("[app] exiting due to event: {event:?}");
+                exit_flag.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
+        });
+        if exit.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(4));
+    }
+    cef_host::shutdown();
+}
+
+/// Called at the very top of `main`, before any Tauri setup. See
+/// `cef_host` module docs for why this must happen first.
+pub fn cef_dispatch_subprocess() -> bool {
+    cef_host::dispatch_subprocess_and_check_is_browser_process()
 }

@@ -14,6 +14,19 @@ use url::Url;
 /// window's title bar style changes.
 const TITLE_BAR_INSET: f64 = 32.0;
 
+/// Runs before any page script on every navigation (WKWebView `WKUserScript`,
+/// via wry's initialization-script hook — unlike `on_web_resource_request`
+/// this *does* apply to external URLs, not just our own bundled content).
+/// `navigator.webdriver` defaults to `true` on an embedded WKWebView the way
+/// wry configures it, which is a real bot-detection tell distinct from (and
+/// in addition to) the UA-spoofing mismatch we already reverted — see the
+/// Orca reference project's `anti-detection.ts` for the same fix applied to
+/// their Chromium webviews. Deliberately not faking plugins/`window.chrome`
+/// here: this webview's UA already honestly identifies it as WebKit/Safari,
+/// and adding Chrome-shaped fingerprints on top of a Safari UA would be a
+/// second, self-inflicted mismatch of the same kind we just removed.
+const ANTI_AUTOMATION_SCRIPT: &str =
+    "Object.defineProperty(navigator, 'webdriver', { get: () => false });";
 
 #[derive(Clone)]
 struct Frame {
@@ -107,6 +120,7 @@ fn create_child_webview(
     // Google's) actively look for — it made things worse, not better, and is
     // suspected to have contributed to a CAPTCHA challenge during testing.
     let builder = WebviewBuilder::new(&label, WebviewUrl::External(parsed))
+        .initialization_script(ANTI_AUTOMATION_SCRIPT)
         .on_page_load(move |_webview, payload| {
             let loading = matches!(payload.event(), PageLoadEvent::Started);
             let _ = load_app.emit(
