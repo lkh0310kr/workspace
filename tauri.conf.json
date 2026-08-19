@@ -17,6 +17,7 @@
         "title": "Workspace",
         "width": 1400,
         "height": 900,
+        "maximized": true,
         "focus": true,
         "backgroundColor": "#0c0c0c",
         "dragDropEnabled": false
