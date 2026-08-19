@@ -19,12 +19,14 @@ interface Props {
 
 function BrowserPaneBody({
   component,
+  tabNode,
   contentRef,
   onSplit,
   onTypeChange,
   onClose,
 }: {
   component: PaneComponent;
+  tabNode: TabNode;
   contentRef: React.RefObject<HTMLDivElement | null>;
   onSplit: Props["onSplit"];
   onTypeChange: Props["onTypeChange"];
@@ -37,6 +39,7 @@ function BrowserPaneBody({
     <PaneFrame
       ref={shellRef}
       component={component}
+      tabNode={tabNode}
       toolbar={<BrowserToolbar />}
       contentSlot
       onSplit={onSplit}
@@ -85,6 +88,7 @@ export function BrowserPane({
     >
       <BrowserPaneBody
         component={component}
+        tabNode={tabNode}
         contentRef={contentRef}
         onSplit={onSplit}
         onTypeChange={onTypeChange}

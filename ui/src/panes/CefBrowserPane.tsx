@@ -18,12 +18,14 @@ interface Props {
 
 function CefBrowserPaneBody({
   component,
+  tabNode,
   contentRef,
   onSplit,
   onTypeChange,
   onClose,
 }: {
   component: PaneComponent;
+  tabNode: TabNode;
   contentRef: React.RefObject<HTMLDivElement | null>;
   onSplit: Props["onSplit"];
   onTypeChange: Props["onTypeChange"];
@@ -36,6 +38,7 @@ function CefBrowserPaneBody({
     <PaneFrame
       ref={shellRef}
       component={component}
+      tabNode={tabNode}
       toolbar={<CefToolbar />}
       contentSlot
       onSplit={onSplit}
@@ -75,6 +78,7 @@ export function CefBrowserPane({
     <CefSession paneId={paneId} initialUrl={initialUrl} contentRef={contentRef} visible={visible}>
       <CefBrowserPaneBody
         component={component}
+        tabNode={tabNode}
         contentRef={contentRef}
         onSplit={onSplit}
         onTypeChange={onTypeChange}

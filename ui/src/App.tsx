@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IJsonModel, Layout, Model, TabNode, Actions } from "flexlayout-react";
+import { IJsonModel, Layout, Model, TabNode, Actions, type Action } from "flexlayout-react";
 import "flexlayout-react/style/combined.css";
 import { PaneFrame } from "./components/PaneFrame";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { useWorkspace } from "./components/useWorkspace";
 import { addPaneToTabSet, replacePane, splitTabSet } from "./layout/layoutActions";
+import { setLayoutInstance } from "./layout/layoutRef";
 import { PaneComponent, PaneConfig } from "./layout/paneTypes";
 import { CodePane } from "./panes/CodePane";
 import { MarkdownPane } from "./panes/MarkdownPane";
@@ -54,6 +55,9 @@ function parseLayout(json: string): IJsonModel {
     // hit-test area is padded out by this much on top of it — 1px alone is
     // too easy to miss.
     splitterExtra: 8,
+    // Default 0.3s eases the drop-placeholder outline into position on
+    // every dragover tick — distracting rather than helpful.
+    tabDragSpeed: 0,
   };
   normalizeLayoutNode(model.layout);
   // flexlayout only loads tab children when tabset is inside a row/column
@@ -93,6 +97,10 @@ export default function App() {
   >(async () => {});
   const ensureInflightRef = useRef<Set<number>>(new Set());
   const [modelEpoch, setModelEpoch] = useState(0);
+  // Set by onAction (pre-move, when the dragged node's pre-move parent is
+  // still known) and consumed by onModelChange (post-move, once the model
+  // reflects the new tree) — see onAction below for why.
+  const pendingRebalanceRef = useRef<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
 
@@ -258,6 +266,7 @@ export default function App() {
     return (
       <PaneFrame
         component={component}
+        tabNode={node}
         onSplit={onSplit}
         onTypeChange={onTypeChange}
         onClose={onClose}
@@ -300,9 +309,67 @@ export default function App() {
     void browserHideAll().catch(console.error);
   }, [activeTabId]);
 
+  // Every pane is its own tabset (native tab strip is hidden app-wide —
+  // PaneFrame's header is the only way to select a pane, and it doesn't
+  // support switching between stacked tabs). flexlayout's default center-
+  // drop behavior — add the dragged tab as a second tab in the target
+  // tabset — would silently produce an unreachable second tab there.
+  // Dropping pane B onto pane A's center should swap them, but with
+  // position/weight staying exactly as they are: only the *content*
+  // (component + config) of the two tab nodes trades places. So this
+  // cancels flexlayout's default move (any tree move would drag weights
+  // and structure along with it) and does the swap directly via
+  // updateNodeAttributes — no node ever changes position.
+  const onAction = useCallback(
+    (action: Action) => {
+      if (action.type !== Actions.MOVE_NODE) return action;
+      const model = modelsRef.current.get(activeTabId);
+      if (!model) return action;
+      if (action.data.location === "center") {
+        let target = model.getNodeById(action.data.toNode);
+        if (target?.getType() === "tab") target = target.getParent() ?? undefined;
+        const targetTab = target?.getChildren().find((child) => child.getId() !== action.data.fromNode);
+        const draggedTab = model.getNodeById(action.data.fromNode);
+        if (
+          targetTab instanceof TabNode &&
+          draggedTab instanceof TabNode &&
+          targetTab.getId() !== draggedTab.getId()
+        ) {
+          const targetAttrs = { component: targetTab.getComponent(), config: targetTab.getConfig() };
+          const draggedAttrs = { component: draggedTab.getComponent(), config: draggedTab.getConfig() };
+          model.doAction(Actions.updateNodeAttributes(targetTab.getId(), draggedAttrs));
+          model.doAction(Actions.updateNodeAttributes(draggedTab.getId(), targetAttrs));
+        }
+        return undefined;
+      } else {
+        // Non-center drop: flexlayout wraps the target and the dragged
+        // node in a new row/column, but the wrapper inherits the target's
+        // *original* weight relative to its own siblings, and the two
+        // nodes inside the wrapper get flexlayout's own (not necessarily
+        // even) default split — both look arbitrary rather than the clean
+        // 50/50 an explicit drag-to-split gesture implies. Equalize once
+        // the move has actually happened (see onModelChange).
+        pendingRebalanceRef.current = action.data.fromNode;
+      }
+      return action;
+    },
+    [activeTabId],
+  );
+
   const onModelChange = useCallback(() => {
     const model = modelsRef.current.get(activeTabId);
     if (!model) return;
+    if (pendingRebalanceRef.current) {
+      const draggedId = pendingRebalanceRef.current;
+      pendingRebalanceRef.current = null;
+      // The dragged tab's direct parent is its own (single-tab) tabset —
+      // the row/column wrapper the split actually created is one level up
+      // from that.
+      const parent = model.getNodeById(draggedId)?.getParent()?.getParent();
+      if (parent) {
+        model.doAction(Actions.adjustWeights(parent.getId(), parent.getChildren().map(() => 1)));
+      }
+    }
     persistLayout(activeTabId, model);
     setModelEpoch((v) => v + 1);
   }, [activeTabId, persistLayout]);
@@ -335,8 +402,10 @@ export default function App() {
       />
       <div className="layout-host" key={activeTabId}>
         <Layout
+          ref={setLayoutInstance}
           model={activeModel}
           factory={factory}
+          onAction={onAction}
           onModelChange={onModelChange}
           realtimeResize
         />

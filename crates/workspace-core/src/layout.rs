@@ -12,6 +12,7 @@ pub fn default_layout(terminal_id: u32) -> String {
             "tabEnableRename": false,
             "splitterSize": 1,
             "splitterExtra": 8,
+            "tabDragSpeed": 0,
         },
         "borders": [],
         "layout": {

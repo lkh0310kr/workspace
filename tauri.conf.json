@@ -18,7 +18,8 @@
         "width": 1400,
         "height": 900,
         "focus": true,
-        "backgroundColor": "#0c0c0c"
+        "backgroundColor": "#0c0c0c",
+        "dragDropEnabled": false
       }
     ],
     "security": {

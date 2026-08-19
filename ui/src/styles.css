@@ -263,6 +263,7 @@ iframe.browser-content-slot {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   position: relative;
+  cursor: grab;
   z-index: 200;
   overflow: visible;
 }
@@ -307,6 +308,7 @@ iframe.browser-content-slot {
   gap: 0;
   flex-shrink: 0;
   align-items: center;
+  cursor: default;
 }
 
 .pane-type-anchor {

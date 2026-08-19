@@ -1,13 +1,27 @@
-import { forwardRef, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type ReactNode,
+} from "react";
+import type { TabNode } from "flexlayout-react";
 import { PanePicker } from "./PanePicker";
 import { SplitIcon } from "./SplitIcon";
 import { paneLabel, PaneComponent } from "../layout/paneTypes";
 import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
+import { startPaneDrag } from "../layout/layoutRef";
 
 interface Props {
   component: PaneComponent;
   toolbar?: ReactNode;
   contentSlot?: boolean;
+  /** Enables dragging the pane header to reposition/split it via
+   * flexlayout's own drag-and-drop, in place of the native tab strip
+   * (hidden app-wide in favor of this custom header). */
+  tabNode?: TabNode;
   onSplit: (mode: "split-right" | "split-down", paneType: PaneComponent) => void;
   onTypeChange: (component: PaneComponent) => void;
   onClose: () => void;
@@ -15,7 +29,7 @@ interface Props {
 }
 
 export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame(
-  { component, toolbar, contentSlot, onSplit, onTypeChange, onClose, children },
+  { component, toolbar, contentSlot, tabNode, onSplit, onTypeChange, onClose, children },
   ref,
 ) {
   const [typeOpen, setTypeOpen] = useState(false);
@@ -75,8 +89,19 @@ export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame(
     </div>
   );
 
+  const dragProps = tabNode
+    ? {
+        draggable: true,
+        onDragStart: (e: DragEvent) => {
+          pushOverlayBlock();
+          startPaneDrag(e, tabNode);
+        },
+        onDragEnd: () => popOverlayBlock(),
+      }
+    : {};
+
   const headerRow = (
-    <div className="pane-header">
+    <div className="pane-header" {...dragProps}>
       <span className="pane-title">{paneLabel(component)}</span>
       {paneActions}
     </div>
@@ -87,6 +112,9 @@ export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame(
       {contentSlot ? (
         <>
           <div className="pane-browser-chrome">
+            {/* No drag-to-move here: this header is mostly the address-bar
+                toolbar, and `draggable` on an ancestor of a text input
+                breaks click-drag text selection inside it. */}
             <div className="pane-header pane-header-browser">
               {toolbar}
               {paneActions}
