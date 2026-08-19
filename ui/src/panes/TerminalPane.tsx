@@ -1,9 +1,10 @@
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Terminal, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SerializeAddon } from "@xterm/addon-serialize";
+import { SearchAddon } from "@xterm/addon-search";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import "@xterm/xterm/css/xterm.css";
 import { onPtyOutput, ptyResize, ptyWrite } from "../tauri";
@@ -73,6 +74,16 @@ function TerminalPaneInner({ terminalId, active }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
+  const searchRef = useRef<SearchAddon | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // `active` (whether this pane's *workspace tab* is the visible one) is
+  // hardcoded true for every terminal pane by its caller — no good for
+  // scoping a keyboard shortcut when more than one terminal is open at
+  // once (e.g. a split). Track real DOM focus instead, via `focusin`/
+  // `focusout` bubbling up from xterm's internal hidden textarea.
+  const hasFocusRef = useRef(false);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -86,10 +97,13 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
+    const search = new SearchAddon();
+    term.loadAddon(search);
     term.open(host);
     const serialize = loadOptionalAddons(term);
     termRef.current = term;
     fitRef.current = fit;
+    searchRef.current = search;
 
     const cached = scrollbackCache.get(terminalId);
     if (cached) term.write(cached);
@@ -117,11 +131,22 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     const focusTerm = () => term.focus();
     host.addEventListener("mousedown", focusTerm);
 
+    const onFocusIn = () => {
+      hasFocusRef.current = true;
+    };
+    const onFocusOut = () => {
+      hasFocusRef.current = false;
+    };
+    host.addEventListener("focusin", onFocusIn);
+    host.addEventListener("focusout", onFocusOut);
+
     const unsubscribeTheme = subscribeThemeChange((resolved) => {
       term.options.theme = XTERM_THEMES[resolved];
     });
 
     return () => {
+      host.removeEventListener("focusin", onFocusIn);
+      host.removeEventListener("focusout", onFocusOut);
       if (serialize) {
         try {
           scrollbackCache.set(terminalId, serialize.serialize());
@@ -136,6 +161,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
+      searchRef.current = null;
     };
   }, [terminalId]);
 
@@ -159,13 +185,78 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     }
   }, [active, terminalId]);
 
+  // Only the terminal pane that actually has focus should react to Cmd+F
+  // — every terminal pane has its own listener, so this must check real
+  // DOM focus rather than `active` (hardcoded true for every instance by
+  // the caller). Once the search bar is open, its own input steals DOM
+  // focus away from the terminal itself, so `searchOpen` alone keeps this
+  // instance responding to a second Cmd+F (toggle closed) or Escape.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+        if (!hasFocusRef.current && !searchOpen) return;
+        e.preventDefault();
+        if (searchOpen) {
+          setSearchOpen(false);
+          termRef.current?.focus();
+        } else {
+          setSearchOpen(true);
+        }
+      } else if (e.key === "Escape" && searchOpen) {
+        setSearchOpen(false);
+        termRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
   return (
-    <div
-      className="terminal-host"
-      ref={hostRef}
-      tabIndex={0}
-      onFocus={() => termRef.current?.focus()}
-    />
+    <div className="terminal-pane-shell">
+      {searchOpen && (
+        <div className="terminal-search-bar">
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (e.shiftKey) searchRef.current?.findPrevious(searchQuery);
+                else searchRef.current?.findNext(searchQuery);
+              }
+            }}
+          />
+          <button type="button" onClick={() => searchRef.current?.findPrevious(searchQuery)}>
+            ↑
+          </button>
+          <button type="button" onClick={() => searchRef.current?.findNext(searchQuery)}>
+            ↓
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchOpen(false);
+              termRef.current?.focus();
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      <div
+        className="terminal-host"
+        ref={hostRef}
+        tabIndex={0}
+        onFocus={() => termRef.current?.focus()}
+      />
+    </div>
   );
 }
 

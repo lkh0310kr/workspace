@@ -5,6 +5,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
 import { readFile, writeFile } from "../tauri";
 import { workspaceEditorTheme } from "../codemirrorTheme";
+import { workspaceSearch } from "../codemirrorSearch";
 
 interface Props {
   filePath: string | null;
@@ -27,6 +28,7 @@ export function CodePane({ filePath, onFileSaved }: Props) {
         extensions: [
           javascript(),
           history(),
+          ...workspaceSearch,
           keymap.of([...defaultKeymap, ...historyKeymap]),
           EditorView.lineWrapping,
           workspaceEditorTheme,

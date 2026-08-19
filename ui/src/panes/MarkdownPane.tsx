@@ -5,6 +5,7 @@ import { markdown } from "@codemirror/lang-markdown";
 import { marked } from "marked";
 import { readFile, writeFile } from "../tauri";
 import { workspaceEditorTheme } from "../codemirrorTheme";
+import { workspaceSearch } from "../codemirrorSearch";
 
 interface Props {
   filePath: string | null;
@@ -25,6 +26,7 @@ export function MarkdownPane({ filePath }: Props) {
         doc: markdownText,
         extensions: [
           markdown(),
+          ...workspaceSearch,
           EditorView.lineWrapping,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
