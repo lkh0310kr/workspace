@@ -22,6 +22,13 @@ command -v cmake >/dev/null || { echo "brew install cmake ninja"; exit 1; }
 
 bundle-cef-app workspace-app -o target/bundle
 
+# bundle-cef-app doesn't set an app icon (no icon/Info.plist handling at
+# all — confirmed by reading its source). Inject one ourselves, before
+# signing (modifying bundle contents after signing invalidates it).
+APP="target/bundle/workspace-app.app"
+cp icons/icon.icns "$APP/Contents/Resources/icon.icns"
+plutil -replace CFBundleIconFile -string "icon.icns" "$APP/Contents/Info.plist"
+
 # Now signed with a real "Developer ID Application" identity (Team
 # B42SPPS3PR) instead of a personal "Apple Development" cert. The earlier
 # attempts at hardened-runtime entitlements (see git history / this
@@ -46,7 +53,6 @@ sign_one() {
 }
 
 IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 'Developer ID Application' | sed -E 's/.*"(.*)"/\1/')"
-APP="target/bundle/workspace-app.app"
 FRAMEWORKS="$APP/Contents/Frameworks"
 CEF_FW="$FRAMEWORKS/Chromium Embedded Framework.framework"
 
