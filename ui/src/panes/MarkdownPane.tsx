@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
-import { marked } from "marked";
 import { readFile, writeFile } from "../tauri";
 import { workspaceEditorTheme } from "../codemirrorTheme";
 import { workspaceSearch } from "../codemirrorSearch";
+import { markdownLivePreview } from "../markdownLivePreview";
 
 interface Props {
   filePath: string | null;
@@ -14,25 +14,21 @@ interface Props {
 export function MarkdownPane({ filePath }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const [markdownText, setMarkdownText] = useState("# Markdown\n\nEdit here, preview on the right.\n");
+  const pathRef = useRef(filePath);
 
-  const previewHtml = useMemo(() => marked.parse(markdownText) as string, [markdownText]);
+  pathRef.current = filePath;
 
   useEffect(() => {
     if (!hostRef.current) return;
 
     const view = new EditorView({
       state: EditorState.create({
-        doc: markdownText,
+        doc: "# Markdown\n\nEdit here — live preview.\n",
         extensions: [
           markdown(),
+          markdownLivePreview,
           ...workspaceSearch,
           EditorView.lineWrapping,
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              setMarkdownText(update.state.doc.toString());
-            }
-          }),
           workspaceEditorTheme,
         ],
       }),
@@ -40,7 +36,18 @@ export function MarkdownPane({ filePath }: Props) {
     });
     viewRef.current = view;
 
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        const path = pathRef.current;
+        if (!path || !viewRef.current) return;
+        writeFile(path, viewRef.current.state.doc.toString()).catch(console.error);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+
     return () => {
+      window.removeEventListener("keydown", onKey);
       view.destroy();
       viewRef.current = null;
     };
@@ -50,7 +57,6 @@ export function MarkdownPane({ filePath }: Props) {
     if (!filePath || !viewRef.current) return;
     readFile(filePath)
       .then((content) => {
-        setMarkdownText(content);
         viewRef.current?.dispatch({
           changes: { from: 0, to: viewRef.current.state.doc.length, insert: content },
         });
@@ -58,21 +64,5 @@ export function MarkdownPane({ filePath }: Props) {
       .catch(console.error);
   }, [filePath]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "s" && filePath && viewRef.current) {
-        e.preventDefault();
-        writeFile(filePath, viewRef.current.state.doc.toString()).catch(console.error);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [filePath]);
-
-  return (
-    <div className="md-split">
-      <div className="code-editor" ref={hostRef} />
-      <div className="md-preview" dangerouslySetInnerHTML={{ __html: previewHtml }} />
-    </div>
-  );
+  return <div className="md-editor" ref={hostRef} />;
 }

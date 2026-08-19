@@ -437,40 +437,61 @@ iframe.browser-content-slot {
   overflow: auto;
 }
 
-.md-split {
-  display: flex;
-  height: 100%;
-}
-
-.md-split .code-editor {
-  flex: 1;
-  border-right: 1px solid var(--border);
-}
-
-.md-preview {
-  flex: 1;
-  padding: 8px;
-  overflow: auto;
-  background: var(--bg-base);
-  font-size: 12px;
-  line-height: 1.45;
+/* —— Markdown live preview (Obsidian-style: markdown syntax renders as
+   real formatting, syntax markers only reappear when the cursor is on
+   that element) — decorations applied by markdownLivePreview.ts —— */
+.cm-md-h1,
+.cm-md-h2,
+.cm-md-h3,
+.cm-md-h4,
+.cm-md-h5,
+.cm-md-h6 {
+  font-weight: 600;
   color: var(--text);
 }
 
-.md-preview h1,
-.md-preview h2,
-.md-preview h3 {
-  margin: 0.5em 0 0.25em;
-  font-size: inherit;
+.cm-md-h1 {
+  font-size: 1.6em;
+}
+
+.cm-md-h2 {
+  font-size: 1.35em;
+}
+
+.cm-md-h3 {
+  font-size: 1.2em;
+}
+
+.cm-md-h4 {
+  font-size: 1.1em;
+}
+
+.cm-md-h5 {
+  font-size: 1em;
+}
+
+.cm-md-h6 {
+  font-size: 0.95em;
+  color: var(--text-muted);
+}
+
+.cm-md-strong {
   font-weight: 600;
 }
 
-.md-preview h1 {
-  font-size: 14px;
+.cm-md-em {
+  font-style: italic;
 }
 
-.md-preview h2 {
-  font-size: 13px;
+.cm-md-code {
+  font-family: var(--font-mono);
+  background: var(--bg-hover);
+  padding: 0 3px;
+}
+
+.cm-md-link {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .browser-nav {
