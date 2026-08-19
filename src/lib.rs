@@ -161,7 +161,7 @@ pub fn run() {
 
     let poll_state = Arc::clone(&state);
 
-    let mut app = tauri::Builder::default()
+    tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(state)
         .manage(browser_host)
@@ -172,6 +172,9 @@ pub fn run() {
             spawn_pty_poll(handle.clone(), poll_state);
             spawn_file_watcher(handle.clone(), root);
             let _ = handle.emit("app-ready", ());
+            cef_host::set_app_handle(handle.clone());
+            cef_host::initialize_cef();
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -195,41 +198,24 @@ pub fn run() {
             browser_host::browser_hide_all,
             browser_host::browser_detach,
             browser_host::browser_cleanup_all,
+            cef_host::cef_report_frame,
+            cef_host::cef_navigate,
+            cef_host::cef_back,
+            cef_host::cef_forward,
+            cef_host::cef_reload,
+            cef_host::cef_toggle_devtools,
+            cef_host::cef_close_pane,
+            cef_host::cef_hide_pane,
+            cef_host::cef_hide_all,
+            cef_host::cef_cleanup_all,
         ])
         .build(tauri::generate_context!())
-        .expect("error while building tauri application");
-
-    let cef_enabled = std::env::var("NO_CEF").is_err();
-    if cef_enabled {
-        cef_host::initialize_cef();
-    } else {
-        eprintln!("[app] NO_CEF set — skipping CEF init to isolate the exit cause");
-    }
-
-    let mut probe_spawned = false;
-    let exit = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    #[allow(deprecated)]
-    loop {
-        if cef_enabled {
-            cef_host::pump();
-            if !probe_spawned && cef_host::is_ready() {
-                probe_spawned = true;
-                cef_host::spawn_probe_browser("https://example.com");
-            }
-        }
-        let exit_flag = Arc::clone(&exit);
-        app.run_iteration(move |_app, event| {
-            if matches!(event, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit) {
-                eprintln!("[app] exiting due to event: {event:?}");
-                exit_flag.store(true, std::sync::atomic::Ordering::Relaxed);
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                cef_host::shutdown();
             }
         });
-        if exit.load(std::sync::atomic::Ordering::Relaxed) {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(4));
-    }
-    cef_host::shutdown();
 }
 
 /// Called at the very top of `main`, before any Tauri setup. See

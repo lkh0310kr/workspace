@@ -17,7 +17,8 @@ async function buildPaneConfig(
     case "terminal":
       return { terminalId: await spawnTerminal() };
     case "browser":
-      return { url: source?.url ?? "https://example.com" };
+    case "browser-cef":
+      return { url: source?.url ?? "https://www.google.com" };
     case "code":
     case "markdown":
       return source?.filePath ? { filePath: source.filePath } : {};

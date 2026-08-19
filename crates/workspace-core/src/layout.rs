@@ -21,7 +21,7 @@ pub fn default_layout(terminal_id: u32) -> String {
                 "weight": 100,
                 "children": [{
                     "type": "tab",
-                    "id": format!("terminal-{terminal_id}"),
+                    "id": "main-terminal",
                     "name": "Terminal",
                     "component": "terminal",
                     "config": { "terminalId": terminal_id }

@@ -28,6 +28,11 @@ const TITLE_BAR_INSET: f64 = 32.0;
 const ANTI_AUTOMATION_SCRIPT: &str =
     "Object.defineProperty(navigator, 'webdriver', { get: () => false });";
 
+/// Width (logical px) reserved on the right of a browser pane's webview for
+/// WKWebView's own inline inspector when devtools is toggled open. See
+/// `browser_toggle_devtools`.
+const DEVTOOLS_RESERVED_WIDTH: f64 = 380.0;
+
 #[derive(Clone)]
 struct Frame {
     x: f64,
@@ -46,6 +51,7 @@ struct BrowserPane {
 pub struct BrowserHost {
     panes: HashMap<String, BrowserPane>,
     applied_frames: HashMap<String, Frame>,
+    devtools_open: HashMap<String, bool>,
 }
 
 impl BrowserHost {
@@ -53,6 +59,7 @@ impl BrowserHost {
         Self {
             panes: HashMap::new(),
             applied_frames: HashMap::new(),
+            devtools_open: HashMap::new(),
         }
     }
 
@@ -160,8 +167,13 @@ fn apply_pane(
         return Ok(());
     };
 
+    let width = if host.devtools_open.get(pane_id).copied().unwrap_or(false) {
+        (content.width - DEVTOOLS_RESERVED_WIDTH).max(200.0)
+    } else {
+        content.width
+    };
     let position = LogicalPosition::new(content.x, content.y);
-    let size = LogicalSize::new(content.width, content.height);
+    let size = LogicalSize::new(width, content.height);
     let window = main_window(app)?;
     let scale = window.scale_factor().unwrap_or(1.0);
 
@@ -322,7 +334,11 @@ pub async fn browser_reload(app: AppHandle, pane_id: String) -> Result<(), Strin
 }
 
 #[tauri::command]
-pub async fn browser_toggle_devtools(app: AppHandle, pane_id: String) -> Result<bool, String> {
+pub async fn browser_toggle_devtools(
+    app: AppHandle,
+    host: State<'_, Mutex<BrowserHost>>,
+    pane_id: String,
+) -> Result<bool, String> {
     let label = webview_label(&pane_id);
     let webview = app
         .get_webview(&label)
@@ -332,7 +348,46 @@ pub async fn browser_toggle_devtools(app: AppHandle, pane_id: String) -> Result<
     } else {
         webview.open_devtools();
     }
-    Ok(webview.is_devtools_open())
+    let now_open = webview.is_devtools_open();
+
+    // WKWebView's native inspector docks *inside* its own NSView by growing
+    // that view rightward — it assumes it owns a full browser window, not a
+    // small embedded pane, so opening it pushes past whatever bounds we gave
+    // it and into neighboring app UI (the sidebar). Rather than fight that by
+    // resetting to the original frame (which would just cram the inspector
+    // into no extra room), give it the room it wants up front: shrink our
+    // webview's own width by DEVTOOLS_RESERVED_WIDTH so the inspector has
+    // space to dock *within* bounds we still control, instead of past them.
+    // `apply_pane` reads `devtools_open` on every subsequent resize sync too,
+    // so a later window/pane resize doesn't undo this.
+    let content = {
+        let mut guard = host.lock();
+        guard.devtools_open.insert(pane_id.clone(), now_open);
+        guard.applied_frames.get(&pane_id).cloned()
+    };
+    if let Some(content) = content {
+        let app = app.clone();
+        // The inspector's own resize isn't synchronous with
+        // open_devtools()/close_devtools() returning, so reapply shortly
+        // after instead of racing it.
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            let inner_app = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                if let Some(webview) = inner_app.get_webview(&label) {
+                    let width = if now_open {
+                        (content.width - DEVTOOLS_RESERVED_WIDTH).max(200.0)
+                    } else {
+                        content.width
+                    };
+                    let _ = webview.set_position(LogicalPosition::new(content.x, content.y));
+                    let _ = webview.set_size(LogicalSize::new(width, content.height));
+                }
+            });
+        });
+    }
+
+    Ok(now_open)
 }
 
 #[tauri::command]
@@ -362,6 +417,7 @@ pub async fn browser_cleanup_all(
     let mut guard = host.lock();
     guard.panes.clear();
     guard.applied_frames.clear();
+    guard.devtools_open.clear();
     Ok(())
 }
 
@@ -378,6 +434,7 @@ pub async fn browser_detach(
     let mut guard = host.lock();
     guard.panes.remove(&pane_id);
     guard.applied_frames.remove(&pane_id);
+    guard.devtools_open.remove(&pane_id);
     Ok(())
 }
 
