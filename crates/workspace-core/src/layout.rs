@@ -11,7 +11,7 @@ pub fn default_layout(terminal_id: u32) -> String {
             "tabEnableRenderOnDemand": false,
             "tabEnableRename": false,
             "splitterSize": 1,
-            "splitterExtra": 0,
+            "splitterExtra": 8,
         },
         "borders": [],
         "layout": {

@@ -43,7 +43,10 @@ function parseLayout(json: string): IJsonModel {
     tabEnableRenderOnDemand: false,
     tabEnableRename: false,
     splitterSize: 1,
-    splitterExtra: 0,
+    // Splitter itself stays a thin 1px line visually, but the actual drag
+    // hit-test area is padded out by this much on top of it — 1px alone is
+    // too easy to miss.
+    splitterExtra: 8,
   };
   normalizeLayoutNode(model.layout);
   // flexlayout only loads tab children when tabset is inside a row/column
