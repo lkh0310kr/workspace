@@ -415,6 +415,7 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
           themePreference={themePreference}
           onThemeChange={handleThemeChange}
+          rootPath={workspace.root_path}
         />
       )}
     </div>

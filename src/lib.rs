@@ -6,7 +6,7 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use browser_host::BrowserHost;
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use parking_lot::Mutex;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 use workspace_core::Workspace;
 
@@ -15,6 +15,48 @@ mod cef_host;
 
 pub struct AppState {
     pub workspace: Mutex<Workspace>,
+    watcher: Mutex<Option<RecommendedWatcher>>,
+    watch_tx: Mutex<Option<WatchSender>>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+struct AppConfig {
+    root_path: Option<String>,
+}
+
+// Not going through `app.path().app_config_dir()`: that needs a running
+// `AppHandle`, only available inside `.setup()` — by which point
+// `Workspace::new()` (and the first tab/terminal it spawns) has already
+// run with whatever default root_path we gave it. Resolving this by hand
+// lets the persisted path be loaded *before* constructing the Workspace
+// at all, so the very first terminal already opens in the right place
+// instead of needing a second, later correction. Same macOS-only
+// resolution convention `cef_host.rs`'s `dirs_cache_path()` already uses.
+fn config_path() -> Option<PathBuf> {
+    let home = std::env::var_os("HOME")?;
+    Some(
+        PathBuf::from(home)
+            .join("Library")
+            .join("Application Support")
+            .join("workspace-app")
+            .join("config.json"),
+    )
+}
+
+fn load_config() -> AppConfig {
+    config_path()
+        .and_then(|path| std::fs::read_to_string(path).ok())
+        .and_then(|contents| serde_json::from_str(&contents).ok())
+        .unwrap_or_default()
+}
+
+fn save_config(config: &AppConfig) -> Result<(), String> {
+    let path = config_path().ok_or("no HOME set")?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let contents = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
+    std::fs::write(path, contents).map_err(|e| e.to_string())
 }
 
 #[derive(Clone, Serialize)]
@@ -89,6 +131,27 @@ fn set_tab_layout(
 }
 
 #[tauri::command]
+fn set_workspace_root(
+    state: State<'_, Arc<AppState>>,
+    app: AppHandle,
+    path: String,
+) -> Result<workspace_core::WorkspaceState, String> {
+    let root = PathBuf::from(&path);
+    state.workspace.lock().set_root_path(root.clone())?;
+    save_config(&AppConfig {
+        root_path: Some(path),
+    })?;
+
+    if let Some(tx) = state.watch_tx.lock().clone() {
+        *state.watcher.lock() = watch_root(&root, tx);
+    }
+
+    let new_state = state.workspace.lock().state();
+    let _ = app.emit("workspace-updated", new_state.clone());
+    Ok(new_state)
+}
+
+#[tauri::command]
 fn list_dir(
     state: State<'_, Arc<AppState>>,
     path: String,
@@ -124,19 +187,16 @@ fn spawn_pty_poll(app: AppHandle, state: Arc<AppState>) {
     });
 }
 
-fn spawn_file_watcher(app: AppHandle, root: PathBuf) {
+type WatchSender = std::sync::mpsc::Sender<notify::Result<notify::Event>>;
+
+/// Runs for the app's whole lifetime, relaying whichever `RecommendedWatcher`
+/// is currently installed in `AppState.watcher` — kept separate from the
+/// watcher itself so `set_workspace_root` can swap the watcher (stop
+/// watching the old root, start watching the new one) without needing to
+/// also restart this relay.
+fn spawn_watch_relay(app: AppHandle) -> WatchSender {
+    let (tx, rx): (WatchSender, _) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
-        let (tx, rx) = std::sync::mpsc::channel();
-        let mut watcher = RecommendedWatcher::new(
-            move |res| {
-                let _ = tx.send(res);
-            },
-            notify::Config::default(),
-        )
-        .expect("failed to create file watcher");
-
-        let _ = watcher.watch(&root, RecursiveMode::Recursive);
-
         while let Ok(Ok(event)) = rx.recv() {
             if matches!(
                 event.kind,
@@ -146,20 +206,42 @@ fn spawn_file_watcher(app: AppHandle, root: PathBuf) {
             }
         }
     });
+    tx
+}
+
+/// Dropping the previous `RecommendedWatcher` (by assigning over it in
+/// `AppState.watcher`) stops it from watching its old root.
+fn watch_root(root: &std::path::Path, tx: WatchSender) -> Option<RecommendedWatcher> {
+    let mut watcher = RecommendedWatcher::new(
+        move |res| {
+            let _ = tx.send(res);
+        },
+        notify::Config::default(),
+    )
+    .ok()?;
+    let _ = watcher.watch(root, RecursiveMode::Recursive);
+    Some(watcher)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let workspace = Workspace::new();
+    let config = load_config();
+    let workspace = match config.root_path.as_deref().map(PathBuf::from) {
+        Some(path) if path.is_dir() => Workspace::with_root(path),
+        _ => Workspace::new(),
+    };
     let root = workspace.root_path.clone();
 
     let state = Arc::new(AppState {
         workspace: Mutex::new(workspace),
+        watcher: Mutex::new(None),
+        watch_tx: Mutex::new(None),
     });
 
     let browser_host = Mutex::new(BrowserHost::new());
 
     let poll_state = Arc::clone(&state);
+    let setup_state = Arc::clone(&state);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -170,7 +252,11 @@ pub fn run() {
             browser_host::cleanup_browser_webviews(&handle);
             browser_host::attach_window_events(&handle);
             spawn_pty_poll(handle.clone(), poll_state);
-            spawn_file_watcher(handle.clone(), root);
+
+            let tx = spawn_watch_relay(handle.clone());
+            *setup_state.watcher.lock() = watch_root(&root, tx.clone());
+            *setup_state.watch_tx.lock() = Some(tx);
+
             let _ = handle.emit("app-ready", ());
             cef_host::set_app_handle(handle.clone());
             cef_host::initialize_cef();
@@ -186,6 +272,7 @@ pub fn run() {
             close_tab,
             select_tab,
             set_tab_layout,
+            set_workspace_root,
             list_dir,
             read_file,
             write_file,

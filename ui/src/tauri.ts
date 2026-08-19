@@ -66,6 +66,10 @@ export async function setTabLayout(tabId: number, layoutJson: string): Promise<v
   return invoke("set_tab_layout", { tabId, layoutJson });
 }
 
+export async function setWorkspaceRoot(path: string): Promise<WorkspaceState> {
+  return invoke("set_workspace_root", { path });
+}
+
 export async function listDir(path: string): Promise<DirEntry[]> {
   return invoke("list_dir", { path });
 }

@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
 
@@ -16,14 +17,16 @@ pub struct Pty {
     inner: RefCell<Option<PtyInner>>,
     cols: RefCell<u16>,
     rows: RefCell<u16>,
+    cwd: Option<PathBuf>,
 }
 
 impl Pty {
-    pub fn new(cols: u16, rows: u16) -> Self {
+    pub fn new(cols: u16, rows: u16, cwd: Option<PathBuf>) -> Self {
         Self {
             inner: RefCell::new(None),
             cols: RefCell::new(cols),
             rows: RefCell::new(rows),
+            cwd,
         }
     }
 
@@ -56,6 +59,9 @@ impl Pty {
         let mut cmd = CommandBuilder::new_default_prog();
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
+        if let Some(cwd) = &self.cwd {
+            cmd.cwd(cwd);
+        }
 
         let child = pair.slave.spawn_command(cmd).expect("failed to spawn shell");
 
@@ -138,7 +144,7 @@ mod tests {
 
     #[test]
     fn pty_accepts_multiple_writes() {
-        let pty = Pty::new(80, 24);
+        let pty = Pty::new(80, 24, None);
         pty.start();
 
         pty.write(b"echo hello\n");

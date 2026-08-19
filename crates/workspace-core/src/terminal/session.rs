@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::terminal::pty::Pty;
 
 pub struct TerminalSession {
@@ -8,10 +10,10 @@ pub struct TerminalSession {
 }
 
 impl TerminalSession {
-    pub fn new(id: u32, cols: u16, rows: u16) -> Self {
+    pub fn new(id: u32, cols: u16, rows: u16, cwd: Option<PathBuf>) -> Self {
         Self {
             id,
-            pty: Pty::new(cols, rows),
+            pty: Pty::new(cols, rows, cwd),
             cols,
             rows,
         }

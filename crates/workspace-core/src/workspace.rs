@@ -40,8 +40,16 @@ struct Tab {
 
 impl Workspace {
     pub fn new() -> Self {
+        Self::with_root(std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+    }
+
+    /// `root`'s own validity isn't checked here — the caller (the
+    /// persisted-config loader in the Tauri app) is responsible for
+    /// falling back to the CWD default if the saved path no longer
+    /// exists.
+    pub fn with_root(root: PathBuf) -> Self {
         let mut ws = Self {
-            root_path: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            root_path: root,
             tabs: Vec::new(),
             active_tab_id: 0,
             terminals: HashMap::new(),
@@ -110,10 +118,22 @@ impl Workspace {
     pub fn spawn_terminal(&mut self, cols: u16, rows: u16) -> u32 {
         let id = self.next_terminal_id;
         self.next_terminal_id += 1;
-        let session = TerminalSession::new(id, cols, rows);
+        let session = TerminalSession::new(id, cols, rows, Some(self.root_path.clone()));
         session.start();
         self.terminals.insert(id, session);
         id
+    }
+
+    /// Existing terminals keep their own cwd — only ones spawned after
+    /// this takes effect. Rejects anything that isn't an existing
+    /// directory rather than silently falling back, so a typo'd Settings
+    /// path doesn't quietly leave you where you were.
+    pub fn set_root_path(&mut self, path: PathBuf) -> Result<(), String> {
+        if !path.is_dir() {
+            return Err(format!("not a directory: {}", path.display()));
+        }
+        self.root_path = path;
+        Ok(())
     }
 
     pub fn terminal_write(&self, id: u32, data: &[u8]) {
