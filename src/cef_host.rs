@@ -43,12 +43,15 @@ use cef::{
     App, Browser, BrowserProcessHandler, BrowserSettings, CefString, Client, DisplayHandler,
     Errorcode, Frame, ImplApp, ImplBrowser, ImplBrowserHost, ImplBrowserProcessHandler,
     ImplClient, ImplCommandLine, ImplDisplayHandler, ImplFrame, ImplLoadHandler, ImplRequest,
-    ImplRequestHandler, LoadHandler, Rect, Request, RequestHandler, Settings, TransitionType,
-    WindowInfo,
+    ImplRenderProcessHandler, ImplRequestHandler, ImplV8Exception, ImplV8StackFrame,
+    ImplV8StackTrace, LoadHandler, Rect,
+    RenderProcessHandler, Request, RequestHandler, Settings, TransitionType, V8Context,
+    V8Exception, V8StackTrace, WindowInfo,
     WrapApp, WrapBrowserProcessHandler, WrapClient, WrapDisplayHandler, WrapLoadHandler,
-    WrapRequestHandler, args::Args, browser_host_create_browser_sync, do_message_loop_work,
-    execute_process, initialize, wrap_app, wrap_browser_process_handler, wrap_client,
-    wrap_display_handler, wrap_load_handler, wrap_request_handler,
+    WrapRenderProcessHandler, WrapRequestHandler, args::Args, browser_host_create_browser_sync,
+    do_message_loop_work, execute_process, initialize, wrap_app, wrap_browser_process_handler,
+    wrap_client, wrap_display_handler, wrap_load_handler, wrap_render_process_handler,
+    wrap_request_handler,
 };
 use serde::Serialize;
 use std::collections::HashMap;
@@ -199,11 +202,39 @@ fn inject_cef_app_protocol() {
 /// after `set_app_handle`.
 pub fn initialize_cef() {
     let mut app = build_app();
+    let log_path = std::env::temp_dir().join("workspace-app-cef.log");
+    eprintln!("[cef] verbose CEF-internal log: {}", log_path.display());
+    // CEF's own log warns about this if left unset: "Please customize
+    // CefSettings.root_cache_path for your application. Use of the default
+    // value may lead to unintended process singleton behavior." Leaving it
+    // unset makes CEF fall back to an implicit, effectively-incognito
+    // profile with no real on-disk backing — browser-level services that a
+    // normal (Chrome-style) profile initializes (history, favicons, etc.)
+    // are then either stubbed or lazily/incompletely set up. Giving CEF a
+    // real, persistent cache directory is the straightforward fix CEF's
+    // own log was asking for.
+    let cache_path = dirs_cache_path();
+    std::fs::create_dir_all(&cache_path).expect("failed to create CEF cache directory");
+    eprintln!("[cef] cache_path: {}", cache_path.display());
     let settings = Settings {
         external_message_pump: true as c_int,
+        cache_path: CefString::from(cache_path.to_str().unwrap()),
+        root_cache_path: CefString::from(cache_path.to_str().unwrap()),
         // See `workspace-app_helper.rs` for why this is off, not a
         // straightforward tradeoff.
         no_sandbox: 1,
+        // Maximum verbosity, to a dedicated file: our own eprintln! only
+        // covers what our own handlers see. Chromium/V8's own internal
+        // diagnostics (FATAL/CHECK failures) go through this logging
+        // system instead, and default severity was dropping all of it.
+        // Turned out not to help diagnose the SIGSEGV this was added for
+        // (a raw native segfault never routes through LOG(FATAL)/CHECK()),
+        // but it's legitimate, low-cost visibility to keep.
+        log_severity: cef::LogSeverity::VERBOSE,
+        log_file: CefString::from(log_path.to_str().unwrap()),
+        // Required for RenderProcessHandler::on_uncaught_exception to fire
+        // at all — 0 (the default) disables it outright.
+        uncaught_exception_stack_size: 100,
         ..Default::default()
     };
     let args = Args::new();
@@ -219,6 +250,15 @@ pub fn initialize_cef() {
     );
 }
 
+fn dirs_cache_path() -> std::path::PathBuf {
+    let home = std::env::var_os("HOME").expect("HOME not set");
+    std::path::PathBuf::from(home)
+        .join("Library")
+        .join("Application Support")
+        .join("workspace-app")
+        .join("CEF")
+}
+
 pub fn shutdown() {
     cef::shutdown();
 }
@@ -229,33 +269,121 @@ pub fn shutdown() {
 /// callback goes idle once a page settles, and windowed CEF then has no
 /// path to wake back up on real native input (a click on the view doesn't
 /// itself trigger it), so input silently stopped working ~1s after any
-/// page went idle. A real crash report (V8 SIGSEGV) was suspected to be
-/// caused by this fixed-interval pumping, but reverting to the
-/// callback-driven approach reproduced the *identical* crash just as
-/// reliably — so this isn't the cause, and this stays because it's a
-/// confirmed, real fix for the freeze with no evidence it makes the
-/// (separate, unresolved) crash any better or worse. `IN_FLIGHT` still
-/// guards against queuing a second `do_message_loop_work` while one is
-/// still running, since `run_on_main_thread` doesn't wait for the previous
-/// one to finish.
+/// page went idle.
+///
+/// On macOS this is a native `CFRunLoopTimer` added directly to the main
+/// run loop (`cf_pump::install`), not a background thread that marshals
+/// onto the main thread via `AppHandle::run_on_main_thread`. The
+/// background-thread version worked, but calling `do_message_loop_work`
+/// from `EventLoopHandler::handle_user_events` during `AppState::cleared`
+/// (a run-loop-*idle*/control-flow-end callback, not normal AppKit event
+/// dispatch) is not how CEF's own external-message-pump examples
+/// (cefclient's mac helper) drive it — they always use a `CFRunLoopTimer`
+/// in `kCFRunLoopCommonModes`. A `CFRunLoopTimer` fires as an ordinary
+/// run-loop source, in the normal event-dispatch phase, which is what CEF
+/// actually expects.
 fn spawn_pump_loop() {
-    let Some(handle) = APP_HANDLE.get() else {
+    #[cfg(target_os = "macos")]
+    {
+        cf_pump::install();
         return;
-    };
-    let handle = handle.clone();
-    std::thread::spawn(move || {
-        static IN_FLIGHT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-        loop {
-            std::thread::sleep(std::time::Duration::from_millis(16));
-            if IN_FLIGHT.swap(true, Ordering::AcqRel) {
-                continue;
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let Some(handle) = APP_HANDLE.get() else {
+            return;
+        };
+        let handle = handle.clone();
+        std::thread::spawn(move || {
+            static IN_FLIGHT: std::sync::atomic::AtomicBool =
+                std::sync::atomic::AtomicBool::new(false);
+            loop {
+                std::thread::sleep(std::time::Duration::from_millis(16));
+                if IN_FLIGHT.swap(true, Ordering::AcqRel) {
+                    continue;
+                }
+                let _ = handle.run_on_main_thread(move || {
+                    do_message_loop_work();
+                    IN_FLIGHT.store(false, Ordering::Release);
+                });
             }
-            let _ = handle.run_on_main_thread(move || {
-                do_message_loop_work();
-                IN_FLIGHT.store(false, Ordering::Release);
-            });
+        });
+    }
+}
+
+/// Minimal raw `CoreFoundation` FFI for a repeating `CFRunLoopTimer` on the
+/// main run loop. Not using the `objc2-core-foundation` crate: it's only
+/// pulled in transitively (via `tao`) at a version we don't control
+/// directly, and this needs exactly four functions plus one constant — a
+/// small, self-contained `extern "C"` block against the system
+/// `CoreFoundation.framework` (always present, always ABI-stable) is less
+/// risk than depending on an indirect crate's API surface matching.
+#[cfg(target_os = "macos")]
+mod cf_pump {
+    use std::ffi::c_void;
+    use std::os::raw::c_double;
+
+    type CFRunLoopTimerRef = *mut c_void;
+    type CFRunLoopRef = *mut c_void;
+    type CFStringRef = *mut c_void;
+    type CFAllocatorRef = *mut c_void;
+    type CFTimeInterval = c_double;
+    type CFAbsoluteTime = c_double;
+    type CFIndex = isize;
+    type CFOptionFlags = u64;
+
+    #[repr(C)]
+    struct CFRunLoopTimerContext {
+        version: CFIndex,
+        info: *mut c_void,
+        retain: *const c_void,
+        release: *const c_void,
+        copy_description: *const c_void,
+    }
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    unsafe extern "C" {
+        static kCFRunLoopCommonModes: CFStringRef;
+        fn CFRunLoopGetMain() -> CFRunLoopRef;
+        fn CFAbsoluteTimeGetCurrent() -> CFAbsoluteTime;
+        fn CFRunLoopTimerCreate(
+            allocator: CFAllocatorRef,
+            fire_date: CFAbsoluteTime,
+            interval: CFTimeInterval,
+            flags: CFOptionFlags,
+            order: CFIndex,
+            callout: extern "C" fn(CFRunLoopTimerRef, *mut c_void),
+            context: *mut CFRunLoopTimerContext,
+        ) -> CFRunLoopTimerRef;
+        fn CFRunLoopAddTimer(rl: CFRunLoopRef, timer: CFRunLoopTimerRef, mode: CFStringRef);
+    }
+
+    extern "C" fn fire(_timer: CFRunLoopTimerRef, _info: *mut c_void) {
+        super::do_message_loop_work();
+    }
+
+    /// Installs a ~60fps repeating timer on the main run loop, in
+    /// `kCFRunLoopCommonModes` so it keeps firing during modal/tracking
+    /// loops (window resize, menu tracking) the same way real Chrome's own
+    /// pump does.
+    pub fn install() {
+        unsafe {
+            let timer = CFRunLoopTimerCreate(
+                std::ptr::null_mut(),
+                CFAbsoluteTimeGetCurrent(),
+                0.016,
+                0,
+                0,
+                fire,
+                std::ptr::null_mut(),
+            );
+            if timer.is_null() {
+                eprintln!("[cef] cf_pump::install: CFRunLoopTimerCreate returned null");
+                return;
+            }
+            CFRunLoopAddTimer(CFRunLoopGetMain(), timer, kCFRunLoopCommonModes);
         }
-    });
+    }
 }
 
 fn build_app() -> App {
@@ -273,6 +401,15 @@ wrap_app! {
     impl App {
         fn browser_process_handler(&self) -> Option<BrowserProcessHandler> {
             Some(BrowserProcessHandlerBuilder::build())
+        }
+
+        // The same `App`/`AppBuilder` serves every CEF process role
+        // (browser, renderer, GPU, ...) via
+        // `dispatch_subprocess_and_check_is_browser_process`'s re-exec
+        // dispatch, so this only actually does anything when CEF decides
+        // this process is the "renderer" role.
+        fn render_process_handler(&self) -> Option<RenderProcessHandler> {
+            Some(RenderProcessHandlerBuilder::build())
         }
 
         // Windowed CEF panes were producing a steady stream of
@@ -315,8 +452,59 @@ wrap_app! {
                 // configuration, this isn't a clean signal either way;
                 // reverted rather than trade one poorly-understood failure
                 // mode for another.
+
+                // Chromium's password manager (autofill/"Save password?",
+                // which activates on password fields regardless of the
+                // WebAuthn switch above) independently touches the real
+                // macOS Keychain unless told not to. Given a personal,
+                // non-Developer-ID signing identity has repeatedly caused
+                // Keychain-adjacent failures elsewhere this session,
+                // `--use-mock-keychain` (Chromium's own standard switch,
+                // used throughout its test/CI infra) keeps password
+                // manager functional via an in-memory store instead.
+                command_line.append_switch(Some(&CefString::from("use-mock-keychain")));
             }
         }
+    }
+}
+
+wrap_render_process_handler! {
+    struct RenderProcessHandlerBuilder {}
+
+    impl RenderProcessHandler {
+        fn on_uncaught_exception(
+            &self,
+            _browser: Option<&mut Browser>,
+            _frame: Option<&mut Frame>,
+            _context: Option<&mut V8Context>,
+            exception: Option<&mut V8Exception>,
+            stack_trace: Option<&mut V8StackTrace>,
+        ) {
+            let Some(exception) = exception else { return };
+            eprintln!(
+                "[cef] on_uncaught_exception: {} at {}:{}",
+                CefString::from(&exception.message()).to_string(),
+                CefString::from(&exception.script_resource_name()).to_string(),
+                exception.line_number(),
+            );
+            let Some(stack_trace) = stack_trace else { return };
+            let frame_count = stack_trace.frame_count();
+            for i in 0..frame_count {
+                let Some(frame) = stack_trace.frame(i) else { continue };
+                eprintln!(
+                    "[cef]   at {} ({}:{})",
+                    CefString::from(&frame.function_name()).to_string(),
+                    CefString::from(&frame.script_name()).to_string(),
+                    frame.line_number(),
+                );
+            }
+        }
+    }
+}
+
+impl RenderProcessHandlerBuilder {
+    fn build() -> RenderProcessHandler {
+        Self::new()
     }
 }
 
