@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef } from "react";
-import { Terminal } from "@xterm/xterm";
+import { Terminal, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -7,11 +7,30 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import "@xterm/xterm/css/xterm.css";
 import { onPtyOutput, ptyResize, ptyWrite } from "../tauri";
+import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } from "../theme";
 
 interface Props {
   terminalId: number;
   active: boolean;
 }
+
+// xterm takes colors as JS options, not CSS — can't just point it at
+// styles.css's custom properties. Mirrors the --bg-base/--text/--accent
+// tokens there for each resolved theme.
+const XTERM_THEMES: Record<ResolvedTheme, ITheme> = {
+  dark: {
+    background: "#0d0d0d",
+    foreground: "#d4d4d4",
+    cursor: "#d4d4d4",
+    selectionBackground: "#1c2430",
+  },
+  light: {
+    background: "#f7f7f7",
+    foreground: "#1a1a1a",
+    cursor: "#1a1a1a",
+    selectionBackground: "#dbe6f5",
+  },
+};
 
 // The PTY session outlives the React component (it's only killed when its
 // workspace tab is closed, not on unmount — e.g. switching workspace tabs
@@ -63,12 +82,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       cursorBlink: true,
       fontSize: 13,
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-      theme: {
-        background: "#0d0d0d",
-        foreground: "#d4d4d4",
-        cursor: "#d4d4d4",
-        selectionBackground: "#1c2430",
-      },
+      theme: XTERM_THEMES[getCurrentResolvedTheme()],
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
@@ -103,6 +117,10 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     const focusTerm = () => term.focus();
     host.addEventListener("mousedown", focusTerm);
 
+    const unsubscribeTheme = subscribeThemeChange((resolved) => {
+      term.options.theme = XTERM_THEMES[resolved];
+    });
+
     return () => {
       if (serialize) {
         try {
@@ -111,6 +129,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
           console.error("terminal: failed to serialize scrollback", err);
         }
       }
+      unsubscribeTheme();
       host.removeEventListener("mousedown", focusTerm);
       window.removeEventListener("resize", syncSize);
       resizeObserver.disconnect();

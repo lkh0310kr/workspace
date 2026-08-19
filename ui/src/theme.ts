@@ -23,6 +23,20 @@ export function resolveTheme(preference: ThemePreference): ResolvedTheme {
   return preference;
 }
 
+export function getCurrentResolvedTheme(): ResolvedTheme {
+  return document.documentElement.dataset.theme === "light" ? "light" : "dark";
+}
+
+const listeners = new Set<(resolved: ResolvedTheme) => void>();
+
+/** For things CSS variables can't reach — xterm.js takes its colors as JS
+ * options, not CSS, so TerminalPane needs to know when the resolved theme
+ * changes to update a live `Terminal` instance's `options.theme`. */
+export function subscribeThemeChange(listener: (resolved: ResolvedTheme) => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 /** Applies a resolved theme to the document root and the flexlayout-react
  * theme wrapper class (see `flexlayout-react/style/combined.css`, imported
  * instead of a single fixed `dark.css` so both themes are available to
@@ -31,6 +45,7 @@ export function applyResolvedTheme(resolved: ResolvedTheme) {
   document.documentElement.dataset.theme = resolved;
   document.documentElement.classList.remove("flexlayout__theme_light", "flexlayout__theme_dark");
   document.documentElement.classList.add(`flexlayout__theme_${resolved}`);
+  for (const listener of listeners) listener(resolved);
 }
 
 /** Applies `preference`, and if it's "system", keeps it in sync with OS
