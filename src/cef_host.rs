@@ -199,6 +199,8 @@ pub fn initialize_cef() {
     let mut app = build_app();
     let settings = Settings {
         external_message_pump: true as c_int,
+        // See `workspace-app_helper.rs` for why this is off, not a
+        // straightforward tradeoff.
         no_sandbox: 1,
         ..Default::default()
     };
@@ -443,6 +445,9 @@ pub fn report_frame(pane_id: String, url: String, frame: PaneFrameArgs, visible:
             width: frame.width.max(1.0) as c_int,
             height: frame.height.max(1.0) as c_int,
         };
+        eprintln!(
+            "[cef] report_frame: {pane_id} set_as_child parent_view={parent_view:?} bounds={bounds:?}"
+        );
         let window_info = WindowInfo::default().set_as_child(parent_view, &bounds);
         let browser_settings = BrowserSettings::default();
         let mut client = ClientBuilder::build(
