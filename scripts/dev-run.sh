@@ -22,16 +22,24 @@ command -v cmake >/dev/null || { echo "brew install cmake ninja"; exit 1; }
 
 bundle-cef-app workspace-app -o target/bundle
 
-# Adhoc (`-s -`) was what got OSR CEF working end-to-end earlier, but with
-# *windowed* CEF (a real NSView, GPU-composited, talking to WindowServer)
-# the process keeps logging "Unable to derive validation category... -67030"
-# and the app has been dying with no crash report (implying SIGKILL, not a
-# catchable crash) during real interaction (typing/navigating) — plausibly
-# macOS's process-validation objecting to adhoc signing once the process
-# actually touches WindowServer, which OSR never did. Testing a real local
-# identity here again now that the *reason* it broke things before (renderer
-# helper spawn failing under multi-process validation) may not apply the
-# same way to windowed mode.
+# A real local identity (not adhoc `-s -`) is what got windowed CEF stable —
+# adhoc made "Unable to derive validation category... -67030" fatal (silent
+# SIGKILL) once the process actually talks to WindowServer, which OSR never
+# did.
+#
+# Deliberately no `--entitlements` here. Tried two variants — one blanket
+# `--deep --entitlements` with a broad plist, one with electron-osx-sign's
+# actual production-proven per-helper-variant split
+# (https://github.com/electron-userland/electron-osx-sign/tree/main/entitlements,
+# targeting the real V8 SIGSEGV crash report's JIT-memory-protection cause)
+# — and *both* made the app die silently (no crash report) within seconds
+# of every launch, even with zero user interaction. Conclusion: it's not
+# the plist contents, it's that a personal "Apple Development" identity
+# (meant for local Xcode debugging on your own devices) isn't the kind of
+# signing identity hardened-runtime entitlements actually validate against
+# — that needs a real Developer ID Application cert plus notarization,
+# which is a release pipeline, not a dev-script flag. Left in
+# entitlements/*.plist for whenever that exists.
 IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 'Apple Development' | sed -E 's/.*"(.*)"/\1/')"
 if [ -n "$IDENTITY" ]; then
   codesign --deep --force -s "$IDENTITY" target/bundle/workspace-app.app

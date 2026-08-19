@@ -222,29 +222,36 @@ pub fn shutdown() {
 }
 
 /// Started once, from `on_context_initialized`. Pumps CEF's message loop on
-/// a fixed ~60fps interval forever, instead of relying on CEF's own
-/// `on_schedule_message_pump_work` callback (which goes idle once a page
-/// settles — fine for OSR's continuous redraw needs, but windowed CEF then
-/// has no path to wake back up on real native input, since a click on the
-/// view doesn't itself trigger this callback). A single persistent thread
-/// (not one spawned per pump like the old callback-driven approach) so this
-/// doesn't create unbounded thread churn under heavy interaction.
+/// a fixed ~60fps interval forever instead of relying on CEF's own
+/// scheduling callback (see `on_schedule_message_pump_work`) — that
+/// callback goes idle once a page settles, and windowed CEF then has no
+/// path to wake back up on real native input (a click on the view doesn't
+/// itself trigger it), so input silently stopped working ~1s after any
+/// page went idle. A real crash report (V8 SIGSEGV) was suspected to be
+/// caused by this fixed-interval pumping, but reverting to the
+/// callback-driven approach reproduced the *identical* crash just as
+/// reliably — so this isn't the cause, and this stays because it's a
+/// confirmed, real fix for the freeze with no evidence it makes the
+/// (separate, unresolved) crash any better or worse. `IN_FLIGHT` still
+/// guards against queuing a second `do_message_loop_work` while one is
+/// still running, since `run_on_main_thread` doesn't wait for the previous
+/// one to finish.
 fn spawn_pump_loop() {
     let Some(handle) = APP_HANDLE.get() else {
         return;
     };
     let handle = handle.clone();
     std::thread::spawn(move || {
-        static PUMP_COUNT: AtomicU64 = AtomicU64::new(0);
+        static IN_FLIGHT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
         loop {
             std::thread::sleep(std::time::Duration::from_millis(16));
-            let pn = PUMP_COUNT.fetch_add(1, Ordering::Relaxed);
-            let result = handle.run_on_main_thread(do_message_loop_work);
-            if let Err(e) = result {
-                eprintln!("[cef] pump_loop #{pn}: run_on_main_thread FAILED: {e:?}");
-            } else if pn % 300 == 0 {
-                eprintln!("[cef] pump_loop #{pn} ran (heartbeat)");
+            if IN_FLIGHT.swap(true, Ordering::AcqRel) {
+                continue;
             }
+            let _ = handle.run_on_main_thread(move || {
+                do_message_loop_work();
+                IN_FLIGHT.store(false, Ordering::Release);
+            });
         }
     });
 }
@@ -298,16 +305,16 @@ wrap_browser_process_handler! {
             spawn_pump_loop();
         }
 
-        // Intentionally not acted on: see `spawn_pump_loop`. Trusting CEF's
-        // own "call me back in delay_ms" scheduling turned out to actually
-        // go idle once a page settles (no more scheduled work) — unlike
-        // OSR, which was observed to self-perpetuate continuously forever
-        // regardless of page activity. Once idle, a real native click on
-        // the windowed view has no path to wake this callback back up, so
-        // the browser stops processing input entirely (confirmed via
-        // logging: the pump's own heartbeat counter stopped advancing
-        // within ~1s of the page settling, with zero user interaction in
-        // between). A fixed-interval fallback pump below replaces this.
+        // Tried reverting to this (OSR's original, callback-driven)
+        // approach to test whether the fixed-interval `spawn_pump_loop`
+        // was the cause of a V8 SIGSEGV crash report — it made no
+        // difference (100% reproducible either way, ~10-15s into idle
+        // google.com browsing, fresh profile, zero interaction), so the
+        // crash isn't specific to pump strategy. Left not acted on: this
+        // callback going idle once a page settles is what caused the
+        // "input stops working after ~1s idle" freeze `spawn_pump_loop`
+        // fixed, and reverting to it gets that regression back for no
+        // crash benefit.
         fn on_schedule_message_pump_work(&self, _delay_ms: i64) {}
     }
 }
