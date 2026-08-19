@@ -42,11 +42,13 @@ use cef::rc::Rc as _;
 use cef::{
     App, Browser, BrowserProcessHandler, BrowserSettings, CefString, Client, DisplayHandler,
     Errorcode, Frame, ImplApp, ImplBrowser, ImplBrowserHost, ImplBrowserProcessHandler,
-    ImplClient, ImplCommandLine, ImplDisplayHandler, ImplFrame, ImplLoadHandler, LoadHandler,
-    Rect, Settings, TransitionType, WindowInfo, WrapApp, WrapBrowserProcessHandler, WrapClient,
-    WrapDisplayHandler, WrapLoadHandler, args::Args, browser_host_create_browser_sync,
-    do_message_loop_work, execute_process, initialize, wrap_app, wrap_browser_process_handler,
-    wrap_client, wrap_display_handler, wrap_load_handler,
+    ImplClient, ImplCommandLine, ImplDisplayHandler, ImplFrame, ImplLoadHandler, ImplRequest,
+    ImplRequestHandler, LoadHandler, Rect, Request, RequestHandler, Settings, TransitionType,
+    WindowInfo,
+    WrapApp, WrapBrowserProcessHandler, WrapClient, WrapDisplayHandler, WrapLoadHandler,
+    WrapRequestHandler, args::Args, browser_host_create_browser_sync, do_message_loop_work,
+    execute_process, initialize, wrap_app, wrap_browser_process_handler, wrap_client,
+    wrap_display_handler, wrap_load_handler, wrap_request_handler,
 };
 use serde::Serialize;
 use std::collections::HashMap;
@@ -289,6 +291,30 @@ wrap_app! {
             if let Some(command_line) = command_line {
                 command_line.append_switch(Some(&CefString::from("disable-gpu-compositing")));
                 command_line.append_switch(Some(&CefString::from("disable-gpu")));
+                // The V8 SIGSEGV crash report's URL trail (`on_before_browse`
+                // logging) shows it happens right after google.com
+                // auto-redirects to its sign-in flow, immediately followed
+                // by "Touch ID authenticator unavailable... keychain-access-
+                // group entitlement is missing" — the sign-in page probes
+                // WebAuthn/passkeys, which fails because we don't (and,
+                // given entitlements made things worse every time tried,
+                // safely can't right now) have that keychain entitlement.
+                // Disabling WebAuthn outright means the page never attempts
+                // that path instead of attempting and mishandling the
+                // failure.
+                command_line
+                    .append_switch_with_value(
+                        Some(&CefString::from("disable-features")),
+                        Some(&CefString::from("WebAuthentication")),
+                    );
+                // Tried `--js-flags=--jitless` (interpreter-only V8) here
+                // as a diagnostic for the JIT-flavored crash signature —
+                // the crash mode changed (silent death, no crash report,
+                // instead of a catchable SIGSEGV) but it still died. Since
+                // jitless mode is itself an unusual, lightly-tested V8
+                // configuration, this isn't a clean signal either way;
+                // reverted rather than trade one poorly-understood failure
+                // mode for another.
             }
         }
     }
@@ -460,6 +486,7 @@ pub fn report_frame(pane_id: String, url: String, frame: PaneFrameArgs, visible:
         let mut client = ClientBuilder::build(
             LoadHandlerBuilder::build(pane_id.clone()),
             DisplayHandlerBuilder::build(pane_id.clone()),
+            RequestHandlerBuilder::build(pane_id.clone()),
         );
         let cef_url = CefString::from(url.as_str());
         // The final `None` is `request_context`: passing none means every
@@ -715,10 +742,33 @@ wrap_load_handler! {
         fn on_load_start(
             &self,
             _browser: Option<&mut Browser>,
-            _frame: Option<&mut Frame>,
+            frame: Option<&mut Frame>,
             _transition_type: TransitionType,
         ) {
             eprintln!("[cef] on_load_start pane={}", self.handler.pane_id);
+            // Blocking the passkey-challenge *navigation* didn't work — the
+            // URL trail shows it's a client-side route change within an
+            // already-loaded SPA page (accounts.google.com's sign-in flow),
+            // never a real top-level navigation `on_before_browse` sees.
+            // Stub out the WebAuthn JS API itself instead, at document
+            // start (before the page's own scripts run): it'll see
+            // credential requests fail immediately and fall back to normal
+            // password entry, instead of invoking the native passkey/Touch
+            // ID bridge that's been crashing V8 (missing keychain
+            // entitlement — see workspace-app_helper.rs).
+            if let Some(frame) = frame {
+                frame.execute_java_script(
+                    Some(&CefString::from(
+                        "if (window.PublicKeyCredential) { window.PublicKeyCredential = undefined; } \
+                         if (navigator.credentials) { \
+                           navigator.credentials.get = () => Promise.reject(new Error('WebAuthn disabled')); \
+                           navigator.credentials.create = () => Promise.reject(new Error('WebAuthn disabled')); \
+                         }",
+                    )),
+                    Some(&CefString::from("workspace-app://disable-webauthn")),
+                    0,
+                );
+            }
         }
 
         fn on_load_end(
@@ -795,6 +845,11 @@ wrap_display_handler! {
             url: Option<&CefString>,
         ) {
             let Some(url) = url else { return };
+            eprintln!(
+                "[cef] on_address_change pane={} url={}",
+                self.handler.pane_id,
+                url.to_string()
+            );
             if let Some(handle) = APP_HANDLE.get() {
                 let _ = handle.emit(
                     "cef-address",
@@ -833,10 +888,66 @@ impl DisplayHandlerBuilder {
     }
 }
 
+#[derive(Clone)]
+struct PaneRequestHandler {
+    pane_id: String,
+}
+
+wrap_request_handler! {
+    struct RequestHandlerBuilder {
+        handler: PaneRequestHandler,
+    }
+
+    impl RequestHandler {
+        // Every top-level navigation this pane is about to make — the
+        // exact URL trail leading up to (and hopefully explaining) a
+        // crash, since login flows bounce through several redirects
+        // (accounts.google.com, back to google.com, etc.) that on_address_change
+        // alone doesn't fully capture (it only fires for *committed*
+        // navigations, not every attempt).
+        fn on_before_browse(
+            &self,
+            _browser: Option<&mut Browser>,
+            _frame: Option<&mut Frame>,
+            request: Option<&mut Request>,
+            user_gesture: c_int,
+            is_redirect: c_int,
+        ) -> c_int {
+            let Some(request) = request else { return 0 };
+            let url = CefString::from(&request.url()).to_string();
+            eprintln!(
+                "[cef] on_before_browse pane={} url={url} user_gesture={user_gesture} is_redirect={is_redirect}",
+                self.handler.pane_id,
+            );
+            // The V8 SIGSEGV crash's URL trail (captured via this same log)
+            // consistently reaches exactly this page — Google's Passkey/
+            // WebAuthn challenge — right before crashing. `--disable-
+            // features=WebAuthentication` didn't stop it from being
+            // reached, so block the navigation outright instead: Google's
+            // own sign-in flow falls back to password entry when passkey
+            // isn't available, which is what we actually want here anyway
+            // (real Touch ID/keychain integration needs entitlements we
+            // don't have, see `workspace-app_helper.rs`).
+            if url.contains("/signin/challenge/pk") {
+                eprintln!("[cef] on_before_browse: blocking passkey challenge navigation");
+                return 1;
+            }
+            0
+        }
+    }
+}
+
+impl RequestHandlerBuilder {
+    fn build(pane_id: String) -> RequestHandler {
+        Self::new(PaneRequestHandler { pane_id })
+    }
+}
+
 wrap_client! {
     struct ClientBuilder {
         load_handler: LoadHandler,
         display_handler: DisplayHandler,
+        request_handler: RequestHandler,
     }
 
     impl Client {
@@ -847,12 +958,20 @@ wrap_client! {
         fn display_handler(&self) -> Option<DisplayHandler> {
             Some(self.display_handler.clone())
         }
+
+        fn request_handler(&self) -> Option<RequestHandler> {
+            Some(self.request_handler.clone())
+        }
     }
 }
 
 impl ClientBuilder {
-    fn build(load_handler: LoadHandler, display_handler: DisplayHandler) -> Client {
-        Self::new(load_handler, display_handler)
+    fn build(
+        load_handler: LoadHandler,
+        display_handler: DisplayHandler,
+        request_handler: RequestHandler,
+    ) -> Client {
+        Self::new(load_handler, display_handler, request_handler)
     }
 }
 
