@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IJsonModel, Layout, Model, TabNode, Actions } from "flexlayout-react";
-import "flexlayout-react/style/dark.css";
+import "flexlayout-react/style/combined.css";
 import { PaneFrame } from "./components/PaneFrame";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
+import { SettingsDialog } from "./components/SettingsDialog";
 import { useWorkspace } from "./components/useWorkspace";
 import { addPaneToTabSet, replacePane, splitTabSet } from "./layout/layoutActions";
 import { PaneComponent, PaneConfig } from "./layout/paneTypes";
@@ -14,6 +15,12 @@ import { CefBrowserPane } from "./panes/CefBrowserPane";
 import { browserCleanupAll, browserHideAll } from "./browser";
 import { popOverlayBlock, pushOverlayBlock } from "./browser/overlayBarrier";
 import { WorkspaceState, setTabLayout } from "./tauri";
+import {
+  ThemePreference,
+  applyThemePreference,
+  getStoredThemePreference,
+  setStoredThemePreference,
+} from "./theme";
 
 function normalizeLayoutNode(node: unknown) {
   if (!node || typeof node !== "object") return;
@@ -86,6 +93,28 @@ export default function App() {
   >(async () => {});
   const ensureInflightRef = useRef<Set<number>>(new Set());
   const [modelEpoch, setModelEpoch] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
+
+  useEffect(() => {
+    return applyThemePreference(themePreference);
+  }, [themePreference]);
+
+  const handleThemeChange = useCallback((preference: ThemePreference) => {
+    setStoredThemePreference(preference);
+    setThemePreference(preference);
+  }, []);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        setSettingsOpen((open) => !open);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const syncModels = useCallback((ws: WorkspaceState) => {
     const seen = new Set<number>();
@@ -312,6 +341,13 @@ export default function App() {
           realtimeResize
         />
       </div>
+      {settingsOpen && (
+        <SettingsDialog
+          onClose={() => setSettingsOpen(false)}
+          themePreference={themePreference}
+          onThemeChange={handleThemeChange}
+        />
+      )}
     </div>
   );
 }

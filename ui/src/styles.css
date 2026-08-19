@@ -19,6 +19,19 @@
   --rail-close-w: 42px;
 }
 
+:root[data-theme="light"] {
+  --bg-base: #f7f7f7;
+  --bg-surface: #ffffff;
+  --bg-hover: #ececec;
+  --bg-active: #dbe6f5;
+  --border: #dcdcdc;
+  --border-strong: #c7c7c7;
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --text-faint: #9a9a9a;
+  --accent: #3d6fb5;
+}
+
 *,
 *::before,
 *::after {
@@ -580,6 +593,99 @@ iframe.browser-content-slot {
 
 .tabset-placeholder {
   display: none;
+}
+
+/* —— Settings dialog —— */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-dialog {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  width: 360px;
+  padding: 12px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.settings-close:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.settings-section-title {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-row-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.settings-theme-options {
+  display: flex;
+  border: 1px solid var(--border);
+}
+
+.settings-theme-option {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.settings-theme-option:first-child {
+  border-left: none;
+}
+
+.settings-theme-option:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.settings-theme-option.active {
+  background: var(--bg-active);
+  color: var(--text);
 }
 
 /* Legacy pane picker (unused) */
