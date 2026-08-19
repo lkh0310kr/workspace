@@ -44,8 +44,16 @@ impl Pty {
             })
             .expect("failed to open pty");
 
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
-        let mut cmd = CommandBuilder::new(shell);
+        // `new_default_prog` (not `new(shell)`) is what makes `portable_pty`
+        // spawn the shell as a *login* shell (it prefixes argv0 with `-`,
+        // same convention Terminal.app/iTerm2 use) — without that, only
+        // `.zshrc` runs, never `/etc/zprofile` (which runs `path_helper` to
+        // pull in `/etc/paths.d/*`, e.g. Homebrew's `/opt/homebrew/bin`) or
+        // the user's own `~/.zprofile`, so anything relying on either (like
+        // a `.zshrc` that calls `brew` directly, assuming it's already on
+        // PATH) breaks with "command not found" in a way a real terminal
+        // never would.
+        let mut cmd = CommandBuilder::new_default_prog();
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
 
