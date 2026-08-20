@@ -29,6 +29,48 @@ APP="target/bundle/workspace-app.app"
 cp icons/icon.icns "$APP/Contents/Resources/icon.icns"
 plutil -replace CFBundleIconFile -string "icon.icns" "$APP/Contents/Info.plist"
 
+# bundle-cef-app also stamps every bundle it generates — the main app
+# AND all five CEF helper .apps — with the exact same hardcoded
+# CFBundleIdentifier ("apps.tauri.cef-rs.workspace-app"), completely
+# ignoring tauri.conf.json's configured "com.workspace.app" (confirmed
+# by inspecting the generated Info.plists directly, not assumed). Six
+# different processes sharing one bundle identifier is itself invalid
+# macOS app structure, and was reported directly as the cause of a real
+# symptom: the "workspace-app.app.bundle would like to access files in
+# your Documents folder" TCC prompt reappearing repeatedly instead of
+# macOS remembering a one-time grant — each helper claiming the same
+# identifier as a different executable/signature evidently confuses
+# TCC's per-identifier consent bookkeeping. Fixed the same way the icon
+# is: overwrite Info.plist post-generation, pre-signing. Naming follows
+# Electron's own convention for this exact multi-helper CEF/Chromium
+# structure (<bundle-id>.helper, <bundle-id>.helper.GPU, etc.) rather
+# than inventing a scheme.
+plutil -replace CFBundleIdentifier -string "com.workspace.app" "$APP/Contents/Info.plist"
+FRAMEWORKS="$APP/Contents/Frameworks"
+# Plain parallel arrays, not `declare -A` — macOS ships bash 3.2 (no
+# associative-array support at all; that's a bash 4+ feature), which
+# `set -u` turned into a baffling "unbound variable" parse failure
+# rather than a clear "command not found" (confirmed by checking
+# `bash --version` here, not guessed).
+HELPER_APPS=(
+  "workspace-app Helper.app"
+  "workspace-app Helper (GPU).app"
+  "workspace-app Helper (Renderer).app"
+  "workspace-app Helper (Plugin).app"
+  "workspace-app Helper (Alerts).app"
+)
+HELPER_IDS=(
+  "com.workspace.app.helper"
+  "com.workspace.app.helper.GPU"
+  "com.workspace.app.helper.Renderer"
+  "com.workspace.app.helper.Plugin"
+  "com.workspace.app.helper.Alerts"
+)
+for i in "${!HELPER_APPS[@]}"; do
+  plutil -replace CFBundleIdentifier -string "${HELPER_IDS[$i]}" \
+    "$FRAMEWORKS/${HELPER_APPS[$i]}/Contents/Info.plist"
+done
+
 # Now signed with a real "Developer ID Application" identity (Team
 # B42SPPS3PR) instead of a personal "Apple Development" cert. The earlier
 # attempts at hardened-runtime entitlements (see git history / this
@@ -53,7 +95,6 @@ sign_one() {
 }
 
 IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 'Developer ID Application' | sed -E 's/.*"(.*)"/\1/')"
-FRAMEWORKS="$APP/Contents/Frameworks"
 CEF_FW="$FRAMEWORKS/Chromium Embedded Framework.framework"
 
 if [ -n "$IDENTITY" ]; then
