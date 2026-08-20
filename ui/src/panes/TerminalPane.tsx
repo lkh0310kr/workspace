@@ -5,7 +5,6 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { SearchAddon } from "@xterm/addon-search";
-import { WebglAddon } from "@xterm/addon-webgl";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import "@xterm/xterm/css/xterm.css";
 import { onPtyOutput, ptyResize, ptyWrite } from "../tauri";
@@ -44,7 +43,7 @@ const scrollbackCache = new Map<number, string>();
 // Best-effort addon loading: none of these are essential to a working
 // terminal, so one failing (unsupported API, odd webview environment) must
 // not take the whole pane down with it.
-function loadOptionalAddons(term: Terminal): { serialize: SerializeAddon | null; webgl: WebglAddon | null } {
+function loadOptionalAddons(term: Terminal): { serialize: SerializeAddon | null } {
   let serialize: SerializeAddon | null = null;
   try {
     serialize = new SerializeAddon();
@@ -68,34 +67,7 @@ function loadOptionalAddons(term: Terminal): { serialize: SerializeAddon | null;
   } catch (err) {
     console.error("terminal: web-links addon failed to load", err);
   }
-  // GPU-accelerated rendering. `crates/terminal-gpu` is a prior, explicitly
-  // "archived" attempt at a from-scratch native wgpu renderer — reviving it
-  // means owning font-atlas rendering, grid diffing, and a native-surface
-  // embed into the Tauri window from scratch (the same category of open-
-  // ended native-embedding project that the CEF windowed-pane work turned
-  // out to be — see cef_host.rs). xterm.js's own maintained WebGL addon
-  // gets the actual goal (GPU-accelerated terminal rendering) with none of
-  // that risk, so that's what's wired in here instead.
-  let webgl: WebglAddon | null = null;
-  try {
-    webgl = new WebglAddon();
-    // WebGL contexts can be lost (GPU driver reset, OS resource pressure,
-    // tab backgrounding on some platforms) — xterm's own docs call out
-    // disposing the addon on loss so it falls back to the default
-    // (canvas/DOM) renderer rather than leaving the terminal stuck blank.
-    webgl.onContextLoss(() => {
-      try {
-        webgl?.dispose();
-      } catch (err) {
-        console.error("terminal: webgl addon dispose after context loss failed", err);
-      }
-    });
-    term.loadAddon(webgl);
-  } catch (err) {
-    console.error("terminal: webgl addon failed to load, using default renderer", err);
-    webgl = null;
-  }
-  return { serialize, webgl };
+  return { serialize };
 }
 
 function TerminalPaneInner({ terminalId, active }: Props) {
@@ -128,7 +100,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     const search = new SearchAddon();
     term.loadAddon(search);
     term.open(host);
-    const { serialize, webgl } = loadOptionalAddons(term);
+    const { serialize } = loadOptionalAddons(term);
     termRef.current = term;
     fitRef.current = fit;
     searchRef.current = search;
@@ -186,19 +158,6 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       host.removeEventListener("mousedown", focusTerm);
       window.removeEventListener("resize", syncSize);
       resizeObserver.disconnect();
-      // @xterm/addon-webgl's own disposal callback reads
-      // `terminal._core._store._isDisposed` to decide whether to restore
-      // the default renderer — but `term.dispose()` cascades through its
-      // loaded addons in a way that can null out `_core` *before* that
-      // callback runs, making `_core` itself undefined and throwing
-      // (confirmed from the addon's source, not guessed — this crashed
-      // the whole pane in practice). Disposing it explicitly first, while
-      // `_core` is still alive, avoids relying on that ordering.
-      try {
-        webgl?.dispose();
-      } catch (err) {
-        console.error("terminal: webgl addon dispose on unmount failed", err);
-      }
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
