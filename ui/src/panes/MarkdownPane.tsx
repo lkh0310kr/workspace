@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
-import { history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { history, historyKeymap, indentWithTab, insertNewlineAndIndent } from "@codemirror/commands";
+import {
+  deleteMarkupBackward,
+  insertNewlineContinueMarkupCommand,
+  markdown,
+  markdownLanguage,
+} from "@codemirror/lang-markdown";
 import { syntaxTree } from "@codemirror/language";
 import { listDir, onFileChanged, readFile, writeFile } from "../tauri";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
@@ -189,12 +194,36 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
           // `markdown()`'s default base is strict CommonMark, which
           // doesn't parse strikethrough/task-lists/tables at all —
           // `markdownLanguage` is CodeMirror's GFM-flavored base.
-          markdown({ base: markdownLanguage, extensions: [wikiLinkExtension] }),
+          // `addKeymap: false` — the default-installed markdownKeymap
+          // binds Enter to `insertNewlineContinueMarkup` with its default
+          // `nonTightLists: true`, which (per its own docs) inserts an
+          // *extra* blank line when Enter is pressed on a blank second
+          // list item, instead of just exiting the list — reported
+          // directly as "pressing Enter enters two lines". Bound below
+          // with `nonTightLists: false` instead, which does what every
+          // other editor (including Obsidian) does here: one Enter, one
+          // line, list exited cleanly.
+          markdown({
+            base: markdownLanguage,
+            extensions: [wikiLinkExtension],
+            addKeymap: false,
+          }),
           markdownRootPath.of(rootPath),
           ...markdownLivePreview,
           ...workspaceSearch,
           history(),
-          keymap.of([indentWithTab, ...historyKeymap]),
+          keymap.of([
+            // Its own docs warn it shouldn't be the *only* Enter binding
+            // (it can return false outside markdown context, e.g. an
+            // embedded code/HTML region) — insertNewlineAndIndent is the
+            // plain fallback for that case, tried next since CM6's
+            // keymap facet falls through same-key bindings in order.
+            { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
+            { key: "Enter", run: insertNewlineAndIndent },
+            { key: "Backspace", run: deleteMarkupBackward },
+            indentWithTab,
+            ...historyKeymap,
+          ]),
           EditorView.lineWrapping,
           workspaceEditorTheme,
           markdownProseTheme,
