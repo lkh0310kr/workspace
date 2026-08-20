@@ -21,16 +21,16 @@ interface Props {
 // tokens there for each resolved theme.
 const XTERM_THEMES: Record<ResolvedTheme, ITheme> = {
   dark: {
-    background: "#0d0d0d",
+    background: "#1e1e1e",
     foreground: "#d4d4d4",
     cursor: "#d4d4d4",
-    selectionBackground: "#1c2430",
+    selectionBackground: "#2b3a52",
   },
   light: {
-    background: "#f7f7f7",
+    background: "#fbfbfa",
     foreground: "#1a1a1a",
     cursor: "#1a1a1a",
-    selectionBackground: "#dbe6f5",
+    selectionBackground: "#dde8f7",
   },
 };
 

@@ -1,16 +1,19 @@
 /* Design system: docs/DESIGN.md — Zed / Obsidian inspired */
 
 :root {
-  --bg-base: #0d0d0d;
-  --bg-surface: #121212;
-  --bg-hover: #1a1a1a;
-  --bg-active: #1c2430;
-  --border: #262626;
-  --border-strong: #333333;
+  /* Was near-black (#0d0d0d/#121212) — closer to Obsidian's actual dark
+     theme (~#1e1e1e), which reads as a soft dark gray rather than a harsh
+     near-black. */
+  --bg-base: #1e1e1e;
+  --bg-surface: #242424;
+  --bg-hover: #2c2c2c;
+  --bg-active: #2b3a52;
+  --border: #333333;
+  --border-strong: #444444;
   --text: #d4d4d4;
-  --text-muted: #737373;
-  --text-faint: #525252;
-  --accent: #5c8fd6;
+  --text-muted: #8a8a8a;
+  --text-faint: #5c5c5c;
+  --accent: #6690d6;
   --font-ui: ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
   --chrome-h: 34px;
@@ -20,12 +23,12 @@
 }
 
 :root[data-theme="light"] {
-  --bg-base: #f7f7f7;
+  --bg-base: #fbfbfa;
   --bg-surface: #ffffff;
-  --bg-hover: #ececec;
-  --bg-active: #dbe6f5;
-  --border: #dcdcdc;
-  --border-strong: #c7c7c7;
+  --bg-hover: #f0f0ee;
+  --bg-active: #dde8f7;
+  --border: #e2e2e0;
+  --border-strong: #cccccb;
   --text: #1a1a1a;
   --text-muted: #6b6b6b;
   --text-faint: #9a9a9a;

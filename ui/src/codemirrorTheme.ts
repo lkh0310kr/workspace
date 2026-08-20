@@ -17,23 +17,18 @@ export const workspaceEditorTheme = EditorView.theme({
   ".cm-cursor": { borderLeftColor: "var(--text)" },
 });
 
-// Vertical guide line every 4 columns. A second `EditorView.theme()`
-// extension rather than a plain CSS rule in styles.css — CodeMirror
-// injects its theme stylesheets at runtime (when the EditorView mounts),
-// after styles.css has already loaded, and `workspaceEditorTheme`'s own
-// `.cm-content { background: var(--bg-base) }` rule above would win a
-// same-specificity cascade race against a static stylesheet rule (the
-// `background` shorthand implicitly resets `background-image` to `none`
-// for every element it applies to). Composing it as another extension
-// instead means CodeMirror concatenates both into the same stylesheet in
-// extension order, so this — added after `workspaceEditorTheme` wherever
-// it's used — reliably wins without needing `!important`. `ch` is the
-// width of the font's own "0" glyph, so this stays aligned to the
-// monospace character grid regardless of font-size/zoom; `.cm-content`
-// has no horizontal padding by default, so column 0 lines up with x=0.
-export const columnGuideTheme = EditorView.theme({
-  ".cm-content": {
-    backgroundImage:
-      "repeating-linear-gradient(to right, transparent 0, transparent calc(4ch - 1px), var(--border) calc(4ch - 1px), var(--border) 4ch)",
-  },
+// Obsidian (and every other prose-first note app) reads in a
+// proportional UI font, not monospace — reusing `--font-mono` for the
+// Markdown pane (inherited from `workspaceEditorTheme`, shared with the
+// plain-code editor) made regular writing look like a code file. Scoped
+// to just `.cm-content`: an element's own font-family always wins over
+// whatever it would otherwise inherit from an ancestor (`.cm-scroller`
+// here), regardless of which theme extension's stylesheet was injected
+// first, so this doesn't need the injection-order workaround
+// `columnGuideTheme` used to need below. `.cm-md-code`/
+// `.cm-md-codeblock-line` (styles.css) still force monospace for inline
+// code and fenced code blocks specifically, since those keep their own
+// explicit font-family rule regardless of what their container inherits.
+export const markdownProseTheme = EditorView.theme({
+  ".cm-content": { fontFamily: "var(--font-ui)" },
 });

@@ -5,7 +5,7 @@ import { history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { syntaxTree } from "@codemirror/language";
 import { listDir, onFileChanged, readFile, writeFile } from "../tauri";
-import { columnGuideTheme, workspaceEditorTheme } from "../codemirrorTheme";
+import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
 import { wikiLinkExtension } from "../markdownWikilink";
@@ -181,7 +181,7 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
           keymap.of([indentWithTab, ...historyKeymap]),
           EditorView.lineWrapping,
           workspaceEditorTheme,
-          columnGuideTheme,
+          markdownProseTheme,
           wikiLinkClickHandler,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) setOutline(computeOutline(update.view));
