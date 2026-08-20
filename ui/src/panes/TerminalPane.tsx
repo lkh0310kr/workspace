@@ -210,13 +210,16 @@ function TerminalPaneInner({ terminalId, active }: Props) {
         idleTimer = null;
       }
     };
+    // 150ms: comfortably above normal inter-jamo keystroke gaps (typing
+    // is continuous well under this) but short enough that a genuine
+    // pause doesn't read as "stuck waiting for a boundary key."
     const scheduleIdleFlush = () => {
       clearIdleTimer();
       idleTimer = setTimeout(() => {
         idleTimer = null;
         imeActiveRef.current = false;
         flushIme();
-      }, 500);
+      }, 150);
     };
     const onImeKeydown = (e: KeyboardEvent) => {
       if (e.keyCode === 229 || e.code === "Unidentified") {
@@ -235,35 +238,12 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     };
     term.textarea?.addEventListener("blur", onBlur);
 
-    // Deliberately verbose instrumentation kept from the investigation —
-    // routed through console.log so it lands in debugOverlay.ts
-    // (Ctrl+Shift+D), since WKWebView doesn't forward console output
-    // anywhere else observable. Useful to re-verify this fix against a
-    // real reproduction, and cheap to leave in.
-    const imeTrace = (label: string, e: Event) => {
-      const ke = e as KeyboardEvent;
-      const ce = e as CompositionEvent;
-      const parts = [`[ime-trace] ${label}`];
-      if ("key" in e) parts.push(`key=${JSON.stringify(ke.key)}`);
-      if ("code" in e) parts.push(`code=${JSON.stringify(ke.code)}`);
-      if ("keyCode" in e) parts.push(`keyCode=${ke.keyCode}`);
-      if ("isComposing" in e) parts.push(`isComposing=${ke.isComposing}`);
-      if ("data" in e) parts.push(`data=${JSON.stringify(ce.data)}`);
-      if (e.type === "input") parts.push(`textareaValue=${JSON.stringify(term.textarea?.value)}`);
-      console.log(parts.join(" "));
-    };
-    const imeEvents = ["keydown", "keypress", "compositionstart", "compositionupdate", "compositionend", "input"];
-    for (const type of imeEvents) {
-      term.textarea?.addEventListener(type, (e) => imeTrace(type, e));
-    }
-
     const syncSize = () => {
       fit.fit();
       ptyResize(terminalId, term.cols, term.rows).catch(console.error);
     };
 
     term.onData((data) => {
-      console.log(`[ime-trace] term.onData data=${JSON.stringify(data)}`);
       // Suppressed by content, not by a timing-dependent flag — see the
       // IME comment above for why. A leaked composition fragment is
       // always a single character in a Hangul Unicode block; a real
