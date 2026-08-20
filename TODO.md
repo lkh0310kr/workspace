@@ -32,3 +32,4 @@
   - [x] 리스트: 불릿 리스트 마커(`-`/`*`/`+`)를 실제 `•`로 렌더링 (커서가 그 줄에 있을 때는 원문 그대로 보임, 다른 요소들과 동일한 규칙). Ordered list 번호는 원래도 괜찮아서 그대로 둠
   - [x] Wikilink 클릭 시 실제 파일로 이동/새로 만들기 — 클릭하면 vault 전체에서 같은 이름의 `.md` 파일을 찾아서 열고, 없으면 워크스페이스 루트에 새로 만듦 (Obsidian 기본 동작과 동일)
   - [x] 로컬 이미지 렌더링 — `tauri.conf.json`에 `assetProtocol` 활성화 + Cargo `protocol-asset` 피처 추가, 탭의 root_path를 워크스페이스 상태가 바뀔 때마다 asset-protocol scope에 동적으로 등록(`allow_asset_scope`). 프론트엔드는 CodeMirror `Facet`으로 탭의 rootPath를 받아서 `convertFileSrc`로 변환
+  - [ ] 헤딩/링크 등으로 커서 이동 시 한 칸 밀리는 버그 — `EditorView.atomicRanges`로 고쳤었는데, TreeView에서 다른 파일을 열 때 CodeMirror 자체가 크래시하는("No tile at position N") 훨씬 심각한 회귀를 만들어서 되돌림(사용자가 직접 재현/리포트함). 캐시된 필드를 읽는 버전, `view.state`에서 매번 새로 계산하는 버전 둘 다 시도했지만 실제 앱에서 검증할 방법이 없어서 둘 다 버림 — 커서 한 칸 밀리는 건 크래시보다 훨씬 나은 상태라 일단 이대로 둠. CM6 selection-mapping 내부 동작을 제대로 아는 사람이 다시 보거나, 실제로 띄워서 테스트할 수 있을 때 재시도할 것

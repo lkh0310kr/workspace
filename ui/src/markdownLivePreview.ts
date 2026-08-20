@@ -253,7 +253,7 @@ class TableWidget extends WidgetType {
   }
 }
 
-function buildDecorations(view: EditorView): { decorations: DecorationSet; atomic: DecorationSet } {
+function buildDecorations(view: EditorView): DecorationSet {
   const collected: { from: number; to: number; deco: Decoration }[] = [];
 
   for (const { from, to } of view.visibleRanges) {
@@ -500,57 +500,31 @@ function buildDecorations(view: EditorView): { decorations: DecorationSet; atomi
 
   collected.sort((a, b) => a.from - b.from || a.to - b.to);
   const builder = new RangeSetBuilder<Decoration>();
-  // A second, filtered set of just the ranges that actually collapse text
-  // (HIDE, plus every widget replace) — fed to `EditorView.atomicRanges`
-  // below so arrow-key motion treats each as a single indivisible unit
-  // instead of allowed to land on a document offset inside it. Without
-  // this, moving the cursor onto a heading/link/etc. line via Up/Down or
-  // wrapped Left/Right can land one character off from where it visually
-  // appears: CodeMirror computes the motion target against the *current*
-  // (pre-transaction) rendered layout, where the marker text is hidden,
-  // but the decorations then recompute for the new selection and unhide
-  // it — the two don't agree on column-to-offset mapping in between.
-  // `Decoration.mark` ranges (bold/italic/etc. styling, which doesn't
-  // collapse anything) are deliberately excluded so free cursor movement
-  // through the middle of styled text still works.
-  const atomicBuilder = new RangeSetBuilder<Decoration>();
   for (const { from, to, deco } of collected) {
     const isWidget = (deco.spec as { widget?: unknown }).widget !== undefined;
     if (from >= to && !isWidget) continue;
     builder.add(from, to, deco);
-    if (deco === HIDE || isWidget) {
-      atomicBuilder.add(from, to, deco);
-    }
   }
-  return { decorations: builder.finish(), atomic: atomicBuilder.finish() };
+  return builder.finish();
 }
 
 const inlineDecorations = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
-    atomic: DecorationSet;
 
     constructor(view: EditorView) {
-      const built = buildDecorations(view);
-      this.decorations = built.decorations;
-      this.atomic = built.atomic;
+      this.decorations = buildDecorations(view);
     }
 
     update(update: ViewUpdate) {
       if (update.docChanged || update.viewportChanged || update.selectionSet) {
-        const built = buildDecorations(update.view);
-        this.decorations = built.decorations;
-        this.atomic = built.atomic;
+        this.decorations = buildDecorations(update.view);
       }
     }
   },
   {
     decorations: (instance) => instance.decorations,
   },
-);
-
-const atomicHiddenRanges = EditorView.atomicRanges.of(
-  (view) => view.plugin(inlineDecorations)?.atomic ?? Decoration.none,
 );
 
 // Block-level styling (blockquote left border/indent, fenced-code-block
@@ -613,9 +587,24 @@ const blockDecorations = ViewPlugin.fromClass(
   },
 );
 
-export const markdownLivePreview: Extension[] = [
-  inlineDecorations,
-  blockDecorations,
-  taskCheckboxHandlers,
-  atomicHiddenRanges,
-];
+// `EditorView.atomicRanges` (making hidden marker ranges an indivisible
+// unit for cursor motion — the "correct", CM6-documented fix for a minor
+// cursor-lands-one-char-off bug when arrowing into a heading/link line)
+// was tried here and reverted: reading `view.plugin(inlineDecorations)
+// ?.atomic` (a field cached from the previous update cycle) crashed
+// CodeMirror outright ("No tile at position N") the first time TreeView
+// loaded a different, differently-sized file into an already-open
+// pane — reported and reproduced directly by a user, not hypothetical.
+// The suspected cause: atomicRanges is consulted during CodeMirror's own
+// selection-mapping for a transaction, which can run before this
+// document's ViewPlugins have updated for that same transaction, so the
+// cached field still described the *old* (now-replaced) document —
+// stale ranges pointing past the new, shorter document's length broke
+// CodeMirror's internal line lookup. A variant recomputing straight from
+// `view.state` instead of the cached field was written to fix that, but
+// never verified live (no way to test interactively from here), and a
+// hard crash blocking "open a file" is a far worse outcome than the
+// cosmetic bug atomicRanges was meant to fix — so rather than ship an
+// unverified fix for something this severe, atomicRanges is left out
+// entirely until it can be revisited with a way to test it for real.
+export const markdownLivePreview: Extension[] = [inlineDecorations, blockDecorations, taskCheckboxHandlers];
