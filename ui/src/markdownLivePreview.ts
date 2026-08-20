@@ -492,7 +492,24 @@ function buildDecorations(view: EditorView): DecorationSet {
         }
 
         if (type === "ListItem") {
-          if (node.node.parent?.type.name !== "BulletList") return;
+          const parentType = node.node.parent?.type.name;
+          if (parentType === "OrderedList") {
+            // Left as literal visible text (never hidden/replaced,
+            // unlike the bullet) — only styled for consistent spacing
+            // against the bullet/checkbox markers, matching the
+            // requested "unify the marker spacing, not the glyphs"
+            // exactly: the digits/period themselves aren't touched.
+            const mark = node.node.getChild("ListMark");
+            if (mark) {
+              collected.push({
+                from: mark.from,
+                to: mark.to,
+                deco: Decoration.mark({ class: "cm-md-list-number" }),
+              });
+            }
+            return;
+          }
+          if (parentType !== "BulletList") return;
           // Task list items ("- [ ] ...") are still BulletList/ListItem
           // structurally (their content is a "Task" node in place of the
           // usual Paragraph) — rendering the "-" as a bullet on top of

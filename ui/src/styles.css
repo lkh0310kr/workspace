@@ -539,8 +539,14 @@ iframe.browser-content-slot {
   vertical-align: middle;
 }
 
+/* Bullet/number/checkbox markers share one reserved footprint (1.4em
+   box + consistent trailing gap) so a list mixing the three types keeps
+   its content lined up — the marker glyphs/digits themselves are
+   untouched, only the spacing around them. */
 .cm-md-task-checkbox {
-  margin: 0 6px 0 0;
+  width: 1em;
+  height: 1em;
+  margin: 0 0.4em 0 0;
   vertical-align: middle;
   cursor: pointer;
 }
@@ -595,7 +601,15 @@ iframe.browser-content-slot {
 
 .cm-md-bullet {
   display: inline-block;
-  width: 1em;
+  width: 1.4em;
+  color: var(--text-muted);
+}
+
+.cm-md-list-number {
+  display: inline-block;
+  min-width: 1em;
+  margin-right: 0.4em;
+  text-align: right;
   color: var(--text-muted);
 }
 

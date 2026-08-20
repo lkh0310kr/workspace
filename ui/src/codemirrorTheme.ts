@@ -32,3 +32,21 @@ export const workspaceEditorTheme = EditorView.theme({
 export const markdownProseTheme = EditorView.theme({
   ".cm-content": { fontFamily: "var(--font-ui)" },
 });
+
+// Vertical guide line every 4 columns — Obsidian has an equivalent
+// built-in "vertical indentation lines" feature. Purely a background
+// pattern (unlike the EditorView.atomicRanges cursor-motion fix that
+// crashed CodeMirror outright — see markdownLivePreview.ts's own note on
+// why that got reverted): it never participates in CodeMirror's
+// document/selection model, so it carries none of that risk regardless
+// of font. `ch` (the font's own "0" glyph width) won't align pixel-
+// perfectly with actual space characters in a proportional font the way
+// it would in monospace, but it's a lightweight visual reference for
+// indentation depth, not a claim of exact alignment — same spirit as
+// the request that asked for it back ("to tell indentation apart").
+export const columnGuideTheme = EditorView.theme({
+  ".cm-content": {
+    backgroundImage:
+      "repeating-linear-gradient(to right, transparent 0, transparent calc(4ch - 1px), var(--border) calc(4ch - 1px), var(--border) 4ch)",
+  },
+});

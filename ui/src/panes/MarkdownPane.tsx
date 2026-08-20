@@ -11,7 +11,7 @@ import {
 import { syntaxTree } from "@codemirror/language";
 import { listDir, onFileChanged, readFile, writeFile } from "../tauri";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
-import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
+import { columnGuideTheme, markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
 import { wikiLinkExtension } from "../markdownWikilink";
@@ -227,6 +227,7 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
           EditorView.lineWrapping,
           workspaceEditorTheme,
           markdownProseTheme,
+          columnGuideTheme,
           wikiLinkClickHandler,
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
