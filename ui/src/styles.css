@@ -837,6 +837,33 @@ iframe.browser-content-slot {
   min-height: 0;
 }
 
+.md-empty-state {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.md-empty-state button {
+  padding: 8px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.md-empty-state button:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.md-empty-state button:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
 .tree-view {
   font-family: var(--font-mono);
   font-size: 12px;

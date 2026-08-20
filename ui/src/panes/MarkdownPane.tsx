@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { EditorState } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
+import { history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { readFile, writeFile } from "../tauri";
-import { workspaceEditorTheme } from "../codemirrorTheme";
+import { listDir, readFile, writeFile } from "../tauri";
+import { columnGuideTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview } from "../markdownLivePreview";
 import { wikiLinkExtension } from "../markdownWikilink";
@@ -14,12 +15,22 @@ interface Props {
   tabId: number;
 }
 
+async function findAvailableUntitledName(tabId: number): Promise<string> {
+  const entries = await listDir(tabId, "").catch(() => []);
+  const names = new Set(entries.filter((e) => !e.is_dir).map((e) => e.name));
+  if (!names.has("untitled.md")) return "untitled.md";
+  let i = 1;
+  while (names.has(`untitled ${i}.md`)) i++;
+  return `untitled ${i}.md`;
+}
+
 export function MarkdownPane({ filePath, tabId }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const pathRef = useRef(filePath);
   const [currentPath, setCurrentPath] = useState(filePath);
-  const [treeOpen, setTreeOpen] = useState(false);
+  const [treeOpen, setTreeOpen] = useState(filePath === null);
+  const [creating, setCreating] = useState(false);
 
   pathRef.current = currentPath;
 
@@ -27,12 +38,19 @@ export function MarkdownPane({ filePath, tabId }: Props) {
     setCurrentPath(filePath);
   }, [filePath]);
 
+  // The editor itself only exists once a file is open — no CM instance
+  // (and so no hardcoded placeholder doc) is mounted for an empty pane;
+  // the "New File" prompt renders in its place instead. Keyed on whether
+  // a path exists (not on the path's value) so switching between two
+  // already-open files doesn't tear the view down, only reloads content
+  // via the effect below.
+  const hasPath = currentPath !== null;
   useEffect(() => {
-    if (!hostRef.current) return;
+    if (!hasPath || !hostRef.current) return;
 
     const view = new EditorView({
       state: EditorState.create({
-        doc: "# Markdown\n\nEdit here — live preview.\n",
+        doc: "",
         extensions: [
           // `markdown()`'s default base is strict CommonMark, which
           // doesn't parse strikethrough/task-lists/tables at all —
@@ -40,8 +58,11 @@ export function MarkdownPane({ filePath, tabId }: Props) {
           markdown({ base: markdownLanguage, extensions: [wikiLinkExtension] }),
           ...markdownLivePreview,
           ...workspaceSearch,
+          history(),
+          keymap.of([indentWithTab, ...historyKeymap]),
           EditorView.lineWrapping,
           workspaceEditorTheme,
+          columnGuideTheme,
         ],
       }),
       parent: hostRef.current,
@@ -63,7 +84,8 @@ export function MarkdownPane({ filePath, tabId }: Props) {
       view.destroy();
       viewRef.current = null;
     };
-  }, [tabId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on hasPath, not currentPath (see comment above)
+  }, [tabId, hasPath]);
 
   useEffect(() => {
     if (!currentPath || !viewRef.current) return;
@@ -75,6 +97,19 @@ export function MarkdownPane({ filePath, tabId }: Props) {
       })
       .catch(console.error);
   }, [currentPath, tabId]);
+
+  const createNewFile = async () => {
+    setCreating(true);
+    try {
+      const name = await findAvailableUntitledName(tabId);
+      await writeFile(tabId, name, "");
+      setCurrentPath(name);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   return (
     <div className="md-pane">
@@ -94,7 +129,15 @@ export function MarkdownPane({ filePath, tabId }: Props) {
             📁
           </button>
         </div>
-        <div className="md-editor" ref={hostRef} />
+        {hasPath ? (
+          <div className="md-editor" ref={hostRef} />
+        ) : (
+          <div className="md-empty-state">
+            <button type="button" onClick={createNewFile} disabled={creating}>
+              {creating ? "Creating…" : "New File"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

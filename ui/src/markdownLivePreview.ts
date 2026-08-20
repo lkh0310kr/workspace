@@ -231,7 +231,7 @@ class TableWidget extends WidgetType {
   }
 }
 
-function buildDecorations(view: EditorView): DecorationSet {
+function buildDecorations(view: EditorView): { decorations: DecorationSet; atomic: DecorationSet } {
   const collected: { from: number; to: number; deco: Decoration }[] = [];
 
   for (const { from, to } of view.visibleRanges) {
@@ -247,13 +247,20 @@ function buildDecorations(view: EditorView): DecorationSet {
           if (!mark) return;
           let contentFrom = mark.to;
           if (view.state.doc.sliceString(contentFrom, contentFrom + 1) === " ") contentFrom += 1;
-          if (contentFrom >= node.to) return;
-          collected.push({
-            from: contentFrom,
-            to: node.to,
-            deco: Decoration.mark({ class: `cm-md-h${level}` }),
-          });
-          if (!selectionOverlaps(view, node.from, node.to)) {
+          const cls = `cm-md-h${level}`;
+          if (contentFrom < node.to) {
+            collected.push({ from: contentFrom, to: node.to, deco: Decoration.mark({ class: cls }) });
+          }
+          if (selectionOverlaps(view, node.from, node.to)) {
+            // Marker stays visible while editing this line (cursor is on
+            // it) — size it the same as the content, so "#"/"##"/etc.
+            // plus whatever's typed after it reads as one coherent
+            // heading instead of a small marker next to big text. Also
+            // covers a bare "# " with nothing typed yet — that used to
+            // get no styling at all, which is what made it look like it
+            // "wasn't a heading yet" until you typed the first character.
+            collected.push({ from: mark.from, to: contentFrom, deco: Decoration.mark({ class: cls }) });
+          } else {
             collected.push({ from: mark.from, to: contentFrom, deco: HIDE });
           }
           return;
@@ -467,30 +474,57 @@ function buildDecorations(view: EditorView): DecorationSet {
 
   collected.sort((a, b) => a.from - b.from || a.to - b.to);
   const builder = new RangeSetBuilder<Decoration>();
+  // A second, filtered set of just the ranges that actually collapse text
+  // (HIDE, plus every widget replace) — fed to `EditorView.atomicRanges`
+  // below so arrow-key motion treats each as a single indivisible unit
+  // instead of allowed to land on a document offset inside it. Without
+  // this, moving the cursor onto a heading/link/etc. line via Up/Down or
+  // wrapped Left/Right can land one character off from where it visually
+  // appears: CodeMirror computes the motion target against the *current*
+  // (pre-transaction) rendered layout, where the marker text is hidden,
+  // but the decorations then recompute for the new selection and unhide
+  // it — the two don't agree on column-to-offset mapping in between.
+  // `Decoration.mark` ranges (bold/italic/etc. styling, which doesn't
+  // collapse anything) are deliberately excluded so free cursor movement
+  // through the middle of styled text still works.
+  const atomicBuilder = new RangeSetBuilder<Decoration>();
   for (const { from, to, deco } of collected) {
-    if (from >= to && !(deco.spec as { widget?: unknown }).widget) continue;
+    const isWidget = (deco.spec as { widget?: unknown }).widget !== undefined;
+    if (from >= to && !isWidget) continue;
     builder.add(from, to, deco);
+    if (deco === HIDE || isWidget) {
+      atomicBuilder.add(from, to, deco);
+    }
   }
-  return builder.finish();
+  return { decorations: builder.finish(), atomic: atomicBuilder.finish() };
 }
 
 const inlineDecorations = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
+    atomic: DecorationSet;
 
     constructor(view: EditorView) {
-      this.decorations = buildDecorations(view);
+      const built = buildDecorations(view);
+      this.decorations = built.decorations;
+      this.atomic = built.atomic;
     }
 
     update(update: ViewUpdate) {
       if (update.docChanged || update.viewportChanged || update.selectionSet) {
-        this.decorations = buildDecorations(update.view);
+        const built = buildDecorations(update.view);
+        this.decorations = built.decorations;
+        this.atomic = built.atomic;
       }
     }
   },
   {
     decorations: (instance) => instance.decorations,
   },
+);
+
+const atomicHiddenRanges = EditorView.atomicRanges.of(
+  (view) => view.plugin(inlineDecorations)?.atomic ?? Decoration.none,
 );
 
 // Block-level styling (blockquote left border/indent, fenced-code-block
@@ -553,4 +587,9 @@ const blockDecorations = ViewPlugin.fromClass(
   },
 );
 
-export const markdownLivePreview: Extension[] = [inlineDecorations, blockDecorations, taskCheckboxHandlers];
+export const markdownLivePreview: Extension[] = [
+  inlineDecorations,
+  blockDecorations,
+  taskCheckboxHandlers,
+  atomicHiddenRanges,
+];
