@@ -542,6 +542,14 @@ iframe.browser-content-slot {
   cursor: pointer;
 }
 
+/* Matches Obsidian's own default (`.HyperMD-task-line[data-task="x"] {
+   text-decoration: line-through; opacity: 0.5; }`) — a checked task's
+   whole line, not just its text, fades and strikes through. */
+.cm-md-task-checked-line {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
 .cm-md-quote-line {
   border-left: 3px solid var(--border-strong);
   padding-left: 10px;

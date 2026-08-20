@@ -130,8 +130,18 @@ class CheckboxWidget extends WidgetType {
     return box;
   }
 
+  // `taskCheckboxHandlers` below already fully owns the toggle via
+  // `mousedown` (preventDefault + return true, so CodeMirror stops
+  // processing that event). This being `false` — as it was previously —
+  // told CodeMirror's own click handling to *also* run on top of that,
+  // which places the text cursor at the click position: every checkbox
+  // click was stealing editor focus and jumping the cursor into the
+  // document, on top of the actual toggle. `true` (matching Table/Image,
+  // the other pure-control/display widgets in this file) makes the
+  // widget opaque to CodeMirror's default handling, leaving only the
+  // toggle.
   ignoreEvent() {
-    return false;
+    return true;
   }
 }
 
@@ -483,6 +493,13 @@ function buildDecorations(view: EditorView): DecorationSet {
 
         if (type === "ListItem") {
           if (node.node.parent?.type.name !== "BulletList") return;
+          // Task list items ("- [ ] ...") are still BulletList/ListItem
+          // structurally (their content is a "Task" node in place of the
+          // usual Paragraph) — rendering the "-" as a bullet on top of
+          // the checkbox produced a bullet-then-checkbox double marker
+          // that doesn't match Obsidian at all (Obsidian shows only the
+          // checkbox, no bullet, for task items).
+          if (node.node.getChild("Task")) return;
           const mark = node.node.getChild("ListMark");
           if (!mark) return;
           const line = view.state.doc.lineAt(mark.from);
@@ -546,6 +563,25 @@ function buildLineDecorations(view: EditorView): DecorationSet {
       to,
       enter: (node: SyntaxNodeRef) => {
         const type = node.type.name;
+
+        if (type === "Task") {
+          // Obsidian's default theme strikes through and dims a checked
+          // task's whole line (`.HyperMD-task-line[data-task="x"]` in its
+          // own CSS) — matched here via a line class rather than an
+          // inline mark, same reasoning as blockquote/code-block styling
+          // below: it's a line-level visual, not a styled text run.
+          const marker = node.node.getChild("TaskMarker");
+          if (!marker) return;
+          const checked = view.state.doc.sliceString(marker.from, marker.to).toLowerCase() === "[x]";
+          if (!checked) return;
+          const startLine = view.state.doc.lineAt(node.from).number;
+          const endLine = view.state.doc.lineAt(node.to).number;
+          for (let ln = startLine; ln <= endLine; ln++) {
+            addClass(view.state.doc.line(ln).from, "cm-md-task-checked-line");
+          }
+          return;
+        }
+
         if (type !== "Blockquote" && type !== "FencedCode") return;
         let cls = type === "Blockquote" ? "cm-md-quote-line" : "cm-md-codeblock-line";
         if (type === "Blockquote") {
