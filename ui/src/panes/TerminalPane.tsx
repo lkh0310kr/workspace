@@ -46,6 +46,14 @@ const scrollbackCache = new Map<number, string>();
 // leaked composition fragments.
 const HANGUL_FRAGMENT_RE = /[ᄀ-ᇿ㄰-㆏가-힣]/;
 
+// True only if every character in `s` is in a Hangul block — used to
+// recognize a leaked composition fragment regardless of its length (see
+// the IME comment in the mount effect below: a fast typist can make
+// WebKit batch more than one jamo into a single input/onData event).
+function isPureHangul(s: string): boolean {
+  return s.length > 0 && Array.from(s).every((ch) => HANGUL_FRAGMENT_RE.test(ch));
+}
+
 // Best-effort addon loading: none of these are essential to a working
 // terminal, so one failing (unsupported API, odd webview environment) must
 // not take the whole pane down with it.
@@ -152,16 +160,21 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     // regardless of capture/bubble — capture does NOT give us priority
     // here), so it can call `onData` directly for a jamo, or for the
     // boundary key itself (e.g. Space), *before* our keydown listener has
-    // run to arm/disarm `imeActiveRef`. A boolean flag checked inside the
-    // `onData` callback can't outrun that ordering. Fix: suppress by
-    // *content* instead of by flag — a leaked composition fragment is
-    // always a single Hangul jamo/syllable character (confirmed: every
-    // leaked fragment across both traces was length-1, in the Hangul
-    // Jamo/Compatibility-Jamo/Syllables Unicode blocks), which a real
-    // boundary key's own data (Space, Enter, a Latin letter) never is —
-    // and a real paste of Korean text arrives as one multi-character
-    // `onData` call, which the length===1 check leaves untouched. This
-    // needs no timing assumptions at all.
+    // run to arm/disarm `imeActiveRef`. A boolean flag alone checked
+    // inside the `onData` callback can't outrun that ordering, so it's
+    // combined with content: suppress when we know a cluster is open
+    // (`imeActiveRef`) *and* the data is pure Hangul — a real boundary
+    // key's own data (Space, Enter, a Latin letter) is never Hangul, so
+    // it's unaffected regardless of the flag's exact timing. A fifth
+    // confirmed bug, from re-testing at normal (faster) typing speed
+    // instead of the careful pace of the first two traces: leaked
+    // fragments aren't always a single character — a fast typist makes
+    // WebKit batch more than one jamo into a single input/onData event
+    // (observed as doubled syllables, e.g. "는는"), which an earlier
+    // `data.length === 1` check let through unsuppressed and caused that
+    // doubling. `isPureHangul` has no length limit; a real paste of
+    // Korean text is distinguished by `imeActiveRef` being false (no
+    // keydown-driven composition preceded it), not by length.
     //
     // A third confirmed bug from that trace: an original version of this
     // fix diffed `term.textarea.value` against a "committed" prefix
@@ -222,6 +235,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
           .filter((ch) => HANGUL_FRAGMENT_RE.test(ch))
           .join("");
         if (hangulOnly.length > 0) {
+          console.log(`[ime-trace] flushIme sending hangulOnly=${JSON.stringify(hangulOnly)} raw=${JSON.stringify(raw)}`);
           ptyWrite(terminalId, new TextEncoder().encode(hangulOnly)).catch(console.error);
         }
         if (term.textarea) term.textarea.value = "";
@@ -280,17 +294,34 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     };
     term.textarea?.addEventListener("blur", onBlur);
 
+    // Lightweight tracing, safe to leave on: keydown/input are bounded
+    // by human typing speed, unlike the earlier version that also traced
+    // every term.onData call (including mouse-wheel SGR sequences during
+    // scroll) and caused a real, reported perf regression — removed.
+    const onImeTraceKeydown = (e: KeyboardEvent) => {
+      console.log(`[ime-trace] keydown key=${JSON.stringify(e.key)} code=${e.code} keyCode=${e.keyCode}`);
+    };
+    const onImeTraceInput = () => {
+      console.log(`[ime-trace] input textareaValue=${JSON.stringify(term.textarea?.value)}`);
+    };
+    term.textarea?.addEventListener("keydown", onImeTraceKeydown);
+    term.textarea?.addEventListener("input", onImeTraceInput);
+
     const syncSize = () => {
       fit.fit();
       ptyResize(terminalId, term.cols, term.rows).catch(console.error);
     };
 
     term.onData((data) => {
-      // Suppressed by content, not by a timing-dependent flag — see the
-      // IME comment above for why. A leaked composition fragment is
-      // always a single character in a Hangul Unicode block; a real
-      // paste arrives as a multi-character string and passes through.
-      if (data.length === 1 && HANGUL_FRAGMENT_RE.test(data)) return;
+      // See the IME comment above for why this checks both the flag and
+      // the content, and why length alone isn't a safe filter.
+      if (imeActiveRef.current && isPureHangul(data)) {
+        console.log(`[ime-trace] suppressed onData data=${JSON.stringify(data)}`);
+        return;
+      }
+      if (isPureHangul(data)) {
+        console.log(`[ime-trace] onData data=${JSON.stringify(data)} imeActive=${imeActiveRef.current}`);
+      }
       const bytes = new TextEncoder().encode(data);
       ptyWrite(terminalId, bytes).catch(console.error);
     });
@@ -326,6 +357,8 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       term.textarea?.removeEventListener("keydown", onImeKeydown);
       term.textarea?.removeEventListener("blur", onBlur);
       term.textarea?.removeEventListener("input", onImeInput);
+      term.textarea?.removeEventListener("keydown", onImeTraceKeydown);
+      term.textarea?.removeEventListener("input", onImeTraceInput);
       pendingWritesRef.current = [];
       imeActiveRef.current = false;
       previewActiveRef.current = false;
