@@ -136,6 +136,39 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     term.textarea?.addEventListener("compositionstart", onCompositionStart);
     term.textarea?.addEventListener("compositionend", onCompositionEnd);
 
+    // Temporary, deliberately verbose instrumentation for the Korean/CJK
+    // IME investigation — the composition-buffering fix above targets one
+    // *hypothesized* mechanism (cursor repositioning mid-composition) but
+    // didn't resolve the reported corruption on its own, and WKWebView
+    // (what Tauri uses on macOS) is independently documented to fire
+    // different/malformed synthetic keyboard events around composition
+    // boundaries compared to Chromium (see xterm.js issue #5894 — a
+    // *different* WKWebView composition bug, but same class of engine
+    // divergence). There's no way to trigger real OS-level IME composition
+    // from a script, so the only way to find the actual event sequence is
+    // to log every candidate event and have it reproduced live. Routed
+    // through console.log so it lands in debugOverlay.ts (Ctrl+Shift+D) —
+    // WKWebView doesn't forward console output anywhere else observable.
+    const imeTrace = (label: string, e: Event) => {
+      const ke = e as KeyboardEvent;
+      const ce = e as CompositionEvent;
+      const parts = [`[ime-trace] ${label}`];
+      if ("key" in e) parts.push(`key=${JSON.stringify(ke.key)}`);
+      if ("code" in e) parts.push(`code=${JSON.stringify(ke.code)}`);
+      if ("keyCode" in e) parts.push(`keyCode=${ke.keyCode}`);
+      if ("isComposing" in e) parts.push(`isComposing=${ke.isComposing}`);
+      if ("data" in e) parts.push(`data=${JSON.stringify(ce.data)}`);
+      if (e.type === "input") parts.push(`textareaValue=${JSON.stringify(term.textarea?.value)}`);
+      console.log(parts.join(" "));
+    };
+    const imeEvents = ["keydown", "keypress", "compositionstart", "compositionupdate", "compositionend", "input"];
+    for (const type of imeEvents) {
+      term.textarea?.addEventListener(type, (e) => imeTrace(type, e));
+    }
+    term.onData((data) => {
+      console.log(`[ime-trace] term.onData data=${JSON.stringify(data)}`);
+    });
+
     const syncSize = () => {
       fit.fit();
       ptyResize(terminalId, term.cols, term.rows).catch(console.error);
