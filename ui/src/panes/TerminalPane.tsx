@@ -5,6 +5,7 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { SearchAddon } from "@xterm/addon-search";
+import { WebglAddon } from "@xterm/addon-webgl";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import "@xterm/xterm/css/xterm.css";
 import { onPtyOutput, ptyResize, ptyWrite } from "../tauri";
@@ -66,6 +67,27 @@ function loadOptionalAddons(term: Terminal): SerializeAddon | null {
     );
   } catch (err) {
     console.error("terminal: web-links addon failed to load", err);
+  }
+  // GPU-accelerated rendering. `crates/terminal-gpu` is a prior, explicitly
+  // "archived" attempt at a from-scratch native wgpu renderer — reviving it
+  // means owning font-atlas rendering, grid diffing, and a native-surface
+  // embed into the Tauri window from scratch (the same category of open-
+  // ended native-embedding project that the CEF windowed-pane work turned
+  // out to be — see cef_host.rs). xterm.js's own maintained WebGL addon
+  // gets the actual goal (GPU-accelerated terminal rendering) with none of
+  // that risk, so that's what's wired in here instead.
+  try {
+    const webgl = new WebglAddon();
+    // WebGL contexts can be lost (GPU driver reset, OS resource pressure,
+    // tab backgrounding on some platforms) — xterm's own docs call out
+    // disposing the addon on loss so it falls back to the default
+    // (canvas/DOM) renderer rather than leaving the terminal stuck blank.
+    webgl.onContextLoss(() => {
+      webgl.dispose();
+    });
+    term.loadAddon(webgl);
+  } catch (err) {
+    console.error("terminal: webgl addon failed to load, using default renderer", err);
   }
   return serialize;
 }

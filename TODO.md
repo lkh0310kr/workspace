@@ -2,7 +2,7 @@
 
 - [x] `Cmd+,`로 Settings 다이얼로그 표시
 - [x] Settings > Appearance에 Theme 설정 (light / dark / system)
-- [ ] Terminal GPU 가속/렌더링 — `crates/terminal-gpu`가 이미 워크스페이스 멤버로 존재하지만 아직 어디에도 연결 안 됨. 실제로 쓰이고 있는지, 아니면 스캐폴딩만 있는 건지 확인 필요
+- [x] Terminal GPU 가속/렌더링 — `crates/terminal-gpu`(자체 wgpu 렌더러)는 소스 주석에 "Archived... Not used by default xterm.js shell"이라고 명시된, 이미 폐기된 실험이었음(확인 완료, 추측 아님). 처음부터 폰트 아틀라스/그리드 diff/네이티브 서피스 임베딩을 다시 구현하는 건 CEF 임베딩 때와 같은 급의 오픈엔드 리스크라 되살리지 않기로 함 — 대신 xterm.js 공식 `@xterm/addon-webgl`(WebGL2 하드웨어 가속, context-loss 시 자동 폴백)을 연결해서 실질적 목표(GPU 가속 렌더링) 달성
 - [x] Terminal/Markdown/Code Editor 패널에 `Cmd+F` 검색 기능
 - [x] 앱 켜면 기본적으로 Full Screen 크기로 (maximized) — 지금은 한 80% 정도밖에 안 됨
 - [x] 터미널 테마 설정 기능 — 앱 전체 light/dark 테마를 따라가도록 연동 완료
