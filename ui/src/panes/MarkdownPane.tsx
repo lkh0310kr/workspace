@@ -25,7 +25,13 @@ interface OutlineItem {
 
 async function findAvailableUntitledName(tabId: number): Promise<string> {
   const entries = await listDir(tabId, "").catch(() => []);
-  const names = new Set(entries.filter((e) => !e.is_dir).map((e) => e.name));
+  // Lowercased on purpose: macOS's default filesystem (APFS/HFS+) is
+  // case-insensitive, so an existing "Untitled.md" and a write to
+  // "untitled.md" are the *same file* at the OS level. Comparing names
+  // case-sensitively here missed that "Untitled.md" already existed,
+  // returned "untitled.md" as "available", and writeFile silently
+  // truncated the existing file to empty — this is exactly that bug.
+  const names = new Set(entries.filter((e) => !e.is_dir).map((e) => e.name.toLowerCase()));
   if (!names.has("untitled.md")) return "untitled.md";
   let i = 1;
   while (names.has(`untitled ${i}.md`)) i++;
