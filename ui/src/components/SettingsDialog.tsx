@@ -1,39 +1,32 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ThemePreference } from "../theme";
+import { open } from "@tauri-apps/plugin-dialog";
 import { setTabRootPath } from "../tauri";
 
 interface Props {
   onClose: () => void;
-  themePreference: ThemePreference;
-  onThemeChange: (preference: ThemePreference) => void;
   tabId: number;
   tabTitle: string;
   rootPath: string;
 }
 
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-  { value: "system", label: "System" },
-];
-
-export function SettingsDialog({
-  onClose,
-  themePreference,
-  onThemeChange,
-  tabId,
-  tabTitle,
-  rootPath,
-}: Props) {
+export function SettingsDialog({ onClose, tabId, tabTitle, rootPath }: Props) {
   const [pathInput, setPathInput] = useState(rootPath);
   const [error, setError] = useState<string | null>(null);
 
-  const savePath = () => {
-    if (pathInput === rootPath) return;
-    setTabRootPath(tabId, pathInput)
+  const savePath = (path: string) => {
+    if (path === rootPath) return;
+    setTabRootPath(tabId, path)
       .then(() => setError(null))
       .catch((err) => setError(String(err)));
+  };
+
+  const browse = async () => {
+    const selected = await open({ directory: true, defaultPath: rootPath });
+    if (typeof selected === "string") {
+      setPathInput(selected);
+      savePath(selected);
+    }
   };
 
   return createPortal(
@@ -44,22 +37,6 @@ export function SettingsDialog({
           <button type="button" className="settings-close" onClick={onClose}>
             ✕
           </button>
-        </div>
-        <div className="settings-section-title">Appearance</div>
-        <div className="settings-row">
-          <span className="settings-row-label">Theme</span>
-          <div className="settings-theme-options">
-            {THEME_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`settings-theme-option${option.value === themePreference ? " active" : ""}`}
-                onClick={() => onThemeChange(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
         </div>
         <div className="settings-section-title">Tab</div>
         <div className="settings-row settings-row-column">
@@ -72,10 +49,13 @@ export function SettingsDialog({
               value={pathInput}
               onChange={(e) => setPathInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") savePath();
+                if (e.key === "Enter") savePath(pathInput);
               }}
             />
-            <button type="button" onClick={savePath} disabled={pathInput === rootPath}>
+            <button type="button" onClick={browse}>
+              Browse…
+            </button>
+            <button type="button" onClick={() => savePath(pathInput)} disabled={pathInput === rootPath}>
               Save
             </button>
           </div>

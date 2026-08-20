@@ -4,6 +4,7 @@ import "flexlayout-react/style/combined.css";
 import { PaneFrame } from "./components/PaneFrame";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
 import { SettingsDialog } from "./components/SettingsDialog";
+import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { useWorkspace } from "./components/useWorkspace";
 import { addPaneToTabSet, replacePane, splitTabSet } from "./layout/layoutActions";
 import { setLayoutInstance } from "./layout/layoutRef";
@@ -102,6 +103,7 @@ export default function App() {
   // reflects the new tree) — see onAction below for why.
   const pendingRebalanceRef = useRef<string | null>(null);
   const [settingsTabId, setSettingsTabId] = useState<number | null>(null);
+  const [appSettingsOpen, setAppSettingsOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
 
   useEffect(() => {
@@ -117,12 +119,12 @@ export default function App() {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === ",") {
         e.preventDefault();
-        setSettingsTabId((open) => (open === null ? (workspace?.active_tab_id ?? 0) : null));
+        setAppSettingsOpen((open) => !open);
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [workspace?.active_tab_id]);
+  }, []);
 
   const syncModels = useCallback((ws: WorkspaceState) => {
     const seen = new Set<number>();
@@ -413,11 +415,16 @@ export default function App() {
       {settingsTabId !== null && (
         <SettingsDialog
           onClose={() => setSettingsTabId(null)}
-          themePreference={themePreference}
-          onThemeChange={handleThemeChange}
           tabId={settingsTabId}
           tabTitle={workspace.tabs.find((t) => t.id === settingsTabId)?.title ?? ""}
           rootPath={workspace.tabs.find((t) => t.id === settingsTabId)?.root_path ?? ""}
+        />
+      )}
+      {appSettingsOpen && (
+        <AppSettingsDialog
+          onClose={() => setAppSettingsOpen(false)}
+          themePreference={themePreference}
+          onThemeChange={handleThemeChange}
         />
       )}
     </div>
