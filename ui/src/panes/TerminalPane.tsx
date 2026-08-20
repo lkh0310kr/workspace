@@ -84,6 +84,9 @@ function TerminalPaneInner({ terminalId, active }: Props) {
   // once (e.g. a split). Track real DOM focus instead, via `focusin`/
   // `focusout` bubbling up from xterm's internal hidden textarea.
   const hasFocusRef = useRef(false);
+  // See the composition/IME comment in the mount effect below.
+  const composingRef = useRef(false);
+  const pendingWritesRef = useRef<Uint8Array[]>([]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -107,6 +110,31 @@ function TerminalPaneInner({ terminalId, active }: Props) {
 
     const cached = scrollbackCache.get(terminalId);
     if (cached) term.write(cached);
+
+    // xterm.js repositions its IME composition overlay to the terminal's
+    // *current cursor cell* on every render (confirmed by reading its
+    // compiled source: `onRender(() => this._compositionHelper.
+    // updateCompositionElements())`, which reads the live buffer x/y).
+    // A CLI that's constantly redrawing itself (Claude Code's own TUI is
+    // exactly this) moves the cursor while output streams in — if that
+    // happens *during* an active Korean/CJK IME composition, the
+    // composition anchor gets yanked to a new position mid-session,
+    // which corrupts or aborts it in most browsers. Holding incoming PTY
+    // output in a queue for the duration of a composition (flushed the
+    // instant it ends) keeps the cursor still while composing, so there's
+    // nothing for xterm to reposition to until composition is done.
+    const onCompositionStart = () => {
+      composingRef.current = true;
+    };
+    const onCompositionEnd = () => {
+      composingRef.current = false;
+      if (pendingWritesRef.current.length > 0) {
+        for (const chunk of pendingWritesRef.current) term.write(chunk);
+        pendingWritesRef.current = [];
+      }
+    };
+    term.textarea?.addEventListener("compositionstart", onCompositionStart);
+    term.textarea?.addEventListener("compositionend", onCompositionEnd);
 
     const syncSize = () => {
       fit.fit();
@@ -145,6 +173,10 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     });
 
     return () => {
+      term.textarea?.removeEventListener("compositionstart", onCompositionStart);
+      term.textarea?.removeEventListener("compositionend", onCompositionEnd);
+      pendingWritesRef.current = [];
+      composingRef.current = false;
       host.removeEventListener("focusin", onFocusIn);
       host.removeEventListener("focusout", onFocusOut);
       if (serialize) {
@@ -170,7 +202,11 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       if (payload.id !== terminalId || !termRef.current) return;
       const binary = atob(payload.data_b64);
       const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-      termRef.current.write(bytes);
+      if (composingRef.current) {
+        pendingWritesRef.current.push(bytes);
+      } else {
+        termRef.current.write(bytes);
+      }
     });
     return () => {
       unlisten.then((fn) => fn());
