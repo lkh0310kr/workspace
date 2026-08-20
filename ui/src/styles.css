@@ -521,6 +521,38 @@ iframe.browser-content-slot {
   text-decoration: underline;
 }
 
+.cm-md-strike {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.cm-md-hr {
+  display: inline-block;
+  width: 100%;
+  height: 0;
+  border-top: 1px solid var(--border-strong);
+  color: transparent;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.cm-md-task-checkbox {
+  margin: 0 6px 0 0;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.cm-md-quote-line {
+  border-left: 3px solid var(--border-strong);
+  padding-left: 10px;
+  color: var(--text-muted);
+}
+
+.cm-md-codeblock-line {
+  background: var(--bg-hover);
+  font-family: var(--font-mono);
+}
+
 .browser-nav {
   display: flex;
   align-items: center;

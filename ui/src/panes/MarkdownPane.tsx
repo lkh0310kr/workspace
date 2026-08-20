@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { markdown } from "@codemirror/lang-markdown";
+import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { readFile, writeFile } from "../tauri";
 import { workspaceEditorTheme } from "../codemirrorTheme";
 import { workspaceSearch } from "../codemirrorSearch";
@@ -33,8 +33,11 @@ export function MarkdownPane({ filePath, tabId }: Props) {
       state: EditorState.create({
         doc: "# Markdown\n\nEdit here — live preview.\n",
         extensions: [
-          markdown(),
-          markdownLivePreview,
+          // `markdown()`'s default base is strict CommonMark, which
+          // doesn't parse strikethrough/task-lists/tables at all —
+          // `markdownLanguage` is CodeMirror's GFM-flavored base.
+          markdown({ base: markdownLanguage }),
+          ...markdownLivePreview,
           ...workspaceSearch,
           EditorView.lineWrapping,
           workspaceEditorTheme,

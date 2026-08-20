@@ -13,3 +13,15 @@
 - [x] App icon 추가 (플레이스홀더 — 실제 디자인으로 나중에 교체 가능)
 - [x] Workspace base path — 탭(Tab)별로 독립적으로 설정 가능하도록. "Workspace N" 명칭을 "Tab N"으로 변경, 각 탭 행에 설정(⚙) 버튼 추가
 - [x] Markdown 에디터에 TreeView 추가 (파일 탐색 — 탭의 base path 기준)
+- [ ] Markdown 에디터 고도화 — Obsidian과 동일한 live-preview 스펙 (버그 금지, 단계적으로 진행)
+  - [x] `markdown()`이 strict CommonMark base라 GFM(취소선/태스크리스트/테이블)이 아예 파싱 안 되던 버그 수정 (`base: markdownLanguage`)
+  - [x] 취소선 `~~text~~`
+  - [x] 인용문(Blockquote) `>` — 마커 숨김 + 좌측 보더/들여쓰기
+  - [x] 체크박스 태스크리스트 `- [ ]` — 실제 클릭 가능한 체크박스 위젯
+  - [x] 구분선 `---` (HorizontalRule) — 실제 `<hr>` 렌더링
+  - [x] 펜스 코드블록 ``` ``` ``` — 여는/닫는 fence 숨김 + 블록 배경
+  - [ ] 표(Table)
+  - [ ] 이미지 `![alt](url)` 인라인 렌더링
+  - [ ] Wikilink `[[note]]` (Obsidian 전용 문법 — lezer 확장 직접 구현 필요)
+  - [ ] Callout `> [!note]` (Obsidian 전용)
+  - [ ] 리스트 들여쓰기/불릿 스타일 정교화
