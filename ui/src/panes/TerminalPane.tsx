@@ -44,7 +44,7 @@ const scrollbackCache = new Map<number, string>();
 // Best-effort addon loading: none of these are essential to a working
 // terminal, so one failing (unsupported API, odd webview environment) must
 // not take the whole pane down with it.
-function loadOptionalAddons(term: Terminal): SerializeAddon | null {
+function loadOptionalAddons(term: Terminal): { serialize: SerializeAddon | null; webgl: WebglAddon | null } {
   let serialize: SerializeAddon | null = null;
   try {
     serialize = new SerializeAddon();
@@ -76,20 +76,26 @@ function loadOptionalAddons(term: Terminal): SerializeAddon | null {
   // out to be — see cef_host.rs). xterm.js's own maintained WebGL addon
   // gets the actual goal (GPU-accelerated terminal rendering) with none of
   // that risk, so that's what's wired in here instead.
+  let webgl: WebglAddon | null = null;
   try {
-    const webgl = new WebglAddon();
+    webgl = new WebglAddon();
     // WebGL contexts can be lost (GPU driver reset, OS resource pressure,
     // tab backgrounding on some platforms) — xterm's own docs call out
     // disposing the addon on loss so it falls back to the default
     // (canvas/DOM) renderer rather than leaving the terminal stuck blank.
     webgl.onContextLoss(() => {
-      webgl.dispose();
+      try {
+        webgl?.dispose();
+      } catch (err) {
+        console.error("terminal: webgl addon dispose after context loss failed", err);
+      }
     });
     term.loadAddon(webgl);
   } catch (err) {
     console.error("terminal: webgl addon failed to load, using default renderer", err);
+    webgl = null;
   }
-  return serialize;
+  return { serialize, webgl };
 }
 
 function TerminalPaneInner({ terminalId, active }: Props) {
@@ -122,7 +128,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     const search = new SearchAddon();
     term.loadAddon(search);
     term.open(host);
-    const serialize = loadOptionalAddons(term);
+    const { serialize, webgl } = loadOptionalAddons(term);
     termRef.current = term;
     fitRef.current = fit;
     searchRef.current = search;
@@ -180,6 +186,19 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       host.removeEventListener("mousedown", focusTerm);
       window.removeEventListener("resize", syncSize);
       resizeObserver.disconnect();
+      // @xterm/addon-webgl's own disposal callback reads
+      // `terminal._core._store._isDisposed` to decide whether to restore
+      // the default renderer — but `term.dispose()` cascades through its
+      // loaded addons in a way that can null out `_core` *before* that
+      // callback runs, making `_core` itself undefined and throwing
+      // (confirmed from the addon's source, not guessed — this crashed
+      // the whole pane in practice). Disposing it explicitly first, while
+      // `_core` is still alive, avoids relying on that ordering.
+      try {
+        webgl?.dispose();
+      } catch (err) {
+        console.error("terminal: webgl addon dispose on unmount failed", err);
+      }
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
