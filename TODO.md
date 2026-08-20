@@ -20,8 +20,10 @@
   - [x] 체크박스 태스크리스트 `- [ ]` — 실제 클릭 가능한 체크박스 위젯
   - [x] 구분선 `---` (HorizontalRule) — 실제 `<hr>` 렌더링
   - [x] 펜스 코드블록 ``` ``` ``` — 여는/닫는 fence 숨김 + 블록 배경
-  - [ ] 표(Table)
-  - [ ] 이미지 `![alt](url)` 인라인 렌더링
-  - [ ] Wikilink `[[note]]` (Obsidian 전용 문법 — lezer 확장 직접 구현 필요)
-  - [ ] Callout `> [!note]` (Obsidian 전용)
-  - [ ] 리스트 들여쓰기/불릿 스타일 정교화
+  - [x] 표(Table) — 커서가 표 밖에 있을 때만 실제 `<table>`로 렌더링 (편집 중엔 raw markdown). Table 노드가 정확히 줄 경계에서 시작/끝나는지 런타임에 확인 후에만 block decoration 사용 (CodeMirror는 block decoration이 정확히 줄 단위로 매핑되길 요구함 — 안 맞으면 그냥 raw text로 안전하게 폴백)
+  - [x] 이미지 `![alt](url)` 인라인 렌더링 — http(s) 원격 URL만. 로컬 상대경로는 탭의 root_path를 Tauri asset-protocol scope로 동적 등록해야 하는데 아직 안 돼 있어서(런타임에 임의 디렉토리 허용) 의도적으로 raw text로 남겨둠 (반쯤 동작하는 것보다 안 하는 게 나음)
+  - [x] Wikilink `[[note]]` / `[[note|alias]]` — `@lezer/markdown` InlineParser 직접 구현 (`ui/src/markdownWikilink.ts`). 스타일링만 하고 클릭 시 실제 노트로 이동하는 기능은 아직 없음 (탭/파일 열기 연동 필요 — 별도 작업)
+  - [x] Callout `> [!note]` — 인용문 첫 줄이 `[!type]`으로 시작하면 라벨 뱃지로 렌더링 + 타입별 좌측 보더/배경색
+  - [x] 리스트: 불릿 리스트 마커(`-`/`*`/`+`)를 실제 `•`로 렌더링 (커서가 그 줄에 있을 때는 원문 그대로 보임, 다른 요소들과 동일한 규칙). Ordered list 번호는 원래도 괜찮아서 그대로 둠
+  - [ ] Wikilink 클릭 시 실제 파일로 이동/새로 만들기 (탭의 TreeView/파일 열기 로직과 연동 필요)
+  - [ ] 로컬 이미지 렌더링 (asset-protocol scope를 탭 root_path에 맞춰 동적으로 열어줘야 함 — Rust 쪽 작업)

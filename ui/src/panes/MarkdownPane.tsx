@@ -6,6 +6,7 @@ import { readFile, writeFile } from "../tauri";
 import { workspaceEditorTheme } from "../codemirrorTheme";
 import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview } from "../markdownLivePreview";
+import { wikiLinkExtension } from "../markdownWikilink";
 import { TreeView } from "../components/TreeView";
 
 interface Props {
@@ -36,7 +37,7 @@ export function MarkdownPane({ filePath, tabId }: Props) {
           // `markdown()`'s default base is strict CommonMark, which
           // doesn't parse strikethrough/task-lists/tables at all —
           // `markdownLanguage` is CodeMirror's GFM-flavored base.
-          markdown({ base: markdownLanguage }),
+          markdown({ base: markdownLanguage, extensions: [wikiLinkExtension] }),
           ...markdownLivePreview,
           ...workspaceSearch,
           EditorView.lineWrapping,

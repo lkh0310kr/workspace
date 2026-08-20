@@ -49,6 +49,40 @@ function selectionOverlaps(view: EditorView, from: number, to: number): boolean 
   return false;
 }
 
+const CALLOUT_MARKER_RE = /^\[!([\w-]+)\]/;
+
+const CALLOUT_LABELS: Record<string, string> = {
+  note: "Note",
+  info: "Info",
+  tip: "Tip",
+  success: "Success",
+  question: "Question",
+  warning: "Warning",
+  danger: "Danger",
+  failure: "Failure",
+  bug: "Bug",
+  example: "Example",
+  quote: "Quote",
+};
+
+// Obsidian's callout syntax (`> [!note] Title`) is just a regular
+// blockquote whose first line happens to start with `[!type]` — there's
+// no dedicated syntax-tree node for it, so both decoration passes below
+// detect it the same way from a Blockquote node's first QuoteMark.
+function calloutMarkerRange(
+  view: EditorView,
+  node: SyntaxNodeRef,
+): { type: string; from: number; to: number } | null {
+  const firstMark = node.node.getChild("QuoteMark");
+  if (!firstMark) return null;
+  const line = view.state.doc.lineAt(firstMark.from);
+  let contentStart = firstMark.to;
+  if (view.state.doc.sliceString(contentStart, contentStart + 1) === " ") contentStart += 1;
+  const match = CALLOUT_MARKER_RE.exec(view.state.doc.sliceString(contentStart, line.to));
+  if (!match) return null;
+  return { type: match[1].toLowerCase(), from: contentStart, to: contentStart + match[0].length };
+}
+
 class CheckboxWidget extends WidgetType {
   constructor(
     readonly markerFrom: number,
@@ -99,6 +133,103 @@ const taskCheckboxHandlers = EditorView.domEventHandlers({
     return true;
   },
 });
+
+class CalloutLabelWidget extends WidgetType {
+  constructor(readonly calloutType: string) {
+    super();
+  }
+
+  eq(other: CalloutLabelWidget) {
+    return other.calloutType === this.calloutType;
+  }
+
+  toDOM() {
+    const span = document.createElement("span");
+    span.className = `cm-md-callout-label cm-md-callout-${this.calloutType}`;
+    span.textContent = CALLOUT_LABELS[this.calloutType] ?? this.calloutType;
+    return span;
+  }
+}
+
+class BulletWidget extends WidgetType {
+  eq() {
+    return true;
+  }
+
+  toDOM() {
+    const span = document.createElement("span");
+    span.className = "cm-md-bullet";
+    span.textContent = "•";
+    return span;
+  }
+}
+
+class ImageWidget extends WidgetType {
+  constructor(readonly src: string) {
+    super();
+  }
+
+  eq(other: ImageWidget) {
+    return other.src === this.src;
+  }
+
+  toDOM() {
+    const img = document.createElement("img");
+    img.src = this.src;
+    img.loading = "lazy";
+    img.className = "cm-md-image";
+    return img;
+  }
+}
+
+// Rendered via a block-replace decoration (`block: true`) — unlike
+// HorizontalRule, a table genuinely spans multiple lines, and CodeMirror
+// only allows a replace decoration to cross a line break when it's
+// marked block. That in turn requires the replaced range to span exactly
+// from one line's start to another line's end; the call site verifies
+// that against the document's actual line boundaries before using this
+// widget, rather than assuming the parser guarantees it.
+class TableWidget extends WidgetType {
+  constructor(
+    readonly header: string[],
+    readonly rows: string[][],
+  ) {
+    super();
+  }
+
+  eq(other: TableWidget) {
+    return (
+      JSON.stringify(other.header) === JSON.stringify(this.header) &&
+      JSON.stringify(other.rows) === JSON.stringify(this.rows)
+    );
+  }
+
+  toDOM() {
+    const table = document.createElement("table");
+    table.className = "cm-md-table";
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const cell of this.header) {
+      const th = document.createElement("th");
+      th.textContent = cell;
+      headRow.appendChild(th);
+    }
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (const row of this.rows) {
+      const tr = document.createElement("tr");
+      for (const cell of row) {
+        const td = document.createElement("td");
+        td.textContent = cell;
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    return table;
+  }
+}
 
 function buildDecorations(view: EditorView): DecorationSet {
   const collected: { from: number; to: number; deco: Decoration }[] = [];
@@ -222,6 +353,17 @@ function buildDecorations(view: EditorView): DecorationSet {
             if (view.state.doc.sliceString(hideTo, hideTo + 1) === " ") hideTo += 1;
             collected.push({ from: mark.from, to: hideTo, deco: HIDE });
           }
+          const callout = calloutMarkerRange(view, node);
+          if (callout) {
+            const line = view.state.doc.lineAt(callout.from);
+            if (!selectionOverlaps(view, line.from, line.to)) {
+              collected.push({
+                from: callout.from,
+                to: callout.to,
+                deco: Decoration.replace({ widget: new CalloutLabelWidget(callout.type) }),
+              });
+            }
+          }
           return;
         }
 
@@ -239,6 +381,84 @@ function buildDecorations(view: EditorView): DecorationSet {
             const closeLineStart = view.state.doc.lineAt(closeMark.from).from;
             collected.push({ from: closeLineStart, to: closeMark.to, deco: HIDE });
           }
+          return;
+        }
+
+        if (type === "WikiLink") {
+          // `[[Target]]` or `[[Target|Alias]]` (custom node from
+          // markdownWikilink.ts — no built-in lezer support for this).
+          const full = view.state.doc.sliceString(node.from, node.to);
+          const pipeIdx = full.indexOf("|");
+          const innerFrom = node.from + 2;
+          const innerTo = node.to - 2;
+          const displayFrom = pipeIdx >= 0 ? node.from + pipeIdx + 1 : innerFrom;
+          if (displayFrom >= innerTo) return;
+          collected.push({
+            from: displayFrom,
+            to: innerTo,
+            deco: Decoration.mark({ class: "cm-md-link cm-md-wikilink" }),
+          });
+          if (!selectionOverlaps(view, node.from, node.to)) {
+            collected.push({ from: node.from, to: displayFrom, deco: HIDE });
+            collected.push({ from: innerTo, to: node.to, deco: HIDE });
+          }
+          return;
+        }
+
+        if (type === "Image") {
+          // Structure mirrors Link: [ LinkMark "![" ] alt [ LinkMark "]" ]
+          // [ LinkMark "(" ] URL [ LinkMark ")" ]. Only remote http(s)
+          // images are rendered — a local relative path would need the
+          // tab's root_path resolved through Tauri's asset protocol,
+          // which isn't scoped for arbitrary runtime-chosen directories
+          // yet (see TODO.md); local image paths are left as plain,
+          // fully-editable text rather than half-rendered.
+          const url = node.node.getChild("URL");
+          if (!url) return;
+          const src = view.state.doc.sliceString(url.from, url.to);
+          if (!/^https?:\/\//i.test(src)) return;
+          if (selectionOverlaps(view, node.from, node.to)) return;
+          collected.push({
+            from: node.from,
+            to: node.to,
+            deco: Decoration.replace({ widget: new ImageWidget(src) }),
+          });
+          return;
+        }
+
+        if (type === "Table") {
+          if (selectionOverlaps(view, node.from, node.to)) return;
+          const startLine = view.state.doc.lineAt(node.from);
+          const endLine = view.state.doc.lineAt(node.to);
+          // See TableWidget's comment: block decorations must span exact
+          // line boundaries, so this is checked rather than assumed.
+          if (startLine.from !== node.from || endLine.to !== node.to) return;
+          const header = node.node.getChild("TableHeader");
+          if (!header) return;
+          const cellText = (n: SyntaxNodeRef) => view.state.doc.sliceString(n.from, n.to).trim();
+          const headerCells = header.getChildren("TableCell").map(cellText);
+          const bodyRows = node.node
+            .getChildren("TableRow")
+            .map((row) => row.getChildren("TableCell").map(cellText));
+          collected.push({
+            from: node.from,
+            to: node.to,
+            deco: Decoration.replace({ widget: new TableWidget(headerCells, bodyRows), block: true }),
+          });
+          return false;
+        }
+
+        if (type === "ListItem") {
+          if (node.node.parent?.type.name !== "BulletList") return;
+          const mark = node.node.getChild("ListMark");
+          if (!mark) return;
+          const line = view.state.doc.lineAt(mark.from);
+          if (selectionOverlaps(view, line.from, line.to)) return;
+          collected.push({
+            from: mark.from,
+            to: mark.to,
+            deco: Decoration.replace({ widget: new BulletWidget() }),
+          });
           return;
         }
       },
@@ -293,7 +513,11 @@ function buildLineDecorations(view: EditorView): DecorationSet {
       enter: (node: SyntaxNodeRef) => {
         const type = node.type.name;
         if (type !== "Blockquote" && type !== "FencedCode") return;
-        const cls = type === "Blockquote" ? "cm-md-quote-line" : "cm-md-codeblock-line";
+        let cls = type === "Blockquote" ? "cm-md-quote-line" : "cm-md-codeblock-line";
+        if (type === "Blockquote") {
+          const callout = calloutMarkerRange(view, node);
+          if (callout) cls += ` cm-md-callout-line cm-md-callout-${callout.type}-line`;
+        }
         const startLine = view.state.doc.lineAt(node.from).number;
         const endLine = view.state.doc.lineAt(node.to).number;
         for (let ln = startLine; ln <= endLine; ln++) {

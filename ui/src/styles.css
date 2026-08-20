@@ -553,6 +553,71 @@ iframe.browser-content-slot {
   font-family: var(--font-mono);
 }
 
+.cm-md-callout-line {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.cm-md-callout-label {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.cm-md-callout-warning-line,
+.cm-md-callout-danger-line,
+.cm-md-callout-failure-line,
+.cm-md-callout-bug-line {
+  border-left-color: #d9822b;
+  background: color-mix(in srgb, #d9822b 8%, transparent);
+}
+
+.cm-md-callout-label.cm-md-callout-warning,
+.cm-md-callout-label.cm-md-callout-danger,
+.cm-md-callout-label.cm-md-callout-failure,
+.cm-md-callout-label.cm-md-callout-bug {
+  color: #d9822b;
+}
+
+.cm-md-bullet {
+  display: inline-block;
+  width: 1em;
+  color: var(--text-muted);
+}
+
+.cm-md-wikilink {
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+}
+
+.cm-md-image {
+  max-width: 100%;
+  display: block;
+  margin: 4px 0;
+  border-radius: 4px;
+}
+
+.cm-md-table {
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 0.95em;
+}
+
+.cm-md-table th,
+.cm-md-table td {
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.cm-md-table th {
+  background: var(--bg-hover);
+  font-weight: 600;
+}
+
 .browser-nav {
   display: flex;
   align-items: center;
