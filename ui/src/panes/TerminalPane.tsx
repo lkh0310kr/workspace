@@ -84,8 +84,9 @@ function TerminalPaneInner({ terminalId, active }: Props) {
   // once (e.g. a split). Track real DOM focus instead, via `focusin`/
   // `focusout` bubbling up from xterm's internal hidden textarea.
   const hasFocusRef = useRef(false);
-  // See the composition/IME comment in the mount effect below.
-  const composingRef = useRef(false);
+  // See the IME comment in the mount effect below.
+  const imeActiveRef = useRef(false);
+  const imeCommittedRef = useRef("");
   const pendingWritesRef = useRef<Uint8Array[]>([]);
 
   useEffect(() => {
@@ -111,44 +112,73 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     const cached = scrollbackCache.get(terminalId);
     if (cached) term.write(cached);
 
-    // xterm.js repositions its IME composition overlay to the terminal's
-    // *current cursor cell* on every render (confirmed by reading its
-    // compiled source: `onRender(() => this._compositionHelper.
-    // updateCompositionElements())`, which reads the live buffer x/y).
-    // A CLI that's constantly redrawing itself (Claude Code's own TUI is
-    // exactly this) moves the cursor while output streams in — if that
-    // happens *during* an active Korean/CJK IME composition, the
-    // composition anchor gets yanked to a new position mid-session,
-    // which corrupts or aborts it in most browsers. Holding incoming PTY
-    // output in a queue for the duration of a composition (flushed the
-    // instant it ends) keeps the cursor still while composing, so there's
-    // nothing for xterm to reposition to until composition is done.
-    const onCompositionStart = () => {
-      composingRef.current = true;
+    // CONFIRMED via captured event trace (not guessed): in this WKWebView
+    // embed, `compositionstart`/`compositionupdate`/`compositionend` NEVER
+    // fire for real Korean IME input — zero occurrences across a full
+    // multi-syllable sentence, despite keydown reporting `keyCode===229`
+    // (the standard "this key was IME-processed" marker) for every jamo,
+    // and despite the hidden textarea's `value` building up perfectly
+    // correct composed Hangul the whole time. This is a known class of
+    // WebKit bug (Safari/WKWebView unreliably dispatching CompositionEvent
+    // for CJK). Because those events never fire, xterm.js's
+    // CompositionHelper — which is supposed to buffer everything and send
+    // once, on compositionend — never activates; it falls back to naive
+    // per-`input`-event diffing, which forwards some intermediate jamo
+    // fragments to `onData` and silently drops others, producing exactly
+    // the garbled "ㅇ지ㄷ ㅇ러ㄱ ㄴ느ㄷ?"-style output that was reported.
+    //
+    // Fix: since composition events are dead here, derive composition
+    // boundaries ourselves from the one signal that *is* reliable —
+    // `keydown.keyCode === 229` means "still composing," any other keydown
+    // means the previous cluster is finalized (you can't keep composing
+    // Hangul past a Space/Enter/Backspace/Latin key). While a cluster is
+    // open we suppress xterm's own (buggy, fragment-based) onData sends
+    // and buffer incoming PTY output (same rationale as before: don't let
+    // the terminal's cursor move out from under an in-progress local
+    // composition); on the boundary we read `term.textarea.value` directly
+    // — proven correct by the trace — take the portion added since the
+    // cluster started, and send that as one clean write, then reset.
+    const onImeKeydown = (e: KeyboardEvent) => {
+      if (e.keyCode === 229) {
+        if (!imeActiveRef.current) {
+          imeActiveRef.current = true;
+          imeCommittedRef.current = term.textarea?.value ?? "";
+        }
+        return;
+      }
+      flushIme();
     };
-    const onCompositionEnd = () => {
-      composingRef.current = false;
+    const flushIme = () => {
+      if (!imeActiveRef.current) return;
+      imeActiveRef.current = false;
+      const value = term.textarea?.value ?? "";
+      const committed = imeCommittedRef.current;
+      if (value.startsWith(committed) && value.length > committed.length) {
+        const delta = value.slice(committed.length);
+        ptyWrite(terminalId, new TextEncoder().encode(delta)).catch(console.error);
+      }
+      imeCommittedRef.current = "";
+      if (term.textarea) term.textarea.value = "";
       if (pendingWritesRef.current.length > 0) {
         for (const chunk of pendingWritesRef.current) term.write(chunk);
         pendingWritesRef.current = [];
       }
     };
-    term.textarea?.addEventListener("compositionstart", onCompositionStart);
-    term.textarea?.addEventListener("compositionend", onCompositionEnd);
+    // Capture phase: must run and clear imeActiveRef *before* xterm's own
+    // (bubble-phase) keydown handler decides whether to call onData for
+    // the boundary key itself (confirmed via trace: for a plain key like
+    // Space, xterm calls onData synchronously from keydown, before any
+    // input event) — otherwise the boundary key would still see stale
+    // "still composing" state.
+    term.textarea?.addEventListener("keydown", onImeKeydown, true);
+    const onBlur = () => flushIme();
+    term.textarea?.addEventListener("blur", onBlur);
 
-    // Temporary, deliberately verbose instrumentation for the Korean/CJK
-    // IME investigation — the composition-buffering fix above targets one
-    // *hypothesized* mechanism (cursor repositioning mid-composition) but
-    // didn't resolve the reported corruption on its own, and WKWebView
-    // (what Tauri uses on macOS) is independently documented to fire
-    // different/malformed synthetic keyboard events around composition
-    // boundaries compared to Chromium (see xterm.js issue #5894 — a
-    // *different* WKWebView composition bug, but same class of engine
-    // divergence). There's no way to trigger real OS-level IME composition
-    // from a script, so the only way to find the actual event sequence is
-    // to log every candidate event and have it reproduced live. Routed
-    // through console.log so it lands in debugOverlay.ts (Ctrl+Shift+D) —
-    // WKWebView doesn't forward console output anywhere else observable.
+    // Deliberately verbose instrumentation kept from the investigation —
+    // routed through console.log so it lands in debugOverlay.ts
+    // (Ctrl+Shift+D), since WKWebView doesn't forward console output
+    // anywhere else observable. Useful to re-verify this fix against a
+    // real reproduction, and cheap to leave in.
     const imeTrace = (label: string, e: Event) => {
       const ke = e as KeyboardEvent;
       const ce = e as CompositionEvent;
@@ -165,9 +195,6 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     for (const type of imeEvents) {
       term.textarea?.addEventListener(type, (e) => imeTrace(type, e));
     }
-    term.onData((data) => {
-      console.log(`[ime-trace] term.onData data=${JSON.stringify(data)}`);
-    });
 
     const syncSize = () => {
       fit.fit();
@@ -175,6 +202,11 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     };
 
     term.onData((data) => {
+      console.log(`[ime-trace] term.onData data=${JSON.stringify(data)}`);
+      // Suppressed during an active IME cluster — xterm's own composition
+      // fragments are unreliable here (see the IME comment above);
+      // flushIme() sends the correct, fully-composed text instead.
+      if (imeActiveRef.current) return;
       const bytes = new TextEncoder().encode(data);
       ptyWrite(terminalId, bytes).catch(console.error);
     });
@@ -206,10 +238,11 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     });
 
     return () => {
-      term.textarea?.removeEventListener("compositionstart", onCompositionStart);
-      term.textarea?.removeEventListener("compositionend", onCompositionEnd);
+      term.textarea?.removeEventListener("keydown", onImeKeydown, true);
+      term.textarea?.removeEventListener("blur", onBlur);
       pendingWritesRef.current = [];
-      composingRef.current = false;
+      imeActiveRef.current = false;
+      imeCommittedRef.current = "";
       host.removeEventListener("focusin", onFocusIn);
       host.removeEventListener("focusout", onFocusOut);
       if (serialize) {
@@ -235,7 +268,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       if (payload.id !== terminalId || !termRef.current) return;
       const binary = atob(payload.data_b64);
       const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-      if (composingRef.current) {
+      if (imeActiveRef.current) {
         pendingWritesRef.current.push(bytes);
       } else {
         termRef.current.write(bytes);
