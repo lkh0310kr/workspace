@@ -101,6 +101,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
   // See the IME comment in the mount effect below.
   const imeActiveRef = useRef(false);
   const previewActiveRef = useRef(false);
+  const imeConsumedLenRef = useRef(0);
   const pendingWritesRef = useRef<Uint8Array[]>([]);
 
   useEffect(() => {
@@ -194,8 +195,25 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     // flush time re-sent those already-delivered characters a second
     // time. Fix: extract only the Hangul-range characters from the value
     // — the ASCII/space characters in there were already forwarded by
-    // xterm directly and must not be resent — then always clear the
-    // textarea regardless, so nothing lingers into the next cluster.
+    // xterm directly and must not be resent.
+    //
+    // A seventh confirmed bug, caused by the fix directly above: that
+    // fix cleared `term.textarea.value = ""` after every send. Captured
+    // log evidence: `flushIme sending hangulOnly="확"` immediately
+    // followed by a separate, independent `onData data="확"
+    // imeActive=false` — "확" reaching the PTY twice, i.e. exactly the
+    // "characters shown twice" report. Root cause: `term.textarea.value`
+    // is xterm's own live-bound element; xterm keeps its own private,
+    // undocumented "last known value" for its input-diffing fallback
+    // path, and mutating the DOM value directly doesn't tell xterm about
+    // it — it desyncs, and later resynchronizes by independently
+    // replaying stale content through its own onData. Fix: never mutate
+    // `term.textarea.value` at all. Track how much of it we've already
+    // consumed as a length offset instead (`imeConsumedLenRef`) and only
+    // ever read `value.slice(imeConsumedLenRef.current)` — this is the
+    // same "track an offset into value you don't own" pattern real
+    // terminal/IME integrations use specifically to avoid fighting the
+    // browser for ownership of a shared input element.
     // Reported: even with the fix working, typing didn't *feel* like
     // Orca (or any native IME) — raw jamo only ever appeared once a
     // cluster flushed, instead of updating live as each jamo/syllable
@@ -227,18 +245,29 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       }
       term.write("\x1b[u\x1b[0K" + hangulOnly);
     };
-    const flushIme = () => {
+    // The portion of `term.textarea.value` not yet consumed — never
+    // mutate the value itself (see the seventh-bug comment above); only
+    // ever advance this offset once its content has been dealt with.
+    // Also clamped down if the value ever gets *shorter* than the offset
+    // (e.g. a Backspace), so a shrink can't leave the offset permanently
+    // pointing past the end and silently swallowing later input.
+    const unconsumed = () => {
       const raw = term.textarea?.value ?? "";
+      if (imeConsumedLenRef.current > raw.length) imeConsumedLenRef.current = 0;
+      return raw.slice(imeConsumedLenRef.current);
+    };
+    const flushIme = () => {
+      const pending = unconsumed();
       clearPreview();
-      if (raw.length > 0) {
-        const hangulOnly = Array.from(raw)
+      if (pending.length > 0) {
+        imeConsumedLenRef.current = term.textarea?.value.length ?? imeConsumedLenRef.current;
+        const hangulOnly = Array.from(pending)
           .filter((ch) => HANGUL_FRAGMENT_RE.test(ch))
           .join("");
         if (hangulOnly.length > 0) {
-          console.log(`[ime-trace] flushIme sending hangulOnly=${JSON.stringify(hangulOnly)} raw=${JSON.stringify(raw)}`);
+          console.log(`[ime-trace] flushIme sending hangulOnly=${JSON.stringify(hangulOnly)} pending=${JSON.stringify(pending)}`);
           ptyWrite(terminalId, new TextEncoder().encode(hangulOnly)).catch(console.error);
         }
-        if (term.textarea) term.textarea.value = "";
       }
       if (pendingWritesRef.current.length > 0) {
         for (const chunk of pendingWritesRef.current) term.write(chunk);
@@ -247,8 +276,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     };
     const onImeInput = () => {
       if (!imeActiveRef.current) return;
-      const raw = term.textarea?.value ?? "";
-      const hangulOnly = Array.from(raw)
+      const hangulOnly = Array.from(unconsumed())
         .filter((ch) => HANGUL_FRAGMENT_RE.test(ch))
         .join("");
       updatePreview(hangulOnly);
@@ -378,6 +406,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       pendingWritesRef.current = [];
       imeActiveRef.current = false;
       previewActiveRef.current = false;
+      imeConsumedLenRef.current = 0;
       host.removeEventListener("focusin", onFocusIn);
       host.removeEventListener("focusout", onFocusOut);
       if (serialize) {
