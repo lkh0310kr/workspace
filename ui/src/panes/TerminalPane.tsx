@@ -40,6 +40,12 @@ const XTERM_THEMES: Record<ResolvedTheme, ITheme> = {
 // otherwise scrollback visually resets to blank on every tab switch.
 const scrollbackCache = new Map<number, string>();
 
+// Hangul Jamo (U+1100–U+11FF), Hangul Compatibility Jamo (U+3130–U+318F),
+// and Hangul Syllables (U+AC00–U+D7A3) — see the IME comment in the mount
+// effect below for why single characters in these blocks are treated as
+// leaked composition fragments.
+const HANGUL_FRAGMENT_RE = /[ᄀ-ᇿ㄰-㆏가-힣]/;
+
 // Best-effort addon loading: none of these are essential to a working
 // terminal, so one failing (unsupported API, odd webview environment) must
 // not take the whole pane down with it.
@@ -86,7 +92,6 @@ function TerminalPaneInner({ terminalId, active }: Props) {
   const hasFocusRef = useRef(false);
   // See the IME comment in the mount effect below.
   const imeActiveRef = useRef(false);
-  const imeCommittedRef = useRef("");
   const pendingWritesRef = useRef<Uint8Array[]>([]);
 
   useEffect(() => {
@@ -128,49 +133,64 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     // the garbled "ㅇ지ㄷ ㅇ러ㄱ ㄴ느ㄷ?"-style output that was reported.
     //
     // Fix: since composition events are dead here, derive composition
-    // boundaries ourselves from the one signal that *is* reliable —
-    // `keydown.keyCode === 229` means "still composing," any other keydown
-    // means the previous cluster is finalized (you can't keep composing
-    // Hangul past a Space/Enter/Backspace/Latin key). While a cluster is
-    // open we suppress xterm's own (buggy, fragment-based) onData sends
-    // and buffer incoming PTY output (same rationale as before: don't let
-    // the terminal's cursor move out from under an in-progress local
-    // composition); on the boundary we read `term.textarea.value` directly
-    // — proven correct by the trace — take the portion added since the
-    // cluster started, and send that as one clean write, then reset.
-    const onImeKeydown = (e: KeyboardEvent) => {
-      if (e.keyCode === 229) {
-        if (!imeActiveRef.current) {
-          imeActiveRef.current = true;
-          imeCommittedRef.current = term.textarea?.value ?? "";
-        }
-        return;
-      }
-      flushIme();
-    };
+    // boundaries ourselves from signals that *are* reliable — a keydown
+    // with `keyCode === 229` means "still composing." A second, real
+    // finding from re-testing this against a live trace: the *first*
+    // jamo of a cluster is not reliably tagged 229 (its keydown sometimes
+    // reports `key/code === "Unidentified", keyCode === 0` instead), but
+    // in every captured trace that "Unidentified" keydown immediately
+    // precedes the CapsLock-remapped-to-Korean/English toggle the user's
+    // machine uses, right before typing starts — so it's treated as an
+    // arm signal too. Any other keydown is a boundary (you can't keep
+    // composing Hangul past a Space/Enter/Backspace/Latin key) and
+    // triggers a flush.
+    //
+    // A second confirmed bug from that same trace: xterm's own keydown
+    // listener runs before ours (it was attached earlier, during
+    // `term.open()`, and same-target listeners run in registration order
+    // regardless of capture/bubble — capture does NOT give us priority
+    // here), so it can call `onData` directly for a jamo, or for the
+    // boundary key itself (e.g. Space), *before* our keydown listener has
+    // run to arm/disarm `imeActiveRef`. A boolean flag checked inside the
+    // `onData` callback can't outrun that ordering. Fix: suppress by
+    // *content* instead of by flag — a leaked composition fragment is
+    // always a single Hangul jamo/syllable character (confirmed: every
+    // leaked fragment across both traces was length-1, in the Hangul
+    // Jamo/Compatibility-Jamo/Syllables Unicode blocks), which a real
+    // boundary key's own data (Space, Enter, a Latin letter) never is —
+    // and a real paste of Korean text arrives as one multi-character
+    // `onData` call, which the length===1 check leaves untouched. This
+    // needs no timing assumptions at all.
+    //
+    // A third confirmed bug from that trace: an original version of this
+    // fix diffed `term.textarea.value` against a "committed" prefix
+    // captured when the cluster armed. That's wrong — Hangul jamo merge
+    // *in place* (e.g. "ㅂ"+"ㅏ" becomes "바", not "ㅂ바"), so the
+    // captured prefix can vanish entirely from the value by flush time,
+    // and `startsWith` silently failed, dropping the whole cluster. Fix:
+    // always clear `term.textarea.value` after every flush, so whatever
+    // has accumulated *since* is the entire delta — no prefix-matching
+    // needed.
     const flushIme = () => {
-      if (!imeActiveRef.current) return;
-      imeActiveRef.current = false;
       const value = term.textarea?.value ?? "";
-      const committed = imeCommittedRef.current;
-      if (value.startsWith(committed) && value.length > committed.length) {
-        const delta = value.slice(committed.length);
-        ptyWrite(terminalId, new TextEncoder().encode(delta)).catch(console.error);
+      if (value.length > 0) {
+        ptyWrite(terminalId, new TextEncoder().encode(value)).catch(console.error);
+        if (term.textarea) term.textarea.value = "";
       }
-      imeCommittedRef.current = "";
-      if (term.textarea) term.textarea.value = "";
       if (pendingWritesRef.current.length > 0) {
         for (const chunk of pendingWritesRef.current) term.write(chunk);
         pendingWritesRef.current = [];
       }
     };
-    // Capture phase: must run and clear imeActiveRef *before* xterm's own
-    // (bubble-phase) keydown handler decides whether to call onData for
-    // the boundary key itself (confirmed via trace: for a plain key like
-    // Space, xterm calls onData synchronously from keydown, before any
-    // input event) — otherwise the boundary key would still see stale
-    // "still composing" state.
-    term.textarea?.addEventListener("keydown", onImeKeydown, true);
+    const onImeKeydown = (e: KeyboardEvent) => {
+      if (e.keyCode === 229 || e.code === "Unidentified") {
+        imeActiveRef.current = true;
+        return;
+      }
+      imeActiveRef.current = false;
+      flushIme();
+    };
+    term.textarea?.addEventListener("keydown", onImeKeydown);
     const onBlur = () => flushIme();
     term.textarea?.addEventListener("blur", onBlur);
 
@@ -203,10 +223,11 @@ function TerminalPaneInner({ terminalId, active }: Props) {
 
     term.onData((data) => {
       console.log(`[ime-trace] term.onData data=${JSON.stringify(data)}`);
-      // Suppressed during an active IME cluster — xterm's own composition
-      // fragments are unreliable here (see the IME comment above);
-      // flushIme() sends the correct, fully-composed text instead.
-      if (imeActiveRef.current) return;
+      // Suppressed by content, not by a timing-dependent flag — see the
+      // IME comment above for why. A leaked composition fragment is
+      // always a single character in a Hangul Unicode block; a real
+      // paste arrives as a multi-character string and passes through.
+      if (data.length === 1 && HANGUL_FRAGMENT_RE.test(data)) return;
       const bytes = new TextEncoder().encode(data);
       ptyWrite(terminalId, bytes).catch(console.error);
     });
@@ -238,11 +259,10 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     });
 
     return () => {
-      term.textarea?.removeEventListener("keydown", onImeKeydown, true);
+      term.textarea?.removeEventListener("keydown", onImeKeydown);
       term.textarea?.removeEventListener("blur", onBlur);
       pendingWritesRef.current = [];
       imeActiveRef.current = false;
-      imeCommittedRef.current = "";
       host.removeEventListener("focusin", onFocusIn);
       host.removeEventListener("focusout", onFocusOut);
       if (serialize) {
