@@ -9,8 +9,7 @@ import { useWorkspace } from "./components/useWorkspace";
 import { addPaneToTabSet, replacePane, splitTabSet } from "./layout/layoutActions";
 import { setLayoutInstance } from "./layout/layoutRef";
 import { PaneComponent, PaneConfig } from "./layout/paneTypes";
-import { CodePane } from "./panes/CodePane";
-import { MarkdownPane } from "./panes/MarkdownPane";
+import { EditorPane } from "./panes/EditorPane";
 import { TerminalPane } from "./panes/TerminalPane";
 import { BrowserPane } from "./panes/BrowserPane";
 import { CefBrowserPane } from "./panes/CefBrowserPane";
@@ -255,10 +254,16 @@ export default function App() {
     const body = (() => {
       switch (component) {
         case "code":
-          return <CodePane filePath={config.filePath ?? null} tabId={activeTabId} />;
         case "markdown":
+          // Both pane types render the same unified editor now — kind
+          // (markdown live-preview vs. syntax-highlighted code) is
+          // auto-detected from the file's own extension inside it, not
+          // from which button opened it. Kept as two distinct
+          // PaneComponent values (not collapsed into one) so already-
+          // persisted layout.json entries from before this change still
+          // resolve to a valid pane without any migration.
           return (
-            <MarkdownPane
+            <EditorPane
               filePath={config.filePath ?? null}
               tabId={activeTabId}
               rootPath={workspace?.tabs.find((t) => t.id === activeTabId)?.root_path ?? ""}

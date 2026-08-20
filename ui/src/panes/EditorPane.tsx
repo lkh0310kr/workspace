@@ -1,17 +1,34 @@
 import { useEffect, useRef, useState } from "react";
-import { EditorState } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
-import { history, historyKeymap, indentWithTab, insertNewlineAndIndent } from "@codemirror/commands";
+import { Compartment, EditorState } from "@codemirror/state";
+import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+  insertNewlineAndIndent,
+  toggleComment,
+} from "@codemirror/commands";
 import {
   deleteMarkupBackward,
   insertNewlineContinueMarkupCommand,
   markdown,
   markdownLanguage,
 } from "@codemirror/lang-markdown";
-import { syntaxTree } from "@codemirror/language";
+import {
+  bracketMatching,
+  foldGutter,
+  foldKeymap,
+  indentOnInput,
+  syntaxTree,
+  LanguageDescription,
+} from "@codemirror/language";
+import { languages as languageData } from "@codemirror/language-data";
+import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { listDir, onFileChanged, readFile, writeFile } from "../tauri";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
 import { columnGuideTheme, markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
+import { syntaxTheme } from "../codemirrorSyntax";
 import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
 import { wikiLinkExtension } from "../markdownWikilink";
@@ -29,14 +46,15 @@ interface OutlineItem {
   pos: number;
 }
 
+function isMarkdownPath(path: string | null): boolean {
+  return !!path && /\.(md|markdown)$/i.test(path);
+}
+
 async function findAvailableUntitledName(tabId: number): Promise<string> {
   const entries = await listDir(tabId, "").catch(() => []);
-  // Lowercased on purpose: macOS's default filesystem (APFS/HFS+) is
-  // case-insensitive, so an existing "Untitled.md" and a write to
-  // "untitled.md" are the *same file* at the OS level. Comparing names
-  // case-sensitively here missed that "Untitled.md" already existed,
-  // returned "untitled.md" as "available", and writeFile silently
-  // truncated the existing file to empty — this is exactly that bug.
+  // Lowercased: macOS's default filesystem (APFS/HFS+) is case-
+  // insensitive, so an existing "Untitled.md" and a write to
+  // "untitled.md" are the same file at the OS level.
   const names = new Set(entries.filter((e) => !e.is_dir).map((e) => e.name.toLowerCase()));
   if (!names.has("untitled.md")) return "untitled.md";
   let i = 1;
@@ -46,10 +64,7 @@ async function findAvailableUntitledName(tabId: number): Promise<string> {
 
 // Obsidian resolves a wikilink by filename anywhere in the vault, not by
 // exact relative path — mirrors that with a bounded breadth-first search
-// (capped so a pathological/huge tree can't hang the click) rather than
-// requiring the link to already know its target's folder. Creates the
-// note at the workspace root if nothing matches, same as Obsidian's
-// default "create if missing" behavior.
+// (capped so a pathological/huge tree can't hang the click).
 async function resolveWikiLinkTarget(tabId: number, target: string): Promise<string> {
   const base = target.split("/").pop()?.trim() || target;
   const wanted = `${base.toLowerCase()}.md`;
@@ -88,7 +103,7 @@ function computeOutline(view: EditorView): OutlineItem[] {
   return items;
 }
 
-export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
+export function EditorPane({ filePath, tabId, rootPath }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const pathRef = useRef(filePath);
@@ -99,11 +114,6 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
   const [creating, setCreating] = useState(false);
   const [history_, setHistory] = useState<string[]>(filePath ? [filePath] : []);
   const [historyIndex, setHistoryIndex] = useState(filePath ? 0 : -1);
-  // The content last loaded from (or saved to) disk, so an external-change
-  // notification can tell "someone else edited this file" apart from "the
-  // file-changed event our own save just triggered" — reloading in the
-  // latter case would reset the cursor/undo-history for no reason, and
-  // reloading over *unsaved local edits* would silently discard them.
   const lastLoadedContentRef = useRef<string | null>(null);
   const [autoSave, setAutoSave] = useState(getStoredAutoSave);
   const autoSaveRef = useRef(autoSave);
@@ -134,13 +144,6 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
     setHistoryIndex((i) => i + 1);
     setCurrentPath(path);
   };
-  // The CM view (and any extensions closed over at creation time, like
-  // the wikilink click handler below) is only rebuilt when [tabId,
-  // hasPath] changes — not on every render — so a click handler that
-  // called `navigateTo` directly would keep calling whichever version
-  // was current at mount, with `historyIndex` frozen from back then.
-  // Routing through a ref kept fresh every render (same pattern as
-  // `pathRef` above) sidesteps that staleness.
   const navigateToRef = useRef(navigateTo);
   navigateToRef.current = navigateTo;
 
@@ -158,13 +161,13 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
     setCurrentPath(history_[i]);
   };
 
-  // The editor itself only exists once a file is open — no CM instance
-  // (and so no hardcoded placeholder doc) is mounted for an empty pane;
-  // the "New File" prompt renders in its place instead. Keyed on whether
-  // a path exists (not on the path's value) so switching between two
-  // already-open files doesn't tear the view down, only reloads content
-  // via the effect below.
   const hasPath = currentPath !== null;
+  const isMarkdown = isMarkdownPath(currentPath);
+
+  // Recreated on every file switch (not just the empty<->open boundary
+  // MarkdownPane used to key on) — a code file needs its own language
+  // extension, which is resolved per-path below, so the view has to be
+  // rebuilt per file regardless of markdown/code kind.
   useEffect(() => {
     if (!hasPath || !hostRef.current) return;
 
@@ -187,22 +190,10 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
       },
     });
 
-    const view = new EditorView({
-      state: EditorState.create({
-        doc: "",
-        extensions: [
-          // `markdown()`'s default base is strict CommonMark, which
-          // doesn't parse strikethrough/task-lists/tables at all —
-          // `markdownLanguage` is CodeMirror's GFM-flavored base.
-          // `addKeymap: false` — the default-installed markdownKeymap
-          // binds Enter to `insertNewlineContinueMarkup` with its default
-          // `nonTightLists: true`, which (per its own docs) inserts an
-          // *extra* blank line when Enter is pressed on a blank second
-          // list item, instead of just exiting the list — reported
-          // directly as "pressing Enter enters two lines". Bound below
-          // with `nonTightLists: false` instead, which does what every
-          // other editor (including Obsidian) does here: one Enter, one
-          // line, list exited cleanly.
+    const langCompartment = new Compartment();
+
+    const kindExtensions = isMarkdown
+      ? [
           markdown({
             base: markdownLanguage,
             extensions: [wikiLinkExtension],
@@ -210,36 +201,48 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
           }),
           markdownRootPath.of(rootPath),
           ...markdownLivePreview,
-          ...workspaceSearch,
-          history(),
+          markdownProseTheme,
+          wikiLinkClickHandler,
           keymap.of([
-            // Its own docs warn it shouldn't be the *only* Enter binding
-            // (it can return false outside markdown context, e.g. an
-            // embedded code/HTML region) — insertNewlineAndIndent is the
-            // plain fallback for that case, tried next since CM6's
-            // keymap facet falls through same-key bindings in order.
             { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
             { key: "Enter", run: insertNewlineAndIndent },
             { key: "Backspace", run: deleteMarkupBackward },
-            indentWithTab,
-            ...historyKeymap,
           ]),
+        ]
+      : [
+          langCompartment.of([]),
+          lineNumbers(),
+          highlightActiveLineGutter(),
+          foldGutter(),
+          bracketMatching(),
+          closeBrackets(),
+          autocompletion(),
+          indentOnInput(),
+          syntaxTheme,
+          keymap.of([
+            { key: "Mod-/", run: toggleComment },
+            ...closeBracketsKeymap,
+            ...completionKeymap,
+            ...foldKeymap,
+            ...defaultKeymap,
+          ]),
+        ];
+
+    const view = new EditorView({
+      state: EditorState.create({
+        doc: "",
+        extensions: [
+          ...kindExtensions,
+          ...workspaceSearch,
+          history(),
+          keymap.of([indentWithTab, ...historyKeymap]),
           EditorView.lineWrapping,
           workspaceEditorTheme,
-          markdownProseTheme,
           columnGuideTheme,
-          wikiLinkClickHandler,
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
-            setOutline(computeOutline(update.view));
+            if (isMarkdown) setOutline(computeOutline(update.view));
             setUnsaved(true);
-            // Debounced auto-save: only scheduled while the "Auto-save"
-            // setting is on (checked live via the ref, not the value
-            // captured when this listener was created — the setting can
-            // change while a pane is already open). A manual Cmd+S save,
-            // or this pane loading a *different* file, both explicitly
-            // cancel any pending timer below so a stale save can't fire
-            // after either.
             if (!autoSaveRef.current) return;
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
             autoSaveTimerRef.current = setTimeout(() => {
@@ -252,6 +255,25 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
       parent: hostRef.current,
     });
     viewRef.current = view;
+    if (isMarkdown) setOutline([]);
+
+    // Language loading is async (dynamically imported per-language by
+    // @codemirror/language-data) — the view mounts first with no
+    // highlighting for code files, then reconfigures via the compartment
+    // once the matching language resolves. Falls back to plain text
+    // (still gets line numbers/brackets/etc, just no coloring) for an
+    // unrecognized or missing extension.
+    if (!isMarkdown && currentPath) {
+      const desc = LanguageDescription.matchFilename(languageData, currentPath);
+      desc
+        ?.load()
+        .then((support) => {
+          if (viewRef.current === view) {
+            view.dispatch({ effects: langCompartment.reconfigure(support) });
+          }
+        })
+        .catch(console.error);
+    }
 
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
@@ -273,11 +295,8 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
       view.destroy();
       viewRef.current = null;
     };
-    // Also recreated when rootPath changes (e.g. via Settings) — image
-    // paths need to re-resolve against the new root, and there's no
-    // cheaper way to update a Facet value than reconfiguring the view.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on hasPath, not currentPath (see comment above)
-  }, [tabId, hasPath, rootPath]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabId, hasPath, rootPath, currentPath, isMarkdown]);
 
   useEffect(() => {
     if (!currentPath || !viewRef.current) return;
@@ -287,9 +306,6 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
         viewRef.current?.dispatch({
           changes: { from: 0, to: viewRef.current.state.doc.length, insert: content },
         });
-        // This dispatch is a docChanged event like any other from the CM
-        // view's perspective, so the updateListener above just marked
-        // this "unsaved" — it's freshly loaded *from* disk, so it isn't.
         if (autoSaveTimerRef.current) {
           clearTimeout(autoSaveTimerRef.current);
           autoSaveTimerRef.current = null;
@@ -299,13 +315,6 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
       .catch(console.error);
   }, [currentPath, tabId]);
 
-  // Live-reload when the currently open file changes on disk outside this
-  // pane (another editor, git checkout, etc). Skipped when there are
-  // unsaved local edits (current doc differs from what was last loaded/
-  // saved) so an external change can't silently clobber in-progress
-  // typing, and naturally a no-op when the change was our *own* save
-  // (content already matches, so the diff-check below is false and
-  // nothing is re-dispatched — no cursor/undo-history reset on save).
   useEffect(() => {
     if (!currentPath) return;
     const unlisten = onFileChanged(() => {
@@ -388,14 +397,16 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
               {unsaved ? "Unsaved" : "Saved"}
             </span>
           )}
-          <button
-            type="button"
-            className={`md-pane-tree-toggle${outlineOpen ? " active" : ""}`}
-            title="Toggle outline"
-            onClick={() => setOutlineOpen((v) => !v)}
-          >
-            ☰
-          </button>
+          {isMarkdown && (
+            <button
+              type="button"
+              className={`md-pane-tree-toggle${outlineOpen ? " active" : ""}`}
+              title="Toggle outline"
+              onClick={() => setOutlineOpen((v) => !v)}
+            >
+              ☰
+            </button>
+          )}
           <button
             type="button"
             className={`md-pane-tree-toggle${treeOpen ? " active" : ""}`}
@@ -415,7 +426,7 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
           </div>
         )}
       </div>
-      {outlineOpen && (
+      {isMarkdown && outlineOpen && (
         <div className="md-pane-sidebar md-pane-outline">
           {outline.length === 0 ? (
             <div className="md-pane-outline-empty">No headings</div>

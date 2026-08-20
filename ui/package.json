@@ -9,12 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.11.0",
-    "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/lang-markdown": "^6.3.3",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/language-data": "^6.5.2",
     "@codemirror/search": "^6.7.1",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.0",
+    "@lezer/highlight": "^1.2.3",
     "@lezer/markdown": "^1.7.2",
     "@tauri-apps/api": "^2.5.0",
     "@tauri-apps/plugin-dialog": "^2.7.2",

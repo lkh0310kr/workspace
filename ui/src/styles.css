@@ -14,6 +14,15 @@
   --text-muted: #8a8a8a;
   --text-faint: #5c5c5c;
   --accent: #6690d6;
+  /* Syntax colors — mirrors VS Code's own default dark theme palette. */
+  --syntax-keyword: #c586c0;
+  --syntax-string: #ce9178;
+  --syntax-comment: #6a9955;
+  --syntax-number: #b5cea8;
+  --syntax-function: #dcdcaa;
+  --syntax-type: #4ec9b0;
+  --syntax-property: #9cdcfe;
+  --syntax-invalid: #f14c4c;
   --font-ui: ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
   --chrome-h: 34px;
@@ -33,6 +42,14 @@
   --text-muted: #6b6b6b;
   --text-faint: #9a9a9a;
   --accent: #3d6fb5;
+  --syntax-keyword: #af00db;
+  --syntax-string: #a31515;
+  --syntax-comment: #008000;
+  --syntax-number: #098658;
+  --syntax-function: #795e26;
+  --syntax-type: #267f99;
+  --syntax-property: #001080;
+  --syntax-invalid: #cd3131;
 }
 
 *,
@@ -461,7 +478,6 @@ iframe.browser-content-slot {
   color: var(--text);
 }
 
-.code-editor,
 .md-editor {
   height: 100%;
   overflow: auto;
