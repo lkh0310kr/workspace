@@ -248,13 +248,26 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     // The portion of `term.textarea.value` not yet consumed — never
     // mutate the value itself (see the seventh-bug comment above); only
     // ever advance this offset once its content has been dealt with.
-    // Also clamped down if the value ever gets *shorter* than the offset
-    // (e.g. a Backspace), so a shrink can't leave the offset permanently
-    // pointing past the end and silently swallowing later input.
+    //
+    // An eighth confirmed bug: an earlier version of this reset the
+    // offset to 0 whenever the value was shorter than it, meant to
+    // handle a real Backspace. Log evidence it was wrong: the value
+    // transiently *shrinks then regrows* as an ordinary part of WebKit's
+    // own jamo-merge redraw (e.g. "...확" → "..." → "...확" again,
+    // confirmed adjacent in the trace, with no Backspace keydown between
+    // them — a delete-then-reinsert the browser does internally, not a
+    // user edit). That transient dip was tripping the reset, which threw
+    // away the offset and made the *entire session's already-sent
+    // history* look unconsumed again at the next flush — exactly the
+    // "다른서비스참고해서다른서비스참고해서" duplication reported. Real
+    // Backspace doesn't need handling here at all: the byte it produces
+    // goes through xterm's own direct (non-IME) onData path, entirely
+    // separate from this offset. So this offset should only ever move
+    // forward — a shrink, transient or real, just means there's nothing
+    // new yet, not that history should be replayed.
     const unconsumed = () => {
       const raw = term.textarea?.value ?? "";
-      if (imeConsumedLenRef.current > raw.length) imeConsumedLenRef.current = 0;
-      return raw.slice(imeConsumedLenRef.current);
+      return raw.length > imeConsumedLenRef.current ? raw.slice(imeConsumedLenRef.current) : "";
     };
     const flushIme = () => {
       const pending = unconsumed();
