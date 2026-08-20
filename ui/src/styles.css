@@ -826,6 +826,18 @@ iframe.browser-content-slot {
   flex: 1;
 }
 
+.md-pane-save-status {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.md-pane-save-status.unsaved {
+  color: var(--text-muted);
+}
+
 .md-pane-toolbar button {
   padding: 2px 6px;
   border: none;

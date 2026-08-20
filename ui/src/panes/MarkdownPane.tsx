@@ -5,6 +5,7 @@ import { history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { syntaxTree } from "@codemirror/language";
 import { listDir, onFileChanged, readFile, writeFile } from "../tauri";
+import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
 import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
@@ -99,8 +100,23 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
   // latter case would reset the cursor/undo-history for no reason, and
   // reloading over *unsaved local edits* would silently discard them.
   const lastLoadedContentRef = useRef<string | null>(null);
+  const [autoSave, setAutoSave] = useState(getStoredAutoSave);
+  const autoSaveRef = useRef(autoSave);
+  autoSaveRef.current = autoSave;
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [unsaved, setUnsaved] = useState(false);
 
   pathRef.current = currentPath;
+
+  useEffect(() => subscribeAutoSave(setAutoSave), []);
+
+  const saveNow = (view: EditorView, path: string) => {
+    const content = view.state.doc.toString();
+    return writeFile(tabId, path, content).then(() => {
+      lastLoadedContentRef.current = content;
+      setUnsaved(false);
+    });
+  };
 
   useEffect(() => {
     setCurrentPath(filePath);
@@ -184,7 +200,22 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
           markdownProseTheme,
           wikiLinkClickHandler,
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) setOutline(computeOutline(update.view));
+            if (!update.docChanged) return;
+            setOutline(computeOutline(update.view));
+            setUnsaved(true);
+            // Debounced auto-save: only scheduled while the "Auto-save"
+            // setting is on (checked live via the ref, not the value
+            // captured when this listener was created — the setting can
+            // change while a pane is already open). A manual Cmd+S save,
+            // or this pane loading a *different* file, both explicitly
+            // cancel any pending timer below so a stale save can't fire
+            // after either.
+            if (!autoSaveRef.current) return;
+            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+            autoSaveTimerRef.current = setTimeout(() => {
+              const path = pathRef.current;
+              if (path) saveNow(update.view, path).catch(console.error);
+            }, 600);
           }),
         ],
       }),
@@ -197,18 +228,18 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
         e.preventDefault();
         const path = pathRef.current;
         if (!path || !viewRef.current) return;
-        const content = viewRef.current.state.doc.toString();
-        writeFile(tabId, path, content)
-          .then(() => {
-            lastLoadedContentRef.current = content;
-          })
-          .catch(console.error);
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+          autoSaveTimerRef.current = null;
+        }
+        saveNow(viewRef.current, path).catch(console.error);
       }
     };
     window.addEventListener("keydown", onKey);
 
     return () => {
       window.removeEventListener("keydown", onKey);
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       view.destroy();
       viewRef.current = null;
     };
@@ -226,6 +257,14 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
         viewRef.current?.dispatch({
           changes: { from: 0, to: viewRef.current.state.doc.length, insert: content },
         });
+        // This dispatch is a docChanged event like any other from the CM
+        // view's perspective, so the updateListener above just marked
+        // this "unsaved" — it's freshly loaded *from* disk, so it isn't.
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+          autoSaveTimerRef.current = null;
+        }
+        setUnsaved(false);
       })
       .catch(console.error);
   }, [currentPath, tabId]);
@@ -255,6 +294,11 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
             changes: { from: 0, to: view.state.doc.length, insert: content },
             selection: selection.main.to <= content.length ? selection : undefined,
           });
+          if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+            autoSaveTimerRef.current = null;
+          }
+          setUnsaved(false);
         })
         .catch(console.error);
     });
@@ -309,6 +353,11 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
             →
           </button>
           <span className="md-pane-toolbar-spacer" />
+          {hasPath && !autoSave && (
+            <span className={`md-pane-save-status${unsaved ? " unsaved" : ""}`}>
+              {unsaved ? "Unsaved" : "Saved"}
+            </span>
+          )}
           <button
             type="button"
             className={`md-pane-tree-toggle${outlineOpen ? " active" : ""}`}
