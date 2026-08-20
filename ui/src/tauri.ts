@@ -5,12 +5,12 @@ export interface TabInfo {
   id: number;
   title: string;
   layout_json: string;
+  root_path: string;
 }
 
 export interface WorkspaceState {
   tabs: TabInfo[];
   active_tab_id: number;
-  root_path: string;
 }
 
 export interface DirEntry {
@@ -66,20 +66,20 @@ export async function setTabLayout(tabId: number, layoutJson: string): Promise<v
   return invoke("set_tab_layout", { tabId, layoutJson });
 }
 
-export async function setWorkspaceRoot(path: string): Promise<WorkspaceState> {
-  return invoke("set_workspace_root", { path });
+export async function setTabRootPath(tabId: number, path: string): Promise<WorkspaceState> {
+  return invoke("set_tab_root_path", { tabId, path });
 }
 
-export async function listDir(path: string): Promise<DirEntry[]> {
-  return invoke("list_dir", { path });
+export async function listDir(tabId: number, path: string): Promise<DirEntry[]> {
+  return invoke("list_dir", { tabId, path });
 }
 
-export async function readFile(path: string): Promise<string> {
-  return invoke("read_file", { path });
+export async function readFile(tabId: number, path: string): Promise<string> {
+  return invoke("read_file", { tabId, path });
 }
 
-export async function writeFile(path: string, content: string): Promise<void> {
-  return invoke("write_file", { path, content });
+export async function writeFile(tabId: number, path: string, content: string): Promise<void> {
+  return invoke("write_file", { tabId, path, content });
 }
 
 export function onPtyOutput(handler: (payload: PtyOutput) => void) {

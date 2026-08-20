@@ -10,7 +10,7 @@ commands.allow = [
     "close_tab",
     "select_tab",
     "set_tab_layout",
-    "set_workspace_root",
+    "set_tab_root_path",
     "list_dir",
     "read_file",
     "write_file",

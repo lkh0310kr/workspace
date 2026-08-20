@@ -101,6 +101,7 @@ fn spawn_terminal(
 fn add_tab(state: State<'_, Arc<AppState>>, app: AppHandle) -> Result<u32, String> {
     let tab_id = state.workspace.lock().add_tab();
     let _ = app.emit("workspace-updated", state.workspace.lock().state());
+    rewatch_active(&state);
     Ok(tab_id)
 }
 
@@ -108,6 +109,7 @@ fn add_tab(state: State<'_, Arc<AppState>>, app: AppHandle) -> Result<u32, Strin
 fn close_tab(state: State<'_, Arc<AppState>>, app: AppHandle, tab_id: u32) -> Result<(), String> {
     state.workspace.lock().close_tab(tab_id)?;
     let _ = app.emit("workspace-updated", state.workspace.lock().state());
+    rewatch_active(&state);
     Ok(())
 }
 
@@ -115,6 +117,7 @@ fn close_tab(state: State<'_, Arc<AppState>>, app: AppHandle, tab_id: u32) -> Re
 fn select_tab(state: State<'_, Arc<AppState>>, app: AppHandle, tab_id: u32) -> Result<(), String> {
     state.workspace.lock().select_tab(tab_id);
     let _ = app.emit("workspace-updated", state.workspace.lock().state());
+    rewatch_active(&state);
     Ok(())
 }
 
@@ -131,46 +134,53 @@ fn set_tab_layout(
 }
 
 #[tauri::command]
-fn set_workspace_root(
+fn set_tab_root_path(
     state: State<'_, Arc<AppState>>,
     app: AppHandle,
+    tab_id: u32,
     path: String,
 ) -> Result<workspace_core::WorkspaceState, String> {
     let root = PathBuf::from(&path);
-    state.workspace.lock().set_root_path(root.clone())?;
+    {
+        let mut ws = state.workspace.lock();
+        ws.set_tab_root_path(tab_id, root.clone())?;
+        // Newly created tabs are seeded from whatever root was last set —
+        // and it's what gets persisted below, so the app reopens wherever
+        // you last pointed it.
+        ws.default_root_path = root.clone();
+    }
     save_config(&AppConfig {
         root_path: Some(path),
     })?;
 
-    if let Some(tx) = state.watch_tx.lock().clone() {
-        *state.watcher.lock() = watch_root(&root, tx);
-    }
-
     let new_state = state.workspace.lock().state();
     let _ = app.emit("workspace-updated", new_state.clone());
+    rewatch_active(&state);
     Ok(new_state)
 }
 
 #[tauri::command]
 fn list_dir(
     state: State<'_, Arc<AppState>>,
+    tab_id: u32,
     path: String,
 ) -> Result<Vec<workspace_core::files::DirEntry>, String> {
-    state.workspace.lock().list_dir(&path)
+    state.workspace.lock().list_dir(tab_id, &path)
 }
 
 #[tauri::command]
-fn read_file(state: State<'_, Arc<AppState>>, path: String) -> Result<String, String> {
-    state.workspace.lock().read_file(&path)
+fn read_file(state: State<'_, Arc<AppState>>, tab_id: u32, path: String) -> Result<String, String> {
+    state.workspace.lock().read_file(tab_id, &path)
 }
 
 #[tauri::command]
 fn write_file(
     state: State<'_, Arc<AppState>>,
+    tab_id: u32,
     path: String,
     content: String,
 ) -> Result<(), String> {
-    state.workspace.lock().write_file(&path, &content)
+    state.workspace.lock().write_file(tab_id, &path, &content)
 }
 
 fn spawn_pty_poll(app: AppHandle, state: Arc<AppState>) {
@@ -223,6 +233,20 @@ fn watch_root(root: &std::path::Path, tx: WatchSender) -> Option<RecommendedWatc
     Some(watcher)
 }
 
+/// Each tab can have its own root_path now, so the single filesystem
+/// watcher (and the `file-changed` events it drives, e.g. for TreeView
+/// refresh) always follows whichever tab is currently active rather than
+/// a single app-wide root.
+fn rewatch_active(state: &Arc<AppState>) {
+    let active_id = state.workspace.lock().state().active_tab_id;
+    let Some(root) = state.workspace.lock().tab_root_path(active_id) else {
+        return;
+    };
+    if let Some(tx) = state.watch_tx.lock().clone() {
+        *state.watcher.lock() = watch_root(&root, tx);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let config = load_config();
@@ -230,7 +254,7 @@ pub fn run() {
         Some(path) if path.is_dir() => Workspace::with_root(path),
         _ => Workspace::new(),
     };
-    let root = workspace.root_path.clone();
+    let root = workspace.default_root_path.clone();
 
     let state = Arc::new(AppState {
         workspace: Mutex::new(workspace),
@@ -272,7 +296,7 @@ pub fn run() {
             close_tab,
             select_tab,
             set_tab_layout,
-            set_workspace_root,
+            set_tab_root_path,
             list_dir,
             read_file,
             write_file,

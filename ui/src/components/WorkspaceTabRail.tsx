@@ -3,10 +3,10 @@ import { TabInfo, addTab, closeTab, selectTab } from "../tauri";
 interface Props {
   tabs: TabInfo[];
   activeTabId: number;
-  rootPath: string;
+  onOpenSettings: (tabId: number) => void;
 }
 
-export function WorkspaceTabRail({ tabs, activeTabId, rootPath }: Props) {
+export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
   return (
     <aside className="workspace-rail">
       <div className="workspace-rail-tabs">
@@ -19,9 +19,23 @@ export function WorkspaceTabRail({ tabs, activeTabId, rootPath }: Props) {
               type="button"
               className="workspace-rail-title"
               onClick={() => selectTab(tab.id)}
-              title={tab.title}
+              title={tab.root_path}
             >
-              {tab.title}
+              <span className="workspace-rail-title-text">{tab.title}</span>
+              <span className="workspace-rail-title-path">
+                {tab.root_path.split("/").pop() || tab.root_path}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="workspace-rail-settings"
+              title="Tab settings"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenSettings(tab.id);
+              }}
+            >
+              ⚙
             </button>
             {tabs.length > 1 ? (
               <button
@@ -43,9 +57,6 @@ export function WorkspaceTabRail({ tabs, activeTabId, rootPath }: Props) {
         <button type="button" className="workspace-rail-add" onClick={() => addTab()} title="New tab">
           +
         </button>
-      </div>
-      <div className="workspace-rail-path" title={rootPath}>
-        {rootPath.split("/").pop() || rootPath}
       </div>
     </aside>
   );

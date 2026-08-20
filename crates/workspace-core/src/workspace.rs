@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
@@ -14,17 +14,20 @@ pub struct TabInfo {
     pub id: TabId,
     pub title: String,
     pub layout_json: String,
+    pub root_path: String,
 }
 
 #[derive(Clone, Serialize)]
 pub struct WorkspaceState {
     pub tabs: Vec<TabInfo>,
     pub active_tab_id: TabId,
-    pub root_path: String,
 }
 
 pub struct Workspace {
-    pub root_path: PathBuf,
+    /// Root new tabs are seeded with. Each tab can then repoint its own
+    /// `root_path` independently via `set_tab_root_path` — this is only
+    /// the starting point for tabs created after that point.
+    pub default_root_path: PathBuf,
     tabs: Vec<Tab>,
     active_tab_id: TabId,
     terminals: HashMap<u32, TerminalSession>,
@@ -36,6 +39,7 @@ struct Tab {
     id: TabId,
     title: String,
     layout_json: String,
+    root_path: PathBuf,
 }
 
 impl Workspace {
@@ -49,7 +53,7 @@ impl Workspace {
     /// exists.
     pub fn with_root(root: PathBuf) -> Self {
         let mut ws = Self {
-            root_path: root,
+            default_root_path: root,
             tabs: Vec::new(),
             active_tab_id: 0,
             terminals: HashMap::new(),
@@ -63,12 +67,14 @@ impl Workspace {
     pub fn add_tab(&mut self) -> TabId {
         let id = self.next_tab_id;
         self.next_tab_id += 1;
-        let terminal_id = self.spawn_terminal(120, 40);
+        let root_path = self.default_root_path.clone();
+        let terminal_id = self.spawn_terminal_in(&root_path, 120, 40);
         let layout_json = default_layout(terminal_id);
         self.tabs.push(Tab {
             id,
-            title: format!("Workspace {}", id + 1),
+            title: format!("Tab {}", id + 1),
             layout_json,
+            root_path,
         });
         self.active_tab_id = id;
         id
@@ -116,9 +122,19 @@ impl Workspace {
     }
 
     pub fn spawn_terminal(&mut self, cols: u16, rows: u16) -> u32 {
+        let root = self
+            .tabs
+            .iter()
+            .find(|t| t.id == self.active_tab_id)
+            .map(|t| t.root_path.clone())
+            .unwrap_or_else(|| self.default_root_path.clone());
+        self.spawn_terminal_in(&root, cols, rows)
+    }
+
+    fn spawn_terminal_in(&mut self, root: &Path, cols: u16, rows: u16) -> u32 {
         let id = self.next_terminal_id;
         self.next_terminal_id += 1;
-        let session = TerminalSession::new(id, cols, rows, Some(self.root_path.clone()));
+        let session = TerminalSession::new(id, cols, rows, Some(root.to_path_buf()));
         session.start();
         self.terminals.insert(id, session);
         id
@@ -127,13 +143,21 @@ impl Workspace {
     /// Existing terminals keep their own cwd — only ones spawned after
     /// this takes effect. Rejects anything that isn't an existing
     /// directory rather than silently falling back, so a typo'd Settings
-    /// path doesn't quietly leave you where you were.
-    pub fn set_root_path(&mut self, path: PathBuf) -> Result<(), String> {
+    /// path doesn't quietly leave you where you were. Scoped to a single
+    /// tab — other tabs keep whatever root they already had.
+    pub fn set_tab_root_path(&mut self, tab_id: TabId, path: PathBuf) -> Result<(), String> {
         if !path.is_dir() {
             return Err(format!("not a directory: {}", path.display()));
         }
-        self.root_path = path;
+        let Some(tab) = self.tabs.iter_mut().find(|t| t.id == tab_id) else {
+            return Err("tab not found".into());
+        };
+        tab.root_path = path;
         Ok(())
+    }
+
+    pub fn tab_root_path(&self, tab_id: TabId) -> Option<PathBuf> {
+        self.tabs.iter().find(|t| t.id == tab_id).map(|t| t.root_path.clone())
     }
 
     pub fn terminal_write(&self, id: u32, data: &[u8]) {
@@ -170,23 +194,31 @@ impl Workspace {
                     id: t.id,
                     title: t.title.clone(),
                     layout_json: t.layout_json.clone(),
+                    root_path: t.root_path.to_string_lossy().into_owned(),
                 })
                 .collect(),
             active_tab_id: self.active_tab_id,
-            root_path: self.root_path.to_string_lossy().into_owned(),
         }
     }
 
-    pub fn list_dir(&self, rel: &str) -> Result<Vec<files::DirEntry>, String> {
-        files::list_dir(&self.root_path, rel)
+    pub fn list_dir(&self, tab_id: TabId, rel: &str) -> Result<Vec<files::DirEntry>, String> {
+        files::list_dir(&self.tab_root(tab_id)?, rel)
     }
 
-    pub fn read_file(&self, rel: &str) -> Result<String, String> {
-        files::read_file(&self.root_path, rel)
+    pub fn read_file(&self, tab_id: TabId, rel: &str) -> Result<String, String> {
+        files::read_file(&self.tab_root(tab_id)?, rel)
     }
 
-    pub fn write_file(&self, rel: &str, content: &str) -> Result<(), String> {
-        files::write_file(&self.root_path, rel, content)
+    pub fn write_file(&self, tab_id: TabId, rel: &str, content: &str) -> Result<(), String> {
+        files::write_file(&self.tab_root(tab_id)?, rel, content)
+    }
+
+    fn tab_root(&self, tab_id: TabId) -> Result<PathBuf, String> {
+        self.tabs
+            .iter()
+            .find(|t| t.id == tab_id)
+            .map(|t| t.root_path.clone())
+            .ok_or_else(|| "tab not found".into())
     }
 
     fn is_terminal_referenced(&self, terminal_id: u32) -> bool {

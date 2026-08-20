@@ -101,7 +101,7 @@ export default function App() {
   // still known) and consumed by onModelChange (post-move, once the model
   // reflects the new tree) — see onAction below for why.
   const pendingRebalanceRef = useRef<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTabId, setSettingsTabId] = useState<number | null>(null);
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
 
   useEffect(() => {
@@ -117,12 +117,12 @@ export default function App() {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === ",") {
         e.preventDefault();
-        setSettingsOpen((open) => !open);
+        setSettingsTabId((open) => (open === null ? (workspace?.active_tab_id ?? 0) : null));
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [workspace?.active_tab_id]);
 
   const syncModels = useCallback((ws: WorkspaceState) => {
     const seen = new Set<number>();
@@ -253,9 +253,9 @@ export default function App() {
     const body = (() => {
       switch (component) {
         case "code":
-          return <CodePane filePath={config.filePath ?? null} />;
+          return <CodePane filePath={config.filePath ?? null} tabId={activeTabId} />;
         case "markdown":
-          return <MarkdownPane filePath={config.filePath ?? null} />;
+          return <MarkdownPane filePath={config.filePath ?? null} tabId={activeTabId} />;
         case "terminal":
           return <TerminalPane terminalId={config.terminalId ?? 0} active={true} />;
         default:
@@ -274,7 +274,7 @@ export default function App() {
         {body}
       </PaneFrame>
     );
-  }, [modelEpoch]);
+  }, [modelEpoch, activeTabId]);
 
   useEffect(() => {
     void browserCleanupAll().catch(console.error);
@@ -398,7 +398,7 @@ export default function App() {
       <WorkspaceTabRail
         tabs={workspace.tabs}
         activeTabId={workspace.active_tab_id}
-        rootPath={workspace.root_path}
+        onOpenSettings={(tabId) => setSettingsTabId(tabId)}
       />
       <div className="layout-host" key={activeTabId}>
         <Layout
@@ -410,12 +410,14 @@ export default function App() {
           realtimeResize
         />
       </div>
-      {settingsOpen && (
+      {settingsTabId !== null && (
         <SettingsDialog
-          onClose={() => setSettingsOpen(false)}
+          onClose={() => setSettingsTabId(null)}
           themePreference={themePreference}
           onThemeChange={handleThemeChange}
-          rootPath={workspace.root_path}
+          tabId={settingsTabId}
+          tabTitle={workspace.tabs.find((t) => t.id === settingsTabId)?.title ?? ""}
+          rootPath={workspace.tabs.find((t) => t.id === settingsTabId)?.root_path ?? ""}
         />
       )}
     </div>

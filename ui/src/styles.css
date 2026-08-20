@@ -108,7 +108,7 @@ input {
 
 .workspace-rail-row {
   display: grid;
-  grid-template-columns: 1fr var(--rail-close-w);
+  grid-template-columns: 1fr var(--rail-close-w) var(--rail-close-w);
   align-items: stretch;
   min-height: 40px;
   border-left: 2px solid transparent;
@@ -152,14 +152,30 @@ input {
 
 .workspace-rail-title {
   min-width: 0;
-  padding: 6px 4px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 4px 4px 8px;
   background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
   text-align: left;
-  font-size: 13px;
   font-family: var(--font-ui);
+}
+
+.workspace-rail-title-text {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-rail-title-path {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -168,6 +184,29 @@ input {
 .workspace-rail-row:hover .workspace-rail-title,
 .workspace-rail-row.active .workspace-rail-title {
   color: var(--text);
+}
+
+.workspace-rail-settings {
+  width: var(--rail-close-w);
+  min-width: var(--rail-close-w);
+  height: 40px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.workspace-rail-row:hover .workspace-rail-settings {
+  opacity: 1;
+}
+
+.workspace-rail-settings:hover {
+  color: var(--text);
+  background: var(--bg-hover);
 }
 
 .workspace-rail-add {
@@ -189,18 +228,6 @@ input {
 .workspace-rail-add:hover {
   color: var(--text);
   background: var(--bg-hover);
-}
-
-.workspace-rail-path {
-  flex-shrink: 0;
-  padding: 6px 8px;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--text-faint);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-top: 1px solid var(--border);
 }
 
 /* —— Pane chrome —— */
@@ -655,7 +682,6 @@ iframe.browser-content-slot {
 
 .pane-tab-bar,
 .workspace-body,
-.file-tree,
 .toolbar,
 .workspace-tab,
 .tabset-btn {
@@ -664,6 +690,84 @@ iframe.browser-content-slot {
 
 .tabset-placeholder {
   display: none;
+}
+
+/* —— Markdown pane file tree —— */
+.md-pane {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.md-pane-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.md-pane-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.md-pane-tree-toggle {
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.md-pane-tree-toggle:hover,
+.md-pane-tree-toggle.active {
+  color: var(--text);
+}
+
+.md-pane-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.md-pane-body .md-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.tree-view {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.tree-view-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-view-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.tree-view-icon {
+  width: 12px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--text-faint);
 }
 
 /* —— Settings dialog —— */

@@ -11,3 +11,5 @@
 - [ ] 앱 업데이트/재빌드 후에도 터미널 내용, 내부 Claude 세션 등이 살아있도록 (참고: Orca는 업데이트해도 작업이 계속 진행됨)
 - [x] Markdown 에디터를 Obsidian/Notion 스타일의 진짜 WYSIWYG 단일 뷰로 (헤딩/굵게/기울임/인라인코드/링크 — 테이블 등 더 복잡한 요소는 아직)
 - [x] App icon 추가 (플레이스홀더 — 실제 디자인으로 나중에 교체 가능)
+- [x] Workspace base path — 탭(Tab)별로 독립적으로 설정 가능하도록. "Workspace N" 명칭을 "Tab N"으로 변경, 각 탭 행에 설정(⚙) 버튼 추가
+- [x] Markdown 에디터에 TreeView 추가 (파일 탐색 — 탭의 base path 기준)

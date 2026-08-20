@@ -9,10 +9,11 @@ import { workspaceSearch } from "../codemirrorSearch";
 
 interface Props {
   filePath: string | null;
+  tabId: number;
   onFileSaved?: (path: string) => void;
 }
 
-export function CodePane({ filePath, onFileSaved }: Props) {
+export function CodePane({ filePath, tabId, onFileSaved }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const pathRef = useRef(filePath);
@@ -43,7 +44,7 @@ export function CodePane({ filePath, onFileSaved }: Props) {
         e.preventDefault();
         const path = pathRef.current;
         if (!path || !viewRef.current) return;
-        writeFile(path, viewRef.current.state.doc.toString())
+        writeFile(tabId, path, viewRef.current.state.doc.toString())
           .then(() => onFileSaved?.(path))
           .catch(console.error);
       }
@@ -55,11 +56,11 @@ export function CodePane({ filePath, onFileSaved }: Props) {
       view.destroy();
       viewRef.current = null;
     };
-  }, [onFileSaved]);
+  }, [onFileSaved, tabId]);
 
   useEffect(() => {
     if (!filePath || !viewRef.current) return;
-    readFile(filePath)
+    readFile(tabId, filePath)
       .then((content) => {
         viewRef.current?.dispatch({
           changes: {
@@ -70,7 +71,7 @@ export function CodePane({ filePath, onFileSaved }: Props) {
         });
       })
       .catch(console.error);
-  }, [filePath]);
+  }, [filePath, tabId]);
 
   return <div className="code-editor" ref={hostRef} />;
 }
