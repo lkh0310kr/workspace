@@ -92,6 +92,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
   const hasFocusRef = useRef(false);
   // See the IME comment in the mount effect below.
   const imeActiveRef = useRef(false);
+  const previewActiveRef = useRef(false);
   const pendingWritesRef = useRef<Uint8Array[]>([]);
 
   useEffect(() => {
@@ -182,8 +183,40 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     // — the ASCII/space characters in there were already forwarded by
     // xterm directly and must not be resent — then always clear the
     // textarea regardless, so nothing lingers into the next cluster.
+    // Reported: even with the fix working, typing didn't *feel* like
+    // Orca (or any native IME) — raw jamo only ever appeared once a
+    // cluster flushed, instead of updating live as each jamo/syllable
+    // composes, which is the normal IME UX (candidate text visible
+    // immediately, refined in place as more jamo merge in). That's
+    // achievable without touching what actually gets sent to the PTY:
+    // render the in-progress cluster as a purely local overlay at the
+    // cursor via `term.write()`, anchored with a cursor save (`\x1b[s`)
+    // on the first jamo of a cluster and redrawn via cursor-restore +
+    // erase-to-end-of-line (`\x1b[u\x1b[0K`) on every subsequent update
+    // — never sent through `ptyWrite`, so it can't reintroduce the
+    // fragment-corruption bug. `flushIme` erases the preview immediately
+    // before sending the real, finalized text, which the shell then
+    // echoes back for real. Safe against the terminal's cursor moving
+    // out from under the anchor mid-composition because incoming PTY
+    // output is already held in `pendingWritesRef` for the same duration
+    // (see below) — nothing else can move the cursor while a preview is
+    // anchored.
+    const clearPreview = () => {
+      if (!previewActiveRef.current) return;
+      term.write("\x1b[u\x1b[0K");
+      previewActiveRef.current = false;
+    };
+    const updatePreview = (hangulOnly: string) => {
+      if (!previewActiveRef.current) {
+        if (hangulOnly.length === 0) return;
+        term.write("\x1b[s");
+        previewActiveRef.current = true;
+      }
+      term.write("\x1b[u\x1b[0K" + hangulOnly);
+    };
     const flushIme = () => {
       const raw = term.textarea?.value ?? "";
+      clearPreview();
       if (raw.length > 0) {
         const hangulOnly = Array.from(raw)
           .filter((ch) => HANGUL_FRAGMENT_RE.test(ch))
@@ -198,6 +231,15 @@ function TerminalPaneInner({ terminalId, active }: Props) {
         pendingWritesRef.current = [];
       }
     };
+    const onImeInput = () => {
+      if (!imeActiveRef.current) return;
+      const raw = term.textarea?.value ?? "";
+      const hangulOnly = Array.from(raw)
+        .filter((ch) => HANGUL_FRAGMENT_RE.test(ch))
+        .join("");
+      updatePreview(hangulOnly);
+    };
+    term.textarea?.addEventListener("input", onImeInput);
     // Reported after re-testing the boundary-only version: text stayed
     // buffered until a boundary key (Space/Enter) was pressed, so nothing
     // showed up if the user just paused. A cluster only ever ends on an
@@ -283,8 +325,10 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       clearIdleTimer();
       term.textarea?.removeEventListener("keydown", onImeKeydown);
       term.textarea?.removeEventListener("blur", onBlur);
+      term.textarea?.removeEventListener("input", onImeInput);
       pendingWritesRef.current = [];
       imeActiveRef.current = false;
+      previewActiveRef.current = false;
       host.removeEventListener("focusin", onFocusIn);
       host.removeEventListener("focusout", onFocusOut);
       if (serialize) {
