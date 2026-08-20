@@ -277,8 +277,24 @@ function TerminalPaneInner({ terminalId, active }: Props) {
         flushIme();
       }, 150);
     };
+    // A sixth confirmed bug, from re-testing at fast typing speed:
+    // captured a keydown for the literal Space key with keyCode === 229
+    // (confirmed in the log: `key=" " code=Space keyCode=229` — WebKit's
+    // 229 tagging is itself unreliable under load, not just its
+    // composition/input-event firing). Trusting keyCode alone meant that
+    // Space got treated as "still composing" instead of a boundary, so
+    // it never triggered a flush there — the space just accumulated into
+    // the same open cluster and was later stripped by the Hangul-only
+    // filter, gluing two words together with no space between them
+    // (matches "치ㅁㅕㄴ이러게", "게되는데요" in what was typed). Fix:
+    // decide by what `e.key` actually *is*, not by the browser's keyCode
+    // — only arm/keep-composing when the key is itself a single Hangul
+    // jamo character, or the "Unidentified" arm precursor. Space, Enter,
+    // Backspace, and everything else always reads as a boundary now,
+    // regardless of what keyCode claims.
     const onImeKeydown = (e: KeyboardEvent) => {
-      if (e.keyCode === 229 || e.code === "Unidentified") {
+      const isJamoKey = e.key.length === 1 && HANGUL_FRAGMENT_RE.test(e.key);
+      if (isJamoKey || e.code === "Unidentified") {
         imeActiveRef.current = true;
         scheduleIdleFlush();
         return;
