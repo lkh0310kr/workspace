@@ -207,6 +207,14 @@ export function EditorPane({ filePath, tabId, rootPath }: Props) {
             { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
             { key: "Enter", run: insertNewlineAndIndent },
             { key: "Backspace", run: deleteMarkupBackward },
+            // Markdown mode never had defaultKeymap at all (only these
+            // three explicit bindings), so it was missing every other
+            // VS Code-familiar editing command — move/copy line
+            // (Alt+Up/Down, Shift+Alt+Up/Down), add cursor above/below
+            // (Cmd+Alt+Up/Down), delete line (Cmd+Shift+K), etc. Placed
+            // after the bindings above so those still win for the keys
+            // they actually share (Enter, Backspace).
+            ...defaultKeymap,
           ]),
         ]
       : [
@@ -239,6 +247,12 @@ export function EditorPane({ filePath, tabId, rootPath }: Props) {
           EditorView.lineWrapping,
           workspaceEditorTheme,
           columnGuideTheme,
+          // CM6's own default for "does this click add a new cursor
+          // instead of replacing the selection" checks event.metaKey on
+          // macOS (Cmd+Click) — VS Code's convention (and what was asked
+          // for) is Option+Click. Keep metaKey working too rather than
+          // taking it away, since CM6 already behaved that way.
+          EditorView.clickAddsSelectionRange.of((event) => event.altKey || event.metaKey),
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
             if (isMarkdown) setOutline(computeOutline(update.view));

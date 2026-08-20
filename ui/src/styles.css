@@ -594,13 +594,6 @@ iframe.browser-content-slot {
   transform: rotate(45deg);
 }
 
-/* Obsidian's own default also strikes through
-   (`.HyperMD-task-line[data-task="x"] { text-decoration: line-through;
-   opacity: 0.5; }`) — dropped here per explicit feedback against the
-   strikethrough specifically; dimming alone still shows a task is done. */
-.cm-md-task-checked-line {
-  opacity: 0.5;
-}
 
 .cm-md-quote-line {
   border-left: 3px solid var(--border-strong);

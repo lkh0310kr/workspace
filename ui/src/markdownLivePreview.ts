@@ -596,24 +596,6 @@ function buildLineDecorations(view: EditorView): DecorationSet {
       enter: (node: SyntaxNodeRef) => {
         const type = node.type.name;
 
-        if (type === "Task") {
-          // Obsidian's default theme strikes through and dims a checked
-          // task's whole line (`.HyperMD-task-line[data-task="x"]` in its
-          // own CSS) — matched here via a line class rather than an
-          // inline mark, same reasoning as blockquote/code-block styling
-          // below: it's a line-level visual, not a styled text run.
-          const marker = node.node.getChild("TaskMarker");
-          if (!marker) return;
-          const checked = view.state.doc.sliceString(marker.from, marker.to).toLowerCase() === "[x]";
-          if (!checked) return;
-          const startLine = view.state.doc.lineAt(node.from).number;
-          const endLine = view.state.doc.lineAt(node.to).number;
-          for (let ln = startLine; ln <= endLine; ln++) {
-            addClass(view.state.doc.line(ln).from, "cm-md-task-checked-line");
-          }
-          return;
-        }
-
         if (type !== "Blockquote" && type !== "FencedCode") return;
         let cls = type === "Blockquote" ? "cm-md-quote-line" : "cm-md-codeblock-line";
         if (type === "Blockquote") {
