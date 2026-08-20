@@ -59,6 +59,36 @@ fn save_config(config: &AppConfig) -> Result<(), String> {
     std::fs::write(path, contents).map_err(|e| e.to_string())
 }
 
+/// Sibling of `config_path()` — persists tabs/layout/per-tab root paths
+/// (not just the single default root `AppConfig` holds) so a relaunch (an
+/// app update/rebuild included) restores the same tabs with the same
+/// terminal ids, which is what lets each terminal's tmux session (see
+/// `TerminalSession::new`) reattach to its own previous session instead
+/// of starting fresh.
+fn workspace_snapshot_path() -> Option<PathBuf> {
+    config_path()?
+        .parent()
+        .map(|dir| dir.join("workspace.json"))
+}
+
+fn load_workspace_snapshot() -> Option<workspace_core::WorkspaceState> {
+    let path = workspace_snapshot_path()?;
+    let contents = std::fs::read_to_string(path).ok()?;
+    serde_json::from_str(&contents).ok()
+}
+
+fn save_workspace_snapshot(snapshot: &workspace_core::WorkspaceState) {
+    let Some(path) = workspace_snapshot_path() else {
+        return;
+    };
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(contents) = serde_json::to_string_pretty(snapshot) {
+        let _ = std::fs::write(path, contents);
+    }
+}
+
 #[derive(Clone, Serialize)]
 struct PtyOutputPayload {
     id: u32,
@@ -89,18 +119,16 @@ fn pty_resize(
 }
 
 #[tauri::command]
-fn spawn_terminal(
-    state: State<'_, Arc<AppState>>,
-    cols: u16,
-    rows: u16,
-) -> Result<u32, String> {
+fn spawn_terminal(state: State<'_, Arc<AppState>>, cols: u16, rows: u16) -> Result<u32, String> {
     Ok(state.workspace.lock().spawn_terminal(cols, rows))
 }
 
 #[tauri::command]
 fn add_tab(state: State<'_, Arc<AppState>>, app: AppHandle) -> Result<u32, String> {
     let tab_id = state.workspace.lock().add_tab();
-    let _ = app.emit("workspace-updated", state.workspace.lock().state());
+    let new_state = state.workspace.lock().state();
+    let _ = app.emit("workspace-updated", new_state.clone());
+    save_workspace_snapshot(&new_state);
     rewatch_active(&state);
     Ok(tab_id)
 }
@@ -108,7 +136,9 @@ fn add_tab(state: State<'_, Arc<AppState>>, app: AppHandle) -> Result<u32, Strin
 #[tauri::command]
 fn close_tab(state: State<'_, Arc<AppState>>, app: AppHandle, tab_id: u32) -> Result<(), String> {
     state.workspace.lock().close_tab(tab_id)?;
-    let _ = app.emit("workspace-updated", state.workspace.lock().state());
+    let new_state = state.workspace.lock().state();
+    let _ = app.emit("workspace-updated", new_state.clone());
+    save_workspace_snapshot(&new_state);
     rewatch_active(&state);
     Ok(())
 }
@@ -116,7 +146,9 @@ fn close_tab(state: State<'_, Arc<AppState>>, app: AppHandle, tab_id: u32) -> Re
 #[tauri::command]
 fn select_tab(state: State<'_, Arc<AppState>>, app: AppHandle, tab_id: u32) -> Result<(), String> {
     state.workspace.lock().select_tab(tab_id);
-    let _ = app.emit("workspace-updated", state.workspace.lock().state());
+    let new_state = state.workspace.lock().state();
+    let _ = app.emit("workspace-updated", new_state.clone());
+    save_workspace_snapshot(&new_state);
     rewatch_active(&state);
     Ok(())
 }
@@ -129,7 +161,9 @@ fn set_tab_layout(
     layout_json: String,
 ) -> Result<(), String> {
     state.workspace.lock().set_tab_layout(tab_id, layout_json);
-    let _ = app.emit("workspace-updated", state.workspace.lock().state());
+    let new_state = state.workspace.lock().state();
+    let _ = app.emit("workspace-updated", new_state.clone());
+    save_workspace_snapshot(&new_state);
     Ok(())
 }
 
@@ -155,6 +189,7 @@ fn set_tab_root_path(
 
     let new_state = state.workspace.lock().state();
     let _ = app.emit("workspace-updated", new_state.clone());
+    save_workspace_snapshot(&new_state);
     rewatch_active(&state);
     Ok(new_state)
 }
@@ -184,15 +219,17 @@ fn write_file(
 }
 
 fn spawn_pty_poll(app: AppHandle, state: Arc<AppState>) {
-    std::thread::spawn(move || loop {
-        std::thread::sleep(Duration::from_millis(8));
-        let outputs = state.workspace.lock().poll_all_terminals();
-        for (id, chunk) in outputs {
-            let payload = PtyOutputPayload {
-                id,
-                data_b64: STANDARD.encode(&chunk),
-            };
-            let _ = app.emit("pty-output", payload);
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(Duration::from_millis(8));
+            let outputs = state.workspace.lock().poll_all_terminals();
+            for (id, chunk) in outputs {
+                let payload = PtyOutputPayload {
+                    id,
+                    data_b64: STANDARD.encode(&chunk),
+                };
+                let _ = app.emit("pty-output", payload);
+            }
         }
     });
 }
@@ -250,11 +287,19 @@ fn rewatch_active(state: &Arc<AppState>) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let config = load_config();
-    let workspace = match config.root_path.as_deref().map(PathBuf::from) {
-        Some(path) if path.is_dir() => Workspace::with_root(path),
-        _ => Workspace::new(),
+    let default_root = match config.root_path.as_deref().map(PathBuf::from) {
+        Some(path) if path.is_dir() => path,
+        _ => std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
     };
-    let root = workspace.default_root_path.clone();
+    // Restoring from `workspace.json` (tabs, layout, per-tab root paths,
+    // and — critically — each tab's original terminal ids) is what makes
+    // a relaunch (app update/rebuild included) pick back up instead of
+    // starting over with one fresh tab; see `Workspace::from_snapshot`
+    // and `TerminalSession::new`'s tmux session-key-by-id reattachment.
+    let workspace = match load_workspace_snapshot() {
+        Some(snapshot) => Workspace::from_snapshot(default_root.clone(), snapshot),
+        None => Workspace::with_root(default_root),
+    };
 
     let state = Arc::new(AppState {
         workspace: Mutex::new(workspace),
@@ -279,8 +324,15 @@ pub fn run() {
             spawn_pty_poll(handle.clone(), poll_state);
 
             let tx = spawn_watch_relay(handle.clone());
-            *setup_state.watcher.lock() = watch_root(&root, tx.clone());
             *setup_state.watch_tx.lock() = Some(tx);
+            rewatch_active(&setup_state);
+            // First launch (no workspace.json yet) would otherwise never
+            // persist anything until the user creates/closes/renames a
+            // tab — meaning a never-touched default single tab's
+            // terminal id (and thus its tmux session) would be lost on
+            // the very next relaunch. Save the just-constructed state
+            // immediately so that can't happen.
+            save_workspace_snapshot(&setup_state.workspace.lock().state());
 
             let _ = handle.emit("app-ready", ());
             cef_host::set_app_handle(handle.clone());

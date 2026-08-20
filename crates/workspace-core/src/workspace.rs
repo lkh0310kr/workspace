@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::files;
 use crate::layout::{default_layout, extract_terminal_ids};
@@ -9,7 +9,7 @@ use crate::terminal::TerminalSession;
 
 type TabId = u32;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TabInfo {
     pub id: TabId,
     pub title: String,
@@ -17,7 +17,7 @@ pub struct TabInfo {
     pub root_path: String,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct WorkspaceState {
     pub tabs: Vec<TabInfo>,
     pub active_tab_id: TabId,
@@ -62,6 +62,66 @@ impl Workspace {
         };
         ws.add_tab();
         ws
+    }
+
+    /// Rebuilds a `Workspace` from a previously-persisted `WorkspaceState`
+    /// (see `AppConfig`/`workspace.json` in `src/lib.rs`) instead of
+    /// starting with a single fresh tab. Reuses every tab's original id
+    /// (rather than reassigning fresh ones via `add_tab`) and spawns a
+    /// terminal for each id actually referenced in that tab's
+    /// `layout_json` — this is what makes `TerminalSession`'s tmux
+    /// session-key-by-id reattach to the *same* session it had before
+    /// instead of colliding with, or losing track of, another tab's.
+    /// Falls back to today's fresh-tab behavior if the snapshot is empty
+    /// (e.g. first launch, no `workspace.json` yet).
+    pub fn from_snapshot(root: PathBuf, snapshot: WorkspaceState) -> Self {
+        if snapshot.tabs.is_empty() {
+            return Self::with_root(root);
+        }
+
+        let mut next_tab_id = 0;
+        let mut next_terminal_id = 0;
+        let mut tabs = Vec::with_capacity(snapshot.tabs.len());
+        let mut terminals = HashMap::new();
+
+        for tab in &snapshot.tabs {
+            next_tab_id = next_tab_id.max(tab.id + 1);
+            let tab_root = PathBuf::from(&tab.root_path);
+            let tab_root = if tab_root.is_dir() {
+                tab_root
+            } else {
+                root.clone()
+            };
+
+            for terminal_id in extract_terminal_ids(&tab.layout_json) {
+                next_terminal_id = next_terminal_id.max(terminal_id + 1);
+                let session = TerminalSession::new(terminal_id, 120, 40, Some(tab_root.clone()));
+                session.start();
+                terminals.insert(terminal_id, session);
+            }
+
+            tabs.push(Tab {
+                id: tab.id,
+                title: tab.title.clone(),
+                layout_json: tab.layout_json.clone(),
+                root_path: tab_root,
+            });
+        }
+
+        let active_tab_id = if tabs.iter().any(|t| t.id == snapshot.active_tab_id) {
+            snapshot.active_tab_id
+        } else {
+            tabs[0].id
+        };
+
+        Self {
+            default_root_path: root,
+            tabs,
+            active_tab_id,
+            terminals,
+            next_terminal_id,
+            next_tab_id,
+        }
     }
 
     pub fn add_tab(&mut self) -> TabId {
@@ -157,7 +217,10 @@ impl Workspace {
     }
 
     pub fn tab_root_path(&self, tab_id: TabId) -> Option<PathBuf> {
-        self.tabs.iter().find(|t| t.id == tab_id).map(|t| t.root_path.clone())
+        self.tabs
+            .iter()
+            .find(|t| t.id == tab_id)
+            .map(|t| t.root_path.clone())
     }
 
     pub fn terminal_write(&self, id: u32, data: &[u8]) {

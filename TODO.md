@@ -8,7 +8,12 @@
 - [x] 터미널 테마 설정 기능 — 앱 전체 light/dark 테마를 따라가도록 연동 완료
 - [x] Split panel을 자유롭게 위치 이동할 수 있도록
 - [x] Splitter(separator) 인식 범위 확대 — 현재 1px라 드래그하기 불편함
-- [ ] 앱 업데이트/재빌드 후에도 터미널 내용, 내부 Claude 세션 등이 살아있도록 (참고: Orca는 업데이트해도 작업이 계속 진행됨)
+- [x] 앱 업데이트/재빌드 후에도 터미널 내용이 살아있도록 (참고: Orca는 업데이트해도 작업이 계속 진행됨). 커스텀 데몬/소켓을 새로 만드는 대신 tmux를 백엔드로 사용 — 이미 "클라이언트가 죽어도 세션은 산다"를 정확히 하는 검증된 도구라 새로 구현하는 것보다 훨씬 리스크가 낮음(`brew install tmux` 필요, 없으면 기존처럼 그냥 plain shell로 동작).
+  - 터미널: 각 터미널이 `tmux new-session -A -s workspace-term-<id>`로 실행됨. `<id>`가 재시작해도 안 바뀌어야 같은 세션에 재접속되므로, 탭/레이아웃/터미널 id 전체를 `workspace.json`에 저장하고 재시작 시 복원하도록 함께 구현함 (`Workspace::from_snapshot`).
+  - 실제로 이 기기에 tmux를 설치해서 직접 검증함 (`cargo test`로 재현 가능한 회귀 테스트 `pty_tmux_session_persists_across_reconnect` 추가) — 이 과정에서 두 개의 진짜 버그를 발견/수정:
+    1. `portable_pty::CommandBuilder`는 `env_clear()` 하고 `SHELL`만 다시 넣음 — `HOME`이 없어서 tmux가 띄운 로그인 셸이 `~/.zshrc`를 못 찾고 조용히 스킵함. `HOME`/`USER`를 직접 다시 넣어서 해결.
+    2. **치명적**: `portable_pty`의 `UnixMasterWriter::drop()`이 pty가 닫힐 때 EOF 바이트(Ctrl-D)를 흘려보내는데, 이게 tmux attach 클라이언트를 통해 세션의 실제 셸로 그대로 전달되어 — 앱을 끌 때마다 정확히 "보존하려던" 세션의 셸이 Ctrl-D로 종료되어버림. `Pty`의 `Drop`에서 `tmux detach-client -s <key>`를 먼저 실행해서 EOF가 도달하기 전에 클라이언트를 깨끗하게 분리하도록 수정. (직접 검증하지 않았으면 기능이 정확히 반대로 동작—껐다 켜면 오히려 세션이 사라짐—하는 채로 나갔을 버그.)
+  - Claude 세션 등 "내부 세션" 개념은 현재 코드베이스에 없음(존재하지 않는 걸 만들어내지 않음) — 터미널 안에서 실행 중인 어떤 프로세스든(claude code 포함) 터미널 자체가 살아있으면 같이 살아있음.
 - [x] Markdown 에디터를 Obsidian/Notion 스타일의 진짜 WYSIWYG 단일 뷰로 (헤딩/굵게/기울임/인라인코드/링크 — 테이블 등 더 복잡한 요소는 아직)
 - [x] App icon 추가 (플레이스홀더 — 실제 디자인으로 나중에 교체 가능)
 - [x] Workspace base path — 탭(Tab)별로 독립적으로 설정 가능하도록. "Workspace N" 명칭을 "Tab N"으로 변경, 각 탭 행에 설정(⚙) 버튼 추가

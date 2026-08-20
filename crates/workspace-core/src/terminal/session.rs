@@ -11,9 +11,15 @@ pub struct TerminalSession {
 
 impl TerminalSession {
     pub fn new(id: u32, cols: u16, rows: u16, cwd: Option<PathBuf>) -> Self {
+        // Keyed by `id` so a terminal reattaches to its own previous tmux
+        // session (see Pty::session_key) rather than a stranger's — this
+        // only works out correctly because `Workspace` restores tabs from
+        // its persisted snapshot with their original ids intact instead
+        // of reassigning fresh ones on every launch.
+        let session_key = format!("workspace-term-{id}");
         Self {
             id,
-            pty: Pty::new(cols, rows, cwd),
+            pty: Pty::new(cols, rows, cwd, Some(session_key)),
             cols,
             rows,
         }
