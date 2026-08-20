@@ -559,12 +559,39 @@ iframe.browser-content-slot {
    box + consistent trailing gap) so a list mixing the three types keeps
    its content lined up — the marker glyphs/digits themselves are
    untouched, only the spacing around them. */
+/* `appearance: none` — the global `* { border-radius: 0 }` reset has no
+   effect on a native checkbox's shape, since that's drawn by the OS's
+   own widget renderer (a separate path from normal box styling), not
+   real border-radius. Removing native appearance and drawing a square
+   box + checkmark by hand is the only way to actually get rid of it. */
 .cm-md-task-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
   width: 1em;
   height: 1em;
   margin: 0 0.4em 0 0;
   vertical-align: middle;
   cursor: pointer;
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg-base);
+  position: relative;
+}
+
+.cm-md-task-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.cm-md-task-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 0.27em;
+  top: 0.03em;
+  width: 0.25em;
+  height: 0.48em;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 /* Obsidian's own default also strikes through

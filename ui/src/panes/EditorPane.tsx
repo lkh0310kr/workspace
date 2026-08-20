@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Compartment, EditorState } from "@codemirror/state";
+import { Compartment, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
 import {
   defaultKeymap,
@@ -305,6 +305,11 @@ export function EditorPane({ filePath, tabId, rootPath }: Props) {
         lastLoadedContentRef.current = content;
         viewRef.current?.dispatch({
           changes: { from: 0, to: viewRef.current.state.doc.length, insert: content },
+          // Loading a file's content isn't a user edit — without this, the
+          // very first Cmd+Z after opening a file undid the load itself
+          // (back to an empty document) instead of doing nothing / acting
+          // on the user's own last real edit.
+          annotations: Transaction.addToHistory.of(false),
         });
         if (autoSaveTimerRef.current) {
           clearTimeout(autoSaveTimerRef.current);
@@ -332,6 +337,7 @@ export function EditorPane({ filePath, tabId, rootPath }: Props) {
           view.dispatch({
             changes: { from: 0, to: view.state.doc.length, insert: content },
             selection: selection.main.to <= content.length ? selection : undefined,
+            annotations: Transaction.addToHistory.of(false),
           });
           if (autoSaveTimerRef.current) {
             clearTimeout(autoSaveTimerRef.current);

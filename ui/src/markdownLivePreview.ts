@@ -360,9 +360,14 @@ function buildDecorations(view: EditorView): DecorationSet {
         }
 
         if (type === "TaskMarker") {
-          // Always rendered as a checkbox, cursor position notwithstanding
-          // — it's a control, not text you'd want to edit character by
-          // character, matching how Obsidian treats it.
+          // Selection-gated like every other element here, not always-
+          // rendered — Obsidian itself reveals the raw "- [ ]" text
+          // (dash included) while the cursor is on that line, same as
+          // headings/links/etc, rather than keeping the checkbox control
+          // up at all times (confirmed directly, this file previously
+          // assumed the opposite).
+          const line = view.state.doc.lineAt(node.from);
+          if (selectionOverlaps(view, line.from, line.to)) return;
           const checked = view.state.doc.sliceString(node.from, node.to).toLowerCase() === "[x]";
           collected.push({
             from: node.from,
@@ -514,9 +519,19 @@ function buildDecorations(view: EditorView): DecorationSet {
           // structurally (their content is a "Task" node in place of the
           // usual Paragraph) — rendering the "-" as a bullet on top of
           // the checkbox produced a bullet-then-checkbox double marker
-          // that doesn't match Obsidian at all (Obsidian shows only the
-          // checkbox, no bullet, for task items).
-          if (node.node.getChild("Task")) return;
+          // that doesn't match Obsidian (no bullet for task items). The
+          // dash still needs to actually *hide* here, not just skip the
+          // bullet widget — leaving it unhandled left the literal "-"
+          // visible as plain text in front of the checkbox.
+          if (node.node.getChild("Task")) {
+            const taskMark = node.node.getChild("ListMark");
+            if (!taskMark) return;
+            const taskLine = view.state.doc.lineAt(taskMark.from);
+            if (!selectionOverlaps(view, taskLine.from, taskLine.to)) {
+              collected.push({ from: taskMark.from, to: taskMark.to, deco: HIDE });
+            }
+            return;
+          }
           const mark = node.node.getChild("ListMark");
           if (!mark) return;
           const line = view.state.doc.lineAt(mark.from);
