@@ -276,6 +276,18 @@ impl Workspace {
         files::write_file(&self.tab_root(tab_id)?, rel, content)
     }
 
+    pub fn create_dir(&self, tab_id: TabId, rel: &str) -> Result<(), String> {
+        files::create_dir(&self.tab_root(tab_id)?, rel)
+    }
+
+    pub fn delete_path(&self, tab_id: TabId, rel: &str) -> Result<(), String> {
+        files::delete_path(&self.tab_root(tab_id)?, rel)
+    }
+
+    pub fn rename_path(&self, tab_id: TabId, from_rel: &str, to_rel: &str) -> Result<(), String> {
+        files::rename_path(&self.tab_root(tab_id)?, from_rel, to_rel)
+    }
+
     fn tab_root(&self, tab_id: TabId) -> Result<PathBuf, String> {
         self.tabs
             .iter()

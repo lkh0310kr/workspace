@@ -82,6 +82,18 @@ export async function writeFile(tabId: number, path: string, content: string): P
   return invoke("write_file", { tabId, path, content });
 }
 
+export async function createDir(tabId: number, path: string): Promise<void> {
+  return invoke("create_dir", { tabId, path });
+}
+
+export async function deletePath(tabId: number, path: string): Promise<void> {
+  return invoke("delete_path", { tabId, path });
+}
+
+export async function renamePath(tabId: number, from: string, to: string): Promise<void> {
+  return invoke("rename_path", { tabId, from, to });
+}
+
 export function onPtyOutput(handler: (payload: PtyOutput) => void) {
   return listen<PtyOutput>("pty-output", (e) => handler(e.payload));
 }

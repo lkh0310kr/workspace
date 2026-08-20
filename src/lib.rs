@@ -238,6 +238,26 @@ fn write_file(
     state.workspace.lock().write_file(tab_id, &path, &content)
 }
 
+#[tauri::command]
+fn create_dir(state: State<'_, Arc<AppState>>, tab_id: u32, path: String) -> Result<(), String> {
+    state.workspace.lock().create_dir(tab_id, &path)
+}
+
+#[tauri::command]
+fn delete_path(state: State<'_, Arc<AppState>>, tab_id: u32, path: String) -> Result<(), String> {
+    state.workspace.lock().delete_path(tab_id, &path)
+}
+
+#[tauri::command]
+fn rename_path(
+    state: State<'_, Arc<AppState>>,
+    tab_id: u32,
+    from: String,
+    to: String,
+) -> Result<(), String> {
+    state.workspace.lock().rename_path(tab_id, &from, &to)
+}
+
 fn spawn_pty_poll(app: AppHandle, state: Arc<AppState>) {
     std::thread::spawn(move || {
         loop {
@@ -375,6 +395,9 @@ pub fn run() {
             list_dir,
             read_file,
             write_file,
+            create_dir,
+            delete_path,
+            rename_path,
             browser_host::browser_report_frame,
             browser_host::browser_navigate,
             browser_host::browser_back,

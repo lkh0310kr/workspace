@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { DirEntry, listDir, onFileChanged } from "../tauri";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import {
+  DirEntry,
+  createDir,
+  deletePath,
+  listDir,
+  onFileChanged,
+  renamePath,
+  writeFile,
+} from "../tauri";
 
 interface Props {
   tabId: number;
@@ -13,14 +22,46 @@ interface DirState {
   loaded: boolean;
 }
 
+interface MenuState {
+  x: number;
+  y: number;
+  // The directory this menu applies to when acting "on the folder itself"
+  // (New File/New Folder go *inside* it) — root ("") when right-clicking
+  // empty tree space.
+  dir: string;
+  // The specific entry right-clicked, if any (for Rename/Delete/Copy
+  // Path/Reveal) — absent for the empty-space/root case.
+  entry: DirEntry | null;
+}
+
 function classifyFile(name: string): "code" | "markdown" {
   const lower = name.toLowerCase();
   return lower.endsWith(".md") || lower.endsWith(".markdown") ? "markdown" : "code";
 }
 
+function dirOf(path: string): string {
+  const idx = path.lastIndexOf("/");
+  return idx === -1 ? "" : path.slice(0, idx);
+}
+
+function joinPath(dir: string, name: string): string {
+  return dir ? `${dir}/${name}` : name;
+}
+
+async function findAvailableName(tabId: number, dir: string, base: string, ext: string) {
+  const entries = await listDir(tabId, dir).catch(() => []);
+  const names = new Set(entries.map((e) => e.name.toLowerCase()));
+  const first = `${base}${ext}`;
+  if (!names.has(first.toLowerCase())) return first;
+  let i = 1;
+  while (names.has(`${base} ${i}${ext}`.toLowerCase())) i++;
+  return `${base} ${i}${ext}`;
+}
+
 export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [menu, setMenu] = useState<MenuState | null>(null);
 
   const loadDir = useCallback(
     (path: string) => {
@@ -54,6 +95,22 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
     };
   }, [loadDir, expanded]);
 
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("click", close);
+    window.addEventListener("blur", close);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("blur", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
+
   const toggle = (path: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -67,6 +124,57 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
     });
   };
 
+  const refresh = (dir: string) => loadDir(dir);
+
+  const newFile = async (dir: string) => {
+    setMenu(null);
+    const name = await findAvailableName(tabId, dir, "untitled", ".md");
+    const path = joinPath(dir, name);
+    // Reuses writeFile (not a dedicated "touch") — same as MarkdownPane's
+    // own New File flow, and creating an empty file this way is exactly
+    // what write_file already supports.
+    await writeFile(tabId, path, "").catch(console.error);
+    onOpenFile(path, "markdown");
+    refresh(dir);
+  };
+
+  const newFolder = async (dir: string) => {
+    setMenu(null);
+    const name = window.prompt("Folder name");
+    if (!name) return;
+    await createDir(tabId, joinPath(dir, name)).catch((err) => alert(String(err)));
+    setExpanded((prev) => new Set(prev).add(dir));
+    refresh(dir);
+  };
+
+  const rename = async (entry: DirEntry) => {
+    setMenu(null);
+    const name = window.prompt("Rename to", entry.name);
+    if (!name || name === entry.name) return;
+    const to = joinPath(dirOf(entry.path), name);
+    await renamePath(tabId, entry.path, to).catch((err) => alert(String(err)));
+    refresh(dirOf(entry.path));
+  };
+
+  const remove = async (entry: DirEntry) => {
+    setMenu(null);
+    const kind = entry.is_dir ? "folder (and everything in it)" : "file";
+    if (!window.confirm(`Delete this ${kind}?\n\n${entry.path}`)) return;
+    await deletePath(tabId, entry.path).catch((err) => alert(String(err)));
+    refresh(dirOf(entry.path));
+  };
+
+  const copyPath = (entry: DirEntry, relative: boolean) => {
+    setMenu(null);
+    const text = relative ? entry.path : `${rootPath.replace(/\/+$/, "")}/${entry.path}`;
+    navigator.clipboard.writeText(text).catch(console.error);
+  };
+
+  const reveal = (entry: DirEntry) => {
+    setMenu(null);
+    revealItemInDir(`${rootPath.replace(/\/+$/, "")}/${entry.path}`).catch(console.error);
+  };
+
   const renderDir = (path: string, depth: number) => {
     const state = dirs.get(path);
     if (!state) return null;
@@ -78,6 +186,16 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
           onClick={() =>
             entry.is_dir ? toggle(entry.path) : onOpenFile(entry.path, classifyFile(entry.name))
           }
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenu({
+              x: e.clientX,
+              y: e.clientY,
+              dir: entry.is_dir ? entry.path : dirOf(entry.path),
+              entry,
+            });
+          }}
         >
           <span className="tree-view-icon">
             {entry.is_dir ? (expanded.has(entry.path) ? "▾" : "▸") : "·"}
@@ -89,5 +207,50 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
     ));
   };
 
-  return <div className="tree-view">{renderDir("", 0)}</div>;
+  return (
+    <div
+      className="tree-view"
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setMenu({ x: e.clientX, y: e.clientY, dir: "", entry: null });
+      }}
+    >
+      {renderDir("", 0)}
+      {menu && (
+        <div
+          className="tree-view-menu"
+          style={{ left: menu.x, top: menu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button type="button" onClick={() => newFile(menu.dir)}>
+            New File
+          </button>
+          <button type="button" onClick={() => newFolder(menu.dir)}>
+            New Folder
+          </button>
+          {menu.entry && (
+            <>
+              <div className="tree-view-menu-sep" />
+              <button type="button" onClick={() => rename(menu.entry!)}>
+                Rename
+              </button>
+              <button type="button" onClick={() => remove(menu.entry!)}>
+                Delete
+              </button>
+              <div className="tree-view-menu-sep" />
+              <button type="button" onClick={() => copyPath(menu.entry!, false)}>
+                Copy Path
+              </button>
+              <button type="button" onClick={() => copyPath(menu.entry!, true)}>
+                Copy Relative Path
+              </button>
+              <button type="button" onClick={() => reveal(menu.entry!)}>
+                Reveal in Finder
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
