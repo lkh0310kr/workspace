@@ -806,11 +806,15 @@ iframe.browser-content-slot {
 
 .md-pane-toolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
   flex-shrink: 0;
 }
 
-.md-pane-tree-toggle {
+.md-pane-toolbar-spacer {
+  flex: 1;
+}
+
+.md-pane-toolbar button {
   padding: 2px 6px;
   border: none;
   background: transparent;
@@ -819,7 +823,16 @@ iframe.browser-content-slot {
   font-size: 12px;
 }
 
-.md-pane-tree-toggle:hover,
+.md-pane-toolbar button:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.md-pane-toolbar button:disabled {
+  color: var(--text-faint);
+  opacity: 0.35;
+  cursor: default;
+}
+
 .md-pane-tree-toggle.active {
   color: var(--text);
 }
@@ -885,6 +898,23 @@ iframe.browser-content-slot {
 .tree-view-item:hover {
   background: var(--bg-hover);
   color: var(--text);
+}
+
+.tree-view-item.active {
+  background: var(--bg-active);
+  color: var(--text);
+}
+
+.md-pane-outline {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+
+.md-pane-outline-empty {
+  padding: 8px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
 }
 
 .tree-view-icon {

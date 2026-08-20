@@ -257,7 +257,13 @@ export default function App() {
         case "code":
           return <CodePane filePath={config.filePath ?? null} tabId={activeTabId} />;
         case "markdown":
-          return <MarkdownPane filePath={config.filePath ?? null} tabId={activeTabId} />;
+          return (
+            <MarkdownPane
+              filePath={config.filePath ?? null}
+              tabId={activeTabId}
+              rootPath={workspace?.tabs.find((t) => t.id === activeTabId)?.root_path ?? ""}
+            />
+          );
         case "terminal":
           return <TerminalPane terminalId={config.terminalId ?? 0} active={true} />;
         default:
@@ -276,7 +282,7 @@ export default function App() {
         {body}
       </PaneFrame>
     );
-  }, [modelEpoch, activeTabId]);
+  }, [modelEpoch, activeTabId, workspace]);
 
   useEffect(() => {
     void browserCleanupAll().catch(console.error);

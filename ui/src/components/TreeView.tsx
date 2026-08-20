@@ -3,6 +3,8 @@ import { DirEntry, listDir, onFileChanged } from "../tauri";
 
 interface Props {
   tabId: number;
+  rootPath: string;
+  selectedPath?: string | null;
   onOpenFile: (path: string, kind: "code" | "markdown") => void;
 }
 
@@ -16,7 +18,7 @@ function classifyFile(name: string): "code" | "markdown" {
   return lower.endsWith(".md") || lower.endsWith(".markdown") ? "markdown" : "code";
 }
 
-export function TreeView({ tabId, onOpenFile }: Props) {
+export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -31,11 +33,16 @@ export function TreeView({ tabId, onOpenFile }: Props) {
     [tabId],
   );
 
+  // Re-list from scratch whenever the tab's root_path itself changes (not
+  // just when switching to a different tab) — a Settings-dialog path
+  // change doesn't remount this component (same tabId), so without
+  // `rootPath` in the dependency list the tree would keep showing the
+  // previous root's stale listing indefinitely.
   useEffect(() => {
     setDirs(new Map());
     setExpanded(new Set());
     loadDir("");
-  }, [tabId, loadDir]);
+  }, [tabId, rootPath, loadDir]);
 
   useEffect(() => {
     const unlisten = onFileChanged(() => {
@@ -66,7 +73,7 @@ export function TreeView({ tabId, onOpenFile }: Props) {
     return state.entries.map((entry) => (
       <div key={entry.path}>
         <div
-          className="tree-view-item"
+          className={`tree-view-item${entry.path === selectedPath ? " active" : ""}`}
           style={{ paddingLeft: depth * 14 + 8 }}
           onClick={() =>
             entry.is_dir ? toggle(entry.path) : onOpenFile(entry.path, classifyFile(entry.name))

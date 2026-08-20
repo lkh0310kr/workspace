@@ -3,16 +3,24 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { listDir, readFile, writeFile } from "../tauri";
+import { syntaxTree } from "@codemirror/language";
+import { listDir, onFileChanged, readFile, writeFile } from "../tauri";
 import { columnGuideTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { workspaceSearch } from "../codemirrorSearch";
-import { markdownLivePreview } from "../markdownLivePreview";
+import { markdownLivePreview, HEADING_TYPES } from "../markdownLivePreview";
 import { wikiLinkExtension } from "../markdownWikilink";
 import { TreeView } from "../components/TreeView";
 
 interface Props {
   filePath: string | null;
   tabId: number;
+  rootPath: string;
+}
+
+interface OutlineItem {
+  level: number;
+  text: string;
+  pos: number;
 }
 
 async function findAvailableUntitledName(tabId: number): Promise<string> {
@@ -24,19 +32,67 @@ async function findAvailableUntitledName(tabId: number): Promise<string> {
   return `untitled ${i}.md`;
 }
 
-export function MarkdownPane({ filePath, tabId }: Props) {
+function computeOutline(view: EditorView): OutlineItem[] {
+  const items: OutlineItem[] = [];
+  syntaxTree(view.state).iterate({
+    enter: (node) => {
+      if (!HEADING_TYPES.has(node.type.name)) return;
+      const level = Number(node.type.name[node.type.name.length - 1]);
+      const text = view.state.doc
+        .sliceString(node.from, node.to)
+        .replace(/^#+\s*/, "")
+        .trim();
+      items.push({ level, text, pos: node.from });
+    },
+  });
+  return items;
+}
+
+export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const pathRef = useRef(filePath);
   const [currentPath, setCurrentPath] = useState(filePath);
   const [treeOpen, setTreeOpen] = useState(filePath === null);
+  const [outlineOpen, setOutlineOpen] = useState(false);
+  const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [creating, setCreating] = useState(false);
+  const [history_, setHistory] = useState<string[]>(filePath ? [filePath] : []);
+  const [historyIndex, setHistoryIndex] = useState(filePath ? 0 : -1);
+  // The content last loaded from (or saved to) disk, so an external-change
+  // notification can tell "someone else edited this file" apart from "the
+  // file-changed event our own save just triggered" — reloading in the
+  // latter case would reset the cursor/undo-history for no reason, and
+  // reloading over *unsaved local edits* would silently discard them.
+  const lastLoadedContentRef = useRef<string | null>(null);
 
   pathRef.current = currentPath;
 
   useEffect(() => {
     setCurrentPath(filePath);
+    setHistory(filePath ? [filePath] : []);
+    setHistoryIndex(filePath ? 0 : -1);
   }, [filePath]);
+
+  const navigateTo = (path: string) => {
+    setHistory((prev) => [...prev.slice(0, historyIndex + 1), path]);
+    setHistoryIndex((i) => i + 1);
+    setCurrentPath(path);
+  };
+
+  const goBack = () => {
+    if (historyIndex <= 0) return;
+    const i = historyIndex - 1;
+    setHistoryIndex(i);
+    setCurrentPath(history_[i]);
+  };
+
+  const goForward = () => {
+    if (historyIndex >= history_.length - 1) return;
+    const i = historyIndex + 1;
+    setHistoryIndex(i);
+    setCurrentPath(history_[i]);
+  };
 
   // The editor itself only exists once a file is open — no CM instance
   // (and so no hardcoded placeholder doc) is mounted for an empty pane;
@@ -63,6 +119,9 @@ export function MarkdownPane({ filePath, tabId }: Props) {
           EditorView.lineWrapping,
           workspaceEditorTheme,
           columnGuideTheme,
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) setOutline(computeOutline(update.view));
+          }),
         ],
       }),
       parent: hostRef.current,
@@ -74,7 +133,12 @@ export function MarkdownPane({ filePath, tabId }: Props) {
         e.preventDefault();
         const path = pathRef.current;
         if (!path || !viewRef.current) return;
-        writeFile(tabId, path, viewRef.current.state.doc.toString()).catch(console.error);
+        const content = viewRef.current.state.doc.toString();
+        writeFile(tabId, path, content)
+          .then(() => {
+            lastLoadedContentRef.current = content;
+          })
+          .catch(console.error);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -91,6 +155,7 @@ export function MarkdownPane({ filePath, tabId }: Props) {
     if (!currentPath || !viewRef.current) return;
     readFile(tabId, currentPath)
       .then((content) => {
+        lastLoadedContentRef.current = content;
         viewRef.current?.dispatch({
           changes: { from: 0, to: viewRef.current.state.doc.length, insert: content },
         });
@@ -98,12 +163,45 @@ export function MarkdownPane({ filePath, tabId }: Props) {
       .catch(console.error);
   }, [currentPath, tabId]);
 
+  // Live-reload when the currently open file changes on disk outside this
+  // pane (another editor, git checkout, etc). Skipped when there are
+  // unsaved local edits (current doc differs from what was last loaded/
+  // saved) so an external change can't silently clobber in-progress
+  // typing, and naturally a no-op when the change was our *own* save
+  // (content already matches, so the diff-check below is false and
+  // nothing is re-dispatched — no cursor/undo-history reset on save).
+  useEffect(() => {
+    if (!currentPath) return;
+    const unlisten = onFileChanged(() => {
+      const view = viewRef.current;
+      if (!view) return;
+      const current = view.state.doc.toString();
+      if (lastLoadedContentRef.current !== null && current !== lastLoadedContentRef.current) {
+        return;
+      }
+      readFile(tabId, currentPath)
+        .then((content) => {
+          if (content === view.state.doc.toString()) return;
+          lastLoadedContentRef.current = content;
+          const selection = view.state.selection;
+          view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: content },
+            selection: selection.main.to <= content.length ? selection : undefined,
+          });
+        })
+        .catch(console.error);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [currentPath, tabId]);
+
   const createNewFile = async () => {
     setCreating(true);
     try {
       const name = await findAvailableUntitledName(tabId);
       await writeFile(tabId, name, "");
-      setCurrentPath(name);
+      navigateTo(name);
     } catch (err) {
       console.error(err);
     } finally {
@@ -111,15 +209,47 @@ export function MarkdownPane({ filePath, tabId }: Props) {
     }
   };
 
+  const jumpToHeading = (pos: number) => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+    view.focus();
+  };
+
   return (
     <div className="md-pane">
       {treeOpen && (
         <div className="md-pane-sidebar">
-          <TreeView tabId={tabId} onOpenFile={(path) => setCurrentPath(path)} />
+          <TreeView
+            tabId={tabId}
+            rootPath={rootPath}
+            selectedPath={currentPath}
+            onOpenFile={(path) => navigateTo(path)}
+          />
         </div>
       )}
       <div className="md-pane-body">
         <div className="md-pane-toolbar">
+          <button type="button" onClick={goBack} disabled={historyIndex <= 0} title="Back">
+            ←
+          </button>
+          <button
+            type="button"
+            onClick={goForward}
+            disabled={historyIndex >= history_.length - 1}
+            title="Forward"
+          >
+            →
+          </button>
+          <span className="md-pane-toolbar-spacer" />
+          <button
+            type="button"
+            className={`md-pane-tree-toggle${outlineOpen ? " active" : ""}`}
+            title="Toggle outline"
+            onClick={() => setOutlineOpen((v) => !v)}
+          >
+            ☰
+          </button>
           <button
             type="button"
             className={`md-pane-tree-toggle${treeOpen ? " active" : ""}`}
@@ -139,6 +269,24 @@ export function MarkdownPane({ filePath, tabId }: Props) {
           </div>
         )}
       </div>
+      {outlineOpen && (
+        <div className="md-pane-sidebar md-pane-outline">
+          {outline.length === 0 ? (
+            <div className="md-pane-outline-empty">No headings</div>
+          ) : (
+            outline.map((item, i) => (
+              <div
+                key={i}
+                className="tree-view-item"
+                style={{ paddingLeft: (item.level - 1) * 14 + 8 }}
+                onClick={() => jumpToHeading(item.pos)}
+              >
+                {item.text || "(empty heading)"}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

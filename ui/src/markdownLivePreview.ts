@@ -33,7 +33,7 @@ import type { SyntaxNodeRef } from "@lezer/common";
 
 const HIDE = Decoration.replace({});
 
-const HEADING_TYPES = new Set([
+export const HEADING_TYPES = new Set([
   "ATXHeading1",
   "ATXHeading2",
   "ATXHeading3",
@@ -251,6 +251,7 @@ function buildDecorations(view: EditorView): { decorations: DecorationSet; atomi
           if (contentFrom < node.to) {
             collected.push({ from: contentFrom, to: node.to, deco: Decoration.mark({ class: cls }) });
           }
+          const hasContent = contentFrom < node.to;
           if (selectionOverlaps(view, node.from, node.to)) {
             // Marker stays visible while editing this line (cursor is on
             // it) — size it the same as the content, so "#"/"##"/etc.
@@ -260,9 +261,13 @@ function buildDecorations(view: EditorView): { decorations: DecorationSet; atomi
             // get no styling at all, which is what made it look like it
             // "wasn't a heading yet" until you typed the first character.
             collected.push({ from: mark.from, to: contentFrom, deco: Decoration.mark({ class: cls }) });
-          } else {
+          } else if (hasContent) {
             collected.push({ from: mark.from, to: contentFrom, deco: HIDE });
           }
+          // else: an empty heading ("#"/"# " with nothing after it) that
+          // isn't being edited — leave the marker as plain, small,
+          // visible text rather than collapsing the only thing on the
+          // line to nothing, which just looked like a blank empty line.
           return;
         }
 
