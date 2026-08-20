@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+
 // Standalone debug overlay independent of the React tree — installed before
 // React even starts, so it survives total render failures, infinite loops in
 // effects (still logs before hanging), and errors React's own boundary can't
@@ -27,6 +29,10 @@ function setVisible(v: boolean) {
 
 function log(line: string) {
   el.textContent += line + "\n\n";
+  // Also persisted to disk (see `debug_log` in src/lib.rs) — the overlay
+  // only lived in-memory before, requiring a human to copy/paste it back;
+  // this lets the log be read directly instead.
+  invoke("debug_log", { line }).catch(() => {});
 }
 
 window.addEventListener("keydown", (e) => {

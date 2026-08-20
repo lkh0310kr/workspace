@@ -115,6 +115,21 @@ fn get_workspace_state(state: State<'_, Arc<AppState>>) -> workspace_core::Works
     state.workspace.lock().state()
 }
 
+// WKWebView doesn't forward frontend console output to this process's own
+// stderr, so debugOverlay.ts had no way to hand its log lines back other
+// than an on-screen overlay the user had to copy/paste. This gives it a
+// file on disk instead, so logs can be read directly during debugging.
+#[tauri::command]
+fn debug_log(line: String) -> Result<(), String> {
+    use std::io::Write;
+    let mut f = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("/tmp/workspace-app-debug.log")
+        .map_err(|e| e.to_string())?;
+    writeln!(f, "{line}").map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn pty_write(state: State<'_, Arc<AppState>>, id: u32, data_b64: String) -> Result<(), String> {
     let bytes = STANDARD.decode(data_b64).map_err(|e| e.to_string())?;
@@ -384,6 +399,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_workspace_state,
+            debug_log,
             pty_write,
             pty_resize,
             spawn_terminal,

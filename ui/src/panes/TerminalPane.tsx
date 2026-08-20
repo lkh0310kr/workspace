@@ -167,14 +167,30 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     // captured when the cluster armed. That's wrong — Hangul jamo merge
     // *in place* (e.g. "ㅂ"+"ㅏ" becomes "바", not "ㅂ바"), so the
     // captured prefix can vanish entirely from the value by flush time,
-    // and `startsWith` silently failed, dropping the whole cluster. Fix:
-    // always clear `term.textarea.value` after every flush, so whatever
-    // has accumulated *since* is the entire delta — no prefix-matching
-    // needed.
+    // and `startsWith` silently failed, dropping the whole cluster.
+    //
+    // A fourth confirmed bug, from a follow-up re-test after that fix:
+    // reported as "space seems to happen twice." Root cause — since
+    // compositionstart/end never fire here, `term.textarea.value` isn't
+    // just accumulating the current Hangul cluster, it accumulates
+    // *everything* typed since the last flush, including plain ASCII/
+    // Space keystrokes that xterm's own onData already sent directly
+    // (confirmed in the original trace: textareaValue kept growing across
+    // an entire sentence, spaces included). Sending the raw value at
+    // flush time re-sent those already-delivered characters a second
+    // time. Fix: extract only the Hangul-range characters from the value
+    // — the ASCII/space characters in there were already forwarded by
+    // xterm directly and must not be resent — then always clear the
+    // textarea regardless, so nothing lingers into the next cluster.
     const flushIme = () => {
-      const value = term.textarea?.value ?? "";
-      if (value.length > 0) {
-        ptyWrite(terminalId, new TextEncoder().encode(value)).catch(console.error);
+      const raw = term.textarea?.value ?? "";
+      if (raw.length > 0) {
+        const hangulOnly = Array.from(raw)
+          .filter((ch) => HANGUL_FRAGMENT_RE.test(ch))
+          .join("");
+        if (hangulOnly.length > 0) {
+          ptyWrite(terminalId, new TextEncoder().encode(hangulOnly)).catch(console.error);
+        }
         if (term.textarea) term.textarea.value = "";
       }
       if (pendingWritesRef.current.length > 0) {
@@ -182,16 +198,41 @@ function TerminalPaneInner({ terminalId, active }: Props) {
         pendingWritesRef.current = [];
       }
     };
+    // Reported after re-testing the boundary-only version: text stayed
+    // buffered until a boundary key (Space/Enter) was pressed, so nothing
+    // showed up if the user just paused. A cluster only ever ends on an
+    // explicit boundary keydown otherwise, so add an idle timeout as a
+    // second, independent way to reach the same flush.
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearIdleTimer = () => {
+      if (idleTimer !== null) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
+      }
+    };
+    const scheduleIdleFlush = () => {
+      clearIdleTimer();
+      idleTimer = setTimeout(() => {
+        idleTimer = null;
+        imeActiveRef.current = false;
+        flushIme();
+      }, 500);
+    };
     const onImeKeydown = (e: KeyboardEvent) => {
       if (e.keyCode === 229 || e.code === "Unidentified") {
         imeActiveRef.current = true;
+        scheduleIdleFlush();
         return;
       }
+      clearIdleTimer();
       imeActiveRef.current = false;
       flushIme();
     };
     term.textarea?.addEventListener("keydown", onImeKeydown);
-    const onBlur = () => flushIme();
+    const onBlur = () => {
+      clearIdleTimer();
+      flushIme();
+    };
     term.textarea?.addEventListener("blur", onBlur);
 
     // Deliberately verbose instrumentation kept from the investigation —
@@ -259,6 +300,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     });
 
     return () => {
+      clearIdleTimer();
       term.textarea?.removeEventListener("keydown", onImeKeydown);
       term.textarea?.removeEventListener("blur", onBlur);
       pendingWritesRef.current = [];
