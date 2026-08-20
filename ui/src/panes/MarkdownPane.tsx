@@ -7,7 +7,7 @@ import { syntaxTree } from "@codemirror/language";
 import { listDir, onFileChanged, readFile, writeFile } from "../tauri";
 import { columnGuideTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { workspaceSearch } from "../codemirrorSearch";
-import { markdownLivePreview, HEADING_TYPES } from "../markdownLivePreview";
+import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
 import { wikiLinkExtension } from "../markdownWikilink";
 import { TreeView } from "../components/TreeView";
 
@@ -36,6 +36,34 @@ async function findAvailableUntitledName(tabId: number): Promise<string> {
   let i = 1;
   while (names.has(`untitled ${i}.md`)) i++;
   return `untitled ${i}.md`;
+}
+
+// Obsidian resolves a wikilink by filename anywhere in the vault, not by
+// exact relative path — mirrors that with a bounded breadth-first search
+// (capped so a pathological/huge tree can't hang the click) rather than
+// requiring the link to already know its target's folder. Creates the
+// note at the workspace root if nothing matches, same as Obsidian's
+// default "create if missing" behavior.
+async function resolveWikiLinkTarget(tabId: number, target: string): Promise<string> {
+  const base = target.split("/").pop()?.trim() || target;
+  const wanted = `${base.toLowerCase()}.md`;
+  const queue: string[] = [""];
+  let visited = 0;
+  while (queue.length > 0 && visited < 500) {
+    const dir = queue.shift()!;
+    visited++;
+    const entries = await listDir(tabId, dir).catch(() => []);
+    for (const entry of entries) {
+      if (entry.is_dir) {
+        queue.push(entry.path);
+      } else if (entry.name.toLowerCase() === wanted) {
+        return entry.path;
+      }
+    }
+  }
+  const created = `${base}.md`;
+  await writeFile(tabId, created, "");
+  return created;
 }
 
 function computeOutline(view: EditorView): OutlineItem[] {
@@ -85,6 +113,15 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
     setHistoryIndex((i) => i + 1);
     setCurrentPath(path);
   };
+  // The CM view (and any extensions closed over at creation time, like
+  // the wikilink click handler below) is only rebuilt when [tabId,
+  // hasPath] changes — not on every render — so a click handler that
+  // called `navigateTo` directly would keep calling whichever version
+  // was current at mount, with `historyIndex` frozen from back then.
+  // Routing through a ref kept fresh every render (same pattern as
+  // `pathRef` above) sidesteps that staleness.
+  const navigateToRef = useRef(navigateTo);
+  navigateToRef.current = navigateTo;
 
   const goBack = () => {
     if (historyIndex <= 0) return;
@@ -110,6 +147,25 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
   useEffect(() => {
     if (!hasPath || !hostRef.current) return;
 
+    const wikiLinkClickHandler = EditorView.domEventHandlers({
+      click(event, view) {
+        const target = event.target as HTMLElement | null;
+        if (!target?.classList.contains("cm-md-wikilink")) return false;
+        const pos = view.posAtDOM(target);
+        let node = syntaxTree(view.state).resolveInner(pos, 1);
+        while (node && node.type.name !== "WikiLink" && node.parent) node = node.parent;
+        if (!node || node.type.name !== "WikiLink") return false;
+        const full = view.state.doc.sliceString(node.from, node.to);
+        const noteName = (full.slice(2, -2).split("|")[0] ?? "").trim();
+        if (!noteName) return false;
+        event.preventDefault();
+        resolveWikiLinkTarget(tabId, noteName)
+          .then((path) => navigateToRef.current(path))
+          .catch(console.error);
+        return true;
+      },
+    });
+
     const view = new EditorView({
       state: EditorState.create({
         doc: "",
@@ -118,6 +174,7 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
           // doesn't parse strikethrough/task-lists/tables at all —
           // `markdownLanguage` is CodeMirror's GFM-flavored base.
           markdown({ base: markdownLanguage, extensions: [wikiLinkExtension] }),
+          markdownRootPath.of(rootPath),
           ...markdownLivePreview,
           ...workspaceSearch,
           history(),
@@ -125,6 +182,7 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
           EditorView.lineWrapping,
           workspaceEditorTheme,
           columnGuideTheme,
+          wikiLinkClickHandler,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) setOutline(computeOutline(update.view));
           }),
@@ -154,8 +212,11 @@ export function MarkdownPane({ filePath, tabId, rootPath }: Props) {
       view.destroy();
       viewRef.current = null;
     };
+    // Also recreated when rootPath changes (e.g. via Settings) — image
+    // paths need to re-resolve against the new root, and there's no
+    // cheaper way to update a Facet value than reconfiguring the view.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on hasPath, not currentPath (see comment above)
-  }, [tabId, hasPath]);
+  }, [tabId, hasPath, rootPath]);
 
   useEffect(() => {
     if (!currentPath || !viewRef.current) return;

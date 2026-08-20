@@ -18,7 +18,7 @@
 - [x] App icon 추가 (플레이스홀더 — 실제 디자인으로 나중에 교체 가능)
 - [x] Workspace base path — 탭(Tab)별로 독립적으로 설정 가능하도록. "Workspace N" 명칭을 "Tab N"으로 변경, 각 탭 행에 설정(⚙) 버튼 추가
 - [x] Markdown 에디터에 TreeView 추가 (파일 탐색 — 탭의 base path 기준)
-- [ ] Markdown 에디터 고도화 — Obsidian과 동일한 live-preview 스펙 (버그 금지, 단계적으로 진행)
+- [x] Markdown 에디터 고도화 — Obsidian과 동일한 live-preview 스펙 (버그 금지, 단계적으로 진행)
   - [x] `markdown()`이 strict CommonMark base라 GFM(취소선/태스크리스트/테이블)이 아예 파싱 안 되던 버그 수정 (`base: markdownLanguage`)
   - [x] 취소선 `~~text~~`
   - [x] 인용문(Blockquote) `>` — 마커 숨김 + 좌측 보더/들여쓰기
@@ -30,5 +30,5 @@
   - [x] Wikilink `[[note]]` / `[[note|alias]]` — `@lezer/markdown` InlineParser 직접 구현 (`ui/src/markdownWikilink.ts`). 스타일링만 하고 클릭 시 실제 노트로 이동하는 기능은 아직 없음 (탭/파일 열기 연동 필요 — 별도 작업)
   - [x] Callout `> [!note]` — 인용문 첫 줄이 `[!type]`으로 시작하면 라벨 뱃지로 렌더링 + 타입별 좌측 보더/배경색
   - [x] 리스트: 불릿 리스트 마커(`-`/`*`/`+`)를 실제 `•`로 렌더링 (커서가 그 줄에 있을 때는 원문 그대로 보임, 다른 요소들과 동일한 규칙). Ordered list 번호는 원래도 괜찮아서 그대로 둠
-  - [ ] Wikilink 클릭 시 실제 파일로 이동/새로 만들기 (탭의 TreeView/파일 열기 로직과 연동 필요)
-  - [ ] 로컬 이미지 렌더링 (asset-protocol scope를 탭 root_path에 맞춰 동적으로 열어줘야 함 — Rust 쪽 작업)
+  - [x] Wikilink 클릭 시 실제 파일로 이동/새로 만들기 — 클릭하면 vault 전체에서 같은 이름의 `.md` 파일을 찾아서 열고, 없으면 워크스페이스 루트에 새로 만듦 (Obsidian 기본 동작과 동일)
+  - [x] 로컬 이미지 렌더링 — `tauri.conf.json`에 `assetProtocol` 활성화 + Cargo `protocol-asset` 피처 추가, 탭의 root_path를 워크스페이스 상태가 바뀔 때마다 asset-protocol scope에 동적으로 등록(`allow_asset_scope`). 프론트엔드는 CodeMirror `Facet`으로 탭의 rootPath를 받아서 `convertFileSrc`로 변환

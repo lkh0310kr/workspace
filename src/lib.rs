@@ -7,7 +7,7 @@ use browser_host::BrowserHost;
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use workspace_core::Workspace;
 
 mod browser_host;
@@ -89,6 +89,21 @@ fn save_workspace_snapshot(snapshot: &workspace_core::WorkspaceState) {
     }
 }
 
+/// Registers every tab's root_path with the asset-protocol scope so
+/// `convertFileSrc` can load local images referenced from Markdown —
+/// the scope defaults to empty (`tauri.conf.json`'s `assetProtocol.scope`
+/// is `[]`) since tab roots are arbitrary, user-chosen directories picked
+/// at runtime, not something knowable at build time. `allow_directory` is
+/// purely additive and safe to call repeatedly with the same path, so
+/// this is just re-run on every workspace-state change rather than
+/// tracked against which roots are already scoped.
+fn allow_asset_scope(app: &AppHandle, state: &workspace_core::WorkspaceState) {
+    let scope = app.asset_protocol_scope();
+    for tab in &state.tabs {
+        let _ = scope.allow_directory(&tab.root_path, true);
+    }
+}
+
 #[derive(Clone, Serialize)]
 struct PtyOutputPayload {
     id: u32,
@@ -129,6 +144,7 @@ fn add_tab(state: State<'_, Arc<AppState>>, app: AppHandle) -> Result<u32, Strin
     let new_state = state.workspace.lock().state();
     let _ = app.emit("workspace-updated", new_state.clone());
     save_workspace_snapshot(&new_state);
+    allow_asset_scope(&app, &new_state);
     rewatch_active(&state);
     Ok(tab_id)
 }
@@ -139,6 +155,7 @@ fn close_tab(state: State<'_, Arc<AppState>>, app: AppHandle, tab_id: u32) -> Re
     let new_state = state.workspace.lock().state();
     let _ = app.emit("workspace-updated", new_state.clone());
     save_workspace_snapshot(&new_state);
+    allow_asset_scope(&app, &new_state);
     rewatch_active(&state);
     Ok(())
 }
@@ -149,6 +166,7 @@ fn select_tab(state: State<'_, Arc<AppState>>, app: AppHandle, tab_id: u32) -> R
     let new_state = state.workspace.lock().state();
     let _ = app.emit("workspace-updated", new_state.clone());
     save_workspace_snapshot(&new_state);
+    allow_asset_scope(&app, &new_state);
     rewatch_active(&state);
     Ok(())
 }
@@ -164,6 +182,7 @@ fn set_tab_layout(
     let new_state = state.workspace.lock().state();
     let _ = app.emit("workspace-updated", new_state.clone());
     save_workspace_snapshot(&new_state);
+    allow_asset_scope(&app, &new_state);
     Ok(())
 }
 
@@ -190,6 +209,7 @@ fn set_tab_root_path(
     let new_state = state.workspace.lock().state();
     let _ = app.emit("workspace-updated", new_state.clone());
     save_workspace_snapshot(&new_state);
+    allow_asset_scope(&app, &new_state);
     rewatch_active(&state);
     Ok(new_state)
 }
@@ -332,7 +352,9 @@ pub fn run() {
             // terminal id (and thus its tmux session) would be lost on
             // the very next relaunch. Save the just-constructed state
             // immediately so that can't happen.
-            save_workspace_snapshot(&setup_state.workspace.lock().state());
+            let initial_state = setup_state.workspace.lock().state();
+            save_workspace_snapshot(&initial_state);
+            allow_asset_scope(&handle, &initial_state);
 
             let _ = handle.emit("app-ready", ());
             cef_host::set_app_handle(handle.clone());

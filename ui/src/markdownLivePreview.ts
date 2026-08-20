@@ -7,8 +7,30 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
-import { RangeSetBuilder, type Extension } from "@codemirror/state";
+import { Facet, RangeSetBuilder, type Extension } from "@codemirror/state";
 import type { SyntaxNodeRef } from "@lezer/common";
+import { convertFileSrc } from "@tauri-apps/api/core";
+
+// Per-view configuration carrying the active tab's root_path, so local
+// (non-http) image paths in Markdown can be resolved against it — a
+// Facet rather than a constructor argument because the ViewPlugins below
+// are built once as static extensions, not per-pane factories; include
+// `markdownRootPath.of(rootPath)` in the EditorView's own extensions to
+// set it.
+export const markdownRootPath = Facet.define<string, string>({
+  combine: (values) => values[0] ?? "",
+});
+
+function resolveImageSrc(rootPath: string, url: string): string | null {
+  if (/^https?:\/\//i.test(url)) return url;
+  if (!rootPath) return null;
+  const cleaned = url.replace(/^\.\//, "").replace(/^\/+/, "");
+  // Tauri's asset-protocol Scope (registered per tab root_path in
+  // src/lib.rs's allow_asset_scope) is the real enforcement boundary for
+  // what this can actually read — a path that escapes the root is
+  // rejected there regardless of what URL convertFileSrc produces here.
+  return convertFileSrc(`${rootPath.replace(/\/+$/, "")}/${cleaned}`);
+}
 
 // Obsidian-style "live preview": markdown syntax markers (##, **, `, [](),
 // ...) render as real formatting instead of literal characters, but only
@@ -419,16 +441,15 @@ function buildDecorations(view: EditorView): { decorations: DecorationSet; atomi
 
         if (type === "Image") {
           // Structure mirrors Link: [ LinkMark "![" ] alt [ LinkMark "]" ]
-          // [ LinkMark "(" ] URL [ LinkMark ")" ]. Only remote http(s)
-          // images are rendered — a local relative path would need the
-          // tab's root_path resolved through Tauri's asset protocol,
-          // which isn't scoped for arbitrary runtime-chosen directories
-          // yet (see TODO.md); local image paths are left as plain,
-          // fully-editable text rather than half-rendered.
+          // [ LinkMark "(" ] URL [ LinkMark ")" ]. Remote http(s) URLs
+          // load directly; a local relative path resolves against the
+          // active tab's root_path (via markdownRootPath) and goes
+          // through Tauri's asset protocol.
           const url = node.node.getChild("URL");
           if (!url) return;
-          const src = view.state.doc.sliceString(url.from, url.to);
-          if (!/^https?:\/\//i.test(src)) return;
+          const rawUrl = view.state.doc.sliceString(url.from, url.to);
+          const src = resolveImageSrc(view.state.facet(markdownRootPath), rawUrl);
+          if (!src) return;
           if (selectionOverlaps(view, node.from, node.to)) return;
           collected.push({
             from: node.from,

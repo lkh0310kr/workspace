@@ -96,9 +96,18 @@ fn resolve_under_root(root: &Path, rel: &str) -> Result<PathBuf, String> {
 mod tests {
     use super::*;
 
+    // `cargo test` runs tests as threads within one process, not one
+    // process each — keying this by `std::process::id()` alone (as an
+    // earlier version of this did) meant every test in this file shared
+    // the exact same directory and raced each other's `remove_dir_all`/
+    // writes. An atomic counter guarantees each call gets its own.
     fn temp_root() -> PathBuf {
-        let dir =
-            std::env::temp_dir().join(format!("workspace-core-files-test-{}", std::process::id()));
+        static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!(
+            "workspace-core-files-test-{}-{n}",
+            std::process::id()
+        ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir

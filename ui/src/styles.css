@@ -590,6 +590,7 @@ iframe.browser-content-slot {
 
 .cm-md-wikilink {
   text-decoration: none;
+  cursor: pointer;
   border-bottom: 1px dotted var(--accent);
 }
 
