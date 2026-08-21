@@ -267,6 +267,11 @@ export default function App() {
               filePath={config.filePath ?? null}
               tabId={activeTabId}
               rootPath={workspace?.tabs.find((t) => t.id === activeTabId)?.root_path ?? ""}
+              component={component}
+              tabNode={node}
+              onSplit={onSplit}
+              onTypeChange={onTypeChange}
+              onClose={onClose}
             />
           );
         case "terminal":
@@ -280,6 +285,7 @@ export default function App() {
       <PaneFrame
         component={component}
         tabNode={node}
+        hideHeader={component === "code" || component === "markdown"}
         onSplit={onSplit}
         onTypeChange={onTypeChange}
         onClose={onClose}

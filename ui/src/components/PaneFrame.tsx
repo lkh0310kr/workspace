@@ -1,15 +1,6 @@
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type DragEvent,
-  type ReactNode,
-} from "react";
+import { forwardRef, type DragEvent, type ReactNode } from "react";
 import type { TabNode } from "flexlayout-react";
-import { PanePicker } from "./PanePicker";
-import { SplitIcon } from "./SplitIcon";
+import { PaneActions } from "./PaneActions";
 import { paneLabel, PaneComponent } from "../layout/paneTypes";
 import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
 import { startPaneDrag } from "../layout/layoutRef";
@@ -18,6 +9,7 @@ interface Props {
   component: PaneComponent;
   toolbar?: ReactNode;
   contentSlot?: boolean;
+  hideHeader?: boolean;
   /** Enables dragging the pane header to reposition/split it via
    * flexlayout's own drag-and-drop, in place of the native tab strip
    * (hidden app-wide in favor of this custom header). */
@@ -29,64 +21,16 @@ interface Props {
 }
 
 export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame(
-  { component, toolbar, contentSlot, tabNode, onSplit, onTypeChange, onClose, children },
+  { component, toolbar, contentSlot, hideHeader, tabNode, onSplit, onTypeChange, onClose, children },
   ref,
 ) {
-  const [typeOpen, setTypeOpen] = useState(false);
-  const closeTypePicker = useCallback(() => setTypeOpen(false), []);
-  const blockedRef = useRef(false);
-
-  // Any pane's type picker hides all browser webviews app-wide: native
-  // child webviews render above the DOM regardless of which pane owns them.
-  useEffect(() => {
-    if (typeOpen === blockedRef.current) return;
-    blockedRef.current = typeOpen;
-    if (typeOpen) pushOverlayBlock();
-    else popOverlayBlock();
-  }, [typeOpen]);
-
-  useEffect(
-    () => () => {
-      if (blockedRef.current) popOverlayBlock();
-    },
-    [],
-  );
-
   const paneActions = (
-    <div className="pane-actions">
-      <div className="pane-type-anchor">
-        <button
-          type="button"
-          className={`pane-action ${typeOpen ? "active" : ""}`}
-          title="Change pane type"
-          onClick={(e) => {
-            e.stopPropagation();
-            setTypeOpen((open) => !open);
-          }}
-        >
-          ⊞
-        </button>
-      </div>
-      <button
-        type="button"
-        className="pane-action pane-action-icon"
-        title="Split side by side"
-        onClick={() => onSplit("split-right", component)}
-      >
-        <SplitIcon direction="vertical" />
-      </button>
-      <button
-        type="button"
-        className="pane-action pane-action-icon"
-        title="Split stacked"
-        onClick={() => onSplit("split-down", component)}
-      >
-        <SplitIcon direction="horizontal" />
-      </button>
-      <button type="button" className="pane-action" title="Close" onClick={onClose}>
-        ×
-      </button>
-    </div>
+    <PaneActions
+      component={component}
+      onSplit={onSplit}
+      onTypeChange={onTypeChange}
+      onClose={onClose}
+    />
   );
 
   const dragProps = tabNode
@@ -122,6 +66,8 @@ export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame(
           </div>
           {children}
         </>
+      ) : hideHeader ? (
+        <div className="pane-body pane-body-fill">{children}</div>
       ) : (
         <>
           {headerRow}
@@ -129,17 +75,6 @@ export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame(
           <div className="pane-body">{children}</div>
         </>
       )}
-      {typeOpen ? (
-        <PanePicker
-          title="Change pane type"
-          current={component}
-          onPick={(pane) => {
-            onTypeChange(pane);
-            closeTypePicker();
-          }}
-          onClose={closeTypePicker}
-        />
-      ) : null}
     </div>
   );
 });

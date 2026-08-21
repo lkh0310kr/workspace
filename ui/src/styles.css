@@ -423,6 +423,12 @@ iframe.browser-content-slot {
   position: relative;
 }
 
+.pane-body-fill {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* —— Content panes —— */
 .terminal-pane-shell {
   position: relative;
@@ -855,6 +861,223 @@ iframe.browser-content-slot {
 .md-pane {
   display: flex;
   height: 100%;
+  min-height: 0;
+}
+
+/* —— Obsidian-style editor shell —— */
+.obsidian-editor-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+.obsidian-topbar {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  min-height: var(--chrome-h);
+  height: var(--chrome-h);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  overflow: hidden;
+}
+
+.obsidian-topbar-icons {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 4px;
+  border-right: 1px solid var(--border);
+}
+
+.obsidian-topbar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.obsidian-topbar-icon:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.obsidian-topbar-icon.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.obsidian-topbar-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.editor-tab-bar {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.editor-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 180px;
+  min-width: 0;
+  padding: 0 4px 0 10px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.editor-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.editor-tab.active {
+  background: var(--bg-base);
+  color: var(--text);
+}
+
+.editor-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.editor-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.editor-tab-close:hover {
+  color: var(--text);
+}
+
+.editor-tab-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.editor-tab-add:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.obsidian-topbar .pane-actions {
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  padding: 0 2px;
+  cursor: default;
+}
+
+.obsidian-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.obsidian-explorer {
+  width: 200px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.obsidian-explorer.collapsed {
+  width: 0;
+  overflow: hidden;
+  border-right: none;
+}
+
+.obsidian-editor-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.obsidian-nav-row {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-base);
+}
+
+.obsidian-nav-row button {
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.obsidian-nav-row button:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.obsidian-nav-row button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.obsidian-nav-spacer {
+  flex: 1;
+}
+
+.obsidian-editor-column .md-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.obsidian-editor-column .md-empty-state {
+  flex: 1;
   min-height: 0;
 }
 
