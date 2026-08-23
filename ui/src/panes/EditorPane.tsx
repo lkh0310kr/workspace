@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
-import type { TabNode } from "flexlayout-react";
+import { Actions, type TabNode } from "flexlayout-react";
 import { Compartment, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
 import {
@@ -37,7 +37,7 @@ import { wikiLinkExtension } from "../markdownWikilink";
 import { TreeView } from "../components/TreeView";
 import { EditorTab, EditorTabBar } from "../components/EditorTabBar";
 import { PaneActions } from "../components/PaneActions";
-import { PaneComponent } from "../layout/paneTypes";
+import { PaneComponent, PaneConfig } from "../layout/paneTypes";
 import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
 import { startPaneDrag } from "../layout/layoutRef";
 
@@ -156,6 +156,29 @@ export function EditorPane({
   historyIndexRef.current = historyIndex;
 
   useEffect(() => subscribeAutoSave(setAutoSave), []);
+
+  // The pane's `filePath` prop only ever seeds initial state — nothing
+  // wrote the currently-open file back to the FlexLayout node's own config,
+  // so it never made it into the layout JSON that gets persisted to
+  // workspace.json. Every workspace-tab switch remounts this component
+  // fresh from that stale config (same remount-on-tab-switch behavior
+  // TerminalPane works around with its own scrollback cache), and an app
+  // restart reloads straight from the same file — both looked like "the
+  // selected file doesn't stick." Writing `currentPath` back into the
+  // node's config keeps it in sync, and `Actions.updateNodeAttributes`
+  // flows through the same `onModelChange` -> persistLayout path as any
+  // other layout edit (drag, split, close), so this doesn't need its own
+  // save call.
+  useEffect(() => {
+    if (!tabNode) return;
+    const model = tabNode.getModel();
+    const existingConfig = (tabNode.getConfig() ?? {}) as PaneConfig;
+    if ((existingConfig.filePath ?? null) === currentPath) return;
+    const nextConfig: PaneConfig = { ...existingConfig };
+    if (currentPath) nextConfig.filePath = currentPath;
+    else delete nextConfig.filePath;
+    model.doAction(Actions.updateNodeAttributes(tabNode.getId(), { config: nextConfig }));
+  }, [tabNode, currentPath]);
 
   const markSaved = useCallback((path: string) => {
     setUnsavedPaths((prev) => {
