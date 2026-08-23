@@ -68,6 +68,17 @@ export async function claudeRateLimitStatus(): Promise<ClaudeRateLimitStatus> {
   return invoke("claude_rate_limit_status");
 }
 
+export interface CursorUsageStatus {
+  auto_percent_used: number | null;
+  api_percent_used: number | null;
+  total_percent_used: number | null;
+  billing_cycle_end_ms: number | null;
+}
+
+export async function cursorUsageStatus(): Promise<CursorUsageStatus> {
+  return invoke("cursor_usage_status");
+}
+
 export async function ptyWrite(id: number, data: Uint8Array): Promise<void> {
   let binary = "";
   for (let i = 0; i < data.length; i++) {

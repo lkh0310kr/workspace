@@ -7,6 +7,7 @@ commands.allow = [
     "hostname",
     "claude_code_usage_recent",
     "claude_rate_limit_status",
+    "cursor_usage_status",
     "pty_write",
     "pty_resize",
     "spawn_terminal",

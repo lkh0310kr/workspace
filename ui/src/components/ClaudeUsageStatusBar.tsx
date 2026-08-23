@@ -1,25 +1,21 @@
 import { useEffect, useState } from "react";
 import {
-  claudeCodeUsageRecent,
   claudeRateLimitStatus,
-  type ClaudeUsage,
+  cursorUsageStatus,
   type ClaudeRateLimitStatus,
+  type CursorUsageStatus,
 } from "../tauri";
 
 const POLL_MS = 60_000;
 
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
-}
-
-function formatResetCountdown(resetsAtSeconds: number, now: number): string | null {
-  const diffMs = resetsAtSeconds * 1000 - now;
+function formatResetCountdown(resetsAtMs: number, now: number): string | null {
+  const diffMs = resetsAtMs - now;
   if (diffMs <= 0) return null;
   const totalMinutes = Math.round(diffMs / 60_000);
-  const hours = Math.floor(totalMinutes / 60);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
   const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h`;
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
@@ -56,27 +52,23 @@ function RateLimitBar({ usedPercent }: { usedPercent: number }) {
   );
 }
 
-// Both sourced from Claude Code's own local data — approximate, not
-// billing-accurate. Token/cost comes from summing this machine's JSONL
-// transcripts (claude_code_usage_recent); the rate-limit % and reset
-// countdown come from Claude Code's own statusLine hook payload, which is
-// the only source for real usage-window percentages (see
-// install_claude_statusline_hook in src/lib.rs) — chained behind
-// ref-proj/orca's own existing statusline hook so this doesn't break
-// Orca's usage tracking if it's also in use.
+// Claude rate-limit % comes from Claude Code's own statusLine hook payload
+// (see install_claude_statusline_hook in src/lib.rs). Cursor usage comes
+// from Cursor's DashboardService API, authenticated with the token Cursor
+// already stored in its local state.vscdb.
 export function ClaudeUsageStatusBar() {
-  const [usage, setUsage] = useState<ClaudeUsage | null>(null);
   const [rateLimit, setRateLimit] = useState<ClaudeRateLimitStatus | null>(null);
+  const [cursorUsage, setCursorUsage] = useState<CursorUsageStatus | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let cancelled = false;
     const load = () => {
-      claudeCodeUsageRecent().then((u) => {
-        if (!cancelled) setUsage(u);
-      }).catch(() => {});
       claudeRateLimitStatus().then((r) => {
         if (!cancelled) setRateLimit(r);
+      }).catch(() => {});
+      cursorUsageStatus().then((u) => {
+        if (!cancelled) setCursorUsage(u);
       }).catch(() => {});
     };
     load();
@@ -93,30 +85,37 @@ export function ClaudeUsageStatusBar() {
   }, []);
 
   const window5h = rateLimit?.five_hour;
-  const reset = window5h?.resets_at != null ? formatResetCountdown(window5h.resets_at, now) : null;
+  const claudeReset = window5h?.resets_at != null ? formatResetCountdown(window5h.resets_at * 1000, now) : null;
+  const hasClaudeRateLimit = window5h != null;
+  const hasCursorUsage = cursorUsage?.total_percent_used != null;
 
-  const hasUsage = usage && usage.total_tokens > 0;
-  const hasRateLimit = window5h != null;
-  if (!hasUsage && !hasRateLimit) return null;
+  if (!hasClaudeRateLimit && !hasCursorUsage) return null;
+
+  const cursorPercent = cursorUsage?.total_percent_used ?? 0;
+  const cursorReset =
+    cursorUsage?.billing_cycle_end_ms != null
+      ? formatResetCountdown(cursorUsage.billing_cycle_end_ms, now)
+      : null;
 
   return (
     <div className="status-bar">
-      {hasRateLimit && (
+      {hasClaudeRateLimit && (
         <span
           className="status-bar-item"
           style={{ marginRight: 12 }}
           title="Claude Code 5-hour rate-limit window (from Claude Code's own statusLine hook)"
         >
           Claude Code <RateLimitBar usedPercent={window5h.used_percent} />
-          {Math.round(window5h.used_percent)}% used{reset ? ` · ${reset}` : ""}
+          {Math.round(window5h.used_percent)}% used{claudeReset ? ` · ${claudeReset}` : ""}
         </span>
       )}
-      {hasUsage && (
+      {hasCursorUsage && (
         <span
           className="status-bar-item"
-          title="Claude Code usage, last 24h (approximate — not a billing-accurate figure)"
+          title="Cursor included usage for the current billing cycle (from Cursor dashboard API)"
         >
-          {!hasRateLimit && "Claude Code · "}${usage.cost_usd.toFixed(2)} · {formatTokens(usage.total_tokens)} tokens (24h)
+          Cursor <RateLimitBar usedPercent={cursorPercent} />
+          {Math.round(cursorPercent)}% used{cursorReset ? ` · ${cursorReset}` : ""}
         </span>
       )}
     </div>

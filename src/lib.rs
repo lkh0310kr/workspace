@@ -512,6 +512,122 @@ fn claude_rate_limit_status() -> ClaudeRateLimitStatus {
     status
 }
 
+#[derive(Serialize, Default)]
+struct CursorUsageStatus {
+    auto_percent_used: Option<f64>,
+    api_percent_used: Option<f64>,
+    total_percent_used: Option<f64>,
+    billing_cycle_end_ms: Option<i64>,
+}
+
+fn cursor_state_db_path() -> Option<PathBuf> {
+    let home = std::env::var_os("HOME")?;
+    #[cfg(target_os = "macos")]
+    {
+        return Some(
+            PathBuf::from(home)
+                .join("Library")
+                .join("Application Support")
+                .join("Cursor")
+                .join("User")
+                .join("globalStorage")
+                .join("state.vscdb"),
+        );
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let appdata = std::env::var_os("APPDATA")?;
+        return Some(
+            PathBuf::from(appdata)
+                .join("Cursor")
+                .join("User")
+                .join("globalStorage")
+                .join("state.vscdb"),
+        );
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Some(
+            PathBuf::from(home)
+                .join(".config")
+                .join("Cursor")
+                .join("User")
+                .join("globalStorage")
+                .join("state.vscdb"),
+        )
+    }
+}
+
+fn cursor_access_token() -> Option<String> {
+    let db_path = cursor_state_db_path()?;
+    let output = std::process::Command::new("sqlite3")
+        .arg(&db_path)
+        .arg("SELECT value FROM ItemTable WHERE key='cursorAuth/accessToken' LIMIT 1;")
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let token = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if token.is_empty() {
+        None
+    } else {
+        Some(token)
+    }
+}
+
+// Reads Cursor's billing-cycle usage from the same DashboardService RPC the
+// Cursor IDE dashboard calls, authenticated with the access token Cursor
+// already stored in its local state.vscdb — no API key needed.
+#[tauri::command]
+fn cursor_usage_status() -> CursorUsageStatus {
+    let mut status = CursorUsageStatus::default();
+    let Some(token) = cursor_access_token() else {
+        return status;
+    };
+    let output = std::process::Command::new("curl")
+        .args([
+            "-sS",
+            "--max-time",
+            "10",
+            "-X",
+            "POST",
+            "https://api2.cursor.sh/aiserver.v1.DashboardService/GetCurrentPeriodUsage",
+            "-H",
+            &format!("Authorization: Bearer {token}"),
+            "-H",
+            "Content-Type: application/json",
+            "-d",
+            "{}",
+        ])
+        .output();
+    let Ok(output) = output else {
+        return status;
+    };
+    if !output.status.success() {
+        return status;
+    }
+    let Ok(body) = serde_json::from_slice::<serde_json::Value>(&output.stdout) else {
+        return status;
+    };
+    let plan_usage = body.get("planUsage");
+    status.auto_percent_used = plan_usage
+        .and_then(|v| v.get("autoPercentUsed"))
+        .and_then(|v| v.as_f64());
+    status.api_percent_used = plan_usage
+        .and_then(|v| v.get("apiPercentUsed"))
+        .and_then(|v| v.as_f64());
+    status.total_percent_used = plan_usage
+        .and_then(|v| v.get("totalPercentUsed"))
+        .and_then(|v| v.as_f64());
+    status.billing_cycle_end_ms = body
+        .get("billingCycleEnd")
+        .and_then(|v| v.as_str())
+        .and_then(|s| s.parse::<i64>().ok())
+        .or_else(|| body.get("billingCycleEnd").and_then(|v| v.as_i64()));
+    status
+}
+
 // WKWebView doesn't forward frontend console output to this process's own
 // stderr, so debugOverlay.ts had no way to hand its log lines back other
 // than an on-screen overlay the user had to copy/paste. This gives it a
@@ -799,6 +915,7 @@ pub fn run() {
             hostname,
             claude_code_usage_recent,
             claude_rate_limit_status,
+            cursor_usage_status,
 
             pty_write,
             pty_resize,
