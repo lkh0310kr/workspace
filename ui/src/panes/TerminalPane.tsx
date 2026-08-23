@@ -286,9 +286,32 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       const isReplacement = ie.inputType === "insertReplacementText";
       const isHangulInsert =
         ie.inputType === "insertText" && !!ie.data && HANGUL_RE.test(ie.data);
+      // Internal IME churn, not a character of its own: the composing tail
+      // grows via insertCompositionText and gets torn down via
+      // deleteCompositionText (data=null) right before the real commit
+      // (insertFromComposition, handled below like any other boundary
+      // event) re-adds it. Neither is something xterm's own path ever
+      // sends on its own — confirmed via [hangul-trace]: no term.onData
+      // follows either — so advancing hangulSentLength past them (as the
+      // boundary branch below would, treating the still-uncommitted tail
+      // as "xterm already sent it") was a lie. The next deleteComposition's
+      // natural shrink then tripped resyncHangulBaseline's reset-to-0, and
+      // the following flush re-sent the *entire* buffer from scratch —
+      // this was the actual source of the "반반갑반갑습..." growing-prefix
+      // duplication, not anything about sendHangul/flushHangulUpTo
+      // themselves. Only refresh the on-screen preview here; leave
+      // hangulSentLength untouched.
+      const isComposingChurn =
+        ie.inputType === "insertCompositionText" || ie.inputType === "deleteCompositionText";
       trace(
-        `input inputType=${ie.inputType} data=${JSON.stringify(ie.data)} isReplacement=${isReplacement} isHangulInsert=${isHangulInsert} hangulSentLength=${hangulSentLength} textareaValue=${JSON.stringify(term.textarea?.value)}`,
+        `input inputType=${ie.inputType} data=${JSON.stringify(ie.data)} isReplacement=${isReplacement} isHangulInsert=${isHangulInsert} isComposingChurn=${isComposingChurn} hangulSentLength=${hangulSentLength} textareaValue=${JSON.stringify(term.textarea?.value)}`,
       );
+
+      if (isComposingChurn) {
+        updateHangulPreview((term.textarea?.value ?? "").slice(hangulSentLength));
+        e.stopPropagation();
+        return;
+      }
 
       if (!isReplacement && !isHangulInsert) {
         // Not part of a Hangul composition block. Whatever's pending from
@@ -305,6 +328,13 @@ function TerminalPaneInner({ terminalId, active }: Props) {
         const value = term.textarea?.value ?? "";
         flushHangulUpTo(value.length - (ie.data?.length ?? 0));
         hangulSentLength = value.length;
+        // Whatever the preview was still showing (the composing tail this
+        // commit replaces) is now stale — xterm's own path is about to
+        // echo the real character in that same spot, so leaving the old
+        // preview glyphs un-erased would show both overlapping/adjacent
+        // (the "표시자가 앞에 뜸" offset bug). hangulSentLength == value.length
+        // now, so this is just an erase, not a redraw of new content.
+        updateHangulPreview("");
         return;
       }
 
