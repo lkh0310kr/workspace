@@ -4,7 +4,7 @@
   - [x] Claude Code/Cursor 등 AI Agent 사용량 하단에 표시.
   - [x] 터미널 하단 초록색 info text삭제하고 그걸 상단 헤더 "Terminal" text를 대체
 - [ ] Editor
-  - [ ] 다른 탭 전환시 selected file이 상태 저장불러오기가 안됨. 워크스페이스를 종료했다가 다시 켜도.
+  - [x] 다른 탭 전환시 selected file이 상태 저장불러오기가 안됨. 워크스페이스를 종료했다가 다시 켜도. — 2026-08-23 수정(commit `c4d0ea5`). `EditorPane`이 현재 파일을 로컬 state로만 들고 FlexLayout 노드 config에 다시 안 써줘서, 탭 전환(리마운트)/재시작 둘 다 항상 최초 생성 시점 filePath로 리셋되던 것. `currentPath` 바뀔 때마다 노드 config에 동기화하도록 수정 — 기존 `onModelChange → persistLayout` 저장 경로를 그대로 탐. **실제 빌드로 아직 미검증** — 파일 열고 탭 전환/앱 재시작해서 확인 필요.
   - [ ] Markdown
     - [ ] Checkbox Raw <-> Preview Detail. Checkbox 쪽으로 커서를 왼쪽 옮겨서 Checkbox를 침해했을때 그때 Raw로 표시하도록. Obsidian이 이런 방식을 사용함. 즉, current line을 select한 경우에도 체크박스를 클릭할 수 있다는 것. 아 그리고 지금 체크박스 클릭 했을때 [ ] \[x] 적용도 안 됨.
     - [ ] Indent 2-> 4로 수정
