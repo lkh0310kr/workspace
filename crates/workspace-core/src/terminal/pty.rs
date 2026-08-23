@@ -149,6 +149,26 @@ impl Pty {
         };
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
+        // A GUI app launched via Finder/Dock/`open` gets no LANG/LC_ALL at
+        // all (confirmed empirically: `launchctl getenv LANG` returns
+        // nothing in that launch context, unlike a shell-launched
+        // process) — same class of "GUI launch context is missing
+        // environment a terminal app needs" issue TMUX_CANDIDATES' doc
+        // comment describes for PATH. Without a UTF-8 locale, tmux does
+        // not consider itself UTF-8-aware, which corrupts wide (Hangul,
+        // CJK) cells specifically when it redraws its saved grid from
+        // scratch — e.g. on `-A` reattach after the app restarts, not on
+        // a fresh session's live passthrough, which is why this only
+        // showed up after a relaunch. Prefer the real env value if this
+        // process happens to have one (a terminal-launched dev build
+        // would), but always fall back to a real UTF-8 locale rather than
+        // leaving it unset.
+        let locale = std::env::var("LANG")
+            .ok()
+            .filter(|v| v.to_uppercase().contains("UTF-8"))
+            .unwrap_or_else(|| "en_US.UTF-8".to_string());
+        cmd.env("LANG", &locale);
+        cmd.env("LC_ALL", &locale);
 
         let child = pair
             .slave
