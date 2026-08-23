@@ -117,54 +117,42 @@ class CheckboxWidget extends WidgetType {
     return other.checked === this.checked && other.markerFrom === this.markerFrom;
   }
 
-  toDOM() {
+  // Toggle wired as a real `click` listener on the widget's own <input> in
+  // toDOM, not as a `mousedown` handler on the editor matched by
+  // `event.target`/coordinates (that was the original approach here, and
+  // it was the actual bug — see below). Matches Zettlr's CM6 task-checkbox
+  // widget (render-tasks.ts), the closest architectural reference for this
+  // exact problem (also a single-doc CM6 live-preview markdown editor):
+  // https://github.com/Zettlr/Zettlr — a real `<input>` node gets its own
+  // browser-native hit-testing for free, which our editor-level
+  // domEventHandlers + manual target/coordinate check didn't.
+  toDOM(view: EditorView) {
     const box = document.createElement("input");
     box.type = "checkbox";
     box.checked = this.checked;
     box.className = "cm-md-task-checkbox";
-    // The toggle position (the space/x inside "[ ]") is baked into the
-    // DOM node itself rather than recovered via view.posAtDOM — widget
-    // position mapping through CodeMirror's DOM layer is easy to get
-    // subtly wrong, whereas this is exact by construction.
-    box.dataset.markerFrom = String(this.markerFrom);
+    box.addEventListener("click", (event) => {
+      const pos = this.markerFrom + 1;
+      const current = view.state.doc.sliceString(pos, pos + 1);
+      const insert = current.toLowerCase() === "x" ? " " : "x";
+      view.dispatch({ changes: { from: pos, to: pos + 1, insert } });
+      // Stops the click from also reaching CodeMirror's own default click
+      // handling (which places the text cursor at the click position) —
+      // `ignoreEvent` below only silences `mousedown`, not `click`.
+      event.preventDefault();
+      event.stopPropagation();
+    });
     return box;
   }
 
-  // `taskCheckboxHandlers` below already fully owns the toggle via
-  // `mousedown` (preventDefault + return true, so CodeMirror stops
-  // processing that event). This being `false` — as it was previously —
-  // told CodeMirror's own click handling to *also* run on top of that,
-  // which places the text cursor at the click position: every checkbox
-  // click was stealing editor focus and jumping the cursor into the
-  // document, on top of the actual toggle. `true` (matching Table/Image,
-  // the other pure-control/display widgets in this file) makes the
-  // widget opaque to CodeMirror's default handling, leaving only the
-  // toggle.
-  ignoreEvent() {
-    return true;
+  // Ignoring only `mousedown` (not `click`) matches Zettlr's widget —
+  // `click`'s own default action (cursor placement) is instead suppressed
+  // per-toggle by this widget's own listener above via preventDefault/
+  // stopPropagation, rather than by blanket-ignoring every event type.
+  ignoreEvent(event: Event) {
+    return event instanceof MouseEvent && event.type === "mousedown";
   }
 }
-
-// Clicking a rendered checkbox flips the single character inside its
-// "[ ]"/"[x]" marker in the underlying document. That's a plain text
-// edit, so it flows through the same doc-changed path as typing —
-// decorations rebuild from the new text and the widget is recreated
-// with the correct `checked` state regardless of what the native
-// <input> DOM node's own transient `.checked` property did.
-const taskCheckboxHandlers = EditorView.domEventHandlers({
-  mousedown(event, view) {
-    const target = event.target as HTMLElement | null;
-    if (!target?.classList.contains("cm-md-task-checkbox")) return false;
-    const markerFrom = Number(target.dataset.markerFrom);
-    if (!Number.isFinite(markerFrom)) return false;
-    const pos = markerFrom + 1;
-    const current = view.state.doc.sliceString(pos, pos + 1);
-    const insert = current.toLowerCase() === "x" ? " " : "x";
-    view.dispatch({ changes: { from: pos, to: pos + 1, insert } });
-    event.preventDefault();
-    return true;
-  },
-});
 
 class CalloutLabelWidget extends WidgetType {
   constructor(readonly calloutType: string) {
@@ -657,4 +645,4 @@ const blockDecorations = ViewPlugin.fromClass(
 // cosmetic bug atomicRanges was meant to fix — so rather than ship an
 // unverified fix for something this severe, atomicRanges is left out
 // entirely until it can be revisited with a way to test it for real.
-export const markdownLivePreview: Extension[] = [inlineDecorations, blockDecorations, taskCheckboxHandlers];
+export const markdownLivePreview: Extension[] = [inlineDecorations, blockDecorations];
