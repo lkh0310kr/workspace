@@ -105,6 +105,7 @@ export default function App() {
   const [settingsTabId, setSettingsTabId] = useState<number | null>(null);
   const [appSettingsOpen, setAppSettingsOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
+  const [railOpen, setRailOpen] = useState(true);
 
   useEffect(() => {
     return applyThemePreference(themePreference);
@@ -402,12 +403,27 @@ export default function App() {
 
   return (
     <div className="app-root">
+      <div className="titlebar" data-tauri-drag-region>
+        <button
+          type="button"
+          className={`titlebar-sidebar-toggle${railOpen ? " active" : ""}`}
+          title="Toggle Sidebar"
+          onClick={() => setRailOpen((open) => !open)}
+        >
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" />
+            <line x1="6" y1="2.5" x2="6" y2="13.5" stroke="currentColor" />
+          </svg>
+        </button>
+      </div>
       <div className="app-shell">
-        <WorkspaceTabRail
-          tabs={workspace.tabs}
-          activeTabId={workspace.active_tab_id}
-          onOpenSettings={(tabId) => setSettingsTabId(tabId)}
-        />
+        {railOpen && (
+          <WorkspaceTabRail
+            tabs={workspace.tabs}
+            activeTabId={workspace.active_tab_id}
+            onOpenSettings={(tabId) => setSettingsTabId(tabId)}
+          />
+        )}
         <div className="layout-host" key={activeTabId}>
           <Layout
             ref={setLayoutInstance}

@@ -91,6 +91,45 @@ input {
   background: var(--bg-base);
 }
 
+/* Overlay title bar (see tauri.conf.json titleBarStyle) leaves the traffic
+   lights floating over the web content with no native bar underneath — this
+   strip reserves that height so content doesn't render under them, stays
+   draggable via data-tauri-drag-region, and hosts the sidebar toggle just to
+   their right (Xcode/Finder convention). */
+.titlebar {
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 78px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.titlebar-sidebar-toggle {
+  -webkit-app-region: no-drag;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.titlebar-sidebar-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}
+
+.titlebar-sidebar-toggle.active {
+  color: var(--text);
+}
+
 .app-shell {
   display: flex;
   flex: 1;

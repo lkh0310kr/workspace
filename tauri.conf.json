@@ -20,7 +20,9 @@
         "maximized": true,
         "focus": true,
         "backgroundColor": "#1e1e1e",
-        "dragDropEnabled": true
+        "dragDropEnabled": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {

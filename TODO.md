@@ -14,7 +14,7 @@
     - [x] root container width 조정할 수 있도록 — 2026-08-23(commit `5b434b8`). 탐색기-에디터 사이에 드래그 핸들 추가(120~480px). 재시작 시엔 유지 안 됨(treeOpen/outlineOpen 등 기존 토글들과 같은 수준의 비영속 상태). **미검증**.
 - [ ] Workspace
   - [ ] MacOS Native Window Header Bar
-    - [ ] Toogle Sidebar 버튼 추가해서 왼쪽 Tabs display 토클하도록.
+    - [x] Toogle Sidebar 버튼 추가해서 왼쪽 Tabs display 토클하도록. — 2026-08-23. `tauri.conf.json`에 `titleBarStyle: "Overlay"` + `hiddenTitle: true` 추가해 트래픽 라이트가 웹 콘텐츠 위에 뜨는 네이티브 헤더바를 만들고, 그 자리를 채우는 `.titlebar`(`data-tauri-drag-region`) 스트립을 `App.tsx`에 추가함 — 트래픽 라이트 오른쪽에 `WorkspaceTabRail`(왼쪽 탭 레일) 토글 버튼 배치(Xcode/Finder 관례). `cargo check`/`npx tsc --noEmit` 통과, `dev-run.sh`로 재빌드까지 확인. **이 화면 캡처는 스크린 레코딩 권한이 없는 환경이라 직접 확인 못함 — 실제 앱에서 트래픽 라이트 겹침/드래그 동작 육안 확인 필요.**
   - [ ] 각 Pane에서 Cmd + '+', Cmd + '-' Action 구현 - 각 패널의 독립된 사이즈. 상태저장되도록
 
 
