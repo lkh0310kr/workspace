@@ -24,7 +24,7 @@
   --syntax-property: #9cdcfe;
   --syntax-invalid: #f14c4c;
   --font-ui: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Apple SD Gothic Neo", monospace;
   --chrome-h: 34px;
   --browser-chrome-total: 36px;
   --rail-w: 148px;
