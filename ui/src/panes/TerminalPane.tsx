@@ -148,36 +148,205 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     };
 
     term.onData((data) => {
+      debugLog(`[hangul-trace] term.onData data=${JSON.stringify(data)}`).catch(() => {});
       const bytes = new TextEncoder().encode(data);
       ptyWrite(terminalId, bytes).catch(console.error);
     });
 
-    // TEMPORARY diagnostic tracing for the Hangul-input investigation —
-    // remove once root-caused. WKWebView doesn't forward frontend console
-    // output to this process's stderr, so route through debug_log instead
-    // (see its own comment in src/lib.rs) to get real evidence instead of
-    // guessing again.
-    const traceCompositionStart = (e: CompositionEvent) =>
-      debugLog(`[hangul-trace] compositionstart data=${JSON.stringify(e.data)}`).catch(() => {});
-    const traceCompositionUpdate = (e: CompositionEvent) =>
-      debugLog(`[hangul-trace] compositionupdate data=${JSON.stringify(e.data)}`).catch(() => {});
-    const traceCompositionEnd = (e: CompositionEvent) =>
-      debugLog(`[hangul-trace] compositionend data=${JSON.stringify(e.data)}`).catch(() => {});
-    const traceInput = (e: Event) => {
-      const ie = e as InputEvent;
-      debugLog(
-        `[hangul-trace] input inputType=${ie.inputType} data=${JSON.stringify(ie.data)} isComposing=${ie.isComposing} textareaValue=${JSON.stringify(term.textarea?.value)}`,
-      ).catch(() => {});
+    // WKWebView's Korean IME never fires compositionstart/update/end, and
+    // dispatches `input` *before* the matching `keydown` (confirmed via
+    // [hangul-trace] captures during investigation). xterm's own
+    // `_inputEvent` fallback treats "input with no keydown seen yet" as an
+    // IME committing text directly (its intended case: mobile keyboards),
+    // and forwards it to the PTY immediately — but for Korean that first
+    // `insertText` is only the *start* of a syllable block, which the OS
+    // goes on to revise via `insertReplacementText` as more jamo are typed
+    // (반 -> 바 -> 반, etc). xterm doesn't act on `insertReplacementText` at
+    // all, so those revisions are silently dropped and only the
+    // incomplete first jamo of each block reaches the shell — the same
+    // `_keyDownSeen`-gate bug class reported upstream for other WKWebView
+    // IMEs (https://github.com/xtermjs/xterm.js/issues/5887), just
+    // manifesting as corruption instead of a dropped character.
+    //
+    // Fix: intercept both inputTypes ourselves in the capture phase on
+    // `host` (an ancestor of xterm's hidden textarea, so we see the event
+    // before xterm's own listener on the textarea itself does) and only
+    // forward a block once we're sure it's finalized: when the next block
+    // starts, a non-Hangul keystroke arrives, or after a short idle
+    // window as a fallback. Never touch `textarea.value` ourselves — the
+    // browser's own composition already lands on the correct final text
+    // there; we only track how much of it we've already sent.
+    const HANGUL_RE = /[ᄀ-ᇿ㄰-㆏ꥠ-꥿가-힣ힰ-퟿]/;
+    let hangulSentLength = 0;
+    let hangulIdleTimer: number | null = null;
+
+    const trace = (line: string) => debugLog(`[hangul-trace] ${line}`).catch(() => {});
+
+    // `textarea.value` isn't ours alone — xterm's own (working, ASCII)
+    // input path clears/rewrites it independently of our tracking, and it
+    // can also just get shorter for reasons outside our control (new PTY
+    // line, focus change). `hangulSentLength` is only ever supposed to
+    // describe *this* value's already-sent prefix; once the value gets
+    // shorter than it, that number describes a value that no longer
+    // exists, and every future `.slice(hangulSentLength)` silently returns
+    // "" — dropping all subsequent Hangul input. Resync before trusting it.
+    const resyncHangulBaseline = () => {
+      const len = term.textarea?.value.length ?? 0;
+      if (len < hangulSentLength) hangulSentLength = 0;
     };
-    const traceKeydown = (e: KeyboardEvent) =>
-      debugLog(
-        `[hangul-trace] keydown key=${JSON.stringify(e.key)} code=${e.code} keyCode=${e.keyCode} isComposing=${e.isComposing}`,
-      ).catch(() => {});
-    term.textarea?.addEventListener("compositionstart", traceCompositionStart);
-    term.textarea?.addEventListener("compositionupdate", traceCompositionUpdate);
-    term.textarea?.addEventListener("compositionend", traceCompositionEnd);
-    term.textarea?.addEventListener("input", traceInput);
-    term.textarea?.addEventListener("keydown", traceKeydown);
+
+    // Suppressing xterm's own echo for these events (`e.stopPropagation()`
+    // below) is what makes buffering safe, but it also means nothing shows
+    // up on screen while a block is still composing — the terminal's
+    // actual echo only ever comes from the shell receiving real bytes,
+    // which we're deliberately delaying. Paint a local preview of the
+    // still-unsent tail ourselves so typing doesn't look like it's doing
+    // nothing, and erase it the instant we actually send.
+    //
+    // The real echo for a just-sent block doesn't land in the same tick,
+    // though — `ptyWrite` is a Tauri IPC round trip (invoke -> Rust pty
+    // write -> shell echo -> pty read -> event back to JS), so there's a
+    // real, if usually small, delay before it's actually on screen. If the
+    // *next* block's preview gets written before that arrives, it lands at
+    // a cursor position the still-in-flight echo hasn't reached yet, and
+    // the two visibly collide once it does. Deferring preview writes for a
+    // short grace window after every real send gives that round trip a
+    // head start — not a guarantee under extreme typing speed, but this is
+    // a local pty, so the round trip is normally single-digit ms.
+    const PREVIEW_GRACE_MS = 20;
+    let previewWidth = 0;
+    let previewDeferUntil = 0;
+    let previewWriteTimer: number | null = null;
+
+    const hangulDisplayWidth = (s: string): number => {
+      let width = 0;
+      for (const ch of s) {
+        const code = ch.codePointAt(0) ?? 0;
+        width += code >= 0x1100 && code <= 0xd7ff ? 2 : 1;
+      }
+      return width;
+    };
+    const writePreviewNow = (pending: string) => {
+      const newWidth = hangulDisplayWidth(pending);
+      if (previewWidth > 0) {
+        term.write(`\x1b[${previewWidth}D`);
+        // A jamo revision almost always keeps the syllable block the same
+        // display width (하 -> 핫 -> 하 are all 2 columns) — the new text
+        // fully overwrites the old in place, so there's nothing to blank
+        // first. Erasing unconditionally on every revision was the source
+        // of the visible flicker at fast typing speed; only actually
+        // needed when the new text is narrower and would otherwise leave
+        // old cells trailing past its end.
+        if (newWidth < previewWidth) term.write(`\x1b[${previewWidth}X`);
+      }
+      previewWidth = newWidth;
+      if (pending) term.write(pending);
+    };
+    const updateHangulPreview = (pending: string) => {
+      if (previewWriteTimer !== null) {
+        window.clearTimeout(previewWriteTimer);
+        previewWriteTimer = null;
+      }
+      const wait = previewDeferUntil - Date.now();
+      if (wait > 0) {
+        previewWriteTimer = window.setTimeout(() => {
+          previewWriteTimer = null;
+          writePreviewNow(pending);
+        }, wait);
+      } else {
+        writePreviewNow(pending);
+      }
+    };
+
+    const sendHangul = (text: string) => {
+      if (!text) return;
+      trace(`sendHangul text=${JSON.stringify(text)}`);
+      ptyWrite(terminalId, new TextEncoder().encode(text)).catch(console.error);
+      previewDeferUntil = Date.now() + PREVIEW_GRACE_MS;
+    };
+
+    const flushHangulUpTo = (splitPoint: number) => {
+      const value = term.textarea?.value ?? "";
+      if (splitPoint > hangulSentLength) {
+        updateHangulPreview("");
+        sendHangul(value.slice(hangulSentLength, splitPoint));
+        hangulSentLength = splitPoint;
+      }
+    };
+    const flushAllPendingHangul = () => {
+      if (hangulIdleTimer !== null) {
+        window.clearTimeout(hangulIdleTimer);
+        hangulIdleTimer = null;
+      }
+      flushHangulUpTo(term.textarea?.value.length ?? 0);
+    };
+    const onHangulInput = (e: Event) => {
+      resyncHangulBaseline();
+      const ie = e as InputEvent;
+      const isReplacement = ie.inputType === "insertReplacementText";
+      const isHangulInsert =
+        ie.inputType === "insertText" && !!ie.data && HANGUL_RE.test(ie.data);
+      trace(
+        `input inputType=${ie.inputType} data=${JSON.stringify(ie.data)} isReplacement=${isReplacement} isHangulInsert=${isHangulInsert} hangulSentLength=${hangulSentLength} textareaValue=${JSON.stringify(term.textarea?.value)}`,
+      );
+
+      if (!isReplacement && !isHangulInsert) {
+        // Not part of a Hangul composition block. Whatever's pending from
+        // a *finished* Hangul block should land in the PTY before this
+        // next character does — but this character itself is not ours to
+        // send: xterm's own (working) keydown path already delivers it via
+        // `term.onData` (confirmed via [hangul-trace]: `term.onData`
+        // fires for it immediately on keydown, before this `input` event
+        // even arrives). Flush only up to, not including, it — then mark
+        // it as accounted for *without* sending it ourselves, so it isn't
+        // mistaken for still-pending Hangul and swept into some later
+        // flush (that was the bug: skipping it here without advancing
+        // past it just meant the *next* flush re-sent it).
+        const value = term.textarea?.value ?? "";
+        flushHangulUpTo(value.length - (ie.data?.length ?? 0));
+        hangulSentLength = value.length;
+        return;
+      }
+
+      if (isHangulInsert) {
+        // A brand new block started — the previous one (if any) is done
+        // composing and safe to send, but not this new block's
+        // just-typed first jamo, which may still get revised.
+        const value = term.textarea?.value ?? "";
+        flushHangulUpTo(value.length - (ie.data?.length ?? 0));
+      }
+      updateHangulPreview((term.textarea?.value ?? "").slice(hangulSentLength));
+
+      e.stopPropagation();
+      if (hangulIdleTimer !== null) window.clearTimeout(hangulIdleTimer);
+      hangulIdleTimer = window.setTimeout(flushAllPendingHangul, 500);
+    };
+    host.addEventListener("input", onHangulInput, true);
+
+    // `input` events only cover text characters. A non-composing key with
+    // no text of its own — Enter, Backspace, Tab, arrows — never fires one,
+    // so it reaches xterm's normal keydown handling (and gets sent to the
+    // PTY) without ever passing through `onHangulInput` above. Without this,
+    // pressing Enter right after finishing a Hangul block races xterm's own
+    // send of that keystroke against our up-to-500ms idle flush, and the
+    // last syllable can arrive at the shell *after* the Enter that was
+    // meant to submit it. Flush first for any keydown that isn't part of
+    // composition (keyCode 229) so ordering always stays correct.
+    const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta", "CapsLock", "AltGraph"]);
+    const onKeydownBoundary = (e: KeyboardEvent) => {
+      resyncHangulBaseline();
+      trace(
+        `keydown key=${JSON.stringify(e.key)} code=${e.code} keyCode=${e.keyCode} hangulSentLength=${hangulSentLength} textareaValue=${JSON.stringify(term.textarea?.value)}`,
+      );
+      // A modifier held to produce the *next* jamo (Shift for the doubled
+      // consonants ㅆ/ㄲ/ㄸ/ㅃ/ㅉ, e.g.) isn't itself a composition
+      // boundary — flushing on it can cut a block off mid-revision (같은
+      // `_keyDownSeen`-poisoning class as xtermjs/xterm.js#5887's held-Shift
+      // report, just triggered by our own boundary check instead of
+      // xterm's).
+      if (e.keyCode !== 229 && !MODIFIER_KEYS.has(e.key)) flushAllPendingHangul();
+    };
+    host.addEventListener("keydown", onKeydownBoundary, true);
 
     syncSize();
     requestAnimationFrame(() => {
@@ -237,11 +406,17 @@ function TerminalPaneInner({ terminalId, active }: Props) {
 
     return () => {
       unlistenDragDrop?.();
-      term.textarea?.removeEventListener("compositionstart", traceCompositionStart);
-      term.textarea?.removeEventListener("compositionupdate", traceCompositionUpdate);
-      term.textarea?.removeEventListener("compositionend", traceCompositionEnd);
-      term.textarea?.removeEventListener("input", traceInput);
-      term.textarea?.removeEventListener("keydown", traceKeydown);
+      host.removeEventListener("input", onHangulInput, true);
+      host.removeEventListener("keydown", onKeydownBoundary, true);
+      if (hangulIdleTimer !== null) window.clearTimeout(hangulIdleTimer);
+      if (previewWriteTimer !== null) window.clearTimeout(previewWriteTimer);
+      // Erase any still-unsent preview before the scrollback snapshot below
+      // — otherwise a mid-composition remount (switching workspace tabs)
+      // would bake that preview text into the cached scrollback as if it
+      // were real terminal content. Synchronous, not through
+      // `updateHangulPreview`: `term` is about to be disposed, so a
+      // deferred write landing after that would hit a dead terminal.
+      writePreviewNow("");
       host.removeEventListener("focusin", onFocusIn);
       host.removeEventListener("focusout", onFocusOut);
       if (serialize) {
