@@ -30,6 +30,31 @@ const XTERM_THEMES: Record<ResolvedTheme, ITheme> = {
     foreground: "#1a1a1a",
     cursor: "#1a1a1a",
     selectionBackground: "#dde8f7",
+    // xterm's built-in ANSI palette is tuned for a dark background — its
+    // "white"/"bright white" (used by CLI tools like Claude Code for
+    // normal/emphasized text) resolve to near-white grays (#d3d7cf,
+    // #eeeeec) that all but disappear against this light background.
+    // Values below are Tango Light's palette with white/brightYellow/etc
+    // darkened for contrast — same fix, same reasoning (Claude-style ANSI
+    // accent text needs real contrast on light backgrounds, not Tango's
+    // near-white legacy values) as ref-proj/orca's "Builtin Tango Light"
+    // default light terminal theme.
+    black: "#2e3436",
+    red: "#cc0000",
+    green: "#4e9a06",
+    yellow: "#8e7700",
+    blue: "#3465a4",
+    magenta: "#75507b",
+    cyan: "#05727e",
+    white: "#6a6a6a",
+    brightBlack: "#555753",
+    brightRed: "#ef2929",
+    brightGreen: "#1b7a1b",
+    brightYellow: "#6d5a00",
+    brightBlue: "#204a87",
+    brightMagenta: "#ad7fa8",
+    brightCyan: "#034b50",
+    brightWhite: "#3d3d3d",
   },
 };
 
