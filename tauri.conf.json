@@ -20,7 +20,7 @@
         "maximized": true,
         "focus": true,
         "backgroundColor": "#1e1e1e",
-        "dragDropEnabled": false
+        "dragDropEnabled": true
       }
     ],
     "security": {

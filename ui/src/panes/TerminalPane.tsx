@@ -6,6 +6,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { SearchAddon } from "@xterm/addon-search";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import "@xterm/xterm/css/xterm.css";
 import { onPtyOutput, ptyResize, ptyWrite } from "../tauri";
 import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } from "../theme";
@@ -13,6 +14,14 @@ import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } fro
 interface Props {
   terminalId: number;
   active: boolean;
+}
+
+// Same convention as a normal POSIX shell/terminal drag-drop (e.g. iTerm2,
+// VS Code's integrated terminal): only quote when the path has characters
+// a shell would otherwise split on or misinterpret.
+function shellEscapePath(path: string): string {
+  if (/^[a-zA-Z0-9_./@:-]+$/.test(path)) return path;
+  return `'${path.replace(/'/g, "'\\''")}'`;
 }
 
 // xterm takes colors as JS options, not CSS — can't just point it at
@@ -153,6 +162,36 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     resizeObserver.observe(host);
     window.addEventListener("resize", syncSize);
 
+    // Drop targeting is done by hand (position hit-test against this
+    // pane's own host rect) rather than a plain HTML5 `ondrop`: Tauri
+    // intercepts OS-level drag-drop at the webview level (that's what
+    // `dragDropEnabled` in tauri.conf.json controls) and only exposes it
+    // through this per-webview event, not through the DOM drag events a
+    // browser would normally fire. A hidden/inactive pane's host has a
+    // zero-size rect, so it naturally never matches.
+    let unlistenDragDrop: (() => void) | undefined;
+    getCurrentWebview()
+      .onDragDropEvent((event) => {
+        if (event.payload.type !== "drop") return;
+        const logical = event.payload.position.toLogical(window.devicePixelRatio);
+        const rect = host.getBoundingClientRect();
+        if (
+          logical.x < rect.left ||
+          logical.x > rect.right ||
+          logical.y < rect.top ||
+          logical.y > rect.bottom
+        ) {
+          return;
+        }
+        const text = event.payload.paths.map(shellEscapePath).join(" ") + " ";
+        ptyWrite(terminalId, new TextEncoder().encode(text)).catch(console.error);
+        term.focus();
+      })
+      .then((unlisten) => {
+        unlistenDragDrop = unlisten;
+      })
+      .catch(console.error);
+
     const focusTerm = () => term.focus();
     host.addEventListener("mousedown", focusTerm);
 
@@ -170,6 +209,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
     });
 
     return () => {
+      unlistenDragDrop?.();
       host.removeEventListener("focusin", onFocusIn);
       host.removeEventListener("focusout", onFocusOut);
       if (serialize) {
