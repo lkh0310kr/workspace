@@ -115,6 +115,23 @@ fn get_workspace_state(state: State<'_, Arc<AppState>>) -> workspace_core::Works
     state.workspace.lock().state()
 }
 
+// `scutil --get ComputerName` is macOS's own display name (what tmux's
+// status bar used to show, e.g. "Kanghyunui-MacBookPro") — falls back to
+// the POSIX hostname (`hostname -s`, drops the .local suffix) since
+// ComputerName can be empty/unset on a machine that never had it
+// customized in System Settings.
+#[tauri::command]
+fn hostname() -> String {
+    let run = |cmd: &str, args: &[&str]| -> Option<String> {
+        let out = std::process::Command::new(cmd).args(args).output().ok()?;
+        let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        (!s.is_empty()).then_some(s)
+    };
+    run("scutil", &["--get", "ComputerName"])
+        .or_else(|| run("hostname", &["-s"]))
+        .unwrap_or_else(|| "localhost".to_string())
+}
+
 // WKWebView doesn't forward frontend console output to this process's own
 // stderr, so debugOverlay.ts had no way to hand its log lines back other
 // than an on-screen overlay the user had to copy/paste. This gives it a
@@ -400,6 +417,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_workspace_state,
             debug_log,
+            hostname,
             pty_write,
             pty_resize,
             spawn_terminal,

@@ -8,6 +8,10 @@ import { startPaneDrag } from "../layout/layoutRef";
 interface Props {
   component: PaneComponent;
   toolbar?: ReactNode;
+  /** Overrides the default `paneLabel(component)` header text — e.g. the
+   * terminal pane replaces it with live session/host/time info in place
+   * of tmux's own status bar (see TerminalPaneTitle). */
+  title?: ReactNode;
   contentSlot?: boolean;
   hideHeader?: boolean;
   /** Enables dragging the pane header to reposition/split it via
@@ -21,7 +25,7 @@ interface Props {
 }
 
 export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame(
-  { component, toolbar, contentSlot, hideHeader, tabNode, onSplit, onTypeChange, onClose, children },
+  { component, toolbar, title, contentSlot, hideHeader, tabNode, onSplit, onTypeChange, onClose, children },
   ref,
 ) {
   const paneActions = (
@@ -46,7 +50,7 @@ export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame(
 
   const headerRow = (
     <div className="pane-header" {...dragProps}>
-      <span className="pane-title">{paneLabel(component)}</span>
+      <span className="pane-title">{title ?? paneLabel(component)}</span>
       {paneActions}
     </div>
   );

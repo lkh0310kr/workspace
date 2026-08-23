@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { IJsonModel, Layout, Model, TabNode, Actions, type Action } from "flexlayout-react";
 import "flexlayout-react/style/combined.css";
 import { PaneFrame } from "./components/PaneFrame";
+import { TerminalPaneTitle } from "./components/TerminalPaneTitle";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
@@ -285,6 +286,7 @@ export default function App() {
       <PaneFrame
         component={component}
         tabNode={node}
+        title={component === "terminal" ? <TerminalPaneTitle /> : undefined}
         hideHeader={component === "code" || component === "markdown"}
         onSplit={onSplit}
         onTypeChange={onTypeChange}

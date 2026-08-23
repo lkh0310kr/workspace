@@ -4,6 +4,7 @@ description = "Workspace PTY, files, and browser commands."
 commands.allow = [
     "get_workspace_state",
     "debug_log",
+    "hostname",
     "pty_write",
     "pty_resize",
     "spawn_terminal",

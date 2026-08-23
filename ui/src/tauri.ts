@@ -33,6 +33,10 @@ export async function getWorkspaceState(): Promise<WorkspaceState> {
   return invoke("get_workspace_state");
 }
 
+export async function hostname(): Promise<string> {
+  return invoke("hostname");
+}
+
 export async function ptyWrite(id: number, data: Uint8Array): Promise<void> {
   let binary = "";
   for (let i = 0; i < data.length; i++) {

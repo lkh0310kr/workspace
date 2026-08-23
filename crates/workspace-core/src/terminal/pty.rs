@@ -33,6 +33,34 @@ fn tmux_binary() -> Option<&'static Path> {
     .as_deref()
 }
 
+/// tmux's own status bar (session/hostname/clock) is redundant with our
+/// own pane header, which shows the same info — so it's turned off here
+/// rather than left on to show underneath it twice. `-f <path>` only
+/// takes effect the *first* time it starts the (long-lived, cross-restart)
+/// tmux server — verified empirically: `set-option -g status off` against
+/// a socket with no server yet fails ("No such file or directory"), so
+/// there is no race-free way to set this after the fact for a session
+/// that's racing to attach at the same time; a fresh server started via
+/// this config is the only reliable path. An already-running server
+/// (predating this file, or from the user's own tmux use) needs a manual
+/// `tmux kill-server` once to pick it up — acceptable for a one-off,
+/// personal-use transition.
+fn tmux_conf_path() -> Option<PathBuf> {
+    static CELL: OnceLock<Option<PathBuf>> = OnceLock::new();
+    CELL.get_or_init(|| {
+        let home = std::env::var_os("HOME")?;
+        let dir = PathBuf::from(home)
+            .join("Library")
+            .join("Application Support")
+            .join("workspace-app");
+        std::fs::create_dir_all(&dir).ok()?;
+        let path = dir.join("tmux.conf");
+        std::fs::write(&path, "set-option -g status off\n").ok()?;
+        Some(path)
+    })
+    .clone()
+}
+
 struct PtyInner {
     master: Box<dyn portable_pty::MasterPty + Send>,
     _child: Box<dyn portable_pty::Child + Send + Sync>,
@@ -100,6 +128,10 @@ impl Pty {
                 // checking the pane shell's own PATH still picked up
                 // Homebrew's `/opt/homebrew/bin`.
                 let mut c = CommandBuilder::new(tmux);
+                if let Some(conf) = tmux_conf_path() {
+                    c.arg("-f");
+                    c.arg(conf);
+                }
                 c.arg("new-session");
                 c.arg("-A");
                 c.arg("-s");
