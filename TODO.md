@@ -10,8 +10,8 @@
     - [x] Indent 2-> 4로 수정 — 2026-08-23. `EditorPane.tsx`에 `indentUnit.of("    ")` 추가. 코드 보다가 발견: 아래 vertical guide line(`columnGuideTheme`, codemirrorTheme.ts)이 이미 구현돼 있었는데 4ch 간격을 가정하고 그려지는 반면 CM6 기본 indentUnit은 2라서 서로 안 맞았었음 — 이번 수정으로 둘이 일치함. **미검증** — 실제 빌드로 Tab 눌러서 4칸 들여쓰기 확인 필요.
     - [x] obsidian처럼 indent(4) 만큼 띄어쓰기인 경우 vertical line을 표시해서 얼마나 인덴트됐는지 파악할 수 있도록 — 이미 구현되어 있었음(`columnGuideTheme`, codemirrorTheme.ts, 4ch 간격 반복 배경 그라디언트). 위 indentUnit 수정으로 실제 들여쓰기 폭과 맞춰짐.
   - [ ] TreeView
-    - [ ] zed처럼 vertical line표시해서 depth 시각화
-    - [ ] root container width 조정할 수 있도록
+    - [x] zed처럼 vertical line표시해서 depth 시각화 — 2026-08-23(commit `5b434b8`). 각 행이 자기 depth가 아니라 조상 레벨마다 자기 행 높이만큼의 세로선 조각을 그리고, 같은 들여쓰기의 형제/자손 행들이 이어 그리면서 하나의 연속된 선처럼 보이게 함(VS Code/Zed 방식). **미검증**.
+    - [x] root container width 조정할 수 있도록 — 2026-08-23(commit `5b434b8`). 탐색기-에디터 사이에 드래그 핸들 추가(120~480px). 재시작 시엔 유지 안 됨(treeOpen/outlineOpen 등 기존 토글들과 같은 수준의 비영속 상태). **미검증**.
 - [ ] Workspace
   - [ ] MacOS Native Window Header Bar
     - [ ] Toogle Sidebar 버튼 추가해서 왼쪽 Tabs display 토클하도록.
