@@ -21,6 +21,7 @@ import {
   foldGutter,
   foldKeymap,
   indentOnInput,
+  indentUnit,
   syntaxTree,
   LanguageDescription,
 } from "@codemirror/language";
@@ -455,6 +456,12 @@ export function EditorPane({
         extensions: [
           ...kindExtensions,
           ...workspaceSearch,
+          // `columnGuideTheme` (codemirrorTheme.ts) draws its vertical
+          // indent-guide lines every 4ch on the assumption indentation is
+          // 4 spaces per level — CM6's own default indent unit is 2, which
+          // would leave the guides one level ahead of what Tab/auto-indent
+          // actually produces. 4 to match.
+          indentUnit.of("    "),
           history(),
           keymap.of([indentWithTab, ...historyKeymap]),
           EditorView.lineWrapping,
