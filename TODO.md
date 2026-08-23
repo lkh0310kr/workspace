@@ -6,7 +6,7 @@
 - [ ] Editor
   - [x] 다른 탭 전환시 selected file이 상태 저장불러오기가 안됨. 워크스페이스를 종료했다가 다시 켜도. — 2026-08-23 수정(commit `c4d0ea5`). `EditorPane`이 현재 파일을 로컬 state로만 들고 FlexLayout 노드 config에 다시 안 써줘서, 탭 전환(리마운트)/재시작 둘 다 항상 최초 생성 시점 filePath로 리셋되던 것. `currentPath` 바뀔 때마다 노드 config에 동기화하도록 수정 — 기존 `onModelChange → persistLayout` 저장 경로를 그대로 탐. **실제 빌드로 아직 미검증** — 파일 열고 탭 전환/앱 재시작해서 확인 필요.
   - [ ] Markdown
-    - [ ] Checkbox Raw <-> Preview Detail. Checkbox 쪽으로 커서를 왼쪽 옮겨서 Checkbox를 침해했을때 그때 Raw로 표시하도록. Obsidian이 이런 방식을 사용함. 즉, current line을 select한 경우에도 체크박스를 클릭할 수 있다는 것. 아 그리고 지금 체크박스 클릭 했을때 [ ] \[x] 적용도 안 됨.
+    - [x] Checkbox Raw <-> Preview Detail — 이미 구현되어 있음(commit `011c812` 등). `markdownLivePreview.ts`의 `TaskMarker` 처리가 다른 요소(heading/link 등)와 동일하게 `selectionOverlaps`로 게이팅됨: 커서가 해당 줄에 있으면 raw `- [ ]` 텍스트, 아니면 체크박스 위젯. 클릭 토글은 `taskCheckboxHandlers`의 `mousedown`에서 처리하고, `CheckboxWidget.ignoreEvent()`가 `true`를 반환해 CodeMirror 기본 클릭 처리(커서 이동)가 겹쳐 발동하지 않도록 함.
     - [x] Indent 2-> 4로 수정 — 2026-08-23. `EditorPane.tsx`에 `indentUnit.of("    ")` 추가. 코드 보다가 발견: 아래 vertical guide line(`columnGuideTheme`, codemirrorTheme.ts)이 이미 구현돼 있었는데 4ch 간격을 가정하고 그려지는 반면 CM6 기본 indentUnit은 2라서 서로 안 맞았었음 — 이번 수정으로 둘이 일치함. **미검증** — 실제 빌드로 Tab 눌러서 4칸 들여쓰기 확인 필요.
     - [x] obsidian처럼 indent(4) 만큼 띄어쓰기인 경우 vertical line을 표시해서 얼마나 인덴트됐는지 파악할 수 있도록 — 이미 구현되어 있었음(`columnGuideTheme`, codemirrorTheme.ts, 4ch 간격 반복 배경 그라디언트). 위 indentUnit 수정으로 실제 들여쓰기 폭과 맞춰짐.
   - [ ] TreeView
