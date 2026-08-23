@@ -83,12 +83,38 @@ input {
   box-shadow: none;
 }
 
+.app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-base);
+}
+
 .app-shell {
   display: flex;
-  height: 100%;
+  flex: 1;
   min-height: 0;
   overflow: hidden;
   background: var(--bg-base);
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-base);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.status-bar-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .layout-host {

@@ -132,6 +132,261 @@ fn hostname() -> String {
         .unwrap_or_else(|| "localhost".to_string())
 }
 
+#[derive(Serialize, Default)]
+struct ClaudeUsage {
+    input_tokens: u64,
+    output_tokens: u64,
+    cache_read_tokens: u64,
+    cache_creation_tokens: u64,
+    total_tokens: u64,
+    cost_usd: f64,
+}
+
+struct ModelPricing {
+    input: f64,
+    output: f64,
+    cache_read: f64,
+    cache_write: f64,
+    /// Sonnet bills a higher rate past 200K input tokens in a single
+    /// request; `None` for models that bill their whole context flat.
+    long_context_above_200k: Option<(f64, f64, f64, f64)>,
+}
+
+// Ported from ref-proj/orca's `claude-model-pricing.ts` (`MODEL_PRICING` +
+// `normalizeModelForPricing`) rather than hand-rolled — that implementation
+// is already shipped/validated against real Claude Code transcripts,
+// including the model-id normalization (dotted/dashed, "-thinking" suffix
+// variants) and Sonnet's >200K-token tiered rate. Standard (non-intro)
+// per-1M-token USD pricing.
+fn model_pricing(model: &str) -> Option<ModelPricing> {
+    let m = model.to_lowercase();
+    let m = m.strip_prefix("anthropic/").unwrap_or(&m);
+    let m = m.strip_prefix("anthropic:").unwrap_or(m);
+    let has_version = |family: &str, version: &str| {
+        let needle = format!("{family}-{version}");
+        m.contains(&needle) && {
+            let rest = &m[m.find(&needle).unwrap() + needle.len()..];
+            rest.is_empty() || !rest.starts_with(|c: char| c.is_ascii_digit())
+        }
+    };
+    let sonnet_long_context = Some((6.0, 22.5, 0.6, 7.5));
+
+    if has_version("fable", "5") || has_version("mythos", "5") {
+        return Some(ModelPricing { input: 10.0, output: 50.0, cache_read: 1.0, cache_write: 12.5, long_context_above_200k: None });
+    }
+    if has_version("opus", "5")
+        || has_version("opus", "4-8")
+        || has_version("opus", "4-7")
+        || has_version("opus", "4-6")
+        || has_version("opus", "4-5")
+        || m.contains("opus-4")
+    {
+        return Some(ModelPricing { input: 5.0, output: 25.0, cache_read: 0.5, cache_write: 6.25, long_context_above_200k: None });
+    }
+    if has_version("sonnet", "5")
+        || has_version("sonnet", "4-6")
+        || has_version("sonnet", "4-5")
+        || m.contains("sonnet-4")
+        || m.contains("sonnet-3-7")
+        || m.contains("sonnet-3.7")
+    {
+        return Some(ModelPricing { input: 3.0, output: 15.0, cache_read: 0.3, cache_write: 3.75, long_context_above_200k: sonnet_long_context });
+    }
+    if m.contains("sonnet-3-5") || m.contains("sonnet-3.5") || m.contains("3-5-sonnet") || m.contains("3.5-sonnet") {
+        return Some(ModelPricing { input: 3.0, output: 15.0, cache_read: 0.3, cache_write: 3.75, long_context_above_200k: None });
+    }
+    if m.contains("haiku-4-5") {
+        return Some(ModelPricing { input: 1.0, output: 5.0, cache_read: 0.1, cache_write: 1.25, long_context_above_200k: None });
+    }
+    if m.contains("haiku-3-5") || m.contains("haiku-3.5") || m.contains("3-5-haiku") || m.contains("3.5-haiku") {
+        return Some(ModelPricing { input: 0.8, output: 4.0, cache_read: 0.08, cache_write: 1.0, long_context_above_200k: None });
+    }
+    if m.contains("haiku-3") {
+        return Some(ModelPricing { input: 0.25, output: 1.25, cache_read: 0.03, cache_write: 0.3, long_context_above_200k: None });
+    }
+    None
+}
+
+fn tiered_cost(tokens: u64, base_price: f64, above: Option<f64>, threshold: u64) -> f64 {
+    match above {
+        Some(above_price) => {
+            let below = tokens.min(threshold) as f64;
+            let above_tokens = tokens.saturating_sub(threshold) as f64;
+            below * base_price + above_tokens * above_price
+        }
+        None => tokens as f64 * base_price,
+    }
+}
+
+fn estimate_cost_usd(model: &str, input: u64, output: u64, cache_read: u64, cache_write: u64) -> f64 {
+    let Some(p) = model_pricing(model) else {
+        return 0.0;
+    };
+    const THRESHOLD: u64 = 200_000;
+    let (in_above, out_above, read_above, write_above) = match p.long_context_above_200k {
+        Some((i, o, r, w)) => (Some(i), Some(o), Some(r), Some(w)),
+        None => (None, None, None, None),
+    };
+    (tiered_cost(input, p.input, in_above, THRESHOLD)
+        + tiered_cost(output, p.output, out_above, THRESHOLD)
+        + tiered_cost(cache_read, p.cache_read, read_above, THRESHOLD)
+        + tiered_cost(cache_write, p.cache_write, write_above, THRESHOLD))
+        / 1_000_000.0
+}
+
+#[derive(Default, Clone)]
+struct ClaudeUsageTurn {
+    input_tokens: u64,
+    output_tokens: u64,
+    cache_read_tokens: u64,
+    cache_write_tokens: u64,
+    model: String,
+}
+
+// Claude Code writes one JSONL transcript per session under
+// `~/.claude/projects/<project>/<session>.jsonl`; each `type: "assistant"`
+// line carries a `message.usage` object with real per-request token counts
+// — confirmed by reading actual transcript files on this machine, not
+// assumed. Ported dedupe logic from ref-proj/orca's
+// `transcript-record-parser.ts`: Claude Code streams repeated assistant
+// rows sharing the same `message.id`+`requestId` (or `uuid` if those are
+// missing) as a turn's usage is refined — summing every line here would
+// double/triple-count the same turn's tokens, so keep only the max seen
+// per dedupe key, matching their comment on why it must be max not sum.
+//
+// Scans the last 24h rather than "today" specifically to avoid needing a
+// timezone-aware calendar-date crate for what's meant to be an
+// approximate local figure, not a billing-accurate one.
+#[tauri::command]
+fn claude_code_usage_recent() -> ClaudeUsage {
+    let mut usage = ClaudeUsage::default();
+    let Some(home) = std::env::var_os("HOME") else {
+        return usage;
+    };
+    let projects_dir = PathBuf::from(home).join(".claude").join("projects");
+    let Ok(project_entries) = std::fs::read_dir(&projects_dir) else {
+        return usage;
+    };
+
+    // ISO8601 UTC ("...Z") sorts lexicographically in chronological
+    // order — a plain string compare against the transcripts' own
+    // timestamp format is enough, no date/time crate needed.
+    let Ok(cutoff_out) = std::process::Command::new("date")
+        .args(["-u", "-v-24H", "+%Y-%m-%dT%H:%M:%SZ"])
+        .output()
+    else {
+        return usage;
+    };
+    let cutoff = String::from_utf8_lossy(&cutoff_out.stdout).trim().to_string();
+    if cutoff.is_empty() {
+        return usage;
+    }
+    let mtime_cutoff = std::time::SystemTime::now() - std::time::Duration::from_secs(48 * 60 * 60);
+
+    let mut turns_by_key: std::collections::HashMap<String, ClaudeUsageTurn> =
+        std::collections::HashMap::new();
+    let mut unkeyed_turns: Vec<ClaudeUsageTurn> = Vec::new();
+
+    for project_entry in project_entries.flatten() {
+        let project_path = project_entry.path();
+        if !project_path.is_dir() {
+            continue;
+        }
+        let Ok(files) = std::fs::read_dir(&project_path) else {
+            continue;
+        };
+        for file_entry in files.flatten() {
+            let file_path = file_entry.path();
+            if file_path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+                continue;
+            }
+            // Cheap pre-filter before opening/parsing: a file untouched
+            // in 48h can't contain anything from the last 24h.
+            if let Ok(modified) = file_entry.metadata().and_then(|m| m.modified()) {
+                if modified < mtime_cutoff {
+                    continue;
+                }
+            }
+            let Ok(content) = std::fs::read_to_string(&file_path) else {
+                continue;
+            };
+            for line in content.lines() {
+                let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else {
+                    continue;
+                };
+                if v.get("type").and_then(|t| t.as_str()) != Some("assistant") {
+                    continue;
+                }
+                let is_recent = v
+                    .get("timestamp")
+                    .and_then(|t| t.as_str())
+                    .is_some_and(|ts| ts >= cutoff.as_str());
+                if !is_recent {
+                    continue;
+                }
+                let message = v.get("message");
+                let Some(u) = message.and_then(|m| m.get("usage")) else {
+                    continue;
+                };
+                let get = |key: &str| u.get(key).and_then(|x| x.as_u64()).unwrap_or(0);
+                let turn = ClaudeUsageTurn {
+                    input_tokens: get("input_tokens"),
+                    output_tokens: get("output_tokens"),
+                    cache_read_tokens: get("cache_read_input_tokens"),
+                    cache_write_tokens: get("cache_creation_input_tokens"),
+                    model: message
+                        .and_then(|m| m.get("model"))
+                        .and_then(|m| m.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                };
+                if turn.input_tokens + turn.output_tokens + turn.cache_read_tokens + turn.cache_write_tokens == 0 {
+                    continue;
+                }
+
+                let message_id = message.and_then(|m| m.get("id")).and_then(|x| x.as_str());
+                let request_id = v.get("requestId").and_then(|x| x.as_str());
+                let uuid = v.get("uuid").and_then(|x| x.as_str());
+                let dedupe_key = match (message_id, request_id, uuid) {
+                    (Some(mid), Some(rid), _) => Some(format!("{mid}:{rid}")),
+                    (Some(mid), None, _) => Some(format!("msg:{mid}")),
+                    (None, _, Some(u)) => Some(format!("uuid:{u}")),
+                    _ => None,
+                };
+
+                match dedupe_key {
+                    Some(key) => {
+                        let entry = turns_by_key.entry(key).or_default();
+                        entry.input_tokens = entry.input_tokens.max(turn.input_tokens);
+                        entry.output_tokens = entry.output_tokens.max(turn.output_tokens);
+                        entry.cache_read_tokens = entry.cache_read_tokens.max(turn.cache_read_tokens);
+                        entry.cache_write_tokens = entry.cache_write_tokens.max(turn.cache_write_tokens);
+                        entry.model = turn.model;
+                    }
+                    None => unkeyed_turns.push(turn),
+                }
+            }
+        }
+    }
+
+    for turn in turns_by_key.into_values().chain(unkeyed_turns) {
+        usage.input_tokens += turn.input_tokens;
+        usage.output_tokens += turn.output_tokens;
+        usage.cache_read_tokens += turn.cache_read_tokens;
+        usage.cache_creation_tokens += turn.cache_write_tokens;
+        usage.total_tokens +=
+            turn.input_tokens + turn.output_tokens + turn.cache_read_tokens + turn.cache_write_tokens;
+        usage.cost_usd += estimate_cost_usd(
+            &turn.model,
+            turn.input_tokens,
+            turn.output_tokens,
+            turn.cache_read_tokens,
+            turn.cache_write_tokens,
+        );
+    }
+    usage
+}
+
 // WKWebView doesn't forward frontend console output to this process's own
 // stderr, so debugOverlay.ts had no way to hand its log lines back other
 // than an on-screen overlay the user had to copy/paste. This gives it a
@@ -418,6 +673,8 @@ pub fn run() {
             get_workspace_state,
             debug_log,
             hostname,
+            claude_code_usage_recent,
+
             pty_write,
             pty_resize,
             spawn_terminal,

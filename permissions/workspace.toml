@@ -5,6 +5,7 @@ commands.allow = [
     "get_workspace_state",
     "debug_log",
     "hostname",
+    "claude_code_usage_recent",
     "pty_write",
     "pty_resize",
     "spawn_terminal",

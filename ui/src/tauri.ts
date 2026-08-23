@@ -37,6 +37,19 @@ export async function hostname(): Promise<string> {
   return invoke("hostname");
 }
 
+export interface ClaudeUsage {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_creation_tokens: number;
+  total_tokens: number;
+  cost_usd: number;
+}
+
+export async function claudeCodeUsageRecent(): Promise<ClaudeUsage> {
+  return invoke("claude_code_usage_recent");
+}
+
 export async function ptyWrite(id: number, data: Uint8Array): Promise<void> {
   let binary = "";
   for (let i = 0; i < data.length; i++) {

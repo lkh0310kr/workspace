@@ -3,6 +3,7 @@ import { IJsonModel, Layout, Model, TabNode, Actions, type Action } from "flexla
 import "flexlayout-react/style/combined.css";
 import { PaneFrame } from "./components/PaneFrame";
 import { TerminalPaneTitle } from "./components/TerminalPaneTitle";
+import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
@@ -415,37 +416,40 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
-      <WorkspaceTabRail
-        tabs={workspace.tabs}
-        activeTabId={workspace.active_tab_id}
-        onOpenSettings={(tabId) => setSettingsTabId(tabId)}
-      />
-      <div className="layout-host" key={activeTabId}>
-        <Layout
-          ref={setLayoutInstance}
-          model={activeModel}
-          factory={factory}
-          onAction={onAction}
-          onModelChange={onModelChange}
-          realtimeResize
+    <div className="app-root">
+      <div className="app-shell">
+        <WorkspaceTabRail
+          tabs={workspace.tabs}
+          activeTabId={workspace.active_tab_id}
+          onOpenSettings={(tabId) => setSettingsTabId(tabId)}
         />
+        <div className="layout-host" key={activeTabId}>
+          <Layout
+            ref={setLayoutInstance}
+            model={activeModel}
+            factory={factory}
+            onAction={onAction}
+            onModelChange={onModelChange}
+            realtimeResize
+          />
+        </div>
+        {settingsTabId !== null && (
+          <SettingsDialog
+            onClose={() => setSettingsTabId(null)}
+            tabId={settingsTabId}
+            tabTitle={workspace.tabs.find((t) => t.id === settingsTabId)?.title ?? ""}
+            rootPath={workspace.tabs.find((t) => t.id === settingsTabId)?.root_path ?? ""}
+          />
+        )}
+        {appSettingsOpen && (
+          <AppSettingsDialog
+            onClose={() => setAppSettingsOpen(false)}
+            themePreference={themePreference}
+            onThemeChange={handleThemeChange}
+          />
+        )}
       </div>
-      {settingsTabId !== null && (
-        <SettingsDialog
-          onClose={() => setSettingsTabId(null)}
-          tabId={settingsTabId}
-          tabTitle={workspace.tabs.find((t) => t.id === settingsTabId)?.title ?? ""}
-          rootPath={workspace.tabs.find((t) => t.id === settingsTabId)?.root_path ?? ""}
-        />
-      )}
-      {appSettingsOpen && (
-        <AppSettingsDialog
-          onClose={() => setAppSettingsOpen(false)}
-          themePreference={themePreference}
-          onThemeChange={handleThemeChange}
-        />
-      )}
+      <ClaudeUsageStatusBar />
     </div>
   );
 }
