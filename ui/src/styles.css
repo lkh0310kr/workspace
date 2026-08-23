@@ -1049,6 +1049,19 @@ iframe.browser-content-slot {
   border-right: none;
 }
 
+.obsidian-explorer-resizer {
+  flex-shrink: 0;
+  width: 4px;
+  margin-left: -3px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+.obsidian-explorer-resizer:hover,
+.obsidian-explorer-resizer:active {
+  background: var(--accent);
+}
+
 .obsidian-editor-column {
   flex: 1;
   min-width: 0;
@@ -1198,6 +1211,7 @@ iframe.browser-content-slot {
 }
 
 .tree-view-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1207,6 +1221,15 @@ iframe.browser-content-slot {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.tree-view-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  pointer-events: none;
 }
 
 .tree-view-item:hover {

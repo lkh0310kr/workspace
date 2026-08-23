@@ -197,6 +197,16 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
             });
           }}
         >
+          {/* One guide per ancestor level, not this row's own depth — each
+              row only draws its own row-height segment of every ancestor's
+              line; stacked across siblings/descendants at the same
+              indentation they read as one continuous vertical line down
+              through the whole expanded subtree, the same effect VS
+              Code/Zed produce without needing to size a line to an entire
+              (variable, expand/collapse-dependent) subtree's height. */}
+          {Array.from({ length: depth }, (_, level) => (
+            <span key={level} className="tree-view-guide" style={{ left: level * 14 + 14 }} />
+          ))}
           <span className="tree-view-icon">
             {entry.is_dir ? (expanded.has(entry.path) ? "▾" : "▸") : "·"}
           </span>

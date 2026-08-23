@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { Actions, type TabNode } from "flexlayout-react";
 import { Compartment, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
@@ -139,6 +146,8 @@ export function EditorPane({
   const [activeTabId, setActiveTabId] = useState<string | null>(initialTabs[0]?.id ?? null);
   const [currentPath, setCurrentPath] = useState<string | null>(filePath);
   const [treeOpen, setTreeOpen] = useState(true);
+  const [treeWidth, setTreeWidth] = useState(200);
+  const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
@@ -358,6 +367,27 @@ export function EditorPane({
     const path = history_[i];
     setHistoryIndex(i);
     openFile(path, false);
+  };
+
+  const TREE_MIN_WIDTH = 120;
+  const TREE_MAX_WIDTH = 480;
+
+  const onTreeResizeMouseDown = (e: ReactMouseEvent) => {
+    e.preventDefault();
+    treeResizeRef.current = { startX: e.clientX, startWidth: treeWidth };
+    const onMouseMove = (ev: MouseEvent) => {
+      const drag = treeResizeRef.current;
+      if (!drag) return;
+      const next = drag.startWidth + (ev.clientX - drag.startX);
+      setTreeWidth(Math.min(TREE_MAX_WIDTH, Math.max(TREE_MIN_WIDTH, next)));
+    };
+    const onMouseUp = () => {
+      treeResizeRef.current = null;
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
   };
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
@@ -661,7 +691,10 @@ export function EditorPane({
         />
       </div>
       <div className="obsidian-body">
-        <div className={`obsidian-explorer${treeOpen ? "" : " collapsed"}`}>
+        <div
+          className={`obsidian-explorer${treeOpen ? "" : " collapsed"}`}
+          style={treeOpen ? { width: treeWidth } : undefined}
+        >
           <TreeView
             tabId={tabId}
             rootPath={rootPath}
@@ -669,6 +702,9 @@ export function EditorPane({
             onOpenFile={(path) => openFile(path)}
           />
         </div>
+        {treeOpen && (
+          <div className="obsidian-explorer-resizer" onMouseDown={onTreeResizeMouseDown} />
+        )}
         <div className="obsidian-editor-column">
           <div className="obsidian-nav-row">
             <button type="button" onClick={goBack} disabled={historyIndex <= 0} title="Back">
