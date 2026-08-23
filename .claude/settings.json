@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gcloud logging read *)",
+      "mcp__plugin_slack_slack__slack_read_channel",
+      "Bash(npx tsc --noEmit *)",
+      "Bash(cargo check *)",
+      "Bash(gcloud run services describe *)",
+      "mcp__claude_ai_Notion__notion-fetch",
+      "mcp__plugin_slack_slack__slack_read_thread",
+      "mcp__plugin_figma_figma__get_metadata",
+      "mcp__plugin_figma_figma__get_design_context",
+      "mcp__notion__notion-fetch",
+      "Bash(docker compose logs *)",
+      "mcp__plugin_slack_slack__slack_list_channel_members",
+      "mcp__plugin_slack_slack__slack_search_channels",
+      "Bash(cargo test *)",
+      "Bash(cargo clippy *)",
+      "mcp__plugin_figma_figma__get_screenshot",
+      "mcp__plugin_slack_slack__slack_search_public_and_private",
+      "Bash(gcloud run services list *)"
+    ]
+  }
+}

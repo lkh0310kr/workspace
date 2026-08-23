@@ -11,7 +11,6 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use workspace_core::Workspace;
 
 mod browser_host;
-mod cef_host;
 
 pub struct AppState {
     pub workspace: Mutex<Workspace>,
@@ -30,8 +29,7 @@ struct AppConfig {
 // run with whatever default root_path we gave it. Resolving this by hand
 // lets the persisted path be loaded *before* constructing the Workspace
 // at all, so the very first terminal already opens in the right place
-// instead of needing a second, later correction. Same macOS-only
-// resolution convention `cef_host.rs`'s `dirs_cache_path()` already uses.
+// instead of needing a second, later correction.
 fn config_path() -> Option<PathBuf> {
     let home = std::env::var_os("HOME")?;
     Some(
@@ -130,6 +128,87 @@ fn hostname() -> String {
     run("scutil", &["--get", "ComputerName"])
         .or_else(|| run("hostname", &["-s"]))
         .unwrap_or_else(|| "localhost".to_string())
+}
+
+fn app_support_dir() -> Option<PathBuf> {
+    let home = std::env::var_os("HOME")?;
+    Some(
+        PathBuf::from(home)
+            .join("Library")
+            .join("Application Support")
+            .join("workspace-app"),
+    )
+}
+
+/// Claude Code (≥2.1.80) pipes a JSON payload containing `rate_limits` to
+/// whatever command `statusLine.command` names in `~/.claude/settings.json`,
+/// once per turn — the only way to get the CLI's own real usage-window
+/// percentages (not derivable from the local transcripts the way token/cost
+/// is). Only one statusLine command can exist at a time, and this user's
+/// was already pointed at ref-proj/orca's own statusline hook (confirmed by
+/// reading `~/.claude/settings.json` directly, not assumed) — overwriting
+/// it outright would silently break Orca's own usage tracking if they use
+/// it. So this installs a wrapper that tees the payload to our own file
+/// *and* forwards it unchanged to whatever command was already configured,
+/// preserving that behavior exactly. Idempotent: if `statusLine.command`
+/// already invokes our wrapper (i.e. this already ran once), does nothing
+/// — otherwise a second run would capture our own wrapper as the "original"
+/// command and wrap it around itself.
+fn install_claude_statusline_hook() {
+    let Some(dir) = app_support_dir() else { return };
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let wrapper_path = dir.join("claude-statusline.sh");
+    let orig_cmd_path = dir.join("claude-statusline-orig-command.sh");
+    let wrapper_path_str = wrapper_path.to_string_lossy().to_string();
+
+    let Some(home) = std::env::var_os("HOME") else { return };
+    let settings_path = PathBuf::from(&home).join(".claude").join("settings.json");
+    let Ok(contents) = std::fs::read_to_string(&settings_path) else { return };
+    let Ok(mut settings) = serde_json::from_str::<serde_json::Value>(&contents) else { return };
+
+    let existing_command = settings
+        .get("statusLine")
+        .and_then(|s| s.get("command"))
+        .and_then(|c| c.as_str())
+        .unwrap_or("");
+    if existing_command.contains(&wrapper_path_str) {
+        return;
+    }
+
+    // Preserve whatever was already configured (Orca's hook, a user's own
+    // script, or nothing) so the wrapper can chain to it unchanged.
+    let _ = std::fs::write(&orig_cmd_path, existing_command);
+
+    let json_path = dir.join("claude-statusline.json");
+    let wrapper_script = format!(
+        "#!/bin/sh\npayload=$(cat)\ncase \"$payload\" in\n  *'\"rate_limits\"'*)\n    printf '%s' \"$payload\" > {json:?}\n    ;;\nesac\nif [ -s {orig:?} ]; then\n  printf '%s' \"$payload\" | sh -c \"$(cat {orig:?})\"\nfi\n",
+        json = json_path.to_string_lossy(),
+        orig = orig_cmd_path.to_string_lossy(),
+    );
+    if std::fs::write(&wrapper_path, wrapper_script).is_err() {
+        return;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(meta) = std::fs::metadata(&wrapper_path) {
+            let mut perms = meta.permissions();
+            perms.set_mode(0o755);
+            let _ = std::fs::set_permissions(&wrapper_path, perms);
+        }
+    }
+
+    let new_command = format!("sh {wrapper_path_str:?}");
+    let Some(obj) = settings.as_object_mut() else { return };
+    obj.insert(
+        "statusLine".to_string(),
+        serde_json::json!({ "type": "command", "command": new_command }),
+    );
+    if let Ok(pretty) = serde_json::to_string_pretty(&settings) {
+        let _ = std::fs::write(&settings_path, pretty);
+    }
 }
 
 #[derive(Serialize, Default)]
@@ -385,6 +464,52 @@ fn claude_code_usage_recent() -> ClaudeUsage {
         );
     }
     usage
+}
+
+#[derive(Serialize, Default)]
+struct ClaudeRateLimitWindow {
+    used_percent: f64,
+    resets_at: Option<i64>,
+}
+
+#[derive(Serialize, Default)]
+struct ClaudeRateLimitStatus {
+    five_hour: Option<ClaudeRateLimitWindow>,
+    seven_day: Option<ClaudeRateLimitWindow>,
+}
+
+fn parse_rate_limit_window(v: &serde_json::Value) -> Option<ClaudeRateLimitWindow> {
+    let used_percent = v
+        .get("used_percentage")
+        .and_then(|x| x.as_f64())
+        .or_else(|| v.get("utilization").and_then(|x| x.as_f64()))?;
+    let resets_at = v.get("resets_at").and_then(|x| x.as_i64());
+    Some(ClaudeRateLimitWindow { used_percent, resets_at })
+}
+
+// Reads the file `install_claude_statusline_hook`'s wrapper script writes
+// on every Claude Code turn. Stale (no `claude` session run recently, or
+// the hook never fired yet this launch) simply reads as "no data" — the
+// frontend already handles a null/absent status the same way as the
+// token/cost estimate having nothing to show yet.
+#[tauri::command]
+fn claude_rate_limit_status() -> ClaudeRateLimitStatus {
+    let mut status = ClaudeRateLimitStatus::default();
+    let Some(dir) = app_support_dir() else {
+        return status;
+    };
+    let Ok(contents) = std::fs::read_to_string(dir.join("claude-statusline.json")) else {
+        return status;
+    };
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(&contents) else {
+        return status;
+    };
+    let Some(rate_limits) = v.get("rate_limits") else {
+        return status;
+    };
+    status.five_hour = rate_limits.get("five_hour").and_then(parse_rate_limit_window);
+    status.seven_day = rate_limits.get("seven_day").and_then(parse_rate_limit_window);
+    status
 }
 
 // WKWebView doesn't forward frontend console output to this process's own
@@ -646,6 +771,7 @@ pub fn run() {
         .manage(browser_host)
         .setup(move |app| {
             let handle = app.handle().clone();
+            install_claude_statusline_hook();
             browser_host::cleanup_browser_webviews(&handle);
             browser_host::attach_window_events(&handle);
             spawn_pty_poll(handle.clone(), poll_state);
@@ -664,8 +790,6 @@ pub fn run() {
             allow_asset_scope(&handle, &initial_state);
 
             let _ = handle.emit("app-ready", ());
-            cef_host::set_app_handle(handle.clone());
-            cef_host::initialize_cef();
 
             Ok(())
         })
@@ -674,6 +798,7 @@ pub fn run() {
             debug_log,
             hostname,
             claude_code_usage_recent,
+            claude_rate_limit_status,
 
             pty_write,
             pty_resize,
@@ -698,28 +823,8 @@ pub fn run() {
             browser_host::browser_hide_all,
             browser_host::browser_detach,
             browser_host::browser_cleanup_all,
-            cef_host::cef_report_frame,
-            cef_host::cef_navigate,
-            cef_host::cef_back,
-            cef_host::cef_forward,
-            cef_host::cef_reload,
-            cef_host::cef_toggle_devtools,
-            cef_host::cef_close_pane,
-            cef_host::cef_hide_pane,
-            cef_host::cef_hide_all,
-            cef_host::cef_cleanup_all,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, event| {
-            if matches!(event, tauri::RunEvent::Exit) {
-                cef_host::shutdown();
-            }
-        });
-}
-
-/// Called at the very top of `main`, before any Tauri setup. See
-/// `cef_host` module docs for why this must happen first.
-pub fn cef_dispatch_subprocess() -> bool {
-    cef_host::dispatch_subprocess_and_check_is_browser_process()
+        .run(|_app_handle, _event| {});
 }

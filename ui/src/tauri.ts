@@ -37,6 +37,10 @@ export async function hostname(): Promise<string> {
   return invoke("hostname");
 }
 
+export async function debugLog(line: string): Promise<void> {
+  return invoke("debug_log", { line });
+}
+
 export interface ClaudeUsage {
   input_tokens: number;
   output_tokens: number;
@@ -48,6 +52,20 @@ export interface ClaudeUsage {
 
 export async function claudeCodeUsageRecent(): Promise<ClaudeUsage> {
   return invoke("claude_code_usage_recent");
+}
+
+export interface ClaudeRateLimitWindow {
+  used_percent: number;
+  resets_at: number | null;
+}
+
+export interface ClaudeRateLimitStatus {
+  five_hour: ClaudeRateLimitWindow | null;
+  seven_day: ClaudeRateLimitWindow | null;
+}
+
+export async function claudeRateLimitStatus(): Promise<ClaudeRateLimitStatus> {
+  return invoke("claude_rate_limit_status");
 }
 
 export async function ptyWrite(id: number, data: Uint8Array): Promise<void> {

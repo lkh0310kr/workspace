@@ -8,7 +8,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import "@xterm/xterm/css/xterm.css";
-import { onPtyOutput, ptyResize, ptyWrite } from "../tauri";
+import { onPtyOutput, ptyResize, ptyWrite, debugLog } from "../tauri";
 import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } from "../theme";
 
 interface Props {
@@ -152,6 +152,33 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       ptyWrite(terminalId, bytes).catch(console.error);
     });
 
+    // TEMPORARY diagnostic tracing for the Hangul-input investigation —
+    // remove once root-caused. WKWebView doesn't forward frontend console
+    // output to this process's stderr, so route through debug_log instead
+    // (see its own comment in src/lib.rs) to get real evidence instead of
+    // guessing again.
+    const traceCompositionStart = (e: CompositionEvent) =>
+      debugLog(`[hangul-trace] compositionstart data=${JSON.stringify(e.data)}`).catch(() => {});
+    const traceCompositionUpdate = (e: CompositionEvent) =>
+      debugLog(`[hangul-trace] compositionupdate data=${JSON.stringify(e.data)}`).catch(() => {});
+    const traceCompositionEnd = (e: CompositionEvent) =>
+      debugLog(`[hangul-trace] compositionend data=${JSON.stringify(e.data)}`).catch(() => {});
+    const traceInput = (e: Event) => {
+      const ie = e as InputEvent;
+      debugLog(
+        `[hangul-trace] input inputType=${ie.inputType} data=${JSON.stringify(ie.data)} isComposing=${ie.isComposing} textareaValue=${JSON.stringify(term.textarea?.value)}`,
+      ).catch(() => {});
+    };
+    const traceKeydown = (e: KeyboardEvent) =>
+      debugLog(
+        `[hangul-trace] keydown key=${JSON.stringify(e.key)} code=${e.code} keyCode=${e.keyCode} isComposing=${e.isComposing}`,
+      ).catch(() => {});
+    term.textarea?.addEventListener("compositionstart", traceCompositionStart);
+    term.textarea?.addEventListener("compositionupdate", traceCompositionUpdate);
+    term.textarea?.addEventListener("compositionend", traceCompositionEnd);
+    term.textarea?.addEventListener("input", traceInput);
+    term.textarea?.addEventListener("keydown", traceKeydown);
+
     syncSize();
     requestAnimationFrame(() => {
       syncSize();
@@ -210,6 +237,11 @@ function TerminalPaneInner({ terminalId, active }: Props) {
 
     return () => {
       unlistenDragDrop?.();
+      term.textarea?.removeEventListener("compositionstart", traceCompositionStart);
+      term.textarea?.removeEventListener("compositionupdate", traceCompositionUpdate);
+      term.textarea?.removeEventListener("compositionend", traceCompositionEnd);
+      term.textarea?.removeEventListener("input", traceInput);
+      term.textarea?.removeEventListener("keydown", traceKeydown);
       host.removeEventListener("focusin", onFocusIn);
       host.removeEventListener("focusout", onFocusOut);
       if (serialize) {

@@ -1,4 +1,4 @@
-export type PaneComponent = "code" | "markdown" | "terminal" | "browser" | "browser-cef";
+export type PaneComponent = "code" | "markdown" | "terminal" | "browser";
 
 export interface PaneConfig {
   terminalId?: number;
@@ -9,7 +9,6 @@ export interface PaneConfig {
 export const PANE_OPTIONS: { id: PaneComponent; label: string; icon: string }[] = [
   { id: "terminal", label: "Terminal", icon: "⌘" },
   { id: "browser", label: "Browser", icon: "🌐" },
-  { id: "browser-cef", label: "Browser (Chromium)", icon: "▤" },
   { id: "code", label: "Code", icon: "{}" },
   { id: "markdown", label: "Markdown", icon: "M↓" },
 ];

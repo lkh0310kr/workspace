@@ -14,7 +14,6 @@ import { PaneComponent, PaneConfig } from "./layout/paneTypes";
 import { EditorPane } from "./panes/EditorPane";
 import { TerminalPane } from "./panes/TerminalPane";
 import { BrowserPane } from "./panes/BrowserPane";
-import { CefBrowserPane } from "./panes/CefBrowserPane";
 import { browserCleanupAll, browserHideAll } from "./browser";
 import { popOverlayBlock, pushOverlayBlock } from "./browser/overlayBarrier";
 import { WorkspaceState, setTabLayout } from "./tauri";
@@ -228,20 +227,6 @@ export default function App() {
     if (component === "browser") {
       return (
         <BrowserPane
-          paneId={node.getId()}
-          initialUrl={config.url}
-          tabNode={node}
-          component={component}
-          visible={node.isVisible()}
-          onSplit={onSplit}
-          onTypeChange={onTypeChange}
-        />
-      );
-    }
-
-    if (component === "browser-cef") {
-      return (
-        <CefBrowserPane
           paneId={node.getId()}
           initialUrl={config.url}
           tabNode={node}
