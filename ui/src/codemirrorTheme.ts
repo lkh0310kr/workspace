@@ -4,7 +4,14 @@ export const workspaceEditorTheme = EditorView.theme({
   "&": { height: "100%", fontSize: "var(--editor-font-size, 13px)" },
   ".cm-scroller": { fontFamily: "var(--font-mono)" },
   ".cm-content": {
-    background: "var(--bg-base)",
+    // `backgroundColor`, not the `background` shorthand — the shorthand
+    // resets every other background sub-property it doesn't mention,
+    // including `background-image`. That silently erased
+    // `columnGuideTheme`'s indent-guide gradient on `.cm-content` below
+    // regardless of which theme extension's stylesheet landed first,
+    // since a shorthand and a longhand rule both ultimately resolve to
+    // the same `background-image` property.
+    backgroundColor: "var(--bg-base)",
     color: "var(--text)",
     caretColor: "var(--text)",
   },
