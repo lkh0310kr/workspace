@@ -70,7 +70,7 @@ export function PaneTabStrip({
   onDropTab,
   extraActions,
 }: Props) {
-  const [addPickerOpen, setAddPickerOpen] = useState(false);
+  const [addPickerAnchor, setAddPickerAnchor] = useState<DOMRect | null>(null);
   // Index into `items` the dragged tab would land at if dropped right now
   // — null means "not currently being dragged over this strip". Renders
   // as a thin vertical line between chips (or before the first/after the
@@ -80,11 +80,12 @@ export function PaneTabStrip({
   const chipRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
-    if (addPickerOpen === blockedRef.current) return;
-    blockedRef.current = addPickerOpen;
-    if (addPickerOpen) pushOverlayBlock();
+    const open = addPickerAnchor !== null;
+    if (open === blockedRef.current) return;
+    blockedRef.current = open;
+    if (open) pushOverlayBlock();
     else popOverlayBlock();
-  }, [addPickerOpen]);
+  }, [addPickerAnchor]);
 
   useEffect(
     () => () => {
@@ -104,7 +105,7 @@ export function PaneTabStrip({
     return () => window.removeEventListener("dragend", onWindowDragEnd);
   }, []);
 
-  const closeAddPicker = useCallback(() => setAddPickerOpen(false), []);
+  const closeAddPicker = useCallback(() => setAddPickerAnchor(null), []);
   const activeKind = items.find((i) => i.id === activeTabId)?.kind ?? "terminal";
 
   const computeDropIndex = useCallback(
@@ -215,13 +216,14 @@ export function PaneTabStrip({
             draggable={false}
             onClick={(e) => {
               e.stopPropagation();
-              setAddPickerOpen((open) => !open);
+              setAddPickerAnchor((prev) => (prev ? null : e.currentTarget.getBoundingClientRect()));
             }}
           >
             +
           </button>
-          {addPickerOpen ? (
+          {addPickerAnchor ? (
             <PanePicker
+              anchorRect={addPickerAnchor}
               title="New tab"
               onPick={(kind) => {
                 onNewTab(kind);

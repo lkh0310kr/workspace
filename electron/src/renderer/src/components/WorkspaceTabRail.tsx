@@ -21,7 +21,7 @@ async function switchToTab(tabId: number) {
 interface Props {
   tabs: TabInfo[];
   activeTabId: number;
-  onOpenSettings: (tabId: number) => void;
+  onOpenSettings: (tabId: number, anchorRect: DOMRect) => void;
 }
 
 export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
@@ -50,7 +50,7 @@ export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
               title="Tab settings"
               onClick={(e) => {
                 e.stopPropagation();
-                onOpenSettings(tab.id);
+                onOpenSettings(tab.id, e.currentTarget.getBoundingClientRect());
               }}
             >
               ⚙

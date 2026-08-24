@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
+import { Popover } from "./Popover";
 import { openDirectoryDialog, setTabRootPath } from "../electron";
 
 interface Props {
+  anchorRect: DOMRect;
   onClose: () => void;
   tabId: number;
   tabTitle: string;
   rootPath: string;
 }
 
-export function SettingsDialog({ onClose, tabId, tabTitle, rootPath }: Props) {
+export function SettingsDialog({ anchorRect, onClose, tabId, tabTitle, rootPath }: Props) {
   const [pathInput, setPathInput] = useState(rootPath);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,40 +36,37 @@ export function SettingsDialog({ onClose, tabId, tabTitle, rootPath }: Props) {
     }
   };
 
-  return createPortal(
-    <div className="settings-backdrop" onClick={onClose}>
-      <div className="settings-dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="settings-header">
-          <span>Settings — {tabTitle}</span>
-          <button type="button" className="settings-close" onClick={onClose}>
-            ✕
+  return (
+    <Popover anchorRect={anchorRect} onClose={onClose} className="settings-dialog">
+      <div className="settings-header">
+        <span>Settings — {tabTitle}</span>
+        <button type="button" className="settings-close" onClick={onClose}>
+          ✕
+        </button>
+      </div>
+      <div className="settings-section-title">Tab</div>
+      <div className="settings-row settings-row-column">
+        <span className="settings-row-label">
+          Base path — root for this tab's terminals and file explorer
+        </span>
+        <div className="settings-path-row">
+          <input
+            type="text"
+            value={pathInput}
+            onChange={(e) => setPathInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") savePath(pathInput);
+            }}
+          />
+          <button type="button" onClick={browse}>
+            Browse…
+          </button>
+          <button type="button" onClick={() => savePath(pathInput)} disabled={pathInput === rootPath}>
+            Save
           </button>
         </div>
-        <div className="settings-section-title">Tab</div>
-        <div className="settings-row settings-row-column">
-          <span className="settings-row-label">
-            Base path — root for this tab's terminals and file explorer
-          </span>
-          <div className="settings-path-row">
-            <input
-              type="text"
-              value={pathInput}
-              onChange={(e) => setPathInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") savePath(pathInput);
-              }}
-            />
-            <button type="button" onClick={browse}>
-              Browse…
-            </button>
-            <button type="button" onClick={() => savePath(pathInput)} disabled={pathInput === rootPath}>
-              Save
-            </button>
-          </div>
-          {error && <span className="settings-error">{error}</span>}
-        </div>
+        {error && <span className="settings-error">{error}</span>}
       </div>
-    </div>,
-    document.body,
+    </Popover>
   );
 }

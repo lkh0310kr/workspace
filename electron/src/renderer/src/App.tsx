@@ -130,8 +130,9 @@ export default function App() {
   const ensureInflightRef = useRef<Set<number>>(new Set());
   const [modelEpoch, setModelEpoch] = useState(0);
   const pendingRebalanceRef = useRef<string | null>(null);
-  const [settingsTabId, setSettingsTabId] = useState<number | null>(null);
-  const [appSettingsOpen, setAppSettingsOpen] = useState(false);
+  const [settingsTarget, setSettingsTarget] = useState<{ tabId: number; anchorRect: DOMRect } | null>(null);
+  const [appSettingsAnchor, setAppSettingsAnchor] = useState<DOMRect | null>(null);
+  const appSettingsButtonRef = useRef<HTMLButtonElement>(null);
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
   const [railOpen, setRailOpen] = useState(true);
 
@@ -148,7 +149,9 @@ export default function App() {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === ",") {
         e.preventDefault();
-        setAppSettingsOpen((open) => !open);
+        setAppSettingsAnchor((open) =>
+          open ? null : (appSettingsButtonRef.current?.getBoundingClientRect() ?? null),
+        );
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -383,13 +386,35 @@ export default function App() {
             <line x1="6" y1="2.5" x2="6" y2="13.5" stroke="currentColor" />
           </svg>
         </button>
+        <button
+          ref={appSettingsButtonRef}
+          type="button"
+          className={`titlebar-sidebar-toggle${appSettingsAnchor ? " active" : ""}`}
+          title="Settings (⌘,)"
+          onClick={(e) =>
+            setAppSettingsAnchor((open) => (open ? null : e.currentTarget.getBoundingClientRect()))
+          }
+        >
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path
+              fill="none"
+              stroke="currentColor"
+              d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"
+            />
+            <path
+              fill="none"
+              stroke="currentColor"
+              d="M8 1.5v1.6M8 12.9v1.6M14.5 8h-1.6M3.1 8H1.5M12.4 3.6l-1.13 1.13M4.73 11.27 3.6 12.4M12.4 12.4l-1.13-1.13M4.73 4.73 3.6 3.6"
+            />
+          </svg>
+        </button>
       </div>
       <div className="app-shell">
         {railOpen && (
           <WorkspaceTabRail
             tabs={workspace.tabs}
             activeTabId={workspace.active_tab_id}
-            onOpenSettings={(tabId) => setSettingsTabId(tabId)}
+            onOpenSettings={(tabId, anchorRect) => setSettingsTarget({ tabId, anchorRect })}
           />
         )}
         <div className="layout-host" key={activeTabId}>
@@ -403,17 +428,19 @@ export default function App() {
             tabDragSpeed={0}
           />
         </div>
-        {settingsTabId !== null && (
+        {settingsTarget && (
           <SettingsDialog
-            onClose={() => setSettingsTabId(null)}
-            tabId={settingsTabId}
-            tabTitle={workspace.tabs.find((t) => t.id === settingsTabId)?.title ?? ""}
-            rootPath={workspace.tabs.find((t) => t.id === settingsTabId)?.root_path ?? ""}
+            anchorRect={settingsTarget.anchorRect}
+            onClose={() => setSettingsTarget(null)}
+            tabId={settingsTarget.tabId}
+            tabTitle={workspace.tabs.find((t) => t.id === settingsTarget.tabId)?.title ?? ""}
+            rootPath={workspace.tabs.find((t) => t.id === settingsTarget.tabId)?.root_path ?? ""}
           />
         )}
-        {appSettingsOpen && (
+        {appSettingsAnchor && (
           <AppSettingsDialog
-            onClose={() => setAppSettingsOpen(false)}
+            anchorRect={appSettingsAnchor}
+            onClose={() => setAppSettingsAnchor(null)}
             themePreference={themePreference}
             onThemeChange={handleThemeChange}
           />

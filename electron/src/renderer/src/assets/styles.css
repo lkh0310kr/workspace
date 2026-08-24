@@ -1379,19 +1379,27 @@ iframe.browser-content-slot {
 }
 
 /* —— Settings dialog —— */
-.settings-backdrop {
+/* Shared by Popover.tsx (SettingsDialog/AppSettingsDialog/PanePicker) — a
+   transparent full-screen click-catcher (position fixed by the
+   component's own inline style) behind the positioned popover box itself.
+   No dimming — see Popover.tsx's comment for why the catcher still needs
+   to exist even though it isn't visible. */
+.popover-catcher {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
   z-index: 100000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+}
+
+.popover {
+  position: fixed;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .settings-dialog {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
   width: 360px;
   padding: 12px;
 }
@@ -1521,27 +1529,12 @@ iframe.browser-content-slot {
   color: var(--text);
 }
 
-/* Legacy pane picker (unused) */
-.pane-picker-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 100000;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 80px;
-}
-
 .pane-picker-item.active {
   background: var(--bg-active);
   color: var(--text);
 }
 
 .pane-picker {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  padding: 8px;
   min-width: 200px;
 }
 
