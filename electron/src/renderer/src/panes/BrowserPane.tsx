@@ -3,6 +3,9 @@ import { Actions, TabNode } from "flexlayout-react";
 import { PaneFrame } from "../components/PaneFrame";
 import { PaneComponent } from "../layout/paneTypes";
 import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
+import { BrowserAddressBar } from "../components/BrowserAddressBar";
+import { normalizeBrowserNavigationUrl, BLANK_URL } from "../browserUrl";
+import { recordBrowserVisit } from "../browserHistory";
 
 // Port of ui/src/panes/BrowserPane.tsx, rebuilt on top of Orca's actual
 // approach (a real Electron <webview> guest, see
@@ -26,21 +29,21 @@ interface Props {
   onTypeChange: (component: PaneComponent) => void;
 }
 
-function normalizeUrl(input: string): string {
-  const trimmed = input.trim();
-  if (!trimmed) return "about:blank";
-  if (/^[a-z]+:\/\//i.test(trimmed)) return trimmed;
-  if (/^localhost(:\d+)?/.test(trimmed) || /\.[a-z]{2,}$/i.test(trimmed.split("/")[0])) {
-    return `https://${trimmed}`;
-  }
-  return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
-}
+const DEFAULT_URL = "https://www.google.com";
 
 export function BrowserPane({ paneId, initialUrl, tabNode, component, visible, onSplit, onTypeChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
-  const [addressInput, setAddressInput] = useState(initialUrl ?? "https://www.google.com");
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
+  // The address bar's editable text (what the user is typing/sees).
+  const [addressInput, setAddressInput] = useState(initialUrl ?? DEFAULT_URL);
+  // The webview's actual current URL, updated only on real navigation —
+  // separate from addressInput so Escape can revert an in-progress edit
+  // without racing whatever's still being typed.
+  const [currentUrl, setCurrentUrl] = useState(initialUrl ?? DEFAULT_URL);
   const [loading, setLoading] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -50,7 +53,7 @@ export function BrowserPane({ paneId, initialUrl, tabNode, component, visible, o
     // Must be set before `src` — Electron only honors `partition` on a
     // <webview>'s first navigation.
     webview.setAttribute("partition", BROWSER_SESSION_PARTITION);
-    webview.setAttribute("src", normalizeUrl(initialUrl ?? "https://www.google.com"));
+    webview.setAttribute("src", normalizeBrowserNavigationUrl(initialUrl ?? DEFAULT_URL, false) ?? BLANK_URL);
     webview.setAttribute("allowpopups", "");
     webview.dataset.paneId = paneId;
     webview.style.width = "100%";
@@ -60,21 +63,45 @@ export function BrowserPane({ paneId, initialUrl, tabNode, component, visible, o
     container.appendChild(webview);
     webviewRef.current = webview;
 
+    const syncNavState = (): void => {
+      setCanGoBack(webview.canGoBack());
+      setCanGoForward(webview.canGoForward());
+    };
     const onStartLoading = (): void => setLoading(true);
-    const onStopLoading = (): void => setLoading(false);
-    const onNavigate = (e: Electron.DidNavigateEvent): void => setAddressInput(e.url);
-    const onNavigateInPage = (e: Electron.DidNavigateInPageEvent): void => setAddressInput(e.url);
+    const onStopLoading = (): void => {
+      setLoading(false);
+      syncNavState();
+    };
+    const onNavigate = (e: Electron.DidNavigateEvent): void => {
+      setAddressInput(e.url);
+      setCurrentUrl(e.url);
+      syncNavState();
+    };
+    const onNavigateInPage = (e: Electron.DidNavigateInPageEvent): void => {
+      setAddressInput(e.url);
+      setCurrentUrl(e.url);
+      syncNavState();
+    };
+    const onPageTitleUpdated = (e: Electron.PageTitleUpdatedEvent): void => {
+      try {
+        recordBrowserVisit(webview.getURL(), e.title);
+      } catch {
+        // webview can be mid-teardown when this fires.
+      }
+    };
 
     webview.addEventListener("did-start-loading", onStartLoading);
     webview.addEventListener("did-stop-loading", onStopLoading);
     webview.addEventListener("did-navigate", onNavigate);
     webview.addEventListener("did-navigate-in-page", onNavigateInPage);
+    webview.addEventListener("page-title-updated", onPageTitleUpdated);
 
     return () => {
       webview.removeEventListener("did-start-loading", onStartLoading);
       webview.removeEventListener("did-stop-loading", onStopLoading);
       webview.removeEventListener("did-navigate", onNavigate);
       webview.removeEventListener("did-navigate-in-page", onNavigateInPage);
+      webview.removeEventListener("page-title-updated", onPageTitleUpdated);
       container.removeChild(webview);
       webviewRef.current = null;
     };
@@ -87,8 +114,25 @@ export function BrowserPane({ paneId, initialUrl, tabNode, component, visible, o
     if (webview) webview.style.visibility = visible ? "visible" : "hidden";
   }, [visible]);
 
+  // Cmd+L / Ctrl+L: jump to and select the address bar, real-browser style.
+  // Scoped to whichever browser pane(s) are currently visible — if a split
+  // has two visible at once this focuses both, which is harmless (only one
+  // ends up with real focus).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!visible) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        addressInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [visible]);
+
   const navigate = (url: string): void => {
-    webviewRef.current?.loadURL(normalizeUrl(url));
+    const normalized = normalizeBrowserNavigationUrl(url, true);
+    if (normalized) webviewRef.current?.loadURL(normalized);
   };
 
   const close = () => {
@@ -102,6 +146,7 @@ export function BrowserPane({ paneId, initialUrl, tabNode, component, visible, o
           type="button"
           className="browser-nav-btn"
           title="Back"
+          disabled={!canGoBack}
           onClick={() => webviewRef.current?.goBack()}
         >
           ‹
@@ -110,6 +155,7 @@ export function BrowserPane({ paneId, initialUrl, tabNode, component, visible, o
           type="button"
           className="browser-nav-btn"
           title="Forward"
+          disabled={!canGoForward}
           onClick={() => webviewRef.current?.goForward()}
         >
           ›
@@ -136,13 +182,12 @@ export function BrowserPane({ paneId, initialUrl, tabNode, component, visible, o
           {"</>"}
         </button>
       </div>
-      <input
-        className="browser-url"
+      <BrowserAddressBar
         value={addressInput}
-        onChange={(e) => setAddressInput(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && navigate(addressInput)}
-        placeholder="https://..."
-        spellCheck={false}
+        currentUrl={currentUrl}
+        onChange={setAddressInput}
+        onNavigate={navigate}
+        inputRef={addressInputRef}
       />
       {loading ? <div className="browser-loading-bar" aria-hidden="true" /> : null}
     </>
