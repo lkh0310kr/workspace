@@ -1567,3 +1567,174 @@ iframe.browser-content-slot {
 .pane-picker-item:hover {
   background: var(--bg-hover);
 }
+
+/* TextPrompt.tsx — Electron has no window.prompt(), this replaces it. */
+.text-prompt {
+  width: 240px;
+}
+
+.text-prompt-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.text-prompt input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.text-prompt input:focus {
+  outline: none;
+  border-color: var(--border-strong);
+}
+
+.text-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.text-prompt-actions button {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.text-prompt-actions button:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.text-prompt-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* PaneErrorBoundary.tsx — inline fallback for one crashed pane, instead of
+   flexlayout's own generic full-pane "Error rendering component" (which
+   doesn't show the real message) or taking down the whole app. */
+.pane-error-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+  background: #1a0000;
+  color: #ff6b6b;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.pane-error-fallback button {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px solid #ff6b6b;
+  background: transparent;
+  color: #ff6b6b;
+  cursor: pointer;
+}
+
+/* ErrorLogPanel.tsx — bottom-right badge, only visible once something's
+   actually gone wrong. */
+.error-log-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 32px;
+  z-index: 100001;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.error-log-badge {
+  padding: 4px 10px;
+  border: 1px solid #ff6b6b;
+  border-radius: 12px;
+  background: #2a0000;
+  color: #ff9b9b;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+
+.error-log-list {
+  width: 420px;
+  max-height: 50vh;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 6px;
+}
+
+.error-log-entry {
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.error-log-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-faint);
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
+
+.error-log-entry-header button {
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.error-log-entry-header button:hover {
+  color: var(--text);
+}
+
+.error-log-entry-message {
+  color: #ff9b9b;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-log-entry-stack {
+  margin: 4px 0 0;
+  color: var(--text-faint);
+  font-size: 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-log-clear {
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.error-log-clear:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}

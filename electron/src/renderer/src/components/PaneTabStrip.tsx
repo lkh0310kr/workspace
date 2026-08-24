@@ -216,7 +216,15 @@ export function PaneTabStrip({
             draggable={false}
             onClick={(e) => {
               e.stopPropagation();
-              setAddPickerAnchor((prev) => (prev ? null : e.currentTarget.getBoundingClientRect()));
+              // Capture the rect now — e.currentTarget is null by the time
+              // React invokes this updater (DOM nulls it out once the
+              // synchronous dispatch that produced this event finishes),
+              // so reading it lazily inside the updater threw
+              // "Cannot read properties of null (reading
+              // 'getBoundingClientRect')" the moment this button was
+              // clicked at all.
+              const rect = e.currentTarget.getBoundingClientRect();
+              setAddPickerAnchor((prev) => (prev ? null : rect));
             }}
           >
             +

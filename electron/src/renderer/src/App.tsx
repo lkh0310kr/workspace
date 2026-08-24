@@ -6,6 +6,8 @@ import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
 import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
+import { ErrorLogPanel } from "./components/ErrorLogPanel";
+import { PaneErrorBoundary } from "./components/PaneErrorBoundary";
 import { useWorkspace } from "./components/useWorkspace";
 import { addPaneToTabSet, moveTabToNewPane } from "./layout/layoutActions";
 import { getTabDrag, endTabDrag } from "./layout/tabDrag";
@@ -16,6 +18,7 @@ import { browserCleanupAll, browserHideAll } from "./browser";
 import { popOverlayBlock, pushOverlayBlock } from "./browser/overlayBarrier";
 import { WorkspaceState, setTabLayout } from "./electron";
 import { ThemePreference, applyThemePreference, getStoredThemePreference, setStoredThemePreference } from "./theme";
+import { installGlobalErrorLogging } from "./errorLog";
 
 // Port of ui/src/App.tsx (task 6: layout/flexlayout-react + workspace tab
 // rail; SettingsDialog/AppSettingsDialog wired back in afterward), later
@@ -222,13 +225,15 @@ export default function App() {
 
   const factory = useCallback(
     (node: TabNode) => (
-      <PaneGroup
-        tabNode={node}
-        workspaceTabId={activeTabId}
-        rootPath={workspace?.tabs.find((t) => t.id === activeTabId)?.root_path ?? ""}
-        visible={node.isVisible()}
-        onNotifyChanged={bumpLayout}
-      />
+      <PaneErrorBoundary>
+        <PaneGroup
+          tabNode={node}
+          workspaceTabId={activeTabId}
+          rootPath={workspace?.tabs.find((t) => t.id === activeTabId)?.root_path ?? ""}
+          visible={node.isVisible()}
+          onNotifyChanged={bumpLayout}
+        />
+      </PaneErrorBoundary>
     ),
     [modelEpoch, activeTabId, workspace, bumpLayout],
   );
@@ -236,6 +241,14 @@ export default function App() {
   useEffect(() => {
     void browserCleanupAll().catch(console.error);
   }, []);
+
+  // Surfaces uncaught errors/rejections in the UI (ErrorLogPanel) instead
+  // of only the devtools console — flexlayout's own per-tab error
+  // boundary already swallows render errors behind a generic "Error
+  // rendering component" message with no way to see the real one, and a
+  // failed IPC call (e.g. reading a file that doesn't exist) is an
+  // unhandled rejection nobody would otherwise notice at all.
+  useEffect(() => installGlobalErrorLogging(), []);
 
   useEffect(() => {
     let dragging = false;
@@ -391,9 +404,13 @@ export default function App() {
           type="button"
           className={`titlebar-sidebar-toggle${appSettingsAnchor ? " active" : ""}`}
           title="Settings (⌘,)"
-          onClick={(e) =>
-            setAppSettingsAnchor((open) => (open ? null : e.currentTarget.getBoundingClientRect()))
-          }
+          onClick={(e) => {
+            // Same "capture before the updater runs" fix as
+            // PaneTabStrip.tsx's + button — e.currentTarget is null by the
+            // time this updater actually executes.
+            const rect = e.currentTarget.getBoundingClientRect();
+            setAppSettingsAnchor((open) => (open ? null : rect));
+          }}
         >
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
             <path
@@ -447,6 +464,7 @@ export default function App() {
         )}
       </div>
       <ClaudeUsageStatusBar />
+      <ErrorLogPanel />
     </div>
   );
 }

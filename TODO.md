@@ -1,10 +1,17 @@
 # TODO
+- [x] **"새탭" 누르면 Render error 뜨던 버그** — 2026-08-24. 사용자가 devtools 콘솔 에러를 그대로 붙여줘서 바로 확인됨: `TypeError: Cannot read properties of null (reading 'getBoundingClientRect') at PaneTabStrip.tsx:219`. 원인: Popover 작업 때 `setAddPickerAnchor((prev) => (prev ? null : e.currentTarget.getBoundingClientRect()))`처럼 `e.currentTarget`을 setState updater 함수 **안에서** 읽고 있었는데, DOM 스펙상 `currentTarget`은 이벤트 디스패치가 끝나면 `null`이 됨 — React가 이 updater를 실제로 호출하는 시점(렌더 단계)엔 이미 클릭 이벤트 자체가 끝난 뒤라 `null.getBoundingClientRect()`로 터짐. `PaneTabStrip.tsx`("+" 버튼)와 `App.tsx`(앱 설정 톱니바퀴) 둘 다 같은 패턴이었어서 같이 고침 — rect를 updater 밖에서 먼저 변수로 캡처해두는 식으로.
+  - 같은 콘솔 로그에서 발견한 다른 진짜 버그들도 같이 처리:
+    - **`window.prompt()`가 Electron에서 아예 미지원**("prompt() is not supported" — Electron이 `alert`/`confirm`은 네이티브로 구현했지만 `prompt`는 여태 구현 안 한, 오래된 알려진 갭)이라 TreeView의 New Folder/Rename이 완전히 고장나 있었음. `components/TextPrompt.tsx`(신규, `Popover.tsx` 기반 작은 입력창)로 대체 — 컨텍스트 메뉴 클릭 위치에 anchor.
+    - **렌더 에러가 콘솔에만 찍히고 UI엔 전혀 안 보였던 문제** — 사용자가 "렌더링 실패 시 에러 로그도 띄워줘 UI에"라고 명시적으로 요청함. `errorLog.ts`(공유 에러 로그 스토어) + `components/ErrorLogPanel.tsx`(우하단 배지, 클릭하면 메시지+스택 목록) + `components/PaneErrorBoundary.tsx`(pane 하나가 크래시해도 앱 전체가 아니라 그 pane만 인라인 에러로 대체되도록, flexlayout 자체 오류 바운더리는 "Error rendering component"로만 뭉뚱그려서 진짜 메시지를 감춰버림) + `window.onerror`/`unhandledrejection` 전역 리스너(React 렌더 스택 밖에서 나는 에러 — 예: 실패한 IPC 호출, CodeMirror 내부 타이머 콜백 등 — 도 잡음).
+  - **아직 못 고친 진짜 버그(같은 콘솔 로그에서 발견, 별개)**: `Uncaught RangeError: Block decorations may not be specified via plugins` — CodeMirror 6은 `block:true` decoration을 ViewPlugin이 아니라 StateField로만 제공하게 되어 있는데, `markdownLivePreview.ts`의 `TableWidget`(마크다운 표 렌더링)이 ViewPlugin 안에서 `Decoration.replace({widget, block:true})`를 씀 — 표가 있는 마크다운 파일을 열면 크래시함. Tauri 시절부터 그대로 포팅된 코드라 Electron에서 처음 실사용 검증된 셈. 고치려면 `markdownLivePreview.ts`의 데코레이션 제공 방식을 StateField 기반으로 바꿔야 해서 오늘 처리한 것들보다 손이 더 감 — 다음에 표 있는 마크다운 열 때 재현되면 우선순위 올릴 것.
 - [ ] 브라우저
     - [ ] 이 외에 브라우저 관련 기능 orca 참고해서 고도화 (지금 너무 불편해) — 다음 후보: 실제 파비콘 표시, 탭별 히스토리 뒤로/앞으로 목록(길게 누르면 드롭다운), 다운로드 UI, 확대/축소
     - [ ] a href target _blank 열면 native window가 새로 뜨는 것 같음. -> 우리 workspace 새 탭으로 뜨도록
+    - [ ] Cmd + R, Cmd + Shift + R 등 단축키 생각 후 구현
 - [ ] Editor/Makdown
     - [ ] 검색 기능 UI 너무 옛날 스타일인 이슈 -> vscode 비슷한 구조로 ui 개선.
     - [ ] TreeView multi selection (vscode 참고)
+    - [ ] TreeView file rename 기능 동작 안 함.
 - [ ] Workspace
     - [ ] Tab split horizonta/vertical icon이 필요할까? 탭 추가하고 이동하면 될 거 같은데.
     - [ ] MacOS Native Header의 Sidebar Toggle 버튼 hover시 popover selector 표시하여 quick selecting할 수 있도록

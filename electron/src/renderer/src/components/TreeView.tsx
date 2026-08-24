@@ -9,6 +9,8 @@ import {
   revealItemInDir,
   writeFile,
 } from "../electron";
+import { TextPrompt } from "./TextPrompt";
+import type { AnchorRect } from "./Popover";
 
 interface Props {
   tabId: number;
@@ -62,6 +64,12 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [prompt, setPrompt] = useState<{
+    anchor: AnchorRect;
+    title: string;
+    defaultValue: string;
+    onSubmit: (value: string) => void;
+  } | null>(null);
 
   const loadDir = useCallback(
     (path: string) => {
@@ -136,22 +144,33 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
     refresh(dir);
   };
 
-  const newFolder = async (dir: string) => {
+  const newFolder = (dir: string, anchor: AnchorRect) => {
     setMenu(null);
-    const name = window.prompt("Folder name");
-    if (!name) return;
-    await createDir(tabId, joinPath(dir, name)).catch((err) => alert(String(err)));
-    setExpanded((prev) => new Set(prev).add(dir));
-    refresh(dir);
+    setPrompt({
+      anchor,
+      title: "Folder name",
+      defaultValue: "",
+      onSubmit: async (name) => {
+        await createDir(tabId, joinPath(dir, name)).catch((err) => alert(String(err)));
+        setExpanded((prev) => new Set(prev).add(dir));
+        refresh(dir);
+      },
+    });
   };
 
-  const rename = async (entry: DirEntry) => {
+  const rename = (entry: DirEntry, anchor: AnchorRect) => {
     setMenu(null);
-    const name = window.prompt("Rename to", entry.name);
-    if (!name || name === entry.name) return;
-    const to = joinPath(dirOf(entry.path), name);
-    await renamePath(tabId, entry.path, to).catch((err) => alert(String(err)));
-    refresh(dirOf(entry.path));
+    setPrompt({
+      anchor,
+      title: "Rename to",
+      defaultValue: entry.name,
+      onSubmit: async (name) => {
+        if (name === entry.name) return;
+        const to = joinPath(dirOf(entry.path), name);
+        await renamePath(tabId, entry.path, to).catch((err) => alert(String(err)));
+        refresh(dirOf(entry.path));
+      },
+    });
   };
 
   const remove = async (entry: DirEntry) => {
@@ -233,13 +252,30 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
           <button type="button" onClick={() => newFile(menu.dir)}>
             New File
           </button>
-          <button type="button" onClick={() => newFolder(menu.dir)}>
+          <button
+            type="button"
+            onClick={() =>
+              newFolder(menu.dir, { left: menu.x, right: menu.x, top: menu.y, bottom: menu.y, width: 0, height: 0 })
+            }
+          >
             New Folder
           </button>
           {menu.entry && (
             <>
               <div className="tree-view-menu-sep" />
-              <button type="button" onClick={() => rename(menu.entry!)}>
+              <button
+                type="button"
+                onClick={() =>
+                  rename(menu.entry!, {
+                    left: menu.x,
+                    right: menu.x,
+                    top: menu.y,
+                    bottom: menu.y,
+                    width: 0,
+                    height: 0,
+                  })
+                }
+              >
                 Rename
               </button>
               <button type="button" onClick={() => remove(menu.entry!)}>
@@ -258,6 +294,15 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
             </>
           )}
         </div>
+      )}
+      {prompt && (
+        <TextPrompt
+          anchorRect={prompt.anchor}
+          title={prompt.title}
+          defaultValue={prompt.defaultValue}
+          onSubmit={prompt.onSubmit}
+          onClose={() => setPrompt(null)}
+        />
       )}
     </div>
   );

@@ -15,8 +15,21 @@ import { createPortal } from "react-dom";
 // come, since mousedown != click — would immediately reopen it. A
 // catcher positioned above the trigger consumes that second click
 // entirely, so the trigger's own handler never re-fires.
+// A real DOMRect satisfies this structurally, but so does a plain literal
+// (e.g. a zero-size rect built from a context-menu click position) —
+// narrower than DOMRect on purpose so callers without a real element to
+// measure don't need to fake DOMRect's toJSON() too.
+export interface AnchorRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+}
+
 interface Props {
-  anchorRect: DOMRect;
+  anchorRect: AnchorRect;
   onClose: () => void;
   children: ReactNode;
   /** Aligns the popover's right edge to the anchor's right edge instead
