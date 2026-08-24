@@ -2,26 +2,54 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { IJsonModel, Layout, Model, TabNode, Actions, type Action } from "flexlayout-react";
 import "flexlayout-react/style/combined.css";
 import "./assets/styles.css";
-import { PaneFrame } from "./components/PaneFrame";
-import { TerminalPaneTitle } from "./components/TerminalPaneTitle";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
 import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { useWorkspace } from "./components/useWorkspace";
-import { addPaneToTabSet, replacePane, splitTabSet } from "./layout/layoutActions";
+import { addPaneToTabSet } from "./layout/layoutActions";
 import { setLayoutInstance } from "./layout/layoutRef";
-import { PaneComponent, PaneConfig } from "./layout/paneTypes";
-import { EditorPane } from "./panes/EditorPane";
-import { TerminalPane } from "./panes/TerminalPane";
-import { BrowserPane } from "./panes/BrowserPane";
+import { PaneGroupConfig, PaneTabItem, TabKind } from "./layout/paneTypes";
+import { PaneGroup } from "./panes/PaneGroup";
 import { browserCleanupAll, browserHideAll } from "./browser";
 import { popOverlayBlock, pushOverlayBlock } from "./browser/overlayBarrier";
 import { WorkspaceState, setTabLayout } from "./electron";
 import { ThemePreference, applyThemePreference, getStoredThemePreference, setStoredThemePreference } from "./theme";
 
 // Port of ui/src/App.tsx (task 6: layout/flexlayout-react + workspace tab
-// rail; SettingsDialog/AppSettingsDialog wired back in afterward).
+// rail; SettingsDialog/AppSettingsDialog wired back in afterward), later
+// reworked to globalize the editor's multi-tab system across every pane
+// kind (PaneGroup.tsx) — every flexlayout tab node now holds a
+// PaneGroupConfig (a list of heterogeneous terminal/browser/editor tabs)
+// instead of a single component+config pair.
+
+// Layouts persisted before the tab-group rework have flexlayout "tab"
+// nodes whose component is directly "terminal"/"browser"/"code"/
+// "markdown" with the old single-item PaneConfig shape. Wrap those into a
+// one-tab PaneGroupConfig on load so old workspace.json files (and
+// main/layout.ts's defaultLayout, generated server-side) keep working
+// without a heavier migration step.
+function migrateLegacyTabNode(record: Record<string, unknown>): void {
+  if (record.component === "tabgroup") return;
+  const legacyKind = record.component as TabKind | undefined;
+  if (!legacyKind) return;
+  const legacyConfig = (record.config ?? {}) as Record<string, unknown>;
+  const id = (record.id as string | undefined) ?? `legacy-${legacyKind}`;
+  const item: PaneTabItem = {
+    id,
+    kind: legacyKind,
+    terminalId: legacyConfig.terminalId as number | undefined,
+    filePath: legacyConfig.filePath as string | null | undefined,
+    url: legacyConfig.url as string | undefined,
+  };
+  const groupConfig: PaneGroupConfig = {
+    tabs: [item],
+    activeTabId: id,
+    zoom: legacyConfig.zoom as number | undefined,
+  };
+  record.component = "tabgroup";
+  record.config = groupConfig;
+}
 
 function normalizeLayoutNode(node: unknown) {
   if (!node || typeof node !== "object") return;
@@ -29,6 +57,9 @@ function normalizeLayoutNode(node: unknown) {
   if (record.type === "tabset") {
     record.enableTabStrip = false;
     record.enableSingleTabStretch = false;
+  }
+  if (record.type === "tab") {
+    migrateLegacyTabNode(record);
   }
   const children = record.children;
   if (Array.isArray(children)) {
@@ -74,7 +105,7 @@ function zoomActivePane(model: Model, delta: number) {
   const tabset = model.getActiveTabset();
   const tabNode = tabset?.getSelectedNode();
   if (!tabNode || tabNode.getType() !== "tab") return;
-  const config = ((tabNode as TabNode).getConfig() ?? {}) as PaneConfig;
+  const config = ((tabNode as TabNode).getConfig() ?? {}) as PaneGroupConfig;
   const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, (config.zoom ?? 1) + delta));
   if (nextZoom === (config.zoom ?? 1)) return;
   model.doAction(
@@ -95,17 +126,6 @@ export default function App() {
   const modelsRef = useRef<Map<number, Model>>(new Map());
   const savedLayoutsRef = useRef<Map<number, string>>(new Map());
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const splitRef = useRef<
-    (
-      direction: "right" | "down",
-      tabSetId: string,
-      component: PaneComponent,
-      source?: PaneConfig,
-    ) => Promise<void>
-  >(async () => {});
-  const replaceRef = useRef<
-    (tabNodeId: string, component: PaneComponent, source?: PaneConfig) => Promise<void>
-  >(async () => {});
   const ensureInflightRef = useRef<Set<number>>(new Set());
   const [modelEpoch, setModelEpoch] = useState(0);
   const pendingRebalanceRef = useRef<string | null>(null);
@@ -196,95 +216,18 @@ export default function App() {
     [bumpLayout],
   );
 
-  splitRef.current = async (direction, tabSetId, component, source) => {
-    const model = modelsRef.current.get(activeTabId);
-    if (!model) return;
-    await splitTabSet(model, tabSetId, direction, component, source);
-    bumpLayout();
-  };
-
-  replaceRef.current = async (tabNodeId, component, source) => {
-    const model = modelsRef.current.get(activeTabId);
-    if (!model) return;
-    await replacePane(model, tabNodeId, component, source);
-    bumpLayout();
-  };
-
-  const factory = useCallback((node: TabNode) => {
-    const component = node.getComponent() as PaneComponent;
-    const config = (node.getConfig() ?? {}) as PaneConfig;
-    const tabSetId = node.getParent()?.getId() ?? "";
-
-    const onSplit = (mode: "split-right" | "split-down", paneType: PaneComponent) => {
-      void splitRef.current(
-        mode === "split-right" ? "right" : "down",
-        tabSetId,
-        paneType,
-        config,
-      );
-    };
-
-    const onTypeChange = (paneType: PaneComponent) => {
-      void replaceRef.current(node.getId(), paneType, config);
-    };
-
-    const onClose = () => {
-      node.getModel().doAction(Actions.deleteTab(node.getId()));
-    };
-
-    if (component === "browser") {
-      return (
-        <BrowserPane
-          paneId={node.getId()}
-          initialUrl={config.url}
-          tabNode={node}
-          component={component}
-          visible={node.isVisible()}
-          onSplit={onSplit}
-          onTypeChange={onTypeChange}
-        />
-      );
-    }
-
-    const body = (() => {
-      switch (component) {
-        case "code":
-        case "markdown":
-          return (
-            <EditorPane
-              filePath={config.filePath ?? null}
-              tabId={activeTabId}
-              rootPath={workspace?.tabs.find((t) => t.id === activeTabId)?.root_path ?? ""}
-              component={component}
-              tabNode={node}
-              onSplit={onSplit}
-              onTypeChange={onTypeChange}
-              onClose={onClose}
-            />
-          );
-        case "terminal":
-          return (
-            <TerminalPane terminalId={config.terminalId ?? 0} active={true} zoom={config.zoom ?? 1} />
-          );
-        default:
-          return <div>Unknown pane</div>;
-      }
-    })();
-
-    return (
-      <PaneFrame
-        component={component}
+  const factory = useCallback(
+    (node: TabNode) => (
+      <PaneGroup
         tabNode={node}
-        title={component === "terminal" ? <TerminalPaneTitle /> : undefined}
-        hideHeader={component === "code" || component === "markdown"}
-        onSplit={onSplit}
-        onTypeChange={onTypeChange}
-        onClose={onClose}
-      >
-        {body}
-      </PaneFrame>
-    );
-  }, [modelEpoch, activeTabId, workspace]);
+        workspaceTabId={activeTabId}
+        rootPath={workspace?.tabs.find((t) => t.id === activeTabId)?.root_path ?? ""}
+        visible={node.isVisible()}
+        onNotifyChanged={bumpLayout}
+      />
+    ),
+    [modelEpoch, activeTabId, workspace, bumpLayout],
+  );
 
   useEffect(() => {
     void browserCleanupAll().catch(console.error);

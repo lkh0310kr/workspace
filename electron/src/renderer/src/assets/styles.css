@@ -334,23 +334,6 @@ input {
   background: var(--bg-base);
 }
 
-.pane-shell-browser {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.pane-browser-chrome {
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 var(--browser-chrome-total);
-  min-height: var(--browser-chrome-total);
-  position: relative;
-  z-index: 1;
-  background: var(--bg-surface);
-}
-
 .browser-viewport-anchor {
   display: none;
 }
@@ -415,13 +398,6 @@ iframe.browser-content-slot {
   min-height: var(--browser-chrome-total);
   gap: 4px;
   padding: 0 4px 0 6px;
-}
-
-.pane-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  letter-spacing: 0.02em;
 }
 
 .pane-actions {
@@ -501,6 +477,157 @@ iframe.browser-content-slot {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* —— Pane tab strip (PaneTabStrip.tsx) —— globalized tab bar shared by
+   every pane kind, replacing the old editor-only tab bar + the separate
+   single-title header every other pane kind used to have. */
+.pane-tab-strip {
+  display: flex;
+  align-items: stretch;
+  height: var(--chrome-h);
+  min-height: var(--chrome-h);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  cursor: grab;
+  z-index: 200;
+}
+
+.pane-tab-strip-tabs {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.pane-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 180px;
+  min-width: 0;
+  padding: 0 4px 0 8px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pane-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.pane-tab.active {
+  background: var(--bg-base);
+  color: var(--text);
+}
+
+.pane-tab-icon {
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.pane-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.pane-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pane-tab-close:hover {
+  color: var(--text);
+}
+
+.pane-tab-add-anchor {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pane-tab-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.pane-tab-add:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.pane-tab-strip-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+/* —— Pane group body (PaneGroup.tsx) —— the explorer sidebar (editor tabs
+   only) plus a stack of every open tab's content, all mounted at once and
+   toggled via display so switching tabs never loses state. */
+.pane-group-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pane-group-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.pane-group-content-item {
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Browser tab content's own chrome (nav+address row) — previously this was
+   PaneFrame's job for the whole pane (contentSlot mode); now it's scoped
+   inside BrowserContent.tsx since a pane can mix browser tabs with other
+   kinds. */
+.browser-pane-chrome {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
 }
 
 /* —— Content panes —— */
@@ -993,7 +1120,6 @@ iframe.browser-content-slot {
   height: var(--chrome-h);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
-  cursor: grab;
   overflow: hidden;
 }
 
@@ -1030,95 +1156,6 @@ iframe.browser-content-slot {
 
 .obsidian-topbar-icon:disabled {
   opacity: 0.35;
-  cursor: default;
-}
-
-.editor-tab-bar {
-  display: flex;
-  align-items: stretch;
-  flex: 1;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.editor-tab {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 180px;
-  min-width: 0;
-  padding: 0 4px 0 10px;
-  border: none;
-  border-right: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.editor-tab:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.editor-tab.active {
-  background: var(--bg-base);
-  color: var(--text);
-}
-
-.editor-tab-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-}
-
-.editor-tab-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-faint);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.editor-tab-close:hover {
-  color: var(--text);
-}
-
-.editor-tab-add {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  min-width: 28px;
-  padding: 0;
-  border: none;
-  border-right: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 16px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.editor-tab-add:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.obsidian-topbar .pane-actions {
-  flex-shrink: 0;
-  border-left: 1px solid var(--border);
-  padding: 0 2px;
   cursor: default;
 }
 
