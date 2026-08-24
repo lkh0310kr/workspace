@@ -14,7 +14,10 @@ import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } fro
 interface Props {
   terminalId: number;
   active: boolean;
+  zoom?: number;
 }
+
+const TERMINAL_BASE_FONT_SIZE = 13;
 
 // Same convention as a normal POSIX shell/terminal drag-drop (e.g. iTerm2,
 // VS Code's integrated terminal): only quote when the path has characters
@@ -104,7 +107,7 @@ function loadOptionalAddons(term: Terminal): { serialize: SerializeAddon | null 
   return { serialize };
 }
 
-function TerminalPaneInner({ terminalId, active }: Props) {
+function TerminalPaneInner({ terminalId, active, zoom = 1 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -125,7 +128,7 @@ function TerminalPaneInner({ terminalId, active }: Props) {
 
     const term = new Terminal({
       cursorBlink: true,
-      fontSize: 13,
+      fontSize: Math.round(TERMINAL_BASE_FONT_SIZE * zoom),
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', monospace",
       theme: XTERM_THEMES[getCurrentResolvedTheme()],
     });
@@ -374,7 +377,20 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       // `_keyDownSeen`-poisoning class as xtermjs/xterm.js#5887's held-Shift
       // report, just triggered by our own boundary check instead of
       // xterm's).
-      if (e.keyCode !== 229 && !MODIFIER_KEYS.has(e.key)) flushAllPendingHangul();
+      //
+      // key="Unidentified"/keyCode=0 is excluded too — WKWebView's 2-beolsik
+      // IME fires a synthetic CapsLock+Unidentified keydown pair as part of
+      // its own internal signaling *during* composition, not from any real
+      // keystroke. It carries no character and isn't a real boundary, but
+      // treating it as one raced the still-mid-composition last syllable:
+      // this flushed it early via sendHangul (marking it "already sent"
+      // via hangulSentLength), then the real deleteCompositionText/
+      // insertFromComposition commit landed with hangulSentLength now
+      // *ahead* of what deleteCompositionText's natural shrink expected,
+      // tripping resyncHangulBaseline's reset-to-0 and re-sending the
+      // entire buffer from scratch — confirmed via [hangul-trace] on a
+      // live repro (the "아니 내말은..." duplication).
+      if (e.keyCode !== 229 && e.keyCode !== 0 && !MODIFIER_KEYS.has(e.key)) flushAllPendingHangul();
     };
     host.addEventListener("keydown", onKeydownBoundary, true);
 
@@ -466,6 +482,19 @@ function TerminalPaneInner({ terminalId, active }: Props) {
       searchRef.current = null;
     };
   }, [terminalId]);
+
+  // Live zoom changes (Cmd+'+'/Cmd+'-') without recreating the terminal —
+  // xterm supports reassigning `fontSize` on an existing instance; it just
+  // needs a re-fit (cell size changed) and the pty told about the new
+  // cols/rows that follow from that.
+  useEffect(() => {
+    const term = termRef.current;
+    const fit = fitRef.current;
+    if (!term || !fit) return;
+    term.options.fontSize = Math.round(TERMINAL_BASE_FONT_SIZE * zoom);
+    fit.fit();
+    ptyResize(terminalId, term.cols, term.rows).catch(console.error);
+  }, [zoom, terminalId]);
 
   useEffect(() => {
     const unlisten = onPtyOutput((payload) => {
