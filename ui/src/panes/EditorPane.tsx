@@ -38,7 +38,8 @@ import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } 
 import { closeSearchPanel, openSearchPanel, searchPanelOpen } from "@codemirror/search";
 import { listDir, onFileChanged, readFile, writeFile } from "../tauri";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
-import { indentGuides, markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
+import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
+import { indentGuides } from "../indentGuides";
 import { syntaxTheme } from "../codemirrorSyntax";
 import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
