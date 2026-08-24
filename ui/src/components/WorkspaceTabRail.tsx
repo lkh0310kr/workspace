@@ -1,4 +1,22 @@
 import { TabInfo, addTab, closeTab, selectTab } from "../tauri";
+import { browserHideAll } from "../browser";
+
+// Switching workspace tabs remounts the whole pane tree (App.tsx keys its
+// layout host on activeTabId) — any Browser pane in the outgoing tab only
+// detaches its native WKWebView asynchronously on unmount (a fire-and-
+// forget IPC call, since React's own unmount is synchronous and can't be
+// awaited). Native child views always composite *above* the DOM, so
+// during that gap a still-attached, no-longer-rendered webview can end up
+// sitting invisibly on top of the whole window, swallowing every click
+// and drag app-wide until the detach actually lands — reported as
+// "tab 전환 했을 때 드래그나 그런 인터렉션이 안됨". Explicitly hiding every
+// browser webview *before* asking for the switch (already the same call
+// overlayBarrier uses for the analogous splitter/pane-drag case) closes
+// that gap instead of leaving it to each pane's own unmount timing.
+async function switchToTab(tabId: number) {
+  await browserHideAll().catch(() => {});
+  await selectTab(tabId).catch(console.error);
+}
 
 interface Props {
   tabs: TabInfo[];
@@ -18,7 +36,7 @@ export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
             <button
               type="button"
               className="workspace-rail-title"
-              onClick={() => selectTab(tab.id)}
+              onClick={() => void switchToTab(tab.id)}
               title={tab.root_path}
             >
               <span className="workspace-rail-title-text">{tab.title}</span>
