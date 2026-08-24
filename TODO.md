@@ -7,6 +7,3 @@
 - [ ] Editor/Makdown
     - [ ] 검색 기능 UI 너무 옛날 스타일인 이슈 -> vscode 비슷한 구조로 ui 개선.
     - [ ] TreeView file multi selection (vscode 참고)
-- [ ] Workspace
-    - [ ] Tab split horizonta/vertical icon이 필요할까? 탭 추가하고 이동하면 될 거 같은데.
-    - [ ] MacOS Native Header의 Sidebar Toggle 버튼 hover시 popover selector 표시하여 quick selecting할 수 있도록

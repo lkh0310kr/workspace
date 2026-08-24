@@ -13,7 +13,7 @@ import { browserHideAll } from "../browser";
 // browser webview *before* asking for the switch (already the same call
 // overlayBarrier uses for the analogous splitter/pane-drag case) closes
 // that gap instead of leaving it to each pane's own unmount timing.
-async function switchToTab(tabId: number) {
+export async function switchToTab(tabId: number) {
   await browserHideAll().catch(() => {});
   await selectTab(tabId).catch(console.error);
 }

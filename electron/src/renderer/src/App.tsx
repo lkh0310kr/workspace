@@ -3,6 +3,7 @@ import { IJsonModel, Layout, Model, TabNode, Actions, type Action } from "flexla
 import "flexlayout-react/style/combined.css";
 import "./assets/styles.css";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
+import { SidebarQuickSwitchPopover } from "./components/SidebarQuickSwitchPopover";
 import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
@@ -139,6 +140,24 @@ export default function App() {
   const appSettingsButtonRef = useRef<HTMLButtonElement>(null);
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
   const [railOpen, setRailOpen] = useState(true);
+  // Hovering the sidebar toggle while the rail is closed shows a transient
+  // popover of workspace tabs to quickly jump to, instead of requiring a
+  // click just to see/switch tabs — "Sidebar Toggle 버튼 hover시 popover
+  // selector 표시하여 quick selecting". Delayed both ways (open and close)
+  // so a mouse just passing over the button doesn't flash it, and moving
+  // from the button into the popover itself doesn't close it in the gap.
+  const [sidebarQuickSwitchAnchor, setSidebarQuickSwitchAnchor] = useState<DOMRect | null>(null);
+  const sidebarHoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearSidebarHoverTimer = useCallback(() => {
+    if (sidebarHoverTimerRef.current) {
+      clearTimeout(sidebarHoverTimerRef.current);
+      sidebarHoverTimerRef.current = null;
+    }
+  }, []);
+  const scheduleSidebarQuickSwitchClose = useCallback(() => {
+    clearSidebarHoverTimer();
+    sidebarHoverTimerRef.current = setTimeout(() => setSidebarQuickSwitchAnchor(null), 200);
+  }, [clearSidebarHoverTimer]);
 
   useEffect(() => {
     return applyThemePreference(themePreference);
@@ -411,7 +430,18 @@ export default function App() {
           type="button"
           className={`titlebar-sidebar-toggle${railOpen ? " active" : ""}`}
           title="Toggle Sidebar"
-          onClick={() => setRailOpen((open) => !open)}
+          onClick={() => {
+            setRailOpen((open) => !open);
+            clearSidebarHoverTimer();
+            setSidebarQuickSwitchAnchor(null);
+          }}
+          onMouseEnter={(e) => {
+            if (railOpen) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            clearSidebarHoverTimer();
+            sidebarHoverTimerRef.current = setTimeout(() => setSidebarQuickSwitchAnchor(rect), 350);
+          }}
+          onMouseLeave={scheduleSidebarQuickSwitchClose}
         >
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
             <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" />
@@ -444,6 +474,16 @@ export default function App() {
             />
           </svg>
         </button>
+        {sidebarQuickSwitchAnchor && !railOpen && (
+          <SidebarQuickSwitchPopover
+            tabs={workspace.tabs}
+            activeTabId={workspace.active_tab_id}
+            anchorRect={sidebarQuickSwitchAnchor}
+            onClose={() => setSidebarQuickSwitchAnchor(null)}
+            onMouseEnter={clearSidebarHoverTimer}
+            onMouseLeave={scheduleSidebarQuickSwitchClose}
+          />
+        )}
       </div>
       <div className="app-shell">
         {railOpen && (

@@ -280,6 +280,59 @@ input {
   color: var(--text);
 }
 
+.sidebar-quick-switch-popover {
+  padding: 4px;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.sidebar-quick-switch-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.sidebar-quick-switch-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-ui);
+}
+
+.sidebar-quick-switch-row:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.sidebar-quick-switch-row.active {
+  background: var(--bg-active);
+  color: var(--text);
+}
+
+.sidebar-quick-switch-title {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-quick-switch-path {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .workspace-rail-settings {
   width: var(--rail-close-w);
   min-width: var(--rail-close-w);
