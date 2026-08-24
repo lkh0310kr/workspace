@@ -72,6 +72,37 @@ function createWindow(): BrowserWindow {
 let workspace: Workspace | null = null
 let mainWindowRef: BrowserWindow | null = null
 
+// Every push-to-renderer call in this file goes through here instead of
+// calling mainWindowRef?.webContents.send(...) directly — the window can
+// be closed (Cmd+W, red traffic light) and macOS recreates one on the
+// next dock-icon 'activate' without the app quitting, so mainWindowRef
+// can point at an already-destroyed BrowserWindow for a window between
+// that close and whatever next re-binds it. Calling .send() on a
+// destroyed WebContents throws synchronously ("Object has been
+// destroyed"), and since pty output arrives continuously that repeated
+// on every single terminal data chunk — reported as "에러가 너무 많이
+// 뜬다. 워크스페이스 전환도 안됨" (workspace:updated silently going to the
+// dead window too, so the visible new window never saw state updates).
+function sendToMainWindow(channel: string, ...args: unknown[]): void {
+  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+    mainWindowRef.webContents.send(channel, ...args)
+  }
+}
+
+// The other half of the same fix: mainWindowRef and workspace's terminal
+// data callback both need to be re-pointed at whichever BrowserWindow is
+// actually current, every time one is (re)created — not just once at
+// initial launch, since app.on('activate') can create a brand new window
+// after the original one was closed.
+function bindMainWindow(window: BrowserWindow): void {
+  mainWindowRef = window
+  if (workspace) {
+    workspace.onTerminalData = (id, data) => {
+      if (!window.isDestroyed()) window.webContents.send('pty:data', { id, data })
+    }
+  }
+}
+
 // Watches the active tab's rootPath and pushes 'fs:changed' to the
 // renderer (TreeView/EditorPane's onFileChanged) so external edits (git
 // checkout, another editor, a build script) show up without polling.
@@ -84,7 +115,7 @@ let fsChangeDebounce: ReturnType<typeof setTimeout> | null = null
 function broadcastFileChanged(): void {
   if (fsChangeDebounce) clearTimeout(fsChangeDebounce)
   fsChangeDebounce = setTimeout(() => {
-    mainWindowRef?.webContents.send('fs:changed')
+    sendToMainWindow('fs:changed')
   }, 150)
 }
 
@@ -113,7 +144,7 @@ function persist(): void {
   // renderer (electron.ts's onWorkspaceUpdated) only ever call
   // getWorkspaceState once on mount, so without this push they'd never
   // see another tab/layout change made through any other handler.
-  mainWindowRef?.webContents.send('workspace:updated', workspace.state())
+  sendToMainWindow('workspace:updated', workspace.state())
   syncFileWatcher()
 }
 
@@ -204,7 +235,7 @@ app.whenReady().then(() => {
   app.on('web-contents-created', (_event, contents) => {
     if (contents.getType() !== 'webview') return
     contents.setWindowOpenHandler((details) => {
-      mainWindowRef?.webContents.send('browser:open-new-tab', {
+      sendToMainWindow('browser:open-new-tab', {
         hostWebContentsId: contents.id,
         url: details.url
       })
@@ -225,8 +256,7 @@ app.whenReady().then(() => {
   // session) would be lost on the very next relaunch.
   persist()
 
-  const mainWindow = createWindow()
-  mainWindowRef = mainWindow
+  bindMainWindow(createWindow())
 
   ipcMain.handle('hostname', () => osHostname())
   // tmux mouse mode (pty.ts's tmux.conf, `mouse on`) makes tmux itself own
@@ -247,21 +277,12 @@ app.whenReady().then(() => {
   ipcMain.handle('usage:claude-rate-limit-status', () => claudeRateLimitStatus())
   ipcMain.handle('usage:cursor-usage-status', () => cursorUsageStatus())
   ipcMain.handle('dialog:open-directory', async (_event, defaultPath?: string) => {
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const result = await dialog.showOpenDialog(mainWindowRef!, {
       properties: ['openDirectory'],
       defaultPath
     })
     return result.canceled ? null : (result.filePaths[0] ?? null)
   })
-
-  // pty:spawn is the only handler that needs to *push* data back
-  // (terminal output arrives whenever the shell produces it, not in
-  // response to a request), so it's the one place wiring to a specific
-  // window's webContents.send matters — the rest are plain request/
-  // response and don't care which window called them.
-  workspace.onTerminalData = (id, data) => {
-    mainWindow.webContents.send('pty:data', { id, data })
-  }
 
   ipcMain.handle('pty:spawn', (_event, cols: number, rows: number) => {
     return workspace!.spawnTerminal(cols, rows)
@@ -320,8 +341,11 @@ app.whenReady().then(() => {
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    // dock icon is clicked and there are no other windows open. Must
+    // re-bind mainWindowRef/workspace.onTerminalData to this new window —
+    // see bindMainWindow's comment for why leaving them pointed at the
+    // now-destroyed old window crashes on every subsequent pty data chunk.
+    if (BrowserWindow.getAllWindows().length === 0) bindMainWindow(createWindow())
   })
 })
 
