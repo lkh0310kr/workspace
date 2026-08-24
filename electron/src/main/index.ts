@@ -7,6 +7,7 @@ import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
+import { setupBrowserSession } from './browserSession'
 
 function createWindow(): BrowserWindow {
   // Create the browser window.
@@ -166,6 +167,7 @@ app.whenReady().then(() => {
   })
 
   installClaudeStatuslineHook()
+  setupBrowserSession()
 
   const config = loadConfig()
   const defaultRoot = config.rootPath ?? process.cwd()

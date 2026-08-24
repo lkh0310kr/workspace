@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Actions, TabNode } from "flexlayout-react";
 import { PaneFrame } from "../components/PaneFrame";
 import { PaneComponent } from "../layout/paneTypes";
+import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
 
 // Port of ui/src/panes/BrowserPane.tsx, rebuilt on top of Orca's actual
 // approach (a real Electron <webview> guest, see
@@ -46,6 +47,9 @@ export function BrowserPane({ paneId, initialUrl, tabNode, component, visible, o
     if (!container) return;
 
     const webview = document.createElement("webview") as Electron.WebviewTag;
+    // Must be set before `src` — Electron only honors `partition` on a
+    // <webview>'s first navigation.
+    webview.setAttribute("partition", BROWSER_SESSION_PARTITION);
     webview.setAttribute("src", normalizeUrl(initialUrl ?? "https://www.google.com"));
     webview.setAttribute("allowpopups", "");
     webview.dataset.paneId = paneId;
