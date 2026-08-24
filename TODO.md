@@ -1,3 +1,12 @@
+# TODO
+내가 쓴 TODO:
+- [ ] Bullet list raw,preview 간 간격 안 맞음. 그리고 checkbox때와 동일하게 커서가 불렛에 근접한 경우에만 raw로 표시하도록
+- [ ] Pane Select Dialog - Code <-> Markdown Pane -> Editor 로 통합
+- [ ] Pane Drag 해서 위치 조정하는 기능 갑자기 작동 안함. — 관련 있을 수도 있는 부분 수정(commit `ee7951a`, 2026-08-24): "클릭/드래그가 가끔 전부 안 먹는다"는 별도 리포트를 조사하다가, `overlayBarrier`의 `pushOverlayBlock`/`popOverlayBlock`가 카운터 방식인데 pane-tab 드래그(flexlayout의 HTML5 DnD)는 `dragend`에 의존하고, WebKit이 마우스를 놓은 지점이 네이티브 자식 뷰(Browser pane의 WKWebView)일 때 `dragend`를 안 쏘는 경우가 있어서 `popOverlayBlock`이 영원히 안 불리고 blockCount가 막힌 채로 남는 실제 버그를 발견/수정함(mouseup 전역 캡처로 안전망 추가). **다만 이게 "클릭/드래그 전부 먹통"이랑 완전히 같은 버그인지는 재현으로 확인 못 함** — `isOverlayBlocked()`는 지금 브라우저 패널 가시성에만 쓰이지 클릭 자체를 막진 않아서, 더 넓은 먹통 증상의 전체 원인은 아닐 수 있음. 다음에 또 발생하면 재현 직후 상태(어떤 패널 조작 중이었는지)를 최대한 기억해둘 것.
+- [ ] Markdown Editor Cmd + B등 단축키 기능 추가
+- [ ] Editor Tab System VSCode, Zed 참고해서 완전 똑같이 수정. history front/back logic, tab new/replace logic ux이상함.
+
+AI가 쓰는 TODO:
 - [x] **터미널 마우스 스크롤이 안 되던 버그** — 2026-08-24(commit `a4871f3`). 모든 터미널 pane이 tmux 안에서 도는데(alternate screen), tmux 자체 mouse mode가 꺼져 있어서 xterm.js가 휠 스크롤을 escape sequence로 tmux에 넘겨도 tmux가 아무것도 안 하고 무시하고 있었음(스크롤백 없음, 아무 반응 없음). `crates/workspace-core/src/terminal/pty.rs`의 tmux.conf 생성 로직에 `set -g mouse on` 추가 — tmux가 휠을 직접 해석해서 자기 copy-mode로 pane 히스토리를 스크롤함. **주의**: tmux는 `-f <path>`를 서버 최초 기동 시에만 읽음 — 이미 떠 있는(이 대화가 돌고 있는 세션 포함) 기존 tmux 서버는 `tmux kill-server` 한 번 해야 반영됨(모든 터미널 pane 세션이 끊기므로 사용자가 원할 때 직접 실행할 것 — 자동으로 하지 않음).
 - [ ] Terminal GPU 가속/렌더링 — `crates/terminal-gpu`(자체 wgpu 렌더러)는 소스 주석에 "Archived... Not used by default xterm.js shell"이라고 명시된, 이미 폐기된 실험이었음(확인 완료, 추측 아님). 처음부터 폰트 아틀라스/그리드 diff/네이티브 서피스 임베딩을 다시 구현하는 건 CEF 임베딩 때와 같은 급의 오픈엔드 리스크라 되살리지 않기로 함 — 대신 xterm.js 공식 `@xterm/addon-webgl`을 연결했었는데, 사용자가 직접 재현/리포트("터미널 전체가 언더스코어로 표시됨") — WebGL 글리프 아틀라스가 깨지는 걸로 추정되는 심각한 렌더링 버그가 있어서 완전히 제거함(이미 한 번 dispose 크래시도 냈던 전례가 있어 신뢰도가 낮았음). GPU 가속은 필수 기능이 아니라 "있으면 좋은" 것이었어서, 검증된 기본 렌더러로 되돌리는 게 안전한 선택 — 재시도하려면 실제로 띄워서 테스트할 수 있을 때 다시 볼 것
   - 터미널: 각 터미널이 `tmux new-session -A -s workspace-term-<id>`로 실행됨. `<id>`가 재시작해도 안 바뀌어야 같은 세션에 재접속되므로, 탭/레이아웃/터미널 id 전체를 `workspace.json`에 저장하고 재시작 시 복원하도록 함께 구현함 (`Workspace::from_snapshot`).
