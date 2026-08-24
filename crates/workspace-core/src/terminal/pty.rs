@@ -55,7 +55,15 @@ fn tmux_conf_path() -> Option<PathBuf> {
             .join("workspace-app");
         std::fs::create_dir_all(&dir).ok()?;
         let path = dir.join("tmux.conf");
-        std::fs::write(&path, "set-option -g status off\n").ok()?;
+        // `mouse on` — without it, tmux runs the pane in the alternate
+        // screen and never intercepts the mouse itself, so xterm.js
+        // forwards wheel scroll to tmux as raw escape sequences that tmux
+        // then does nothing with: no scrollback, no visible effect at all
+        // (reported as "terminal scroll 안 됨"). With mouse mode on, tmux
+        // itself interprets wheel-up/down and enters its own copy-mode to
+        // scroll the pane's history, which is what actually restores the
+        // expected "scroll to see previous output" behavior.
+        std::fs::write(&path, "set-option -g status off\nset -g mouse on\n").ok()?;
         Some(path)
     })
     .clone()
