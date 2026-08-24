@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type DragEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
@@ -134,6 +135,11 @@ export function EditorPane({
   onTypeChange,
   onClose,
 }: Props) {
+  // Cmd+'+'/Cmd+'-' (App.tsx's zoomActivePane) writes this straight into the
+  // tab's own node config, same place filePath lives — read back here as a
+  // CSS variable so the CodeMirror theme (workspaceEditorTheme) can size off
+  // of it without needing a Compartment reconfigure on every zoom step.
+  const editorZoom = ((tabNode?.getConfig() ?? {}) as PaneConfig).zoom ?? 1;
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const pathRef = useRef<string | null>(filePath);
@@ -726,7 +732,11 @@ export function EditorPane({
             )}
           </div>
           {hasActiveTab ? (
-            <div className="md-editor" ref={hostRef} />
+            <div
+              className="md-editor"
+              ref={hostRef}
+              style={{ "--editor-font-size": `${13 * editorZoom}px` } as CSSProperties}
+            />
           ) : (
             <div className="md-empty-state">
               <button type="button" onClick={openNewTab}>

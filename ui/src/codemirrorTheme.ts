@@ -1,7 +1,7 @@
 import { EditorView } from "@codemirror/view";
 
 export const workspaceEditorTheme = EditorView.theme({
-  "&": { height: "100%", fontSize: "13px" },
+  "&": { height: "100%", fontSize: "var(--editor-font-size, 13px)" },
   ".cm-scroller": { fontFamily: "var(--font-mono)" },
   ".cm-content": {
     background: "var(--bg-base)",

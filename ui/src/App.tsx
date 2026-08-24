@@ -72,6 +72,29 @@ function parseLayout(json: string): IJsonModel {
   return model;
 }
 
+// Cmd+'+'/Cmd+'-' zooms the focused pane's text size, browser-UX style —
+// not the pane's own dimensions (tried that first; wrong reading of the
+// TODO item, corrected via direct user feedback). The zoom level lives in
+// that tab's own node config (PaneConfig.zoom), the same place filePath
+// already lives (see EditorPane's currentPath-sync effect) — so it goes
+// through the exact same updateNodeAttributes -> onModelChange ->
+// persistLayout path and needs no new persistence wiring.
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.5;
+const ZOOM_STEP = 0.1;
+
+function zoomActivePane(model: Model, delta: number) {
+  const tabset = model.getActiveTabset();
+  const tabNode = tabset?.getSelectedNode();
+  if (!tabNode || tabNode.getType() !== "tab") return;
+  const config = ((tabNode as TabNode).getConfig() ?? {}) as PaneConfig;
+  const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, (config.zoom ?? 1) + delta));
+  if (nextZoom === (config.zoom ?? 1)) return;
+  model.doAction(
+    Actions.updateNodeAttributes(tabNode.getId(), { config: { ...config, zoom: nextZoom } }),
+  );
+}
+
 function countTabs(model: Model): number {
   let n = 0;
   model.visitNodes((node) => {
@@ -263,7 +286,9 @@ export default function App() {
             />
           );
         case "terminal":
-          return <TerminalPane terminalId={config.terminalId ?? 0} active={true} />;
+          return (
+            <TerminalPane terminalId={config.terminalId ?? 0} active={true} zoom={config.zoom ?? 1} />
+          );
         default:
           return <div>Unknown pane</div>;
       }
@@ -381,6 +406,23 @@ export default function App() {
     persistLayout(activeTabId, model);
     setModelEpoch((v) => v + 1);
   }, [activeTabId, persistLayout]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      // "=" (not "+") is what actually fires without Shift on a US layout
+      // — matching the browser zoom shortcut convention (Cmd+=/Cmd+-),
+      // which is what users actually press for a "Cmd+'+'" shortcut.
+      if (e.key !== "=" && e.key !== "+" && e.key !== "-" && e.key !== "_") return;
+      const model = modelsRef.current.get(activeTabId);
+      if (!model) return;
+      e.preventDefault();
+      const grow = e.key === "=" || e.key === "+";
+      zoomActivePane(model, grow ? ZOOM_STEP : -ZOOM_STEP);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeTabId]);
 
   useEffect(() => {
     const model = modelsRef.current.get(activeTabId);

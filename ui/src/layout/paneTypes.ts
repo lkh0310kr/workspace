@@ -4,6 +4,8 @@ export interface PaneConfig {
   terminalId?: number;
   filePath?: string;
   url?: string;
+  // Cmd+'+'/Cmd+'-' per-pane text zoom (App.tsx's zoomActivePane), 1 = 100%.
+  zoom?: number;
 }
 
 export const PANE_OPTIONS: { id: PaneComponent; label: string; icon: string }[] = [
