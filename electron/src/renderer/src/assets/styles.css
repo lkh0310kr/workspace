@@ -860,7 +860,8 @@ iframe.browser-content-slot {
   color: #d9822b;
 }
 
-.cm-md-bullet {
+.cm-md-bullet,
+.cm-md-bullet-raw {
   display: inline-block;
   width: 1.4em;
   color: var(--text-muted);

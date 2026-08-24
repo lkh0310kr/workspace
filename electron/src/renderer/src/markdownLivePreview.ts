@@ -7,7 +7,7 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
-import { Facet, RangeSetBuilder, type Extension } from "@codemirror/state";
+import { Facet, RangeSetBuilder, StateField, type EditorState, type Extension } from "@codemirror/state";
 import type { SyntaxNodeRef } from "@lezer/common";
 
 // Per-view configuration carrying the active tab's root_path, so local
@@ -66,8 +66,8 @@ export const HEADING_TYPES = new Set([
   "ATXHeading6",
 ]);
 
-function selectionOverlaps(view: EditorView, from: number, to: number): boolean {
-  for (const range of view.state.selection.ranges) {
+function selectionOverlaps(state: EditorState, from: number, to: number): boolean {
+  for (const range of state.selection.ranges) {
     if (range.from <= to && range.to >= from) return true;
   }
   return false;
@@ -274,7 +274,7 @@ function buildDecorations(view: EditorView): DecorationSet {
             collected.push({ from: contentFrom, to: node.to, deco: Decoration.mark({ class: cls }) });
           }
           const hasContent = contentFrom < node.to;
-          if (selectionOverlaps(view, node.from, node.to)) {
+          if (selectionOverlaps(view.state, node.from, node.to)) {
             // Marker stays visible while editing this line (cursor is on
             // it) — size it the same as the content, so "#"/"##"/etc.
             // plus whatever's typed after it reads as one coherent
@@ -302,7 +302,7 @@ function buildDecorations(view: EditorView): DecorationSet {
           const cls =
             type === "StrongEmphasis" ? "cm-md-strong" : type === "Emphasis" ? "cm-md-em" : "cm-md-strike";
           collected.push({ from: open.to, to: close.from, deco: Decoration.mark({ class: cls }) });
-          if (!selectionOverlaps(view, node.from, node.to)) {
+          if (!selectionOverlaps(view.state, node.from, node.to)) {
             collected.push({ from: open.from, to: open.to, deco: HIDE });
             collected.push({ from: close.from, to: close.to, deco: HIDE });
           }
@@ -319,7 +319,7 @@ function buildDecorations(view: EditorView): DecorationSet {
             to: close.from,
             deco: Decoration.mark({ class: "cm-md-code" }),
           });
-          if (!selectionOverlaps(view, node.from, node.to)) {
+          if (!selectionOverlaps(view.state, node.from, node.to)) {
             collected.push({ from: open.from, to: open.to, deco: HIDE });
             collected.push({ from: close.from, to: close.to, deco: HIDE });
           }
@@ -340,7 +340,7 @@ function buildDecorations(view: EditorView): DecorationSet {
             to: closeBracket.from,
             deco: Decoration.mark({ class: "cm-md-link" }),
           });
-          if (!selectionOverlaps(view, node.from, node.to)) {
+          if (!selectionOverlaps(view.state, node.from, node.to)) {
             collected.push({ from: openBracket.from, to: openBracket.to, deco: HIDE });
             const hideFrom = closeBracket.from;
             const hideTo = url ? url.to + 1 : closeBracket.to;
@@ -361,7 +361,7 @@ function buildDecorations(view: EditorView): DecorationSet {
           // [line.from, node.to] — from the start of the line through the
           // end of the "[ ]"/"[x]" marker — not the whole line.
           const line = view.state.doc.lineAt(node.from);
-          if (selectionOverlaps(view, line.from, node.to)) return;
+          if (selectionOverlaps(view.state, line.from, node.to)) return;
           const checked = view.state.doc.sliceString(node.from, node.to).toLowerCase() === "[x]";
           collected.push({
             from: node.from,
@@ -378,7 +378,7 @@ function buildDecorations(view: EditorView): DecorationSet {
           // to 3 leading spaces before the `---`), and CodeMirror block
           // decorations are required to span exactly line-start to
           // line-end — a mark sidesteps that constraint entirely.
-          if (!selectionOverlaps(view, node.from, node.to)) {
+          if (!selectionOverlaps(view.state, node.from, node.to)) {
             collected.push({
               from: node.from,
               to: node.to,
@@ -391,7 +391,7 @@ function buildDecorations(view: EditorView): DecorationSet {
         if (type === "Blockquote") {
           for (const mark of node.node.getChildren("QuoteMark")) {
             const line = view.state.doc.lineAt(mark.from);
-            if (selectionOverlaps(view, line.from, line.to)) continue;
+            if (selectionOverlaps(view.state, line.from, line.to)) continue;
             let hideTo = mark.to;
             if (view.state.doc.sliceString(hideTo, hideTo + 1) === " ") hideTo += 1;
             collected.push({ from: mark.from, to: hideTo, deco: HIDE });
@@ -399,7 +399,7 @@ function buildDecorations(view: EditorView): DecorationSet {
           const callout = calloutMarkerRange(view, node);
           if (callout) {
             const line = view.state.doc.lineAt(callout.from);
-            if (!selectionOverlaps(view, line.from, line.to)) {
+            if (!selectionOverlaps(view.state, line.from, line.to)) {
               collected.push({
                 from: callout.from,
                 to: callout.to,
@@ -415,7 +415,7 @@ function buildDecorations(view: EditorView): DecorationSet {
           if (marks.length < 2) return;
           const openMark = marks[0];
           const closeMark = marks[marks.length - 1];
-          if (selectionOverlaps(view, node.from, node.to)) return;
+          if (selectionOverlaps(view.state, node.from, node.to)) return;
           // CodeInfo (the fenced language tag) sits on the same line as
           // openMark, so hiding to end-of-line takes it too.
           const openLineEnd = view.state.doc.lineAt(openMark.from).to;
@@ -441,7 +441,7 @@ function buildDecorations(view: EditorView): DecorationSet {
             to: innerTo,
             deco: Decoration.mark({ class: "cm-md-link cm-md-wikilink" }),
           });
-          if (!selectionOverlaps(view, node.from, node.to)) {
+          if (!selectionOverlaps(view.state, node.from, node.to)) {
             collected.push({ from: node.from, to: displayFrom, deco: HIDE });
             collected.push({ from: innerTo, to: node.to, deco: HIDE });
           }
@@ -459,7 +459,7 @@ function buildDecorations(view: EditorView): DecorationSet {
           const rawUrl = view.state.doc.sliceString(url.from, url.to);
           const src = resolveImageSrc(view.state.facet(markdownRootPath), rawUrl);
           if (!src) return;
-          if (selectionOverlaps(view, node.from, node.to)) return;
+          if (selectionOverlaps(view.state, node.from, node.to)) return;
           collected.push({
             from: node.from,
             to: node.to,
@@ -468,27 +468,13 @@ function buildDecorations(view: EditorView): DecorationSet {
           return;
         }
 
-        if (type === "Table") {
-          if (selectionOverlaps(view, node.from, node.to)) return;
-          const startLine = view.state.doc.lineAt(node.from);
-          const endLine = view.state.doc.lineAt(node.to);
-          // See TableWidget's comment: block decorations must span exact
-          // line boundaries, so this is checked rather than assumed.
-          if (startLine.from !== node.from || endLine.to !== node.to) return;
-          const header = node.node.getChild("TableHeader");
-          if (!header) return;
-          const cellText = (n: SyntaxNodeRef) => view.state.doc.sliceString(n.from, n.to).trim();
-          const headerCells = header.getChildren("TableCell").map(cellText);
-          const bodyRows = node.node
-            .getChildren("TableRow")
-            .map((row) => row.getChildren("TableCell").map(cellText));
-          collected.push({
-            from: node.from,
-            to: node.to,
-            deco: Decoration.replace({ widget: new TableWidget(headerCells, bodyRows), block: true }),
-          });
-          return false;
-        }
+        // Table is handled separately (see buildTableDecorations below) —
+        // its widget is a `block: true` replace decoration, and CodeMirror
+        // requires those to come from a StateField, not a ViewPlugin
+        // (throws "Block decorations may not be specified via plugins" at
+        // render time otherwise — reproduced live via a user-reported
+        // crash, not hypothetical).
+        if (type === "Table") return false;
 
         if (type === "ListItem") {
           const parentType = node.node.parent?.type.name;
@@ -532,7 +518,7 @@ function buildDecorations(view: EditorView): DecorationSet {
             // line.
             const checkboxMarker = taskNode.getChild("TaskMarker");
             const rawUntil = checkboxMarker ? checkboxMarker.to : taskLine.to;
-            if (!selectionOverlaps(view, taskLine.from, rawUntil)) {
+            if (!selectionOverlaps(view.state, taskLine.from, rawUntil)) {
               collected.push({ from: taskMark.from, to: taskMark.to, deco: HIDE });
             }
             return;
@@ -540,7 +526,18 @@ function buildDecorations(view: EditorView): DecorationSet {
           const mark = node.node.getChild("ListMark");
           if (!mark) return;
           const line = view.state.doc.lineAt(mark.from);
-          if (selectionOverlaps(view, line.from, line.to)) return;
+          // Gated through the marker's own end, not the whole line — same
+          // threshold as TaskMarker/CheckboxWidget above (cursor has to be
+          // on/near the "-" itself, not just anywhere in that item's text)
+          // rather than raw mode covering the entire line's content.
+          if (selectionOverlaps(view.state, line.from, mark.to)) {
+            // Raw "-" still needs the bullet widget's own width so the
+            // line's content doesn't visibly shift when toggling between
+            // raw and preview — a bare unstyled "-" is much narrower than
+            // the 1.4em bullet glyph box it replaces.
+            collected.push({ from: mark.from, to: mark.to, deco: Decoration.mark({ class: "cm-md-bullet-raw" }) });
+            return;
+          }
           collected.push({
             from: mark.from,
             to: mark.to,
@@ -648,6 +645,46 @@ const blockDecorations = ViewPlugin.fromClass(
   },
 );
 
+// Tables render as a `block: true` replace decoration (see TableWidget),
+// which CodeMirror only allows from a StateField — hence this being a
+// separate extension from inlineDecorations/blockDecorations above (both
+// ViewPlugins). Recomputed over the whole document rather than just
+// view.visibleRanges since a StateField's update() only gets the
+// transaction, not the view's current viewport.
+function buildTableDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  syntaxTree(state).iterate({
+    enter: (node: SyntaxNodeRef) => {
+      if (node.type.name !== "Table") return;
+      if (selectionOverlaps(state, node.from, node.to)) return;
+      const startLine = state.doc.lineAt(node.from);
+      const endLine = state.doc.lineAt(node.to);
+      // See TableWidget's comment: block decorations must span exact line
+      // boundaries, so this is checked rather than assumed.
+      if (startLine.from !== node.from || endLine.to !== node.to) return;
+      const header = node.node.getChild("TableHeader");
+      if (!header) return;
+      const cellText = (n: SyntaxNodeRef) => state.doc.sliceString(n.from, n.to).trim();
+      const headerCells = header.getChildren("TableCell").map(cellText);
+      const bodyRows = node.node
+        .getChildren("TableRow")
+        .map((row) => row.getChildren("TableCell").map(cellText));
+      builder.add(
+        node.from,
+        node.to,
+        Decoration.replace({ widget: new TableWidget(headerCells, bodyRows), block: true }),
+      );
+    },
+  });
+  return builder.finish();
+}
+
+const tableDecorations = StateField.define<DecorationSet>({
+  create: (state) => buildTableDecorations(state),
+  update: (deco, tr) => (tr.docChanged || tr.selection ? buildTableDecorations(tr.state) : deco.map(tr.changes)),
+  provide: (field) => EditorView.decorations.from(field),
+});
+
 // `EditorView.atomicRanges` (making hidden marker ranges an indivisible
 // unit for cursor motion — the "correct", CM6-documented fix for a minor
 // cursor-lands-one-char-off bug when arrowing into a heading/link line)
@@ -668,4 +705,4 @@ const blockDecorations = ViewPlugin.fromClass(
 // cosmetic bug atomicRanges was meant to fix — so rather than ship an
 // unverified fix for something this severe, atomicRanges is left out
 // entirely until it can be revisited with a way to test it for real.
-export const markdownLivePreview: Extension[] = [inlineDecorations, blockDecorations];
+export const markdownLivePreview: Extension[] = [inlineDecorations, blockDecorations, tableDecorations];
