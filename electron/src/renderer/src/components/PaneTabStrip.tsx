@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import type { TabNode } from "flexlayout-react";
 import { PanePicker } from "./PanePicker";
-import { SplitIcon } from "./SplitIcon";
 import { PaneTabItem, TabKind, tabKindIcon } from "../layout/paneTypes";
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from "../layout/tabDrag";
 import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
@@ -27,11 +26,9 @@ interface Props {
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
   onNewTab: (kind: TabKind) => void;
-  onSplit: (mode: "split-right" | "split-down", kind: TabKind) => void;
   /** A tab was dropped into this group at `index` (from this same group or
    * a different one) — caller applies it via moveTabToGroup and persists. */
   onDropTab: (payload: TabDragPayload, index: number) => void;
-  extraActions?: ReactNode;
 }
 
 function tabLabel(item: PaneTabItem, dirty: boolean): string {
@@ -66,9 +63,7 @@ export function PaneTabStrip({
   onSelect,
   onClose,
   onNewTab,
-  onSplit,
   onDropTab,
-  extraActions,
 }: Props) {
   const [addPickerAnchor, setAddPickerAnchor] = useState<DOMRect | null>(null);
   // Index into `items` the dragged tab would land at if dropped right now
@@ -106,7 +101,6 @@ export function PaneTabStrip({
   }, []);
 
   const closeAddPicker = useCallback(() => setAddPickerAnchor(null), []);
-  const activeKind = items.find((i) => i.id === activeTabId)?.kind ?? "terminal";
 
   const computeDropIndex = useCallback(
     (clientX: number, draggedTabId: string): number => {
@@ -241,27 +235,6 @@ export function PaneTabStrip({
             />
           ) : null}
         </div>
-      </div>
-      <div className="pane-tab-strip-actions" draggable={false}>
-        {extraActions}
-        <button
-          type="button"
-          className="pane-action pane-action-icon"
-          title="Split side by side"
-          draggable={false}
-          onClick={() => onSplit("split-right", activeKind)}
-        >
-          <SplitIcon direction="vertical" />
-        </button>
-        <button
-          type="button"
-          className="pane-action pane-action-icon"
-          title="Split stacked"
-          draggable={false}
-          onClick={() => onSplit("split-down", activeKind)}
-        >
-          <SplitIcon direction="horizontal" />
-        </button>
       </div>
     </div>
   );

@@ -65,6 +65,8 @@ interface Props {
    * tab strip / persisted layout reflect it. */
   onAssignPath: (path: string) => void;
   onDirtyChange: (dirty: boolean) => void;
+  treeOpen: boolean;
+  onToggleTree: () => void;
 }
 
 async function findAvailableUntitledName(tabId: number): Promise<string> {
@@ -147,7 +149,18 @@ function computeOutline(view: EditorView): OutlineItem[] {
   return items;
 }
 
-export function EditorContent({ tabId, rootPath, filePath, kind, zoom, onOpenFile, onAssignPath, onDirtyChange }: Props) {
+export function EditorContent({
+  tabId,
+  rootPath,
+  filePath,
+  kind,
+  zoom,
+  onOpenFile,
+  onAssignPath,
+  onDirtyChange,
+  treeOpen,
+  onToggleTree,
+}: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const pathRef = useRef<string | null>(filePath);
@@ -441,6 +454,19 @@ export function EditorContent({ tabId, rootPath, filePath, kind, zoom, onOpenFil
                 <path
                   fill="currentColor"
                   d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85Zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`}
+              title="Toggle file explorer"
+              onClick={onToggleTree}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z"
                 />
               </svg>
             </button>

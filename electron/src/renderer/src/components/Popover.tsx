@@ -36,9 +36,30 @@ interface Props {
    * of left-aligning — for triggers near the right side of the window. */
   align?: "start" | "end";
   className?: string;
+  /** false for a hover-triggered popover (e.g. SidebarQuickSwitchPopover)
+   * — the full-screen click-catcher below covers the entire viewport
+   * (including wherever the trigger element sits), which steals mouse
+   * hit-testing away from that trigger the instant the popover mounts and
+   * fires a spurious mouseleave on it — closing a hover popover almost
+   * immediately after it opens. Hover popovers dismiss themselves via
+   * onMouseLeave instead, so they don't need (and are actively broken by)
+   * this backdrop. Defaults to true for every existing click-triggered
+   * caller. */
+  dismissOnClickOutside?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export function Popover({ anchorRect, onClose, children, align = "start", className }: Props) {
+export function Popover({
+  anchorRect,
+  onClose,
+  children,
+  align = "start",
+  className,
+  dismissOnClickOutside = true,
+  onMouseEnter,
+  onMouseLeave,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; ready: boolean }>({
     top: 0,
@@ -69,16 +90,26 @@ export function Popover({ anchorRect, onClose, children, align = "start", classN
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [onClose]);
 
+  const panel = (
+    <div
+      ref={ref}
+      className={`popover${className ? ` ${className}` : ""}`}
+      style={{ top: pos.top, left: pos.left, opacity: pos.ready ? 1 : 0 }}
+      onClick={dismissOnClickOutside ? (e) => e.stopPropagation() : undefined}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </div>
+  );
+
+  if (!dismissOnClickOutside) {
+    return createPortal(panel, document.body);
+  }
+
   return createPortal(
     <div className="popover-catcher" onClick={onClose}>
-      <div
-        ref={ref}
-        className={`popover${className ? ` ${className}` : ""}`}
-        style={{ top: pos.top, left: pos.left, opacity: pos.ready ? 1 : 0 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
+      {panel}
     </div>,
     document.body,
   );

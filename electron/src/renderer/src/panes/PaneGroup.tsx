@@ -8,7 +8,6 @@ import {
   closeTabInGroup,
   moveTabToGroup,
   setActiveTabInGroup,
-  splitTabSet,
   updateTabInGroup,
 } from "../layout/layoutActions";
 import type { TabDragPayload } from "../layout/tabDrag";
@@ -155,17 +154,6 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
     [model, nodeId, onNotifyChanged],
   );
 
-  const splitPane = useCallback(
-    (mode: "split-right" | "split-down", kind: TabKind) => {
-      const tabSetId = tabNode.getParent()?.getId();
-      if (!tabSetId) return;
-      splitTabSet(model, tabSetId, mode === "split-right" ? "right" : "down", kind)
-        .then(onNotifyChanged)
-        .catch(console.error);
-    },
-    [model, tabNode, onNotifyChanged],
-  );
-
   const updateItem = useCallback(
     (id: string, patch: Partial<PaneTabItem>) => {
       updateTabInGroup(model, nodeId, id, patch);
@@ -221,22 +209,6 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
   if (!activeItem) return null;
   const showExplorer = treeOpen && isEditorKind(activeItem.kind);
 
-  const explorerToggle = isEditorKind(activeItem.kind) ? (
-    <button
-      type="button"
-      className={`pane-action pane-explorer-toggle${treeOpen ? " active" : ""}`}
-      title="Toggle file explorer"
-      onClick={() => setTreeOpen((v) => !v)}
-    >
-      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-        <path
-          fill="currentColor"
-          d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z"
-        />
-      </svg>
-    </button>
-  ) : null;
-
   return (
     <PaneFrame
       header={
@@ -248,9 +220,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
           onSelect={selectTab}
           onClose={closeTab}
           onNewTab={newTab}
-          onSplit={splitPane}
           onDropTab={dropTab}
-          extraActions={explorerToggle}
         />
       }
     >
@@ -312,6 +282,8 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
                     onOpenFile={(path) => openOrSwitchToFile(path, "markdown")}
                     onAssignPath={(path) => updateItem(item.id, { filePath: path })}
                     onDirtyChange={(dirty) => setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))}
+                    treeOpen={treeOpen}
+                    onToggleTree={() => setTreeOpen((v) => !v)}
                   />
                 )}
               </div>

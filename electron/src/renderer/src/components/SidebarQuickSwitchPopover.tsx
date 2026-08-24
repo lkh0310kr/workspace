@@ -26,8 +26,15 @@ export function SidebarQuickSwitchPopover({
   onMouseLeave,
 }: Props) {
   return (
-    <Popover anchorRect={anchorRect} onClose={onClose} className="sidebar-quick-switch-popover">
-      <div className="sidebar-quick-switch-list" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <Popover
+      anchorRect={anchorRect}
+      onClose={onClose}
+      className="sidebar-quick-switch-popover"
+      dismissOnClickOutside={false}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <div className="sidebar-quick-switch-list">
         {tabs.map((tab) => (
           <button
             key={tab.id}

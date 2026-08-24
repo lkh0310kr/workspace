@@ -54,18 +54,6 @@ export async function addPaneToTabSet(
   model.doAction(Actions.addNode(tabGroupNodeJson(item), tabSetId, DockLocation.CENTER, -1, true));
 }
 
-export async function splitTabSet(
-  model: Model,
-  tabSetId: string,
-  direction: "right" | "down",
-  kind: TabKind,
-  source?: Partial<PaneTabItem>,
-) {
-  const item = await buildTabItem(kind, source);
-  const location = direction === "right" ? DockLocation.RIGHT : DockLocation.BOTTOM;
-  model.doAction(Actions.addNode(tabGroupNodeJson(item), tabSetId, location, -1, true));
-}
-
 /** Adds a new tab of `kind` to an existing pane's tab group and makes it
  * active — the "globalized" version of what EditorPane's own openNewTab
  * used to do only for editor files. */

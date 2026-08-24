@@ -465,61 +465,6 @@ iframe.browser-content-slot {
   position: relative;
 }
 
-.pane-action {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 20px;
-  font-family: var(--font-mono);
-  padding: 0 8px;
-  height: 33px;
-  line-height: 33px;
-}
-
-.pane-action:hover,
-.pane-action.active {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.pane-action-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  padding: 0;
-}
-
-.split-icon {
-  display: inline-block;
-  width: 12px;
-  height: 10px;
-  border: 1px solid currentColor;
-  box-sizing: border-box;
-  opacity: 0.85;
-}
-
-.split-icon-vertical {
-  background: linear-gradient(
-    to right,
-    transparent calc(50% - 0.5px),
-    currentColor calc(50% - 0.5px),
-    currentColor calc(50% + 0.5px),
-    transparent calc(50% + 0.5px)
-  );
-}
-
-.split-icon-horizontal {
-  background: linear-gradient(
-    to bottom,
-    transparent calc(50% - 0.5px),
-    currentColor calc(50% - 0.5px),
-    currentColor calc(50% + 0.5px),
-    transparent calc(50% + 0.5px)
-  );
-}
-
 .pane-body {
   flex: 1;
   min-height: 0;
@@ -655,13 +600,6 @@ iframe.browser-content-slot {
 .pane-tab-add:hover {
   background: var(--bg-hover);
   color: var(--text);
-}
-
-.pane-tab-strip-actions {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  cursor: default;
 }
 
 /* —— Pane group body (PaneGroup.tsx) —— the explorer sidebar (editor tabs
