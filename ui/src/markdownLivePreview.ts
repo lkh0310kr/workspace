@@ -349,13 +349,17 @@ function buildDecorations(view: EditorView): DecorationSet {
 
         if (type === "TaskMarker") {
           // Selection-gated like every other element here, not always-
-          // rendered — Obsidian itself reveals the raw "- [ ]" text
-          // (dash included) while the cursor is on that line, same as
-          // headings/links/etc, rather than keeping the checkbox control
-          // up at all times (confirmed directly, this file previously
-          // assumed the opposite).
+          // rendered — Obsidian reveals the raw "- [ ]" text (dash
+          // included) once the cursor reaches the marker itself, not
+          // merely anywhere on the same line: placing the cursor in the
+          // label text to its right leaves the checkbox control up
+          // (confirmed directly — an earlier version of this comment had
+          // it as "cursor on that line", which over-triggered raw mode
+          // for the entire line's label text too). Gate on
+          // [line.from, node.to] — from the start of the line through the
+          // end of the "[ ]"/"[x]" marker — not the whole line.
           const line = view.state.doc.lineAt(node.from);
-          if (selectionOverlaps(view, line.from, line.to)) return;
+          if (selectionOverlaps(view, line.from, node.to)) return;
           const checked = view.state.doc.sliceString(node.from, node.to).toLowerCase() === "[x]";
           collected.push({
             from: node.from,
