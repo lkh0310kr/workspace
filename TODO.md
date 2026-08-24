@@ -2,7 +2,9 @@
 내가 쓴 TODO:
 - [ ] Bullet list raw,preview 간 간격 안 맞음. 그리고 checkbox때와 동일하게 커서가 불렛에 근접한 경우에만 raw로 표시하도록
 - [ ] Pane Select Dialog - Code <-> Markdown Pane -> Editor 로 통합
-- [ ] Pane Drag 해서 위치 조정하는 기능 갑자기 작동 안함. — 관련 있을 수도 있는 부분 수정(commit `ee7951a`, 2026-08-24): "클릭/드래그가 가끔 전부 안 먹는다"는 별도 리포트를 조사하다가, `overlayBarrier`의 `pushOverlayBlock`/`popOverlayBlock`가 카운터 방식인데 pane-tab 드래그(flexlayout의 HTML5 DnD)는 `dragend`에 의존하고, WebKit이 마우스를 놓은 지점이 네이티브 자식 뷰(Browser pane의 WKWebView)일 때 `dragend`를 안 쏘는 경우가 있어서 `popOverlayBlock`이 영원히 안 불리고 blockCount가 막힌 채로 남는 실제 버그를 발견/수정함(mouseup 전역 캡처로 안전망 추가). **다만 이게 "클릭/드래그 전부 먹통"이랑 완전히 같은 버그인지는 재현으로 확인 못 함** — `isOverlayBlocked()`는 지금 브라우저 패널 가시성에만 쓰이지 클릭 자체를 막진 않아서, 더 넓은 먹통 증상의 전체 원인은 아닐 수 있음. 다음에 또 발생하면 재현 직후 상태(어떤 패널 조작 중이었는지)를 최대한 기억해둘 것.
+- [ ] Pane Drag 해서 위치 조정하는 기능 갑자기 작동 안함. 관련 조사/수정 두 건:
+  1. commit `ee7951a`(2026-08-24): "클릭/드래그가 가끔 전부 안 먹는다"는 별도 리포트를 조사하다가, `overlayBarrier`의 `pushOverlayBlock`/`popOverlayBlock`가 카운터 방식인데 pane-tab 드래그(flexlayout의 HTML5 DnD)는 `dragend`에 의존하고, WebKit이 마우스를 놓은 지점이 네이티브 자식 뷰(Browser pane의 WKWebView)일 때 `dragend`를 안 쏘는 경우가 있어서 `popOverlayBlock`이 영원히 안 불리고 blockCount가 막힌 채로 남는 실제 버그를 발견/수정함(mouseup 전역 캡처로 안전망 추가).
+  2. commit `7b02b79`(같은 날): 사용자가 재현 조건을 더 좁혀서 알려줌 — "탭 전환했을 때 드래그/인터랙션이 안 됨". 워크스페이스 탭(WorkspaceTabRail) 전환은 `App.tsx`가 `layout-host`를 `key={activeTabId}`로 keying하고 있어서 전체 pane 트리를 강제로 언마운트/리마운트시킴. Browser pane은 언마운트 시 native WKWebView를 `browserDetach`로 떼는데 이게 fire-and-forget(React 언마운트 자체는 동기라 await 불가능)이라, 리마운트가 먼저 끝나고 실제 detach IPC가 나중에 도착하는 구간이 생김 — 그 사이엔 이미 사라진(React 기준) webview가 여전히 네이티브 레이어 최상단에 붙어있어서 전체 창의 클릭/드래그를 다 먹어버림. `selectTab()` 호출 전에 `browserHideAll()`을 먼저 호출해서 그 구간 자체를 없앰(`WorkspaceTabRail.tsx`). **실제 앱에서 재현 시나리오로 검증 필요** — 이번에도 직접 클릭 자동화는 안 하고 코드 수정만 함(자동화 리스크 때문에 지난 세션들에서 이미 두 번 사고 남).
 - [ ] Markdown Editor Cmd + B등 단축키 기능 추가
 - [ ] Editor Tab System VSCode, Zed 참고해서 완전 똑같이 수정. history front/back logic, tab new/replace logic ux이상함.
 
