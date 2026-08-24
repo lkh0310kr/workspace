@@ -19,6 +19,7 @@
     "@codemirror/view": "^6.38.0",
     "@lezer/highlight": "^1.2.3",
     "@lezer/markdown": "^1.7.2",
+    "@replit/codemirror-indentation-markers": "^6.5.3",
     "@tauri-apps/api": "^2.5.0",
     "@tauri-apps/plugin-dialog": "^2.7.2",
     "@tauri-apps/plugin-opener": "^2.5.4",

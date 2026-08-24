@@ -38,7 +38,7 @@ import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } 
 import { closeSearchPanel, openSearchPanel, searchPanelOpen } from "@codemirror/search";
 import { listDir, onFileChanged, readFile, writeFile } from "../tauri";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
-import { columnGuideTheme, markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
+import { indentGuides, markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { syntaxTheme } from "../codemirrorSyntax";
 import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
@@ -492,9 +492,9 @@ export function EditorPane({
         extensions: [
           ...kindExtensions,
           ...workspaceSearch,
-          // `columnGuideTheme` (codemirrorTheme.ts) draws its vertical
-          // indent-guide lines every 4ch on the assumption indentation is
-          // 4 spaces per level — CM6's own default indent unit is 2, which
+          // `indentGuides` draws its vertical lines relative to each
+          // line's own indent depth, on the assumption indentation is 4
+          // spaces per level — CM6's own default indent unit is 2, which
           // would leave the guides one level ahead of what Tab/auto-indent
           // actually produces. 4 to match.
           indentUnit.of("    "),
@@ -502,7 +502,7 @@ export function EditorPane({
           keymap.of([indentWithTab, ...historyKeymap]),
           EditorView.lineWrapping,
           workspaceEditorTheme,
-          columnGuideTheme,
+          indentGuides,
           EditorView.clickAddsSelectionRange.of((event) => event.altKey || event.metaKey),
           EditorView.updateListener.of((update) => {
             setSearchOpen(searchPanelOpen(update.view.state));
