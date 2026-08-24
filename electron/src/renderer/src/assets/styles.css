@@ -503,6 +503,23 @@ iframe.browser-content-slot {
   overflow-y: hidden;
 }
 
+.pane-tab-slot {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+/* VSCode/Orca-style insertion hint while dragging a tab chip over this
+   strip — computeDropIndex in PaneTabStrip.tsx picks which gap this
+   renders in. */
+.pane-tab-drop-indicator {
+  width: 2px;
+  flex-shrink: 0;
+  margin: 4px 0;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
 .pane-tab {
   display: flex;
   align-items: center;

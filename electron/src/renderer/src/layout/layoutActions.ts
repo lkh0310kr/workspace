@@ -104,37 +104,57 @@ export function updateTabInGroup(
 }
 
 /**
- * Pulls one tab out of a group into a brand-new sibling pane, synchronously
- * (no spawning/async — the tab item and its underlying terminal/webview
- * already exist, this just relocates which pane node owns it), so the
- * caller can immediately hand the new node to flexlayout's own
- * moveTabWithDragAndDrop and let the user drag it wherever they want —
- * "drag a specific tab chip to move just that tab" reuses flexlayout's
- * real drag-and-drop instead of reimplementing pointer-tracking DnD for
- * our own virtual sub-tabs. Returns null (and does nothing) if this is the
- * group's only tab — moving it would just be moving the whole pane, which
- * the caller should do via the existing whole-strip drag instead.
+ * Moves a tab to `targetIndex` within `targetTabNodeId`'s tab group —
+ * either reordering within the same pane (sourceTabNodeId ===
+ * targetTabNodeId) or merging into a different pane's tab strip.
+ * Synchronous (no spawning/async — the tab's terminal/webview already
+ * exists, this only changes which pane node's config references it), so
+ * PaneTabStrip.tsx can call it straight from a native `drop` handler.
+ * Moving a pane's only tab elsewhere removes that now-empty pane (same as
+ * closing it). Returns the moved tab's id, or null if either node/tab
+ * doesn't exist.
  */
-export function extractTabToNewPane(model: Model, sourceTabNodeId: string, tabId: string): TabNode | null {
-  const config = getGroupConfig(model, sourceTabNodeId);
-  if (!config || config.tabs.length <= 1) return null;
-  const item = config.tabs.find((t) => t.id === tabId);
+export function moveTabToGroup(
+  model: Model,
+  sourceTabNodeId: string,
+  tabId: string,
+  targetTabNodeId: string,
+  targetIndex: number,
+): string | null {
+  const sourceConfig = getGroupConfig(model, sourceTabNodeId);
+  if (!sourceConfig) return null;
+  const item = sourceConfig.tabs.find((t) => t.id === tabId);
   if (!item) return null;
-  const sourceNode = model.getNodeById(sourceTabNodeId);
-  if (!(sourceNode instanceof TabNode)) return null;
-  const tabSetId = sourceNode.getParent()?.getId();
-  if (!tabSetId) return null;
 
-  const remainingTabs = config.tabs.filter((t) => t.id !== tabId);
-  const activeTabId = config.activeTabId === tabId ? remainingTabs[0].id : config.activeTabId;
+  if (sourceTabNodeId === targetTabNodeId) {
+    const withoutItem = sourceConfig.tabs.filter((t) => t.id !== tabId);
+    const clamped = Math.max(0, Math.min(targetIndex, withoutItem.length));
+    const tabs = [...withoutItem.slice(0, clamped), item, ...withoutItem.slice(clamped)];
+    model.doAction(Actions.updateNodeAttributes(sourceTabNodeId, { config: { ...sourceConfig, tabs } }));
+    return item.id;
+  }
+
+  const targetConfig = getGroupConfig(model, targetTabNodeId);
+  if (!targetConfig) return null;
+
+  const remainingSource = sourceConfig.tabs.filter((t) => t.id !== tabId);
+  if (remainingSource.length === 0) {
+    model.doAction(Actions.deleteTab(sourceTabNodeId));
+  } else {
+    const activeTabId = sourceConfig.activeTabId === tabId ? remainingSource[0].id : sourceConfig.activeTabId;
+    model.doAction(
+      Actions.updateNodeAttributes(sourceTabNodeId, {
+        config: { ...sourceConfig, tabs: remainingSource, activeTabId },
+      }),
+    );
+  }
+
+  const clamped = Math.max(0, Math.min(targetIndex, targetConfig.tabs.length));
+  const tabs = [...targetConfig.tabs.slice(0, clamped), item, ...targetConfig.tabs.slice(clamped)];
   model.doAction(
-    Actions.updateNodeAttributes(sourceTabNodeId, { config: { ...config, tabs: remainingTabs, activeTabId } }),
+    Actions.updateNodeAttributes(targetTabNodeId, { config: { ...targetConfig, tabs, activeTabId: item.id } }),
   );
-
-  const newNodeJson = tabGroupNodeJson(item);
-  model.doAction(Actions.addNode(newNodeJson, tabSetId, DockLocation.RIGHT, -1, true));
-  const newNode = model.getNodeById(newNodeJson.id);
-  return newNode instanceof TabNode ? newNode : null;
+  return item.id;
 }
 
 /** Closes one tab within the group; closing the last tab removes the pane

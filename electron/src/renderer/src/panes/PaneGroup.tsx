@@ -6,10 +6,12 @@ import { TreeView } from "../components/TreeView";
 import {
   addTabToGroup,
   closeTabInGroup,
+  moveTabToGroup,
   setActiveTabInGroup,
   splitTabSet,
   updateTabInGroup,
 } from "../layout/layoutActions";
+import type { TabDragPayload } from "../layout/tabDrag";
 import { PaneGroupConfig, PaneTabItem, TabKind } from "../layout/paneTypes";
 import { EditorContent } from "./EditorContent";
 import { BrowserContent } from "./BrowserContent";
@@ -147,6 +149,15 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
     [tabs, model, nodeId, selectTab, onNotifyChanged],
   );
 
+  const dropTab = useCallback(
+    (payload: TabDragPayload, index: number) => {
+      const movedId = moveTabToGroup(model, payload.sourceTabNodeId, payload.tabId, nodeId, index);
+      if (movedId) setLocalActiveId(movedId);
+      onNotifyChanged();
+    },
+    [model, nodeId, onNotifyChanged],
+  );
+
   const onTreeResizeMouseDown = (e: ReactMouseEvent) => {
     e.preventDefault();
     treeResizeRef.current = { startX: e.clientX, startWidth: treeWidth };
@@ -196,7 +207,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
           onClose={closeTab}
           onNewTab={newTab}
           onSplit={splitPane}
-          onTabExtracted={onNotifyChanged}
+          onDropTab={dropTab}
           extraActions={explorerToggle}
         />
       }
