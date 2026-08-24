@@ -16,7 +16,8 @@ import { PaneGroupConfig, PaneTabItem, TabKind } from "./layout/paneTypes";
 import { PaneGroup } from "./panes/PaneGroup";
 import { browserCleanupAll, browserHideAll } from "./browser";
 import { popOverlayBlock, pushOverlayBlock } from "./browser/overlayBarrier";
-import { WorkspaceState, setTabLayout } from "./electron";
+import { WorkspaceState, setTabLayout, onBrowserReloadShortcut } from "./electron";
+import { getActiveBrowserWebview } from "./layout/activeBrowserWebview";
 import { ThemePreference, applyThemePreference, getStoredThemePreference, setStoredThemePreference } from "./theme";
 import { installGlobalErrorLogging } from "./errorLog";
 
@@ -249,6 +250,23 @@ export default function App() {
   // failed IPC call (e.g. reading a file that doesn't exist) is an
   // unhandled rejection nobody would otherwise notice at all.
   useEffect(() => installGlobalErrorLogging(), []);
+
+  // Cmd+R/Cmd+Shift+R — main/index.ts intercepts this at the input-event
+  // level (a renderer keydown listener wouldn't reliably see it — see the
+  // comment there) and forwards it here; reloads whichever browser tab
+  // last became visible, if any. No-op with nothing else affected if no
+  // browser tab has ever been shown — deliberately doesn't fall back to
+  // reloading the whole app.
+  useEffect(
+    () =>
+      onBrowserReloadShortcut(({ hard }) => {
+        const webview = getActiveBrowserWebview();
+        if (!webview) return;
+        if (hard) webview.reloadIgnoringCache();
+        else webview.reload();
+      }),
+    [],
+  );
 
   useEffect(() => {
     let dragging = false;

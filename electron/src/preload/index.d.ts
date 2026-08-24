@@ -38,6 +38,12 @@ export interface WorkspaceApi {
   dialog: {
     openDirectory: (defaultPath?: string) => Promise<string | null>
   }
+  browser: {
+    onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void) => () => void
+  }
+  shortcuts: {
+    onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
+  }
   pty: {
     spawn: (cols: number, rows: number) => Promise<number>
     write: (id: number, data: Uint8Array) => void

@@ -1,20 +1,16 @@
 # TODO
-- [x] **"새탭" 누르면 Render error 뜨던 버그** — 2026-08-24. 사용자가 devtools 콘솔 에러를 그대로 붙여줘서 바로 확인됨: `TypeError: Cannot read properties of null (reading 'getBoundingClientRect') at PaneTabStrip.tsx:219`. 원인: Popover 작업 때 `setAddPickerAnchor((prev) => (prev ? null : e.currentTarget.getBoundingClientRect()))`처럼 `e.currentTarget`을 setState updater 함수 **안에서** 읽고 있었는데, DOM 스펙상 `currentTarget`은 이벤트 디스패치가 끝나면 `null`이 됨 — React가 이 updater를 실제로 호출하는 시점(렌더 단계)엔 이미 클릭 이벤트 자체가 끝난 뒤라 `null.getBoundingClientRect()`로 터짐. `PaneTabStrip.tsx`("+" 버튼)와 `App.tsx`(앱 설정 톱니바퀴) 둘 다 같은 패턴이었어서 같이 고침 — rect를 updater 밖에서 먼저 변수로 캡처해두는 식으로.
-  - 같은 콘솔 로그에서 발견한 다른 진짜 버그들도 같이 처리:
-    - **`window.prompt()`가 Electron에서 아예 미지원**("prompt() is not supported" — Electron이 `alert`/`confirm`은 네이티브로 구현했지만 `prompt`는 여태 구현 안 한, 오래된 알려진 갭)이라 TreeView의 New Folder/Rename이 완전히 고장나 있었음. `components/TextPrompt.tsx`(신규, `Popover.tsx` 기반 작은 입력창)로 대체 — 컨텍스트 메뉴 클릭 위치에 anchor.
-    - **렌더 에러가 콘솔에만 찍히고 UI엔 전혀 안 보였던 문제** — 사용자가 "렌더링 실패 시 에러 로그도 띄워줘 UI에"라고 명시적으로 요청함. `errorLog.ts`(공유 에러 로그 스토어) + `components/ErrorLogPanel.tsx`(우하단 배지, 클릭하면 메시지+스택 목록) + `components/PaneErrorBoundary.tsx`(pane 하나가 크래시해도 앱 전체가 아니라 그 pane만 인라인 에러로 대체되도록, flexlayout 자체 오류 바운더리는 "Error rendering component"로만 뭉뚱그려서 진짜 메시지를 감춰버림) + `window.onerror`/`unhandledrejection` 전역 리스너(React 렌더 스택 밖에서 나는 에러 — 예: 실패한 IPC 호출, CodeMirror 내부 타이머 콜백 등 — 도 잡음).
-  - **아직 못 고친 진짜 버그(같은 콘솔 로그에서 발견, 별개)**: `Uncaught RangeError: Block decorations may not be specified via plugins` — CodeMirror 6은 `block:true` decoration을 ViewPlugin이 아니라 StateField로만 제공하게 되어 있는데, `markdownLivePreview.ts`의 `TableWidget`(마크다운 표 렌더링)이 ViewPlugin 안에서 `Decoration.replace({widget, block:true})`를 씀 — 표가 있는 마크다운 파일을 열면 크래시함. Tauri 시절부터 그대로 포팅된 코드라 Electron에서 처음 실사용 검증된 셈. 고치려면 `markdownLivePreview.ts`의 데코레이션 제공 방식을 StateField 기반으로 바꿔야 해서 오늘 처리한 것들보다 손이 더 감 — 다음에 표 있는 마크다운 열 때 재현되면 우선순위 올릴 것.
 - [ ] 브라우저
     - [ ] 이 외에 브라우저 관련 기능 orca 참고해서 고도화 (지금 너무 불편해) — 다음 후보: 실제 파비콘 표시, 탭별 히스토리 뒤로/앞으로 목록(길게 누르면 드롭다운), 다운로드 UI, 확대/축소
-    - [ ] a href target _blank 열면 native window가 새로 뜨는 것 같음. -> 우리 workspace 새 탭으로 뜨도록
-    - [ ] Cmd + R, Cmd + Shift + R 등 단축키 생각 후 구현
+    - [x] a href target _blank 열면 native window가 새로 뜨는 것 같음. -> 우리 workspace 새 탭으로 뜨도록 — 2026-08-24. 진짜 원인: `BrowserPane.tsx`가 `allowpopups`를 설정해뒀는데, 그 상태에서 `<webview>` 게스트가 새 창을 열려고 하면(target=_blank 포함) Electron 기본 동작이 진짜 네이티브 OS 창을 띄우는 거였음. `<webview>` 게스트는 host window와 별개의 WebContents라서 host의 `setWindowOpenHandler`(렌더러 자체에서 여는 링크만 커버)로는 못 잡고, 메인 프로세스에서 `app.on('web-contents-created', ...)`로 게스트 타입인 WebContents를 찾아서 그 위에 직접 `setWindowOpenHandler`를 걸어야 했음 — 네이티브 창 대신 IPC(`browser:open-new-tab`, `webContentsId`로 어느 webview가 요청했는지 식별)로 렌더러에 보내서 같은 pane 안에 새 브라우저 탭으로 열도록 함(`BrowserContent.tsx`→`PaneGroup.tsx`의 `addTabToGroup`).
+    - [x] Cmd + R, Cmd + Shift + R 등 단축키 생각 후 구현 — 2026-08-24. `@electron-toolkit/utils`의 `optimizer.watchWindowShortcuts`가 프로덕션 빌드에서 Cmd+R 계열을 `before-input-event` 레벨에서 무조건 `preventDefault`하고 있어서(렌더러 DOM에 키 이벤트 자체가 안 옴 — 렌더러 쪽 keydown 리스너로는 절대 못 잡음, 그래서 메인 프로세스에서 직접 가로채서 IPC로 렌더러에 알리는 방식으로 구현), Cmd+R/Cmd+Shift+R을 "포커스된 브라우저 탭 새로고침/캐시 무시 새로고침"으로 재활용함. 어느 탭이 "포커스"인지 추적할 방법이 마땅히 없어서(여러 pane에 브라우저 탭이 동시에 있을 수 있음) `activeBrowserWebview.ts`(모듈 레벨 변수)로 마지막에 `visible`이 된 webview를 추적. 브라우저 탭이 하나도 없으면 아무 일도 안 함(앱 전체를 리로드하는 폴백은 의도적으로 안 만듦 — 터미널 세션 UI 상태 다 날아갈 위험).
+    - **부가 발견/수정**: `watchWindowShortcuts`가 옵션 없이 호출되면 `zoom: false`가 기본값이라 Cmd+'-'/Cmd+'=' 도 항상(dev/prod 무관) 같은 방식으로 차단하고 있었음 — `App.tsx`의 기존 pane 확대/축소 기능(Cmd+'+'/Cmd+'-')이 이 코드가 추가된 시점부터 계속 조용히 막혀있었던 것으로 보임. `optimizer.watchWindowShortcuts(window, { zoom: true })`로 수정.
+- [ ] Terminal 이 이상해 ls 도 Operation not permitted 뜨고. 드래그하면 노란색으로 드래그되고 드래그 end했을때 그냥 풀려버려서 텍스트 복사도 안되고. 내생각에 그냥 ui ux문제가 아니라 터미널 설정쪽 문제같아. 아니면 그냥 터미널을 재시작해본다든지
 - [ ] Editor/Makdown
     - [ ] 검색 기능 UI 너무 옛날 스타일인 이슈 -> vscode 비슷한 구조로 ui 개선.
     - [ ] TreeView multi selection (vscode 참고)
-    - [ ] TreeView file rename 기능 동작 안 함.
 - [ ] Workspace
     - [ ] Tab split horizonta/vertical icon이 필요할까? 탭 추가하고 이동하면 될 거 같은데.
     - [ ] MacOS Native Header의 Sidebar Toggle 버튼 hover시 popover selector 표시하여 quick selecting할 수 있도록
-    - [x] Pane UX를 Dialog -> 가벼운 Popover로 변경 — 2026-08-24. `SettingsDialog`/`AppSettingsDialog`/`PanePicker` 셋 다 화면 중앙에 반투명 배경 깔고 뜨던 모달이었음 — 공통 `components/Popover.tsx`로 교체: 트리거 버튼 바로 옆에 위치, 배경 안 어두워짐. 여전히 (안 보이는) 전체화면 클릭캐처는 유지 — 안 그러면 트리거 버튼을 다시 눌러서 닫으려 할 때 `mousedown` 기반 outside-click이 먼저 닫고 그 다음 버튼 자체의 `onClick`이 다시 열어버리는 흔한 버그가 남음(기존 백드롭 방식이 이미 이 문제를 우연히 피하고 있었음, 그 메커니즘만 유지하고 배경색만 뺌). 앱 설정은 지금까지 Cmd+,로만 열 수 있고 버튼이 아예 없어서 anchor 잡을 곳이 없었음 — titlebar에 톱니바퀴 버튼 새로 추가해서 anchor로도 쓰고 발견성도 개선.
+    - [ ] TreeView toggle 버튼을 Search icon 오른쪽에 위치하여 패널에 종속되도록. 현재는 한 탭을 범위로 하고 있는 문제.
 - [ ] Bullet list raw,preview 간 간격 안 맞음. 그리고 checkbox때와 동일하게 커서가 불렛에 근접한 경우에만 raw로 표시하도록 (`electron/src/renderer/src/markdownLivePreview.ts`, Tauri 때부터 미해결 그대로 포팅됨)
 - [x] Markdown Editor Cmd + B등 단축키 기능 추가 — 2026-08-24. CodeMirror 6엔 마크다운 bold/italic 토글 커맨드가 기본 내장 안 되어 있어서 직접 작성(`toggleMarkdownWrap`) — 선택 영역을 `**`/`*`로 감싸거나, 이미 감싸져 있으면 벗김. Mod-b(굵게)/Mod-i(기울임) 매핑.

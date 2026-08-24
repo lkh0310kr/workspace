@@ -3,6 +3,8 @@ import { BrowserAddressBar } from "../components/BrowserAddressBar";
 import { normalizeBrowserNavigationUrl, BLANK_URL } from "../browserUrl";
 import { recordBrowserVisit } from "../browserHistory";
 import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
+import { onBrowserOpenNewTab } from "../electron";
+import { setActiveBrowserWebview, getActiveBrowserWebview } from "../layout/activeBrowserWebview";
 import type { PaneTabItem } from "../layout/paneTypes";
 
 // The per-page content half of what used to be BrowserPane.tsx — tab-strip
@@ -15,11 +17,15 @@ interface Props {
   item: PaneTabItem;
   visible: boolean;
   onUpdate: (patch: Partial<PaneTabItem>) => void;
+  /** target="_blank"/window.open() inside the guest page — main/index.ts
+   * denies the native window and forwards the URL here; caller opens it
+   * as a new browser tab in this pane's group. */
+  onOpenNewTab: (url: string) => void;
 }
 
 const DEFAULT_URL = "https://www.google.com";
 
-export function BrowserContent({ tabId, item, visible, onUpdate }: Props) {
+export function BrowserContent({ tabId, item, visible, onUpdate, onOpenNewTab }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
@@ -30,6 +36,8 @@ export function BrowserContent({ tabId, item, visible, onUpdate }: Props) {
   const [canGoForward, setCanGoForward] = useState(false);
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
+  const onOpenNewTabRef = useRef(onOpenNewTab);
+  onOpenNewTabRef.current = onOpenNewTab;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -83,12 +91,30 @@ export function BrowserContent({ tabId, item, visible, onUpdate }: Props) {
     webview.addEventListener("did-navigate-in-page", onNavigateInPage);
     webview.addEventListener("page-title-updated", onPageTitleUpdated);
 
+    // target="_blank"/window.open() in the guest page — main/index.ts's
+    // web-contents-created handler denies the native window this would
+    // otherwise open (BrowserPane.tsx sets allowpopups) and forwards the
+    // URL via this IPC instead, identified by webContentsId since a guest
+    // isn't necessarily attached (and thus doesn't have a real id) the
+    // instant this effect runs.
+    const unlistenOpenNewTab = onBrowserOpenNewTab(({ hostWebContentsId, url }) => {
+      let myId: number;
+      try {
+        myId = webview.getWebContentsId();
+      } catch {
+        return;
+      }
+      if (myId !== hostWebContentsId) return;
+      onOpenNewTabRef.current(url);
+    });
+
     return () => {
       webview.removeEventListener("did-start-loading", onStartLoading);
       webview.removeEventListener("did-stop-loading", onStopLoading);
       webview.removeEventListener("did-navigate", onNavigate);
       webview.removeEventListener("did-navigate-in-page", onNavigateInPage);
       webview.removeEventListener("page-title-updated", onPageTitleUpdated);
+      unlistenOpenNewTab();
       container.removeChild(webview);
       webviewRef.current = null;
     };
@@ -100,6 +126,13 @@ export function BrowserContent({ tabId, item, visible, onUpdate }: Props) {
   useEffect(() => {
     const webview = webviewRef.current;
     if (webview) webview.style.visibility = visible ? "visible" : "hidden";
+    // Cmd+R/Cmd+Shift+R (App.tsx) reloads whichever webview last became
+    // visible — see activeBrowserWebview.ts for why there's no better
+    // single source of truth than that.
+    if (visible) setActiveBrowserWebview(webview);
+    return () => {
+      if (getActiveBrowserWebview() === webview) setActiveBrowserWebview(null);
+    };
   }, [visible]);
 
   // Cmd+L / Ctrl+L: jump to and select this page's address bar — only

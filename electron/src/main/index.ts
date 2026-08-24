@@ -40,6 +40,24 @@ function createWindow(): BrowserWindow {
     return { action: 'deny' }
   })
 
+  // Cmd+R / Cmd+Shift+R: always intercept at the input-event level (not a
+  // renderer-side keydown listener) — @electron-toolkit/utils's
+  // watchWindowShortcuts (below) already unconditionally swallows
+  // Cmd+R-family combos in production builds via the same mechanism
+  // (before-input-event's preventDefault stops the key from ever reaching
+  // any renderer DOM listener at all), so a renderer-level handler would
+  // silently never fire there. Repurposes the shortcut instead of just
+  // blocking it: reload the currently-focused browser tab
+  // (activeBrowserWebview.ts), not the whole app — reloading the whole
+  // renderer would nuke every terminal pane's UI state.
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return
+    if (input.code === 'KeyR' && (input.control || input.meta)) {
+      event.preventDefault()
+      mainWindow.webContents.send('shortcut:browser-reload', { hard: input.shift })
+    }
+  })
+
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -162,8 +180,36 @@ app.whenReady().then(() => {
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+  // zoom: true — without it this also unconditionally blocks Cmd+'-'/
+  // Cmd+'=' at the input-event level (same mechanism as the Cmd+R block
+  // above), which silently broke App.tsx's own Cmd+'+'/Cmd+'-' pane zoom
+  // feature from the moment it was added.
   app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+    optimizer.watchWindowShortcuts(window, { zoom: true })
+  })
+
+  // Guest <webview> content (BrowserPane) attempting to open a new window
+  // (target="_blank", window.open()) — without this it falls through to
+  // Electron's default handling, which (since BrowserPane.tsx sets
+  // allowpopups) is to open a real native OS window, reported as "a href
+  // target _blank 열면 native window가 새로 뜨는 것 같음". Deny the native
+  // window and hand the URL to the renderer instead, so it can open it as
+  // a new tab in the same pane group. Set on the guest's own WebContents
+  // (via web-contents-created, since a <webview>'s guest is a separate
+  // WebContents from the host window) — the host's own
+  // setWindowOpenHandler in createWindow() only covers links opened from
+  // our own renderer UI, not from inside a webview guest page. Registered
+  // once here (not per-window, unlike the shortcuts above) since it isn't
+  // tied to any one BrowserWindow's lifecycle.
+  app.on('web-contents-created', (_event, contents) => {
+    if (contents.getType() !== 'webview') return
+    contents.setWindowOpenHandler((details) => {
+      mainWindowRef?.webContents.send('browser:open-new-tab', {
+        hostWebContentsId: contents.id,
+        url: details.url
+      })
+      return { action: 'deny' }
+    })
   })
 
   installClaudeStatuslineHook()

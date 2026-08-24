@@ -161,6 +161,22 @@ export async function openDirectoryDialog(defaultPath?: string): Promise<string 
   return window.api.dialog.openDirectory(defaultPath);
 }
 
+/** Fires when a <webview> guest tries to open a new window (target=_blank,
+ * window.open()) — main/index.ts denies the native window and forwards it
+ * here instead. `hostWebContentsId` identifies which webview guest it
+ * came from (matches Electron.WebviewTag.getWebContentsId()). */
+export function onBrowserOpenNewTab(handler: (payload: { hostWebContentsId: number; url: string }) => void): () => void {
+  return window.api.browser.onOpenNewTab(handler);
+}
+
+/** Cmd+R/Cmd+Shift+R, intercepted at the main-process input-event level
+ * (see main/index.ts for why a renderer keydown listener wouldn't reliably
+ * see this) and repurposed to reload the active browser tab instead of
+ * the whole app. */
+export function onBrowserReloadShortcut(handler: (payload: { hard: boolean }) => void): () => void {
+  return window.api.shortcuts.onBrowserReload(handler);
+}
+
 export interface ClaudeRateLimitWindow {
   used_percent: number;
   resets_at: number | null;

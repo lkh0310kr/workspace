@@ -284,6 +284,14 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
                     item={item}
                     visible={visible && active}
                     onUpdate={(patch) => updateItem(item.id, patch)}
+                    onOpenNewTab={(url) =>
+                      addTabToGroup(model, nodeId, "browser", { url })
+                        .then((id) => {
+                          if (id) setLocalActiveId(id);
+                          onNotifyChanged();
+                        })
+                        .catch(console.error)
+                    }
                   />
                 )}
                 {(item.kind === "code" || item.kind === "markdown") && (

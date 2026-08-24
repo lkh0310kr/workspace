@@ -15,6 +15,21 @@ const api = {
     openDirectory: (defaultPath?: string): Promise<string | null> =>
       ipcRenderer.invoke('dialog:open-directory', defaultPath)
   },
+  browser: {
+    onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: { hostWebContentsId: number; url: string }): void =>
+        cb(payload)
+      ipcRenderer.on('browser:open-new-tab', listener)
+      return () => ipcRenderer.removeListener('browser:open-new-tab', listener)
+    }
+  },
+  shortcuts: {
+    onBrowserReload: (cb: (payload: { hard: boolean }) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: { hard: boolean }): void => cb(payload)
+      ipcRenderer.on('shortcut:browser-reload', listener)
+      return () => ipcRenderer.removeListener('shortcut:browser-reload', listener)
+    }
+  },
   pty: {
     spawn: (cols: number, rows: number): Promise<number> => ipcRenderer.invoke('pty:spawn', cols, rows),
     write: (id: number, data: Uint8Array): void => ipcRenderer.send('pty:write', id, data),
