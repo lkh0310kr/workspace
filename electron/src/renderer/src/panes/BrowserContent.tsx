@@ -142,11 +142,20 @@ export function BrowserContent({ tabId, item, visible, onUpdate, onOpenNewTab }:
 
   useEffect(() => {
     const webview = webviewRef.current;
-    if (webview) webview.style.visibility = visible ? "visible" : "hidden";
-    // A tab switching away no longer keeps real DOM focus, so treat that
-    // as a blur too (its own focus/blur listeners only fire on genuine
-    // focus changes, which a hidden-but-still-mounted webview won't get).
-    if (!visible && getActiveBrowserWebview() === webview) setActiveBrowserWebview(null);
+    if (!webview) return;
+    webview.style.visibility = visible ? "visible" : "hidden";
+    if (visible) {
+      // Mirrors TerminalPane.tsx/EditorContent's own termRef/view.focus()
+      // on their "active" transition — without this, switching to a
+      // browser tab (without also manually clicking into its page) never
+      // moved real focus there, so Cmd+R had nothing to go on until the
+      // user happened to click inside the guest content.
+      webview.focus();
+    } else if (getActiveBrowserWebview() === webview) {
+      // A tab switching away doesn't get a real blur event on its own
+      // (still mounted, just hidden), so clear it explicitly here too.
+      setActiveBrowserWebview(null);
+    }
   }, [visible]);
 
   // Cmd+L / Ctrl+L: jump to and select this page's address bar — only
