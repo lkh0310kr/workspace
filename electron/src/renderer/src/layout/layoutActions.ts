@@ -33,11 +33,22 @@ export async function buildTabItem(kind: TabKind, source?: Partial<PaneTabItem>)
   }
 }
 
+// The pane (flexlayout tab node) id must never be derived from the
+// *first* tab item it happens to hold — a pane's own id outlives any
+// single tab inside it (more tabs get added via addTabToGroup without
+// ever changing the pane's id), so deriving it from `item.id` meant
+// dragging that original founding tab out into its own new pane
+// (moveTabToNewPane, below) tried to create a new node reusing the exact
+// id the *source* pane (still alive, holding the remaining tabs) was
+// already using — "each node must have a unique id, duplicate id:
+// tabgroup-...", and the drag silently failed. A pane's id is its own
+// identity, generated fresh every time a new pane is created, regardless
+// of which item ends up inside it.
 function tabGroupNodeJson(item: PaneTabItem) {
   const config: PaneGroupConfig = { tabs: [item], activeTabId: item.id };
   return {
     type: "tab" as const,
-    id: `tabgroup-${item.id}`,
+    id: `tabgroup-${crypto.randomUUID()}`,
     name: tabKindLabel(item.kind),
     component: "tabgroup" as const,
     config,
