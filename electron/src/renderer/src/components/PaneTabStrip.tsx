@@ -97,6 +97,12 @@ export function PaneTabStrip({
             <div
               key={item.id}
               className={`pane-tab${item.id === activeTabId ? " active" : ""}`}
+              // The strip's own draggable=true (below) is for repositioning
+              // the whole pane via flexlayout's drag-and-drop — without an
+              // explicit opt-out here, starting that native HTML5 drag
+              // gesture from directly on a tab chip could swallow the
+              // click instead of switching tabs.
+              draggable={false}
               onClick={() => onSelect(item.id)}
               title={item.kind === "browser" ? item.url : item.filePath ?? undefined}
             >
@@ -116,11 +122,12 @@ export function PaneTabStrip({
             </div>
           );
         })}
-        <div className="pane-tab-add-anchor">
+        <div className="pane-tab-add-anchor" draggable={false}>
           <button
             type="button"
             className="pane-tab-add"
             title="New tab"
+            draggable={false}
             onClick={(e) => {
               e.stopPropagation();
               setAddPickerOpen((open) => !open);
@@ -140,12 +147,13 @@ export function PaneTabStrip({
           ) : null}
         </div>
       </div>
-      <div className="pane-tab-strip-actions">
+      <div className="pane-tab-strip-actions" draggable={false}>
         {extraActions}
         <button
           type="button"
           className="pane-action pane-action-icon"
           title="Split side by side"
+          draggable={false}
           onClick={() => onSplit("split-right", activeKind)}
         >
           <SplitIcon direction="vertical" />
@@ -154,6 +162,7 @@ export function PaneTabStrip({
           type="button"
           className="pane-action pane-action-icon"
           title="Split stacked"
+          draggable={false}
           onClick={() => onSplit("split-down", activeKind)}
         >
           <SplitIcon direction="horizontal" />

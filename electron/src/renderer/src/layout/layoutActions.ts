@@ -74,12 +74,13 @@ export async function addTabToGroup(
   tabNodeId: string,
   kind: TabKind,
   source?: Partial<PaneTabItem>,
-) {
+): Promise<string | null> {
   const config = getGroupConfig(model, tabNodeId);
-  if (!config) return;
+  if (!config) return null;
   const item = await buildTabItem(kind, source);
   const next: PaneGroupConfig = { ...config, tabs: [...config.tabs, item], activeTabId: item.id };
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: next }));
+  return item.id;
 }
 
 export function setActiveTabInGroup(model: Model, tabNodeId: string, tabId: string): void {
@@ -103,18 +104,21 @@ export function updateTabInGroup(
 }
 
 /** Closes one tab within the group; closing the last tab removes the pane
- * itself (matches a real browser: closing your only tab closes the window). */
-export function closeTabInGroup(model: Model, tabNodeId: string, tabId: string): void {
+ * itself (matches a real browser: closing your only tab closes the
+ * window). Returns the tab that's now active, or null if the whole pane
+ * was removed. */
+export function closeTabInGroup(model: Model, tabNodeId: string, tabId: string): string | null {
   const config = getGroupConfig(model, tabNodeId);
-  if (!config) return;
+  if (!config) return null;
   const idx = config.tabs.findIndex((t) => t.id === tabId);
-  if (idx === -1) return;
+  if (idx === -1) return config.activeTabId;
   const tabs = config.tabs.filter((t) => t.id !== tabId);
   if (tabs.length === 0) {
     model.doAction(Actions.deleteTab(tabNodeId));
-    return;
+    return null;
   }
   const activeTabId =
     config.activeTabId === tabId ? (tabs[idx] ?? tabs[idx - 1] ?? tabs[0]).id : config.activeTabId;
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, tabs, activeTabId } }));
+  return activeTabId;
 }

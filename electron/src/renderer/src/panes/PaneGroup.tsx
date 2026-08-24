@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import type { TabNode } from "flexlayout-react";
 import { PaneFrame } from "../components/PaneFrame";
 import { PaneTabStrip } from "../components/PaneTabStrip";
@@ -44,10 +44,20 @@ function isEditorKind(kind: TabKind): boolean {
 export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotifyChanged }: Props) {
   const config = (tabNode.getConfig() ?? { tabs: [], activeTabId: "" }) as PaneGroupConfig;
   const tabs = config.tabs;
-  const activeTabId = config.activeTabId;
-  const activeItem = tabs.find((t) => t.id === activeTabId) ?? tabs[0];
   const zoom = config.zoom ?? 1;
 
+  // Which tab is displayed is local React state, not derived straight from
+  // the flexlayout model — switching used to go through
+  // setActiveTabInGroup + onNotifyChanged (a full model mutation +
+  // App-level modelEpoch bump + persistLayout debounce) on every click,
+  // which round-trips through flexlayout's own re-render before the
+  // screen actually updates. Reported as "탭 이동이 orca처럼 부드럽지
+  // 않음 / 안 되는 케이스가 너무 많음" — switching feels laggy and
+  // sometimes just doesn't visibly update. Local state makes the switch
+  // itself instant and synchronous; the effect below still writes it
+  // through to the model afterward so it's persisted, exactly like a
+  // debounced autosave.
+  const [localActiveId, setLocalActiveId] = useState(config.activeTabId);
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({});
   const [treeOpen, setTreeOpen] = useState(true);
   const [treeWidth, setTreeWidth] = useState(200);
@@ -56,17 +66,34 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
   const model = tabNode.getModel();
   const nodeId = tabNode.getId();
 
-  const selectTab = useCallback(
-    (id: string) => {
-      setActiveTabInGroup(model, nodeId, id);
-      onNotifyChanged();
-    },
-    [model, nodeId, onNotifyChanged],
-  );
+  // If our local pointer no longer refers to an existing tab (the model's
+  // own activeTabId moved for a reason other than the user clicking a tab
+  // here — e.g. a tab this component previously pointed at was closed by
+  // some other path), fall back to whatever the model currently says.
+  useEffect(() => {
+    if (!tabs.some((t) => t.id === localActiveId)) {
+      setLocalActiveId(config.activeTabId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabs, config.activeTabId]);
+
+  useEffect(() => {
+    if (localActiveId === config.activeTabId) return;
+    setActiveTabInGroup(model, nodeId, localActiveId);
+    onNotifyChanged();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localActiveId]);
+
+  const activeItem = tabs.find((t) => t.id === localActiveId) ?? tabs[0];
+
+  const selectTab = useCallback((id: string) => {
+    setLocalActiveId(id);
+  }, []);
 
   const closeTab = useCallback(
     (id: string) => {
-      closeTabInGroup(model, nodeId, id);
+      const nextActive = closeTabInGroup(model, nodeId, id);
+      if (nextActive) setLocalActiveId(nextActive);
       onNotifyChanged();
     },
     [model, nodeId, onNotifyChanged],
@@ -74,7 +101,12 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
 
   const newTab = useCallback(
     (kind: TabKind) => {
-      addTabToGroup(model, nodeId, kind).then(onNotifyChanged).catch(console.error);
+      addTabToGroup(model, nodeId, kind)
+        .then((id) => {
+          if (id) setLocalActiveId(id);
+          onNotifyChanged();
+        })
+        .catch(console.error);
     },
     [model, nodeId, onNotifyChanged],
   );
@@ -105,7 +137,12 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
         selectTab(existing.id);
         return;
       }
-      addTabToGroup(model, nodeId, kind, { filePath: path }).then(onNotifyChanged).catch(console.error);
+      addTabToGroup(model, nodeId, kind, { filePath: path })
+        .then((id) => {
+          if (id) setLocalActiveId(id);
+          onNotifyChanged();
+        })
+        .catch(console.error);
     },
     [tabs, model, nodeId, selectTab, onNotifyChanged],
   );
@@ -179,7 +216,19 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
           {tabs.map((item) => {
             const active = item.id === activeItem.id;
             return (
-              <div key={item.id} className="pane-group-content-item" style={{ display: active ? "flex" : "none" }}>
+              <div
+                key={item.id}
+                className="pane-group-content-item"
+                // visibility, not display:none — an Electron <webview>'s
+                // guest renderer can get suspended/blanked when an
+                // ancestor is display:none (Chromium stops compositing
+                // it), which showed up as a background browser tab coming
+                // back blank/frozen after switching to it. visibility:
+                // hidden keeps the guest alive and painting in the
+                // background, same as BrowserPane.tsx already relied on
+                // for workspace-tab visibility before this rework.
+                style={{ visibility: active ? "visible" : "hidden", pointerEvents: active ? "auto" : "none" }}
+              >
                 {item.kind === "terminal" && (
                   <TerminalPane terminalId={item.terminalId ?? 0} active={visible && active} zoom={zoom} />
                 )}
