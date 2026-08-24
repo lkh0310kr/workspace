@@ -4,6 +4,9 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {
   hostname: (): Promise<string> => ipcRenderer.invoke('hostname'),
+  shell: {
+    revealItemInDir: (path: string): Promise<void> => ipcRenderer.invoke('shell:reveal-item-in-dir', path)
+  },
   pty: {
     spawn: (cols: number, rows: number): Promise<number> => ipcRenderer.invoke('pty:spawn', cols, rows),
     write: (id: number, data: Uint8Array): void => ipcRenderer.send('pty:write', id, data),
@@ -43,7 +46,12 @@ const api = {
     deletePath: (tabId: number, rel: string): Promise<void> =>
       ipcRenderer.invoke('fs:delete-path', tabId, rel),
     renamePath: (tabId: number, fromRel: string, toRel: string): Promise<void> =>
-      ipcRenderer.invoke('fs:rename-path', tabId, fromRel, toRel)
+      ipcRenderer.invoke('fs:rename-path', tabId, fromRel, toRel),
+    onChanged: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('fs:changed', listener)
+      return () => ipcRenderer.removeListener('fs:changed', listener)
+    }
   }
 }
 

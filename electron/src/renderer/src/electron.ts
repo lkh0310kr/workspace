@@ -145,3 +145,11 @@ export function onPtyOutput(handler: (payload: PtyOutput) => void): () => void {
     handler({ id, data_b64: bytesToBase64(data) });
   });
 }
+
+export function onFileChanged(handler: () => void): () => void {
+  return window.api.fs.onChanged(handler);
+}
+
+export async function revealItemInDir(path: string): Promise<void> {
+  return window.api.shell.revealItemInDir(path);
+}

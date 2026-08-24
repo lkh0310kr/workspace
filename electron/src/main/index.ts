@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { hostname as osHostname } from 'os'
+import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
@@ -51,6 +52,39 @@ function createWindow(): BrowserWindow {
 let workspace: Workspace | null = null
 let mainWindowRef: BrowserWindow | null = null
 
+// Watches the active tab's rootPath and pushes 'fs:changed' to the
+// renderer (TreeView/EditorPane's onFileChanged) so external edits (git
+// checkout, another editor, a build script) show up without polling.
+// fs.watch's recursive option is macOS/Windows-only (FSEvents/ReadDirectoryW
+// backed) — fine for this app, but wouldn't be portable to Linux as-is.
+let fileWatcher: fs.FSWatcher | null = null
+let watchedRoot: string | null = null
+let fsChangeDebounce: ReturnType<typeof setTimeout> | null = null
+
+function broadcastFileChanged(): void {
+  if (fsChangeDebounce) clearTimeout(fsChangeDebounce)
+  fsChangeDebounce = setTimeout(() => {
+    mainWindowRef?.webContents.send('fs:changed')
+  }, 150)
+}
+
+function syncFileWatcher(): void {
+  if (!workspace) return
+  const state = workspace.state()
+  const activeTab = state.tabs.find((t) => t.id === state.activeTabId)
+  const root = activeTab?.rootPath ?? null
+  if (root === watchedRoot) return
+  fileWatcher?.close()
+  fileWatcher = null
+  watchedRoot = root
+  if (!root) return
+  try {
+    fileWatcher = fs.watch(root, { recursive: true }, () => broadcastFileChanged())
+  } catch (err) {
+    console.error('fs.watch failed for', root, err)
+  }
+}
+
 function persist(): void {
   if (!workspace) return
   saveWorkspaceSnapshot(workspace.state())
@@ -60,6 +94,7 @@ function persist(): void {
   // getWorkspaceState once on mount, so without this push they'd never
   // see another tab/layout change made through any other handler.
   mainWindowRef?.webContents.send('workspace:updated', workspace.state())
+  syncFileWatcher()
 }
 
 // Same shape as Electron's own implicit default application menu (which
@@ -143,6 +178,9 @@ app.whenReady().then(() => {
   mainWindowRef = mainWindow
 
   ipcMain.handle('hostname', () => osHostname())
+  ipcMain.handle('shell:reveal-item-in-dir', (_event, path: string) => {
+    shell.showItemInFolder(path)
+  })
 
   // pty:spawn is the only handler that needs to *push* data back
   // (terminal output arrives whenever the shell produces it, not in
@@ -230,4 +268,5 @@ app.on('window-all-closed', () => {
 // keep alive across restarts).
 app.on('before-quit', () => {
   workspace?.disposeAllTerminals()
+  fileWatcher?.close()
 })

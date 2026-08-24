@@ -20,6 +20,9 @@ export interface DirEntry {
 
 export interface WorkspaceApi {
   hostname: () => Promise<string>
+  shell: {
+    revealItemInDir: (path: string) => Promise<void>
+  }
   pty: {
     spawn: (cols: number, rows: number) => Promise<number>
     write: (id: number, data: Uint8Array) => void
@@ -43,6 +46,7 @@ export interface WorkspaceApi {
     createDir: (tabId: number, rel: string) => Promise<void>
     deletePath: (tabId: number, rel: string) => Promise<void>
     renamePath: (tabId: number, fromRel: string, toRel: string) => Promise<void>
+    onChanged: (cb: () => void) => () => void
   }
 }
 
