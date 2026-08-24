@@ -7,7 +7,8 @@ import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { useWorkspace } from "./components/useWorkspace";
-import { addPaneToTabSet } from "./layout/layoutActions";
+import { addPaneToTabSet, moveTabToNewPane } from "./layout/layoutActions";
+import { getTabDrag, endTabDrag } from "./layout/tabDrag";
 import { setLayoutInstance } from "./layout/layoutRef";
 import { PaneGroupConfig, PaneTabItem, TabKind } from "./layout/paneTypes";
 import { PaneGroup } from "./panes/PaneGroup";
@@ -258,6 +259,38 @@ export default function App() {
   useEffect(() => {
     void browserHideAll().catch(console.error);
   }, [activeTabId]);
+
+  // Fallback for a tab-chip drag (PaneTabStrip.tsx) that ends somewhere
+  // that ISN'T over any pane's tab strip: dropping *inside* a tab strip
+  // shows the line hint and reorders/merges (handled entirely within
+  // PaneTabStrip's own onDrop, which clears the shared drag payload via
+  // endTabDrag()); dropping anywhere else should still "do something" —
+  // move that tab into its own new pane, matching a real browser/VSCode
+  // (drag a tab out and drop it away from any tab strip -> new window/
+  // split). Native drop events fire on the deepest element first and
+  // bubble up, so by the time this window-level listener runs, getTabDrag()
+  // is already null if some PaneTabStrip already consumed the drop.
+  useEffect(() => {
+    const onDragOver = (e: globalThis.DragEvent) => {
+      if (getTabDrag()) e.preventDefault();
+    };
+    const onDrop = (e: globalThis.DragEvent) => {
+      const payload = getTabDrag();
+      if (!payload) return;
+      e.preventDefault();
+      const model = modelsRef.current.get(activeTabId);
+      if (model && moveTabToNewPane(model, payload.sourceTabNodeId, payload.tabId)) {
+        bumpLayout();
+      }
+      endTabDrag();
+    };
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, [activeTabId, bumpLayout]);
 
   const onAction = useCallback(
     (action: Action) => {

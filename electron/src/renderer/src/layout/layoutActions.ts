@@ -157,6 +157,35 @@ export function moveTabToGroup(
   return item.id;
 }
 
+/**
+ * Dragging a tab and dropping it somewhere that ISN'T over any pane's tab
+ * strip (no line-hint target) means "put this in a new layout position"
+ * instead of reordering/merging — matches a real browser/VSCode: drop on
+ * another tab strip to join it, drop elsewhere and it becomes its own
+ * pane. Splits a new sibling pane off the source tabset (to its right) and
+ * moves the tab into it. A pane's only tab has nowhere new to go (it's
+ * already its own pane) — no-op, returns false.
+ */
+export function moveTabToNewPane(model: Model, sourceTabNodeId: string, tabId: string): boolean {
+  const config = getGroupConfig(model, sourceTabNodeId);
+  if (!config) return false;
+  const item = config.tabs.find((t) => t.id === tabId);
+  if (!item) return false;
+  if (config.tabs.length <= 1) return false;
+  const sourceNode = model.getNodeById(sourceTabNodeId);
+  if (!(sourceNode instanceof TabNode)) return false;
+  const tabSetId = sourceNode.getParent()?.getId();
+  if (!tabSetId) return false;
+
+  const remaining = config.tabs.filter((t) => t.id !== tabId);
+  const activeTabId = config.activeTabId === tabId ? remaining[0].id : config.activeTabId;
+  model.doAction(
+    Actions.updateNodeAttributes(sourceTabNodeId, { config: { ...config, tabs: remaining, activeTabId } }),
+  );
+  model.doAction(Actions.addNode(tabGroupNodeJson(item), tabSetId, DockLocation.RIGHT, -1, true));
+  return true;
+}
+
 /** Closes one tab within the group; closing the last tab removes the pane
  * itself (matches a real browser: closing your only tab closes the
  * window). Returns the tab that's now active, or null if the whole pane
