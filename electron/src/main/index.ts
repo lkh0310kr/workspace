@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Menu, dialog } from 'electron'
 import { join } from 'path'
 import { hostname as osHostname } from 'os'
 import * as fs from 'fs'
@@ -186,6 +186,13 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('usage:claude-rate-limit-status', () => claudeRateLimitStatus())
   ipcMain.handle('usage:cursor-usage-status', () => cursorUsageStatus())
+  ipcMain.handle('dialog:open-directory', async (_event, defaultPath?: string) => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+      defaultPath
+    })
+    return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
 
   // pty:spawn is the only handler that needs to *push* data back
   // (terminal output arrives whenever the shell produces it, not in

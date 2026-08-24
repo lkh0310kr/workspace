@@ -6,6 +6,8 @@ import { PaneFrame } from "./components/PaneFrame";
 import { TerminalPaneTitle } from "./components/TerminalPaneTitle";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
 import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
+import { SettingsDialog } from "./components/SettingsDialog";
+import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { useWorkspace } from "./components/useWorkspace";
 import { addPaneToTabSet, replacePane, splitTabSet } from "./layout/layoutActions";
 import { setLayoutInstance } from "./layout/layoutRef";
@@ -16,14 +18,10 @@ import { BrowserPane } from "./panes/BrowserPane";
 import { browserCleanupAll, browserHideAll } from "./browser";
 import { popOverlayBlock, pushOverlayBlock } from "./browser/overlayBarrier";
 import { WorkspaceState, setTabLayout } from "./electron";
-import { ThemePreference, applyThemePreference, getStoredThemePreference } from "./theme";
+import { ThemePreference, applyThemePreference, getStoredThemePreference, setStoredThemePreference } from "./theme";
 
 // Port of ui/src/App.tsx (task 6: layout/flexlayout-react + workspace tab
-// rail). Not ported yet, deliberately: SettingsDialog/AppSettingsDialog
-// (per-tab root-path picker, theme preference UI — task 8/polish, not
-// blocking layout) and ClaudeUsageStatusBar (task 8, Claude/Cursor usage
-// tracking). Theme still applies (defaults from localStorage/system, see
-// theme.ts), just without a UI to change it yet — Cmd+, is a no-op for now.
+// rail; SettingsDialog/AppSettingsDialog wired back in afterward).
 
 function normalizeLayoutNode(node: unknown) {
   if (!node || typeof node !== "object") return;
@@ -111,12 +109,30 @@ export default function App() {
   const ensureInflightRef = useRef<Set<number>>(new Set());
   const [modelEpoch, setModelEpoch] = useState(0);
   const pendingRebalanceRef = useRef<string | null>(null);
-  const [themePreference] = useState<ThemePreference>(getStoredThemePreference);
+  const [settingsTabId, setSettingsTabId] = useState<number | null>(null);
+  const [appSettingsOpen, setAppSettingsOpen] = useState(false);
+  const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
   const [railOpen, setRailOpen] = useState(true);
 
   useEffect(() => {
     return applyThemePreference(themePreference);
   }, [themePreference]);
+
+  const handleThemeChange = useCallback((preference: ThemePreference) => {
+    setStoredThemePreference(preference);
+    setThemePreference(preference);
+  }, []);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        setAppSettingsOpen((open) => !open);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const syncModels = useCallback((ws: WorkspaceState) => {
     const seen = new Set<number>();
@@ -397,7 +413,7 @@ export default function App() {
           <WorkspaceTabRail
             tabs={workspace.tabs}
             activeTabId={workspace.active_tab_id}
-            onOpenSettings={() => {}}
+            onOpenSettings={(tabId) => setSettingsTabId(tabId)}
           />
         )}
         <div className="layout-host" key={activeTabId}>
@@ -411,6 +427,21 @@ export default function App() {
             tabDragSpeed={0}
           />
         </div>
+        {settingsTabId !== null && (
+          <SettingsDialog
+            onClose={() => setSettingsTabId(null)}
+            tabId={settingsTabId}
+            tabTitle={workspace.tabs.find((t) => t.id === settingsTabId)?.title ?? ""}
+            rootPath={workspace.tabs.find((t) => t.id === settingsTabId)?.root_path ?? ""}
+          />
+        )}
+        {appSettingsOpen && (
+          <AppSettingsDialog
+            onClose={() => setAppSettingsOpen(false)}
+            themePreference={themePreference}
+            onThemeChange={handleThemeChange}
+          />
+        )}
       </div>
       <ClaudeUsageStatusBar />
     </div>

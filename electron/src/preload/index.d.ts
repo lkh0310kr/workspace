@@ -35,6 +35,9 @@ export interface WorkspaceApi {
       billingCycleEndMs: number | null
     }>
   }
+  dialog: {
+    openDirectory: (defaultPath?: string) => Promise<string | null>
+  }
   pty: {
     spawn: (cols: number, rows: number) => Promise<number>
     write: (id: number, data: Uint8Array) => void

@@ -154,6 +154,13 @@ export async function revealItemInDir(path: string): Promise<void> {
   return window.api.shell.revealItemInDir(path);
 }
 
+// Tauri's @tauri-apps/plugin-dialog open({ directory: true }) equivalent —
+// a native directory picker, routed through the main process since
+// Electron's dialog module only exists there.
+export async function openDirectoryDialog(defaultPath?: string): Promise<string | null> {
+  return window.api.dialog.openDirectory(defaultPath);
+}
+
 export interface ClaudeRateLimitWindow {
   used_percent: number;
   resets_at: number | null;

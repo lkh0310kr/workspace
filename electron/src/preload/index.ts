@@ -11,6 +11,10 @@ const api = {
     claudeRateLimitStatus: (): Promise<unknown> => ipcRenderer.invoke('usage:claude-rate-limit-status'),
     cursorUsageStatus: (): Promise<unknown> => ipcRenderer.invoke('usage:cursor-usage-status')
   },
+  dialog: {
+    openDirectory: (defaultPath?: string): Promise<string | null> =>
+      ipcRenderer.invoke('dialog:open-directory', defaultPath)
+  },
   pty: {
     spawn: (cols: number, rows: number): Promise<number> => ipcRenderer.invoke('pty:spawn', cols, rows),
     write: (id: number, data: Uint8Array): void => ipcRenderer.send('pty:write', id, data),
