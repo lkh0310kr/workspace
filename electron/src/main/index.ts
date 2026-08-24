@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -48,10 +48,63 @@ function persist(): void {
   if (workspace) saveWorkspaceSnapshot(workspace.state())
 }
 
+// Same shape as Electron's own implicit default application menu (which
+// we'd otherwise get automatically on macOS by not calling
+// Menu.setApplicationMenu at all), minus Undo/Redo from the Edit
+// submenu. Electron's default Edit menu binds Cmd+Z/Cmd+Shift+Z to
+// role: 'undo'/'redo', which invoke the *native* Chromium edit-command
+// undo stack — a no-op here, since CodeMirror manages its own undo
+// history entirely in JS (@codemirror/commands' historyKeymap, wired in
+// EditorPane once that's ported). The native menu item intercepts the
+// keystroke at the OS responder-chain level before it ever reaches the
+// webview as a DOM keydown event, so CodeMirror's own Cmd+Z binding
+// would never fire — the exact same problem (and fix) already found and
+// applied to the Tauri version's src/lib.rs.
+function buildAppMenu(): Menu {
+  const appName = app.name
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: appName,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [{ role: 'togglefullscreen' }]
+    },
+    {
+      label: 'Window',
+      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'close' }]
+    }
+  ]
+  return Menu.buildFromTemplate(template)
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  if (process.platform === 'darwin') {
+    Menu.setApplicationMenu(buildAppMenu())
+  }
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
