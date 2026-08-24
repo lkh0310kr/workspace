@@ -9,7 +9,7 @@
     - [ ] `ls` Operation not permitted — 코드로는 고칠 수 없는 macOS 권한(TCC) 문제로 보임: workspace root가 `~/Documents/...` 밑이고(TCC가 Documents/Desktop/Downloads를 보호 폴더로 취급), dev 모드로 뜨는 Electron 바이너리가 이 앱한테 Full Disk Access(또는 Files & Folders 밑 Documents 폴더 접근)를 아직 허용 안 받은 상태로 보임. 앱 코드가 실제로 잘못 건드리는 게 없어서(pty.ts는 순수 cwd 전달일 뿐) 고칠 코드가 없음 — macOS 시스템 설정 > 개인정보 보호 및 보안 > 전체 디스크 접근 권한(또는 파일과 폴더 > Documents 폴더)에서 Electron(dev) 또는 빌드된 workspace-app에 권한을 직접 부여해야 함. 미해결로 남김.
 - [ ] Editor/Makdown
     - [ ] 검색 기능 UI 너무 옛날 스타일인 이슈 -> vscode 비슷한 구조로 ui 개선.
-    - [ ] TreeView multi selection (vscode 참고)
+    - [ ] TreeView file multi selection (vscode 참고)
 - [ ] Workspace
     - [ ] Tab split horizonta/vertical icon이 필요할까? 탭 추가하고 이동하면 될 거 같은데.
     - [ ] MacOS Native Header의 Sidebar Toggle 버튼 hover시 popover selector 표시하여 quick selecting할 수 있도록
