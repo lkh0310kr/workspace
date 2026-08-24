@@ -139,18 +139,31 @@ export function PaneTabStrip({
     endTabDrag();
   };
 
+  // Both layers below carry the exact same draggable+onDragStart/onDragEnd
+  // for the whole-pane drag — not just the outer .pane-tab-strip. A plain
+  // <div draggable> ancestor is *supposed* to still catch a drag started
+  // from a non-draggable child per the HTML DnD spec's nearest-draggable-
+  // ancestor lookup, but that stopped actually firing here in practice
+  // once .pane-tab-strip-tabs (flex:1, no draggable of its own) became the
+  // strip's only child and started covering its entire empty background —
+  // reported as "pane 옮길 때" doing nothing at all, not even reaching
+  // startPaneDrag (confirmed via a temporary console.log that never
+  // printed). Attaching the same handlers directly to
+  // .pane-tab-strip-tabs too removes the dependency on that ancestor
+  // lookup working as expected.
+  const onStripDragStart = (e: DragEvent) => {
+    pushOverlayBlock();
+    startPaneDrag(e, tabNode);
+  };
+  const onStripDragEnd = () => popOverlayBlock();
+
   return (
-    <div
-      className="pane-tab-strip"
-      draggable
-      onDragStart={(e: DragEvent) => {
-        pushOverlayBlock();
-        startPaneDrag(e, tabNode);
-      }}
-      onDragEnd={() => popOverlayBlock()}
-    >
+    <div className="pane-tab-strip" draggable onDragStart={onStripDragStart} onDragEnd={onStripDragEnd}>
       <div
         className="pane-tab-strip-tabs"
+        draggable
+        onDragStart={onStripDragStart}
+        onDragEnd={onStripDragEnd}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
