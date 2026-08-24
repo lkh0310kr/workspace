@@ -41,19 +41,21 @@ const TREE_MAX_WIDTH = 480;
 
 // The file-explorer toggle/width used to reset to the defaults (open,
 // 200px) on every mount — every pane remount (workspace-tab switch, app
-// restart) silently discarded it. One shared preference across every
-// pane, same as theme.ts/autosave.ts's pattern, rather than per-pane
-// state — simplest fix for "TreeView toggle 상태 저장 안됨".
+// restart) silently discarded it. Persisted per-pane (keyed by the
+// flexlayout node id), not as one shared value across every pane —
+// TreeView belongs to a single pane's own file-browsing context, so two
+// different panes/splits need to be able to have it open/closed (and
+// sized) independently of each other.
 const TREE_OPEN_KEY = "workspace.editorTreeOpen";
 const TREE_WIDTH_KEY = "workspace.editorTreeWidth";
 
-function getStoredTreeOpen(): boolean {
-  const stored = localStorage.getItem(TREE_OPEN_KEY);
+function getStoredTreeOpen(nodeId: string): boolean {
+  const stored = localStorage.getItem(`${TREE_OPEN_KEY}.${nodeId}`);
   return stored === null ? true : stored === "1";
 }
 
-function getStoredTreeWidth(): number {
-  const stored = Number(localStorage.getItem(TREE_WIDTH_KEY));
+function getStoredTreeWidth(nodeId: string): number {
+  const stored = Number(localStorage.getItem(`${TREE_WIDTH_KEY}.${nodeId}`));
   return Number.isFinite(stored) && stored > 0 ? stored : 200;
 }
 
@@ -77,30 +79,36 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
   // itself instant and synchronous; the effect below still writes it
   // through to the model afterward so it's persisted, exactly like a
   // debounced autosave.
-  const [localActiveId, setLocalActiveId] = useState(config.activeTabId);
-  const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({});
-  const [treeOpen, setTreeOpenState] = useState(getStoredTreeOpen);
-  const [treeWidth, setTreeWidthState] = useState(getStoredTreeWidth);
-  const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
-
-  const setTreeOpen = useCallback((next: boolean | ((prev: boolean) => boolean)) => {
-    setTreeOpenState((prev) => {
-      const value = typeof next === "function" ? next(prev) : next;
-      localStorage.setItem(TREE_OPEN_KEY, value ? "1" : "0");
-      return value;
-    });
-  }, []);
-
-  const setTreeWidth = useCallback((next: number | ((prev: number) => number)) => {
-    setTreeWidthState((prev) => {
-      const value = typeof next === "function" ? next(prev) : next;
-      localStorage.setItem(TREE_WIDTH_KEY, String(value));
-      return value;
-    });
-  }, []);
-
   const model = tabNode.getModel();
   const nodeId = tabNode.getId();
+
+  const [localActiveId, setLocalActiveId] = useState(config.activeTabId);
+  const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({});
+  const [treeOpen, setTreeOpenState] = useState(() => getStoredTreeOpen(nodeId));
+  const [treeWidth, setTreeWidthState] = useState(() => getStoredTreeWidth(nodeId));
+  const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  const setTreeOpen = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      setTreeOpenState((prev) => {
+        const value = typeof next === "function" ? next(prev) : next;
+        localStorage.setItem(`${TREE_OPEN_KEY}.${nodeId}`, value ? "1" : "0");
+        return value;
+      });
+    },
+    [nodeId],
+  );
+
+  const setTreeWidth = useCallback(
+    (next: number | ((prev: number) => number)) => {
+      setTreeWidthState((prev) => {
+        const value = typeof next === "function" ? next(prev) : next;
+        localStorage.setItem(`${TREE_WIDTH_KEY}.${nodeId}`, String(value));
+        return value;
+      });
+    },
+    [nodeId],
+  );
 
   // If our local pointer no longer refers to an existing tab (the model's
   // own activeTabId moved for a reason other than the user clicking a tab
