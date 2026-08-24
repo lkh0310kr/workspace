@@ -1,0 +1,1539 @@
+/* Design system: docs/DESIGN.md — Zed / Obsidian inspired */
+
+:root {
+  /* flexlayout-react 0.10.x: splitter width/hit-area moved from JSON model
+     attributes (splitterSize/splitterExtra, used by the ui/ Tauri app's
+     0.8.x pin) to these CSS custom properties. */
+  --flexlayout-splitter-size: 9px;
+  --flexlayout-splitter-active-size: 9px;
+  /* Was near-black (#0d0d0d/#121212) — closer to Obsidian's actual dark
+     theme (~#1e1e1e), which reads as a soft dark gray rather than a harsh
+     near-black. */
+  --bg-base: #1e1e1e;
+  --bg-surface: #242424;
+  --bg-hover: #2c2c2c;
+  --bg-active: #2b3a52;
+  --border: #333333;
+  --border-strong: #444444;
+  --text: #d4d4d4;
+  --text-muted: #8a8a8a;
+  --text-faint: #5c5c5c;
+  --accent: #6690d6;
+  /* Syntax colors — mirrors VS Code's own default dark theme palette. */
+  --syntax-keyword: #c586c0;
+  --syntax-string: #ce9178;
+  --syntax-comment: #6a9955;
+  --syntax-number: #b5cea8;
+  --syntax-function: #dcdcaa;
+  --syntax-type: #4ec9b0;
+  --syntax-property: #9cdcfe;
+  --syntax-invalid: #f14c4c;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Apple SD Gothic Neo", monospace;
+  --chrome-h: 34px;
+  --browser-chrome-total: 36px;
+  --rail-w: 148px;
+  --rail-close-w: 42px;
+}
+
+:root[data-theme="light"] {
+  --bg-base: #fbfbfa;
+  --bg-surface: #ffffff;
+  --bg-hover: #f0f0ee;
+  --bg-active: #dde8f7;
+  --border: #e2e2e0;
+  --border-strong: #cccccb;
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --text-faint: #9a9a9a;
+  --accent: #3d6fb5;
+  --syntax-keyword: #af00db;
+  --syntax-string: #a31515;
+  --syntax-comment: #008000;
+  --syntax-number: #098658;
+  --syntax-function: #795e26;
+  --syntax-type: #267f99;
+  --syntax-property: #001080;
+  --syntax-invalid: #cd3131;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-base);
+}
+
+/* Overlay title bar (see tauri.conf.json titleBarStyle) leaves the traffic
+   lights floating over the web content with no native bar underneath — this
+   strip reserves that height so content doesn't render under them, stays
+   draggable via data-tauri-drag-region, and hosts the sidebar toggle just to
+   their right (Xcode/Finder convention). */
+.titlebar {
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 78px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  /* Electron has no data-tauri-drag-region equivalent — the whole strip
+     (minus the sidebar toggle, marked no-drag above) is made draggable
+     via this CSS property instead. */
+  -webkit-app-region: drag;
+}
+
+.titlebar-sidebar-toggle {
+  -webkit-app-region: no-drag;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.titlebar-sidebar-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}
+
+.titlebar-sidebar-toggle.active {
+  color: var(--text);
+}
+
+.app-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-base);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.status-bar-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layout-host {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.layout-host > .flexlayout__layout {
+  position: absolute !important;
+  inset: 0;
+}
+
+/* —— Workspace tab rail —— */
+.workspace-rail {
+  width: var(--rail-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  position: relative;
+  z-index: 2;
+}
+
+.workspace-rail-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.workspace-rail-row {
+  display: grid;
+  grid-template-columns: 1fr var(--rail-close-w) var(--rail-close-w);
+  align-items: stretch;
+  min-height: 40px;
+  border-left: 2px solid transparent;
+}
+
+.workspace-rail-row:hover {
+  background: var(--bg-hover);
+}
+
+.workspace-rail-row.active {
+  background: var(--bg-active);
+  border-left-color: var(--accent);
+}
+
+.workspace-rail-close,
+.workspace-rail-close-spacer {
+  width: var(--rail-close-w);
+  min-width: var(--rail-close-w);
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.workspace-rail-close {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 24px;
+  line-height: 40px;
+  cursor: pointer;
+}
+
+.workspace-rail-close:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.workspace-rail-close-spacer {
+  display: block;
+}
+
+.workspace-rail-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 4px 4px 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-ui);
+}
+
+.workspace-rail-title-text {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-rail-title-path {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-rail-row:hover .workspace-rail-title,
+.workspace-rail-row.active .workspace-rail-title {
+  color: var(--text);
+}
+
+.workspace-rail-settings {
+  width: var(--rail-close-w);
+  min-width: var(--rail-close-w);
+  height: 40px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.workspace-rail-row:hover .workspace-rail-settings {
+  opacity: 1;
+}
+
+.workspace-rail-settings:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.workspace-rail-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 27px;
+  line-height: 1;
+  text-align: center;
+}
+
+.workspace-rail-add:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* —— Pane chrome —— */
+.pane-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+.pane-shell-browser {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pane-browser-chrome {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--browser-chrome-total);
+  min-height: var(--browser-chrome-total);
+  position: relative;
+  z-index: 1;
+  background: var(--bg-surface);
+}
+
+.browser-viewport-anchor {
+  display: none;
+}
+
+.browser-content-slot {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  height: 0;
+  border: none;
+  background: var(--bg-base);
+}
+
+iframe.browser-content-slot {
+  display: block;
+  pointer-events: auto;
+}
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: var(--chrome-h);
+  min-height: var(--chrome-h);
+  padding: 0 6px 0 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  cursor: grab;
+  z-index: 200;
+  overflow: visible;
+}
+
+.pane-toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: var(--browser-chrome-total);
+  height: var(--browser-chrome-total);
+  padding: 0 4px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 199;
+}
+
+.pane-toolbar.browser-toolbar {
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Browser pane: nav buttons, URL input, and pane actions share one row —
+   there's no separate title to justify a second header row. */
+.pane-header-browser {
+  height: var(--browser-chrome-total);
+  min-height: var(--browser-chrome-total);
+  gap: 4px;
+  padding: 0 4px 0 6px;
+}
+
+.pane-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.pane-actions {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  align-items: center;
+  cursor: default;
+}
+
+.pane-type-anchor {
+  position: relative;
+}
+
+.pane-action {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 20px;
+  font-family: var(--font-mono);
+  padding: 0 8px;
+  height: 33px;
+  line-height: 33px;
+}
+
+.pane-action:hover,
+.pane-action.active {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.pane-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  padding: 0;
+}
+
+.split-icon {
+  display: inline-block;
+  width: 12px;
+  height: 10px;
+  border: 1px solid currentColor;
+  box-sizing: border-box;
+  opacity: 0.85;
+}
+
+.split-icon-vertical {
+  background: linear-gradient(
+    to right,
+    transparent calc(50% - 0.5px),
+    currentColor calc(50% - 0.5px),
+    currentColor calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+}
+
+.split-icon-horizontal {
+  background: linear-gradient(
+    to bottom,
+    transparent calc(50% - 0.5px),
+    currentColor calc(50% - 0.5px),
+    currentColor calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+}
+
+.pane-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.pane-body-fill {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* —— Content panes —— */
+.terminal-pane-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.terminal-host {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+}
+
+.terminal-search-bar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  padding: 4px;
+}
+
+.terminal-search-bar input {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 3px 6px;
+  width: 160px;
+}
+
+.terminal-search-bar input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.terminal-search-bar button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.terminal-search-bar button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.md-editor {
+  height: 100%;
+  overflow: auto;
+}
+
+/* —— Markdown live preview (Obsidian-style: markdown syntax renders as
+   real formatting, syntax markers only reappear when the cursor is on
+   that element) — decorations applied by markdownLivePreview.ts —— */
+.cm-md-h1,
+.cm-md-h2,
+.cm-md-h3,
+.cm-md-h4,
+.cm-md-h5,
+.cm-md-h6 {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cm-md-h1 {
+  font-size: 1.6em;
+}
+
+.cm-md-h2 {
+  font-size: 1.35em;
+}
+
+.cm-md-h3 {
+  font-size: 1.2em;
+}
+
+.cm-md-h4 {
+  font-size: 1.1em;
+}
+
+.cm-md-h5 {
+  font-size: 1em;
+}
+
+.cm-md-h6 {
+  font-size: 0.95em;
+  color: var(--text-muted);
+}
+
+.cm-md-strong {
+  font-weight: 600;
+}
+
+.cm-md-em {
+  font-style: italic;
+}
+
+.cm-md-code {
+  font-family: var(--font-mono);
+  background: var(--bg-hover);
+  padding: 0 3px;
+}
+
+.cm-md-link {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.cm-md-strike {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.cm-md-hr {
+  display: inline-block;
+  width: 100%;
+  height: 0;
+  border-top: 1px solid var(--border-strong);
+  color: transparent;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+/* Bullet/number/checkbox markers share one reserved footprint (1.4em
+   box + consistent trailing gap) so a list mixing the three types keeps
+   its content lined up — the marker glyphs/digits themselves are
+   untouched, only the spacing around them. */
+/* `appearance: none` — the global `* { border-radius: 0 }` reset has no
+   effect on a native checkbox's shape, since that's drawn by the OS's
+   own widget renderer (a separate path from normal box styling), not
+   real border-radius. Removing native appearance and drawing a square
+   box + checkmark by hand is the only way to actually get rid of it. */
+.cm-md-task-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1em;
+  height: 1em;
+  margin: 0 0.4em 0 0;
+  vertical-align: middle;
+  cursor: pointer;
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg-base);
+  position: relative;
+}
+
+.cm-md-task-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.cm-md-task-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 0.27em;
+  top: 0.03em;
+  width: 0.25em;
+  height: 0.48em;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+
+.cm-md-quote-line {
+  border-left: 3px solid var(--border-strong);
+  padding-left: 10px;
+  color: var(--text-muted);
+}
+
+.cm-md-codeblock-line {
+  background: var(--bg-hover);
+  font-family: var(--font-mono);
+}
+
+.cm-md-callout-line {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.cm-md-callout-label {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.cm-md-callout-warning-line,
+.cm-md-callout-danger-line,
+.cm-md-callout-failure-line,
+.cm-md-callout-bug-line {
+  border-left-color: #d9822b;
+  background: color-mix(in srgb, #d9822b 8%, transparent);
+}
+
+.cm-md-callout-label.cm-md-callout-warning,
+.cm-md-callout-label.cm-md-callout-danger,
+.cm-md-callout-label.cm-md-callout-failure,
+.cm-md-callout-label.cm-md-callout-bug {
+  color: #d9822b;
+}
+
+.cm-md-bullet {
+  display: inline-block;
+  width: 1.4em;
+  color: var(--text-muted);
+}
+
+.cm-md-list-number {
+  display: inline-block;
+  min-width: 1em;
+  margin-right: 0.4em;
+  text-align: right;
+  color: var(--text-muted);
+}
+
+.cm-md-wikilink {
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px dotted var(--accent);
+}
+
+.cm-md-image {
+  max-width: 100%;
+  display: block;
+  margin: 4px 0;
+  border-radius: 4px;
+}
+
+.cm-md-table {
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 0.95em;
+}
+
+.cm-md-table th,
+.cm-md-table td {
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.cm-md-table th {
+  background: var(--bg-hover);
+  font-weight: 600;
+}
+
+.browser-nav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.browser-nav-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 28px;
+  font-family: var(--font-mono);
+}
+
+.browser-nav-btn:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.browser-nav-btn:disabled {
+  color: var(--text-muted);
+  opacity: 0.35;
+  cursor: default;
+  background: transparent;
+}
+
+.browser-nav-btn-devtools {
+  font-size: 11px;
+  letter-spacing: -0.5px;
+}
+
+.browser-url {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  height: 28px;
+}
+
+.browser-url:focus {
+  outline: none;
+  border-color: var(--border-strong);
+}
+
+/* GitHub-style thin indeterminate progress line while a browser pane loads */
+.browser-loading-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.browser-loading-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: var(--accent);
+  animation: browser-loading-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes browser-loading-slide {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* —— flexlayout —— */
+.flexlayout__tabset_tabbar_outer,
+.flexlayout__tabset_header,
+.flexlayout__tab_button_stretch {
+  display: none !important;
+}
+
+.flexlayout__layout {
+  background: var(--bg-base) !important;
+}
+
+/* Do NOT force height:100% on tabset/tab — flexlayout sets an explicit
+   inline height on these based on each pane's split weight, and
+   `!important` would discard that computed (possibly < 100%) height,
+   collapsing every column-direction (stacked) split to full height. */
+.flexlayout__tabset,
+.flexlayout__tabset_content,
+.flexlayout__tab {
+  min-height: 0 !important;
+}
+
+.flexlayout__tab > * {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.flexlayout__tab {
+  background: var(--bg-base) !important;
+  overflow: hidden !important;
+}
+
+.flexlayout__border {
+  background: var(--bg-surface) !important;
+}
+
+.flexlayout__tab_button {
+  color: var(--text-muted) !important;
+}
+
+.flexlayout__tab_button--selected {
+  background: var(--bg-hover) !important;
+  color: var(--text) !important;
+}
+
+.flexlayout__splitter {
+  background: var(--border) !important;
+  flex: 0 0 1px !important;
+  min-width: 1px !important;
+  min-height: 1px !important;
+}
+
+.flexlayout__splitter_drag {
+  flex: 0 0 1px !important;
+}
+
+/* —— Misc —— */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.pane-tab-bar,
+.workspace-body,
+.toolbar,
+.workspace-tab,
+.tabset-btn {
+  display: none;
+}
+
+.tabset-placeholder {
+  display: none;
+}
+
+/* —— Markdown pane file tree —— */
+.md-pane {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+/* —— Obsidian-style editor shell —— */
+.obsidian-editor-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+.obsidian-topbar {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  min-height: var(--chrome-h);
+  height: var(--chrome-h);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  overflow: hidden;
+}
+
+.obsidian-topbar-icons {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 4px;
+  border-right: 1px solid var(--border);
+}
+
+.obsidian-topbar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.obsidian-topbar-icon:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.obsidian-topbar-icon.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.obsidian-topbar-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.editor-tab-bar {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.editor-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 180px;
+  min-width: 0;
+  padding: 0 4px 0 10px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.editor-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.editor-tab.active {
+  background: var(--bg-base);
+  color: var(--text);
+}
+
+.editor-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.editor-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.editor-tab-close:hover {
+  color: var(--text);
+}
+
+.editor-tab-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.editor-tab-add:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.obsidian-topbar .pane-actions {
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  padding: 0 2px;
+  cursor: default;
+}
+
+.obsidian-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.obsidian-explorer {
+  width: 200px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.obsidian-explorer.collapsed {
+  width: 0;
+  overflow: hidden;
+  border-right: none;
+}
+
+.obsidian-explorer-resizer {
+  flex-shrink: 0;
+  width: 4px;
+  margin-left: -3px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+.obsidian-explorer-resizer:hover,
+.obsidian-explorer-resizer:active {
+  background: var(--accent);
+}
+
+.obsidian-editor-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.obsidian-nav-row {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-base);
+}
+
+.obsidian-nav-row button {
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.obsidian-nav-row button:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.obsidian-nav-row button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.obsidian-nav-spacer {
+  flex: 1;
+}
+
+.obsidian-editor-column .md-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.obsidian-editor-column .md-empty-state {
+  flex: 1;
+  min-height: 0;
+}
+
+.md-pane-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.md-pane-toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.md-pane-toolbar-spacer {
+  flex: 1;
+}
+
+.md-pane-save-status {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.md-pane-save-status.unsaved {
+  color: var(--text-muted);
+}
+
+.md-pane-toolbar button {
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.md-pane-toolbar button:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.md-pane-toolbar button:disabled {
+  color: var(--text-faint);
+  opacity: 0.35;
+  cursor: default;
+}
+
+.md-pane-tree-toggle.active {
+  color: var(--text);
+}
+
+.md-pane-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.md-pane-body .md-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.md-empty-state {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.md-empty-state button {
+  padding: 8px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.md-empty-state button:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.md-empty-state button:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.tree-view {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.tree-view-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-view-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  pointer-events: none;
+}
+
+.tree-view-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.tree-view-item.active {
+  background: var(--bg-active);
+  color: var(--text);
+}
+
+.tree-view-menu {
+  position: fixed;
+  z-index: 100000;
+  min-width: 170px;
+  padding: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-view-menu button {
+  padding: 5px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tree-view-menu button:hover {
+  background: var(--bg-hover);
+}
+
+.tree-view-menu-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+
+.md-pane-outline {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+
+.md-pane-outline-empty {
+  padding: 8px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tree-view-icon {
+  width: 12px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+/* —— Settings dialog —— */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-dialog {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  width: 360px;
+  padding: 12px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.settings-close:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.settings-section-title {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-row-column {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.settings-row-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.settings-path-row {
+  display: flex;
+  gap: 4px;
+}
+
+.settings-path-row input {
+  flex: 1;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+.settings-path-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.settings-path-row button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.settings-path-row button:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.settings-path-row button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.settings-error {
+  font-size: 11px;
+  color: #c85a5a;
+}
+
+.settings-theme-options {
+  display: flex;
+  border: 1px solid var(--border);
+}
+
+.settings-theme-option {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.settings-theme-option:first-child {
+  border-left: none;
+}
+
+.settings-theme-option:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.settings-theme-option.active {
+  background: var(--bg-active);
+  color: var(--text);
+}
+
+/* Legacy pane picker (unused) */
+.pane-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+
+.pane-picker-item.active {
+  background: var(--bg-active);
+  color: var(--text);
+}
+
+.pane-picker {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  padding: 8px;
+  min-width: 200px;
+}
+
+.pane-picker-title {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.pane-picker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.pane-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.pane-picker-item:hover {
+  background: var(--bg-hover);
+}

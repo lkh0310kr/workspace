@@ -19,6 +19,7 @@ export interface DirEntry {
 }
 
 export interface WorkspaceApi {
+  hostname: () => Promise<string>
   pty: {
     spawn: (cols: number, rows: number) => Promise<number>
     write: (id: number, data: Uint8Array) => void
@@ -33,6 +34,7 @@ export interface WorkspaceApi {
     selectTab: (tabId: number) => Promise<void>
     setTabLayout: (tabId: number, layoutJson: string) => Promise<void>
     setTabRootPath: (tabId: number, rootPath: string) => Promise<WorkspaceState>
+    onUpdated: (cb: (state: WorkspaceState) => void) => () => void
   }
   fs: {
     listDir: (tabId: number, rel: string) => Promise<DirEntry[]>

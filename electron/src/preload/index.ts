@@ -3,6 +3,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
+  hostname: (): Promise<string> => ipcRenderer.invoke('hostname'),
   pty: {
     spawn: (cols: number, rows: number): Promise<number> => ipcRenderer.invoke('pty:spawn', cols, rows),
     write: (id: number, data: Uint8Array): void => ipcRenderer.send('pty:write', id, data),
@@ -24,7 +25,12 @@ const api = {
     setTabLayout: (tabId: number, layoutJson: string): Promise<void> =>
       ipcRenderer.invoke('workspace:set-tab-layout', tabId, layoutJson),
     setTabRootPath: (tabId: number, rootPath: string): Promise<unknown> =>
-      ipcRenderer.invoke('workspace:set-tab-root-path', tabId, rootPath)
+      ipcRenderer.invoke('workspace:set-tab-root-path', tabId, rootPath),
+    onUpdated: (cb: (state: unknown) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, state: unknown): void => cb(state)
+      ipcRenderer.on('workspace:updated', listener)
+      return () => ipcRenderer.removeListener('workspace:updated', listener)
+    }
   },
   fs: {
     listDir: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('fs:list-dir', tabId, rel),

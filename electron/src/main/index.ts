@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
+import { hostname as osHostname } from 'os'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
@@ -12,6 +13,11 @@ function createWindow(): BrowserWindow {
     height: 670,
     show: false,
     autoHideMenuBar: true,
+    // Overlay title bar (traffic lights float over the web content, no
+    // native bar underneath) — mirrors tauri.conf.json's titleBarStyle so
+    // .titlebar in styles.css (which reserves the same 28px strip and
+    // hosts the sidebar toggle) applies unchanged.
+    ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' } : {}),
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -43,9 +49,17 @@ function createWindow(): BrowserWindow {
 }
 
 let workspace: Workspace | null = null
+let mainWindowRef: BrowserWindow | null = null
 
 function persist(): void {
-  if (workspace) saveWorkspaceSnapshot(workspace.state())
+  if (!workspace) return
+  saveWorkspaceSnapshot(workspace.state())
+  // Mirrors the Rust version's app.emit("workspace-updated", ...) after
+  // every mutating command — useWorkspace-equivalent hooks in the
+  // renderer (electron.ts's onWorkspaceUpdated) only ever call
+  // getWorkspaceState once on mount, so without this push they'd never
+  // see another tab/layout change made through any other handler.
+  mainWindowRef?.webContents.send('workspace:updated', workspace.state())
 }
 
 // Same shape as Electron's own implicit default application menu (which
@@ -126,6 +140,9 @@ app.whenReady().then(() => {
   persist()
 
   const mainWindow = createWindow()
+  mainWindowRef = mainWindow
+
+  ipcMain.handle('hostname', () => osHostname())
 
   // pty:spawn is the only handler that needs to *push* data back
   // (terminal output arrives whenever the shell produces it, not in
