@@ -515,11 +515,22 @@ function buildDecorations(view: EditorView): DecorationSet {
           // dash still needs to actually *hide* here, not just skip the
           // bullet widget — leaving it unhandled left the literal "-"
           // visible as plain text in front of the checkbox.
-          if (node.node.getChild("Task")) {
+          const taskNode = node.node.getChild("Task");
+          if (taskNode) {
             const taskMark = node.node.getChild("ListMark");
             if (!taskMark) return;
             const taskLine = view.state.doc.lineAt(taskMark.from);
-            if (!selectionOverlaps(view, taskLine.from, taskLine.to)) {
+            // Same threshold as the checkbox widget itself (through the
+            // end of the "[ ]"/"[x]" marker, not the whole line) — this
+            // dash is the other half of that same raw/preview toggle, and
+            // gating it on "cursor anywhere on the line" let it stay
+            // visible (as a bare "-", not hidden into the checkbox) while
+            // the checkbox had already switched back to its widget, i.e.
+            // the reported "bullet next to the checkbox" on the current
+            // line.
+            const checkboxMarker = taskNode.getChild("TaskMarker");
+            const rawUntil = checkboxMarker ? checkboxMarker.to : taskLine.to;
+            if (!selectionOverlaps(view, taskLine.from, rawUntil)) {
               collected.push({ from: taskMark.from, to: taskMark.to, deco: HIDE });
             }
             return;
