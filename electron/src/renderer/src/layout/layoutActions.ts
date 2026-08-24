@@ -2,11 +2,20 @@ import { Actions, DockLocation, Model, TabNode } from "flexlayout-react";
 import { spawnTerminal } from "../electron";
 import { PaneGroupConfig, PaneTabItem, TabKind, tabKindLabel } from "./paneTypes";
 
-let itemCounter = 0;
-
+// A simple incrementing counter here (as this used to be) resets to 1
+// every time the renderer process starts — every tab/pane created that
+// way in one session collides with same-kind tabs created early in any
+// *other* session, since both start counting from 1. Two panes ending up
+// with the literal same id (`code-1` in one workspace tab's persisted
+// layout, `code-1` in another's) means their flexlayout node id
+// (`tabgroup-${item.id}`) collides too — which silently merges anything
+// keyed by that node id, e.g. PaneGroup.tsx's per-pane TreeView
+// open/width state, reported as "TreeView state가 왜 다른 pane이랑 공유가
+// 돼?". crypto.randomUUID() sidesteps the whole class of "reset every
+// process start" collisions instead of just special-casing this one
+// symptom.
 function nextTabId(kind: TabKind): string {
-  itemCounter += 1;
-  return `${kind}-${itemCounter}`;
+  return `${kind}-${crypto.randomUUID()}`;
 }
 
 export async function buildTabItem(kind: TabKind, source?: Partial<PaneTabItem>): Promise<PaneTabItem> {
