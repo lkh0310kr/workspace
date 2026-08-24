@@ -12,6 +12,87 @@ use workspace_core::Workspace;
 
 mod browser_host;
 
+// Same layout as `tauri::menu::Menu::default()` (which we'd otherwise get
+// implicitly), minus Undo/Redo from the Edit submenu. Tauri's default Edit
+// menu binds Cmd+Z/Cmd+Shift+Z to `PredefinedMenuItem::undo`/`redo`, which
+// invoke the *native* WKWebView edit-command undo stack — a no-op here,
+// since CodeMirror manages its own undo history entirely in JS
+// (`@codemirror/commands`' `historyKeymap`, wired in EditorPane.tsx). The
+// native menu item intercepts the keystroke at the OS responder-chain
+// level before it ever reaches the webview as a DOM keydown event, so
+// CodeMirror's own Cmd+Z binding never got a chance to fire — confirmed by
+// this being the *only* difference from the default menu that plausibly
+// explains "Ctrl+Z doesn't work" when the keymap itself is correctly
+// wired. Leaving Undo/Redo out of the native menu lets the keystroke reach
+// the webview normally.
+fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use tauri::menu::{AboutMetadata, Menu, PredefinedMenuItem, Submenu};
+
+    let pkg_info = app.package_info();
+    let config = app.config();
+    let about_metadata = AboutMetadata {
+        name: Some(pkg_info.name.clone()),
+        version: Some(pkg_info.version.to_string()),
+        copyright: config.bundle.copyright.clone(),
+        authors: config.bundle.publisher.clone().map(|p| vec![p]),
+        ..Default::default()
+    };
+
+    let app_menu = Submenu::with_items(
+        app,
+        pkg_info.name.clone(),
+        true,
+        &[
+            &PredefinedMenuItem::about(app, None, Some(about_metadata))?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::services(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::quit(app, None)?,
+        ],
+    )?;
+
+    let edit_menu = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+
+    let view_menu = Submenu::with_items(
+        app,
+        "View",
+        true,
+        &[&PredefinedMenuItem::fullscreen(app, None)?],
+    )?;
+
+    let window_menu = Submenu::with_items(
+        app,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::maximize(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )?;
+
+    let help_menu = Submenu::with_items(app, "Help", true, &[])?;
+
+    Menu::with_items(
+        app,
+        &[&app_menu, &edit_menu, &view_menu, &window_menu, &help_menu],
+    )
+}
+
 pub struct AppState {
     pub workspace: Mutex<Workspace>,
     watcher: Mutex<Option<RecommendedWatcher>>,
@@ -887,6 +968,7 @@ pub fn run() {
         .manage(browser_host)
         .setup(move |app| {
             let handle = app.handle().clone();
+            app.set_menu(build_app_menu(&handle)?)?;
             install_claude_statusline_hook();
             browser_host::cleanup_browser_webviews(&handle);
             browser_host::attach_window_events(&handle);
