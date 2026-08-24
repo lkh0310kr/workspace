@@ -1319,6 +1319,24 @@ iframe.browser-content-slot {
   color: var(--text);
 }
 
+/* Multi-selection (Cmd/Ctrl/Shift+click) — distinct from .active (the
+   file actually open in the pane's editor), so both can apply at once
+   without one visually hiding the other. */
+.tree-view-item.selected {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+}
+
+.tree-view-item.selected.active {
+  background: var(--bg-active);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.tree-view-item.drag-over {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
 .tree-view-menu {
   position: fixed;
   z-index: 100000;

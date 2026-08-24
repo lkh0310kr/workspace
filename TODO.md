@@ -6,4 +6,7 @@
     - [ ] `ls` Operation not permitted — 코드로는 고칠 수 없는 macOS 권한(TCC) 문제로 보임: workspace root가 `~/Documents/...` 밑이고(TCC가 Documents/Desktop/Downloads를 보호 폴더로 취급), dev 모드로 뜨는 Electron 바이너리가 이 앱한테 Full Disk Access(또는 Files & Folders 밑 Documents 폴더 접근)를 아직 허용 안 받은 상태로 보임. 앱 코드가 실제로 잘못 건드리는 게 없어서(pty.ts는 순수 cwd 전달일 뿐) 고칠 코드가 없음 — macOS 시스템 설정 > 개인정보 보호 및 보안 > 전체 디스크 접근 권한(또는 파일과 폴더 > Documents 폴더)에서 Electron(dev) 또는 빌드된 workspace-app에 권한을 직접 부여해야 함. 미해결로 남김.
 - [ ] Editor/Makdown
     - [ ] 검색 기능 UI 너무 옛날 스타일인 이슈 -> vscode 비슷한 구조로 ui 개선.
-    - [ ] TreeView file multi selection (vscode 참고)
+    - [x] TreeView 고도화 — 2026-08-24. `TreeView.tsx`를 재귀 렌더링에서 평탄화된(flatten) 리스트 기반으로 바꿔서 두 기능 구현:
+        - [x] file multi selection (vscode 참고) — Cmd/Ctrl+클릭으로 개별 토글, Shift+클릭으로 마지막 plain-click 지점부터 범위 선택(Finder/VSCode처럼 anchor는 shift-클릭으로 안 움직임). 우클릭 컨텍스트 메뉴도 멀티 선택 인지: 이미 선택된 항목 중 하나를 우클릭하면 Delete/Copy Path가 선택된 전체에 적용됨(Rename/Reveal은 여러 개 선택 시 숨김 — 의미가 없어서).
+        - [x] TreeView 파일 옮기기 — 네이티브 HTML5 드래그앤드롭으로 파일/폴더를 다른 폴더로 드래그해서 이동(멀티 선택 상태에서 드래그하면 선택된 전체가 같이 이동). 폴더 드롭 대상에 하이라이트 표시. 자기 자신/자기 하위 폴더로 드롭하는 것은 무시(폴더가 자기 자신을 담으려는 상황 방지). 내부적으로 기존 `renamePath` IPC 재사용(이동 = 다른 부모 경로로의 rename).
+- [ ] Workspace Tab 전환시 terminal, browser 동작이 이상함. browser는 새로고침되고. terminal은 claude code에서 스크롤이 안되는 등
