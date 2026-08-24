@@ -265,7 +265,25 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
                 // hidden keeps the guest alive and painting in the
                 // background, same as BrowserPane.tsx already relied on
                 // for workspace-tab visibility before this rework.
-                style={{ visibility: active ? "visible" : "hidden", pointerEvents: active ? "auto" : "none" }}
+                //
+                // Must also fold in `visible` (whether this whole pane is
+                // on-screen at all — false while its workspace tab is in
+                // the background, since App.tsx now keeps every workspace
+                // tab's Layout mounted instead of unmounting it), not just
+                // `active` (which tab within *this* pane is selected):
+                // `visibility: visible` set here on this element
+                // overrides an *inherited* `hidden` from any ancestor —
+                // CSS visibility only cascades until a descendant sets its
+                // own value — so on `active` alone, this pane's active tab
+                // punched straight through App.tsx's outer
+                // `.layout-host-item` hidden wrapper and stayed visibly
+                // on top even while its own workspace tab wasn't the one
+                // showing. Reported as "Tab 3의 Editor가 활성화 안 됐는데
+                // 자꾸 떠있는 버그".
+                style={{
+                  visibility: visible && active ? "visible" : "hidden",
+                  pointerEvents: visible && active ? "auto" : "none",
+                }}
               >
                 {item.kind === "terminal" && (
                   <TerminalPane terminalId={item.terminalId ?? 0} active={visible && active} zoom={zoom} />
