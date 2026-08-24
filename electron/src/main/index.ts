@@ -14,7 +14,10 @@ function createWindow(): BrowserWindow {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      // Browser pane uses a real <webview> guest (Orca's approach — see
+      // BrowserPane.tsx), which needs this enabled on the host window.
+      webviewTag: true
     }
   })
 
