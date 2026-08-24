@@ -1,21 +1,8 @@
 # TODO
-- [ ] Terminal
-  - [x] Claude Code/Cursor 등 AI Agent 사용량 하단에 표시.
-  - [x] 터미널 하단 초록색 info text삭제하고 그걸 상단 헤더 "Terminal" text를 대체
 - [ ] Editor
-  - [x] 다른 탭 전환시 selected file이 상태 저장불러오기가 안됨. 워크스페이스를 종료했다가 다시 켜도. — 2026-08-23 수정(commit `c4d0ea5`). `EditorPane`이 현재 파일을 로컬 state로만 들고 FlexLayout 노드 config에 다시 안 써줘서, 탭 전환(리마운트)/재시작 둘 다 항상 최초 생성 시점 filePath로 리셋되던 것. `currentPath` 바뀔 때마다 노드 config에 동기화하도록 수정 — 기존 `onModelChange → persistLayout` 저장 경로를 그대로 탐. **실제 빌드로 아직 미검증** — 파일 열고 탭 전환/앱 재시작해서 확인 필요.
   - [ ] Markdown
     - [x] Checkbox Raw <-> Preview Detail — raw/preview 토글 자체는 이미 구현돼 있었음(commit `011c812`). 클릭 토글은 2026-08-24에 다시 고침(commit `c0db283`): 에디터 레벨 `domEventHandlers({mousedown})` + `event.target`/좌표 비교 방식이었는데, 실제 재현 세션에서 클릭 좌표가 체크박스의 작은 히트박스를 항상 살짝 빗나가는 걸 확인함. Zettlr(동일하게 CM6 라이브 프리뷰 마크다운 에디터)의 `render-tasks.ts`를 참고해서, 위젯 자신의 `<input>`에 직접 `click` 리스너를 다는 방식으로 교체 — 브라우저 네이티브 히트테스팅에 맡기니 좌표 계산 자체가 필요 없어짐. `ignoreEvent`는 `mousedown`만 무시하고, 커서 이동 억제는 `click` 리스너 안에서 `preventDefault`/`stopPropagation`으로 처리. 실제 클릭으로 검증 완료.
-    - [x] Indent 2-> 4로 수정 — 2026-08-23. `EditorPane.tsx`에 `indentUnit.of("    ")` 추가. 코드 보다가 발견: 아래 vertical guide line(`columnGuideTheme`, codemirrorTheme.ts)이 이미 구현돼 있었는데 4ch 간격을 가정하고 그려지는 반면 CM6 기본 indentUnit은 2라서 서로 안 맞았었음 — 이번 수정으로 둘이 일치함. **미검증** — 실제 빌드로 Tab 눌러서 4칸 들여쓰기 확인 필요.
-    - [x] obsidian처럼 indent(4) 만큼 띄어쓰기인 경우 vertical line을 표시해서 얼마나 인덴트됐는지 파악할 수 있도록 — 이미 구현되어 있었음(`columnGuideTheme`, codemirrorTheme.ts, 4ch 간격 반복 배경 그라디언트). 위 indentUnit 수정으로 실제 들여쓰기 폭과 맞춰짐.
-  - [ ] TreeView
-    - [x] zed처럼 vertical line표시해서 depth 시각화 — 2026-08-23(commit `5b434b8`). 각 행이 자기 depth가 아니라 조상 레벨마다 자기 행 높이만큼의 세로선 조각을 그리고, 같은 들여쓰기의 형제/자손 행들이 이어 그리면서 하나의 연속된 선처럼 보이게 함(VS Code/Zed 방식). **미검증**.
-    - [x] root container width 조정할 수 있도록 — 2026-08-23(commit `5b434b8`). 탐색기-에디터 사이에 드래그 핸들 추가(120~480px). 재시작 시엔 유지 안 됨(treeOpen/outlineOpen 등 기존 토글들과 같은 수준의 비영속 상태). **미검증**.
-- [ ] Workspace
-  - [ ] MacOS Native Window Header Bar
-    - [x] Toogle Sidebar 버튼 추가해서 왼쪽 Tabs display 토클하도록. — 2026-08-23. `tauri.conf.json`에 `titleBarStyle: "Overlay"` + `hiddenTitle: true` 추가해 트래픽 라이트가 웹 콘텐츠 위에 뜨는 네이티브 헤더바를 만들고, 그 자리를 채우는 `.titlebar`(`data-tauri-drag-region`) 스트립을 `App.tsx`에 추가함 — 트래픽 라이트 오른쪽에 `WorkspaceTabRail`(왼쪽 탭 레일) 토글 버튼 배치(Xcode/Finder 관례). `cargo check`/`npx tsc --noEmit` 통과, `dev-run.sh`로 재빌드까지 확인. 스크린샷으로 트래픽 라이트/헤더바 육안 확인 완료(겹침 없음).
-  - [x] 각 Pane에서 Cmd + '+', Cmd + '-' Action 구현 — 2026-08-24. 처음엔 "패널 사이즈"로 오해해서 FlexLayout weight 조절로 구현했다가, 사용자가 브라우저 zoom처럼 글자 크기여야 한다고 정정해서 다시 구현. 포커스된 탭(`model.getActiveTabset().getSelectedNode()`)의 config에 `zoom` 값을 저장(`Actions.updateNodeAttributes`, filePath와 같은 경로로 자동 영속화) — 터미널은 xterm `fontSize` 옵션을 실시간으로 바꾸고 refit, 에디터는 `--editor-font-size` CSS 변수로 CodeMirror 테마에 전달. 0.5x~2.5x, 0.1 단위.
-
+    - [x] obsidian처럼 indent(4) 만큼 띄어쓰기인 경우 vertical line을 표시해서 얼마나 인덴트됐는지 파악할 수 있도록 — 이미 구현되어 있었음(`columnGuideTheme`, codemirrorTheme.ts, 4ch 간격 반복 배경 그라디언트). 위 indentUnit 수정으로 실제 들여쓰기 폭과 맞춰짐. **2026-08-24: 실제로는 code/markdown 둘 다 전혀 안 보이고 있었음** — `.cm-content`의 배경을 `background`(shorthand)로 지정하고 있었는데, 이게 명시 안 한 서브프로퍼티(`background-image` 포함)를 전부 초기화해버려서 같은 셀렉터의 `columnGuideTheme` 그라디언트를 지워버리고 있었음(어느 테마 extension이 먼저 주입되든 상관없이). `backgroundColor`(longhand)로 교체해서 해결. 스크린샷으로 code(`build.rs`)/markdown(`TODO.md`) 둘 다 실제 렌더 확인 완료.
 
 아래는 AI가 입력한 TODO
 
