@@ -12,7 +12,6 @@
 - [ ] Bullet list raw,preview 간 간격 안 맞음. 그리고 checkbox때와 동일하게 커서가 불렛에 근접한 경우에만 raw로 표시하도록 (`electron/src/renderer/src/markdownLivePreview.ts`, Tauri 때부터 미해결 그대로 포팅됨)
 - [ ] Pane Select Dialog - Code <-> Markdown Pane -> Editor
 - [ ] Markdown Editor Cmd + B등 단축키 기능 추가
-- [x] Editor Tab System VSCode, Zed 참고해서 완전 똑같이 수정. history front/back logic, tab new/replace logic ux이상함. — 2026-08-24. 아래 "탭 시스템 globalize" 작업으로 완전히 새로 짬(파일 히스토리 앞/뒤 대신 진짜 브라우저처럼 탭 여러 개). UX가 VSCode/Zed와 100% 동일하진 않음(드래그 재정렬 등은 없음) — 필요하면 추가로.
 
 AI가 쓰는 TODO:
 - [x] **에디터의 멀티탭 시스템을 전체 pane(터미널/브라우저 포함)으로 globalize** — 2026-08-24. Orca가 터미널/브라우저/에디터를 전부 하나의 "unified tab" 리스트로 다루는 구조를 (worktree/원격서버/pinning/시뮬레이터/Windows shell 메뉴 등 Orca 전용 기능은 빼고) 구조만 이식함. 핵심 변경:
@@ -28,5 +27,6 @@ AI가 쓰는 TODO:
   1. **브라우저 탭이 배경으로 갔다가 돌아오면 하얗게/멈춘 채로 뜸**: `PaneGroup.tsx`가 비활성 탭을 `display:none`으로 숨기고 있었는데, Electron `<webview>`는 조상 요소가 `display:none`이 되면 게스트 렌더러가 서스펜드/블랭크되는 게 알려진 문제임 — 예전 `BrowserPane.tsx`는 `visibility:hidden`만 썼었는데(레이아웃 트리에 남겨둠) 이번 globalize 작업에서 실수로 `display:none`으로 바뀌었었음. `visibility:hidden`+`pointerEvents:none`으로 되돌려서 수정.
   2. **탭 전환이 느리고 가끔 화면에 반영이 안 됨**: 탭 클릭 → `setActiveTabInGroup`(flexlayout model 액션) → `onNotifyChanged`(App.tsx의 `bumpLayout`: persistLayout 디바운스 + `setModelEpoch` + App 리렌더 + Layout 리렌더 + factory 재호출) 이 전체 왕복이 끝나야 화면에 반영되는 구조였음 — 클릭마다 무거운 model round-trip을 거치니 느리고, 이 경로 중간 어딘가서 깨지면 아예 반영이 안 됨. `PaneGroup`이 표시할 탭을 로컬 React state(`localActiveId`)로 관리하도록 바꿔서 클릭은 즉시 반영되고, model에는 그 뒤에 비동기로(디바운스된 저장처럼) 따라가도록 분리함.
   - 부가로 탭 스트립 전체에 pane 재배치용 `draggable`이 걸려있어서 탭 칩 클릭이 드래그 제스처에 먹힐 수 있는 것도 발견 — 각 칩/버튼에 `draggable={false}` 명시해서 방지.
+- [x] **탭 하나만 독립적으로 드래그해서 다른 위치로 이동** — 2026-08-24. "패널만 선택한 경우엔 다른 레이아웃으로, 패널 외 영역이면 지금처럼 pane 전체가 움직이도록" 요청으로 구현. `layoutActions.ts`에 `extractTabToNewPane` 추가 — 드래그 시작 시점에 그 탭을 소스 pane의 `tabs`에서 동기적으로 빼서(async 불필요, 터미널/webview는 이미 존재하니 그냥 소속 pane만 바뀜) 같은 tabset 옆에 새 flexlayout 노드로 만들고, 그 노드를 flexlayout 자체의 `moveTabWithDragAndDrop`으로 즉시 넘겨서 이후 드래그는 flexlayout의 실제 DnD가 그대로 처리하게 함(우리가 포인터 트래킹을 직접 구현할 필요 없음). pane에 탭이 하나뿐이면 추출할 게 없으므로 그 경우엔 `stopPropagation` 안 하고 그대로 기존 "pane 전체 이동" 드래그로 흘러가게 함. 터미널은 main process가 pty를 소유하고(렌더러 리마운트와 무관) `terminalId`만 옮겨가는 거라 이동 중 세션 끊김 없음 — 브라우저 탭은 현재 webview를 파괴 후 새로 만들어서 마지막 URL로 재이동하는 방식이라(진짜 상태 이전 아님) 완벽하진 않음, 알려진 제약.
   - typecheck+build로만 검증, 실제 탭 전환 체감은 사용자 확인 필요.
 - [ ] 헤딩/링크 등으로 커서 이동 시 한 칸 밀리는 버그 — `EditorView.atomicRanges`로 고쳤었는데, TreeView에서 다른 파일을 열 때 CodeMirror 자체가 크래시하는("No tile at position N") 훨씬 심각한 회귀를 만들어서 되돌림(Tauri 시절 사용자가 직접 재현/리포트함). 캐시된 필드를 읽는 버전, `view.state`에서 매번 새로 계산하는 버전 둘 다 시도했지만 실제 앱에서 검증할 방법이 없어서 둘 다 버림 — 커서 한 칸 밀리는 건 크래시보다 훨씬 나은 상태라 일단 이대로 둠. `electron/src/renderer/src/markdownLivePreview.ts`에도 동일한 상태로 그대로 포팅됨. CM6 selection-mapping 내부 동작을 제대로 아는 사람이 다시 보거나, 실제로 띄워서 테스트할 수 있을 때 재시도할 것

@@ -196,6 +196,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
           onClose={closeTab}
           onNewTab={newTab}
           onSplit={splitPane}
+          onTabExtracted={onNotifyChanged}
           extraActions={explorerToggle}
         />
       }

@@ -103,6 +103,40 @@ export function updateTabInGroup(
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, tabs } }));
 }
 
+/**
+ * Pulls one tab out of a group into a brand-new sibling pane, synchronously
+ * (no spawning/async — the tab item and its underlying terminal/webview
+ * already exist, this just relocates which pane node owns it), so the
+ * caller can immediately hand the new node to flexlayout's own
+ * moveTabWithDragAndDrop and let the user drag it wherever they want —
+ * "drag a specific tab chip to move just that tab" reuses flexlayout's
+ * real drag-and-drop instead of reimplementing pointer-tracking DnD for
+ * our own virtual sub-tabs. Returns null (and does nothing) if this is the
+ * group's only tab — moving it would just be moving the whole pane, which
+ * the caller should do via the existing whole-strip drag instead.
+ */
+export function extractTabToNewPane(model: Model, sourceTabNodeId: string, tabId: string): TabNode | null {
+  const config = getGroupConfig(model, sourceTabNodeId);
+  if (!config || config.tabs.length <= 1) return null;
+  const item = config.tabs.find((t) => t.id === tabId);
+  if (!item) return null;
+  const sourceNode = model.getNodeById(sourceTabNodeId);
+  if (!(sourceNode instanceof TabNode)) return null;
+  const tabSetId = sourceNode.getParent()?.getId();
+  if (!tabSetId) return null;
+
+  const remainingTabs = config.tabs.filter((t) => t.id !== tabId);
+  const activeTabId = config.activeTabId === tabId ? remainingTabs[0].id : config.activeTabId;
+  model.doAction(
+    Actions.updateNodeAttributes(sourceTabNodeId, { config: { ...config, tabs: remainingTabs, activeTabId } }),
+  );
+
+  const newNodeJson = tabGroupNodeJson(item);
+  model.doAction(Actions.addNode(newNodeJson, tabSetId, DockLocation.RIGHT, -1, true));
+  const newNode = model.getNodeById(newNodeJson.id);
+  return newNode instanceof TabNode ? newNode : null;
+}
+
 /** Closes one tab within the group; closing the last tab removes the pane
  * itself (matches a real browser: closing your only tab closes the
  * window). Returns the tab that's now active, or null if the whole pane

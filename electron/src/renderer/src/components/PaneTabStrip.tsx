@@ -3,6 +3,7 @@ import type { TabNode } from "flexlayout-react";
 import { PanePicker } from "./PanePicker";
 import { SplitIcon } from "./SplitIcon";
 import { PaneTabItem, TabKind, tabKindIcon } from "../layout/paneTypes";
+import { extractTabToNewPane } from "../layout/layoutActions";
 import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
 import { startPaneDrag } from "../layout/layoutRef";
 
@@ -22,6 +23,11 @@ interface Props {
   onClose: (id: string) => void;
   onNewTab: (kind: TabKind) => void;
   onSplit: (mode: "split-right" | "split-down", kind: TabKind) => void;
+  /** Called right after a tab chip drag extracted its tab into a new
+   * sibling pane (before flexlayout's own drag-and-drop takes over) — the
+   * caller needs to bump/persist since that extraction is a direct model
+   * mutation outside flexlayout's own dispatch path. */
+  onTabExtracted: () => void;
   extraActions?: ReactNode;
 }
 
@@ -58,6 +64,7 @@ export function PaneTabStrip({
   onClose,
   onNewTab,
   onSplit,
+  onTabExtracted,
   extraActions,
 }: Props) {
   const [addPickerOpen, setAddPickerOpen] = useState(false);
@@ -97,12 +104,27 @@ export function PaneTabStrip({
             <div
               key={item.id}
               className={`pane-tab${item.id === activeTabId ? " active" : ""}`}
-              // The strip's own draggable=true (below) is for repositioning
-              // the whole pane via flexlayout's drag-and-drop — without an
-              // explicit opt-out here, starting that native HTML5 drag
-              // gesture from directly on a tab chip could swallow the
-              // click instead of switching tabs.
-              draggable={false}
+              // Dragging a chip moves just that tab — extract it into a
+              // new sibling pane synchronously, then hand off to
+              // flexlayout's own moveTabWithDragAndDrop for the actual
+              // drag (reuses its real DnD instead of reimplementing
+              // pointer-tracking for our virtual sub-tabs). A single-tab
+              // group has nothing to extract — moving it out from under
+              // itself is the same as moving the whole pane, so that case
+              // falls through to the strip's own whole-pane drag below
+              // (stopPropagation isn't called, so the parent's
+              // onDragStart still runs).
+              draggable
+              onDragStart={(e: DragEvent) => {
+                if (items.length <= 1) return;
+                e.stopPropagation();
+                const newNode = extractTabToNewPane(tabNode.getModel(), tabNode.getId(), item.id);
+                if (!newNode) return;
+                onTabExtracted();
+                pushOverlayBlock();
+                startPaneDrag(e, newNode);
+              }}
+              onDragEnd={() => popOverlayBlock()}
               onClick={() => onSelect(item.id)}
               title={item.kind === "browser" ? item.url : item.filePath ?? undefined}
             >
@@ -112,6 +134,7 @@ export function PaneTabStrip({
                 type="button"
                 className="pane-tab-close"
                 title="Close tab"
+                draggable={false}
                 onClick={(e) => {
                   e.stopPropagation();
                   onClose(item.id);
