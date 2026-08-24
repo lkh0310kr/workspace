@@ -15,6 +15,9 @@ const api = {
     openDirectory: (defaultPath?: string): Promise<string | null> =>
       ipcRenderer.invoke('dialog:open-directory', defaultPath)
   },
+  clipboard: {
+    writeText: (text: string): void => ipcRenderer.send('clipboard:write-text', text)
+  },
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, payload: { hostWebContentsId: number; url: string }): void =>

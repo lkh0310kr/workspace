@@ -44,7 +44,14 @@ let cachedTmuxConfPath: string | null | undefined;
 // never intercepts the mouse itself, so xterm.js forwards wheel scroll to
 // tmux as raw escape sequences tmux does nothing with: no scrollback, no
 // visible effect. With mouse mode on, tmux interprets wheel-up/down itself
-// and enters its own copy-mode to scroll the pane's history.
+// and enters its own copy-mode to scroll the pane's history. The tradeoff:
+// a plain click-drag now also goes to tmux's copy-mode selection instead of
+// a normal DOM selection, and tmux's default drag-end binding
+// (copy-selection-and-cancel) only reaches the OS clipboard via an OSC 52
+// escape sequence — `set-clipboard on` makes tmux actually emit it (it's
+// tmux's own default already on modern versions, set explicitly here so it
+// doesn't depend on the user's tmux version/config). xterm.js's side of
+// reading that sequence is TerminalPane.tsx's registerOscHandler(52, ...).
 function tmuxConfPath(): string | null {
   if (cachedTmuxConfPath !== undefined) return cachedTmuxConfPath;
   const home = os.homedir();
@@ -56,7 +63,7 @@ function tmuxConfPath(): string | null {
   try {
     fs.mkdirSync(dir, { recursive: true });
     const confPath = path.join(dir, "tmux.conf");
-    fs.writeFileSync(confPath, "set-option -g status off\nset -g mouse on\n");
+    fs.writeFileSync(confPath, "set-option -g status off\nset -g mouse on\nset -g set-clipboard on\n");
     cachedTmuxConfPath = confPath;
   } catch {
     cachedTmuxConfPath = null;

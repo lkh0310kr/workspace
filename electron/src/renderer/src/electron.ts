@@ -161,6 +161,10 @@ export async function openDirectoryDialog(defaultPath?: string): Promise<string 
   return window.api.dialog.openDirectory(defaultPath);
 }
 
+export function writeClipboardText(text: string): void {
+  window.api.clipboard.writeText(text);
+}
+
 /** Fires when a <webview> guest tries to open a new window (target=_blank,
  * window.open()) — main/index.ts denies the native window and forwards it
  * here instead. `hostWebContentsId` identifies which webview guest it

@@ -38,6 +38,9 @@ export interface WorkspaceApi {
   dialog: {
     openDirectory: (defaultPath?: string) => Promise<string | null>
   }
+  clipboard: {
+    writeText: (text: string) => void
+  }
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void) => () => void
   }

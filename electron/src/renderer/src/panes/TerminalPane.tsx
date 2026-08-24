@@ -6,7 +6,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { SearchAddon } from "@xterm/addon-search";
 import "@xterm/xterm/css/xterm.css";
-import { onPtyOutput, ptyResize, ptyWrite } from "../electron";
+import { onPtyOutput, ptyResize, ptyWrite, writeClipboardText } from "../electron";
 import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } from "../theme";
 
 // Port of ui/src/panes/TerminalPane.tsx. Two things from the Tauri version
@@ -122,6 +122,30 @@ function TerminalPaneInner({ terminalId, active, zoom = 1 }: Props) {
     const search = new SearchAddon();
     term.loadAddon(search);
     term.open(host);
+
+    // tmux mouse mode (pty.ts's tmux.conf, `mouse on`) intercepts drag
+    // entirely and does its own copy-mode selection instead of a normal
+    // DOM text selection — on release it writes the selected text out via
+    // an OSC 52 escape sequence, not anything the OS clipboard sees on its
+    // own. xterm.js parses the sequence but has no clipboard access itself
+    // (sandboxed renderer), so without this handler the drag looked live
+    // (tmux's highlight appears) but nothing was ever copied. Reported as
+    // "드래그하면 노란색으로 드래그되고... 텍스트 복사도 안되고".
+    // Format is `52;<Pc>;<base64|?>` — `data` here is everything after
+    // "52;". `?` is a clipboard *read* request, which is intentionally
+    // left unhandled (returning false) rather than echoing real clipboard
+    // contents back into the pty.
+    const oscClipboard = term.parser.registerOscHandler(52, (data) => {
+      const payload = data.slice(data.indexOf(";") + 1);
+      if (payload === "?" || payload === "") return false;
+      try {
+        writeClipboardText(atob(payload));
+        return true;
+      } catch {
+        return false;
+      }
+    });
+
     const { serialize } = loadOptionalAddons(term);
     termRef.current = term;
     fitRef.current = fit;
@@ -175,6 +199,7 @@ function TerminalPaneInner({ terminalId, active, zoom = 1 }: Props) {
         }
       }
       unsubscribeTheme();
+      oscClipboard.dispose();
       host.removeEventListener("focusin", onFocusIn);
       host.removeEventListener("focusout", onFocusOut);
       host.removeEventListener("mousedown", focusTerm);
