@@ -21,10 +21,17 @@ export function SettingsDialog({ onClose, tabId, tabTitle, rootPath }: Props) {
   };
 
   const browse = async () => {
-    const selected = await openDirectoryDialog(rootPath);
-    if (selected) {
-      setPathInput(selected);
-      savePath(selected);
+    try {
+      const selected = await openDirectoryDialog(rootPath);
+      if (selected) {
+        setPathInput(selected);
+        savePath(selected);
+      }
+    } catch (err) {
+      // Without this, a failed invoke (e.g. main process still running an
+      // older build that predates this IPC handler) was a silent
+      // unhandled rejection — the button just looked like it did nothing.
+      setError(String(err));
     }
   };
 
