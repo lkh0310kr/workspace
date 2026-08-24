@@ -1,4 +1,7 @@
 # TODO
+
+> **2026-08-24**: Tauri(Rust) 구현은 `legacy-tauri/`로 이동, Electron(`electron/`)이 이제 메인 앱. 이 파일 안의 옛 항목들(`crates/`, `src/lib.rs`, `ui/src/...` 등 경로 언급) 대부분은 그 legacy-tauri 코드 기준 기록임 — 지금은 참고용 히스토리로만 남겨둠. 새 작업은 `electron/` 기준으로 계속 이 파일에 기록.
+
 내가 쓴 TODO:
 - [ ] Bullet list raw,preview 간 간격 안 맞음. 그리고 checkbox때와 동일하게 커서가 불렛에 근접한 경우에만 raw로 표시하도록
 - [ ] Pane Select Dialog - Code <-> Markdown Pane -> Editor 로 통합

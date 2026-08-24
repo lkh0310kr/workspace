@@ -5,47 +5,40 @@
 ## Run
 
 ```bash
-# Development (Vite HMR + Tauri)
-cd ui && npm install && cd ..
-cargo run -p workspace-app
-
-# Production UI build
-cd ui && npm run build && cd ..
-cargo run -p workspace-app --release
+cd electron
+npm install
+npm run dev
 ```
+
+Production build: `npm run build` (then `npm run build:mac` / `build:win` / `build:linux` for a distributable).
 
 ## Stack
 
 | Layer | Tech |
 |-------|------|
-| Shell | Tauri 2 |
-| UI | React + Vite + flexlayout-react |
-| Terminal | xterm.js + portable-pty (instant boot, no GPU) |
+| Shell | Electron 39 + electron-vite |
+| UI | React + flexlayout-react |
+| Terminal | xterm.js + node-pty (wrapped in tmux for persistence across restarts) |
 | Editor | CodeMirror 6 |
-| Markdown | CodeMirror + marked preview |
-| Browser | Wry child webview via `BrowserHost` |
-| Core | `workspace-core` crate |
+| Markdown | CodeMirror live-preview (Obsidian-style) |
+| Browser | Electron `<webview>` guest |
 
 ## Layout
 
 ```
-crates/workspace-core/   PTY sessions, workspace model, file I/O
-crates/terminal-gpu/     Archived wgpu renderer (optional, unused)
-src/                     Tauri commands, PTY poll, BrowserHost
-ui/                      Vite frontend (build → ui/dist)
+electron/src/main/      Workspace model, PTY, file I/O, IPC handlers
+electron/src/preload/   IPC bridge exposed to the renderer as window.api
+electron/src/renderer/  React UI (panes, layout, editor)
+legacy-tauri/            Archived Tauri 2 + Rust implementation this app replaced
 ```
 
-## Architecture
+## History
 
-```
-┌─────────────┬─────────────┐
-│ Code        │ Browser     │
-├─────────────┼─────────────┤
-│ Markdown    │ Terminal    │
-└─────────────┴─────────────┘
-     Workspace tab rail (left)
-```
-
-PTY protocol: `pty_write` / `pty_resize` commands, `pty-output` events (base64 bytes).
-
-Browser: React reports shell rect via `browser_report_frame`; Rust positions a child Wry webview below the 2-row chrome (title bar + URL toolbar).
+This was originally built on Tauri 2 (Rust shell, Wry child webview for the
+browser pane, portable-pty for the terminal). It moved to Electron to adopt
+[Orca](https://github.com)'s already-solved approach for the terminal's IME
+handling and the browser pane's compositing, after Tauri's native-child-webview
+model produced z-order and async-detach bugs, and unsigned Rust builds kept
+tripping macOS Gatekeeper quarantine. The old implementation is kept under
+`legacy-tauri/` for reference — it still builds (`cd legacy-tauri && cargo run
+-p workspace-app`) but isn't developed further.

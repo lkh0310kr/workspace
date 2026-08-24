@@ -1,5 +1,5 @@
-/target
-/gen
+/legacy-tauri/target
+/legacy-tauri/gen
 /ref-proj
-ui/node_modules
-ui/dist
+/legacy-tauri/ui/node_modules
+/legacy-tauri/ui/dist
