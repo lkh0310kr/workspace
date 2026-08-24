@@ -12,7 +12,7 @@ import { PaneErrorBoundary } from "./components/PaneErrorBoundary";
 import { useWorkspace } from "./components/useWorkspace";
 import { addPaneToTabSet, moveTabToNewPane } from "./layout/layoutActions";
 import { getTabDrag, endTabDrag } from "./layout/tabDrag";
-import { setLayoutInstance } from "./layout/layoutRef";
+import { setLayoutInstance, setActiveLayoutTab } from "./layout/layoutRef";
 import { PaneGroupConfig, PaneTabItem, TabKind } from "./layout/paneTypes";
 import { PaneGroup } from "./panes/PaneGroup";
 import { browserCleanupAll, browserHideAll } from "./browser";
@@ -323,6 +323,10 @@ export default function App() {
     void browserHideAll().catch(console.error);
   }, [activeTabId]);
 
+  useEffect(() => {
+    setActiveLayoutTab(activeTabId);
+  }, [activeTabId]);
+
   // Fallback for a tab-chip drag (PaneTabStrip.tsx) that ends somewhere
   // that ISN'T over any pane's tab strip: dropping *inside* a tab strip
   // shows the line hint and reorders/merges (handled entirely within
@@ -528,7 +532,7 @@ export default function App() {
                 style={{ visibility: active ? "visible" : "hidden", pointerEvents: active ? "auto" : "none" }}
               >
                 <Layout
-                  ref={active ? setLayoutInstance : undefined}
+                  ref={(instance) => setLayoutInstance(tab.id, instance)}
                   model={model}
                   factory={makeFactory(tab.id)}
                   onAction={makeOnAction(tab.id)}
