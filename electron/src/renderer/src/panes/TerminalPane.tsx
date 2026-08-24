@@ -116,6 +116,14 @@ function TerminalPaneInner({ terminalId, active, zoom = 1 }: Props) {
       fontSize: Math.round(TERMINAL_BASE_FONT_SIZE * zoom),
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', monospace",
       theme: XTERM_THEMES[getCurrentResolvedTheme()],
+      // Unicode11Addon reads term.unicode, a "proposed API" xterm.js gates
+      // behind this flag — without it, loadOptionalAddons's own try/catch
+      // silently swallowed the addon failing to activate every single
+      // time ("You must set the allowProposedApi option to true"), so
+      // wide-character (CJK, emoji) cell-width handling was never
+      // actually using Unicode 11 rules despite the addon apparently
+      // loading without a visible crash.
+      allowProposedApi: true,
     });
     const fit = new FitAddon();
     term.loadAddon(fit);

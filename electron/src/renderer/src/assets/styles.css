@@ -173,7 +173,14 @@ input {
   overflow: hidden;
 }
 
-.layout-host > .flexlayout__layout {
+/* One per workspace tab, all mounted at once — visibility-toggled by
+   App.tsx instead of remounting on switch (see its own comment). */
+.layout-host-item {
+  position: absolute;
+  inset: 0;
+}
+
+.layout-host-item > .flexlayout__layout {
   position: absolute !important;
   inset: 0;
 }
@@ -1294,7 +1301,7 @@ iframe.browser-content-slot {
   gap: 4px;
   padding: 3px 8px 3px 0;
   cursor: pointer;
-  color: var(--text-muted);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

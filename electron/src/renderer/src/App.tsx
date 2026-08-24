@@ -222,11 +222,14 @@ export default function App() {
     }, 250);
   }, []);
 
-  const bumpLayout = useCallback(() => {
-    const model = modelsRef.current.get(activeTabId);
-    if (model) persistLayout(activeTabId, model);
-    setModelEpoch((v) => v + 1);
-  }, [activeTabId, persistLayout]);
+  const bumpLayout = useCallback(
+    (tabId: number) => {
+      const model = modelsRef.current.get(tabId);
+      if (model) persistLayout(tabId, model);
+      setModelEpoch((v) => v + 1);
+    },
+    [persistLayout],
+  );
 
   const ensureTerminal = useCallback(
     async (tabId: number, model: Model, tabSetId: string) => {
@@ -235,7 +238,7 @@ export default function App() {
       try {
         if (countTabs(model) > 0) return;
         await addPaneToTabSet(model, tabSetId, "terminal");
-        if (countTabs(model) > 0) bumpLayout();
+        if (countTabs(model) > 0) bumpLayout(tabId);
       } finally {
         ensureInflightRef.current.delete(tabId);
       }
@@ -243,15 +246,21 @@ export default function App() {
     [bumpLayout],
   );
 
-  const factory = useCallback(
-    (node: TabNode) => (
+  // One factory/onAction/onModelChange per workspace tab (not just the
+  // active one) — every tab's <Layout> now stays mounted simultaneously
+  // (see the render below), so each needs to operate on *its own* model,
+  // not assume "whichever tab happens to be active right now" the way a
+  // single shared factory could when only the active tab's Layout ever
+  // existed.
+  const makeFactory = useCallback(
+    (tabId: number) => (node: TabNode) => (
       <PaneErrorBoundary>
         <PaneGroup
           tabNode={node}
-          workspaceTabId={activeTabId}
-          rootPath={workspace?.tabs.find((t) => t.id === activeTabId)?.root_path ?? ""}
-          visible={node.isVisible()}
-          onNotifyChanged={bumpLayout}
+          workspaceTabId={tabId}
+          rootPath={workspace?.tabs.find((t) => t.id === tabId)?.root_path ?? ""}
+          visible={tabId === activeTabId && node.isVisible()}
+          onNotifyChanged={() => bumpLayout(tabId)}
         />
       </PaneErrorBoundary>
     ),
@@ -334,7 +343,7 @@ export default function App() {
       e.preventDefault();
       const model = modelsRef.current.get(activeTabId);
       if (model && moveTabToNewPane(model, payload.sourceTabNodeId, payload.tabId)) {
-        bumpLayout();
+        bumpLayout(activeTabId);
       }
       endTabDrag();
     };
@@ -346,10 +355,10 @@ export default function App() {
     };
   }, [activeTabId, bumpLayout]);
 
-  const onAction = useCallback(
-    (action: Action) => {
+  const makeOnAction = useCallback(
+    (tabId: number) => (action: Action) => {
       if (action.type !== Actions.MOVE_NODE) return action;
-      const model = modelsRef.current.get(activeTabId);
+      const model = modelsRef.current.get(tabId);
       if (!model) return action;
       if (action.data.location === "center") {
         let target = model.getNodeById(action.data.toNode);
@@ -372,11 +381,11 @@ export default function App() {
       }
       return action;
     },
-    [activeTabId],
+    [],
   );
 
-  const onModelChange = useCallback(() => {
-    const model = modelsRef.current.get(activeTabId);
+  const makeOnModelChange = useCallback((tabId: number) => () => {
+    const model = modelsRef.current.get(tabId);
     if (!model) return;
     if (pendingRebalanceRef.current) {
       const draggedId = pendingRebalanceRef.current;
@@ -386,9 +395,9 @@ export default function App() {
         model.doAction(Actions.adjustWeights(parent.getId(), parent.getChildren().map(() => 1)));
       }
     }
-    persistLayout(activeTabId, model);
+    persistLayout(tabId, model);
     setModelEpoch((v) => v + 1);
-  }, [activeTabId, persistLayout]);
+  }, [persistLayout]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -404,20 +413,24 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeTabId]);
 
+  // Every workspace tab's model, not just the active one — every tab's
+  // Layout stays mounted simultaneously now (see the render below), so a
+  // tab that's empty needs its default terminal added regardless of
+  // whether it happens to be the one currently in front.
   useEffect(() => {
-    const model = modelsRef.current.get(activeTabId);
-    if (!model || countTabs(model) > 0) return;
-
-    let tabSetId: string | undefined;
-    model.visitNodes((node) => {
-      if (!tabSetId && node.getType() === "tabset") {
-        tabSetId = node.getId();
+    for (const [tabId, model] of modelsRef.current) {
+      if (countTabs(model) > 0) continue;
+      let tabSetId: string | undefined;
+      model.visitNodes((node) => {
+        if (!tabSetId && node.getType() === "tabset") {
+          tabSetId = node.getId();
+        }
+      });
+      if (tabSetId) {
+        void ensureTerminal(tabId, model, tabSetId);
       }
-    });
-    if (tabSetId) {
-      void ensureTerminal(activeTabId, model, tabSetId);
     }
-  }, [activeTabId, modelEpoch, ensureTerminal]);
+  }, [modelEpoch, ensureTerminal]);
 
   if (!workspace || !activeModel) {
     return <div className="loading">Loading workspace…</div>;
@@ -493,16 +506,39 @@ export default function App() {
             onOpenSettings={(tabId, anchorRect) => setSettingsTarget({ tabId, anchorRect })}
           />
         )}
-        <div className="layout-host" key={activeTabId}>
-          <Layout
-            ref={setLayoutInstance}
-            model={activeModel}
-            factory={factory}
-            onAction={onAction}
-            onModelChange={onModelChange}
-            realtimeResize
-            tabDragSpeed={0}
-          />
+        <div className="layout-host">
+          {/* Every workspace tab's Layout stays mounted at once (visibility-
+              toggled, not key-remounted) — switching tabs used to fully
+              unmount/remount the whole pane tree, which meant every
+              browser pane's <webview> was destroyed and recreated from
+              item.url on every switch ("browser는 새로고침되고") and every
+              terminal's xterm.js instance was torn down and rebuilt from
+              its serialized scrollback (lossy for full-screen TUI apps
+              like Claude Code's own interactive mode, reported as scroll
+              breaking). Same never-unmount-just-hide pattern PaneGroup.tsx
+              already uses one level down for pane-level tabs. */}
+          {workspace.tabs.map((tab) => {
+            const model = modelsRef.current.get(tab.id);
+            if (!model) return null;
+            const active = tab.id === activeTabId;
+            return (
+              <div
+                key={tab.id}
+                className="layout-host-item"
+                style={{ visibility: active ? "visible" : "hidden", pointerEvents: active ? "auto" : "none" }}
+              >
+                <Layout
+                  ref={active ? setLayoutInstance : undefined}
+                  model={model}
+                  factory={makeFactory(tab.id)}
+                  onAction={makeOnAction(tab.id)}
+                  onModelChange={makeOnModelChange(tab.id)}
+                  realtimeResize
+                  tabDragSpeed={0}
+                />
+              </div>
+            );
+          })}
         </div>
         {settingsTarget && (
           <SettingsDialog
