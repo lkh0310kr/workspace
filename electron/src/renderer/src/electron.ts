@@ -153,3 +153,41 @@ export function onFileChanged(handler: () => void): () => void {
 export async function revealItemInDir(path: string): Promise<void> {
   return window.api.shell.revealItemInDir(path);
 }
+
+export interface ClaudeRateLimitWindow {
+  used_percent: number;
+  resets_at: number | null;
+}
+
+export interface ClaudeRateLimitStatus {
+  five_hour: ClaudeRateLimitWindow | null;
+  seven_day: ClaudeRateLimitWindow | null;
+}
+
+export interface CursorUsageStatus {
+  auto_percent_used: number | null;
+  api_percent_used: number | null;
+  total_percent_used: number | null;
+  billing_cycle_end_ms: number | null;
+}
+
+function toRateLimitWindow(
+  w: { usedPercent: number; resetsAt: number | null } | null,
+): ClaudeRateLimitWindow | null {
+  return w ? { used_percent: w.usedPercent, resets_at: w.resetsAt } : null;
+}
+
+export async function claudeRateLimitStatus(): Promise<ClaudeRateLimitStatus> {
+  const s = await window.api.usage.claudeRateLimitStatus();
+  return { five_hour: toRateLimitWindow(s.fiveHour), seven_day: toRateLimitWindow(s.sevenDay) };
+}
+
+export async function cursorUsageStatus(): Promise<CursorUsageStatus> {
+  const s = await window.api.usage.cursorUsageStatus();
+  return {
+    auto_percent_used: s.autoPercentUsed,
+    api_percent_used: s.apiPercentUsed,
+    total_percent_used: s.totalPercentUsed,
+    billing_cycle_end_ms: s.billingCycleEndMs,
+  };
+}

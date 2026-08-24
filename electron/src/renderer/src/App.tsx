@@ -5,6 +5,7 @@ import "./assets/styles.css";
 import { PaneFrame } from "./components/PaneFrame";
 import { TerminalPaneTitle } from "./components/TerminalPaneTitle";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
+import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
 import { useWorkspace } from "./components/useWorkspace";
 import { addPaneToTabSet, replacePane, splitTabSet } from "./layout/layoutActions";
 import { setLayoutInstance } from "./layout/layoutRef";
@@ -411,6 +412,7 @@ export default function App() {
           />
         </div>
       </div>
+      <ClaudeUsageStatusBar />
     </div>
   );
 }

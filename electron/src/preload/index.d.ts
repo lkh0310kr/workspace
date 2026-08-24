@@ -23,6 +23,18 @@ export interface WorkspaceApi {
   shell: {
     revealItemInDir: (path: string) => Promise<void>
   }
+  usage: {
+    claudeRateLimitStatus: () => Promise<{
+      fiveHour: { usedPercent: number; resetsAt: number | null } | null
+      sevenDay: { usedPercent: number; resetsAt: number | null } | null
+    }>
+    cursorUsageStatus: () => Promise<{
+      autoPercentUsed: number | null
+      apiPercentUsed: number | null
+      totalPercentUsed: number | null
+      billingCycleEndMs: number | null
+    }>
+  }
   pty: {
     spawn: (cols: number, rows: number) => Promise<number>
     write: (id: number, data: Uint8Array) => void

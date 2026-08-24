@@ -7,6 +7,10 @@ const api = {
   shell: {
     revealItemInDir: (path: string): Promise<void> => ipcRenderer.invoke('shell:reveal-item-in-dir', path)
   },
+  usage: {
+    claudeRateLimitStatus: (): Promise<unknown> => ipcRenderer.invoke('usage:claude-rate-limit-status'),
+    cursorUsageStatus: (): Promise<unknown> => ipcRenderer.invoke('usage:cursor-usage-status')
+  },
   pty: {
     spawn: (cols: number, rows: number): Promise<number> => ipcRenderer.invoke('pty:spawn', cols, rows),
     write: (id: number, data: Uint8Array): void => ipcRenderer.send('pty:write', id, data),

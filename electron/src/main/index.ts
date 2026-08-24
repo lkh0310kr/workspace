@@ -6,6 +6,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
+import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
 
 function createWindow(): BrowserWindow {
   // Create the browser window.
@@ -164,6 +165,8 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  installClaudeStatuslineHook()
+
   const config = loadConfig()
   const defaultRoot = config.rootPath ?? process.cwd()
   const snapshot = loadWorkspaceSnapshot()
@@ -181,6 +184,8 @@ app.whenReady().then(() => {
   ipcMain.handle('shell:reveal-item-in-dir', (_event, path: string) => {
     shell.showItemInFolder(path)
   })
+  ipcMain.handle('usage:claude-rate-limit-status', () => claudeRateLimitStatus())
+  ipcMain.handle('usage:cursor-usage-status', () => cursorUsageStatus())
 
   // pty:spawn is the only handler that needs to *push* data back
   // (terminal output arrives whenever the shell produces it, not in

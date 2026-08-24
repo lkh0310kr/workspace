@@ -14,7 +14,7 @@ import type { WorkspaceState } from "./workspace";
 // during the migration; using distinct filenames means running one can't
 // corrupt or fight over the other's actual persisted tabs/settings. Once
 // this replaces the Tauri app outright, these can be renamed to match.
-function appSupportDir(): string {
+export function appSupportDir(): string {
   return path.join(os.homedir(), "Library", "Application Support", "workspace-app");
 }
 
