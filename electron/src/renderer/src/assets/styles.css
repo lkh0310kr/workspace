@@ -1130,23 +1130,22 @@ iframe.browser-content-slot {
   background: var(--bg-base);
 }
 
-.obsidian-topbar {
-  display: flex;
-  align-items: stretch;
-  flex-shrink: 0;
-  min-height: var(--chrome-h);
-  height: var(--chrome-h);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
-  overflow: hidden;
-}
-
-.obsidian-topbar-icons {
+/* Floating search/outline/save-status cluster, top-right of the editor
+   content — see EditorContent.tsx for why this replaced a dedicated
+   topbar row. */
+.obsidian-float-actions {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 10;
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  padding: 0 4px;
-  border-right: 1px solid var(--border);
+  gap: 2px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 .obsidian-topbar-icon {
@@ -1217,37 +1216,7 @@ iframe.browser-content-slot {
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-.obsidian-nav-row {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  padding: 2px 6px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-base);
-}
-
-.obsidian-nav-row button {
-  padding: 2px 6px;
-  border: none;
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.obsidian-nav-row button:hover:not(:disabled) {
-  color: var(--text);
-}
-
-.obsidian-nav-row button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.obsidian-nav-spacer {
-  flex: 1;
+  position: relative;
 }
 
 .obsidian-editor-column .md-editor {
@@ -1268,49 +1237,16 @@ iframe.browser-content-slot {
   background: var(--bg-surface);
 }
 
-.md-pane-toolbar {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.md-pane-toolbar-spacer {
-  flex: 1;
-}
-
 .md-pane-save-status {
   font-size: 11px;
   font-family: var(--font-mono);
   color: var(--text-faint);
-  padding: 0 8px;
+  padding: 0 4px;
   white-space: nowrap;
 }
 
 .md-pane-save-status.unsaved {
   color: var(--text-muted);
-}
-
-.md-pane-toolbar button {
-  padding: 2px 6px;
-  border: none;
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.md-pane-toolbar button:hover:not(:disabled) {
-  color: var(--text);
-}
-
-.md-pane-toolbar button:disabled {
-  color: var(--text-faint);
-  opacity: 0.35;
-  cursor: default;
-}
-
-.md-pane-tree-toggle.active {
-  color: var(--text);
 }
 
 .md-pane-body {

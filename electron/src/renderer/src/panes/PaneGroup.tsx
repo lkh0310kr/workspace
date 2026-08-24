@@ -39,6 +39,24 @@ interface Props {
 const TREE_MIN_WIDTH = 120;
 const TREE_MAX_WIDTH = 480;
 
+// The file-explorer toggle/width used to reset to the defaults (open,
+// 200px) on every mount — every pane remount (workspace-tab switch, app
+// restart) silently discarded it. One shared preference across every
+// pane, same as theme.ts/autosave.ts's pattern, rather than per-pane
+// state — simplest fix for "TreeView toggle 상태 저장 안됨".
+const TREE_OPEN_KEY = "workspace.editorTreeOpen";
+const TREE_WIDTH_KEY = "workspace.editorTreeWidth";
+
+function getStoredTreeOpen(): boolean {
+  const stored = localStorage.getItem(TREE_OPEN_KEY);
+  return stored === null ? true : stored === "1";
+}
+
+function getStoredTreeWidth(): number {
+  const stored = Number(localStorage.getItem(TREE_WIDTH_KEY));
+  return Number.isFinite(stored) && stored > 0 ? stored : 200;
+}
+
 function isEditorKind(kind: TabKind): boolean {
   return kind === "code" || kind === "markdown";
 }
@@ -61,9 +79,25 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
   // debounced autosave.
   const [localActiveId, setLocalActiveId] = useState(config.activeTabId);
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({});
-  const [treeOpen, setTreeOpen] = useState(true);
-  const [treeWidth, setTreeWidth] = useState(200);
+  const [treeOpen, setTreeOpenState] = useState(getStoredTreeOpen);
+  const [treeWidth, setTreeWidthState] = useState(getStoredTreeWidth);
   const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  const setTreeOpen = useCallback((next: boolean | ((prev: boolean) => boolean)) => {
+    setTreeOpenState((prev) => {
+      const value = typeof next === "function" ? next(prev) : next;
+      localStorage.setItem(TREE_OPEN_KEY, value ? "1" : "0");
+      return value;
+    });
+  }, []);
+
+  const setTreeWidth = useCallback((next: number | ((prev: number) => number)) => {
+    setTreeWidthState((prev) => {
+      const value = typeof next === "function" ? next(prev) : next;
+      localStorage.setItem(TREE_WIDTH_KEY, String(value));
+      return value;
+    });
+  }, []);
 
   const model = tabNode.getModel();
   const nodeId = tabNode.getId();

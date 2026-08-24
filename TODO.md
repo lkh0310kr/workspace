@@ -2,16 +2,16 @@
 - [ ] 브라우저
     - [ ] 이 외에 브라우저 관련 기능 orca 참고해서 고도화 (지금 너무 불편해) — 다음 후보: 실제 파비콘 표시, 탭별 히스토리 뒤로/앞으로 목록(길게 누르면 드롭다운), 다운로드 UI, 확대/축소
 - [ ] Editor/Makdown
-    - [ ] 검색, 목차 기능 오른쪽 상단으로 floating position.
+    - [x] 검색, 목차 기능 오른쪽 상단으로 floating position. — 2026-08-24. `EditorContent.tsx`의 전용 `obsidian-topbar` 행(탭 스트립 globalize 이후로는 완전히 중복되는 두 번째 chrome row였음) 없애고, 검색/목차/저장상태를 `.obsidian-float-actions`로 에디터 우상단에 떠 있는 작은 pill로 이동. 죽은 CSS(`obsidian-topbar`, `obsidian-nav-row`, `md-pane-toolbar` 등, 예전 뒤로/앞으로 히스토리 제거 때부터 이미 안 쓰이고 있었음)도 같이 정리.
     - [ ] 검색 기능 UI 너무 옛날 스타일인 이슈 -> vscode 비슷한 구조로 ui 개선.
-    - [ ] TreeView toggle 상태 저장 안됨 - 다른 것도 체크
+    - [x] TreeView toggle 상태 저장 안됨 - 다른 것도 체크 — 2026-08-24. `treeOpen`/`treeWidth`가 `PaneGroup.tsx`의 로컬 state라 pane 리마운트(워크스페이스 탭 전환, 재시작)마다 기본값(열림/200px)으로 리셋됐음. `theme.ts`/`autosave.ts`와 같은 패턴으로 localStorage 저장(전체 앱 공통 preference 하나, pane별 아님 — 이 정도면 충분해 보여서 단순하게 감).
 - [ ] Workspace
     - [ ] Tab split horizonta/vertical icon이 필요할까? 탭 추가하고 이동하면 될 거 같은데.
     - [ ] MacOS Native Header의 Sidebar Toggle 버튼 hover시 popover selector 표시하여 quick selecting할 수 있도록
     - [ ] Pane UX를 Dialog -> 가벼운 Popover로 변경
 - [ ] Bullet list raw,preview 간 간격 안 맞음. 그리고 checkbox때와 동일하게 커서가 불렛에 근접한 경우에만 raw로 표시하도록 (`electron/src/renderer/src/markdownLivePreview.ts`, Tauri 때부터 미해결 그대로 포팅됨)
-- [ ] Pane Select Dialog - Code <-> Markdown Pane -> Editor
-- [ ] Markdown Editor Cmd + B등 단축키 기능 추가
+- [x] Pane Select Dialog - Code <-> Markdown Pane -> Editor — 2026-08-24. 새 탭 추가 picker(`PanePicker.tsx`)에서 "Code"/"Markdown" 두 선택지를 "Editor" 하나로 합침 — 실제로는 새 탭 생성 시 어느 걸 고르든 상관없었음(`findAvailableUntitledName`이 항상 `.md`만 만듦). 기존에 열려있는 code-kind 탭(TreeView에서 non-md 파일 열었을 때)의 아이콘/라벨은 별도 lookup 테이블(`TAB_KIND_META`)로 그대로 유지 — picker 목록과 렌더링용 lookup을 분리함.
+- [x] Markdown Editor Cmd + B등 단축키 기능 추가 — 2026-08-24. CodeMirror 6엔 마크다운 bold/italic 토글 커맨드가 기본 내장 안 되어 있어서 직접 작성(`toggleMarkdownWrap`) — 선택 영역을 `**`/`*`로 감싸거나, 이미 감싸져 있으면 벗김. Mod-b(굵게)/Mod-i(기울임) 매핑.
 
 AI가 쓰는 TODO:
 - [x] **에디터의 멀티탭 시스템을 전체 pane(터미널/브라우저 포함)으로 globalize** — 2026-08-24. Orca가 터미널/브라우저/에디터를 전부 하나의 "unified tab" 리스트로 다루는 구조를 (worktree/원격서버/pinning/시뮬레이터/Windows shell 메뉴 등 Orca 전용 기능은 빼고) 구조만 이식함. 핵심 변경:

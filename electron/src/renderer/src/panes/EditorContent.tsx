@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { Compartment, EditorState, Transaction } from "@codemirror/state";
+import { Compartment, EditorSelection, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
 import {
   defaultKeymap,
@@ -96,6 +96,39 @@ async function resolveWikiLinkTarget(tabId: number, target: string): Promise<str
   const created = `${base}.md`;
   await writeFile(tabId, created, "");
   return created;
+}
+
+// Cmd+B/Cmd+I: wrap the selection in `marker` (**bold**/*italic*), or
+// unwrap it if it's already exactly wrapped (toggle, matching every other
+// editor's bold/italic shortcut behavior). CodeMirror 6 ships no built-in
+// markdown formatting commands, so this is a small hand-rolled one.
+function toggleMarkdownWrap(marker: string) {
+  return (view: EditorView): boolean => {
+    const { state } = view;
+    const changes = state.changeByRange((range) => {
+      const { from, to } = range;
+      const before = state.sliceDoc(Math.max(0, from - marker.length), from);
+      const after = state.sliceDoc(to, Math.min(state.doc.length, to + marker.length));
+      if (from !== to && before === marker && after === marker) {
+        return {
+          changes: [
+            { from: from - marker.length, to: from },
+            { from: to, to: to + marker.length },
+          ],
+          range: EditorSelection.range(from - marker.length, to - marker.length),
+        };
+      }
+      return {
+        changes: [
+          { from, insert: marker },
+          { from: to, insert: marker },
+        ],
+        range: EditorSelection.range(from + marker.length, to + marker.length),
+      };
+    });
+    view.dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
+    return true;
+  };
 }
 
 function computeOutline(view: EditorView): OutlineItem[] {
@@ -210,6 +243,8 @@ export function EditorContent({ tabId, rootPath, filePath, kind, zoom, onOpenFil
             { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
             { key: "Enter", run: insertNewlineAndIndent },
             { key: "Backspace", run: deleteMarkupBackward },
+            { key: "Mod-b", run: toggleMarkdownWrap("**") },
+            { key: "Mod-i", run: toggleMarkdownWrap("*") },
             ...defaultKeymap,
           ]),
         ]
@@ -371,42 +406,45 @@ export function EditorContent({ tabId, rootPath, filePath, kind, zoom, onOpenFil
 
   return (
     <div className="obsidian-editor-shell">
-      <div className="obsidian-topbar">
-        <div className="obsidian-topbar-icons">
-          <button
-            type="button"
-            className={`obsidian-topbar-icon${searchOpen ? " active" : ""}`}
-            title="Search"
-            onClick={toggleSearch}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85Zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"
-              />
-            </svg>
-          </button>
-          {isMarkdown && (
-            <button
-              type="button"
-              className={`obsidian-topbar-icon${outlineOpen ? " active" : ""}`}
-              title="Toggle outline"
-              onClick={() => setOutlineOpen((v) => !v)}
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-                <path fill="currentColor" d="M2 3h12v1H2V3Zm0 4h12v1H2V7Zm0 4h8v1H2v-1Z" />
-              </svg>
-            </button>
-          )}
-          {!autoSave && (
-            <span className={`md-pane-save-status${dirty ? " unsaved" : ""}`}>
-              {dirty ? "Unsaved" : "Saved"}
-            </span>
-          )}
-        </div>
-      </div>
       <div className="obsidian-body">
         <div className="obsidian-editor-column">
+          {/* Floats over the editor's top-right corner instead of taking
+              its own chrome row — PaneTabStrip is already a full row of
+              chrome above this, so a second full-width topbar just for
+              two icons + a save-status label was redundant vertical
+              space, and not how VS Code/Obsidian place these either. */}
+          <div className="obsidian-float-actions">
+            {!autoSave && (
+              <span className={`md-pane-save-status${dirty ? " unsaved" : ""}`}>
+                {dirty ? "Unsaved" : "Saved"}
+              </span>
+            )}
+            {isMarkdown && (
+              <button
+                type="button"
+                className={`obsidian-topbar-icon${outlineOpen ? " active" : ""}`}
+                title="Toggle outline"
+                onClick={() => setOutlineOpen((v) => !v)}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                  <path fill="currentColor" d="M2 3h12v1H2V3Zm0 4h12v1H2V7Zm0 4h8v1H2v-1Z" />
+                </svg>
+              </button>
+            )}
+            <button
+              type="button"
+              className={`obsidian-topbar-icon${searchOpen ? " active" : ""}`}
+              title="Search"
+              onClick={toggleSearch}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85Zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"
+                />
+              </svg>
+            </button>
+          </div>
           <div
             className="md-editor"
             ref={hostRef}
