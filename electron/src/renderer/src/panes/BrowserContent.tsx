@@ -91,6 +91,20 @@ export function BrowserContent({ tabId, item, visible, onUpdate, onOpenNewTab }:
     webview.addEventListener("did-navigate-in-page", onNavigateInPage);
     webview.addEventListener("page-title-updated", onPageTitleUpdated);
 
+    // Cmd+R/Cmd+Shift+R (App.tsx) needs to know which webview actually has
+    // keyboard focus right now, not just which one is merely "visible" —
+    // a pane can be showing a browser tab while the user's actual focus is
+    // in a sibling editor/terminal pane split next to it. <webview> is a
+    // real HTMLElement and does dispatch focus/blur when the guest's own
+    // focus state changes, so this tracks the true focused webview instead
+    // of the previous "last one to become visible" approximation.
+    const onFocus = (): void => setActiveBrowserWebview(webview);
+    const onBlur = (): void => {
+      if (getActiveBrowserWebview() === webview) setActiveBrowserWebview(null);
+    };
+    webview.addEventListener("focus", onFocus);
+    webview.addEventListener("blur", onBlur);
+
     // target="_blank"/window.open() in the guest page — main/index.ts's
     // web-contents-created handler denies the native window this would
     // otherwise open (BrowserPane.tsx sets allowpopups) and forwards the
@@ -114,6 +128,9 @@ export function BrowserContent({ tabId, item, visible, onUpdate, onOpenNewTab }:
       webview.removeEventListener("did-navigate", onNavigate);
       webview.removeEventListener("did-navigate-in-page", onNavigateInPage);
       webview.removeEventListener("page-title-updated", onPageTitleUpdated);
+      webview.removeEventListener("focus", onFocus);
+      webview.removeEventListener("blur", onBlur);
+      if (getActiveBrowserWebview() === webview) setActiveBrowserWebview(null);
       unlistenOpenNewTab();
       container.removeChild(webview);
       webviewRef.current = null;
@@ -126,13 +143,10 @@ export function BrowserContent({ tabId, item, visible, onUpdate, onOpenNewTab }:
   useEffect(() => {
     const webview = webviewRef.current;
     if (webview) webview.style.visibility = visible ? "visible" : "hidden";
-    // Cmd+R/Cmd+Shift+R (App.tsx) reloads whichever webview last became
-    // visible — see activeBrowserWebview.ts for why there's no better
-    // single source of truth than that.
-    if (visible) setActiveBrowserWebview(webview);
-    return () => {
-      if (getActiveBrowserWebview() === webview) setActiveBrowserWebview(null);
-    };
+    // A tab switching away no longer keeps real DOM focus, so treat that
+    // as a blur too (its own focus/blur listeners only fire on genuine
+    // focus changes, which a hidden-but-still-mounted webview won't get).
+    if (!visible && getActiveBrowserWebview() === webview) setActiveBrowserWebview(null);
   }, [visible]);
 
   // Cmd+L / Ctrl+L: jump to and select this page's address bar — only
