@@ -2,7 +2,8 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { spawnTerminal, writeTerminal, resizeTerminal, disposeTerminal, disposeAllTerminals } from './terminals'
+import { Workspace } from './workspace'
+import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
 
 function createWindow(): BrowserWindow {
   // Create the browser window.
@@ -41,6 +42,12 @@ function createWindow(): BrowserWindow {
   return mainWindow
 }
 
+let workspace: Workspace | null = null
+
+function persist(): void {
+  if (workspace) saveWorkspaceSnapshot(workspace.state())
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -55,8 +62,15 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  const config = loadConfig()
+  const defaultRoot = config.rootPath ?? process.cwd()
+  const snapshot = loadWorkspaceSnapshot()
+  workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
+  // Save immediately (mirrors src/lib.rs) — first launch would otherwise
+  // never persist anything until the user creates/closes/renames a tab,
+  // meaning a never-touched default tab's terminal id (and thus its tmux
+  // session) would be lost on the very next relaunch.
+  persist()
 
   const mainWindow = createWindow()
 
@@ -65,24 +79,64 @@ app.whenReady().then(() => {
   // response to a request), so it's the one place wiring to a specific
   // window's webContents.send matters — the rest are plain request/
   // response and don't care which window called them.
-  ipcMain.handle('pty:spawn', (_event, cols: number, rows: number, cwd: string | undefined) => {
-    const id = spawnTerminal(cols, rows, cwd, (data) => {
-      mainWindow.webContents.send('pty:data', { id, data })
-    })
+  workspace.onTerminalData = (id, data) => {
+    mainWindow.webContents.send('pty:data', { id, data })
+  }
+
+  ipcMain.handle('pty:spawn', (_event, cols: number, rows: number) => {
+    return workspace!.spawnTerminal(cols, rows)
+  })
+  ipcMain.on('pty:write', (_event, id: number, data: Uint8Array) => {
+    workspace!.terminalWrite(id, Buffer.from(data))
+  })
+  ipcMain.on('pty:resize', (_event, id: number, cols: number, rows: number) => {
+    workspace!.terminalResize(id, cols, rows)
+  })
+  ipcMain.on('pty:dispose', () => {
+    // Individual-terminal disposal isn't wired to the Workspace model yet
+    // (it only releases terminals no longer referenced by any tab's
+    // layout, via setTabLayout) — a real "close this terminal" action
+    // belongs to the layout port (task 6), not this milestone.
+  })
+
+  ipcMain.handle('workspace:get-state', () => workspace!.state())
+  ipcMain.handle('workspace:add-tab', () => {
+    const id = workspace!.addTab()
+    persist()
     return id
   })
-
-  ipcMain.on('pty:write', (_event, id: number, data: Uint8Array) => {
-    writeTerminal(id, Buffer.from(data))
+  ipcMain.handle('workspace:close-tab', (_event, tabId: number) => {
+    workspace!.closeTab(tabId)
+    persist()
+  })
+  ipcMain.handle('workspace:select-tab', (_event, tabId: number) => {
+    workspace!.selectTab(tabId)
+    persist()
+  })
+  ipcMain.handle('workspace:set-tab-layout', (_event, tabId: number, layoutJson: string) => {
+    workspace!.setTabLayout(tabId, layoutJson)
+    persist()
+  })
+  ipcMain.handle('workspace:set-tab-root-path', (_event, tabId: number, rootPath: string) => {
+    workspace!.setTabRootPath(tabId, rootPath)
+    if (tabId === workspace!.state().activeTabId) {
+      workspace!.defaultRootPath = rootPath
+      saveConfig({ rootPath })
+    }
+    persist()
+    return workspace!.state()
   })
 
-  ipcMain.on('pty:resize', (_event, id: number, cols: number, rows: number) => {
-    resizeTerminal(id, cols, rows)
-  })
-
-  ipcMain.on('pty:dispose', (_event, id: number) => {
-    disposeTerminal(id)
-  })
+  ipcMain.handle('fs:list-dir', (_event, tabId: number, rel: string) => workspace!.listDir(tabId, rel))
+  ipcMain.handle('fs:read-file', (_event, tabId: number, rel: string) => workspace!.readFile(tabId, rel))
+  ipcMain.handle('fs:write-file', (_event, tabId: number, rel: string, content: string) =>
+    workspace!.writeFile(tabId, rel, content)
+  )
+  ipcMain.handle('fs:create-dir', (_event, tabId: number, rel: string) => workspace!.createDir(tabId, rel))
+  ipcMain.handle('fs:delete-path', (_event, tabId: number, rel: string) => workspace!.deletePath(tabId, rel))
+  ipcMain.handle('fs:rename-path', (_event, tabId: number, fromRel: string, toRel: string) =>
+    workspace!.renamePath(tabId, fromRel, toRel)
+  )
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -105,8 +159,5 @@ app.on('window-all-closed', () => {
 // client's shell would kill the very session this whole feature exists to
 // keep alive across restarts).
 app.on('before-quit', () => {
-  disposeAllTerminals()
+  workspace?.disposeAllTerminals()
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
