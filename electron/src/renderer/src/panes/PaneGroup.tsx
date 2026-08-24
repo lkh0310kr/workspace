@@ -40,21 +40,22 @@ const TREE_MAX_WIDTH = 480;
 
 // The file-explorer toggle/width used to reset to the defaults (open,
 // 200px) on every mount — every pane remount (workspace-tab switch, app
-// restart) silently discarded it. Persisted per-pane (keyed by the
-// flexlayout node id), not as one shared value across every pane —
-// TreeView belongs to a single pane's own file-browsing context, so two
-// different panes/splits need to be able to have it open/closed (and
-// sized) independently of each other.
+// restart) silently discarded it. Persisted per-tab (keyed by the tab
+// item's own id), not per-pane and not as one shared value across every
+// pane — confirmed directly ("TODO.md 탭이랑 New tab이 같은 pane 안의 두
+// 탭"): two editor tabs in the very same pane still need independent
+// open/closed (and sized) explorer state, not just two different
+// panes/splits.
 const TREE_OPEN_KEY = "workspace.editorTreeOpen";
 const TREE_WIDTH_KEY = "workspace.editorTreeWidth";
 
-function getStoredTreeOpen(nodeId: string): boolean {
-  const stored = localStorage.getItem(`${TREE_OPEN_KEY}.${nodeId}`);
+function getStoredTreeOpen(tabId: string): boolean {
+  const stored = localStorage.getItem(`${TREE_OPEN_KEY}.${tabId}`);
   return stored === null ? true : stored === "1";
 }
 
-function getStoredTreeWidth(nodeId: string): number {
-  const stored = Number(localStorage.getItem(`${TREE_WIDTH_KEY}.${nodeId}`));
+function getStoredTreeWidth(tabId: string): number {
+  const stored = Number(localStorage.getItem(`${TREE_WIDTH_KEY}.${tabId}`));
   return Number.isFinite(stored) && stored > 0 ? stored : 200;
 }
 
@@ -83,31 +84,43 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
 
   const [localActiveId, setLocalActiveId] = useState(config.activeTabId);
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({});
-  const [treeOpen, setTreeOpenState] = useState(() => getStoredTreeOpen(nodeId));
-  const [treeWidth, setTreeWidthState] = useState(() => getStoredTreeWidth(nodeId));
+  // Sparse overrides on top of localStorage — a tab id only appears here
+  // once its explorer state has actually been touched this session;
+  // until then treeOpenFor/treeWidthFor fall through to the stored (or
+  // default) value directly, so every *other* tab doesn't need an eager
+  // entry just because one tab's state changed.
+  const [treeOpenOverrides, setTreeOpenOverrides] = useState<Record<string, boolean>>({});
+  const [treeWidthOverrides, setTreeWidthOverrides] = useState<Record<string, number>>({});
   const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
-  const setTreeOpen = useCallback(
-    (next: boolean | ((prev: boolean) => boolean)) => {
-      setTreeOpenState((prev) => {
-        const value = typeof next === "function" ? next(prev) : next;
-        localStorage.setItem(`${TREE_OPEN_KEY}.${nodeId}`, value ? "1" : "0");
-        return value;
-      });
-    },
-    [nodeId],
+  const treeOpenFor = useCallback(
+    (tabId: string): boolean => (tabId in treeOpenOverrides ? treeOpenOverrides[tabId] : getStoredTreeOpen(tabId)),
+    [treeOpenOverrides],
   );
 
-  const setTreeWidth = useCallback(
-    (next: number | ((prev: number) => number)) => {
-      setTreeWidthState((prev) => {
-        const value = typeof next === "function" ? next(prev) : next;
-        localStorage.setItem(`${TREE_WIDTH_KEY}.${nodeId}`, String(value));
-        return value;
-      });
-    },
-    [nodeId],
+  const treeWidthFor = useCallback(
+    (tabId: string): number =>
+      tabId in treeWidthOverrides ? treeWidthOverrides[tabId] : getStoredTreeWidth(tabId),
+    [treeWidthOverrides],
   );
+
+  const setTreeOpenForTab = useCallback((tabId: string, next: boolean | ((prev: boolean) => boolean)) => {
+    setTreeOpenOverrides((prev) => {
+      const prevValue = tabId in prev ? prev[tabId] : getStoredTreeOpen(tabId);
+      const value = typeof next === "function" ? next(prevValue) : next;
+      localStorage.setItem(`${TREE_OPEN_KEY}.${tabId}`, value ? "1" : "0");
+      return { ...prev, [tabId]: value };
+    });
+  }, []);
+
+  const setTreeWidthForTab = useCallback((tabId: string, next: number | ((prev: number) => number)) => {
+    setTreeWidthOverrides((prev) => {
+      const prevValue = tabId in prev ? prev[tabId] : getStoredTreeWidth(tabId);
+      const value = typeof next === "function" ? next(prevValue) : next;
+      localStorage.setItem(`${TREE_WIDTH_KEY}.${tabId}`, String(value));
+      return { ...prev, [tabId]: value };
+    });
+  }, []);
 
   // If our local pointer no longer refers to an existing tab (the model's
   // own activeTabId moved for a reason other than the user clicking a tab
@@ -190,12 +203,13 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
 
   const onTreeResizeMouseDown = (e: ReactMouseEvent) => {
     e.preventDefault();
-    treeResizeRef.current = { startX: e.clientX, startWidth: treeWidth };
+    const tabId = activeItem.id;
+    treeResizeRef.current = { startX: e.clientX, startWidth: treeWidthFor(tabId) };
     const onMouseMove = (ev: MouseEvent) => {
       const drag = treeResizeRef.current;
       if (!drag) return;
       const next = drag.startWidth + (ev.clientX - drag.startX);
-      setTreeWidth(Math.min(TREE_MAX_WIDTH, Math.max(TREE_MIN_WIDTH, next)));
+      setTreeWidthForTab(tabId, Math.min(TREE_MAX_WIDTH, Math.max(TREE_MIN_WIDTH, next)));
     };
     const onMouseUp = () => {
       treeResizeRef.current = null;
@@ -207,7 +221,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
   };
 
   if (!activeItem) return null;
-  const showExplorer = treeOpen && isEditorKind(activeItem.kind);
+  const showExplorer = treeOpenFor(activeItem.id) && isEditorKind(activeItem.kind);
 
   return (
     <PaneFrame
@@ -226,7 +240,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
     >
       <div className="pane-group-body">
         {showExplorer && (
-          <div className="obsidian-explorer" style={{ width: treeWidth }}>
+          <div className="obsidian-explorer" style={{ width: treeWidthFor(activeItem.id) }}>
             <TreeView
               tabId={workspaceTabId}
               rootPath={rootPath}
@@ -282,8 +296,8 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
                     onOpenFile={(path) => openOrSwitchToFile(path, "markdown")}
                     onAssignPath={(path) => updateItem(item.id, { filePath: path })}
                     onDirtyChange={(dirty) => setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))}
-                    treeOpen={treeOpen}
-                    onToggleTree={() => setTreeOpen((v) => !v)}
+                    treeOpen={treeOpenFor(item.id)}
+                    onToggleTree={() => setTreeOpenForTab(item.id, (v) => !v)}
                   />
                 )}
               </div>
