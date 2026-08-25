@@ -30,3 +30,18 @@
 - [ ] Layout export to `./.workspace/layout.json`
 - [ ] GPU terminal option (`terminal-gpu` crate)
 - [ ] MCP / agent orchestration
+
+## Phase F — Interaction stability (done)
+
+- [x] InteractionCoordinator — overlay stack, webview pointer-events, portal registry
+- [x] Orca-style terminal pipeline (PtySession replay, single-leaf pane manager, WebGL refit)
+- [x] Workspace tab keep-mounted visibility model (no full layout remount)
+- [x] Architecture docs in `docs/architecture/`
+
+See [docs/architecture/README.md](./architecture/README.md).
+
+## Phase G — Planned
+
+- [x] Zustand workspace-scope store (Phase 2) — workspace hydration, layout models, pane active tabs, coordinator bridge
+- [ ] Embed cold-park + LRU webview registry (Phase 3)
+- [ ] Zod + salvage workspace persistence (Phase 4)

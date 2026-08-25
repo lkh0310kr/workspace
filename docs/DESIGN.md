@@ -416,7 +416,7 @@ It should feel like a precise workspace that has been refined over years of useâ
 
 ## Implementation Tokens
 
-CSS custom properties in `ui/src/styles.css`:
+CSS custom properties in `electron/src/renderer/src/assets/styles.css`:
 
 | Token | Role |
 |-------|------|

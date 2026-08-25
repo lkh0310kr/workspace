@@ -6,35 +6,27 @@ Feature
   - Panes
   - Split
   - Window Layout
-- Windows
-  - Terminal
-    - PTY
-    - Shell
-    - GPU Rendering
-  - Browser
-    - WebView
-    - Navigation
-    - Browser Tabs
-  - Code Editor
-  - Markdown Editor (WYSIWYG)
-    - Editor / Preview
-    - File System (Tree View)
-
-Stack:
-
-- Application
-  - Language: Rust
-    - Application Core
-  - Desktop: Tauri 2
-  - WebView: Wry
-  - Terminal-PTY: portable-pty
-  - Termianl-Engine: alacritty_terminal
-  - Terminal Renderer: GPU-based
-  - Markdown Parser (AST): Rust Markdown parser
-  - Markdown Editor: CodeMirror
-- Internal System
-  - Async: Tokio
-  - Serialization Serde
-  - File Watcher: notify
-  - Search: Tantivy
-  - Storage: none (./.workspace/\*\*.\* saved)
+- Pane
+    - Terminal
+        - PTY
+        - Shell
+        - GPU Rendering
+    - Browser
+        - WebView
+        - Navigation
+        - Browser Tabs
+    - Editor
+        - Markdown Editor (WYSIWYG)
+        - File System (Tree View)
+    - Spotify
+    - File Viewer (Image, PDF, Video(+ 영화 자막 파일 추가 및 조정 기능), E-Book, Audio Player)
+    - RSS Reader
+    - Calendar
+    - Dashboard
+        - Weather, Clock, Stock chart 등 종합적으로 brief
+        - Notification Center
+            - RSS, Download, Mail, Calendar
+        - Newspaper
+            - Blog, News
+        - Economy
+            - Stock/Crypto/Index/Gold/Exchange Rate
