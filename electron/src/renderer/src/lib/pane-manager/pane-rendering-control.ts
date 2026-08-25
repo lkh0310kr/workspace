@@ -1,5 +1,4 @@
 import type { ManagedPane, ManagedPaneInternal } from "./pane-manager-types";
-import { refitPaneTerminal } from "./pane-terminal-refit";
 import { disposeWebgl } from "./pane-webgl-renderer";
 
 function getFitElement(pane: ManagedPane): HTMLElement {
@@ -9,8 +8,13 @@ function getFitElement(pane: ManagedPane): HTMLElement {
 
 export function safeFit(pane: ManagedPane): boolean {
   const fitEl = getFitElement(pane);
+  if (!fitEl.isConnected) {
+    return false;
+  }
   const { clientWidth, clientHeight } = fitEl;
-  if (clientWidth < 2 || clientHeight < 2) return false;
+  if (clientWidth < 2 || clientHeight < 2) {
+    return false;
+  }
   try {
     pane.fitAddon.fit();
     return true;
@@ -22,6 +26,7 @@ export function safeFit(pane: ManagedPane): boolean {
 export function suspendPaneRendering(pane: ManagedPaneInternal): void {
   pane.renderingSuspended = true;
   pane.webglAttachmentDeferred = true;
+  pane.webglNeedsRebuildOnResume = true;
   disposeWebgl(pane);
 }
 
@@ -30,5 +35,4 @@ export function resumePaneRendering(pane: ManagedPaneInternal): void {
   pane.webglAttachmentDeferred = false;
   pane.webglDisabledAfterContextLoss = false;
   pane.webglAttachFailedSinceRecovery = false;
-  refitPaneTerminal(pane);
 }

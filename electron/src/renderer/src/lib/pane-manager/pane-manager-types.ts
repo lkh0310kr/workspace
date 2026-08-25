@@ -34,7 +34,13 @@ export type ManagedPaneInternal = ManagedPane & {
   fitResizeObserver: ResizeObserver | null;
   pendingInitialFitRafId: number | null;
   pendingWebglRefreshRafId: number | null;
+  pendingRefitRetryRafId: number | null;
   renderingSuspended: boolean;
+  lastFitCols: number;
+  lastFitRows: number;
+  webglNeedsRebuildOnResume: boolean;
+  compositionHandler: (() => void) | null;
+  focusClassSyncCleanup: (() => void) | null;
 };
 
 export type PaneManagerOptions = {

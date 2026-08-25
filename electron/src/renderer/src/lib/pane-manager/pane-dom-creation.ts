@@ -65,7 +65,8 @@ export function createPaneDOM(
     unicode11Addon,
     webLinksAddon,
     terminalGpuAcceleration: options.terminalGpuAcceleration ?? "auto",
-    gpuRenderingEnabled: ENABLE_WEBGL_RENDERER,
+    gpuRenderingEnabled:
+      ENABLE_WEBGL_RENDERER && (options.terminalGpuAcceleration ?? "auto") !== "off",
     webglAttachmentDeferred: options.initialRenderingSuspended === true,
     webglDisabledAfterContextLoss: false,
     webglAddon: null,
@@ -73,7 +74,13 @@ export function createPaneDOM(
     fitResizeObserver: null,
     pendingInitialFitRafId: null,
     pendingWebglRefreshRafId: null,
+    pendingRefitRetryRafId: null,
     renderingSuspended: options.initialRenderingSuspended === true,
+    lastFitCols: 0,
+    lastFitRows: 0,
+    webglNeedsRebuildOnResume: options.initialRenderingSuspended === true,
+    compositionHandler: null,
+    focusClassSyncCleanup: null,
   };
 
   return pane;

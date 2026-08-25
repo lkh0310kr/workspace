@@ -35,7 +35,20 @@ export function attachWebgl(pane: ManagedPaneInternal): void {
     });
     pane.terminal.loadAddon(addon);
     pane.webglAddon = addon;
-    pane.terminal.refresh(0, pane.terminal.rows - 1);
+    const rows = pane.terminal.rows;
+    if (rows > 0) {
+      pane.terminal.refresh(0, rows - 1);
+    }
+    if (pane.pendingWebglRefreshRafId != null) {
+      cancelAnimationFrame(pane.pendingWebglRefreshRafId);
+    }
+    // DOM → WebGL after hide/show needs a settled frame before the atlas paints.
+    pane.pendingWebglRefreshRafId = requestAnimationFrame(() => {
+      pane.pendingWebglRefreshRafId = null;
+      if (pane.terminal.rows > 0) {
+        pane.terminal.refresh(0, pane.terminal.rows - 1);
+      }
+    });
   } catch (err) {
     if (pane.terminalGpuAcceleration === "auto") suggestedRendererType = "dom";
     pane.webglAttachFailedSinceRecovery = true;

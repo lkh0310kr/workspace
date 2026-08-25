@@ -13,6 +13,7 @@ export function attachPaneFitResizeObserver(pane: ManagedPaneInternal): void {
   detachPaneFitResizeObserver(pane);
   const fitEl = pane.xtermContainer ?? pane.container;
   const onResize = () => {
+    if (!fitEl.isConnected) return;
     if (refitPaneTerminal(pane)) {
       fitListeners.get(pane)?.(pane);
     }
