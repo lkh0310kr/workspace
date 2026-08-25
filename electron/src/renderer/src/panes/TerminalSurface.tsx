@@ -90,14 +90,25 @@ function TerminalSurfaceInner({ terminalId, active, visible, zoom = 1 }: Props) 
     if (!manager) return;
     const show = visible && active;
     manager.setRenderingSuspended(!show);
-    if (show) {
+    if (!show) return;
+
+    const resumeVisible = () => {
       const pane = manager.getPane();
-      if (pane) {
-        manager.refit();
-        ptyResize(terminalId, pane.terminal.cols, pane.terminal.rows).catch(console.error);
-        pane.terminal.focus();
+      if (!pane) return;
+      manager.refit();
+      const cols = pane.terminal.cols;
+      const rows = pane.terminal.rows;
+      if (cols > 0 && rows > 0) {
+        ptyResize(terminalId, cols, rows).catch(console.error);
       }
-    }
+      pane.terminal.refresh(0, Math.max(0, pane.terminal.rows - 1));
+      pane.terminal.focus();
+    };
+
+    // After visibility:hidden → visible, layout needs a frame before fit/WebGL.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resumeVisible);
+    });
   }, [visible, active, terminalId]);
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import type { ManagedPane, ManagedPaneInternal } from "./pane-manager-types";
+import { refitPaneTerminal } from "./pane-terminal-refit";
 import { disposeWebgl } from "./pane-webgl-renderer";
 
 function getFitElement(pane: ManagedPane): HTMLElement {
@@ -29,4 +30,5 @@ export function resumePaneRendering(pane: ManagedPaneInternal): void {
   pane.webglAttachmentDeferred = false;
   pane.webglDisabledAfterContextLoss = false;
   pane.webglAttachFailedSinceRecovery = false;
+  refitPaneTerminal(pane);
 }

@@ -299,7 +299,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
                 {item.kind === "terminal" && (
                   <TerminalPane
                     terminalId={item.terminalId ?? 0}
-                    visible={visible}
+                    visible={visible && active}
                     active={active}
                     zoom={zoom}
                   />
