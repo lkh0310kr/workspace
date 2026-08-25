@@ -1,0 +1,21 @@
+/* Loaded after @xterm/xterm/css/xterm.css in TerminalPane.tsx */
+
+.pane-manager-root .xterm:not(.allow-transparency) .xterm-viewport,
+.terminal-pane-shell .xterm:not(.allow-transparency) .xterm-viewport {
+  background-color: transparent !important;
+}
+
+.pane-manager-root .xterm,
+.terminal-pane-shell .xterm {
+  background-color: var(--terminal-surface-bg, var(--bg-base));
+}
+
+.pane-manager-root .xterm .xterm-screen,
+.terminal-pane-shell .xterm .xterm-screen {
+  background-color: var(--terminal-surface-bg, var(--bg-base));
+}
+
+.pane-manager-root .xterm canvas,
+.terminal-pane-shell .xterm canvas {
+  background-color: transparent;
+}
