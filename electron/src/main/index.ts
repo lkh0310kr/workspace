@@ -318,15 +318,8 @@ app.whenReady().then(() => {
   ipcMain.on('debug:interaction-log', (_event, entry: Record<string, unknown>) => {
     appendInteractionLog(entry)
   })
-  // tmux mouse mode (pty.ts's tmux.conf, `mouse on`) makes tmux itself own
-  // drag-to-select instead of the browser — on release it copies via an
-  // OSC 52 escape sequence, not a real DOM selection. xterm.js parses OSC
-  // 52 for us (registerOscHandler in TerminalPane.tsx) but has no clipboard
-  // access itself; it's forwarded here to actually reach the OS clipboard.
-  // Without this, drag-select in the terminal looked like it worked (tmux's
-  // own copy-mode highlight appears) but nothing ever landed on the
-  // clipboard — reported as "드래그하면 노란색으로 드래그되고... 텍스트
-  // 복사도 안되고".
+  // OSC 52 from nested apps (vim, ssh tmux, etc.) — xterm forwards via
+  // registerOscHandler(52) in connectPanePty; renderer has no clipboard API.
   ipcMain.on('clipboard:write-text', (_event, text: string) => {
     clipboard.writeText(text)
   })

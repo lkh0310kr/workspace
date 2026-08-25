@@ -40,18 +40,14 @@ let cachedTmuxConfPath: string | null | undefined;
 // cross-restart) tmux server — an already-running server predating this
 // file needs one manual `tmux kill-server` to pick up changes.
 //
-// `mouse on` — without it, tmux runs the pane in the alternate screen and
-// never intercepts the mouse itself, so xterm.js forwards wheel scroll to
-// tmux as raw escape sequences tmux does nothing with: no scrollback, no
-// visible effect. With mouse mode on, tmux interprets wheel-up/down itself
-// and enters its own copy-mode to scroll the pane's history. The tradeoff:
-// a plain click-drag now also goes to tmux's copy-mode selection instead of
-// a normal DOM selection, and tmux's default drag-end binding
-// (copy-selection-and-cancel) only reaches the OS clipboard via an OSC 52
-// escape sequence — `set-clipboard on` makes tmux actually emit it (it's
-// tmux's own default already on modern versions, set explicitly here so it
-// doesn't depend on the user's tmux version/config). xterm.js's side of
-// reading that sequence is TerminalPane.tsx's registerOscHandler(52, ...).
+// `mouse off` — iTerm2 / Terminal.app style: xterm.js owns click-drag
+// selection (theme selection colors, selection stays until copy/click away).
+// `mouse on` made tmux enter copy-mode on drag (yellow highlight, `[0/N]`
+// position indicator, selection cleared on mouseup via copy-pipe-and-cancel).
+// Wheel scroll uses xterm scrollback (`scrollback` rows + scrollLines in
+// TerminalPane) instead of tmux copy-mode scrolling.
+// If an old tmux server was started with `mouse on`, run `tmux kill-server`
+// once so the next pane picks up this config.
 function tmuxConfPath(): string | null {
   if (cachedTmuxConfPath !== undefined) return cachedTmuxConfPath;
   const home = os.homedir();
@@ -63,7 +59,7 @@ function tmuxConfPath(): string | null {
   try {
     fs.mkdirSync(dir, { recursive: true });
     const confPath = path.join(dir, "tmux.conf");
-    fs.writeFileSync(confPath, "set-option -g status off\nset -g mouse on\nset -g set-clipboard on\n");
+    fs.writeFileSync(confPath, "set-option -g status off\nset -g mouse off\n");
     cachedTmuxConfPath = confPath;
   } catch {
     cachedTmuxConfPath = null;
