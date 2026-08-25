@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getBrowserHistory } from "../browserHistory";
 import { buildAddressBarSuggestions, type AddressBarSuggestion } from "../browserAddressBarSuggestions";
+import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 
 // Real-browser-style address bar: history-based autocomplete dropdown,
 // select-all on focus, Escape reverts to the actual current URL, Enter
@@ -160,6 +161,11 @@ export function BrowserAddressBar({ value, currentUrl, onChange, onNavigate, inp
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [open, updateRect]);
+
+  useEffect(() => {
+    if (!open) return;
+    return interactionCoordinator.registerPortal(`browser-address-bar:${inputRef.current?.id ?? "default"}`, close);
+  }, [open, close, inputRef]);
 
   return (
     <>
