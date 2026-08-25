@@ -16,6 +16,7 @@ function getFindRequestQuery(query: string): string | null {
 function clearTerminalSearch(searchAddon: SearchAddon | null): void {
   if (!searchAddon) return;
   searchAddon.clearDecorations();
+  searchAddon.clearActiveDecoration();
   searchAddon.findNext("");
 }
 
