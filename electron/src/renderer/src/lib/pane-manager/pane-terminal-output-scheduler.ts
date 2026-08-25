@@ -6,6 +6,7 @@ import {
   type ForegroundTerminalOutputTarget,
 } from "./pane-terminal-foreground-render-settle";
 import { runGuardedWriteCompletionStep } from "./xterm-write-callback-guard";
+import { reprTerminalBytes, termLog } from "../../terminal/terminalDebugLog";
 
 type TerminalOutputTarget = ForegroundTerminalOutputTarget;
 
@@ -33,6 +34,12 @@ export function writeTerminalOutput(
     options.ackCredit?.();
     return;
   }
+
+  termLog("xterm:write", "schedule", {
+    bytes: reprTerminalBytes(data),
+    length: data.length,
+    foreground: options.foreground ?? true,
+  });
 
   const foreground = options.foreground ?? true;
   const entry = queues.get(terminal) ?? {

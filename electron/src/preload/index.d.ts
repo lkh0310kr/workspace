@@ -55,6 +55,7 @@ export interface WorkspaceApi {
   }
   debug: {
     interactionLog: (entry: Record<string, unknown>) => void
+    terminalLog: (entry: Record<string, unknown>) => void
   }
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void) => () => void
@@ -68,6 +69,10 @@ export interface WorkspaceApi {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
     onClosePaneTab: (cb: () => void) => () => void
     onOpenSettings: (cb: () => void) => () => void
+  }
+  terminal: {
+    setFocused: (id: number | null) => void
+    onClearOptionModifiers: (cb: () => void) => () => void
   }
   pty: {
     spawn: (cols: number, rows: number) => Promise<number>

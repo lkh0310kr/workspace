@@ -1,5 +1,6 @@
 import { createPtyInputWriteQueue } from "./ptyInputWriteQueue";
 import { subscribePtyData } from "./ptyDataMultiplexer";
+import { reprTerminalBytes, termLog } from "./terminalDebugLog";
 
 export interface PtyConnectResult {
   id: number;
@@ -30,6 +31,12 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
     isWritable: () => connected && !destroyed,
     write: (_id, data) => {
       const bytes = new TextEncoder().encode(data);
+      termLog(
+        "pty:write",
+        "ipc-send",
+        { bytes: reprTerminalBytes(data), length: data.length, connected },
+        terminalId,
+      );
       window.api.pty.write(terminalId, bytes);
     },
   });
@@ -39,6 +46,7 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
       if (destroyed) throw new Error("transport destroyed");
       const result = await window.api.pty.connect(terminalId);
       connected = true;
+      termLog("pty:connect", "connected", { lastSeq: result.lastSeq }, terminalId);
 
       dataUnlisten?.();
       dataUnlisten = subscribePtyData(terminalId, callbacks.onData, result.lastSeq);
@@ -49,6 +57,7 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
     disconnect() {
       if (!connected) return;
       connected = false;
+      termLog("pty:connect", "disconnected", {}, terminalId);
       dataUnlisten?.();
       dataUnlisten = null;
       window.api.pty.disconnect(terminalId);
@@ -56,6 +65,12 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
     },
 
     write(data: string) {
+      termLog(
+        "pty:transport",
+        "enqueue",
+        { bytes: reprTerminalBytes(data), length: data.length, connected },
+        terminalId,
+      );
       inputQueue.enqueue(String(terminalId), data);
     },
   };

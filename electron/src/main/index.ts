@@ -10,6 +10,39 @@ import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus }
 import { setupBrowserSession } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
+import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
+import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
+
+let focusedTerminalId: number | null = null
+
+function handleMacTerminalOptionShortcut(
+  event: Electron.Event,
+  input: Electron.Input,
+  terminalId: number,
+): boolean {
+  if (process.platform !== 'darwin' || input.type !== 'keyDown') {
+    return false
+  }
+  if (!input.alt || input.meta || input.control || input.shift) {
+    return false
+  }
+  const bytes = resolveMacOptionTerminalBytes(input.code)
+  if (!bytes) {
+    return false
+  }
+  event.preventDefault()
+  workspace?.terminalWrite(terminalId, Buffer.from(bytes, 'utf8'))
+  sendToMainWindow('terminal:clear-option-modifiers')
+  appendTerminalLog({
+    sessionId: 'terminal',
+    timestamp: Date.now(),
+    location: 'main:before-input',
+    message: 'mac-option-shortcut',
+    terminalId,
+    data: { code: input.code, bytes: reprTerminalBytesMain(bytes) },
+  })
+  return true
+}
 
 function interactionLogPath(): string {
   return join(app.getPath('userData'), 'logs', 'interaction.ndjson')
@@ -82,6 +115,9 @@ function createWindow(): BrowserWindow {
     if (input.code === 'Comma' && (input.control || input.meta)) {
       event.preventDefault()
       mainWindow.webContents.send('shortcut:open-settings')
+    }
+    if (focusedTerminalId !== null) {
+      handleMacTerminalOptionShortcut(event, input, focusedTerminalId)
     }
   })
 
@@ -318,6 +354,9 @@ app.whenReady().then(() => {
   ipcMain.on('debug:interaction-log', (_event, entry: Record<string, unknown>) => {
     appendInteractionLog(entry)
   })
+  ipcMain.on('debug:terminal-log', (_event, entry: Record<string, unknown>) => {
+    appendTerminalLog(entry)
+  })
   // OSC 52 from nested apps (vim, ssh tmux, etc.) — xterm forwards via
   // registerOscHandler(52) in connectPanePty; renderer has no clipboard API.
   ipcMain.on('clipboard:write-text', (_event, text: string) => {
@@ -347,6 +386,9 @@ app.whenReady().then(() => {
   })
   ipcMain.on('pty:write', (_event, id: number, data: Uint8Array) => {
     workspace!.terminalWrite(id, Buffer.from(data))
+  })
+  ipcMain.on('terminal:set-focused', (_event, id: number | null) => {
+    focusedTerminalId = id
   })
   ipcMain.on('pty:resize', (_event, id: number, cols: number, rows: number) => {
     workspace!.terminalResize(id, cols, rows)

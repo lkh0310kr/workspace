@@ -1,3 +1,5 @@
+import { reprTerminalBytes, termLog } from "./terminalDebugLog";
+
 type PtyDataHandler = {
   onData: (data: string) => void;
   lastSeq: number;
@@ -16,7 +18,14 @@ function ensureSubscribed(): void {
       return;
     }
     entry.lastSeq = seq;
-    entry.onData(new TextDecoder().decode(data));
+    const text = new TextDecoder().decode(data);
+    termLog(
+      "pty:ipc",
+      "onData",
+      { bytes: reprTerminalBytes(text), length: text.length, seq },
+      id,
+    );
+    entry.onData(text);
   });
 }
 

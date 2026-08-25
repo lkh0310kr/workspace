@@ -5,6 +5,7 @@ import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
 import { writeTerminalOutput } from "../lib/pane-manager/pane-terminal-output-scheduler";
 import { ptyResize, writeClipboardText } from "../electron";
 import { createElectronPtyTransport, type PtyTransport } from "./ptyTransport";
+import { reprTerminalBytes, termLog } from "./terminalDebugLog";
 
 export function connectPanePty(pane: ManagedPane, terminalId: number): {
   transport: PtyTransport;
@@ -17,6 +18,12 @@ export function connectPanePty(pane: ManagedPane, terminalId: number): {
   let oscDisposable: IDisposable | null = null;
 
   const writeOutput = (data: string) => {
+    termLog(
+      "pty:receive",
+      "to-xterm",
+      { bytes: reprTerminalBytes(data), length: data.length },
+      terminalId,
+    );
     writeTerminalOutput(term, data, { foreground: true });
   };
 
@@ -41,7 +48,15 @@ export function connectPanePty(pane: ManagedPane, terminalId: number): {
       console.error("[terminal] pty connect failed:", terminalId, err);
     });
 
-  onDataDisposable = term.onData((data) => transport.write(data));
+  onDataDisposable = term.onData((data) => {
+    termLog(
+      "xterm:onData",
+      "to-pty",
+      { bytes: reprTerminalBytes(data), length: data.length },
+      terminalId,
+    );
+    transport.write(data);
+  });
 
   oscDisposable = term.parser.registerOscHandler(52, (data) => {
     const payload = data.slice(data.indexOf(";") + 1);

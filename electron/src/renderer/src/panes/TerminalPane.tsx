@@ -12,6 +12,7 @@ import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
 import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
 import { copyTerminalSelection } from "../terminal/terminal-selection-copy";
+import { termLog } from "../terminal/terminalDebugLog";
 import { writeClipboardText } from "../electron";
 
 interface Props {
@@ -64,21 +65,47 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
     if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved);
     applyTerminalSurfaceBackground(host, resolved);
 
-    const { dispose } = connectPanePty(pane, terminalId);
+    const { dispose, transport } = connectPanePty(pane, terminalId);
     ptyDisposeRef.current = dispose;
 
     const keyHandlerDispose = installTerminalKeyHandler({
       terminal: pane.terminal,
-      sendInput: (data) => pane.terminal.input(data),
-      hasFocus: () => hasFocusRef.current,
+      transport,
+      terminalId,
+      isFocused: () => {
+        const active = document.activeElement;
+        const root = pane.terminal.element;
+        return (
+          active === pane.terminal.textarea ||
+          (!!root && active instanceof Node && root.contains(active))
+        );
+      },
     });
 
     const onFocusIn = () => {
       hasFocusRef.current = true;
+      window.api.terminal.setFocused(terminalId);
+      termLog(
+        "terminal:focus",
+        "focusin",
+        {
+          activeElement:
+            document.activeElement === pane.terminal.textarea ? "textarea" : "child",
+        },
+        terminalId,
+      );
     };
-    const onFocusOut = () => {
+    const onFocusOut = (event: FocusEvent) => {
+      const root = pane.terminal.element;
+      const next = event.relatedTarget;
+      if (next instanceof Node && root?.contains(next)) {
+        return;
+      }
       hasFocusRef.current = false;
+      window.api.terminal.setFocused(null);
+      termLog("terminal:focus", "focusout", {}, terminalId);
     };
+
     pane.container.addEventListener("focusin", onFocusIn);
     pane.container.addEventListener("focusout", onFocusOut);
 
@@ -92,6 +119,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
     return () => {
       unsubscribeTheme();
       keyHandlerDispose();
+      window.api.terminal.setFocused(null);
       pane.container.removeEventListener("focusin", onFocusIn);
       pane.container.removeEventListener("focusout", onFocusOut);
       ptyDisposeRef.current?.();

@@ -32,7 +32,9 @@ const api = {
   },
   debug: {
     interactionLog: (entry: Record<string, unknown>): void =>
-      ipcRenderer.send('debug:interaction-log', entry)
+      ipcRenderer.send('debug:interaction-log', entry),
+    terminalLog: (entry: Record<string, unknown>): void =>
+      ipcRenderer.send('debug:terminal-log', entry)
   },
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void): (() => void) => {
@@ -75,6 +77,14 @@ const api = {
       const listener = (): void => cb()
       ipcRenderer.on('shortcut:open-settings', listener)
       return () => ipcRenderer.removeListener('shortcut:open-settings', listener)
+    }
+  },
+  terminal: {
+    setFocused: (id: number | null): void => ipcRenderer.send('terminal:set-focused', id),
+    onClearOptionModifiers: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('terminal:clear-option-modifiers', listener)
+      return () => ipcRenderer.removeListener('terminal:clear-option-modifiers', listener)
     }
   },
   pty: {

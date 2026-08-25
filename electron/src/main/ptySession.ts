@@ -1,4 +1,5 @@
 import { Pty } from "./pty";
+import { appendTerminalLog, reprTerminalBytesMain } from "./terminalDebugLog";
 
 const REPLAY_MAX_CHARS = 5000 * 120;
 
@@ -51,6 +52,14 @@ export class PtySession {
     this.rows = rows;
     pty.onData((data) => {
       const seq = this.replay.appendUtf8(data);
+      appendTerminalLog({
+        sessionId: "terminal",
+        timestamp: Date.now(),
+        location: "main:pty:read",
+        message: "from-shell",
+        terminalId: this.id,
+        data: { bytes: reprTerminalBytesMain(data), length: data.length, seq },
+      });
       if (this.attachedWebContentsId != null) {
         this.onDataListener?.(this.id, seq, data);
       }
@@ -87,6 +96,14 @@ export class PtySession {
   }
 
   write(data: Buffer): void {
+    appendTerminalLog({
+      sessionId: "terminal",
+      timestamp: Date.now(),
+      location: "main:pty:write",
+      message: "to-shell",
+      terminalId: this.id,
+      data: { bytes: reprTerminalBytesMain(data), length: data.length },
+    });
     this.pty.write(data);
   }
 
