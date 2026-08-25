@@ -5,6 +5,28 @@ import type { TabInfo, WorkspaceState } from "../electron";
 import { setTabLayout } from "../electron";
 import { countLayoutTabs, modelFromLayoutJson } from "../layout/layoutModelParse";
 import { paneTabStoreKey } from "./paneTabKey";
+function tabsDataEqual(a: TabInfo[], b: TabInfo[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((t, i) => {
+    const u = b[i];
+    return (
+      t.id === u.id &&
+      t.title === u.title &&
+      layoutJsonEquivalent(t.layout_json, u.layout_json) &&
+      t.root_path === u.root_path
+    );
+  });
+}
+
+function layoutJsonEquivalent(saved: string | undefined, incoming: string): boolean {
+  if (saved === incoming) return true;
+  if (!saved) return false;
+  try {
+    return JSON.stringify(JSON.parse(saved)) === JSON.stringify(JSON.parse(incoming));
+  } catch {
+    return saved === incoming;
+  }
+}
 
 /** flexlayout Model instances — not part of reactive zustand state. */
 const modelsByTabId = new Map<number, Model>();
@@ -46,25 +68,32 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     activePaneTabByKey: {},
 
     hydrateFromWorkspace(ws: WorkspaceState) {
+      const prev = get();
+      const tabsPreserved = prev.hydrated && tabsDataEqual(prev.tabs, ws.tabs);
+      const nextTabs = tabsPreserved ? prev.tabs : ws.tabs;
       set({
         hydrated: true,
-        tabs: ws.tabs,
+        tabs: nextTabs,
         activeTabId: ws.active_tab_id,
       });
-      get().syncModelsFromWorkspace(ws);
+      if (!tabsPreserved) {
+        get().syncModelsFromWorkspace({ ...ws, tabs: nextTabs });
+      }
     },
 
     syncModelsFromWorkspace(ws: WorkspaceState) {
+      let modelChanged = false;
       const seen = new Set<number>();
       for (const tab of ws.tabs) {
         seen.add(tab.id);
         const saved = savedLayoutJsonByTabId.get(tab.id);
         const existing = modelsByTabId.get(tab.id);
         const emptyModel = existing !== undefined && countLayoutTabs(existing) === 0;
-        if (saved === tab.layout_json && existing && !emptyModel) {
+        if (layoutJsonEquivalent(saved, tab.layout_json) && existing && !emptyModel) {
           continue;
         }
         modelsByTabId.set(tab.id, modelFromLayoutJson(tab.layout_json));
+        modelChanged = true;
         if (saved !== tab.layout_json) {
           savedLayoutJsonByTabId.set(tab.id, tab.layout_json);
         }
@@ -76,9 +105,12 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
           pendingRebalanceByTabId.delete(id);
           ensureInflightTabIds.delete(id);
           get().removePaneTabKeysForWorkspaceTab(id);
+          modelChanged = true;
         }
       }
-      set({ modelEpoch: get().modelEpoch + 1 });
+      if (modelChanged) {
+        set({ modelEpoch: get().modelEpoch + 1 });
+      }
     },
 
     bumpModelEpoch() {

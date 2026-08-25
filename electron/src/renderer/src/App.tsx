@@ -59,7 +59,6 @@ export default function App() {
   const workspace = useWorkspace();
   const modelEpoch = useWorkspaceStore((s) => s.modelEpoch);
   const storePersistLayout = useWorkspaceStore((s) => s.persistLayout);
-  const storeBumpModelEpoch = useWorkspaceStore((s) => s.bumpModelEpoch);
   const storeGetModel = useWorkspaceStore((s) => s.getModel);
   const storeSetPendingRebalance = useWorkspaceStore((s) => s.setPendingRebalance);
   const storeTakePendingRebalance = useWorkspaceStore((s) => s.takePendingRebalance);
@@ -137,9 +136,8 @@ export default function App() {
     (tabId: number) => {
       const model = storeGetModel(tabId);
       if (model) storePersistLayout(tabId, model);
-      storeBumpModelEpoch();
     },
-    [storeGetModel, storePersistLayout, storeBumpModelEpoch],
+    [storeGetModel, storePersistLayout],
   );
 
   const ensureTerminal = useCallback(
@@ -163,18 +161,22 @@ export default function App() {
   // single shared factory could when only the active tab's Layout ever
   // existed.
   const makeFactory = useCallback(
-    (tabId: number) => (node: TabNode) => (
-      <PaneErrorBoundary>
-        <PaneGroup
-          tabNode={node}
-          workspaceTabId={tabId}
-          rootPath={workspace?.tabs.find((t) => t.id === tabId)?.root_path ?? ""}
-          visible={tabId === visibleWorkspaceTabId && node.isVisible()}
-          onNotifyChanged={() => bumpLayout(tabId)}
-        />
-      </PaneErrorBoundary>
-    ),
-    [modelEpoch, visibleWorkspaceTabId, workspace, bumpLayout],
+    (tabId: number) => (node: TabNode) => {
+      const rootPath =
+        useWorkspaceStore.getState().tabs.find((t) => t.id === tabId)?.root_path ?? "";
+      return (
+        <PaneErrorBoundary>
+          <PaneGroup
+            tabNode={node}
+            workspaceTabId={tabId}
+            rootPath={rootPath}
+            visible={tabId === visibleWorkspaceTabId && node.isVisible()}
+            onNotifyChanged={() => bumpLayout(tabId)}
+          />
+        </PaneErrorBoundary>
+      );
+    },
+    [visibleWorkspaceTabId, bumpLayout],
   );
 
   useEffect(() => {
@@ -365,9 +367,8 @@ export default function App() {
         }
       }
       storePersistLayout(tabId, model);
-      storeBumpModelEpoch();
     },
-    [storeGetModel, storeTakePendingRebalance, storePersistLayout, storeBumpModelEpoch],
+    [storeGetModel, storeTakePendingRebalance, storePersistLayout],
   );
 
   useEffect(() => {
