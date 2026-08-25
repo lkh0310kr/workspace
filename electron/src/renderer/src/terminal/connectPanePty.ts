@@ -3,7 +3,6 @@ import type { ManagedPane, ManagedPaneInternal } from "../lib/pane-manager/pane-
 import { setPaneFitListener } from "../lib/pane-manager/pane-fit-resize-observer";
 import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
 import { writeTerminalOutput } from "../lib/pane-manager/pane-terminal-output-scheduler";
-import { dbgLog } from "../interaction/interactionDebugLog";
 import { ptyResize, writeClipboardText } from "../electron";
 import { createElectronPtyTransport, type PtyTransport } from "./ptyTransport";
 
@@ -37,21 +36,9 @@ export function connectPanePty(pane: ManagedPane, terminalId: number): {
       }
       refitPaneTerminal(pane);
       syncPtySize();
-      dbgLog(
-        "connectPanePty:connected",
-        "pty connected",
-        { terminalId, isReattach: result.isReattach, cols: term.cols, rows: term.rows },
-        "terminal",
-      );
     })
     .catch((err) => {
       console.error("[terminal] pty connect failed:", terminalId, err);
-      dbgLog(
-        "connectPanePty:error",
-        "pty connect failed",
-        { terminalId, error: String(err) },
-        "terminal",
-      );
     });
 
   onDataDisposable = term.onData((data) => transport.write(data));
