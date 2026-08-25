@@ -1,40 +1,60 @@
-// Applies Orca's own xterm.js CompositionHelper rewrite (see
-// ref-proj/orca/config/patches/xterm-src/@xterm__xterm@6.1.0-beta.287.src.patch
-// for the readable source-level version of this) — a proper, engine-
-// agnostic fix for the IME/composition edge cases stock xterm.js
-// acknowledges as unsolved (e.g. Korean where an ending consonant can move
-// to the following character), not a WKWebView-specific workaround. Copied
-// as-is from Orca's compiled-package patch (config/patches/
-// @xterm__xterm@6.1.0-beta.287.patch); applies cleanly against
-// @xterm/xterm@6.1.0-beta.287 exactly (this project pins that exact
-// version for that reason — anything else and the diff context won't
-// match).
+// Applies Orca's xterm.js patches (composition IME fix + addon compatibility).
+// Readable source-level xterm patch: ref-proj/orca/config/patches/xterm-src/
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
-const patchFile = join(root, "patches", "xterm.orca-upstream.patch");
-const marker = join(root, "node_modules", "@xterm", "xterm", ".orca-patch-applied");
 
-if (!existsSync(patchFile)) {
-  console.warn("apply-xterm-patch: patches/xterm.orca-upstream.patch not found, skipping");
-  process.exit(0);
-}
-if (existsSync(marker)) {
-  process.exit(0);
-}
+const patches = [
+  {
+    packageDir: "node_modules/@xterm/xterm",
+    patchFile: join(root, "patches", "xterm.orca-upstream.patch"),
+    marker: join(root, "node_modules", "@xterm", "xterm", ".orca-patch-applied"),
+    label: "@xterm/xterm",
+  },
+  {
+    packageDir: "node_modules/@xterm/addon-webgl",
+    patchFile: join(root, "patches", "@xterm__addon-webgl@0.20.0-beta.286.patch"),
+    marker: join(root, "node_modules", "@xterm", "addon-webgl", ".orca-patch-applied"),
+    label: "@xterm/addon-webgl",
+  },
+  {
+    packageDir: "node_modules/@xterm/addon-serialize",
+    patchFile: join(root, "patches", "@xterm__addon-serialize@0.15.0-beta.287.patch"),
+    marker: join(root, "node_modules", "@xterm", "addon-serialize", ".orca-patch-applied"),
+    label: "@xterm/addon-serialize",
+  },
+  {
+    packageDir: "node_modules/@xterm/addon-ligatures",
+    patchFile: join(root, "patches", "@xterm__addon-ligatures@0.11.0-beta.287.patch"),
+    marker: join(root, "node_modules", "@xterm", "addon-ligatures", ".orca-patch-applied"),
+    label: "@xterm/addon-ligatures",
+  },
+];
 
-try {
-  execFileSync("git", ["apply", "--directory=node_modules/@xterm/xterm", patchFile], {
-    cwd: root,
-    stdio: "inherit",
-  });
-  execFileSync("touch", [marker]);
-  console.log("apply-xterm-patch: applied Orca's xterm.js composition patch");
-} catch (err) {
-  console.error("apply-xterm-patch: failed to apply — check @xterm/xterm is pinned to exactly 6.1.0-beta.287");
-  console.error(err.message ?? err);
-  process.exit(1);
+for (const { packageDir, patchFile, marker, label } of patches) {
+  if (!existsSync(patchFile)) {
+    console.warn(`apply-xterm-patch: ${patchFile} not found, skipping ${label}`);
+    continue;
+  }
+  if (existsSync(marker)) {
+    continue;
+  }
+  if (!existsSync(packageDir)) {
+    console.warn(`apply-xterm-patch: ${packageDir} not found, skipping ${label}`);
+    continue;
+  }
+  try {
+    execFileSync("git", ["apply", "--directory=" + packageDir, patchFile], {
+      cwd: root,
+      stdio: "inherit",
+    });
+    execFileSync("touch", [marker]);
+    console.log(`apply-xterm-patch: applied patch for ${label}`);
+  } catch (err) {
+    console.error(`apply-xterm-patch: failed to apply ${label}`);
+    console.error(err.message ?? err);
+    process.exit(1);
+  }
 }
-
