@@ -1,4 +1,5 @@
 import { createPtyInputWriteQueue } from "./ptyInputWriteQueue";
+import { subscribePtyData } from "./ptyDataMultiplexer";
 
 export interface PtyConnectResult {
   id: number;
@@ -23,7 +24,6 @@ export interface PtyTransport {
 export function createElectronPtyTransport(terminalId: number): PtyTransport {
   let connected = false;
   let destroyed = false;
-  let lastSeq = 0;
   let dataUnlisten: (() => void) | null = null;
 
   const inputQueue = createPtyInputWriteQueue({
@@ -39,15 +39,9 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
       if (destroyed) throw new Error("transport destroyed");
       const result = await window.api.pty.connect(terminalId);
       connected = true;
-      lastSeq = result.lastSeq;
 
       dataUnlisten?.();
-      dataUnlisten = window.api.pty.onData((id, seq, data) => {
-        if (id !== terminalId) return;
-        if (seq <= lastSeq) return;
-        lastSeq = seq;
-        callbacks.onData(new TextDecoder().decode(data));
-      });
+      dataUnlisten = subscribePtyData(terminalId, callbacks.onData, result.lastSeq);
 
       return result;
     },
