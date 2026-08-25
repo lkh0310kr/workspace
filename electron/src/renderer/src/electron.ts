@@ -26,7 +26,25 @@ export interface DirEntry {
 
 export interface PtyOutput {
   id: number;
+  seq: number;
   data_b64: string;
+}
+
+export interface PtyConnectResult {
+  id: number;
+  snapshot: string;
+  snapshotCols: number;
+  snapshotRows: number;
+  lastSeq: number;
+  isReattach: boolean;
+}
+
+export async function ptyConnect(id: number): Promise<PtyConnectResult> {
+  return window.api.pty.connect(id);
+}
+
+export function ptyDisconnect(id: number): void {
+  window.api.pty.disconnect(id);
 }
 
 interface RawTabInfo {
@@ -141,8 +159,8 @@ export function onWorkspaceUpdated(handler: (state: WorkspaceState) => void): ()
 }
 
 export function onPtyOutput(handler: (payload: PtyOutput) => void): () => void {
-  return window.api.pty.onData((id, data) => {
-    handler({ id, data_b64: bytesToBase64(data) });
+  return window.api.pty.onData((id, seq, data) => {
+    handler({ id, seq, data_b64: bytesToBase64(data) });
   });
 }
 
@@ -179,6 +197,15 @@ export function onBrowserOpenNewTab(handler: (payload: { hostWebContentsId: numb
  * the whole app. */
 export function onBrowserReloadShortcut(handler: (payload: { hard: boolean }) => void): () => void {
   return window.api.shortcuts.onBrowserReload(handler);
+}
+
+/** Cmd+W — closes the active pane tab instead of the whole window. */
+export function onClosePaneTabShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onClosePaneTab(handler);
+}
+
+export function onOpenSettingsShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onOpenSettings(handler);
 }
 
 export interface ClaudeRateLimitWindow {

@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import { Pty } from "./pty";
+import { PtySession } from "./ptySession";
 import { defaultLayout, extractTerminalIds } from "./layout";
 import * as files from "./files";
 import type { DirEntry } from "./files";
@@ -26,9 +27,7 @@ interface Tab {
 }
 
 interface TerminalEntry {
-  pty: Pty;
-  cols: number;
-  rows: number;
+  session: PtySession;
 }
 
 export class Workspace {
@@ -41,10 +40,8 @@ export class Workspace {
   private terminals = new Map<number, TerminalEntry>();
   private nextTerminalId = 0;
   private nextTabId = 0;
-  /** Fired whenever a terminal produces output — wired to IPC by the
-   * caller (see main/index.ts), same shape as pty.rs's poll-and-emit but
-   * push-based (node-pty is event-driven, no need to poll). */
-  onTerminalData: ((id: number, data: Buffer) => void) | null = null;
+  /** Fired whenever a terminal produces output for an attached renderer. */
+  onTerminalData: ((id: number, seq: number, data: Buffer) => void) | null = null;
 
   private constructor(rootPath: string) {
     this.defaultRootPath = rootPath;
@@ -126,7 +123,7 @@ export class Workspace {
 
     for (const id of oldIds) {
       if (!newIds.has(id) && !this.isTerminalReferenced(id)) {
-        this.terminals.get(id)?.pty.dispose();
+        this.terminals.get(id)?.session.dispose();
         this.terminals.delete(id);
       }
     }
@@ -147,9 +144,28 @@ export class Workspace {
     // `workspace-term-<id>` — the session-key convention every terminal's
     // tmux reattachment depends on (see pty.ts).
     const pty = new Pty({ cols, rows, cwd: root, sessionKey: `workspace-term-${id}` });
-    pty.onData((data) => this.onTerminalData?.(id, data));
     pty.start();
-    this.terminals.set(id, { pty, cols, rows });
+    const session = new PtySession(id, pty, cols, rows);
+    session.setOnData((terminalId, seq, data) => {
+      this.onTerminalData?.(terminalId, seq, data);
+    });
+    this.terminals.set(id, { session });
+  }
+
+  connectTerminal(id: number, webContentsId: number) {
+    const entry = this.terminals.get(id);
+    if (!entry) throw new Error("terminal not found");
+    return entry.session.connect(webContentsId);
+  }
+
+  disconnectTerminal(id: number, webContentsId: number): void {
+    const entry = this.terminals.get(id);
+    if (!entry) return;
+    entry.session.disconnect(webContentsId);
+  }
+
+  getTerminalSession(id: number): PtySession | undefined {
+    return this.terminals.get(id)?.session;
   }
 
   /** Existing terminals keep their own cwd — only ones spawned after this
@@ -166,15 +182,13 @@ export class Workspace {
   }
 
   terminalWrite(id: number, data: Buffer): void {
-    this.terminals.get(id)?.pty.write(data);
+    this.terminals.get(id)?.session.write(data);
   }
 
   terminalResize(id: number, cols: number, rows: number): void {
     const entry = this.terminals.get(id);
     if (!entry) return;
-    entry.cols = cols;
-    entry.rows = rows;
-    entry.pty.resize(cols, rows);
+    entry.session.resize(cols, rows);
   }
 
   state(): WorkspaceState {
@@ -204,7 +218,7 @@ export class Workspace {
   }
 
   disposeAllTerminals(): void {
-    for (const entry of this.terminals.values()) entry.pty.dispose();
+    for (const entry of this.terminals.values()) entry.session.dispose();
     this.terminals.clear();
   }
 
@@ -221,7 +235,7 @@ export class Workspace {
   private releaseTerminalsOnlyInTab(layoutJson: string): void {
     for (const id of extractTerminalIds(layoutJson)) {
       if (!this.isTerminalReferenced(id)) {
-        this.terminals.get(id)?.pty.dispose();
+        this.terminals.get(id)?.session.dispose();
         this.terminals.delete(id);
       }
     }

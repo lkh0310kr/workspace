@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
-import {
-  WorkspaceState,
-  getWorkspaceState,
-  onWorkspaceUpdated,
-} from "../electron";
+import { useEffect } from "react";
+import { initWorkspaceStore } from "../store/installWorkspaceStore";
+import { selectWorkspaceState, useWorkspaceStore } from "../store/workspaceStore";
+import type { WorkspaceState } from "../electron";
+
+let storeBooted = false;
 
 export function useWorkspace(): WorkspaceState | null {
-  const [state, setState] = useState<WorkspaceState | null>(null);
+  const workspace = useWorkspaceStore(selectWorkspaceState);
 
   useEffect(() => {
-    getWorkspaceState().then(setState).catch(console.error);
-    const unlisten = onWorkspaceUpdated((s) => setState(s));
-    return unlisten;
+    if (storeBooted) return;
+    storeBooted = true;
+    initWorkspaceStore().catch(console.error);
   }, []);
 
-  return state;
+  return workspace;
 }

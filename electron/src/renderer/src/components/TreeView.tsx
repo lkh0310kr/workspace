@@ -11,11 +11,13 @@ import {
 } from "../electron";
 import { TextPrompt } from "./TextPrompt";
 import type { AnchorRect } from "./Popover";
+import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
 
 interface Props {
   tabId: number;
   rootPath: string;
   selectedPath?: string | null;
+  paneVisible?: boolean;
   onOpenFile: (path: string, kind: "code" | "markdown") => void;
 }
 
@@ -90,7 +92,7 @@ function flattenVisible(dirs: Map<string, DirState>, expanded: Set<string>, dir:
   }
 }
 
-export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
+export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, onOpenFile }: Props) {
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<MenuState | null>(null);
@@ -157,6 +159,18 @@ export function TreeView({ tabId, rootPath, selectedPath, onOpenFile }: Props) {
       window.removeEventListener("keydown", onKey);
     };
   }, [menu]);
+
+  const dismissOverlayUi = useCallback(() => {
+    setMenu(null);
+    setPrompt(null);
+  }, []);
+
+  useEffect(() => {
+    if (paneVisible) return;
+    dismissOverlayUi();
+  }, [paneVisible, dismissOverlayUi]);
+
+  useEffect(() => onWorkspaceDismissPortals(dismissOverlayUi), [dismissOverlayUi]);
 
   const flatList = useMemo(() => {
     const out: FlatRow[] = [];

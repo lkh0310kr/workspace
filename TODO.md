@@ -1,12 +1,16 @@
 # TODO
-- Cmd + W -> close pane
+- [x] Cmd + W -> close pane — 2026-08-25. main `before-input-event`에서 `KeyW` 가로채서 `shortcut:close-pane-tab` IPC로 renderer에 전달(App.tsx). 활성 flexlayout pane의 `activeTabId` 탭을 `closeActivePaneTab()`으로 닫음(마지막 탭이면 pane 자체 제거 — `closeTabInGroup` 기존 로직). 설정/사이드바 팝오버가 열려 있으면 먼저 그걸 닫음. macOS 기본 Cmd+W(창 닫기)는 `preventDefault`로 차단.
 - [ ] 브라우저
-    - [ ] 이 외에 브라우저 관련 기능 orca 참고해서 고도화 (지금 너무 불편해) — 다음 후보: 실제 파비콘 표시, 탭별 히스토리 뒤로/앞으로 목록(길게 누르면 드롭다운), 다운로드 UI, 확대/축소
-    - [ ] "어느 탭이 포커스인지" 실제 추적 — **여전히 안 됨(2026-08-24 실사용 확인, 재오픈)**. 시도한 것들: (1) "마지막으로 `visible`이 된 webview" 근사치, (2) `<webview>`의 `focus`/`blur` DOM 이벤트로 교체, (3) `BrowserContent.tsx`가 `visible`이 될 때 `webview.focus()`를 직접 호출 + `document` 전역 `focusin` 리스너(`installBrowserFocusTracking()`)로 `.browser-pane-chrome` 바깥으로 포커스 나가면 클리어. 코드상으론 orca의 접근(`bind-browser-page-webview-listeners.ts`의 `webview.addEventListener('focus', ...)`)과 동일한 메커니즘인데도 실제로는 안 됨 — `<webview>` 게스트가 별도 프로세스라 `webview.focus()` 호출 자체가 기대만큼 신뢰성 있게 실제 OS 포커스 이동 + `focus` DOM 이벤트 발생으로 이어지지 않는 것으로 보임(Electron 버전/타이밍 이슈일 가능성). 다음에 다시 붙잡을 때는: (a) `webview.focus()` 호출 직후 실제로 `focus` 이벤트가 뜨는지 콘솔 로그로 먼저 확인, (b) 안 뜬다면 main 프로세스 쪽 `WebContents`의 `'focus'`/`'blur'` 이벤트(게스트 WebContents 자체, `web-contents-created`에서 얻은 대상)를 IPC로 릴레이하는 방식으로 완전히 바꿔볼 것 — 렌더러 DOM 이벤트에 의존하지 않는 더 확실한 경로.
+    - [x] 탭별 히스토리 뒤로/앞으로 목록(길게 누르면 드롭다운) — 2026-08-25. `BrowserNavButton`: 짧게 클릭=goBack/goForward, 450ms 홀드=IPC(`browser:get-nav-history`)로 Chromium navigationHistory 조회 후 Popover 드롭다운, 항목 클릭=`webview.goToIndex()`.
+    - [x] 다운로드 UI — 2026-08-25. main `browserDownloads.ts`: browser session `will-download` → Downloads 폴더에 자동 저장 + `browser:download-event` IPC. renderer `BrowserDownloadsBar`: 해당 webview의 진행률/완료 표시, "Show in folder" 링크.
+    - [x] 확대/축소 — 2026-08-25. nav bar `−`/`100%`/`+` 버튼 + 브라우저 포커스 시 Cmd+/- (`webview.setZoomFactor`, `PaneTabItem.zoomFactor`에 persist). 에디터 pane zoom과 충돌 안 하게 브라우저 chrome/게스트 포커스일 때만 Cmd+/- 가로채기(capture).
+    - [ ] 이 외에 브라우저 관련 기능 orca 참고해서 고도화 (지금 너무 불편해)
+    - [x] 실제 파비콘 표시 — 2026-08-25. `page-favicon-updated` → `PaneTabItem.favicon` → `PaneTabStrip` 탭 칩에 `<img>` 표시.
+    - [ ] "어느 탭이 포커스인지" 실제 추적 — **IPC 경로 추가(2026-08-25), 실사용 미확인**. main `web-contents-created`에서 게스트 WebContents `focus`/`blur` → `browser:guest-focus` IPC → `activeBrowserWebview.ts`의 `registry`+`setGuestWebContentsFocus()`. 기존 DOM `focus`/`blur`+`webview.focus()`+`focusin` 클리어는 belt-and-suspenders로 유지. 실사용에서 Cmd+R이 올바른 탭을 리로드하는지 확인 필요.
 - [ ] Terminal 이 이상해 ls 도 Operation not permitted 뜨고. 내생각에 그냥 ui ux문제가 아니라 터미널 설정쪽 문제같아. 아니면 그냥 터미널을 재시작해본다든지
     - [ ] `ls` Operation not permitted — 코드로는 고칠 수 없는 macOS 권한(TCC) 문제로 보임: workspace root가 `~/Documents/...` 밑이고(TCC가 Documents/Desktop/Downloads를 보호 폴더로 취급), dev 모드로 뜨는 Electron 바이너리가 이 앱한테 Full Disk Access(또는 Files & Folders 밑 Documents 폴더 접근)를 아직 허용 안 받은 상태로 보임. 앱 코드가 실제로 잘못 건드리는 게 없어서(pty.ts는 순수 cwd 전달일 뿐) 고칠 코드가 없음 — macOS 시스템 설정 > 개인정보 보호 및 보안 > 전체 디스크 접근 권한(또는 파일과 폴더 > Documents 폴더)에서 Electron(dev) 또는 빌드된 workspace-app에 권한을 직접 부여해야 함. 미해결로 남김.
 - [ ] Editor/Makdown
-    - [ ] 검색 기능 UI 너무 옛날 스타일인 이슈 -> vscode 비슷한 구조로 ui 개선.
+    - [x] 검색 기능 UI 너무 옛날 스타일인 이슈 -> vscode 비슷한 구조로 ui 개선. — 2026-08-25. `search({ top: true })`로 패널을 에디터 상단에 배치 + `.cm-panel.cm-search` CSS를 VS Code 스타일(플로팅 바, 둥근 input, 버튼)로 커스터마이징.
     - [x] TreeView 고도화 — 2026-08-24. `TreeView.tsx`를 재귀 렌더링에서 평탄화된(flatten) 리스트 기반으로 바꿔서 두 기능 구현:
         - [x] file multi selection (vscode 참고) — Cmd/Ctrl+클릭으로 개별 토글, Shift+클릭으로 마지막 plain-click 지점부터 범위 선택(Finder/VSCode처럼 anchor는 shift-클릭으로 안 움직임). 우클릭 컨텍스트 메뉴도 멀티 선택 인지: 이미 선택된 항목 중 하나를 우클릭하면 Delete/Copy Path가 선택된 전체에 적용됨(Rename/Reveal은 여러 개 선택 시 숨김 — 의미가 없어서).
         - [x] TreeView 파일 옮기기 — 네이티브 HTML5 드래그앤드롭으로 파일/폴더를 다른 폴더로 드래그해서 이동(멀티 선택 상태에서 드래그하면 선택된 전체가 같이 이동). 폴더 드롭 대상에 하이라이트 표시. 자기 자신/자기 하위 폴더로 드롭하는 것은 무시(폴더가 자기 자신을 담으려는 상황 방지). 내부적으로 기존 `renamePath` IPC 재사용(이동 = 다른 부모 경로로의 rename).

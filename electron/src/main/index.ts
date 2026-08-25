@@ -8,6 +8,22 @@ import { Workspace } from './workspace'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
 import { setupBrowserSession } from './browserSession'
+import { setupBrowserDownloads } from './browserDownloads'
+import { registerBrowserNavIpc } from './browserNav'
+
+function interactionLogPath(): string {
+  return join(app.getPath('userData'), 'logs', 'interaction.ndjson')
+}
+
+function appendInteractionLog(entry: Record<string, unknown>): void {
+  try {
+    const path = interactionLogPath()
+    fs.mkdirSync(join(app.getPath('userData'), 'logs'), { recursive: true })
+    fs.appendFileSync(path, `${JSON.stringify(entry)}\n`)
+  } catch {
+    /* ignore logging failures */
+  }
+}
 
 function createWindow(): BrowserWindow {
   // Create the browser window.
@@ -56,6 +72,17 @@ function createWindow(): BrowserWindow {
       event.preventDefault()
       mainWindow.webContents.send('shortcut:browser-reload', { hard: input.shift })
     }
+    // Cmd+W closes the active pane tab (not the whole window) — same
+    // input-event-level interception as Cmd+R above; macOS would otherwise
+    // close the BrowserWindow on Cmd+W by default.
+    if (input.code === 'KeyW' && (input.control || input.meta)) {
+      event.preventDefault()
+      mainWindow.webContents.send('shortcut:close-pane-tab')
+    }
+    if (input.code === 'Comma' && (input.control || input.meta)) {
+      event.preventDefault()
+      mainWindow.webContents.send('shortcut:open-settings')
+    }
   })
 
   // HMR for renderer base on electron-vite cli.
@@ -97,8 +124,8 @@ function sendToMainWindow(channel: string, ...args: unknown[]): void {
 function bindMainWindow(window: BrowserWindow): void {
   mainWindowRef = window
   if (workspace) {
-    workspace.onTerminalData = (id, data) => {
-      if (!window.isDestroyed()) window.webContents.send('pty:data', { id, data })
+    workspace.onTerminalData = (id, seq, data) => {
+      if (!window.isDestroyed()) window.webContents.send('pty:data', { id, seq, data })
     }
   }
 }
@@ -241,10 +268,39 @@ app.whenReady().then(() => {
       })
       return { action: 'deny' }
     })
+    // Guest WebContents focus/blur — renderer DOM focus events on the
+    // <webview> host element are unreliable (see TODO.md / activeBrowserWebview.ts),
+    // but the guest process's own WebContents always fires these.
+    contents.on('focus', () => {
+      sendToMainWindow('browser:guest-focus', { webContentsId: contents.id, focused: true })
+    })
+    contents.on('blur', () => {
+      sendToMainWindow('browser:guest-focus', { webContentsId: contents.id, focused: false })
+    })
+    // Guest webview has its own keyboard focus — host webContents
+    // before-input-event (createWindow) won't see Cmd+W/Cmd+R while the
+    // user is typing in a page, so relay the same shortcuts here too.
+    contents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown') return
+      if (input.code === 'KeyR' && (input.control || input.meta)) {
+        event.preventDefault()
+        sendToMainWindow('shortcut:browser-reload', { hard: input.shift })
+      }
+      if (input.code === 'KeyW' && (input.control || input.meta)) {
+        event.preventDefault()
+        sendToMainWindow('shortcut:close-pane-tab')
+      }
+      if (input.code === 'Comma' && (input.control || input.meta)) {
+        event.preventDefault()
+        sendToMainWindow('shortcut:open-settings')
+      }
+    })
   })
 
   installClaudeStatuslineHook()
   setupBrowserSession()
+  setupBrowserDownloads(sendToMainWindow)
+  registerBrowserNavIpc()
 
   const config = loadConfig()
   const defaultRoot = config.rootPath ?? process.cwd()
@@ -259,6 +315,9 @@ app.whenReady().then(() => {
   bindMainWindow(createWindow())
 
   ipcMain.handle('hostname', () => osHostname())
+  ipcMain.on('debug:interaction-log', (_event, entry: Record<string, unknown>) => {
+    appendInteractionLog(entry)
+  })
   // tmux mouse mode (pty.ts's tmux.conf, `mouse on`) makes tmux itself own
   // drag-to-select instead of the browser — on release it copies via an
   // OSC 52 escape sequence, not a real DOM selection. xterm.js parses OSC
@@ -286,6 +345,12 @@ app.whenReady().then(() => {
 
   ipcMain.handle('pty:spawn', (_event, cols: number, rows: number) => {
     return workspace!.spawnTerminal(cols, rows)
+  })
+  ipcMain.handle('pty:connect', (event, id: number) => {
+    return workspace!.connectTerminal(id, event.sender.id)
+  })
+  ipcMain.on('pty:disconnect', (event, id: number) => {
+    workspace!.disconnectTerminal(id, event.sender.id)
   })
   ipcMain.on('pty:write', (_event, id: number, data: Uint8Array) => {
     workspace!.terminalWrite(id, Buffer.from(data))

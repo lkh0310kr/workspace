@@ -21,6 +21,10 @@ export interface PaneTabItem {
   filePath?: string | null;
   /** kind === "browser" */
   url?: string;
+  /** kind === "browser" — page favicon URL from page-favicon-updated */
+  favicon?: string;
+  /** kind === "browser" — guest page zoom (1 = 100%) */
+  zoomFactor?: number;
   /** Live display title (browser page title, editor filename) — terminal
    * tabs don't use this, their chip just shows a fixed "Terminal" label. */
   title?: string;

@@ -20,4 +20,4 @@ const toggleSearchKeymap = keymap.of([
 /** Cmd+F search, toggling closed on a second press. CodeMirror's own
  * keymap only fires for whichever EditorView has focus, so this is
  * already scoped to one pane at a time without extra wiring. */
-export const workspaceSearch = [search(), toggleSearchKeymap];
+export const workspaceSearch = [search({ top: true }), toggleSearchKeymap];

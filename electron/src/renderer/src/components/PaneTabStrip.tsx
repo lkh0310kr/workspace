@@ -4,6 +4,7 @@ import { PanePicker } from "./PanePicker";
 import { PaneTabItem, TabKind, tabKindIcon } from "../layout/paneTypes";
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from "../layout/tabDrag";
 import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
+import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
 import { startPaneDrag } from "../layout/layoutRef";
 
 // The globalized version of ui/EditorTabBar.tsx (which used to be
@@ -22,6 +23,7 @@ interface Props {
   tabNode: TabNode;
   items: PaneTabItem[];
   activeTabId: string;
+  paneVisible: boolean;
   isDirty: (item: PaneTabItem) => boolean;
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
@@ -59,6 +61,7 @@ export function PaneTabStrip({
   tabNode,
   items,
   activeTabId,
+  paneVisible,
   isDirty,
   onSelect,
   onClose,
@@ -78,13 +81,13 @@ export function PaneTabStrip({
     const open = addPickerAnchor !== null;
     if (open === blockedRef.current) return;
     blockedRef.current = open;
-    if (open) pushOverlayBlock();
-    else popOverlayBlock();
+    if (open) pushOverlayBlock("add-tab-picker");
+    else popOverlayBlock("add-tab-picker");
   }, [addPickerAnchor]);
 
   useEffect(
     () => () => {
-      if (blockedRef.current) popOverlayBlock();
+      if (blockedRef.current) popOverlayBlock("add-tab-picker");
     },
     [],
   );
@@ -101,6 +104,12 @@ export function PaneTabStrip({
   }, []);
 
   const closeAddPicker = useCallback(() => setAddPickerAnchor(null), []);
+
+  useEffect(() => {
+    closeAddPicker();
+  }, [activeTabId, paneVisible, closeAddPicker]);
+
+  useEffect(() => onWorkspaceDismissPortals(closeAddPicker), [closeAddPicker]);
 
   const computeDropIndex = useCallback(
     (clientX: number, draggedTabId: string): number => {
@@ -152,10 +161,10 @@ export function PaneTabStrip({
   // .pane-tab-strip-tabs too removes the dependency on that ancestor
   // lookup working as expected.
   const onStripDragStart = (e: DragEvent) => {
-    pushOverlayBlock();
+    pushOverlayBlock("pane-tab-strip-drag");
     startPaneDrag(e, tabNode);
   };
-  const onStripDragEnd = () => popOverlayBlock();
+  const onStripDragEnd = () => popOverlayBlock("pane-tab-strip-drag");
 
   return (
     <div className="pane-tab-strip" draggable onDragStart={onStripDragStart} onDragEnd={onStripDragEnd}>
@@ -193,10 +202,19 @@ export function PaneTabStrip({
                   endTabDrag();
                   setDropIndex(null);
                 }}
-                onClick={() => onSelect(item.id)}
+                onClick={() => {
+                  closeAddPicker();
+                  onSelect(item.id);
+                }}
                 title={item.kind === "browser" ? item.url : item.filePath ?? undefined}
               >
-                <span className="pane-tab-icon">{tabKindIcon(item.kind)}</span>
+                <span className="pane-tab-icon">
+                  {item.kind === "browser" && item.favicon ? (
+                    <img src={item.favicon} className="pane-tab-favicon" alt="" />
+                  ) : (
+                    tabKindIcon(item.kind)
+                  )}
+                </span>
                 <span className="pane-tab-label">{tabLabel(item, dirty)}</span>
                 <button
                   type="button"

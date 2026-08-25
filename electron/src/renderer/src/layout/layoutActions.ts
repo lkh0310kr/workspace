@@ -194,6 +194,20 @@ export function moveTabToNewPane(model: Model, sourceTabNodeId: string, tabId: s
   return true;
 }
 
+/** Closes the active tab in the currently-focused flexlayout pane (last tab
+ * in a pane removes the pane itself). Returns whether anything was closed. */
+export function closeActivePaneTab(model: Model): boolean {
+  const tabset = model.getActiveTabset();
+  const tabNode = tabset?.getSelectedNode();
+  if (!tabNode || tabNode.getType() !== "tab") return false;
+  const config = getGroupConfig(model, tabNode.getId());
+  if (!config) return false;
+  const activeId = config.activeTabId;
+  if (!activeId || !config.tabs.some((t) => t.id === activeId)) return false;
+  closeTabInGroup(model, tabNode.getId(), activeId);
+  return true;
+}
+
 /** Closes one tab within the group; closing the last tab removes the pane
  * itself (matches a real browser: closing your only tab closes the
  * window). Returns the tab that's now active, or null if the whole pane

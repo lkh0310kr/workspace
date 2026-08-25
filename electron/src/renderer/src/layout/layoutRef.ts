@@ -38,6 +38,12 @@ export function setActiveLayoutTab(tabId: number): void {
   activeTabId = tabId;
 }
 
+export function redrawAllLayouts(): void {
+  for (const instance of instances.values()) {
+    instance.redraw();
+  }
+}
+
 export function startPaneDrag(event: DragEvent, node: TabNode): void {
   if (activeTabId === null) return;
   instances.get(activeTabId)?.moveTabWithDragAndDrop(event.nativeEvent, node);

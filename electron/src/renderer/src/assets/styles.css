@@ -109,6 +109,8 @@ input {
   padding-left: 78px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 200;
   /* Electron has no data-tauri-drag-region equivalent — the whole strip
      (minus the sidebar toggle, marked no-drag above) is made draggable
      via this CSS property instead. */
@@ -178,6 +180,11 @@ input {
 .layout-host-item {
   position: absolute;
   inset: 0;
+  z-index: 0;
+}
+
+.layout-host-item--active {
+  z-index: 1;
 }
 
 .layout-host-item > .flexlayout__layout {
@@ -554,6 +561,15 @@ iframe.browser-content-slot {
   flex-shrink: 0;
   font-size: 11px;
   opacity: 0.8;
+  display: flex;
+  align-items: center;
+}
+
+.pane-tab-favicon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block;
 }
 
 .pane-tab-label {
@@ -648,43 +664,157 @@ iframe.browser-content-slot {
 
 /* —— Content panes —— */
 .terminal-pane-shell {
+  display: flex;
+  flex-direction: column;
   position: relative;
   width: 100%;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.terminal-pane-host {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  position: relative;
+}
+
+.pane-manager-root .pane,
+.pane-manager-root .xterm-container {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.terminal-xterm-container {
+  box-sizing: border-box;
+  position: relative;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  margin: 4px;
 }
 
 .terminal-host {
   width: 100%;
   height: 100%;
-  padding: 0;
+}
+
+/* —— xterm.js (port of ref-proj/orca terminal.css + main.css scrollbar rules) —— */
+.terminal-pane-shell .xterm {
+  height: 100%;
+  width: 100%;
+}
+
+.terminal-pane-shell .xterm-viewport {
+  overflow-y: scroll;
+}
+
+.xterm:not(.allow-transparency) .xterm-viewport {
+  background-color: transparent;
+}
+
+.xterm .xterm-scrollable-element > .xterm-scrollbar > .xterm-slider {
+  border-radius: 4px;
+}
+
+.terminal-pane-shell .xterm .xterm-helpers {
+  left: 0;
+}
+
+.terminal-pane-shell .xterm .xterm-helper-textarea {
+  caret-color: transparent;
+}
+
+.pane-manager-root .pane {
+  width: 100%;
+  height: 100%;
+}
+
+.pane-manager-root .xterm-container {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.pane-link-tooltip {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  padding: 4px 8px;
+  max-width: 80%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-left: none;
+  border-radius: 0 4px 0 0;
+}
+
+.xterm .xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(121, 121, 121, 0.4) transparent;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: 14px;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: rgba(121, 121, 121, 0.4);
+  border: 3px solid transparent;
+  border-radius: 7px;
+  background-clip: padding-box;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(121, 121, 121, 0.7);
+  border: 3px solid transparent;
+  background-clip: padding-box;
 }
 
 .terminal-search-bar {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
+  top: 10px;
+  right: 10px;
+  z-index: 50;
   display: flex;
   align-items: center;
   gap: 2px;
-  background: var(--bg-surface);
+  width: 300px;
+  padding: 4px 6px;
+  background: color-mix(in srgb, var(--bg-surface) 95%, transparent);
   border: 1px solid var(--border-strong);
-  padding: 4px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px);
 }
 
 .terminal-search-bar input {
-  background: var(--bg-base);
-  border: 1px solid var(--border);
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
   color: var(--text);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 12px;
-  padding: 3px 6px;
-  width: 160px;
+  padding: 4px 6px;
+  outline: none;
 }
 
-.terminal-search-bar input:focus {
-  outline: none;
-  border-color: var(--accent);
+.terminal-search-bar input::placeholder {
+  color: var(--text-faint);
 }
 
 .terminal-search-bar button {
@@ -692,7 +822,11 @@ iframe.browser-content-slot {
   border: none;
   color: var(--text-muted);
   font-size: 12px;
-  padding: 4px 6px;
+  line-height: 1;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  border-radius: 4px;
   cursor: pointer;
 }
 
@@ -701,9 +835,101 @@ iframe.browser-content-slot {
   color: var(--text);
 }
 
+.terminal-search-bar .terminal-search-toggle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.terminal-search-bar .terminal-search-toggle.is-active {
+  background: var(--bg-active);
+  color: var(--accent);
+}
+
+.terminal-search-bar .terminal-search-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--border);
+}
+
+.terminal-search-bar .terminal-search-close {
+  font-size: 16px;
+}
+
 .md-editor {
   height: 100%;
   overflow: auto;
+  position: relative;
+}
+
+/* VS Code-style CodeMirror search panel (top of editor) */
+.obsidian-editor-column .cm-panel.cm-search {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.obsidian-editor-column .cm-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
+.obsidian-editor-column .cm-search input[type="text"] {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 4px 8px;
+  min-width: 180px;
+  font-size: 12px;
+  outline: none;
+}
+
+.obsidian-editor-column .cm-search input[type="text"]:focus {
+  border-color: var(--accent);
+}
+
+.obsidian-editor-column .cm-search .cm-button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.obsidian-editor-column .cm-search .cm-button:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.obsidian-editor-column .cm-search label {
+  font-size: 11px;
+  color: var(--text-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.obsidian-editor-column .cm-search [name="close"] {
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.obsidian-editor-column .cm-search [name="close"]:hover {
+  color: var(--text);
 }
 
 /* —— Markdown live preview (Obsidian-style: markdown syntax renders as
@@ -939,6 +1165,153 @@ iframe.browser-content-slot {
 .browser-nav-btn-devtools {
   font-size: 11px;
   letter-spacing: -0.5px;
+}
+
+.browser-zoom-controls {
+  display: flex;
+  align-items: center;
+  margin-left: 2px;
+  border-left: 1px solid var(--border);
+  padding-left: 2px;
+}
+
+.browser-zoom-label {
+  min-width: 40px;
+  height: 28px;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+
+.browser-zoom-label:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.browser-nav-history-popover {
+  min-width: 280px;
+  max-width: 420px;
+}
+
+.browser-nav-history-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.browser-nav-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.browser-nav-history-item:hover {
+  background: var(--bg-hover);
+}
+
+.browser-nav-history-title {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-nav-history-url {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-downloads-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.browser-download-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.browser-download-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.browser-download-filename {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-download-status {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+.browser-download-progress {
+  height: 3px;
+  background: var(--bg-hover);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.browser-download-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s ease;
+}
+
+.browser-download-reveal {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.browser-download-reveal:hover {
+  text-decoration: underline;
+}
+
+.browser-download-item--completed {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.browser-download-item--interrupted,
+.browser-download-item--cancelled {
+  border-color: color-mix(in srgb, #d9822b 35%, var(--border));
 }
 
 .browser-url {
@@ -1401,14 +1774,19 @@ iframe.browser-content-slot {
    component's own inline style) behind the positioned popover box itself.
    No dimming — see Popover.tsx's comment for why the catcher still needs
    to exist even though it isn't visible. */
+/* Legacy — Popover no longer mounts this, but strip any left from older
+   sessions so they can't block the app (pointer-events:none as belt-and-
+   suspenders). */
 .popover-catcher {
   position: fixed;
   inset: 0;
   z-index: 100000;
+  pointer-events: none;
 }
 
 .popover {
   position: fixed;
+  z-index: 100001;
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -1752,6 +2130,93 @@ iframe.browser-content-slot {
 }
 
 .error-log-clear:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.interaction-debug-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 72px;
+  z-index: 100001;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.interaction-debug-badge {
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+
+.interaction-debug-badge.stuck {
+  border-color: #ff9b4a;
+  background: #2a1800;
+  color: #ffcc80;
+}
+
+.interaction-debug-body {
+  width: 320px;
+  max-height: 40vh;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 8px;
+  font-size: 11px;
+}
+
+.interaction-debug-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+.interaction-debug-row strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.interaction-debug-reason {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.interaction-debug-pre {
+  margin: 4px 0;
+  padding: 4px;
+  background: var(--bg-hover);
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.interaction-debug-clear {
+  width: 100%;
+  margin-top: 6px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.interaction-debug-clear:hover {
   background: var(--bg-hover);
   color: var(--text);
 }

@@ -15,6 +15,8 @@ import { PaneGroupConfig, PaneTabItem, TabKind } from "../layout/paneTypes";
 import { EditorContent } from "./EditorContent";
 import { BrowserContent } from "./BrowserContent";
 import { TerminalPane } from "./TerminalPane";
+import { paneTabStoreKey } from "../store/paneTabKey";
+import { useWorkspaceStore } from "../store/workspaceStore";
 
 // The pane-level orchestrator that makes the tab system "global": every
 // flexlayout pane node now renders one of these instead of switching on a
@@ -82,7 +84,11 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
   const model = tabNode.getModel();
   const nodeId = tabNode.getId();
 
-  const [localActiveId, setLocalActiveId] = useState(config.activeTabId);
+  const storeKey = paneTabStoreKey(workspaceTabId, nodeId);
+  const localActiveId = useWorkspaceStore(
+    (s) => s.activePaneTabByKey[storeKey] ?? config.activeTabId,
+  );
+  const setActivePaneTab = useWorkspaceStore((s) => s.setActivePaneTab);
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({});
   // Sparse overrides on top of localStorage — a tab id only appears here
   // once its explorer state has actually been touched this session;
@@ -128,10 +134,10 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
   // some other path), fall back to whatever the model currently says.
   useEffect(() => {
     if (!tabs.some((t) => t.id === localActiveId)) {
-      setLocalActiveId(config.activeTabId);
+      setActivePaneTab(workspaceTabId, nodeId, config.activeTabId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabs, config.activeTabId]);
+  }, [tabs, config.activeTabId, localActiveId, workspaceTabId, nodeId, setActivePaneTab]);
 
   useEffect(() => {
     if (localActiveId === config.activeTabId) return;
@@ -142,14 +148,17 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
 
   const activeItem = tabs.find((t) => t.id === localActiveId) ?? tabs[0];
 
-  const selectTab = useCallback((id: string) => {
-    setLocalActiveId(id);
-  }, []);
+  const selectTab = useCallback(
+    (id: string) => {
+      setActivePaneTab(workspaceTabId, nodeId, id);
+    },
+    [workspaceTabId, nodeId, setActivePaneTab],
+  );
 
   const closeTab = useCallback(
     (id: string) => {
       const nextActive = closeTabInGroup(model, nodeId, id);
-      if (nextActive) setLocalActiveId(nextActive);
+      if (nextActive) setActivePaneTab(workspaceTabId, nodeId, nextActive);
       onNotifyChanged();
     },
     [model, nodeId, onNotifyChanged],
@@ -159,7 +168,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
     (kind: TabKind) => {
       addTabToGroup(model, nodeId, kind)
         .then((id) => {
-          if (id) setLocalActiveId(id);
+          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
           onNotifyChanged();
         })
         .catch(console.error);
@@ -184,7 +193,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
       }
       addTabToGroup(model, nodeId, kind, { filePath: path })
         .then((id) => {
-          if (id) setLocalActiveId(id);
+          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
           onNotifyChanged();
         })
         .catch(console.error);
@@ -195,7 +204,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
   const dropTab = useCallback(
     (payload: TabDragPayload, index: number) => {
       const movedId = moveTabToGroup(model, payload.sourceTabNodeId, payload.tabId, nodeId, index);
-      if (movedId) setLocalActiveId(movedId);
+      if (movedId) setActivePaneTab(workspaceTabId, nodeId, movedId);
       onNotifyChanged();
     },
     [model, nodeId, onNotifyChanged],
@@ -230,6 +239,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
           tabNode={tabNode}
           items={tabs}
           activeTabId={activeItem.id}
+          paneVisible={visible}
           isDirty={(item) => dirtyByTabId[item.id] ?? false}
           onSelect={selectTab}
           onClose={closeTab}
@@ -245,6 +255,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
               tabId={workspaceTabId}
               rootPath={rootPath}
               selectedPath={activeItem.filePath ?? null}
+              paneVisible={visible}
               onOpenFile={openOrSwitchToFile}
             />
           </div>
@@ -286,7 +297,12 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
                 }}
               >
                 {item.kind === "terminal" && (
-                  <TerminalPane terminalId={item.terminalId ?? 0} active={visible && active} zoom={zoom} />
+                  <TerminalPane
+                    terminalId={item.terminalId ?? 0}
+                    visible={visible}
+                    active={active}
+                    zoom={zoom}
+                  />
                 )}
                 {item.kind === "browser" && (
                   <BrowserContent
@@ -297,7 +313,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
                     onOpenNewTab={(url) =>
                       addTabToGroup(model, nodeId, "browser", { url })
                         .then((id) => {
-                          if (id) setLocalActiveId(id);
+                          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
                           onNotifyChanged();
                         })
                         .catch(console.error)
