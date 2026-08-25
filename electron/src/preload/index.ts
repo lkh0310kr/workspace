@@ -1,6 +1,18 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
+interface BrowserDownloadEventPayload {
+  id: string
+  hostWebContentsId: number
+  phase: 'started' | 'updated' | 'done'
+  filename?: string
+  url?: string
+  path?: string
+  receivedBytes?: number
+  totalBytes?: number
+  state?: 'progressing' | 'interrupted' | 'completed' | 'cancelled'
+}
+
 // Custom APIs for renderer
 const api = {
   hostname: (): Promise<string> => ipcRenderer.invoke('hostname'),
@@ -18,30 +30,73 @@ const api = {
   clipboard: {
     writeText: (text: string): void => ipcRenderer.send('clipboard:write-text', text)
   },
+  debug: {
+    interactionLog: (entry: Record<string, unknown>): void =>
+      ipcRenderer.send('debug:interaction-log', entry)
+  },
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, payload: { hostWebContentsId: number; url: string }): void =>
         cb(payload)
       ipcRenderer.on('browser:open-new-tab', listener)
       return () => ipcRenderer.removeListener('browser:open-new-tab', listener)
-    }
+    },
+    onGuestFocus: (cb: (payload: { webContentsId: number; focused: boolean }) => void): (() => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        payload: { webContentsId: number; focused: boolean },
+      ): void => cb(payload)
+      ipcRenderer.on('browser:guest-focus', listener)
+      return () => ipcRenderer.removeListener('browser:guest-focus', listener)
+    },
+    onDownloadEvent: (cb: (payload: BrowserDownloadEventPayload) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: BrowserDownloadEventPayload): void =>
+        cb(payload)
+      ipcRenderer.on('browser:download-event', listener)
+      return () => ipcRenderer.removeListener('browser:download-event', listener)
+    },
+    getNavHistory: (webContentsId: number): Promise<{
+      entries: { url: string; title: string }[]
+      activeIndex: number
+    } | null> => ipcRenderer.invoke('browser:get-nav-history', webContentsId)
   },
   shortcuts: {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, payload: { hard: boolean }): void => cb(payload)
       ipcRenderer.on('shortcut:browser-reload', listener)
       return () => ipcRenderer.removeListener('shortcut:browser-reload', listener)
+    },
+    onClosePaneTab: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:close-pane-tab', listener)
+      return () => ipcRenderer.removeListener('shortcut:close-pane-tab', listener)
+    },
+    onOpenSettings: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:open-settings', listener)
+      return () => ipcRenderer.removeListener('shortcut:open-settings', listener)
     }
   },
   pty: {
     spawn: (cols: number, rows: number): Promise<number> => ipcRenderer.invoke('pty:spawn', cols, rows),
+    connect: (id: number): Promise<{
+      id: number
+      snapshot: string
+      snapshotCols: number
+      snapshotRows: number
+      lastSeq: number
+      isReattach: boolean
+    }> => ipcRenderer.invoke('pty:connect', id),
+    disconnect: (id: number): void => ipcRenderer.send('pty:disconnect', id),
     write: (id: number, data: Uint8Array): void => ipcRenderer.send('pty:write', id, data),
     resize: (id: number, cols: number, rows: number): void =>
       ipcRenderer.send('pty:resize', id, cols, rows),
     dispose: (id: number): void => ipcRenderer.send('pty:dispose', id),
-    onData: (cb: (id: number, data: Uint8Array) => void): (() => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, payload: { id: number; data: Uint8Array }): void =>
-        cb(payload.id, payload.data)
+    onData: (cb: (id: number, seq: number, data: Uint8Array) => void): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: { id: number; seq: number; data: Uint8Array },
+      ): void => cb(payload.id, payload.seq, payload.data)
       ipcRenderer.on('pty:data', listener)
       return () => ipcRenderer.removeListener('pty:data', listener)
     }

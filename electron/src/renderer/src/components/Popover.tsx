@@ -1,24 +1,14 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 
-// Shared lightweight popover used by SettingsDialog/AppSettingsDialog/
-// PanePicker — replaces the old pattern each of those had independently
-// (a full-screen dimmed backdrop + a centered modal box). Positions itself
-// next to whatever triggered it instead of centering, and doesn't dim the
-// rest of the screen — "Pane UX를 Dialog -> 가벼운 Popover로 변경".
-//
-// Still uses a full-screen (but transparent) click-catcher behind the
-// popover content, same mechanism the old backdrop used: without it,
-// clicking the trigger button again to close would hit a document-level
-// outside-click listener on mousedown (which fires before click) that
-// closes the popover, and then the trigger's own onClick — still to
-// come, since mousedown != click — would immediately reopen it. A
-// catcher positioned above the trigger consumes that second click
-// entirely, so the trigger's own handler never re-fires.
-// A real DOMRect satisfies this structurally, but so does a plain literal
-// (e.g. a zero-size rect built from a context-menu click position) —
-// narrower than DOMRect on purpose so callers without a real element to
-// measure don't need to fake DOMRect's toJSON() too.
+// Lightweight popover anchored to a trigger rect. Portals to document.body
+// but deliberately does NOT use a full-screen click-catcher — those
+// catchers (z-index 100000, inset:0) were the root cause of "workspace tab
+// switch kills all interaction": every workspace tab stays mounted, so a
+// Popover opened in tab A's pane survives the switch as an invisible layer
+// blocking the entire app (including the tab rail) until manually dismissed.
+// Outside-click dismissal is a document-level pointerdown listener instead.
 export interface AnchorRect {
   left: number;
   top: number;
@@ -28,23 +18,18 @@ export interface AnchorRect {
   height: number;
 }
 
+function pointInRect(x: number, y: number, rect: AnchorRect): boolean {
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
 interface Props {
   anchorRect: AnchorRect;
   onClose: () => void;
   children: ReactNode;
-  /** Aligns the popover's right edge to the anchor's right edge instead
-   * of left-aligning — for triggers near the right side of the window. */
   align?: "start" | "end";
   className?: string;
-  /** false for a hover-triggered popover (e.g. SidebarQuickSwitchPopover)
-   * — the full-screen click-catcher below covers the entire viewport
-   * (including wherever the trigger element sits), which steals mouse
-   * hit-testing away from that trigger the instant the popover mounts and
-   * fires a spurious mouseleave on it — closing a hover popover almost
-   * immediately after it opens. Hover popovers dismiss themselves via
-   * onMouseLeave instead, so they don't need (and are actively broken by)
-   * this backdrop. Defaults to true for every existing click-triggered
-   * caller. */
+  /** false for hover popovers — no outside-click listener (see
+   * SidebarQuickSwitchPopover). */
   dismissOnClickOutside?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -60,6 +45,7 @@ export function Popover({
   onMouseEnter,
   onMouseLeave,
 }: Props) {
+  const portalId = useId();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; ready: boolean }>({
     top: 0,
@@ -90,12 +76,34 @@ export function Popover({
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [onClose]);
 
+  useLayoutEffect(() => {
+    if (!dismissOnClickOutside) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (ref.current?.contains(target)) return;
+      // Ignore presses on the trigger rect so toggle buttons (settings, +)
+      // can close via their own click handler without pointerdown reopen races.
+      if (pointInRect(e.clientX, e.clientY, anchorRect)) return;
+      onClose();
+    };
+    const timer = window.setTimeout(() => {
+      document.addEventListener("pointerdown", onPointerDown, true);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+    };
+  }, [onClose, dismissOnClickOutside, anchorRect]);
+
+  useLayoutEffect(() => {
+    return interactionCoordinator.registerPortal(portalId, onClose);
+  }, [portalId, onClose]);
+
   const panel = (
     <div
       ref={ref}
       className={`popover${className ? ` ${className}` : ""}`}
       style={{ top: pos.top, left: pos.left, opacity: pos.ready ? 1 : 0 }}
-      onClick={dismissOnClickOutside ? (e) => e.stopPropagation() : undefined}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
@@ -103,14 +111,5 @@ export function Popover({
     </div>
   );
 
-  if (!dismissOnClickOutside) {
-    return createPortal(panel, document.body);
-  }
-
-  return createPortal(
-    <div className="popover-catcher" onClick={onClose}>
-      {panel}
-    </div>,
-    document.body,
-  );
+  return createPortal(panel, document.body);
 }

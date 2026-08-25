@@ -18,6 +18,18 @@ export interface DirEntry {
   isDir: boolean
 }
 
+export interface BrowserDownloadEventPayload {
+  id: string
+  hostWebContentsId: number
+  phase: 'started' | 'updated' | 'done'
+  filename?: string
+  url?: string
+  path?: string
+  receivedBytes?: number
+  totalBytes?: number
+  state?: 'progressing' | 'interrupted' | 'completed' | 'cancelled'
+}
+
 export interface WorkspaceApi {
   hostname: () => Promise<string>
   shell: {
@@ -41,18 +53,37 @@ export interface WorkspaceApi {
   clipboard: {
     writeText: (text: string) => void
   }
+  debug: {
+    interactionLog: (entry: Record<string, unknown>) => void
+  }
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void) => () => void
+    onGuestFocus: (cb: (payload: { webContentsId: number; focused: boolean }) => void) => () => void
+    onDownloadEvent: (cb: (payload: BrowserDownloadEventPayload) => void) => () => void
+    getNavHistory: (
+      webContentsId: number,
+    ) => Promise<{ entries: { url: string; title: string }[]; activeIndex: number } | null>
   }
   shortcuts: {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
+    onClosePaneTab: (cb: () => void) => () => void
+    onOpenSettings: (cb: () => void) => () => void
   }
   pty: {
     spawn: (cols: number, rows: number) => Promise<number>
+    connect: (id: number) => Promise<{
+      id: number
+      snapshot: string
+      snapshotCols: number
+      snapshotRows: number
+      lastSeq: number
+      isReattach: boolean
+    }>
+    disconnect: (id: number) => void
     write: (id: number, data: Uint8Array) => void
     resize: (id: number, cols: number, rows: number) => void
     dispose: (id: number) => void
-    onData: (cb: (id: number, data: Uint8Array) => void) => () => void
+    onData: (cb: (id: number, seq: number, data: Uint8Array) => void) => () => void
   }
   workspace: {
     getState: () => Promise<WorkspaceState>

@@ -1,21 +1,25 @@
 import { TabInfo, addTab, closeTab, selectTab } from "../electron";
-import { browserHideAll } from "../browser";
+import { dismissWorkspacePortals } from "../workspacePortalDismiss";
+import { interactionCoordinator } from "../interaction/InteractionCoordinator";
+import {
+  beginOptimisticWorkspaceTabSwitch,
+  endOptimisticWorkspaceTabSwitch,
+} from "../interaction/optimisticWorkspaceTab";
 
-// Switching workspace tabs remounts the whole pane tree (App.tsx keys its
-// layout host on activeTabId) — any Browser pane in the outgoing tab only
-// detaches its native WKWebView asynchronously on unmount (a fire-and-
-// forget IPC call, since React's own unmount is synchronous and can't be
-// awaited). Native child views always composite *above* the DOM, so
-// during that gap a still-attached, no-longer-rendered webview can end up
-// sitting invisibly on top of the whole window, swallowing every click
-// and drag app-wide until the detach actually lands — reported as
-// "tab 전환 했을 때 드래그나 그런 인터렉션이 안됨". Explicitly hiding every
-// browser webview *before* asking for the switch (already the same call
-// overlayBarrier uses for the analogous splitter/pane-drag case) closes
-// that gap instead of leaving it to each pane's own unmount timing.
+// Switching workspace tabs keeps every tab's pane tree mounted — dismiss
+// any portaled popovers before the IPC round-trip so invisible layers can't
+// block the tab rail, and sync embed pointer-events for the new tab.
 export async function switchToTab(tabId: number) {
-  await browserHideAll().catch(() => {});
-  await selectTab(tabId).catch(console.error);
+  dismissWorkspacePortals();
+  beginOptimisticWorkspaceTabSwitch(tabId);
+  interactionCoordinator.setActiveWorkspaceTab(tabId, { force: true });
+  try {
+    await selectTab(tabId);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    endOptimisticWorkspaceTabSwitch();
+  }
 }
 
 interface Props {
@@ -62,6 +66,7 @@ export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
                 title="Close tab"
                 onClick={(e) => {
                   e.stopPropagation();
+                  dismissWorkspacePortals();
                   closeTab(tab.id).catch(console.error);
                 }}
               >
