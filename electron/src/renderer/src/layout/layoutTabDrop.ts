@@ -46,7 +46,7 @@ export function isOverPaneTabStrip(x: number, y: number): boolean {
   return false;
 }
 
-function resolveDockLocation(rect: DOMRect, x: number, y: number): DockLocation {
+export function resolveDockLocation(rect: DOMRect, x: number, y: number): DockLocation {
   const relX = (x - rect.left) / rect.width;
   const relY = (y - rect.top) / rect.height;
   if (relX < EDGE_RATIO) return DockLocation.LEFT;
