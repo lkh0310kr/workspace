@@ -63,7 +63,7 @@ layout factory, flexlayout `onAction`/`onModelChange`, chip drop, splitter overl
 ### 디버그 코드가 프로덕션 UI에 항상 켜짐
 
 - [x] main NDJSON 로그 — packaged 빌드에서 비활성화 (2026-08-26).
-- [ ] renderer → main debug IPC는 dev에서만 의미 있음; preload 노출 정리 optional
+- [x] renderer → main debug IPC — preload `debug.*` no-op when `!import.meta.env.DEV`; main NDJSON sink already gated by `!app.isPackaged` (2026-08-26).
 
 ### legacy-tauri
 

@@ -30,14 +30,20 @@ const api = {
   clipboard: {
     writeText: (text: string): void => ipcRenderer.send('clipboard:write-text', text)
   },
-  debug: {
-    interactionLog: (entry: Record<string, unknown>): void =>
-      ipcRenderer.send('debug:interaction-log', entry),
-    terminalLog: (entry: Record<string, unknown>): void =>
-      ipcRenderer.send('debug:terminal-log', entry),
-    layoutLog: (entry: Record<string, unknown>): void =>
-      ipcRenderer.send('debug:layout-log', entry)
-  },
+  debug: import.meta.env.DEV
+    ? {
+        interactionLog: (entry: Record<string, unknown>): void =>
+          ipcRenderer.send('debug:interaction-log', entry),
+        terminalLog: (entry: Record<string, unknown>): void =>
+          ipcRenderer.send('debug:terminal-log', entry),
+        layoutLog: (entry: Record<string, unknown>): void =>
+          ipcRenderer.send('debug:layout-log', entry)
+      }
+    : {
+        interactionLog: (): void => {},
+        terminalLog: (): void => {},
+        layoutLog: (): void => {}
+      },
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, payload: { hostWebContentsId: number; url: string }): void =>
