@@ -1,31 +1,22 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { DockLocation } from "flexlayout-react";
 import { getTabDrag } from "../layout/tabDrag";
-import {
-  readFlexlayoutDropIndicator,
-  resolveTabDropTarget,
-  type TabDropPreview,
-} from "../layout/layoutTabDrop";
+import { resolveTabDropTarget, type TabDropPreview } from "../layout/layoutTabDrop";
 
 export function LayoutTabDropOverlay() {
-  const [rect, setRect] = useState<TabDropPreview["rect"] | null>(null);
+  const [preview, setPreview] = useState<TabDropPreview | null>(null);
 
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {
-      if (getTabDrag()) {
-        e.preventDefault();
-        setRect(resolveTabDropTarget(e.clientX, e.clientY)?.rect ?? null);
+      if (!getTabDrag()) {
+        setPreview(null);
         return;
       }
-      const flexRect = readFlexlayoutDropIndicator();
-      if (flexRect) {
-        e.preventDefault();
-        setRect(flexRect);
-        return;
-      }
-      setRect(null);
+      e.preventDefault();
+      setPreview(resolveTabDropTarget(e.clientX, e.clientY));
     };
-    const clear = () => setRect(null);
+    const clear = () => setPreview(null);
     window.addEventListener("dragover", onDragOver);
     window.addEventListener("dragend", clear);
     window.addEventListener("drop", clear);
@@ -36,16 +27,17 @@ export function LayoutTabDropOverlay() {
     };
   }, []);
 
-  if (!rect) return null;
+  if (!preview) return null;
 
+  const merge = preview.location === DockLocation.CENTER;
   return createPortal(
     <div
-      className="pane-layout-drop-indicator"
+      className={`pane-layout-drop-indicator${merge ? " pane-layout-drop-indicator--frame" : ""}`}
       style={{
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
+        left: preview.rect.left,
+        top: preview.rect.top,
+        width: preview.rect.width,
+        height: preview.rect.height,
       }}
     />,
     document.body,
