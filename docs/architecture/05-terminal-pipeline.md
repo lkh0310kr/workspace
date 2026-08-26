@@ -74,7 +74,8 @@ Orca’s full split/divider PaneManager was reduced to **one xterm per pane**:
 ### WebGL / GPU
 
 - `@xterm/addon-webgl` beta aligned with Orca; patches in `electron/patches/`
-- `terminalGpuAcceleration: "auto"` in `TerminalSurface`
+- `terminalGpuAcceleration: "auto"` in `TerminalPane` (WebGL via `@xterm/addon-webgl`)
+- Wheel events scroll the xterm viewport only (`terminal-wheel-scroll.ts`) — not forwarded to PTY as arrow keys
 - On resize: `refitPaneTerminal` disposes and re-attaches WebGL to avoid tiny-canvas glitches
 - On hide: `suspendPaneRendering` disposes WebGL; resume refits and re-attaches
 

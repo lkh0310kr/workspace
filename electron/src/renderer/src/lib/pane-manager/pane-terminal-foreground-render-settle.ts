@@ -1,4 +1,5 @@
 import type { Terminal } from "@xterm/xterm";
+import { isTerminalViewportAtBottom } from "../../terminal/terminal-wheel-scroll";
 import { runGuardedWriteCompletionStep } from "./xterm-write-callback-guard";
 
 export type ForegroundTerminalOutputTarget = Terminal;
@@ -17,8 +18,9 @@ export function writeForegroundTerminalChunk(
     terminal.write(data, () => {
       runGuardedWriteCompletionStep("foreground-write-callback", () => {
         options?.onParsed?.();
-        if (typeof terminal.rows === "number" && terminal.rows > 0) {
-          terminal.refresh(0, terminal.rows - 1);
+        const rows = terminal.rows;
+        if (rows > 0 && isTerminalViewportAtBottom(terminal)) {
+          terminal.refresh(0, rows - 1);
         }
       });
     });

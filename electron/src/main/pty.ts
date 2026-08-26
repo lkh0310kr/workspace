@@ -59,7 +59,7 @@ function tmuxConfPath(): string | null {
   try {
     fs.mkdirSync(dir, { recursive: true });
     const confPath = path.join(dir, "tmux.conf");
-    fs.writeFileSync(confPath, "set-option -g status off\nset -g mouse off\n");
+    fs.writeFileSync(confPath, "set-option -g status off\nset -g mouse off\nsetw -g mode-mouse off\n");
     cachedTmuxConfPath = confPath;
   } catch {
     cachedTmuxConfPath = null;

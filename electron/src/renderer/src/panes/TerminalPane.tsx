@@ -45,7 +45,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
     if (!host) return;
 
     const pane = createPaneDOM(terminalId, `terminal-${terminalId}`, {
-      terminalGpuAcceleration: "off",
+      terminalGpuAcceleration: "auto",
       linkOpenHint: () => "open in browser",
       onLinkClick: (_paneId, _event, uri) => {
         window.open(uri, "_blank");

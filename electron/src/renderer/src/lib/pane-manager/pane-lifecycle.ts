@@ -6,6 +6,7 @@ import { safeFit } from "./pane-rendering-control";
 import { cancelPendingWebglRefresh, disposeWebgl, attachWebgl, shouldUseTerminalWebgl } from "./pane-webgl-renderer";
 import { clearTerminalOutputQueue } from "./pane-terminal-output-scheduler";
 import { installTerminalImeCandidateAnchor } from "./terminal-ime-candidate-anchor";
+import { installTerminalWheelScroll } from "../../terminal/terminal-wheel-scroll";
 
 export { createPaneDOM } from "./pane-dom-creation";
 
@@ -36,6 +37,7 @@ export function openTerminal(pane: ManagedPaneInternal): void {
 
   pane.compositionHandler = installTerminalImeCandidateAnchor(terminal);
   pane.focusClassSyncCleanup = attachDomRendererFocusClassSync(terminal.element);
+  pane.wheelScrollCleanup = installTerminalWheelScroll(terminal);
 
   if (shouldUseTerminalWebgl(pane)) {
     attachWebgl(pane);
@@ -65,6 +67,8 @@ export function disposePane(pane: ManagedPaneInternal): void {
   pane.focusClassSyncCleanup = null;
   pane.compositionHandler?.();
   pane.compositionHandler = null;
+  pane.wheelScrollCleanup?.();
+  pane.wheelScrollCleanup = null;
   detachPaneFitResizeObserver(pane);
   cancelPendingWebglRefresh(pane);
   disposeWebgl(pane);

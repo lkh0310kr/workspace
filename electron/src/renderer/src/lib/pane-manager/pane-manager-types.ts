@@ -41,6 +41,7 @@ export type ManagedPaneInternal = ManagedPane & {
   webglNeedsRebuildOnResume: boolean;
   compositionHandler: (() => void) | null;
   focusClassSyncCleanup: (() => void) | null;
+  wheelScrollCleanup: (() => void) | null;
 };
 
 export type PaneManagerOptions = {
