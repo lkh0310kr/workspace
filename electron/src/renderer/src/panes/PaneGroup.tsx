@@ -340,7 +340,8 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                     tabId={workspaceTabId}
                     paneNodeId={nodeId}
                     item={item}
-                    visible={chipShown}
+                    paneVisible={visible}
+                    chipActive={chipShown}
                     onUpdate={(patch) => updateItem(item.id, patch)}
                     onOpenNewTab={(url) =>
                       addTabToGroup(model, nodeId, "browser", { url })

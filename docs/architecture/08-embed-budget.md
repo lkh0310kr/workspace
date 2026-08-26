@@ -10,7 +10,9 @@ Limits native embed mount count so workspace tabs × panes do not grow Chromium 
 |--------|-------|
 | Max live guests | 4 (`WEBVIEW_LRU_CAPACITY`) |
 | Session data | `PaneTabItem` in layout JSON (`url`, `zoomFactor`, `title`, `favicon`) |
-| Slot holder | Visible pane chip only (`BrowserContent` `visible` prop) |
+| Slot holder | `paneVisible` (flexlayout pane live) — **not** per chip switch |
+| Chip input | `chipActive` → webview `visibility` + IC `setBrowserPaneVisible` |
+| Eviction priority | Unpinned (inactive chip) slots first, then LRU |
 
 ### Lifecycle
 

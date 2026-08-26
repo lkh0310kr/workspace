@@ -11,6 +11,8 @@ type Slot = {
   key: string;
   lastAccess: number;
   onEvict: () => void;
+  /** Active pane chip — evict inactive chips before these. */
+  pinned: boolean;
 };
 
 const slots = new Map<string, Slot>();
@@ -22,14 +24,18 @@ function touchSlot(key: string): void {
 }
 
 function findEvictionCandidate(exceptKey: string): string | null {
-  let victim: { key: string; lastAccess: number } | null = null;
+  let unpinned: { key: string; lastAccess: number } | null = null;
+  let any: { key: string; lastAccess: number } | null = null;
   for (const [key, slot] of slots) {
     if (key === exceptKey) continue;
-    if (!victim || slot.lastAccess < victim.lastAccess) {
-      victim = { key, lastAccess: slot.lastAccess };
+    if (!any || slot.lastAccess < any.lastAccess) {
+      any = { key, lastAccess: slot.lastAccess };
+    }
+    if (!slot.pinned && (!unpinned || slot.lastAccess < unpinned.lastAccess)) {
+      unpinned = { key, lastAccess: slot.lastAccess };
     }
   }
-  return victim?.key ?? null;
+  return unpinned?.key ?? any?.key ?? null;
 }
 
 function evictKey(key: string): void {
@@ -43,10 +49,16 @@ function evictKey(key: string): void {
  * Reserve a live webview slot. Evicts LRU peer when at capacity.
  * Session state (URL, zoom) stays in layout JSON — guest is recreated on acquire.
  */
-export function requestWebviewSlot(key: string, onEvict: () => void): WebviewSlotRelease {
+export function requestWebviewSlot(
+  key: string,
+  onEvict: () => void,
+  options?: { pinned?: boolean },
+): WebviewSlotRelease {
+  const pinned = options?.pinned ?? false;
   const existing = slots.get(key);
   if (existing) {
     existing.onEvict = onEvict;
+    existing.pinned = pinned;
     touchSlot(key);
     return () => releaseWebviewSlot(key);
   }
@@ -57,8 +69,13 @@ export function requestWebviewSlot(key: string, onEvict: () => void): WebviewSlo
     evictKey(victim);
   }
 
-  slots.set(key, { key, lastAccess: ++accessSeq, onEvict });
+  slots.set(key, { key, lastAccess: ++accessSeq, onEvict, pinned });
   return () => releaseWebviewSlot(key);
+}
+
+export function setWebviewSlotPinned(key: string, pinned: boolean): void {
+  const slot = slots.get(key);
+  if (slot) slot.pinned = pinned;
 }
 
 export function releaseWebviewSlot(key: string): void {

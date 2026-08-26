@@ -7,6 +7,7 @@ import { recordBrowserVisit } from "../browserHistory";
 import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
 import {
   requestWebviewSlot,
+  setWebviewSlotPinned,
   touchWebviewSlot,
   webviewSessionKey,
 } from "../embeds/WebviewRegistry";
@@ -20,7 +21,10 @@ interface Props {
   tabId: number;
   paneNodeId: string;
   item: PaneTabItem;
-  visible: boolean;
+  /** Flexlayout pane + workspace tab visible — keeps guest mounted across chip switches. */
+  paneVisible: boolean;
+  /** Active pane chip — controls IC input and webview visibility. */
+  chipActive: boolean;
   onUpdate: (patch: Partial<PaneTabItem>) => void;
   onOpenNewTab: (url: string) => void;
 }
@@ -42,11 +46,20 @@ function applyWebviewZoom(webview: Electron.WebviewTag, factor: number): void {
   }
 }
 
-export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onOpenNewTab }: Props) {
+export function BrowserContent({
+  tabId,
+  paneNodeId,
+  item,
+  paneVisible,
+  chipActive,
+  onUpdate,
+  onOpenNewTab,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const [webview, setWebview] = useState<Electron.WebviewTag | null>(null);
   const [slotHeld, setSlotHeld] = useState(false);
+  const [evictEpoch, setEvictEpoch] = useState(0);
   const releaseSlotRef = useRef<(() => void) | null>(null);
   const sessionKey = webviewSessionKey(tabId, item.id);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
@@ -79,37 +92,41 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
     if (guest) applyWebviewZoom(guest, clamped);
   }, []);
 
-  // LRU slot — only visible pane chips compete for live guests.
+  // LRU slot for the pane lifetime — not per chip switch.
   useEffect(() => {
-    if (!visible) {
+    if (!paneVisible) {
       releaseSlotRef.current?.();
       releaseSlotRef.current = null;
       setSlotHeld(false);
       return;
     }
 
-    let cancelled = false;
-
-    const acquire = (): void => {
-      if (cancelled) return;
-      releaseSlotRef.current?.();
-      const release = requestWebviewSlot(sessionKey, () => {
+    const release = requestWebviewSlot(
+      sessionKey,
+      () => {
         setSlotHeld(false);
-        if (!cancelled) acquire();
-      });
-      releaseSlotRef.current = release;
-      setSlotHeld(true);
-      touchWebviewSlot(sessionKey);
-    };
+        setEvictEpoch((epoch) => epoch + 1);
+      },
+      { pinned: chipActive },
+    );
+    releaseSlotRef.current = release;
+    setSlotHeld(true);
+    touchWebviewSlot(sessionKey);
 
-    acquire();
     return () => {
-      cancelled = true;
-      releaseSlotRef.current?.();
+      release();
       releaseSlotRef.current = null;
       setSlotHeld(false);
     };
-  }, [visible, sessionKey]);
+    // chipActive pinned updates in a separate effect — avoid release/reacquire on tab click
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paneVisible, sessionKey, evictEpoch]);
+
+  useEffect(() => {
+    if (!slotHeld) return;
+    setWebviewSlotPinned(sessionKey, chipActive);
+    if (chipActive) touchWebviewSlot(sessionKey);
+  }, [slotHeld, sessionKey, chipActive]);
 
   useEffect(() => {
     if (!slotHeld) return;
@@ -191,7 +208,7 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
       workspaceTabId: tabId,
       paneNodeId,
       paneTabItemId: item.id,
-      initialPaneVisible: true,
+      initialPaneVisible: chipActive,
     });
 
     const onFocus = (): void => {
@@ -236,25 +253,30 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
       setCanGoBack(false);
       setCanGoForward(false);
     };
-  }, [slotHeld, tabId, paneNodeId, item.id, sessionKey, syncNavState]);
+  }, [slotHeld, tabId, paneNodeId, item.id, sessionKey, chipActive, syncNavState]);
 
   useEffect(() => {
     const guest = webviewRef.current;
     if (!guest) return;
-    guest.style.visibility = visible ? "visible" : "hidden";
-    interactionCoordinator.setBrowserPaneVisible(tabId, item.id, visible && slotHeld);
-    dbgLog("BrowserContent:visible", "pane visibility", { tabId, itemId: item.id, visible, slotHeld }, "H3");
-    if (!visible) {
+    guest.style.visibility = chipActive ? "visible" : "hidden";
+    interactionCoordinator.setBrowserPaneVisible(tabId, item.id, chipActive);
+    dbgLog(
+      "BrowserContent:visible",
+      "chip visibility",
+      { tabId, itemId: item.id, chipActive, slotHeld },
+      "H3",
+    );
+    if (!chipActive) {
       addressInputRef.current?.blur();
       if (getActiveBrowserWebview() === guest) {
         setActiveBrowserWebview(null);
       }
     }
-  }, [visible, slotHeld, tabId, item.id]);
+  }, [chipActive, tabId, item.id]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!visible) return;
+      if (!chipActive) return;
       const guest = webviewRef.current;
       const browserFocused =
         guest &&
@@ -274,7 +296,7 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [visible, zoomFactor, setZoom]);
+  }, [chipActive, zoomFactor, setZoom]);
 
   const navigate = (url: string): void => {
     const normalized = normalizeBrowserNavigationUrl(url, true);
@@ -287,15 +309,16 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
 
   const zoomLabel = `${Math.round(zoomFactor * 100)}%`;
   const guestLive = slotHeld && !!webview;
+  const showParked = chipActive && paneVisible && !guestLive;
 
   return (
-    <div className="browser-pane-chrome" style={{ pointerEvents: visible ? undefined : "none" }}>
+    <div className="browser-pane-chrome" style={{ pointerEvents: chipActive ? undefined : "none" }}>
       <div className="pane-header pane-header-browser">
         <div className="browser-nav">
           <BrowserNavButton
             direction="back"
             disabled={!canGoBack || !guestLive}
-            active={visible}
+            active={chipActive}
             webview={webview}
             webContentsId={webContentsId}
             onNavigate={syncNavState}
@@ -303,7 +326,7 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
           <BrowserNavButton
             direction="forward"
             disabled={!canGoForward || !guestLive}
-            active={visible}
+            active={chipActive}
             webview={webview}
             webContentsId={webContentsId}
             onNavigate={syncNavState}
@@ -378,11 +401,11 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
       <BrowserDownloadsBar webContentsId={webContentsId} />
       <div
         ref={containerRef}
-        className={`browser-content-slot${visible && !guestLive ? " browser-content-slot--parked" : ""}`}
+        className={`browser-content-slot${showParked ? " browser-content-slot--parked" : ""}`}
       >
-        {visible && !guestLive ? (
+        {showParked ? (
           <div className="browser-content-parked" aria-hidden="true">
-            Page unloaded to save memory — click the tab or navigate to reload.
+            Page unloaded to save memory — switch away and back to reload.
           </div>
         ) : null}
       </div>
