@@ -1,27 +1,33 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { DockLocation } from "flexlayout-react";
+import { isPaneDragActive } from "../layout/layoutRef";
 import { getTabDrag } from "../layout/tabDrag";
-import { resolveTabDropTarget, type TabDropPreview } from "../layout/layoutTabDrop";
+import { resolvePaneDragDropPreview, resolveTabDropTarget, type TabDropPreview } from "../layout/layoutTabDrop";
 
 export function LayoutTabDropOverlay() {
   const [preview, setPreview] = useState<TabDropPreview | null>(null);
 
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {
-      if (!getTabDrag()) {
-        setPreview(null);
+      const tabDrag = getTabDrag();
+      if (tabDrag) {
+        e.preventDefault();
+        setPreview(resolveTabDropTarget(e.clientX, e.clientY));
         return;
       }
-      e.preventDefault();
-      setPreview(resolveTabDropTarget(e.clientX, e.clientY));
+      if (isPaneDragActive()) {
+        e.preventDefault();
+        setPreview(resolvePaneDragDropPreview(e.clientX, e.clientY));
+        return;
+      }
+      setPreview(null);
     };
     const clear = () => setPreview(null);
-    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("dragover", onDragOver, true);
     window.addEventListener("dragend", clear);
     window.addEventListener("drop", clear);
     return () => {
-      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("dragover", onDragOver, true);
       window.removeEventListener("dragend", clear);
       window.removeEventListener("drop", clear);
     };
@@ -29,10 +35,9 @@ export function LayoutTabDropOverlay() {
 
   if (!preview) return null;
 
-  const merge = preview.location === DockLocation.CENTER;
   return createPortal(
     <div
-      className={`pane-layout-drop-indicator${merge ? " pane-layout-drop-indicator--frame" : ""}`}
+      className="pane-layout-drop-indicator"
       style={{
         left: preview.rect.left,
         top: preview.rect.top,

@@ -1608,17 +1608,24 @@ iframe.browser-content-slot {
   flex: 0 0 1px !important;
 }
 
+/* flexlayout enables this during pane drag — it sits above panes and blocks
+   elementFromPoint unless pointer-events are off. */
+.flexlayout__layout_overlay {
+  pointer-events: none !important;
+}
+
 .flexlayout__outline_rect,
 .flexlayout__outline_rect_edge {
   border: 2px solid var(--accent) !important;
-  background: transparent !important;
+  background: color-mix(in srgb, var(--accent) 35%, transparent) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   transition: none !important;
+  z-index: 1001 !important;
 }
 
 .flexlayout__edge_rect {
-  background: transparent !important;
+  background: color-mix(in srgb, var(--accent) 35%, transparent) !important;
   border: 2px solid var(--accent) !important;
   border-radius: 0 !important;
   transition: none !important;
@@ -1629,12 +1636,7 @@ iframe.browser-content-slot {
   z-index: 100002;
   pointer-events: none;
   box-sizing: border-box;
-  background: var(--accent);
-  border-radius: 1px;
-}
-
-.pane-layout-drop-indicator--frame {
-  background: transparent !important;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
   border: 2px solid var(--accent);
   border-radius: 0;
 }

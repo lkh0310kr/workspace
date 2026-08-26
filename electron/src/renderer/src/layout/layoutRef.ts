@@ -35,6 +35,11 @@ type FlexLayoutController = {
 const instances = new Map<number, ILayoutApi>();
 const controllers = new Map<number, FlexLayoutController>();
 let activeTabId: number | null = null;
+let paneDragActive = false;
+
+export function isPaneDragActive(): boolean {
+  return paneDragActive;
+}
 
 const layoutRefCallbacks = new Map<number, (instance: ILayoutApi | null) => void>();
 
@@ -70,6 +75,7 @@ export function registerLayoutController(tabId: number, controller: FlexLayoutCo
  * strip — if we don't call this, showOverlay stays true and the invisible
  * flexlayout__layout_overlay eats every click in the layout area. */
 export function finishPaneDrag(tabId: number | null = activeTabId): void {
+  paneDragActive = false;
   if (tabId !== null) {
     const controller = controllers.get(tabId);
     if (controller) {
@@ -115,6 +121,7 @@ export function startPaneDrag(event: DragEvent, node: TabNode): void {
     clientY: native.clientY,
   }, activeTabId);
   layout.moveTabWithDragAndDrop(native, node);
+  paneDragActive = true;
 
   const root = document.querySelector<HTMLElement>(
     `.layout-host-item--active .flexlayout__layout`,
@@ -160,6 +167,7 @@ export function startPaneDrag(event: DragEvent, node: TabNode): void {
   const cleanup = (reason: string) => {
     if (cleaned) return;
     cleaned = true;
+    paneDragActive = false;
     layoutLog("layoutRef.startPaneDrag", "pane drag cleanup", {
       reason,
       forwardCount,
