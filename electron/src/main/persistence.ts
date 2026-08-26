@@ -8,10 +8,9 @@ import type { WorkspaceState } from "./workspace";
 //
 // Deliberately *not* sharing the Tauri app's actual `config.json`/
 // `workspace.json` filenames, even though both live under the same
-// `~/Library/Application Support/workspace-app` directory (see pty.ts's
-// tmux.conf, which *is* intentionally shared — its content is identical
-// either way). This Electron build and the Tauri app are both runnable
-// during the migration; using distinct filenames means running one can't
+// `~/Library/Application Support/workspace-app` directory. This Electron build
+// and the Tauri app are both runnable during the migration; using distinct
+// filenames means running one can't
 // corrupt or fight over the other's actual persisted tabs/settings. Once
 // this replaces the Tauri app outright, these can be renamed to match.
 export function appSupportDir(): string {

@@ -351,8 +351,7 @@ app.whenReady().then(() => {
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
   // Save immediately (mirrors src/lib.rs) — first launch would otherwise
   // never persist anything until the user creates/closes/renames a tab,
-  // meaning a never-touched default tab's terminal id (and thus its tmux
-  // session) would be lost on the very next relaunch.
+  // meaning a never-touched default tab's terminal id would be lost on the very next relaunch.
   persist()
 
   bindMainWindow(createWindow())
@@ -468,10 +467,6 @@ app.on('window-all-closed', () => {
   }
 })
 
-// Detach tmux clients cleanly on graceful shutdown — see pty.ts's
-// dispose() for why this matters (an EOF forwarded into a still-attached
-// client's shell would kill the very session this whole feature exists to
-// keep alive across restarts).
 app.on('before-quit', () => {
   workspace?.disposeAllTerminals()
   fileWatcher?.close()

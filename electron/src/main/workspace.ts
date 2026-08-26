@@ -57,8 +57,8 @@ export class Workspace {
   /** Rebuilds a Workspace from a previously-persisted WorkspaceState
    * instead of starting with a single fresh tab. Reuses every tab's
    * original id and spawns a terminal for each id actually referenced in
-   * that tab's layoutJson — this is what makes a terminal's tmux
-   * session-key-by-id reattach to the *same* session it had before. */
+   * that tab's layoutJson. PtySession replay restores output while the app
+   * is running; a full app restart starts fresh shells (Orca-style). */
   static fromSnapshot(rootPath: string, snapshot: WorkspaceState): Workspace {
     if (snapshot.tabs.length === 0) return Workspace.withRoot(rootPath);
 
@@ -143,9 +143,7 @@ export class Workspace {
   }
 
   private spawnTerminalWithId(id: number, cols: number, rows: number, root: string): void {
-    // `workspace-term-<id>` — the session-key convention every terminal's
-    // tmux reattachment depends on (see pty.ts).
-    const pty = new Pty({ cols, rows, cwd: root, sessionKey: `workspace-term-${id}` });
+    const pty = new Pty({ cols, rows, cwd: root });
     pty.start();
     const session = new PtySession(id, pty, cols, rows);
     session.setOnData((terminalId, seq, data) => {
