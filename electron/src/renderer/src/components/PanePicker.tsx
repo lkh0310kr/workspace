@@ -1,28 +1,27 @@
-import { Popover } from "./Popover";
+import { Popover, type AnchorRect } from "./Popover";
 import { TabKind, TAB_KIND_OPTIONS } from "../layout/paneTypes";
 
 interface Props {
-  anchorRect: DOMRect;
+  anchorRect: AnchorRect;
   onPick: (kind: TabKind) => void;
   onClose: () => void;
   title?: string;
   current?: TabKind;
 }
 
-export function PanePicker({ anchorRect, onPick, onClose, title = "Add pane", current }: Props) {
+export function PanePicker({ anchorRect, onPick, onClose, current }: Props) {
   return (
-    <Popover anchorRect={anchorRect} onClose={onClose} className="pane-picker">
-      <div className="pane-picker-title">{title}</div>
-      <div className="pane-picker-grid">
+    <Popover anchorRect={anchorRect} onClose={onClose} className="context-menu-popover">
+      <div className="context-menu context-menu-inline">
         {TAB_KIND_OPTIONS.map((kind) => (
           <button
             key={kind.id}
             type="button"
-            className={`pane-picker-item${kind.id === current ? " active" : ""}`}
+            className={`context-menu-item${kind.id === current ? " active" : ""}`}
             onClick={() => onPick(kind.id)}
           >
-            <span className="pane-picker-icon">{kind.icon}</span>
-            <span>{kind.label}</span>
+            <span className="context-menu-icon">{kind.icon}</span>
+            <span className="context-menu-label">{kind.label}</span>
           </button>
         ))}
       </div>

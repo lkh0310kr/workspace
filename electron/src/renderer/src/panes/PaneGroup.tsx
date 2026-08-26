@@ -5,6 +5,7 @@ import { PaneTabStrip } from "../components/PaneTabStrip";
 import { TreeView } from "../components/TreeView";
 import {
   addTabToGroup,
+  changeTabKindInGroup,
   closeTabInGroup,
   moveTabToGroup,
   setActiveTabInGroup,
@@ -173,7 +174,19 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
         })
         .catch(console.error);
     },
-    [model, nodeId, onNotifyChanged],
+    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab],
+  );
+
+  const changeKind = useCallback(
+    (tabId: string, kind: TabKind) => {
+      changeTabKindInGroup(model, nodeId, tabId, kind)
+        .then((id) => {
+          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
+          onNotifyChanged();
+        })
+        .catch(console.error);
+    },
+    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab],
   );
 
   const updateItem = useCallback(
@@ -244,6 +257,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
           onSelect={selectTab}
           onClose={closeTab}
           onNewTab={newTab}
+          onChangeKind={changeKind}
           onDropTab={dropTab}
         />
       }

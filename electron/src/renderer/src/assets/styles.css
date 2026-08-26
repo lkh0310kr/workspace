@@ -625,6 +625,107 @@ iframe.browser-content-slot {
   color: var(--text);
 }
 
+/* —— Context menu (ContextMenu.tsx) —— shared by TreeView, pane tab strip,
+   and PanePicker. Flat, compact, no shadows per DESIGN.md. */
+.context-menu-popover {
+  padding: 0;
+  min-width: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 100001;
+  min-width: 160px;
+  padding: 2px 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+}
+
+.context-menu-inline {
+  position: static;
+  z-index: auto;
+}
+
+.context-menu-submenu-row {
+  position: relative;
+}
+
+.context-menu-flyout {
+  position: absolute;
+  left: 100%;
+  top: -2px;
+  margin-left: -2px;
+}
+
+.context-menu-flyout-left {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: -2px;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.context-menu-submenu-trigger {
+  justify-content: space-between;
+}
+
+.context-menu-item:hover,
+.context-menu-item.open {
+  background: var(--bg-hover);
+}
+
+.context-menu-item.active {
+  background: var(--bg-active);
+}
+
+.context-menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.context-menu-icon {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.context-menu-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.context-menu-chevron {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.context-menu-sep {
+  height: 1px;
+  margin: 2px 0;
+  background: var(--border);
+}
+
 /* —— Pane group body (PaneGroup.tsx) —— the explorer sidebar (editor tabs
    only) plus a stack of every open tab's content, all mounted at once and
    toggled via display so switching tabs never loses state. */
@@ -1746,38 +1847,6 @@ iframe.browser-content-slot {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
-.tree-view-menu {
-  position: fixed;
-  z-index: 100000;
-  min-width: 170px;
-  padding: 4px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  display: flex;
-  flex-direction: column;
-}
-
-.tree-view-menu button {
-  padding: 5px 8px;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--font-ui);
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.tree-view-menu button:hover {
-  background: var(--bg-hover);
-}
-
-.tree-view-menu-sep {
-  height: 1px;
-  margin: 4px 0;
-  background: var(--border);
-}
-
 .md-pane-outline {
   border-right: none;
   border-left: 1px solid var(--border);
@@ -1951,45 +2020,6 @@ iframe.browser-content-slot {
 .settings-theme-option.active {
   background: var(--bg-active);
   color: var(--text);
-}
-
-.pane-picker-item.active {
-  background: var(--bg-active);
-  color: var(--text);
-}
-
-.pane-picker {
-  min-width: 200px;
-}
-
-.pane-picker-title {
-  font-size: 10px;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.pane-picker-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-}
-
-.pane-picker-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 4px;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-  cursor: pointer;
-  font-size: 11px;
-}
-
-.pane-picker-item:hover {
-  background: var(--bg-hover);
 }
 
 /* TextPrompt.tsx — Electron has no window.prompt(), this replaces it. */

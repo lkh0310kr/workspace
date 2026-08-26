@@ -111,6 +111,40 @@ export function updateTabInGroup(
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, tabs } }));
 }
 
+/** Replaces one tab's kind in place (terminal ↔ browser ↔ editor, etc.).
+ * Returns the new tab item's id, or null if the tab/node doesn't exist or
+ * the kind is unchanged. */
+export async function changeTabKindInGroup(
+  model: Model,
+  tabNodeId: string,
+  tabId: string,
+  kind: TabKind,
+): Promise<string | null> {
+  const config = getGroupConfig(model, tabNodeId);
+  if (!config) return null;
+  const idx = config.tabs.findIndex((t) => t.id === tabId);
+  if (idx === -1) return null;
+  const existing = config.tabs[idx];
+  if (existing.kind === kind) return tabId;
+
+  let source: Partial<PaneTabItem> | undefined;
+  if (kind === "browser" && existing.kind === "browser") {
+    source = { url: existing.url };
+  } else if (
+    (kind === "code" || kind === "markdown") &&
+    (existing.kind === "code" || existing.kind === "markdown")
+  ) {
+    source = { filePath: existing.filePath };
+  }
+
+  const item = await buildTabItem(kind, source);
+  const tabs = [...config.tabs];
+  tabs[idx] = item;
+  const activeTabId = config.activeTabId === tabId ? item.id : config.activeTabId;
+  model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, tabs, activeTabId } }));
+  return item.id;
+}
+
 /**
  * Moves a tab to `targetIndex` within `targetTabNodeId`'s tab group —
  * either reordering within the same pane (sourceTabNodeId ===

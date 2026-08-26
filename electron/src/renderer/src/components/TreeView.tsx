@@ -10,6 +10,7 @@ import {
   writeFile,
 } from "../electron";
 import { TextPrompt } from "./TextPrompt";
+import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import type { AnchorRect } from "./Popover";
 import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
 
@@ -145,32 +146,18 @@ export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, on
   }, [loadDir, expanded]);
 
   useEffect(() => {
-    if (!menu) return;
-    const close = () => setMenu(null);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+    const dismissOverlayUi = () => {
+      setMenu(null);
+      setPrompt(null);
     };
-    window.addEventListener("click", close);
-    window.addEventListener("blur", close);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("click", close);
-      window.removeEventListener("blur", close);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [menu]);
-
-  const dismissOverlayUi = useCallback(() => {
-    setMenu(null);
-    setPrompt(null);
+    return onWorkspaceDismissPortals(dismissOverlayUi);
   }, []);
 
   useEffect(() => {
     if (paneVisible) return;
-    dismissOverlayUi();
-  }, [paneVisible, dismissOverlayUi]);
-
-  useEffect(() => onWorkspaceDismissPortals(dismissOverlayUi), [dismissOverlayUi]);
+    setMenu(null);
+    setPrompt(null);
+  }, [paneVisible]);
 
   const flatList = useMemo(() => {
     const out: FlatRow[] = [];
@@ -341,6 +328,56 @@ export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, on
     }
   };
 
+  const menuItems = useMemo((): ContextMenuItem[] => {
+    if (!menu) return [];
+    const clickAnchor: AnchorRect = {
+      left: menu.x,
+      right: menu.x,
+      top: menu.y,
+      bottom: menu.y,
+      width: 0,
+      height: 0,
+    };
+    const items: ContextMenuItem[] = [
+      { type: "button", label: "New File", onClick: () => void newFile(menu.dir) },
+      { type: "button", label: "New Folder", onClick: () => newFolder(menu.dir, clickAnchor) },
+    ];
+    if (!menu.entry) return items;
+
+    items.push({ type: "separator" });
+    if (selected.size <= 1) {
+      items.push({
+        type: "button",
+        label: "Rename",
+        onClick: () => rename(menu.entry!, clickAnchor),
+      });
+    }
+    items.push({
+      type: "button",
+      label: selected.size > 1 ? `Delete ${selected.size} items` : "Delete",
+      onClick: () => void remove(menu.entry!),
+    });
+    items.push({ type: "separator" });
+    items.push({
+      type: "button",
+      label: "Copy Path",
+      onClick: () => copyPath(menu.entry!, false),
+    });
+    items.push({
+      type: "button",
+      label: "Copy Relative Path",
+      onClick: () => copyPath(menu.entry!, true),
+    });
+    if (selected.size <= 1) {
+      items.push({
+        type: "button",
+        label: "Reveal in Finder",
+        onClick: () => void reveal(menu.entry!),
+      });
+    }
+    return items;
+  }, [menu, selected, tabId, rootPath]);
+
   return (
     <div
       className="tree-view"
@@ -403,62 +440,7 @@ export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, on
           <span className="tree-view-name">{entry.name}</span>
         </div>
       ))}
-      {menu && (
-        <div
-          className="tree-view-menu"
-          style={{ left: menu.x, top: menu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button type="button" onClick={() => newFile(menu.dir)}>
-            New File
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              newFolder(menu.dir, { left: menu.x, right: menu.x, top: menu.y, bottom: menu.y, width: 0, height: 0 })
-            }
-          >
-            New Folder
-          </button>
-          {menu.entry && (
-            <>
-              <div className="tree-view-menu-sep" />
-              {selected.size <= 1 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    rename(menu.entry!, {
-                      left: menu.x,
-                      right: menu.x,
-                      top: menu.y,
-                      bottom: menu.y,
-                      width: 0,
-                      height: 0,
-                    })
-                  }
-                >
-                  Rename
-                </button>
-              )}
-              <button type="button" onClick={() => remove(menu.entry!)}>
-                {selected.size > 1 ? `Delete ${selected.size} items` : "Delete"}
-              </button>
-              <div className="tree-view-menu-sep" />
-              <button type="button" onClick={() => copyPath(menu.entry!, false)}>
-                Copy Path
-              </button>
-              <button type="button" onClick={() => copyPath(menu.entry!, true)}>
-                Copy Relative Path
-              </button>
-              {selected.size <= 1 && (
-                <button type="button" onClick={() => reveal(menu.entry!)}>
-                  Reveal in Finder
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
+      {menu ? <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} /> : null}
       {prompt && (
         <TextPrompt
           anchorRect={prompt.anchor}

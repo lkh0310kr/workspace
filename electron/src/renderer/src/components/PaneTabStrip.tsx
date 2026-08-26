@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from "react";
 import type { TabNode } from "flexlayout-react";
+import { ContextMenu } from "./ContextMenu";
 import { PanePicker } from "./PanePicker";
-import { PaneTabItem, TabKind, tabKindIcon } from "../layout/paneTypes";
+import { PaneTabItem, TabKind, TAB_KIND_OPTIONS, tabKindIcon } from "../layout/paneTypes";
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from "../layout/tabDrag";
 import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
 import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
@@ -28,6 +29,7 @@ interface Props {
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
   onNewTab: (kind: TabKind) => void;
+  onChangeKind: (tabId: string, kind: TabKind) => void;
   /** A tab was dropped into this group at `index` (from this same group or
    * a different one) — caller applies it via moveTabToGroup and persists. */
   onDropTab: (payload: TabDragPayload, index: number) => void;
@@ -66,9 +68,11 @@ export function PaneTabStrip({
   onSelect,
   onClose,
   onNewTab,
+  onChangeKind,
   onDropTab,
 }: Props) {
   const [addPickerAnchor, setAddPickerAnchor] = useState<DOMRect | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ tabId: string; x: number; y: number } | null>(null);
   // Index into `items` the dragged tab would land at if dropped right now
   // — null means "not currently being dragged over this strip". Renders
   // as a thin vertical line between chips (or before the first/after the
@@ -78,12 +82,12 @@ export function PaneTabStrip({
   const chipRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
-    const open = addPickerAnchor !== null;
+    const open = addPickerAnchor !== null || contextMenu !== null;
     if (open === blockedRef.current) return;
     blockedRef.current = open;
     if (open) pushOverlayBlock("add-tab-picker");
     else popOverlayBlock("add-tab-picker");
-  }, [addPickerAnchor]);
+  }, [addPickerAnchor, contextMenu]);
 
   useEffect(
     () => () => {
@@ -104,12 +108,51 @@ export function PaneTabStrip({
   }, []);
 
   const closeAddPicker = useCallback(() => setAddPickerAnchor(null), []);
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
   useEffect(() => {
     closeAddPicker();
-  }, [activeTabId, paneVisible, closeAddPicker]);
+    closeContextMenu();
+  }, [activeTabId, paneVisible, closeAddPicker, closeContextMenu]);
 
-  useEffect(() => onWorkspaceDismissPortals(closeAddPicker), [closeAddPicker]);
+  useEffect(() => {
+    const dismiss = () => {
+      closeAddPicker();
+      closeContextMenu();
+    };
+    return onWorkspaceDismissPortals(dismiss);
+  }, [closeAddPicker, closeContextMenu]);
+
+  const contextMenuItems = useMemo(() => {
+    if (!contextMenu) return [];
+    const currentKind = items.find((i) => i.id === contextMenu.tabId)?.kind;
+    return [
+      {
+        type: "button" as const,
+        label: "닫기",
+        onClick: () => onClose(contextMenu.tabId),
+      },
+      { type: "separator" as const },
+      {
+        type: "submenu" as const,
+        label: "전환",
+        items: TAB_KIND_OPTIONS.map((kind) => ({
+          type: "button" as const,
+          label: kind.label,
+          icon: kind.icon,
+          active: kind.id === currentKind,
+          onClick: () => onChangeKind(contextMenu.tabId, kind.id),
+        })),
+      },
+    ];
+  }, [contextMenu, items, onClose, onChangeKind]);
+
+  const openContextMenu = (e: MouseEvent, tabId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeAddPicker();
+    setContextMenu({ tabId, x: e.clientX, y: e.clientY });
+  };
 
   const computeDropIndex = useCallback(
     (clientX: number, draggedTabId: string): number => {
@@ -204,8 +247,10 @@ export function PaneTabStrip({
                 }}
                 onClick={() => {
                   closeAddPicker();
+                  closeContextMenu();
                   onSelect(item.id);
                 }}
+                onContextMenu={(e) => openContextMenu(e, item.id)}
                 title={item.kind === "browser" ? item.url : item.filePath ?? undefined}
               >
                 <span className="pane-tab-icon">
@@ -267,6 +312,14 @@ export function PaneTabStrip({
           ) : null}
         </div>
       </div>
+      {contextMenu ? (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenuItems}
+          onClose={closeContextMenu}
+        />
+      ) : null}
     </div>
   );
 }
