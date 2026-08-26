@@ -1608,35 +1608,34 @@ iframe.browser-content-slot {
   flex: 0 0 1px !important;
 }
 
+/* flexlayout draws half-pane filled drop targets — hide and mirror via
+   LayoutTabDropOverlay as a 2px line (pane-tab-drop-indicator style). */
 .flexlayout__outline_rect,
 .flexlayout__outline_rect_edge {
-  border: 2px solid var(--accent) !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
   transition: none !important;
 }
 
 .flexlayout__edge_rect {
-  background: var(--accent) !important;
+  background: transparent !important;
+  border: 2px solid var(--accent) !important;
+  border-radius: 0 !important;
+  color: var(--accent) !important;
   opacity: 1 !important;
   transition: none !important;
 }
 
-/* Tab-chip drag over layout — same 2px accent line as pane-tab-drop-indicator. */
+/* Layout/tab drag — same 2px accent line as pane-tab-drop-indicator. */
 .pane-layout-drop-indicator {
   position: fixed;
   z-index: 100002;
   pointer-events: none;
   box-sizing: border-box;
   background: var(--accent);
+  border: none;
   border-radius: 1px;
-}
-
-.pane-layout-drop-indicator--frame {
-  background: transparent;
-  border: 2px solid var(--accent);
-  border-radius: 0;
 }
 
 /* —— Misc —— */
