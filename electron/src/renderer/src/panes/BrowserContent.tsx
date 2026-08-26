@@ -9,7 +9,6 @@ import { onBrowserOpenNewTab } from "../electron";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { dbgLog } from "../interaction/interactionDebugLog";
 import { setActiveBrowserWebview, getActiveBrowserWebview, registerBrowserWebview } from "../layout/activeBrowserWebview";
-import { attachBrowserSwipeNavigation } from "../browser/browserSwipeNavigation";
 import type { PaneTabItem } from "../layout/paneTypes";
 
 // The per-page content half of what used to be BrowserPane.tsx — tab-strip
@@ -62,8 +61,6 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
   onUpdateRef.current = onUpdate;
   const onOpenNewTabRef = useRef(onOpenNewTab);
   onOpenNewTabRef.current = onOpenNewTab;
-  const visibleRef = useRef(visible);
-  visibleRef.current = visible;
 
   const syncNavState = useCallback(() => {
     const webview = webviewRef.current;
@@ -182,37 +179,7 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
       onOpenNewTabRef.current(url);
     });
 
-    const detachSwipeNav = attachBrowserSwipeNavigation(
-      guest,
-      {
-        canGoBack: () => {
-          try {
-            return guest.canGoBack();
-          } catch {
-            return false;
-          }
-        },
-        canGoForward: () => {
-          try {
-            return guest.canGoForward();
-          } catch {
-            return false;
-          }
-        },
-        goBack: () => {
-          guest.goBack();
-          syncNavState();
-        },
-        goForward: () => {
-          guest.goForward();
-          syncNavState();
-        },
-      },
-      () => visibleRef.current,
-    );
-
     return () => {
-      detachSwipeNav();
       guest.removeEventListener("did-start-loading", onStartLoading);
       guest.removeEventListener("did-stop-loading", onStopLoading);
       guest.removeEventListener("did-navigate", onNavigate);

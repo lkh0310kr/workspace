@@ -10,7 +10,7 @@ import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus }
 import { setupBrowserSession } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
-import { installBrowserGuestSwipeNavigation, setFocusedBrowserGuestId } from './browserGuestSwipe'
+import { installBrowserGuestSwipeNavigation, installBrowserGuestWebview, setFocusedBrowserGuestId } from './browserGuestSwipe'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
@@ -299,6 +299,7 @@ app.whenReady().then(() => {
   // tied to any one BrowserWindow's lifecycle.
   app.on('web-contents-created', (_event, contents) => {
     if (contents.getType() !== 'webview') return
+    installBrowserGuestWebview(contents)
     contents.setWindowOpenHandler((details) => {
       sendToMainWindow('browser:open-new-tab', {
         hostWebContentsId: contents.id,

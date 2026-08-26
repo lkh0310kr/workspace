@@ -27,7 +27,7 @@ chip 전환 안정성 확인 전까지 pane당 webview 항상 마운트, chip은
 
 ## Browser — Orca 패리티
 
-- [x] trackpad 좌우 스와이프 history back/forward (`browserSwipeNavigation.ts`)
+- [x] trackpad 좌우 스와이프 history back/forward (main guest `input-event`)
 - [ ] 세션 복원 실사용 검증 (layout JSON URL → guest reload)
 - [ ] 북마크 / pinned tabs
 - [ ] 탭 그룹 UX (명시적 “새 pane으로 분리”)
@@ -79,7 +79,7 @@ chip 전환 안정성 확인 전까지 pane당 webview 항상 마운트, chip은
 
 ## 테스트 자동화
 
-Unit: embedPolicy, dragSession, workspaceScope, webviewPolicy, layoutTabDrop, layoutChipWindowDrop, layoutSplitPolicy, layoutActions.split, layoutSalvage, browserSwipeNavigation, terminal-shortcut-policy.
+Unit: embedPolicy, dragSession, workspaceScope, webviewPolicy, layoutTabDrop, layoutChipWindowDrop, layoutSplitPolicy, layoutActions.split, layoutSalvage, browserSwipeNavPolicy, terminal-shortcut-policy.
 
 - [ ] Playwright/Electron smoke
 - [ ] IC reconcile integration test
