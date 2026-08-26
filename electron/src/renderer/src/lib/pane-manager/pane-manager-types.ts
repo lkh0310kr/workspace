@@ -39,9 +39,10 @@ export type ManagedPaneInternal = ManagedPane & {
   lastFitCols: number;
   lastFitRows: number;
   webglNeedsRebuildOnResume: boolean;
+  webglRebuildDeferred?: boolean;
+  hasComplexScriptOutput?: boolean;
   compositionHandler: (() => void) | null;
   focusClassSyncCleanup: (() => void) | null;
-  wheelScrollCleanup: (() => void) | null;
 };
 
 export type PaneManagerOptions = {

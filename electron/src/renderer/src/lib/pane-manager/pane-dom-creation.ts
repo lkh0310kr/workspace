@@ -81,7 +81,6 @@ export function createPaneDOM(
     webglNeedsRebuildOnResume: options.initialRenderingSuspended === true,
     compositionHandler: null,
     focusClassSyncCleanup: null,
-    wheelScrollCleanup: null,
   };
 
   return pane;

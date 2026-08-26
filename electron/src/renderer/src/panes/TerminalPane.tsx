@@ -14,7 +14,6 @@ import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
 import { copyTerminalSelection } from "../terminal/terminal-selection-copy";
 import { termLog } from "../terminal/terminalDebugLog";
-import { dbgLog } from "../interaction/interactionDebugLog";
 import { writeClipboardText } from "../electron";
 
 interface Props {
@@ -146,14 +145,6 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
     if (host) {
       host.style.pointerEvents = shown ? "auto" : "none";
     }
-    // #region agent log
-    dbgLog(
-      "TerminalPane:visibility",
-      "visibility effect",
-      { terminalId, visible, active, show: shown },
-      "H8",
-    );
-    // #endregion
     if (!pane) return;
 
     if (!shown) {

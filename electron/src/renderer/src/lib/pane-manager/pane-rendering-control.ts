@@ -1,27 +1,10 @@
 import type { ManagedPane, ManagedPaneInternal } from "./pane-manager-types";
+import { safeFit } from "./pane-safe-fit";
 import { disposeWebgl } from "./pane-webgl-renderer";
+import { rebuildAttachedWebgl } from "./pane-webgl-reattach";
+import { repairPaneWebglCanvasDprMismatch } from "./terminal-canvas-dpr-repair";
 
-function getFitElement(pane: ManagedPane): HTMLElement {
-  const internal = pane as ManagedPaneInternal;
-  return internal.xtermContainer ?? pane.container;
-}
-
-export function safeFit(pane: ManagedPane): boolean {
-  const fitEl = getFitElement(pane);
-  if (!fitEl.isConnected) {
-    return false;
-  }
-  const { clientWidth, clientHeight } = fitEl;
-  if (clientWidth < 2 || clientHeight < 2) {
-    return false;
-  }
-  try {
-    pane.fitAddon.fit();
-    return true;
-  } catch {
-    return false;
-  }
-}
+export { safeFit, safeFitAndThen } from "./pane-safe-fit";
 
 export function suspendPaneRendering(pane: ManagedPaneInternal): void {
   pane.renderingSuspended = true;
@@ -35,4 +18,9 @@ export function resumePaneRendering(pane: ManagedPaneInternal): void {
   pane.webglAttachmentDeferred = false;
   pane.webglDisabledAfterContextLoss = false;
   pane.webglAttachFailedSinceRecovery = false;
+  if (pane.webglRebuildDeferred) {
+    pane.webglRebuildDeferred = false;
+    rebuildAttachedWebgl(pane);
+  }
+  repairPaneWebglCanvasDprMismatch(pane);
 }

@@ -31,6 +31,12 @@ const patches = [
     marker: join(root, "node_modules", "@xterm", "addon-ligatures", ".orca-patch-applied"),
     label: "@xterm/addon-ligatures",
   },
+  {
+    packageDir: "node_modules/node-pty",
+    patchFile: join(root, "patches", "node-pty@1.1.0.patch"),
+    marker: join(root, "node_modules", "node-pty", ".orca-patch-applied"),
+    label: "node-pty",
+  },
 ];
 
 for (const { packageDir, patchFile, marker, label } of patches) {

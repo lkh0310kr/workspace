@@ -41,6 +41,8 @@ class InteractionCoordinatorImpl {
   private lastReconcileReason = "init";
   private lastReconcileAt = 0;
   private listeners = new Set<Listener>();
+  private pointerClient = { x: 0, y: 0 };
+  private pointerGateRaf = 0;
 
   pushOverlayBlock(source: OverlaySource): void {
     this.overlayStack.push(source);
@@ -104,6 +106,7 @@ class InteractionCoordinatorImpl {
 
   unregisterWebview(webview: Electron.WebviewTag): void {
     if (!this.webviews.delete(webview)) return;
+    this.applyWebviewPolicy(webview, { visible: false, interactive: false });
     this.reconcile("unregister-webview");
   }
 
@@ -181,6 +184,18 @@ class InteractionCoordinatorImpl {
     };
   }
 
+  notePointerMove(clientX: number, clientY: number): void {
+    this.pointerClient.x = clientX;
+    this.pointerClient.y = clientY;
+    this.schedulePointerGateReconcile();
+  }
+
+  notePointerDown(clientX: number, clientY: number): void {
+    this.pointerClient.x = clientX;
+    this.pointerClient.y = clientY;
+    this.reconcile("pointer-down");
+  }
+
   reconcile(reason = "manual"): void {
     this.lastReconcileReason = reason;
     this.lastReconcileAt = Date.now();
@@ -189,7 +204,7 @@ class InteractionCoordinatorImpl {
     const activeTab = this.activeWorkspaceTabId;
 
     for (const [webview, reg] of this.webviews) {
-      const policy = resolveWebviewPolicy({
+      const base = resolveWebviewPolicy({
         workspaceTabId: reg.workspaceTabId,
         paneVisible: reg.paneVisible,
         chipActive: reg.chipActive,
@@ -197,7 +212,7 @@ class InteractionCoordinatorImpl {
         overlayBlocked: blocked,
         portalsOpen,
       });
-      this.applyWebviewPolicy(webview, policy);
+      this.applyWebviewPolicy(webview, this.finalizeWebviewPolicy(base, webview));
     }
 
     for (const el of document.querySelectorAll("webview")) {
@@ -218,14 +233,17 @@ class InteractionCoordinatorImpl {
       this.pendingFocusWebview = null;
       const reg = this.webviews.get(wv);
       const policy = reg
-        ? resolveWebviewPolicy({
-            workspaceTabId: reg.workspaceTabId,
-            paneVisible: reg.paneVisible,
-            chipActive: reg.chipActive,
-            activeWorkspaceTabId: activeTab,
-            overlayBlocked: blocked,
-            portalsOpen,
-          })
+        ? this.finalizeWebviewPolicy(
+            resolveWebviewPolicy({
+              workspaceTabId: reg.workspaceTabId,
+              paneVisible: reg.paneVisible,
+              chipActive: reg.chipActive,
+              activeWorkspaceTabId: activeTab,
+              overlayBlocked: blocked,
+              portalsOpen,
+            }),
+            wv,
+          )
         : { visible: false, interactive: false };
       if (policy.interactive) {
         try {
@@ -250,14 +268,50 @@ class InteractionCoordinatorImpl {
   private isWebviewInteractive(webview: Electron.WebviewTag, reg?: WebviewRegistration): boolean {
     const registration = reg ?? this.webviews.get(webview);
     if (!registration) return false;
-    return resolveWebviewPolicy({
-      workspaceTabId: registration.workspaceTabId,
-      paneVisible: registration.paneVisible,
-      chipActive: registration.chipActive,
-      activeWorkspaceTabId: this.activeWorkspaceTabId,
-      overlayBlocked: this.overlayStack.length > 0,
-      portalsOpen: this.portals.size > 0,
-    }).interactive;
+    return this.finalizeWebviewPolicy(
+      resolveWebviewPolicy({
+        workspaceTabId: registration.workspaceTabId,
+        paneVisible: registration.paneVisible,
+        chipActive: registration.chipActive,
+        activeWorkspaceTabId: this.activeWorkspaceTabId,
+        overlayBlocked: this.overlayStack.length > 0,
+        portalsOpen: this.portals.size > 0,
+      }),
+      webview,
+    ).interactive;
+  }
+
+  /** Electron guests can steal hits outside their pane — gate input by pointer/focus. */
+  private finalizeWebviewPolicy(
+    base: { visible: boolean; interactive: boolean },
+    webview: Electron.WebviewTag,
+  ): { visible: boolean; interactive: boolean } {
+    if (!base.visible || !base.interactive) return base;
+    if (this.isPointerOverPaneHost(webview) || this.webviewHasFocus(webview)) return base;
+    return { visible: base.visible, interactive: false };
+  }
+
+  private isPointerOverPaneHost(webview: Electron.WebviewTag): boolean {
+    const host = webview.closest(".pane-group-host");
+    if (!(host instanceof HTMLElement)) return true;
+    const rect = host.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    const { x, y } = this.pointerClient;
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+  }
+
+  private webviewHasFocus(webview: Electron.WebviewTag): boolean {
+    const active = document.activeElement;
+    return active === webview || active?.closest?.("webview") === webview;
+  }
+
+  private schedulePointerGateReconcile(): void {
+    if (this.pointerGateRaf !== 0) return;
+    this.pointerGateRaf = requestAnimationFrame(() => {
+      this.pointerGateRaf = 0;
+      if (this.webviews.size === 0) return;
+      this.reconcile("pointer-gate");
+    });
   }
 
   private findWebview(workspaceTabId: number, paneTabItemId: string): Electron.WebviewTag | null {
@@ -297,6 +351,22 @@ class InteractionCoordinatorImpl {
 export const interactionCoordinator = new InteractionCoordinatorImpl();
 
 if (typeof window !== "undefined") {
+  window.addEventListener(
+    "pointermove",
+    (e) => {
+      interactionCoordinator.notePointerMove(e.clientX, e.clientY);
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    "pointerdown",
+    (e) => {
+      interactionCoordinator.notePointerDown(e.clientX, e.clientY);
+    },
+    true,
+  );
+
   window.addEventListener(
     "mouseup",
     () => {

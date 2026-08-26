@@ -7,7 +7,6 @@ import { recordBrowserVisit } from "../browserHistory";
 import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
 import { onBrowserOpenNewTab } from "../electron";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
-import { dbgLog } from "../interaction/interactionDebugLog";
 import { setActiveBrowserWebview, getActiveBrowserWebview, registerBrowserWebview } from "../layout/activeBrowserWebview";
 import type { PaneTabItem } from "../layout/paneTypes";
 
@@ -103,14 +102,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     container.appendChild(guest);
     webviewRef.current = guest;
     setWebview(guest);
-    // #region agent log
-    dbgLog(
-      "BrowserContent:mount",
-      "webview created",
-      { tabId, paneNodeId, itemId: item.id, paneVisible, chipActive, initialUrl: item.url ?? DEFAULT_URL },
-      "H4",
-    );
-    // #endregion
     applyWebviewZoom(guest, initialZoom);
     setZoomFactor(initialZoom);
 
@@ -213,14 +204,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     webview.style.visibility = chipShown ? "visible" : "hidden";
     interactionCoordinator.setBrowserPaneVisible(tabId, item.id, paneVisible);
     interactionCoordinator.setBrowserChipActive(tabId, item.id, chipActive);
-    // #region agent log
-    dbgLog(
-      "BrowserContent:visible",
-      "pane visibility",
-      { tabId, itemId: item.id, paneVisible, chipActive, chipShown },
-      "H3",
-    );
-    // #endregion
     if (!chipShown) {
       addressInputRef.current?.blur();
       if (getActiveBrowserWebview() === webview) {

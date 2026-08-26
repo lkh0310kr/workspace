@@ -62,13 +62,6 @@ function tmuxConfPath(): string | null {
         "set-option -g status off",
         "set -g mouse on",
         "set -g history-limit 50000",
-        // tmux defaults: 5 lines per wheel notch and a copy-mode tag (15:41 [25/38]).
-        "bind-key -T copy-mode WheelUpPane send-keys -X -N 1 scroll-up",
-        "bind-key -T copy-mode WheelDownPane send-keys -X -N 1 scroll-down",
-        "bind-key -T copy-mode-vi WheelUpPane send-keys -X -N 1 scroll-up",
-        "bind-key -T copy-mode-vi WheelDownPane send-keys -X -N 1 scroll-down",
-        'bind-key -T root WheelUpPane if-shell -F "#{pane_in_mode}" "send-keys -X -N 1 scroll-up" "copy-mode -eH; send-keys -X -N 1 scroll-up"',
-        'bind-key -T root WheelDownPane if-shell -F "#{pane_in_mode}" "send-keys -X -N 1 scroll-down" "copy-mode -eH; send-keys -X -N 1 scroll-down"',
       ].join("\n") + "\n",
     );
     cachedTmuxConfPath = confPath;

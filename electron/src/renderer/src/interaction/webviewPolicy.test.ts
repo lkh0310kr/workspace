@@ -29,9 +29,9 @@ describe("webviewPolicy", () => {
     });
   });
 
-  it("keeps webview composited but blocks input when chip is inactive", () => {
+  it("hides webview when chip is inactive", () => {
     expect(resolveWebviewPolicy({ ...base, chipActive: false })).toEqual({
-      visible: true,
+      visible: false,
       interactive: false,
     });
   });
@@ -47,10 +47,10 @@ describe("webviewPolicy", () => {
     });
   });
 
-  it("resolves orphan webviews from host workspace tab", () => {
+  it("keeps unregistered webviews hidden", () => {
     expect(resolveOrphanWebviewPolicy(1, 1, false, false)).toEqual({
-      visible: true,
-      interactive: true,
+      visible: false,
+      interactive: false,
     });
     expect(resolveOrphanWebviewPolicy(1, 2, false, false)).toEqual({
       visible: false,

@@ -17,31 +17,24 @@ export type WebviewPolicyContext = {
 /**
  * Native embed display/input policy for registered browser guests.
  * Drag overlays hide the guest (display:none); portals keep it visible but block input.
- * Keep `visible` when only the chip changes so Electron webview compositing survives chip switches.
  */
 export function resolveWebviewPolicy(ctx: WebviewPolicyContext): WebviewPolicy {
   const paneLive = ctx.activeWorkspaceTabId === ctx.workspaceTabId && ctx.paneVisible;
-  const visible = paneLive && !ctx.overlayBlocked;
-  const interactive = paneLive && ctx.chipActive && !ctx.overlayBlocked && !ctx.portalsOpen;
+  // Why: Electron <webview> can steal hits even with pointer-events:none while
+  // display:flex — hide inactive chips so terminal/editor panes receive clicks.
+  const visible = paneLive && !ctx.overlayBlocked && ctx.chipActive;
+  const interactive = visible && !ctx.portalsOpen;
   return { visible, interactive };
 }
 
-/** Unregistered webview fallback — host workspace tab is the only visibility signal. */
+/** Unregistered webview fallback — mid-mount/teardown guests must stay hidden. */
 export function resolveOrphanWebviewPolicy(
-  hostWorkspaceTabId: number | null,
-  activeWorkspaceTabId: number | null,
-  overlayBlocked: boolean,
-  portalsOpen: boolean,
+  _hostWorkspaceTabId: number | null,
+  _activeWorkspaceTabId: number | null,
+  _overlayBlocked: boolean,
+  _portalsOpen: boolean,
 ): WebviewPolicy {
-  if (hostWorkspaceTabId === null) {
-    return { visible: false, interactive: false };
-  }
-  return resolveWebviewPolicy({
-    workspaceTabId: hostWorkspaceTabId,
-    paneVisible: true,
-    chipActive: true,
-    activeWorkspaceTabId,
-    overlayBlocked,
-    portalsOpen,
-  });
+  // Why: unregisterWebview leaves the DOM node alive for a frame; treating
+  // orphans as chip-active re-shows display:flex and steals terminal clicks.
+  return { visible: false, interactive: false };
 }

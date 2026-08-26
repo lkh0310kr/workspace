@@ -1,15 +1,7 @@
 import type { ManagedPane, ManagedPaneInternal } from "./pane-manager-types";
-import { safeFit } from "./pane-rendering-control";
-import { attachWebgl, disposeWebgl, shouldUseTerminalWebgl } from "./pane-webgl-renderer";
-
-export function rebuildAttachedWebgl(pane: ManagedPaneInternal): void {
-  if (!pane.webglAddon || pane.webglDisabledAfterContextLoss || pane.webglAttachmentDeferred) {
-    return;
-  }
-  disposeWebgl(pane);
-  pane.webglAttachFailedSinceRecovery = false;
-  attachWebgl(pane);
-}
+import { safeFit } from "./pane-safe-fit";
+import { attachWebgl, shouldUseTerminalWebgl } from "./pane-webgl-renderer";
+import { rebuildAttachedWebgl } from "./pane-webgl-reattach";
 
 /** Fit the pane, rebuild WebGL when attached, and repaint — required after resize. */
 export function refitPaneTerminal(pane: ManagedPane): boolean {

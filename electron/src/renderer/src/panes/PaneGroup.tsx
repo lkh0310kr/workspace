@@ -20,8 +20,8 @@ import { paneTabStoreKey } from "../store/paneTabKey";
 import { useLayoutRevision } from "../hooks/useLayoutRevision";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import { layoutLog } from "../layout/layoutDebugLog";
-import { dbgLog } from "../interaction/interactionDebugLog";
 import { paneChipContentShown, paneChipContentStyle } from "../interaction/embedPolicy";
+import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { usePaneVisibility } from "./usePaneVisibility";
 
 // The pane-level orchestrator that makes the tab system "global": every
@@ -156,17 +156,16 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const activeItem = tabs.find((t) => t.id === localActiveId) ?? tabs[0];
 
-  // #region agent log
+  // Keep IC browser chip state aligned when the pane's active tab changes
+  // (browser → terminal/editor) so inactive guests hide before paint.
   useEffect(() => {
-    if (!localActiveId || tabs.some((t) => t.id === localActiveId)) return;
-    dbgLog(
-      "PaneGroup:tabsStale",
-      "localActiveId missing from tabs",
-      { layoutRevision, localActiveId, tabIds: tabs.map((t) => t.id), nodeId, workspaceTabId },
-      "H7",
-    );
-  }, [layoutRevision, localActiveId, tabs, nodeId, workspaceTabId]);
-  // #endregion
+    for (const item of tabs) {
+      if (item.kind !== "browser") continue;
+      const chipActive = item.id === localActiveId;
+      interactionCoordinator.setBrowserPaneVisible(workspaceTabId, item.id, visible);
+      interactionCoordinator.setBrowserChipActive(workspaceTabId, item.id, chipActive);
+    }
+  }, [localActiveId, tabs, visible, workspaceTabId, nodeId]);
 
   const selectTab = useCallback(
     (id: string) => {
@@ -186,30 +185,14 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const newTab = useCallback(
     (kind: TabKind) => {
-      // #region agent log
-      dbgLog(
-        "PaneGroup:newTab",
-        "add tab requested",
-        { kind, nodeId, workspaceTabId, visible, activeItemId: activeItem?.id },
-        kind === "browser" ? "H5" : "H6",
-      );
-      // #endregion
       addTabToGroup(model, nodeId, kind)
         .then((id) => {
-          // #region agent log
-          dbgLog(
-            "PaneGroup:newTab",
-            "add tab resolved",
-            { kind, newTabId: id, nodeId, workspaceTabId },
-            kind === "browser" ? "H5" : "H6",
-          );
-          // #endregion
           if (id) setActivePaneTab(workspaceTabId, nodeId, id);
           onNotifyChanged();
         })
         .catch(console.error);
     },
-    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab, visible, activeItem?.id],
+    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab],
   );
 
   const changeKind = useCallback(
@@ -287,7 +270,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   const showExplorer = treeOpenFor(activeItem.id) && isEditorKind(activeItem.kind);
 
   return (
-    <div className="pane-group-host">
+    <div className="pane-group-host" data-pane-node-id={nodeId}>
     <PaneFrame
       header={
         <PaneTabStrip

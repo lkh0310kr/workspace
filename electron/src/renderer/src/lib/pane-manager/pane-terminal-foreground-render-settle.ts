@@ -1,5 +1,5 @@
 import type { Terminal } from "@xterm/xterm";
-import { isTerminalViewportAtBottom } from "../../terminal/terminal-wheel-scroll";
+import { isTerminalViewportAtBottom } from "./terminal-viewport-at-bottom";
 import { runGuardedWriteCompletionStep } from "./xterm-write-callback-guard";
 
 export type ForegroundTerminalOutputTarget = Terminal;
