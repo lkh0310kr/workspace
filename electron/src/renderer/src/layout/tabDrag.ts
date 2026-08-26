@@ -5,30 +5,9 @@
 // module-level variable is the workaround: every PaneTabStrip instance
 // reads/writes the same value, regardless of which one started the drag.
 // Same pattern as layoutRef.ts's module-level Layout ref.
-import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
-import { layoutLog } from "./layoutDebugLog";
-
-export interface TabDragPayload {
-  sourceTabNodeId: string;
-  tabId: string;
-}
-
-let current: TabDragPayload | null = null;
-
-export function startTabDrag(payload: TabDragPayload): void {
-  current = payload;
-  pushOverlayBlock("tab-chip-drag");
-  layoutLog("tabDrag.startTabDrag", "tab chip drag start", { ...payload });
-}
-
-export function getTabDrag(): TabDragPayload | null {
-  return current;
-}
-
-export function endTabDrag(): void {
-  if (current) {
-    layoutLog("tabDrag.endTabDrag", "tab chip drag end", { ...current });
-  }
-  current = null;
-  popOverlayBlock("tab-chip-drag");
-}
+export {
+  type TabDragPayload,
+  endTabChipDrag as endTabDrag,
+  getTabChipDrag as getTabDrag,
+  startTabChipDrag as startTabDrag,
+} from "../interaction/dragSession";

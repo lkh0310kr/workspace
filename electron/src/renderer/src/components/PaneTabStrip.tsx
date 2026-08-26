@@ -4,7 +4,7 @@ import { ContextMenu } from "./ContextMenu";
 import { PanePicker } from "./PanePicker";
 import { PaneTabItem, TabKind, TAB_KIND_OPTIONS, tabKindIcon } from "../layout/paneTypes";
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from "../layout/tabDrag";
-import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
+import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from "../interaction/dragSession";
 import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
 import { startPaneDrag, finishPaneDrag } from "../layout/layoutRef";
 import { layoutLog } from "../layout/layoutDebugLog";
@@ -211,7 +211,7 @@ export function PaneTabStrip({
     layoutLog("PaneTabStrip.onStripDragStart", "pane strip drag start", {
       paneNodeId: tabNode.getId(),
     });
-    pushOverlayBlock("pane-tab-strip-drag");
+    beginDragOverlay(DRAG_OVERLAY.PANE_TAB_STRIP);
     startPaneDrag(e, tabNode);
   };
   const onStripDragEnd = () => {
@@ -219,7 +219,7 @@ export function PaneTabStrip({
       paneNodeId: tabNode.getId(),
     });
     finishPaneDrag();
-    popOverlayBlock("pane-tab-strip-drag");
+    endDragOverlay(DRAG_OVERLAY.PANE_TAB_STRIP);
   };
 
   return (

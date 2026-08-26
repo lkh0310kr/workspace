@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
+import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from "../interaction/dragSession";
 
 /** Block/hide webviews while resizing flexlayout splitters. */
 export function useSplitterDragOverlay(): void {
@@ -9,19 +9,19 @@ export function useSplitterDragOverlay(): void {
       const target = e.target as HTMLElement | null;
       if (!target?.closest(".flexlayout__splitter")) return;
       dragging = true;
-      pushOverlayBlock("splitter-drag");
+      beginDragOverlay(DRAG_OVERLAY.SPLITTER);
     };
     const onPointerUp = () => {
       if (!dragging) return;
       dragging = false;
-      popOverlayBlock("splitter-drag");
+      endDragOverlay(DRAG_OVERLAY.SPLITTER);
     };
     document.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("pointerup", onPointerUp);
     return () => {
       document.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("pointerup", onPointerUp);
-      if (dragging) popOverlayBlock("splitter-drag");
+      if (dragging) endDragOverlay(DRAG_OVERLAY.SPLITTER);
     };
   }, []);
 }

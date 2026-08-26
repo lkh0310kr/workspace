@@ -49,7 +49,7 @@ layout factory, flexlayout `onAction`/`onModelChange`, chip drop, splitter overl
 
 `tabDrag.ts`, `layoutRef.ts`(Map + activeTabId), `activeBrowserWebview.ts`, IC singleton — React/Zustand 밖에서 상태가 흩어져 있어 디버깅·테스트가 어려움.
 
-- [ ] drag 상태(`tab-chip-drag`, `pane-strip-drag`)를 IC 또는 작은 `DragSession` 모듈로 **한곳에서 push/pop + reconcile**
+- [x] drag 상태(`tab-chip-drag`, `pane-strip-drag`, `splitter-drag`) — `dragSession.ts`에서 overlay push/pop + tab chip payload 중앙화 (2026-08-26).
 - [x] `activeBrowserWebview` — `browserEmbedSupport.ts`로 reload/focus setup 단일화 (2026-08-26). guest-focus IPC 실사용 검증은 미완.
 
 ### Zustand 마이그레이션 미완
