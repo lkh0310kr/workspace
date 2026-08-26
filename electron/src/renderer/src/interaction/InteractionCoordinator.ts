@@ -4,7 +4,6 @@
  */
 
 import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from "./webviewPolicy";
-import { resolveWebviewDomShown } from "./webviewDomPolicy";
 
 export type OverlaySource = string;
 
@@ -262,9 +261,15 @@ class InteractionCoordinatorImpl {
     webview: Electron.WebviewTag,
     policy: { visible: boolean; interactive: boolean },
   ): void {
-    const shown = resolveWebviewDomShown(policy);
-    webview.style.display = shown ? "flex" : "none";
-    webview.style.pointerEvents = shown ? "auto" : "none";
+    // Why (Orca parity — browser-page-webview.ts): display tracks base pane
+    // visibility only. interactive additionally gets pointer/focus-gated by
+    // finalizeWebviewPolicy to stop an Electron guest from stealing hits
+    // outside its pane; coupling that gate into display made a visible,
+    // active browser pane go display:none until the pointer first crossed
+    // into it (STA-style "hover to reveal" bug) — pointerEvents alone is
+    // Orca's real defense against guest hit-stealing.
+    webview.style.display = policy.visible ? "flex" : "none";
+    webview.style.pointerEvents = policy.interactive ? "auto" : "none";
   }
 
   private isWebviewInteractive(webview: Electron.WebviewTag, reg?: WebviewRegistration): boolean {
