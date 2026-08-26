@@ -48,27 +48,35 @@ popOverlayBlock(source)
 | Source | Trigger location |
 |--------|------------------|
 | `splitter-drag` | `App.tsx` pointer handlers on `.flexlayout__splitter` |
-| `add-tab-picker` | `PaneTabStrip.tsx` add-tab popover |
 | `pane-tab-strip-drag` | `PaneTabStrip.tsx` flexlayout pane drag |
+| `tab-chip-drag` | `tabDrag.ts` chip reorder / split drag |
+
+Pane strip menus and pickers use **portal registry** only (no overlay block) so browsers stay visible behind popovers.
+
+When `overlayStack.length > 0`, webviews are hidden (`display: none`) during drags.
 
 **Safety net:** capture-phase `mouseup` clears stuck blocks (`overlay-mouseup-safety`) when WebKit misses `dragend` over a native webview.
 
-When `overlayStack.length > 0`, all webviews get `pointer-events: none` regardless of visibility.
+When `portals.size > 0`, webviews stay visible but `pointer-events: none`.
 
-## Webview pointer-events policy
+## Webview display and pointer-events policy
 
 Registered webviews (`registerWebview` / `unregisterWebview` from `BrowserContent`):
 
-| Condition | `pointer-events` |
-|-----------|------------------|
-| Not active workspace tab | `none` |
-| Overlay blocked | `none` |
-| Pane not visible (`paneVisible === false`) | `none` |
-| Active tab + not blocked + pane visible | `auto` |
+| Condition | `display` | `pointer-events` |
+|-----------|-----------|------------------|
+| Wrong workspace tab or `paneVisible === false` | `none` | `none` |
+| Overlay blocked (splitter / pane / chip drag) | `none` | `none` |
+| Portal open | `flex` | `none` |
+| Active tab, pane visible, no block | `flex` | `auto` |
 
-Unregistered webviews (fallback DOM query) use active workspace tab + overlay only.
+Unregistered webviews (fallback DOM query) follow the same rules.
 
-Visibility (`visibility: hidden`) is still set in `BrowserContent`; coordinator does not hide visually.
+`BrowserContent` sets `visibility` on the guest for inactive chips; coordinator owns `display` / `pointer-events`.
+
+## Pane chip visibility
+
+`interaction/embedPolicy.ts` — `paneChipContentStyle(paneVisible, chipActive)` in `PaneGroup`.
 
 ## Workspace tab activation
 

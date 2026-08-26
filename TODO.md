@@ -1,24 +1,127 @@
 # TODO
-- [x] Cmd + W -> close pane — 2026-08-25. main `before-input-event`에서 `KeyW` 가로채서 `shortcut:close-pane-tab` IPC로 renderer에 전달(App.tsx). 활성 flexlayout pane의 `activeTabId` 탭을 `closeActivePaneTab()`으로 닫음(마지막 탭이면 pane 자체 제거 — `closeTabInGroup` 기존 로직). 설정/사이드바 팝오버가 열려 있으면 먼저 그걸 닫음. macOS 기본 Cmd+W(창 닫기)는 `preventDefault`로 차단.
-- [ ] 브라우저
-    - [x] 탭별 히스토리 뒤로/앞으로 목록(길게 누르면 드롭다운) — 2026-08-25. `BrowserNavButton`: 짧게 클릭=goBack/goForward, 450ms 홀드=IPC(`browser:get-nav-history`)로 Chromium navigationHistory 조회 후 Popover 드롭다운, 항목 클릭=`webview.goToIndex()`.
-    - [x] 다운로드 UI — 2026-08-25. main `browserDownloads.ts`: browser session `will-download` → Downloads 폴더에 자동 저장 + `browser:download-event` IPC. renderer `BrowserDownloadsBar`: 해당 webview의 진행률/완료 표시, "Show in folder" 링크.
-    - [x] 확대/축소 — 2026-08-25. nav bar `−`/`100%`/`+` 버튼 + 브라우저 포커스 시 Cmd+/- (`webview.setZoomFactor`, `PaneTabItem.zoomFactor`에 persist). 에디터 pane zoom과 충돌 안 하게 브라우저 chrome/게스트 포커스일 때만 Cmd+/- 가로채기(capture).
-    - [ ] 이 외에 브라우저 관련 기능 orca 참고해서 고도화 (지금 너무 불편해)
-    - [x] 실제 파비콘 표시 — 2026-08-25. `page-favicon-updated` → `PaneTabItem.favicon` → `PaneTabStrip` 탭 칩에 `<img>` 표시.
-    - [ ] "어느 탭이 포커스인지" 실제 추적 — **IPC 경로 추가(2026-08-25), 실사용 미확인**. main `web-contents-created`에서 게스트 WebContents `focus`/`blur` → `browser:guest-focus` IPC → `activeBrowserWebview.ts`의 `registry`+`setGuestWebContentsFocus()`. 기존 DOM `focus`/`blur`+`webview.focus()`+`focusin` 클리어는 belt-and-suspenders로 유지. 실사용에서 Cmd+R이 올바른 탭을 리로드하는지 확인 필요.
-- [ ] Terminal 이 이상해 ls 도 Operation not permitted 뜨고. 내생각에 그냥 ui ux문제가 아니라 터미널 설정쪽 문제같아. 아니면 그냥 터미널을 재시작해본다든지
-    - [ ] `ls` Operation not permitted — 코드로는 고칠 수 없는 macOS 권한(TCC) 문제로 보임: workspace root가 `~/Documents/...` 밑이고(TCC가 Documents/Desktop/Downloads를 보호 폴더로 취급), dev 모드로 뜨는 Electron 바이너리가 이 앱한테 Full Disk Access(또는 Files & Folders 밑 Documents 폴더 접근)를 아직 허용 안 받은 상태로 보임. 앱 코드가 실제로 잘못 건드리는 게 없어서(pty.ts는 순수 cwd 전달일 뿐) 고칠 코드가 없음 — macOS 시스템 설정 > 개인정보 보호 및 보안 > 전체 디스크 접근 권한(또는 파일과 폴더 > Documents 폴더)에서 Electron(dev) 또는 빌드된 workspace-app에 권한을 직접 부여해야 함. 미해결로 남김.
-- [ ] Editor/Makdown
-    - [x] 검색 기능 UI 너무 옛날 스타일인 이슈 -> vscode 비슷한 구조로 ui 개선. — 2026-08-25. `search({ top: true })`로 패널을 에디터 상단에 배치 + `.cm-panel.cm-search` CSS를 VS Code 스타일(플로팅 바, 둥근 input, 버튼)로 커스터마이징.
-    - [x] TreeView 고도화 — 2026-08-24. `TreeView.tsx`를 재귀 렌더링에서 평탄화된(flatten) 리스트 기반으로 바꿔서 두 기능 구현:
-        - [x] file multi selection (vscode 참고) — Cmd/Ctrl+클릭으로 개별 토글, Shift+클릭으로 마지막 plain-click 지점부터 범위 선택(Finder/VSCode처럼 anchor는 shift-클릭으로 안 움직임). 우클릭 컨텍스트 메뉴도 멀티 선택 인지: 이미 선택된 항목 중 하나를 우클릭하면 Delete/Copy Path가 선택된 전체에 적용됨(Rename/Reveal은 여러 개 선택 시 숨김 — 의미가 없어서).
-        - [x] TreeView 파일 옮기기 — 네이티브 HTML5 드래그앤드롭으로 파일/폴더를 다른 폴더로 드래그해서 이동(멀티 선택 상태에서 드래그하면 선택된 전체가 같이 이동). 폴더 드롭 대상에 하이라이트 표시. 자기 자신/자기 하위 폴더로 드롭하는 것은 무시(폴더가 자기 자신을 담으려는 상황 방지). 내부적으로 기존 `renamePath` IPC 재사용(이동 = 다른 부모 경로로의 rename).
-- [x] Workspace Tab 전환시 terminal, browser 동작이 이상함. browser는 새로고침되고. terminal은 claude code에서 스크롤이 안되는 등 — 2026-08-24. 진짜 원인: `App.tsx`가 `<div className="layout-host" key={activeTabId}>`로 워크스페이스 탭이 바뀔 때마다 pane 트리 전체를 언마운트/리마운트하고 있었음 — 그래서 브라우저 pane의 `<webview>`는 매번 파괴되고 `item.url`에서 새로 생성돼서 새로고침된 것처럼 보였고, 터미널도 xterm.js 인스턴스가 매번 다시 만들어지면서 직렬화된 스크롤백으로만 복원됐는데(alternate screen을 쓰는 `claude` 같은 풀스크린 TUI 앱은 이 직렬화가 완전하지 않아서 스크롤이 깨지는 것으로 보임). `PaneGroup.tsx`가 이미 pane 레벨 탭 전환에 쓰고 있던 "언마운트하지 말고 visibility로 숨기기" 패턴을 워크스페이스 탭 레벨에도 그대로 적용 — 모든 워크스페이스 탭의 `<Layout>`을 동시에 마운트해두고 `visibility`/`pointerEvents`로만 전환. `factory`/`onAction`/`onModelChange`가 전부 "지금 active인 탭"을 암묵적으로 가정하던 구조라 각각 탭 id를 받는 팩토리 함수(`makeFactory`/`makeOnAction`/`makeOnModelChange`)로 바꿔야 했음. **주의**: 여러 워크스페이스 탭에 브라우저 pane이 각각 있으면 이제 전부 동시에 살아있는 `<webview>`(=별도 Chromium 프로세스)가 되므로 메모리 사용량이 늘어날 수 있음 — 문제되면 리포트 필요. typecheck+build만 확인, 실사용(탭 여러 개 열어놓고 전환/split/드래그) 검증 필요 — 이번 리팩터링 범위가 커서 특히 꼼꼼히 봐주면 좋음.
-    - [x] (이 리팩터링이 만든 회귀) "Tab 3의 Editor가 활성화 안 됐는데 자꾸 떠있는 버그" — 2026-08-24. CSS `visibility`는 상속되지만 자식이 자기 스스로 `visibility: visible`을 지정하면 조상의 `hidden`을 덮어씀. `PaneGroup.tsx`의 `.pane-group-content-item`이 "이 pane 안에서 어느 탭이 선택됐는지"(`active`)만 보고 `visibility: visible`을 매번 직접 지정하고 있어서, 워크스페이스 탭이 백그라운드라 바깥 `.layout-host-item`이 `hidden`이어도 그 안의 활성 탭 콘텐츠가 그대로 뚫고 나와 보였음. `active` 단독이 아니라 `visible && active`(바깥 `.layout-host-item`이 실제로 화면에 보이는지까지 같이 확인)로 수정.
-    - [x] (기존부터 있던 별개 버그, 이번에 발견) 탭을 드래그해서 새 pane으로 split하는 게 "each node must have a unique id" 에러로 실패 — 2026-08-24. `moveTabToNewPane`가 새 pane의 flexlayout 노드 id를 `tabgroup-${item.id}`로 만들고 있었는데, pane의 id는 그 pane이 "처음 만들어질 때 담겼던 첫 탭"의 id에서 나온 것이지 그 이후로 절대 안 바뀜(같은 pane에 `addTabToGroup`으로 탭이 더 늘어나도 pane 자체의 id는 그대로). 그래서 그 "원조 탭"을 나중에 드래그해서 새 pane으로 빼내려고 하면, 새로 만드는 노드의 id가 원래 소스 pane(아직 나머지 탭들을 들고 살아있음)의 id랑 똑같아져서 충돌. `tabGroupNodeJson`이 pane id를 `item.id`에서 유도하지 않고 매번 독립적으로 `crypto.randomUUID()`로 새로 생성하도록 수정 — pane의 정체성은 그 안에 어떤 아이템이 들어있는지와 무관해야 함.
-    - [x] (이 리팩터링이 만든 회귀) "layout 수정 모드일때 placeholder box가 안 떠" (pane 드래그해서 재배치할 때 flexlayout 자체 드롭 위치 하이라이트가 아예 안 뜸, 에러도 없음) — 2026-08-24. `layoutRef.ts`가 활성 워크스페이스 탭에만 `ref={active ? setLayoutInstance : undefined}`로 조건부로 ref를 붙이고 있었는데, 이제 모든 워크스페이스 탭의 `<Layout>`이 동시에 마운트돼 있어서 탭 전환 시 "새로 active된 탭"과 "이제 비활성화된 탭" 둘 다 ref가 동시에 바뀜 — React는 배열 안 각 원소의 ref 변경을 그 배열 순서대로 독립적으로 처리하지 "예전 거 detach 먼저, 새 거 attach 나중" 순서를 보장 안 함. 그래서 새로 active된 탭이 배열에서 먼저 오면: attach(새 인스턴스로 설정) → detach(예전 탭이 null로 설정) 순으로 실행돼서 결과적으로 `layoutInstance`가 null로 덮어써짐 — `moveTabWithDragAndDrop`을 null에 호출하면 그냥 조용히 아무 일도 안 일어남(에러 없음, 그래서 증상이 "그냥 안 뜬다"였음). `layoutRef.ts`를 tabId로 키를 나눈 `Map`으로 바꿔서 모든 탭에 항상(조건 없이) ref를 붙이고, "어느 탭이 active인지"는 별도 `setActiveLayoutTab()`으로 독립적으로 추적하도록 수정 — ref attach/detach 순서에 더 이상 의존하지 않음.
-        - [x] **2차 원인, 실사용 확인 후 발견** — ref race를 고쳤는데도 여전히 안 됨. 임시로 `startPaneDrag`에 콘솔 로그 찍어보니 그 로그조차 안 찍힘 → `dragstart` 이벤트 자체가 `.pane-tab-strip`까지 전혀 안 옴. `.pane-tab-strip`은 `draggable`인데, 그 안의 유일한 자식 `.pane-tab-strip-tabs`가 `flex:1`로 헤더의 남는 배경 공간을 전부 덮고 있어서(그리고 자기 자신은 `draggable`이 아님) — HTML DnD 스펙상 draggable 아닌 자식에서 시작한 드래그는 가장 가까운 draggable 조상(`.pane-tab-strip`)으로 전파되는 게 정상이어야 하는데, 실제로는 그렇게 안 되는 걸로 확인됨. `.pane-tab-strip-tabs`에도 똑같은 `draggable`+`onDragStart`/`onDragEnd`를 직접 붙여서(조상 lookup에 안 기대고 두 레이어 다 커버) 우회. **아직 실사용 미확인** — 다음 테스트에서 여전히 안 되면 `.pane-tab-strip-tabs`의 `overflow-x:auto`나 다른 CSS가 원인일 가능성 다시 파봐야 함.
-    - [x] `unicode11 addon failed to load: allowProposedApi` 콘솔 에러 — 2026-08-24. `Unicode11Addon`이 proposed API인 `term.unicode`를 쓰는데 `allowProposedApi: true`를 안 켜놔서 매번 조용히(catch로 감싸져 있어서 크래시는 안 남) 로드 실패하고 있었음 — 그동안 CJK/이모지 너비 처리가 Unicode 11 규칙을 실제로는 한 번도 안 쓰고 있었던 셈. `TerminalPane.tsx`의 `new Terminal({...})`에 `allowProposedApi: true` 추가.
-    - [ ] 터미널에 `error: An internal error occurred (EPERM)`가 뜸 — 우리 코드에서 나는 문자열이 아님(grep으로 확인) → 셸 안에서 실행되는 어떤 명령(프롬프트 커스터마이징 스크립트, git 훅 등)이 TCC로 막힌 macOS API를 건드리면서 나는 출력으로 보임. 이미 문서화된 `ls Operation not permitted`(바로 위 항목)랑 같은 근본 원인(Full Disk Access 미허용)일 가능성이 높음 — 앱 코드로 고칠 수 있는 게 아니라서 Full Disk Access 권한을 부여하면 같이 없어질 가능성. 별도 재현 스크린샷/정확히 어떤 명령에서 뜨는지 없이는 이 이상 좁히기 어려움.
 
+MVP Phase 1 기능은 대체로 동작함. Phase 2는 **완성도·안정성·리팩토링** 위주.
+
+---
+
+## Platform / Electron
+
+- [ ] macOS 콘솔 경고 `representedObject is not a WeakPtrToElectronMenuModelAsNSObject` — `main/index.ts`의 `Menu.buildFromTemplate` + `role:` 서브메뉴(About/Hide/Services 등) 조합에서 발생하는 Electron/macOS 알려진 이슈로 보임. 무해한지 vs 메뉴 재빌드 타이밍 버그인지 확인하고, 필요 시 커스텀 label+selector로 교체하거나 `Menu.setApplicationMenu(null)` + in-app 메뉴만 쓰는 방향 검토.
+- [ ] `webPreferences.sandbox: false` — `<webview>` + node-pty 때문에 현실적으로 꺼져 있음. preload 경계·`contextIsolation`·IPC allowlist 점검하고, 가능한 범위에서 sandbox 복구 또는 위협 모델 문서화.
+- [ ] macOS TCC / Full Disk Access — Terminal `ls Operation not permitted`, `EPERM` 내부 에러는 앱 코드가 아니라 Documents 보호 폴더 + dev Electron 바이너리 권한 문제. **해결:** 시스템 설정에서 권한 부여 + **배포 빌드(`workspace-app`)용 entitlements/서명 가이드** README에 정리. dev/prod 바이너리 경로가 다르면 권한을 각각 줘야 함.
+
+---
+
+## 구조 / 리팩토링 (우선순위 높음)
+
+### 가시성·입력 정책이 4겹으로 겹침
+
+한 pane이 화면에 보이는지/클릭 가능한지가 여러 레이어에 분산돼 있어 회귀가 반복됨 (최근 browser popover/drag 이슈도 여기서 파생).
+
+| 레이어 | 담당 |
+|--------|------|
+| `App.tsx` `.layout-host-item` | workspace tab `visibility` / `pointerEvents` |
+| `PaneGroup` `.pane-group-content-item` | pane 내 chip `visibility` / `pointerEvents` |
+| `usePaneVisibility` + flexlayout `tabNode.isVisible()` | pane live content 여부 |
+| `InteractionCoordinator` | webview `display` / `pointer-events` (overlay·portal·drag) |
+| `BrowserContent` | webview `visibility` + `setBrowserPaneVisible` |
+
+- [x] **단일 embed policy로 통합** — `embedPolicy.ts`로 pane chip visibility 규칙 중앙화 (PaneGroup 적용). webview display/portal/drag는 IC.
+- [x] `docs/architecture/04-interaction-coordinator.md`, `06-browser-embeds.md` IC policy 동기화 (2026-08-26).
+- [x] `InteractionDebugPanel` / `dbgLog` / `layoutLog` → `import.meta.env.DEV` 게이트.
+- [x] `layoutMovePolicy.ts` — App.tsx MOVE_NODE/rebalance 분리.
+- [x] IC `activeBrowserPaneNodeId` dead code 제거.
+
+### App.tsx 비대화 (~650줄)
+
+layout factory, flexlayout `onAction`/`onModelChange`, chip drop, splitter overlay, shortcut wiring, settings portal, debug probe가 한 파일에 있음.
+
+- [x] `workspaceLayoutModels.ts` — flexlayout Model Map을 store 밖 모듈로 분리 (2026-08-26).
+- [x] `useLayoutHostCallbacks`, `useTabChipWindowDrop`, `useSplitterDragOverlay` — App.tsx ~200줄 축소.
+- [x] `layoutChipWindowDrop.ts` — chip window drop 로직 분리.
+- [x] `browserEmbedSupport.ts` — focus relay + `reloadFocusedBrowser` 단일 진입점.
+- [x] main NDJSON 로그 — `!app.isPackaged`일 때만 기록 (`debugLogSink.ts`).
+- [ ] `useLayoutHost(tabId)` / `useFlexlayoutDragPolicy()` 등으로 **layout orchestration 분리** — hooks 1차 완료, titlebar/settings UI는 App에 잔여.
+- [ ] chip/pane split drop은 `LayoutTabDropOverlay` + `layoutTabDrop.ts`로 이미 분리됨 — App.tsx의 window `drop` fallback만 정리
+
+### 모듈 전역 mutable state
+
+`tabDrag.ts`, `layoutRef.ts`(Map + activeTabId), `activeBrowserWebview.ts`, IC singleton — React/Zustand 밖에서 상태가 흩어져 있어 디버깅·테스트가 어려움.
+
+- [ ] drag 상태(`tab-chip-drag`, `pane-strip-drag`)를 IC 또는 작은 `DragSession` 모듈로 **한곳에서 push/pop + reconcile**
+- [x] `activeBrowserWebview` — `browserEmbedSupport.ts`로 reload/focus setup 단일화 (2026-08-26). guest-focus IPC 실사용 검증은 미완.
+
+### Zustand 마이그레이션 미완
+
+`docs/architecture/07-future-phases.md` Phase 2는 "완료"로 표시돼 있으나:
+
+- [ ] `modelsByTabId` Map이 **zustand 밖 module scope** — `workspaceLayoutModels.ts`로 분리됨; reactive slice 통합은 미완.
+- [ ] `App.tsx`의 `resolveVisibleWorkspaceTabId(activeTabId, coordinatorTabId, tabs)` — coordinator vs zustand active tab **이중 소스** (낙관적 tab switch 때문에 존재). 한 snapshot(`getWorkspaceScope()`)으로 projection만 하게 정리
+- [ ] `PaneGroup` 내부 dirty state, explorer width 등 pane-local UI state는 zustand slice 후보
+
+### 디버그 코드가 프로덕션 UI에 항상 켜짐
+
+- [x] main NDJSON 로그 — packaged 빌드에서 비활성화 (2026-08-26).
+- [ ] renderer → main debug IPC는 dev에서만 의미 있음; preload 노출 정리 optional
+
+### legacy-tauri
+
+- [ ] `legacy-tauri/` — Electron이 메인인 지금 **아카이브/삭제 여부 결정**. 중복 참조(주석, STACK.md) 정리해 신규 기여자 혼란 방지.
+
+---
+
+## Browser
+
+- [ ] 이 외에 브라우저 관련 기능 **Orca 참고해서 고도화** (지금 너무 불편함) — 주소창 히스토리/자동완성, 탭 그룹 UX, 북마크, 세션 복원 등 우선순위 정리 필요.
+- [ ] **"어느 탭이 포커스인지" 실사용 검증** — `browser:guest-focus` IPC + `activeBrowserWebview` registry 경로는 있음. Cmd+R/Cmd+L/줌이 **의도한 pane tab**에 적용되는지 시나리오 테스트 후 미흡하면 IC와 통합.
+- [ ] **메모리: workspace tab마다 webview 동시 마운트** — 탭 N개 × browser pane이면 Chromium guest 프로세스가 그대로 N배. Phase 3 `WebviewRegistry` + LRU(~4) + 백그라운드 tab `display:none` 유지 vs cold destroy 정책 (`docs/architecture/07-future-phases.md`).
+- [ ] split layout에서 browser+browser 동시 표시 — native guest가 z-index 무시하는 Electron 한계. pane `isolation`+`overflow:hidden`으로 충분한지, 한쪽만 live로 둘지 제품 정책 명시.
+
+---
+
+## Terminal
+
+- [ ] `lib/pane-manager/*` — Orca에서 포팅된 xterm 파이프라인. `TerminalPane`만 사용 중이라 **경계 문서화** 또는 dead code 정리 (WebGL renderer path, GPU acceleration `"off"` 하드코딩 등).
+- [ ] 터미널 **GPU/WebGL 옵션** — 설정에서 켤 수 있게 (ROADMAP Phase E 잔여).
+- [ ] pane hidden 시 **cold-park** (30s 후 xterm unmount, PtySession은 main에 유지) — Phase 3. workspace tab 전환 시에도 메모리 절감.
+
+---
+
+## Layout / Drag-and-drop
+
+- [ ] **HTML5 chip drag** vs **flexlayout pane strip drag** — 두 시스템이 `LayoutTabDropOverlay`에서 합쳐지지만 preview 소스가 다름(geometry vs flexlayout outline). 공통 `resolveSplitDropPreview()`로 더 단순화 가능.
+- [ ] `layoutRef.startPaneDrag` synthetic dragover forwarding — flexlayout overlay/`pointer-events`와 fragile. 통합 테스트 또는 E2E로 회귀 방지.
+- [ ] flexlayout native tab bar는 CSS로 숨김 — upstream 업데이트 시 깨질 수 있음. 버전 pin + 스모크 체크리스트.
+
+---
+
+## Editor / Markdown
+
+- [ ] Editor pane — 파일 watcher ↔ dirty 상태, multi-root workspace 미지원 등 VS Code 대비 갭 목록화.
+- [ ] Markdown live preview — wikilink/플러그인 유지보수, 큰 파일 성능.
+
+---
+
+## Persistence / 데이터
+
+- [ ] **Phase 4: layout JSON Zod + salvage** — corrupt JSON이 startup을 죽이지 않게 (`07-future-phases.md`).
+- [ ] layout export to `./.workspace/layout.json` (ROADMAP Phase E).
+- [ ] `PaneGroupConfig` / `PaneTabItem` 스키마 버전 필드 — 마이그레이션 전략.
+
+---
+
+## 테스트 / QA
+
+현재 자동 테스트: `terminal-shortcut-policy.test.ts` **1개뿐**.
+
+- [ ] `layoutTabDrop.resolveTabDropPreviewByGeometry`, `InteractionCoordinator.resolveWebviewPolicy`, `layoutActions.moveTabToSplitPane` 등 **순수 함수 unit test** 추가
+- [ ] 수동 회귀 체크리스트 문서화: workspace tab 전환, split drag over browser/terminal, popover 열린 채 browser 보임, chip reorder, Cmd+W/Cmd+R, pane close
+- [ ] (선택) Playwright/Electron driver smoke test
+
+---
+
+## UX polish (백로그)
+
+- [ ] 에러 표면화 — `PaneErrorBoundary` + `ErrorLogPanel` 있으나 main IPC 실패/toast 일관성
+- [ ] 키보드 shortcut discoverability (title tooltip 외 command palette)
+- [ ] 테마/폰트 설정 확장 (`AppSettingsDialog`)

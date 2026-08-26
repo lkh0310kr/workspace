@@ -38,20 +38,21 @@ One webview per pane tab item (`item.id`), created imperatively in `useEffect` w
 
 ## Pointer-events and visibility
 
-**CSS visibility** (BrowserContent):
+**Pane chip slots** (`embedPolicy.ts` + `PaneGroup`): `visibility` / `pointerEvents` from `paneVisible && chipActive`.
+
+**Webview guest** (`BrowserContent`):
 
 ```typescript
 webview.style.visibility = visible ? "visible" : "hidden";
 ```
 
-**Pointer-events** (InteractionCoordinator policy):
+**Display + pointer-events** (`InteractionCoordinator` via `setBrowserPaneVisible`):
 
-- Do not set `pointer-events` directly in BrowserContent
-- `setBrowserPaneVisible(workspaceTabId, item.id, visible)` where `visible = workspaceTabVisible && paneTabActive`
+- Do not set `pointer-events` or `display` directly in `BrowserContent` except initial mount hide
+- `setBrowserPaneVisible(workspaceTabId, item.id, visible)` where `visible` is chip-shown from embed policy
+- Drag overlays: `display:none`; portals: `pointer-events:none` only
 
-Inactive workspace tabs: all their webviews get `pointer-events: none` via coordinator.
-
-Overlay blocked (splitter drag, picker open): all webviews `none` until pop + reconcile.
+Inactive workspace tabs: coordinator hides their webviews (`display: none`).
 
 ## Focus tracking
 

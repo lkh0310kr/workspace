@@ -32,8 +32,6 @@ type Listener = () => void;
 class InteractionCoordinatorImpl {
   private overlayStack: OverlaySource[] = [];
   private activeWorkspaceTabId: number | null = null;
-  /** Last pane the user clicked — used for focus routing only. */
-  private activeBrowserPaneNodeId: string | null = null;
   private webviews = new Map<Electron.WebviewTag, WebviewRegistration>();
   private portals = new Map<string, PortalRegistration>();
   private pendingFocusWebview: Electron.WebviewTag | null = null;
@@ -74,17 +72,10 @@ class InteractionCoordinatorImpl {
     if (!same) {
       this.moveFocusFromEmbeds();
       this.activeWorkspaceTabId = tabId;
-      this.activeBrowserPaneNodeId = null;
     }
     this.reconcile(
       same ? `active-workspace-tab-force:${tabId}` : `active-workspace-tab:${tabId}`,
     );
-  }
-
-  setActiveBrowserPane(paneNodeId: string): void {
-    if (this.activeBrowserPaneNodeId === paneNodeId) return;
-    this.activeBrowserPaneNodeId = paneNodeId;
-    this.reconcile(`active-browser-pane:${paneNodeId}`);
   }
 
   registerWebview(
@@ -103,9 +94,6 @@ class InteractionCoordinatorImpl {
       paneTabItemId: info.paneTabItemId,
       paneVisible: info.initialPaneVisible ?? false,
     });
-    if (info.initialPaneVisible && this.activeBrowserPaneNodeId === null) {
-      this.activeBrowserPaneNodeId = info.paneNodeId;
-    }
     this.reconcile(`register-webview:${info.paneTabItemId}`);
   }
 
@@ -127,10 +115,6 @@ class InteractionCoordinatorImpl {
     if (!changed) return;
     this.reconcile(`browser-pane-visible:${paneTabItemId}:${visible}`);
     if (visible) {
-      const reg = this.findRegistration(workspaceTabId, paneTabItemId);
-      if (reg && this.activeBrowserPaneNodeId === null) {
-        this.activeBrowserPaneNodeId = reg.paneNodeId;
-      }
       const wv = this.findWebview(workspaceTabId, paneTabItemId);
       if (wv && this.shouldEnableWebview(wv)) {
         this.pendingFocusWebview = wv;
@@ -257,18 +241,6 @@ class InteractionCoordinatorImpl {
       blocked,
       this.portals.size > 0,
     ).interactive;
-  }
-
-  private findRegistration(
-    workspaceTabId: number,
-    paneTabItemId: string,
-  ): WebviewRegistration | null {
-    for (const reg of this.webviews.values()) {
-      if (reg.workspaceTabId === workspaceTabId && reg.paneTabItemId === paneTabItemId) {
-        return reg;
-      }
-    }
-    return null;
   }
 
   private findWebview(workspaceTabId: number, paneTabItemId: string): Electron.WebviewTag | null {

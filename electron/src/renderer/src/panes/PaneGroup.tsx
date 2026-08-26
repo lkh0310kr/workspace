@@ -20,7 +20,7 @@ import { paneTabStoreKey } from "../store/paneTabKey";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import { layoutLog } from "../layout/layoutDebugLog";
 import { dbgLog } from "../interaction/interactionDebugLog";
-import { interactionCoordinator } from "../interaction/InteractionCoordinator";
+import { paneChipContentShown, paneChipContentStyle } from "../interaction/embedPolicy";
 import { usePaneVisibility } from "./usePaneVisibility";
 
 // The pane-level orchestrator that makes the tab system "global": every
@@ -169,7 +169,6 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const selectTab = useCallback(
     (id: string) => {
-      interactionCoordinator.setActiveBrowserPane(nodeId);
       setActivePaneTab(workspaceTabId, nodeId, id);
     },
     [workspaceTabId, nodeId, setActivePaneTab],
@@ -317,49 +316,20 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
           </div>
         )}
         {showExplorer && <div className="obsidian-explorer-resizer" onMouseDown={onTreeResizeMouseDown} />}
-        <div
-          className="pane-group-content"
-          onPointerDown={() => interactionCoordinator.setActiveBrowserPane(nodeId)}
-        >
+        <div className="pane-group-content">
           {tabs.map((item) => {
             const active = item.id === activeItem.id;
+            const chipShown = paneChipContentShown(visible, active);
             return (
               <div
                 key={item.id}
                 className="pane-group-content-item"
-                // visibility, not display:none — an Electron <webview>'s
-                // guest renderer can get suspended/blanked when an
-                // ancestor is display:none (Chromium stops compositing
-                // it), which showed up as a background browser tab coming
-                // back blank/frozen after switching to it. visibility:
-                // hidden keeps the guest alive and painting in the
-                // background, same as BrowserPane.tsx already relied on
-                // for workspace-tab visibility before this rework.
-                //
-                // Must also fold in `visible` (whether this whole pane is
-                // on-screen at all — false while its workspace tab is in
-                // the background, since App.tsx now keeps every workspace
-                // tab's Layout mounted instead of unmounting it), not just
-                // `active` (which tab within *this* pane is selected):
-                // `visibility: visible` set here on this element
-                // overrides an *inherited* `hidden` from any ancestor —
-                // CSS visibility only cascades until a descendant sets its
-                // own value — so on `active` alone, this pane's active tab
-                // punched straight through App.tsx's outer
-                // `.layout-host-item` hidden wrapper and stayed visibly
-                // on top even while its own workspace tab wasn't the one
-                // showing. Reported as "Tab 3의 Editor가 활성화 안 됐는데
-                // 자꾸 떠있는 버그".
-                style={{
-                  visibility: visible && active ? "visible" : "hidden",
-                  pointerEvents: visible && active ? "auto" : "none",
-                  zIndex: active ? 1 : 0,
-                }}
+                style={paneChipContentStyle(visible, active)}
               >
                 {item.kind === "terminal" && (
                   <TerminalPane
                     terminalId={item.terminalId ?? 0}
-                    visible={visible && active}
+                    visible={chipShown}
                     active={active}
                     zoom={zoom}
                   />
@@ -369,7 +339,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                     tabId={workspaceTabId}
                     paneNodeId={nodeId}
                     item={item}
-                    visible={visible && active}
+                    visible={chipShown}
                     onUpdate={(patch) => updateItem(item.id, patch)}
                     onOpenNewTab={(url) =>
                       addTabToGroup(model, nodeId, "browser", { url })

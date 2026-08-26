@@ -4,6 +4,7 @@
  */
 
 import type { Model, TabNode } from "flexlayout-react";
+import { isDevInstrumentation } from "../debug/devTools";
 import type { PaneGroupConfig } from "./paneTypes";
 
 const MAX_RING = 500;
@@ -55,6 +56,7 @@ export function layoutLog(
   data?: Record<string, unknown>,
   workspaceTabId?: number,
 ): void {
+  if (!isDevInstrumentation) return;
   const entry: LayoutLogEntry = {
     sessionId: "layout",
     timestamp: Date.now(),

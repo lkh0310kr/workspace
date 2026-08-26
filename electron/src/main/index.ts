@@ -45,18 +45,14 @@ function handleMacTerminalOptionShortcut(
   return true
 }
 
+import { appendNdjsonLog } from './debugLogSink'
+
 function interactionLogPath(): string {
-  return join(app.getPath('userData'), 'logs', 'interaction.ndjson')
+  return 'interaction.ndjson'
 }
 
 function appendInteractionLog(entry: Record<string, unknown>): void {
-  try {
-    const path = interactionLogPath()
-    fs.mkdirSync(join(app.getPath('userData'), 'logs'), { recursive: true })
-    fs.appendFileSync(path, `${JSON.stringify(entry)}\n`)
-  } catch {
-    /* ignore logging failures */
-  }
+  appendNdjsonLog(interactionLogPath(), entry)
 }
 
 function createWindow(): BrowserWindow {

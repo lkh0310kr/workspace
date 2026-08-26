@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Layout, Model, TabNode, TabSetNode, BorderNode, Actions, DockLocation, type Action } from "flexlayout-react";
+import { Layout, Model, TabNode, Actions } from "flexlayout-react";
 import "flexlayout-react/style/combined.css";
 import "./assets/styles.css";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
@@ -9,38 +9,27 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
 import { LayoutTabDropOverlay } from "./components/LayoutTabDropOverlay";
-import { PaneErrorBoundary } from "./components/PaneErrorBoundary";
 import { useWorkspace } from "./components/useWorkspace";
-import { addPaneToTabSet, closeActivePaneTab, moveTabToGroup, moveTabToNewPane, moveTabToSplitPane } from "./layout/layoutActions";
-import { getTabDrag, endTabDrag } from "./layout/tabDrag";
-import { resolveTabDropTarget } from "./layout/layoutTabDrop";
-import { layoutLog, layoutLogModel, layoutLogMutation, summarizeLayoutModel } from "./layout/layoutDebugLog";
-import { setActiveLayoutTab, redrawAllLayouts, registerLayoutController, getLayoutRefCallback } from "./layout/layoutRef";
+import { closeActivePaneTab } from "./layout/layoutActions";
+import { setActiveLayoutTab, redrawAllLayouts } from "./layout/layoutRef";
 import { countLayoutTabs } from "./layout/layoutModelParse";
 import { PaneGroupConfig } from "./layout/paneTypes";
-import { PaneGroup } from "./panes/PaneGroup";
 import { installBrowserDownloadRelay } from "./browserDownloads";
 import { browserCleanupAll } from "./browser";
+import { installBrowserEmbedSupport, reloadFocusedBrowser } from "./browser/browserEmbedSupport";
 import { dismissWorkspacePortals } from "./workspacePortalDismiss";
-import { popOverlayBlock, pushOverlayBlock } from "./browser/overlayBarrier";
 import { interactionCoordinator } from "./interaction/InteractionCoordinator";
 import { InteractionDebugPanel } from "./components/InteractionDebugPanel";
 import { resolveVisibleWorkspaceTabId } from "./interaction/resolveVisibleWorkspaceTabId";
-import { useInteractionCoordinatorActiveTab } from "./interaction/useInteractionCoordinatorActiveTab";
 import { useWorkspaceStore } from "./store/workspaceStore";
 import { onBrowserReloadShortcut, onClosePaneTabShortcut, onOpenSettingsShortcut } from "./electron";
-import { getActiveBrowserWebview, installBrowserFocusTracking, installBrowserGuestFocusRelay } from "./layout/activeBrowserWebview";
 import { ThemePreference, applyThemePreference, getStoredThemePreference, setStoredThemePreference } from "./theme";
 import { installGlobalErrorLogging } from "./errorLog";
+import { isDevInstrumentation } from "./debug/devTools";
 import { installInteractionDebugProbe } from "./interaction/interactionDebugProbe";
-import { dbgLog } from "./interaction/interactionDebugLog";
-
-// Port of ui/src/App.tsx (task 6: layout/flexlayout-react + workspace tab
-// rail; SettingsDialog/AppSettingsDialog wired back in afterward), later
-// reworked to globalize the editor's multi-tab system across every pane
-// kind (PaneGroup.tsx) — every flexlayout tab node now holds a
-// PaneGroupConfig (a list of heterogeneous terminal/browser/editor tabs)
-// instead of a single component+config pair.
+import { useLayoutHostCallbacks } from "./hooks/useLayoutHostCallbacks";
+import { useSplitterDragOverlay } from "./hooks/useSplitterDragOverlay";
+import { useTabChipWindowDrop } from "./hooks/useTabChipWindowDrop";
 
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.5;
@@ -61,24 +50,22 @@ function zoomActivePane(model: Model, delta: number) {
 export default function App() {
   const workspace = useWorkspace();
   const modelEpoch = useWorkspaceStore((s) => s.modelEpoch);
-  const storePersistLayout = useWorkspaceStore((s) => s.persistLayout);
   const storeGetModel = useWorkspaceStore((s) => s.getModel);
-  const storeSetPendingRebalance = useWorkspaceStore((s) => s.setPendingRebalance);
-  const storeTakePendingRebalance = useWorkspaceStore((s) => s.takePendingRebalance);
-  const setActivePaneTab = useWorkspaceStore((s) => s.setActivePaneTab);
-  const storeMarkEnsureInflight = useWorkspaceStore((s) => s.markEnsureInflight);
-  const storeClearEnsureInflight = useWorkspaceStore((s) => s.clearEnsureInflight);
+  const {
+    bumpLayout,
+    ensureTerminal,
+    makeFactory,
+    makeOnAction,
+    makeOnModelChange,
+    makeOnRenderTabSet,
+    getLayoutRefCallback,
+  } = useLayoutHostCallbacks();
+
   const [settingsTarget, setSettingsTarget] = useState<{ tabId: number; anchorRect: DOMRect } | null>(null);
   const [appSettingsAnchor, setAppSettingsAnchor] = useState<DOMRect | null>(null);
   const appSettingsButtonRef = useRef<HTMLButtonElement>(null);
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
   const [railOpen, setRailOpen] = useState(true);
-  // Hovering the sidebar toggle while the rail is closed shows a transient
-  // popover of workspace tabs to quickly jump to, instead of requiring a
-  // click just to see/switch tabs — "Sidebar Toggle 버튼 hover시 popover
-  // selector 표시하여 quick selecting". Delayed both ways (open and close)
-  // so a mouse just passing over the button doesn't flash it, and moving
-  // from the button into the popover itself doesn't close it in the gap.
   const [sidebarQuickSwitchAnchor, setSidebarQuickSwitchAnchor] = useState<DOMRect | null>(null);
   const sidebarHoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearSidebarHoverTimer = useCallback(() => {
@@ -92,9 +79,18 @@ export default function App() {
     sidebarHoverTimerRef.current = setTimeout(() => setSidebarQuickSwitchAnchor(null), 200);
   }, [clearSidebarHoverTimer]);
 
-  useEffect(() => {
-    return applyThemePreference(themePreference);
-  }, [themePreference]);
+  const activeTabId = workspace?.active_tab_id ?? 0;
+  const visibleWorkspaceTabId = resolveVisibleWorkspaceTabId(
+    activeTabId,
+    interactionCoordinator.getSnapshot().activeWorkspaceTabId,
+    workspace?.tabs,
+  );
+  const activeModel = storeGetModel(activeTabId);
+
+  useSplitterDragOverlay();
+  useTabChipWindowDrop(activeTabId);
+
+  useEffect(() => applyThemePreference(themePreference), [themePreference]);
 
   const handleThemeChange = useCallback((preference: ThemePreference) => {
     setStoredThemePreference(preference);
@@ -124,98 +120,20 @@ export default function App() {
     [],
   );
 
-  const activeTabId = workspace?.active_tab_id ?? 0;
-  const coordinatorActiveTabId = useInteractionCoordinatorActiveTab();
-  // Re-render on coordinator changes; read snapshot directly — hook state can lag
-  // one frame behind synchronous setActiveWorkspaceTab (tab close/add).
-  const visibleWorkspaceTabId = resolveVisibleWorkspaceTabId(
-    activeTabId,
-    interactionCoordinator.getSnapshot().activeWorkspaceTabId,
-    workspace?.tabs,
-  );
-  const activeModel = storeGetModel(activeTabId);
-
-  const bumpLayout = useCallback(
-    (tabId: number) => {
-      const model = storeGetModel(tabId);
-      if (model) storePersistLayout(tabId, model);
-    },
-    [storeGetModel, storePersistLayout],
-  );
-
-  const ensureTerminal = useCallback(
-    async (tabId: number, model: Model, tabSetId: string) => {
-      if (countLayoutTabs(model) > 0 || !storeMarkEnsureInflight(tabId)) return;
-      try {
-        if (countLayoutTabs(model) > 0) return;
-        await addPaneToTabSet(model, tabSetId, "terminal");
-        if (countLayoutTabs(model) > 0) bumpLayout(tabId);
-      } finally {
-        storeClearEnsureInflight(tabId);
-      }
-    },
-    [bumpLayout, storeMarkEnsureInflight, storeClearEnsureInflight],
-  );
-
-  // One factory/onAction/onModelChange per workspace tab (not just the
-  // active one) — every tab's <Layout> now stays mounted simultaneously
-  // (see the render below), so each needs to operate on *its own* model,
-  // not assume "whichever tab happens to be active right now" the way a
-  // single shared factory could when only the active tab's Layout ever
-  // existed.
-  const makeFactory = useCallback(
-    (tabId: number) => (node: TabNode) => {
-      const rootPath =
-        useWorkspaceStore.getState().tabs.find((t) => t.id === tabId)?.root_path ?? "";
-      return (
-        <PaneErrorBoundary>
-          <PaneGroup
-            tabNode={node}
-            workspaceTabId={tabId}
-            rootPath={rootPath}
-            onNotifyChanged={() => bumpLayout(tabId)}
-          />
-        </PaneErrorBoundary>
-      );
-    },
-    [bumpLayout],
-  );
-
   useEffect(() => {
     void browserCleanupAll().catch(console.error);
   }, []);
 
-  // Surfaces uncaught errors/rejections in the UI (ErrorLogPanel) instead
-  // of only the devtools console — flexlayout's own per-tab error
-  // boundary already swallows render errors behind a generic "Error
-  // rendering component" message with no way to see the real one, and a
-  // failed IPC call (e.g. reading a file that doesn't exist) is an
-  // unhandled rejection nobody would otherwise notice at all.
   useEffect(() => installGlobalErrorLogging(), []);
-  useEffect(() => installInteractionDebugProbe(), []);
-  useEffect(() => installBrowserFocusTracking(), []);
-  useEffect(() => installBrowserGuestFocusRelay(), []);
+  useEffect(() => {
+    if (!isDevInstrumentation) return;
+    return installInteractionDebugProbe();
+  }, []);
+  useEffect(() => installBrowserEmbedSupport(), []);
   useEffect(() => installBrowserDownloadRelay(), []);
 
-  // Cmd+R/Cmd+Shift+R — main/index.ts intercepts this at the input-event
-  // level (a renderer keydown listener wouldn't reliably see it — see the
-  // comment there) and forwards it here; reloads whichever browser tab
-  // last became visible, if any. No-op with nothing else affected if no
-  // browser tab has ever been shown — deliberately doesn't fall back to
-  // reloading the whole app.
-  useEffect(
-    () =>
-      onBrowserReloadShortcut(({ hard }) => {
-        const webview = getActiveBrowserWebview();
-        if (!webview) return;
-        if (hard) webview.reloadIgnoringCache();
-        else webview.reload();
-      }),
-    [],
-  );
+  useEffect(() => onBrowserReloadShortcut(({ hard }) => reloadFocusedBrowser(hard)), []);
 
-  // Cmd+W — closes the active tab in the focused pane (or an open popover
-  // first). Intercepted at the main-process input-event level like Cmd+R.
   useEffect(
     () =>
       onClosePaneTabShortcut(() => {
@@ -239,52 +157,11 @@ export default function App() {
   );
 
   useEffect(() => {
-    let dragging = false;
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (!target?.closest(".flexlayout__splitter")) return;
-      dragging = true;
-      pushOverlayBlock("splitter-drag");
-    };
-    const onPointerUp = () => {
-      if (!dragging) return;
-      dragging = false;
-      popOverlayBlock("splitter-drag");
-    };
-    document.addEventListener("pointerdown", onPointerDown, true);
-    window.addEventListener("pointerup", onPointerUp);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown, true);
-      window.removeEventListener("pointerup", onPointerUp);
-      if (dragging) popOverlayBlock("splitter-drag");
-    };
-  }, []);
-
-  useEffect(() => {
     setAppSettingsAnchor(null);
     setSettingsTarget(null);
     setSidebarQuickSwitchAnchor(null);
     dismissWorkspacePortals();
-    // activeTabId → InteractionCoordinator sync is handled by workspaceStore bridge.
-    dbgLog("App.tsx:activeTabId", "effect", { activeTabId }, "phase2");
   }, [activeTabId]);
-
-  useEffect(() => {
-    // #region agent log
-    dbgLog(
-      "App.tsx:visibleWorkspaceTabId",
-      "pane visibility source",
-      {
-        visibleWorkspaceTabId,
-        activeTabId,
-        coordinatorActiveTabId,
-        snapshotTabId: interactionCoordinator.getSnapshot().activeWorkspaceTabId,
-      },
-      "H16",
-      "post-fix",
-    );
-    // #endregion
-  }, [visibleWorkspaceTabId, activeTabId, coordinatorActiveTabId]);
 
   useEffect(() => {
     setActiveLayoutTab(activeTabId);
@@ -295,192 +172,6 @@ export default function App() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-
-  // Fallback for a tab-chip drag (PaneTabStrip.tsx) that ends somewhere
-  // that ISN'T over any pane's tab strip: dropping *inside* a tab strip
-  // shows the line hint and reorders/merges (handled entirely within
-  // PaneTabStrip's own onDrop, which clears the shared drag payload via
-  // endTabDrag()); dropping anywhere else should still "do something" —
-  // move that tab into its own new pane, matching a real browser/VSCode
-  // (drag a tab out and drop it away from any tab strip -> new window/
-  // split). Native drop events fire on the deepest element first and
-  // bubble up, so by the time this window-level listener runs, getTabDrag()
-  // is already null if some PaneTabStrip already consumed the drop.
-  useEffect(() => {
-    const onDragOver = (e: globalThis.DragEvent) => {
-      if (getTabDrag()) e.preventDefault();
-    };
-    const onDrop = (e: globalThis.DragEvent) => {
-      const payload = getTabDrag();
-      if (!payload) return;
-      e.preventDefault();
-      const model = storeGetModel(activeTabId);
-      if (!model) {
-        layoutLog("App.tsx:tabDrop", "no model", { payload }, activeTabId);
-        return;
-      }
-
-      const before = summarizeLayoutModel(model);
-      const preview = resolveTabDropTarget(e.clientX, e.clientY);
-      layoutLog("App.tsx:tabDrop", "window drop", {
-        payload,
-        preview: preview
-          ? {
-              targetTabNodeId: preview.targetTabNodeId,
-              location: preview.location.getName(),
-            }
-          : null,
-        clientX: e.clientX,
-        clientY: e.clientY,
-      }, activeTabId);
-
-      let handled = false;
-      let handler = "none";
-
-      if (preview) {
-        if (
-          preview.location === DockLocation.CENTER &&
-          preview.targetTabNodeId !== payload.sourceTabNodeId
-        ) {
-          handler = "moveTabToGroup";
-          const movedId = moveTabToGroup(
-            model,
-            payload.sourceTabNodeId,
-            payload.tabId,
-            preview.targetTabNodeId,
-            Number.MAX_SAFE_INTEGER,
-          );
-          if (movedId) {
-            setActivePaneTab(activeTabId, preview.targetTabNodeId, movedId);
-            handled = true;
-          }
-        } else if (preview.location !== DockLocation.CENTER) {
-          handler = "moveTabToSplitPane";
-          const result = moveTabToSplitPane(
-            model,
-            payload.sourceTabNodeId,
-            payload.tabId,
-            preview.targetTabNodeId,
-            preview.location,
-          );
-          if (result) {
-            setActivePaneTab(activeTabId, result.tabNodeId, result.tabItemId);
-            handled = true;
-          }
-        }
-      }
-
-      if (!handled) {
-        handler = "moveTabToNewPane";
-        const fallback = moveTabToNewPane(model, payload.sourceTabNodeId, payload.tabId);
-        if (fallback) {
-          setActivePaneTab(activeTabId, fallback.tabNodeId, fallback.tabItemId);
-          handled = true;
-        }
-      }
-
-      layoutLogMutation("App.tsx:tabDrop", handled ? "handled" : "unhandled", before, summarizeLayoutModel(model), {
-        handler,
-        handled,
-        payload,
-      }, activeTabId);
-
-      if (handled) bumpLayout(activeTabId);
-      endTabDrag();
-    };
-    window.addEventListener("dragover", onDragOver);
-    window.addEventListener("drop", onDrop);
-    return () => {
-      window.removeEventListener("dragover", onDragOver);
-      window.removeEventListener("drop", onDrop);
-    };
-  }, [activeTabId, bumpLayout, setActivePaneTab, storeGetModel]);
-
-  const makeOnAction = useCallback(
-    (tabId: number) => (action: Action) => {
-      if (action.type === Actions.SELECT_TAB) {
-        const paneNodeId = action.data.tabNode as string;
-        if (typeof paneNodeId === "string" && paneNodeId.startsWith("tabgroup-")) {
-          interactionCoordinator.setActiveBrowserPane(paneNodeId);
-        }
-        return action;
-      }
-      if (action.type !== Actions.MOVE_NODE) return action;
-      const model = storeGetModel(tabId);
-      if (!model) return action;
-      const before = summarizeLayoutModel(model);
-      layoutLog("App.tsx:onAction", "MOVE_NODE", {
-        location: action.data.location,
-        fromNode: action.data.fromNode,
-        toNode: action.data.toNode,
-        json: action.data.json,
-      }, tabId);
-      if (action.data.location === "center") {
-        let target = model.getNodeById(action.data.toNode);
-        if (target?.getType() === "tab") target = target.getParent() ?? undefined;
-        const targetTab = target?.getChildren().find((child) => child.getId() !== action.data.fromNode);
-        const draggedTab = model.getNodeById(action.data.fromNode);
-        if (
-          targetTab instanceof TabNode &&
-          draggedTab instanceof TabNode &&
-          targetTab.getId() !== draggedTab.getId()
-        ) {
-          layoutLog("App.tsx:onAction", "center swap configs", {
-            targetTabId: targetTab.getId(),
-            draggedTabId: draggedTab.getId(),
-          }, tabId);
-          const targetAttrs = { component: targetTab.getComponent(), config: targetTab.getConfig() };
-          const draggedAttrs = { component: draggedTab.getComponent(), config: draggedTab.getConfig() };
-          model.doAction(Actions.updateNodeAttributes(targetTab.getId(), draggedAttrs));
-          model.doAction(Actions.updateNodeAttributes(draggedTab.getId(), targetAttrs));
-        }
-        layoutLogMutation("App.tsx:onAction", "MOVE_NODE center cancelled", before, summarizeLayoutModel(model), {
-          fromNode: action.data.fromNode,
-          toNode: action.data.toNode,
-        }, tabId);
-        return undefined;
-      } else {
-        storeSetPendingRebalance(tabId, action.data.fromNode);
-        layoutLog("App.tsx:onAction", "MOVE_NODE edge — pending rebalance", {
-          fromNode: action.data.fromNode,
-          location: action.data.location,
-        }, tabId);
-      }
-      return action;
-    },
-    [storeGetModel, storeSetPendingRebalance],
-  );
-
-  const makeOnRenderTabSet = useCallback(
-    (tabId: number) => (tabSetNode: TabSetNode | BorderNode) => {
-      const layout = (tabSetNode as unknown as { getLayout?: () => { getController?: () => Parameters<typeof registerLayoutController>[1] extends infer T ? NonNullable<T> : never } }).getLayout?.();
-      registerLayoutController(tabId, layout?.getController?.() ?? null);
-    },
-    [],
-  );
-
-  const makeOnModelChange = useCallback(
-    (tabId: number) => () => {
-      const model = storeGetModel(tabId);
-      if (!model) return;
-      const before = summarizeLayoutModel(model);
-      const draggedId = storeTakePendingRebalance(tabId);
-      if (draggedId) {
-        layoutLog("App.tsx:onModelChange", "rebalance after pane drag", { draggedId }, tabId);
-        const parent = model.getNodeById(draggedId)?.getParent()?.getParent();
-        if (parent) {
-          model.doAction(Actions.adjustWeights(parent.getId(), parent.getChildren().map(() => 1)));
-        }
-      }
-      layoutLogModel("App.tsx:onModelChange", "model changed", model, {
-        draggedId: draggedId ?? null,
-        rebalanced: !!draggedId,
-        layoutBefore: before,
-      }, tabId);
-      storePersistLayout(tabId, model);
-    },
-    [storeGetModel, storeTakePendingRebalance, storePersistLayout],
-  );
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -496,10 +187,6 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeTabId, storeGetModel]);
 
-  // Every workspace tab's model, not just the active one — every tab's
-  // Layout stays mounted simultaneously now (see the render below), so a
-  // tab that's empty needs its default terminal added regardless of
-  // whether it happens to be the one currently in front.
   useEffect(() => {
     const models = useWorkspaceStore.getState();
     for (const tab of workspace?.tabs ?? []) {
@@ -552,9 +239,6 @@ export default function App() {
           className={`titlebar-sidebar-toggle${appSettingsAnchor ? " active" : ""}`}
           title="Settings (⌘,)"
           onClick={(e) => {
-            // Same "capture before the updater runs" fix as
-            // PaneTabStrip.tsx's + button — e.currentTarget is null by the
-            // time this updater actually executes.
             const rect = e.currentTarget.getBoundingClientRect();
             setAppSettingsAnchor((open) => (open ? null : rect));
           }}
@@ -592,16 +276,6 @@ export default function App() {
           />
         )}
         <div className="layout-host">
-          {/* Every workspace tab's Layout stays mounted at once (visibility-
-              toggled, not key-remounted) — switching tabs used to fully
-              unmount/remount the whole pane tree, which meant every
-              browser pane's <webview> was destroyed and recreated from
-              item.url on every switch ("browser는 새로고침되고") and every
-              terminal's xterm.js instance was torn down and rebuilt from
-              its serialized scrollback (lossy for full-screen TUI apps
-              like Claude Code's own interactive mode, reported as scroll
-              breaking). Same never-unmount-just-hide pattern PaneGroup.tsx
-              already uses one level down for pane-level tabs. */}
           {workspace.tabs.map((tab) => {
             const model = storeGetModel(tab.id);
             if (!model) return null;

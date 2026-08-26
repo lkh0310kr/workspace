@@ -6,6 +6,19 @@ import { setTabLayout } from "../electron";
 import { countLayoutTabs, modelFromLayoutJson } from "../layout/layoutModelParse";
 import { layoutLog, layoutLogModel } from "../layout/layoutDebugLog";
 import { paneTabStoreKey } from "./paneTabKey";
+import {
+  clearEnsureInflight as clearLayoutEnsureInflight,
+  deleteLayoutModel,
+  getLayoutModel,
+  getSavedLayoutJson,
+  layoutModelTabIds,
+  markEnsureInflight as markLayoutEnsureInflight,
+  setLayoutModel,
+  setPendingRebalance as setLayoutPendingRebalance,
+  setSavedLayoutJson,
+  takePendingRebalance as takeLayoutPendingRebalance,
+} from "./workspaceLayoutModels";
+
 function tabsDataEqual(a: TabInfo[], b: TabInfo[]): boolean {
   if (a.length !== b.length) return false;
   return a.every((t, i) => {
@@ -29,11 +42,6 @@ function layoutJsonEquivalent(saved: string | undefined, incoming: string): bool
   }
 }
 
-/** flexlayout Model instances — not part of reactive zustand state. */
-const modelsByTabId = new Map<number, Model>();
-const savedLayoutJsonByTabId = new Map<number, string>();
-const ensureInflightTabIds = new Set<number>();
-const pendingRebalanceByTabId = new Map<number, string | null>();
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
 export type WorkspaceStoreState = {
@@ -87,27 +95,28 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
       const seen = new Set<number>();
       for (const tab of ws.tabs) {
         seen.add(tab.id);
-        const saved = savedLayoutJsonByTabId.get(tab.id);
-        const existing = modelsByTabId.get(tab.id);
+        const saved = getSavedLayoutJson(tab.id);
+        const existing = getLayoutModel(tab.id);
         const emptyModel = existing !== undefined && countLayoutTabs(existing) === 0;
         if (layoutJsonEquivalent(saved, tab.layout_json) && existing && !emptyModel) {
           continue;
         }
-        modelsByTabId.set(tab.id, modelFromLayoutJson(tab.layout_json));
+        setLayoutModel(tab.id, modelFromLayoutJson(tab.layout_json));
         modelChanged = true;
-        layoutLogModel("workspaceStore.syncModelsFromWorkspace", "model loaded", modelsByTabId.get(tab.id), {
-          tabId: tab.id,
-        }, tab.id);
+        layoutLogModel(
+          "workspaceStore.syncModelsFromWorkspace",
+          "model loaded",
+          getLayoutModel(tab.id),
+          { tabId: tab.id },
+          tab.id,
+        );
         if (saved !== tab.layout_json) {
-          savedLayoutJsonByTabId.set(tab.id, tab.layout_json);
+          setSavedLayoutJson(tab.id, tab.layout_json);
         }
       }
-      for (const id of modelsByTabId.keys()) {
+      for (const id of layoutModelTabIds()) {
         if (!seen.has(id)) {
-          modelsByTabId.delete(id);
-          savedLayoutJsonByTabId.delete(id);
-          pendingRebalanceByTabId.delete(id);
-          ensureInflightTabIds.delete(id);
+          deleteLayoutModel(id);
           get().removePaneTabKeysForWorkspaceTab(id);
           modelChanged = true;
         }
@@ -122,7 +131,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     },
 
     getModel(tabId: number) {
-      return modelsByTabId.get(tabId);
+      return getLayoutModel(tabId);
     },
 
     getModelEpoch() {
@@ -131,10 +140,14 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
 
     persistLayout(tabId: number, model: Model) {
       const json = JSON.stringify(model.toJson());
-      savedLayoutJsonByTabId.set(tabId, json);
-      layoutLogModel("workspaceStore.persistLayout", "persist scheduled", model, {
-        jsonLength: json.length,
-      }, tabId);
+      setSavedLayoutJson(tabId, json);
+      layoutLogModel(
+        "workspaceStore.persistLayout",
+        "persist scheduled",
+        model,
+        { jsonLength: json.length },
+        tabId,
+      );
       if (persistTimer) clearTimeout(persistTimer);
       persistTimer = setTimeout(() => {
         layoutLog("workspaceStore.persistLayout", "persist flush", { tabId, jsonLength: json.length }, tabId);
@@ -143,25 +156,19 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     },
 
     setPendingRebalance(tabId: number, nodeId: string | null) {
-      pendingRebalanceByTabId.set(tabId, nodeId);
+      setLayoutPendingRebalance(tabId, nodeId);
     },
 
     takePendingRebalance(tabId: number) {
-      const draggedId = pendingRebalanceByTabId.get(tabId);
-      if (draggedId !== undefined) {
-        pendingRebalanceByTabId.set(tabId, null);
-      }
-      return draggedId;
+      return takeLayoutPendingRebalance(tabId);
     },
 
     markEnsureInflight(tabId: number) {
-      if (ensureInflightTabIds.has(tabId)) return false;
-      ensureInflightTabIds.add(tabId);
-      return true;
+      return markLayoutEnsureInflight(tabId);
     },
 
     clearEnsureInflight(tabId: number) {
-      ensureInflightTabIds.delete(tabId);
+      clearLayoutEnsureInflight(tabId);
     },
 
     setActivePaneTab(workspaceTabId: number, nodeId: string, tabItemId: string) {

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import { isDevInstrumentation } from "../debug/devTools";
 import {
   interactionCoordinator,
   type InteractionSnapshot,
 } from "../interaction/InteractionCoordinator";
 import { fullInteractionDiagnostic, getDebugRing } from "../interaction/interactionDebugLog";
 
-export function InteractionDebugPanel() {
+function InteractionDebugPanelInner() {
   const [expanded, setExpanded] = useState(false);
   const [snapshot, setSnapshot] = useState<InteractionSnapshot>(() =>
     interactionCoordinator.getSnapshot(),
@@ -95,4 +96,9 @@ export function InteractionDebugPanel() {
       </button>
     </div>
   );
+}
+
+export function InteractionDebugPanel() {
+  if (!isDevInstrumentation) return null;
+  return <InteractionDebugPanelInner />;
 }
