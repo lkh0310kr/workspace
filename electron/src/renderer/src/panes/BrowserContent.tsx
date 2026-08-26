@@ -5,27 +5,26 @@ import { BrowserDownloadsBar } from "../components/BrowserDownloadsBar";
 import { normalizeBrowserNavigationUrl, BLANK_URL } from "../browserUrl";
 import { recordBrowserVisit } from "../browserHistory";
 import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
-import {
-  requestWebviewSlot,
-  setWebviewSlotPinned,
-  touchWebviewSlot,
-  webviewSessionKey,
-} from "../embeds/WebviewRegistry";
 import { onBrowserOpenNewTab } from "../electron";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { dbgLog } from "../interaction/interactionDebugLog";
 import { setActiveBrowserWebview, getActiveBrowserWebview, registerBrowserWebview } from "../layout/activeBrowserWebview";
 import type { PaneTabItem } from "../layout/paneTypes";
 
+// The per-page content half of what used to be BrowserPane.tsx — tab-strip
+// ownership (open/close/switch pages) moved up to PaneGroup.tsx as part of
+// globalizing the tab system, same as EditorContent.tsx. What's still
+// genuinely page-specific stays here: the <webview> guest itself and its
+// own nav+address bar row.
 interface Props {
   tabId: number;
   paneNodeId: string;
   item: PaneTabItem;
-  /** Flexlayout pane + workspace tab visible — keeps guest mounted across chip switches. */
-  paneVisible: boolean;
-  /** Active pane chip — controls IC input and webview visibility. */
-  chipActive: boolean;
+  visible: boolean;
   onUpdate: (patch: Partial<PaneTabItem>) => void;
+  /** target="_blank"/window.open() inside the guest page — main/index.ts
+   * denies the native window and forwards the URL here; caller opens it
+   * as a new browser tab in this pane's group. */
   onOpenNewTab: (url: string) => void;
 }
 
@@ -46,22 +45,10 @@ function applyWebviewZoom(webview: Electron.WebviewTag, factor: number): void {
   }
 }
 
-export function BrowserContent({
-  tabId,
-  paneNodeId,
-  item,
-  paneVisible,
-  chipActive,
-  onUpdate,
-  onOpenNewTab,
-}: Props) {
+export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onOpenNewTab }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const [webview, setWebview] = useState<Electron.WebviewTag | null>(null);
-  const [slotHeld, setSlotHeld] = useState(false);
-  const [evictEpoch, setEvictEpoch] = useState(0);
-  const releaseSlotRef = useRef<(() => void) | null>(null);
-  const sessionKey = webviewSessionKey(tabId, item.id);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
   const [addressInput, setAddressInput] = useState(item.url ?? DEFAULT_URL);
   const [currentUrl, setCurrentUrl] = useState(item.url ?? DEFAULT_URL);
@@ -74,89 +61,52 @@ export function BrowserContent({
   onUpdateRef.current = onUpdate;
   const onOpenNewTabRef = useRef(onOpenNewTab);
   onOpenNewTabRef.current = onOpenNewTab;
-  const itemUrlRef = useRef(item.url);
-  itemUrlRef.current = item.url;
 
   const syncNavState = useCallback(() => {
-    const guest = webviewRef.current;
-    if (!guest) return;
-    setCanGoBack(guest.canGoBack());
-    setCanGoForward(guest.canGoForward());
+    const webview = webviewRef.current;
+    if (!webview) return;
+    setCanGoBack(webview.canGoBack());
+    setCanGoForward(webview.canGoForward());
   }, []);
 
   const setZoom = useCallback((next: number) => {
     const clamped = clampZoom(next);
     setZoomFactor(clamped);
     onUpdateRef.current({ zoomFactor: clamped });
-    const guest = webviewRef.current;
-    if (guest) applyWebviewZoom(guest, clamped);
+    const webview = webviewRef.current;
+    if (webview) applyWebviewZoom(webview, clamped);
   }, []);
 
-  // LRU slot for the pane lifetime — not per chip switch.
   useEffect(() => {
-    if (!paneVisible) {
-      releaseSlotRef.current?.();
-      releaseSlotRef.current = null;
-      setSlotHeld(false);
-      return;
-    }
-
-    const release = requestWebviewSlot(
-      sessionKey,
-      () => {
-        setSlotHeld(false);
-        setEvictEpoch((epoch) => epoch + 1);
-      },
-      { pinned: chipActive },
-    );
-    releaseSlotRef.current = release;
-    setSlotHeld(true);
-    touchWebviewSlot(sessionKey);
-
-    return () => {
-      release();
-      releaseSlotRef.current = null;
-      setSlotHeld(false);
-    };
-    // chipActive pinned updates in a separate effect — avoid release/reacquire on tab click
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paneVisible, sessionKey, evictEpoch]);
-
-  useEffect(() => {
-    if (!slotHeld) return;
-    setWebviewSlotPinned(sessionKey, chipActive);
-    if (chipActive) touchWebviewSlot(sessionKey);
-  }, [slotHeld, sessionKey, chipActive]);
-
-  useEffect(() => {
-    if (!slotHeld) return;
     const container = containerRef.current;
     if (!container) return;
 
     const initialZoom = item.zoomFactor ?? 1;
     const guest = document.createElement("webview") as Electron.WebviewTag;
     guest.setAttribute("partition", BROWSER_SESSION_PARTITION);
-    guest.setAttribute(
-      "src",
-      normalizeBrowserNavigationUrl(itemUrlRef.current ?? DEFAULT_URL, false) ?? BLANK_URL,
-    );
+    guest.setAttribute("src", normalizeBrowserNavigationUrl(item.url ?? DEFAULT_URL, false) ?? BLANK_URL);
     guest.setAttribute("allowpopups", "");
     guest.dataset.tabItemId = item.id;
     guest.style.width = "100%";
     guest.style.height = "100%";
     guest.style.border = "none";
     guest.style.background = "#ffffff";
+    // Start hidden — reconcile() enables only the focused pane's guest.
+    // Without this, a freshly mounted webview's native layer sits above DOM
+    // (tab strips, popovers, workspace rail) until the next reconcile tick.
     guest.style.display = "none";
     guest.style.pointerEvents = "none";
     container.appendChild(guest);
     webviewRef.current = guest;
     setWebview(guest);
+    // #region agent log
     dbgLog(
       "BrowserContent:mount",
       "webview created",
-      { tabId, paneNodeId, itemId: item.id, sessionKey },
+      { tabId, paneNodeId, itemId: item.id, visible, initialUrl: item.url ?? DEFAULT_URL },
       "H4",
     );
+    // #endregion
     applyWebviewZoom(guest, initialZoom);
     setZoomFactor(initialZoom);
 
@@ -208,13 +158,10 @@ export function BrowserContent({
       workspaceTabId: tabId,
       paneNodeId,
       paneTabItemId: item.id,
-      initialPaneVisible: chipActive,
+      initialPaneVisible: visible,
     });
 
-    const onFocus = (): void => {
-      touchWebviewSlot(sessionKey);
-      setActiveBrowserWebview(guest);
-    };
+    const onFocus = (): void => setActiveBrowserWebview(guest);
     const onBlur = (): void => {
       if (getActiveBrowserWebview() === guest) setActiveBrowserWebview(null);
     };
@@ -249,34 +196,36 @@ export function BrowserContent({
       webviewRef.current = null;
       setWebview(null);
       setWebContentsId(null);
-      setLoading(false);
-      setCanGoBack(false);
-      setCanGoForward(false);
     };
-  }, [slotHeld, tabId, paneNodeId, item.id, sessionKey, chipActive, syncNavState]);
+    // Deliberately empty deps — one webview per tab item for its whole
+    // lifetime, navigated imperatively; item.id is a stable mount key.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabId, paneNodeId, item.id, syncNavState]);
 
   useEffect(() => {
-    const guest = webviewRef.current;
-    if (!guest) return;
-    guest.style.visibility = chipActive ? "visible" : "hidden";
-    interactionCoordinator.setBrowserPaneVisible(tabId, item.id, chipActive);
+    const webview = webviewRef.current;
+    if (!webview) return;
+    webview.style.visibility = visible ? "visible" : "hidden";
+    interactionCoordinator.setBrowserPaneVisible(tabId, item.id, visible);
+    // #region agent log
     dbgLog(
       "BrowserContent:visible",
-      "chip visibility",
-      { tabId, itemId: item.id, chipActive, slotHeld },
+      "pane visibility",
+      { tabId, itemId: item.id, visible },
       "H3",
     );
-    if (!chipActive) {
+    // #endregion
+    if (!visible) {
       addressInputRef.current?.blur();
-      if (getActiveBrowserWebview() === guest) {
+      if (getActiveBrowserWebview() === webview) {
         setActiveBrowserWebview(null);
       }
     }
-  }, [chipActive, tabId, item.id]);
+  }, [visible, tabId, item.id]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!chipActive) return;
+      if (!visible) return;
       const guest = webviewRef.current;
       const browserFocused =
         guest &&
@@ -296,37 +245,31 @@ export function BrowserContent({
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [chipActive, zoomFactor, setZoom]);
+  }, [visible, zoomFactor, setZoom]);
 
   const navigate = (url: string): void => {
     const normalized = normalizeBrowserNavigationUrl(url, true);
-    if (!normalized) return;
-    onUpdateRef.current({ url: normalized });
-    setAddressInput(normalized);
-    setCurrentUrl(normalized);
-    if (webviewRef.current) webviewRef.current.loadURL(normalized);
+    if (normalized) webviewRef.current?.loadURL(normalized);
   };
 
   const zoomLabel = `${Math.round(zoomFactor * 100)}%`;
-  const guestLive = slotHeld && !!webview;
-  const showParked = chipActive && paneVisible && !guestLive;
 
   return (
-    <div className="browser-pane-chrome" style={{ pointerEvents: chipActive ? undefined : "none" }}>
+    <div className="browser-pane-chrome" style={{ pointerEvents: visible ? undefined : "none" }}>
       <div className="pane-header pane-header-browser">
         <div className="browser-nav">
           <BrowserNavButton
             direction="back"
-            disabled={!canGoBack || !guestLive}
-            active={chipActive}
+            disabled={!canGoBack}
+            active={visible}
             webview={webview}
             webContentsId={webContentsId}
             onNavigate={syncNavState}
           />
           <BrowserNavButton
             direction="forward"
-            disabled={!canGoForward || !guestLive}
-            active={chipActive}
+            disabled={!canGoForward}
+            active={visible}
             webview={webview}
             webContentsId={webContentsId}
             onNavigate={syncNavState}
@@ -335,7 +278,6 @@ export function BrowserContent({
             type="button"
             className="browser-nav-btn"
             title={loading ? "Stop" : "Reload"}
-            disabled={!guestLive}
             onClick={() => {
               const wv = webviewRef.current;
               if (!wv) return;
@@ -350,7 +292,7 @@ export function BrowserContent({
               type="button"
               className="browser-nav-btn"
               title="Zoom out"
-              disabled={zoomFactor <= ZOOM_MIN || !guestLive}
+              disabled={zoomFactor <= ZOOM_MIN}
               onClick={() => setZoom(zoomFactor - ZOOM_STEP)}
             >
               −
@@ -359,7 +301,6 @@ export function BrowserContent({
               type="button"
               className="browser-zoom-label"
               title="Reset zoom"
-              disabled={!guestLive}
               onClick={() => setZoom(1)}
             >
               {zoomLabel}
@@ -368,7 +309,7 @@ export function BrowserContent({
               type="button"
               className="browser-nav-btn"
               title="Zoom in"
-              disabled={zoomFactor >= ZOOM_MAX || !guestLive}
+              disabled={zoomFactor >= ZOOM_MAX}
               onClick={() => setZoom(zoomFactor + ZOOM_STEP)}
             >
               +
@@ -378,7 +319,6 @@ export function BrowserContent({
             type="button"
             className="browser-nav-btn browser-nav-btn-devtools"
             title="Toggle DevTools"
-            disabled={!guestLive}
             onClick={() => {
               const wv = webviewRef.current;
               if (!wv) return;
@@ -397,18 +337,9 @@ export function BrowserContent({
           inputRef={addressInputRef}
         />
       </div>
-      {loading && guestLive ? <div className="browser-loading-bar" aria-hidden="true" /> : null}
+      {loading ? <div className="browser-loading-bar" aria-hidden="true" /> : null}
       <BrowserDownloadsBar webContentsId={webContentsId} />
-      <div
-        ref={containerRef}
-        className={`browser-content-slot${showParked ? " browser-content-slot--parked" : ""}`}
-      >
-        {showParked ? (
-          <div className="browser-content-parked" aria-hidden="true">
-            Page unloaded to save memory — switch away and back to reload.
-          </div>
-        ) : null}
-      </div>
+      <div ref={containerRef} className="browser-content-slot" />
     </div>
   );
 }

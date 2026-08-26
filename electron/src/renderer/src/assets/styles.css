@@ -417,21 +417,6 @@ input {
   overflow: hidden;
 }
 
-.browser-content-slot--parked {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.browser-content-parked {
-  color: var(--text-muted, #888);
-  font-size: 12px;
-  padding: 16px;
-  text-align: center;
-  max-width: 280px;
-  line-height: 1.4;
-}
-
 iframe.browser-content-slot {
   display: block;
   pointer-events: auto;
@@ -814,10 +799,6 @@ iframe.browser-content-slot {
   width: 100%;
   position: relative;
   background: var(--terminal-surface-bg, var(--bg-base));
-}
-
-.terminal-pane-host--parked {
-  opacity: 0.35;
 }
 
 .pane-manager-root {
