@@ -51,6 +51,7 @@ function tabLabel(item: PaneTabItem, dirty: boolean): string {
       }
       case "code":
       case "markdown":
+      case "viewer":
         if (!item.filePath) return "New tab";
         return item.filePath.split("/").pop() || item.filePath;
       default:

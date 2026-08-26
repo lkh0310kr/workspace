@@ -10,14 +10,14 @@
 // a list of heterogeneous PaneTabItems plus which one is active — instead
 // of a single component+config pair.
 
-export type TabKind = "terminal" | "browser" | "code" | "markdown";
+export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer";
 
 export interface PaneTabItem {
   id: string;
   kind: TabKind;
   /** kind === "terminal" */
   terminalId?: number;
-  /** kind === "code" | "markdown" */
+  /** kind === "code" | "markdown" | "viewer" */
   filePath?: string | null;
   /** kind === "browser" */
   url?: string;
@@ -48,6 +48,7 @@ const TAB_KIND_META: Record<TabKind, { label: string; icon: string }> = {
   browser: { label: "Browser", icon: "🌐" },
   code: { label: "Code", icon: "{}" },
   markdown: { label: "Editor", icon: "{}" },
+  viewer: { label: "Viewer", icon: "▣" },
 };
 
 // The "add new tab" / "change pane type" picker list (PanePicker.tsx) —

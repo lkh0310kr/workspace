@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 
 // Direct port of crates/workspace-core/src/files.rs.
 
@@ -67,6 +68,15 @@ export function listDir(root: string, rel: string): DirEntry[] {
 
 export function readFile(root: string, rel: string): string {
   return fs.readFileSync(resolveUnderRoot(root, rel), "utf8");
+}
+
+/** file:// URL for a workspace-relative path, for the renderer to load
+ * directly (image/PDF viewer) without piping bytes over IPC. Goes through
+ * the same resolveUnderRoot confinement as every other file op here — a
+ * corrupted/malicious persisted layout.json must not be able to point this
+ * at an arbitrary path outside the workspace root via `../` segments. */
+export function resolveFileUrl(root: string, rel: string): string {
+  return pathToFileURL(resolveUnderRoot(root, rel)).toString();
 }
 
 export function writeFile(root: string, rel: string, content: string): void {

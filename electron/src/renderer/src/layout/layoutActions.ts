@@ -41,6 +41,7 @@ export async function buildTabItem(kind: TabKind, source?: Partial<PaneTabItem>)
       return { id, kind, url: source?.url ?? "https://www.google.com" };
     case "code":
     case "markdown":
+    case "viewer":
       return { id, kind, filePath: source?.filePath ?? null };
     default:
       return { id, kind };

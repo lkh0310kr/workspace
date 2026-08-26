@@ -16,6 +16,7 @@ import { PaneGroupConfig, PaneTabItem, TabKind } from "../layout/paneTypes";
 import { EditorContent } from "./EditorContent";
 import { BrowserContent } from "./BrowserContent";
 import { TerminalPane } from "./TerminalPane";
+import { FileViewerContent } from "./FileViewerContent";
 import { paneTabStoreKey } from "../store/paneTabKey";
 import { useLayoutRevision } from "../hooks/useLayoutRevision";
 import { useWorkspaceStore } from "../store/workspaceStore";
@@ -216,7 +217,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   );
 
   const openOrSwitchToFile = useCallback(
-    (path: string, kind: "code" | "markdown") => {
+    (path: string, kind: "code" | "markdown" | "viewer") => {
       const existing = tabs.find((t) => t.filePath === path);
       if (existing) {
         selectTab(existing.id);
@@ -349,6 +350,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                     treeOpen={treeOpenFor(item.id)}
                     onToggleTree={() => setTreeOpenForTab(item.id, (v) => !v)}
                   />
+                )}
+                {item.kind === "viewer" && (
+                  <FileViewerContent tabId={workspaceTabId} filePath={item.filePath ?? null} />
                 )}
               </div>
             );

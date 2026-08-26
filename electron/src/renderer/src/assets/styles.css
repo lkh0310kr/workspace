@@ -810,6 +810,46 @@ iframe.browser-content-slot {
   background: var(--terminal-surface-bg, var(--bg-base));
 }
 
+.file-viewer {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: var(--bg-base);
+}
+
+.file-viewer-pdf {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: none;
+}
+
+.file-viewer-image-frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 16px;
+}
+
+.file-viewer-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.file-viewer-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
 /* Browser tab content's own chrome (nav+address row) — previously this was
    PaneFrame's job for the whole pane (contentSlot mode); now it's scoped
    inside BrowserContent.tsx since a pane can mix browser tabs with other

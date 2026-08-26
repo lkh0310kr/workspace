@@ -74,7 +74,11 @@ function createWindow(): BrowserWindow {
       sandbox: false,
       // Browser pane uses a real <webview> guest (Orca's approach — see
       // BrowserPane.tsx), which needs this enabled on the host window.
-      webviewTag: true
+      webviewTag: true,
+      // Chromium's built-in PDF viewer is implemented as an internal
+      // "plugin" — FileViewerContent's <embed type="application/pdf">
+      // renders nothing without this (default: false).
+      plugins: true
     }
   })
 
@@ -439,6 +443,9 @@ app.whenReady().then(() => {
 
   ipcMain.handle('fs:list-dir', (_event, tabId: number, rel: string) => workspace!.listDir(tabId, rel))
   ipcMain.handle('fs:read-file', (_event, tabId: number, rel: string) => workspace!.readFile(tabId, rel))
+  ipcMain.handle('fs:resolve-file-url', (_event, tabId: number, rel: string) =>
+    workspace!.resolveFileUrl(tabId, rel)
+  )
   ipcMain.handle('fs:write-file', (_event, tabId: number, rel: string, content: string) =>
     workspace!.writeFile(tabId, rel, content)
   )

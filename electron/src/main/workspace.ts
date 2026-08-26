@@ -204,6 +204,9 @@ export class Workspace {
   readFile(tabId: number, rel: string): string {
     return files.readFile(this.tabRoot(tabId), rel);
   }
+  resolveFileUrl(tabId: number, rel: string): string {
+    return files.resolveFileUrl(this.tabRoot(tabId), rel);
+  }
   writeFile(tabId: number, rel: string, content: string): void {
     files.writeFile(this.tabRoot(tabId), rel, content);
   }

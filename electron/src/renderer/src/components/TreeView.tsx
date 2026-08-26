@@ -19,7 +19,7 @@ interface Props {
   rootPath: string;
   selectedPath?: string | null;
   paneVisible?: boolean;
-  onOpenFile: (path: string, kind: "code" | "markdown") => void;
+  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer") => void;
 }
 
 interface DirState {
@@ -41,9 +41,13 @@ interface MenuState {
   entry: DirEntry | null;
 }
 
-function classifyFile(name: string): "code" | "markdown" {
+const VIEWER_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".pdf"];
+
+function classifyFile(name: string): "code" | "markdown" | "viewer" {
   const lower = name.toLowerCase();
-  return lower.endsWith(".md") || lower.endsWith(".markdown") ? "markdown" : "code";
+  if (lower.endsWith(".md") || lower.endsWith(".markdown")) return "markdown";
+  if (VIEWER_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "viewer";
+  return "code";
 }
 
 function dirOf(path: string): string {
