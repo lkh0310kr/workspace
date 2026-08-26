@@ -1,0 +1,282 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+type ListenerRecord = {
+  type: string;
+  listener: EventListenerOrEventListenerObject;
+  options?: boolean | AddEventListenerOptions;
+};
+
+function createWebview(overrides: Partial<Electron.WebviewTag> = {}): Electron.WebviewTag {
+  return Object.assign(new EventTarget(), {
+    style: {},
+    blur: vi.fn(),
+    remove: vi.fn(),
+    contains: vi.fn(() => false),
+    ...overrides,
+  }) as unknown as Electron.WebviewTag;
+}
+
+describe("browser webview registry drag listeners", () => {
+  let addedListeners: ListenerRecord[];
+  let removedListeners: ListenerRecord[];
+
+  beforeEach(() => {
+    vi.resetModules();
+    addedListeners = [];
+    removedListeners = [];
+
+    vi.stubGlobal("window", {
+      addEventListener: vi.fn(
+        (
+          type: string,
+          listener: EventListenerOrEventListenerObject,
+          options?: boolean | AddEventListenerOptions,
+        ) => {
+          addedListeners.push({ type, listener, options });
+        },
+      ),
+      removeEventListener: vi.fn(
+        (
+          type: string,
+          listener: EventListenerOrEventListenerObject,
+          options?: boolean | AddEventListenerOptions,
+        ) => {
+          removedListeners.push({ type, listener, options });
+        },
+      ),
+      focus: vi.fn(),
+    });
+    vi.stubGlobal("document", { activeElement: null });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("does not install global drag listeners until a webview is registered", async () => {
+    const { registerPersistentWebview } = await import("./browserWebviewRegistry");
+
+    expect(addedListeners).toEqual([]);
+
+    registerPersistentWebview("page-1", createWebview());
+
+    expect(addedListeners.map((entry) => entry.type)).toEqual(["dragstart", "dragend", "drop"]);
+  });
+
+  it("removes drag listeners after the last webview is unregistered", async () => {
+    const { unregisterPersistentWebview, registerPersistentWebview } = await import(
+      "./browserWebviewRegistry"
+    );
+
+    registerPersistentWebview("page-1", createWebview());
+    registerPersistentWebview("page-2", createWebview());
+
+    expect(addedListeners).toHaveLength(3);
+
+    unregisterPersistentWebview("page-1");
+
+    expect(removedListeners).toHaveLength(0);
+
+    unregisterPersistentWebview("page-2");
+
+    expect(removedListeners.map((entry) => entry.type)).toEqual(["dragstart", "dragend", "drop"]);
+  });
+
+  it("releases native drag passthrough when the last webview is unregistered", async () => {
+    const { unregisterPersistentWebview, registerPersistentWebview } = await import(
+      "./browserWebviewRegistry"
+    );
+    const firstWebview = createWebview();
+    firstWebview.style.pointerEvents = "auto";
+    registerPersistentWebview("page-1", firstWebview);
+
+    const dragStart = addedListeners.find((entry) => entry.type === "dragstart")?.listener;
+    if (typeof dragStart === "function") {
+      dragStart(new Event("dragstart"));
+    } else {
+      throw new Error("dragstart listener missing");
+    }
+
+    expect(firstWebview.style.pointerEvents).toBe("none");
+
+    unregisterPersistentWebview("page-1");
+
+    const secondWebview = createWebview();
+    secondWebview.style.pointerEvents = "auto";
+    registerPersistentWebview("page-2", secondWebview);
+
+    expect(secondWebview.style.pointerEvents).toBe("auto");
+  });
+
+  it("keeps one listener set across repeated registrations", async () => {
+    const { registerPersistentWebview } = await import("./browserWebviewRegistry");
+
+    registerPersistentWebview("page-1", createWebview());
+    registerPersistentWebview("page-2", createWebview());
+
+    expect(addedListeners).toHaveLength(3);
+  });
+
+  it("profiles live webviews for memory breadcrumbs", async () => {
+    const { getBrowserWebviewMemoryProfile, registerPersistentWebview } = await import(
+      "./browserWebviewRegistry"
+    );
+
+    registerPersistentWebview("page-1", createWebview());
+    registerPersistentWebview("page-2", createWebview());
+
+    expect(getBrowserWebviewMemoryProfile()).toEqual({ browserWebviewCount: 2 });
+  });
+
+  it("retains renderer loss across pane unmount until the persistent guest is ready", async () => {
+    const { isBrowserPageRendererRecoveryPending, registerPersistentWebview, unregisterPersistentWebview } =
+      await import("./browserWebviewRegistry");
+    const webview = createWebview();
+    registerPersistentWebview("page-1", webview);
+
+    webview.dispatchEvent(new Event("render-process-gone"));
+    expect(isBrowserPageRendererRecoveryPending("page-1")).toBe(true);
+
+    webview.dispatchEvent(new Event("dom-ready"));
+    expect(isBrowserPageRendererRecoveryPending("page-1")).toBe(false);
+
+    webview.dispatchEvent(new Event("render-process-gone"));
+    unregisterPersistentWebview("page-1");
+    expect(isBrowserPageRendererRecoveryPending("page-1")).toBe(false);
+  });
+
+  it("flags renderer recovery when the guest is destroyed under a still-attached webview", async () => {
+    const { isBrowserPageRendererRecoveryPending, registerPersistentWebview } = await import(
+      "./browserWebviewRegistry"
+    );
+    const webview = createWebview({ isConnected: true });
+    registerPersistentWebview("page-1", webview);
+
+    webview.dispatchEvent(new Event("destroyed"));
+    expect(isBrowserPageRendererRecoveryPending("page-1")).toBe(true);
+
+    webview.dispatchEvent(new Event("dom-ready"));
+    expect(isBrowserPageRendererRecoveryPending("page-1")).toBe(false);
+  });
+
+  it("ignores guest destruction caused by intentional webview removal", async () => {
+    const { isBrowserPageRendererRecoveryPending, registerPersistentWebview } = await import(
+      "./browserWebviewRegistry"
+    );
+    const webview = createWebview({ isConnected: false });
+    registerPersistentWebview("page-1", webview);
+
+    webview.dispatchEvent(new Event("destroyed"));
+
+    expect(isBrowserPageRendererRecoveryPending("page-1")).toBe(false);
+  });
+
+  it("stops listening for guest destruction after unregistration", async () => {
+    const { isBrowserPageRendererRecoveryPending, registerPersistentWebview, unregisterPersistentWebview } =
+      await import("./browserWebviewRegistry");
+    const webview = createWebview({ isConnected: true });
+    registerPersistentWebview("page-1", webview);
+    unregisterPersistentWebview("page-1");
+
+    webview.dispatchEvent(new Event("destroyed"));
+
+    expect(isBrowserPageRendererRecoveryPending("page-1")).toBe(false);
+  });
+
+  it("keeps webviews in passthrough until every renderer drag releases", async () => {
+    const { acquireWebviewsDragPassthrough } = await import("./webviewDragPassthrough");
+    const { registerPersistentWebview } = await import("./browserWebviewRegistry");
+    const activeWebview = createWebview();
+    activeWebview.style.pointerEvents = "auto";
+    const lockedWebview = createWebview();
+    lockedWebview.style.pointerEvents = "none";
+    registerPersistentWebview("page-1", activeWebview);
+    registerPersistentWebview("page-2", lockedWebview);
+
+    const releaseFirstDrag = acquireWebviewsDragPassthrough();
+    const releaseSecondDrag = acquireWebviewsDragPassthrough();
+
+    expect(activeWebview.style.pointerEvents).toBe("none");
+    expect(lockedWebview.style.pointerEvents).toBe("none");
+
+    releaseFirstDrag();
+
+    expect(activeWebview.style.pointerEvents).toBe("none");
+    expect(lockedWebview.style.pointerEvents).toBe("none");
+
+    releaseSecondDrag();
+    releaseSecondDrag();
+
+    expect(activeWebview.style.pointerEvents).toBe("auto");
+    expect(lockedWebview.style.pointerEvents).toBe("none");
+  });
+
+  it("applies active passthrough to webviews registered mid-drag", async () => {
+    const { acquireWebviewsDragPassthrough } = await import("./webviewDragPassthrough");
+    const { registerPersistentWebview } = await import("./browserWebviewRegistry");
+    const releaseDrag = acquireWebviewsDragPassthrough();
+    const webview = createWebview();
+    webview.style.pointerEvents = "auto";
+
+    registerPersistentWebview("page-1", webview);
+
+    expect(webview.style.pointerEvents).toBe("none");
+
+    releaseDrag();
+
+    expect(webview.style.pointerEvents).toBe("auto");
+  });
+
+  it("moves focus back to the renderer before detaching the focused webview", async () => {
+    const { moveFocusToRendererBeforeWebviewDetach } = await import("./browserWebviewRegistry");
+    const webview = createWebview();
+    vi.stubGlobal("document", { activeElement: webview });
+
+    moveFocusToRendererBeforeWebviewDetach(webview);
+
+    expect(webview.blur).toHaveBeenCalledTimes(1);
+    expect(window.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves focus back to the renderer before detaching a webview that contains focus", async () => {
+    const { moveFocusToRendererBeforeWebviewDetach } = await import("./browserWebviewRegistry");
+    const activeElement = { blur: vi.fn() } as unknown as HTMLElement;
+    const webview = createWebview({ contains: vi.fn(() => true) });
+    vi.stubGlobal("document", { activeElement });
+
+    moveFocusToRendererBeforeWebviewDetach(webview);
+
+    expect(activeElement.blur).toHaveBeenCalledTimes(1);
+    expect(window.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves focus back to the renderer before a focused registered webview is hidden", async () => {
+    const { moveFocusToRendererBeforeFocusedWebviewHidden, registerPersistentWebview } = await import(
+      "./browserWebviewRegistry"
+    );
+    const inactiveWebview = createWebview();
+    const focusedWebview = createWebview();
+    vi.stubGlobal("document", { activeElement: focusedWebview });
+
+    registerPersistentWebview("page-1", inactiveWebview);
+    registerPersistentWebview("page-2", focusedWebview);
+
+    moveFocusToRendererBeforeFocusedWebviewHidden();
+
+    expect(inactiveWebview.blur).not.toHaveBeenCalled();
+    expect(focusedWebview.blur).toHaveBeenCalledTimes(1);
+    expect(window.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves focus alone before detaching an unfocused webview", async () => {
+    const { moveFocusToRendererBeforeWebviewDetach } = await import("./browserWebviewRegistry");
+    const activeElement = { blur: vi.fn() } as unknown as HTMLElement;
+    const webview = createWebview();
+    vi.stubGlobal("document", { activeElement });
+
+    moveFocusToRendererBeforeWebviewDetach(webview);
+
+    expect(activeElement.blur).not.toHaveBeenCalled();
+    expect(window.focus).not.toHaveBeenCalled();
+  });
+});

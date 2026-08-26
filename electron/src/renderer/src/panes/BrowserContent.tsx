@@ -8,6 +8,12 @@ import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
 import { onBrowserOpenNewTab } from "../electron";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { setActiveBrowserWebview, getActiveBrowserWebview, registerBrowserWebview } from "../layout/activeBrowserWebview";
+import {
+  registerPersistentWebview,
+  unregisterPersistentWebview,
+  moveFocusToRendererBeforeFocusedWebviewHidden,
+  moveFocusToRendererBeforeWebviewDetach,
+} from "../layout/browserWebviewRegistry";
 import type { PaneTabItem } from "../layout/paneTypes";
 
 // The per-page content half of what used to be BrowserPane.tsx — tab-strip
@@ -149,6 +155,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     guest.addEventListener("page-favicon-updated", onFaviconUpdated);
 
     const unregisterWebview = registerBrowserWebview(guest);
+    registerPersistentWebview(item.id, guest);
     interactionCoordinator.registerWebview(guest, {
       workspaceTabId: tabId,
       paneNodeId,
@@ -187,7 +194,9 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       if (getActiveBrowserWebview() === guest) setActiveBrowserWebview(null);
       interactionCoordinator.unregisterWebview(guest);
       unregisterWebview();
+      unregisterPersistentWebview(item.id);
       unlistenOpenNewTab();
+      moveFocusToRendererBeforeWebviewDetach(guest);
       container.removeChild(guest);
       webviewRef.current = null;
       setWebview(null);
@@ -206,6 +215,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     interactionCoordinator.setBrowserChipActive(tabId, item.id, chipActive);
     if (!chipShown) {
       addressInputRef.current?.blur();
+      moveFocusToRendererBeforeFocusedWebviewHidden();
       if (getActiveBrowserWebview() === webview) {
         setActiveBrowserWebview(null);
       }
