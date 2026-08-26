@@ -72,6 +72,7 @@ export function createPaneDOM(
     webglAddon: null,
     ligaturesAddon: null,
     fitResizeObserver: null,
+    lastFitClientSize: undefined,
     pendingInitialFitRafId: null,
     pendingWebglRefreshRafId: null,
     pendingRefitRetryRafId: null,
@@ -81,10 +82,12 @@ export function createPaneDOM(
     webglNeedsRebuildOnResume: options.initialRenderingSuspended === true,
     compositionHandler: null,
     focusClassSyncCleanup: null,
+    terminalScrollIntentDisposable: null,
     wheelScrollCleanup: null,
     linkifierHoverResetDisposable: null,
     linkifierMouseLeaveResetDisposable: null,
     linkifierWindowBlurResetDisposable: null,
+    pendingSplitScrollState: null,
   };
 
   return pane;

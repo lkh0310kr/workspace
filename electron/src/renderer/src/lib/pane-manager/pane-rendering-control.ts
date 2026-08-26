@@ -1,10 +1,10 @@
 import type { ManagedPane, ManagedPaneInternal } from "./pane-manager-types";
-import { safeFit } from "./pane-safe-fit";
+import { safeFit } from "./pane-fit";
 import { disposeWebgl } from "./pane-webgl-renderer";
 import { rebuildAttachedWebgl } from "./pane-webgl-reattach";
 import { repairPaneWebglCanvasDprMismatch } from "./terminal-canvas-dpr-repair";
 
-export { safeFit, safeFitAndThen } from "./pane-safe-fit";
+export { safeFit, safeFitAndThen } from "./pane-fit";
 
 export function suspendPaneRendering(pane: ManagedPaneInternal): void {
   pane.renderingSuspended = true;

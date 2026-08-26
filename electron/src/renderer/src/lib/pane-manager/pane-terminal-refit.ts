@@ -1,5 +1,5 @@
 import type { ManagedPane, ManagedPaneInternal } from "./pane-manager-types";
-import { safeFit } from "./pane-safe-fit";
+import { safeFit } from "./pane-fit";
 import { attachWebgl, shouldUseTerminalWebgl } from "./pane-webgl-renderer";
 import { rebuildAttachedWebgl } from "./pane-webgl-reattach";
 

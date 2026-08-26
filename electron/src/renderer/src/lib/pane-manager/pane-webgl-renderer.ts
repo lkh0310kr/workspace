@@ -11,7 +11,7 @@ import {
   getTerminalWebglAutoDecision,
   resetTerminalWebglAutoDecision,
 } from "./terminal-webgl-auto-policy";
-import { safeFit, safeFitAndThen } from "./pane-safe-fit";
+import { safeFit, safeFitAndThen } from "./pane-fit";
 import { setPaneFitWebglAttachHook } from "./pane-fit-webgl-attach-signal";
 import { repairPaneWebglCanvasDprMismatch } from "./terminal-canvas-dpr-repair";
 

@@ -2,12 +2,14 @@ import type { ManagedPaneInternal } from "./pane-manager-types";
 import { activateOrcaTerminalUnicodeProvider } from "../shared/terminal-unicode-provider";
 import { attachPaneFitResizeObserver, detachPaneFitResizeObserver } from "./pane-fit-resize-observer";
 import { attachDomRendererFocusClassSync } from "./pane-dom-focus-class-sync";
-import { safeFit } from "./pane-safe-fit";
+import { safeFit } from "./pane-fit";
+import { cancelDeferredScrollRestore } from "./pane-scroll";
 import { cancelPendingWebglRefresh, disposeWebgl, attachWebgl } from "./pane-webgl-renderer";
 import { clearTerminalOutputQueue } from "./pane-terminal-output-scheduler";
 import { installTerminalImeCandidateAnchor } from "./terminal-ime-candidate-anchor";
 import { attachTerminalMouseWheelMultiplier } from "./pane-terminal-mouse-wheel";
 import { installTerminalWheelScroll } from "../../terminal/terminal-wheel-scroll";
+import { attachTerminalScrollIntentTracking } from "./terminal-scroll-intent-dom-tracking";
 import {
   installTerminalLinkifierHoverResetOnMouseLeave,
   installTerminalLinkifierHoverResetOnWindowBlur,
@@ -41,6 +43,11 @@ export function openTerminal(pane: ManagedPaneInternal): void {
 
   attachTerminalMouseWheelMultiplier(terminal);
   pane.wheelScrollCleanup = installTerminalWheelScroll(terminal);
+  pane.terminalScrollIntentDisposable = attachTerminalScrollIntentTracking(
+    terminal,
+    xtermContainer,
+    pane.leafId,
+  );
   pane.linkifierHoverResetDisposable = installTerminalLinkifierHoverResetOnWrite(terminal);
   pane.linkifierMouseLeaveResetDisposable = installTerminalLinkifierHoverResetOnMouseLeave(
     terminal,
@@ -82,6 +89,8 @@ export function disposePane(pane: ManagedPaneInternal): void {
   }
   pane.focusClassSyncCleanup?.();
   pane.focusClassSyncCleanup = null;
+  pane.terminalScrollIntentDisposable?.dispose();
+  pane.terminalScrollIntentDisposable = null;
   pane.wheelScrollCleanup?.();
   pane.wheelScrollCleanup = null;
   pane.linkifierHoverResetDisposable?.dispose();
@@ -93,6 +102,7 @@ export function disposePane(pane: ManagedPaneInternal): void {
   pane.compositionHandler?.();
   pane.compositionHandler = null;
   detachPaneFitResizeObserver(pane);
+  cancelDeferredScrollRestore(pane.terminal);
   cancelPendingWebglRefresh(pane);
   disposeWebgl(pane);
   clearTerminalOutputQueue(pane.terminal);

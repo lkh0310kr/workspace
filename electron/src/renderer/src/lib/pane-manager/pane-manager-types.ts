@@ -5,9 +5,19 @@ import type { SerializeAddon } from "@xterm/addon-serialize";
 import type { Unicode11Addon } from "@xterm/addon-unicode11";
 import type { WebLinksAddon } from "@xterm/addon-web-links";
 import type { WebglAddon } from "@xterm/addon-webgl";
-import type { Terminal, ITerminalOptions } from "@xterm/xterm";
+import type { Terminal, ITerminalOptions, IMarker, IDisposable } from "@xterm/xterm";
 
 export type TerminalGpuAcceleration = "auto" | "on" | "off";
+
+export type ScrollState = {
+  bufferType: "normal" | "alternate";
+  wasAtBottom: boolean;
+  viewportY: number;
+  baseY: number;
+  firstVisibleLineMarker?: IMarker;
+  firstVisibleLogicalLineMarker?: IMarker;
+  firstVisibleLogicalCellOffset?: number;
+};
 
 export type ManagedPane = {
   id: number;
@@ -32,6 +42,7 @@ export type ManagedPaneInternal = ManagedPane & {
   unicode11Addon: Unicode11Addon;
   webLinksAddon: WebLinksAddon;
   fitResizeObserver: ResizeObserver | null;
+  lastFitClientSize?: { width: number; height: number };
   pendingInitialFitRafId: number | null;
   pendingWebglRefreshRafId: number | null;
   pendingRefitRetryRafId: number | null;
@@ -43,10 +54,12 @@ export type ManagedPaneInternal = ManagedPane & {
   hasComplexScriptOutput?: boolean;
   compositionHandler: (() => void) | null;
   focusClassSyncCleanup: (() => void) | null;
+  terminalScrollIntentDisposable: IDisposable | null;
   wheelScrollCleanup: (() => void) | null;
   linkifierHoverResetDisposable: { dispose: () => void } | null;
   linkifierMouseLeaveResetDisposable: { dispose: () => void } | null;
   linkifierWindowBlurResetDisposable: { dispose: () => void } | null;
+  pendingSplitScrollState: ScrollState | null;
 };
 
 export type PaneManagerOptions = {
