@@ -2,7 +2,8 @@
 
 Phase 1 stability layer: a single module owns overlay blocking, embed pointer-events, portal lifecycle, and focus handoff.
 
-**Source:** `electron/src/renderer/src/interaction/InteractionCoordinator.ts`
+**Source:** `electron/src/renderer/src/interaction/InteractionCoordinator.ts`  
+**Policy:** `electron/src/renderer/src/interaction/webviewPolicy.ts` (unit-tested pure function)
 
 **Singleton:** `interactionCoordinator`
 

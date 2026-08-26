@@ -116,7 +116,8 @@ layout factory, flexlayout `onAction`/`onModelChange`, chip drop, splitter overl
 현재 자동 테스트: `terminal-shortcut-policy`, `embedPolicy`, `dragSession`, `workspaceScope`, `layoutTabDrop`, `layoutChipWindowDrop`.
 
 - [x] `layoutTabDrop.resolveDockLocation`, `layoutChipWindowDrop.executeTabChipWindowDrop` unit test (2026-08-26).
-- [ ] `InteractionCoordinator.resolveWebviewPolicy`, `layoutActions.moveTabToSplitPane` 등 **순수 함수 unit test** 추가
+- [x] `InteractionCoordinator.resolveWebviewPolicy` — `webviewPolicy.ts` 순수 함수 추출 + unit test (2026-08-26).
+- [ ] `layoutActions.moveTabToSplitPane` 등 **순수 함수 unit test** 추가
 - [ ] 수동 회귀 체크리스트 문서화: workspace tab 전환, split drag over browser/terminal, popover 열린 채 browser 보임, chip reorder, Cmd+W/Cmd+R, pane close
 - [ ] (선택) Playwright/Electron driver smoke test
 

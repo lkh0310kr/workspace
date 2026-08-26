@@ -3,6 +3,8 @@
  * Pane/tab visibility is owned by PaneGroup + BrowserContent — not duplicated here.
  */
 
+import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from "./webviewPolicy";
+
 export type OverlaySource = string;
 
 type WebviewRegistration = {
@@ -116,7 +118,7 @@ class InteractionCoordinatorImpl {
     this.reconcile(`browser-pane-visible:${paneTabItemId}:${visible}`);
     if (visible) {
       const wv = this.findWebview(workspaceTabId, paneTabItemId);
-      if (wv && this.shouldEnableWebview(wv)) {
+      if (wv && this.isWebviewInteractive(wv)) {
         this.pendingFocusWebview = wv;
         this.reconcile(`browser-pane-focus:${paneTabItemId}`);
       }
@@ -167,7 +169,13 @@ class InteractionCoordinatorImpl {
     const activeTab = this.activeWorkspaceTabId;
 
     for (const [webview, reg] of this.webviews) {
-      const policy = this.resolveWebviewPolicy(webview, reg, activeTab, blocked, portalsOpen);
+      const policy = resolveWebviewPolicy({
+        workspaceTabId: reg.workspaceTabId,
+        paneVisible: reg.paneVisible,
+        activeWorkspaceTabId: activeTab,
+        overlayBlocked: blocked,
+        portalsOpen,
+      });
       this.applyWebviewPolicy(webview, policy);
     }
 
@@ -175,11 +183,13 @@ class InteractionCoordinatorImpl {
       const wv = el as Electron.WebviewTag;
       if (this.webviews.has(wv)) continue;
       const hostItem = wv.closest("[data-workspace-tab-id]");
-      const tabId = hostItem ? Number(hostItem.getAttribute("data-workspace-tab-id")) : NaN;
-      const paneVisible = Number.isFinite(tabId) && tabId === activeTab;
-      const visible = paneVisible && !blocked;
-      const interactive = paneVisible && !blocked && !portalsOpen;
-      this.applyWebviewPolicy(wv, { visible, interactive });
+      const tabIdAttr = hostItem?.getAttribute("data-workspace-tab-id");
+      const hostTabId = tabIdAttr !== null && tabIdAttr !== "" ? Number(tabIdAttr) : null;
+      const hostWorkspaceTabId = Number.isFinite(hostTabId) ? hostTabId : null;
+      this.applyWebviewPolicy(
+        wv,
+        resolveOrphanWebviewPolicy(hostWorkspaceTabId, activeTab, blocked, portalsOpen),
+      );
     }
 
     if (this.pendingFocusWebview) {
@@ -187,7 +197,13 @@ class InteractionCoordinatorImpl {
       this.pendingFocusWebview = null;
       const reg = this.webviews.get(wv);
       const policy = reg
-        ? this.resolveWebviewPolicy(wv, reg, activeTab, blocked, portalsOpen)
+        ? resolveWebviewPolicy({
+            workspaceTabId: reg.workspaceTabId,
+            paneVisible: reg.paneVisible,
+            activeWorkspaceTabId: activeTab,
+            overlayBlocked: blocked,
+            portalsOpen,
+          })
         : { visible: false, interactive: false };
       if (policy.interactive) {
         try {
@@ -209,38 +225,16 @@ class InteractionCoordinatorImpl {
     webview.style.pointerEvents = policy.interactive ? "auto" : "none";
   }
 
-  private resolveWebviewPolicy(
-    webview: Electron.WebviewTag,
-    reg?: WebviewRegistration,
-    activeTab = this.activeWorkspaceTabId,
-    blocked = this.overlayStack.length > 0,
-    portalsOpen = this.portals.size > 0,
-  ): { visible: boolean; interactive: boolean } {
+  private isWebviewInteractive(webview: Electron.WebviewTag, reg?: WebviewRegistration): boolean {
     const registration = reg ?? this.webviews.get(webview);
-    if (!registration) return { visible: false, interactive: false };
-    const paneVisible =
-      activeTab === registration.workspaceTabId && registration.paneVisible;
-    // Native <webview> guests still capture drag/hit-test even with
-    // pointer-events:none — hide during splitter/pane drags so flexlayout
-    // receives dragover over browser areas. Portovers only need input blocked.
-    const visible = paneVisible && !blocked;
-    const interactive = paneVisible && !blocked && !portalsOpen;
-    return { visible, interactive };
-  }
-
-  private shouldEnableWebview(
-    webview: Electron.WebviewTag,
-    reg?: WebviewRegistration,
-    activeTab = this.activeWorkspaceTabId,
-    blocked = this.overlayStack.length > 0,
-  ): boolean {
-    return this.resolveWebviewPolicy(
-      webview,
-      reg,
-      activeTab,
-      blocked,
-      this.portals.size > 0,
-    ).interactive;
+    if (!registration) return false;
+    return resolveWebviewPolicy({
+      workspaceTabId: registration.workspaceTabId,
+      paneVisible: registration.paneVisible,
+      activeWorkspaceTabId: this.activeWorkspaceTabId,
+      overlayBlocked: this.overlayStack.length > 0,
+      portalsOpen: this.portals.size > 0,
+    }).interactive;
   }
 
   private findWebview(workspaceTabId: number, paneTabItemId: string): Electron.WebviewTag | null {
