@@ -3,12 +3,16 @@ import { spawnTerminal } from "../electron";
 import { layoutLog, layoutLogMutation, summarizeLayoutModel } from "./layoutDebugLog";
 import { PaneGroupConfig, PaneTabItem, TabKind, tabKindLabel } from "./paneTypes";
 import { useWorkspaceStore } from "../store/workspaceStore";
+import { findTabIdForModel } from "../store/workspaceLayoutModels";
 
-/** PaneGroup reads tabNode.getConfig() — bump epoch only when the tab list
+/** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
  * structure changes, not on activeTabId-only persists (that remounted
  * terminals/webviews on every tab click). */
-function bumpPaneGroupRender(): void {
-  useWorkspaceStore.getState().bumpModelEpoch();
+function bumpPaneGroupRender(model: Model): void {
+  const tabId = findTabIdForModel(model);
+  if (tabId !== undefined) {
+    useWorkspaceStore.getState().bumpLayoutRevision(tabId);
+  }
 }
 
 // A simple incrementing counter here (as this used to be) resets to 1
@@ -96,7 +100,7 @@ export async function addPaneToTabSet(
     kind,
     itemId: item.id,
   });
-  bumpPaneGroupRender();
+  bumpPaneGroupRender(model);
 }
 
 /** Adds a new tab of `kind` to an existing pane's tab group and makes it
@@ -122,7 +126,7 @@ export async function addTabToGroup(
     kind,
     itemId: item.id,
   });
-  bumpPaneGroupRender();
+  bumpPaneGroupRender(model);
   return item.id;
 }
 
@@ -178,7 +182,7 @@ export async function changeTabKindInGroup(
   tabs[idx] = item;
   const activeTabId = config.activeTabId === tabId ? item.id : config.activeTabId;
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, tabs, activeTabId } }));
-  bumpPaneGroupRender();
+  bumpPaneGroupRender(model);
   return item.id;
 }
 
@@ -222,7 +226,7 @@ export function moveTabToGroup(
       tabId,
       targetIndex: clamped,
     });
-    bumpPaneGroupRender();
+    bumpPaneGroupRender(model);
     return item.id;
   }
 
@@ -257,7 +261,7 @@ export function moveTabToGroup(
     merged: sourceTabNodeId !== targetTabNodeId,
     sourceDeleted: remainingSource.length === 0,
   });
-  bumpPaneGroupRender();
+  bumpPaneGroupRender(model);
   return item.id;
 }
 
@@ -381,7 +385,7 @@ export function moveTabToSplitPane(
     strategy,
     tabKind: item.kind,
   });
-  bumpPaneGroupRender();
+  bumpPaneGroupRender(model);
   return { tabNodeId: nodeJson.id, tabItemId: item.id };
 }
 
@@ -419,7 +423,7 @@ export function closeTabInGroup(model: Model, tabNodeId: string, tabId: string):
       tabNodeId,
       tabId,
     });
-    bumpPaneGroupRender();
+    bumpPaneGroupRender(model);
     return null;
   }
   const activeTabId =
@@ -430,6 +434,6 @@ export function closeTabInGroup(model: Model, tabNodeId: string, tabId: string):
     tabId,
     nextActiveTabId: activeTabId,
   });
-  bumpPaneGroupRender();
+  bumpPaneGroupRender(model);
   return activeTabId;
 }

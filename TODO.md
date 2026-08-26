@@ -56,7 +56,7 @@ layout factory, flexlayout `onAction`/`onModelChange`, chip drop, splitter overl
 
 `docs/architecture/07-future-phases.md` Phase 2는 "완료"로 표시돼 있으나:
 
-- [ ] `modelsByTabId` Map이 **zustand 밖 module scope** — `workspaceLayoutModels.ts`로 분리됨; reactive slice 통합은 미완.
+- [x] `modelsByTabId` Map은 module scope에 유지 (flexlayout Model 인스턴스); zustand `layoutRevisions` per-tab reactive slice로 교체해 `modelEpoch` 전역 bump 제거 (2026-08-26).
 - [x] `useWorkspaceScope` / `getWorkspaceScope` — coordinator + zustand + optimistic tab을 한 snapshot으로 projection (2026-08-26).
 - [ ] `PaneGroup` 내부 dirty state, explorer width 등 pane-local UI state는 zustand slice 후보
 

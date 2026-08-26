@@ -17,6 +17,7 @@ import { EditorContent } from "./EditorContent";
 import { BrowserContent } from "./BrowserContent";
 import { TerminalPane } from "./TerminalPane";
 import { paneTabStoreKey } from "../store/paneTabKey";
+import { useLayoutRevision } from "../hooks/useLayoutRevision";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import { layoutLog } from "../layout/layoutDebugLog";
 import { dbgLog } from "../interaction/interactionDebugLog";
@@ -71,16 +72,16 @@ function isEditorKind(kind: TabKind): boolean {
 
 export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }: Props) {
   const visible = usePaneVisibility(workspaceTabId, tabNode);
-  const modelEpoch = useWorkspaceStore((s) => s.modelEpoch);
+  const layoutRevision = useLayoutRevision(workspaceTabId);
   const config = (tabNode.getConfig() ?? { tabs: [], activeTabId: "" }) as PaneGroupConfig;
   const tabs = config.tabs;
-  void modelEpoch;
+  void layoutRevision;
   const zoom = config.zoom ?? 1;
 
   // Which tab is displayed is local React state, not derived straight from
   // the flexlayout model — switching used to go through
   // setActiveTabInGroup + onNotifyChanged (a full model mutation +
-  // App-level modelEpoch bump + persistLayout debounce) on every click,
+  // per-tab layoutRevision bump + persistLayout debounce) on every click,
   // which round-trips through flexlayout's own re-render before the
   // screen actually updates. Reported as "탭 이동이 orca처럼 부드럽지
   // 않음 / 안 되는 케이스가 너무 많음" — switching feels laggy and
@@ -161,10 +162,10 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
     dbgLog(
       "PaneGroup:tabsStale",
       "localActiveId missing from tabs",
-      { modelEpoch, localActiveId, tabIds: tabs.map((t) => t.id), nodeId, workspaceTabId },
+      { layoutRevision, localActiveId, tabIds: tabs.map((t) => t.id), nodeId, workspaceTabId },
       "H7",
     );
-  }, [modelEpoch, localActiveId, tabs, nodeId, workspaceTabId]);
+  }, [layoutRevision, localActiveId, tabs, nodeId, workspaceTabId]);
   // #endregion
 
   const selectTab = useCallback(

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import type { TabNode } from "flexlayout-react";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
+import { useLayoutRevision } from "../hooks/useLayoutRevision";
 import { useWorkspaceScope } from "../interaction/useWorkspaceScope";
-import { useWorkspaceStore } from "../store/workspaceStore";
 
 /**
  * Single source of truth for whether a PaneGroup should show live content.
@@ -10,7 +10,7 @@ import { useWorkspaceStore } from "../store/workspaceStore";
  * when the workspace tab switches because flexlayout does not re-invoke factory.
  */
 export function usePaneVisibility(workspaceTabId: number, tabNode: TabNode): boolean {
-  const modelEpoch = useWorkspaceStore((s) => s.modelEpoch);
+  const layoutRevision = useLayoutRevision(workspaceTabId);
   const { visibleWorkspaceTabId } = useWorkspaceScope();
   const [, tick] = useState(0);
 
@@ -34,7 +34,7 @@ export function usePaneVisibility(workspaceTabId: number, tabNode: TabNode): boo
     };
   }, [tabNode]);
 
-  void modelEpoch;
+  void layoutRevision;
 
   return workspaceTabId === visibleWorkspaceTabId && tabNode.isVisible();
 }

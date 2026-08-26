@@ -28,6 +28,13 @@ export function layoutModelTabIds(): Iterable<number> {
   return modelsByTabId.keys();
 }
 
+export function findTabIdForModel(model: Model): number | undefined {
+  for (const [tabId, existing] of modelsByTabId) {
+    if (existing === model) return tabId;
+  }
+  return undefined;
+}
+
 export function getSavedLayoutJson(tabId: number): string | undefined {
   return savedLayoutJsonByTabId.get(tabId);
 }

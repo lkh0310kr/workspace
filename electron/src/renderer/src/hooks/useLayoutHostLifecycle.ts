@@ -19,7 +19,7 @@ export function useLayoutHostLifecycle(activeTabId: number): void {
 
 export function useEnsureDefaultTerminals(
   tabs: TabInfo[] | undefined,
-  modelEpoch: number,
+  layoutRevisions: Record<number, number>,
   ensureTerminal: (tabId: number, model: Model, tabSetId: string) => Promise<void>,
 ): void {
   useEffect(() => {
@@ -37,5 +37,5 @@ export function useEnsureDefaultTerminals(
         void ensureTerminal(tab.id, model, tabSetId);
       }
     }
-  }, [modelEpoch, ensureTerminal, tabs]);
+  }, [layoutRevisions, ensureTerminal, tabs]);
 }

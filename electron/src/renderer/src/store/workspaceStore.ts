@@ -48,16 +48,17 @@ export type WorkspaceStoreState = {
   hydrated: boolean;
   tabs: TabInfo[];
   activeTabId: number;
-  modelEpoch: number;
+  /** Per workspace-tab layout model revision — bumps when that tab's Model reloads or pane tab structure changes. */
+  layoutRevisions: Record<number, number>;
   activePaneTabByKey: Record<string, string>;
 };
 
 type WorkspaceStoreActions = {
   hydrateFromWorkspace: (ws: WorkspaceState) => void;
   syncModelsFromWorkspace: (ws: WorkspaceState) => void;
-  bumpModelEpoch: () => void;
+  bumpLayoutRevision: (tabId: number) => void;
+  getLayoutRevision: (tabId: number) => number;
   getModel: (tabId: number) => Model | undefined;
-  getModelEpoch: () => number;
   persistLayout: (tabId: number, model: Model) => void;
   setPendingRebalance: (tabId: number, nodeId: string | null) => void;
   takePendingRebalance: (tabId: number) => string | null | undefined;
@@ -73,7 +74,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     hydrated: false,
     tabs: [],
     activeTabId: 0,
-    modelEpoch: 0,
+    layoutRevisions: {},
     activePaneTabByKey: {},
 
     hydrateFromWorkspace(ws: WorkspaceState) {
@@ -91,7 +92,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     },
 
     syncModelsFromWorkspace(ws: WorkspaceState) {
-      let modelChanged = false;
+      const bumpedTabIds = new Set<number>();
       const seen = new Set<number>();
       for (const tab of ws.tabs) {
         seen.add(tab.id);
@@ -102,7 +103,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
           continue;
         }
         setLayoutModel(tab.id, modelFromLayoutJson(tab.layout_json));
-        modelChanged = true;
+        bumpedTabIds.add(tab.id);
         layoutLogModel(
           "workspaceStore.syncModelsFromWorkspace",
           "model loaded",
@@ -118,24 +119,32 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
         if (!seen.has(id)) {
           deleteLayoutModel(id);
           get().removePaneTabKeysForWorkspaceTab(id);
-          modelChanged = true;
+          bumpedTabIds.add(id);
         }
       }
-      if (modelChanged) {
-        set({ modelEpoch: get().modelEpoch + 1 });
+      if (bumpedTabIds.size === 0) return;
+      const nextRevisions = { ...get().layoutRevisions };
+      for (const tabId of bumpedTabIds) {
+        nextRevisions[tabId] = (nextRevisions[tabId] ?? 0) + 1;
       }
+      set({ layoutRevisions: nextRevisions });
     },
 
-    bumpModelEpoch() {
-      set({ modelEpoch: get().modelEpoch + 1 });
+    bumpLayoutRevision(tabId: number) {
+      set({
+        layoutRevisions: {
+          ...get().layoutRevisions,
+          [tabId]: (get().layoutRevisions[tabId] ?? 0) + 1,
+        },
+      });
+    },
+
+    getLayoutRevision(tabId: number) {
+      return get().layoutRevisions[tabId] ?? 0;
     },
 
     getModel(tabId: number) {
       return getLayoutModel(tabId);
-    },
-
-    getModelEpoch() {
-      return get().modelEpoch;
     },
 
     persistLayout(tabId: number, model: Model) {

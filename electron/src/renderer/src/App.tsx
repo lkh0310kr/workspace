@@ -12,6 +12,7 @@ import { useAppBootstrap } from "./hooks/useAppBootstrap";
 import { useAppShellState } from "./hooks/useAppShellState";
 import { useAppShortcuts, useDismissPortalsOnWorkspaceSwitch } from "./hooks/useAppShortcuts";
 import { useLayoutHostCallbacks } from "./hooks/useLayoutHostCallbacks";
+import { useLayoutRevisions } from "./hooks/useLayoutRevision";
 import { useEnsureDefaultTerminals, useLayoutHostLifecycle } from "./hooks/useLayoutHostLifecycle";
 import { useSplitterDragOverlay } from "./hooks/useSplitterDragOverlay";
 import { useTabChipWindowDrop } from "./hooks/useTabChipWindowDrop";
@@ -24,7 +25,7 @@ import "./assets/styles.css";
 
 export default function App() {
   const workspace = useWorkspace();
-  const modelEpoch = useWorkspaceStore((s) => s.modelEpoch);
+  const layoutRevisions = useLayoutRevisions();
   const storeGetModel = useWorkspaceStore((s) => s.getModel);
   const layoutCallbacks = useLayoutHostCallbacks();
   const { bumpLayout, ensureTerminal } = layoutCallbacks;
@@ -57,7 +58,7 @@ export default function App() {
   useSplitterDragOverlay();
   useTabChipWindowDrop(activeTabId);
   useLayoutHostLifecycle(activeTabId);
-  useEnsureDefaultTerminals(workspace?.tabs, modelEpoch, ensureTerminal);
+  useEnsureDefaultTerminals(workspace?.tabs, layoutRevisions, ensureTerminal);
   useDismissPortalsOnWorkspaceSwitch(activeTabId, dismissPortals);
   useAppShortcuts({
     activeTabId,
