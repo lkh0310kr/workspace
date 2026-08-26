@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { SearchAddon } from "@xterm/addon-search";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
@@ -77,10 +77,17 @@ export function TerminalSearch({ isOpen, onClose, searchAddonRef, themeKey }: Pr
     }
   }, [requestQuery, searchAddon, isOpen, caseSensitive, regex, searchOptions]);
 
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Why: an inline onClose prop is a new identity every render; keying this
+  // effect on it would re-register the portal every render, and
+  // registerPortal's reconcile()+notifyListeners() can feed right back into
+  // a re-render (see ContextMenu.tsx's fix for the same class of bug).
   useEffect(() => {
     if (!isOpen) return;
-    return interactionCoordinator.registerPortal("terminal-search", onClose);
-  }, [isOpen, onClose]);
+    return interactionCoordinator.registerPortal("terminal-search", () => onCloseRef.current());
+  }, [isOpen]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation();

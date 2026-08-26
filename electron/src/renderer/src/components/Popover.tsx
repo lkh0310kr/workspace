@@ -52,6 +52,14 @@ export function Popover({
     left: 0,
     ready: false,
   });
+  // Why: callers routinely pass an inline `() => setX(null)` onClose, a new
+  // identity every render. registerPortal's cleanup+re-register on identity
+  // change calls interactionCoordinator.reconcile(), which notifies every
+  // subscriber (e.g. usePaneVisibility) and forces a re-render — feeding
+  // right back into a new onClose identity. A ref keeps every effect below
+  // mount-stable regardless of the caller's callback stability.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -70,11 +78,11 @@ export function Popover({
 
   useLayoutEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [onClose]);
+  }, []);
 
   useLayoutEffect(() => {
     if (!dismissOnClickOutside) return;
@@ -84,7 +92,7 @@ export function Popover({
       // Ignore presses on the trigger rect so toggle buttons (settings, +)
       // can close via their own click handler without pointerdown reopen races.
       if (pointInRect(e.clientX, e.clientY, anchorRect)) return;
-      onClose();
+      onCloseRef.current();
     };
     const timer = window.setTimeout(() => {
       document.addEventListener("pointerdown", onPointerDown, true);
@@ -93,11 +101,11 @@ export function Popover({
       clearTimeout(timer);
       document.removeEventListener("pointerdown", onPointerDown, true);
     };
-  }, [onClose, dismissOnClickOutside, anchorRect]);
+  }, [dismissOnClickOutside, anchorRect]);
 
   useLayoutEffect(() => {
-    return interactionCoordinator.registerPortal(portalId, onClose);
-  }, [portalId, onClose]);
+    return interactionCoordinator.registerPortal(portalId, () => onCloseRef.current());
+  }, [portalId]);
 
   const panel = (
     <div

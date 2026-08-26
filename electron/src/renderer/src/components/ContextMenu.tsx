@@ -128,19 +128,28 @@ function ContextMenuPanel({
 export function ContextMenu({ x, y, items, onClose }: Props) {
   const portalId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  // Why: callers routinely pass an inline `() => setX(null)` onClose, a new
+  // identity every render. registerPortal's cleanup+re-register on identity
+  // change calls interactionCoordinator.reconcile(), which notifies every
+  // subscriber (e.g. usePaneVisibility) and forces a re-render — feeding
+  // right back into a new onClose identity. A ref keeps every effect below
+  // mount-stable regardless of the caller's callback stability (STA "Maximum
+  // update depth exceeded" on TreeView right-click).
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useLayoutEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [onClose]);
+  }, []);
 
   useLayoutEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
       if (rootRef.current?.contains(e.target as Node)) return;
-      onClose();
+      onCloseRef.current();
     };
     const timer = window.setTimeout(() => {
       document.addEventListener("pointerdown", onPointerDown, true);
@@ -149,11 +158,11 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
       clearTimeout(timer);
       document.removeEventListener("pointerdown", onPointerDown, true);
     };
-  }, [onClose]);
+  }, []);
 
   useLayoutEffect(() => {
-    return interactionCoordinator.registerPortal(portalId, onClose);
-  }, [portalId, onClose]);
+    return interactionCoordinator.registerPortal(portalId, () => onCloseRef.current());
+  }, [portalId]);
 
   return createPortal(
     <div ref={rootRef}>
