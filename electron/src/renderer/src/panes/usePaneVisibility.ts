@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import type { TabNode } from "flexlayout-react";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
-import { resolveVisibleWorkspaceTabId } from "../interaction/resolveVisibleWorkspaceTabId";
-import { useInteractionCoordinatorActiveTab } from "../interaction/useInteractionCoordinatorActiveTab";
+import { useWorkspaceScope } from "../interaction/useWorkspaceScope";
 import { useWorkspaceStore } from "../store/workspaceStore";
 
 /**
@@ -11,10 +10,8 @@ import { useWorkspaceStore } from "../store/workspaceStore";
  * when the workspace tab switches because flexlayout does not re-invoke factory.
  */
 export function usePaneVisibility(workspaceTabId: number, tabNode: TabNode): boolean {
-  const activeTabId = useWorkspaceStore((s) => s.activeTabId);
-  const tabs = useWorkspaceStore((s) => s.tabs);
   const modelEpoch = useWorkspaceStore((s) => s.modelEpoch);
-  const coordinatorTabId = useInteractionCoordinatorActiveTab();
+  const { visibleWorkspaceTabId } = useWorkspaceScope();
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -38,12 +35,6 @@ export function usePaneVisibility(workspaceTabId: number, tabNode: TabNode): boo
   }, [tabNode]);
 
   void modelEpoch;
-
-  const visibleWorkspaceTabId = resolveVisibleWorkspaceTabId(
-    activeTabId,
-    coordinatorTabId,
-    tabs,
-  );
 
   return workspaceTabId === visibleWorkspaceTabId && tabNode.isVisible();
 }

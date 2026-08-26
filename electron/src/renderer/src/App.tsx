@@ -50,7 +50,7 @@ export default function App() {
   } = shell;
 
   const activeTabId = workspace?.active_tab_id ?? 0;
-  const visibleWorkspaceTabId = useVisibleWorkspaceTab(activeTabId, workspace?.tabs);
+  const visibleWorkspaceTabId = useVisibleWorkspaceTab();
   const activeModel = storeGetModel(activeTabId);
 
   useAppBootstrap();
