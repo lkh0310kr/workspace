@@ -274,8 +274,18 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
             webContentsId={webContentsId}
             onNavigate={syncNavState}
           />
-          <button type="button" className="browser-nav-btn" title="Reload" onClick={() => webviewRef.current?.reload()}>
-            ↻
+          <button
+            type="button"
+            className="browser-nav-btn"
+            title={loading ? "Stop" : "Reload"}
+            onClick={() => {
+              const wv = webviewRef.current;
+              if (!wv) return;
+              if (loading) wv.stop();
+              else wv.reload();
+            }}
+          >
+            {loading ? "×" : "↻"}
           </button>
           <div className="browser-zoom-controls">
             <button

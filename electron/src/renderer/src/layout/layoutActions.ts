@@ -4,6 +4,7 @@ import { layoutLog, layoutLogMutation, summarizeLayoutModel } from "./layoutDebu
 import { PaneGroupConfig, PaneTabItem, TabKind, tabKindLabel } from "./paneTypes";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import { findTabIdForModel } from "../store/workspaceLayoutModels";
+import { resolveSplitPaneMutationStrategy } from "./layoutSplitPolicy";
 
 /** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
  * structure changes, not on activeTabId-only persists (that remounted
@@ -357,13 +358,7 @@ export function moveTabToSplitPane(
 
   // Same-pane splits must add the new tabset before mutating/deleting the
   // source tab node so flexlayout still has a valid anchor tabset.
-  const strategy = samePane
-    ? emptySource
-      ? "add-then-delete"
-      : "add-then-update"
-    : emptySource
-      ? "delete-then-add"
-      : "update-then-add";
+  const strategy = resolveSplitPaneMutationStrategy(samePane, emptySource);
 
   if (samePane) {
     model.doAction(Actions.addTab(nodeJson, tabSetId, location, -1, true));

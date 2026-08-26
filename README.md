@@ -16,7 +16,7 @@ Production build: `npm run build` (then `npm run build:mac` / `build:win` / `bui
 
 | Layer | Tech |
 |-------|------|
-| Shell | Electron 39 + electron-vite |
+| Shell | Electron 42 + electron-vite |
 | UI | React + flexlayout-react |
 | Terminal | xterm.js + node-pty (wrapped in tmux for persistence across restarts) |
 | Editor | CodeMirror 6 |
