@@ -8,6 +8,11 @@ import { clearTerminalOutputQueue } from "./pane-terminal-output-scheduler";
 import { installTerminalImeCandidateAnchor } from "./terminal-ime-candidate-anchor";
 import { attachTerminalMouseWheelMultiplier } from "./pane-terminal-mouse-wheel";
 import { installTerminalWheelScroll } from "../../terminal/terminal-wheel-scroll";
+import {
+  installTerminalLinkifierHoverResetOnMouseLeave,
+  installTerminalLinkifierHoverResetOnWindowBlur,
+} from "./terminal-linkifier-hover-reset-on-mouseleave";
+import { installTerminalLinkifierHoverResetOnWrite } from "./terminal-linkifier-hover-reset-on-write";
 
 export { createPaneDOM } from "./pane-dom-creation";
 
@@ -36,6 +41,15 @@ export function openTerminal(pane: ManagedPaneInternal): void {
 
   attachTerminalMouseWheelMultiplier(terminal);
   pane.wheelScrollCleanup = installTerminalWheelScroll(terminal);
+  pane.linkifierHoverResetDisposable = installTerminalLinkifierHoverResetOnWrite(terminal);
+  pane.linkifierMouseLeaveResetDisposable = installTerminalLinkifierHoverResetOnMouseLeave(
+    terminal,
+    linkTooltip,
+  );
+  pane.linkifierWindowBlurResetDisposable = installTerminalLinkifierHoverResetOnWindowBlur(
+    terminal,
+    linkTooltip,
+  );
 
   activateOrcaTerminalUnicodeProvider(terminal);
 
@@ -70,6 +84,12 @@ export function disposePane(pane: ManagedPaneInternal): void {
   pane.focusClassSyncCleanup = null;
   pane.wheelScrollCleanup?.();
   pane.wheelScrollCleanup = null;
+  pane.linkifierHoverResetDisposable?.dispose();
+  pane.linkifierHoverResetDisposable = null;
+  pane.linkifierMouseLeaveResetDisposable?.dispose();
+  pane.linkifierMouseLeaveResetDisposable = null;
+  pane.linkifierWindowBlurResetDisposable?.dispose();
+  pane.linkifierWindowBlurResetDisposable = null;
   pane.compositionHandler?.();
   pane.compositionHandler = null;
   detachPaneFitResizeObserver(pane);

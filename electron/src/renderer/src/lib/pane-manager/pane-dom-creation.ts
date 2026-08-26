@@ -82,6 +82,9 @@ export function createPaneDOM(
     compositionHandler: null,
     focusClassSyncCleanup: null,
     wheelScrollCleanup: null,
+    linkifierHoverResetDisposable: null,
+    linkifierMouseLeaveResetDisposable: null,
+    linkifierWindowBlurResetDisposable: null,
   };
 
   return pane;

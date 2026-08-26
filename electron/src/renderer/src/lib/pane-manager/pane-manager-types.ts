@@ -44,6 +44,9 @@ export type ManagedPaneInternal = ManagedPane & {
   compositionHandler: (() => void) | null;
   focusClassSyncCleanup: (() => void) | null;
   wheelScrollCleanup: (() => void) | null;
+  linkifierHoverResetDisposable: { dispose: () => void } | null;
+  linkifierMouseLeaveResetDisposable: { dispose: () => void } | null;
+  linkifierWindowBlurResetDisposable: { dispose: () => void } | null;
 };
 
 export type PaneManagerOptions = {
