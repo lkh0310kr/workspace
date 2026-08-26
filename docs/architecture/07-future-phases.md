@@ -35,6 +35,8 @@ type WorkspaceScopeState = {
 
 ## Phase 3 — Session vs mount + embed budgets
 
+**Status:** Browser WebviewRegistry + terminal cold-park **implemented** (2026-08-26). See [08-embed-budget.md](./08-embed-budget.md).
+
 **Goal:** Unmount expensive UI while keeping session records; cap guest/terminal mount count.
 
 | Embed | Session (durable) | Mount (budgeted) |

@@ -20,7 +20,7 @@ flowchart TB
 
 **Source:** `electron/src/renderer/src/panes/BrowserContent.tsx`
 
-One webview per pane tab item (`item.id`), created imperatively in `useEffect` with empty deps (lifetime = tab item mount).
+One webview per visible pane tab item, gated by `WebviewRegistry` LRU (max 4 live guests). Session URL/zoom in layout JSON.
 
 ## Session partition
 
@@ -94,7 +94,7 @@ Workspace tab hosts also avoid `display: none` (use visibility + z-index). See [
 
 Every workspace tab with browser panes keeps live webviews while mounted. Multiple workspace tabs × multiple browser tabs = multiple guest processes.
 
-Phase 3 plans a **WebviewRegistry** with LRU retention. See [07-future-phases.md](./07-future-phases.md).
+Phase 3 plans a **WebviewRegistry** with LRU retention — **implemented** (see [08-embed-budget.md](./08-embed-budget.md)).
 
 ## Debugging browser interaction
 

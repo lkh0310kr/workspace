@@ -14,6 +14,7 @@ import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler
 import { copyTerminalSelection } from "../terminal/terminal-selection-copy";
 import { termLog } from "../terminal/terminalDebugLog";
 import { dbgLog } from "../interaction/interactionDebugLog";
+import { useTerminalColdPark } from "../embeds/useTerminalColdPark";
 import { writeClipboardText } from "../electron";
 
 interface Props {
@@ -31,6 +32,7 @@ function applyTerminalSurfaceBackground(el: HTMLElement, resolved: ReturnType<ty
 }
 
 function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
+  const live = useTerminalColdPark(visible, active);
   const shellRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<ManagedPaneInternal | null>(null);
@@ -41,6 +43,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
+    if (!live) return;
     const host = hostRef.current;
     if (!host) return;
 
@@ -129,7 +132,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
       paneRef.current = null;
       searchRef.current = null;
     };
-  }, [terminalId]);
+  }, [live, terminalId]);
 
   useEffect(() => {
     const pane = paneRef.current;
@@ -143,7 +146,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
     dbgLog(
       "TerminalPane:visibility",
       "visibility effect",
-      { terminalId, visible, active, show: visible && active },
+      { terminalId, visible, active, live, show: visible && active },
       "H8",
     );
     // #endregion
@@ -210,7 +213,10 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
         searchAddonRef={searchRef}
         themeKey={searchThemeKey}
       />
-      <div className="terminal-pane-host pane-manager-root" ref={hostRef} />
+      <div
+        className={`terminal-pane-host pane-manager-root${live ? "" : " terminal-pane-host--parked"}`}
+        ref={hostRef}
+      />
     </div>
   );
 }
