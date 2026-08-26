@@ -43,6 +43,7 @@ export type ManagedPaneInternal = ManagedPane & {
   hasComplexScriptOutput?: boolean;
   compositionHandler: (() => void) | null;
   focusClassSyncCleanup: (() => void) | null;
+  wheelScrollCleanup: (() => void) | null;
 };
 
 export type PaneManagerOptions = {

@@ -7,6 +7,7 @@ import { cancelPendingWebglRefresh, disposeWebgl, attachWebgl } from "./pane-web
 import { clearTerminalOutputQueue } from "./pane-terminal-output-scheduler";
 import { installTerminalImeCandidateAnchor } from "./terminal-ime-candidate-anchor";
 import { attachTerminalMouseWheelMultiplier } from "./pane-terminal-mouse-wheel";
+import { installTerminalWheelScroll } from "../../terminal/terminal-wheel-scroll";
 
 export { createPaneDOM } from "./pane-dom-creation";
 
@@ -34,6 +35,7 @@ export function openTerminal(pane: ManagedPaneInternal): void {
   terminal.loadAddon(webLinksAddon);
 
   attachTerminalMouseWheelMultiplier(terminal);
+  pane.wheelScrollCleanup = installTerminalWheelScroll(terminal);
 
   activateOrcaTerminalUnicodeProvider(terminal);
 
@@ -66,6 +68,8 @@ export function disposePane(pane: ManagedPaneInternal): void {
   }
   pane.focusClassSyncCleanup?.();
   pane.focusClassSyncCleanup = null;
+  pane.wheelScrollCleanup?.();
+  pane.wheelScrollCleanup = null;
   pane.compositionHandler?.();
   pane.compositionHandler = null;
   detachPaneFitResizeObserver(pane);
