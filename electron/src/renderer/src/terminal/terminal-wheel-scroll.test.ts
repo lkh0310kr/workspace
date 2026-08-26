@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   applyTerminalWheelScroll,
   isTerminalViewportAtBottom,
-  terminalHasViewportScrollback,
   wheelDeltaToLines,
 } from "./terminal-wheel-scroll";
 
@@ -19,67 +18,38 @@ describe("terminal-wheel-scroll", () => {
     expect(isTerminalViewportAtBottom(scrolled)).toBe(false);
   });
 
-  it("detects scrollback on normal buffer with history", () => {
+  it("maps wheel delta to whole lines", () => {
     const terminal = {
       rows: 24,
-      buffer: { active: { type: "normal" as const, length: 100 } },
-    } as Parameters<typeof terminalHasViewportScrollback>[0];
-    expect(terminalHasViewportScrollback(terminal)).toBe(true);
-  });
-
-  it("accumulates fractional wheel deltas across events", () => {
-    const terminal = {
-      rows: 24,
-      element: {
-        querySelector: () => ({ clientHeight: 24 * 17 }),
-      },
       options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
-    } as unknown as Parameters<typeof wheelDeltaToLines>[0];
+    } as Parameters<typeof wheelDeltaToLines>[0];
     expect(
-      wheelDeltaToLines(terminal, {
-        deltaY: 5,
-        deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(0);
+      wheelDeltaToLines(terminal, { deltaY: 53, deltaMode: 0, shiftKey: false } as WheelEvent),
+    ).toBe(1);
     expect(
-      wheelDeltaToLines(terminal, {
-        deltaY: 5,
-        deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(0);
+      wheelDeltaToLines(terminal, { deltaY: -53, deltaMode: 0, shiftKey: false } as WheelEvent),
+    ).toBe(-1);
     expect(
-      wheelDeltaToLines(terminal, {
-        deltaY: 7,
-        deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
+      wheelDeltaToLines(terminal, { deltaY: 3, deltaMode: 0, shiftKey: false } as WheelEvent),
     ).toBe(1);
   });
 
-  it("scrolls viewport without forwarding when scrollback exists", () => {
+  it("scrolls viewport and never forwards to PTY", () => {
     const scrollLines = vi.fn();
     const terminal = {
       rows: 24,
-      element: {
-        querySelector: () => ({ clientHeight: 24 * 17 }),
-      },
-      buffer: { active: { type: "normal" as const, length: 100 } },
       options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
       scrollLines,
     } as unknown as Parameters<typeof applyTerminalWheelScroll>[0];
-    expect(
-      applyTerminalWheelScroll(terminal, {
-        deltaY: 17,
-        deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(false);
+    applyTerminalWheelScroll(terminal, {
+      deltaY: 53,
+      deltaMode: 0,
+      shiftKey: false,
+    } as WheelEvent);
     expect(scrollLines).toHaveBeenCalledWith(-1);
   });
 
-  it("forwards wheel when there is no scrollback to scroll", () => {
+  it("still consumes wheel when buffer has no scrollback yet", () => {
     const scrollLines = vi.fn();
     const terminal = {
       rows: 24,
@@ -87,13 +57,11 @@ describe("terminal-wheel-scroll", () => {
       options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
       scrollLines,
     } as unknown as Parameters<typeof applyTerminalWheelScroll>[0];
-    expect(
-      applyTerminalWheelScroll(terminal, {
-        deltaY: 17,
-        deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(true);
-    expect(scrollLines).not.toHaveBeenCalled();
+    applyTerminalWheelScroll(terminal, {
+      deltaY: 53,
+      deltaMode: 0,
+      shiftKey: false,
+    } as WheelEvent);
+    expect(scrollLines).toHaveBeenCalledWith(-1);
   });
 });
