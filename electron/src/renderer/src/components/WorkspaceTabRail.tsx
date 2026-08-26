@@ -1,10 +1,10 @@
 import { TabInfo, addTab, closeTab, selectTab } from "../electron";
 import { dismissWorkspacePortals } from "../workspacePortalDismiss";
-import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import {
   beginOptimisticWorkspaceTabSwitch,
   endOptimisticWorkspaceTabSwitch,
 } from "../interaction/optimisticWorkspaceTab";
+import { syncInteractionCoordinatorWorkspaceTab } from "../interaction/syncInteractionCoordinatorWorkspaceTab";
 
 // Switching workspace tabs keeps every tab's pane tree mounted — dismiss
 // any portaled popovers before the IPC round-trip so invisible layers can't
@@ -12,13 +12,14 @@ import {
 export async function switchToTab(tabId: number) {
   dismissWorkspacePortals();
   beginOptimisticWorkspaceTabSwitch(tabId);
-  interactionCoordinator.setActiveWorkspaceTab(tabId, { force: true });
+  syncInteractionCoordinatorWorkspaceTab("rail-switch-start");
   try {
     await selectTab(tabId);
   } catch (err) {
     console.error(err);
   } finally {
     endOptimisticWorkspaceTabSwitch();
+    syncInteractionCoordinatorWorkspaceTab("rail-switch-finally");
   }
 }
 

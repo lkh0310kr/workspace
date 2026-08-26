@@ -40,12 +40,10 @@ let cachedTmuxConfPath: string | null | undefined;
 // cross-restart) tmux server — an already-running server predating this
 // file needs one manual `tmux kill-server` to pick up changes.
 //
-// `mouse on` — tmux intercepts wheel in copy-mode to scroll pane history (Orca).
-// Without it, wheel escape sequences reach tmux in the alternate screen and do
-// nothing visible ("terminal scroll 안 됨"). xterm scrollback + scrollLines only
-// applies to the normal buffer; tmux panes live in the alternate buffer.
-// Plain shells (no tmux) still use handleTerminalWheelEvent scrollLines on wheel.
-// If an old tmux server was started with `mouse off`, run `tmux kill-server` once.
+// `mouse off` — xterm owns wheel via scrollLines (smooth, fractional deltas).
+// `alternate-screen off` — keep tmux output in xterm scrollback so scrollLines
+// reaches history without tmux copy-mode line steps (`mouse on` feels choppy).
+// Run `tmux kill-server` once after this changes.
 function tmuxConfPath(): string | null {
   if (cachedTmuxConfPath !== undefined) return cachedTmuxConfPath;
   const home = os.homedir();
@@ -57,7 +55,10 @@ function tmuxConfPath(): string | null {
   try {
     fs.mkdirSync(dir, { recursive: true });
     const confPath = path.join(dir, "tmux.conf");
-    fs.writeFileSync(confPath, "set-option -g status off\nset -g mouse on\n");
+    fs.writeFileSync(
+      confPath,
+      "set-option -g status off\nset -g mouse off\nset -g alternate-screen off\n",
+    );
     cachedTmuxConfPath = confPath;
   } catch {
     cachedTmuxConfPath = null;

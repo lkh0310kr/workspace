@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  handleTerminalWheelEvent,
+  applyTerminalWheelScroll,
   isTerminalViewportAtBottom,
-  shouldForwardWheelToPty,
+  terminalHasViewportScrollback,
+  wheelDeltaToLines,
 } from "./terminal-wheel-scroll";
 
 describe("terminal-wheel-scroll", () => {
@@ -18,27 +19,81 @@ describe("terminal-wheel-scroll", () => {
     expect(isTerminalViewportAtBottom(scrolled)).toBe(false);
   });
 
-  it("forwards wheel to PTY on alternate buffer (tmux)", () => {
+  it("detects scrollback on normal buffer with history", () => {
     const terminal = {
-      buffer: { active: { type: "alternate" as const, viewportY: 0, baseY: 0 } },
-    } as Parameters<typeof shouldForwardWheelToPty>[0];
-    expect(shouldForwardWheelToPty(terminal)).toBe(true);
-    expect(
-      handleTerminalWheelEvent(terminal, { deltaY: 10 } as WheelEvent),
-    ).toBe(true);
+      rows: 24,
+      buffer: { active: { type: "normal" as const, length: 100 } },
+    } as Parameters<typeof terminalHasViewportScrollback>[0];
+    expect(terminalHasViewportScrollback(terminal)).toBe(true);
   });
 
-  it("scrolls xterm viewport on normal buffer without forwarding", () => {
+  it("accumulates fractional wheel deltas across events", () => {
+    const terminal = {
+      rows: 24,
+      element: {
+        querySelector: () => ({ clientHeight: 24 * 17 }),
+      },
+      options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
+    } as unknown as Parameters<typeof wheelDeltaToLines>[0];
+    expect(
+      wheelDeltaToLines(terminal, {
+        deltaY: 5,
+        deltaMode: 0,
+        shiftKey: false,
+      } as WheelEvent),
+    ).toBe(0);
+    expect(
+      wheelDeltaToLines(terminal, {
+        deltaY: 5,
+        deltaMode: 0,
+        shiftKey: false,
+      } as WheelEvent),
+    ).toBe(0);
+    expect(
+      wheelDeltaToLines(terminal, {
+        deltaY: 7,
+        deltaMode: 0,
+        shiftKey: false,
+      } as WheelEvent),
+    ).toBe(1);
+  });
+
+  it("scrolls viewport without forwarding when scrollback exists", () => {
     const scrollLines = vi.fn();
     const terminal = {
-      buffer: { active: { type: "normal" as const, viewportY: 10, baseY: 10 } },
+      rows: 24,
+      element: {
+        querySelector: () => ({ clientHeight: 24 * 17 }),
+      },
+      buffer: { active: { type: "normal" as const, length: 100 } },
       options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
       scrollLines,
-    } as unknown as Parameters<typeof handleTerminalWheelEvent>[0];
-    expect(shouldForwardWheelToPty(terminal)).toBe(false);
+    } as unknown as Parameters<typeof applyTerminalWheelScroll>[0];
     expect(
-      handleTerminalWheelEvent(terminal, { deltaY: 53, shiftKey: false } as WheelEvent),
+      applyTerminalWheelScroll(terminal, {
+        deltaY: 17,
+        deltaMode: 0,
+        shiftKey: false,
+      } as WheelEvent),
     ).toBe(false);
     expect(scrollLines).toHaveBeenCalledWith(-1);
+  });
+
+  it("forwards wheel when there is no scrollback to scroll", () => {
+    const scrollLines = vi.fn();
+    const terminal = {
+      rows: 24,
+      buffer: { active: { type: "alternate" as const, length: 24 } },
+      options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
+      scrollLines,
+    } as unknown as Parameters<typeof applyTerminalWheelScroll>[0];
+    expect(
+      applyTerminalWheelScroll(terminal, {
+        deltaY: 17,
+        deltaMode: 0,
+        shiftKey: false,
+      } as WheelEvent),
+    ).toBe(true);
+    expect(scrollLines).not.toHaveBeenCalled();
   });
 });

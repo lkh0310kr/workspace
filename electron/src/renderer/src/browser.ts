@@ -1,10 +1,8 @@
-import { interactionCoordinator } from "./interaction/InteractionCoordinator";
+import { syncInteractionCoordinatorWorkspaceTab } from "./interaction/syncInteractionCoordinatorWorkspaceTab";
 
-/** Sync webview pointer-events for a workspace tab switch. Prefer
- * interactionCoordinator.setActiveWorkspaceTab — this remains for callers
- * that only need a pointer refresh without changing active tab. */
-export function browserSyncPointerEvents(activeWorkspaceTabId: number): void {
-  interactionCoordinator.setActiveWorkspaceTab(activeWorkspaceTabId, { force: true });
+/** Sync webview pointer-events for the visible workspace tab. */
+export function browserSyncPointerEvents(_activeWorkspaceTabId: number): void {
+  syncInteractionCoordinatorWorkspaceTab("browser-sync");
 }
 
 export async function browserHideAll(): Promise<void> {
