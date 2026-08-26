@@ -69,6 +69,15 @@ interface Props {
   onToggleTree: () => void;
 }
 
+/** Obsidian shows the note's filename as an in-page title instead of a
+ * "# Heading" the user has to type themselves — the extension-stripped
+ * basename of the current path, or a placeholder for an unsaved buffer. */
+function markdownTitleFor(filePath: string | null): string {
+  if (!filePath) return "Untitled";
+  const base = filePath.split("/").pop() ?? filePath;
+  return base.replace(/\.md$/i, "");
+}
+
 async function findAvailableUntitledName(tabId: number): Promise<string> {
   const entries = await listDir(tabId, "").catch(() => []);
   const names = new Set(entries.filter((e) => !e.is_dir).map((e) => e.name.toLowerCase()));
@@ -471,6 +480,11 @@ export function EditorContent({
               </svg>
             </button>
           </div>
+          {isMarkdown && (
+            <div className="md-title" title={filePath ?? undefined}>
+              {markdownTitleFor(filePath)}
+            </div>
+          )}
           <div
             className="md-editor"
             ref={hostRef}

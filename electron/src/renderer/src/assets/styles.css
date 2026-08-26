@@ -1780,6 +1780,23 @@ iframe.browser-content-slot {
   min-height: 0;
 }
 
+/* Obsidian-style in-page title (EditorContent.tsx) — the filename doubles
+   as the note's heading instead of the user typing a redundant "# Title"
+   line. padding-right clears .obsidian-float-actions' icon cluster so a
+   long filename doesn't run underneath it. */
+.md-title {
+  flex-shrink: 0;
+  padding: 20px 100px 4px 24px;
+  font-family: var(--font-ui);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--bg-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .obsidian-editor-column .md-empty-state {
   flex: 1;
   min-height: 0;
