@@ -3,8 +3,6 @@
  * Pane/tab visibility is owned by PaneGroup + BrowserContent — not duplicated here.
  */
 
-import { dbgLog, collectWebviews } from "./interactionDebugLog";
-
 export type OverlaySource = string;
 
 type WebviewRegistration = {
@@ -34,8 +32,7 @@ type Listener = () => void;
 class InteractionCoordinatorImpl {
   private overlayStack: OverlaySource[] = [];
   private activeWorkspaceTabId: number | null = null;
-  /** Electron guests paint above all DOM — in split layout only one pane's
-   *  webview may be live at a time. Set explicitly on pane tab click. */
+  /** Last pane the user clicked — used for focus routing only. */
   private activeBrowserPaneNodeId: string | null = null;
   private webviews = new Map<Electron.WebviewTag, WebviewRegistration>();
   private portals = new Map<string, PortalRegistration>();
@@ -146,10 +143,10 @@ class InteractionCoordinatorImpl {
 
   registerPortal(id: string, dismiss: () => void): () => void {
     this.portals.set(id, { dismiss });
-    this.notifyListeners();
+    this.reconcile(`portal-open:${id}`);
     return () => {
       this.portals.delete(id);
-      this.notifyListeners();
+      this.reconcile(`portal-close:${id}`);
     };
   }
 
@@ -182,11 +179,12 @@ class InteractionCoordinatorImpl {
     this.lastReconcileReason = reason;
     this.lastReconcileAt = Date.now();
     const blocked = this.overlayStack.length > 0;
+    const portalsOpen = this.portals.size > 0;
     const activeTab = this.activeWorkspaceTabId;
 
     for (const [webview, reg] of this.webviews) {
-      const enabled = this.shouldEnableWebview(webview, reg, activeTab, blocked);
-      this.applyWebviewPolicy(webview, enabled);
+      const policy = this.resolveWebviewPolicy(webview, reg, activeTab, blocked, portalsOpen);
+      this.applyWebviewPolicy(webview, policy);
     }
 
     for (const el of document.querySelectorAll("webview")) {
@@ -194,15 +192,20 @@ class InteractionCoordinatorImpl {
       if (this.webviews.has(wv)) continue;
       const hostItem = wv.closest("[data-workspace-tab-id]");
       const tabId = hostItem ? Number(hostItem.getAttribute("data-workspace-tab-id")) : NaN;
-      const enabled = Number.isFinite(tabId) && tabId === activeTab && !blocked;
-      this.applyWebviewPolicy(wv, enabled);
+      const paneVisible = Number.isFinite(tabId) && tabId === activeTab;
+      const visible = paneVisible && !blocked;
+      const interactive = paneVisible && !blocked && !portalsOpen;
+      this.applyWebviewPolicy(wv, { visible, interactive });
     }
 
     if (this.pendingFocusWebview) {
       const wv = this.pendingFocusWebview;
       this.pendingFocusWebview = null;
       const reg = this.webviews.get(wv);
-      if (reg && this.shouldEnableWebview(wv, reg, activeTab, blocked)) {
+      const policy = reg
+        ? this.resolveWebviewPolicy(wv, reg, activeTab, blocked, portalsOpen)
+        : { visible: false, interactive: false };
+      if (policy.interactive) {
         try {
           wv.focus();
         } catch {
@@ -212,42 +215,33 @@ class InteractionCoordinatorImpl {
     }
 
     this.notifyListeners();
-
-    // #region agent log
-    const webviewPolicy: Array<Record<string, unknown>> = [];
-    for (const [webview, reg] of this.webviews) {
-      const enabled = this.shouldEnableWebview(webview, reg, activeTab, blocked);
-      webviewPolicy.push({
-        itemId: reg.paneTabItemId,
-        wsTab: reg.workspaceTabId,
-        paneVisible: reg.paneVisible,
-        enabled,
-        applied: webview.style.pointerEvents,
-        display: webview.style.display,
-      });
-    }
-    dbgLog(
-      "InteractionCoordinator:reconcile",
-      reason,
-      {
-        reason,
-        blocked,
-        activeTab,
-        activeBrowserPaneNodeId: this.activeBrowserPaneNodeId,
-        overlayStack: [...this.overlayStack],
-        portalCount: this.portals.size,
-        webviewPolicy,
-        domWebviews: collectWebviews(),
-      },
-      blocked ? "H1" : "H6",
-    );
-    // #endregion
   }
 
-  private applyWebviewPolicy(webview: Electron.WebviewTag, enabled: boolean): void {
-    webview.style.pointerEvents = enabled ? "auto" : "none";
-    // Native guests ignore z-index — display:none is the only reliable hide.
-    webview.style.display = enabled ? "flex" : "none";
+  private applyWebviewPolicy(
+    webview: Electron.WebviewTag,
+    policy: { visible: boolean; interactive: boolean },
+  ): void {
+    webview.style.display = policy.visible ? "flex" : "none";
+    webview.style.pointerEvents = policy.interactive ? "auto" : "none";
+  }
+
+  private resolveWebviewPolicy(
+    webview: Electron.WebviewTag,
+    reg?: WebviewRegistration,
+    activeTab = this.activeWorkspaceTabId,
+    blocked = this.overlayStack.length > 0,
+    portalsOpen = this.portals.size > 0,
+  ): { visible: boolean; interactive: boolean } {
+    const registration = reg ?? this.webviews.get(webview);
+    if (!registration) return { visible: false, interactive: false };
+    const paneVisible =
+      activeTab === registration.workspaceTabId && registration.paneVisible;
+    // Native <webview> guests still capture drag/hit-test even with
+    // pointer-events:none — hide during splitter/pane drags so flexlayout
+    // receives dragover over browser areas. Portovers only need input blocked.
+    const visible = paneVisible && !blocked;
+    const interactive = paneVisible && !blocked && !portalsOpen;
+    return { visible, interactive };
   }
 
   private shouldEnableWebview(
@@ -256,14 +250,13 @@ class InteractionCoordinatorImpl {
     activeTab = this.activeWorkspaceTabId,
     blocked = this.overlayStack.length > 0,
   ): boolean {
-    const registration = reg ?? this.webviews.get(webview);
-    if (!registration) return false;
-    if (activeTab !== registration.workspaceTabId || blocked || !registration.paneVisible) {
-      return false;
-    }
-    const activePane = this.activeBrowserPaneNodeId;
-    if (!activePane) return true;
-    return registration.paneNodeId === activePane;
+    return this.resolveWebviewPolicy(
+      webview,
+      reg,
+      activeTab,
+      blocked,
+      this.portals.size > 0,
+    ).interactive;
   }
 
   private findRegistration(

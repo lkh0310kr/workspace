@@ -79,29 +79,7 @@ export function PaneTabStrip({
   // as a thin vertical line between chips (or before the first/after the
   // last), matching VSCode/Orca's tab-drag hint.
   const [dropIndex, setDropIndex] = useState<number | null>(null);
-  const blockedRef = useRef(false);
   const chipRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
-  const MENU_OVERLAY = "pane-strip-menu";
-
-  const syncMenuOverlay = useCallback((pickerOpen: boolean, ctxOpen: boolean) => {
-    const open = pickerOpen || ctxOpen;
-    if (open === blockedRef.current) return;
-    blockedRef.current = open;
-    if (open) pushOverlayBlock(MENU_OVERLAY);
-    else popOverlayBlock(MENU_OVERLAY);
-  }, []);
-
-  useEffect(() => {
-    syncMenuOverlay(addPickerAnchor !== null, contextMenu !== null);
-  }, [addPickerAnchor, contextMenu, syncMenuOverlay]);
-
-  useEffect(
-    () => () => {
-      if (blockedRef.current) popOverlayBlock(MENU_OVERLAY);
-    },
-    [],
-  );
 
   // Safety net: if a drag ends anywhere (dropped on a non-strip target,
   // cancelled with Escape, dragged out of the window), clear any indicator

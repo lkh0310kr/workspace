@@ -1,8 +1,8 @@
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 
 /**
- * Hide webviews while overlay UI (splitter drag, dropdowns) is open.
- * Restores pointer-events via InteractionCoordinator.reconcile on pop.
+ * Block or hide webviews while drag overlays are active. Popovers use portal
+ * registration instead — those keep the page visible and only block input.
  */
 export function isOverlayBlocked(): boolean {
   return interactionCoordinator.isOverlayBlocked();
