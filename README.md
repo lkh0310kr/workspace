@@ -29,16 +29,13 @@ Production build: `npm run build` (then `npm run build:mac` / `build:win` / `bui
 electron/src/main/      Workspace model, PTY, file I/O, IPC handlers
 electron/src/preload/   IPC bridge exposed to the renderer as window.api
 electron/src/renderer/  React UI (panes, layout, editor)
-legacy-tauri/            Archived Tauri 2 + Rust implementation this app replaced
 ```
+
+Reference implementation (not shipped): `ref-proj/orca/` — Orca Electron app; port patterns from here.
 
 ## History
 
-This was originally built on Tauri 2 (Rust shell, Wry child webview for the
-browser pane, portable-pty for the terminal). It moved to Electron to adopt
-[Orca](https://github.com)'s already-solved approach for the terminal's IME
-handling and the browser pane's compositing, after Tauri's native-child-webview
-model produced z-order and async-detach bugs, and unsigned Rust builds kept
-tripping macOS Gatekeeper quarantine. The old implementation is kept under
-`legacy-tauri/` for reference — it still builds (`cd legacy-tauri && cargo run
--p workspace-app`) but isn't developed further.
+This app was originally built on Tauri 2, then moved to Electron to adopt Orca's
+(`ref-proj/orca`) terminal IME, browser webview lifecycle, and pane-manager
+patterns. The old Tauri tree was removed; use `ref-proj/orca` for reference, not
+the former `legacy-tauri` archive.
