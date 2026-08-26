@@ -6,6 +6,11 @@ export function isTerminalViewportAtBottom(terminal: Terminal): boolean {
   return buf.viewportY >= buf.baseY;
 }
 
+/** tmux / fullscreen TUIs run in the alternate buffer — wheel must reach the PTY. */
+export function shouldForwardWheelToPty(terminal: Terminal): boolean {
+  return terminal.buffer.active.type === "alternate";
+}
+
 function wheelDeltaToLines(terminal: Terminal, event: WheelEvent): number {
   const sensitivity = event.shiftKey
     ? (terminal.options.fastScrollSensitivity ?? 5)
@@ -14,17 +19,21 @@ function wheelDeltaToLines(terminal: Terminal, event: WheelEvent): number {
 }
 
 /**
- * Wheel should scroll the xterm viewport only — never forward to the PTY as arrow keys
- * (which surfaces shell/TUI command history instead of scrollback).
+ * Wheel scroll policy:
+ * - Alternate buffer (tmux, vim, etc.): forward to PTY — tmux copy-mode scroll needs `mouse on`.
+ * - Normal buffer: scroll xterm viewport only — never forward as shell arrow-key history.
  */
+export function handleTerminalWheelEvent(terminal: Terminal, event: WheelEvent): boolean {
+  if (event.deltaY === 0) return true;
+  if (shouldForwardWheelToPty(terminal)) return true;
+  const lines = wheelDeltaToLines(terminal, event);
+  if (lines !== 0) {
+    terminal.scrollLines(-lines);
+  }
+  return false;
+}
+
 export function installTerminalWheelScroll(terminal: Terminal): () => void {
-  terminal.attachCustomWheelEventHandler((event) => {
-    if (event.deltaY === 0) return true;
-    const lines = wheelDeltaToLines(terminal, event);
-    if (lines !== 0) {
-      terminal.scrollLines(-lines);
-    }
-    return false;
-  });
+  terminal.attachCustomWheelEventHandler((event) => handleTerminalWheelEvent(terminal, event));
   return () => terminal.attachCustomWheelEventHandler(() => true);
 }

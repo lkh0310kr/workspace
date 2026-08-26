@@ -40,14 +40,12 @@ let cachedTmuxConfPath: string | null | undefined;
 // cross-restart) tmux server — an already-running server predating this
 // file needs one manual `tmux kill-server` to pick up changes.
 //
-// `mouse off` — iTerm2 / Terminal.app style: xterm.js owns click-drag
-// selection (theme selection colors, selection stays until copy/click away).
-// `mouse on` made tmux enter copy-mode on drag (yellow highlight, `[0/N]`
-// position indicator, selection cleared on mouseup via copy-pipe-and-cancel).
-// Wheel scroll uses xterm scrollback (`scrollback` rows + scrollLines in
-// TerminalPane) instead of tmux copy-mode scrolling.
-// If an old tmux server was started with `mouse on`, run `tmux kill-server`
-// once so the next pane picks up this config.
+// `mouse on` — tmux intercepts wheel in copy-mode to scroll pane history (Orca).
+// Without it, wheel escape sequences reach tmux in the alternate screen and do
+// nothing visible ("terminal scroll 안 됨"). xterm scrollback + scrollLines only
+// applies to the normal buffer; tmux panes live in the alternate buffer.
+// Plain shells (no tmux) still use handleTerminalWheelEvent scrollLines on wheel.
+// If an old tmux server was started with `mouse off`, run `tmux kill-server` once.
 function tmuxConfPath(): string | null {
   if (cachedTmuxConfPath !== undefined) return cachedTmuxConfPath;
   const home = os.homedir();
@@ -59,7 +57,7 @@ function tmuxConfPath(): string | null {
   try {
     fs.mkdirSync(dir, { recursive: true });
     const confPath = path.join(dir, "tmux.conf");
-    fs.writeFileSync(confPath, "set-option -g status off\nset -g mouse off\nsetw -g mode-mouse off\n");
+    fs.writeFileSync(confPath, "set-option -g status off\nset -g mouse on\n");
     cachedTmuxConfPath = confPath;
   } catch {
     cachedTmuxConfPath = null;

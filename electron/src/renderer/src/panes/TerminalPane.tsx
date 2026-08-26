@@ -9,6 +9,7 @@ import { createPaneDOM } from "../lib/pane-manager/pane-dom-creation";
 import { disposePane, openTerminal } from "../lib/pane-manager/pane-lifecycle";
 import type { ManagedPaneInternal } from "../lib/pane-manager/pane-manager-types";
 import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
+import { resumePaneRendering, suspendPaneRendering } from "../lib/pane-manager/pane-rendering-control";
 import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
 import { copyTerminalSelection } from "../terminal/terminal-selection-copy";
@@ -139,18 +140,28 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
   }, [zoom]);
 
   useEffect(() => {
+    const shown = visible && active;
+    const pane = paneRef.current;
+    const host = hostRef.current;
+    if (host) {
+      host.style.pointerEvents = shown ? "auto" : "none";
+    }
     // #region agent log
     dbgLog(
       "TerminalPane:visibility",
       "visibility effect",
-      { terminalId, visible, active, show: visible && active },
+      { terminalId, visible, active, show: shown },
       "H8",
     );
     // #endregion
-    if (!visible || !active) return;
-    const pane = paneRef.current;
-    const host = hostRef.current;
-    if (!pane || !host) return;
+    if (!pane) return;
+
+    if (!shown) {
+      suspendPaneRendering(pane);
+      return;
+    }
+
+    resumePaneRendering(pane);
 
     const refit = (): void => {
       refitPaneTerminal(pane);
@@ -159,6 +170,12 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
 
     requestAnimationFrame(refit);
     const timer = window.setTimeout(refit, 50);
+
+    if (!host) {
+      return () => {
+        clearTimeout(timer);
+      };
+    }
 
     const ro = new ResizeObserver(() => {
       if (visible && active) refitPaneTerminal(pane);
