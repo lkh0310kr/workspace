@@ -60,6 +60,9 @@ export type ManagedPaneInternal = ManagedPane & {
   linkifierMouseLeaveResetDisposable: { dispose: () => void } | null;
   linkifierWindowBlurResetDisposable: { dispose: () => void } | null;
   pendingSplitScrollState: ScrollState | null;
+  pendingSplitScrollRafIds: number[];
+  pendingSplitScrollTimerId: ReturnType<typeof setTimeout> | null;
+  pendingSplitScrollBufferDisposable: IDisposable | null;
 };
 
 export type PaneManagerOptions = {

@@ -8,6 +8,10 @@ import { TerminalSearch, useTerminalSearchThemeKey } from "../components/Termina
 import { createPaneDOM } from "../lib/pane-manager/pane-dom-creation";
 import { disposePane, openTerminal } from "../lib/pane-manager/pane-lifecycle";
 import type { ManagedPaneInternal } from "../lib/pane-manager/pane-manager-types";
+import {
+  registerTerminalPane,
+  unregisterTerminalPane,
+} from "../lib/pane-manager/pane-terminal-registry";
 import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
 import { resumePaneRendering, suspendPaneRendering } from "../lib/pane-manager/pane-rendering-control";
 import { connectPanePty } from "../terminal/connectPanePty";
@@ -60,6 +64,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
     openTerminal(pane);
     paneRef.current = pane;
     searchRef.current = pane.searchAddon;
+    registerTerminalPane(terminalId, pane);
 
     const resolved = getCurrentResolvedTheme();
     if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved);
@@ -124,6 +129,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
       pane.container.removeEventListener("focusout", onFocusOut);
       ptyDisposeRef.current?.();
       ptyDisposeRef.current = null;
+      unregisterTerminalPane(terminalId, pane);
       disposePane(pane);
       pane.container.remove();
       paneRef.current = null;

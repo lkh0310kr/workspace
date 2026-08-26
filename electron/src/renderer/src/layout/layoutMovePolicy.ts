@@ -1,5 +1,6 @@
 import { Actions, type Action, type Model, TabNode } from "flexlayout-react";
 import { layoutLog, layoutLogMutation, summarizeLayoutModel, type LayoutSummary } from "./layoutDebugLog";
+import { captureSplitScrollStateBeforeMove } from "./layoutSplitScrollRestore";
 
 export type MoveNodeInterceptResult = {
   /** Pass through to flexlayout, or undefined to cancel the action. */
@@ -53,6 +54,10 @@ export function interceptMoveNodeAction(
     { fromNode: action.data.fromNode, location: action.data.location },
     tabId,
   );
+  // Why: an edge drop physically reparents the moved pane group's DOM
+  // (flexlayout's own moveableElement appendChild), which resets xterm's
+  // viewport scrollTop — capture before flexlayout applies the move.
+  captureSplitScrollStateBeforeMove(model, action);
   return { action, pendingRebalanceFromNode: action.data.fromNode };
 }
 

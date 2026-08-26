@@ -17,6 +17,7 @@ import {
   summarizeBeforeModelChange,
 } from "../layout/layoutMovePolicy";
 import { registerLayoutController, getLayoutRefCallback } from "../layout/layoutRef";
+import { restorePendingSplitScrollStates } from "../layout/layoutSplitScrollRestore";
 import { PaneGroup } from "../panes/PaneGroup";
 import { useWorkspaceStore } from "../store/workspaceStore";
 
@@ -107,6 +108,10 @@ export function useLayoutHostCallbacks() {
         tabId,
       );
       persistLayout(tabId, model);
+      // Why: flexlayout's imperative DOM reparent for the just-applied move
+      // has run by now; deferred pane restore below tolerates it landing a
+      // frame or two later either way.
+      restorePendingSplitScrollStates();
     },
     [getModel, takePendingRebalance, persistLayout],
   );

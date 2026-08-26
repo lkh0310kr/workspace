@@ -88,6 +88,9 @@ export function createPaneDOM(
     linkifierMouseLeaveResetDisposable: null,
     linkifierWindowBlurResetDisposable: null,
     pendingSplitScrollState: null,
+    pendingSplitScrollRafIds: [],
+    pendingSplitScrollTimerId: null,
+    pendingSplitScrollBufferDisposable: null,
   };
 
   return pane;

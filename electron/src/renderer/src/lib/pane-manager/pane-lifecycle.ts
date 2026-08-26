@@ -6,6 +6,7 @@ import { safeFit } from "./pane-fit";
 import { cancelDeferredScrollRestore } from "./pane-scroll";
 import { cancelPendingWebglRefresh, disposeWebgl, attachWebgl } from "./pane-webgl-renderer";
 import { clearTerminalOutputQueue } from "./pane-terminal-output-scheduler";
+import { clearPendingSplitScrollRestore } from "./pane-split-scroll";
 import { installTerminalImeCandidateAnchor } from "./terminal-ime-candidate-anchor";
 import { attachTerminalMouseWheelMultiplier } from "./pane-terminal-mouse-wheel";
 import { installTerminalWheelScroll } from "../../terminal/terminal-wheel-scroll";
@@ -102,6 +103,7 @@ export function disposePane(pane: ManagedPaneInternal): void {
   pane.compositionHandler?.();
   pane.compositionHandler = null;
   detachPaneFitResizeObserver(pane);
+  clearPendingSplitScrollRestore(pane);
   cancelDeferredScrollRestore(pane.terminal);
   cancelPendingWebglRefresh(pane);
   disposeWebgl(pane);
