@@ -630,7 +630,12 @@ iframe.browser-content-slot {
 
 /* —— Context menu (ContextMenu.tsx) —— shared by TreeView, pane tab strip,
    and PanePicker. Flat, compact, no shadows per DESIGN.md. */
-.context-menu-popover {
+/* .popover (below) is a single-class rule declared later in this file, so
+   at equal specificity it would win over this one and reintroduce the
+   rounded/padded/shadowed generic popover box PanePicker deliberately opts
+   out of — scope under .popover to force the override regardless of
+   declaration order. */
+.popover.context-menu-popover {
   padding: 0;
   min-width: 0;
   border-radius: 0;
