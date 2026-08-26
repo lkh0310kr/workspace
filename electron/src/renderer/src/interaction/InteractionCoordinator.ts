@@ -261,15 +261,21 @@ class InteractionCoordinatorImpl {
     webview: Electron.WebviewTag,
     policy: { visible: boolean; interactive: boolean },
   ): void {
-    // Why (Orca parity — browser-page-webview.ts): display tracks base pane
-    // visibility only. interactive additionally gets pointer/focus-gated by
-    // finalizeWebviewPolicy to stop an Electron guest from stealing hits
-    // outside its pane; coupling that gate into display made a visible,
-    // active browser pane go display:none until the pointer first crossed
-    // into it (STA-style "hover to reveal" bug) — pointerEvents alone is
-    // Orca's real defense against guest hit-stealing.
+    // Why (Orca parity — browser-page-viewport.ts applyBrowserPageViewportLayout):
+    // display tracks base pane visibility only, never the pointer/focus gate
+    // — coupling the gate into display made a visible, active browser pane
+    // go display:none until the pointer first crossed into it ("hover to
+    // reveal" bug). But pointer-events:none alone is not a reliable input
+    // block for an Electron <webview> guest (OOPIF hit-testing can bypass
+    // CSS) — that gap is why an earlier fix coupled display in the first
+    // place, and reverting to pointer-events-only reopens it. Orca's guest
+    // viewport sets both pointerEvents AND the native `inert` attribute for
+    // its non-active state; `inert` is honored by the input-dispatch layer
+    // itself, not CSS hit-testing, so it holds even where pointer-events
+    // doesn't.
     webview.style.display = policy.visible ? "flex" : "none";
     webview.style.pointerEvents = policy.interactive ? "auto" : "none";
+    webview.inert = !policy.interactive;
   }
 
   private isWebviewInteractive(webview: Electron.WebviewTag, reg?: WebviewRegistration): boolean {
