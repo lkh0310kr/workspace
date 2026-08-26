@@ -10,7 +10,7 @@ export function paneChipContentStyle(paneVisible: boolean, chipActive: boolean):
   return {
     visibility: shown ? "visible" : "hidden",
     pointerEvents: shown ? "auto" : "none",
-    zIndex: chipActive ? 1 : 0,
+    zIndex: shown ? 2 : 0,
   };
 }
 

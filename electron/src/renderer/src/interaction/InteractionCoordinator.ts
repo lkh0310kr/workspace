@@ -4,6 +4,7 @@
  */
 
 import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from "./webviewPolicy";
+import { resolveWebviewDomShown } from "./webviewDomPolicy";
 
 export type OverlaySource = string;
 
@@ -261,8 +262,9 @@ class InteractionCoordinatorImpl {
     webview: Electron.WebviewTag,
     policy: { visible: boolean; interactive: boolean },
   ): void {
-    webview.style.display = policy.visible ? "flex" : "none";
-    webview.style.pointerEvents = policy.interactive ? "auto" : "none";
+    const shown = resolveWebviewDomShown(policy);
+    webview.style.display = shown ? "flex" : "none";
+    webview.style.pointerEvents = shown ? "auto" : "none";
   }
 
   private isWebviewInteractive(webview: Electron.WebviewTag, reg?: WebviewRegistration): boolean {
