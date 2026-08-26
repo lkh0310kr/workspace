@@ -17,9 +17,9 @@ chip 전환 안정성 확인 전까지 pane당 webview 항상 마운트, chip은
 
 ---
 
-## Phase 4 — Persistence & schema (다음 우선순위)
+## Phase 4 — Persistence & schema (진행 중)
 
-- [ ] layout JSON **Zod + salvage** — corrupt JSON이 startup을 죽이지 않게
+- [x] layout JSON **Zod + salvage** — corrupt JSON이 startup을 죽이지 않게 (`src/shared/layoutSalvage.ts`)
 - [ ] `PaneGroupConfig` / `PaneTabItem` 스키마 버전 필드 + 마이그레이션
 - [ ] layout export to `./.workspace/layout.json`
 
@@ -27,6 +27,7 @@ chip 전환 안정성 확인 전까지 pane당 webview 항상 마운트, chip은
 
 ## Browser — Orca 패리티
 
+- [x] trackpad 좌우 스와이프 history back/forward (`browserSwipeNavigation.ts`)
 - [ ] 세션 복원 실사용 검증 (layout JSON URL → guest reload)
 - [ ] 북마크 / pinned tabs
 - [ ] 탭 그룹 UX (명시적 “새 pane으로 분리”)
@@ -78,7 +79,7 @@ chip 전환 안정성 확인 전까지 pane당 webview 항상 마운트, chip은
 
 ## 테스트 자동화
 
-Unit: embedPolicy, dragSession, workspaceScope, webviewPolicy, layoutTabDrop, layoutChipWindowDrop, layoutSplitPolicy, layoutActions.split, terminal-shortcut-policy.
+Unit: embedPolicy, dragSession, workspaceScope, webviewPolicy, layoutTabDrop, layoutChipWindowDrop, layoutSplitPolicy, layoutActions.split, layoutSalvage, browserSwipeNavigation, terminal-shortcut-policy.
 
 - [ ] Playwright/Electron smoke
 - [ ] IC reconcile integration test
@@ -89,7 +90,7 @@ Unit: embedPolicy, dragSession, workspaceScope, webviewPolicy, layoutTabDrop, la
 
 ```text
 Phase 3 ⏸  Embed budget 보류 — browser chip 안정성 우선
-Phase 4 ⏳  Layout Zod salvage
+Phase 4 ⏳  Layout Zod salvage (salvage ✅, schema version/export 남음)
 Product   ⏳  Browser Orca 패리티, 배포 가이드
 ```
 

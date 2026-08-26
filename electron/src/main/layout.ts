@@ -1,48 +1,14 @@
 // Direct port of crates/workspace-core/src/layout.rs.
 
+import { defaultLayoutJson } from "../shared/layoutDefaults";
+
 // Every flexlayout tab node holds a PaneGroupConfig (a list of
 // heterogeneous terminal/browser/editor tabs, see renderer/layout/
 // paneTypes.ts) rather than a single component+config pair — the
 // "globalize the editor's multi-tab system" rework. A fresh workspace tab
 // still starts with just one terminal, now wrapped in that shape.
 export function defaultLayout(terminalId: number): string {
-  const itemId = `terminal-${terminalId}`;
-  return JSON.stringify({
-    global: {
-      tabEnableClose: true,
-      tabSetEnableMaximize: false,
-      tabSetEnableDrop: true,
-      tabSetEnableTabStrip: false,
-      tabSetEnableSingleTabStretch: false,
-      tabEnableRenderOnDemand: false,
-      tabEnableRename: false,
-      splitterSize: 1,
-      splitterExtra: 8,
-      tabDragSpeed: 0,
-    },
-    borders: [],
-    layout: {
-      type: "row",
-      children: [
-        {
-          type: "tabset",
-          weight: 100,
-          children: [
-            {
-              type: "tab",
-              id: `tabgroup-${itemId}`,
-              name: "Terminal",
-              component: "tabgroup",
-              config: {
-                tabs: [{ id: itemId, kind: "terminal", terminalId }],
-                activeTabId: itemId,
-              },
-            },
-          ],
-        },
-      ],
-    },
-  });
+  return defaultLayoutJson(terminalId);
 }
 
 export function extractTerminalIds(layoutJson: string): number[] {

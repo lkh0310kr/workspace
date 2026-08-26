@@ -1,4 +1,5 @@
 import { IJsonModel, Model } from "flexlayout-react";
+import { salvageLayoutJson } from "../../../shared/layoutSalvage";
 import { PaneGroupConfig, PaneTabItem, TabKind } from "./paneTypes";
 
 function migrateLegacyTabNode(record: Record<string, unknown>): void {
@@ -42,7 +43,8 @@ function normalizeLayoutNode(node: unknown) {
 }
 
 export function parseLayoutJson(json: string): IJsonModel {
-  const model = JSON.parse(json) as IJsonModel;
+  const { json: salvaged } = salvageLayoutJson(json);
+  const model = JSON.parse(salvaged) as IJsonModel;
   const savedGlobal = model.global ?? {};
   model.global = {
     ...savedGlobal,

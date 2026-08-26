@@ -10,6 +10,7 @@ import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus }
 import { setupBrowserSession } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
+import { installBrowserGuestSwipeNavigation, setFocusedBrowserGuestId } from './browserGuestSwipe'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
@@ -156,6 +157,7 @@ function sendToMainWindow(channel: string, ...args: unknown[]): void {
 // after the original one was closed.
 function bindMainWindow(window: BrowserWindow): void {
   mainWindowRef = window
+  installBrowserGuestSwipeNavigation(window)
   if (workspace) {
     workspace.onTerminalData = (id, seq, data) => {
       if (!window.isDestroyed()) window.webContents.send('pty:data', { id, seq, data })
@@ -308,9 +310,11 @@ app.whenReady().then(() => {
     // <webview> host element are unreliable (see TODO.md / activeBrowserWebview.ts),
     // but the guest process's own WebContents always fires these.
     contents.on('focus', () => {
+      setFocusedBrowserGuestId(contents.id)
       sendToMainWindow('browser:guest-focus', { webContentsId: contents.id, focused: true })
     })
     contents.on('blur', () => {
+      setFocusedBrowserGuestId(null)
       sendToMainWindow('browser:guest-focus', { webContentsId: contents.id, focused: false })
     })
     // Guest webview has its own keyboard focus — host webContents

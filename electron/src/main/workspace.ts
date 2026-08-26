@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import { Pty } from "./pty";
 import { PtySession } from "./ptySession";
 import { defaultLayout, extractTerminalIds } from "./layout";
+import { salvageLayoutJson } from "../shared/layoutSalvage";
 import * as files from "./files";
 import type { DirEntry } from "./files";
 
@@ -68,13 +69,14 @@ export class Workspace {
     for (const tab of snapshot.tabs) {
       nextTabId = Math.max(nextTabId, tab.id + 1);
       const tabRoot = isDir(tab.rootPath) ? tab.rootPath : rootPath;
+      const { json: layoutJson } = salvageLayoutJson(tab.layoutJson);
 
-      for (const terminalId of extractTerminalIds(tab.layoutJson)) {
+      for (const terminalId of extractTerminalIds(layoutJson)) {
         nextTerminalId = Math.max(nextTerminalId, terminalId + 1);
         ws.spawnTerminalWithId(terminalId, 120, 40, tabRoot);
       }
 
-      ws.tabs.push({ id: tab.id, title: tab.title, layoutJson: tab.layoutJson, rootPath: tabRoot });
+      ws.tabs.push({ id: tab.id, title: tab.title, layoutJson, rootPath: tabRoot });
     }
 
     ws.nextTabId = nextTabId;

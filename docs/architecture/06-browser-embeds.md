@@ -82,6 +82,7 @@ Address bar suggestions register as coordinator portal when open.
 | `browserUrl.ts` | URL normalization, blank page |
 | `browserHistory.ts` | Local visit history for autocomplete |
 | `browserNavHistory.ts` | Per-webview back/forward state |
+| `browserSwipeNavigation.ts` | macOS trackpad horizontal swipe → goBack/goForward |
 | `browserDownloads.ts` | Download events relay |
 
 ## Why not `display: none` on webview ancestors
