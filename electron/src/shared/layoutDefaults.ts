@@ -1,3 +1,5 @@
+import { PANE_GROUP_SCHEMA_VERSION } from "./layoutSchema";
+
 /** Default flexlayout JSON for a fresh workspace tab with one terminal pane. */
 export function defaultLayoutJson(terminalId: number): string {
   const itemId = `terminal-${terminalId}`;
@@ -28,6 +30,7 @@ export function defaultLayoutJson(terminalId: number): string {
               name: "Terminal",
               component: "tabgroup",
               config: {
+                schemaVersion: PANE_GROUP_SCHEMA_VERSION,
                 tabs: [{ id: itemId, kind: "terminal", terminalId }],
                 activeTabId: itemId,
               },

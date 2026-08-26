@@ -6,11 +6,11 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
+import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
 import { setupBrowserSession } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
-import { installBrowserGuestSwipeNavigation, installBrowserGuestWebview, setFocusedBrowserGuestId } from './browserGuestSwipe'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
@@ -157,7 +157,6 @@ function sendToMainWindow(channel: string, ...args: unknown[]): void {
 // after the original one was closed.
 function bindMainWindow(window: BrowserWindow): void {
   mainWindowRef = window
-  installBrowserGuestSwipeNavigation(window)
   if (workspace) {
     workspace.onTerminalData = (id, seq, data) => {
       if (!window.isDestroyed()) window.webContents.send('pty:data', { id, seq, data })
@@ -200,13 +199,19 @@ function syncFileWatcher(): void {
 
 function persist(): void {
   if (!workspace) return
-  saveWorkspaceSnapshot(workspace.state())
+  const state = workspace.state()
+  saveWorkspaceSnapshot(state)
+  try {
+    exportLayoutFiles(state.tabs, state.activeTabId)
+  } catch (err) {
+    console.error('layout export failed', err)
+  }
   // Mirrors the Rust version's app.emit("workspace-updated", ...) after
   // every mutating command — useWorkspace-equivalent hooks in the
   // renderer (electron.ts's onWorkspaceUpdated) only ever call
   // getWorkspaceState once on mount, so without this push they'd never
   // see another tab/layout change made through any other handler.
-  sendToMainWindow('workspace:updated', workspace.state())
+  sendToMainWindow('workspace:updated', state)
   syncFileWatcher()
 }
 
@@ -299,7 +304,6 @@ app.whenReady().then(() => {
   // tied to any one BrowserWindow's lifecycle.
   app.on('web-contents-created', (_event, contents) => {
     if (contents.getType() !== 'webview') return
-    installBrowserGuestWebview(contents)
     contents.setWindowOpenHandler((details) => {
       sendToMainWindow('browser:open-new-tab', {
         hostWebContentsId: contents.id,
@@ -311,11 +315,9 @@ app.whenReady().then(() => {
     // <webview> host element are unreliable (see TODO.md / activeBrowserWebview.ts),
     // but the guest process's own WebContents always fires these.
     contents.on('focus', () => {
-      setFocusedBrowserGuestId(contents.id)
       sendToMainWindow('browser:guest-focus', { webContentsId: contents.id, focused: true })
     })
     contents.on('blur', () => {
-      setFocusedBrowserGuestId(null)
       sendToMainWindow('browser:guest-focus', { webContentsId: contents.id, focused: false })
     })
     // Guest webview has its own keyboard focus — host webContents

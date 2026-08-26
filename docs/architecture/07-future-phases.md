@@ -53,7 +53,7 @@ Inactive workspace tabs could unmount all embeds; revisit rebuilds from session.
 
 ## Phase 4 — Persistence boundary
 
-**Status:** Zod salvage at layout read boundary **implemented** (2026-08-26). Schema version field + export still pending.
+**Status:** Zod salvage, `PaneGroupConfig.schemaVersion`, and per-root `.workspace/layout.json` export **implemented** (2026-08-26).
 
 **Goal:** Corrupt layout JSON must not crash startup.
 

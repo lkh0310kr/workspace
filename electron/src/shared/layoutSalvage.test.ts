@@ -49,9 +49,12 @@ describe("layoutSalvage", () => {
     expect(salvaged).toBe(true);
     const parsed = JSON.parse(json);
     const salvagedConfig = (
-      (parsed.layout.children[0].children[0] as { config: { tabs: unknown[]; activeTabId: string } }).config
-    );
+      parsed.layout.children[0].children[0] as {
+        config: { tabs: unknown[]; activeTabId: string; schemaVersion: number };
+      }
+    ).config;
     expect(salvagedConfig.tabs).toHaveLength(1);
     expect(salvagedConfig.activeTabId).toBe("good");
+    expect(salvagedConfig.schemaVersion).toBe(1);
   });
 });

@@ -31,6 +31,8 @@ export interface PaneTabItem {
 }
 
 export interface PaneGroupConfig {
+  /** Written by layoutSalvage on load; omitted in older persisted layouts. */
+  schemaVersion?: number;
   tabs: PaneTabItem[];
   activeTabId: string;
   /** Cmd+'+'/Cmd+'-' per-pane text zoom (App.tsx's zoomActivePane), shared

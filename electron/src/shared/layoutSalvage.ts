@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defaultLayoutJson } from "./layoutDefaults";
+import { PANE_GROUP_SCHEMA_VERSION } from "./layoutSchema";
 
 export const TAB_KINDS = ["terminal", "browser", "code", "markdown"] as const;
 export type TabKind = (typeof TAB_KINDS)[number];
@@ -26,12 +27,15 @@ const PaneTabItemSchema = z
 export type SalvagedPaneTabItem = z.infer<typeof PaneTabItemSchema>;
 
 const PaneGroupConfigSchema = z.object({
+  schemaVersion: z.number().int().positive().optional(),
   tabs: z.array(PaneTabItemSchema).min(1),
   activeTabId: z.string().min(1),
   zoom: z.number().positive().finite().optional(),
 });
 
-export type SalvagedPaneGroupConfig = z.infer<typeof PaneGroupConfigSchema>;
+export type SalvagedPaneGroupConfig = z.infer<typeof PaneGroupConfigSchema> & {
+  schemaVersion: number;
+};
 
 export function salvagePaneTabItem(raw: unknown): SalvagedPaneTabItem | null {
   const parsed = PaneTabItemSchema.safeParse(raw);
@@ -56,7 +60,12 @@ export function salvagePaneGroupConfig(raw: unknown): SalvagedPaneGroupConfig | 
       : tabs[0].id;
 
   const zoom = typeof record.zoom === "number" && record.zoom > 0 ? record.zoom : undefined;
-  return { tabs, activeTabId, ...(zoom !== undefined ? { zoom } : {}) };
+  return {
+    schemaVersion: PANE_GROUP_SCHEMA_VERSION,
+    tabs,
+    activeTabId,
+    ...(zoom !== undefined ? { zoom } : {}),
+  };
 }
 
 function migrateLegacyTabNode(record: Record<string, unknown>): boolean {
