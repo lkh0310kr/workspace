@@ -14,7 +14,7 @@ export function buildDefaultTerminalOptions(): ITerminalOptions {
     fontWeightBold: "500",
     scrollback: DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT,
     scrollSensitivity: 1.15,
-    fastScrollSensitivity: 5,
+    fastScrollSensitivity: 1,
     allowTransparency: false,
     macOptionIsMeta: false,
     macOptionClickForcesSelection: true,

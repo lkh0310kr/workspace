@@ -20,7 +20,10 @@ interface Props {
   tabId: number;
   paneNodeId: string;
   item: PaneTabItem;
-  visible: boolean;
+  /** Flexlayout pane visible in the active workspace tab. */
+  paneVisible: boolean;
+  /** This browser chip is the active tab in its pane group. */
+  chipActive: boolean;
   onUpdate: (patch: Partial<PaneTabItem>) => void;
   /** target="_blank"/window.open() inside the guest page — main/index.ts
    * denies the native window and forwards the URL here; caller opens it
@@ -45,7 +48,8 @@ function applyWebviewZoom(webview: Electron.WebviewTag, factor: number): void {
   }
 }
 
-export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onOpenNewTab }: Props) {
+export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActive, onUpdate, onOpenNewTab }: Props) {
+  const chipShown = paneVisible && chipActive;
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const [webview, setWebview] = useState<Electron.WebviewTag | null>(null);
@@ -103,7 +107,7 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
     dbgLog(
       "BrowserContent:mount",
       "webview created",
-      { tabId, paneNodeId, itemId: item.id, visible, initialUrl: item.url ?? DEFAULT_URL },
+      { tabId, paneNodeId, itemId: item.id, paneVisible, chipActive, initialUrl: item.url ?? DEFAULT_URL },
       "H4",
     );
     // #endregion
@@ -158,7 +162,8 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
       workspaceTabId: tabId,
       paneNodeId,
       paneTabItemId: item.id,
-      initialPaneVisible: visible,
+      initialPaneVisible: paneVisible,
+      initialChipActive: chipActive,
     });
 
     const onFocus = (): void => setActiveBrowserWebview(guest);
@@ -205,27 +210,28 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
   useEffect(() => {
     const webview = webviewRef.current;
     if (!webview) return;
-    webview.style.visibility = visible ? "visible" : "hidden";
-    interactionCoordinator.setBrowserPaneVisible(tabId, item.id, visible);
+    webview.style.visibility = chipShown ? "visible" : "hidden";
+    interactionCoordinator.setBrowserPaneVisible(tabId, item.id, paneVisible);
+    interactionCoordinator.setBrowserChipActive(tabId, item.id, chipActive);
     // #region agent log
     dbgLog(
       "BrowserContent:visible",
       "pane visibility",
-      { tabId, itemId: item.id, visible },
+      { tabId, itemId: item.id, paneVisible, chipActive, chipShown },
       "H3",
     );
     // #endregion
-    if (!visible) {
+    if (!chipShown) {
       addressInputRef.current?.blur();
       if (getActiveBrowserWebview() === webview) {
         setActiveBrowserWebview(null);
       }
     }
-  }, [visible, tabId, item.id]);
+  }, [paneVisible, chipActive, chipShown, tabId, item.id]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!visible) return;
+      if (!chipShown) return;
       const guest = webviewRef.current;
       const browserFocused =
         guest &&
@@ -245,7 +251,7 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [visible, zoomFactor, setZoom]);
+  }, [chipShown, zoomFactor, setZoom]);
 
   const navigate = (url: string): void => {
     const normalized = normalizeBrowserNavigationUrl(url, true);
@@ -255,13 +261,13 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
   const zoomLabel = `${Math.round(zoomFactor * 100)}%`;
 
   return (
-    <div className="browser-pane-chrome" style={{ pointerEvents: visible ? undefined : "none" }}>
+    <div className="browser-pane-chrome" style={{ pointerEvents: chipShown ? undefined : "none" }}>
       <div className="pane-header pane-header-browser">
         <div className="browser-nav">
           <BrowserNavButton
             direction="back"
             disabled={!canGoBack}
-            active={visible}
+            active={chipShown}
             webview={webview}
             webContentsId={webContentsId}
             onNavigate={syncNavState}
@@ -269,7 +275,7 @@ export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onO
           <BrowserNavButton
             direction="forward"
             disabled={!canGoForward}
-            active={visible}
+            active={chipShown}
             webview={webview}
             webContentsId={webContentsId}
             onNavigate={syncNavState}

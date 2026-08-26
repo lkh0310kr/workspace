@@ -40,10 +40,11 @@ let cachedTmuxConfPath: string | null | undefined;
 // cross-restart) tmux server — an already-running server predating this
 // file needs one manual `tmux kill-server` to pick up changes.
 //
-// `mouse off` — xterm owns wheel via scrollLines (smooth, fractional deltas).
-// `alternate-screen off` — keep tmux output in xterm scrollback so scrollLines
-// reaches history without tmux copy-mode line steps (`mouse on` feels choppy).
-// Run `tmux kill-server` once after this changes.
+// `mouse on` — tmux panes use the alternate screen; xterm scrollLines cannot
+// scroll that buffer (no scrollback). With mouse mode on, tmux receives wheel
+// events and scrolls pane history via copy-mode — Orca's empirically verified
+// path ("terminal scroll 안 됨" without it). Run `tmux kill-server` once after
+// this changes so a fresh server picks up the config.
 function tmuxConfPath(): string | null {
   if (cachedTmuxConfPath !== undefined) return cachedTmuxConfPath;
   const home = os.homedir();
@@ -57,7 +58,18 @@ function tmuxConfPath(): string | null {
     const confPath = path.join(dir, "tmux.conf");
     fs.writeFileSync(
       confPath,
-      "set-option -g status off\nset -g mouse off\nset -g alternate-screen off\n",
+      [
+        "set-option -g status off",
+        "set -g mouse on",
+        "set -g history-limit 50000",
+        // tmux defaults: 5 lines per wheel notch and a copy-mode tag (15:41 [25/38]).
+        "bind-key -T copy-mode WheelUpPane send-keys -X -N 1 scroll-up",
+        "bind-key -T copy-mode WheelDownPane send-keys -X -N 1 scroll-down",
+        "bind-key -T copy-mode-vi WheelUpPane send-keys -X -N 1 scroll-up",
+        "bind-key -T copy-mode-vi WheelDownPane send-keys -X -N 1 scroll-down",
+        'bind-key -T root WheelUpPane if-shell -F "#{pane_in_mode}" "send-keys -X -N 1 scroll-up" "copy-mode -eH; send-keys -X -N 1 scroll-up"',
+        'bind-key -T root WheelDownPane if-shell -F "#{pane_in_mode}" "send-keys -X -N 1 scroll-down" "copy-mode -eH; send-keys -X -N 1 scroll-down"',
+      ].join("\n") + "\n",
     );
     cachedTmuxConfPath = confPath;
   } catch {

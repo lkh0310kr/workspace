@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   applyTerminalWheelScroll,
   isTerminalViewportAtBottom,
+  shouldXtermOwnWheelScroll,
   wheelDeltaToLines,
 } from "./terminal-wheel-scroll";
 
@@ -34,22 +35,24 @@ describe("terminal-wheel-scroll", () => {
     ).toBe(1);
   });
 
-  it("scrolls viewport and never forwards to PTY", () => {
+  it("scrolls viewport on primary buffer", () => {
     const scrollLines = vi.fn();
     const terminal = {
       rows: 24,
+      buffer: { active: { type: "normal" as const, length: 100, viewportY: 50, baseY: 76 } },
       options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
       scrollLines,
     } as unknown as Parameters<typeof applyTerminalWheelScroll>[0];
-    applyTerminalWheelScroll(terminal, {
+    const consumed = applyTerminalWheelScroll(terminal, {
       deltaY: 53,
       deltaMode: 0,
       shiftKey: false,
     } as WheelEvent);
-    expect(scrollLines).toHaveBeenCalledWith(-1);
+    expect(consumed).toBe(true);
+    expect(scrollLines).toHaveBeenCalledWith(1);
   });
 
-  it("still consumes wheel when buffer has no scrollback yet", () => {
+  it("delegates wheel to tmux on alternate buffer", () => {
     const scrollLines = vi.fn();
     const terminal = {
       rows: 24,
@@ -57,11 +60,13 @@ describe("terminal-wheel-scroll", () => {
       options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
       scrollLines,
     } as unknown as Parameters<typeof applyTerminalWheelScroll>[0];
-    applyTerminalWheelScroll(terminal, {
+    expect(shouldXtermOwnWheelScroll(terminal)).toBe(false);
+    const consumed = applyTerminalWheelScroll(terminal, {
       deltaY: 53,
       deltaMode: 0,
       shiftKey: false,
     } as WheelEvent);
-    expect(scrollLines).toHaveBeenCalledWith(-1);
+    expect(consumed).toBe(false);
+    expect(scrollLines).not.toHaveBeenCalled();
   });
 });

@@ -4,6 +4,7 @@ import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from "./webviewPolic
 const base = {
   workspaceTabId: 1,
   paneVisible: true,
+  chipActive: true,
   activeWorkspaceTabId: 1,
   overlayBlocked: false,
   portalsOpen: false,
@@ -24,6 +25,13 @@ describe("webviewPolicy", () => {
   it("hides when pane chip is not live", () => {
     expect(resolveWebviewPolicy({ ...base, paneVisible: false })).toEqual({
       visible: false,
+      interactive: false,
+    });
+  });
+
+  it("keeps webview composited but blocks input when chip is inactive", () => {
+    expect(resolveWebviewPolicy({ ...base, chipActive: false })).toEqual({
+      visible: true,
       interactive: false,
     });
   });

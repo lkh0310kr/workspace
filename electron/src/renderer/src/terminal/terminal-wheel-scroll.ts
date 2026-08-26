@@ -9,7 +9,7 @@ export function isTerminalViewportAtBottom(terminal: Terminal): boolean {
 /** Line-based wheel delta (one notch ≈ one row). */
 export function wheelDeltaToLines(terminal: Terminal, event: WheelEvent): number {
   const sensitivity = event.shiftKey
-    ? (terminal.options.fastScrollSensitivity ?? 5)
+    ? (terminal.options.fastScrollSensitivity ?? 1)
     : (terminal.options.scrollSensitivity ?? 1);
 
   let lines: number;
@@ -28,15 +28,26 @@ export function wheelDeltaToLines(terminal: Terminal, event: WheelEvent): number
 }
 
 /**
- * Scroll xterm viewport by whole lines. Always consumes wheel — never forward
- * to the PTY (which surfaces shell history as fake scrollback).
+ * True when xterm should own wheel scroll (primary buffer with scrollback).
+ * tmux panes use the alternate buffer — wheel must reach tmux instead.
  */
-export function applyTerminalWheelScroll(terminal: Terminal, event: WheelEvent): void {
-  if (event.deltaY === 0) return;
+export function shouldXtermOwnWheelScroll(terminal: Terminal): boolean {
+  return terminal.buffer?.active?.type !== "alternate";
+}
+
+/**
+ * Scroll xterm viewport by whole lines on the primary buffer.
+ * Returns false in alternate buffer so tmux can handle wheel (copy-mode).
+ */
+export function applyTerminalWheelScroll(terminal: Terminal, event: WheelEvent): boolean {
+  if (event.deltaY === 0) return false;
+  if (!shouldXtermOwnWheelScroll(terminal)) return false;
+
   const lines = wheelDeltaToLines(terminal, event);
   if (lines !== 0) {
-    terminal.scrollLines(-lines);
+    terminal.scrollLines(lines);
   }
+  return true;
 }
 
 export function installTerminalWheelScroll(terminal: Terminal): () => void {
@@ -44,7 +55,8 @@ export function installTerminalWheelScroll(terminal: Terminal): () => void {
   if (!root) return () => {};
 
   const onWheel = (event: WheelEvent) => {
-    applyTerminalWheelScroll(terminal, event);
+    const consumed = applyTerminalWheelScroll(terminal, event);
+    if (!consumed) return;
     event.preventDefault();
     event.stopPropagation();
   };

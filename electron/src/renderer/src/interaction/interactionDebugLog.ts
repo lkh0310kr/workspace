@@ -37,26 +37,11 @@ export function dbgLog(
   };
   ring.push(entry);
   if (ring.length > MAX_RING) ring.shift();
-  // #region agent log
   try {
     window.api?.debug?.interactionLog(entry as Record<string, unknown>);
   } catch {
     /* ignore */
   }
-  fetch("http://127.0.0.1:7260/ingest/1b3cdc38-0d86-42d3-8c62-c5e9c954cd7c", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "82edfa" },
-    body: JSON.stringify({
-      sessionId: "82edfa",
-      location,
-      message,
-      data,
-      hypothesisId,
-      runId,
-      timestamp: entry.timestamp,
-    }),
-  }).catch(() => {});
-  // #endregion
 }
 
 export function getDebugRing(): readonly DebugLogEntry[] {

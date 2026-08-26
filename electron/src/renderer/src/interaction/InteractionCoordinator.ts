@@ -13,6 +13,7 @@ type WebviewRegistration = {
   paneNodeId: string;
   paneTabItemId: string;
   paneVisible: boolean;
+  chipActive: boolean;
 };
 
 type PortalRegistration = {
@@ -87,6 +88,7 @@ class InteractionCoordinatorImpl {
       paneNodeId: string;
       paneTabItemId: string;
       initialPaneVisible?: boolean;
+      initialChipActive?: boolean;
     },
   ): void {
     this.webviews.set(webview, {
@@ -95,6 +97,7 @@ class InteractionCoordinatorImpl {
       paneNodeId: info.paneNodeId,
       paneTabItemId: info.paneTabItemId,
       paneVisible: info.initialPaneVisible ?? false,
+      chipActive: info.initialChipActive ?? true,
     });
     this.reconcile(`register-webview:${info.paneTabItemId}`);
   }
@@ -116,11 +119,28 @@ class InteractionCoordinatorImpl {
     }
     if (!changed) return;
     this.reconcile(`browser-pane-visible:${paneTabItemId}:${visible}`);
-    if (visible) {
+    if (!visible) {
+      this.blurWebviewIfFocused(workspaceTabId, paneTabItemId);
+    }
+  }
+
+  setBrowserChipActive(workspaceTabId: number, paneTabItemId: string, active: boolean): void {
+    let changed = false;
+    for (const reg of this.webviews.values()) {
+      if (reg.workspaceTabId === workspaceTabId && reg.paneTabItemId === paneTabItemId) {
+        if (reg.chipActive !== active) {
+          reg.chipActive = active;
+          changed = true;
+        }
+      }
+    }
+    if (!changed) return;
+    this.reconcile(`browser-chip-active:${paneTabItemId}:${active}`);
+    if (active) {
       const wv = this.findWebview(workspaceTabId, paneTabItemId);
       if (wv && this.isWebviewInteractive(wv)) {
         this.pendingFocusWebview = wv;
-        this.reconcile(`browser-pane-focus:${paneTabItemId}`);
+        this.reconcile(`browser-chip-focus:${paneTabItemId}`);
       }
     } else {
       this.blurWebviewIfFocused(workspaceTabId, paneTabItemId);
@@ -172,6 +192,7 @@ class InteractionCoordinatorImpl {
       const policy = resolveWebviewPolicy({
         workspaceTabId: reg.workspaceTabId,
         paneVisible: reg.paneVisible,
+        chipActive: reg.chipActive,
         activeWorkspaceTabId: activeTab,
         overlayBlocked: blocked,
         portalsOpen,
@@ -200,6 +221,7 @@ class InteractionCoordinatorImpl {
         ? resolveWebviewPolicy({
             workspaceTabId: reg.workspaceTabId,
             paneVisible: reg.paneVisible,
+            chipActive: reg.chipActive,
             activeWorkspaceTabId: activeTab,
             overlayBlocked: blocked,
             portalsOpen,
@@ -231,6 +253,7 @@ class InteractionCoordinatorImpl {
     return resolveWebviewPolicy({
       workspaceTabId: registration.workspaceTabId,
       paneVisible: registration.paneVisible,
+      chipActive: registration.chipActive,
       activeWorkspaceTabId: this.activeWorkspaceTabId,
       overlayBlocked: this.overlayStack.length > 0,
       portalsOpen: this.portals.size > 0,
