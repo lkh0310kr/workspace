@@ -220,6 +220,9 @@ function persist(): void {
 // webview as a DOM keydown event, so CodeMirror's own Cmd+Z binding
 // would never fire — the exact same problem (and fix) already found and
 // applied to the Tauri version's src/lib.rs.
+// macOS only. Harmless console noise "representedObject is not a WeakPtr…"
+// comes from Electron #50389 when using role: items (Edit/Window menus);
+// fixed upstream by removing the log in Electron ≥41. We build once here.
 function buildAppMenu(): Menu {
   const appName = app.name
   const template: Electron.MenuItemConstructorOptions[] = [

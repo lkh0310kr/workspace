@@ -6,7 +6,7 @@ MVP Phase 1 기능은 대체로 동작함. Phase 2는 **완성도·안정성·�
 
 ## Platform / Electron
 
-- [ ] macOS 콘솔 경고 `representedObject is not a WeakPtrToElectronMenuModelAsNSObject` — `main/index.ts`의 `Menu.buildFromTemplate` + `role:` 서브메뉴(About/Hide/Services 등) 조합에서 발생하는 Electron/macOS 알려진 이슈로 보임. 무해한지 vs 메뉴 재빌드 타이밍 버그인지 확인하고, 필요 시 커스텀 label+selector로 교체하거나 `Menu.setApplicationMenu(null)` + in-app 메뉴만 쓰는 방향 검토.
+- [x] macOS 콘솔 경고 `representedObject is not a WeakPtrToElectronMenuModelAsNSObject` — Electron #50389: `role:` 메뉴 상호작용 시 AppKit이 남기는 **무해한 진단 로그**. `buildAppMenu`는 `whenReady`에서 1회만 호출. Electron **≥41** 업그레이드 시 로그 제거됨(PR #50608). 앱 코드 변경 불필요.
 - [ ] `webPreferences.sandbox: false` — `<webview>` + node-pty 때문에 현실적으로 꺼져 있음. preload 경계·`contextIsolation`·IPC allowlist 점검하고, 가능한 범위에서 sandbox 복구 또는 위협 모델 문서화.
 - [ ] macOS TCC / Full Disk Access — Terminal `ls Operation not permitted`, `EPERM` 내부 에러는 앱 코드가 아니라 Documents 보호 폴더 + dev Electron 바이너리 권한 문제. **해결:** 시스템 설정에서 권한 부여 + **배포 빌드(`workspace-app`)용 entitlements/서명 가이드** README에 정리. dev/prod 바이너리 경로가 다르면 권한을 각각 줘야 함.
 
