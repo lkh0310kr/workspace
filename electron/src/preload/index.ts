@@ -34,7 +34,9 @@ const api = {
     interactionLog: (entry: Record<string, unknown>): void =>
       ipcRenderer.send('debug:interaction-log', entry),
     terminalLog: (entry: Record<string, unknown>): void =>
-      ipcRenderer.send('debug:terminal-log', entry)
+      ipcRenderer.send('debug:terminal-log', entry),
+    layoutLog: (entry: Record<string, unknown>): void =>
+      ipcRenderer.send('debug:layout-log', entry)
   },
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void): (() => void) => {

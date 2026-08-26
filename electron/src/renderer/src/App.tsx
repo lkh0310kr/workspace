@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Layout, Model, TabNode, Actions, type Action } from "flexlayout-react";
+import { Layout, Model, TabNode, TabSetNode, BorderNode, Actions, DockLocation, type Action } from "flexlayout-react";
 import "flexlayout-react/style/combined.css";
 import "./assets/styles.css";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
@@ -8,11 +8,14 @@ import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
+import { LayoutTabDropOverlay } from "./components/LayoutTabDropOverlay";
 import { PaneErrorBoundary } from "./components/PaneErrorBoundary";
 import { useWorkspace } from "./components/useWorkspace";
-import { addPaneToTabSet, closeActivePaneTab, moveTabToNewPane } from "./layout/layoutActions";
+import { addPaneToTabSet, closeActivePaneTab, moveTabToGroup, moveTabToNewPane, moveTabToSplitPane } from "./layout/layoutActions";
 import { getTabDrag, endTabDrag } from "./layout/tabDrag";
-import { setLayoutInstance, setActiveLayoutTab, redrawAllLayouts } from "./layout/layoutRef";
+import { resolveTabDropTarget } from "./layout/layoutTabDrop";
+import { layoutLog, layoutLogModel, layoutLogMutation, summarizeLayoutModel } from "./layout/layoutDebugLog";
+import { setActiveLayoutTab, redrawAllLayouts, registerLayoutController, getLayoutRefCallback } from "./layout/layoutRef";
 import { countLayoutTabs } from "./layout/layoutModelParse";
 import { PaneGroupConfig } from "./layout/paneTypes";
 import { PaneGroup } from "./panes/PaneGroup";
@@ -62,6 +65,7 @@ export default function App() {
   const storeGetModel = useWorkspaceStore((s) => s.getModel);
   const storeSetPendingRebalance = useWorkspaceStore((s) => s.setPendingRebalance);
   const storeTakePendingRebalance = useWorkspaceStore((s) => s.takePendingRebalance);
+  const setActivePaneTab = useWorkspaceStore((s) => s.setActivePaneTab);
   const storeMarkEnsureInflight = useWorkspaceStore((s) => s.markEnsureInflight);
   const storeClearEnsureInflight = useWorkspaceStore((s) => s.clearEnsureInflight);
   const [settingsTarget, setSettingsTarget] = useState<{ tabId: number; anchorRect: DOMRect } | null>(null);
@@ -130,7 +134,6 @@ export default function App() {
     workspace?.tabs,
   );
   const activeModel = storeGetModel(activeTabId);
-  void modelEpoch;
 
   const bumpLayout = useCallback(
     (tabId: number) => {
@@ -170,13 +173,12 @@ export default function App() {
             tabNode={node}
             workspaceTabId={tabId}
             rootPath={rootPath}
-            visible={tabId === visibleWorkspaceTabId && node.isVisible()}
             onNotifyChanged={() => bumpLayout(tabId)}
           />
         </PaneErrorBoundary>
       );
     },
-    [visibleWorkspaceTabId, bumpLayout],
+    [bumpLayout],
   );
 
   useEffect(() => {
@@ -313,9 +315,77 @@ export default function App() {
       if (!payload) return;
       e.preventDefault();
       const model = storeGetModel(activeTabId);
-      if (model && moveTabToNewPane(model, payload.sourceTabNodeId, payload.tabId)) {
-        bumpLayout(activeTabId);
+      if (!model) {
+        layoutLog("App.tsx:tabDrop", "no model", { payload }, activeTabId);
+        return;
       }
+
+      const before = summarizeLayoutModel(model);
+      const preview = resolveTabDropTarget(e.clientX, e.clientY);
+      layoutLog("App.tsx:tabDrop", "window drop", {
+        payload,
+        preview: preview
+          ? {
+              targetTabNodeId: preview.targetTabNodeId,
+              location: preview.location.getName(),
+            }
+          : null,
+        clientX: e.clientX,
+        clientY: e.clientY,
+      }, activeTabId);
+
+      let handled = false;
+      let handler = "none";
+
+      if (preview) {
+        if (
+          preview.location === DockLocation.CENTER &&
+          preview.targetTabNodeId !== payload.sourceTabNodeId
+        ) {
+          handler = "moveTabToGroup";
+          const movedId = moveTabToGroup(
+            model,
+            payload.sourceTabNodeId,
+            payload.tabId,
+            preview.targetTabNodeId,
+            Number.MAX_SAFE_INTEGER,
+          );
+          if (movedId) {
+            setActivePaneTab(activeTabId, preview.targetTabNodeId, movedId);
+            handled = true;
+          }
+        } else if (preview.location !== DockLocation.CENTER) {
+          handler = "moveTabToSplitPane";
+          const result = moveTabToSplitPane(
+            model,
+            payload.sourceTabNodeId,
+            payload.tabId,
+            preview.targetTabNodeId,
+            preview.location,
+          );
+          if (result) {
+            setActivePaneTab(activeTabId, result.tabNodeId, result.tabItemId);
+            handled = true;
+          }
+        }
+      }
+
+      if (!handled) {
+        handler = "moveTabToNewPane";
+        const fallback = moveTabToNewPane(model, payload.sourceTabNodeId, payload.tabId);
+        if (fallback) {
+          setActivePaneTab(activeTabId, fallback.tabNodeId, fallback.tabItemId);
+          handled = true;
+        }
+      }
+
+      layoutLogMutation("App.tsx:tabDrop", handled ? "handled" : "unhandled", before, summarizeLayoutModel(model), {
+        handler,
+        handled,
+        payload,
+      }, activeTabId);
+
+      if (handled) bumpLayout(activeTabId);
       endTabDrag();
     };
     window.addEventListener("dragover", onDragOver);
@@ -324,13 +394,27 @@ export default function App() {
       window.removeEventListener("dragover", onDragOver);
       window.removeEventListener("drop", onDrop);
     };
-  }, [activeTabId, bumpLayout, storeGetModel]);
+  }, [activeTabId, bumpLayout, setActivePaneTab, storeGetModel]);
 
   const makeOnAction = useCallback(
     (tabId: number) => (action: Action) => {
+      if (action.type === Actions.SELECT_TAB) {
+        const paneNodeId = action.data.tabNode as string;
+        if (typeof paneNodeId === "string" && paneNodeId.startsWith("tabgroup-")) {
+          interactionCoordinator.setActiveBrowserPane(paneNodeId);
+        }
+        return action;
+      }
       if (action.type !== Actions.MOVE_NODE) return action;
       const model = storeGetModel(tabId);
       if (!model) return action;
+      const before = summarizeLayoutModel(model);
+      layoutLog("App.tsx:onAction", "MOVE_NODE", {
+        location: action.data.location,
+        fromNode: action.data.fromNode,
+        toNode: action.data.toNode,
+        json: action.data.json,
+      }, tabId);
       if (action.data.location === "center") {
         let target = model.getNodeById(action.data.toNode);
         if (target?.getType() === "tab") target = target.getParent() ?? undefined;
@@ -341,31 +425,58 @@ export default function App() {
           draggedTab instanceof TabNode &&
           targetTab.getId() !== draggedTab.getId()
         ) {
+          layoutLog("App.tsx:onAction", "center swap configs", {
+            targetTabId: targetTab.getId(),
+            draggedTabId: draggedTab.getId(),
+          }, tabId);
           const targetAttrs = { component: targetTab.getComponent(), config: targetTab.getConfig() };
           const draggedAttrs = { component: draggedTab.getComponent(), config: draggedTab.getConfig() };
           model.doAction(Actions.updateNodeAttributes(targetTab.getId(), draggedAttrs));
           model.doAction(Actions.updateNodeAttributes(draggedTab.getId(), targetAttrs));
         }
+        layoutLogMutation("App.tsx:onAction", "MOVE_NODE center cancelled", before, summarizeLayoutModel(model), {
+          fromNode: action.data.fromNode,
+          toNode: action.data.toNode,
+        }, tabId);
         return undefined;
       } else {
         storeSetPendingRebalance(tabId, action.data.fromNode);
+        layoutLog("App.tsx:onAction", "MOVE_NODE edge — pending rebalance", {
+          fromNode: action.data.fromNode,
+          location: action.data.location,
+        }, tabId);
       }
       return action;
     },
     [storeGetModel, storeSetPendingRebalance],
   );
 
+  const makeOnRenderTabSet = useCallback(
+    (tabId: number) => (tabSetNode: TabSetNode | BorderNode) => {
+      const layout = (tabSetNode as unknown as { getLayout?: () => { getController?: () => Parameters<typeof registerLayoutController>[1] extends infer T ? NonNullable<T> : never } }).getLayout?.();
+      registerLayoutController(tabId, layout?.getController?.() ?? null);
+    },
+    [],
+  );
+
   const makeOnModelChange = useCallback(
     (tabId: number) => () => {
       const model = storeGetModel(tabId);
       if (!model) return;
+      const before = summarizeLayoutModel(model);
       const draggedId = storeTakePendingRebalance(tabId);
       if (draggedId) {
+        layoutLog("App.tsx:onModelChange", "rebalance after pane drag", { draggedId }, tabId);
         const parent = model.getNodeById(draggedId)?.getParent()?.getParent();
         if (parent) {
           model.doAction(Actions.adjustWeights(parent.getId(), parent.getChildren().map(() => 1)));
         }
       }
+      layoutLogModel("App.tsx:onModelChange", "model changed", model, {
+        draggedId: draggedId ?? null,
+        rebalanced: !!draggedId,
+        layoutBefore: before,
+      }, tabId);
       storePersistLayout(tabId, model);
     },
     [storeGetModel, storeTakePendingRebalance, storePersistLayout],
@@ -506,9 +617,10 @@ export default function App() {
                 }}
               >
                 <Layout
-                  ref={(instance) => setLayoutInstance(tab.id, instance)}
+                  ref={getLayoutRefCallback(tab.id)}
                   model={model}
                   factory={makeFactory(tab.id)}
+                  onRenderTabSet={makeOnRenderTabSet(tab.id)}
                   onAction={makeOnAction(tab.id)}
                   onModelChange={makeOnModelChange(tab.id)}
                   realtimeResize
@@ -537,6 +649,7 @@ export default function App() {
         )}
       </div>
       <ClaudeUsageStatusBar />
+      <LayoutTabDropOverlay />
       <ErrorLogPanel />
       <InteractionDebugPanel />
     </div>

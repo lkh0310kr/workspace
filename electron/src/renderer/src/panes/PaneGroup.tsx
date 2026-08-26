@@ -18,6 +18,10 @@ import { BrowserContent } from "./BrowserContent";
 import { TerminalPane } from "./TerminalPane";
 import { paneTabStoreKey } from "../store/paneTabKey";
 import { useWorkspaceStore } from "../store/workspaceStore";
+import { layoutLog } from "../layout/layoutDebugLog";
+import { dbgLog } from "../interaction/interactionDebugLog";
+import { interactionCoordinator } from "../interaction/InteractionCoordinator";
+import { usePaneVisibility } from "./usePaneVisibility";
 
 // The pane-level orchestrator that makes the tab system "global": every
 // flexlayout pane node now renders one of these instead of switching on a
@@ -34,7 +38,6 @@ interface Props {
   tabNode: TabNode;
   workspaceTabId: number;
   rootPath: string;
-  visible: boolean;
   onNotifyChanged: () => void;
 }
 
@@ -66,9 +69,12 @@ function isEditorKind(kind: TabKind): boolean {
   return kind === "code" || kind === "markdown";
 }
 
-export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotifyChanged }: Props) {
+export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }: Props) {
+  const visible = usePaneVisibility(workspaceTabId, tabNode);
+  const modelEpoch = useWorkspaceStore((s) => s.modelEpoch);
   const config = (tabNode.getConfig() ?? { tabs: [], activeTabId: "" }) as PaneGroupConfig;
   const tabs = config.tabs;
+  void modelEpoch;
   const zoom = config.zoom ?? 1;
 
   // Which tab is displayed is local React state, not derived straight from
@@ -149,8 +155,21 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
 
   const activeItem = tabs.find((t) => t.id === localActiveId) ?? tabs[0];
 
+  // #region agent log
+  useEffect(() => {
+    if (!localActiveId || tabs.some((t) => t.id === localActiveId)) return;
+    dbgLog(
+      "PaneGroup:tabsStale",
+      "localActiveId missing from tabs",
+      { modelEpoch, localActiveId, tabIds: tabs.map((t) => t.id), nodeId, workspaceTabId },
+      "H7",
+    );
+  }, [modelEpoch, localActiveId, tabs, nodeId, workspaceTabId]);
+  // #endregion
+
   const selectTab = useCallback(
     (id: string) => {
+      interactionCoordinator.setActiveBrowserPane(nodeId);
       setActivePaneTab(workspaceTabId, nodeId, id);
     },
     [workspaceTabId, nodeId, setActivePaneTab],
@@ -167,14 +186,30 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
 
   const newTab = useCallback(
     (kind: TabKind) => {
+      // #region agent log
+      dbgLog(
+        "PaneGroup:newTab",
+        "add tab requested",
+        { kind, nodeId, workspaceTabId, visible, activeItemId: activeItem?.id },
+        kind === "browser" ? "H5" : "H6",
+      );
+      // #endregion
       addTabToGroup(model, nodeId, kind)
         .then((id) => {
+          // #region agent log
+          dbgLog(
+            "PaneGroup:newTab",
+            "add tab resolved",
+            { kind, newTabId: id, nodeId, workspaceTabId },
+            kind === "browser" ? "H5" : "H6",
+          );
+          // #endregion
           if (id) setActivePaneTab(workspaceTabId, nodeId, id);
           onNotifyChanged();
         })
         .catch(console.error);
     },
-    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab],
+    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab, visible, activeItem?.id],
   );
 
   const changeKind = useCallback(
@@ -216,11 +251,17 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
 
   const dropTab = useCallback(
     (payload: TabDragPayload, index: number) => {
+      layoutLog("PaneGroup.dropTab", "strip drop handler", {
+        payload,
+        index,
+        nodeId,
+        workspaceTabId,
+      }, workspaceTabId);
       const movedId = moveTabToGroup(model, payload.sourceTabNodeId, payload.tabId, nodeId, index);
       if (movedId) setActivePaneTab(workspaceTabId, nodeId, movedId);
       onNotifyChanged();
     },
-    [model, nodeId, onNotifyChanged],
+    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab],
   );
 
   const onTreeResizeMouseDown = (e: ReactMouseEvent) => {
@@ -246,6 +287,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
   const showExplorer = treeOpenFor(activeItem.id) && isEditorKind(activeItem.kind);
 
   return (
+    <div className="pane-group-host">
     <PaneFrame
       header={
         <PaneTabStrip
@@ -275,7 +317,10 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
           </div>
         )}
         {showExplorer && <div className="obsidian-explorer-resizer" onMouseDown={onTreeResizeMouseDown} />}
-        <div className="pane-group-content">
+        <div
+          className="pane-group-content"
+          onPointerDown={() => interactionCoordinator.setActiveBrowserPane(nodeId)}
+        >
           {tabs.map((item) => {
             const active = item.id === activeItem.id;
             return (
@@ -308,6 +353,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
                 style={{
                   visibility: visible && active ? "visible" : "hidden",
                   pointerEvents: visible && active ? "auto" : "none",
+                  zIndex: active ? 1 : 0,
                 }}
               >
                 {item.kind === "terminal" && (
@@ -321,6 +367,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
                 {item.kind === "browser" && (
                   <BrowserContent
                     tabId={workspaceTabId}
+                    paneNodeId={nodeId}
                     item={item}
                     visible={visible && active}
                     onUpdate={(patch) => updateItem(item.id, patch)}
@@ -354,5 +401,6 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, visible, onNotify
         </div>
       </div>
     </PaneFrame>
+    </div>
   );
 }

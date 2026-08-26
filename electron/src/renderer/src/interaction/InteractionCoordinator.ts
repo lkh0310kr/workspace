@@ -1,7 +1,6 @@
 /**
- * Central coordinator for overlay blocks, embed pointer-events, portal
- * lifecycle, and focus handoff. All interaction-affecting state changes
- * funnel through reconcile() so webviews never stay stuck at pointer-events: none.
+ * Overlay blocks + workspace-tab scope for native embeds (<webview>).
+ * Pane/tab visibility is owned by PaneGroup + BrowserContent — not duplicated here.
  */
 
 import { dbgLog, collectWebviews } from "./interactionDebugLog";
@@ -11,6 +10,7 @@ export type OverlaySource = string;
 type WebviewRegistration = {
   webview: Electron.WebviewTag;
   workspaceTabId: number;
+  paneNodeId: string;
   paneTabItemId: string;
   paneVisible: boolean;
 };
@@ -34,6 +34,9 @@ type Listener = () => void;
 class InteractionCoordinatorImpl {
   private overlayStack: OverlaySource[] = [];
   private activeWorkspaceTabId: number | null = null;
+  /** Electron guests paint above all DOM — in split layout only one pane's
+   *  webview may be live at a time. Set explicitly on pane tab click. */
+  private activeBrowserPaneNodeId: string | null = null;
   private webviews = new Map<Electron.WebviewTag, WebviewRegistration>();
   private portals = new Map<string, PortalRegistration>();
   private pendingFocusWebview: Electron.WebviewTag | null = null;
@@ -69,43 +72,43 @@ class InteractionCoordinatorImpl {
   setActiveWorkspaceTab(tabId: number, options?: { force?: boolean }): void {
     const same = this.activeWorkspaceTabId === tabId;
     if (same && !options?.force) {
-      // #region agent log
-      dbgLog(
-        "InteractionCoordinator:setActiveWorkspaceTab",
-        "noop same tab",
-        { tabId, active: this.activeWorkspaceTabId },
-        "H2",
-      );
-      // #endregion
       return;
     }
-    // #region agent log
-    dbgLog(
-      "InteractionCoordinator:setActiveWorkspaceTab",
-      same ? "force reconcile" : "switch",
-      { from: this.activeWorkspaceTabId, to: tabId, force: options?.force ?? false },
-      "H2",
-    );
-    // #endregion
     if (!same) {
       this.moveFocusFromEmbeds();
       this.activeWorkspaceTabId = tabId;
+      this.activeBrowserPaneNodeId = null;
     }
     this.reconcile(
       same ? `active-workspace-tab-force:${tabId}` : `active-workspace-tab:${tabId}`,
     );
   }
 
+  setActiveBrowserPane(paneNodeId: string): void {
+    if (this.activeBrowserPaneNodeId === paneNodeId) return;
+    this.activeBrowserPaneNodeId = paneNodeId;
+    this.reconcile(`active-browser-pane:${paneNodeId}`);
+  }
+
   registerWebview(
     webview: Electron.WebviewTag,
-    info: { workspaceTabId: number; paneTabItemId: string; initialPaneVisible?: boolean },
+    info: {
+      workspaceTabId: number;
+      paneNodeId: string;
+      paneTabItemId: string;
+      initialPaneVisible?: boolean;
+    },
   ): void {
     this.webviews.set(webview, {
       webview,
       workspaceTabId: info.workspaceTabId,
+      paneNodeId: info.paneNodeId,
       paneTabItemId: info.paneTabItemId,
       paneVisible: info.initialPaneVisible ?? false,
     });
+    if (info.initialPaneVisible && this.activeBrowserPaneNodeId === null) {
+      this.activeBrowserPaneNodeId = info.paneNodeId;
+    }
     this.reconcile(`register-webview:${info.paneTabItemId}`);
   }
 
@@ -124,23 +127,13 @@ class InteractionCoordinatorImpl {
         }
       }
     }
-    if (!changed) {
-      // #region agent log
-      dbgLog(
-        "InteractionCoordinator:setBrowserPaneVisible",
-        "noop unchanged",
-        { workspaceTabId, paneTabItemId, visible, registrations: [...this.webviews.values()].map((r) => ({
-          ws: r.workspaceTabId,
-          item: r.paneTabItemId,
-          paneVisible: r.paneVisible,
-        })) },
-        "H3",
-      );
-      // #endregion
-      return;
-    }
+    if (!changed) return;
     this.reconcile(`browser-pane-visible:${paneTabItemId}:${visible}`);
     if (visible) {
+      const reg = this.findRegistration(workspaceTabId, paneTabItemId);
+      if (reg && this.activeBrowserPaneNodeId === null) {
+        this.activeBrowserPaneNodeId = reg.paneNodeId;
+      }
       const wv = this.findWebview(workspaceTabId, paneTabItemId);
       if (wv && this.shouldEnableWebview(wv)) {
         this.pendingFocusWebview = wv;
@@ -193,10 +186,7 @@ class InteractionCoordinatorImpl {
 
     for (const [webview, reg] of this.webviews) {
       const enabled = this.shouldEnableWebview(webview, reg, activeTab, blocked);
-      webview.style.pointerEvents = enabled ? "auto" : "none";
-      // Native guests can swallow clicks above DOM even when pointer-events is
-      // none — display:none removes them from hit-testing (H7).
-      webview.style.display = enabled ? "" : "none";
+      this.applyWebviewPolicy(webview, enabled);
     }
 
     for (const el of document.querySelectorAll("webview")) {
@@ -204,10 +194,8 @@ class InteractionCoordinatorImpl {
       if (this.webviews.has(wv)) continue;
       const hostItem = wv.closest("[data-workspace-tab-id]");
       const tabId = hostItem ? Number(hostItem.getAttribute("data-workspace-tab-id")) : NaN;
-      const enabled =
-        Number.isFinite(tabId) && tabId === activeTab && !blocked;
-      wv.style.pointerEvents = enabled ? "auto" : "none";
-      wv.style.display = enabled ? "" : "none";
+      const enabled = Number.isFinite(tabId) && tabId === activeTab && !blocked;
+      this.applyWebviewPolicy(wv, enabled);
     }
 
     if (this.pendingFocusWebview) {
@@ -245,15 +233,21 @@ class InteractionCoordinatorImpl {
         reason,
         blocked,
         activeTab,
+        activeBrowserPaneNodeId: this.activeBrowserPaneNodeId,
         overlayStack: [...this.overlayStack],
         portalCount: this.portals.size,
-        portalIds: [...this.portals.keys()],
         webviewPolicy,
         domWebviews: collectWebviews(),
       },
-      blocked ? "H1" : webviewPolicy.every((w) => w.applied === "none") ? "H3" : "H6",
+      blocked ? "H1" : "H6",
     );
     // #endregion
+  }
+
+  private applyWebviewPolicy(webview: Electron.WebviewTag, enabled: boolean): void {
+    webview.style.pointerEvents = enabled ? "auto" : "none";
+    // Native guests ignore z-index — display:none is the only reliable hide.
+    webview.style.display = enabled ? "flex" : "none";
   }
 
   private shouldEnableWebview(
@@ -264,11 +258,24 @@ class InteractionCoordinatorImpl {
   ): boolean {
     const registration = reg ?? this.webviews.get(webview);
     if (!registration) return false;
-    return (
-      activeTab === registration.workspaceTabId &&
-      !blocked &&
-      registration.paneVisible
-    );
+    if (activeTab !== registration.workspaceTabId || blocked || !registration.paneVisible) {
+      return false;
+    }
+    const activePane = this.activeBrowserPaneNodeId;
+    if (!activePane) return true;
+    return registration.paneNodeId === activePane;
+  }
+
+  private findRegistration(
+    workspaceTabId: number,
+    paneTabItemId: string,
+  ): WebviewRegistration | null {
+    for (const reg of this.webviews.values()) {
+      if (reg.workspaceTabId === workspaceTabId && reg.paneTabItemId === paneTabItemId) {
+        return reg;
+      }
+    }
+    return null;
   }
 
   private findWebview(workspaceTabId: number, paneTabItemId: string): Electron.WebviewTag | null {
@@ -312,6 +319,7 @@ if (typeof window !== "undefined") {
     "mouseup",
     () => {
       if (!interactionCoordinator.isOverlayBlocked()) return;
+      if (interactionCoordinator.getSnapshot().portalIds.length > 0) return;
       interactionCoordinator.clearOverlayBlocks("overlay-mouseup-safety");
     },
     true,

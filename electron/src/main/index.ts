@@ -11,6 +11,7 @@ import { setupBrowserSession } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
+import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 
 let focusedTerminalId: number | null = null
@@ -356,6 +357,9 @@ app.whenReady().then(() => {
   })
   ipcMain.on('debug:terminal-log', (_event, entry: Record<string, unknown>) => {
     appendTerminalLog(entry)
+  })
+  ipcMain.on('debug:layout-log', (_event, entry: Record<string, unknown>) => {
+    appendLayoutLog(entry)
   })
   // OSC 52 from nested apps (vim, ssh tmux, etc.) — xterm forwards via
   // registerOscHandler(52) in connectPanePty; renderer has no clipboard API.

@@ -5,6 +5,8 @@
 // module-level variable is the workaround: every PaneTabStrip instance
 // reads/writes the same value, regardless of which one started the drag.
 // Same pattern as layoutRef.ts's module-level Layout ref.
+import { layoutLog } from "./layoutDebugLog";
+
 export interface TabDragPayload {
   sourceTabNodeId: string;
   tabId: string;
@@ -14,6 +16,7 @@ let current: TabDragPayload | null = null;
 
 export function startTabDrag(payload: TabDragPayload): void {
   current = payload;
+  layoutLog("tabDrag.startTabDrag", "tab chip drag start", { ...payload });
 }
 
 export function getTabDrag(): TabDragPayload | null {
@@ -21,5 +24,8 @@ export function getTabDrag(): TabDragPayload | null {
 }
 
 export function endTabDrag(): void {
+  if (current) {
+    layoutLog("tabDrag.endTabDrag", "tab chip drag end", { ...current });
+  }
   current = null;
 }

@@ -4,6 +4,7 @@ import type { Model } from "flexlayout-react";
 import type { TabInfo, WorkspaceState } from "../electron";
 import { setTabLayout } from "../electron";
 import { countLayoutTabs, modelFromLayoutJson } from "../layout/layoutModelParse";
+import { layoutLog, layoutLogModel } from "../layout/layoutDebugLog";
 import { paneTabStoreKey } from "./paneTabKey";
 function tabsDataEqual(a: TabInfo[], b: TabInfo[]): boolean {
   if (a.length !== b.length) return false;
@@ -94,6 +95,9 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
         }
         modelsByTabId.set(tab.id, modelFromLayoutJson(tab.layout_json));
         modelChanged = true;
+        layoutLogModel("workspaceStore.syncModelsFromWorkspace", "model loaded", modelsByTabId.get(tab.id), {
+          tabId: tab.id,
+        }, tab.id);
         if (saved !== tab.layout_json) {
           savedLayoutJsonByTabId.set(tab.id, tab.layout_json);
         }
@@ -128,8 +132,12 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     persistLayout(tabId: number, model: Model) {
       const json = JSON.stringify(model.toJson());
       savedLayoutJsonByTabId.set(tabId, json);
+      layoutLogModel("workspaceStore.persistLayout", "persist scheduled", model, {
+        jsonLength: json.length,
+      }, tabId);
       if (persistTimer) clearTimeout(persistTimer);
       persistTimer = setTimeout(() => {
+        layoutLog("workspaceStore.persistLayout", "persist flush", { tabId, jsonLength: json.length }, tabId);
         setTabLayout(tabId, json).catch(console.error);
       }, 250);
     },

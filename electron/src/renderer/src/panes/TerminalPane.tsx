@@ -13,6 +13,7 @@ import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
 import { copyTerminalSelection } from "../terminal/terminal-selection-copy";
 import { termLog } from "../terminal/terminalDebugLog";
+import { dbgLog } from "../interaction/interactionDebugLog";
 import { writeClipboardText } from "../electron";
 
 interface Props {
@@ -23,7 +24,6 @@ interface Props {
 }
 
 const TERMINAL_BASE_FONT_SIZE = 14;
-const PANE_ID = 1;
 
 function applyTerminalSurfaceBackground(el: HTMLElement, resolved: ReturnType<typeof getCurrentResolvedTheme>) {
   const bg = XTERM_THEMES[resolved].background ?? "";
@@ -44,7 +44,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
     const host = hostRef.current;
     if (!host) return;
 
-    const pane = createPaneDOM(PANE_ID, `terminal-${terminalId}`, {
+    const pane = createPaneDOM(terminalId, `terminal-${terminalId}`, {
       terminalGpuAcceleration: "off",
       linkOpenHint: () => "open in browser",
       onLinkClick: (_paneId, _event, uri) => {
@@ -139,14 +139,37 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
   }, [zoom]);
 
   useEffect(() => {
+    // #region agent log
+    dbgLog(
+      "TerminalPane:visibility",
+      "visibility effect",
+      { terminalId, visible, active, show: visible && active },
+      "H8",
+    );
+    // #endregion
     if (!visible || !active) return;
     const pane = paneRef.current;
-    if (!pane) return;
-    requestAnimationFrame(() => {
+    const host = hostRef.current;
+    if (!pane || !host) return;
+
+    const refit = (): void => {
       refitPaneTerminal(pane);
       pane.terminal.focus();
+    };
+
+    requestAnimationFrame(refit);
+    const timer = window.setTimeout(refit, 50);
+
+    const ro = new ResizeObserver(() => {
+      if (visible && active) refitPaneTerminal(pane);
     });
-  }, [visible, active]);
+    ro.observe(host);
+
+    return () => {
+      clearTimeout(timer);
+      ro.disconnect();
+    };
+  }, [visible, active, terminalId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -412,6 +412,9 @@ input {
   height: 0;
   border: none;
   background: var(--bg-base);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
 }
 
 iframe.browser-content-slot {
@@ -729,6 +732,19 @@ iframe.browser-content-slot {
 /* —— Pane group body (PaneGroup.tsx) —— the explorer sidebar (editor tabs
    only) plus a stack of every open tab's content, all mounted at once and
    toggled via display so switching tabs never loses state. */
+.pane-group-host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.flexlayout__tab_moveable {
+  isolation: isolate;
+  overflow: hidden;
+}
+
 .pane-group-body {
   display: flex;
   flex: 1;
@@ -1590,6 +1606,37 @@ iframe.browser-content-slot {
 
 .flexlayout__splitter_drag {
   flex: 0 0 1px !important;
+}
+
+.flexlayout__outline_rect,
+.flexlayout__outline_rect_edge {
+  border: 2px solid var(--accent) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+.flexlayout__edge_rect {
+  background: var(--accent) !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+/* Tab-chip drag over layout — same 2px accent line as pane-tab-drop-indicator. */
+.pane-layout-drop-indicator {
+  position: fixed;
+  z-index: 100002;
+  pointer-events: none;
+  box-sizing: border-box;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+.pane-layout-drop-indicator--frame {
+  background: transparent;
+  border: 2px solid var(--accent);
+  border-radius: 0;
 }
 
 /* —— Misc —— */

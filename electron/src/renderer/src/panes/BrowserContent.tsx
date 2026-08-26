@@ -18,6 +18,7 @@ import type { PaneTabItem } from "../layout/paneTypes";
 // own nav+address bar row.
 interface Props {
   tabId: number;
+  paneNodeId: string;
   item: PaneTabItem;
   visible: boolean;
   onUpdate: (patch: Partial<PaneTabItem>) => void;
@@ -44,7 +45,7 @@ function applyWebviewZoom(webview: Electron.WebviewTag, factor: number): void {
   }
 }
 
-export function BrowserContent({ tabId, item, visible, onUpdate, onOpenNewTab }: Props) {
+export function BrowserContent({ tabId, paneNodeId, item, visible, onUpdate, onOpenNewTab }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const [webview, setWebview] = useState<Electron.WebviewTag | null>(null);
@@ -90,9 +91,22 @@ export function BrowserContent({ tabId, item, visible, onUpdate, onOpenNewTab }:
     guest.style.height = "100%";
     guest.style.border = "none";
     guest.style.background = "#ffffff";
+    // Start hidden — reconcile() enables only the focused pane's guest.
+    // Without this, a freshly mounted webview's native layer sits above DOM
+    // (tab strips, popovers, workspace rail) until the next reconcile tick.
+    guest.style.display = "none";
+    guest.style.pointerEvents = "none";
     container.appendChild(guest);
     webviewRef.current = guest;
     setWebview(guest);
+    // #region agent log
+    dbgLog(
+      "BrowserContent:mount",
+      "webview created",
+      { tabId, paneNodeId, itemId: item.id, visible, initialUrl: item.url ?? DEFAULT_URL },
+      "H4",
+    );
+    // #endregion
     applyWebviewZoom(guest, initialZoom);
     setZoomFactor(initialZoom);
 
@@ -142,6 +156,7 @@ export function BrowserContent({ tabId, item, visible, onUpdate, onOpenNewTab }:
     const unregisterWebview = registerBrowserWebview(guest);
     interactionCoordinator.registerWebview(guest, {
       workspaceTabId: tabId,
+      paneNodeId,
       paneTabItemId: item.id,
       initialPaneVisible: visible,
     });
@@ -185,7 +200,7 @@ export function BrowserContent({ tabId, item, visible, onUpdate, onOpenNewTab }:
     // Deliberately empty deps — one webview per tab item for its whole
     // lifetime, navigated imperatively; item.id is a stable mount key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, item.id, syncNavState]);
+  }, [tabId, paneNodeId, item.id, syncNavState]);
 
   useEffect(() => {
     const webview = webviewRef.current;

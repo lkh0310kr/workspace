@@ -6,7 +6,8 @@ import { PaneTabItem, TabKind, TAB_KIND_OPTIONS, tabKindIcon } from "../layout/p
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from "../layout/tabDrag";
 import { popOverlayBlock, pushOverlayBlock } from "../browser/overlayBarrier";
 import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
-import { startPaneDrag } from "../layout/layoutRef";
+import { startPaneDrag, finishPaneDrag } from "../layout/layoutRef";
+import { layoutLog } from "../layout/layoutDebugLog";
 
 // The globalized version of ui/EditorTabBar.tsx (which used to be
 // editor-only) — the same tab-chip strip UI now used for every pane kind,
@@ -81,17 +82,23 @@ export function PaneTabStrip({
   const blockedRef = useRef(false);
   const chipRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  useEffect(() => {
-    const open = addPickerAnchor !== null || contextMenu !== null;
+  const MENU_OVERLAY = "pane-strip-menu";
+
+  const syncMenuOverlay = useCallback((pickerOpen: boolean, ctxOpen: boolean) => {
+    const open = pickerOpen || ctxOpen;
     if (open === blockedRef.current) return;
     blockedRef.current = open;
-    if (open) pushOverlayBlock("add-tab-picker");
-    else popOverlayBlock("add-tab-picker");
-  }, [addPickerAnchor, contextMenu]);
+    if (open) pushOverlayBlock(MENU_OVERLAY);
+    else popOverlayBlock(MENU_OVERLAY);
+  }, []);
+
+  useEffect(() => {
+    syncMenuOverlay(addPickerAnchor !== null, contextMenu !== null);
+  }, [addPickerAnchor, contextMenu, syncMenuOverlay]);
 
   useEffect(
     () => () => {
-      if (blockedRef.current) popOverlayBlock("add-tab-picker");
+      if (blockedRef.current) popOverlayBlock(MENU_OVERLAY);
     },
     [],
   );
@@ -187,7 +194,13 @@ export function PaneTabStrip({
     setDropIndex(null);
     if (!payload) return;
     e.preventDefault();
-    onDropTab(payload, computeDropIndex(e.clientX, payload.tabId));
+    const index = computeDropIndex(e.clientX, payload.tabId);
+    layoutLog("PaneTabStrip.handleDrop", "tab strip drop", {
+      payload,
+      index,
+      targetPaneNodeId: tabNode.getId(),
+    });
+    onDropTab(payload, index);
     endTabDrag();
   };
 
@@ -203,11 +216,33 @@ export function PaneTabStrip({
   // printed). Attaching the same handlers directly to
   // .pane-tab-strip-tabs too removes the dependency on that ancestor
   // lookup working as expected.
+  const shouldIgnorePaneStripDrag = (target: EventTarget | null) => {
+    const el = target as HTMLElement | null;
+    if (!el) return true;
+    // Tab chips, +/close buttons, and other controls must not start a
+    // whole-pane flexlayout drag — it seeds flexlayout's drag overlay and
+    // suppresses the click (popover never opens, pane close/add dead).
+    return !!el.closest(".pane-tab-slot, .pane-tab-add-anchor, button, a, input, textarea");
+  };
+
   const onStripDragStart = (e: DragEvent) => {
+    if (shouldIgnorePaneStripDrag(e.target)) {
+      e.preventDefault();
+      return;
+    }
+    layoutLog("PaneTabStrip.onStripDragStart", "pane strip drag start", {
+      paneNodeId: tabNode.getId(),
+    });
     pushOverlayBlock("pane-tab-strip-drag");
     startPaneDrag(e, tabNode);
   };
-  const onStripDragEnd = () => popOverlayBlock("pane-tab-strip-drag");
+  const onStripDragEnd = () => {
+    layoutLog("PaneTabStrip.onStripDragEnd", "pane strip drag end", {
+      paneNodeId: tabNode.getId(),
+    });
+    finishPaneDrag();
+    popOverlayBlock("pane-tab-strip-drag");
+  };
 
   return (
     <div className="pane-tab-strip" draggable onDragStart={onStripDragStart} onDragEnd={onStripDragEnd}>
@@ -286,13 +321,6 @@ export function PaneTabStrip({
             draggable={false}
             onClick={(e) => {
               e.stopPropagation();
-              // Capture the rect now — e.currentTarget is null by the time
-              // React invokes this updater (DOM nulls it out once the
-              // synchronous dispatch that produced this event finishes),
-              // so reading it lazily inside the updater threw
-              // "Cannot read properties of null (reading
-              // 'getBoundingClientRect')" the moment this button was
-              // clicked at all.
               const rect = e.currentTarget.getBoundingClientRect();
               setAddPickerAnchor((prev) => (prev ? null : rect));
             }}

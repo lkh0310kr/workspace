@@ -56,6 +56,7 @@ export interface WorkspaceApi {
   debug: {
     interactionLog: (entry: Record<string, unknown>) => void
     terminalLog: (entry: Record<string, unknown>) => void
+    layoutLog: (entry: Record<string, unknown>) => void
   }
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void) => () => void

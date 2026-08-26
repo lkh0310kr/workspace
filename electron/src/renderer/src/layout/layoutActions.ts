@@ -1,6 +1,15 @@
 import { Actions, DockLocation, Model, TabNode } from "flexlayout-react";
 import { spawnTerminal } from "../electron";
+import { layoutLog, layoutLogMutation, summarizeLayoutModel } from "./layoutDebugLog";
 import { PaneGroupConfig, PaneTabItem, TabKind, tabKindLabel } from "./paneTypes";
+import { useWorkspaceStore } from "../store/workspaceStore";
+
+/** PaneGroup reads tabNode.getConfig() — bump epoch only when the tab list
+ * structure changes, not on activeTabId-only persists (that remounted
+ * terminals/webviews on every tab click). */
+function bumpPaneGroupRender(): void {
+  useWorkspaceStore.getState().bumpModelEpoch();
+}
 
 // A simple incrementing counter here (as this used to be) resets to 1
 // every time the renderer process starts — every tab/pane created that
@@ -61,6 +70,15 @@ function getGroupConfig(model: Model, tabNodeId: string): PaneGroupConfig | null
   return (node.getConfig() ?? { tabs: [], activeTabId: "" }) as PaneGroupConfig;
 }
 
+/** flexlayout ADD_TAB only accepts tabset / row / border targets — not tab
+ * node ids. Passing a tab id silently no-ops (pane vanishes on split). */
+function resolveTabSetId(model: Model, tabNodeId: string): string | null {
+  const node = model.getNodeById(tabNodeId);
+  if (!(node instanceof TabNode)) return null;
+  const parent = node.getParent();
+  return parent?.getType() === "tabset" ? parent.getId() : null;
+}
+
 /** Adds a new pane (flexlayout tab node) to `tabSetId` holding a single
  * fresh tab of `kind` — used for "split" and for auto-filling an emptied
  * tabset with a default terminal. */
@@ -70,8 +88,15 @@ export async function addPaneToTabSet(
   kind: TabKind,
   source?: Partial<PaneTabItem>,
 ) {
+  const before = summarizeLayoutModel(model);
   const item = await buildTabItem(kind, source);
-  model.doAction(Actions.addNode(tabGroupNodeJson(item), tabSetId, DockLocation.CENTER, -1, true));
+  model.doAction(Actions.addTab(tabGroupNodeJson(item), tabSetId, DockLocation.CENTER, -1, true));
+  layoutLogMutation("layoutActions.addPaneToTabSet", "added pane", before, summarizeLayoutModel(model), {
+    tabSetId,
+    kind,
+    itemId: item.id,
+  });
+  bumpPaneGroupRender();
 }
 
 /** Adds a new tab of `kind` to an existing pane's tab group and makes it
@@ -83,17 +108,28 @@ export async function addTabToGroup(
   kind: TabKind,
   source?: Partial<PaneTabItem>,
 ): Promise<string | null> {
+  const before = summarizeLayoutModel(model);
   const config = getGroupConfig(model, tabNodeId);
-  if (!config) return null;
+  if (!config) {
+    layoutLog("layoutActions.addTabToGroup", "missing pane", { tabNodeId, kind }, undefined);
+    return null;
+  }
   const item = await buildTabItem(kind, source);
   const next: PaneGroupConfig = { ...config, tabs: [...config.tabs, item], activeTabId: item.id };
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: next }));
+  layoutLogMutation("layoutActions.addTabToGroup", "added tab", before, summarizeLayoutModel(model), {
+    tabNodeId,
+    kind,
+    itemId: item.id,
+  });
+  bumpPaneGroupRender();
   return item.id;
 }
 
 export function setActiveTabInGroup(model: Model, tabNodeId: string, tabId: string): void {
   const config = getGroupConfig(model, tabNodeId);
   if (!config || config.activeTabId === tabId) return;
+  layoutLog("layoutActions.setActiveTabInGroup", "active tab", { tabNodeId, tabId, from: config.activeTabId });
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, activeTabId: tabId } }));
 }
 
@@ -142,6 +178,7 @@ export async function changeTabKindInGroup(
   tabs[idx] = item;
   const activeTabId = config.activeTabId === tabId ? item.id : config.activeTabId;
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, tabs, activeTabId } }));
+  bumpPaneGroupRender();
   return item.id;
 }
 
@@ -163,21 +200,37 @@ export function moveTabToGroup(
   targetTabNodeId: string,
   targetIndex: number,
 ): string | null {
+  const before = summarizeLayoutModel(model);
   const sourceConfig = getGroupConfig(model, sourceTabNodeId);
-  if (!sourceConfig) return null;
+  if (!sourceConfig) {
+    layoutLog("layoutActions.moveTabToGroup", "missing source pane", { sourceTabNodeId, tabId, targetTabNodeId });
+    return null;
+  }
   const item = sourceConfig.tabs.find((t) => t.id === tabId);
-  if (!item) return null;
+  if (!item) {
+    layoutLog("layoutActions.moveTabToGroup", "missing tab", { sourceTabNodeId, tabId, targetTabNodeId });
+    return null;
+  }
 
   if (sourceTabNodeId === targetTabNodeId) {
     const withoutItem = sourceConfig.tabs.filter((t) => t.id !== tabId);
     const clamped = Math.max(0, Math.min(targetIndex, withoutItem.length));
     const tabs = [...withoutItem.slice(0, clamped), item, ...withoutItem.slice(clamped)];
     model.doAction(Actions.updateNodeAttributes(sourceTabNodeId, { config: { ...sourceConfig, tabs } }));
+    layoutLogMutation("layoutActions.moveTabToGroup", "reordered tab", before, summarizeLayoutModel(model), {
+      sourceTabNodeId,
+      tabId,
+      targetIndex: clamped,
+    });
+    bumpPaneGroupRender();
     return item.id;
   }
 
   const targetConfig = getGroupConfig(model, targetTabNodeId);
-  if (!targetConfig) return null;
+  if (!targetConfig) {
+    layoutLog("layoutActions.moveTabToGroup", "missing target pane", { sourceTabNodeId, tabId, targetTabNodeId });
+    return null;
+  }
 
   const remainingSource = sourceConfig.tabs.filter((t) => t.id !== tabId);
   if (remainingSource.length === 0) {
@@ -196,6 +249,15 @@ export function moveTabToGroup(
   model.doAction(
     Actions.updateNodeAttributes(targetTabNodeId, { config: { ...targetConfig, tabs, activeTabId: item.id } }),
   );
+  layoutLogMutation("layoutActions.moveTabToGroup", "moved tab", before, summarizeLayoutModel(model), {
+    sourceTabNodeId,
+    tabId,
+    targetTabNodeId,
+    targetIndex,
+    merged: sourceTabNodeId !== targetTabNodeId,
+    sourceDeleted: remainingSource.length === 0,
+  });
+  bumpPaneGroupRender();
   return item.id;
 }
 
@@ -208,24 +270,119 @@ export function moveTabToGroup(
  * moves the tab into it. A pane's only tab has nowhere new to go (it's
  * already its own pane) — no-op, returns false.
  */
-export function moveTabToNewPane(model: Model, sourceTabNodeId: string, tabId: string): boolean {
-  const config = getGroupConfig(model, sourceTabNodeId);
-  if (!config) return false;
-  const item = config.tabs.find((t) => t.id === tabId);
-  if (!item) return false;
-  if (config.tabs.length <= 1) return false;
+export function moveTabToNewPane(
+  model: Model,
+  sourceTabNodeId: string,
+  tabId: string,
+): { tabNodeId: string; tabItemId: string } | null {
   const sourceNode = model.getNodeById(sourceTabNodeId);
-  if (!(sourceNode instanceof TabNode)) return false;
-  const tabSetId = sourceNode.getParent()?.getId();
-  if (!tabSetId) return false;
+  if (!(sourceNode instanceof TabNode)) return null;
+  return moveTabToSplitPane(model, sourceTabNodeId, tabId, sourceTabNodeId, DockLocation.RIGHT);
+}
+
+/** Removes a tab from its pane and docks a fresh single-tab pane relative
+ * to `targetTabNodeId` (VS Code-style edge splits). Returns the new pane's
+ * flexlayout node id and tab item id. */
+export function moveTabToSplitPane(
+  model: Model,
+  sourceTabNodeId: string,
+  tabId: string,
+  targetTabNodeId: string,
+  location: DockLocation,
+): { tabNodeId: string; tabItemId: string } | null {
+  const before = summarizeLayoutModel(model);
+  const config = getGroupConfig(model, sourceTabNodeId);
+  if (!config) {
+    layoutLog("layoutActions.moveTabToSplitPane", "missing source pane", {
+      sourceTabNodeId,
+      tabId,
+      targetTabNodeId,
+      location: location.getName(),
+    });
+    return null;
+  }
+  const item = config.tabs.find((t) => t.id === tabId);
+  if (!item) {
+    layoutLog("layoutActions.moveTabToSplitPane", "missing tab", {
+      sourceTabNodeId,
+      tabId,
+      targetTabNodeId,
+      location: location.getName(),
+    });
+    return null;
+  }
+  const targetNode = model.getNodeById(targetTabNodeId);
+  if (!(targetNode instanceof TabNode)) {
+    layoutLog("layoutActions.moveTabToSplitPane", "invalid target node", {
+      sourceTabNodeId,
+      tabId,
+      targetTabNodeId,
+      location: location.getName(),
+      targetType: targetNode?.getType(),
+    });
+    return null;
+  }
 
   const remaining = config.tabs.filter((t) => t.id !== tabId);
-  const activeTabId = config.activeTabId === tabId ? remaining[0].id : config.activeTabId;
-  model.doAction(
-    Actions.updateNodeAttributes(sourceTabNodeId, { config: { ...config, tabs: remaining, activeTabId } }),
-  );
-  model.doAction(Actions.addNode(tabGroupNodeJson(item), tabSetId, DockLocation.RIGHT, -1, true));
-  return true;
+  const nodeJson = tabGroupNodeJson(item);
+  const samePane = sourceTabNodeId === targetTabNodeId;
+  const emptySource = remaining.length === 0;
+  const tabSetId = resolveTabSetId(model, targetTabNodeId);
+  if (!tabSetId) {
+    layoutLog("layoutActions.moveTabToSplitPane", "no tabset for target", {
+      sourceTabNodeId,
+      tabId,
+      targetTabNodeId,
+      location: location.getName(),
+    });
+    return null;
+  }
+
+  const removeFromSource = () => {
+    if (emptySource) {
+      model.doAction(Actions.deleteTab(sourceTabNodeId));
+    } else {
+      const activeTabId = config.activeTabId === tabId ? remaining[0].id : config.activeTabId;
+      model.doAction(
+        Actions.updateNodeAttributes(sourceTabNodeId, {
+          config: { ...config, tabs: remaining, activeTabId },
+        }),
+      );
+    }
+  };
+
+  // Same-pane splits must add the new tabset before mutating/deleting the
+  // source tab node so flexlayout still has a valid anchor tabset.
+  const strategy = samePane
+    ? emptySource
+      ? "add-then-delete"
+      : "add-then-update"
+    : emptySource
+      ? "delete-then-add"
+      : "update-then-add";
+
+  if (samePane) {
+    model.doAction(Actions.addTab(nodeJson, tabSetId, location, -1, true));
+    removeFromSource();
+  } else {
+    removeFromSource();
+    model.doAction(Actions.addTab(nodeJson, tabSetId, location, -1, true));
+  }
+
+  layoutLogMutation("layoutActions.moveTabToSplitPane", "split tab", before, summarizeLayoutModel(model), {
+    sourceTabNodeId,
+    tabId,
+    targetTabNodeId,
+    tabSetId,
+    location: location.getName(),
+    newPaneId: nodeJson.id,
+    samePane,
+    emptySource,
+    strategy,
+    tabKind: item.kind,
+  });
+  bumpPaneGroupRender();
+  return { tabNodeId: nodeJson.id, tabItemId: item.id };
 }
 
 /** Closes the active tab in the currently-focused flexlayout pane (last tab
@@ -247,17 +404,32 @@ export function closeActivePaneTab(model: Model): boolean {
  * window). Returns the tab that's now active, or null if the whole pane
  * was removed. */
 export function closeTabInGroup(model: Model, tabNodeId: string, tabId: string): string | null {
+  const before = summarizeLayoutModel(model);
   const config = getGroupConfig(model, tabNodeId);
-  if (!config) return null;
+  if (!config) {
+    layoutLog("layoutActions.closeTabInGroup", "missing pane", { tabNodeId, tabId });
+    return null;
+  }
   const idx = config.tabs.findIndex((t) => t.id === tabId);
   if (idx === -1) return config.activeTabId;
   const tabs = config.tabs.filter((t) => t.id !== tabId);
   if (tabs.length === 0) {
     model.doAction(Actions.deleteTab(tabNodeId));
+    layoutLogMutation("layoutActions.closeTabInGroup", "deleted pane (last tab)", before, summarizeLayoutModel(model), {
+      tabNodeId,
+      tabId,
+    });
+    bumpPaneGroupRender();
     return null;
   }
   const activeTabId =
     config.activeTabId === tabId ? (tabs[idx] ?? tabs[idx - 1] ?? tabs[0]).id : config.activeTabId;
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, tabs, activeTabId } }));
+  layoutLogMutation("layoutActions.closeTabInGroup", "closed tab", before, summarizeLayoutModel(model), {
+    tabNodeId,
+    tabId,
+    nextActiveTabId: activeTabId,
+  });
+  bumpPaneGroupRender();
   return activeTabId;
 }
