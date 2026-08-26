@@ -17,3 +17,11 @@ export function paneChipContentStyle(paneVisible: boolean, chipActive: boolean):
 export function paneChipContentShown(paneVisible: boolean, chipActive: boolean): boolean {
   return paneVisible && chipActive;
 }
+
+/** Workspace tab host wrapper — keep mounted, hide inactive tabs. */
+export function workspaceTabHostStyle(active: boolean): CSSProperties {
+  return {
+    visibility: active ? "visible" : "hidden",
+    pointerEvents: active ? "auto" : "none",
+  };
+}

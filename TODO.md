@@ -20,7 +20,7 @@ MVP Phase 1 기능은 대체로 동작함. Phase 2는 **완성도·안정성·�
 
 | 레이어 | 담당 |
 |--------|------|
-| `App.tsx` `.layout-host-item` | workspace tab `visibility` / `pointerEvents` |
+| `WorkspaceLayoutHost` + `embedPolicy.workspaceTabHostStyle` | workspace tab `visibility` / `pointerEvents` |
 | `PaneGroup` `.pane-group-content-item` | pane 내 chip `visibility` / `pointerEvents` |
 | `usePaneVisibility` + flexlayout `tabNode.isVisible()` | pane live content 여부 |
 | `InteractionCoordinator` | webview `display` / `pointer-events` (overlay·portal·drag) |
@@ -32,7 +32,7 @@ MVP Phase 1 기능은 대체로 동작함. Phase 2는 **완성도·안정성·�
 - [x] `layoutMovePolicy.ts` — App.tsx MOVE_NODE/rebalance 분리.
 - [x] IC `activeBrowserPaneNodeId` dead code 제거.
 
-### App.tsx 비대화 (~650줄)
+### App.tsx 비대화 (~650줄 → ~155줄)
 
 layout factory, flexlayout `onAction`/`onModelChange`, chip drop, splitter overlay, shortcut wiring, settings portal, debug probe가 한 파일에 있음.
 
@@ -41,8 +41,9 @@ layout factory, flexlayout `onAction`/`onModelChange`, chip drop, splitter overl
 - [x] `layoutChipWindowDrop.ts` — chip window drop 로직 분리.
 - [x] `browserEmbedSupport.ts` — focus relay + `reloadFocusedBrowser` 단일 진입점.
 - [x] main NDJSON 로그 — `!app.isPackaged`일 때만 기록 (`debugLogSink.ts`).
-- [ ] `useLayoutHost(tabId)` / `useFlexlayoutDragPolicy()` 등으로 **layout orchestration 분리** — hooks 1차 완료, titlebar/settings UI는 App에 잔여.
-- [ ] chip/pane split drop은 `LayoutTabDropOverlay` + `layoutTabDrop.ts`로 이미 분리됨 — App.tsx의 window `drop` fallback만 정리
+- [x] `AppTitlebar`, `WorkspaceLayoutHost`, `useAppShellState`, `useAppBootstrap`, `useAppShortcuts`, `useLayoutHostLifecycle`, `useVisibleWorkspaceTab` — shell/layout UI·lifecycle hooks 분리 (2026-08-26).
+- [ ] `useFlexlayoutDragPolicy()` 등 drag orchestration 추가 분리 (optional).
+- [x] chip/pane split drop — `LayoutTabDropOverlay` + `layoutTabDrop.ts` + `useTabChipWindowDrop`; App window `drop` fallback 제거됨.
 
 ### 모듈 전역 mutable state
 
@@ -56,7 +57,7 @@ layout factory, flexlayout `onAction`/`onModelChange`, chip drop, splitter overl
 `docs/architecture/07-future-phases.md` Phase 2는 "완료"로 표시돼 있으나:
 
 - [ ] `modelsByTabId` Map이 **zustand 밖 module scope** — `workspaceLayoutModels.ts`로 분리됨; reactive slice 통합은 미완.
-- [ ] `App.tsx`의 `resolveVisibleWorkspaceTabId(activeTabId, coordinatorTabId, tabs)` — coordinator vs zustand active tab **이중 소스** (낙관적 tab switch 때문에 존재). 한 snapshot(`getWorkspaceScope()`)으로 projection만 하게 정리
+- [ ] `useVisibleWorkspaceTab` / `resolveVisibleWorkspaceTabId` — coordinator vs zustand active tab **이중 소스** (낙관적 tab switch 때문에 존재). 한 snapshot(`getWorkspaceScope()`)으로 projection만 하게 정리
 - [ ] `PaneGroup` 내부 dirty state, explorer width 등 pane-local UI state는 zustand slice 후보
 
 ### 디버그 코드가 프로덕션 UI에 항상 켜짐
