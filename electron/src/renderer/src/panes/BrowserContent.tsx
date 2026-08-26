@@ -66,6 +66,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   const [canGoForward, setCanGoForward] = useState(false);
   const [webContentsId, setWebContentsId] = useState<number | null>(null);
   const [zoomFactor, setZoomFactor] = useState(item.zoomFactor ?? 1);
+  const [rendererGone, setRendererGone] = useState(false);
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
   const onOpenNewTabRef = useRef(onOpenNewTab);
@@ -146,6 +147,15 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       const favicon = e.favicons[0];
       if (favicon) onUpdateRef.current({ favicon });
     };
+    // Why (Orca parity — host-guest/browser-page-guest-recovery.ts): a
+    // crashed/OOM-killed guest renderer fires render-process-gone and goes
+    // blank with no further events, so the crash needs its own listener
+    // rather than falling through did-stop-loading. Workspace has no
+    // main-process guest registry to validate against or replace a guest
+    // through, so this is the display+reload half only, not Orca's full
+    // recovery/validation state machine.
+    const onRendererGone = (): void => setRendererGone(true);
+    const onDomReady = (): void => setRendererGone(false);
 
     guest.addEventListener("did-start-loading", onStartLoading);
     guest.addEventListener("did-stop-loading", onStopLoading);
@@ -153,6 +163,8 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     guest.addEventListener("did-navigate-in-page", onNavigateInPage);
     guest.addEventListener("page-title-updated", onPageTitleUpdated);
     guest.addEventListener("page-favicon-updated", onFaviconUpdated);
+    guest.addEventListener("render-process-gone", onRendererGone);
+    guest.addEventListener("dom-ready", onDomReady);
 
     const unregisterWebview = registerBrowserWebview(guest);
     registerPersistentWebview(item.id, guest);
@@ -189,6 +201,8 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       guest.removeEventListener("did-navigate-in-page", onNavigateInPage);
       guest.removeEventListener("page-title-updated", onPageTitleUpdated);
       guest.removeEventListener("page-favicon-updated", onFaviconUpdated);
+      guest.removeEventListener("render-process-gone", onRendererGone);
+      guest.removeEventListener("dom-ready", onDomReady);
       guest.removeEventListener("focus", onFocus);
       guest.removeEventListener("blur", onBlur);
       if (getActiveBrowserWebview() === guest) setActiveBrowserWebview(null);
@@ -338,7 +352,25 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       </div>
       {loading ? <div className="browser-loading-bar" aria-hidden="true" /> : null}
       <BrowserDownloadsBar webContentsId={webContentsId} />
-      <div ref={containerRef} className="browser-content-slot" />
+      <div className="browser-content-slot-wrap">
+        {/* containerRef stays a pure imperative host for the <webview> —
+            keeping it free of React-rendered children avoids React's
+            reconciliation fighting the guest element it doesn't know
+            about. The crash banner is a positioned sibling instead. */}
+        <div ref={containerRef} className="browser-content-slot" />
+        {rendererGone && (
+          <div className="browser-crash-banner">
+            <span>This page crashed.</span>
+            <button
+              type="button"
+              className="browser-crash-reload"
+              onClick={() => webviewRef.current?.reload()}
+            >
+              Reload
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
