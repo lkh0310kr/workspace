@@ -53,7 +53,7 @@ family — see [architecture/08-vector-editor.md](./architecture/08-vector-edito
 
 - [x] M1 — scene graph, SVG render, selection/transform (rect/ellipse), save/load JSON — implemented, pending live GUI QA (see TODO.md)
 - [x] M2 — pen tool, line tool — implemented, pending live GUI QA (see TODO.md)
-- [ ] M3 — stroke/fill UI, group/ungroup
+- [x] M3 — stroke/fill UI, group/ungroup — implemented (group is move-only, no resize/rotate — see 08-vector-editor.md), pending live GUI QA (see TODO.md)
 - [ ] M4 — undo/redo, export SVG/PNG, polish
 - [ ] M5 — text tool
 

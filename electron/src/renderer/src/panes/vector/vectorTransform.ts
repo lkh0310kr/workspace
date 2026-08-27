@@ -14,9 +14,14 @@
 // compose the same pivot formula, so they can never disagree about where
 // a shape actually is.
 
-import type { EllipseObject, LineObject, PathObject, RectObject, Transform } from "./sceneGraph";
+import type { EllipseObject, GroupObject, LineObject, PathObject, RectObject, SceneObject, Transform } from "./sceneGraph";
 
-export type TransformableObject = RectObject | EllipseObject | LineObject | PathObject;
+// GroupObject joined the union in M3, restricted to *translation-only*
+// transforms for now (see VectorEditorContent.tsx's group/ungroup) — its
+// own resize/rotate handles aren't shown, only a move-drag. That
+// restriction is what makes Ungroup's transform math a plain addition
+// instead of a general affine decomposition (see groupObjectLocalBounds).
+export type TransformableObject = RectObject | EllipseObject | LineObject | PathObject | GroupObject;
 
 export interface Point {
   x: number;
@@ -43,11 +48,32 @@ function boundsOfPoints(points: Point[]): Bounds {
  * extends past its handles' convex hull, so this can be a slight
  * underestimate for a heavily-curved path; fine for a selection box, not
  * used for hit-testing precision. */
+export function boundsUnion(boxes: Bounds[]): Bounds {
+  if (boxes.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+  const minX = Math.min(...boxes.map((b) => b.x));
+  const minY = Math.min(...boxes.map((b) => b.y));
+  const maxX = Math.max(...boxes.map((b) => b.x + b.width));
+  const maxY = Math.max(...boxes.map((b) => b.y + b.height));
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
 export function localBounds(obj: TransformableObject): Bounds {
   if (obj.type === "rect") return { x: obj.x, y: obj.y, width: obj.width, height: obj.height };
   if (obj.type === "ellipse") return { x: obj.cx - obj.rx, y: obj.cy - obj.ry, width: obj.rx * 2, height: obj.ry * 2 };
   if (obj.type === "line") return boundsOfPoints([{ x: obj.x1, y: obj.y1 }, { x: obj.x2, y: obj.y2 }]);
-  return boundsOfPoints(obj.anchors.length > 0 ? obj.anchors : [{ x: 0, y: 0 }]);
+  if (obj.type === "path") return boundsOfPoints(obj.anchors.length > 0 ? obj.anchors : [{ x: 0, y: 0 }]);
+  // Group: union of children's own document bounds, treating the group's
+  // *own* transform as not-yet-applied — valid because a child's
+  // transform already encodes its position independent of any ancestor
+  // group (see this file's header + VectorEditorContent.tsx's group/
+  // ungroup comments).
+  const transformableChildren = obj.children.filter(isSceneObjectTransformable);
+  if (transformableChildren.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+  return boundsUnion(transformableChildren.map(documentBounds));
+}
+
+function isSceneObjectTransformable(obj: SceneObject): obj is TransformableObject {
+  return obj.type !== "text";
 }
 
 export function boundsCenter(b: Bounds): Point {
@@ -158,6 +184,13 @@ export function hitTest(obj: TransformableObject, point: Point): boolean {
   }
   if (obj.type === "line") {
     return distanceToSegment(local, { x: obj.x1, y: obj.y1 }, { x: obj.x2, y: obj.y2 }) <= STROKE_HIT_THRESHOLD;
+  }
+  if (obj.type === "group") {
+    // Not used anywhere yet — groups are hit-tested via native SVG click
+    // dispatch (each rendered child's own DOM element), not this
+    // function. Bounding-box fallback so this stays a total function.
+    const b = localBounds(obj);
+    return local.x >= b.x && local.x <= b.x + b.width && local.y >= b.y && local.y <= b.y + b.height;
   }
   // Path: distance to the anchor-to-anchor polyline — an approximation
   // (ignores bezier curvature) that's fine for "did you click near this

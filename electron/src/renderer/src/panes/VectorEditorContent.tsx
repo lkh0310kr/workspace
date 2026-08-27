@@ -4,6 +4,7 @@ import { anchorsToPathData, mirroredHandle } from "./vector/bezierPath";
 import {
   createBlankDocument,
   createEllipse,
+  createGroup,
   createLine,
   createPath,
   createRect,
@@ -12,12 +13,14 @@ import {
   type EllipseObject,
   type LineObject,
   type PathAnchor,
-  type PathObject,
   type RectObject,
   type SceneObject,
+  type ShapeStyle,
   type VectorDocument,
 } from "./vector/sceneGraph";
 import {
+  boundsUnion,
+  documentBounds,
   documentCorners,
   handleLocalPoint,
   localBounds,
@@ -82,8 +85,8 @@ async function findAvailableUntitledVectorName(tabId: number): Promise<string> {
   return `untitled ${i}.vec.json`;
 }
 
-function isTransformable(obj: SceneObject): obj is RectObject | EllipseObject | LineObject | PathObject {
-  return obj.type === "rect" || obj.type === "ellipse" || obj.type === "line" || obj.type === "path";
+function isTransformable(obj: SceneObject): obj is TransformableObject {
+  return obj.type !== "text";
 }
 
 type DraftShape = RectObject | EllipseObject | LineObject;
@@ -92,7 +95,11 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   const svgRef = useRef<SVGSVGElement>(null);
   const [doc, setDoc] = useState<VectorDocument | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Multi-select (shift-click) is only for building a set to Group — see
+  // this file's onShapeMouseDown/commitGroup. Once 2+ are grouped into
+  // one GroupObject, that group is a single object like any other and
+  // goes through the ordinary single-selection move/resize/rotate path.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [tool, setTool] = useState<Tool>("select");
   const [dirty, setDirty] = useState(false);
   const [draft, setDraft] = useState<DraftShape | null>(null);
@@ -124,7 +131,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
 
   useEffect(() => {
     setError(null);
-    setSelectedId(null);
+    setSelectedIds(new Set());
     setDirty(false);
     setDraft(null);
     setPenAnchors([]);
@@ -199,9 +206,29 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     [commitDoc],
   );
 
-  const selectedObject = doc?.objects.find((o) => o.id === selectedId) ?? null;
+  const selectedObjects = doc ? doc.objects.filter((o) => selectedIds.has(o.id)) : [];
+  const selectedTransformableObjects = selectedObjects.filter(isTransformable);
+  // Full move/resize/rotate handles + the stroke/fill inspector only make
+  // sense for exactly one selection — 2+ shows a combined outline only
+  // (see the render section) until grouped into one real object.
+  const selectedObject = selectedObjects.length === 1 ? selectedObjects[0] : null;
   const selectedTransformable =
     selectedObject && isTransformable(selectedObject) ? selectedObject : null;
+  // Groups don't get resize/rotate handles in M3 (see createGroup's doc
+  // comment) — move-drag still works for them via the ordinary path.
+  const selectedResizable = selectedTransformable && selectedTransformable.type !== "group" ? selectedTransformable : null;
+  // Stroke/fill inspector — anything with a `style` field, i.e. not a
+  // group (groups don't have one; propagating a style edit to every
+  // child is a later polish item, not in M3) and not multi-selected.
+  const styleable = selectedObject && selectedObject.type !== "group" ? selectedObject : null;
+
+  const updateStyle = useCallback(
+    (patch: Partial<ShapeStyle>) => {
+      if (!styleable) return;
+      replaceObject(styleable.id, { ...styleable, style: { ...styleable.style, ...patch } });
+    },
+    [styleable, replaceObject],
+  );
 
   // Holds the exact listener function references passed to addEventListener
   // at drag-start, so stopDrag can remove precisely those — without either
@@ -300,7 +327,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       }
     }
     commitDoc({ ...current, objects: [...current.objects, finalDraft] });
-    setSelectedId(finalDraft.id);
+    setSelectedIds(new Set([finalDraft.id]));
     setTool("select");
   }, [stopDrag, commitDoc]);
 
@@ -324,7 +351,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       if (!current) return;
       const path = createPath(anchors, closed);
       commitDoc({ ...current, objects: [...current.objects, path] });
-      setSelectedId(path.id);
+      setSelectedIds(new Set([path.id]));
       setTool("select");
     },
     [commitDoc],
@@ -334,6 +361,35 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     setPenAnchors([]);
     setPenPreviewPoint(null);
   }, []);
+
+  const groupSelection = useCallback(() => {
+    const current = docRef.current;
+    if (!current || selectedIds.size < 2) return;
+    const toGroup = current.objects.filter((o) => selectedIds.has(o.id));
+    if (toGroup.length < 2) return;
+    const rest = current.objects.filter((o) => !selectedIds.has(o.id));
+    const group = createGroup(toGroup);
+    commitDoc({ ...current, objects: [...rest, group] });
+    setSelectedIds(new Set([group.id]));
+  }, [selectedIds, commitDoc]);
+
+  const ungroupSelection = useCallback(() => {
+    const current = docRef.current;
+    if (!current || selectedObject?.type !== "group") return;
+    const group = selectedObject;
+    // Bakes the group's own transform into each child so ungrouping
+    // doesn't move anything on screen — only valid because a group's own
+    // transform stays translation-only in M3 (see createGroup's doc
+    // comment); a plain x/y addition wouldn't be correct once groups can
+    // also be resized/rotated as a whole.
+    const restored = group.children.map((child) => ({
+      ...child,
+      transform: { ...child.transform, x: child.transform.x + group.transform.x, y: child.transform.y + group.transform.y },
+    }));
+    const rest = current.objects.filter((o) => o.id !== group.id);
+    commitDoc({ ...current, objects: [...rest, ...restored] });
+    setSelectedIds(new Set(restored.map((c) => c.id)));
+  }, [selectedObject, commitDoc]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -349,7 +405,15 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           return;
         }
       }
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.metaKey || e.ctrlKey) {
+        if (e.key.toLowerCase() === "g") {
+          e.preventDefault();
+          if (e.shiftKey) ungroupSelection();
+          else groupSelection();
+        }
+        return;
+      }
+      if (e.altKey) return;
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
       const nextTool = TOOL_SHORTCUTS[e.key.toLowerCase()];
@@ -358,7 +422,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tool, commitPenPath, cancelPenPath]);
+  }, [tool, commitPenPath, cancelPenPath, groupSelection, ungroupSelection]);
 
   const onCanvasMouseDown = (e: ReactMouseEvent<SVGSVGElement>) => {
     const docPoint = clientToDocPoint(e.clientX, e.clientY);
@@ -378,8 +442,10 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       return;
     }
     // Clicked empty canvas (not a shape/handle, those stopPropagation
-    // their own mousedown below) — deselect.
-    setSelectedId(null);
+    // their own mousedown below) — deselect, unless shift-clicking empty
+    // space, which is more likely a near-miss than an intent to clear a
+    // multi-selection being built up.
+    if (!e.shiftKey) setSelectedIds(new Set());
   };
 
   const onCanvasMouseMove = (e: ReactMouseEvent<SVGSVGElement>) => {
@@ -395,7 +461,19 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   const onShapeMouseDown = (e: ReactMouseEvent, obj: TransformableObject) => {
     if (tool !== "select") return;
     e.stopPropagation();
-    setSelectedId(obj.id);
+    if (e.shiftKey) {
+      // Toggle-only — building a multi-selection for Group doesn't also
+      // start a move-drag (there's no defined "move N unrelated shapes
+      // together" story until they're actually grouped into one object).
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(obj.id)) next.delete(obj.id);
+        else next.add(obj.id);
+        return next;
+      });
+      return;
+    }
+    setSelectedIds(new Set([obj.id]));
     const docPoint = clientToDocPoint(e.clientX, e.clientY);
     startDrag({ kind: "move", id: obj.id, startDocPoint: docPoint, startTransform: obj.transform });
   };
@@ -412,8 +490,15 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     startDrag({ kind: "rotate", id: obj.id, startAngle, startRotation: obj.transform.rotation });
   };
 
-  const renderShape = (obj: SceneObject) => {
+  // clickTarget: what a mousedown on this shape actually selects/drags —
+  // itself by default, but when recursing into a group's children (see
+  // the "group" case below) it's the *group*, so clicking any child of a
+  // group selects the whole group first (matches every mainstream
+  // editor's single-click behavior; double-click to drill into a group
+  // and select an individual child is a later polish item, not in M3).
+  const renderShape = (obj: SceneObject, clickTarget?: TransformableObject) => {
     if (obj.type === "rect") {
+      const target = clickTarget ?? obj;
       return (
         <rect
           key={obj.id}
@@ -427,11 +512,12 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           strokeWidth={obj.style.strokeWidth}
           opacity={obj.style.opacity}
           transform={svgTransform(obj)}
-          onMouseDown={(e) => onShapeMouseDown(e, obj)}
+          onMouseDown={(e) => onShapeMouseDown(e, target)}
         />
       );
     }
     if (obj.type === "ellipse") {
+      const target = clickTarget ?? obj;
       return (
         <ellipse
           key={obj.id}
@@ -444,11 +530,12 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           strokeWidth={obj.style.strokeWidth}
           opacity={obj.style.opacity}
           transform={svgTransform(obj)}
-          onMouseDown={(e) => onShapeMouseDown(e, obj)}
+          onMouseDown={(e) => onShapeMouseDown(e, target)}
         />
       );
     }
     if (obj.type === "line") {
+      const target = clickTarget ?? obj;
       return (
         <line
           key={obj.id}
@@ -460,11 +547,12 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           strokeWidth={obj.style.strokeWidth}
           opacity={obj.style.opacity}
           transform={svgTransform(obj)}
-          onMouseDown={(e) => onShapeMouseDown(e, obj)}
+          onMouseDown={(e) => onShapeMouseDown(e, target)}
         />
       );
     }
     if (obj.type === "path") {
+      const target = clickTarget ?? obj;
       return (
         <path
           key={obj.id}
@@ -474,8 +562,15 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           strokeWidth={obj.style.strokeWidth}
           opacity={obj.style.opacity}
           transform={svgTransform(obj)}
-          onMouseDown={(e) => onShapeMouseDown(e, obj)}
+          onMouseDown={(e) => onShapeMouseDown(e, target)}
         />
+      );
+    }
+    if (obj.type === "group") {
+      return (
+        <g key={obj.id} transform={svgTransform(obj)}>
+          {obj.children.map((child) => renderShape(child, obj))}
+        </g>
       );
     }
     return null;
@@ -488,19 +583,31 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     return <div className="vector-empty">Loading…</div>;
   }
 
-  const corners = selectedTransformable ? documentCorners(selectedTransformable) : null;
-  const rotateHandlePoint = selectedTransformable
+  // Full rotated-outline + resize/rotate handles — single non-group
+  // selection only.
+  const corners = selectedResizable ? documentCorners(selectedResizable) : null;
+  const rotateHandlePoint = selectedResizable
     ? (() => {
-        const bounds = localBounds(selectedTransformable);
+        const bounds = localBounds(selectedResizable);
         const nLocal = handleLocalPoint(bounds, "n");
-        const nDoc = toDocumentPoint(nLocal, selectedTransformable);
+        const nDoc = toDocumentPoint(nLocal, selectedResizable);
         // Offset "up" along the shape's own rotated axis, not the
         // document's — so the handle stays visually above the shape at
         // any rotation.
         const centerLocal = { x: bounds.x + bounds.width / 2, y: bounds.y - ROTATE_HANDLE_OFFSET };
-        return toDocumentPoint(centerLocal, selectedTransformable) ?? nDoc;
+        return toDocumentPoint(centerLocal, selectedResizable) ?? nDoc;
       })()
     : null;
+  // A plain axis-aligned outline — a single group (no resize/rotate
+  // handles yet, see selectedResizable) or a 2+ multi-selection (grouped
+  // via ⌘G to get real transform support).
+  const groupOutlineBounds =
+    selectedTransformable && selectedTransformable.type === "group" ? documentBounds(selectedTransformable) : null;
+  const multiSelectBounds =
+    selectedIds.size > 1 && selectedTransformableObjects.length > 0
+      ? boundsUnion(selectedTransformableObjects.map(documentBounds))
+      : null;
+  const plainOutlineBounds = groupOutlineBounds ?? multiSelectBounds;
 
   return (
     <div className="vector-editor">
@@ -545,6 +652,24 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
         >
           ✎
         </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Group (⌘G)"
+          disabled={selectedIds.size < 2}
+          onClick={groupSelection}
+        >
+          ⌗
+        </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Ungroup (⌘⇧G)"
+          disabled={selectedObject?.type !== "group"}
+          onClick={ungroupSelection}
+        >
+          ⌗̸
+        </button>
         <span className="vector-toolbar-spacer" />
         <span className={`vector-save-status${dirty ? " unsaved" : ""}`}>{dirty ? "Unsaved" : "Saved"}</span>
         <button type="button" className="vector-save" onClick={() => void save()} title="Save (⌘S)">
@@ -564,6 +689,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           </svg>
         </button>
       </div>
+      <div className="vector-body">
       <div className="vector-canvas-scroll">
         <svg
           ref={svgRef}
@@ -575,7 +701,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           onMouseMove={onCanvasMouseMove}
         >
           <rect x={0} y={0} width={doc.width} height={doc.height} fill={doc.background} />
-          {doc.objects.map(renderShape)}
+          {doc.objects.map((obj) => renderShape(obj))}
           {draft && renderShape(draft)}
           {penAnchors.length > 0 && (
             <g className="vector-pen-preview">
@@ -594,7 +720,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
               ))}
             </g>
           )}
-          {selectedTransformable && corners && (
+          {selectedResizable && corners && (
             <g className="vector-selection">
               <polygon
                 points={corners.map((p) => `${p.x},${p.y}`).join(" ")}
@@ -618,13 +744,13 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
                     cy={rotateHandlePoint.y}
                     r={5}
                     className="vector-rotate-handle"
-                    onMouseDown={(e) => onRotateHandleMouseDown(e, selectedTransformable)}
+                    onMouseDown={(e) => onRotateHandleMouseDown(e, selectedResizable)}
                   />
                 </>
               )}
               {RESIZE_HANDLES.map((handle) => {
-                const bounds = localBounds(selectedTransformable);
-                const point = toDocumentPoint(handleLocalPoint(bounds, handle), selectedTransformable);
+                const bounds = localBounds(selectedResizable);
+                const point = toDocumentPoint(handleLocalPoint(bounds, handle), selectedResizable);
                 return (
                   <rect
                     key={handle}
@@ -633,13 +759,82 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
                     width={8}
                     height={8}
                     className={`vector-resize-handle vector-resize-handle-${handle}`}
-                    onMouseDown={(e) => onHandleMouseDown(e, selectedTransformable.id, handle)}
+                    onMouseDown={(e) => onHandleMouseDown(e, selectedResizable.id, handle)}
                   />
                 );
               })}
             </g>
           )}
+          {plainOutlineBounds && !selectedResizable && (
+            // A selected group (move-only, no resize/rotate yet — see
+            // createGroup) or a 2+ multi-selection (⌘G to actually group
+            // it) — just an outline, no handles. Dragging a group still
+            // works by clicking any of its visible children (they route
+            // clicks to the group — see renderShape's clickTarget), not
+            // this outline itself.
+            <rect
+              className="vector-selection-outline"
+              x={plainOutlineBounds.x}
+              y={plainOutlineBounds.y}
+              width={plainOutlineBounds.width}
+              height={plainOutlineBounds.height}
+            />
+          )}
         </svg>
+      </div>
+      {styleable && (
+        <div className="vector-inspector">
+          <div className="vector-inspector-row">
+            <label>Fill</label>
+            <input
+              type="checkbox"
+              checked={styleable.style.fill !== null}
+              onChange={(e) => updateStyle({ fill: e.target.checked ? (styleable.style.fill ?? "#4c9aff") : null })}
+            />
+            <input
+              type="color"
+              value={styleable.style.fill ?? "#4c9aff"}
+              disabled={styleable.style.fill === null}
+              onChange={(e) => updateStyle({ fill: e.target.value })}
+            />
+          </div>
+          <div className="vector-inspector-row">
+            <label>Stroke</label>
+            <input
+              type="checkbox"
+              checked={styleable.style.stroke !== null}
+              onChange={(e) => updateStyle({ stroke: e.target.checked ? (styleable.style.stroke ?? "#1b1b1f") : null })}
+            />
+            <input
+              type="color"
+              value={styleable.style.stroke ?? "#1b1b1f"}
+              disabled={styleable.style.stroke === null}
+              onChange={(e) => updateStyle({ stroke: e.target.value })}
+            />
+          </div>
+          <div className="vector-inspector-row">
+            <label>Width</label>
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              value={styleable.style.strokeWidth}
+              onChange={(e) => updateStyle({ strokeWidth: Number(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="vector-inspector-row">
+            <label>Opacity</label>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={styleable.style.opacity}
+              onChange={(e) => updateStyle({ opacity: Number(e.target.value) })}
+            />
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

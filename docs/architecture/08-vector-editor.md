@@ -168,6 +168,16 @@ giant change:
 | M4 | Undo/Redo, Export SVG/PNG, polish (snapping, keyboard nudge, delete, duplicate, copy/paste). |
 | M5 | Text tool — isolated last; font rendering/measurement is its own scope. |
 
+**M3 scope note:** a group's own transform is translation-only in this
+pass — selecting a group shows an outline and lets you drag it as a whole
+(children keep their individual transforms, composed for free via nested
+SVG `<g>`), but not resize/rotate handles for the group itself. That's
+what keeps Ungroup's math a plain `child.transform.x/y += group.transform
+.x/y` instead of a general 2D affine decomposition (which doesn't always
+cleanly reverse once rotation and non-uniform scale are both involved).
+Full group resize/rotate is a later polish item, revisited if it turns
+out to matter in practice.
+
 ## Explicit non-goals for v1
 
 Boolean operations (union/subtract/intersect), gradients, constraints/

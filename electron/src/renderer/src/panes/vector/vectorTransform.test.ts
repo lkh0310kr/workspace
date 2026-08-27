@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createEllipse, createRect } from "./sceneGraph";
+import { createEllipse, createGroup, createRect } from "./sceneGraph";
 import {
   localBounds,
   boundsCenter,
@@ -25,6 +25,21 @@ describe("localBounds", () => {
 
   it("derives a bounding box from center+radii for an ellipse", () => {
     expect(localBounds(createEllipse(50, 40, 20, 10))).toEqual({ x: 30, y: 30, width: 40, height: 20 });
+  });
+
+  it("is the union of children's document bounds for a group", () => {
+    const group = createGroup([createRect(0, 0, 10, 10), createRect(50, 50, 10, 10)]);
+    expect(localBounds(group)).toEqual({ x: 0, y: 0, width: 60, height: 60 });
+  });
+
+  it("accounts for a child's own transform when computing a group's bounds", () => {
+    const moved = { ...createRect(0, 0, 10, 10), transform: { x: 100, y: 0, scaleX: 1, scaleY: 1, rotation: 0 } };
+    const group = createGroup([createRect(0, 0, 10, 10), moved]);
+    expect(localBounds(group)).toEqual({ x: 0, y: 0, width: 110, height: 10 });
+  });
+
+  it("is a zero-size box for an empty group", () => {
+    expect(localBounds(createGroup([]))).toEqual({ x: 0, y: 0, width: 0, height: 0 });
   });
 });
 

@@ -162,6 +162,15 @@ export function createPath(anchors: PathAnchor[], closed: boolean): PathObject {
   };
 }
 
+/** M3 scope: a group's own transform stays translation-only (identity
+ * scale/rotation) — see VectorEditorContent.tsx's group/ungroup comments
+ * for why that keeps Ungroup's math a plain addition instead of a
+ * general affine decomposition. Children keep their own individual
+ * transforms unchanged by grouping. */
+export function createGroup(children: SceneObject[]): GroupObject {
+  return { id: crypto.randomUUID(), type: "group", children, transform: { ...IDENTITY_TRANSFORM } };
+}
+
 /** Depth-first flatten, for hit-testing top-to-bottom (last object in the
  * flattened list was drawn last, i.e. is visually on top). */
 export function flattenObjects(objects: SceneObject[]): SceneObject[] {
