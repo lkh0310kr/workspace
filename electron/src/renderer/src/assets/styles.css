@@ -2262,6 +2262,11 @@ iframe.browser-content-slot {
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
+  /* Guarantees clickable blank space below a short note (EditorContent's
+     onScrollContainerClick focuses + moves the cursor to the end there),
+     the same way clicking below the last line already works in most text
+     editors. */
+  cursor: text;
 }
 
 /* CodeMirror's default is to size to its own container and scroll

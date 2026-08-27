@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { Compartment, EditorSelection, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
 import {
@@ -540,6 +547,28 @@ export function EditorContent({
     jumpToPos(view, pos);
   };
 
+  // Markdown's .md-scroll-container switched CodeMirror to auto-height
+  // (see its CSS comment) so the title can scroll away with the content —
+  // but that also shrank .cm-editor's own clickable area down to exactly
+  // the text's height, leaving the blank space below the last line (most
+  // notes don't fill the pane) dead: clicking there used to land inside
+  // CodeMirror's own full-height box and just move the cursor to the
+  // nearest position (ordinary editor behavior), now it hits nothing.
+  // Restores that by focusing and moving the cursor to the end of the
+  // document whenever the click didn't actually land inside CodeMirror's
+  // own DOM (the title input and any of its own content still handle
+  // their own clicks normally).
+  const onScrollContainerClick = (e: ReactMouseEvent) => {
+    // Not just .cm-editor — .md-title/.md-title-edit sit in this same
+    // scroll container as a sibling of .md-editor now, and without this
+    // a title click would bubble up here too and immediately steal focus
+    // back from the rename input it just opened.
+    if ((e.target as HTMLElement).closest(".cm-editor, .md-title, .md-title-edit")) return;
+    const view = viewRef.current;
+    if (!view) return;
+    jumpToPos(view, view.state.doc.length);
+  };
+
   return (
     <div className="obsidian-editor-shell">
       <div className="obsidian-body">
@@ -602,7 +631,7 @@ export function EditorContent({
             // itself is switched to auto-height/no-internal-scroll to make
             // that possible. Code files (below) keep the ordinary
             // internally-scrolling .md-editor unchanged.
-            <div className="md-scroll-container">
+            <div className="md-scroll-container" onClick={onScrollContainerClick}>
               {titleEditing ? (
                 <div className="md-title-edit">
                   <input
