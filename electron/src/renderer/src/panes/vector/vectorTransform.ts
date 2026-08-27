@@ -102,6 +102,12 @@ function isSceneObjectTransformable(obj: SceneObject): obj is TransformableObjec
   return !!obj;
 }
 
+/** Axis-aligned box overlap test — used by marquee (rubber-band) select
+ * against each object's documentBounds. */
+export function boundsIntersect(a: Bounds, b: Bounds): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
 export function boundsCenter(b: Bounds): Point {
   return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
 }

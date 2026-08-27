@@ -42,11 +42,18 @@ TODO.md is the *tracking*.
 
 ## Tier 1 — close gaps the design doc already promised
 
+**Status: done** (implemented as VectorEditorContent.tsx's M6 — see
+[08-vector-editor.md](./08-vector-editor.md)'s M6 scope note for the real
+implementation decisions, e.g. why pan/zoom is session-local and why
+"reset zoom" and "zoom to fit" ended up being the same action). Left
+below as the record of what the gap was and where it came from.
+
 `08-vector-editor.md`'s "Core interactions" section describes pan/zoom
-and marquee-select as part of the core interaction set. Neither exists in
-the shipped `VectorEditorContent.tsx` (verified by grep — no `zoom`,
-`pan`, `marquee`, `wheel`, `flip`, or z-order state anywhere in the file).
-These aren't new scope, they're finishing what was already agreed:
+and marquee-select as part of the core interaction set. Neither existed in
+the shipped `VectorEditorContent.tsx` at the time this doc was written
+(verified by grep — no `zoom`, `pan`, `marquee`, `wheel`, `flip`, or
+z-order state anywhere in the file). These weren't new scope, they were
+finishing what was already agreed:
 
 - **Viewport pan/zoom** — a view transform on a wrapping `<g>` (as the
   design doc already specifies), space+drag to pan, wheel/pinch to zoom,

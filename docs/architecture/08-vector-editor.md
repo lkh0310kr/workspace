@@ -215,6 +215,37 @@ DOMParser note) — good enough for selection/move, not pixel-exact
 against the rendered glyphs. All of this is revisitable if text turns
 out to need Illustrator-grade precision in real use.
 
+**M6 (post-v1, Tier 1 of the UX roadmap) scope note:** pan/zoom, marquee
+select, z-order, and flip — see
+[10-creative-panes-ux-roadmap.md](./10-creative-panes-ux-roadmap.md)'s
+Tier 1 — landed together as one milestone since they're all "finish what
+M1's own interaction list already promised," not new scope. Notable
+implementation choices:
+- **Pan/zoom is session-local** (component state, not `VectorDocument`
+  fields) — a saved `.vec.json` shouldn't pin whatever pan/zoom someone
+  happened to leave it at.
+- **Zoom is one scalar**, not independent x/y scale — the SVG `viewBox`
+  always keeps the document's own aspect ratio. This turned out to make
+  "reset zoom" and "zoom to fit" the *same* action for free: with
+  `preserveAspectRatio="xMidYMid meet"` (SVG's default), viewBox = the
+  whole document already letterboxes to fit the container at any size,
+  no manual "measure the container, compute a scale" step the way a
+  canvas-based renderer would need.
+- **Marquee-select replaced the old immediate-deselect-on-click** — empty
+  canvas mousedown always starts a marquee drag now; `onPointerUp` decides
+  after the fact whether it was a real drag (select everything intersected)
+  or a click-without-drag (clear selection, preserving the old shift-click
+  "probably a near-miss" exception).
+- **Flip mirrors each object about its own local center**, not the
+  selection's combined center — flipping a multi-selection as one rigid
+  group needs to also mirror each object's *position* relative to the
+  others, real additional math deliberately deferred (still listed in the
+  roadmap doc if it turns out to matter).
+- **Z-order is scoped to the top-level `doc.objects` array only** — a
+  group's children are never independently selectable (clicking any
+  child selects the whole group), so `selectedIds` can only ever contain
+  top-level ids; there's no nested-array case to handle.
+
 ## Explicit non-goals for v1
 
 Boolean operations (union/subtract/intersect), gradients, constraints/

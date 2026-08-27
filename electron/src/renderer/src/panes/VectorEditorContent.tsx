@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type WheelEvent as ReactWheelEvent } from "react";
 import { listDir, readFile, writeFile } from "../electron";
 import { anchorsToPathData, mirroredHandle } from "./vector/bezierPath";
 import {
@@ -22,6 +22,7 @@ import {
   type VectorDocument,
 } from "./vector/sceneGraph";
 import {
+  boundsIntersect,
   boundsUnion,
   documentBounds,
   documentCorners,
@@ -34,6 +35,7 @@ import {
   rotationFromDrag,
   svgTransform,
   toDocumentPoint,
+  type Bounds,
   type HandleId,
   type Point,
   type TransformableObject,
@@ -75,7 +77,17 @@ type DragMode =
   // here doesn't finish the path (only Enter / clicking near the first
   // anchor does); the pen session (penAnchors) stays open for the next
   // click.
-  | { kind: "pen-anchor" };
+  | { kind: "pen-anchor" }
+  // Rubber-band select on empty canvas — a click-without-drag here (see
+  // onPointerUp) clears the selection instead of selecting an empty set,
+  // same "accidental click" distinction draw/pen already make.
+  | { kind: "marquee"; startDocPoint: Point }
+  // Space-held (or middle-mouse) drag-to-pan. `scale` is client-px per
+  // doc-unit at drag start (svg.getScreenCTM().a) — captured once so the
+  // whole drag converts client-pixel deltas to doc-space consistently,
+  // instead of re-deriving it from a viewBox that's changing under the
+  // drag itself.
+  | { kind: "pan"; startClientPoint: Point; startPan: Point; scale: number };
 
 const RESIZE_HANDLES: HandleId[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const ROTATE_HANDLE_OFFSET = 24; // doc-space px above the "n" handle
@@ -85,6 +97,10 @@ const TOOL_SHORTCUTS: Record<string, Tool> = { v: "select", r: "rect", o: "ellip
 const DUPLICATE_OFFSET = 12; // doc-space px — offset applied to duplicate/paste so the copy isn't hidden directly under the original
 const NUDGE_STEP = 1;
 const NUDGE_STEP_LARGE = 10; // held with Shift
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 16;
+const ZOOM_STEP = 1.2; // multiplier per zoom-in/out click
+const ZOOM_WHEEL_SENSITIVITY = 0.01; // exp(-deltaY * this) per wheel tick, ctrl/cmd+wheel
 
 async function findAvailableUntitledVectorName(tabId: number): Promise<string> {
   return findAvailableUntitledExportName(tabId, "vec.json");
@@ -125,6 +141,16 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   const [penAnchors, setPenAnchors] = useState<PathAnchor[]>([]);
   const [penPreviewPoint, setPenPreviewPoint] = useState<Point | null>(null);
   const [history, setHistory] = useState<VectorHistory>(emptyHistory());
+  // Viewport — session-local, not persisted into VectorDocument/.vec.json
+  // (matches this doc's own scope note: no reason a saved file should pin
+  // whatever pan/zoom someone happened to leave it at). `zoom` is a single
+  // scalar applied to both width/height (viewBox always keeps the
+  // document's own aspect ratio — see resetView/zoomToSelection below for
+  // why that's a deliberate simplification, not an oversight).
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
+  const [marqueeRect, setMarqueeRect] = useState<Bounds | null>(null);
+  const [spaceHeld, setSpaceHeld] = useState(false);
 
   const docRef = useRef(doc);
   docRef.current = doc;
@@ -145,6 +171,10 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   draftRef.current = draft;
   const penAnchorsRef = useRef(penAnchors);
   penAnchorsRef.current = penAnchors;
+  // Same staleness reason as draftRef above — marqueeRect is built up by
+  // onPointerMove calls after startDrag's closure was fixed.
+  const marqueeRectRef = useRef(marqueeRect);
+  marqueeRectRef.current = marqueeRect;
   const historyRef = useRef(history);
   historyRef.current = history;
   // The document as it was right *before* the drag/gesture currently in
@@ -153,6 +183,10 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   // end to push exactly one history entry per completed gesture instead
   // of one per intermediate frame. See vectorHistory.ts's header comment.
   const gestureBeforeRef = useRef<VectorDocument | null>(null);
+  // Whether shift was held when the current marquee drag started — read by
+  // onPointerUp (a useCallback whose deps don't include the mousedown
+  // event) to decide add-to-selection vs replace-selection.
+  const marqueeShiftRef = useRef(false);
 
   const pushHistoryEntry = useCallback((before: VectorDocument | null, after: VectorDocument | null) => {
     if (!before || !after) return;
@@ -270,6 +304,24 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [save]);
 
+  // Space-held tracking for pan (see startDrag's "pan" mode and
+  // onCanvasMouseDown below) — drives the pan cursor affordance too, so
+  // it's real state rather than a ref.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.code === "Space") setSpaceHeld(true);
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.code === "Space") setSpaceHeld(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, []);
+
   const clientToDocPoint = useCallback((clientX: number, clientY: number): Point => {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
@@ -374,6 +426,25 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
         return;
       }
 
+      if (drag.kind === "pan") {
+        const dx = (e.clientX - drag.startClientPoint.x) / drag.scale;
+        const dy = (e.clientY - drag.startClientPoint.y) / drag.scale;
+        setPan({ x: drag.startPan.x - dx, y: drag.startPan.y - dy });
+        return;
+      }
+
+      if (drag.kind === "marquee") {
+        const x = Math.min(drag.startDocPoint.x, docPoint.x);
+        const y = Math.min(drag.startDocPoint.y, docPoint.y);
+        setMarqueeRect({
+          x,
+          y,
+          width: Math.abs(docPoint.x - drag.startDocPoint.x),
+          height: Math.abs(docPoint.y - drag.startDocPoint.y),
+        });
+        return;
+      }
+
       if (drag.kind === "pen-anchor") {
         const anchors = penAnchorsRef.current;
         const last = anchors[anchors.length - 1];
@@ -419,6 +490,27 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       pushHistoryEntry(before, docRef.current);
       return;
     }
+    if (drag?.kind === "pan") return; // viewport-only, nothing to commit/undo
+
+    if (drag?.kind === "marquee") {
+      const rect = marqueeRectRef.current;
+      setMarqueeRect(null);
+      const current = docRef.current;
+      // A click-without-drag (no marqueeRect ever set, or a near-zero
+      // drag) is treated as a plain click on empty canvas: clear the
+      // selection, unless shift was held (more likely a near-miss than
+      // intent to clear a multi-selection being built up).
+      if (!current || !rect || rect.width < 2 || rect.height < 2) {
+        if (!marqueeShiftRef.current) setSelectedIds(new Set());
+        return;
+      }
+      const matched = current.objects.filter((o) => isTransformable(o) && boundsIntersect(documentBounds(o), rect));
+      setSelectedIds((prev) => {
+        const ids = matched.map((o) => o.id);
+        return marqueeShiftRef.current ? new Set([...prev, ...ids]) : new Set(ids);
+      });
+      return;
+    }
     if (drag?.kind !== "draw") return;
 
     setDraft(null);
@@ -451,10 +543,13 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   const startDrag = useCallback(
     (mode: DragMode) => {
       dragRef.current = mode;
-      // "pen-anchor" doesn't mutate `doc` at all (it edits the in-progress
-      // penAnchors array instead) — nothing to snapshot for undo/redo
-      // there; see commitPenPath for the pen tool's one history entry.
-      if (mode.kind !== "pen-anchor") gestureBeforeRef.current = docRef.current;
+      // "pen-anchor", "marquee", and "pan" don't mutate `doc` at all (they
+      // edit in-progress UI-only state instead) — nothing to snapshot for
+      // undo/redo there; see commitPenPath for the pen tool's one history
+      // entry.
+      if (mode.kind !== "pen-anchor" && mode.kind !== "marquee" && mode.kind !== "pan") {
+        gestureBeforeRef.current = docRef.current;
+      }
       activeListenersRef.current = { move: onPointerMove, up: onPointerUp };
       window.addEventListener("mousemove", onPointerMove);
       window.addEventListener("mouseup", onPointerUp);
@@ -604,6 +699,122 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     [selectedTransformableObjects, commitDoc, pushHistoryEntry],
   );
 
+  // Z-order — doc.objects's array order *is* draw order (see sceneGraph.ts
+  // and renderShape below), so this is plain array reordering, not a new
+  // concept. Scoped to the top-level array only: a group's children are
+  // never independently selectable (clicking any child selects the whole
+  // group — see renderShape's clickTarget), so selectedIds can only ever
+  // contain top-level object ids.
+  const reorderSelection = useCallback(
+    (direction: "front" | "back" | "forward" | "backward") => {
+      const current = docRef.current;
+      if (!current || selectedIds.size === 0) return;
+      const objects = current.objects;
+      const isSel = (o: SceneObject) => selectedIds.has(o.id);
+      let next: SceneObject[];
+      if (direction === "front") {
+        next = [...objects.filter((o) => !isSel(o)), ...objects.filter(isSel)];
+      } else if (direction === "back") {
+        next = [...objects.filter(isSel), ...objects.filter((o) => !isSel(o))];
+      } else {
+        next = [...objects];
+        const indices = next.reduce<number[]>((acc, o, i) => (isSel(o) ? [...acc, i] : acc), []);
+        // Step each selected object past one neighbor. Processed from the
+        // trailing end for "forward" (so an already-moved item doesn't
+        // immediately collide with the next selected one behind it) and
+        // from the leading end for "backward" (mirror image).
+        if (direction === "forward") {
+          for (let k = indices.length - 1; k >= 0; k--) {
+            const i = indices[k];
+            if (i < next.length - 1 && !isSel(next[i + 1])) [next[i], next[i + 1]] = [next[i + 1], next[i]];
+          }
+        } else {
+          for (let k = 0; k < indices.length; k++) {
+            const i = indices[k];
+            if (i > 0 && !isSel(next[i - 1])) [next[i], next[i - 1]] = [next[i - 1], next[i]];
+          }
+        }
+      }
+      const after = { ...current, objects: next };
+      commitDoc(after);
+      pushHistoryEntry(current, after);
+    },
+    [selectedIds, commitDoc, pushHistoryEntry],
+  );
+
+  // Each object flips about its *own* local center (the same pivot
+  // svgTransform/resizeTransform already use) rather than the selection's
+  // combined center — flipping a multi-selection as one rigid group would
+  // also need to mirror each object's position relative to the others,
+  // which is real additional math; scoped out for now (see
+  // docs/architecture/10-creative-panes-ux-roadmap.md).
+  const flipSelection = useCallback(
+    (axis: "x" | "y") => {
+      const current = docRef.current;
+      if (!current || selectedTransformableObjects.length === 0) return;
+      const ids = new Set(selectedTransformableObjects.map((o) => o.id));
+      const after = {
+        ...current,
+        objects: current.objects.map((o) => {
+          if (!ids.has(o.id) || !isTransformable(o)) return o;
+          const t = o.transform;
+          return { ...o, transform: axis === "x" ? { ...t, scaleX: t.scaleX * -1 } : { ...t, scaleY: t.scaleY * -1 } };
+        }),
+      };
+      commitDoc(after);
+      pushHistoryEntry(current, after);
+    },
+    [selectedTransformableObjects, commitDoc, pushHistoryEntry],
+  );
+
+  // "Fit" and "reset zoom" are the same action here: with the viewBox
+  // always set to `pan.x pan.y doc.width/zoom doc.height/zoom` and the
+  // svg element's default preserveAspectRatio="xMidYMid meet", zoom=1
+  // (viewBox = the whole document) already letterboxes to fit whatever
+  // the container's actual pixel size is — there's no separate "compute
+  // container size and scale to match" step needed the way a canvas-based
+  // renderer would require.
+  const resetView = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  const zoomBy = useCallback((factor: number) => {
+    setZoom((z) => {
+      const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * factor));
+      const doc0 = docRef.current;
+      if (doc0) {
+        setPan((p) => {
+          const centerX = p.x + doc0.width / z / 2;
+          const centerY = p.y + doc0.height / z / 2;
+          return { x: centerX - doc0.width / nextZoom / 2, y: centerY - doc0.height / nextZoom / 2 };
+        });
+      }
+      return nextZoom;
+    });
+  }, []);
+
+  // Fits the current selection's bounding box in view (centered), keeping
+  // the document's own aspect ratio for the viewBox — see resetView's
+  // comment for why zoom is a single scalar rather than independent x/y
+  // scale factors. A selection with a different aspect ratio than the
+  // whole document ends up fully visible but not edge-to-edge on every
+  // side, same tradeoff every "fit" implementation with a fixed-aspect
+  // viewport makes.
+  const zoomToSelection = useCallback(() => {
+    const current = docRef.current;
+    if (!current || selectedTransformableObjects.length === 0) return;
+    const bounds = boundsUnion(selectedTransformableObjects.map(documentBounds));
+    const pad = Math.max(bounds.width, bounds.height, 1) * 0.2;
+    const nextZoom = Math.min(
+      MAX_ZOOM,
+      Math.max(MIN_ZOOM, Math.min(current.width / (bounds.width + pad * 2), current.height / (bounds.height + pad * 2))),
+    );
+    const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    setZoom(nextZoom);
+    setPan({ x: center.x - current.width / nextZoom / 2, y: center.y - current.height / nextZoom / 2 });
+  }, [selectedTransformableObjects]);
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (tool === "pen") {
@@ -649,6 +860,60 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
         deleteSelection();
         return;
       }
+      // Z-order — "]"/"[" step one at a time; their shifted forms on a US
+      // keyboard ("}"/"{") jump straight to front/back, so this reads
+      // e.key's produced character rather than checking e.shiftKey
+      // (shift+[ never actually sends key "[").
+      if (e.key === "]") {
+        e.preventDefault();
+        reorderSelection("forward");
+        return;
+      }
+      if (e.key === "[") {
+        e.preventDefault();
+        reorderSelection("backward");
+        return;
+      }
+      if (e.key === "}") {
+        e.preventDefault();
+        reorderSelection("front");
+        return;
+      }
+      if (e.key === "{") {
+        e.preventDefault();
+        reorderSelection("back");
+        return;
+      }
+      if (e.shiftKey && e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        flipSelection("x");
+        return;
+      }
+      if (e.shiftKey && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        flipSelection("y");
+        return;
+      }
+      if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        zoomBy(ZOOM_STEP);
+        return;
+      }
+      if (e.key === "-") {
+        e.preventDefault();
+        zoomBy(1 / ZOOM_STEP);
+        return;
+      }
+      if (e.key === "0") {
+        e.preventDefault();
+        resetView();
+        return;
+      }
+      if (e.key === "2") {
+        e.preventDefault();
+        zoomToSelection();
+        return;
+      }
       const nudgeStep = e.shiftKey ? NUDGE_STEP_LARGE : NUDGE_STEP;
       if (e.key === "ArrowLeft") {
         e.preventDefault();
@@ -689,10 +954,21 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     copySelection,
     pasteClipboard,
     nudgeSelection,
+    reorderSelection,
+    flipSelection,
+    zoomBy,
+    resetView,
+    zoomToSelection,
   ]);
 
   const onCanvasMouseDown = (e: ReactMouseEvent<SVGSVGElement>) => {
     const docPoint = clientToDocPoint(e.clientX, e.clientY);
+    if (spaceHeld || e.button === 1) {
+      const svg = svgRef.current;
+      const ctm = svg?.getScreenCTM();
+      startDrag({ kind: "pan", startClientPoint: { x: e.clientX, y: e.clientY }, startPan: pan, scale: ctm?.a || 1 });
+      return;
+    }
     if (tool === "rect" || tool === "ellipse" || tool === "line") {
       startDrag({ kind: "draw", tool, startDocPoint: docPoint });
       return;
@@ -719,11 +995,17 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       startDrag({ kind: "pen-anchor" });
       return;
     }
-    // Clicked empty canvas (not a shape/handle, those stopPropagation
-    // their own mousedown below) — deselect, unless shift-clicking empty
-    // space, which is more likely a near-miss than an intent to clear a
-    // multi-selection being built up.
-    if (!e.shiftKey) setSelectedIds(new Set());
+    // Clicked/dragged on empty canvas (not a shape/handle, those
+    // stopPropagation their own mousedown below) — start a marquee drag.
+    // onPointerUp decides what actually happens: a real drag selects
+    // everything the rectangle intersects, a plain click-without-drag
+    // clears the selection instead (unless shift-clicking, more likely a
+    // near-miss than intent to clear a multi-selection being built up —
+    // same reasoning the old immediate-deselect-on-click had).
+    if (tool === "select") {
+      marqueeShiftRef.current = e.shiftKey;
+      startDrag({ kind: "marquee", startDocPoint: docPoint });
+    }
   };
 
   const onCanvasMouseMove = (e: ReactMouseEvent<SVGSVGElement>) => {
@@ -736,7 +1018,41 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     setPenPreviewPoint(clientToDocPoint(e.clientX, e.clientY));
   };
 
+  // Plain wheel = pan (matches every mainstream editor's trackpad-scroll
+  // convention); ctrl/cmd+wheel = zoom (trackpad pinch is delivered as
+  // ctrlKey+wheel by the browser, and it's also the standard "hold to
+  // zoom instead of scroll" modifier for a mouse wheel).
+  const onCanvasWheel = (e: ReactWheelEvent<SVGSVGElement>) => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      const docPoint = clientToDocPoint(e.clientX, e.clientY);
+      const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * Math.exp(-e.deltaY * ZOOM_WHEEL_SENSITIVITY)));
+      // Keep the point under the cursor fixed in document space — derived
+      // from "the cursor's fraction across the old viewBox stays the same
+      // fraction across the new one" (see zoomBy's simpler center-anchored
+      // version for the non-pointer-driven case).
+      setPan({
+        x: docPoint.x - (docPoint.x - pan.x) * (zoom / nextZoom),
+        y: docPoint.y - (docPoint.y - pan.y) * (zoom / nextZoom),
+      });
+      setZoom(nextZoom);
+      return;
+    }
+    setPan((p) => ({ x: p.x + e.deltaX / zoom, y: p.y + e.deltaY / zoom }));
+  };
+
   const onShapeMouseDown = (e: ReactMouseEvent, obj: TransformableObject) => {
+    // Space-held pan wins over shape interaction even when the mousedown
+    // lands on a shape — this handler stopPropagation()s below, which
+    // would otherwise stop onCanvasMouseDown's own pan-start check from
+    // ever seeing the event.
+    if (spaceHeld) {
+      e.stopPropagation();
+      const svg = svgRef.current;
+      const ctm = svg?.getScreenCTM();
+      startDrag({ kind: "pan", startClientPoint: { x: e.clientX, y: e.clientY }, startPan: pan, scale: ctm?.a || 1 });
+      return;
+    }
     if (tool !== "select") return;
     e.stopPropagation();
     if (e.shiftKey) {
@@ -995,6 +1311,79 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
         >
           ↷
         </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Send to Back ({)"
+          disabled={selectedIds.size === 0}
+          onClick={() => reorderSelection("back")}
+        >
+          ⇤
+        </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Send Backward ([)"
+          disabled={selectedIds.size === 0}
+          onClick={() => reorderSelection("backward")}
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Bring Forward (])"
+          disabled={selectedIds.size === 0}
+          onClick={() => reorderSelection("forward")}
+        >
+          →
+        </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Bring to Front (})"
+          disabled={selectedIds.size === 0}
+          onClick={() => reorderSelection("front")}
+        >
+          ⇥
+        </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Flip Horizontal (⇧H)"
+          disabled={selectedTransformableObjects.length === 0}
+          onClick={() => flipSelection("x")}
+        >
+          ⇔
+        </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Flip Vertical (⇧V)"
+          disabled={selectedTransformableObjects.length === 0}
+          onClick={() => flipSelection("y")}
+        >
+          ⇕
+        </button>
+        <span className="vector-toolbar-spacer" />
+        <button type="button" className="vector-tool" title="Zoom Out (-)" onClick={() => zoomBy(1 / ZOOM_STEP)}>
+          −
+        </button>
+        <button type="button" className="vector-tool vector-zoom-label" title="Reset Zoom (0)" onClick={resetView}>
+          {Math.round(zoom * 100)}%
+        </button>
+        <button type="button" className="vector-tool" title="Zoom In (+)" onClick={() => zoomBy(ZOOM_STEP)}>
+          +
+        </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Zoom to Selection (2)"
+          disabled={selectedTransformableObjects.length === 0}
+          onClick={zoomToSelection}
+        >
+          ⤢
+        </button>
         <span className="vector-toolbar-spacer" />
         <button type="button" className="vector-tool" title="Export SVG" onClick={() => void exportSvg()}>
           SVG
@@ -1024,16 +1413,25 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       <div className="vector-canvas-scroll">
         <svg
           ref={svgRef}
-          className={`vector-canvas${tool !== "select" ? " vector-canvas-drawing" : ""}`}
-          width={doc.width}
-          height={doc.height}
-          viewBox={`0 0 ${doc.width} ${doc.height}`}
+          className={`vector-canvas${tool !== "select" ? " vector-canvas-drawing" : ""}${spaceHeld ? " vector-canvas-pan" : ""}`}
+          viewBox={`${pan.x} ${pan.y} ${doc.width / zoom} ${doc.height / zoom}`}
           onMouseDown={onCanvasMouseDown}
           onMouseMove={onCanvasMouseMove}
+          onWheel={onCanvasWheel}
         >
           <rect x={0} y={0} width={doc.width} height={doc.height} fill={doc.background} />
           {doc.objects.map((obj) => renderShape(obj))}
           {draft && renderShape(draft)}
+          {marqueeRect && (
+            <rect
+              className="vector-marquee"
+              x={marqueeRect.x}
+              y={marqueeRect.y}
+              width={marqueeRect.width}
+              height={marqueeRect.height}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
           {penAnchors.length > 0 && (
             <g className="vector-pen-preview">
               <path

@@ -1255,11 +1255,10 @@ iframe.browser-content-slot {
 .vector-canvas-scroll {
   flex: 1;
   min-width: 0;
-  overflow: auto;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 24px;
+  /* Panning is handled by adjusting the SVG's own viewBox (see
+     VectorEditorContent.tsx's pan/zoom state), not native scrolling. */
+  overflow: hidden;
+  position: relative;
   background: var(--bg-base);
 }
 
@@ -1325,14 +1324,31 @@ iframe.browser-content-slot {
 }
 
 .vector-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
   background: var(--bg-surface);
-  box-shadow: 0 0 0 1px var(--border);
-  flex-shrink: 0;
   cursor: default;
 }
 
 .vector-canvas-drawing {
   cursor: crosshair;
+}
+
+.vector-canvas-pan {
+  cursor: grab;
+}
+
+.vector-marquee {
+  fill: color-mix(in srgb, var(--accent) 12%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+
+.vector-zoom-label {
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
 }
 
 .vector-resize-handle {

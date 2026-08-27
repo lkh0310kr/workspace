@@ -3,6 +3,7 @@ import { createEllipse, createGroup, createRect, createText } from "./sceneGraph
 import {
   localBounds,
   boundsCenter,
+  boundsIntersect,
   toLocalPoint,
   documentBounds,
   documentCenter,
@@ -57,6 +58,22 @@ describe("localBounds", () => {
 describe("boundsCenter", () => {
   it("is the midpoint of the box", () => {
     expect(boundsCenter({ x: 0, y: 0, width: 100, height: 50 })).toEqual({ x: 50, y: 25 });
+  });
+});
+
+describe("boundsIntersect", () => {
+  const box = { x: 0, y: 0, width: 100, height: 50 };
+
+  it("is true for overlapping boxes", () => {
+    expect(boundsIntersect(box, { x: 50, y: 25, width: 100, height: 50 })).toBe(true);
+  });
+
+  it("is false for boxes that don't touch", () => {
+    expect(boundsIntersect(box, { x: 200, y: 200, width: 10, height: 10 })).toBe(false);
+  });
+
+  it("is false for boxes that only touch at an edge (no area overlap)", () => {
+    expect(boundsIntersect(box, { x: 100, y: 0, width: 50, height: 50 })).toBe(false);
   });
 });
 
