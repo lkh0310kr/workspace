@@ -515,6 +515,33 @@ iframe.browser-content-slot {
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(121, 121, 121, 0.4) transparent;
+}
+
+/* Without this, Chromium's default horizontal scrollbar (thick, sized
+   for a normal scrolling page) renders way oversized against this thin
+   chrome-height strip the moment you hover it — reported as "Horizontal
+   Scroll bar hover시 거대한 bar가 나오는 버그". Same thin/subtle
+   treatment as .xterm-viewport's scrollbar, just horizontal (height, not
+   width). scrollbar-width above is the Firefox-style property Chromium
+   121+ also now honors; the ::-webkit-scrollbar rules are the fallback
+   for anything that doesn't. */
+.pane-tab-strip-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.pane-tab-strip-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pane-tab-strip-tabs::-webkit-scrollbar-thumb {
+  background: rgba(121, 121, 121, 0.4);
+  border-radius: 3px;
+}
+
+.pane-tab-strip-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(121, 121, 121, 0.7);
 }
 
 .pane-tab-slot {
