@@ -35,6 +35,22 @@ Heavy graphics/compute work moves out as panes get more demanding:
   surface reference, not try to make Blender "just another React
   component."
 
+## Per-pane stack direction (if/when this happens)
+
+A second round of the same external discussion went pane-by-pane. Filtered
+down to what's actually relevant to *this* app (dropped: Game Engine,
+generic "Browser is just Chromium" — already true here, nothing to decide)
+and reframed around what's actually built vs. actually planned:
+
+| Pane | Status here | Stack direction |
+|------|-------------|------------------|
+| Terminal, Browser, Markdown/Code, Viewer, RSS | **Built**, plain TypeScript/React | No reason to move — these are UI/IO-bound, not compute-bound. Rust wouldn't win anything here. |
+| Vector | **Planned next** ([08](./08-vector-editor.md)), starting plain TS/SVG | Candidate to move geometry (Bezier, boolean ops, hit-testing, transform math) into a Rust core *if* M2/M3 prove it's needed — see "When this becomes relevant" below. UI (toolbar, inspector, layers) stays TS regardless. |
+| Illustrator/Figma-style extensions (artboards, components, constraints, auto-layout) | **Not started** | If ever built, extend the *same* Vector core rather than a separate engine — Illustrator-style features are a superset of Vector's geometry, Figma-style adds a layout/constraint engine on top (own Rust candidate: layout computation, not rendering). |
+| Pixel Art | **Not started**, reference only | Candidate for a WebGPU-backed pixel/texture canvas from the start (RGBA texture → GPU texture → canvas is a natural WebGPU fit), TS UI around it. Lower priority than Vector per this session's direction. |
+| Video Editor | **Not started**, far future | Rust-heavy if ever built — timeline/media-graph/frame-scheduling engine wrapping FFmpeg (don't reimplement codecs), TS for timeline UI/media bin/inspector only. |
+| 3D / Blender-class | **Not started**, far future | Rust + wgpu scene/mesh/material/renderer, likely as a genuinely separate native process per the "out-of-process" direction above, not an in-renderer engine. |
+
 ## Why this doesn't block anything happening now
 
 `PaneKindDefinition.render(ctx): ReactNode` (see
@@ -55,6 +71,34 @@ concrete pane kinds existed, not designed speculatively before any of
 them). Build it once a second real surface type actually exists (e.g. a
 Rust/wgpu-backed pane, or a real external-process pane) and the
 commonality is concrete, not hypothetical.
+
+## If a Rust core ever happens: keep it a real core, not an Electron helper
+
+The one structural point worth keeping even if everything else here
+changes: if Rust is introduced, it should be a standalone core the
+Electron shell *calls into*, not code that assumes Electron underneath it
+— so switching the shell later (or shipping the core standalone) doesn't
+require rewriting it. Sketch, not a commitment:
+
+```
+packages/
+├── workspace-ui/        # TypeScript — current electron/src/renderer
+├── workspace-runtime/    # TypeScript — current electron/src/main
+├── core/
+│   ├── geometry/         # Rust — Bezier, boolean ops, hit-testing (Vector's engine, if extracted)
+│   ├── canvas/           # Rust — raster/texture ops (Pixel Art's engine, if built)
+│   ├── media/            # Rust — timeline/frame scheduling wrapping FFmpeg (Video, if built)
+│   └── asset/            # Rust — shared project-file (de)serialization
+└── apps/
+    ├── vector/
+    ├── pixel/
+    └── video/
+```
+
+This is **not** a restructuring to do now — `electron/` stays one package
+until there's an actual second consumer of a Rust core (a real perf need,
+not a hypothetical one). Recorded here so the shape is already agreed on
+*if* that day comes, instead of re-litigating it then.
 
 ## When this becomes relevant
 
