@@ -1922,10 +1922,14 @@ iframe.browser-content-slot {
 /* Obsidian-style in-page title (EditorContent.tsx) — the filename doubles
    as the note's heading instead of the user typing a redundant "# Title"
    line. padding-right clears .obsidian-float-actions' icon cluster so a
-   long filename doesn't run underneath it. */
+   long filename doesn't run underneath it. padding-left is 6px, not an
+   arbitrary inset — it matches CodeMirror's own actual text start (.cm-line
+   padding-left, a library default nothing in this project overrides) so the
+   title lines up with the body text below it instead of sitting off to one
+   side of it. */
 .md-title {
   flex-shrink: 0;
-  padding: 20px 100px 4px 24px;
+  padding: 20px 100px 4px 6px;
   font-family: var(--font-ui);
   font-size: 24px;
   font-weight: 700;
@@ -1933,6 +1937,42 @@ iframe.browser-content-slot {
   background: var(--bg-base);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.md-title-edit {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.md-title-input {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  cursor: text;
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+
+.md-title-input.error {
+  box-shadow: inset 0 -1px 0 #e5484d;
+}
+
+.md-title-error {
+  position: absolute;
+  left: 6px;
+  top: 100%;
+  z-index: 5;
+  margin-top: 2px;
+  padding: 3px 8px;
+  border: 1px solid #e5484d;
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: #e5484d;
+  font-family: var(--font-ui);
+  font-size: 11px;
   white-space: nowrap;
 }
 

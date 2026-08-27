@@ -27,7 +27,7 @@ import {
 import { languages as languageData } from "@codemirror/language-data";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { closeSearchPanel, openSearchPanel, searchPanelOpen } from "@codemirror/search";
-import { listDir, onFileChanged, readFile, writeFile } from "../electron";
+import { listDir, onFileChanged, readFile, renamePath, writeFile } from "../electron";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
 import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { indentGuides } from "../indentGuides";
@@ -35,6 +35,7 @@ import { syntaxTheme } from "../codemirrorSyntax";
 import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
 import { wikiLinkExtension } from "../markdownWikilink";
+import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markdownTitleRename";
 import type { TabKind } from "../layout/paneTypes";
 
 // The per-file content half of what used to be ui/EditorPane.tsx — the
@@ -67,15 +68,6 @@ interface Props {
   onDirtyChange: (dirty: boolean) => void;
   treeOpen: boolean;
   onToggleTree: () => void;
-}
-
-/** Obsidian shows the note's filename as an in-page title instead of a
- * "# Heading" the user has to type themselves — the extension-stripped
- * basename of the current path, or a placeholder for an unsaved buffer. */
-function markdownTitleFor(filePath: string | null): string {
-  if (!filePath) return "Untitled";
-  const base = filePath.split("/").pop() ?? filePath;
-  return base.replace(/\.md$/i, "");
 }
 
 async function findAvailableUntitledName(tabId: number): Promise<string> {
@@ -190,6 +182,10 @@ export function EditorContent({
   onAssignPathRef.current = onAssignPath;
   const onDirtyChangeRef = useRef(onDirtyChange);
   onDirtyChangeRef.current = onDirtyChange;
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const setDirtyState = useCallback((next: boolean) => {
     if (dirtyRef.current === next) return;
@@ -229,6 +225,79 @@ export function EditorContent({
     },
     [tabId, saveNow, setDirtyState],
   );
+
+  const enterTitleEdit = useCallback(() => {
+    setTitleDraft(markdownTitleFor(pathRef.current));
+    setTitleError(null);
+    setTitleEditing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!titleEditing) return;
+    titleInputRef.current?.focus();
+    titleInputRef.current?.select();
+  }, [titleEditing]);
+
+  // Obsidian-style click-to-rename: commits by renaming the real file
+  // (existing-file case) or writing it for the first time (untitled tab —
+  // same Save-As path saveActiveFile above uses). Rejects a collision with
+  // an inline error instead of silently overwriting or auto-suffixing —
+  // auto-suffix stays reserved for TreeView's "New File" flow, a different
+  // action from renaming something that already has a name.
+  const commitTitleRename = useCallback(async () => {
+    const validation = validateTitleInput(titleDraft);
+    if ("error" in validation) {
+      if (validation.error === "empty") {
+        setTitleEditing(false);
+        setTitleError(null);
+        return;
+      }
+      setTitleError('Title can’t contain "/" or "\\".');
+      titleInputRef.current?.focus();
+      return;
+    }
+
+    const nextTitle = validation.title;
+    if (nextTitle === markdownTitleFor(pathRef.current)) {
+      setTitleEditing(false);
+      setTitleError(null);
+      return;
+    }
+
+    const targetPath = buildRenamedPath(pathRef.current, nextTitle);
+    const targetDir = targetPath.includes("/") ? targetPath.slice(0, targetPath.lastIndexOf("/")) : "";
+    const targetBase = (targetPath.split("/").pop() ?? targetPath).toLowerCase();
+    const entries = await listDir(tabId, targetDir).catch(() => []);
+    const collision = entries.some(
+      (e) => !e.is_dir && e.name.toLowerCase() === targetBase && targetPath !== pathRef.current,
+    );
+    if (collision) {
+      setTitleError(`"${nextTitle}" already exists.`);
+      titleInputRef.current?.focus();
+      return;
+    }
+
+    setTitleEditing(false);
+    setTitleError(null);
+
+    if (!pathRef.current) {
+      const content = viewRef.current?.state.doc.toString() ?? "";
+      await writeFile(tabId, targetPath, content);
+      lastLoadedContentRef.current = content;
+      setDirtyState(false);
+      onAssignPathRef.current(targetPath);
+      return;
+    }
+
+    try {
+      await renamePath(tabId, pathRef.current, targetPath);
+      onAssignPathRef.current(targetPath);
+    } catch (err) {
+      setTitleDraft(nextTitle);
+      setTitleEditing(true);
+      setTitleError(String(err));
+    }
+  }, [tabId, titleDraft, setDirtyState]);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -480,11 +549,36 @@ export function EditorContent({
               </svg>
             </button>
           </div>
-          {isMarkdown && (
-            <div className="md-title" title={filePath ?? undefined}>
-              {markdownTitleFor(filePath)}
-            </div>
-          )}
+          {isMarkdown &&
+            (titleEditing ? (
+              <div className="md-title-edit">
+                <input
+                  ref={titleInputRef}
+                  className={`md-title md-title-input${titleError ? " error" : ""}`}
+                  value={titleDraft}
+                  onChange={(e) => {
+                    setTitleDraft(e.target.value);
+                    setTitleError(null);
+                  }}
+                  onBlur={() => void commitTitleRename()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      titleInputRef.current?.blur();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      setTitleEditing(false);
+                      setTitleError(null);
+                    }
+                  }}
+                />
+                {titleError && <div className="md-title-error">{titleError}</div>}
+              </div>
+            ) : (
+              <div className="md-title" title={filePath ?? undefined} onClick={enterTitleEdit}>
+                {markdownTitleFor(filePath)}
+              </div>
+            ))}
           <div
             className="md-editor"
             ref={hostRef}
