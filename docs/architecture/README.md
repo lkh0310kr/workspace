@@ -11,8 +11,9 @@ This folder documents how the Workspace Electron app is structured, why key deci
 5. [05-terminal-pipeline.md](./05-terminal-pipeline.md) — terminal stack
 6. [06-browser-embeds.md](./06-browser-embeds.md) — `<webview>` guests
 7. [07-future-phases.md](./07-future-phases.md) — Phase 2–4 roadmap
-8. [08-vector-editor.md](./08-vector-editor.md) — planned Vector Editor pane (not yet built)
+8. [08-vector-editor.md](./08-vector-editor.md) — Vector Editor pane; M1-M5 built, pending live GUI QA
 9. [09-future-native-architecture.md](./09-future-native-architecture.md) — long-term direction (Rust core, native-process panes) — reference only, not designed yet
+10. [10-creative-panes-ux-roadmap.md](./10-creative-panes-ux-roadmap.md) — Penpot-informed UX backlog for Vector Editor and future Pixel Art
 
 ## Layer diagram
 

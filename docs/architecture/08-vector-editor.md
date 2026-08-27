@@ -1,6 +1,8 @@
-# Vector Editor pane (design, not yet built)
+# Vector Editor pane
 
-**Status:** Planned. Nothing under this doc is implemented yet.
+**Status:** M1-M5 implemented (see "Build order" below) — pending live
+GUI QA (see `TODO.md`). Further UX polish is tracked separately in
+[10-creative-panes-ux-roadmap.md](./10-creative-panes-ux-roadmap.md).
 
 ## Why Vector, why first
 
