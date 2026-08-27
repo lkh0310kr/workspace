@@ -21,6 +21,10 @@ describe("classifyMediaExtension", () => {
     expect(classifyMediaExtension("a/b.flac")).toBe("audio");
   });
 
+  it("classifies epub", () => {
+    expect(classifyMediaExtension("a/b.epub")).toBe("epub");
+  });
+
   it("falls back to other", () => {
     expect(classifyMediaExtension("a/b.txt")).toBe("other");
   });

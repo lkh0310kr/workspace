@@ -179,6 +179,9 @@ const api = {
   },
   rss: {
     fetchFeed: (url: string): Promise<unknown> => ipcRenderer.invoke('rss:fetch-feed', url)
+  },
+  epub: {
+    open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel)
   }
 }
 

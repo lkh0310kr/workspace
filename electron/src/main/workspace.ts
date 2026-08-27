@@ -8,6 +8,7 @@ import * as files from "./files";
 import type { DirEntry } from "./files";
 import * as search from "./search";
 import { MEDIA_MIME_TYPES, toMediaUrl } from "./mediaProtocol";
+import { openEpub, type EpubBook } from "./epub";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -248,6 +249,10 @@ export class Workspace {
     if (!(ext in MEDIA_MIME_TYPES)) return null;
     const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel);
     return toMediaUrl(resolved);
+  }
+
+  openEpub(tabId: number, rel: string): Promise<EpubBook> {
+    return openEpub(this.tabRoot(tabId), rel);
   }
 
   disposeAllTerminals(): void {

@@ -10,10 +10,11 @@ import {
 import { getMediaUrl, readFileBinaryPreview } from "../electron";
 import { classifyMediaExtension } from "./mediaKind";
 import { cuesToVtt, parseSrt, shiftCues, type SubtitleCue } from "./srtToVtt";
+import { EpubReaderContent } from "./EpubReaderContent";
 
-// File Viewer pane — images, PDF, video, audio. E-book is a separate
-// future slice (materially bigger: zip/OPF/NCX parsing, nothing to build
-// on yet).
+// File Viewer pane — images, PDF, video, audio, EPUB (minimal v1: unzip,
+// walk the OPF spine in order, one chapter per sandboxed iframe with
+// prev/next — see EpubReaderContent.tsx for the rest).
 //
 // Why images/PDF use blob: URLs but video/audio don't (Orca parity for
 // the former — editor/useLocalImageSrc.ts): a raw file:// <img>/<embed>
@@ -102,6 +103,7 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
   const isVideo = kind === "video";
   const isAudio = kind === "audio";
   const isPdf = kind === "pdf";
+  const isEpub = kind === "epub";
   const isMedia = isVideo || isAudio;
 
   useEffect(() => {
@@ -113,6 +115,10 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
     setSubtitleOffset(0);
     setSubtitleVttUrl(null);
     if (!filePath) return;
+    // EPUB owns its own load path entirely (EpubReaderContent's openEpub
+    // call) — neither the base64-preview path nor the media protocol
+    // applies to a zip archive.
+    if (isEpub) return;
 
     if (isMedia) {
       let cancelled = false;
@@ -310,6 +316,8 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
         <div className="file-viewer-empty">No file</div>
       ) : error ? (
         <div className="file-viewer-empty">Couldn't load file</div>
+      ) : isEpub ? (
+        <EpubReaderContent tabId={tabId} filePath={filePath} />
       ) : isVideo ? (
         !mediaUrl ? (
           <div className="file-viewer-empty">Loading…</div>

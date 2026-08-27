@@ -222,6 +222,25 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
   return window.api.rss.fetchFeed(url);
 }
 
+export interface EpubSpineItem {
+  href: string;
+  mediaType: string;
+}
+
+export interface EpubBook {
+  bookId: string;
+  title: string;
+  spine: EpubSpineItem[];
+}
+
+export async function openEpub(tabId: number, path: string): Promise<EpubBook> {
+  return window.api.epub.open(tabId, path);
+}
+
+export function epubResourceUrl(bookId: string, href: string): string {
+  return `workspace-epub://${bookId}/${href}`;
+}
+
 // Tauri's onXxx helpers return a Promise<UnlistenFn> (listen() is async).
 // Kept as sync-returning here (window.api's ipcRenderer.on wiring is
 // synchronous), but callers that do `unlisten.then((fn) => fn())` still

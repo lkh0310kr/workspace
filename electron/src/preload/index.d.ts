@@ -48,6 +48,17 @@ export interface FeedResult {
   items: FeedItem[]
 }
 
+export interface EpubSpineItem {
+  href: string
+  mediaType: string
+}
+
+export interface EpubBook {
+  bookId: string
+  title: string
+  spine: EpubSpineItem[]
+}
+
 export interface BrowserDownloadEventPayload {
   id: string
   hostWebContentsId: number
@@ -153,6 +164,9 @@ export interface WorkspaceApi {
   }
   rss: {
     fetchFeed: (url: string) => Promise<FeedResult>
+  }
+  epub: {
+    open: (tabId: number, rel: string) => Promise<EpubBook>
   }
 }
 

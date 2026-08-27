@@ -8,6 +8,7 @@ import { Workspace } from './workspace'
 import type { SearchOptions } from './search'
 import { registerMediaProtocol } from './mediaProtocol'
 import { fetchFeed } from './rss'
+import { registerEpubProtocol } from './epub'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
@@ -357,6 +358,7 @@ app.whenReady().then(() => {
   const snapshot = loadWorkspaceSnapshot()
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
   registerMediaProtocol(() => workspace!.allTabRootPaths())
+  registerEpubProtocol()
   // Save immediately (mirrors src/lib.rs) — first launch would otherwise
   // never persist anything until the user creates/closes/renames a tab,
   // meaning a never-touched default tab's terminal id would be lost on the very next relaunch.
@@ -493,6 +495,7 @@ app.whenReady().then(() => {
   // is an arbitrary external HTTP resource by design, not a
   // workspace-relative path — there's nothing to resolveUnderRoot against.
   ipcMain.handle('rss:fetch-feed', (_event, url: string) => fetchFeed(url))
+  ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

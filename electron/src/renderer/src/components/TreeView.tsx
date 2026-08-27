@@ -58,6 +58,7 @@ const VIEWER_EXTENSIONS = [
   ".wav",
   ".m4a",
   ".ogg",
+  ".epub",
   ".flac",
 ];
 
