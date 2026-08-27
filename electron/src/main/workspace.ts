@@ -5,6 +5,7 @@ import { defaultLayout, extractTerminalIds } from "./layout";
 import { salvageLayoutJson } from "../shared/layoutSalvage";
 import * as files from "./files";
 import type { DirEntry } from "./files";
+import * as search from "./search";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -218,6 +219,19 @@ export class Workspace {
   }
   renamePath(tabId: number, fromRel: string, toRel: string): void {
     files.renamePath(this.tabRoot(tabId), fromRel, toRel);
+  }
+
+  searchInFiles(
+    tabId: number,
+    query: string,
+    opts: search.SearchOptions,
+    onFile: (result: search.SearchFileResult) => void,
+    onDone: (error?: string) => void,
+  ): search.ActiveSearch {
+    return search.searchInFiles(this.tabRoot(tabId), query, opts, onFile, onDone);
+  }
+  listAllFiles(tabId: number): Promise<string[]> {
+    return search.listAllFiles(this.tabRoot(tabId));
   }
 
   disposeAllTerminals(): void {

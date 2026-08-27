@@ -11,6 +11,14 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
+  # @vscode/ripgrep's actual rg binary ships in a platform-specific
+  # optionalDependency package (@vscode/ripgrep-darwin-arm64 etc.), not
+  # inside @vscode/ripgrep itself — both need unpacking so the binary is
+  # extracted and spawnable outside the asar archive, and so
+  # require.resolve() cross-package lookups at runtime don't hit asar's
+  # virtual-fs edge cases.
+  - node_modules/@vscode/ripgrep/**/*
+  - node_modules/@vscode/ripgrep-*/**/*
 win:
   executableName: electron
 nsis:

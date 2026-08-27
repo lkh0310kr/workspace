@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
+import type { SearchOptions } from './search'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
@@ -454,6 +455,36 @@ app.whenReady().then(() => {
   ipcMain.handle('fs:rename-path', (_event, tabId: number, fromRel: string, toRel: string) =>
     workspace!.renamePath(tabId, fromRel, toRel)
   )
+
+  // Streaming/cancelable, unlike the single-shot fs:* handlers above — a
+  // search can run long and the renderer needs to cancel a stale one (a new
+  // keystroke superseding the previous query), so this uses ipcMain.on +
+  // event.sender.send instead of ipcMain.handle's one-shot request/response.
+  const activeSearches = new Map<string, { cancel: () => void }>()
+  ipcMain.on(
+    'fs:search-in-files',
+    (event, requestId: string, tabId: number, query: string, opts: SearchOptions) => {
+      activeSearches.get(requestId)?.cancel()
+      const handle = workspace!.searchInFiles(
+        tabId,
+        query,
+        opts,
+        (result) => {
+          if (!event.sender.isDestroyed()) event.sender.send('fs:search-result', requestId, result)
+        },
+        (error) => {
+          activeSearches.delete(requestId)
+          if (!event.sender.isDestroyed()) event.sender.send('fs:search-done', requestId, error)
+        }
+      )
+      activeSearches.set(requestId, handle)
+    }
+  )
+  ipcMain.on('fs:search-cancel', (_event, requestId: string) => {
+    activeSearches.get(requestId)?.cancel()
+    activeSearches.delete(requestId)
+  })
+  ipcMain.handle('fs:list-all-files', (_event, tabId: number) => workspace!.listAllFiles(tabId))
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

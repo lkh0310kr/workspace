@@ -155,7 +155,23 @@ const api = {
       const listener = (): void => cb()
       ipcRenderer.on('fs:changed', listener)
       return () => ipcRenderer.removeListener('fs:changed', listener)
-    }
+    },
+    searchInFiles: (requestId: string, tabId: number, query: string, opts: unknown): void =>
+      ipcRenderer.send('fs:search-in-files', requestId, tabId, query, opts),
+    searchCancel: (requestId: string): void => ipcRenderer.send('fs:search-cancel', requestId),
+    onSearchResult: (cb: (requestId: string, result: unknown) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, requestId: string, result: unknown): void =>
+        cb(requestId, result)
+      ipcRenderer.on('fs:search-result', listener)
+      return () => ipcRenderer.removeListener('fs:search-result', listener)
+    },
+    onSearchDone: (cb: (requestId: string, error?: string) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, requestId: string, error?: string): void =>
+        cb(requestId, error)
+      ipcRenderer.on('fs:search-done', listener)
+      return () => ipcRenderer.removeListener('fs:search-done', listener)
+    },
+    listAllFiles: (tabId: number): Promise<string[]> => ipcRenderer.invoke('fs:list-all-files', tabId)
   }
 }
 

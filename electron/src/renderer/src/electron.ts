@@ -155,6 +155,53 @@ export async function renamePath(tabId: number, from: string, to: string): Promi
   return window.api.fs.renamePath(tabId, from, to);
 }
 
+// No legacy Tauri precedent for search — plain camelCase, not the
+// snake_case porting convention this file otherwise follows.
+export interface SearchOptions {
+  caseSensitive?: boolean;
+  regex?: boolean;
+  wholeWord?: boolean;
+  includeHidden?: boolean;
+}
+
+export interface SearchMatch {
+  lineNumber: number;
+  lineText: string;
+  ranges: { start: number; end: number }[];
+}
+
+export interface SearchFileResult {
+  path: string;
+  matches: SearchMatch[];
+}
+
+export function searchInFiles(
+  requestId: string,
+  tabId: number,
+  query: string,
+  opts: SearchOptions,
+): void {
+  window.api.fs.searchInFiles(requestId, tabId, query, opts);
+}
+
+export function cancelSearch(requestId: string): void {
+  window.api.fs.searchCancel(requestId);
+}
+
+export function onSearchResult(
+  handler: (requestId: string, result: SearchFileResult) => void,
+): () => void {
+  return window.api.fs.onSearchResult(handler);
+}
+
+export function onSearchDone(handler: (requestId: string, error?: string) => void): () => void {
+  return window.api.fs.onSearchDone(handler);
+}
+
+export async function listAllFiles(tabId: number): Promise<string[]> {
+  return window.api.fs.listAllFiles(tabId);
+}
+
 // Tauri's onXxx helpers return a Promise<UnlistenFn> (listen() is async).
 // Kept as sync-returning here (window.api's ipcRenderer.on wiring is
 // synchronous), but callers that do `unlisten.then((fn) => fn())` still

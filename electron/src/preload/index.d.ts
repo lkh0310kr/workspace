@@ -18,6 +18,24 @@ export interface DirEntry {
   isDir: boolean
 }
 
+export interface SearchOptions {
+  caseSensitive?: boolean
+  regex?: boolean
+  wholeWord?: boolean
+  includeHidden?: boolean
+}
+
+export interface SearchMatch {
+  lineNumber: number
+  lineText: string
+  ranges: { start: number; end: number }[]
+}
+
+export interface SearchFileResult {
+  path: string
+  matches: SearchMatch[]
+}
+
 export interface BrowserDownloadEventPayload {
   id: string
   hostWebContentsId: number
@@ -112,6 +130,11 @@ export interface WorkspaceApi {
     deletePath: (tabId: number, rel: string) => Promise<void>
     renamePath: (tabId: number, fromRel: string, toRel: string) => Promise<void>
     onChanged: (cb: () => void) => () => void
+    searchInFiles: (requestId: string, tabId: number, query: string, opts: SearchOptions) => void
+    searchCancel: (requestId: string) => void
+    onSearchResult: (cb: (requestId: string, result: SearchFileResult) => void) => () => void
+    onSearchDone: (cb: (requestId: string, error?: string) => void) => () => void
+    listAllFiles: (tabId: number) => Promise<string[]>
   }
 }
 
