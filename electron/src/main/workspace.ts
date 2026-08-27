@@ -1,3 +1,4 @@
+import { app } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Pty } from "./pty";
@@ -11,6 +12,16 @@ import { MEDIA_MIME_TYPES, toMediaUrl } from "./mediaProtocol";
 import { openEpub, type EpubBook } from "./epub";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
+
+/** Namespaced so a dev build and a packaged build never attach to the
+ * same tmux session for what are actually two independent terminals —
+ * each keeps its own persisted terminal-id sequence (see
+ * appSupportDir's dev/packaged split in persistence.ts), so the same
+ * numeric id can otherwise exist in both. */
+function tmuxSessionName(terminalId: number): string {
+  const namespace = app.isPackaged ? "" : "dev-";
+  return `workspace-term-${namespace}${terminalId}`;
+}
 
 export interface TabInfo {
   id: number;
@@ -61,8 +72,11 @@ export class Workspace {
   /** Rebuilds a Workspace from a previously-persisted WorkspaceState
    * instead of starting with a single fresh tab. Reuses every tab's
    * original id and spawns a terminal for each id actually referenced in
-   * that tab's layoutJson. PtySession replay restores output while the app
-   * is running; a full app restart starts fresh shells (Orca-style). */
+   * that tab's layoutJson. PtySession replay restores output while the
+   * app is running; across a full app restart, each terminal instead
+   * reattaches to its own tmux session (see pty.ts) — the shell and
+   * everything running in it survived the restart on the OS side, so
+   * there's no scrollback to replay, just a live reattach. */
   static fromSnapshot(rootPath: string, snapshot: WorkspaceState): Workspace {
     if (snapshot.tabs.length === 0) return Workspace.withRoot(rootPath);
 
@@ -129,7 +143,7 @@ export class Workspace {
 
     for (const id of oldIds) {
       if (!newIds.has(id) && !this.isTerminalReferenced(id)) {
-        this.terminals.get(id)?.session.dispose();
+        this.terminals.get(id)?.session.disposeAndDestroySession();
         this.terminals.delete(id);
       }
     }
@@ -147,7 +161,7 @@ export class Workspace {
   }
 
   private spawnTerminalWithId(id: number, cols: number, rows: number, root: string): void {
-    const pty = new Pty({ cols, rows, cwd: root });
+    const pty = new Pty({ cols, rows, cwd: root, tmuxSessionName: tmuxSessionName(id) });
     pty.start();
     const session = new PtySession(id, pty, cols, rows);
     session.setOnData((terminalId, seq, data) => {
@@ -273,7 +287,7 @@ export class Workspace {
   private releaseTerminalsOnlyInTab(layoutJson: string): void {
     for (const id of extractTerminalIds(layoutJson)) {
       if (!this.isTerminalReferenced(id)) {
-        this.terminals.get(id)?.session.dispose();
+        this.terminals.get(id)?.session.disposeAndDestroySession();
         this.terminals.delete(id);
       }
     }

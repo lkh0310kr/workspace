@@ -118,6 +118,11 @@ function createWindow(): BrowserWindow {
   })
 
   mainWindow.on('ready-to-show', () => {
+    // Maximize (not `fullscreen: true`) — fills the screen like every
+    // other app's green-button maximize, but keeps the menu bar/dock and
+    // the hiddenInset traffic lights this window relies on, unlike true
+    // fullscreen which would hide them.
+    mainWindow.maximize()
     mainWindow.show()
   })
 

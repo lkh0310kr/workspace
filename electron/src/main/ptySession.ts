@@ -118,6 +118,13 @@ export class PtySession {
     this.pty.dispose();
   }
 
+  /** See Pty.disposeAndDestroySession — for when the terminal is actually
+   * being deleted, not just detached (app quit, dev restart, reload). */
+  disposeAndDestroySession(): void {
+    this.attachedWebContentsId = null;
+    this.pty.disposeAndDestroySession();
+  }
+
   getCols(): number {
     return this.cols;
   }
