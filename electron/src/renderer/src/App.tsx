@@ -5,6 +5,7 @@ import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
 import { InteractionDebugPanel } from "./components/InteractionDebugPanel";
 import { LayoutTabDropOverlay } from "./components/LayoutTabDropOverlay";
+import { LoadingWorkspace } from "./components/LoadingWorkspace";
 import { QuickOpen } from "./components/QuickOpen";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { WorkspaceLayoutHost } from "./components/WorkspaceLayoutHost";
@@ -143,7 +144,7 @@ export default function App() {
   );
 
   if (!workspace || !activeModel) {
-    return <div className="loading">Loading workspace…</div>;
+    return <LoadingWorkspace />;
   }
 
   return (

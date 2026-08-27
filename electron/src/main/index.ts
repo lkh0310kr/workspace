@@ -9,7 +9,13 @@ import type { SearchOptions } from './search'
 import { registerMediaProtocol, toMediaUrlBrowsed } from './mediaProtocol'
 import { fetchFeed } from './rss'
 import { registerEpubProtocol, openEpubAbsolute } from './epub'
-import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
+import {
+  loadConfig,
+  saveConfig,
+  loadWorkspaceSnapshot,
+  saveWorkspaceSnapshot,
+  migrateLegacyDevStateIfNeeded
+} from './persistence'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
 import { setupBrowserSession } from './browserSession'
@@ -18,6 +24,31 @@ import { registerBrowserNavIpc } from './browserNav'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
+
+// Two live instances (a forgotten second `npm run dev`, or dev running
+// alongside a packaged daily-use build) race on the same
+// config.electron.json/workspace.electron.json with no locking, and both
+// independently spawn PTYs — last writer wins, in-memory tab/terminal
+// state diverges from disk, and the surviving window can get stuck at
+// "Loading workspace…" or stop responding to input entirely. Must be
+// requested before anything else touches app state; a losing second
+// launch just quits immediately instead of creating a competing window.
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) {
+  // app.quit() during startup doesn't necessarily stop app.whenReady()'s
+  // callback below from still firing once — guarded with
+  // gotSingleInstanceLock too, so the losing instance never creates a
+  // window before it exits.
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+      if (mainWindowRef.isMinimized()) mainWindowRef.restore()
+      mainWindowRef.show()
+      mainWindowRef.focus()
+    }
+  })
+}
 
 let focusedTerminalId: number | null = null
 
@@ -280,6 +311,7 @@ function buildAppMenu(): Menu {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  if (!gotSingleInstanceLock) return
   if (process.platform === 'darwin') {
     Menu.setApplicationMenu(buildAppMenu())
   }
@@ -353,6 +385,7 @@ app.whenReady().then(() => {
   setupBrowserDownloads(sendToMainWindow)
   registerBrowserNavIpc()
 
+  migrateLegacyDevStateIfNeeded()
   const config = loadConfig()
   const defaultRoot = config.rootPath ?? process.cwd()
   const snapshot = loadWorkspaceSnapshot()
