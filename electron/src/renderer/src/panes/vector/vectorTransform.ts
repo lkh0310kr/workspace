@@ -1,18 +1,22 @@
-// Bounding-box + transform math for M1 (Rect/Ellipse only — Line/Path/
-// Text/Group bounds land in later milestones alongside their tools).
+// Bounding-box + transform math. M1 was Rect/Ellipse only; M2 generalizes
+// to Line/Path too (Text/Group still land with their own tools later) —
+// every shape that has *some* untransformed local geometry can share this
+// same pivot/move/resize/rotate machinery uniformly, which is the reason
+// TransformableObject is a union rather than one function per kind.
 //
-// Model: an object's own geometry (x/y/width/height, cx/cy/rx/ry) is
-// authored directly in local space — dragging out a new rect just sets
-// x/y/width/height, Transform starts at identity. Transform only
-// accumulates once the user moves/resizes/rotates an *existing* object,
-// pivoting around the object's own local bounding-box center (matches
-// every mainstream vector editor's default rotate/scale-from-center
-// behavior). Rendering and hit-testing both compose the same pivot
-// formula, so they can never disagree about where a shape actually is.
+// Model: an object's own geometry (x/y/width/height, cx/cy/rx/ry, path
+// anchors, line endpoints) is authored directly in local space —
+// dragging out a new shape just sets that geometry, Transform starts at
+// identity. Transform only accumulates once the user moves/resizes/
+// rotates an *existing* object, pivoting around the object's own local
+// bounding-box center (matches every mainstream vector editor's default
+// rotate/scale-from-center behavior). Rendering and hit-testing both
+// compose the same pivot formula, so they can never disagree about where
+// a shape actually is.
 
-import type { EllipseObject, RectObject, Transform } from "./sceneGraph";
+import type { EllipseObject, LineObject, PathObject, RectObject, Transform } from "./sceneGraph";
 
-export type TransformableObject = RectObject | EllipseObject;
+export type TransformableObject = RectObject | EllipseObject | LineObject | PathObject;
 
 export interface Point {
   x: number;
@@ -26,10 +30,24 @@ export interface Bounds {
   height: number;
 }
 
-/** Untransformed local bounding box — before Transform is applied. */
+function boundsOfPoints(points: Point[]): Bounds {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  return { x: minX, y: minY, width: Math.max(...xs) - minX, height: Math.max(...ys) - minY };
+}
+
+/** Untransformed local bounding box — before Transform is applied. Path's
+ * bounds include anchor points only (not bezier handles) — a curve never
+ * extends past its handles' convex hull, so this can be a slight
+ * underestimate for a heavily-curved path; fine for a selection box, not
+ * used for hit-testing precision. */
 export function localBounds(obj: TransformableObject): Bounds {
   if (obj.type === "rect") return { x: obj.x, y: obj.y, width: obj.width, height: obj.height };
-  return { x: obj.cx - obj.rx, y: obj.cy - obj.ry, width: obj.rx * 2, height: obj.ry * 2 };
+  if (obj.type === "ellipse") return { x: obj.cx - obj.rx, y: obj.cy - obj.ry, width: obj.rx * 2, height: obj.ry * 2 };
+  if (obj.type === "line") return boundsOfPoints([{ x: obj.x1, y: obj.y1 }, { x: obj.x2, y: obj.y2 }]);
+  return boundsOfPoints(obj.anchors.length > 0 ? obj.anchors : [{ x: 0, y: 0 }]);
 }
 
 export function boundsCenter(b: Bounds): Point {
@@ -116,14 +134,43 @@ export function documentBounds(obj: TransformableObject): Bounds {
 }
 
 /** Point-in-shape test, in document space. */
+const STROKE_HIT_THRESHOLD = 6;
+
+function distanceToSegment(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq));
+  const cx = a.x + t * dx;
+  const cy = a.y + t * dy;
+  return Math.hypot(p.x - cx, p.y - cy);
+}
+
 export function hitTest(obj: TransformableObject, point: Point): boolean {
   const local = toLocalPoint(point, obj);
   if (obj.type === "rect") {
     return local.x >= obj.x && local.x <= obj.x + obj.width && local.y >= obj.y && local.y <= obj.y + obj.height;
   }
-  const nx = (local.x - obj.cx) / (obj.rx || 1);
-  const ny = (local.y - obj.cy) / (obj.ry || 1);
-  return nx * nx + ny * ny <= 1;
+  if (obj.type === "ellipse") {
+    const nx = (local.x - obj.cx) / (obj.rx || 1);
+    const ny = (local.y - obj.cy) / (obj.ry || 1);
+    return nx * nx + ny * ny <= 1;
+  }
+  if (obj.type === "line") {
+    return distanceToSegment(local, { x: obj.x1, y: obj.y1 }, { x: obj.x2, y: obj.y2 }) <= STROKE_HIT_THRESHOLD;
+  }
+  // Path: distance to the anchor-to-anchor polyline — an approximation
+  // (ignores bezier curvature) that's fine for "did you click near this
+  // path", not used anywhere precision matters.
+  for (let i = 0; i < obj.anchors.length - 1; i++) {
+    if (distanceToSegment(local, obj.anchors[i], obj.anchors[i + 1]) <= STROKE_HIT_THRESHOLD) return true;
+  }
+  if (obj.closed && obj.anchors.length > 1) {
+    const first = obj.anchors[0];
+    const last = obj.anchors[obj.anchors.length - 1];
+    if (distanceToSegment(local, last, first) <= STROKE_HIT_THRESHOLD) return true;
+  }
+  return false;
 }
 
 /** Applies a document-space drag delta as a move — the common case (no

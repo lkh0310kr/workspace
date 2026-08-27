@@ -1302,6 +1302,13 @@ iframe.browser-content-slot {
   cursor: grab;
 }
 
+.vector-pen-anchor {
+  fill: var(--bg-base);
+  stroke: var(--accent);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
 .vector-empty {
   flex: 1;
   display: flex;

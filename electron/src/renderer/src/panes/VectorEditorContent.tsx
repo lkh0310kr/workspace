@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { listDir, readFile, writeFile } from "../electron";
+import { anchorsToPathData, mirroredHandle } from "./vector/bezierPath";
 import {
   createBlankDocument,
   createEllipse,
+  createLine,
+  createPath,
   createRect,
   parseDocument,
   serializeDocument,
   type EllipseObject,
+  type LineObject,
+  type PathAnchor,
+  type PathObject,
   type RectObject,
   type SceneObject,
   type VectorDocument,
@@ -27,11 +33,11 @@ import {
   type TransformableObject,
 } from "./vector/vectorTransform";
 
-// Vector Editor pane — M1 scope (see docs/architecture/08-vector-editor.md):
-// Rect/Ellipse creation, single-selection, move/resize/rotate, save/load
-// as plain JSON. No pen tool (M2), no stroke/fill UI or groups (M3), no
-// undo/redo (M4), no text (M5) yet — see the design doc for the full
-// build order.
+// Vector Editor pane (see docs/architecture/08-vector-editor.md). M1:
+// Rect/Ellipse, single-selection, move/resize/rotate, save/load as plain
+// JSON. M2 (this file now): pen tool (Path), Line tool. Still no stroke/
+// fill UI or groups (M3), undo/redo (M4), or text (M5) — see the design
+// doc for the full build order.
 interface Props {
   tabId: number;
   filePath: string | null;
@@ -40,7 +46,7 @@ interface Props {
   onToggleTree: () => void;
 }
 
-type Tool = "select" | "rect" | "ellipse";
+type Tool = "select" | "rect" | "ellipse" | "line" | "pen";
 
 // move/resize/rotate all carry the target object's id directly rather
 // than relying on the `selectedId` React state closure — the window-level
@@ -53,10 +59,19 @@ type DragMode =
   | { kind: "move"; id: string; startDocPoint: Point; startTransform: TransformableObject["transform"] }
   | { kind: "resize"; id: string; handle: HandleId }
   | { kind: "rotate"; id: string; startAngle: number; startRotation: number }
-  | { kind: "draw"; tool: "rect" | "ellipse"; startDocPoint: Point };
+  | { kind: "draw"; tool: "rect" | "ellipse" | "line"; startDocPoint: Point }
+  // Pulling a bezier handle out of the anchor just placed by the pen
+  // tool's last click — distinct from "draw" because releasing the mouse
+  // here doesn't finish the path (only Enter / clicking near the first
+  // anchor does); the pen session (penAnchors) stays open for the next
+  // click.
+  | { kind: "pen-anchor" };
 
 const RESIZE_HANDLES: HandleId[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const ROTATE_HANDLE_OFFSET = 24; // doc-space px above the "n" handle
+const PEN_CLOSE_THRESHOLD = 8; // doc-space px — click near the first anchor to close
+const PEN_HANDLE_MIN_DRAG = 2; // doc-space px — below this, treat as a plain corner click
+const TOOL_SHORTCUTS: Record<string, Tool> = { v: "select", r: "rect", o: "ellipse", l: "line", p: "pen" };
 
 async function findAvailableUntitledVectorName(tabId: number): Promise<string> {
   const entries = await listDir(tabId, "").catch(() => []);
@@ -67,9 +82,11 @@ async function findAvailableUntitledVectorName(tabId: number): Promise<string> {
   return `untitled ${i}.vec.json`;
 }
 
-function isTransformable(obj: SceneObject): obj is RectObject | EllipseObject {
-  return obj.type === "rect" || obj.type === "ellipse";
+function isTransformable(obj: SceneObject): obj is RectObject | EllipseObject | LineObject | PathObject {
+  return obj.type === "rect" || obj.type === "ellipse" || obj.type === "line" || obj.type === "path";
 }
+
+type DraftShape = RectObject | EllipseObject | LineObject;
 
 export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, onToggleTree }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -78,7 +95,12 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>("select");
   const [dirty, setDirty] = useState(false);
-  const [draft, setDraft] = useState<RectObject | EllipseObject | null>(null);
+  const [draft, setDraft] = useState<DraftShape | null>(null);
+  // In-progress pen path — a click appends an anchor, Enter/click-near-
+  // first-anchor commits it as a real PathObject. Empty array = no pen
+  // session active.
+  const [penAnchors, setPenAnchors] = useState<PathAnchor[]>([]);
+  const [penPreviewPoint, setPenPreviewPoint] = useState<Point | null>(null);
 
   const docRef = useRef(doc);
   docRef.current = doc;
@@ -95,14 +117,18 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   // startDrag ran — a ref keeps that read fresh instead of one-render-stale.
   // (move/resize/rotate don't have this problem: DragMode carries the
   // target object's id directly, set synchronously at drag-start.)
-  const draftRef = useRef<RectObject | EllipseObject | null>(draft);
+  const draftRef = useRef<DraftShape | null>(draft);
   draftRef.current = draft;
+  const penAnchorsRef = useRef(penAnchors);
+  penAnchorsRef.current = penAnchors;
 
   useEffect(() => {
     setError(null);
     setSelectedId(null);
     setDirty(false);
     setDraft(null);
+    setPenAnchors([]);
+    setPenPreviewPoint(null);
     if (!filePath) {
       const blank = createBlankDocument();
       lastLoadedRef.current = null;
@@ -203,6 +229,10 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
 
       if (drag.kind === "draw") {
         const { startDocPoint, tool: drawTool } = drag;
+        if (drawTool === "line") {
+          setDraft(createLine(startDocPoint.x, startDocPoint.y, docPoint.x, docPoint.y));
+          return;
+        }
         const x = Math.min(startDocPoint.x, docPoint.x);
         const y = Math.min(startDocPoint.y, docPoint.y);
         const width = Math.abs(docPoint.x - startDocPoint.x);
@@ -212,6 +242,17 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
             ? createRect(x, y, width, height)
             : createEllipse(x + width / 2, y + height / 2, width / 2, height / 2),
         );
+        return;
+      }
+
+      if (drag.kind === "pen-anchor") {
+        const anchors = penAnchorsRef.current;
+        const last = anchors[anchors.length - 1];
+        if (!last) return;
+        if (Math.hypot(docPoint.x - last.x, docPoint.y - last.y) < PEN_HANDLE_MIN_DRAG) return;
+        const outHandle = { x: docPoint.x, y: docPoint.y };
+        const nextAnchor: PathAnchor = { x: last.x, y: last.y, outHandle, inHandle: mirroredHandle(last, outHandle) };
+        setPenAnchors([...anchors.slice(0, -1), nextAnchor]);
         return;
       }
 
@@ -242,11 +283,21 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     const current = docRef.current;
     const finalDraft = draftRef.current;
     if (!current || !finalDraft) return;
-    // Ignore an accidental click-without-drag (zero-size shape).
-    const bounds = localBounds(finalDraft);
-    if (bounds.width < 1 || bounds.height < 1) {
-      setTool("select");
-      return;
+    // Ignore an accidental click-without-drag (zero-size shape). A line's
+    // bounding box legitimately has a zero width or height when it's
+    // perfectly horizontal/vertical, so it's checked by endpoint distance
+    // instead of the (rect/ellipse-shaped) bounding-box check.
+    if (finalDraft.type === "line") {
+      if (Math.hypot(finalDraft.x2 - finalDraft.x1, finalDraft.y2 - finalDraft.y1) < 1) {
+        setTool("select");
+        return;
+      }
+    } else {
+      const bounds = localBounds(finalDraft);
+      if (bounds.width < 1 || bounds.height < 1) {
+        setTool("select");
+        return;
+      }
     }
     commitDoc({ ...current, objects: [...current.objects, finalDraft] });
     setSelectedId(finalDraft.id);
@@ -263,10 +314,67 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     [onPointerMove, onPointerUp],
   );
 
+  const commitPenPath = useCallback(
+    (closed: boolean) => {
+      const anchors = penAnchorsRef.current;
+      setPenAnchors([]);
+      setPenPreviewPoint(null);
+      if (anchors.length < 2) return;
+      const current = docRef.current;
+      if (!current) return;
+      const path = createPath(anchors, closed);
+      commitDoc({ ...current, objects: [...current.objects, path] });
+      setSelectedId(path.id);
+      setTool("select");
+    },
+    [commitDoc],
+  );
+
+  const cancelPenPath = useCallback(() => {
+    setPenAnchors([]);
+    setPenPreviewPoint(null);
+  }, []);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (tool === "pen") {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commitPenPath(false);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          cancelPenPath();
+          return;
+        }
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      const nextTool = TOOL_SHORTCUTS[e.key.toLowerCase()];
+      if (nextTool) setTool(nextTool);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool, commitPenPath, cancelPenPath]);
+
   const onCanvasMouseDown = (e: ReactMouseEvent<SVGSVGElement>) => {
     const docPoint = clientToDocPoint(e.clientX, e.clientY);
-    if (tool === "rect" || tool === "ellipse") {
+    if (tool === "rect" || tool === "ellipse" || tool === "line") {
       startDrag({ kind: "draw", tool, startDocPoint: docPoint });
+      return;
+    }
+    if (tool === "pen") {
+      const anchors = penAnchorsRef.current;
+      const first = anchors[0];
+      if (first && anchors.length > 2 && Math.hypot(docPoint.x - first.x, docPoint.y - first.y) < PEN_CLOSE_THRESHOLD) {
+        commitPenPath(true);
+        return;
+      }
+      setPenAnchors([...anchors, { x: docPoint.x, y: docPoint.y }]);
+      startDrag({ kind: "pen-anchor" });
       return;
     }
     // Clicked empty canvas (not a shape/handle, those stopPropagation
@@ -274,7 +382,17 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     setSelectedId(null);
   };
 
-  const onShapeMouseDown = (e: ReactMouseEvent, obj: RectObject | EllipseObject) => {
+  const onCanvasMouseMove = (e: ReactMouseEvent<SVGSVGElement>) => {
+    if (tool !== "pen" || penAnchorsRef.current.length === 0) return;
+    // Rubber-band preview to where the *next* anchor would land — only
+    // while not actively pulling a handle (that's onPointerMove's job,
+    // driven by the window-level drag instead of this plain hover
+    // handler, so the two don't fight over the same frame).
+    if (dragRef.current?.kind === "pen-anchor") return;
+    setPenPreviewPoint(clientToDocPoint(e.clientX, e.clientY));
+  };
+
+  const onShapeMouseDown = (e: ReactMouseEvent, obj: TransformableObject) => {
     if (tool !== "select") return;
     e.stopPropagation();
     setSelectedId(obj.id);
@@ -287,7 +405,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     startDrag({ kind: "resize", id, handle });
   };
 
-  const onRotateHandleMouseDown = (e: ReactMouseEvent, obj: RectObject | EllipseObject) => {
+  const onRotateHandleMouseDown = (e: ReactMouseEvent, obj: TransformableObject) => {
     e.stopPropagation();
     const docPoint = clientToDocPoint(e.clientX, e.clientY);
     const startAngle = pointerAngleDegrees(documentCenter(obj), docPoint);
@@ -321,6 +439,36 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           cy={obj.cy}
           rx={obj.rx}
           ry={obj.ry}
+          fill={obj.style.fill ?? "none"}
+          stroke={obj.style.stroke ?? "none"}
+          strokeWidth={obj.style.strokeWidth}
+          opacity={obj.style.opacity}
+          transform={svgTransform(obj)}
+          onMouseDown={(e) => onShapeMouseDown(e, obj)}
+        />
+      );
+    }
+    if (obj.type === "line") {
+      return (
+        <line
+          key={obj.id}
+          x1={obj.x1}
+          y1={obj.y1}
+          x2={obj.x2}
+          y2={obj.y2}
+          stroke={obj.style.stroke ?? "none"}
+          strokeWidth={obj.style.strokeWidth}
+          opacity={obj.style.opacity}
+          transform={svgTransform(obj)}
+          onMouseDown={(e) => onShapeMouseDown(e, obj)}
+        />
+      );
+    }
+    if (obj.type === "path") {
+      return (
+        <path
+          key={obj.id}
+          d={anchorsToPathData(obj.anchors, obj.closed)}
           fill={obj.style.fill ?? "none"}
           stroke={obj.style.stroke ?? "none"}
           strokeWidth={obj.style.strokeWidth}
@@ -381,6 +529,22 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
         >
           ◯
         </button>
+        <button
+          type="button"
+          className={`vector-tool${tool === "line" ? " active" : ""}`}
+          title="Line (L)"
+          onClick={() => setTool("line")}
+        >
+          ╱
+        </button>
+        <button
+          type="button"
+          className={`vector-tool${tool === "pen" ? " active" : ""}`}
+          title="Pen (P) — click to add anchors, drag while placing for a smooth curve, Enter/click the first anchor to finish"
+          onClick={() => setTool("pen")}
+        >
+          ✎
+        </button>
         <span className="vector-toolbar-spacer" />
         <span className={`vector-save-status${dirty ? " unsaved" : ""}`}>{dirty ? "Unsaved" : "Saved"}</span>
         <button type="button" className="vector-save" onClick={() => void save()} title="Save (⌘S)">
@@ -408,10 +572,28 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           height={doc.height}
           viewBox={`0 0 ${doc.width} ${doc.height}`}
           onMouseDown={onCanvasMouseDown}
+          onMouseMove={onCanvasMouseMove}
         >
           <rect x={0} y={0} width={doc.width} height={doc.height} fill={doc.background} />
           {doc.objects.map(renderShape)}
           {draft && renderShape(draft)}
+          {penAnchors.length > 0 && (
+            <g className="vector-pen-preview">
+              <path
+                d={anchorsToPathData(
+                  penPreviewPoint ? [...penAnchors, { x: penPreviewPoint.x, y: penPreviewPoint.y }] : penAnchors,
+                  false,
+                )}
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth={1}
+                strokeDasharray={penPreviewPoint ? "4 3" : undefined}
+              />
+              {penAnchors.map((a, i) => (
+                <circle key={i} cx={a.x} cy={a.y} r={3} className="vector-pen-anchor" />
+              ))}
+            </g>
+          )}
           {selectedTransformable && corners && (
             <g className="vector-selection">
               <polygon

@@ -138,6 +138,30 @@ export function createEllipse(cx: number, cy: number, rx: number, ry: number): E
   };
 }
 
+export function createLine(x1: number, y1: number, x2: number, y2: number): LineObject {
+  return {
+    id: crypto.randomUUID(),
+    type: "line",
+    x1,
+    y1,
+    x2,
+    y2,
+    style: { ...DEFAULT_STYLE, fill: null },
+    transform: { ...IDENTITY_TRANSFORM },
+  };
+}
+
+export function createPath(anchors: PathAnchor[], closed: boolean): PathObject {
+  return {
+    id: crypto.randomUUID(),
+    type: "path",
+    anchors,
+    closed,
+    style: { ...DEFAULT_STYLE, fill: closed ? DEFAULT_STYLE.fill : null },
+    transform: { ...IDENTITY_TRANSFORM },
+  };
+}
+
 /** Depth-first flatten, for hit-testing top-to-bottom (last object in the
  * flattened list was drawn last, i.e. is visually on top). */
 export function flattenObjects(objects: SceneObject[]): SceneObject[] {
