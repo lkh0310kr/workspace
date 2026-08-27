@@ -18,6 +18,7 @@ import { useLayoutRevisions } from "./hooks/useLayoutRevision";
 import { useEnsureDefaultTerminals, useLayoutHostLifecycle } from "./hooks/useLayoutHostLifecycle";
 import { useSplitterDragOverlay } from "./hooks/useSplitterDragOverlay";
 import { useTabChipWindowDrop } from "./hooks/useTabChipWindowDrop";
+import { useWorkspaceTabHotkeys } from "./hooks/useWorkspaceTabHotkeys";
 import { useVisibleWorkspaceTab } from "./hooks/useVisibleWorkspaceTab";
 import { applyThemePreference, setStoredThemePreference } from "./theme";
 import { useWorkspaceStore } from "./store/workspaceStore";
@@ -93,6 +94,7 @@ export default function App() {
   useTabChipWindowDrop(activeTabId);
   useLayoutHostLifecycle(activeTabId);
   useEnsureDefaultTerminals(workspace?.tabs, layoutRevisions, ensureTerminal);
+  useWorkspaceTabHotkeys(workspace?.tabs ?? []);
   useDismissPortalsOnWorkspaceSwitch(activeTabId, dismissPortals);
   useAppShortcuts({
     activeTabId,
