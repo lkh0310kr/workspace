@@ -1,43 +1,56 @@
 import { useEffect, useState } from "react";
-import { resolveFileUrl } from "../electron";
+import { readFileBinaryPreview } from "../electron";
 
 // v1 of the ideation.md "File Viewer" pane — images and PDFs only, per the
 // scoped-down plan. Video/audio/e-book are separate future slices.
+//
+// Why blob: URLs (Orca parity — editor/useLocalImageSrc.ts): a raw file://
+// <img>/<embed> src throws "Not allowed to load local resource" — Chromium
+// blocks file:// resource loads from a page not itself loaded via file://,
+// which the Vite dev server's http://localhost never is. Reading the bytes
+// over IPC and handing the renderer a blob: URL sidesteps that restriction
+// entirely and works identically in dev and production.
 interface Props {
   tabId: number;
   filePath: string | null;
 }
 
-const PDF_EXTENSIONS = [".pdf"];
-
-function isPdf(path: string): boolean {
-  const lower = path.toLowerCase();
-  return PDF_EXTENSIONS.some((ext) => lower.endsWith(ext));
+function base64ToBlobUrl(base64: string, mimeType: string): string {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return URL.createObjectURL(new Blob([bytes], { type: mimeType }));
 }
 
 export function FileViewerContent({ tabId, filePath }: Props) {
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    setFileUrl(null);
     setError(false);
     if (!filePath) return;
     let cancelled = false;
-    // Why: resolves through the main process's resolveUnderRoot confinement
-    // (same guarantee readFile uses) instead of building a file:// URL from
-    // rootPath + filePath directly in the renderer — a corrupted or crafted
-    // persisted layout.json must not be able to point this at an arbitrary
-    // path outside the workspace root via `../` segments.
-    resolveFileUrl(tabId, filePath)
-      .then((url) => {
-        if (!cancelled) setFileUrl(url);
+    let createdUrl: string | null = null;
+    readFileBinaryPreview(tabId, filePath)
+      .then((preview) => {
+        if (cancelled) return;
+        if (!preview) {
+          setError(true);
+          return;
+        }
+        createdUrl = base64ToBlobUrl(preview.content, preview.mimeType);
+        setBlobUrl(createdUrl);
+        setMimeType(preview.mimeType);
       })
       .catch(() => {
         if (!cancelled) setError(true);
       });
     return () => {
       cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
   }, [tabId, filePath]);
 
@@ -47,7 +60,7 @@ export function FileViewerContent({ tabId, filePath }: Props) {
   if (error) {
     return <div className="file-viewer-empty">Couldn't load file</div>;
   }
-  if (!fileUrl) {
+  if (!blobUrl || !mimeType) {
     return <div className="file-viewer-empty">Loading…</div>;
   }
 
@@ -55,13 +68,13 @@ export function FileViewerContent({ tabId, filePath }: Props) {
 
   return (
     <div className="file-viewer">
-      {isPdf(filePath) ? (
-        <embed className="file-viewer-pdf" type="application/pdf" src={fileUrl} />
+      {mimeType === "application/pdf" ? (
+        <embed className="file-viewer-pdf" type="application/pdf" src={blobUrl} />
       ) : (
         <div className="file-viewer-image-frame">
           <img
             className="file-viewer-image"
-            src={fileUrl}
+            src={blobUrl}
             alt={name}
             draggable={false}
             onError={() => setError(true)}

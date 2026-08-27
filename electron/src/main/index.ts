@@ -5,7 +5,6 @@ import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
-import { registerLocalFileProtocol } from './localFileProtocol'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
@@ -277,8 +276,6 @@ function buildAppMenu(): Menu {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  registerLocalFileProtocol(() => (workspace ? workspace.state().tabs.map((t) => t.rootPath) : []))
-
   if (process.platform === 'darwin') {
     Menu.setApplicationMenu(buildAppMenu())
   }
@@ -446,8 +443,8 @@ app.whenReady().then(() => {
 
   ipcMain.handle('fs:list-dir', (_event, tabId: number, rel: string) => workspace!.listDir(tabId, rel))
   ipcMain.handle('fs:read-file', (_event, tabId: number, rel: string) => workspace!.readFile(tabId, rel))
-  ipcMain.handle('fs:resolve-file-url', (_event, tabId: number, rel: string) =>
-    workspace!.resolveFileUrl(tabId, rel)
+  ipcMain.handle('fs:read-file-binary-preview', (_event, tabId: number, rel: string) =>
+    workspace!.readFileBinaryPreview(tabId, rel)
   )
   ipcMain.handle('fs:write-file', (_event, tabId: number, rel: string, content: string) =>
     workspace!.writeFile(tabId, rel, content)

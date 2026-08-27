@@ -132,8 +132,11 @@ export async function readFile(tabId: number, path: string): Promise<string> {
   return window.api.fs.readFile(tabId, path);
 }
 
-export async function resolveFileUrl(tabId: number, path: string): Promise<string> {
-  return window.api.fs.resolveFileUrl(tabId, path);
+export async function readFileBinaryPreview(
+  tabId: number,
+  path: string,
+): Promise<{ content: string; mimeType: string } | null> {
+  return window.api.fs.readFileBinaryPreview(tabId, path);
 }
 
 export async function writeFile(tabId: number, path: string, content: string): Promise<void> {

@@ -1,6 +1,5 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { toLocalFileUrl } from "./localFileProtocol";
 
 // Direct port of crates/workspace-core/src/files.rs.
 
@@ -70,13 +69,30 @@ export function readFile(root: string, rel: string): string {
   return fs.readFileSync(resolveUnderRoot(root, rel), "utf8");
 }
 
-/** file:// URL for a workspace-relative path, for the renderer to load
- * directly (image/PDF viewer) without piping bytes over IPC. Goes through
- * the same resolveUnderRoot confinement as every other file op here — a
- * corrupted/malicious persisted layout.json must not be able to point this
- * at an arbitrary path outside the workspace root via `../` segments. */
-export function resolveFileUrl(root: string, rel: string): string {
-  return toLocalFileUrl(resolveUnderRoot(root, rel));
+const BINARY_PREVIEW_MIME_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".bmp": "image/bmp",
+  ".pdf": "application/pdf",
+};
+
+export type BinaryFilePreview = { content: string; mimeType: string };
+
+/** Base64 file content for the File Viewer pane (Orca parity —
+ * useLocalImageSrc.ts's readImagePreview: read via IPC and hand the
+ * renderer bytes to build its own blob: URL, rather than a file:// URL —
+ * Chromium blocks file:// resource loads from a page not itself loaded via
+ * file://, which a dev-mode Vite server never is). Goes through the same
+ * resolveUnderRoot confinement as every other file op here. */
+export function readFileBinaryPreview(root: string, rel: string): BinaryFilePreview | null {
+  const target = resolveUnderRoot(root, rel);
+  const mimeType = BINARY_PREVIEW_MIME_TYPES[path.extname(target).toLowerCase()];
+  if (!mimeType) return null;
+  return { content: fs.readFileSync(target).toString("base64"), mimeType };
 }
 
 export function writeFile(root: string, rel: string, content: string): void {

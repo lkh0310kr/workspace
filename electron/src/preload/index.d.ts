@@ -103,7 +103,10 @@ export interface WorkspaceApi {
   fs: {
     listDir: (tabId: number, rel: string) => Promise<DirEntry[]>
     readFile: (tabId: number, rel: string) => Promise<string>
-    resolveFileUrl: (tabId: number, rel: string) => Promise<string>
+    readFileBinaryPreview: (
+      tabId: number,
+      rel: string
+    ) => Promise<{ content: string; mimeType: string } | null>
     writeFile: (tabId: number, rel: string, content: string) => Promise<void>
     createDir: (tabId: number, rel: string) => Promise<void>
     deletePath: (tabId: number, rel: string) => Promise<void>

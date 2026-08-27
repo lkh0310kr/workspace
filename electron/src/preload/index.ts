@@ -138,8 +138,11 @@ const api = {
     listDir: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('fs:list-dir', tabId, rel),
     readFile: (tabId: number, rel: string): Promise<string> =>
       ipcRenderer.invoke('fs:read-file', tabId, rel),
-    resolveFileUrl: (tabId: number, rel: string): Promise<string> =>
-      ipcRenderer.invoke('fs:resolve-file-url', tabId, rel),
+    readFileBinaryPreview: (
+      tabId: number,
+      rel: string
+    ): Promise<{ content: string; mimeType: string } | null> =>
+      ipcRenderer.invoke('fs:read-file-binary-preview', tabId, rel),
     writeFile: (tabId: number, rel: string, content: string): Promise<void> =>
       ipcRenderer.invoke('fs:write-file', tabId, rel, content),
     createDir: (tabId: number, rel: string): Promise<void> =>
