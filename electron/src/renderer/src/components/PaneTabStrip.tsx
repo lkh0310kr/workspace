@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type
 import type { TabNode } from "flexlayout-react";
 import { ContextMenu } from "./ContextMenu";
 import { PanePicker } from "./PanePicker";
-import { PaneTabItem, TabKind, TAB_KIND_OPTIONS, tabKindIcon } from "../layout/paneTypes";
+import { PaneTabItem, TabKind } from "../layout/paneTypes";
+import { paneKindIcon, paneKindPickerOptions, paneTabLabel } from "../panes/paneKindRegistry";
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from "../layout/tabDrag";
 import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from "../interaction/dragSession";
 import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
@@ -36,45 +37,6 @@ interface Props {
   onDropTab: (payload: TabDragPayload, index: number) => void;
 }
 
-function tabLabel(item: PaneTabItem, dirty: boolean): string {
-  const base = (() => {
-    switch (item.kind) {
-      case "terminal":
-        return "Terminal";
-      case "browser": {
-        if (item.title?.trim()) return item.title.trim();
-        try {
-          return item.url ? new URL(item.url).hostname : "New Tab";
-        } catch {
-          return item.url || "New Tab";
-        }
-      }
-      case "code":
-      case "markdown":
-      case "viewer": {
-        const path = item.filePath ?? item.absolutePath;
-        if (!path) {
-          if (item.viewerHint === "video") return "Video";
-          if (item.viewerHint === "audio") return "Audio";
-          if (item.viewerHint === "ebook") return "Ebook";
-          return "New tab";
-        }
-        return path.split("/").pop() || path;
-      }
-      case "rss":
-        if (item.title?.trim()) return item.title.trim();
-        if (!item.feedUrl) return "RSS";
-        try {
-          return new URL(item.feedUrl).hostname;
-        } catch {
-          return item.feedUrl;
-        }
-      default:
-        return item.kind;
-    }
-  })();
-  return dirty ? `• ${base}` : base;
-}
 
 export function PaneTabStrip({
   tabNode,
@@ -137,7 +99,7 @@ export function PaneTabStrip({
       {
         type: "submenu" as const,
         label: "전환",
-        items: TAB_KIND_OPTIONS.map((kind) => ({
+        items: paneKindPickerOptions().map((kind) => ({
           type: "button" as const,
           label: kind.label,
           icon: kind.icon,
@@ -286,10 +248,10 @@ export function PaneTabStrip({
                   {item.kind === "browser" && item.favicon ? (
                     <img src={item.favicon} className="pane-tab-favicon" alt="" />
                   ) : (
-                    tabKindIcon(item.kind)
+                    paneKindIcon(item.kind)
                   )}
                 </span>
-                <span className="pane-tab-label">{tabLabel(item, dirty)}</span>
+                <span className="pane-tab-label">{paneTabLabel(item, dirty)}</span>
                 <button
                   type="button"
                   className="pane-tab-close"

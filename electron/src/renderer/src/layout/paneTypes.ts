@@ -54,51 +54,9 @@ export interface PaneGroupConfig {
   zoom?: number;
 }
 
-// Icon/label for every kind a tab can actually be — used for rendering an
-// already-open tab's chip (PaneTabStrip.tsx), regardless of which picker
-// created it.
-const TAB_KIND_META: Record<TabKind, { label: string; icon: string }> = {
-  terminal: { label: "Terminal", icon: "⌘" },
-  browser: { label: "Browser", icon: "🌐" },
-  code: { label: "Code", icon: "{}" },
-  markdown: { label: "Editor", icon: "{}" },
-  viewer: { label: "Viewer", icon: "▣" },
-  rss: { label: "RSS", icon: "📰" },
-};
-
-// The "add new tab" / "change pane type" picker list (PanePicker.tsx) —
-// deliberately fewer entries than TabKind has values. Code and Markdown
-// used to be offered as two separate choices here (the "Pane Select
-// Dialog - Code <-> Markdown Pane -> Editor" TODO item), but picking one
-// ahead of time never mattered: a brand new tab has no file yet, and
-// findAvailableUntitledName (EditorContent.tsx) only ever creates .md
-// files regardless of which one was chosen. Opening an *existing*
-// non-markdown file (via TreeView, which classifies by extension) still
-// produces a real "code"-kind tab — this list only affects the picker,
-// not what TAB_KIND_META can render.
-export const TAB_KIND_OPTIONS: {
-  id: TabKind;
-  label: string;
-  icon: string;
-  source?: Partial<PaneTabItem>;
-}[] = [
-  { id: "terminal", label: "Terminal", icon: "⌘" },
-  { id: "browser", label: "Browser", icon: "🌐" },
-  { id: "markdown", label: "Editor", icon: "{}" },
-  { id: "rss", label: "RSS", icon: "📰" },
-  // Video/Audio/Ebook go straight to a Browse dialog instead of only being
-  // reachable by clicking a file already in the workspace tree — reuses
-  // the "viewer" kind (FileViewerContent already dispatches by extension),
-  // the source's viewerHint just decides the blank state's dialog filter.
-  { id: "viewer", label: "Video", icon: "🎬", source: { viewerHint: "video" } },
-  { id: "viewer", label: "Audio", icon: "🎵", source: { viewerHint: "audio" } },
-  { id: "viewer", label: "Ebook", icon: "📖", source: { viewerHint: "ebook" } },
-];
-
-export function tabKindLabel(kind: TabKind): string {
-  return TAB_KIND_META[kind].label;
-}
-
-export function tabKindIcon(kind: TabKind): string {
-  return TAB_KIND_META[kind].icon;
-}
+// Per-kind behavior (label/icon/render/picker entries/factory) lives in
+// paneKindRegistry.ts + panes/kinds/*, not here — this file stays a pure
+// data model with no registry dependency (the registry itself imports
+// TabKind/PaneTabItem from here, so the reverse would be circular).
+// tabKindLabel/tabKindIcon/TAB_KIND_OPTIONS moved to
+// paneKindLabel/paneKindIcon/paneKindPickerOptions in paneKindRegistry.ts.

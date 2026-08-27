@@ -1,7 +1,7 @@
 import { Actions, DockLocation, Model, TabNode } from "flexlayout-react";
-import { spawnTerminal } from "../electron";
 import { layoutLog, layoutLogMutation, summarizeLayoutModel } from "./layoutDebugLog";
-import { PaneGroupConfig, PaneTabItem, TabKind, tabKindLabel } from "./paneTypes";
+import { PaneGroupConfig, PaneTabItem, TabKind } from "./paneTypes";
+import { getPaneKind, paneKindLabel } from "../panes/paneKindRegistry";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import { findTabIdForModel } from "../store/workspaceLayoutModels";
 import { resolveSplitPaneMutationStrategy } from "./layoutSplitPolicy";
@@ -34,27 +34,7 @@ function nextTabId(kind: TabKind): string {
 
 export async function buildTabItem(kind: TabKind, source?: Partial<PaneTabItem>): Promise<PaneTabItem> {
   const id = nextTabId(kind);
-  switch (kind) {
-    case "terminal":
-      return { id, kind, terminalId: await spawnTerminal() };
-    case "browser":
-      return { id, kind, url: source?.url ?? "https://www.google.com" };
-    case "code":
-    case "markdown":
-      return { id, kind, filePath: source?.filePath ?? null };
-    case "viewer":
-      return {
-        id,
-        kind,
-        filePath: source?.filePath ?? null,
-        absolutePath: source?.absolutePath,
-        viewerHint: source?.viewerHint,
-      };
-    case "rss":
-      return { id, kind, feedUrl: source?.feedUrl };
-    default:
-      return { id, kind };
-  }
+  return getPaneKind(kind).createItem(id, source);
 }
 
 // The pane (flexlayout tab node) id must never be derived from the
@@ -73,7 +53,7 @@ function tabGroupNodeJson(item: PaneTabItem) {
   return {
     type: "tab" as const,
     id: `tabgroup-${crypto.randomUUID()}`,
-    name: tabKindLabel(item.kind),
+    name: paneKindLabel(item.kind),
     component: "tabgroup" as const,
     config,
   };

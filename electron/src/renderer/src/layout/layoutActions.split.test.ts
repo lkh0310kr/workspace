@@ -20,6 +20,15 @@ vi.mock("./layoutDebugLog", () => ({
   summarizeLayoutModel: vi.fn(() => null),
 }));
 
+// Avoids pulling in the real pane-kind registry (and, transitively, every
+// pane content component — TerminalPane's xterm CSS import, CodeMirror,
+// etc.) just for layoutActions.ts's tabGroupNodeJson, which only needs a
+// display label.
+vi.mock("../panes/paneKindRegistry", () => ({
+  getPaneKind: (kind: string) => ({ kind, label: kind, icon: "", tabLabel: () => kind, createItem: () => ({ id: "x", kind }) }),
+  paneKindLabel: (kind: string) => kind,
+}));
+
 describe("moveTabToSplitPane", () => {
   beforeEach(() => {
     vi.resetModules();

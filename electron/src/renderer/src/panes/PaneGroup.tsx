@@ -14,11 +14,7 @@ import {
 } from "../layout/layoutActions";
 import type { TabDragPayload } from "../layout/tabDrag";
 import { PaneGroupConfig, PaneTabItem, TabKind } from "../layout/paneTypes";
-import { EditorContent } from "./EditorContent";
-import { BrowserContent } from "./BrowserContent";
-import { TerminalPane } from "./TerminalPane";
-import { FileViewerContent } from "./FileViewerContent";
-import { RssReaderContent } from "./RssReaderContent";
+import { getPaneKind, type PaneRenderContext } from "./paneKindRegistry";
 import { paneTabStoreKey } from "../store/paneTabKey";
 import { useLayoutRevision } from "../hooks/useLayoutRevision";
 import { useWorkspaceStore } from "../store/workspaceStore";
@@ -77,7 +73,7 @@ function getStoredTreeWidth(tabId: string): number {
 }
 
 function hasFileExplorerSidebar(kind: TabKind): boolean {
-  return kind === "code" || kind === "markdown" || kind === "viewer";
+  return getPaneKind(kind).hasFileExplorer === true;
 }
 
 export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }: Props) {
@@ -370,86 +366,39 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
           {tabs.map((item) => {
             const active = item.id === activeItem.id;
             const chipShown = paneChipContentShown(visible, active);
+            const ctx: PaneRenderContext = {
+              workspaceTabId,
+              nodeId,
+              rootPath,
+              model,
+              item,
+              active,
+              paneVisible: visible,
+              chipShown,
+              zoom,
+              dirty: dirtyByTabId[item.id] ?? false,
+              setDirty: (dirty) => setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty })),
+              treeOpen: treeOpenFor(item.id),
+              onToggleTree: () => setTreeOpenForTab(item.id, (v) => !v),
+              jumpToLine: pendingJumpByTabId[item.id],
+              onJumpConsumed: () =>
+                setPendingJumpByTabId((prev) => {
+                  if (!(item.id in prev)) return prev;
+                  const next = { ...prev };
+                  delete next[item.id];
+                  return next;
+                }),
+              updateItem: (patch) => updateItem(item.id, patch),
+              openOrSwitchToFile,
+              openNewTab: newTab,
+            };
             return (
               <div
                 key={item.id}
                 className="pane-group-content-item"
                 style={paneChipContentStyle(visible, active)}
               >
-                {item.kind === "terminal" && (
-                  <TerminalPane
-                    terminalId={item.terminalId ?? 0}
-                    visible={chipShown}
-                    active={active}
-                    zoom={zoom}
-                  />
-                )}
-                {item.kind === "browser" && (
-                  <BrowserContent
-                    tabId={workspaceTabId}
-                    paneNodeId={nodeId}
-                    item={item}
-                    paneVisible={visible}
-                    chipActive={active}
-                    onUpdate={(patch) => updateItem(item.id, patch)}
-                    onOpenNewTab={(url) =>
-                      addTabToGroup(model, nodeId, "browser", { url })
-                        .then((id) => {
-                          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
-                          onNotifyChanged();
-                        })
-                        .catch(console.error)
-                    }
-                  />
-                )}
-                {(item.kind === "code" || item.kind === "markdown") && (
-                  <EditorContent
-                    tabId={workspaceTabId}
-                    rootPath={rootPath}
-                    filePath={item.filePath ?? null}
-                    kind={item.kind}
-                    zoom={zoom}
-                    onOpenFile={(path) => openOrSwitchToFile(path, "markdown")}
-                    onAssignPath={(path) => updateItem(item.id, { filePath: path })}
-                    onDirtyChange={(dirty) => setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))}
-                    treeOpen={treeOpenFor(item.id)}
-                    onToggleTree={() => setTreeOpenForTab(item.id, (v) => !v)}
-                    jumpToLine={pendingJumpByTabId[item.id]}
-                    onJumpConsumed={() =>
-                      setPendingJumpByTabId((prev) => {
-                        if (!(item.id in prev)) return prev;
-                        const next = { ...prev };
-                        delete next[item.id];
-                        return next;
-                      })
-                    }
-                  />
-                )}
-                {item.kind === "viewer" && (
-                  <FileViewerContent
-                    tabId={workspaceTabId}
-                    filePath={item.filePath ?? null}
-                    absolutePath={item.absolutePath ?? null}
-                    viewerHint={item.viewerHint}
-                    onAssignAbsolutePath={(path) => updateItem(item.id, { absolutePath: path })}
-                    treeOpen={treeOpenFor(item.id)}
-                    onToggleTree={() => setTreeOpenForTab(item.id, (v) => !v)}
-                  />
-                )}
-                {item.kind === "rss" && (
-                  <RssReaderContent
-                    item={item}
-                    onUpdate={(patch) => updateItem(item.id, patch)}
-                    onOpenArticle={(link) =>
-                      addTabToGroup(model, nodeId, "browser", { url: link })
-                        .then((id) => {
-                          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
-                          onNotifyChanged();
-                        })
-                        .catch(console.error)
-                    }
-                  />
-                )}
+                {getPaneKind(item.kind).render(ctx)}
               </div>
             );
           })}

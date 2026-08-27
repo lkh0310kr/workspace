@@ -1,5 +1,6 @@
 import { Popover, type AnchorRect } from "./Popover";
-import { TabKind, TAB_KIND_OPTIONS, type PaneTabItem } from "../layout/paneTypes";
+import { TabKind, type PaneTabItem } from "../layout/paneTypes";
+import { paneKindPickerOptions } from "../panes/paneKindRegistry";
 
 interface Props {
   anchorRect: AnchorRect;
@@ -13,7 +14,7 @@ export function PanePicker({ anchorRect, onPick, onClose, current }: Props) {
   return (
     <Popover anchorRect={anchorRect} onClose={onClose} className="context-menu-popover">
       <div className="context-menu context-menu-inline">
-        {TAB_KIND_OPTIONS.map((kind) => (
+        {paneKindPickerOptions().map((kind) => (
           <button
             key={kind.label}
             type="button"
