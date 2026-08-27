@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { pathToFileURL } from "node:url";
+import { toLocalFileUrl } from "./localFileProtocol";
 
 // Direct port of crates/workspace-core/src/files.rs.
 
@@ -76,7 +76,7 @@ export function readFile(root: string, rel: string): string {
  * corrupted/malicious persisted layout.json must not be able to point this
  * at an arbitrary path outside the workspace root via `../` segments. */
 export function resolveFileUrl(root: string, rel: string): string {
-  return pathToFileURL(resolveUnderRoot(root, rel)).toString();
+  return toLocalFileUrl(resolveUnderRoot(root, rel));
 }
 
 export function writeFile(root: string, rel: string, content: string): void {
