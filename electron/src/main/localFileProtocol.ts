@@ -1,7 +1,6 @@
 import { protocol } from 'electron'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
 
 // Why: a page not loaded from file:// itself (Vite dev server's
 // http://localhost, and possibly the packaged build depending on how it's
@@ -13,8 +12,23 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 // Electron's own docs recommend for exactly this case.
 export const LOCAL_FILE_SCHEME = 'workspace-file'
 
+// Why a fixed dummy host instead of an empty authority
+// (workspace-file:///Users/...): file: is the one scheme the URL Standard
+// special-cases to allow an empty host before an absolute path. A custom
+// "standard" scheme doesn't get that carve-out — Chromium's parser instead
+// swallows the path's first segment as the hostname (and lowercases it:
+// "Users" became a literal "users" host, breaking the path and getting
+// rejected as a bad file:// host once translated back). Anchoring on a
+// fixed, never-ambiguous host keeps the entire absolute path in
+// `.pathname`, which the URL parser leaves case- and structure-intact.
+const LOCAL_FILE_HOST = 'local'
+
 export function toLocalFileUrl(absolutePath: string): string {
-  return pathToFileURL(absolutePath).toString().replace(/^file:/, `${LOCAL_FILE_SCHEME}:`)
+  const encodedPath = absolutePath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+  return `${LOCAL_FILE_SCHEME}://${LOCAL_FILE_HOST}${encodedPath}`
 }
 
 // Must run before app 'ready' — Chromium reads privileged-scheme
@@ -51,7 +65,11 @@ export function registerLocalFileProtocol(getAllowedRoots: () => string[]): void
   protocol.handle(LOCAL_FILE_SCHEME, async (request) => {
     let absolutePath: string
     try {
-      absolutePath = fileURLToPath(request.url.replace(/^workspace-file:/, 'file:'))
+      const url = new URL(request.url)
+      if (url.hostname !== LOCAL_FILE_HOST) {
+        return new Response('bad request', { status: 400 })
+      }
+      absolutePath = decodeURIComponent(url.pathname)
     } catch {
       return new Response('bad request', { status: 400 })
     }
