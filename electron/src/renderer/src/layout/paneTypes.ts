@@ -10,7 +10,7 @@
 // a list of heterogeneous PaneTabItems plus which one is active — instead
 // of a single component+config pair.
 
-export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer";
+export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer" | "rss";
 
 export interface PaneTabItem {
   id: string;
@@ -21,6 +21,9 @@ export interface PaneTabItem {
   filePath?: string | null;
   /** kind === "browser" */
   url?: string;
+  /** kind === "rss" — one feed per tab, entered once then persisted like
+   * browser's url. */
+  feedUrl?: string;
   /** kind === "browser" — page favicon URL from page-favicon-updated */
   favicon?: string;
   /** kind === "browser" — guest page zoom (1 = 100%) */
@@ -49,6 +52,7 @@ const TAB_KIND_META: Record<TabKind, { label: string; icon: string }> = {
   code: { label: "Code", icon: "{}" },
   markdown: { label: "Editor", icon: "{}" },
   viewer: { label: "Viewer", icon: "▣" },
+  rss: { label: "RSS", icon: "📰" },
 };
 
 // The "add new tab" / "change pane type" picker list (PanePicker.tsx) —
@@ -65,6 +69,7 @@ export const TAB_KIND_OPTIONS: { id: TabKind; label: string; icon: string }[] = 
   { id: "terminal", label: "Terminal", icon: "⌘" },
   { id: "browser", label: "Browser", icon: "🌐" },
   { id: "markdown", label: "Editor", icon: "{}" },
+  { id: "rss", label: "RSS", icon: "📰" },
 ];
 
 export function tabKindLabel(kind: TabKind): string {

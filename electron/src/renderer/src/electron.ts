@@ -206,6 +206,22 @@ export async function getMediaUrl(tabId: number, path: string): Promise<string |
   return window.api.media.getUrl(tabId, path);
 }
 
+export interface FeedItem {
+  title: string;
+  link: string;
+  pubDate: string | null;
+  contentSnippet: string | null;
+}
+
+export interface FeedResult {
+  title: string;
+  items: FeedItem[];
+}
+
+export async function fetchFeed(url: string): Promise<FeedResult> {
+  return window.api.rss.fetchFeed(url);
+}
+
 // Tauri's onXxx helpers return a Promise<UnlistenFn> (listen() is async).
 // Kept as sync-returning here (window.api's ipcRenderer.on wiring is
 // synchronous), but callers that do `unlisten.then((fn) => fn())` still

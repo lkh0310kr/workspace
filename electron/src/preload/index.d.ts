@@ -36,6 +36,18 @@ export interface SearchFileResult {
   matches: SearchMatch[]
 }
 
+export interface FeedItem {
+  title: string
+  link: string
+  pubDate: string | null
+  contentSnippet: string | null
+}
+
+export interface FeedResult {
+  title: string
+  items: FeedItem[]
+}
+
 export interface BrowserDownloadEventPayload {
   id: string
   hostWebContentsId: number
@@ -138,6 +150,9 @@ export interface WorkspaceApi {
   }
   media: {
     getUrl: (tabId: number, rel: string) => Promise<string | null>
+  }
+  rss: {
+    fetchFeed: (url: string) => Promise<FeedResult>
   }
 }
 

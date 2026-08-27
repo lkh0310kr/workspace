@@ -15,6 +15,16 @@ describe("layoutSalvage", () => {
     expect(salvagePaneTabItem({ id: "t1", kind: "terminal" })).toBeNull();
   });
 
+  it("salvagePaneTabItem round-trips an rss tab's feedUrl", () => {
+    expect(
+      salvagePaneTabItem({ id: "r1", kind: "rss", feedUrl: "https://example.com/feed.xml" }),
+    ).toEqual({
+      id: "r1",
+      kind: "rss",
+      feedUrl: "https://example.com/feed.xml",
+    });
+  });
+
   it("salvagePaneGroupConfig picks first tab when activeTabId is invalid", () => {
     const config = salvagePaneGroupConfig({
       tabs: [

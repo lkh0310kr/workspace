@@ -176,6 +176,9 @@ const api = {
   media: {
     getUrl: (tabId: number, rel: string): Promise<string | null> =>
       ipcRenderer.invoke('media:get-url', tabId, rel)
+  },
+  rss: {
+    fetchFeed: (url: string): Promise<unknown> => ipcRenderer.invoke('rss:fetch-feed', url)
   }
 }
 

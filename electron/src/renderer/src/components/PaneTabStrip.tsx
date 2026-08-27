@@ -54,6 +54,14 @@ function tabLabel(item: PaneTabItem, dirty: boolean): string {
       case "viewer":
         if (!item.filePath) return "New tab";
         return item.filePath.split("/").pop() || item.filePath;
+      case "rss":
+        if (item.title?.trim()) return item.title.trim();
+        if (!item.feedUrl) return "RSS";
+        try {
+          return new URL(item.feedUrl).hostname;
+        } catch {
+          return item.feedUrl;
+        }
       default:
         return item.kind;
     }

@@ -43,6 +43,8 @@ export async function buildTabItem(kind: TabKind, source?: Partial<PaneTabItem>)
     case "markdown":
     case "viewer":
       return { id, kind, filePath: source?.filePath ?? null };
+    case "rss":
+      return { id, kind, feedUrl: source?.feedUrl };
     default:
       return { id, kind };
   }

@@ -18,6 +18,7 @@ import { EditorContent } from "./EditorContent";
 import { BrowserContent } from "./BrowserContent";
 import { TerminalPane } from "./TerminalPane";
 import { FileViewerContent } from "./FileViewerContent";
+import { RssReaderContent } from "./RssReaderContent";
 import { paneTabStoreKey } from "../store/paneTabKey";
 import { useLayoutRevision } from "../hooks/useLayoutRevision";
 import { useWorkspaceStore } from "../store/workspaceStore";
@@ -430,6 +431,20 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                     filePath={item.filePath ?? null}
                     treeOpen={treeOpenFor(item.id)}
                     onToggleTree={() => setTreeOpenForTab(item.id, (v) => !v)}
+                  />
+                )}
+                {item.kind === "rss" && (
+                  <RssReaderContent
+                    item={item}
+                    onUpdate={(patch) => updateItem(item.id, patch)}
+                    onOpenArticle={(link) =>
+                      addTabToGroup(model, nodeId, "browser", { url: link })
+                        .then((id) => {
+                          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
+                          onNotifyChanged();
+                        })
+                        .catch(console.error)
+                    }
                   />
                 )}
               </div>

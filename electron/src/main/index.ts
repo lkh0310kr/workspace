@@ -7,6 +7,7 @@ import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
 import type { SearchOptions } from './search'
 import { registerMediaProtocol } from './mediaProtocol'
+import { fetchFeed } from './rss'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
@@ -488,6 +489,10 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('fs:list-all-files', (_event, tabId: number) => workspace!.listAllFiles(tabId))
   ipcMain.handle('media:get-url', (_event, tabId: number, rel: string) => workspace!.mediaUrl(tabId, rel))
+  // Why unconfined (unlike every fs:*/media:* handler above): a feed URL
+  // is an arbitrary external HTTP resource by design, not a
+  // workspace-relative path — there's nothing to resolveUnderRoot against.
+  ipcMain.handle('rss:fetch-feed', (_event, url: string) => fetchFeed(url))
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

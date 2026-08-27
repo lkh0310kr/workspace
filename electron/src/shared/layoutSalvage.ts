@@ -2,7 +2,7 @@ import { z } from "zod";
 import { defaultLayoutJson } from "./layoutDefaults";
 import { PANE_GROUP_SCHEMA_VERSION } from "./layoutSchema";
 
-export const TAB_KINDS = ["terminal", "browser", "code", "markdown", "viewer"] as const;
+export const TAB_KINDS = ["terminal", "browser", "code", "markdown", "viewer", "rss"] as const;
 export type TabKind = (typeof TAB_KINDS)[number];
 
 const TabKindSchema = z.enum(TAB_KINDS);
@@ -14,6 +14,7 @@ const PaneTabItemSchema = z
     terminalId: z.number().int().nonnegative().optional(),
     filePath: z.string().nullable().optional(),
     url: z.string().optional(),
+    feedUrl: z.string().optional(),
     favicon: z.string().optional(),
     zoomFactor: z.number().positive().finite().optional(),
     title: z.string().optional(),
