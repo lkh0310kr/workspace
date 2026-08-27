@@ -8,7 +8,7 @@ import { classifyFile } from "./TreeView";
 // Popover.tsx (nothing to anchor to; it's summoned from anywhere).
 interface Props {
   tabId: number;
-  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer") => void;
+  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer" | "vector") => void;
   onClose: () => void;
 }
 

@@ -240,7 +240,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   );
 
   const openOrSwitchToFile = useCallback(
-    (path: string, kind: "code" | "markdown" | "viewer", jumpToLine?: number) => {
+    (path: string, kind: "code" | "markdown" | "viewer" | "vector", jumpToLine?: number) => {
       const existing = tabs.find((t) => t.filePath === path);
       if (existing) {
         selectTab(existing.id);

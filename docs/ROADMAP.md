@@ -51,7 +51,7 @@ See [docs/architecture/README.md](./architecture/README.md).
 Vector Editor first, to real completion, before anything else in this
 family — see [architecture/08-vector-editor.md](./architecture/08-vector-editor.md).
 
-- [ ] M1 — scene graph, SVG render, selection/transform (rect/ellipse)
+- [x] M1 — scene graph, SVG render, selection/transform (rect/ellipse), save/load JSON — implemented, pending live GUI QA (see TODO.md)
 - [ ] M2 — pen tool, line tool
 - [ ] M3 — stroke/fill UI, group/ungroup
 - [ ] M4 — undo/redo, export SVG/PNG, polish

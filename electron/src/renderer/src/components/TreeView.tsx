@@ -19,7 +19,7 @@ interface Props {
   rootPath: string;
   selectedPath?: string | null;
   paneVisible?: boolean;
-  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer") => void;
+  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer" | "vector") => void;
 }
 
 interface DirState {
@@ -62,8 +62,9 @@ const VIEWER_EXTENSIONS = [
   ".flac",
 ];
 
-export function classifyFile(name: string): "code" | "markdown" | "viewer" {
+export function classifyFile(name: string): "code" | "markdown" | "viewer" | "vector" {
   const lower = name.toLowerCase();
+  if (lower.endsWith(".vec.json")) return "vector";
   if (lower.endsWith(".md") || lower.endsWith(".markdown")) return "markdown";
   if (VIEWER_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "viewer";
   return "code";

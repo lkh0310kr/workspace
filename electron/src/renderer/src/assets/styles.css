@@ -1165,6 +1165,153 @@ iframe.browser-content-slot {
   font-size: 12px;
 }
 
+/* Vector Editor pane (VectorEditorContent.tsx) — see
+   docs/architecture/08-vector-editor.md. M1: rect/ellipse, single
+   selection, save/load. */
+.vector-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+}
+
+.vector-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--chrome-h);
+  min-height: var(--chrome-h);
+  padding: 0 6px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.vector-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.vector-tool:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.vector-tool.active {
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+.vector-toolbar-spacer {
+  flex: 1;
+}
+
+.vector-save-status {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.vector-save-status.unsaved {
+  color: var(--text-muted);
+}
+
+.vector-save {
+  height: 24px;
+  padding: 0 10px;
+  margin-right: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.vector-save:hover {
+  background: var(--bg-hover);
+}
+
+.vector-canvas-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 24px;
+  background: var(--bg-base);
+}
+
+.vector-canvas {
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 1px var(--border);
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.vector-canvas-drawing {
+  cursor: crosshair;
+}
+
+.vector-resize-handle {
+  fill: var(--bg-base);
+  stroke: var(--accent);
+  stroke-width: 1;
+  cursor: pointer;
+}
+
+.vector-resize-handle-nw,
+.vector-resize-handle-se {
+  cursor: nwse-resize;
+}
+
+.vector-resize-handle-ne,
+.vector-resize-handle-sw {
+  cursor: nesw-resize;
+}
+
+.vector-resize-handle-n,
+.vector-resize-handle-s {
+  cursor: ns-resize;
+}
+
+.vector-resize-handle-e,
+.vector-resize-handle-w {
+  cursor: ew-resize;
+}
+
+.vector-rotate-handle {
+  fill: var(--bg-base);
+  stroke: var(--accent);
+  stroke-width: 1;
+  cursor: grab;
+}
+
+.vector-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
 /* Browser tab content's own chrome (nav+address row) — previously this was
    PaneFrame's job for the whole pane (contentSlot mode); now it's scoped
    inside BrowserContent.tsx since a pane can mix browser tabs with other
