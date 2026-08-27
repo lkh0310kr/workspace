@@ -67,8 +67,8 @@ function getStoredTreeWidth(tabId: string): number {
   return Number.isFinite(stored) && stored > 0 ? stored : 200;
 }
 
-function isEditorKind(kind: TabKind): boolean {
-  return kind === "code" || kind === "markdown";
+function hasFileExplorerSidebar(kind: TabKind): boolean {
+  return kind === "code" || kind === "markdown" || kind === "viewer";
 }
 
 export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }: Props) {
@@ -268,7 +268,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   };
 
   if (!activeItem) return null;
-  const showExplorer = treeOpenFor(activeItem.id) && isEditorKind(activeItem.kind);
+  const showExplorer = treeOpenFor(activeItem.id) && hasFileExplorerSidebar(activeItem.kind);
 
   return (
     <div className="pane-group-host" data-pane-node-id={nodeId}>
@@ -352,7 +352,12 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                   />
                 )}
                 {item.kind === "viewer" && (
-                  <FileViewerContent tabId={workspaceTabId} filePath={item.filePath ?? null} />
+                  <FileViewerContent
+                    tabId={workspaceTabId}
+                    filePath={item.filePath ?? null}
+                    treeOpen={treeOpenFor(item.id)}
+                    onToggleTree={() => setTreeOpenForTab(item.id, (v) => !v)}
+                  />
                 )}
               </div>
             );
