@@ -2337,6 +2337,71 @@ iframe.browser-content-slot {
   pointer-events: none;
 }
 
+/* Quick Open (Cmd+P, QuickOpen.tsx) — centered, not anchor-rect-based like
+   .popover below (nothing to anchor to). */
+.quick-open-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100002;
+  display: flex;
+  justify-content: center;
+  padding-top: 15vh;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.quick-open-modal {
+  width: 560px;
+  max-width: calc(100% - 32px);
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.quick-open-input {
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.quick-open-results {
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.quick-open-empty {
+  padding: 10px 14px;
+  color: var(--text-faint);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
+.quick-open-row {
+  padding: 5px 14px;
+  cursor: pointer;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quick-open-row.active {
+  background: var(--bg-active);
+}
+
 .popover {
   position: fixed;
   z-index: 100001;

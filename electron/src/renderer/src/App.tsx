@@ -5,6 +5,7 @@ import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
 import { InteractionDebugPanel } from "./components/InteractionDebugPanel";
 import { LayoutTabDropOverlay } from "./components/LayoutTabDropOverlay";
+import { QuickOpen } from "./components/QuickOpen";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { WorkspaceLayoutHost } from "./components/WorkspaceLayoutHost";
 import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
@@ -19,9 +20,43 @@ import { useTabChipWindowDrop } from "./hooks/useTabChipWindowDrop";
 import { useVisibleWorkspaceTab } from "./hooks/useVisibleWorkspaceTab";
 import { applyThemePreference, setStoredThemePreference } from "./theme";
 import { useWorkspaceStore } from "./store/workspaceStore";
-import { useEffect, useCallback } from "react";
+import { addTabToGroup } from "./layout/layoutActions";
+import type { PaneGroupConfig } from "./layout/paneTypes";
+import type { Model, TabNode } from "flexlayout-react";
+import { useEffect, useCallback, useState } from "react";
 import "flexlayout-react/style/combined.css";
 import "./assets/styles.css";
+
+// Cmd+P's "open in the active pane" — mirrors PaneGroup.tsx's own
+// openOrSwitchToFile, but called from outside any one PaneGroup instance
+// (Quick Open isn't scoped to a pane), so it looks up the active tabset's
+// selected tab node the same way useAppShortcuts.ts's zoomActivePane does.
+// Only pushes the store's activePaneTabByKey for an existing-tab match —
+// the target PaneGroup's own effect (watching localActiveId) reactively
+// syncs that into the flexlayout model and persists it, same as a normal
+// in-pane tab click; no need to duplicate that here.
+async function openFileInActivePane(
+  model: Model,
+  workspaceTabId: number,
+  path: string,
+  kind: "code" | "markdown" | "viewer",
+  bumpLayout: (tabId: number) => void,
+): Promise<void> {
+  const tabset = model.getActiveTabset();
+  const tabNode = tabset?.getSelectedNode();
+  if (!tabNode || tabNode.getType() !== "tab") return;
+  const nodeId = tabNode.getId();
+  const config = ((tabNode as TabNode).getConfig() ?? { tabs: [], activeTabId: "" }) as PaneGroupConfig;
+  const existing = config.tabs.find((t) => t.filePath === path);
+  if (existing) {
+    useWorkspaceStore.getState().setActivePaneTab(workspaceTabId, nodeId, existing.id);
+    return;
+  }
+  const id = await addTabToGroup(model, nodeId, kind, { filePath: path });
+  if (!id) return;
+  useWorkspaceStore.getState().setActivePaneTab(workspaceTabId, nodeId, id);
+  bumpLayout(workspaceTabId);
+}
 
 export default function App() {
   const workspace = useWorkspace();
@@ -53,6 +88,7 @@ export default function App() {
   const activeTabId = workspace?.active_tab_id ?? 0;
   const visibleWorkspaceTabId = useVisibleWorkspaceTab();
   const activeModel = storeGetModel(activeTabId);
+  const [quickOpenOpen, setQuickOpenOpen] = useState(false);
 
   useAppBootstrap();
   useSplitterDragOverlay();
@@ -72,6 +108,17 @@ export default function App() {
   });
 
   useEffect(() => applyThemePreference(themePreference), [themePreference]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey) return;
+      if (e.key.toLowerCase() !== "p") return;
+      e.preventDefault();
+      setQuickOpenOpen(true);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const handleThemeChange = useCallback(
     (preference: typeof themePreference) => {
@@ -147,6 +194,16 @@ export default function App() {
           />
         )}
       </div>
+      {quickOpenOpen && (
+        <QuickOpen
+          tabId={visibleWorkspaceTabId}
+          onOpenFile={(path, kind) => {
+            const model = storeGetModel(visibleWorkspaceTabId);
+            if (model) void openFileInActivePane(model, visibleWorkspaceTabId, path, kind, bumpLayout);
+          }}
+          onClose={() => setQuickOpenOpen(false)}
+        />
+      )}
       <ClaudeUsageStatusBar />
       <LayoutTabDropOverlay />
       <ErrorLogPanel />
