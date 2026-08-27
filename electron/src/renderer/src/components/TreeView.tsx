@@ -43,7 +43,7 @@ interface MenuState {
 
 const VIEWER_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".pdf"];
 
-function classifyFile(name: string): "code" | "markdown" | "viewer" {
+export function classifyFile(name: string): "code" | "markdown" | "viewer" {
   const lower = name.toLowerCase();
   if (lower.endsWith(".md") || lower.endsWith(".markdown")) return "markdown";
   if (VIEWER_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "viewer";

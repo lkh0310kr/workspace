@@ -3,6 +3,7 @@ import type { TabNode } from "flexlayout-react";
 import { PaneFrame } from "../components/PaneFrame";
 import { PaneTabStrip } from "../components/PaneTabStrip";
 import { TreeView } from "../components/TreeView";
+import { SearchPanel } from "../components/SearchPanel";
 import {
   addTabToGroup,
   changeTabKindInGroup,
@@ -56,6 +57,13 @@ const TREE_MAX_WIDTH = 480;
 // panes/splits.
 const TREE_OPEN_KEY = "workspace.editorTreeOpen";
 const TREE_WIDTH_KEY = "workspace.editorTreeWidth";
+const SIDEBAR_MODE_KEY = "workspace.sidebarMode";
+
+type SidebarMode = "explorer" | "search";
+
+function getStoredSidebarMode(tabId: string): SidebarMode {
+  return localStorage.getItem(`${SIDEBAR_MODE_KEY}.${tabId}`) === "search" ? "search" : "explorer";
+}
 
 function getStoredTreeOpen(tabId: string): boolean {
   const stored = localStorage.getItem(`${TREE_OPEN_KEY}.${tabId}`);
@@ -106,7 +114,14 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   // entry just because one tab's state changed.
   const [treeOpenOverrides, setTreeOpenOverrides] = useState<Record<string, boolean>>({});
   const [treeWidthOverrides, setTreeWidthOverrides] = useState<Record<string, number>>({});
+  const [sidebarModeOverrides, setSidebarModeOverrides] = useState<Record<string, SidebarMode>>({});
+  // Ephemeral (never persisted) jump target for a just-opened or
+  // already-open editor tab, set by a Find-in-Files result click — cleared
+  // once EditorContent reports it consumed. Deliberately local state, not
+  // written into PaneTabItem/flexlayout config, which gets saved to disk.
+  const [pendingJumpByTabId, setPendingJumpByTabId] = useState<Record<string, number>>({});
   const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const paneHostRef = useRef<HTMLDivElement>(null);
 
   const treeOpenFor = useCallback(
     (tabId: string): boolean => (tabId in treeOpenOverrides ? treeOpenOverrides[tabId] : getStoredTreeOpen(tabId)),
@@ -135,6 +150,17 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
       localStorage.setItem(`${TREE_WIDTH_KEY}.${tabId}`, String(value));
       return { ...prev, [tabId]: value };
     });
+  }, []);
+
+  const sidebarModeFor = useCallback(
+    (tabId: string): SidebarMode =>
+      tabId in sidebarModeOverrides ? sidebarModeOverrides[tabId] : getStoredSidebarMode(tabId),
+    [sidebarModeOverrides],
+  );
+
+  const setSidebarModeForTab = useCallback((tabId: string, mode: SidebarMode) => {
+    localStorage.setItem(`${SIDEBAR_MODE_KEY}.${tabId}`, mode);
+    setSidebarModeOverrides((prev) => ({ ...prev, [tabId]: mode }));
   }, []);
 
   // If our local pointer no longer refers to an existing tab (the model's
@@ -217,15 +243,22 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   );
 
   const openOrSwitchToFile = useCallback(
-    (path: string, kind: "code" | "markdown" | "viewer") => {
+    (path: string, kind: "code" | "markdown" | "viewer", jumpToLine?: number) => {
       const existing = tabs.find((t) => t.filePath === path);
       if (existing) {
         selectTab(existing.id);
+        if (jumpToLine != null) {
+          setPendingJumpByTabId((prev) => ({ ...prev, [existing.id]: jumpToLine }));
+        }
         return;
       }
       addTabToGroup(model, nodeId, kind, { filePath: path })
         .then((id) => {
-          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
+          if (!id) return;
+          setActivePaneTab(workspaceTabId, nodeId, id);
+          if (jumpToLine != null) {
+            setPendingJumpByTabId((prev) => ({ ...prev, [id]: jumpToLine }));
+          }
           onNotifyChanged();
         })
         .catch(console.error);
@@ -267,11 +300,34 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
     window.addEventListener("mouseup", onMouseUp);
   };
 
+  // Cmd+Shift+F opens the Search sidebar — scoped to this pane (not a
+  // global listener in useAppShortcuts.ts) since Find-in-Files needs to
+  // know *which* pane's sidebar to switch when multiple panes are visible
+  // in the same workspace tab (splits). Mirrors EditorContent.tsx's own
+  // per-instance Cmd+S handler rather than threading an "active pane"
+  // concept through App.tsx.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return;
+      if (e.key.toLowerCase() !== "f") return;
+      if (!visible || !activeItem) return;
+      if (!hasFileExplorerSidebar(activeItem.kind)) return;
+      if (!paneHostRef.current?.contains(document.activeElement)) return;
+      e.preventDefault();
+      setSidebarModeForTab(activeItem.id, "search");
+      setTreeOpenForTab(activeItem.id, true);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [visible, activeItem, setSidebarModeForTab, setTreeOpenForTab]);
+
   if (!activeItem) return null;
-  const showExplorer = treeOpenFor(activeItem.id) && hasFileExplorerSidebar(activeItem.kind);
+  const showExplorer =
+    hasFileExplorerSidebar(activeItem.kind) &&
+    (treeOpenFor(activeItem.id) || sidebarModeFor(activeItem.id) === "search");
 
   return (
-    <div className="pane-group-host" data-pane-node-id={nodeId}>
+    <div className="pane-group-host" data-pane-node-id={nodeId} ref={paneHostRef}>
     <PaneFrame
       header={
         <PaneTabStrip
@@ -291,13 +347,21 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
       <div className="pane-group-body">
         {showExplorer && (
           <div className="obsidian-explorer" style={{ width: treeWidthFor(activeItem.id) }}>
-            <TreeView
-              tabId={workspaceTabId}
-              rootPath={rootPath}
-              selectedPath={activeItem.filePath ?? null}
-              paneVisible={visible}
-              onOpenFile={openOrSwitchToFile}
-            />
+            {sidebarModeFor(activeItem.id) === "search" ? (
+              <SearchPanel
+                tabId={workspaceTabId}
+                onJumpToResult={(path, kind, line) => openOrSwitchToFile(path, kind, line)}
+                onClose={() => setSidebarModeForTab(activeItem.id, "explorer")}
+              />
+            ) : (
+              <TreeView
+                tabId={workspaceTabId}
+                rootPath={rootPath}
+                selectedPath={activeItem.filePath ?? null}
+                paneVisible={visible}
+                onOpenFile={openOrSwitchToFile}
+              />
+            )}
           </div>
         )}
         {showExplorer && <div className="obsidian-explorer-resizer" onMouseDown={onTreeResizeMouseDown} />}
@@ -349,6 +413,15 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                     onDirtyChange={(dirty) => setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))}
                     treeOpen={treeOpenFor(item.id)}
                     onToggleTree={() => setTreeOpenForTab(item.id, (v) => !v)}
+                    jumpToLine={pendingJumpByTabId[item.id]}
+                    onJumpConsumed={() =>
+                      setPendingJumpByTabId((prev) => {
+                        if (!(item.id in prev)) return prev;
+                        const next = { ...prev };
+                        delete next[item.id];
+                        return next;
+                      })
+                    }
                   />
                 )}
                 {item.kind === "viewer" && (

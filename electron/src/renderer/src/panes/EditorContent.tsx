@@ -68,6 +68,11 @@ interface Props {
   onDirtyChange: (dirty: boolean) => void;
   treeOpen: boolean;
   onToggleTree: () => void;
+  /** 1-based line to scroll to and select, e.g. from a Find-in-Files result
+   * click — ephemeral (not persisted layout state), consumed once via
+   * onJumpConsumed so PaneGroup can clear it. */
+  jumpToLine?: number | null;
+  onJumpConsumed?: () => void;
 }
 
 async function findAvailableUntitledName(tabId: number): Promise<string> {
@@ -134,6 +139,19 @@ function toggleMarkdownWrap(marker: string) {
   };
 }
 
+function jumpToPos(view: EditorView, pos: number): void {
+  view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+  view.focus();
+}
+
+/** 1-based line number to a doc offset, clamped to the doc's actual line
+ * count — a Find-in-Files result can point past the end of a file that
+ * changed on disk since the search ran. */
+function lineStartPos(view: EditorView, line: number): number {
+  const clamped = Math.min(Math.max(1, line), view.state.doc.lines);
+  return view.state.doc.line(clamped).from;
+}
+
 function computeOutline(view: EditorView): OutlineItem[] {
   const items: OutlineItem[] = [];
   syntaxTree(view.state).iterate({
@@ -161,12 +179,17 @@ export function EditorContent({
   onDirtyChange,
   treeOpen,
   onToggleTree,
+  jumpToLine,
+  onJumpConsumed,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const pathRef = useRef<string | null>(filePath);
   pathRef.current = filePath;
   const lastLoadedContentRef = useRef<string | null>(null);
+  const contentLoadedRef = useRef(false);
+  const onJumpConsumedRef = useRef(onJumpConsumed);
+  onJumpConsumedRef.current = onJumpConsumed;
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
@@ -429,12 +452,15 @@ export function EditorContent({
 
   useEffect(() => {
     if (!viewRef.current) return;
+    contentLoadedRef.current = false;
     if (filePath) {
       readFile(tabId, filePath)
         .then((content) => {
+          const view = viewRef.current;
+          if (!view) return;
           lastLoadedContentRef.current = content;
-          viewRef.current?.dispatch({
-            changes: { from: 0, to: viewRef.current.state.doc.length, insert: content },
+          view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: content },
             annotations: Transaction.addToHistory.of(false),
           });
           if (autoSaveTimerRef.current) {
@@ -442,10 +468,30 @@ export function EditorContent({
             autoSaveTimerRef.current = null;
           }
           setDirtyState(false);
+          contentLoadedRef.current = true;
+          if (jumpToLine != null) {
+            jumpToPos(view, lineStartPos(view, jumpToLine));
+            onJumpConsumedRef.current?.();
+          }
         })
         .catch(console.error);
     }
+    // jumpToLine deliberately excluded — this effect only fires on
+    // tabId/filePath changes (a fresh load); jumping in an
+    // already-loaded file is the separate effect below, keyed on
+    // jumpToLine, which reads contentLoadedRef to avoid double-applying
+    // the initial jump this effect just handled.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabId, filePath, setDirtyState]);
+
+  useEffect(() => {
+    if (jumpToLine == null) return;
+    if (!contentLoadedRef.current) return;
+    const view = viewRef.current;
+    if (!view) return;
+    jumpToPos(view, lineStartPos(view, jumpToLine));
+    onJumpConsumedRef.current?.();
+  }, [jumpToLine]);
 
   useEffect(() => {
     if (!filePath) return;
@@ -491,8 +537,7 @@ export function EditorContent({
   const jumpToHeading = (pos: number) => {
     const view = viewRef.current;
     if (!view) return;
-    view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
-    view.focus();
+    jumpToPos(view, pos);
   };
 
   return (

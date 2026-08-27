@@ -2092,6 +2092,211 @@ iframe.browser-content-slot {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
+/* Find/Replace in Files (SearchPanel.tsx) — reuses .obsidian-explorer's
+   sidebar slot in place of TreeView, same flat/no-shadow language as
+   .tree-view* above. */
+.search-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.search-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-panel-title {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.search-panel-query-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.search-panel-input {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.search-panel-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.search-panel-toggle-replace {
+  flex-shrink: 0;
+  width: 20px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.search-panel-toggle-replace:hover {
+  color: var(--text);
+}
+
+.search-panel-replace-all {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.search-panel-replace-all:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.search-panel-replace-all:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.search-panel-toggles {
+  display: flex;
+  gap: 2px;
+  padding: 0 8px 4px;
+}
+
+.search-panel-toggle {
+  width: 22px;
+  height: 20px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.search-panel-toggle:hover {
+  background: var(--bg-hover);
+}
+
+.search-panel-toggle.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.search-panel-status {
+  padding: 2px 8px 6px;
+  color: var(--text-faint);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  min-height: 14px;
+}
+
+.search-panel-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.search-panel-file-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+
+.search-panel-file-header:hover {
+  background: var(--bg-hover);
+}
+
+.search-panel-file-caret {
+  width: 10px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.search-panel-file-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-panel-file-count {
+  flex-shrink: 0;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.search-panel-match {
+  display: flex;
+  gap: 8px;
+  padding: 2px 8px 2px 22px;
+  cursor: pointer;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-panel-match:hover {
+  background: var(--bg-hover);
+}
+
+.search-panel-match-line {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.search-panel-match-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-panel-match-text mark {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--text);
+  border-radius: 2px;
+}
+
 .tree-view-item.drag-over {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
   box-shadow: inset 0 0 0 1px var(--accent);
