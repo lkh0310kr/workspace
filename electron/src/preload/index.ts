@@ -172,6 +172,10 @@ const api = {
       return () => ipcRenderer.removeListener('fs:search-done', listener)
     },
     listAllFiles: (tabId: number): Promise<string[]> => ipcRenderer.invoke('fs:list-all-files', tabId)
+  },
+  media: {
+    getUrl: (tabId: number, rel: string): Promise<string | null> =>
+      ipcRenderer.invoke('media:get-url', tabId, rel)
   }
 }
 

@@ -6,6 +6,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
 import type { SearchOptions } from './search'
+import { registerMediaProtocol } from './mediaProtocol'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
@@ -354,6 +355,7 @@ app.whenReady().then(() => {
   const defaultRoot = config.rootPath ?? process.cwd()
   const snapshot = loadWorkspaceSnapshot()
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
+  registerMediaProtocol(() => workspace!.allTabRootPaths())
   // Save immediately (mirrors src/lib.rs) — first launch would otherwise
   // never persist anything until the user creates/closes/renames a tab,
   // meaning a never-touched default tab's terminal id would be lost on the very next relaunch.
@@ -485,6 +487,7 @@ app.whenReady().then(() => {
     activeSearches.delete(requestId)
   })
   ipcMain.handle('fs:list-all-files', (_event, tabId: number) => workspace!.listAllFiles(tabId))
+  ipcMain.handle('media:get-url', (_event, tabId: number, rel: string) => workspace!.mediaUrl(tabId, rel))
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

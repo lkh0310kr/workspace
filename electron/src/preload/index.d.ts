@@ -136,6 +136,9 @@ export interface WorkspaceApi {
     onSearchDone: (cb: (requestId: string, error?: string) => void) => () => void
     listAllFiles: (tabId: number) => Promise<string[]>
   }
+  media: {
+    getUrl: (tabId: number, rel: string) => Promise<string | null>
+  }
 }
 
 declare global {

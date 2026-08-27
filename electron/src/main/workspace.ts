@@ -1,4 +1,5 @@
 import * as fs from "node:fs";
+import * as path from "node:path";
 import { Pty } from "./pty";
 import { PtySession } from "./ptySession";
 import { defaultLayout, extractTerminalIds } from "./layout";
@@ -6,6 +7,7 @@ import { salvageLayoutJson } from "../shared/layoutSalvage";
 import * as files from "./files";
 import type { DirEntry } from "./files";
 import * as search from "./search";
+import { MEDIA_MIME_TYPES, toMediaUrl } from "./mediaProtocol";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -232,6 +234,20 @@ export class Workspace {
   }
   listAllFiles(tabId: number): Promise<string[]> {
     return search.listAllFiles(this.tabRoot(tabId));
+  }
+
+  /** Every currently-open tab's root — the media protocol handler confines
+   * requests against all of them, not just the tab active when playback
+   * started (a media file's owning tab may not be the visible one). */
+  allTabRootPaths(): string[] {
+    return [this.defaultRootPath, ...this.tabs.map((t) => t.rootPath)];
+  }
+
+  mediaUrl(tabId: number, rel: string): string | null {
+    const ext = path.extname(rel).toLowerCase();
+    if (!(ext in MEDIA_MIME_TYPES)) return null;
+    const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel);
+    return toMediaUrl(resolved);
   }
 
   disposeAllTerminals(): void {

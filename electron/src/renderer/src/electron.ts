@@ -202,6 +202,10 @@ export async function listAllFiles(tabId: number): Promise<string[]> {
   return window.api.fs.listAllFiles(tabId);
 }
 
+export async function getMediaUrl(tabId: number, path: string): Promise<string | null> {
+  return window.api.media.getUrl(tabId, path);
+}
+
 // Tauri's onXxx helpers return a Promise<UnlistenFn> (listen() is async).
 // Kept as sync-returning here (window.api's ipcRenderer.on wiring is
 // synchronous), but callers that do `unlisten.then((fn) => fn())` still

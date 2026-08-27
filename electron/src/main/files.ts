@@ -21,7 +21,7 @@ export interface DirEntry {
  * checked against an existing ancestor instead of the full leaf), then
  * re-append the not-yet-existing remainder verbatim.
  */
-function resolveUnderRoot(root: string, rel: string): string {
+export function resolveUnderRoot(root: string, rel: string): string {
   const realRoot = fs.existsSync(root) ? fs.realpathSync(root) : root;
   if (!rel) return realRoot;
   const joined = path.join(realRoot, rel);
