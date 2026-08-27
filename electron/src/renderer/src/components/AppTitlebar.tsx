@@ -1,51 +1,30 @@
-import { useRef, type RefObject } from "react";
-import type { TabInfo } from "../electron";
-import { SidebarQuickSwitchPopover } from "./SidebarQuickSwitchPopover";
+import type { RefObject } from "react";
 
 type Props = {
-  railOpen: boolean;
-  onToggleRail: () => void;
+  workspaceRailOpen: boolean;
+  workspaceRailButtonRef: RefObject<HTMLButtonElement | null>;
+  onToggleWorkspaceRail: (anchor: DOMRect) => void;
   appSettingsOpen: boolean;
   appSettingsButtonRef: RefObject<HTMLButtonElement | null>;
   onToggleAppSettings: (anchor: DOMRect) => void;
-  tabs: TabInfo[];
-  activeTabId: number;
-  sidebarQuickSwitchAnchor: DOMRect | null;
-  onCloseQuickSwitch: () => void;
-  onSidebarHoverEnter: (anchor: DOMRect) => void;
-  onSidebarHoverLeave: () => void;
-  clearSidebarHoverTimer: () => void;
 };
 
 export function AppTitlebar({
-  railOpen,
-  onToggleRail,
+  workspaceRailOpen,
+  workspaceRailButtonRef,
+  onToggleWorkspaceRail,
   appSettingsOpen,
   appSettingsButtonRef,
   onToggleAppSettings,
-  tabs,
-  activeTabId,
-  sidebarQuickSwitchAnchor,
-  onCloseQuickSwitch,
-  onSidebarHoverEnter,
-  onSidebarHoverLeave,
-  clearSidebarHoverTimer,
 }: Props) {
-  const sidebarToggleRef = useRef<HTMLButtonElement>(null);
-
   return (
     <div className="titlebar">
       <button
-        ref={sidebarToggleRef}
+        ref={workspaceRailButtonRef}
         type="button"
-        className={`titlebar-sidebar-toggle${railOpen ? " active" : ""}`}
-        title="Toggle Sidebar"
-        onClick={onToggleRail}
-        onMouseEnter={() => {
-          if (railOpen || !sidebarToggleRef.current) return;
-          onSidebarHoverEnter(sidebarToggleRef.current.getBoundingClientRect());
-        }}
-        onMouseLeave={onSidebarHoverLeave}
+        className={`titlebar-sidebar-toggle${workspaceRailOpen ? " active" : ""}`}
+        title="Workspace Tabs"
+        onClick={(e) => onToggleWorkspaceRail(e.currentTarget.getBoundingClientRect())}
       >
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
           <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" />
@@ -72,16 +51,6 @@ export function AppTitlebar({
           />
         </svg>
       </button>
-      {sidebarQuickSwitchAnchor && !railOpen && (
-        <SidebarQuickSwitchPopover
-          tabs={tabs}
-          activeTabId={activeTabId}
-          anchorRect={sidebarQuickSwitchAnchor}
-          onClose={onCloseQuickSwitch}
-          onMouseEnter={clearSidebarHoverTimer}
-          onMouseLeave={onSidebarHoverLeave}
-        />
-      )}
     </div>
   );
 }

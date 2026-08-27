@@ -28,8 +28,7 @@ interface Props {
   children: ReactNode;
   align?: "start" | "end";
   className?: string;
-  /** false for hover popovers — no outside-click listener (see
-   * SidebarQuickSwitchPopover). */
+  /** false for hover-only popovers — no outside-click listener. */
   dismissOnClickOutside?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;

@@ -138,6 +138,8 @@ export interface WorkspaceApi {
     addTab: () => Promise<number>
     closeTab: (tabId: number) => Promise<void>
     selectTab: (tabId: number) => Promise<void>
+    renameTab: (tabId: number, title: string) => Promise<void>
+    reorderTabs: (orderedIds: number[]) => Promise<void>
     setTabLayout: (tabId: number, layoutJson: string) => Promise<void>
     setTabRootPath: (tabId: number, rootPath: string) => Promise<WorkspaceState>
     onUpdated: (cb: (state: WorkspaceState) => void) => () => void

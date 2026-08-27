@@ -126,6 +126,10 @@ const api = {
     addTab: (): Promise<number> => ipcRenderer.invoke('workspace:add-tab'),
     closeTab: (tabId: number): Promise<void> => ipcRenderer.invoke('workspace:close-tab', tabId),
     selectTab: (tabId: number): Promise<void> => ipcRenderer.invoke('workspace:select-tab', tabId),
+    renameTab: (tabId: number, title: string): Promise<void> =>
+      ipcRenderer.invoke('workspace:rename-tab', tabId, title),
+    reorderTabs: (orderedIds: number[]): Promise<void> =>
+      ipcRenderer.invoke('workspace:reorder-tabs', orderedIds),
     setTabLayout: (tabId: number, layoutJson: string): Promise<void> =>
       ipcRenderer.invoke('workspace:set-tab-layout', tabId, layoutJson),
     setTabRootPath: (tabId: number, rootPath: string): Promise<unknown> =>

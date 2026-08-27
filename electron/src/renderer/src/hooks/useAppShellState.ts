@@ -10,21 +10,13 @@ export function useAppShellState() {
   const [appSettingsAnchor, setAppSettingsAnchor] = useState<DOMRect | null>(null);
   const appSettingsButtonRef = useRef<HTMLButtonElement>(null);
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference);
-  const [railOpen, setRailOpen] = useState(true);
-  const [sidebarQuickSwitchAnchor, setSidebarQuickSwitchAnchor] = useState<DOMRect | null>(null);
-  const sidebarHoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearSidebarHoverTimer = useCallback(() => {
-    if (sidebarHoverTimerRef.current) {
-      clearTimeout(sidebarHoverTimerRef.current);
-      sidebarHoverTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleSidebarQuickSwitchClose = useCallback(() => {
-    clearSidebarHoverTimer();
-    sidebarHoverTimerRef.current = setTimeout(() => setSidebarQuickSwitchAnchor(null), 200);
-  }, [clearSidebarHoverTimer]);
+  // The workspace-tab list — previously an always-docked sidebar, now a
+  // click-toggled popover anchored to the titlebar button, same
+  // interaction shape as the app-settings popover below ("왼쪽 사이드바
+  // 없애고 그냥 지금 native bar 위에 있는거 클릭하면 보이도록. 설정버튼
+  // 처럼").
+  const [workspaceRailAnchor, setWorkspaceRailAnchor] = useState<DOMRect | null>(null);
+  const workspaceRailButtonRef = useRef<HTMLButtonElement>(null);
 
   const toggleAppSettings = useCallback((anchor?: DOMRect | null) => {
     setAppSettingsAnchor((open) => {
@@ -33,10 +25,17 @@ export function useAppShellState() {
     });
   }, []);
 
+  const toggleWorkspaceRail = useCallback((anchor?: DOMRect | null) => {
+    setWorkspaceRailAnchor((open) => {
+      if (open) return null;
+      return anchor ?? workspaceRailButtonRef.current?.getBoundingClientRect() ?? null;
+    });
+  }, []);
+
   const dismissPortals = useCallback(() => {
     setAppSettingsAnchor(null);
     setSettingsTarget(null);
-    setSidebarQuickSwitchAnchor(null);
+    setWorkspaceRailAnchor(null);
   }, []);
 
   useEffect(() => {
@@ -60,13 +59,10 @@ export function useAppShellState() {
     appSettingsButtonRef,
     themePreference,
     setThemePreference,
-    railOpen,
-    setRailOpen,
-    sidebarQuickSwitchAnchor,
-    setSidebarQuickSwitchAnchor,
-    sidebarHoverTimerRef,
-    clearSidebarHoverTimer,
-    scheduleSidebarQuickSwitchClose,
+    workspaceRailAnchor,
+    setWorkspaceRailAnchor,
+    workspaceRailButtonRef,
+    toggleWorkspaceRail,
     toggleAppSettings,
     dismissPortals,
   };

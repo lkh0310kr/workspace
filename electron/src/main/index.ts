@@ -490,6 +490,14 @@ app.whenReady().then(() => {
     workspace!.selectTab(tabId)
     persist()
   })
+  ipcMain.handle('workspace:rename-tab', (_event, tabId: number, title: string) => {
+    workspace!.renameTab(tabId, title)
+    persist()
+  })
+  ipcMain.handle('workspace:reorder-tabs', (_event, orderedIds: number[]) => {
+    workspace!.reorderTabs(orderedIds)
+    persist()
+  })
   ipcMain.handle('workspace:set-tab-layout', (_event, tabId: number, layoutJson: string) => {
     workspace!.setTabLayout(tabId, layoutJson)
     persist()

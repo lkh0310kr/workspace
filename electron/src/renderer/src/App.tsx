@@ -75,13 +75,10 @@ export default function App() {
     appSettingsButtonRef,
     themePreference,
     setThemePreference,
-    railOpen,
-    setRailOpen,
-    sidebarQuickSwitchAnchor,
-    setSidebarQuickSwitchAnchor,
-    sidebarHoverTimerRef,
-    clearSidebarHoverTimer,
-    scheduleSidebarQuickSwitchClose,
+    workspaceRailAnchor,
+    setWorkspaceRailAnchor,
+    workspaceRailButtonRef,
+    toggleWorkspaceRail,
     toggleAppSettings,
     dismissPortals,
   } = shell;
@@ -103,9 +100,9 @@ export default function App() {
     bumpLayout,
     appSettingsOpen: appSettingsAnchor !== null,
     settingsTarget,
-    sidebarQuickSwitchOpen: sidebarQuickSwitchAnchor !== null,
+    sidebarQuickSwitchOpen: workspaceRailAnchor !== null,
     dismissShellPortals: dismissPortals,
-    setSidebarQuickSwitchAnchor,
+    setSidebarQuickSwitchAnchor: setWorkspaceRailAnchor,
   });
 
   useEffect(() => applyThemePreference(themePreference), [themePreference]);
@@ -129,20 +126,6 @@ export default function App() {
     [setThemePreference],
   );
 
-  const handleToggleRail = useCallback(() => {
-    setRailOpen((open) => !open);
-    clearSidebarHoverTimer();
-    setSidebarQuickSwitchAnchor(null);
-  }, [clearSidebarHoverTimer, setRailOpen, setSidebarQuickSwitchAnchor]);
-
-  const handleSidebarHoverEnter = useCallback(
-    (anchor: DOMRect) => {
-      clearSidebarHoverTimer();
-      sidebarHoverTimerRef.current = setTimeout(() => setSidebarQuickSwitchAnchor(anchor), 350);
-    },
-    [clearSidebarHoverTimer, setSidebarQuickSwitchAnchor, sidebarHoverTimerRef],
-  );
-
   if (!workspace || !activeModel) {
     return <LoadingWorkspace />;
   }
@@ -150,33 +133,29 @@ export default function App() {
   return (
     <div className="app-root">
       <AppTitlebar
-        railOpen={railOpen}
-        onToggleRail={handleToggleRail}
+        workspaceRailOpen={workspaceRailAnchor !== null}
+        workspaceRailButtonRef={workspaceRailButtonRef}
+        onToggleWorkspaceRail={(anchor) => toggleWorkspaceRail(anchor)}
         appSettingsOpen={appSettingsAnchor !== null}
         appSettingsButtonRef={appSettingsButtonRef}
         onToggleAppSettings={(anchor) => toggleAppSettings(anchor)}
-        tabs={workspace.tabs}
-        activeTabId={workspace.active_tab_id}
-        sidebarQuickSwitchAnchor={sidebarQuickSwitchAnchor}
-        onCloseQuickSwitch={() => setSidebarQuickSwitchAnchor(null)}
-        onSidebarHoverEnter={handleSidebarHoverEnter}
-        onSidebarHoverLeave={scheduleSidebarQuickSwitchClose}
-        clearSidebarHoverTimer={clearSidebarHoverTimer}
       />
       <div className="app-shell">
-        {railOpen && (
-          <WorkspaceTabRail
-            tabs={workspace.tabs}
-            activeTabId={visibleWorkspaceTabId}
-            onOpenSettings={(tabId, anchorRect) => setSettingsTarget({ tabId, anchorRect })}
-          />
-        )}
         <WorkspaceLayoutHost
           tabs={workspace.tabs}
           visibleWorkspaceTabId={visibleWorkspaceTabId}
           getModel={storeGetModel}
           {...layoutCallbacks}
         />
+        {workspaceRailAnchor && (
+          <WorkspaceTabRail
+            tabs={workspace.tabs}
+            activeTabId={visibleWorkspaceTabId}
+            onOpenSettings={(tabId, anchorRect) => setSettingsTarget({ tabId, anchorRect })}
+            anchorRect={workspaceRailAnchor}
+            onClose={() => setWorkspaceRailAnchor(null)}
+          />
+        )}
         {settingsTarget && (
           <SettingsDialog
             anchorRect={settingsTarget.anchorRect}

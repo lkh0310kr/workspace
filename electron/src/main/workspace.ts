@@ -133,6 +133,26 @@ export class Workspace {
     if (this.tabs.some((t) => t.id === tabId)) this.activeTabId = tabId;
   }
 
+  renameTab(tabId: number, title: string): void {
+    const tab = this.tabs.find((t) => t.id === tabId);
+    if (!tab) throw new Error("tab not found");
+    const trimmed = title.trim();
+    if (!trimmed) throw new Error("title cannot be empty");
+    tab.title = trimmed;
+  }
+
+  /** Reorders tabs to match `orderedIds` — must be exactly the current
+   * tab ids, just permuted (a drag-and-drop reorder never adds/removes a
+   * tab). Silently ignored if it isn't, rather than partially applying a
+   * stale drag payload from before a tab closed mid-drag. */
+  reorderTabs(orderedIds: number[]): void {
+    if (orderedIds.length !== this.tabs.length) return;
+    const byId = new Map(this.tabs.map((t) => [t.id, t]));
+    const reordered = orderedIds.map((id) => byId.get(id));
+    if (reordered.some((t) => !t)) return;
+    this.tabs = reordered as Tab[];
+  }
+
   setTabLayout(tabId: number, layoutJson: string): void {
     const tab = this.tabs.find((t) => t.id === tabId);
     if (!tab) return;

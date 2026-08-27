@@ -33,7 +33,7 @@
   --chrome-h: 34px;
   --browser-chrome-total: 36px;
   --rail-w: 148px;
-  --rail-close-w: 42px;
+  --rail-close-w: 24px;
 }
 
 :root[data-theme="light"] {
@@ -193,15 +193,19 @@ input {
 }
 
 /* —— Workspace tab rail —— */
-.workspace-rail {
+/* No more docked sidebar — this is now a click-toggled popover anchored
+   to the titlebar's workspace-switch button, same interaction as the app
+   settings popover right next to it. */
+.workspace-rail-popover {
   width: var(--rail-w);
-  flex-shrink: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.workspace-rail {
   display: flex;
   flex-direction: column;
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border);
-  position: relative;
-  z-index: 2;
+  max-height: 70vh;
 }
 
 .workspace-rail-tabs {
@@ -216,10 +220,20 @@ input {
 
 .workspace-rail-row {
   display: grid;
-  grid-template-columns: 1fr var(--rail-close-w) var(--rail-close-w);
-  align-items: stretch;
+  grid-template-columns: 1fr var(--rail-close-w);
+  align-items: center;
   min-height: 40px;
   border-left: 2px solid transparent;
+}
+
+/* Drag-and-drop reorder hint (WorkspaceTabRail.tsx's computeDropIndex) —
+   horizontal version of .pane-tab-drop-indicator, since this list is a
+   vertical column instead of a horizontal strip. */
+.workspace-rail-drop-indicator {
+  height: 2px;
+  margin: 0 8px;
+  background: var(--accent);
+  border-radius: 1px;
 }
 
 .workspace-rail-row:hover {
@@ -235,18 +249,27 @@ input {
 .workspace-rail-close-spacer {
   width: var(--rail-close-w);
   min-width: var(--rail-close-w);
-  height: 40px;
+  height: 18px;
   flex-shrink: 0;
 }
 
 .workspace-rail-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
   border: none;
+  border-radius: 3px;
   background: transparent;
-  color: var(--text-muted);
-  font-size: 24px;
-  line-height: 40px;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1;
   cursor: pointer;
+  opacity: 0;
+}
+
+.workspace-rail-row:hover .workspace-rail-close {
+  opacity: 1;
 }
 
 .workspace-rail-close:hover {
@@ -294,80 +317,19 @@ input {
   color: var(--text);
 }
 
-.sidebar-quick-switch-popover {
-  padding: 4px;
-  min-width: 220px;
-  max-width: 320px;
-}
-
-.sidebar-quick-switch-list {
-  display: flex;
-  flex-direction: column;
-  max-height: 360px;
-  overflow-y: auto;
-}
-
-.sidebar-quick-switch-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 8px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-  text-align: left;
+/* Double-click a row's title to rename (WorkspaceTabRail.tsx) — same
+   inline-input idiom as the markdown title rename. */
+.workspace-rail-title-input {
+  min-width: 0;
+  margin: 4px 4px 4px 8px;
+  padding: 3px 4px;
+  background: var(--bg-base);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  color: var(--text);
   font-family: var(--font-ui);
-}
-
-.sidebar-quick-switch-row:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.sidebar-quick-switch-row.active {
-  background: var(--bg-active);
-  color: var(--text);
-}
-
-.sidebar-quick-switch-title {
   font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sidebar-quick-switch-path {
-  font-size: 10px;
-  font-family: var(--font-mono);
-  color: var(--text-faint);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-rail-settings {
-  width: var(--rail-close-w);
-  min-width: var(--rail-close-w);
-  height: 40px;
-  flex-shrink: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-faint);
-  font-size: 13px;
-  cursor: pointer;
-  opacity: 0;
-}
-
-.workspace-rail-row:hover .workspace-rail-settings {
-  opacity: 1;
-}
-
-.workspace-rail-settings:hover {
-  color: var(--text);
-  background: var(--bg-hover);
+  outline: none;
 }
 
 .workspace-rail-add {

@@ -115,6 +115,14 @@ export async function selectTab(tabId: number): Promise<void> {
   return window.api.workspace.selectTab(tabId);
 }
 
+export async function renameTab(tabId: number, title: string): Promise<void> {
+  return window.api.workspace.renameTab(tabId, title);
+}
+
+export async function reorderTabs(orderedIds: number[]): Promise<void> {
+  return window.api.workspace.reorderTabs(orderedIds);
+}
+
 export async function setTabLayout(tabId: number, layoutJson: string): Promise<void> {
   return window.api.workspace.setTabLayout(tabId, layoutJson);
 }
