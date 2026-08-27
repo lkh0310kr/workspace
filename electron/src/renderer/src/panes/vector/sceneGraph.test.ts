@@ -9,6 +9,7 @@ import {
   serializeDocument,
   parseDocument,
   createBlankDocument,
+  cloneWithNewIds,
   type SceneObject,
   type GroupObject,
 } from "./sceneGraph";
@@ -98,5 +99,24 @@ describe("serializeDocument / parseDocument", () => {
 
   it("throws on malformed JSON", () => {
     expect(() => parseDocument("not json")).toThrow();
+  });
+});
+
+describe("cloneWithNewIds", () => {
+  it("gives a leaf object a new id, keeping its other fields", () => {
+    const rect = createRect(1, 2, 3, 4);
+    const clone = cloneWithNewIds(rect);
+    expect(clone.id).not.toBe(rect.id);
+    expect(clone).toMatchObject({ type: "rect", x: 1, y: 2, width: 3, height: 4 });
+  });
+
+  it("gives a group and every one of its children (recursively) a new id", () => {
+    const leaf = createRect(0, 0, 1, 1);
+    const original = group("g1", [leaf]);
+    const clone = cloneWithNewIds(original) as GroupObject;
+    expect(clone.id).not.toBe(original.id);
+    expect(clone.children[0].id).not.toBe(leaf.id);
+    // original untouched
+    expect(original.children[0].id).toBe(leaf.id);
   });
 });

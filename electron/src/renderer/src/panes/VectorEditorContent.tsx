@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouse
 import { listDir, readFile, writeFile } from "../electron";
 import { anchorsToPathData, mirroredHandle } from "./vector/bezierPath";
 import {
+  cloneWithNewIds,
   createBlankDocument,
   createEllipse,
   createGroup,
@@ -35,12 +36,15 @@ import {
   type Point,
   type TransformableObject,
 } from "./vector/vectorTransform";
+import { emptyHistory, pushHistory, undo as undoHistory, redo as redoHistory, canUndo, canRedo, type VectorHistory } from "./vector/vectorHistory";
+import { documentToSvg } from "./vector/svgExport";
 
 // Vector Editor pane (see docs/architecture/08-vector-editor.md). M1:
 // Rect/Ellipse, single-selection, move/resize/rotate, save/load as plain
-// JSON. M2 (this file now): pen tool (Path), Line tool. Still no stroke/
-// fill UI or groups (M3), undo/redo (M4), or text (M5) — see the design
-// doc for the full build order.
+// JSON. M2: pen tool (Path), Line tool. M3: stroke/fill UI, groups. M4
+// (this file now): undo/redo, export SVG/PNG, delete/duplicate/copy-
+// paste/nudge. Still no text (M5) — see the design doc for the full
+// build order.
 interface Props {
   tabId: number;
   filePath: string | null;
@@ -75,14 +79,21 @@ const ROTATE_HANDLE_OFFSET = 24; // doc-space px above the "n" handle
 const PEN_CLOSE_THRESHOLD = 8; // doc-space px — click near the first anchor to close
 const PEN_HANDLE_MIN_DRAG = 2; // doc-space px — below this, treat as a plain corner click
 const TOOL_SHORTCUTS: Record<string, Tool> = { v: "select", r: "rect", o: "ellipse", l: "line", p: "pen" };
+const DUPLICATE_OFFSET = 12; // doc-space px — offset applied to duplicate/paste so the copy isn't hidden directly under the original
+const NUDGE_STEP = 1;
+const NUDGE_STEP_LARGE = 10; // held with Shift
 
 async function findAvailableUntitledVectorName(tabId: number): Promise<string> {
+  return findAvailableUntitledExportName(tabId, "vec.json");
+}
+
+async function findAvailableUntitledExportName(tabId: number, ext: string): Promise<string> {
   const entries = await listDir(tabId, "").catch(() => []);
   const names = new Set(entries.filter((e) => !e.is_dir).map((e) => e.name.toLowerCase()));
-  if (!names.has("untitled.vec.json")) return "untitled.vec.json";
+  if (!names.has(`untitled.${ext}`)) return `untitled.${ext}`;
   let i = 1;
-  while (names.has(`untitled ${i}.vec.json`)) i++;
-  return `untitled ${i}.vec.json`;
+  while (names.has(`untitled ${i}.${ext}`)) i++;
+  return `untitled ${i}.${ext}`;
 }
 
 function isTransformable(obj: SceneObject): obj is TransformableObject {
@@ -108,6 +119,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   // session active.
   const [penAnchors, setPenAnchors] = useState<PathAnchor[]>([]);
   const [penPreviewPoint, setPenPreviewPoint] = useState<Point | null>(null);
+  const [history, setHistory] = useState<VectorHistory>(emptyHistory());
 
   const docRef = useRef(doc);
   docRef.current = doc;
@@ -128,6 +140,19 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   draftRef.current = draft;
   const penAnchorsRef = useRef(penAnchors);
   penAnchorsRef.current = penAnchors;
+  const historyRef = useRef(history);
+  historyRef.current = history;
+  // The document as it was right *before* the drag/gesture currently in
+  // progress — captured once at gesture-start (startDrag, or the style
+  // inspector's first onChange of a session), consumed once at gesture-
+  // end to push exactly one history entry per completed gesture instead
+  // of one per intermediate frame. See vectorHistory.ts's header comment.
+  const gestureBeforeRef = useRef<VectorDocument | null>(null);
+
+  const pushHistoryEntry = useCallback((before: VectorDocument | null, after: VectorDocument | null) => {
+    if (!before || !after) return;
+    setHistory((h) => pushHistory(h, before, after));
+  }, []);
 
   useEffect(() => {
     setError(null);
@@ -136,6 +161,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     setDraft(null);
     setPenAnchors([]);
     setPenPreviewPoint(null);
+    setHistory(emptyHistory());
     if (!filePath) {
       const blank = createBlankDocument();
       lastLoadedRef.current = null;
@@ -173,6 +199,60 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     setDirty(false);
     if (!pathRef.current) onAssignPathRef.current(path);
   }, [tabId]);
+
+  // SVG is text, so it writes into the workspace through the same IPC as
+  // the project file itself — no new backend surface needed. Named after
+  // the project file (myfile.vec.json -> myfile.svg) when one exists.
+  const exportSvg = useCallback(async () => {
+    const current = docRef.current;
+    if (!current) return;
+    const svg = documentToSvg(current);
+    const base = pathRef.current?.replace(/\.vec\.json$/, "").replace(/\.[^./]+$/, "") ?? null;
+    const name = base ? `${base}.svg` : await findAvailableUntitledExportName(tabId, "svg");
+    await writeFile(tabId, name, svg);
+  }, [tabId]);
+
+  // PNG is binary — fs:write-file's IPC only carries text, and adding a
+  // binary-write channel just for this isn't justified yet. Uses a
+  // regular browser-style download instead (rasterize via an offscreen
+  // canvas, trigger a save through Electron's own default download
+  // handling) rather than the workspace-relative write the rest of this
+  // pane uses.
+  const exportPng = useCallback(async () => {
+    const current = docRef.current;
+    if (!current) return;
+    const svg = documentToSvg(current);
+    const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    try {
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("failed to rasterize SVG for PNG export"));
+        img.src = svgUrl;
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = current.width;
+      canvas.height = current.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, current.width, current.height);
+      const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!pngBlob) return;
+      const base = pathRef.current?.split("/").pop()?.replace(/\.vec\.json$/, "").replace(/\.[^./]+$/, "") ?? "untitled";
+      const pngUrl = URL.createObjectURL(pngBlob);
+      const a = document.createElement("a");
+      a.href = pngUrl;
+      a.download = `${base}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PNG export failed");
+    } finally {
+      URL.revokeObjectURL(svgUrl);
+    }
+  }, []);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -305,7 +385,20 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     stopDrag();
     const drag = dragRef.current;
     dragRef.current = null;
+    const before = gestureBeforeRef.current;
+    gestureBeforeRef.current = null;
+
+    if (drag?.kind === "move" || drag?.kind === "resize" || drag?.kind === "rotate") {
+      // Every intermediate position was already applied live via
+      // replaceObject during onPointerMove (each call its own past mouse
+      // event, so docRef.current is settled by the time this separate
+      // mouseup event fires) — just record the one history entry for the
+      // whole gesture.
+      pushHistoryEntry(before, docRef.current);
+      return;
+    }
     if (drag?.kind !== "draw") return;
+
     setDraft(null);
     const current = docRef.current;
     const finalDraft = draftRef.current;
@@ -326,14 +419,20 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
         return;
       }
     }
-    commitDoc({ ...current, objects: [...current.objects, finalDraft] });
+    const after = { ...current, objects: [...current.objects, finalDraft] };
+    commitDoc(after);
+    pushHistoryEntry(before, after);
     setSelectedIds(new Set([finalDraft.id]));
     setTool("select");
-  }, [stopDrag, commitDoc]);
+  }, [stopDrag, commitDoc, pushHistoryEntry]);
 
   const startDrag = useCallback(
     (mode: DragMode) => {
       dragRef.current = mode;
+      // "pen-anchor" doesn't mutate `doc` at all (it edits the in-progress
+      // penAnchors array instead) — nothing to snapshot for undo/redo
+      // there; see commitPenPath for the pen tool's one history entry.
+      if (mode.kind !== "pen-anchor") gestureBeforeRef.current = docRef.current;
       activeListenersRef.current = { move: onPointerMove, up: onPointerUp };
       window.addEventListener("mousemove", onPointerMove);
       window.addEventListener("mouseup", onPointerUp);
@@ -350,11 +449,13 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       const current = docRef.current;
       if (!current) return;
       const path = createPath(anchors, closed);
-      commitDoc({ ...current, objects: [...current.objects, path] });
+      const after = { ...current, objects: [...current.objects, path] };
+      commitDoc(after);
+      pushHistoryEntry(current, after);
       setSelectedIds(new Set([path.id]));
       setTool("select");
     },
-    [commitDoc],
+    [commitDoc, pushHistoryEntry],
   );
 
   const cancelPenPath = useCallback(() => {
@@ -369,9 +470,11 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     if (toGroup.length < 2) return;
     const rest = current.objects.filter((o) => !selectedIds.has(o.id));
     const group = createGroup(toGroup);
-    commitDoc({ ...current, objects: [...rest, group] });
+    const after = { ...current, objects: [...rest, group] };
+    commitDoc(after);
+    pushHistoryEntry(current, after);
     setSelectedIds(new Set([group.id]));
-  }, [selectedIds, commitDoc]);
+  }, [selectedIds, commitDoc, pushHistoryEntry]);
 
   const ungroupSelection = useCallback(() => {
     const current = docRef.current;
@@ -387,9 +490,97 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       transform: { ...child.transform, x: child.transform.x + group.transform.x, y: child.transform.y + group.transform.y },
     }));
     const rest = current.objects.filter((o) => o.id !== group.id);
-    commitDoc({ ...current, objects: [...rest, ...restored] });
+    const after = { ...current, objects: [...rest, ...restored] };
+    commitDoc(after);
+    pushHistoryEntry(current, after);
     setSelectedIds(new Set(restored.map((c) => c.id)));
-  }, [selectedObject, commitDoc]);
+  }, [selectedObject, commitDoc, pushHistoryEntry]);
+
+  const undoAction = useCallback(() => {
+    const current = docRef.current;
+    if (!current) return;
+    const result = undoHistory(historyRef.current, current);
+    if (!result) return;
+    setHistory(result.history);
+    setDoc(result.document);
+    setDirty(lastLoadedRef.current !== serializeDocument(result.document));
+    setSelectedIds(new Set());
+  }, []);
+
+  const redoAction = useCallback(() => {
+    const current = docRef.current;
+    if (!current) return;
+    const result = redoHistory(historyRef.current, current);
+    if (!result) return;
+    setHistory(result.history);
+    setDoc(result.document);
+    setDirty(lastLoadedRef.current !== serializeDocument(result.document));
+    setSelectedIds(new Set());
+  }, []);
+
+  const deleteSelection = useCallback(() => {
+    const current = docRef.current;
+    if (!current || selectedIds.size === 0) return;
+    const after = { ...current, objects: current.objects.filter((o) => !selectedIds.has(o.id)) };
+    commitDoc(after);
+    pushHistoryEntry(current, after);
+    setSelectedIds(new Set());
+  }, [selectedIds, commitDoc, pushHistoryEntry]);
+
+  const duplicateSelection = useCallback(() => {
+    const current = docRef.current;
+    if (!current || selectedObjects.length === 0) return;
+    const clones = selectedObjects.map((o) => {
+      const clone = cloneWithNewIds(o);
+      return { ...clone, transform: { ...clone.transform, x: clone.transform.x + DUPLICATE_OFFSET, y: clone.transform.y + DUPLICATE_OFFSET } };
+    });
+    const after = { ...current, objects: [...current.objects, ...clones] };
+    commitDoc(after);
+    pushHistoryEntry(current, after);
+    setSelectedIds(new Set(clones.map((c) => c.id)));
+  }, [selectedObjects, commitDoc, pushHistoryEntry]);
+
+  // In-memory only — not the system clipboard. A vector shape isn't text,
+  // and Electron's clipboard API doesn't have a good place to put
+  // arbitrary app-defined JSON without polluting the OS clipboard with a
+  // custom format other apps can't read either; paste-within-this-pane is
+  // the only use case this needs to support.
+  const clipboardRef = useRef<SceneObject[]>([]);
+
+  const copySelection = useCallback(() => {
+    if (selectedObjects.length === 0) return;
+    clipboardRef.current = selectedObjects.map((o) => o);
+  }, [selectedObjects]);
+
+  const pasteClipboard = useCallback(() => {
+    const current = docRef.current;
+    if (!current || clipboardRef.current.length === 0) return;
+    const clones = clipboardRef.current.map((o) => {
+      const clone = cloneWithNewIds(o);
+      return { ...clone, transform: { ...clone.transform, x: clone.transform.x + DUPLICATE_OFFSET, y: clone.transform.y + DUPLICATE_OFFSET } };
+    });
+    const after = { ...current, objects: [...current.objects, ...clones] };
+    commitDoc(after);
+    pushHistoryEntry(current, after);
+    setSelectedIds(new Set(clones.map((c) => c.id)));
+  }, [commitDoc, pushHistoryEntry]);
+
+  const nudgeSelection = useCallback(
+    (dx: number, dy: number) => {
+      const current = docRef.current;
+      if (!current || selectedTransformableObjects.length === 0) return;
+      const ids = new Set(selectedTransformableObjects.map((o) => o.id));
+      const after = {
+        ...current,
+        objects: current.objects.map((o) =>
+          ids.has(o.id) && isTransformable(o) ? { ...o, transform: moveBy(o.transform, dx, dy) } : o,
+        ),
+      };
+      commitDoc(after);
+      pushHistoryEntry(current, after);
+    },
+    [selectedTransformableObjects, commitDoc, pushHistoryEntry],
+  );
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -405,24 +596,78 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           return;
         }
       }
+      const target = e.target as HTMLElement | null;
+      const inTextInput = !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
       if (e.metaKey || e.ctrlKey) {
-        if (e.key.toLowerCase() === "g") {
+        if (inTextInput) return; // let native undo/copy/paste work in the inspector's own inputs
+        const key = e.key.toLowerCase();
+        if (key === "g") {
           e.preventDefault();
           if (e.shiftKey) ungroupSelection();
           else groupSelection();
+        } else if (key === "z") {
+          e.preventDefault();
+          if (e.shiftKey) redoAction();
+          else undoAction();
+        } else if (key === "d") {
+          e.preventDefault();
+          duplicateSelection();
+        } else if (key === "c") {
+          e.preventDefault();
+          copySelection();
+        } else if (key === "v") {
+          e.preventDefault();
+          pasteClipboard();
         }
         return;
       }
-      if (e.altKey) return;
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if (e.altKey || inTextInput) return;
+      if (e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        deleteSelection();
+        return;
+      }
+      const nudgeStep = e.shiftKey ? NUDGE_STEP_LARGE : NUDGE_STEP;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        nudgeSelection(-nudgeStep, 0);
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        nudgeSelection(nudgeStep, 0);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        nudgeSelection(0, -nudgeStep);
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        nudgeSelection(0, nudgeStep);
+        return;
+      }
       const nextTool = TOOL_SHORTCUTS[e.key.toLowerCase()];
       if (nextTool) setTool(nextTool);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tool, commitPenPath, cancelPenPath, groupSelection, ungroupSelection]);
+  }, [
+    tool,
+    commitPenPath,
+    cancelPenPath,
+    groupSelection,
+    ungroupSelection,
+    undoAction,
+    redoAction,
+    deleteSelection,
+    duplicateSelection,
+    copySelection,
+    pasteClipboard,
+    nudgeSelection,
+  ]);
 
   const onCanvasMouseDown = (e: ReactMouseEvent<SVGSVGElement>) => {
     const docPoint = clientToDocPoint(e.clientX, e.clientY);
@@ -670,7 +915,31 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
         >
           ⌗̸
         </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Undo (⌘Z)"
+          disabled={!canUndo(history)}
+          onClick={undoAction}
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          className="vector-tool"
+          title="Redo (⌘⇧Z)"
+          disabled={!canRedo(history)}
+          onClick={redoAction}
+        >
+          ↷
+        </button>
         <span className="vector-toolbar-spacer" />
+        <button type="button" className="vector-tool" title="Export SVG" onClick={() => void exportSvg()}>
+          SVG
+        </button>
+        <button type="button" className="vector-tool" title="Export PNG" onClick={() => void exportPng()}>
+          PNG
+        </button>
         <span className={`vector-save-status${dirty ? " unsaved" : ""}`}>{dirty ? "Unsaved" : "Saved"}</span>
         <button type="button" className="vector-save" onClick={() => void save()} title="Save (⌘S)">
           Save

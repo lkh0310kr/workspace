@@ -178,6 +178,20 @@ cleanly reverse once rotation and non-uniform scale are both involved).
 Full group resize/rotate is a later polish item, revisited if it turns
 out to matter in practice.
 
+**M4 scope note:** history is gesture-based, not per-frame — one snapshot
+pair is pushed per *completed* interaction (drag-end, pen-path-commit,
+group/ungroup), captured via a "before" snapshot taken at gesture-start
+and consumed once at gesture-end, so a single drag doesn't flood the
+undo stack with every intermediate mousemove. Export is asymmetric by
+necessity: SVG is text, so it reuses the existing `fs:write-file` IPC
+like Save; PNG is binary, so it rasterizes the exported SVG through an
+offscreen `<canvas>` and triggers a browser-native `<a download>` blob
+save instead of adding a new binary-write IPC channel just for this one
+case. Copy/paste uses an in-memory clipboard (a ref holding cloned scene
+objects), not the OS clipboard — there's no good OS-clipboard home for
+arbitrary app-defined shape JSON, and in-memory is sufficient since paste
+only needs to work within the same running app.
+
 ## Explicit non-goals for v1
 
 Boolean operations (union/subtract/intersect), gradients, constraints/

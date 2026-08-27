@@ -171,6 +171,17 @@ export function createGroup(children: SceneObject[]): GroupObject {
   return { id: crypto.randomUUID(), type: "group", children, transform: { ...IDENTITY_TRANSFORM } };
 }
 
+/** Deep clone with fresh ids everywhere (including a group's children,
+ * recursively) — used by duplicate/paste. Two objects can never share an
+ * id in the same document, and a group's children need their own ids
+ * distinct from the original's, not just the group wrapper. */
+export function cloneWithNewIds(obj: SceneObject): SceneObject {
+  if (obj.type === "group") {
+    return { ...obj, id: crypto.randomUUID(), children: obj.children.map(cloneWithNewIds) };
+  }
+  return { ...obj, id: crypto.randomUUID() };
+}
+
 /** Depth-first flatten, for hit-testing top-to-bottom (last object in the
  * flattened list was drawn last, i.e. is visually on top). */
 export function flattenObjects(objects: SceneObject[]): SceneObject[] {
