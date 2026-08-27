@@ -212,8 +212,8 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   );
 
   const newTab = useCallback(
-    (kind: TabKind) => {
-      addTabToGroup(model, nodeId, kind)
+    (kind: TabKind, source?: Partial<PaneTabItem>) => {
+      addTabToGroup(model, nodeId, kind, source)
         .then((id) => {
           if (id) setActivePaneTab(workspaceTabId, nodeId, id);
           onNotifyChanged();
@@ -429,6 +429,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                   <FileViewerContent
                     tabId={workspaceTabId}
                     filePath={item.filePath ?? null}
+                    absolutePath={item.absolutePath ?? null}
+                    viewerHint={item.viewerHint}
+                    onAssignAbsolutePath={(path) => updateItem(item.id, { absolutePath: path })}
                     treeOpen={treeOpenFor(item.id)}
                     onToggleTree={() => setTreeOpenForTab(item.id, (v) => !v)}
                   />

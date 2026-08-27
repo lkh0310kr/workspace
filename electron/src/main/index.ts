@@ -6,9 +6,9 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
 import type { SearchOptions } from './search'
-import { registerMediaProtocol } from './mediaProtocol'
+import { registerMediaProtocol, toMediaUrlBrowsed } from './mediaProtocol'
 import { fetchFeed } from './rss'
-import { registerEpubProtocol } from './epub'
+import { registerEpubProtocol, openEpubAbsolute } from './epub'
 import { loadConfig, saveConfig, loadWorkspaceSnapshot, saveWorkspaceSnapshot } from './persistence'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
@@ -394,6 +394,25 @@ app.whenReady().then(() => {
     return result.canceled ? null : (result.filePaths[0] ?? null)
   })
 
+  // For the Video/Audio/Ebook pane-picker entries — a file the user opens
+  // "directly" rather than through TreeView/Quick Open, so it's
+  // deliberately not confined to any open workspace root. The dialog
+  // itself is the trust boundary (see toMediaUrlBrowsed's doc comment):
+  // the returned path only ever came from this native picker, never from
+  // renderer-supplied input.
+  const MEDIA_DIALOG_FILTERS: Record<'video' | 'audio' | 'ebook', Electron.FileFilter> = {
+    video: { name: 'Video', extensions: ['mp4', 'webm', 'mov', 'mkv'] },
+    audio: { name: 'Audio', extensions: ['mp3', 'wav', 'm4a', 'ogg', 'flac'] },
+    ebook: { name: 'Ebook', extensions: ['epub'] }
+  }
+  ipcMain.handle('dialog:pick-media-file', async (_event, kind: 'video' | 'audio' | 'ebook') => {
+    const result = await dialog.showOpenDialog(mainWindowRef!, {
+      properties: ['openFile'],
+      filters: [MEDIA_DIALOG_FILTERS[kind]]
+    })
+    return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
+
   ipcMain.handle('pty:spawn', (_event, cols: number, rows: number) => {
     return workspace!.spawnTerminal(cols, rows)
   })
@@ -491,11 +510,15 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('fs:list-all-files', (_event, tabId: number) => workspace!.listAllFiles(tabId))
   ipcMain.handle('media:get-url', (_event, tabId: number, rel: string) => workspace!.mediaUrl(tabId, rel))
+  // Unconfined counterpart of media:get-url, for a file picked via
+  // dialog:pick-media-file — see toMediaUrlBrowsed's doc comment.
+  ipcMain.handle('media:get-url-absolute', (_event, absolutePath: string) => toMediaUrlBrowsed(absolutePath))
   // Why unconfined (unlike every fs:*/media:* handler above): a feed URL
   // is an arbitrary external HTTP resource by design, not a
   // workspace-relative path — there's nothing to resolveUnderRoot against.
   ipcMain.handle('rss:fetch-feed', (_event, url: string) => fetchFeed(url))
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
+  ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

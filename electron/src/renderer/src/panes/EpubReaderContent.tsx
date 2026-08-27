@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
-import { epubResourceUrl, openEpub, type EpubBook } from "../electron";
+import { epubResourceUrl, openEpub, openEpubAbsolute, type EpubBook } from "../electron";
 
 // Minimal v1 EPUB reader (confirmed scope): unzip, walk the OPF spine in
 // order, one chapter per iframe with prev/next — no bookmarks, no
 // pagination, no TOC panel. Reuses the "viewer" TabKind (FileViewerContent
 // dispatches here the same way it already dispatches to video/audio/pdf
 // by extension).
-interface Props {
-  tabId: number;
-  filePath: string;
-}
+//
+// Two mutually-exclusive ways to identify the EPUB: a workspace-relative
+// path (TreeView/Quick Open — confined to the tab's root) or an absolute
+// path (the Ebook picker's Browse dialog — deliberately unconfined, see
+// openEpubAbsolute's doc comment).
+type Props =
+  | { tabId: number; filePath: string; absolutePath?: undefined }
+  | { tabId?: undefined; filePath?: undefined; absolutePath: string };
 
-export function EpubReaderContent({ tabId, filePath }: Props) {
+export function EpubReaderContent({ tabId, filePath, absolutePath }: Props) {
   const [book, setBook] = useState<EpubBook | null>(null);
   const [chapterIndex, setChapterIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +25,8 @@ export function EpubReaderContent({ tabId, filePath }: Props) {
     setChapterIndex(0);
     setError(null);
     let cancelled = false;
-    openEpub(tabId, filePath)
+    const request = absolutePath !== undefined ? openEpubAbsolute(absolutePath) : openEpub(tabId, filePath);
+    request
       .then((result) => {
         if (!cancelled) setBook(result);
       })
@@ -31,7 +36,7 @@ export function EpubReaderContent({ tabId, filePath }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [tabId, filePath]);
+  }, [tabId, filePath, absolutePath]);
 
   if (error) {
     return <div className="file-viewer-empty">{error}</div>;

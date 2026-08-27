@@ -29,7 +29,7 @@ interface Props {
   isDirty: (item: PaneTabItem) => boolean;
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
-  onNewTab: (kind: TabKind) => void;
+  onNewTab: (kind: TabKind, source?: Partial<PaneTabItem>) => void;
   onChangeKind: (tabId: string, kind: TabKind) => void;
   /** A tab was dropped into this group at `index` (from this same group or
    * a different one) — caller applies it via moveTabToGroup and persists. */
@@ -51,9 +51,16 @@ function tabLabel(item: PaneTabItem, dirty: boolean): string {
       }
       case "code":
       case "markdown":
-      case "viewer":
-        if (!item.filePath) return "New tab";
-        return item.filePath.split("/").pop() || item.filePath;
+      case "viewer": {
+        const path = item.filePath ?? item.absolutePath;
+        if (!path) {
+          if (item.viewerHint === "video") return "Video";
+          if (item.viewerHint === "audio") return "Audio";
+          if (item.viewerHint === "ebook") return "Ebook";
+          return "New tab";
+        }
+        return path.split("/").pop() || path;
+      }
       case "rss":
         if (item.title?.trim()) return item.title.trim();
         if (!item.feedUrl) return "RSS";
@@ -318,8 +325,8 @@ export function PaneTabStrip({
             <PanePicker
               anchorRect={addPickerAnchor}
               title="New tab"
-              onPick={(kind) => {
-                onNewTab(kind);
+              onPick={(kind, source) => {
+                onNewTab(kind, source);
                 closeAddPicker();
               }}
               onClose={closeAddPicker}

@@ -7,7 +7,7 @@ import {
   type MouseEvent,
   type WheelEvent,
 } from "react";
-import { getMediaUrl, readFileBinaryPreview } from "../electron";
+import { getMediaUrl, getMediaUrlAbsolute, pickMediaFileDialog, readFileBinaryPreview } from "../electron";
 import { classifyMediaExtension } from "./mediaKind";
 import { cuesToVtt, parseSrt, shiftCues, type SubtitleCue } from "./srtToVtt";
 import { EpubReaderContent } from "./EpubReaderContent";
@@ -31,6 +31,16 @@ import { EpubReaderContent } from "./EpubReaderContent";
 interface Props {
   tabId: number;
   filePath: string | null;
+  /** Set instead of filePath when the file was picked via the native
+   * Browse dialog rather than opened from within the workspace root — see
+   * PaneTabItem.absolutePath's doc comment. */
+  absolutePath: string | null;
+  /** Set only on a blank tab created via the Video/Audio/Ebook picker
+   * entries, before a file has been picked. Decides the Browse button's
+   * label/dialog filters and the empty state; ignored once filePath or
+   * absolutePath is set. */
+  viewerHint?: "video" | "audio" | "ebook";
+  onAssignAbsolutePath: (path: string) => void;
   treeOpen: boolean;
   onToggleTree: () => void;
 }
@@ -85,12 +95,21 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 
-export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: Props) {
+export function FileViewerContent({
+  tabId,
+  filePath,
+  absolutePath,
+  viewerHint,
+  onAssignAbsolutePath,
+  treeOpen,
+  onToggleTree,
+}: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState(0);
   const [error, setError] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
   // null = "fit" (VSCode's default scale-to-fit); a number is an explicit
   // zoom factor (1 = 100%) the user opted into via click/wheel/buttons.
   const [zoom, setZoom] = useState<number | null>(null);
@@ -99,12 +118,26 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
   const [subtitleOffset, setSubtitleOffset] = useState(0);
   const [subtitleVttUrl, setSubtitleVttUrl] = useState<string | null>(null);
 
-  const kind = filePath ? classifyMediaExtension(filePath) : "other";
+  // Images/PDF never come from the Browse-anywhere flow (no picker entry
+  // for them) — only video/audio/ebook do, so absolutePath only ever
+  // matters alongside those three kinds.
+  const activePath = filePath ?? absolutePath;
+  const kind = activePath ? classifyMediaExtension(activePath) : "other";
   const isVideo = kind === "video";
   const isAudio = kind === "audio";
   const isPdf = kind === "pdf";
   const isEpub = kind === "epub";
   const isMedia = isVideo || isAudio;
+
+  const onBrowse = useCallback(() => {
+    if (!viewerHint) return;
+    setBrowsing(true);
+    pickMediaFileDialog(viewerHint)
+      .then((path) => {
+        if (path) onAssignAbsolutePath(path);
+      })
+      .finally(() => setBrowsing(false));
+  }, [viewerHint, onAssignAbsolutePath]);
 
   useEffect(() => {
     setError(false);
@@ -114,7 +147,7 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
     setSubtitleCues(null);
     setSubtitleOffset(0);
     setSubtitleVttUrl(null);
-    if (!filePath) return;
+    if (!filePath && !absolutePath) return;
     // EPUB owns its own load path entirely (EpubReaderContent's openEpub
     // call) — neither the base64-preview path nor the media protocol
     // applies to a zip archive.
@@ -122,7 +155,8 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
 
     if (isMedia) {
       let cancelled = false;
-      getMediaUrl(tabId, filePath)
+      const request = absolutePath ? getMediaUrlAbsolute(absolutePath) : getMediaUrl(tabId, filePath!);
+      request
         .then((url) => {
           if (cancelled) return;
           if (!url) {
@@ -139,6 +173,9 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
       };
     }
 
+    // Only reachable for filePath (workspace-relative) — image/PDF never
+    // arrive via absolutePath (see the comment above activePath).
+    if (!filePath) return;
     let cancelled = false;
     let createdUrl: string | null = null;
     readFileBinaryPreview(tabId, filePath)
@@ -161,7 +198,7 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, filePath, isMedia]);
+  }, [tabId, filePath, absolutePath, isMedia, isEpub]);
 
   // Revoke the subtitle blob URL whenever it's replaced or the pane
   // unmounts — same cleanup shape as the image blob above.
@@ -312,12 +349,24 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
         </button>
       </div>
 
-      {!filePath ? (
-        <div className="file-viewer-empty">No file</div>
+      {!activePath ? (
+        viewerHint ? (
+          <div className="file-viewer-empty file-viewer-browse-prompt">
+            <button type="button" className="file-viewer-browse-button" onClick={onBrowse} disabled={browsing}>
+              {browsing ? "Choosing…" : `Browse for ${viewerHint}…`}
+            </button>
+          </div>
+        ) : (
+          <div className="file-viewer-empty">No file</div>
+        )
       ) : error ? (
         <div className="file-viewer-empty">Couldn't load file</div>
       ) : isEpub ? (
-        <EpubReaderContent tabId={tabId} filePath={filePath} />
+        absolutePath ? (
+          <EpubReaderContent absolutePath={absolutePath} />
+        ) : (
+          <EpubReaderContent tabId={tabId} filePath={filePath!} />
+        )
       ) : isVideo ? (
         !mediaUrl ? (
           <div className="file-viewer-empty">Loading…</div>
@@ -347,7 +396,7 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
                 zoom !== null && zoom >= PIXELATION_THRESHOLD ? " file-viewer-image-pixelated" : ""
               }`}
               src={blobUrl}
-              alt={filePath.split("/").pop() ?? filePath}
+              alt={activePath.split("/").pop() ?? activePath}
               draggable={false}
               style={zoom !== null ? ({ zoom } as CSSProperties) : undefined}
               onLoad={(e) => {

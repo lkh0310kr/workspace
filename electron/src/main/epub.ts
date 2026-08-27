@@ -54,8 +54,19 @@ function firstText(node: unknown): string | undefined {
  * have many EPUB tabs open at once in practice. */
 export async function openEpub(root: string, rel: string): Promise<EpubBook> {
   const absolutePath = resolveUnderRoot(root, rel)
-  const zip = new AdmZip(absolutePath)
+  return parseEpubZip(new AdmZip(absolutePath), path.basename(rel))
+}
 
+/** Same as openEpub, but for a file picked via the native Browse dialog —
+ * deliberately not confined to any workspace root. See toMediaUrlBrowsed
+ * in mediaProtocol.ts for the identical trust-boundary reasoning: this is
+ * only ever called with a path the OS-level picker returned to the main
+ * process, never a renderer-supplied string. */
+export async function openEpubAbsolute(absolutePath: string): Promise<EpubBook> {
+  return parseEpubZip(new AdmZip(absolutePath), path.basename(absolutePath))
+}
+
+async function parseEpubZip(zip: AdmZip, titleFallback: string): Promise<EpubBook> {
   const containerEntry = zip.getEntry('META-INF/container.xml')
   if (!containerEntry) throw new Error('not a valid EPUB (missing container.xml)')
   const containerXml = await parseStringPromise(zip.readAsText(containerEntry))
@@ -94,7 +105,7 @@ export async function openEpub(root: string, rel: string): Promise<EpubBook> {
   const title =
     firstText(pkg.metadata?.[0]?.['dc:title']) ??
     firstText(pkg.metadata?.[0]?.title) ??
-    path.basename(rel)
+    titleFallback
 
   const bookId = crypto.randomUUID()
   sessions.set(bookId, { zip, opfDir })

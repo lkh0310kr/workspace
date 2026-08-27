@@ -90,6 +90,7 @@ export interface WorkspaceApi {
   }
   dialog: {
     openDirectory: (defaultPath?: string) => Promise<string | null>
+    pickMediaFile: (kind: 'video' | 'audio' | 'ebook') => Promise<string | null>
   }
   clipboard: {
     writeText: (text: string) => void
@@ -161,12 +162,14 @@ export interface WorkspaceApi {
   }
   media: {
     getUrl: (tabId: number, rel: string) => Promise<string | null>
+    getUrlAbsolute: (absolutePath: string) => Promise<string>
   }
   rss: {
     fetchFeed: (url: string) => Promise<FeedResult>
   }
   epub: {
     open: (tabId: number, rel: string) => Promise<EpubBook>
+    openAbsolute: (absolutePath: string) => Promise<EpubBook>
   }
 }
 

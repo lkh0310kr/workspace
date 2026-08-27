@@ -13,6 +13,8 @@ const PaneTabItemSchema = z
     kind: TabKindSchema,
     terminalId: z.number().int().nonnegative().optional(),
     filePath: z.string().nullable().optional(),
+    absolutePath: z.string().optional(),
+    viewerHint: z.enum(["video", "audio", "ebook"]).optional(),
     url: z.string().optional(),
     feedUrl: z.string().optional(),
     favicon: z.string().optional(),

@@ -206,6 +206,10 @@ export async function getMediaUrl(tabId: number, path: string): Promise<string |
   return window.api.media.getUrl(tabId, path);
 }
 
+export async function getMediaUrlAbsolute(absolutePath: string): Promise<string> {
+  return window.api.media.getUrlAbsolute(absolutePath);
+}
+
 export interface FeedItem {
   title: string;
   link: string;
@@ -235,6 +239,10 @@ export interface EpubBook {
 
 export async function openEpub(tabId: number, path: string): Promise<EpubBook> {
   return window.api.epub.open(tabId, path);
+}
+
+export async function openEpubAbsolute(absolutePath: string): Promise<EpubBook> {
+  return window.api.epub.openAbsolute(absolutePath);
 }
 
 export function epubResourceUrl(bookId: string, href: string): string {
@@ -270,6 +278,10 @@ export async function revealItemInDir(path: string): Promise<void> {
 // Electron's dialog module only exists there.
 export async function openDirectoryDialog(defaultPath?: string): Promise<string | null> {
   return window.api.dialog.openDirectory(defaultPath);
+}
+
+export async function pickMediaFileDialog(kind: "video" | "audio" | "ebook"): Promise<string | null> {
+  return window.api.dialog.pickMediaFile(kind);
 }
 
 export function writeClipboardText(text: string): void {

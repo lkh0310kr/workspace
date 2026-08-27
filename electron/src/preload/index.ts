@@ -25,7 +25,9 @@ const api = {
   },
   dialog: {
     openDirectory: (defaultPath?: string): Promise<string | null> =>
-      ipcRenderer.invoke('dialog:open-directory', defaultPath)
+      ipcRenderer.invoke('dialog:open-directory', defaultPath),
+    pickMediaFile: (kind: 'video' | 'audio' | 'ebook'): Promise<string | null> =>
+      ipcRenderer.invoke('dialog:pick-media-file', kind)
   },
   clipboard: {
     writeText: (text: string): void => ipcRenderer.send('clipboard:write-text', text)
@@ -175,13 +177,17 @@ const api = {
   },
   media: {
     getUrl: (tabId: number, rel: string): Promise<string | null> =>
-      ipcRenderer.invoke('media:get-url', tabId, rel)
+      ipcRenderer.invoke('media:get-url', tabId, rel),
+    getUrlAbsolute: (absolutePath: string): Promise<string> =>
+      ipcRenderer.invoke('media:get-url-absolute', absolutePath)
   },
   rss: {
     fetchFeed: (url: string): Promise<unknown> => ipcRenderer.invoke('rss:fetch-feed', url)
   },
   epub: {
-    open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel)
+    open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),
+    openAbsolute: (absolutePath: string): Promise<unknown> =>
+      ipcRenderer.invoke('epub:open-absolute', absolutePath)
   }
 }
 

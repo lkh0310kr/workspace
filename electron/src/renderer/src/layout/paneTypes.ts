@@ -19,6 +19,17 @@ export interface PaneTabItem {
   terminalId?: number;
   /** kind === "code" | "markdown" | "viewer" */
   filePath?: string | null;
+  /** kind === "viewer" — set instead of filePath when the file was picked
+   * via the native Browse dialog rather than opened from within the
+   * workspace root (TreeView/Quick Open/Find in Files). Deliberately not
+   * confined to any workspace root — the user picked it explicitly
+   * through an OS-level file dialog. */
+  absolutePath?: string;
+  /** kind === "viewer" — set only on a blank tab created via the Video/
+   * Audio/Ebook picker entries, before a file has been picked; decides the
+   * Browse button's label/dialog filters and the "no file yet" empty
+   * state. Irrelevant (and ignored) once filePath/absolutePath is set. */
+  viewerHint?: "video" | "audio" | "ebook";
   /** kind === "browser" */
   url?: string;
   /** kind === "rss" — one feed per tab, entered once then persisted like
@@ -65,11 +76,23 @@ const TAB_KIND_META: Record<TabKind, { label: string; icon: string }> = {
 // non-markdown file (via TreeView, which classifies by extension) still
 // produces a real "code"-kind tab — this list only affects the picker,
 // not what TAB_KIND_META can render.
-export const TAB_KIND_OPTIONS: { id: TabKind; label: string; icon: string }[] = [
+export const TAB_KIND_OPTIONS: {
+  id: TabKind;
+  label: string;
+  icon: string;
+  source?: Partial<PaneTabItem>;
+}[] = [
   { id: "terminal", label: "Terminal", icon: "⌘" },
   { id: "browser", label: "Browser", icon: "🌐" },
   { id: "markdown", label: "Editor", icon: "{}" },
   { id: "rss", label: "RSS", icon: "📰" },
+  // Video/Audio/Ebook go straight to a Browse dialog instead of only being
+  // reachable by clicking a file already in the workspace tree — reuses
+  // the "viewer" kind (FileViewerContent already dispatches by extension),
+  // the source's viewerHint just decides the blank state's dialog filter.
+  { id: "viewer", label: "Video", icon: "🎬", source: { viewerHint: "video" } },
+  { id: "viewer", label: "Audio", icon: "🎵", source: { viewerHint: "audio" } },
+  { id: "viewer", label: "Ebook", icon: "📖", source: { viewerHint: "ebook" } },
 ];
 
 export function tabKindLabel(kind: TabKind): string {

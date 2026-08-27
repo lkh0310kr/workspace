@@ -1013,6 +1013,27 @@ iframe.browser-content-slot {
   font-size: 12px;
 }
 
+.file-viewer-browse-button {
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.file-viewer-browse-button:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.file-viewer-browse-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* RSS Reader pane (RssReaderContent.tsx) */
 .rss-reader {
   flex: 1;

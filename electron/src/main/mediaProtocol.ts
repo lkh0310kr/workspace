@@ -28,12 +28,33 @@ export const MEDIA_SCHEME = 'workspace-media'
 // path in `.pathname`, which the parser leaves case- and structure-intact.
 const MEDIA_HOST = 'local'
 
-export function toMediaUrl(absolutePath: string): string {
+// Why a second host instead of reusing MEDIA_HOST for browsed files too:
+// the host itself is the trust signal the protocol handler switches on —
+// 'local' means "confine to an open workspace root", 'browsed' means "the
+// user explicitly picked this via the native Browse dialog, skip that
+// check". Using a distinct host keeps that decision explicit in the URL
+// rather than threading a second boolean through toMediaUrl's one caller
+// path.
+const MEDIA_HOST_BROWSED = 'browsed'
+
+function buildMediaUrl(host: string, absolutePath: string): string {
   const encodedPath = absolutePath
     .split('/')
     .map((segment) => encodeURIComponent(segment))
     .join('/')
-  return `${MEDIA_SCHEME}://${MEDIA_HOST}${encodedPath}`
+  return `${MEDIA_SCHEME}://${host}${encodedPath}`
+}
+
+export function toMediaUrl(absolutePath: string): string {
+  return buildMediaUrl(MEDIA_HOST, absolutePath)
+}
+
+/** For a file picked via the native Browse dialog (dialog:pick-media-file)
+ * — deliberately NOT confined to any workspace root. The dialog itself is
+ * the trust boundary: this is only ever called with a path the OS-level
+ * picker returned to the main process, never a renderer-supplied string. */
+export function toMediaUrlBrowsed(absolutePath: string): string {
+  return buildMediaUrl(MEDIA_HOST_BROWSED, absolutePath)
 }
 
 // Must run before app 'ready' — Chromium reads privileged-scheme
@@ -70,9 +91,14 @@ export const MEDIA_MIME_TYPES: Record<string, string> = {
 export function registerMediaProtocol(getAllowedRoots: () => string[]): void {
   protocol.handle(MEDIA_SCHEME, async (request) => {
     let absolutePath: string
+    let browsed: boolean
     try {
       const url = new URL(request.url)
-      if (url.hostname !== MEDIA_HOST) {
+      if (url.hostname === MEDIA_HOST) {
+        browsed = false
+      } else if (url.hostname === MEDIA_HOST_BROWSED) {
+        browsed = true
+      } else {
         return new Response('bad request', { status: 400 })
       }
       absolutePath = decodeURIComponent(url.pathname)
@@ -87,14 +113,16 @@ export function registerMediaProtocol(getAllowedRoots: () => string[]): void {
       return new Response('not found', { status: 404 })
     }
 
-    const confined = getAllowedRoots().some((root) => {
-      try {
-        const realRoot = fs.realpathSync(root)
-        return realPath === realRoot || realPath.startsWith(realRoot + path.sep)
-      } catch {
-        return false
-      }
-    })
+    const confined =
+      browsed ||
+      getAllowedRoots().some((root) => {
+        try {
+          const realRoot = fs.realpathSync(root)
+          return realPath === realRoot || realPath.startsWith(realRoot + path.sep)
+        } catch {
+          return false
+        }
+      })
     if (!confined) {
       return new Response('forbidden', { status: 403 })
     }
