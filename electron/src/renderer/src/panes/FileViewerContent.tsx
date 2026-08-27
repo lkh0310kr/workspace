@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useState, type WheelEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type WheelEvent,
+} from "react";
 import { readFileBinaryPreview } from "../electron";
 
 // v1 of the ideation.md "File Viewer" pane — images and PDFs only, per the
@@ -17,24 +25,45 @@ interface Props {
   onToggleTree: () => void;
 }
 
+// Zoom behavior ported from VSCode's own image preview
+// (extensions/media-preview/media/imagePreview.js) rather than invented:
+// discrete zoom levels (not a fixed step), a multiplicative pinch factor
+// keyed off wheel direction only (not raw deltaY — trackpads report wildly
+// different magnitudes), and pixelation past 3x. Not ported: VSCode's
+// scroll-position-centered re-zoom and copy-as-PNG — real complexity this
+// pane's scope doesn't need yet.
+const ZOOM_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2, 3, 5, 7, 10, 15, 20];
 const ZOOM_MIN = 0.1;
-const ZOOM_MAX = 8;
-const ZOOM_STEP = 0.25;
+const ZOOM_MAX = 20;
+const PINCH_FACTOR = 0.075;
+const PIXELATION_THRESHOLD = 3;
 
 function clampZoom(value: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB"];
-  let value = bytes / 1024;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex++;
-  }
-  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
+function nextZoomIn(current: number): number {
+  const next = ZOOM_LEVELS.find((level) => level > current);
+  return next ?? ZOOM_MAX;
+}
+
+function nextZoomOut(current: number): number {
+  const next = [...ZOOM_LEVELS].reverse().find((level) => level < current);
+  return next ?? ZOOM_MIN;
+}
+
+// Byte formatting matches VSCode's binarySizeStatusBarEntry.ts exactly
+// (no space before the unit, always 2 decimals for KB and up).
+function formatBytes(size: number): string {
+  const KB = 1024;
+  const MB = KB * KB;
+  const GB = MB * KB;
+  const TB = GB * KB;
+  if (size < KB) return `${size}B`;
+  if (size < MB) return `${(size / KB).toFixed(2)}KB`;
+  if (size < GB) return `${(size / MB).toFixed(2)}MB`;
+  if (size < TB) return `${(size / GB).toFixed(2)}GB`;
+  return `${(size / TB).toFixed(2)}TB`;
 }
 
 function base64ToBlob(base64: string, mimeType: string): Blob {
@@ -47,12 +76,13 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
 }
 
 export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: Props) {
+  const imgRef = useRef<HTMLImageElement>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState(0);
   const [error, setError] = useState(false);
-  // null = fit-to-frame (VSCode's default); a number is an explicit zoom
-  // factor (1 = 100%) the user opted into via click/wheel/buttons.
+  // null = "fit" (VSCode's default scale-to-fit); a number is an explicit
+  // zoom factor (1 = 100%) the user opted into via click/wheel/buttons.
   const [zoom, setZoom] = useState<number | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
 
@@ -85,16 +115,45 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
     };
   }, [tabId, filePath]);
 
-  // Ctrl/Cmd+wheel is how a trackpad pinch reaches the DOM (Chromium
-  // synthesizes it as a wheel event with ctrlKey set, the same convention
-  // browsers use for page zoom) — there is no separate pinch gesture event.
-  const onWheel = useCallback((e: WheelEvent) => {
-    if (!e.ctrlKey) return;
-    e.preventDefault();
-    setZoom((prev) => clampZoom((prev ?? 1) - e.deltaY * 0.01));
-  }, []);
+  // The scale-to-fit ratio actually on screen right now, used as the
+  // starting point the first time the user zooms in/out from "fit" —
+  // matches VSCode's firstZoom(): image.clientWidth / naturalWidth, or 1
+  // for an SVG with only a viewBox (no intrinsic natural size).
+  const currentEffectiveZoom = useCallback((): number => {
+    if (zoom !== null) return zoom;
+    const img = imgRef.current;
+    if (img && naturalSize && naturalSize.width > 0) {
+      return img.clientWidth / naturalSize.width;
+    }
+    return 1;
+  }, [zoom, naturalSize]);
 
-  const zoomLabel = zoom === null ? "Fit" : `${Math.round(zoom * 100)}%`;
+  const onImageClick = useCallback(
+    (e: MouseEvent) => {
+      const base = currentEffectiveZoom();
+      const zoomOut = e.altKey || e.ctrlKey || e.metaKey;
+      setZoom(clampZoom(zoomOut ? nextZoomOut(base) : nextZoomIn(base)));
+    },
+    [currentEffectiveZoom],
+  );
+
+  // Ctrl/Cmd+wheel is how a trackpad pinch reaches the DOM (Chromium
+  // synthesizes it as a wheel event with ctrlKey set — there is no separate
+  // pinch gesture event). Direction only, not raw deltaY magnitude: VSCode
+  // does the same since trackpads report wildly different deltaY scales
+  // across OSes/devices.
+  const onWheel = useCallback(
+    (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const base = currentEffectiveZoom();
+      const direction = e.deltaY > 0 ? 1 : -1;
+      setZoom(clampZoom(base * (1 - direction * PINCH_FACTOR)));
+    },
+    [currentEffectiveZoom],
+  );
+
+  const zoomLabel = zoom === null ? "Whole Image" : `${Math.round(zoom * 100)}%`;
   const isPdf = mimeType === "application/pdf";
 
   return (
@@ -105,9 +164,8 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
             <button
               type="button"
               className="obsidian-topbar-icon"
-              title="Zoom out"
-              disabled={clampZoom((zoom ?? 1) - ZOOM_STEP) === (zoom ?? 1)}
-              onClick={() => setZoom(clampZoom((zoom ?? 1) - ZOOM_STEP))}
+              title="Zoom out (or Alt/Ctrl+click the image)"
+              onClick={() => setZoom(clampZoom(nextZoomOut(currentEffectiveZoom())))}
             >
               −
             </button>
@@ -122,9 +180,8 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
             <button
               type="button"
               className="obsidian-topbar-icon"
-              title="Zoom in"
-              disabled={clampZoom((zoom ?? 1) + ZOOM_STEP) === (zoom ?? 1)}
-              onClick={() => setZoom(clampZoom((zoom ?? 1) + ZOOM_STEP))}
+              title="Zoom in (or click the image)"
+              onClick={() => setZoom(clampZoom(nextZoomIn(currentEffectiveZoom())))}
             >
               +
             </button>
@@ -157,27 +214,26 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
         <>
           <div className="file-viewer-image-frame" onWheel={onWheel}>
             <img
-              className={`file-viewer-image${zoom === null ? " file-viewer-image-fit" : ""}`}
+              ref={imgRef}
+              className={`file-viewer-image${zoom === null ? " file-viewer-image-fit" : ""}${
+                zoom !== null && zoom >= PIXELATION_THRESHOLD ? " file-viewer-image-pixelated" : ""
+              }`}
               src={blobUrl}
               alt={filePath.split("/").pop() ?? filePath}
               draggable={false}
-              style={
-                zoom !== null && naturalSize
-                  ? { width: naturalSize.width * zoom, height: naturalSize.height * zoom }
-                  : undefined
-              }
+              style={zoom !== null ? ({ zoom } as CSSProperties) : undefined}
               onLoad={(e) => {
                 const img = e.currentTarget;
                 setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
               }}
               onError={() => setError(true)}
-              onClick={() => setZoom((prev) => (prev === null ? 1 : null))}
+              onClick={onImageClick}
             />
           </div>
           <div className="file-viewer-statusbar">
             {naturalSize ? (
               <span>
-                {naturalSize.width} × {naturalSize.height}
+                {naturalSize.width}x{naturalSize.height}
               </span>
             ) : null}
             <span>{formatBytes(fileSize)}</span>

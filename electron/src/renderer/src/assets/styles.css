@@ -834,27 +834,32 @@ iframe.browser-content-slot {
   justify-content: center;
   overflow: auto;
   padding: 16px;
-  /* Checkered transparency backdrop (VSCode's image preview) — makes a
-     transparent PNG/SVG legible against the flat editor background. */
-  background-image:
-    linear-gradient(45deg, var(--bg-hover) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--bg-hover) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--bg-hover) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--bg-hover) 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
 }
 
+/* Checkered transparency backdrop, ported from VSCode's
+   imagePreview.css (.container.image img) — a conic-gradient pie tile,
+   not a diagonal stripe. Makes a transparent PNG/SVG legible against the
+   flat editor background; theme-scoped like their .vscode-dark variant. */
 .file-viewer-image {
   display: block;
   cursor: zoom-in;
+  background-size: 16px 16px;
+  background-image: conic-gradient(
+    var(--bg-hover) 25%,
+    transparent 25% 50%,
+    var(--bg-hover) 50% 75%,
+    transparent 75%
+  );
 }
 
 .file-viewer-image-fit {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  cursor: zoom-in;
+}
+
+.file-viewer-image-pixelated {
+  image-rendering: pixelated;
 }
 
 .file-viewer-zoom-label {
