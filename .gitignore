@@ -1,1 +1,9 @@
 /ref-proj
+.DS_Store
+
+# Personal dev-session state / debug artifacts — not meant to be shared
+# (exported layout snapshots, scratch test files, debug logs). Keeps
+# .cursor/skills/ itself trackable, only ignores its debug-*.log output.
+/.workspace/
+/test/
+.cursor/debug-*.log
