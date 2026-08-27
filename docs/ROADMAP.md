@@ -45,3 +45,17 @@ See [docs/architecture/README.md](./architecture/README.md).
 - [x] Zustand workspace-scope store (Phase 2) — workspace hydration, layout models, pane active tabs, coordinator bridge
 - [ ] Embed cold-park + LRU webview registry (Phase 3)
 - [ ] Zod + salvage workspace persistence (Phase 4)
+
+## Phase H — Creative panes (long-term, not scheduled)
+
+Vector Editor first, to real completion, before anything else in this
+family — see [architecture/08-vector-editor.md](./architecture/08-vector-editor.md).
+
+- [ ] M1 — scene graph, SVG render, selection/transform (rect/ellipse)
+- [ ] M2 — pen tool, line tool
+- [ ] M3 — stroke/fill UI, group/ungroup
+- [ ] M4 — undo/redo, export SVG/PNG, polish
+- [ ] M5 — text tool
+
+Not committed / reference only for now: Pixel Art, Diagram, Presentation,
+2D Animation, Paint, 3D Modeler.

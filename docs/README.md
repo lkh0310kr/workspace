@@ -18,6 +18,7 @@ Project documentation for the Workspace desktop app (Electron).
 - [Terminal pipeline](./architecture/05-terminal-pipeline.md) — PTY, xterm, WebGL, pane manager
 - [Browser embeds](./architecture/06-browser-embeds.md) — webview lifecycle and navigation
 - [Future phases](./architecture/07-future-phases.md) — planned Zustand, cold-park, persistence
+- [Vector editor](./architecture/08-vector-editor.md) — planned creative-pane design (not yet built)
 
 ## Conventions
 
