@@ -1,6 +1,30 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type WheelEvent as ReactWheelEvent } from "react";
 import { listDir, readFile, writeFile } from "../electron";
+import { Tooltip } from "../components/Tooltip";
 import { anchorsToPathData, mirroredHandle } from "./vector/bezierPath";
+import {
+  BringForwardIcon,
+  BringToFrontIcon,
+  DownloadIcon,
+  EllipseIcon,
+  FlipHorizontalIcon,
+  FlipVerticalIcon,
+  GroupIcon,
+  LineIcon,
+  PenIcon,
+  RectIcon,
+  RedoIcon,
+  SaveIcon,
+  SelectIcon,
+  SendBackwardIcon,
+  SendToBackIcon,
+  TextIcon,
+  UndoIcon,
+  UngroupIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+  ZoomToSelectionIcon,
+} from "./vector/icons";
 import {
   cloneWithNewIds,
   createBlankDocument,
@@ -1227,187 +1251,208 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   return (
     <div className="vector-editor">
       <div className="vector-toolbar">
-        <button
-          type="button"
-          className={`vector-tool${tool === "select" ? " active" : ""}`}
-          title="Select (V)"
-          onClick={() => setTool("select")}
+        <Tooltip title="Select" description="V — click to select, drag to move, shift-click to multi-select">
+          <button
+            type="button"
+            className={`vector-tool${tool === "select" ? " active" : ""}`}
+            onClick={() => setTool("select")}
+          >
+            <SelectIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Rectangle" description="R — click-drag to draw a rectangle">
+          <button
+            type="button"
+            className={`vector-tool${tool === "rect" ? " active" : ""}`}
+            onClick={() => setTool("rect")}
+          >
+            <RectIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Ellipse" description="O — click-drag to draw an ellipse">
+          <button
+            type="button"
+            className={`vector-tool${tool === "ellipse" ? " active" : ""}`}
+            onClick={() => setTool("ellipse")}
+          >
+            <EllipseIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Line" description="L — click-drag to draw a straight line">
+          <button
+            type="button"
+            className={`vector-tool${tool === "line" ? " active" : ""}`}
+            onClick={() => setTool("line")}
+          >
+            <LineIcon />
+          </button>
+        </Tooltip>
+        <Tooltip
+          title="Pen"
+          description="P — click to add anchors, drag while placing for a smooth curve, Enter or click the first anchor to finish"
         >
-          ▲
-        </button>
-        <button
-          type="button"
-          className={`vector-tool${tool === "rect" ? " active" : ""}`}
-          title="Rectangle (R)"
-          onClick={() => setTool("rect")}
-        >
-          ▭
-        </button>
-        <button
-          type="button"
-          className={`vector-tool${tool === "ellipse" ? " active" : ""}`}
-          title="Ellipse (O)"
-          onClick={() => setTool("ellipse")}
-        >
-          ◯
-        </button>
-        <button
-          type="button"
-          className={`vector-tool${tool === "line" ? " active" : ""}`}
-          title="Line (L)"
-          onClick={() => setTool("line")}
-        >
-          ╱
-        </button>
-        <button
-          type="button"
-          className={`vector-tool${tool === "pen" ? " active" : ""}`}
-          title="Pen (P) — click to add anchors, drag while placing for a smooth curve, Enter/click the first anchor to finish"
-          onClick={() => setTool("pen")}
-        >
-          ✎
-        </button>
-        <button
-          type="button"
-          className={`vector-tool${tool === "text" ? " active" : ""}`}
-          title="Text (T) — click to place, edit content in the panel"
-          onClick={() => setTool("text")}
-        >
-          T
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Group (⌘G)"
-          disabled={selectedIds.size < 2}
-          onClick={groupSelection}
-        >
-          ⌗
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Ungroup (⌘⇧G)"
-          disabled={selectedObject?.type !== "group"}
-          onClick={ungroupSelection}
-        >
-          ⌗̸
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Undo (⌘Z)"
-          disabled={!canUndo(history)}
-          onClick={undoAction}
-        >
-          ↶
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Redo (⌘⇧Z)"
-          disabled={!canRedo(history)}
-          onClick={redoAction}
-        >
-          ↷
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Send to Back ({)"
-          disabled={selectedIds.size === 0}
-          onClick={() => reorderSelection("back")}
-        >
-          ⇤
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Send Backward ([)"
-          disabled={selectedIds.size === 0}
-          onClick={() => reorderSelection("backward")}
-        >
-          ←
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Bring Forward (])"
-          disabled={selectedIds.size === 0}
-          onClick={() => reorderSelection("forward")}
-        >
-          →
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Bring to Front (})"
-          disabled={selectedIds.size === 0}
-          onClick={() => reorderSelection("front")}
-        >
-          ⇥
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Flip Horizontal (⇧H)"
-          disabled={selectedTransformableObjects.length === 0}
-          onClick={() => flipSelection("x")}
-        >
-          ⇔
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Flip Vertical (⇧V)"
-          disabled={selectedTransformableObjects.length === 0}
-          onClick={() => flipSelection("y")}
-        >
-          ⇕
-        </button>
+          <button
+            type="button"
+            className={`vector-tool${tool === "pen" ? " active" : ""}`}
+            onClick={() => setTool("pen")}
+          >
+            <PenIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Text" description="T — click to place, edit content and size in the panel on the right">
+          <button
+            type="button"
+            className={`vector-tool${tool === "text" ? " active" : ""}`}
+            onClick={() => setTool("text")}
+          >
+            <TextIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Group" description="⌘G — combine the current multi-selection into one object">
+          <button type="button" className="vector-tool" disabled={selectedIds.size < 2} onClick={groupSelection}>
+            <GroupIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Ungroup" description="⌘⇧G — split the selected group back into its individual objects">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedObject?.type !== "group"}
+            onClick={ungroupSelection}
+          >
+            <UngroupIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Undo" description="⌘Z — undo the last completed action">
+          <button type="button" className="vector-tool" disabled={!canUndo(history)} onClick={undoAction}>
+            <UndoIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Redo" description="⌘⇧Z — redo the last undone action">
+          <button type="button" className="vector-tool" disabled={!canRedo(history)} onClick={redoAction}>
+            <RedoIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Send to Back" description="{ — move the selection behind everything else">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedIds.size === 0}
+            onClick={() => reorderSelection("back")}
+          >
+            <SendToBackIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Send Backward" description="[ — move the selection one step behind its neighbor">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedIds.size === 0}
+            onClick={() => reorderSelection("backward")}
+          >
+            <SendBackwardIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Bring Forward" description="] — move the selection one step in front of its neighbor">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedIds.size === 0}
+            onClick={() => reorderSelection("forward")}
+          >
+            <BringForwardIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Bring to Front" description="} — move the selection in front of everything else">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedIds.size === 0}
+            onClick={() => reorderSelection("front")}
+          >
+            <BringToFrontIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Flip Horizontal" description="⇧H — mirror the selection left-right about its own center">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length === 0}
+            onClick={() => flipSelection("x")}
+          >
+            <FlipHorizontalIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Flip Vertical" description="⇧V — mirror the selection top-bottom about its own center">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length === 0}
+            onClick={() => flipSelection("y")}
+          >
+            <FlipVerticalIcon />
+          </button>
+        </Tooltip>
         <span className="vector-toolbar-spacer" />
-        <button type="button" className="vector-tool" title="Zoom Out (-)" onClick={() => zoomBy(1 / ZOOM_STEP)}>
-          −
-        </button>
-        <button type="button" className="vector-tool vector-zoom-label" title="Reset Zoom (0)" onClick={resetView}>
-          {Math.round(zoom * 100)}%
-        </button>
-        <button type="button" className="vector-tool" title="Zoom In (+)" onClick={() => zoomBy(ZOOM_STEP)}>
-          +
-        </button>
-        <button
-          type="button"
-          className="vector-tool"
-          title="Zoom to Selection (2)"
-          disabled={selectedTransformableObjects.length === 0}
-          onClick={zoomToSelection}
-        >
-          ⤢
-        </button>
+        <Tooltip title="Zoom Out" description="- — zoom out, centered on the current view">
+          <button type="button" className="vector-tool" onClick={() => zoomBy(1 / ZOOM_STEP)}>
+            <ZoomOutIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Reset Zoom" description="0 — back to 100%, viewport centered on the document">
+          <button type="button" className="vector-tool vector-zoom-label" onClick={resetView}>
+            {Math.round(zoom * 100)}%
+          </button>
+        </Tooltip>
+        <Tooltip title="Zoom In" description="+ — zoom in, centered on the current view">
+          <button type="button" className="vector-tool" onClick={() => zoomBy(ZOOM_STEP)}>
+            <ZoomInIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Zoom to Selection" description="2 — fit the current selection in view">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length === 0}
+            onClick={zoomToSelection}
+          >
+            <ZoomToSelectionIcon />
+          </button>
+        </Tooltip>
         <span className="vector-toolbar-spacer" />
-        <button type="button" className="vector-tool" title="Export SVG" onClick={() => void exportSvg()}>
-          SVG
-        </button>
-        <button type="button" className="vector-tool" title="Export PNG" onClick={() => void exportPng()}>
-          PNG
-        </button>
+        <Tooltip title="Export SVG" description="Write the document as a real .svg file next to the project">
+          <button type="button" className="vector-tool vector-tool-label" onClick={() => void exportSvg()}>
+            <DownloadIcon />
+            SVG
+          </button>
+        </Tooltip>
+        <Tooltip title="Export PNG" description="Rasterize the document and download it as a .png file">
+          <button type="button" className="vector-tool vector-tool-label" onClick={() => void exportPng()}>
+            <DownloadIcon />
+            PNG
+          </button>
+        </Tooltip>
         <span className={`vector-save-status${dirty ? " unsaved" : ""}`}>{dirty ? "Unsaved" : "Saved"}</span>
-        <button type="button" className="vector-save" onClick={() => void save()} title="Save (⌘S)">
-          Save
-        </button>
-        <button
-          type="button"
-          className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`}
-          title="Toggle file explorer"
-          onClick={onToggleTree}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z"
-            />
-          </svg>
-        </button>
+        <Tooltip title="Save" description="⌘S — write the current document to its .vec.json project file">
+          <button type="button" className="vector-save" onClick={() => void save()}>
+            <SaveIcon />
+            Save
+          </button>
+        </Tooltip>
+        <Tooltip title="File Explorer" description="Toggle the file tree sidebar for this pane">
+          <button
+            type="button"
+            className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`}
+            onClick={onToggleTree}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z"
+              />
+            </svg>
+          </button>
+        </Tooltip>
       </div>
       <div className="vector-body">
       <div className="vector-canvas-scroll">
