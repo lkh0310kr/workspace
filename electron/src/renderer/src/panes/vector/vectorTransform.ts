@@ -14,14 +14,27 @@
 // compose the same pivot formula, so they can never disagree about where
 // a shape actually is.
 
-import type { EllipseObject, GroupObject, LineObject, PathObject, RectObject, SceneObject, Transform } from "./sceneGraph";
+import type {
+  EllipseObject,
+  GroupObject,
+  LineObject,
+  PathObject,
+  RectObject,
+  SceneObject,
+  TextObject,
+  Transform,
+} from "./sceneGraph";
 
 // GroupObject joined the union in M3, restricted to *translation-only*
 // transforms for now (see VectorEditorContent.tsx's group/ungroup) — its
 // own resize/rotate handles aren't shown, only a move-drag. That
 // restriction is what makes Ungroup's transform math a plain addition
 // instead of a general affine decomposition (see groupObjectLocalBounds).
-export type TransformableObject = RectObject | EllipseObject | LineObject | PathObject | GroupObject;
+// TextObject joined in M5 — same move-only treatment as Group (no resize
+// handles; font size is edited as a number field instead of a corner
+// drag), for the same "don't build a general affine story where a
+// simpler one covers the real use case" reason.
+export type TransformableObject = RectObject | EllipseObject | LineObject | PathObject | GroupObject | TextObject;
 
 export interface Point {
   x: number;
@@ -62,6 +75,16 @@ export function localBounds(obj: TransformableObject): Bounds {
   if (obj.type === "ellipse") return { x: obj.cx - obj.rx, y: obj.cy - obj.ry, width: obj.rx * 2, height: obj.ry * 2 };
   if (obj.type === "line") return boundsOfPoints([{ x: obj.x1, y: obj.y1 }, { x: obj.x2, y: obj.y2 }]);
   if (obj.type === "path") return boundsOfPoints(obj.anchors.length > 0 ? obj.anchors : [{ x: 0, y: 0 }]);
+  if (obj.type === "text") {
+    // No live DOM measurement here (this module is a pure function, unit-
+    // tested without a DOM) — approximated from fontSize using typical
+    // average-character-width/line-height ratios. Good enough for a
+    // selection outline and move hit-testing; not pixel-exact against the
+    // real rendered glyphs, same tradeoff as Path's anchor-only bounds
+    // above.
+    const width = Math.max(1, obj.content.length) * obj.fontSize * 0.6;
+    return { x: obj.x, y: obj.y - obj.fontSize * 0.8, width, height: obj.fontSize * 1.2 };
+  }
   // Group: union of children's own document bounds, treating the group's
   // *own* transform as not-yet-applied — valid because a child's
   // transform already encodes its position independent of any ancestor
@@ -72,8 +95,11 @@ export function localBounds(obj: TransformableObject): Bounds {
   return boundsUnion(transformableChildren.map(documentBounds));
 }
 
+// Every SceneObject variant is now in TransformableObject (Text joined in
+// M5) — kept as a named function rather than inlining `true` so a future
+// non-transformable kind has an obvious place to add its exclusion.
 function isSceneObjectTransformable(obj: SceneObject): obj is TransformableObject {
-  return obj.type !== "text";
+  return !!obj;
 }
 
 export function boundsCenter(b: Bounds): Point {
@@ -185,10 +211,10 @@ export function hitTest(obj: TransformableObject, point: Point): boolean {
   if (obj.type === "line") {
     return distanceToSegment(local, { x: obj.x1, y: obj.y1 }, { x: obj.x2, y: obj.y2 }) <= STROKE_HIT_THRESHOLD;
   }
-  if (obj.type === "group") {
-    // Not used anywhere yet — groups are hit-tested via native SVG click
-    // dispatch (each rendered child's own DOM element), not this
-    // function. Bounding-box fallback so this stays a total function.
+  if (obj.type === "group" || obj.type === "text") {
+    // Not used anywhere yet — both are hit-tested via native SVG click
+    // dispatch (each rendered element's own DOM node), not this function.
+    // Bounding-box fallback so this stays a total function.
     const b = localBounds(obj);
     return local.x >= b.x && local.x <= b.x + b.width && local.y >= b.y && local.y <= b.y + b.height;
   }

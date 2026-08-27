@@ -192,6 +192,27 @@ objects), not the OS clipboard — there's no good OS-clipboard home for
 arbitrary app-defined shape JSON, and in-memory is sufficient since paste
 only needs to work within the same running app.
 
+**M5 scope note:** Text joined `TransformableObject` (move-drag + outline,
+same as Group — see the M3 note above) rather than getting its own
+separate interaction model, but it does **not** get resize/rotate
+handles: font size is a number field in the inspector instead of a
+corner drag, since dragging a text box's corner conventionally means
+"scale the glyphs," which is a different operation from every other
+shape's "stretch the geometry" resize and wasn't worth a second resize
+code path for v1. Content and font size are edited in the inspector
+panel, not inline-on-canvas — an inline contenteditable overlay
+positioned correctly under an arbitrarily rotated SVG `transform` is its
+own real problem (see tldraw's `TextShapeTool`/measurement code for how
+much machinery that takes), and the inspector-panel approach reuses the
+exact pattern already built for stroke/fill editing rather than adding a
+new one. `localBounds` for text is a heuristic
+(`content.length * fontSize * 0.6` for width, `fontSize * 1.2` for
+height) rather than real font-metric measurement, since this module is a
+pure function unit-tested without a DOM (see svgExport.ts's own
+DOMParser note) — good enough for selection/move, not pixel-exact
+against the rendered glyphs. All of this is revisitable if text turns
+out to need Illustrator-grade precision in real use.
+
 ## Explicit non-goals for v1
 
 Boolean operations (union/subtract/intersect), gradients, constraints/

@@ -9,6 +9,7 @@ import {
   createLine,
   createPath,
   createRect,
+  createText,
   parseDocument,
   serializeDocument,
   type EllipseObject,
@@ -17,6 +18,7 @@ import {
   type RectObject,
   type SceneObject,
   type ShapeStyle,
+  type TextObject,
   type VectorDocument,
 } from "./vector/sceneGraph";
 import {
@@ -41,10 +43,11 @@ import { documentToSvg } from "./vector/svgExport";
 
 // Vector Editor pane (see docs/architecture/08-vector-editor.md). M1:
 // Rect/Ellipse, single-selection, move/resize/rotate, save/load as plain
-// JSON. M2: pen tool (Path), Line tool. M3: stroke/fill UI, groups. M4
-// (this file now): undo/redo, export SVG/PNG, delete/duplicate/copy-
-// paste/nudge. Still no text (M5) — see the design doc for the full
-// build order.
+// JSON. M2: pen tool (Path), Line tool. M3: stroke/fill UI, groups. M4:
+// undo/redo, export SVG/PNG, delete/duplicate/copy-paste/nudge. M5 (this
+// file now): Text tool — click to place, content/font-size edited in the
+// inspector panel rather than inline-on-canvas (see the design doc's M5
+// scope note for why). All five build-order milestones are now in.
 interface Props {
   tabId: number;
   filePath: string | null;
@@ -53,7 +56,7 @@ interface Props {
   onToggleTree: () => void;
 }
 
-type Tool = "select" | "rect" | "ellipse" | "line" | "pen";
+type Tool = "select" | "rect" | "ellipse" | "line" | "pen" | "text";
 
 // move/resize/rotate all carry the target object's id directly rather
 // than relying on the `selectedId` React state closure — the window-level
@@ -78,7 +81,7 @@ const RESIZE_HANDLES: HandleId[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const ROTATE_HANDLE_OFFSET = 24; // doc-space px above the "n" handle
 const PEN_CLOSE_THRESHOLD = 8; // doc-space px — click near the first anchor to close
 const PEN_HANDLE_MIN_DRAG = 2; // doc-space px — below this, treat as a plain corner click
-const TOOL_SHORTCUTS: Record<string, Tool> = { v: "select", r: "rect", o: "ellipse", l: "line", p: "pen" };
+const TOOL_SHORTCUTS: Record<string, Tool> = { v: "select", r: "rect", o: "ellipse", l: "line", p: "pen", t: "text" };
 const DUPLICATE_OFFSET = 12; // doc-space px — offset applied to duplicate/paste so the copy isn't hidden directly under the original
 const NUDGE_STEP = 1;
 const NUDGE_STEP_LARGE = 10; // held with Shift
@@ -96,8 +99,10 @@ async function findAvailableUntitledExportName(tabId: number, ext: string): Prom
   return `untitled ${i}.${ext}`;
 }
 
+// Every SceneObject variant is a TransformableObject now (Text joined in
+// M5) — see vector/vectorTransform.ts's isSceneObjectTransformable.
 function isTransformable(obj: SceneObject): obj is TransformableObject {
-  return obj.type !== "text";
+  return !!obj;
 }
 
 type DraftShape = RectObject | EllipseObject | LineObject;
@@ -294,9 +299,14 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
   const selectedObject = selectedObjects.length === 1 ? selectedObjects[0] : null;
   const selectedTransformable =
     selectedObject && isTransformable(selectedObject) ? selectedObject : null;
-  // Groups don't get resize/rotate handles in M3 (see createGroup's doc
-  // comment) — move-drag still works for them via the ordinary path.
-  const selectedResizable = selectedTransformable && selectedTransformable.type !== "group" ? selectedTransformable : null;
+  // Groups (M3) and Text (M5) don't get resize/rotate handles — move-drag
+  // still works for them via the ordinary path (see createGroup's and
+  // createText's doc comments / vectorTransform.ts's TransformableObject
+  // comment for why).
+  const selectedResizable =
+    selectedTransformable && selectedTransformable.type !== "group" && selectedTransformable.type !== "text"
+      ? selectedTransformable
+      : null;
   // Stroke/fill inspector — anything with a `style` field, i.e. not a
   // group (groups don't have one; propagating a style edit to every
   // child is a later polish item, not in M3) and not multi-selected.
@@ -306,6 +316,18 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     (patch: Partial<ShapeStyle>) => {
       if (!styleable) return;
       replaceObject(styleable.id, { ...styleable, style: { ...styleable.style, ...patch } });
+    },
+    [styleable, replaceObject],
+  );
+
+  // No history entry here, matching updateStyle above — both are driven by
+  // continuous input fields (text box keystrokes, a number input) with no
+  // clean "gesture end" signal the way a drag has, so they're not part of
+  // the undo stack (same as e.g. a color picker's live-preview drag).
+  const updateText = useCallback(
+    (patch: Partial<Pick<TextObject, "content" | "fontSize">>) => {
+      if (!styleable || styleable.type !== "text") return;
+      replaceObject(styleable.id, { ...styleable, ...patch });
     },
     [styleable, replaceObject],
   );
@@ -675,6 +697,17 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       startDrag({ kind: "draw", tool, startDocPoint: docPoint });
       return;
     }
+    if (tool === "text") {
+      const current = docRef.current;
+      if (!current) return;
+      const text = createText(docPoint.x, docPoint.y);
+      const after = { ...current, objects: [...current.objects, text] };
+      commitDoc(after);
+      pushHistoryEntry(current, after);
+      setSelectedIds(new Set([text.id]));
+      setTool("select");
+      return;
+    }
     if (tool === "pen") {
       const anchors = penAnchorsRef.current;
       const first = anchors[0];
@@ -818,6 +851,25 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
         </g>
       );
     }
+    if (obj.type === "text") {
+      const target = clickTarget ?? obj;
+      return (
+        <text
+          key={obj.id}
+          x={obj.x}
+          y={obj.y}
+          fontSize={obj.fontSize}
+          fontFamily={obj.fontFamily}
+          fill={obj.style.fill ?? "#000000"}
+          opacity={obj.style.opacity}
+          transform={svgTransform(obj)}
+          style={{ userSelect: "none" }}
+          onMouseDown={(e) => onShapeMouseDown(e, target)}
+        >
+          {obj.content}
+        </text>
+      );
+    }
     return null;
   };
 
@@ -843,16 +895,18 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
         return toDocumentPoint(centerLocal, selectedResizable) ?? nDoc;
       })()
     : null;
-  // A plain axis-aligned outline — a single group (no resize/rotate
-  // handles yet, see selectedResizable) or a 2+ multi-selection (grouped
-  // via ⌘G to get real transform support).
-  const groupOutlineBounds =
-    selectedTransformable && selectedTransformable.type === "group" ? documentBounds(selectedTransformable) : null;
+  // A plain axis-aligned outline — a single group or text object (no
+  // resize/rotate handles, see selectedResizable) or a 2+ multi-selection
+  // (grouped via ⌘G to get real transform support).
+  const nonResizableOutlineBounds =
+    selectedTransformable && (selectedTransformable.type === "group" || selectedTransformable.type === "text")
+      ? documentBounds(selectedTransformable)
+      : null;
   const multiSelectBounds =
     selectedIds.size > 1 && selectedTransformableObjects.length > 0
       ? boundsUnion(selectedTransformableObjects.map(documentBounds))
       : null;
-  const plainOutlineBounds = groupOutlineBounds ?? multiSelectBounds;
+  const plainOutlineBounds = nonResizableOutlineBounds ?? multiSelectBounds;
 
   return (
     <div className="vector-editor">
@@ -896,6 +950,14 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
           onClick={() => setTool("pen")}
         >
           ✎
+        </button>
+        <button
+          type="button"
+          className={`vector-tool${tool === "text" ? " active" : ""}`}
+          title="Text (T) — click to place, edit content in the panel"
+          onClick={() => setTool("text")}
+        >
+          T
         </button>
         <button
           type="button"
@@ -1053,6 +1115,27 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       </div>
       {styleable && (
         <div className="vector-inspector">
+          {styleable.type === "text" && (
+            <>
+              <div className="vector-inspector-row">
+                <label>Text</label>
+                <input
+                  type="text"
+                  value={styleable.content}
+                  onChange={(e) => updateText({ content: e.target.value })}
+                />
+              </div>
+              <div className="vector-inspector-row">
+                <label>Size</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={styleable.fontSize}
+                  onChange={(e) => updateText({ fontSize: Number(e.target.value) || 1 })}
+                />
+              </div>
+            </>
+          )}
           <div className="vector-inspector-row">
             <label>Fill</label>
             <input

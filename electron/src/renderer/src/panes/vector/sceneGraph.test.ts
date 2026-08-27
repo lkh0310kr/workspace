@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   createRect,
   createEllipse,
+  createText,
   findObject,
   updateObject,
   deleteObject,
@@ -35,6 +36,18 @@ describe("createRect / createEllipse", () => {
     const a = createRect(0, 0, 1, 1);
     const b = createRect(0, 0, 1, 1);
     expect(a.id).not.toBe(b.id);
+  });
+});
+
+describe("createText", () => {
+  it("creates a text object with a default label and identity transform", () => {
+    const t = createText(10, 20);
+    expect(t).toMatchObject({ type: "text", x: 10, y: 20, content: "Text" });
+    expect(t.transform).toEqual({ x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 });
+  });
+
+  it("accepts custom content", () => {
+    expect(createText(0, 0, "Hello").content).toBe("Hello");
   });
 });
 

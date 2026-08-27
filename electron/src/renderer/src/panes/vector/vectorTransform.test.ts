@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createEllipse, createGroup, createRect } from "./sceneGraph";
+import { createEllipse, createGroup, createRect, createText } from "./sceneGraph";
 import {
   localBounds,
   boundsCenter,
@@ -41,6 +41,17 @@ describe("localBounds", () => {
   it("is a zero-size box for an empty group", () => {
     expect(localBounds(createGroup([]))).toEqual({ x: 0, y: 0, width: 0, height: 0 });
   });
+
+  it("approximates a text object's box from its fontSize and content length", () => {
+    const text = createText(10, 20, "Hi");
+    const b = localBounds(text);
+    expect(b.x).toBe(10);
+    expect(b.width).toBeGreaterThan(0);
+    expect(b.height).toBeGreaterThan(0);
+    // Longer content -> wider box, same fontSize.
+    const longer = createText(10, 20, "Much longer text");
+    expect(localBounds(longer).width).toBeGreaterThan(b.width);
+  });
 });
 
 describe("boundsCenter", () => {
@@ -69,6 +80,15 @@ describe("hitTest — identity transform", () => {
     // Bounding box corner (30,40) is outside the ellipse (rx=20,ry=10) —
     // classic case a naive bbox-only hit test would get wrong.
     expect(hitTest(ellipse, { x: 30, y: 40 })).toBe(false);
+  });
+});
+
+describe("hitTest — text (bounding-box fallback)", () => {
+  it("hits inside the approximated box, misses well outside it", () => {
+    const text = createText(0, 0, "Hi");
+    const bounds = localBounds(text);
+    expect(hitTest(text, boundsCenter(bounds))).toBe(true);
+    expect(hitTest(text, { x: bounds.x + 10000, y: bounds.y + 10000 })).toBe(false);
   });
 });
 

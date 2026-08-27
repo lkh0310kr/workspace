@@ -1289,7 +1289,8 @@ iframe.browser-content-slot {
   flex-shrink: 0;
 }
 
-.vector-inspector-row input[type="number"] {
+.vector-inspector-row input[type="number"],
+.vector-inspector-row input[type="text"] {
   flex: 1;
   min-width: 0;
   background: var(--bg-base);

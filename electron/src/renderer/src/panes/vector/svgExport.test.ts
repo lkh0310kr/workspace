@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { documentToSvg } from "./svgExport";
-import { createBlankDocument, createEllipse, createGroup, createRect } from "./sceneGraph";
+import { createBlankDocument, createEllipse, createGroup, createRect, createText } from "./sceneGraph";
 
 describe("documentToSvg", () => {
   it("emits a root <svg> with the document's size and background", () => {
@@ -26,6 +26,22 @@ describe("documentToSvg", () => {
     doc.objects.push(createEllipse(50, 40, 20, 10));
     const svg = documentToSvg(doc);
     expect(svg).toContain('<ellipse cx="50" cy="40" rx="20" ry="10"');
+  });
+
+  it("emits a <text> element with the object's content and fontSize", () => {
+    const doc = createBlankDocument();
+    doc.objects.push(createText(5, 15, "Hello"));
+    const svg = documentToSvg(doc);
+    expect(svg).toContain('<text x="5" y="15" font-size="24"');
+    expect(svg).toContain(">Hello</text>");
+  });
+
+  it("escapes special characters in a text object's content", () => {
+    const doc = createBlankDocument();
+    doc.objects.push(createText(0, 0, "<a & b"));
+    const svg = documentToSvg(doc);
+    expect(svg).toContain("&lt;a &amp; b");
+    expect(svg).not.toContain("<a & b");
   });
 
   it("nests a group's children inside a <g> with the group's own transform", () => {

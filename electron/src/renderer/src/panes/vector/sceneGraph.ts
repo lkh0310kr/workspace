@@ -162,6 +162,20 @@ export function createPath(anchors: PathAnchor[], closed: boolean): PathObject {
   };
 }
 
+export function createText(x: number, y: number, content = "Text"): TextObject {
+  return {
+    id: crypto.randomUUID(),
+    type: "text",
+    x,
+    y,
+    content,
+    fontSize: 24,
+    fontFamily: "sans-serif",
+    style: { ...DEFAULT_STYLE, stroke: null },
+    transform: { ...IDENTITY_TRANSFORM },
+  };
+}
+
 /** M3 scope: a group's own transform stays translation-only (identity
  * scale/rotation) — see VectorEditorContent.tsx's group/ungroup comments
  * for why that keeps Ungroup's math a plain addition instead of a

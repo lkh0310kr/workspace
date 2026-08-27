@@ -55,7 +55,7 @@ family — see [architecture/08-vector-editor.md](./architecture/08-vector-edito
 - [x] M2 — pen tool, line tool — implemented, pending live GUI QA (see TODO.md)
 - [x] M3 — stroke/fill UI, group/ungroup — implemented (group is move-only, no resize/rotate — see 08-vector-editor.md), pending live GUI QA (see TODO.md)
 - [x] M4 — undo/redo, export SVG/PNG, polish (delete/duplicate/copy-paste/nudge) — implemented, pending live GUI QA (see TODO.md)
-- [ ] M5 — text tool
+- [x] M5 — text tool — implemented, pending live GUI QA (see TODO.md)
 
 Not committed / reference only for now: Pixel Art, Diagram, Presentation,
 2D Animation, Paint, 3D Modeler.

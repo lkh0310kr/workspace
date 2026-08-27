@@ -36,7 +36,9 @@ function serializeObject(obj: SceneObject): string {
   if (obj.type === "group") {
     return `<g transform="${svgTransform(obj)}">${obj.children.map(serializeObject).join("")}</g>`;
   }
-  // Text (M5) — not renderable yet, skipped rather than emitting bad markup.
+  if (obj.type === "text") {
+    return `<text x="${obj.x}" y="${obj.y}" font-size="${obj.fontSize}" font-family="${escapeAttr(obj.fontFamily)}" fill="${obj.style.fill ?? "none"}" opacity="${obj.style.opacity}" transform="${svgTransform(obj)}">${escapeAttr(obj.content)}</text>`;
+  }
   return "";
 }
 
