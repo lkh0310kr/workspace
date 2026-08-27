@@ -120,6 +120,20 @@ export class Pty {
           // itself) — only used when creating a session fresh; ignored
           // when attaching to one that already has a shell running.
           `${shell} -l`,
+          // Chained command (tmux's own argv syntax splits on a literal
+          // ";" element — nothing to do with shell quoting, there's no
+          // shell in between since node-pty execs directly): tmux's
+          // status bar ([session] window-list … hostname/clock) is meant
+          // for driving tmux directly, not for a persistence layer the
+          // user never sees as tmux — it showed up as literal garbage
+          // text at the bottom of the terminal pane ("[workspace0:zsh*
+          // ... 14:12 27-Aug-26"). Runs on every ensureOpen (create or
+          // reattach), so it also self-heals sessions created before this
+          // fix.
+          ";",
+          "set-option",
+          "status",
+          "off",
         ]
       : ["-l"];
 
