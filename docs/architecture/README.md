@@ -12,6 +12,7 @@ This folder documents how the Workspace Electron app is structured, why key deci
 6. [06-browser-embeds.md](./06-browser-embeds.md) — `<webview>` guests
 7. [07-future-phases.md](./07-future-phases.md) — Phase 2–4 roadmap
 8. [08-vector-editor.md](./08-vector-editor.md) — planned Vector Editor pane (not yet built)
+9. [09-future-native-architecture.md](./09-future-native-architecture.md) — long-term direction (Rust core, native-process panes) — reference only, not designed yet
 
 ## Layer diagram
 

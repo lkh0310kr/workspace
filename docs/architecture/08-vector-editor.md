@@ -184,4 +184,5 @@ daily use, not before.
 
 - [paneKindRegistry design](../../electron/src/renderer/src/panes/paneKindRegistry.ts) — the pattern this plugs into
 - [03-workspace-and-layout.md](./03-workspace-and-layout.md) — pane-tab model
+- [09-future-native-architecture.md](./09-future-native-architecture.md) — long-term direction (Rust core, native-process panes) this design deliberately doesn't block, but also doesn't build yet
 - [ROADMAP.md](../ROADMAP.md) — Phase H
