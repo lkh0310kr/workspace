@@ -594,41 +594,57 @@ export function EditorContent({
               </svg>
             </button>
           </div>
-          {isMarkdown &&
-            (titleEditing ? (
-              <div className="md-title-edit">
-                <input
-                  ref={titleInputRef}
-                  className={`md-title md-title-input${titleError ? " error" : ""}`}
-                  value={titleDraft}
-                  onChange={(e) => {
-                    setTitleDraft(e.target.value);
-                    setTitleError(null);
-                  }}
-                  onBlur={() => void commitTitleRename()}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      titleInputRef.current?.blur();
-                    } else if (e.key === "Escape") {
-                      e.preventDefault();
-                      setTitleEditing(false);
+          {isMarkdown ? (
+            // Obsidian-style: the title lives in the same scroll container
+            // as the editor content (not a fixed header above it) so it
+            // scrolls away with the rest of the note instead of staying
+            // pinned — see .md-scroll-container's CSS for how CodeMirror
+            // itself is switched to auto-height/no-internal-scroll to make
+            // that possible. Code files (below) keep the ordinary
+            // internally-scrolling .md-editor unchanged.
+            <div className="md-scroll-container">
+              {titleEditing ? (
+                <div className="md-title-edit">
+                  <input
+                    ref={titleInputRef}
+                    className={`md-title md-title-input${titleError ? " error" : ""}`}
+                    value={titleDraft}
+                    onChange={(e) => {
+                      setTitleDraft(e.target.value);
                       setTitleError(null);
-                    }
-                  }}
-                />
-                {titleError && <div className="md-title-error">{titleError}</div>}
-              </div>
-            ) : (
-              <div className="md-title" title={filePath ?? undefined} onClick={enterTitleEdit}>
-                {markdownTitleFor(filePath)}
-              </div>
-            ))}
-          <div
-            className="md-editor"
-            ref={hostRef}
-            style={{ "--editor-font-size": `${13 * zoom}px` } as CSSProperties}
-          />
+                    }}
+                    onBlur={() => void commitTitleRename()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        titleInputRef.current?.blur();
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        setTitleEditing(false);
+                        setTitleError(null);
+                      }
+                    }}
+                  />
+                  {titleError && <div className="md-title-error">{titleError}</div>}
+                </div>
+              ) : (
+                <div className="md-title" title={filePath ?? undefined} onClick={enterTitleEdit}>
+                  {markdownTitleFor(filePath)}
+                </div>
+              )}
+              <div
+                className="md-editor"
+                ref={hostRef}
+                style={{ "--editor-font-size": `${13 * zoom}px` } as CSSProperties}
+              />
+            </div>
+          ) : (
+            <div
+              className="md-editor"
+              ref={hostRef}
+              style={{ "--editor-font-size": `${13 * zoom}px` } as CSSProperties}
+            />
+          )}
         </div>
         {isMarkdown && outlineOpen && (
           <div className="md-pane-sidebar md-pane-outline">

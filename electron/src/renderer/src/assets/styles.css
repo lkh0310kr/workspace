@@ -1417,73 +1417,161 @@ iframe.browser-content-slot {
   position: relative;
 }
 
-/* VS Code-style CodeMirror search panel (top of editor) */
-.obsidian-editor-column .cm-panel.cm-search {
+/* VSCode-parity in-editor Find/Replace panel (codemirrorSearch.ts's
+   custom createPanel — Cmd+F). Reuses the same Aa/Ab/.* toggle-button
+   language as .search-panel (Find in Files, Cmd+Shift+F) for visual
+   consistency between the two. */
+.obsidian-editor-column .cm-panel.cm-vs-search {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   padding: 6px 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-.obsidian-editor-column .cm-search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
   font-family: var(--font-ui);
   font-size: 12px;
 }
 
-.obsidian-editor-column .cm-search input[type="text"] {
+.cm-vs-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cm-vs-replace-row {
+  margin-top: 4px;
+}
+
+.cm-vs-spacer {
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.cm-vs-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.cm-vs-field-wrap input[type="text"],
+.cm-vs-replace-row input[type="text"] {
+  width: 100%;
   background: var(--bg-base);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text);
-  padding: 4px 8px;
-  min-width: 180px;
+  padding: 4px 78px 4px 8px;
+  min-width: 140px;
   font-size: 12px;
+  font-family: var(--font-mono);
   outline: none;
 }
 
-.obsidian-editor-column .cm-search input[type="text"]:focus {
+.cm-vs-replace-row input[type="text"] {
+  padding: 4px 8px;
+}
+
+.cm-vs-field-wrap input[type="text"]:focus,
+.cm-vs-replace-row input[type="text"]:focus {
   border-color: var(--accent);
 }
 
-.obsidian-editor-column .cm-search .cm-button {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text-muted);
-  padding: 3px 8px;
-  font-size: 11px;
-  cursor: pointer;
+.cm-vs-field-wrap button.cm-vs-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.obsidian-editor-column .cm-search .cm-button:hover {
+/* Overlaid inside the input's right edge, VSCode-style — nth-of-type
+   counts among sibling <button>s only, so the input before them doesn't
+   throw off the indexing. */
+.cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(1) {
+  right: 52px;
+}
+
+.cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(2) {
+  right: 30px;
+}
+
+.cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(3) {
+  right: 4px;
+}
+
+.cm-vs-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+
+.cm-vs-btn:hover {
   color: var(--text);
   background: var(--bg-hover);
 }
 
-.obsidian-editor-column .cm-search label {
+.cm-vs-toggle {
+  border: 1px solid transparent;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 5px;
+}
+
+.cm-vs-toggle.active {
+  color: var(--accent);
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.cm-vs-toggle-replace {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+  padding: 0;
+}
+
+.cm-vs-nav {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 12px;
+}
+
+.cm-vs-close {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-faint);
+}
+
+.cm-vs-close:hover {
+  color: var(--text);
+}
+
+.cm-vs-count {
+  flex-shrink: 0;
+  min-width: 64px;
+  text-align: center;
   font-size: 11px;
   color: var(--text-faint);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  font-family: var(--font-mono);
 }
 
-.obsidian-editor-column .cm-search [name="close"] {
-  color: var(--text-faint);
-  font-size: 16px;
-  line-height: 1;
-  padding: 2px 6px;
-  cursor: pointer;
-  border: none;
-  background: transparent;
+.cm-vs-count-empty {
+  color: var(--danger, #e06c75);
 }
 
-.obsidian-editor-column .cm-search [name="close"]:hover {
-  color: var(--text);
+.cm-vs-text-button {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  font-size: 11px;
 }
 
 /* —— Markdown live preview (Obsidian-style: markdown syntax renders as
@@ -2202,6 +2290,34 @@ iframe.browser-content-slot {
 .obsidian-editor-column .md-editor {
   flex: 1;
   min-height: 0;
+}
+
+/* Markdown only: this wrapper (not .md-editor) owns the scroll, with
+   .md-title and .md-editor both inside it, so the title scrolls away
+   with the content instead of staying pinned above it. */
+.obsidian-editor-column .md-scroll-container {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* CodeMirror's default is to size to its own container and scroll
+   internally (.cm-scroller { overflow: auto }) — the standard CM6
+   "auto-height" recipe flips that off so the editor grows to its
+   content's natural height instead, letting .md-scroll-container above
+   do the actual scrolling. */
+.md-scroll-container .md-editor {
+  height: auto;
+  overflow: visible;
+}
+
+.md-scroll-container .cm-editor {
+  height: auto;
+}
+
+.md-scroll-container .cm-scroller {
+  overflow: visible;
 }
 
 /* Obsidian-style in-page title (EditorContent.tsx) — the filename doubles
