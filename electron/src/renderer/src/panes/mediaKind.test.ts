@@ -1,0 +1,27 @@
+import { describe, expect, it } from "vitest";
+import { classifyMediaExtension } from "./mediaKind";
+
+describe("classifyMediaExtension", () => {
+  it("classifies images", () => {
+    expect(classifyMediaExtension("a/b.png")).toBe("image");
+    expect(classifyMediaExtension("a/b.JPEG")).toBe("image");
+  });
+
+  it("classifies pdf", () => {
+    expect(classifyMediaExtension("a/b.pdf")).toBe("pdf");
+  });
+
+  it("classifies video", () => {
+    expect(classifyMediaExtension("a/b.mp4")).toBe("video");
+    expect(classifyMediaExtension("a/b.MKV")).toBe("video");
+  });
+
+  it("classifies audio", () => {
+    expect(classifyMediaExtension("a/b.mp3")).toBe("audio");
+    expect(classifyMediaExtension("a/b.flac")).toBe("audio");
+  });
+
+  it("falls back to other", () => {
+    expect(classifyMediaExtension("a/b.txt")).toBe("other");
+  });
+});

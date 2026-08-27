@@ -7,17 +7,26 @@ import {
   type MouseEvent,
   type WheelEvent,
 } from "react";
-import { readFileBinaryPreview } from "../electron";
+import { getMediaUrl, readFileBinaryPreview } from "../electron";
+import { classifyMediaExtension } from "./mediaKind";
+import { cuesToVtt, parseSrt, shiftCues, type SubtitleCue } from "./srtToVtt";
 
-// v1 of the ideation.md "File Viewer" pane — images and PDFs only, per the
-// scoped-down plan. Video/audio/e-book are separate future slices.
+// File Viewer pane — images, PDF, video, audio. E-book is a separate
+// future slice (materially bigger: zip/OPF/NCX parsing, nothing to build
+// on yet).
 //
-// Why blob: URLs (Orca parity — editor/useLocalImageSrc.ts): a raw file://
-// <img>/<embed> src throws "Not allowed to load local resource" — Chromium
-// blocks file:// resource loads from a page not itself loaded via file://,
-// which the Vite dev server's http://localhost never is. Reading the bytes
-// over IPC and handing the renderer a blob: URL sidesteps that restriction
-// entirely and works identically in dev and production.
+// Why images/PDF use blob: URLs but video/audio don't (Orca parity for
+// the former — editor/useLocalImageSrc.ts): a raw file:// <img>/<embed>
+// src throws "Not allowed to load local resource" — Chromium blocks
+// file:// resource loads from a page not itself loaded via file://.
+// Reading the bytes over IPC as base64 and handing the renderer a blob:
+// URL sidesteps that and is fine for small whole-file content. It's NOT
+// fine for video: loading a multi-GB file into memory as base64 is a
+// 4-5x memory blowup through the IPC-copy/atob chain, blocks the main
+// process synchronously, and can't seek without loading the whole file
+// first — video/audio instead get a URL from the streaming
+// workspace-media:// protocol (mediaProtocol.ts), which the <video>/
+// <audio> element fetches (and Range-requests, for seeking) itself.
 interface Props {
   tabId: number;
   filePath: string | null;
@@ -78,19 +87,52 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
 export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [mimeType, setMimeType] = useState<string | null>(null);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState(0);
   const [error, setError] = useState(false);
   // null = "fit" (VSCode's default scale-to-fit); a number is an explicit
   // zoom factor (1 = 100%) the user opted into via click/wheel/buttons.
   const [zoom, setZoom] = useState<number | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[] | null>(null);
+  const [subtitleOffset, setSubtitleOffset] = useState(0);
+  const [subtitleVttUrl, setSubtitleVttUrl] = useState<string | null>(null);
+
+  const kind = filePath ? classifyMediaExtension(filePath) : "other";
+  const isVideo = kind === "video";
+  const isAudio = kind === "audio";
+  const isPdf = kind === "pdf";
+  const isMedia = isVideo || isAudio;
 
   useEffect(() => {
     setError(false);
     setZoom(null);
     setNaturalSize(null);
+    setMediaUrl(null);
+    setSubtitleCues(null);
+    setSubtitleOffset(0);
+    setSubtitleVttUrl(null);
     if (!filePath) return;
+
+    if (isMedia) {
+      let cancelled = false;
+      getMediaUrl(tabId, filePath)
+        .then((url) => {
+          if (cancelled) return;
+          if (!url) {
+            setError(true);
+            return;
+          }
+          setMediaUrl(url);
+        })
+        .catch(() => {
+          if (!cancelled) setError(true);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     let cancelled = false;
     let createdUrl: string | null = null;
     readFileBinaryPreview(tabId, filePath)
@@ -103,7 +145,6 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
         const blob = base64ToBlob(preview.content, preview.mimeType);
         createdUrl = URL.createObjectURL(blob);
         setBlobUrl(createdUrl);
-        setMimeType(preview.mimeType);
         setFileSize(blob.size);
       })
       .catch(() => {
@@ -113,7 +154,45 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
       cancelled = true;
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
-  }, [tabId, filePath]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabId, filePath, isMedia]);
+
+  // Revoke the subtitle blob URL whenever it's replaced or the pane
+  // unmounts — same cleanup shape as the image blob above.
+  useEffect(() => {
+    return () => {
+      if (subtitleVttUrl) URL.revokeObjectURL(subtitleVttUrl);
+    };
+  }, [subtitleVttUrl]);
+
+  const onSubtitleFilePicked = useCallback((file: File) => {
+    file
+      .text()
+      .then((text) => {
+        const cues = parseSrt(text);
+        setSubtitleCues(cues);
+        setSubtitleOffset(0);
+        setSubtitleVttUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return URL.createObjectURL(new Blob([cuesToVtt(cues)], { type: "text/vtt" }));
+        });
+      })
+      .catch(() => setError(true));
+  }, []);
+
+  const onSubtitleOffsetChange = useCallback(
+    (offsetSeconds: number) => {
+      setSubtitleOffset(offsetSeconds);
+      if (!subtitleCues) return;
+      setSubtitleVttUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(
+          new Blob([cuesToVtt(shiftCues(subtitleCues, offsetSeconds))], { type: "text/vtt" }),
+        );
+      });
+    },
+    [subtitleCues],
+  );
 
   // The scale-to-fit ratio actually on screen right now, used as the
   // starting point the first time the user zooms in/out from "fit" —
@@ -154,12 +233,11 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
   );
 
   const zoomLabel = zoom === null ? "Whole Image" : `${Math.round(zoom * 100)}%`;
-  const isPdf = mimeType === "application/pdf";
 
   return (
     <div className="file-viewer">
       <div className="obsidian-float-actions">
-        {!isPdf && blobUrl && (
+        {!isPdf && !isMedia && blobUrl && (
           <>
             <button
               type="button"
@@ -187,6 +265,32 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
             </button>
           </>
         )}
+        {isVideo && mediaUrl && (
+          <>
+            <label className="file-viewer-subtitle-pick" title="Add subtitle file (.srt)">
+              CC+
+              <input
+                type="file"
+                accept=".srt,.vtt"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) onSubtitleFilePicked(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {subtitleCues && (
+              <input
+                type="number"
+                step="0.1"
+                className="file-viewer-subtitle-offset"
+                title="Subtitle timing offset (seconds)"
+                value={subtitleOffset}
+                onChange={(e) => onSubtitleOffsetChange(Number(e.target.value) || 0)}
+              />
+            )}
+          </>
+        )}
         <button
           type="button"
           className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`}
@@ -206,7 +310,23 @@ export function FileViewerContent({ tabId, filePath, treeOpen, onToggleTree }: P
         <div className="file-viewer-empty">No file</div>
       ) : error ? (
         <div className="file-viewer-empty">Couldn't load file</div>
-      ) : !blobUrl || !mimeType ? (
+      ) : isVideo ? (
+        !mediaUrl ? (
+          <div className="file-viewer-empty">Loading…</div>
+        ) : (
+          <video className="file-viewer-video" src={mediaUrl} controls onError={() => setError(true)}>
+            {subtitleVttUrl && <track kind="subtitles" src={subtitleVttUrl} default />}
+          </video>
+        )
+      ) : isAudio ? (
+        !mediaUrl ? (
+          <div className="file-viewer-empty">Loading…</div>
+        ) : (
+          <div className="file-viewer-audio">
+            <audio src={mediaUrl} controls onError={() => setError(true)} />
+          </div>
+        )
+      ) : !blobUrl ? (
         <div className="file-viewer-empty">Loading…</div>
       ) : isPdf ? (
         <embed className="file-viewer-pdf" type="application/pdf" src={blobUrl} />

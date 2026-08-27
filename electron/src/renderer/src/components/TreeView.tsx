@@ -41,7 +41,25 @@ interface MenuState {
   entry: DirEntry | null;
 }
 
-const VIEWER_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".pdf"];
+const VIEWER_EXTENSIONS = [
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".svg",
+  ".bmp",
+  ".pdf",
+  ".mp4",
+  ".webm",
+  ".mov",
+  ".mkv",
+  ".mp3",
+  ".wav",
+  ".m4a",
+  ".ogg",
+  ".flac",
+];
 
 export function classifyFile(name: string): "code" | "markdown" | "viewer" {
   const lower = name.toLowerCase();
