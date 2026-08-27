@@ -12,7 +12,8 @@ import {
   rotateTo,
   scaleTo,
   resizeTransform,
-  rotationForPointer,
+  pointerAngleDegrees,
+  rotationFromDrag,
   handleLocalPoint,
   oppositeHandle,
 } from "./vectorTransform";
@@ -151,20 +152,41 @@ describe("resizeTransform — anchor invariance", () => {
   });
 });
 
-describe("documentCenter / rotationForPointer", () => {
-  it("documentCenter is the local center plus translation", () => {
+describe("documentCenter", () => {
+  it("is the local center plus translation", () => {
     const rect = { ...createRect(0, 0, 100, 100), transform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 } };
     expect(documentCenter(rect)).toEqual({ x: 60, y: 70 });
   });
+});
 
-  it("rotationForPointer is 0 when the pointer is directly above center", () => {
-    const rect = createRect(0, 0, 100, 100); // center (50,50)
-    expect(rotationForPointer(rect, { x: 50, y: 0 })).toBeCloseTo(0, 5);
+describe("pointerAngleDegrees", () => {
+  it("is 0 when the pointer is directly right of center", () => {
+    expect(pointerAngleDegrees({ x: 50, y: 50 }, { x: 150, y: 50 })).toBeCloseTo(0, 5);
   });
 
-  it("rotationForPointer is 90 when the pointer is directly right of center", () => {
-    const rect = createRect(0, 0, 100, 100);
-    expect(rotationForPointer(rect, { x: 150, y: 50 })).toBeCloseTo(90, 5);
+  it("is 90 when the pointer is directly below center (SVG's y-down convention)", () => {
+    expect(pointerAngleDegrees({ x: 50, y: 50 }, { x: 50, y: 150 })).toBeCloseTo(90, 5);
+  });
+});
+
+describe("rotationFromDrag", () => {
+  // Ported approach from tldraw's Rotating.ts (see vectorTransform.ts's
+  // doc comment) — rotation is startRotation + the *change* in pointer
+  // angle, not the pointer's absolute angle. Grabbing the handle
+  // slightly off from its exact rendered position must not snap the
+  // shape to a new rotation the instant the drag starts.
+  it("is unchanged when the pointer hasn't moved", () => {
+    expect(rotationFromDrag(15, 40, 40)).toBe(15);
+  });
+
+  it("applies only the angle delta, not the absolute angle", () => {
+    // Grabbed the handle 10° off from its nominal position (startAngle
+    // 40 instead of the "true" 0), then dragged another 20°.
+    expect(rotationFromDrag(15, 40, 60)).toBe(35);
+  });
+
+  it("wraps naturally through 0/360 since it's a plain sum, not a mod", () => {
+    expect(rotationFromDrag(350, 10, 20)).toBe(360);
   });
 });
 

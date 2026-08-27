@@ -252,9 +252,24 @@ export function resizeTransform(obj: TransformableObject, handle: HandleId, mous
  * 0° when the mouse is directly above the shape's document-space center
  * (where the rotate handle is drawn), increasing clockwise (SVG's
  * y-down rotate() convention). */
-export function rotationForPointer(obj: TransformableObject, mouseDocPoint: Point): number {
-  const center = documentCenter(obj);
-  const dx = mouseDocPoint.x - center.x;
-  const dy = mouseDocPoint.y - center.y;
-  return (Math.atan2(dy, dx) * 180) / Math.PI + 90;
+/** Raw angle (degrees) from `center` to `point`, 0° = directly right,
+ * increasing clockwise (SVG's y-down convention) — no assumption about
+ * where on the shape the point was grabbed. */
+export function pointerAngleDegrees(center: Point, point: Point): number {
+  return (Math.atan2(point.y - center.y, point.x - center.x) * 180) / Math.PI;
+}
+
+/** Ported from tldraw's Rotating.ts (packages/tldraw/src/lib/tools/
+ * SelectTool/childStates/Rotating.ts — verified against their actual
+ * source, not guessed): rotation is computed as a *delta* from wherever
+ * the pointer started, added to the shape's rotation at drag start —
+ * `startRotation + (pointerAngleDegrees(center, current) -
+ * pointerAngleDegrees(center, dragStart))`. Grabbing the rotate handle
+ * slightly off-center (or anywhere but the handle's exact rendered pixel)
+ * must not snap the shape to point exactly at the cursor the instant the
+ * drag starts — only the *change* in angle should apply. An earlier
+ * version of this function computed an absolute angle instead
+ * (`atan2(...)+90`) and had exactly that jump bug. */
+export function rotationFromDrag(startRotation: number, startAngle: number, currentAngle: number): number {
+  return startRotation + (currentAngle - startAngle);
 }

@@ -17,7 +17,9 @@ import {
   localBounds,
   moveBy,
   resizeTransform,
-  rotationForPointer,
+  documentCenter,
+  pointerAngleDegrees,
+  rotationFromDrag,
   svgTransform,
   toDocumentPoint,
   type HandleId,
@@ -50,7 +52,7 @@ type Tool = "select" | "rect" | "ellipse";
 type DragMode =
   | { kind: "move"; id: string; startDocPoint: Point; startTransform: TransformableObject["transform"] }
   | { kind: "resize"; id: string; handle: HandleId }
-  | { kind: "rotate"; id: string }
+  | { kind: "rotate"; id: string; startAngle: number; startRotation: number }
   | { kind: "draw"; tool: "rect" | "ellipse"; startDocPoint: Point };
 
 const RESIZE_HANDLES: HandleId[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
@@ -223,7 +225,9 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
       } else if (drag.kind === "resize") {
         replaceObject(obj.id, { ...obj, transform: resizeTransform(obj, drag.handle, docPoint) });
       } else if (drag.kind === "rotate") {
-        replaceObject(obj.id, { ...obj, transform: { ...obj.transform, rotation: rotationForPointer(obj, docPoint) } });
+        const currentAngle = pointerAngleDegrees(documentCenter(obj), docPoint);
+        const rotation = rotationFromDrag(drag.startRotation, drag.startAngle, currentAngle);
+        replaceObject(obj.id, { ...obj, transform: { ...obj.transform, rotation } });
       }
     },
     [clientToDocPoint, replaceObject],
@@ -283,9 +287,11 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     startDrag({ kind: "resize", id, handle });
   };
 
-  const onRotateHandleMouseDown = (e: ReactMouseEvent, id: string) => {
+  const onRotateHandleMouseDown = (e: ReactMouseEvent, obj: RectObject | EllipseObject) => {
     e.stopPropagation();
-    startDrag({ kind: "rotate", id });
+    const docPoint = clientToDocPoint(e.clientX, e.clientY);
+    const startAngle = pointerAngleDegrees(documentCenter(obj), docPoint);
+    startDrag({ kind: "rotate", id: obj.id, startAngle, startRotation: obj.transform.rotation });
   };
 
   const renderShape = (obj: SceneObject) => {
@@ -430,7 +436,7 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
                     cy={rotateHandlePoint.y}
                     r={5}
                     className="vector-rotate-handle"
-                    onMouseDown={(e) => onRotateHandleMouseDown(e, selectedTransformable.id)}
+                    onMouseDown={(e) => onRotateHandleMouseDown(e, selectedTransformable)}
                   />
                 </>
               )}

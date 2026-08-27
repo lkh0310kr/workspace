@@ -180,6 +180,22 @@ Animation, Paint (raster/Photoshop-style), 3D Modeler — stays unstarted.
 Only reconsidered once Vector Editor is genuinely complete and in real
 daily use, not before.
 
+## Reference: porting from tldraw, not guessing
+
+Per direct instruction, this pane's interaction code should be verified
+against a real, battle-tested implementation rather than derived from
+scratch wherever a proven pattern exists — the same standing rule this
+whole app follows for Orca/VSCode ports. `tldraw` (cloned into
+`ref-proj/tldraw`, MIT, same React/TypeScript stack) is the reference —
+**read for patterns, not depended on as a package**: this pane is meant
+to be Workspace's own primitive (see the Canvas/Layer/Selection/
+Transform/Undo core other creative panes would eventually share), not a
+wrapper around tldraw's SDK.
+
+Confirmed so far by reading `packages/tldraw/src/lib/tools/SelectTool/childStates/`:
+- **Resizing.ts** — their scale-from-opposite-handle math (`distanceFromScaleOriginNow / distanceFromScaleOriginAtStart`, computed in a rotation-corrected frame) is the same approach `resizeTransform` already uses, just far more abstracted (multi-shape, frames, snapping). Cross-validates the math rather than changing it.
+- **Rotating.ts** — caught a real bug: this doc's Vector Editor originally set rotation to the pointer's *absolute* angle from center, which jumps the shape the instant a rotate drag starts if the grab point isn't exactly on the handle. tldraw computes rotation as `startRotation + (currentPointerAngle - startPointerAngle)` — a delta from wherever the drag began. Ported as `rotationFromDrag`/`pointerAngleDegrees` in `vectorTransform.ts`.
+
 ## Related docs
 
 - [paneKindRegistry design](../../electron/src/renderer/src/panes/paneKindRegistry.ts) — the pattern this plugs into
