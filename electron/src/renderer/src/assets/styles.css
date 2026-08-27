@@ -830,8 +830,16 @@ iframe.browser-content-slot {
   flex: 1;
   min-height: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  /* Why not align-items/justify-content: center (VSCode parity —
+     imagePreview.css .container.image + .container img { margin: auto }):
+     centering a flex item via justify-content/align-items instead of
+     margin:auto clips the start-side overflow once the item is bigger than
+     the container — Chromium doesn't extend scrollWidth backwards past a
+     flex-centered item, so a zoomed-in image's left/top edge becomes
+     permanently unreachable by scrolling ("스크롤 horizontal이 왼쪽부분 좀
+     잘리는거같음"). margin:auto on the child centers it when it fits and
+     collapses to 0 once it overflows, which is exactly the difference.
+  */
   overflow: auto;
   padding: 16px;
 }
@@ -842,6 +850,7 @@ iframe.browser-content-slot {
    flat editor background; theme-scoped like their .vscode-dark variant. */
 .file-viewer-image {
   display: block;
+  margin: auto;
   cursor: zoom-in;
   background-size: 16px 16px;
   background-image: conic-gradient(
