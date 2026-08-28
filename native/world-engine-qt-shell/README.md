@@ -60,8 +60,24 @@ rigid body:
 `rotation` is an axis-angle vector (direction = axis, magnitude =
 radians — `rapier3d`'s own convention for 3D rigid bodies). Missing
 fields default (`restitution` → `0.6`, `color` → red, `position`/
-`rotation` → origin/identity). No meshes, no materials, no scripting yet
-— real future scope, not pretended at here.
+`rotation` → origin/identity). No materials, no scripting yet — real
+future scope, not pretended at here.
+
+An optional top-level `"mesh"` (a path relative to the project directory,
+`.gltf` or `.glb`) replaces the built-in cube for every entity in the
+scene — real example at `electron/test-fixtures/world-engine-mesh-demo/`:
+
+```json
+{ "mesh": "box.glb", "entities": [{ "position": [0, 3, 0] }] }
+```
+
+Only the first primitive of the first mesh is read (positions/normals/
+indices — no materials/textures/skinning/animation); a missing or broken
+mesh reference logs a warning and falls back to the cube rather than
+crashing the engine. A flat gray ground plane (matching the physics
+ground collider's actual size/position) always renders now too — before
+it existed, entities had nothing visible to show what they were falling
+onto.
 
 ## Controls
 

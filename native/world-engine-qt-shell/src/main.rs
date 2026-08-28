@@ -33,6 +33,14 @@ use serde::Deserialize;
 struct SceneFile {
     #[serde(default)]
     entities: Vec<SceneEntityDef>,
+    /// Optional path (relative to the project directory) to a .gltf/.glb
+    /// file — its first mesh's first primitive replaces the built-in
+    /// cube for every entity in this scene. Positions/normals/indices
+    /// only (no materials/textures/skinning/animation — real future
+    /// scope). Omitted entirely: falls back to the cube, zero regression
+    /// for existing scenes.
+    #[serde(default)]
+    mesh: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -66,6 +74,7 @@ fn default_scene() -> SceneFile {
             restitution: 0.6,
             color: [0.9, 0.2, 0.2],
         }],
+        mesh: None,
     }
 }
 
@@ -167,6 +176,67 @@ fn cube_geometry() -> (Vec<Vertex>, Vec<u16>) {
         indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 3, base]);
     }
     (vertices, indices)
+}
+
+/// A flat quad matching the physics ground collider (cuboid half-extents
+/// 50×0.1×50, centered at the origin) — until this existed, entities fell
+/// out of the render entirely once past frame edge with nothing to show
+/// what they were landing on.
+fn ground_geometry() -> (Vec<Vertex>, Vec<u16>) {
+    let half = 50.0_f32;
+    let y = 0.1_f32;
+    let color = [0.18, 0.2, 0.24];
+    let normal = [0.0, 1.0, 0.0];
+    let vertices = vec![
+        Vertex { pos: [-half, y, -half], normal, color },
+        Vertex { pos: [half, y, -half], normal, color },
+        Vertex { pos: [half, y, half], normal, color },
+        Vertex { pos: [-half, y, half], normal, color },
+    ];
+    (vertices, vec![0, 1, 2, 2, 3, 0])
+}
+
+/// Loads the first primitive of the first mesh in a glTF/GLB file —
+/// positions, normals, indices only (no materials/textures/skinning/
+/// animation, real future scope). Vertex color is a flat mid-gray; the
+/// per-entity `tint` uniform (see `render_frame`) does the actual
+/// coloring, same as the built-in cube.
+fn load_mesh(path: &std::path::Path) -> anyhow::Result<(Vec<Vertex>, Vec<u16>)> {
+    let (document, buffers, _images) = gltf::import(path)?;
+    let mesh = document
+        .meshes()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("{path:?} has no meshes"))?;
+    let primitive = mesh
+        .primitives()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("{path:?}'s first mesh has no primitives"))?;
+    let reader = primitive.reader(|buffer| buffers.get(buffer.index()).map(|data| &data.0[..]));
+    let positions: Vec<[f32; 3]> = reader
+        .read_positions()
+        .ok_or_else(|| anyhow::anyhow!("{path:?}'s primitive has no POSITION attribute"))?
+        .collect();
+    let normals: Vec<[f32; 3]> = match reader.read_normals() {
+        Some(iter) => iter.collect(),
+        // Flat gray fallback normal — not geometrically correct, but
+        // this v0 has no flat-shading-from-face-winding fallback either;
+        // real per-face normal generation is future scope.
+        None => vec![[0.0, 1.0, 0.0]; positions.len()],
+    };
+    let indices: Vec<u16> = match reader.read_indices() {
+        Some(indices) => indices
+            .into_u32()
+            .map(|i| u16::try_from(i).map_err(|_| anyhow::anyhow!("{path:?} has more than 65535 vertices — not supported yet")))
+            .collect::<anyhow::Result<Vec<u16>>>()?,
+        None => (0..positions.len() as u16).collect(),
+    };
+    let color = [0.75, 0.75, 0.78];
+    let vertices = positions
+        .into_iter()
+        .zip(normals)
+        .map(|(pos, normal)| Vertex { pos, normal, color })
+        .collect();
+    Ok((vertices, indices))
 }
 
 #[repr(C)]
@@ -285,6 +355,30 @@ impl World {
 
 // ── GPU: renders directly into the Qt window's native surface ──────────
 
+struct Mesh {
+    vertex_buf: wgpu::Buffer,
+    index_buf: wgpu::Buffer,
+    index_count: u32,
+}
+
+fn upload_mesh(device: &wgpu::Device, queue: &wgpu::Queue, label: &str, vertices: &[Vertex], indices: &[u16]) -> Mesh {
+    let vertex_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(&format!("{label}-vertices")),
+        size: (vertices.len() * std::mem::size_of::<Vertex>()) as u64,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    queue.write_buffer(&vertex_buf, 0, bytemuck::cast_slice(vertices));
+    let index_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(&format!("{label}-indices")),
+        size: (indices.len() * std::mem::size_of::<u16>()) as u64,
+        usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    queue.write_buffer(&index_buf, 0, bytemuck::cast_slice(indices));
+    Mesh { vertex_buf, index_buf, index_count: indices.len() as u32 }
+}
+
 struct GpuContext {
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -293,13 +387,12 @@ struct GpuContext {
     pipeline: wgpu::RenderPipeline,
     uniform_buf: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
-    vertex_buf: wgpu::Buffer,
-    index_buf: wgpu::Buffer,
-    index_count: u32,
+    ground_mesh: Mesh,
+    entity_mesh: Mesh,
     depth_view: wgpu::TextureView,
 }
 
-fn init_gpu(native_view: *mut c_void) -> GpuContext {
+fn init_gpu(native_view: *mut c_void, entity_geometry: (Vec<Vertex>, Vec<u16>)) -> GpuContext {
     let raw_window_handle = RawWindowHandle::AppKit(AppKitWindowHandle::new(NonNull::new(native_view).expect("Qt gave a null native view")));
     let raw_display_handle = RawDisplayHandle::AppKit(AppKitDisplayHandle::new());
 
@@ -346,21 +439,10 @@ fn init_gpu(native_view: *mut c_void) -> GpuContext {
     );
 
     let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
-    let (vertices, indices) = cube_geometry();
-    let vertex_buf = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("cube-vertices"),
-        size: (vertices.len() * std::mem::size_of::<Vertex>()) as u64,
-        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-        mapped_at_creation: false,
-    });
-    queue.write_buffer(&vertex_buf, 0, bytemuck::cast_slice(&vertices));
-    let index_buf = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("cube-indices"),
-        size: (indices.len() * std::mem::size_of::<u16>()) as u64,
-        usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-        mapped_at_creation: false,
-    });
-    queue.write_buffer(&index_buf, 0, bytemuck::cast_slice(&indices));
+    let (entity_vertices, entity_indices) = entity_geometry;
+    let entity_mesh = upload_mesh(&device, &queue, "entity", &entity_vertices, &entity_indices);
+    let (ground_vertices, ground_indices) = ground_geometry();
+    let ground_mesh = upload_mesh(&device, &queue, "ground", &ground_vertices, &ground_indices);
 
     let uniform_buf = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("uniforms"),
@@ -435,9 +517,8 @@ fn init_gpu(native_view: *mut c_void) -> GpuContext {
         pipeline,
         uniform_buf,
         bind_group,
-        vertex_buf,
-        index_buf,
-        index_count: indices.len() as u32,
+        ground_mesh,
+        entity_mesh,
         depth_view,
     }
 }
@@ -456,13 +537,21 @@ fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3)], camera: &Camera) {
         ..Default::default()
     });
 
-    // One draw per entity, each its own submit — simplest correct thing
-    // for a v0 scene of a handful of cubes (a single shared uniform
-    // buffer can't safely hold N different per-draw values within one
-    // command buffer without a dynamic-offset binding, which this scale
-    // doesn't need yet). Only the first draw clears; the rest load.
-    for (i, (model, tint)) in draw_list.iter().enumerate() {
-        let mvp = projection * view * *model;
+    // Ground first (fixed transform/tint/mesh), then every entity — one
+    // draw per call, each its own submit. Simplest correct thing for a
+    // v0 scene this small (a single shared uniform buffer can't safely
+    // hold N different per-draw values within one command buffer without
+    // a dynamic-offset binding, which this scale doesn't need yet). Only
+    // the very first draw of the frame clears; the rest load.
+    // Matches ground_geometry()'s intent — Vertex.color itself is unused
+    // by the shader (see shader.wgsl's comment), only the tint uniform is.
+    const GROUND_TINT: Vec3 = Vec3::new(0.18, 0.2, 0.24);
+    let ground_draw = (Mat4::IDENTITY, GROUND_TINT, &gpu.ground_mesh);
+    let entity_draws = draw_list.iter().map(|(model, tint)| (*model, *tint, &gpu.entity_mesh));
+    let all_draws = std::iter::once(ground_draw).chain(entity_draws);
+
+    for (i, (model, tint, mesh)) in all_draws.enumerate() {
+        let mvp = projection * view * model;
         let uniforms = Uniforms {
             mvp: mvp.to_cols_array_2d(),
             model: model.to_cols_array_2d(),
@@ -498,9 +587,9 @@ fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3)], camera: &Camera) {
             });
             rpass.set_pipeline(&gpu.pipeline);
             rpass.set_bind_group(0, &gpu.bind_group, &[]);
-            rpass.set_vertex_buffer(0, gpu.vertex_buf.slice(..));
-            rpass.set_index_buffer(gpu.index_buf.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..gpu.index_count, 0, 0..1);
+            rpass.set_vertex_buffer(0, mesh.vertex_buf.slice(..));
+            rpass.set_index_buffer(mesh.index_buf.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..mesh.index_count, 0, 0..1);
         }
         gpu.queue.submit(Some(encoder.finish()));
     }
@@ -513,11 +602,16 @@ struct EngineState {
     world: World,
     gpu: Option<GpuContext>,
     camera: Camera,
+    // Taken (replaced with an empty placeholder) the moment on_init
+    // consumes it — GpuContext needs to own its own buffers, this is
+    // just the handoff from main()'s scene-loading to init_gpu().
+    entity_geometry: Option<(Vec<Vertex>, Vec<u16>)>,
 }
 
 extern "C" fn on_init(native_view: *mut c_void, user_data: *mut c_void) {
     let state = unsafe { &mut *(user_data as *mut EngineState) };
-    state.gpu = Some(init_gpu(native_view));
+    let geometry = state.entity_geometry.take().unwrap_or_else(cube_geometry);
+    state.gpu = Some(init_gpu(native_view, geometry));
     println!("wgpu surface created directly in the Qt window.");
 }
 
@@ -557,17 +651,37 @@ fn main() {
     // Optional first CLI arg: a project directory containing
     // world-engine.json. No arg (e.g. the app-menu "Launch World Engine
     // (dev)" trigger) keeps the original single-cube demo behavior.
-    let scene = match std::env::args().nth(1) {
-        Some(project_dir) => load_scene(&project_dir),
+    let project_dir = std::env::args().nth(1);
+    let scene = match &project_dir {
+        Some(dir) => load_scene(dir),
         None => default_scene(),
     };
+
+    // scene.mesh, if present, is relative to the project directory —
+    // load it once here; on_init() falls back to the built-in cube if
+    // this is None (no project, or no mesh specified, or it failed to
+    // load — a broken mesh reference shouldn't crash the whole engine).
+    let entity_geometry = match (&project_dir, &scene.mesh) {
+        (Some(dir), Some(mesh_rel)) => {
+            let mesh_path = std::path::Path::new(dir).join(mesh_rel);
+            match load_mesh(&mesh_path) {
+                Ok(geometry) => Some(geometry),
+                Err(err) => {
+                    eprintln!("failed to load mesh {mesh_path:?}: {err:#} — using the built-in cube instead.");
+                    None
+                }
+            }
+        }
+        _ => None,
+    };
+
     let initial_eye = Vec3::new(4.0, 3.5, 6.0);
     let camera = Camera {
         yaw: initial_eye.z.atan2(initial_eye.x),
         pitch: (initial_eye.y / initial_eye.length()).asin(),
         distance: initial_eye.length(),
     };
-    let mut state = Box::new(EngineState { world: World::new(&scene), gpu: None, camera });
+    let mut state = Box::new(EngineState { world: World::new(&scene), gpu: None, camera, entity_geometry });
     let user_data = &mut *state as *mut EngineState as *mut c_void;
     println!("world-engine-qt-shell: Qt native window, wgpu direct render, {} entities", state.world.cube_entities.len());
     unsafe {

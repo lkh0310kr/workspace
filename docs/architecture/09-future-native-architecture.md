@@ -527,9 +527,37 @@ through a new `InputCallback` in `shim.h`. Rust's `Camera` (yaw/pitch/
 distance, orbiting the scene origin) is updated from those events and
 used to compute the view matrix every frame instead of a fixed eye
 position. Verified: builds clean, runs against the 3-cube test fixture
-with no crash (drag/scroll itself needs the user's own hands-on check
-inside the live window — not something this session's tooling can
-automate, same limitation as every other visual check this arc).
+with no crash. **Confirmed live by the user** — drag orbits, scroll
+zooms, inside the actual running window.
+
+### Phase 7 — DONE: ground plane + real glTF mesh loading (2026-08-28)
+
+Two more deepening items, same session: entities had nothing visible to
+show what they were physically landing on (the ground collider existed
+in `rapier3d` but was never rendered) — added a flat quad matching the
+collider's actual size/position (`ground_geometry()`), drawn first each
+frame before the entity loop.
+
+Then real mesh loading: an optional top-level `"mesh"` field in
+`world-engine.json` (a path relative to the project directory, `.gltf`
+or `.glb`) replaces the built-in cube for every entity in that scene.
+`load_mesh()` uses the `gltf` crate's standard reader pattern
+(`gltf::import` → first mesh → first primitive → `reader.read_positions
+()`/`read_normals()`/`read_indices()`) — positions/normals/indices only,
+no materials/textures/skinning/animation (real future scope). A missing
+or broken mesh reference logs a warning and falls back to the cube
+rather than crashing. `GpuContext` was refactored to hold two independent
+`Mesh` records (ground, entity) instead of one hardcoded cube buffer, via
+a new `upload_mesh()` helper shared by both.
+
+Live-verified directly: built a real two-box test fixture
+(`electron/test-fixtures/world-engine-mesh-demo/`, referencing a real
+`.glb` — the official glTF-Sample-Assets "Box" model, a small CC0/public-
+domain test asset bundled with the `gltf` crate's own repo) and ran the
+binary against it standalone — no fallback-to-cube warning printed
+(meaning the real mesh loaded), 2 entities, no crash. Regression-checked
+the earlier cube-only scenes (default single-cube demo, the 3-cube
+fixture) still behave identically after the `GpuContext` refactor.
 
 ## Per-pane stack direction (if/when this happens)
 

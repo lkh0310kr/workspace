@@ -1,0 +1,7 @@
+{
+  "mesh": "box.glb",
+  "entities": [
+    { "position": [0, 3, 0], "rotation": [0.3, 0.5, 0], "restitution": 0.5, "color": [0.8, 0.6, 0.2] },
+    { "position": [1.2, 5, 0.3], "rotation": [0.6, 0.1, 0.2], "restitution": 0.4, "color": [0.3, 0.7, 0.8] }
+  ]
+}
