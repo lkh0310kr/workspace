@@ -20,6 +20,33 @@ export function toEngineBundleUrl(absoluteBundleDir: string, entry = 'index.html
   return `${ENGINE_SCHEME}://${ENGINE_HOST}${encodedDir}/${encodeURIComponent(entry)}`
 }
 
+export type EngineBundleResolveResult =
+  | { ok: true; url: string }
+  | { ok: false; error: string }
+
+/** Verify `index.html` (or `entry`) exists before building a workspace-engine:// URL. */
+export function resolveEngineBundleDir(
+  absoluteBundleDir: string,
+  entry = 'index.html',
+  options?: { worldEngineProject?: boolean },
+): EngineBundleResolveResult {
+  const indexPath = path.join(absoluteBundleDir, entry)
+  if (!fs.existsSync(indexPath)) {
+    if (options?.worldEngineProject) {
+      return {
+        ok: false,
+        error:
+          'This folder is a World Engine project (world-engine.json), not a Web export. Use "Open in World Engine" from the tree context menu instead of "Open as App".',
+      }
+    }
+    return {
+      ok: false,
+      error: `No ${entry} in this folder — export a Web build first (e.g. Godot "Export Godot (Web) & Open"), then use "Open as App" on the output directory.`,
+    }
+  }
+  return { ok: true, url: toEngineBundleUrl(absoluteBundleDir, entry) }
+}
+
 // Godot's Web export is the concrete first target (see docs/ideation.md),
 // so .wasm/.pck get named treatment; the rest is a generic static-file
 // set any future Web-exportable engine would also need. .wasm's MIME

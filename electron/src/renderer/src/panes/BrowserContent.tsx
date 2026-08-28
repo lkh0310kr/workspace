@@ -66,6 +66,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   const [webContentsId, setWebContentsId] = useState<number | null>(null);
   const [zoomFactor, setZoomFactor] = useState(item.zoomFactor ?? 1);
   const [rendererGone, setRendererGone] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
   const onOpenNewTabRef = useRef(onOpenNewTab);
@@ -153,7 +154,16 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     // through, so this is the display+reload half only, not Orca's full
     // recovery/validation state machine.
     const onRendererGone = (): void => setRendererGone(true);
-    const onDomReady = (): void => setRendererGone(false);
+    const onDomReady = (): void => {
+      setRendererGone(false);
+      setLoadError(null);
+    };
+    const onFailLoad = (e: Electron.DidFailLoadEvent): void => {
+      if (!e.validatedURL?.startsWith("workspace-engine:")) return;
+      setLoadError(
+        "Engine bundle not found. For world-engine.json projects use TreeView → Open in World Engine. For Godot, use Export Godot (Web) & Open.",
+      );
+    };
 
     guest.addEventListener("did-start-loading", onStartLoading);
     guest.addEventListener("did-stop-loading", onStopLoading);
@@ -163,6 +173,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     guest.addEventListener("page-favicon-updated", onFaviconUpdated);
     guest.addEventListener("render-process-gone", onRendererGone);
     guest.addEventListener("dom-ready", onDomReady);
+    guest.addEventListener("did-fail-load", onFailLoad);
 
     const unregisterWebview = registerBrowserWebview(guest);
     registerPersistentWebview(item.id, guest);
@@ -201,6 +212,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       guest.removeEventListener("page-favicon-updated", onFaviconUpdated);
       guest.removeEventListener("render-process-gone", onRendererGone);
       guest.removeEventListener("dom-ready", onDomReady);
+      guest.removeEventListener("did-fail-load", onFailLoad);
       guest.removeEventListener("focus", onFocus);
       guest.removeEventListener("blur", onBlur);
       if (getActiveBrowserWebview() === guest) setActiveBrowserWebview(null);
@@ -363,6 +375,11 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
             >
               Reload
             </button>
+          </div>
+        )}
+        {loadError && !rendererGone && (
+          <div className="browser-crash-banner">
+            <span>{loadError}</span>
           </div>
         )}
       </div>

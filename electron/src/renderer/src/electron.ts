@@ -177,7 +177,11 @@ export function epubResourceUrl(bookId: string, href: string): string {
  * engine Web export (index.html + siblings) — see
  * electron/src/main/engineBundleProtocol.ts. Consumed by TreeView's
  * "Open as App" (PaneGroup.tsx's onTreeOpenAsApp). */
-export async function getEngineBundleUrl(tabId: number, rel: string, entry?: string): Promise<string> {
+export async function getEngineBundleUrl(
+  tabId: number,
+  rel: string,
+  entry?: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   return window.api.engine.getBundleUrl(tabId, rel, entry);
 }
 

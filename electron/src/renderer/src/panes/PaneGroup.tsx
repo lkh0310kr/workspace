@@ -327,12 +327,17 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   const openEngineBundleTab = useCallback(
     (path: string) => {
       getEngineBundleUrl(workspaceTabId, path)
-        .then((url) => addTabToGroup(model, nodeId, "browser", { url }))
-        .then((id) => {
-          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
-          onNotifyChanged();
+        .then((result) => {
+          if (!result.ok) {
+            logError(`Open as App failed for "${path}": ${result.error}`);
+            return;
+          }
+          return addTabToGroup(model, nodeId, "browser", { url: result.url }).then((id) => {
+            if (id) setActivePaneTab(workspaceTabId, nodeId, id);
+            onNotifyChanged();
+          });
         })
-        .catch(console.error);
+        .catch((err) => logError(`Open as App failed for "${path}"`, err?.stack));
       // Best-effort project-registry side-record (Phase 1 — see
       // projectManifest.ts) — deliberately not chained into the flow
       // above, so a slow/failed registration never affects opening the

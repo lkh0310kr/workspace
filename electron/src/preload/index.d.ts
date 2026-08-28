@@ -185,7 +185,11 @@ export interface WorkspaceApi {
     openAbsolute: (absolutePath: string) => Promise<EpubBook>
   }
   engine: {
-    getBundleUrl: (tabId: number, rel: string, entry?: string) => Promise<string>
+    getBundleUrl: (
+      tabId: number,
+      rel: string,
+      entry?: string,
+    ) => Promise<{ ok: true; url: string } | { ok: false; error: string }>
     exportGodotWeb: (tabId: number, rel: string) => Promise<{ ok: boolean; outputRel?: string; error?: string }>
   }
   project: {

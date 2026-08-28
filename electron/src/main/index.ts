@@ -661,7 +661,7 @@ app.whenReady().then(() => {
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
   ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))
   ipcMain.handle('engine:get-bundle-url', (_event, tabId: number, rel: string, entry?: string) =>
-    workspace!.engineBundleUrl(tabId, rel, entry)
+    workspace!.resolveEngineBundle(tabId, rel, entry)
   )
   ipcMain.handle('project:register-app', (_event, tabId: number, kind: string, rel: string, title?: string) =>
     workspace!.registerProjectApp(tabId, kind, rel, title)

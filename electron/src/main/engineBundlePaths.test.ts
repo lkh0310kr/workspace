@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { toEngineBundleUrl, contentTypeFor, isPathConfined, ENGINE_SCHEME } from "./engineBundlePaths";
+import { toEngineBundleUrl, contentTypeFor, isPathConfined, resolveEngineBundleDir, ENGINE_SCHEME } from "./engineBundlePaths";
 
 describe("toEngineBundleUrl", () => {
   it("builds a URL under the fixed host with the bundle dir as the path", () => {
@@ -19,6 +19,35 @@ describe("toEngineBundleUrl", () => {
     expect(toEngineBundleUrl("/Users/kh/My Project/web")).toBe(
       `${ENGINE_SCHEME}://local/Users/kh/My%20Project/web/index.html`,
     );
+  });
+});
+
+describe("resolveEngineBundleDir", () => {
+  it("returns a URL when the entry file exists", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "engine-bundle-"));
+    const index = path.join(dir, "index.html");
+    fs.writeFileSync(index, "<html></html>");
+    const result = resolveEngineBundleDir(dir);
+    expect(result).toEqual({ ok: true, url: toEngineBundleUrl(dir) });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("guides world-engine.json projects away from Open as App", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "world-engine-"));
+    fs.writeFileSync(path.join(dir, "world-engine.json"), "{}");
+    const result = resolveEngineBundleDir(dir, "index.html", { worldEngineProject: true });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain("Open in World Engine");
+    }
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("reports a missing Web export entry", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "empty-bundle-"));
+    const result = resolveEngineBundleDir(dir);
+    expect(result.ok).toBe(false);
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });
 

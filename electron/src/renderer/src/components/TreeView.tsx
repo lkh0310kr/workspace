@@ -400,15 +400,21 @@ export function TreeView({
     if (!menu.entry) return items;
 
     if (menu.entry.is_dir && onOpenAsApp) {
-      items.push({ type: "separator" });
-      items.push({
-        type: "button",
-        label: "Open as App",
-        onClick: () => {
-          setMenu(null);
-          onOpenAsApp(menu.entry!.path);
-        },
-      });
+      const dirEntries = dirs.get(menu.entry.path)?.entries;
+      const hasWebBundle = dirEntries?.some(
+        (e) => !e.is_dir && (e.name === "index.html" || e.name === "index.htm"),
+      );
+      if (hasWebBundle) {
+        items.push({ type: "separator" });
+        items.push({
+          type: "button",
+          label: "Open as App",
+          onClick: () => {
+            setMenu(null);
+            onOpenAsApp(menu.entry!.path);
+          },
+        });
+      }
     }
     if (
       menu.entry.is_dir &&

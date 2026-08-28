@@ -9,11 +9,11 @@ import type { DirEntry } from "./files";
 import * as search from "./search";
 import { MEDIA_MIME_TYPES, toMediaUrl } from "./mediaProtocol";
 import { openEpub, type EpubBook } from "./epub";
-import { toEngineBundleUrl } from "./engineBundlePaths";
+import { toEngineBundleUrl, resolveEngineBundleDir, type EngineBundleResolveResult } from "./engineBundlePaths";
 import { registerProjectApp as registerProjectApp_ } from "./projectManifest";
 import type { ProjectManifest } from "../shared/projectManifest";
 import { exportGodotProjectWeb, type GodotExportResult } from "./godotExport";
-import { launchWorldEngine as launchWorldEngine_ } from "./worldEngine";
+import { isWorldEngineProject, launchWorldEngine as launchWorldEngine_ } from "./worldEngine";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -287,9 +287,18 @@ export class Workspace {
    * engine Web export (index.html + its .js/.wasm/.pck siblings) — see
    * engineBundleProtocol.ts. Resolved through the same
    * files.resolveUnderRoot confinement every other file op here uses. */
-  engineBundleUrl(tabId: number, rel: string, entry?: string): string {
+  /** Returns a workspace-engine:// URL only when `entry` exists on disk. */
+  resolveEngineBundle(tabId: number, rel: string, entry?: string): EngineBundleResolveResult {
     const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel);
-    return toEngineBundleUrl(resolved, entry);
+    return resolveEngineBundleDir(resolved, entry, {
+      worldEngineProject: isWorldEngineProject(resolved),
+    });
+  }
+
+  engineBundleUrl(tabId: number, rel: string, entry?: string): string {
+    const result = this.resolveEngineBundle(tabId, rel, entry);
+    if (!result.ok) throw new Error(result.error);
+    return result.url;
   }
 
   /** Registers one app/document entry into `tabId`'s project (keyed by

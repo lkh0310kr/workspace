@@ -222,7 +222,11 @@ const api = {
       ipcRenderer.invoke('epub:open-absolute', absolutePath)
   },
   engine: {
-    getBundleUrl: (tabId: number, rel: string, entry?: string): Promise<string> =>
+    getBundleUrl: (
+      tabId: number,
+      rel: string,
+      entry?: string,
+    ): Promise<{ ok: true; url: string } | { ok: false; error: string }> =>
       ipcRenderer.invoke('engine:get-bundle-url', tabId, rel, entry),
     exportGodotWeb: (tabId: number, rel: string): Promise<unknown> =>
       ipcRenderer.invoke('engine:export-godot-web', tabId, rel)
