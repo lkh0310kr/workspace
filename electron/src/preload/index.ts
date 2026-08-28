@@ -92,7 +92,13 @@ const api = {
     getNavHistory: (webContentsId: number): Promise<{
       entries: { url: string; title: string }[]
       activeIndex: number
-    } | null> => ipcRenderer.invoke('browser:get-nav-history', webContentsId)
+    } | null> => ipcRenderer.invoke('browser:get-nav-history', webContentsId),
+    goBack: (webContentsId: number): Promise<boolean> =>
+      ipcRenderer.invoke('browser:go-back', webContentsId),
+    goForward: (webContentsId: number): Promise<boolean> =>
+      ipcRenderer.invoke('browser:go-forward', webContentsId),
+    goToIndex: (webContentsId: number, index: number): Promise<boolean> =>
+      ipcRenderer.invoke('browser:go-to-index', webContentsId, index)
   },
   shortcuts: {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void): (() => void) => {

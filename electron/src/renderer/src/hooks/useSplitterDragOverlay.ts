@@ -1,78 +1,61 @@
 import { useEffect } from "react";
 import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from "../interaction/dragSession";
-import {
-  isActivePointerDragEvent,
-  type ActivePointerDragState,
-} from "../interaction/wslg-pointer-drag";
 
-/** Block/hide webviews while resizing flexlayout splitters. */
+/**
+ * Block/hide webviews while resizing flexlayout splitters.
+ * WSLg relay (Orca pane-divider-drag): press/release may report as `mouse`
+ * but motion/end as `pen` with a different pointerId — match primary
+ * non-touch pointers so overlay teardown still runs.
+ */
 export function useSplitterDragOverlay(): void {
   useEffect(() => {
     let dragging = false;
-    let activePointer: ActivePointerDragState | null = null;
-    let windowListenersAttached = false;
+    let activePointerId: number | null = null;
+    let activePointerType: string | null = null;
+
+    const isActivePointer = (e: PointerEvent): boolean =>
+      e.pointerId === activePointerId ||
+      (e.isPrimary && e.pointerType !== "touch" && activePointerType !== "touch");
 
     const finishDrag = (): void => {
-      if (!dragging) {
-        activePointer = null;
-        return;
-      }
+      if (!dragging) return;
       dragging = false;
-      activePointer = null;
+      activePointerId = null;
+      activePointerType = null;
       endDragOverlay(DRAG_OVERLAY.SPLITTER);
     };
 
-    const removeWindowListeners = (): void => {
-      if (!windowListenersAttached) return;
-      windowListenersAttached = false;
-      window.removeEventListener("pointerup", onPointerUp, true);
-      window.removeEventListener("pointercancel", onPointerCancel, true);
-      window.removeEventListener("blur", onWindowBlur, true);
-    };
-
-    const addWindowListeners = (): void => {
-      if (windowListenersAttached) return;
-      windowListenersAttached = true;
-      window.addEventListener("pointerup", onPointerUp, true);
-      window.addEventListener("pointercancel", onPointerCancel, true);
-      window.addEventListener("blur", onWindowBlur, true);
-    };
-
-    const onPointerUp = (e: PointerEvent): void => {
-      if (!isActivePointerDragEvent(e, activePointer)) return;
-      removeWindowListeners();
-      finishDrag();
-    };
-
-    const onPointerCancel = (e: PointerEvent): void => {
-      if (!isActivePointerDragEvent(e, activePointer)) return;
-      removeWindowListeners();
-      finishDrag();
-    };
-
-    const onWindowBlur = (): void => {
-      removeWindowListeners();
-      finishDrag();
-    };
-
-    const onPointerDown = (e: PointerEvent): void => {
+    const onPointerDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target?.closest(".flexlayout__splitter")) return;
-      if (dragging) {
-        removeWindowListeners();
-        finishDrag();
-      }
       dragging = true;
-      activePointer = { pointerId: e.pointerId, pointerType: e.pointerType };
+      activePointerId = e.pointerId;
+      activePointerType = e.pointerType;
       beginDragOverlay(DRAG_OVERLAY.SPLITTER);
-      addWindowListeners();
     };
 
+    const onPointerUp = (e: PointerEvent) => {
+      if (!dragging || !isActivePointer(e)) return;
+      finishDrag();
+    };
+
+    const onPointerCancel = (e: PointerEvent) => {
+      if (!dragging || !isActivePointer(e)) return;
+      finishDrag();
+    };
+
+    const onBlur = () => finishDrag();
+
     document.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("pointerup", onPointerUp, true);
+    window.addEventListener("pointercancel", onPointerCancel, true);
+    window.addEventListener("blur", onBlur, true);
     return () => {
       document.removeEventListener("pointerdown", onPointerDown, true);
-      removeWindowListeners();
-      if (dragging) finishDrag();
+      window.removeEventListener("pointerup", onPointerUp, true);
+      window.removeEventListener("pointercancel", onPointerCancel, true);
+      window.removeEventListener("blur", onBlur, true);
+      finishDrag();
     };
   }, []);
 }

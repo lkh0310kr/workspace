@@ -10,10 +10,10 @@ export async function fetchWebviewNavHistory(webContentsId: number): Promise<{
   return window.api.browser.getNavHistory(webContentsId);
 }
 
-export function goToWebviewHistoryIndex(webview: Electron.WebviewTag, index: number): void {
+export async function goToWebviewHistoryIndex(webContentsId: number, index: number): Promise<void> {
   try {
-    webview.goToIndex(index);
+    await window.api.browser.goToIndex(webContentsId, index);
   } catch {
-    // webview may be mid-teardown.
+    // guest may be mid-teardown.
   }
 }

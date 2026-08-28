@@ -57,7 +57,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   const chipShown = paneVisible && chipActive;
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
-  const [webview, setWebview] = useState<Electron.WebviewTag | null>(null);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
   const [addressInput, setAddressInput] = useState(item.url ?? DEFAULT_URL);
   const [currentUrl, setCurrentUrl] = useState(item.url ?? DEFAULT_URL);
@@ -108,7 +107,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     guest.style.pointerEvents = "none";
     container.appendChild(guest);
     webviewRef.current = guest;
-    setWebview(guest);
     applyWebviewZoom(guest, initialZoom);
     setZoomFactor(initialZoom);
 
@@ -213,7 +211,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       moveFocusToRendererBeforeWebviewDetach(guest);
       container.removeChild(guest);
       webviewRef.current = null;
-      setWebview(null);
       setWebContentsId(null);
     };
     // Deliberately empty deps — one webview per tab item for its whole
@@ -275,7 +272,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
             direction="back"
             disabled={!canGoBack}
             active={chipShown}
-            webview={webview}
             webContentsId={webContentsId}
             onNavigate={syncNavState}
           />
@@ -283,7 +279,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
             direction="forward"
             disabled={!canGoForward}
             active={chipShown}
-            webview={webview}
             webContentsId={webContentsId}
             onNavigate={syncNavState}
           />

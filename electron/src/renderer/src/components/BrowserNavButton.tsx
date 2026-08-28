@@ -7,7 +7,6 @@ interface Props {
   direction: "back" | "forward";
   disabled: boolean;
   active: boolean;
-  webview: Electron.WebviewTag | null;
   webContentsId: number | null;
   onNavigate: () => void;
 }
@@ -25,7 +24,6 @@ export function BrowserNavButton({
   direction,
   disabled,
   active,
-  webview,
   webContentsId,
   onNavigate,
 }: Props) {
@@ -60,7 +58,7 @@ export function BrowserNavButton({
 
   const openHistory = useCallback(
     async (rect: AnchorRect) => {
-      if (!webview || !webContentsId || disabled) return;
+      if (!webContentsId || disabled) return;
       const history = await fetchWebviewNavHistory(webContentsId);
       if (!history || history.entries.length <= 1) return;
 
@@ -79,11 +77,18 @@ export function BrowserNavButton({
       setHistoryIndices(indices);
       setAnchor(rect);
     },
-    [webview, webContentsId, disabled, direction],
+    [webContentsId, disabled, direction],
   );
 
+  const navigate = useCallback(async () => {
+    if (!webContentsId) return;
+    if (direction === "back") await window.api.browser.goBack(webContentsId);
+    else await window.api.browser.goForward(webContentsId);
+    onNavigate();
+  }, [webContentsId, direction, onNavigate]);
+
   const handlePointerDown = (e: PointerEvent<HTMLButtonElement>) => {
-    if (disabled || !webview) return;
+    if (disabled || !webContentsId) return;
     longPressTriggeredRef.current = false;
     clearLongPress();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -96,10 +101,8 @@ export function BrowserNavButton({
   const handlePointerUp = () => {
     clearLongPress();
     if (longPressTriggeredRef.current) return;
-    if (disabled || !webview) return;
-    if (direction === "back") webview.goBack();
-    else webview.goForward();
-    onNavigate();
+    if (disabled || !webContentsId) return;
+    void navigate();
   };
 
   const handlePointerLeave = () => {
@@ -136,7 +139,7 @@ export function BrowserNavButton({
                   type="button"
                   className="browser-nav-history-item"
                   onClick={() => {
-                    if (webview) goToWebviewHistoryIndex(webview, index);
+                    if (webContentsId) void goToWebviewHistoryIndex(webContentsId, index);
                     closeHistory();
                     onNavigate();
                   }}

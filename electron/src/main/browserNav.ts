@@ -1,13 +1,38 @@
 import { ipcMain, webContents } from 'electron'
 
+function webContentsFromId(webContentsId: number) {
+  return webContents.fromId(webContentsId) ?? null
+}
+
 export function registerBrowserNavIpc(): void {
   ipcMain.handle('browser:get-nav-history', (_event, webContentsId: number) => {
-    const wc = webContents.fromId(webContentsId)
+    const wc = webContentsFromId(webContentsId)
     if (!wc) return null
     const history = wc.navigationHistory
     return {
       entries: history.getAllEntries().map((e) => ({ url: e.url, title: e.title || e.url })),
       activeIndex: history.getActiveIndex()
     }
+  })
+
+  ipcMain.handle('browser:go-back', (_event, webContentsId: number) => {
+    const wc = webContentsFromId(webContentsId)
+    if (!wc) return false
+    wc.navigationHistory.goBack()
+    return true
+  })
+
+  ipcMain.handle('browser:go-forward', (_event, webContentsId: number) => {
+    const wc = webContentsFromId(webContentsId)
+    if (!wc) return false
+    wc.navigationHistory.goForward()
+    return true
+  })
+
+  ipcMain.handle('browser:go-to-index', (_event, webContentsId: number, index: number) => {
+    const wc = webContentsFromId(webContentsId)
+    if (!wc) return false
+    wc.navigationHistory.goToIndex(index)
+    return true
   })
 }

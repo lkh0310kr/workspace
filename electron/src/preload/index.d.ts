@@ -115,6 +115,9 @@ export interface WorkspaceApi {
     getNavHistory: (
       webContentsId: number,
     ) => Promise<{ entries: { url: string; title: string }[]; activeIndex: number } | null>
+    goBack: (webContentsId: number) => Promise<boolean>
+    goForward: (webContentsId: number) => Promise<boolean>
+    goToIndex: (webContentsId: number, index: number) => Promise<boolean>
   }
   shortcuts: {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
