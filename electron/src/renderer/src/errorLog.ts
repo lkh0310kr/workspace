@@ -63,6 +63,17 @@ export function subscribeErrorLog(listener: (entries: LoggedError[]) => void): (
 // manually reload.
 const REACT_SCHEDULER_WEDGED_PATTERN = /Should not already be working/;
 
+// Why (2026-08-28): a one-time-ever guard meant a *second* occurrence in
+// the same tab session (e.g. opening a second cross-origin webview/engine
+// bundle later, with devtools still attached) left the UI permanently
+// dead with no auto-recovery — the user had to notice and reload
+// manually. This is interaction-triggered, not load-triggered, so each
+// occurrence is a separate, unrelated trigger; only a *tight* burst of
+// reloads (this pattern firing again within the cooldown, i.e. the reload
+// itself didn't fix anything) indicates something is actually wrong
+// beyond the known failure mode and should stop looping silently.
+const WEDGED_RELOAD_COOLDOWN_MS = 15_000;
+
 /** Catches what React's own error boundaries can't: uncaught exceptions
  * outside any render call stack (CodeMirror's internal measure/layout
  * passes, timers, etc.) and unhandled promise rejections (a failed IPC
@@ -76,16 +87,24 @@ export function installGlobalErrorLogging(): () => void {
     // expected — but auto-reloading more than once per session would
     // mean *something* is wrong beyond this known failure mode, and
     // silently looping would hide that instead of surfacing it.
-    const loopGuardKey = "workspace.autoReloadedForWedgedScheduler";
-    if (REACT_SCHEDULER_WEDGED_PATTERN.test(event.message) && !sessionStorage.getItem(loopGuardKey)) {
-      // Session ≠ mount (see docs/architecture/README.md's core
-      // principles) — PTY processes and layout JSON live in the main
-      // process, so reloading the renderer reconnects to them rather
-      // than losing anything, the same way a workspace-tab hide/show
-      // already does.
-      console.warn("[errorLog] React's scheduler is wedged (dev-mode-only React DevTools interaction) — reloading to recover.");
-      sessionStorage.setItem(loopGuardKey, "1");
-      window.location.reload();
+    const loopGuardKey = "workspace.autoReloadedForWedgedScheduler.lastAt";
+    if (REACT_SCHEDULER_WEDGED_PATTERN.test(event.message)) {
+      const lastAt = Number(sessionStorage.getItem(loopGuardKey) ?? "0");
+      const now = Date.now();
+      if (now - lastAt >= WEDGED_RELOAD_COOLDOWN_MS) {
+        // Session ≠ mount (see docs/architecture/README.md's core
+        // principles) — PTY processes and layout JSON live in the main
+        // process, so reloading the renderer reconnects to them rather
+        // than losing anything, the same way a workspace-tab hide/show
+        // already does.
+        console.warn("[errorLog] React's scheduler is wedged (dev-mode-only React DevTools interaction) — reloading to recover.");
+        sessionStorage.setItem(loopGuardKey, String(now));
+        window.location.reload();
+      } else {
+        console.error(
+          "[errorLog] React's scheduler wedged again within the reload cooldown — not auto-reloading (would loop); reload manually.",
+        );
+      }
     }
   };
   const onRejection = (event: PromiseRejectionEvent) => {
