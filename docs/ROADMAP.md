@@ -37,9 +37,21 @@ Priority order (from `ideation.md`'s "공통화 우선순위"):
   behavior itself (`main/files.ts`) was already fine, this only gives the
   cluster a real name/location instead of being undifferentiated inside
   a flat file.
-- [ ] **Project system** — a `workspace.json`-style manifest per
-  workspace root (currently just a raw file tree with no per-app
-  document registry or "what was open last" beyond the flexlayout JSON).
+- [x] **Project system** — `shared/projectManifest.ts` (pure types/zod
+  schema/upsert logic, 9 vitest cases) + `main/projectManifest.ts`
+  (persistence, centrally in `appSupportDir()/projects.electron.json`
+  keyed by workspace root — not a new per-project-directory file, see
+  its doc comment for why). Deliberately scoped to the one concrete gap
+  the line above originally called out: closing a tab forgets whatever
+  was in it entirely (the flexlayout JSON only tracks *currently open*
+  tabs), so there was no durable "this project includes a Godot bundle
+  at X" record independent of tab state. First (only, for now) writer:
+  "Open as App" registers an `engine-bundle` entry. **No reader/UI yet**
+  — write-only until a real second consumer needs one, per this
+  project's "extract after the second concrete case" convention (see
+  [08-context-modeling.md](./architecture/08-context-modeling.md)). Not
+  a general document/asset database — see the Asset system item below
+  for that, still separate and still not started.
 - [ ] **Asset system** — a typed asset model (image/font/audio/video/
   document, id/type/name/source/metadata) shared across panes, instead
   of each pane parsing files its own way — see

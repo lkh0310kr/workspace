@@ -196,6 +196,10 @@ const api = {
   engine: {
     getBundleUrl: (tabId: number, rel: string, entry?: string): Promise<string> =>
       ipcRenderer.invoke('engine:get-bundle-url', tabId, rel, entry)
+  },
+  project: {
+    registerApp: (tabId: number, kind: string, rel: string, title?: string): Promise<unknown> =>
+      ipcRenderer.invoke('project:register-app', tabId, kind, rel, title)
   }
 }
 

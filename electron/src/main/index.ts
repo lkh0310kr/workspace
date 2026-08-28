@@ -574,6 +574,9 @@ app.whenReady().then(() => {
   ipcMain.handle('engine:get-bundle-url', (_event, tabId: number, rel: string, entry?: string) =>
     workspace!.engineBundleUrl(tabId, rel, entry)
   )
+  ipcMain.handle('project:register-app', (_event, tabId: number, kind: string, rel: string, title?: string) =>
+    workspace!.registerProjectApp(tabId, kind, rel, title)
+  )
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

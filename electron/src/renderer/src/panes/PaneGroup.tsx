@@ -23,7 +23,7 @@ import { layoutLog } from "../layout/layoutDebugLog";
 import { paneChipContentShown, paneChipContentStyle } from "../interaction/embedPolicy";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { usePaneVisibility } from "./usePaneVisibility";
-import { getEngineBundleUrl } from "../electron";
+import { getEngineBundleUrl, registerProjectApp } from "../electron";
 
 // The pane-level orchestrator that makes the tab system "global": every
 // flexlayout pane node now renders one of these instead of switching on a
@@ -332,6 +332,12 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
           onNotifyChanged();
         })
         .catch(console.error);
+      // Best-effort project-registry side-record (Phase 1 — see
+      // projectManifest.ts) — deliberately not chained into the flow
+      // above, so a slow/failed registration never affects opening the
+      // tab itself.
+      const title = path.split("/").pop() || path;
+      registerProjectApp(workspaceTabId, "engine-bundle", path, title).catch(console.error);
     },
     [workspaceTabId, model, nodeId, setActivePaneTab, onNotifyChanged],
   );

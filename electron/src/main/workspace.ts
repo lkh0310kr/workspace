@@ -11,6 +11,8 @@ import * as search from "./search";
 import { MEDIA_MIME_TYPES, toMediaUrl } from "./mediaProtocol";
 import { openEpub, type EpubBook } from "./epub";
 import { toEngineBundleUrl } from "./engineBundlePaths";
+import { registerProjectApp as registerProjectApp_ } from "./projectManifest";
+import type { ProjectManifest } from "../shared/projectManifest";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -297,6 +299,14 @@ export class Workspace {
   engineBundleUrl(tabId: number, rel: string, entry?: string): string {
     const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel);
     return toEngineBundleUrl(resolved, entry);
+  }
+
+  /** Registers one app/document entry into `tabId`'s project (keyed by
+   * its rootPath) — see projectManifest.ts. `rel` is stored as-given
+   * (workspace-relative), not resolved to an absolute path, so the entry
+   * stays valid if the project ever moves on disk. */
+  registerProjectApp(tabId: number, kind: string, rel: string, title?: string): ProjectManifest {
+    return registerProjectApp_(this.tabRoot(tabId), { id: rel, kind, path: rel, title });
   }
 
   disposeAllTerminals(): void {

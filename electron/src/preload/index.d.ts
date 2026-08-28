@@ -176,6 +176,9 @@ export interface WorkspaceApi {
   engine: {
     getBundleUrl: (tabId: number, rel: string, entry?: string) => Promise<string>
   }
+  project: {
+    registerApp: (tabId: number, kind: string, rel: string, title?: string) => Promise<unknown>
+  }
 }
 
 declare global {

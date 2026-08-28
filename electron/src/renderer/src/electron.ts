@@ -175,11 +175,23 @@ export function epubResourceUrl(bookId: string, href: string): string {
 
 /** `rel` is a workspace-relative directory holding an already-built
  * engine Web export (index.html + siblings) — see
- * electron/src/main/engineBundleProtocol.ts. No pane consumes this yet;
- * added as Phase 1 foundation ahead of picking a concrete engine to host
- * (see docs/ROADMAP.md Phase 2 / docs/ideation.md). */
+ * electron/src/main/engineBundleProtocol.ts. Consumed by TreeView's
+ * "Open as App" (PaneGroup.tsx's onTreeOpenAsApp). */
 export async function getEngineBundleUrl(tabId: number, rel: string, entry?: string): Promise<string> {
   return window.api.engine.getBundleUrl(tabId, rel, entry);
+}
+
+/** Registers one app/document entry into the project manifest for
+ * `tabId`'s workspace root — see main/projectManifest.ts. Fire-and-forget
+ * from callers: a failed registration shouldn't block whatever action
+ * (e.g. opening a tab) triggered it. */
+export async function registerProjectApp(
+  tabId: number,
+  kind: string,
+  rel: string,
+  title?: string,
+): Promise<void> {
+  await window.api.project.registerApp(tabId, kind, rel, title);
 }
 
 // Tauri's onXxx helpers return a Promise<UnlistenFn> (listen() is async).
