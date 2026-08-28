@@ -31,8 +31,18 @@ export function isLinuxRendererHost(
 }
 
 function readRendererDisplayServer(): 'wayland' | 'x11' | null {
+  // Why: ported wholesale from Orca's Linux/Wayland WebGL-corruption
+  // workaround, but this app never wired up a platform:get IPC channel
+  // (macOS-only in practice — isLinuxRendererHost() gates every caller of
+  // this function, so it's unreachable on this app's actual target
+  // platform). Access defensively instead of typing window.api.platform
+  // as if it exists: the try/catch already made a missing API a no-op at
+  // runtime, this just satisfies that in the type system too.
   try {
-    return window.api.platform.get().displayServer
+    const api = window.api as unknown as {
+      platform?: { get?: () => { displayServer?: 'wayland' | 'x11' | null } }
+    }
+    return api.platform?.get?.()?.displayServer ?? null
   } catch {
     return null
   }

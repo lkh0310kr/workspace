@@ -1,5 +1,4 @@
-import type { ManagedPane, ManagedPaneInternal } from "./pane-manager-types";
-import { safeFit } from "./pane-fit";
+import type { ManagedPaneInternal } from "./pane-manager-types";
 import { disposeWebgl } from "./pane-webgl-renderer";
 import { rebuildAttachedWebgl } from "./pane-webgl-reattach";
 import { repairPaneWebglCanvasDprMismatch } from "./terminal-canvas-dpr-repair";
