@@ -212,6 +212,61 @@ actual engine's frames (still synthetic here), hardware encoding
 (still the open question). Those stay real next increments, not done by
 this spike.
 
+### Correction — "World Engine" means building one, not hosting one (2026-08-28)
+
+Everything above (Track A/B, `engine-stream-poc`) answers "how do we
+*host* a third-party engine's output inside a Workspace pane." The user
+clarified that isn't what "World Engine" is meant to be — Workspace
+should have **its own real engine**, assembled from proven open-source
+Rust libraries as components (rendering, physics, ECS), the way any real
+engine (Bevy included) is actually built — not embedding/streaming
+Godot/Omniverse/etc. as a black box. Everything above stays true and
+useful (it's still the right way to host a *third-party* renderer if one
+is ever needed for something Workspace's own engine doesn't cover), but
+it answers a different question than "World Engine" turned out to mean.
+
+**v0 built and verified**: `native/world-engine-core/` — a second
+standalone Rust binary (alongside `engine-stream-poc/`, not merged into
+it) that is a real, if minimal, engine: `wgpu` for offscreen GPU
+rendering, `rapier3d` for physics, `hecs` for ECS state, composed into one
+process, reusing `engine-stream-poc`'s already-proven WebRTC transport to
+show its output. One hardcoded cube, dropped and bounced under real
+gravity, with a basic single-light shader.
+
+Verified for real, with actual visual proof, not just "compiles and
+starts": captured 60 real decoded frames via a genuine WebRTC client
+(`aiortc`) and inspected them as images. The cube visibly falls into
+frame and visibly rotates between captures — different faces (colors)
+visible at different timestamps, matching independently-logged rigid-body
+translation that decreased frame over frame exactly as gravity would
+predict. Confirms Rapier is genuinely driving what wgpu renders, not a
+scripted animation.
+
+**One real debugging lesson, not a code bug**: the cube was initially
+invisible in every captured frame (identical brightness across 20
+frames). Diagnosed methodically rather than guessing: disabling backface
+culling changed nothing (ruled out a winding-order bug); rendering with
+an identity transform instead of the physics-driven one *did* render a
+visible cube (proved the render pipeline itself was correct); logging the
+actual computed model matrix each frame showed the translation's Y
+component decreasing exactly as expected for gravity (proved physics was
+correct too). The actual cause: the cube started at y=6 and the fixed
+camera's 45° vertical FOV only covered roughly y∈[−2.3, 2.3] at that
+viewing distance — it was simply above the frustum for the entire
+captured window, nothing was ever wrong with the code. Fixed by lowering
+the drop start (y=6 → y=2.5) and widening the camera's framing margin —
+worth remembering: "nothing renders" during physics/render integration
+work is camera framing at least as often as it's a pipeline bug, and
+isolating render-correctness from simulation-correctness independently
+(the identity-matrix test) finds that fast.
+
+**Still not done** (real next increments, same shape as `engine-stream-poc`'s
+own list): more than one entity/a real scene graph, asset loading (this
+cube is hardcoded geometry), materials/shadows beyond one flat light,
+hardware video encoding, input round-trip, and any Electron/Workspace
+wiring at all — this is still a fully standalone proof, not integrated
+into the app.
+
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see

@@ -1,0 +1,29 @@
+[package]
+name = "world-engine-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+webrtc = "0.20"
+rtc = "0.20"
+openh264 = { version = "0.9", features = ["source"] }
+warp = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+bytes = "1"
+rand = "0.8"
+async-trait = "0.1"
+log = "0.4"
+env_logger = "0.11"
+
+# Engine core: rendering, physics, ECS — the point of this crate.
+wgpu = "30"
+pollster = "1"
+bytemuck = { version = "1", features = ["derive"] }
+glam = { version = "0.33", features = ["bytemuck"] }
+flume = "0.11"
+rapier3d = "0.35"
+hecs = "0.11"
