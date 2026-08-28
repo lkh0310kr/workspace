@@ -61,6 +61,11 @@ const api = {
       ipcRenderer.on('browser:guest-focus', listener)
       return () => ipcRenderer.removeListener('browser:guest-focus', listener)
     },
+    onHtmlFullscreenChanged: (cb: (active: boolean) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, active: boolean): void => cb(active)
+      ipcRenderer.on('browser:html-fullscreen-changed', listener)
+      return () => ipcRenderer.removeListener('browser:html-fullscreen-changed', listener)
+    },
     onDownloadEvent: (cb: (payload: BrowserDownloadEventPayload) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, payload: BrowserDownloadEventPayload): void =>
         cb(payload)

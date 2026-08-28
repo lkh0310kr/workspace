@@ -127,6 +127,26 @@ function createWindow(): BrowserWindow {
     mainWindow.show()
   })
 
+  // A page inside a <webview> guest calling the Fullscreen API
+  // (document.requestFullscreen() — Godot's own Web export template has
+  // an in-canvas fullscreen button that does exactly this, same as any
+  // browser game) bubbles up to these events on the host BrowserWindow
+  // automatically; Electron/Chromium already makes the real OS window go
+  // fullscreen for free, no code needed for that part. What isn't free:
+  // this app's own chrome (titlebar, the Browser pane's own nav/address
+  // row) stays visible around the game unless something hides it —
+  // ported from itch.io's desktop client (ref-proj/itch,
+  // src/main/reactors/winds.ts's enter-html-full-screen/leave-html-full-
+  // screen handling), which solves exactly this for the same reason
+  // (hosting arbitrary HTML5/WASM games, many of them Godot exports, in
+  // an Electron shell with its own UI around the guest content).
+  mainWindow.on('enter-html-full-screen', () => {
+    sendToMainWindow('browser:html-fullscreen-changed', true)
+  })
+  mainWindow.on('leave-html-full-screen', () => {
+    sendToMainWindow('browser:html-fullscreen-changed', false)
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }

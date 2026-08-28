@@ -103,6 +103,7 @@ export interface WorkspaceApi {
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void) => () => void
     onGuestFocus: (cb: (payload: { webContentsId: number; focused: boolean }) => void) => () => void
+    onHtmlFullscreenChanged: (cb: (active: boolean) => void) => () => void
     onDownloadEvent: (cb: (payload: BrowserDownloadEventPayload) => void) => () => void
     getNavHistory: (
       webContentsId: number,

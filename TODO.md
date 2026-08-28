@@ -15,6 +15,15 @@ Web export를 webview로 host하는 방식 확정. 근거/배경: [docs/ideation
   수정(`engineBundleProtocol.ts`/`index.ts`)해서 해결. Engine bundle hosting
   파이프라인(TreeView 우클릭 → Open as App → Browser 탭에서 실행) 완성.
 
+- [ ] **HTML fullscreen QA** (2026-08-28, 다음 라이브 검증 대상) — itch.io
+  데스크톱 클라이언트(`ref-proj/itch`, MIT) 참고해서 추가: Godot Web export가
+  자체 fullscreen 버튼 누르면(브라우저 Fullscreen API) Electron이 자동으로 실제
+  OS 창을 fullscreen시키는데, 우리 앱 자체 chrome(titlebar, Browser pane
+  nav바)이 안 없어져서 몰입감이 깨지던 문제를 고침 — `enter-html-full-screen`/
+  `leave-html-full-screen` 이벤트를 감지해서 그때만 chrome 숨김. `godot-demo-web`
+  을 "Open as App"으로 연 다음, Godot 캔버스 안의 fullscreen 버튼 눌러서
+  titlebar/nav바가 사라지는지, 다시 나가면 복원되는지 확인 필요.
+
 - [ ] Video/Audio QA — File Viewer의 비디오/오디오 재생(`739766b`, `7ec31be`) 실제 GUI 테스트 필요. 특히: 시킹이 진짜 Range 요청(206)으로 되는지 devtools Network 탭에서 확인, 대용량 파일 열 때 메인 프로세스 안 멈추는지, 자막(.srt) 로드+오프셋 조정 동작, 패키지 빌드(`npm run build:mac`)에서 `protocol.handle` 등록이 dev 모드와 동일하게 동작하는지.
 - [ ] EPUB QA — `0633f6c` 미니멀 v1 (unzip + spine 순차 iframe, prev/next만). 테스트 파일(Project Gutenberg 앨리스) 전달함 — 워크스페이스 root 안에 넣고 열어서: 챕터 이동, 이미지/CSS가 iframe 안에서 상대경로로 잘 로드되는지, sandbox="allow-same-origin"이라 스크립트는 실행 안 되는 게 맞는지, 이상한 OPF/manifest 형태의 다른 epub에서도 안 깨지는지.
 - [ ] terminal - Claude Code에서 불안정함. 이전 내용을 못봄 - 이중 스크롤 문제인듯. 뭔가 높이가 잘못 설정되어서  상위 스크롤만 인식을 하는 듯.
@@ -35,3 +44,27 @@ Web export를 webview로 host하는 방식 확정. 근거/배경: [docs/ideation
     - ER Diagram
     - Query History
 - [ ] Network Packet Tracker
+
+문제: 지금은 툴 껍데기만 있음
+크롤링 / 콘텐츠 / 데이터 시트 / 핀터레스트 / 유튜브
+여러 데이터 소스 수집과 DB에 대한 기획 필요
+ex.
+- 하드웨어 데이터시트. 스펙
+- API
+- ...
+
+식량
+날씨
+지역정보
+
+프로젝트아이디어:
+- 농장 설계 및 운영 시뮬레이트
+- 요리 설계 및 운영 시뮬레이트
+
+
+
+
+
+
+
+

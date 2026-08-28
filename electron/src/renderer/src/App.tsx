@@ -20,6 +20,7 @@ import { useSplitterDragOverlay } from "./hooks/useSplitterDragOverlay";
 import { useTabChipWindowDrop } from "./hooks/useTabChipWindowDrop";
 import { useWorkspaceTabHotkeys } from "./hooks/useWorkspaceTabHotkeys";
 import { useVisibleWorkspaceTab } from "./hooks/useVisibleWorkspaceTab";
+import { useHtmlFullscreen } from "./hooks/useHtmlFullscreen";
 import { applyThemePreference, setStoredThemePreference } from "./theme";
 import { useWorkspaceStore } from "./store/workspaceStore";
 import { addTabToGroup } from "./layout/layoutActions";
@@ -88,6 +89,7 @@ export default function App() {
   const visibleWorkspaceTabId = useVisibleWorkspaceTab();
   const activeModel = storeGetModel(activeTabId);
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+  const htmlFullscreen = useHtmlFullscreen();
 
   useAppBootstrap();
   useSplitterDragOverlay();
@@ -133,7 +135,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-root">
+    <div className={`app-root${htmlFullscreen ? " html-fullscreen" : ""}`}>
       <AppTitlebar
         workspaceRailOpen={workspaceRailAnchor !== null}
         workspaceRailButtonRef={workspaceRailButtonRef}

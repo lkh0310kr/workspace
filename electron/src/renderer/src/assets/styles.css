@@ -101,6 +101,16 @@ input {
    strip reserves that height so content doesn't render under them, stays
    draggable via data-tauri-drag-region, and hosts the sidebar toggle just to
    their right (Xcode/Finder convention). */
+/* A <webview> guest's own content went fullscreen (Godot's Web export
+   button, or any browser game) — see useHtmlFullscreen.ts. Hides this
+   app's own chrome so the game gets full-bleed screen space; macOS's own
+   traffic lights are drawn by the OS itself (hiddenInset), not this div,
+   so they aren't affected either way. Ported from itch.io's desktop
+   client's same handling (ref-proj/itch). */
+.app-root.html-fullscreen .titlebar {
+  display: none;
+}
+
 .titlebar {
   height: 28px;
   flex-shrink: 0;
@@ -1169,6 +1179,14 @@ iframe.browser-content-slot {
   color: var(--text-faint);
   font-family: var(--font-ui);
   font-size: 12px;
+}
+
+/* A <webview> guest's own content went fullscreen — see the matching
+   .titlebar rule above; hides just the nav+address row, not
+   .browser-pane-chrome as a whole (that also wraps the webview content
+   itself, which must stay visible). */
+.app-root.html-fullscreen .browser-nav {
+  display: none;
 }
 
 /* Browser tab content's own chrome (nav+address row) — previously this was

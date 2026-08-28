@@ -170,6 +170,19 @@ behind this direction, revisit later.
   screen with no actionable error in the pane itself. Fixed by
   registering on `session.fromPartition(BROWSER_SESSION_PARTITION)`
   instead. **Engine bundle hosting pipeline is now verified end-to-end.**
+- [x] UX port from a real reference implementation — per this doc's
+  guiding principle (port real implementations, don't invent), cloned
+  `ref-proj/itch` (itch.io's desktop client, MIT) — a real Electron app
+  that solves exactly this problem (hosting arbitrary HTML5/WASM games,
+  many of them Godot exports, inside a shell with its own UI around the
+  guest content). Found and ported its `enter-html-full-screen`/
+  `leave-html-full-screen` handling
+  (`src/main/reactors/winds.ts`): when a hosted game's own in-canvas
+  fullscreen button is clicked, Electron already makes the real OS
+  window fullscreen for free, but this app's own chrome (titlebar,
+  Browser pane's nav/address row) stayed visible around it until now —
+  `useHtmlFullscreen.ts` + a `.html-fullscreen` CSS class hides both
+  while active, restores on exit. Pending live QA (see `TODO.md`).
 
 ## History (done)
 

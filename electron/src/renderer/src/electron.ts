@@ -226,6 +226,17 @@ export function onBrowserOpenNewTab(handler: (payload: { hostWebContentsId: numb
   return window.api.browser.onOpenNewTab(handler);
 }
 
+/** Fires when a <webview> guest's own content calls/exits the Fullscreen
+ * API (document.requestFullscreen() — Godot's Web export template ships
+ * an in-canvas fullscreen button that does this). Electron/Chromium
+ * already makes the real OS window fullscreen for free; this is only
+ * for reacting to it — e.g. hiding this app's own chrome so a hosted
+ * game gets genuinely full-bleed screen space. Ported from itch.io's
+ * desktop client (ref-proj/itch) — see main/index.ts's matching comment. */
+export function onHtmlFullscreenChanged(handler: (active: boolean) => void): () => void {
+  return window.api.browser.onHtmlFullscreenChanged(handler);
+}
+
 /** Cmd+R/Cmd+Shift+R, intercepted at the main-process input-event level
  * (see main/index.ts for why a renderer keydown listener wouldn't reliably
  * see this) and repurposed to reload the active browser tab instead of
