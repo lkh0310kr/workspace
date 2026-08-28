@@ -247,7 +247,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   // double-click promoting an existing preview tab) — see paneTypes.ts's
   // isPreview doc comment.
   const openOrSwitchToFile = useCallback(
-    (path: string, kind: "code" | "markdown" | "viewer" | "vector", jumpToLine?: number, pin?: boolean) => {
+    (path: string, kind: "code" | "markdown" | "viewer", jumpToLine?: number, pin?: boolean) => {
       const existing = tabs.find((t) => t.filePath === path);
       if (existing) {
         selectTab(existing.id);

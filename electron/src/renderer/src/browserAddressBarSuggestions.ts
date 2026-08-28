@@ -59,18 +59,35 @@ export function buildAddressBarSuggestions(
       : [];
 
   const isQuery = looksLikeSearchQuery(trimmed);
-  let topAction: AddressBarSuggestion | null;
-  if (isQuery) {
-    topAction = { url: buildSearchUrl(trimmed), title: trimmed, subtitle: "Google Search", isSearch: true };
-  } else {
-    const normalizedUrl = normalizeBrowserNavigationUrl(trimmed, true);
-    topAction = normalizedUrl ? { url: normalizedUrl, title: trimmed, subtitle: "", isSearch: false } : null;
+  const actions: AddressBarSuggestion[] = [];
+
+  // A bare single word — "google" (no dot yet) or "google." (the dot
+  // just typed, nothing after it) — has no real TLD for
+  // normalizeBrowserNavigationUrl to resolve to yet, and looksLikeSearchQuery
+  // treats it as a search query either way (no-dot) or a literal
+  // trailing-dot hostname (dot-but-nothing-after, which is technically
+  // valid DNS root notation but never what anyone means to type here).
+  // Every mainstream browser offers the ".com" guess for exactly this
+  // input shape regardless — not a history match, a live heuristic —
+  // so this is checked independently of isQuery/looksLikeSearchQuery's
+  // own dot-based branching below.
+  const bareWord = /^[a-zA-Z0-9-]+\.?$/.test(trimmed);
+  if (bareWord) {
+    const domain = `${trimmed.replace(/\.$/, "")}.com`;
+    actions.push({ url: `https://${domain}`, title: domain, subtitle: "Go to website", isSearch: false });
   }
 
-  if (!topAction) return historySuggestions.slice(0, MAX_ADDRESS_BAR_SUGGESTIONS);
+  if (isQuery) {
+    actions.push({ url: buildSearchUrl(trimmed), title: trimmed, subtitle: "Google Search", isSearch: true });
+  } else if (!bareWord) {
+    const normalizedUrl = normalizeBrowserNavigationUrl(trimmed, true);
+    if (normalizedUrl) actions.push({ url: normalizedUrl, title: trimmed, subtitle: "", isSearch: false });
+  }
 
-  const duplicateIdx = historySuggestions.findIndex((h) => h.url === topAction!.url);
-  if (duplicateIdx !== -1) return historySuggestions.slice(0, MAX_ADDRESS_BAR_SUGGESTIONS);
+  if (actions.length === 0) return historySuggestions.slice(0, MAX_ADDRESS_BAR_SUGGESTIONS);
 
-  return [topAction, ...historySuggestions].slice(0, MAX_ADDRESS_BAR_SUGGESTIONS);
+  const actionUrls = new Set(actions.map((a) => a.url));
+  const dedupedHistory = historySuggestions.filter((h) => !actionUrls.has(h.url));
+
+  return [...actions, ...dedupedHistory].slice(0, MAX_ADDRESS_BAR_SUGGESTIONS);
 }

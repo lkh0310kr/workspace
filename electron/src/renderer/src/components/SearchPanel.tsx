@@ -16,7 +16,7 @@ import { classifyFile } from "./TreeView";
 // sidebar region in place of TreeView (Cmd+Shift+F), not a separate window.
 interface Props {
   tabId: number;
-  onJumpToResult: (path: string, kind: "code" | "markdown" | "viewer" | "vector", line: number) => void;
+  onJumpToResult: (path: string, kind: "code" | "markdown" | "viewer", line: number) => void;
   onClose: () => void;
 }
 

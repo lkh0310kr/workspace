@@ -41,7 +41,7 @@ async function openFileInActivePane(
   model: Model,
   workspaceTabId: number,
   path: string,
-  kind: "code" | "markdown" | "viewer" | "vector",
+  kind: "code" | "markdown" | "viewer",
   bumpLayout: (tabId: number) => void,
 ): Promise<void> {
   const tabset = model.getActiveTabset();

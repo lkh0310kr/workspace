@@ -1,62 +1,104 @@
 # Roadmap
 
-## Phase A — Instant terminal (done)
+## Guiding principle (applies to every phase below)
 
-- [x] Remove GPU from boot path
-- [x] xterm.js + PTY byte stream
-- [x] Vite + React frontend
+Port/copy proven implementations from real projects instead of inventing
+from scratch. This is already how this app was built — terminal and
+browser were both ported from Orca (`ref-proj/orca`), not designed from
+zero. Same rule going forward: before designing a new foundation module
+or pane, find a real open-source implementation that already solved the
+problem, clone it into `ref-proj/` (read-only reference, gitignored —
+see any architecture doc's "Reference: porting from X" section for the
+pattern), and verify/port against it rather than guessing.
 
-## Phase B — 4-pane shell (done)
+## Phase 1 — Foundation architecture (stability first)
 
-- [x] flexlayout 2×2 grid
-- [x] Pane types: Code, Markdown, Terminal, Browser
-- [x] Workspace tab rail
+**Goal:** architect the shared lower layer well *before* building many
+panes on top of it. Right now every pane (Terminal, Browser, Code/
+Markdown, Viewer, RSS) implements its own version of things that should
+be common infrastructure — this phase formalizes those into shared
+modules, informed by the "Workspace SDK" principles in
+[`ideation.md`](./ideation.md#방향-전환-creative-pane--엔지니어링분석-pane-2026-08)
+(don't merge per-app engines/document models — only the infra layer
+below them is worth sharing).
 
-## Phase C — Editors (done)
+Priority order (from `ideation.md`'s "공통화 우선순위"):
 
-- [x] CodeMirror code pane + file open/save
-- [x] Markdown WYSIWYG split (editor + preview)
-- [x] notify file watcher
+- [ ] **File System module** — formalize the existing IPC read/write/
+  watch/list surface as a reusable module boundary other panes call
+  through, not each pane's own ad-hoc `../electron` imports.
+- [ ] **Project system** — a `workspace.json`-style manifest per
+  workspace root (currently just a raw file tree with no per-app
+  document registry or "what was open last" beyond the flexlayout JSON).
+- [ ] **Asset system** — a typed asset model (image/font/audio/video/
+  document, id/type/name/source/metadata) shared across panes, instead
+  of each pane parsing files its own way.
+- [ ] **Clipboard protocol** — cross-pane data types
+  (`application/x-workspace-*` MIME conventions) so copying structured
+  data from one pane and pasting into another is a real, defined
+  contract, not accidental.
+- [ ] **Command Bus** — panes register their own commands
+  (`db.query.run`, `packet.filter.apply`, etc.) into one registry, laying
+  the groundwork for a future ⌘K command palette across the whole app.
+- [ ] **Shortcut Registry** — a real `Workspace > App > Document`
+  priority/conflict model, replacing today's scattered per-component
+  `keydown` listeners each guessing at conflicts independently.
+- [ ] **GPU Service Layer** — only if/when a GPU-heavy pane actually
+  needs shared adapter/device/memory-budget info. Not started until
+  there's a real second GPU consumer beyond the terminal's WebGL
+  renderer — same "extract after the second concrete case" rule
+  `paneKindRegistry.ts` already modeled.
 
-## Phase D — Browser (done)
+## Phase 2 — Panes built on the foundation
 
-- [x] Browser pane with 2-row chrome (‹ › ↻ + URL bar)
-- [x] Wry child webview via BrowserHost
-- [x] Frame sync on resize / split drag
+**Goal:** once Phase 1's modules exist, build multiple engineering/
+analysis panes that actually *use* them — not each reinventing file/
+project/clipboard/shortcut handling the way every pane has so far.
+Candidate list and priority in
+[`ideation.md`](./ideation.md#방향-전환-creative-pane--엔지니어링분석-pane-2026-08):
+Database Studio, Network/Packet Analyzer, Serial/Embedded Studio, Hex/
+Binary Inspector, GIS/Map Studio, Git/Code Archaeology, Robot Simulator,
+Research/Paper Reader.
 
-## Phase E — Polish
+- [ ] Pick the first pane (not decided yet — next session)
+- [ ] For the chosen pane: research real open-source implementations to
+  port from (license, core engine, how it'd embed in Electron) — per
+  this doc's guiding principle, same as Orca was for terminal/browser
+- [ ] Build it using Phase 1's modules where they exist yet; note any
+  gap in Phase 1 the pane surfaces (a real second consumer is exactly
+  when a Phase 1 module's design gets validated or corrected)
 
-- [x] Multi-tab × per-tab layout (flexlayout JSON)
+## History (done)
+
+Earlier build-out, kept for the record rather than deleted:
+
+- **Instant terminal** — removed GPU from boot path, xterm.js + PTY byte
+  stream, Vite + React frontend.
+- **4-pane shell** — flexlayout 2×2 grid, Code/Markdown/Terminal/Browser
+  pane types, workspace tab rail.
+- **Editors** — CodeMirror code pane + file open/save, Markdown WYSIWYG
+  split, file watcher.
+- **Browser** — 2-row chrome (‹ › ↻ + URL bar), child webview host, frame
+  sync on resize/split.
+- **Interaction stability** — InteractionCoordinator (overlay stack,
+  webview pointer-events, portal registry), Orca-style terminal pipeline
+  (PtySession replay, single-leaf pane manager, WebGL refit), workspace
+  tab keep-mounted visibility model. See
+  [docs/architecture/README.md](./architecture/README.md).
+- **Zustand workspace-scope store** — workspace hydration, layout
+  models, pane active tabs, coordinator bridge.
+- **Creative panes (built, then removed)** — a Vector Editor pane was
+  built through M1-M6 (scene graph, SVG rendering, transforms, pen tool,
+  groups, undo/redo, export, text, pan/zoom/marquee/z-order/align/
+  distribute) and then deliberately removed once direction shifted to
+  engineering/analysis panes (Phase 2 above). Nothing in that family
+  (Vector, Pixel Art, Diagram, Presentation, 2D Animation, Paint, 3D
+  Modeler) is planned.
+
+Still open from the old Phase E/G list, not yet folded into Phase 1/2
+above:
 - [ ] Layout export to `./.workspace/layout.json`
-- [ ] GPU terminal option (`terminal-gpu` crate)
+- [ ] GPU terminal option
 - [ ] MCP / agent orchestration
-
-## Phase F — Interaction stability (done)
-
-- [x] InteractionCoordinator — overlay stack, webview pointer-events, portal registry
-- [x] Orca-style terminal pipeline (PtySession replay, single-leaf pane manager, WebGL refit)
-- [x] Workspace tab keep-mounted visibility model (no full layout remount)
-- [x] Architecture docs in `docs/architecture/`
-
-See [docs/architecture/README.md](./architecture/README.md).
-
-## Phase G — Planned
-
-- [x] Zustand workspace-scope store (Phase 2) — workspace hydration, layout models, pane active tabs, coordinator bridge
-- [ ] Embed cold-park + LRU webview registry (Phase 3)
-- [ ] Zod + salvage workspace persistence (Phase 4)
-
-## Phase H — Creative panes (long-term, not scheduled)
-
-Vector Editor first, to real completion, before anything else in this
-family — see [architecture/08-vector-editor.md](./architecture/08-vector-editor.md).
-
-- [x] M1 — scene graph, SVG render, selection/transform (rect/ellipse), save/load JSON — implemented, pending live GUI QA (see TODO.md)
-- [x] M2 — pen tool, line tool — implemented, pending live GUI QA (see TODO.md)
-- [x] M3 — stroke/fill UI, group/ungroup — implemented (group is move-only, no resize/rotate — see 08-vector-editor.md), pending live GUI QA (see TODO.md)
-- [x] M4 — undo/redo, export SVG/PNG, polish (delete/duplicate/copy-paste/nudge) — implemented, pending live GUI QA (see TODO.md)
-- [x] M5 — text tool — implemented, pending live GUI QA (see TODO.md)
-- [x] M6 (post-v1) — pan/zoom, marquee select, z-order, flip — Tier 1 of [architecture/10-creative-panes-ux-roadmap.md](./architecture/10-creative-panes-ux-roadmap.md), implemented, pending live GUI QA (see TODO.md)
-
-Not committed / reference only for now: Pixel Art, Diagram, Presentation,
-2D Animation, Paint, 3D Modeler.
+- [ ] Embed cold-park + LRU webview registry
+- [ ] Zod + salvage workspace persistence (partially done — layout salvage exists, see `shared/layoutSalvage.ts`)

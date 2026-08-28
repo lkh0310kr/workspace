@@ -18,9 +18,7 @@ Project documentation for the Workspace desktop app (Electron).
 - [Terminal pipeline](./architecture/05-terminal-pipeline.md) — PTY, xterm, WebGL, pane manager
 - [Browser embeds](./architecture/06-browser-embeds.md) — webview lifecycle and navigation
 - [Future phases](./architecture/07-future-phases.md) — planned Zustand, cold-park, persistence
-- [Vector editor](./architecture/08-vector-editor.md) — creative-pane design; M1-M5 built, pending live GUI QA
 - [Future native architecture](./architecture/09-future-native-architecture.md) — long-term direction, reference only
-- [Creative panes UX roadmap](./architecture/10-creative-panes-ux-roadmap.md) — Penpot-informed UX backlog for Vector Editor and future Pixel Art
 
 ## Conventions
 

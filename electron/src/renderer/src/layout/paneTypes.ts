@@ -10,7 +10,7 @@
 // a list of heterogeneous PaneTabItems plus which one is active — instead
 // of a single component+config pair.
 
-export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer" | "rss" | "vector";
+export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer" | "rss";
 
 export interface PaneTabItem {
   id: string;

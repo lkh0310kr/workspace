@@ -19,7 +19,7 @@ interface Props {
   rootPath: string;
   selectedPath?: string | null;
   paneVisible?: boolean;
-  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer" | "vector", pin?: boolean) => void;
+  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer", pin?: boolean) => void;
   // Lets the pane hosting this tree keep any open tab's filePath in sync
   // with what actually happened on disk — without these, renaming/moving/
   // deleting a file out from under an open tab leaves that tab pointing
@@ -69,9 +69,8 @@ const VIEWER_EXTENSIONS = [
   ".flac",
 ];
 
-export function classifyFile(name: string): "code" | "markdown" | "viewer" | "vector" {
+export function classifyFile(name: string): "code" | "markdown" | "viewer" {
   const lower = name.toLowerCase();
-  if (lower.endsWith(".vec.json")) return "vector";
   if (lower.endsWith(".md") || lower.endsWith(".markdown")) return "markdown";
   if (VIEWER_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "viewer";
   return "code";
