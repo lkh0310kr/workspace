@@ -48,7 +48,17 @@ Vector Editor(SVG 기반 직접 구현, M1-M6)를 한 번 만들었다가 삭제
 - **2D**: Figma, Illustrator, Photoshop급
 - **3D**: Blender급
 - **Video**: Video Editor
-- **Engineering**: CAD, Nvidia Omniverse류(USD 파이프라인), Game Engine
+- **Engineering**: CAD, Nvidia Omniverse류(USD 파이프라인), **Game Engine** ← 첫 타깃으로 확정 (Godot)
+
+**첫 타깃: Game Engine(Godot), Web export 방식으로 fork/embed.** 넷 중 뭐가 더
+"근본적"이냐를 따진 게 아니라 — 지금 진짜 검증해야 할 근본 문제는 "포크한 엔진을
+Workspace 안에 어떻게 host하느냐"이고, 그걸 제일 싸게 검증할 수 있는 후보가
+Godot이라 골랐음(MIT, Web export 문서 잘 되어있음, Blender/FreeCAD보다 빌드
+훨씬 가벼움). Host 방식은 Godot의 HTML5/WASM Web export를 `<webview>`로
+로드하는 것 — 이미 BrowserContent.tsx가 쓰는 webview 패턴을 거의 그대로
+재사용. 서빙 인프라(`workspace-engine://` 프로토콜, COOP/COEP 헤더 포함)는
+`docs/ROADMAP.md` Phase 1에 구현 완료; 실제 Godot 프로젝트를 Web export해서
+끝까지 로드되는지 검증하는 게 다음 단계.
 
 이 넷은 전부 무거운 렌더링/연산 엔진이 필요한 카테고리라 — 아래 "만약 외부
 오픈소스 앱을 fork/embed" 원칙과 [09-future-native-architecture.md](./architecture/09-future-native-architecture.md)의

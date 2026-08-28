@@ -173,6 +173,9 @@ export interface WorkspaceApi {
     open: (tabId: number, rel: string) => Promise<EpubBook>
     openAbsolute: (absolutePath: string) => Promise<EpubBook>
   }
+  engine: {
+    getBundleUrl: (tabId: number, rel: string, entry?: string) => Promise<string>
+  }
 }
 
 declare global {

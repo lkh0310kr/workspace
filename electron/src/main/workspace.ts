@@ -10,6 +10,7 @@ import type { DirEntry } from "./files";
 import * as search from "./search";
 import { MEDIA_MIME_TYPES, toMediaUrl } from "./mediaProtocol";
 import { openEpub, type EpubBook } from "./epub";
+import { toEngineBundleUrl } from "./engineBundlePaths";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -287,6 +288,15 @@ export class Workspace {
 
   openEpub(tabId: number, rel: string): Promise<EpubBook> {
     return openEpub(this.tabRoot(tabId), rel);
+  }
+
+  /** `rel` is a workspace-relative *directory* holding an already-built
+   * engine Web export (index.html + its .js/.wasm/.pck siblings) — see
+   * engineBundleProtocol.ts. Resolved through the same
+   * files.resolveUnderRoot confinement every other file op here uses. */
+  engineBundleUrl(tabId: number, rel: string, entry?: string): string {
+    const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel);
+    return toEngineBundleUrl(resolved, entry);
   }
 
   disposeAllTerminals(): void {

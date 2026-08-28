@@ -257,6 +257,15 @@ export function epubResourceUrl(bookId: string, href: string): string {
   return `workspace-epub://${bookId}/${href}`;
 }
 
+/** `rel` is a workspace-relative directory holding an already-built
+ * engine Web export (index.html + siblings) — see
+ * electron/src/main/engineBundleProtocol.ts. No pane consumes this yet;
+ * added as Phase 1 foundation ahead of picking a concrete engine to host
+ * (see docs/ROADMAP.md Phase 2 / docs/ideation.md). */
+export async function getEngineBundleUrl(tabId: number, rel: string, entry?: string): Promise<string> {
+  return window.api.engine.getBundleUrl(tabId, rel, entry);
+}
+
 // Tauri's onXxx helpers return a Promise<UnlistenFn> (listen() is async).
 // Kept as sync-returning here (window.api's ipcRenderer.on wiring is
 // synchronous), but callers that do `unlisten.then((fn) => fn())` still

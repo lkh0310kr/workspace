@@ -49,6 +49,19 @@ Priority order (from `ideation.md`'s "공통화 우선순위"):
   worth designing with Phase 2's actual target in mind now (see below) —
   a 3D/CAD/video pane is a near-certain future GPU consumer, not a
   hypothetical one.
+- [x] **Engine bundle hosting protocol** — `workspace-engine://` custom
+  scheme (`electron/src/main/engineBundleProtocol.ts` +
+  `engineBundlePaths.ts`, 12 vitest cases) serves a pre-built engine Web
+  export's static files (index.html/.js/.wasm/.pck) to a renderer
+  `<webview>`, confined to an open workspace root the same way
+  `mediaProtocol.ts` confines video/audio. Sets
+  `Cross-Origin-Opener-Policy: same-origin` +
+  `Cross-Origin-Embedder-Policy: require-corp` on every response —
+  required for `SharedArrayBuffer` in a threaded Godot Web export. This
+  is the first concrete piece of Phase 1 informed by Phase 2's actual
+  target (see below) rather than a guess made before one was picked. No
+  pane consumes it yet — that's the next step once a real exported
+  bundle exists to point it at.
 
 ## Phase 2 — Graphics/design/CAD-class panes (current direction)
 
@@ -77,15 +90,29 @@ Engineering/analysis panes (Database Studio, Network/Packet Analyzer,
 etc. — also in `ideation.md`) are **on hold, not dropped** — deprioritized
 behind this direction, revisit later.
 
-- [ ] Pick which of the four categories to design toward first (not
-  decided yet — next session)
-- [ ] For it: research real candidate engines to fork/embed (license,
-  core engine, how it'd embed in/alongside Electron — per this doc's
-  guiding principle)
-- [ ] Feed what that research surfaces back into Phase 1 — a real
-  candidate engine's actual requirements (window/surface hosting, asset
-  formats, GPU needs) are what should shape Phase 1's modules, not
-  guesses made before one is picked
+- [x] Pick which of the four categories to design toward first: **Game
+  Engine (Godot)**, chosen from inside the Engineering category — not
+  because "engineering" is philosophically more foundational than
+  graphics, but because Godot (MIT, well-documented Web export, no
+  build-complexity comparable to Blender/FreeCAD) is the cheapest way to
+  validate the real unknown, which is the *hosting/integration* problem
+  shared by all four categories, not any one category's own domain math.
+- [x] Hosting strategy chosen: Godot's own **Web (HTML5/WASM) export**,
+  loaded in a `<webview>` the same way `BrowserContent.tsx` already hosts
+  arbitrary web content — not native-window embedding (platform-specific,
+  much higher integration cost) and not GDExtension (runs code *inside*
+  Godot's process, doesn't solve embedding Godot *inside* Workspace).
+  Reuses this app's existing webview-hosting pattern almost entirely.
+- [x] First infra piece built: the engine bundle hosting protocol (Phase
+  1, above) — serves a Godot Web export's static files with the
+  COOP/COEP headers a threaded export needs.
+- [ ] Next: get an actual Godot project exported to Web and verify a
+  `<webview>` pointed at `workspace-engine://...` actually loads and runs
+  it end-to-end — nothing has been tested against a real export yet, only
+  the serving infra.
+- [ ] Once that works: a minimal "Engine" pane kind
+  (`panes/kinds/engineKind.tsx` following the existing `PaneKindDefinition`
+  pattern) that points a `<webview>` at an `engine:get-bundle-url` result
 
 ## History (done)
 

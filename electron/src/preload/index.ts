@@ -192,6 +192,10 @@ const api = {
     open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),
     openAbsolute: (absolutePath: string): Promise<unknown> =>
       ipcRenderer.invoke('epub:open-absolute', absolutePath)
+  },
+  engine: {
+    getBundleUrl: (tabId: number, rel: string, entry?: string): Promise<string> =>
+      ipcRenderer.invoke('engine:get-bundle-url', tabId, rel, entry)
   }
 }
 

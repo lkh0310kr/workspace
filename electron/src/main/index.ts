@@ -9,6 +9,7 @@ import type { SearchOptions } from './search'
 import { registerMediaProtocol, toMediaUrlBrowsed } from './mediaProtocol'
 import { fetchFeed } from './rss'
 import { registerEpubProtocol, openEpubAbsolute } from './epub'
+import { registerEngineBundleProtocol } from './engineBundleProtocol'
 import {
   loadConfig,
   saveConfig,
@@ -397,6 +398,7 @@ app.whenReady().then(() => {
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
   registerMediaProtocol(() => workspace!.allTabRootPaths())
   registerEpubProtocol()
+  registerEngineBundleProtocol(() => workspace!.allTabRootPaths())
   // Save immediately (mirrors src/lib.rs) — first launch would otherwise
   // never persist anything until the user creates/closes/renames a tab,
   // meaning a never-touched default tab's terminal id would be lost on the very next relaunch.
@@ -565,6 +567,9 @@ app.whenReady().then(() => {
   ipcMain.handle('rss:fetch-feed', (_event, url: string) => fetchFeed(url))
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
   ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))
+  ipcMain.handle('engine:get-bundle-url', (_event, tabId: number, rel: string, entry?: string) =>
+    workspace!.engineBundleUrl(tabId, rel, entry)
+  )
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
