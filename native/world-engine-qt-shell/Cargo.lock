@@ -1762,12 +1762,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "world-engine-qt-shell"
+name = "world-engine-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
- "cc",
  "glam 0.33.5",
  "gltf",
  "hecs",
@@ -1777,6 +1776,15 @@ dependencies = [
  "serde",
  "serde_json",
  "wgpu",
+]
+
+[[package]]
+name = "world-engine-qt-shell"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "glam 0.33.5",
+ "world-engine-core",
 ]
 
 [[package]]

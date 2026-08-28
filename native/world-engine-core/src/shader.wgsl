@@ -2,6 +2,7 @@ struct Uniforms {
     mvp: mat4x4<f32>,
     model: mat4x4<f32>,
     light_dir: vec4<f32>,
+    tint: vec4<f32>,
 };
 
 @group(0) @binding(0)
@@ -36,5 +37,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let diffuse = max(dot(n, l), 0.0);
     let ambient = 0.25;
     let lit = ambient + diffuse * (1.0 - ambient);
-    return vec4<f32>(in.color * lit, 1.0);
+    // Flat per-entity tint (from the scene file), not the old hardcoded
+    // per-face rainbow — face-to-face contrast now comes from lighting
+    // angle alone, which is enough to read the cube's rotation.
+    return vec4<f32>(u.tint.rgb * lit, 1.0);
 }

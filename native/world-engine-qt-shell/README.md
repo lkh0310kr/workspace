@@ -1,16 +1,13 @@
 # world-engine-qt-shell
 
-World Engine itself — the real, integrated one. Not a hosted third-party
-engine (Godot, Blender, etc.); a real engine assembled from proven
-open-source Rust libraries:
-
-- **`wgpu`** — GPU rendering, presenting directly to a real native window
-  surface (no offscreen texture, no readback, no video).
-- **`rapier3d`** — physics. Gravity and collisions are real, not scripted.
-- **`hecs`** — ECS state (each scene entity is a real entity with
-  `Transform`/`PhysicsBody`/`Tint` components).
-- **Qt 6** — the native window and input (`cpp/shim.cpp`: a plain
-  `QWidget` subclass, no QML, no `moc`).
+The Qt **shell** for World Engine — a real native window (`cpp/shim.cpp`:
+a plain `QWidget` subclass, no QML, no `moc`) that owns the window and
+forwards real input, and hands its native view handle to
+[`world-engine-core`](../world-engine-core/) to render into every frame.
+This crate has no rendering/physics/ECS code of its own any more — that
+all moved to `world-engine-core` as a real reusable library (see that
+crate's README and `docs/architecture/09-future-native-architecture.md`'s
+"Phase 10" for why).
 
 Runs as its own real native window, spawned and managed by the Workspace
 app as a child process (`electron/src/main/worldEngine.ts`, mirroring how
@@ -149,7 +146,10 @@ to.
 
 | File | Role |
 |------|------|
-| `src/main.rs` | Engine core — geometry, physics/ECS `World`, `Camera`, `wgpu` setup and per-frame render, FFI glue to the C++ shim |
-| `src/shader.wgsl` | Single-directional-light flat shading |
+| `src/main.rs` | FFI glue to the C++ shim, CLI/project loading, calls into `world_engine_core` for everything engine-side |
 | `cpp/shim.h` / `cpp/shim.cpp` | The whole Qt "shell" — window creation, native handle, frame timer, input forwarding |
 | `build.rs` | Compiles `cpp/shim.cpp` via `cc`, links the Qt frameworks |
+
+Engine internals (geometry, physics/ECS `World`, `Camera`, `wgpu` setup
+and per-frame render, the SDK API) now live in
+[`../world-engine-core/`](../world-engine-core/) — see its own README.

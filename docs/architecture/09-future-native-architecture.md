@@ -676,6 +676,84 @@ Visual confirmation (does the pendulum actually swing under gravity
 around its hinge, does the platform visibly oscillate, does the dropped
 cuboid get carried/pushed by it) is the user's own live check.
 
+### Phase 10 — DONE: engine core extracted as a library + a code-facing SDK API (2026-08-28)
+
+Structural check-in after Phases 1-9: everything built so far was
+genuinely a real engine (`wgpu` + `rapier3d` + `hecs`), but the whole
+thing lived in one binary (`world-engine-qt-shell/src/main.rs`) driven
+entirely by a static `world-engine.json` parsed once at startup and
+interpreted by hardcoded rules. That's a JSON scene player, not the
+target: a code-first engine SDK (write real Rust code against it to
+build a game/simulation, Bevy-flavored) with an editor later as a
+*secondary* tool for editing that code's data (closer to Bevy +
+inspector than to GDScript-first Godot). Confirmed with the user this
+session. Two real gaps, both closed by this phase:
+
+**1. No reusable engine library existed.** `native/world-engine-core`
+was the *old*, explicitly superseded WebRTC-transport spike — it
+independently duplicated the same render/physics/ECS code
+`world-engine-qt-shell` had, plus a pile of irrelevant deps (`tokio`,
+`webrtc`, `warp`, `openh264`, `rtc`). `world-engine-electron-embed`
+duplicated it a third time. Fixed by repurposing `world-engine-core`
+entirely: its WebRTC-era `src/main.rs` and deps were replaced (not
+patched) with the real engine code moved out of
+`world-engine-qt-shell`, split into `render.rs` (wgpu, geometry, glTF
+loading — genuinely Qt-independent, any future shell can reuse it),
+`world.rs` (ECS/physics `World` + the new SDK surface), and `scene.rs`
+(the `world-engine.json` loader). `world-engine-qt-shell` now depends on
+it as a path dependency and shrank to just the Qt FFI glue + `Camera` +
+CLI/project loading — its `Cargo.toml` dropped `wgpu`/`rapier3d`/
+`hecs`/`raw-window-handle`/`gltf`/`serde`/`serde_json`/`pollster`/
+`anyhow` entirely, down to `world-engine-core` (path dep) + `glam`.
+
+**2. No code-facing hook existed at all.** Every behavior was
+declarative JSON interpreted once at load time. Closed with a
+**Rust-native trait/callback API** — `Behavior::update(&mut self, ctx:
+&mut UpdateCtx)`, Bevy-system-flavored — chosen over embedding a
+scripting language (Lua/Rhai/WASM), confirmed with the user: matches
+this build-out's established low-risk-first pattern (verify each real
+step, don't build the harder/riskier thing first), and a scripting
+language can be layered on top of this API later without disturbing it,
+whereas building the scripting layer first would be un-doable without
+touching everything again. `World::spawn(EntitySpec) -> Entity` is now
+the one real entity-creation entry point (both for hand-written game
+code and for `scene::build_world`'s JSON loader, which is a thin loop
+over the exact same `spawn`/`add_motion`/`add_joint` calls — not a
+parallel hardcoded path). `World::spawn_with_behavior` attaches a
+`Behavior`, run once per `step()` **before** the physics step (same
+ordering scripted kinematic `Motion` already used) so anything it sets
+on `ctx.rigid_body` — a force, an impulse, a kinematic target — is
+consumed by that same step.
+
+Implementation note: `hecs`'s `Component` bound requires `Send + Sync`
+(for its parallel-iteration story), so `Behavior` needed `Send + Sync +
+'static`, not just `'static` — found via a real compile error against
+`Box<dyn Behavior>` as a component, not guessed at up front.
+
+Verified as the actual point of this phase, not just that the refactor
+compiles: `native/world-engine-core/examples/chase.rs` builds a `World`
+**entirely in code** (no JSON, no window, no Qt) and steps it headless —
+a `ChaseBehavior` moves a kinematic entity toward a fixed target every
+frame via `UpdateCtx::rigid_body`, something the JSON format's
+sinusoidal-only `motion` field cannot express. `cargo run --example
+chase` prints the chaser's position converging step by step and asserts
+it actually reaches the target (distance < 0.1) before printing success
+— a real, falsifiable check that the `Behavior` hook drives genuine
+rigid-body motion, not a silent no-op. Also: `cargo build` clean, no
+warnings, in both crates; regression-ran all five existing
+`world-engine-qt-shell` fixtures (default single-cube, `world-engine-
+demo`, `world-engine-mesh-demo`, `world-engine-physics-demo`,
+`world-engine-joints-demo`) standalone — identical entity counts, no
+crash, confirming the split is behaviorally inert for every
+JSON-declared scene. Visual re-confirmation in the actual Qt window is
+the user's own live check, same as every other rendering/physics-feel
+verification this arc.
+
+Deliberately out of scope for this phase (real future work): scripting
+language, hot-reload, an event bus, a query DSL beyond what `hecs`
+itself gives you, multi-threaded systems, editor UI, save-back-to-JSON,
+materials/lighting API, gameplay input routing.
+
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see

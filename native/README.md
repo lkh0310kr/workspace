@@ -7,18 +7,29 @@ Full architectural reasoning, research, and decision history lives in
 and [`docs/ROADMAP.md`](../docs/ROADMAP.md)'s World Engine sections — this
 file is the practical "what's here and how do I run it" index.
 
-## `world-engine-qt-shell/` — **the real, integrated one**
+## `world-engine-core/` — **the real, integrated engine — a library**
 
 World Engine itself: a real engine (not a hosted third-party one)
 assembled from `wgpu` (GPU rendering) + `rapier3d` (physics) + `hecs`
-(ECS) + Qt (native window/input — a plain `QWidget` subclass, no QML, no
-`moc`). Runs as its own native window, spawned and managed by the real
-Workspace app as a child process (`electron/src/main/worldEngine.ts`,
-mirroring how `pty.ts` manages a shell) — not embedded as a pane. See the
-architecture doc's "World Engine build-out" section for why (Phase 2's
-in-process embedding worked but its input-forwarding follow-up had no
-solved answer; a separately-managed native window has no such problem at
-all, and is what's actually wired into the app today).
+(ECS), as a real Rust **library** game/simulation code links against and
+drives — `World::spawn`/`spawn_with_behavior` is the actual SDK surface,
+not just a JSON scene format. See its own README and the architecture
+doc's "Phase 10" for the full reasoning and API shape. Try it headless
+with no window at all: `cd native/world-engine-core && cargo run
+--example chase`.
+
+## `world-engine-qt-shell/` — the native window shell
+
+The Qt shell that renders `world-engine-core` into a real native window
+(a plain `QWidget` subclass, no QML, no `moc`) and forwards real input —
+no rendering/physics/ECS code of its own. Runs as its own native window,
+spawned and managed by the real Workspace app as a child process
+(`electron/src/main/worldEngine.ts`, mirroring how `pty.ts` manages a
+shell) — not embedded as a pane. See the architecture doc's "World
+Engine build-out" section for why (Phase 2's in-process embedding worked
+but its input-forwarding follow-up had no solved answer; a
+separately-managed native window has no such problem at all, and is
+what's actually wired into the app today).
 
 **Build:**
 
@@ -57,8 +68,10 @@ flat list of cubes, each an independent dynamic rigid body:
 }
 ```
 
-No meshes, no materials, no scripting yet — real future scope, not
-pretended at here.
+Also supports real `rapier3d` body types/shapes/joints/scripted motion
+and glTF mesh loading — see
+[`world-engine-qt-shell/README.md`](world-engine-qt-shell/README.md#scene-format-world-enginejson)
+for the full format. No materials/textures yet — real future scope.
 
 **Controls:** drag to orbit the camera, scroll to zoom — real Qt mouse/
 wheel events forwarded from `cpp/shim.cpp` to Rust (`src/main.rs`'s
@@ -85,17 +98,6 @@ cargo build
 # from an Electron main process and call startEmbeddedEngine(handle, w, h)
 # — see the architecture doc for the full call shape.
 ```
-
-## `world-engine-core/` — an earlier iteration, transport-superseded
-
-The first "real engine" build (same `wgpu`+`rapier3d`+`hecs` core) —
-predates `world-engine-qt-shell` and originally streamed its output over
-WebRTC (`engine-stream-poc/`'s transport, below) instead of rendering
-into a native window. Superseded by `world-engine-qt-shell` for the "our
-own engine" case once the WebRTC transport itself was reconsidered and
-found to be the wrong tool for a same-machine, fully-trusted pipe (see
-the architecture doc's "Transport critique"). Kept for the record, not
-actively developed.
 
 ## `engine-stream-poc/` — Track B transport spike, still the right answer for *that* problem
 
