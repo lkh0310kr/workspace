@@ -4,6 +4,8 @@ import {
   localBounds,
   boundsCenter,
   boundsIntersect,
+  alignDelta,
+  distributeDeltas,
   toLocalPoint,
   documentBounds,
   documentCenter,
@@ -74,6 +76,67 @@ describe("boundsIntersect", () => {
 
   it("is false for boxes that only touch at an edge (no area overlap)", () => {
     expect(boundsIntersect(box, { x: 100, y: 0, width: 50, height: 50 })).toBe(false);
+  });
+});
+
+describe("alignDelta", () => {
+  const target = { x: 0, y: 0, width: 100, height: 50 };
+
+  it("left aligns the box's left edge to the target's", () => {
+    expect(alignDelta({ x: 20, y: 5, width: 10, height: 10 }, target, "left")).toEqual({ x: -20, y: 0 });
+  });
+
+  it("right aligns the box's right edge to the target's", () => {
+    expect(alignDelta({ x: 20, y: 5, width: 10, height: 10 }, target, "right")).toEqual({ x: 70, y: 0 });
+  });
+
+  it("hcenter aligns centers on the x axis", () => {
+    expect(alignDelta({ x: 0, y: 0, width: 10, height: 10 }, target, "hcenter")).toEqual({ x: 45, y: 0 });
+  });
+
+  it("top/bottom/vcenter mirror left/right/hcenter on the y axis", () => {
+    expect(alignDelta({ x: 5, y: 10, width: 10, height: 10 }, target, "top")).toEqual({ x: 0, y: -10 });
+    expect(alignDelta({ x: 5, y: 10, width: 10, height: 10 }, target, "bottom")).toEqual({ x: 0, y: 30 });
+    expect(alignDelta({ x: 5, y: 10, width: 10, height: 10 }, target, "vcenter")).toEqual({ x: 0, y: 10 });
+  });
+});
+
+describe("distributeDeltas", () => {
+  it("returns all zeros for fewer than 3 objects", () => {
+    expect(distributeDeltas([{ x: 0, y: 0, width: 10, height: 10 }], "x")).toEqual([0]);
+    const two = [
+      { x: 0, y: 0, width: 10, height: 10 },
+      { x: 50, y: 0, width: 10, height: 10 },
+    ];
+    expect(distributeDeltas(two, "x")).toEqual([0, 0]);
+  });
+
+  it("keeps the two extreme objects fixed and evenly spaces the middle one", () => {
+    // Three 10-wide boxes at x=0, x=20 (too close), x=90 — middle one
+    // should move so the gaps on both sides become equal.
+    const items = [
+      { x: 0, y: 0, width: 10, height: 10 },
+      { x: 20, y: 0, width: 10, height: 10 },
+      { x: 90, y: 0, width: 10, height: 10 },
+    ];
+    const deltas = distributeDeltas(items, "x");
+    expect(deltas[0]).toBe(0);
+    expect(deltas[2]).toBe(0);
+    // Total span 0..100, 3 boxes of width 10 = 30, 2 gaps => gap = 35 each.
+    // Middle box's new x = 0 + 10 + 35 = 45, so delta = 45 - 20 = 25.
+    expect(deltas[1]).toBe(25);
+  });
+
+  it("works regardless of input order (sorts by position internally)", () => {
+    const items = [
+      { x: 90, y: 0, width: 10, height: 10 },
+      { x: 0, y: 0, width: 10, height: 10 },
+      { x: 20, y: 0, width: 10, height: 10 },
+    ];
+    const deltas = distributeDeltas(items, "x");
+    expect(deltas[0]).toBe(0); // the x=90 one is still an extreme, unmoved
+    expect(deltas[1]).toBe(0); // the x=0 one is still an extreme, unmoved
+    expect(deltas[2]).toBe(25); // the x=20 (middle) one moves
   });
 });
 

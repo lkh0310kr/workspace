@@ -3,8 +3,16 @@ import { listDir, readFile, writeFile } from "../electron";
 import { Tooltip } from "../components/Tooltip";
 import { anchorsToPathData, mirroredHandle } from "./vector/bezierPath";
 import {
+  AlignBottomIcon,
+  AlignHCenterIcon,
+  AlignLeftIcon,
+  AlignRightIcon,
+  AlignTopIcon,
+  AlignVCenterIcon,
   BringForwardIcon,
   BringToFrontIcon,
+  DistributeHorizontalIcon,
+  DistributeVerticalIcon,
   DownloadIcon,
   EllipseIcon,
   FlipHorizontalIcon,
@@ -46,8 +54,10 @@ import {
   type VectorDocument,
 } from "./vector/sceneGraph";
 import {
+  alignDelta,
   boundsIntersect,
   boundsUnion,
+  distributeDeltas,
   documentBounds,
   documentCorners,
   handleLocalPoint,
@@ -59,6 +69,7 @@ import {
   rotationFromDrag,
   svgTransform,
   toDocumentPoint,
+  type AlignEdge,
   type Bounds,
   type HandleId,
   type Point,
@@ -791,6 +802,52 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
     [selectedTransformableObjects, commitDoc, pushHistoryEntry],
   );
 
+  // Aligns every selected object's edge/center to the *selection's own*
+  // combined bounding box (documentBounds union) — the standard "align
+  // relative to the selection" behavior, not alignment to the canvas or
+  // to one particular anchor object.
+  const alignSelection = useCallback(
+    (edge: AlignEdge) => {
+      const current = docRef.current;
+      if (!current || selectedTransformableObjects.length < 2) return;
+      const groupBounds = boundsUnion(selectedTransformableObjects.map(documentBounds));
+      const ids = new Set(selectedTransformableObjects.map((o) => o.id));
+      const after = {
+        ...current,
+        objects: current.objects.map((o) => {
+          if (!ids.has(o.id) || !isTransformable(o)) return o;
+          const delta = alignDelta(documentBounds(o), groupBounds, edge);
+          return { ...o, transform: moveBy(o.transform, delta.x, delta.y) };
+        }),
+      };
+      commitDoc(after);
+      pushHistoryEntry(current, after);
+    },
+    [selectedTransformableObjects, commitDoc, pushHistoryEntry],
+  );
+
+  const distributeSelection = useCallback(
+    (axis: "x" | "y") => {
+      const current = docRef.current;
+      if (!current || selectedTransformableObjects.length < 3) return;
+      const boundsList = selectedTransformableObjects.map(documentBounds);
+      const deltas = distributeDeltas(boundsList, axis);
+      const idOrder = selectedTransformableObjects.map((o) => o.id);
+      const after = {
+        ...current,
+        objects: current.objects.map((o) => {
+          const idx = idOrder.indexOf(o.id);
+          if (idx === -1 || !isTransformable(o)) return o;
+          const d = deltas[idx];
+          return { ...o, transform: axis === "x" ? moveBy(o.transform, d, 0) : moveBy(o.transform, 0, d) };
+        }),
+      };
+      commitDoc(after);
+      pushHistoryEntry(current, after);
+    },
+    [selectedTransformableObjects, commitDoc, pushHistoryEntry],
+  );
+
   // "Fit" and "reset zoom" are the same action here: with the viewBox
   // always set to `pan.x pan.y doc.width/zoom doc.height/zoom` and the
   // svg element's default preserveAspectRatio="xMidYMid meet", zoom=1
@@ -1391,6 +1448,87 @@ export function VectorEditorContent({ tabId, filePath, onAssignPath, treeOpen, o
             onClick={() => flipSelection("y")}
           >
             <FlipVerticalIcon />
+          </button>
+        </Tooltip>
+        <span className="vector-toolbar-spacer" />
+        <Tooltip title="Align Left" description="Align the selection's left edges to the selection's own bounds">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length < 2}
+            onClick={() => alignSelection("left")}
+          >
+            <AlignLeftIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Align Horizontal Center" description="Align the selection's horizontal centers">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length < 2}
+            onClick={() => alignSelection("hcenter")}
+          >
+            <AlignHCenterIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Align Right" description="Align the selection's right edges to the selection's own bounds">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length < 2}
+            onClick={() => alignSelection("right")}
+          >
+            <AlignRightIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Align Top" description="Align the selection's top edges to the selection's own bounds">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length < 2}
+            onClick={() => alignSelection("top")}
+          >
+            <AlignTopIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Align Vertical Center" description="Align the selection's vertical centers">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length < 2}
+            onClick={() => alignSelection("vcenter")}
+          >
+            <AlignVCenterIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Align Bottom" description="Align the selection's bottom edges to the selection's own bounds">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length < 2}
+            onClick={() => alignSelection("bottom")}
+          >
+            <AlignBottomIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Distribute Horizontally" description="Evenly space the selection's horizontal gaps (3+ objects)">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length < 3}
+            onClick={() => distributeSelection("x")}
+          >
+            <DistributeHorizontalIcon />
+          </button>
+        </Tooltip>
+        <Tooltip title="Distribute Vertically" description="Evenly space the selection's vertical gaps (3+ objects)">
+          <button
+            type="button"
+            className="vector-tool"
+            disabled={selectedTransformableObjects.length < 3}
+            onClick={() => distributeSelection("y")}
+          >
+            <DistributeVerticalIcon />
           </button>
         </Tooltip>
         <span className="vector-toolbar-spacer" />

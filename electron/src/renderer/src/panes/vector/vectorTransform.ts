@@ -238,6 +238,46 @@ export function hitTest(obj: TransformableObject, point: Point): boolean {
   return false;
 }
 
+export type AlignEdge = "left" | "right" | "hcenter" | "top" | "bottom" | "vcenter";
+
+/** Delta to move `bounds` so its `edge` lands on `target`'s corresponding
+ * edge (both in document space) — the align toolbar actions, aligning a
+ * 2+ selection to its own combined bounding box (`target`). */
+export function alignDelta(bounds: Bounds, target: Bounds, edge: AlignEdge): Point {
+  if (edge === "left") return { x: target.x - bounds.x, y: 0 };
+  if (edge === "right") return { x: target.x + target.width - (bounds.x + bounds.width), y: 0 };
+  if (edge === "hcenter") return { x: target.x + target.width / 2 - (bounds.x + bounds.width / 2), y: 0 };
+  if (edge === "top") return { x: 0, y: target.y - bounds.y };
+  if (edge === "bottom") return { x: 0, y: target.y + target.height - (bounds.y + bounds.height) };
+  return { x: 0, y: target.y + target.height / 2 - (bounds.y + bounds.height / 2) };
+}
+
+/** Deltas (one per input index) to evenly space a 3+ selection's gaps
+ * along `axis`, keeping the two extreme objects (by center position)
+ * fixed — the standard "distribute spacing" behavior every mainstream
+ * vector tool has. Returns all-zero for fewer than 3 objects (nothing to
+ * redistribute *between*). */
+export function distributeDeltas(items: Bounds[], axis: "x" | "y"): number[] {
+  const deltas = items.map(() => 0);
+  if (items.length < 3) return deltas;
+  const size = (b: Bounds) => (axis === "x" ? b.width : b.height);
+  const pos = (b: Bounds) => (axis === "x" ? b.x : b.y);
+  const order = items.map((_, i) => i).sort((a, b) => pos(items[a]) + size(items[a]) / 2 - (pos(items[b]) + size(items[b]) / 2));
+  const first = items[order[0]];
+  const last = items[order[order.length - 1]];
+  const totalSpan = pos(last) + size(last) - pos(first);
+  const totalSize = order.reduce((sum, i) => sum + size(items[i]), 0);
+  const gap = (totalSpan - totalSize) / (order.length - 1);
+  let cursor = pos(first) + size(first);
+  for (let k = 1; k < order.length - 1; k++) {
+    const i = order[k];
+    cursor += gap;
+    deltas[i] = cursor - pos(items[i]);
+    cursor += size(items[i]);
+  }
+  return deltas;
+}
+
 /** Applies a document-space drag delta as a move — the common case (no
  * resize/rotate), used while dragging the shape body itself. */
 export function moveBy(transform: Transform, dx: number, dy: number): Transform {

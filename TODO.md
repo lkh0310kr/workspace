@@ -16,11 +16,11 @@
   - M6: Space+드래그(또는 휠 클릭 드래그)로 팬, 휠로 팬, ⌘+휠/트랙패드 핀치로 커서 위치 기준 줌, 툴바 −/%/+/⤢ 버튼, 0=리셋 2=선택에 맞춤 단축키, 빈 캔버스 드래그로 marquee 다중선택(Shift로 추가, 클릭만 하면 선택 해제), 툴바 z-order 4버튼(⇤←→⇥)과 [/]/{/} 단축키, flip H/V 버튼과 Shift+H/V 단축키.
   - geometry(회전 상태 리사이즈 등)는 vitest로 검증했지만 실제 마우스 인터랙션은 GUI에서 확인 필요.
 
-- [ ] TreeView 파일이 아닌 영역 우클릭 가능하도록 - ex. 파일,폴더 추가
+- [x] TreeView 파일이 아닌 영역 우클릭 가능하도록 - ex. 파일,폴더 추가 (이미 구현되어 있었음 — 확인만 함)
 - [x] Pane List (Tabs) Horizontal Scroll bar hover시 거대한 bar가 나오는 버그
 - [ ] terminal - Claude Code에서 불안정함. 이전 내용을 못봄 - 이중 스크롤 문제인듯. 뭔가 높이가 잘못 설정되어서  상위 스크롤만 인식을 하는 듯.
 - [ ] 코드 퀄리티 리뷰 이제는 좀 해야제
-- [ ] 브라우저 URL 입력창 자동완성
+- [x] 브라우저 URL 입력창 자동완성 (이미 구현되어 있었음 — BrowserAddressBar.tsx, 확인만 함)
 
 Vector/Pixel Art UX 백로그 (Penpot 클론 기반 정리 — 자세한 배경/우선순위는 [docs/architecture/10-creative-panes-ux-roadmap.md](docs/architecture/10-creative-panes-ux-roadmap.md) 참고):
 
@@ -44,10 +44,10 @@ Tier 1 — 설계 문서에 이미 있었는데 실제로는 안 만들어진 �
 - [x] Vector: Flip Vertical 액션+단축키
 
 Tier 2 — Penpot에서 확인한 전문 에디터급 편의기능 (새 스코프):
-- [ ] Vector: Align Left/Right/Top/Bottom
-- [ ] Vector: Align Horizontal/Vertical Center
-- [ ] Vector: Distribute Horizontally (균등 간격)
-- [ ] Vector: Distribute Vertically (균등 간격)
+- [x] Vector: Align Left/Right/Top/Bottom
+- [x] Vector: Align Horizontal/Vertical Center
+- [x] Vector: Distribute Horizontally (균등 간격)
+- [x] Vector: Distribute Vertically (균등 간격)
 - [ ] Vector: 드래그 중 다른 오브젝트 edge/center에 스냅
 - [ ] Vector: 스냅 중 가이드라인 렌더링
 - [ ] Vector: 스냅 on/off 토글 단축키

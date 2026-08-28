@@ -208,6 +208,86 @@ export function DownloadIcon({ className }: IconProps) {
   );
 }
 
+export function AlignLeftIcon({ className }: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <line {...STROKE} x1="4" y1="3" x2="4" y2="21" />
+      <rect {...STROKE} x="4" y="5" width="7" height="5" />
+      <rect {...STROKE} x="4" y="14" width="13" height="5" />
+    </svg>
+  );
+}
+
+export function AlignRightIcon({ className }: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <line {...STROKE} x1="20" y1="3" x2="20" y2="21" />
+      <rect {...STROKE} x="13" y="5" width="7" height="5" />
+      <rect {...STROKE} x="7" y="14" width="13" height="5" />
+    </svg>
+  );
+}
+
+export function AlignHCenterIcon({ className }: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <line {...STROKE} x1="12" y1="3" x2="12" y2="21" />
+      <rect {...STROKE} x="8" y="5" width="8" height="5" />
+      <rect {...STROKE} x="6" y="14" width="12" height="5" />
+    </svg>
+  );
+}
+
+export function AlignTopIcon({ className }: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <line {...STROKE} x1="3" y1="4" x2="21" y2="4" />
+      <rect {...STROKE} x="5" y="4" width="5" height="7" />
+      <rect {...STROKE} x="14" y="4" width="5" height="13" />
+    </svg>
+  );
+}
+
+export function AlignBottomIcon({ className }: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <line {...STROKE} x1="3" y1="20" x2="21" y2="20" />
+      <rect {...STROKE} x="5" y="13" width="5" height="7" />
+      <rect {...STROKE} x="14" y="7" width="5" height="13" />
+    </svg>
+  );
+}
+
+export function AlignVCenterIcon({ className }: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <line {...STROKE} x1="3" y1="12" x2="21" y2="12" />
+      <rect {...STROKE} x="5" y="8" width="5" height="8" />
+      <rect {...STROKE} x="14" y="6" width="5" height="12" />
+    </svg>
+  );
+}
+
+export function DistributeHorizontalIcon({ className }: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect {...STROKE} x="3" y="7" width="4" height="10" />
+      <rect {...STROKE} x="10" y="7" width="4" height="10" />
+      <rect {...STROKE} x="17" y="7" width="4" height="10" />
+    </svg>
+  );
+}
+
+export function DistributeVerticalIcon({ className }: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect {...STROKE} x="7" y="3" width="10" height="4" />
+      <rect {...STROKE} x="7" y="10" width="10" height="4" />
+      <rect {...STROKE} x="7" y="17" width="10" height="4" />
+    </svg>
+  );
+}
+
 export function SaveIcon({ className }: IconProps) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" className={className} aria-hidden="true">
