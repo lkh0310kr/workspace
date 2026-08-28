@@ -25,6 +25,7 @@ import { registerBrowserNavIpc } from './browserNav'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
+import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
 
 // Two live instances (a forgotten second `npm run dev`, or dev running
 // alongside a packaged daily-use build) race on the same
@@ -328,6 +329,24 @@ function buildAppMenu(): Menu {
     {
       label: 'Window',
       submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'close' }]
+    },
+    {
+      // World Engine Phase 3 (see docs/architecture/09-future-native-architecture.md):
+      // a separate native window Workspace spawns/manages, not an
+      // embedded pane — dev-only trigger until it has a real pane/UI
+      // surface of its own.
+      label: 'World Engine',
+      submenu: [
+        {
+          label: 'Launch World Engine (dev)',
+          click: () => {
+            const result = launchWorldEngine()
+            if (!result.ok) {
+              dialog.showErrorBox('World Engine', result.error ?? 'Failed to launch World Engine.')
+            }
+          }
+        }
+      ]
     }
   ]
   return Menu.buildFromTemplate(template)
@@ -623,4 +642,5 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   workspace?.disposeAllTerminals()
   fileWatcher?.close()
+  disposeWorldEngine()
 })

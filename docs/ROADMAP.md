@@ -304,6 +304,46 @@ version of this problem, and whether the same approach extends to a
 native view is the next concrete thing to check. Full detail in
 [09-future-native-architecture.md](./architecture/09-future-native-architecture.md#even-better-than-local-ipc--canvas-render-directly-into-a-native-embedded-view-2026-08-28).
 
+**Phases 1-3 built and verified, then a deliberate pivot (2026-08-28).**
+User asked to see this through rather than stop at "designed" — built:
+
+- [x] **Phase 1**: `native/world-engine-qt-shell/` — Qt (the researched
+  "정석"/canonical cross-platform toolkit real tools like Blender/DaVinci
+  Resolve's category actually use) creates a real native window; `wgpu`
+  renders directly into it. Standalone process. Live-verified on-screen
+  by the user directly.
+- [x] **Phase 2**: `native/world-engine-electron-embed/` — a native Node
+  addon (`napi-rs`) proving the in-process embed technique above actually
+  works: loaded into a real Electron process, embeds our own `NSView` as
+  a subview, `wgpu` renders into it directly. Verified against a real
+  (throwaway) Electron process — loads, embeds, renders continuously, no
+  crash.
+- **Pivot**: Phase 2 worked, but its input-forwarding follow-up has no
+  reference implementation anywhere — genuinely open research risk.
+  Asked directly ("그냥 일렉트론이랑 앱을 분리할까?"), and decoupled instead:
+  World Engine runs as its own separate native window (Phase 1's
+  artifact), which Workspace spawns/manages — zero input problem, since
+  it's a real independent native window. Phase 2 stays documented as a
+  proven option, not deleted, just not the near-term target.
+- [x] **Phase 3**: wired into the real app — `electron/src/main/worldEngine.ts`
+  spawns/tracks the Phase 1 binary as a child process (mirrors `pty.ts`'s
+  own spawn/dispose shape), a "World Engine → Launch World Engine (dev)"
+  application-menu item triggers it, disposed on `before-quit`.
+  typecheck/250-test suite pass; binary-path resolution verified against
+  the actual build artifact. Dev-only — packaging the binary via
+  `electron-builder` for a real release is real follow-up work. Live
+  click-through from inside the running app is pending the user's own
+  check (this session doesn't launch the live app itself).
+- Phase 4 (input forwarding) is **not needed** for the shape actually
+  shipped — that was only a Phase 2 (in-process embed) problem.
+
+Full detail, including why 2D/3D/Video/CAD panes (Blender/Krita/etc.)
+stay on the *fork the real app, don't reimplement* principle — World
+Engine is the one deliberate exception, and even it now hosts the same
+"separate process, not embedded" way — in
+[09-future-native-architecture.md](./architecture/09-future-native-architecture.md#world-engine-build-out--phase-1-4-2026-08-28)
+and [ideation.md](./ideation.md#그래픽cad-pane을-실제로-만들-때의-원칙--외부-오픈소스-엔진-forkembed).
+
 ## History (done)
 
 Earlier build-out, kept for the record rather than deleted:

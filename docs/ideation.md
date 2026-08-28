@@ -112,6 +112,17 @@ Inspector, Dependency/Supply Chain Explorer.
 Kdenlive, CAD는 FreeCAD(LGPL)/Open CASCADE, Game Engine은 Godot(MIT). 라이선스
 확인은 필수(아래 참고).
 
+**World Engine(2026-08-28 실제로 만들어본 것)만 예외** — wgpu/rapier3d/hecs로
+직접 짠 엔진 코어이지, 이 절의 "fork/embed" 원칙 대상이 아님(합성 가능한
+작은 라이브러리 몇 개를 조립하는 것과, Blender급 수십 년치 UX/툴링을
+재구현하는 건 완전히 다른 문제). 2D/3D/Video/CAD는 이 절 원칙 그대로 감.
+호스팅 방식도 결정됨: Electron 안에 진짜로 임베드하지 않고 **별도 프로세스로
+spawn, 생명주기만 관리**(itch.io가 네이티브 게임 다루는 방식과 동일) —
+Blender/Krita 같은 GPL 소프트웨어를 별도 프로세스로만 다루면 GPL 의무가
+전이될 위험도 없어서(subprocess+IPC는 GPL에서도 안전한 "mere aggregation"
+패턴), 라이선스 문제도 같이 해결됨. 자세한 내용:
+[09-future-native-architecture.md](./architecture/09-future-native-architecture.md#world-engine-build-out--phase-1-4-2026-08-28)
+
 **원본 앱의 내부 엔진/데이터 모델을 억지로 공통화하지 말 것** — Document
 Model/Editor Engine은 앱마다 근본적으로 다르고, 통합 시도는 fork maintenance
 지옥으로 감. 대신:

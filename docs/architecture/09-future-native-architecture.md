@@ -426,30 +426,51 @@ asked to see this through rather than stop at "designed, not built":
   with no crash. Reference implementation followed closely (not
   guessed): [monkeynut.org's "Using wgpu with Electron on macOS"](https://www.monkeynut.org/wgpu-electron/),
   which supplied the exact `objc2`/`napi-rs` call shapes used here.
-- **Phase 3 — not started.** Wire this into the *real* Workspace app: a
-  new `PaneKindDefinition` (`electron/src/renderer/src/panes/`), main-
-  process lifecycle (spawn/register the addon call scoped to a specific
-  pane's bounds within the flexlayout grid — Phase 1/2's spikes cover the
-  whole window, a real pane only owns its own rectangle and must track
-  resize/move/dispose), and packaging (`electron-builder` needs to bundle
-  the compiled native addon per-platform — new build surface this app's
-  `package.json`/build config doesn't have yet).
-- **Phase 4 — not started, the one genuinely open research question.**
-  Input: routing mouse/keyboard from the pane back into the embedded
-  native view instead of Electron's transparent web layer swallowing it.
-  This project's `InteractionCoordinator` (`04-interaction-coordinator.md`)
-  solves the closely related `<webview>` version of this exact problem
-  (overlay stack, pointer-events toggling) — whether/how the same
-  approach extends to a native `NSView` sibling (rather than a DOM
-  element) is unverified. No reference implementation found for this
-  part specifically (unlike Phases 1/2, which both had one) — this is
-  real, unproven design work, not a lookup.
+- **Pivot after Phase 2 (2026-08-28): decoupled, not embedded.** Phase 2
+  proved true in-process embedding *works*, but its Phase 4 follow-up
+  (input forwarding through Electron's transparent web layer into a
+  native `NSView` sibling) has no reference implementation anywhere —
+  genuinely unsolved, open-ended research risk. Asked directly: "그냥
+  일렉트론이랑 앱을 분리할까?" User agreed to decouple rather than absorb
+  that risk. World Engine runs as its **own separate native window**,
+  which Workspace spawns and manages — the same shape as this app's own
+  itch.io-inspired precedent for native content (spawn it, track its
+  lifecycle, don't try to visually embed), and the terminal's own
+  `Pty`/`PtySession` pattern (main process owns a child process's
+  lifecycle) applied to a GUI process instead of a shell. This has **zero
+  input-forwarding problem at all** — Phase 1's Qt window already handles
+  mouse/keyboard entirely natively, since it's a real, independent native
+  window. Phase 2's in-process embedding isn't deleted — kept as a proven,
+  documented option to revisit if a genuinely seamless embedded pane
+  becomes worth the unsolved input-routing risk later — but it's no
+  longer the near-term integration target.
+- **Phase 3 — DONE.** Wired into the real Workspace app, matching the
+  decoupled shape: `electron/src/main/worldEngine.ts` spawns/tracks
+  `world-engine-qt-shell` as a child process (`launchWorldEngine`/
+  `stopWorldEngine`/`worldEngineStatus`, mirroring `pty.ts`'s own
+  spawn/dispose shape), disposed on `before-quit` alongside the terminal's
+  own cleanup. Triggered via a new "World Engine → Launch World Engine
+  (dev)" application-menu item (`index.ts`) — dev-only for now, matching
+  `resolveWorldEngineBinary()` pointing at the debug build under
+  `native/world-engine-qt-shell/target/debug/`; packaging the compiled
+  binary via `electron-builder` for a real release is real follow-up work,
+  not attempted here. `npm run typecheck` and the 250-test suite both
+  pass; the binary-path resolution was verified to match the actual built
+  artifact's location. Live click-through (the menu item actually opening
+  the window from inside the real running app) is pending the user's own
+  check — this session doesn't launch the live Workspace app itself.
+- **Phase 4 — not needed for the decoupled shape.** Input forwarding was
+  only a problem for Phase 2's in-process embedding; a separately-managed
+  native window (the shape actually shipped) has no such problem. Stays
+  recorded above as a real option if embedding is revisited later, not as
+  outstanding work blocking anything today.
 
 Phases 1 and 2 each stayed intentionally scoped to *proving the
-mechanism*, matching this session's own established pattern (the
-transport spike, the physics/render spike before it) — neither touches
-`electron/`, neither is wired into the real pane system yet. Phase 3 is
-where that changes.
+mechanism* before either touched `electron/` — matching this session's
+own established pattern (the transport spike, the physics/render spike
+before it). Phase 3 is real integration, using Phase 1's artifact (the
+Qt window) rather than Phase 2's (the in-process embed) — the safer,
+fully-solved path once the two were compared honestly.
 
 ## Per-pane stack direction (if/when this happens)
 
