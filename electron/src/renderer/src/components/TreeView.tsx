@@ -27,6 +27,13 @@ interface Props {
   // the old file (looks like the file got "copied back").
   onPathRenamed?: (from: string, to: string) => void;
   onPathDeleted?: (path: string) => void;
+  // Opens a directory (a pre-built engine Web export — e.g. a Godot
+  // "Web" export's output folder) as a new Browser tab pointed at its
+  // workspace-engine:// URL — see engineBundleProtocol.ts and
+  // docs/ROADMAP.md's Phase 2 checklist. Only offered on folders, since
+  // a bundle is a directory of files (index.html + siblings), not a
+  // single file the way every other TreeView action targets.
+  onOpenAsApp?: (path: string) => void;
 }
 
 interface DirState {
@@ -131,6 +138,7 @@ export function TreeView({
   onOpenFile,
   onPathRenamed,
   onPathDeleted,
+  onOpenAsApp,
 }: Props) {
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -395,6 +403,18 @@ export function TreeView({
     ];
     if (!menu.entry) return items;
 
+    if (menu.entry.is_dir && onOpenAsApp) {
+      items.push({ type: "separator" });
+      items.push({
+        type: "button",
+        label: "Open as App",
+        onClick: () => {
+          setMenu(null);
+          onOpenAsApp(menu.entry!.path);
+        },
+      });
+    }
+
     items.push({ type: "separator" });
     if (selected.size <= 1) {
       items.push({
@@ -427,7 +447,7 @@ export function TreeView({
       });
     }
     return items;
-  }, [menu, selected, tabId, rootPath]);
+  }, [menu, selected, tabId, rootPath, onOpenAsApp]);
 
   return (
     <div

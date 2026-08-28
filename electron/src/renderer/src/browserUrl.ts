@@ -62,7 +62,17 @@ export function normalizeBrowserNavigationUrl(rawUrl: string, searchFallback: bo
 
   try {
     const parsed = new URL(trimmed);
-    return parsed.protocol === "http:" || parsed.protocol === "https:" || parsed.protocol === "file:"
+    // workspace-engine: is this app's own custom scheme (see
+    // engineBundleProtocol.ts) for hosting a forked engine's Web export —
+    // never typed by a user, only ever set programmatically (TreeView's
+    // "Open as App"), but it still goes through this same normalizer
+    // (see BrowserContent.tsx's initial webview src), so it needs to be
+    // in the allowlist or every engine-bundle tab would silently load
+    // about:blank instead.
+    return parsed.protocol === "http:" ||
+      parsed.protocol === "https:" ||
+      parsed.protocol === "file:" ||
+      parsed.protocol === "workspace-engine:"
       ? parsed.toString()
       : null;
   } catch {

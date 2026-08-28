@@ -23,6 +23,7 @@ import { layoutLog } from "../layout/layoutDebugLog";
 import { paneChipContentShown, paneChipContentStyle } from "../interaction/embedPolicy";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { usePaneVisibility } from "./usePaneVisibility";
+import { getEngineBundleUrl } from "../electron";
 
 // The pane-level orchestrator that makes the tab system "global": every
 // flexlayout pane node now renders one of these instead of switching on a
@@ -314,6 +315,27 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
     [tabs, closeTab],
   );
 
+  // "Open as App" — a directory holding a pre-built engine Web export
+  // (Godot's "Web" export output, or any future engine's) opens as a
+  // plain Browser tab pointed at its workspace-engine:// URL. Reuses
+  // Browser's already-stable webview lifecycle/InteractionCoordinator
+  // registration wholesale instead of a parallel "Engine pane" with its
+  // own new lifecycle code — see docs/ROADMAP.md's Phase 2 checklist for
+  // why (verification-first: this is the minimal-risk way to prove the
+  // hosting protocol works end-to-end against a real Godot export).
+  const onTreeOpenAsApp = useCallback(
+    (path: string) => {
+      getEngineBundleUrl(workspaceTabId, path)
+        .then((url) => addTabToGroup(model, nodeId, "browser", { url }))
+        .then((id) => {
+          if (id) setActivePaneTab(workspaceTabId, nodeId, id);
+          onNotifyChanged();
+        })
+        .catch(console.error);
+    },
+    [workspaceTabId, model, nodeId, setActivePaneTab, onNotifyChanged],
+  );
+
   const dropTab = useCallback(
     (payload: TabDragPayload, index: number) => {
       layoutLog("PaneGroup.dropTab", "strip drop handler", {
@@ -410,6 +432,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                 onOpenFile={(path, kind, pin) => openOrSwitchToFile(path, kind, undefined, pin)}
                 onPathRenamed={onTreePathRenamed}
                 onPathDeleted={onTreePathDeleted}
+                onOpenAsApp={onTreeOpenAsApp}
               />
             )}
           </div>

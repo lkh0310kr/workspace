@@ -7,3 +7,10 @@
 /.workspace/
 /test/
 .cursor/debug-*.log
+
+# Godot's own per-machine import cache (not portable, regenerated on
+# first open/export) and the exported Web build (~40MB, regenerate with
+# electron/test-fixtures/godot-demo/export.sh — see docs/ROADMAP.md's
+# Phase 2 checklist). Only the small source project is tracked.
+electron/test-fixtures/godot-demo/.godot/
+electron/test-fixtures/godot-demo-web/

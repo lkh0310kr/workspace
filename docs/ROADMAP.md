@@ -111,13 +111,25 @@ behind this direction, revisit later.
 - [x] First infra piece built: the engine bundle hosting protocol (Phase
   1, above) — serves a Godot Web export's static files with the
   COOP/COEP headers a threaded export needs.
-- [ ] Next: get an actual Godot project exported to Web and verify a
-  `<webview>` pointed at `workspace-engine://...` actually loads and runs
-  it end-to-end — nothing has been tested against a real export yet, only
-  the serving infra.
-- [ ] Once that works: a minimal "Engine" pane kind
-  (`panes/kinds/engineKind.tsx` following the existing `PaneKindDefinition`
-  pattern) that points a `<webview>` at an `engine:get-bundle-url` result
+- [x] Real Godot demo project built and exported — `electron/test-fixtures/godot-demo/`
+  (a rotating square + live timer, proves it's actually running, not a
+  screenshot), exported via the real `godot` CLI (`--headless
+  --export-release "Web"`) to `electron/test-fixtures/godot-demo-web/`
+  (gitignored, ~40MB — regenerate with `godot-demo/export.sh`).
+- [x] "Open as App" — decided **not** to build a new "Engine" pane kind
+  with its own webview lifecycle/`InteractionCoordinator` registration
+  code (real risk given this app's own interaction-stability history —
+  see `04-interaction-coordinator.md`). Instead, TreeView's right-click
+  menu gets an "Open as App" action on any directory, which resolves the
+  folder to a `workspace-engine://` URL and opens it as a **plain Browser
+  tab** — reusing `BrowserContent.tsx`'s already-stable webview handling
+  wholesale instead of duplicating it. `normalizeBrowserNavigationUrl`
+  (`browserUrl.ts`) allowlists the `workspace-engine:` scheme so the
+  webview actually loads it instead of falling back to `about:blank`.
+- [ ] Next: live verification (see `TODO.md`) — click "Open as App" on
+  both the protocol smoke-test fixture and the real Godot export and
+  confirm they actually load/run. Nothing has been tested inside a real
+  running Electron instance yet, only unit-tested pure logic.
 
 ## History (done)
 

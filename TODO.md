@@ -9,18 +9,20 @@ Studio 등)은 보류(삭제 아님).
 넘어가기 전에 그게 실제로 작동하는지 검증부터.
 
 - [ ] **Engine bundle protocol 라이브 검증** (다음 스텝, 아직 실제 Electron에서
-  테스트 안 됨) — `electron/test-fixtures/engine-bundle-smoke/`에 가짜 bundle
-  준비해뒀음(진짜 Godot 아님, index.html/fake.js/fake.wasm/fake.pck만). 앱에서:
-  1. devtools 콘솔 열기 (Cmd+Option+I)
-  2. `const state = await window.api.workspace.getState()` 로 현재 열려있는
-     탭 중 이 리포(workspace) 루트를 가리키는 탭의 `id` 확인
-  3. `const url = await window.api.engine.getBundleUrl(탭ID, "electron/test-fixtures/engine-bundle-smoke")`
-  4. `const wv = document.createElement("webview"); wv.src = url; wv.style.cssText = "position:fixed;inset:40px;z-index:99999;background:#000;border:2px solid red"; document.body.appendChild(wv)`
-  5. 뜬 webview 안에 "ALL CHECKS PASSED"(초록)가 보이는지 확인 — 특히
-     `crossOriginIsolated`가 true인지(COOP/COEP 헤더 검증), `.wasm`이
-     `application/wasm`으로 서빙되는지
-  6. 끝나면 `wv.remove()`로 정리
-  통과하면 실제 Godot Web export로 같은 방식 재검증 예정.
+  테스트 안 됨) — devtools 필요 없음, TreeView에서 우클릭 한 번이면 끝나도록
+  파이프라인 완성해둠:
+  1. TreeView에서 `electron/test-fixtures/engine-bundle-smoke` 폴더 우클릭 →
+     **"Open as App"** 클릭 → 새 Browser 탭으로 열림. "ALL CHECKS PASSED"(초록)
+     뜨는지 확인 — 특히 `crossOriginIsolated` true(COOP/COEP 헤더 검증), `.wasm`이
+     `application/wasm`으로 서빙되는지.
+  2. **진짜 Godot 프로젝트도 준비해뒀음** — `electron/test-fixtures/godot-demo/`
+     (회전하는 사각형 + 실시간 타이머 텍스트, Godot 4.7로 실제 export까지 완료).
+     export 결과물은 git에 안 올렸음(~40MB) — 로컬에 이미 만들어져 있고,
+     재생성하려면 `electron/test-fixtures/godot-demo/export.sh` 실행. TreeView에서
+     `electron/test-fixtures/godot-demo-web` 폴더 우클릭 → "Open as App" → 실제
+     Godot 씬이 브라우저 탭 안에서 돌아가는지 확인 (사각형이 회전하고 타이머가
+     올라가면 성공).
+  둘 다 통과하면 Engine bundle protocol 검증 완료.
 
 - [ ] Video/Audio QA — File Viewer의 비디오/오디오 재생(`739766b`, `7ec31be`) 실제 GUI 테스트 필요. 특히: 시킹이 진짜 Range 요청(206)으로 되는지 devtools Network 탭에서 확인, 대용량 파일 열 때 메인 프로세스 안 멈추는지, 자막(.srt) 로드+오프셋 조정 동작, 패키지 빌드(`npm run build:mac`)에서 `protocol.handle` 등록이 dev 모드와 동일하게 동작하는지.
 - [ ] EPUB QA — `0633f6c` 미니멀 v1 (unzip + spine 순차 iframe, prev/next만). 테스트 파일(Project Gutenberg 앨리스) 전달함 — 워크스페이스 root 안에 넣고 열어서: 챕터 이동, 이미지/CSS가 iframe 안에서 상대경로로 잘 로드되는지, sandbox="allow-same-origin"이라 스크립트는 실행 안 되는 게 맞는지, 이상한 OPF/manifest 형태의 다른 epub에서도 안 깨지는지.
