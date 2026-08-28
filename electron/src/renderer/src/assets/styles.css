@@ -28,8 +28,12 @@
   --syntax-type: #4ec9b0;
   --syntax-property: #9cdcfe;
   --syntax-invalid: #f14c4c;
-  --font-ui: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Apple SD Gothic Neo", monospace;
+  /* Hangul: keep Apple SD Gothic Neo first for macOS; Malgun Gothic / Noto
+     cover Windows + Linux/WSL so Korean is not tofu under DejaVu/monospace. */
+  --font-ui: ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic",
+    "Noto Sans CJK KR", "Noto Sans KR", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", Consolas, "D2Coding",
+    "NanumGothicCoding", "Noto Sans Mono CJK KR", "Apple SD Gothic Neo", "Malgun Gothic", monospace;
   --chrome-h: 34px;
   --browser-chrome-total: 36px;
   --rail-w: 148px;
@@ -112,19 +116,79 @@ input {
 }
 
 .titlebar {
-  height: 28px;
+  height: 29px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding-left: 78px;
+  /* Non-mac: no traffic-light gutter. macOS keeps 78px via [data-platform]. */
+  padding-left: 8px;
+  padding-right: 0;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   position: relative;
   z-index: 200;
-  /* Electron has no data-tauri-drag-region equivalent — the whole strip
-     (minus the sidebar toggle, marked no-drag above) is made draggable
-     via this CSS property instead. */
+  /* Drag only on .titlebar-spacer / platform chrome — whole-strip drag
+     mis-hit-tests on some hosts. macOS/Windows still drag via gutter. */
+  -webkit-app-region: no-drag;
+}
+
+/* macOS hiddenInset traffic lights sit in the leading 78px. */
+:root[data-platform="darwin"] .titlebar {
+  padding-left: 78px;
   -webkit-app-region: drag;
+}
+
+/* Windows / non-WSL Linux: Electron titleBarOverlay caption buttons. */
+:root[data-platform="win32"] .titlebar,
+:root[data-platform="linux"]:not([data-wsl]) .titlebar {
+  padding-right: env(titlebar-area-width, 138px);
+  -webkit-app-region: drag;
+}
+
+/* WSL: no overlay — leave room for our drawn caption buttons. */
+:root[data-wsl] .titlebar {
+  padding-right: 0;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-spacer {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  -webkit-app-region: drag;
+}
+
+.titlebar-window-controls {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  margin-left: 4px;
+}
+
+.titlebar-window-btn {
+  -webkit-app-region: no-drag;
+  width: 46px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.titlebar-window-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.titlebar-window-btn-close:hover {
+  background: #c42b1c;
+  color: #fff;
 }
 
 .titlebar-sidebar-toggle {
@@ -136,7 +200,7 @@ input {
   justify-content: center;
   padding: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: 0;
   background: transparent;
   color: var(--text-faint);
   cursor: pointer;

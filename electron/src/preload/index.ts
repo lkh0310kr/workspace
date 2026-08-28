@@ -16,6 +16,23 @@ interface BrowserDownloadEventPayload {
 // Custom APIs for renderer
 const api = {
   hostname: (): Promise<string> => ipcRenderer.invoke('hostname'),
+  platform: process.platform as NodeJS.Platform,
+  // Preload has Node; cheap sync check so CSS can skip titleBarOverlay padding.
+  isWsl:
+    process.platform === 'linux' &&
+    ((): boolean => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        return require('fs').readFileSync('/proc/version', 'utf8').toLowerCase().includes('microsoft')
+      } catch {
+        return false
+      }
+    })(),
+  windowControls: {
+    minimize: (): void => ipcRenderer.send('window:minimize'),
+    maximize: (): void => ipcRenderer.send('window:maximize'),
+    close: (): void => ipcRenderer.send('window:close')
+  },
   shell: {
     revealItemInDir: (path: string): Promise<void> => ipcRenderer.invoke('shell:reveal-item-in-dir', path)
   },

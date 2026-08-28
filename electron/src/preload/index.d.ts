@@ -73,6 +73,13 @@ export interface BrowserDownloadEventPayload {
 
 export interface WorkspaceApi {
   hostname: () => Promise<string>
+  platform: NodeJS.Platform
+  isWsl: boolean
+  windowControls: {
+    minimize: () => void
+    maximize: () => void
+    close: () => void
+  }
   shell: {
     revealItemInDir: (path: string) => Promise<void>
   }

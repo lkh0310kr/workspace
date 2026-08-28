@@ -30,6 +30,11 @@ import { useEffect, useCallback, useState } from "react";
 import "flexlayout-react/style/combined.css";
 import "./assets/styles.css";
 
+if (typeof document !== "undefined" && window.api?.platform) {
+  document.documentElement.dataset.platform = window.api.platform;
+  if (window.api.isWsl) document.documentElement.dataset.wsl = "1";
+}
+
 // Cmd+P's "open in the active pane" — mirrors PaneGroup.tsx's own
 // openOrSwitchToFile, but called from outside any one PaneGroup instance
 // (Quick Open isn't scoped to a pane), so it looks up the active tabset's

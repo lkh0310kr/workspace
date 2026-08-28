@@ -9,6 +9,9 @@ type Props = {
   onToggleAppSettings: (anchor: DOMRect) => void;
 };
 
+const showDrawnWindowControls =
+  typeof window !== "undefined" && window.api?.isWsl === true;
+
 export function AppTitlebar({
   workspaceRailOpen,
   workspaceRailButtonRef,
@@ -17,6 +20,8 @@ export function AppTitlebar({
   appSettingsButtonRef,
   onToggleAppSettings,
 }: Props) {
+  // Windows / real Linux: Electron titleBarOverlay draws caption buttons.
+  // WSL: overlay shifts the client + hit-test surface — draw our own.
   return (
     <div className="titlebar">
       <button
@@ -35,7 +40,7 @@ export function AppTitlebar({
         ref={appSettingsButtonRef}
         type="button"
         className={`titlebar-sidebar-toggle${appSettingsOpen ? " active" : ""}`}
-        title="Settings (⌘,)"
+        title="Settings"
         onClick={(e) => onToggleAppSettings(e.currentTarget.getBoundingClientRect())}
       >
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
@@ -51,6 +56,41 @@ export function AppTitlebar({
           />
         </svg>
       </button>
+      <div className="titlebar-spacer" />
+      {showDrawnWindowControls ? (
+        <div className="titlebar-window-controls" aria-label="Window">
+          <button
+            type="button"
+            className="titlebar-window-btn"
+            title="Minimize"
+            onClick={() => window.api.windowControls.minimize()}
+          >
+            <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+              <rect x="1" y="5.5" width="10" height="1" fill="currentColor" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="titlebar-window-btn"
+            title="Maximize"
+            onClick={() => window.api.windowControls.maximize()}
+          >
+            <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+              <rect x="1.5" y="1.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="titlebar-window-btn titlebar-window-btn-close"
+            title="Close"
+            onClick={() => window.api.windowControls.close()}
+          >
+            <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+              <path d="M2 2l8 8M10 2L2 10" stroke="currentColor" strokeWidth="1.2" fill="none" />
+            </svg>
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
