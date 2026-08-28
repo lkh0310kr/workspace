@@ -1,9 +1,11 @@
 # Context modeling philosophy (reference, not a spec)
 
-**Status:** Philosophy/reference only, adapted from a pasted essay — not
-transcribed as-is. Filtered against what this codebase actually is (a
-lightweight Electron pane/tab shell, not a knowledge-graph platform) and
-mapped onto concrete existing code and the Phase 1 module list in
+**Status:** Philosophy/reference only, adapted from two pasted essays
+(the second, "Context Convergence," refines/extends the first — same
+lineage, not a competing framework) — neither transcribed as-is.
+Filtered against what this codebase actually is (a lightweight Electron
+pane/tab shell, not a knowledge-graph platform) and mapped onto concrete
+existing code and the Phase 1 module list in
 [`ROADMAP.md`](../ROADMAP.md). Sections below are split into what's
 actually relevant to decide now vs. what's explicitly premature — the
 point of this doc is to not accidentally build something incompatible
@@ -108,6 +110,41 @@ an AI agent (this very session), so "did a person write this, or did
 Claude generate it" is a real, near-term distinction — not a speculative
 one the way a full Relation graph (below) currently is.
 
+### Context ≠ Project ≠ Folder
+
+The second essay's clearest addition — three things this codebase
+currently conflates a little:
+
+- **Folder** — where data is stored. A workspace tab's `rootPath`.
+  Nothing more; a folder doesn't know what's "in" the project.
+- **Project** — what's being built. Now has a real (if minimal) answer
+  here: [`projectManifest.ts`](../../electron/src/main/projectManifest.ts)
+  (Phase 1, just built) — a registry of apps/documents for a `rootPath`,
+  independent of which tabs happen to be open right now.
+- **Context** — what world the user (or an agent) is actively working in
+  *right now*: which tabs/panes are open, what's selected, what an
+  in-progress agent task is touching. The closest thing this app has to
+  this today is a workspace tab's live `PaneGroupConfig` (open panes +
+  active tab + selection state) — real, but scoped per pane-group, not
+  unified across a whole workspace tab's splits yet. Not a gap to close
+  now; recorded so a future "what is the agent currently working on"
+  question has a place to start from instead of conflating it with
+  either of the two above.
+
+### Physical decentralization, semantic centralization
+
+> Data may remain physically distributed. Meaning should be semantically
+> connected.
+
+Directly shapes how the **Asset system** (Phase 1, next up) should work:
+an Asset entry should be a *reference* (a path/id pointing at wherever
+the data actually already lives — inside a forked app's own project
+folder, in the workspace root, wherever) plus metadata, never a copy
+pulled into one central blob store. Nothing here needs data to move for
+Workspace to "know about" it — same reasoning `engineBundleProtocol.ts`
+already follows (serves files in place, never copies a bundle
+somewhere else first).
+
 ### Agent boundary — relevant now, not speculative
 
 > Agent reads Context, acts only through Capability, never reaches into
@@ -182,6 +219,23 @@ The original essay's diagram spans domains this app isn't targeting
                               (Capability only —
                                no direct Domain access)
 ```
+
+## The shift, in one line each
+
+From the second essay's closing framing — kept because it's a genuinely
+useful gut-check when a future design decision is unclear, not because
+every line is a decision made:
+
+- Not "which application can do this" but "which capability can
+  accomplish this."
+- Not "where is my data" but "what is this data related to."
+- Not "I need to move between applications" but "the context carries
+  the work across applications."
+
+And its own summary of the whole thing:
+
+> We do not unify the worlds. We unify the context in which the worlds
+> can coexist.
 
 ## Related docs
 
