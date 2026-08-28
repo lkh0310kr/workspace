@@ -181,6 +181,18 @@ export async function getEngineBundleUrl(tabId: number, rel: string, entry?: str
   return window.api.engine.getBundleUrl(tabId, rel, entry);
 }
 
+/** `rel` is a workspace-relative Godot *project* directory. Exports its
+ * Web preset (via the real `godot` CLI, main-process, async) and returns
+ * the output directory's workspace-relative path on success — feed that
+ * straight into getEngineBundleUrl. Consumed by TreeView's "Export &
+ * Open as App" (PaneGroup.tsx's onTreeExportGodotWeb). */
+export async function exportGodotWeb(
+  tabId: number,
+  rel: string,
+): Promise<{ ok: boolean; outputRel?: string; error?: string }> {
+  return window.api.engine.exportGodotWeb(tabId, rel);
+}
+
 /** Registers one app/document entry into the project manifest for
  * `tabId`'s workspace root — see main/projectManifest.ts. Fire-and-forget
  * from callers: a failed registration shouldn't block whatever action

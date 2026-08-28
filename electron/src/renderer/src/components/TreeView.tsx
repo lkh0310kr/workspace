@@ -35,6 +35,11 @@ interface Props {
   // a bundle is a directory of files (index.html + siblings), not a
   // single file the way every other TreeView action targets.
   onOpenAsApp?: (path: string) => void;
+  // Exports a Godot *project* directory's Web preset via the real godot
+  // CLI, then opens the resulting bundle the same way onOpenAsApp does —
+  // the one-click version of "run export.sh yourself, then Open as App
+  // the output folder". Only offered on folders.
+  onExportGodotWeb?: (path: string) => void;
 }
 
 interface DirState {
@@ -122,6 +127,7 @@ export function TreeView({
   onPathRenamed,
   onPathDeleted,
   onOpenAsApp,
+  onExportGodotWeb,
 }: Props) {
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -397,6 +403,16 @@ export function TreeView({
         },
       });
     }
+    if (menu.entry.is_dir && onExportGodotWeb) {
+      items.push({
+        type: "button",
+        label: "Export Godot (Web) & Open",
+        onClick: () => {
+          setMenu(null);
+          onExportGodotWeb(menu.entry!.path);
+        },
+      });
+    }
 
     items.push({ type: "separator" });
     if (selected.size <= 1) {
@@ -430,7 +446,7 @@ export function TreeView({
       });
     }
     return items;
-  }, [menu, selected, tabId, rootPath, onOpenAsApp]);
+  }, [menu, selected, tabId, rootPath, onOpenAsApp, onExportGodotWeb]);
 
   return (
     <div

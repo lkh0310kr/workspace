@@ -176,6 +176,7 @@ export interface WorkspaceApi {
   }
   engine: {
     getBundleUrl: (tabId: number, rel: string, entry?: string) => Promise<string>
+    exportGodotWeb: (tabId: number, rel: string) => Promise<{ ok: boolean; outputRel?: string; error?: string }>
   }
   project: {
     registerApp: (tabId: number, kind: string, rel: string, title?: string) => Promise<unknown>

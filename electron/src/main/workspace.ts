@@ -12,6 +12,7 @@ import { openEpub, type EpubBook } from "./epub";
 import { toEngineBundleUrl } from "./engineBundlePaths";
 import { registerProjectApp as registerProjectApp_ } from "./projectManifest";
 import type { ProjectManifest } from "../shared/projectManifest";
+import { exportGodotProjectWeb, type GodotExportResult } from "./godotExport";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -296,6 +297,24 @@ export class Workspace {
    * stays valid if the project ever moves on disk. */
   registerProjectApp(tabId: number, kind: string, rel: string, title?: string): ProjectManifest {
     return registerProjectApp_(this.tabRoot(tabId), { id: rel, kind, path: rel, title });
+  }
+
+  /** `rel` is a workspace-relative Godot *project* directory (holding
+   * project.godot). Exports its Web preset to a sibling `<name>-web`
+   * directory (matching test-fixtures/godot-demo's own convention) and
+   * returns that output directory's workspace-relative path so the caller
+   * can feed it straight into engineBundleUrl. */
+  async exportGodotWeb(
+    tabId: number,
+    rel: string,
+  ): Promise<(GodotExportResult & { outputRel?: string })> {
+    const root = this.tabRoot(tabId);
+    const projectAbs = files.resolveUnderRoot(root, rel);
+    const parsed = path.parse(rel);
+    const outputRel = path.join(parsed.dir, `${parsed.name}-web`);
+    const outputAbs = files.resolveUnderRoot(root, outputRel);
+    const result = await exportGodotProjectWeb(projectAbs, path.join(outputAbs, "index.html"));
+    return result.ok ? { ...result, outputRel } : result;
   }
 
   disposeAllTerminals(): void {

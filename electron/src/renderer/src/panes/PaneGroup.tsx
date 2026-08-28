@@ -23,7 +23,8 @@ import { layoutLog } from "../layout/layoutDebugLog";
 import { paneChipContentShown, paneChipContentStyle } from "../interaction/embedPolicy";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { usePaneVisibility } from "./usePaneVisibility";
-import { getEngineBundleUrl, registerProjectApp } from "../electron";
+import { exportGodotWeb, getEngineBundleUrl, registerProjectApp } from "../electron";
+import { logError } from "../errorLog";
 
 // The pane-level orchestrator that makes the tab system "global": every
 // flexlayout pane node now renders one of these instead of switching on a
@@ -323,7 +324,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   // own new lifecycle code — see docs/ROADMAP.md's Phase 2 checklist for
   // why (verification-first: this is the minimal-risk way to prove the
   // hosting protocol works end-to-end against a real Godot export).
-  const onTreeOpenAsApp = useCallback(
+  const openEngineBundleTab = useCallback(
     (path: string) => {
       getEngineBundleUrl(workspaceTabId, path)
         .then((url) => addTabToGroup(model, nodeId, "browser", { url }))
@@ -340,6 +341,29 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
       registerProjectApp(workspaceTabId, "engine-bundle", path, title).catch(console.error);
     },
     [workspaceTabId, model, nodeId, setActivePaneTab, onNotifyChanged],
+  );
+
+  const onTreeOpenAsApp = openEngineBundleTab;
+
+  // One-click version: export a Godot *project* directory's Web preset
+  // (real `godot` CLI, main process, async — see godotExport.ts), then
+  // open the resulting bundle exactly like onTreeOpenAsApp does. Surfaces
+  // a failure (godot not found, no Web preset configured, export error)
+  // through the existing ErrorLogPanel instead of failing silently, since
+  // there's no dedicated UI for this action's result otherwise.
+  const onTreeExportGodotWeb = useCallback(
+    (path: string) => {
+      exportGodotWeb(workspaceTabId, path)
+        .then((result) => {
+          if (result.ok && result.outputRel) {
+            openEngineBundleTab(result.outputRel);
+          } else {
+            logError(`Godot Web export failed for "${path}": ${result.error ?? "unknown error"}`);
+          }
+        })
+        .catch((err) => logError(`Godot Web export failed for "${path}"`, err?.stack));
+    },
+    [workspaceTabId, openEngineBundleTab],
   );
 
   const dropTab = useCallback(
@@ -439,6 +463,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                 onPathRenamed={onTreePathRenamed}
                 onPathDeleted={onTreePathDeleted}
                 onOpenAsApp={onTreeOpenAsApp}
+                onExportGodotWeb={onTreeExportGodotWeb}
               />
             )}
           </div>

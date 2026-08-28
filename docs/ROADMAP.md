@@ -185,6 +185,27 @@ behind this direction, revisit later.
   Browser pane's nav/address row) stayed visible around it until now —
   `useHtmlFullscreen.ts` + a `.html-fullscreen` CSS class hides both
   while active, restores on exit. Pending live QA (see `TODO.md`).
+- [x] One-click "Export Godot (Web) & Open" (2026-08-28) — the original
+  ask ("난 그냥 workspace에 넣어서 검증하면 되도록 쉽게 더 완성도 있는
+  파이프라인을 만들어야지") was still two manual steps: run `export.sh`
+  yourself, then right-click the *output* folder for "Open as App".
+  TreeView's right-click menu on a *project* folder now offers "Export
+  Godot (Web) & Open" directly: `godotExport.ts` resolves the `godot`
+  binary (PATH, then common install locations, same pattern as
+  `pty.ts`'s tmux resolution), reads `export_presets.cfg` to find the
+  Web preset by name (doesn't hardcode `"Web"`), and spawns
+  `godot --headless --export-release <preset> ...` **async**
+  (`child_process.spawn`, not `spawnSync` — an export can take a while
+  and this is the main process; blocking it would freeze the whole app).
+  Output goes to a sibling `<project>-web` folder (matching
+  `godot-demo`/`godot-demo-web`'s own convention) and opens automatically
+  via the same flow as "Open as App" on success; a failure (godot not
+  found, no Web preset configured, export error) surfaces through
+  `ErrorLogPanel` via `logError`. Live-verified (not just typecheck) by
+  invoking `exportGodotProjectWeb` directly against the real
+  `test-fixtures/godot-demo` fixture — real `godot` CLI ran, produced a
+  correct bundle (`index.html`/`.js`/`.pck`/`.wasm`/audio worklets).
+  Pending live QA through the actual TreeView menu (see `TODO.md`).
 
 ### World Engine — planning idea, not started (2026-08-28)
 

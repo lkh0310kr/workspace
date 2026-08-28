@@ -200,7 +200,9 @@ const api = {
   },
   engine: {
     getBundleUrl: (tabId: number, rel: string, entry?: string): Promise<string> =>
-      ipcRenderer.invoke('engine:get-bundle-url', tabId, rel, entry)
+      ipcRenderer.invoke('engine:get-bundle-url', tabId, rel, entry),
+    exportGodotWeb: (tabId: number, rel: string): Promise<unknown> =>
+      ipcRenderer.invoke('engine:export-godot-web', tabId, rel)
   },
   project: {
     registerApp: (tabId: number, kind: string, rel: string, title?: string): Promise<unknown> =>
