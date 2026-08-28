@@ -320,13 +320,83 @@ same local IPC, the same way terminal keystrokes already reach the PTY.
 **WebRTC/Track B is not wasted work — it answers a genuinely different
 question.** Keep it for the case it actually fits: hosting a *third-party*
 engine that must present as "just a URL" (the original Track A/B
-framing), or a truly remote/cloud-rendered source. For Workspace's *own*
-engine, co-located and fully trusted, local IPC is simpler, faster, more
-secure, and more conservative — on every axis the user has asked this
-architecture to optimize for. `native/world-engine-core/`'s next
-integration pass should swap its transport to local IPC before (not
-instead of) wiring into Electron; `engine-stream-poc/` stays as-is,
-correctly scoped to the Track B problem it was actually built for.
+framing), or a truly remote/cloud-rendered source. `engine-stream-poc/`
+stays as-is, correctly scoped to the Track B problem it was actually
+built for.
+
+### Even better than local IPC + canvas: render directly into a native embedded view (2026-08-28)
+
+The local-IPC-plus-`<canvas>` design above (this doc's first correction
+pass) is a real improvement over WebRTC, but it's still not what "네이티브
+급으로, 완전히 다를 게 없어야 해" (native-grade, indistinguishable) actually
+demands: it still round-trips every frame through a CPU readback (wgpu
+texture → CPU buffer → IPC → JS draws to canvas). That's real work per
+frame a genuinely native app never does.
+
+Researched further and found the actually-correct answer, verified via a
+real, working, documented implementation — not assumed:
+[monkeynut.org's "Using wgpu with Electron on macOS"](https://www.monkeynut.org/wgpu-electron/).
+The technique: Electron already exposes
+[`getNativeWindowHandle()`](https://www.electronjs.org/docs/latest/api/browser-window#wingetnativewindowhandle),
+returning the real platform window handle (an `NSWindow*` on macOS). A
+native Rust addon (built with [`napi-rs`](https://napi.rs/), a mature,
+widely-used Node native-module framework) takes that handle, creates its
+**own** `NSView` subclass (not someone else's window — a view *we*
+create and fully control), adds it as a subview of Electron's content
+view (positioned below Electron's own web layer, which is set fully
+transparent — `background: #00000000` — so the native view shows through
+seams-free), and builds a `wgpu` surface directly from that subview via
+[`raw-window-handle`](https://github.com/rust-windowing/raw-window-handle)
+(the same crate `winit`/`wgpu` use internally — MSRV 1.85, actively
+maintained). `wgpu`'s Metal backend then presents **directly** to that
+native surface every frame — no CPU readback, no IPC frame transfer, no
+`<canvas>` draw calls. This is genuinely the same rendering path any
+native macOS app uses; the only difference from a standalone app is that
+the `NSView` happens to be a child of an Electron-owned window instead of
+owning its own top-level window.
+
+This directly refines this doc's own earlier, more pessimistic
+conclusion ("true native-window embedding has no clean cross-platform
+path") — that research was about embedding *someone else's* already-
+existing window (Notepad, another app's process) into Electron, which
+really is unsolved (the cited open Electron issues are about exactly
+that). Embedding a **new native view we create ourselves**, driven by our
+own renderer, is a different and much more tractable problem, with a
+real working reference implementation.
+
+**Cross-platform story**: `raw-window-handle` itself supports Windows
+(`HWND`) and Linux (X11/Wayland surfaces) too, not just macOS — and the
+Windows shape is exactly `MonoGame.Framework.WpfInterop`'s already-cited
+precedent (`SetParent` + a child `HWND`, a decades-old, thoroughly proven
+Win32 technique). macOS is the best-verified case right now (one real
+reference implementation read in full); Windows should work via the same
+crate but hasn't been checked against a concrete example the way macOS
+has; Linux is the least explored of the three.
+
+**The one real open question, genuinely unsolved so far**: input.
+Electron's transparent web layer sits *in front of* the native view in
+the composited window, and by default would still intercept mouse/
+keyboard events meant for the native content underneath. This project
+already has real, working infrastructure for a closely related problem —
+`InteractionCoordinator` (`04-interaction-coordinator.md`) manages
+exactly this kind of "let input reach embedded content, not the DOM
+overlay on top of it" for `<webview>` panes (pointer-events toggling,
+overlay stack). Whether that same mechanism (or something in its family —
+`setIgnoreMouseEvents`-style pass-through, or routing input to the native
+view directly at the OS level) extends cleanly to a native `NSView`/
+`HWND` sibling instead of a DOM element is the concrete next research
+question — not yet answered, flagged here rather than guessed at.
+
+**Revised verdict**: this native-embed path supersedes the local-IPC-
+plus-canvas design above for World Engine's real Electron integration —
+strictly better on the performance/native-fidelity axis the user is
+actually optimizing for, at the cost of needing a native Node addon
+(`napi-rs`) as new build/packaging surface this app doesn't have yet
+(Electron's own docs cover exactly this — see "Native Code and Electron:
+Objective-C/Swift (macOS)" and the Windows/C++ equivalent). Local IPC (the
+previous section) stays as a documented fallback if the native-embed
+input problem turns out to be genuinely unsolvable — not deleted, just
+demoted to "plan B."
 
 ## Per-pane stack direction (if/when this happens)
 

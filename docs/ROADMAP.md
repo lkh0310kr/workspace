@@ -278,13 +278,31 @@ negotiation model, not the actual problem. The right shape already exists
 in this codebase: the terminal's `Pty` → `PtySession` → IPC → `xterm.js`
 pipeline solves the identical "spawned native process's output needs to
 reach the renderer" problem with a plain byte stream, no compression, no
-negotiation. World Engine's real Electron integration should follow that
-shape (local IPC, `<canvas>`, not `<video>`+WebRTC) — full reasoning and
-the revised transport sketch in
-[09-future-native-architecture.md](./architecture/09-future-native-architecture.md#transport-critique--webrtc-was-the-wrong-choice-for-our-own-engine-2026-08-28).
-`engine-stream-poc`/WebRTC isn't wasted — it's still the right answer for
-Track B (a genuine third-party/remote engine), just not for Workspace's
-own.
+negotiation. `engine-stream-poc`/WebRTC isn't wasted — it's still the
+right answer for Track B (a genuine third-party/remote engine), just not
+for Workspace's own.
+
+**Further research (2026-08-28): local IPC + `<canvas>` still isn't
+"native-grade" enough — found a better, real answer.** The user pushed
+for genuine Blender/Unity-grade fidelity ("완전히 다를 게 없어야 해. 네이티브
+급으로"), not just "better than WebRTC." Local IPC still round-trips every
+frame through a CPU readback. Found and verified a real working technique
+instead: Electron's `getNativeWindowHandle()` + a native Rust addon
+(`napi-rs`) creates our **own** native view (not someone else's window —
+one we fully control), adds it as a subview of Electron's own window
+(`raw-window-handle`, the same crate `wgpu`/`winit` use), and `wgpu`
+presents **directly** to that native surface every frame — zero CPU
+readback, zero IPC frame transfer, genuinely the same rendering path any
+native app uses. Verified against a real reference implementation
+(monkeynut.org, macOS/NSView) — not assumed. This supersedes the local-IPC
+design as the real integration target; local IPC stays documented as a
+fallback. One real open question: whether Electron's transparent web
+layer can be made to pass mouse/keyboard input through to the embedded
+native view — this project's existing `InteractionCoordinator`
+(`04-interaction-coordinator.md`) solves the closely related `<webview>`
+version of this problem, and whether the same approach extends to a
+native view is the next concrete thing to check. Full detail in
+[09-future-native-architecture.md](./architecture/09-future-native-architecture.md#even-better-than-local-ipc--canvas-render-directly-into-a-native-embedded-view-2026-08-28).
 
 ## History (done)
 
