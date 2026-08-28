@@ -26,7 +26,22 @@ Web export를 webview로 host하는 방식 확정. 근거/배경: [docs/ideation
 
 - [ ] Video/Audio QA — File Viewer의 비디오/오디오 재생(`739766b`, `7ec31be`) 실제 GUI 테스트 필요. 특히: 시킹이 진짜 Range 요청(206)으로 되는지 devtools Network 탭에서 확인, 대용량 파일 열 때 메인 프로세스 안 멈추는지, 자막(.srt) 로드+오프셋 조정 동작, 패키지 빌드(`npm run build:mac`)에서 `protocol.handle` 등록이 dev 모드와 동일하게 동작하는지.
 - [ ] EPUB QA — `0633f6c` 미니멀 v1 (unzip + spine 순차 iframe, prev/next만). 테스트 파일(Project Gutenberg 앨리스) 전달함 — 워크스페이스 root 안에 넣고 열어서: 챕터 이동, 이미지/CSS가 iframe 안에서 상대경로로 잘 로드되는지, sandbox="allow-same-origin"이라 스크립트는 실행 안 되는 게 맞는지, 이상한 OPF/manifest 형태의 다른 epub에서도 안 깨지는지.
-- [ ] terminal - Claude Code에서 불안정함. 이전 내용을 못봄 - 이중 스크롤 문제인듯. 뭔가 높이가 잘못 설정되어서  상위 스크롤만 인식을 하는 듯.
+- [ ] **terminal 이중 스크롤 + 글자 깨짐(???) QA** (2026-08-28, 다음 라이브 검증 대상) —
+  원인: 어제(`67510fd`) 재도입한 tmux 래퍼. tmux는 화면을 diff-redraw하는
+  자체 가상 터미널이라, Claude Code CLI처럼 in-place로 뷰포트를 다시 그리는
+  TUI를 감싸면 xterm.js 쪽 스크롤백에 중복/깨진 내용이 쌓이고(이중 스크롤,
+  "이전 내용을 못봄") resize 때 wide/유니코드 글자가 "???"로 깨짐 — Orca가
+  애초에 tmux 안 쓰는 이유(`.cursor/skills/workspace-ref-port/SKILL.md`
+  DON'T: "tmux 래퍼 재도입 금지")와 정확히 일치. `pty.ts`를 tmux 이전
+  direct login-shell spawn으로 되돌림(`workspace.ts`의 tmuxSessionName
+  플러밍도 제거), 앱 완전 재시작 후 필요: 1) Claude Code(또는 다른 TUI)
+  실행 중 스크롤이 정상인지, 2) 유니코드/이모지/박스문자가 안 깨지는지
+  확인. 트레이드오프: 앱 완전 종료 후 재실행 시 터미널 세션이 더 이상
+  살아남지 않음(quit/relaunch 지속성 상실, 앱 실행 중 재연결은
+  PtySession replay buffer로 그대로 유지) — Orca 자체 아키텍처와 동일한
+  선택. 재시작 전까지 남아있던 tmux 세션(`workspace-term-dev-43`,
+  `workspace-term-dev-45`)은 새 코드로는 더 안 쓰이니 원하면
+  `tmux kill-session -t <name>`으로 정리 가능(안 지워도 무해, 그냥 안 씀).
 - [ ] 코드 퀄리티 리뷰 이제는 좀 해야제
 - [x] 브라우저 URL 입력창 자동완성 (히스토리 기반 드롭다운은 있었는데 "google"처럼 히스토리에 없는 bare word 입력 시 .com 힌트가 없었음 — browserAddressBarSuggestions.ts에 도메인 추측 휴리스틱 추가) - 제대로 구현 필요. 다른 서비스는 어떻게 처리하는지 orca browser, firefox 등 오픈소스 clone해서 참고
 

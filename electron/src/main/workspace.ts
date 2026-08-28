@@ -1,4 +1,3 @@
-import { app } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Pty } from "./pty";
@@ -15,16 +14,6 @@ import { registerProjectApp as registerProjectApp_ } from "./projectManifest";
 import type { ProjectManifest } from "../shared/projectManifest";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
-
-/** Namespaced so a dev build and a packaged build never attach to the
- * same tmux session for what are actually two independent terminals —
- * each keeps its own persisted terminal-id sequence (see
- * appSupportDir's dev/packaged split in persistence.ts), so the same
- * numeric id can otherwise exist in both. */
-function tmuxSessionName(terminalId: number): string {
-  const namespace = app.isPackaged ? "" : "dev-";
-  return `workspace-term-${namespace}${terminalId}`;
-}
 
 export interface TabInfo {
   id: number;
@@ -184,7 +173,7 @@ export class Workspace {
   }
 
   private spawnTerminalWithId(id: number, cols: number, rows: number, root: string): void {
-    const pty = new Pty({ cols, rows, cwd: root, tmuxSessionName: tmuxSessionName(id) });
+    const pty = new Pty({ cols, rows, cwd: root });
     pty.start();
     const session = new PtySession(id, pty, cols, rows);
     session.setOnData((terminalId, seq, data) => {
