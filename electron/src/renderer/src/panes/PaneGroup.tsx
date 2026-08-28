@@ -9,6 +9,7 @@ import {
   changeTabKindInGroup,
   closeTabInGroup,
   moveTabToGroup,
+  replaceTabInGroup,
   setActiveTabInGroup,
   updateTabInGroup,
 } from "../layout/layoutActions";
@@ -239,19 +240,35 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
     [model, nodeId, onNotifyChanged],
   );
 
+  // VSCode-style preview tab: a plain TreeView click reuses the current
+  // preview tab's slot instead of piling up a new one, *unless* that
+  // preview tab has unsaved edits (dirtyByTabId, already tracked for the
+  // tab strip's own dirty dot) or `pin` is set (Cmd/Ctrl+click, or
+  // double-click promoting an existing preview tab) — see paneTypes.ts's
+  // isPreview doc comment.
   const openOrSwitchToFile = useCallback(
-    (path: string, kind: "code" | "markdown" | "viewer" | "vector", jumpToLine?: number, forceNewTab?: boolean) => {
-      const existing = forceNewTab ? undefined : tabs.find((t) => t.filePath === path);
+    (path: string, kind: "code" | "markdown" | "viewer" | "vector", jumpToLine?: number, pin?: boolean) => {
+      const existing = tabs.find((t) => t.filePath === path);
       if (existing) {
         selectTab(existing.id);
+        if (pin && existing.isPreview) {
+          updateTabInGroup(model, nodeId, existing.id, { isPreview: false });
+          onNotifyChanged();
+        }
         if (jumpToLine != null) {
           setPendingJumpByTabId((prev) => ({ ...prev, [existing.id]: jumpToLine }));
         }
         return;
       }
-      addTabToGroup(model, nodeId, kind, { filePath: path })
+      const previewTab = tabs.find((t) => t.isPreview);
+      const previewIsDirty = previewTab ? (dirtyByTabId[previewTab.id] ?? false) : false;
+      const open = !pin && previewTab && !previewIsDirty
+        ? replaceTabInGroup(model, nodeId, previewTab.id, kind, { filePath: path })
+        : addTabToGroup(model, nodeId, kind, { filePath: path });
+      open
         .then((id) => {
           if (!id) return;
+          if (!pin) updateTabInGroup(model, nodeId, id, { isPreview: true });
           setActivePaneTab(workspaceTabId, nodeId, id);
           if (jumpToLine != null) {
             setPendingJumpByTabId((prev) => ({ ...prev, [id]: jumpToLine }));
@@ -260,7 +277,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
         })
         .catch(console.error);
     },
-    [tabs, model, nodeId, selectTab, onNotifyChanged],
+    [tabs, model, nodeId, selectTab, onNotifyChanged, dirtyByTabId, workspaceTabId],
   );
 
   // Keeps this pane's own open tabs pointing at the real file when the
@@ -390,7 +407,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                 rootPath={rootPath}
                 selectedPath={activeItem.filePath ?? null}
                 paneVisible={visible}
-                onOpenFile={(path, kind, openInNewTab) => openOrSwitchToFile(path, kind, undefined, openInNewTab)}
+                onOpenFile={(path, kind, pin) => openOrSwitchToFile(path, kind, undefined, pin)}
                 onPathRenamed={onTreePathRenamed}
                 onPathDeleted={onTreePathDeleted}
               />

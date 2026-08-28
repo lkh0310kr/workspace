@@ -221,7 +221,7 @@ export function PaneTabStrip({
                   if (el) chipRefs.current.set(item.id, el);
                   else chipRefs.current.delete(item.id);
                 }}
-                className={`pane-tab${item.id === activeTabId ? " active" : ""}`}
+                className={`pane-tab${item.id === activeTabId ? " active" : ""}${item.isPreview ? " preview" : ""}`}
                 draggable
                 onDragStart={(e: DragEvent) => {
                   // The strip's own draggable=true (above) is for

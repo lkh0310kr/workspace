@@ -19,7 +19,7 @@ interface Props {
   rootPath: string;
   selectedPath?: string | null;
   paneVisible?: boolean;
-  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer" | "vector", openInNewTab?: boolean) => void;
+  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer" | "vector", pin?: boolean) => void;
   // Lets the pane hosting this tree keep any open tab's filePath in sync
   // with what actually happened on disk — without these, renaming/moving/
   // deleting a file out from under an open tab leaves that tab pointing
@@ -219,18 +219,24 @@ export function TreeView({
 
   const refresh = (dir: string) => loadDir(dir);
 
-  // Click handling shared by file/folder rows. Cmd/Ctrl+click on a *file*
-  // opens it in a new tab (browser-style "open link in new tab"), same as
-  // this app's own PaneTabStrip convention elsewhere — it does not toggle
-  // multi-select the way Finder/VSCode's Cmd+click does; Shift+click's
-  // range-select (below) is this tree's only multi-select path now. Shift
-  // extends the range from the fixed anchor (doesn't move it, matching
-  // Finder/VSCode); a plain click replaces the selection with just this
-  // entry and *then* runs `action` (open file / expand folder).
+  // Click handling shared by file/folder rows — VSCode's Explorer
+  // convention, not a browser's: a plain single click opens a file as a
+  // *preview* tab (PaneGroup.openOrSwitchToFile reuses/replaces the
+  // current preview tab's slot instead of piling up a new one, unless
+  // it's been edited — see paneTypes.ts's isPreview doc comment).
+  // Cmd/Ctrl+click on a *file* pins it open in a new tab directly,
+  // bypassing preview reuse — it does not toggle multi-select the way
+  // Finder's Cmd+click does; Shift+click's range-select (below) is this
+  // tree's only multi-select path. Double-click (see the row's
+  // onDoubleClick below) pins whatever's already open instead of opening
+  // fresh. Shift extends the range from the fixed anchor (doesn't move
+  // it, matching Finder/VSCode); a plain click replaces the selection
+  // with just this entry and *then* runs `action` (open file / expand
+  // folder).
   const handleRowClick = (
     e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean },
     entry: DirEntry,
-    action: (openInNewTab: boolean) => void,
+    action: (pin: boolean) => void,
   ) => {
     const path = entry.path;
     if ((e.metaKey || e.ctrlKey) && !entry.is_dir) {
@@ -448,9 +454,13 @@ export function TreeView({
           onDrop={entry.is_dir ? (e) => onFolderDrop(e, entry.path) : undefined}
           onClick={(e) => {
             e.stopPropagation();
-            handleRowClick(e, entry, (openInNewTab) =>
-              entry.is_dir ? toggle(entry.path) : onOpenFile(entry.path, classifyFile(entry.name), openInNewTab),
+            handleRowClick(e, entry, (pin) =>
+              entry.is_dir ? toggle(entry.path) : onOpenFile(entry.path, classifyFile(entry.name), pin),
             );
+          }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            if (!entry.is_dir) onOpenFile(entry.path, classifyFile(entry.name), true);
           }}
           onContextMenu={(e) => {
             e.preventDefault();

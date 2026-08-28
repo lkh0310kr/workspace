@@ -608,6 +608,12 @@ iframe.browser-content-slot {
   font-size: 12px;
 }
 
+/* VSCode-style preview tab — italic label until it's edited or pinned
+   (double-click / Cmd-click) — see paneTypes.ts's isPreview doc comment. */
+.pane-tab.preview .pane-tab-label {
+  font-style: italic;
+}
+
 .pane-tab-close {
   display: flex;
   align-items: center;

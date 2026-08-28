@@ -42,6 +42,12 @@ export interface PaneTabItem {
   /** Live display title (browser page title, editor filename) — terminal
    * tabs don't use this, their chip just shows a fixed "Terminal" label. */
   title?: string;
+  /** VSCode-style "preview" tab (TreeView single-click) — at most one per
+   * pane. Reused/replaced by the next preview-click instead of piling up
+   * a new tab, unless it has unsaved edits (see PaneGroup's
+   * openOrSwitchToFile) or gets explicitly pinned (double-click, or
+   * Cmd/Ctrl+click opens a new pinned tab directly). */
+  isPreview?: boolean;
 }
 
 export interface PaneGroupConfig {

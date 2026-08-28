@@ -177,6 +177,34 @@ export async function changeTabKindInGroup(
   return item.id;
 }
 
+/** Replaces one tab's entire content in place (same array position — does
+ * *not* move it to the end of the strip the way close+add would) — the
+ * VSCode "preview tab" reuse case: clicking a different file in TreeView
+ * while a clean (unedited) preview tab is open swaps that tab's content
+ * instead of piling up a new one. Unlike changeTabKindInGroup, `source`
+ * is the caller's, not derived from the old item — this is a full
+ * replacement, not a same-file kind switch. Returns the new tab item's
+ * id, or null if the tab/node doesn't exist. */
+export async function replaceTabInGroup(
+  model: Model,
+  tabNodeId: string,
+  oldTabId: string,
+  kind: TabKind,
+  source?: Partial<PaneTabItem>,
+): Promise<string | null> {
+  const config = getGroupConfig(model, tabNodeId);
+  if (!config) return null;
+  const idx = config.tabs.findIndex((t) => t.id === oldTabId);
+  if (idx === -1) return null;
+  const item = await buildTabItem(kind, source);
+  const tabs = [...config.tabs];
+  tabs[idx] = item;
+  const activeTabId = config.activeTabId === oldTabId ? item.id : config.activeTabId;
+  model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, tabs, activeTabId } }));
+  bumpPaneGroupRender(model);
+  return item.id;
+}
+
 /**
  * Moves a tab to `targetIndex` within `targetTabNodeId`'s tab group —
  * either reordering within the same pane (sourceTabNodeId ===

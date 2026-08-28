@@ -20,6 +20,7 @@ const PaneTabItemSchema = z
     favicon: z.string().optional(),
     zoomFactor: z.number().positive().finite().optional(),
     title: z.string().optional(),
+    isPreview: z.boolean().optional(),
   })
   .superRefine((item, ctx) => {
     if (item.kind === "terminal" && typeof item.terminalId !== "number") {
