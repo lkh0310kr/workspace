@@ -38,12 +38,95 @@ Heavy graphics/compute work moves out as panes get more demanding:
   stays TypeScript/React.
 - **Out-of-process, Blender-class apps**: something like Blender is not
   meant to run inside an Electron renderer at all. It runs as a **separate
-  native process**, and the pane hosts that process's rendering
-  surface/window rather than embedding its code. Reasoning: embedding an
-  external native window as a first-class Electron DOM element is not
-  equally clean across Windows/macOS/Linux, so the *pane* should host a
-  surface reference, not try to make Blender "just another React
-  component."
+  native process**. Originally framed as "the pane hosts that process's
+  rendering surface/window" — refined below (2026-08-28 research pass):
+  "hosts a surface" turns out to mean *pixel-streamed into a Browser tab*
+  in practice, not a true embedded native window (which research found no
+  clean cross-platform path for at all).
+
+## Unified hosting design (research pass, 2026-08-28) — no native window embedding needed so far
+
+Prompted by: should "Game Engine" and "engineering simulation" stay separate
+World Engine categories, and can *any* of them realistically be hosted by
+truly embedding a native window inside Electron? Researched real
+candidates (Bevy, MonoGame, NVIDIA Omniverse, FreeCAD/OpenCASCADE) instead
+of guessing. Findings, each verified (websearch + cloning real repos into
+`ref-proj/`, not assumed):
+
+- **True native-window embedding is a dead end.** Electron's own tracker
+  has three open, unresolved issues asking for this
+  (`electron/electron#5083`, `#2326`, `#10547`) — no clean cross-platform
+  path exists. The only known workaround is a raw OS-level native module
+  doing window reparenting, and even that has real precedent only on
+  Windows (MonoGame's `MonoGame.Framework.WpfInterop`/`MonoGame.Forms`
+  hand a MonoGame `Game` a WPF/WinForms child surface instead of letting
+  it own a top-level window) — nothing comparably proven exists for
+  macOS, which is this app's actual dev platform.
+- **Bevy isn't a native-embed case at all.** It has first-class WASM/WebGL
+  (and WebGPU) export, same as Godot. It's a **web-bundle** candidate,
+  reusing today's `workspace-engine://` pipeline unchanged.
+- **FreeCAD/OpenCASCADE has real WASM ports too** (`magik.net/freecad` —
+  third-party but functional: the full parametric-CAD desktop, kernel
+  included, compiled to WASM; `OpenCascade.js` for building a lighter
+  custom viewer). CAD may also fit the web-bundle track, not native-embed.
+- **NVIDIA Omniverse's own answer is pixel-streaming, not embedding** — and
+  it's genuinely relevant beyond Omniverse. Cloned and read
+  `ref-proj/ovstream` (NVIDIA's streaming SDK) and
+  `ref-proj/omniverse-web-viewer-sample`: a native/Kit app renders
+  normally and pushes frames to `ovstream`, which encodes on-GPU (NVENC)
+  and serves WebRTC (or RTSP/native/SHM); the browser side
+  (`examples/webrtc_client/index.html`, read directly) is a **plain HTML/
+  JS page using standard WebRTC APIs** — no special native integration on
+  the client at all. The README states it plainly: "no Kit, no Carbonite,
+  no Omniverse app required" — it's a general GPU-pixel-streaming SDK, not
+  an Omniverse-only tool. **Caveat: ovstream itself is CUDA-only (NVIDIA
+  GPU required) and NVIDIA-licensed, not MIT** — can't run on this app's
+  own macOS dev machine and can't be shipped as-is. The *pattern* is
+  reusable regardless: GStreamer's `webrtcbin`/`webrtcsink` (LGPL,
+  cross-platform, builds on macOS) implements the same
+  capture-encode-WebRTC pipeline without CUDA lock-in.
+
+**The unifying design, then:** every World Engine pane, regardless of
+which of the two tracks below backs it, ends at the exact same place —
+**a URL opened in the existing Browser pane.** No third pane kind, no new
+webview lifecycle code, ever — that integration point is already built
+and stable.
+
+```
+Engine picked
+  ├─ Has a real WASM/web export? ──────► Track A: web-bundle (built, verified)
+  │                                        export → workspace-engine:// → Browser tab
+  └─ No web export (Omniverse-class,  ──► Track B: pixel-streaming (designed, not built)
+     production CAD, MonoGame, etc.)      spawn native process → capture/encode frames
+                                           (GStreamer webrtcbin, not ovstream/CUDA) →
+                                           serve a plain WebRTC client page → Browser tab
+```
+
+Track A is what's built today. Track B's sketch, not yet started:
+
+1. Main process spawns the native engine process — same shape as
+   `Pty`/`PtySession` spawning a shell, just a heavier process.
+2. A capture/encode step feeds GStreamer's `webrtcsink`: best case, the
+   engine offers its own offscreen/headless render target directly (as
+   Omniverse Kit apps do via `ovstream`) — no OS window capture needed.
+   Worst case (engine has no offscreen render mode), it's real window/
+   screen capture, which is slower and hits macOS's screen-recording
+   permission prompt.
+3. A small local server (a new `workspace-stream://`-style protocol, or
+   a plain `http://127.0.0.1:<port>` page — mirrors `workspace-engine://`'s
+   shape either way) serves a generic WebRTC client page, styled after
+   `ovstream`'s example but talking to a GStreamer signaling server
+   instead of NVIDIA's.
+4. **Unsolved, the actual hard part**: routing mouse/keyboard input back
+   from the browser-side WebRTC data channel into the native process.
+   `ovstream` has this built in (`callbacks and messaging APIs`); a
+   GStreamer-based version doesn't get it for free and needs real design
+   once a concrete engine forces the question.
+
+Given every researched candidate has *either* a web-export path *or* a
+documented streaming precedent, true native-window embedding may never
+actually be needed — kept only as a last-resort idea, not designed
+further unless a real future candidate proves to require it.
 
 ## Per-pane stack direction (if/when this happens)
 

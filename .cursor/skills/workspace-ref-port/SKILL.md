@@ -28,6 +28,7 @@ description: >-
 | ------------------ | ------------------------------------------------------------------- |
 | `ref-proj/orca/`   | 터미널(xterm/node-pty), pane-manager, WebGL, webview/IC, PTY replay |
 | `ref-proj/itch/`   | Electron 안에서 HTML5/WASM 콘텐츠(Godot Web export 등) 호스팅 UX — `enter-html-full-screen`/`leave-html-full-screen` 처리 포팅 (2026-08-28) |
+| `ref-proj/ovstream/`, `ref-proj/omniverse-web-viewer-sample/` | NVIDIA의 GPU 픽셀 스트리밍 SDK — World Engine native-embed 리서치용(2026-08-28). CUDA 필수·NVIDIA 라이선스라 그대로 못 씀, **패턴만** 참고(캡처→인코드→WebRTC→평범한 HTML 클라이언트). 실제 구현은 GStreamer `webrtcbin`으로. 자세한 내용: `docs/architecture/09-future-native-architecture.md` |
 | `ref-proj/logseq/` | 블록 에디터, 아웃라인, 그래프 UI 패턴                               |
 | `ref-proj/zed/`    | 에디터/워크스페이스 UX, 패널·포커스 철학                            |
 | `ref-proj/Zettlr/` | 마크다운 WYSIWYG, 파일 트리                                         |

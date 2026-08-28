@@ -225,21 +225,27 @@ engines into two groups regardless of game-vs-simulation labeling:
   to static files, serve via `workspace-engine://`
   (`engineBundleProtocol.ts`), open as a plain Browser tab. Nothing new
   needed here; this is the path already verified end-to-end above.
-- **Native-only** (Nvidia Omniverse/Kit, FreeCAD, and most real CAD/FEA —
-  no WASM export exists, Omniverse is a native RTX/USD app or a
-  cloud-streamed client, not something that runs in a browser sandbox) —
-  would need an entirely different embedding pattern: spawn as a real OS
-  process and embed/control its window, closer to how the terminal pane
-  manages a spawned `node-pty` process than to how the Browser pane hosts
-  a `<webview>`. Not built, not designed yet — this is the genuinely new
-  unknown, not a variant of the already-solved web-bundle path.
+- **No web export** (Omniverse-class, most production CAD, engines without
+  web-build buy-in) — **not** true native window embedding after all (see
+  research below): NVIDIA Omniverse's own answer to this exact problem is
+  **pixel-streaming** — the native process renders normally and streams
+  its frames over WebRTC to a plain HTML/JS client page, which is just
+  another URL the Browser pane can open. Not built yet, but the pattern
+  is real and proven (NVIDIA ships it in production), not a guess.
 
 So: rename the planning category to **World Engine** (one place to look
-for "real-time 3D host" panes), but keep two implementation tracks under
-it — **web-bundle** (solved, Godot proves it) and **native-embed**
-(unsolved, needed for Omniverse/CAD-class engines). Whichever engine gets
-picked next decides which track gets built; no work started on
-native-embed yet.
+for "real-time 3D host" panes), with two implementation tracks — both
+ending at "opens as a Browser tab," so neither needs a new pane kind —
+**web-bundle** (solved, Godot proves it) and **pixel-streaming**
+(designed, not built — see the full research + sketch in
+[09-future-native-architecture.md](./architecture/09-future-native-architecture.md#unified-hosting-design-research-pass-2026-08-28--no-native-window-embedding-needed-so-far)).
+Researching real candidates (Bevy, MonoGame, Omniverse, FreeCAD) found
+that **true native-window embedding has no clean cross-platform path at
+all** (three open, unresolved Electron issues) and, encouragingly, isn't
+actually needed for any real candidate found so far — Bevy and FreeCAD
+both turned out to have their own WASM export paths (web-bundle track,
+not a new problem). Whichever engine gets picked next decides which
+track gets built; no work started on pixel-streaming yet.
 
 ## History (done)
 
