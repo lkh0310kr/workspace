@@ -22,6 +22,25 @@ function pointInRect(x: number, y: number, rect: AnchorRect): boolean {
   return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 }
 
+/** Exported for tests — true when an outside pointerdown should dismiss this popover. */
+export function shouldDismissPopoverPointerDown(
+  target: Node | null,
+  popoverRoot: HTMLElement | null,
+  clientX: number,
+  clientY: number,
+  anchorRect: AnchorRect,
+): boolean {
+  if (!target) return true;
+  if (popoverRoot?.contains(target)) return false;
+  // Nested portaled UI (context menus, stacked settings popovers) lives outside
+  // this popover's ref — without this, opening workspace tab settings from the
+  // rail context menu dismisses the rail on pointerdown before the click lands.
+  const el = target as Element;
+  if (typeof el.closest === "function" && el.closest(".popover, .context-menu")) return false;
+  if (pointInRect(clientX, clientY, anchorRect)) return false;
+  return true;
+}
+
 interface Props {
   anchorRect: AnchorRect;
   onClose: () => void;
@@ -86,11 +105,17 @@ export function Popover({
   useLayoutEffect(() => {
     if (!dismissOnClickOutside) return;
     const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Node;
-      if (ref.current?.contains(target)) return;
-      // Ignore presses on the trigger rect so toggle buttons (settings, +)
-      // can close via their own click handler without pointerdown reopen races.
-      if (pointInRect(e.clientX, e.clientY, anchorRect)) return;
+      if (
+        !shouldDismissPopoverPointerDown(
+          e.target as Node,
+          ref.current,
+          e.clientX,
+          e.clientY,
+          anchorRect,
+        )
+      ) {
+        return;
+      }
       onCloseRef.current();
     };
     const timer = window.setTimeout(() => {

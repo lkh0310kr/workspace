@@ -38,17 +38,9 @@ export function useAppShellState() {
     setWorkspaceRailAnchor(null);
   }, []);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
-        e.preventDefault();
-        toggleAppSettings();
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [toggleAppSettings]);
-
+  // Cmd/Ctrl+, is handled in the main process (before-input-event) and relayed
+  // via shortcut:open-settings — do not also listen in the renderer or the
+  // popover toggles open then immediately closed on one keypress.
   useEffect(() => onOpenSettingsShortcut(() => toggleAppSettings()), [toggleAppSettings]);
 
   return {
