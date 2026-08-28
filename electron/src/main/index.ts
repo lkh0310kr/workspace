@@ -36,6 +36,7 @@ import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
+import { pickDirectory, pickMediaFile } from './nativeDialogs'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
 
@@ -371,8 +372,8 @@ function buildAppMenu(): Menu {
       submenu: [
         {
           label: 'Launch World Engine (dev)',
-          click: () => {
-            const result = launchWorldEngine()
+          click: async () => {
+            const result = await launchWorldEngine()
             if (!result.ok) {
               dialog.showErrorBox('World Engine', result.error ?? 'Failed to launch World Engine.')
             }
@@ -530,13 +531,9 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('usage:claude-rate-limit-status', () => claudeRateLimitStatus())
   ipcMain.handle('usage:cursor-usage-status', () => cursorUsageStatus())
-  ipcMain.handle('dialog:open-directory', async (_event, defaultPath?: string) => {
-    const result = await dialog.showOpenDialog(mainWindowRef!, {
-      properties: ['openDirectory'],
-      defaultPath
-    })
-    return result.canceled ? null : (result.filePaths[0] ?? null)
-  })
+  ipcMain.handle('dialog:open-directory', async (_event, defaultPath?: string) =>
+    pickDirectory(mainWindowRef, defaultPath)
+  )
 
   // For the Video/Audio/Ebook pane-picker entries — a file the user opens
   // "directly" rather than through TreeView/Quick Open, so it's
@@ -544,18 +541,9 @@ app.whenReady().then(() => {
   // itself is the trust boundary (see toMediaUrlBrowsed's doc comment):
   // the returned path only ever came from this native picker, never from
   // renderer-supplied input.
-  const MEDIA_DIALOG_FILTERS: Record<'video' | 'audio' | 'ebook', Electron.FileFilter> = {
-    video: { name: 'Video', extensions: ['mp4', 'webm', 'mov', 'mkv'] },
-    audio: { name: 'Audio', extensions: ['mp3', 'wav', 'm4a', 'ogg', 'flac'] },
-    ebook: { name: 'Ebook', extensions: ['epub'] }
-  }
-  ipcMain.handle('dialog:pick-media-file', async (_event, kind: 'video' | 'audio' | 'ebook') => {
-    const result = await dialog.showOpenDialog(mainWindowRef!, {
-      properties: ['openFile'],
-      filters: [MEDIA_DIALOG_FILTERS[kind]]
-    })
-    return result.canceled ? null : (result.filePaths[0] ?? null)
-  })
+  ipcMain.handle('dialog:pick-media-file', async (_event, kind: 'video' | 'audio' | 'ebook') =>
+    pickMediaFile(mainWindowRef, kind)
+  )
 
   ipcMain.handle('pty:spawn', (_event, cols: number, rows: number) => {
     return workspace!.spawnTerminal(cols, rows)
@@ -681,9 +669,13 @@ app.whenReady().then(() => {
   ipcMain.handle('engine:export-godot-web', (_event, tabId: number, rel: string) =>
     workspace!.exportGodotWeb(tabId, rel)
   )
-  ipcMain.handle('worldEngine:launch', (_event, tabId: number, rel: string) =>
-    workspace!.launchWorldEngine(tabId, rel)
-  )
+  ipcMain.handle('worldEngine:launch', async (_event, tabId: number, rel: string) => {
+    const result = await workspace!.launchWorldEngine(tabId, rel)
+    if (!result.ok) {
+      dialog.showErrorBox('World Engine', result.error ?? 'Failed to launch World Engine.')
+    }
+    return result
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

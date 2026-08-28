@@ -153,3 +153,20 @@ export function remapWorkspaceRootsInSnapshot<T extends { tabs: Array<{ rootPath
   });
   return changed ? { ...snapshot, tabs } : snapshot;
 }
+
+/** `C:\Users\foo` → `/mnt/c/Users/foo` (identity when not a Windows path). */
+export function windowsPathToWsl(winPath: string): string {
+  const normalized = winPath.trim().replace(/\//g, "\\");
+  const match = /^([A-Za-z]):\\(.*)$/.exec(normalized);
+  if (!match) return winPath;
+  const rest = match[2].replace(/\\/g, "/").replace(/\/+$/, "");
+  return rest ? `/mnt/${match[1].toLowerCase()}/${rest}` : `/mnt/${match[1].toLowerCase()}`;
+}
+
+/** `/mnt/c/Users/foo` → `C:\Users\foo` (identity when not a /mnt path). */
+export function wslPathToWindows(wslPath: string): string | null {
+  const match = /^\/mnt\/([a-zA-Z])\/(.*)$/.exec(wslPath.replace(/\\/g, "/"));
+  if (!match) return null;
+  const rest = match[2].replace(/\//g, "\\");
+  return `${match[1].toUpperCase()}:\\${rest}`;
+}
