@@ -236,16 +236,28 @@ engines into two groups regardless of game-vs-simulation labeling:
 So: rename the planning category to **World Engine** (one place to look
 for "real-time 3D host" panes), with two implementation tracks — both
 ending at "opens as a Browser tab," so neither needs a new pane kind —
-**web-bundle** (solved, Godot proves it) and **pixel-streaming**
-(designed, not built — see the full research + sketch in
+**web-bundle** (solved, Godot proves it) and **pixel-streaming** (design
++ feasibility spike done — see
 [09-future-native-architecture.md](./architecture/09-future-native-architecture.md#unified-hosting-design-research-pass-2026-08-28--no-native-window-embedding-needed-so-far)).
 Researching real candidates (Bevy, MonoGame, Omniverse, FreeCAD) found
 that **true native-window embedding has no clean cross-platform path at
 all** (three open, unresolved Electron issues) and, encouragingly, isn't
 actually needed for any real candidate found so far — Bevy and FreeCAD
 both turned out to have their own WASM export paths (web-bundle track,
-not a new problem). Whichever engine gets picked next decides which
-track gets built; no work started on pixel-streaming yet.
+not a new problem).
+
+- [x] Pixel-streaming feasibility spike (2026-08-28) —
+  `native/engine-stream-poc/`, a standalone Rust binary (not wired into
+  Electron), proved the core chain for real: synthetic frames → `openh264`
+  software encode → `webrtc-rs` → a real WebRTC client (verified with
+  Python's `aiortc`, receiving 5 correctly-sized, correctly-timed decoded
+  video frames, not just "the server started"). One real bug found via
+  this testing and fixed (RTP payload type read before negotiation
+  finished — see the doc for detail). Still not done: capturing an actual
+  engine's frames, hardware encoding, the input round-trip — real next
+  increments once a concrete engine needs them, not blocking this spike's
+  own conclusion (the transport mechanism itself is implementable here,
+  not just plausible on paper).
 
 ## History (done)
 

@@ -167,6 +167,51 @@ documented streaming precedent, true native-window embedding may never
 actually be needed — kept only as a last-resort idea, not designed
 further unless a real future candidate proves to require it.
 
+### Feasibility spike — the core chain actually works (2026-08-28)
+
+Built and verified `native/engine-stream-poc/` (standalone Cargo project,
+no Electron involvement — see its own comments for what it deliberately
+doesn't cover: no real engine, no hardware encoder, no input round-trip).
+**Result: it works.** A Rust process generates synthetic animated frames,
+encodes them with `openh264` (software, as planned for this first spike),
+and streams them over a real WebRTC connection (`webrtc-rs` 0.20.3) to a
+real client — verified with a genuine WebRTC peer (Python's `aiortc`, not
+a mock), which received and decoded 5 real video frames at the correct
+640×360 resolution and ~33ms (30fps) spacing. Browser-based verification
+via an automated Chrome tool was attempted but blocked by a network
+boundary between that tool's browser and this machine's `127.0.0.1` (not
+a code or design problem — confirmed the same tool loads public sites
+fine, just can't reach this loopback address); `aiortc` gave an equally
+real, arguably more precise proof (frame dimensions + timing asserted
+programmatically, not just "video visually plays").
+
+**One real bug found and fixed in the process** (not merely "it compiled
+and looked right" — an actual runtime failure caught by testing against a
+real WebRTC peer): the RTP payload type used to write samples was read
+via `sender.get_parameters()` immediately after `add_track()`, before SDP
+negotiation happened — at that point it only reflects this sender's own
+pre-negotiation default, not what offer/answer actually settled on. The
+remote peer's offer proposed a different payload-type number for the same
+codec (101 vs. this sender's own default of 102); every frame sent with
+the wrong PT was silently rejected receiver-side with *no error surfaced
+on the sending side at all* — zero frames arrived, and nothing about the
+Rust process's own logs looked wrong until `RUST_LOG` was wired in and
+turned up. Fixed by reading the negotiated payload type only after
+`set_local_description`/ICE-gathering-complete, not right after
+`add_track()`. Worth remembering for the real Track B build later: codec
+parameter negotiation results aren't necessarily available until
+negotiation actually finishes, even though the API doesn't obviously
+signal that ordering requirement.
+
+**What this proves, and what it doesn't**: proves the transport mechanism
+(Rust → H.264 encode → WebRTC → real browser-grade client) is real and
+implementable on this exact machine with mainstream, actively-maintained
+crates, not just plausible on paper. Doesn't yet prove: capturing an
+actual engine's frames (still synthetic here), hardware encoding
+(VideoToolbox — still the stated follow-up), or the input round-trip
+(still the open question). Those stay real next increments, not done by
+this spike.
+
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see
