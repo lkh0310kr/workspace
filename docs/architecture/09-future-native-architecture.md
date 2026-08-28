@@ -97,31 +97,70 @@ Engine picked
   ├─ Has a real WASM/web export? ──────► Track A: web-bundle (built, verified)
   │                                        export → workspace-engine:// → Browser tab
   └─ No web export (Omniverse-class,  ──► Track B: pixel-streaming (designed, not built)
-     production CAD, MonoGame, etc.)      spawn native process → capture/encode frames
-                                           (GStreamer webrtcbin, not ovstream/CUDA) →
-                                           serve a plain WebRTC client page → Browser tab
+     production CAD, MonoGame, etc.)      spawn native process → Rust sidecar
+                                           captures/encodes/serves WebRTC → Browser tab
 ```
 
-Track A is what's built today. Track B's sketch, not yet started:
+**Track A is always the default — exhaust it before ever reaching for
+Track B.** It's already built, already verified end-to-end, has zero new
+native dependencies, and every researched candidate so far (Godot, Bevy,
+FreeCAD) fit it. Track B only gets built the first time a real, concrete
+engine choice genuinely has no web-export path — not speculatively ahead
+of that.
 
-1. Main process spawns the native engine process — same shape as
-   `Pty`/`PtySession` spawning a shell, just a heavier process.
-2. A capture/encode step feeds GStreamer's `webrtcsink`: best case, the
-   engine offers its own offscreen/headless render target directly (as
-   Omniverse Kit apps do via `ovstream`) — no OS window capture needed.
-   Worst case (engine has no offscreen render mode), it's real window/
-   screen capture, which is slower and hits macOS's screen-recording
-   permission prompt.
-3. A small local server (a new `workspace-stream://`-style protocol, or
-   a plain `http://127.0.0.1:<port>` page — mirrors `workspace-engine://`'s
-   shape either way) serves a generic WebRTC client page, styled after
-   `ovstream`'s example but talking to a GStreamer signaling server
-   instead of NVIDIA's.
-4. **Unsolved, the actual hard part**: routing mouse/keyboard input back
-   from the browser-side WebRTC data channel into the native process.
-   `ovstream` has this built in (`callbacks and messaging APIs`); a
-   GStreamer-based version doesn't get it for free and needs real design
-   once a concrete engine forces the question.
+### Track B revision (2026-08-28) — stability/performance first, Rust sidecar instead of GStreamer-in-main
+
+The GStreamer sketch above was the *pattern*, not the actual pick.
+Revisited with this app's real priorities (stability, performance,
+conservative choices, cross-platform compatibility) — GStreamer itself is
+the wrong fit for a *shipped* Electron app: its native dependency surface
+is large and notoriously fragile to bundle correctly per-platform (many
+dynamically-loaded plugin `.so`/`.dylib`/`.dll` files, a mixed
+LGPL/GPL plugin landscape that needs real license auditing before
+shipping), which cuts directly against "탄탄하게/보수적으로."
+
+**Revised design: a standalone Rust sidecar process**, not a GStreamer
+pipeline glued into the main process — consistent with this doc's own
+"[if a Rust core ever happens, keep it a real core, not an Electron
+helper](#if-a-rust-core-ever-happens-keep-it-a-real-core-not-an-electron-helper)"
+principle already stated below, and a better fit on every axis the user
+asked for:
+
+1. **WebRTC transport**: [`webrtc-rs`](https://github.com/webrtc-rs/webrtc)
+   — a pure-Rust WebRTC implementation (MIT/Apache-2.0, no C/GStreamer
+   dependency tree at all). Compiles into one small static binary per
+   platform instead of a sprawling shared-library install — far easier to
+   ship reliably, and matches "호환성 높게" much better than depending on
+   a system or bundled GStreamer install.
+2. **Video encode — hardware-accelerated, not software, for
+   performance**: platform-native hardware encoders only (VideoToolbox on
+   macOS, NVENC on Windows/NVIDIA, VAAPI/QuickSync on Linux/Intel) via
+   Rust FFI bindings. Software x264 as a last-resort compatibility
+   fallback only (a GPU without any hardware encoder) — never the primary
+   path, since software-encoding would compete with the engine's own
+   rendering for the same CPU/GPU budget and defeat the performance goal.
+3. **Raw-frame handoff, engine → sidecar**: shared memory (SHM), not a
+   socket — zero-copy, same-machine, matches `ovstream`'s own SHM
+   transport (a proven pattern for exactly this handoff, not a novel
+   idea). Best case the engine offers its own offscreen/headless render
+   target directly (no OS window capture needed, e.g. how Omniverse Kit
+   apps feed `ovstream`); worst case (no offscreen mode) it's real
+   window/screen capture — slower, and on macOS triggers the
+   screen-recording permission prompt, so this is a real per-engine
+   compatibility question to check *before* committing to a candidate,
+   not after.
+4. **Serving the client page**: same shape as `workspace-engine://` — a
+   custom protocol or a `127.0.0.1:<port>` page serving a generic WebRTC
+   client (styled after `ovstream`'s example, but a genuinely from-scratch
+   page — `ovstream`'s own client is NVIDIA-licensed).
+5. **Unsolved, still the actual hard part**: routing mouse/keyboard input
+   from the browser-side WebRTC data channel back into the native
+   process. `ovstream` gets this for free (`callbacks and messaging
+   APIs`); the Rust sidecar doesn't, and needs real design once a
+   concrete engine forces the question — likely synthetic OS input
+   injection (platform-specific, its own compatibility research) or,
+   better where available, an engine-level input API instead of faking
+   OS events.
 
 Given every researched candidate has *either* a web-export path *or* a
 documented streaming precedent, true native-window embedding may never
