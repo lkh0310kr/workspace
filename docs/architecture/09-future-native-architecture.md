@@ -7,15 +7,19 @@ in detail, or started. Captured so this context survives across sessions
 ## Origin
 
 Originally discussed while planning a Vector Editor pane, which was built
-(M1-M6) and then deliberately removed — direction shifted away from
-Creative panes toward engineering/analysis panes (Database, Network,
-Hardware/Embedded, GIS, Robotics — see `docs/ideation.md`'s brainstorm).
-The architecture direction below outlives that specific pane: it came
-from an external discussion (not written with knowledge of this
-codebase) and should be read as directional inspiration, not a spec to
-implement literally, and applies just as much to a future heavy
-engineering pane (a Packet Analyzer's live capture pipeline, a Hex/Binary
-Inspector's parsing, a Robot Simulator's physics) as it did to Vector.
+(M1-M6, hand-rolled SVG-DOM) and then deliberately deleted — not because
+2D/graphics was the wrong direction, but because hand-rolling a 2D editor
+from scratch was the wrong *strategy* at the scale now being targeted.
+Current direction (see `docs/ideation.md`) is genuinely professional-grade
+tooling in four categories — **2D** (Figma/Illustrator/Photoshop-class),
+**3D** (Blender-class), **Video** (a real video editor), and
+**Engineering** (CAD, Nvidia Omniverse-style USD pipelines, game
+engines) — built by forking/embedding real open-source engines, not
+reimplementing them. This doc's architecture direction is exactly the
+"how do you host that inside/alongside an Electron shell" question for
+all four. It came from an external discussion (not written with
+knowledge of this codebase) and should be read as directional
+inspiration, not a spec to implement literally.
 
 ## The direction
 
@@ -43,20 +47,18 @@ Heavy graphics/compute work moves out as panes get more demanding:
 
 ## Per-pane stack direction (if/when this happens)
 
-Filtered down to what's actually relevant to *this* app (dropped: Game
-Engine, generic "Browser is just Chromium" — already true here, nothing
-to decide) and reframed around what's actually built vs. actually
-planned. Creative panes (Vector, Pixel Art) are gone from this table —
-direction shifted to engineering/analysis panes (see `docs/ideation.md`);
-none of those are designed yet, so there's no per-pane stack call to make
-until one actually gets picked up:
+Reframed around the confirmed four-category graphics/CAD direction (see
+`docs/ideation.md`) — none of these are designed yet, so this is a
+starting hypothesis per category, not a decision:
 
 | Pane | Status here | Stack direction |
 |------|-------------|------------------|
 | Terminal, Browser, Markdown/Code, Viewer, RSS | **Built**, plain TypeScript/React | No reason to move — these are UI/IO-bound, not compute-bound. Rust wouldn't win anything here. |
-| Video Editor | **Not started**, far future | Rust-heavy if ever built — timeline/media-graph/frame-scheduling engine wrapping FFmpeg (don't reimplement codecs), TS for timeline UI/media bin/inspector only. |
-| 3D / Blender-class | **Not started**, far future | Rust + wgpu scene/mesh/material/renderer, likely as a genuinely separate native process per the "out-of-process" direction above, not an in-renderer engine. |
-| Engineering/analysis panes (Packet Analyzer, Hex/Binary Inspector, Serial/Embedded Studio, Robot Simulator, etc. — see `docs/ideation.md`) | **Brainstormed, not designed** | Each would need its own pass at this table once actually scoped — several (packet decoding, binary parsing, physics simulation) look like real Rust-core candidates by the same "measurably too slow in pure TypeScript" test below, but that's a claim to verify per-pane, not assume. |
+| 2D (Figma/Illustrator/Photoshop-class) | **Not started** | Likely candidate: fork Penpot (MIT, already TS/React-ish stack — closest fit to embed) or Krita (GPL, C++/Qt — would need out-of-process hosting). Verify against the real project before assuming either. |
+| 3D (Blender-class) | **Not started** | Fork Blender itself, hosted as a **separate native process** per the out-of-process direction below — not an in-renderer engine. |
+| Video Editor | **Not started** | Fork Shotcut or Kdenlive rather than wrapping FFmpeg from scratch; if built in-process instead, Rust-heavy timeline/media-graph/frame-scheduling engine wrapping FFmpeg (don't reimplement codecs), TS for timeline UI/media bin/inspector only. |
+| Engineering (CAD, Omniverse-style, Game Engine) | **Not started** | CAD: fork FreeCAD (LGPL) or embed Open CASCADE directly. Game Engine: fork Godot (MIT). Omniverse-style (USD pipelines): no clear single fork target yet — needs its own research pass. All likely out-of-process per Blender's reasoning below. |
+| Engineering/analysis panes (Packet Analyzer, Hex/Binary Inspector, Robot Simulator, etc. — see `docs/ideation.md`) | **On hold**, deprioritized behind the graphics/CAD direction | Not being designed right now; revisit later. |
 
 ## Why this doesn't block anything happening now
 
@@ -93,11 +95,13 @@ packages/
 ├── workspace-runtime/    # TypeScript — current electron/src/main
 ├── core/
 │   ├── media/            # Rust — timeline/frame scheduling wrapping FFmpeg (Video, if built)
-│   ├── engineering/      # Rust — packet decoding / binary parsing / simulation (per-pane, if any of these get built)
+│   ├── geometry/         # Rust — shared 2D/3D math (if forked engines need a common layer, unlikely — see the "don't merge engines" principle in ideation.md)
 │   └── asset/            # Rust — shared project-file (de)serialization
 └── apps/
+    ├── 2d/                # hosts the forked 2D engine (Penpot/Krita/etc.)
+    ├── 3d/                # hosts Blender as an out-of-process surface
     ├── video/
-    └── ...                # one per engineering pane that actually ships
+    └── engineering/       # CAD / game-engine / Omniverse-style, per what actually gets picked
 ```
 
 This is **not** a restructuring to do now — `electron/` stays one package
@@ -108,11 +112,13 @@ not a hypothetical one). Recorded here so the shape is already agreed on
 ## When this becomes relevant
 
 Revisit this doc when:
-- A pane's compute/rendering work is measurably too slow in pure
-  TypeScript (candidate: a future packet decoder, binary parser, or
-  simulation-heavy engineering pane — see `docs/ideation.md`).
+- A specific one of the four graphics/CAD categories actually gets
+  picked up for real design work (see ROADMAP.md Phase 2) — that's when
+  a real candidate engine's actual hosting/surface/GPU requirements
+  should reshape this doc's guesses into an actual plan.
 - A pane needs to host something that genuinely cannot run inside a
-  Chromium renderer (candidate: a real 3D/Blender-class pane).
+  Chromium renderer (near-certain for 3D/Blender-class and most of the
+  Engineering category).
 
 Until then, every pane in this app is a plain React component, same as
 today.

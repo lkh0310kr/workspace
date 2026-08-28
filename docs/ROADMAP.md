@@ -43,30 +43,49 @@ Priority order (from `ideation.md`'s "공통화 우선순위"):
 - [ ] **Shortcut Registry** — a real `Workspace > App > Document`
   priority/conflict model, replacing today's scattered per-component
   `keydown` listeners each guessing at conflicts independently.
-- [ ] **GPU Service Layer** — only if/when a GPU-heavy pane actually
-  needs shared adapter/device/memory-budget info. Not started until
-  there's a real second GPU consumer beyond the terminal's WebGL
-  renderer — same "extract after the second concrete case" rule
-  `paneKindRegistry.ts` already modeled.
+- [ ] **GPU Service Layer** — not started until there's a real second GPU
+  consumer beyond the terminal's WebGL renderer (same "extract after the
+  second concrete case" rule `paneKindRegistry.ts` already modeled), but
+  worth designing with Phase 2's actual target in mind now (see below) —
+  a 3D/CAD/video pane is a near-certain future GPU consumer, not a
+  hypothetical one.
 
-## Phase 2 — Panes built on the foundation
+## Phase 2 — Graphics/design/CAD-class panes (current direction)
 
-**Goal:** once Phase 1's modules exist, build multiple engineering/
-analysis panes that actually *use* them — not each reinventing file/
-project/clipboard/shortcut handling the way every pane has so far.
-Candidate list and priority in
-[`ideation.md`](./ideation.md#방향-전환-creative-pane--엔지니어링분석-pane-2026-08):
-Database Studio, Network/Packet Analyzer, Serial/Embedded Studio, Hex/
-Binary Inspector, GIS/Map Studio, Git/Code Archaeology, Robot Simulator,
-Research/Paper Reader.
+**Goal:** not "build many small panes" — build the foundation to
+eventually host genuinely professional-grade tools in four categories
+(see [`ideation.md`](./ideation.md#방향-그래픽설계cad급-pane-2026-08-현재-우선순위)):
 
-- [ ] Pick the first pane (not decided yet — next session)
-- [ ] For the chosen pane: research real open-source implementations to
-  port from (license, core engine, how it'd embed in Electron) — per
-  this doc's guiding principle, same as Orca was for terminal/browser
-- [ ] Build it using Phase 1's modules where they exist yet; note any
-  gap in Phase 1 the pane surfaces (a real second consumer is exactly
-  when a Phase 1 module's design gets validated or corrected)
+- **2D** — Figma/Illustrator/Photoshop-class
+- **3D** — Blender-class
+- **Video** — a real video editor
+- **Engineering** — CAD, Nvidia Omniverse-style (USD pipelines), game engines
+
+These are all heavy rendering/compute engines — not something to
+hand-roll from scratch the way Vector Editor was (that experience is
+exactly why: M1-M6 of a plain SVG-DOM 2D editor was already substantial
+work; Blender/CAD/Omniverse-class software is a different order of
+magnitude). Default strategy is **fork/embed a real open-source engine**
+per pane (candidates in `ideation.md`: Penpot/Krita for 2D, Blender
+itself for 3D, Shotcut/Kdenlive for video, FreeCAD/Open CASCADE for CAD,
+Godot for game engine) rather than reimplementing one — see
+`ideation.md`'s fork/embed principles and
+[09-future-native-architecture.md](./architecture/09-future-native-architecture.md)'s
+out-of-process direction for Blender-class apps.
+
+Engineering/analysis panes (Database Studio, Network/Packet Analyzer,
+etc. — also in `ideation.md`) are **on hold, not dropped** — deprioritized
+behind this direction, revisit later.
+
+- [ ] Pick which of the four categories to design toward first (not
+  decided yet — next session)
+- [ ] For it: research real candidate engines to fork/embed (license,
+  core engine, how it'd embed in/alongside Electron — per this doc's
+  guiding principle)
+- [ ] Feed what that research surfaces back into Phase 1 — a real
+  candidate engine's actual requirements (window/surface hosting, asset
+  formats, GPU needs) are what should shape Phase 1's modules, not
+  guesses made before one is picked
 
 ## History (done)
 
@@ -87,13 +106,15 @@ Earlier build-out, kept for the record rather than deleted:
   [docs/architecture/README.md](./architecture/README.md).
 - **Zustand workspace-scope store** — workspace hydration, layout
   models, pane active tabs, coordinator bridge.
-- **Creative panes (built, then removed)** — a Vector Editor pane was
-  built through M1-M6 (scene graph, SVG rendering, transforms, pen tool,
-  groups, undo/redo, export, text, pan/zoom/marquee/z-order/align/
-  distribute) and then deliberately removed once direction shifted to
-  engineering/analysis panes (Phase 2 above). Nothing in that family
-  (Vector, Pixel Art, Diagram, Presentation, 2D Animation, Paint, 3D
-  Modeler) is planned.
+- **Vector Editor (built, then removed)** — a hand-rolled SVG-DOM 2D
+  vector pane was built through M1-M6 (scene graph, SVG rendering,
+  transforms, pen tool, groups, undo/redo, export, text, pan/zoom/
+  marquee/z-order/align/distribute) and then deliberately deleted. Not
+  because 2D/graphics direction was wrong — Phase 2 above *is* graphics/
+  design/CAD — but because hand-rolling one from scratch was the wrong
+  strategy for that scale of tool; the actual direction is fork/embed a
+  real engine, not repeat this. Kept as a data point, not a codebase to
+  resurrect as-is.
 
 Still open from the old Phase E/G list, not yet folded into Phase 1/2
 above:

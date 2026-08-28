@@ -37,14 +37,28 @@ Feature
 패널을 자유롭게 추가할 수 있도록 추상화 설계를 잘 했는가?
 일본어 공부 패널.
 
-## 방향 전환: Creative pane → 엔지니어링/분석 pane (2026-08)
+## 방향: 그래픽/설계/CAD급 pane (2026-08, 현재 우선순위)
 
-Vector Editor(SVG 기반 벡터 에디터, M1-M6까지 직접 구현)를 만들었다가 삭제함 —
-Creative 계열(Vector, Pixel Art, Diagram 등)보다 엔지니어링/분석/생산성 쪽이 이
-프로젝트 성격과 재미 면에서 더 낫다고 판단. 다음 pane은 이 목록에서 고를 것 —
-아직 어느 것부터 할지 미확정.
+Vector Editor(SVG 기반 직접 구현, M1-M6)를 한 번 만들었다가 삭제하고 엔지니어링/
+분석 방향으로 잠깐 틀었었는데, 다시 그래픽/설계 쪽으로 확정. 다만 이번엔 방향이
+다름 — Vector Editor처럼 처음부터 직접 구현하는 게 아니라, **진짜 전문 도구급
+소프트웨어를 만드는 게 최종 목표**라서 그 기반(architecture)을 먼저 단단히
+하는 게 우선:
 
-### 후보 (우선순위 높은 순)
+- **2D**: Figma, Illustrator, Photoshop급
+- **3D**: Blender급
+- **Video**: Video Editor
+- **Engineering**: CAD, Nvidia Omniverse류(USD 파이프라인), Game Engine
+
+이 넷은 전부 무거운 렌더링/연산 엔진이 필요한 카테고리라 — 아래 "만약 외부
+오픈소스 앱을 fork/embed" 원칙과 [09-future-native-architecture.md](./architecture/09-future-native-architecture.md)의
+Rust 코어/out-of-process 방향이 바로 이 타겟들을 위한 이야기임. Phase 2 pane을
+아무거나 하나 골라서 얕게 구현하기보다, Phase 1(파운데이션)을 이 4개 카테고리를
+실제로 지탱할 수 있는 형태로 설계하는 게 먼저.
+
+**보류** (삭제 아님, 우선순위만 밀림) — 아래 엔지니어링/분석 pane 후보 목록:
+
+### 후보 (우선순위 높은 순, 현재 보류)
 
 - **Database Studio** — Postgres/SQLite/Redis. Tables/Views/Functions/Indexes,
   Query → EXPLAIN → Query Plan → Execution 시각화.
@@ -73,12 +87,18 @@ Inspector, Dependency/Supply Chain Explorer.
 대상으로 "기존 오픈소스 프로젝트를 fork해서 가져올 수 있는지 + 라이선스 + 핵심
 엔진 + Electron에서 어떻게 embed할지"를 조사.
 
-### 만약 외부 오픈소스 앱을 통째로 fork/embed하게 된다면 (원칙)
+### 그래픽/CAD pane을 실제로 만들 때의 원칙 — 외부 오픈소스 엔진 fork/embed
 
-외부 프로젝트(예: Penpot/Graphite/Pixelorama류)를 fork해서 Workspace 안에
-넣는 방향을 고려한다면, **원본 앱의 내부 엔진/데이터 모델을 억지로 공통화하지
-말 것** — Document Model/Editor Engine은 앱마다 근본적으로 다르고, 통합
-시도는 fork maintenance 지옥으로 감. 대신:
+2D/3D/Video/CAD 넷 다 처음부터 직접 만들 규모가 아님(Vector Editor를 M1-M6까지
+직접 짜본 경험상 SVG-DOM 수준도 상당한 작업이었는데, Blender/CAD/Omniverse급은
+차원이 다름). 그래서 기본 전략은 **진짜 오픈소스 엔진을 fork/embed** —
+후보: 2D는 Penpot(MIT)/Krita(GPL), 3D는 Blender(GPL) 자체, Video는 Shotcut/
+Kdenlive, CAD는 FreeCAD(LGPL)/Open CASCADE, Game Engine은 Godot(MIT). 라이선스
+확인은 필수(아래 참고).
+
+**원본 앱의 내부 엔진/데이터 모델을 억지로 공통화하지 말 것** — Document
+Model/Editor Engine은 앱마다 근본적으로 다르고, 통합 시도는 fork maintenance
+지옥으로 감. 대신:
 
 - 각 앱은 **자기 엔진을 그대로 유지**하고, Workspace는 공통 인프라만 제공
   (File System, Project, Asset, Clipboard, Command Bus, Shortcut Registry,
@@ -95,6 +115,6 @@ Inspector, Dependency/Supply Chain Explorer.
   dependencies/asset/font/상표까지, `third-party/<app>/{LICENSE,NOTICE}`로
   provenance 보존.
 
-이 원칙 자체는 Creative 앱 한정이 아니라, 나중에 뭘 fork하든(예: 오픈소스
-Wireshark 대안, 오픈소스 로봇 시뮬레이터 등) 적용됨.
+이 원칙 자체는 그래픽/CAD 한정이 아니라, 나중에 뭘 fork하든(오픈소스 Wireshark
+대안, 오픈소스 로봇 시뮬레이터 등 — 위 "보류" 목록 포함) 동일하게 적용됨.
 
