@@ -122,13 +122,16 @@ export async function launchWorldEngine(
 ): Promise<{ ok: boolean; error?: string }> {
   const binary = resolveWorldEngineBinary();
   if (!binary) {
-    const hint =
-      process.platform === "win32" || isWsl()
-        ? "cd native/world-engine-qt-shell && cargo build (Windows/Qt dev kit required)"
-        : "cd native/world-engine-qt-shell && cargo build";
+    const searched = worldEngineBinaryCandidates().join("\n  ");
+    const wsl = isWsl();
+    const hint = wsl
+      ? "On WSL, build the Windows .exe (Qt + Rust on Windows): cd native\\world-engine-qt-shell && cargo build. Linux cargo build here fails until build.rs supports Linux Qt."
+      : process.platform === "win32"
+        ? "Install Qt 6, then: cd native\\world-engine-qt-shell && cargo build"
+        : "On macOS: brew install qt, then cd native/world-engine-qt-shell && cargo build";
     return {
       ok: false,
-      error: `world-engine-qt-shell binary not found — build it first: ${hint}`,
+      error: `world-engine-qt-shell binary not found.\nSearched:\n  ${searched}\n\n${hint}`,
     };
   }
 
