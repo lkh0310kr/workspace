@@ -398,6 +398,59 @@ previous section) stays as a documented fallback if the native-embed
 input problem turns out to be genuinely unsolvable — not deleted, just
 demoted to "plan B."
 
+### World Engine build-out — Phase 1-4 (2026-08-28)
+
+Concrete phases toward real Electron integration, defined after the user
+asked to see this through rather than stop at "designed, not built":
+
+- **Phase 1 — DONE, verified.** `native/world-engine-qt-shell/`: Qt
+  (native, cross-platform UI toolkit — the "정석"/canonical choice for
+  Blender/Unity-grade tools, confirmed by researching what Blender/Unity/
+  Unreal/DaVinci Resolve actually use, none of them web-based) creates a
+  real native window; `wgpu` renders directly into it (no readback, no
+  IPC) using the same physics-driven cube as `world-engine-core`
+  (`rapier3d` + `hecs`). Standalone process, own top-level window — not
+  embedded in Electron yet. Live-verified: a real macOS window with the
+  falling/bouncing cube, confirmed on-screen by the user directly (no
+  browser client needed this time, unlike the WebRTC-based spikes).
+- **Phase 2 — DONE, verified.** `native/world-engine-electron-embed/`: a
+  native Node addon (`napi-rs`), loaded directly into a real Electron
+  process (not Qt this time — Qt was for Phase 1's standalone-app
+  question; true in-process pane embedding doesn't need Qt's own window
+  layer at all). Takes Electron's `getNativeWindowHandle()`, creates our
+  own `NSView` (via `objc2`/`objc2-app-kit`) as a subview of Electron's
+  content view, and `wgpu` renders directly into it from a dedicated
+  render thread — in-process, zero IPC frame transfer, zero video.
+  Verified against a real (throwaway, not the Workspace app itself)
+  Electron process: the addon loads, embeds, and renders continuously
+  with no crash. Reference implementation followed closely (not
+  guessed): [monkeynut.org's "Using wgpu with Electron on macOS"](https://www.monkeynut.org/wgpu-electron/),
+  which supplied the exact `objc2`/`napi-rs` call shapes used here.
+- **Phase 3 — not started.** Wire this into the *real* Workspace app: a
+  new `PaneKindDefinition` (`electron/src/renderer/src/panes/`), main-
+  process lifecycle (spawn/register the addon call scoped to a specific
+  pane's bounds within the flexlayout grid — Phase 1/2's spikes cover the
+  whole window, a real pane only owns its own rectangle and must track
+  resize/move/dispose), and packaging (`electron-builder` needs to bundle
+  the compiled native addon per-platform — new build surface this app's
+  `package.json`/build config doesn't have yet).
+- **Phase 4 — not started, the one genuinely open research question.**
+  Input: routing mouse/keyboard from the pane back into the embedded
+  native view instead of Electron's transparent web layer swallowing it.
+  This project's `InteractionCoordinator` (`04-interaction-coordinator.md`)
+  solves the closely related `<webview>` version of this exact problem
+  (overlay stack, pointer-events toggling) — whether/how the same
+  approach extends to a native `NSView` sibling (rather than a DOM
+  element) is unverified. No reference implementation found for this
+  part specifically (unlike Phases 1/2, which both had one) — this is
+  real, unproven design work, not a lookup.
+
+Phases 1 and 2 each stayed intentionally scoped to *proving the
+mechanism*, matching this session's own established pattern (the
+transport spike, the physics/render spike before it) — neither touches
+`electron/`, neither is wired into the real pane system yet. Phase 3 is
+where that changes.
+
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see
