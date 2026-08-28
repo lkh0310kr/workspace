@@ -7,13 +7,12 @@ Web export를 webview로 host하는 방식 확정. 근거/배경: [docs/ideation
 **최우선 원칙(기억)**: 안정화/검증 우선 — foundation 조각 하나 만들면 다음 걸로
 넘어가기 전에 그게 실제로 작동하는지 검증부터.
 
-- [ ] **World Engine "Open in World Engine" TreeView 라이브 QA** (2026-08-28,
-  다음 라이브 검증 대상) — `electron/test-fixtures/world-engine-demo`(
-  `world-engine.json`, 큐브 3개, 서로 다른 위치/반발계수/색) TreeView에서
-  우클릭 → "Open in World Engine" 눌러서 실제로 3개 큐브가 서로 다른 높이에서
-  떨어지는 새 창이 뜨는지 확인 필요. 바이너리(`cargo build`)와 앱 메뉴
-  "World Engine → Launch World Engine (dev)"는 이미 라이브 확인됨(기본
-  데모 1개 큐브) — 이번엔 씬 파일 로딩 + TreeView 연동까지 확인하는 것.
+- [x] **World Engine "Open in World Engine" TreeView 라이브 QA** (2026-08-28) —
+  `electron/test-fixtures/world-engine-demo` TreeView 우클릭 → "Open in
+  World Engine"으로 실제 앱에서 확인 완료. Phase 1-5(독립 Qt 네이티브 창,
+  wgpu 직접 렌더링, rapier3d+hecs 물리, Electron 메뉴/TreeView 연동, 실제
+  프로젝트 씬 파일 로딩) 전부 라이브 검증 끝. 자세한 내용:
+  [09-future-native-architecture.md](docs/architecture/09-future-native-architecture.md#world-engine-build-out--phase-1-4-2026-08-28)
 - [x] **Engine bundle protocol 라이브 검증** (2026-08-28) — smoke test
   fixture ALL CHECKS PASSED, 진짜 Godot 데모(godot-demo-web)도 실제로 돌아가는
   것까지 확인 완료. 중간에 발견된 버그: Browser pane webview가 `persist:browser`
