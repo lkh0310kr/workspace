@@ -500,6 +500,37 @@ Qt window) rather than Phase 2's (the in-process embed) — the safer,
 fully-solved path once the two were compared honestly. Phase 5 is the
 first real content the integration actually hosts, not just a demo.
 
+### Phase 6 — DONE: real camera input (2026-08-28)
+
+Confirmed feasibility of the fork/spawn pattern for other categories
+first: installed real Blender via Homebrew cask and spawned it as a
+plain child process (`Blender.app/Contents/MacOS/Blender`, no args) —
+a genuine window opened, same as `world-engine-qt-shell`'s own window,
+confirming the exact pattern already shipped for World Engine
+generalizes directly to real professional GPL tools (Blender/Krita) with
+zero new engineering risk. 2D's story is different and simpler still:
+Penpot is MIT and already web-based, so it likely fits the
+already-solved Track A (web-bundle/Browser-pane) path rather than
+needing the fork/spawn pattern at all — not built, just noted as the
+right next check whenever 2D is actually picked up.
+
+Then deepened World Engine itself, per the user's own priority. Added
+real orbit-camera controls — drag to rotate, scroll to zoom — which
+needed no `InteractionCoordinator`-style overlay/pointer-events work at
+all, since `world-engine-qt-shell` is a genuine independent native
+window: Qt already receives real mouse/wheel events natively.
+`cpp/shim.cpp` gained an `EngineWidget` (a plain `QWidget` subclass
+overriding `mousePressEvent`/`mouseMoveEvent`/`mouseReleaseEvent`/
+`wheelEvent` — overriding existing virtuals needs no `Q_OBJECT`/`moc`,
+keeping Phase 1's "no moc" simplicity) forwarding real input events
+through a new `InputCallback` in `shim.h`. Rust's `Camera` (yaw/pitch/
+distance, orbiting the scene origin) is updated from those events and
+used to compute the view matrix every frame instead of a fixed eye
+position. Verified: builds clean, runs against the 3-cube test fixture
+with no crash (drag/scroll itself needs the user's own hands-on check
+inside the live window — not something this session's tooling can
+automate, same limitation as every other visual check this arc).
+
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see

@@ -95,9 +95,40 @@ const HEIGHT: u32 = 600;
 
 type InitCallback = extern "C" fn(*mut c_void, *mut c_void);
 type FrameCallback = extern "C" fn(*mut c_void);
+type InputCallback = extern "C" fn(c_int, f32, f32, f32, f32, *mut c_void);
 
 unsafe extern "C" {
-    fn qt_run(width: c_int, height: c_int, init_cb: InitCallback, frame_cb: FrameCallback, user_data: *mut c_void);
+    fn qt_run(
+        width: c_int,
+        height: c_int,
+        init_cb: InitCallback,
+        frame_cb: FrameCallback,
+        input_cb: InputCallback,
+        user_data: *mut c_void,
+    );
+}
+
+// Matches cpp/shim.h's InputEventType enum exactly.
+const INPUT_MOUSE_DOWN: c_int = 0;
+const INPUT_MOUSE_UP: c_int = 1;
+const INPUT_MOUSE_DRAG: c_int = 2;
+const INPUT_WHEEL: c_int = 3;
+
+/// Orbit camera driven by real mouse input (Qt hands it to us natively —
+/// no InteractionCoordinator-style overlay problem exists for a real
+/// native window). Drag rotates around the origin; wheel zooms.
+struct Camera {
+    yaw: f32,
+    pitch: f32,
+    distance: f32,
+}
+
+impl Camera {
+    fn eye(&self) -> Vec3 {
+        let (sy, cy) = self.yaw.sin_cos();
+        let (sp, cp) = self.pitch.sin_cos();
+        Vec3::new(self.distance * cp * cy, self.distance * sp, self.distance * cp * sy)
+    }
 }
 
 // ── Cube geometry + uniforms (identical to world-engine-core) ──────────
@@ -411,11 +442,10 @@ fn init_gpu(native_view: *mut c_void) -> GpuContext {
     }
 }
 
-fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3)]) {
+fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3)], camera: &Camera) {
     let aspect = WIDTH as f32 / HEIGHT as f32;
     let projection = glam::camera::rh::proj::directx::perspective(45f32.to_radians(), aspect, 0.1, 100.0);
-    let eye = Vec3::new(4.0, 3.5, 6.0);
-    let view = glam::camera::rh::view::look_at_mat4(eye, Vec3::ZERO, Vec3::Y);
+    let view = glam::camera::rh::view::look_at_mat4(camera.eye(), Vec3::ZERO, Vec3::Y);
 
     let frame = match gpu.surface.get_current_texture() {
         wgpu::CurrentSurfaceTexture::Success(frame) | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
@@ -482,12 +512,13 @@ fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3)]) {
 struct EngineState {
     world: World,
     gpu: Option<GpuContext>,
+    camera: Camera,
 }
 
 extern "C" fn on_init(native_view: *mut c_void, user_data: *mut c_void) {
     let state = unsafe { &mut *(user_data as *mut EngineState) };
     state.gpu = Some(init_gpu(native_view));
-    println!("wgpu surface created directly in the Qt window — Phase 1 spike live.");
+    println!("wgpu surface created directly in the Qt window.");
 }
 
 extern "C" fn on_frame(user_data: *mut c_void) {
@@ -495,7 +526,30 @@ extern "C" fn on_frame(user_data: *mut c_void) {
     state.world.step();
     let draw_list = state.world.draw_list();
     if let Some(gpu) = &state.gpu {
-        render_frame(gpu, &draw_list);
+        render_frame(gpu, &draw_list, &state.camera);
+    }
+}
+
+/// Drag orbits, wheel zooms — see cpp/shim.cpp for what actually
+/// generates these (real Qt mouse/wheel events, not simulated).
+extern "C" fn on_input(event_type: c_int, _x: f32, _y: f32, dx: f32, dy: f32, user_data: *mut c_void) {
+    let state = unsafe { &mut *(user_data as *mut EngineState) };
+    const ORBIT_SPEED: f32 = 0.01;
+    const ZOOM_SPEED: f32 = 0.01;
+    const MIN_DISTANCE: f32 = 2.0;
+    const MAX_DISTANCE: f32 = 40.0;
+    const MAX_PITCH: f32 = std::f32::consts::FRAC_PI_2 - 0.05;
+
+    match event_type {
+        INPUT_MOUSE_DRAG => {
+            state.camera.yaw -= dx * ORBIT_SPEED;
+            state.camera.pitch = (state.camera.pitch + dy * ORBIT_SPEED).clamp(-MAX_PITCH, MAX_PITCH);
+        }
+        INPUT_WHEEL => {
+            state.camera.distance = (state.camera.distance - dy * ZOOM_SPEED).clamp(MIN_DISTANCE, MAX_DISTANCE);
+        }
+        INPUT_MOUSE_DOWN | INPUT_MOUSE_UP => {}
+        _ => {}
     }
 }
 
@@ -507,10 +561,16 @@ fn main() {
         Some(project_dir) => load_scene(&project_dir),
         None => default_scene(),
     };
-    let mut state = Box::new(EngineState { world: World::new(&scene), gpu: None });
+    let initial_eye = Vec3::new(4.0, 3.5, 6.0);
+    let camera = Camera {
+        yaw: initial_eye.z.atan2(initial_eye.x),
+        pitch: (initial_eye.y / initial_eye.length()).asin(),
+        distance: initial_eye.length(),
+    };
+    let mut state = Box::new(EngineState { world: World::new(&scene), gpu: None, camera });
     let user_data = &mut *state as *mut EngineState as *mut c_void;
     println!("world-engine-qt-shell: Qt native window, wgpu direct render, {} entities", state.world.cube_entities.len());
     unsafe {
-        qt_run(WIDTH as c_int, HEIGHT as c_int, on_init, on_frame, user_data);
+        qt_run(WIDTH as c_int, HEIGHT as c_int, on_init, on_frame, on_input, user_data);
     }
 }
