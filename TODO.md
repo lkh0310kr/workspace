@@ -42,6 +42,33 @@ Web export를 webview로 host하는 방식 확정. 근거/배경: [docs/ideation
   선택. 재시작 전까지 남아있던 tmux 세션(`workspace-term-dev-43`,
   `workspace-term-dev-45`)은 새 코드로는 더 안 쓰이니 원하면
   `tmux kill-session -t <name>`으로 정리 가능(안 지워도 무해, 그냥 안 씀).
+- [ ] **terminal 스크롤 반응 느림/큐잉 QA** (2026-08-28, tmux 제거 이후 새로
+  들어온 리포트, 다음 라이브 검증 대상) — "위로 올렸다가 아래로 내리면
+  위로 쌓여있던 액션이 먼저 끝나고서야 아래로 내려감", "최대 스크롤
+  속도 제한이 있는 것 같음". Orca와 우리 코드를 1:1 diff한 결과 wheel
+  처리/scroll-intent/앵커 복원 쪽(`pane-terminal-mouse-wheel.ts`,
+  `pane-terminal-tui-wheel-reports.ts`, `terminal-scroll-intent*.ts`,
+  `pane-scroll.ts` 등)은 전부 Orca와 byte-for-byte 동일 — 그쪽엔 실제
+  divergence 없음. 유일하게 다른 파일은 `pane-terminal-output-scheduler.ts`:
+  Orca는 (coalesce/latency-sensitive/우선순위 등급까지 갖춘) 훨씬 정교한
+  버전인데 우리 건 프레임당 정확히 청크 1개씩만 draining하는 단순화판 —
+  Claude Code처럼 작은 PTY 쓰기가 빠르게 여러 개 몰리는 TUI에서는 그 백로그가
+  "프레임 하나당 청크 하나"로만 빠지니까 실시간 상태를 따라잡는 데만
+  수십~수백 프레임(수 초)이 걸리고, 그동안 터미널이 계속 stale한 과거
+  프레임을 그리는 것 — 이게 "느림"/"스크롤 액션이 큐에 쌓여있다 나중에
+  재생되는 것처럼 보이는" 체감의 근본 원인으로 보임. Orca의 전체
+  우선순위 시스템을 그대로 가져오진 않고, 핵심 아이디어(백로그를 프레임당
+  하나씩 trickle하지 말고 한 번에 몰아 쓰기)만 이식 — `drainQueues()`가
+  이제 큐에 쌓인 청크 전부를 join해서 프레임당 한 번의 `write()`로 처리.
+  타입체크/vitest(248) 통과. 앱 재시작 후 Claude Code처럼 출력이 빠른
+  TUI에서 스크롤 반응/체감 지연이 실제로 나아졌는지 확인 필요.
+- [ ] **Interaction 또 끊김 리포트** (2026-08-28) — 이전에 고친 React
+  DevTools + react-dom dev-mode 크래시("Should not already be working")와
+  같은 증상일 가능성 높음 — `errorLog.ts`에 세션당 1회 자동 `location.reload()`
+  안전망이 있음(sessionStorage 가드). 재발했다는 건 (a) 리로드가 이미
+  한 번 쓰여서 이번엔 안 됐거나, (b) 다른 원인일 수 있음 — 다음에 발생하면
+  devtools 콘솔 에러 로그(특히 첫 SecurityError/스택트레이스) 캡처해서
+  공유 필요, 그래야 (a)/(b) 구분 가능.
 - [ ] 코드 퀄리티 리뷰 이제는 좀 해야제
 - [x] 브라우저 URL 입력창 자동완성 (히스토리 기반 드롭다운은 있었는데 "google"처럼 히스토리에 없는 bare word 입력 시 .com 힌트가 없었음 — browserAddressBarSuggestions.ts에 도메인 추측 휴리스틱 추가) - 제대로 구현 필요. 다른 서비스는 어떻게 처리하는지 orca browser, firefox 등 오픈소스 clone해서 참고
 

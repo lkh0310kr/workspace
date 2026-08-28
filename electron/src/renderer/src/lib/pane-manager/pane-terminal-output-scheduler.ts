@@ -77,8 +77,25 @@ function scheduleDrain(): void {
 function drainQueues(): void {
   for (const [terminal, entry] of queues) {
     if (entry.chunks.length === 0) continue;
-    const chunk = entry.chunks.shift()!;
-    const ack = entry.ackCredits.shift();
+    // Why (2026-08-28): draining exactly one chunk per animation frame meant
+    // a burst of many small PTY writes (a fast-redrawing TUI like Claude
+    // Code's CLI) took one frame *per chunk* to reach the live state — the
+    // terminal stayed visibly seconds behind, and any scroll/interaction
+    // issued mid-catch-up looked "queued" behind the stale backlog. Coalesce
+    // everything queued right now into one write so a burst lands in one
+    // frame instead of trickling in chunk by chunk (Orca's own scheduler
+    // does this via its `coalesceForeground` path — same idea, applied here
+    // unconditionally since this scheduler has no per-write priority tiers).
+    const chunk = entry.chunks.length === 1 ? entry.chunks[0] : entry.chunks.join("");
+    const pendingAcks = entry.ackCredits;
+    const ack =
+      pendingAcks.length > 0
+        ? () => {
+            for (const credit of pendingAcks) credit();
+          }
+        : undefined;
+    entry.chunks = [];
+    entry.ackCredits = [];
     const write = () => {
       if (entry.foreground) {
         writeForegroundTerminalChunk(terminal, chunk, {
@@ -94,11 +111,7 @@ function drainQueues(): void {
       }
     };
     write();
-    if (entry.chunks.length === 0) {
-      queues.delete(terminal);
-    } else {
-      scheduleDrain();
-    }
+    queues.delete(terminal);
   }
 }
 
