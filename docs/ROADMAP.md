@@ -26,9 +26,17 @@ Entity/Resource/Capability/Provenance vocabulary.
 
 Priority order (from `ideation.md`'s "공통화 우선순위"):
 
-- [ ] **File System module** — formalize the existing IPC read/write/
-  watch/list surface as a reusable module boundary other panes call
-  through, not each pane's own ad-hoc `../electron` imports.
+- [x] **File System module** — `renderer/src/fileSystem.ts`: the
+  read/write/watch/search/list/reveal/directory-dialog cluster split out
+  of `electron.ts`'s 369-line grab-bag into its own file, zero behavior
+  change (`electron.ts` re-exports it, so no existing import site broke —
+  confirmed by a clean typecheck before/after). `TreeView.tsx` (the
+  heaviest consumer) now imports from `./fileSystem` directly as the new
+  canonical pattern; other call sites can migrate opportunistically, no
+  flag-day rewrite needed. Deliberately *not* a bigger rewrite — the IPC
+  behavior itself (`main/files.ts`) was already fine, this only gives the
+  cluster a real name/location instead of being undifferentiated inside
+  a flat file.
 - [ ] **Project system** — a `workspace.json`-style manifest per
   workspace root (currently just a raw file tree with no per-app
   document registry or "what was open last" beyond the flexlayout JSON).

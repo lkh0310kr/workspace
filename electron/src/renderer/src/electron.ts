@@ -18,11 +18,10 @@ export interface WorkspaceState {
   active_tab_id: number;
 }
 
-export interface DirEntry {
-  name: string;
-  path: string;
-  is_dir: boolean;
-}
+// File System module — see fileSystem.ts (Phase 1 foundation split; this
+// re-export keeps every existing `from "../electron"` import site
+// working unchanged).
+export * from "./fileSystem";
 
 export interface PtyOutput {
   id: number;
@@ -65,10 +64,6 @@ function toTabInfo(t: RawTabInfo): TabInfo {
 
 function toWorkspaceState(s: RawWorkspaceState): WorkspaceState {
   return { tabs: s.tabs.map(toTabInfo), active_tab_id: s.activeTabId };
-}
-
-function toDirEntry(e: { name: string; path: string; isDir: boolean }): DirEntry {
-  return { name: e.name, path: e.path, is_dir: e.isDir };
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -129,85 +124,6 @@ export async function setTabLayout(tabId: number, layoutJson: string): Promise<v
 
 export async function setTabRootPath(tabId: number, path: string): Promise<WorkspaceState> {
   return toWorkspaceState(await window.api.workspace.setTabRootPath(tabId, path));
-}
-
-export async function listDir(tabId: number, path: string): Promise<DirEntry[]> {
-  const entries = await window.api.fs.listDir(tabId, path);
-  return entries.map(toDirEntry);
-}
-
-export async function readFile(tabId: number, path: string): Promise<string> {
-  return window.api.fs.readFile(tabId, path);
-}
-
-export async function readFileBinaryPreview(
-  tabId: number,
-  path: string,
-): Promise<{ content: string; mimeType: string } | null> {
-  return window.api.fs.readFileBinaryPreview(tabId, path);
-}
-
-export async function writeFile(tabId: number, path: string, content: string): Promise<void> {
-  return window.api.fs.writeFile(tabId, path, content);
-}
-
-export async function createDir(tabId: number, path: string): Promise<void> {
-  return window.api.fs.createDir(tabId, path);
-}
-
-export async function deletePath(tabId: number, path: string): Promise<void> {
-  return window.api.fs.deletePath(tabId, path);
-}
-
-export async function renamePath(tabId: number, from: string, to: string): Promise<void> {
-  return window.api.fs.renamePath(tabId, from, to);
-}
-
-// No legacy Tauri precedent for search — plain camelCase, not the
-// snake_case porting convention this file otherwise follows.
-export interface SearchOptions {
-  caseSensitive?: boolean;
-  regex?: boolean;
-  wholeWord?: boolean;
-  includeHidden?: boolean;
-}
-
-export interface SearchMatch {
-  lineNumber: number;
-  lineText: string;
-  ranges: { start: number; end: number }[];
-}
-
-export interface SearchFileResult {
-  path: string;
-  matches: SearchMatch[];
-}
-
-export function searchInFiles(
-  requestId: string,
-  tabId: number,
-  query: string,
-  opts: SearchOptions,
-): void {
-  window.api.fs.searchInFiles(requestId, tabId, query, opts);
-}
-
-export function cancelSearch(requestId: string): void {
-  window.api.fs.searchCancel(requestId);
-}
-
-export function onSearchResult(
-  handler: (requestId: string, result: SearchFileResult) => void,
-): () => void {
-  return window.api.fs.onSearchResult(handler);
-}
-
-export function onSearchDone(handler: (requestId: string, error?: string) => void): () => void {
-  return window.api.fs.onSearchDone(handler);
-}
-
-export async function listAllFiles(tabId: number): Promise<string[]> {
-  return window.api.fs.listAllFiles(tabId);
 }
 
 export async function getMediaUrl(tabId: number, path: string): Promise<string | null> {
@@ -280,21 +196,6 @@ export function onPtyOutput(handler: (payload: PtyOutput) => void): () => void {
   return window.api.pty.onData((id, seq, data) => {
     handler({ id, seq, data_b64: bytesToBase64(data) });
   });
-}
-
-export function onFileChanged(handler: () => void): () => void {
-  return window.api.fs.onChanged(handler);
-}
-
-export async function revealItemInDir(path: string): Promise<void> {
-  return window.api.shell.revealItemInDir(path);
-}
-
-// Tauri's @tauri-apps/plugin-dialog open({ directory: true }) equivalent —
-// a native directory picker, routed through the main process since
-// Electron's dialog module only exists there.
-export async function openDirectoryDialog(defaultPath?: string): Promise<string | null> {
-  return window.api.dialog.openDirectory(defaultPath);
 }
 
 export async function pickMediaFileDialog(kind: "video" | "audio" | "ebook"): Promise<string | null> {

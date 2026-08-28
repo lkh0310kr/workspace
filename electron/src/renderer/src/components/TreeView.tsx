@@ -8,7 +8,7 @@ import {
   renamePath,
   revealItemInDir,
   writeFile,
-} from "../electron";
+} from "../fileSystem";
 import { TextPrompt } from "./TextPrompt";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import type { AnchorRect } from "./Popover";
