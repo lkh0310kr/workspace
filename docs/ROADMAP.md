@@ -105,7 +105,9 @@ eventually host genuinely professional-grade tools in four categories
 - **2D** — Figma/Illustrator/Photoshop-class
 - **3D** — Blender-class
 - **Video** — a real video editor
-- **Engineering** — CAD, Nvidia Omniverse-style (USD pipelines), game engines
+- **Engineering** — CAD, Nvidia Omniverse-style (USD pipelines), game
+  engines — planning-renamed to **World Engine**, see below (category
+  merge, not an implementation change)
 
 These are all heavy rendering/compute engines — not something to
 hand-roll from scratch the way Vector Editor was (that experience is
@@ -183,6 +185,40 @@ behind this direction, revisit later.
   Browser pane's nav/address row) stayed visible around it until now —
   `useHtmlFullscreen.ts` + a `.html-fullscreen` CSS class hides both
   while active, restores on exit. Pending live QA (see `TODO.md`).
+
+### World Engine — planning idea, not started (2026-08-28)
+
+Raised: should "Game Engine" and "engineering simulation" (the Omniverse-
+style entry under **Engineering** above) stay separate categories, or
+collapse into one **World Engine** category?
+
+**Verdict: collapse the *category name*, but not the hosting mechanism.**
+The category split ("game" vs "simulation") was never really about the
+domain math — a real-time 3D world is a real-time 3D world whether it's
+rendering a game level or a robotics/physics scene. The split that
+actually matters is **how the engine gets embedded**, and that splits
+engines into two groups regardless of game-vs-simulation labeling:
+
+- **Web/WASM-exportable** (Godot, likely Three.js-based sims, anything
+  with a real browser export target) — hosted exactly like today: export
+  to static files, serve via `workspace-engine://`
+  (`engineBundleProtocol.ts`), open as a plain Browser tab. Nothing new
+  needed here; this is the path already verified end-to-end above.
+- **Native-only** (Nvidia Omniverse/Kit, FreeCAD, and most real CAD/FEA —
+  no WASM export exists, Omniverse is a native RTX/USD app or a
+  cloud-streamed client, not something that runs in a browser sandbox) —
+  would need an entirely different embedding pattern: spawn as a real OS
+  process and embed/control its window, closer to how the terminal pane
+  manages a spawned `node-pty` process than to how the Browser pane hosts
+  a `<webview>`. Not built, not designed yet — this is the genuinely new
+  unknown, not a variant of the already-solved web-bundle path.
+
+So: rename the planning category to **World Engine** (one place to look
+for "real-time 3D host" panes), but keep two implementation tracks under
+it — **web-bundle** (solved, Godot proves it) and **native-embed**
+(unsolved, needed for Omniverse/CAD-class engines). Whichever engine gets
+picked next decides which track gets built; no work started on
+native-embed yet.
 
 ## History (done)
 

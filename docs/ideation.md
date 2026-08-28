@@ -49,6 +49,12 @@ Vector Editor(SVG 기반 직접 구현, M1-M6)를 한 번 만들었다가 삭제
 - **3D**: Blender급
 - **Video**: Video Editor
 - **Engineering**: CAD, Nvidia Omniverse류(USD 파이프라인), **Game Engine** ← 첫 타깃으로 확정 (Godot)
+  - 2026-08-28: "Game Engine"과 "엔지니어링 시뮬레이션"을 나눌 이유가 약해서
+    **World Engine**이라는 이름으로 합치는 걸 검토함 — 단, 실제로 갈리는
+    지점은 게임이냐 시뮬레이션이냐가 아니라 **호스팅 방식**(Godot처럼
+    Web/WASM export 가능한 엔진 vs Omniverse/FreeCAD처럼 네이티브 전용이라
+    완전히 다른 임베딩이 필요한 엔진). 자세한 내용은
+    [ROADMAP.md의 World Engine 섹션](./ROADMAP.md#world-engine--planning-idea-not-started-2026-08-28) 참고.
 
 **첫 타깃: Game Engine(Godot), Web export 방식으로 fork/embed.** 넷 중 뭐가 더
 "근본적"이냐를 따진 게 아니라 — 지금 진짜 검증해야 할 근본 문제는 "포크한 엔진을
