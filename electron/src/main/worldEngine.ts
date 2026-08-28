@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { app } from "electron";
+import { isWsl, wslPathToWindows } from "./wslPaths";
 
 // World Engine — Phase 3: Workspace spawns/manages the engine as a
 // separate native process (its own real window), the same shape as how
@@ -28,20 +29,33 @@ const PROJECT_MARKER_FILE = "world-engine.json";
 
 const runningProcesses = new Set<ChildProcess>();
 
+function binaryBasenames(platform: NodeJS.Platform = process.platform, wsl: boolean = isWsl()): string[] {
+  return platform === "win32" || wsl
+    ? ["world-engine-qt-shell.exe", "world-engine-qt-shell"]
+    : ["world-engine-qt-shell"];
+}
+
+/** Candidate binary paths (debug then release) — exported for tests. */
+export function worldEngineBinaryCandidates(
+  appPath: string = app.getAppPath(),
+  platform: NodeJS.Platform = process.platform,
+  wsl: boolean = isWsl(),
+): string[] {
+  const base = path.join(appPath, "..", "native", "world-engine-qt-shell", "target");
+  const out: string[] = [];
+  for (const profile of ["debug", "release"]) {
+    for (const name of binaryBasenames(platform, wsl)) {
+      out.push(path.join(base, profile, name));
+    }
+  }
+  return out;
+}
+
 function resolveWorldEngineBinary(): string | null {
-  // app.getAppPath() is this app's `electron/` directory both in dev
-  // (electron-vite) and in a packaged build — native/ is a sibling of
-  // that at the repo root.
-  const candidate = path.join(
-    app.getAppPath(),
-    "..",
-    "native",
-    "world-engine-qt-shell",
-    "target",
-    "debug",
-    "world-engine-qt-shell",
-  );
-  return existsSync(candidate) ? candidate : null;
+  for (const candidate of worldEngineBinaryCandidates()) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
 }
 
 export function isWorldEngineProject(absoluteDirPath: string): boolean {
@@ -52,6 +66,50 @@ export function worldEngineRunningCount(): number {
   return runningProcesses.size;
 }
 
+function trackChild(child: ChildProcess): void {
+  const forget = (): void => {
+    runningProcesses.delete(child);
+  };
+  child.on("exit", forget);
+  child.on("error", forget);
+  runningProcesses.add(child);
+}
+
+function launchGuiProcess(
+  binary: string,
+  args: string[],
+): Promise<{ ok: boolean; error?: string }> {
+  const useWindowsHost = isWsl() && binary.endsWith(".exe");
+  if (useWindowsHost) {
+    const winBinary = wslPathToWindows(binary) ?? binary;
+    const winArgs = args.map((arg) => wslPathToWindows(arg) ?? arg);
+    return new Promise((resolve) => {
+      const cmdArgs = ["/c", "start", "", winBinary, ...winArgs];
+      const child = spawn("cmd.exe", cmdArgs, { stdio: "ignore", windowsHide: true, detached: true });
+      child.once("error", (err) => resolve({ ok: false, error: err.message }));
+      child.once("spawn", () => {
+        child.unref();
+        resolve({ ok: true });
+      });
+    });
+  }
+
+  return new Promise((resolve) => {
+    const child = spawn(binary, args, { stdio: "ignore", windowsHide: false, detached: true });
+    const onError = (err: Error): void => {
+      runningProcesses.delete(child);
+      resolve({ ok: false, error: err.message });
+    };
+    child.once("error", onError);
+    child.once("spawn", () => {
+      child.off("error", onError);
+      child.unref();
+      trackChild(child);
+      resolve({ ok: true });
+    });
+  });
+}
+
 /** Launches a new World Engine window. `projectPath`, if given, is an
  * absolute directory containing `world-engine.json` — the process loads
  * that scene instead of its single-cube default demo. Each call spawns a
@@ -59,25 +117,23 @@ export function worldEngineRunningCount(): number {
  * windows) — no single-instance tracking, since different projects are
  * genuinely different windows and there's no cross-process way yet to
  * bring an existing one to the front instead. */
-export function launchWorldEngine(projectPath?: string): { ok: boolean; error?: string } {
+export async function launchWorldEngine(
+  projectPath?: string,
+): Promise<{ ok: boolean; error?: string }> {
   const binary = resolveWorldEngineBinary();
   if (!binary) {
+    const hint =
+      process.platform === "win32" || isWsl()
+        ? "cd native/world-engine-qt-shell && cargo build (Windows/Qt dev kit required)"
+        : "cd native/world-engine-qt-shell && cargo build";
     return {
       ok: false,
-      error:
-        "world-engine-qt-shell binary not found — build it first: cd native/world-engine-qt-shell && cargo build",
+      error: `world-engine-qt-shell binary not found — build it first: ${hint}`,
     };
   }
 
   const args = projectPath ? [projectPath] : [];
-  const child = spawn(binary, args, { stdio: "ignore" });
-  const forget = (): void => {
-    runningProcesses.delete(child);
-  };
-  child.on("exit", forget);
-  child.on("error", forget);
-  runningProcesses.add(child);
-  return { ok: true };
+  return launchGuiProcess(binary, args);
 }
 
 /** App-quit cleanup — native windows left running detached from a quit

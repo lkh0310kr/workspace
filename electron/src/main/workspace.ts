@@ -322,7 +322,7 @@ export class Workspace {
    * scene file. Launches it as a new World Engine window (a separate
    * native process — see worldEngine.ts for why it's not an embedded
    * pane). */
-  launchWorldEngine(tabId: number, rel: string): { ok: boolean; error?: string } {
+  launchWorldEngine(tabId: number, rel: string): Promise<{ ok: boolean; error?: string }> {
     const projectAbs = files.resolveUnderRoot(this.tabRoot(tabId), rel);
     return launchWorldEngine_(projectAbs);
   }
