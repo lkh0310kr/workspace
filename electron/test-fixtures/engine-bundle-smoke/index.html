@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>engine bundle protocol smoke test</title>
+<style>
+  body { font-family: -apple-system, sans-serif; padding: 24px; background: #111; color: #eee; }
+  .row { margin: 8px 0; }
+  .pass { color: #4c9; } .fail { color: #f66; }
+  #summary { font-size: 20px; font-weight: bold; margin-top: 16px; }
+</style>
+</head>
+<body>
+<h1>workspace-engine:// smoke test</h1>
+<p>Not a real Godot export — just enough static files to verify the
+serving protocol before a real engine build exists. See
+docs/ROADMAP.md's Phase 2 checklist and
+electron/src/main/engineBundleProtocol.ts.</p>
+<div id="results"></div>
+<div id="summary"></div>
+<script>
+  const results = document.getElementById("results");
+  const summary = document.getElementById("summary");
+  const checks = [];
+
+  function row(label, ok, detail) {
+    const div = document.createElement("div");
+    div.className = "row " + (ok ? "pass" : "fail");
+    div.textContent = (ok ? "✓ " : "✗ ") + label + (detail ? " — " + detail : "");
+    results.appendChild(div);
+    checks.push(ok);
+  }
+
+  async function run() {
+    // 1. Threading-required cross-origin isolation — only true if the
+    // response carried Cross-Origin-Opener-Policy: same-origin +
+    // Cross-Origin-Embedder-Policy: require-corp.
+    row("self.crossOriginIsolated (COOP/COEP headers applied)", self.crossOriginIsolated === true, String(self.crossOriginIsolated));
+
+    // 2. .wasm served with the exact MIME Chromium needs for streaming
+    // instantiation.
+    try {
+      const wasmRes = await fetch("./fake.wasm");
+      const ct = wasmRes.headers.get("content-type");
+      row("fake.wasm content-type", ct === "application/wasm", ct);
+    } catch (err) {
+      row("fake.wasm fetch", false, String(err));
+    }
+
+    // 3. .js served as a real script MIME (not octet-stream, which some
+    // static servers get wrong and silently breaks module loading).
+    try {
+      const jsRes = await fetch("./fake.js");
+      const ct = jsRes.headers.get("content-type");
+      row("fake.js content-type", ct === "text/javascript", ct);
+    } catch (err) {
+      row("fake.js fetch", false, String(err));
+    }
+
+    // 4. .pck (Godot's binary data pack) is fetchable at all — MIME
+    // doesn't matter much here (octet-stream is fine, Godot's own JS
+    // glue reads it as raw bytes), just confirms an arbitrary extension
+    // isn't rejected by the protocol handler.
+    try {
+      const pckRes = await fetch("./fake.pck");
+      row("fake.pck fetches successfully", pckRes.ok, "status " + pckRes.status);
+    } catch (err) {
+      row("fake.pck fetch", false, String(err));
+    }
+
+    // 5. Relative-URL resolution actually works (this page itself loaded
+    // via a relative-friendly "standard" scheme registration, not just
+    // an absolute href) — confirmed implicitly by every fetch("./...")
+    // above succeeding, called out explicitly for visibility.
+    row("relative fetch() URLs resolve against this page", checks.slice(1).some((c) => c), "see results above");
+
+    const allPass = checks.every((c) => c);
+    summary.textContent = allPass ? "ALL CHECKS PASSED" : "SOME CHECKS FAILED — see above";
+    summary.className = allPass ? "pass" : "fail";
+  }
+
+  run();
+</script>
+</body>
+</html>
