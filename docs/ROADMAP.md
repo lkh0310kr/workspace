@@ -52,12 +52,20 @@ Priority order (from `ideation.md`'s "공통화 우선순위"):
   [08-context-modeling.md](./architecture/08-context-modeling.md)). Not
   a general document/asset database — see the Asset system item below
   for that, still separate and still not started.
-- [ ] **Asset system** — a typed asset model (image/font/audio/video/
-  document, id/type/name/source/metadata) shared across panes, instead
-  of each pane parsing files its own way — see
-  [08-context-modeling.md](./architecture/08-context-modeling.md)'s
-  Entity/Resource sections for the concrete shape (`id` namespaced like
-  `"penpot:shape:183"`, plus a `provenance` field from day one).
+- [x] **Asset system (v1: classification, not a registry)** —
+  `shared/asset.ts`: `classifyAssetType()`, consolidating the "what kind
+  of file is this" logic that was independently duplicated as
+  `TreeView.tsx`'s `VIEWER_EXTENSIONS` array. No `electron`/`node:*`
+  import (portable main/renderer, like `layoutSalvage.ts`), 8 vitest
+  cases. `TreeView.tsx`'s `classifyFile` now builds on it — confirmed
+  zero behavior change with a dedicated regression test asserting every
+  one of the 18 originally-covered extensions still routes to the same
+  pane kind. Deliberately **not** the full Entity/Resource/`AssetRef`
+  registry [08-context-modeling.md](./architecture/08-context-modeling.md)
+  describes — per that doc's own "physical decentralization" section, an
+  asset *reference* store only earns its complexity once something
+  actually needs to look assets up across panes, which nothing does yet.
+  This v1 only kills the one duplication that already existed.
 - [ ] **Clipboard protocol** — cross-pane data types
   (`application/x-workspace-*` MIME conventions) so copying structured
   data from one pane and pasting into another is a real, defined

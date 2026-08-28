@@ -9,6 +9,7 @@ import {
   revealItemInDir,
   writeFile,
 } from "../fileSystem";
+import { classifyAssetType } from "../../../shared/asset";
 import { TextPrompt } from "./TextPrompt";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import type { AnchorRect } from "./Popover";
@@ -55,32 +56,14 @@ interface MenuState {
   entry: DirEntry | null;
 }
 
-const VIEWER_EXTENSIONS = [
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".webp",
-  ".svg",
-  ".bmp",
-  ".pdf",
-  ".mp4",
-  ".webm",
-  ".mov",
-  ".mkv",
-  ".mp3",
-  ".wav",
-  ".m4a",
-  ".ogg",
-  ".epub",
-  ".flac",
-];
-
+// Extension→type classification itself now lives in shared/asset.ts
+// (Phase 1 Asset system) — this just maps that general AssetType
+// vocabulary onto the three pane kinds this tree can route a click to.
 export function classifyFile(name: string): "code" | "markdown" | "viewer" {
-  const lower = name.toLowerCase();
-  if (lower.endsWith(".md") || lower.endsWith(".markdown")) return "markdown";
-  if (VIEWER_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "viewer";
-  return "code";
+  const type = classifyAssetType(name);
+  if (type === "markdown") return "markdown";
+  if (type === "unknown") return "code";
+  return "viewer";
 }
 
 function dirOf(path: string): string {
