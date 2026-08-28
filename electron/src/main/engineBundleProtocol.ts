@@ -64,42 +64,65 @@ protocol.registerSchemesAsPrivileged([
  * export — same failure either way, pointing at the protocol/session
  * wiring rather than anything Godot-specific.
  */
+// Temporary — the white-screen "Cannot destructure property
+// 'preloadScripts'..." sandbox crash reported against this protocol
+// gave no signal about whether this handler is even being reached, so
+// every request logs its outcome to the main-process console (visible
+// in the `npm run dev` terminal, not devtools) until that's confirmed
+// either way. Remove once TODO.md's engine-bundle-protocol QA item is
+// checked off.
+function log(...args: unknown[]): void {
+  console.log('[engine-protocol]', ...args)
+}
+
 export function registerEngineBundleProtocol(targetSession: Session, getAllowedRoots: () => string[]): void {
+  log('registered on session', targetSession.storagePath ?? '(in-memory)')
   targetSession.protocol.handle(ENGINE_SCHEME, async (request) => {
+    log('request', request.url)
     let absolutePath: string
     try {
       const url = new URL(request.url)
-      if (url.hostname !== ENGINE_HOST) return new Response('bad request', { status: 400 })
+      if (url.hostname !== ENGINE_HOST) {
+        log('rejected: unexpected hostname', url.hostname)
+        return new Response('bad request', { status: 400 })
+      }
       absolutePath = decodeURIComponent(url.pathname)
-    } catch {
+    } catch (err) {
+      log('rejected: URL parse failed', err)
       return new Response('bad request', { status: 400 })
     }
 
     let realPath: string
     try {
       realPath = fs.realpathSync(absolutePath)
-    } catch {
+    } catch (err) {
+      log('404: realpath failed for', absolutePath, err)
       return new Response('not found', { status: 404 })
     }
 
-    if (!isPathConfined(realPath, getAllowedRoots())) {
+    const allowedRoots = getAllowedRoots()
+    if (!isPathConfined(realPath, allowedRoots)) {
+      log('403: not confined to any allowed root', { realPath, allowedRoots })
       return new Response('forbidden', { status: 403 })
     }
 
     let size: number
     try {
       size = fs.statSync(realPath).size
-    } catch {
+    } catch (err) {
+      log('500: stat failed for', realPath, err)
       return new Response('read error', { status: 500 })
     }
 
     const nodeStream = fs.createReadStream(realPath)
     const webStream = Readable.toWeb(nodeStream) as ReadableStream
+    const contentType = contentTypeFor(realPath)
+    log('200 OK', { realPath, contentType, size })
 
     return new Response(webStream, {
       status: 200,
       headers: {
-        'content-type': contentTypeFor(realPath),
+        'content-type': contentType,
         'content-length': String(size),
         'cross-origin-opener-policy': 'same-origin',
         'cross-origin-embedder-policy': 'require-corp'

@@ -325,13 +325,21 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   // hosting protocol works end-to-end against a real Godot export).
   const onTreeOpenAsApp = useCallback(
     (path: string) => {
+      // Temporary — see engineBundleProtocol.ts's matching debug log.
+      // Remove once TODO.md's engine-bundle-protocol QA item is checked
+      // off.
+      console.log("[engine-protocol] onTreeOpenAsApp", { workspaceTabId, path });
       getEngineBundleUrl(workspaceTabId, path)
-        .then((url) => addTabToGroup(model, nodeId, "browser", { url }))
+        .then((url) => {
+          console.log("[engine-protocol] resolved url", url);
+          return addTabToGroup(model, nodeId, "browser", { url });
+        })
         .then((id) => {
+          console.log("[engine-protocol] tab created", id);
           if (id) setActivePaneTab(workspaceTabId, nodeId, id);
           onNotifyChanged();
         })
-        .catch(console.error);
+        .catch((err) => console.error("[engine-protocol] onTreeOpenAsApp failed", err));
     },
     [workspaceTabId, model, nodeId, setActivePaneTab, onNotifyChanged],
   );
