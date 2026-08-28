@@ -193,6 +193,15 @@ export async function exportGodotWeb(
   return window.api.engine.exportGodotWeb(tabId, rel);
 }
 
+/** `rel` is a workspace-relative directory holding a `world-engine.json`
+ * scene file. Launches it as a new World Engine window — a separate
+ * native process (see main/worldEngine.ts), not an embedded pane, so
+ * there's no tab/URL to open here the way engine bundles or Godot
+ * exports get one. Consumed by TreeView's "Open in World Engine". */
+export async function launchWorldEngine(tabId: number, rel: string): Promise<{ ok: boolean; error?: string }> {
+  return window.api.worldEngine.launch(tabId, rel);
+}
+
 /** Registers one app/document entry into the project manifest for
  * `tabId`'s workspace root — see main/projectManifest.ts. Fire-and-forget
  * from callers: a failed registration shouldn't block whatever action

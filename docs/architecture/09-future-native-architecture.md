@@ -456,21 +456,49 @@ asked to see this through rather than stop at "designed, not built":
   binary via `electron-builder` for a real release is real follow-up work,
   not attempted here. `npm run typecheck` and the 250-test suite both
   pass; the binary-path resolution was verified to match the actual built
-  artifact's location. Live click-through (the menu item actually opening
-  the window from inside the real running app) is pending the user's own
-  check — this session doesn't launch the live Workspace app itself.
+  artifact's location. **Live click-through confirmed by the user** —
+  the app menu item opens a real World Engine window from inside the
+  actual running Workspace app.
 - **Phase 4 — not needed for the decoupled shape.** Input forwarding was
   only a problem for Phase 2's in-process embedding; a separately-managed
   native window (the shape actually shipped) has no such problem. Stays
   recorded above as a real option if embedding is revisited later, not as
   outstanding work blocking anything today.
+- **Phase 5 — DONE: real project integration ("실제 프로젝트 연동").**
+  World Engine can now load a real scene instead of always showing the
+  same hardcoded demo cube. `world-engine-qt-shell` accepts an optional
+  first CLI arg (a project directory) and reads `world-engine.json` from
+  it — a deliberately minimal scene format (a flat list of cubes, each an
+  independent dynamic rigid body with position/rotation/restitution/
+  color; no meshes, no assets, no scripting — real future scope, not this
+  pass) parsed with `serde`/`serde_json`. `World` now holds a `Vec` of
+  entities instead of one, and `render_frame` draws each with its own
+  model matrix and tint (one draw call + submit per entity — simplest
+  correct thing at this scale, not a dynamic-offset uniform buffer).
+  TreeView gates a new "Open in World Engine" context-menu item on the
+  presence of `world-engine.json` in a folder's loaded children — the
+  exact same pattern as `project.godot`'s gating for "Export Godot (Web)
+  & Open." Wired through `worldEngine:launch` IPC →
+  `workspace.launchWorldEngine(tabId, rel)` (resolves through
+  `files.resolveUnderRoot`, same confinement every other file op here
+  uses) → `worldEngine.ts`'s `launchWorldEngine(projectPath)`, now
+  spawning a *new* window per call (tracked in a `Set`, not a single
+  slot) since different projects are genuinely different windows.
+  Live-verified directly (not just typecheck): built a real 3-cube test
+  fixture (`electron/test-fixtures/world-engine-demo/world-engine.json`,
+  different positions/restitution/colors) and ran the binary against it
+  standalone — logged "3 entities" loaded, real window, no crash; also
+  regression-checked the no-argument path still logs "1 entities" and
+  behaves exactly as the original single-cube demo. `npm run typecheck`
+  and the 250-test suite pass after the IPC/TreeView/PaneGroup wiring.
 
 Phases 1 and 2 each stayed intentionally scoped to *proving the
 mechanism* before either touched `electron/` — matching this session's
 own established pattern (the transport spike, the physics/render spike
 before it). Phase 3 is real integration, using Phase 1's artifact (the
 Qt window) rather than Phase 2's (the in-process embed) — the safer,
-fully-solved path once the two were compared honestly.
+fully-solved path once the two were compared honestly. Phase 5 is the
+first real content the integration actually hosts, not just a demo.
 
 ## Per-pane stack direction (if/when this happens)
 

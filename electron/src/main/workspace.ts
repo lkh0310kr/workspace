@@ -13,6 +13,7 @@ import { toEngineBundleUrl } from "./engineBundlePaths";
 import { registerProjectApp as registerProjectApp_ } from "./projectManifest";
 import type { ProjectManifest } from "../shared/projectManifest";
 import { exportGodotProjectWeb, type GodotExportResult } from "./godotExport";
+import { launchWorldEngine as launchWorldEngine_ } from "./worldEngine";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -315,6 +316,15 @@ export class Workspace {
     const outputAbs = files.resolveUnderRoot(root, outputRel);
     const result = await exportGodotProjectWeb(projectAbs, path.join(outputAbs, "index.html"));
     return result.ok ? { ...result, outputRel } : result;
+  }
+
+  /** `rel` is a workspace-relative directory holding a `world-engine.json`
+   * scene file. Launches it as a new World Engine window (a separate
+   * native process — see worldEngine.ts for why it's not an embedded
+   * pane). */
+  launchWorldEngine(tabId: number, rel: string): { ok: boolean; error?: string } {
+    const projectAbs = files.resolveUnderRoot(this.tabRoot(tabId), rel);
+    return launchWorldEngine_(projectAbs);
   }
 
   disposeAllTerminals(): void {

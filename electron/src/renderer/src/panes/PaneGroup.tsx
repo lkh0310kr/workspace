@@ -23,7 +23,7 @@ import { layoutLog } from "../layout/layoutDebugLog";
 import { paneChipContentShown, paneChipContentStyle } from "../interaction/embedPolicy";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { usePaneVisibility } from "./usePaneVisibility";
-import { exportGodotWeb, getEngineBundleUrl, registerProjectApp } from "../electron";
+import { exportGodotWeb, getEngineBundleUrl, launchWorldEngine, registerProjectApp } from "../electron";
 import { logError } from "../errorLog";
 
 // The pane-level orchestrator that makes the tab system "global": every
@@ -366,6 +366,23 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
     [workspaceTabId, openEngineBundleTab],
   );
 
+  // Launches a world-engine.json project as its own native window (see
+  // main/worldEngine.ts) — unlike Open as App / Export Godot, there's no
+  // tab to open here at all, since it's a separate process/window, not
+  // Workspace content.
+  const onTreeOpenWorldEngineProject = useCallback(
+    (path: string) => {
+      launchWorldEngine(workspaceTabId, path)
+        .then((result) => {
+          if (!result.ok) {
+            logError(`World Engine launch failed for "${path}": ${result.error ?? "unknown error"}`);
+          }
+        })
+        .catch((err) => logError(`World Engine launch failed for "${path}"`, err?.stack));
+    },
+    [workspaceTabId],
+  );
+
   const dropTab = useCallback(
     (payload: TabDragPayload, index: number) => {
       layoutLog("PaneGroup.dropTab", "strip drop handler", {
@@ -464,6 +481,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                 onPathDeleted={onTreePathDeleted}
                 onOpenAsApp={onTreeOpenAsApp}
                 onExportGodotWeb={onTreeExportGodotWeb}
+                onOpenWorldEngineProject={onTreeOpenWorldEngineProject}
               />
             )}
           </div>

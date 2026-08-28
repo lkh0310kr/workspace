@@ -181,6 +181,9 @@ export interface WorkspaceApi {
   project: {
     registerApp: (tabId: number, kind: string, rel: string, title?: string) => Promise<unknown>
   }
+  worldEngine: {
+    launch: (tabId: number, rel: string) => Promise<{ ok: boolean; error?: string }>
+  }
 }
 
 declare global {

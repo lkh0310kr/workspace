@@ -20,6 +20,75 @@ use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Quat, Vec3};
 use rapier3d::prelude::*;
 use raw_window_handle::{AppKitDisplayHandle, AppKitWindowHandle, RawDisplayHandle, RawWindowHandle};
+use serde::Deserialize;
+
+// ── Scene format — Phase "실제 프로젝트 연동": a project is a folder
+// containing `world-engine.json` (its mere presence is what TreeView
+// checks for, matching godot's project.godot precedent). Deliberately
+// minimal — a flat list of cubes, each an independent dynamic rigid
+// body — this proves project data genuinely drives the scene instead of
+// the hardcoded single cube, without a real asset/mesh pipeline, which
+// is real future scope, not this pass.
+#[derive(Deserialize)]
+struct SceneFile {
+    #[serde(default)]
+    entities: Vec<SceneEntityDef>,
+}
+
+#[derive(Deserialize)]
+struct SceneEntityDef {
+    #[serde(default)]
+    position: [f32; 3],
+    #[serde(default)]
+    rotation: [f32; 3],
+    #[serde(default = "default_restitution")]
+    restitution: f32,
+    #[serde(default = "default_color")]
+    color: [f32; 3],
+}
+
+fn default_restitution() -> f32 {
+    0.6
+}
+
+fn default_color() -> [f32; 3] {
+    [0.9, 0.2, 0.2]
+}
+
+fn default_scene() -> SceneFile {
+    // Same single falling/bouncing cube Phase 1-3 already shipped and
+    // verified — launching with no project argument (e.g. the "Launch
+    // World Engine (dev)" menu item) keeps behaving exactly as before.
+    SceneFile {
+        entities: vec![SceneEntityDef {
+            position: [0.0, 2.5, 0.0],
+            rotation: [0.4, 0.6, 0.0],
+            restitution: 0.6,
+            color: [0.9, 0.2, 0.2],
+        }],
+    }
+}
+
+fn load_scene(project_dir: &str) -> SceneFile {
+    let path = std::path::Path::new(project_dir).join("world-engine.json");
+    match std::fs::read_to_string(&path) {
+        Ok(contents) => match serde_json::from_str::<SceneFile>(&contents) {
+            Ok(scene) if !scene.entities.is_empty() => scene,
+            Ok(_) => {
+                eprintln!("{path:?} has no entities — using the default demo scene instead.");
+                default_scene()
+            }
+            Err(err) => {
+                eprintln!("failed to parse {path:?}: {err} — using the default demo scene instead.");
+                default_scene()
+            }
+        },
+        Err(err) => {
+            eprintln!("no world-engine.json at {path:?} ({err}) — using the default demo scene instead.");
+            default_scene()
+        }
+    }
+}
 
 const WIDTH: u32 = 900;
 const HEIGHT: u32 = 600;
@@ -75,6 +144,7 @@ struct Uniforms {
     mvp: [[f32; 4]; 4],
     model: [[f32; 4]; 4],
     light_dir: [f32; 4],
+    tint: [f32; 4],
 }
 
 // ── Physics + ECS (identical shape to world-engine-core) ────────────────
@@ -84,6 +154,7 @@ struct Transform {
     rotation: Quat,
 }
 struct PhysicsBody(RigidBodyHandle);
+struct Tint(Vec3);
 
 struct World {
     ecs: hecs::World,
@@ -97,24 +168,32 @@ struct World {
     impulse_joint_set: ImpulseJointSet,
     multibody_joint_set: MultibodyJointSet,
     ccd_solver: CCDSolver,
-    cube_entity: hecs::Entity,
+    cube_entities: Vec<hecs::Entity>,
 }
 
 impl World {
-    fn new() -> Self {
+    fn new(scene: &SceneFile) -> Self {
         let mut rigid_body_set = RigidBodySet::new();
         let mut collider_set = ColliderSet::new();
         collider_set.insert(ColliderBuilder::cuboid(50.0, 0.1, 50.0).build());
-        let rigid_body = RigidBodyBuilder::dynamic()
-            .translation(Vec3::new(0.0, 2.5, 0.0))
-            .rotation(Vec3::new(0.4, 0.6, 0.0))
-            .build();
-        let handle = rigid_body_set.insert(rigid_body);
-        let collider = ColliderBuilder::cuboid(0.5, 0.5, 0.5).restitution(0.6).build();
-        collider_set.insert_with_parent(collider, handle, &mut rigid_body_set);
 
         let mut ecs = hecs::World::new();
-        let cube_entity = ecs.spawn((Transform { translation: Vec3::ZERO, rotation: Quat::IDENTITY }, PhysicsBody(handle)));
+        let mut cube_entities = Vec::with_capacity(scene.entities.len());
+        for def in &scene.entities {
+            let rigid_body = RigidBodyBuilder::dynamic()
+                .translation(Vec3::from(def.position))
+                .rotation(Vec3::from(def.rotation))
+                .build();
+            let handle = rigid_body_set.insert(rigid_body);
+            let collider = ColliderBuilder::cuboid(0.5, 0.5, 0.5).restitution(def.restitution).build();
+            collider_set.insert_with_parent(collider, handle, &mut rigid_body_set);
+            let entity = ecs.spawn((
+                Transform { translation: Vec3::ZERO, rotation: Quat::IDENTITY },
+                PhysicsBody(handle),
+                Tint(Vec3::from(def.color)),
+            ));
+            cube_entities.push(entity);
+        }
 
         Self {
             ecs,
@@ -128,7 +207,7 @@ impl World {
             impulse_joint_set: ImpulseJointSet::new(),
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
-            cube_entity,
+            cube_entities,
         }
     }
 
@@ -148,18 +227,28 @@ impl World {
             &(),
             &(),
         );
-        let body_handle = self.ecs.get::<&PhysicsBody>(self.cube_entity).unwrap().0;
-        let body = &self.rigid_body_set[body_handle];
-        let t = body.translation();
-        let r = body.rotation();
-        let mut transform = self.ecs.get::<&mut Transform>(self.cube_entity).unwrap();
-        transform.translation = t;
-        transform.rotation = *r;
+        for &entity in &self.cube_entities {
+            let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
+            let body = &self.rigid_body_set[body_handle];
+            let t = body.translation();
+            let r = body.rotation();
+            let mut transform = self.ecs.get::<&mut Transform>(entity).unwrap();
+            transform.translation = t;
+            transform.rotation = *r;
+        }
     }
 
-    fn cube_model_matrix(&mut self) -> Mat4 {
-        let transform = self.ecs.get::<&Transform>(self.cube_entity).unwrap();
-        Mat4::from_rotation_translation(transform.rotation, transform.translation)
+    /// (model matrix, tint) per entity, in a stable order — what
+    /// `render_frame` actually draws each tick.
+    fn draw_list(&self) -> Vec<(Mat4, Vec3)> {
+        self.cube_entities
+            .iter()
+            .map(|&entity| {
+                let transform = self.ecs.get::<&Transform>(entity).unwrap();
+                let tint = self.ecs.get::<&Tint>(entity).unwrap();
+                (Mat4::from_rotation_translation(transform.rotation, transform.translation), tint.0)
+            })
+            .collect()
     }
 }
 
@@ -322,14 +411,11 @@ fn init_gpu(native_view: *mut c_void) -> GpuContext {
     }
 }
 
-fn render_frame(gpu: &GpuContext, model: Mat4) {
+fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3)]) {
     let aspect = WIDTH as f32 / HEIGHT as f32;
     let projection = glam::camera::rh::proj::directx::perspective(45f32.to_radians(), aspect, 0.1, 100.0);
     let eye = Vec3::new(4.0, 3.5, 6.0);
     let view = glam::camera::rh::view::look_at_mat4(eye, Vec3::ZERO, Vec3::Y);
-    let mvp = projection * view * model;
-    let uniforms = Uniforms { mvp: mvp.to_cols_array_2d(), model: model.to_cols_array_2d(), light_dir: [0.4, 0.9, 0.3, 0.0] };
-    gpu.queue.write_buffer(&gpu.uniform_buf, 0, bytemuck::bytes_of(&uniforms));
 
     let frame = match gpu.surface.get_current_texture() {
         wgpu::CurrentSurfaceTexture::Success(frame) | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
@@ -340,32 +426,54 @@ fn render_frame(gpu: &GpuContext, model: Mat4) {
         ..Default::default()
     });
 
-    let mut encoder = gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-    {
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view_target,
-                depth_slice: None,
-                resolve_target: None,
-                ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color { r: 0.05, g: 0.06, b: 0.09, a: 1.0 }), store: wgpu::StoreOp::Store },
-            })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &gpu.depth_view,
-                depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Discard }),
-                stencil_ops: None,
-            }),
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        });
-        rpass.set_pipeline(&gpu.pipeline);
-        rpass.set_bind_group(0, &gpu.bind_group, &[]);
-        rpass.set_vertex_buffer(0, gpu.vertex_buf.slice(..));
-        rpass.set_index_buffer(gpu.index_buf.slice(..), wgpu::IndexFormat::Uint16);
-        rpass.draw_indexed(0..gpu.index_count, 0, 0..1);
+    // One draw per entity, each its own submit — simplest correct thing
+    // for a v0 scene of a handful of cubes (a single shared uniform
+    // buffer can't safely hold N different per-draw values within one
+    // command buffer without a dynamic-offset binding, which this scale
+    // doesn't need yet). Only the first draw clears; the rest load.
+    for (i, (model, tint)) in draw_list.iter().enumerate() {
+        let mvp = projection * view * *model;
+        let uniforms = Uniforms {
+            mvp: mvp.to_cols_array_2d(),
+            model: model.to_cols_array_2d(),
+            light_dir: [0.4, 0.9, 0.3, 0.0],
+            tint: [tint.x, tint.y, tint.z, 1.0],
+        };
+        gpu.queue.write_buffer(&gpu.uniform_buf, 0, bytemuck::bytes_of(&uniforms));
+
+        let mut encoder = gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+        {
+            let load_op = if i == 0 {
+                wgpu::LoadOp::Clear(wgpu::Color { r: 0.05, g: 0.06, b: 0.09, a: 1.0 })
+            } else {
+                wgpu::LoadOp::Load
+            };
+            let depth_load_op = if i == 0 { wgpu::LoadOp::Clear(1.0) } else { wgpu::LoadOp::Load };
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view_target,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations { load: load_op, store: wgpu::StoreOp::Store },
+                })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &gpu.depth_view,
+                    depth_ops: Some(wgpu::Operations { load: depth_load_op, store: wgpu::StoreOp::Store }),
+                    stencil_ops: None,
+                }),
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+            rpass.set_pipeline(&gpu.pipeline);
+            rpass.set_bind_group(0, &gpu.bind_group, &[]);
+            rpass.set_vertex_buffer(0, gpu.vertex_buf.slice(..));
+            rpass.set_index_buffer(gpu.index_buf.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..gpu.index_count, 0, 0..1);
+        }
+        gpu.queue.submit(Some(encoder.finish()));
     }
-    gpu.queue.submit(Some(encoder.finish()));
     gpu.queue.present(frame);
 }
 
@@ -385,16 +493,23 @@ extern "C" fn on_init(native_view: *mut c_void, user_data: *mut c_void) {
 extern "C" fn on_frame(user_data: *mut c_void) {
     let state = unsafe { &mut *(user_data as *mut EngineState) };
     state.world.step();
-    let model = state.world.cube_model_matrix();
+    let draw_list = state.world.draw_list();
     if let Some(gpu) = &state.gpu {
-        render_frame(gpu, model);
+        render_frame(gpu, &draw_list);
     }
 }
 
 fn main() {
-    let mut state = Box::new(EngineState { world: World::new(), gpu: None });
+    // Optional first CLI arg: a project directory containing
+    // world-engine.json. No arg (e.g. the app-menu "Launch World Engine
+    // (dev)" trigger) keeps the original single-cube demo behavior.
+    let scene = match std::env::args().nth(1) {
+        Some(project_dir) => load_scene(&project_dir),
+        None => default_scene(),
+    };
+    let mut state = Box::new(EngineState { world: World::new(&scene), gpu: None });
     let user_data = &mut *state as *mut EngineState as *mut c_void;
-    println!("world-engine-qt-shell: Phase 1 — Qt native window, wgpu direct render, no Electron/WebRTC");
+    println!("world-engine-qt-shell: Qt native window, wgpu direct render, {} entities", state.world.cube_entities.len());
     unsafe {
         qt_run(WIDTH as c_int, HEIGHT as c_int, on_init, on_frame, user_data);
     }

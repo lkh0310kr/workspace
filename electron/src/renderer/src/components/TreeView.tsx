@@ -40,6 +40,12 @@ interface Props {
   // the one-click version of "run export.sh yourself, then Open as App
   // the output folder". Only offered on folders.
   onExportGodotWeb?: (path: string) => void;
+  // Launches a directory containing world-engine.json as a new World
+  // Engine window — a separate native process (see main/worldEngine.ts),
+  // not a Workspace tab/pane. Only offered on folders that actually
+  // contain the marker file (same gating as onExportGodotWeb's
+  // project.godot check).
+  onOpenWorldEngineProject?: (path: string) => void;
 }
 
 interface DirState {
@@ -128,6 +134,7 @@ export function TreeView({
   onPathDeleted,
   onOpenAsApp,
   onExportGodotWeb,
+  onOpenWorldEngineProject,
 }: Props) {
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -417,6 +424,20 @@ export function TreeView({
         },
       });
     }
+    if (
+      menu.entry.is_dir &&
+      onOpenWorldEngineProject &&
+      dirs.get(menu.entry.path)?.entries.some((e) => e.name === "world-engine.json")
+    ) {
+      items.push({
+        type: "button",
+        label: "Open in World Engine",
+        onClick: () => {
+          setMenu(null);
+          onOpenWorldEngineProject(menu.entry!.path);
+        },
+      });
+    }
 
     items.push({ type: "separator" });
     if (selected.size <= 1) {
@@ -450,7 +471,7 @@ export function TreeView({
       });
     }
     return items;
-  }, [menu, selected, tabId, rootPath, onOpenAsApp, onExportGodotWeb, dirs]);
+  }, [menu, selected, tabId, rootPath, onOpenAsApp, onExportGodotWeb, onOpenWorldEngineProject, dirs]);
 
   return (
     <div

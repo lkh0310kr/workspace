@@ -619,6 +619,9 @@ app.whenReady().then(() => {
   ipcMain.handle('engine:export-godot-web', (_event, tabId: number, rel: string) =>
     workspace!.exportGodotWeb(tabId, rel)
   )
+  ipcMain.handle('worldEngine:launch', (_event, tabId: number, rel: string) =>
+    workspace!.launchWorldEngine(tabId, rel)
+  )
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

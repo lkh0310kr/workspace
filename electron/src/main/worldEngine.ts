@@ -20,7 +20,13 @@ import { app } from "electron";
 // electron-builder for a real release is real follow-up work (see the
 // doc's Phase 3 note), not attempted here.
 
-let worldEngineProcess: ChildProcess | null = null;
+// "실제 프로젝트 연동": a directory containing `world-engine.json` (its mere
+// presence is what TreeView checks for, matching Godot's project.godot
+// precedent) — passed as the process's first CLI arg, which
+// world-engine-qt-shell loads instead of its single-cube default demo.
+const PROJECT_MARKER_FILE = "world-engine.json";
+
+const runningProcesses = new Set<ChildProcess>();
 
 function resolveWorldEngineBinary(): string | null {
   // app.getAppPath() is this app's `electron/` directory both in dev
@@ -38,20 +44,22 @@ function resolveWorldEngineBinary(): string | null {
   return existsSync(candidate) ? candidate : null;
 }
 
-export function worldEngineStatus(): "running" | "stopped" {
-  return worldEngineProcess && !worldEngineProcess.killed ? "running" : "stopped";
+export function isWorldEngineProject(absoluteDirPath: string): boolean {
+  return existsSync(path.join(absoluteDirPath, PROJECT_MARKER_FILE));
 }
 
-/** Launches World Engine as its own native window if it isn't already
- * running. Bringing an already-running instance to the front is left to
- * the OS/user (no window-handle plumbing back from the child process
- * yet) — matches this being a dev-time Phase 3 integration, not full
- * window management. */
-export function launchWorldEngine(): { ok: boolean; error?: string } {
-  if (worldEngineStatus() === "running") {
-    return { ok: true };
-  }
+export function worldEngineRunningCount(): number {
+  return runningProcesses.size;
+}
 
+/** Launches a new World Engine window. `projectPath`, if given, is an
+ * absolute directory containing `world-engine.json` — the process loads
+ * that scene instead of its single-cube default demo. Each call spawns a
+ * new independent window (opening the same project twice just opens two
+ * windows) — no single-instance tracking, since different projects are
+ * genuinely different windows and there's no cross-process way yet to
+ * bring an existing one to the front instead. */
+export function launchWorldEngine(projectPath?: string): { ok: boolean; error?: string } {
   const binary = resolveWorldEngineBinary();
   if (!binary) {
     return {
@@ -61,25 +69,21 @@ export function launchWorldEngine(): { ok: boolean; error?: string } {
     };
   }
 
-  const child = spawn(binary, [], { stdio: "ignore" });
-  child.on("exit", () => {
-    if (worldEngineProcess === child) worldEngineProcess = null;
-  });
-  child.on("error", () => {
-    if (worldEngineProcess === child) worldEngineProcess = null;
-  });
-  worldEngineProcess = child;
+  const args = projectPath ? [projectPath] : [];
+  const child = spawn(binary, args, { stdio: "ignore" });
+  const forget = (): void => {
+    runningProcesses.delete(child);
+  };
+  child.on("exit", forget);
+  child.on("error", forget);
+  runningProcesses.add(child);
   return { ok: true };
 }
 
-export function stopWorldEngine(): void {
-  worldEngineProcess?.kill();
-  worldEngineProcess = null;
-}
-
-/** App-quit cleanup — a native window left running detached from a quit
+/** App-quit cleanup — native windows left running detached from a quit
  * Workspace would be confusing (unlike the terminal's own tmux-less PTYs,
  * which intentionally die with the app too — see pty.ts). */
 export function disposeWorldEngine(): void {
-  stopWorldEngine();
+  for (const child of runningProcesses) child.kill();
+  runningProcesses.clear();
 }

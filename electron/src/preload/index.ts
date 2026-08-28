@@ -207,6 +207,10 @@ const api = {
   project: {
     registerApp: (tabId: number, kind: string, rel: string, title?: string): Promise<unknown> =>
       ipcRenderer.invoke('project:register-app', tabId, kind, rel, title)
+  },
+  worldEngine: {
+    launch: (tabId: number, rel: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('worldEngine:launch', tabId, rel)
   }
 }
 
