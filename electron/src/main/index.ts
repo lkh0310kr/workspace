@@ -1,3 +1,6 @@
+import './imeEnv'
+import { ensureLinuxImeDaemon, isImeToggleKey } from './imeEnv'
+
 import { app, shell, BrowserWindow, ipcMain, Menu, dialog, clipboard, session } from 'electron'
 import { join } from 'path'
 import { hostname as osHostname } from 'os'
@@ -17,6 +20,13 @@ import {
   saveWorkspaceSnapshot,
   migrateLegacyDevStateIfNeeded
 } from './persistence'
+import {
+  preferNativeWorkspacePath,
+  remapWorkspaceRootsInSnapshot,
+  isWsl,
+  applyWslDpiScaleFix,
+  readWindowsWorkingArea
+} from './wslPaths'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
 import { setupBrowserSession, BROWSER_SESSION_PARTITION } from './browserSession'
@@ -26,6 +36,12 @@ import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
+import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
+
+// WSLg + Windows DPI: must run before ready / BrowserWindow (see wslPaths).
+applyWslDpiScaleFix((name, value) => {
+  app.commandLine.appendSwitch(name, value)
+})
 
 // Two live instances (a forgotten second `npm run dev`, or dev running
 // alongside a packaged daily-use build) race on the same
@@ -45,9 +61,7 @@ if (!gotSingleInstanceLock) {
 } else {
   app.on('second-instance', () => {
     if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-      if (mainWindowRef.isMinimized()) mainWindowRef.restore()
-      mainWindowRef.show()
-      mainWindowRef.focus()
+      reinforceExistingWindowFocus(mainWindowRef, app)
     }
   })
 }
@@ -94,39 +108,68 @@ function appendInteractionLog(entry: Record<string, unknown>): void {
 }
 
 function createWindow(): BrowserWindow {
-  // Create the browser window.
+  // Window chrome:
+  // - macOS: hiddenInset (existing traffic-light gutter).
+  // - Windows / real Linux: VS Code WCO path (hidden + frame:false +
+  //   titleBarOverlay) — see ref-proj/vscode/.../windows.ts.
+  // - WSL: titleBarOverlay mis-aligns the client surface under WSLg
+  //   (window + hit targets shift down-right). Use frameless without
+  //   overlay; caption buttons are drawn in AppTitlebar. maximize() is
+  //   fine here (probed: → work-area-sized bounds, e.g. 1920×1020).
+  const isMac = process.platform === 'darwin'
+  const isLinux = process.platform === 'linux'
+  const isWin = process.platform === 'win32'
+  const wsl = isWsl()
+
+  const titleBarOverlay = {
+    height: 29, // VS Code windows.ts overlay height
+    color: '#242424',
+    symbolColor: '#d4d4d4'
+  }
+
+  const chromeOpts = isMac
+    ? { titleBarStyle: 'hiddenInset' as const }
+    : wsl
+      ? { titleBarStyle: 'hidden' as const, frame: false }
+      : {
+          titleBarStyle: 'hidden' as const,
+          frame: false,
+          titleBarOverlay
+        }
+
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
     autoHideMenuBar: true,
-    // Overlay title bar (traffic lights float over the web content, no
-    // native bar underneath) — mirrors tauri.conf.json's titleBarStyle so
-    // .titlebar in styles.css (which reserves the same 28px strip and
-    // hosts the sidebar toggle) applies unchanged.
-    ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' } : {}),
-    ...(process.platform === 'linux' ? { icon } : {}),
+    backgroundColor: '#1e1e1e',
+    ...chromeOpts,
+    ...(isLinux || isWin ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
-      // Browser pane uses a real <webview> guest (Orca's approach — see
-      // BrowserPane.tsx), which needs this enabled on the host window.
       webviewTag: true,
-      // Chromium's built-in PDF viewer is implemented as an internal
-      // "plugin" — FileViewerContent's <embed type="application/pdf">
-      // renders nothing without this (default: false).
       plugins: true
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    // Maximize (not `fullscreen: true`) — fills the screen like every
-    // other app's green-button maximize, but keeps the menu bar/dock and
-    // the hiddenInset traffic lights this window relies on, unlike true
-    // fullscreen which would hide them.
-    mainWindow.maximize()
+  const revealWindow = (): void => {
+    if (mainWindow.isDestroyed() || mainWindow.isVisible()) return
+    // Show first — maximize()/setBounds before map is a no-op on WSLg.
     mainWindow.show()
-  })
+    if (wsl) {
+      const wa = readWindowsWorkingArea()
+      if (wa) {
+        mainWindow.setBounds(wa)
+      } else {
+        mainWindow.maximize()
+      }
+    } else {
+      mainWindow.maximize()
+    }
+  }
+  mainWindow.on('ready-to-show', revealWindow)
+  setTimeout(revealWindow, 2500)
 
   // A page inside a <webview> guest calling the Fullscreen API
   // (document.requestFullscreen() — Godot's own Web export template has
@@ -164,15 +207,20 @@ function createWindow(): BrowserWindow {
   // (activeBrowserWebview.ts), not the whole app — reloading the whole
   // renderer would nuke every terminal pane's UI state.
   mainWindow.webContents.on('before-input-event', (event, input) => {
+    // Never intercept IME toggle keys (한영/한자) — preventDefault here
+    // would lock English-only. OS/IBus owns the toggle (Orca pattern).
+    if (isImeToggleKey(input)) return
     if (input.type !== 'keyDown') return
-    if (input.code === 'KeyR' && (input.control || input.meta)) {
+    // Orca terminal-first: while xterm owns focus, shell/readline keeps R/W chords.
+    const terminalOwnsAppShortcuts = focusedTerminalId !== null
+    if (!terminalOwnsAppShortcuts && input.code === 'KeyR' && (input.control || input.meta)) {
       event.preventDefault()
       mainWindow.webContents.send('shortcut:browser-reload', { hard: input.shift })
     }
     // Cmd+W closes the active pane tab (not the whole window) — same
     // input-event-level interception as Cmd+R above; macOS would otherwise
     // close the BrowserWindow on Cmd+W by default.
-    if (input.code === 'KeyW' && (input.control || input.meta)) {
+    if (!terminalOwnsAppShortcuts && input.code === 'KeyW' && (input.control || input.meta)) {
       event.preventDefault()
       mainWindow.webContents.send('shortcut:close-pane-tab')
     }
@@ -409,6 +457,8 @@ app.whenReady().then(() => {
     // before-input-event (createWindow) won't see Cmd+W/Cmd+R while the
     // user is typing in a page, so relay the same shortcuts here too.
     contents.on('before-input-event', (event, input) => {
+      // Never intercept IME toggle — OS/IBus owns it (same as host window).
+      if (isImeToggleKey(input)) return
       if (input.type !== 'keyDown') return
       if (input.code === 'KeyR' && (input.control || input.meta)) {
         event.preventDefault()
@@ -425,6 +475,7 @@ app.whenReady().then(() => {
     })
   })
 
+  ensureLinuxImeDaemon()
   installClaudeStatuslineHook()
   setupBrowserSession()
   setupBrowserDownloads(sendToMainWindow)
@@ -432,8 +483,17 @@ app.whenReady().then(() => {
 
   migrateLegacyDevStateIfNeeded()
   const config = loadConfig()
-  const defaultRoot = config.rootPath ?? process.cwd()
-  const snapshot = loadWorkspaceSnapshot()
+  // WSL: never keep a /mnt/<drive> root as the live workspace — 9p sync I/O
+  // freezes the main process before ready-to-show (window stays invisible).
+  const defaultRoot = preferNativeWorkspacePath(config.rootPath ?? process.cwd())
+  if (config.rootPath && config.rootPath !== defaultRoot) {
+    saveConfig({ ...config, rootPath: defaultRoot })
+  }
+  const rawSnapshot = loadWorkspaceSnapshot()
+  const snapshot = rawSnapshot ? remapWorkspaceRootsInSnapshot(rawSnapshot) : null
+  if (snapshot && rawSnapshot && snapshot !== rawSnapshot) {
+    saveWorkspaceSnapshot(snapshot)
+  }
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
   registerMediaProtocol(() => workspace!.allTabRootPaths())
   registerEpubProtocol()
@@ -450,6 +510,19 @@ app.whenReady().then(() => {
   bindMainWindow(createWindow())
 
   ipcMain.handle('hostname', () => osHostname())
+  ipcMain.handle('app:platform', () => process.platform)
+  ipcMain.on('window:minimize', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize()
+  })
+  ipcMain.on('window:maximize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return
+    if (win.isMaximized()) win.unmaximize()
+    else win.maximize()
+  })
+  ipcMain.on('window:close', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close()
+  })
   ipcMain.on('debug:interaction-log', (_event, entry: Record<string, unknown>) => {
     appendInteractionLog(entry)
   })
@@ -548,10 +621,11 @@ app.whenReady().then(() => {
     persist()
   })
   ipcMain.handle('workspace:set-tab-root-path', (_event, tabId: number, rootPath: string) => {
-    workspace!.setTabRootPath(tabId, rootPath)
+    const nativeRoot = preferNativeWorkspacePath(rootPath)
+    workspace!.setTabRootPath(tabId, nativeRoot)
     if (tabId === workspace!.state().activeTabId) {
-      workspace!.defaultRootPath = rootPath
-      saveConfig({ rootPath })
+      workspace!.defaultRootPath = nativeRoot
+      saveConfig({ rootPath: nativeRoot })
     }
     persist()
     return workspace!.state()
