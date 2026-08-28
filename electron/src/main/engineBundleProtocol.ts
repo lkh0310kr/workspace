@@ -1,4 +1,4 @@
-import { protocol } from 'electron'
+import { protocol, type Session } from 'electron'
 import * as fs from 'node:fs'
 import { Readable } from 'node:stream'
 import { ENGINE_SCHEME, ENGINE_HOST, contentTypeFor, isPathConfined } from './engineBundlePaths'
@@ -43,13 +43,29 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 /**
- * Wires the scheme up to actually serve files — call once after app
- * ready (and after `workspace` is constructed, since `getAllowedRoots`
- * reads its live tab roots), mirroring registerMediaProtocol's own
- * call-site convention in index.ts.
+ * Wires the scheme up to actually serve files — call once per session
+ * that will ever navigate to a workspace-engine:// URL, after app ready
+ * (and after `workspace` is constructed, since `getAllowedRoots` reads
+ * its live tab roots). Electron's `protocol.handle` is scoped to
+ * whichever `Session` it's called on (the module-level `protocol` export
+ * is just `session.defaultSession`'s) — mediaProtocol.ts/epub.ts never
+ * needed to care because their content only ever loads inside the main
+ * renderer's own default session (a <video>/<img> tag, a plain iframe).
+ * "Open as App" (TreeView) navigates a Browser-pane <webview>, which
+ * always uses the separate `persist:browser` partition (see
+ * browserSession.ts) — registering only on the default session left that
+ * partition with the scheme *privileged* (registerSchemesAsPrivileged is
+ * genuinely global) but no handler wired up, which doesn't fail as a
+ * clean 404: the guest renderer's own sandbox bootstrap chokes instead
+ * ("Cannot destructure property 'preloadScripts' of
+ * 'binding.startupData' as it is null"), a white screen with no
+ * actionable error in the pane itself. Confirmed by reproducing this
+ * exact failure against both the smoke-test fixture and a real Godot
+ * export — same failure either way, pointing at the protocol/session
+ * wiring rather than anything Godot-specific.
  */
-export function registerEngineBundleProtocol(getAllowedRoots: () => string[]): void {
-  protocol.handle(ENGINE_SCHEME, async (request) => {
+export function registerEngineBundleProtocol(targetSession: Session, getAllowedRoots: () => string[]): void {
+  targetSession.protocol.handle(ENGINE_SCHEME, async (request) => {
     let absolutePath: string
     try {
       const url = new URL(request.url)

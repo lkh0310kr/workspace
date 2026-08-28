@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, Menu, dialog, clipboard } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Menu, dialog, clipboard, session } from 'electron'
 import { join } from 'path'
 import { hostname as osHostname } from 'os'
 import * as fs from 'fs'
@@ -19,7 +19,7 @@ import {
 } from './persistence'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
-import { setupBrowserSession } from './browserSession'
+import { setupBrowserSession, BROWSER_SESSION_PARTITION } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
@@ -398,7 +398,11 @@ app.whenReady().then(() => {
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
   registerMediaProtocol(() => workspace!.allTabRootPaths())
   registerEpubProtocol()
-  registerEngineBundleProtocol(() => workspace!.allTabRootPaths())
+  // "Open as App" always opens a Browser-pane <webview>, which uses the
+  // persist:browser partition, not the default session — registering
+  // there is what actually matters (see engineBundleProtocol.ts's doc
+  // comment for the failure mode this fixes).
+  registerEngineBundleProtocol(session.fromPartition(BROWSER_SESSION_PARTITION), () => workspace!.allTabRootPaths())
   // Save immediately (mirrors src/lib.rs) — first launch would otherwise
   // never persist anything until the user creates/closes/renames a tab,
   // meaning a never-touched default tab's terminal id would be lost on the very next relaunch.

@@ -8,9 +8,12 @@ Studio 등)은 보류(삭제 아님).
 **최우선 원칙(기억)**: 안정화/검증 우선 — foundation 조각 하나 만들면 다음 걸로
 넘어가기 전에 그게 실제로 작동하는지 검증부터.
 
-- [ ] **Engine bundle protocol 라이브 검증** (다음 스텝, 아직 실제 Electron에서
-  테스트 안 됨) — devtools 필요 없음, TreeView에서 우클릭 한 번이면 끝나도록
-  파이프라인 완성해둠:
+- [ ] **Engine bundle protocol 라이브 검증** (다음 스텝) — 처음 시도에서
+  "Cannot destructure property 'preloadScripts'..." 흰 화면 버그 있었음: Browser
+  pane webview가 default session이 아니라 `persist:browser` 세션을 쓰는데 프로토콜을
+  default session에만 등록해서 못 찾았던 것 — `engineBundleProtocol.ts`가 이제
+  `session.fromPartition(BROWSER_SESSION_PARTITION)`에 등록하도록 수정함(`index.ts`).
+  다시 아래대로 테스트 부탁:
   1. TreeView에서 `electron/test-fixtures/engine-bundle-smoke` 폴더 우클릭 →
      **"Open as App"** 클릭 → 새 Browser 탭으로 열림. "ALL CHECKS PASSED"(초록)
      뜨는지 확인 — 특히 `crossOriginIsolated` true(COOP/COEP 헤더 검증), `.wasm`이
