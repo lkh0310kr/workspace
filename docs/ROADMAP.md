@@ -259,6 +259,33 @@ not a new problem).
   own conclusion (the transport mechanism itself is implementable here,
   not just plausible on paper).
 
+**Direction correction (2026-08-28): "World Engine" means building one,
+not hosting one.** Everything above answers "how do we host a third-party
+engine's output in a pane" — the user clarified Workspace should have its
+**own** real engine, assembled from open-source Rust libraries (rendering/
+physics/ECS), not embed/stream someone else's black box. Built and
+verified `native/world-engine-core/` — `wgpu` + `rapier3d` + `hecs`, one
+real physics-driven cube (falls, bounces, visibly rotates — confirmed via
+60 real decoded frames inspected as images, not just "it compiled").
+Reused `engine-stream-poc`'s WebRTC transport to show it — **then
+reconsidered that choice and found it wrong for this case**: WebRTC solves
+problems (NAT traversal, untrusted networks, browser cross-origin
+security) that don't exist between a process this app spawns and this
+app's own main process on the same machine. The real cost wasn't
+hypothetical — lossy compression, an ICE handshake, and today's own
+payload-type negotiation bug all exist purely because of WebRTC's
+negotiation model, not the actual problem. The right shape already exists
+in this codebase: the terminal's `Pty` → `PtySession` → IPC → `xterm.js`
+pipeline solves the identical "spawned native process's output needs to
+reach the renderer" problem with a plain byte stream, no compression, no
+negotiation. World Engine's real Electron integration should follow that
+shape (local IPC, `<canvas>`, not `<video>`+WebRTC) — full reasoning and
+the revised transport sketch in
+[09-future-native-architecture.md](./architecture/09-future-native-architecture.md#transport-critique--webrtc-was-the-wrong-choice-for-our-own-engine-2026-08-28).
+`engine-stream-poc`/WebRTC isn't wasted — it's still the right answer for
+Track B (a genuine third-party/remote engine), just not for Workspace's
+own.
+
 ## History (done)
 
 Earlier build-out, kept for the record rather than deleted:

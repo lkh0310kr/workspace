@@ -267,6 +267,67 @@ hardware video encoding, input round-trip, and any Electron/Workspace
 wiring at all — this is still a fully standalone proof, not integrated
 into the app.
 
+### Transport critique — WebRTC was the wrong choice for our own engine (2026-08-28)
+
+`world-engine-core` reused `engine-stream-poc`'s WebRTC transport without
+re-examining whether it still made sense once the thing being streamed
+changed from "a third party's black-box output" to "our own engine,
+co-located on the same machine, both ends under our control." It doesn't.
+
+WebRTC exists to solve problems this pairing doesn't have: NAT traversal
+(ICE/STUN/TURN), untrusted/adversarial network links, encryption for
+public-internet transport (DTLS-SRTP), a browser's cross-origin security
+model. None apply to a Rust process this app itself spawns, talking to
+this app's own main process, on the same machine. What it actually cost,
+concretely, not hypothetically:
+
+- **Lossy video compression** (H.264) for a same-machine pipe with no
+  bandwidth constraint at all — pure encode latency and quality loss for
+  nothing gained.
+- **A real ICE negotiation handshake** (hundreds of ms of setup) to
+  connect two processes that are already related by `spawn()`.
+- **The payload-type negotiation bug hit and fixed today** — that failure
+  mode exists *only* because of WebRTC's offer/answer negotiation model;
+  it has nothing to do with the actual problem ("get pixels from process A
+  to process B").
+- **An actual open UDP port**, even bound to `127.0.0.1` — needless attack
+  surface for a pipe that should be exactly as exposed as `stdin`/`stdout`.
+
+**The right answer is already proven elsewhere in this exact codebase**:
+the terminal solves the identical shape of problem — a spawned native
+process's output needs to reach the renderer — via `Pty` → `PtySession` →
+IPC → `xterm.js`. No compression, no negotiation, no network stack, just
+a byte stream the main process reads and forwards. World Engine's own
+integration should follow the same shape once it's actually wired into
+Electron:
+
+```
+world-engine-core (spawned by main, like Pty)
+  → raw/lightly-compressed frames over a local pipe (stdout, a Unix
+    domain socket, or a shared-memory ring buffer — pick the simplest
+    one that meets perf needs, don't pre-optimize)
+  → main process reads, forwards via IPC (mirrors PtySession's data
+    forwarding)
+  → renderer draws to a <canvas> (ImageBitmap / WebGL texture upload,
+    not a <video> element — there's no video, just frames)
+```
+
+Input goes back the same direction, reusing the same channel — no
+synthetic-OS-input-injection problem to solve either, since the renderer
+can send structured input events directly to the spawned process over the
+same local IPC, the same way terminal keystrokes already reach the PTY.
+
+**WebRTC/Track B is not wasted work — it answers a genuinely different
+question.** Keep it for the case it actually fits: hosting a *third-party*
+engine that must present as "just a URL" (the original Track A/B
+framing), or a truly remote/cloud-rendered source. For Workspace's *own*
+engine, co-located and fully trusted, local IPC is simpler, faster, more
+secure, and more conservative — on every axis the user has asked this
+architecture to optimize for. `native/world-engine-core/`'s next
+integration pass should swap its transport to local IPC before (not
+instead of) wiring into Electron; `engine-stream-poc/` stays as-is,
+correctly scoped to the Track B problem it was actually built for.
+
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see
