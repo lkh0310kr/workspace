@@ -10,7 +10,7 @@ type Props = {
 };
 
 const showDrawnWindowControls =
-  typeof window !== "undefined" && window.api?.isWsl === true;
+  typeof window !== "undefined" && window.api?.platform !== "darwin";
 
 export function AppTitlebar({
   workspaceRailOpen,
@@ -20,8 +20,8 @@ export function AppTitlebar({
   appSettingsButtonRef,
   onToggleAppSettings,
 }: Props) {
-  // Windows / real Linux: Electron titleBarOverlay draws caption buttons.
-  // WSL: overlay shifts the client + hit-test surface — draw our own.
+  // Windows / Linux: custom caption buttons (Orca — no titleBarOverlay).
+  // WSLg: overlay misaligns client surface and hit-test.
   return (
     <div className="titlebar">
       <button

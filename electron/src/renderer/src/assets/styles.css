@@ -138,15 +138,9 @@ input {
   -webkit-app-region: drag;
 }
 
-/* Windows / non-WSL Linux: Electron titleBarOverlay caption buttons. */
+/* Windows / Linux: Orca-style drawn caption buttons (no titleBarOverlay). */
 :root[data-platform="win32"] .titlebar,
-:root[data-platform="linux"]:not([data-wsl]) .titlebar {
-  padding-right: env(titlebar-area-width, 138px);
-  -webkit-app-region: drag;
-}
-
-/* WSL: no overlay — leave room for our drawn caption buttons. */
-:root[data-wsl] .titlebar {
+:root[data-platform="linux"] .titlebar {
   padding-right: 0;
   -webkit-app-region: no-drag;
 }

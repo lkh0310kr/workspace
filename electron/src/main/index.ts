@@ -25,8 +25,8 @@ import {
   remapWorkspaceRootsInSnapshot,
   isWsl,
   applyWslDpiScaleFix,
-  readWindowsWorkingArea
 } from './wslPaths'
+import { revealWslWindow, toggleWslWindowMaximize } from './wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
 import { setupBrowserSession, BROWSER_SESSION_PARTITION } from './browserSession'
@@ -37,6 +37,7 @@ import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
+import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
 
 // WSLg + Windows DPI: must run before ready / BrowserWindow (see wslPaths).
 applyWslDpiScaleFix((name, value) => {
@@ -117,25 +118,13 @@ function createWindow(): BrowserWindow {
   //   overlay; caption buttons are drawn in AppTitlebar. maximize() is
   //   fine here (probed: → work-area-sized bounds, e.g. 1920×1020).
   const isMac = process.platform === 'darwin'
-  const isLinux = process.platform === 'linux'
-  const isWin = process.platform === 'win32'
   const wsl = isWsl()
 
-  const titleBarOverlay = {
-    height: 29, // VS Code windows.ts overlay height
-    color: '#242424',
-    symbolColor: '#d4d4d4'
-  }
-
+  // macOS: hiddenInset traffic lights. Orca pattern elsewhere: frameless
+  // custom titlebar — no titleBarOverlay (WSLg misaligns; win32/linux match Orca).
   const chromeOpts = isMac
     ? { titleBarStyle: 'hiddenInset' as const }
-    : wsl
-      ? { titleBarStyle: 'hidden' as const, frame: false }
-      : {
-          titleBarStyle: 'hidden' as const,
-          frame: false,
-          titleBarOverlay
-        }
+    : { titleBarStyle: 'hidden' as const, frame: false }
 
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -144,7 +133,7 @@ function createWindow(): BrowserWindow {
     autoHideMenuBar: true,
     backgroundColor: '#1e1e1e',
     ...chromeOpts,
-    ...(isLinux || isWin ? { icon } : {}),
+    ...(isMac ? {} : { icon }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -154,22 +143,19 @@ function createWindow(): BrowserWindow {
   })
 
   const revealWindow = (): void => {
-    if (mainWindow.isDestroyed() || mainWindow.isVisible()) return
-    // Show first — maximize()/setBounds before map is a no-op on WSLg.
-    mainWindow.show()
+    if (mainWindow.isDestroyed()) return
     if (wsl) {
-      const wa = readWindowsWorkingArea()
-      if (wa) {
-        mainWindow.setBounds(wa)
-      } else {
-        mainWindow.maximize()
-      }
-    } else {
-      mainWindow.maximize()
+      revealWslWindow(mainWindow)
+      return
     }
+    if (mainWindow.isVisible()) return
+    mainWindow.show()
+    mainWindow.maximize()
   }
   mainWindow.on('ready-to-show', revealWindow)
   setTimeout(revealWindow, 2500)
+
+  installWindowsPathRegistryChangeListener(mainWindow)
 
   // A page inside a <webview> guest calling the Fullscreen API
   // (document.requestFullscreen() — Godot's own Web export template has
@@ -517,6 +503,10 @@ app.whenReady().then(() => {
   ipcMain.on('window:maximize', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return
+    if (isWsl()) {
+      toggleWslWindowMaximize(win)
+      return
+    }
     if (win.isMaximized()) win.unmaximize()
     else win.maximize()
   })
