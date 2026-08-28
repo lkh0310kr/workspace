@@ -26,7 +26,7 @@ import {
   isWsl,
   applyWslDpiScaleFix,
 } from './wslPaths'
-import { revealWslWindow, toggleWslWindowMaximize } from './wslWindow'
+import { revealWslWindow, toggleWslWindowMaximize, installWslWindowLifecycle } from './wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
 import { setupBrowserSession, BROWSER_SESSION_PARTITION } from './browserSession'
@@ -111,12 +111,8 @@ function appendInteractionLog(entry: Record<string, unknown>): void {
 function createWindow(): BrowserWindow {
   // Window chrome:
   // - macOS: hiddenInset (existing traffic-light gutter).
-  // - Windows / real Linux: VS Code WCO path (hidden + frame:false +
-  //   titleBarOverlay) — see ref-proj/vscode/.../windows.ts.
-  // - WSL: titleBarOverlay mis-aligns the client surface under WSLg
-  //   (window + hit targets shift down-right). Use frameless without
-  //   overlay; caption buttons are drawn in AppTitlebar. maximize() is
-  //   fine here (probed: → work-area-sized bounds, e.g. 1920×1020).
+  // - Windows / Linux / WSL: Orca-style frameless custom titlebar — no
+  //   titleBarOverlay (WSLg misaligns client surface + hit-test).
   const isMac = process.platform === 'darwin'
   const wsl = isWsl()
 
@@ -154,6 +150,8 @@ function createWindow(): BrowserWindow {
   }
   mainWindow.on('ready-to-show', revealWindow)
   setTimeout(revealWindow, 2500)
+
+  if (wsl) installWslWindowLifecycle(mainWindow)
 
   installWindowsPathRegistryChangeListener(mainWindow)
 

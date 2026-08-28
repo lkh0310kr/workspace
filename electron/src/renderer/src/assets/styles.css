@@ -140,7 +140,8 @@ input {
 
 /* Windows / Linux: Orca-style drawn caption buttons (no titleBarOverlay). */
 :root[data-platform="win32"] .titlebar,
-:root[data-platform="linux"] .titlebar {
+:root[data-platform="linux"] .titlebar,
+:root[data-wsl] .titlebar {
   padding-right: 0;
   -webkit-app-region: no-drag;
 }

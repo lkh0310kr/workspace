@@ -8,6 +8,7 @@ vi.mock("./wslPaths", () => ({
 import {
   applyWslWorkAreaBounds,
   isWslWorkAreaMaximized,
+  pinWslWorkAreaIfMaximized,
   toggleWslWindowMaximize,
 } from "./wslWindow";
 
@@ -50,5 +51,18 @@ describe("wslWindow", () => {
     toggleWslWindowMaximize(win);
     expect(isWslWorkAreaMaximized(win)).toBe(true);
     expect(win.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 1536, height: 816 });
+  });
+
+  it("re-pins drifted work-area bounds when maximized", () => {
+    const win = mockWindow();
+    applyWslWorkAreaBounds(win);
+    (win.setBounds as ReturnType<typeof vi.fn>).mockClear();
+    pinWslWorkAreaIfMaximized(win);
+    expect(win.setBounds).not.toHaveBeenCalled();
+
+    (win as { getBounds: () => { x: number; y: number; width: number; height: number } }).getBounds =
+      () => ({ x: 0, y: 0, width: 1920, height: 1080 });
+    pinWslWorkAreaIfMaximized(win);
+    expect(win.setBounds).toHaveBeenCalledWith({ x: 0, y: 0, width: 1536, height: 816 });
   });
 });

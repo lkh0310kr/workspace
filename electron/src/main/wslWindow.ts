@@ -4,6 +4,16 @@ import { isWsl, readWindowsWorkingArea } from "./wslPaths";
 /** WSLg: native maximize()/isMaximized() lie about size vs the RAIL host window. */
 const wslMaximizedByTab = new WeakMap<BrowserWindow, boolean>();
 const wslRestoredBoundsByTab = new WeakMap<BrowserWindow, Rectangle>();
+const wslLifecycleInstalled = new WeakSet<BrowserWindow>();
+
+function boundsMatchWorkArea(bounds: Rectangle, wa: Rectangle): boolean {
+  return (
+    bounds.x === wa.x &&
+    bounds.y === wa.y &&
+    bounds.width === wa.width &&
+    bounds.height === wa.height
+  );
+}
 
 function defaultRestoredBounds(): Rectangle {
   const wa = readWindowsWorkingArea();
@@ -44,14 +54,37 @@ export function toggleWslWindowMaximize(win: BrowserWindow): void {
   applyWslWorkAreaBounds(win);
 }
 
+/** Re-pin work-area bounds when WSLg drifts after show/restore/focus. */
+export function pinWslWorkAreaIfMaximized(win: BrowserWindow): void {
+  if (!isWsl() || win.isDestroyed() || !isWslWorkAreaMaximized(win)) return;
+  const wa = readWindowsWorkingArea();
+  if (!wa) return;
+  const bounds = win.getBounds();
+  if (!boundsMatchWorkArea(bounds, wa)) win.setBounds(wa);
+}
+
+function scheduleWslWorkAreaPins(win: BrowserWindow): void {
+  const pin = (): void => pinWslWorkAreaIfMaximized(win);
+  pin();
+  setImmediate(pin);
+  setTimeout(pin, 50);
+  setTimeout(pin, 200);
+}
+
 /** Show then pin bounds — WSLg ignores setBounds before the window is mapped. */
 export function revealWslWindow(win: BrowserWindow): void {
   if (!isWsl() || win.isDestroyed()) return;
   win.show();
-  const apply = (): void => {
-    if (win.isDestroyed()) return;
-    applyWslWorkAreaBounds(win);
-  };
-  apply();
-  setImmediate(apply);
+  if (win.isDestroyed()) return;
+  applyWslWorkAreaBounds(win);
+  scheduleWslWorkAreaPins(win);
+}
+
+/** Keep WSLg RAIL host aligned after restore, second-instance focus, etc. */
+export function installWslWindowLifecycle(win: BrowserWindow): void {
+  if (!isWsl() || wslLifecycleInstalled.has(win)) return;
+  wslLifecycleInstalled.add(win);
+  const onShow = (): void => scheduleWslWorkAreaPins(win);
+  win.on("show", onShow);
+  win.on("restore", onShow);
 }
