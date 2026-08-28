@@ -11,7 +11,8 @@ This folder documents how the Workspace Electron app is structured, why key deci
 5. [05-terminal-pipeline.md](./05-terminal-pipeline.md) — terminal stack
 6. [06-browser-embeds.md](./06-browser-embeds.md) — `<webview>` guests
 7. [07-future-phases.md](./07-future-phases.md) — Phase 2–4 roadmap
-8. [09-future-native-architecture.md](./09-future-native-architecture.md) — long-term direction (Rust core, native-process panes) — reference only, not designed yet
+8. [08-context-modeling.md](./08-context-modeling.md) — Entity/Resource/Capability philosophy for Phase 1's Asset/Command Bus/Clipboard modules — reference only
+9. [09-future-native-architecture.md](./09-future-native-architecture.md) — long-term direction (Rust core, native-process panes) — reference only, not designed yet
 
 ## Layer diagram
 

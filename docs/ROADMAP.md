@@ -18,9 +18,11 @@ panes on top of it. Right now every pane (Terminal, Browser, Code/
 Markdown, Viewer, RSS) implements its own version of things that should
 be common infrastructure — this phase formalizes those into shared
 modules, informed by the "Workspace SDK" principles in
-[`ideation.md`](./ideation.md#방향-전환-creative-pane--엔지니어링분석-pane-2026-08)
+[`ideation.md`](./ideation.md#방향-그래픽설계cad급-pane-2026-08-현재-우선순위)
 (don't merge per-app engines/document models — only the infra layer
-below them is worth sharing).
+below them is worth sharing) and given more precise shape by
+[08-context-modeling.md](./architecture/08-context-modeling.md)'s
+Entity/Resource/Capability/Provenance vocabulary.
 
 Priority order (from `ideation.md`'s "공통화 우선순위"):
 
@@ -32,7 +34,10 @@ Priority order (from `ideation.md`'s "공통화 우선순위"):
   document registry or "what was open last" beyond the flexlayout JSON).
 - [ ] **Asset system** — a typed asset model (image/font/audio/video/
   document, id/type/name/source/metadata) shared across panes, instead
-  of each pane parsing files its own way.
+  of each pane parsing files its own way — see
+  [08-context-modeling.md](./architecture/08-context-modeling.md)'s
+  Entity/Resource sections for the concrete shape (`id` namespaced like
+  `"penpot:shape:183"`, plus a `provenance` field from day one).
 - [ ] **Clipboard protocol** — cross-pane data types
   (`application/x-workspace-*` MIME conventions) so copying structured
   data from one pane and pasting into another is a real, defined
