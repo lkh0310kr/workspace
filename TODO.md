@@ -2,43 +2,30 @@
 Photoshop급 2D, Blender급 3D, Video Editor, CAD/Omniverse식/Game Engine) — 직접
 구현 아니고 실제 오픈소스 엔진을 fork/embed. 첫 타깃 **Game Engine(Godot)**,
 Web export를 webview로 host하는 방식 확정. 근거/배경: [docs/ideation.md](docs/ideation.md),
-[docs/ROADMAP.md](docs/ROADMAP.md) Phase 1/2. 엔지니어링/분석 pane 목록(Database
-Studio 등)은 보류(삭제 아님).
+[docs/ROADMAP.md](docs/ROADMAP.md) Phase 1/2. 엔지니어링/분석 pane 목록(Database Studio 등)은 보류(삭제 아님).
 
 **최우선 원칙(기억)**: 안정화/검증 우선 — foundation 조각 하나 만들면 다음 걸로
 넘어가기 전에 그게 실제로 작동하는지 검증부터.
 
-- [ ] **Engine bundle protocol 라이브 검증** (다음 스텝) — 처음 시도에서
-  "Cannot destructure property 'preloadScripts'..." 흰 화면 버그 있었음: Browser
-  pane webview가 default session이 아니라 `persist:browser` 세션을 쓰는데 프로토콜을
-  default session에만 등록해서 못 찾았던 것 — `engineBundleProtocol.ts`가 이제
-  `session.fromPartition(BROWSER_SESSION_PARTITION)`에 등록하도록 수정함(`index.ts`).
-  다시 아래대로 테스트 부탁:
-  1. TreeView에서 `electron/test-fixtures/engine-bundle-smoke` 폴더 우클릭 →
-     **"Open as App"** 클릭 → 새 Browser 탭으로 열림. "ALL CHECKS PASSED"(초록)
-     뜨는지 확인 — 특히 `crossOriginIsolated` true(COOP/COEP 헤더 검증), `.wasm`이
-     `application/wasm`으로 서빙되는지.
-  2. **진짜 Godot 프로젝트도 준비해뒀음** — `electron/test-fixtures/godot-demo/`
-     (회전하는 사각형 + 실시간 타이머 텍스트, Godot 4.7로 실제 export까지 완료).
-     export 결과물은 git에 안 올렸음(~40MB) — 로컬에 이미 만들어져 있고,
-     재생성하려면 `electron/test-fixtures/godot-demo/export.sh` 실행. TreeView에서
-     `electron/test-fixtures/godot-demo-web` 폴더 우클릭 → "Open as App" → 실제
-     Godot 씬이 브라우저 탭 안에서 돌아가는지 확인 (사각형이 회전하고 타이머가
-     올라가면 성공).
-  둘 다 통과하면 Engine bundle protocol 검증 완료.
+- [x] **Engine bundle protocol 라이브 검증** (2026-08-28) — smoke test
+  fixture ALL CHECKS PASSED, 진짜 Godot 데모(godot-demo-web)도 실제로 돌아가는
+  것까지 확인 완료. 중간에 발견된 버그: Browser pane webview가 `persist:browser`
+  세션을 쓰는데 프로토콜을 default session에만 등록해서 sandbox 부트스트랩이
+  깨졌던 것 — `session.fromPartition(BROWSER_SESSION_PARTITION)`에 등록하도록
+  수정(`engineBundleProtocol.ts`/`index.ts`)해서 해결. Engine bundle hosting
+  파이프라인(TreeView 우클릭 → Open as App → Browser 탭에서 실행) 완성.
 
 - [ ] Video/Audio QA — File Viewer의 비디오/오디오 재생(`739766b`, `7ec31be`) 실제 GUI 테스트 필요. 특히: 시킹이 진짜 Range 요청(206)으로 되는지 devtools Network 탭에서 확인, 대용량 파일 열 때 메인 프로세스 안 멈추는지, 자막(.srt) 로드+오프셋 조정 동작, 패키지 빌드(`npm run build:mac`)에서 `protocol.handle` 등록이 dev 모드와 동일하게 동작하는지.
 - [ ] EPUB QA — `0633f6c` 미니멀 v1 (unzip + spine 순차 iframe, prev/next만). 테스트 파일(Project Gutenberg 앨리스) 전달함 — 워크스페이스 root 안에 넣고 열어서: 챕터 이동, 이미지/CSS가 iframe 안에서 상대경로로 잘 로드되는지, sandbox="allow-same-origin"이라 스크립트는 실행 안 되는 게 맞는지, 이상한 OPF/manifest 형태의 다른 epub에서도 안 깨지는지.
-- [x] TreeView 파일이 아닌 영역 우클릭 가능하도록 - ex. 파일,폴더 추가 (핸들러 자체는 있었는데 `.tree-view`가 파일 목록 높이만큼만 있어서 짧은 폴더의 빈 공간은 클릭이 안 먹혔음 — `min-height: 100%` 추가해서 수정)
-- [x] Pane List (Tabs) Horizontal Scroll bar hover시 거대한 bar가 나오는 버그
 - [ ] terminal - Claude Code에서 불안정함. 이전 내용을 못봄 - 이중 스크롤 문제인듯. 뭔가 높이가 잘못 설정되어서  상위 스크롤만 인식을 하는 듯.
 - [ ] 코드 퀄리티 리뷰 이제는 좀 해야제
-- [x] 브라우저 URL 입력창 자동완성 (히스토리 기반 드롭다운은 있었는데 "google"처럼 히스토리에 없는 bare word 입력 시 .com 힌트가 없었음 — browserAddressBarSuggestions.ts에 도메인 추측 휴리스틱 추가)
+- [x] 브라우저 URL 입력창 자동완성 (히스토리 기반 드롭다운은 있었는데 "google"처럼 히스토리에 없는 bare word 입력 시 .com 힌트가 없었음 — browserAddressBarSuggestions.ts에 도메인 추측 휴리스틱 추가) - 제대로 구현 필요. 다른 서비스는 어떻게 처리하는지 orca browser, firefox 등 오픈소스 clone해서 참고
 
 미래/아이디어:
 - [ ] 3D Viewer? workspace에 blender를 넣어볼까...?
 - [ ] 그냥 Linux based 자체 OS로 만들어볼까
-- [ ] 모바일 앱 (iOS, Android - iOS first) 또는 브라우저
+- [ ] 모바일 앱 (iOS, Android - iOS first) 또는 브라우저 - 군대 및 편의용.
+    - 군대에서 쓰려면 Virtual Private Network and On Premise Infrastructure 필요할 듯.
 - [ ] Database Studio
     - Connections
     - Schema

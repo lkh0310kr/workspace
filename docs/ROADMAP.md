@@ -126,10 +126,22 @@ behind this direction, revisit later.
   wholesale instead of duplicating it. `normalizeBrowserNavigationUrl`
   (`browserUrl.ts`) allowlists the `workspace-engine:` scheme so the
   webview actually loads it instead of falling back to `about:blank`.
-- [ ] Next: live verification (see `TODO.md`) — click "Open as App" on
-  both the protocol smoke-test fixture and the real Godot export and
-  confirm they actually load/run. Nothing has been tested inside a real
-  running Electron instance yet, only unit-tested pure logic.
+- [x] Live verification (2026-08-28) — both the protocol smoke-test
+  fixture (all self-checks passed, including `crossOriginIsolated` and
+  `.wasm`'s `application/wasm` MIME) and the real Godot export (scene
+  actually running — rotating square, live timer) confirmed working via
+  "Open as App" in a real running Electron instance. One real bug found
+  and fixed in the process: `registerEngineBundleProtocol` was wiring
+  its handler onto `session.defaultSession`, but a Browser-pane
+  `<webview>` always uses the separate `persist:browser` partition
+  (`browserSession.ts`) — the scheme was *privileged* there
+  (`registerSchemesAsPrivileged` is genuinely global) but had no handler,
+  which doesn't fail as a clean 404: the guest renderer's own sandbox
+  bootstrap chokes instead ("Cannot destructure property
+  'preloadScripts' of 'binding.startupData' as it is null"), a white
+  screen with no actionable error in the pane itself. Fixed by
+  registering on `session.fromPartition(BROWSER_SESSION_PARTITION)`
+  instead. **Engine bundle hosting pipeline is now verified end-to-end.**
 
 ## History (done)
 
