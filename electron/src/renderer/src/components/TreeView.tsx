@@ -403,7 +403,11 @@ export function TreeView({
         },
       });
     }
-    if (menu.entry.is_dir && onExportGodotWeb) {
+    if (
+      menu.entry.is_dir &&
+      onExportGodotWeb &&
+      dirs.get(menu.entry.path)?.entries.some((e) => e.name === "project.godot")
+    ) {
       items.push({
         type: "button",
         label: "Export Godot (Web) & Open",
@@ -446,7 +450,7 @@ export function TreeView({
       });
     }
     return items;
-  }, [menu, selected, tabId, rootPath, onOpenAsApp, onExportGodotWeb]);
+  }, [menu, selected, tabId, rootPath, onOpenAsApp, onExportGodotWeb, dirs]);
 
   return (
     <div
@@ -496,6 +500,12 @@ export function TreeView({
               dir: entry.is_dir ? entry.path : dirOf(entry.path),
               entry,
             });
+            // Why: the "Export Godot (Web) & Open" menu item is gated on
+            // this directory actually containing project.godot — an
+            // unexpanded folder's children aren't in `dirs` yet, so load
+            // them now; the menuItems memo below picks it up once `dirs`
+            // updates and re-renders with the item shown/hidden correctly.
+            if (entry.is_dir && !dirs.get(entry.path)?.loaded) loadDir(entry.path);
           }}
         >
           {/* One guide per ancestor level, not this row's own depth — each

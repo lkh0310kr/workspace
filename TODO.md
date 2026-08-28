@@ -15,15 +15,22 @@ Web export를 webview로 host하는 방식 확정. 근거/배경: [docs/ideation
   수정(`engineBundleProtocol.ts`/`index.ts`)해서 해결. Engine bundle hosting
   파이프라인(TreeView 우클릭 → Open as App → Browser 탭에서 실행) 완성.
 
+- [x] **Godot "Export Godot (Web) & Open" 메뉴 노출 버그 수정** (2026-08-28) —
+  라이브 QA 중 발견: 메뉴 아이템이 **모든 폴더**에 떠서 `godot-demo-web`
+  (export 결과물 폴더)이나 `engine-bundle-smoke`(무관한 fixture)처럼
+  project.godot가 없는 폴더에서 눌러서 "No Web export preset found" 에러가
+  남 — 로직 자체는 의도대로 동작(잘못된 폴더 거부)했지만 애초에 헷갈리는
+  폴더에서 메뉴가 보이는 게 문제. 고침: 우클릭 시 그 폴더가 아직 안
+  펼쳐졌으면 즉시 `loadDir`로 자식 목록을 가져오고, 메뉴 아이템 자체를
+  `project.godot`가 실제로 있는 폴더에서만 보이게 함(`dirs` state 기반,
+  TreeView.tsx). 타입체크/vitest(250) 통과.
 - [ ] **Godot "Export Godot (Web) & Open" 라이브 QA** (2026-08-28, 다음 라이브
-  검증 대상) — TreeView에서 `test-fixtures/godot-demo` 우클릭 → "Export
-  Godot (Web) & Open" 눌러서: 1) 새 `godot-demo-web2`류 폴더가 생기고
-  자동으로 Browser 탭이 열려서 실제로 돌아가는지, 2) 이미 있던
-  `godot-demo-web`을 덮어쓰지 않는지(다른 이름이면 상관없음, 프로젝트
-  폴더명 기준 `<name>-web`이라 같은 프로젝트면 실제로는 덮어씀 — 의도된
-  동작), 3) 아무 폴더(project.godot 없는)에 잘못 눌렀을 때 ErrorLogPanel에
-  에러가 뜨는지. `exportGodotProjectWeb`을 직접 호출해서 실제 godot
-  CLI 실행까지는 확인함(터미널에서, 앱 UI 통해서는 아직).
+  검증 대상, 메뉴 노출 버그 수정 후 재시도 필요) — TreeView에서 실제
+  `test-fixtures/godot-demo`(project.godot 있는 폴더) 우클릭 → 이번엔
+  메뉴에 "Export Godot (Web) & Open"이 뜨는지부터 확인, 눌러서: 1) 새
+  `godot-demo-web` 폴더가 생기고 자동으로 Browser 탭이 열려서 실제로
+  돌아가는지, 2) `godot-demo-web`/`engine-bundle-smoke`처럼 project.godot
+  없는 폴더에는 이제 메뉴 자체가 안 뜨는지.
 - [ ] **HTML fullscreen QA** (2026-08-28, 다음 라이브 검증 대상) — itch.io
   데스크톱 클라이언트(`ref-proj/itch`, MIT) 참고해서 추가: Godot Web export가
   자체 fullscreen 버튼 누르면(브라우저 Fullscreen API) Electron이 자동으로 실제
