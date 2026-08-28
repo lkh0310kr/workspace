@@ -120,4 +120,19 @@ describe("resolveTerminalShortcutAction macOS Option", () => {
       resolveTerminalShortcutAction(event({ key: "ArrowLeft", code: "ArrowLeft", metaKey: true }), true),
     ).toEqual({ type: "sendInput", data: "\x01" });
   });
+
+  it("selects all with Cmd+A on macOS and Ctrl+Shift+A elsewhere", () => {
+    expect(
+      resolveTerminalShortcutAction(event({ key: "a", code: "KeyA", metaKey: true }), true),
+    ).toEqual({ type: "selectAll" });
+    expect(
+      resolveTerminalShortcutAction(event({ key: "a", code: "KeyA", ctrlKey: true }), false),
+    ).toBeNull();
+    expect(
+      resolveTerminalShortcutAction(
+        event({ key: "A", code: "KeyA", ctrlKey: true, shiftKey: true }),
+        false,
+      ),
+    ).toEqual({ type: "selectAll" });
+  });
 });

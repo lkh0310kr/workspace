@@ -34,8 +34,11 @@ export function buildDefaultTerminalOptions(): ITerminalOptions {
     cursorStyle,
     cursorInactiveStyle: resolveTerminalCursorInactiveStyle(cursorStyle),
     fontSize: 14,
+    // Hangul-capable fallbacks after the Mac/Windows Western mono fonts —
+    // without these, Korean IME preedit/commit renders as missing glyphs
+    // on Windows/WSL (DejaVu has no Hangul coverage).
     fontFamily:
-      '"SF Mono", "Menlo", "Monaco", "Cascadia Mono", "Consolas", "DejaVu Sans Mono", "Liberation Mono", monospace',
+      '"SF Mono", "Menlo", "Monaco", "Cascadia Mono", "Consolas", "D2Coding", "NanumGothicCoding", "Noto Sans Mono CJK KR", "Apple SD Gothic Neo", "Malgun Gothic", "DejaVu Sans Mono", "Liberation Mono", monospace',
     fontWeight: "300",
     fontWeightBold: "500",
     scrollback: DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT,

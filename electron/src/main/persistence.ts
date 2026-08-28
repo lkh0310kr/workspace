@@ -9,11 +9,11 @@ import type { WorkspaceState } from "./workspace";
 //
 // Deliberately *not* sharing the Tauri app's actual `config.json`/
 // `workspace.json` filenames, even though both live under the same
-// `~/Library/Application Support/workspace-app` directory. This Electron build
-// and the Tauri app are both runnable during the migration; using distinct
-// filenames means running one can't
-// corrupt or fight over the other's actual persisted tabs/settings. Once
-// this replaces the Tauri app outright, these can be renamed to match.
+// `~/Library/Application Support/workspace-app` directory on macOS. This
+// Electron build and the Tauri app are both runnable during the migration;
+// using distinct filenames means running one can't corrupt or fight over
+// the other's actual persisted tabs/settings. Once this replaces the Tauri
+// app outright, these can be renamed to match.
 //
 // `npm run dev` gets its own suffixed directory (`workspace-app-dev`),
 // separate from a packaged/installed build's `workspace-app`. Without
@@ -27,7 +27,31 @@ import type { WorkspaceState } from "./workspace";
 // launch within the same (dev or packaged) build.
 export function appSupportDir(): string {
   const suffix = app.isPackaged ? "" : "-dev";
+  const name = `workspace-app${suffix}`;
+  // macOS: keep the Tauri-compatible Library path so existing Mac installs
+  // and dual-running during migration stay untouched.
+  if (process.platform === "darwin") {
+    return path.join(os.homedir(), "Library", "Application Support", name);
+  }
+  // Windows → %APPDATA%\workspace-app(-dev)
+  // Linux/WSL → ~/.config/workspace-app(-dev)
+  // (Avoid inventing a fake ~/Library tree on non-Mac hosts.)
+  return path.join(app.getPath("appData"), name);
+}
+
+/** Legacy Mac-style path that early Linux/WSL builds accidentally used. */
+function legacyLibraryAppSupportDir(suffix: string): string {
   return path.join(os.homedir(), "Library", "Application Support", `workspace-app${suffix}`);
+}
+
+function copyStateFilesIfMissing(fromDir: string, toDir: string): void {
+  for (const file of ["config.electron.json", "workspace.electron.json"]) {
+    const from = path.join(fromDir, file);
+    const to = path.join(toDir, file);
+    if (!fs.existsSync(from) || fs.existsSync(to)) continue;
+    fs.mkdirSync(toDir, { recursive: true });
+    fs.copyFileSync(from, to);
+  }
 }
 
 /**
@@ -39,18 +63,28 @@ export function appSupportDir(): string {
  * Copy, not move — the legacy files stay in place for a packaged build
  * to pick up too. Only fires if the dev-side file doesn't exist yet, so
  * it never clobbers state the dev directory has since diverged with.
+ *
+ * On Windows/Linux also migrates off the accidental `~/Library/...` path
+ * used before appSupportDir became platform-aware.
  */
 export function migrateLegacyDevStateIfNeeded(): void {
-  if (app.isPackaged) return;
-  const legacyDir = path.join(os.homedir(), "Library", "Application Support", "workspace-app");
-  const devDir = appSupportDir();
-  if (devDir === legacyDir) return;
-  for (const file of ["config.electron.json", "workspace.electron.json"]) {
-    const from = path.join(legacyDir, file);
-    const to = path.join(devDir, file);
-    if (!fs.existsSync(from) || fs.existsSync(to)) continue;
-    fs.mkdirSync(devDir, { recursive: true });
-    fs.copyFileSync(from, to);
+  const dest = appSupportDir();
+
+  if (!app.isPackaged) {
+    // Packaged → dev split (Mac-shaped Library dirs, and any host that still
+    // has them from an older build).
+    const legacyPackagedLibrary = legacyLibraryAppSupportDir("");
+    if (dest !== legacyPackagedLibrary) {
+      copyStateFilesIfMissing(legacyPackagedLibrary, dest);
+    }
+  }
+
+  if (process.platform !== "darwin") {
+    const suffix = app.isPackaged ? "" : "-dev";
+    const accidentalLibrary = legacyLibraryAppSupportDir(suffix);
+    if (dest !== accidentalLibrary) {
+      copyStateFilesIfMissing(accidentalLibrary, dest);
+    }
   }
 }
 

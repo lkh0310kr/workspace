@@ -42,13 +42,13 @@ export function resolveTerminalShortcutAction(
     return null;
   }
 
+  // Cmd+A (macOS) selects all scrollback. On Windows/Linux Ctrl+A must stay
+  // readline "beginning of line" (\x01) — use Ctrl+Shift+A for select-all.
   if (
-    isMac &&
-    event.metaKey &&
-    !event.ctrlKey &&
     !event.altKey &&
-    !event.shiftKey &&
-    event.key.toLowerCase() === "a"
+    event.key.toLowerCase() === "a" &&
+    ((isMac && event.metaKey && !event.ctrlKey && !event.shiftKey) ||
+      (!isMac && event.ctrlKey && !event.metaKey && event.shiftKey))
   ) {
     return { type: "selectAll" };
   }
