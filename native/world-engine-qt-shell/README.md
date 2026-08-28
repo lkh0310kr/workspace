@@ -46,8 +46,7 @@ lives at `electron/test-fixtures/world-engine-demo/`.
 
 ## Scene format (`world-engine.json`)
 
-Deliberately minimal — a flat list of cubes, each an independent dynamic
-rigid body:
+A flat list of entities, each a real `rapier3d` rigid body:
 
 ```json
 {
@@ -63,6 +62,29 @@ fields default (`restitution` → `0.6`, `color` → red, `position`/
 `rotation` → origin/identity). No materials, no scripting yet — real
 future scope, not pretended at here.
 
+Two more fields expose more of the underlying engine, both optional and
+backward-compatible (a scene with neither still behaves exactly as
+above):
+
+- **`body_type`**: `"dynamic"` (default, falls/collides normally),
+  `"fixed"` (never moves — a real `rapier3d` fixed body, not a dynamic
+  body pinned in place), or `"kinematic"` (a real, distinct rapier3d body
+  type, exposed here but not yet driven — nothing sets its position
+  frame-to-frame, so today it looks identical to `fixed`; scripted
+  kinematic motion is real future scope).
+- **`shape`**: `"cuboid"` (default) with `half_extents: [x, y, z]`
+  (default `[0.5, 0.5, 0.5]`), or `"sphere"` with `radius` (default
+  `0.5`) — a real, distinct `rapier3d` collider shape, rendered as an
+  actual procedural sphere mesh, not a cuboid pretending to be one.
+
+```json
+{ "position": [-2, 1, 0], "body_type": "fixed", "shape": "cuboid", "half_extents": [1, 1, 1] }
+{ "position": [0, 6, 0], "body_type": "dynamic", "shape": "sphere", "radius": 0.7, "restitution": 0.7 }
+```
+
+A real example combining all three body types and both shapes lives at
+`electron/test-fixtures/world-engine-physics-demo/`.
+
 An optional top-level `"mesh"` (a path relative to the project directory,
 `.gltf` or `.glb`) replaces the built-in cube for every entity in the
 scene — real example at `electron/test-fixtures/world-engine-mesh-demo/`:
@@ -74,7 +96,11 @@ scene — real example at `electron/test-fixtures/world-engine-mesh-demo/`:
 Only the first primitive of the first mesh is read (positions/normals/
 indices — no materials/textures/skinning/animation); a missing or broken
 mesh reference logs a warning and falls back to the cube rather than
-crashing the engine. A flat gray ground plane (matching the physics
+crashing the engine. The mesh's own bounding box (computed once at load
+time) sizes every entity's collider — a loaded mesh no longer collides
+as a fixed tiny cuboid regardless of its actual size — so per-entity
+`shape`/`half_extents`/`radius` are ignored whenever the scene has a
+top-level `mesh`. A flat gray ground plane (matching the physics
 ground collider's actual size/position) always renders now too — before
 it existed, entities had nothing visible to show what they were falling
 onto.

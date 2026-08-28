@@ -559,6 +559,76 @@ binary against it standalone — no fallback-to-cube warning printed
 the earlier cube-only scenes (default single-cube demo, the 3-cube
 fixture) still behave identically after the `GpuContext` refactor.
 
+Live QA of Phase 7 (user looking at the actual window) caught two real
+bugs, both fixed the same session:
+
+- **Ground plane invisible from above**: `ground_geometry()`'s original
+  triangle winding produced a normal facing `-Y`, which is front-facing
+  (visible, per the render pipeline's `cull_mode: Some(Face::Back)`) only
+  from *below* the plane. Diagnosed by hand via the
+  `(v1-v0)×(v2-v0)` cross-product for the first triangle, confirmed the
+  direction, reversed the index order (`[0,1,2,2,3,0]` →
+  `[0,2,1,2,0,3]`), re-verified the new winding's normal points `+Y`.
+- **Camera drag direction inverted on a real macOS trackpad**: `yaw -=
+  dx * ORBIT_SPEED` felt backwards — dragging right orbited the "wrong"
+  way. Flipped to `yaw += dx * ORBIT_SPEED`.
+
+Both were found only by the user actually looking at the running window
+— exactly the kind of bug this build-out's "verify at each step, don't
+build blind" approach is for.
+
+### Phase 8 — DONE: real rapier3d feature exposure — body types, shapes, mesh-fit colliders (2026-08-28)
+
+`rapier3d` was already a complete physics engine underneath (the same
+one Bevy wraps rather than reimplementing), but the scene format only
+ever exposed a single dynamic-body, hardcoded-0.5-cuboid slice of it.
+This batch exposes three more real capabilities, all backward-compatible
+(every existing `world-engine.json` fixture keeps parsing and behaving
+identically with zero changes):
+
+- **Body types**: an optional `body_type` field (`"dynamic"` default,
+  `"fixed"`, `"kinematic"`) maps directly to `RigidBodyBuilder::dynamic()`
+  / `::fixed()` / `::kinematic_position_based()`. Kinematic is a real,
+  distinct rapier3d body type — nothing drives its position frame-to-
+  frame yet (scripted motion is real future scope), so it currently reads
+  as visually identical to fixed.
+- **Collider shapes**: an optional `shape` field (`"cuboid"` default with
+  `half_extents`, or `"sphere"` with `radius`) maps to
+  `ColliderBuilder::cuboid(...)` / `::ball(radius)`, each rendered with
+  its own real mesh (`sphere_geometry()` — a small procedural UV sphere,
+  LearnOpenGL's standard lat/long formula, deliberately reused rather
+  than re-derived by hand after the ground-plane winding bug) instead of
+  every shape rendering as a cube regardless of its actual collider.
+- **Mesh-derived collider sizing** — the actual bug this batch fixes:
+  Phase 7's loaded-mesh entities collided as a hardcoded tiny 0.5 cuboid
+  no matter how large the real mesh was. `load_mesh()` now also computes
+  the mesh's AABB from its raw vertex positions (min/max per axis) and
+  returns it; `main()` passes it through as every entity's real collider
+  half-extents when the scene has a top-level `mesh`, ignoring
+  per-entity `shape` in that case (documented, not silently wrong).
+
+Implementation note: a `shape` field was first tried as a proper
+`#[serde(tag = "shape")]` internally-tagged enum, which is the more
+idiomatic serde shape — but that combination doesn't degrade gracefully
+when the tag key is entirely absent (every existing fixture has no
+`"shape"` key at all; `#[serde(default)]` doesn't rescue it). Caught
+during writing, before a build was even attempted — switched to plain
+`Option<String>`/`Option<[f32;3]>`/`Option<f32>` fields plus a manual
+`resolved_shape()` method that does the defaulting explicitly.
+
+Verified the same way as every other phase: `cargo build` clean, no
+warnings. New fixture
+`electron/test-fixtures/world-engine-physics-demo/` (one fixed cuboid,
+one dynamic sphere, one kinematic cuboid) run standalone — logs 3
+entities, no crash. Regression-ran the three existing fixtures (default
+single-cube demo: 1 entity; `world-engine-demo`: 3 entities;
+`world-engine-mesh-demo`: 2 entities) — identical counts, no crash, mesh
+fixture's collider now sized from the real loaded mesh instead of the
+old hardcoded cuboid. Visual confirmation (does the sphere actually
+render/bounce as a sphere, does the fixed body stay put, does the
+kinematic body stay put) is the user's own live check, same as every
+other rendering/physics-feel verification this arc.
+
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see

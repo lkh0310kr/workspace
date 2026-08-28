@@ -53,6 +53,32 @@ struct SceneEntityDef {
     restitution: f32,
     #[serde(default = "default_color")]
     color: [f32; 3],
+    /// Real `rapier3d` body types, exposed as-is — see the "not this
+    /// batch" note on `Kinematic`: the type is real and accepted, but
+    /// nothing moves it frame-to-frame yet (scripted motion is real
+    /// future scope), so it behaves like `Fixed` visually for now.
+    #[serde(default)]
+    body_type: BodyTypeDef,
+    /// Ignored when the *scene* has a top-level `mesh` (Phase 7) — that
+    /// case always uses a cuboid collider sized to the mesh's actual
+    /// bounding box instead (see `main()`), not this per-entity shape.
+    /// Plain optional fields rather than a tagged-enum `shape` object —
+    /// serde's internally-tagged-enum-plus-`#[serde(default)]` combo
+    /// doesn't degrade gracefully when the tag is entirely absent (every
+    /// existing fixture has no `"shape"` key at all), so `resolved_shape()`
+    /// below does the defaulting explicitly instead.
+    shape: Option<String>,
+    half_extents: Option<[f32; 3]>,
+    radius: Option<f32>,
+}
+
+impl SceneEntityDef {
+    fn resolved_shape(&self) -> ShapeDef {
+        match self.shape.as_deref() {
+            Some("sphere") => ShapeDef::Sphere { radius: self.radius.unwrap_or_else(default_radius) },
+            _ => ShapeDef::Cuboid { half_extents: self.half_extents.unwrap_or_else(default_half_extents) },
+        }
+    }
 }
 
 fn default_restitution() -> f32 {
@@ -61,6 +87,32 @@ fn default_restitution() -> f32 {
 
 fn default_color() -> [f32; 3] {
     [0.9, 0.2, 0.2]
+}
+
+#[derive(Deserialize, Default, Clone, Copy)]
+#[serde(rename_all = "lowercase")]
+enum BodyTypeDef {
+    #[default]
+    Dynamic,
+    Fixed,
+    Kinematic,
+}
+
+/// Not `Deserialize` directly — see `SceneEntityDef::resolved_shape()`
+/// for why (the tagged-enum-plus-missing-tag combo doesn't degrade
+/// gracefully for scenes with no `"shape"` key at all).
+#[derive(Clone, Copy)]
+enum ShapeDef {
+    Cuboid { half_extents: [f32; 3] },
+    Sphere { radius: f32 },
+}
+
+fn default_half_extents() -> [f32; 3] {
+    [0.5, 0.5, 0.5]
+}
+
+fn default_radius() -> f32 {
+    0.5
 }
 
 fn default_scene() -> SceneFile {
@@ -73,6 +125,10 @@ fn default_scene() -> SceneFile {
             rotation: [0.4, 0.6, 0.0],
             restitution: 0.6,
             color: [0.9, 0.2, 0.2],
+            body_type: BodyTypeDef::Dynamic,
+            shape: None,
+            half_extents: None,
+            radius: None,
         }],
         mesh: None,
     }
@@ -193,7 +249,54 @@ fn ground_geometry() -> (Vec<Vertex>, Vec<u16>) {
         Vertex { pos: [half, y, half], normal, color },
         Vertex { pos: [-half, y, half], normal, color },
     ];
-    (vertices, vec![0, 1, 2, 2, 3, 0])
+    // Why (found via a real live-QA report, not assumed): with wgpu's
+    // default CCW front-face + our Face::Back culling, [0,1,2,2,3,0] is
+    // front-facing as seen from *below* the XZ plane and back-facing
+    // (culled) from above — invisible from the camera's normal viewing
+    // angle, only visible if you orbit underneath it. Reversed to
+    // [0,2,1,2,0,3] so it's front-facing from above instead.
+    (vertices, vec![0, 2, 1, 2, 0, 3])
+}
+
+/// A small procedural UV sphere (radius 0.5, matching the cube's default
+/// half-extent scale) — the well-known LearnOpenGL-style generation
+/// formula (right-handed, Y-up, CCW-front-face-outward), used as-is
+/// rather than re-derived by hand, given the ground plane's winding bug
+/// found via live QA just before this. 12×8 segments — enough to read
+/// clearly as a sphere, not photoreal.
+fn sphere_geometry() -> (Vec<Vertex>, Vec<u16>) {
+    const SLICES: u16 = 12;
+    const STACKS: u16 = 8;
+    const RADIUS: f32 = 0.5;
+    let color = [0.9, 0.2, 0.2];
+
+    let mut vertices = Vec::with_capacity(((SLICES + 1) * (STACKS + 1)) as usize);
+    for y in 0..=STACKS {
+        let y_segment = y as f32 / STACKS as f32;
+        for x in 0..=SLICES {
+            let x_segment = x as f32 / SLICES as f32;
+            let theta = x_segment * std::f32::consts::TAU;
+            let phi = y_segment * std::f32::consts::PI;
+            let (sin_phi, cos_phi) = phi.sin_cos();
+            let (sin_theta, cos_theta) = theta.sin_cos();
+            let normal = [cos_theta * sin_phi, cos_phi, sin_theta * sin_phi];
+            let pos = [normal[0] * RADIUS, normal[1] * RADIUS, normal[2] * RADIUS];
+            vertices.push(Vertex { pos, normal, color });
+        }
+    }
+
+    let mut indices = Vec::new();
+    let row_len = SLICES + 1;
+    for y in 0..STACKS {
+        for x in 0..SLICES {
+            let i0 = y * row_len + x;
+            let i1 = (y + 1) * row_len + x;
+            let i2 = (y + 1) * row_len + x + 1;
+            let i3 = y * row_len + x + 1;
+            indices.extend_from_slice(&[i0, i1, i2, i0, i2, i3]);
+        }
+    }
+    (vertices, indices)
 }
 
 /// Loads the first primitive of the first mesh in a glTF/GLB file —
@@ -201,7 +304,13 @@ fn ground_geometry() -> (Vec<Vertex>, Vec<u16>) {
 /// animation, real future scope). Vertex color is a flat mid-gray; the
 /// per-entity `tint` uniform (see `render_frame`) does the actual
 /// coloring, same as the built-in cube.
-fn load_mesh(path: &std::path::Path) -> anyhow::Result<(Vec<Vertex>, Vec<u16>)> {
+/// Returns (vertices, indices, collider half-extents) — the half-extents
+/// are the mesh's actual bounding-box half-size, computed from its raw
+/// positions before they're consumed into `Vertex`es. Used so every
+/// entity's collider in a mesh-driven scene is sized to match what's
+/// actually rendered, instead of the old hardcoded 0.5 cuboid (a real
+/// mismatch found via live QA on Phase 7's own "Box" fixture).
+fn load_mesh(path: &std::path::Path) -> anyhow::Result<(Vec<Vertex>, Vec<u16>, [f32; 3])> {
     let (document, buffers, _images) = gltf::import(path)?;
     let mesh = document
         .meshes()
@@ -230,13 +339,23 @@ fn load_mesh(path: &std::path::Path) -> anyhow::Result<(Vec<Vertex>, Vec<u16>)> 
             .collect::<anyhow::Result<Vec<u16>>>()?,
         None => (0..positions.len() as u16).collect(),
     };
+    let mut min = [f32::MAX; 3];
+    let mut max = [f32::MIN; 3];
+    for p in &positions {
+        for i in 0..3 {
+            min[i] = min[i].min(p[i]);
+            max[i] = max[i].max(p[i]);
+        }
+    }
+    let half_extents = [(max[0] - min[0]) / 2.0, (max[1] - min[1]) / 2.0, (max[2] - min[2]) / 2.0];
+
     let color = [0.75, 0.75, 0.78];
     let vertices = positions
         .into_iter()
         .zip(normals)
         .map(|(pos, normal)| Vertex { pos, normal, color })
         .collect();
-    Ok((vertices, indices))
+    Ok((vertices, indices, half_extents))
 }
 
 #[repr(C)]
@@ -257,6 +376,17 @@ struct Transform {
 struct PhysicsBody(RigidBodyHandle);
 struct Tint(Vec3);
 
+/// Which uploaded `Mesh` in `GpuContext` this entity draws with — decided
+/// once at scene-load time in `World::new()` from `mesh_half_extents`/
+/// `resolved_shape()`, not re-decided per frame.
+#[derive(Clone, Copy, PartialEq)]
+enum MeshKind {
+    Cube,
+    Sphere,
+    Loaded,
+}
+struct RenderMesh(MeshKind);
+
 struct World {
     ecs: hecs::World,
     rigid_body_set: RigidBodySet,
@@ -273,7 +403,14 @@ struct World {
 }
 
 impl World {
-    fn new(scene: &SceneFile) -> Self {
+    /// `mesh_half_extents`: `Some` when the scene has a top-level `mesh`
+    /// (Phase 7) — every entity's collider is then a cuboid sized to the
+    /// loaded mesh's actual bounding box (computed once in `main()`) and
+    /// rendered with the loaded mesh, ignoring per-entity `shape`
+    /// entirely. `None`: each entity uses its own `resolved_shape()`
+    /// (cuboid/sphere, real `rapier3d` shapes) for both collider and
+    /// render geometry.
+    fn new(scene: &SceneFile, mesh_half_extents: Option<[f32; 3]>) -> Self {
         let mut rigid_body_set = RigidBodySet::new();
         let mut collider_set = ColliderSet::new();
         collider_set.insert(ColliderBuilder::cuboid(50.0, 0.1, 50.0).build());
@@ -281,17 +418,37 @@ impl World {
         let mut ecs = hecs::World::new();
         let mut cube_entities = Vec::with_capacity(scene.entities.len());
         for def in &scene.entities {
-            let rigid_body = RigidBodyBuilder::dynamic()
+            let rigid_body_builder = match def.body_type {
+                BodyTypeDef::Dynamic => RigidBodyBuilder::dynamic(),
+                BodyTypeDef::Fixed => RigidBodyBuilder::fixed(),
+                // Real, distinct rapier3d body type — nothing sets its
+                // position frame-to-frame yet (scripted kinematic motion
+                // is real future scope), so it behaves like Fixed
+                // visually for now. See the plan's explicit non-goals.
+                BodyTypeDef::Kinematic => RigidBodyBuilder::kinematic_position_based(),
+            };
+            let rigid_body = rigid_body_builder
                 .translation(Vec3::from(def.position))
                 .rotation(Vec3::from(def.rotation))
                 .build();
             let handle = rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::cuboid(0.5, 0.5, 0.5).restitution(def.restitution).build();
+
+            let (collider, mesh_kind) = if let Some(half_extents) = mesh_half_extents {
+                let [hx, hy, hz] = half_extents;
+                (ColliderBuilder::cuboid(hx, hy, hz), MeshKind::Loaded)
+            } else {
+                match def.resolved_shape() {
+                    ShapeDef::Cuboid { half_extents: [hx, hy, hz] } => (ColliderBuilder::cuboid(hx, hy, hz), MeshKind::Cube),
+                    ShapeDef::Sphere { radius } => (ColliderBuilder::ball(radius), MeshKind::Sphere),
+                }
+            };
+            let collider = collider.restitution(def.restitution).build();
             collider_set.insert_with_parent(collider, handle, &mut rigid_body_set);
             let entity = ecs.spawn((
                 Transform { translation: Vec3::ZERO, rotation: Quat::IDENTITY },
                 PhysicsBody(handle),
                 Tint(Vec3::from(def.color)),
+                RenderMesh(mesh_kind),
             ));
             cube_entities.push(entity);
         }
@@ -339,15 +496,16 @@ impl World {
         }
     }
 
-    /// (model matrix, tint) per entity, in a stable order — what
-    /// `render_frame` actually draws each tick.
-    fn draw_list(&self) -> Vec<(Mat4, Vec3)> {
+    /// (model matrix, tint, mesh kind) per entity, in a stable order —
+    /// what `render_frame` actually draws each tick.
+    fn draw_list(&self) -> Vec<(Mat4, Vec3, MeshKind)> {
         self.cube_entities
             .iter()
             .map(|&entity| {
                 let transform = self.ecs.get::<&Transform>(entity).unwrap();
                 let tint = self.ecs.get::<&Tint>(entity).unwrap();
-                (Mat4::from_rotation_translation(transform.rotation, transform.translation), tint.0)
+                let mesh_kind = self.ecs.get::<&RenderMesh>(entity).unwrap().0;
+                (Mat4::from_rotation_translation(transform.rotation, transform.translation), tint.0, mesh_kind)
             })
             .collect()
     }
@@ -388,11 +546,13 @@ struct GpuContext {
     uniform_buf: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     ground_mesh: Mesh,
-    entity_mesh: Mesh,
+    cube_mesh: Mesh,
+    sphere_mesh: Mesh,
+    loaded_mesh: Option<Mesh>,
     depth_view: wgpu::TextureView,
 }
 
-fn init_gpu(native_view: *mut c_void, entity_geometry: (Vec<Vertex>, Vec<u16>)) -> GpuContext {
+fn init_gpu(native_view: *mut c_void, loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)>) -> GpuContext {
     let raw_window_handle = RawWindowHandle::AppKit(AppKitWindowHandle::new(NonNull::new(native_view).expect("Qt gave a null native view")));
     let raw_display_handle = RawDisplayHandle::AppKit(AppKitDisplayHandle::new());
 
@@ -439,8 +599,11 @@ fn init_gpu(native_view: *mut c_void, entity_geometry: (Vec<Vertex>, Vec<u16>)) 
     );
 
     let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
-    let (entity_vertices, entity_indices) = entity_geometry;
-    let entity_mesh = upload_mesh(&device, &queue, "entity", &entity_vertices, &entity_indices);
+    let (cube_vertices, cube_indices) = cube_geometry();
+    let cube_mesh = upload_mesh(&device, &queue, "cube", &cube_vertices, &cube_indices);
+    let (sphere_vertices, sphere_indices) = sphere_geometry();
+    let sphere_mesh = upload_mesh(&device, &queue, "sphere", &sphere_vertices, &sphere_indices);
+    let loaded_mesh = loaded_geometry.map(|(vertices, indices)| upload_mesh(&device, &queue, "loaded", &vertices, &indices));
     let (ground_vertices, ground_indices) = ground_geometry();
     let ground_mesh = upload_mesh(&device, &queue, "ground", &ground_vertices, &ground_indices);
 
@@ -518,12 +681,14 @@ fn init_gpu(native_view: *mut c_void, entity_geometry: (Vec<Vertex>, Vec<u16>)) 
         uniform_buf,
         bind_group,
         ground_mesh,
-        entity_mesh,
+        cube_mesh,
+        sphere_mesh,
+        loaded_mesh,
         depth_view,
     }
 }
 
-fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3)], camera: &Camera) {
+fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3, MeshKind)], camera: &Camera) {
     let aspect = WIDTH as f32 / HEIGHT as f32;
     let projection = glam::camera::rh::proj::directx::perspective(45f32.to_radians(), aspect, 0.1, 100.0);
     let view = glam::camera::rh::view::look_at_mat4(camera.eye(), Vec3::ZERO, Vec3::Y);
@@ -547,7 +712,14 @@ fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3)], camera: &Camera) {
     // by the shader (see shader.wgsl's comment), only the tint uniform is.
     const GROUND_TINT: Vec3 = Vec3::new(0.18, 0.2, 0.24);
     let ground_draw = (Mat4::IDENTITY, GROUND_TINT, &gpu.ground_mesh);
-    let entity_draws = draw_list.iter().map(|(model, tint)| (*model, *tint, &gpu.entity_mesh));
+    let entity_draws = draw_list.iter().map(|(model, tint, kind)| {
+        let mesh = match kind {
+            MeshKind::Cube => &gpu.cube_mesh,
+            MeshKind::Sphere => &gpu.sphere_mesh,
+            MeshKind::Loaded => gpu.loaded_mesh.as_ref().expect("MeshKind::Loaded entity exists but no mesh was loaded"),
+        };
+        (*model, *tint, mesh)
+    });
     let all_draws = std::iter::once(ground_draw).chain(entity_draws);
 
     for (i, (model, tint, mesh)) in all_draws.enumerate() {
@@ -602,15 +774,16 @@ struct EngineState {
     world: World,
     gpu: Option<GpuContext>,
     camera: Camera,
-    // Taken (replaced with an empty placeholder) the moment on_init
-    // consumes it — GpuContext needs to own its own buffers, this is
-    // just the handoff from main()'s scene-loading to init_gpu().
-    entity_geometry: Option<(Vec<Vertex>, Vec<u16>)>,
+    // Taken (replaced with None) the moment on_init consumes it —
+    // GpuContext needs to own its own buffers, this is just the handoff
+    // from main()'s scene-loading to init_gpu(). None means no scene
+    // mesh was loaded (no project, no mesh field, or it failed to load).
+    loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)>,
 }
 
 extern "C" fn on_init(native_view: *mut c_void, user_data: *mut c_void) {
     let state = unsafe { &mut *(user_data as *mut EngineState) };
-    let geometry = state.entity_geometry.take().unwrap_or_else(cube_geometry);
+    let geometry = state.loaded_geometry.take();
     state.gpu = Some(init_gpu(native_view, geometry));
     println!("wgpu surface created directly in the Qt window.");
 }
@@ -636,7 +809,12 @@ extern "C" fn on_input(event_type: c_int, _x: f32, _y: f32, dx: f32, dy: f32, us
 
     match event_type {
         INPUT_MOUSE_DRAG => {
-            state.camera.yaw -= dx * ORBIT_SPEED;
+            // Why (found via a real live-QA report, not assumed): this was
+            // `-=`, which felt backwards on a real macOS trackpad —
+            // dragging right orbited the camera the "wrong" way relative
+            // to how the scene visually moved. Flipped to `+=` to match
+            // natural drag-to-orbit feel.
+            state.camera.yaw += dx * ORBIT_SPEED;
             state.camera.pitch = (state.camera.pitch + dy * ORBIT_SPEED).clamp(-MAX_PITCH, MAX_PITCH);
         }
         INPUT_WHEEL => {
@@ -658,22 +836,26 @@ fn main() {
     };
 
     // scene.mesh, if present, is relative to the project directory —
-    // load it once here; on_init() falls back to the built-in cube if
-    // this is None (no project, or no mesh specified, or it failed to
+    // load it once here; on_init() falls back to the built-in cube/sphere
+    // if this is None (no project, or no mesh specified, or it failed to
     // load — a broken mesh reference shouldn't crash the whole engine).
-    let entity_geometry = match (&project_dir, &scene.mesh) {
-        (Some(dir), Some(mesh_rel)) => {
-            let mesh_path = std::path::Path::new(dir).join(mesh_rel);
-            match load_mesh(&mesh_path) {
-                Ok(geometry) => Some(geometry),
-                Err(err) => {
-                    eprintln!("failed to load mesh {mesh_path:?}: {err:#} — using the built-in cube instead.");
-                    None
-                }
+    // mesh_half_extents is the loaded mesh's own AABB, used to size every
+    // entity's collider to actually match the mesh instead of a hardcoded
+    // 0.5 cuboid (the bug found live in Phase 7).
+    let mut loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)> = None;
+    let mut mesh_half_extents: Option<[f32; 3]> = None;
+    if let (Some(dir), Some(mesh_rel)) = (&project_dir, &scene.mesh) {
+        let mesh_path = std::path::Path::new(dir).join(mesh_rel);
+        match load_mesh(&mesh_path) {
+            Ok((vertices, indices, half_extents)) => {
+                loaded_geometry = Some((vertices, indices));
+                mesh_half_extents = Some(half_extents);
+            }
+            Err(err) => {
+                eprintln!("failed to load mesh {mesh_path:?}: {err:#} — using the built-in cube instead.");
             }
         }
-        _ => None,
-    };
+    }
 
     let initial_eye = Vec3::new(4.0, 3.5, 6.0);
     let camera = Camera {
@@ -681,7 +863,7 @@ fn main() {
         pitch: (initial_eye.y / initial_eye.length()).asin(),
         distance: initial_eye.length(),
     };
-    let mut state = Box::new(EngineState { world: World::new(&scene), gpu: None, camera, entity_geometry });
+    let mut state = Box::new(EngineState { world: World::new(&scene, mesh_half_extents), gpu: None, camera, loaded_geometry });
     let user_data = &mut *state as *mut EngineState as *mut c_void;
     println!("world-engine-qt-shell: Qt native window, wgpu direct render, {} entities", state.world.cube_entities.len());
     unsafe {
