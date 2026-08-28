@@ -240,8 +240,8 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   );
 
   const openOrSwitchToFile = useCallback(
-    (path: string, kind: "code" | "markdown" | "viewer" | "vector", jumpToLine?: number) => {
-      const existing = tabs.find((t) => t.filePath === path);
+    (path: string, kind: "code" | "markdown" | "viewer" | "vector", jumpToLine?: number, forceNewTab?: boolean) => {
+      const existing = forceNewTab ? undefined : tabs.find((t) => t.filePath === path);
       if (existing) {
         selectTab(existing.id);
         if (jumpToLine != null) {
@@ -261,6 +261,40 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
         .catch(console.error);
     },
     [tabs, model, nodeId, selectTab, onNotifyChanged],
+  );
+
+  // Keeps this pane's own open tabs pointing at the real file when the
+  // tree renames/moves/deletes something out from under them — without
+  // this, a tab left pointing at a now-stale path silently recreates the
+  // old file on its next save (reported as "moving/deleting a file
+  // doesn't get reflected, looks like the file gets copied back").
+  // Scoped to this PaneGroup's own tabs only; a file open in a *different*
+  // pane/split isn't reachable from here.
+  const onTreePathRenamed = useCallback(
+    (from: string, to: string) => {
+      let changed = false;
+      for (const t of tabs) {
+        if (!t.filePath) continue;
+        if (t.filePath === from) {
+          updateTabInGroup(model, nodeId, t.id, { filePath: to });
+          changed = true;
+        } else if (t.filePath.startsWith(`${from}/`)) {
+          updateTabInGroup(model, nodeId, t.id, { filePath: to + t.filePath.slice(from.length) });
+          changed = true;
+        }
+      }
+      if (changed) onNotifyChanged();
+    },
+    [tabs, model, nodeId, onNotifyChanged],
+  );
+
+  const onTreePathDeleted = useCallback(
+    (path: string) => {
+      for (const t of tabs) {
+        if (t.filePath === path || t.filePath?.startsWith(`${path}/`)) closeTab(t.id);
+      }
+    },
+    [tabs, closeTab],
   );
 
   const dropTab = useCallback(
@@ -356,7 +390,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                 rootPath={rootPath}
                 selectedPath={activeItem.filePath ?? null}
                 paneVisible={visible}
-                onOpenFile={openOrSwitchToFile}
+                onOpenFile={(path, kind, openInNewTab) => openOrSwitchToFile(path, kind, undefined, openInNewTab)}
+                onPathRenamed={onTreePathRenamed}
+                onPathDeleted={onTreePathDeleted}
               />
             )}
           </div>

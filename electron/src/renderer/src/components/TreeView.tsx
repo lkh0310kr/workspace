@@ -19,7 +19,14 @@ interface Props {
   rootPath: string;
   selectedPath?: string | null;
   paneVisible?: boolean;
-  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer" | "vector") => void;
+  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer" | "vector", openInNewTab?: boolean) => void;
+  // Lets the pane hosting this tree keep any open tab's filePath in sync
+  // with what actually happened on disk — without these, renaming/moving/
+  // deleting a file out from under an open tab leaves that tab pointing
+  // at a path that no longer exists, and the *next* save on it recreates
+  // the old file (looks like the file got "copied back").
+  onPathRenamed?: (from: string, to: string) => void;
+  onPathDeleted?: (path: string) => void;
 }
 
 interface DirState {
@@ -117,7 +124,15 @@ function flattenVisible(dirs: Map<string, DirState>, expanded: Set<string>, dir:
   }
 }
 
-export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, onOpenFile }: Props) {
+export function TreeView({
+  tabId,
+  rootPath,
+  selectedPath,
+  paneVisible = true,
+  onOpenFile,
+  onPathRenamed,
+  onPathDeleted,
+}: Props) {
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<MenuState | null>(null);
@@ -204,20 +219,24 @@ export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, on
 
   const refresh = (dir: string) => loadDir(dir);
 
-  // Click handling shared by file/folder rows — Cmd/Ctrl toggles this
-  // entry's membership without touching the anchor or opening/expanding
-  // anything; Shift extends the range from the fixed anchor (doesn't move
-  // it, matching Finder/VSCode); a plain click replaces the selection with
-  // just this entry and *then* runs `action` (open file / expand folder).
-  const handleRowClick = (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }, path: string, action: () => void) => {
-    if (e.metaKey || e.ctrlKey) {
-      setSelected((prev) => {
-        const next = new Set(prev);
-        if (next.has(path)) next.delete(path);
-        else next.add(path);
-        return next;
-      });
+  // Click handling shared by file/folder rows. Cmd/Ctrl+click on a *file*
+  // opens it in a new tab (browser-style "open link in new tab"), same as
+  // this app's own PaneTabStrip convention elsewhere — it does not toggle
+  // multi-select the way Finder/VSCode's Cmd+click does; Shift+click's
+  // range-select (below) is this tree's only multi-select path now. Shift
+  // extends the range from the fixed anchor (doesn't move it, matching
+  // Finder/VSCode); a plain click replaces the selection with just this
+  // entry and *then* runs `action` (open file / expand folder).
+  const handleRowClick = (
+    e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean },
+    entry: DirEntry,
+    action: (openInNewTab: boolean) => void,
+  ) => {
+    const path = entry.path;
+    if ((e.metaKey || e.ctrlKey) && !entry.is_dir) {
+      setSelected(new Set([path]));
       setSelectionAnchor(path);
+      action(true);
       return;
     }
     if (e.shiftKey && selectionAnchor) {
@@ -231,7 +250,7 @@ export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, on
     }
     setSelected(new Set([path]));
     setSelectionAnchor(path);
-    action();
+    action(false);
   };
 
   const newFile = async (dir: string) => {
@@ -270,6 +289,7 @@ export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, on
         if (name === entry.name) return;
         const to = joinPath(dirOf(entry.path), name);
         await renamePath(tabId, entry.path, to).catch((err) => alert(String(err)));
+        onPathRenamed?.(entry.path, to);
         refresh(dirOf(entry.path));
       },
     });
@@ -289,6 +309,7 @@ export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, on
     if (!window.confirm(`Delete ${label}?\n\n${paths.join("\n")}`)) return;
     for (const p of paths) {
       await deletePath(tabId, p).catch((err) => alert(String(err)));
+      onPathDeleted?.(p);
     }
     for (const d of new Set(paths.map(dirOf))) refresh(d);
     setSelected(new Set());
@@ -320,6 +341,7 @@ export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, on
       if (targetDir === p || targetDir.startsWith(`${p}/`)) continue;
       const to = joinPath(targetDir, baseName(p));
       await renamePath(tabId, p, to).catch((err) => alert(String(err)));
+      onPathRenamed?.(p, to);
     }
     for (const d of new Set([...paths.map(dirOf), targetDir])) refresh(d);
     setSelected(new Set());
@@ -426,8 +448,8 @@ export function TreeView({ tabId, rootPath, selectedPath, paneVisible = true, on
           onDrop={entry.is_dir ? (e) => onFolderDrop(e, entry.path) : undefined}
           onClick={(e) => {
             e.stopPropagation();
-            handleRowClick(e, entry.path, () =>
-              entry.is_dir ? toggle(entry.path) : onOpenFile(entry.path, classifyFile(entry.name)),
+            handleRowClick(e, entry, (openInNewTab) =>
+              entry.is_dir ? toggle(entry.path) : onOpenFile(entry.path, classifyFile(entry.name), openInNewTab),
             );
           }}
           onContextMenu={(e) => {
