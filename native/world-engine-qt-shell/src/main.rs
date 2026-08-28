@@ -41,6 +41,48 @@ struct SceneFile {
     /// for existing scenes.
     #[serde(default)]
     mesh: Option<String>,
+    /// Real `rapier3d` joints connecting two entities by index into
+    /// `entities` (0-based, in file order). Brand-new data — no existing
+    /// fixture has this key, so (unlike `shape` on `SceneEntityDef`) a
+    /// plain internally-tagged enum works fine here: there's no
+    /// missing-tag-on-old-data problem to work around.
+    #[serde(default)]
+    joints: Vec<JointDef>,
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+enum JointDef {
+    /// A hinge — locks all relative motion except rotation around `axis`
+    /// (local-space, same for both bodies). `anchor1`/`anchor2` are the
+    /// pivot point in each body's own local space — e.g. a pendulum sets
+    /// `anchor2` above its dynamic body's center so gravity gives it a
+    /// lever arm to swing on.
+    Revolute {
+        body1: usize,
+        body2: usize,
+        #[serde(default = "default_joint_axis")]
+        axis: [f32; 3],
+        #[serde(default)]
+        anchor1: [f32; 3],
+        #[serde(default)]
+        anchor2: [f32; 3],
+    },
+    /// Welds two bodies together at their anchors — no relative motion at
+    /// all (unlike parenting a shape to another shape, this is a real
+    /// rapier3d constraint the solver enforces every step).
+    Fixed {
+        body1: usize,
+        body2: usize,
+        #[serde(default)]
+        anchor1: [f32; 3],
+        #[serde(default)]
+        anchor2: [f32; 3],
+    },
+}
+
+fn default_joint_axis() -> [f32; 3] {
+    [0.0, 1.0, 0.0]
 }
 
 #[derive(Deserialize)]
@@ -70,6 +112,38 @@ struct SceneEntityDef {
     shape: Option<String>,
     half_extents: Option<[f32; 3]>,
     radius: Option<f32>,
+    /// Only meaningful on a `"kinematic"` `body_type` — makes it actually
+    /// move instead of just sitting there like a fixed body (the gap
+    /// called out as this batch's non-goal previously). A plain optional
+    /// struct field, not a tagged enum, so it stays exempt from the
+    /// missing-tag-on-old-data problem `resolved_shape()` works around.
+    motion: Option<MotionDef>,
+}
+
+/// Simple sinusoidal oscillation along one axis, driven by the world's
+/// running clock: `origin + axis.normalize() * amplitude *
+/// sin(time * speed)`. Not a general animation/scripting system — real
+/// future scope — just enough to make a kinematic body actually move.
+#[derive(Deserialize, Clone, Copy)]
+struct MotionDef {
+    #[serde(default = "default_motion_axis")]
+    axis: [f32; 3],
+    #[serde(default = "default_motion_amplitude")]
+    amplitude: f32,
+    #[serde(default = "default_motion_speed")]
+    speed: f32,
+}
+
+fn default_motion_axis() -> [f32; 3] {
+    [0.0, 1.0, 0.0]
+}
+
+fn default_motion_amplitude() -> f32 {
+    1.0
+}
+
+fn default_motion_speed() -> f32 {
+    1.0
 }
 
 impl SceneEntityDef {
@@ -129,8 +203,10 @@ fn default_scene() -> SceneFile {
             shape: None,
             half_extents: None,
             radius: None,
+            motion: None,
         }],
         mesh: None,
+        joints: vec![],
     }
 }
 
@@ -375,6 +451,15 @@ struct Transform {
 }
 struct PhysicsBody(RigidBodyHandle);
 struct Tint(Vec3);
+/// Present only on entities with a `motion` field in the scene — drives a
+/// kinematic body via `set_next_kinematic_translation` each step instead
+/// of leaving it sitting there like a fixed body.
+struct Motion {
+    origin: Vec3,
+    axis: Vec3,
+    amplitude: f32,
+    speed: f32,
+}
 
 /// Which uploaded `Mesh` in `GpuContext` this entity draws with — decided
 /// once at scene-load time in `World::new()` from `mesh_half_extents`/
@@ -400,6 +485,9 @@ struct World {
     multibody_joint_set: MultibodyJointSet,
     ccd_solver: CCDSolver,
     cube_entities: Vec<hecs::Entity>,
+    /// Running clock, advanced once per `step()` by the fixed physics
+    /// timestep — drives `Motion`'s sinusoidal offset.
+    time: f32,
 }
 
 impl World {
@@ -417,14 +505,18 @@ impl World {
 
         let mut ecs = hecs::World::new();
         let mut cube_entities = Vec::with_capacity(scene.entities.len());
+        // Indexed the same as scene.entities — lets JointDef's body1/body2
+        // (plain 0-based indices into the scene file) find the real
+        // rapier3d handle to join.
+        let mut rigid_body_handles = Vec::with_capacity(scene.entities.len());
         for def in &scene.entities {
             let rigid_body_builder = match def.body_type {
                 BodyTypeDef::Dynamic => RigidBodyBuilder::dynamic(),
                 BodyTypeDef::Fixed => RigidBodyBuilder::fixed(),
-                // Real, distinct rapier3d body type — nothing sets its
-                // position frame-to-frame yet (scripted kinematic motion
-                // is real future scope), so it behaves like Fixed
-                // visually for now. See the plan's explicit non-goals.
+                // Real, distinct rapier3d body type. Behaves like Fixed
+                // unless the entity also has a `motion` field (see
+                // Motion component below) — without one, nothing drives
+                // its position frame-to-frame.
                 BodyTypeDef::Kinematic => RigidBodyBuilder::kinematic_position_based(),
             };
             let rigid_body = rigid_body_builder
@@ -432,6 +524,7 @@ impl World {
                 .rotation(Vec3::from(def.rotation))
                 .build();
             let handle = rigid_body_set.insert(rigid_body);
+            rigid_body_handles.push(handle);
 
             let (collider, mesh_kind) = if let Some(half_extents) = mesh_half_extents {
                 let [hx, hy, hz] = half_extents;
@@ -450,7 +543,36 @@ impl World {
                 Tint(Vec3::from(def.color)),
                 RenderMesh(mesh_kind),
             ));
+            if let Some(motion) = def.motion {
+                ecs.insert_one(
+                    entity,
+                    Motion { origin: Vec3::from(def.position), axis: Vec3::from(motion.axis), amplitude: motion.amplitude, speed: motion.speed },
+                )
+                .expect("entity was just spawned, must still exist");
+            }
             cube_entities.push(entity);
+        }
+
+        let mut impulse_joint_set = ImpulseJointSet::new();
+        for joint in &scene.joints {
+            let (body1_idx, body2_idx) = match joint {
+                JointDef::Revolute { body1, body2, .. } => (*body1, *body2),
+                JointDef::Fixed { body1, body2, .. } => (*body1, *body2),
+            };
+            let (Some(&body1), Some(&body2)) = (rigid_body_handles.get(body1_idx), rigid_body_handles.get(body2_idx)) else {
+                eprintln!("joint references out-of-range entity index ({body1_idx}, {body2_idx}) for {} entities — skipped.", rigid_body_handles.len());
+                continue;
+            };
+            match joint {
+                JointDef::Revolute { axis, anchor1, anchor2, .. } => {
+                    let data = RevoluteJointBuilder::new(Vec3::from(*axis)).local_anchor1(Vec3::from(*anchor1)).local_anchor2(Vec3::from(*anchor2)).build();
+                    impulse_joint_set.insert(body1, body2, data, true);
+                }
+                JointDef::Fixed { anchor1, anchor2, .. } => {
+                    let data = FixedJointBuilder::new().local_anchor1(Vec3::from(*anchor1)).local_anchor2(Vec3::from(*anchor2)).build();
+                    impulse_joint_set.insert(body1, body2, data, true);
+                }
+            }
         }
 
         Self {
@@ -462,14 +584,32 @@ impl World {
             island_manager: IslandManager::new(),
             broad_phase: DefaultBroadPhase::new(),
             narrow_phase: NarrowPhase::new(),
-            impulse_joint_set: ImpulseJointSet::new(),
+            impulse_joint_set,
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
             cube_entities,
+            time: 0.0,
         }
     }
 
     fn step(&mut self) {
+        self.time += self.integration_parameters.dt;
+        // Scripted kinematic motion — set each Motion entity's target
+        // position before the physics step, same pattern rapier3d's own
+        // kinematic examples use (the pipeline consumes
+        // set_next_kinematic_translation during this step, not the next).
+        let mut kinematic_targets = Vec::new();
+        for &entity in &self.cube_entities {
+            if let Ok(motion) = self.ecs.get::<&Motion>(entity) {
+                let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
+                let offset = motion.axis.normalize_or_zero() * motion.amplitude * (self.time * motion.speed).sin();
+                kinematic_targets.push((body_handle, motion.origin + offset));
+            }
+        }
+        for (handle, target) in kinematic_targets {
+            self.rigid_body_set[handle].set_next_kinematic_translation(target);
+        }
+
         let gravity = Vec3::new(0.0, -9.81, 0.0);
         self.physics_pipeline.step(
             gravity,

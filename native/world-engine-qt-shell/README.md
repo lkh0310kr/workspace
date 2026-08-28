@@ -69,21 +69,50 @@ above):
 - **`body_type`**: `"dynamic"` (default, falls/collides normally),
   `"fixed"` (never moves — a real `rapier3d` fixed body, not a dynamic
   body pinned in place), or `"kinematic"` (a real, distinct rapier3d body
-  type, exposed here but not yet driven — nothing sets its position
-  frame-to-frame, so today it looks identical to `fixed`; scripted
-  kinematic motion is real future scope).
+  type — sits like `fixed` unless it also has a `motion` field, below).
 - **`shape`**: `"cuboid"` (default) with `half_extents: [x, y, z]`
   (default `[0.5, 0.5, 0.5]`), or `"sphere"` with `radius` (default
   `0.5`) — a real, distinct `rapier3d` collider shape, rendered as an
   actual procedural sphere mesh, not a cuboid pretending to be one.
+- **`motion`**: only meaningful on a `"kinematic"` entity — makes it
+  actually move, driven by `set_next_kinematic_translation` every step
+  (not just teleported by a script — the physics solver sees it as a
+  real kinematic body and dynamic bodies resting on it are pushed
+  correctly). Sinusoidal only: `origin + axis.normalize() * amplitude *
+  sin(time * speed)`, where `origin` is the entity's own `position`.
+  `axis` defaults to `[0, 1, 0]`, `amplitude` to `1.0`, `speed` to `1.0`.
+  Not a general animation/scripting system — real future scope.
 
 ```json
 { "position": [-2, 1, 0], "body_type": "fixed", "shape": "cuboid", "half_extents": [1, 1, 1] }
 { "position": [0, 6, 0], "body_type": "dynamic", "shape": "sphere", "radius": 0.7, "restitution": 0.7 }
+{ "position": [2, 2, 0], "body_type": "kinematic", "shape": "cuboid", "half_extents": [1.5, 0.2, 1.5], "motion": { "axis": [0, 1, 0], "amplitude": 1.5, "speed": 1.0 } }
 ```
 
 A real example combining all three body types and both shapes lives at
 `electron/test-fixtures/world-engine-physics-demo/`.
+
+A top-level `"joints"` list connects two entities (by 0-based index into
+`entities`) with a real `rapier3d` constraint the solver enforces every
+step — not visual parenting:
+
+- **`"revolute"`**: a hinge — locks all relative motion except rotation
+  around `axis` (local-space, shared by both bodies, default
+  `[0, 1, 0]`). `anchor1`/`anchor2` are the pivot point in each body's
+  own local space — offsetting `anchor2` from a dynamic body's center
+  gives it a lever arm to swing on (a pendulum).
+- **`"fixed"`**: welds two bodies together at their anchors — zero
+  relative motion.
+
+```json
+{ "joints": [{ "type": "revolute", "body1": 0, "body2": 1, "axis": [0, 0, 1], "anchor1": [0, 0, 0], "anchor2": [0, 1, 0] }] }
+```
+
+An out-of-range `body1`/`body2` index logs a warning and is skipped
+rather than crashing the engine (same "broken input degrades, doesn't
+crash" pattern as a broken mesh reference). A real example combining a
+revolute-joint pendulum with a scripted kinematic platform lives at
+`electron/test-fixtures/world-engine-joints-demo/`.
 
 An optional top-level `"mesh"` (a path relative to the project directory,
 `.gltf` or `.glb`) replaces the built-in cube for every entity in the

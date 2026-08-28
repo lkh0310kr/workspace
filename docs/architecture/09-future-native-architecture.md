@@ -629,6 +629,53 @@ render/bounce as a sphere, does the fixed body stay put, does the
 kinematic body stay put) is the user's own live check, same as every
 other rendering/physics-feel verification this arc.
 
+### Phase 9 — DONE: real rapier3d joints + scripted kinematic motion (2026-08-28)
+
+Closes the two explicit non-goals Phase 8 called out: joints and driven
+kinematic bodies.
+
+- **Joints**: a new top-level `"joints"` list in `world-engine.json`
+  connects two entities (by 0-based index into `entities`) with a real
+  `rapier3d` constraint — `"revolute"` (hinge, locks all relative motion
+  except rotation around one axis — a door hinge/pendulum) and `"fixed"`
+  (welds two bodies together, zero relative motion). Both map directly
+  to `RevoluteJointBuilder`/`FixedJointBuilder` → `ImpulseJointSet::
+  insert()`, which already existed in `World` (`impulse_joint_set` was a
+  real field since Phase 1, just never had anything inserted into it).
+  An out-of-range `body1`/`body2` index logs a warning and is skipped,
+  matching the existing broken-mesh-reference pattern rather than
+  crashing.
+- **Scripted kinematic motion**: an optional `motion` field on a
+  `"kinematic"` entity (`axis`/`amplitude`/`speed`) drives it via a new
+  `Motion` ECS component and `World`'s own running clock
+  (`time: f32`, advanced once per `step()` by `integration_parameters
+  .dt`), calling `set_next_kinematic_translation` before the physics
+  step each frame — sinusoidal only (`origin + axis.normalize() *
+  amplitude * sin(time * speed)`), not a general animation system.
+  Because it's driven through the real rapier3d kinematic-body API
+  (not just moving the render transform directly), dynamic bodies
+  resting on a moving kinematic platform get pushed by the solver
+  correctly, not just visually overlapping it.
+
+`SceneFile.joints` is brand-new data no existing fixture has, so —
+unlike `SceneEntityDef`'s `shape` field (see Phase 8's implementation
+note) — a plain `#[serde(tag = "type")]` internally-tagged enum works
+fine here with no missing-tag problem to work around; there's no old
+data for the tag to be missing from.
+
+Verified the same way as every other phase: `cargo build` clean, no
+warnings. New fixture
+`electron/test-fixtures/world-engine-joints-demo/` — a revolute-joint
+pendulum (fixed anchor + dynamic sphere, offset anchor for a lever arm)
+plus a kinematic platform oscillating vertically with a dynamic cuboid
+dropped onto it — run standalone: logs 4 entities, no crash, no
+out-of-range-joint warning. Regression-ran all four other fixtures
+(default single-cube, `world-engine-demo`, `world-engine-mesh-demo`,
+`world-engine-physics-demo`) — identical entity counts, no crash.
+Visual confirmation (does the pendulum actually swing under gravity
+around its hinge, does the platform visibly oscillate, does the dropped
+cuboid get carried/pushed by it) is the user's own live check.
+
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see
