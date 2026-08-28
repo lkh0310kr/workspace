@@ -44,6 +44,25 @@ export function subscribeErrorLog(listener: (entries: LoggedError[]) => void): (
   return () => listeners.delete(listener);
 }
 
+// React's own internal invariant message when an uncaught error escapes a
+// commit-phase callback (e.g. a passive-effect) mid-flight — its
+// "isWorking" flag is left stuck true, so every render attempt after this
+// immediately re-throws the same invariant. Nothing in application code
+// can catch or recover from this once it fires; the renderer is
+// permanently wedged (all interaction dead) until reloaded. Confirmed
+// root cause here: react-dom's dev-only component-render-diff logging
+// (chunk bundling require_react_dom, function names logComponentRender/
+// addObjectDiffToProperties — this code doesn't exist in a production
+// build) walks rendered props/state to report to an attached React
+// DevTools extension, and throws an uncaught SecurityError when a value
+// happens to reference a cross-origin frame's Window (a <webview>'s guest
+// content, or an EPUB pane's sandboxed iframe). That SecurityError is
+// react-dom's own dev-tooling failing, not application code — nothing
+// here can prevent the trigger, only recover from it automatically
+// instead of leaving the user with a dead UI until they notice and
+// manually reload.
+const REACT_SCHEDULER_WEDGED_PATTERN = /Should not already be working/;
+
 /** Catches what React's own error boundaries can't: uncaught exceptions
  * outside any render call stack (CodeMirror's internal measure/layout
  * passes, timers, etc.) and unhandled promise rejections (a failed IPC
@@ -51,6 +70,23 @@ export function subscribeErrorLog(listener: (entries: LoggedError[]) => void): (
 export function installGlobalErrorLogging(): () => void {
   const onError = (event: ErrorEvent) => {
     logError(event.message, event.error?.stack);
+    // sessionStorage guard: this is interaction-triggered (opening/
+    // rendering a cross-origin frame while a devtools extension is
+    // attached), not load-triggered, so a genuine reload loop isn't
+    // expected — but auto-reloading more than once per session would
+    // mean *something* is wrong beyond this known failure mode, and
+    // silently looping would hide that instead of surfacing it.
+    const loopGuardKey = "workspace.autoReloadedForWedgedScheduler";
+    if (REACT_SCHEDULER_WEDGED_PATTERN.test(event.message) && !sessionStorage.getItem(loopGuardKey)) {
+      // Session ≠ mount (see docs/architecture/README.md's core
+      // principles) — PTY processes and layout JSON live in the main
+      // process, so reloading the renderer reconnects to them rather
+      // than losing anything, the same way a workspace-tab hide/show
+      // already does.
+      console.warn("[errorLog] React's scheduler is wedged (dev-mode-only React DevTools interaction) — reloading to recover.");
+      sessionStorage.setItem(loopGuardKey, "1");
+      window.location.reload();
+    }
   };
   const onRejection = (event: PromiseRejectionEvent) => {
     const reason = event.reason;
