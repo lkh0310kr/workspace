@@ -12,7 +12,10 @@ describe("wslPathToWindows", () => {
     expect(wslPathToWindows("/mnt/c/Users/me/workspace")).toBe("C:\\Users\\me\\workspace");
   });
 
-  it("returns null for non-mount paths", () => {
-    expect(wslPathToWindows("/home/me/workspace")).toBeNull();
+  it("maps /home paths to wsl.localhost UNC under WSL", () => {
+    const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
+    expect(wslPathToWindows("/home/me/workspace")).toBe(
+      `\\\\wsl.localhost\\${distro}\\home\\me\\workspace`,
+    );
   });
 });

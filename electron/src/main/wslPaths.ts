@@ -163,10 +163,18 @@ export function windowsPathToWsl(winPath: string): string {
   return rest ? `/mnt/${match[1].toLowerCase()}/${rest}` : `/mnt/${match[1].toLowerCase()}`;
 }
 
-/** `/mnt/c/Users/foo` → `C:\Users\foo` (identity when not a /mnt path). */
+/** `/mnt/c/Users/foo` → `C:\Users\foo`; `/home/...` → `\\wsl.localhost\<distro>\home\...` */
 export function wslPathToWindows(wslPath: string): string | null {
-  const match = /^\/mnt\/([a-zA-Z])\/(.*)$/.exec(wslPath.replace(/\\/g, "/"));
-  if (!match) return null;
-  const rest = match[2].replace(/\//g, "\\");
-  return `${match[1].toUpperCase()}:\\${rest}`;
+  const normalized = wslPath.replace(/\\/g, "/");
+  const mntMatch = /^\/mnt\/([a-zA-Z])\/(.*)$/.exec(normalized);
+  if (mntMatch) {
+    const rest = mntMatch[2].replace(/\//g, "\\");
+    return `${mntMatch[1].toUpperCase()}:\\${rest}`;
+  }
+  if (isWsl() && normalized.startsWith("/")) {
+    const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
+    const uncRest = normalized.replace(/^\//, "").replace(/\//g, "\\");
+    return `\\\\wsl.localhost\\${distro}\\${uncRest}`;
+  }
+  return null;
 }

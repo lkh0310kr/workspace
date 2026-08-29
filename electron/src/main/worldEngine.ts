@@ -117,9 +117,15 @@ function launchGuiProcess(
 ): Promise<{ ok: boolean; error?: string }> {
   const useWindowsHost = isWsl() && binary.endsWith(".exe");
   if (useWindowsHost) {
-    const winBinary = wslPathToWindows(binary) ?? binary;
+    const winBinary = wslPathToWindows(binary);
+    if (!winBinary) {
+      return Promise.resolve({
+        ok: false,
+        error: `Cannot map World Engine path for Windows: ${binary}`,
+      });
+    }
     const winArgs = args.map((arg) => wslPathToWindows(arg) ?? arg);
-    const winCwd = wslPathToWindows(path.dirname(binary));
+    const winCwd = wslPathToWindows(path.dirname(binary)) ?? "";
     return new Promise((resolve) => {
       const cmdArgs = ["/c", "start", "", "/D", winCwd ?? "", winBinary, ...winArgs];
       const child = spawn("cmd.exe", cmdArgs, { stdio: "ignore", windowsHide: true, detached: true });

@@ -7,7 +7,45 @@
 - **Qt 6** Desktop **MSVC 64-bit** (e.g. `C:\Qt\6.8.0\msvc2022_64`)
 - **Visual Studio Build Tools** — "Desktop development with C++"
 
-## One-shot release build (PowerShell)
+## Recommended: one command from WSL
+
+Qt + MSVC + build are automated. From **WSL** (not PowerShell):
+
+```bash
+cd ~/workspace/electron
+bash scripts/setup-windows-build-from-wsl.sh
+```
+
+Log: `C:\Users\<you>\workspace-windows-setup.log`
+
+If Qt is already installed: `SKIP_QT=1 bash scripts/setup-windows-build-from-wsl.sh`
+
+**VS Build Tools** may show a Windows UAC prompt — click Yes. If install fails with exit 1602, open **PowerShell as Administrator** and run:
+
+```powershell
+winget install -e --id Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+Then re-run the WSL script with `SKIP_QT=1`.
+
+## One-shot setup (PowerShell, first time)
+
+From **Windows PowerShell** (UNC path is OK):
+
+```powershell
+cd \\wsl.localhost\Ubuntu\home\lkh0310kr\workspace\electron
+.\scripts\setup-windows-build.ps1
+```
+
+This installs (via winget + aqtinstall):
+
+1. Visual Studio 2022 Build Tools — C++ workload
+2. Qt 6.8.3 MSVC 64-bit → `C:\Qt\6.8.3\msvc2022_64`
+3. Builds `world-engine-qt-shell.exe` + runs `windeployqt`
+
+Options: `-SkipVsBuildTools`, `-SkipQt`, `-BuildOnly`
+
+## One-shot release build (after setup)
 
 From the repo root on **Windows** (not WSL — Qt/WGPU link against MSVC):
 
