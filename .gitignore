@@ -14,3 +14,6 @@
 # Phase 2 checklist). Only the small source project is tracked.
 electron/test-fixtures/godot-demo/.godot/
 electron/test-fixtures/godot-demo-web/
+
+# Per-tab layout export written by the Electron app during dev.
+electron/.workspace/
