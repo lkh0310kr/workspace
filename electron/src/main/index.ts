@@ -36,6 +36,7 @@ import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
+import { startEmbeddedWorldEngine } from './worldEngineEmbed'
 import { pickDirectory, pickMediaFile } from './nativeDialogs'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
@@ -376,6 +377,20 @@ function buildAppMenu(): Menu {
             const result = await launchWorldEngine()
             if (!result.ok) {
               dialog.showErrorBox('World Engine', result.error ?? 'Failed to launch World Engine.')
+            }
+          }
+        },
+        {
+          label: 'Launch Embedded Engine (experimental)',
+          click: () => {
+            const win = mainWindowRef
+            if (!win) {
+              dialog.showErrorBox('World Engine', 'Main window is not available.')
+              return
+            }
+            const result = startEmbeddedWorldEngine(win)
+            if (!result.ok) {
+              dialog.showErrorBox('World Engine (embed)', result.error ?? 'Failed to start embedded engine.')
             }
           }
         }

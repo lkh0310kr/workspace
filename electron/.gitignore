@@ -6,3 +6,5 @@ out
 .DS_Store
 .eslintcache
 *.log*
+resources/world-engine/
+resources/world-engine-embed/

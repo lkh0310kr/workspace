@@ -11,6 +11,8 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
+  # World Engine native Node addon (experimental in-pane embed) — must be outside asar.
+  - resources/world-engine-embed/**
   # @vscode/ripgrep's actual rg binary ships in a platform-specific
   # optionalDependency package (@vscode/ripgrep-darwin-arm64 etc.), not
   # inside @vscode/ripgrep itself — both need unpacking so the binary is
@@ -45,6 +47,15 @@ linux:
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
+extraResources:
+  - from: resources/world-engine
+    to: world-engine
+    filter:
+      - "**/*"
+  - from: resources/world-engine-embed
+    to: world-engine-embed
+    filter:
+      - "**/*"
 npmRebuild: false
 publish:
   provider: generic
