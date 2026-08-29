@@ -246,9 +246,10 @@ actually needed for any real candidate found so far — Bevy and FreeCAD
 both turned out to have their own WASM export paths (web-bundle track,
 not a new problem).
 
-- [x] Pixel-streaming feasibility spike (2026-08-28) —
-  `native/engine-stream-poc/`, a standalone Rust binary (not wired into
-  Electron), proved the core chain for real: synthetic frames → `openh264`
+- [x] Pixel-streaming feasibility spike (2026-08-28) — archived in
+  [`docs/research/track-b-webrtc-streaming.md`](./research/track-b-webrtc-streaming.md)
+  (crate removed; not wired into Electron), proved the core chain for real:
+  synthetic frames → `openh264`
   software encode → `webrtc-rs` → a real WebRTC client (verified with
   Python's `aiortc`, receiving 5 correctly-sized, correctly-timed decoded
   video frames, not just "the server started"). One real bug found via
@@ -267,7 +268,7 @@ physics/ECS), not embed/stream someone else's black box. Built and
 verified `native/world-engine-core/` — `wgpu` + `rapier3d` + `hecs`, one
 real physics-driven cube (falls, bounces, visibly rotates — confirmed via
 60 real decoded frames inspected as images, not just "it compiled").
-Reused `engine-stream-poc`'s WebRTC transport to show it — **then
+An early v0 briefly reused Track B WebRTC to show output — **then
 reconsidered that choice and found it wrong for this case**: WebRTC solves
 problems (NAT traversal, untrusted networks, browser cross-origin
 security) that don't exist between a process this app spawns and this
@@ -278,9 +279,9 @@ negotiation model, not the actual problem. The right shape already exists
 in this codebase: the terminal's `Pty` → `PtySession` → IPC → `xterm.js`
 pipeline solves the identical "spawned native process's output needs to
 reach the renderer" problem with a plain byte stream, no compression, no
-negotiation. `engine-stream-poc`/WebRTC isn't wasted — it's still the
-right answer for Track B (a genuine third-party/remote engine), just not
-for Workspace's own.
+negotiation. Track B WebRTC isn't wasted — it's still the right answer
+for a genuine third-party/remote engine (see research doc), just not for
+Workspace's own.
 
 **Further research (2026-08-28): local IPC + `<canvas>` still isn't
 "native-grade" enough — found a better, real answer.** The user pushed

@@ -169,9 +169,11 @@ further unless a real future candidate proves to require it.
 
 ### Feasibility spike — the core chain actually works (2026-08-28)
 
-Built and verified `native/engine-stream-poc/` (standalone Cargo project,
-no Electron involvement — see its own comments for what it deliberately
-doesn't cover: no real engine, no hardware encoder, no input round-trip).
+Built and verified a standalone Track B spike (formerly
+`native/engine-stream-poc/`, now archived in
+[`docs/research/track-b-webrtc-streaming.md`](../research/track-b-webrtc-streaming.md)
+— no Electron involvement; no real engine, no hardware encoder, no input
+round-trip).
 **Result: it works.** A Rust process generates synthetic animated frames,
 encodes them with `openh264` (software, as planned for this first spike),
 and streams them over a real WebRTC connection (`webrtc-rs` 0.20.3) to a
@@ -225,13 +227,12 @@ useful (it's still the right way to host a *third-party* renderer if one
 is ever needed for something Workspace's own engine doesn't cover), but
 it answers a different question than "World Engine" turned out to mean.
 
-**v0 built and verified**: `native/world-engine-core/` — a second
-standalone Rust binary (alongside `engine-stream-poc/`, not merged into
-it) that is a real, if minimal, engine: `wgpu` for offscreen GPU
-rendering, `rapier3d` for physics, `hecs` for ECS state, composed into one
-process, reusing `engine-stream-poc`'s already-proven WebRTC transport to
-show its output. One hardcoded cube, dropped and bounced under real
-gravity, with a basic single-light shader.
+**v0 built and verified**: `native/world-engine-core/` — a real, if
+minimal, engine library: `wgpu` for GPU rendering, `rapier3d` for
+physics, `hecs` for ECS state. One hardcoded cube, dropped and bounced
+under real gravity, with a basic single-light shader. (An early v0 briefly
+reused the Track B WebRTC transport to show output; that path was removed
+once direct native rendering was proven — see transport critique below.)
 
 Verified for real, with actual visual proof, not just "compiles and
 starts": captured 60 real decoded frames via a genuine WebRTC client
@@ -318,11 +319,12 @@ can send structured input events directly to the spawned process over the
 same local IPC, the same way terminal keystrokes already reach the PTY.
 
 **WebRTC/Track B is not wasted work — it answers a genuinely different
-question.** Keep it for the case it actually fits: hosting a *third-party*
-engine that must present as "just a URL" (the original Track A/B
-framing), or a truly remote/cloud-rendered source. `engine-stream-poc/`
-stays as-is, correctly scoped to the Track B problem it was actually
-built for.
+question.** Keep the research for the case it actually fits: hosting a
+*third-party* engine that must present as "just a URL" (the original
+Track A/B framing), or a truly remote/cloud-rendered source. Findings are
+archived in [`docs/research/track-b-webrtc-streaming.md`](../research/track-b-webrtc-streaming.md);
+the spike crate was removed from the tree once qt-shell + embed paths
+were chosen for Workspace's own engine.
 
 ### Even better than local IPC + canvas: render directly into a native embedded view (2026-08-28)
 
