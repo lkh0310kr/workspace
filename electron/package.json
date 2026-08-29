@@ -11,7 +11,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "test": "vitest run",
     "start": "node scripts/with-linux-ime.mjs electron-vite preview",
-    "dev": "node scripts/with-linux-ime.mjs electron-vite dev",
+    "dev": "node scripts/kill-dev.mjs && node scripts/with-linux-ime.mjs electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "node node_modules/electron/install.js && node scripts/apply-xterm-patch.mjs && electron-builder install-app-deps && node scripts/fix-native-exec-bits.mjs",
     "build:unpack": "npm run build && electron-builder --dir",

@@ -54,14 +54,14 @@ applyWslDpiScaleFix((name, value) => {
 // "Loading workspace…" or stop responding to input entirely. Must be
 // requested before anything else touches app state; a losing second
 // launch just quits immediately instead of creating a competing window.
-const gotSingleInstanceLock = app.requestSingleInstanceLock()
+// Packaged builds must be single-instance. Dev skips the lock so electron-vite
+// can restart Electron after main-process rebuilds; otherwise the new process
+// loses the lock, quits immediately, and electron-vite exits all of `npm run dev`.
+const gotSingleInstanceLock = app.isPackaged ? app.requestSingleInstanceLock() : true
 if (!gotSingleInstanceLock) {
-  // app.quit() during startup doesn't necessarily stop app.whenReady()'s
-  // callback below from still firing once — guarded with
-  // gotSingleInstanceLock too, so the losing instance never creates a
-  // window before it exits.
+  console.error('[workspace-app] Another instance is already running — quitting.')
   app.quit()
-} else {
+} else if (app.isPackaged) {
   app.on('second-instance', () => {
     if (mainWindowRef && !mainWindowRef.isDestroyed()) {
       reinforceExistingWindowFocus(mainWindowRef, app)
@@ -150,8 +150,14 @@ function createWindow(): BrowserWindow {
     mainWindow.show()
     mainWindow.maximize()
   }
-  mainWindow.on('ready-to-show', revealWindow)
-  setTimeout(revealWindow, 2500)
+  if (wsl) {
+    // WSLg: show only after the first frame is ready (avoids blank COPY MODE surface).
+    mainWindow.webContents.once('did-finish-load', revealWindow)
+    setTimeout(revealWindow, 2500)
+  } else {
+    mainWindow.on('ready-to-show', revealWindow)
+    setTimeout(revealWindow, 2500)
+  }
 
   if (wsl) installWslWindowLifecycle(mainWindow)
 
