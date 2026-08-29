@@ -9,6 +9,8 @@ use std::ptr::NonNull;
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec3};
 use raw_window_handle::{AppKitDisplayHandle, AppKitWindowHandle, RawDisplayHandle, RawWindowHandle};
+#[cfg(target_os = "windows")]
+use raw_window_handle::{Win32WindowHandle, WindowsDisplayHandle};
 
 use crate::world::MeshKind;
 
@@ -229,6 +231,8 @@ pub struct GpuContext {
     queue: wgpu::Queue,
     surface: wgpu::Surface<'static>,
     surface_format: wgpu::TextureFormat,
+    surface_width: u32,
+    surface_height: u32,
     pipeline: wgpu::RenderPipeline,
     uniform_buf: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
@@ -239,22 +243,56 @@ pub struct GpuContext {
     depth_view: wgpu::TextureView,
 }
 
-/// Builds a `wgpu` surface directly targeting a real native view handle
-/// (an `NSView*` on macOS) — no offscreen texture, no readback. The shell
-/// (e.g. `world-engine-qt-shell`) owns the window; this just renders into
-/// it.
+/// Builds a `wgpu` surface directly targeting a real native AppKit view
+/// (`NSView*`) at the crate's default size — used by `world-engine-qt-shell`.
 pub fn init_gpu(native_view: *mut c_void, loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)>) -> GpuContext {
-    let raw_window_handle = RawWindowHandle::AppKit(AppKitWindowHandle::new(NonNull::new(native_view).expect("shell gave a null native view")));
-    let raw_display_handle = RawDisplayHandle::AppKit(AppKitDisplayHandle::new());
+    init_gpu_sized(native_view, WIDTH, HEIGHT, loaded_geometry)
+}
 
+/// Same as [`init_gpu`] but with an explicit pixel size — used by in-process
+/// Electron embed panes that may not match the Qt shell's default window size.
+pub fn init_gpu_sized(
+    native_view: *mut c_void,
+    width: u32,
+    height: u32,
+    loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)>,
+) -> GpuContext {
+    let raw_window_handle =
+        RawWindowHandle::AppKit(AppKitWindowHandle::new(NonNull::new(native_view).expect("shell gave a null native view")));
+    let raw_display_handle = RawDisplayHandle::AppKit(AppKitDisplayHandle::new());
+    create_gpu_context(raw_window_handle, Some(raw_display_handle), width, height, loaded_geometry)
+}
+
+/// Windows: build a `wgpu` surface from a child `HWND` (Electron embed).
+#[cfg(target_os = "windows")]
+pub fn init_gpu_win32(
+    hwnd: *mut c_void,
+    width: u32,
+    height: u32,
+    loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)>,
+) -> GpuContext {
+    let raw_window_handle =
+        RawWindowHandle::Win32(Win32WindowHandle::new(NonNull::new(hwnd).expect("embed host HWND was null")));
+    let raw_display_handle = RawDisplayHandle::Windows(WindowsDisplayHandle::new());
+    create_gpu_context(raw_window_handle, Some(raw_display_handle), width, height, loaded_geometry)
+}
+
+fn create_gpu_context(
+    raw_window_handle: RawWindowHandle,
+    raw_display_handle: Option<RawDisplayHandle>,
+    width: u32,
+    height: u32,
+    loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)>,
+) -> GpuContext {
     let instance = wgpu::Instance::default();
-    // Safety: the caller guarantees native_view stays alive for at least
-    // as long as this GpuContext (it belongs to the shell's own window,
-    // which owns the event loop this all runs inside).
+    // Safety: caller guarantees the native handle outlives this GpuContext.
     let surface = unsafe {
         instance
-            .create_surface_unsafe(wgpu::SurfaceTargetUnsafe::RawHandle { raw_display_handle: Some(raw_display_handle), raw_window_handle })
-            .expect("failed to create wgpu surface from the shell's native view")
+            .create_surface_unsafe(wgpu::SurfaceTargetUnsafe::RawHandle {
+                raw_display_handle,
+                raw_window_handle,
+            })
+            .expect("failed to create wgpu surface from native view/HWND")
     };
 
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -279,8 +317,8 @@ pub fn init_gpu(native_view: *mut c_void, loaded_geometry: Option<(Vec<Vertex>, 
         &wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
-            width: WIDTH,
-            height: HEIGHT,
+            width,
+            height,
             present_mode: wgpu::PresentMode::Fifo,
             desired_maximum_frame_latency: 2,
             alpha_mode: surface_caps.alpha_modes[0],
@@ -353,7 +391,7 @@ pub fn init_gpu(native_view: *mut c_void, loaded_geometry: Option<(Vec<Vertex>, 
 
     let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("depth"),
-        size: wgpu::Extent3d { width: WIDTH, height: HEIGHT, depth_or_array_layers: 1 },
+        size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
@@ -368,6 +406,8 @@ pub fn init_gpu(native_view: *mut c_void, loaded_geometry: Option<(Vec<Vertex>, 
         queue,
         surface,
         surface_format,
+        surface_width: width,
+        surface_height: height,
         pipeline,
         uniform_buf,
         bind_group,
@@ -380,7 +420,7 @@ pub fn init_gpu(native_view: *mut c_void, loaded_geometry: Option<(Vec<Vertex>, 
 }
 
 pub fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3, MeshKind)], camera: &Camera) {
-    let aspect = WIDTH as f32 / HEIGHT as f32;
+    let aspect = gpu.surface_width as f32 / gpu.surface_height as f32;
     let projection = glam::camera::rh::proj::directx::perspective(45f32.to_radians(), aspect, 0.1, 100.0);
     let view = glam::camera::rh::view::look_at_mat4(camera.eye(), Vec3::ZERO, Vec3::Y);
 

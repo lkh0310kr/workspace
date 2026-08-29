@@ -14,6 +14,8 @@ pub mod render;
 pub mod scene;
 pub mod world;
 
-pub use render::{Camera, GpuContext, Mesh, Vertex, HEIGHT, WIDTH, init_gpu, load_mesh, render_frame};
+pub use render::{Camera, GpuContext, Mesh, Vertex, HEIGHT, WIDTH, init_gpu, init_gpu_sized, load_mesh, render_frame};
+#[cfg(target_os = "windows")]
+pub use render::init_gpu_win32;
 pub use scene::{SceneFile, build_world, default_scene, load_scene};
 pub use world::{Behavior, BodyType, EntitySpec, JointKind, MeshKind, Shape, UpdateCtx, World};

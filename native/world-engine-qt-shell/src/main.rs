@@ -6,8 +6,7 @@
 // docs/architecture/09-future-native-architecture.md ("Phase 10 — engine
 // core extracted as a library") for the split's reasoning.
 //
-// macOS only for now (see build.rs) — Windows/Linux Qt linking is a real
-// follow-up, not attempted here.
+// Cross-platform Qt linking — see README.md (macOS/Linux/Windows).
 
 use std::ffi::{c_int, c_void};
 

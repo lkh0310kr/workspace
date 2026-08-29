@@ -19,13 +19,40 @@ embedding, why Qt).
 
 ## Build
 
+### macOS
+
 ```sh
+brew install qt
 cargo build
 ```
 
-Requires Qt 6 (`brew install qt`) — `build.rs` currently hardcodes the
-Homebrew macOS install path (`/opt/homebrew/opt/qt/lib`). Linux/Windows
-Qt linking is real follow-up work, not done yet.
+`build.rs` links Homebrew Qt (`/opt/homebrew/opt/qt`).
+
+### Linux
+
+```sh
+sudo apt install qt6-base-dev libxkbcommon-dev
+cargo build
+```
+
+Set `QT_INSTALL_PREFIX` if `qmake` is not on `PATH`.
+
+### Windows (MSVC + Qt 6)
+
+Prerequisites:
+
+- [Rust](https://rustup.rs) (MSVC toolchain)
+- Qt 6 **Desktop MSVC 64-bit** from [qt.io](https://www.qt.io/download)
+- Visual Studio Build Tools — **Desktop development with C++**
+
+```powershell
+cd native\world-engine-qt-shell
+.\scripts\build-windows.ps1 -Release
+```
+
+Sets `QT_INSTALL_PREFIX` automatically when Qt is under `C:\Qt\6.x\msvc2022_64`, runs `cargo build --release`, then `windeployqt` to copy Qt DLLs next to the `.exe`.
+
+For Workspace packaging, build the engine first, then `cd electron && npm run build:win` (see `electron/scripts/build-world-engine-and-electron-win.ps1`).
 
 ## Run standalone
 
