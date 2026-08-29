@@ -81,9 +81,8 @@ try {
         if (-not $SkipVsBuildTools -and -not (Test-MsvcCl)) {
             Log "=== Installing Visual Studio 2022 Build Tools (C++ workload) ==="
             Log "This can take 10-20 minutes..."
-            winget install -e --id Microsoft.VisualStudio.2022.BuildTools `
-                --accept-package-agreements --accept-source-agreements `
-                --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+            Write-Host "Running install-vs-build-tools.ps1 (quiet, not winget passive)..."
+            & (Join-Path $scriptDir "install-vs-build-tools.ps1")
         }
 
         if (-not (Import-VsDevEnvironment)) {

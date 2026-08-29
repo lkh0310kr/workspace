@@ -20,11 +20,14 @@ Log: `C:\Users\<you>\workspace-windows-setup.log`
 
 If Qt is already installed: `SKIP_QT=1 bash scripts/setup-windows-build-from-wsl.sh`
 
-**VS Build Tools** may show a Windows UAC prompt — click Yes. If install fails with exit 1602, open **PowerShell as Administrator** and run:
+**VS Build Tools** may show a Windows UAC prompt — click Yes. If install fails, open **PowerShell as Administrator** and run:
 
 ```powershell
-winget install -e --id Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+cd \\wsl.localhost\Ubuntu\home\lkh0310kr\workspace\electron\scripts
+powershell -ExecutionPolicy Bypass -File .\install-vs-build-tools.ps1
 ```
+
+This downloads `vs_BuildTools.exe` and runs `--quiet --wait` (not winget `--passive`).
 
 Then re-run the WSL script with `SKIP_QT=1`.
 
