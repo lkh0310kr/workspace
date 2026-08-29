@@ -660,9 +660,14 @@ app.whenReady().then(() => {
   ipcMain.handle('rss:fetch-feed', (_event, url: string) => fetchFeed(url))
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
   ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))
-  ipcMain.handle('engine:get-bundle-url', (_event, tabId: number, rel: string, entry?: string) =>
-    workspace!.resolveEngineBundle(tabId, rel, entry)
-  )
+  ipcMain.handle('engine:get-bundle-url', (_event, tabId: number, rel: string, entry?: string) => {
+    try {
+      return workspace!.resolveEngineBundle(tabId, rel, entry)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return { ok: false as const, error: message }
+    }
+  })
   ipcMain.handle('project:register-app', (_event, tabId: number, kind: string, rel: string, title?: string) =>
     workspace!.registerProjectApp(tabId, kind, rel, title)
   )

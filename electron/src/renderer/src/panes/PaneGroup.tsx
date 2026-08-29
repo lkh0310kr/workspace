@@ -329,7 +329,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
       getEngineBundleUrl(workspaceTabId, path)
         .then((result) => {
           if (!result.ok) {
-            logError(`Open as App failed for "${path}": ${result.error}`);
+            logError(`Open as App failed for "${path}": ${result.error ?? "unknown error"}`);
             return;
           }
           return addTabToGroup(model, nodeId, "browser", { url: result.url }).then((id) => {

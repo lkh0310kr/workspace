@@ -182,7 +182,18 @@ export async function getEngineBundleUrl(
   rel: string,
   entry?: string,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  return window.api.engine.getBundleUrl(tabId, rel, entry);
+  const raw: unknown = await window.api.engine.getBundleUrl(tabId, rel, entry);
+  // Pre-0597baf main returned a URL string; renderer HMR can update before
+  // electron-vite restarts the main process — normalize so Open as App still works.
+  if (typeof raw === "string") {
+    return { ok: true, url: raw };
+  }
+  if (raw && typeof raw === "object" && "ok" in raw) {
+    const result = raw as { ok: boolean; url?: string; error?: string };
+    if (result.ok && typeof result.url === "string") return { ok: true, url: result.url };
+    return { ok: false, error: result.error ?? "unknown error" };
+  }
+  return { ok: false, error: "invalid engine:get-bundle-url response — restart npm run dev" };
 }
 
 /** `rel` is a workspace-relative Godot *project* directory. Exports its

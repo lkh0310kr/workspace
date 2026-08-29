@@ -9,7 +9,7 @@ import type { DirEntry } from "./files";
 import * as search from "./search";
 import { MEDIA_MIME_TYPES, toMediaUrl } from "./mediaProtocol";
 import { openEpub, type EpubBook } from "./epub";
-import { toEngineBundleUrl, resolveEngineBundleDir, type EngineBundleResolveResult } from "./engineBundlePaths";
+import { resolveEngineBundleDir, type EngineBundleResolveResult } from "./engineBundlePaths";
 import { registerProjectApp as registerProjectApp_ } from "./projectManifest";
 import type { ProjectManifest } from "../shared/projectManifest";
 import { exportGodotProjectWeb, type GodotExportResult } from "./godotExport";
