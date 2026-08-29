@@ -32,9 +32,13 @@ function nextTabId(kind: TabKind): string {
   return `${kind}-${crypto.randomUUID()}`;
 }
 
-export async function buildTabItem(kind: TabKind, source?: Partial<PaneTabItem>): Promise<PaneTabItem> {
+export async function buildTabItem(
+  kind: TabKind,
+  source?: Partial<PaneTabItem>,
+  workspaceTabId?: number,
+): Promise<PaneTabItem> {
   const id = nextTabId(kind);
-  return getPaneKind(kind).createItem(id, source);
+  return getPaneKind(kind).createItem(id, source, workspaceTabId);
 }
 
 // The pane (flexlayout tab node) id must never be derived from the
@@ -84,7 +88,8 @@ export async function addPaneToTabSet(
   source?: Partial<PaneTabItem>,
 ) {
   const before = summarizeLayoutModel(model);
-  const item = await buildTabItem(kind, source);
+  const workspaceTabId = findTabIdForModel(model);
+  const item = await buildTabItem(kind, source, workspaceTabId);
   model.doAction(Actions.addTab(tabGroupNodeJson(item), tabSetId, DockLocation.CENTER, -1, true));
   layoutLogMutation("layoutActions.addPaneToTabSet", "added pane", before, summarizeLayoutModel(model), {
     tabSetId,
@@ -109,7 +114,8 @@ export async function addTabToGroup(
     layoutLog("layoutActions.addTabToGroup", "missing pane", { tabNodeId, kind }, undefined);
     return null;
   }
-  const item = await buildTabItem(kind, source);
+  const workspaceTabId = findTabIdForModel(model);
+  const item = await buildTabItem(kind, source, workspaceTabId);
   const next: PaneGroupConfig = { ...config, tabs: [...config.tabs, item], activeTabId: item.id };
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: next }));
   layoutLogMutation("layoutActions.addTabToGroup", "added tab", before, summarizeLayoutModel(model), {
@@ -168,7 +174,8 @@ export async function changeTabKindInGroup(
     source = { filePath: existing.filePath };
   }
 
-  const item = await buildTabItem(kind, source);
+  const workspaceTabId = findTabIdForModel(model);
+  const item = await buildTabItem(kind, source, workspaceTabId);
   const tabs = [...config.tabs];
   tabs[idx] = item;
   const activeTabId = config.activeTabId === tabId ? item.id : config.activeTabId;
@@ -196,7 +203,8 @@ export async function replaceTabInGroup(
   if (!config) return null;
   const idx = config.tabs.findIndex((t) => t.id === oldTabId);
   if (idx === -1) return null;
-  const item = await buildTabItem(kind, source);
+  const workspaceTabId = findTabIdForModel(model);
+  const item = await buildTabItem(kind, source, workspaceTabId);
   const tabs = [...config.tabs];
   tabs[idx] = item;
   const activeTabId = config.activeTabId === oldTabId ? item.id : config.activeTabId;

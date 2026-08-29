@@ -22,9 +22,10 @@ import {
 } from './persistence'
 import {
   preferNativeWorkspacePath,
-  remapWorkspaceRootsInSnapshot,
   isWsl,
+  isWslWindowsMountPath,
   applyWslDpiScaleFix,
+  resolveUserSelectedRootPath,
 } from './wslPaths'
 import { revealWslWindow, toggleWslWindowMaximize, installWslWindowLifecycle } from './wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
@@ -297,28 +298,52 @@ function syncFileWatcher(): void {
   watchedRoot = root
   if (!root) return
   try {
-    fileWatcher = fs.watch(root, { recursive: true }, () => broadcastFileChanged())
+    // Recursive inotify on WSL /mnt/<drive> (drvfs) can block the main
+    // thread for a long time — watch the root directory only there.
+    const recursive = !isWslWindowsMountPath(root)
+    fileWatcher = fs.watch(
+      root,
+      recursive ? { recursive: true } : {},
+      () => broadcastFileChanged(),
+    )
   } catch (err) {
     console.error('fs.watch failed for', root, err)
   }
+}
+
+let pendingPersistSideEffects: ReturnType<typeof setImmediate> | null = null
+
+function runPersistSideEffects(state: ReturnType<Workspace['state']>): void {
+  try {
+    exportLayoutFiles(state.tabs, state.activeTabId)
+  } catch (err) {
+    console.error('layout export failed', err)
+  }
+  syncFileWatcher()
+}
+
+function schedulePersistSideEffects(state: ReturnType<Workspace['state']>): void {
+  const defer = isWsl() && state.tabs.some((t) => isWslWindowsMountPath(t.rootPath))
+  if (!defer) {
+    runPersistSideEffects(state)
+    return
+  }
+  if (pendingPersistSideEffects) clearImmediate(pendingPersistSideEffects)
+  pendingPersistSideEffects = setImmediate(() => {
+    pendingPersistSideEffects = null
+    if (!workspace) return
+    runPersistSideEffects(workspace.state())
+  })
 }
 
 function persist(): void {
   if (!workspace) return
   const state = workspace.state()
   saveWorkspaceSnapshot(state)
-  try {
-    exportLayoutFiles(state.tabs, state.activeTabId)
-  } catch (err) {
-    console.error('layout export failed', err)
-  }
-  // Mirrors the Rust version's app.emit("workspace-updated", ...) after
-  // every mutating command — useWorkspace-equivalent hooks in the
-  // renderer (electron.ts's onWorkspaceUpdated) only ever call
-  // getWorkspaceState once on mount, so without this push they'd never
-  // see another tab/layout change made through any other handler.
+  // Push UI state immediately — layout export + fs.watch on /mnt/c can take
+  // seconds and must not block IPC (e.g. settings Save → "Saving…").
   sendToMainWindow('workspace:updated', state)
-  syncFileWatcher()
+  schedulePersistSideEffects(state)
 }
 
 // Same shape as Electron's own implicit default application menu (which
@@ -496,10 +521,10 @@ app.whenReady().then(() => {
     saveConfig({ ...config, rootPath: defaultRoot })
   }
   const rawSnapshot = loadWorkspaceSnapshot()
-  const snapshot = rawSnapshot ? remapWorkspaceRootsInSnapshot(rawSnapshot) : null
-  if (snapshot && rawSnapshot && snapshot !== rawSnapshot) {
-    saveWorkspaceSnapshot(snapshot)
-  }
+  // Do not remap persisted tab roots on load — the user may have explicitly
+  // chosen a /mnt/<drive> path via settings. preferNativeWorkspacePath is
+  // only for the default seed root at first launch (see defaultRoot above).
+  const snapshot = rawSnapshot
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
   registerMediaProtocol(() => workspace!.allTabRootPaths())
   registerEpubProtocol()
@@ -566,8 +591,8 @@ app.whenReady().then(() => {
     pickMediaFile(mainWindowRef, kind)
   )
 
-  ipcMain.handle('pty:spawn', (_event, cols: number, rows: number) => {
-    return workspace!.spawnTerminal(cols, rows)
+  ipcMain.handle('pty:spawn', (_event, cols: number, rows: number, tabId?: number) => {
+    return workspace!.spawnTerminal(cols, rows, tabId)
   })
   ipcMain.handle('pty:connect', (event, id: number) => {
     return workspace!.connectTerminal(id, event.sender.id)
@@ -618,7 +643,7 @@ app.whenReady().then(() => {
     persist()
   })
   ipcMain.handle('workspace:set-tab-root-path', (_event, tabId: number, rootPath: string) => {
-    const nativeRoot = preferNativeWorkspacePath(rootPath)
+    const nativeRoot = resolveUserSelectedRootPath(rootPath)
     workspace!.setTabRootPath(tabId, nativeRoot)
     if (tabId === workspace!.state().activeTabId) {
       workspace!.defaultRootPath = nativeRoot

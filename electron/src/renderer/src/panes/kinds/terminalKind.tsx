@@ -7,8 +7,8 @@ export const terminalPaneKind: PaneKindDefinition = {
   label: "Terminal",
   icon: "⌘",
   pickerEntries: [{ label: "Terminal", icon: "⌘" }],
-  async createItem(id) {
-    return { id, kind: "terminal", terminalId: await spawnTerminal() };
+  async createItem(id, _source, workspaceTabId) {
+    return { id, kind: "terminal", terminalId: await spawnTerminal(120, 40, workspaceTabId) };
   },
   tabLabel() {
     return "Terminal";

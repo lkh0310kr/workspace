@@ -136,6 +136,7 @@ export function FileViewerContent({
       .then((path) => {
         if (path) onAssignAbsolutePath(path);
       })
+      .catch((err) => console.error("[FileViewer] pick media failed:", err))
       .finally(() => setBrowsing(false));
   }, [viewerHint, onAssignAbsolutePath]);
 

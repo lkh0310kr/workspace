@@ -117,5 +117,8 @@ export async function revealItemInDir(path: string): Promise<void> {
 // a native directory picker, routed through the main process since
 // Electron's dialog module only exists there.
 export async function openDirectoryDialog(defaultPath?: string): Promise<string | null> {
-  return window.api.dialog.openDirectory(defaultPath);
+  const result = await window.api.dialog.openDirectory(defaultPath);
+  if (result.ok) return result.path;
+  if (!result.canceled && result.error) throw new Error(result.error);
+  return null;
 }

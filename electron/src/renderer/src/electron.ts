@@ -94,8 +94,8 @@ export async function ptyResize(id: number, cols: number, rows: number): Promise
   window.api.pty.resize(id, cols, rows);
 }
 
-export async function spawnTerminal(cols = 120, rows = 40): Promise<number> {
-  return window.api.pty.spawn(cols, rows);
+export async function spawnTerminal(cols = 120, rows = 40, tabId?: number): Promise<number> {
+  return window.api.pty.spawn(cols, rows, tabId);
 }
 
 export async function addTab(): Promise<number> {
@@ -247,7 +247,10 @@ export function onPtyOutput(handler: (payload: PtyOutput) => void): () => void {
 }
 
 export async function pickMediaFileDialog(kind: "video" | "audio" | "ebook"): Promise<string | null> {
-  return window.api.dialog.pickMediaFile(kind);
+  const result = await window.api.dialog.pickMediaFile(kind);
+  if (result.ok) return result.path;
+  if (!result.canceled && result.error) throw new Error(result.error);
+  return null;
 }
 
 export function writeClipboardText(text: string): void {

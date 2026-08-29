@@ -154,11 +154,29 @@ export function remapWorkspaceRootsInSnapshot<T extends { tabs: Array<{ rootPath
   return changed ? { ...snapshot, tabs } : snapshot;
 }
 
-/** `C:\Users\foo` → `/mnt/c/Users/foo` (identity when not a Windows path). */
+/** Normalize a user-chosen directory (settings Browse/Save). Does not remap
+ *  /mnt/<drive> paths — explicit picks must stick even on WSL. */
+export function resolveUserSelectedRootPath(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) throw new Error("path cannot be empty");
+  const wslPath = isWsl() ? windowsPathToWsl(trimmed) : trimmed;
+  return path.resolve(wslPath);
+}
+
+/** `C:\Users\foo` → `/mnt/c/Users/foo`; `\\wsl.localhost\<distro>\home\...` → `/home/...`. */
 export function windowsPathToWsl(winPath: string): string {
-  const normalized = winPath.trim().replace(/\//g, "\\");
+  const trimmed = winPath.trim();
+  if (!trimmed) return trimmed;
+
+  const normalized = trimmed.replace(/\//g, "\\");
+  const uncMatch = /^\\\\(?:wsl\.localhost|wsl\$)\\([^\\]+)\\(.*)$/i.exec(normalized);
+  if (uncMatch) {
+    const rest = uncMatch[2].replace(/\\/g, "/").replace(/\/+$/, "");
+    return rest ? `/${rest}` : "/";
+  }
+
   const match = /^([A-Za-z]):\\(.*)$/.exec(normalized);
-  if (!match) return winPath;
+  if (!match) return trimmed;
   const rest = match[2].replace(/\\/g, "/").replace(/\/+$/, "");
   return rest ? `/mnt/${match[1].toLowerCase()}/${rest}` : `/mnt/${match[1].toLowerCase()}`;
 }

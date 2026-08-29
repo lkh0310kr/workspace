@@ -18,6 +18,11 @@ export interface DirEntry {
   isDir: boolean
 }
 
+export type DirectoryPickResult =
+  | { ok: true; path: string }
+  | { ok: false; canceled: true }
+  | { ok: false; canceled: false; error: string }
+
 export interface SearchOptions {
   caseSensitive?: boolean
   regex?: boolean
@@ -96,8 +101,8 @@ export interface WorkspaceApi {
     }>
   }
   dialog: {
-    openDirectory: (defaultPath?: string) => Promise<string | null>
-    pickMediaFile: (kind: 'video' | 'audio' | 'ebook') => Promise<string | null>
+    openDirectory: (defaultPath?: string) => Promise<DirectoryPickResult>
+    pickMediaFile: (kind: 'video' | 'audio' | 'ebook') => Promise<DirectoryPickResult>
   }
   clipboard: {
     writeText: (text: string) => void
@@ -129,7 +134,7 @@ export interface WorkspaceApi {
     onClearOptionModifiers: (cb: () => void) => () => void
   }
   pty: {
-    spawn: (cols: number, rows: number) => Promise<number>
+    spawn: (cols: number, rows: number, tabId?: number) => Promise<number>
     connect: (id: number) => Promise<{
       id: number
       snapshot: string

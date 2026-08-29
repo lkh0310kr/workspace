@@ -163,8 +163,11 @@ export class Workspace {
     }
   }
 
-  spawnTerminal(cols: number, rows: number): number {
-    const root = this.tabs.find((t) => t.id === this.activeTabId)?.rootPath ?? this.defaultRootPath;
+  spawnTerminal(cols: number, rows: number, tabId?: number): number {
+    const root =
+      tabId != null
+        ? (this.tabs.find((t) => t.id === tabId)?.rootPath ?? this.defaultRootPath)
+        : (this.tabs.find((t) => t.id === this.activeTabId)?.rootPath ?? this.defaultRootPath);
     return this.spawnTerminalIn(root, cols, rows);
   }
 

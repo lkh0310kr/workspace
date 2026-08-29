@@ -13,28 +13,47 @@ interface Props {
 export function SettingsDialog({ anchorRect, onClose, tabId, tabTitle, rootPath }: Props) {
   const [pathInput, setPathInput] = useState(rootPath);
   const [error, setError] = useState<string | null>(null);
+  const [browsing, setBrowsing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const savePath = (path: string) => {
-    if (path === rootPath) return;
-    setTabRootPath(tabId, path)
-      .then(() => setError(null))
-      .catch((err) => setError(String(err)));
+  const savePath = async (path: string) => {
+    const trimmed = path.trim();
+    if (!trimmed) {
+      setError("path cannot be empty");
+      return;
+    }
+    if (trimmed === rootPath) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const ws = await setTabRootPath(tabId, trimmed);
+      const saved = ws.tabs.find((t) => t.id === tabId)?.root_path ?? trimmed;
+      setPathInput(saved);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const browse = async () => {
+    setBrowsing(true);
+    setError(null);
     try {
-      const selected = await openDirectoryDialog(rootPath);
-      if (selected) {
-        setPathInput(selected);
-        savePath(selected);
-      }
+      const selected = await openDirectoryDialog(pathInput.trim() || rootPath);
+      if (!selected) return;
+      setPathInput(selected);
+      await savePath(selected);
     } catch (err) {
-      // Without this, a failed invoke (e.g. main process still running an
-      // older build that predates this IPC handler) was a silent
-      // unhandled rejection — the button just looked like it did nothing.
       setError(String(err));
+    } finally {
+      setBrowsing(false);
     }
   };
+
+  const busy = browsing || saving;
+  const canSave = pathInput.trim() !== rootPath && !busy;
 
   return (
     <Popover anchorRect={anchorRect} onClose={onClose} className="settings-dialog">
@@ -53,19 +72,24 @@ export function SettingsDialog({ anchorRect, onClose, tabId, tabTitle, rootPath 
           <input
             type="text"
             value={pathInput}
+            disabled={busy}
             onChange={(e) => setPathInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") savePath(pathInput);
+              if (e.key === "Enter" && canSave) void savePath(pathInput);
             }}
           />
-          <button type="button" onClick={browse}>
-            Browse…
+          <button type="button" onClick={() => void browse()} disabled={busy}>
+            {browsing ? "Choosing…" : "Browse…"}
           </button>
-          <button type="button" onClick={() => savePath(pathInput)} disabled={pathInput === rootPath}>
-            Save
+          <button type="button" onClick={() => void savePath(pathInput)} disabled={!canSave}>
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
-        {error && <span className="settings-error">{error}</span>}
+        {error && (
+          <span className="settings-error" title={`Log: ~/.config/workspace-app-dev/folder-picker.log`}>
+            {error}
+          </span>
+        )}
       </div>
     </Popover>
   );

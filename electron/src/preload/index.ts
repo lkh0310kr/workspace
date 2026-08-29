@@ -41,9 +41,8 @@ const api = {
     cursorUsageStatus: (): Promise<unknown> => ipcRenderer.invoke('usage:cursor-usage-status')
   },
   dialog: {
-    openDirectory: (defaultPath?: string): Promise<string | null> =>
-      ipcRenderer.invoke('dialog:open-directory', defaultPath),
-    pickMediaFile: (kind: 'video' | 'audio' | 'ebook'): Promise<string | null> =>
+    openDirectory: (defaultPath?: string) => ipcRenderer.invoke('dialog:open-directory', defaultPath),
+    pickMediaFile: (kind: 'video' | 'audio' | 'ebook') =>
       ipcRenderer.invoke('dialog:pick-media-file', kind)
   },
   clipboard: {
@@ -126,7 +125,8 @@ const api = {
     }
   },
   pty: {
-    spawn: (cols: number, rows: number): Promise<number> => ipcRenderer.invoke('pty:spawn', cols, rows),
+    spawn: (cols: number, rows: number, tabId?: number): Promise<number> =>
+      ipcRenderer.invoke('pty:spawn', cols, rows, tabId),
     connect: (id: number): Promise<{
       id: number
       snapshot: string

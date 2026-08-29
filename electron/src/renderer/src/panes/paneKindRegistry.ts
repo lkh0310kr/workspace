@@ -74,7 +74,11 @@ export interface PaneKindDefinition {
   tabLabel: (item: PaneTabItem) => string;
   /** Builds a fresh PaneTabItem of this kind (may be async — terminal
    * spawns a real pty). */
-  createItem: (id: string, source?: Partial<PaneTabItem>) => PaneTabItem | Promise<PaneTabItem>;
+  createItem: (
+    id: string,
+    source?: Partial<PaneTabItem>,
+    workspaceTabId?: number,
+  ) => PaneTabItem | Promise<PaneTabItem>;
   /** Shows the file-explorer/search sidebar while a tab of this kind is
    * active. */
   hasFileExplorer?: boolean;

@@ -1,4 +1,5 @@
 import * as pty from "node-pty";
+import { isWsl } from "./wslPaths";
 
 // Direct shell spawn (Orca-style). PtySession + xterm scrollback handle
 // reconnect while the app is running; no tmux wrapper.
@@ -18,6 +19,20 @@ export interface PtyOptions {
   cols: number;
   rows: number;
   cwd?: string;
+}
+
+function shellQuoteSingle(value: string): string {
+  return `'${value.replace(/'/g, `'\"'\"'`)}'`;
+}
+
+/** WSL login shells often ignore PTY cwd and open in $HOME — cd first, then exec. */
+function loginShellArgv(shell: string, cwd?: string): { file: string; args: string[] } {
+  if (!cwd || !isWsl()) return { file: shell, args: ["-l"] };
+  const base = shell.endsWith("bash") ? "bash" : shell.endsWith("zsh") ? "zsh" : (shell.split("/").pop() ?? "bash");
+  return {
+    file: shell,
+    args: ["-l", "-c", `cd ${shellQuoteSingle(cwd)} && exec ${base} -l`],
+  };
 }
 
 export class Pty {
@@ -54,12 +69,8 @@ export class Pty {
       LANG: locale,
       LC_ALL: locale,
     };
-
-    // `-l`: run as a *login* shell — without it, only .zshrc runs, never
-    // /etc/zprofile (path_helper → Homebrew) or ~/.zprofile.
-    const shell = process.env.SHELL || "/bin/zsh";
-    const file = shell;
-    const args = ["-l"];
+    const shell = process.env.SHELL || "/bin/bash";
+    const { file, args } = loginShellArgv(shell, this.cwd);
 
     this.child = pty.spawn(file, args, {
       name: "xterm-256color",
