@@ -65,7 +65,7 @@ void qt_run(
 
     EngineWidget window;
     window.resize(width, height);
-    window.setWindowTitle("World Engine — native window, wgpu direct render");
+    window.setWindowTitle("World Engine - native window, wgpu direct render");
     // No Qt-drawn content at all: wgpu renders directly into this
     // widget's native view every frame. Disabling the system background
     // paint avoids Qt fighting wgpu for the same surface between frames.

@@ -28,8 +28,8 @@ fi
 
 if [[ "${SKIP_VS:-0}" != "1" ]] && ! cmd.exe /c "cd /d C:\\Users\\${WIN_USER} && where cl" 2>&1 | tr -d '\r' | grep -qi 'cl\.exe'; then
   echo "[$(date +%H:%M:%S)] Installing VS Build Tools (UAC prompt may appear on Windows)..." | tee -a "$LOG"
-  cp "${SCRIPT_DIR}/install-vs-build-tools.cmd" "${WIN_HOME}/install-vs-build-tools.cmd"
-  if ! cmd.exe /c "cd /d C:\\Users\\${WIN_USER} && install-vs-build-tools.cmd" 2>&1 | tr -d '\r' | tee -a "$LOG"; then
+  cp "${SCRIPT_DIR}/install-vs-build-tools.ps1" "${WIN_HOME}/install-vs-build-tools.ps1"
+  if ! cmd.exe /c "cd /d C:\\Users\\${WIN_USER} && powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\${WIN_USER}\\install-vs-build-tools.ps1" 2>&1 | tr -d '\r' | tee -a "$LOG"; then
     echo "[$(date +%H:%M:%S)] WARNING: VS Build Tools install failed (exit 1602 = UAC cancelled?)." | tee -a "$LOG"
     echo "[$(date +%H:%M:%S)] Run in Windows PowerShell AS ADMIN: powershell -ExecutionPolicy Bypass -File ~/workspace/electron/scripts/install-vs-build-tools.ps1" | tee -a "$LOG"
     exit 1

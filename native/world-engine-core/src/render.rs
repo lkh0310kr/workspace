@@ -4,6 +4,7 @@
 //! future shell (a different native toolkit) can reuse this as-is.
 
 use std::ffi::c_void;
+use std::num::NonZeroIsize;
 use std::ptr::NonNull;
 
 use bytemuck::{Pod, Zeroable};
@@ -271,8 +272,8 @@ pub fn init_gpu_win32(
     height: u32,
     loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)>,
 ) -> GpuContext {
-    let raw_window_handle =
-        RawWindowHandle::Win32(Win32WindowHandle::new(NonNull::new(hwnd).expect("embed host HWND was null")));
+    let hwnd = NonZeroIsize::new(hwnd as isize).expect("embed host HWND was null");
+    let raw_window_handle = RawWindowHandle::Win32(Win32WindowHandle::new(hwnd));
     let raw_display_handle = RawDisplayHandle::Windows(WindowsDisplayHandle::new());
     create_gpu_context(raw_window_handle, Some(raw_display_handle), width, height, loaded_geometry)
 }
