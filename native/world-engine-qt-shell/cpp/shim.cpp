@@ -75,6 +75,10 @@ void qt_run(
     window.user_data = user_data;
     window.show();
 
+    // Ensure the native HWND exists before handing it to wgpu (Windows/Qt).
+    window.winId();
+    QApplication::processEvents();
+
     // WId is Qt's cross-platform native handle typedef — on macOS this
     // is the NSView* backing the widget, valid once the widget has a
     // real native window (guaranteed after show()).

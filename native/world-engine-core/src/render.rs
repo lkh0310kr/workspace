@@ -9,7 +9,9 @@ use std::ptr::NonNull;
 
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec3};
-use raw_window_handle::{AppKitDisplayHandle, AppKitWindowHandle, RawDisplayHandle, RawWindowHandle};
+use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
+#[cfg(target_os = "macos")]
+use raw_window_handle::{AppKitDisplayHandle, AppKitWindowHandle};
 #[cfg(target_os = "windows")]
 use raw_window_handle::{Win32WindowHandle, WindowsDisplayHandle};
 
@@ -244,8 +246,8 @@ pub struct GpuContext {
     depth_view: wgpu::TextureView,
 }
 
-/// Builds a `wgpu` surface directly targeting a real native AppKit view
-/// (`NSView*`) at the crate's default size — used by `world-engine-qt-shell`.
+/// Builds a `wgpu` surface from the shell's native window handle at the
+/// crate's default size — used by `world-engine-qt-shell`.
 pub fn init_gpu(native_view: *mut c_void, loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)>) -> GpuContext {
     init_gpu_sized(native_view, WIDTH, HEIGHT, loaded_geometry)
 }
@@ -258,10 +260,23 @@ pub fn init_gpu_sized(
     height: u32,
     loaded_geometry: Option<(Vec<Vertex>, Vec<u16>)>,
 ) -> GpuContext {
-    let raw_window_handle =
-        RawWindowHandle::AppKit(AppKitWindowHandle::new(NonNull::new(native_view).expect("shell gave a null native view")));
-    let raw_display_handle = RawDisplayHandle::AppKit(AppKitDisplayHandle::new());
-    create_gpu_context(raw_window_handle, Some(raw_display_handle), width, height, loaded_geometry)
+    #[cfg(target_os = "macos")]
+    {
+        let raw_window_handle = RawWindowHandle::AppKit(AppKitWindowHandle::new(
+            NonNull::new(native_view).expect("shell gave a null native view"),
+        ));
+        let raw_display_handle = RawDisplayHandle::AppKit(AppKitDisplayHandle::new());
+        return create_gpu_context(raw_window_handle, Some(raw_display_handle), width, height, loaded_geometry);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        return init_gpu_win32(native_view, width, height, loaded_geometry);
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        let _ = (native_view, width, height, loaded_geometry);
+        panic!("init_gpu_sized is not implemented for this OS yet — build world-engine-qt-shell for macOS or Windows");
+    }
 }
 
 /// Windows: build a `wgpu` surface from a child `HWND` (Electron embed).
