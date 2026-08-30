@@ -1300,6 +1300,27 @@ iframe.browser-content-slot {
   color: var(--text);
 }
 
+.japanese-mode-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent, #3b82f6);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.japanese-sense-pos {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 .japanese-pane-toolbar {
   flex-shrink: 0;
   padding: 8px 10px;
@@ -1394,6 +1415,84 @@ iframe.browser-content-slot {
 
 .japanese-srs-grade-btn:hover {
   border-color: var(--accent);
+}
+
+.japanese-diagnostics {
+  margin-top: 20px;
+}
+
+.japanese-diagnostics-alert {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.japanese-diagnostics-meta {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+
+.japanese-diagnostics-meta dt {
+  color: var(--text-faint);
+}
+
+.japanese-diagnostics-meta dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+.japanese-diagnostics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.japanese-diagnostics-table th,
+.japanese-diagnostics-table td {
+  border: 1px solid var(--border-subtle);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.japanese-diagnostics-table tr.is-selected {
+  background: var(--bg-raised);
+}
+
+.japanese-diagnostics-path {
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+.japanese-diagnostics-log-title {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.japanese-diagnostics-log {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-raised);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: pre-wrap;
 }
 
   flex-shrink: 0;

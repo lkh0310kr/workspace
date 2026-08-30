@@ -12,7 +12,13 @@ interface DueItem {
   detail: JapaneseLexemeDetail | null;
 }
 
-export function SrsReviewPanel({ onOpenLexeme }: { onOpenLexeme: (entSeq: number) => void }) {
+export function SrsReviewPanel({
+  onOpenLexeme,
+  onQueueChange,
+}: {
+  onOpenLexeme: (entSeq: number) => void;
+  onQueueChange?: () => void;
+}) {
   const [items, setItems] = useState<DueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
@@ -21,7 +27,7 @@ export function SrsReviewPanel({ onOpenLexeme }: { onOpenLexeme: (entSeq: number
     setLoading(true);
     setMessage(null);
     try {
-      const cards = await listDueJapaneseSrsCards(30);
+      const cards = (await listDueJapaneseSrsCards(30)) ?? [];
       const enriched = await Promise.all(
         cards.map(async (card) => ({
           card,
@@ -30,6 +36,7 @@ export function SrsReviewPanel({ onOpenLexeme }: { onOpenLexeme: (entSeq: number
       );
       setItems(enriched);
       if (enriched.length === 0) setMessage("No cards due. Add entries from a word detail view.");
+      onQueueChange?.();
     } catch {
       setMessage("Failed to load SRS queue.");
     } finally {

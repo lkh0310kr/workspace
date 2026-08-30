@@ -47,6 +47,14 @@ CREATE TABLE IF NOT EXISTS gloss (
 
 CREATE INDEX IF NOT EXISTS idx_gloss_sense_id ON gloss(sense_id);
 
+CREATE TABLE IF NOT EXISTS sense_pos (
+  sense_id INTEGER NOT NULL REFERENCES sense(id) ON DELETE CASCADE,
+  pos TEXT NOT NULL,
+  PRIMARY KEY (sense_id, pos)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sense_pos_sense_id ON sense_pos(sense_id);
+
 CREATE TABLE IF NOT EXISTS kanji (
   literal TEXT PRIMARY KEY,
   codepoint INTEGER,

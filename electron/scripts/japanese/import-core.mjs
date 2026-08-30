@@ -43,6 +43,7 @@ export function clearDictionaryData(database) {
     DELETE FROM field_provenance;
     DELETE FROM lexeme_pitch;
     DELETE FROM gloss;
+    DELETE FROM sense_pos;
     DELETE FROM sense;
     DELETE FROM reading;
     DELETE FROM writing;
@@ -83,6 +84,11 @@ function insertLexemeEntry(database, entry) {
       .prepare("INSERT INTO sense (ent_seq, sense_no) VALUES (?, ?)")
       .run(entSeq, senseNo);
     const senseId = result.lastInsertRowid;
+    for (const posNode of asArray(sense.pos)) {
+      const raw = textOf(posNode).replace(/^&/, "").replace(/;$/, "");
+      if (!raw) continue;
+      database.prepare("INSERT INTO sense_pos (sense_id, pos) VALUES (?, ?)").run(senseId, raw);
+    }
     for (const gloss of asArray(sense.gloss)) {
       const lang = gloss.$?.lang ?? "en";
       const text = textOf(gloss);
@@ -453,6 +459,15 @@ export async function importDictionary({
   if (tatoebaSentencesPath) setMeta(database, "tatoeba_sentences_path", resolve(tatoebaSentencesPath));
 
   database.close();
+  console.log("[japanese-import] complete", {
+    outPath: resolve(outPath),
+    jmdictCount,
+    kanjidicCount,
+    kanjivgCount,
+    krdictCount,
+    tatoebaCount,
+    kanjiumCount,
+  });
   return {
     jmdictCount,
     kanjidicCount,

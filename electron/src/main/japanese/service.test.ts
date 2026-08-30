@@ -60,6 +60,7 @@ describe("japanese dictionary service", () => {
     expect(lexeme?.writings[0]?.orthography).toBe("日本");
     expect(lexeme?.readings).toHaveLength(2);
     expect(lexeme?.senses[0]?.glosses.some((gloss) => gloss.lang === "ko")).toBe(true);
+    expect(lexeme?.senses[0]?.pos).toContain("n");
     expect(lexeme?.examples.length).toBeGreaterThan(0);
 
     const taberu = getJapaneseLexeme(1000000);

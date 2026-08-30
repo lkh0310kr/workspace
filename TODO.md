@@ -36,10 +36,12 @@ Web export를 webview로 host하는 방식 확정. 근거/배경: [docs/ideation
 **데이터 전략 (요약):** JMdict(`ent_seq`) + KANJIDIC2 + KanjiVG + KRDICT + Tatoeba;
 Lexeme 허브 그래프 모델; 소스별 natural key + field provenance로 멀티 소스 upsert.
 
-- [ ] **Phase A** — JMdict/KANJIDIC → SQLite + FTS, KanjiVG 획순 뷰, pane 검색 UI
-- [ ] **Phase B** — KRDICT 한국어 뜻 crosswalk, Tatoeba 예문
-- [ ] **Phase C** — 손글씨 캔버스 + Zinnia/ONNX 인식 → 한자 후보 → 사전
-- [ ] **Phase D** — SRS, pitch accent, 필기 연습 채점
+- [x] **Phase A** — JMdict/KANJIDIC → SQLite + FTS, KanjiVG 획순 뷰, pane 검색 UI
+- [x] **Phase B** — KRDICT 한국어 뜻 crosswalk, Tatoeba 예문
+- [x] **Phase C** — 손글씨 캔버스 + KanjiVG 매칭 인식 → 한자 후보 → 사전 (Zinnia/ONNX는 후속)
+- [x] **Phase D** — SRS, pitch accent, 필기 연습 채점
+- [x] **Phase E** — JMdict 품사 표시, SRS due 배지, 한국어 탭 라벨, DB 연결 안정화
+- [x] import 파이프라인 스크립트 + 라이선스 NOTICE 번들
 
 ## 미래/아이디어
 

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { openJapaneseUserDb, setJapaneseUserDb } from "./userDb";
-import { addSrsCard, listDueSrsCards, reviewSrsCard } from "./srs";
+import { addSrsCard, countDueSrsCards, listDueSrsCards, reviewSrsCard } from "./srs";
 
 describe("japanese srs", () => {
   let outDir = "";
@@ -30,5 +30,12 @@ describe("japanese srs", () => {
     const reviewed = reviewSrsCard(1000001, 4);
     expect(reviewed.interval).toBeGreaterThanOrEqual(1);
     expect(reviewed.ease).toBeGreaterThan(1);
+  });
+
+  it("counts due cards", () => {
+    addSrsCard(1000002);
+    expect(countDueSrsCards()).toBe(1);
+    reviewSrsCard(1000002, 5);
+    expect(countDueSrsCards()).toBe(0);
   });
 });

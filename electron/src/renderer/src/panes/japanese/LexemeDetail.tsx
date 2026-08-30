@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { addJapaneseSrsCard, getJapaneseLexeme, type JapaneseLexemeDetail } from "../../electron";
+import { formatJapanesePos } from "./posLabels";
 
 interface Props {
   entSeq: number;
@@ -54,7 +55,7 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
         {primaryReading ? <div className="japanese-lexeme-reading">{primaryReading}</div> : null}
         {detail.readings.length > 1 ? (
           <div className="japanese-lexeme-alt-readings">
-            {detail.readings.slice(1).map((reading) => reading.kana).join(" · ")}
+            {(detail.readings ?? []).slice(1).map((reading) => reading.kana).join(" · ")}
           </div>
         ) : null}
         <button
@@ -71,11 +72,11 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
         {srsMessage ? <p className="japanese-pane-toolbar-hint">{srsMessage}</p> : null}
       </header>
 
-      {detail.pitchPatterns.length > 0 ? (
+      {(detail.pitchPatterns ?? []).length > 0 ? (
         <section className="japanese-lexeme-section">
           <h3 className="japanese-section-title">Pitch accent</h3>
           <ul className="japanese-pitch-list">
-            {detail.pitchPatterns.map((pitch) => (
+            {(detail.pitchPatterns ?? []).map((pitch) => (
               <li key={`${pitch.reading}-${pitch.pattern}`} className="japanese-pitch-item">
                 <span className="japanese-pitch-reading">{pitch.reading}</span>
                 <span className="japanese-pitch-pattern">{pitch.pattern}</span>
@@ -107,10 +108,17 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
         <h3 className="japanese-section-title">Meanings (English)</h3>
         <ol className="japanese-sense-list">
           {detail.senses.map((sense) => {
-            const english = sense.glosses.filter((gloss) => gloss.lang === "en").map((gloss) => gloss.text);
+            const english = (sense.glosses ?? [])
+              .filter((gloss) => gloss.lang === "en")
+              .map((gloss) => gloss.text);
             if (english.length === 0) return null;
             return (
               <li key={sense.senseNo} className="japanese-sense-item">
+                {(sense.pos ?? []).length > 0 ? (
+                  <span className="japanese-sense-pos">
+                    {(sense.pos ?? []).map(formatJapanesePos).join(" · ")}
+                  </span>
+                ) : null}
                 {english.join("; ")}
               </li>
             );
@@ -118,12 +126,14 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
         </ol>
       </section>
 
-      {detail.senses.some((sense) => sense.glosses.some((gloss) => gloss.lang === "ko")) ? (
+      {(detail.senses ?? []).some((sense) => (sense.glosses ?? []).some((gloss) => gloss.lang === "ko")) ? (
         <section className="japanese-lexeme-section">
           <h3 className="japanese-section-title">Meanings (Korean)</h3>
           <ol className="japanese-sense-list">
-            {detail.senses.map((sense) => {
-              const korean = sense.glosses.filter((gloss) => gloss.lang === "ko").map((gloss) => gloss.text);
+            {(detail.senses ?? []).map((sense) => {
+              const korean = (sense.glosses ?? [])
+                .filter((gloss) => gloss.lang === "ko")
+                .map((gloss) => gloss.text);
               if (korean.length === 0) return null;
               return (
                 <li key={`ko-${sense.senseNo}`} className="japanese-sense-item">
@@ -135,11 +145,11 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
         </section>
       ) : null}
 
-      {detail.examples.length > 0 ? (
+      {(detail.examples ?? []).length > 0 ? (
         <section className="japanese-lexeme-section">
           <h3 className="japanese-section-title">Examples</h3>
           <ul className="japanese-example-list">
-            {detail.examples.map((example) => (
+            {(detail.examples ?? []).map((example) => (
               <li key={example.id} className="japanese-example-item">
                 <div className="japanese-example-ja">{example.textJa}</div>
                 {example.textEn ? <div className="japanese-example-en">{example.textEn}</div> : null}

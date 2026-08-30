@@ -40,6 +40,15 @@ export function reviewSrsCard(entSeq: number, quality: 0 | 1 | 2 | 3 | 4 | 5): J
   return { entSeq, due, interval, ease };
 }
 
+export function countDueSrsCards(): number {
+  const db = getJapaneseUserDb();
+  const now = new Date().toISOString();
+  const row = db
+    .prepare("SELECT COUNT(*) AS count FROM srs_card WHERE due <= ?")
+    .get(now) as { count: number };
+  return row.count;
+}
+
 export function listDueSrsCards(limit = 20): JapaneseSrsCard[] {
   const db = getJapaneseUserDb();
   const now = new Date().toISOString();

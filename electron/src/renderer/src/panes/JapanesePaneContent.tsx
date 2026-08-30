@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { PaneTabItem } from "../layout/paneTypes";
+import { countDueJapaneseSrsCards } from "../electron";
 import { DictionarySetup } from "./japanese/DictionarySetup";
 import { HandwritingCanvas } from "./japanese/HandwritingCanvas";
 import { JapaneseSearchBar } from "./japanese/JapaneseSearchBar";
@@ -22,10 +23,21 @@ type DetailView =
 
 export function JapanesePaneContent({ item: _item }: Props) {
   const { status, reload, reloading } = useJapaneseDb();
+  const [dueCount, setDueCount] = useState(0);
   const [mode, setMode] = useState<PaneMode>("search");
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<DetailView>({ kind: "none" });
   const { hits, loading, error } = useJapaneseSearch(query);
+
+  useEffect(() => {
+    if (!status?.ready) {
+      setDueCount(0);
+      return;
+    }
+    countDueJapaneseSrsCards()
+      .then(setDueCount)
+      .catch(() => setDueCount(0));
+  }, [status?.ready, mode]);
 
   const showSetup = !status?.ready && mode !== "setup";
 
@@ -37,28 +49,29 @@ export function JapanesePaneContent({ item: _item }: Props) {
           className={`japanese-mode-tab${mode === "search" ? " is-active" : ""}`}
           onClick={() => setMode("search")}
         >
-          Search
+          검색
         </button>
         <button
           type="button"
           className={`japanese-mode-tab${mode === "handwriting" ? " is-active" : ""}`}
           onClick={() => setMode("handwriting")}
         >
-          Handwriting
+          필기
         </button>
         <button
           type="button"
           className={`japanese-mode-tab${mode === "review" ? " is-active" : ""}`}
           onClick={() => setMode("review")}
         >
-          Review
+          복습
+          {dueCount > 0 ? <span className="japanese-mode-tab-badge">{dueCount}</span> : null}
         </button>
         <button
           type="button"
           className={`japanese-mode-tab${mode === "setup" ? " is-active" : ""}`}
           onClick={() => setMode("setup")}
         >
-          Data
+          데이터
         </button>
         {status?.ready ? (
           <button
@@ -87,11 +100,16 @@ export function JapanesePaneContent({ item: _item }: Props) {
               <HandwritingCanvas onSelectKanji={(literal) => setDetail({ kind: "kanji", literal })} />
             ) : null}
             {mode === "review" ? (
-              <SrsReviewPanel onOpenLexeme={(entSeq) => setDetail({ kind: "lexeme", entSeq })} />
+              <SrsReviewPanel
+                onOpenLexeme={(entSeq) => setDetail({ kind: "lexeme", entSeq })}
+                onQueueChange={() => {
+                  void countDueJapaneseSrsCards().then(setDueCount).catch(() => setDueCount(0));
+                }}
+              />
             ) : null}
             {mode === "search" && loading ? <div className="japanese-pane-detail-empty">Searching…</div> : null}
             {mode === "search" && error ? <div className="japanese-pane-detail-empty">{error}</div> : null}
-            {mode === "search" && !loading && !error && query.trim() && hits.length === 0 ? (
+            {mode === "search" && !loading && !error && query.trim() && (hits ?? []).length === 0 ? (
               <div className="japanese-pane-detail-empty">No results.</div>
             ) : null}
             {mode === "search" && !query.trim() ? (
@@ -99,7 +117,7 @@ export function JapanesePaneContent({ item: _item }: Props) {
             ) : null}
             {mode === "search" && query.trim() ? (
               <ul className="japanese-hit-list">
-                {hits.map((hit) => (
+                {(hits ?? []).map((hit) => (
                   <li key={hit.entSeq}>
                     <button
                       type="button"
