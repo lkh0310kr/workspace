@@ -33,13 +33,21 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
     };
   }, [entSeq]);
 
-  if (loading) return <div className="japanese-pane-detail-empty">Loading…</div>;
+  if (loading) return <div className="japanese-pane-detail-empty">불러오는 중…</div>;
   if (error) return <div className="japanese-pane-detail-empty">{error}</div>;
-  if (!detail) return <div className="japanese-pane-detail-empty">Entry not found.</div>;
+  if (!detail) return <div className="japanese-pane-detail-empty">항목을 찾을 수 없습니다.</div>;
 
   const primaryWriting = detail.writings[0]?.orthography ?? null;
   const primaryReading = detail.readings[0]?.kana ?? null;
   const title = primaryWriting ?? primaryReading ?? `#${detail.entSeq}`;
+  const priorityTags = [
+    ...new Set(
+      [...detail.writings, ...detail.readings]
+        .flatMap((entry) => (entry.priority ?? "").split(","))
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    ),
+  ];
 
   const kanjiLiterals = new Set<string>();
   for (const writing of detail.writings) {
@@ -53,6 +61,15 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
       <header className="japanese-lexeme-header">
         <h2 className="japanese-lexeme-title">{title}</h2>
         {primaryReading ? <div className="japanese-lexeme-reading">{primaryReading}</div> : null}
+        {priorityTags.length > 0 ? (
+          <div className="japanese-priority-tags">
+            {priorityTags.map((tag) => (
+              <span key={tag} className="japanese-priority-tag">
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
         {detail.readings.length > 1 ? (
           <div className="japanese-lexeme-alt-readings">
             {(detail.readings ?? []).slice(1).map((reading) => reading.kana).join(" · ")}
@@ -63,11 +80,11 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
           className="japanese-stroke-btn"
           onClick={() => {
             addJapaneseSrsCard(entSeq)
-              .then((card) => setSrsMessage(`SRS scheduled (next: ${new Date(card.due).toLocaleDateString()})`))
-              .catch(() => setSrsMessage("Failed to add SRS card"));
+              .then((card) => setSrsMessage(`복습 예약됨 (다음: ${new Date(card.due).toLocaleDateString()})`))
+              .catch(() => setSrsMessage("SRS 추가 실패"));
           }}
         >
-          Add to SRS
+          복습에 추가
         </button>
         {srsMessage ? <p className="japanese-pane-toolbar-hint">{srsMessage}</p> : null}
       </header>

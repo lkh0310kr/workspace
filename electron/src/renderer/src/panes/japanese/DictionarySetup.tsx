@@ -3,22 +3,68 @@ import { JapaneseDiagnostics } from "./JapaneseDiagnostics";
 import { useJapaneseDb } from "./useJapaneseDb";
 
 const DATA_SOURCES = [
-  { name: "JMdict", url: "https://www.edrdg.org/jmdict/j_jmdict.html", flag: "--jmdict" },
-  { name: "KANJIDIC2", url: "https://www.edrdg.org/wiki/index.php?title=KANJIDIC_Project", flag: "--kanjidic" },
-  { name: "KanjiVG", url: "https://kanjivg.tagaini.net/", flag: "--kanjivg" },
-  { name: "KRDICT", url: "https://krdict.korean.go.kr/", flag: "--krdict" },
-  { name: "Tatoeba", url: "https://tatoeba.org/en/downloads", flag: "--tatoeba-sentences / --tatoeba-links" },
-  { name: "Kanjium", url: "https://github.com/mifunetoshiro/kanjium", flag: "--kanjium" },
+  {
+    name: "JMdict",
+    required: true,
+    note: "단어·영어 뜻·품사 (필수)",
+    url: "https://www.edrdg.org/jmdict/j_jmdict.html",
+    flag: "--jmdict",
+    file: "JMdict_e.xml",
+  },
+  {
+    name: "KANJIDIC2",
+    required: true,
+    note: "한자 획수·음훈·JLPT (필수)",
+    url: "https://www.edrdg.org/wiki/index.php?title=KANJIDIC_Project",
+    flag: "--kanjidic",
+    file: "kanjidic2.xml",
+  },
+  {
+    name: "KanjiVG",
+    required: false,
+    note: "획순 SVG·필기 인식 (권장)",
+    url: "https://kanjivg.tagaini.net/",
+    flag: "--kanjivg",
+    file: "kanjivg/ 폴더",
+  },
+  {
+    name: "KRDICT",
+    required: false,
+    note: "한국어 뜻",
+    url: "https://krdict.korean.go.kr/",
+    flag: "--krdict",
+    file: "krdict XML",
+  },
+  {
+    name: "Tatoeba",
+    required: false,
+    note: "예문 (sentences + links TSV)",
+    url: "https://tatoeba.org/en/downloads",
+    flag: "--tatoeba-sentences / --tatoeba-links",
+    file: "sentences.tsv, links.tsv",
+  },
+  {
+    name: "Kanjium",
+    required: false,
+    note: "성조(액센트) 패턴",
+    url: "https://github.com/mifunetoshiro/kanjium",
+    flag: "--kanjium",
+    file: "accents.txt",
+  },
 ];
 
 function buildImportCommand(dbPath: string | null): string {
-  const outLine = dbPath ? `  --out ${dbPath} \\` : "";
+  const outLine = dbPath ? `  --out ${dbPath} \\` : "  # --out 생략 시 workspace-app-dev";
   return `cd electron
 npm run japanese:import -- \\
   --jmdict /path/to/JMdict_e.xml \\
   --kanjidic /path/to/kanjidic2.xml \\
   --kanjivg /path/to/kanjivg \\
-${outLine ? `${outLine}\n` : ""}# --out is optional; defaults to workspace-app-dev`;
+  --krdict /path/to/krdict.xml \\
+  --tatoeba-sentences /path/to/sentences.tsv \\
+  --tatoeba-links /path/to/links.tsv \\
+  --kanjium /path/to/accents.txt \\
+${outLine}`;
 }
 
 interface Props {
@@ -33,29 +79,27 @@ export function DictionarySetup({ onReady }: Props) {
   }, [status?.ready, onReady]);
 
   if (loading && !status) {
-    return <div className="japanese-pane-detail-empty">Checking dictionary…</div>;
+    return <div className="japanese-pane-detail-empty">사전 상태 확인 중…</div>;
   }
 
   if (status?.ready) {
     return (
       <div className="japanese-setup-ready">
         <p className="japanese-setup-lead">
-          Dictionary loaded — {status.entryCount.toLocaleString()} words, {status.kanjiCount.toLocaleString()} kanji
-          {status.strokeKanjiCount > 0 ? `, ${status.strokeKanjiCount.toLocaleString()} with strokes` : ""}.
+          사전 로드됨 — 단어 {status.entryCount.toLocaleString()}개, 한자 {status.kanjiCount.toLocaleString()}자
+          {status.strokeKanjiCount > 0 ? `, 획 데이터 ${status.strokeKanjiCount.toLocaleString()}자` : ""}.
         </p>
         {status.loadedPath && status.loadedPath !== status.path ? (
-          <p className="japanese-diagnostics-alert">
-            Using alternate DB path: {status.loadedPath}
-          </p>
+          <p className="japanese-diagnostics-alert">대체 DB 사용 중: {status.loadedPath}</p>
         ) : null}
         {status.importedAt ? (
           <p className="japanese-pane-toolbar-hint">
-            Last import: {new Date(status.importedAt).toLocaleString()}
+            마지막 import: {new Date(status.importedAt).toLocaleString()}
           </p>
         ) : null}
-        <p className="japanese-pane-toolbar-hint">Primary DB: {status.path}</p>
+        <p className="japanese-pane-toolbar-hint">기본 경로: {status.path}</p>
         <button type="button" className="japanese-stroke-btn" onClick={() => void reload()} disabled={reloading}>
-          {reloading ? "Reloading…" : "Reload dictionary"}
+          {reloading ? "다시 불러오는 중…" : "사전 다시 불러오기"}
         </button>
         <JapaneseDiagnostics status={status} />
       </div>
@@ -64,55 +108,55 @@ export function DictionarySetup({ onReady }: Props) {
 
   return (
     <div className="japanese-setup">
-      <h2 className="japanese-setup-title">Load Japanese dictionary data</h2>
+      <h2 className="japanese-setup-title">일본어 사전 데이터 불러오기</h2>
       {status?.loadMessage ? <p className="japanese-diagnostics-alert">{status.loadMessage}</p> : null}
       <p className="japanese-setup-lead">
-        The app reads a local SQLite file built from open dictionary sources. Nothing is bundled in git — you
-        download XML/TSV once, then import with the CLI.
+        앱은 로컬 SQLite 파일을 읽습니다. git에는 데이터가 없고, 오픈소스 XML/TSV를 한 번 받아 CLI로 import
+        해야 합니다.
       </p>
 
       <section className="japanese-setup-section">
-        <h3 className="japanese-section-title">1. Quick try (dev fixtures)</h3>
+        <h3 className="japanese-section-title">1. 빠른 테스트 (fixture)</h3>
         <pre className="japanese-pane-import-hint">cd electron{"\n"}npm run japanese:import:fixtures</pre>
         <p className="japanese-pane-toolbar-hint">
-          Imports the small sample under <code>test-fixtures/japanese/</code> (~5 words). Good for smoke testing.
+          <code>test-fixtures/japanese/</code> 샘플 5단어. 개발·동작 확인용입니다.
         </p>
       </section>
 
       <section className="japanese-setup-section">
-        <h3 className="japanese-section-title">2. Full import</h3>
+        <h3 className="japanese-section-title">2. 전체 import</h3>
         <p className="japanese-setup-lead">
-          Download sources below, replace <code>/path/to/…</code>, then run. Omit optional flags you do not have.
+          아래 소스를 받은 뒤 경로를 바꿔 실행하세요. 없는 항목은 플래그를 빼도 됩니다.
         </p>
         <pre className="japanese-pane-import-hint">{buildImportCommand(status?.path ?? null)}</pre>
         <p className="japanese-pane-toolbar-hint">
-          Default output (dev): import script writes to <code>workspace-app-dev</code> automatically.
-          <br />
-          The app also checks <code>workspace-app</code> if you imported there earlier.
+          dev 기본 출력: <code>workspace-app-dev</code>. 예전에 <code>workspace-app</code>에 넣었다면 앱이
+          자동으로 찾습니다.
         </p>
       </section>
 
       <section className="japanese-setup-section">
-        <h3 className="japanese-section-title">3. Reload in app</h3>
-        <p className="japanese-setup-lead">
-          After import finishes, click reload — no app restart needed.
-        </p>
+        <h3 className="japanese-section-title">3. 앱에서 reload</h3>
+        <p className="japanese-setup-lead">import가 끝나면 아래 버튼 — 앱 재시작은 필요 없습니다.</p>
         <button type="button" className="japanese-stroke-btn" onClick={() => void reload()} disabled={reloading}>
-          {reloading ? "Reloading…" : "Reload dictionary"}
+          {reloading ? "다시 불러오는 중…" : "사전 다시 불러오기"}
         </button>
       </section>
 
       <JapaneseDiagnostics status={status} />
 
       <section className="japanese-setup-section">
-        <h3 className="japanese-section-title">Data sources</h3>
+        <h3 className="japanese-section-title">데이터 소스</h3>
         <ul className="japanese-source-list">
           {DATA_SOURCES.map((source) => (
             <li key={source.name}>
               <a href={source.url} target="_blank" rel="noreferrer">
                 {source.name}
               </a>
-              <span className="japanese-source-flag">{source.flag}</span>
+              <span className="japanese-source-flag">
+                {source.required ? "필수" : "선택"} · {source.file} · {source.flag}
+              </span>
+              <span className="japanese-source-note">{source.note}</span>
             </li>
           ))}
         </ul>
