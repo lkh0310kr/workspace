@@ -6,6 +6,7 @@ import type {
   JapaneseSearchResult,
   JapaneseStrokeData,
   JapaneseStrokeRecognitionResult,
+  JapanesePracticeScore,
 } from "../../shared/japaneseTypes";
 import {
   getJapaneseDb,
@@ -16,9 +17,11 @@ import {
 import {
   rankKanjiMatches,
   sampleSvgPath,
+  scoreKanjiMatch,
   type KanjiStrokeReference,
   type UserStrokeInput,
 } from "./strokeMatch";
+import { getLexemePitchPatterns, logPracticeScore } from "./srs";
 
 function escapeFtsQuery(query: string): string {
   return query
@@ -184,6 +187,7 @@ export function getJapaneseLexeme(entSeq: number): JapaneseLexemeDetail | null {
       textEn: example.text_en,
       textKo: example.text_ko,
     })),
+    pitchPatterns: getLexemePitchPatterns(entSeq),
   };
 }
 
@@ -265,4 +269,15 @@ export function recognizeJapaneseStrokes(userStrokes: UserStrokeInput[]): Japane
   const references = loadKanjiStrokeReferences();
   const candidates = rankKanjiMatches(userStrokes, references, 12);
   return { candidates };
+}
+
+export function scoreJapanesePractice(literal: string, userStrokes: UserStrokeInput[]): JapanesePracticeScore {
+  const references = loadKanjiStrokeReferences();
+  const reference = references.find((entry) => entry.literal === literal);
+  if (!reference) {
+    return { literal, score: 0 };
+  }
+  const score = scoreKanjiMatch(userStrokes, reference);
+  logPracticeScore(literal, score);
+  return { literal, score };
 }

@@ -227,6 +227,12 @@ const api = {
       ipcRenderer.invoke('japanese:search-by-kanji', literal),
     recognizeStrokes: (strokes: unknown): Promise<unknown> =>
       ipcRenderer.invoke('japanese:recognize-strokes', strokes),
+    scorePractice: (literal: string, strokes: unknown): Promise<unknown> =>
+      ipcRenderer.invoke('japanese:score-practice', literal, strokes),
+    srsAdd: (entSeq: number): Promise<unknown> => ipcRenderer.invoke('japanese:srs-add', entSeq),
+    srsReview: (entSeq: number, quality: number): Promise<unknown> =>
+      ipcRenderer.invoke('japanese:srs-review', entSeq, quality),
+    srsDue: (limit?: number): Promise<unknown> => ipcRenderer.invoke('japanese:srs-due', limit),
   },
   epub: {
     open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getJapaneseLexeme, type JapaneseLexemeDetail } from "../../electron";
+import { addJapaneseSrsCard, getJapaneseLexeme, type JapaneseLexemeDetail } from "../../electron";
 
 interface Props {
   entSeq: number;
@@ -10,6 +10,7 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
   const [detail, setDetail] = useState<JapaneseLexemeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [srsMessage, setSrsMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +57,33 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
             {detail.readings.slice(1).map((reading) => reading.kana).join(" · ")}
           </div>
         ) : null}
+        <button
+          type="button"
+          className="japanese-stroke-btn"
+          onClick={() => {
+            addJapaneseSrsCard(entSeq)
+              .then((card) => setSrsMessage(`SRS scheduled (next: ${new Date(card.due).toLocaleDateString()})`))
+              .catch(() => setSrsMessage("Failed to add SRS card"));
+          }}
+        >
+          Add to SRS
+        </button>
+        {srsMessage ? <p className="japanese-pane-toolbar-hint">{srsMessage}</p> : null}
       </header>
+
+      {detail.pitchPatterns.length > 0 ? (
+        <section className="japanese-lexeme-section">
+          <h3 className="japanese-section-title">Pitch accent</h3>
+          <ul className="japanese-pitch-list">
+            {detail.pitchPatterns.map((pitch) => (
+              <li key={`${pitch.reading}-${pitch.pattern}`} className="japanese-pitch-item">
+                <span className="japanese-pitch-reading">{pitch.reading}</span>
+                <span className="japanese-pitch-pattern">{pitch.pattern}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {kanjiLiterals.size > 0 ? (
         <section className="japanese-lexeme-section">

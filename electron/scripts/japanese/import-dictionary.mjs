@@ -15,6 +15,7 @@ Options:
   --tatoeba-sentences <path>  Tatoeba sentences TSV
   --tatoeba-links <path>      Tatoeba links TSV (from_id, to_id)
   --tatoeba-lexeme-links <path>  Curated ent_seq to Tatoeba jpn id TSV
+  --kanjium <path>         Kanjium accents.txt pitch patterns
   --no-clear           Append without clearing existing rows
   -h, --help           Show this help
 
@@ -30,7 +31,7 @@ Example:
 try {
   const result = await importDictionary(args);
   console.log(
-    `Imported ${result.jmdictCount} JMdict entries, ${result.kanjidicCount} kanji, ${result.kanjivgCount.strokeCount} strokes, ${result.krdictCount} KR glosses, and ${result.tatoebaCount} examples.`,
+    `Imported ${result.jmdictCount} JMdict entries, ${result.kanjidicCount} kanji, ${result.kanjivgCount.strokeCount} strokes, ${result.krdictCount} KR glosses, ${result.tatoebaCount} examples, and ${result.kanjiumCount} pitch patterns.`,
   );
   console.log(`Database written to ${result.outPath}`);
 } catch (err) {

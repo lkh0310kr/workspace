@@ -97,6 +97,14 @@ CREATE TABLE IF NOT EXISTS lexeme_example (
   PRIMARY KEY (ent_seq, example_id)
 );
 
+CREATE TABLE IF NOT EXISTS lexeme_pitch (
+  ent_seq INTEGER NOT NULL REFERENCES lexeme(ent_seq) ON DELETE CASCADE,
+  reading TEXT NOT NULL,
+  pattern TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'kanjium',
+  PRIMARY KEY (ent_seq, reading)
+);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS lexeme_fts USING fts5(
   ent_seq UNINDEXED,
   search_text,

@@ -6,6 +6,8 @@ import type {
   JapaneseSearchResult,
   JapaneseStrokeData,
   JapaneseStrokeRecognitionResult,
+  JapanesePracticeScore,
+  JapaneseSrsCard,
 } from '../shared/japaneseTypes'
 
 export interface TabInfo {
@@ -201,6 +203,10 @@ export interface WorkspaceApi {
     getStrokes: (literal: string) => Promise<JapaneseStrokeData | null>
     searchByKanji: (literal: string) => Promise<JapaneseSearchResult>
     recognizeStrokes: (strokes: { points: { x: number; y: number }[] }[]) => Promise<JapaneseStrokeRecognitionResult>
+    scorePractice: (literal: string, strokes: { points: { x: number; y: number }[] }[]) => Promise<JapanesePracticeScore>
+    srsAdd: (entSeq: number) => Promise<JapaneseSrsCard>
+    srsReview: (entSeq: number, quality: number) => Promise<JapaneseSrsCard>
+    srsDue: (limit?: number) => Promise<JapaneseSrsCard[]>
   }
   epub: {
     open: (tabId: number, rel: string) => Promise<EpubBook>

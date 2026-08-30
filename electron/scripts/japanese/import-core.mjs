@@ -41,6 +41,7 @@ export function clearDictionaryData(database) {
     DELETE FROM lexeme_example;
     DELETE FROM example;
     DELETE FROM field_provenance;
+    DELETE FROM lexeme_pitch;
     DELETE FROM gloss;
     DELETE FROM sense;
     DELETE FROM reading;
@@ -347,6 +348,28 @@ export function importTatoeba(database, sentencesPath, linksPath, lexemeLinksPat
   return exampleCount;
 }
 
+export function importKanjium(database, accentsPath) {
+  const lines = readFileSync(accentsPath, "utf8").split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const findByReading = database.prepare(`SELECT DISTINCT ent_seq FROM reading WHERE kana = ?`);
+  const upsert = database.prepare(
+    `INSERT OR REPLACE INTO lexeme_pitch (ent_seq, reading, pattern, source) VALUES (?, ?, ?, 'kanjium')`,
+  );
+  let count = 0;
+  const tx = database.transaction(() => {
+    for (const line of lines) {
+      const [reading, pattern] = line.split("\t");
+      if (!reading?.trim() || !pattern?.trim()) continue;
+      const entSeqs = findByReading.all(reading.trim()).map((row) => row.ent_seq);
+      for (const entSeq of entSeqs) {
+        upsert.run(entSeq, reading.trim(), pattern.trim());
+        count += 1;
+      }
+    }
+  });
+  tx();
+  return count;
+}
+
 export function rebuildLexemeFts(database) {
   database.exec("DELETE FROM lexeme_fts");
   database.exec(`
@@ -382,10 +405,11 @@ export async function importDictionary({
   tatoebaSentencesPath,
   tatoebaLinksPath,
   tatoebaLexemeLinksPath,
+  kanjiumPath,
   clear = true,
 }) {
   if (!outPath) throw new Error("--out is required");
-  if (!jmdictPath && !kanjidicPath && !kanjivgPath && !krdictPath && !tatoebaSentencesPath) {
+  if (!jmdictPath && !kanjidicPath && !kanjivgPath && !krdictPath && !tatoebaSentencesPath && !kanjiumPath) {
     throw new Error("At least one import source is required");
   }
   if (jmdictPath && !existsSync(jmdictPath)) throw new Error(`JMdict file not found: ${jmdictPath}`);
@@ -398,6 +422,7 @@ export async function importDictionary({
   if (tatoebaLinksPath && !existsSync(tatoebaLinksPath)) {
     throw new Error(`Tatoeba links file not found: ${tatoebaLinksPath}`);
   }
+  if (kanjiumPath && !existsSync(kanjiumPath)) throw new Error(`Kanjium accents file not found: ${kanjiumPath}`);
 
   const database = openDictionaryDb(resolve(outPath));
   initSchema(database);
@@ -408,6 +433,7 @@ export async function importDictionary({
   let kanjivgCount = { fileCount: 0, strokeCount: 0 };
   let krdictCount = 0;
   let tatoebaCount = 0;
+  let kanjiumCount = 0;
   if (jmdictPath) jmdictCount = await importJmdict(database, jmdictPath);
   if (kanjidicPath) kanjidicCount = await importKanjidic(database, kanjidicPath);
   if (kanjivgPath) kanjivgCount = importKanjivg(database, kanjivgPath);
@@ -415,6 +441,7 @@ export async function importDictionary({
   if (tatoebaSentencesPath && tatoebaLinksPath) {
     tatoebaCount = importTatoeba(database, tatoebaSentencesPath, tatoebaLinksPath, tatoebaLexemeLinksPath);
   }
+  if (kanjiumPath) kanjiumCount = importKanjium(database, kanjiumPath);
   rebuildLexemeFts(database);
 
   setMeta(database, "schema_version", "1");
@@ -432,6 +459,7 @@ export async function importDictionary({
     kanjivgCount,
     krdictCount,
     tatoebaCount,
+    kanjiumCount,
     outPath: resolve(outPath),
   };
 }
@@ -446,6 +474,7 @@ export function parseCliArgs(argv) {
     tatoebaSentencesPath: null,
     tatoebaLinksPath: null,
     tatoebaLexemeLinksPath: null,
+    kanjiumPath: null,
     clear: true,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -458,6 +487,7 @@ export function parseCliArgs(argv) {
     else if (arg === "--tatoeba-sentences") args.tatoebaSentencesPath = argv[++i];
     else if (arg === "--tatoeba-links") args.tatoebaLinksPath = argv[++i];
     else if (arg === "--tatoeba-lexeme-links") args.tatoebaLexemeLinksPath = argv[++i];
+    else if (arg === "--kanjium") args.kanjiumPath = argv[++i];
     else if (arg === "--no-clear") args.clear = false;
     else if (arg === "--help" || arg === "-h") args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);

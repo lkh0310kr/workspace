@@ -31,6 +31,7 @@ describe("japanese dictionary service", () => {
       tatoebaSentencesPath: join(fixturesDir, "tatoeba-sentences.tsv"),
       tatoebaLinksPath: join(fixturesDir, "tatoeba-links.tsv"),
       tatoebaLexemeLinksPath: join(fixturesDir, "tatoeba-lexeme-links.tsv"),
+      kanjiumPath: join(fixturesDir, "kanjium-sample.txt"),
     });
     const { openJapaneseDb, initJapaneseSchema } = await import("./db");
     const db = openJapaneseDb(outPath);
@@ -63,6 +64,7 @@ describe("japanese dictionary service", () => {
 
     const taberu = getJapaneseLexeme(1000000);
     expect(taberu?.examples[0]?.textJa).toContain("食べる");
+    expect(taberu?.pitchPatterns.some((pitch) => pitch.reading === "たべる")).toBe(true);
 
     const kanji = getJapaneseKanji("食");
     expect(kanji?.strokes).toBe(9);

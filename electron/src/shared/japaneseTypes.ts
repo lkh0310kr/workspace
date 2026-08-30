@@ -43,6 +43,7 @@ export interface JapaneseLexemeDetail {
   readings: JapaneseReading[];
   senses: JapaneseSense[];
   examples: JapaneseExample[];
+  pitchPatterns: JapanesePitchPattern[];
 }
 
 export interface JapaneseKanjiReading {
@@ -89,6 +90,11 @@ export interface JapaneseExample {
 export interface JapanesePitchPattern {
   reading: string;
   pattern: string;
+}
+
+export interface JapanesePracticeScore {
+  literal: string;
+  score: number;
 }
 
 export interface JapaneseSrsCard {

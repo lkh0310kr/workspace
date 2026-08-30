@@ -157,6 +157,8 @@ import type {
   JapaneseSearchResult,
   JapaneseStrokeData,
   JapaneseStrokeRecognitionResult,
+  JapanesePracticeScore,
+  JapaneseSrsCard,
 } from "../../shared/japaneseTypes";
 
 export type {
@@ -167,6 +169,8 @@ export type {
   JapaneseSearchResult,
   JapaneseStrokeData,
   JapaneseStrokeRecognitionResult,
+  JapanesePracticeScore,
+  JapaneseSrsCard,
 } from "../../shared/japaneseTypes";
 
 export async function getJapaneseDbStatus(): Promise<JapaneseDbStatus> {
@@ -197,6 +201,25 @@ export async function recognizeJapaneseStrokes(
   strokes: { points: { x: number; y: number }[] }[],
 ): Promise<JapaneseStrokeRecognitionResult> {
   return window.api.japanese.recognizeStrokes(strokes);
+}
+
+export async function scoreJapanesePractice(
+  literal: string,
+  strokes: { points: { x: number; y: number }[] }[],
+): Promise<JapanesePracticeScore> {
+  return window.api.japanese.scorePractice(literal, strokes);
+}
+
+export async function addJapaneseSrsCard(entSeq: number): Promise<JapaneseSrsCard> {
+  return window.api.japanese.srsAdd(entSeq);
+}
+
+export async function reviewJapaneseSrsCard(entSeq: number, quality: number): Promise<JapaneseSrsCard> {
+  return window.api.japanese.srsReview(entSeq, quality);
+}
+
+export async function listDueJapaneseSrsCards(limit?: number): Promise<JapaneseSrsCard[]> {
+  return window.api.japanese.srsDue(limit);
 }
 
 export interface EpubSpineItem {
