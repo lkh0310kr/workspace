@@ -1,48 +1,121 @@
 import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { app } from "electron";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { getSchemaSql } from "./schema";
+import { getJapaneseDictionaryDbPath, resolveJapaneseDictionaryDbPath } from "./paths";
+import { japaneseLog } from "./japaneseLog";
 
 let db: Database.Database | null = null;
+let loadedDbPath: string | null = null;
+let lastConnectError: string | null = null;
+
+export function getLastJapaneseDbConnectError(): string | null {
+  return lastConnectError;
+}
 
 export function getJapaneseDbPath(): string {
-  return joinUserData("japanese", "dictionary.db");
+  return getJapaneseDictionaryDbPath();
 }
 
-function joinUserData(...segments: string[]): string {
-  const base = app?.getPath?.("userData") ?? process.env.WORKSPACE_JAPANESE_USER_DATA;
-  if (!base) {
-    throw new Error("Japanese DB path unavailable outside Electron (set WORKSPACE_JAPANESE_USER_DATA)");
-  }
-  return join(base, ...segments);
+export function getLoadedJapaneseDbPath(): string | null {
+  return loadedDbPath;
 }
 
-export function openJapaneseDb(path = getJapaneseDbPath()): Database.Database {
+export function openJapaneseDb(path: string): Database.Database {
   mkdirSync(dirname(path), { recursive: true });
+  japaneseLog("db_open", { path });
   const database = new Database(path);
   database.pragma("journal_mode = WAL");
   database.pragma("foreign_keys = ON");
+  runJapaneseDbMigrations(database);
   return database;
+}
+
+function runJapaneseDbMigrations(database: Database.Database): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS sense_pos (
+      sense_id INTEGER NOT NULL REFERENCES sense(id) ON DELETE CASCADE,
+      pos TEXT NOT NULL,
+      PRIMARY KEY (sense_id, pos)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sense_pos_sense_id ON sense_pos(sense_id);
+  `);
 }
 
 export function initJapaneseSchema(database: Database.Database): void {
   database.exec(getSchemaSql());
 }
 
+function dictionaryHasLexemeTable(database: Database.Database): boolean {
+  try {
+    const row = database
+      .prepare("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'lexeme' LIMIT 1")
+      .get() as { ok: number } | undefined;
+    return row !== undefined;
+  } catch {
+    return false;
+  }
+}
+
 export function getJapaneseDb(): Database.Database | null {
   return db;
 }
 
-export function setJapaneseDb(database: Database.Database | null): void {
+export function setJapaneseDb(database: Database.Database | null, path?: string | null): void {
   if (db && db !== database) {
     try {
       db.close();
-    } catch {
-      // ignore close errors during swap
+      japaneseLog("db_close", { path: loadedDbPath });
+    } catch (err) {
+      japaneseLog("db_close_error", { path: loadedDbPath, error: String(err) });
     }
   }
   db = database;
+  if (database) {
+    if (path) loadedDbPath = path;
+  } else {
+    loadedDbPath = null;
+  }
+}
+
+export function connectJapaneseDbAt(path: string): boolean {
+  if (!existsSync(path)) {
+    japaneseLog("db_missing", { path });
+    setJapaneseDb(null);
+    loadedDbPath = null;
+    return false;
+  }
+  try {
+    const database = openJapaneseDb(path);
+    if (!dictionaryHasLexemeTable(database)) {
+      initJapaneseSchema(database);
+    }
+    setJapaneseDb(database, path);
+    loadedDbPath = path;
+    const count = getLexemeCount();
+    lastConnectError = null;
+    japaneseLog("db_connected", { path, lexemeCount: count });
+    return count > 0;
+  } catch (err) {
+    lastConnectError = err instanceof Error ? err.message : String(err);
+    japaneseLog("db_connect_error", { path, error: lastConnectError });
+    setJapaneseDb(null);
+    loadedDbPath = null;
+    return false;
+  }
+}
+
+export function connectJapaneseDbFromCandidates(): { path: string; ready: boolean } {
+  const resolved = resolveJapaneseDictionaryDbPath();
+  const ready = connectJapaneseDbAt(resolved);
+  if (!ready && existsSync(resolved)) {
+    if (lastConnectError) {
+      japaneseLog("db_connect_failed", { path: resolved, error: lastConnectError });
+    } else {
+      japaneseLog("db_empty", { path: resolved, hint: "file exists but lexeme table is empty — re-run import" });
+    }
+  }
+  return { path: resolved, ready };
 }
 
 export function isJapaneseDbReady(): boolean {

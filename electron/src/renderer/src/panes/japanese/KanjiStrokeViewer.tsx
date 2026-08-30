@@ -21,7 +21,7 @@ export function KanjiStrokeViewer({ literal }: Props) {
       .then((result) => {
         if (cancelled) return;
         setData(result);
-        setVisibleCount(result?.strokes.length ? 1 : 0);
+        setVisibleCount(result?.strokes?.length ? 1 : 0);
         setPlaying(false);
         setLoading(false);
       })
@@ -36,7 +36,7 @@ export function KanjiStrokeViewer({ literal }: Props) {
   }, [literal]);
 
   useEffect(() => {
-    if (!playing || !data) return;
+    if (!playing || !data?.strokes?.length) return;
     if (visibleCount >= data.strokes.length) {
       setPlaying(false);
       return;
@@ -52,15 +52,17 @@ export function KanjiStrokeViewer({ literal }: Props) {
   const viewBox = useMemo(() => "0 0 109 109", []);
 
   if (loading) return <div className="japanese-stroke-viewer-empty">Loading strokes…</div>;
-  if (!data) return <div className="japanese-stroke-viewer-empty">Stroke data not imported for this kanji.</div>;
+  if (!data?.strokes?.length) return <div className="japanese-stroke-viewer-empty">Stroke data not imported for this kanji.</div>;
+
+  const strokes = data.strokes;
 
   const reset = () => {
     setPlaying(false);
-    setVisibleCount(data.strokes.length ? 1 : 0);
+    setVisibleCount(strokes.length ? 1 : 0);
   };
 
   const play = () => {
-    if (visibleCount >= data.strokes.length) {
+    if (visibleCount >= strokes.length) {
       setVisibleCount(1);
     }
     setPlaying(true);
@@ -81,7 +83,7 @@ export function KanjiStrokeViewer({ literal }: Props) {
       </div>
       <svg className="japanese-stroke-svg" viewBox={viewBox} role="img" aria-label={`${literal} stroke order`}>
         <rect width="109" height="109" className="japanese-stroke-bg" />
-        {data.strokes.map((stroke, index) => {
+        {strokes.map((stroke, index) => {
           const visible = index < visibleCount;
           return (
             <path

@@ -1,5 +1,6 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type {
+  JapaneseDbPathProbe,
   JapaneseDbStatus,
   JapaneseKanjiDetail,
   JapaneseLexemeDetail,
@@ -198,6 +199,7 @@ export interface WorkspaceApi {
   japanese: {
     dbStatus: () => Promise<JapaneseDbStatus>
     reload: () => Promise<JapaneseDbStatus>
+    logs: (limit?: number) => Promise<Record<string, unknown>[]>
     search: (query: string, limit?: number) => Promise<JapaneseSearchResult>
     getLexeme: (entSeq: number) => Promise<JapaneseLexemeDetail | null>
     getKanji: (literal: string) => Promise<JapaneseKanjiDetail | null>
@@ -208,6 +210,7 @@ export interface WorkspaceApi {
     srsAdd: (entSeq: number) => Promise<JapaneseSrsCard>
     srsReview: (entSeq: number, quality: number) => Promise<JapaneseSrsCard>
     srsDue: (limit?: number) => Promise<JapaneseSrsCard[]>
+    srsDueCount: () => Promise<number>
   }
   epub: {
     open: (tabId: number, rel: string) => Promise<EpubBook>

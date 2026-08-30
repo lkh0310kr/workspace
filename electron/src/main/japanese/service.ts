@@ -12,11 +12,15 @@ import {
   getJapaneseDb,
   getJapaneseDbPath,
   getKanjiCount,
+  getLastJapaneseDbConnectError,
   getLexemeCount,
+  getLoadedJapaneseDbPath,
   getMetaValue,
   getStrokeKanjiCount,
   isJapaneseDbReady,
 } from "./db";
+import { japaneseLog } from "./japaneseLog";
+import { getJapaneseLogPath, probeJapaneseDbPaths } from "./paths";
 import {
   rankKanjiMatches,
   sampleSvgPath,
@@ -117,25 +121,65 @@ function searchKanjiLiteral(db: NonNullable<ReturnType<typeof getJapaneseDb>>, q
 }
 
 export function getJapaneseDbStatus(): JapaneseDbStatus {
+  let probes: ReturnType<typeof probeJapaneseDbPaths> = [];
+  try {
+    probes = probeJapaneseDbPaths();
+  } catch (err) {
+    japaneseLog("status_probe_error", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+  const primaryPath = getJapaneseDbPath();
+  const loadedPath = getLoadedJapaneseDbPath();
   let path: string | null = null;
   try {
-    path = getJapaneseDbPath();
+    path = primaryPath;
   } catch {
     path = null;
   }
-  return {
-    ready: isJapaneseDbReady(),
+
+  const ready = isJapaneseDbReady();
+  const connectError = getLastJapaneseDbConnectError();
+  let loadMessage: string | null = null;
+  if (!ready) {
+    if (connectError?.includes("NODE_MODULE_VERSION")) {
+      loadMessage =
+        "SQLite 네이티브 모듈이 Electron과 맞지 않습니다. 터미널에서 cd electron && npm install && npm run rebuild:native 실행 후 앱을 재시작하세요.";
+    } else if (connectError) {
+      loadMessage = `사전 DB 연결 실패: ${connectError}`;
+    } else {
+      const existing = probes.filter((probe) => probe.exists);
+      if (existing.length === 0) {
+        loadMessage = `dictionary.db를 찾을 수 없습니다. electron/에서 npm run japanese:import:fixtures 실행 후 Reload 하세요.`;
+      } else if (existing.every((probe) => probe.lexemeCount === 0)) {
+        loadMessage = `DB 파일은 있지만 비어 있습니다. npm run japanese:import:fixtures 를 다시 실행하세요.`;
+      } else if (loadedPath && loadedPath !== primaryPath) {
+        loadMessage = `대체 DB 사용 중: ${loadedPath} (기본 경로: ${primaryPath})`;
+      } else {
+        loadMessage = `사전이 연결되지 않았습니다. 아래 로그를 확인하고 Reload를 누르세요.`;
+      }
+    }
+  }
+
+  const status: JapaneseDbStatus = {
+    ready,
     path,
+    loadedPath,
     entryCount: getLexemeCount(),
     kanjiCount: getKanjiCount(),
     strokeKanjiCount: getStrokeKanjiCount(),
     importedAt: getMetaValue("imported_at"),
+    loadMessage,
+    logPath: getJapaneseLogPath(),
+    probes,
   };
+  return status;
 }
 
 export function searchJapaneseDictionary(query: string, limit = 30): JapaneseSearchResult {
   const db = getJapaneseDb();
   if (!db || !query.trim()) {
+    japaneseLog("search_skip", { query, reason: db ? "empty_query" : "no_db" });
     return { query, hits: [] };
   }
 
@@ -143,6 +187,7 @@ export function searchJapaneseDictionary(query: string, limit = 30): JapaneseSea
   if (entSeqs.length === 0) entSeqs = searchBySubstring(db, query, limit);
 
   const hits = entSeqs.map((entSeq) => summarizeLexeme(db, entSeq));
+  japaneseLog("search", { query, hitCount: hits.length });
   return { query, hits };
 }
 
@@ -167,6 +212,11 @@ export function getJapaneseLexeme(entSeq: number): JapaneseLexemeDetail | null {
 
   const senses = senseRows.map((sense) => ({
     senseNo: sense.sense_no,
+    pos: (
+      db
+        .prepare("SELECT pos FROM sense_pos WHERE sense_id = ? ORDER BY pos")
+        .all(sense.id) as { pos: string }[]
+    ).map((row) => row.pos),
     glosses: db
       .prepare("SELECT lang, text, source FROM gloss WHERE sense_id = ? ORDER BY id")
       .all(sense.id) as JapaneseLexemeDetail["senses"][number]["glosses"],

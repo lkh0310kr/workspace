@@ -1,7 +1,8 @@
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { app } from "electron";
+import { dirname } from "node:path";
+import { getJapaneseUserDbPath } from "./paths";
+import { japaneseLog } from "./japaneseLog";
 
 const USER_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS srs_card (
@@ -22,16 +23,9 @@ CREATE TABLE IF NOT EXISTS practice_log (
 
 let userDb: Database.Database | null = null;
 
-export function getJapaneseUserDbPath(): string {
-  const base = app?.getPath?.("userData") ?? process.env.WORKSPACE_JAPANESE_USER_DATA;
-  if (!base) {
-    throw new Error("Japanese user DB path unavailable outside Electron (set WORKSPACE_JAPANESE_USER_DATA)");
-  }
-  return join(base, "japanese", "user.db");
-}
-
 export function openJapaneseUserDb(path = getJapaneseUserDbPath()): Database.Database {
   mkdirSync(dirname(path), { recursive: true });
+  japaneseLog("user_db_open", { path });
   const database = new Database(path);
   database.pragma("journal_mode = WAL");
   database.exec(USER_SCHEMA_SQL);

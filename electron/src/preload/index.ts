@@ -219,6 +219,7 @@ const api = {
   japanese: {
     dbStatus: (): Promise<unknown> => ipcRenderer.invoke('japanese:db-status'),
     reload: (): Promise<unknown> => ipcRenderer.invoke('japanese:reload'),
+    logs: (limit?: number): Promise<unknown> => ipcRenderer.invoke('japanese:logs', limit),
     search: (query: string, limit?: number): Promise<unknown> =>
       ipcRenderer.invoke('japanese:search', query, limit),
     getLexeme: (entSeq: number): Promise<unknown> => ipcRenderer.invoke('japanese:get-lexeme', entSeq),
@@ -234,6 +235,7 @@ const api = {
     srsReview: (entSeq: number, quality: number): Promise<unknown> =>
       ipcRenderer.invoke('japanese:srs-review', entSeq, quality),
     srsDue: (limit?: number): Promise<unknown> => ipcRenderer.invoke('japanese:srs-due', limit),
+    srsDueCount: (): Promise<number> => ipcRenderer.invoke('japanese:srs-due-count'),
   },
   epub: {
     open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),

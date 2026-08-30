@@ -54,7 +54,7 @@ export function useJapaneseSearch(query: string) {
       searchJapanese(trimmed)
         .then((result) => {
           if (cancelled) return;
-          setHits(result.hits);
+          setHits(Array.isArray(result.hits) ? result.hits : []);
           setLoading(false);
         })
         .catch((err) => {

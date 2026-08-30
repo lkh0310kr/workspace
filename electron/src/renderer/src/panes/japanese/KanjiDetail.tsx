@@ -37,8 +37,12 @@ export function KanjiDetail({ literal, onLexemeClick }: Props) {
   if (error) return <div className="japanese-pane-detail-empty">{error}</div>;
   if (!detail) return <div className="japanese-pane-detail-empty">Kanji not found.</div>;
 
-  const onReadings = detail.readings.filter((reading) => reading.type === "on").map((reading) => reading.text);
-  const kunReadings = detail.readings.filter((reading) => reading.type === "kun").map((reading) => reading.text);
+  const onReadings = (detail.readings ?? [])
+    .filter((reading) => reading.type === "on")
+    .map((reading) => reading.text);
+  const kunReadings = (detail.readings ?? [])
+    .filter((reading) => reading.type === "kun")
+    .map((reading) => reading.text);
 
   return (
     <div className="japanese-kanji-detail">
@@ -68,11 +72,11 @@ export function KanjiDetail({ literal, onLexemeClick }: Props) {
         </section>
       ) : null}
 
-      {detail.linkedLexemes.length > 0 ? (
+      {(detail.linkedLexemes ?? []).length > 0 ? (
         <section className="japanese-lexeme-section">
           <h3 className="japanese-section-title">Related words</h3>
           <ul className="japanese-hit-list">
-            {detail.linkedLexemes.map((hit) => (
+            {(detail.linkedLexemes ?? []).map((hit) => (
               <li key={hit.entSeq}>
                 <button type="button" className="japanese-hit-item" onClick={() => onLexemeClick(hit.entSeq)}>
                   <span className="japanese-hit-primary">

@@ -1,10 +1,22 @@
+export interface JapaneseDbPathProbe {
+  path: string;
+  exists: boolean;
+  lexemeCount: number;
+  isPrimary: boolean;
+  selected: boolean;
+}
+
 export interface JapaneseDbStatus {
   ready: boolean;
   path: string | null;
+  loadedPath: string | null;
   entryCount: number;
   kanjiCount: number;
   strokeKanjiCount: number;
   importedAt: string | null;
+  loadMessage: string | null;
+  logPath: string;
+  probes: JapaneseDbPathProbe[];
 }
 
 export interface JapaneseLexemeSummary {
@@ -37,6 +49,7 @@ export interface JapaneseGloss {
 
 export interface JapaneseSense {
   senseNo: number;
+  pos: string[];
   glosses: JapaneseGloss[];
 }
 

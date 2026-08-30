@@ -95,7 +95,7 @@ export function HandwritingCanvas({ onSelectKanji }: Props) {
     setRecognizing(true);
     try {
       const result = await recognizeJapaneseStrokes(strokes.map((points) => ({ points })));
-      setCandidates(result.candidates);
+      setCandidates(Array.isArray(result.candidates) ? result.candidates : []);
     } finally {
       setRecognizing(false);
     }

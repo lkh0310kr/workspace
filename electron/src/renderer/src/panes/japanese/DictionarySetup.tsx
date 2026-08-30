@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { JapaneseDiagnostics } from "./JapaneseDiagnostics";
 import { useJapaneseDb } from "./useJapaneseDb";
 
 const DATA_SOURCES = [
@@ -11,18 +12,13 @@ const DATA_SOURCES = [
 ];
 
 function buildImportCommand(dbPath: string | null): string {
-  const out = dbPath ?? "~/.config/workspace-app-dev/japanese/dictionary.db";
+  const outLine = dbPath ? `  --out ${dbPath} \\` : "";
   return `cd electron
 npm run japanese:import -- \\
   --jmdict /path/to/JMdict_e.xml \\
   --kanjidic /path/to/kanjidic2.xml \\
   --kanjivg /path/to/kanjivg \\
-  --krdict /path/to/krdict.xml \\
-  --tatoeba-sentences /path/to/sentences.tsv \\
-  --tatoeba-links /path/to/links.tsv \\
-  --tatoeba-lexeme-links /path/to/lexeme-links.tsv \\
-  --kanjium /path/to/accents.txt \\
-  --out ${out}`;
+${outLine ? `${outLine}\n` : ""}# --out is optional; defaults to workspace-app-dev`;
 }
 
 interface Props {
@@ -47,15 +43,21 @@ export function DictionarySetup({ onReady }: Props) {
           Dictionary loaded — {status.entryCount.toLocaleString()} words, {status.kanjiCount.toLocaleString()} kanji
           {status.strokeKanjiCount > 0 ? `, ${status.strokeKanjiCount.toLocaleString()} with strokes` : ""}.
         </p>
+        {status.loadedPath && status.loadedPath !== status.path ? (
+          <p className="japanese-diagnostics-alert">
+            Using alternate DB path: {status.loadedPath}
+          </p>
+        ) : null}
         {status.importedAt ? (
           <p className="japanese-pane-toolbar-hint">
             Last import: {new Date(status.importedAt).toLocaleString()}
           </p>
         ) : null}
-        <p className="japanese-pane-toolbar-hint">DB: {status.path}</p>
+        <p className="japanese-pane-toolbar-hint">Primary DB: {status.path}</p>
         <button type="button" className="japanese-stroke-btn" onClick={() => void reload()} disabled={reloading}>
           {reloading ? "Reloading…" : "Reload dictionary"}
         </button>
+        <JapaneseDiagnostics status={status} />
       </div>
     );
   }
@@ -63,6 +65,7 @@ export function DictionarySetup({ onReady }: Props) {
   return (
     <div className="japanese-setup">
       <h2 className="japanese-setup-title">Load Japanese dictionary data</h2>
+      {status?.loadMessage ? <p className="japanese-diagnostics-alert">{status.loadMessage}</p> : null}
       <p className="japanese-setup-lead">
         The app reads a local SQLite file built from open dictionary sources. Nothing is bundled in git — you
         download XML/TSV once, then import with the CLI.
@@ -83,10 +86,9 @@ export function DictionarySetup({ onReady }: Props) {
         </p>
         <pre className="japanese-pane-import-hint">{buildImportCommand(status?.path ?? null)}</pre>
         <p className="japanese-pane-toolbar-hint">
-          Default output (dev): <code>~/.config/workspace-app-dev/japanese/dictionary.db</code>
+          Default output (dev): import script writes to <code>workspace-app-dev</code> automatically.
           <br />
-          Packaged app: <code>~/.config/workspace-app/japanese/dictionary.db</code> — pass{" "}
-          <code>--packaged</code> to the import script.
+          The app also checks <code>workspace-app</code> if you imported there earlier.
         </p>
       </section>
 
@@ -98,8 +100,9 @@ export function DictionarySetup({ onReady }: Props) {
         <button type="button" className="japanese-stroke-btn" onClick={() => void reload()} disabled={reloading}>
           {reloading ? "Reloading…" : "Reload dictionary"}
         </button>
-        {status?.path ? <p className="japanese-pane-toolbar-hint">Expected DB: {status.path}</p> : null}
       </section>
+
+      <JapaneseDiagnostics status={status} />
 
       <section className="japanese-setup-section">
         <h3 className="japanese-section-title">Data sources</h3>

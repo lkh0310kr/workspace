@@ -162,6 +162,7 @@ import type {
 } from "../../shared/japaneseTypes";
 
 export type {
+  JapaneseDbPathProbe,
   JapaneseDbStatus,
   JapaneseKanjiDetail,
   JapaneseLexemeDetail,
@@ -173,16 +174,41 @@ export type {
   JapaneseSrsCard,
 } from "../../shared/japaneseTypes";
 
+function normalizeJapaneseDbStatus(raw: unknown): JapaneseDbStatus {
+  const status = (raw && typeof raw === "object" ? raw : {}) as Partial<JapaneseDbStatus>;
+  return {
+    ready: Boolean(status.ready),
+    path: status.path ?? null,
+    loadedPath: status.loadedPath ?? null,
+    entryCount: Number(status.entryCount) || 0,
+    kanjiCount: Number(status.kanjiCount) || 0,
+    strokeKanjiCount: Number(status.strokeKanjiCount) || 0,
+    importedAt: status.importedAt ?? null,
+    loadMessage: status.loadMessage ?? null,
+    logPath: typeof status.logPath === "string" ? status.logPath : "",
+    probes: Array.isArray(status.probes) ? status.probes : [],
+  };
+}
+
 export async function getJapaneseDbStatus(): Promise<JapaneseDbStatus> {
-  return window.api.japanese.dbStatus();
+  return normalizeJapaneseDbStatus(await window.api.japanese.dbStatus());
 }
 
 export async function reloadJapaneseDictionary(): Promise<JapaneseDbStatus> {
-  return window.api.japanese.reload();
+  return normalizeJapaneseDbStatus(await window.api.japanese.reload());
+}
+
+export async function getJapaneseLogs(limit?: number): Promise<Record<string, unknown>[]> {
+  const rows = await window.api.japanese.logs(limit);
+  return Array.isArray(rows) ? rows : [];
 }
 
 export async function searchJapanese(query: string, limit?: number): Promise<JapaneseSearchResult> {
-  return window.api.japanese.search(query, limit);
+  const result = (await window.api.japanese.search(query, limit)) as Partial<JapaneseSearchResult> | null;
+  return {
+    query: typeof result?.query === "string" ? result.query : query,
+    hits: Array.isArray(result?.hits) ? result.hits : [],
+  };
 }
 
 export async function getJapaneseLexeme(entSeq: number): Promise<JapaneseLexemeDetail | null> {
@@ -224,6 +250,11 @@ export async function reviewJapaneseSrsCard(entSeq: number, quality: number): Pr
 
 export async function listDueJapaneseSrsCards(limit?: number): Promise<JapaneseSrsCard[]> {
   return window.api.japanese.srsDue(limit);
+}
+
+export async function countDueJapaneseSrsCards(): Promise<number> {
+  const count = await window.api.japanese.srsDueCount();
+  return typeof count === "number" ? count : 0;
 }
 
 export interface EpubSpineItem {

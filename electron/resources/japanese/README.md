@@ -14,6 +14,17 @@ Windows: `%APPDATA%\workspace-app(-dev)\japanese\dictionary.db`
 
 User progress (SRS, practice logs) is stored separately in `japanese/user.db`.
 
+## Native module (better-sqlite3)
+
+The app uses `better-sqlite3`, which must be compiled for **Electron** (not only system Node). After `npm install` or upgrading Electron, run:
+
+```bash
+cd electron
+npm run rebuild:native
+```
+
+Import scripts (`japanese:import`, `japanese:import:fixtures`) run via Electron’s Node automatically so they use the same binary as the app.
+
 ## Quick start (sample data)
 
 ```bash
