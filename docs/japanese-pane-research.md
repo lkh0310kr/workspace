@@ -194,7 +194,8 @@ FTS5 예: `writings`, `readings`, `glosses` 통합 가상 테이블 + `kanji.lit
 - [x] Tatoeba weekly export 파싱 (headerless CSV)
 - [x] JMdict 자동 예문 연결 (priority 표기/읽기 substring match)
 - [x] 로마자 → 히라가나 검색 (wanakana)
-- [ ] Kanjium 성조 import (데이터 다운로드 후)
+- [x] Kanjium 성조 import
+- [x] 검색/상세 UI 한국어화, 키보드 탐색, 성조 시각화
 - [ ] KRDICT sense별 한국어 뜻 매칭 개선 (후속)
 
 ---
