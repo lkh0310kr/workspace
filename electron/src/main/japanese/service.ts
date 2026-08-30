@@ -393,6 +393,24 @@ export function getJapaneseKanji(literal: string): JapaneseKanjiDetail | null {
     .prepare("SELECT type, text FROM kanji_reading WHERE literal = ? ORDER BY type, id")
     .all(literal) as JapaneseKanjiDetail["readings"];
 
+  const huneum = db
+    .prepare(
+      `SELECT hun_ko AS hunKo, eum_ko AS eumKo
+       FROM kanji_huneum
+       WHERE literal = ?
+       ORDER BY sort_order, id`,
+    )
+    .all(literal) as JapaneseKanjiDetail["huneum"];
+
+  const meanings = db
+    .prepare(
+      `SELECT lang, text
+       FROM kanji_meaning
+       WHERE literal = ?
+       ORDER BY sort_order, id`,
+    )
+    .all(literal) as JapaneseKanjiDetail["meanings"];
+
   const linkedRows = db
     .prepare(
       `SELECT DISTINCT w.ent_seq
@@ -410,6 +428,8 @@ export function getJapaneseKanji(literal: string): JapaneseKanjiDetail | null {
     grade: kanji.grade,
     jlpt: kanji.jlpt,
     readings,
+    huneum,
+    meanings,
     linkedLexemes: linkedRows.map((row) => summarizeLexeme(db, row.ent_seq)),
   };
 }

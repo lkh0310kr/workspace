@@ -7,6 +7,11 @@ import { parseStringPromise } from "xml2js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCHEMA_PATH = join(__dirname, "../../src/main/japanese/schema.sql");
+export const DEFAULT_HANJADICT_PATH = join(__dirname, "../../resources/japanese/hanjadict-table.json");
+
+export function defaultHanjadictPath() {
+  return existsSync(DEFAULT_HANJADICT_PATH) ? DEFAULT_HANJADICT_PATH : null;
+}
 
 function asArray(value) {
   if (value == null) return [];
@@ -59,6 +64,8 @@ export function clearDictionaryData(database) {
     DELETE FROM reading;
     DELETE FROM writing;
     DELETE FROM kanji_stroke;
+    DELETE FROM kanji_huneum;
+    DELETE FROM kanji_meaning;
     DELETE FROM kanji_reading;
     DELETE FROM kanji;
     DELETE FROM lexeme;
@@ -142,19 +149,90 @@ function insertKanjiCharacter(database, character) {
     .run(literal, codepoint, strokes, grade, jlpt);
 
   database.prepare("DELETE FROM kanji_reading WHERE literal = ?").run(literal);
+  database.prepare("DELETE FROM kanji_meaning WHERE literal = ?").run(literal);
+
+  const insertReading = database.prepare("INSERT INTO kanji_reading (literal, type, text) VALUES (?, ?, ?)");
+  const insertMeaning = database.prepare(
+    "INSERT INTO kanji_meaning (literal, lang, text, sort_order, source) VALUES (?, 'en', ?, ?, 'kanjidic')",
+  );
 
   for (const rm of asArray(character.reading_meaning)) {
     for (const group of asArray(rm.rmgroup)) {
+      let meaningOrder = 0;
       for (const reading of asArray(group.reading)) {
         const rType = reading.$?.r_type ?? "";
         const type = rType === "ja_on" ? "on" : rType === "ja_kun" ? "kun" : null;
         if (!type) continue;
         const text = textOf(reading);
         if (!text) continue;
-        database.prepare("INSERT INTO kanji_reading (literal, type, text) VALUES (?, ?, ?)").run(literal, type, text);
+        insertReading.run(literal, type, text);
+      }
+      for (const meaning of asArray(group.meaning)) {
+        const text = textOf(meaning);
+        if (!text) continue;
+        insertMeaning.run(literal, text, meaningOrder);
+        meaningOrder += 1;
       }
     }
   }
+}
+
+/** Parse Korean 훈음 strings (e.g. "불 화", "밥 식/먹을 식, 먹이 사"). */
+export function parseHuneumString(raw) {
+  if (!raw?.trim()) return [];
+  const pairs = [];
+  const seen = new Set();
+  const add = (hun, eum) => {
+    const h = hun?.trim();
+    const e = eum?.trim();
+    if (!h || !e) return;
+    const key = `${h}|${e}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    pairs.push({ hunKo: h, eumKo: e });
+  };
+
+  for (const commaPart of raw.split(",")) {
+    for (const slashPart of commaPart.split("/")) {
+      const trimmed = slashPart.trim();
+      const lastSpace = trimmed.lastIndexOf(" ");
+      if (lastSpace <= 0) continue;
+      add(trimmed.slice(0, lastSpace), trimmed.slice(lastSpace + 1));
+    }
+  }
+  return pairs;
+}
+
+export function importHanjadict(database, jsonPath) {
+  const resolved = resolve(jsonPath);
+  if (!existsSync(resolved)) throw new Error(`Hanjadict file not found: ${jsonPath}`);
+
+  const table = JSON.parse(readFileSync(resolved, "utf8"));
+  const insert = database.prepare(
+    `INSERT OR IGNORE INTO kanji_huneum (literal, hun_ko, eum_ko, sort_order, source)
+     VALUES (?, ?, ?, ?, 'hanjadict')`,
+  );
+  const hasKanji = database.prepare("SELECT 1 AS ok FROM kanji WHERE literal = ? LIMIT 1");
+  const deleteExisting = database.prepare("DELETE FROM kanji_huneum WHERE literal = ?");
+
+  let pairCount = 0;
+  let charCount = 0;
+  const tx = database.transaction(() => {
+    for (const [literal, huneumRaw] of Object.entries(table)) {
+      if (!literal || typeof huneumRaw !== "string") continue;
+      if (!hasKanji.get(literal)) continue;
+      const pairs = parseHuneumString(huneumRaw);
+      if (pairs.length === 0) continue;
+      deleteExisting.run(literal);
+      pairs.forEach((pair, index) => {
+        insert.run(literal, pair.hunKo, pair.eumKo, index);
+        pairCount += 1;
+      });
+      charCount += 1;
+    }
+  });
+  tx();
+  return { charCount, pairCount };
 }
 
 export async function importKanjidic(database, xmlPath) {
@@ -718,10 +796,19 @@ export async function importDictionary({
   tatoebaLinksPath,
   tatoebaLexemeLinksPath,
   kanjiumPath,
+  hanjadictPath,
   clear = true,
 }) {
   if (!outPath) throw new Error("--out is required");
-  if (!jmdictPath && !kanjidicPath && !kanjivgPath && !krdictPath && !tatoebaSentencesPath && !kanjiumPath) {
+  if (
+    !jmdictPath &&
+    !kanjidicPath &&
+    !kanjivgPath &&
+    !krdictPath &&
+    !tatoebaSentencesPath &&
+    !kanjiumPath &&
+    !hanjadictPath
+  ) {
     throw new Error("At least one import source is required");
   }
   if (jmdictPath && !existsSync(jmdictPath)) throw new Error(`JMdict file not found: ${jmdictPath}`);
@@ -735,6 +822,11 @@ export async function importDictionary({
     throw new Error(`Tatoeba links file not found: ${tatoebaLinksPath}`);
   }
   if (kanjiumPath && !existsSync(kanjiumPath)) throw new Error(`Kanjium accents file not found: ${kanjiumPath}`);
+  const resolvedHanjadictPath =
+    hanjadictPath === false ? null : hanjadictPath ?? (kanjidicPath ? defaultHanjadictPath() : null);
+  if (resolvedHanjadictPath && !existsSync(resolvedHanjadictPath)) {
+    throw new Error(`Hanjadict file not found: ${resolvedHanjadictPath}`);
+  }
 
   const database = openDictionaryDb(resolve(outPath));
   initSchema(database);
@@ -746,8 +838,10 @@ export async function importDictionary({
   let krdictCount = 0;
   let tatoebaCount = 0;
   let kanjiumCount = 0;
+  let hanjadictCount = { charCount: 0, pairCount: 0 };
   if (jmdictPath) jmdictCount = await importJmdict(database, jmdictPath);
   if (kanjidicPath) kanjidicCount = await importKanjidic(database, kanjidicPath);
+  if (resolvedHanjadictPath) hanjadictCount = importHanjadict(database, resolvedHanjadictPath);
   if (kanjivgPath) kanjivgCount = importKanjivg(database, kanjivgPath);
   if (krdictPath) krdictCount = await importKrdict(database, krdictPath);
   if (tatoebaSentencesPath && tatoebaLinksPath) {
@@ -764,6 +858,9 @@ export async function importDictionary({
   if (krdictPath) setMeta(database, "krdict_path", resolve(krdictPath));
   if (tatoebaSentencesPath) setMeta(database, "tatoeba_sentences_path", resolve(tatoebaSentencesPath));
 
+  if (kanjiumPath) setMeta(database, "kanjium_path", resolve(kanjiumPath));
+  if (resolvedHanjadictPath) setMeta(database, "hanjadict_path", resolve(resolvedHanjadictPath));
+
   database.close();
   console.log("[japanese-import] complete", {
     outPath: resolve(outPath),
@@ -773,6 +870,7 @@ export async function importDictionary({
     krdictCount,
     tatoebaCount,
     kanjiumCount,
+    hanjadictCount,
   });
   return {
     jmdictCount,
@@ -781,6 +879,7 @@ export async function importDictionary({
     krdictCount,
     tatoebaCount,
     kanjiumCount,
+    hanjadictCount,
     outPath: resolve(outPath),
   };
 }
@@ -796,6 +895,7 @@ export function parseCliArgs(argv) {
     tatoebaLinksPath: null,
     tatoebaLexemeLinksPath: null,
     kanjiumPath: null,
+    hanjadictPath: null,
     packaged: false,
     clear: true,
   };
@@ -810,6 +910,8 @@ export function parseCliArgs(argv) {
     else if (arg === "--tatoeba-links") args.tatoebaLinksPath = argv[++i];
     else if (arg === "--tatoeba-lexeme-links") args.tatoebaLexemeLinksPath = argv[++i];
     else if (arg === "--kanjium") args.kanjiumPath = argv[++i];
+    else if (arg === "--hanjadict") args.hanjadictPath = argv[++i];
+    else if (arg === "--no-hanjadict") args.hanjadictPath = false;
     else if (arg === "--packaged") args.packaged = true;
     else if (arg === "--no-clear") args.clear = false;
     else if (arg === "--help" || arg === "-h") args.help = true;

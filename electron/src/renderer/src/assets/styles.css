@@ -2053,6 +2053,34 @@ iframe.browser-content-slot {
   gap: 16px;
 }
 
+.japanese-kanji-meta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.japanese-kanji-huneum-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.japanese-kanji-huneum {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.japanese-kanji-hun {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.japanese-kanji-eum {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .japanese-kanji-glyph {
   font-size: 56px;
   line-height: 1;

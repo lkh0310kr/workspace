@@ -32,6 +32,7 @@ describe("japanese dictionary service", () => {
       tatoebaLinksPath: join(fixturesDir, "tatoeba-links.tsv"),
       tatoebaLexemeLinksPath: join(fixturesDir, "tatoeba-lexeme-links.tsv"),
       kanjiumPath: join(fixturesDir, "kanjium-sample.txt"),
+      hanjadictPath: join(fixturesDir, "hanjadict-sample.json"),
     });
     const { openJapaneseDb, initJapaneseSchema } = await import("./db");
     const db = openJapaneseDb(outPath);
@@ -84,6 +85,8 @@ describe("japanese dictionary service", () => {
     const kanji = getJapaneseKanji("食");
     expect(kanji?.strokes).toBe(9);
     expect(kanji?.readings.some((reading) => reading.type === "on")).toBe(true);
+    expect(kanji?.huneum[0]).toEqual({ hunKo: "밥", eumKo: "식" });
+    expect(kanji?.meanings.map((meaning) => meaning.text)).toEqual(["eat", "food"]);
     expect(kanji?.linkedLexemes.length).toBeGreaterThan(0);
 
     const strokes = getJapaneseStrokes("食");

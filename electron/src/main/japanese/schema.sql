@@ -72,6 +72,29 @@ CREATE TABLE IF NOT EXISTS kanji_reading (
 
 CREATE INDEX IF NOT EXISTS idx_kanji_reading_literal ON kanji_reading(literal);
 
+CREATE TABLE IF NOT EXISTS kanji_meaning (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  literal TEXT NOT NULL REFERENCES kanji(literal) ON DELETE CASCADE,
+  lang TEXT NOT NULL DEFAULT 'en',
+  text TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  source TEXT NOT NULL DEFAULT 'kanjidic'
+);
+
+CREATE INDEX IF NOT EXISTS idx_kanji_meaning_literal ON kanji_meaning(literal);
+
+CREATE TABLE IF NOT EXISTS kanji_huneum (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  literal TEXT NOT NULL REFERENCES kanji(literal) ON DELETE CASCADE,
+  hun_ko TEXT NOT NULL,
+  eum_ko TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  source TEXT NOT NULL DEFAULT 'hanjadict'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_kanji_huneum_unique ON kanji_huneum(literal, hun_ko, eum_ko);
+CREATE INDEX IF NOT EXISTS idx_kanji_huneum_literal ON kanji_huneum(literal);
+
 CREATE TABLE IF NOT EXISTS kanji_stroke (
   literal TEXT NOT NULL REFERENCES kanji(literal) ON DELETE CASCADE,
   stroke_order INTEGER NOT NULL,

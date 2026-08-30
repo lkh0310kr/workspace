@@ -67,6 +67,16 @@ export interface JapaneseKanjiReading {
   text: string;
 }
 
+export interface JapaneseKanjiHuneum {
+  hunKo: string;
+  eumKo: string;
+}
+
+export interface JapaneseKanjiMeaning {
+  lang: string;
+  text: string;
+}
+
 export interface JapaneseKanjiDetail {
   literal: string;
   codepoint: number | null;
@@ -74,6 +84,8 @@ export interface JapaneseKanjiDetail {
   grade: number | null;
   jlpt: number | null;
   readings: JapaneseKanjiReading[];
+  huneum: JapaneseKanjiHuneum[];
+  meanings: JapaneseKanjiMeaning[];
   linkedLexemes: JapaneseLexemeSummary[];
 }
 

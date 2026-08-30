@@ -9,6 +9,7 @@ import {
   initSchema,
   openDictionaryDb,
   parseJapaneseLemmaTokens,
+  parseHuneumString,
   parseTatoebaLinkLine,
   parseTatoebaSentenceLine,
   findLexemeMatchesInText,
@@ -31,6 +32,15 @@ describe("japanese dictionary import", () => {
     expect(parseJapaneseLemmaTokens("たべる")).toEqual([{ writing: "たべる", reading: "たべる" }]);
   });
 
+  it("parses Korean 훈음 strings", () => {
+    expect(parseHuneumString("불 화")).toEqual([{ hunKo: "불", eumKo: "화" }]);
+    expect(parseHuneumString("밥 식/먹을 식, 먹이 사")).toEqual([
+      { hunKo: "밥", eumKo: "식" },
+      { hunKo: "먹을", eumKo: "식" },
+      { hunKo: "먹이", eumKo: "사" },
+    ]);
+  });
+
   it("parses Tatoeba export lines without headers", () => {
     expect(parseTatoebaSentenceLine("900001\tjpn\t私は食べる。")).toEqual({
       id: 900001,
@@ -51,11 +61,13 @@ describe("japanese dictionary import", () => {
       jmdictPath: join(fixturesDir, "jmdict-sample.xml"),
       kanjidicPath: join(fixturesDir, "kanjidic-sample.xml"),
       kanjivgPath: join(fixturesDir, "kanjivg"),
+      hanjadictPath: join(fixturesDir, "hanjadict-sample.json"),
     });
 
     expect(result.jmdictCount).toBe(5);
     expect(result.kanjidicCount).toBe(3);
     expect(result.kanjivgCount.strokeCount).toBe(9);
+    expect(result.hanjadictCount.pairCount).toBeGreaterThan(0);
 
     const db = openDictionaryDb(outPath);
     const lexemeCount = db.prepare("SELECT COUNT(*) AS count FROM lexeme").get() as { count: number };
@@ -67,6 +79,17 @@ describe("japanese dictionary import", () => {
     };
     expect(kanjiRow.strokes).toBe(9);
     expect(kanjiRow.grade).toBe(3);
+
+    const meanings = db
+      .prepare("SELECT text FROM kanji_meaning WHERE literal = ? ORDER BY sort_order")
+      .all("食") as { text: string }[];
+    expect(meanings.map((row) => row.text)).toEqual(["eat", "food"]);
+
+    const huneum = db
+      .prepare("SELECT hun_ko, eum_ko FROM kanji_huneum WHERE literal = ? ORDER BY sort_order")
+      .all("食") as { hun_ko: string; eum_ko: string }[];
+    expect(huneum.length).toBeGreaterThan(0);
+    expect(huneum[0]).toEqual({ hun_ko: "밥", eum_ko: "식" });
 
     const ftsHit = db
       .prepare(

@@ -42,19 +42,39 @@ export function KanjiDetail({ literal, onLexemeClick }: Props) {
   const kunReadings = (detail.readings ?? [])
     .filter((reading) => reading.type === "kun")
     .map((reading) => reading.text);
+  const englishMeanings = (detail.meanings ?? []).filter((meaning) => meaning.lang === "en").map((m) => m.text);
 
   return (
     <div className="japanese-kanji-detail">
       <header className="japanese-kanji-header">
         <div className="japanese-kanji-glyph">{detail.literal}</div>
-        <div className="japanese-kanji-meta">
-          {detail.strokes != null ? <span>{detail.strokes}획</span> : null}
-          {detail.grade != null ? <span>학년 {detail.grade}</span> : null}
-          {detail.jlpt != null ? <span>JLPT N{detail.jlpt}</span> : null}
+        <div className="japanese-kanji-meta-block">
+          {(detail.huneum ?? []).length > 0 ? (
+            <div className="japanese-kanji-huneum-list">
+              {(detail.huneum ?? []).map((pair) => (
+                <span key={`${pair.hunKo}-${pair.eumKo}`} className="japanese-kanji-huneum">
+                  <span className="japanese-kanji-hun">{pair.hunKo}</span>{" "}
+                  <span className="japanese-kanji-eum">{pair.eumKo}</span>
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <div className="japanese-kanji-meta">
+            {detail.strokes != null ? <span>{detail.strokes}획</span> : null}
+            {detail.grade != null ? <span>학년 {detail.grade}</span> : null}
+            {detail.jlpt != null ? <span>JLPT N{detail.jlpt}</span> : null}
+          </div>
         </div>
       </header>
 
       <KanjiStrokeViewer literal={detail.literal} />
+
+      {englishMeanings.length > 0 ? (
+        <section className="japanese-lexeme-section">
+          <h3 className="japanese-section-title">뜻 (영어)</h3>
+          <p className="japanese-reading-line">{englishMeanings.join(" · ")}</p>
+        </section>
+      ) : null}
 
       {onReadings.length > 0 ? (
         <section className="japanese-lexeme-section">

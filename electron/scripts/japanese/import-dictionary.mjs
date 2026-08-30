@@ -18,6 +18,8 @@ Options:
   --tatoeba-links <path>      Tatoeba links CSV (auto-links examples to JMdict)
   --tatoeba-lexeme-links <path>  Curated ent_seq to Tatoeba jpn id TSV
   --kanjium <path>         Kanjium accents.txt pitch patterns
+  --hanjadict <path>       Korean 훈음 JSON (default: bundled hanjadict-table.json when importing KANJIDIC)
+  --no-hanjadict           Skip Korean 훈음 import
   --no-clear           Append without clearing existing rows
   -h, --help           Show this help
 
@@ -38,7 +40,7 @@ if (!args.outPath) {
 try {
   const result = await importDictionary(args);
   console.log(
-    `Imported ${result.jmdictCount} JMdict entries, ${result.kanjidicCount} kanji, ${result.kanjivgCount.strokeCount} strokes, ${result.krdictCount} KR glosses, ${result.tatoebaCount} examples, and ${result.kanjiumCount} pitch patterns.`,
+    `Imported ${result.jmdictCount} JMdict entries, ${result.kanjidicCount} kanji, ${result.kanjivgCount.strokeCount} strokes, ${result.hanjadictCount.pairCount} 훈음 pairs (${result.hanjadictCount.charCount} kanji), ${result.krdictCount} KR glosses, ${result.tatoebaCount} examples, and ${result.kanjiumCount} pitch patterns.`,
   );
   console.log(`Database written to ${result.outPath}`);
 } catch (err) {
