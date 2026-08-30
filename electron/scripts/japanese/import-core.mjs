@@ -19,6 +19,16 @@ function textOf(node) {
   return String(node);
 }
 
+/** JMdict uses DTD entities (&v1;, &unc;, …) that xml2js cannot resolve without the DTD. */
+function sanitizeJmdictXml(xml) {
+  const xmlEntities = new Set(["amp", "lt", "gt", "quot", "apos"]);
+  return xml.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9.-]*);/g, (match, name) => {
+    if (name.startsWith("#")) return match;
+    if (xmlEntities.has(name.toLowerCase())) return match;
+    return name;
+  });
+}
+
 export function getSchemaSql() {
   return readFileSync(SCHEMA_PATH, "utf8");
 }
@@ -99,7 +109,7 @@ function insertLexemeEntry(database, entry) {
 }
 
 export async function importJmdict(database, xmlPath) {
-  const xml = readFileSync(xmlPath, "utf8");
+  const xml = sanitizeJmdictXml(readFileSync(xmlPath, "utf8"));
   const parsed = await parseStringPromise(xml, { explicitArray: true, trim: true });
   const entries = asArray(parsed.JMdict?.entry);
   const tx = database.transaction(() => {
