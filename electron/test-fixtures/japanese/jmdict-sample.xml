@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<JMdict>
+<entry>
+<ent_seq>1000000</ent_seq>
+<k_ele><keb>食べる</keb><ke_pri>ichi1</ke_pri></k_ele>
+<r_ele><reb>たべる</reb><re_pri>ichi1</re_pri></r_ele>
+<sense><pos>&amp;v1;</pos><gloss>to eat</gloss><gloss>to consume</gloss></sense>
+</entry>
+<entry>
+<ent_seq>1000001</ent_seq>
+<k_ele><keb>日本</keb><ke_pri>ichi1</ke_pri></k_ele>
+<r_ele><reb>にほん</reb><re_pri>ichi1</re_pri></r_ele>
+<r_ele><reb>にっぽん</reb></r_ele>
+<sense><pos>&amp;n;</pos><gloss>Japan</gloss></sense>
+</entry>
+<entry>
+<ent_seq>1000002</ent_seq>
+<r_ele><reb>あ</reb></r_ele>
+<sense><pos>&amp;int;</pos><gloss>ah</gloss><gloss>oh</gloss></sense>
+</entry>
+<entry>
+<ent_seq>1000003</ent_seq>
+<k_ele><keb>本</keb></k_ele>
+<r_ele><reb>ほん</reb></r_ele>
+<sense><pos>&amp;n;</pos><gloss>book</gloss><gloss>volume</gloss></sense>
+<sense><pos>&amp;n;</pos><gloss>origin</gloss><gloss>this</gloss></sense>
+</entry>
+<entry>
+<ent_seq>1000004</ent_seq>
+<k_ele><keb>食事</keb></k_ele>
+<r_ele><reb>しょくじ</reb></r_ele>
+<sense><pos>&amp;n;</pos><gloss>meal</gloss></sense>
+</entry>
+</JMdict>

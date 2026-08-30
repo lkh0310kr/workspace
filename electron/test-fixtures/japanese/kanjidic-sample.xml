@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE kanjidic2 [
+<!ELEMENT character (#PCDATA|literal|codepoint|misc|reading_meaning)*>
+]>
+<kanjidic2>
+<character>
+<literal>食</literal>
+<codepoint><cp_value cp_type="ucs">39135</cp_value></codepoint>
+<misc><grade>3</grade><stroke_count>9</stroke_count><jlpt>3</jlpt></misc>
+<reading_meaning>
+<rmgroup>
+<reading r_type="ja_on">ショク</reading>
+<reading r_type="ja_kun">く.う</reading>
+<reading r_type="ja_kun">く.らう</reading>
+<meaning>eat</meaning><meaning>food</meaning>
+</rmgroup>
+</reading_meaning>
+</character>
+<character>
+<literal>日</literal>
+<codepoint><cp_value cp_type="ucs">26085</cp_value></codepoint>
+<misc><grade>1</grade><stroke_count>4</stroke_count><jlpt>5</jlpt></misc>
+<reading_meaning>
+<rmgroup>
+<reading r_type="ja_on">ニチ</reading>
+<reading r_type="ja_on">ジツ</reading>
+<reading r_type="ja_kun">ひ</reading>
+<reading r_type="ja_kun">-び</reading>
+<meaning>day</meaning><meaning>sun</meaning>
+</rmgroup>
+</reading_meaning>
+</character>
+<character>
+<literal>本</literal>
+<codepoint><cp_value cp_type="ucs">26412</cp_value></codepoint>
+<misc><grade>1</grade><stroke_count>5</stroke_count><jlpt>5</jlpt></misc>
+<reading_meaning>
+<rmgroup>
+<reading r_type="ja_on">ホン</reading>
+<reading r_type="ja_kun">もと</reading>
+<meaning>book</meaning><meaning>origin</meaning>
+</rmgroup>
+</reading_meaning>
+</character>
+</kanjidic2>
