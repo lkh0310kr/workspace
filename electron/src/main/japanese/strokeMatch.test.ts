@@ -18,4 +18,13 @@ describe("strokeMatch", () => {
     const ranked = rankKanjiMatches(user, references, 2);
     expect(ranked[0]?.literal).toBe("一");
   });
+
+  it("handles a single-point stroke without throwing", () => {
+    const user = [{ points: [{ x: 40, y: 55 }] }];
+    const references: KanjiStrokeReference[] = [
+      { literal: "一", strokes: normalizeStrokes([[{ x: 12, y: 50 }, { x: 88, y: 50 }]]) },
+    ];
+    expect(() => rankKanjiMatches(user, references, 1)).not.toThrow();
+    expect(rankKanjiMatches(user, references, 1)[0]?.literal).toBe("一");
+  });
 });

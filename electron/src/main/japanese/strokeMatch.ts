@@ -36,24 +36,28 @@ export function sampleSvgPath(path: string, samples = 24): StrokePoint[] {
     lengths.push(len);
     total += len;
   }
-  if (total === 0) return [points[0]];
+  if (total === 0) {
+    return Array.from({ length: samples }, () => ({ x: points[0].x, y: points[0].y }));
+  }
 
   const sampled: StrokePoint[] = [];
   for (let s = 0; s < samples; s += 1) {
     const target = (total * s) / (samples - 1 || 1);
     let walked = 0;
+    let point: StrokePoint | null = null;
     for (let i = 1; i < points.length; i += 1) {
       const seg = lengths[i - 1];
       if (walked + seg >= target) {
         const t = seg === 0 ? 0 : (target - walked) / seg;
-        sampled.push({
+        point = {
           x: points[i - 1].x + (points[i].x - points[i - 1].x) * t,
           y: points[i - 1].y + (points[i].y - points[i - 1].y) * t,
-        });
+        };
         break;
       }
       walked += seg;
     }
+    sampled.push(point ?? points[points.length - 1]);
   }
   return sampled;
 }
@@ -91,22 +95,31 @@ export function normalizeStrokes(strokes: StrokePoint[][], size = VIEWBOX_SIZE):
 }
 
 function resampleStroke(stroke: StrokePoint[], count: number): StrokePoint[] {
-  if (stroke.length === 0) return [];
+  if (count <= 0) return [];
+  if (stroke.length === 0) return Array.from({ length: count }, () => ({ x: 0, y: 0 }));
   if (stroke.length === 1) return Array.from({ length: count }, () => stroke[0]);
-  return sampleSvgPath(
+  const sampled = sampleSvgPath(
     `M ${stroke.map((point) => `${point.x} ${point.y}`).join(" L ")}`,
     count,
   );
+  if (sampled.length === count) return sampled;
+  if (sampled.length === 0) return Array.from({ length: count }, () => stroke[0]);
+  return Array.from({ length: count }, (_, index) => {
+    const t = count === 1 ? 0 : index / (count - 1);
+    const pick = Math.min(Math.round(t * (sampled.length - 1)), sampled.length - 1);
+    return sampled[pick];
+  });
 }
 
 function strokeDistance(a: StrokePoint[], b: StrokePoint[]): number {
-  const aNorm = resampleStroke(a, 24);
-  const bNorm = resampleStroke(b, 24);
+  const count = 24;
+  const aNorm = resampleStroke(a, count);
+  const bNorm = resampleStroke(b, count);
   let sum = 0;
-  for (let i = 0; i < aNorm.length; i += 1) {
+  for (let i = 0; i < count; i += 1) {
     sum += Math.hypot(aNorm[i].x - bNorm[i].x, aNorm[i].y - bNorm[i].y);
   }
-  return sum / aNorm.length;
+  return sum / count;
 }
 
 function matchStrokeSets(user: StrokePoint[][], reference: StrokePoint[][]): number {
@@ -132,13 +145,26 @@ export function scoreKanjiMatch(userStrokes: UserStrokeInput[], reference: Kanji
   return 1 / (1 + distance);
 }
 
+export function sanitizeUserStrokes(userStrokes: UserStrokeInput[]): UserStrokeInput[] {
+  return userStrokes
+    .map((stroke) => ({
+      points: (stroke?.points ?? []).filter(
+        (point): point is StrokePoint =>
+          point != null && Number.isFinite(point.x) && Number.isFinite(point.y),
+      ),
+    }))
+    .filter((stroke) => stroke.points.length > 0);
+}
+
 export function rankKanjiMatches(
   userStrokes: UserStrokeInput[],
   references: KanjiStrokeReference[],
   limit = 10,
 ): { literal: string; score: number }[] {
+  const sanitized = sanitizeUserStrokes(userStrokes);
+  if (sanitized.length === 0) return [];
   return references
-    .map((reference) => ({ literal: reference.literal, score: scoreKanjiMatch(userStrokes, reference) }))
+    .map((reference) => ({ literal: reference.literal, score: scoreKanjiMatch(sanitized, reference) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
