@@ -8,10 +8,10 @@ import { logError } from "../errorLog";
 import { addTabToGroup } from "../layout/layoutActions";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import {
-  activePaneSupportsExplorer,
   deletePathInAllPanes,
-  getActivePaneExplorerBridge,
+  getExplorerTargetBridge,
   renamePathInAllPanes,
+  workspaceHasExplorerPane,
 } from "../explorer/workspaceExplorerBridge";
 import { workspaceTabKey } from "../explorer/workspaceTabKey";
 import { useWorkspaceExplorerChrome } from "../explorer/WorkspaceExplorerContext";
@@ -45,9 +45,9 @@ export function WorkspaceExplorerSidebar({
   const [, bump] = useState(0);
   const forceUpdate = () => bump((n) => n + 1);
 
-  const bridge = getActivePaneExplorerBridge(workspaceTabId, model);
-  const supportsExplorer = activePaneSupportsExplorer(model);
-  const showExplorerPanel = supportsExplorer && (treeOpen || sidebarMode === "search");
+  const bridge = getExplorerTargetBridge(workspaceTabId, model);
+  const hasExplorerPane = workspaceHasExplorerPane(model);
+  const showExplorerPanel = hasExplorerPane && (treeOpen || sidebarMode === "search");
 
   const openEngineBundleTab = useCallback(
     (path: string) => {
@@ -136,7 +136,7 @@ export function WorkspaceExplorerSidebar({
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return;
       if (e.key.toLowerCase() !== "f") return;
-      if (!workspaceTabVisible || !supportsExplorer) return;
+      if (!workspaceTabVisible || !hasExplorerPane) return;
       if (!focusHostRef.current?.contains(document.activeElement)) return;
       e.preventDefault();
       setSidebarMode("search");
@@ -144,7 +144,7 @@ export function WorkspaceExplorerSidebar({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [workspaceTabVisible, supportsExplorer, setSidebarMode, setTreeOpen, focusHostRef]);
+  }, [workspaceTabVisible, hasExplorerPane, setSidebarMode, setTreeOpen, focusHostRef]);
 
   useEffect(() => {
     const unsub = useWorkspaceStore.subscribe(

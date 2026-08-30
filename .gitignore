@@ -15,5 +15,8 @@
 electron/test-fixtures/godot-demo/.godot/
 electron/test-fixtures/godot-demo-web/
 
+# Local Godot CLI (npm run ensure:godot)
+electron/.tools/
+
 # Per-tab layout export written by the Electron app during dev.
 electron/.workspace/

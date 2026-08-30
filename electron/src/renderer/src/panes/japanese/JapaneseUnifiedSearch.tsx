@@ -10,10 +10,12 @@ interface Props {
   onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onSelectKanji: (literal: string) => void;
   onHandwritingCandidates: (candidates: { literal: string; score: number }[]) => void;
+  loading?: boolean;
+  error?: string | null;
 }
 
 export const JapaneseUnifiedSearch = forwardRef<HTMLInputElement, Props>(function JapaneseUnifiedSearch(
-  { query, onQueryChange, onKeyDown, onSelectKanji, onHandwritingCandidates },
+  { query, onQueryChange, onKeyDown, onSelectKanji, onHandwritingCandidates, loading = false, error = null },
   ref,
 ) {
   const { status } = useJapaneseDb();
@@ -27,6 +29,8 @@ export const JapaneseUnifiedSearch = forwardRef<HTMLInputElement, Props>(functio
           onQueryChange={onQueryChange}
           onKeyDown={onKeyDown}
           dbStatus={status}
+          loading={loading}
+          error={error}
         />
         {status?.ready ? (
           <HandwritingCanvas

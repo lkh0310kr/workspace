@@ -170,11 +170,11 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
     registerPaneExplorerBridge(workspaceTabId, nodeId, {
       nodeId,
       filePath: activeItem.filePath ?? null,
-      supportsExplorer: hasFileExplorerSidebar(activeItem.kind),
+      supportsExplorer: tabs.some((t) => hasFileExplorerSidebar(t.kind)),
       openOrSwitchToFile,
     });
     return () => unregisterPaneExplorerBridge(workspaceTabId, nodeId);
-  }, [visible, workspaceTabId, nodeId, activeItem, openOrSwitchToFile]);
+  }, [visible, workspaceTabId, nodeId, activeItem, tabs, openOrSwitchToFile]);
 
   const dropTab = useCallback(
     (payload: TabDragPayload, index: number) => {

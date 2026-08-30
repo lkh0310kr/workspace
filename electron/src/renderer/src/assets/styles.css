@@ -1819,6 +1819,11 @@ iframe.browser-content-slot {
   font-size: 11px;
 }
 
+.japanese-pane-toolbar-error,
+.japanese-pane-detail-error {
+  color: var(--text-error, #e06c75);
+}
+
 .japanese-pane-split {
   flex: 1;
   min-height: 0;

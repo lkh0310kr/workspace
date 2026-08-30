@@ -119,19 +119,52 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
 
   const handleSearchKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (hitList.length === 0) return;
+      const total = hitList.length + kanjiList.length;
+      if (total === 0) return;
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        selectHit(Math.min(hitIndex + 1, hitList.length - 1));
+        if (hitIndex < hitList.length - 1) {
+          selectHit(hitIndex + 1);
+        } else if (kanjiList.length > 0) {
+          const kanjiIndex = hitIndex - hitList.length;
+          const nextKanji = kanjiList[Math.min(kanjiIndex + 1, kanjiList.length - 1)];
+          if (nextKanji) {
+            setReturnDetail(null);
+            setDetail({ kind: "kanji", literal: nextKanji.literal });
+            setHitIndex(hitList.length + Math.min(kanjiIndex + 1, kanjiList.length - 1));
+          }
+        }
       } else if (event.key === "ArrowUp") {
         event.preventDefault();
-        selectHit(Math.max(hitIndex - 1, 0));
-      } else if (event.key === "Enter" && hitList[hitIndex]) {
+        if (hitIndex > 0) {
+          if (hitIndex < hitList.length) {
+            selectHit(hitIndex - 1);
+          } else {
+            const kanjiIndex = hitIndex - hitList.length;
+            if (kanjiIndex > 0) {
+              const prevKanji = kanjiList[kanjiIndex - 1];
+              setReturnDetail(null);
+              setDetail({ kind: "kanji", literal: prevKanji.literal });
+              setHitIndex(hitList.length + kanjiIndex - 1);
+            } else if (hitList.length > 0) {
+              selectHit(hitList.length - 1);
+            }
+          }
+        }
+      } else if (event.key === "Enter") {
         event.preventDefault();
-        selectHit(hitIndex);
+        if (hitIndex < hitList.length) {
+          selectHit(hitIndex);
+        } else {
+          const kanji = kanjiList[hitIndex - hitList.length];
+          if (kanji) {
+            setReturnDetail(null);
+            setDetail({ kind: "kanji", literal: kanji.literal });
+          }
+        }
       }
     },
-    [hitIndex, hitList, selectHit],
+    [hitIndex, hitList, kanjiList, selectHit],
   );
 
   const closeSettings = useCallback(() => {
@@ -158,6 +191,8 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
         onKeyDown={handleSearchKeyDown}
         onSelectKanji={openKanji}
         onHandwritingCandidates={setHandwritingCandidates}
+        loading={loading}
+        error={error}
       />
 
       <div className="japanese-pane-split">
@@ -187,6 +222,13 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
 
           {!loading && !error && query.trim() && hitList.length === 0 && kanjiList.length === 0 ? (
             <div className="japanese-pane-detail-empty">결과가 없습니다.</div>
+          ) : null}
+
+          {query.trim() && loading && kanjiList.length === 0 && hitList.length === 0 ? (
+            <section className="japanese-results-section">
+              <h3 className="japanese-results-section-title">한자</h3>
+              <div className="japanese-pane-detail-empty">검색 중…</div>
+            </section>
           ) : null}
 
           {query.trim() && kanjiList.length > 0 ? (
@@ -247,6 +289,10 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
         </ScrollRegion>
 
         <ScrollRegion className="japanese-pane-detail">
+          {loading && query.trim() ? (
+            <div className="japanese-pane-detail-empty">검색 중…</div>
+          ) : null}
+          {error ? <div className="japanese-pane-detail-empty japanese-pane-detail-error">{error}</div> : null}
           {detail.kind === "kanji" ? (
             <JapaneseDetailNav onBack={returnDetail ? goBack : undefined} />
           ) : null}
@@ -256,7 +302,7 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
           {detail.kind === "kanji" ? (
             <KanjiDetail literal={detail.literal} onLexemeClick={openLexeme} />
           ) : null}
-          {detail.kind === "none" && (query.trim() || handwritingCandidates.length > 0) && !loading ? (
+          {detail.kind === "none" && (query.trim() || handwritingCandidates.length > 0) && !loading && !error ? (
             <div className="japanese-pane-detail-empty">항목을 선택하세요.</div>
           ) : null}
         </ScrollRegion>

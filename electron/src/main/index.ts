@@ -27,6 +27,7 @@ import {
   applyWslDpiScaleFix,
   resolveUserSelectedRootPath,
 } from './wslPaths'
+import { applyBrowserGpuSwitches } from './browserGpuEnv'
 import { shouldIgnoreWatcherPath } from './filesystemWatcherIgnore'
 import { revealWslWindow, toggleWslWindowMaximize, installWslWindowLifecycle } from './wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
@@ -58,6 +59,10 @@ import { installWindowsPathRegistryChangeListener } from './pty/windows-path-reg
 // WSLg + Windows DPI: must run before ready / BrowserWindow (see wslPaths).
 applyWslDpiScaleFix((name, value) => {
   app.commandLine.appendSwitch(name, value)
+})
+applyBrowserGpuSwitches((name, value) => {
+  if (value === undefined) app.commandLine.appendSwitch(name)
+  else app.commandLine.appendSwitch(name, value)
 })
 
 // Two live instances (a forgotten second `npm run dev`, or dev running

@@ -57,6 +57,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   const chipShown = paneVisible && chipActive;
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
+  const engineBundleShownRef = useRef(false);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
   const [addressInput, setAddressInput] = useState(item.url ?? DEFAULT_URL);
   const [currentUrl, setCurrentUrl] = useState(item.url ?? DEFAULT_URL);
@@ -96,6 +97,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     guest.setAttribute("partition", BROWSER_SESSION_PARTITION);
     guest.setAttribute("src", normalizeBrowserNavigationUrl(item.url ?? DEFAULT_URL, false) ?? BLANK_URL);
     guest.setAttribute("allowpopups", "");
+    guest.setAttribute("webpreferences", "contextIsolation=yes,webgl=yes");
     guest.dataset.tabItemId = item.id;
     guest.style.width = "100%";
     guest.style.height = "100%";
@@ -236,7 +238,19 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     webview.style.visibility = chipShown ? "visible" : "hidden";
     interactionCoordinator.setBrowserPaneVisible(tabId, item.id, paneVisible);
     interactionCoordinator.setBrowserChipActive(tabId, item.id, chipActive);
+    if (chipShown && !engineBundleShownRef.current) {
+      engineBundleShownRef.current = true;
+      try {
+        const url = webview.getURL();
+        if (url.startsWith("workspace-engine:")) {
+          webview.reload();
+        }
+      } catch {
+        // webview may not have navigated yet.
+      }
+    }
     if (!chipShown) {
+      engineBundleShownRef.current = false;
       addressInputRef.current?.blur();
       moveFocusToRendererBeforeFocusedWebviewHidden();
       if (getActiveBrowserWebview() === webview) {

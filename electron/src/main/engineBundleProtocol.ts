@@ -103,7 +103,8 @@ export function registerEngineBundleProtocol(targetSession: Session, getAllowedR
         'content-type': contentTypeFor(realPath),
         'content-length': String(size),
         'cross-origin-opener-policy': 'same-origin',
-        'cross-origin-embedder-policy': 'require-corp'
+        'cross-origin-embedder-policy': 'require-corp',
+        'cross-origin-resource-policy': 'same-origin'
       }
     })
   })

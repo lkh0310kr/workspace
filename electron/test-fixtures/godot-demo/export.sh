@@ -6,4 +6,5 @@
 set -e
 cd "$(dirname "$0")"
 mkdir -p ../godot-demo-web
-godot --headless --export-release "Web" "../godot-demo-web/index.html"
+GODOT="${WORKSPACE_GODOT_PATH:-godot}"
+"$GODOT" --headless --export-release "Web" "../godot-demo-web/index.html"

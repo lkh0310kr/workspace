@@ -60,6 +60,36 @@ export function activePaneSupportsExplorer(model: Model): boolean {
   return active ? getPaneKind(active.kind).hasFileExplorer === true : false;
 }
 
+/** True when any visible pane group has an editor/viewer tab (file explorer). */
+export function workspaceHasExplorerPane(model: Model): boolean {
+  let found = false;
+  model.visitNodes((node) => {
+    if (found || !(node instanceof TabNode) || !node.isVisible()) return;
+    const config = (node.getConfig() ?? { tabs: [], activeTabId: "" }) as PaneGroupConfig;
+    for (const tab of config.tabs) {
+      if (getPaneKind(tab.kind).hasFileExplorer === true) {
+        found = true;
+        return;
+      }
+    }
+  });
+  return found;
+}
+
+/** Prefer the focused explorer pane; otherwise any visible editor/viewer bridge. */
+export function getExplorerTargetBridge(workspaceTabId: number, model: Model): PaneExplorerBridge | null {
+  const active = getActivePaneExplorerBridge(workspaceTabId, model);
+  if (active?.supportsExplorer) return active;
+
+  let fallback: PaneExplorerBridge | null = null;
+  model.visitNodes((node) => {
+    if (!(node instanceof TabNode) || !node.isVisible()) return;
+    const bridge = getPaneExplorerBridge(workspaceTabId, node.getId());
+    if (bridge?.supportsExplorer) fallback = bridge;
+  });
+  return fallback;
+}
+
 export function renamePathAcrossWorkspacePanes(
   model: Model,
   nodeId: string,

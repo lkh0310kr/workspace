@@ -12,6 +12,8 @@
     "test": "node scripts/rebuild-better-sqlite3.mjs && vitest run; node scripts/rebuild-better-sqlite3.mjs --electron",
     "japanese:import": "node scripts/with-electron-node.mjs scripts/japanese/import-dictionary.mjs",
     "japanese:import:fixtures": "node scripts/with-electron-node.mjs scripts/japanese/import-fixtures.mjs",
+    "ensure:godot": "node scripts/ensure-godot.mjs",
+    "godot:export:demo": "node scripts/ensure-godot.mjs && WORKSPACE_GODOT_PATH=\"${WORKSPACE_GODOT_PATH:-$PWD/.tools/godot/Godot_v4.3-stable_linux.x86_64}\" sh test-fixtures/godot-demo/export.sh",
     "rebuild:native": "npx electron-rebuild -f -w better-sqlite3",
     "predev": "node scripts/rebuild-better-sqlite3.mjs --ensure-electron",
     "prestart": "node scripts/rebuild-better-sqlite3.mjs --ensure-electron",

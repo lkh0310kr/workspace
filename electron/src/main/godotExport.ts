@@ -1,11 +1,14 @@
 import { execFileSync, spawn } from "node:child_process";
-import { accessSync, constants as fsConstants, mkdirSync, readFileSync } from "node:fs";
+import { accessSync, constants as fsConstants, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // One-click "Export & Open as App" for a Godot project directory — turns
 // the previous two-step manual flow (run export.sh yourself, then
 // right-click the *output* folder) into a single TreeView action on the
 // *project* folder itself.
+
+const ELECTRON_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 // A GUI app launched via Finder/Dock inherits a minimal PATH that
 // excludes Homebrew — same root cause as pty.ts's tmux/shell PATH
@@ -14,34 +17,75 @@ const GODOT_PATH_CANDIDATES = [
   "/opt/homebrew/bin/godot",
   "/usr/local/bin/godot",
   "/usr/bin/godot",
+  "/usr/bin/godot4",
+  path.join(process.env.HOME ?? "", ".local", "bin", "godot"),
   "/Applications/Godot.app/Contents/MacOS/Godot",
 ];
 
+function envGodotCandidates(): string[] {
+  return [process.env.WORKSPACE_GODOT_PATH, process.env.GODOT_PATH].filter(
+    (value): value is string => Boolean(value),
+  );
+}
+
+function bundledGodotCandidates(): string[] {
+  const toolsDir = path.join(ELECTRON_ROOT, ".tools", "godot");
+  if (!existsSync(toolsDir)) return [];
+  const out: string[] = [];
+  const macBinary = path.join(toolsDir, "Godot.app", "Contents", "MacOS", "Godot");
+  if (existsSync(macBinary)) out.push(macBinary);
+  try {
+    for (const name of readdirSync(toolsDir)) {
+      if (!name.startsWith("Godot_v") || !name.includes("_linux.")) continue;
+      out.push(path.join(toolsDir, name));
+    }
+  } catch {
+    // ignore
+  }
+  return out;
+}
+
 let godotBinaryCache: string | null | undefined;
+
+function isExecutable(candidate: string | undefined): candidate is string {
+  if (!candidate) return false;
+  try {
+    accessSync(candidate, fsConstants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function resolveGodotBinary(): string | null {
   if (godotBinaryCache !== undefined) return godotBinaryCache;
+  for (const candidate of envGodotCandidates()) {
+    if (isExecutable(candidate)) {
+      godotBinaryCache = candidate;
+      return godotBinaryCache;
+    }
+  }
   try {
     const resolved = execFileSync("which", ["godot"], { encoding: "utf8" }).trim();
-    if (resolved) {
+    if (isExecutable(resolved)) {
       godotBinaryCache = resolved;
       return godotBinaryCache;
     }
   } catch {
-    // `which` not found, or godot not on the current PATH — fall through
-    // to the fixed candidates below.
+    // `which` not found, or godot not on the current PATH — fall through.
   }
-  for (const candidate of GODOT_PATH_CANDIDATES) {
-    try {
-      accessSync(candidate, fsConstants.X_OK);
+  for (const candidate of [...GODOT_PATH_CANDIDATES, ...bundledGodotCandidates()]) {
+    if (isExecutable(candidate)) {
       godotBinaryCache = candidate;
       return godotBinaryCache;
-    } catch {
-      // Try the next candidate.
     }
   }
   godotBinaryCache = null;
   return null;
+}
+
+export function godotInstallHint(): string {
+  return `Install Godot 4.3: cd electron && npm run ensure:godot — then restart the app (or set WORKSPACE_GODOT_PATH).`;
 }
 
 /** Only for tests — resolveGodotBinary caches its result for the process
@@ -90,7 +134,7 @@ export function exportGodotProjectWeb(
   if (!godot) {
     return Promise.resolve({
       ok: false,
-      error: "Godot executable not found (checked PATH and common install locations).",
+      error: `Godot executable not found (checked PATH and common install locations). ${godotInstallHint()}`,
     });
   }
   const presetName = findWebExportPresetName(projectDir);
