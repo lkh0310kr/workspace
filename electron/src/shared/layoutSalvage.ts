@@ -2,7 +2,7 @@ import { z } from "zod";
 import { defaultLayoutJson } from "./layoutDefaults";
 import { PANE_GROUP_SCHEMA_VERSION } from "./layoutSchema";
 
-export const TAB_KINDS = ["terminal", "browser", "code", "markdown", "viewer", "rss"] as const;
+export const TAB_KINDS = ["terminal", "browser", "code", "markdown", "viewer", "rss", "japanese"] as const;
 export type TabKind = (typeof TAB_KINDS)[number];
 
 const TabKindSchema = z.enum(TAB_KINDS);

@@ -2,6 +2,7 @@ import { registerPaneKind } from "./paneKindRegistry";
 import { terminalPaneKind } from "./kinds/terminalKind";
 import { browserPaneKind } from "./kinds/browserKind";
 import { codePaneKind, markdownPaneKind } from "./kinds/editorKind";
+import { japanesePaneKind } from "./kinds/japaneseKind";
 import { rssPaneKind } from "./kinds/rssKind";
 import { viewerPaneKind } from "./kinds/viewerKind";
 
@@ -14,7 +15,15 @@ let registered = false;
 export function registerBuiltinPaneKinds(): void {
   if (registered) return;
   registered = true;
-  for (const def of [terminalPaneKind, browserPaneKind, codePaneKind, markdownPaneKind, rssPaneKind, viewerPaneKind]) {
+  for (const def of [
+    terminalPaneKind,
+    browserPaneKind,
+    codePaneKind,
+    markdownPaneKind,
+    rssPaneKind,
+    japanesePaneKind,
+    viewerPaneKind,
+  ]) {
     registerPaneKind(def);
   }
 }

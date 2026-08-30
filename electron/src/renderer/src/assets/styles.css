@@ -252,11 +252,33 @@ input {
   z-index: 0;
 }
 
+.workspace-tab-shell {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace-tab-layout {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.workspace-explorer-host {
+  flex-shrink: 0;
+  display: flex;
+  min-height: 0;
+}
+
 .layout-host-item--active {
   z-index: 1;
 }
 
-.layout-host-item > .flexlayout__layout {
+.workspace-tab-layout > .flexlayout__layout {
   position: absolute !important;
   inset: 0;
 }
@@ -1238,6 +1260,65 @@ iframe.browser-content-slot {
   color: var(--text-faint);
   font-family: var(--font-ui);
   font-size: 12px;
+}
+
+.japanese-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-base);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+.japanese-pane-toolbar {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.japanese-pane-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-raised);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+
+.japanese-pane-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.japanese-pane-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.japanese-pane-empty {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.japanese-pane-import-hint {
+  margin: 0;
+  padding: 12px;
+  border-radius: 4px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 /* A <webview> guest's own content went fullscreen — see the matching
@@ -2329,6 +2410,50 @@ iframe.browser-content-slot {
   overflow-y: auto;
   border-right: 1px solid var(--border);
   background: var(--bg-surface);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(121, 121, 121, 0.4) transparent;
+}
+
+.obsidian-explorer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.obsidian-explorer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.obsidian-explorer::-webkit-scrollbar-thumb {
+  background: rgba(121, 121, 121, 0.4);
+  border-radius: 4px;
+}
+
+.obsidian-explorer::-webkit-scrollbar-thumb:hover {
+  background: rgba(121, 121, 121, 0.55);
+}
+
+.explorer-sidebar-panel {
+  min-height: 100%;
+}
+
+.explorer-sidebar-panel.hidden {
+  display: none;
+}
+
+.confirm-prompt-message {
+  margin: 8px 0 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  color: var(--text-muted);
+}
+
+.confirm-prompt-danger {
+  color: #fff !important;
+  background: #c72e2e !important;
+}
+
+.confirm-prompt-danger:hover:not(:disabled) {
+  background: #a82626 !important;
 }
 
 .obsidian-explorer.collapsed {
