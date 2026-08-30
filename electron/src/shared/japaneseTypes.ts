@@ -26,9 +26,15 @@ export interface JapaneseLexemeSummary {
   glossPreview: string | null;
 }
 
+export interface JapaneseKanjiSearchHit {
+  literal: string;
+  huneumPreview: string | null;
+}
+
 export interface JapaneseSearchResult {
   query: string;
   hits: JapaneseLexemeSummary[];
+  kanjiHits: JapaneseKanjiSearchHit[];
 }
 
 export interface JapaneseWriting {

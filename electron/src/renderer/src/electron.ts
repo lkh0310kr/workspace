@@ -206,6 +206,7 @@ export async function searchJapanese(query: string, limit?: number): Promise<Jap
   return {
     query: typeof result?.query === "string" ? result.query : query,
     hits: Array.isArray(result?.hits) ? result.hits : [],
+    kanjiHits: Array.isArray(result?.kanjiHits) ? result.kanjiHits : [],
   };
 }
 

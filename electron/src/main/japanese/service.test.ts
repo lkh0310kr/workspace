@@ -68,6 +68,13 @@ describe("japanese dictionary service", () => {
 
     const taberu = searchJapaneseDictionary("taberu");
     expect(taberu.hits[0]?.entSeq).toBe(1000000);
+
+    const kanji = searchJapaneseDictionary("食");
+    expect(kanji.kanjiHits[0]?.literal).toBe("食");
+    expect(kanji.kanjiHits[0]?.huneumPreview).toContain("밥");
+
+    const huneum = searchJapaneseDictionary("밥");
+    expect(huneum.kanjiHits.some((hit) => hit.literal === "食")).toBe(true);
   });
 
   it("loads lexeme and kanji detail", () => {

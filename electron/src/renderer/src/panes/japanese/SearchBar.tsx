@@ -38,11 +38,13 @@ export function useJapaneseSearch(query: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hits, setHits] = useState<Awaited<ReturnType<typeof searchJapanese>>["hits"]>([]);
+  const [kanjiHits, setKanjiHits] = useState<Awaited<ReturnType<typeof searchJapanese>>["kanjiHits"]>([]);
 
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed) {
       setHits([]);
+      setKanjiHits([]);
       setError(null);
       setLoading(false);
       return;
@@ -56,6 +58,7 @@ export function useJapaneseSearch(query: string) {
         .then((result) => {
           if (cancelled) return;
           setHits(Array.isArray(result.hits) ? result.hits : []);
+          setKanjiHits(Array.isArray(result.kanjiHits) ? result.kanjiHits : []);
           setLoading(false);
         })
         .catch((err) => {
@@ -71,5 +74,5 @@ export function useJapaneseSearch(query: string) {
     };
   }, [query]);
 
-  return { hits, loading, error };
+  return { hits, kanjiHits, loading, error };
 }

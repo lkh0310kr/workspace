@@ -20,6 +20,8 @@ type DetailView =
   | { kind: "lexeme"; entSeq: number }
   | { kind: "kanji"; literal: string };
 
+const SINGLE_HAN_RE = /^\p{Script=Han}$/u;
+
 export function JapanesePaneContent({ item, onUpdateItem }: Props) {
   const { status } = useJapaneseDb();
   const [query, setQuery] = useState("");
@@ -27,18 +29,41 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
   const [returnDetail, setReturnDetail] = useState<DetailView | null>(null);
   const [hitIndex, setHitIndex] = useState(0);
   const [handwritingCandidates, setHandwritingCandidates] = useState<{ literal: string; score: number }[]>([]);
-  const { hits, loading, error } = useJapaneseSearch(query);
+  const { hits, kanjiHits, loading, error } = useJapaneseSearch(query);
   const hitList = hits ?? [];
+  const kanjiList = kanjiHits ?? [];
   const settingsOpen = item.japaneseSettingsOpen === true;
 
   useEffect(() => {
-    if (detail.kind === "kanji") return;
-
-    if (!query.trim() || hitList.length === 0) {
-      setHitIndex(0);
-      if (detail.kind === "lexeme") setDetail({ kind: "none" });
+    const trimmed = query.trim();
+    if (!trimmed || loading) {
+      if (!trimmed) {
+        setHitIndex(0);
+        setReturnDetail(null);
+        setDetail({ kind: "none" });
+      }
       return;
     }
+
+    const exactKanji = kanjiList.find((hit) => hit.literal === trimmed);
+    const preferKanji =
+      exactKanji ??
+      (kanjiList.length > 0 && hitList.length === 0 ? kanjiList[0] : null) ??
+      (SINGLE_HAN_RE.test(trimmed) ? kanjiList[0] : null);
+
+    if (preferKanji) {
+      setReturnDetail(null);
+      setDetail({ kind: "kanji", literal: preferKanji.literal });
+      return;
+    }
+
+    if (hitList.length === 0) {
+      setHitIndex(0);
+      setDetail({ kind: "none" });
+      return;
+    }
+
+    if (detail.kind === "kanji") return;
 
     if (detail.kind === "none") {
       setHitIndex(0);
@@ -53,7 +78,7 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
       return;
     }
     setHitIndex(currentIndex);
-  }, [hitList, query, detail]);
+  }, [hitList, kanjiList, query, detail, loading]);
 
   const selectHit = useCallback(
     (index: number) => {
@@ -160,14 +185,39 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
             </section>
           ) : null}
 
-          {!loading && !error && query.trim() && hitList.length === 0 ? (
+          {!loading && !error && query.trim() && hitList.length === 0 && kanjiList.length === 0 ? (
             <div className="japanese-pane-detail-empty">결과가 없습니다.</div>
+          ) : null}
+
+          {query.trim() && kanjiList.length > 0 ? (
+            <section className="japanese-results-section">
+              <h3 className="japanese-results-section-title">한자</h3>
+              <ul className="japanese-kanji-search-list">
+                {kanjiList.map((hit) => (
+                  <li key={hit.literal}>
+                    <button
+                      type="button"
+                      className={`japanese-kanji-search-item${detail.kind === "kanji" && detail.literal === hit.literal ? " is-active" : ""}`}
+                      onClick={() => {
+                        setReturnDetail(null);
+                        setDetail({ kind: "kanji", literal: hit.literal });
+                      }}
+                    >
+                      <span className="japanese-kanji-search-glyph">{hit.literal}</span>
+                      {hit.huneumPreview ? (
+                        <span className="japanese-kanji-search-huneum">{hit.huneumPreview}</span>
+                      ) : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ) : null}
 
           {query.trim() && hitList.length > 0 ? (
             <section className="japanese-results-section">
-              {handwritingCandidates.length > 0 ? (
-                <h3 className="japanese-results-section-title">단어 검색</h3>
+              {kanjiList.length > 0 || handwritingCandidates.length > 0 ? (
+                <h3 className="japanese-results-section-title">단어</h3>
               ) : null}
               <ul className="japanese-hit-list" role="listbox" aria-label="검색 결과">
                 {hitList.map((hit, index) => (

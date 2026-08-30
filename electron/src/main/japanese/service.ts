@@ -2,6 +2,7 @@ import { toHiragana } from "wanakana";
 import type {
   JapaneseDbStatus,
   JapaneseKanjiDetail,
+  JapaneseKanjiSearchHit,
   JapaneseLexemeDetail,
   JapaneseLexemeSummary,
   JapanesePitchPattern,
@@ -224,7 +225,76 @@ function searchBySubstring(db: NonNullable<ReturnType<typeof getJapaneseDb>>, qu
   return rows.map((row) => row.ent_seq);
 }
 
-function searchKanjiLiteral(db: NonNullable<ReturnType<typeof getJapaneseDb>>, query: string): number[] {
+const SINGLE_HAN_RE = /^\p{Script=Han}$/u;
+const HANGUL_QUERY_RE = /^[\p{Script=Hangul}\s]+$/u;
+
+function formatKanjiHuneumPreview(
+  db: NonNullable<ReturnType<typeof getJapaneseDb>>,
+  literal: string,
+): string | null {
+  const rows = db
+    .prepare(
+      `SELECT hun_ko, eum_ko
+       FROM kanji_huneum
+       WHERE literal = ?
+       ORDER BY sort_order, id
+       LIMIT 4`,
+    )
+    .all(literal) as { hun_ko: string; eum_ko: string }[];
+  if (rows.length === 0) return null;
+  return rows.map((row) => `${row.hun_ko} ${row.eum_ko}`).join(" · ");
+}
+
+function searchKanji(db: NonNullable<ReturnType<typeof getJapaneseDb>>, query: string, limit: number): JapaneseKanjiSearchHit[] {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const literals: string[] = [];
+  const seen = new Set<string>();
+  const addLiteral = (literal: string | undefined | null) => {
+    if (!literal || seen.has(literal)) return;
+    const exists = db.prepare("SELECT literal FROM kanji WHERE literal = ?").get(literal) as
+      | { literal: string }
+      | undefined;
+    if (!exists) return;
+    seen.add(literal);
+    literals.push(literal);
+  };
+
+  if (SINGLE_HAN_RE.test(trimmed)) {
+    addLiteral(trimmed);
+  } else if ([...trimmed].every((char) => /\p{Script=Han}/u.test(char))) {
+    for (const char of trimmed) {
+      if (/\p{Script=Han}/u.test(char)) addLiteral(char);
+    }
+  }
+
+  if (HANGUL_QUERY_RE.test(trimmed)) {
+    const norm = trimmed.replace(/\s+/g, "");
+    if (norm) {
+      const like = `${norm}%`;
+      for (const row of db
+        .prepare(
+          `SELECT DISTINCT literal
+           FROM kanji_huneum
+           WHERE hun_ko = ? OR eum_ko = ?
+              OR hun_ko LIKE ? OR eum_ko LIKE ?
+           ORDER BY literal
+           LIMIT ?`,
+        )
+        .all(norm, norm, like, like, limit) as { literal: string }[]) {
+        addLiteral(row.literal);
+      }
+    }
+  }
+
+  return literals.slice(0, limit).map((literal) => ({
+    literal,
+    huneumPreview: formatKanjiHuneumPreview(db, literal),
+  }));
+}
+
+function searchLexemesContainingKanji(db: NonNullable<ReturnType<typeof getJapaneseDb>>, query: string, limit: number): number[] {
   if (!query.trim()) return [];
   const rows = db
     .prepare(
@@ -232,9 +302,9 @@ function searchKanjiLiteral(db: NonNullable<ReturnType<typeof getJapaneseDb>>, q
        FROM writing w
        WHERE w.orthography LIKE ?
        ORDER BY w.ent_seq
-       LIMIT 20`,
+       LIMIT ?`,
     )
-    .all(`%${query.trim()}%`) as { ent_seq: number }[];
+    .all(`%${query.trim()}%`, limit) as { ent_seq: number }[];
   return rows.map((row) => row.ent_seq);
 }
 
@@ -298,7 +368,7 @@ export function searchJapaneseDictionary(query: string, limit = 30): JapaneseSea
   const db = getJapaneseDb();
   if (!db || !query.trim()) {
     japaneseLog("search_skip", { query, reason: db ? "empty_query" : "no_db" });
-    return { query, hits: [] };
+    return { query, hits: [], kanjiHits: [] };
   }
 
   const variants = expandSearchQueries(query);
@@ -317,8 +387,9 @@ export function searchJapaneseDictionary(query: string, limit = 30): JapaneseSea
 
   const entSeqs = mergeUniqueEntSeqs(limit, ...lists);
   const hits = summarizeLexemeBatch(db, entSeqs);
-  japaneseLog("search", { query, hitCount: hits.length, variants });
-  return { query, hits };
+  const kanjiHits = searchKanji(db, query.trim(), 12);
+  japaneseLog("search", { query, hitCount: hits.length, kanjiHitCount: kanjiHits.length, variants });
+  return { query, hits, kanjiHits };
 }
 
 export function getJapaneseLexeme(entSeq: number): JapaneseLexemeDetail | null {
@@ -436,9 +507,10 @@ export function getJapaneseKanji(literal: string): JapaneseKanjiDetail | null {
 
 export function searchJapaneseByKanji(literal: string): JapaneseSearchResult {
   const db = getJapaneseDb();
-  if (!db || !literal.trim()) return { query: literal, hits: [] };
-  const entSeqs = searchKanjiLiteral(db, literal);
-  return { query: literal, hits: entSeqs.map((entSeq) => summarizeLexeme(db, entSeq)) };
+  if (!db || !literal.trim()) return { query: literal, hits: [], kanjiHits: [] };
+  const entSeqs = searchLexemesContainingKanji(db, literal, 20);
+  const kanjiHits = searchKanji(db, literal.trim(), 12);
+  return { query: literal, hits: entSeqs.map((entSeq) => summarizeLexeme(db, entSeq)), kanjiHits };
 }
 
 export function getJapaneseStrokes(literal: string): JapaneseStrokeData | null {

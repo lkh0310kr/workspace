@@ -2047,6 +2047,46 @@ iframe.browser-content-slot {
   background: var(--bg-active);
 }
 
+.japanese-kanji-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 8px;
+}
+
+.japanese-kanji-search-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.japanese-kanji-search-item:hover,
+.japanese-kanji-search-item.is-active {
+  background: var(--bg-hover);
+}
+
+.japanese-kanji-search-item.is-active {
+  background: var(--bg-active);
+}
+
+.japanese-kanji-search-glyph {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.japanese-kanji-search-huneum {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
 .japanese-kanji-header {
   display: flex;
   align-items: center;
