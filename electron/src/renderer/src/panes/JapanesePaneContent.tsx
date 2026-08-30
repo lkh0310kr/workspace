@@ -163,13 +163,6 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
             <div className="japanese-pane-detail-empty">결과가 없습니다.</div>
           ) : null}
 
-          {!query.trim() && handwritingCandidates.length === 0 ? (
-            <div className="japanese-pane-welcome">
-              <p className="japanese-pane-welcome-title">단어·읽기·로마자로 검색</p>
-              <p className="japanese-pane-toolbar-hint">예: 食べる, にほん, nihon — ↑↓로 결과 이동</p>
-            </div>
-          ) : null}
-
           {query.trim() && hitList.length > 0 ? (
             <section className="japanese-results-section">
               {handwritingCandidates.length > 0 ? (

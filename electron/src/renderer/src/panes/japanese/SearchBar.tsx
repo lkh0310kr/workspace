@@ -23,7 +23,7 @@ export const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
         onKeyDown={onKeyDown}
-        placeholder="단어, 읽기, 로마자, 한자 검색…"
+        placeholder="검색"
         disabled={disabled || !dbStatus?.ready}
         aria-label="일본어 사전 검색"
       />
