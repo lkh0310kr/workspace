@@ -11,7 +11,10 @@ import type {
 import {
   getJapaneseDb,
   getJapaneseDbPath,
+  getKanjiCount,
   getLexemeCount,
+  getMetaValue,
+  getStrokeKanjiCount,
   isJapaneseDbReady,
 } from "./db";
 import {
@@ -124,6 +127,9 @@ export function getJapaneseDbStatus(): JapaneseDbStatus {
     ready: isJapaneseDbReady(),
     path,
     entryCount: getLexemeCount(),
+    kanjiCount: getKanjiCount(),
+    strokeKanjiCount: getStrokeKanjiCount(),
+    importedAt: getMetaValue("imported_at"),
   };
 }
 

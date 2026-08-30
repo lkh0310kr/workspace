@@ -1,19 +1,15 @@
 import { useEffect, useState } from "react";
-import { getJapaneseDbStatus, searchJapanese, type JapaneseDbStatus } from "../../electron";
+import type { JapaneseDbStatus } from "../../electron";
+import { searchJapanese } from "../../electron";
 
 interface Props {
   query: string;
   onQueryChange: (query: string) => void;
+  dbStatus?: JapaneseDbStatus | null;
   disabled?: boolean;
 }
 
-export function SearchBar({ query, onQueryChange, disabled }: Props) {
-  const [dbStatus, setDbStatus] = useState<JapaneseDbStatus | null>(null);
-
-  useEffect(() => {
-    getJapaneseDbStatus().then(setDbStatus).catch(() => setDbStatus(null));
-  }, []);
-
+export function SearchBar({ query, onQueryChange, dbStatus = null, disabled }: Props) {
   return (
     <div className="japanese-pane-toolbar">
       <input
@@ -29,7 +25,9 @@ export function SearchBar({ query, onQueryChange, disabled }: Props) {
         <p className="japanese-pane-toolbar-hint">Dictionary not loaded ({dbStatus.path ?? "no path"})</p>
       ) : null}
       {dbStatus?.ready ? (
-        <p className="japanese-pane-toolbar-hint">{dbStatus.entryCount.toLocaleString()} entries</p>
+        <p className="japanese-pane-toolbar-hint">
+          {dbStatus.entryCount.toLocaleString()} words · {dbStatus.kanjiCount.toLocaleString()} kanji
+        </p>
       ) : null}
     </div>
   );

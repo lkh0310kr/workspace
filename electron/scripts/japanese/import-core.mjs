@@ -475,6 +475,7 @@ export function parseCliArgs(argv) {
     tatoebaLinksPath: null,
     tatoebaLexemeLinksPath: null,
     kanjiumPath: null,
+    packaged: false,
     clear: true,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -488,6 +489,7 @@ export function parseCliArgs(argv) {
     else if (arg === "--tatoeba-links") args.tatoebaLinksPath = argv[++i];
     else if (arg === "--tatoeba-lexeme-links") args.tatoebaLexemeLinksPath = argv[++i];
     else if (arg === "--kanjium") args.kanjiumPath = argv[++i];
+    else if (arg === "--packaged") args.packaged = true;
     else if (arg === "--no-clear") args.clear = false;
     else if (arg === "--help" || arg === "-h") args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);

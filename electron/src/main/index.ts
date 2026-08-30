@@ -40,7 +40,7 @@ import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
 import { startEmbeddedWorldEngine } from './worldEngineEmbed'
 import { pickDirectory, pickMediaFile } from './nativeDialogs'
-import { initJapaneseDictionary } from './japanese/init'
+import { initJapaneseDictionary, reloadJapaneseDictionary } from './japanese/init'
 import {
   getJapaneseDbStatus,
   getJapaneseKanji,
@@ -729,6 +729,7 @@ app.whenReady().then(() => {
   // workspace-relative path — there's nothing to resolveUnderRoot against.
   ipcMain.handle('rss:fetch-feed', (_event, url: string) => fetchFeed(url))
   ipcMain.handle('japanese:db-status', () => getJapaneseDbStatus())
+  ipcMain.handle('japanese:reload', () => reloadJapaneseDictionary())
   ipcMain.handle('japanese:search', (_event, query: string, limit?: number) =>
     searchJapaneseDictionary(query, limit),
   )

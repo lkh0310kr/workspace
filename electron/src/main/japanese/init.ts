@@ -1,17 +1,22 @@
 import { existsSync } from "node:fs";
 import { getJapaneseDbPath, initJapaneseSchema, openJapaneseDb, setJapaneseDb } from "./db";
+import { getJapaneseDbStatus } from "./service";
 import { openJapaneseUserDb, setJapaneseUserDb } from "./userDb";
+
+function openDictionaryFromDisk(): void {
+  const path = getJapaneseDbPath();
+  if (!existsSync(path)) {
+    setJapaneseDb(null);
+    return;
+  }
+  const database = openJapaneseDb(path);
+  initJapaneseSchema(database);
+  setJapaneseDb(database);
+}
 
 export function initJapaneseDictionary(): void {
   try {
-    const path = getJapaneseDbPath();
-    if (!existsSync(path)) {
-      setJapaneseDb(null);
-    } else {
-      const database = openJapaneseDb(path);
-      initJapaneseSchema(database);
-      setJapaneseDb(database);
-    }
+    openDictionaryFromDisk();
     try {
       setJapaneseUserDb(openJapaneseUserDb());
     } catch {
@@ -21,6 +26,12 @@ export function initJapaneseDictionary(): void {
     setJapaneseDb(null);
     setJapaneseUserDb(null);
   }
+}
+
+export function reloadJapaneseDictionary() {
+  setJapaneseDb(null);
+  openDictionaryFromDisk();
+  return getJapaneseDbStatus();
 }
 
 export function closeJapaneseDictionary(): void {

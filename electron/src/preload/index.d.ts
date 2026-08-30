@@ -197,6 +197,7 @@ export interface WorkspaceApi {
   }
   japanese: {
     dbStatus: () => Promise<JapaneseDbStatus>
+    reload: () => Promise<JapaneseDbStatus>
     search: (query: string, limit?: number) => Promise<JapaneseSearchResult>
     getLexeme: (entSeq: number) => Promise<JapaneseLexemeDetail | null>
     getKanji: (literal: string) => Promise<JapaneseKanjiDetail | null>

@@ -218,6 +218,7 @@ const api = {
   },
   japanese: {
     dbStatus: (): Promise<unknown> => ipcRenderer.invoke('japanese:db-status'),
+    reload: (): Promise<unknown> => ipcRenderer.invoke('japanese:reload'),
     search: (query: string, limit?: number): Promise<unknown> =>
       ipcRenderer.invoke('japanese:search', query, limit),
     getLexeme: (entSeq: number): Promise<unknown> => ipcRenderer.invoke('japanese:get-lexeme', entSeq),

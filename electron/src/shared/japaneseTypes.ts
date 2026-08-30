@@ -2,6 +2,9 @@ export interface JapaneseDbStatus {
   ready: boolean;
   path: string | null;
   entryCount: number;
+  kanjiCount: number;
+  strokeKanjiCount: number;
+  importedAt: string | null;
 }
 
 export interface JapaneseLexemeSummary {

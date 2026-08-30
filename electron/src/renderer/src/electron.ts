@@ -177,6 +177,10 @@ export async function getJapaneseDbStatus(): Promise<JapaneseDbStatus> {
   return window.api.japanese.dbStatus();
 }
 
+export async function reloadJapaneseDictionary(): Promise<JapaneseDbStatus> {
+  return window.api.japanese.reload();
+}
+
 export async function searchJapanese(query: string, limit?: number): Promise<JapaneseSearchResult> {
   return window.api.japanese.search(query, limit);
 }

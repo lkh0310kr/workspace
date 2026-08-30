@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { importDictionary, parseCliArgs } from "./import-core.mjs";
+import { defaultDictionaryDbPath } from "./paths.mjs";
 
 const args = parseCliArgs(process.argv.slice(2));
 
@@ -7,7 +8,8 @@ if (args.help) {
   console.log(`Usage: npm run japanese:import -- [options]
 
 Options:
-  --out <path>         Output SQLite database path (required)
+  --out <path>         Output SQLite path (default: workspace userData/japanese/dictionary.db)
+  --packaged           Use packaged app data dir (workspace-app) instead of dev (workspace-app-dev)
   --jmdict <path>      JMdict XML file
   --kanjidic <path>    KANJIDIC2 XML file
   --kanjivg <path>     KanjiVG directory or single .svg file
@@ -22,10 +24,15 @@ Options:
 Example:
   npm run japanese:import -- \\
     --jmdict /path/to/JMdict_e.xml \\
-    --kanjidic /path/to/kanjidic2.xml \\
-    --out ~/.config/workspace-app/japanese/dictionary.db
+    --kanjidic /path/to/kanjidic2.xml
+
+  npm run japanese:import:fixtures   # small bundled sample for dev
 `);
   process.exit(0);
+}
+
+if (!args.outPath) {
+  args.outPath = defaultDictionaryDbPath({ packaged: args.packaged });
 }
 
 try {

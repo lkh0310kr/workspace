@@ -64,3 +64,35 @@ export function getLexemeCount(): number {
     return 0;
   }
 }
+
+export function getKanjiCount(): number {
+  if (!db) return 0;
+  try {
+    const row = db.prepare("SELECT COUNT(*) AS count FROM kanji").get() as { count: number };
+    return row.count;
+  } catch {
+    return 0;
+  }
+}
+
+export function getStrokeKanjiCount(): number {
+  if (!db) return 0;
+  try {
+    const row = db.prepare("SELECT COUNT(DISTINCT literal) AS count FROM kanji_stroke").get() as {
+      count: number;
+    };
+    return row.count;
+  } catch {
+    return 0;
+  }
+}
+
+export function getMetaValue(key: string): string | null {
+  if (!db) return null;
+  try {
+    const row = db.prepare("SELECT value FROM meta WHERE key = ?").get(key) as { value: string } | undefined;
+    return row?.value ?? null;
+  } catch {
+    return null;
+  }
+}

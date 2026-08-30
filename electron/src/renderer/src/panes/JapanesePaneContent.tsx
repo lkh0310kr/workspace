@@ -1,15 +1,19 @@
 import { useState } from "react";
 import type { PaneTabItem } from "../layout/paneTypes";
+import { DictionarySetup } from "./japanese/DictionarySetup";
 import { HandwritingCanvas } from "./japanese/HandwritingCanvas";
+import { JapaneseSearchBar } from "./japanese/JapaneseSearchBar";
 import { KanjiDetail } from "./japanese/KanjiDetail";
 import { LexemeDetail } from "./japanese/LexemeDetail";
-import { SearchBar, useJapaneseSearch } from "./japanese/SearchBar";
+import { SrsReviewPanel } from "./japanese/SrsReviewPanel";
+import { useJapaneseSearch } from "./japanese/SearchBar";
+import { useJapaneseDb } from "./japanese/useJapaneseDb";
 
 interface Props {
   item: PaneTabItem;
 }
 
-type PaneMode = "search" | "handwriting";
+type PaneMode = "search" | "handwriting" | "review" | "setup";
 
 type DetailView =
   | { kind: "none" }
@@ -17,10 +21,13 @@ type DetailView =
   | { kind: "kanji"; literal: string };
 
 export function JapanesePaneContent({ item: _item }: Props) {
+  const { status, reload, reloading } = useJapaneseDb();
   const [mode, setMode] = useState<PaneMode>("search");
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<DetailView>({ kind: "none" });
   const { hits, loading, error } = useJapaneseSearch(query);
+
+  const showSetup = !status?.ready && mode !== "setup";
 
   return (
     <div className="japanese-pane">
@@ -39,71 +46,98 @@ export function JapanesePaneContent({ item: _item }: Props) {
         >
           Handwriting
         </button>
+        <button
+          type="button"
+          className={`japanese-mode-tab${mode === "review" ? " is-active" : ""}`}
+          onClick={() => setMode("review")}
+        >
+          Review
+        </button>
+        <button
+          type="button"
+          className={`japanese-mode-tab${mode === "setup" ? " is-active" : ""}`}
+          onClick={() => setMode("setup")}
+        >
+          Data
+        </button>
+        {status?.ready ? (
+          <button
+            type="button"
+            className="japanese-mode-tab japanese-mode-tab-reload"
+            onClick={() => void reload()}
+            disabled={reloading}
+          >
+            {reloading ? "…" : "↻"}
+          </button>
+        ) : null}
       </div>
-      {mode === "search" ? <SearchBar query={query} onQueryChange={setQuery} /> : null}
-      <div className="japanese-pane-split">
-        <div className="japanese-pane-results">
-          {mode === "handwriting" ? (
-            <HandwritingCanvas onSelectKanji={(literal) => setDetail({ kind: "kanji", literal })} />
-          ) : null}
-          {mode === "search" && loading ? <div className="japanese-pane-detail-empty">Searching…</div> : null}
-          {mode === "search" && error ? <div className="japanese-pane-detail-empty">{error}</div> : null}
-          {mode === "search" && !loading && !error && query.trim() && hits.length === 0 ? (
-            <div className="japanese-pane-detail-empty">No results.</div>
-          ) : null}
-          {mode === "search" && !query.trim() ? (
-            <div className="japanese-pane-body">
-              <p className="japanese-pane-empty">
-                Dictionary not loaded yet? Import JMdict and KANJIDIC2:
-              </p>
-              <pre className="japanese-pane-import-hint">
-                cd electron{"\n"}
-                npm run japanese:import -- \{"\n"}
-                {"  "}--jmdict /path/to/JMdict_e.xml \{"\n"}
-                {"  "}--kanjidic /path/to/kanjidic2.xml \{"\n"}
-                {"  "}--out ~/.config/workspace-app/japanese/dictionary.db
-              </pre>
-            </div>
-          ) : mode === "search" ? (
-            <ul className="japanese-hit-list">
-              {hits.map((hit) => (
-                <li key={hit.entSeq}>
-                  <button
-                    type="button"
-                    className={`japanese-hit-item${detail.kind === "lexeme" && detail.entSeq === hit.entSeq ? " is-active" : ""}`}
-                    onClick={() => setDetail({ kind: "lexeme", entSeq: hit.entSeq })}
-                  >
-                    <span className="japanese-hit-primary">
-                      {hit.primaryWriting ?? hit.primaryReading ?? `#${hit.entSeq}`}
-                    </span>
-                    {hit.primaryWriting && hit.primaryReading ? (
-                      <span className="japanese-hit-reading">{hit.primaryReading}</span>
-                    ) : null}
-                    {hit.glossPreview ? <span className="japanese-hit-gloss">{hit.glossPreview}</span> : null}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+
+      {mode === "search" && status?.ready ? (
+        <JapaneseSearchBar query={query} onQueryChange={setQuery} />
+      ) : null}
+
+      {mode === "setup" || showSetup ? (
+        <div className="japanese-pane-body">
+          <DictionarySetup onReady={() => setMode("search")} />
         </div>
-        <div className="japanese-pane-detail">
-          {detail.kind === "lexeme" ? (
-            <LexemeDetail
-              entSeq={detail.entSeq}
-              onKanjiClick={(literal) => setDetail({ kind: "kanji", literal })}
-            />
-          ) : null}
-          {detail.kind === "kanji" ? (
-            <KanjiDetail
-              literal={detail.literal}
-              onLexemeClick={(entSeq) => setDetail({ kind: "lexeme", entSeq })}
-            />
-          ) : null}
-          {detail.kind === "none" && query.trim() ? (
-            <div className="japanese-pane-detail-empty">Select an entry.</div>
-          ) : null}
+      ) : (
+        <div className="japanese-pane-split">
+          <div className="japanese-pane-results">
+            {mode === "handwriting" ? (
+              <HandwritingCanvas onSelectKanji={(literal) => setDetail({ kind: "kanji", literal })} />
+            ) : null}
+            {mode === "review" ? (
+              <SrsReviewPanel onOpenLexeme={(entSeq) => setDetail({ kind: "lexeme", entSeq })} />
+            ) : null}
+            {mode === "search" && loading ? <div className="japanese-pane-detail-empty">Searching…</div> : null}
+            {mode === "search" && error ? <div className="japanese-pane-detail-empty">{error}</div> : null}
+            {mode === "search" && !loading && !error && query.trim() && hits.length === 0 ? (
+              <div className="japanese-pane-detail-empty">No results.</div>
+            ) : null}
+            {mode === "search" && !query.trim() ? (
+              <div className="japanese-pane-detail-empty">Type to search the dictionary.</div>
+            ) : null}
+            {mode === "search" && query.trim() ? (
+              <ul className="japanese-hit-list">
+                {hits.map((hit) => (
+                  <li key={hit.entSeq}>
+                    <button
+                      type="button"
+                      className={`japanese-hit-item${detail.kind === "lexeme" && detail.entSeq === hit.entSeq ? " is-active" : ""}`}
+                      onClick={() => setDetail({ kind: "lexeme", entSeq: hit.entSeq })}
+                    >
+                      <span className="japanese-hit-primary">
+                        {hit.primaryWriting ?? hit.primaryReading ?? `#${hit.entSeq}`}
+                      </span>
+                      {hit.primaryWriting && hit.primaryReading ? (
+                        <span className="japanese-hit-reading">{hit.primaryReading}</span>
+                      ) : null}
+                      {hit.glossPreview ? <span className="japanese-hit-gloss">{hit.glossPreview}</span> : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          <div className="japanese-pane-detail">
+            {detail.kind === "lexeme" ? (
+              <LexemeDetail
+                entSeq={detail.entSeq}
+                onKanjiClick={(literal) => setDetail({ kind: "kanji", literal })}
+              />
+            ) : null}
+            {detail.kind === "kanji" ? (
+              <KanjiDetail
+                literal={detail.literal}
+                onLexemeClick={(entSeq) => setDetail({ kind: "lexeme", entSeq })}
+              />
+            ) : null}
+            {detail.kind === "none" && mode === "search" && query.trim() ? (
+              <div className="japanese-pane-detail-empty">Select an entry.</div>
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
