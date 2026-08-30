@@ -56,6 +56,7 @@
     "flexlayout-react": "^0.10.5",
     "node-pty": "^1.1.0",
     "rss-parser": "^3.13.0",
+    "wanakana": "^5.3.1",
     "xml2js": "^0.6.2",
     "zod": "^4.4.3",
     "zustand": "^5.0.15"

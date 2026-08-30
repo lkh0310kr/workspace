@@ -53,6 +53,16 @@ describe("japanese dictionary service", () => {
     const result = searchJapaneseDictionary("食べる");
     expect(result.hits[0]?.entSeq).toBe(1000000);
     expect(result.hits[0]?.primaryWriting).toBe("食べる");
+
+    const japan = searchJapaneseDictionary("日本");
+    expect(japan.hits[0]?.entSeq).toBe(1000001);
+    expect(japan.hits[0]?.primaryWriting).toBe("日本");
+
+    const romaji = searchJapaneseDictionary("nihon");
+    expect(romaji.hits[0]?.entSeq).toBe(1000001);
+
+    const taberu = searchJapaneseDictionary("taberu");
+    expect(taberu.hits[0]?.entSeq).toBe(1000000);
   });
 
   it("loads lexeme and kanji detail", () => {

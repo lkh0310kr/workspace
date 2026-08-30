@@ -1,3 +1,4 @@
+import { toHiragana } from "wanakana";
 import type {
   JapaneseDbStatus,
   JapaneseKanjiDetail,
@@ -30,14 +31,56 @@ import {
 } from "./strokeMatch";
 import { getLexemePitchPatterns, logPracticeScore } from "./srs";
 
-function escapeFtsQuery(query: string): string {
-  return query
+function buildFtsQuery(query: string, mode: "exact" | "prefix"): string {
+  const tokens = query
     .trim()
     .replace(/["']/g, "")
     .split(/\s+/)
-    .filter(Boolean)
-    .map((token) => `"${token}"*`)
-    .join(" ");
+    .filter(Boolean);
+  if (tokens.length === 0) return "";
+  const suffix = mode === "prefix" ? "*" : "";
+  return tokens.map((token) => `"${token}"${suffix}`).join(" ");
+}
+
+function isLikelyRomaji(query: string): boolean {
+  return /^[a-zA-Z\-']+$/.test(query);
+}
+
+function expandSearchQueries(query: string): string[] {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  if (isLikelyRomaji(trimmed)) {
+    const hiragana = toHiragana(trimmed);
+    if (hiragana && hiragana !== trimmed) return [hiragana, trimmed];
+  }
+  return [trimmed];
+}
+
+function mergeUniqueEntSeqs(limit: number, ...lists: number[][]): number[] {
+  const out: number[] = [];
+  const seen = new Set<number>();
+  for (const list of lists) {
+    for (const entSeq of list) {
+      if (seen.has(entSeq)) continue;
+      seen.add(entSeq);
+      out.push(entSeq);
+      if (out.length >= limit) return out;
+    }
+  }
+  return out;
+}
+
+function searchExact(db: NonNullable<ReturnType<typeof getJapaneseDb>>, query: string, limit: number): number[] {
+  if (!query.trim()) return [];
+  const rows = db
+    .prepare(
+      `SELECT ent_seq FROM writing WHERE orthography = ?
+       UNION
+       SELECT ent_seq FROM reading WHERE kana = ?
+       LIMIT ?`,
+    )
+    .all(query, query, limit) as { ent_seq: number }[];
+  return rows.map((row) => row.ent_seq);
 }
 
 function summarizeLexeme(db: NonNullable<ReturnType<typeof getJapaneseDb>>, entSeq: number): JapaneseLexemeSummary {
@@ -66,8 +109,7 @@ function summarizeLexeme(db: NonNullable<ReturnType<typeof getJapaneseDb>>, entS
   };
 }
 
-function searchByFts(db: NonNullable<ReturnType<typeof getJapaneseDb>>, query: string, limit: number): number[] {
-  const ftsQuery = escapeFtsQuery(query);
+function searchByFts(db: NonNullable<ReturnType<typeof getJapaneseDb>>, ftsQuery: string, limit: number): number[] {
   if (!ftsQuery) return [];
   try {
     const rows = db
@@ -183,11 +225,23 @@ export function searchJapaneseDictionary(query: string, limit = 30): JapaneseSea
     return { query, hits: [] };
   }
 
-  let entSeqs = searchByFts(db, query, limit);
-  if (entSeqs.length === 0) entSeqs = searchBySubstring(db, query, limit);
+  const variants = expandSearchQueries(query);
+  const lists: number[][] = [];
+  for (const variant of variants) {
+    lists.push(searchExact(db, variant, limit));
+    if (!isLikelyRomaji(variant)) {
+      lists.push(searchByFts(db, buildFtsQuery(variant, "exact"), limit));
+    }
+  }
+  const prefixVariant = variants.find((variant) => !isLikelyRomaji(variant)) ?? variants[0];
+  if (prefixVariant) {
+    lists.push(searchByFts(db, buildFtsQuery(prefixVariant, "prefix"), limit));
+  }
+  lists.push(searchBySubstring(db, variants[0] ?? query.trim(), limit));
 
+  const entSeqs = mergeUniqueEntSeqs(limit, ...lists);
   const hits = entSeqs.map((entSeq) => summarizeLexeme(db, entSeq));
-  japaneseLog("search", { query, hitCount: hits.length });
+  japaneseLog("search", { query, hitCount: hits.length, variants });
   return { query, hits };
 }
 
