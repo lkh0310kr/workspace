@@ -22,10 +22,12 @@ describe("japanese dictionary import", () => {
       outPath,
       jmdictPath: join(fixturesDir, "jmdict-sample.xml"),
       kanjidicPath: join(fixturesDir, "kanjidic-sample.xml"),
+      kanjivgPath: join(fixturesDir, "kanjivg"),
     });
 
     expect(result.jmdictCount).toBe(5);
     expect(result.kanjidicCount).toBe(3);
+    expect(result.kanjivgCount.strokeCount).toBe(9);
 
     const db = openDictionaryDb(outPath);
     const lexemeCount = db.prepare("SELECT COUNT(*) AS count FROM lexeme").get() as { count: number };

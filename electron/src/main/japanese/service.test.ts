@@ -9,6 +9,7 @@ import {
   getJapaneseDbStatus,
   getJapaneseKanji,
   getJapaneseLexeme,
+  getJapaneseStrokes,
   searchJapaneseDictionary,
 } from "./service";
 
@@ -25,6 +26,7 @@ describe("japanese dictionary service", () => {
       outPath,
       jmdictPath: join(fixturesDir, "jmdict-sample.xml"),
       kanjidicPath: join(fixturesDir, "kanjidic-sample.xml"),
+      kanjivgPath: join(fixturesDir, "kanjivg"),
     });
     const { openJapaneseDb, initJapaneseSchema } = await import("./db");
     const db = openJapaneseDb(outPath);
@@ -57,5 +59,8 @@ describe("japanese dictionary service", () => {
     expect(kanji?.strokes).toBe(9);
     expect(kanji?.readings.some((reading) => reading.type === "on")).toBe(true);
     expect(kanji?.linkedLexemes.length).toBeGreaterThan(0);
+
+    const strokes = getJapaneseStrokes("食");
+    expect(strokes?.strokes).toHaveLength(9);
   });
 });

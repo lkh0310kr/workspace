@@ -64,6 +64,13 @@ CREATE TABLE IF NOT EXISTS kanji_reading (
 
 CREATE INDEX IF NOT EXISTS idx_kanji_reading_literal ON kanji_reading(literal);
 
+CREATE TABLE IF NOT EXISTS kanji_stroke (
+  literal TEXT NOT NULL REFERENCES kanji(literal) ON DELETE CASCADE,
+  stroke_order INTEGER NOT NULL,
+  path TEXT NOT NULL,
+  PRIMARY KEY (literal, stroke_order)
+);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS lexeme_fts USING fts5(
   ent_seq UNINDEXED,
   search_text,

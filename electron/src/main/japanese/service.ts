@@ -4,6 +4,7 @@ import type {
   JapaneseLexemeDetail,
   JapaneseLexemeSummary,
   JapaneseSearchResult,
+  JapaneseStrokeData,
 } from "../../shared/japaneseTypes";
 import {
   getJapaneseDb,
@@ -199,4 +200,19 @@ export function searchJapaneseByKanji(literal: string): JapaneseSearchResult {
   if (!db || !literal.trim()) return { query: literal, hits: [] };
   const entSeqs = searchKanjiLiteral(db, literal);
   return { query: literal, hits: entSeqs.map((entSeq) => summarizeLexeme(db, entSeq)) };
+}
+
+export function getJapaneseStrokes(literal: string): JapaneseStrokeData | null {
+  const db = getJapaneseDb();
+  if (!db || !literal) return null;
+
+  const rows = db
+    .prepare("SELECT stroke_order, path FROM kanji_stroke WHERE literal = ? ORDER BY stroke_order")
+    .all(literal) as { stroke_order: number; path: string }[];
+  if (rows.length === 0) return null;
+
+  return {
+    literal,
+    strokes: rows.map((row) => ({ order: row.stroke_order, path: row.path })),
+  };
 }

@@ -1484,6 +1484,64 @@ iframe.browser-content-slot {
   white-space: pre-wrap;
 }
 
+.japanese-stroke-viewer {
+  margin-top: 18px;
+}
+
+.japanese-stroke-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.japanese-stroke-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-raised);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.japanese-stroke-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.japanese-stroke-svg {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  display: block;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-base);
+}
+
+.japanese-stroke-bg {
+  fill: var(--bg-raised);
+}
+
+.japanese-stroke-path {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.japanese-stroke-path.is-visible {
+  stroke: var(--accent, #4ea1ff);
+}
+
+.japanese-stroke-viewer-empty {
+  margin-top: 12px;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
 /* A <webview> guest's own content went fullscreen — see the matching
    .titlebar rule above; hides just the nav+address row, not
    .browser-pane-chrome as a whole (that also wraps the webview content

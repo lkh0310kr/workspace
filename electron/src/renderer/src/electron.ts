@@ -155,6 +155,7 @@ import type {
   JapaneseKanjiDetail,
   JapaneseLexemeDetail,
   JapaneseSearchResult,
+  JapaneseStrokeData,
 } from "../../shared/japaneseTypes";
 
 export type {
@@ -163,6 +164,7 @@ export type {
   JapaneseLexemeDetail,
   JapaneseLexemeSummary,
   JapaneseSearchResult,
+  JapaneseStrokeData,
 } from "../../shared/japaneseTypes";
 
 export async function getJapaneseDbStatus(): Promise<JapaneseDbStatus> {
@@ -179,6 +181,10 @@ export async function getJapaneseLexeme(entSeq: number): Promise<JapaneseLexemeD
 
 export async function getJapaneseKanji(literal: string): Promise<JapaneseKanjiDetail | null> {
   return window.api.japanese.getKanji(literal);
+}
+
+export async function getJapaneseStrokes(literal: string): Promise<JapaneseStrokeData | null> {
+  return window.api.japanese.getStrokes(literal);
 }
 
 export async function searchJapaneseByKanji(literal: string): Promise<JapaneseSearchResult> {

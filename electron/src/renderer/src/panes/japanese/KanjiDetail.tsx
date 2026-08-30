@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getJapaneseKanji, type JapaneseKanjiDetail } from "../../electron";
+import { KanjiStrokeViewer } from "./KanjiStrokeViewer";
 
 interface Props {
   literal: string;
@@ -48,6 +49,8 @@ export function KanjiDetail({ literal, onLexemeClick }: Props) {
           {detail.jlpt != null ? <span>JLPT N{detail.jlpt}</span> : null}
         </div>
       </header>
+
+      <KanjiStrokeViewer literal={detail.literal} />
 
       {onReadings.length > 0 ? (
         <section className="japanese-lexeme-section">

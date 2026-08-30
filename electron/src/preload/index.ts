@@ -222,6 +222,7 @@ const api = {
       ipcRenderer.invoke('japanese:search', query, limit),
     getLexeme: (entSeq: number): Promise<unknown> => ipcRenderer.invoke('japanese:get-lexeme', entSeq),
     getKanji: (literal: string): Promise<unknown> => ipcRenderer.invoke('japanese:get-kanji', literal),
+    getStrokes: (literal: string): Promise<unknown> => ipcRenderer.invoke('japanese:get-strokes', literal),
     searchByKanji: (literal: string): Promise<unknown> =>
       ipcRenderer.invoke('japanese:search-by-kanji', literal),
   },

@@ -45,6 +45,7 @@ import {
   getJapaneseDbStatus,
   getJapaneseKanji,
   getJapaneseLexeme,
+  getJapaneseStrokes,
   searchJapaneseByKanji,
   searchJapaneseDictionary,
 } from './japanese/service'
@@ -730,6 +731,7 @@ app.whenReady().then(() => {
   )
   ipcMain.handle('japanese:get-lexeme', (_event, entSeq: number) => getJapaneseLexeme(entSeq))
   ipcMain.handle('japanese:get-kanji', (_event, literal: string) => getJapaneseKanji(literal))
+  ipcMain.handle('japanese:get-strokes', (_event, literal: string) => getJapaneseStrokes(literal))
   ipcMain.handle('japanese:search-by-kanji', (_event, literal: string) => searchJapaneseByKanji(literal))
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
   ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))

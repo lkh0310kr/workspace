@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
@@ -42,6 +42,7 @@ export function clearDictionaryData(database) {
     DELETE FROM sense;
     DELETE FROM reading;
     DELETE FROM writing;
+    DELETE FROM kanji_stroke;
     DELETE FROM kanji_reading;
     DELETE FROM kanji;
     DELETE FROM lexeme;
@@ -148,6 +149,74 @@ export async function importKanjidic(database, xmlPath) {
   return characters.length;
 }
 
+const KANJIVG_PATH_REGEX = /<path[^>]*id="kvg:[^"]*-s(\d+)"[^>]*d="([^"]+)"/g;
+
+function literalFromKanjivgFilename(fileName) {
+  const base = fileName.replace(/\.svg$/i, "");
+  if (!/^[0-9a-f]{4,5}$/i.test(base)) return null;
+  const codepoint = Number.parseInt(base, 16);
+  if (!Number.isFinite(codepoint)) return null;
+  return String.fromCodePoint(codepoint);
+}
+
+function parseKanjivgSvg(xml, fallbackLiteral) {
+  const strokes = [];
+  let match = KANJIVG_PATH_REGEX.exec(xml);
+  while (match) {
+    strokes.push({ order: Number(match[1]), path: match[2] });
+    match = KANJIVG_PATH_REGEX.exec(xml);
+  }
+  strokes.sort((a, b) => a.order - b.order);
+
+  const elementMatch = xml.match(/kvg:element="([^"]+)"/);
+  const literal = fallbackLiteral ?? elementMatch?.[1] ?? null;
+  if (!literal || strokes.length === 0) return null;
+  return { literal, strokes };
+}
+
+function collectKanjivgSvgFiles(rootPath) {
+  const stat = statSync(rootPath);
+  if (stat.isFile() && rootPath.toLowerCase().endsWith(".svg")) return [rootPath];
+  if (!stat.isDirectory()) return [];
+
+  const files = [];
+  for (const entry of readdirSync(rootPath)) {
+    const fullPath = join(rootPath, entry);
+    const entryStat = statSync(fullPath);
+    if (entryStat.isDirectory()) {
+      files.push(...collectKanjivgSvgFiles(fullPath));
+    } else if (entry.toLowerCase().endsWith(".svg")) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+export function importKanjivg(database, kanjivgPath) {
+  const files = collectKanjivgSvgFiles(resolve(kanjivgPath));
+  const insert = database.prepare(
+    "INSERT OR REPLACE INTO kanji_stroke (literal, stroke_order, path) VALUES (?, ?, ?)",
+  );
+  const ensureKanji = database.prepare("INSERT OR IGNORE INTO kanji (literal) VALUES (?)");
+  let strokeCount = 0;
+  const tx = database.transaction(() => {
+    for (const filePath of files) {
+      const xml = readFileSync(filePath, "utf8");
+      const fallbackLiteral = literalFromKanjivgFilename(filePath.split(/[\\/]/).pop() ?? "");
+      const parsed = parseKanjivgSvg(xml, fallbackLiteral);
+      if (!parsed) continue;
+      ensureKanji.run(parsed.literal);
+      database.prepare("DELETE FROM kanji_stroke WHERE literal = ?").run(parsed.literal);
+      for (const stroke of parsed.strokes) {
+        insert.run(parsed.literal, stroke.order, stroke.path);
+        strokeCount += 1;
+      }
+    }
+  });
+  tx();
+  return { fileCount: files.length, strokeCount };
+}
+
 export function rebuildLexemeFts(database) {
   database.exec("DELETE FROM lexeme_fts");
   database.exec(`
@@ -174,13 +243,14 @@ export function setMeta(database, key, value) {
     .run(key, value);
 }
 
-export async function importDictionary({ outPath, jmdictPath, kanjidicPath, clear = true }) {
+export async function importDictionary({ outPath, jmdictPath, kanjidicPath, kanjivgPath, clear = true }) {
   if (!outPath) throw new Error("--out is required");
-  if (!jmdictPath && !kanjidicPath) {
-    throw new Error("At least one of --jmdict or --kanjidic is required");
+  if (!jmdictPath && !kanjidicPath && !kanjivgPath) {
+    throw new Error("At least one of --jmdict, --kanjidic, or --kanjivg is required");
   }
   if (jmdictPath && !existsSync(jmdictPath)) throw new Error(`JMdict file not found: ${jmdictPath}`);
   if (kanjidicPath && !existsSync(kanjidicPath)) throw new Error(`KANJIDIC file not found: ${kanjidicPath}`);
+  if (kanjivgPath && !existsSync(kanjivgPath)) throw new Error(`KanjiVG path not found: ${kanjivgPath}`);
 
   const database = openDictionaryDb(resolve(outPath));
   initSchema(database);
@@ -188,26 +258,30 @@ export async function importDictionary({ outPath, jmdictPath, kanjidicPath, clea
 
   let jmdictCount = 0;
   let kanjidicCount = 0;
+  let kanjivgCount = { fileCount: 0, strokeCount: 0 };
   if (jmdictPath) jmdictCount = await importJmdict(database, jmdictPath);
   if (kanjidicPath) kanjidicCount = await importKanjidic(database, kanjidicPath);
+  if (kanjivgPath) kanjivgCount = importKanjivg(database, kanjivgPath);
   rebuildLexemeFts(database);
 
   setMeta(database, "schema_version", "1");
   setMeta(database, "imported_at", new Date().toISOString());
   if (jmdictPath) setMeta(database, "jmdict_path", resolve(jmdictPath));
   if (kanjidicPath) setMeta(database, "kanjidic_path", resolve(kanjidicPath));
+  if (kanjivgPath) setMeta(database, "kanjivg_path", resolve(kanjivgPath));
 
   database.close();
-  return { jmdictCount, kanjidicCount, outPath: resolve(outPath) };
+  return { jmdictCount, kanjidicCount, kanjivgCount, outPath: resolve(outPath) };
 }
 
 export function parseCliArgs(argv) {
-  const args = { outPath: null, jmdictPath: null, kanjidicPath: null, clear: true };
+  const args = { outPath: null, jmdictPath: null, kanjidicPath: null, kanjivgPath: null, clear: true };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--out") args.outPath = argv[++i];
     else if (arg === "--jmdict") args.jmdictPath = argv[++i];
     else if (arg === "--kanjidic") args.kanjidicPath = argv[++i];
+    else if (arg === "--kanjivg") args.kanjivgPath = argv[++i];
     else if (arg === "--no-clear") args.clear = false;
     else if (arg === "--help" || arg === "-h") args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
