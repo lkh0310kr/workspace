@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import "../assets/japanese-fonts.css";
 import { ScrollRegion } from "../components/ScrollRegion";
 import type { PaneTabItem } from "../layout/paneTypes";
 import { DictionarySetup } from "./japanese/DictionarySetup";

@@ -34,6 +34,9 @@
      cover Windows + Linux/WSL so Korean is not tofu under DejaVu/monospace. */
   --font-ui: ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic",
     "Noto Sans CJK KR", "Noto Sans KR", sans-serif;
+  /* Japanese pane: bundled Noto Sans JP first, then platform fonts; Hangul still resolves via --font-ui. */
+  --font-japanese: "Noto Sans JP Variable", "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Yu Gothic UI", "Yu Gothic", "Meiryo", "Noto Sans CJK JP", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", Consolas, "D2Coding",
     "NanumGothicCoding", "Noto Sans Mono CJK KR", "Apple SD Gothic Neo", "Malgun Gothic", monospace;
   --chrome-h: 34px;
@@ -1428,7 +1431,13 @@ iframe.browser-content-slot {
   min-height: 0;
   background: var(--bg-base);
   color: var(--text);
-  font-family: var(--font-ui);
+  font-family: var(--font-japanese), var(--font-ui);
+}
+
+.japanese-pane button,
+.japanese-pane input,
+.japanese-pane textarea {
+  font-family: inherit;
 }
 
 .japanese-pane-mode-tabs {

@@ -39,6 +39,7 @@
     "@codemirror/view": "^6.43.9",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@fontsource-variable/noto-sans-jp": "^5.3.0",
     "@lezer/highlight": "^1.2.3",
     "@lezer/markdown": "^1.7.2",
     "@types/better-sqlite3": "^7.6.13",
