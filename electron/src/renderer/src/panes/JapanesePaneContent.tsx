@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ScrollRegion } from "../components/ScrollRegion";
 import type { PaneTabItem } from "../layout/paneTypes";
-import { countDueJapaneseSrsCards } from "../electron";
 import { DictionarySetup } from "./japanese/DictionarySetup";
 import { HandwritingCanvas } from "./japanese/HandwritingCanvas";
+import { JapaneseDetailNav } from "./japanese/JapaneseDetailNav";
 import { JapaneseSearchBar } from "./japanese/JapaneseSearchBar";
 import { KanjiDetail } from "./japanese/KanjiDetail";
 import { LexemeDetail } from "./japanese/LexemeDetail";
-import { SrsReviewPanel } from "./japanese/SrsReviewPanel";
 import { useJapaneseSearch } from "./japanese/SearchBar";
 import { useJapaneseDb } from "./japanese/useJapaneseDb";
 
@@ -14,7 +14,7 @@ interface Props {
   item: PaneTabItem;
 }
 
-type PaneMode = "search" | "handwriting" | "review" | "setup";
+type PaneMode = "search" | "handwriting" | "setup";
 
 type DetailView =
   | { kind: "none" }
@@ -23,10 +23,10 @@ type DetailView =
 
 export function JapanesePaneContent({ item: _item }: Props) {
   const { status, reload, reloading } = useJapaneseDb();
-  const [dueCount, setDueCount] = useState(0);
   const [mode, setMode] = useState<PaneMode>("search");
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<DetailView>({ kind: "none" });
+  const [returnDetail, setReturnDetail] = useState<DetailView | null>(null);
   const [hitIndex, setHitIndex] = useState(0);
   const { hits, loading, error } = useJapaneseSearch(query);
   const wasReadyRef = useRef(status?.ready ?? false);
@@ -41,42 +41,61 @@ export function JapanesePaneContent({ item: _item }: Props) {
   }, [status?.ready]);
 
   useEffect(() => {
-    if (!status?.ready) {
-      setDueCount(0);
-      return;
-    }
-    countDueJapaneseSrsCards()
-      .then(setDueCount)
-      .catch(() => setDueCount(0));
-  }, [status?.ready, mode]);
-
-  useEffect(() => {
     if (mode !== "search") return;
+    if (detail.kind === "kanji") return;
+
     if (!query.trim() || hitList.length === 0) {
       setHitIndex(0);
       if (detail.kind === "lexeme") setDetail({ kind: "none" });
       return;
     }
-    const currentIndex = hitList.findIndex(
-      (hit) => detail.kind === "lexeme" && hit.entSeq === detail.entSeq,
-    );
+
+    if (detail.kind === "none") {
+      setHitIndex(0);
+      setDetail({ kind: "lexeme", entSeq: hitList[0].entSeq });
+      return;
+    }
+
+    const currentIndex = hitList.findIndex((hit) => hit.entSeq === detail.entSeq);
     if (currentIndex < 0) {
       setHitIndex(0);
       setDetail({ kind: "lexeme", entSeq: hitList[0].entSeq });
       return;
     }
     setHitIndex(currentIndex);
-  }, [hitList, query, mode, detail.kind, detail.kind === "lexeme" ? detail.entSeq : null]);
+  }, [hitList, query, mode, detail]);
 
   const selectHit = useCallback(
     (index: number) => {
       const hit = hitList[index];
       if (!hit) return;
       setHitIndex(index);
+      setReturnDetail(null);
       setDetail({ kind: "lexeme", entSeq: hit.entSeq });
     },
     [hitList],
   );
+
+  const openKanji = useCallback(
+    (literal: string) => {
+      if (detail.kind === "lexeme") {
+        setReturnDetail(detail);
+      }
+      setDetail({ kind: "kanji", literal });
+    },
+    [detail],
+  );
+
+  const openLexeme = useCallback((entSeq: number) => {
+    setReturnDetail(null);
+    setDetail({ kind: "lexeme", entSeq });
+  }, []);
+
+  const goBack = useCallback(() => {
+    if (!returnDetail) return;
+    setDetail(returnDetail);
+    setReturnDetail(null);
+  }, [returnDetail]);
 
   const handleSearchKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -116,14 +135,6 @@ export function JapanesePaneContent({ item: _item }: Props) {
         </button>
         <button
           type="button"
-          className={`japanese-mode-tab${mode === "review" ? " is-active" : ""}`}
-          onClick={() => setMode("review")}
-        >
-          복습
-          {dueCount > 0 ? <span className="japanese-mode-tab-badge">{dueCount}</span> : null}
-        </button>
-        <button
-          type="button"
           className={`japanese-mode-tab${mode === "setup" ? " is-active" : ""}`}
           onClick={() => setMode("setup")}
         >
@@ -153,22 +164,14 @@ export function JapanesePaneContent({ item: _item }: Props) {
       ) : null}
 
       {mode === "setup" || showSetup ? (
-        <div className="japanese-pane-body">
+        <ScrollRegion className="japanese-pane-body">
           <DictionarySetup />
-        </div>
+        </ScrollRegion>
       ) : (
         <div className="japanese-pane-split">
-          <div className="japanese-pane-results">
+          <ScrollRegion className="japanese-pane-results">
             {mode === "handwriting" ? (
-              <HandwritingCanvas onSelectKanji={(literal) => setDetail({ kind: "kanji", literal })} />
-            ) : null}
-            {mode === "review" ? (
-              <SrsReviewPanel
-                onOpenLexeme={(entSeq) => setDetail({ kind: "lexeme", entSeq })}
-                onQueueChange={() => {
-                  void countDueJapaneseSrsCards().then(setDueCount).catch(() => setDueCount(0));
-                }}
-              />
+              <HandwritingCanvas onSelectKanji={openKanji} />
             ) : null}
             {mode === "search" && loading ? (
               <div className="japanese-pane-detail-empty">검색 중…</div>
@@ -210,19 +213,16 @@ export function JapanesePaneContent({ item: _item }: Props) {
                 ))}
               </ul>
             ) : null}
-          </div>
-          <div className="japanese-pane-detail">
+          </ScrollRegion>
+          <ScrollRegion className="japanese-pane-detail">
+            {detail.kind === "kanji" ? (
+              <JapaneseDetailNav label={`한자 ${detail.literal}`} onBack={returnDetail ? goBack : undefined} />
+            ) : null}
             {detail.kind === "lexeme" ? (
-              <LexemeDetail
-                entSeq={detail.entSeq}
-                onKanjiClick={(literal) => setDetail({ kind: "kanji", literal })}
-              />
+              <LexemeDetail entSeq={detail.entSeq} onKanjiClick={openKanji} />
             ) : null}
             {detail.kind === "kanji" ? (
-              <KanjiDetail
-                literal={detail.literal}
-                onLexemeClick={(entSeq) => setDetail({ kind: "lexeme", entSeq })}
-              />
+              <KanjiDetail literal={detail.literal} onLexemeClick={openLexeme} />
             ) : null}
             {detail.kind === "none" && mode === "search" && query.trim() && !loading ? (
               <div className="japanese-pane-detail-empty">항목을 선택하세요.</div>
@@ -230,10 +230,7 @@ export function JapanesePaneContent({ item: _item }: Props) {
             {detail.kind === "none" && mode === "handwriting" ? (
               <div className="japanese-pane-detail-empty">필기로 찾은 한자를 선택하세요.</div>
             ) : null}
-            {detail.kind === "none" && mode === "review" ? (
-              <div className="japanese-pane-detail-empty">복습 카드를 선택하세요.</div>
-            ) : null}
-          </div>
+          </ScrollRegion>
         </div>
       )}
     </div>

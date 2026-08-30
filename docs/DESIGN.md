@@ -430,3 +430,5 @@ CSS custom properties in `electron/src/renderer/src/assets/styles.css`:
 | `--accent` | Focus, links, active indicators |
 | `--font-ui` | UI chrome |
 | `--font-mono` | Editor, terminal |
+| `--scroll-size` / `--scroll-thumb` | Unified scrollbars (`.scroll-region`) |
+| `.ui-btn` | Shared button chrome |
