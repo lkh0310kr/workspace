@@ -90,6 +90,56 @@ function searchExact(db: NonNullable<ReturnType<typeof getJapaneseDb>>, query: s
   return rows.map((row) => row.ent_seq);
 }
 
+const SINGLE_KANJI_RE = /^\p{Script=Han}$/u;
+
+/** Pick a short preview gloss; skip ambiguous KRDICT matches and single-kanji entries. */
+function resolveGlossPreview(
+  db: NonNullable<ReturnType<typeof getJapaneseDb>>,
+  entSeq: number,
+  primaryWriting: string | null,
+): string | null {
+  const skipKorean = primaryWriting != null && SINGLE_KANJI_RE.test(primaryWriting);
+
+  const enRow = db
+    .prepare(
+      `SELECT g.text
+       FROM gloss g
+       JOIN sense s ON g.sense_id = s.id
+       WHERE s.ent_seq = ? AND s.sense_no = 1 AND g.lang = 'en'
+       ORDER BY g.id
+       LIMIT 1`,
+    )
+    .get(entSeq) as { text: string } | undefined;
+
+  if (skipKorean) return enRow?.text ?? null;
+
+  const koRows = db
+    .prepare(
+      `SELECT DISTINCT g.text
+       FROM gloss g
+       JOIN sense s ON g.sense_id = s.id
+       WHERE s.ent_seq = ? AND s.sense_no = 1 AND g.lang = 'ko'
+       ORDER BY g.text`,
+    )
+    .all(entSeq) as { text: string }[];
+
+  if (koRows.length === 1) return koRows[0].text;
+  if (enRow) return enRow.text;
+  if (koRows.length > 0) return koRows[0].text;
+
+  const fallback = db
+    .prepare(
+      `SELECT g.text
+       FROM gloss g
+       JOIN sense s ON g.sense_id = s.id
+       WHERE s.ent_seq = ?
+       ORDER BY CASE g.lang WHEN 'en' THEN 0 WHEN 'ko' THEN 1 ELSE 2 END, s.sense_no, g.id
+       LIMIT 1`,
+    )
+    .get(entSeq) as { text: string } | undefined;
+  return fallback?.text ?? null;
+}
+
 function summarizeLexeme(db: NonNullable<ReturnType<typeof getJapaneseDb>>, entSeq: number): JapaneseLexemeSummary {
   const writing = db
     .prepare("SELECT orthography FROM writing WHERE ent_seq = ? ORDER BY id LIMIT 1")
@@ -97,22 +147,12 @@ function summarizeLexeme(db: NonNullable<ReturnType<typeof getJapaneseDb>>, entS
   const reading = db
     .prepare("SELECT kana FROM reading WHERE ent_seq = ? ORDER BY id LIMIT 1")
     .get(entSeq) as { kana: string } | undefined;
-  const gloss = db
-    .prepare(
-      `SELECT g.text
-       FROM gloss g
-       JOIN sense s ON g.sense_id = s.id
-       WHERE s.ent_seq = ?
-       ORDER BY CASE g.lang WHEN 'ko' THEN 0 WHEN 'en' THEN 1 ELSE 2 END, s.sense_no, g.id
-       LIMIT 1`,
-    )
-    .get(entSeq) as { text: string } | undefined;
 
   return {
     entSeq,
     primaryWriting: writing?.orthography ?? null,
     primaryReading: reading?.kana ?? null,
-    glossPreview: gloss?.text ?? null,
+    glossPreview: resolveGlossPreview(db, entSeq, writing?.orthography ?? null),
   };
 }
 
@@ -137,27 +177,11 @@ function summarizeLexemeBatch(
     if (!readingBySeq.has(row.ent_seq)) readingBySeq.set(row.ent_seq, row.kana);
   }
 
-  const glossBySeq = new Map<number, string>();
-  for (const row of db
-    .prepare(
-      `SELECT s.ent_seq, g.text
-       FROM gloss g
-       JOIN sense s ON g.sense_id = s.id
-       WHERE s.ent_seq IN (${placeholders})
-       ORDER BY s.ent_seq,
-         CASE g.lang WHEN 'ko' THEN 0 WHEN 'en' THEN 1 ELSE 2 END,
-         s.sense_no,
-         g.id`,
-    )
-    .all(...entSeqs) as { ent_seq: number; text: string }[]) {
-    if (!glossBySeq.has(row.ent_seq)) glossBySeq.set(row.ent_seq, row.text);
-  }
-
   return entSeqs.map((entSeq) => ({
     entSeq,
     primaryWriting: writingBySeq.get(entSeq) ?? null,
     primaryReading: readingBySeq.get(entSeq) ?? null,
-    glossPreview: glossBySeq.get(entSeq) ?? null,
+    glossPreview: resolveGlossPreview(db, entSeq, writingBySeq.get(entSeq) ?? null),
   }));
 }
 

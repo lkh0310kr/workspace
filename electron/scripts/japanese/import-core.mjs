@@ -409,13 +409,41 @@ export function parseJapaneseLemmaTokens(lemmaText) {
         .split(/[・、]/)
         .map((part) => part.trim())
         .filter(Boolean);
-      add(null, reading);
-      for (const writing of writings) add(writing, reading);
+      if (writings.length === 0) {
+        add(null, reading);
+      } else {
+        for (const writing of writings) add(writing, reading);
+      }
     } else {
       add(token, token);
     }
   }
   return results;
+}
+
+/** Match JMdict entries for a KRDICT Japanese lemma token. */
+export function lookupKrdictEntSeqs(database, token) {
+  const findByOrthography = database.prepare(`SELECT DISTINCT ent_seq FROM writing WHERE orthography = ?`);
+  const findByReading = database.prepare(`SELECT DISTINCT ent_seq FROM reading WHERE kana = ?`);
+  const findByBoth = database.prepare(
+    `SELECT DISTINCT w.ent_seq
+     FROM writing w
+     JOIN reading r ON r.ent_seq = w.ent_seq
+     WHERE w.orthography = ? AND r.kana = ?`,
+  );
+
+  const writing = token.writing?.trim() || null;
+  const reading = token.reading?.trim() || null;
+  if (writing && reading) {
+    return findByBoth.all(writing, reading).map((row) => row.ent_seq);
+  }
+  const entSeqs = new Set();
+  if (writing) {
+    for (const row of findByOrthography.all(writing)) entSeqs.add(row.ent_seq);
+  } else if (reading) {
+    for (const row of findByReading.all(reading)) entSeqs.add(row.ent_seq);
+  }
+  return [...entSeqs];
 }
 
 function listNikJsonFiles(path) {
@@ -433,11 +461,12 @@ function importKrdictNikJson(database, pathOrDir) {
   const files = listNikJsonFiles(pathOrDir);
   if (files.length === 0) throw new Error(`No JSON files found in KRDICT path: ${pathOrDir}`);
 
-  const findByOrthography = database.prepare(`SELECT DISTINCT ent_seq FROM writing WHERE orthography = ?`);
-  const findByReading = database.prepare(`SELECT DISTINCT ent_seq FROM reading WHERE kana = ?`);
-  const firstSense = database.prepare(`SELECT id FROM sense WHERE ent_seq = ? ORDER BY sense_no LIMIT 1`);
+  const senseByNo = database.prepare(`SELECT id FROM sense WHERE ent_seq = ? AND sense_no = ?`);
   const insertGloss = database.prepare(
     `INSERT INTO gloss (sense_id, lang, text, source) VALUES (?, 'ko', ?, 'krdict')`,
+  );
+  const hasGloss = database.prepare(
+    `SELECT 1 AS ok FROM gloss WHERE sense_id = ? AND lang = 'ko' AND text = ? LIMIT 1`,
   );
   const insertProvenance = database.prepare(
     `INSERT INTO field_provenance (entity_type, entity_id, field_name, source, external_id, updated_at)
@@ -446,35 +475,26 @@ function importKrdictNikJson(database, pathOrDir) {
   const now = new Date().toISOString();
   let glossCount = 0;
 
-  const lookupEntSeqs = (token) => {
-    const entSeqs = new Set();
-    if (token.writing) {
-      for (const row of findByOrthography.all(token.writing)) entSeqs.add(row.ent_seq);
-    }
-    if (token.reading) {
-      for (const row of findByReading.all(token.reading)) entSeqs.add(row.ent_seq);
-    }
-    return [...entSeqs];
-  };
-
   const tx = database.transaction(() => {
     for (const filePath of files) {
       const parsed = JSON.parse(readFileSync(filePath, "utf8"));
       const entries = asArray(parsed.LexicalResource?.Lexicon?.LexicalEntry);
       for (const entry of entries) {
         const targetCode = textOf(entry.val);
-        for (const sense of asArray(entry.Sense)) {
+        for (const [senseIndex, sense] of asArray(entry.Sense).entries()) {
           const definition = asFeatList(sense?.feat).find((feat) => feat.att === "definition")?.val ?? "";
           if (!definition) continue;
+          const senseNo = senseIndex + 1;
 
           for (const equivalent of asArray(sense?.Equivalent)) {
             const feats = asFeatList(equivalent?.feat);
             if (feats.find((feat) => feat.att === "language")?.val !== "일본어") continue;
             const lemma = feats.find((feat) => feat.att === "lemma")?.val ?? "";
             for (const token of parseJapaneseLemmaTokens(lemma)) {
-              for (const entSeq of lookupEntSeqs(token)) {
-                const senseRow = firstSense.get(entSeq);
+              for (const entSeq of lookupKrdictEntSeqs(database, token)) {
+                const senseRow = senseByNo.get(entSeq, senseNo);
                 if (!senseRow) continue;
+                if (hasGloss.get(senseRow.id, definition)) continue;
                 const result = insertGloss.run(senseRow.id, definition);
                 insertProvenance.run(String(result.lastInsertRowid), targetCode || null, now);
                 glossCount += 1;
@@ -495,9 +515,12 @@ async function importKrdictXml(database, xmlPath) {
   const items = asArray(parsed.channel?.item);
   const findByOrthography = database.prepare(`SELECT DISTINCT ent_seq FROM writing WHERE orthography = ?`);
   const findByReading = database.prepare(`SELECT DISTINCT ent_seq FROM reading WHERE kana = ?`);
-  const firstSense = database.prepare(`SELECT id FROM sense WHERE ent_seq = ? ORDER BY sense_no LIMIT 1`);
+  const senseByNo = database.prepare(`SELECT id FROM sense WHERE ent_seq = ? AND sense_no = ?`);
   const insertGloss = database.prepare(
     `INSERT INTO gloss (sense_id, lang, text, source) VALUES (?, 'ko', ?, 'krdict')`,
+  );
+  const hasGloss = database.prepare(
+    `SELECT 1 AS ok FROM gloss WHERE sense_id = ? AND lang = 'ko' AND text = ? LIMIT 1`,
   );
   const insertProvenance = database.prepare(
     `INSERT INTO field_provenance (entity_type, entity_id, field_name, source, external_id, updated_at)
@@ -524,9 +547,10 @@ async function importKrdictXml(database, xmlPath) {
       ];
       const uniqueEntSeqs = [...new Set(entSeqs)];
       for (const entSeq of uniqueEntSeqs) {
-        const sense = firstSense.get(entSeq);
+        const sense = senseByNo.get(entSeq, 1);
         if (!sense) continue;
         for (const translation of translations) {
+          if (hasGloss.get(sense.id, translation.text)) continue;
           const result = insertGloss.run(sense.id, translation.text);
           insertProvenance.run(String(result.lastInsertRowid), targetCode || null, now);
           glossCount += 1;

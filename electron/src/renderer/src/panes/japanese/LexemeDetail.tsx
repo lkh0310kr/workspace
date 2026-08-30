@@ -113,9 +113,13 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
           <h3 className="japanese-section-title">뜻 (한국어)</h3>
           <ol className="japanese-sense-list">
             {(detail.senses ?? []).map((sense) => {
-              const korean = (sense.glosses ?? [])
-                .filter((gloss) => gloss.lang === "ko")
-                .map((gloss) => gloss.text);
+              const korean = [
+                ...new Set(
+                  (sense.glosses ?? [])
+                    .filter((gloss) => gloss.lang === "ko")
+                    .map((gloss) => gloss.text),
+                ),
+              ];
               if (korean.length === 0) return null;
               return (
                 <li key={`ko-${sense.senseNo}`} className="japanese-sense-item">

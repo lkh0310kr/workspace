@@ -53,6 +53,10 @@ describe("japanese dictionary service", () => {
     const result = searchJapaneseDictionary("食べる");
     expect(result.hits[0]?.entSeq).toBe(1000000);
     expect(result.hits[0]?.primaryWriting).toBe("食べる");
+    expect(result.hits[0]?.glossPreview).toBe("먹다");
+
+    const hon = searchJapaneseDictionary("本");
+    expect(hon.hits[0]?.glossPreview).toBe("book");
 
     const japan = searchJapaneseDictionary("日本");
     expect(japan.hits[0]?.entSeq).toBe(1000001);
