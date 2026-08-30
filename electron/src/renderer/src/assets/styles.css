@@ -1542,6 +1542,34 @@ iframe.browser-content-slot {
   font-size: 12px;
 }
 
+.japanese-example-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.japanese-example-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.japanese-example-ja {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.japanese-example-en,
+.japanese-example-ko {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.japanese-example-ko {
+  color: var(--text-faint);
+}
+
 /* A <webview> guest's own content went fullscreen — see the matching
    .titlebar rule above; hides just the nav+address row, not
    .browser-pane-chrome as a whole (that also wraps the webview content

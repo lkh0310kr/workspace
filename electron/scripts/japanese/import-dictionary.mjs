@@ -11,6 +11,10 @@ Options:
   --jmdict <path>      JMdict XML file
   --kanjidic <path>    KANJIDIC2 XML file
   --kanjivg <path>     KanjiVG directory or single .svg file
+  --krdict <path>      KRDICT XML file
+  --tatoeba-sentences <path>  Tatoeba sentences TSV
+  --tatoeba-links <path>      Tatoeba links TSV (from_id, to_id)
+  --tatoeba-lexeme-links <path>  Curated ent_seq to Tatoeba jpn id TSV
   --no-clear           Append without clearing existing rows
   -h, --help           Show this help
 
@@ -26,7 +30,7 @@ Example:
 try {
   const result = await importDictionary(args);
   console.log(
-    `Imported ${result.jmdictCount} JMdict entries, ${result.kanjidicCount} kanji, and ${result.kanjivgCount.strokeCount} strokes from ${result.kanjivgCount.fileCount} KanjiVG files.`,
+    `Imported ${result.jmdictCount} JMdict entries, ${result.kanjidicCount} kanji, ${result.kanjivgCount.strokeCount} strokes, ${result.krdictCount} KR glosses, and ${result.tatoebaCount} examples.`,
   );
   console.log(`Database written to ${result.outPath}`);
 } catch (err) {

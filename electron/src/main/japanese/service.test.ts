@@ -27,6 +27,10 @@ describe("japanese dictionary service", () => {
       jmdictPath: join(fixturesDir, "jmdict-sample.xml"),
       kanjidicPath: join(fixturesDir, "kanjidic-sample.xml"),
       kanjivgPath: join(fixturesDir, "kanjivg"),
+      krdictPath: join(fixturesDir, "krdict-sample.xml"),
+      tatoebaSentencesPath: join(fixturesDir, "tatoeba-sentences.tsv"),
+      tatoebaLinksPath: join(fixturesDir, "tatoeba-links.tsv"),
+      tatoebaLexemeLinksPath: join(fixturesDir, "tatoeba-lexeme-links.tsv"),
     });
     const { openJapaneseDb, initJapaneseSchema } = await import("./db");
     const db = openJapaneseDb(outPath);
@@ -54,6 +58,11 @@ describe("japanese dictionary service", () => {
     const lexeme = getJapaneseLexeme(1000001);
     expect(lexeme?.writings[0]?.orthography).toBe("日本");
     expect(lexeme?.readings).toHaveLength(2);
+    expect(lexeme?.senses[0]?.glosses.some((gloss) => gloss.lang === "ko")).toBe(true);
+    expect(lexeme?.examples.length).toBeGreaterThan(0);
+
+    const taberu = getJapaneseLexeme(1000000);
+    expect(taberu?.examples[0]?.textJa).toContain("食べる");
 
     const kanji = getJapaneseKanji("食");
     expect(kanji?.strokes).toBe(9);

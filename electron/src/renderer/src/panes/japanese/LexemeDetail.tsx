@@ -77,18 +77,51 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
       ) : null}
 
       <section className="japanese-lexeme-section">
-        <h3 className="japanese-section-title">Meanings</h3>
+        <h3 className="japanese-section-title">Meanings (English)</h3>
         <ol className="japanese-sense-list">
-          {detail.senses.map((sense) => (
-            <li key={sense.senseNo} className="japanese-sense-item">
-              {sense.glosses
-                .filter((gloss) => gloss.lang === "en")
-                .map((gloss) => gloss.text)
-                .join("; ") || sense.glosses.map((gloss) => gloss.text).join("; ")}
-            </li>
-          ))}
+          {detail.senses.map((sense) => {
+            const english = sense.glosses.filter((gloss) => gloss.lang === "en").map((gloss) => gloss.text);
+            if (english.length === 0) return null;
+            return (
+              <li key={sense.senseNo} className="japanese-sense-item">
+                {english.join("; ")}
+              </li>
+            );
+          })}
         </ol>
       </section>
+
+      {detail.senses.some((sense) => sense.glosses.some((gloss) => gloss.lang === "ko")) ? (
+        <section className="japanese-lexeme-section">
+          <h3 className="japanese-section-title">Meanings (Korean)</h3>
+          <ol className="japanese-sense-list">
+            {detail.senses.map((sense) => {
+              const korean = sense.glosses.filter((gloss) => gloss.lang === "ko").map((gloss) => gloss.text);
+              if (korean.length === 0) return null;
+              return (
+                <li key={`ko-${sense.senseNo}`} className="japanese-sense-item">
+                  {korean.join("; ")}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ) : null}
+
+      {detail.examples.length > 0 ? (
+        <section className="japanese-lexeme-section">
+          <h3 className="japanese-section-title">Examples</h3>
+          <ul className="japanese-example-list">
+            {detail.examples.map((example) => (
+              <li key={example.id} className="japanese-example-item">
+                <div className="japanese-example-ja">{example.textJa}</div>
+                {example.textEn ? <div className="japanese-example-en">{example.textEn}</div> : null}
+                {example.textKo ? <div className="japanese-example-ko">{example.textKo}</div> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

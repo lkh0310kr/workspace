@@ -38,6 +38,9 @@ export function initSchema(database) {
 export function clearDictionaryData(database) {
   database.exec(`
     DELETE FROM lexeme_fts;
+    DELETE FROM lexeme_example;
+    DELETE FROM example;
+    DELETE FROM field_provenance;
     DELETE FROM gloss;
     DELETE FROM sense;
     DELETE FROM reading;
@@ -217,6 +220,133 @@ export function importKanjivg(database, kanjivgPath) {
   return { fileCount: files.length, strokeCount };
 }
 
+function parseTsv(content) {
+  const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const headers = lines[0].split("\t");
+  const rows = lines.slice(1).map((line) => {
+    const cells = line.split("\t");
+    const row = {};
+    for (let i = 0; i < headers.length; i += 1) {
+      row[headers[i]] = cells[i] ?? "";
+    }
+    return row;
+  });
+  return { headers, rows };
+}
+
+export async function importKrdict(database, xmlPath) {
+  const xml = readFileSync(xmlPath, "utf8");
+  const parsed = await parseStringPromise(xml, { explicitArray: true, trim: true });
+  const items = asArray(parsed.channel?.item);
+  const findByOrthography = database.prepare(`SELECT DISTINCT ent_seq FROM writing WHERE orthography = ?`);
+  const findByReading = database.prepare(`SELECT DISTINCT ent_seq FROM reading WHERE kana = ?`);
+  const firstSense = database.prepare(`SELECT id FROM sense WHERE ent_seq = ? ORDER BY sense_no LIMIT 1`);
+  const insertGloss = database.prepare(
+    `INSERT INTO gloss (sense_id, lang, text, source) VALUES (?, 'ko', ?, 'krdict')`,
+  );
+  const insertProvenance = database.prepare(
+    `INSERT INTO field_provenance (entity_type, entity_id, field_name, source, external_id, updated_at)
+     VALUES ('gloss', ?, 'text', 'krdict', ?, ?)`,
+  );
+  const now = new Date().toISOString();
+  let glossCount = 0;
+
+  const tx = database.transaction(() => {
+    for (const item of items) {
+      const word = textOf(item.origin_word?.[0]);
+      const targetCode = textOf(item.target_code?.[0]);
+      const translations = asArray(item.translation)
+        .map((entry) => ({
+          lang: entry.$?.language ?? "ko",
+          text: textOf(entry),
+        }))
+        .filter((entry) => entry.lang === "ko" && entry.text);
+      if (!word || translations.length === 0) continue;
+
+      const entSeqs = [
+        ...findByOrthography.all(word).map((row) => row.ent_seq),
+        ...findByReading.all(word).map((row) => row.ent_seq),
+      ];
+      const uniqueEntSeqs = [...new Set(entSeqs)];
+      for (const entSeq of uniqueEntSeqs) {
+        const sense = firstSense.get(entSeq);
+        if (!sense) continue;
+        for (const translation of translations) {
+          const result = insertGloss.run(sense.id, translation.text);
+          insertProvenance.run(String(result.lastInsertRowid), targetCode || null, now);
+          glossCount += 1;
+        }
+      }
+    }
+  });
+  tx();
+  return glossCount;
+}
+
+export function importTatoeba(database, sentencesPath, linksPath, lexemeLinksPath) {
+  const sentences = parseTsv(readFileSync(sentencesPath, "utf8"));
+  const links = parseTsv(readFileSync(linksPath, "utf8"));
+  const lexemeLinks = lexemeLinksPath && existsSync(lexemeLinksPath)
+    ? parseTsv(readFileSync(lexemeLinksPath, "utf8"))
+    : { rows: [] };
+
+  const sentenceMap = new Map();
+  for (const row of sentences.rows) {
+    sentenceMap.set(Number(row.id), { lang: row.lang, text: row.text });
+  }
+
+  const adjacency = new Map();
+  for (const row of links.rows) {
+    const from = Number(row.from_id ?? row.jpn_id);
+    const to = Number(row.to_id ?? row.eng_id);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
+    if (!adjacency.has(from)) adjacency.set(from, new Set());
+    if (!adjacency.has(to)) adjacency.set(to, new Set());
+    adjacency.get(from).add(to);
+    adjacency.get(to).add(from);
+  }
+
+  const insertExample = database.prepare(
+    `INSERT INTO example (tatoeba_id, text_ja, text_en, text_ko)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(tatoeba_id) DO UPDATE SET
+       text_ja = excluded.text_ja,
+       text_en = excluded.text_en,
+       text_ko = excluded.text_ko`,
+  );
+  const linkLexeme = database.prepare(
+    `INSERT OR IGNORE INTO lexeme_example (ent_seq, example_id) VALUES (?, ?)`,
+  );
+
+  let exampleCount = 0;
+  const tx = database.transaction(() => {
+    for (const row of lexemeLinks.rows) {
+      const entSeq = Number(row.ent_seq);
+      const jpnId = Number(row.tatoeba_jpn_id);
+      const jpn = sentenceMap.get(jpnId);
+      if (!Number.isFinite(entSeq) || !jpn || jpn.lang !== "jpn") continue;
+
+      const linkedIds = adjacency.get(jpnId) ?? new Set();
+      let textEn = null;
+      let textKo = null;
+      for (const linkedId of linkedIds) {
+        const linked = sentenceMap.get(linkedId);
+        if (!linked) continue;
+        if (linked.lang === "eng" && !textEn) textEn = linked.text;
+        if (linked.lang === "kor" && !textKo) textKo = linked.text;
+      }
+
+      const result = insertExample.run(jpnId, jpn.text, textEn, textKo);
+      const exampleId = result.lastInsertRowid;
+      linkLexeme.run(entSeq, exampleId);
+      exampleCount += 1;
+    }
+  });
+  tx();
+  return exampleCount;
+}
+
 export function rebuildLexemeFts(database) {
   database.exec("DELETE FROM lexeme_fts");
   database.exec(`
@@ -243,14 +373,31 @@ export function setMeta(database, key, value) {
     .run(key, value);
 }
 
-export async function importDictionary({ outPath, jmdictPath, kanjidicPath, kanjivgPath, clear = true }) {
+export async function importDictionary({
+  outPath,
+  jmdictPath,
+  kanjidicPath,
+  kanjivgPath,
+  krdictPath,
+  tatoebaSentencesPath,
+  tatoebaLinksPath,
+  tatoebaLexemeLinksPath,
+  clear = true,
+}) {
   if (!outPath) throw new Error("--out is required");
-  if (!jmdictPath && !kanjidicPath && !kanjivgPath) {
-    throw new Error("At least one of --jmdict, --kanjidic, or --kanjivg is required");
+  if (!jmdictPath && !kanjidicPath && !kanjivgPath && !krdictPath && !tatoebaSentencesPath) {
+    throw new Error("At least one import source is required");
   }
   if (jmdictPath && !existsSync(jmdictPath)) throw new Error(`JMdict file not found: ${jmdictPath}`);
   if (kanjidicPath && !existsSync(kanjidicPath)) throw new Error(`KANJIDIC file not found: ${kanjidicPath}`);
   if (kanjivgPath && !existsSync(kanjivgPath)) throw new Error(`KanjiVG path not found: ${kanjivgPath}`);
+  if (krdictPath && !existsSync(krdictPath)) throw new Error(`KRDICT file not found: ${krdictPath}`);
+  if (tatoebaSentencesPath && !existsSync(tatoebaSentencesPath)) {
+    throw new Error(`Tatoeba sentences file not found: ${tatoebaSentencesPath}`);
+  }
+  if (tatoebaLinksPath && !existsSync(tatoebaLinksPath)) {
+    throw new Error(`Tatoeba links file not found: ${tatoebaLinksPath}`);
+  }
 
   const database = openDictionaryDb(resolve(outPath));
   initSchema(database);
@@ -259,9 +406,15 @@ export async function importDictionary({ outPath, jmdictPath, kanjidicPath, kanj
   let jmdictCount = 0;
   let kanjidicCount = 0;
   let kanjivgCount = { fileCount: 0, strokeCount: 0 };
+  let krdictCount = 0;
+  let tatoebaCount = 0;
   if (jmdictPath) jmdictCount = await importJmdict(database, jmdictPath);
   if (kanjidicPath) kanjidicCount = await importKanjidic(database, kanjidicPath);
   if (kanjivgPath) kanjivgCount = importKanjivg(database, kanjivgPath);
+  if (krdictPath) krdictCount = await importKrdict(database, krdictPath);
+  if (tatoebaSentencesPath && tatoebaLinksPath) {
+    tatoebaCount = importTatoeba(database, tatoebaSentencesPath, tatoebaLinksPath, tatoebaLexemeLinksPath);
+  }
   rebuildLexemeFts(database);
 
   setMeta(database, "schema_version", "1");
@@ -269,19 +422,42 @@ export async function importDictionary({ outPath, jmdictPath, kanjidicPath, kanj
   if (jmdictPath) setMeta(database, "jmdict_path", resolve(jmdictPath));
   if (kanjidicPath) setMeta(database, "kanjidic_path", resolve(kanjidicPath));
   if (kanjivgPath) setMeta(database, "kanjivg_path", resolve(kanjivgPath));
+  if (krdictPath) setMeta(database, "krdict_path", resolve(krdictPath));
+  if (tatoebaSentencesPath) setMeta(database, "tatoeba_sentences_path", resolve(tatoebaSentencesPath));
 
   database.close();
-  return { jmdictCount, kanjidicCount, kanjivgCount, outPath: resolve(outPath) };
+  return {
+    jmdictCount,
+    kanjidicCount,
+    kanjivgCount,
+    krdictCount,
+    tatoebaCount,
+    outPath: resolve(outPath),
+  };
 }
 
 export function parseCliArgs(argv) {
-  const args = { outPath: null, jmdictPath: null, kanjidicPath: null, kanjivgPath: null, clear: true };
+  const args = {
+    outPath: null,
+    jmdictPath: null,
+    kanjidicPath: null,
+    kanjivgPath: null,
+    krdictPath: null,
+    tatoebaSentencesPath: null,
+    tatoebaLinksPath: null,
+    tatoebaLexemeLinksPath: null,
+    clear: true,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--out") args.outPath = argv[++i];
     else if (arg === "--jmdict") args.jmdictPath = argv[++i];
     else if (arg === "--kanjidic") args.kanjidicPath = argv[++i];
     else if (arg === "--kanjivg") args.kanjivgPath = argv[++i];
+    else if (arg === "--krdict") args.krdictPath = argv[++i];
+    else if (arg === "--tatoeba-sentences") args.tatoebaSentencesPath = argv[++i];
+    else if (arg === "--tatoeba-links") args.tatoebaLinksPath = argv[++i];
+    else if (arg === "--tatoeba-lexeme-links") args.tatoebaLexemeLinksPath = argv[++i];
     else if (arg === "--no-clear") args.clear = false;
     else if (arg === "--help" || arg === "-h") args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);

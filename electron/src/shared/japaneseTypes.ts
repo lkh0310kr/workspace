@@ -42,6 +42,7 @@ export interface JapaneseLexemeDetail {
   writings: JapaneseWriting[];
   readings: JapaneseReading[];
   senses: JapaneseSense[];
+  examples: JapaneseExample[];
 }
 
 export interface JapaneseKanjiReading {

@@ -71,6 +71,32 @@ CREATE TABLE IF NOT EXISTS kanji_stroke (
   PRIMARY KEY (literal, stroke_order)
 );
 
+CREATE TABLE IF NOT EXISTS field_provenance (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  field_name TEXT NOT NULL,
+  source TEXT NOT NULL,
+  external_id TEXT,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_field_provenance_entity ON field_provenance(entity_type, entity_id);
+
+CREATE TABLE IF NOT EXISTS example (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tatoeba_id INTEGER UNIQUE,
+  text_ja TEXT NOT NULL,
+  text_en TEXT,
+  text_ko TEXT
+);
+
+CREATE TABLE IF NOT EXISTS lexeme_example (
+  ent_seq INTEGER NOT NULL REFERENCES lexeme(ent_seq) ON DELETE CASCADE,
+  example_id INTEGER NOT NULL REFERENCES example(id) ON DELETE CASCADE,
+  PRIMARY KEY (ent_seq, example_id)
+);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS lexeme_fts USING fts5(
   ent_seq UNINDEXED,
   search_text,

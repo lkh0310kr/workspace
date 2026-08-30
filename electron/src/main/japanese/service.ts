@@ -156,7 +156,28 @@ export function getJapaneseLexeme(entSeq: number): JapaneseLexemeDetail | null {
       .all(sense.id) as JapaneseLexemeDetail["senses"][number]["glosses"],
   }));
 
-  return { entSeq, writings, readings, senses };
+  const examples = db
+    .prepare(
+      `SELECT e.id, e.text_ja, e.text_en, e.text_ko
+       FROM example e
+       JOIN lexeme_example le ON le.example_id = e.id
+       WHERE le.ent_seq = ?
+       ORDER BY e.id`,
+    )
+    .all(entSeq) as { id: number; text_ja: string; text_en: string | null; text_ko: string | null }[];
+
+  return {
+    entSeq,
+    writings,
+    readings,
+    senses,
+    examples: examples.map((example) => ({
+      id: example.id,
+      textJa: example.text_ja,
+      textEn: example.text_en,
+      textKo: example.text_ko,
+    })),
+  };
 }
 
 export function getJapaneseKanji(literal: string): JapaneseKanjiDetail | null {

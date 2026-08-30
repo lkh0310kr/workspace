@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channel>
+  <item>
+    <target_code>100001</target_code>
+    <origin_word>食べる</origin_word>
+    <origin_word_type>word</origin_word_type>
+    <translation language="ko">먹다</translation>
+  </item>
+  <item>
+    <target_code>100002</target_code>
+    <origin_word>日本</origin_word>
+    <origin_word_type>word</origin_word_type>
+    <translation language="ko">일본</translation>
+  </item>
+  <item>
+    <target_code>100003</target_code>
+    <origin_word>食事</origin_word>
+    <origin_word_type>word</origin_word_type>
+    <translation language="ko">식사</translation>
+  </item>
+</channel>
