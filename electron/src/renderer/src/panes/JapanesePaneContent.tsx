@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { PaneTabItem } from "../layout/paneTypes";
+import { HandwritingCanvas } from "./japanese/HandwritingCanvas";
 import { KanjiDetail } from "./japanese/KanjiDetail";
 import { LexemeDetail } from "./japanese/LexemeDetail";
 import { SearchBar, useJapaneseSearch } from "./japanese/SearchBar";
@@ -8,27 +9,49 @@ interface Props {
   item: PaneTabItem;
 }
 
+type PaneMode = "search" | "handwriting";
+
 type DetailView =
   | { kind: "none" }
   | { kind: "lexeme"; entSeq: number }
   | { kind: "kanji"; literal: string };
 
 export function JapanesePaneContent({ item: _item }: Props) {
+  const [mode, setMode] = useState<PaneMode>("search");
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<DetailView>({ kind: "none" });
   const { hits, loading, error } = useJapaneseSearch(query);
 
   return (
     <div className="japanese-pane">
-      <SearchBar query={query} onQueryChange={setQuery} />
+      <div className="japanese-pane-mode-tabs">
+        <button
+          type="button"
+          className={`japanese-mode-tab${mode === "search" ? " is-active" : ""}`}
+          onClick={() => setMode("search")}
+        >
+          Search
+        </button>
+        <button
+          type="button"
+          className={`japanese-mode-tab${mode === "handwriting" ? " is-active" : ""}`}
+          onClick={() => setMode("handwriting")}
+        >
+          Handwriting
+        </button>
+      </div>
+      {mode === "search" ? <SearchBar query={query} onQueryChange={setQuery} /> : null}
       <div className="japanese-pane-split">
         <div className="japanese-pane-results">
-          {loading ? <div className="japanese-pane-detail-empty">Searching…</div> : null}
-          {error ? <div className="japanese-pane-detail-empty">{error}</div> : null}
-          {!loading && !error && query.trim() && hits.length === 0 ? (
+          {mode === "handwriting" ? (
+            <HandwritingCanvas onSelectKanji={(literal) => setDetail({ kind: "kanji", literal })} />
+          ) : null}
+          {mode === "search" && loading ? <div className="japanese-pane-detail-empty">Searching…</div> : null}
+          {mode === "search" && error ? <div className="japanese-pane-detail-empty">{error}</div> : null}
+          {mode === "search" && !loading && !error && query.trim() && hits.length === 0 ? (
             <div className="japanese-pane-detail-empty">No results.</div>
           ) : null}
-          {!query.trim() ? (
+          {mode === "search" && !query.trim() ? (
             <div className="japanese-pane-body">
               <p className="japanese-pane-empty">
                 Dictionary not loaded yet? Import JMdict and KANJIDIC2:
@@ -41,7 +64,7 @@ export function JapanesePaneContent({ item: _item }: Props) {
                 {"  "}--out ~/.config/workspace-app/japanese/dictionary.db
               </pre>
             </div>
-          ) : (
+          ) : mode === "search" ? (
             <ul className="japanese-hit-list">
               {hits.map((hit) => (
                 <li key={hit.entSeq}>
@@ -61,7 +84,7 @@ export function JapanesePaneContent({ item: _item }: Props) {
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </div>
         <div className="japanese-pane-detail">
           {detail.kind === "lexeme" ? (

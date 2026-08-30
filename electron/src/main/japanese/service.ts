@@ -5,6 +5,7 @@ import type {
   JapaneseLexemeSummary,
   JapaneseSearchResult,
   JapaneseStrokeData,
+  JapaneseStrokeRecognitionResult,
 } from "../../shared/japaneseTypes";
 import {
   getJapaneseDb,
@@ -12,6 +13,12 @@ import {
   getLexemeCount,
   isJapaneseDbReady,
 } from "./db";
+import {
+  rankKanjiMatches,
+  sampleSvgPath,
+  type KanjiStrokeReference,
+  type UserStrokeInput,
+} from "./strokeMatch";
 
 function escapeFtsQuery(query: string): string {
   return query
@@ -236,4 +243,26 @@ export function getJapaneseStrokes(literal: string): JapaneseStrokeData | null {
     literal,
     strokes: rows.map((row) => ({ order: row.stroke_order, path: row.path })),
   };
+}
+
+function loadKanjiStrokeReferences(): KanjiStrokeReference[] {
+  const db = getJapaneseDb();
+  if (!db) return [];
+  const rows = db
+    .prepare("SELECT literal, stroke_order, path FROM kanji_stroke ORDER BY literal, stroke_order")
+    .all() as { literal: string; stroke_order: number; path: string }[];
+
+  const grouped = new Map<string, KanjiStrokeReference>();
+  for (const row of rows) {
+    const entry = grouped.get(row.literal) ?? { literal: row.literal, strokes: [] };
+    entry.strokes.push(sampleSvgPath(row.path));
+    grouped.set(row.literal, entry);
+  }
+  return [...grouped.values()];
+}
+
+export function recognizeJapaneseStrokes(userStrokes: UserStrokeInput[]): JapaneseStrokeRecognitionResult {
+  const references = loadKanjiStrokeReferences();
+  const candidates = rankKanjiMatches(userStrokes, references, 12);
+  return { candidates };
 }

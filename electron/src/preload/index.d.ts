@@ -5,6 +5,7 @@ import type {
   JapaneseLexemeDetail,
   JapaneseSearchResult,
   JapaneseStrokeData,
+  JapaneseStrokeRecognitionResult,
 } from '../shared/japaneseTypes'
 
 export interface TabInfo {
@@ -199,6 +200,7 @@ export interface WorkspaceApi {
     getKanji: (literal: string) => Promise<JapaneseKanjiDetail | null>
     getStrokes: (literal: string) => Promise<JapaneseStrokeData | null>
     searchByKanji: (literal: string) => Promise<JapaneseSearchResult>
+    recognizeStrokes: (strokes: { points: { x: number; y: number }[] }[]) => Promise<JapaneseStrokeRecognitionResult>
   }
   epub: {
     open: (tabId: number, rel: string) => Promise<EpubBook>

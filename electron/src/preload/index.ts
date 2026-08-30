@@ -225,6 +225,8 @@ const api = {
     getStrokes: (literal: string): Promise<unknown> => ipcRenderer.invoke('japanese:get-strokes', literal),
     searchByKanji: (literal: string): Promise<unknown> =>
       ipcRenderer.invoke('japanese:search-by-kanji', literal),
+    recognizeStrokes: (strokes: unknown): Promise<unknown> =>
+      ipcRenderer.invoke('japanese:recognize-strokes', strokes),
   },
   epub: {
     open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),

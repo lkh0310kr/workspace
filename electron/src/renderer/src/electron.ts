@@ -156,6 +156,7 @@ import type {
   JapaneseLexemeDetail,
   JapaneseSearchResult,
   JapaneseStrokeData,
+  JapaneseStrokeRecognitionResult,
 } from "../../shared/japaneseTypes";
 
 export type {
@@ -165,6 +166,7 @@ export type {
   JapaneseLexemeSummary,
   JapaneseSearchResult,
   JapaneseStrokeData,
+  JapaneseStrokeRecognitionResult,
 } from "../../shared/japaneseTypes";
 
 export async function getJapaneseDbStatus(): Promise<JapaneseDbStatus> {
@@ -189,6 +191,12 @@ export async function getJapaneseStrokes(literal: string): Promise<JapaneseStrok
 
 export async function searchJapaneseByKanji(literal: string): Promise<JapaneseSearchResult> {
   return window.api.japanese.searchByKanji(literal);
+}
+
+export async function recognizeJapaneseStrokes(
+  strokes: { points: { x: number; y: number }[] }[],
+): Promise<JapaneseStrokeRecognitionResult> {
+  return window.api.japanese.recognizeStrokes(strokes);
 }
 
 export interface EpubSpineItem {
