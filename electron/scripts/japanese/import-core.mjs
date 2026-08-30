@@ -636,11 +636,20 @@ export function importKanjium(database, accentsPath) {
   let count = 0;
   const tx = database.transaction(() => {
     for (const line of lines) {
-      const [reading, pattern] = line.split("\t");
-      if (!reading?.trim() || !pattern?.trim()) continue;
-      const entSeqs = findByReading.all(reading.trim()).map((row) => row.ent_seq);
+      const parts = line.split("\t");
+      let reading;
+      let pattern;
+      if (parts.length >= 3) {
+        reading = parts[1]?.trim();
+        pattern = parts[2]?.trim();
+      } else {
+        reading = parts[0]?.trim();
+        pattern = parts[1]?.trim();
+      }
+      if (!reading || !pattern) continue;
+      const entSeqs = findByReading.all(reading).map((row) => row.ent_seq);
       for (const entSeq of entSeqs) {
-        upsert.run(entSeq, reading.trim(), pattern.trim());
+        upsert.run(entSeq, reading, pattern);
         count += 1;
       }
     }

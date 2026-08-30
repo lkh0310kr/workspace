@@ -96,7 +96,7 @@ function summarizeLexeme(db: NonNullable<ReturnType<typeof getJapaneseDb>>, entS
        FROM gloss g
        JOIN sense s ON g.sense_id = s.id
        WHERE s.ent_seq = ?
-       ORDER BY s.sense_no, g.id
+       ORDER BY CASE g.lang WHEN 'ko' THEN 0 WHEN 'en' THEN 1 ELSE 2 END, s.sense_no, g.id
        LIMIT 1`,
     )
     .get(entSeq) as { text: string } | undefined;
@@ -282,7 +282,8 @@ export function getJapaneseLexeme(entSeq: number): JapaneseLexemeDetail | null {
        FROM example e
        JOIN lexeme_example le ON le.example_id = e.id
        WHERE le.ent_seq = ?
-       ORDER BY e.id`,
+       ORDER BY e.id
+       LIMIT 20`,
     )
     .all(entSeq) as { id: number; text_ja: string; text_en: string | null; text_ko: string | null }[];
 

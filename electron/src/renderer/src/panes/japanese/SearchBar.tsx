@@ -1,37 +1,53 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import type { JapaneseDbStatus } from "../../electron";
 import { searchJapanese } from "../../electron";
 
 interface Props {
   query: string;
   onQueryChange: (query: string) => void;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   dbStatus?: JapaneseDbStatus | null;
   disabled?: boolean;
+  hitCount?: number | null;
+  loading?: boolean;
 }
 
-export function SearchBar({ query, onQueryChange, dbStatus = null, disabled }: Props) {
+export const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
+  { query, onQueryChange, onKeyDown, dbStatus = null, disabled, hitCount, loading },
+  ref,
+) {
   return (
     <div className="japanese-pane-toolbar">
       <input
+        ref={ref}
         className="japanese-pane-search"
         type="search"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
-        placeholder="Search words, readings, or glosses…"
+        onKeyDown={onKeyDown}
+        placeholder="단어, 읽기, 로마자 검색…"
         disabled={disabled || !dbStatus?.ready}
-        aria-label="Japanese dictionary search"
+        aria-label="일본어 사전 검색"
       />
       {dbStatus && !dbStatus.ready ? (
-        <p className="japanese-pane-toolbar-hint">Dictionary not loaded ({dbStatus.path ?? "no path"})</p>
+        <p className="japanese-pane-toolbar-hint">사전이 로드되지 않았습니다 ({dbStatus.path ?? "경로 없음"})</p>
       ) : null}
       {dbStatus?.ready ? (
         <p className="japanese-pane-toolbar-hint">
-          {dbStatus.entryCount.toLocaleString()} words · {dbStatus.kanjiCount.toLocaleString()} kanji
+          {dbStatus.entryCount.toLocaleString()} 단어 · {dbStatus.kanjiCount.toLocaleString()} 한자
+          {dbStatus.strokeKanjiCount > 0
+            ? ` · 획 ${dbStatus.strokeKanjiCount.toLocaleString()}자`
+            : ""}
+          {hitCount != null ? (
+            <span className="japanese-pane-hit-count">
+              {loading ? " · 검색 중…" : ` · 결과 ${hitCount.toLocaleString()}개`}
+            </span>
+          ) : null}
         </p>
       ) : null}
     </div>
   );
-}
+});
 
 export function useJapaneseSearch(query: string) {
   const [loading, setLoading] = useState(false);
@@ -59,7 +75,7 @@ export function useJapaneseSearch(query: string) {
         })
         .catch((err) => {
           if (cancelled) return;
-          setError(err instanceof Error ? err.message : "search failed");
+          setError(err instanceof Error ? err.message : "검색 실패");
           setLoading(false);
         });
     }, 200);

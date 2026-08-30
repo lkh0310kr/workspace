@@ -1325,6 +1325,10 @@ iframe.browser-content-slot {
   flex-shrink: 0;
   padding: 8px 10px;
   border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-base);
 }
 
 .japanese-pane-search {
@@ -1643,9 +1647,34 @@ iframe.browser-content-slot {
   font-family: var(--font-ui);
 }
 
-.japanese-hit-item:hover,
+.japanese-pane-welcome {
+  padding: 20px 14px;
+}
+
+.japanese-pane-welcome-title {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.japanese-pane-hit-count {
+  color: var(--text-muted);
+}
+
+.japanese-hit-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .japanese-hit-item.is-active {
-  background: var(--bg-raised);
+  box-shadow: inset 3px 0 0 var(--accent, #3b82f6);
+}
+
+.japanese-hit-item:focus-visible {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: -2px;
 }
 
 .japanese-hit-primary {
@@ -1661,6 +1690,31 @@ iframe.browser-content-slot {
 .japanese-hit-gloss {
   font-size: 12px;
   color: var(--text-faint);
+  line-height: 1.4;
+}
+
+.japanese-pitch-display {
+  font-size: 18px;
+  letter-spacing: 0.02em;
+}
+
+.japanese-pitch-mora {
+  display: inline-block;
+  padding: 0 1px;
+}
+
+.japanese-pitch-mora.is-high {
+  border-top: 2px solid var(--accent, #3b82f6);
+}
+
+.japanese-pitch-mora.is-low {
+  border-bottom: 2px solid var(--text-muted);
+}
+
+.japanese-lexeme-header {
+  margin-bottom: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .japanese-lexeme-detail,

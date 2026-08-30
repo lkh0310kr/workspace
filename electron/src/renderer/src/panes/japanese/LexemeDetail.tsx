@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { addJapaneseSrsCard, getJapaneseLexeme, type JapaneseLexemeDetail } from "../../electron";
+import { PitchAccentDisplay } from "./PitchAccentDisplay";
 import { formatJapanesePos } from "./posLabels";
 
 interface Props {
@@ -91,12 +92,11 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
 
       {(detail.pitchPatterns ?? []).length > 0 ? (
         <section className="japanese-lexeme-section">
-          <h3 className="japanese-section-title">Pitch accent</h3>
+          <h3 className="japanese-section-title">성조</h3>
           <ul className="japanese-pitch-list">
             {(detail.pitchPatterns ?? []).map((pitch) => (
               <li key={`${pitch.reading}-${pitch.pattern}`} className="japanese-pitch-item">
-                <span className="japanese-pitch-reading">{pitch.reading}</span>
-                <span className="japanese-pitch-pattern">{pitch.pattern}</span>
+                <PitchAccentDisplay reading={pitch.reading} pattern={pitch.pattern} />
               </li>
             ))}
           </ul>
@@ -105,7 +105,7 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
 
       {kanjiLiterals.size > 0 ? (
         <section className="japanese-lexeme-section">
-          <h3 className="japanese-section-title">Kanji</h3>
+          <h3 className="japanese-section-title">한자</h3>
           <div className="japanese-kanji-chips">
             {[...kanjiLiterals].map((literal) => (
               <button
@@ -121,8 +121,32 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
         </section>
       ) : null}
 
+      {(detail.senses ?? []).some((sense) => (sense.glosses ?? []).some((gloss) => gloss.lang === "ko")) ? (
+        <section className="japanese-lexeme-section">
+          <h3 className="japanese-section-title">뜻 (한국어)</h3>
+          <ol className="japanese-sense-list">
+            {(detail.senses ?? []).map((sense) => {
+              const korean = (sense.glosses ?? [])
+                .filter((gloss) => gloss.lang === "ko")
+                .map((gloss) => gloss.text);
+              if (korean.length === 0) return null;
+              return (
+                <li key={`ko-${sense.senseNo}`} className="japanese-sense-item">
+                  {(sense.pos ?? []).length > 0 ? (
+                    <span className="japanese-sense-pos">
+                      {(sense.pos ?? []).map(formatJapanesePos).join(" · ")}
+                    </span>
+                  ) : null}
+                  {korean.join("; ")}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ) : null}
+
       <section className="japanese-lexeme-section">
-        <h3 className="japanese-section-title">Meanings (English)</h3>
+        <h3 className="japanese-section-title">뜻 (영어)</h3>
         <ol className="japanese-sense-list">
           {detail.senses.map((sense) => {
             const english = (sense.glosses ?? [])
@@ -143,37 +167,21 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
         </ol>
       </section>
 
-      {(detail.senses ?? []).some((sense) => (sense.glosses ?? []).some((gloss) => gloss.lang === "ko")) ? (
-        <section className="japanese-lexeme-section">
-          <h3 className="japanese-section-title">Meanings (Korean)</h3>
-          <ol className="japanese-sense-list">
-            {(detail.senses ?? []).map((sense) => {
-              const korean = (sense.glosses ?? [])
-                .filter((gloss) => gloss.lang === "ko")
-                .map((gloss) => gloss.text);
-              if (korean.length === 0) return null;
-              return (
-                <li key={`ko-${sense.senseNo}`} className="japanese-sense-item">
-                  {korean.join("; ")}
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-      ) : null}
-
       {(detail.examples ?? []).length > 0 ? (
         <section className="japanese-lexeme-section">
-          <h3 className="japanese-section-title">Examples</h3>
+          <h3 className="japanese-section-title">예문</h3>
           <ul className="japanese-example-list">
             {(detail.examples ?? []).map((example) => (
               <li key={example.id} className="japanese-example-item">
                 <div className="japanese-example-ja">{example.textJa}</div>
-                {example.textEn ? <div className="japanese-example-en">{example.textEn}</div> : null}
                 {example.textKo ? <div className="japanese-example-ko">{example.textKo}</div> : null}
+                {example.textEn ? <div className="japanese-example-en">{example.textEn}</div> : null}
               </li>
             ))}
           </ul>
+          {(detail.examples ?? []).length >= 20 ? (
+            <p className="japanese-pane-toolbar-hint">최대 20개까지 표시됩니다.</p>
+          ) : null}
         </section>
       ) : null}
     </div>

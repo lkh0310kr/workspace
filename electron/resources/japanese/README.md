@@ -57,7 +57,7 @@ npm run japanese:import -- \
   --tatoeba-sentences /path/to/sentences.tsv \
   --tatoeba-links /path/to/links.tsv \
   --tatoeba-lexeme-links /path/to/curated-links.tsv \
-  --kanjium /path/to/accents.txt
+  --kanjium accents.txt from data/source_files/raw/accents.txt
 ```
 
 `--out` is optional; defaults to the dev path above. Use `--packaged` when importing for a production install.

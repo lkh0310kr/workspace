@@ -33,9 +33,9 @@ export function KanjiDetail({ literal, onLexemeClick }: Props) {
     };
   }, [literal]);
 
-  if (loading) return <div className="japanese-pane-detail-empty">Loading…</div>;
+  if (loading) return <div className="japanese-pane-detail-empty">불러오는 중…</div>;
   if (error) return <div className="japanese-pane-detail-empty">{error}</div>;
-  if (!detail) return <div className="japanese-pane-detail-empty">Kanji not found.</div>;
+  if (!detail) return <div className="japanese-pane-detail-empty">한자를 찾을 수 없습니다.</div>;
 
   const onReadings = (detail.readings ?? [])
     .filter((reading) => reading.type === "on")
@@ -49,8 +49,8 @@ export function KanjiDetail({ literal, onLexemeClick }: Props) {
       <header className="japanese-kanji-header">
         <div className="japanese-kanji-glyph">{detail.literal}</div>
         <div className="japanese-kanji-meta">
-          {detail.strokes != null ? <span>{detail.strokes} strokes</span> : null}
-          {detail.grade != null ? <span>Grade {detail.grade}</span> : null}
+          {detail.strokes != null ? <span>{detail.strokes}획</span> : null}
+          {detail.grade != null ? <span>학년 {detail.grade}</span> : null}
           {detail.jlpt != null ? <span>JLPT N{detail.jlpt}</span> : null}
         </div>
       </header>
@@ -60,21 +60,21 @@ export function KanjiDetail({ literal, onLexemeClick }: Props) {
 
       {onReadings.length > 0 ? (
         <section className="japanese-lexeme-section">
-          <h3 className="japanese-section-title">On readings</h3>
+          <h3 className="japanese-section-title">음독 (オン)</h3>
           <p className="japanese-reading-line">{onReadings.join(" · ")}</p>
         </section>
       ) : null}
 
       {kunReadings.length > 0 ? (
         <section className="japanese-lexeme-section">
-          <h3 className="japanese-section-title">Kun readings</h3>
+          <h3 className="japanese-section-title">훈독 (くん)</h3>
           <p className="japanese-reading-line">{kunReadings.join(" · ")}</p>
         </section>
       ) : null}
 
       {(detail.linkedLexemes ?? []).length > 0 ? (
         <section className="japanese-lexeme-section">
-          <h3 className="japanese-section-title">Related words</h3>
+          <h3 className="japanese-section-title">관련 단어</h3>
           <ul className="japanese-hit-list">
             {(detail.linkedLexemes ?? []).map((hit) => (
               <li key={hit.entSeq}>
