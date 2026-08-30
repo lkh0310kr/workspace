@@ -8,22 +8,12 @@ interface Props {
   query: string;
   onQueryChange: (query: string) => void;
   onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  hitCount?: number | null;
-  loading?: boolean;
   onSelectKanji: (literal: string) => void;
   onHandwritingCandidates: (candidates: { literal: string; score: number }[]) => void;
 }
 
 export const JapaneseUnifiedSearch = forwardRef<HTMLInputElement, Props>(function JapaneseUnifiedSearch(
-  {
-    query,
-    onQueryChange,
-    onKeyDown,
-    hitCount,
-    loading,
-    onSelectKanji,
-    onHandwritingCandidates,
-  },
+  { query, onQueryChange, onKeyDown, onSelectKanji, onHandwritingCandidates },
   ref,
 ) {
   const { status } = useJapaneseDb();
@@ -37,8 +27,6 @@ export const JapaneseUnifiedSearch = forwardRef<HTMLInputElement, Props>(functio
           onQueryChange={onQueryChange}
           onKeyDown={onKeyDown}
           dbStatus={status}
-          hitCount={hitCount}
-          loading={loading}
         />
         {status?.ready ? (
           <HandwritingCanvas
@@ -49,11 +37,6 @@ export const JapaneseUnifiedSearch = forwardRef<HTMLInputElement, Props>(functio
           />
         ) : null}
       </div>
-      {status?.ready ? (
-        <p className="japanese-pane-toolbar-hint japanese-unified-search-hint">
-          검색창에 단어·읽기·로마자를 입력하거나 오른쪽에 한자를 써 보세요.
-        </p>
-      ) : null}
     </div>
   );
 });

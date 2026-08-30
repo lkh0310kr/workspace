@@ -130,8 +130,6 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
         query={query}
         onQueryChange={handleQueryChange}
         onKeyDown={handleSearchKeyDown}
-        hitCount={query.trim() ? hitList.length : null}
-        loading={loading}
         onSelectKanji={openKanji}
         onHandwritingCandidates={setHandwritingCandidates}
       />
@@ -206,7 +204,7 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
 
         <ScrollRegion className="japanese-pane-detail">
           {detail.kind === "kanji" ? (
-            <JapaneseDetailNav label={`한자 ${detail.literal}`} onBack={returnDetail ? goBack : undefined} />
+            <JapaneseDetailNav onBack={returnDetail ? goBack : undefined} />
           ) : null}
           {detail.kind === "lexeme" ? (
             <LexemeDetail entSeq={detail.entSeq} onKanjiClick={openKanji} />

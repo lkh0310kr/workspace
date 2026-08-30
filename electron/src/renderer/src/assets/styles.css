@@ -1457,11 +1457,6 @@ iframe.browser-content-slot {
   position: static;
 }
 
-.japanese-unified-search-hint {
-  padding: 0 10px 8px;
-  margin-top: 0;
-}
-
 .japanese-results-section {
   padding: 0 0 8px;
 }
@@ -1835,8 +1830,7 @@ iframe.browser-content-slot {
 .japanese-detail-nav {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-surface);
   position: sticky;
@@ -1844,14 +1838,34 @@ iframe.browser-content-slot {
   z-index: 1;
 }
 
+.japanese-detail-nav-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-raised);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.japanese-detail-nav-back:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.japanese-detail-nav-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
 .japanese-lexeme-detail,
 .japanese-kanji-detail {
   padding: 16px;
-}
-
-.japanese-detail-nav-label {
-  color: var(--text-muted);
-  font-size: 12px;
 }
 
 .japanese-pane-detail-empty {
@@ -1890,10 +1904,6 @@ iframe.browser-content-slot {
   margin: 0 0 6px;
   font-size: 14px;
   font-weight: 600;
-}
-
-.japanese-pane-hit-count {
-  color: var(--text-muted);
 }
 
 .japanese-hit-head {
@@ -2070,13 +2080,6 @@ iframe.browser-content-slot {
   margin-top: 18px;
 }
 
-.japanese-stroke-toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-
 .japanese-stroke-svg {
   width: 100%;
   max-width: 220px;
@@ -2158,22 +2161,6 @@ iframe.browser-content-slot {
 .japanese-pitch-pattern {
   font-family: var(--font-mono);
   color: var(--text);
-}
-
-.japanese-practice {
-  margin-top: 18px;
-}
-
-.japanese-practice-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.japanese-practice-score {
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 /* A <webview> guest's own content went fullscreen — see the matching

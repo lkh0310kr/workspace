@@ -6,12 +6,12 @@ interface Props {
 }
 
 const STROKE_MS = 650;
+const LOOP_PAUSE_MS = 400;
 
 export function KanjiStrokeViewer({ literal }: Props) {
   const [data, setData] = useState<JapaneseStrokeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(0);
-  const [playing, setPlaying] = useState(false);
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -22,7 +22,6 @@ export function KanjiStrokeViewer({ literal }: Props) {
         if (cancelled) return;
         setData(result);
         setVisibleCount(result?.strokes?.length ? 1 : 0);
-        setPlaying(false);
         setLoading(false);
       })
       .catch(() => {
@@ -36,52 +35,35 @@ export function KanjiStrokeViewer({ literal }: Props) {
   }, [literal]);
 
   useEffect(() => {
-    if (!playing || !data?.strokes?.length) return;
+    if (!data?.strokes?.length || visibleCount === 0) return;
+
     if (visibleCount >= data.strokes.length) {
-      setPlaying(false);
-      return;
+      timerRef.current = window.setTimeout(() => {
+        setVisibleCount(1);
+      }, LOOP_PAUSE_MS);
+    } else {
+      timerRef.current = window.setTimeout(() => {
+        setVisibleCount((count) => count + 1);
+      }, STROKE_MS);
     }
-    timerRef.current = window.setTimeout(() => {
-      setVisibleCount((count) => count + 1);
-    }, STROKE_MS);
+
     return () => {
       if (timerRef.current != null) window.clearTimeout(timerRef.current);
     };
-  }, [playing, visibleCount, data]);
+  }, [visibleCount, data]);
 
   const viewBox = useMemo(() => "0 0 109 109", []);
 
-  if (loading) return <div className="japanese-stroke-viewer-empty">Loading strokes…</div>;
-  if (!data?.strokes?.length) return <div className="japanese-stroke-viewer-empty">Stroke data not imported for this kanji.</div>;
+  if (loading) return <div className="japanese-stroke-viewer-empty">획순 불러오는 중…</div>;
+  if (!data?.strokes?.length) {
+    return <div className="japanese-stroke-viewer-empty">이 한자의 획 데이터가 없습니다.</div>;
+  }
 
   const strokes = data.strokes;
 
-  const reset = () => {
-    setPlaying(false);
-    setVisibleCount(strokes.length ? 1 : 0);
-  };
-
-  const play = () => {
-    if (visibleCount >= strokes.length) {
-      setVisibleCount(1);
-    }
-    setPlaying(true);
-  };
-
   return (
     <section className="japanese-stroke-viewer">
-      <div className="japanese-stroke-toolbar">
-        <button type="button" className="japanese-stroke-btn" onClick={play} disabled={playing}>
-          Play
-        </button>
-        <button type="button" className="japanese-stroke-btn" onClick={() => setPlaying(false)} disabled={!playing}>
-          Pause
-        </button>
-        <button type="button" className="japanese-stroke-btn" onClick={reset}>
-          Reset
-        </button>
-      </div>
-      <svg className="japanese-stroke-svg" viewBox={viewBox} role="img" aria-label={`${literal} stroke order`}>
+      <svg className="japanese-stroke-svg" viewBox={viewBox} role="img" aria-label={`${literal} 획순`}>
         <rect width="109" height="109" className="japanese-stroke-bg" />
         {strokes.map((stroke, index) => {
           const visible = index < visibleCount;

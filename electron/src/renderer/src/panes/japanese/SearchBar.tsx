@@ -8,12 +8,10 @@ interface Props {
   onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   dbStatus?: JapaneseDbStatus | null;
   disabled?: boolean;
-  hitCount?: number | null;
-  loading?: boolean;
 }
 
 export const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
-  { query, onQueryChange, onKeyDown, dbStatus = null, disabled, hitCount, loading },
+  { query, onQueryChange, onKeyDown, dbStatus = null, disabled },
   ref,
 ) {
   return (
@@ -31,19 +29,6 @@ export const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
       />
       {dbStatus && !dbStatus.ready ? (
         <p className="japanese-pane-toolbar-hint">사전이 로드되지 않았습니다 ({dbStatus.path ?? "경로 없음"})</p>
-      ) : null}
-      {dbStatus?.ready ? (
-        <p className="japanese-pane-toolbar-hint">
-          {dbStatus.entryCount.toLocaleString()} 단어 · {dbStatus.kanjiCount.toLocaleString()} 한자
-          {dbStatus.strokeKanjiCount > 0
-            ? ` · 획 ${dbStatus.strokeKanjiCount.toLocaleString()}자`
-            : ""}
-          {hitCount != null ? (
-            <span className="japanese-pane-hit-count">
-              {loading ? " · 검색 중…" : ` · 결과 ${hitCount.toLocaleString()}개`}
-            </span>
-          ) : null}
-        </p>
       ) : null}
     </div>
   );
