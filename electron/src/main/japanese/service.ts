@@ -4,6 +4,7 @@ import type {
   JapaneseKanjiDetail,
   JapaneseLexemeDetail,
   JapaneseLexemeSummary,
+  JapanesePitchPattern,
   JapaneseSearchResult,
   JapaneseStrokeData,
   JapaneseStrokeRecognitionResult,
@@ -29,7 +30,7 @@ import {
   type KanjiStrokeReference,
   type UserStrokeInput,
 } from "./strokeMatch";
-import { getLexemePitchPatterns, logPracticeScore } from "./srs";
+import { logPracticeScore } from "./practice";
 
 function buildFtsQuery(query: string, mode: "exact" | "prefix"): string {
   const tokens = query
@@ -391,4 +392,13 @@ export function scoreJapanesePractice(literal: string, userStrokes: UserStrokeIn
   const score = scoreKanjiMatch(userStrokes, reference);
   logPracticeScore(literal, score);
   return { literal, score };
+}
+
+function getLexemePitchPatterns(entSeq: number): JapanesePitchPattern[] {
+  const db = getJapaneseDb();
+  if (!db) return [];
+  const rows = db
+    .prepare("SELECT reading, pattern FROM lexeme_pitch WHERE ent_seq = ? ORDER BY reading")
+    .all(entSeq) as { reading: string; pattern: string }[];
+  return rows.map((row) => ({ reading: row.reading, pattern: row.pattern }));
 }

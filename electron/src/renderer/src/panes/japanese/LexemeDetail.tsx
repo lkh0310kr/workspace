@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { addJapaneseSrsCard, getJapaneseLexeme, type JapaneseLexemeDetail } from "../../electron";
+import { getJapaneseLexeme, type JapaneseLexemeDetail } from "../../electron";
 import { PitchAccentDisplay } from "./PitchAccentDisplay";
 import { formatJapanesePos } from "./posLabels";
 
@@ -12,7 +12,6 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
   const [detail, setDetail] = useState<JapaneseLexemeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [srsMessage, setSrsMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,18 +75,6 @@ export function LexemeDetail({ entSeq, onKanjiClick }: Props) {
             {(detail.readings ?? []).slice(1).map((reading) => reading.kana).join(" · ")}
           </div>
         ) : null}
-        <button
-          type="button"
-          className="japanese-stroke-btn"
-          onClick={() => {
-            addJapaneseSrsCard(entSeq)
-              .then((card) => setSrsMessage(`복습 예약됨 (다음: ${new Date(card.due).toLocaleDateString()})`))
-              .catch(() => setSrsMessage("SRS 추가 실패"));
-          }}
-        >
-          복습에 추가
-        </button>
-        {srsMessage ? <p className="japanese-pane-toolbar-hint">{srsMessage}</p> : null}
       </header>
 
       {(detail.pitchPatterns ?? []).length > 0 ? (

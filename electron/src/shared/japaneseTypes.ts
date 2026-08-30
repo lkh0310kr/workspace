@@ -112,10 +112,3 @@ export interface JapanesePracticeScore {
   literal: string;
   score: number;
 }
-
-export interface JapaneseSrsCard {
-  entSeq: number;
-  due: string;
-  interval: number;
-  ease: number;
-}

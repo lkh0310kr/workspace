@@ -231,11 +231,6 @@ const api = {
       ipcRenderer.invoke('japanese:recognize-strokes', strokes),
     scorePractice: (literal: string, strokes: unknown): Promise<unknown> =>
       ipcRenderer.invoke('japanese:score-practice', literal, strokes),
-    srsAdd: (entSeq: number): Promise<unknown> => ipcRenderer.invoke('japanese:srs-add', entSeq),
-    srsReview: (entSeq: number, quality: number): Promise<unknown> =>
-      ipcRenderer.invoke('japanese:srs-review', entSeq, quality),
-    srsDue: (limit?: number): Promise<unknown> => ipcRenderer.invoke('japanese:srs-due', limit),
-    srsDueCount: (): Promise<number> => ipcRenderer.invoke('japanese:srs-due-count'),
   },
   epub: {
     open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),

@@ -12,7 +12,7 @@ The Japanese pane reads a **local SQLite database** — nothing is downloaded au
 macOS: `~/Library/Application Support/workspace-app(-dev)/japanese/dictionary.db`  
 Windows: `%APPDATA%\workspace-app(-dev)\japanese\dictionary.db`
 
-User progress (SRS, practice logs) is stored separately in `japanese/user.db`.
+User progress (handwriting practice logs) is stored separately in `japanese/user.db`.
 
 ## Native module (better-sqlite3)
 
@@ -43,7 +43,7 @@ Then in the app: **Japanese pane → Data tab → Reload dictionary** (or the �
    - [KanjiVG](https://kanjivg.tagaini.net/) — `kanjivg/` directory (optional, for strokes)
    - [KRDICT](https://krdict.korean.go.kr/) — Korean glosses (optional)
    - [Tatoeba](https://tatoeba.org/en/downloads) — sentences + links TSV (optional)
-   - [Kanjium](https://github.com/mifunetoshiro/kanjium) — `accents.txt` (optional)
+   - [Kanjium](https://github.com/mifunetoshiro/kanjium) — `data/source_files/raw/accents.txt` (optional)
 
 2. Run import (omit flags you do not have):
 
@@ -73,4 +73,3 @@ Re-run the same command. By default the DB is cleared and rebuilt. Use `--no-cle
 - **Data** tab — setup guide, reload button, DB path
 - **Search** — FTS word lookup (requires JMdict import)
 - **Handwriting** — stroke matching (requires KanjiVG import)
-- **Review** — SRS queue (uses local `user.db`)

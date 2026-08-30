@@ -52,7 +52,6 @@ import {
   searchJapaneseByKanji,
   searchJapaneseDictionary,
 } from './japanese/service'
-import { addSrsCard, countDueSrsCards, listDueSrsCards, reviewSrsCard } from './japanese/srs'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
 
@@ -745,12 +744,6 @@ app.whenReady().then(() => {
   ipcMain.handle('japanese:score-practice', (_event, literal: string, strokes: unknown) =>
     scoreJapanesePractice(literal, strokes as Parameters<typeof scoreJapanesePractice>[1]),
   )
-  ipcMain.handle('japanese:srs-add', (_event, entSeq: number) => addSrsCard(entSeq))
-  ipcMain.handle('japanese:srs-review', (_event, entSeq: number, quality: number) =>
-    reviewSrsCard(entSeq, quality as 0 | 1 | 2 | 3 | 4 | 5),
-  )
-  ipcMain.handle('japanese:srs-due', (_event, limit?: number) => listDueSrsCards(limit))
-  ipcMain.handle('japanese:srs-due-count', () => countDueSrsCards())
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
   ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))
   ipcMain.handle('engine:get-bundle-url', (_event, tabId: number, rel: string, entry?: string) => {
