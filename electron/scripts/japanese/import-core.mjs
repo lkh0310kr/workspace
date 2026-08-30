@@ -1,4 +1,5 @@
-import { readFileSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { createReadStream, readFileSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { createInterface } from "node:readline";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
@@ -252,6 +253,127 @@ function parseTsv(content) {
   return { headers, rows };
 }
 
+/** Tatoeba weekly export: id [tab] lang [tab] text (no header row). */
+export function parseTatoebaSentenceLine(line) {
+  if (!line?.trim()) return null;
+  const firstTab = line.indexOf("\t");
+  if (firstTab < 0) return null;
+  const secondTab = line.indexOf("\t", firstTab + 1);
+  if (secondTab < 0) return null;
+  const id = Number(line.slice(0, firstTab));
+  if (!Number.isFinite(id)) return null;
+  return {
+    id,
+    lang: line.slice(firstTab + 1, secondTab),
+    text: line.slice(secondTab + 1),
+  };
+}
+
+/** Tatoeba links export: from_id [tab] to_id (no header row). */
+export function parseTatoebaLinkLine(line) {
+  if (!line?.trim()) return null;
+  const tab = line.indexOf("\t");
+  if (tab < 0) return null;
+  const from = Number(line.slice(0, tab));
+  const to = Number(line.slice(tab + 1));
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+  return { from, to };
+}
+
+export function buildLexemeSurfaceIndex(database, { priorityOnly = true } = {}) {
+  const sql = priorityOnly
+    ? `SELECT ent_seq, orthography AS form
+       FROM writing
+       WHERE priority IS NOT NULL AND length(orthography) >= 2
+       UNION ALL
+       SELECT ent_seq, kana AS form
+       FROM reading
+       WHERE priority IS NOT NULL AND length(kana) >= 3`
+    : `SELECT ent_seq, orthography AS form
+       FROM writing
+       WHERE length(orthography) >= 2
+       UNION ALL
+       SELECT ent_seq, kana AS form
+       FROM reading
+       WHERE length(kana) >= 3`;
+  const byChar = new Map();
+  for (const row of database.prepare(sql).all()) {
+    const form = row.form;
+    const ch = form[0];
+    if (!ch) continue;
+    if (!byChar.has(ch)) byChar.set(ch, []);
+    byChar.get(ch).push({ form, entSeq: row.ent_seq, len: form.length });
+  }
+  for (const bucket of byChar.values()) {
+    bucket.sort((a, b) => b.len - a.len);
+  }
+  return byChar;
+}
+
+export function findLexemeMatchesInText(text, surfaceIndex, { maxMatches = 5 } = {}) {
+  if (!text || !surfaceIndex) return [];
+  const seen = new Set();
+  const matches = [];
+  const candidates = [];
+  for (const ch of new Set(text)) {
+    const bucket = surfaceIndex.get(ch);
+    if (bucket) candidates.push(...bucket);
+  }
+  candidates.sort((a, b) => b.len - a.len);
+  for (const { form, entSeq } of candidates) {
+    if (seen.has(entSeq)) continue;
+    if (!text.includes(form)) continue;
+    seen.add(entSeq);
+    matches.push(entSeq);
+    if (matches.length >= maxMatches) break;
+  }
+  return matches;
+}
+
+async function loadTatoebaJpnSentences(sentencesPath) {
+  const jpnSentences = new Map();
+  const rl = createInterface({ input: createReadStream(sentencesPath, "utf8"), crlfDelay: Infinity });
+  for await (const line of rl) {
+    const parsed = parseTatoebaSentenceLine(line);
+    if (!parsed || parsed.lang !== "jpn") continue;
+    jpnSentences.set(parsed.id, parsed.text);
+  }
+  return jpnSentences;
+}
+
+async function loadTatoebaAdjacency(linksPath, jpnIds) {
+  const adjacency = new Map();
+  const neededIds = new Set();
+  const rl = createInterface({ input: createReadStream(linksPath, "utf8"), crlfDelay: Infinity });
+  for await (const line of rl) {
+    const parsed = parseTatoebaLinkLine(line);
+    if (!parsed) continue;
+    if (jpnIds.has(parsed.from)) {
+      if (!adjacency.has(parsed.from)) adjacency.set(parsed.from, new Set());
+      adjacency.get(parsed.from).add(parsed.to);
+      neededIds.add(parsed.to);
+    }
+    if (jpnIds.has(parsed.to)) {
+      if (!adjacency.has(parsed.to)) adjacency.set(parsed.to, new Set());
+      adjacency.get(parsed.to).add(parsed.from);
+      neededIds.add(parsed.from);
+    }
+  }
+  return { adjacency, neededIds };
+}
+
+async function loadTatoebaTranslations(sentencesPath, neededIds) {
+  const translations = new Map();
+  const rl = createInterface({ input: createReadStream(sentencesPath, "utf8"), crlfDelay: Infinity });
+  for await (const line of rl) {
+    const parsed = parseTatoebaSentenceLine(line);
+    if (!parsed || !neededIds.has(parsed.id)) continue;
+    if (parsed.lang !== "eng" && parsed.lang !== "kor") continue;
+    translations.set(parsed.id, { lang: parsed.lang, text: parsed.text });
+  }
+  return translations;
+}
+
 function asFeatList(feat) {
   if (feat == null) return [];
   return asArray(feat)
@@ -426,29 +548,31 @@ export async function importKrdict(database, krdictPath) {
   return importKrdictXml(database, resolved);
 }
 
-export function importTatoeba(database, sentencesPath, linksPath, lexemeLinksPath) {
-  const sentences = parseTsv(readFileSync(sentencesPath, "utf8"));
-  const links = parseTsv(readFileSync(linksPath, "utf8"));
+export async function importTatoeba(database, sentencesPath, linksPath, lexemeLinksPath) {
+  console.log("[japanese-import] tatoeba: loading Japanese sentences…");
+  const jpnSentences = await loadTatoebaJpnSentences(sentencesPath);
+  const jpnIds = new Set(jpnSentences.keys());
+  console.log("[japanese-import] tatoeba: japanese sentences", jpnSentences.size);
+
+  console.log("[japanese-import] tatoeba: loading translation links…");
+  const { adjacency, neededIds } = await loadTatoebaAdjacency(linksPath, jpnIds);
+  console.log("[japanese-import] tatoeba: loading eng/kor translations…");
+  const translations = await loadTatoebaTranslations(sentencesPath, neededIds);
+
   const lexemeLinks = lexemeLinksPath && existsSync(lexemeLinksPath)
     ? parseTsv(readFileSync(lexemeLinksPath, "utf8"))
     : { rows: [] };
 
-  const sentenceMap = new Map();
-  for (const row of sentences.rows) {
-    sentenceMap.set(Number(row.id), { lang: row.lang, text: row.text });
+  const curatedSentenceMap = new Map();
+  for (const row of lexemeLinks.rows) {
+    const jpnId = Number(row.tatoeba_jpn_id);
+    const entSeq = Number(row.ent_seq);
+    if (!Number.isFinite(jpnId) || !Number.isFinite(entSeq)) continue;
+    if (!curatedSentenceMap.has(jpnId)) curatedSentenceMap.set(jpnId, []);
+    curatedSentenceMap.get(jpnId).push(entSeq);
   }
 
-  const adjacency = new Map();
-  for (const row of links.rows) {
-    const from = Number(row.from_id ?? row.jpn_id);
-    const to = Number(row.to_id ?? row.eng_id);
-    if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
-    if (!adjacency.has(from)) adjacency.set(from, new Set());
-    if (!adjacency.has(to)) adjacency.set(to, new Set());
-    adjacency.get(from).add(to);
-    adjacency.get(to).add(from);
-  }
-
+  const surfaceIndex = buildLexemeSurfaceIndex(database);
   const insertExample = database.prepare(
     `INSERT INTO example (tatoeba_id, text_ja, text_en, text_ko)
      VALUES (?, ?, ?, ?)
@@ -462,30 +586,44 @@ export function importTatoeba(database, sentencesPath, linksPath, lexemeLinksPat
   );
 
   let exampleCount = 0;
+  let linkCount = 0;
+  let processed = 0;
   const tx = database.transaction(() => {
-    for (const row of lexemeLinks.rows) {
-      const entSeq = Number(row.ent_seq);
-      const jpnId = Number(row.tatoeba_jpn_id);
-      const jpn = sentenceMap.get(jpnId);
-      if (!Number.isFinite(entSeq) || !jpn || jpn.lang !== "jpn") continue;
-
-      const linkedIds = adjacency.get(jpnId) ?? new Set();
+    for (const [jpnId, textJa] of jpnSentences) {
+      processed += 1;
+      const linkedIds = adjacency.get(jpnId);
       let textEn = null;
       let textKo = null;
-      for (const linkedId of linkedIds) {
-        const linked = sentenceMap.get(linkedId);
-        if (!linked) continue;
-        if (linked.lang === "eng" && !textEn) textEn = linked.text;
-        if (linked.lang === "kor" && !textKo) textKo = linked.text;
+      if (linkedIds) {
+        for (const linkedId of linkedIds) {
+          const linked = translations.get(linkedId);
+          if (!linked) continue;
+          if (linked.lang === "eng" && !textEn) textEn = linked.text;
+          if (linked.lang === "kor" && !textKo) textKo = linked.text;
+        }
       }
 
-      const result = insertExample.run(jpnId, jpn.text, textEn, textKo);
+      const curated = curatedSentenceMap.get(jpnId);
+      const autoEntSeqs = findLexemeMatchesInText(textJa, surfaceIndex);
+      if (!curated && !autoEntSeqs.length && !textEn && !textKo) continue;
+
+      const result = insertExample.run(jpnId, textJa, textEn, textKo);
       const exampleId = result.lastInsertRowid;
-      linkLexeme.run(entSeq, exampleId);
       exampleCount += 1;
+
+      const entSeqs = new Set([...(curated ?? []), ...autoEntSeqs]);
+      for (const entSeq of entSeqs) {
+        linkLexeme.run(entSeq, exampleId);
+        linkCount += 1;
+      }
+
+      if (processed % 25000 === 0) {
+        console.log("[japanese-import] tatoeba: processed", processed, "examples", exampleCount, "links", linkCount);
+      }
     }
   });
   tx();
+  console.log("[japanese-import] tatoeba: done", { exampleCount, linkCount });
   return exampleCount;
 }
 
@@ -580,7 +718,7 @@ export async function importDictionary({
   if (kanjivgPath) kanjivgCount = importKanjivg(database, kanjivgPath);
   if (krdictPath) krdictCount = await importKrdict(database, krdictPath);
   if (tatoebaSentencesPath && tatoebaLinksPath) {
-    tatoebaCount = importTatoeba(database, tatoebaSentencesPath, tatoebaLinksPath, tatoebaLexemeLinksPath);
+    tatoebaCount = await importTatoeba(database, tatoebaSentencesPath, tatoebaLinksPath, tatoebaLexemeLinksPath);
   }
   if (kanjiumPath) kanjiumCount = importKanjium(database, kanjiumPath);
   rebuildLexemeFts(database);

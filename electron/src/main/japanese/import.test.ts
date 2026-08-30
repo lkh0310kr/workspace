@@ -9,6 +9,10 @@ import {
   initSchema,
   openDictionaryDb,
   parseJapaneseLemmaTokens,
+  parseTatoebaLinkLine,
+  parseTatoebaSentenceLine,
+  findLexemeMatchesInText,
+  buildLexemeSurfaceIndex,
   rebuildLexemeFts,
 } from "../../../scripts/japanese/import-core.mjs";
 
@@ -27,6 +31,17 @@ describe("japanese dictionary import", () => {
       { writing: "先鋭だ", reading: "せんえいだ" },
       { writing: "尖鋭だ", reading: "せんえいだ" },
     ]);
+  });
+
+  it("parses Tatoeba export lines without headers", () => {
+    expect(parseTatoebaSentenceLine("900001\tjpn\t私は食べる。")).toEqual({
+      id: 900001,
+      lang: "jpn",
+      text: "私は食べる。",
+    });
+    expect(parseTatoebaSentenceLine("id\tlang\ttext")).toBeNull();
+    expect(parseTatoebaLinkLine("900001\t900002")).toEqual({ from: 900001, to: 900002 });
+    expect(parseTatoebaLinkLine("from_id\tto_id")).toBeNull();
   });
 
   it("imports fixture JMdict and KANJIDIC into SQLite with FTS hits", async () => {

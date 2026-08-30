@@ -15,7 +15,7 @@ Options:
   --kanjivg <path>     KanjiVG directory or single .svg file
   --krdict <path>      KRDICT XML file or 한국어기초사전 JSON file/folder
   --tatoeba-sentences <path>  Tatoeba sentences TSV
-  --tatoeba-links <path>      Tatoeba links TSV (from_id, to_id)
+  --tatoeba-links <path>      Tatoeba links CSV (auto-links examples to JMdict)
   --tatoeba-lexeme-links <path>  Curated ent_seq to Tatoeba jpn id TSV
   --kanjium <path>         Kanjium accents.txt pitch patterns
   --no-clear           Append without clearing existing rows
