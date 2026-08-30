@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PaneTabItem } from "../layout/paneTypes";
 import { countDueJapaneseSrsCards } from "../electron";
 import { DictionarySetup } from "./japanese/DictionarySetup";
@@ -28,6 +28,15 @@ export function JapanesePaneContent({ item: _item }: Props) {
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<DetailView>({ kind: "none" });
   const { hits, loading, error } = useJapaneseSearch(query);
+  const wasReadyRef = useRef(status?.ready ?? false);
+
+  useEffect(() => {
+    const ready = status?.ready ?? false;
+    if (!wasReadyRef.current && ready) {
+      setMode("search");
+    }
+    wasReadyRef.current = ready;
+  }, [status?.ready]);
 
   useEffect(() => {
     if (!status?.ready) {
@@ -91,7 +100,7 @@ export function JapanesePaneContent({ item: _item }: Props) {
 
       {mode === "setup" || showSetup ? (
         <div className="japanese-pane-body">
-          <DictionarySetup onReady={() => setMode("search")} />
+          <DictionarySetup />
         </div>
       ) : (
         <div className="japanese-pane-split">

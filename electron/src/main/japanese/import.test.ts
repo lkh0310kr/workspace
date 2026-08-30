@@ -8,12 +8,27 @@ import {
   importDictionary,
   initSchema,
   openDictionaryDb,
+  parseJapaneseLemmaTokens,
   rebuildLexemeFts,
 } from "../../../scripts/japanese/import-core.mjs";
 
 const fixturesDir = join(fileURLToPath(new URL(".", import.meta.url)), "../../../test-fixtures/japanese");
 
 describe("japanese dictionary import", () => {
+  it("parses NIK JSON Japanese lemma tokens", () => {
+    expect(parseJapaneseLemmaTokens("はし【端】。ふち【縁】")).toEqual([
+      { writing: null, reading: "はし" },
+      { writing: "端", reading: "はし" },
+      { writing: null, reading: "ふち" },
+      { writing: "縁", reading: "ふち" },
+    ]);
+    expect(parseJapaneseLemmaTokens("せんえいだ【先鋭だ・尖鋭だ】")).toEqual([
+      { writing: null, reading: "せんえいだ" },
+      { writing: "先鋭だ", reading: "せんえいだ" },
+      { writing: "尖鋭だ", reading: "せんえいだ" },
+    ]);
+  });
+
   it("imports fixture JMdict and KANJIDIC into SQLite with FTS hits", async () => {
     const outDir = mkdtempSync(join(tmpdir(), "japanese-import-"));
     const outPath = join(outDir, "dictionary.db");

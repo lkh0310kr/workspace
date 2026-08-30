@@ -252,7 +252,122 @@ function parseTsv(content) {
   return { headers, rows };
 }
 
-export async function importKrdict(database, xmlPath) {
+function asFeatList(feat) {
+  if (feat == null) return [];
+  return asArray(feat)
+    .map((item) => {
+      if (item == null || typeof item !== "object" || !item.att) return null;
+      return { att: String(item.att), val: textOf(item.val) };
+    })
+    .filter(Boolean);
+}
+
+/** Parse NIK 한국어기초사전 JSON Japanese equivalent lemma strings (e.g. はし【端】). */
+export function parseJapaneseLemmaTokens(lemmaText) {
+  if (!lemmaText) return [];
+  const results = [];
+  const seen = new Set();
+  const add = (writing, reading) => {
+    const w = writing?.trim() || null;
+    const r = reading?.trim() || null;
+    if (!w && !r) return;
+    const key = `${w ?? ""}|${r ?? ""}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    results.push({ writing: w, reading: r });
+  };
+
+  for (const segment of lemmaText.split(/。/)) {
+    const token = segment.trim().replace(/\.$/, "");
+    if (!token) continue;
+    const bracket = token.match(/^(.+?)【(.+?)】$/);
+    if (bracket) {
+      const reading = bracket[1].trim();
+      const writings = bracket[2]
+        .split(/[・、]/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+      add(null, reading);
+      for (const writing of writings) add(writing, reading);
+    } else {
+      add(token, token);
+    }
+  }
+  return results;
+}
+
+function listNikJsonFiles(path) {
+  const st = statSync(path);
+  if (st.isDirectory()) {
+    return readdirSync(path)
+      .filter((name) => name.toLowerCase().endsWith(".json"))
+      .map((name) => join(path, name))
+      .sort();
+  }
+  return [path];
+}
+
+function importKrdictNikJson(database, pathOrDir) {
+  const files = listNikJsonFiles(pathOrDir);
+  if (files.length === 0) throw new Error(`No JSON files found in KRDICT path: ${pathOrDir}`);
+
+  const findByOrthography = database.prepare(`SELECT DISTINCT ent_seq FROM writing WHERE orthography = ?`);
+  const findByReading = database.prepare(`SELECT DISTINCT ent_seq FROM reading WHERE kana = ?`);
+  const firstSense = database.prepare(`SELECT id FROM sense WHERE ent_seq = ? ORDER BY sense_no LIMIT 1`);
+  const insertGloss = database.prepare(
+    `INSERT INTO gloss (sense_id, lang, text, source) VALUES (?, 'ko', ?, 'krdict')`,
+  );
+  const insertProvenance = database.prepare(
+    `INSERT INTO field_provenance (entity_type, entity_id, field_name, source, external_id, updated_at)
+     VALUES ('gloss', ?, 'text', 'krdict', ?, ?)`,
+  );
+  const now = new Date().toISOString();
+  let glossCount = 0;
+
+  const lookupEntSeqs = (token) => {
+    const entSeqs = new Set();
+    if (token.writing) {
+      for (const row of findByOrthography.all(token.writing)) entSeqs.add(row.ent_seq);
+    }
+    if (token.reading) {
+      for (const row of findByReading.all(token.reading)) entSeqs.add(row.ent_seq);
+    }
+    return [...entSeqs];
+  };
+
+  const tx = database.transaction(() => {
+    for (const filePath of files) {
+      const parsed = JSON.parse(readFileSync(filePath, "utf8"));
+      const entries = asArray(parsed.LexicalResource?.Lexicon?.LexicalEntry);
+      for (const entry of entries) {
+        const targetCode = textOf(entry.val);
+        for (const sense of asArray(entry.Sense)) {
+          const definition = asFeatList(sense?.feat).find((feat) => feat.att === "definition")?.val ?? "";
+          if (!definition) continue;
+
+          for (const equivalent of asArray(sense?.Equivalent)) {
+            const feats = asFeatList(equivalent?.feat);
+            if (feats.find((feat) => feat.att === "language")?.val !== "일본어") continue;
+            const lemma = feats.find((feat) => feat.att === "lemma")?.val ?? "";
+            for (const token of parseJapaneseLemmaTokens(lemma)) {
+              for (const entSeq of lookupEntSeqs(token)) {
+                const senseRow = firstSense.get(entSeq);
+                if (!senseRow) continue;
+                const result = insertGloss.run(senseRow.id, definition);
+                insertProvenance.run(String(result.lastInsertRowid), targetCode || null, now);
+                glossCount += 1;
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+  tx();
+  return glossCount;
+}
+
+async function importKrdictXml(database, xmlPath) {
   const xml = readFileSync(xmlPath, "utf8");
   const parsed = await parseStringPromise(xml, { explicitArray: true, trim: true });
   const items = asArray(parsed.channel?.item);
@@ -299,6 +414,16 @@ export async function importKrdict(database, xmlPath) {
   });
   tx();
   return glossCount;
+}
+
+export async function importKrdict(database, krdictPath) {
+  const resolved = resolve(krdictPath);
+  if (!existsSync(resolved)) throw new Error(`KRDICT file not found: ${krdictPath}`);
+  const st = statSync(resolved);
+  if (st.isDirectory() || resolved.toLowerCase().endsWith(".json")) {
+    return importKrdictNikJson(database, resolved);
+  }
+  return importKrdictXml(database, resolved);
 }
 
 export function importTatoeba(database, sentencesPath, linksPath, lexemeLinksPath) {

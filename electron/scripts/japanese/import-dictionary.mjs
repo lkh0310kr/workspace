@@ -13,7 +13,7 @@ Options:
   --jmdict <path>      JMdict XML file
   --kanjidic <path>    KANJIDIC2 XML file
   --kanjivg <path>     KanjiVG directory or single .svg file
-  --krdict <path>      KRDICT XML file
+  --krdict <path>      KRDICT XML file or 한국어기초사전 JSON file/folder
   --tatoeba-sentences <path>  Tatoeba sentences TSV
   --tatoeba-links <path>      Tatoeba links TSV (from_id, to_id)
   --tatoeba-lexeme-links <path>  Curated ent_seq to Tatoeba jpn id TSV

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { JapaneseDiagnostics } from "./JapaneseDiagnostics";
 import { useJapaneseDb } from "./useJapaneseDb";
 
@@ -33,7 +32,7 @@ const DATA_SOURCES = [
     note: "한국어 뜻",
     url: "https://krdict.korean.go.kr/",
     flag: "--krdict",
-    file: "krdict XML",
+    file: "krdict XML 또는 한국어기초사전 JSON 폴더",
   },
   {
     name: "Tatoeba",
@@ -67,16 +66,8 @@ npm run japanese:import -- \\
 ${outLine}`;
 }
 
-interface Props {
-  onReady?: () => void;
-}
-
-export function DictionarySetup({ onReady }: Props) {
+export function DictionarySetup() {
   const { status, loading, reloading, reload } = useJapaneseDb();
-
-  useEffect(() => {
-    if (status?.ready) onReady?.();
-  }, [status?.ready, onReady]);
 
   if (loading && !status) {
     return <div className="japanese-pane-detail-empty">사전 상태 확인 중…</div>;
