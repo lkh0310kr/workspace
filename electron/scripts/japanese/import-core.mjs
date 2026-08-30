@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
@@ -24,6 +24,7 @@ export function getSchemaSql() {
 }
 
 export function openDictionaryDb(outPath) {
+  mkdirSync(dirname(outPath), { recursive: true });
   const database = new Database(outPath);
   database.pragma("journal_mode = WAL");
   database.pragma("foreign_keys = ON");

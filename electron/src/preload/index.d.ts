@@ -1,4 +1,10 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
+import type {
+  JapaneseDbStatus,
+  JapaneseKanjiDetail,
+  JapaneseLexemeDetail,
+  JapaneseSearchResult,
+} from '../shared/japaneseTypes'
 
 export interface TabInfo {
   id: number
@@ -171,7 +177,7 @@ export interface WorkspaceApi {
     createDir: (tabId: number, rel: string) => Promise<void>
     deletePath: (tabId: number, rel: string) => Promise<void>
     renamePath: (tabId: number, fromRel: string, toRel: string) => Promise<void>
-    onChanged: (cb: () => void) => () => void
+    onChanged: (cb: (paths: string[]) => void) => () => void
     searchInFiles: (requestId: string, tabId: number, query: string, opts: SearchOptions) => void
     searchCancel: (requestId: string) => void
     onSearchResult: (cb: (requestId: string, result: SearchFileResult) => void) => () => void
@@ -184,6 +190,13 @@ export interface WorkspaceApi {
   }
   rss: {
     fetchFeed: (url: string) => Promise<FeedResult>
+  }
+  japanese: {
+    dbStatus: () => Promise<JapaneseDbStatus>
+    search: (query: string, limit?: number) => Promise<JapaneseSearchResult>
+    getLexeme: (entSeq: number) => Promise<JapaneseLexemeDetail | null>
+    getKanji: (literal: string) => Promise<JapaneseKanjiDetail | null>
+    searchByKanji: (literal: string) => Promise<JapaneseSearchResult>
   }
   epub: {
     open: (tabId: number, rel: string) => Promise<EpubBook>

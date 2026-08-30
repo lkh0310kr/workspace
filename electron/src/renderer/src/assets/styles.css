@@ -1308,6 +1308,169 @@ iframe.browser-content-slot {
   font-size: 13px;
 }
 
+.japanese-pane-toolbar-hint {
+  margin: 6px 0 0;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.japanese-pane-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 34%) 1fr;
+}
+
+.japanese-pane-results,
+.japanese-pane-detail {
+  min-height: 0;
+  overflow: auto;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.japanese-pane-detail {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.japanese-pane-detail-empty {
+  padding: 16px;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.japanese-hit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.japanese-hit-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+
+.japanese-hit-item:hover,
+.japanese-hit-item.is-active {
+  background: var(--bg-raised);
+}
+
+.japanese-hit-primary {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.japanese-hit-reading {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.japanese-hit-gloss {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.japanese-lexeme-detail,
+.japanese-kanji-detail {
+  padding: 16px;
+}
+
+.japanese-lexeme-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.japanese-lexeme-reading {
+  margin-top: 6px;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.japanese-lexeme-alt-readings {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.japanese-section-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.japanese-lexeme-section {
+  margin-top: 18px;
+}
+
+.japanese-sense-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.japanese-sense-item {
+  margin-bottom: 6px;
+  line-height: 1.45;
+}
+
+.japanese-kanji-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.japanese-kanji-chip {
+  min-width: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-raised);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.japanese-kanji-chip:hover {
+  border-color: var(--accent);
+}
+
+.japanese-kanji-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.japanese-kanji-glyph {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.japanese-kanji-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.japanese-reading-line {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
 .japanese-pane-import-hint {
   margin: 0;
   padding: 12px;

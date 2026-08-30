@@ -150,6 +150,41 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
   return window.api.rss.fetchFeed(url);
 }
 
+import type {
+  JapaneseDbStatus,
+  JapaneseKanjiDetail,
+  JapaneseLexemeDetail,
+  JapaneseSearchResult,
+} from "../../shared/japaneseTypes";
+
+export type {
+  JapaneseDbStatus,
+  JapaneseKanjiDetail,
+  JapaneseLexemeDetail,
+  JapaneseLexemeSummary,
+  JapaneseSearchResult,
+} from "../../shared/japaneseTypes";
+
+export async function getJapaneseDbStatus(): Promise<JapaneseDbStatus> {
+  return window.api.japanese.dbStatus();
+}
+
+export async function searchJapanese(query: string, limit?: number): Promise<JapaneseSearchResult> {
+  return window.api.japanese.search(query, limit);
+}
+
+export async function getJapaneseLexeme(entSeq: number): Promise<JapaneseLexemeDetail | null> {
+  return window.api.japanese.getLexeme(entSeq);
+}
+
+export async function getJapaneseKanji(literal: string): Promise<JapaneseKanjiDetail | null> {
+  return window.api.japanese.getKanji(literal);
+}
+
+export async function searchJapaneseByKanji(literal: string): Promise<JapaneseSearchResult> {
+  return window.api.japanese.searchByKanji(literal);
+}
+
 export interface EpubSpineItem {
   href: string;
   mediaType: string;

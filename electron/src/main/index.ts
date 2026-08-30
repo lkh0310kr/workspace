@@ -27,6 +27,7 @@ import {
   applyWslDpiScaleFix,
   resolveUserSelectedRootPath,
 } from './wslPaths'
+import { shouldIgnoreWatcherPath } from './filesystemWatcherIgnore'
 import { revealWslWindow, toggleWslWindowMaximize, installWslWindowLifecycle } from './wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
@@ -39,6 +40,14 @@ import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
 import { startEmbeddedWorldEngine } from './worldEngineEmbed'
 import { pickDirectory, pickMediaFile } from './nativeDialogs'
+import { initJapaneseDictionary } from './japanese/init'
+import {
+  getJapaneseDbStatus,
+  getJapaneseKanji,
+  getJapaneseLexeme,
+  searchJapaneseByKanji,
+  searchJapaneseDictionary,
+} from './japanese/service'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
 
@@ -279,11 +288,20 @@ function bindMainWindow(window: BrowserWindow): void {
 let fileWatcher: fs.FSWatcher | null = null
 let watchedRoot: string | null = null
 let fsChangeDebounce: ReturnType<typeof setTimeout> | null = null
+const pendingFsChangePaths = new Set<string>()
 
-function broadcastFileChanged(): void {
+function broadcastFileChanged(changedRel?: string): void {
+  if (changedRel !== undefined) {
+    if (shouldIgnoreWatcherPath(changedRel)) return
+    pendingFsChangePaths.add(changedRel)
+  } else {
+    pendingFsChangePaths.add('')
+  }
   if (fsChangeDebounce) clearTimeout(fsChangeDebounce)
   fsChangeDebounce = setTimeout(() => {
-    sendToMainWindow('fs:changed')
+    const paths = [...pendingFsChangePaths]
+    pendingFsChangePaths.clear()
+    sendToMainWindow('fs:changed', paths)
   }, 150)
 }
 
@@ -304,7 +322,7 @@ function syncFileWatcher(): void {
     fileWatcher = fs.watch(
       root,
       recursive ? { recursive: true } : {},
-      () => broadcastFileChanged(),
+      (_event, filename) => broadcastFileChanged(filename ? String(filename) : undefined),
     )
   } catch (err) {
     console.error('fs.watch failed for', root, err)
@@ -538,6 +556,8 @@ app.whenReady().then(() => {
   // meaning a never-touched default tab's terminal id would be lost on the very next relaunch.
   persist()
 
+  initJapaneseDictionary()
+
   bindMainWindow(createWindow())
 
   ipcMain.handle('hostname', () => osHostname())
@@ -704,6 +724,13 @@ app.whenReady().then(() => {
   // is an arbitrary external HTTP resource by design, not a
   // workspace-relative path — there's nothing to resolveUnderRoot against.
   ipcMain.handle('rss:fetch-feed', (_event, url: string) => fetchFeed(url))
+  ipcMain.handle('japanese:db-status', () => getJapaneseDbStatus())
+  ipcMain.handle('japanese:search', (_event, query: string, limit?: number) =>
+    searchJapaneseDictionary(query, limit),
+  )
+  ipcMain.handle('japanese:get-lexeme', (_event, entSeq: number) => getJapaneseLexeme(entSeq))
+  ipcMain.handle('japanese:get-kanji', (_event, literal: string) => getJapaneseKanji(literal))
+  ipcMain.handle('japanese:search-by-kanji', (_event, literal: string) => searchJapaneseByKanji(literal))
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
   ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))
   ipcMain.handle('engine:get-bundle-url', (_event, tabId: number, rel: string, entry?: string) => {

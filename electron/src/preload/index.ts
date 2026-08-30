@@ -185,8 +185,8 @@ const api = {
       ipcRenderer.invoke('fs:delete-path', tabId, rel),
     renamePath: (tabId: number, fromRel: string, toRel: string): Promise<void> =>
       ipcRenderer.invoke('fs:rename-path', tabId, fromRel, toRel),
-    onChanged: (cb: () => void): (() => void) => {
-      const listener = (): void => cb()
+    onChanged: (cb: (paths: string[]) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, paths: string[]): void => cb(paths ?? [])
       ipcRenderer.on('fs:changed', listener)
       return () => ipcRenderer.removeListener('fs:changed', listener)
     },
@@ -215,6 +215,15 @@ const api = {
   },
   rss: {
     fetchFeed: (url: string): Promise<unknown> => ipcRenderer.invoke('rss:fetch-feed', url)
+  },
+  japanese: {
+    dbStatus: (): Promise<unknown> => ipcRenderer.invoke('japanese:db-status'),
+    search: (query: string, limit?: number): Promise<unknown> =>
+      ipcRenderer.invoke('japanese:search', query, limit),
+    getLexeme: (entSeq: number): Promise<unknown> => ipcRenderer.invoke('japanese:get-lexeme', entSeq),
+    getKanji: (literal: string): Promise<unknown> => ipcRenderer.invoke('japanese:get-kanji', literal),
+    searchByKanji: (literal: string): Promise<unknown> =>
+      ipcRenderer.invoke('japanese:search-by-kanji', literal),
   },
   epub: {
     open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),
