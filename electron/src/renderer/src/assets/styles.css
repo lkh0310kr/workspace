@@ -1437,6 +1437,88 @@ iframe.browser-content-slot {
   padding: 8px 10px 0;
 }
 
+.japanese-unified-search {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.japanese-unified-search-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 8px 10px 0;
+}
+
+.japanese-unified-search-row .japanese-pane-toolbar {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border-bottom: none;
+  position: static;
+}
+
+.japanese-unified-search-hint {
+  padding: 0 10px 8px;
+  margin-top: 0;
+}
+
+.japanese-results-section {
+  padding: 0 0 8px;
+}
+
+.japanese-results-section-title {
+  margin: 0;
+  padding: 10px 12px 6px;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.japanese-settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.japanese-settings-dialog {
+  width: min(760px, 100%);
+  max-height: min(88vh, 900px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.japanese-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.japanese-settings-title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.japanese-settings-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
 .japanese-mode-tab {
   padding: 6px 12px;
   border: 1px solid var(--border-subtle);
@@ -1654,6 +1736,30 @@ iframe.browser-content-slot {
 
 .japanese-handwriting {
   padding: 12px;
+}
+
+.japanese-handwriting.is-compact {
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.japanese-handwriting.is-compact .japanese-handwriting-toolbar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.japanese-handwriting.is-compact .japanese-stroke-btn {
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
+.japanese-handwriting.is-compact .japanese-handwriting-canvas {
+  width: 120px;
+  height: 120px;
+  max-width: 120px;
 }
 
 .japanese-handwriting-toolbar {
@@ -1913,8 +2019,13 @@ iframe.browser-content-slot {
   cursor: pointer;
 }
 
-.japanese-kanji-chip:hover {
+.japanese-kanji-chip:hover,
+.japanese-kanji-chip.is-active {
   border-color: var(--accent);
+}
+
+.japanese-kanji-chip.is-active {
+  background: var(--bg-active);
 }
 
 .japanese-kanji-header {

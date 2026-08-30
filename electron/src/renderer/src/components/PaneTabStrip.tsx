@@ -3,7 +3,7 @@ import type { TabNode } from "flexlayout-react";
 import { ContextMenu } from "./ContextMenu";
 import { PanePicker } from "./PanePicker";
 import { PaneTabItem, TabKind } from "../layout/paneTypes";
-import { paneKindIcon, paneKindPickerOptions, paneTabLabel } from "../panes/paneKindRegistry";
+import { paneKindIcon, paneKindPickerOptions, getPaneKind, paneTabLabel } from "../panes/paneKindRegistry";
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from "../layout/tabDrag";
 import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from "../interaction/dragSession";
 import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
@@ -32,6 +32,7 @@ interface Props {
   onClose: (id: string) => void;
   onNewTab: (kind: TabKind, source?: Partial<PaneTabItem>) => void;
   onChangeKind: (tabId: string, kind: TabKind) => void;
+  onUpdateTab?: (tabId: string, patch: Partial<PaneTabItem>) => void;
   /** A tab was dropped into this group at `index` (from this same group or
    * a different one) — caller applies it via moveTabToGroup and persists. */
   onDropTab: (payload: TabDragPayload, index: number) => void;
@@ -48,6 +49,7 @@ export function PaneTabStrip({
   onClose,
   onNewTab,
   onChangeKind,
+  onUpdateTab,
   onDropTab,
 }: Props) {
   const [addPickerAnchor, setAddPickerAnchor] = useState<DOMRect | null>(null);
@@ -88,8 +90,17 @@ export function PaneTabStrip({
 
   const contextMenuItems = useMemo(() => {
     if (!contextMenu) return [];
-    const currentKind = items.find((i) => i.id === contextMenu.tabId)?.kind;
+    const tab = items.find((i) => i.id === contextMenu.tabId);
+    const currentKind = tab?.kind;
+    const extra =
+      tab && onUpdateTab
+        ? (getPaneKind(tab.kind).tabContextMenuItems?.(tab, {
+            updateItem: (patch) => onUpdateTab(tab.id, patch),
+          }) ?? [])
+        : [];
     return [
+      ...extra,
+      ...(extra.length > 0 ? [{ type: "separator" as const }] : []),
       {
         type: "button" as const,
         label: "닫기",
@@ -108,7 +119,7 @@ export function PaneTabStrip({
         })),
       },
     ];
-  }, [contextMenu, items, onClose, onChangeKind]);
+  }, [contextMenu, items, onClose, onChangeKind, onUpdateTab]);
 
   const openContextMenu = (e: MouseEvent, tabId: string) => {
     e.preventDefault();

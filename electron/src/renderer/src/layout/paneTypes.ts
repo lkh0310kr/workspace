@@ -48,6 +48,8 @@ export interface PaneTabItem {
    * openOrSwitchToFile) or gets explicitly pinned (double-click, or
    * Cmd/Ctrl+click opens a new pinned tab directly). */
   isPreview?: boolean;
+  /** kind === "japanese" — dictionary setup dialog from tab context menu */
+  japaneseSettingsOpen?: boolean;
 }
 
 export interface PaneGroupConfig {

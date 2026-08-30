@@ -12,7 +12,16 @@ export const japanesePaneKind: PaneKindDefinition = {
   tabLabel() {
     return "Japanese";
   },
+  tabContextMenuItems(_item, { updateItem }) {
+    return [
+      {
+        type: "button",
+        label: "설정",
+        onClick: () => updateItem({ japaneseSettingsOpen: true }),
+      },
+    ];
+  },
   render(ctx) {
-    return <JapanesePaneContent item={ctx.item} />;
+    return <JapanesePaneContent item={ctx.item} onUpdateItem={ctx.updateItem} />;
   },
 };

@@ -210,6 +210,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
             onClose={closeTab}
             onNewTab={newTab}
             onChangeKind={changeKind}
+            onUpdateTab={updateItem}
             onDropTab={dropTab}
           />
         }

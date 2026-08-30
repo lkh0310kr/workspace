@@ -1,47 +1,36 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ScrollRegion } from "../components/ScrollRegion";
 import type { PaneTabItem } from "../layout/paneTypes";
 import { DictionarySetup } from "./japanese/DictionarySetup";
-import { HandwritingCanvas } from "./japanese/HandwritingCanvas";
 import { JapaneseDetailNav } from "./japanese/JapaneseDetailNav";
-import { JapaneseSearchBar } from "./japanese/JapaneseSearchBar";
+import { JapaneseSettingsDialog } from "./japanese/JapaneseSettingsDialog";
+import { JapaneseUnifiedSearch, useJapaneseSearch } from "./japanese/JapaneseUnifiedSearch";
 import { KanjiDetail } from "./japanese/KanjiDetail";
 import { LexemeDetail } from "./japanese/LexemeDetail";
-import { useJapaneseSearch } from "./japanese/SearchBar";
 import { useJapaneseDb } from "./japanese/useJapaneseDb";
 
 interface Props {
   item: PaneTabItem;
+  onUpdateItem?: (patch: Partial<PaneTabItem>) => void;
 }
-
-type PaneMode = "search" | "handwriting" | "setup";
 
 type DetailView =
   | { kind: "none" }
   | { kind: "lexeme"; entSeq: number }
   | { kind: "kanji"; literal: string };
 
-export function JapanesePaneContent({ item: _item }: Props) {
-  const { status, reload, reloading } = useJapaneseDb();
-  const [mode, setMode] = useState<PaneMode>("search");
+export function JapanesePaneContent({ item, onUpdateItem }: Props) {
+  const { status } = useJapaneseDb();
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<DetailView>({ kind: "none" });
   const [returnDetail, setReturnDetail] = useState<DetailView | null>(null);
   const [hitIndex, setHitIndex] = useState(0);
+  const [handwritingCandidates, setHandwritingCandidates] = useState<{ literal: string; score: number }[]>([]);
   const { hits, loading, error } = useJapaneseSearch(query);
-  const wasReadyRef = useRef(status?.ready ?? false);
   const hitList = hits ?? [];
+  const settingsOpen = item.japaneseSettingsOpen === true;
 
   useEffect(() => {
-    const ready = status?.ready ?? false;
-    if (!wasReadyRef.current && ready) {
-      setMode("search");
-    }
-    wasReadyRef.current = ready;
-  }, [status?.ready]);
-
-  useEffect(() => {
-    if (mode !== "search") return;
     if (detail.kind === "kanji") return;
 
     if (!query.trim() || hitList.length === 0) {
@@ -63,7 +52,7 @@ export function JapanesePaneContent({ item: _item }: Props) {
       return;
     }
     setHitIndex(currentIndex);
-  }, [hitList, query, mode, detail]);
+  }, [hitList, query, detail]);
 
   const selectHit = useCallback(
     (index: number) => {
@@ -97,9 +86,14 @@ export function JapanesePaneContent({ item: _item }: Props) {
     setReturnDetail(null);
   }, [returnDetail]);
 
+  const handleQueryChange = useCallback((next: string) => {
+    setQuery(next);
+    if (next.trim()) setHandwritingCandidates([]);
+  }, []);
+
   const handleSearchKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (mode !== "search" || hitList.length === 0) return;
+      if (hitList.length === 0) return;
       if (event.key === "ArrowDown") {
         event.preventDefault();
         selectHit(Math.min(hitIndex + 1, hitList.length - 1));
@@ -111,84 +105,78 @@ export function JapanesePaneContent({ item: _item }: Props) {
         selectHit(hitIndex);
       }
     },
-    [hitIndex, hitList, mode, selectHit],
+    [hitIndex, hitList, selectHit],
   );
 
-  const showSetup = !status?.ready && mode !== "setup";
+  const closeSettings = useCallback(() => {
+    onUpdateItem?.({ japaneseSettingsOpen: false });
+  }, [onUpdateItem]);
 
-  return (
-    <div className="japanese-pane">
-      <div className="japanese-pane-mode-tabs">
-        <button
-          type="button"
-          className={`japanese-mode-tab${mode === "search" ? " is-active" : ""}`}
-          onClick={() => setMode("search")}
-        >
-          검색
-        </button>
-        <button
-          type="button"
-          className={`japanese-mode-tab${mode === "handwriting" ? " is-active" : ""}`}
-          onClick={() => setMode("handwriting")}
-        >
-          필기
-        </button>
-        <button
-          type="button"
-          className={`japanese-mode-tab${mode === "setup" ? " is-active" : ""}`}
-          onClick={() => setMode("setup")}
-        >
-          데이터
-        </button>
-        {status?.ready ? (
-          <button
-            type="button"
-            className="japanese-mode-tab japanese-mode-tab-reload"
-            onClick={() => void reload()}
-            disabled={reloading}
-            title="사전 다시 불러오기"
-          >
-            {reloading ? "…" : "↻"}
-          </button>
-        ) : null}
-      </div>
-
-      {mode === "search" && status?.ready ? (
-        <JapaneseSearchBar
-          query={query}
-          onQueryChange={setQuery}
-          onKeyDown={handleSearchKeyDown}
-          hitCount={query.trim() ? hitList.length : null}
-          loading={loading}
-        />
-      ) : null}
-
-      {mode === "setup" || showSetup ? (
+  if (!status?.ready) {
+    return (
+      <div className="japanese-pane">
         <ScrollRegion className="japanese-pane-body">
           <DictionarySetup />
         </ScrollRegion>
-      ) : (
-        <div className="japanese-pane-split">
-          <ScrollRegion className="japanese-pane-results">
-            {mode === "handwriting" ? (
-              <HandwritingCanvas onSelectKanji={openKanji} />
-            ) : null}
-            {mode === "search" && loading ? (
-              <div className="japanese-pane-detail-empty">검색 중…</div>
-            ) : null}
-            {mode === "search" && error ? <div className="japanese-pane-detail-empty">{error}</div> : null}
-            {mode === "search" && !loading && !error && query.trim() && hitList.length === 0 ? (
-              <div className="japanese-pane-detail-empty">결과가 없습니다.</div>
-            ) : null}
-            {mode === "search" && !query.trim() ? (
-              <div className="japanese-pane-welcome">
-                <p className="japanese-pane-welcome-title">단어·읽기·로마자로 검색</p>
-                <p className="japanese-pane-toolbar-hint">
-                  예: 食べる, にほん, nihon, taberu — ↑↓로 결과 이동
-                </p>
-              </div>
-            ) : null}
-            {mode === "search" && query.trim() ? (
+      </div>
+    );
+  }
+
+  return (
+    <div className="japanese-pane">
+      {settingsOpen ? <JapaneseSettingsDialog onClose={closeSettings} /> : null}
+
+      <JapaneseUnifiedSearch
+        query={query}
+        onQueryChange={handleQueryChange}
+        onKeyDown={handleSearchKeyDown}
+        hitCount={query.trim() ? hitList.length : null}
+        loading={loading}
+        onSelectKanji={openKanji}
+        onHandwritingCandidates={setHandwritingCandidates}
+      />
+
+      <div className="japanese-pane-split">
+        <ScrollRegion className="japanese-pane-results">
+          {loading ? <div className="japanese-pane-detail-empty">검색 중…</div> : null}
+          {error ? <div className="japanese-pane-detail-empty">{error}</div> : null}
+
+          {handwritingCandidates.length > 0 ? (
+            <section className="japanese-results-section">
+              <h3 className="japanese-results-section-title">필기 인식</h3>
+              <ul className="japanese-handwriting-candidates">
+                {handwritingCandidates.map((candidate) => (
+                  <li key={candidate.literal}>
+                    <button
+                      type="button"
+                      className={`japanese-kanji-chip${detail.kind === "kanji" && detail.literal === candidate.literal ? " is-active" : ""}`}
+                      onClick={() => openKanji(candidate.literal)}
+                    >
+                      {candidate.literal}
+                    </button>
+                    <span className="japanese-handwriting-score">{Math.round(candidate.score * 100)}%</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {!loading && !error && query.trim() && hitList.length === 0 ? (
+            <div className="japanese-pane-detail-empty">결과가 없습니다.</div>
+          ) : null}
+
+          {!query.trim() && handwritingCandidates.length === 0 ? (
+            <div className="japanese-pane-welcome">
+              <p className="japanese-pane-welcome-title">단어·읽기·로마자로 검색</p>
+              <p className="japanese-pane-toolbar-hint">예: 食べる, にほん, nihon — ↑↓로 결과 이동</p>
+            </div>
+          ) : null}
+
+          {query.trim() && hitList.length > 0 ? (
+            <section className="japanese-results-section">
+              {handwritingCandidates.length > 0 ? (
+                <h3 className="japanese-results-section-title">단어 검색</h3>
+              ) : null}
               <ul className="japanese-hit-list" role="listbox" aria-label="검색 결과">
                 {hitList.map((hit, index) => (
                   <li key={hit.entSeq} role="option" aria-selected={hitIndex === index}>
@@ -212,27 +200,25 @@ export function JapanesePaneContent({ item: _item }: Props) {
                   </li>
                 ))}
               </ul>
-            ) : null}
-          </ScrollRegion>
-          <ScrollRegion className="japanese-pane-detail">
-            {detail.kind === "kanji" ? (
-              <JapaneseDetailNav label={`한자 ${detail.literal}`} onBack={returnDetail ? goBack : undefined} />
-            ) : null}
-            {detail.kind === "lexeme" ? (
-              <LexemeDetail entSeq={detail.entSeq} onKanjiClick={openKanji} />
-            ) : null}
-            {detail.kind === "kanji" ? (
-              <KanjiDetail literal={detail.literal} onLexemeClick={openLexeme} />
-            ) : null}
-            {detail.kind === "none" && mode === "search" && query.trim() && !loading ? (
-              <div className="japanese-pane-detail-empty">항목을 선택하세요.</div>
-            ) : null}
-            {detail.kind === "none" && mode === "handwriting" ? (
-              <div className="japanese-pane-detail-empty">필기로 찾은 한자를 선택하세요.</div>
-            ) : null}
-          </ScrollRegion>
-        </div>
-      )}
+            </section>
+          ) : null}
+        </ScrollRegion>
+
+        <ScrollRegion className="japanese-pane-detail">
+          {detail.kind === "kanji" ? (
+            <JapaneseDetailNav label={`한자 ${detail.literal}`} onBack={returnDetail ? goBack : undefined} />
+          ) : null}
+          {detail.kind === "lexeme" ? (
+            <LexemeDetail entSeq={detail.entSeq} onKanjiClick={openKanji} />
+          ) : null}
+          {detail.kind === "kanji" ? (
+            <KanjiDetail literal={detail.literal} onLexemeClick={openLexeme} />
+          ) : null}
+          {detail.kind === "none" && (query.trim() || handwritingCandidates.length > 0) && !loading ? (
+            <div className="japanese-pane-detail-empty">항목을 선택하세요.</div>
+          ) : null}
+        </ScrollRegion>
+      </div>
     </div>
   );
 }

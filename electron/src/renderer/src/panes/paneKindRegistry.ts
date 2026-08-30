@@ -1,5 +1,6 @@
 import type { Model } from "flexlayout-react";
 import type { ReactNode } from "react";
+import type { ContextMenuItem } from "../components/ContextMenu";
 import type { PaneTabItem, TabKind } from "../layout/paneTypes";
 
 // The pane-kind plugin registry — collapses what used to be a hardcoded
@@ -88,6 +89,11 @@ export interface PaneKindDefinition {
    * kind with a different `source` (Video/Audio/Ebook all create a
    * "viewer" tab, differing only in viewerHint). */
   pickerEntries?: PaneKindPickerEntry[];
+  /** Extra tab-strip context menu entries for this kind (prepended). */
+  tabContextMenuItems?: (
+    item: PaneTabItem,
+    actions: { updateItem: (patch: Partial<PaneTabItem>) => void },
+  ) => ContextMenuItem[];
 }
 
 const registry = new Map<TabKind, PaneKindDefinition>();

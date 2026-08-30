@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { recognizeJapaneseStrokes } from "../../electron";
 
 interface Point {
@@ -6,16 +6,37 @@ interface Point {
   y: number;
 }
 
-interface Props {
-  onSelectKanji: (literal: string) => void;
+interface Candidate {
+  literal: string;
+  score: number;
 }
 
-export function HandwritingCanvas({ onSelectKanji }: Props) {
+interface Props {
+  onSelectKanji: (literal: string) => void;
+  onCandidatesChange?: (candidates: Candidate[]) => void;
+  autoRecognize?: boolean;
+  compact?: boolean;
+}
+
+export function HandwritingCanvas({
+  onSelectKanji,
+  onCandidatesChange,
+  autoRecognize = false,
+  compact = false,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const recognizeTimerRef = useRef<number | null>(null);
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [activeStroke, setActiveStroke] = useState<Point[] | null>(null);
-  const [candidates, setCandidates] = useState<{ literal: string; score: number }[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [recognizing, setRecognizing] = useState(false);
+
+  const canvasSize = compact ? 120 : 220;
+
+  const publishCandidates = (next: Candidate[]) => {
+    setCandidates(next);
+    onCandidatesChange?.(next);
+  };
 
   const redraw = (nextStrokes: Point[][], current: Point[] | null) => {
     const canvas = canvasRef.current;
@@ -23,7 +44,7 @@ export function HandwritingCanvas({ onSelectKanji }: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.lineWidth = 3;
+    ctx.lineWidth = compact ? 2.5 : 3;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = getComputedStyle(canvas).getPropertyValue("--text").trim() || "#fff";
@@ -50,6 +71,30 @@ export function HandwritingCanvas({ onSelectKanji }: Props) {
     };
   };
 
+  const scheduleRecognize = (nextStrokes: Point[][]) => {
+    if (!autoRecognize || nextStrokes.length === 0) return;
+    if (recognizeTimerRef.current != null) window.clearTimeout(recognizeTimerRef.current);
+    recognizeTimerRef.current = window.setTimeout(() => {
+      void recognizeStrokes(nextStrokes);
+    }, 280);
+  };
+
+  const recognizeStrokes = async (strokeSet: Point[][]) => {
+    if (strokeSet.length === 0) {
+      publishCandidates([]);
+      return;
+    }
+    setRecognizing(true);
+    try {
+      const result = await recognizeJapaneseStrokes(strokeSet.map((points) => ({ points })));
+      publishCandidates(Array.isArray(result.candidates) ? result.candidates : []);
+    } catch {
+      publishCandidates([]);
+    } finally {
+      setRecognizing(false);
+    }
+  };
+
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = toCanvasPoint(event);
@@ -72,6 +117,7 @@ export function HandwritingCanvas({ onSelectKanji }: Props) {
     setStrokes(next);
     setActiveStroke(null);
     redraw(next, null);
+    scheduleRecognize(next);
   };
 
   const handlePointerUp = () => finishStroke();
@@ -79,52 +125,59 @@ export function HandwritingCanvas({ onSelectKanji }: Props) {
   const undo = () => {
     const next = strokes.slice(0, -1);
     setStrokes(next);
-    setCandidates([]);
+    publishCandidates([]);
     redraw(next, null);
+    scheduleRecognize(next);
   };
 
   const clear = () => {
     setStrokes([]);
     setActiveStroke(null);
-    setCandidates([]);
+    publishCandidates([]);
     redraw([], null);
+    if (recognizeTimerRef.current != null) window.clearTimeout(recognizeTimerRef.current);
   };
 
-  const recognize = async () => {
-    if (strokes.length === 0) return;
-    setRecognizing(true);
-    try {
-      const result = await recognizeJapaneseStrokes(strokes.map((points) => ({ points })));
-      setCandidates(Array.isArray(result.candidates) ? result.candidates : []);
-    } finally {
-      setRecognizing(false);
-    }
-  };
+  useEffect(() => {
+    return () => {
+      if (recognizeTimerRef.current != null) window.clearTimeout(recognizeTimerRef.current);
+    };
+  }, []);
 
   return (
-    <div className="japanese-handwriting">
-      <div className="japanese-handwriting-toolbar">
-        <button type="button" className="japanese-stroke-btn" onClick={undo} disabled={strokes.length === 0}>
-          Undo
-        </button>
-        <button type="button" className="japanese-stroke-btn" onClick={clear} disabled={strokes.length === 0}>
-          Clear
-        </button>
-        <button type="button" className="japanese-stroke-btn" onClick={recognize} disabled={strokes.length === 0 || recognizing}>
-          {recognizing ? "Matching…" : "Find kanji"}
-        </button>
-      </div>
+    <div className={`japanese-handwriting${compact ? " is-compact" : ""}`}>
       <canvas
         ref={canvasRef}
         className="japanese-handwriting-canvas"
-        width={220}
-        height={220}
+        width={canvasSize}
+        height={canvasSize}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        aria-label="한자 필기 입력"
       />
-      {candidates.length > 0 ? (
+      <div className="japanese-handwriting-toolbar">
+        <button type="button" className="japanese-stroke-btn" onClick={undo} disabled={strokes.length === 0}>
+          한 획
+        </button>
+        <button type="button" className="japanese-stroke-btn" onClick={clear} disabled={strokes.length === 0}>
+          지우기
+        </button>
+        {!autoRecognize ? (
+          <button
+            type="button"
+            className="japanese-stroke-btn"
+            onClick={() => void recognizeStrokes(strokes)}
+            disabled={strokes.length === 0 || recognizing}
+          >
+            {recognizing ? "인식 중…" : "한자 찾기"}
+          </button>
+        ) : recognizing ? (
+          <span className="japanese-handwriting-score">인식 중…</span>
+        ) : null}
+      </div>
+      {!compact && candidates.length > 0 ? (
         <ul className="japanese-handwriting-candidates">
           {candidates.map((candidate) => (
             <li key={candidate.literal}>

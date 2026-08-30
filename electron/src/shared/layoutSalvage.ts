@@ -21,6 +21,7 @@ const PaneTabItemSchema = z
     zoomFactor: z.number().positive().finite().optional(),
     title: z.string().optional(),
     isPreview: z.boolean().optional(),
+    japaneseSettingsOpen: z.boolean().optional(),
   })
   .superRefine((item, ctx) => {
     if (item.kind === "terminal" && typeof item.terminalId !== "number") {
