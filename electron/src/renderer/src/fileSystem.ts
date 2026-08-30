@@ -105,7 +105,7 @@ export async function listAllFiles(tabId: number): Promise<string[]> {
   return window.api.fs.listAllFiles(tabId);
 }
 
-export function onFileChanged(handler: () => void): () => void {
+export function onFileChanged(handler: (paths: string[]) => void): () => void {
   return window.api.fs.onChanged(handler);
 }
 

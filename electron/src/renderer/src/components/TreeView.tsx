@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type RefObject,
+} from "react";
 import {
   DirEntry,
   createDir,
@@ -11,40 +19,35 @@ import {
 } from "../fileSystem";
 import { classifyAssetType } from "../../../shared/asset";
 import { TextPrompt } from "./TextPrompt";
+import { ConfirmPrompt } from "./ConfirmPrompt";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import type { AnchorRect } from "./Popover";
 import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
+import {
+  ancestorDirPaths,
+  loadExplorerTreeState,
+  resetExplorerTreeState,
+  saveExplorerExpanded,
+  saveExplorerScrollTop,
+} from "../explorer/explorerState";
+import { dirsToReloadForChange } from "../explorer/treeReload";
+import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
+import { projectVisibleRows } from "../explorer/useTreeProjection";
 
 interface Props {
   tabId: number;
   rootPath: string;
+  explorerStateKey: string;
+  scrollContainerRef?: RefObject<HTMLElement | null>;
+  paneHostRef?: RefObject<HTMLElement | null>;
   selectedPath?: string | null;
   paneVisible?: boolean;
+  explorerModeActive?: boolean;
   onOpenFile: (path: string, kind: "code" | "markdown" | "viewer", pin?: boolean) => void;
-  // Lets the pane hosting this tree keep any open tab's filePath in sync
-  // with what actually happened on disk — without these, renaming/moving/
-  // deleting a file out from under an open tab leaves that tab pointing
-  // at a path that no longer exists, and the *next* save on it recreates
-  // the old file (looks like the file got "copied back").
   onPathRenamed?: (from: string, to: string) => void;
   onPathDeleted?: (path: string) => void;
-  // Opens a directory (a pre-built engine Web export — e.g. a Godot
-  // "Web" export's output folder) as a new Browser tab pointed at its
-  // workspace-engine:// URL — see engineBundleProtocol.ts and
-  // docs/ROADMAP.md's Phase 2 checklist. Only offered on folders, since
-  // a bundle is a directory of files (index.html + siblings), not a
-  // single file the way every other TreeView action targets.
   onOpenAsApp?: (path: string) => void;
-  // Exports a Godot *project* directory's Web preset via the real godot
-  // CLI, then opens the resulting bundle the same way onOpenAsApp does —
-  // the one-click version of "run export.sh yourself, then Open as App
-  // the output folder". Only offered on folders.
   onExportGodotWeb?: (path: string) => void;
-  // Launches a directory containing world-engine.json as a new World
-  // Engine window — a separate native process (see main/worldEngine.ts),
-  // not a Workspace tab/pane. Only offered on folders that actually
-  // contain the marker file (same gating as onExportGodotWeb's
-  // project.godot check).
   onOpenWorldEngineProject?: (path: string) => void;
 }
 
@@ -56,20 +59,17 @@ interface DirState {
 interface MenuState {
   x: number;
   y: number;
-  // The directory this menu applies to when acting "on the folder itself"
-  // (New File/New Folder go *inside* it) — root ("") when right-clicking
-  // empty tree space.
   dir: string;
-  // The specific entry right-clicked, if any (for Rename/Delete/Copy
-  // Path/Reveal) — absent for the empty-space/root case. Delete/Copy Path
-  // act on the whole multi-selection (`selected`) when there is one and
-  // this entry is part of it; Rename only ever targets this single entry.
   entry: DirEntry | null;
 }
 
-// Extension→type classification itself now lives in shared/asset.ts
-// (Phase 1 Asset system) — this just maps that general AssetType
-// vocabulary onto the three pane kinds this tree can route a click to.
+interface ConfirmState {
+  anchor: AnchorRect;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+}
+
 export function classifyFile(name: string): "code" | "markdown" | "viewer" {
   const type = classifyAssetType(name);
   if (type === "markdown") return "markdown";
@@ -91,6 +91,15 @@ function joinPath(dir: string, name: string): string {
   return dir ? `${dir}/${name}` : name;
 }
 
+function rowAnchor(entry: DirEntry, treeEl: HTMLElement | null): AnchorRect {
+  const row = treeEl?.querySelector<HTMLElement>(`[data-tree-path="${entry.path.replace(/"/g, '\\"')}"]`);
+  if (row) {
+    const r = row.getBoundingClientRect();
+    return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
+  }
+  return { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 };
+}
+
 async function findAvailableName(tabId: number, dir: string, base: string, ext: string) {
   const entries = await listDir(tabId, dir).catch(() => []);
   const names = new Set(entries.map((e) => e.name.toLowerCase()));
@@ -101,11 +110,6 @@ async function findAvailableName(tabId: number, dir: string, base: string, ext: 
   return `${base} ${i}${ext}`;
 }
 
-// Drag payload for moving files/folders — plain dataTransfer text (JSON
-// array of paths) is enough here, unlike PaneTabStrip's tab drag: this
-// only needs to be read once, on drop, not live during dragover (no
-// insertion-line hint to keep updating), so dataTransfer.getData()'s
-// "only readable on drop" limitation doesn't apply.
 const TREE_DRAG_MIME = "application/x-workspace-tree-paths";
 
 interface FlatRow {
@@ -127,8 +131,12 @@ function flattenVisible(dirs: Map<string, DirState>, expanded: Set<string>, dir:
 export function TreeView({
   tabId,
   rootPath,
+  explorerStateKey,
+  scrollContainerRef,
+  paneHostRef,
   selectedPath,
   paneVisible = true,
+  explorerModeActive = true,
   onOpenFile,
   onPathRenamed,
   onPathDeleted,
@@ -136,8 +144,11 @@ export function TreeView({
   onExportGodotWeb,
   onOpenWorldEngineProject,
 }: Props) {
+  const treeRef = useRef<HTMLDivElement>(null);
+  const suppressRevealPathRef = useRef<string | null>(null);
+  const pendingRevealPathRef = useRef<string | null>(null);
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(loadExplorerTreeState(explorerStateKey, rootPath).expanded));
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [prompt, setPrompt] = useState<{
     anchor: AnchorRect;
@@ -145,15 +156,12 @@ export function TreeView({
     defaultValue: string;
     onSubmit: (value: string) => void;
   } | null>(null);
-  // Multi-selection (VSCode-style: Cmd/Ctrl+click toggles, Shift+click
-  // selects the range from the last plain-clicked anchor). Separate from
-  // `selectedPath` (the prop — the file that's actually open in the
-  // active editor tab), which stays a single path regardless of this.
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
-  // Folder currently being dragged over as a move target ("" for the root
-  // background) — drives the drop-target highlight.
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
 
   const loadDir = useCallback(
     (path: string) => {
@@ -166,31 +174,94 @@ export function TreeView({
     [tabId],
   );
 
-  // Re-list from scratch whenever the tab's root_path itself changes (not
-  // just when switching to a different tab) — a Settings-dialog path
-  // change doesn't remount this component (same tabId), so without
-  // `rootPath` in the dependency list the tree would keep showing the
-  // previous root's stale listing indefinitely.
+  const setExpandedPersisted = useCallback(
+    (updater: (prev: Set<string>) => Set<string>) => {
+      setExpanded((prev) => {
+        const next = updater(prev);
+        saveExplorerExpanded(explorerStateKey, rootPath, next);
+        return next;
+      });
+    },
+    [explorerStateKey, rootPath],
+  );
+
+  const prevRootRef = useRef<string | null>(null);
+
   useEffect(() => {
+    if (prevRootRef.current !== null && prevRootRef.current !== rootPath) {
+      resetExplorerTreeState(explorerStateKey, rootPath);
+    }
+    prevRootRef.current = rootPath;
+    const restored = loadExplorerTreeState(explorerStateKey, rootPath);
     setDirs(new Map());
-    setExpanded(new Set());
+    setExpanded(new Set(restored.expanded));
     setSelected(new Set());
     setSelectionAnchor(null);
     loadDir("");
-  }, [tabId, rootPath, loadDir]);
+  }, [tabId, rootPath, explorerStateKey, loadDir]);
 
   useEffect(() => {
-    const unlisten = onFileChanged(() => {
-      loadDir("");
-      for (const path of expanded) loadDir(path);
+    const el = scrollContainerRef?.current;
+    if (!el) return;
+    const restored = loadExplorerTreeState(explorerStateKey, rootPath);
+    el.scrollTop = restored.scrollTop;
+    const onScroll = () => {
+      setScrollTop(el.scrollTop);
+      saveExplorerScrollTop(explorerStateKey, rootPath, el.scrollTop);
+    };
+    const onResize = () => setViewportHeight(el.clientHeight);
+    onResize();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(onResize);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, [scrollContainerRef, explorerStateKey, rootPath]);
+
+  useEffect(() => {
+    const unlisten = onFileChanged((paths) => {
+      const fullReload = paths.length === 0 || paths.every((p) => !p);
+      if (fullReload) {
+        loadDir("");
+        for (const path of expanded) loadDir(path);
+        return;
+      }
+      const toReload = new Set<string>();
+      for (const p of paths) {
+        for (const d of dirsToReloadForChange(p, expanded)) toReload.add(d);
+      }
+      for (const d of toReload) loadDir(d);
     });
     return unlisten;
   }, [loadDir, expanded]);
 
   useEffect(() => {
+    if (!selectedPath || !explorerModeActive) return;
+    if (suppressRevealPathRef.current === selectedPath) {
+      suppressRevealPathRef.current = null;
+      return;
+    }
+    const ancestors = ancestorDirPaths(selectedPath);
+    if (ancestors.length > 0) {
+      setExpandedPersisted((prev) => {
+        const next = new Set(prev);
+        for (const a of ancestors) next.add(a);
+        return next;
+      });
+      for (const a of ancestors) {
+        if (!dirs.get(a)?.loaded) loadDir(a);
+      }
+    }
+    pendingRevealPathRef.current = selectedPath;
+  }, [selectedPath, explorerModeActive, dirs, loadDir, setExpandedPersisted]);
+
+  useEffect(() => {
     const dismissOverlayUi = () => {
       setMenu(null);
       setPrompt(null);
+      setConfirm(null);
     };
     return onWorkspaceDismissPortals(dismissOverlayUi);
   }, []);
@@ -199,6 +270,7 @@ export function TreeView({
     if (paneVisible) return;
     setMenu(null);
     setPrompt(null);
+    setConfirm(null);
   }, [paneVisible]);
 
   const flatList = useMemo(() => {
@@ -207,8 +279,23 @@ export function TreeView({
     return out;
   }, [dirs, expanded]);
 
+  const projection = useMemo(
+    () => projectVisibleRows(flatList, scrollTop, viewportHeight),
+    [flatList, scrollTop, viewportHeight],
+  );
+
+  useEffect(() => {
+    const path = pendingRevealPathRef.current;
+    if (!path) return;
+    const row = treeRef.current?.querySelector<HTMLElement>(`[data-tree-path="${path.replace(/"/g, '\\"')}"]`);
+    if (row) {
+      row.scrollIntoView({ block: "nearest" });
+      pendingRevealPathRef.current = null;
+    }
+  }, [flatList, dirs, projection]);
+
   const toggle = (path: string) => {
-    setExpanded((prev) => {
+    setExpandedPersisted((prev) => {
       const next = new Set(prev);
       if (next.has(path)) {
         next.delete(path);
@@ -222,29 +309,29 @@ export function TreeView({
 
   const refresh = (dir: string) => loadDir(dir);
 
-  // Click handling shared by file/folder rows — VSCode's Explorer
-  // convention, not a browser's: a plain single click opens a file as a
-  // *preview* tab (PaneGroup.openOrSwitchToFile reuses/replaces the
-  // current preview tab's slot instead of piling up a new one, unless
-  // it's been edited — see paneTypes.ts's isPreview doc comment).
-  // Cmd/Ctrl+click on a *file* pins it open in a new tab directly,
-  // bypassing preview reuse — it does not toggle multi-select the way
-  // Finder's Cmd+click does; Shift+click's range-select (below) is this
-  // tree's only multi-select path. Double-click (see the row's
-  // onDoubleClick below) pins whatever's already open instead of opening
-  // fresh. Shift extends the range from the fixed anchor (doesn't move
-  // it, matching Finder/VSCode); a plain click replaces the selection
-  // with just this entry and *then* runs `action` (open file / expand
-  // folder).
+  const focusedEntry = useCallback((): DirEntry | null => {
+    const path = selectionAnchor ?? selectedPath ?? [...selected][0] ?? null;
+    if (!path) return flatList[0]?.entry ?? null;
+    return flatList.find((r) => r.entry.path === path)?.entry ?? flatList[0]?.entry ?? null;
+  }, [selectionAnchor, selectedPath, selected, flatList]);
+
+  const scrollRowIntoView = (path: string) => {
+    treeRef.current
+      ?.querySelector<HTMLElement>(`[data-tree-path="${path.replace(/"/g, '\\"')}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  };
+
   const handleRowClick = (
     e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean },
     entry: DirEntry,
     action: (pin: boolean) => void,
   ) => {
     const path = entry.path;
+    treeRef.current?.focus();
     if ((e.metaKey || e.ctrlKey) && !entry.is_dir) {
       setSelected(new Set([path]));
       setSelectionAnchor(path);
+      suppressRevealPathRef.current = path;
       action(true);
       return;
     }
@@ -259,6 +346,7 @@ export function TreeView({
     }
     setSelected(new Set([path]));
     setSelectionAnchor(path);
+    if (!entry.is_dir) suppressRevealPathRef.current = path;
     action(false);
   };
 
@@ -266,9 +354,6 @@ export function TreeView({
     setMenu(null);
     const name = await findAvailableName(tabId, dir, "untitled", ".md");
     const path = joinPath(dir, name);
-    // Reuses writeFile (not a dedicated "touch") — same as MarkdownPane's
-    // own New File flow, and creating an empty file this way is exactly
-    // what write_file already supports.
     await writeFile(tabId, path, "").catch(console.error);
     onOpenFile(path, "markdown");
     refresh(dir);
@@ -282,7 +367,7 @@ export function TreeView({
       defaultValue: "",
       onSubmit: async (name) => {
         await createDir(tabId, joinPath(dir, name)).catch((err) => alert(String(err)));
-        setExpanded((prev) => new Set(prev).add(dir));
+        setExpandedPersisted((prev) => new Set(prev).add(dir));
         refresh(dir);
       },
     });
@@ -304,24 +389,38 @@ export function TreeView({
     });
   };
 
-  // Operates on the whole multi-selection when `entry` is part of one,
-  // otherwise just on `entry` itself — same "select just this one first"
-  // semantics VSCode uses for a right-click landing outside the current
-  // selection (handled by the onContextMenu handler below, before this
-  // ever runs).
-  const targetPaths = (entry: DirEntry): string[] => (selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path]);
+  const targetPaths = (entry: DirEntry): string[] =>
+    selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
 
-  const remove = async (entry: DirEntry) => {
+  const remove = async (entry: DirEntry, anchor?: AnchorRect) => {
     setMenu(null);
     const paths = targetPaths(entry);
-    const label = paths.length > 1 ? `${paths.length} items` : `this ${entry.is_dir ? "folder (and everything in it)" : "file"}`;
-    if (!window.confirm(`Delete ${label}?\n\n${paths.join("\n")}`)) return;
-    for (const p of paths) {
-      await deletePath(tabId, p).catch((err) => alert(String(err)));
-      onPathDeleted?.(p);
-    }
-    for (const d of new Set(paths.map(dirOf))) refresh(d);
-    setSelected(new Set());
+    const label =
+      paths.length > 1 ? `${paths.length} items` : `this ${entry.is_dir ? "folder (and everything in it)" : "file"}`;
+    const scrollEl = scrollContainerRef?.current;
+    const prevScroll = scrollEl?.scrollTop ?? 0;
+
+    const runDelete = async () => {
+      for (const p of paths) {
+        await deletePath(tabId, p).catch((err) => alert(String(err)));
+        onPathDeleted?.(p);
+      }
+      for (const d of new Set(paths.map(dirOf))) refresh(d);
+      setSelected(new Set());
+      requestAnimationFrame(() => {
+        if (scrollEl) {
+          scrollEl.scrollTop = Math.min(prevScroll, Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight));
+        }
+      });
+    };
+
+    const rect = anchor ?? rowAnchor(entry, treeRef.current);
+    setConfirm({
+      anchor: rect,
+      title: "Delete",
+      message: `Delete ${label}?\n\n${paths.join("\n")}`,
+      onConfirm: () => void runDelete(),
+    });
   };
 
   const copyPath = (entry: DirEntry, relative: boolean) => {
@@ -338,12 +437,6 @@ export function TreeView({
     revealItemInDir(`${rootPath.replace(/\/+$/, "")}/${entry.path}`).catch(console.error);
   };
 
-  // Moves every path in `paths` into `targetDir` (renamePath is a plain
-  // rename on the backend — moving is just renaming to a path under a
-  // different parent). Skips a path that's already directly in
-  // targetDir, and skips dropping a folder into itself or one of its own
-  // descendants (which renamePath would otherwise happily corrupt into a
-  // folder trying to contain itself).
   const moveEntries = async (paths: string[], targetDir: string) => {
     for (const p of paths) {
       if (dirOf(p) === targetDir) continue;
@@ -382,6 +475,63 @@ export function TreeView({
       console.error("tree-view: bad drag payload", err);
     }
   };
+
+  const keyboardHandlers = useMemo(
+    () => ({
+      getFocusedEntry: focusedEntry,
+      onDelete: () => {
+        const entry = focusedEntry();
+        if (entry) void remove(entry);
+      },
+      onRename: () => {
+        const entry = focusedEntry();
+        if (entry) rename(entry, rowAnchor(entry, treeRef.current));
+      },
+      onEnter: (entry: DirEntry) => {
+        if (entry.is_dir) toggle(entry.path);
+        else onOpenFile(entry.path, classifyFile(entry.name), true);
+      },
+      onMoveSelection: (delta: number) => {
+        const entry = focusedEntry();
+        const idx = entry ? flatList.findIndex((r) => r.entry.path === entry.path) : -1;
+        const nextIdx = idx === -1 ? (delta > 0 ? 0 : flatList.length - 1) : Math.max(0, Math.min(flatList.length - 1, idx + delta));
+        const next = flatList[nextIdx];
+        if (!next) return;
+        setSelected(new Set([next.entry.path]));
+        setSelectionAnchor(next.entry.path);
+        scrollRowIntoView(next.entry.path);
+      },
+      onCollapse: () => {
+        const entry = focusedEntry();
+        if (entry?.is_dir) {
+          setExpandedPersisted((prev) => {
+            const next = new Set(prev);
+            next.delete(entry.path);
+            return next;
+          });
+        }
+      },
+      onExpand: () => {
+        const entry = focusedEntry();
+        if (entry?.is_dir) {
+          setExpandedPersisted((prev) => {
+            const next = new Set(prev);
+            next.add(entry.path);
+            return next;
+          });
+          if (!dirs.get(entry.path)?.loaded) loadDir(entry.path);
+        }
+      },
+    }),
+    [focusedEntry, flatList, onOpenFile, dirs, loadDir, setExpandedPersisted],
+  );
+
+  useExplorerKeyboard(
+    paneHostRef ?? { current: null },
+    treeRef,
+    paneVisible && explorerModeActive,
+    keyboardHandlers,
+  );
 
   const menuItems = useMemo((): ContextMenuItem[] => {
     if (!menu) return [];
@@ -456,7 +606,7 @@ export function TreeView({
     items.push({
       type: "button",
       label: selected.size > 1 ? `Delete ${selected.size} items` : "Delete",
-      onClick: () => void remove(menu.entry!),
+      onClick: () => void remove(menu.entry!, clickAnchor),
     });
     items.push({ type: "separator" });
     items.push({
@@ -481,7 +631,9 @@ export function TreeView({
 
   return (
     <div
+      ref={treeRef}
       className="tree-view"
+      tabIndex={0}
       onClick={() => setSelected(new Set())}
       onContextMenu={(e) => {
         e.preventDefault();
@@ -491,66 +643,54 @@ export function TreeView({
       onDragLeave={() => setDragOverPath((p) => (p === "" ? null : p))}
       onDrop={(e) => onFolderDrop(e, "")}
     >
-      {flatList.map(({ entry, depth }) => (
-        <div
-          key={entry.path}
-          className={`tree-view-item${entry.path === selectedPath ? " active" : ""}${selected.has(entry.path) ? " selected" : ""}${dragOverPath === entry.path ? " drag-over" : ""}`}
-          style={{ paddingLeft: depth * 14 + 8 }}
-          draggable
-          onDragStart={(e) => onEntryDragStart(e, entry)}
-          onDragOver={entry.is_dir ? (e) => onFolderDragOver(e, entry.path) : undefined}
-          onDragLeave={entry.is_dir ? () => setDragOverPath((p) => (p === entry.path ? null : p)) : undefined}
-          onDrop={entry.is_dir ? (e) => onFolderDrop(e, entry.path) : undefined}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleRowClick(e, entry, (pin) =>
-              entry.is_dir ? toggle(entry.path) : onOpenFile(entry.path, classifyFile(entry.name), pin),
-            );
-          }}
-          onDoubleClick={(e) => {
-            e.stopPropagation();
-            if (!entry.is_dir) onOpenFile(entry.path, classifyFile(entry.name), true);
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Right-clicking outside the current multi-selection replaces
-            // it with just this entry — matches remove()/copyPath()'s
-            // targetPaths() falling back to [entry.path] in that case too.
-            if (!selected.has(entry.path)) {
-              setSelected(new Set([entry.path]));
-              setSelectionAnchor(entry.path);
-            }
-            setMenu({
-              x: e.clientX,
-              y: e.clientY,
-              dir: entry.is_dir ? entry.path : dirOf(entry.path),
-              entry,
-            });
-            // Why: the "Export Godot (Web) & Open" menu item is gated on
-            // this directory actually containing project.godot — an
-            // unexpanded folder's children aren't in `dirs` yet, so load
-            // them now; the menuItems memo below picks it up once `dirs`
-            // updates and re-renders with the item shown/hidden correctly.
-            if (entry.is_dir && !dirs.get(entry.path)?.loaded) loadDir(entry.path);
-          }}
-        >
-          {/* One guide per ancestor level, not this row's own depth — each
-              row only draws its own row-height segment of every ancestor's
-              line; stacked across siblings/descendants at the same
-              indentation they read as one continuous vertical line down
-              through the whole expanded subtree, the same effect VS
-              Code/Zed produce without needing to size a line to an entire
-              (variable, expand/collapse-dependent) subtree's height. */}
-          {Array.from({ length: depth }, (_, level) => (
-            <span key={level} className="tree-view-guide" style={{ left: level * 14 + 14 }} />
-          ))}
-          <span className="tree-view-icon">
-            {entry.is_dir ? (expanded.has(entry.path) ? "▾" : "▸") : "·"}
-          </span>
-          <span className="tree-view-name">{entry.name}</span>
-        </div>
-      ))}
+      <div style={{ paddingTop: projection.paddingTop, paddingBottom: projection.paddingBottom, minHeight: projection.totalHeight }}>
+        {projection.rows.map(({ entry, depth }) => (
+          <div
+            key={entry.path}
+            data-tree-path={entry.path}
+            className={`tree-view-item${entry.path === selectedPath ? " active" : ""}${selected.has(entry.path) ? " selected" : ""}${dragOverPath === entry.path ? " drag-over" : ""}`}
+            style={{ paddingLeft: depth * 14 + 8 }}
+            draggable
+            onDragStart={(e) => onEntryDragStart(e, entry)}
+            onDragOver={entry.is_dir ? (e) => onFolderDragOver(e, entry.path) : undefined}
+            onDragLeave={entry.is_dir ? () => setDragOverPath((p) => (p === entry.path ? null : p)) : undefined}
+            onDrop={entry.is_dir ? (e) => onFolderDrop(e, entry.path) : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRowClick(e, entry, (pin) =>
+                entry.is_dir ? toggle(entry.path) : onOpenFile(entry.path, classifyFile(entry.name), pin),
+              );
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              if (!entry.is_dir) onOpenFile(entry.path, classifyFile(entry.name), true);
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!selected.has(entry.path)) {
+                setSelected(new Set([entry.path]));
+                setSelectionAnchor(entry.path);
+              }
+              setMenu({
+                x: e.clientX,
+                y: e.clientY,
+                dir: entry.is_dir ? entry.path : dirOf(entry.path),
+                entry,
+              });
+              if (entry.is_dir && !dirs.get(entry.path)?.loaded) loadDir(entry.path);
+            }}
+          >
+            {Array.from({ length: depth }, (_, level) => (
+              <span key={level} className="tree-view-guide" style={{ left: level * 14 + 14 }} />
+            ))}
+            <span className="tree-view-icon">
+              {entry.is_dir ? (expanded.has(entry.path) ? "▾" : "▸") : "·"}
+            </span>
+            <span className="tree-view-name">{entry.name}</span>
+          </div>
+        ))}
+      </div>
       {menu ? <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} /> : null}
       {prompt && (
         <TextPrompt
@@ -559,6 +699,15 @@ export function TreeView({
           defaultValue={prompt.defaultValue}
           onSubmit={prompt.onSubmit}
           onClose={() => setPrompt(null)}
+        />
+      )}
+      {confirm && (
+        <ConfirmPrompt
+          anchorRect={confirm.anchor}
+          title={confirm.title}
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onClose={() => setConfirm(null)}
         />
       )}
     </div>

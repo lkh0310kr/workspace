@@ -5,6 +5,7 @@ import { getPaneKind, paneKindLabel } from "../panes/paneKindRegistry";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import { findTabIdForModel } from "../store/workspaceLayoutModels";
 import { resolveSplitPaneMutationStrategy } from "./layoutSplitPolicy";
+import { createEmptyMarkdownTab, findReplaceableEditorTab } from "./paneTabSlots";
 
 /** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
  * structure changes, not on activeTabId-only persists (that remounted
@@ -80,7 +81,7 @@ function resolveTabSetId(model: Model, tabNodeId: string): string | null {
 
 /** Adds a new pane (flexlayout tab node) to `tabSetId` holding a single
  * fresh tab of `kind` — used for "split" and for auto-filling an emptied
- * tabset with a default terminal. */
+ * tabset with a default editor new-tab. */
 export async function addPaneToTabSet(
   model: Model,
   tabSetId: string,
@@ -125,6 +126,42 @@ export async function addTabToGroup(
   });
   bumpPaneGroupRender(model);
   return item.id;
+}
+
+/** Open a workspace file in a pane group — reuses preview/empty "New tab"
+ * slots instead of piling up tabs when possible. */
+export async function openFileInPaneGroup(
+  model: Model,
+  tabNodeId: string,
+  path: string,
+  kind: "code" | "markdown" | "viewer",
+  opts?: {
+    jumpToLine?: number;
+    pin?: boolean;
+    isDirty?: (tabId: string) => boolean;
+    onJumpToLine?: (tabId: string, line: number) => void;
+  },
+): Promise<string | null> {
+  const config = getGroupConfig(model, tabNodeId);
+  if (!config) return null;
+  const isDirty = opts?.isDirty ?? (() => false);
+  const existing = config.tabs.find((t) => t.filePath === path);
+  if (existing) {
+    if (opts?.pin && existing.isPreview) {
+      updateTabInGroup(model, tabNodeId, existing.id, { isPreview: false });
+    }
+    if (opts?.jumpToLine != null) opts.onJumpToLine?.(existing.id, opts.jumpToLine);
+    return existing.id;
+  }
+  const replaceable = !opts?.pin ? findReplaceableEditorTab(config.tabs, config.activeTabId, isDirty) : undefined;
+  const open = replaceable
+    ? replaceTabInGroup(model, tabNodeId, replaceable.id, kind, { filePath: path })
+    : addTabToGroup(model, tabNodeId, kind, { filePath: path });
+  const id = await open;
+  if (!id) return null;
+  if (!opts?.pin) updateTabInGroup(model, tabNodeId, id, { isPreview: true });
+  if (opts?.jumpToLine != null) opts.onJumpToLine?.(id, opts.jumpToLine);
+  return id;
 }
 
 export function setActiveTabInGroup(model: Model, tabNodeId: string, tabId: string): void {
@@ -439,13 +476,21 @@ export function closeTabInGroup(model: Model, tabNodeId: string, tabId: string):
   if (idx === -1) return config.activeTabId;
   const tabs = config.tabs.filter((t) => t.id !== tabId);
   if (tabs.length === 0) {
-    model.doAction(Actions.deleteTab(tabNodeId));
-    layoutLogMutation("layoutActions.closeTabInGroup", "deleted pane (last tab)", before, summarizeLayoutModel(model), {
-      tabNodeId,
-      tabId,
-    });
+    const fresh = createEmptyMarkdownTab();
+    model.doAction(
+      Actions.updateNodeAttributes(tabNodeId, {
+        config: { ...config, tabs: [fresh], activeTabId: fresh.id },
+      }),
+    );
+    layoutLogMutation(
+      "layoutActions.closeTabInGroup",
+      "reset pane to empty new tab",
+      before,
+      summarizeLayoutModel(model),
+      { tabNodeId, tabId, nextTabId: fresh.id },
+    );
     bumpPaneGroupRender(model);
-    return null;
+    return fresh.id;
   }
   const activeTabId =
     config.activeTabId === tabId ? (tabs[idx] ?? tabs[idx - 1] ?? tabs[0]).id : config.activeTabId;

@@ -42,7 +42,7 @@ export function useLayoutHostCallbacks() {
       if (countLayoutTabs(model) > 0 || !markEnsureInflight(tabId)) return;
       try {
         if (countLayoutTabs(model) > 0) return;
-        await addPaneToTabSet(model, tabSetId, "terminal");
+        await addPaneToTabSet(model, tabSetId, "markdown");
         if (countLayoutTabs(model) > 0) bumpLayout(tabId);
       } finally {
         clearEnsureInflight(tabId);
@@ -70,7 +70,10 @@ export function useLayoutHostCallbacks() {
 
   const makeOnAction = useCallback(
     (tabId: number) => (action: Action) => {
-      if (action.type === Actions.SELECT_TAB) return action;
+      if (action.type === Actions.SELECT_TAB) {
+        useWorkspaceStore.getState().bumpLayoutRevision(tabId);
+        return action;
+      }
       if (action.type !== Actions.MOVE_NODE) return action;
       const model = getModel(tabId);
       if (!model) return action;

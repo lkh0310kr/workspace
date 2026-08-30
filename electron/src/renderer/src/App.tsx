@@ -23,7 +23,7 @@ import { useVisibleWorkspaceTab } from "./hooks/useVisibleWorkspaceTab";
 import { useHtmlFullscreen } from "./hooks/useHtmlFullscreen";
 import { applyThemePreference, setStoredThemePreference } from "./theme";
 import { useWorkspaceStore } from "./store/workspaceStore";
-import { addTabToGroup } from "./layout/layoutActions";
+import { openFileInPaneGroup } from "./layout/layoutActions";
 import type { PaneGroupConfig } from "./layout/paneTypes";
 import type { Model, TabNode } from "flexlayout-react";
 import { useEffect, useCallback, useState } from "react";
@@ -60,7 +60,7 @@ async function openFileInActivePane(
     useWorkspaceStore.getState().setActivePaneTab(workspaceTabId, nodeId, existing.id);
     return;
   }
-  const id = await addTabToGroup(model, nodeId, kind, { filePath: path });
+  const id = await openFileInPaneGroup(model, nodeId, path, kind);
   if (!id) return;
   useWorkspaceStore.getState().setActivePaneTab(workspaceTabId, nodeId, id);
   bumpLayout(workspaceTabId);
@@ -154,6 +154,7 @@ export default function App() {
           tabs={workspace.tabs}
           visibleWorkspaceTabId={visibleWorkspaceTabId}
           getModel={storeGetModel}
+          onExplorerLayoutChanged={bumpLayout}
           {...layoutCallbacks}
         />
         {workspaceRailAnchor && (
