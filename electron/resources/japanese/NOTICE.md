@@ -35,6 +35,12 @@ This application can import third-party Japanese language data. When you build a
 - **Source:** [Kanjium](https://github.com/mifunetoshiro/kanjium)
 - **Note:** Verify licence terms before commercial redistribution.
 
+## Hanjadict (Korean 훈음)
+
+- **Source:** [@seyoungsong/hanjadict](https://github.com/seyoungsong/hanjadict-js) (`data/table.json`)
+- **Licence:** MIT
+- **Note:** Bundled as `resources/japanese/hanjadict-table.json` for Korean 훈·음 glosses (e.g. 火 → 불 화).
+
 ---
 
 **ShareAlike reminder:** If you redistribute a merged database derived from CC BY-SA sources, you must make the derived database available under the same licence.
