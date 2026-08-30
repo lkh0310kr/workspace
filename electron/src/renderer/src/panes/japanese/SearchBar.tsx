@@ -63,7 +63,7 @@ export function useJapaneseSearch(query: string) {
           setError(err instanceof Error ? err.message : "검색 실패");
           setLoading(false);
         });
-    }, 200);
+    }, 300);
 
     return () => {
       cancelled = true;

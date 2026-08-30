@@ -25,12 +25,18 @@ import { japaneseLog } from "./japaneseLog";
 import { getJapaneseLogPath, probeJapaneseDbPaths } from "./paths";
 import {
   rankKanjiMatches,
-  sampleSvgPath,
+  sanitizeUserStrokes,
   scoreKanjiMatch,
-  type KanjiStrokeReference,
   type UserStrokeInput,
 } from "./strokeMatch";
 import { logPracticeScore } from "./practice";
+import {
+  getKanjiStrokeReferences,
+  getKanjiStrokeReferencesForHandwriting,
+  invalidateKanjiStrokeReferenceCache,
+} from "./strokeReferenceCache";
+
+export { invalidateKanjiStrokeReferenceCache };
 
 function buildFtsQuery(query: string, mode: "exact" | "prefix"): string {
   const tokens = query
@@ -108,6 +114,51 @@ function summarizeLexeme(db: NonNullable<ReturnType<typeof getJapaneseDb>>, entS
     primaryReading: reading?.kana ?? null,
     glossPreview: gloss?.text ?? null,
   };
+}
+
+function summarizeLexemeBatch(
+  db: NonNullable<ReturnType<typeof getJapaneseDb>>,
+  entSeqs: number[],
+): JapaneseLexemeSummary[] {
+  if (entSeqs.length === 0) return [];
+
+  const placeholders = entSeqs.map(() => "?").join(",");
+  const writingBySeq = new Map<number, string>();
+  for (const row of db
+    .prepare(`SELECT ent_seq, orthography FROM writing WHERE ent_seq IN (${placeholders}) ORDER BY id`)
+    .all(...entSeqs) as { ent_seq: number; orthography: string }[]) {
+    if (!writingBySeq.has(row.ent_seq)) writingBySeq.set(row.ent_seq, row.orthography);
+  }
+
+  const readingBySeq = new Map<number, string>();
+  for (const row of db
+    .prepare(`SELECT ent_seq, kana FROM reading WHERE ent_seq IN (${placeholders}) ORDER BY id`)
+    .all(...entSeqs) as { ent_seq: number; kana: string }[]) {
+    if (!readingBySeq.has(row.ent_seq)) readingBySeq.set(row.ent_seq, row.kana);
+  }
+
+  const glossBySeq = new Map<number, string>();
+  for (const row of db
+    .prepare(
+      `SELECT s.ent_seq, g.text
+       FROM gloss g
+       JOIN sense s ON g.sense_id = s.id
+       WHERE s.ent_seq IN (${placeholders})
+       ORDER BY s.ent_seq,
+         CASE g.lang WHEN 'ko' THEN 0 WHEN 'en' THEN 1 ELSE 2 END,
+         s.sense_no,
+         g.id`,
+    )
+    .all(...entSeqs) as { ent_seq: number; text: string }[]) {
+    if (!glossBySeq.has(row.ent_seq)) glossBySeq.set(row.ent_seq, row.text);
+  }
+
+  return entSeqs.map((entSeq) => ({
+    entSeq,
+    primaryWriting: writingBySeq.get(entSeq) ?? null,
+    primaryReading: readingBySeq.get(entSeq) ?? null,
+    glossPreview: glossBySeq.get(entSeq) ?? null,
+  }));
 }
 
 function searchByFts(db: NonNullable<ReturnType<typeof getJapaneseDb>>, ftsQuery: string, limit: number): number[] {
@@ -241,7 +292,7 @@ export function searchJapaneseDictionary(query: string, limit = 30): JapaneseSea
   lists.push(searchBySubstring(db, variants[0] ?? query.trim(), limit));
 
   const entSeqs = mergeUniqueEntSeqs(limit, ...lists);
-  const hits = entSeqs.map((entSeq) => summarizeLexeme(db, entSeq));
+  const hits = summarizeLexemeBatch(db, entSeqs);
   japaneseLog("search", { query, hitCount: hits.length, variants });
   return { query, hits };
 }
@@ -361,31 +412,15 @@ export function getJapaneseStrokes(literal: string): JapaneseStrokeData | null {
   };
 }
 
-function loadKanjiStrokeReferences(): KanjiStrokeReference[] {
-  const db = getJapaneseDb();
-  if (!db) return [];
-  const rows = db
-    .prepare("SELECT literal, stroke_order, path FROM kanji_stroke ORDER BY literal, stroke_order")
-    .all() as { literal: string; stroke_order: number; path: string }[];
-
-  const grouped = new Map<string, KanjiStrokeReference>();
-  for (const row of rows) {
-    const entry = grouped.get(row.literal) ?? { literal: row.literal, strokes: [] };
-    entry.strokes.push(sampleSvgPath(row.path));
-    grouped.set(row.literal, entry);
-  }
-  return [...grouped.values()];
-}
-
 export function recognizeJapaneseStrokes(userStrokes: UserStrokeInput[]): JapaneseStrokeRecognitionResult {
-  const references = loadKanjiStrokeReferences();
-  const candidates = rankKanjiMatches(userStrokes, references, 12);
+  const strokeCount = sanitizeUserStrokes(userStrokes).length;
+  const pool = getKanjiStrokeReferencesForHandwriting(strokeCount);
+  const candidates = rankKanjiMatches(userStrokes, pool, 12, { prefiltered: true });
   return { candidates };
 }
 
 export function scoreJapanesePractice(literal: string, userStrokes: UserStrokeInput[]): JapanesePracticeScore {
-  const references = loadKanjiStrokeReferences();
-  const reference = references.find((entry) => entry.literal === literal);
+  const reference = getKanjiStrokeReferences().find((entry) => entry.literal === literal);
   if (!reference) {
     return { literal, score: 0 };
   }

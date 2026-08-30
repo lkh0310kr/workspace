@@ -1,7 +1,19 @@
 import { connectJapaneseDbFromCandidates, setJapaneseDb } from "./db";
 import { japaneseLog } from "./japaneseLog";
-import { getJapaneseDbStatus } from "./service";
+import { getJapaneseDbStatus, invalidateKanjiStrokeReferenceCache } from "./service";
+import { getKanjiStrokeReferences } from "./strokeReferenceCache";
 import { openJapaneseUserDb, setJapaneseUserDb } from "./userDb";
+
+function warmStrokeReferenceCache(): void {
+  setImmediate(() => {
+    try {
+      getKanjiStrokeReferences();
+      japaneseLog("stroke_cache_warmed");
+    } catch (err) {
+      japaneseLog("stroke_cache_warm_error", { error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+}
 
 export function initJapaneseDictionary(): void {
   japaneseLog("init_start");
@@ -9,7 +21,10 @@ export function initJapaneseDictionary(): void {
     const { path, ready } = connectJapaneseDbFromCandidates();
     if (!ready) {
       setJapaneseDb(null);
+      invalidateKanjiStrokeReferenceCache();
       japaneseLog("init_not_ready", { path });
+    } else {
+      warmStrokeReferenceCache();
     }
     try {
       setJapaneseUserDb(openJapaneseUserDb());
@@ -33,8 +48,10 @@ export function initJapaneseDictionary(): void {
 
 export function reloadJapaneseDictionary() {
   japaneseLog("reload_start");
+  invalidateKanjiStrokeReferenceCache();
   setJapaneseDb(null);
   const result = connectJapaneseDbFromCandidates();
+  if (result.ready) warmStrokeReferenceCache();
   const status = getJapaneseDbStatus();
   japaneseLog("reload_done", {
     path: result.path,
@@ -47,6 +64,7 @@ export function reloadJapaneseDictionary() {
 }
 
 export function closeJapaneseDictionary(): void {
+  invalidateKanjiStrokeReferenceCache();
   setJapaneseDb(null);
   setJapaneseUserDb(null);
 }

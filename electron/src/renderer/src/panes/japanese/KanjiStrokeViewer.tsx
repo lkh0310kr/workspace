@@ -17,6 +17,7 @@ export function KanjiStrokeViewer({ literal }: Props) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setVisibleCount(0);
     getJapaneseStrokes(literal)
       .then((result) => {
         if (cancelled) return;
@@ -59,28 +60,20 @@ export function KanjiStrokeViewer({ literal }: Props) {
     return <div className="japanese-stroke-viewer-empty">이 한자의 획 데이터가 없습니다.</div>;
   }
 
-  const strokes = data.strokes;
+  const strokes = data.strokes.slice(0, visibleCount);
 
   return (
     <section className="japanese-stroke-viewer">
       <svg className="japanese-stroke-svg" viewBox={viewBox} role="img" aria-label={`${literal} 획순`}>
         <rect width="109" height="109" className="japanese-stroke-bg" />
-        {strokes.map((stroke, index) => {
-          const visible = index < visibleCount;
-          return (
-            <path
-              key={stroke.order}
-              d={stroke.path}
-              className={`japanese-stroke-path${visible ? " is-visible" : ""}`}
-              pathLength={1}
-              style={{
-                strokeDasharray: 1,
-                strokeDashoffset: visible ? 0 : 1,
-                transition: visible ? "stroke-dashoffset 0.45s ease" : undefined,
-              }}
-            />
-          );
-        })}
+        {strokes.map((stroke) => (
+          <path
+            key={stroke.order}
+            d={stroke.path}
+            className="japanese-stroke-path is-visible"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
       </svg>
     </section>
   );

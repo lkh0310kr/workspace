@@ -76,7 +76,7 @@ export function HandwritingCanvas({
     if (recognizeTimerRef.current != null) window.clearTimeout(recognizeTimerRef.current);
     recognizeTimerRef.current = window.setTimeout(() => {
       void recognizeStrokes(nextStrokes);
-    }, 280);
+    }, 400);
   };
 
   const recognizeStrokes = async (strokeSet: Point[][]) => {

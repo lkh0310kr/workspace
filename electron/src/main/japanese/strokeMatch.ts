@@ -44,6 +44,11 @@ function isCommand(token: string): boolean {
   return /^[a-zA-Z]$/.test(token);
 }
 
+function reflectedCubicControl(cx: number, cy: number, prev: StrokePoint | null): StrokePoint {
+  if (!prev) return { x: cx, y: cy };
+  return { x: 2 * cx - prev.x, y: 2 * cy - prev.y };
+}
+
 /** Flatten KanjiVG SVG path data (M/L/C/c curves) into a polyline. */
 export function flattenSvgPath(path: string): StrokePoint[] {
   const tokens = tokenizeSvgPath(path);
@@ -156,10 +161,7 @@ export function flattenSvgPath(path: string): StrokePoint[] {
         break;
       case "S":
         while (hasNumber()) {
-          const reflected =
-            prevCubicControl != null
-              ? { x: 2 * cx - prevCubicControl.x, y: 2 * cy - prevCubicControl.y }
-              : { x: cx, y: cy };
+          const reflected = reflectedCubicControl(cx, cy, prevCubicControl);
           const p2 = { x: readNumber(), y: readNumber() };
           const end = { x: readNumber(), y: readNumber() };
           appendCubic(reflected, p2, end);
@@ -167,10 +169,7 @@ export function flattenSvgPath(path: string): StrokePoint[] {
         break;
       case "s":
         while (hasNumber()) {
-          const reflected =
-            prevCubicControl != null
-              ? { x: 2 * cx - prevCubicControl.x, y: 2 * cy - prevCubicControl.y }
-              : { x: cx, y: cy };
+          const reflected = reflectedCubicControl(cx, cy, prevCubicControl);
           const p2 = { x: cx + readNumber(), y: cy + readNumber() };
           const end = { x: cx + readNumber(), y: cy + readNumber() };
           appendCubic(reflected, p2, end);
@@ -372,11 +371,14 @@ export function rankKanjiMatches(
   userStrokes: UserStrokeInput[],
   references: KanjiStrokeReference[],
   limit = 10,
+  options?: { prefiltered?: boolean },
 ): { literal: string; score: number }[] {
   const sanitized = sanitizeUserStrokes(userStrokes);
   if (sanitized.length === 0) return [];
 
-  const pool = filterReferencesForHandwriting(references, sanitized.length);
+  const pool = options?.prefiltered
+    ? references
+    : filterReferencesForHandwriting(references, sanitized.length);
   const ranked = pool
     .map((reference) => ({ literal: reference.literal, score: scoreKanjiMatch(sanitized, reference) }))
     .filter((entry) => entry.score >= 0.08)
