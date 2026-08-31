@@ -1,4 +1,4 @@
-import { TabNode } from "flexlayout-react";
+import { Actions, TabNode } from "flexlayout-react";
 import { describe, expect, it, vi } from "vitest";
 import type { PaneGroupConfig } from "./paneTypes";
 
@@ -55,6 +55,31 @@ describe("closeActivePaneTab", () => {
     const closed = closeActivePaneTab(model as never, "tabset-focused");
 
     expect(closed).toBe(true);
-    expect(actions.length).toBeGreaterThan(0);
+    expect(actions).toEqual([Actions.DELETE_TAB]);
+  });
+});
+
+describe("closeTabInGroup", () => {
+  it("removes the pane when closing the last tab instead of spawning a new empty tab", async () => {
+    const tabItem = { id: "md-1", kind: "markdown" as const };
+    const config: PaneGroupConfig = { tabs: [tabItem], activeTabId: tabItem.id };
+    const paneNode = Object.assign(Object.create(TabNode.prototype), {
+      getType: () => "tab",
+      getId: () => "pane-a",
+      getConfig: () => config,
+    });
+    const actions: string[] = [];
+    const model = {
+      getNodeById: (id: string) => (id === "pane-a" ? paneNode : null),
+      doAction: (action: { type: string }) => {
+        actions.push(action.type);
+      },
+    };
+
+    const { closeTabInGroup } = await import("./layoutActions");
+    const nextActive = closeTabInGroup(model as never, "pane-a", tabItem.id);
+
+    expect(nextActive).toBeNull();
+    expect(actions).toEqual([Actions.DELETE_TAB]);
   });
 });

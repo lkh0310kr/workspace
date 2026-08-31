@@ -5,7 +5,7 @@ import { getPaneKind, paneKindLabel } from "../panes/paneKindRegistry";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import { findTabIdForModel } from "../store/workspaceLayoutModels";
 import { resolveSplitPaneMutationStrategy } from "./layoutSplitPolicy";
-import { createEmptyMarkdownTab, findReplaceableEditorTab } from "./paneTabSlots";
+import { findReplaceableEditorTab } from "./paneTabSlots";
 
 /** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
  * structure changes, not on activeTabId-only persists (that remounted
@@ -484,21 +484,16 @@ export function closeTabInGroup(model: Model, tabNodeId: string, tabId: string):
   if (idx === -1) return config.activeTabId;
   const tabs = config.tabs.filter((t) => t.id !== tabId);
   if (tabs.length === 0) {
-    const fresh = createEmptyMarkdownTab();
-    model.doAction(
-      Actions.updateNodeAttributes(tabNodeId, {
-        config: { ...config, tabs: [fresh], activeTabId: fresh.id },
-      }),
-    );
+    model.doAction(Actions.deleteTab(tabNodeId));
     layoutLogMutation(
       "layoutActions.closeTabInGroup",
-      "reset pane to empty new tab",
+      "removed empty pane",
       before,
       summarizeLayoutModel(model),
-      { tabNodeId, tabId, nextTabId: fresh.id },
+      { tabNodeId, tabId },
     );
     bumpPaneGroupRender(model);
-    return fresh.id;
+    return null;
   }
   const activeTabId =
     config.activeTabId === tabId ? (tabs[idx] ?? tabs[idx - 1] ?? tabs[0]).id : config.activeTabId;
