@@ -1,4 +1,4 @@
-import { Actions, DockLocation, Model, TabNode } from "flexlayout-react";
+import { Actions, DockLocation, Model, TabNode, TabSetNode } from "flexlayout-react";
 import { layoutLog, layoutLogMutation, summarizeLayoutModel } from "./layoutDebugLog";
 import { PaneGroupConfig, PaneTabItem, TabKind } from "./paneTypes";
 import { getPaneKind, paneKindLabel } from "../panes/paneKindRegistry";
@@ -447,10 +447,10 @@ export function moveTabToSplitPane(
   return { tabNodeId: nodeJson.id, tabItemId: item.id };
 }
 
-/** Closes the active tab in the currently-focused flexlayout pane (last tab
- * in a pane removes the pane itself). Returns whether anything was closed. */
-export function closeActivePaneTab(model: Model): boolean {
-  const tabset = model.getActiveTabset();
+/** Closes the active tab in the focused flexlayout pane (last tab in a pane
+ * removes the pane itself). Returns whether anything was closed. */
+export function closeActivePaneTab(model: Model, focusedTabSetId?: string): boolean {
+  const tabset = resolveFocusedTabSet(model, focusedTabSetId);
   const tabNode = tabset?.getSelectedNode();
   if (!tabNode || tabNode.getType() !== "tab") return false;
   const config = getGroupConfig(model, tabNode.getId());
@@ -459,6 +459,14 @@ export function closeActivePaneTab(model: Model): boolean {
   if (!activeId || !config.tabs.some((t) => t.id === activeId)) return false;
   closeTabInGroup(model, tabNode.getId(), activeId);
   return true;
+}
+
+function resolveFocusedTabSet(model: Model, focusedTabSetId?: string): TabSetNode | undefined {
+  if (focusedTabSetId) {
+    const node = model.getNodeById(focusedTabSetId);
+    if (node?.getType() === "tabset") return node as TabSetNode;
+  }
+  return model.getActiveTabset();
 }
 
 /** Closes one tab within the group; closing the last tab removes the pane

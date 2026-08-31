@@ -236,10 +236,10 @@ function createWindow(): BrowserWindow {
       event.preventDefault()
       mainWindow.webContents.send('shortcut:browser-reload', { hard: input.shift })
     }
-    // Cmd+W closes the active pane tab (not the whole window) — same
-    // input-event-level interception as Cmd+R above; macOS would otherwise
-    // close the BrowserWindow on Cmd+W by default.
-    if (!terminalOwnsAppShortcuts && input.code === 'KeyW' && (input.control || input.meta)) {
+    // Cmd+W closes the active pane tab (not the whole window) — always
+    // intercept, including when a terminal is focused (xterm does not use
+    // Cmd+W; leaving it unhandled lets macOS menu role:close kill the window).
+    if (input.code === 'KeyW' && (input.control || input.meta) && !input.shift) {
       event.preventDefault()
       mainWindow.webContents.send('shortcut:close-pane-tab')
     }
@@ -436,7 +436,25 @@ function buildAppMenu(): Menu {
     },
     {
       label: 'Window',
-      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'close' }]
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        {
+          label: 'Close Tab',
+          accelerator: 'CommandOrControl+W',
+          click: () => {
+            sendToMainWindow('shortcut:close-pane-tab')
+          }
+        },
+        {
+          label: 'Close Window',
+          accelerator: 'CommandOrControl+Shift+W',
+          click: () => {
+            mainWindowRef?.close()
+          }
+        }
+      ]
     },
     {
       // World Engine Phase 3 (see docs/architecture/09-future-native-architecture.md):
@@ -538,7 +556,7 @@ app.whenReady().then(() => {
         event.preventDefault()
         sendToMainWindow('shortcut:browser-reload', { hard: input.shift })
       }
-      if (input.code === 'KeyW' && (input.control || input.meta)) {
+      if (input.code === 'KeyW' && (input.control || input.meta) && !input.shift) {
         event.preventDefault()
         sendToMainWindow('shortcut:close-pane-tab')
       }

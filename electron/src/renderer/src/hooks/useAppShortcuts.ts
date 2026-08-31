@@ -5,6 +5,7 @@ import { dismissWorkspacePortals } from '../workspacePortalDismiss'
 import { onClosePaneTabShortcut } from '../electron'
 import type { WorkspaceSettingsTarget } from './useAppShellState'
 import type { PaneGroupConfig } from '../layout/paneTypes'
+import { useWorkspaceStore } from '../store/workspaceStore'
 
 const ZOOM_MIN = 0.5
 const ZOOM_MAX = 2.5
@@ -39,6 +40,10 @@ export function useAppShortcuts({
   settingsTarget,
   dismissShellPortals
 }: ClosePaneDeps): void {
+  const focusedTabSetId = useWorkspaceStore(
+    (s) => s.focusedPaneGroupTabSetByWorkspaceTab[activeTabId]
+  )
+
   useEffect(
     () =>
       onClosePaneTabShortcut(() => {
@@ -52,9 +57,17 @@ export function useAppShortcuts({
         }
         const model = getModel(activeTabId)
         if (!model) return
-        if (closeActivePaneTab(model)) bumpLayout(activeTabId)
+        if (closeActivePaneTab(model, focusedTabSetId)) bumpLayout(activeTabId)
       }),
-    [activeTabId, bumpLayout, appSettingsOpen, settingsTarget, dismissShellPortals, getModel]
+    [
+      activeTabId,
+      bumpLayout,
+      appSettingsOpen,
+      settingsTarget,
+      dismissShellPortals,
+      getModel,
+      focusedTabSetId
+    ]
   )
 
   useEffect(() => {
