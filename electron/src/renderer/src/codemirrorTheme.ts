@@ -19,6 +19,16 @@ export const workspaceEditorTheme = EditorView.theme({
   },
   ".cm-activeLine": { background: "var(--bg-hover)" },
   ".cm-cursor": { borderLeftColor: "var(--text)" },
+  ".cm-selectionLayer": { zIndex: 2 },
+  ".cm-selectionLayer .cm-selectionBackground": {
+    backgroundColor: "var(--editor-selection-bg) !important",
+  },
+  "&.cm-focused .cm-selectionLayer .cm-selectionBackground": {
+    backgroundColor: "var(--editor-selection-bg-focused) !important",
+  },
+  ".cm-content ::selection": {
+    backgroundColor: "var(--editor-selection-bg-focused) !important",
+  },
 });
 
 // Obsidian (and every other prose-first note app) reads in a

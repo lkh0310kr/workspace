@@ -48,16 +48,9 @@ import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorVie
 import type { TabKind } from "../layout/paneTypes";
 import { Popover, type AnchorRect } from "../components/Popover";
 
-// The per-file content half of what used to be ui/EditorPane.tsx — the
-// other half (multi-file tabs, TreeView/explorer sidebar) moved up to
-// PaneGroup.tsx as part of globalizing the tab system across every pane
-// kind. What's genuinely file-specific stays here: the CodeMirror view
-// itself, its outline sidebar, search, and autosave/save. The old
-// back/forward *file history* navigation is gone entirely — that was this
-// pane's own stand-in for "switch to a different open file" before real
-// tabs existed here; clicking a different open tab in PaneTabStrip is that
-// feature now, so keeping a second parallel history-nav UI would be
-// redundant.
+// The per-file content half of what used to be ui/EditorPane.tsx — tab strip
+// and multi-file routing live in PaneGroup; TreeView/explorer sidebar renders
+// inside this component when the editor chip is active (not beside browser tabs).
 interface OutlineItem {
   level: number;
   text: string;
@@ -226,6 +219,43 @@ export function EditorContent({
     setDirty(next);
     onDirtyChangeRef.current(next);
   }, []);
+
+  const applyLoadedFileContent = useCallback(
+    (view: EditorView, content: string, jumpLine?: number | null) => {
+      lastLoadedContentRef.current = content;
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: content },
+        annotations: Transaction.addToHistory.of(false),
+      });
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+      setDirtyState(false);
+      contentLoadedRef.current = true;
+      if (jumpLine != null) {
+        jumpToPos(view, lineStartPos(view, jumpLine));
+        onJumpConsumedRef.current?.();
+      }
+    },
+    [setDirtyState],
+  );
+
+  const loadFileContent = useCallback(
+    (path: string, jumpLine?: number | null): boolean => {
+      const view = viewRef.current;
+      if (!view) return false;
+      readFile(tabId, path)
+        .then((content) => {
+          const activeView = viewRef.current;
+          if (!activeView || pathRef.current !== path) return;
+          applyLoadedFileContent(activeView, content, jumpLine);
+        })
+        .catch(console.error);
+      return true;
+    },
+    [tabId, applyLoadedFileContent],
+  );
 
   useEffect(() => subscribeAutoSave(setAutoSave), []);
 
@@ -480,38 +510,26 @@ export function EditorContent({
   }, [tabId, isMarkdown]);
 
   useEffect(() => {
-    if (!viewRef.current) return;
+    if (!filePath) return;
     contentLoadedRef.current = false;
-    if (filePath) {
-      readFile(tabId, filePath)
-        .then((content) => {
-          const view = viewRef.current;
-          if (!view) return;
-          lastLoadedContentRef.current = content;
-          view.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: content },
-            annotations: Transaction.addToHistory.of(false),
-          });
-          if (autoSaveTimerRef.current) {
-            clearTimeout(autoSaveTimerRef.current);
-            autoSaveTimerRef.current = null;
-          }
-          setDirtyState(false);
-          contentLoadedRef.current = true;
-          if (jumpToLine != null) {
-            jumpToPos(view, lineStartPos(view, jumpToLine));
-            onJumpConsumedRef.current?.();
-          }
-        })
-        .catch(console.error);
-    }
-    // jumpToLine deliberately excluded — this effect only fires on
-    // tabId/filePath changes (a fresh load); jumping in an
-    // already-loaded file is the separate effect below, keyed on
-    // jumpToLine, which reads contentLoadedRef to avoid double-applying
-    // the initial jump this effect just handled.
+    let cancelled = false;
+    let frameId = 0;
+    let attempts = 0;
+    const run = (): void => {
+      if (cancelled) return;
+      attempts += 1;
+      if (loadFileContent(filePath, jumpToLine)) return;
+      if (attempts < 12) frameId = window.requestAnimationFrame(run);
+    };
+    run();
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
+    };
+    // jumpToLine handled inside the initial load when present; the effect
+    // below covers jumps on an already-loaded file only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, filePath, setDirtyState]);
+  }, [tabId, filePath, loadFileContent]);
 
   useEffect(() => {
     if (jumpToLine == null) return;
@@ -532,8 +550,8 @@ export function EditorContent({
       readFile(tabId, filePath)
         .then((content) => {
           if (content === view.state.doc.toString()) return;
-          lastLoadedContentRef.current = content;
           const selection = view.state.selection;
+          lastLoadedContentRef.current = content;
           view.dispatch({
             changes: { from: 0, to: view.state.doc.length, insert: content },
             selection: selection.main.to <= content.length ? selection : undefined,
