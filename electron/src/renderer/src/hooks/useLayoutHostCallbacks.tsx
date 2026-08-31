@@ -21,6 +21,13 @@ import { restorePendingSplitScrollStates } from "../layout/layoutSplitScrollRest
 import { PaneGroup } from "../panes/PaneGroup";
 import { useWorkspaceStore } from "../store/workspaceStore";
 
+const LAYOUT_STRUCTURE_ACTIONS = new Set<string>([
+  Actions.ADD_TAB,
+  Actions.MOVE_NODE,
+  Actions.DELETE_TAB,
+  Actions.DELETE_TABSET,
+]);
+
 export function useLayoutHostCallbacks() {
   const persistLayout = useWorkspaceStore((s) => s.persistLayout);
   const getModel = useWorkspaceStore((s) => s.getModel);
@@ -97,9 +104,12 @@ export function useLayoutHostCallbacks() {
   );
 
   const makeOnModelChange = useCallback(
-    (tabId: number) => () => {
+    (tabId: number) => (_model: Model, action: Action) => {
       const model = getModel(tabId);
       if (!model) return;
+      if (LAYOUT_STRUCTURE_ACTIONS.has(action.type)) {
+        useWorkspaceStore.getState().bumpLayoutRevision(tabId);
+      }
       const before = summarizeBeforeModelChange(model);
       const draggedId = takePendingRebalance(tabId);
       if (draggedId) rebalanceAfterPaneDrag(model, draggedId, tabId);

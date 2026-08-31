@@ -40,6 +40,7 @@
   --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", Consolas, "D2Coding",
     "NanumGothicCoding", "Noto Sans Mono CJK KR", "Apple SD Gothic Neo", "Malgun Gothic", monospace;
   --chrome-h: 34px;
+  --pane-group-unfocused-opacity: 0.7;
   --browser-chrome-total: 36px;
   --scroll-size: 8px;
   --scroll-thumb: rgba(121, 121, 121, 0.4);
@@ -1032,9 +1033,9 @@ iframe.browser-content-slot {
 }
 
 /* Orca pattern (TabGroupPanel.tsx): when multiple splits are visible, the
-   focused group stays at full opacity and the rest dim to 0.95. */
+   focused group stays at full opacity and the rest dim (0.7). */
 .pane-group-host-unfocused {
-  opacity: 0.95;
+  opacity: var(--pane-group-unfocused-opacity);
 }
 
 .pane-group-host-focused .pane-header {

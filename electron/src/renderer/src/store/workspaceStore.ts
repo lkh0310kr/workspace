@@ -51,6 +51,8 @@ export type WorkspaceStoreState = {
   /** Per workspace-tab layout model revision — bumps when that tab's Model reloads or pane tab structure changes. */
   layoutRevisions: Record<number, number>;
   activePaneTabByKey: Record<string, string>;
+  /** flexlayout tabset id with UI focus when multiple pane groups are visible. */
+  focusedPaneGroupTabSetByWorkspaceTab: Record<number, string | undefined>;
 };
 
 type WorkspaceStoreActions = {
@@ -67,6 +69,7 @@ type WorkspaceStoreActions = {
   setActivePaneTab: (workspaceTabId: number, nodeId: string, tabItemId: string) => void;
   getActivePaneTab: (workspaceTabId: number, nodeId: string, fallback: string) => string;
   removePaneTabKeysForWorkspaceTab: (workspaceTabId: number) => void;
+  setFocusedPaneGroupTabSet: (workspaceTabId: number, tabSetId: string) => void;
 };
 
 export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActions>()(
@@ -76,6 +79,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     activeTabId: 0,
     layoutRevisions: {},
     activePaneTabByKey: {},
+    focusedPaneGroupTabSetByWorkspaceTab: {},
 
     hydrateFromWorkspace(ws: WorkspaceState) {
       const prev = get();
@@ -122,12 +126,19 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
           bumpedTabIds.add(id);
         }
       }
-      if (bumpedTabIds.size === 0) return;
+      const nextFocused = { ...get().focusedPaneGroupTabSetByWorkspaceTab };
+      for (const id of Object.keys(nextFocused).map(Number)) {
+        if (!seen.has(id)) delete nextFocused[id];
+      }
+      if (bumpedTabIds.size === 0) {
+        set({ focusedPaneGroupTabSetByWorkspaceTab: nextFocused });
+        return;
+      }
       const nextRevisions = { ...get().layoutRevisions };
       for (const tabId of bumpedTabIds) {
         nextRevisions[tabId] = (nextRevisions[tabId] ?? 0) + 1;
       }
-      set({ layoutRevisions: nextRevisions });
+      set({ layoutRevisions: nextRevisions, focusedPaneGroupTabSetByWorkspaceTab: nextFocused });
     },
 
     bumpLayoutRevision(tabId: number) {
@@ -198,7 +209,20 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
       for (const [key, value] of Object.entries(get().activePaneTabByKey)) {
         if (!key.startsWith(prefix)) next[key] = value;
       }
-      set({ activePaneTabByKey: next });
+      const nextFocused = { ...get().focusedPaneGroupTabSetByWorkspaceTab };
+      delete nextFocused[workspaceTabId];
+      set({ activePaneTabByKey: next, focusedPaneGroupTabSetByWorkspaceTab: nextFocused });
+    },
+
+    setFocusedPaneGroupTabSet(workspaceTabId: number, tabSetId: string) {
+      const prev = get().focusedPaneGroupTabSetByWorkspaceTab[workspaceTabId];
+      if (prev === tabSetId) return;
+      set({
+        focusedPaneGroupTabSetByWorkspaceTab: {
+          ...get().focusedPaneGroupTabSetByWorkspaceTab,
+          [workspaceTabId]: tabSetId,
+        },
+      });
     },
   })),
 );

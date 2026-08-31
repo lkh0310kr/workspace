@@ -24,6 +24,10 @@ import { interactionCoordinator } from '../interaction/InteractionCoordinator'
 import { usePaneVisibility } from './usePaneVisibility'
 import { usePaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
 import { WorkspaceExplorerSidebar } from '../components/WorkspaceExplorerSidebar'
+import {
+  paneGroupHostClassNames,
+  resolvePaneGroupTabSetId
+} from './paneGroupFocus'
 
 interface Props {
   tabNode: TabNode
@@ -46,6 +50,33 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const model = tabNode.getModel()
   const nodeId = tabNode.getId()
+  const tabSetId = resolvePaneGroupTabSetId(tabNode.getParent())
+
+  const hasSplitGroups = useMemo(
+    () => countLayoutTabSets(model) > 1,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [model, layoutRevision]
+  )
+  const focusedTabSetId = useWorkspaceStore(
+    (s) => s.focusedPaneGroupTabSetByWorkspaceTab[workspaceTabId]
+  )
+  const setFocusedPaneGroupTabSet = useWorkspaceStore((s) => s.setFocusedPaneGroupTabSet)
+
+  useEffect(() => {
+    if (focusedTabSetId || !tabSetId) return
+    const active = model.getActiveTabset()?.getId()
+    if (active) setFocusedPaneGroupTabSet(workspaceTabId, active)
+  }, [focusedTabSetId, model, tabSetId, workspaceTabId, setFocusedPaneGroupTabSet])
+
+  const isGroupFocused = tabSetId != null && tabSetId === focusedTabSetId
+
+  const focusGroup = useCallback(() => {
+    if (!tabSetId || isGroupFocused) return
+    setFocusedPaneGroupTabSet(workspaceTabId, tabSetId)
+    model.doAction(Actions.setActiveTabset(tabSetId))
+  }, [model, tabSetId, isGroupFocused, workspaceTabId, setFocusedPaneGroupTabSet])
+
+  const hostClassName = paneGroupHostClassNames({ hasSplitGroups, isFocused: isGroupFocused })
 
   const storeKey = paneTabStoreKey(workspaceTabId, nodeId)
   const paneHostRef = useRef<HTMLDivElement>(null)
@@ -195,36 +226,13 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   const treeOpen = explorerChrome.treeOpen
   const onToggleTree = () => explorerChrome.setTreeOpen((v) => !v)
 
-  // Orca pattern (tab-group/TabGroupPanel.tsx): only the focused split reads at
-  // full opacity when multiple pane groups are visible. flexlayout does not
-  // always promote the clicked group to active tabset, so we set it explicitly
-  // on pointer/focus — and bump layout revision on SET_ACTIVE_TABSET so peers
-  // re-render.
-  const tabSetId = tabNode.getParent()?.getId()
-  const hasSplitGroups = useMemo(
-    () => countLayoutTabSets(model) > 1,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [model, layoutRevision]
-  )
-  const isGroupFocused = tabSetId != null && tabSetId === model.getActiveTabset()?.getId()
-
-  const focusGroup = useCallback(() => {
-    if (!tabSetId || isGroupFocused) return
-    model.doAction(Actions.setActiveTabset(tabSetId))
-  }, [model, tabSetId, isGroupFocused])
-
-  const hostClassName = [
-    'pane-group-host',
-    hasSplitGroups && !isGroupFocused ? 'pane-group-host-unfocused' : '',
-    hasSplitGroups && isGroupFocused ? 'pane-group-host-focused' : ''
-  ]
-    .filter(Boolean)
-    .join(' ')
-
   return (
     <div
       className={hostClassName}
       data-pane-node-id={nodeId}
+      data-pane-tabset-id={tabSetId}
+      data-pane-group-focused={isGroupFocused ? 'true' : 'false'}
+      data-pane-split-groups={hasSplitGroups ? 'true' : 'false'}
       ref={paneHostRef}
       onPointerDown={focusGroup}
       onFocusCapture={focusGroup}
