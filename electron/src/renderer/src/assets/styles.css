@@ -2496,12 +2496,24 @@ iframe.browser-content-slot {
 /* VSCode-parity in-editor Find/Replace panel (codemirrorSearch.ts's
    custom createPanel — Cmd+F). Reuses the same Aa/Ab/.* toggle-button
    language as .search-panel (Find in Files, Cmd+Shift+F) for visual
-   consistency between the two. */
+   consistency between the two.
+   Floats like a popover under the search icon (.obsidian-float-actions,
+   top:6px/right:8px, ~34px tall) instead of docking full-width at the
+   top of the editor — CM6 still owns mounting it via the panel system
+   (openSearchPanel/closeSearchPanel/searchPanelOpen), only the
+   positioning here changes. Anchors against .md-editor's
+   position:relative, the nearest positioned ancestor. */
 .obsidian-editor-column .cm-panel.cm-vs-search {
+  position: absolute;
+  top: 40px;
+  right: 8px;
+  z-index: 15;
+  width: 360px;
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
   padding: 6px 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   font-family: var(--font-ui);
   font-size: 12px;
 }
@@ -3477,13 +3489,6 @@ iframe.browser-content-slot {
   min-height: 0;
 }
 
-.md-pane-sidebar {
-  width: 200px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--border);
-  background: var(--bg-surface);
-}
-
 .md-pane-save-status {
   font-size: 11px;
   font-family: var(--font-mono);
@@ -3807,9 +3812,10 @@ iframe.browser-content-slot {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
-.md-pane-outline {
-  border-right: none;
-  border-left: 1px solid var(--border);
+.md-pane-outline-popover {
+  width: 240px;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
 }
 
 .md-pane-outline-empty {

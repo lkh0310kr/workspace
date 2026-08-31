@@ -44,6 +44,7 @@ import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdow
 import { wikiLinkExtension } from "../markdownWikilink";
 import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markdownTitleRename";
 import type { TabKind } from "../layout/paneTypes";
+import { Popover, type AnchorRect } from "../components/Popover";
 
 // The per-file content half of what used to be ui/EditorPane.tsx — the
 // other half (multi-file tabs, TreeView/explorer sidebar) moved up to
@@ -197,7 +198,7 @@ export function EditorContent({
   const contentLoadedRef = useRef(false);
   const onJumpConsumedRef = useRef(onJumpConsumed);
   onJumpConsumedRef.current = onJumpConsumed;
-  const [outlineOpen, setOutlineOpen] = useState(false);
+  const [outlineAnchor, setOutlineAnchor] = useState<AnchorRect | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [autoSave, setAutoSave] = useState(getStoredAutoSave);
@@ -550,6 +551,7 @@ export function EditorContent({
 
   const jumpToHeading = (pos: number) => {
     const view = viewRef.current;
+    setOutlineAnchor(null);
     if (!view) return;
     jumpToPos(view, pos);
   };
@@ -594,9 +596,15 @@ export function EditorContent({
             {isMarkdown && (
               <button
                 type="button"
-                className={`obsidian-topbar-icon${outlineOpen ? " active" : ""}`}
+                className={`obsidian-topbar-icon${outlineAnchor ? " active" : ""}`}
                 title="Toggle outline"
-                onClick={() => setOutlineOpen((v) => !v)}
+                onClick={(e) => {
+                  if (outlineAnchor) {
+                    setOutlineAnchor(null);
+                    return;
+                  }
+                  setOutlineAnchor(e.currentTarget.getBoundingClientRect());
+                }}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
                   <path fill="currentColor" d="M2 3h12v1H2V3Zm0 4h12v1H2V7Zm0 4h8v1H2v-1Z" />
@@ -682,8 +690,8 @@ export function EditorContent({
             />
           )}
         </div>
-        {isMarkdown && outlineOpen && (
-          <div className="md-pane-sidebar md-pane-outline">
+        {isMarkdown && outlineAnchor && (
+          <Popover anchorRect={outlineAnchor} onClose={() => setOutlineAnchor(null)} align="end" className="md-pane-outline-popover">
             {outline.length === 0 ? (
               <div className="md-pane-outline-empty">No headings</div>
             ) : (
@@ -698,7 +706,7 @@ export function EditorContent({
                 </div>
               ))
             )}
-          </div>
+          </Popover>
         )}
       </div>
     </div>
