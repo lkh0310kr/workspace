@@ -33,7 +33,7 @@ import {
 } from "@codemirror/language";
 import { languages as languageData } from "@codemirror/language-data";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
-import { closeSearchPanel, openSearchPanel, searchPanelOpen } from "@codemirror/search";
+import { closeSearchPanel, openSearchPanel, searchPanelOpen, selectNextOccurrence } from "@codemirror/search";
 import { listDir, onFileChanged, readFile, renamePath, writeFile } from "../electron";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
 import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
@@ -396,7 +396,14 @@ export function EditorContent({
           ...workspaceSearch,
           indentUnit.of("    "),
           history(),
-          keymap.of([indentWithTab, ...historyKeymap]),
+          // Alt/Cmd-click already added a second cursor's *range* via
+          // clickAddsSelectionRange below, but without this the editor
+          // silently collapsed it back to one selection on the next edit —
+          // CodeMirror only keeps multiple selection ranges alive when this
+          // is explicitly opted into. Mod-d (select-next-occurrence) is the
+          // other half of "real" multi-select — VS Code/Sublime convention.
+          EditorState.allowMultipleSelections.of(true),
+          keymap.of([indentWithTab, ...historyKeymap, { key: "Mod-d", run: selectNextOccurrence }]),
           EditorView.lineWrapping,
           workspaceEditorTheme,
           indentGuides,
