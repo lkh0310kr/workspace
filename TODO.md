@@ -1,7 +1,6 @@
 - [ ] Video/Audio QA — File Viewer 재생, Range 206 시킹, 대용량, 자막, 패키지 빌드 protocol 등록.
 - [ ] EPUB QA
 - [ ] 코드 퀄리티 리뷰
-- [ ] TreeView item font 너무 코딩스러움
 
 ---
 
