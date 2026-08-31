@@ -69,7 +69,8 @@
 .japanese-diagnostics-log,
 .error-log-list,
 .interaction-debug-body,
-.pane-error-fallback {
+.pane-error-fallback,
+.dashboard-view {
   min-height: 0;
   overflow: auto;
   scrollbar-width: thin;
@@ -611,8 +612,6 @@ input {
   color: var(--text);
 }
 
-
-
 .workspace-tab-rail-home {
   display: flex;
   align-items: center;
@@ -647,11 +646,286 @@ input {
   flex-shrink: 0;
 }
 
+/* —— Dashboard (home view) —— */
 .dashboard-view {
   position: absolute;
   inset: 0;
   z-index: 2;
   background: var(--bg-base);
+}
+
+.dashboard-view-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dashboard-brief-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashboard-widget {
+  display: flex;
+  flex-direction: column;
+  min-height: 160px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  overflow: hidden;
+  position: relative;
+}
+
+.dashboard-widget--brief {
+  min-height: 120px;
+}
+
+.dashboard-widget--wide {
+  grid-column: 1 / -1;
+}
+
+.dashboard-widget--markets {
+  min-height: auto;
+}
+
+.dashboard-widget-refresh {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.dashboard-widget:hover .dashboard-widget-refresh,
+.dashboard-widget:focus-within .dashboard-widget-refresh {
+  opacity: 1;
+}
+
+.dashboard-widget-refresh:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.dashboard-widget-body {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px;
+}
+
+.dashboard-muted {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dashboard-clock-time {
+  font-size: 36px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.dashboard-clock-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dashboard-clock-zone {
+  color: var(--text-faint);
+}
+
+.dashboard-weather-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-weather-icon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.dashboard-weather-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dashboard-weather-temp {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-weather-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.dashboard-weather-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.dashboard-economy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 8px;
+}
+
+.dashboard-economy-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-base);
+}
+
+.dashboard-economy-symbol {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.dashboard-economy-value {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.dashboard-economy-change {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-economy-change--up {
+  color: #7ec89a;
+}
+
+.dashboard-economy-change--down {
+  color: #e07a7a;
+}
+
+.dashboard-headline-list,
+.dashboard-notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-headline-item,
+.dashboard-notification-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+}
+
+.dashboard-headline-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dashboard-headline-source {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+
+.dashboard-headline-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.dashboard-headline-date,
+.dashboard-notification-time {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+
+.dashboard-notification-item {
+  align-items: center;
+}
+
+.dashboard-notification-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dashboard-notification-primary {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-notification-secondary {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* —— Pane chrome —— */

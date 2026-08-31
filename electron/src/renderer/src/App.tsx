@@ -9,6 +9,7 @@ import { LoadingWorkspace } from "./components/LoadingWorkspace";
 import { QuickOpen } from "./components/QuickOpen";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { WorkspaceLayoutHost } from "./components/WorkspaceLayoutHost";
+import { DashboardView } from "./dashboard/DashboardView";
 import { useAppBootstrap } from "./hooks/useAppBootstrap";
 import { useAppShellState } from "./hooks/useAppShellState";
 import { useAppShortcuts, useDismissPortalsOnWorkspaceSwitch } from "./hooks/useAppShortcuts";
@@ -146,7 +147,7 @@ export default function App() {
         onOpenWorkspaceTabSettings={(tabId, anchorRect) => setSettingsTarget({ tabId, anchorRect })}
       />
       <div className="app-shell">
-        {homeActive ? <div className="dashboard-view" aria-label="Home" /> : null}
+        {homeActive ? <DashboardView /> : null}
         <WorkspaceLayoutHost
           tabs={workspace.tabs}
           visibleWorkspaceTabId={visibleWorkspaceTabId}
