@@ -25,6 +25,12 @@ describe("classifyMediaExtension", () => {
     expect(classifyMediaExtension("a/b.epub")).toBe("epub");
   });
 
+  it("classifies model3d", () => {
+    expect(classifyMediaExtension("a/b.glb")).toBe("model3d");
+    expect(classifyMediaExtension("a/b.fbx")).toBe("model3d");
+    expect(classifyMediaExtension("a/b.obj")).toBe("model3d");
+  });
+
   it("falls back to other", () => {
     expect(classifyMediaExtension("a/b.txt")).toBe("other");
   });

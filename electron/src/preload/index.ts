@@ -268,6 +268,13 @@ const api = {
       ipcRenderer.invoke('dashboard:fetch-weather', lat, lon),
     fetchEconomy: (): Promise<unknown> => ipcRenderer.invoke('dashboard:fetch-economy')
   },
+  model3d: {
+    openPreview: (tabId: number, rel: string): Promise<unknown> =>
+      ipcRenderer.invoke('model:open-preview', tabId, rel),
+    log: (event: string, data?: Record<string, unknown>): Promise<void> =>
+      ipcRenderer.invoke('model:log', event, data),
+    logs: (limit?: number): Promise<unknown> => ipcRenderer.invoke('model:logs', limit),
+  },
   japanese: {
     dbStatus: (): Promise<unknown> => ipcRenderer.invoke('japanese:db-status'),
     reload: (): Promise<unknown> => ipcRenderer.invoke('japanese:reload'),

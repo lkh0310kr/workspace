@@ -9,12 +9,15 @@ const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bm
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".mkv"];
 const AUDIO_EXTENSIONS = [".mp3", ".wav", ".m4a", ".ogg", ".flac"];
 
-export type MediaKind = "image" | "pdf" | "video" | "audio" | "epub" | "other";
+export type MediaKind = "image" | "pdf" | "video" | "audio" | "epub" | "model3d" | "other";
+
+const MODEL3D_EXTENSIONS = [".glb", ".gltf", ".fbx", ".obj", ".stl", ".ply", ".dae"];
 
 export function classifyMediaExtension(filePath: string): MediaKind {
   const lower = filePath.toLowerCase();
   if (lower.endsWith(".pdf")) return "pdf";
   if (lower.endsWith(".epub")) return "epub";
+  if (MODEL3D_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "model3d";
   if (IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "image";
   if (VIDEO_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "video";
   if (AUDIO_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "audio";

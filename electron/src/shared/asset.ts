@@ -21,6 +21,7 @@ export type AssetType =
   | "pdf"
   | "ebook"
   | "markdown"
+  | "model3d"
   | "unknown";
 
 function extname(pathOrName: string): string {
@@ -56,6 +57,13 @@ const EXTENSION_TYPES: Record<string, AssetType> = {
   ".flac": "audio",
   ".md": "markdown",
   ".markdown": "markdown",
+  ".glb": "model3d",
+  ".gltf": "model3d",
+  ".fbx": "model3d",
+  ".obj": "model3d",
+  ".stl": "model3d",
+  ".ply": "model3d",
+  ".dae": "model3d",
 };
 
 export function classifyAssetType(pathOrName: string): AssetType {

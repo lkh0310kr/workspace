@@ -1,16 +1,12 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type MouseEvent,
-  type WheelEvent,
-} from "react";
+import { useCallback, useEffect, useRef, useState, lazy, Suspense, type CSSProperties, type MouseEvent, type WheelEvent } from "react";
 import { getMediaUrl, getMediaUrlAbsolute, pickMediaFileDialog, readFileBinaryPreview } from "../electron";
 import { classifyMediaExtension } from "./mediaKind";
 import { cuesToVtt, parseSrt, shiftCues, type SubtitleCue } from "./srtToVtt";
 import { EpubReaderContent } from "./EpubReaderContent";
+
+const ModelViewerContent = lazy(() =>
+  import("./ModelViewerContent").then((module) => ({ default: module.ModelViewerContent })),
+);
 
 // File Viewer pane — images, PDF, video, audio, EPUB (minimal v1: unzip,
 // walk the OPF spine in order, one chapter per sandboxed iframe with
@@ -43,6 +39,7 @@ interface Props {
   onAssignAbsolutePath: (path: string) => void;
   treeOpen: boolean;
   onToggleTree: () => void;
+  paneActive?: boolean;
 }
 
 // Zoom behavior ported from VSCode's own image preview
@@ -103,6 +100,7 @@ export function FileViewerContent({
   onAssignAbsolutePath,
   treeOpen,
   onToggleTree,
+  paneActive = true,
 }: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -127,6 +125,7 @@ export function FileViewerContent({
   const isAudio = kind === "audio";
   const isPdf = kind === "pdf";
   const isEpub = kind === "epub";
+  const isModel3d = kind === "model3d";
   const isMedia = isVideo || isAudio;
 
   const onBrowse = useCallback(() => {
@@ -151,8 +150,8 @@ export function FileViewerContent({
     if (!filePath && !absolutePath) return;
     // EPUB owns its own load path entirely (EpubReaderContent's openEpub
     // call) — neither the base64-preview path nor the media protocol
-    // applies to a zip archive.
-    if (isEpub) return;
+    // applies to a zip archive. Model3D uses the import pipeline instead.
+    if (isEpub || isModel3d) return;
 
     if (isMedia) {
       let cancelled = false;
@@ -199,7 +198,7 @@ export function FileViewerContent({
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, filePath, absolutePath, isMedia, isEpub]);
+  }, [tabId, filePath, absolutePath, isMedia, isEpub, isModel3d]);
 
   // Revoke the subtitle blob URL whenever it's replaced or the pane
   // unmounts — same cleanup shape as the image blob above.
@@ -362,6 +361,20 @@ export function FileViewerContent({
         )
       ) : error ? (
         <div className="file-viewer-empty">Couldn't load file</div>
+      ) : isModel3d ? (
+        filePath ? (
+          <Suspense fallback={<div className="file-viewer-empty">Loading 3D viewer…</div>}>
+            <ModelViewerContent
+              tabId={tabId}
+              filePath={filePath}
+              paneActive={paneActive}
+              treeOpen={treeOpen}
+              onToggleTree={onToggleTree}
+            />
+          </Suspense>
+        ) : (
+          <div className="file-viewer-empty">3D models must be opened from the workspace tree.</div>
+        )
       ) : isEpub ? (
         absolutePath ? (
           <EpubReaderContent absolutePath={absolutePath} />

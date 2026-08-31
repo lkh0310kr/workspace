@@ -14,6 +14,8 @@ import { registerProjectApp as registerProjectApp_ } from "./projectManifest";
 import type { ProjectManifest } from "../shared/projectManifest";
 import { exportGodotProjectWeb, type GodotExportResult } from "./godotExport";
 import { isWorldEngineProject, launchWorldEngine as launchWorldEngine_ } from "./worldEngine";
+import type { SceneManifest } from "../shared/model3d/types";
+import { openModelPreview as resolveModelPreview } from "./model3d/assetRouter";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -284,6 +286,10 @@ export class Workspace {
 
   openEpub(tabId: number, rel: string): Promise<EpubBook> {
     return openEpub(this.tabRoot(tabId), rel);
+  }
+
+  openModelPreview(tabId: number, rel: string): Promise<SceneManifest> {
+    return resolveModelPreview({ workspaceRoot: this.tabRoot(tabId), relativePath: rel, tabId });
   }
 
   /** `rel` is a workspace-relative *directory* holding an already-built

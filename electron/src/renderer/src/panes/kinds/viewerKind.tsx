@@ -45,6 +45,7 @@ export const viewerPaneKind: PaneKindDefinition = {
         onAssignAbsolutePath={(path) => ctx.updateItem({ absolutePath: path })}
         treeOpen={ctx.treeOpen}
         onToggleTree={ctx.onToggleTree}
+        paneActive={ctx.chipShown}
       />
     );
   },

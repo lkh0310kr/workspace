@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { model3dLog } from "./model3d/model3dLog";
 
 // Direct port of crates/workspace-core/src/files.rs.
 
@@ -78,6 +79,8 @@ const BINARY_PREVIEW_MIME_TYPES: Record<string, string> = {
   ".svg": "image/svg+xml",
   ".bmp": "image/bmp",
   ".pdf": "application/pdf",
+  ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
 };
 
 export type BinaryFilePreview = { content: string; mimeType: string };
@@ -90,9 +93,42 @@ export type BinaryFilePreview = { content: string; mimeType: string };
  * resolveUnderRoot confinement as every other file op here. */
 export function readFileBinaryPreview(root: string, rel: string): BinaryFilePreview | null {
   const target = resolveUnderRoot(root, rel);
-  const mimeType = BINARY_PREVIEW_MIME_TYPES[path.extname(target).toLowerCase()];
-  if (!mimeType) return null;
-  return { content: fs.readFileSync(target).toString("base64"), mimeType };
+  const ext = path.extname(target).toLowerCase();
+  const mimeType = BINARY_PREVIEW_MIME_TYPES[ext];
+  if (!mimeType) {
+    model3dLog("binary_preview_unsupported_ext", {
+      source: "main",
+      relativePath: rel,
+      absolutePath: target,
+      ext,
+    });
+    return null;
+  }
+  try {
+    const content = fs.readFileSync(target).toString("base64");
+    const isModel = ext === ".glb" || ext === ".gltf";
+    if (isModel) {
+      model3dLog("binary_preview_read_ok", {
+        source: "main",
+        relativePath: rel,
+        absolutePath: target,
+        ext,
+        mimeType,
+        byteLength: Buffer.byteLength(content, "base64"),
+      });
+    }
+    return { content, mimeType };
+  } catch (err) {
+    model3dLog("binary_preview_read_failed", {
+      source: "main",
+      relativePath: rel,
+      absolutePath: target,
+      ext,
+      mimeType,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
 }
 
 export function writeFile(root: string, rel: string, content: string): void {

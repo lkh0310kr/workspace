@@ -5,6 +5,7 @@
 // just restoring the bit unconditionally after every install so it can't
 // silently regress local dev again.
 import { chmodSync, existsSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 const candidates = [
@@ -32,4 +33,12 @@ for (const rel of candidates) {
     chmodSync(p, 0o755);
     console.log(`fix-native-exec-bits: chmod +x ${rel}`);
   }
+}
+
+if (process.platform === "darwin") {
+  const result = spawnSync("node", ["scripts/sign-native-addons.mjs"], {
+    stdio: "inherit",
+    cwd: process.cwd(),
+  });
+  if (result.status !== 0) process.exit(result.status ?? 1);
 }

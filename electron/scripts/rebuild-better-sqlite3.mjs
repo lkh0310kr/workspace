@@ -56,8 +56,14 @@ function electronSqliteWorks() {
   return result.status === 0;
 }
 
+function signNativeAddonsIfNeeded() {
+  if (process.platform !== "darwin") return;
+  run("node", ["scripts/sign-native-addons.mjs"]);
+}
+
 function rebuildForElectron() {
   run("npx", ["electron-rebuild", "-f", "-w", "better-sqlite3"]);
+  signNativeAddonsIfNeeded();
 }
 
 if (forElectron) {
@@ -65,6 +71,8 @@ if (forElectron) {
 } else if (ensureElectron) {
   if (!electronSqliteWorks()) {
     rebuildForElectron();
+  } else {
+    signNativeAddonsIfNeeded();
   }
 } else if (!systemNodeSqliteWorks()) {
   run("npm", ["rebuild", "better-sqlite3"]);

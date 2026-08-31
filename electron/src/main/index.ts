@@ -13,6 +13,7 @@ import type { SearchOptions } from './search'
 import { registerMediaProtocol, toMediaUrlBrowsed } from './mediaProtocol'
 import { fetchFeed } from './rss'
 import { fetchDashboardEconomy, fetchDashboardWeather } from './dashboardData'
+import { model3dLog, readModel3dLogs } from './model3d/model3dLog'
 import { registerEpubProtocol, openEpubAbsolute } from './epub'
 import { registerEngineBundleProtocol } from './engineBundleProtocol'
 import {
@@ -793,6 +794,13 @@ app.whenReady().then(() => {
       throw err
     }
   })
+  ipcMain.handle('model:open-preview', (_event, tabId: number, rel: string) =>
+    workspace!.openModelPreview(tabId, rel)
+  )
+  ipcMain.handle('model:log', (_event, event: string, data?: Record<string, unknown>) => {
+    model3dLog(event, { source: 'renderer', ...(data ?? {}) });
+  })
+  ipcMain.handle('model:logs', (_event, limit?: number) => readModel3dLogs(limit ?? 200))
   ipcMain.handle('japanese:db-status', () => getJapaneseDbStatus())
   ipcMain.handle('japanese:reload', () => reloadJapaneseDictionary())
   ipcMain.handle('japanese:logs', (_event, limit?: number) => readJapaneseLogs(limit ?? 80))

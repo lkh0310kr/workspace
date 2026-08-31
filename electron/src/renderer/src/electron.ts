@@ -180,6 +180,15 @@ export async function fetchDashboardEconomy(): Promise<EconomyQuote[]> {
   return window.api.dashboard.fetchEconomy();
 }
 
+export type { SceneManifest } from "../../shared/model3d/types";
+
+export async function openModelPreview(tabId: number, rel: string): Promise<import("../../shared/model3d/types").SceneManifest> {
+  if (!window.api.model3d?.openPreview) {
+    throw new Error("model3d API unavailable — restart the app");
+  }
+  return window.api.model3d.openPreview(tabId, rel);
+}
+
 import type {
   JapaneseDbStatus,
   JapaneseKanjiDetail,

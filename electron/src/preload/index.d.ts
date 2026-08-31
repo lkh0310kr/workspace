@@ -225,6 +225,11 @@ export interface WorkspaceApi {
     fetchWeather: (lat: number, lon: number) => Promise<DashboardWeather>
     fetchEconomy: () => Promise<EconomyQuote[]>
   }
+  model3d: {
+    openPreview: (tabId: number, rel: string) => Promise<import('../shared/model3d/types').SceneManifest>
+    log: (event: string, data?: Record<string, unknown>) => Promise<void>
+    logs: (limit?: number) => Promise<Record<string, unknown>[]>
+  }
   japanese: {
     dbStatus: () => Promise<JapaneseDbStatus>
     reload: () => Promise<JapaneseDbStatus>
