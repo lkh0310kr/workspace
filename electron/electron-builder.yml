@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: electron
+appId: com.kanghyun.workspace
+productName: Workspace
 directories:
   buildResources: build
 files:
@@ -37,7 +37,7 @@ mac:
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${productName}-${version}.${ext}
 linux:
   target:
     - AppImage

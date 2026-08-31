@@ -76,6 +76,14 @@ applyBrowserGpuSwitches((name, value) => {
 // Packaged builds must be single-instance. Dev skips the lock so electron-vite
 // can restart Electron after main-process rebuilds; otherwise the new process
 // loses the lock, quits immediately, and electron-vite exits all of `npm run dev`.
+// Dock/menu-bar label only — appSupportDir() in persistence.ts is what
+// actually keeps dev and packaged data apart. This just makes it obvious
+// at a glance (Dock, Cmd+Tab, window menu) which one you're looking at
+// when both are running side by side. Must run before app.whenReady().
+if (!app.isPackaged) {
+  app.setName('Workspace (Dev)')
+}
+
 const gotSingleInstanceLock = app.isPackaged ? app.requestSingleInstanceLock() : true
 if (!gotSingleInstanceLock) {
   console.error('[workspace-app] Another instance is already running — quitting.')
@@ -467,7 +475,7 @@ app.whenReady().then(() => {
     Menu.setApplicationMenu(buildAppMenu())
   }
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.kanghyun.workspace')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
