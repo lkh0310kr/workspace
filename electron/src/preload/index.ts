@@ -114,6 +114,11 @@ const api = {
       const listener = (): void => cb()
       ipcRenderer.on('shortcut:open-settings', listener)
       return () => ipcRenderer.removeListener('shortcut:open-settings', listener)
+    },
+    onNewWorkspaceTab: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:new-workspace-tab', listener)
+      return () => ipcRenderer.removeListener('shortcut:new-workspace-tab', listener)
     }
   },
   terminal: {

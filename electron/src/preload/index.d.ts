@@ -138,6 +138,7 @@ export interface WorkspaceApi {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
     onClosePaneTab: (cb: () => void) => () => void
     onOpenSettings: (cb: () => void) => () => void
+    onNewWorkspaceTab: (cb: () => void) => () => void
   }
   terminal: {
     setFocused: (id: number | null) => void

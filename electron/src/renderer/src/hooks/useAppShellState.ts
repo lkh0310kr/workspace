@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ThemePreference } from "../theme";
 import { getStoredThemePreference } from "../theme";
-import { onOpenSettingsShortcut } from "../electron";
+import { addTab, onNewWorkspaceTabShortcut, onOpenSettingsShortcut } from "../electron";
 
 export type WorkspaceSettingsTarget = { tabId: number; anchorRect: DOMRect };
 
@@ -42,6 +42,10 @@ export function useAppShellState() {
   // via shortcut:open-settings — do not also listen in the renderer or the
   // popover toggles open then immediately closed on one keypress.
   useEffect(() => onOpenSettingsShortcut(() => toggleAppSettings()), [toggleAppSettings]);
+
+  // Cmd/Ctrl+N — same "new tab" action as WorkspaceTabRail's "+" button,
+  // relayed the same way as Cmd+, above.
+  useEffect(() => onNewWorkspaceTabShortcut(() => void addTab().catch(console.error)), []);
 
   return {
     settingsTarget,

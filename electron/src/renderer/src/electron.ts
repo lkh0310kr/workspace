@@ -382,6 +382,11 @@ export function onOpenSettingsShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onOpenSettings(handler);
 }
 
+/** Cmd+N — same action as WorkspaceTabRail's "+" button. */
+export function onNewWorkspaceTabShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onNewWorkspaceTab(handler);
+}
+
 export interface ClaudeRateLimitWindow {
   used_percent: number;
   resets_at: number | null;

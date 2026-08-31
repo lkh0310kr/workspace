@@ -247,6 +247,14 @@ function createWindow(): BrowserWindow {
       event.preventDefault()
       mainWindow.webContents.send('shortcut:open-settings')
     }
+    // Cmd+N: new workspace tab (same action as the "+" button in
+    // WorkspaceTabRail). Gated by terminalOwnsAppShortcuts like Cmd+R/W
+    // above — Ctrl+N is "next history entry" in readline/vim, so a
+    // focused terminal must keep it.
+    if (!terminalOwnsAppShortcuts && input.code === 'KeyN' && (input.control || input.meta)) {
+      event.preventDefault()
+      mainWindow.webContents.send('shortcut:new-workspace-tab')
+    }
     if (focusedTerminalId !== null) {
       handleMacTerminalOptionShortcut(event, input, focusedTerminalId)
     }
@@ -537,6 +545,10 @@ app.whenReady().then(() => {
       if (input.code === 'Comma' && (input.control || input.meta)) {
         event.preventDefault()
         sendToMainWindow('shortcut:open-settings')
+      }
+      if (input.code === 'KeyN' && (input.control || input.meta)) {
+        event.preventDefault()
+        sendToMainWindow('shortcut:new-workspace-tab')
       }
       // Cmd+Shift+V: paste without formatting. Only meaningful here — a
       // webview guest is the one surface in the app where a normal paste
