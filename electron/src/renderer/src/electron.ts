@@ -346,6 +346,10 @@ export function writeClipboardText(text: string): void {
   window.api.clipboard.writeText(text);
 }
 
+export function readClipboardText(): Promise<string> {
+  return window.api.clipboard.readText();
+}
+
 /** Fires when a <webview> guest tries to open a new window (target=_blank,
  * window.open()) — main/index.ts denies the native window and forwards it
  * here instead. `hostWebContentsId` identifies which webview guest it
@@ -385,6 +389,11 @@ export function onOpenSettingsShortcut(handler: () => void): () => void {
 /** Cmd+N — same action as WorkspaceTabRail's "+" button. */
 export function onNewWorkspaceTabShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onNewWorkspaceTab(handler);
+}
+
+/** Cmd+Shift+V — paste clipboard as plain text in the focused editor. */
+export function onPastePlainTextShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onPastePlainText(handler);
 }
 
 export interface ClaudeRateLimitWindow {

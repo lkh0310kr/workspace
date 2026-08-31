@@ -255,6 +255,15 @@ function createWindow(): BrowserWindow {
       event.preventDefault()
       mainWindow.webContents.send('shortcut:new-workspace-tab')
     }
+    if (
+      focusedTerminalId === null &&
+      input.code === 'KeyV' &&
+      (input.control || input.meta) &&
+      input.shift
+    ) {
+      event.preventDefault()
+      mainWindow.webContents.send('shortcut:paste-plain-text')
+    }
     if (focusedTerminalId !== null) {
       handleMacTerminalOptionShortcut(event, input, focusedTerminalId)
     }
@@ -427,6 +436,13 @@ function buildAppMenu(): Menu {
         { role: 'cut' },
         { role: 'copy' },
         { role: 'paste' },
+        {
+          label: 'Paste and Match Style',
+          accelerator: 'CommandOrControl+Shift+V',
+          click: () => {
+            sendToMainWindow('shortcut:paste-plain-text')
+          }
+        },
         { role: 'selectAll' }
       ]
     },
@@ -652,6 +668,7 @@ app.whenReady().then(() => {
   ipcMain.on('clipboard:write-text', (_event, text: string) => {
     clipboard.writeText(text)
   })
+  ipcMain.handle('clipboard:read-text', () => clipboard.readText())
   ipcMain.handle('shell:reveal-item-in-dir', (_event, path: string) => {
     shell.showItemInFolder(path)
   })

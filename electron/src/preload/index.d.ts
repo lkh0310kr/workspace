@@ -116,6 +116,7 @@ export interface WorkspaceApi {
   }
   clipboard: {
     writeText: (text: string) => void
+    readText: () => Promise<string>
   }
   debug: {
     interactionLog: (entry: Record<string, unknown>) => void
@@ -139,6 +140,7 @@ export interface WorkspaceApi {
     onClosePaneTab: (cb: () => void) => () => void
     onOpenSettings: (cb: () => void) => () => void
     onNewWorkspaceTab: (cb: () => void) => () => void
+    onPastePlainText: (cb: () => void) => () => void
   }
   terminal: {
     setFocused: (id: number | null) => void

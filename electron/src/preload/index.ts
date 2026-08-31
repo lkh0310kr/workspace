@@ -46,7 +46,8 @@ const api = {
       ipcRenderer.invoke('dialog:pick-media-file', kind)
   },
   clipboard: {
-    writeText: (text: string): void => ipcRenderer.send('clipboard:write-text', text)
+    writeText: (text: string): void => ipcRenderer.send('clipboard:write-text', text),
+    readText: (): Promise<string> => ipcRenderer.invoke('clipboard:read-text')
   },
   debug: import.meta.env.DEV
     ? {
@@ -119,6 +120,11 @@ const api = {
       const listener = (): void => cb()
       ipcRenderer.on('shortcut:new-workspace-tab', listener)
       return () => ipcRenderer.removeListener('shortcut:new-workspace-tab', listener)
+    },
+    onPastePlainText: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:paste-plain-text', listener)
+      return () => ipcRenderer.removeListener('shortcut:paste-plain-text', listener)
     }
   },
   terminal: {
