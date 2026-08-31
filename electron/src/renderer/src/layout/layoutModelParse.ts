@@ -78,3 +78,11 @@ export function countLayoutTabs(model: Model): number {
   });
   return n;
 }
+
+export function countLayoutTabSets(model: Model): number {
+  let n = 0;
+  model.visitNodes((node) => {
+    if (node.getType() === "tabset") n += 1;
+  });
+  return n;
+}

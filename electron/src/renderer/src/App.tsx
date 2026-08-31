@@ -9,7 +9,6 @@ import { LoadingWorkspace } from "./components/LoadingWorkspace";
 import { QuickOpen } from "./components/QuickOpen";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { WorkspaceLayoutHost } from "./components/WorkspaceLayoutHost";
-import { WorkspaceTabRail } from "./components/WorkspaceTabRail";
 import { useAppBootstrap } from "./hooks/useAppBootstrap";
 import { useAppShellState } from "./hooks/useAppShellState";
 import { useAppShortcuts, useDismissPortalsOnWorkspaceSwitch } from "./hooks/useAppShortcuts";
@@ -82,10 +81,6 @@ export default function App() {
     appSettingsButtonRef,
     themePreference,
     setThemePreference,
-    workspaceRailAnchor,
-    setWorkspaceRailAnchor,
-    workspaceRailButtonRef,
-    toggleWorkspaceRail,
     toggleAppSettings,
     dismissPortals,
   } = shell;
@@ -109,9 +104,7 @@ export default function App() {
     bumpLayout,
     appSettingsOpen: appSettingsAnchor !== null,
     settingsTarget,
-    sidebarQuickSwitchOpen: workspaceRailAnchor !== null,
     dismissShellPortals: dismissPortals,
-    setSidebarQuickSwitchAnchor: setWorkspaceRailAnchor,
   });
 
   useEffect(() => applyThemePreference(themePreference), [themePreference]);
@@ -142,30 +135,20 @@ export default function App() {
   return (
     <div className={`app-root${htmlFullscreen ? " html-fullscreen" : ""}`}>
       <AppTitlebar
-        workspaceRailOpen={workspaceRailAnchor !== null}
-        workspaceRailButtonRef={workspaceRailButtonRef}
-        onToggleWorkspaceRail={(anchor) => toggleWorkspaceRail(anchor)}
         appSettingsOpen={appSettingsAnchor !== null}
         appSettingsButtonRef={appSettingsButtonRef}
         onToggleAppSettings={(anchor) => toggleAppSettings(anchor)}
+        workspaceTabs={workspace.tabs}
+        activeWorkspaceTabId={visibleWorkspaceTabId}
+        onOpenWorkspaceTabSettings={(tabId, anchorRect) => setSettingsTarget({ tabId, anchorRect })}
       />
       <div className="app-shell">
         <WorkspaceLayoutHost
           tabs={workspace.tabs}
           visibleWorkspaceTabId={visibleWorkspaceTabId}
           getModel={storeGetModel}
-          onExplorerLayoutChanged={bumpLayout}
           {...layoutCallbacks}
         />
-        {workspaceRailAnchor && (
-          <WorkspaceTabRail
-            tabs={workspace.tabs}
-            activeTabId={visibleWorkspaceTabId}
-            onOpenSettings={(tabId, anchorRect) => setSettingsTarget({ tabId, anchorRect })}
-            anchorRect={workspaceRailAnchor}
-            onClose={() => setWorkspaceRailAnchor(null)}
-          />
-        )}
         {settingsTarget && (
           <SettingsDialog
             anchorRect={settingsTarget.anchorRect}

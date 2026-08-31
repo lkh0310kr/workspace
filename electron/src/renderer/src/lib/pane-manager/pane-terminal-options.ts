@@ -39,8 +39,8 @@ export function buildDefaultTerminalOptions(): ITerminalOptions {
     // on Windows/WSL (DejaVu has no Hangul coverage).
     fontFamily:
       '"SF Mono", "Menlo", "Monaco", "Cascadia Mono", "Consolas", "D2Coding", "NanumGothicCoding", "Noto Sans Mono CJK KR", "Apple SD Gothic Neo", "Malgun Gothic", "DejaVu Sans Mono", "Liberation Mono", monospace',
-    fontWeight: "300",
-    fontWeightBold: "500",
+    fontWeight: "400",
+    fontWeightBold: "700",
     scrollback: DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT,
     scrollSensitivity: DEFAULT_TERMINAL_SCROLL_SENSITIVITY,
     fastScrollSensitivity: DEFAULT_TERMINAL_FAST_SCROLL_SENSITIVITY,

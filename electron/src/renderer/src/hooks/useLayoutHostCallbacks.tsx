@@ -70,7 +70,7 @@ export function useLayoutHostCallbacks() {
 
   const makeOnAction = useCallback(
     (tabId: number) => (action: Action) => {
-      if (action.type === Actions.SELECT_TAB) {
+      if (action.type === Actions.SELECT_TAB || action.type === Actions.SET_ACTIVE_TABSET) {
         useWorkspaceStore.getState().bumpLayoutRevision(tabId);
         return action;
       }

@@ -1,54 +1,39 @@
-import type { RefObject } from "react";
+import type { RefObject } from 'react'
+import type { TabInfo } from '../electron'
+import { WorkspaceTabRail } from './WorkspaceTabRail'
 
 type Props = {
-  workspaceRailOpen: boolean;
-  workspaceRailButtonRef: RefObject<HTMLButtonElement | null>;
-  onToggleWorkspaceRail: (anchor: DOMRect) => void;
-  appSettingsOpen: boolean;
-  appSettingsButtonRef: RefObject<HTMLButtonElement | null>;
-  onToggleAppSettings: (anchor: DOMRect) => void;
-};
+  appSettingsOpen: boolean
+  appSettingsButtonRef: RefObject<HTMLButtonElement | null>
+  onToggleAppSettings: (anchor: DOMRect) => void
+  workspaceTabs: TabInfo[]
+  activeWorkspaceTabId: number
+  onOpenWorkspaceTabSettings: (tabId: number, anchorRect: DOMRect) => void
+}
 
-const showDrawnWindowControls =
-  typeof window !== "undefined" && window.api?.platform !== "darwin";
+const showDrawnWindowControls = typeof window !== 'undefined' && window.api?.platform !== 'darwin'
 
 export function AppTitlebar({
-  workspaceRailOpen,
-  workspaceRailButtonRef,
-  onToggleWorkspaceRail,
   appSettingsOpen,
   appSettingsButtonRef,
   onToggleAppSettings,
+  workspaceTabs,
+  activeWorkspaceTabId,
+  onOpenWorkspaceTabSettings
 }: Props) {
   // Windows / Linux: custom caption buttons (Orca — no titleBarOverlay).
   // WSLg: overlay misaligns client surface and hit-test.
   return (
     <div className="titlebar">
       <button
-        ref={workspaceRailButtonRef}
-        type="button"
-        className={`titlebar-sidebar-toggle${workspaceRailOpen ? " active" : ""}`}
-        title="Workspace Tabs"
-        onClick={(e) => onToggleWorkspaceRail(e.currentTarget.getBoundingClientRect())}
-      >
-        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-          <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" />
-          <line x1="6" y1="2.5" x2="6" y2="13.5" stroke="currentColor" />
-        </svg>
-      </button>
-      <button
         ref={appSettingsButtonRef}
         type="button"
-        className={`titlebar-sidebar-toggle${appSettingsOpen ? " active" : ""}`}
+        className={`titlebar-sidebar-toggle${appSettingsOpen ? ' active' : ''}`}
         title="Settings"
         onClick={(e) => onToggleAppSettings(e.currentTarget.getBoundingClientRect())}
       >
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-          <path
-            fill="none"
-            stroke="currentColor"
-            d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"
-          />
+          <path fill="none" stroke="currentColor" d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z" />
           <path
             fill="none"
             stroke="currentColor"
@@ -56,6 +41,11 @@ export function AppTitlebar({
           />
         </svg>
       </button>
+      <WorkspaceTabRail
+        tabs={workspaceTabs}
+        activeTabId={activeWorkspaceTabId}
+        onOpenSettings={onOpenWorkspaceTabSettings}
+      />
       <div className="titlebar-spacer" />
       {showDrawnWindowControls ? (
         <div className="titlebar-window-controls" aria-label="Window">
@@ -76,7 +66,15 @@ export function AppTitlebar({
             onClick={() => window.api.windowControls.maximize()}
           >
             <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
-              <rect x="1.5" y="1.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1" />
+              <rect
+                x="1.5"
+                y="1.5"
+                width="9"
+                height="9"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1"
+              />
             </svg>
           </button>
           <button
@@ -92,5 +90,5 @@ export function AppTitlebar({
         </div>
       ) : null}
     </div>
-  );
+  )
 }
