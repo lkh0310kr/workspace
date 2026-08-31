@@ -3,6 +3,7 @@ import { Actions, type Model, type TabNode, type TabSetNode } from 'flexlayout-r
 import { closeActivePaneTab } from '../layout/layoutActions'
 import { dismissWorkspacePortals } from '../workspacePortalDismiss'
 import { onClosePaneTabShortcut } from '../electron'
+import { dispatchLocalBrowserZoom } from '../browser/browserZoom'
 import type { WorkspaceSettingsTarget } from './useAppShellState'
 import type { PaneGroupConfig } from '../layout/paneTypes'
 import { useWorkspaceStore } from '../store/workspaceStore'
@@ -88,6 +89,16 @@ export function useAppShortcuts({
       if (e.key !== '=' && e.key !== '+' && e.key !== '-' && e.key !== '_') return
       const model = getModel(activeTabId)
       if (!model) return
+      const tabset = resolveFocusedTabSet(model, focusedTabSetId)
+      const tabNode = tabset?.getSelectedNode()
+      if (!tabNode || tabNode.getType() !== 'tab') return
+      const config = ((tabNode as TabNode).getConfig() ?? {}) as PaneGroupConfig
+      const activeItem = config.tabs.find((t) => t.id === config.activeTabId)
+      if (activeItem?.kind === 'browser') {
+        e.preventDefault()
+        dispatchLocalBrowserZoom(e.key === '=' || e.key === '+' ? 'in' : 'out')
+        return
+      }
       e.preventDefault()
       const grow = e.key === '=' || e.key === '+'
       zoomActivePane(model, focusedTabSetId, grow ? ZOOM_STEP : -ZOOM_STEP)
