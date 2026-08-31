@@ -122,9 +122,12 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const closeTab = useCallback(
     (id: string) => {
-      const nextActive = closeTabInGroup(model, nodeId, id)
-      if (nextActive) setActivePaneTab(workspaceTabId, nodeId, nextActive)
-      onNotifyChanged()
+      void closeTabInGroup(model, nodeId, id)
+        .then((nextActive) => {
+          if (nextActive) setActivePaneTab(workspaceTabId, nodeId, nextActive)
+          onNotifyChanged()
+        })
+        .catch(console.error)
     },
     [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab]
   )

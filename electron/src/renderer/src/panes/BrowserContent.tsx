@@ -80,6 +80,20 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     setCanGoForward(webview.canGoForward());
   }, []);
 
+  const goBack = useCallback(() => {
+    const webview = webviewRef.current;
+    if (!webview?.canGoBack()) return;
+    webview.goBack();
+    syncNavState();
+  }, [syncNavState]);
+
+  const goForward = useCallback(() => {
+    const webview = webviewRef.current;
+    if (!webview?.canGoForward()) return;
+    webview.goForward();
+    syncNavState();
+  }, [syncNavState]);
+
   const setZoom = useCallback((next: number) => {
     const clamped = clampZoom(next);
     setZoomFactor(clamped);
@@ -159,6 +173,12 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     const onDomReady = (): void => {
       setRendererGone(false);
       setLoadError(null);
+      try {
+        setWebContentsId(guest.getWebContentsId());
+      } catch {
+        setWebContentsId(null);
+      }
+      syncNavState();
     };
     const onFailLoad = (e: Electron.DidFailLoadEvent): void => {
       if (!e.validatedURL?.startsWith("workspace-engine:")) return;
@@ -249,6 +269,14 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
         // webview may not have navigated yet.
       }
     }
+    if (chipShown) {
+      setActiveBrowserWebview(webview);
+      try {
+        webview.focus();
+      } catch {
+        // webview may be mid-mount.
+      }
+    }
     if (!chipShown) {
       engineBundleShownRef.current = false;
       addressInputRef.current?.blur();
@@ -262,17 +290,12 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (!chipShown) return;
-      const guest = webviewRef.current;
-      const browserFocused =
-        guest &&
-        (getActiveBrowserWebview() === guest || document.activeElement?.closest(".browser-pane-chrome"));
-      if (!browserFocused) return;
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "l") {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key.toLowerCase() === "l") {
         e.preventDefault();
         addressInputRef.current?.focus();
         return;
       }
-      if (!(e.metaKey || e.ctrlKey)) return;
       if (e.key !== "=" && e.key !== "+" && e.key !== "-" && e.key !== "_") return;
       e.preventDefault();
       e.stopPropagation();
@@ -288,8 +311,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     if (normalized) webviewRef.current?.loadURL(normalized);
   };
 
-  const zoomLabel = `${Math.round(zoomFactor * 100)}%`;
-
   return (
     <div className="browser-pane-chrome" style={{ pointerEvents: chipShown ? undefined : "none" }}>
       <div className="pane-header pane-header-browser">
@@ -300,6 +321,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
             active={chipShown}
             webContentsId={webContentsId}
             onNavigate={syncNavState}
+            onNavigateAction={goBack}
           />
           <BrowserNavButton
             direction="forward"
@@ -307,6 +329,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
             active={chipShown}
             webContentsId={webContentsId}
             onNavigate={syncNavState}
+            onNavigateAction={goForward}
           />
           <button
             type="button"
@@ -321,34 +344,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
           >
             {loading ? "×" : "↻"}
           </button>
-          <div className="browser-zoom-controls">
-            <button
-              type="button"
-              className="browser-nav-btn"
-              title="Zoom out"
-              disabled={zoomFactor <= ZOOM_MIN}
-              onClick={() => setZoom(zoomFactor - ZOOM_STEP)}
-            >
-              −
-            </button>
-            <button
-              type="button"
-              className="browser-zoom-label"
-              title="Reset zoom"
-              onClick={() => setZoom(1)}
-            >
-              {zoomLabel}
-            </button>
-            <button
-              type="button"
-              className="browser-nav-btn"
-              title="Zoom in"
-              disabled={zoomFactor >= ZOOM_MAX}
-              onClick={() => setZoom(zoomFactor + ZOOM_STEP)}
-            >
-              +
-            </button>
-          </div>
           <button
             type="button"
             className="browser-nav-btn browser-nav-btn-devtools"

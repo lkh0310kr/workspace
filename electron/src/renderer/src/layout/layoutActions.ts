@@ -5,6 +5,7 @@ import { getPaneKind, paneKindLabel } from "../panes/paneKindRegistry";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import { findTabIdForModel } from "../store/workspaceLayoutModels";
 import { resolveSplitPaneMutationStrategy } from "./layoutSplitPolicy";
+import { countLayoutTabs } from "./layoutModelParse";
 import { findReplaceableEditorTab } from "./paneTabSlots";
 
 /** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
@@ -448,8 +449,9 @@ export function moveTabToSplitPane(
 }
 
 /** Closes the active tab in the focused flexlayout pane (last tab in a pane
- * removes the pane itself). Returns whether anything was closed. */
-export function closeActivePaneTab(model: Model, focusedTabSetId?: string): boolean {
+ * removes the pane itself, except the sole workspace pane resets to terminal).
+ * Returns whether anything was closed. */
+export async function closeActivePaneTab(model: Model, focusedTabSetId?: string): Promise<boolean> {
   const tabset = resolveFocusedTabSet(model, focusedTabSetId);
   const tabNode = tabset?.getSelectedNode();
   if (!tabNode || tabNode.getType() !== "tab") return false;
@@ -457,7 +459,7 @@ export function closeActivePaneTab(model: Model, focusedTabSetId?: string): bool
   if (!config) return false;
   const activeId = config.activeTabId;
   if (!activeId || !config.tabs.some((t) => t.id === activeId)) return false;
-  closeTabInGroup(model, tabNode.getId(), activeId);
+  await closeTabInGroup(model, tabNode.getId(), activeId);
   return true;
 }
 
@@ -470,10 +472,15 @@ function resolveFocusedTabSet(model: Model, focusedTabSetId?: string): TabSetNod
 }
 
 /** Closes one tab within the group; closing the last tab removes the pane
- * itself (matches a real browser: closing your only tab closes the
- * window). Returns the tab that's now active, or null if the whole pane
- * was removed. */
-export function closeTabInGroup(model: Model, tabNodeId: string, tabId: string): string | null {
+ * itself when other panes remain, or resets the sole workspace pane to a
+ * default terminal (matches a real browser: closing your only tab in the
+ * last window resets to a fresh start page). Returns the tab that's now
+ * active, or null if the whole pane was removed. */
+export async function closeTabInGroup(
+  model: Model,
+  tabNodeId: string,
+  tabId: string,
+): Promise<string | null> {
   const before = summarizeLayoutModel(model);
   const config = getGroupConfig(model, tabNodeId);
   if (!config) {
@@ -484,6 +491,24 @@ export function closeTabInGroup(model: Model, tabNodeId: string, tabId: string):
   if (idx === -1) return config.activeTabId;
   const tabs = config.tabs.filter((t) => t.id !== tabId);
   if (tabs.length === 0) {
+    if (countLayoutTabs(model) === 1) {
+      const workspaceTabId = findTabIdForModel(model);
+      const terminal = await buildTabItem("terminal", undefined, workspaceTabId);
+      model.doAction(
+        Actions.updateNodeAttributes(tabNodeId, {
+          config: { tabs: [terminal], activeTabId: terminal.id },
+        }),
+      );
+      layoutLogMutation(
+        "layoutActions.closeTabInGroup",
+        "reset sole pane to default terminal",
+        before,
+        summarizeLayoutModel(model),
+        { tabNodeId, tabId, nextTabId: terminal.id },
+      );
+      bumpPaneGroupRender(model);
+      return terminal.id;
+    }
     model.doAction(Actions.deleteTab(tabNodeId));
     layoutLogMutation(
       "layoutActions.closeTabInGroup",

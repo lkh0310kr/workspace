@@ -9,6 +9,8 @@ interface Props {
   active: boolean;
   webContentsId: number | null;
   onNavigate: () => void;
+  /** Prefer direct guest navigation when the host still owns the <webview>. */
+  onNavigateAction?: () => void;
 }
 
 function labelForEntry(url: string, title: string): string {
@@ -26,6 +28,7 @@ export function BrowserNavButton({
   active,
   webContentsId,
   onNavigate,
+  onNavigateAction,
 }: Props) {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const [historyItems, setHistoryItems] = useState<BrowserNavHistoryEntry[]>([]);
@@ -81,11 +84,16 @@ export function BrowserNavButton({
   );
 
   const navigate = useCallback(async () => {
+    if (onNavigateAction) {
+      onNavigateAction();
+      onNavigate();
+      return;
+    }
     if (!webContentsId) return;
     if (direction === "back") await window.api.browser.goBack(webContentsId);
     else await window.api.browser.goForward(webContentsId);
     onNavigate();
-  }, [webContentsId, direction, onNavigate]);
+  }, [webContentsId, direction, onNavigate, onNavigateAction]);
 
   const handlePointerDown = (e: PointerEvent<HTMLButtonElement>) => {
     if (disabled || !webContentsId) return;
@@ -101,7 +109,8 @@ export function BrowserNavButton({
   const handlePointerUp = () => {
     clearLongPress();
     if (longPressTriggeredRef.current) return;
-    if (disabled || !webContentsId) return;
+    if (disabled) return;
+    if (!onNavigateAction && !webContentsId) return;
     void navigate();
   };
 

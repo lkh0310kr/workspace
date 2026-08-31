@@ -49,7 +49,7 @@ export function useLayoutHostCallbacks() {
       if (countLayoutTabs(model) > 0 || !markEnsureInflight(tabId)) return;
       try {
         if (countLayoutTabs(model) > 0) return;
-        await addPaneToTabSet(model, tabSetId, "markdown");
+        await addPaneToTabSet(model, tabSetId, "terminal");
         if (countLayoutTabs(model) > 0) bumpLayout(tabId);
       } finally {
         clearEnsureInflight(tabId);

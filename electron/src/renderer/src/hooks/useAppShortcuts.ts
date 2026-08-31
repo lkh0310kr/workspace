@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Actions, type Model, type TabNode } from 'flexlayout-react'
+import { Actions, type Model, type TabNode, type TabSetNode } from 'flexlayout-react'
 import { closeActivePaneTab } from '../layout/layoutActions'
 import { dismissWorkspacePortals } from '../workspacePortalDismiss'
 import { onClosePaneTabShortcut } from '../electron'
@@ -11,11 +11,21 @@ const ZOOM_MIN = 0.5
 const ZOOM_MAX = 2.5
 const ZOOM_STEP = 0.1
 
-function zoomActivePane(model: Model, delta: number): void {
-  const tabset = model.getActiveTabset()
+function resolveFocusedTabSet(model: Model, focusedTabSetId?: string): TabSetNode | undefined {
+  if (focusedTabSetId) {
+    const node = model.getNodeById(focusedTabSetId)
+    if (node?.getType() === 'tabset') return node as TabSetNode
+  }
+  return model.getActiveTabset()
+}
+
+function zoomActivePane(model: Model, focusedTabSetId: string | undefined, delta: number): void {
+  const tabset = resolveFocusedTabSet(model, focusedTabSetId)
   const tabNode = tabset?.getSelectedNode()
   if (!tabNode || tabNode.getType() !== 'tab') return
   const config = ((tabNode as TabNode).getConfig() ?? {}) as PaneGroupConfig
+  const activeItem = config.tabs.find((t) => t.id === config.activeTabId)
+  if (activeItem?.kind === 'browser') return
   const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, (config.zoom ?? 1) + delta))
   if (nextZoom === (config.zoom ?? 1)) return
   model.doAction(
@@ -57,7 +67,9 @@ export function useAppShortcuts({
         }
         const model = getModel(activeTabId)
         if (!model) return
-        if (closeActivePaneTab(model, focusedTabSetId)) bumpLayout(activeTabId)
+        void closeActivePaneTab(model, focusedTabSetId).then((closed) => {
+          if (closed) bumpLayout(activeTabId)
+        })
       }),
     [
       activeTabId,
@@ -78,11 +90,11 @@ export function useAppShortcuts({
       if (!model) return
       e.preventDefault()
       const grow = e.key === '=' || e.key === '+'
-      zoomActivePane(model, grow ? ZOOM_STEP : -ZOOM_STEP)
+      zoomActivePane(model, focusedTabSetId, grow ? ZOOM_STEP : -ZOOM_STEP)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [activeTabId, getModel])
+  }, [activeTabId, getModel, focusedTabSetId])
 }
 
 export function useDismissPortalsOnWorkspaceSwitch(
