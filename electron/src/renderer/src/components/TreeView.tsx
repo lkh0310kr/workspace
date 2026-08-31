@@ -19,7 +19,6 @@ import {
 } from "../fileSystem";
 import { classifyAssetType } from "../../../shared/asset";
 import { TextPrompt } from "./TextPrompt";
-import { ConfirmPrompt } from "./ConfirmPrompt";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import type { AnchorRect } from "./Popover";
 import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
@@ -61,13 +60,6 @@ interface MenuState {
   y: number;
   dir: string;
   entry: DirEntry | null;
-}
-
-interface ConfirmState {
-  anchor: AnchorRect;
-  title: string;
-  message: string;
-  onConfirm: () => void;
 }
 
 export function classifyFile(name: string): "code" | "markdown" | "viewer" {
@@ -150,8 +142,6 @@ export function TreeView({
   onOpenWorldEngineProject,
 }: Props) {
   const treeRef = useRef<HTMLDivElement>(null);
-  const suppressRevealPathRef = useRef<string | null>(null);
-  const pendingRevealPathRef = useRef<string | null>(null);
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(loadExplorerTreeState(explorerStateKey, rootPath).expanded));
   const [menu, setMenu] = useState<MenuState | null>(null);
@@ -161,7 +151,6 @@ export function TreeView({
     defaultValue: string;
     onSubmit: (value: string) => void;
   } | null>(null);
-  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
@@ -203,6 +192,9 @@ export function TreeView({
     setSelected(new Set());
     setSelectionAnchor(null);
     loadDir("");
+    for (const path of restored.expanded) {
+      loadDir(path);
+    }
   }, [tabId, rootPath, explorerStateKey, loadDir]);
 
   useEffect(() => {
@@ -244,12 +236,20 @@ export function TreeView({
 
   useEffect(() => {
     if (!selectedPath || !explorerModeActive) return;
-    if (suppressRevealPathRef.current === selectedPath) {
-      suppressRevealPathRef.current = null;
-      return;
-    }
-    const ancestors = ancestorDirPaths(selectedPath);
-    if (ancestors.length > 0) {
+    setSelected(new Set([selectedPath]));
+    setSelectionAnchor(selectedPath);
+  }, [selectedPath, explorerModeActive]);
+
+  useEffect(() => {
+    const clearDrag = () => setDragOverPath(null);
+    window.addEventListener("dragend", clearDrag);
+    return () => window.removeEventListener("dragend", clearDrag);
+  }, []);
+
+  const revealAncestors = useCallback(
+    (path: string) => {
+      const ancestors = ancestorDirPaths(path);
+      if (ancestors.length === 0) return;
       setExpandedPersisted((prev) => {
         const next = new Set(prev);
         for (const a of ancestors) next.add(a);
@@ -258,15 +258,22 @@ export function TreeView({
       for (const a of ancestors) {
         if (!dirs.get(a)?.loaded) loadDir(a);
       }
-    }
-    pendingRevealPathRef.current = selectedPath;
-  }, [selectedPath, explorerModeActive, dirs, loadDir, setExpandedPersisted]);
+    },
+    [dirs, loadDir, setExpandedPersisted],
+  );
+
+  const openFileFromTree = useCallback(
+    (path: string, kind: "code" | "markdown" | "viewer", pin?: boolean) => {
+      revealAncestors(path);
+      onOpenFile(path, kind, pin);
+    },
+    [onOpenFile, revealAncestors],
+  );
 
   useEffect(() => {
     const dismissOverlayUi = () => {
       setMenu(null);
       setPrompt(null);
-      setConfirm(null);
     };
     return onWorkspaceDismissPortals(dismissOverlayUi);
   }, []);
@@ -275,7 +282,6 @@ export function TreeView({
     if (paneVisible) return;
     setMenu(null);
     setPrompt(null);
-    setConfirm(null);
   }, [paneVisible]);
 
   const flatList = useMemo(() => {
@@ -288,16 +294,6 @@ export function TreeView({
     () => projectVisibleRows(flatList, scrollTop, viewportHeight),
     [flatList, scrollTop, viewportHeight],
   );
-
-  useEffect(() => {
-    const path = pendingRevealPathRef.current;
-    if (!path) return;
-    const row = treeRef.current?.querySelector<HTMLElement>(`[data-tree-path="${path.replace(/"/g, '\\"')}"]`);
-    if (row) {
-      row.scrollIntoView({ block: "nearest" });
-      pendingRevealPathRef.current = null;
-    }
-  }, [flatList, dirs, projection]);
 
   const toggle = (path: string) => {
     setExpandedPersisted((prev) => {
@@ -329,17 +325,21 @@ export function TreeView({
   const handleRowClick = (
     e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean },
     entry: DirEntry,
-    action: (pin: boolean) => void,
   ) => {
     const path = entry.path;
     treeRef.current?.focus();
-    if ((e.metaKey || e.ctrlKey) && !entry.is_dir) {
-      setSelected(new Set([path]));
+
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (next.has(path)) next.delete(path);
+        else next.add(path);
+        return next;
+      });
       setSelectionAnchor(path);
-      suppressRevealPathRef.current = path;
-      action(true);
       return;
     }
+
     if (e.shiftKey && selectionAnchor) {
       const fromIdx = flatList.findIndex((r) => r.entry.path === selectionAnchor);
       const toIdx = flatList.findIndex((r) => r.entry.path === path);
@@ -349,10 +349,14 @@ export function TreeView({
         return;
       }
     }
+
     setSelected(new Set([path]));
     setSelectionAnchor(path);
-    if (!entry.is_dir) suppressRevealPathRef.current = path;
-    action(false);
+    if (entry.is_dir) {
+      toggle(path);
+    } else {
+      openFileFromTree(path, classifyFile(entry.name), false);
+    }
   };
 
   const newFile = async (dir: string) => {
@@ -360,7 +364,7 @@ export function TreeView({
     const name = await findAvailableName(tabId, dir, "untitled", ".md");
     const path = joinPath(dir, name);
     await writeFile(tabId, path, "").catch(console.error);
-    onOpenFile(path, "markdown");
+    openFileFromTree(path, "markdown");
     refresh(dir);
   };
 
@@ -397,7 +401,7 @@ export function TreeView({
   const targetPaths = (entry: DirEntry): string[] =>
     selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
 
-  const remove = async (entry: DirEntry, anchor?: AnchorRect) => {
+  const remove = async (entry: DirEntry) => {
     setMenu(null);
     const paths = targetPaths(entry);
     const label =
@@ -405,26 +409,19 @@ export function TreeView({
     const scrollEl = scrollContainerRef?.current;
     const prevScroll = scrollEl?.scrollTop ?? 0;
 
-    const runDelete = async () => {
-      for (const p of paths) {
-        await deletePath(tabId, p).catch((err) => alert(String(err)));
-        onPathDeleted?.(p);
-      }
-      for (const d of new Set(paths.map(dirOf))) refresh(d);
-      setSelected(new Set());
-      requestAnimationFrame(() => {
-        if (scrollEl) {
-          scrollEl.scrollTop = Math.min(prevScroll, Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight));
-        }
-      });
-    };
+    const confirmed = window.confirm(`Delete ${label}?\n\n${paths.join("\n")}`);
+    if (!confirmed) return;
 
-    const rect = anchor ?? rowAnchor(entry, treeRef.current);
-    setConfirm({
-      anchor: rect,
-      title: "Delete",
-      message: `Delete ${label}?\n\n${paths.join("\n")}`,
-      onConfirm: () => void runDelete(),
+    for (const p of paths) {
+      await deletePath(tabId, p).catch((err) => alert(String(err)));
+      onPathDeleted?.(p);
+    }
+    for (const d of new Set(paths.map(dirOf))) refresh(d);
+    setSelected(new Set());
+    requestAnimationFrame(() => {
+      if (scrollEl) {
+        scrollEl.scrollTop = Math.min(prevScroll, Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight));
+      }
     });
   };
 
@@ -464,7 +461,15 @@ export function TreeView({
     if (!e.dataTransfer.types.includes(TREE_DRAG_MIME)) return;
     e.preventDefault();
     e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
     setDragOverPath(targetDir);
+  };
+
+  const onTreeDragOver = (e: DragEvent) => {
+    if (!e.dataTransfer.types.includes(TREE_DRAG_MIME)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverPath("");
   };
 
   const onFolderDrop = (e: DragEvent, targetDir: string) => {
@@ -494,7 +499,7 @@ export function TreeView({
       },
       onEnter: (entry: DirEntry) => {
         if (entry.is_dir) toggle(entry.path);
-        else onOpenFile(entry.path, classifyFile(entry.name), true);
+        else openFileFromTree(entry.path, classifyFile(entry.name), true);
       },
       onMoveSelection: (delta: number) => {
         const entry = focusedEntry();
@@ -528,7 +533,7 @@ export function TreeView({
         }
       },
     }),
-    [focusedEntry, flatList, onOpenFile, dirs, loadDir, setExpandedPersisted],
+    [focusedEntry, flatList, openFileFromTree, dirs, loadDir, setExpandedPersisted],
   );
 
   useExplorerKeyboard(
@@ -611,7 +616,7 @@ export function TreeView({
     items.push({
       type: "button",
       label: selected.size > 1 ? `Delete ${selected.size} items` : "Delete",
-      onClick: () => void remove(menu.entry!, clickAnchor),
+      onClick: () => void remove(menu.entry!),
     });
     items.push({ type: "separator" });
     items.push({
@@ -637,18 +642,22 @@ export function TreeView({
   return (
     <div
       ref={treeRef}
-      className="tree-view"
+      className={`tree-view${dragOverPath === "" ? " drag-over-root" : ""}`}
       tabIndex={0}
       onClick={() => setSelected(new Set())}
       onContextMenu={(e) => {
         e.preventDefault();
         setMenu({ x: e.clientX, y: e.clientY, dir: "", entry: null });
       }}
-      onDragOver={(e) => onFolderDragOver(e, "")}
-      onDragLeave={() => setDragOverPath((p) => (p === "" ? null : p))}
+      onDragOver={onTreeDragOver}
       onDrop={(e) => onFolderDrop(e, "")}
     >
-      <div style={{ paddingTop: projection.paddingTop, paddingBottom: projection.paddingBottom, minHeight: projection.totalHeight }}>
+      <div
+        className="tree-view-rows"
+        style={{ paddingTop: projection.paddingTop, paddingBottom: projection.paddingBottom, minHeight: projection.totalHeight }}
+        onDragOver={onTreeDragOver}
+        onDrop={(e) => onFolderDrop(e, "")}
+      >
         {projection.rows.map(({ entry, depth }) => (
           <div
             key={entry.path}
@@ -657,18 +666,18 @@ export function TreeView({
             style={{ paddingLeft: depth * 14 + 8 }}
             draggable
             onDragStart={(e) => onEntryDragStart(e, entry)}
-            onDragOver={entry.is_dir ? (e) => onFolderDragOver(e, entry.path) : undefined}
-            onDragLeave={entry.is_dir ? () => setDragOverPath((p) => (p === entry.path ? null : p)) : undefined}
-            onDrop={entry.is_dir ? (e) => onFolderDrop(e, entry.path) : undefined}
+            onDragOver={(e) => {
+              if (entry.is_dir) onFolderDragOver(e, entry.path);
+              else onTreeDragOver(e);
+            }}
+            onDrop={entry.is_dir ? (e) => onFolderDrop(e, entry.path) : (e) => onFolderDrop(e, dirOf(entry.path))}
             onClick={(e) => {
               e.stopPropagation();
-              handleRowClick(e, entry, (pin) =>
-                entry.is_dir ? toggle(entry.path) : onOpenFile(entry.path, classifyFile(entry.name), pin),
-              );
+              handleRowClick(e, entry);
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
-              if (!entry.is_dir) onOpenFile(entry.path, classifyFile(entry.name), true);
+              if (!entry.is_dir) openFileFromTree(entry.path, classifyFile(entry.name), true);
             }}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -704,15 +713,6 @@ export function TreeView({
           defaultValue={prompt.defaultValue}
           onSubmit={prompt.onSubmit}
           onClose={() => setPrompt(null)}
-        />
-      )}
-      {confirm && (
-        <ConfirmPrompt
-          anchorRect={confirm.anchor}
-          title={confirm.title}
-          message={confirm.message}
-          onConfirm={confirm.onConfirm}
-          onClose={() => setConfirm(null)}
         />
       )}
     </div>

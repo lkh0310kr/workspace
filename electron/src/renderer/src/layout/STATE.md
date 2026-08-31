@@ -32,6 +32,7 @@ writing **one** place and projecting to the other until `LayoutSession` exists.
 | Kind | Visibility / focus owner |
 |------|--------------------------|
 | Browser `<webview>` | **`BrowserContent` only** — registers with `InteractionCoordinator`, sets pane/chip visible, focus, zoom. `PaneGroup` must not duplicate coordinator calls. |
+| Editor / viewer file tree | **`PaneGroup`** — one `WorkspaceExplorerSidebar` per pane group (below tab strip, beside content). Shown only when the active chip is explorer-capable. Expand/collapse state is persisted per pane group (`explorerStateKey`); active file highlight follows the editor tab without resetting expansion. |
 | Editor | `EditorContent` + `activeEditorView` for global shortcuts |
 | Terminal | `TerminalPane` + main-process `focusedTerminalId` for shell shortcuts |
 

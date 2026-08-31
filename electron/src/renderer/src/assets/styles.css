@@ -21,6 +21,8 @@
   --text-muted: #8a8a8a;
   --text-faint: #5c5c5c;
   --accent: #6690d6;
+  --editor-selection-bg: rgba(102, 144, 214, 0.4);
+  --editor-selection-bg-focused: rgba(102, 144, 214, 0.58);
   /* Syntax colors — mirrors VS Code's own default dark theme palette. */
   --syntax-keyword: #c586c0;
   --syntax-string: #ce9178;
@@ -215,6 +217,8 @@
   --text-muted: #6b6b6b;
   --text-faint: #9a9a9a;
   --accent: #3d6fb5;
+  --editor-selection-bg: rgba(61, 111, 181, 0.35);
+  --editor-selection-bg-focused: rgba(61, 111, 181, 0.5);
   --syntax-keyword: #af00db;
   --syntax-string: #a31515;
   --syntax-comment: #008000;
@@ -435,7 +439,10 @@ input {
 .workspace-explorer-host {
   flex-shrink: 0;
   display: flex;
+  flex-direction: column;
   min-height: 0;
+  height: 100%;
+  align-self: stretch;
 }
 
 .layout-host-item--active {
@@ -1018,12 +1025,12 @@ iframe.browser-content-slot {
   background: var(--border);
 }
 
-/* —— Pane group body (PaneGroup.tsx) —— the explorer sidebar (editor tabs
-   only) plus a stack of every open tab's content, all mounted at once and
-   toggled via display so switching tabs never loses state. */
+/* —— Pane group body (PaneGroup.tsx) —— stack of every open tab's content,
+   all mounted at once and toggled via display so switching tabs never loses
+   state. File explorer lives inside editor/viewer chips, not here. */
 .pane-group-host {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   isolation: isolate;
@@ -1052,6 +1059,22 @@ iframe.browser-content-slot {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+.pane-group-body-with-explorer {
+  flex-direction: row;
+}
+
+.pane-group-body-with-explorer > .workspace-explorer-slot {
+  display: flex;
+  align-self: stretch;
+  min-height: 0;
+  height: 100%;
+}
+
+.pane-group-body-with-explorer > .pane-group-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .pane-group-content {
@@ -2503,6 +2526,24 @@ iframe.browser-content-slot {
   position: relative;
 }
 
+/* CodeMirror selection — theme extension + native ::selection during drag. */
+.cm-editor .cm-selectionLayer {
+  z-index: 2;
+}
+
+.cm-editor .cm-selectionLayer .cm-selectionBackground {
+  background-color: var(--editor-selection-bg) !important;
+}
+
+.cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground {
+  background-color: var(--editor-selection-bg-focused) !important;
+}
+
+.cm-editor .cm-content ::selection,
+.cm-editor .cm-line ::selection {
+  background-color: var(--editor-selection-bg-focused) !important;
+}
+
 /* VSCode-parity in-editor Find/Replace panel (codemirrorSearch.ts's
    custom createPanel — Cmd+F). Reuses the same Aa/Ab/.* toggle-button
    language as .search-panel (Find in Files, Cmd+Shift+F) for visual
@@ -3348,13 +3389,22 @@ iframe.browser-content-slot {
 
 .obsidian-explorer {
   width: 200px;
+  flex: 1;
   flex-shrink: 0;
+  height: 100%;
+  min-height: 0;
   border-right: 1px solid var(--border);
   background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
 }
 
 .explorer-sidebar-panel {
-  min-height: 100%;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .explorer-sidebar-panel.hidden {
@@ -3551,15 +3601,18 @@ iframe.browser-content-slot {
   cursor: default;
 }
 
+.tree-view-rows {
+  min-height: 100%;
+}
+
 .tree-view {
   font-family: var(--font-mono);
   font-size: 12px;
   padding: 4px 0;
-  /* Without this, the div is only as tall as its file list — right-click
-     below the last row (e.g. an empty/short folder) lands on the
-     scrollable .obsidian-explorer parent instead, whose own
-     onContextMenu isn't wired up, so New File/New Folder never appeared
-     there even though this component's root handler is correct. */
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  /* min-height keeps the root context-menu hit target when the folder is empty */
   min-height: 100%;
 }
 
@@ -3819,6 +3872,10 @@ iframe.browser-content-slot {
 
 .tree-view-item.drag-over {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.tree-view.drag-over-root {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 

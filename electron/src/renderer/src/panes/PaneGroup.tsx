@@ -35,7 +35,7 @@ interface Props {
   onNotifyChanged: () => void
 }
 
-function hasFileExplorerSidebar(kind: TabKind): boolean {
+function activeChipHasExplorer(kind: TabKind): boolean {
   return getPaneKind(kind).hasFileExplorer === true
 }
 
@@ -215,9 +215,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   if (!activeItem) return null
 
-  const hasExplorer = tabs.some((t) => hasFileExplorerSidebar(t.kind))
   const treeOpen = explorerChrome.treeOpen
   const onToggleTree = () => explorerChrome.setTreeOpen((v) => !v)
+  const showExplorer = activeChipHasExplorer(activeItem.kind)
 
   return (
     <div
@@ -230,20 +230,6 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
       onPointerDown={focusGroup}
       onFocusCapture={focusGroup}
     >
-      {hasExplorer && (
-        <WorkspaceExplorerSidebar
-          workspaceTabId={workspaceTabId}
-          nodeId={nodeId}
-          rootPath={rootPath}
-          model={model}
-          paneVisible={visible}
-          focusHostRef={paneHostRef}
-          selectedPath={activeItem.filePath ?? null}
-          chrome={explorerChrome}
-          onOpenFile={openOrSwitchToFile}
-          onNotifyChanged={onNotifyChanged}
-        />
-      )}
       <PaneFrame
         header={
           <PaneTabStrip
@@ -261,7 +247,24 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
           />
         }
       >
-        <div className="pane-group-body">
+        <div className={`pane-group-body${showExplorer ? ' pane-group-body-with-explorer' : ''}`}>
+          <div
+            className="workspace-explorer-slot"
+            style={{ display: showExplorer ? undefined : 'none' }}
+          >
+            <WorkspaceExplorerSidebar
+              workspaceTabId={workspaceTabId}
+              nodeId={nodeId}
+              rootPath={rootPath}
+              model={model}
+              paneVisible={visible}
+              focusHostRef={paneHostRef}
+              selectedPath={activeItem.filePath ?? null}
+              chrome={explorerChrome}
+              onOpenFile={openOrSwitchToFile}
+              onNotifyChanged={onNotifyChanged}
+            />
+          </div>
           <div className="pane-group-content">
             {tabs.map((item) => {
               const active = item.id === activeItem.id

@@ -48,7 +48,12 @@ export interface PaneRenderContext {
   updateItem: (patch: Partial<PaneTabItem>) => void;
   /** Opens `path` in this same pane group (switching to it if already
    * open), used by TreeView/Quick Open/Find-in-Files click-throughs. */
-  openOrSwitchToFile: (path: string, kind: "code" | "markdown" | "viewer", jumpToLine?: number) => void;
+  openOrSwitchToFile: (
+    path: string,
+    kind: "code" | "markdown" | "viewer",
+    jumpToLine?: number,
+    pin?: boolean,
+  ) => void;
   /** Adds a brand new tab to this same pane group and activates it — used
    * for "open this link/article as a new browser tab" style actions. */
   openNewTab: (kind: TabKind, source?: Partial<PaneTabItem>) => void;

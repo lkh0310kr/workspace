@@ -36,9 +36,9 @@ interface Props {
   onNotifyChanged: () => void
 }
 
-/** One per pane group that has an explorer-capable tab (see PaneGroup.tsx)
- * — not shared across the whole workspace tab, so a split layout shows one
- * tree per split. */
+/** One per pane group — below the tab strip, beside editor/viewer content.
+ * Expand/collapse state is keyed by pane group (`explorerStateKey`), not by
+ * the active file tab. */
 export function WorkspaceExplorerSidebar({
   workspaceTabId,
   nodeId,
