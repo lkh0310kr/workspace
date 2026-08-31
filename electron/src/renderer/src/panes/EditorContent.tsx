@@ -7,7 +7,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { Compartment, EditorSelection, EditorState, Transaction } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
+import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
 import {
   defaultKeymap,
   history,
@@ -43,6 +43,8 @@ import { workspaceSearch } from "../codemirrorSearch";
 import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
 import { wikiLinkExtension } from "../markdownWikilink";
 import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markdownTitleRename";
+import { pastePlainTextCommand } from "../editorPlainPaste";
+import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
 import type { TabKind } from "../layout/paneTypes";
 import { Popover, type AnchorRect } from "../components/Popover";
 
@@ -367,6 +369,7 @@ export function EditorContent({
             { key: "Backspace", run: deleteMarkupBackward },
             { key: "Mod-b", run: toggleMarkdownWrap("**") },
             { key: "Mod-i", run: toggleMarkdownWrap("*") },
+            { key: "Mod-Shift-v", run: pastePlainTextCommand },
             ...defaultKeymap,
           ]),
         ]
@@ -382,6 +385,7 @@ export function EditorContent({
           syntaxTheme,
           keymap.of([
             { key: "Mod-/", run: toggleComment },
+            { key: "Mod-Shift-v", run: pastePlainTextCommand },
             ...closeBracketsKeymap,
             ...completionKeymap,
             ...foldKeymap,
@@ -404,11 +408,13 @@ export function EditorContent({
           // is explicitly opted into. Mod-d (select-next-occurrence) is the
           // other half of "real" multi-select — VS Code/Sublime convention.
           EditorState.allowMultipleSelections.of(true),
+          drawSelection(),
           keymap.of([indentWithTab, ...historyKeymap, { key: "Mod-d", run: selectNextOccurrence }]),
           EditorView.lineWrapping,
           workspaceEditorTheme,
           indentGuides,
-          EditorView.clickAddsSelectionRange.of((event) => event.altKey || event.metaKey),
+          // Option+click (altKey) adds another cursor — VS Code/Obsidian on macOS.
+          EditorView.clickAddsSelectionRange.of((event) => event.altKey),
           EditorView.updateListener.of((update) => {
             setSearchOpen(searchPanelOpen(update.view.state));
             if (!update.docChanged) return;
@@ -428,6 +434,11 @@ export function EditorContent({
     });
     viewRef.current = view;
     if (isMarkdown) setOutline([]);
+
+    const onEditorFocus = (): void => setFocusedEditorView(view);
+    const onEditorBlur = (): void => clearFocusedEditorView(view);
+    view.dom.addEventListener("focus", onEditorFocus, true);
+    view.dom.addEventListener("blur", onEditorBlur, true);
 
     if (!isMarkdown && filePath) {
       const desc = LanguageDescription.matchFilename(languageData, filePath);
@@ -454,6 +465,9 @@ export function EditorContent({
 
     return () => {
       window.removeEventListener("keydown", onKey);
+      view.dom.removeEventListener("focus", onEditorFocus, true);
+      view.dom.removeEventListener("blur", onEditorBlur, true);
+      clearFocusedEditorView(view);
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       view.destroy();
       viewRef.current = null;
