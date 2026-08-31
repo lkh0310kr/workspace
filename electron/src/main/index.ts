@@ -538,6 +538,19 @@ app.whenReady().then(() => {
         event.preventDefault()
         sendToMainWindow('shortcut:open-settings')
       }
+      // Cmd+Shift+V: paste without formatting. Only meaningful here — a
+      // webview guest is the one surface in the app where a normal paste
+      // can carry rich HTML from the source page/app (into a page's own
+      // text field or contenteditable). CodeMirror (markdown/code panes)
+      // and xterm (terminal panes) already read clipboard text as plain
+      // text on an ordinary paste, so there's nothing to intercept there.
+      // contents.insertText() inserts at the guest's current focus/caret
+      // without going through the OS paste pipeline, so it can't carry
+      // formatting even if the guest page would otherwise style it.
+      if (input.code === 'KeyV' && (input.control || input.meta) && input.shift) {
+        event.preventDefault()
+        contents.insertText(clipboard.readText())
+      }
     })
   })
 
