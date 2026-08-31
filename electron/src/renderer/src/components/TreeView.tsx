@@ -77,6 +77,11 @@ export function classifyFile(name: string): "code" | "markdown" | "viewer" {
   return "viewer";
 }
 
+/** Obsidian-style tree label: hide the `.md` suffix for markdown files. */
+export function treeEntryDisplayName(name: string): string {
+  return /\.md$/i.test(name) ? name.slice(0, -3) : name;
+}
+
 function dirOf(path: string): string {
   const idx = path.lastIndexOf("/");
   return idx === -1 ? "" : path.slice(0, idx);
@@ -687,7 +692,7 @@ export function TreeView({
             <span className="tree-view-icon">
               {entry.is_dir ? (expanded.has(entry.path) ? "▾" : "▸") : "·"}
             </span>
-            <span className="tree-view-name">{entry.name}</span>
+            <span className="tree-view-name">{treeEntryDisplayName(entry.name)}</span>
           </div>
         ))}
       </div>

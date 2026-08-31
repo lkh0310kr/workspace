@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyFile } from "./TreeView";
+import { classifyFile, treeEntryDisplayName } from "./TreeView";
 
 // Regression check for the shared/asset.ts extraction — classifyFile
 // used to inline this extension list directly; confirms every extension
@@ -39,5 +39,18 @@ describe("classifyFile", () => {
   it("falls back to code for anything else", () => {
     expect(classifyFile("a.ts")).toBe("code");
     expect(classifyFile("Makefile")).toBe("code");
+  });
+});
+
+describe("treeEntryDisplayName", () => {
+  it("hides .md extension in tree labels", () => {
+    expect(treeEntryDisplayName("notes.md")).toBe("notes");
+    expect(treeEntryDisplayName("README.MD")).toBe("README");
+  });
+
+  it("keeps other extensions and non-md names", () => {
+    expect(treeEntryDisplayName("draft.markdown")).toBe("draft.markdown");
+    expect(treeEntryDisplayName("script.ts")).toBe("script.ts");
+    expect(treeEntryDisplayName("folder")).toBe("folder");
   });
 });
