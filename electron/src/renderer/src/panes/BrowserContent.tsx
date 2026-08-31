@@ -1,59 +1,68 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BrowserAddressBar } from "../components/BrowserAddressBar";
 import { BrowserNavButton } from "../components/BrowserNavButton";
 import { BrowserDownloadsBar } from "../components/BrowserDownloadsBar";
-import { normalizeBrowserNavigationUrl, BLANK_URL } from "../browserUrl";
+import { normalizeBrowserNavigationUrl } from "../browserUrl";
 import { recordBrowserVisit } from "../browserHistory";
-import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
 import { dispatchLocalBrowserZoom, registerBrowserZoomPersist } from "../browser/browserZoom";
 import { browserFocusLog, snapshotBrowserFocusState } from "../browser/browserFocusDebugLog";
+import { releaseTerminalFocusForBrowser, focusBrowserGuestWebview } from "../browser/browserGuestFocus";
+import {
+  applyBrowserPageViewportLayout,
+  ensureBrowserPageViewport,
+  parkBrowserPageViewport,
+  syncBrowserPageChromeInset,
+} from "../browser/browserPageViewport";
+import { ensureBrowserPageWebview } from "../browser/ensureBrowserPageWebview";
+import { useBrowserPageSlotViewport } from "../browser/useBrowserPageSlotViewport";
 import { useBrowserChromeFocus } from "../browser/useBrowserChromeFocus";
 import { useBrowserGuestActivationFocus } from "../browser/useBrowserGuestActivationFocus";
 import { useWebviewGuestFocus } from "../browser/useWebviewGuestFocus";
 import { onBrowserOpenNewTab } from "../electron";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { setActiveBrowserWebview, getActiveBrowserWebview, registerBrowserWebview } from "../layout/activeBrowserWebview";
-import {
-  registerPersistentWebview,
-  unregisterPersistentWebview,
-  moveFocusToRendererBeforeFocusedWebviewHidden,
-  moveFocusToRendererBeforeWebviewDetach,
-} from "../layout/browserWebviewRegistry";
+import { moveFocusToRendererBeforeFocusedWebviewHidden } from "../layout/browserWebviewRegistry";
 import type { PaneTabItem } from "../layout/paneTypes";
 
-// The per-page content half of what used to be BrowserPane.tsx — tab-strip
-// ownership (open/close/switch pages) moved up to PaneGroup.tsx as part of
-// globalizing the tab system, same as EditorContent.tsx. What's still
-// genuinely page-specific stays here: the <webview> guest itself and its
-// own nav+address bar row.
 interface Props {
   tabId: number;
   paneNodeId: string;
   item: PaneTabItem;
-  /** Flexlayout pane visible in the active workspace tab. */
   paneVisible: boolean;
-  /** This browser chip is the active tab in its pane group. */
   chipActive: boolean;
   onUpdate: (patch: Partial<PaneTabItem>) => void;
-  /** target="_blank"/window.open() inside the guest page — main/index.ts
-   * denies the native window and forwards the URL here; caller opens it
-   * as a new browser tab in this pane's group. */
   onOpenNewTab: (url: string) => void;
+  onFocusPaneGroup: () => void;
+  onSelectPaneTab: (id: string) => void;
 }
 
 const DEFAULT_URL = "https://www.google.com";
 
-function applyWebviewZoom(webview: Electron.WebviewTag, factor: number): void {
-  try {
-    webview.setZoomFactor(factor);
-  } catch {
-    // webview may be mid-teardown.
-  }
+function browserPagePaneClassName(isActive: boolean, isPaintable: boolean): string {
+  if (isActive) return "browser-page-pane browser-page-pane--active";
+  if (isPaintable) return "browser-page-pane browser-page-pane--paintable";
+  return "browser-page-pane browser-page-pane--hidden";
 }
 
-export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActive, onUpdate, onOpenNewTab }: Props) {
-  const chipShown = paneVisible && chipActive;
-  const containerRef = useRef<HTMLDivElement>(null);
+export function BrowserContent({
+  tabId,
+  paneNodeId,
+  item,
+  paneVisible,
+  chipActive,
+  onUpdate,
+  onOpenNewTab,
+  onFocusPaneGroup,
+  onSelectPaneTab,
+}: Props) {
+  const isActive = paneVisible && chipActive;
+  const isPaintable = paneVisible;
+  const chipShown = isActive;
+
+  ensureBrowserPageViewport(item.id, paneNodeId);
+  const slotViewport = useBrowserPageSlotViewport(paneNodeId);
+
+  const chromeHeaderRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const engineBundleShownRef = useRef(false);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
@@ -65,10 +74,22 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   const [webContentsId, setWebContentsId] = useState<number | null>(null);
   const [rendererGone, setRendererGone] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
   const onOpenNewTabRef = useRef(onOpenNewTab);
   onOpenNewTabRef.current = onOpenNewTab;
+  const chipShownRef = useRef(chipShown);
+  chipShownRef.current = chipShown;
+  const isPaintableRef = useRef(isPaintable);
+  isPaintableRef.current = isPaintable;
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
+  const onFocusPaneGroupRef = useRef(onFocusPaneGroup);
+  onFocusPaneGroupRef.current = onFocusPaneGroup;
+  const onSelectPaneTabRef = useRef(onSelectPaneTab);
+  onSelectPaneTabRef.current = onSelectPaneTab;
+
   const guestFocus = useWebviewGuestFocus(webviewRef);
   const { keepAddressBarFocusRef } = useBrowserChromeFocus({
     chipShown,
@@ -77,10 +98,32 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   });
   useBrowserGuestActivationFocus({
     isActive: chipShown,
+    workspaceTabId: tabId,
+    paneTabItemId: item.id,
     webviewRef,
-    guestFocus,
     keepAddressBarFocusRef,
+    webviewReady: webContentsId !== null,
   });
+
+  // Orca use-browser-page-webview-url-sync useLayoutEffect
+  useLayoutEffect(() => {
+    applyBrowserPageViewportLayout(item.id, { paintable: isPaintable, active: isActive });
+    const syncChromeInset = (): void => {
+      const header = chromeHeaderRef.current;
+      if (!header) return;
+      syncBrowserPageChromeInset(item.id, header.offsetHeight);
+    };
+    syncChromeInset();
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(syncChromeInset);
+    const header = chromeHeaderRef.current;
+    if (header) {
+      resizeObserver?.observe(header);
+    }
+    return () => {
+      resizeObserver?.disconnect();
+    };
+  }, [isActive, isPaintable, item.id, slotViewport]);
 
   const syncNavState = useCallback(() => {
     const webview = webviewRef.current;
@@ -103,29 +146,29 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     syncNavState();
   }, [syncNavState]);
 
+  // Orca attachBrowserPageWebview / use-browser-page-webview-lifecycle
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    if (!slotViewport) return;
+
+    const viewport = ensureBrowserPageViewport(item.id, paneNodeId);
+    if (!viewport) return;
 
     const initialZoom = item.zoomFactor ?? 1;
-    const guest = document.createElement("webview") as Electron.WebviewTag;
-    guest.setAttribute("partition", BROWSER_SESSION_PARTITION);
-    guest.setAttribute("src", normalizeBrowserNavigationUrl(item.url ?? DEFAULT_URL, false) ?? BLANK_URL);
-    guest.setAttribute("allowpopups", "");
-    guest.setAttribute("webpreferences", "contextIsolation=yes,webgl=yes");
-    guest.dataset.tabItemId = item.id;
-    guest.style.width = "100%";
-    guest.style.height = "100%";
-    guest.style.border = "none";
-    guest.style.background = "#ffffff";
-    // Start hidden — reconcile() enables only the focused pane's guest.
-    // Without this, a freshly mounted webview's native layer sits above DOM
-    // (tab strips, popovers, workspace rail) until the next reconcile tick.
-    guest.style.display = "none";
-    guest.style.pointerEvents = "none";
-    container.appendChild(guest);
+    const ensured = ensureBrowserPageWebview({
+      tabItemId: item.id,
+      container: viewport.container,
+      initialUrl: item.url ?? DEFAULT_URL,
+      initialZoom,
+    });
+    if (!ensured) return;
+
+    const guest = ensured.webview;
     webviewRef.current = guest;
-    applyWebviewZoom(guest, initialZoom);
+
+    applyBrowserPageViewportLayout(item.id, {
+      paintable: isPaintableRef.current,
+      active: isActiveRef.current,
+    });
 
     try {
       setWebContentsId(guest.getWebContentsId());
@@ -155,20 +198,13 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       try {
         recordBrowserVisit(guest.getURL(), e.title);
       } catch {
-        // webview can be mid-teardown when this fires.
+        /* guest mid-teardown */
       }
     };
     const onFaviconUpdated = (e: Electron.PageFaviconUpdatedEvent): void => {
       const favicon = e.favicons[0];
       if (favicon) onUpdateRef.current({ favicon });
     };
-    // Why (Orca parity — host-guest/browser-page-guest-recovery.ts): a
-    // crashed/OOM-killed guest renderer fires render-process-gone and goes
-    // blank with no further events, so the crash needs its own listener
-    // rather than falling through did-stop-loading. Workspace has no
-    // main-process guest registry to validate against or replace a guest
-    // through, so this is the display+reload half only, not Orca's full
-    // recovery/validation state machine.
     const onRendererGone = (): void => setRendererGone(true);
     const onDomReady = (): void => {
       setRendererGone(false);
@@ -179,6 +215,9 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
         setWebContentsId(null);
       }
       syncNavState();
+      if (chipShownRef.current) {
+        interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, "dom-ready");
+      }
     };
     const onFailLoad = (e: Electron.DidFailLoadEvent): void => {
       if (!e.validatedURL?.startsWith("workspace-engine:")) return;
@@ -197,8 +236,20 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     guest.addEventListener("dom-ready", onDomReady);
     guest.addEventListener("did-fail-load", onFailLoad);
 
+    const onContainerPointerDown = (): void => {
+      onFocusPaneGroupRef.current();
+      if (!isActiveRef.current) {
+        onSelectPaneTabRef.current(item.id);
+        return;
+      }
+      if (document.activeElement === addressInputRef.current) return;
+      browserFocusLog("BrowserContent.viewportPointerDown", "pointer down on guest container");
+      setActiveBrowserWebview(guest);
+      void focusBrowserGuestWebview(guest, "viewport-pointerdown");
+    };
+    viewport.container.addEventListener("pointerdown", onContainerPointerDown);
+
     const unregisterWebview = registerBrowserWebview(guest);
-    registerPersistentWebview(item.id, guest);
     interactionCoordinator.registerWebview(guest, {
       workspaceTabId: tabId,
       paneNodeId,
@@ -207,7 +258,11 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       initialChipActive: chipActive,
     });
 
-    const onFocus = (): void => setActiveBrowserWebview(guest);
+    const onFocus = (): void => {
+      setActiveBrowserWebview(guest);
+      onFocusPaneGroupRef.current();
+      browserFocusLog("BrowserContent.webviewFocus", "host webview focus");
+    };
     const onBlur = (): void => {
       if (getActiveBrowserWebview() === guest) setActiveBrowserWebview(null);
     };
@@ -235,28 +290,37 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       guest.removeEventListener("render-process-gone", onRendererGone);
       guest.removeEventListener("dom-ready", onDomReady);
       guest.removeEventListener("did-fail-load", onFailLoad);
+      viewport.container.removeEventListener("pointerdown", onContainerPointerDown);
       guest.removeEventListener("focus", onFocus);
       guest.removeEventListener("blur", onBlur);
       if (getActiveBrowserWebview() === guest) setActiveBrowserWebview(null);
-      interactionCoordinator.unregisterWebview(guest);
+      interactionCoordinator.detachBrowserWebview(guest);
       unregisterWebview();
-      unregisterPersistentWebview(item.id);
       unlistenOpenNewTab();
-      moveFocusToRendererBeforeWebviewDetach(guest);
-      container.removeChild(guest);
+      parkBrowserPageViewport(item.id);
       webviewRef.current = null;
       setWebContentsId(null);
     };
-    // Deliberately empty deps — one webview per tab item for its whole
-    // lifetime, navigated imperatively; item.id is a stable mount key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, paneNodeId, item.id, syncNavState]);
+  }, [tabId, item.id, paneNodeId, slotViewport, syncNavState]);
 
   useEffect(() => {
     const webview = webviewRef.current;
     if (!webview) return;
-    interactionCoordinator.setBrowserPaneVisible(tabId, item.id, paneVisible);
-    interactionCoordinator.setBrowserChipActive(tabId, item.id, chipActive);
+    interactionCoordinator.updateWebviewPaneNode(webview, paneNodeId);
+  }, [paneNodeId]);
+
+  useEffect(() => {
+    const webview = webviewRef.current;
+    if (!webview) return;
+
+    applyBrowserPageViewportLayout(item.id, { paintable: isPaintable, active: isActive });
+
+    interactionCoordinator.setBrowserPaneChipState(tabId, item.id, {
+      paneVisible,
+      chipActive,
+    });
+
     if (chipShown && !engineBundleShownRef.current) {
       engineBundleShownRef.current = true;
       try {
@@ -265,11 +329,13 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
           webview.reload();
         }
       } catch {
-        // webview may not have navigated yet.
+        /* not navigated yet */
       }
     }
     if (chipShown) {
       setActiveBrowserWebview(webview);
+      releaseTerminalFocusForBrowser();
+      interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, "chip-shown");
       browserFocusLog("BrowserContent.chipShown", "chip shown", snapshotBrowserFocusState(webview));
     }
     if (!chipShown) {
@@ -281,7 +347,7 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
         setActiveBrowserWebview(null);
       }
     }
-  }, [paneVisible, chipActive, chipShown, tabId, item.id]);
+  }, [paneVisible, chipActive, chipShown, isPaintable, isActive, tabId, item.id]);
 
   useEffect(() => {
     return registerBrowserZoomPersist(item.id, (factor) => {
@@ -302,100 +368,114 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [chipShown]);
 
+  const refocusBrowserGuest = useCallback(() => {
+    releaseTerminalFocusForBrowser();
+    interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, "address-bar-dismiss");
+  }, [tabId, item.id]);
+
   const navigate = (url: string): void => {
     const normalized = normalizeBrowserNavigationUrl(url, true);
-    if (normalized) webviewRef.current?.loadURL(normalized);
+    if (!normalized) return;
+    addressInputRef.current?.blur();
+    webviewRef.current?.loadURL(normalized);
+    if (chipShown) {
+      interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, "navigate");
+    }
+  };
+
+  const handleChromePointerDown = (): void => {
+    onFocusPaneGroupRef.current();
+    if (!isActiveRef.current) {
+      onSelectPaneTabRef.current(item.id);
+    }
   };
 
   return (
-    <div className="browser-pane-chrome" style={{ pointerEvents: chipShown ? undefined : "none" }}>
-      <div className="pane-header pane-header-browser">
-        <div className="browser-nav">
-          <BrowserNavButton
-            direction="back"
-            disabled={!canGoBack}
-            active={chipShown}
-            webContentsId={webContentsId}
-            onNavigate={syncNavState}
-            onNavigateAction={goBack}
-          />
-          <BrowserNavButton
-            direction="forward"
-            disabled={!canGoForward}
-            active={chipShown}
-            webContentsId={webContentsId}
-            onNavigate={syncNavState}
-            onNavigateAction={goForward}
-          />
-          <button
-            type="button"
-            className="browser-nav-btn"
-            title={loading ? "Stop" : "Reload"}
-            onClick={() => {
-              const wv = webviewRef.current;
-              if (!wv) return;
-              if (loading) wv.stop();
-              else wv.reload();
-            }}
-          >
-            {loading ? "×" : "↻"}
-          </button>
-          <button
-            type="button"
-            className="browser-nav-btn browser-nav-btn-devtools"
-            title="Toggle DevTools"
-            onClick={() => {
-              const wv = webviewRef.current;
-              if (!wv) return;
-              if (wv.isDevToolsOpened()) wv.closeDevTools();
-              else wv.openDevTools();
-            }}
-          >
-            {"</>"}
-          </button>
-        </div>
-        <BrowserAddressBar
-          value={addressInput}
-          currentUrl={currentUrl}
-          onChange={setAddressInput}
-          onNavigate={navigate}
-          inputRef={addressInputRef}
-        />
-      </div>
-      {loading ? <div className="browser-loading-bar" aria-hidden="true" /> : null}
-      <BrowserDownloadsBar webContentsId={webContentsId} />
+    <div
+      data-browser-page-pane-id={item.id}
+      className={browserPagePaneClassName(isActive, isPaintable)}
+      inert={!isActive}
+      aria-hidden={!isActive}
+    >
       <div
-        className="browser-content-slot-wrap"
-        onPointerDownCapture={() => {
-          if (!chipShown) return;
-          if (document.activeElement === addressInputRef.current) return;
-          browserFocusLog("BrowserContent.viewportPointerDown", "pointer down on viewport");
-          guestFocus.focus("viewport-pointerdown");
-        }}
+        ref={chromeHeaderRef}
+        className="browser-page-chrome-header"
+        onPointerDown={handleChromePointerDown}
       >
-        {/* containerRef stays a pure imperative host for the <webview> —
-            keeping it free of React-rendered children avoids React's
-            reconciliation fighting the guest element it doesn't know
-            about. The crash banner is a positioned sibling instead. */}
-        <div ref={containerRef} className="browser-content-slot" />
-        {rendererGone && (
-          <div className="browser-crash-banner">
-            <span>This page crashed.</span>
+        <div className="pane-header pane-header-browser">
+          <div className="browser-nav">
+            <BrowserNavButton
+              direction="back"
+              disabled={!canGoBack}
+              active={chipShown}
+              webContentsId={webContentsId}
+              onNavigate={syncNavState}
+              onNavigateAction={goBack}
+            />
+            <BrowserNavButton
+              direction="forward"
+              disabled={!canGoForward}
+              active={chipShown}
+              webContentsId={webContentsId}
+              onNavigate={syncNavState}
+              onNavigateAction={goForward}
+            />
             <button
               type="button"
-              className="browser-crash-reload"
-              onClick={() => webviewRef.current?.reload()}
+              className="browser-nav-btn"
+              title={loading ? "Stop" : "Reload"}
+              onClick={() => {
+                const wv = webviewRef.current;
+                if (!wv) return;
+                if (loading) wv.stop();
+                else wv.reload();
+              }}
             >
-              Reload
+              {loading ? "×" : "↻"}
+            </button>
+            <button
+              type="button"
+              className="browser-nav-btn browser-nav-btn-devtools"
+              title="Toggle DevTools"
+              onClick={() => {
+                const wv = webviewRef.current;
+                if (!wv) return;
+                if (wv.isDevToolsOpened()) wv.closeDevTools();
+                else wv.openDevTools();
+              }}
+            >
+              {"</>"}
             </button>
           </div>
-        )}
-        {loadError && !rendererGone && (
-          <div className="browser-crash-banner">
-            <span>{loadError}</span>
-          </div>
-        )}
+          <BrowserAddressBar
+            value={addressInput}
+            currentUrl={currentUrl}
+            onChange={setAddressInput}
+            onNavigate={navigate}
+            onDismiss={chipShown ? refocusBrowserGuest : undefined}
+            inputRef={addressInputRef}
+          />
+        </div>
+        {loading ? <div className="browser-loading-bar" aria-hidden="true" /> : null}
+        <BrowserDownloadsBar webContentsId={webContentsId} />
       </div>
+      {rendererGone && chipShown && (
+        <div className="browser-crash-banner pointer-events-auto">
+          <span>This page crashed.</span>
+          <button
+            type="button"
+            className="browser-crash-reload"
+            onClick={() => webviewRef.current?.reload()}
+          >
+            Reload
+          </button>
+        </div>
+      )}
+      {loadError && !rendererGone && chipShown && (
+        <div className="browser-crash-banner pointer-events-auto">
+          <span>{loadError}</span>
+        </div>
+      )}
     </div>
   );
 }

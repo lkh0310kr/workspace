@@ -1,5 +1,7 @@
 import type { DragEvent } from "react";
-import type { ILayoutApi, TabNode } from "flexlayout-react";
+import type { ILayoutApi, Model, TabNode } from "flexlayout-react";
+import { Actions } from "flexlayout-react";
+import { useWorkspaceStore } from "../store/workspaceStore";
 import { layoutLog } from "./layoutDebugLog";
 import { getTabDrag } from "./tabDrag";
 
@@ -33,6 +35,7 @@ type FlexLayoutController = {
  * active as separate state removes that ordering dependency entirely.
  */
 const instances = new Map<number, ILayoutApi>();
+const models = new Map<number, Model>();
 const controllers = new Map<number, FlexLayoutController>();
 let activeTabId: number | null = null;
 let paneDragActive = false;
@@ -95,6 +98,24 @@ export function finishPaneDrag(tabId: number | null = activeTabId): void {
 export function setActiveLayoutTab(tabId: number): void {
   layoutLog("layoutRef.setActiveLayoutTab", "active layout tab", { from: activeTabId, to: tabId }, tabId);
   activeTabId = tabId;
+}
+
+export function registerLayoutModel(tabId: number, model: Model | null): void {
+  if (model) models.set(tabId, model);
+  else models.delete(tabId);
+}
+
+export function getLayoutModel(workspaceTabId: number): Model | undefined {
+  return models.get(workspaceTabId);
+}
+
+/** Orca focusGroup — Zustand dimming + flexlayout active tabset. */
+export function focusPaneGroupTabSet(workspaceTabId: number, tabSetId: string): void {
+  useWorkspaceStore.getState().setFocusedPaneGroupTabSet(workspaceTabId, tabSetId);
+  const model = getLayoutModel(workspaceTabId);
+  if (model) {
+    model.doAction(Actions.setActiveTabset(tabSetId));
+  }
 }
 
 export function redrawAllLayouts(): void {

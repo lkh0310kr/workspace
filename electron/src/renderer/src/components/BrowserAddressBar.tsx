@@ -23,9 +23,18 @@ interface Props {
   onChange: (value: string) => void;
   onNavigate: (url: string) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  /** After the autocomplete portal closes — return focus to the page guest. */
+  onDismiss?: () => void;
 }
 
-export function BrowserAddressBar({ value, currentUrl, onChange, onNavigate, inputRef }: Props) {
+export function BrowserAddressBar({
+  value,
+  currentUrl,
+  onChange,
+  onNavigate,
+  inputRef,
+  onDismiss,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState<{ left: number; top: number; width: number } | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -60,6 +69,9 @@ export function BrowserAddressBar({ value, currentUrl, onChange, onNavigate, inp
     onChange(typed);
   }, [onChange]);
 
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+
   const close = useCallback(() => {
     if (blurTimerRef.current !== null) {
       window.clearTimeout(blurTimerRef.current);
@@ -67,6 +79,7 @@ export function BrowserAddressBar({ value, currentUrl, onChange, onNavigate, inp
     }
     restoreTypedQuery();
     setOpen(false);
+    onDismissRef.current?.();
   }, [restoreTypedQuery]);
 
   // Escape: if arrow-previewing a suggestion, just cancel that preview
@@ -121,6 +134,7 @@ export function BrowserAddressBar({ value, currentUrl, onChange, onNavigate, inp
       prePreviewValueRef.current = null;
       setOpen(false);
       onNavigate(url);
+      onDismissRef.current?.();
     },
     [onNavigate],
   );

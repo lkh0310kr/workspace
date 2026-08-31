@@ -27,6 +27,8 @@ export const browserPaneKind: PaneKindDefinition = {
         chipActive={ctx.active}
         onUpdate={ctx.updateItem}
         onOpenNewTab={(url) => ctx.openNewTab("browser", { url })}
+        onFocusPaneGroup={ctx.focusPaneGroup}
+        onSelectPaneTab={ctx.selectPaneTab}
       />
     );
   },

@@ -626,31 +626,117 @@ input {
   display: none;
 }
 
+/* Orca BrowserPaneOverlayLayer — slot + chrome are siblings; guests mount in the slot root. */
+.browser-pane-overlay-slot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.browser-overlay-slot-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.browser-pane-page-stack {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  /* Orca browser-page-pane: chrome stack must not block guest hit-testing below. */
+  pointer-events: none;
+}
+
+/* Orca browser-page-pane.tsx */
+.browser-page-pane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  pointer-events: none;
+}
+
+.browser-page-pane--active {
+  z-index: 10;
+}
+
+.browser-page-pane--paintable {
+  z-index: 0;
+  opacity: 0;
+}
+
+.browser-page-pane--hidden {
+  display: none;
+}
+
+.browser-page-chrome-header {
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.browser-page-chrome-inset {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.browser-page-guest-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+.browser-page-guest-container webview {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
 .browser-content-slot-wrap {
   flex: 1 1 0;
   min-height: 0;
   height: 0;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.browser-content-slot {
+/* Imperative host for browser-page-viewport shells (Orca overlay slot parity). */
+.browser-content-slot-host {
+  position: relative;
   width: 100%;
   height: 100%;
-  border: none;
-  background: var(--bg-base);
-  position: relative;
-  isolation: isolate;
+  min-height: 0;
+  flex: 1 1 0;
   overflow: hidden;
 }
 
-iframe.browser-content-slot {
-  display: block;
-  pointer-events: auto;
+/* Stable guest viewport shell — Orca absolute inset-0 flex column */
+.browser-page-viewport-shell {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
-/* Orca-parity crash banner (host-guest/browser-page-guest-recovery.ts) —
-   render-process-gone leaves the guest blank with no further events. */
+/* Orca-parity crash banner (host-guest/browser-page-guest-recovery.ts) */
 .browser-crash-banner {
   position: absolute;
   inset: 0;
@@ -663,6 +749,7 @@ iframe.browser-content-slot {
   color: var(--text-muted);
   font-family: var(--font-ui);
   font-size: 12px;
+  pointer-events: auto;
 }
 
 .browser-crash-reload {
@@ -2289,12 +2376,10 @@ iframe.browser-content-slot {
 /* Browser tab content's own chrome (nav+address row) — previously this was
    PaneFrame's job for the whole pane (contentSlot mode); now it's scoped
    inside BrowserContent.tsx since a pane can mix browser tabs with other
-   kinds. */
+   kinds. Guest webviews render in the pane overlay slot beneath this layer. */
 .browser-pane-chrome {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
   position: relative;
 }
 

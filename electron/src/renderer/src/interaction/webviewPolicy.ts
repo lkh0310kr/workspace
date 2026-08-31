@@ -19,12 +19,10 @@ export type WebviewPolicyContext = {
  * Drag overlays hide the guest (display:none); portals keep it visible but block input.
  */
 export function resolveWebviewPolicy(ctx: WebviewPolicyContext): WebviewPolicy {
+  // Orca overlay: shell visibility is on the viewport; guest stays mounted with pointer-events from IC.
   const paneLive = ctx.activeWorkspaceTabId === ctx.workspaceTabId && ctx.paneVisible;
-  // Why: Electron <webview> can steal hits even with pointer-events:none while
-  // display:flex — hide inactive chips so terminal/editor panes receive clicks.
-  const visible = paneLive && !ctx.overlayBlocked && ctx.chipActive;
-  const interactive = visible && !ctx.portalsOpen;
-  return { visible, interactive };
+  const interactive = paneLive && ctx.chipActive && !ctx.overlayBlocked && !ctx.portalsOpen;
+  return { visible: paneLive && ctx.chipActive && !ctx.overlayBlocked, interactive };
 }
 
 /** Unregistered webview fallback — mid-mount/teardown guests must stay hidden. */

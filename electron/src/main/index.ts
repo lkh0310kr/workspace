@@ -134,8 +134,16 @@ function interactionLogPath(): string {
   return 'interaction.ndjson'
 }
 
+function browserFocusLogPath(): string {
+  return 'browser-focus.ndjson'
+}
+
 function appendInteractionLog(entry: Record<string, unknown>): void {
   appendNdjsonLog(interactionLogPath(), entry)
+}
+
+function appendBrowserFocusLog(entry: Record<string, unknown>): void {
+  appendNdjsonLog(browserFocusLogPath(), entry)
 }
 
 function createWindow(): BrowserWindow {
@@ -539,6 +547,12 @@ app.whenReady().then(() => {
     contents.on('blur', () => {
       sendToMainWindow('browser:guest-focus', { webContentsId: contents.id, focused: false })
     })
+    // Guest clicks don't bubble to overlay slot pointerdown after the page loads; relay every
+    // mouseDown so split-pane focus dimming updates even when the guest is already focused.
+    contents.on('input-event', (_event, input) => {
+      if (input.type !== 'mouseDown') return
+      sendToMainWindow('browser:guest-pointer-down', { webContentsId: contents.id })
+    })
     // Guest webview has its own keyboard focus — host webContents
     // before-input-event (createWindow) won't see Cmd+W/Cmd+R while the
     // user is typing in a page, so relay the same shortcuts here too.
@@ -614,6 +628,9 @@ app.whenReady().then(() => {
   })
   ipcMain.on('debug:interaction-log', (_event, entry: Record<string, unknown>) => {
     appendInteractionLog(entry)
+    if (entry.sessionId === 'browser-focus') {
+      appendBrowserFocusLog(entry)
+    }
   })
   ipcMain.on('debug:terminal-log', (_event, entry: Record<string, unknown>) => {
     appendTerminalLog(entry)

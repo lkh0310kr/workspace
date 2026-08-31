@@ -126,6 +126,7 @@ export interface WorkspaceApi {
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void) => () => void
     onGuestFocus: (cb: (payload: { webContentsId: number; focused: boolean }) => void) => () => void
+    onGuestPointerDown: (cb: (payload: { webContentsId: number }) => void) => () => void
     onHtmlFullscreenChanged: (cb: (active: boolean) => void) => () => void
     onDownloadEvent: (cb: (payload: BrowserDownloadEventPayload) => void) => () => void
     getNavHistory: (
@@ -134,6 +135,7 @@ export interface WorkspaceApi {
     goBack: (webContentsId: number) => Promise<boolean>
     goForward: (webContentsId: number) => Promise<boolean>
     goToIndex: (webContentsId: number, index: number) => Promise<boolean>
+    focusGuest: (webContentsId: number) => Promise<boolean>
   }
   shortcuts: {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void

@@ -22,8 +22,13 @@ export function installBrowserEmbedSupport(): () => void {
     zoomBrowserWebview(direction);
   });
   if (isDevInstrumentation && typeof window !== "undefined") {
-    (window as Window & { __browserFocusLog?: () => readonly unknown[] }).__browserFocusLog =
-      () => getBrowserFocusLogRing();
+    const win = window as Window & {
+      __browserFocusLog?: () => readonly unknown[];
+      __browserFocusLogPath?: string;
+    };
+    win.__browserFocusLog = () => getBrowserFocusLogRing();
+    win.__browserFocusLogPath =
+      "~/Library/Application Support/workspace-app/logs/browser-focus.ndjson (macOS userData/logs)";
   }
   return () => {
     unlistenFocus();

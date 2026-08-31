@@ -1,6 +1,11 @@
 /** @vitest-environment jsdom */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  ensureBrowserPageViewport,
+  registerBrowserOverlaySlotViewport,
+  resetBrowserPageViewportsForTests,
+} from "../browser/browserPageViewport";
 import { InteractionCoordinatorImpl } from "./InteractionCoordinator";
 
 function mockWebview(): Electron.WebviewTag {
@@ -22,6 +27,7 @@ describe("InteractionCoordinator reconcile", () => {
 
   afterEach(() => {
     document.body.innerHTML = "";
+    resetBrowserPageViewportsForTests();
   });
 
   function freshCoordinator() {
@@ -38,19 +44,26 @@ describe("InteractionCoordinator reconcile", () => {
       chipActive?: boolean;
     } = {},
   ) {
+    const paneTabItemId = opts.paneTabItemId ?? "browser-1";
+    const paneNodeId = "pane-1";
+    const slot = document.createElement("div");
+    document.body.appendChild(slot);
+    registerBrowserOverlaySlotViewport(paneNodeId, slot);
+    const viewport = ensureBrowserPageViewport(paneTabItemId, paneNodeId);
+    if (!viewport) throw new Error("expected browser viewport");
     const webview = mockWebview();
-    document.body.appendChild(webview);
+    viewport.container.appendChild(webview);
     c.registerWebview(webview, {
       workspaceTabId: opts.workspaceTabId ?? 1,
       paneNodeId: "pane-1",
-      paneTabItemId: opts.paneTabItemId ?? "browser-1",
+      paneTabItemId,
       initialPaneVisible: opts.paneVisible ?? true,
       initialChipActive: opts.chipActive ?? true,
     });
     return webview;
   }
 
-  it("shows interactive webview when workspace tab, pane, and chip are active", () => {
+  it("keeps webview flex and interactive when workspace tab, pane, and chip are active", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(1);
@@ -62,44 +75,44 @@ describe("InteractionCoordinator reconcile", () => {
     });
   });
 
-  it("hides webview when workspace tab is inactive", () => {
+  it("keeps webview pointer-events auto when workspace tab is inactive (viewport shell blocks hits)", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(2);
 
     expect(webviewStyles(wv)).toEqual({
-      display: "none",
-      pointerEvents: "none",
-      inert: true,
+      display: "flex",
+      pointerEvents: "auto",
+      inert: false,
     });
   });
 
-  it("hides webview when pane is not visible", () => {
+  it("keeps webview pointer-events auto when pane is not visible", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c, { paneVisible: false });
     c.setActiveWorkspaceTab(1);
 
-    expect(webviewStyles(wv).display).toBe("none");
+    expect(webviewStyles(wv).pointerEvents).toBe("auto");
   });
 
-  it("hides webview when chip is inactive", () => {
+  it("keeps webview pointer-events auto when chip is inactive", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c, { chipActive: false });
     c.setActiveWorkspaceTab(1);
 
-    expect(webviewStyles(wv).display).toBe("none");
+    expect(webviewStyles(wv).pointerEvents).toBe("auto");
   });
 
-  it("hides webview while overlay is blocked", () => {
+  it("keeps webview pointer-events auto while overlay is blocked", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(1);
     c.pushOverlayBlock("splitter-drag");
 
-    expect(webviewStyles(wv).display).toBe("none");
+    expect(webviewStyles(wv).pointerEvents).toBe("auto");
   });
 
-  it("keeps webview visible but blocks input while a portal is open", () => {
+  it("keeps webview pointer-events auto while a portal is open", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(1);
@@ -107,27 +120,27 @@ describe("InteractionCoordinator reconcile", () => {
 
     expect(webviewStyles(wv)).toEqual({
       display: "flex",
-      pointerEvents: "none",
-      inert: true,
+      pointerEvents: "auto",
+      inert: false,
     });
   });
 
-  it("updates policy when pane visibility changes", () => {
+  it("keeps webview pointer-events auto when pane visibility changes", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(1);
     c.setBrowserPaneVisible(1, "browser-1", false);
 
-    expect(webviewStyles(wv).display).toBe("none");
+    expect(webviewStyles(wv).pointerEvents).toBe("auto");
   });
 
-  it("updates policy when chip active changes", () => {
+  it("keeps webview pointer-events auto when chip active changes", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(1);
     c.setBrowserChipActive(1, "browser-1", false);
 
-    expect(webviewStyles(wv).display).toBe("none");
+    expect(webviewStyles(wv).pointerEvents).toBe("auto");
   });
 
   it("focuses webview when chip becomes active and guest is interactive", async () => {
@@ -135,6 +148,30 @@ describe("InteractionCoordinator reconcile", () => {
     const wv = registerBrowser(c, { chipActive: false });
     c.setActiveWorkspaceTab(1);
     c.setBrowserChipActive(1, "browser-1", true);
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+    expect(wv.focus).toHaveBeenCalled();
+  });
+
+  it("focuses webview on register when chip and pane are already active", async () => {
+    const c = freshCoordinator();
+    const slot = document.createElement("div");
+    document.body.appendChild(slot);
+    registerBrowserOverlaySlotViewport("pane-1", slot);
+    const viewport = ensureBrowserPageViewport("browser-1", "pane-1");
+    if (!viewport) throw new Error("expected browser viewport");
+    const wv = mockWebview();
+    viewport.container.appendChild(wv);
+    c.setActiveWorkspaceTab(1);
+    c.registerWebview(wv, {
+      workspaceTabId: 1,
+      paneNodeId: "pane-1",
+      paneTabItemId: "browser-1",
+      initialPaneVisible: true,
+      initialChipActive: true,
+    });
 
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
@@ -151,17 +188,40 @@ describe("InteractionCoordinator reconcile", () => {
     expect(wv.focus).not.toHaveBeenCalled();
   });
 
-  it("hides webview on unregister", () => {
+  it("cancels stale focus schedule when webview unregisters", async () => {
     const c = freshCoordinator();
-    const wv = registerBrowser(c);
+    const slot = document.createElement("div");
+    document.body.appendChild(slot);
+    registerBrowserOverlaySlotViewport("pane-1", slot);
+    const viewport = ensureBrowserPageViewport("browser-1", "pane-1");
+    if (!viewport) throw new Error("expected browser viewport");
+    const wv = mockWebview();
+    viewport.container.appendChild(wv);
     c.setActiveWorkspaceTab(1);
+    c.registerWebview(wv, {
+      workspaceTabId: 1,
+      paneNodeId: "pane-1",
+      paneTabItemId: "browser-1",
+      initialPaneVisible: true,
+      initialChipActive: true,
+    });
+    (wv.focus as ReturnType<typeof vi.fn>).mockClear();
+    c.unregisterWebview(wv);
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+    expect(wv.focus).not.toHaveBeenCalled();
+  });
+
+  it("parks viewport shell on unregister", () => {
+    const c = freshCoordinator();
+    registerBrowser(c);
+    c.setActiveWorkspaceTab(1);
+    const wv = document.querySelector("webview") as Electron.WebviewTag;
     c.unregisterWebview(wv);
 
-    expect(webviewStyles(wv)).toEqual({
-      display: "none",
-      pointerEvents: "none",
-      inert: true,
-    });
+    const shell = document.querySelector<HTMLElement>('[data-browser-page-viewport-id="browser-1"]');
+    expect(shell?.style.display).toBe("none");
     expect(c.getSnapshot().registeredWebviewCount).toBe(0);
   });
 
@@ -183,23 +243,24 @@ describe("InteractionCoordinator reconcile", () => {
     });
   });
 
-  it("only shows the active chip among multiple browser panes", () => {
+  it("keeps sibling webview pointer-events auto when chip changes", () => {
     const c = freshCoordinator();
     const active = registerBrowser(c, { paneTabItemId: "browser-a", chipActive: true });
-    const inactive = registerBrowser(c, { paneTabItemId: "browser-b", chipActive: false });
+    registerBrowser(c, { paneTabItemId: "browser-b", chipActive: false });
     c.setActiveWorkspaceTab(1);
 
-    expect(webviewStyles(active).display).toBe("flex");
-    expect(webviewStyles(inactive).display).toBe("none");
+    expect(webviewStyles(active).pointerEvents).toBe("auto");
+    c.setBrowserChipActive(1, "browser-b", true);
+    expect(webviewStyles(active).pointerEvents).toBe("auto");
   });
 
-  it("restores visibility after overlay pop", () => {
+  it("restores webview interactivity after overlay pop", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(1);
     c.pushOverlayBlock("drag");
     c.popOverlayBlock("drag");
 
-    expect(webviewStyles(wv).display).toBe("flex");
+    expect(webviewStyles(wv).pointerEvents).toBe("auto");
   });
 });

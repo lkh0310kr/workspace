@@ -14,8 +14,10 @@
 
 import {
   browserFocusLog,
+  getBrowserGuestFocusWebContentsId,
   setBrowserGuestFocusDebugState,
 } from "../browser/browserFocusDebugLog";
+import { focusPaneGroupForGuestWebContents } from "../panes/focusPaneGroupForBrowser";
 
 const registry = new Map<number, Electron.WebviewTag>();
 let current: Electron.WebviewTag | null = null;
@@ -61,10 +63,15 @@ export function getBrowserWebviewByWebContentsId(
   return registry.get(webContentsId) ?? null;
 }
 
+export function isBrowserGuestWebContentsFocused(webContentsId: number): boolean {
+  return getBrowserGuestFocusWebContentsId() === webContentsId;
+}
+
 export function installBrowserFocusTracking(): () => void {
   const onFocusIn = (e: FocusEvent): void => {
     const target = e.target as HTMLElement | null;
-    if (target?.closest(".browser-pane-chrome")) return;
+    if (target?.closest(".browser-pane-chrome, .browser-page-chrome-header")) return;
+    if (target?.tagName.toLowerCase() === "webview") return;
     current = null;
   };
   document.addEventListener("focusin", onFocusIn);
@@ -72,8 +79,25 @@ export function installBrowserFocusTracking(): () => void {
 }
 
 export function installBrowserGuestFocusRelay(): () => void {
-  const listener = window.api.browser.onGuestFocus(({ webContentsId, focused }) => {
+  const onGuestActivated = (webContentsId: number, source: string): void => {
+    browserFocusLog("activeBrowserWebview.guestActivated", source, { webContentsId });
+    focusPaneGroupForGuestWebContents(webContentsId);
+  };
+
+  const unlistenFocus = window.api.browser.onGuestFocus(({ webContentsId, focused }) => {
     setGuestWebContentsFocus(webContentsId, focused);
+    if (focused) {
+      onGuestActivated(webContentsId, "guest-focus-ipc");
+    }
   });
-  return listener;
+
+  const unlistenPointerDown = window.api.browser.onGuestPointerDown(({ webContentsId }) => {
+    setGuestWebContentsFocus(webContentsId, true);
+    onGuestActivated(webContentsId, "guest-pointerdown-ipc");
+  });
+
+  return () => {
+    unlistenFocus();
+    unlistenPointerDown();
+  };
 }

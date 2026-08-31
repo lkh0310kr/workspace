@@ -1,7 +1,8 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Layout, type Model } from 'flexlayout-react'
 import type { TabInfo } from '../electron'
 import { workspaceTabHostStyle } from '../interaction/embedPolicy'
+import { registerLayoutModel } from '../layout/layoutRef'
 import type { useLayoutHostCallbacks } from '../hooks/useLayoutHostCallbacks'
 
 type LayoutCallbacks = ReturnType<typeof useLayoutHostCallbacks>
@@ -75,6 +76,11 @@ function WorkspaceTabLayoutItem({
   | 'getLayoutRefCallback'
 >) {
   const shellRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    registerLayoutModel(tab.id, model)
+    return () => registerLayoutModel(tab.id, null)
+  }, [tab.id, model])
 
   return (
     <div

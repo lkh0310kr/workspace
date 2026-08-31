@@ -78,6 +78,14 @@ const api = {
       ipcRenderer.on('browser:guest-focus', listener)
       return () => ipcRenderer.removeListener('browser:guest-focus', listener)
     },
+    onGuestPointerDown: (cb: (payload: { webContentsId: number }) => void): (() => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        payload: { webContentsId: number },
+      ): void => cb(payload)
+      ipcRenderer.on('browser:guest-pointer-down', listener)
+      return () => ipcRenderer.removeListener('browser:guest-pointer-down', listener)
+    },
     onHtmlFullscreenChanged: (cb: (active: boolean) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, active: boolean): void => cb(active)
       ipcRenderer.on('browser:html-fullscreen-changed', listener)
@@ -98,7 +106,9 @@ const api = {
     goForward: (webContentsId: number): Promise<boolean> =>
       ipcRenderer.invoke('browser:go-forward', webContentsId),
     goToIndex: (webContentsId: number, index: number): Promise<boolean> =>
-      ipcRenderer.invoke('browser:go-to-index', webContentsId, index)
+      ipcRenderer.invoke('browser:go-to-index', webContentsId, index),
+    focusGuest: (webContentsId: number): Promise<boolean> =>
+      ipcRenderer.invoke('browser:focus-guest', webContentsId)
   },
   shortcuts: {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void): (() => void) => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Actions, type TabNode } from 'flexlayout-react'
+import { type TabNode } from 'flexlayout-react'
 import { PaneFrame } from '../components/PaneFrame'
 import { PaneTabStrip } from '../components/PaneTabStrip'
 import {
@@ -18,11 +18,15 @@ import { paneTabStoreKey } from '../store/paneTabKey'
 import { useLayoutRevision } from '../hooks/useLayoutRevision'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { countLayoutTabSets } from '../layout/layoutModelParse'
+import { focusPaneGroupTabSet } from '../layout/layoutRef'
 import { layoutLog } from '../layout/layoutDebugLog'
 import { paneChipContentShown, paneChipContentStyle } from '../interaction/embedPolicy'
 import { usePaneVisibility } from './usePaneVisibility'
 import { usePaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
 import { WorkspaceExplorerSidebar } from '../components/WorkspaceExplorerSidebar'
+import { BrowserPaneOverlaySlot } from './BrowserPaneOverlaySlot'
+import { BrowserContent } from './BrowserContent'
+import { paneGroupBodyAnchorName } from './paneGroupBodyAnchor'
 import {
   paneGroupHostClassNames,
   resolvePaneGroupTabSetId
@@ -70,10 +74,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   const isGroupFocused = tabSetId != null && tabSetId === focusedTabSetId
 
   const focusGroup = useCallback(() => {
-    if (!tabSetId || isGroupFocused) return
-    setFocusedPaneGroupTabSet(workspaceTabId, tabSetId)
-    model.doAction(Actions.setActiveTabset(tabSetId))
-  }, [model, tabSetId, isGroupFocused, workspaceTabId, setFocusedPaneGroupTabSet])
+    if (!tabSetId) return
+    focusPaneGroupTabSet(workspaceTabId, tabSetId)
+  }, [tabSetId, workspaceTabId])
 
   const hostClassName = paneGroupHostClassNames({ hasSplitGroups, isFocused: isGroupFocused })
 
@@ -218,6 +221,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   const treeOpen = explorerChrome.treeOpen
   const onToggleTree = () => explorerChrome.setTreeOpen((v) => !v)
   const showExplorer = activeChipHasExplorer(activeItem.kind)
+  const hasBrowserTabs = tabs.some((t) => t.kind === 'browser')
+  const browserTabs = hasBrowserTabs ? tabs.filter((t) => t.kind === 'browser') : []
+  const bodyAnchorStyle = { anchorName: paneGroupBodyAnchorName(nodeId) } as React.CSSProperties
 
   return (
     <div
@@ -265,8 +271,37 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
               onNotifyChanged={onNotifyChanged}
             />
           </div>
-          <div className="pane-group-content">
-            {tabs.map((item) => {
+          <div className="pane-group-content" style={bodyAnchorStyle}>
+            {hasBrowserTabs ? (
+              <BrowserPaneOverlaySlot
+                paneNodeId={nodeId}
+                paneVisible={visible}
+                onFocusOwningGroup={focusGroup}
+              >
+                <div className="browser-pane-page-stack">
+                  {browserTabs.map((item) => {
+                    const active = item.id === activeItem.id
+                    return (
+                      <BrowserContent
+                        key={item.id}
+                        tabId={workspaceTabId}
+                        paneNodeId={nodeId}
+                        item={item}
+                        paneVisible={visible}
+                        chipActive={active}
+                        onUpdate={(patch) => updateItem(item.id, patch)}
+                        onOpenNewTab={(url) => newTab('browser', { url })}
+                        onFocusPaneGroup={focusGroup}
+                        onSelectPaneTab={selectTab}
+                      />
+                    )
+                  })}
+                </div>
+              </BrowserPaneOverlaySlot>
+            ) : null}
+            {tabs
+              .filter((item) => item.kind !== 'browser')
+              .map((item) => {
               const active = item.id === activeItem.id
               const chipShown = paneChipContentShown(visible, active)
               const ctx: PaneRenderContext = {
@@ -293,7 +328,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                   }),
                 updateItem: (patch) => updateItem(item.id, patch),
                 openOrSwitchToFile,
-                openNewTab: newTab
+                openNewTab: newTab,
+                focusPaneGroup: focusGroup,
+                selectPaneTab: selectTab
               }
               return (
                 <div

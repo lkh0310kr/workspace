@@ -1,4 +1,4 @@
-import { ipcMain, webContents } from 'electron'
+import { ipcMain, webContents, BrowserWindow } from 'electron'
 
 function webContentsFromId(webContentsId: number) {
   return webContents.fromId(webContentsId) ?? null
@@ -33,6 +33,17 @@ export function registerBrowserNavIpc(): void {
     const wc = webContentsFromId(webContentsId)
     if (!wc) return false
     wc.navigationHistory.goToIndex(index)
+    return true
+  })
+
+  ipcMain.handle('browser:focus-guest', (event, webContentsId: number) => {
+    const wc = webContentsFromId(webContentsId)
+    if (!wc || wc.isDestroyed()) return false
+    const hostWin = BrowserWindow.fromWebContents(event.sender)
+    hostWin?.focus()
+    // Do NOT event.sender.focus() — that re-focuses the renderer shell and
+    // pulls keyboard focus off the guest we are about to focus.
+    wc.focus()
     return true
   })
 }

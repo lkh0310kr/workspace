@@ -1,3 +1,4 @@
+import { removeBrowserPageViewport } from "../browser/browserPageViewport";
 import {
   acquireWebviewsDragPassthrough,
   isWebviewDragPassthroughActive,
@@ -193,6 +194,72 @@ export function unregisterPersistentWebview(tabItemId: string): void {
 
 export function isBrowserPageRendererRecoveryPending(tabItemId: string): boolean {
   return rendererRecoveryPendingTabItemIds.has(tabItemId);
+}
+
+export function getPersistentBrowserWebview(tabItemId: string): Electron.WebviewTag | undefined {
+  return webviewRegistry.get(tabItemId);
+}
+
+const PARK_DESTROY_MS = 400;
+let parkHost: HTMLElement | null = null;
+const destroyTimers = new Map<string, number>();
+
+function ensureParkHost(): HTMLElement {
+  if (!parkHost) {
+    parkHost = document.createElement("div");
+    parkHost.id = "browser-webview-park";
+    parkHost.style.display = "none";
+    document.body.appendChild(parkHost);
+  }
+  return parkHost;
+}
+
+/** Keep the guest alive across React remounts; destroy if not reclaimed soon. */
+export function parkBrowserWebview(tabItemId: string, webview: Electron.WebviewTag): void {
+  moveFocusToRendererBeforeWebviewDetach(webview);
+  ensureParkHost().appendChild(webview);
+  const existing = destroyTimers.get(tabItemId);
+  if (existing !== undefined) {
+    window.clearTimeout(existing);
+  }
+  destroyTimers.set(
+    tabItemId,
+    window.setTimeout(() => {
+      destroyTimers.delete(tabItemId);
+      destroyBrowserWebview(tabItemId);
+    }, PARK_DESTROY_MS),
+  );
+}
+
+export function claimParkedBrowserWebview(
+  tabItemId: string,
+  container: HTMLElement,
+): Electron.WebviewTag | null {
+  const pending = destroyTimers.get(tabItemId);
+  if (pending !== undefined) {
+    window.clearTimeout(pending);
+    destroyTimers.delete(tabItemId);
+  }
+  const webview = webviewRegistry.get(tabItemId);
+  if (!webview) return null;
+  if (webview.parentElement !== container) {
+    container.appendChild(webview);
+  }
+  return webview;
+}
+
+export function destroyBrowserWebview(tabItemId: string): void {
+  const pending = destroyTimers.get(tabItemId);
+  if (pending !== undefined) {
+    window.clearTimeout(pending);
+    destroyTimers.delete(tabItemId);
+  }
+  const webview = webviewRegistry.get(tabItemId);
+  if (webview?.parentElement) {
+    webview.parentElement.removeChild(webview);
+  }
+  removeBrowserPageViewport(tabItemId);
+  unregisterPersistentWebview(tabItemId);
 }
 
 function moveFocusToRendererIfWebviewOwnsFocus(webview: Electron.WebviewTag): boolean {

@@ -41,6 +41,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
   const ptyDisposeRef = useRef<(() => void) | null>(null);
   const searchRef = useRef<SearchAddon | null>(null);
   const hasFocusRef = useRef(false);
+  const wasShownRef = useRef(false);
   const searchThemeKey = useTerminalSearchThemeKey();
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -162,11 +163,23 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
 
     const refit = (): void => {
       refitPaneTerminal(pane);
-      pane.terminal.focus();
     };
 
-    requestAnimationFrame(refit);
-    const timer = window.setTimeout(refit, 50);
+    const becameShown = shown && !wasShownRef.current;
+    wasShownRef.current = shown;
+
+    requestAnimationFrame(() => {
+      refit();
+      if (becameShown) {
+        pane.terminal.focus();
+      }
+    });
+    const timer = window.setTimeout(() => {
+      refit();
+      if (becameShown) {
+        pane.terminal.focus();
+      }
+    }, 50);
 
     if (!host) {
       return () => {

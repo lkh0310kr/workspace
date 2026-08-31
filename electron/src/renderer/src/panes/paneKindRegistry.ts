@@ -57,6 +57,10 @@ export interface PaneRenderContext {
   /** Adds a brand new tab to this same pane group and activates it — used
    * for "open this link/article as a new browser tab" style actions. */
   openNewTab: (kind: TabKind, source?: Partial<PaneTabItem>) => void;
+  /** Orca overlay parity — pointer down on browser guest focuses this split. */
+  focusPaneGroup: () => void;
+  /** Activate another chip in this pane group (browser overlay click-to-select). */
+  selectPaneTab: (id: string) => void;
 }
 
 export interface PaneKindPickerEntry {

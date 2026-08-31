@@ -1,28 +1,43 @@
 import { useEffect, useRef, type MutableRefObject, type RefObject } from "react";
 import { useWebviewDragPassthroughActive } from "./useWebviewDragPassthroughActive";
 import { browserFocusLog } from "./browserFocusDebugLog";
-import type { WebviewGuestFocus } from "./useWebviewGuestFocus";
+import { isWebviewHostFocused } from "./browserGuestFocus";
+import { interactionCoordinator } from "../interaction/InteractionCoordinator";
+import { isBrowserGuestWebContentsFocused } from "../layout/activeBrowserWebview";
 
-const GUEST_FOCUS_FRAMES = 6;
+const GUEST_FOCUS_FRAMES = 24;
 
 /**
  * Hands focus to the browser guest once per chip activation (Orca
- * use-client-hosted-guest-activation-focus). Retries across frames because
- * InteractionCoordinator may flip display/inert a tick later.
+ * use-client-hosted-guest-activation-focus). Retries across frames until the
+ * webview is mounted and InteractionCoordinator marks it interactive.
  */
 export function useBrowserGuestActivationFocus({
   isActive,
+  workspaceTabId,
+  paneTabItemId,
   webviewRef,
-  guestFocus,
   keepAddressBarFocusRef,
+  webviewReady = false,
 }: {
   isActive: boolean;
+  workspaceTabId: number;
+  paneTabItemId: string;
   webviewRef: RefObject<Electron.WebviewTag | null>;
-  guestFocus: WebviewGuestFocus;
   keepAddressBarFocusRef: MutableRefObject<boolean>;
+  /** Bumps when the guest mounts (webContentsId assigned) so we retry after mount. */
+  webviewReady?: boolean;
 }): void {
   const dragPassthroughActive = useWebviewDragPassthroughActive();
   const focusedForActivationRef = useRef(false);
+  const prevWebviewReadyRef = useRef(false);
+
+  useEffect(() => {
+    if (webviewReady && !prevWebviewReadyRef.current) {
+      focusedForActivationRef.current = false;
+    }
+    prevWebviewReadyRef.current = webviewReady;
+  }, [webviewReady]);
 
   useEffect(() => {
     if (!isActive) {
@@ -38,7 +53,6 @@ export function useBrowserGuestActivationFocus({
       browserFocusLog("useBrowserGuestActivationFocus", "skipped — address bar grab");
       return;
     }
-    if (!guestFocus.isAttached()) return;
 
     let cancelled = false;
     let frameId = 0;
@@ -47,17 +61,49 @@ export function useBrowserGuestActivationFocus({
     const runFocus = (): void => {
       if (cancelled) return;
       attempts += 1;
-      const ok = guestFocus.focus(`activation-attempt-${attempts}`);
-      browserFocusLog("useBrowserGuestActivationFocus", "activation focus attempt", {
-        attempt: attempts,
-        ok,
-      });
-      if (!ok && attempts < GUEST_FOCUS_FRAMES) {
-        frameId = window.requestAnimationFrame(runFocus);
+      const webview = webviewRef.current;
+      if (!webview) {
+        browserFocusLog("useBrowserGuestActivationFocus", "waiting for webview attach", {
+          attempt: attempts,
+        });
+        if (attempts < GUEST_FOCUS_FRAMES) {
+          frameId = window.requestAnimationFrame(runFocus);
+        }
         return;
       }
-      if (ok || attempts >= GUEST_FOCUS_FRAMES) {
+      if (!interactionCoordinator.isGuestInteractive(webview)) {
+        browserFocusLog("useBrowserGuestActivationFocus", "waiting for guest interactive", {
+          attempt: attempts,
+        });
+        if (attempts < GUEST_FOCUS_FRAMES) {
+          frameId = window.requestAnimationFrame(runFocus);
+        }
+        return;
+      }
+      interactionCoordinator.requestBrowserGuestFocus(
+        workspaceTabId,
+        paneTabItemId,
+        `activation-attempt-${attempts}`,
+      );
+      let guestFocused = false;
+      try {
+        const id = webview.getWebContentsId();
+        guestFocused = isBrowserGuestWebContentsFocused(id);
+      } catch {
+        /* guest mid-teardown */
+      }
+      const hostFocused = isWebviewHostFocused(webview);
+      if (guestFocused || hostFocused) {
         focusedForActivationRef.current = true;
+        browserFocusLog("useBrowserGuestActivationFocus", "activation focus complete", {
+          attempt: attempts,
+          guestFocused,
+          hostFocused,
+        });
+        return;
+      }
+      if (attempts < GUEST_FOCUS_FRAMES) {
+        frameId = window.requestAnimationFrame(runFocus);
       }
     };
 
@@ -66,5 +112,13 @@ export function useBrowserGuestActivationFocus({
       cancelled = true;
       window.cancelAnimationFrame(frameId);
     };
-  }, [dragPassthroughActive, guestFocus, isActive, keepAddressBarFocusRef, webviewRef]);
+  }, [
+    dragPassthroughActive,
+    isActive,
+    keepAddressBarFocusRef,
+    paneTabItemId,
+    webviewRef,
+    webviewReady,
+    workspaceTabId,
+  ]);
 }

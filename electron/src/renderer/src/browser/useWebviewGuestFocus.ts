@@ -1,5 +1,6 @@
 import { useMemo, type RefObject } from "react";
 import { browserFocusLog } from "./browserFocusDebugLog";
+import { focusBrowserGuestWebview, isWebviewHostFocused } from "./browserGuestFocus";
 
 /** How browser chrome hands focus to the <webview> guest (Orca browser-page-guest-focus). */
 export type WebviewGuestFocus = {
@@ -24,22 +25,13 @@ export function useWebviewGuestFocus(
           browserFocusLog("useWebviewGuestFocus.focus", "no webview ref", { reason });
           return false;
         }
-        try {
-          webview.focus();
-          // Why: Electron often leaves activeElement on body/document while the
-          // guest WebContents still receives keyboard — do not gate on host match.
-          browserFocusLog("useWebviewGuestFocus.focus", "webview.focus() called", {
-            reason,
-            tabItemId: webview.dataset.tabItemId,
-          });
-          return true;
-        } catch (err) {
-          browserFocusLog("useWebviewGuestFocus.focus", "webview.focus() threw", {
-            reason,
-            error: String(err),
-          });
-          return false;
-        }
+        focusBrowserGuestWebview(webview, reason);
+        const ok = isWebviewHostFocused(webview);
+        browserFocusLog("useWebviewGuestFocus.focus", ok ? "focused" : "focus incomplete", {
+          reason,
+          tabItemId: webview.dataset.tabItemId,
+        });
+        return ok;
       },
     }),
     [webviewRef],

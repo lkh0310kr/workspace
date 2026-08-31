@@ -7,6 +7,8 @@ import { findTabIdForModel } from "../store/workspaceLayoutModels";
 import { resolveSplitPaneMutationStrategy } from "./layoutSplitPolicy";
 import { countLayoutTabs } from "./layoutModelParse";
 import { findReplaceableEditorTab } from "./paneTabSlots";
+import { destroyBrowserWebview, getPersistentBrowserWebview } from "./browserWebviewRegistry";
+import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 
 /** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
  * structure changes, not on activeTabId-only persists (that remounted
@@ -489,6 +491,12 @@ export async function closeTabInGroup(
   }
   const idx = config.tabs.findIndex((t) => t.id === tabId);
   if (idx === -1) return config.activeTabId;
+  const closing = config.tabs[idx];
+  if (closing?.kind === "browser") {
+    const webview = getPersistentBrowserWebview(tabId);
+    if (webview) interactionCoordinator.unregisterWebview(webview);
+    destroyBrowserWebview(tabId);
+  }
   const tabs = config.tabs.filter((t) => t.id !== tabId);
   if (tabs.length === 0) {
     if (countLayoutTabs(model) === 1) {

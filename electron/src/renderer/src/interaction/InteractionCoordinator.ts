@@ -4,7 +4,14 @@
  */
 
 import { browserFocusLog, snapshotBrowserFocusState } from "../browser/browserFocusDebugLog";
+import {
+  parkBrowserPageViewport,
+} from "../browser/browserPageViewport";
+import { focusBrowserGuestWebview } from "../browser/browserGuestFocus";
+import { getActiveBrowserWebview } from "../layout/activeBrowserWebview";
 import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from "./webviewPolicy";
+
+const WEBVIEW_FOCUS_MAX_FRAMES = 12;
 
 export type OverlaySource = string;
 
@@ -39,6 +46,7 @@ export class InteractionCoordinatorImpl {
   private webviews = new Map<Electron.WebviewTag, WebviewRegistration>();
   private portals = new Map<string, PortalRegistration>();
   private pendingFocusWebview: Electron.WebviewTag | null = null;
+  private focusScheduleEpoch = new WeakMap<Electron.WebviewTag, number>();
   private lastReconcileReason = "init";
   private lastReconcileAt = 0;
   private listeners = new Set<Listener>();
@@ -73,6 +81,7 @@ export class InteractionCoordinatorImpl {
     if (same && !options?.force) {
       return;
     }
+    const hadEmbedFocus = !same && this.hasWebviewOrGuestFocus();
     if (!same) {
       this.moveFocusFromEmbeds();
       this.activeWorkspaceTabId = tabId;
@@ -80,6 +89,9 @@ export class InteractionCoordinatorImpl {
     this.reconcile(
       same ? `active-workspace-tab-force:${tabId}` : `active-workspace-tab:${tabId}`,
     );
+    if (hadEmbedFocus) {
+      this.refocusPrimaryBrowserGuest();
+    }
   }
 
   registerWebview(
@@ -92,61 +104,159 @@ export class InteractionCoordinatorImpl {
       initialChipActive?: boolean;
     },
   ): void {
-    this.webviews.set(webview, {
+    const existing = this.webviews.get(webview);
+    if (existing) {
+      existing.workspaceTabId = info.workspaceTabId;
+      existing.paneNodeId = info.paneNodeId;
+      existing.paneTabItemId = info.paneTabItemId;
+      if (info.initialPaneVisible !== undefined) {
+        existing.paneVisible = info.initialPaneVisible;
+      }
+      if (info.initialChipActive !== undefined) {
+        existing.chipActive = info.initialChipActive;
+      }
+      this.reconcile(`register-webview-update:${info.paneTabItemId}`);
+      return;
+    }
+    const registration: WebviewRegistration = {
       webview,
       workspaceTabId: info.workspaceTabId,
       paneNodeId: info.paneNodeId,
       paneTabItemId: info.paneTabItemId,
       paneVisible: info.initialPaneVisible ?? false,
       chipActive: info.initialChipActive ?? true,
-    });
+    };
+    this.webviews.set(webview, registration);
+    if (registration.chipActive && registration.paneVisible) {
+      this.pendingFocusWebview = webview;
+    }
     this.reconcile(`register-webview:${info.paneTabItemId}`);
   }
 
+  updateWebviewPaneNode(webview: Electron.WebviewTag, paneNodeId: string): void {
+    const reg = this.webviews.get(webview);
+    if (!reg || reg.paneNodeId === paneNodeId) return;
+    reg.paneNodeId = paneNodeId;
+  }
+
   unregisterWebview(webview: Electron.WebviewTag): void {
-    if (!this.webviews.delete(webview)) return;
-    this.applyWebviewPolicy(webview, { visible: false, interactive: false });
+    const reg = this.webviews.get(webview);
+    if (!reg) return;
+    this.webviews.delete(webview);
+    this.cancelWebviewFocusSchedule(webview);
+    if (this.pendingFocusWebview === webview) {
+      this.pendingFocusWebview = null;
+    }
+    parkBrowserPageViewport(reg.paneTabItemId);
     this.reconcile("unregister-webview");
   }
 
+  /** Orca parity — park viewport on chrome unmount without dropping IC registration. */
+  detachBrowserWebview(webview: Electron.WebviewTag): void {
+    const reg = this.webviews.get(webview);
+    if (!reg) return;
+    this.cancelWebviewFocusSchedule(webview);
+    if (this.pendingFocusWebview === webview) {
+      this.pendingFocusWebview = null;
+    }
+    parkBrowserPageViewport(reg.paneTabItemId);
+    this.reconcile("detach-browser-webview");
+  }
+
   setBrowserPaneVisible(workspaceTabId: number, paneTabItemId: string, visible: boolean): void {
+    this.setBrowserPaneChipState(workspaceTabId, paneTabItemId, { paneVisible: visible });
+  }
+
+  setBrowserChipActive(workspaceTabId: number, paneTabItemId: string, active: boolean): void {
+    this.setBrowserPaneChipState(workspaceTabId, paneTabItemId, { chipActive: active });
+  }
+
+  /** Single reconcile when pane visibility and chip active change together. */
+  setBrowserPaneChipState(
+    workspaceTabId: number,
+    paneTabItemId: string,
+    patch: { paneVisible?: boolean; chipActive?: boolean },
+  ): void {
     let changed = false;
-    for (const reg of this.webviews.values()) {
-      if (reg.workspaceTabId === workspaceTabId && reg.paneTabItemId === paneTabItemId) {
-        if (reg.paneVisible !== visible) {
-          reg.paneVisible = visible;
-          changed = true;
+    let shouldFocus = false;
+    let becameHidden = false;
+    let targetPaneNodeId: string | null = null;
+
+    if (patch.chipActive === true) {
+      for (const reg of this.webviews.values()) {
+        if (reg.workspaceTabId === workspaceTabId && reg.paneTabItemId === paneTabItemId) {
+          targetPaneNodeId = reg.paneNodeId;
+          break;
+        }
+      }
+      if (targetPaneNodeId) {
+        for (const reg of this.webviews.values()) {
+          if (
+            reg.workspaceTabId === workspaceTabId &&
+            reg.paneNodeId === targetPaneNodeId &&
+            reg.paneTabItemId !== paneTabItemId &&
+            reg.chipActive
+          ) {
+            reg.chipActive = false;
+            changed = true;
+          }
         }
       }
     }
+
+    for (const reg of this.webviews.values()) {
+      if (reg.workspaceTabId !== workspaceTabId || reg.paneTabItemId !== paneTabItemId) continue;
+      const nextPaneVisible = patch.paneVisible ?? reg.paneVisible;
+      const nextChipActive = patch.chipActive ?? reg.chipActive;
+      const paneBecameVisible = !reg.paneVisible && nextPaneVisible;
+      const chipBecameActive = !reg.chipActive && nextChipActive;
+      if (reg.paneVisible !== nextPaneVisible) {
+        reg.paneVisible = nextPaneVisible;
+        changed = true;
+      }
+      if (reg.chipActive !== nextChipActive) {
+        reg.chipActive = nextChipActive;
+        changed = true;
+      }
+      shouldFocus =
+        nextPaneVisible && nextChipActive && (paneBecameVisible || chipBecameActive);
+      becameHidden = !nextPaneVisible || !nextChipActive;
+      break;
+    }
     if (!changed) return;
-    this.reconcile(`browser-pane-visible:${paneTabItemId}:${visible}`);
-    if (!visible) {
+    if (shouldFocus) {
+      const wv = this.findWebview(workspaceTabId, paneTabItemId);
+      if (wv) this.pendingFocusWebview = wv;
+    }
+    this.reconcile(`browser-pane-chip:${paneTabItemId}`);
+    if (becameHidden) {
       this.blurWebviewIfFocused(workspaceTabId, paneTabItemId);
     }
   }
 
-  setBrowserChipActive(workspaceTabId: number, paneTabItemId: string, active: boolean): void {
-    let changed = false;
-    for (const reg of this.webviews.values()) {
-      if (reg.workspaceTabId === workspaceTabId && reg.paneTabItemId === paneTabItemId) {
-        if (reg.chipActive !== active) {
-          reg.chipActive = active;
-          changed = true;
-        }
-      }
-    }
-    if (!changed) return;
-    this.reconcile(`browser-chip-active:${paneTabItemId}:${active}`);
-    if (active) {
-      const wv = this.findWebview(workspaceTabId, paneTabItemId);
-      if (wv && this.isWebviewInteractive(wv)) {
-        this.pendingFocusWebview = wv;
-        this.reconcile(`browser-chip-focus:${paneTabItemId}`);
-      }
-    } else {
-      this.blurWebviewIfFocused(workspaceTabId, paneTabItemId);
-    }
+  requestBrowserGuestFocus(workspaceTabId: number, paneTabItemId: string, reason = "request"): void {
+    const wv = this.findWebview(workspaceTabId, paneTabItemId);
+    if (!wv) return;
+    this.pendingFocusWebview = wv;
+    this.reconcile(`browser-focus-request:${reason}`);
+  }
+
+  isGuestInteractive(webview: Electron.WebviewTag): boolean {
+    const reg = this.webviews.get(webview);
+    if (!reg) return false;
+    return this.isWebviewInteractive(webview, reg);
+  }
+
+  lookupWebviewRegistration(
+    webview: Electron.WebviewTag,
+  ): Pick<WebviewRegistration, "workspaceTabId" | "paneNodeId" | "paneTabItemId"> | null {
+    const reg = this.webviews.get(webview);
+    if (!reg) return null;
+    return {
+      workspaceTabId: reg.workspaceTabId,
+      paneNodeId: reg.paneNodeId,
+      paneTabItemId: reg.paneTabItemId,
+    };
   }
 
   registerPortal(id: string, dismiss: () => void): () => void {
@@ -197,7 +307,7 @@ export class InteractionCoordinatorImpl {
       webviewCount: this.webviews.size,
     });
 
-    for (const [webview, reg] of this.webviews) {
+    for (const [, reg] of this.webviews) {
       const base = resolveWebviewPolicy({
         workspaceTabId: reg.workspaceTabId,
         paneVisible: reg.paneVisible,
@@ -206,7 +316,7 @@ export class InteractionCoordinatorImpl {
         overlayBlocked: blocked,
         portalsOpen,
       });
-      this.applyWebviewPolicy(webview, base);
+      this.applyRegistrationPolicy(reg, base);
     }
 
     for (const el of document.querySelectorAll("webview")) {
@@ -216,7 +326,7 @@ export class InteractionCoordinatorImpl {
       const tabIdAttr = hostItem?.getAttribute("data-workspace-tab-id");
       const hostTabId = tabIdAttr !== null && tabIdAttr !== "" ? Number(tabIdAttr) : null;
       const hostWorkspaceTabId = Number.isFinite(hostTabId) ? hostTabId : null;
-      this.applyWebviewPolicy(
+      this.applyOrphanWebviewPolicy(
         wv,
         resolveOrphanWebviewPolicy(hostWorkspaceTabId, activeTab, blocked, portalsOpen),
       );
@@ -231,12 +341,21 @@ export class InteractionCoordinatorImpl {
     this.notifyListeners();
   }
 
+  private cancelWebviewFocusSchedule(webview: Electron.WebviewTag): void {
+    const next = (this.focusScheduleEpoch.get(webview) ?? 0) + 1;
+    this.focusScheduleEpoch.set(webview, next);
+  }
+
   private scheduleWebviewFocus(webview: Electron.WebviewTag): void {
+    const epoch = (this.focusScheduleEpoch.get(webview) ?? 0) + 1;
+    this.focusScheduleEpoch.set(webview, epoch);
     let attempts = 0;
     const runFocus = (): void => {
-      if (attempts >= 6) return;
+      if ((this.focusScheduleEpoch.get(webview) ?? 0) !== epoch) return;
+      if (!this.webviews.has(webview)) return;
+      if (attempts >= WEBVIEW_FOCUS_MAX_FRAMES) return;
       attempts += 1;
-      if (!this.isWebviewInteractive(webview)) {
+      if (!this.isGuestInteractive(webview)) {
         browserFocusLog("InteractionCoordinator.scheduleWebviewFocus", "guest not interactive yet", {
           attempts,
           ...snapshotBrowserFocusState(webview),
@@ -245,7 +364,7 @@ export class InteractionCoordinatorImpl {
         return;
       }
       try {
-        webview.focus();
+        focusBrowserGuestWebview(webview, `schedule-focus-${attempts}`);
       } catch {
         /* webview may be mid-teardown */
       }
@@ -257,25 +376,15 @@ export class InteractionCoordinatorImpl {
     window.requestAnimationFrame(runFocus);
   }
 
-  private applyWebviewPolicy(
-    webview: Electron.WebviewTag,
-    policy: { visible: boolean; interactive: boolean },
+  private applyRegistrationPolicy(
+    reg: WebviewRegistration,
+    _policy: { visible: boolean; interactive: boolean },
   ): void {
-    // Why (Orca parity — browser-page-viewport.ts applyBrowserPageViewportLayout):
-    // display/pointerEvents/inert all track the same base pane-state policy
-    // — no pointer-position gate. pointer-events:none alone is not a
-    // reliable input block for an Electron <webview> guest (OOPIF hit-testing
-    // can bypass CSS), so `inert` (input-dispatch level, not CSS
-    // hit-testing) carries that job instead of coupling display to a
-    // continuously-reconciled pointer/focus gate — the earlier gate made a
-    // visible, active browser pane go display:none until the pointer first
-    // crossed into it ("hover to reveal" bug), and its per-pointermove
-    // reconcile()+notifyListeners() could itself cascade into unrelated
-    // re-renders. Splitter/tab drags still hide/block guests via
-    // overlayBlocked and webviewDragPassthrough, not this gate.
-    webview.style.display = policy.visible ? "flex" : "none";
-    webview.style.pointerEvents = policy.interactive ? "auto" : "none";
-    webview.inert = !policy.interactive;
+    // Orca browser-page-webview.ts: viewport shell owns hit-testing; guest stays auto unless input-locked.
+    reg.webview.style.display = "flex";
+    reg.webview.style.flex = "1";
+    reg.webview.style.pointerEvents = "auto";
+    reg.webview.inert = false;
   }
 
   private isWebviewInteractive(webview: Electron.WebviewTag, reg?: WebviewRegistration): boolean {
@@ -289,6 +398,15 @@ export class InteractionCoordinatorImpl {
       overlayBlocked: this.overlayStack.length > 0,
       portalsOpen: this.portals.size > 0,
     }).interactive;
+  }
+
+  private applyOrphanWebviewPolicy(
+    webview: Electron.WebviewTag,
+    policy: { visible: boolean; interactive: boolean },
+  ): void {
+    webview.style.display = policy.visible ? "flex" : "none";
+    webview.style.pointerEvents = policy.interactive ? "auto" : "none";
+    webview.inert = !policy.interactive;
   }
 
   private findWebview(workspaceTabId: number, paneTabItemId: string): Electron.WebviewTag | null {
@@ -317,6 +435,29 @@ export class InteractionCoordinatorImpl {
       if (titlebar instanceof HTMLElement) {
         titlebar.focus({ preventScroll: true });
       }
+    }
+  }
+
+  private hasWebviewOrGuestFocus(): boolean {
+    const active = document.activeElement;
+    if (active?.tagName === "WEBVIEW" || active?.closest?.("webview")) {
+      return true;
+    }
+    return getActiveBrowserWebview() !== null;
+  }
+
+  private refocusPrimaryBrowserGuest(): void {
+    const current = getActiveBrowserWebview();
+    if (current && this.isWebviewInteractive(current)) {
+      this.scheduleWebviewFocus(current);
+      return;
+    }
+    for (const reg of this.webviews.values()) {
+      if (reg.workspaceTabId !== this.activeWorkspaceTabId) continue;
+      if (!reg.paneVisible || !reg.chipActive) continue;
+      if (!this.isWebviewInteractive(reg.webview, reg)) continue;
+      this.scheduleWebviewFocus(reg.webview);
+      return;
     }
   }
 
