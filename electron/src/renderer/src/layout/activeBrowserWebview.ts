@@ -12,6 +12,11 @@
 //   - installBrowserFocusTracking() clears when focus leaves browser chrome
 //   - BrowserContent calls webview.focus() when its tab becomes visible
 
+import {
+  browserFocusLog,
+  setBrowserGuestFocusDebugState,
+} from "../browser/browserFocusDebugLog";
+
 const registry = new Map<number, Electron.WebviewTag>();
 let current: Electron.WebviewTag | null = null;
 
@@ -30,7 +35,13 @@ export function registerBrowserWebview(webview: Electron.WebviewTag): () => void
 }
 
 export function setGuestWebContentsFocus(webContentsId: number, focused: boolean): void {
+  setBrowserGuestFocusDebugState(webContentsId, focused);
   const webview = registry.get(webContentsId);
+  browserFocusLog("activeBrowserWebview.setGuestWebContentsFocus", focused ? "guest focused" : "guest blurred", {
+    webContentsId,
+    hasWebview: Boolean(webview),
+    tabItemId: webview?.dataset.tabItemId,
+  });
   if (!webview) return;
   if (focused) current = webview;
   else if (current === webview) current = null;
@@ -42,6 +53,12 @@ export function setActiveBrowserWebview(webview: Electron.WebviewTag | null): vo
 
 export function getActiveBrowserWebview(): Electron.WebviewTag | null {
   return current;
+}
+
+export function getBrowserWebviewByWebContentsId(
+  webContentsId: number,
+): Electron.WebviewTag | null {
+  return registry.get(webContentsId) ?? null;
 }
 
 export function installBrowserFocusTracking(): () => void {

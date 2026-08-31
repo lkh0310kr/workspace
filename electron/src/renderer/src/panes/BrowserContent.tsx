@@ -5,6 +5,11 @@ import { BrowserDownloadsBar } from "../components/BrowserDownloadsBar";
 import { normalizeBrowserNavigationUrl, BLANK_URL } from "../browserUrl";
 import { recordBrowserVisit } from "../browserHistory";
 import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
+import { dispatchLocalBrowserZoom, registerBrowserZoomPersist } from "../browser/browserZoom";
+import { browserFocusLog, snapshotBrowserFocusState } from "../browser/browserFocusDebugLog";
+import { useBrowserChromeFocus } from "../browser/useBrowserChromeFocus";
+import { useBrowserGuestActivationFocus } from "../browser/useBrowserGuestActivationFocus";
+import { useWebviewGuestFocus } from "../browser/useWebviewGuestFocus";
 import { onBrowserOpenNewTab } from "../electron";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { setActiveBrowserWebview, getActiveBrowserWebview, registerBrowserWebview } from "../layout/activeBrowserWebview";
@@ -37,13 +42,6 @@ interface Props {
 }
 
 const DEFAULT_URL = "https://www.google.com";
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 3;
-const ZOOM_STEP = 0.1;
-
-function clampZoom(value: number): number {
-  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
-}
 
 function applyWebviewZoom(webview: Electron.WebviewTag, factor: number): void {
   try {
@@ -65,13 +63,24 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [webContentsId, setWebContentsId] = useState<number | null>(null);
-  const [zoomFactor, setZoomFactor] = useState(item.zoomFactor ?? 1);
   const [rendererGone, setRendererGone] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
   const onOpenNewTabRef = useRef(onOpenNewTab);
   onOpenNewTabRef.current = onOpenNewTab;
+  const guestFocus = useWebviewGuestFocus(webviewRef);
+  const { keepAddressBarFocusRef } = useBrowserChromeFocus({
+    chipShown,
+    addressBarInputRef: addressInputRef,
+    guestFocus,
+  });
+  useBrowserGuestActivationFocus({
+    isActive: chipShown,
+    webviewRef,
+    guestFocus,
+    keepAddressBarFocusRef,
+  });
 
   const syncNavState = useCallback(() => {
     const webview = webviewRef.current;
@@ -93,14 +102,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     webview.goForward();
     syncNavState();
   }, [syncNavState]);
-
-  const setZoom = useCallback((next: number) => {
-    const clamped = clampZoom(next);
-    setZoomFactor(clamped);
-    onUpdateRef.current({ zoomFactor: clamped });
-    const webview = webviewRef.current;
-    if (webview) applyWebviewZoom(webview, clamped);
-  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -125,7 +126,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     container.appendChild(guest);
     webviewRef.current = guest;
     applyWebviewZoom(guest, initialZoom);
-    setZoomFactor(initialZoom);
 
     try {
       setWebContentsId(guest.getWebContentsId());
@@ -255,7 +255,6 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   useEffect(() => {
     const webview = webviewRef.current;
     if (!webview) return;
-    webview.style.visibility = chipShown ? "visible" : "hidden";
     interactionCoordinator.setBrowserPaneVisible(tabId, item.id, paneVisible);
     interactionCoordinator.setBrowserChipActive(tabId, item.id, chipActive);
     if (chipShown && !engineBundleShownRef.current) {
@@ -271,13 +270,10 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
     }
     if (chipShown) {
       setActiveBrowserWebview(webview);
-      try {
-        webview.focus();
-      } catch {
-        // webview may be mid-mount.
-      }
+      browserFocusLog("BrowserContent.chipShown", "chip shown", snapshotBrowserFocusState(webview));
     }
     if (!chipShown) {
+      browserFocusLog("BrowserContent.chipHidden", "chip hidden", snapshotBrowserFocusState(webview));
       engineBundleShownRef.current = false;
       addressInputRef.current?.blur();
       moveFocusToRendererBeforeFocusedWebviewHidden();
@@ -288,23 +284,23 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
   }, [paneVisible, chipActive, chipShown, tabId, item.id]);
 
   useEffect(() => {
+    return registerBrowserZoomPersist(item.id, (factor) => {
+      onUpdateRef.current({ zoomFactor: factor });
+    });
+  }, [item.id]);
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (!chipShown) return;
       if (!(e.metaKey || e.ctrlKey)) return;
-      if (e.key.toLowerCase() === "l") {
-        e.preventDefault();
-        addressInputRef.current?.focus();
-        return;
-      }
       if (e.key !== "=" && e.key !== "+" && e.key !== "-" && e.key !== "_") return;
       e.preventDefault();
       e.stopPropagation();
-      const grow = e.key === "=" || e.key === "+";
-      setZoom(zoomFactor + (grow ? ZOOM_STEP : -ZOOM_STEP));
+      dispatchLocalBrowserZoom(e.key === "=" || e.key === "+" ? "in" : "out");
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [chipShown, zoomFactor, setZoom]);
+  }, [chipShown]);
 
   const navigate = (url: string): void => {
     const normalized = normalizeBrowserNavigationUrl(url, true);
@@ -368,7 +364,15 @@ export function BrowserContent({ tabId, paneNodeId, item, paneVisible, chipActiv
       </div>
       {loading ? <div className="browser-loading-bar" aria-hidden="true" /> : null}
       <BrowserDownloadsBar webContentsId={webContentsId} />
-      <div className="browser-content-slot-wrap">
+      <div
+        className="browser-content-slot-wrap"
+        onPointerDownCapture={() => {
+          if (!chipShown) return;
+          if (document.activeElement === addressInputRef.current) return;
+          browserFocusLog("BrowserContent.viewportPointerDown", "pointer down on viewport");
+          guestFocus.focus("viewport-pointerdown");
+        }}
+      >
         {/* containerRef stays a pure imperative host for the <webview> —
             keeping it free of React-rendered children avoids React's
             reconciliation fighting the guest element it doesn't know

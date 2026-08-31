@@ -130,12 +130,15 @@ describe("InteractionCoordinator reconcile", () => {
     expect(webviewStyles(wv).display).toBe("none");
   });
 
-  it("focuses webview when chip becomes active and guest is interactive", () => {
+  it("focuses webview when chip becomes active and guest is interactive", async () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c, { chipActive: false });
     c.setActiveWorkspaceTab(1);
     c.setBrowserChipActive(1, "browser-1", true);
 
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
     expect(wv.focus).toHaveBeenCalled();
   });
 

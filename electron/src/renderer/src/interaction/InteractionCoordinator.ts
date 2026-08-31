@@ -3,6 +3,7 @@
  * Pane/tab visibility is owned by PaneGroup + BrowserContent — not duplicated here.
  */
 
+import { browserFocusLog, snapshotBrowserFocusState } from "../browser/browserFocusDebugLog";
 import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from "./webviewPolicy";
 
 export type OverlaySource = string;
@@ -189,6 +190,13 @@ export class InteractionCoordinatorImpl {
     const portalsOpen = this.portals.size > 0;
     const activeTab = this.activeWorkspaceTabId;
 
+    browserFocusLog("InteractionCoordinator.reconcile", reason, {
+      blocked,
+      portalsOpen,
+      activeTab,
+      webviewCount: this.webviews.size,
+    });
+
     for (const [webview, reg] of this.webviews) {
       const base = resolveWebviewPolicy({
         workspaceTabId: reg.workspaceTabId,
@@ -217,27 +225,36 @@ export class InteractionCoordinatorImpl {
     if (this.pendingFocusWebview) {
       const wv = this.pendingFocusWebview;
       this.pendingFocusWebview = null;
-      const reg = this.webviews.get(wv);
-      const policy = reg
-        ? resolveWebviewPolicy({
-            workspaceTabId: reg.workspaceTabId,
-            paneVisible: reg.paneVisible,
-            chipActive: reg.chipActive,
-            activeWorkspaceTabId: activeTab,
-            overlayBlocked: blocked,
-            portalsOpen,
-          })
-        : { visible: false, interactive: false };
-      if (policy.interactive) {
-        try {
-          wv.focus();
-        } catch {
-          /* webview may be mid-teardown */
-        }
-      }
+      this.scheduleWebviewFocus(wv);
     }
 
     this.notifyListeners();
+  }
+
+  private scheduleWebviewFocus(webview: Electron.WebviewTag): void {
+    let attempts = 0;
+    const runFocus = (): void => {
+      if (attempts >= 6) return;
+      attempts += 1;
+      if (!this.isWebviewInteractive(webview)) {
+        browserFocusLog("InteractionCoordinator.scheduleWebviewFocus", "guest not interactive yet", {
+          attempts,
+          ...snapshotBrowserFocusState(webview),
+        });
+        window.requestAnimationFrame(runFocus);
+        return;
+      }
+      try {
+        webview.focus();
+      } catch {
+        /* webview may be mid-teardown */
+      }
+      browserFocusLog("InteractionCoordinator.scheduleWebviewFocus", "focus attempt", {
+        attempts,
+        ...snapshotBrowserFocusState(webview),
+      });
+    };
+    window.requestAnimationFrame(runFocus);
   }
 
   private applyWebviewPolicy(
