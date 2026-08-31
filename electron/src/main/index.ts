@@ -1,5 +1,6 @@
 import './imeEnv'
-import { ensureLinuxImeDaemon, isImeToggleKey } from './imeEnv'
+import { ensureLinuxImeDaemon } from './imeEnv'
+import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './shortcuts/relayAppShortcuts'
 
 import { app, shell, BrowserWindow, ipcMain, Menu, dialog, clipboard, session } from 'electron'
 import { join } from 'path'
@@ -226,47 +227,12 @@ function createWindow(): BrowserWindow {
   // (activeBrowserWebview.ts), not the whole app — reloading the whole
   // renderer would nuke every terminal pane's UI state.
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    // Never intercept IME toggle keys (한영/한자) — preventDefault here
-    // would lock English-only. OS/IBus owns the toggle (Orca pattern).
-    if (isImeToggleKey(input)) return
-    if (input.type !== 'keyDown') return
-    // Orca terminal-first: while xterm owns focus, shell/readline keeps R/W chords.
-    const terminalOwnsAppShortcuts = focusedTerminalId !== null
-    if (!terminalOwnsAppShortcuts && input.code === 'KeyR' && (input.control || input.meta)) {
-      event.preventDefault()
-      mainWindow.webContents.send('shortcut:browser-reload', { hard: input.shift })
-    }
-    // Cmd+W closes the active pane tab (not the whole window) — always
-    // intercept, including when a terminal is focused (xterm does not use
-    // Cmd+W; leaving it unhandled lets macOS menu role:close kill the window).
-    if (input.code === 'KeyW' && (input.control || input.meta) && !input.shift) {
-      event.preventDefault()
-      mainWindow.webContents.send('shortcut:close-pane-tab')
-    }
-    if (input.code === 'Comma' && (input.control || input.meta)) {
-      event.preventDefault()
-      mainWindow.webContents.send('shortcut:open-settings')
-    }
-    // Cmd+N: new workspace tab (same action as the "+" button in
-    // WorkspaceTabRail). Gated by terminalOwnsAppShortcuts like Cmd+R/W
-    // above — Ctrl+N is "next history entry" in readline/vim, so a
-    // focused terminal must keep it.
-    if (!terminalOwnsAppShortcuts && input.code === 'KeyN' && (input.control || input.meta)) {
-      event.preventDefault()
-      mainWindow.webContents.send('shortcut:new-workspace-tab')
-    }
-    if (
-      focusedTerminalId === null &&
-      input.code === 'KeyV' &&
-      (input.control || input.meta) &&
-      input.shift
-    ) {
-      event.preventDefault()
-      mainWindow.webContents.send('shortcut:paste-plain-text')
-    }
-    if (focusedTerminalId !== null) {
-      handleMacTerminalOptionShortcut(event, input, focusedTerminalId)
-    }
+    relayHostAppShortcuts(event, input, {
+      send: (channel, ...args) => mainWindow.webContents.send(channel, ...args),
+      terminalOwnsAppShortcuts: focusedTerminalId !== null,
+      focusedTerminalId,
+      onTerminalOptionShortcut: handleMacTerminalOptionShortcut,
+    })
   })
 
   // HMR for renderer base on electron-vite cli.
@@ -565,38 +531,9 @@ app.whenReady().then(() => {
     // before-input-event (createWindow) won't see Cmd+W/Cmd+R while the
     // user is typing in a page, so relay the same shortcuts here too.
     contents.on('before-input-event', (event, input) => {
-      // Never intercept IME toggle — OS/IBus owns it (same as host window).
-      if (isImeToggleKey(input)) return
-      if (input.type !== 'keyDown') return
-      if (input.code === 'KeyR' && (input.control || input.meta)) {
-        event.preventDefault()
-        sendToMainWindow('shortcut:browser-reload', { hard: input.shift })
-      }
-      if (input.code === 'KeyW' && (input.control || input.meta) && !input.shift) {
-        event.preventDefault()
-        sendToMainWindow('shortcut:close-pane-tab')
-      }
-      if (input.code === 'Comma' && (input.control || input.meta)) {
-        event.preventDefault()
-        sendToMainWindow('shortcut:open-settings')
-      }
-      if (input.code === 'KeyN' && (input.control || input.meta)) {
-        event.preventDefault()
-        sendToMainWindow('shortcut:new-workspace-tab')
-      }
-      // Cmd+Shift+V: paste without formatting. Only meaningful here — a
-      // webview guest is the one surface in the app where a normal paste
-      // can carry rich HTML from the source page/app (into a page's own
-      // text field or contenteditable). CodeMirror (markdown/code panes)
-      // and xterm (terminal panes) already read clipboard text as plain
-      // text on an ordinary paste, so there's nothing to intercept there.
-      // contents.insertText() inserts at the guest's current focus/caret
-      // without going through the OS paste pipeline, so it can't carry
-      // formatting even if the guest page would otherwise style it.
-      if (input.code === 'KeyV' && (input.control || input.meta) && input.shift) {
-        event.preventDefault()
+      relayGuestWebviewShortcuts(event, input, sendToMainWindow, () => {
         contents.insertText(clipboard.readText())
-      }
+      })
     })
   })
 
