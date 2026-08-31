@@ -377,6 +377,13 @@ export function onBrowserReloadShortcut(handler: (payload: { hard: boolean }) =>
   return window.api.shortcuts.onBrowserReload(handler);
 }
 
+/** Cmd/Ctrl +/- — relayed from main when a browser guest holds focus (Orca pattern). */
+export function onBrowserZoomShortcut(
+  handler: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void,
+): () => void {
+  return window.api.shortcuts.onBrowserZoom(handler);
+}
+
 /** Cmd+W — closes the active pane tab instead of the whole window. */
 export function onClosePaneTabShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onClosePaneTab(handler);
@@ -391,9 +398,23 @@ export function onNewWorkspaceTabShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onNewWorkspaceTab(handler);
 }
 
+/** Cmd/Ctrl+1..9 — relayed from main so terminal focus cannot swallow the meta chord. */
+export function onSwitchWorkspaceTabIndexShortcut(
+  handler: (payload: { index: number }) => void,
+): () => void {
+  return window.api.shortcuts.onSwitchWorkspaceTabIndex(handler);
+}
+
 /** Cmd+Shift+V — paste clipboard as plain text in the focused editor. */
 export function onPastePlainTextShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onPastePlainText(handler);
+}
+
+/** Cmd/Ctrl+V relayed from main when a terminal pane owns focus. */
+export function onTerminalPasteShortcut(
+  handler: (payload: { terminalId: number }) => void,
+): () => void {
+  return window.api.shortcuts.onTerminalPaste(handler);
 }
 
 export interface ClaudeRateLimitWindow {

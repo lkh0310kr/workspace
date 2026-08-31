@@ -135,4 +135,19 @@ describe("resolveTerminalShortcutAction macOS Option", () => {
       ),
     ).toEqual({ type: "selectAll" });
   });
+
+  it("pastes with Cmd+V on macOS and Ctrl+V elsewhere", () => {
+    expect(
+      resolveTerminalShortcutAction(event({ key: "v", code: "KeyV", metaKey: true }), true),
+    ).toEqual({ type: "paste" });
+    expect(
+      resolveTerminalShortcutAction(event({ key: "v", code: "KeyV", ctrlKey: true }), false),
+    ).toEqual({ type: "paste" });
+    expect(
+      resolveTerminalShortcutAction(
+        event({ key: "V", code: "KeyV", metaKey: true, shiftKey: true }),
+        true,
+      ),
+    ).toBeNull();
+  });
 });

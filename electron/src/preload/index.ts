@@ -106,6 +106,16 @@ const api = {
       ipcRenderer.on('shortcut:browser-reload', listener)
       return () => ipcRenderer.removeListener('shortcut:browser-reload', listener)
     },
+    onBrowserZoom: (
+      cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void,
+    ): (() => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        payload: { direction: 'in' | 'out'; webContentsId: number },
+      ): void => cb(payload)
+      ipcRenderer.on('shortcut:browser-zoom', listener)
+      return () => ipcRenderer.removeListener('shortcut:browser-zoom', listener)
+    },
     onClosePaneTab: (cb: () => void): (() => void) => {
       const listener = (): void => cb()
       ipcRenderer.on('shortcut:close-pane-tab', listener)
@@ -121,10 +131,26 @@ const api = {
       ipcRenderer.on('shortcut:new-workspace-tab', listener)
       return () => ipcRenderer.removeListener('shortcut:new-workspace-tab', listener)
     },
+    onSwitchWorkspaceTabIndex: (cb: (payload: { index: number }) => void): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: { index: number },
+      ): void => cb(payload)
+      ipcRenderer.on('shortcut:switch-workspace-tab-index', listener)
+      return () => ipcRenderer.removeListener('shortcut:switch-workspace-tab-index', listener)
+    },
     onPastePlainText: (cb: () => void): (() => void) => {
       const listener = (): void => cb()
       ipcRenderer.on('shortcut:paste-plain-text', listener)
       return () => ipcRenderer.removeListener('shortcut:paste-plain-text', listener)
+    },
+    onTerminalPaste: (cb: (payload: { terminalId: number }) => void): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: { terminalId: number },
+      ): void => cb(payload)
+      ipcRenderer.on('shortcut:terminal-paste', listener)
+      return () => ipcRenderer.removeListener('shortcut:terminal-paste', listener)
     }
   },
   terminal: {

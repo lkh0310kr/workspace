@@ -137,10 +137,15 @@ export interface WorkspaceApi {
   }
   shortcuts: {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
+    onBrowserZoom: (
+      cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void,
+    ) => () => void
     onClosePaneTab: (cb: () => void) => () => void
     onOpenSettings: (cb: () => void) => () => void
     onNewWorkspaceTab: (cb: () => void) => () => void
+    onSwitchWorkspaceTabIndex: (cb: (payload: { index: number }) => void) => () => void
     onPastePlainText: (cb: () => void) => () => void
+    onTerminalPaste: (cb: (payload: { terminalId: number }) => void) => () => void
   }
   terminal: {
     setFocused: (id: number | null) => void

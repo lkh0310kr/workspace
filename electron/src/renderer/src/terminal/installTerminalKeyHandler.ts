@@ -5,6 +5,7 @@ import {
 } from "../lib/keyboard-layout/shared-option-key-tracker";
 import { releaseTerminalImeTextareaAnchor } from "../lib/pane-manager/terminal-ime-candidate-anchor";
 import { sendCapturedTerminalInput } from "./terminal-captured-input-dispatch";
+import { pasteClipboardIntoTerminal } from "./terminal-clipboard-paste";
 import {
   resolveTerminalShortcutAction,
   type TerminalShortcutAction,
@@ -37,6 +38,9 @@ function getKittyKeyboardFlags(terminal: Terminal): number {
 function actionLabel(action: TerminalShortcutAction): string {
   if (action.type === "sendInput") {
     return reprTerminalBytes(action.data);
+  }
+  if (action.type === "paste") {
+    return "paste";
   }
   return action.type;
 }
@@ -162,6 +166,18 @@ export function installTerminalKeyHandler(args: {
           { event: serializeKeyboardEvent(event) },
           terminalId,
         );
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      case "paste":
+        void pasteClipboardIntoTerminal(terminal).then((pasted) => {
+          termLog(
+            "keyboard:capture",
+            "paste",
+            { event: serializeKeyboardEvent(event), pasted },
+            terminalId,
+          );
+        });
         event.preventDefault();
         event.stopImmediatePropagation();
         return;

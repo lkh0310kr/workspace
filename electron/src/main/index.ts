@@ -401,7 +401,19 @@ function buildAppMenu(): Menu {
       submenu: [
         { role: 'cut' },
         { role: 'copy' },
-        { role: 'paste' },
+        {
+          label: 'Paste',
+          accelerator: 'CommandOrControl+V',
+          click: () => {
+            if (focusedTerminalId !== null) {
+              sendToMainWindow('shortcut:terminal-paste', { terminalId: focusedTerminalId })
+              return
+            }
+            if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+              mainWindowRef.webContents.paste()
+            }
+          }
+        },
         {
           label: 'Paste and Match Style',
           accelerator: 'CommandOrControl+Shift+V',
@@ -533,6 +545,15 @@ app.whenReady().then(() => {
     contents.on('before-input-event', (event, input) => {
       relayGuestWebviewShortcuts(event, input, sendToMainWindow, () => {
         contents.insertText(clipboard.readText())
+      }, contents.id)
+    })
+    // Electron may consume Cmd/Ctrl +/- as native zoom before before-input-event.
+    contents.on('zoom-changed', (event, zoomDirection) => {
+      if (zoomDirection !== 'in' && zoomDirection !== 'out') return
+      event.preventDefault()
+      sendToMainWindow('shortcut:browser-zoom', {
+        direction: zoomDirection,
+        webContentsId: contents.id
       })
     })
   })

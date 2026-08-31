@@ -16,7 +16,8 @@ export type TerminalShortcutEvent = {
 export type TerminalShortcutAction =
   | { type: "sendInput"; data: string }
   | { type: "scrollViewport"; position: "top" | "bottom" }
-  | { type: "selectAll" };
+  | { type: "selectAll" }
+  | { type: "paste" };
 
 function isOptionNavigationCode(code?: string): boolean {
   return (
@@ -51,6 +52,16 @@ export function resolveTerminalShortcutAction(
       (!isMac && event.ctrlKey && !event.metaKey && event.shiftKey))
   ) {
     return { type: "selectAll" };
+  }
+
+  if (
+    !event.altKey &&
+    !event.shiftKey &&
+    event.key.toLowerCase() === "v" &&
+    ((isMac && event.metaKey && !event.ctrlKey) ||
+      (!isMac && event.ctrlKey && !event.metaKey))
+  ) {
+    return { type: "paste" };
   }
 
   if (
