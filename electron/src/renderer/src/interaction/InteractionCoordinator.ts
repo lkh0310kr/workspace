@@ -32,7 +32,7 @@ export type InteractionSnapshot = {
 
 type Listener = () => void;
 
-class InteractionCoordinatorImpl {
+export class InteractionCoordinatorImpl {
   private overlayStack: OverlaySource[] = [];
   private activeWorkspaceTabId: number | null = null;
   private webviews = new Map<Electron.WebviewTag, WebviewRegistration>();
