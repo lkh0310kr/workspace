@@ -20,7 +20,6 @@ import { useWorkspaceStore } from '../store/workspaceStore'
 import { countLayoutTabSets } from '../layout/layoutModelParse'
 import { layoutLog } from '../layout/layoutDebugLog'
 import { paneChipContentShown, paneChipContentStyle } from '../interaction/embedPolicy'
-import { interactionCoordinator } from '../interaction/InteractionCoordinator'
 import { usePaneVisibility } from './usePaneVisibility'
 import { usePaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
 import { WorkspaceExplorerSidebar } from '../components/WorkspaceExplorerSidebar'
@@ -103,15 +102,6 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   }, [localActiveId])
 
   const activeItem = tabs.find((t) => t.id === localActiveId) ?? tabs[0]
-
-  useEffect(() => {
-    for (const item of tabs) {
-      if (item.kind !== 'browser') continue
-      const chipActive = item.id === localActiveId
-      interactionCoordinator.setBrowserPaneVisible(workspaceTabId, item.id, visible)
-      interactionCoordinator.setBrowserChipActive(workspaceTabId, item.id, chipActive)
-    }
-  }, [localActiveId, tabs, visible, workspaceTabId, nodeId])
 
   const selectTab = useCallback(
     (id: string) => {
