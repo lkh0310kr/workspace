@@ -1,6 +1,7 @@
 import type { TabInfo } from "../electron";
 import { interactionCoordinator } from "./InteractionCoordinator";
 import { getOptimisticWorkspaceTabId } from "./optimisticWorkspaceTab";
+import { isHomeViewActive } from "./workspaceHomeView";
 import { useWorkspaceStore } from "../store/workspaceStore";
 
 export type WorkspaceScope = {
@@ -8,6 +9,7 @@ export type WorkspaceScope = {
   coordinatorTabId: number | null;
   optimisticTabId: number | null;
   tabs: TabInfo[];
+  homeActive: boolean;
   visibleWorkspaceTabId: number;
 };
 
@@ -47,6 +49,7 @@ export function getWorkspaceScope(): WorkspaceScope {
     coordinatorTabId,
     optimisticTabId,
     tabs,
+    homeActive: isHomeViewActive(),
     visibleWorkspaceTabId,
   };
 }

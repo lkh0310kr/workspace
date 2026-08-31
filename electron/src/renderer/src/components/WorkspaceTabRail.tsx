@@ -1,40 +1,20 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react'
-import { TabInfo, addTab, closeTab, renameTab, reorderTabs, selectTab } from '../electron'
+import { TabInfo, addTab, closeTab, renameTab, reorderTabs } from '../electron'
 import { dismissWorkspacePortals } from '../workspacePortalDismiss'
-import {
-  beginOptimisticWorkspaceTabSwitch,
-  endOptimisticWorkspaceTabSwitch
-} from '../interaction/optimisticWorkspaceTab'
-import { syncInteractionCoordinatorWorkspaceTab } from '../interaction/syncInteractionCoordinatorWorkspaceTab'
+import { switchToHome, switchToWorkspaceTab } from '../workspaceNavigation'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
-
-// Switching workspace tabs keeps every tab's pane tree mounted — dismiss
-// any portaled popovers before the IPC round-trip so invisible layers can't
-// block the tab rail, and sync embed pointer-events for the new tab.
-export async function switchToTab(tabId: number) {
-  dismissWorkspacePortals()
-  beginOptimisticWorkspaceTabSwitch(tabId)
-  syncInteractionCoordinatorWorkspaceTab('rail-switch-start')
-  try {
-    await selectTab(tabId)
-  } catch (err) {
-    console.error(err)
-  } finally {
-    endOptimisticWorkspaceTabSwitch()
-    syncInteractionCoordinatorWorkspaceTab('rail-switch-finally')
-  }
-}
 
 interface Props {
   tabs: TabInfo[]
   activeTabId: number
+  homeActive: boolean
   onOpenSettings: (tabId: number, anchorRect: DOMRect) => void
 }
 
 // Always-visible strip, same shape/placement idiom as PaneTabStrip — no
 // toggle button, no popover. Selecting a workspace works exactly like
 // selecting any other tab.
-export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
+export function WorkspaceTabRail({ tabs, activeTabId, homeActive, onOpenSettings }: Props) {
   const [renamingId, setRenamingId] = useState<number | null>(null)
   const [draft, setDraft] = useState('')
   const [contextMenu, setContextMenu] = useState<{ tabId: number; x: number; y: number } | null>(
@@ -130,6 +110,22 @@ export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
 
   return (
     <div className="workspace-tab-rail">
+      <button
+        type="button"
+        className={`workspace-tab-rail-home${homeActive ? ' active' : ''}`}
+        title="Home"
+        onClick={() => switchToHome()}
+      >
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            d="M2.5 7.2 8 2.5l5.5 4.7V13a.5.5 0 0 1-.5.5H11v-4H5v4H3a.5.5 0 0 1-.5-.5V7.2Z"
+          />
+        </svg>
+      </button>
+      <div className="workspace-tab-rail-divider" aria-hidden="true" />
       <div className="workspace-tab-rail-tabs">
         {tabs.map((tab, index) => (
           <div key={tab.id} className="workspace-tab-rail-slot">
@@ -139,7 +135,7 @@ export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
                 if (el) rowRefs.current.set(tab.id, el)
                 else rowRefs.current.delete(tab.id)
               }}
-              className={`workspace-tab-rail-row ${tab.id === activeTabId ? 'active' : ''}`}
+              className={`workspace-tab-rail-row ${!homeActive && tab.id === activeTabId ? 'active' : ''}`}
               draggable={renamingId !== tab.id}
               onDragStart={(e: DragEvent) => {
                 draggedIdRef.current = tab.id
@@ -187,7 +183,7 @@ export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
                 <button
                   type="button"
                   className="workspace-tab-rail-title"
-                  onClick={() => void switchToTab(tab.id)}
+                  onClick={() => void switchToWorkspaceTab(tab.id)}
                   onDoubleClick={(e) => {
                     e.stopPropagation()
                     startRename(tab)
@@ -235,3 +231,6 @@ export function WorkspaceTabRail({ tabs, activeTabId, onOpenSettings }: Props) {
     </div>
   )
 }
+
+// Re-export for callers that already import switchToTab from this module.
+export { switchToWorkspaceTab as switchToTab } from '../workspaceNavigation'

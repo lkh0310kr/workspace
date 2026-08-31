@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getOptimisticWorkspaceTabId, subscribeOptimisticWorkspaceTab } from "./optimisticWorkspaceTab";
+import { isHomeViewActive, subscribeHomeView } from "./workspaceHomeView";
 import { useInteractionCoordinatorActiveTab } from "./useInteractionCoordinatorActiveTab";
 import { getWorkspaceScope, projectVisibleWorkspaceTabId, type WorkspaceScope } from "./workspaceScope";
 import { useWorkspaceStore } from "../store/workspaceStore";
@@ -12,6 +13,7 @@ export function useWorkspaceScope(): WorkspaceScope {
   const [, tick] = useState(0);
 
   useEffect(() => subscribeOptimisticWorkspaceTab(() => tick((n) => n + 1)), []);
+  useEffect(() => subscribeHomeView(() => tick((n) => n + 1)), []);
 
   const optimisticTabId = getOptimisticWorkspaceTabId();
   const visibleWorkspaceTabId = projectVisibleWorkspaceTabId(
@@ -26,6 +28,7 @@ export function useWorkspaceScope(): WorkspaceScope {
     coordinatorTabId,
     optimisticTabId,
     tabs,
+    homeActive: isHomeViewActive(),
     visibleWorkspaceTabId,
   };
 }

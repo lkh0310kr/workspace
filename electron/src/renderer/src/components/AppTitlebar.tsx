@@ -8,6 +8,7 @@ type Props = {
   onToggleAppSettings: (anchor: DOMRect) => void
   workspaceTabs: TabInfo[]
   activeWorkspaceTabId: number
+  homeActive: boolean
   onOpenWorkspaceTabSettings: (tabId: number, anchorRect: DOMRect) => void
 }
 
@@ -19,6 +20,7 @@ export function AppTitlebar({
   onToggleAppSettings,
   workspaceTabs,
   activeWorkspaceTabId,
+  homeActive,
   onOpenWorkspaceTabSettings
 }: Props) {
   // Windows / Linux: custom caption buttons (Orca — no titleBarOverlay).
@@ -44,6 +46,7 @@ export function AppTitlebar({
       <WorkspaceTabRail
         tabs={workspaceTabs}
         activeTabId={activeWorkspaceTabId}
+        homeActive={homeActive}
         onOpenSettings={onOpenWorkspaceTabSettings}
       />
       <div className="titlebar-spacer" />

@@ -19,6 +19,7 @@ import { useSplitterDragOverlay } from "./hooks/useSplitterDragOverlay";
 import { useTabChipWindowDrop } from "./hooks/useTabChipWindowDrop";
 import { useWorkspaceTabHotkeys } from "./hooks/useWorkspaceTabHotkeys";
 import { useVisibleWorkspaceTab } from "./hooks/useVisibleWorkspaceTab";
+import { useWorkspaceScope } from "./interaction/useWorkspaceScope";
 import { useHtmlFullscreen } from "./hooks/useHtmlFullscreen";
 import { applyThemePreference, setStoredThemePreference } from "./theme";
 import { useWorkspaceStore } from "./store/workspaceStore";
@@ -86,6 +87,7 @@ export default function App() {
   } = shell;
 
   const activeTabId = workspace?.active_tab_id ?? 0;
+  const { homeActive } = useWorkspaceScope();
   const visibleWorkspaceTabId = useVisibleWorkspaceTab();
   const activeModel = storeGetModel(activeTabId);
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
@@ -140,12 +142,15 @@ export default function App() {
         onToggleAppSettings={(anchor) => toggleAppSettings(anchor)}
         workspaceTabs={workspace.tabs}
         activeWorkspaceTabId={visibleWorkspaceTabId}
+        homeActive={homeActive}
         onOpenWorkspaceTabSettings={(tabId, anchorRect) => setSettingsTarget({ tabId, anchorRect })}
       />
       <div className="app-shell">
+        {homeActive ? <div className="dashboard-view" aria-label="Home" /> : null}
         <WorkspaceLayoutHost
           tabs={workspace.tabs}
           visibleWorkspaceTabId={visibleWorkspaceTabId}
+          homeActive={homeActive}
           getModel={storeGetModel}
           {...layoutCallbacks}
         />
@@ -167,7 +172,7 @@ export default function App() {
           />
         )}
       </div>
-      {quickOpenOpen && (
+      {quickOpenOpen && !homeActive && (
         <QuickOpen
           tabId={visibleWorkspaceTabId}
           onOpenFile={(path, kind) => {

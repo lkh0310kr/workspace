@@ -10,6 +10,7 @@ type LayoutCallbacks = ReturnType<typeof useLayoutHostCallbacks>
 type Props = {
   tabs: TabInfo[]
   visibleWorkspaceTabId: number
+  homeActive: boolean
   getModel: (tabId: number) => Model | undefined
 } & Pick<
   LayoutCallbacks,
@@ -23,6 +24,7 @@ type Props = {
 export function WorkspaceLayoutHost({
   tabs,
   visibleWorkspaceTabId,
+  homeActive,
   getModel,
   makeFactory,
   makeOnAction,
@@ -35,7 +37,7 @@ export function WorkspaceLayoutHost({
       {tabs.map((tab) => {
         const model = getModel(tab.id)
         if (!model) return null
-        const active = tab.id === visibleWorkspaceTabId
+        const active = !homeActive && tab.id === visibleWorkspaceTabId
         return (
           <WorkspaceTabLayoutItem
             key={tab.id}
