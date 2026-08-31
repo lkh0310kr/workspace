@@ -55,7 +55,6 @@ import {
 } from './japanese/service'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
-import { setupAutoUpdate } from './autoUpdate'
 
 // WSLg + Windows DPI: must run before ready / BrowserWindow (see wslPaths).
 applyWslDpiScaleFix((name, value) => {
@@ -477,8 +476,6 @@ app.whenReady().then(() => {
   }
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.kanghyun.workspace')
-
-  setupAutoUpdate()
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

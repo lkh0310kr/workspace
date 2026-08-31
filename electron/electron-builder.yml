@@ -57,7 +57,3 @@ extraResources:
     filter:
       - "**/*"
 npmRebuild: false
-publish:
-  provider: github
-  owner: lkh0310kr
-  repo: workspace
