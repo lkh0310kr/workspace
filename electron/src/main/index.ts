@@ -12,6 +12,7 @@ import { Workspace } from './workspace'
 import type { SearchOptions } from './search'
 import { registerMediaProtocol, toMediaUrlBrowsed } from './mediaProtocol'
 import { fetchFeed } from './rss'
+import { fetchDashboardEconomy, fetchDashboardWeather } from './dashboardData'
 import { registerEpubProtocol, openEpubAbsolute } from './epub'
 import { registerEngineBundleProtocol } from './engineBundleProtocol'
 import {
@@ -776,6 +777,22 @@ app.whenReady().then(() => {
   // is an arbitrary external HTTP resource by design, not a
   // workspace-relative path — there's nothing to resolveUnderRoot against.
   ipcMain.handle('rss:fetch-feed', (_event, url: string) => fetchFeed(url))
+  ipcMain.handle('dashboard:fetch-weather', async (_event, lat: number, lon: number) => {
+    try {
+      return await fetchDashboardWeather(lat, lon)
+    } catch (err) {
+      console.error('[dashboard] weather fetch failed:', err)
+      throw err
+    }
+  })
+  ipcMain.handle('dashboard:fetch-economy', async () => {
+    try {
+      return await fetchDashboardEconomy()
+    } catch (err) {
+      console.error('[dashboard] economy fetch failed:', err)
+      throw err
+    }
+  })
   ipcMain.handle('japanese:db-status', () => getJapaneseDbStatus())
   ipcMain.handle('japanese:reload', () => reloadJapaneseDictionary())
   ipcMain.handle('japanese:logs', (_event, limit?: number) => readJapaneseLogs(limit ?? 80))

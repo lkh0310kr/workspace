@@ -63,6 +63,22 @@ export interface FeedResult {
   items: FeedItem[]
 }
 
+export interface DashboardWeather {
+  temperatureC: number
+  weatherCode: number
+  humidity: number
+  windKmh: number
+  label: string
+}
+
+export interface EconomyQuote {
+  id: string
+  label: string
+  value: string
+  change?: string
+  changeUp?: boolean
+}
+
 export interface EpubSpineItem {
   href: string
   mediaType: string
@@ -204,6 +220,10 @@ export interface WorkspaceApi {
   }
   rss: {
     fetchFeed: (url: string) => Promise<FeedResult>
+  }
+  dashboard: {
+    fetchWeather: (lat: number, lon: number) => Promise<DashboardWeather>
+    fetchEconomy: () => Promise<EconomyQuote[]>
   }
   japanese: {
     dbStatus: () => Promise<JapaneseDbStatus>

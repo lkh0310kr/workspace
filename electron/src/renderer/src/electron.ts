@@ -150,6 +150,36 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
   return window.api.rss.fetchFeed(url);
 }
 
+export interface DashboardWeather {
+  temperatureC: number;
+  weatherCode: number;
+  humidity: number;
+  windKmh: number;
+  label: string;
+}
+
+export interface EconomyQuote {
+  id: string;
+  label: string;
+  value: string;
+  change?: string;
+  changeUp?: boolean;
+}
+
+export async function fetchDashboardWeather(lat: number, lon: number): Promise<DashboardWeather> {
+  if (!window.api.dashboard?.fetchWeather) {
+    throw new Error("dashboard API unavailable — restart the app");
+  }
+  return window.api.dashboard.fetchWeather(lat, lon);
+}
+
+export async function fetchDashboardEconomy(): Promise<EconomyQuote[]> {
+  if (!window.api.dashboard?.fetchEconomy) {
+    throw new Error("dashboard API unavailable — restart the app");
+  }
+  return window.api.dashboard.fetchEconomy();
+}
+
 import type {
   JapaneseDbStatus,
   JapaneseKanjiDetail,

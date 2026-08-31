@@ -263,6 +263,11 @@ const api = {
   rss: {
     fetchFeed: (url: string): Promise<unknown> => ipcRenderer.invoke('rss:fetch-feed', url)
   },
+  dashboard: {
+    fetchWeather: (lat: number, lon: number): Promise<unknown> =>
+      ipcRenderer.invoke('dashboard:fetch-weather', lat, lon),
+    fetchEconomy: (): Promise<unknown> => ipcRenderer.invoke('dashboard:fetch-economy')
+  },
   japanese: {
     dbStatus: (): Promise<unknown> => ipcRenderer.invoke('japanese:db-status'),
     reload: (): Promise<unknown> => ipcRenderer.invoke('japanese:reload'),
