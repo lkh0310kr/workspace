@@ -13,6 +13,7 @@
 pub mod camera;
 pub mod events;
 pub mod input;
+pub mod pick;
 pub mod prefab;
 pub mod render;
 pub mod save;
@@ -27,6 +28,7 @@ pub use scene::{SceneFile, build_world, default_scene, load_scene};
 pub use input::{InputMap, InputState, key_name_from_qt};
 pub use events::{CollisionEvent, CollisionEventBuffer};
 pub use camera::{CameraDef, RuntimeCamera};
+pub use pick::{pick_entity_at_screen, PickHit};
 pub use save::{EntitySave, WorldSave};
 pub use prefab::{PrefabFile, load_prefab, spawn_prefab_at};
 pub use world::{Behavior, BodyType, EntitySpec, JointKind, MeshKind, Projectile, Shape, UpdateCtx, World};

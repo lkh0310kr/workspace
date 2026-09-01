@@ -44,6 +44,8 @@ pub enum MeshKind {
     Loaded,
 }
 struct RenderMesh(MeshKind);
+/// Visual scale applied to the unit cube/sphere mesh at draw time.
+struct RenderScale(Vec3);
 
 struct EntityName(String);
 
@@ -178,6 +180,8 @@ pub struct World {
     last_script_error: Option<String>,
     camera: RuntimeCamera,
     show_grid: bool,
+    /// Shared f64 key/value store — readable from any Rhai script (`sim_var` / `set_sim_var`).
+    sim_vars: HashMap<String, f64>,
     projectiles: Vec<Projectile>,
     project_dir: Option<std::path::PathBuf>,
 }
@@ -227,6 +231,7 @@ impl World {
             last_script_error: None,
             camera: RuntimeCamera::default(),
             show_grid: false,
+            sim_vars: HashMap::new(),
             projectiles: Vec::new(),
             project_dir: None,
         }
@@ -242,6 +247,19 @@ impl World {
 
     pub fn entity_by_name(&self, name: &str) -> Option<Entity> {
         self.names.get(name).copied()
+    }
+
+    /// All named entities for picking / debugging.
+    pub fn named_entities(&self) -> Vec<(String, Entity)> {
+        self.names.iter().map(|(name, &entity)| (name.clone(), entity)).collect()
+    }
+
+    /// Axis-aligned half extents used for rendering and screen picking.
+    pub fn render_half_extents(&self, entity: Entity) -> Vec3 {
+        self.ecs
+            .get::<&RenderScale>(entity)
+            .map(|s| s.0 * 0.5)
+            .unwrap_or(Vec3::splat(0.5))
     }
 
     pub fn entity_by_tag(&self, tag: &str) -> Option<Entity> {
@@ -307,6 +325,12 @@ impl World {
                 0.15,
                 Vec3::new(1.0, 0.9, 0.2),
             );
+        }
+    }
+
+    fn merge_sim_var_patch(&mut self, patch: HashMap<String, f64>) {
+        for (key, value) in patch {
+            self.sim_vars.insert(key, value);
         }
     }
 
@@ -408,7 +432,7 @@ impl World {
             if let Ok(tags) = self.ecs.get::<&EntityTags>(entity) {
                 let name = self.entity_label(entity);
                 for tag in &tags.0 {
-                    map.entry(tag.clone()).or_insert(name.clone());
+                    map.entry(tag.clone()).or_insert_with(|| name.clone());
                 }
             }
         }
@@ -512,12 +536,17 @@ impl World {
         let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
 
         let mesh_kind = spec.render_override.unwrap_or(default_mesh_kind);
+        let render_scale = match spec.shape {
+            Shape::Cuboid { half_extents } => half_extents * 2.0,
+            Shape::Sphere { radius } => Vec3::splat(radius * 2.0),
+        };
         let entity = self.ecs.spawn((
             Transform { translation: Vec3::ZERO, rotation: Quat::IDENTITY },
             PhysicsBody(handle),
             PhysicsCollider(collider_handle),
             Tint(spec.color),
             RenderMesh(mesh_kind),
+            RenderScale(render_scale),
         ));
         self.collider_to_entity.insert(collider_handle, entity);
         self.entities.push(entity);
@@ -607,6 +636,18 @@ impl World {
         self.time
     }
 
+    pub fn sim_var(&self, key: &str) -> f64 {
+        self.sim_vars.get(key).copied().unwrap_or(0.0)
+    }
+
+    pub fn set_sim_var(&mut self, key: impl Into<String>, value: f64) {
+        self.sim_vars.insert(key.into(), value);
+    }
+
+    pub fn sim_vars(&self) -> &HashMap<String, f64> {
+        &self.sim_vars
+    }
+
     /// Advances the simulation by `steps` fixed-timestep ticks.
     pub fn step_n(&mut self, steps: u32) {
         for _ in 0..steps {
@@ -621,6 +662,7 @@ impl World {
         let snapshot = WorldSnapshot::from_world(self);
         let input_snapshot = crate::input::InputSnapshot::new(&self.input, &self.input_map);
         crate::script::install_input_snapshot(&input_snapshot);
+        crate::script::install_sim_vars(&self.sim_vars);
 
         if let Some(script) = &mut self.world_script {
             if let Some(err) = script.apply(dt, time, &snapshot) {
@@ -628,7 +670,10 @@ impl World {
             }
             let patch = take_world_control_patch();
             self.apply_world_control_patch(patch);
+            self.merge_sim_var_patch(crate::script::take_sim_var_patch());
         }
+
+        crate::script::install_sim_vars(&self.sim_vars);
 
         // Scripted kinematic motion — set each Motion entity's target
         // position before the physics step, same pattern rapier3d's own
@@ -663,6 +708,7 @@ impl World {
                 self.apply_world_control_patch(patch);
             }
         }
+        self.merge_sim_var_patch(crate::script::take_sim_var_patch());
 
         // User Behaviors — also before the physics step, so anything they
         // set on the rigid body is consumed this step.
@@ -805,7 +851,16 @@ impl World {
                 let transform = self.ecs.get::<&Transform>(entity).unwrap();
                 let tint = self.ecs.get::<&Tint>(entity).unwrap();
                 let mesh_kind = self.ecs.get::<&RenderMesh>(entity).unwrap().0;
-                (Mat4::from_rotation_translation(transform.rotation, transform.translation), tint.0, mesh_kind)
+                let scale = self
+                    .ecs
+                    .get::<&RenderScale>(entity)
+                    .map(|s| s.0)
+                    .unwrap_or(Vec3::ONE);
+                (
+                    Mat4::from_scale_rotation_translation(scale, transform.rotation, transform.translation),
+                    tint.0,
+                    mesh_kind,
+                )
             })
             .collect()
     }

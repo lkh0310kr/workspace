@@ -145,6 +145,7 @@ pub fn key_name_from_qt(code: i32) -> Option<&'static str> {
         68 => Some("D"),
         69 => Some("E"),
         70 => Some("F"),
+        71 => Some("G"),
         81 => Some("Q"),
         83 => Some("S"),
         87 => Some("W"),

@@ -44,6 +44,14 @@ pub enum CameraDef {
         #[serde(default)]
         look_at: [f32; 3],
     },
+    Fly {
+        #[serde(default = "default_fly_position")]
+        position: [f32; 3],
+        #[serde(default = "default_yaw")]
+        yaw: f32,
+        #[serde(default = "default_pitch")]
+        pitch: f32,
+    },
 }
 
 fn default_distance() -> f32 {
@@ -58,6 +66,9 @@ fn default_pitch() -> f32 {
 fn default_follow_offset() -> [f32; 3] {
     [0.0, 5.0, 8.0]
 }
+fn default_fly_position() -> [f32; 3] {
+    [0.0, 8.0, 12.0]
+}
 
 /// Runtime camera resolved each frame from scene config + optional script overrides.
 #[derive(Clone, Debug)]
@@ -65,6 +76,7 @@ pub enum CameraMode {
     Orbit(OrbitState),
     Follow { target_name: String, offset: Vec3 },
     Fixed { position: Vec3, look_at: Vec3 },
+    Fly { position: Vec3, yaw: f32, pitch: f32 },
 }
 
 impl Default for CameraMode {
@@ -106,6 +118,11 @@ impl RuntimeCamera {
                 position: Vec3::from(*position),
                 look_at: Vec3::from(*look_at),
             },
+            CameraDef::Fly { position, yaw, pitch } => CameraMode::Fly {
+                position: Vec3::from(*position),
+                yaw: *yaw,
+                pitch: *pitch,
+            },
         };
         Self { mode, fov_deg: 45.0 }
     }
@@ -128,9 +145,22 @@ impl RuntimeCamera {
         }
     }
 
+    pub fn fly_mut(&mut self) -> Option<(&mut Vec3, &mut f32, &mut f32)> {
+        match &mut self.mode {
+            CameraMode::Fly { position, yaw, pitch } => Some((position, yaw, pitch)),
+            _ => None,
+        }
+    }
+
     /// Eye position and look-at target for the view matrix.
     pub fn eye_and_target(&self, world: &World) -> (Vec3, Vec3) {
         match &self.mode {
+            CameraMode::Fly { position, yaw, pitch } => {
+                let (sy, cy) = yaw.sin_cos();
+                let (sp, cp) = pitch.sin_cos();
+                let forward = Vec3::new(cp * cy, sp, cp * sy);
+                (*position, *position + forward)
+            }
             CameraMode::Orbit(state) => {
                 let (sy, cy) = state.yaw.sin_cos();
                 let (sp, cp) = state.pitch.sin_cos();

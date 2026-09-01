@@ -14,12 +14,22 @@ use serde_json::Value;
 use crate::world::World;
 
 /// Rhai scripting API version — bump on breaking script surface changes.
-pub const RHAI_API_VERSION: &str = "2";
+pub const RHAI_API_VERSION: &str = "3";
 
 thread_local! {
     static WORLD_SNAPSHOT: RefCell<WorldSnapshot> = RefCell::new(WorldSnapshot::default());
     static PENDING_WORLD_CONTROL: RefCell<WorldControlPatch> = RefCell::new(WorldControlPatch::default());
     static INPUT_SNAPSHOT: RefCell<Option<crate::input::InputSnapshot>> = const { RefCell::new(None) };
+    static SIM_VARS: RefCell<HashMap<String, f64>> = RefCell::new(HashMap::new());
+    static PENDING_SIM_VARS: RefCell<HashMap<String, f64>> = RefCell::new(HashMap::new());
+}
+
+pub fn install_sim_vars(vars: &HashMap<String, f64>) {
+    SIM_VARS.with(|cell| *cell.borrow_mut() = vars.clone());
+}
+
+pub fn take_sim_var_patch() -> HashMap<String, f64> {
+    PENDING_SIM_VARS.with(|cell| std::mem::take(&mut *cell.borrow_mut()))
 }
 
 pub fn install_input_snapshot(snapshot: &crate::input::InputSnapshot) {
@@ -157,6 +167,15 @@ fn new_engine() -> Engine {
         INPUT_SNAPSHOT.with(|cell| cell.borrow().as_ref().is_some_and(|s| s.down(name)))
     });
 
+    engine.register_fn("sim_var", |name: &str| -> f64 {
+        SIM_VARS.with(|cell| cell.borrow().get(name).copied().unwrap_or(0.0))
+    });
+    engine.register_fn("set_sim_var", |name: &str, value: f64| {
+        PENDING_SIM_VARS.with(|cell| {
+            cell.borrow_mut().insert(name.to_string(), value);
+        });
+    });
+
     engine.register_fn("spawn_projectile", |x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, lifetime: f64| {
         PENDING_WORLD_CONTROL.with(|cell| {
             cell.borrow_mut().spawn_projectile = Some((x, y, z, vx, vy, vz, lifetime));
@@ -290,13 +309,14 @@ impl EntityScript {
 pub struct WorldScript {
     engine: Engine,
     ast: AST,
+    /// Persists module-level `let` state across frames (autoload pattern).
+    scope: Scope<'static>,
 }
 
 impl WorldScript {
     pub fn apply(&mut self, dt: f32, time: f32, snapshot: &WorldSnapshot) -> Option<String> {
         snapshot.install();
-        let mut scope = Scope::new();
-        if let Err(err) = self.engine.call_fn::<()>(&mut scope, &self.ast, "on_world_update", (dt as f64, time as f64)) {
+        if let Err(err) = self.engine.call_fn::<()>(&mut self.scope, &self.ast, "on_world_update", (dt as f64, time as f64)) {
             return Some(format!("entry_script on_world_update error: {err}"));
         }
         None
@@ -351,10 +371,13 @@ pub fn load_world_script(project_dir: &Path, script_rel: &str) -> Result<WorldSc
 
     let mut scope = Scope::new();
     engine
+        .run_ast_with_scope(&mut scope, &ast)
+        .map_err(|err| format!("failed to init world script scope {path:?}: {err}"))?;
+    engine
         .call_fn::<()>(&mut scope, &ast, "on_world_update", (0.0_f64, 0.0_f64))
         .map_err(|err| format!("world script {path:?} must define on_world_update(dt, time): {err}"))?;
 
-    Ok(WorldScript { engine, ast })
+    Ok(WorldScript { engine, ast, scope })
 }
 
 fn build_args_scope(args: Option<&Value>) -> Scope<'static> {
