@@ -1,0 +1,15 @@
+{
+  "gravity": [0.0, -9.81, 0.0],
+  "entities": [
+    {
+      "name": "projectile",
+      "position": [0.0, 8.0, 0.0],
+      "velocity": [4.0, 3.0, 0.0],
+      "body_type": "dynamic",
+      "shape": "sphere",
+      "radius": 0.4,
+      "restitution": 0.45,
+      "color": [0.95, 0.55, 0.15]
+    }
+  ]
+}
