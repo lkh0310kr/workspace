@@ -1,0 +1,53 @@
+{
+  "gravity": [0.0, -20.0, 0.0],
+  "show_grid": true,
+  "input_map": {
+    "move_x": { "negative": "A", "positive": "D" },
+    "jump": "Space"
+  },
+  "camera": { "mode": "follow", "target": "player", "offset": [0.0, 8.0, 12.0] },
+  "entities": [
+    {
+      "name": "platform_a",
+      "position": [-6.0, 0.0, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [3.0, 0.3, 2.0],
+      "color": [0.35, 0.38, 0.42],
+      "collision_layer": 1,
+      "friction": 0.8
+    },
+    {
+      "name": "platform_b",
+      "position": [3.0, 2.0, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [3.0, 0.3, 2.0],
+      "color": [0.35, 0.38, 0.42],
+      "collision_layer": 1
+    },
+    {
+      "name": "hazard",
+      "position": [0.0, -2.0, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [2.0, 0.2, 2.0],
+      "trigger": true,
+      "tags": ["hazard"],
+      "color": [0.9, 0.2, 0.15],
+      "collision_layer": 4
+    },
+    {
+      "name": "player",
+      "tags": ["player"],
+      "position": [-8.0, 1.5, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.35,
+      "color": [0.25, 0.65, 0.95],
+      "script": "scripts/player.rhai",
+      "collision_layer": 1,
+      "collision_mask": 5
+    }
+  ]
+}
