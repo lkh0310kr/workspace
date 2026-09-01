@@ -488,7 +488,11 @@ Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. �
 
 **Phase 1–30 완료.** 다음은 **§10 Simulation & Design Track (Phase 31+)** — 월드 엔진 코어·qt-shell만. 네트워크·PBR·게임 레퍼런스 확장은 하지 않음.
 
-**착수 (하위→상위):** Phase 38 ✅ → Phase 36 ✅ → Phase 35 ✅. 서비스 레이어(37 overlay, 39 runner, 40 freeze)는 CAD/뷰어 착수 전 보류.
+**착수 (하위→상위):** World Engine 커널 Phase 35–38 ✅ 완료.
+
+**다음 트랙:** [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md) **Phase 50+** — Workspace 중앙 오케스트레이션 (OCCT/FreeCAD delegate, glTF hub, WE 뷰어·시뮬).
+
+구 Phase 37/39/40은 오케스트레이션 트랙으로 재배치·보류 (37→58, 40→59, 39 보류).
 
 커널 계약: [world-engine-simulation.md](./world-engine-simulation.md) · `tests/kernel_contract.rs`
 
@@ -515,13 +519,13 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 **실행 우선순위 (2026-09-01, bottom-up)**
 
 ```
-0. 커널 계약 문서 + kernel_contract.rs
-1. Phase 38 — WorldSave: sim_vars + rng_state (+ sim_time)
-2. Phase 36 — pause / clock
-3. Phase 35 — physics raycast
-4. Phase 37 — design overlay
-5. Phase 39 — scenario runner (harness, 마지막)
-6. Phase 40 — API freeze
+0. 커널 계약 문서 + kernel_contract.rs          ✅
+1. Phase 38 — WorldSave                         ✅
+2. Phase 36 — pause / clock                     ✅
+3. Phase 35 — physics raycast                   ✅
+─── 다음: CAD Orchestration Phase 50+ ───
+4. Phase 50–59 — [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md)
+(구 37/39/40 → 58/보류/59 로 이동)
 ```
 
 ---
@@ -633,7 +637,7 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 ---
 
 ### Phase 37 — Design file overlay  
-**상태:** ⬜ PENDING  
+**상태:** ⏸ DEFERRED → [cad-orchestration Phase 58](./cad-orchestration-phase-plan.md#phase-58--design-file-overlay)  
 **목표:** `world-engine.json`(geometry) + `design/*.json`(스펙) 분리 로드.
 
 | IN | OUT |
@@ -660,7 +664,7 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 ---
 
 ### Phase 39 — Headless scenario runner  
-**상태:** ⬜ PENDING  
+**상태:** ⏸ DEFERRED (CAD MVP 후 재검토)  
 **목표:** CI에서 **여러 프로젝트 디렉터리**를 동일 harness로 `step_n` + metrics 비교.
 
 | IN | OUT |
@@ -673,7 +677,7 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 ---
 
 ### Phase 40 — Sim/Design API 1.0 freeze  
-**상태:** ⬜ PENDING  
+**상태:** ⏸ DEFERRED → [cad-orchestration Phase 59](./cad-orchestration-phase-plan.md#phase-59--orchestration-api-10-freeze)  
 **목표:** Phase 31–39를 **시뮬 전용** semver 1.0 후보로 고정.
 
 | IN | OUT |
@@ -702,7 +706,8 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 
 | 날짜 | 내용 |
 |------|------|
-| 2026-09-01 | Phase 34 DONE: properties, entity_property*; Phase 41 DONE: composition SDK/JSON |
+| 2026-09-01 | CAD Orchestration Phase 50+ — [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md) |
+| 2026-09-01 | Phase 35–36 DONE; Phase 37/39/40 deferred to orchestration track |
 | 2026-09-01 | Phase 33 DONE: sim_seed, determinism_contract |
 | 2026-09-01 | §10 Phase 31+ Simulation & Design Track (World Engine) |
 | 2026-09-01 | Phase 17–30 DONE: entity v2, camera, prefabs, save, layers, games, schema, benchmarks |
