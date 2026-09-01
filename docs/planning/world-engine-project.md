@@ -1,6 +1,7 @@
 # World Engine — project layout
 
 **Status:** v2 (2026-09-01)  
+**North star:** 개인 설계·운영 실험실 (시설 모델·시뮬). 게임 출시·Workspace embed는 비목표.  
 **구현:** `native/world-engine-core/`  
 **상위:** [09-future-native-architecture.md](../architecture/09-future-native-architecture.md) Phase 10–12  
 **로드맵:** [world-engine-phase-plan.md](./world-engine-phase-plan.md) — **Production Track (Phase 13+)**  

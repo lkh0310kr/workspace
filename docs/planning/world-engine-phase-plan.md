@@ -1,7 +1,7 @@
 # World Engine — Phase Plan (Production Track)
 
 **Status:** Active planning (2026-09-01)  
-**목표:** 인디 게임 1작을 **엔진 포크 없이** 프로젝트 폴더만으로 완성할 수 있는 수준  
+**목표:** 개인 **설계·운영 실험실** (닭장, 물레, 스마트팜 등)을 **엔진 포크 없이** 프로젝트 폴더만으로 반복 검증할 수 있는 수준  
 **구현:** `native/world-engine-core/` · `native/world-engine-qt-shell/`  
 **관련:** [world-engine-project.md](./world-engine-project.md) (프로젝트 레이아웃) · [09-future-native-architecture.md](../architecture/09-future-native-architecture.md) (Workspace 통합 이력)
 
@@ -12,12 +12,13 @@
 | 기준 | 의미 |
 |------|------|
 | **코드 SDK 우선** | Rust `Behavior` + `World::spawn*`가 진실의 원천. JSON/Rhai는 그 위 레이어 |
-| **프로젝트 격리** | 게임 로직·에셋·씬은 `my-game/` 폴더. Workspace/Electron·엔진 바이너리에 도메인 코드 없음 |
+| **프로젝트 격리** | 시뮬·설계 로직·에셋·씬은 프로젝트 폴더. Workspace/Electron·엔진 바이너리에 도메인 코드 없음 |
 | **깨져도 크래시 안 함** | 잘못된 JSON·스크립트·메시 참조는 경고 + 스킵 (기존 Phase 1–9 패턴 유지) |
 | **매 Phase마다 falsifiable** | headless 테스트 또는 fixture 1개 + 수동 QA 체크리스트 |
 | **API 안정성** | Phase 13부터 `world-engine.json` 스키마·Rhai 내장 함수는 **additive only** (breaking은 major 버전) |
+| **하위부터 단단히** | 커널 계약(0–3층) → 쿼리/클럭 → 오버레이/하네스. 시나리오 러너(39)는 마지막 |
 
-**비목표 (이 트랙에서):** GDScript 수준 IDE, AAA 그래픽, 멀티플레이, Blender 대체.
+**비목표 (이 트랙에서):** 상용 게임 출시, GDScript 수준 IDE, AAA 그래픽, 멀티플레이, Blender 대체, Workspace pane embed.
 
 ---
 
@@ -487,7 +488,9 @@ Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. �
 
 **Phase 1–30 완료.** 다음은 **§10 Simulation & Design Track (Phase 31+)** — 월드 엔진 코어·qt-shell만. 네트워크·PBR·게임 레퍼런스 확장은 하지 않음.
 
-**착수:** Phase 35 physics raycast pick.
+**착수 (하위→상위):** Phase 38 커널 save ✅ → Phase 36 pause/clock → Phase 35 raycast → Phase 37 overlay → Phase 39 scenario runner → Phase 40 freeze.
+
+커널 계약: [world-engine-simulation.md](./world-engine-simulation.md) · `tests/kernel_contract.rs`
 
 macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-quarantine.sh` 실행.
 
@@ -508,6 +511,18 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 | **Observation** | pick, fly cam, metrics export | qt-shell/Electron 표시 문구 |
 
 **엔진 API 원칙:** 도메인 필드(`label`, `feed_stock` JSON 키) 금지. `name`, `tags`, `properties`, `sim_var` 같은 **범용 슬롯**만.
+
+**실행 우선순위 (2026-09-01, bottom-up)**
+
+```
+0. 커널 계약 문서 + kernel_contract.rs
+1. Phase 38 — WorldSave: sim_vars + rng_state (+ sim_time)
+2. Phase 36 — pause / clock
+3. Phase 35 — physics raycast
+4. Phase 37 — design overlay
+5. Phase 39 — scenario runner (harness, 마지막)
+6. Phase 40 — API freeze
+```
 
 ---
 
@@ -632,15 +647,15 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 ---
 
 ### Phase 38 — Save includes simulation state  
-**상태:** ⬜ PENDING  
-**목표:** 체크포인트에 **재고·점수·sim_var** 포함.
+**상태:** ✅ DONE (2026-09-01)  
+**목표:** 체크포인트에 **sim_var·RNG 스트림·시뮬 시계** 포함.
 
 | IN | OUT |
 |----|-----|
-| `WorldSave`에 `sim_vars` 필드 | 전체 Rhai scope serialize |
-| `restore` round-trip test | |
+| `WorldSave`에 `sim_vars`, `rng_state`, `sim_seed` | 전체 Rhai scope serialize |
+| `restore` round-trip + RNG continuation test | Rhai script locals rehydrate |
 
-**산출물:** `save_contract` 확장.
+**산출물:** `save_contract` 확장, [world-engine-simulation.md](./world-engine-simulation.md) §WorldSave.
 
 ---
 
