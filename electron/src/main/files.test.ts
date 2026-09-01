@@ -33,6 +33,20 @@ describe("readFileBinaryPreview", () => {
     expect(preview?.content.length).toBeGreaterThan(0);
   });
 
+  it("reads obj files", () => {
+    const root = makeTempRoot({ "cube.obj": Buffer.from("o Cube\nv 0 0 0\n") });
+    const preview = readFileBinaryPreview(root, "cube.obj");
+    expect(preview).not.toBeNull();
+    expect(preview?.mimeType).toBe("model/obj");
+  });
+
+  it("reads stl files", () => {
+    const root = makeTempRoot({ "cube.stl": Buffer.from("solid cube\nendsolid cube\n") });
+    const preview = readFileBinaryPreview(root, "cube.stl");
+    expect(preview).not.toBeNull();
+    expect(preview?.mimeType).toBe("model/stl");
+  });
+
   it("returns null for unknown extensions", () => {
     const root = makeTempRoot({ "readme.txt": Buffer.from("hi") });
     expect(readFileBinaryPreview(root, "readme.txt")).toBeNull();

@@ -1,8 +1,7 @@
 import type { ImportContext, ImportResult, Importer } from "../../../shared/model3d/importer";
-import type { DetectedModelFormat } from "../../../shared/model3d/types";
 import { model3dLog } from "../model3dLog";
 
-const STUB_FORMATS: DetectedModelFormat[] = ["fbx"];
+const STUB_FORMATS: never[] = [];
 
 export const stubImporter: Importer = {
   id: "convert-stub",
@@ -12,8 +11,8 @@ export const stubImporter: Importer = {
     tier: "convert-heavy",
     packageAware: true,
   },
-  async canImport(ctx: ImportContext): Promise<boolean> {
-    return STUB_FORMATS.includes(ctx.format);
+  async canImport(_ctx: ImportContext): Promise<boolean> {
+    return false;
   },
   async import(ctx: ImportContext): Promise<ImportResult> {
     const label = ctx.format.toUpperCase();

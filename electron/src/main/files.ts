@@ -81,6 +81,11 @@ const BINARY_PREVIEW_MIME_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
   ".glb": "model/gltf-binary",
   ".gltf": "model/gltf+json",
+  ".obj": "model/obj",
+  ".stl": "model/stl",
+  ".ply": "application/octet-stream",
+  ".dae": "model/vnd.collada+xml",
+  ".fbx": "application/octet-stream",
 };
 
 export type BinaryFilePreview = { content: string; mimeType: string };
@@ -106,7 +111,14 @@ export function readFileBinaryPreview(root: string, rel: string): BinaryFilePrev
   }
   try {
     const content = fs.readFileSync(target).toString("base64");
-    const isModel = ext === ".glb" || ext === ".gltf";
+    const isModel =
+      ext === ".glb" ||
+      ext === ".gltf" ||
+      ext === ".obj" ||
+      ext === ".stl" ||
+      ext === ".ply" ||
+      ext === ".dae" ||
+      ext === ".fbx";
     if (isModel) {
       model3dLog("binary_preview_read_ok", {
         source: "main",

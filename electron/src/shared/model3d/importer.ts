@@ -10,6 +10,7 @@ export interface ImportCapabilities {
 }
 
 export interface ImportContext {
+  workspaceRoot: string;
   absolutePath: string;
   relativePath: string;
   packageRoot: string;

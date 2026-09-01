@@ -6,15 +6,16 @@ import type { RenderPipelineHooks } from "../../../../shared/model3d/viewer";
 import { createOrbitCameraHandle, createOrbitCameraState } from "./camera/orbitCamera";
 import type { OrbitCameraHandle } from "./camera/orbitCamera";
 import type { DetectedModelFormat } from "../../../../shared/model3d/types";
-import { useGltfFromBuffer } from "./useGltfFromUrl";
+import { useGltfFromBuffer, useGltfFromUrl } from "./useGltfFromUrl";
 import { useMeshFromBuffer } from "./useMeshFromBuffer";
 import { logModel3d } from "../model3dLog";
 
 const GLTF_FORMATS = new Set<DetectedModelFormat>(["glb", "gltf"]);
-const MESH_FORMATS = new Set<DetectedModelFormat>(["obj", "stl", "ply", "dae"]);
+const MESH_FORMATS = new Set<DetectedModelFormat>(["obj", "stl", "ply", "dae", "fbx"]);
 
 interface ModelProps {
-  modelData: ArrayBuffer;
+  modelData?: ArrayBuffer;
+  modelUrl?: string;
   format: DetectedModelFormat;
   wireframe: boolean;
   onLoaded?: () => void;
@@ -35,7 +36,15 @@ function applyWireframe(scene: THREE.Object3D, wireframe: boolean): void {
   });
 }
 
-function GltfLoadedModel({ modelData, wireframe, onLoaded }: Omit<ModelProps, "format">) {
+function GltfLoadedModel({
+  modelData,
+  wireframe,
+  onLoaded,
+}: {
+  modelData: ArrayBuffer;
+  wireframe: boolean;
+  onLoaded?: () => void;
+}) {
   const { gltf, error, loading } = useGltfFromBuffer(modelData);
   const bounds = useBounds();
 
@@ -73,8 +82,55 @@ function GltfLoadedModel({ modelData, wireframe, onLoaded }: Omit<ModelProps, "f
   return <primitive object={scene} />;
 }
 
-function MeshLoadedModel({ modelData, format, wireframe, onLoaded }: ModelProps) {
-  const { scene: parsed, error, loading } = useMeshFromBuffer(modelData, format);
+function GltfUrlLoadedModel({
+  modelUrl,
+  wireframe,
+  onLoaded,
+}: {
+  modelUrl: string;
+  wireframe: boolean;
+  onLoaded?: () => void;
+}) {
+  const { gl } = useThree();
+  const { gltf, error, loading } = useGltfFromUrl(modelUrl, gl);
+  const bounds = useBounds();
+
+  const scene = useMemo(() => {
+    if (!gltf) return null;
+    return gltf.scene.clone(true);
+  }, [gltf]);
+
+  useEffect(() => {
+    if (!scene) return;
+    applyWireframe(scene, wireframe);
+  }, [scene, wireframe]);
+
+  useEffect(() => {
+    if (!scene) return;
+    bounds.refresh().fit();
+    onLoaded?.();
+    void logModel3d("gltf_scene_mounted", { modelUrl });
+  }, [scene, bounds, onLoaded, modelUrl]);
+
+  if (loading) {
+    return (
+      <Html center>
+        <div className="model-viewer-canvas-hint">Loading model…</div>
+      </Html>
+    );
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  if (!scene) return null;
+
+  return <primitive object={scene} />;
+}
+
+function MeshLoadedModel({ modelData, modelUrl, format, wireframe, onLoaded }: ModelProps) {
+  const { scene: parsed, error, loading } = useMeshFromBuffer(modelData, modelUrl, format);
   const bounds = useBounds();
 
   const scene = useMemo(() => {
@@ -91,8 +147,12 @@ function MeshLoadedModel({ modelData, format, wireframe, onLoaded }: ModelProps)
     if (!scene) return;
     bounds.refresh().fit();
     onLoaded?.();
-    void logModel3d("mesh_scene_mounted", { byteLength: modelData.byteLength, format });
-  }, [scene, bounds, onLoaded, modelData, format]);
+    void logModel3d("mesh_scene_mounted", {
+      byteLength: modelData?.byteLength ?? null,
+      modelUrl: modelUrl ?? null,
+      format,
+    });
+  }, [scene, bounds, onLoaded, modelData, modelUrl, format]);
 
   if (loading) {
     return (
@@ -113,7 +173,15 @@ function MeshLoadedModel({ modelData, format, wireframe, onLoaded }: ModelProps)
 
 function LoadedModel(props: ModelProps) {
   if (GLTF_FORMATS.has(props.format)) {
-    return <GltfLoadedModel modelData={props.modelData} wireframe={props.wireframe} onLoaded={props.onLoaded} />;
+    if (props.modelUrl) {
+      return <GltfUrlLoadedModel modelUrl={props.modelUrl} wireframe={props.wireframe} onLoaded={props.onLoaded} />;
+    }
+    if (props.modelData) {
+      return (
+        <GltfLoadedModel modelData={props.modelData} wireframe={props.wireframe} onLoaded={props.onLoaded} />
+      );
+    }
+    throw new Error("GLTF model requires modelData or modelUrl");
   }
   if (MESH_FORMATS.has(props.format)) {
     return <MeshLoadedModel {...props} />;
@@ -185,7 +253,8 @@ class ModelLoadErrorBoundary extends Component<
 }
 
 export interface WebGlThreeViewerProps {
-  modelData: ArrayBuffer;
+  modelData?: ArrayBuffer;
+  modelUrl?: string;
   format: DetectedModelFormat;
   wireframe: boolean;
   showGrid: boolean;
@@ -198,6 +267,7 @@ export interface WebGlThreeViewerProps {
 
 export function WebGlThreeViewer({
   modelData,
+  modelUrl,
   format,
   wireframe,
   showGrid,
@@ -222,7 +292,12 @@ export function WebGlThreeViewer({
       <ModelLoadErrorBoundary onError={onError}>
         <Bounds fit clip observe margin={1.3}>
           <Suspense fallback={null}>
-            <LoadedModel modelData={modelData} format={format} wireframe={wireframe} />
+            <LoadedModel
+              modelData={modelData}
+              modelUrl={modelUrl}
+              format={format}
+              wireframe={wireframe}
+            />
           </Suspense>
           <CameraBridge onReady={(handle) => onCameraReady?.(handle)} />
         </Bounds>

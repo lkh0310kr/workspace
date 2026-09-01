@@ -8,6 +8,7 @@ import * as files from "./files";
 import type { DirEntry } from "./files";
 import * as search from "./search";
 import { MEDIA_MIME_TYPES, toMediaUrl } from "./mediaProtocol";
+import { MODEL_MIME_TYPES, toModelUrl } from "./model3d/modelProtocolUrl";
 import { openEpub, type EpubBook } from "./epub";
 import { resolveEngineBundleDir, type EngineBundleResolveResult } from "./engineBundlePaths";
 import { registerProjectApp as registerProjectApp_ } from "./projectManifest";
@@ -282,6 +283,13 @@ export class Workspace {
     if (!(ext in MEDIA_MIME_TYPES)) return null;
     const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel);
     return toMediaUrl(resolved);
+  }
+
+  modelUrl(tabId: number, rel: string): string | null {
+    const ext = path.extname(rel).toLowerCase();
+    if (!(ext in MODEL_MIME_TYPES)) return null;
+    const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel);
+    return toModelUrl(resolved);
   }
 
   openEpub(tabId: number, rel: string): Promise<EpubBook> {

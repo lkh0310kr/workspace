@@ -9,6 +9,7 @@ export interface ModelPreviewState {
   phase: ModelPreviewPhase;
   manifest: Manifest | null;
   modelData: ArrayBuffer | null;
+  modelUrl: string | null;
   error: string | null;
 }
 
@@ -24,13 +25,14 @@ export function useModelPreview(tabId: number, filePath: string | null): ModelPr
     phase: "idle",
     manifest: null,
     modelData: null,
+    modelUrl: null,
     error: null,
   });
 
   useEffect(() => {
     if (!filePath) {
       void logModel3d("preview_idle", { tabId, filePath: null });
-      setState({ phase: "idle", manifest: null, modelData: null, error: null });
+      setState({ phase: "idle", manifest: null, modelData: null, modelUrl: null, error: null });
       return;
     }
 
@@ -39,7 +41,7 @@ export function useModelPreview(tabId: number, filePath: string | null): ModelPr
 
     async function load() {
       void logModel3d("preview_opening", { tabId, filePath: path });
-      setState({ phase: "opening", manifest: null, modelData: null, error: null });
+      setState({ phase: "opening", manifest: null, modelData: null, modelUrl: null, error: null });
       try {
         const manifest = (await openModelPreview(tabId, path)) as SceneManifest;
         if (cancelled) return;
@@ -58,11 +60,28 @@ export function useModelPreview(tabId: number, filePath: string | null): ModelPr
             format: manifest.source.format,
             message: manifest.message,
           });
-          setState({ phase: "unsupported", manifest, modelData: null, error: manifest.message });
+          setState({ phase: "unsupported", manifest, modelData: null, modelUrl: null, error: manifest.message });
           return;
         }
 
-        setState((prev) => ({ ...prev, phase: "loading", manifest }));
+        if (manifest.readStrategy === "workspace-model") {
+          void logModel3d("preview_ready_url", {
+            tabId,
+            filePath: path,
+            modelUrl: manifest.modelUrl,
+            mimeType: manifest.mimeType,
+          });
+          setState({
+            phase: "ready",
+            manifest,
+            modelData: null,
+            modelUrl: manifest.modelUrl,
+            error: null,
+          });
+          return;
+        }
+
+        setState((prev) => ({ ...prev, phase: "loading", manifest, modelUrl: null }));
         void logModel3d("preview_loading_binary", { tabId, filePath: path, mimeType: manifest.mimeType });
         const preview = await readFileBinaryPreview(tabId, path);
         if (cancelled) return;
@@ -72,7 +91,8 @@ export function useModelPreview(tabId: number, filePath: string | null): ModelPr
             phase: "error",
             manifest,
             modelData: null,
-            error: "파일을 읽을 수 없습니다. model3d.ndjson 로그를 확인하세요.",
+            modelUrl: null,
+            error: "파일을 읽을 수 없습니다. Application Support/workspace-app-dev/logs/model3d.ndjson 로그를 확인하세요.",
           });
           return;
         }
@@ -84,7 +104,7 @@ export function useModelPreview(tabId: number, filePath: string | null): ModelPr
           byteLength: modelData.byteLength,
           mimeType: manifest.mimeType,
         });
-        setState({ phase: "ready", manifest, modelData, error: null });
+        setState({ phase: "ready", manifest, modelData, modelUrl: null, error: null });
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : "모델을 불러오지 못했습니다.";
@@ -98,6 +118,7 @@ export function useModelPreview(tabId: number, filePath: string | null): ModelPr
           phase: "error",
           manifest: null,
           modelData: null,
+          modelUrl: null,
           error: message,
         });
       }

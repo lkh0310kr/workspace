@@ -8,13 +8,14 @@ import { logModel3d } from "../model3dLog";
 import { ModelViewerToolbar } from "./ModelViewerToolbar";
 
 interface Props {
-  modelData: ArrayBuffer;
+  modelData?: ArrayBuffer;
+  modelUrl?: string;
   format: DetectedModelFormat;
   active: boolean;
   onReady?: () => void;
 }
 
-export function ModelViewerCanvas({ modelData, format, active, onReady }: Props) {
+export function ModelViewerCanvas({ modelData, modelUrl, format, active, onReady }: Props) {
   const cameraRef = useRef<OrbitCameraHandle | null>(null);
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
@@ -42,11 +43,18 @@ export function ModelViewerCanvas({ modelData, format, active, onReady }: Props)
   );
 
   useEffect(() => {
-    void logModel3d("viewer_mount", { byteLength: modelData.byteLength, active });
+    void logModel3d("viewer_mount", {
+      byteLength: modelData?.byteLength ?? null,
+      modelUrl: modelUrl ?? null,
+      active,
+    });
     return () => {
-      void logModel3d("viewer_dispose", { byteLength: modelData.byteLength });
+      void logModel3d("viewer_dispose", {
+        byteLength: modelData?.byteLength ?? null,
+        modelUrl: modelUrl ?? null,
+      });
     };
-  }, [modelData, active]);
+  }, [modelData, modelUrl, active]);
 
   return (
     <div className="model-viewer-canvas-wrap">
@@ -60,13 +68,17 @@ export function ModelViewerCanvas({ modelData, format, active, onReady }: Props)
       <div className="model-viewer-host">
         <WebGlThreeViewer
           modelData={modelData}
+          modelUrl={modelUrl}
           format={format}
           wireframe={wireframe}
           showGrid={showGrid}
           active={active}
           pipeline={defaultRenderPipeline}
           onReady={() => {
-            void logModel3d("viewer_canvas_ready", { byteLength: modelData.byteLength });
+            void logModel3d("viewer_canvas_ready", {
+              byteLength: modelData?.byteLength ?? null,
+              modelUrl: modelUrl ?? null,
+            });
             onReady?.();
           }}
           onError={(error) => {

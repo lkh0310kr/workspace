@@ -2,6 +2,8 @@ import type { ImportContext, ImportResult, Importer } from "../../../shared/mode
 import type { DetectedModelFormat } from "../../../shared/model3d/types";
 import { mimeTypeForModelFormat } from "../formatSniffer";
 import { model3dLog } from "../model3dLog";
+import { toModelUrl } from "../modelProtocolUrl";
+import { objHasExternalResources } from "../packageResolver";
 
 const MESH_FORMATS: DetectedModelFormat[] = ["obj", "stl", "ply", "dae"];
 
@@ -24,6 +26,22 @@ export const meshNativeImporter: Importer = {
       relativePath: ctx.relativePath,
       format: ctx.format,
     });
+
+    if (ctx.format === "obj" && objHasExternalResources(ctx.workspaceRoot, ctx.relativePath)) {
+      return {
+        manifest: {
+          version: 1,
+          status: "ready",
+          source: { path: ctx.relativePath, format: ctx.format },
+          readStrategy: "workspace-model",
+          modelUrl: toModelUrl(ctx.absolutePath),
+          mimeType: mimeTypeForModelFormat(ctx.format),
+          warnings: [],
+        },
+        warnings: [],
+      };
+    }
+
     return {
       manifest: {
         version: 1,
@@ -31,15 +49,7 @@ export const meshNativeImporter: Importer = {
         source: { path: ctx.relativePath, format: ctx.format },
         readStrategy: "blob-preview",
         mimeType: mimeTypeForModelFormat(ctx.format),
-        warnings:
-          ctx.format === "obj"
-            ? [
-                {
-                  code: "obj-materials-omitted",
-                  message: "OBJ materials/textures are not loaded in this preview yet.",
-                },
-              ]
-            : [],
+        warnings: [],
       },
       warnings: [],
     };

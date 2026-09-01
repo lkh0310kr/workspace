@@ -1,5 +1,8 @@
 # cube
+mtllib cube.mtl
 o cube
+usemtl mat
+g cube
 v -0.5 -0.5 -0.5
 v 0.5 -0.5 -0.5
 v 0.5 0.5 -0.5

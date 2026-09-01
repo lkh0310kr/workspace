@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
 import { ColladaLoader } from "three/examples/jsm/loaders/ColladaLoader.js";
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import type { DetectedModelFormat } from "../../../../shared/model3d/types";
 import { logModel3d } from "../model3dLog";
 
@@ -38,18 +40,22 @@ function decodeText(buffer: ArrayBuffer): string {
   return new TextDecoder("utf-8", { fatal: false }).decode(buffer);
 }
 
+function applyDefaultMaterial(scene: THREE.Object3D): void {
+  scene.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const material = mesh.material;
+    if (!material || (Array.isArray(material) && material.length === 0)) {
+      mesh.material = new THREE.MeshStandardMaterial({ color: 0xb0b8c4, metalness: 0.1, roughness: 0.85 });
+    }
+  });
+}
+
 function parseMeshBuffer(buffer: ArrayBuffer, format: DetectedModelFormat): THREE.Object3D {
   switch (format) {
     case "obj": {
       const group = new OBJLoader().parse(decodeText(buffer));
-      group.traverse((obj) => {
-        const mesh = obj as THREE.Mesh;
-        if (!mesh.isMesh) return;
-        const material = mesh.material;
-        if (!material || (Array.isArray(material) && material.length === 0)) {
-          mesh.material = new THREE.MeshStandardMaterial({ color: 0xb0b8c4, metalness: 0.1, roughness: 0.85 });
-        }
-      });
+      applyDefaultMaterial(group);
       return group;
     }
     case "stl": {
@@ -66,15 +72,52 @@ function parseMeshBuffer(buffer: ArrayBuffer, format: DetectedModelFormat): THRE
     }
     case "dae": {
       const collada = new ColladaLoader().parse(decodeText(buffer), "");
+      if (!collada) throw new Error("Failed to parse DAE");
       return collada.scene;
+    }
+    case "fbx": {
+      const group = new FBXLoader().parse(buffer, "");
+      applyDefaultMaterial(group);
+      return group;
     }
     default:
       throw new Error(`Unsupported mesh format: ${format}`);
   }
 }
 
+async function loadMeshFromUrl(modelUrl: string, format: DetectedModelFormat): Promise<THREE.Object3D> {
+  if (format === "obj") {
+    const mtlUrl = modelUrl.replace(/\.obj$/i, ".mtl");
+    const manager = new THREE.LoadingManager();
+    const mtlLoader = new MTLLoader(manager);
+    mtlLoader.setResourcePath(modelUrl.slice(0, modelUrl.lastIndexOf("/") + 1));
+    try {
+      const materials = await mtlLoader.loadAsync(mtlUrl);
+      materials.preload();
+      const objLoader = new OBJLoader(manager);
+      objLoader.setMaterials(materials);
+      const group = await objLoader.loadAsync(modelUrl);
+      applyDefaultMaterial(group);
+      return group;
+    } catch {
+      const group = await new OBJLoader(manager).loadAsync(modelUrl);
+      applyDefaultMaterial(group);
+      return group;
+    }
+  }
+
+  if (format === "fbx") {
+    const group = await new FBXLoader().loadAsync(modelUrl);
+    applyDefaultMaterial(group);
+    return group;
+  }
+
+  throw new Error(`URL loading is not supported for format: ${format}`);
+}
+
 export function useMeshFromBuffer(
-  buffer: ArrayBuffer,
+  modelData: ArrayBuffer | undefined,
+  modelUrl: string | undefined,
   format: DetectedModelFormat,
 ): {
   scene: THREE.Object3D | null;
@@ -94,34 +137,67 @@ export function useMeshFromBuffer(
     setScene(null);
     setStats(null);
 
-    void logModel3d("mesh_parse_start", { byteLength: buffer.byteLength, format });
+    void logModel3d("mesh_parse_start", {
+      byteLength: modelData?.byteLength ?? null,
+      modelUrl: modelUrl ?? null,
+      format,
+    });
+
+    const finishOk = (parsed: THREE.Object3D) => {
+      if (cancelled) return;
+      const loadStats = collectMeshStats(parsed);
+      void logModel3d("mesh_parse_ok", {
+        byteLength: modelData?.byteLength ?? null,
+        modelUrl: modelUrl ?? null,
+        format,
+        ...loadStats,
+      });
+      setScene(parsed);
+      setStats(loadStats);
+      setLoading(false);
+    };
+
+    const finishError = (err: unknown) => {
+      if (cancelled) return;
+      const loadError = err instanceof Error ? err : new Error(String(err));
+      void logModel3d("mesh_parse_failed", {
+        byteLength: modelData?.byteLength ?? null,
+        modelUrl: modelUrl ?? null,
+        format,
+        error: loadError.message,
+        stack: loadError.stack,
+      });
+      setError(loadError);
+      setLoading(false);
+    };
+
+    if (modelUrl) {
+      void loadMeshFromUrl(modelUrl, format).then(finishOk).catch(finishError);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!modelData) {
+      finishError(new Error("Mesh model requires modelData or modelUrl"));
+      return () => {
+        cancelled = true;
+      };
+    }
 
     queueMicrotask(() => {
       if (cancelled) return;
       try {
-        const parsed = parseMeshBuffer(buffer, format);
-        const loadStats = collectMeshStats(parsed);
-        void logModel3d("mesh_parse_ok", { byteLength: buffer.byteLength, format, ...loadStats });
-        setScene(parsed);
-        setStats(loadStats);
-        setLoading(false);
+        finishOk(parseMeshBuffer(modelData, format));
       } catch (err) {
-        const loadError = err instanceof Error ? err : new Error(String(err));
-        void logModel3d("mesh_parse_failed", {
-          byteLength: buffer.byteLength,
-          format,
-          error: loadError.message,
-          stack: loadError.stack,
-        });
-        setError(loadError);
-        setLoading(false);
+        finishError(err);
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [buffer, format]);
+  }, [modelData, modelUrl, format]);
 
   return { scene, error, loading, stats };
 }

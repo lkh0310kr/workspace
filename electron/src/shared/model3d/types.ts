@@ -28,8 +28,16 @@ export type SceneManifest =
       version: 1;
       status: "ready";
       source: { path: string; format: DetectedModelFormat };
-      /** Renderer loads bytes via readFileBinaryPreview (v1). */
       readStrategy: "blob-preview";
+      mimeType: string;
+      warnings: ImportWarning[];
+    }
+  | {
+      version: 1;
+      status: "ready";
+      source: { path: string; format: DetectedModelFormat };
+      readStrategy: "workspace-model";
+      modelUrl: string;
       mimeType: string;
       warnings: ImportWarning[];
     }

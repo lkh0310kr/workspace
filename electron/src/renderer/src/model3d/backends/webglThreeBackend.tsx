@@ -32,6 +32,7 @@ function StatefulViewer({
   return (
     <WebGlThreeViewer
       modelData={initial.modelData}
+      modelUrl={initial.modelUrl}
       format={initial.manifest.status === "ready" ? initial.manifest.source.format : "glb"}
       wireframe={wireframe}
       showGrid={showGrid}

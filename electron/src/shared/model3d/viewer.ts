@@ -27,7 +27,8 @@ export interface RenderPipelineHooks {
 
 export interface ViewerMountOptions {
   manifest: SceneManifest;
-  modelData: ArrayBuffer;
+  modelData?: ArrayBuffer;
+  modelUrl?: string;
   wireframe?: boolean;
   showGrid?: boolean;
   active?: boolean;

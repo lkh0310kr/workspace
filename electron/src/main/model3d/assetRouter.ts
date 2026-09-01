@@ -91,6 +91,7 @@ export async function openModelPreview(input: OpenModelPreviewInput): Promise<Sc
     }
 
     const ctx: ImportContext = {
+      workspaceRoot: input.workspaceRoot,
       absolutePath,
       relativePath: input.relativePath,
       packageRoot: path.dirname(absolutePath),

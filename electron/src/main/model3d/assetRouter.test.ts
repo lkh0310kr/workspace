@@ -43,17 +43,58 @@ describe("openModelPreview", () => {
     if (manifest.status === "ready") {
       expect(manifest.source.format).toBe("obj");
       expect(manifest.mimeType).toBe("model/obj");
+      expect(manifest.readStrategy).toBe("blob-preview");
     }
   });
 
-  it("returns unsupported manifest for fbx stub", async () => {
+  it("returns workspace-model manifest for gltf package", async () => {
+    const root = makeTempWorkspace({
+      "models/box.gltf": JSON.stringify({
+        asset: { version: "2.0" },
+        buffers: [{ uri: "box.bin", byteLength: 8 }],
+      }),
+      "models/box.bin": Buffer.alloc(8),
+    });
+    const manifest = await openModelPreview({ workspaceRoot: root, relativePath: "models/box.gltf" });
+    expect(manifest.status).toBe("ready");
+    if (manifest.status === "ready" && manifest.readStrategy === "workspace-model") {
+      expect(manifest.source.format).toBe("gltf");
+      expect(manifest.modelUrl).toContain("workspace-model://");
+    }
+  });
+
+  it("returns workspace-model manifest for obj with mtl", async () => {
+    const root = makeTempWorkspace({
+      "models/cube.obj": "mtllib cube.mtl\no Cube\nv 0 0 0\n",
+      "models/cube.mtl": "newmtl mat\ncolor 1 1 1\n",
+    });
+    const manifest = await openModelPreview({ workspaceRoot: root, relativePath: "models/cube.obj" });
+    expect(manifest.status).toBe("ready");
+    if (manifest.status === "ready" && manifest.readStrategy === "workspace-model") {
+      expect(manifest.modelUrl).toContain("workspace-model://");
+    }
+  });
+
+  it("returns unsupported for fbx header-only stub", async () => {
     const fbxHeader = Buffer.from("Kaydara FBX Binary  \0", "ascii");
     const root = makeTempWorkspace({ "models/box.fbx": fbxHeader });
     const manifest = await openModelPreview({ workspaceRoot: root, relativePath: "models/box.fbx" });
     expect(manifest.status).toBe("unsupported");
     if (manifest.status === "unsupported") {
       expect(manifest.source.format).toBe("fbx");
-      expect(manifest.message).toContain("준비 중");
+    }
+  });
+
+  it("returns ready manifest for valid fbx fixture", async () => {
+    const fixturePath = path.join(import.meta.dirname, "../../test-fixtures/models/box.fbx");
+    if (!fs.existsSync(fixturePath)) return;
+    const fbx = fs.readFileSync(fixturePath);
+    const root = makeTempWorkspace({ "models/box.fbx": fbx });
+    const manifest = await openModelPreview({ workspaceRoot: root, relativePath: "models/box.fbx" });
+    expect(manifest.status).toBe("ready");
+    if (manifest.status === "ready") {
+      expect(manifest.source.format).toBe("fbx");
+      expect(manifest.readStrategy).toBe("blob-preview");
     }
   });
 });
