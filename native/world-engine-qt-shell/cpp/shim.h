@@ -23,6 +23,8 @@ enum InputEventType {
     kMouseUp = 1,
     kMouseDrag = 2, // dx/dy are the pixel delta since the last drag event
     kWheel = 3,     // dy is the wheel delta (positive = away from the user)
+    kKeyDown = 4,   // x = Qt::Key code
+    kKeyUp = 5,     // x = Qt::Key code
 };
 
 // A real native window already receives mouse/keyboard input natively —

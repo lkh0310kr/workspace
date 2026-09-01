@@ -11,7 +11,7 @@
 use std::ffi::{c_int, c_void};
 
 use glam::Vec3;
-use world_engine_core::{Camera, GpuContext, Vertex, World, build_world, default_scene, init_gpu, load_mesh, load_scene, render_frame, HEIGHT, WIDTH};
+use world_engine_core::{Camera, GpuContext, Vertex, World, build_world, default_scene, init_gpu, key_name_from_qt, load_mesh, load_scene, render_frame, HEIGHT, WIDTH};
 
 type InitCallback = extern "C" fn(*mut c_void, *mut c_void);
 type FrameCallback = extern "C" fn(*mut c_void);
@@ -33,6 +33,8 @@ const INPUT_MOUSE_DOWN: c_int = 0;
 const INPUT_MOUSE_UP: c_int = 1;
 const INPUT_MOUSE_DRAG: c_int = 2;
 const INPUT_WHEEL: c_int = 3;
+const INPUT_KEY_DOWN: c_int = 4;
+const INPUT_KEY_UP: c_int = 5;
 
 // ── FFI glue ──────────────────────────────────────────────────────────
 
@@ -65,7 +67,7 @@ extern "C" fn on_frame(user_data: *mut c_void) {
 
 /// Drag orbits, wheel zooms — see cpp/shim.cpp for what actually
 /// generates these (real Qt mouse/wheel events, not simulated).
-extern "C" fn on_input(event_type: c_int, _x: f32, _y: f32, dx: f32, dy: f32, user_data: *mut c_void) {
+extern "C" fn on_input(event_type: c_int, x: f32, _y: f32, dx: f32, dy: f32, user_data: *mut c_void) {
     let state = unsafe { &mut *(user_data as *mut EngineState) };
     const ORBIT_SPEED: f32 = 0.01;
     const ZOOM_SPEED: f32 = 0.01;
@@ -74,6 +76,16 @@ extern "C" fn on_input(event_type: c_int, _x: f32, _y: f32, dx: f32, dy: f32, us
     const MAX_PITCH: f32 = std::f32::consts::FRAC_PI_2 - 0.05;
 
     match event_type {
+        INPUT_KEY_DOWN => {
+            if let Some(name) = key_name_from_qt(x as i32) {
+                state.world.input_mut().key_down(name);
+            }
+        }
+        INPUT_KEY_UP => {
+            if let Some(name) = key_name_from_qt(x as i32) {
+                state.world.input_mut().key_up(name);
+            }
+        }
         INPUT_MOUSE_DRAG => {
             // Why (found via a real live-QA report, not assumed): this was
             // `-=`, which felt backwards on a real macOS trackpad —
@@ -129,7 +141,7 @@ fn main() {
         pitch: (initial_eye.y / initial_eye.length()).asin(),
         distance: initial_eye.length(),
     };
-    let world = build_world(&scene, mesh_half_extents);
+    let world = build_world(&scene, mesh_half_extents, project_dir.as_deref().map(std::path::Path::new));
     println!("world-engine-qt-shell: Qt native window, wgpu direct render, {} entities", world.entity_count());
     let mut state = Box::new(EngineState { world, gpu: None, camera, loaded_geometry });
     let user_data = &mut *state as *mut EngineState as *mut c_void;

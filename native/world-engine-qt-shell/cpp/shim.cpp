@@ -4,6 +4,7 @@
 #include <QtGui/QMouseEvent>
 #include <QtCore/QTimer>
 #include <QtGui/QWheelEvent>
+#include <QtGui/QKeyEvent>
 #include <QtWidgets/QWidget>
 
 namespace {
@@ -46,6 +47,18 @@ public:
             input_cb(kWheel, 0.0f, 0.0f, 0.0f, static_cast<float>(event->angleDelta().y()), user_data);
         }
     }
+
+    void keyPressEvent(QKeyEvent *event) override {
+        if (input_cb && !event->isAutoRepeat()) {
+            input_cb(kKeyDown, static_cast<float>(event->key()), 0.0f, 0.0f, 0.0f, user_data);
+        }
+    }
+
+    void keyReleaseEvent(QKeyEvent *event) override {
+        if (input_cb && !event->isAutoRepeat()) {
+            input_cb(kKeyUp, static_cast<float>(event->key()), 0.0f, 0.0f, 0.0f, user_data);
+        }
+    }
 };
 
 } // namespace
@@ -71,6 +84,8 @@ void qt_run(
     // paint avoids Qt fighting wgpu for the same surface between frames.
     window.setAttribute(Qt::WA_OpaquePaintEvent);
     window.setAttribute(Qt::WA_NoSystemBackground);
+    window.setFocusPolicy(Qt::StrongFocus);
+    window.setFocus();
     window.input_cb = input_cb;
     window.user_data = user_data;
     window.show();
