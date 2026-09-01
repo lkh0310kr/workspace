@@ -7,7 +7,9 @@
 
 use glam::Vec3;
 use serde::Deserialize;
+use serde_json::Value;
 
+use crate::script::{load_entity_script, load_world_script, ScriptMode};
 use crate::world::{BodyType, EntitySpec, JointKind, MeshKind, Shape, World};
 
 #[derive(Deserialize)]
@@ -29,6 +31,18 @@ pub struct SceneFile {
     /// missing-tag-on-old-data problem to work around.
     #[serde(default)]
     pub joints: Vec<JointDef>,
+    /// World gravity in m/s². Defaults to Earth-like −Y.
+    #[serde(default = "default_gravity")]
+    pub gravity: [f32; 3],
+    /// Unity `Time.timeScale` — scales simulation dt (default `1.0`).
+    #[serde(default = "default_time_scale")]
+    pub time_scale: f32,
+    /// Godot-autoload-style world Rhai script (`on_world_update`).
+    #[serde(default)]
+    pub entry_script: Option<String>,
+    /// Unity-style action → key bindings for `input_axis` / `input_pressed`.
+    #[serde(default)]
+    pub input_map: Option<std::collections::HashMap<String, Value>>,
 }
 
 #[derive(Deserialize)]
@@ -85,6 +99,25 @@ pub struct SceneEntityDef {
     /// move via `World::add_motion` instead of sitting there like a fixed
     /// body.
     pub motion: Option<MotionDef>,
+    /// Stable name for debugging and future cross-entity script APIs.
+    #[serde(default)]
+    pub name: Option<String>,
+    /// Path to a `.rhai` script relative to the project directory.
+    /// Must define `on_update(dt, time, x, y, z) -> [x, y, z]` for kinematic bodies.
+    #[serde(default)]
+    pub script: Option<String>,
+    /// Constants injected into the script scope (numbers and numeric arrays).
+    #[serde(default)]
+    pub script_args: Option<Value>,
+    /// `"kinematic"` (default) — `on_update` returns position; `"force"` — returns force.
+    #[serde(default)]
+    pub script_mode: Option<String>,
+    /// Initial linear velocity in m/s (`[vx, vy, vz]`).
+    #[serde(default)]
+    pub velocity: Option<[f32; 3]>,
+    /// Sensor/trigger collider — overlap events without blocking physics.
+    #[serde(default)]
+    pub trigger: bool,
 }
 
 /// Simple sinusoidal oscillation along one axis — see `World::add_motion`.
@@ -152,6 +185,14 @@ fn default_radius() -> f32 {
     0.5
 }
 
+fn default_gravity() -> [f32; 3] {
+    [0.0, -9.81, 0.0]
+}
+
+fn default_time_scale() -> f32 {
+    1.0
+}
+
 pub fn default_scene() -> SceneFile {
     // Single falling/bouncing cube — launching with no project argument
     // (e.g. the "Launch World Engine (dev)" menu item) keeps behaving
@@ -167,9 +208,19 @@ pub fn default_scene() -> SceneFile {
             half_extents: None,
             radius: None,
             motion: None,
+            name: None,
+            script: None,
+            script_args: None,
+            script_mode: None,
+            velocity: None,
+            trigger: false,
         }],
         mesh: None,
         joints: vec![],
+        gravity: default_gravity(),
+        time_scale: default_time_scale(),
+        entry_script: None,
+        input_map: None,
     }
 }
 
@@ -202,8 +253,24 @@ pub fn load_scene(project_dir: &str) -> SceneFile {
 /// `crate::render::load_mesh`) and rendered with the loaded mesh,
 /// ignoring per-entity `shape` entirely. `None`: each entity uses its own
 /// `resolved_shape()` for both collider and render geometry.
-pub fn build_world(scene: &SceneFile, mesh_half_extents: Option<[f32; 3]>) -> World {
+/// `project_dir`: when set, per-entity `script` paths are resolved here.
+pub fn build_world(
+    scene: &SceneFile,
+    mesh_half_extents: Option<[f32; 3]>,
+    project_dir: Option<&std::path::Path>,
+) -> World {
     let mut world = World::new_empty();
+    world.set_gravity(Vec3::from(scene.gravity));
+    world.set_time_scale(scene.time_scale);
+    if let (Some(dir), Some(script_rel)) = (project_dir, scene.entry_script.as_deref()) {
+        match load_world_script(dir, script_rel) {
+            Ok(script) => world.attach_world_script(script),
+            Err(err) => eprintln!("entry_script error: {err}"),
+        }
+    }
+    if let Some(map) = &scene.input_map {
+        world.set_input_map(crate::input::InputMap::from_json(map));
+    }
     let mut entities = Vec::with_capacity(scene.entities.len());
 
     for def in &scene.entities {
@@ -219,8 +286,17 @@ pub fn build_world(scene: &SceneFile, mesh_half_extents: Option<[f32; 3]>) -> Wo
             body_type: def.resolved_body_type(),
             shape,
             render_override,
+            velocity: def.velocity.map(Vec3::from).unwrap_or(Vec3::ZERO),
+            sensor: def.trigger,
         };
-        let entity = world.spawn(spec);
+        let entity = world.spawn_named(spec, def.name.clone());
+        if let (Some(dir), Some(script_rel)) = (project_dir, def.script.as_deref()) {
+            let mode = ScriptMode::parse(def.script_mode.as_deref().unwrap_or("kinematic"));
+            match load_entity_script(dir, script_rel, def.script_args.as_ref(), mode) {
+                Ok(script) => world.attach_script(entity, script),
+                Err(err) => eprintln!("entity script error: {err}"),
+            }
+        }
         if let Some(motion) = def.motion {
             world.add_motion(entity, Vec3::from(def.position), Vec3::from(motion.axis), motion.amplitude, motion.speed);
         }

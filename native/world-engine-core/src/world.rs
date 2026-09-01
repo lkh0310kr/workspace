@@ -3,15 +3,22 @@
 //! `Behavior` trait) — `crate::scene`'s JSON loader is a convenience layer
 //! built on top of this, not a separate implementation.
 
+use std::collections::HashMap;
+
 use glam::{Mat4, Quat, Vec3};
 use hecs::Entity;
 use rapier3d::prelude::*;
+
+use crate::events::CollisionEventBuffer;
+use crate::input::{InputMap, InputState};
+use crate::script::{EntityScript, WorldScript, WorldSnapshot, take_world_control_patch};
 
 pub struct Transform {
     pub translation: Vec3,
     pub rotation: Quat,
 }
 struct PhysicsBody(RigidBodyHandle);
+struct PhysicsCollider(ColliderHandle);
 struct Tint(Vec3);
 
 /// Present only on entities with scripted motion (`World::add_motion`) —
@@ -34,6 +41,8 @@ pub enum MeshKind {
     Loaded,
 }
 struct RenderMesh(MeshKind);
+
+struct EntityName(String);
 
 struct BehaviorSlot(Box<dyn Behavior>);
 
@@ -89,6 +98,10 @@ pub struct EntitySpec {
     /// scene loader uses, not something typical hand-written game code
     /// needs to touch.
     pub render_override: Option<MeshKind>,
+    /// Initial linear velocity in m/s (dynamic bodies; ignored for fixed).
+    pub velocity: Vec3,
+    /// Sensor collider — generates collision events without physical response.
+    pub sensor: bool,
 }
 
 impl Default for EntitySpec {
@@ -101,6 +114,8 @@ impl Default for EntitySpec {
             body_type: BodyType::default(),
             shape: Shape::Cuboid { half_extents: Vec3::splat(0.5) },
             render_override: None,
+            velocity: Vec3::ZERO,
+            sensor: false,
         }
     }
 }
@@ -133,6 +148,19 @@ pub struct World {
     /// Running clock, advanced once per `step()` by the fixed physics
     /// timestep — drives `Motion`'s sinusoidal offset and `UpdateCtx::time`.
     time: f32,
+    gravity: Vec3,
+    names: HashMap<String, Entity>,
+    /// Per-entity Rhai scripts — kept outside ECS because Rhai is not `Send`.
+    scripts: HashMap<Entity, EntityScript>,
+    /// Godot-autoload-style world script (optional).
+    world_script: Option<WorldScript>,
+    /// Unity `Time.timeScale` — scales dt for scripts and physics.
+    time_scale: f32,
+    input: InputState,
+    input_map: InputMap,
+    collider_to_entity: HashMap<ColliderHandle, Entity>,
+    collision_events: CollisionEventBuffer,
+    last_script_error: Option<String>,
 }
 
 impl World {
@@ -159,39 +187,166 @@ impl World {
             ccd_solver: CCDSolver::new(),
             entities: Vec::new(),
             time: 0.0,
+            gravity: Vec3::new(0.0, -9.81, 0.0),
+            names: HashMap::new(),
+            scripts: HashMap::new(),
+            world_script: None,
+            time_scale: 1.0,
+            input: InputState::default(),
+            input_map: InputMap::default(),
+            collider_to_entity: HashMap::new(),
+            collision_events: CollisionEventBuffer::default(),
+            last_script_error: None,
         }
     }
 
+    pub fn set_gravity(&mut self, gravity: Vec3) {
+        self.gravity = gravity;
+    }
+
+    pub fn gravity(&self) -> Vec3 {
+        self.gravity
+    }
+
+    pub fn entity_by_name(&self, name: &str) -> Option<Entity> {
+        self.names.get(name).copied()
+    }
+
+    pub fn set_time_scale(&mut self, scale: f32) {
+        self.time_scale = scale.max(0.0);
+    }
+
+    pub fn time_scale(&self) -> f32 {
+        self.time_scale
+    }
+
+    /// All named entities and their current positions (for script snapshots).
+    pub fn named_positions(&self) -> HashMap<String, Vec3> {
+        self.names
+            .iter()
+            .map(|(name, &entity)| (name.clone(), self.position(entity)))
+            .collect()
+    }
+
+    pub fn set_input_map(&mut self, map: InputMap) {
+        self.input_map = map;
+    }
+
+    pub fn input_map(&self) -> &InputMap {
+        &self.input_map
+    }
+
+    pub fn input(&self) -> &InputState {
+        &self.input
+    }
+
+    pub fn input_mut(&mut self) -> &mut InputState {
+        &mut self.input
+    }
+
+    pub fn last_script_error(&self) -> Option<&str> {
+        self.last_script_error.as_deref()
+    }
+
+    fn entity_label(&self, entity: Entity) -> String {
+        if let Ok(name) = self.ecs.get::<&EntityName>(entity) {
+            return name.0.clone();
+        }
+        self.entities
+            .iter()
+            .position(|&e| e == entity)
+            .map(|i| format!("entity_{i}"))
+            .unwrap_or_else(|| "unknown".to_string())
+    }
+
+    fn note_script_error(&mut self, message: String) {
+        eprintln!("{message}");
+        self.last_script_error = Some(message);
+    }
+
+    fn record_collision_pair(&mut self, h1: ColliderHandle, h2: ColliderHandle, started: bool) {
+        let (Some(&e1), Some(&e2)) = (self.collider_to_entity.get(&h1), self.collider_to_entity.get(&h2)) else {
+            return;
+        };
+        let name1 = self.entity_label(e1);
+        let name2 = self.entity_label(e2);
+        self.collision_events.push(
+            e1,
+            crate::events::CollisionEvent {
+                other_name: name2.clone(),
+                started,
+            },
+        );
+        self.collision_events.push(
+            e2,
+            crate::events::CollisionEvent {
+                other_name: name1,
+                started,
+            },
+        );
+    }
+
     pub fn spawn(&mut self, spec: EntitySpec) -> Entity {
+        self.spawn_named(spec, None)
+    }
+
+    pub fn spawn_named(&mut self, spec: EntitySpec, name: Option<String>) -> Entity {
         let rigid_body_builder = match spec.body_type {
             BodyType::Dynamic => RigidBodyBuilder::dynamic(),
             BodyType::Fixed => RigidBodyBuilder::fixed(),
             BodyType::Kinematic => RigidBodyBuilder::kinematic_position_based(),
         };
-        let rigid_body = rigid_body_builder.translation(spec.position).rotation(spec.rotation).build();
+        let rigid_body = rigid_body_builder
+            .translation(spec.position)
+            .rotation(spec.rotation)
+            .linvel(spec.velocity)
+            .build();
         let handle = self.rigid_body_set.insert(rigid_body);
 
         let (collider, default_mesh_kind) = match spec.shape {
             Shape::Cuboid { half_extents } => (ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z), MeshKind::Cube),
             Shape::Sphere { radius } => (ColliderBuilder::ball(radius), MeshKind::Sphere),
         };
-        let collider = collider.restitution(spec.restitution).build();
-        self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
+        let mut collider = collider.restitution(spec.restitution);
+        if spec.sensor {
+            collider = collider.sensor(true);
+        }
+        collider = collider.active_collision_types(
+            ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_FIXED,
+        );
+        collider = collider.active_events(ActiveEvents::COLLISION_EVENTS);
+        let collider = collider.build();
+        let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
 
         let mesh_kind = spec.render_override.unwrap_or(default_mesh_kind);
         let entity = self.ecs.spawn((
             Transform { translation: Vec3::ZERO, rotation: Quat::IDENTITY },
             PhysicsBody(handle),
+            PhysicsCollider(collider_handle),
             Tint(spec.color),
             RenderMesh(mesh_kind),
         ));
+        self.collider_to_entity.insert(collider_handle, entity);
         self.entities.push(entity);
+        if let Some(name) = name {
+            self.ecs.insert_one(entity, EntityName(name.clone())).expect("entity was just spawned, must still exist");
+            self.names.insert(name, entity);
+        }
         entity
     }
 
     /// Same as `spawn`, but attaches a `Behavior` that runs every step.
     pub fn spawn_with_behavior(&mut self, spec: EntitySpec, behavior: impl Behavior) -> Entity {
-        let entity = self.spawn(spec);
+        self.spawn_with_behavior_named(spec, None, behavior)
+    }
+
+    pub fn spawn_with_behavior_named(
+        &mut self,
+        spec: EntitySpec,
+        name: Option<String>,
+        behavior: impl Behavior,
+    ) -> Entity {
+        let entity = self.spawn_named(spec, name);
         self.ecs.insert_one(entity, BehaviorSlot(Box::new(behavior))).expect("entity was just spawned, must still exist");
         entity
     }
@@ -203,6 +358,16 @@ impl World {
     /// can do anything more elaborate.
     pub fn add_motion(&mut self, entity: Entity, origin: Vec3, axis: Vec3, amplitude: f32, speed: f32) {
         self.ecs.insert_one(entity, Motion { origin, axis, amplitude, speed }).expect("add_motion: entity does not exist");
+    }
+
+    /// Attaches a project-local Rhai script to an entity (typically kinematic).
+    pub fn attach_script(&mut self, entity: Entity, script: EntityScript) {
+        self.scripts.insert(entity, script);
+    }
+
+    /// Attaches a world-level Rhai script (`on_world_update`).
+    pub fn attach_world_script(&mut self, script: WorldScript) {
+        self.world_script = Some(script);
     }
 
     /// A real rapier3d constraint between two spawned entities, looked up
@@ -233,10 +398,45 @@ impl World {
         self.ecs.get::<&Transform>(entity).expect("position: entity has no Transform").translation
     }
 
+    /// Base physics timestep in seconds (`rapier3d::IntegrationParameters::dt`).
+    /// Effective per-step dt is `step_dt()` (= `fixed_dt() * time_scale()`).
+    pub fn fixed_dt(&self) -> f32 {
+        self.integration_parameters.dt
+    }
+
+    /// Timestep applied each `step()` after `time_scale`.
+    pub fn step_dt(&self) -> f32 {
+        self.integration_parameters.dt * self.time_scale
+    }
+
+    /// Running simulation clock (sum of `step_dt()` over all steps taken).
+    pub fn sim_time(&self) -> f32 {
+        self.time
+    }
+
+    /// Advances the simulation by `steps` fixed-timestep ticks.
+    pub fn step_n(&mut self, steps: u32) {
+        for _ in 0..steps {
+            self.step();
+        }
+    }
+
     pub fn step(&mut self) {
-        self.time += self.integration_parameters.dt;
-        let dt = self.integration_parameters.dt;
+        let dt = self.integration_parameters.dt * self.time_scale;
+        self.time += dt;
         let time = self.time;
+        let snapshot = WorldSnapshot::from_world(self);
+        let input_snapshot = crate::input::InputSnapshot::new(&self.input, &self.input_map);
+        crate::script::install_input_snapshot(&input_snapshot);
+
+        if let Some(script) = &mut self.world_script {
+            if let Some(err) = script.apply(dt, time, &snapshot) {
+                self.note_script_error(err);
+            }
+            if let Some(scale) = take_world_control_patch().time_scale {
+                self.set_time_scale(scale);
+            }
+        }
 
         // Scripted kinematic motion — set each Motion entity's target
         // position before the physics step, same pattern rapier3d's own
@@ -254,6 +454,22 @@ impl World {
             self.rigid_body_set[handle].set_next_kinematic_translation(target);
         }
 
+        // Project Rhai scripts — same ordering as `Motion`/`Behavior`.
+        let mut script_updates = Vec::new();
+        for &entity in &self.entities {
+            if self.scripts.contains_key(&entity) {
+                let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
+                script_updates.push((entity, body_handle));
+            }
+        }
+        for (entity, body_handle) in script_updates {
+            if let Some(script) = self.scripts.get_mut(&entity) {
+                if let Some(err) = script.apply(dt, time, &mut self.rigid_body_set[body_handle], &snapshot) {
+                    self.note_script_error(err);
+                }
+            }
+        }
+
         // User Behaviors — also before the physics step, so anything they
         // set on the rigid body is consumed this step.
         for &entity in &self.entities {
@@ -265,10 +481,15 @@ impl World {
             }
         }
 
-        let gravity = Vec3::new(0.0, -9.81, 0.0);
+        let gravity = self.gravity;
+        let mut step_params = self.integration_parameters;
+        step_params.dt = dt;
+        let (collision_send, collision_recv) = std::sync::mpsc::channel();
+        let (force_send, _force_recv) = std::sync::mpsc::channel();
+        let event_handler = ChannelEventCollector::new(collision_send, force_send);
         self.physics_pipeline.step(
             gravity,
-            &self.integration_parameters,
+            &step_params,
             &mut self.island_manager,
             &mut self.broad_phase,
             &mut self.narrow_phase,
@@ -278,8 +499,21 @@ impl World {
             &mut self.multibody_joint_set,
             &mut self.ccd_solver,
             &(),
-            &(),
+            &event_handler,
         );
+
+        self.collision_events.clear();
+        while let Ok(event) = collision_recv.try_recv() {
+            match event {
+                CollisionEvent::Started(h1, h2, _) => {
+                    self.record_collision_pair(h1, h2, true);
+                }
+                CollisionEvent::Stopped(h1, h2, _) => {
+                    self.record_collision_pair(h1, h2, false);
+                }
+            }
+        }
+
         for &entity in &self.entities {
             let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
             let body = &self.rigid_body_set[body_handle];
@@ -289,6 +523,38 @@ impl World {
             transform.translation = t;
             transform.rotation = *r;
         }
+
+        // Collision script callbacks — after physics, before input end_frame.
+        let mut collision_callbacks = Vec::new();
+        for &entity in &self.entities {
+            if self.scripts.contains_key(&entity) {
+                let events = self.collision_events.drain_for(entity);
+                if !events.is_empty() {
+                    let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
+                    collision_callbacks.push((entity, body_handle, events));
+                }
+            }
+        }
+        let mut script_errors = Vec::new();
+        for (entity, body_handle, events) in collision_callbacks {
+            if let Some(script) = self.scripts.get_mut(&entity) {
+                for event in events {
+                    if let Some(err) = script.apply_collision(
+                        &event.other_name,
+                        event.started,
+                        &mut self.rigid_body_set[body_handle],
+                        &snapshot,
+                    ) {
+                        script_errors.push(err);
+                    }
+                }
+            }
+        }
+        for err in script_errors {
+            self.note_script_error(err);
+        }
+
+        self.input.end_frame();
     }
 
     /// (model matrix, tint, mesh kind) per entity, in a stable order —
