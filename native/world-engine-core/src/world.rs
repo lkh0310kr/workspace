@@ -225,6 +225,8 @@ pub struct World {
     rng_state: u64,
     projectiles: Vec<Projectile>,
     project_dir: Option<std::path::PathBuf>,
+    /// When true, `step()` does not advance sim time, scripts, or physics.
+    paused: bool,
 }
 
 /// Short-lived kinematic projectile (top-down shooter pattern).
@@ -277,6 +279,7 @@ impl World {
             rng_state: 1,
             projectiles: Vec::new(),
             project_dir: None,
+            paused: false,
         }
     }
 
@@ -306,6 +309,34 @@ impl World {
             return bounds.0;
         }
         Vec3::splat(0.5)
+    }
+
+    /// Physics raycast against spawned colliders (Phase 35). Unnamed colliders
+    /// and the implicit ground plane are skipped.
+    pub fn raycast(&self, origin: Vec3, direction: Vec3, max_distance: f32) -> Option<crate::pick::RayHit> {
+        let dir = direction.normalize_or_zero();
+        if dir.length_squared() < 1e-8 || max_distance <= 0.0 {
+            return None;
+        }
+        let allowed: std::collections::HashSet<ColliderHandle> =
+            self.collider_to_entity.keys().copied().collect();
+        let predicate = |handle: ColliderHandle, _: &Collider| allowed.contains(&handle);
+        let filter = QueryFilter::default().exclude_sensors().predicate(&predicate);
+        let query = self.broad_phase.as_query_pipeline(
+            self.narrow_phase.query_dispatcher(),
+            &self.rigid_body_set,
+            &self.collider_set,
+            filter,
+        );
+        let ray = Ray::new(origin, dir);
+        let (handle, toi) = query.cast_ray(&ray, max_distance, true)?;
+        let entity = *self.collider_to_entity.get(&handle)?;
+        let name = self.ecs.get::<&EntityName>(entity).ok()?.0.clone();
+        Some(crate::pick::RayHit {
+            name,
+            distance: toi,
+            point: origin + dir * toi,
+        })
     }
 
     pub fn entity_by_tag(&self, tag: &str) -> Option<Entity> {
@@ -829,6 +860,14 @@ impl World {
         self.integration_parameters.dt * self.time_scale
     }
 
+    pub fn is_paused(&self) -> bool {
+        self.paused
+    }
+
+    pub fn set_paused(&mut self, paused: bool) {
+        self.paused = paused;
+    }
+
     /// Running simulation clock (sum of `step_dt()` over all steps taken).
     pub fn sim_time(&self) -> f32 {
         self.time
@@ -885,6 +924,10 @@ impl World {
     }
 
     pub fn step(&mut self) {
+        if self.paused {
+            self.input.end_frame();
+            return;
+        }
         let dt = self.integration_parameters.dt * self.time_scale;
         self.time += dt;
         let time = self.time;

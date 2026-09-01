@@ -77,7 +77,7 @@ Checkpoint restore must also restore `rng_state` (and `sim_vars`) so **continue 
 | `rng_state` | Rhai `rand()` stream position |
 | `sim_seed` | Original seed (informational; stream is `rng_state`) |
 
-**Not saved:** Rhai script locals, `properties`, ECS components without named entity mapping, paused flag (Phase 36 adds later).
+**Not saved:** Rhai script locals, `properties`, ECS components without named entity mapping, `paused` flag (Phase 36; not in snapshot yet).
 
 Round-trip: `snapshot` → `restore` preserves `sim_time`, `sim_vars`, `rng_state`, and named transforms. Continuing `step_n(k)` after restore matches uninterrupted baseline for **`rng_state`** (script locals such as `let x = 0.0` in Rhai are not rehydrated — use `sim_var` or entity transforms in save if scripts must resume mid-state).
 
