@@ -1,0 +1,22 @@
+{
+  "gravity": [0.0, 0.0, 0.0],
+  "entities": [
+    {
+      "name": "zone_marker",
+      "position": [0.0, 0.0, 0.0],
+      "body_type": "none",
+      "properties": { "zone": "management" },
+      "pick_half_extents": [2.0, 0.1, 2.0]
+    },
+    {
+      "name": "walker",
+      "position": [-3.0, 0.0, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.25,
+      "color": [0.2, 0.7, 0.9],
+      "script": "scripts/walker.rhai",
+      "script_mode": "kinematic"
+    }
+  ]
+}
