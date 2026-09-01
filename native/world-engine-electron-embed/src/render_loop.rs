@@ -22,7 +22,7 @@ pub fn spawn_render_loop(gpu: GpuContext) {
         .name("world-engine-render".into())
         .spawn(move || {
             let RenderGpu(gpu) = RenderGpu(gpu);
-            let mut world = build_world(&default_scene(), None);
+            let mut world = build_world(&default_scene(), None, None);
             let initial_eye = Vec3::new(4.0, 3.5, 6.0);
             let camera = Camera {
                 yaw: initial_eye.z.atan2(initial_eye.x),
