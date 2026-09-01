@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { installBrowserDownloadRelay } from "../browserDownloads";
 import { browserCleanupAll } from "../browser";
 import { installBrowserEmbedSupport, reloadFocusedBrowser } from "../browser/browserEmbedSupport";
+import { installRendererConsoleFileLogging } from "../debug/consoleFileLog";
 import { onBrowserReloadShortcut, onPastePlainTextShortcut, onTerminalPasteShortcut } from "../electron";
 import { pastePlainTextInFocusedEditor } from "../activeEditorView";
 import { getRegisteredTerminalPane } from "../lib/pane-manager/pane-terminal-registry";
@@ -15,6 +16,9 @@ export function useAppBootstrap(): void {
   }, []);
 
   useEffect(() => installGlobalErrorLogging(), []);
+  useEffect(() => {
+    installRendererConsoleFileLogging();
+  }, []);
   useEffect(() => installBrowserEmbedSupport(), []);
   useEffect(() => installBrowserDownloadRelay(), []);
   useEffect(() => onBrowserReloadShortcut(({ hard }) => reloadFocusedBrowser(hard)), []);

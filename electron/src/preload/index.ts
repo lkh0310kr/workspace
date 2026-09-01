@@ -49,20 +49,25 @@ const api = {
     writeText: (text: string): void => ipcRenderer.send('clipboard:write-text', text),
     readText: (): Promise<string> => ipcRenderer.invoke('clipboard:read-text')
   },
-  debug: import.meta.env.DEV
-    ? {
-        interactionLog: (entry: Record<string, unknown>): void =>
-          ipcRenderer.send('debug:interaction-log', entry),
-        terminalLog: (entry: Record<string, unknown>): void =>
-          ipcRenderer.send('debug:terminal-log', entry),
-        layoutLog: (entry: Record<string, unknown>): void =>
-          ipcRenderer.send('debug:layout-log', entry)
-      }
-    : {
-        interactionLog: (): void => {},
-        terminalLog: (): void => {},
-        layoutLog: (): void => {}
-      },
+  debug: {
+    interactionLog: (entry: Record<string, unknown>): void =>
+      ipcRenderer.send('debug:interaction-log', entry),
+    terminalLog: (entry: Record<string, unknown>): void =>
+      ipcRenderer.send('debug:terminal-log', entry),
+    layoutLog: (entry: Record<string, unknown>): void =>
+      ipcRenderer.send('debug:layout-log', entry),
+    appLog: (
+      source: string,
+      level: 'log' | 'info' | 'warn' | 'error' | 'debug',
+      event: string,
+      data?: Record<string, unknown>,
+    ): void => ipcRenderer.send('debug:app-log', source, level, event, data),
+    errorLog: (message: string, stack?: string, extra?: Record<string, unknown>): void =>
+      ipcRenderer.send('debug:error-log', message, stack, extra),
+    consoleLog: (level: 'log' | 'info' | 'warn' | 'error' | 'debug', args: unknown[]): void =>
+      ipcRenderer.send('debug:console-log', level, args),
+    getLogsDir: (): Promise<string> => ipcRenderer.invoke('debug:get-logs-dir'),
+  },
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, payload: { hostWebContentsId: number; url: string }): void =>
@@ -271,6 +276,8 @@ const api = {
   model3d: {
     openPreview: (tabId: number, rel: string): Promise<unknown> =>
       ipcRenderer.invoke('model:open-preview', tabId, rel),
+    getUrl: (tabId: number, rel: string): Promise<string | null> =>
+      ipcRenderer.invoke('model:get-url', tabId, rel),
     log: (event: string, data?: Record<string, unknown>): Promise<void> =>
       ipcRenderer.invoke('model:log', event, data),
     logs: (limit?: number): Promise<unknown> => ipcRenderer.invoke('model:logs', limit),

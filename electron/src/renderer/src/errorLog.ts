@@ -4,6 +4,7 @@
 // errors behind a generic "Error rendering component" message with no way
 // to see the real one short of digging through the console — exactly what
 // made the PaneTabStrip currentTarget-null crash hard to diagnose.
+import { fileLogError } from "./debug/consoleFileLog";
 export interface LoggedError {
   id: number;
   message: string;
@@ -22,6 +23,7 @@ function notify(): void {
 export function logError(message: string, stack?: string): void {
   entries = [...entries, { id: nextId++, message, stack, timestamp: Date.now() }].slice(-50);
   console.error("[errorLog]", message, stack ?? "");
+  fileLogError(message, stack);
   notify();
 }
 

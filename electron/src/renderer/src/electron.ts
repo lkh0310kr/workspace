@@ -80,11 +80,22 @@ export async function hostname(): Promise<string> {
   return window.api.hostname();
 }
 
-// No main-process debug-log sink ported yet (this backed the Hangul IME
-// trace instrumentation on the Tauri side, deliberately not carried over
-// — see TerminalPane.tsx). Kept as a no-op rather than removed from every
-// call site so future debugging can reuse the same call shape.
-export async function debugLog(_line: string): Promise<void> {}
+export async function getDebugLogsDir(): Promise<string | null> {
+  try {
+    return await window.api.debug.getLogsDir();
+  } catch {
+    return null;
+  }
+}
+
+// Legacy IME trace hook — now writes to app.ndjson via the unified file logger.
+export async function debugLog(line: string): Promise<void> {
+  try {
+    window.api.debug?.appLog("renderer", "debug", "debug_log", { line });
+  } catch {
+    /* ignore */
+  }
+}
 
 export async function ptyWrite(id: number, data: Uint8Array): Promise<void> {
   window.api.pty.write(id, data);
@@ -187,6 +198,13 @@ export async function openModelPreview(tabId: number, rel: string): Promise<impo
     throw new Error("model3d API unavailable — restart the app");
   }
   return window.api.model3d.openPreview(tabId, rel);
+}
+
+export async function getModelUrl(tabId: number, rel: string): Promise<string | null> {
+  if (!window.api.model3d?.getUrl) {
+    throw new Error("model3d API unavailable — restart the app");
+  }
+  return window.api.model3d.getUrl(tabId, rel);
 }
 
 import type {

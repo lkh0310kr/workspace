@@ -1,19 +1,11 @@
-import { appendFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { app } from "electron";
+import { appendNdjsonLog, getLogFilePath } from "./debugLogSink";
 
-function terminalLogPath(): string {
-  return join(app.getPath("userData"), "logs", "terminal.ndjson");
+export function getTerminalLogPath(): string {
+  return getLogFilePath("terminal.ndjson");
 }
 
 export function appendTerminalLog(entry: Record<string, unknown>): void {
-  try {
-    const path = terminalLogPath();
-    mkdirSync(join(app.getPath("userData"), "logs"), { recursive: true });
-    appendFileSync(path, `${JSON.stringify(entry)}\n`);
-  } catch {
-    /* ignore logging failures */
-  }
+  appendNdjsonLog("terminal.ndjson", entry);
 }
 
 export function reprTerminalBytesMain(data: string | Buffer): string {

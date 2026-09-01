@@ -2,8 +2,6 @@
  * Interaction debug logging — NDJSON file (main process) + in-memory ring buffer.
  */
 
-import { isDevInstrumentation } from "../debug/devTools";
-
 const MAX_RING = 300;
 
 export type DebugLogEntry = {
@@ -25,7 +23,6 @@ export function dbgLog(
   hypothesisId?: string,
   runId = "runtime",
 ): void {
-  if (!isDevInstrumentation) return;
   const entry: DebugLogEntry = {
     sessionId: "interaction",
     timestamp: Date.now(),

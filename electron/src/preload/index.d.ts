@@ -138,6 +138,15 @@ export interface WorkspaceApi {
     interactionLog: (entry: Record<string, unknown>) => void
     terminalLog: (entry: Record<string, unknown>) => void
     layoutLog: (entry: Record<string, unknown>) => void
+    appLog: (
+      source: string,
+      level: 'log' | 'info' | 'warn' | 'error' | 'debug',
+      event: string,
+      data?: Record<string, unknown>,
+    ) => void
+    errorLog: (message: string, stack?: string, extra?: Record<string, unknown>) => void
+    consoleLog: (level: 'log' | 'info' | 'warn' | 'error' | 'debug', args: unknown[]) => void
+    getLogsDir: () => Promise<string>
   }
   browser: {
     onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void) => () => void
@@ -227,6 +236,7 @@ export interface WorkspaceApi {
   }
   model3d: {
     openPreview: (tabId: number, rel: string) => Promise<import('../shared/model3d/types').SceneManifest>
+    getUrl: (tabId: number, rel: string) => Promise<string | null>
     log: (event: string, data?: Record<string, unknown>) => Promise<void>
     logs: (limit?: number) => Promise<Record<string, unknown>[]>
   }

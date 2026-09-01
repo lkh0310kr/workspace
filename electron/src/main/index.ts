@@ -11,6 +11,7 @@ import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
 import type { SearchOptions } from './search'
 import { registerMediaProtocol, toMediaUrlBrowsed } from './mediaProtocol'
+import { registerModelProtocol } from './model3d/modelProtocol'
 import { fetchFeed } from './rss'
 import { fetchDashboardEconomy, fetchDashboardWeather } from './dashboardData'
 import { model3dLog, readModel3dLogs } from './model3d/model3dLog'
@@ -130,7 +131,7 @@ function handleMacTerminalOptionShortcut(
   return true
 }
 
-import { appendNdjsonLog } from './debugLogSink'
+import { appendAppLog, appendConsoleLog, appendNdjsonLog, getLogsDir, installMainConsoleFileLogging } from './debugLogSink'
 
 function interactionLogPath(): string {
   return 'interaction.ndjson'
@@ -501,6 +502,8 @@ function buildAppMenu(): Menu {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   if (!gotSingleInstanceLock) return
+  installMainConsoleFileLogging()
+  appendAppLog('main', 'info', 'app_ready', { packaged: app.isPackaged, platform: process.platform })
   if (process.platform === 'darwin') {
     Menu.setApplicationMenu(buildAppMenu())
   }
@@ -595,6 +598,7 @@ app.whenReady().then(() => {
   const snapshot = rawSnapshot
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
   registerMediaProtocol(() => workspace!.allTabRootPaths())
+  registerModelProtocol(() => workspace!.allTabRootPaths())
   registerEpubProtocol()
   // "Open as App" always opens a Browser-pane <webview>, which uses the
   // persist:browser partition, not the default session — registering
@@ -640,6 +644,23 @@ app.whenReady().then(() => {
   ipcMain.on('debug:layout-log', (_event, entry: Record<string, unknown>) => {
     appendLayoutLog(entry)
   })
+  ipcMain.on('debug:app-log', (_event, source: string, level: string, event: string, data?: Record<string, unknown>) => {
+    appendAppLog(source, level as 'log' | 'info' | 'warn' | 'error' | 'debug', event, data)
+  })
+  ipcMain.on('debug:error-log', (_event, message: string, stack?: string, extra?: Record<string, unknown>) => {
+    appendNdjsonLog('errors.ndjson', {
+      ts: new Date().toISOString(),
+      source: 'renderer',
+      level: 'error',
+      message,
+      stack: stack ?? null,
+      ...(extra ?? {}),
+    })
+  })
+  ipcMain.on('debug:console-log', (_event, level: string, args: unknown[]) => {
+    appendConsoleLog('renderer', level as 'log' | 'info' | 'warn' | 'error' | 'debug', args)
+  })
+  ipcMain.handle('debug:get-logs-dir', () => getLogsDir())
   // OSC 52 from nested apps (vim, ssh tmux, etc.) — xterm forwards via
   // registerOscHandler(52) in connectPanePty; renderer has no clipboard API.
   ipcMain.on('clipboard:write-text', (_event, text: string) => {
@@ -796,6 +817,9 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('model:open-preview', (_event, tabId: number, rel: string) =>
     workspace!.openModelPreview(tabId, rel)
+  )
+  ipcMain.handle('model:get-url', (_event, tabId: number, rel: string) =>
+    workspace!.modelUrl(tabId, rel)
   )
   ipcMain.handle('model:log', (_event, event: string, data?: Record<string, unknown>) => {
     model3dLog(event, { source: 'renderer', ...(data ?? {}) });
