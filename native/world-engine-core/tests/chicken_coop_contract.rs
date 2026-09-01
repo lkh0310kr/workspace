@@ -44,6 +44,28 @@ fn chicken_coop_loads_and_chickens_seek_feed() {
 }
 
 #[test]
+fn farm_director_publishes_feed_stock_sim_var() {
+    let dir = format!(
+        "{}/../../electron/test-fixtures/world-engine-chicken-coop-demo",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    if !std::path::Path::new(&dir).join("world-engine.json").exists() {
+        return;
+    }
+
+    let scene = load_scene(&dir);
+    let mut world = build_world(&scene, None, Some(std::path::Path::new(&dir)));
+    world.step_n(400);
+
+    assert!(
+        world.sim_var("feed_stock") < 1.0,
+        "feed_stock should deplete over time, got {}",
+        world.sim_var("feed_stock")
+    );
+    assert!(world.last_script_error().is_none(), "{:?}", world.last_script_error());
+}
+
+#[test]
 fn layer_chicken_can_lay_egg_prefab() {
     let dir = format!(
         "{}/../../electron/test-fixtures/world-engine-chicken-coop-demo",

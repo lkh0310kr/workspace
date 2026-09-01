@@ -52,14 +52,14 @@ fn on_update(dt, time, x, y, z) {
     let roost = entity_pos("roost_0");
     let shelter = entity_pos("rain_shelter");
 
-    if feed.len() >= 3 {
+    if feed.len() >= 3 && sim_var("feed_stock") > 0.05 {
         let dfx = x - feed[0];
         let dfz = z - feed[2];
         if (dfx * dfx + dfz * dfz).sqrt() < 1.4 {
             hunger = if hunger - dt * 0.7 < 0.0 { 0.0 } else { hunger - dt * 0.7 };
         }
     }
-    if water.len() >= 3 {
+    if water.len() >= 3 && sim_var("water_stock") > 0.05 {
         let dwx = x - water[0];
         let dwz = z - water[2];
         if (dwx * dwx + dwz * dwz).sqrt() < 1.2 {
