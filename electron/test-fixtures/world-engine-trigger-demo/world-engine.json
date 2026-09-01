@@ -1,0 +1,28 @@
+{
+  "gravity": [0.0, 0.0, 0.0],
+  "input_map": {
+    "move_x": { "negative": "A", "positive": "D" },
+    "move_z": { "negative": "S", "positive": "W" }
+  },
+  "entities": [
+    {
+      "name": "goal",
+      "position": [3.0, 1.0, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [1.0, 1.0, 1.0],
+      "trigger": true,
+      "color": [0.2, 0.9, 0.3]
+    },
+    {
+      "name": "player",
+      "position": [-3.0, 1.0, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.35,
+      "color": [0.3, 0.6, 0.95],
+      "script": "scripts/player.rhai",
+      "script_args": { "speed": 5.0 }
+    }
+  ]
+}
