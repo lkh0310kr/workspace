@@ -1,0 +1,29 @@
+{
+  "gravity": [0.0, 0.0, 0.0],
+  "time_scale": 1.0,
+  "entities": [
+    {
+      "name": "planet",
+      "position": [0.0, 2.0, 0.0],
+      "body_type": "fixed",
+      "shape": "sphere",
+      "radius": 0.9,
+      "color": [1.0, 0.75, 0.2]
+    },
+    {
+      "name": "moon",
+      "position": [4.0, 2.0, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.22,
+      "color": [0.7, 0.8, 0.95],
+      "script": "scripts/orbit.rhai",
+      "script_args": {
+        "radius": 4.0,
+        "speed": 1.2,
+        "center_y": 2.0,
+        "center_name": "planet"
+      }
+    }
+  ]
+}
