@@ -1,0 +1,18 @@
+{
+  "gravity": [0.0, 0.0, 0.0],
+  "sim_seed": 4242,
+  "entry_script": "scripts/rng_director.rhai",
+  "camera": { "mode": "orbit", "distance": 10.0 },
+  "entities": [
+    {
+      "name": "walker",
+      "position": [0.0, 0.0, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.2,
+      "color": [0.3, 0.7, 0.9],
+      "script": "scripts/walker.rhai",
+      "script_mode": "kinematic"
+    }
+  ]
+}

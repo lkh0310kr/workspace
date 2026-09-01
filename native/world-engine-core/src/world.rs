@@ -182,6 +182,8 @@ pub struct World {
     show_grid: bool,
     /// Shared f64 key/value store — readable from any Rhai script (`sim_var` / `set_sim_var`).
     sim_vars: HashMap<String, f64>,
+    sim_seed: u64,
+    rng_state: u64,
     projectiles: Vec<Projectile>,
     project_dir: Option<std::path::PathBuf>,
 }
@@ -232,6 +234,8 @@ impl World {
             camera: RuntimeCamera::default(),
             show_grid: false,
             sim_vars: HashMap::new(),
+            sim_seed: 1,
+            rng_state: 1,
             projectiles: Vec::new(),
             project_dir: None,
         }
@@ -653,6 +657,19 @@ impl World {
         self.sim_vars.clone()
     }
 
+    pub fn sim_seed(&self) -> u64 {
+        self.sim_seed
+    }
+
+    pub fn set_sim_seed(&mut self, seed: u64) {
+        self.sim_seed = seed;
+        self.rng_state = seed;
+    }
+
+    pub(crate) fn set_rng_state(&mut self, state: u64) {
+        self.rng_state = state;
+    }
+
     /// Advances the simulation by `steps` fixed-timestep ticks.
     pub fn step_n(&mut self, steps: u32) {
         for _ in 0..steps {
@@ -668,6 +685,7 @@ impl World {
         let input_snapshot = crate::input::InputSnapshot::new(&self.input, &self.input_map);
         crate::script::install_input_snapshot(&input_snapshot);
         crate::script::install_sim_vars(&self.sim_vars);
+        crate::script::install_rng_state(self.rng_state);
 
         if let Some(script) = &mut self.world_script {
             if let Some(err) = script.apply(dt, time, &snapshot) {
@@ -714,6 +732,7 @@ impl World {
             }
         }
         self.merge_sim_var_patch(crate::script::take_sim_var_patch());
+        self.rng_state = crate::script::take_rng_state();
 
         // User Behaviors — also before the physics step, so anything they
         // set on the rigid body is consumed this step.

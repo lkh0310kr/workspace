@@ -22,6 +22,23 @@ thread_local! {
     static INPUT_SNAPSHOT: RefCell<Option<crate::input::InputSnapshot>> = const { RefCell::new(None) };
     static SIM_VARS: RefCell<HashMap<String, f64>> = RefCell::new(HashMap::new());
     static PENDING_SIM_VARS: RefCell<HashMap<String, f64>> = RefCell::new(HashMap::new());
+    static RNG_STATE: RefCell<u64> = RefCell::new(1);
+}
+
+pub fn install_rng_state(state: u64) {
+    RNG_STATE.with(|cell| *cell.borrow_mut() = state);
+}
+
+pub fn take_rng_state() -> u64 {
+    RNG_STATE.with(|cell| *cell.borrow())
+}
+
+fn advance_rng() -> f64 {
+    RNG_STATE.with(|cell| {
+        let mut state = cell.borrow_mut();
+        *state = state.wrapping_mul(6364136223846793005).wrapping_add(1);
+        (*state >> 11) as f64 / ((1u64 << 53) as f64)
+    })
 }
 
 pub fn install_sim_vars(vars: &HashMap<String, f64>) {
@@ -179,6 +196,11 @@ fn new_engine() -> Engine {
         PENDING_SIM_VARS.with(|cell| {
             cell.borrow_mut().insert(name.to_string(), value);
         });
+    });
+    engine.register_fn("rand", || -> f64 { advance_rng() });
+    engine.register_fn("rand_range", |lo: f64, hi: f64| -> f64 {
+        let t = advance_rng();
+        lo + (hi - lo) * t
     });
 
     engine.register_fn("spawn_projectile", |x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, lifetime: f64| {

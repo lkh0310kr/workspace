@@ -56,6 +56,9 @@ pub struct SceneFile {
     /// Dev axis gizmo at origin.
     #[serde(default)]
     pub show_axes: bool,
+    /// RNG seed for Rhai `rand()` / `rand_range` (Phase 33). Default `1`.
+    #[serde(default)]
+    pub sim_seed: Option<u64>,
 }
 
 impl SceneFile {
@@ -283,6 +286,7 @@ pub fn default_scene() -> SceneFile {
         active_scene: None,
         show_grid: false,
         show_axes: false,
+        sim_seed: None,
     }
 }
 
@@ -342,6 +346,8 @@ pub fn build_world(
     world.set_gravity(Vec3::from(merged.gravity));
     world.set_time_scale(merged.time_scale);
     world.set_show_grid(merged.show_grid);
+    world.set_sim_seed(merged.sim_seed.unwrap_or(1));
+    crate::script::install_rng_state(world.sim_seed());
     if let Some(cam) = &merged.camera {
         world.camera_mut().mode = crate::camera::RuntimeCamera::from_def(cam).mode;
         world.camera_mut().fov_deg = crate::camera::RuntimeCamera::from_def(cam).fov_deg;
@@ -408,6 +414,8 @@ pub fn build_world(
             _ => eprintln!("joint references out-of-range entity index ({body1_idx}, {body2_idx}) for {} entities — skipped.", entities.len()),
         }
     }
+
+    world.set_rng_state(crate::script::take_rng_state());
 
     world
 }
