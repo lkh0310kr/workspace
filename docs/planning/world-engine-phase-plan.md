@@ -488,7 +488,7 @@ Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. �
 
 **Phase 1–30 완료.** 다음은 **§10 Simulation & Design Track (Phase 31+)** — 월드 엔진 코어·qt-shell만. 네트워크·PBR·게임 레퍼런스 확장은 하지 않음.
 
-**착수 (하위→상위):** Phase 38 커널 save ✅ → Phase 36 pause/clock → Phase 35 raycast → Phase 37 overlay → Phase 39 scenario runner → Phase 40 freeze.
+**착수 (하위→상위):** Phase 38 ✅ → Phase 36 ✅ → Phase 35 ✅. 서비스 레이어(37 overlay, 39 runner, 40 freeze)는 CAD/뷰어 착수 전 보류.
 
 커널 계약: [world-engine-simulation.md](./world-engine-simulation.md) · `tests/kernel_contract.rs`
 
@@ -606,20 +606,20 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 ---
 
 ### Phase 35 — Physics raycast pick  
-**상태:** ⬜ PENDING (AABB pick은 랜딩됨)  
+**상태:** ✅ DONE (2026-09-01)  
 **목표:** 설계 검토용 정확한 hit (형상·회전 반영).
 
 | IN | OUT |
 |----|-----|
 | `World::raycast(origin, dir) -> Option<RayHit { name, distance, point }>` | GPU picking |
-| qt-shell: AABB pick → physics pick 옵션 | |
+| qt-shell: `pick_entity_at_screen_physics` (AABB fallback for markers) | |
 
-**산출물:** `pick_contract.rs` (구체 뒤 큐브 가림 케이스).
+**산출물:** `pick_contract.rs` (AABB vs physics occlusion).
 
 ---
 
 ### Phase 36 — Simulation clock control  
-**상태:** ⬜ PENDING  
+**상태:** ✅ DONE (2026-09-01)  
 **목표:** 설계 리뷰·단계별 관찰.
 
 | IN | OUT |
