@@ -1,0 +1,14 @@
+{
+  "entities": [
+    {
+      "name": "egg",
+      "tags": ["egg"],
+      "position": [0.0, 0.2, 0.0],
+      "body_type": "fixed",
+      "shape": "sphere",
+      "radius": 0.1,
+      "color": [0.96, 0.94, 0.88],
+      "mesh": "sphere"
+    }
+  ]
+}

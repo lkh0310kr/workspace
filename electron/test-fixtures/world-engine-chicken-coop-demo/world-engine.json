@@ -1,0 +1,210 @@
+{
+  "gravity": [0.0, -9.81, 0.0],
+  "time_scale": 1.0,
+  "show_grid": true,
+  "entry_script": "scripts/farm_director.rhai",
+  "input_map": {
+    "refill_feed": "F",
+    "refill_water": "G"
+  },
+  "camera": { "mode": "orbit", "distance": 24.0, "yaw": 0.75, "pitch": 0.55 },
+  "entities": [
+    {
+      "name": "floor",
+      "position": [0.0, -0.05, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [10.0, 0.05, 8.0],
+      "color": [0.45, 0.38, 0.28],
+      "friction": 0.9
+    },
+    {
+      "name": "fence_n",
+      "position": [0.0, 0.6, 8.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [10.0, 0.6, 0.15],
+      "color": [0.55, 0.42, 0.28]
+    },
+    {
+      "name": "fence_s",
+      "position": [0.0, 0.6, -8.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [10.0, 0.6, 0.15],
+      "color": [0.55, 0.42, 0.28]
+    },
+    {
+      "name": "fence_e",
+      "position": [10.0, 0.6, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.15, 0.6, 8.0],
+      "color": [0.55, 0.42, 0.28]
+    },
+    {
+      "name": "fence_w",
+      "position": [-10.0, 0.6, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.15, 0.6, 8.0],
+      "color": [0.55, 0.42, 0.28]
+    },
+    {
+      "name": "gate",
+      "position": [0.0, 0.4, -8.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [1.2, 0.5, 0.1],
+      "color": [0.35, 0.28, 0.2]
+    },
+    {
+      "name": "feed_trough",
+      "tags": ["feed"],
+      "position": [-7.0, 0.45, 5.5],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [1.2, 0.25, 0.5],
+      "trigger": true,
+      "color": [0.72, 0.55, 0.22]
+    },
+    {
+      "name": "feed_hopper",
+      "position": [-7.0, 1.4, 5.9],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.8, 0.6, 0.4],
+      "color": [0.5, 0.45, 0.4]
+    },
+    {
+      "name": "water_trough",
+      "tags": ["water"],
+      "position": [-5.0, 0.4, 5.5],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.8, 0.2, 0.45],
+      "trigger": true,
+      "color": [0.25, 0.45, 0.85]
+    },
+    {
+      "name": "nest_0",
+      "tags": ["nest"],
+      "position": [7.0, 0.35, -5.5],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.55, 0.2, 0.55],
+      "trigger": true,
+      "color": [0.9, 0.88, 0.75]
+    },
+    {
+      "name": "nest_1",
+      "tags": ["nest"],
+      "position": [8.5, 0.35, -4.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.55, 0.2, 0.55],
+      "trigger": true,
+      "color": [0.9, 0.88, 0.75]
+    },
+    {
+      "name": "roost_0",
+      "tags": ["roost"],
+      "position": [8.5, 1.0, 4.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.8, 0.08, 0.25],
+      "color": [0.48, 0.32, 0.18]
+    },
+    {
+      "name": "roost_1",
+      "tags": ["roost"],
+      "position": [8.5, 1.0, 5.5],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.8, 0.08, 0.25],
+      "color": [0.48, 0.32, 0.18]
+    },
+    {
+      "name": "rain_shelter",
+      "tags": ["shelter"],
+      "position": [2.0, 1.2, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [2.5, 0.15, 2.0],
+      "trigger": true,
+      "color": [0.55, 0.55, 0.6]
+    },
+    {
+      "name": "goldie",
+      "tags": ["chicken", "layer"],
+      "position": [5.0, 0.35, -2.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.22,
+      "color": [0.95, 0.82, 0.35],
+      "mesh": "sphere",
+      "script": "scripts/chicken.rhai",
+      "script_args": { "breed": "layer", "speed": 1.6 }
+    },
+    {
+      "name": "bella",
+      "tags": ["chicken", "layer"],
+      "position": [6.0, 0.35, -1.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.22,
+      "color": [0.92, 0.78, 0.4],
+      "mesh": "sphere",
+      "script": "scripts/chicken.rhai",
+      "script_args": { "breed": "layer", "speed": 1.5 }
+    },
+    {
+      "name": "rust",
+      "tags": ["chicken", "hardy"],
+      "position": [4.0, 0.35, 0.5],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.24,
+      "color": [0.75, 0.42, 0.22],
+      "mesh": "sphere",
+      "script": "scripts/chicken.rhai",
+      "script_args": { "breed": "hardy", "speed": 1.4 }
+    },
+    {
+      "name": "oak",
+      "tags": ["chicken", "hardy"],
+      "position": [3.0, 0.35, -0.5],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.24,
+      "color": [0.62, 0.38, 0.2],
+      "mesh": "sphere",
+      "script": "scripts/chicken.rhai",
+      "script_args": { "breed": "hardy", "speed": 1.35 }
+    },
+    {
+      "name": "pearl",
+      "tags": ["chicken", "layer"],
+      "position": [5.5, 0.35, 1.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.21,
+      "color": [0.98, 0.95, 0.88],
+      "mesh": "sphere",
+      "script": "scripts/chicken.rhai",
+      "script_args": { "breed": "layer", "speed": 1.55 }
+    },
+    {
+      "name": "ember",
+      "tags": ["chicken", "hardy"],
+      "position": [4.5, 0.35, 1.5],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.23,
+      "color": [0.55, 0.28, 0.18],
+      "mesh": "sphere",
+      "script": "scripts/chicken.rhai",
+      "script_args": { "breed": "hardy", "speed": 1.3 }
+    }
+  ]
+}
