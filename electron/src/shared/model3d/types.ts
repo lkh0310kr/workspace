@@ -1,11 +1,40 @@
-/** Workspace-relative asset open intent — see docs/planning/3d-model-viewer-architecture.md */
-export type ModelOpenIntent = "preview" | "edit" | "simulate" | "thumbnail";
+/** Workspace-relative asset open intent — see docs/planning/cad-orchestration-phase-plan.md */
+export type AssetIntent = "preview" | "place" | "simulate" | "edit";
+
+/** Includes legacy thumbnail alias (normalized to preview). */
+export type ModelOpenIntent = AssetIntent | "thumbnail";
 
 export interface AssetOpenRequest {
   tabId: number;
   relativePath: string;
   intent: ModelOpenIntent;
   source: "tree" | "quick-open" | "agent";
+}
+
+/** Orchestration routing target — not an importer implementation. */
+export type ImportPipeline =
+  | "import-preview"
+  | "import-convert"
+  | "world-engine-simulate"
+  | "external-cad-edit";
+
+export type ImportJobPhase =
+  | "queued"
+  | "sniffing"
+  | "converting"
+  | "caching"
+  | "ready"
+  | "failed";
+
+export interface ImportJob {
+  id: string;
+  request: AssetOpenRequest;
+  pipeline: ImportPipeline;
+  phase: ImportJobPhase;
+  createdAt: number;
+  updatedAt: number;
+  manifest?: SceneManifest;
+  error?: string;
 }
 
 export type DetectedModelFormat =
