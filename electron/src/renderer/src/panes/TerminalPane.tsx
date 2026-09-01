@@ -14,6 +14,8 @@ import {
 } from "../lib/pane-manager/pane-terminal-registry";
 import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
 import { resumePaneRendering, suspendPaneRendering } from "../lib/pane-manager/pane-rendering-control";
+import { resolveExplicitTerminalTitleAgentType } from "../../../shared/agent/terminal-title-agent-type";
+import type { TuiAgent } from "../../../shared/agent/tui-agent";
 import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
 import { copyTerminalSelection } from "../terminal/terminal-selection-copy";
@@ -25,6 +27,7 @@ interface Props {
   visible: boolean;
   active: boolean;
   zoom?: number;
+  onTerminalTabUpdate?: (patch: { title?: string; terminalAgent?: TuiAgent | null }) => void;
 }
 
 const TERMINAL_BASE_FONT_SIZE = 14;
@@ -34,11 +37,13 @@ function applyTerminalSurfaceBackground(el: HTMLElement, resolved: ReturnType<ty
   el.style.setProperty("--terminal-surface-bg", bg);
 }
 
-function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
+function TerminalPaneInner({ terminalId, visible, active, zoom = 1, onTerminalTabUpdate }: Props) {
   const shellRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<ManagedPaneInternal | null>(null);
   const ptyDisposeRef = useRef<(() => void) | null>(null);
+  const onTerminalTabUpdateRef = useRef(onTerminalTabUpdate);
+  onTerminalTabUpdateRef.current = onTerminalTabUpdate;
   const searchRef = useRef<SearchAddon | null>(null);
   const hasFocusRef = useRef(false);
   const wasShownRef = useRef(false);
@@ -71,7 +76,15 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1 }: Props) {
     if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved);
     applyTerminalSurfaceBackground(host, resolved);
 
-    const { dispose, transport } = connectPanePty(pane, terminalId);
+    const { dispose, transport } = connectPanePty(pane, terminalId, {
+      onTitleChange: (title) => {
+        const terminalAgent = resolveExplicitTerminalTitleAgentType(title);
+        onTerminalTabUpdateRef.current?.({
+          title,
+          terminalAgent: terminalAgent ?? null,
+        });
+      },
+    });
     ptyDisposeRef.current = dispose;
 
     const keyHandlerDispose = installTerminalKeyHandler({

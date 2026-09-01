@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type
 import type { TabNode } from "flexlayout-react";
 import { ContextMenu } from "./ContextMenu";
 import { PanePicker } from "./PanePicker";
+import { AgentIcon } from "../agent/agent-catalog";
 import { PaneTabItem, TabKind } from "../layout/paneTypes";
 import { paneKindIcon, paneKindPickerOptions, getPaneKind, paneTabLabel } from "../panes/paneKindRegistry";
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from "../layout/tabDrag";
@@ -258,6 +259,8 @@ export function PaneTabStrip({
                 <span className="pane-tab-icon">
                   {item.kind === "browser" && item.favicon ? (
                     <img src={item.favicon} className="pane-tab-favicon" alt="" />
+                  ) : item.kind === "terminal" && item.terminalAgent ? (
+                    <AgentIcon agent={item.terminalAgent} size={12} />
                   ) : (
                     paneKindIcon(item.kind)
                   )}

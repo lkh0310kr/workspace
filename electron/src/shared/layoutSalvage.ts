@@ -20,6 +20,7 @@ const PaneTabItemSchema = z
     favicon: z.string().optional(),
     zoomFactor: z.number().positive().finite().optional(),
     title: z.string().optional(),
+    terminalAgent: z.string().optional(),
     isPreview: z.boolean().optional(),
     japaneseSettingsOpen: z.boolean().optional(),
   })

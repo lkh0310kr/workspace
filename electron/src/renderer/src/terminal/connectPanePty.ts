@@ -5,9 +5,14 @@ import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
 import { writeTerminalOutput } from "../lib/pane-manager/pane-terminal-output-scheduler";
 import { ptyResize, writeClipboardText } from "../electron";
 import { createElectronPtyTransport, type PtyTransport } from "./ptyTransport";
+import { createPtyTerminalTitleObserver } from "./ptyTerminalTitleObserver";
 import { reprTerminalBytes, termLog } from "./terminalDebugLog";
 
-export function connectPanePty(pane: ManagedPane, terminalId: number): {
+export function connectPanePty(
+  pane: ManagedPane,
+  terminalId: number,
+  options?: { onTitleChange?: (title: string) => void },
+): {
   transport: PtyTransport;
   dispose: () => void;
 } {
@@ -17,7 +22,12 @@ export function connectPanePty(pane: ManagedPane, terminalId: number): {
   let onDataDisposable: IDisposable | null = null;
   let oscDisposable: IDisposable | null = null;
 
+  const titleObserver = options?.onTitleChange
+    ? createPtyTerminalTitleObserver(options.onTitleChange)
+    : null;
+
   const writeOutput = (data: string) => {
+    titleObserver?.observePtyChunk(data);
     termLog(
       "pty:receive",
       "to-xterm",
