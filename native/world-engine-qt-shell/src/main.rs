@@ -12,7 +12,7 @@ use std::ffi::{c_int, c_void, CString};
 
 use glam::Vec3;
 use world_engine_core::{
-    build_world, default_scene, init_gpu, key_name_from_qt, load_mesh, load_scene, pick_entity_at_screen,
+    build_world, default_scene, init_gpu, key_name_from_qt, load_mesh, load_scene, pick_entity_at_screen_physics,
     render_frame_with_options, Camera, GpuContext, RenderOptions, World, HEIGHT, WIDTH,
 };
 use world_engine_core::camera::CameraMode;
@@ -131,7 +131,7 @@ fn render_eye_target(state: &EngineState) -> (Vec3, Vec3, f32) {
 fn update_picked_entity(state: &mut EngineState) {
     let (eye, target, fov) = render_eye_target(state);
     let aspect = WIDTH as f32 / HEIGHT as f32;
-    let picked = pick_entity_at_screen(
+    let picked = pick_entity_at_screen_physics(
         &state.world,
         eye,
         target,

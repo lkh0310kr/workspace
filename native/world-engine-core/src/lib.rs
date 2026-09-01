@@ -28,7 +28,7 @@ pub use scene::{lower_entity_def, spawn_from_blueprint, ComponentDef, EntityBlue
 pub use input::{InputMap, InputState, key_name_from_qt};
 pub use events::{CollisionEvent, CollisionEventBuffer};
 pub use camera::{CameraDef, RuntimeCamera};
-pub use pick::{pick_entity_at_screen, PickHit};
+pub use pick::{pick_entity_at_screen, pick_entity_at_screen_physics, PickHit, RayHit};
 pub use save::{EntitySave, WorldSave};
 pub use prefab::{PrefabFile, load_prefab, spawn_prefab_at};
 pub use world::{Behavior, BodyType, EntitySpec, JointKind, MeshKind, PhysicsSpec, Projectile, RenderSpec, Shape, TransformSpec, UpdateCtx, World};
