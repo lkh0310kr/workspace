@@ -7,7 +7,11 @@
     "refill_feed": "F",
     "refill_water": "G"
   },
-  "camera": { "mode": "orbit", "distance": 24.0, "yaw": 0.75, "pitch": 0.55 },
+  "camera": {
+    "mode": "fixed",
+    "position": [0.0, 22.0, 0.01],
+    "look_at": [0.0, 0.0, 0.0]
+  },
   "entities": [
     {
       "name": "floor",
