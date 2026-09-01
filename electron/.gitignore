@@ -8,3 +8,5 @@ out
 *.log*
 resources/world-engine/
 resources/world-engine-embed/
+src/renderer/public/draco/
+src/renderer/public/basis/
