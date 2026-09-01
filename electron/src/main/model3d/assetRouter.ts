@@ -1,16 +1,54 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import type { AssetOpenRequest, ImportJob, SceneManifest } from "../../shared/model3d/types";
+import { isPreviewPipeline, pipelineForRequest } from "../../shared/model3d/orchestration";
 import type { ImportContext } from "../../shared/model3d/importer";
-import type { SceneManifest } from "../../shared/model3d/types";
 import { buildCacheKey, lookupCachedManifest, storeCachedManifest } from "./cacheStore";
 import { sniffModelFormat } from "./formatSniffer";
 import { findImporter } from "./importerRegistry";
+import { importJobQueue } from "./importJobQueue";
 import { model3dLog, getModel3dLogPath } from "./model3dLog";
 
 export interface OpenModelPreviewInput {
   workspaceRoot: string;
   relativePath: string;
   tabId?: number;
+}
+
+/** Central orchestration entry — intent selects pipeline (Phase 50–51). */
+export async function routeAssetOpen(
+  request: AssetOpenRequest,
+  workspaceRoot: string,
+): Promise<ImportJob> {
+  const pipeline = pipelineForRequest(request);
+  model3dLog("route_asset_open", {
+    relativePath: request.relativePath,
+    intent: request.intent,
+    pipeline,
+    tabId: request.tabId,
+  });
+
+  if (isPreviewPipeline(pipeline)) {
+    return importJobQueue.enqueue(request, () =>
+      openModelPreview({
+        workspaceRoot,
+        relativePath: request.relativePath,
+        tabId: request.tabId,
+      }),
+    );
+  }
+
+  if (pipeline === "world-engine-simulate") {
+    return importJobQueue.failFast(
+      request,
+      "World Engine simulate routing is not wired yet (open world-engine.json directly).",
+    );
+  }
+
+  return importJobQueue.failFast(
+    request,
+    "CAD edit delegate is not available yet (cad-orchestration Phase 56).",
+  );
 }
 
 export async function openModelPreview(input: OpenModelPreviewInput): Promise<SceneManifest> {

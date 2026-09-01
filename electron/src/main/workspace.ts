@@ -15,8 +15,9 @@ import { registerProjectApp as registerProjectApp_ } from "./projectManifest";
 import type { ProjectManifest } from "../shared/projectManifest";
 import { exportGodotProjectWeb, type GodotExportResult } from "./godotExport";
 import { isWorldEngineProject, launchWorldEngine as launchWorldEngine_ } from "./worldEngine";
-import type { SceneManifest } from "../shared/model3d/types";
-import { openModelPreview as resolveModelPreview } from "./model3d/assetRouter";
+import type { AssetOpenRequest, ImportJob, SceneManifest } from "../shared/model3d/types";
+import { routeAssetOpen } from "./model3d/assetRouter";
+import { importJobQueue } from "./model3d/importJobQueue";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -297,7 +298,28 @@ export class Workspace {
   }
 
   openModelPreview(tabId: number, rel: string): Promise<SceneManifest> {
-    return resolveModelPreview({ workspaceRoot: this.tabRoot(tabId), relativePath: rel, tabId });
+    return this.openModelAsset({
+      tabId,
+      relativePath: rel,
+      intent: "preview",
+      source: "tree",
+    }).then((job) => {
+      if (job.phase === "failed") {
+        throw new Error(job.error ?? "Import failed");
+      }
+      if (!job.manifest) {
+        throw new Error("Import finished without manifest");
+      }
+      return job.manifest;
+    });
+  }
+
+  openModelAsset(request: AssetOpenRequest): Promise<ImportJob> {
+    return routeAssetOpen(request, this.tabRoot(request.tabId));
+  }
+
+  getImportJob(jobId: string): ImportJob | undefined {
+    return importJobQueue.getJob(jobId);
   }
 
   /** `rel` is a workspace-relative *directory* holding an already-built

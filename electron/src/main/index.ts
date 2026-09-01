@@ -15,6 +15,8 @@ import { registerModelProtocol } from './model3d/modelProtocol'
 import { fetchFeed } from './rss'
 import { fetchDashboardEconomy, fetchDashboardWeather } from './dashboardData'
 import { model3dLog, readModel3dLogs } from './model3d/model3dLog'
+import { importJobQueue } from './model3d/importJobQueue'
+import type { AssetOpenRequest } from '../shared/model3d/types'
 import { registerEpubProtocol, openEpubAbsolute } from './epub'
 import { registerEngineBundleProtocol } from './engineBundleProtocol'
 import {
@@ -597,6 +599,9 @@ app.whenReady().then(() => {
   // only for the default seed root at first launch (see defaultRoot above).
   const snapshot = rawSnapshot
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
+  importJobQueue.on('update', (job) => {
+    sendToMainWindow('model:import-status', job)
+  })
   registerMediaProtocol(() => workspace!.allTabRootPaths())
   registerModelProtocol(() => workspace!.allTabRootPaths())
   registerEpubProtocol()
@@ -817,6 +822,12 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('model:open-preview', (_event, tabId: number, rel: string) =>
     workspace!.openModelPreview(tabId, rel)
+  )
+  ipcMain.handle('model:open-asset', (_event, request: AssetOpenRequest) =>
+    workspace!.openModelAsset(request)
+  )
+  ipcMain.handle('model:import-job', (_event, jobId: string) =>
+    workspace!.getImportJob(jobId) ?? null
   )
   ipcMain.handle('model:get-url', (_event, tabId: number, rel: string) =>
     workspace!.modelUrl(tabId, rel)

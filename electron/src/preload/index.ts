@@ -276,6 +276,15 @@ const api = {
   model3d: {
     openPreview: (tabId: number, rel: string): Promise<unknown> =>
       ipcRenderer.invoke('model:open-preview', tabId, rel),
+    openAsset: (request: unknown): Promise<unknown> =>
+      ipcRenderer.invoke('model:open-asset', request),
+    getImportJob: (jobId: string): Promise<unknown> =>
+      ipcRenderer.invoke('model:import-job', jobId),
+    onImportStatus: (handler: (job: unknown) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, job: unknown) => handler(job)
+      ipcRenderer.on('model:import-status', listener)
+      return () => ipcRenderer.removeListener('model:import-status', listener)
+    },
     getUrl: (tabId: number, rel: string): Promise<string | null> =>
       ipcRenderer.invoke('model:get-url', tabId, rel),
     log: (event: string, data?: Record<string, unknown>): Promise<void> =>

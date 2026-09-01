@@ -200,6 +200,15 @@ export async function openModelPreview(tabId: number, rel: string): Promise<impo
   return window.api.model3d.openPreview(tabId, rel);
 }
 
+export type { AssetOpenRequest, ImportJob } from "../../shared/model3d/types";
+
+export async function openModelAsset(request: import("../../shared/model3d/types").AssetOpenRequest): Promise<import("../../shared/model3d/types").ImportJob> {
+  if (!window.api.model3d?.openAsset) {
+    throw new Error("model3d API unavailable — restart the app");
+  }
+  return window.api.model3d.openAsset(request) as Promise<import("../../shared/model3d/types").ImportJob>;
+}
+
 export async function getModelUrl(tabId: number, rel: string): Promise<string | null> {
   if (!window.api.model3d?.getUrl) {
     throw new Error("model3d API unavailable — restart the app");

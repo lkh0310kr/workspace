@@ -236,6 +236,9 @@ export interface WorkspaceApi {
   }
   model3d: {
     openPreview: (tabId: number, rel: string) => Promise<import('../shared/model3d/types').SceneManifest>
+    openAsset: (request: import('../shared/model3d/types').AssetOpenRequest) => Promise<import('../shared/model3d/types').ImportJob>
+    getImportJob: (jobId: string) => Promise<import('../shared/model3d/types').ImportJob | null>
+    onImportStatus: (handler: (job: import('../shared/model3d/types').ImportJob) => void) => () => void
     getUrl: (tabId: number, rel: string) => Promise<string | null>
     log: (event: string, data?: Record<string, unknown>) => Promise<void>
     logs: (limit?: number) => Promise<Record<string, unknown>[]>
