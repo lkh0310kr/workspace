@@ -11,7 +11,7 @@
 use std::ffi::{c_int, c_void};
 
 use glam::Vec3;
-use world_engine_core::{Camera, GpuContext, Vertex, World, build_world, default_scene, init_gpu, key_name_from_qt, load_mesh, load_scene, render_frame, HEIGHT, WIDTH};
+use world_engine_core::{Camera, GpuContext, Vertex, World, build_world, default_scene, init_gpu, key_name_from_qt, load_mesh, load_scene, render_frame_with_options, RenderOptions, HEIGHT, WIDTH};
 
 type InitCallback = extern "C" fn(*mut c_void, *mut c_void);
 type FrameCallback = extern "C" fn(*mut c_void);
@@ -59,9 +59,15 @@ extern "C" fn on_init(native_view: *mut c_void, user_data: *mut c_void) {
 extern "C" fn on_frame(user_data: *mut c_void) {
     let state = unsafe { &mut *(user_data as *mut EngineState) };
     state.world.step();
+    if let Some(orbit) = state.world.camera_mut().orbit_mut() {
+        orbit.yaw = state.camera.yaw;
+        orbit.pitch = state.camera.pitch;
+        orbit.distance = state.camera.distance;
+    }
     let draw_list = state.world.draw_list();
     if let Some(gpu) = &state.gpu {
-        render_frame(gpu, &draw_list, &state.camera);
+        let options = RenderOptions::from_runtime_camera(state.world.camera(), &state.world);
+        render_frame_with_options(gpu, &draw_list, &state.camera, &options);
     }
 }
 
