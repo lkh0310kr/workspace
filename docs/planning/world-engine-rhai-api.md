@@ -1,9 +1,9 @@
-# World Engine — Rhai API v2
+# World Engine — Rhai API v3
 
-**Version constant:** `world_engine_core::script::RHAI_API_VERSION` = `"2"`  
-**Status:** Frozen at Phase 30 (2026-09-01)
+**Version constant:** `world_engine_core::script::RHAI_API_VERSION` = `"3"`  
+**Status:** Phase 31–32 (2026-09-01) — simulation & design track
 
-Additive changes only until v3.
+v2 functions remain. Additive only until v4.
 
 ---
 
@@ -21,11 +21,22 @@ Optional: `fn on_collision(other_name, started, x, y, z) { }`
 
 ## World script (`entry_script`)
 
+Module-level `let` state **persists across frames** (Godot autoload pattern).
+
 ```rhai
-fn on_world_update(dt, time) { }
+let stock = 1.0;
+fn on_world_update(dt, time) {
+    stock -= dt * 0.01;
+    set_sim_var("stock", stock);
+    publish_metric("stock", stock);
+}
 ```
 
-## Built-in functions (v2)
+---
+
+## Built-in functions
+
+### v2 (unchanged)
 
 | Function | Description |
 |----------|-------------|
@@ -41,6 +52,29 @@ fn on_world_update(dt, time) { }
 | `spawn_prefab(name, x, y, z)` | entry_script |
 | `spawn_projectile(x,y,z,vx,vy,vz,lifetime)` | entity or entry |
 
+### v3 — shared simulation state (Phase 31)
+
+| Function | Description |
+|----------|-------------|
+| `sim_var(name)` | Read f64 from world store (missing → `0.0`) |
+| `set_sim_var(name, value)` | Write f64; visible to all scripts next step |
+
+Rust: `World::sim_var`, `World::set_sim_var`, `World::sim_vars()`.
+
+Not stored in `world-engine.json` — runtime only.
+
+### v3 — metrics export (Phase 32)
+
+| Function | Description |
+|----------|-------------|
+| `publish_metric(name, value)` | Same store as `set_sim_var`; for observation / CI |
+
+Rust: `World::sim_metrics()` → `HashMap<String, f64>` snapshot after `step`.
+
+Shells read metrics; domain key names live in project docs, not the engine schema.
+
+---
+
 ## script_mode
 
 | Value | `on_update` return |
@@ -48,3 +82,9 @@ fn on_world_update(dt, time) { }
 | `kinematic` | position or position+rotation |
 | `force` | force vector |
 | `impulse` | impulse vector |
+
+---
+
+## Migration v2 → v3
+
+No breaking changes. Projects may adopt `sim_var` / `publish_metric` when cross-script state or headless metrics are needed.

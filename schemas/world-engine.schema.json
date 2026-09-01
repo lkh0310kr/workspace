@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://workspace.dev/schemas/world-engine.schema.json",
   "title": "World Engine Scene",
+  "description": "Declarative scene geometry and scripts. Runtime simulation state (sim_var / metrics) is not serialized here — see world-engine-rhai-api.md v3.",
   "type": "object",
   "properties": {
     "gravity": {
@@ -58,6 +59,21 @@
               "minItems": 3,
               "maxItems": 3
             }
+          },
+          "required": ["mode", "position"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": { "const": "fly" },
+            "position": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "yaw": { "type": "number" },
+            "pitch": { "type": "number" }
           },
           "required": ["mode", "position"]
         }

@@ -57,12 +57,16 @@ my-sim/
 | `World::sim_time()` | 누적 시뮬 시각 |
 | `World::step_n(n)` | headless 결정론 테스트 |
 | `velocity` | 스폰 시 선속도 |
+| `World::sim_var` / `set_sim_var` | **Phase 31** 런타임 공유 f64 상태 |
+| `World::sim_metrics()` | **Phase 32** `sim_var` 스냅샷 (CI·쉘) |
 
-테스트: `cargo test --test simulation_contract`
+테스트: `cargo test --test simulation_contract` · `cargo test --test metrics_contract`
 
 ---
 
-## Rhai API (v2)
+## Rhai API (v3)
+
+See [world-engine-rhai-api.md](./world-engine-rhai-api.md). v3 adds `sim_var`, `set_sim_var`, `publish_metric`.
 
 ### 엔티티 스크립트 — `on_update(dt, time, x, y, z) -> [a,b,c]`
 
@@ -87,6 +91,8 @@ my-sim/
 | 함수 | 설명 |
 |------|------|
 | `set_time_scale(s)` | Unity `Time.timeScale` |
+| `sim_var` / `set_sim_var` | 월드↔엔티티 공유 상태 (Phase 31) |
+| `publish_metric` | headless/쉘 관측용 스칼라 (Phase 32) |
 
 ### 입력 (Phase 14)
 

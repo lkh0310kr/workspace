@@ -485,9 +485,186 @@ Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. �
 
 ## 9. 다음 액션
 
-**Phase 1–30 완료.** 다음 트랙: 유지보수·1.0 semver (`world-engine-core` crate version), embed 통합 강화, 텍스처 PBR.
+**Phase 1–30 완료.** 다음은 **§10 Simulation & Design Track (Phase 31+)** — 월드 엔진 코어·qt-shell만. 네트워크·PBR·게임 레퍼런스 확장은 하지 않음.
+
+**착수:** Phase 33 `sim_seed` / 결정론.
 
 macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-quarantine.sh` 실행.
+
+---
+
+## 10. Phase 31+ — Simulation & Design Track (World Engine)
+
+**목표:** 설계·시뮬레이션 프로젝트(PKMS, 공장/농장 모델)를 **엔진 API만으로** headless 검증 가능하게.  
+**범위:** `native/world-engine-core/`, `native/world-engine-qt-shell/`, `schemas/`, `tests/*_contract.rs`  
+**비범위:** 멀티플레이·네트워크, PBR/스키닝, 미니게임 장르 확장, Electron 도메인 로직, Blender/모델링 파이프라인
+
+**설계 vs 시뮬 (엔진 관점)**
+
+| 층 | 엔진이 제공 | 프로젝트가 소유 |
+|----|-------------|-----------------|
+| **Design (In)** | JSON 로드, `properties`, design overlay merge | `design/*.json`, 배치·스펙 수치 |
+| **Simulation (Out)** | `step`/`step_n`, `sim_var`, metrics, save | Rhai 정책, PKMS 규칙 |
+| **Observation** | pick, fly cam, metrics export | qt-shell/Electron 표시 문구 |
+
+**엔진 API 원칙:** 도메인 필드(`label`, `feed_stock` JSON 키) 금지. `name`, `tags`, `properties`, `sim_var` 같은 **범용 슬롯**만.
+
+---
+
+### Phase 31 — Shared simulation state  
+**상태:** ✅ DONE (2026-09-01)  
+**모방:** Unity static / Godot Autoload 변수, LabVIEW shared data  
+**목표:** 월드 스크립트 ↔ 엔티티 스크립트가 **같은 런타임 상태**를 읽고 쓴다.
+
+| IN | OUT |
+|----|-----|
+| `sim_var` / `set_sim_var` (Rhai + `World::sim_var`) | DB, SQL |
+| `WorldScript` scope 프레임 간 유지 (autoload 상태) | |
+| `RHAI_API_VERSION = "3"` + [world-engine-rhai-api.md](./world-engine-rhai-api.md) | |
+| mesh `RenderScale` = collider 크기 (시뮬 공간 = 렌더 공간) | |
+
+**산출물:** `chicken_coop_contract` (feed_stock deplete), 기존 fixture 회귀 없음.
+
+**완료 기준:** v3 API 문서 freeze, schema에 `sim_var` 동작 설명(비필드).
+
+---
+
+### Phase 32 — Metrics snapshot  
+**상태:** ✅ DONE (2026-09-01)  
+**모방:** Unity Profiler custom markers, Grafana export lite  
+**목표:** headless·쉘이 **런타임 결과**를 읽기 (도메인 문자열은 프로젝트).
+
+| IN | OUT |
+|----|-----|
+| `World::sim_metrics() -> HashMap<String, f64>` (`sim_var` 스냅샷 또는 allowlist) | 인게임 HUD 프레임워크 |
+| Rhai `publish_metric(name, value)` → 동일 저장소 | |
+| qt-shell: metrics JSON 한 줄 stdout (옵션) | Electron 차트 UI |
+
+**산출물:** `tests/metrics_contract.rs`, demo entry_script가 2–3개 키 publish.
+
+**완료 기준:** step 후 Rust에서 `world.sim_metrics()["feed_stock"]` assert.
+
+---
+
+### Phase 33 — Determinism & scenario seed  
+**상태:** ⬜ PENDING  
+**목표:** 같은 `world-engine.json` + seed → 같은 `step_n` 결과 (설계 A/B 비교 전제).
+
+| IN | OUT |
+|----|-----|
+| JSON `sim_seed: u64` | 분산 시뮬 |
+| Rhai `rand()` / `rand_range(a,b)` — seed from world | |
+| `World::step_n` 후 positions 해시 또는 golden file | |
+
+**산출물:** `tests/determinism_contract.rs`
+
+---
+
+### Phase 34 — Entity `properties` (design metadata)  
+**상태:** ⬜ PENDING  
+**모방:** Godot metadata, Unity `[SerializeField]` on component  
+**목표:** 도메인 스펙을 **엔티티에 붙이되** 엔진은 key-value만 안다.
+
+| IN | OUT |
+|----|-----|
+| `entities[].properties: { ... }` → Rhai `on_update` scope 상수 | `label` 같은 단일 필드 |
+| `entity_property(name, key)` 읽기 (스냅샷) | |
+| schema + contract | |
+
+**산출물:** `world-engine-properties-demo`, breed/용량을 properties로 주입.
+
+---
+
+### Phase 35 — Physics raycast pick  
+**상태:** ⬜ PENDING (AABB pick은 랜딩됨)  
+**목표:** 설계 검토용 정확한 hit (형상·회전 반영).
+
+| IN | OUT |
+|----|-----|
+| `World::raycast(origin, dir) -> Option<RayHit { name, distance, point }>` | GPU picking |
+| qt-shell: AABB pick → physics pick 옵션 | |
+
+**산출물:** `pick_contract.rs` (구체 뒤 큐브 가림 케이스).
+
+---
+
+### Phase 36 — Simulation clock control  
+**상태:** ⬜ PENDING  
+**목표:** 설계 리뷰·단계별 관찰.
+
+| IN | OUT |
+|----|-----|
+| `World::set_paused(bool)` — physics/script skip | 타임라인 에디터 |
+| `step_n`은 유지; `sim_time` pause 중 정지 | |
+| JSON `time_scale` + Rhai 기존 API | |
+
+**산출물:** `pause_contract.rs`
+
+---
+
+### Phase 37 — Design file overlay  
+**상태:** ⬜ PENDING  
+**목표:** `world-engine.json`(geometry) + `design/*.json`(스펙) 분리 로드.
+
+| IN | OUT |
+|----|-----|
+| JSON `design: "design/coop.json"` — merge into load or Rhai init | 비주얼 design tool |
+| Rhai `design_get(path)` 또는 scope preload | |
+| 깨진 경로 → warn + skip | |
+
+**산출물:** chicken-coop-demo `design/` 분리, contract 동일.
+
+---
+
+### Phase 38 — Save includes simulation state  
+**상태:** ⬜ PENDING  
+**목표:** 체크포인트에 **재고·점수·sim_var** 포함.
+
+| IN | OUT |
+|----|-----|
+| `WorldSave`에 `sim_vars` 필드 | 전체 Rhai scope serialize |
+| `restore` round-trip test | |
+
+**산출물:** `save_contract` 확장.
+
+---
+
+### Phase 39 — Headless scenario runner  
+**상태:** ⬜ PENDING  
+**목표:** CI에서 **여러 프로젝트 디렉터리**를 동일 harness로 `step_n` + metrics 비교.
+
+| IN | OUT |
+|----|-----|
+| `tests/scenario_runner.rs` + manifest `scenarios.toml` | GUI batch runner |
+| 실패 시 diff metrics | |
+
+**산출물:** 닭장 A/B layout 디렉터리 2개 비교 (엔진 harness만; 규칙은 프로젝트).
+
+---
+
+### Phase 40 — Sim/Design API 1.0 freeze  
+**상태:** ⬜ PENDING  
+**목표:** Phase 31–39를 **시뮬 전용** semver 1.0 후보로 고정.
+
+| IN | OUT |
+|----|-----|
+| `world-engine.schema.json` 갱신 | WASM |
+| `world-engine-rhai-api.md` v3 freeze | |
+| `docs/planning/world-engine-simulation.md` (설계자용 1페이지) | |
+
+---
+
+### Phase 31+ 우선순위 (엔진 작업만)
+
+```
+31 (sim_var 문서화) → 32 metrics → 33 seed/결정론
+  → 34 properties → 35 raycast → 36 pause
+  → 37 design overlay → 38 save+sim_vars → 39 scenario runner → 40 freeze
+```
+
+**의도적 제외:** Phase 18 PBR 확장, 멀티플레이, Phase 23–24식 게임 레퍼런스 추가, 3D 뷰어/모델링 트랙.
+
+**프로젝트(PKMS 닭장) 작업**은 엔진 Phase와 분리 — fixture·Rhai·contract만, 위 API가 열릴 때마다 소비.
 
 ---
 
@@ -495,6 +672,8 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-09-01 | Phase 31–32 DONE: sim_var v3, sim_metrics, metrics_contract |
+| 2026-09-01 | §10 Phase 31+ Simulation & Design Track (World Engine) |
 | 2026-09-01 | Phase 17–30 DONE: entity v2, camera, prefabs, save, layers, games, schema, benchmarks |
 | 2026-09-01 | Phase 16 DONE: script errors, RHAI_API_VERSION, world-engine-rhai-api.md |
 | 2026-09-01 | Phase 15 DONE: collision events, on_collision, trigger-demo, KINEMATIC_FIXED |
