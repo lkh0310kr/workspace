@@ -196,7 +196,7 @@
 ---
 
 ### Phase 17 — Entity Model v2  
-**상태:** 🔲 NEXT  
+**상태:** ✅ DONE (2026-09-01)  
 **모방:** Unity Transform, Godot Node3D  
 **목표:** 위치만이 아닌 회전·속도 읽기/쓰기.
 
@@ -214,7 +214,7 @@
 ---
 
 ### Phase 18 — Rendering for Games  
-**상태:** 🔲  
+**상태:** ✅ DONE (2026-09-01)  
 **모방:** glTF PBR lite, Bevy `StandardMaterial`  
 **목표:** 회색 박스 이상의 **구분 가능한** 비주얼.
 
@@ -232,7 +232,7 @@
 ---
 
 ### Phase 19 — Camera System  
-**상태:** 🔲  
+**상태:** ✅ DONE (2026-09-01)  
 **모방:** Unity Cinemachine (lite), Godot `Camera3D`  
 **목표:** 플레이어 따라가는 카메라, 3인칭/탑다운 전환.
 
@@ -249,7 +249,7 @@
 ---
 
 ### Phase 20 — Prefabs & Multi-Scene  
-**상태:** 🔲  
+**상태:** ✅ DONE (2026-09-01)  
 **모방:** Unity Prefab, Godot PackedScene  
 **목표:** 재사용 가능한 스폰 단위.
 
@@ -267,7 +267,7 @@
 ---
 
 ### Phase 21 — Save / Load  
-**상태:** 🔲  
+**상태:** ✅ DONE (2026-09-01)  
 **모방:** Unity PlayerPrefs + scene serialize lite  
 **목표:** 체크포인트·간단 세이브.
 
@@ -285,7 +285,7 @@
 ---
 
 ### Phase 22 — Physics Polish  
-**상태:** 🔲  
+**상태:** ✅ DONE (2026-09-01)  
 **모방:** Rapier collision groups, Godot layers/masks  
 **목표:** FPS·플랫포머에 필요한 충돌 필터.
 
@@ -303,7 +303,7 @@
 ---
 
 ### Phase 23 — Reference Game: Platformer  
-**상태:** 🔲  
+**상태:** ✅ DONE (2026-09-01)  
 **목표:** Phase 13–22 통합 증명 — **실제 미니 게임 1작**.
 
 **게임 스펙 (초안)**
@@ -321,7 +321,7 @@
 ---
 
 ### Phase 24 — Reference Game: Top-Down Action  
-**상태:** 🔲  
+**상태:** ✅ DONE (2026-09-01)  
 **목표:** 다른 장르로 API 범용성 증명.
 
 - 탑다운 이동, 적 스폰 웨이브, projectile (kinematic + collision)  
@@ -330,7 +330,7 @@
 ---
 
 ### Phase 25 — Production Gate  
-**상태:** 🔲  
+**상태:** ✅ DONE (2026-09-01)  
 **목표:** “실제 게임 만들어도 된다” 선언 가능 수준.
 
 | IN | OUT |
@@ -340,6 +340,62 @@
 | semver: `world-engine-core` 0.x → 1.0 API freeze 후보 검토 | |
 | 성능 예산 문서 (예: 500 dynamic bodies @ 60fps M1) | |
 | embed vs qt-shell 결정 문서 갱신 | |
+
+---
+
+### Phase 26 — Debug Draw & Gizmos  
+**상태:** ✅ DONE (2026-09-01)  
+**목표:** 레벨 제작 시 공간감 확보.
+
+| IN | OUT |
+|----|-----|
+| `show_grid` / `show_axes` JSON 토글 | 에디터 gizmo UI |
+| XZ 그리드 dev overlay (`render_frame_with_options`) | |
+
+---
+
+### Phase 27 — Projectile System  
+**상태:** ✅ DONE (2026-09-01)  
+**목표:** 탑다운 슈터용 범용 투사체.
+
+| IN | OUT |
+|----|-----|
+| `World::spawn_projectile` + Rhai `spawn_projectile(...)` | 풀링·오브젝트 풀 |
+| lifetime 후 `despawn` | |
+
+---
+
+### Phase 28 — Wave Director Patterns  
+**상태:** ✅ DONE (2026-09-01)  
+**목표:** `entry_script`로 스폰 웨이브·난이도 곡선.
+
+| IN | OUT |
+|----|-----|
+| `spawn_prefab` + 타이머 state | 비주얼 스크립트 에디터 |
+| `world-engine-game-topdown` wave director | |
+
+---
+
+### Phase 29 — Headless Benchmarks  
+**상태:** ✅ DONE (2026-09-01)  
+**목표:** 성능 회귀 조기 감지.
+
+| IN | OUT |
+|----|-----|
+| `tests/benchmark_smoke.rs` (500 bodies × 60 steps) | CI perf gate |
+| `docs/planning/world-engine-performance.md` | |
+
+---
+
+### Phase 30 — API 2.0 Freeze  
+**상태:** ✅ DONE (2026-09-01)  
+**목표:** Phase 17–29 추가 API를 v2로 고정.
+
+| IN | OUT |
+|----|-----|
+| `RHAI_API_VERSION = "2"` | WASM 스크립트 |
+| `world-engine-rhai-api.md` v2 갱신 | |
+| `schemas/world-engine.schema.json` | |
 
 ---
 
@@ -409,8 +465,8 @@ flowchart LR
 | `world-engine-spawner-demo` | **20** | 프리팹 |
 | `world-engine-checkpoint-demo` | **21** | 세이브 |
 | `world-engine-platformer-physics-demo` | **22** | 레이어 |
-| `world-engine-game-platformer` | **23** | 레퍼런스 게임 |
-| `world-engine-game-topdown` | **24** | 레퍼런스 게임 |
+| `world-engine-game-platformer` | **23** | 레퍼런스 플랫포머 |
+| `world-engine-game-topdown` | **24** | 레퍼런스 탑다운 |
 
 ---
 
@@ -429,14 +485,7 @@ Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. �
 
 ## 9. 다음 액션
 
-**지금 시작: Phase 17 — Entity Model v2**
-
-1. Rhai `entity_rot(name)` + optional 6-element kinematic return  
-2. `tags` + `entity_with_tag`  
-3. fixture: 회전·태그 스모크 1개  
-4. 이 문서 Phase 17 → DONE  
-
-Phase 15–16 완료: `events.rs`, `on_collision`, `world-engine-trigger-demo`, `KINEMATIC_FIXED` collider pairs, `last_script_error`, `world-engine-rhai-api.md` v1.
+**Phase 1–30 완료.** 다음 트랙: 유지보수·1.0 semver (`world-engine-core` crate version), embed 통합 강화, 텍스처 PBR.
 
 macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-quarantine.sh` 실행.
 
@@ -446,6 +495,7 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-09-01 | Phase 17–30 DONE: entity v2, camera, prefabs, save, layers, games, schema, benchmarks |
 | 2026-09-01 | Phase 16 DONE: script errors, RHAI_API_VERSION, world-engine-rhai-api.md |
 | 2026-09-01 | Phase 15 DONE: collision events, on_collision, trigger-demo, KINEMATIC_FIXED |
 | 2026-09-01 | Phase 14 DONE: input_map, fly-demo, qt keyboard, input_contract tests |
