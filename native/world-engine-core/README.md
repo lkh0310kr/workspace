@@ -47,8 +47,10 @@ step — anything it sets on `ctx.rigid_body` (a force, an impulse, a
 kinematic target) is consumed by that same step. Deliberately minimal
 for this phase: one trait, one way to attach, direct rigid-body access
 only — no event bus, no query DSL beyond what `hecs` itself gives you,
-no scripting language (see the architecture doc's Phase 10 for why
-Rust-native was chosen over embedding one), no hot-reload. Real future
+no scripting language (Rhai project scripts are a separate JSON-driven
+layer — see [`src/script.rs`](src/script.rs) and
+[`docs/planning/world-engine-project.md`](../../docs/planning/world-engine-project.md)),
+no hot-reload. Real future
 scope, not pretended at here.
 
 `World::add_joint`/`add_motion` are smaller convenience methods for two
@@ -92,12 +94,22 @@ format's sinusoidal-only `motion` field genuinely cannot express. This
 is the real proof the SDK API works, not just that the crate split
 compiles.
 
+### macOS: `cargo test` doctest SIGKILL
+
+If `rustdoc` is killed during doctests, clear Gatekeeper quarantine on the toolchain:
+
+```sh
+./scripts/fix-rust-quarantine.sh
+```
+
 ## Files
 
 | File | Role |
 |------|------|
-| `src/world.rs` | ECS/physics `World` — the SDK surface (`EntitySpec`, `Behavior`, `spawn*`, `add_joint`, `add_motion`) |
+| `src/world.rs` | ECS/physics `World` — the SDK surface (`EntitySpec`, `Behavior`, `spawn*`, `attach_script`, `add_joint`, `add_motion`) |
 | `src/render.rs` | `wgpu` setup, geometry, glTF mesh loading, per-frame render |
 | `src/scene.rs` | `world-engine.json` parsing + `build_world` (JSON → `World`, via the same spawn API) |
+| `src/script.rs` | Project-local Rhai scripts (`script`/`script_args` in JSON → `World::attach_script`) |
+| `src/input.rs` | `InputState`, `input_map`, Rhai `input_axis` / `input_pressed` |
 | `src/shader.wgsl` | Single-directional-light flat shading |
 | `examples/chase.rs` | Headless proof the code-facing `Behavior` API works |

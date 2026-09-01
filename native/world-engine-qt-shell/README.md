@@ -83,8 +83,10 @@ A flat list of entities, each a real `rapier3d` rigid body:
 `rotation` is an axis-angle vector (direction = axis, magnitude =
 radians — `rapier3d`'s own convention for 3D rigid bodies). Missing
 fields default (`restitution` → `0.6`, `color` → red, `position`/
-`rotation` → origin/identity). No materials, no scripting yet — real
-future scope, not pretended at here.
+`rotation` → origin/identity).
+
+Optional top-level **`gravity`**: `[x, y, z]` in m/s² (default
+`[0, -9.81, 0]`).
 
 Two more fields expose more of the underlying engine, both optional and
 backward-compatible (a scene with neither still behaves exactly as
@@ -105,16 +107,27 @@ above):
   correctly). Sinusoidal only: `origin + axis.normalize() * amplitude *
   sin(time * speed)`, where `origin` is the entity's own `position`.
   `axis` defaults to `[0, 1, 0]`, `amplitude` to `1.0`, `speed` to `1.0`.
-  Not a general animation/scripting system — real future scope.
+  Not a general animation/scripting system — use `script` for Rhai logic.
+
+- **`name`**: optional stable label (debugging, future cross-entity APIs).
+- **`script`**: path to a `.rhai` file relative to the project directory.
+  Requires `body_type: kinematic` for motion. Must define
+  `on_update(dt, time, x, y, z) -> [x, y, z]`.
+- **`script_args`**: JSON object of numeric constants injected into the
+  script scope (e.g. `target_x`, `speed`).
 
 ```json
 { "position": [-2, 1, 0], "body_type": "fixed", "shape": "cuboid", "half_extents": [1, 1, 1] }
 { "position": [0, 6, 0], "body_type": "dynamic", "shape": "sphere", "radius": 0.7, "restitution": 0.7 }
 { "position": [2, 2, 0], "body_type": "kinematic", "shape": "cuboid", "half_extents": [1.5, 0.2, 1.5], "motion": { "axis": [0, 1, 0], "amplitude": 1.5, "speed": 1.0 } }
+{ "name": "chaser", "position": [-5, 1, 0], "body_type": "kinematic", "shape": "sphere", "radius": 0.3, "script": "scripts/chase.rhai", "script_args": { "target_x": 5.0, "target_y": 1.0, "target_z": 0.0, "speed": 3.0 } }
 ```
 
 A real example combining all three body types and both shapes lives at
 `electron/test-fixtures/world-engine-physics-demo/`.
+
+A **Rhai chase** example (scripted kinematic entity) lives at
+`electron/test-fixtures/world-engine-chase-demo/`.
 
 A top-level `"joints"` list connects two entities (by 0-based index into
 `entities`) with a real `rapier3d` constraint the solver enforces every
