@@ -92,8 +92,8 @@ fn on_update(dt, time, x, y, z) {
         }
     } else {
         wander_angle += dt * 0.7;
-        let wx = x + wander_angle.cos() * speed * dt * 0.35;
-        let wz = z + wander_angle.sin() * speed * dt * 0.35;
+        let wx = x + wander_angle.cos() * speed * dt * 0.2;
+        let wz = z + wander_angle.sin() * speed * dt * 0.2;
         target = [wx, y, wz];
     }
 

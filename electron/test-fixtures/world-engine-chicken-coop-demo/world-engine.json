@@ -94,11 +94,11 @@
       "shape": "cuboid",
       "half_extents": [1.2, 0.25, 0.5],
       "trigger": true,
-      "color": [0.72, 0.55, 0.22]
+      "color": [0.82, 0.62, 0.12]
     },
     {
       "name": "feed_hopper",
-      "position": [-7.0, 1.4, 5.9],
+      "position": [-7.0, 1.4, 6.8],
       "body_type": "fixed",
       "shape": "cuboid",
       "half_extents": [0.8, 0.6, 0.4],
@@ -112,27 +112,27 @@
       "shape": "cuboid",
       "half_extents": [0.8, 0.2, 0.45],
       "trigger": true,
-      "color": [0.25, 0.45, 0.85]
+      "color": [0.12, 0.58, 0.82]
     },
     {
       "name": "nest_0",
       "tags": ["nest"],
-      "position": [7.0, 0.35, -5.5],
+      "position": [7.0, 0.3, -5.5],
       "body_type": "fixed",
       "shape": "cuboid",
-      "half_extents": [0.55, 0.2, 0.55],
+      "half_extents": [0.4, 0.15, 0.4],
       "trigger": true,
-      "color": [0.9, 0.88, 0.75]
+      "color": [0.98, 0.98, 0.96]
     },
     {
       "name": "nest_1",
       "tags": ["nest"],
-      "position": [8.5, 0.35, -4.0],
+      "position": [8.5, 0.3, -4.0],
       "body_type": "fixed",
       "shape": "cuboid",
-      "half_extents": [0.55, 0.2, 0.55],
+      "half_extents": [0.4, 0.15, 0.4],
       "trigger": true,
-      "color": [0.9, 0.88, 0.75]
+      "color": [0.98, 0.98, 0.96]
     },
     {
       "name": "roost_0",
@@ -165,35 +165,35 @@
     {
       "name": "goldie",
       "tags": ["chicken", "layer"],
-      "position": [5.0, 0.35, -2.0],
+      "position": [5.0, 0.28, -2.0],
       "body_type": "kinematic",
       "shape": "sphere",
-      "radius": 0.22,
-      "color": [0.95, 0.82, 0.35],
-      "mesh": "sphere",
-      "script": "scripts/chicken.rhai",
-      "script_args": { "breed": "layer", "speed": 1.6 }
-    },
-    {
-      "name": "bella",
-      "tags": ["chicken", "layer"],
-      "position": [6.0, 0.35, -1.0],
-      "body_type": "kinematic",
-      "shape": "sphere",
-      "radius": 0.22,
-      "color": [0.92, 0.78, 0.4],
+      "radius": 0.16,
+      "color": [1.0, 0.92, 0.2],
       "mesh": "sphere",
       "script": "scripts/chicken.rhai",
       "script_args": { "breed": "layer", "speed": 1.5 }
     },
     {
-      "name": "rust",
-      "tags": ["chicken", "hardy"],
-      "position": [4.0, 0.35, 0.5],
+      "name": "bella",
+      "tags": ["chicken", "layer"],
+      "position": [6.0, 0.28, -1.0],
       "body_type": "kinematic",
       "shape": "sphere",
-      "radius": 0.24,
-      "color": [0.75, 0.42, 0.22],
+      "radius": 0.16,
+      "color": [0.98, 0.88, 0.25],
+      "mesh": "sphere",
+      "script": "scripts/chicken.rhai",
+      "script_args": { "breed": "layer", "speed": 1.45 }
+    },
+    {
+      "name": "rust",
+      "tags": ["chicken", "hardy"],
+      "position": [4.0, 0.28, 0.5],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.16,
+      "color": [0.95, 0.55, 0.15],
       "mesh": "sphere",
       "script": "scripts/chicken.rhai",
       "script_args": { "breed": "hardy", "speed": 1.4 }
@@ -201,11 +201,11 @@
     {
       "name": "oak",
       "tags": ["chicken", "hardy"],
-      "position": [3.0, 0.35, -0.5],
+      "position": [3.0, 0.28, -0.5],
       "body_type": "kinematic",
       "shape": "sphere",
-      "radius": 0.24,
-      "color": [0.62, 0.38, 0.2],
+      "radius": 0.16,
+      "color": [0.9, 0.5, 0.12],
       "mesh": "sphere",
       "script": "scripts/chicken.rhai",
       "script_args": { "breed": "hardy", "speed": 1.35 }
@@ -213,23 +213,23 @@
     {
       "name": "pearl",
       "tags": ["chicken", "layer"],
-      "position": [5.5, 0.35, 1.0],
+      "position": [5.5, 0.28, 1.0],
       "body_type": "kinematic",
       "shape": "sphere",
-      "radius": 0.21,
-      "color": [0.98, 0.95, 0.88],
+      "radius": 0.16,
+      "color": [1.0, 0.95, 0.35],
       "mesh": "sphere",
       "script": "scripts/chicken.rhai",
-      "script_args": { "breed": "layer", "speed": 1.55 }
+      "script_args": { "breed": "layer", "speed": 1.5 }
     },
     {
       "name": "ember",
       "tags": ["chicken", "hardy"],
-      "position": [4.5, 0.35, 1.5],
+      "position": [4.5, 0.28, 1.5],
       "body_type": "kinematic",
       "shape": "sphere",
-      "radius": 0.23,
-      "color": [0.55, 0.28, 0.18],
+      "radius": 0.16,
+      "color": [0.88, 0.42, 0.1],
       "mesh": "sphere",
       "script": "scripts/chicken.rhai",
       "script_args": { "breed": "hardy", "speed": 1.3 }
