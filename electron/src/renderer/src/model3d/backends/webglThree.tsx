@@ -5,11 +5,17 @@ import * as THREE from "three";
 import type { RenderPipelineHooks } from "../../../../shared/model3d/viewer";
 import { createOrbitCameraHandle, createOrbitCameraState } from "./camera/orbitCamera";
 import type { OrbitCameraHandle } from "./camera/orbitCamera";
+import type { DetectedModelFormat } from "../../../../shared/model3d/types";
 import { useGltfFromBuffer } from "./useGltfFromUrl";
+import { useMeshFromBuffer } from "./useMeshFromBuffer";
 import { logModel3d } from "../model3dLog";
+
+const GLTF_FORMATS = new Set<DetectedModelFormat>(["glb", "gltf"]);
+const MESH_FORMATS = new Set<DetectedModelFormat>(["obj", "stl", "ply", "dae"]);
 
 interface ModelProps {
   modelData: ArrayBuffer;
+  format: DetectedModelFormat;
   wireframe: boolean;
   onLoaded?: () => void;
 }
@@ -29,7 +35,7 @@ function applyWireframe(scene: THREE.Object3D, wireframe: boolean): void {
   });
 }
 
-function LoadedModel({ modelData, wireframe, onLoaded }: ModelProps) {
+function GltfLoadedModel({ modelData, wireframe, onLoaded }: Omit<ModelProps, "format">) {
   const { gltf, error, loading } = useGltfFromBuffer(modelData);
   const bounds = useBounds();
 
@@ -65,6 +71,54 @@ function LoadedModel({ modelData, wireframe, onLoaded }: ModelProps) {
   if (!scene) return null;
 
   return <primitive object={scene} />;
+}
+
+function MeshLoadedModel({ modelData, format, wireframe, onLoaded }: ModelProps) {
+  const { scene: parsed, error, loading } = useMeshFromBuffer(modelData, format);
+  const bounds = useBounds();
+
+  const scene = useMemo(() => {
+    if (!parsed) return null;
+    return parsed.clone(true);
+  }, [parsed]);
+
+  useEffect(() => {
+    if (!scene) return;
+    applyWireframe(scene, wireframe);
+  }, [scene, wireframe]);
+
+  useEffect(() => {
+    if (!scene) return;
+    bounds.refresh().fit();
+    onLoaded?.();
+    void logModel3d("mesh_scene_mounted", { byteLength: modelData.byteLength, format });
+  }, [scene, bounds, onLoaded, modelData, format]);
+
+  if (loading) {
+    return (
+      <Html center>
+        <div className="model-viewer-canvas-hint">Parsing model…</div>
+      </Html>
+    );
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  if (!scene) return null;
+
+  return <primitive object={scene} />;
+}
+
+function LoadedModel(props: ModelProps) {
+  if (GLTF_FORMATS.has(props.format)) {
+    return <GltfLoadedModel modelData={props.modelData} wireframe={props.wireframe} onLoaded={props.onLoaded} />;
+  }
+  if (MESH_FORMATS.has(props.format)) {
+    return <MeshLoadedModel {...props} />;
+  }
+  throw new Error(`Unsupported model format: ${props.format}`);
 }
 
 function PipelineTicker({ pipeline }: { pipeline?: RenderPipelineHooks }) {
@@ -132,6 +186,7 @@ class ModelLoadErrorBoundary extends Component<
 
 export interface WebGlThreeViewerProps {
   modelData: ArrayBuffer;
+  format: DetectedModelFormat;
   wireframe: boolean;
   showGrid: boolean;
   active: boolean;
@@ -143,6 +198,7 @@ export interface WebGlThreeViewerProps {
 
 export function WebGlThreeViewer({
   modelData,
+  format,
   wireframe,
   showGrid,
   active,
@@ -166,7 +222,7 @@ export function WebGlThreeViewer({
       <ModelLoadErrorBoundary onError={onError}>
         <Bounds fit clip observe margin={1.3}>
           <Suspense fallback={null}>
-            <LoadedModel modelData={modelData} wireframe={wireframe} />
+            <LoadedModel modelData={modelData} format={format} wireframe={wireframe} />
           </Suspense>
           <CameraBridge onReady={(handle) => onCameraReady?.(handle)} />
         </Bounds>

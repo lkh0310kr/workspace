@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { DetectedModelFormat } from "../../../../shared/model3d/types";
 import type { ViewerSession } from "../../../../shared/model3d/viewer";
 import type { OrbitCameraHandle } from "../backends/camera/orbitCamera";
 import { WebGlThreeViewer } from "../backends/webglThree";
@@ -8,11 +9,12 @@ import { ModelViewerToolbar } from "./ModelViewerToolbar";
 
 interface Props {
   modelData: ArrayBuffer;
+  format: DetectedModelFormat;
   active: boolean;
   onReady?: () => void;
 }
 
-export function ModelViewerCanvas({ modelData, active, onReady }: Props) {
+export function ModelViewerCanvas({ modelData, format, active, onReady }: Props) {
   const cameraRef = useRef<OrbitCameraHandle | null>(null);
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
@@ -58,6 +60,7 @@ export function ModelViewerCanvas({ modelData, active, onReady }: Props) {
       <div className="model-viewer-host">
         <WebGlThreeViewer
           modelData={modelData}
+          format={format}
           wireframe={wireframe}
           showGrid={showGrid}
           active={active}

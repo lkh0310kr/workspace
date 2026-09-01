@@ -2,7 +2,7 @@ import type { ImportContext, ImportResult, Importer } from "../../../shared/mode
 import type { DetectedModelFormat } from "../../../shared/model3d/types";
 import { model3dLog } from "../model3dLog";
 
-const STUB_FORMATS: DetectedModelFormat[] = ["fbx", "obj", "stl", "ply", "dae"];
+const STUB_FORMATS: DetectedModelFormat[] = ["fbx"];
 
 export const stubImporter: Importer = {
   id: "convert-stub",

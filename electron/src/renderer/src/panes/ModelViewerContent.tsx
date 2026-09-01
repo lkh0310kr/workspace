@@ -32,7 +32,13 @@ export function ModelViewerContent({ tabId, filePath, paneActive, treeOpen, onTo
       <ModelViewerUnsupported variant="error" message={preview.error ?? "모델을 불러오지 못했습니다."} />
     );
   } else if (preview.phase === "ready" && preview.modelData) {
-    body = <ModelViewerCanvas modelData={preview.modelData} active={paneActive} />;
+    body = (
+      <ModelViewerCanvas
+        modelData={preview.modelData}
+        format={preview.manifest?.source.format ?? "glb"}
+        active={paneActive}
+      />
+    );
   } else {
     body = <ModelViewerLoading label="Preparing viewer…" />;
   }

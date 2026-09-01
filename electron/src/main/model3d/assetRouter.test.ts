@@ -36,6 +36,16 @@ describe("openModelPreview", () => {
     }
   });
 
+  it("returns ready manifest for obj", async () => {
+    const root = makeTempWorkspace({ "models/box.obj": "o Box\nv 0 0 0\n" });
+    const manifest = await openModelPreview({ workspaceRoot: root, relativePath: "models/box.obj" });
+    expect(manifest.status).toBe("ready");
+    if (manifest.status === "ready") {
+      expect(manifest.source.format).toBe("obj");
+      expect(manifest.mimeType).toBe("model/obj");
+    }
+  });
+
   it("returns unsupported manifest for fbx stub", async () => {
     const fbxHeader = Buffer.from("Kaydara FBX Binary  \0", "ascii");
     const root = makeTempWorkspace({ "models/box.fbx": fbxHeader });
