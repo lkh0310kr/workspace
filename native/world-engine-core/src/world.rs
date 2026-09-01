@@ -5,13 +5,16 @@
 
 use std::collections::HashMap;
 
-use glam::{Mat4, Quat, Vec3};
+use glam::{EulerRot, Mat4, Quat, Vec3};
 use hecs::Entity;
 use rapier3d::prelude::*;
 
+use crate::camera::RuntimeCamera;
 use crate::events::CollisionEventBuffer;
 use crate::input::{InputMap, InputState};
 use crate::script::{EntityScript, WorldScript, WorldSnapshot, take_world_control_patch};
+
+struct EntityTags(Vec<String>);
 
 pub struct Transform {
     pub translation: Vec3,
@@ -67,7 +70,7 @@ pub struct UpdateCtx<'a> {
     pub rigid_body: &'a mut RigidBody,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub enum BodyType {
     #[default]
     Dynamic,
@@ -102,6 +105,14 @@ pub struct EntitySpec {
     pub velocity: Vec3,
     /// Sensor collider — generates collision events without physical response.
     pub sensor: bool,
+    /// Rapier mass in kg (dynamic bodies).
+    pub mass: f32,
+    /// Coulomb friction coefficient.
+    pub friction: f32,
+    /// Collision membership layer (bit index 0–15).
+    pub collision_layer: u16,
+    /// Collision filter mask — which layers this collider interacts with.
+    pub collision_mask: u16,
 }
 
 impl Default for EntitySpec {
@@ -116,6 +127,10 @@ impl Default for EntitySpec {
             render_override: None,
             velocity: Vec3::ZERO,
             sensor: false,
+            mass: 1.0,
+            friction: 0.5,
+            collision_layer: 1,
+            collision_mask: 0xFFFF,
         }
     }
 }
@@ -161,6 +176,19 @@ pub struct World {
     collider_to_entity: HashMap<ColliderHandle, Entity>,
     collision_events: CollisionEventBuffer,
     last_script_error: Option<String>,
+    camera: RuntimeCamera,
+    show_grid: bool,
+    projectiles: Vec<Projectile>,
+    project_dir: Option<std::path::PathBuf>,
+}
+
+/// Short-lived kinematic projectile (top-down shooter pattern).
+#[derive(Clone, Debug)]
+pub struct Projectile {
+    pub entity: Entity,
+    pub velocity: Vec3,
+    pub lifetime: f32,
+    pub age: f32,
 }
 
 impl World {
@@ -197,6 +225,10 @@ impl World {
             collider_to_entity: HashMap::new(),
             collision_events: CollisionEventBuffer::default(),
             last_script_error: None,
+            camera: RuntimeCamera::default(),
+            show_grid: false,
+            projectiles: Vec::new(),
+            project_dir: None,
         }
     }
 
@@ -210,6 +242,141 @@ impl World {
 
     pub fn entity_by_name(&self, name: &str) -> Option<Entity> {
         self.names.get(name).copied()
+    }
+
+    pub fn entity_by_tag(&self, tag: &str) -> Option<Entity> {
+        for &entity in &self.entities {
+            if let Ok(tags) = self.ecs.get::<&EntityTags>(entity) {
+                if tags.0.iter().any(|t| t == tag) {
+                    return Some(entity);
+                }
+            }
+        }
+        None
+    }
+
+    pub fn set_tags(&mut self, entity: Entity, tags: Vec<String>) {
+        if self.ecs.get::<&EntityTags>(entity).is_ok() {
+            if let Ok(mut existing) = self.ecs.get::<&mut EntityTags>(entity) {
+                existing.0 = tags;
+            }
+        } else {
+            let _ = self.ecs.insert_one(entity, EntityTags(tags));
+        }
+    }
+
+    pub fn camera(&self) -> &RuntimeCamera {
+        &self.camera
+    }
+
+    pub fn camera_mut(&mut self) -> &mut RuntimeCamera {
+        &mut self.camera
+    }
+
+    pub fn set_project_dir(&mut self, dir: std::path::PathBuf) {
+        self.project_dir = Some(dir);
+    }
+
+    pub fn project_dir(&self) -> Option<&std::path::Path> {
+        self.project_dir.as_deref()
+    }
+
+    fn apply_world_control_patch(&mut self, patch: crate::script::WorldControlPatch) {
+        if let Some(scale) = patch.time_scale {
+            self.set_time_scale(scale);
+        }
+        if let Some(target) = patch.camera_target {
+            self.camera.set_follow_target(target);
+        }
+        if let Some((prefab_name, x, y, z)) = patch.spawn_prefab {
+            if let Some(dir) = self.project_dir.clone() {
+                let path = dir.join("prefabs").join(format!("{prefab_name}.prefab.json"));
+                match crate::prefab::load_prefab(&path) {
+                    Ok(prefab) => {
+                        crate::prefab::spawn_prefab_at(self, &prefab, Vec3::new(x as f32, y as f32, z as f32), &dir);
+                    }
+                    Err(err) => self.note_script_error(err),
+                }
+            }
+        }
+        if let Some((x, y, z, vx, vy, vz, lifetime)) = patch.spawn_projectile {
+            self.spawn_projectile(
+                Vec3::new(x as f32, y as f32, z as f32),
+                Vec3::new(vx as f32, vy as f32, vz as f32),
+                lifetime as f32,
+                0.15,
+                Vec3::new(1.0, 0.9, 0.2),
+            );
+        }
+    }
+
+    pub fn set_show_grid(&mut self, show: bool) {
+        self.show_grid = show;
+    }
+
+    pub fn show_grid(&self) -> bool {
+        self.show_grid
+    }
+
+    pub fn rotation_euler(&self, entity: Entity) -> Vec3 {
+        let handle = self.ecs.get::<&PhysicsBody>(entity).expect("rotation_euler: no body").0;
+        let q = self.rigid_body_set[handle].rotation();
+        let (y, x, z) = q.to_euler(EulerRot::YXZ);
+        Vec3::new(x, y, z)
+    }
+
+    pub fn linear_velocity(&self, entity: Entity) -> Vec3 {
+        let handle = self.ecs.get::<&PhysicsBody>(entity).expect("linear_velocity: no body").0;
+        let v = self.rigid_body_set[handle].linvel();
+        Vec3::new(v.x, v.y, v.z)
+    }
+
+    pub fn entity_names(&self) -> Vec<String> {
+        self.names.keys().cloned().collect()
+    }
+
+    pub fn body_type_of(&self, entity: Entity) -> BodyType {
+        let handle = self.ecs.get::<&PhysicsBody>(entity).expect("body_type_of: no body").0;
+        match self.rigid_body_set[handle].body_type() {
+            RigidBodyType::Dynamic => BodyType::Dynamic,
+            RigidBodyType::Fixed => BodyType::Fixed,
+            RigidBodyType::KinematicPositionBased | RigidBodyType::KinematicVelocityBased => BodyType::Kinematic,
+        }
+    }
+
+    pub fn set_entity_transform(&mut self, entity: Entity, position: Vec3, rotation_euler: Vec3, velocity: Vec3) {
+        let handle = self.ecs.get::<&PhysicsBody>(entity).expect("set_entity_transform: no body").0;
+        let body = &mut self.rigid_body_set[handle];
+        body.set_translation(position, true);
+        body.set_rotation(Quat::from_euler(EulerRot::YXZ, rotation_euler.y, rotation_euler.x, rotation_euler.z), true);
+        body.set_linvel(velocity, true);
+        if let Ok(mut transform) = self.ecs.get::<&mut Transform>(entity) {
+            transform.translation = position;
+            transform.rotation = Quat::from_euler(EulerRot::YXZ, rotation_euler.y, rotation_euler.x, rotation_euler.z);
+        }
+    }
+
+    /// Spawns a short-lived kinematic sphere projectile.
+    pub fn spawn_projectile(&mut self, position: Vec3, velocity: Vec3, lifetime: f32, radius: f32, color: Vec3) -> Entity {
+        let entity = self.spawn_named(
+            EntitySpec {
+                position,
+                velocity,
+                body_type: BodyType::Kinematic,
+                shape: Shape::Sphere { radius },
+                color,
+                sensor: false,
+                ..Default::default()
+            },
+            None,
+        );
+        self.projectiles.push(Projectile {
+            entity,
+            velocity,
+            lifetime,
+            age: 0.0,
+        });
+        entity
     }
 
     pub fn set_time_scale(&mut self, scale: f32) {
@@ -226,6 +393,26 @@ impl World {
             .iter()
             .map(|(name, &entity)| (name.clone(), self.position(entity)))
             .collect()
+    }
+
+    pub fn named_rotations(&self) -> HashMap<String, Vec3> {
+        self.names
+            .iter()
+            .map(|(name, &entity)| (name.clone(), self.rotation_euler(entity)))
+            .collect()
+    }
+
+    pub fn tag_index(&self) -> HashMap<String, String> {
+        let mut map = HashMap::new();
+        for &entity in &self.entities {
+            if let Ok(tags) = self.ecs.get::<&EntityTags>(entity) {
+                let name = self.entity_label(entity);
+                for tag in &tags.0 {
+                    map.entry(tag.clone()).or_insert(name.clone());
+                }
+            }
+        }
+        map
     }
 
     pub fn set_input_map(&mut self, map: InputMap) {
@@ -307,10 +494,16 @@ impl World {
             Shape::Cuboid { half_extents } => (ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z), MeshKind::Cube),
             Shape::Sphere { radius } => (ColliderBuilder::ball(radius), MeshKind::Sphere),
         };
-        let mut collider = collider.restitution(spec.restitution);
+        let mut collider = collider.restitution(spec.restitution).friction(spec.friction);
+        if spec.body_type == BodyType::Dynamic {
+            collider = collider.mass(spec.mass);
+        }
         if spec.sensor {
             collider = collider.sensor(true);
         }
+        let layer = Group::from_bits_truncate(1u32 << (spec.collision_layer.min(15)));
+        let mask = Group::from_bits_truncate(spec.collision_mask as u32);
+        collider = collider.collision_groups(InteractionGroups::new(layer, mask, InteractionTestMode::default()));
         collider = collider.active_collision_types(
             ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_FIXED,
         );
@@ -433,9 +626,8 @@ impl World {
             if let Some(err) = script.apply(dt, time, &snapshot) {
                 self.note_script_error(err);
             }
-            if let Some(scale) = take_world_control_patch().time_scale {
-                self.set_time_scale(scale);
-            }
+            let patch = take_world_control_patch();
+            self.apply_world_control_patch(patch);
         }
 
         // Scripted kinematic motion — set each Motion entity's target
@@ -467,6 +659,8 @@ impl World {
                 if let Some(err) = script.apply(dt, time, &mut self.rigid_body_set[body_handle], &snapshot) {
                     self.note_script_error(err);
                 }
+                let patch = take_world_control_patch();
+                self.apply_world_control_patch(patch);
             }
         }
 
@@ -554,7 +748,52 @@ impl World {
             self.note_script_error(err);
         }
 
+        self.update_projectiles(dt);
         self.input.end_frame();
+    }
+
+    fn update_projectiles(&mut self, dt: f32) {
+        let mut expired = Vec::new();
+        for proj in &mut self.projectiles {
+            proj.age += dt;
+            if proj.age >= proj.lifetime {
+                expired.push(proj.entity);
+                continue;
+            }
+            let handle = self.ecs.get::<&PhysicsBody>(proj.entity).unwrap().0;
+            let pos = self.rigid_body_set[handle].translation();
+            let next = pos + proj.velocity * dt;
+            self.rigid_body_set[handle].set_next_kinematic_translation(next);
+        }
+        self.projectiles.retain(|p| p.age < p.lifetime);
+        for entity in expired {
+            self.despawn(entity);
+        }
+    }
+
+    /// Removes an entity from the simulation (physics + ECS).
+    pub fn despawn(&mut self, entity: Entity) {
+        if let Ok(body) = self.ecs.get::<&PhysicsBody>(entity) {
+            let collider = self.ecs.get::<&PhysicsCollider>(entity).ok().map(|c| c.0);
+            if let Some(ch) = collider {
+                self.collider_set.remove(ch, &mut self.island_manager, &mut self.rigid_body_set, true);
+                self.collider_to_entity.remove(&ch);
+            }
+            self.rigid_body_set.remove(
+                body.0,
+                &mut self.island_manager,
+                &mut self.collider_set,
+                &mut self.impulse_joint_set,
+                &mut self.multibody_joint_set,
+                true,
+            );
+        }
+        if let Ok(name) = self.ecs.get::<&EntityName>(entity) {
+            self.names.remove(&name.0);
+        }
+        self.scripts.remove(&entity);
+        self.entities.retain(|&e| e != entity);
+        let _ = self.ecs.despawn(entity);
     }
 
     /// (model matrix, tint, mesh kind) per entity, in a stable order —

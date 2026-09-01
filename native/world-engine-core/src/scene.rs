@@ -9,10 +9,11 @@ use glam::Vec3;
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::camera::{CameraDef, RuntimeCamera};
 use crate::script::{load_entity_script, load_world_script, ScriptMode};
 use crate::world::{BodyType, EntitySpec, JointKind, MeshKind, Shape, World};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct SceneFile {
     #[serde(default)]
     pub entities: Vec<SceneEntityDef>,
@@ -43,9 +44,33 @@ pub struct SceneFile {
     /// Unity-style action → key bindings for `input_axis` / `input_pressed`.
     #[serde(default)]
     pub input_map: Option<std::collections::HashMap<String, Value>>,
+    /// Scene camera (orbit / follow / fixed).
+    #[serde(default)]
+    pub camera: Option<CameraDef>,
+    /// Optional sub-scene loaded from `scenes/{name}.json` (entities merged).
+    #[serde(default)]
+    pub active_scene: Option<String>,
+    /// Dev ground grid overlay.
+    #[serde(default)]
+    pub show_grid: bool,
+    /// Dev axis gizmo at origin.
+    #[serde(default)]
+    pub show_axes: bool,
+}
+
+impl SceneFile {
+    pub fn clone_for_build(&self) -> Self {
+        self.clone()
+    }
 }
 
 #[derive(Deserialize)]
+pub struct SubSceneFile {
+    #[serde(default)]
+    pub entities: Vec<SceneEntityDef>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum JointDef {
     Revolute {
@@ -72,7 +97,7 @@ fn default_joint_axis() -> [f32; 3] {
     [0.0, 1.0, 0.0]
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct SceneEntityDef {
     #[serde(default)]
     pub position: [f32; 3],
@@ -118,10 +143,28 @@ pub struct SceneEntityDef {
     /// Sensor/trigger collider — overlap events without blocking physics.
     #[serde(default)]
     pub trigger: bool,
+    /// Gameplay tags — `entity_with_tag("player")` returns first match.
+    #[serde(default)]
+    pub tags: Option<Vec<String>>,
+    /// Per-entity render mesh override (`cube`, `sphere`, or glTF path).
+    #[serde(default)]
+    pub mesh: Option<String>,
+    /// Mass in kg (dynamic bodies).
+    #[serde(default)]
+    pub mass: Option<f32>,
+    /// Friction coefficient.
+    #[serde(default)]
+    pub friction: Option<f32>,
+    /// Collision layer bit (0–15).
+    #[serde(default)]
+    pub collision_layer: Option<u16>,
+    /// Collision mask bitmask.
+    #[serde(default)]
+    pub collision_mask: Option<u16>,
 }
 
 /// Simple sinusoidal oscillation along one axis — see `World::add_motion`.
-#[derive(Deserialize, Clone, Copy)]
+#[derive(Deserialize, Clone, Copy, Debug)]
 pub struct MotionDef {
     #[serde(default = "default_motion_axis")]
     pub axis: [f32; 3],
@@ -144,18 +187,27 @@ fn default_motion_speed() -> f32 {
 }
 
 impl SceneEntityDef {
-    fn resolved_shape(&self) -> Shape {
+    pub fn resolved_shape(&self) -> Shape {
         match self.shape.as_deref() {
             Some("sphere") => Shape::Sphere { radius: self.radius.unwrap_or_else(default_radius) },
             _ => Shape::Cuboid { half_extents: Vec3::from(self.half_extents.unwrap_or_else(default_half_extents)) },
         }
     }
 
-    fn resolved_body_type(&self) -> BodyType {
+    pub fn resolved_body_type(&self) -> BodyType {
         match self.body_type {
             BodyTypeDef::Dynamic => BodyType::Dynamic,
             BodyTypeDef::Fixed => BodyType::Fixed,
             BodyTypeDef::Kinematic => BodyType::Kinematic,
+        }
+    }
+
+    pub fn resolved_mesh_kind(&self) -> Option<MeshKind> {
+        match self.mesh.as_deref() {
+            Some("sphere") => Some(MeshKind::Sphere),
+            Some("cube") | Some("cuboid") => Some(MeshKind::Cube),
+            Some("loaded") | Some("gltf") => Some(MeshKind::Loaded),
+            _ => None,
         }
     }
 }
@@ -168,7 +220,7 @@ fn default_color() -> [f32; 3] {
     [0.9, 0.2, 0.2]
 }
 
-#[derive(Deserialize, Default, Clone, Copy)]
+#[derive(Deserialize, Default, Clone, Copy, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum BodyTypeDef {
     #[default]
@@ -214,6 +266,12 @@ pub fn default_scene() -> SceneFile {
             script_mode: None,
             velocity: None,
             trigger: false,
+            tags: None,
+            mesh: None,
+            mass: None,
+            friction: None,
+            collision_layer: None,
+            collision_mask: None,
         }],
         mesh: None,
         joints: vec![],
@@ -221,6 +279,10 @@ pub fn default_scene() -> SceneFile {
         time_scale: default_time_scale(),
         entry_script: None,
         input_map: None,
+        camera: None,
+        active_scene: None,
+        show_grid: false,
+        show_axes: false,
     }
 }
 
@@ -259,24 +321,46 @@ pub fn build_world(
     mesh_half_extents: Option<[f32; 3]>,
     project_dir: Option<&std::path::Path>,
 ) -> World {
+    let mut merged = scene.clone_for_build();
+    if let (Some(dir), Some(scene_name)) = (project_dir, scene.active_scene.as_deref()) {
+        let sub_path = dir.join("scenes").join(format!("{scene_name}.json"));
+        if let Ok(contents) = std::fs::read_to_string(&sub_path) {
+            if let Ok(sub) = serde_json::from_str::<SubSceneFile>(&contents) {
+                merged.entities.extend(sub.entities);
+            } else {
+                eprintln!("failed to parse sub-scene {sub_path:?}");
+            }
+        } else {
+            eprintln!("active_scene {scene_name} not found at {sub_path:?}");
+        }
+    }
+
     let mut world = World::new_empty();
-    world.set_gravity(Vec3::from(scene.gravity));
-    world.set_time_scale(scene.time_scale);
-    if let (Some(dir), Some(script_rel)) = (project_dir, scene.entry_script.as_deref()) {
+    if let Some(dir) = project_dir {
+        world.set_project_dir(dir.to_path_buf());
+    }
+    world.set_gravity(Vec3::from(merged.gravity));
+    world.set_time_scale(merged.time_scale);
+    world.set_show_grid(merged.show_grid);
+    if let Some(cam) = &merged.camera {
+        world.camera_mut().mode = crate::camera::RuntimeCamera::from_def(cam).mode;
+        world.camera_mut().fov_deg = crate::camera::RuntimeCamera::from_def(cam).fov_deg;
+    }
+    if let (Some(dir), Some(script_rel)) = (project_dir, merged.entry_script.as_deref()) {
         match load_world_script(dir, script_rel) {
             Ok(script) => world.attach_world_script(script),
             Err(err) => eprintln!("entry_script error: {err}"),
         }
     }
-    if let Some(map) = &scene.input_map {
+    if let Some(map) = &merged.input_map {
         world.set_input_map(crate::input::InputMap::from_json(map));
     }
-    let mut entities = Vec::with_capacity(scene.entities.len());
+    let mut entities = Vec::with_capacity(merged.entities.len());
 
-    for def in &scene.entities {
+    for def in &merged.entities {
         let (shape, render_override) = match mesh_half_extents {
             Some(half_extents) => (Shape::Cuboid { half_extents: Vec3::from(half_extents) }, Some(MeshKind::Loaded)),
-            None => (def.resolved_shape(), None),
+            None => (def.resolved_shape(), def.resolved_mesh_kind()),
         };
         let spec = EntitySpec {
             position: Vec3::from(def.position),
@@ -288,8 +372,15 @@ pub fn build_world(
             render_override,
             velocity: def.velocity.map(Vec3::from).unwrap_or(Vec3::ZERO),
             sensor: def.trigger,
+            mass: def.mass.unwrap_or(1.0),
+            friction: def.friction.unwrap_or(0.5),
+            collision_layer: def.collision_layer.unwrap_or(1),
+            collision_mask: def.collision_mask.unwrap_or(0xFFFF),
         };
         let entity = world.spawn_named(spec, def.name.clone());
+        if let Some(tags) = &def.tags {
+            world.set_tags(entity, tags.clone());
+        }
         if let (Some(dir), Some(script_rel)) = (project_dir, def.script.as_deref()) {
             let mode = ScriptMode::parse(def.script_mode.as_deref().unwrap_or("kinematic"));
             match load_entity_script(dir, script_rel, def.script_args.as_ref(), mode) {
@@ -303,7 +394,7 @@ pub fn build_world(
         entities.push(entity);
     }
 
-    for joint in &scene.joints {
+    for joint in &merged.joints {
         let (body1_idx, body2_idx, kind) = match joint {
             JointDef::Revolute { body1, body2, axis, anchor1, anchor2 } => {
                 (*body1, *body2, JointKind::Revolute { axis: Vec3::from(*axis), anchor1: Vec3::from(*anchor1), anchor2: Vec3::from(*anchor2) })

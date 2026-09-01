@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::Path;
 
-use glam::Vec3;
+use glam::{EulerRot, Quat, Vec3};
 use rapier3d::prelude::RigidBody;
 use rhai::{AST, Array, Dynamic, Engine, Scope};
 use serde_json::Value;
@@ -14,7 +14,7 @@ use serde_json::Value;
 use crate::world::World;
 
 /// Rhai scripting API version — bump on breaking script surface changes.
-pub const RHAI_API_VERSION: &str = "1";
+pub const RHAI_API_VERSION: &str = "2";
 
 thread_local! {
     static WORLD_SNAPSHOT: RefCell<WorldSnapshot> = RefCell::new(WorldSnapshot::default());
@@ -26,10 +26,13 @@ pub fn install_input_snapshot(snapshot: &crate::input::InputSnapshot) {
     INPUT_SNAPSHOT.with(|cell| *cell.borrow_mut() = Some(snapshot.clone()));
 }
 
-/// Side effects requested by `entry_script` during a step.
+/// Side effects requested by world/entity scripts during a step.
 #[derive(Clone, Default)]
 pub struct WorldControlPatch {
     pub time_scale: Option<f32>,
+    pub camera_target: Option<String>,
+    pub spawn_prefab: Option<(String, f64, f64, f64)>,
+    pub spawn_projectile: Option<(f64, f64, f64, f64, f64, f64, f64)>,
 }
 
 pub fn take_world_control_patch() -> WorldControlPatch {
@@ -41,6 +44,8 @@ pub fn take_world_control_patch() -> WorldControlPatch {
 #[derive(Clone, Default)]
 pub struct WorldSnapshot {
     positions: HashMap<String, [f32; 3]>,
+    rotations: HashMap<String, [f32; 3]>,
+    tag_to_entity: HashMap<String, String>,
 }
 
 impl WorldSnapshot {
@@ -51,6 +56,12 @@ impl WorldSnapshot {
                 .into_iter()
                 .map(|(name, pos)| (name, [pos.x, pos.y, pos.z]))
                 .collect(),
+            rotations: world
+                .named_rotations()
+                .into_iter()
+                .map(|(name, rot)| (name, [rot.x, rot.y, rot.z]))
+                .collect(),
+            tag_to_entity: world.tag_index(),
         }
     }
 
@@ -67,12 +78,15 @@ pub enum ScriptMode {
     Kinematic,
     /// `on_update` returns `[fx, fy, fz]` — force applied to dynamic body.
     Force,
+    /// `on_update` returns `[ix, iy, iz]` — impulse applied once per step.
+    Impulse,
 }
 
 impl ScriptMode {
     pub fn parse(raw: &str) -> Self {
         match raw.to_ascii_lowercase().as_str() {
             "force" | "dynamic" => Self::Force,
+            "impulse" => Self::Impulse,
             _ => Self::Kinematic,
         }
     }
@@ -102,6 +116,20 @@ fn new_engine() -> Engine {
         WORLD_SNAPSHOT.with(|cell| cell.borrow().positions.get(name).map(|p| p[2] as f64).unwrap_or(0.0))
     });
 
+    engine.register_fn("entity_rot", |name: &str| -> Array {
+        WORLD_SNAPSHOT.with(|cell| {
+            cell.borrow()
+                .rotations
+                .get(name)
+                .map(|r| vec![Dynamic::from(r[0] as f64), Dynamic::from(r[1] as f64), Dynamic::from(r[2] as f64)])
+                .unwrap_or_default()
+        })
+    });
+
+    engine.register_fn("entity_with_tag", |tag: &str| -> String {
+        WORLD_SNAPSHOT.with(|cell| cell.borrow().tag_to_entity.get(tag).cloned().unwrap_or_default())
+    });
+
     engine.register_fn("dist3", |x1: f64, y1: f64, z1: f64, x2: f64, y2: f64, z2: f64| -> f64 {
         let dx = x2 - x1;
         let dy = y2 - y1;
@@ -117,6 +145,8 @@ fn new_engine() -> Engine {
         ]
     });
 
+    engine.register_fn("yaw_from_delta", |dx: f64, dz: f64| -> f64 { dx.atan2(dz) });
+
     engine.register_fn("input_axis", |name: &str| -> f64 {
         INPUT_SNAPSHOT.with(|cell| cell.borrow().as_ref().map(|s| s.axis(name) as f64).unwrap_or(0.0))
     });
@@ -127,6 +157,12 @@ fn new_engine() -> Engine {
         INPUT_SNAPSHOT.with(|cell| cell.borrow().as_ref().is_some_and(|s| s.down(name)))
     });
 
+    engine.register_fn("spawn_projectile", |x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, lifetime: f64| {
+        PENDING_WORLD_CONTROL.with(|cell| {
+            cell.borrow_mut().spawn_projectile = Some((x, y, z, vx, vy, vz, lifetime));
+        });
+    });
+
     engine
 }
 
@@ -134,6 +170,12 @@ fn new_world_engine() -> Engine {
     let mut engine = new_engine();
     engine.register_fn("set_time_scale", |scale: f64| {
         PENDING_WORLD_CONTROL.with(|cell| cell.borrow_mut().time_scale = Some(scale as f32));
+    });
+    engine.register_fn("set_camera_target", |name: &str| {
+        PENDING_WORLD_CONTROL.with(|cell| cell.borrow_mut().camera_target = Some(name.to_string()));
+    });
+    engine.register_fn("spawn_prefab", |name: &str, x: f64, y: f64, z: f64| {
+        PENDING_WORLD_CONTROL.with(|cell| cell.borrow_mut().spawn_prefab = Some((name.to_string(), x, y, z)));
     });
     engine
 }
@@ -184,8 +226,12 @@ impl EntityScript {
             }
         };
 
-        if arr.len() != 3 {
-            return Some(format!("{} on_update must return [x,y,z], got {} elements", self.path_label, arr.len()));
+        if arr.len() != 3 && arr.len() != 6 {
+            return Some(format!(
+                "{} on_update must return [x,y,z] or [x,y,z,rx,ry,rz], got {} elements",
+                self.path_label,
+                arr.len()
+            ));
         }
 
         let x = arr[0].as_float().unwrap_or(0.0) as f32;
@@ -193,8 +239,18 @@ impl EntityScript {
         let z = arr[2].as_float().unwrap_or(0.0) as f32;
 
         match self.mode {
-            ScriptMode::Kinematic => rigid_body.set_next_kinematic_translation(Vec3::new(x, y, z)),
+            ScriptMode::Kinematic => {
+                rigid_body.set_next_kinematic_translation(Vec3::new(x, y, z));
+                if arr.len() == 6 {
+                    let rx = arr[3].as_float().unwrap_or(0.0) as f32;
+                    let ry = arr[4].as_float().unwrap_or(0.0) as f32;
+                    let rz = arr[5].as_float().unwrap_or(0.0) as f32;
+                    let rot = Quat::from_euler(EulerRot::YXZ, ry, rx, rz);
+                    rigid_body.set_next_kinematic_rotation(rot);
+                }
+            }
             ScriptMode::Force => rigid_body.add_force(Vec3::new(x, y, z), true),
+            ScriptMode::Impulse => rigid_body.apply_impulse(Vec3::new(x, y, z), true),
         }
         None
     }
