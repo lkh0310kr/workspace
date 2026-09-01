@@ -1,7 +1,7 @@
 # World Engine — Rhai API v3
 
 **Version constant:** `world_engine_core::script::RHAI_API_VERSION` = `"3"`  
-**Status:** Phase 31–32 (2026-09-01) — simulation & design track
+**Status:** Phase 31–33 (2026-09-01) — simulation & design track
 
 v2 functions remain. Additive only until v4.
 
@@ -73,6 +73,17 @@ Rust: `World::sim_metrics()` → `HashMap<String, f64>` snapshot after `step`.
 
 Shells read metrics; domain key names live in project docs, not the engine schema.
 
+### v3 — deterministic RNG (Phase 33)
+
+| Function | Description |
+|----------|-------------|
+| `rand()` | Uniform f64 in `[0, 1)` |
+| `rand_range(lo, hi)` | Uniform f64 in `[lo, hi)` |
+
+JSON: optional `sim_seed: u64` (default `1`). Rust: `World::sim_seed()`, `World::set_sim_seed(seed)` resets RNG state.
+
+Draw order follows script execution order within each `step` (entry_script first, then entity scripts). Same seed + same `step_n` → reproducible metrics and motion.
+
 ---
 
 ## script_mode
@@ -87,4 +98,4 @@ Shells read metrics; domain key names live in project docs, not the engine schem
 
 ## Migration v2 → v3
 
-No breaking changes. Projects may adopt `sim_var` / `publish_metric` when cross-script state or headless metrics are needed.
+No breaking changes. Projects may adopt `sim_var` / `publish_metric` when cross-script state or headless metrics are needed. Set `sim_seed` when scenarios must replay identically.

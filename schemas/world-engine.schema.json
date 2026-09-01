@@ -12,6 +12,11 @@
       "maxItems": 3
     },
     "time_scale": { "type": "number", "minimum": 0 },
+    "sim_seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "RNG seed for Rhai rand() / rand_range() (default 1)"
+    },
     "entry_script": { "type": "string" },
     "active_scene": { "type": "string" },
     "show_grid": { "type": "boolean" },

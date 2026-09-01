@@ -487,7 +487,7 @@ Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. �
 
 **Phase 1–30 완료.** 다음은 **§10 Simulation & Design Track (Phase 31+)** — 월드 엔진 코어·qt-shell만. 네트워크·PBR·게임 레퍼런스 확장은 하지 않음.
 
-**착수:** Phase 33 `sim_seed` / 결정론.
+**착수:** Phase 34 entity `properties`.
 
 macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-quarantine.sh` 실행.
 
@@ -547,7 +547,7 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 ---
 
 ### Phase 33 — Determinism & scenario seed  
-**상태:** ⬜ PENDING  
+**상태:** ✅ DONE (2026-09-01)  
 **목표:** 같은 `world-engine.json` + seed → 같은 `step_n` 결과 (설계 A/B 비교 전제).
 
 | IN | OUT |
