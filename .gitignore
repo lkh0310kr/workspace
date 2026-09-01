@@ -1,5 +1,9 @@
-/ref-proj
+/ref-proj/*
+!/ref-proj/README.md
 .DS_Store
+
+# Scratch notes (local only)
+untitled*.md
 
 # Personal dev-session state / debug artifacts — not meant to be shared
 # (exported layout snapshots, scratch test files, debug logs). Keeps
