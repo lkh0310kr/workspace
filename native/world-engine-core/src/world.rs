@@ -834,6 +834,11 @@ impl World {
         self.time
     }
 
+    /// Restores running clock (checkpoint load). Does not re-run physics.
+    pub fn set_sim_time(&mut self, time: f32) {
+        self.time = time.max(0.0);
+    }
+
     pub fn sim_var(&self, key: &str) -> f64 {
         self.sim_vars.get(key).copied().unwrap_or(0.0)
     }
@@ -844,6 +849,10 @@ impl World {
 
     pub fn sim_vars(&self) -> &HashMap<String, f64> {
         &self.sim_vars
+    }
+
+    pub fn replace_sim_vars(&mut self, vars: HashMap<String, f64>) {
+        self.sim_vars = vars;
     }
 
     /// Snapshot of runtime scalars for headless tests and shells (same store as `sim_var`).
@@ -858,6 +867,10 @@ impl World {
     pub fn set_sim_seed(&mut self, seed: u64) {
         self.sim_seed = seed;
         self.rng_state = seed;
+    }
+
+    pub fn rng_state(&self) -> u64 {
+        self.rng_state
     }
 
     pub(crate) fn set_rng_state(&mut self, state: u64) {

@@ -1,7 +1,8 @@
 //! World snapshot save/load (Unity PlayerPrefs + scene serialize lite).
 
+use std::collections::HashMap;
+
 use glam::Vec3;
-use hecs::Entity;
 use serde::{Deserialize, Serialize};
 
 use crate::world::{BodyType, World};
@@ -20,10 +21,23 @@ pub struct WorldSave {
     pub sim_time: f32,
     pub time_scale: f32,
     pub entities: Vec<EntitySave>,
+    /// Shared simulation scalars (Phase 38).
+    #[serde(default)]
+    pub sim_vars: HashMap<String, f64>,
+    /// Rhai RNG stream position for deterministic continuation.
+    #[serde(default)]
+    pub rng_state: u64,
+    /// Scene seed at snapshot time (informational).
+    #[serde(default = "default_sim_seed")]
+    pub sim_seed: u64,
+}
+
+fn default_sim_seed() -> u64 {
+    1
 }
 
 impl World {
-    /// Serializable snapshot of named entities (positions, rotations, velocities).
+    /// Serializable snapshot of named entities and runtime simulation state.
     pub fn snapshot(&self) -> WorldSave {
         let mut entities = Vec::new();
         for name in self.entity_names() {
@@ -50,12 +64,18 @@ impl World {
             sim_time: self.sim_time(),
             time_scale: self.time_scale(),
             entities,
+            sim_vars: self.sim_vars().clone(),
+            rng_state: self.rng_state(),
+            sim_seed: self.sim_seed(),
         }
     }
 
-    /// Restores transform state for named entities already in the world.
+    /// Restores transforms and runtime simulation state for an existing scene.
     pub fn restore(&mut self, save: &WorldSave) {
         self.set_time_scale(save.time_scale);
+        self.set_sim_time(save.sim_time);
+        self.replace_sim_vars(save.sim_vars.clone());
+        self.set_rng_state(save.rng_state);
         for entry in &save.entities {
             let Some(name) = &entry.name else { continue };
             let Some(entity) = self.entity_by_name(name) else { continue };
