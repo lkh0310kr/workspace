@@ -1,7 +1,7 @@
-import { protocol } from "electron";
+import { net, protocol } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Readable } from "node:stream";
+import { pathToFileURL } from "node:url";
 import { MODEL_MIME_TYPES, MODEL_SCHEME } from "./modelProtocolUrl";
 
 const MODEL_HOST = "local";
@@ -9,7 +9,14 @@ const MODEL_HOST = "local";
 protocol.registerSchemesAsPrivileged([
   {
     scheme: MODEL_SCHEME,
-    privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true },
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+      bypassCSP: true,
+    },
   },
 ]);
 
@@ -52,23 +59,16 @@ export function registerModelProtocol(getAllowedRoots: () => string[]): void {
       return new Response("unsupported type", { status: 415 });
     }
 
-    let size: number;
-    try {
-      size = fs.statSync(realPath).size;
-    } catch {
-      return new Response("read error", { status: 500 });
-    }
-
-    const nodeStream = fs.createReadStream(realPath);
-    const webStream = Readable.toWeb(nodeStream) as ReadableStream;
-
-    return new Response(webStream, {
-      status: 200,
-      headers: {
-        "content-type": contentType,
-        "content-length": String(size),
-        "access-control-allow-origin": "*",
-      },
+    // net.fetch(file://) is more reliable than Readable.toWeb streams for
+    // renderer fetch() + Three.js FileLoader (Electron #41962).
+    const fileResponse = await net.fetch(pathToFileURL(realPath).toString());
+    const headers = new Headers(fileResponse.headers);
+    headers.set("content-type", contentType);
+    headers.set("access-control-allow-origin", "*");
+    return new Response(fileResponse.body, {
+      status: fileResponse.status,
+      statusText: fileResponse.statusText,
+      headers,
     });
   });
 }
