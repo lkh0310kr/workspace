@@ -648,6 +648,11 @@ impl World {
         &self.sim_vars
     }
 
+    /// Snapshot of runtime scalars for headless tests and shells (same store as `sim_var`).
+    pub fn sim_metrics(&self) -> HashMap<String, f64> {
+        self.sim_vars.clone()
+    }
+
     /// Advances the simulation by `steps` fixed-timestep ticks.
     pub fn step_n(&mut self, steps: u32) {
         for _ in 0..steps {

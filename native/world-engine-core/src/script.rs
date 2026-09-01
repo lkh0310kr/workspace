@@ -175,6 +175,11 @@ fn new_engine() -> Engine {
             cell.borrow_mut().insert(name.to_string(), value);
         });
     });
+    engine.register_fn("publish_metric", |name: &str, value: f64| {
+        PENDING_SIM_VARS.with(|cell| {
+            cell.borrow_mut().insert(name.to_string(), value);
+        });
+    });
 
     engine.register_fn("spawn_projectile", |x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, lifetime: f64| {
         PENDING_WORLD_CONTROL.with(|cell| {
