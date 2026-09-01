@@ -24,11 +24,11 @@ pub mod world;
 pub use render::{Camera, GpuContext, Mesh, RenderOptions, Vertex, HEIGHT, WIDTH, init_gpu, init_gpu_sized, load_mesh, render_frame, render_frame_with_options};
 #[cfg(target_os = "windows")]
 pub use render::init_gpu_win32;
-pub use scene::{SceneFile, build_world, default_scene, load_scene};
+pub use scene::{lower_entity_def, spawn_from_blueprint, ComponentDef, EntityBlueprint, SceneFile, build_world, default_scene, load_scene};
 pub use input::{InputMap, InputState, key_name_from_qt};
 pub use events::{CollisionEvent, CollisionEventBuffer};
 pub use camera::{CameraDef, RuntimeCamera};
 pub use pick::{pick_entity_at_screen, PickHit};
 pub use save::{EntitySave, WorldSave};
 pub use prefab::{PrefabFile, load_prefab, spawn_prefab_at};
-pub use world::{Behavior, BodyType, EntitySpec, JointKind, MeshKind, Projectile, Shape, UpdateCtx, World};
+pub use world::{Behavior, BodyType, EntitySpec, JointKind, MeshKind, PhysicsSpec, Projectile, RenderSpec, Shape, TransformSpec, UpdateCtx, World};

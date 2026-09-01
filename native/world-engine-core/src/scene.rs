@@ -5,13 +5,17 @@
 //! hardcoded implementation — hand-written game code and JSON-declared
 //! scenes go through the exact same `World` methods.
 
+pub mod object;
+
 use glam::Vec3;
 use serde::Deserialize;
 use serde_json::Value;
 
 use crate::camera::{CameraDef, RuntimeCamera};
-use crate::script::{load_entity_script, load_world_script, ScriptMode};
-use crate::world::{BodyType, EntitySpec, JointKind, MeshKind, Shape, World};
+use crate::script::load_world_script;
+use crate::world::{BodyType, JointKind, MeshKind, Shape, World};
+
+pub use object::{lower_entity_def, spawn_from_blueprint, EntityBlueprint, ComponentDef};
 
 #[derive(Deserialize, Clone)]
 pub struct SceneFile {
@@ -164,6 +168,15 @@ pub struct SceneEntityDef {
     /// Collision mask bitmask.
     #[serde(default)]
     pub collision_mask: Option<u16>,
+    /// Generic design metadata (Phase 34).
+    #[serde(default)]
+    pub properties: Option<Value>,
+    /// Explicit component list — when set, flat fields are ignored (Phase 41).
+    #[serde(default)]
+    pub components: Option<Vec<ComponentDef>>,
+    /// Pick AABB half extents when no render mesh (Phase 41).
+    #[serde(default)]
+    pub pick_half_extents: Option<[f32; 3]>,
 }
 
 /// Simple sinusoidal oscillation along one axis — see `World::add_motion`.
@@ -202,6 +215,7 @@ impl SceneEntityDef {
             BodyTypeDef::Dynamic => BodyType::Dynamic,
             BodyTypeDef::Fixed => BodyType::Fixed,
             BodyTypeDef::Kinematic => BodyType::Kinematic,
+            BodyTypeDef::None => BodyType::None,
         }
     }
 
@@ -230,6 +244,7 @@ pub enum BodyTypeDef {
     Dynamic,
     Fixed,
     Kinematic,
+    None,
 }
 
 fn default_half_extents() -> [f32; 3] {
@@ -275,6 +290,9 @@ pub fn default_scene() -> SceneFile {
             friction: None,
             collision_layer: None,
             collision_mask: None,
+            properties: None,
+            components: None,
+            pick_half_extents: None,
         }],
         mesh: None,
         joints: vec![],
@@ -364,39 +382,8 @@ pub fn build_world(
     let mut entities = Vec::with_capacity(merged.entities.len());
 
     for def in &merged.entities {
-        let (shape, render_override) = match mesh_half_extents {
-            Some(half_extents) => (Shape::Cuboid { half_extents: Vec3::from(half_extents) }, Some(MeshKind::Loaded)),
-            None => (def.resolved_shape(), def.resolved_mesh_kind()),
-        };
-        let spec = EntitySpec {
-            position: Vec3::from(def.position),
-            rotation: Vec3::from(def.rotation),
-            restitution: def.restitution,
-            color: Vec3::from(def.color),
-            body_type: def.resolved_body_type(),
-            shape,
-            render_override,
-            velocity: def.velocity.map(Vec3::from).unwrap_or(Vec3::ZERO),
-            sensor: def.trigger,
-            mass: def.mass.unwrap_or(1.0),
-            friction: def.friction.unwrap_or(0.5),
-            collision_layer: def.collision_layer.unwrap_or(1),
-            collision_mask: def.collision_mask.unwrap_or(0xFFFF),
-        };
-        let entity = world.spawn_named(spec, def.name.clone());
-        if let Some(tags) = &def.tags {
-            world.set_tags(entity, tags.clone());
-        }
-        if let (Some(dir), Some(script_rel)) = (project_dir, def.script.as_deref()) {
-            let mode = ScriptMode::parse(def.script_mode.as_deref().unwrap_or("kinematic"));
-            match load_entity_script(dir, script_rel, def.script_args.as_ref(), mode) {
-                Ok(script) => world.attach_script(entity, script),
-                Err(err) => eprintln!("entity script error: {err}"),
-            }
-        }
-        if let Some(motion) = def.motion {
-            world.add_motion(entity, Vec3::from(def.position), Vec3::from(motion.axis), motion.amplitude, motion.speed);
-        }
+        let blueprint = lower_entity_def(def, mesh_half_extents);
+        let entity = spawn_from_blueprint(&mut world, &blueprint, Vec3::ZERO, project_dir);
         entities.push(entity);
     }
 

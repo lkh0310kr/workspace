@@ -35,6 +35,7 @@ impl World {
                 BodyType::Dynamic => "dynamic",
                 BodyType::Fixed => "fixed",
                 BodyType::Kinematic => "kinematic",
+                BodyType::None => "none",
             };
             entities.push(EntitySave {
                 name: Some(name.clone()),

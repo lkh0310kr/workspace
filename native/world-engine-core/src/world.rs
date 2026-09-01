@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use glam::{EulerRot, Mat4, Quat, Vec3};
 use hecs::Entity;
 use rapier3d::prelude::*;
+use serde_json::Value;
 
 use crate::camera::RuntimeCamera;
 use crate::events::CollisionEventBuffer;
@@ -49,6 +50,12 @@ struct RenderScale(Vec3);
 
 struct EntityName(String);
 
+/// Design metadata — engine-agnostic key/value (Phase 34).
+struct Properties(HashMap<String, Value>);
+
+/// Axis-aligned half extents for picking when no `RenderScale` is present (Phase 41).
+struct PickBounds(Vec3);
+
 struct BehaviorSlot(Box<dyn Behavior>);
 
 /// Real per-frame user logic hooked into the engine loop — the actual
@@ -72,22 +79,54 @@ pub struct UpdateCtx<'a> {
     pub rigid_body: &'a mut RigidBody,
 }
 
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
 pub enum BodyType {
     #[default]
     Dynamic,
     Fixed,
     Kinematic,
+    /// No Rapier body — transform-only scene object (Phase 41).
+    None,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Shape {
     Cuboid { half_extents: Vec3 },
     Sphere { radius: f32 },
 }
 
-/// The one real way to describe an entity, whether it comes from
-/// hand-written game code or `crate::scene`'s JSON loader.
+/// Describes transform placement for composition spawn APIs.
+#[derive(Clone, Copy, Debug)]
+pub struct TransformSpec {
+    pub position: Vec3,
+    pub rotation: Vec3,
+}
+
+/// Rapier collider + rigid body bundle.
+#[derive(Clone, Copy, Debug)]
+pub struct PhysicsSpec {
+    pub body_type: BodyType,
+    pub shape: Shape,
+    pub restitution: f32,
+    pub velocity: Vec3,
+    pub sensor: bool,
+    pub mass: f32,
+    pub friction: f32,
+    pub collision_layer: u16,
+    pub collision_mask: u16,
+}
+
+/// Draw mesh + tint for an entity.
+#[derive(Clone, Copy, Debug)]
+pub struct RenderSpec {
+    pub color: Vec3,
+    pub mesh_kind: MeshKind,
+    pub scale: Vec3,
+}
+
+/// Hand-written spawn bundle — still supported; internally uses `spawn_empty` +
+/// `attach_*` (Phase 41). Prefer `lower_entity_def` + `spawn_from_blueprint`
+/// for JSON-aligned scenes.
 pub struct EntitySpec {
     pub position: Vec3,
     pub rotation: Vec3,
@@ -260,10 +299,13 @@ impl World {
 
     /// Axis-aligned half extents used for rendering and screen picking.
     pub fn render_half_extents(&self, entity: Entity) -> Vec3 {
-        self.ecs
-            .get::<&RenderScale>(entity)
-            .map(|s| s.0 * 0.5)
-            .unwrap_or(Vec3::splat(0.5))
+        if let Ok(scale) = self.ecs.get::<&RenderScale>(entity) {
+            return scale.0 * 0.5;
+        }
+        if let Ok(bounds) = self.ecs.get::<&PickBounds>(entity) {
+            return bounds.0;
+        }
+        Vec3::splat(0.5)
     }
 
     pub fn entity_by_tag(&self, tag: &str) -> Option<Entity> {
@@ -284,6 +326,48 @@ impl World {
             }
         } else {
             let _ = self.ecs.insert_one(entity, EntityTags(tags));
+        }
+    }
+
+    /// Attaches design metadata (generic key/value — no domain semantics).
+    pub fn set_properties(&mut self, entity: Entity, properties: HashMap<String, Value>) {
+        if properties.is_empty() {
+            return;
+        }
+        if self.ecs.get::<&Properties>(entity).is_ok() {
+            if let Ok(mut existing) = self.ecs.get::<&mut Properties>(entity) {
+                existing.0 = properties;
+            }
+        } else {
+            let _ = self.ecs.insert_one(entity, Properties(properties));
+        }
+    }
+
+    pub fn entity_properties(&self, entity: Entity) -> Option<HashMap<String, Value>> {
+        self.ecs.get::<&Properties>(entity).ok().map(|p| p.0.clone())
+    }
+
+    pub fn named_properties(&self) -> HashMap<String, HashMap<String, Value>> {
+        self.names
+            .iter()
+            .filter_map(|(name, &entity)| {
+                self.entity_properties(entity)
+                    .map(|props| (name.clone(), props.clone()))
+            })
+            .collect()
+    }
+
+    pub fn has_physics(&self, entity: Entity) -> bool {
+        self.ecs.get::<&PhysicsBody>(entity).is_ok()
+    }
+
+    pub fn set_pick_bounds(&mut self, entity: Entity, half_extents: Vec3) {
+        if self.ecs.get::<&PickBounds>(entity).is_ok() {
+            if let Ok(mut existing) = self.ecs.get::<&mut PickBounds>(entity) {
+                existing.0 = half_extents;
+            }
+        } else {
+            let _ = self.ecs.insert_one(entity, PickBounds(half_extents));
         }
     }
 
@@ -347,16 +431,22 @@ impl World {
     }
 
     pub fn rotation_euler(&self, entity: Entity) -> Vec3 {
-        let handle = self.ecs.get::<&PhysicsBody>(entity).expect("rotation_euler: no body").0;
-        let q = self.rigid_body_set[handle].rotation();
-        let (y, x, z) = q.to_euler(EulerRot::YXZ);
+        if let Ok(body) = self.ecs.get::<&PhysicsBody>(entity) {
+            let q = self.rigid_body_set[body.0].rotation();
+            let (y, x, z) = q.to_euler(EulerRot::YXZ);
+            return Vec3::new(x, y, z);
+        }
+        let transform = self.ecs.get::<&Transform>(entity).expect("rotation_euler: no transform");
+        let (y, x, z) = transform.rotation.to_euler(EulerRot::YXZ);
         Vec3::new(x, y, z)
     }
 
     pub fn linear_velocity(&self, entity: Entity) -> Vec3 {
-        let handle = self.ecs.get::<&PhysicsBody>(entity).expect("linear_velocity: no body").0;
-        let v = self.rigid_body_set[handle].linvel();
-        Vec3::new(v.x, v.y, v.z)
+        if let Ok(body) = self.ecs.get::<&PhysicsBody>(entity) {
+            let v = self.rigid_body_set[body.0].linvel();
+            return Vec3::new(v.x, v.y, v.z);
+        }
+        Vec3::ZERO
     }
 
     pub fn entity_names(&self) -> Vec<String> {
@@ -364,8 +454,10 @@ impl World {
     }
 
     pub fn body_type_of(&self, entity: Entity) -> BodyType {
-        let handle = self.ecs.get::<&PhysicsBody>(entity).expect("body_type_of: no body").0;
-        match self.rigid_body_set[handle].body_type() {
+        let Some(body) = self.ecs.get::<&PhysicsBody>(entity).ok() else {
+            return BodyType::None;
+        };
+        match self.rigid_body_set[body.0].body_type() {
             RigidBodyType::Dynamic => BodyType::Dynamic,
             RigidBodyType::Fixed => BodyType::Fixed,
             RigidBodyType::KinematicPositionBased | RigidBodyType::KinematicVelocityBased => BodyType::Kinematic,
@@ -505,22 +597,62 @@ impl World {
         self.spawn_named(spec, None)
     }
 
-    pub fn spawn_named(&mut self, spec: EntitySpec, name: Option<String>) -> Entity {
+    /// Spawns a scene object with only a `Transform` (and optional name).
+    pub fn spawn_empty(&mut self, name: Option<String>) -> Entity {
+        let entity = self
+            .ecs
+            .spawn((Transform {
+                translation: Vec3::ZERO,
+                rotation: Quat::IDENTITY,
+            },));
+        self.entities.push(entity);
+        if let Some(name) = name {
+            self.ecs
+                .insert_one(entity, EntityName(name.clone()))
+                .expect("entity was just spawned, must still exist");
+            self.names.insert(name, entity);
+        }
+        entity
+    }
+
+    pub fn set_transform(&mut self, entity: Entity, position: Vec3, rotation_euler: Vec3) {
+        let rotation = Quat::from_euler(EulerRot::YXZ, rotation_euler.y, rotation_euler.x, rotation_euler.z);
+        if let Ok(mut transform) = self.ecs.get::<&mut Transform>(entity) {
+            transform.translation = position;
+            transform.rotation = rotation;
+        }
+        if let Ok(body) = self.ecs.get::<&PhysicsBody>(entity) {
+            self.rigid_body_set[body.0].set_translation(position, true);
+            self.rigid_body_set[body.0].set_rotation(rotation, true);
+        }
+    }
+
+    pub fn attach_transform(&mut self, entity: Entity, spec: TransformSpec) {
+        self.set_transform(entity, spec.position, spec.rotation);
+    }
+
+    pub fn attach_physics(&mut self, entity: Entity, spec: &PhysicsSpec) {
+        if spec.body_type == BodyType::None {
+            return;
+        }
         let rigid_body_builder = match spec.body_type {
             BodyType::Dynamic => RigidBodyBuilder::dynamic(),
             BodyType::Fixed => RigidBodyBuilder::fixed(),
             BodyType::Kinematic => RigidBodyBuilder::kinematic_position_based(),
+            BodyType::None => return,
         };
+        let position = self.position(entity);
+        let rotation_euler = self.rotation_euler(entity);
         let rigid_body = rigid_body_builder
-            .translation(spec.position)
-            .rotation(spec.rotation)
+            .translation(position)
+            .rotation(rotation_euler)
             .linvel(spec.velocity)
             .build();
         let handle = self.rigid_body_set.insert(rigid_body);
 
-        let (collider, default_mesh_kind) = match spec.shape {
-            Shape::Cuboid { half_extents } => (ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z), MeshKind::Cube),
-            Shape::Sphere { radius } => (ColliderBuilder::ball(radius), MeshKind::Sphere),
+        let collider = match spec.shape {
+            Shape::Cuboid { half_extents } => ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z),
+            Shape::Sphere { radius } => ColliderBuilder::ball(radius),
         };
         let mut collider = collider.restitution(spec.restitution).friction(spec.friction);
         if spec.body_type == BodyType::Dynamic {
@@ -537,27 +669,89 @@ impl World {
         );
         collider = collider.active_events(ActiveEvents::COLLISION_EVENTS);
         let collider = collider.build();
-        let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
-
-        let mesh_kind = spec.render_override.unwrap_or(default_mesh_kind);
-        let render_scale = match spec.shape {
-            Shape::Cuboid { half_extents } => half_extents * 2.0,
-            Shape::Sphere { radius } => Vec3::splat(radius * 2.0),
-        };
-        let entity = self.ecs.spawn((
-            Transform { translation: Vec3::ZERO, rotation: Quat::IDENTITY },
-            PhysicsBody(handle),
-            PhysicsCollider(collider_handle),
-            Tint(spec.color),
-            RenderMesh(mesh_kind),
-            RenderScale(render_scale),
-        ));
+        let collider_handle = self
+            .collider_set
+            .insert_with_parent(collider, handle, &mut self.rigid_body_set);
+        self.ecs
+            .insert_one(entity, PhysicsBody(handle))
+            .expect("attach_physics: entity must exist");
+        self.ecs
+            .insert_one(entity, PhysicsCollider(collider_handle))
+            .expect("attach_physics: entity must exist");
         self.collider_to_entity.insert(collider_handle, entity);
-        self.entities.push(entity);
-        if let Some(name) = name {
-            self.ecs.insert_one(entity, EntityName(name.clone())).expect("entity was just spawned, must still exist");
-            self.names.insert(name, entity);
+    }
+
+    pub fn attach_render(&mut self, entity: Entity, spec: RenderSpec) {
+        if self.ecs.get::<&Tint>(entity).is_ok() {
+            if let Ok(mut tint) = self.ecs.get::<&mut Tint>(entity) {
+                tint.0 = spec.color;
+            }
+        } else {
+            let _ = self.ecs.insert_one(entity, Tint(spec.color));
         }
+        if self.ecs.get::<&RenderMesh>(entity).is_ok() {
+            if let Ok(mut mesh) = self.ecs.get::<&mut RenderMesh>(entity) {
+                mesh.0 = spec.mesh_kind;
+            }
+        } else {
+            let _ = self.ecs.insert_one(entity, RenderMesh(spec.mesh_kind));
+        }
+        if self.ecs.get::<&RenderScale>(entity).is_ok() {
+            if let Ok(mut scale) = self.ecs.get::<&mut RenderScale>(entity) {
+                scale.0 = spec.scale;
+            }
+        } else {
+            let _ = self.ecs.insert_one(entity, RenderScale(spec.scale));
+        }
+    }
+
+    pub fn spawn_named(&mut self, spec: EntitySpec, name: Option<String>) -> Entity {
+        if spec.body_type == BodyType::None {
+            let entity = self.spawn_empty(name);
+            self.set_transform(entity, spec.position, spec.rotation);
+            let (mesh_kind, scale) = render_parts_from_shape(&spec.shape, spec.render_override);
+            self.attach_render(
+                entity,
+                RenderSpec {
+                    color: spec.color,
+                    mesh_kind,
+                    scale,
+                },
+            );
+            return entity;
+        }
+
+        let entity = self.spawn_empty(name);
+        self.attach_transform(
+            entity,
+            TransformSpec {
+                position: spec.position,
+                rotation: spec.rotation,
+            },
+        );
+        self.attach_physics(
+            entity,
+            &PhysicsSpec {
+                body_type: spec.body_type,
+                shape: spec.shape,
+                restitution: spec.restitution,
+                velocity: spec.velocity,
+                sensor: spec.sensor,
+                mass: spec.mass,
+                friction: spec.friction,
+                collision_layer: spec.collision_layer,
+                collision_mask: spec.collision_mask,
+            },
+        );
+        let (mesh_kind, scale) = render_parts_from_shape(&spec.shape, spec.render_override);
+        self.attach_render(
+            entity,
+            RenderSpec {
+                color: spec.color,
+                mesh_kind,
+                scale,
+            },
+        );
         entity
     }
 
@@ -705,7 +899,9 @@ impl World {
         let mut kinematic_targets = Vec::new();
         for &entity in &self.entities {
             if let Ok(motion) = self.ecs.get::<&Motion>(entity) {
-                let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
+                let Some(body_handle) = self.ecs.get::<&PhysicsBody>(entity).ok().map(|b| b.0) else {
+                    continue;
+                };
                 let offset = motion.axis.normalize_or_zero() * motion.amplitude * (time * motion.speed).sin();
                 kinematic_targets.push((body_handle, motion.origin + offset));
             }
@@ -718,13 +914,19 @@ impl World {
         let mut script_updates = Vec::new();
         for &entity in &self.entities {
             if self.scripts.contains_key(&entity) {
-                let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
-                script_updates.push((entity, body_handle));
+                script_updates.push(entity);
             }
         }
-        for (entity, body_handle) in script_updates {
+        for entity in script_updates {
             if let Some(script) = self.scripts.get_mut(&entity) {
-                if let Some(err) = script.apply(dt, time, &mut self.rigid_body_set[body_handle], &snapshot) {
+                let err = if let Ok(body) = self.ecs.get::<&PhysicsBody>(entity) {
+                    script.apply(dt, time, &mut self.rigid_body_set[body.0], &snapshot)
+                } else if let Ok(mut transform) = self.ecs.get::<&mut Transform>(entity) {
+                    script.apply_transform(dt, time, &mut transform, &snapshot)
+                } else {
+                    None
+                };
+                if let Some(err) = err {
                     self.note_script_error(err);
                 }
                 let patch = take_world_control_patch();
@@ -737,7 +939,9 @@ impl World {
         // User Behaviors — also before the physics step, so anything they
         // set on the rigid body is consumed this step.
         for &entity in &self.entities {
-            let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
+            let Some(body_handle) = self.ecs.get::<&PhysicsBody>(entity).ok().map(|b| b.0) else {
+                continue;
+            };
             if let Ok(mut slot) = self.ecs.get::<&mut BehaviorSlot>(entity) {
                 let rigid_body = &mut self.rigid_body_set[body_handle];
                 let mut ctx = UpdateCtx { entity, dt, time, rigid_body };
@@ -779,7 +983,9 @@ impl World {
         }
 
         for &entity in &self.entities {
-            let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
+            let Some(body_handle) = self.ecs.get::<&PhysicsBody>(entity).ok().map(|b| b.0) else {
+                continue;
+            };
             let body = &self.rigid_body_set[body_handle];
             let t = body.translation();
             let r = body.rotation();
@@ -793,10 +999,13 @@ impl World {
         for &entity in &self.entities {
             if self.scripts.contains_key(&entity) {
                 let events = self.collision_events.drain_for(entity);
-                if !events.is_empty() {
-                    let body_handle = self.ecs.get::<&PhysicsBody>(entity).unwrap().0;
-                    collision_callbacks.push((entity, body_handle, events));
+                if events.is_empty() {
+                    continue;
                 }
+                let Some(body_handle) = self.ecs.get::<&PhysicsBody>(entity).ok().map(|b| b.0) else {
+                    continue;
+                };
+                collision_callbacks.push((entity, body_handle, events));
             }
         }
         let mut script_errors = Vec::new();
@@ -871,21 +1080,34 @@ impl World {
     pub fn draw_list(&self) -> Vec<(Mat4, Vec3, MeshKind)> {
         self.entities
             .iter()
-            .map(|&entity| {
-                let transform = self.ecs.get::<&Transform>(entity).unwrap();
-                let tint = self.ecs.get::<&Tint>(entity).unwrap();
-                let mesh_kind = self.ecs.get::<&RenderMesh>(entity).unwrap().0;
+            .filter_map(|&entity| {
+                let transform = self.ecs.get::<&Transform>(entity).ok()?;
+                let tint = self.ecs.get::<&Tint>(entity).ok()?;
+                let mesh_kind = self.ecs.get::<&RenderMesh>(entity).ok()?.0;
                 let scale = self
                     .ecs
                     .get::<&RenderScale>(entity)
                     .map(|s| s.0)
                     .unwrap_or(Vec3::ONE);
-                (
+                Some((
                     Mat4::from_scale_rotation_translation(scale, transform.rotation, transform.translation),
                     tint.0,
                     mesh_kind,
-                )
+                ))
             })
             .collect()
     }
+}
+
+fn render_parts_from_shape(shape: &Shape, render_override: Option<MeshKind>) -> (MeshKind, Vec3) {
+    let default_mesh_kind = match shape {
+        Shape::Cuboid { .. } => MeshKind::Cube,
+        Shape::Sphere { .. } => MeshKind::Sphere,
+    };
+    let mesh_kind = render_override.unwrap_or(default_mesh_kind);
+    let scale = match shape {
+        Shape::Cuboid { half_extents } => *half_extents * 2.0,
+        Shape::Sphere { radius } => Vec3::splat(*radius * 2.0),
+    };
+    (mesh_kind, scale)
 }

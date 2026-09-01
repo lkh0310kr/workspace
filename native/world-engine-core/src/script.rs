@@ -11,7 +11,7 @@ use rapier3d::prelude::RigidBody;
 use rhai::{AST, Array, Dynamic, Engine, Scope};
 use serde_json::Value;
 
-use crate::world::World;
+use crate::world::{Transform, World};
 
 /// Rhai scripting API version — bump on breaking script surface changes.
 pub const RHAI_API_VERSION: &str = "3";
@@ -73,6 +73,7 @@ pub struct WorldSnapshot {
     positions: HashMap<String, [f32; 3]>,
     rotations: HashMap<String, [f32; 3]>,
     tag_to_entity: HashMap<String, String>,
+    properties: HashMap<String, HashMap<String, Value>>,
 }
 
 impl WorldSnapshot {
@@ -89,6 +90,7 @@ impl WorldSnapshot {
                 .map(|(name, rot)| (name, [rot.x, rot.y, rot.z]))
                 .collect(),
             tag_to_entity: world.tag_index(),
+            properties: world.named_properties(),
         }
     }
 
@@ -155,6 +157,29 @@ fn new_engine() -> Engine {
 
     engine.register_fn("entity_with_tag", |tag: &str| -> String {
         WORLD_SNAPSHOT.with(|cell| cell.borrow().tag_to_entity.get(tag).cloned().unwrap_or_default())
+    });
+
+    engine.register_fn("entity_property", |entity_name: &str, key: &str| -> f64 {
+        WORLD_SNAPSHOT.with(|cell| {
+            cell.borrow()
+                .properties
+                .get(entity_name)
+                .and_then(|props| props.get(key))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0)
+        })
+    });
+
+    engine.register_fn("entity_property_str", |entity_name: &str, key: &str| -> String {
+        WORLD_SNAPSHOT.with(|cell| {
+            cell.borrow()
+                .properties
+                .get(entity_name)
+                .and_then(|props| props.get(key))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string()
+        })
     });
 
     engine.register_fn("dist3", |x1: f64, y1: f64, z1: f64, x2: f64, y2: f64, z2: f64| -> f64 {
@@ -330,6 +355,60 @@ impl EntityScript {
         }
         None
     }
+
+    /// Applies script output to a transform-only entity (no Rapier body).
+    pub fn apply_transform(
+        &mut self,
+        dt: f32,
+        time: f32,
+        transform: &mut Transform,
+        snapshot: &WorldSnapshot,
+    ) -> Option<String> {
+        if self.mode != ScriptMode::Kinematic {
+            return None;
+        }
+        snapshot.install();
+        let pos = transform.translation;
+        let result = self.engine.call_fn::<Array>(
+            &mut self.scope,
+            &self.ast,
+            "on_update",
+            (
+                dt as f64,
+                time as f64,
+                pos.x as f64,
+                pos.y as f64,
+                pos.z as f64,
+            ),
+        );
+
+        let arr = match result {
+            Ok(arr) => arr,
+            Err(err) => {
+                return Some(format!("{} on_update error: {err}", self.path_label));
+            }
+        };
+
+        if arr.len() != 3 && arr.len() != 6 {
+            return Some(format!(
+                "{} on_update must return [x,y,z] or [x,y,z,rx,ry,rz], got {} elements",
+                self.path_label,
+                arr.len()
+            ));
+        }
+
+        let x = arr[0].as_float().unwrap_or(0.0) as f32;
+        let y = arr[1].as_float().unwrap_or(0.0) as f32;
+        let z = arr[2].as_float().unwrap_or(0.0) as f32;
+        transform.translation = Vec3::new(x, y, z);
+        if arr.len() == 6 {
+            let rx = arr[3].as_float().unwrap_or(0.0) as f32;
+            let ry = arr[4].as_float().unwrap_or(0.0) as f32;
+            let rz = arr[5].as_float().unwrap_or(0.0) as f32;
+            transform.rotation = Quat::from_euler(EulerRot::YXZ, ry, rx, rz);
+        }
+        None
+    }
 }
 
 /// Godot autoload / Unity scene-manager style world script.
@@ -355,6 +434,7 @@ pub fn load_entity_script(
     project_dir: &Path,
     script_rel: &str,
     args: Option<&Value>,
+    properties: Option<&Value>,
     mode: ScriptMode,
 ) -> Result<EntityScript, String> {
     let path = project_dir.join(script_rel);
@@ -368,7 +448,7 @@ pub fn load_entity_script(
         .compile(&source)
         .map_err(|err| format!("failed to compile script {path:?}: {err}"))?;
 
-    let mut scope = build_args_scope(args);
+    let mut scope = build_merged_scope(properties, args);
     engine
         .run_ast_with_scope(&mut scope, &ast)
         .map_err(|err| format!("failed to init script scope {path:?}: {err}"))?;
@@ -407,8 +487,13 @@ pub fn load_world_script(project_dir: &Path, script_rel: &str) -> Result<WorldSc
     Ok(WorldScript { engine, ast, scope })
 }
 
-fn build_args_scope(args: Option<&Value>) -> Scope<'static> {
+fn build_merged_scope(properties: Option<&Value>, args: Option<&Value>) -> Scope<'static> {
     let mut scope = Scope::new();
+    if let Some(Value::Object(map)) = properties {
+        for (key, value) in map {
+            push_json_value(&mut scope, key, value);
+        }
+    }
     if let Some(Value::Object(map)) = args {
         for (key, value) in map {
             push_json_value(&mut scope, key, value);
@@ -474,7 +559,7 @@ mod tests {
         }
 
         let args = chase_script_args();
-        let script = load_entity_script(&dir, "scripts/chase.rhai", Some(&args), ScriptMode::Kinematic)
+        let script = load_entity_script(&dir, "scripts/chase.rhai", Some(&args), None, ScriptMode::Kinematic)
             .expect("load chase script");
         let mut world = World::new_empty();
         let target = Vec3::new(5.0, 1.0, 0.0);
@@ -517,6 +602,7 @@ mod tests {
             &dir,
             "scripts/orbit.rhai",
             Some(&serde_json::json!({ "radius": 4.0, "speed": 1.5, "center_y": 2.0, "center_name": "planet" })),
+            None,
             ScriptMode::Kinematic,
         )
         .expect("load orbit script");
