@@ -6,6 +6,7 @@ Project documentation for the Workspace desktop app (Electron).
 |----------|-------------|
 | [DESIGN.md](./DESIGN.md) | Visual design philosophy and UI tokens |
 | [ROADMAP.md](./ROADMAP.md) | Feature phases and completion status |
+| [planning/world-engine-phase-plan.md](./planning/world-engine-phase-plan.md) | **World Engine** production phases (13+) |
 | [ideation.md](./ideation.md) | Product ideas and pane types |
 | [architecture/README.md](./architecture/README.md) | **System architecture** — start here for code structure |
 

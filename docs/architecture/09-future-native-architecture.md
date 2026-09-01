@@ -756,6 +756,14 @@ language, hot-reload, an event bus, a query DSL beyond what `hecs`
 itself gives you, multi-threaded systems, editor UI, save-back-to-JSON,
 materials/lighting API, gameplay input routing.
 
+### Phase 11–12 — DONE: project scripts + sim fixtures (2026-09-01)
+
+Rhai per-entity scripts (`script`/`script_args`), `entity_pos`, `entry_script`,
+`time_scale`, `script_mode: force`, and multiple `electron/test-fixtures/world-engine-*-demo/`
+projects. See [world-engine-project.md](../planning/world-engine-project.md).
+
+**Production track (Phase 13+):** [world-engine-phase-plan.md](../planning/world-engine-phase-plan.md). **Phase 14 DONE.** Next: **Phase 15 — Collision Events**.
+
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see
