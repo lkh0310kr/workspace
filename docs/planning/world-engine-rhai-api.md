@@ -1,7 +1,7 @@
 # World Engine — Rhai API v3
 
 **Version constant:** `world_engine_core::script::RHAI_API_VERSION` = `"3"`  
-**Status:** Phase 31–33 (2026-09-01) — simulation & design track
+**Status:** Phase 31–34, 41 (2026-09-01) — simulation & design track
 
 v2 functions remain. Additive only until v4.
 
@@ -83,6 +83,21 @@ Shells read metrics; domain key names live in project docs, not the engine schem
 JSON: optional `sim_seed: u64` (default `1`). Rust: `World::sim_seed()`, `World::set_sim_seed(seed)` resets RNG state.
 
 Draw order follows script execution order within each `step` (entry_script first, then entity scripts). Same seed + same `step_n` → reproducible metrics and motion.
+
+### v3 — entity properties (Phase 34)
+
+| Function | Description |
+|----------|-------------|
+| `entity_property(name, key)` | Read f64 from another entity's `properties` (missing → `0.0`) |
+| `entity_property_str(name, key)` | Read string (missing → `""`) |
+
+JSON: `entities[].properties: { ... }` merged into the entity script scope at load (`script_args` overrides).
+
+Rust: `World::set_properties`, `World::named_properties()`.
+
+### v3 — composition (Phase 41)
+
+Scene objects may omit physics (`body_type: "none"`) or declare `components[]`. See [world-engine-object-model.md](./world-engine-object-model.md).
 
 ---
 

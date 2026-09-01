@@ -60,6 +60,8 @@ my-sim/
 | `World::sim_var` / `set_sim_var` | **Phase 31** 런타임 공유 f64 상태 |
 | `World::sim_metrics()` | **Phase 32** `sim_var` 스냅샷 (CI·쉘) |
 | `sim_seed` / `rand()` | **Phase 33** 결정론 RNG (Rhai + JSON) |
+| `properties` / `entity_property*` | **Phase 34** design metadata |
+| `spawn_empty` / `attach_*` / `components[]` | **Phase 41** composition model — [object-model](./world-engine-object-model.md) |
 
 테스트: `cargo test --test simulation_contract` · `cargo test --test metrics_contract`
 
@@ -67,7 +69,7 @@ my-sim/
 
 ## Rhai API (v3)
 
-See [world-engine-rhai-api.md](./world-engine-rhai-api.md). v3 adds `sim_var`, `set_sim_var`, `publish_metric`, `rand` / `rand_range`.
+See [world-engine-rhai-api.md](./world-engine-rhai-api.md). v3 adds `sim_var`, `set_sim_var`, `publish_metric`, `rand` / `rand_range`, `entity_property*`.
 
 ### 엔티티 스크립트 — `on_update(dt, time, x, y, z) -> [a,b,c]`
 

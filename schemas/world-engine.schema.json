@@ -101,7 +101,7 @@
         "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
         "rotation": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
         "velocity": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
-        "body_type": { "enum": ["dynamic", "fixed", "kinematic"] },
+        "body_type": { "enum": ["dynamic", "fixed", "kinematic", "none"] },
         "shape": { "enum": ["cuboid", "sphere"] },
         "half_extents": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
         "radius": { "type": "number" },
@@ -113,7 +113,18 @@
         "mass": { "type": "number" },
         "friction": { "type": "number" },
         "collision_layer": { "type": "integer", "minimum": 0, "maximum": 15 },
-        "collision_mask": { "type": "integer", "minimum": 0, "maximum": 65535 }
+        "collision_mask": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "properties": { "type": "object", "additionalProperties": true },
+        "pick_half_extents": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "components": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        }
       }
     }
   }

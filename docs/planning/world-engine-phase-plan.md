@@ -487,7 +487,7 @@ Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. �
 
 **Phase 1–30 완료.** 다음은 **§10 Simulation & Design Track (Phase 31+)** — 월드 엔진 코어·qt-shell만. 네트워크·PBR·게임 레퍼런스 확장은 하지 않음.
 
-**착수:** Phase 34 entity `properties`.
+**착수:** Phase 35 physics raycast pick.
 
 macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-quarantine.sh` 실행.
 
@@ -561,7 +561,7 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 ---
 
 ### Phase 34 — Entity `properties` (design metadata)  
-**상태:** ⬜ PENDING  
+**상태:** ✅ DONE (2026-09-01)  
 **모방:** Godot metadata, Unity `[SerializeField]` on component  
 **목표:** 도메인 스펙을 **엔티티에 붙이되** 엔진은 key-value만 안다.
 
@@ -571,7 +571,22 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 | `entity_property(name, key)` 읽기 (스냅샷) | |
 | schema + contract | |
 
-**산출물:** `world-engine-properties-demo`, breed/용량을 properties로 주입.
+**산출물:** `world-engine-properties-demo`, `tests/properties_contract.rs`
+
+---
+
+### Phase 41 — Scene object composition (SDK / JSON alignment)  
+**상태:** ✅ DONE (2026-09-01)  
+**목표:** ECS 조합 모델을 Rust SDK·JSON·Rhai에 동형으로 노출.
+
+| IN | OUT |
+|----|-----|
+| `spawn_empty` + `attach_*` / `spawn_from_blueprint` | parent/child hierarchy |
+| `body_type: "none"`, `pick_half_extents` | |
+| `entities[].components[]` explicit format | flat JSON sugar 유지 |
+| `World::draw_list` skips entities without `RenderMesh` | |
+
+**산출물:** [world-engine-object-model.md](./world-engine-object-model.md), `world-engine-composition-demo`, `tests/composition_contract.rs`
 
 ---
 
@@ -658,7 +673,7 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 
 ```
 31 (sim_var 문서화) → 32 metrics → 33 seed/결정론
-  → 34 properties → 35 raycast → 36 pause
+  → 34 properties → 41 composition → 35 raycast → 36 pause
   → 37 design overlay → 38 save+sim_vars → 39 scenario runner → 40 freeze
 ```
 
@@ -672,7 +687,8 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 
 | 날짜 | 내용 |
 |------|------|
-| 2026-09-01 | Phase 31–32 DONE: sim_var v3, sim_metrics, metrics_contract |
+| 2026-09-01 | Phase 34 DONE: properties, entity_property*; Phase 41 DONE: composition SDK/JSON |
+| 2026-09-01 | Phase 33 DONE: sim_seed, determinism_contract |
 | 2026-09-01 | §10 Phase 31+ Simulation & Design Track (World Engine) |
 | 2026-09-01 | Phase 17–30 DONE: entity v2, camera, prefabs, save, layers, games, schema, benchmarks |
 | 2026-09-01 | Phase 16 DONE: script errors, RHAI_API_VERSION, world-engine-rhai-api.md |
