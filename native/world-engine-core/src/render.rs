@@ -8,6 +8,7 @@ use std::num::NonZeroIsize;
 use std::ptr::NonNull;
 
 use bytemuck::{Pod, Zeroable};
+use wgpu::util::DeviceExt;
 use glam::{Mat4, Vec3};
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 #[cfg(target_os = "macos")]
@@ -15,6 +16,7 @@ use raw_window_handle::{AppKitDisplayHandle, AppKitWindowHandle};
 #[cfg(target_os = "windows")]
 use raw_window_handle::{Win32WindowHandle, WindowsDisplayHandle};
 
+use crate::camera::RuntimeCamera;
 use crate::world::MeshKind;
 
 pub const WIDTH: u32 = 900;
@@ -436,9 +438,48 @@ fn create_gpu_context(
 }
 
 pub fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3, MeshKind)], camera: &Camera) {
+    render_frame_with_options(
+        gpu,
+        draw_list,
+        camera,
+        &RenderOptions::default(),
+    );
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct RenderOptions {
+    pub show_grid: bool,
+    pub eye: Option<Vec3>,
+    pub look_at: Option<Vec3>,
+    pub fov_deg: f32,
+}
+
+impl RenderOptions {
+    pub fn from_runtime_camera(camera: &RuntimeCamera, world: &crate::world::World) -> Self {
+        let (eye, look_at) = camera.eye_and_target(world);
+        Self {
+            show_grid: world.show_grid(),
+            eye: Some(eye),
+            look_at: Some(look_at),
+            fov_deg: camera.fov_deg,
+        }
+    }
+}
+
+pub fn render_frame_with_options(
+    gpu: &GpuContext,
+    draw_list: &[(Mat4, Vec3, MeshKind)],
+    camera: &Camera,
+    options: &RenderOptions,
+) {
     let aspect = gpu.surface_width as f32 / gpu.surface_height as f32;
-    let projection = glam::camera::rh::proj::directx::perspective(45f32.to_radians(), aspect, 0.1, 100.0);
-    let view = glam::camera::rh::view::look_at_mat4(camera.eye(), Vec3::ZERO, Vec3::Y);
+    let fov = options.fov_deg.to_radians();
+    let projection = glam::camera::rh::proj::directx::perspective(fov, aspect, 0.1, 100.0);
+    let (eye, target) = match (options.eye, options.look_at) {
+        (Some(e), Some(t)) => (e, t),
+        _ => (camera.eye(), Vec3::ZERO),
+    };
+    let view = glam::camera::rh::view::look_at_mat4(eye, target, Vec3::Y);
 
     let frame = match gpu.surface.get_current_texture() {
         wgpu::CurrentSurfaceTexture::Success(frame) | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
@@ -468,6 +509,10 @@ pub fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3, MeshKind)], came
         (*model, *tint, mesh)
     });
     let all_draws = std::iter::once(ground_draw).chain(entity_draws);
+
+    if options.show_grid {
+        draw_grid_overlay(gpu, &view_target, &projection, &view, &gpu.depth_view);
+    }
 
     for (i, (model, tint, mesh)) in all_draws.enumerate() {
         let mvp = projection * view * model;
@@ -513,4 +558,66 @@ pub fn render_frame(gpu: &GpuContext, draw_list: &[(Mat4, Vec3, MeshKind)], came
         gpu.queue.submit(Some(encoder.finish()));
     }
     gpu.queue.present(frame);
+}
+
+/// Simple XZ grid at y=0.1 for level authoring (dev overlay).
+fn draw_grid_overlay(
+    gpu: &GpuContext,
+    view_target: &wgpu::TextureView,
+    projection: &Mat4,
+    view: &Mat4,
+    depth_view: &wgpu::TextureView,
+) {
+    let mut vertices = Vec::new();
+    let step = 1.0_f32;
+    let extent = 20.0_f32;
+    let y = 0.11_f32;
+    let color = [0.35, 0.38, 0.42];
+    let normal = [0.0, 1.0, 0.0];
+    let mut i = -extent;
+    while i <= extent {
+        vertices.push(Vertex { pos: [i, y, -extent], normal, color });
+        vertices.push(Vertex { pos: [i, y, extent], normal, color });
+        vertices.push(Vertex { pos: [-extent, y, i], normal, color });
+        vertices.push(Vertex { pos: [extent, y, i], normal, color });
+        i += step;
+    }
+    let vertex_buf = gpu.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("grid"),
+        contents: bytemuck::cast_slice(&vertices),
+        usage: wgpu::BufferUsages::VERTEX,
+    });
+    let mvp = projection * view;
+    let uniforms = Uniforms {
+        mvp: mvp.to_cols_array_2d(),
+        model: Mat4::IDENTITY.to_cols_array_2d(),
+        light_dir: [0.4, 0.9, 0.3, 0.0],
+        tint: [1.0, 1.0, 1.0, 1.0],
+    };
+    gpu.queue.write_buffer(&gpu.uniform_buf, 0, bytemuck::bytes_of(&uniforms));
+    let mut encoder = gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+    {
+        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: view_target,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
+            })],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: depth_view,
+                depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store }),
+                stencil_ops: None,
+            }),
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+        rpass.set_pipeline(&gpu.pipeline);
+        rpass.set_bind_group(0, &gpu.bind_group, &[]);
+        rpass.set_vertex_buffer(0, vertex_buf.slice(..));
+        rpass.draw(0..vertices.len() as u32, 0..1);
+    }
+    gpu.queue.submit(Some(encoder.finish()));
 }
