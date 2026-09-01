@@ -25,6 +25,7 @@ enum InputEventType {
     kWheel = 3,     // dy is the wheel delta (positive = away from the user)
     kKeyDown = 4,   // x = Qt::Key code
     kKeyUp = 5,     // x = Qt::Key code
+    kMouseMove = 6, // x/y = cursor position in widget pixels
 };
 
 // A real native window already receives mouse/keyboard input natively —
@@ -46,5 +47,8 @@ void qt_run(
     InputCallback input_cb,
     void *user_data
 );
+
+// Optional dev-shell window title (UTF-8).
+void qt_set_window_title(const char *text);
 
 } // extern "C"

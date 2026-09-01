@@ -9,18 +9,21 @@
 
 namespace {
 
-// Plain QWidget subclass overriding event virtuals — no Q_OBJECT/moc
-// needed since we add no new signals/slots/properties, just react to
-// ones QWidget already has.
 class EngineWidget : public QWidget {
 public:
     InputCallback input_cb = nullptr;
     void *user_data = nullptr;
-    bool dragging = false;
+    bool looking = false;
     QPointF last_pos;
 
+    EngineWidget() {
+        setMouseTracking(true);
+    }
+
     void mousePressEvent(QMouseEvent *event) override {
-        dragging = true;
+        if (event->button() == Qt::LeftButton) {
+            looking = true;
+        }
         last_pos = event->position();
         if (input_cb) {
             input_cb(kMouseDown, event->position().x(), event->position().y(), 0.0f, 0.0f, user_data);
@@ -28,15 +31,19 @@ public:
     }
 
     void mouseMoveEvent(QMouseEvent *event) override {
-        if (dragging && input_cb) {
-            QPointF pos = event->position();
+        QPointF pos = event->position();
+        if (looking && input_cb) {
             input_cb(kMouseDrag, pos.x(), pos.y(), pos.x() - last_pos.x(), pos.y() - last_pos.y(), user_data);
             last_pos = pos;
+        } else if (input_cb) {
+            input_cb(kMouseMove, pos.x(), pos.y(), 0.0f, 0.0f, user_data);
         }
     }
 
     void mouseReleaseEvent(QMouseEvent *event) override {
-        dragging = false;
+        if (event->button() == Qt::LeftButton) {
+            looking = false;
+        }
         if (input_cb) {
             input_cb(kMouseUp, event->position().x(), event->position().y(), 0.0f, 0.0f, user_data);
         }
@@ -63,6 +70,14 @@ public:
 
 } // namespace
 
+static EngineWidget *g_engine_widget = nullptr;
+
+void qt_set_window_title(const char *text) {
+    if (g_engine_widget) {
+        g_engine_widget->setWindowTitle(QString::fromUtf8(text ? text : "World Engine"));
+    }
+}
+
 void qt_run(
     int width,
     int height,
@@ -77,11 +92,9 @@ void qt_run(
     QApplication app(argc, argv);
 
     EngineWidget window;
+    g_engine_widget = &window;
     window.resize(width, height);
-    window.setWindowTitle("World Engine - native window, wgpu direct render");
-    // No Qt-drawn content at all: wgpu renders directly into this
-    // widget's native view every frame. Disabling the system background
-    // paint avoids Qt fighting wgpu for the same surface between frames.
+    window.setWindowTitle("World Engine");
     window.setAttribute(Qt::WA_OpaquePaintEvent);
     window.setAttribute(Qt::WA_NoSystemBackground);
     window.setFocusPolicy(Qt::StrongFocus);
@@ -90,19 +103,15 @@ void qt_run(
     window.user_data = user_data;
     window.show();
 
-    // Ensure the native HWND exists before handing it to wgpu (Windows/Qt).
     window.winId();
     QApplication::processEvents();
 
-    // WId is Qt's cross-platform native handle typedef — on macOS this
-    // is the NSView* backing the widget, valid once the widget has a
-    // real native window (guaranteed after show()).
     void *native_handle = reinterpret_cast<void *>(window.winId());
     init_cb(native_handle, user_data);
 
     QTimer timer;
     QObject::connect(&timer, &QTimer::timeout, [=]() { frame_cb(user_data); });
-    timer.start(33); // ~30fps
+    timer.start(33);
 
     app.exec();
 }
