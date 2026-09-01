@@ -1,0 +1,21 @@
+{
+  "gravity": [0.0, 0.0, 0.0],
+  "input_map": {
+    "move_x": { "negative": "A", "positive": "D" },
+    "move_z": { "negative": "S", "positive": "W" },
+    "up": "Space",
+    "down": "Control"
+  },
+  "entities": [
+    {
+      "name": "flyer",
+      "position": [0.0, 2.0, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.35,
+      "color": [0.3, 0.85, 0.95],
+      "script": "scripts/fly.rhai",
+      "script_args": { "speed": 6.0 }
+    }
+  ]
+}
