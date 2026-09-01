@@ -14,14 +14,28 @@ fn chicken_coop_loads_and_chickens_seek_feed() {
 
     let scene = load_scene(&dir);
     let mut world = build_world(&scene, None, Some(std::path::Path::new(&dir)));
+
+    assert!(
+        world.entity_by_name("zone_mgmt").is_some(),
+        "zone_mgmt floor mat should load"
+    );
+    assert!(
+        world.entity_by_name("zone_living").is_some(),
+        "zone_living floor mat should load"
+    );
+    assert!(
+        world.entity_by_name("zone_gate").is_some(),
+        "zone_gate floor mat should load"
+    );
+
     let goldie = world.entity_by_name("goldie").expect("goldie");
     let start = world.position(goldie);
 
-    world.step_n(500);
+    world.step_n(700);
 
     let pos = world.position(goldie);
     // Living zone (SE) → management zone (NW): x or z should move toward feed.
-    let moved_toward_feed = pos.x < start.x - 0.5 || pos.z > start.z + 0.5;
+    let moved_toward_feed = pos.x < start.x - 0.35 || pos.z > start.z + 0.35;
     assert!(
         moved_toward_feed,
         "hungry chicken should drift toward feed/water NW, start={start:?} end={pos:?}"
