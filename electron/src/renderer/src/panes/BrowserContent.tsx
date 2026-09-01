@@ -8,6 +8,10 @@ import { dispatchLocalBrowserZoom, registerBrowserZoomPersist } from "../browser
 import { browserFocusLog, snapshotBrowserFocusState } from "../browser/browserFocusDebugLog";
 import { releaseTerminalFocusForBrowser, focusBrowserGuestWebview } from "../browser/browserGuestFocus";
 import {
+  loadBrowserPageWebviewUrl,
+  reloadBrowserPageWebview,
+} from "../browser/browserPageWebviewActions";
+import {
   applyBrowserPageViewportLayout,
   ensureBrowserPageViewport,
   parkBrowserPageViewport,
@@ -89,6 +93,8 @@ export function BrowserContent({
   onFocusPaneGroupRef.current = onFocusPaneGroup;
   const onSelectPaneTabRef = useRef(onSelectPaneTab);
   onSelectPaneTabRef.current = onSelectPaneTab;
+  const domReadyRef = useRef(false);
+  const pendingNavigationRef = useRef<string | null>(null);
 
   const guestFocus = useWebviewGuestFocus(webviewRef);
   const { keepAddressBarFocusRef } = useBrowserChromeFocus({
@@ -207,6 +213,7 @@ export function BrowserContent({
     };
     const onRendererGone = (): void => setRendererGone(true);
     const onDomReady = (): void => {
+      domReadyRef.current = true;
       setRendererGone(false);
       setLoadError(null);
       try {
@@ -215,6 +222,11 @@ export function BrowserContent({
         setWebContentsId(null);
       }
       syncNavState();
+      const pending = pendingNavigationRef.current;
+      if (pending) {
+        pendingNavigationRef.current = null;
+        loadBrowserPageWebviewUrl(guest, pending);
+      }
       if (chipShownRef.current) {
         interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, "dom-ready");
       }
@@ -281,6 +293,8 @@ export function BrowserContent({
     });
 
     return () => {
+      domReadyRef.current = false;
+      pendingNavigationRef.current = null;
       guest.removeEventListener("did-start-loading", onStartLoading);
       guest.removeEventListener("did-stop-loading", onStopLoading);
       guest.removeEventListener("did-navigate", onNavigate);
@@ -326,7 +340,7 @@ export function BrowserContent({
       try {
         const url = webview.getURL();
         if (url.startsWith("workspace-engine:")) {
-          webview.reload();
+          reloadBrowserPageWebview(webview, { ignoreCache: false });
         }
       } catch {
         /* not navigated yet */
@@ -377,7 +391,12 @@ export function BrowserContent({
     const normalized = normalizeBrowserNavigationUrl(url, true);
     if (!normalized) return;
     addressInputRef.current?.blur();
-    webviewRef.current?.loadURL(normalized);
+    const webview = webviewRef.current;
+    if (!webview) return;
+    const result = loadBrowserPageWebviewUrl(webview, normalized);
+    if (result === "not-ready") {
+      pendingNavigationRef.current = normalized;
+    }
     if (chipShown) {
       interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, "navigate");
     }
@@ -427,8 +446,15 @@ export function BrowserContent({
               onClick={() => {
                 const wv = webviewRef.current;
                 if (!wv) return;
-                if (loading) wv.stop();
-                else wv.reload();
+                if (loading) {
+                  try {
+                    wv.stop();
+                  } catch {
+                    /* guest not ready */
+                  }
+                  return;
+                }
+                reloadBrowserPageWebview(wv, { ignoreCache: false });
               }}
             >
               {loading ? "×" : "↻"}
@@ -465,7 +491,11 @@ export function BrowserContent({
           <button
             type="button"
             className="browser-crash-reload"
-            onClick={() => webviewRef.current?.reload()}
+            onClick={() => {
+              const wv = webviewRef.current;
+              if (!wv) return;
+              reloadBrowserPageWebview(wv, { ignoreCache: false });
+            }}
           >
             Reload
           </button>

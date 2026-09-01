@@ -9,6 +9,7 @@ import {
   zoomBrowserWebview,
 } from "./browserZoom";
 import { getBrowserFocusLogRing } from "./browserFocusDebugLog";
+import { reloadBrowserPageWebview } from "./browserPageWebviewActions";
 import { isDevInstrumentation } from "../debug/devTools";
 
 /** One-shot setup for browser guest focus tracking (Cmd+R target, etc.). */
@@ -41,6 +42,5 @@ export function installBrowserEmbedSupport(): () => void {
 export function reloadFocusedBrowser(hard: boolean): void {
   const webview = getActiveBrowserWebview();
   if (!webview) return;
-  if (hard) webview.reloadIgnoringCache();
-  else webview.reload();
+  reloadBrowserPageWebview(webview, { ignoreCache: hard });
 }
