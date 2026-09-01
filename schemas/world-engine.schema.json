@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workspace.dev/schemas/world-engine.schema.json",
+  "title": "World Engine Scene",
+  "type": "object",
+  "properties": {
+    "gravity": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "time_scale": { "type": "number", "minimum": 0 },
+    "entry_script": { "type": "string" },
+    "active_scene": { "type": "string" },
+    "show_grid": { "type": "boolean" },
+    "show_axes": { "type": "boolean" },
+    "input_map": { "type": "object", "additionalProperties": true },
+    "camera": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mode": { "const": "orbit" },
+            "distance": { "type": "number" },
+            "yaw": { "type": "number" },
+            "pitch": { "type": "number" }
+          },
+          "required": ["mode"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": { "const": "follow" },
+            "target": { "type": "string" },
+            "offset": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          },
+          "required": ["mode", "target"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": { "const": "fixed" },
+            "position": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "look_at": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          },
+          "required": ["mode", "position"]
+        }
+      ]
+    },
+    "entities": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entity" }
+    },
+    "joints": { "type": "array" },
+    "mesh": { "type": "string" }
+  },
+  "required": ["entities"],
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "rotation": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "velocity": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "body_type": { "enum": ["dynamic", "fixed", "kinematic"] },
+        "shape": { "enum": ["cuboid", "sphere"] },
+        "half_extents": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "radius": { "type": "number" },
+        "color": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "script": { "type": "string" },
+        "script_mode": { "enum": ["kinematic", "force", "impulse"] },
+        "trigger": { "type": "boolean" },
+        "mesh": { "enum": ["cube", "sphere", "cuboid", "loaded", "gltf"] },
+        "mass": { "type": "number" },
+        "friction": { "type": "number" },
+        "collision_layer": { "type": "integer", "minimum": 0, "maximum": 15 },
+        "collision_mask": { "type": "integer", "minimum": 0, "maximum": 65535 }
+      }
+    }
+  }
+}
