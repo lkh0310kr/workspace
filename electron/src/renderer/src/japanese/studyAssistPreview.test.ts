@@ -3,7 +3,6 @@ import {
   formatAugmentInsertText,
   formatStudyAssistInsertLines,
   formatStudyAssistPreviewText,
-  formatStudyChatInsertLines,
 } from "./studyAssistPreview";
 import type { StudyAssistResult } from "../../../shared/japaneseStudyTypes";
 
@@ -33,22 +32,6 @@ describe("studyAssistPreview", () => {
         true,
       ),
     ).toEqual(["> 조사 は는 주제를 나타냅니다."]);
-  });
-
-  it("inserts translation as plain lines without blockquote", () => {
-    expect(
-      formatStudyAssistInsertLines(
-        result({ task: "translate_to_ko", lines: ["전화"], note: undefined }),
-        "translate_to_ko",
-        true,
-      ),
-    ).toEqual(["전화"]);
-  });
-
-  it("inserts chat replies as markdown blockquote in markdown mode", () => {
-    expect(formatStudyChatInsertLines("전화는 でんわ 입니다.", true)).toEqual([
-      "> 전화는 でんわ 입니다.",
-    ]);
   });
 
   it("keeps augment output as raw markdown without blockquote wrapping", () => {

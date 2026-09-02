@@ -21,7 +21,6 @@ export function createOpenAiCompatibleStudyLlmProvider(
         throw new Error("OpenAI-compatible provider requires apiKey in config or OPENAI_API_KEY");
       }
       const messages = buildStudyLlmMessages(req);
-      const isChat = req.task === "chat";
       const isAugment = req.task === "augment";
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: "POST",
@@ -32,8 +31,8 @@ export function createOpenAiCompatibleStudyLlmProvider(
         body: JSON.stringify({
           model,
           messages,
-          temperature: isChat ? 0.7 : 0.3,
-          max_tokens: isAugment ? 2048 : isChat ? 1024 : 512,
+          temperature: 0.3,
+          max_tokens: isAugment ? 2048 : 512,
         }),
         signal: AbortSignal.timeout(60_000),
       });

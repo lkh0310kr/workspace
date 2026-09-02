@@ -44,10 +44,6 @@ import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdow
 import { wikiLinkExtension } from "../markdownWikilink";
 import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markdownTitleRename";
 import { pastePlainTextCommand } from "../editorPlainPaste";
-import { insertStudyChatReply } from "../japanese/studyAssistChat";
-import { createStudyAssistSelectionListener, createStudyAssistDomHandlers, refreshStudySelectionAnchor, type StudySelectionAnchor } from "../japanese/studyAssistSelectionExtension";
-import { logStudySelection } from "../japanese/studyAssistSelectionLog";
-import { StudyAssistChatPanel } from "../japanese/StudyAssistChatPanel";
 import { DocumentAugmentPreviewPanel } from "../japanese/DocumentAugmentPreviewPanel";
 import { runDocumentAugment } from "../japanese/studyAssistAugment";
 import { replaceRangeAndInsert } from "../activeEditorView";
@@ -232,14 +228,6 @@ export function EditorContent({
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const isMarkdown = kind === "markdown";
-  const [selectionAnchor, setSelectionAnchor] = useState<StudySelectionAnchor | null>(null);
-  const [studyChatOpen, setStudyChatOpen] = useState(false);
-  const [chatSelectionText, setChatSelectionText] = useState<string | null>(null);
-  const [chatSelectionFrom, setChatSelectionFrom] = useState<number | null>(null);
-  const [chatSelectionTo, setChatSelectionTo] = useState<number | null>(null);
-  const [chatAnchor, setChatAnchor] = useState<{ top: number; left: number } | null>(null);
-  const studyChatOpenRef = useRef(studyChatOpen);
-  studyChatOpenRef.current = studyChatOpen;
   const [slashState, setSlashState] = useState<SlashCommandActiveState | null>(null);
   const slashStateRef = useRef(slashState);
   slashStateRef.current = slashState;
@@ -264,18 +252,6 @@ export function EditorContent({
     onExecute: () => {},
     onClose: () => {},
   });
-  const onSelectionAnchorRef = useRef<(anchor: StudySelectionAnchor | null) => void>(() => {});
-  onSelectionAnchorRef.current = (anchor) => {
-    if (!studyChatOpenRef.current && !augmentPreviewOpenRef.current) {
-      logStudySelection("react_state", {
-        hasAnchor: Boolean(anchor),
-        textLength: anchor?.text.length ?? 0,
-        top: anchor?.top ?? null,
-        left: anchor?.left ?? null,
-      });
-      setSelectionAnchor(anchor);
-    }
-  };
 
   const setDirtyState = useCallback((next: boolean) => {
     if (dirtyRef.current === next) return;
@@ -324,12 +300,6 @@ export function EditorContent({
   useEffect(() => subscribeAutoSave(setAutoSave), []);
 
   useEffect(() => {
-    setStudyChatOpen(false);
-    setChatSelectionText(null);
-    setChatSelectionFrom(null);
-    setChatSelectionTo(null);
-    setChatAnchor(null);
-    setSelectionAnchor(null);
     setSlashState(null);
     setAugmentPreview(null);
   }, [filePath]);
@@ -411,33 +381,6 @@ export function EditorContent({
     replaceRangeAndInsert(view, preview.slashFrom, preview.slashTo, preview.text);
     setAugmentPreview(null);
   }, [augmentPreview]);
-
-  const openStudyChat = useCallback(() => {
-    if (!selectionAnchor) return;
-    setChatSelectionText(selectionAnchor.text);
-    setChatSelectionFrom(selectionAnchor.from);
-    setChatSelectionTo(selectionAnchor.to);
-    setChatAnchor({ top: selectionAnchor.top, left: selectionAnchor.left });
-    setStudyChatOpen(true);
-  }, [selectionAnchor]);
-
-  const closeStudyChat = useCallback(() => {
-    setStudyChatOpen(false);
-    setChatSelectionText(null);
-    setChatSelectionFrom(null);
-    setChatSelectionTo(null);
-    setChatAnchor(null);
-  }, []);
-
-  const insertStudyChatReplyInEditor = useCallback(
-    (content: string) => {
-      const view = viewRef.current;
-      if (!view) return;
-      insertStudyChatReply(view, content, { isMarkdown });
-      closeStudyChat();
-    },
-    [closeStudyChat, isMarkdown],
-  );
 
   const saveNow = useCallback(
     (view: EditorView, path: string) => {
@@ -562,16 +505,7 @@ export function EditorContent({
       },
     });
 
-    const studySelectionListener = createStudyAssistSelectionListener(
-      (anchor) => onSelectionAnchorRef.current(anchor),
-      () => editorShellRef.current,
-    );
-    const studyDomHandlers = createStudyAssistDomHandlers(
-      (anchor) => onSelectionAnchorRef.current(anchor),
-      () => editorShellRef.current,
-    );
-
-    logStudySelection("editor_mount", { tabId, isMarkdown, hasHost: Boolean(hostRef.current) });
+    });
 
     const langCompartment = new Compartment();
 
@@ -585,7 +519,7 @@ export function EditorContent({
           createMarkdownSlashCommandExtension({
             onStateChange: (state) => slashOnStateChangeRef.current(state),
             getKeyboardHost: () => slashKeyboardHostRef.current,
-            isActive: () => !augmentPreviewOpenRef.current && !studyChatOpenRef.current,
+            isActive: () => !augmentPreviewOpenRef.current,
           }),
           keymap.of([
             { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
@@ -622,24 +556,15 @@ export function EditorContent({
         doc: "",
         extensions: [
           ...kindExtensions,
-          EditorView.updateListener.of(studySelectionListener),
-          studyDomHandlers,
           ...workspaceSearch,
           indentUnit.of("    "),
           history(),
-          // Alt/Cmd-click already added a second cursor's *range* via
-          // clickAddsSelectionRange below, but without this the editor
-          // silently collapsed it back to one selection on the next edit —
-          // CodeMirror only keeps multiple selection ranges alive when this
-          // is explicitly opted into. Mod-d (select-next-occurrence) is the
-          // other half of "real" multi-select — VS Code/Sublime convention.
           EditorState.allowMultipleSelections.of(true),
           drawSelection(),
           keymap.of([indentWithTab, ...historyKeymap, { key: "Mod-d", run: selectNextOccurrence }]),
           EditorView.lineWrapping,
           workspaceEditorTheme,
           indentGuides,
-          // Option+click (altKey) adds another cursor — VS Code/Obsidian on macOS.
           EditorView.clickAddsSelectionRange.of((event) => event.altKey),
           EditorView.updateListener.of((update) => {
             setSearchOpen(searchPanelOpen(update.view.state));
@@ -660,13 +585,6 @@ export function EditorContent({
     });
     viewRef.current = view;
     if (isMarkdown) setOutline([]);
-
-    requestAnimationFrame(() => {
-      if (viewRef.current !== view) return;
-      refreshStudySelectionAnchor(view, editorShellRef.current, (anchor) =>
-        onSelectionAnchorRef.current(anchor),
-      );
-    });
 
     const onEditorFocus = (): void => setFocusedEditorView(view);
     const onEditorBlur = (): void => clearFocusedEditorView(view);
@@ -700,12 +618,6 @@ export function EditorContent({
       window.removeEventListener("keydown", onKey);
       view.dom.removeEventListener("focus", onEditorFocus, true);
       view.dom.removeEventListener("blur", onEditorBlur, true);
-      setStudyChatOpen(false);
-      setChatSelectionText(null);
-      setChatSelectionFrom(null);
-      setChatSelectionTo(null);
-      setChatAnchor(null);
-      setSelectionAnchor(null);
       setSlashState(null);
       setAugmentPreview(null);
       clearFocusedEditorView(view);
@@ -811,14 +723,10 @@ export function EditorContent({
   // own DOM (the title input and any of its own content still handle
   // their own clicks normally).
   const onScrollContainerClick = (e: ReactMouseEvent) => {
-    if (studyChatOpenRef.current || augmentPreviewOpenRef.current) return;
-    // Not just .cm-editor — .md-title/.md-title-edit sit in this same
-    // scroll container as a sibling of .md-editor now, and without this
-    // a title click would bubble up here too and immediately steal focus
-    // back from the rename input it just opened.
+    if (augmentPreviewOpenRef.current) return;
     if (
       (e.target as HTMLElement).closest(
-        ".cm-editor, .md-title, .md-title-edit, .study-assist-chat, .study-assist-affordance, .document-augment-preview, .markdown-slash-popover",
+        ".cm-editor, .md-title, .md-title-edit, .document-augment-preview, .markdown-slash-popover",
       )
     ) {
       return;
@@ -829,46 +737,6 @@ export function EditorContent({
   };
 
   const editorFontStyle = { "--editor-font-size": `${13 * zoom}px` } as CSSProperties;
-
-  const studyAssistUi = (
-    <>
-      {selectionAnchor && !studyChatOpen && !augmentPreview ? (
-        <button
-          type="button"
-          className="study-assist-affordance"
-          style={{ top: selectionAnchor.top, left: selectionAnchor.left }}
-          title="Study chat"
-          aria-label="Open study chat"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={openStudyChat}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M8 1.5a6.5 6.5 0 0 0-2.63 12.47l-2.2.73a.5.5 0 0 1-.62-.62l.73-2.2A6.5 6.5 0 1 0 8 1.5Zm0 1a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"
-            />
-          </svg>
-        </button>
-      ) : null}
-      {studyChatOpen &&
-      chatSelectionText &&
-      chatSelectionFrom != null &&
-      chatSelectionTo != null &&
-      chatAnchor ? (
-        <StudyAssistChatPanel
-          selectionText={chatSelectionText}
-          selectionFrom={chatSelectionFrom}
-          selectionTo={chatSelectionTo}
-          filePath={filePath}
-          getView={() => viewRef.current}
-          anchorTop={chatAnchor.top}
-          anchorLeft={chatAnchor.left}
-          onClose={closeStudyChat}
-          onInsert={insertStudyChatReplyInEditor}
-        />
-      ) : null}
-    </>
-  );
 
   return (
     <div className="obsidian-editor-shell">
@@ -970,13 +838,11 @@ export function EditorContent({
               )}
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
                 <div className="md-editor-host" ref={hostRef} />
-                {studyAssistUi}
               </div>
             </div>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
               <div className="md-editor-host" ref={hostRef} />
-              {studyAssistUi}
             </div>
           )}
           {isMarkdown && augmentPreview ? (

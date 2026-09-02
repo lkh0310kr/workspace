@@ -1,14 +1,5 @@
 import type { StudyAssistResult, StudyTask } from "../../../shared/japaneseStudyTypes";
 
-export function formatStudyChatInsertLines(content: string, isMarkdown: boolean): string[] {
-  const body = content.trim();
-  if (!body) return [];
-  if (isMarkdown) {
-    return body.split("\n").map((line) => (line.trim() ? `> ${line}` : ">"));
-  }
-  return [body];
-}
-
 export function formatStudyAssistPreviewText(result: StudyAssistResult): string {
   if (result.note?.trim()) {
     return result.note.trim();
@@ -26,9 +17,6 @@ export function formatStudyAssistInsertLines(
   task: StudyTask,
   isMarkdown: boolean,
 ): string[] {
-  if (task === "chat") {
-    return formatStudyChatInsertLines(formatStudyAssistPreviewText(result), isMarkdown);
-  }
   if (task === "augment") {
     const body = formatAugmentInsertText(result);
     return body ? [body] : [];

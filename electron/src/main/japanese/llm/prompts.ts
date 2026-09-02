@@ -1,13 +1,11 @@
 import type { StudyAssistRequest, StudyLevel, StudyTask } from "../../../shared/japaneseStudyTypes";
-import type { StudyChatMessage, StudyToken } from "../../../shared/japaneseStudyTypes";
+import type { StudyToken } from "../../../shared/japaneseStudyTypes";
 import { resolveTranslateDirection } from "../translateDirection";
 
 export type StudyLlmMessage = {
   role: "system" | "user" | "assistant";
   content: string;
 };
-
-export const STUDY_CHAT_LLM_TURN_LIMIT = 40;
 
 function levelHint(level: StudyLevel | undefined): string {
   switch (level ?? "auto") {
@@ -81,54 +79,11 @@ function buildAugmentPrompt(req: StudyAssistRequest): { system: string; user: st
   return { system, user: userParts.join("\n\n") };
 }
 
-function buildDocumentContextBlock(req: StudyAssistRequest): string {
-  const ctx = req.context;
-  const previousLines =
-    ctx?.previousLines ??
-    (ctx?.previousLine ? [ctx.previousLine] : undefined);
-  const nextLines = ctx?.nextLines ?? (ctx?.nextLine ? [ctx.nextLine] : undefined);
-
-  return [
-    ctx?.filePath ? `노트: ${ctx.filePath}` : null,
-    ctx?.currentLine ? `현재 줄: ${ctx.currentLine}` : null,
-    formatContextLines(previousLines, "앞 문맥"),
-    formatContextLines(nextLines, "뒤 문맥"),
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-}
-
-function selectionAnchorBlock(req: StudyAssistRequest): string {
-  const documentContext = buildDocumentContextBlock(req);
-  const tokenBlock = formatTokenContext(req.dictionaryTokens);
-  return [
-    documentContext || null,
-    `선택한 텍스트 (학습 주제):\n${req.text}`,
-    tokenBlock || null,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-}
-
-function buildChatSystem(level: StudyLevel | undefined): string {
-  return [
-    "당신은 일본어 학습 튜터입니다.",
-    levelHint(level),
-    "학습자와 한국어로 자연스럽게 대화하세요.",
-    "선택한 텍스트는 대화의 주제/맥락일 뿐입니다. 매 응답마다 번역 한 단어만 반복하지 마세요.",
-    "인사·잡담·불만·농담에도 먼저 사람처럼 반응한 뒤, 필요하면 학습 도움을 이어가세요.",
-    "번역·읽기·문법·예문·뉘앙스·한자 구성은 학습자가 묻거나 맥락상 필요할 때만 설명하세요.",
-    "노트의 앞뒤 문맥과 사전 정보를 참고해 지능적으로 답하세요.",
-    "답변은 보통 2~5문장. 마크다운 서식(** 등) 없이 평문만 출력하세요.",
-  ].join(" ");
-}
-
-export function trimChatHistoryForLlm(messages: StudyChatMessage[]): StudyChatMessage[] {
-  if (messages.length <= STUDY_CHAT_LLM_TURN_LIMIT) return messages;
-  return messages.slice(-STUDY_CHAT_LLM_TURN_LIMIT);
-}
-
 export function buildStudyPrompt(req: StudyAssistRequest): { system: string; user: string } {
+  if (req.task === "augment") {
+    return buildAugmentPrompt(req);
+  }
+
   const level = levelHint(req.level);
   const direction = resolveTranslateDirection(req);
   const contextLines = [
@@ -137,14 +92,6 @@ export function buildStudyPrompt(req: StudyAssistRequest): { system: string; use
   ]
     .filter(Boolean)
     .join("\n");
-
-  if (req.task === "chat") {
-    return { system: buildChatSystem(req.level), user: selectionAnchorBlock(req) };
-  }
-
-  if (req.task === "augment") {
-    return buildAugmentPrompt(req);
-  }
 
   const system = [
     "당신은 일본어 학습 보조입니다.",
@@ -170,54 +117,18 @@ export function buildStudyPrompt(req: StudyAssistRequest): { system: string; use
 
 export function buildStudyLlmMessages(req: StudyAssistRequest): StudyLlmMessage[] {
   const { system, user } = buildStudyPrompt(req);
-  const messages: StudyLlmMessage[] = [{ role: "system", content: system }];
-
-  if (req.task === "chat") {
-    messages.push({ role: "user", content: user });
-    for (const turn of trimChatHistoryForLlm(req.messages ?? [])) {
-      messages.push({ role: turn.role, content: turn.content });
-    }
-    if (req.userMessage?.trim()) {
-      messages.push({ role: "user", content: req.userMessage.trim() });
-    }
-    return messages;
-  }
-
-  messages.push({ role: "user", content: user });
-  return messages;
+  return [
+    { role: "system", content: system },
+    { role: "user", content: user },
+  ];
 }
 
-/** Apple FM sidecar accepts one prompt — fold chat history into a single user string. */
 export function buildAppleFmUserPrompt(req: StudyAssistRequest): string {
-  if (req.task !== "chat") {
-    return buildStudyPrompt(req).user;
-  }
-
-  const parts: string[] = [
-    "[시스템 지침]",
-    buildChatSystem(req.level),
-    "",
-    "[학습 맥락]",
-    buildStudyPrompt(req).user,
-    "",
-    "[대화 기록]",
-  ];
-
-  for (const turn of trimChatHistoryForLlm(req.messages ?? [])) {
-    const label = turn.role === "user" ? "학습자" : "튜터";
-    parts.push(`${label}: ${turn.content}`);
-  }
-  if (req.userMessage?.trim()) {
-    parts.push(`학습자: ${req.userMessage.trim()}`);
-    parts.push("튜터:");
-  }
-  return parts.join("\n");
+  return buildStudyPrompt(req).user;
 }
 
 function outputRule(task: StudyTask, direction: "to_ko" | "to_ja"): string {
   switch (task) {
-    case "chat":
-      return "대화형 튜터로 자연스럽게 답하세요.";
     case "translate":
     case "translate_to_ko":
       return direction === "to_ja"
@@ -252,7 +163,7 @@ export function parseLineResponse(text: string, task: StudyTask): { lines: strin
     return { lines: lines.slice(0, 3) };
   }
 
-  if (task === "grammar_hint" || task === "check_translation" || task === "chat" || task === "augment") {
+  if (task === "grammar_hint" || task === "check_translation" || task === "augment") {
     return { lines: [], note: trimmed };
   }
 

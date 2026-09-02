@@ -148,8 +148,7 @@ export async function studyAssist(req: StudyAssistRequest): Promise<StudyAssistR
     case "translate_to_ja":
     case "grammar_hint":
     case "check_translation":
-    case "practice_sentences":
-    case "chat": {
+    case "practice_sentences": {
       const tokens = analyzeLineForContext(text);
       if (isTranslateTask(req.task)) {
         const direction = resolveTranslateDirection(req);
