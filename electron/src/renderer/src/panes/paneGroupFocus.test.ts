@@ -26,7 +26,7 @@ describe('paneGroupFocus', () => {
     )
   })
 
-  it('uses 0.7 unfocused opacity constant', () => {
-    expect(PANE_GROUP_UNFOCUSED_OPACITY).toBe(0.7)
+  it('uses 0.78 unfocused opacity constant', () => {
+    expect(PANE_GROUP_UNFOCUSED_OPACITY).toBe(0.78)
   })
 })

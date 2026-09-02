@@ -1,5 +1,5 @@
-/** Unfocused split panes dim to this opacity (Orca uses ~0.95; we use 0.7 per UX). */
-export const PANE_GROUP_UNFOCUSED_OPACITY = 0.7
+/** Unfocused split panes dim to this opacity (Orca uses ~0.95; we use 0.78 per UX). */
+export const PANE_GROUP_UNFOCUSED_OPACITY = 0.78
 
 export function paneGroupHostClassNames(options: {
   hasSplitGroups: boolean
