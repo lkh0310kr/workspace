@@ -171,20 +171,39 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
     onUpdateItem?.({ japaneseSettingsOpen: false });
   }, [onUpdateItem]);
 
+  const openSettings = useCallback(() => {
+    onUpdateItem?.({ japaneseSettingsOpen: true });
+  }, [onUpdateItem]);
+
+  const settingsDialog = settingsOpen ? <JapaneseSettingsDialog onClose={closeSettings} /> : null;
+
   if (!status?.ready) {
     return (
-      <div className="japanese-pane">
-        <ScrollRegion className="japanese-pane-body">
-          <DictionarySetup />
-        </ScrollRegion>
-      </div>
+      <>
+        {settingsDialog}
+        <div className="japanese-pane">
+          <JapaneseUnifiedSearch
+            query={query}
+            onQueryChange={handleQueryChange}
+            onKeyDown={handleSearchKeyDown}
+            onSelectKanji={openKanji}
+            onHandwritingCandidates={setHandwritingCandidates}
+            loading={loading}
+            error={error}
+            onOpenSettings={openSettings}
+          />
+          <ScrollRegion className="japanese-pane-body">
+            <DictionarySetup />
+          </ScrollRegion>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="japanese-pane">
-      {settingsOpen ? <JapaneseSettingsDialog onClose={closeSettings} /> : null}
-
+    <>
+      {settingsDialog}
+      <div className="japanese-pane">
       <JapaneseUnifiedSearch
         query={query}
         onQueryChange={handleQueryChange}
@@ -193,6 +212,7 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
         onHandwritingCandidates={setHandwritingCandidates}
         loading={loading}
         error={error}
+        onOpenSettings={openSettings}
       />
 
       <div className="japanese-pane-split">
@@ -308,5 +328,6 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
         </ScrollRegion>
       </div>
     </div>
+    </>
   );
 }

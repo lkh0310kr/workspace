@@ -20,7 +20,10 @@ export function listStudyLlmProviders(): StudyLlmProvider[] {
   return [...providers.values()];
 }
 
-export async function resolveStudyLlmProvider(preferredId?: string): Promise<StudyLlmProvider | null> {
+export async function resolveStudyLlmProvider(
+  preferredId?: string,
+  studyConfig?: { openaiCompatible?: { apiKey?: string; baseUrl?: string } },
+): Promise<StudyLlmProvider | null> {
   if (preferredId) {
     const preferred = providers.get(preferredId);
     if (preferred) {
@@ -35,7 +38,7 @@ export async function resolveStudyLlmProvider(preferredId?: string): Promise<Stu
     }
   }
 
-  for (const id of autoProviderIds(preferredId)) {
+  for (const id of autoProviderIds(preferredId, studyConfig)) {
     const provider = providers.get(id);
     if (!provider || provider.id === "stub") continue;
     try {
@@ -53,10 +56,19 @@ export async function resolveStudyLlmProvider(preferredId?: string): Promise<Stu
   return null;
 }
 
-function autoProviderIds(preferredId?: string): string[] {
-  const darwinOrder = ["apple-fm", "ollama", "openai-compatible"];
-  const defaultOrder = ["ollama", "openai-compatible", "apple-fm"];
-  const order = process.platform === "darwin" ? darwinOrder : defaultOrder;
+function autoProviderIds(
+  preferredId?: string,
+  studyConfig?: { openaiCompatible?: { apiKey?: string; baseUrl?: string } },
+): string[] {
+  const apiKey = studyConfig?.openaiCompatible?.apiKey ?? process.env.OPENAI_API_KEY ?? "";
+  const hasOpenAi = Boolean(apiKey.trim());
+  const darwinFallback = hasOpenAi
+    ? ["openai-compatible", "ollama", "apple-fm"]
+    : ["ollama", "apple-fm", "openai-compatible"];
+  const defaultFallback = hasOpenAi
+    ? ["openai-compatible", "ollama", "apple-fm"]
+    : ["ollama", "openai-compatible", "apple-fm"];
+  const order = process.platform === "darwin" ? darwinFallback : defaultFallback;
   if (!preferredId) return order;
   return [preferredId, ...order.filter((id) => id !== preferredId)];
 }

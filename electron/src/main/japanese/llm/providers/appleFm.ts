@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { app } from "electron";
 import type { StudyAssistRequest } from "../../../../shared/japaneseStudyTypes";
-import { buildStudyPrompt, parseLineResponse } from "../prompts";
+import { buildAppleFmUserPrompt, buildStudyPrompt, parseLineResponse } from "../prompts";
 import { studyAssistLog } from "../../studyAssistLog";
 import type { StudyLlmProvider } from "../types";
 
@@ -102,7 +102,8 @@ export function createAppleFmStudyLlmProvider(): StudyLlmProvider {
           "Apple FM sidecar not found. Run: cd electron && npm run japanese:build-apple-fm-sidecar",
         );
       }
-      const { system, user } = buildStudyPrompt(req);
+      const { system } = buildStudyPrompt(req);
+      const user = buildAppleFmUserPrompt(req);
       studyAssistLog("apple_fm_request", { task: req.task, binary });
       const content = await runSidecar(binary, {
         task: req.task,

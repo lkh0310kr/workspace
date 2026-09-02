@@ -1,6 +1,6 @@
 import type { JapaneseStudyOllamaConfig } from "../../../../shared/japaneseStudyTypes";
 import type { StudyAssistRequest } from "../../../../shared/japaneseStudyTypes";
-import { buildStudyPrompt, parseLineResponse } from "../prompts";
+import { buildStudyLlmMessages, parseLineResponse } from "../prompts";
 import type { StudyLlmProvider } from "../types";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:11434";
@@ -38,17 +38,14 @@ export function createOllamaStudyLlmProvider(config: JapaneseStudyOllamaConfig =
     },
     async complete(req: StudyAssistRequest) {
       const model = await resolveOllamaModel(baseUrl, configuredModel);
-      const { system, user } = buildStudyPrompt(req);
+      const messages = buildStudyLlmMessages(req);
       const response = await fetch(`${baseUrl}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model,
           stream: false,
-          messages: [
-            { role: "system", content: system },
-            { role: "user", content: user },
-          ],
+          messages,
         }),
         signal: AbortSignal.timeout(60_000),
       });
