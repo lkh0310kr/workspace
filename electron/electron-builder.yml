@@ -56,4 +56,6 @@ extraResources:
     to: world-engine-embed
     filter:
       - "**/*"
+  - from: resources/japanese/apple-fm-sidecar/apple-fm-sidecar
+    to: japanese/apple-fm-sidecar/apple-fm-sidecar
 npmRebuild: false

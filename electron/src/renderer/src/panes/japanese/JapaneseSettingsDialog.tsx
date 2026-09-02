@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
 import { DictionarySetup } from "./DictionarySetup";
+import { JapaneseStudySettings } from "./JapaneseStudySettings";
 
 interface Props {
   onClose: () => void;
@@ -22,6 +23,7 @@ export function JapaneseSettingsDialog({ onClose }: Props) {
         </header>
         <div className="japanese-settings-body">
           <DictionarySetup />
+          <JapaneseStudySettings />
         </div>
       </div>
     </div>,

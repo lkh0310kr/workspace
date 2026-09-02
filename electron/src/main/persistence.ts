@@ -2,6 +2,7 @@ import { app } from "electron";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import type { JapaneseStudyConfig } from "../shared/japaneseStudyTypes";
 import type { WorkspaceState } from "./workspace";
 
 // Port of src/lib.rs's config_path()/workspace_snapshot_path() and their
@@ -98,6 +99,7 @@ function workspaceSnapshotPath(): string {
 
 export interface AppConfig {
   rootPath?: string;
+  japaneseStudy?: JapaneseStudyConfig;
 }
 
 export function loadConfig(): AppConfig {

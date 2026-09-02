@@ -42,7 +42,7 @@
   --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", Consolas, "D2Coding",
     "NanumGothicCoding", "Noto Sans Mono CJK KR", "Apple SD Gothic Neo", "Malgun Gothic", monospace;
   --chrome-h: 34px;
-  --pane-group-unfocused-opacity: 0.7;
+  --pane-group-unfocused-opacity: 0.78;
   --browser-chrome-total: 36px;
   --scroll-size: 8px;
   --scroll-thumb: rgba(121, 121, 121, 0.4);
@@ -1445,7 +1445,7 @@ input {
 }
 
 /* Orca pattern (TabGroupPanel.tsx): when multiple splits are visible, the
-   focused group stays at full opacity and the rest dim (0.7). */
+   focused group stays at full opacity and the rest dim (~0.78). */
 .pane-group-host-unfocused {
   opacity: var(--pane-group-unfocused-opacity);
 }
@@ -2063,6 +2063,91 @@ input {
   min-height: 0;
   overflow: auto;
   padding: 16px;
+}
+
+.japanese-settings-section-title {
+  margin: 20px 0 8px;
+  font-size: 14px;
+}
+
+.japanese-study-settings {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.japanese-study-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.japanese-study-field input,
+.japanese-study-field select {
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-base);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+.japanese-study-fieldset {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 0;
+}
+
+.japanese-study-fieldset legend {
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.japanese-study-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.japanese-study-message {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.japanese-study-provider-status {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.japanese-study-provider-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.japanese-study-provider-list {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.japanese-study-provider-list .is-available {
+  color: var(--text);
+}
+
+.japanese-study-provider-list .is-unavailable {
+  color: var(--text-muted);
+}
+
+.japanese-study-provider-warning {
+  margin: 8px 0 0;
+  color: var(--text-muted);
 }
 
 .japanese-mode-tab {

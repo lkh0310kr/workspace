@@ -15,7 +15,10 @@ function warmStrokeReferenceCache(): void {
   });
 }
 
+import { initJapaneseStudyLlmProviders } from "./studyConfig";
+
 export function initJapaneseDictionary(): void {
+  initJapaneseStudyLlmProviders();
   japaneseLog("init_start");
   try {
     const { path, ready } = connectJapaneseDbFromCandidates();

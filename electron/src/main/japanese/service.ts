@@ -78,6 +78,14 @@ function mergeUniqueEntSeqs(limit: number, ...lists: number[][]): number[] {
   return out;
 }
 
+export function lookupJapaneseSurface(query: string): JapaneseLexemeSummary | null {
+  const db = getJapaneseDb();
+  if (!db || !query.trim()) return null;
+  const entSeqs = searchExact(db, query.trim(), 1);
+  if (entSeqs.length === 0) return null;
+  return summarizeLexeme(db, entSeqs[0]);
+}
+
 function searchExact(db: NonNullable<ReturnType<typeof getJapaneseDb>>, query: string, limit: number): number[] {
   if (!query.trim()) return [];
   const rows = db

@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -44,7 +45,9 @@ import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdow
 import { wikiLinkExtension } from "../markdownWikilink";
 import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markdownTitleRename";
 import { pastePlainTextCommand } from "../editorPlainPaste";
+import { buildJapaneseStudyContextMenuItems } from "../japanese/studyAssistCommands";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
+import { ContextMenu } from "../components/ContextMenu";
 import type { TabKind } from "../layout/paneTypes";
 import { Popover, type AnchorRect } from "../components/Popover";
 
@@ -212,6 +215,15 @@ export function EditorContent({
   const [titleDraft, setTitleDraft] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const [studyContextMenu, setStudyContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const setStudyContextMenuRef = useRef(setStudyContextMenu);
+  setStudyContextMenuRef.current = setStudyContextMenu;
+
+  const closeStudyContextMenu = useCallback(() => setStudyContextMenu(null), []);
+  const japaneseStudyContextMenuItems = useMemo(
+    () => buildJapaneseStudyContextMenuItems(() => viewRef.current, closeStudyContextMenu),
+    [closeStudyContextMenu],
+  );
 
   const setDirtyState = useCallback((next: boolean) => {
     if (dirtyRef.current === next) return;
@@ -384,6 +396,23 @@ export function EditorContent({
       },
     });
 
+    const japaneseStudyMenuHandler = EditorView.domEventHandlers({
+      contextmenu(event, view) {
+        const { from, to } = view.state.selection.main;
+        if (from === to) return false;
+        const text = view.state.sliceDoc(from, to).trim();
+        if (!text) return false;
+        event.preventDefault();
+        event.stopPropagation();
+        setFocusedEditorView(view);
+        setStudyContextMenuRef.current({ x: event.clientX, y: event.clientY });
+        void import("../electron").then(({ japaneseStudyLog }) =>
+          japaneseStudyLog("context_menu_open", { textLength: text.length, from, to }),
+        );
+        return true;
+      },
+    });
+
     const langCompartment = new Compartment();
 
     const kindExtensions = isMarkdown
@@ -428,6 +457,7 @@ export function EditorContent({
         doc: "",
         extensions: [
           ...kindExtensions,
+          japaneseStudyMenuHandler,
           ...workspaceSearch,
           indentUnit.of("    "),
           history(),
@@ -497,6 +527,7 @@ export function EditorContent({
       window.removeEventListener("keydown", onKey);
       view.dom.removeEventListener("focus", onEditorFocus, true);
       view.dom.removeEventListener("blur", onEditorBlur, true);
+      setStudyContextMenuRef.current(null);
       clearFocusedEditorView(view);
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       view.destroy();
@@ -740,6 +771,14 @@ export function EditorContent({
             )}
           </Popover>
         )}
+        {studyContextMenu ? (
+          <ContextMenu
+            x={studyContextMenu.x}
+            y={studyContextMenu.y}
+            items={japaneseStudyContextMenuItems}
+            onClose={closeStudyContextMenu}
+          />
+        ) : null}
       </div>
     </div>
   );
