@@ -18,6 +18,7 @@ import { resolveExplicitTerminalTitleAgentType } from "../../../shared/agent/ter
 import type { TuiAgent } from "../../../shared/agent/tui-agent";
 import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
+import { installTerminalPasteHandler } from "../terminal/installTerminalPasteHandler";
 import { copyTerminalSelection } from "../terminal/terminal-selection-copy";
 import { termLog } from "../terminal/terminalDebugLog";
 import { writeClipboardText } from "../electron";
@@ -27,6 +28,7 @@ interface Props {
   visible: boolean;
   active: boolean;
   zoom?: number;
+  terminalAgent?: TuiAgent;
   onTerminalTabUpdate?: (patch: { title?: string; terminalAgent?: TuiAgent | null }) => void;
 }
 
@@ -37,13 +39,15 @@ function applyTerminalSurfaceBackground(el: HTMLElement, resolved: ReturnType<ty
   el.style.setProperty("--terminal-surface-bg", bg);
 }
 
-function TerminalPaneInner({ terminalId, visible, active, zoom = 1, onTerminalTabUpdate }: Props) {
+function TerminalPaneInner({ terminalId, visible, active, zoom = 1, terminalAgent, onTerminalTabUpdate }: Props) {
   const shellRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<ManagedPaneInternal | null>(null);
   const ptyDisposeRef = useRef<(() => void) | null>(null);
   const onTerminalTabUpdateRef = useRef(onTerminalTabUpdate);
   onTerminalTabUpdateRef.current = onTerminalTabUpdate;
+  const terminalAgentRef = useRef(terminalAgent);
+  terminalAgentRef.current = terminalAgent;
   const searchRef = useRef<SearchAddon | null>(null);
   const hasFocusRef = useRef(false);
   const wasShownRef = useRef(false);
@@ -91,6 +95,21 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1, onTerminalTa
       terminal: pane.terminal,
       transport,
       terminalId,
+      getTerminalAgent: () => terminalAgentRef.current,
+      isFocused: () => {
+        const active = document.activeElement;
+        const root = pane.terminal.element;
+        return (
+          active === pane.terminal.textarea ||
+          (!!root && active instanceof Node && root.contains(active))
+        );
+      },
+    });
+
+    const pasteHandlerDispose = installTerminalPasteHandler({
+      terminal: pane.terminal,
+      container: pane.container,
+      getTerminalAgent: () => terminalAgentRef.current,
       isFocused: () => {
         const active = document.activeElement;
         const root = pane.terminal.element;
@@ -138,6 +157,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1, onTerminalTa
     return () => {
       unsubscribeTheme();
       keyHandlerDispose();
+      pasteHandlerDispose();
       window.api.terminal.setFocused(null);
       pane.container.removeEventListener("focusin", onFocusIn);
       pane.container.removeEventListener("focusout", onFocusOut);

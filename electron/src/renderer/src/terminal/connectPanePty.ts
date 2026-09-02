@@ -6,6 +6,10 @@ import { writeTerminalOutput } from "../lib/pane-manager/pane-terminal-output-sc
 import { ptyResize, writeClipboardText } from "../electron";
 import { createElectronPtyTransport, type PtyTransport } from "./ptyTransport";
 import { createPtyTerminalTitleObserver } from "./ptyTerminalTitleObserver";
+import {
+  markTerminalBracketedPasteInterrupted,
+  observeTerminalBracketedPasteModeOutput,
+} from "./terminal-bracketed-paste";
 import { reprTerminalBytes, termLog } from "./terminalDebugLog";
 
 export function connectPanePty(
@@ -27,6 +31,7 @@ export function connectPanePty(
     : null;
 
   const writeOutput = (data: string) => {
+    observeTerminalBracketedPasteModeOutput(term, data);
     titleObserver?.observePtyChunk(data);
     termLog(
       "pty:receive",
@@ -59,6 +64,9 @@ export function connectPanePty(
     });
 
   onDataDisposable = term.onData((data) => {
+    if (data === "\x03") {
+      markTerminalBracketedPasteInterrupted(term);
+    }
     termLog(
       "xterm:onData",
       "to-pty",

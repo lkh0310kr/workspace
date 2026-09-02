@@ -7,6 +7,7 @@ import { onBrowserReloadShortcut, onPastePlainTextShortcut, onTerminalPasteShort
 import { pastePlainTextInFocusedEditor } from "../activeEditorView";
 import { getRegisteredTerminalPane } from "../lib/pane-manager/pane-terminal-registry";
 import { pasteClipboardIntoTerminal } from "../terminal/terminal-clipboard-paste";
+import { notifyTerminalKeyboardPasteHandled } from "../terminal/installTerminalPasteHandler";
 import { installGlobalErrorLogging } from "../errorLog";
 
 /** One-time app-wide side effects (logging, browser embed, downloads). */
@@ -28,7 +29,8 @@ export function useAppBootstrap(): void {
       onTerminalPasteShortcut(({ terminalId }) => {
         const pane = getRegisteredTerminalPane(terminalId);
         if (!pane) return;
-        void pasteClipboardIntoTerminal(pane.terminal);
+        notifyTerminalKeyboardPasteHandled();
+        void pasteClipboardIntoTerminal({ terminal: pane.terminal });
       }),
     [],
   );

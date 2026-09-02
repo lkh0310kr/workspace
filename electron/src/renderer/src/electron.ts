@@ -225,6 +225,12 @@ import type {
   JapaneseStrokeRecognitionResult,
   JapanesePracticeScore,
 } from "../../shared/japaneseTypes";
+import type {
+  JapaneseStudyConfig,
+  StudyAssistRequest,
+  StudyAssistResult,
+  StudyTask,
+} from "../../shared/japaneseStudyTypes";
 
 export type {
   JapaneseDbPathProbe,
@@ -303,6 +309,39 @@ export async function scoreJapanesePractice(
   strokes: { points: { x: number; y: number }[] }[],
 ): Promise<JapanesePracticeScore> {
   return window.api.japanese.scorePractice(literal, strokes);
+}
+
+export type { JapaneseStudyConfig, StudyAssistRequest, StudyAssistResult, StudyTask };
+
+export async function analyzeJapaneseStudyLine(text: string): Promise<StudyAssistResult> {
+  return window.api.japanese.analyzeLine(text);
+}
+
+export async function japaneseStudyAssist(request: StudyAssistRequest): Promise<StudyAssistResult> {
+  return window.api.japanese.studyAssist(request);
+}
+
+export async function getJapaneseStudyConfig(): Promise<JapaneseStudyConfig> {
+  return window.api.japanese.studyConfigGet();
+}
+
+export async function saveJapaneseStudyConfig(patch: JapaneseStudyConfig): Promise<JapaneseStudyConfig> {
+  return window.api.japanese.studyConfigSave(patch);
+}
+
+export async function japaneseStudyLog(event: string, data?: Record<string, unknown>): Promise<void> {
+  await window.api.japanese.studyLog(event, data);
+}
+
+export interface StudyProviderStatus {
+  id: string;
+  label: string;
+  available: boolean;
+}
+
+export async function getJapaneseStudyProviderStatus(): Promise<StudyProviderStatus[]> {
+  const rows = await window.api.japanese.studyProviderStatus();
+  return Array.isArray(rows) ? (rows as StudyProviderStatus[]) : [];
 }
 
 export interface EpubSpineItem {
@@ -414,6 +453,10 @@ export function writeClipboardText(text: string): void {
 
 export function readClipboardText(): Promise<string> {
   return window.api.clipboard.readText();
+}
+
+export function saveClipboardImageAsTempFile(): Promise<string | null> {
+  return window.api.clipboard.saveImageAsTempFile();
 }
 
 /** Fires when a <webview> guest tries to open a new window (target=_blank,

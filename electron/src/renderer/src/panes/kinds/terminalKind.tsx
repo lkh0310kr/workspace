@@ -31,6 +31,7 @@ export const terminalPaneKind: PaneKindDefinition = {
         visible={ctx.chipShown}
         active={ctx.active}
         zoom={ctx.zoom}
+        terminalAgent={ctx.item.terminalAgent}
         onTerminalTabUpdate={(patch) => {
           const next: Partial<PaneTabItem> = {
             ...(patch.title !== undefined ? { title: patch.title } : {}),

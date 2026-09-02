@@ -1,6 +1,8 @@
 import './imeEnv'
 import { ensureLinuxImeDaemon } from './imeEnv'
 import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './shortcuts/relayAppShortcuts'
+import { assertClipboardImageDimensionsWithinLimit } from '../shared/clipboard-image'
+import { saveClipboardImageBufferAsTempFile } from './clipboard/clipboardImageTempFile'
 
 import { app, shell, BrowserWindow, ipcMain, Menu, dialog, clipboard, session } from 'electron'
 import { join } from 'path'
@@ -48,6 +50,10 @@ import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
 import { startEmbeddedWorldEngine } from './worldEngineEmbed'
 import { pickDirectory, pickMediaFile } from './nativeDialogs'
 import { initJapaneseDictionary, reloadJapaneseDictionary } from './japanese/init'
+import { analyzeJapaneseStudyLine, studyAssist } from './japanese/studyAssist'
+import { studyAssistLog } from './japanese/studyAssistLog'
+import { listStudyProviderStatus } from './japanese/llm/router'
+import { getJapaneseStudyConfig, saveJapaneseStudyConfig } from './japanese/studyConfig'
 import { readJapaneseLogs } from './japanese/japaneseLog'
 import {
   getJapaneseDbStatus,
@@ -672,6 +678,15 @@ app.whenReady().then(() => {
     clipboard.writeText(text)
   })
   ipcMain.handle('clipboard:read-text', () => clipboard.readText())
+  // Why: Claude Code / Cursor CLI accept image input via pasted temp-file paths.
+  ipcMain.handle('clipboard:save-image-as-temp-file', () => {
+    const image = clipboard.readImage()
+    if (image.isEmpty()) {
+      return null
+    }
+    assertClipboardImageDimensionsWithinLimit(image.getSize())
+    return saveClipboardImageBufferAsTempFile(image.toPNG())
+  })
   ipcMain.handle('shell:reveal-item-in-dir', (_event, path: string) => {
     shell.showItemInFolder(path)
   })
@@ -851,6 +866,22 @@ app.whenReady().then(() => {
   )
   ipcMain.handle('japanese:score-practice', (_event, literal: string, strokes: unknown) =>
     scoreJapanesePractice(literal, strokes as Parameters<typeof scoreJapanesePractice>[1]),
+  )
+  ipcMain.handle('japanese:analyze-line', (_event, text: string) => analyzeJapaneseStudyLine(text))
+  ipcMain.handle('japanese:study-assist', (_event, request: unknown) => {
+    studyAssistLog('ipc_assist', {
+      task: (request as { task?: string })?.task ?? null,
+      textLength: String((request as { text?: string })?.text ?? '').length,
+    })
+    return studyAssist(request as Parameters<typeof studyAssist>[0])
+  })
+  ipcMain.handle('japanese:study-log', (_event, event: string, data?: Record<string, unknown>) => {
+    studyAssistLog(`renderer_${event}`, data)
+  })
+  ipcMain.handle('japanese:study-provider-status', () => listStudyProviderStatus())
+  ipcMain.handle('japanese:study-config-get', () => getJapaneseStudyConfig())
+  ipcMain.handle('japanese:study-config-save', (_event, patch: unknown) =>
+    saveJapaneseStudyConfig(patch as Parameters<typeof saveJapaneseStudyConfig>[0]),
   )
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
   ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))

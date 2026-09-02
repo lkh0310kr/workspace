@@ -7,6 +7,9 @@ import { releaseTerminalImeTextareaAnchor } from "../lib/pane-manager/terminal-i
 import { sendCapturedTerminalInput } from "./terminal-captured-input-dispatch";
 import { pasteClipboardIntoTerminal } from "./terminal-clipboard-paste";
 import {
+  notifyTerminalKeyboardPasteHandled,
+} from "./installTerminalPasteHandler";
+import {
   resolveTerminalShortcutAction,
   type TerminalShortcutAction,
 } from "./terminal-shortcut-policy";
@@ -53,6 +56,7 @@ export function installTerminalKeyHandler(args: {
   terminal: Terminal;
   transport: PtyTransport;
   terminalId: number;
+  getTerminalAgent?: () => import("../../../shared/agent/tui-agent").TuiAgent | null | undefined;
   isFocused?: () => boolean;
 }): () => void {
   const { terminal, transport, terminalId } = args;
@@ -170,7 +174,11 @@ export function installTerminalKeyHandler(args: {
         event.stopImmediatePropagation();
         return;
       case "paste":
-        void pasteClipboardIntoTerminal(terminal).then((pasted) => {
+        notifyTerminalKeyboardPasteHandled();
+        void pasteClipboardIntoTerminal({
+          terminal,
+          terminalAgent: args.getTerminalAgent?.() ?? null,
+        }).then((pasted) => {
           termLog(
             "keyboard:capture",
             "paste",

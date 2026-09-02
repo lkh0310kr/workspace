@@ -133,6 +133,7 @@ export interface WorkspaceApi {
   clipboard: {
     writeText: (text: string) => void
     readText: () => Promise<string>
+    saveImageAsTempFile: () => Promise<string | null>
   }
   debug: {
     interactionLog: (entry: Record<string, unknown>) => void
@@ -254,6 +255,16 @@ export interface WorkspaceApi {
     searchByKanji: (literal: string) => Promise<JapaneseSearchResult>
     recognizeStrokes: (strokes: { points: { x: number; y: number }[] }[]) => Promise<JapaneseStrokeRecognitionResult>
     scorePractice: (literal: string, strokes: { points: { x: number; y: number }[] }[]) => Promise<JapanesePracticeScore>
+    analyzeLine: (text: string) => Promise<import('../shared/japaneseStudyTypes').StudyAssistResult>
+    studyAssist: (
+      request: import('../shared/japaneseStudyTypes').StudyAssistRequest,
+    ) => Promise<import('../shared/japaneseStudyTypes').StudyAssistResult>
+    studyConfigGet: () => Promise<import('../shared/japaneseStudyTypes').JapaneseStudyConfig>
+    studyConfigSave: (
+      patch: import('../shared/japaneseStudyTypes').JapaneseStudyConfig,
+    ) => Promise<import('../shared/japaneseStudyTypes').JapaneseStudyConfig>
+    studyLog: (event: string, data?: Record<string, unknown>) => Promise<void>
+    studyProviderStatus: () => Promise<{ id: string; label: string; available: boolean }[]>
   }
   epub: {
     open: (tabId: number, rel: string) => Promise<EpubBook>

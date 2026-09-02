@@ -47,7 +47,9 @@ const api = {
   },
   clipboard: {
     writeText: (text: string): void => ipcRenderer.send('clipboard:write-text', text),
-    readText: (): Promise<string> => ipcRenderer.invoke('clipboard:read-text')
+    readText: (): Promise<string> => ipcRenderer.invoke('clipboard:read-text'),
+    saveImageAsTempFile: (): Promise<string | null> =>
+      ipcRenderer.invoke('clipboard:save-image-as-temp-file')
   },
   debug: {
     interactionLog: (entry: Record<string, unknown>): void =>
@@ -306,6 +308,14 @@ const api = {
       ipcRenderer.invoke('japanese:recognize-strokes', strokes),
     scorePractice: (literal: string, strokes: unknown): Promise<unknown> =>
       ipcRenderer.invoke('japanese:score-practice', literal, strokes),
+    analyzeLine: (text: string): Promise<unknown> => ipcRenderer.invoke('japanese:analyze-line', text),
+    studyAssist: (request: unknown): Promise<unknown> => ipcRenderer.invoke('japanese:study-assist', request),
+    studyConfigGet: (): Promise<unknown> => ipcRenderer.invoke('japanese:study-config-get'),
+    studyConfigSave: (patch: unknown): Promise<unknown> =>
+      ipcRenderer.invoke('japanese:study-config-save', patch),
+    studyLog: (event: string, data?: Record<string, unknown>): Promise<void> =>
+      ipcRenderer.invoke('japanese:study-log', event, data),
+    studyProviderStatus: (): Promise<unknown> => ipcRenderer.invoke('japanese:study-provider-status'),
   },
   epub: {
     open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),
