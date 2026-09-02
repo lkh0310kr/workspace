@@ -29,7 +29,7 @@ async function completeWithActiveProvider(
   tokens = analyzeLineForContext(req.text),
 ): Promise<Pick<StudyAssistResult, "lines" | "note"> & { providerId: string }> {
   const config = getJapaneseStudyConfig();
-  const provider = await resolveStudyLlmProvider(config.providerId);
+  const provider = await resolveStudyLlmProvider(config.providerId, config);
   studyAssistLog("provider_resolve", {
     requestedProviderId: config.providerId ?? null,
     resolvedProviderId: provider?.id ?? null,
@@ -66,6 +66,49 @@ async function completeWithActiveProvider(
 export async function studyAssist(req: StudyAssistRequest): Promise<StudyAssistResult> {
   const text = req.text.trim();
   studyAssistLog("assist_start", { task: req.task, textLength: text.length });
+
+  if (req.task === "augment") {
+    const fullDocument = req.context?.fullDocument?.trim() ?? "";
+    if (!fullDocument) {
+      const empty = {
+        task: req.task,
+        lines: [],
+        providerId: "dictionary-only",
+        note: "문서가 비어 있습니다.",
+      };
+      studyAssistLog("assist_done", { ...empty, reason: "empty_document" });
+      return empty;
+    }
+    try {
+      const llm = await completeWithActiveProvider({ ...req, text: req.context?.currentLine?.trim() || "." }, []);
+      const truncated = fullDocument.length > 12_000;
+      const result: StudyAssistResult = {
+        task: req.task,
+        lines: llm.lines,
+        note: truncated
+          ? [llm.note, "(문서 일부만 참고하여 생성했습니다.)"].filter(Boolean).join("\n\n")
+          : llm.note,
+        providerId: llm.providerId,
+      };
+      studyAssistLog("assist_done", {
+        task: result.task,
+        providerId: result.providerId,
+        lineCount: result.lines.length,
+        hasNote: Boolean(result.note),
+      });
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      studyAssistLog("assist_error", { task: req.task, error: message });
+      return {
+        task: req.task,
+        lines: [],
+        note: message,
+        providerId: "unavailable",
+      };
+    }
+  }
+
   if (!text) {
     const empty = {
       task: req.task,
@@ -105,7 +148,8 @@ export async function studyAssist(req: StudyAssistRequest): Promise<StudyAssistR
     case "translate_to_ja":
     case "grammar_hint":
     case "check_translation":
-    case "practice_sentences": {
+    case "practice_sentences":
+    case "chat": {
       const tokens = analyzeLineForContext(text);
       if (isTranslateTask(req.task)) {
         const direction = resolveTranslateDirection(req);

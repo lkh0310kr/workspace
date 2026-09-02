@@ -10,16 +10,59 @@ export type StudyTask =
   | "reading"
   | "grammar_hint"
   | "check_translation"
-  | "practice_sentences";
+  | "practice_sentences"
+  | "chat"
+  | "augment";
+
+export type StudyChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export interface StudyAssistContext {
+  /** @deprecated use previousLines */
+  previousLine?: string;
+  /** @deprecated use nextLines */
+  nextLine?: string;
+  currentLine?: string;
+  previousLines?: string[];
+  nextLines?: string[];
+  filePath?: string | null;
+  fullDocument?: string;
+  cursorLine?: number;
+  cursorOffset?: number;
+}
+
+export interface StudyChatSessionKey {
+  filePath: string | null;
+  selectionText: string;
+  selectionFrom: number;
+  selectionTo: number;
+}
+
+export interface StudyChatSession {
+  sessionId: string;
+  filePath: string | null;
+  selectionText: string;
+  selectionFrom: number;
+  selectionTo: number;
+  messages: StudyChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface StudyAssistRequest {
   task: StudyTask;
   text: string;
-  context?: { previousLine?: string; nextLine?: string };
+  context?: StudyAssistContext;
   level?: StudyLevel;
   koreanDraft?: string;
   dictionaryTokens?: StudyToken[];
   translateDirection?: StudyTranslateDirection;
+  /** Prior turns for task `chat`. */
+  messages?: StudyChatMessage[];
+  /** Latest user message for task `chat`. */
+  userMessage?: string;
 }
 
 export interface StudyToken {
