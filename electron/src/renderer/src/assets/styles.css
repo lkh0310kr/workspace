@@ -2434,6 +2434,84 @@ input {
   color: var(--text-muted);
 }
 
+.document-augment-preview {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.document-augment-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.document-augment-preview-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.document-augment-preview-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.document-augment-preview-discard,
+.document-augment-preview-accept {
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.document-augment-preview-discard {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.document-augment-preview-accept {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.document-augment-preview-accept:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.document-augment-preview-body {
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+.document-augment-preview-status {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.document-augment-preview-error {
+  color: #e57373;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.document-augment-preview-text {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+
 .japanese-study-provider-list .is-available {
   color: var(--text);
 }
