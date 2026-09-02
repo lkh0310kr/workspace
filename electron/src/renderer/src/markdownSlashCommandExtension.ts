@@ -38,7 +38,7 @@ function coordsToAnchorRect(coords: { left: number; top: number; right: number; 
 
 export function createMarkdownSlashCommandExtension(options: {
   onStateChange: (state: SlashCommandActiveState | null) => void;
-  keyboardHost: SlashCommandKeyboardHost;
+  getKeyboardHost: () => SlashCommandKeyboardHost;
   isActive: () => boolean;
 }): Extension {
   const publish = (view: EditorView): void => {
@@ -59,7 +59,7 @@ export function createMarkdownSlashCommandExtension(options: {
       return;
     }
 
-    options.keyboardHost.resetSelection();
+    options.getKeyboardHost().resetSelection();
     options.onStateChange({
       query: detected.query,
       slashFrom: detected.slashFrom,
@@ -79,7 +79,7 @@ export function createMarkdownSlashCommandExtension(options: {
         key: "ArrowUp",
         run: (view) => {
           if (!options.isActive() || !detectSlashAtCursor(view)) return false;
-          options.keyboardHost.moveSelection(-1, Number.POSITIVE_INFINITY);
+          options.getKeyboardHost().moveSelection(-1, Number.POSITIVE_INFINITY);
           return true;
         },
       },
@@ -87,7 +87,7 @@ export function createMarkdownSlashCommandExtension(options: {
         key: "ArrowDown",
         run: (view) => {
           if (!options.isActive() || !detectSlashAtCursor(view)) return false;
-          options.keyboardHost.moveSelection(1, Number.POSITIVE_INFINITY);
+          options.getKeyboardHost().moveSelection(1, Number.POSITIVE_INFINITY);
           return true;
         },
       },
@@ -95,7 +95,7 @@ export function createMarkdownSlashCommandExtension(options: {
         key: "Enter",
         run: (view) => {
           if (!options.isActive() || !detectSlashAtCursor(view)) return false;
-          options.keyboardHost.onExecute();
+          options.getKeyboardHost().onExecute();
           return true;
         },
       },
@@ -103,7 +103,7 @@ export function createMarkdownSlashCommandExtension(options: {
         key: "Escape",
         run: (view) => {
           if (!options.isActive() || !detectSlashAtCursor(view)) return false;
-          options.keyboardHost.onClose();
+          options.getKeyboardHost().onClose();
           return true;
         },
       },

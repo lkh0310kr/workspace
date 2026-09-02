@@ -1,7 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -45,9 +44,25 @@ import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdow
 import { wikiLinkExtension } from "../markdownWikilink";
 import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markdownTitleRename";
 import { pastePlainTextCommand } from "../editorPlainPaste";
-import { buildJapaneseStudyContextMenuItems } from "../japanese/studyAssistCommands";
+import { insertStudyChatReply } from "../japanese/studyAssistChat";
+import { createStudyAssistSelectionListener, createStudyAssistDomHandlers, refreshStudySelectionAnchor, type StudySelectionAnchor } from "../japanese/studyAssistSelectionExtension";
+import { logStudySelection } from "../japanese/studyAssistSelectionLog";
+import { StudyAssistChatPanel } from "../japanese/StudyAssistChatPanel";
+import { DocumentAugmentPreviewPanel } from "../japanese/DocumentAugmentPreviewPanel";
+import { runDocumentAugment } from "../japanese/studyAssistAugment";
+import { replaceRangeAndInsert } from "../activeEditorView";
+import {
+  createMarkdownSlashCommandExtension,
+  type SlashCommandKeyboardHost,
+} from "../markdownSlashCommandExtension";
+import { MarkdownSlashCommandPopover } from "../MarkdownSlashCommandPopover";
+import {
+  createMarkdownSlashCommands,
+  filterSlashCommands,
+  type SlashCommandActiveState,
+  type SlashCommandContext,
+} from "../markdownSlashCommands";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
-import { ContextMenu } from "../components/ContextMenu";
 import type { TabKind } from "../layout/paneTypes";
 import { Popover, type AnchorRect } from "../components/Popover";
 
@@ -189,6 +204,7 @@ export function EditorContent({
   onJumpConsumed,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const editorShellRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const pathRef = useRef<string | null>(filePath);
   pathRef.current = filePath;
@@ -215,15 +231,51 @@ export function EditorContent({
   const [titleDraft, setTitleDraft] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const [studyContextMenu, setStudyContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const setStudyContextMenuRef = useRef(setStudyContextMenu);
-  setStudyContextMenuRef.current = setStudyContextMenu;
-
-  const closeStudyContextMenu = useCallback(() => setStudyContextMenu(null), []);
-  const japaneseStudyContextMenuItems = useMemo(
-    () => buildJapaneseStudyContextMenuItems(() => viewRef.current, closeStudyContextMenu),
-    [closeStudyContextMenu],
-  );
+  const isMarkdown = kind === "markdown";
+  const [selectionAnchor, setSelectionAnchor] = useState<StudySelectionAnchor | null>(null);
+  const [studyChatOpen, setStudyChatOpen] = useState(false);
+  const [chatSelectionText, setChatSelectionText] = useState<string | null>(null);
+  const [chatSelectionFrom, setChatSelectionFrom] = useState<number | null>(null);
+  const [chatSelectionTo, setChatSelectionTo] = useState<number | null>(null);
+  const [chatAnchor, setChatAnchor] = useState<{ top: number; left: number } | null>(null);
+  const studyChatOpenRef = useRef(studyChatOpen);
+  studyChatOpenRef.current = studyChatOpen;
+  const [slashState, setSlashState] = useState<SlashCommandActiveState | null>(null);
+  const slashStateRef = useRef(slashState);
+  slashStateRef.current = slashState;
+  const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
+  const slashFilteredCountRef = useRef(0);
+  const slashCommandsRef = useRef(createMarkdownSlashCommands({ onAugment: () => {} }));
+  const [augmentPreview, setAugmentPreview] = useState<{
+    slashFrom: number;
+    slashTo: number;
+    text: string;
+    loading: boolean;
+    error: string | null;
+  } | null>(null);
+  const augmentPreviewOpenRef = useRef(false);
+  augmentPreviewOpenRef.current = Boolean(augmentPreview);
+  const slashOnStateChangeRef = useRef<(state: SlashCommandActiveState | null) => void>(() => {});
+  slashOnStateChangeRef.current = setSlashState;
+  const slashKeyboardHostRef = useRef<SlashCommandKeyboardHost>({
+    selectedIndex: 0,
+    resetSelection: () => {},
+    moveSelection: () => {},
+    onExecute: () => {},
+    onClose: () => {},
+  });
+  const onSelectionAnchorRef = useRef<(anchor: StudySelectionAnchor | null) => void>(() => {});
+  onSelectionAnchorRef.current = (anchor) => {
+    if (!studyChatOpenRef.current && !augmentPreviewOpenRef.current) {
+      logStudySelection("react_state", {
+        hasAnchor: Boolean(anchor),
+        textLength: anchor?.text.length ?? 0,
+        top: anchor?.top ?? null,
+        left: anchor?.left ?? null,
+      });
+      setSelectionAnchor(anchor);
+    }
+  };
 
   const setDirtyState = useCallback((next: boolean) => {
     if (dirtyRef.current === next) return;
@@ -271,7 +323,121 @@ export function EditorContent({
 
   useEffect(() => subscribeAutoSave(setAutoSave), []);
 
-  const isMarkdown = kind === "markdown";
+  useEffect(() => {
+    setStudyChatOpen(false);
+    setChatSelectionText(null);
+    setChatSelectionFrom(null);
+    setChatSelectionTo(null);
+    setChatAnchor(null);
+    setSelectionAnchor(null);
+    setSlashState(null);
+    setAugmentPreview(null);
+  }, [filePath]);
+
+  const startDocumentAugment = useCallback(
+    async (ctx: SlashCommandContext) => {
+      const view = viewRef.current;
+      if (!view) return;
+      setSlashState(null);
+      setAugmentPreview({
+        slashFrom: ctx.slashFrom,
+        slashTo: ctx.slashTo,
+        text: "",
+        loading: true,
+        error: null,
+      });
+      try {
+        const text = await runDocumentAugment(view, filePath);
+        setAugmentPreview((prev) =>
+          prev ? { ...prev, text, loading: false, error: text.trim() ? null : "생성된 내용이 없습니다." } : null,
+        );
+      } catch (err) {
+        setAugmentPreview((prev) =>
+          prev
+            ? {
+                ...prev,
+                loading: false,
+                error: err instanceof Error ? err.message : String(err),
+              }
+            : null,
+        );
+      }
+    },
+    [filePath],
+  );
+
+  slashCommandsRef.current = createMarkdownSlashCommands({ onAugment: startDocumentAugment });
+
+  useEffect(() => {
+    if (!slashState) {
+      slashFilteredCountRef.current = 0;
+      return;
+    }
+    slashFilteredCountRef.current = filterSlashCommands(slashState.query, slashCommandsRef.current).length;
+  }, [slashState]);
+
+  slashKeyboardHostRef.current = {
+    selectedIndex: slashSelectedIndex,
+    resetSelection: () => setSlashSelectedIndex(0),
+    moveSelection: (delta) => {
+      setSlashSelectedIndex((index) => {
+        const max = slashFilteredCountRef.current;
+        if (max <= 0) return 0;
+        return Math.max(0, Math.min(index + delta, max - 1));
+      });
+    },
+    onExecute: () => {
+      const state = slashStateRef.current;
+      if (!state) return;
+      const filtered = filterSlashCommands(state.query, slashCommandsRef.current);
+      const command = filtered[slashSelectedIndex];
+      command?.run({
+        slashFrom: state.slashFrom,
+        slashTo: state.slashTo,
+        query: state.query,
+      });
+    },
+    onClose: () => setSlashState(null),
+  };
+
+  const closeAugmentPreview = useCallback(() => {
+    setAugmentPreview(null);
+  }, []);
+
+  const acceptAugmentPreview = useCallback(() => {
+    const view = viewRef.current;
+    const preview = augmentPreview;
+    if (!view || !preview?.text.trim() || preview.loading) return;
+    replaceRangeAndInsert(view, preview.slashFrom, preview.slashTo, preview.text);
+    setAugmentPreview(null);
+  }, [augmentPreview]);
+
+  const openStudyChat = useCallback(() => {
+    if (!selectionAnchor) return;
+    setChatSelectionText(selectionAnchor.text);
+    setChatSelectionFrom(selectionAnchor.from);
+    setChatSelectionTo(selectionAnchor.to);
+    setChatAnchor({ top: selectionAnchor.top, left: selectionAnchor.left });
+    setStudyChatOpen(true);
+  }, [selectionAnchor]);
+
+  const closeStudyChat = useCallback(() => {
+    setStudyChatOpen(false);
+    setChatSelectionText(null);
+    setChatSelectionFrom(null);
+    setChatSelectionTo(null);
+    setChatAnchor(null);
+  }, []);
+
+  const insertStudyChatReplyInEditor = useCallback(
+    (content: string) => {
+      const view = viewRef.current;
+      if (!view) return;
+      insertStudyChatReply(view, content, { isMarkdown });
+      closeStudyChat();
+    },
+    [closeStudyChat, isMarkdown],
+  );
 
   const saveNow = useCallback(
     (view: EditorView, path: string) => {
@@ -396,22 +562,16 @@ export function EditorContent({
       },
     });
 
-    const japaneseStudyMenuHandler = EditorView.domEventHandlers({
-      contextmenu(event, view) {
-        const { from, to } = view.state.selection.main;
-        if (from === to) return false;
-        const text = view.state.sliceDoc(from, to).trim();
-        if (!text) return false;
-        event.preventDefault();
-        event.stopPropagation();
-        setFocusedEditorView(view);
-        setStudyContextMenuRef.current({ x: event.clientX, y: event.clientY });
-        void import("../electron").then(({ japaneseStudyLog }) =>
-          japaneseStudyLog("context_menu_open", { textLength: text.length, from, to }),
-        );
-        return true;
-      },
-    });
+    const studySelectionListener = createStudyAssistSelectionListener(
+      (anchor) => onSelectionAnchorRef.current(anchor),
+      () => editorShellRef.current,
+    );
+    const studyDomHandlers = createStudyAssistDomHandlers(
+      (anchor) => onSelectionAnchorRef.current(anchor),
+      () => editorShellRef.current,
+    );
+
+    logStudySelection("editor_mount", { tabId, isMarkdown, hasHost: Boolean(hostRef.current) });
 
     const langCompartment = new Compartment();
 
@@ -422,6 +582,11 @@ export function EditorContent({
           ...markdownLivePreview,
           markdownProseTheme,
           wikiLinkClickHandler,
+          createMarkdownSlashCommandExtension({
+            onStateChange: (state) => slashOnStateChangeRef.current(state),
+            getKeyboardHost: () => slashKeyboardHostRef.current,
+            isActive: () => !augmentPreviewOpenRef.current && !studyChatOpenRef.current,
+          }),
           keymap.of([
             { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
             { key: "Enter", run: insertNewlineAndIndent },
@@ -457,7 +622,8 @@ export function EditorContent({
         doc: "",
         extensions: [
           ...kindExtensions,
-          japaneseStudyMenuHandler,
+          EditorView.updateListener.of(studySelectionListener),
+          studyDomHandlers,
           ...workspaceSearch,
           indentUnit.of("    "),
           history(),
@@ -495,6 +661,13 @@ export function EditorContent({
     viewRef.current = view;
     if (isMarkdown) setOutline([]);
 
+    requestAnimationFrame(() => {
+      if (viewRef.current !== view) return;
+      refreshStudySelectionAnchor(view, editorShellRef.current, (anchor) =>
+        onSelectionAnchorRef.current(anchor),
+      );
+    });
+
     const onEditorFocus = (): void => setFocusedEditorView(view);
     const onEditorBlur = (): void => clearFocusedEditorView(view);
     view.dom.addEventListener("focus", onEditorFocus, true);
@@ -527,7 +700,14 @@ export function EditorContent({
       window.removeEventListener("keydown", onKey);
       view.dom.removeEventListener("focus", onEditorFocus, true);
       view.dom.removeEventListener("blur", onEditorBlur, true);
-      setStudyContextMenuRef.current(null);
+      setStudyChatOpen(false);
+      setChatSelectionText(null);
+      setChatSelectionFrom(null);
+      setChatSelectionTo(null);
+      setChatAnchor(null);
+      setSelectionAnchor(null);
+      setSlashState(null);
+      setAugmentPreview(null);
       clearFocusedEditorView(view);
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       view.destroy();
@@ -631,15 +811,64 @@ export function EditorContent({
   // own DOM (the title input and any of its own content still handle
   // their own clicks normally).
   const onScrollContainerClick = (e: ReactMouseEvent) => {
+    if (studyChatOpenRef.current || augmentPreviewOpenRef.current) return;
     // Not just .cm-editor — .md-title/.md-title-edit sit in this same
     // scroll container as a sibling of .md-editor now, and without this
     // a title click would bubble up here too and immediately steal focus
     // back from the rename input it just opened.
-    if ((e.target as HTMLElement).closest(".cm-editor, .md-title, .md-title-edit")) return;
+    if (
+      (e.target as HTMLElement).closest(
+        ".cm-editor, .md-title, .md-title-edit, .study-assist-chat, .study-assist-affordance, .document-augment-preview, .markdown-slash-popover",
+      )
+    ) {
+      return;
+    }
     const view = viewRef.current;
     if (!view) return;
     jumpToPos(view, view.state.doc.length);
   };
+
+  const editorFontStyle = { "--editor-font-size": `${13 * zoom}px` } as CSSProperties;
+
+  const studyAssistUi = (
+    <>
+      {selectionAnchor && !studyChatOpen && !augmentPreview ? (
+        <button
+          type="button"
+          className="study-assist-affordance"
+          style={{ top: selectionAnchor.top, left: selectionAnchor.left }}
+          title="Study chat"
+          aria-label="Open study chat"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={openStudyChat}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M8 1.5a6.5 6.5 0 0 0-2.63 12.47l-2.2.73a.5.5 0 0 1-.62-.62l.73-2.2A6.5 6.5 0 1 0 8 1.5Zm0 1a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"
+            />
+          </svg>
+        </button>
+      ) : null}
+      {studyChatOpen &&
+      chatSelectionText &&
+      chatSelectionFrom != null &&
+      chatSelectionTo != null &&
+      chatAnchor ? (
+        <StudyAssistChatPanel
+          selectionText={chatSelectionText}
+          selectionFrom={chatSelectionFrom}
+          selectionTo={chatSelectionTo}
+          filePath={filePath}
+          getView={() => viewRef.current}
+          anchorTop={chatAnchor.top}
+          anchorLeft={chatAnchor.left}
+          onClose={closeStudyChat}
+          onInsert={insertStudyChatReplyInEditor}
+        />
+      ) : null}
+    </>
+  );
 
   return (
     <div className="obsidian-editor-shell">
@@ -739,20 +968,44 @@ export function EditorContent({
                   {markdownTitleFor(filePath)}
                 </div>
               )}
-              <div
-                className="md-editor"
-                ref={hostRef}
-                style={{ "--editor-font-size": `${13 * zoom}px` } as CSSProperties}
-              />
+              <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
+                <div className="md-editor-host" ref={hostRef} />
+                {studyAssistUi}
+              </div>
             </div>
           ) : (
-            <div
-              className="md-editor"
-              ref={hostRef}
-              style={{ "--editor-font-size": `${13 * zoom}px` } as CSSProperties}
-            />
+            <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
+              <div className="md-editor-host" ref={hostRef} />
+              {studyAssistUi}
+            </div>
           )}
+          {isMarkdown && augmentPreview ? (
+            <DocumentAugmentPreviewPanel
+              previewText={augmentPreview.text}
+              loading={augmentPreview.loading}
+              error={augmentPreview.error}
+              onAccept={acceptAugmentPreview}
+              onDiscard={closeAugmentPreview}
+            />
+          ) : null}
         </div>
+        {isMarkdown && slashState ? (
+          <MarkdownSlashCommandPopover
+            anchorRect={slashState.anchorRect}
+            query={slashState.query}
+            selectedIndex={slashSelectedIndex}
+            commands={slashCommandsRef.current}
+            onSelect={(command) =>
+              command.run({
+                slashFrom: slashState.slashFrom,
+                slashTo: slashState.slashTo,
+                query: slashState.query,
+              })
+            }
+            onClose={() => setSlashState(null)}
+            onSelectedIndexChange={setSlashSelectedIndex}
+          />
+        ) : null}
         {isMarkdown && outlineAnchor && (
           <Popover anchorRect={outlineAnchor} onClose={() => setOutlineAnchor(null)} align="end" className="md-pane-outline-popover">
             {outline.length === 0 ? (
@@ -771,14 +1024,6 @@ export function EditorContent({
             )}
           </Popover>
         )}
-        {studyContextMenu ? (
-          <ContextMenu
-            x={studyContextMenu.x}
-            y={studyContextMenu.y}
-            items={japaneseStudyContextMenuItems}
-            onClose={closeStudyContextMenu}
-          />
-        ) : null}
       </div>
     </div>
   );

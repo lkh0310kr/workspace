@@ -35,6 +35,21 @@ export const MARKDOWN_SLASH_COMMANDS: SlashCommandDef[] = [
   },
 ];
 
+export function createMarkdownSlashCommands(handlers: {
+  onAugment: (ctx: SlashCommandContext) => void;
+}): SlashCommandDef[] {
+  return [
+    {
+      id: "ai.augment",
+      category: "ai",
+      label: "증강",
+      description: "문서를 읽고 내용 자동 추가",
+      keywords: ["증강", "augment", "보강"],
+      run: handlers.onAugment,
+    },
+  ];
+}
+
 function matchesCommand(command: SlashCommandDef, needle: string): boolean {
   const q = needle.toLowerCase();
   if (!q) return true;
