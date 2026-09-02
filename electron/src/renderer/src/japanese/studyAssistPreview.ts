@@ -29,6 +29,10 @@ export function formatStudyAssistInsertLines(
   if (task === "chat") {
     return formatStudyChatInsertLines(formatStudyAssistPreviewText(result), isMarkdown);
   }
+  if (task === "augment") {
+    const body = formatAugmentInsertText(result);
+    return body ? [body] : [];
+  }
   const body = formatStudyAssistPreviewText(result);
   if (!body) return [];
   if (
