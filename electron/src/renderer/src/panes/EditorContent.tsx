@@ -505,8 +505,6 @@ export function EditorContent({
       },
     });
 
-    });
-
     const langCompartment = new Compartment();
 
     const kindExtensions = isMarkdown
