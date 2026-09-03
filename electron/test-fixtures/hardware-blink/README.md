@@ -3,8 +3,12 @@
 Phase 63 fixture for the Arduino Uno D13 GPIO boundary.
 
 - `hardware-sim.json`: D13 → 220Ω → LED → GND
-- `firmware/blink.ino`: intended source firmware
+- `firmware/blink/blink.ino`: Arduino CLI-compatible source sketch
+- `firmware/blink/blink.ino.hex`: Uno build used by avr8js when a compiler is unavailable
 - `gpio-timeline.json`: recorded delegate output used by deterministic Rust CI
 
 The recorded timeline isolates the circuit contract from avr8js and the
 compiler. The real sidecar must emit the same board-local `D13` events.
+
+The checked-in hex was generated from the adjacent source with Arduino CLI
+1.5.1, `arduino:avr:uno`, and Arduino AVR core 1.8.8.

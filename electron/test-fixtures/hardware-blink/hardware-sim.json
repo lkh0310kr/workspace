@@ -31,5 +31,5 @@
       "to": "uno.GND"
     }
   ],
-  "firmware": "firmware/blink.ino"
+  "firmware": "firmware/blink/blink.ino"
 }
