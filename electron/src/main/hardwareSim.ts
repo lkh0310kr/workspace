@@ -1,16 +1,17 @@
-import {
-  spawn,
-  type ChildProcess,
-  type ChildProcessWithoutNullStreams,
-} from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { spawn, type ChildProcess, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
 import { createInterface, type Interface as ReadlineInterface } from "node:readline";
 import { app } from "electron";
 import type {
+  HardwareBuildResult,
   HardwareRuntimeState,
+  HardwareSimReloadReason,
+  HardwareSimReloadResult,
   HardwareSimStartResult,
+  HardwareSimStatusUpdate,
 } from "../shared/hardwareSim";
+import { compileArduinoFirmware } from "./hardwareSim/arduinoCompile";
 
 type GpioEvent = {
   t_ns: number;
@@ -52,9 +53,7 @@ function isPackaged(): boolean {
   }
 }
 
-export function hardwareSimBinaryCandidates(
-  options: HardwareSimBinaryOptions = {},
-): string[] {
+export function hardwareSimBinaryCandidates(options: HardwareSimBinaryOptions = {}): string[] {
   const platform = options.platform ?? process.platform;
   const executable = platform === "win32" ? "hardware-sim.exe" : "hardware-sim";
   const electronAppPath = options.appPath ?? appPath();
@@ -65,22 +64,14 @@ export function hardwareSimBinaryCandidates(
     if (resources) candidates.push(path.join(resources, "hardware-sim", executable));
   }
   if (electronAppPath) {
-    const target = path.join(
-      electronAppPath,
-      "..",
-      "native",
-      "hardware-sim-core",
-      "target",
-    );
+    const target = path.join(electronAppPath, "..", "native", "hardware-sim-core", "target");
     candidates.push(path.join(target, "release", executable));
     candidates.push(path.join(target, "debug", executable));
   }
   return candidates;
 }
 
-export function avr8jsSidecarCandidates(
-  options: HardwareSimBinaryOptions = {},
-): string[] {
+export function avr8jsSidecarCandidates(options: HardwareSimBinaryOptions = {}): string[] {
   const electronAppPath = options.appPath ?? appPath();
   const candidates: string[] = [];
   if (options.packaged ?? isPackaged()) {
@@ -90,9 +81,7 @@ export function avr8jsSidecarCandidates(
     }
   }
   if (electronAppPath) {
-    candidates.push(
-      path.join(electronAppPath, "scripts", "hardware", "avr8js-sidecar.mjs"),
-    );
+    candidates.push(path.join(electronAppPath, "scripts", "hardware", "avr8js-sidecar.mjs"));
   }
   return candidates;
 }
@@ -103,6 +92,40 @@ function resolveBinary(): string | null {
 
 function resolveSidecar(): string | null {
   return avr8jsSidecarCandidates().find((candidate) => existsSync(candidate)) ?? null;
+}
+
+type HardwareProjectConfig = {
+  firmware: string | null;
+  firmwarePath: string | null;
+};
+
+function readProjectConfig(projectPath: string): HardwareProjectConfig {
+  const project = JSON.parse(readFileSync(projectPath, "utf8")) as {
+    firmware?: string;
+  };
+  if (!project.firmware) return { firmware: null, firmwarePath: null };
+  const projectDir = path.dirname(projectPath);
+  const firmwarePath = path.resolve(projectDir, project.firmware);
+  const relativeFirmware = path.relative(projectDir, firmwarePath);
+  if (relativeFirmware.startsWith("..") || path.isAbsolute(relativeFirmware)) {
+    throw new Error("firmware path escapes the hardware project directory");
+  }
+  return { firmware: project.firmware, firmwarePath };
+}
+
+function newestExistingPath(candidates: string[]): string | null {
+  return (
+    candidates
+      .filter((candidate) => existsSync(candidate))
+      .sort((left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs)[0] ?? null
+  );
+}
+
+function resolveFirmwareHex(projectPath: string, firmwarePath: string): string | null {
+  return newestExistingPath([
+    path.join(path.dirname(projectPath), "build", "hardware-sim", "firmware.hex"),
+    `${firmwarePath}.hex`,
+  ]);
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
@@ -198,6 +221,13 @@ class HardwareSimSession {
 type ManagedSession = {
   core: HardwareSimSession;
   mcu?: ChildProcess;
+  projectPath: string;
+  firmware: string | null;
+  generation: number;
+  state: HardwareRuntimeState;
+  reloadQueue: Promise<unknown>;
+  onRuntime?: (sessionId: number, state: HardwareRuntimeState) => void;
+  onStatus?: (update: HardwareSimStatusUpdate) => void;
 };
 
 export class HardwareSimManager {
@@ -207,12 +237,39 @@ export class HardwareSimManager {
   constructor(
     private readonly binaryResolver: () => string | null = resolveBinary,
     private readonly sidecarResolver: () => string | null = resolveSidecar,
+    private readonly compiler: typeof compileArduinoFirmware = compileArduinoFirmware,
   ) {}
 
   async start(
     projectPath: string,
     onRuntime?: (sessionId: number, state: HardwareRuntimeState) => void,
+    onStatus?: (update: HardwareSimStatusUpdate) => void,
   ): Promise<HardwareSimStartResult> {
+    const config = readProjectConfig(projectPath);
+    const { core, state } = await this.spawnCore(projectPath);
+    const sessionId = this.nextId++;
+    this.sessions.set(sessionId, {
+      core,
+      projectPath,
+      firmware: config.firmware,
+      generation: 1,
+      state,
+      reloadQueue: Promise.resolve(),
+      onRuntime,
+      onStatus,
+    });
+    try {
+      this.startMcuIfConfigured(sessionId, 1, config);
+    } catch (error) {
+      this.stop(sessionId);
+      throw error;
+    }
+    return { sessionId, state, firmware: config.firmware };
+  }
+
+  private async spawnCore(
+    projectPath: string,
+  ): Promise<{ core: HardwareSimSession; state: HardwareRuntimeState }> {
     const binary = this.binaryResolver();
     if (!binary) {
       throw new Error(
@@ -244,24 +301,12 @@ export class HardwareSimManager {
       session.stop();
       throw new Error(`hardware-sim expected ready, received ${first.type}`);
     }
-    const sessionId = this.nextId++;
-    this.sessions.set(sessionId, { core: session });
-    try {
-      this.startMcuIfConfigured(sessionId, projectPath, onRuntime);
-    } catch (error) {
-      this.stop(sessionId);
-      throw error;
-    }
-    return { sessionId, state: first.state };
+    return { core: session, state: first.state };
   }
 
-  async setButton(
-    sessionId: number,
-    id: string,
-    pressed: boolean,
-  ): Promise<HardwareRuntimeState> {
-    const session = this.requireSession(sessionId).core;
-    const message = await session.request({
+  async setButton(sessionId: number, id: string, pressed: boolean): Promise<HardwareRuntimeState> {
+    const managed = this.requireSession(sessionId);
+    const message = await managed.core.request({
       command: "set_button",
       id,
       pressed,
@@ -270,7 +315,62 @@ export class HardwareSimManager {
     if (message.type !== "runtime") {
       throw new Error(`hardware-sim expected runtime, received ${message.type}`);
     }
+    managed.state = message.state;
     return message.state;
+  }
+
+  reload(sessionId: number, reason: HardwareSimReloadReason): Promise<HardwareSimReloadResult> {
+    const managed = this.requireSession(sessionId);
+    const operation = managed.reloadQueue.then(() => this.performReload(sessionId, reason));
+    managed.reloadQueue = operation.catch(() => undefined);
+    return operation;
+  }
+
+  private async performReload(
+    sessionId: number,
+    reason: HardwareSimReloadReason,
+  ): Promise<HardwareSimReloadResult> {
+    let managed = this.requireSession(sessionId);
+    let build: HardwareBuildResult | undefined;
+    if (reason === "firmware-source") {
+      const config = readProjectConfig(managed.projectPath);
+      if (!config.firmwarePath) {
+        throw new Error("hardware project does not declare firmware");
+      }
+      managed.onStatus?.({ sessionId, phase: "building" });
+      build = await this.compiler({
+        projectPath: managed.projectPath,
+        firmwarePath: config.firmwarePath,
+      });
+      managed = this.requireSession(sessionId);
+      if (!build.ok) {
+        managed.onStatus?.({ sessionId, phase: "build_failed", build });
+        return { status: "build_failed", state: managed.state, build };
+      }
+    }
+
+    managed.onStatus?.({ sessionId, phase: "restarting", build });
+    const config = readProjectConfig(managed.projectPath);
+    const candidate = await this.spawnCore(managed.projectPath);
+    managed = this.requireSession(sessionId);
+    const previousCore = managed.core;
+    const previousMcu = managed.mcu;
+    const generation = managed.generation + 1;
+    managed.core = candidate.core;
+    managed.mcu = undefined;
+    managed.firmware = config.firmware;
+    managed.generation = generation;
+    managed.state = candidate.state;
+    previousMcu?.kill();
+    previousCore.stop();
+
+    const hexPath =
+      build?.hexPath ??
+      (config.firmwarePath ? resolveFirmwareHex(managed.projectPath, config.firmwarePath) : null);
+    this.startMcuIfConfigured(sessionId, generation, config, hexPath);
+    managed.onRuntime?.(sessionId, candidate.state);
+    managed.onStatus?.({ sessionId, phase: "live", build });
+    return { status: "restarted", state: candidate.state, build };
   }
 
   stop(sessionId: number): void {
@@ -296,22 +396,16 @@ export class HardwareSimManager {
 
   private startMcuIfConfigured(
     sessionId: number,
-    projectPath: string,
-    onRuntime?: (sessionId: number, state: HardwareRuntimeState) => void,
+    generation: number,
+    config: HardwareProjectConfig,
+    preferredHexPath?: string | null,
   ): void {
-    const project = JSON.parse(readFileSync(projectPath, "utf8")) as {
-      firmware?: string;
-    };
-    if (!project.firmware) return;
-
-    const projectDir = path.dirname(projectPath);
-    const firmwarePath = path.resolve(projectDir, project.firmware);
-    const relativeFirmware = path.relative(projectDir, firmwarePath);
-    if (relativeFirmware.startsWith("..") || path.isAbsolute(relativeFirmware)) {
-      throw new Error("firmware path escapes the hardware project directory");
-    }
-    const hexPath = `${firmwarePath}.hex`;
-    if (!existsSync(hexPath)) return;
+    if (!config.firmwarePath) return;
+    const managedAtStart = this.requireSession(sessionId);
+    const projectDir = path.dirname(managedAtStart.projectPath);
+    const hexPath =
+      preferredHexPath ?? resolveFirmwareHex(managedAtStart.projectPath, config.firmwarePath);
+    if (!hexPath) return;
 
     const sidecar = this.sidecarResolver();
     if (!sidecar) {
@@ -338,12 +432,16 @@ export class HardwareSimManager {
         return;
       }
       const managed = this.sessions.get(sessionId);
-      if (!managed) return;
+      if (!managed || managed.generation !== generation) return;
       void managed.core
         .request({ command: "apply_gpio", event })
         .then((message) => {
-          if (message.type === "runtime") onRuntime?.(sessionId, message.state);
-          else if (message.type === "error") {
+          const current = this.sessions.get(sessionId);
+          if (!current || current.generation !== generation) return;
+          if (message.type === "runtime") {
+            current.state = message.state;
+            current.onRuntime?.(sessionId, message.state);
+          } else if (message.type === "error") {
             console.error("[hardware-sim] GPIO event rejected:", message.message);
           }
         })

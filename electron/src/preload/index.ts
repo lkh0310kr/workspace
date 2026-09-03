@@ -343,6 +343,8 @@ const api = {
   hardwareSim: {
     start: (tabId: number, rel: string): Promise<unknown> =>
       ipcRenderer.invoke('hardwareSim:start', tabId, rel),
+    reload: (sessionId: number, reason: string): Promise<unknown> =>
+      ipcRenderer.invoke('hardwareSim:reload', sessionId, reason),
     setButton: (
       sessionId: number,
       id: string,
@@ -355,6 +357,11 @@ const api = {
       const listener = (_event: Electron.IpcRendererEvent, update: unknown): void => cb(update)
       ipcRenderer.on('hardwareSim:runtime', listener)
       return () => ipcRenderer.removeListener('hardwareSim:runtime', listener)
+    },
+    onStatus: (cb: (update: unknown) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, update: unknown): void => cb(update)
+      ipcRenderer.on('hardwareSim:status', listener)
+      return () => ipcRenderer.removeListener('hardwareSim:status', listener)
     }
   }
 }

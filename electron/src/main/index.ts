@@ -915,7 +915,20 @@ app.whenReady().then(() => {
           event.sender.send('hardwareSim:runtime', { sessionId, state })
         }
       },
+      (update) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('hardwareSim:status', update)
+        }
+      },
     )
+  )
+  ipcMain.handle(
+    'hardwareSim:reload',
+    (
+      _event,
+      sessionId: number,
+      reason: import('../shared/hardwareSim').HardwareSimReloadReason,
+    ) => hardwareSimManager.reload(sessionId, reason),
   )
   ipcMain.handle(
     'hardwareSim:set-button',

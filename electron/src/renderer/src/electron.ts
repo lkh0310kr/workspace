@@ -228,6 +228,13 @@ export async function startHardwareSim(
   return window.api.hardwareSim.start(tabId, rel);
 }
 
+export async function reloadHardwareSim(
+  sessionId: number,
+  reason: import("../../shared/hardwareSim").HardwareSimReloadReason,
+): Promise<import("../../shared/hardwareSim").HardwareSimReloadResult> {
+  return window.api.hardwareSim.reload(sessionId, reason);
+}
+
 export async function setHardwareSimButton(
   sessionId: number,
   id: string,
@@ -244,6 +251,12 @@ export function onHardwareSimRuntime(
   handler: (update: import("../../shared/hardwareSim").HardwareSimRuntimeUpdate) => void,
 ): () => void {
   return window.api.hardwareSim.onRuntime(handler);
+}
+
+export function onHardwareSimStatus(
+  handler: (update: import("../../shared/hardwareSim").HardwareSimStatusUpdate) => void,
+): () => void {
+  return window.api.hardwareSim.onStatus(handler);
 }
 
 import type {

@@ -14,6 +14,7 @@ export interface HardwareRuntimeState {
 export interface HardwareSimStartResult {
   sessionId: number
   state: HardwareRuntimeState
+  firmware: string | null
 }
 
 export interface HardwareSimRuntimeUpdate {
@@ -33,4 +34,18 @@ export interface HardwareBuildResult {
   diagnostics: string[]
   hexPath?: string
   hexSha256?: string
+}
+
+export type HardwareSimReloadReason = 'project' | 'firmware-source' | 'firmware-hex'
+
+export interface HardwareSimReloadResult {
+  status: 'restarted' | 'build_failed'
+  state: HardwareRuntimeState
+  build?: HardwareBuildResult
+}
+
+export interface HardwareSimStatusUpdate {
+  sessionId: number
+  phase: 'building' | 'restarting' | 'live' | 'build_failed'
+  build?: HardwareBuildResult
 }

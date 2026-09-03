@@ -289,6 +289,10 @@ export interface WorkspaceApi {
       tabId: number,
       rel: string,
     ) => Promise<import('../shared/hardwareSim').HardwareSimStartResult>
+    reload: (
+      sessionId: number,
+      reason: import('../shared/hardwareSim').HardwareSimReloadReason,
+    ) => Promise<import('../shared/hardwareSim').HardwareSimReloadResult>
     setButton: (
       sessionId: number,
       id: string,
@@ -297,6 +301,9 @@ export interface WorkspaceApi {
     stop: (sessionId: number) => Promise<void>
     onRuntime: (
       cb: (update: import('../shared/hardwareSim').HardwareSimRuntimeUpdate) => void,
+    ) => () => void
+    onStatus: (
+      cb: (update: import('../shared/hardwareSim').HardwareSimStatusUpdate) => void,
     ) => () => void
   }
 }

@@ -5,6 +5,7 @@ import {
   HardwareSimManager,
   hardwareSimBinaryCandidates,
 } from "./hardwareSim";
+import type { HardwareBuildResult, HardwareSimStatusUpdate } from "../shared/hardwareSim";
 
 describe("hardwareSimBinaryCandidates", () => {
   it("prefers release then debug in development", () => {
@@ -51,9 +52,7 @@ describe("hardwareSimBinaryCandidates", () => {
         appPath: "/repo/electron",
         packaged: false,
       }),
-    ).toEqual([
-      path.join("/repo/electron", "scripts", "hardware", "avr8js-sidecar.mjs"),
-    ]);
+    ).toEqual([path.join("/repo/electron", "scripts", "hardware", "avr8js-sidecar.mjs")]);
   });
 });
 
@@ -88,14 +87,8 @@ describe("HardwareSimManager", () => {
       electronRoot,
       "../native/hardware-sim-core/target/debug/hardware-sim",
     );
-    const sidecar = path.join(
-      electronRoot,
-      "scripts/hardware/avr8js-sidecar.mjs",
-    );
-    const fixture = path.join(
-      electronRoot,
-      "test-fixtures/hardware-blink/hardware-sim.json",
-    );
+    const sidecar = path.join(electronRoot, "scripts/hardware/avr8js-sidecar.mjs");
+    const fixture = path.join(electronRoot, "test-fixtures/hardware-blink/hardware-sim.json");
     const manager = new HardwareSimManager(
       () => binary,
       () => sidecar,
@@ -114,6 +107,98 @@ describe("HardwareSimManager", () => {
       });
       await blinked;
       expect(sawOn).toBe(true);
+    } finally {
+      manager.dispose();
+    }
+  });
+
+  it("compiles firmware and replaces the running generation", async () => {
+    const electronRoot = path.resolve(__dirname, "../../");
+    const binary = path.resolve(
+      electronRoot,
+      "../native/hardware-sim-core/target/debug/hardware-sim",
+    );
+    const sidecar = path.join(electronRoot, "scripts/hardware/avr8js-sidecar.mjs");
+    const fixture = path.join(electronRoot, "test-fixtures/hardware-blink/hardware-sim.json");
+    const hexPath = path.join(
+      electronRoot,
+      "test-fixtures/hardware-blink/firmware/blink/blink.ino.hex",
+    );
+    const build: HardwareBuildResult = {
+      ok: true,
+      source: "firmware/blink/blink.ino",
+      fqbn: "arduino:avr:uno",
+      tool: "arduino-cli",
+      toolPath: "/tools/arduino-cli",
+      version: "test",
+      completedAt: "2026-09-03T08:00:00.000Z",
+      durationMs: 1,
+      diagnostics: [],
+      hexPath,
+      hexSha256: "fixture",
+    };
+    const statuses: HardwareSimStatusUpdate[] = [];
+    let compileCalls = 0;
+    const manager = new HardwareSimManager(
+      () => binary,
+      () => sidecar,
+      async () => {
+        compileCalls += 1;
+        return build;
+      },
+    );
+
+    try {
+      const started = await manager.start(fixture, undefined, (status) => {
+        statuses.push(status);
+      });
+      const reloaded = await manager.reload(started.sessionId, "firmware-source");
+
+      expect(reloaded.status).toBe("restarted");
+      expect(reloaded.build).toEqual(build);
+      expect(compileCalls).toBe(1);
+      expect(statuses.map((status) => status.phase)).toEqual(["building", "restarting", "live"]);
+    } finally {
+      manager.dispose();
+    }
+  });
+
+  it("keeps the last good session when compilation fails", async () => {
+    const electronRoot = path.resolve(__dirname, "../../");
+    const binary = path.resolve(
+      electronRoot,
+      "../native/hardware-sim-core/target/debug/hardware-sim",
+    );
+    const fixture = path.join(electronRoot, "test-fixtures/hardware-blink/hardware-sim.json");
+    const sidecar = path.join(electronRoot, "scripts/hardware/avr8js-sidecar.mjs");
+    const failedBuild: HardwareBuildResult = {
+      ok: false,
+      source: "firmware/blink/blink.ino",
+      fqbn: "arduino:avr:uno",
+      tool: "arduino-cli",
+      toolPath: "arduino-cli",
+      version: null,
+      completedAt: "2026-09-03T08:00:00.000Z",
+      durationMs: 1,
+      diagnostics: ["expected ';'"],
+    };
+    const manager = new HardwareSimManager(
+      () => binary,
+      () => sidecar,
+      async () => failedBuild,
+    );
+
+    try {
+      const started = await manager.start(fixture);
+      const before = await manager.reload(started.sessionId, "firmware-source");
+      const after = await manager.reload(started.sessionId, "project");
+
+      expect(before).toEqual({
+        status: "build_failed",
+        state: started.state,
+        build: failedBuild,
+      });
+      expect(after.status).toBe("restarted");
     } finally {
       manager.dispose();
     }
