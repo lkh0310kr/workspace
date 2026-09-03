@@ -71,6 +71,7 @@ git clone --depth 1 https://github.com/NVIDIA-Omniverse/omniverse-web-viewer-sam
 
 ```bash
 git clone --depth 1 https://github.com/KhronosGroup/glTF-Sample-Viewer.git gltf-sample-viewer
+git clone --depth 1 https://github.com/yeicor-3d/yet-another-cad-viewer.git yet-another-cad-viewer  # live mesh reload UX
 git clone --depth 1 https://github.com/gkjohnson/three-gpu-pathtracer.git three-gpu-pathtracer
 git clone --depth 1 https://github.com/google/model-viewer.git model-viewer
 git clone --depth 1 https://github.com/gkjohnson/urdf-loaders.git urdf-loaders

@@ -118,7 +118,7 @@
 ---
 
 ### Phase 53 — CAD Viewer MVP (World Engine shell)  
-**상태:** ⬜ PENDING  
+**상태:** ⬜ PENDING (Electron live preview 先行 — 아래 참고)  
 **목표:** 시설 검토용 **뷰어** — 멀티 메시, 선택, 레이어 표시.
 
 | IN | OUT |
@@ -130,6 +130,8 @@
 
 **산출물:** `cad_viewer_contract.rs` 또는 qt-shell 스모크 + fixture `world-engine-cad-preview/`.  
 **완료 기준:** STEP에서 변환된 2부품 씬에서 raycast로 이름 표시.
+
+**Vibe-CAD (2026-09-03):** text-to-cad 연동 없이, 터미널 pane(Claude Code 등)이 `stl/obj/glb/…`를 쓰면 Electron **Model Viewer가 `fs:changed`로 soft reload**. 패턴: `ref-proj/yet-another-cad-viewer` (change watch → refresh). 코드: `modelPreviewWatch.ts`, `useModelPreview.ts`. World Engine Phase 53과 병행 — 편집 커널이 아니라 **실시간 미리보기** 트랙.
 
 ---
 
