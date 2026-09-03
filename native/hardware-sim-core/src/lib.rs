@@ -10,6 +10,7 @@ pub mod circuit;
 pub mod mcu;
 pub mod model;
 pub mod protocol;
+pub mod runtime;
 pub mod validate;
 
 pub use circuit::{ComponentState, PinState, RuntimeState, Simulator};
@@ -18,4 +19,5 @@ pub use model::{
     load_project, BoardSpec, ComponentSpec, ConnectionSpec, Endpoint, HardwareProject,
 };
 pub use protocol::{RuntimeCommand, RuntimeMessage};
+pub use runtime::{runtime_dump_json, write_runtime_dump};
 pub use validate::{validate_project, ValidationError};
