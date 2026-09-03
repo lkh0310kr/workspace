@@ -156,6 +156,20 @@ pub fn validate_project(project: &HardwareProject) -> Vec<ValidationError> {
         pin_id: "GND".into(),
     };
 
+    let shorts = short_graph(project);
+    for rail in &power {
+        if is_reachable(&shorts, rail, &ground) {
+            errors.push(ValidationError::new(
+                "POWER_GROUND_SHORT",
+                format!(
+                    "{} is shorted to ground by a wire or closed button (no resistor in the path)",
+                    rail.key()
+                ),
+                Some(rail.key()),
+            ));
+        }
+    }
+
     for led in project
         .components
         .iter()
@@ -234,6 +248,37 @@ fn structural_graph(project: &HardwareProject) -> StructuralGraph {
             // The LED is intentionally a break: check each side independently.
             _ => {}
         }
+    }
+    graph
+}
+
+/// Wires and closed buttons only. A resistor is a load, not a short.
+fn short_graph(project: &HardwareProject) -> StructuralGraph {
+    let mut graph = StructuralGraph::new();
+    for connection in &project.connections {
+        if let (Some(from), Some(to)) = (
+            Endpoint::parse(&connection.from),
+            Endpoint::parse(&connection.to),
+        ) {
+            add_edge(&mut graph, from, to, false);
+        }
+    }
+    for component in &project.components {
+        if component.component_type != "button" {
+            continue;
+        }
+        add_edge(
+            &mut graph,
+            Endpoint {
+                node_id: component.id.clone(),
+                pin_id: "a".into(),
+            },
+            Endpoint {
+                node_id: component.id.clone(),
+                pin_id: "b".into(),
+            },
+            false,
+        );
     }
     graph
 }

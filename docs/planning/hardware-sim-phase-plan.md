@@ -196,12 +196,12 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 ### Phase 61 — Validate
 
-**상태:** 🟨 IN PROGRESS (H0 구조 검사 완료)  
+**상태:** ✅ DONE (H0 구조 검사 + POWER_GROUND_SHORT, 2026-09-03)  
 **목표:** AI가 고치기 **전**에 실패를 기계가 말함.
 
 최소 규칙:
 
-- ⬜ 넷에 GND/VCC 단락 없음
+- ✅ 넷에 GND/VCC 단락 없음 (`POWER_GROUND_SHORT`: 전선·닫힌 버튼. 저항은 부하로 허용)
 - ✅ LED anode가 저항을 거쳐 전원에 연결
 - ✅ LED cathode가 (닫힌 버튼을 포함한 경로로) GND에 연결
 - ✅ 보드/컴포넌트 핀 이름 존재
@@ -306,9 +306,9 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 ## 10. 다음 액션
 
-1. Phase 61의 VCC/GND short 검사 마무리.  
+1. Phase 63: avr8js sidecar + GPIO 이벤트 → 회로 (blink.ino / 녹화된 타임라인 fixture).  
 2. `hardware-sim` binary packaging (macOS/Windows/Linux) 후 H0 수동 QA.  
-3. avr8js/Wokwi 참고 → Phase 63 (Arduino firmware).
+3. Phase 61 잔여: 디지털 출력 capability는 MCU 핀맵과 같이 63에서.
 
 ---
 
@@ -316,6 +316,7 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-09-03 | Phase 61: `POWER_GROUND_SHORT` (전선·닫힌 버튼; 저항은 단락 아님). |
 | 2026-09-03 | H0.2 DONE: Electron persistent child + pointer button + Rust runtime LED pane. |
 | 2026-09-03 | H0.1 DONE: Rust load/validate/circuit/runtime + button→LED fixture + JSONL process. |
 | 2026-09-03 | Core Model 정렬: Graph/Resource/Entity 조합, [10-core-model.md](../architecture/10-core-model.md) |

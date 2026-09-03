@@ -44,3 +44,17 @@ fn runtime_dump_is_stable_json_for_agent_observation() {
     assert_eq!(dump["components"]["button1"]["state"]["pressed"], true);
     assert_eq!(dump["components"]["led1"]["state"]["on"], true);
 }
+
+#[test]
+fn shorted_power_rail_cannot_start_simulator() {
+    let project = load_project(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../electron/test-fixtures/hardware-short-power-gnd/hardware-sim.json"
+    ))
+    .unwrap();
+    let error = match Simulator::new(project) {
+        Ok(_) => panic!("shorted netlist must not start"),
+        Err(error) => error.to_string(),
+    };
+    assert!(error.contains("POWER_GROUND_SHORT"), "{error}");
+}

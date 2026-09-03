@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "board": {
+    "id": "uno",
+    "type": "arduino-uno"
+  },
+  "components": [],
+  "connections": [
+    {
+      "from": "uno.5V",
+      "to": "uno.GND"
+    }
+  ]
+}
