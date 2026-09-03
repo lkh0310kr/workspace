@@ -22,6 +22,7 @@ export type AssetType =
   | "ebook"
   | "markdown"
   | "model3d"
+  | "hardware-sim"
   | "unknown";
 
 function extname(pathOrName: string): string {
@@ -67,6 +68,9 @@ const EXTENSION_TYPES: Record<string, AssetType> = {
 };
 
 export function classifyAssetType(pathOrName: string): AssetType {
+  if (assetBaseName(pathOrName).toLowerCase() === "hardware-sim.json") {
+    return "hardware-sim";
+  }
   return EXTENSION_TYPES[extname(pathOrName)] ?? "unknown";
 }
 

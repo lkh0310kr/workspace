@@ -776,7 +776,7 @@ starting hypothesis per category, not a decision:
 | 2D (Figma/Illustrator/Photoshop-class) | **Not started** | Likely candidate: fork Penpot (MIT, already TS/React-ish stack — closest fit to embed) or Krita (GPL, C++/Qt — would need out-of-process hosting). Verify against the real project before assuming either. |
 | 3D (Blender-class) | **Not started** | Fork Blender itself, hosted as a **separate native process** per the out-of-process direction below — not an in-renderer engine. |
 | Video Editor | **Not started** | Fork Shotcut or Kdenlive rather than wrapping FFmpeg from scratch; if built in-process instead, Rust-heavy timeline/media-graph/frame-scheduling engine wrapping FFmpeg (don't reimplement codecs), TS for timeline UI/media bin/inspector only. |
-| Engineering (CAD, Omniverse-style, Game Engine) | **Not started** | CAD: fork FreeCAD (LGPL) or embed Open CASCADE directly. Game Engine: fork Godot (MIT). Omniverse-style (USD pipelines): no clear single fork target yet — needs its own research pass. All likely out-of-process per Blender's reasoning below. |
+| Engineering (CAD, Omniverse-style, Game Engine) | **Not started** / CAD orchestration + WE 진행 중 | CAD: FreeCAD/OCCT delegate ([cad-orchestration-phase-plan.md](../planning/cad-orchestration-phase-plan.md)). Game/시설 시뮬: **World Engine** (Rapier). **Arduino/MCU/회로는 WE가 아님** — [hardware-sim-phase-plan.md](../planning/hardware-sim-phase-plan.md) (Rust 코어 + avr8js). |
 | Engineering/analysis panes (Packet Analyzer, Hex/Binary Inspector, Robot Simulator, etc. — see `docs/ideation.md`) | **On hold**, deprioritized behind the graphics/CAD direction | Not being designed right now; revisit later. |
 
 ## Why this doesn't block anything happening now

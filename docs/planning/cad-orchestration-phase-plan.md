@@ -245,5 +245,6 @@
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-09-03 | 전기·Arduino 시뮬은 CAD가 아님 → [hardware-sim-phase-plan.md](./hardware-sim-phase-plan.md) |
 | 2026-09-01 | Phase 50–51 DONE: orchestration types, import job queue, routeAssetOpen, IPC |
 | 2026-09-01 | CAD Orchestration Track (Phase 50+) 신설; 구 Phase 37/40 재배치 |

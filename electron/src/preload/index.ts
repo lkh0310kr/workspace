@@ -339,6 +339,18 @@ const api = {
   worldEngine: {
     launch: (tabId: number, rel: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('worldEngine:launch', tabId, rel)
+  },
+  hardwareSim: {
+    start: (tabId: number, rel: string): Promise<unknown> =>
+      ipcRenderer.invoke('hardwareSim:start', tabId, rel),
+    setButton: (
+      sessionId: number,
+      id: string,
+      pressed: boolean
+    ): Promise<unknown> =>
+      ipcRenderer.invoke('hardwareSim:set-button', sessionId, id, pressed),
+    stop: (sessionId: number): Promise<void> =>
+      ipcRenderer.invoke('hardwareSim:stop', sessionId)
   }
 }
 

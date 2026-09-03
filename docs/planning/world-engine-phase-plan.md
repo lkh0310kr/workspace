@@ -491,6 +491,7 @@ Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. �
 **착수 (하위→상위):** World Engine 커널 Phase 35–38 ✅ 완료.
 
 **다음 트랙:** [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md) **Phase 50+** — Workspace 중앙 오케스트레이션 (OCCT/FreeCAD delegate, glTF hub, WE 뷰어·시뮬).
+전기·펌웨어는 별 트랙: [hardware-sim-phase-plan.md](./hardware-sim-phase-plan.md) **Phase 60+** (WE에 합치지 않음).
 
 구 Phase 37/39/40은 오케스트레이션 트랙으로 재배치·보류 (37→58, 40→59, 39 보류).
 
@@ -706,6 +707,7 @@ macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-q
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-09-03 | Hardware sim Phase 60+ — WE 비합류, [hardware-sim-phase-plan.md](./hardware-sim-phase-plan.md) |
 | 2026-09-01 | CAD Orchestration Phase 50+ — [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md) |
 | 2026-09-01 | Phase 35–36 DONE; Phase 37/39/40 deferred to orchestration track |
 | 2026-09-01 | Phase 33 DONE: sim_seed, determinism_contract |

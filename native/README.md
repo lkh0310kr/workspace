@@ -5,6 +5,21 @@ app's own tooling except where noted below. Architecture:
 [`docs/architecture/09-future-native-architecture.md`](../docs/architecture/09-future-native-architecture.md).
 Windows packaging: [`docs/windows-build.md`](../docs/windows-build.md).
 
+## `hardware-sim-core/` — Hardware-as-Code circuit kernel
+
+Deterministic Rust model/validation/runtime for board pins and digital
+components. It is deliberately separate from Rapier-based World Engine:
+hardware time is nanoseconds/events, not a 3D physics tick. The first contract
+is a button-controlled LED with an Electron pane; avr8js comes later.
+
+```sh
+cd native/hardware-sim-core
+cargo test
+cargo run --example button_led
+```
+
+Plan: [`docs/planning/hardware-sim-phase-plan.md`](../docs/planning/hardware-sim-phase-plan.md).
+
 ## `world-engine-core/` — the engine library
 
 Rendering (`wgpu`) + physics (`rapier3d`) + ECS (`hecs`). Game/simulation

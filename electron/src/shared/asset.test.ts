@@ -21,6 +21,12 @@ describe("classifyAssetType", () => {
     expect(classifyAssetType("/Users/kh/proj/photo.jpg")).toBe("image");
   });
 
+  it("classifies the Hardware-as-Code project marker", () => {
+    expect(classifyAssetType("lab/hardware-sim.json")).toBe("hardware-sim");
+    expect(classifyAssetType("lab/HARDWARE-SIM.JSON")).toBe("hardware-sim");
+    expect(classifyAssetType("lab/other.json")).toBe("unknown");
+  });
+
   it("returns unknown for an unrecognized extension", () => {
     expect(classifyAssetType("a.ts")).toBe("unknown");
     expect(classifyAssetType("a.rs")).toBe("unknown");

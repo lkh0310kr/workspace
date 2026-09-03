@@ -7,6 +7,11 @@ import { EpubReaderContent } from "./EpubReaderContent";
 const ModelViewerContent = lazy(() =>
   import("./ModelViewerContent").then((module) => ({ default: module.ModelViewerContent })),
 );
+const HardwareSimulatorContent = lazy(() =>
+  import("./HardwareSimulatorContent").then((module) => ({
+    default: module.HardwareSimulatorContent,
+  })),
+);
 
 // File Viewer pane — images, PDF, video, audio, EPUB (minimal v1: unzip,
 // walk the OPF spine in order, one chapter per sandboxed iframe with
@@ -126,6 +131,7 @@ export function FileViewerContent({
   const isPdf = kind === "pdf";
   const isEpub = kind === "epub";
   const isModel3d = kind === "model3d";
+  const isHardwareSim = kind === "hardware-sim";
   const isMedia = isVideo || isAudio;
 
   const onBrowse = useCallback(() => {
@@ -151,7 +157,7 @@ export function FileViewerContent({
     // EPUB owns its own load path entirely (EpubReaderContent's openEpub
     // call) — neither the base64-preview path nor the media protocol
     // applies to a zip archive. Model3D uses the import pipeline instead.
-    if (isEpub || isModel3d) return;
+    if (isEpub || isModel3d || isHardwareSim) return;
 
     if (isMedia) {
       let cancelled = false;
@@ -198,7 +204,7 @@ export function FileViewerContent({
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, filePath, absolutePath, isMedia, isEpub, isModel3d]);
+  }, [tabId, filePath, absolutePath, isMedia, isEpub, isModel3d, isHardwareSim]);
 
   // Revoke the subtitle blob URL whenever it's replaced or the pane
   // unmounts — same cleanup shape as the image blob above.
@@ -361,6 +367,16 @@ export function FileViewerContent({
         )
       ) : error ? (
         <div className="file-viewer-empty">Couldn't load file</div>
+      ) : isHardwareSim ? (
+        filePath ? (
+          <Suspense fallback={<div className="file-viewer-empty">Loading hardware simulator…</div>}>
+            <HardwareSimulatorContent tabId={tabId} filePath={filePath} />
+          </Suspense>
+        ) : (
+          <div className="file-viewer-empty">
+            Hardware simulations must be opened from the workspace tree.
+          </div>
+        )
       ) : isModel3d ? (
         filePath ? (
           <Suspense fallback={<div className="file-viewer-empty">Loading 3D viewer…</div>}>

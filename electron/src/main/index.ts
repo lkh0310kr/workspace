@@ -48,6 +48,7 @@ import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
 import { startEmbeddedWorldEngine } from './worldEngineEmbed'
+import { hardwareSimManager } from './hardwareSim'
 import { pickDirectory, pickMediaFile } from './nativeDialogs'
 import { initJapaneseDictionary, reloadJapaneseDictionary } from './japanese/init'
 import { analyzeJapaneseStudyLine, studyAssist } from './japanese/studyAssist'
@@ -906,6 +907,17 @@ app.whenReady().then(() => {
     }
     return result
   })
+  ipcMain.handle('hardwareSim:start', (_event, tabId: number, rel: string) =>
+    hardwareSimManager.start(workspace!.hardwareSimProjectPath(tabId, rel))
+  )
+  ipcMain.handle(
+    'hardwareSim:set-button',
+    (_event, sessionId: number, id: string, pressed: boolean) =>
+      hardwareSimManager.setButton(sessionId, id, pressed),
+  )
+  ipcMain.handle('hardwareSim:stop', (_event, sessionId: number) => {
+    hardwareSimManager.stop(sessionId)
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -930,4 +942,5 @@ app.on('before-quit', () => {
   workspace?.disposeAllTerminals()
   fileWatcher?.close()
   disposeWorldEngine()
+  hardwareSimManager.dispose()
 })

@@ -216,6 +216,30 @@ export async function getModelUrl(tabId: number, rel: string): Promise<string | 
   return window.api.model3d.getUrl(tabId, rel);
 }
 
+export type {
+  HardwareRuntimeState,
+  HardwareSimStartResult,
+} from "../../shared/hardwareSim";
+
+export async function startHardwareSim(
+  tabId: number,
+  rel: string,
+): Promise<import("../../shared/hardwareSim").HardwareSimStartResult> {
+  return window.api.hardwareSim.start(tabId, rel);
+}
+
+export async function setHardwareSimButton(
+  sessionId: number,
+  id: string,
+  pressed: boolean,
+): Promise<import("../../shared/hardwareSim").HardwareRuntimeState> {
+  return window.api.hardwareSim.setButton(sessionId, id, pressed);
+}
+
+export async function stopHardwareSim(sessionId: number): Promise<void> {
+  return window.api.hardwareSim.stop(sessionId);
+}
+
 import type {
   JapaneseDbStatus,
   JapaneseKanjiDetail,

@@ -36,6 +36,11 @@ describe("classifyFile", () => {
     }
   });
 
+  it("routes hardware-sim.json to the viewer pane", () => {
+    expect(classifyFile("hardware-sim.json")).toBe("viewer");
+    expect(classifyFile("other.json")).toBe("code");
+  });
+
   it("falls back to code for anything else", () => {
     expect(classifyFile("a.ts")).toBe("code");
     expect(classifyFile("Makefile")).toBe("code");

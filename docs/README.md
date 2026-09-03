@@ -7,6 +7,7 @@ Project documentation for the Workspace desktop app (Electron).
 | [DESIGN.md](./DESIGN.md) | Visual design philosophy and UI tokens |
 | [ROADMAP.md](./ROADMAP.md) | Feature phases and completion status |
 | [planning/world-engine-phase-plan.md](./planning/world-engine-phase-plan.md) | **World Engine** production phases (13+) |
+| [planning/hardware-sim-phase-plan.md](./planning/hardware-sim-phase-plan.md) | **Hardware sim** (HaC + MCU/circuit) Phase 60+ |
 | [ideation.md](./ideation.md) | Product ideas and pane types |
 | [architecture/README.md](./architecture/README.md) | **System architecture** — start here for code structure |
 
@@ -20,6 +21,7 @@ Project documentation for the Workspace desktop app (Electron).
 - [Browser embeds](./architecture/06-browser-embeds.md) — webview lifecycle and navigation
 - [Future phases](./architecture/07-future-phases.md) — planned Zustand, cold-park, persistence
 - [Context modeling](./architecture/08-context-modeling.md) — Entity/Resource/Capability philosophy for Phase 1 modules, reference only
+- [Core model](./architecture/10-core-model.md) — shared primitives (Asset, Graph, Geometry, World); tools compose via model, not pane-to-pane
 - [Future native architecture](./architecture/09-future-native-architecture.md) — long-term direction, reference only
 
 ## Conventions

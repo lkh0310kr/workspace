@@ -293,6 +293,13 @@ export class Workspace {
     return toModelUrl(resolved);
   }
 
+  hardwareSimProjectPath(tabId: number, rel: string): string {
+    if (path.basename(rel).toLowerCase() !== "hardware-sim.json") {
+      throw new Error("Hardware simulation entry must be named hardware-sim.json");
+    }
+    return files.resolveUnderRoot(this.tabRoot(tabId), rel);
+  }
+
   openEpub(tabId: number, rel: string): Promise<EpubBook> {
     return openEpub(this.tabRoot(tabId), rel);
   }

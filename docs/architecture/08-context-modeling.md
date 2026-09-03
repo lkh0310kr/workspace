@@ -244,6 +244,8 @@ And its own summary of the whole thing:
 - [ROADMAP.md](../ROADMAP.md) — Phase 1's module list (Asset, Clipboard,
   Command Bus, Shortcut Registry) this doc's Entity/Resource/Capability
   shapes should inform when those actually get built
+- [10-core-model.md](./10-core-model.md) — layered primitives (Graph, Geometry, World as
+  composition); reconciles this doc with the “tools share Core Model” sketch
 - [09-future-native-architecture.md](./09-future-native-architecture.md)
   — the "Application Isolation" / out-of-process direction for heavy
   forked engines, same "don't merge internals" principle from a

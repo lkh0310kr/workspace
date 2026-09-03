@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "board": {
+    "id": "uno",
+    "type": "arduino-uno"
+  },
+  "components": [
+    {
+      "id": "r1",
+      "type": "resistor",
+      "params": {
+        "ohm": 220
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led"
+    },
+    {
+      "id": "button1",
+      "type": "button"
+    }
+  ],
+  "connections": [
+    {
+      "from": "uno.5V",
+      "to": "r1.a"
+    },
+    {
+      "from": "r1.b",
+      "to": "led1.a"
+    },
+    {
+      "from": "led1.k",
+      "to": "button1.a"
+    },
+    {
+      "from": "button1.b",
+      "to": "uno.GND"
+    }
+  ]
+}

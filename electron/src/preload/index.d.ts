@@ -284,6 +284,18 @@ export interface WorkspaceApi {
   worldEngine: {
     launch: (tabId: number, rel: string) => Promise<{ ok: boolean; error?: string }>
   }
+  hardwareSim: {
+    start: (
+      tabId: number,
+      rel: string,
+    ) => Promise<import('../shared/hardwareSim').HardwareSimStartResult>
+    setButton: (
+      sessionId: number,
+      id: string,
+      pressed: boolean,
+    ) => Promise<import('../shared/hardwareSim').HardwareRuntimeState>
+    stop: (sessionId: number) => Promise<void>
+  }
 }
 
 declare global {

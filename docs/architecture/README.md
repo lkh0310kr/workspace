@@ -13,6 +13,7 @@ This folder documents how the Workspace Electron app is structured, why key deci
 7. [07-future-phases.md](./07-future-phases.md) — Phase 2–4 roadmap
 8. [08-context-modeling.md](./08-context-modeling.md) — Entity/Resource/Capability philosophy for Phase 1's Asset/Command Bus/Clipboard modules — reference only
 9. [09-future-native-architecture.md](./09-future-native-architecture.md) — long-term direction (Rust core, native-process panes) — reference only, not designed yet
+10. [10-core-model.md](./10-core-model.md) — Workspace Core Model primitives (Asset/Graph/Geometry/World); how tools compose without spaghetti — reference only
 
 ## Layer diagram
 

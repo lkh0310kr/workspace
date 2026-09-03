@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workspace.local/schemas/hardware-sim.schema.json",
+  "title": "Workspace Hardware-as-Code v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "board", "components", "connections"],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "board": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": {
+          "type": "string",
+          "enum": ["arduino-uno"]
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "type": {
+            "type": "string",
+            "enum": ["button", "led", "resistor"]
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "$ref": "#/$defs/endpoint" },
+          "to": { "$ref": "#/$defs/endpoint" }
+        }
+      }
+    },
+    "firmware": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+    },
+    "endpoint": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*\\.[A-Za-z0-9_]+$"
+    }
+  }
+}

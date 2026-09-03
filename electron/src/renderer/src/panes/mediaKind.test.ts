@@ -31,6 +31,11 @@ describe("classifyMediaExtension", () => {
     expect(classifyMediaExtension("a/b.obj")).toBe("model3d");
   });
 
+  it("classifies the hardware simulator marker", () => {
+    expect(classifyMediaExtension("lab/hardware-sim.json")).toBe("hardware-sim");
+    expect(classifyMediaExtension("lab/other.json")).toBe("other");
+  });
+
   it("falls back to other", () => {
     expect(classifyMediaExtension("a/b.txt")).toBe("other");
   });

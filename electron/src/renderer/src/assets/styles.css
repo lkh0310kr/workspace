@@ -1652,6 +1652,175 @@ input {
   line-height: 1.5;
 }
 
+.hardware-sim,
+.hardware-sim-status {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hardware-sim {
+  background:
+    radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 42%),
+    var(--bg-base);
+}
+
+.hardware-sim-status {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.hardware-sim-error {
+  color: #ff9999;
+}
+
+.hardware-sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.hardware-sim-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hardware-sim-header span,
+.hardware-sim-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.hardware-sim-live {
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, #58d68d 55%, var(--border));
+  border-radius: 999px;
+  color: #58d68d;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hardware-sim-live.updating {
+  opacity: 0.55;
+}
+
+.hardware-sim-circuit {
+  flex: 1;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.hardware-sim-wire {
+  width: clamp(18px, 4vw, 70px);
+  height: 3px;
+  background: #ba4b4b;
+  box-shadow: 0 0 4px rgba(186, 75, 75, 0.35);
+}
+
+.hardware-sim-rail {
+  padding: 6px 9px;
+  border-radius: 5px;
+  background: #9c3434;
+  color: #fff;
+  font: 600 12px var(--font-mono);
+}
+
+.hardware-sim-rail.ground {
+  background: #4b5663;
+}
+
+.hardware-sim-resistor {
+  padding: 8px 13px;
+  border: 2px solid #bb9560;
+  border-radius: 4px;
+  background: #d7c39c;
+  color: #443522;
+  font: 600 11px var(--font-mono);
+}
+
+.hardware-sim-led {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.hardware-sim-led > span {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #6b3030;
+  border-radius: 50% 50% 42% 42%;
+  background: #4c2020;
+  transition: 80ms background, 80ms box-shadow;
+}
+
+.hardware-sim-led.on > span {
+  background: #ff3d3d;
+  box-shadow: 0 0 10px #ff3d3d, 0 0 28px rgba(255, 61, 61, 0.72);
+}
+
+.hardware-sim-led.on {
+  color: #ff7979;
+}
+
+.hardware-sim-button {
+  min-width: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+
+.hardware-sim-button > span {
+  width: 28px;
+  height: 12px;
+  border-radius: 5px;
+  background: #8a929b;
+  box-shadow: 0 5px 0 #4f565d;
+  transform: translateY(-2px);
+  transition: 60ms transform, 60ms box-shadow;
+}
+
+.hardware-sim-button.pressed > span {
+  box-shadow: 0 1px 0 #4f565d;
+  transform: translateY(2px);
+}
+
+.hardware-sim-hint {
+  margin: 0;
+  padding: 0 16px 14px;
+  text-align: center;
+}
+
+.hardware-sim-inline-error {
+  margin: 0 16px 14px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: rgba(120, 24, 24, 0.88);
+  color: #ffe8e8;
+  font-size: 12px;
+}
+
 .file-viewer-pdf {
   flex: 1;
   min-height: 0;

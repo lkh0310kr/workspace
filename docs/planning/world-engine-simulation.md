@@ -97,3 +97,5 @@ Round-trip: `snapshot` → `restore` preserves `sim_time`, `sim_vars`, `rng_stat
 ## Non-goals
 
 Multiplayer, PBR, full editor, Blender-grade modeling, commercial game ship, Workspace pane embed, PKMS coupling, domain keys in engine schema.
+
+**MCU / 회로 / GPIO / Arduino:** World Engine 밖. [hardware-sim-phase-plan.md](./hardware-sim-phase-plan.md). 시설 시각화에 핀 상태를 `properties`로 투영하는 것은 선택 브리지(Phase 66)일 뿐 이 커널의 `step()`이 아니다.
