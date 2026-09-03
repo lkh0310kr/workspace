@@ -8,6 +8,8 @@ Project documentation for the Workspace desktop app (Electron).
 | [ROADMAP.md](./ROADMAP.md) | Feature phases and completion status |
 | [planning/world-engine-phase-plan.md](./planning/world-engine-phase-plan.md) | **World Engine** production phases (13+) |
 | [planning/hardware-sim-phase-plan.md](./planning/hardware-sim-phase-plan.md) | **Hardware sim** (HaC + MCU/circuit) Phase 60+ |
+| [planning/hardware-sim-tinkercad-roadmap.md](./planning/hardware-sim-tinkercad-roadmap.md) | **Arduino Uno lab** simulation-first Phase 70+ |
+| [hardware/component-datasheet-matrix.md](./hardware/component-datasheet-matrix.md) | Hardware units, datasheet provenance, component model matrix |
 | [ideation.md](./ideation.md) | Product ideas and pane types |
 | [architecture/README.md](./architecture/README.md) | **System architecture** — start here for code structure |
 

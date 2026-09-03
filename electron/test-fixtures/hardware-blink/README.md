@@ -13,3 +13,8 @@ compiler. The real sidecar must emit the same board-local `D13` events.
 
 The checked-in hex was generated from the adjacent source with Arduino CLI
 1.5.1, `arduino:avr:uno`, and Arduino AVR core 1.8.8.
+
+Phase 65 treats that adjacent hex as an offline startup fallback. Saving the
+connected `.ino` runs Arduino CLI and atomically publishes the new artifact to
+`build/hardware-sim/firmware.hex`; diagnostics and its checksum are written to
+`build/hardware-sim/build-result.json` before the Rust/avr8js generation restarts.

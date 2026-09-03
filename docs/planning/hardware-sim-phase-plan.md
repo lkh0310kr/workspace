@@ -271,11 +271,11 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 ### Phase 65 — Live loop (vibe)
 
-**상태:** ⬜ PENDING  
+**상태:** ✅ DONE (2026-09-03)
 **목표:** 펌웨어 저장 → 재컴파일 → 시뮬 재시작. Model Viewer `fs:changed`와 같은 UX.
 
-**산출물:** Electron spawn 또는 cli `--watch`  
-**완료 기준:** 터미널에서 delay 바꾸면 dump/로그 주기가 바뀜.
+**산출물:** selective `fs:changed` watch, structured Arduino CLI compiler, generation-safe Rust/avr8js restart, `build/hardware-sim/build-result.json`
+**완료 기준:** 연결된 `.ino` 저장만 compile을 일으키며, 성공한 hex가 atomic publish된 뒤 시뮬 세대가 교체된다. 실패하면 이전 runtime을 유지하고 pane/build-result에 diagnostics를 남긴다.
 
 ---
 
@@ -291,7 +291,7 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 - 초안 전체를 `hardware_model.rs` 한 파일로 커밋하고 “구현 완료”로 치기
 - Electron renderer에서 회로를 돌리기
 - World Engine `step()` 안에 AVR 돌리기
-- SPICE, 고주파 PCB, 멀티보드 산업 툴
+- Phase 60–65 안의 SPICE, 고주파 PCB, 멀티보드 산업 툴. 교육용 mixed-signal 확장은 별도 [Phase 70+ roadmap](./hardware-sim-tinkercad-roadmap.md)에서 solver qualification 후 진행.
 - 전용 “AI Agent” 프로세스 (터미널이 에이전트)
 
 ---
@@ -306,9 +306,9 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 ## 10. 다음 액션
 
-1. Phase 65: 펌웨어 저장 → arduino-cli 재컴파일 → 시뮬 재시작.
-2. 컴파일 오류를 pane과 agent-readable 로그에 안정적으로 노출.
-3. `hardware-sim` + avr8js sidecar packaging (macOS/Windows/Linux).
+1. [Arduino Uno learning-lab Phase 70+](./hardware-sim-tinkercad-roadmap.md): unit-safe catalog와 datasheet provenance.
+2. Phase 71: 전체 Uno GPIO/input/ADC/PWM bridge.
+3. Phase 78에서 `hardware-sim` + avr8js + Arduino CLI/core를 macOS/Windows/Linux에 packaging.
 
 ---
 
@@ -316,6 +316,7 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-09-03 | Phase 65 DONE: firmware watch → structured compile → atomic hex → generation-safe restart. |
 | 2026-09-03 | Phase 64 DONE: 1초 GPIO replay → stable `RuntimeState` snapshot, stdout/file dump CLI. |
 | 2026-09-03 | Phase 63 DONE: avr8js Uno Blink → D13 GPIO → Rust circuit → Electron LED runtime push. |
 | 2026-09-03 | Phase 61: `POWER_GROUND_SHORT` (전선·닫힌 버튼; 저항은 단락 아님). |
