@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 
-use crate::catalog::{board_pins, component_pins};
+use crate::catalog::{board_digital_output_pins, board_pins, component_pins};
 use crate::model::{Endpoint, HardwareProject};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -155,6 +155,13 @@ pub fn validate_project(project: &HardwareProject) -> Vec<ValidationError> {
         node_id: project.board.id.clone(),
         pin_id: "GND".into(),
     };
+    let mut led_sources = power.to_vec();
+    if let Some(digital_pins) = board_digital_output_pins(&project.board.board_type) {
+        led_sources.extend(digital_pins.into_iter().map(|pin_id| Endpoint {
+            node_id: project.board.id.clone(),
+            pin_id,
+        }));
+    }
 
     let shorts = short_graph(project);
     for rail in &power {
@@ -183,10 +190,10 @@ pub fn validate_project(project: &HardwareProject) -> Vec<ValidationError> {
             node_id: led.id.clone(),
             pin_id: "k".into(),
         };
-        if !reaches_power_through_resistor(&graph, &anode, &power) {
+        if !reaches_power_through_resistor(&graph, &anode, &led_sources) {
             errors.push(ValidationError::new(
                 "LED_RESISTOR_REQUIRED",
-                "LED anode must reach board power through a resistor",
+                "LED anode must reach board power or a digital output through a resistor",
                 Some(led.id.clone()),
             ));
         }

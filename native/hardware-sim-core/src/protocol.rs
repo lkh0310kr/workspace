@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::RuntimeState;
+use crate::{GpioEvent, RuntimeState};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "command", rename_all = "snake_case")]
@@ -10,6 +10,9 @@ pub enum RuntimeCommand {
         pressed: bool,
         #[serde(default = "default_delta_ns")]
         delta_ns: u64,
+    },
+    ApplyGpio {
+        event: GpioEvent,
     },
     GetRuntime,
     Quit,

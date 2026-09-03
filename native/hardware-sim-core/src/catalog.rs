@@ -10,6 +10,13 @@ pub(crate) fn board_pins(board_type: &str) -> Option<Vec<String>> {
     }
 }
 
+pub(crate) fn board_digital_output_pins(board_type: &str) -> Option<Vec<String>> {
+    match board_type {
+        "arduino-uno" => Some((0..=13).map(|n| format!("D{n}")).collect()),
+        _ => None,
+    }
+}
+
 pub(crate) fn component_pins(component_type: &str) -> Option<&'static [&'static str]> {
     match component_type {
         "resistor" => Some(&["a", "b"]),

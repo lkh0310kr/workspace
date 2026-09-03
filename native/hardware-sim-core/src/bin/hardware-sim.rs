@@ -50,6 +50,14 @@ fn main() -> Result<()> {
                     message: error.to_string(),
                 })?,
             },
+            RuntimeCommand::ApplyGpio { event } => match simulator.apply_gpio_event(event) {
+                Ok(()) => emit(RuntimeMessage::Runtime {
+                    state: simulator.runtime().clone(),
+                })?,
+                Err(error) => emit(RuntimeMessage::Error {
+                    message: error.to_string(),
+                })?,
+            },
             RuntimeCommand::GetRuntime => emit(RuntimeMessage::Runtime {
                 state: simulator.runtime().clone(),
             })?,

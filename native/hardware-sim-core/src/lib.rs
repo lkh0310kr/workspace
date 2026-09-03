@@ -7,11 +7,13 @@
 mod catalog;
 
 pub mod circuit;
+pub mod mcu;
 pub mod model;
 pub mod protocol;
 pub mod validate;
 
 pub use circuit::{ComponentState, PinState, RuntimeState, Simulator};
+pub use mcu::GpioEvent;
 pub use model::{
     load_project, BoardSpec, ComponentSpec, ConnectionSpec, Endpoint, HardwareProject,
 };

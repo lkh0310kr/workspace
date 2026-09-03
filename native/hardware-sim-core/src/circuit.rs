@@ -4,6 +4,8 @@ use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::catalog::board_pins;
+use crate::mcu::GpioEvent;
 use crate::model::{Endpoint, HardwareProject};
 use crate::validate::validate_project;
 
@@ -32,6 +34,7 @@ pub struct RuntimeState {
 pub struct Simulator {
     project: HardwareProject,
     button_pressed: BTreeMap<String, bool>,
+    driven_pins: BTreeMap<Endpoint, PinState>,
     runtime: RuntimeState,
 }
 
@@ -54,6 +57,7 @@ impl Simulator {
         let mut simulator = Self {
             project,
             button_pressed,
+            driven_pins: BTreeMap::new(),
             runtime: RuntimeState {
                 time_ns: 0,
                 pins: BTreeMap::new(),
@@ -78,6 +82,35 @@ impl Simulator {
         self.recompute();
     }
 
+    pub fn apply_gpio_event(&mut self, event: GpioEvent) -> Result<()> {
+        if event.t_ns < self.runtime.time_ns {
+            return Err(anyhow!(
+                "GPIO event time {} precedes runtime time {}",
+                event.t_ns,
+                self.runtime.time_ns
+            ));
+        }
+        let known_pin = board_pins(&self.project.board.board_type)
+            .is_some_and(|pins| pins.contains(&event.pin));
+        if !known_pin {
+            return Err(anyhow!(
+                "'{}' is not a pin on board type '{}'",
+                event.pin,
+                self.project.board.board_type
+            ));
+        }
+        self.runtime.time_ns = event.t_ns;
+        self.driven_pins.insert(
+            Endpoint {
+                node_id: self.project.board.id.clone(),
+                pin_id: event.pin,
+            },
+            event.level,
+        );
+        self.recompute();
+        Ok(())
+    }
+
     pub fn runtime(&self) -> &RuntimeState {
         &self.runtime
     }
@@ -93,16 +126,29 @@ impl Simulator {
 
     fn recompute(&mut self) {
         let graph = self.conductive_graph();
-        let high_sources = ["5V", "3V3"].map(|pin_id| Endpoint {
-            node_id: self.project.board.id.clone(),
-            pin_id: pin_id.into(),
-        });
-        let low_source = Endpoint {
+        let mut high_sources = ["5V", "3V3"]
+            .into_iter()
+            .map(|pin_id| Endpoint {
+                node_id: self.project.board.id.clone(),
+                pin_id: pin_id.into(),
+            })
+            .collect::<Vec<_>>();
+        high_sources.extend(
+            self.driven_pins
+                .iter()
+                .filter_map(|(pin, state)| (*state == PinState::High).then_some(pin.clone())),
+        );
+        let mut low_sources = vec![Endpoint {
             node_id: self.project.board.id.clone(),
             pin_id: "GND".into(),
-        };
+        }];
+        low_sources.extend(
+            self.driven_pins
+                .iter()
+                .filter_map(|(pin, state)| (*state == PinState::Low).then_some(pin.clone())),
+        );
         let high = reachable_from(&graph, high_sources);
-        let low = reachable_from(&graph, [low_source]);
+        let low = reachable_from(&graph, low_sources);
 
         let all_endpoints: BTreeSet<_> = graph
             .keys()

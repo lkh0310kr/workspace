@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "board": {
+    "id": "uno",
+    "type": "arduino-uno"
+  },
+  "components": [
+    {
+      "id": "r1",
+      "type": "resistor",
+      "params": {
+        "ohm": 220
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led"
+    }
+  ],
+  "connections": [
+    {
+      "from": "uno.D13",
+      "to": "r1.a"
+    },
+    {
+      "from": "r1.b",
+      "to": "led1.a"
+    },
+    {
+      "from": "led1.k",
+      "to": "uno.GND"
+    }
+  ],
+  "firmware": "firmware/blink.ino"
+}
