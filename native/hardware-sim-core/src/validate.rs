@@ -162,6 +162,14 @@ pub fn validate_project(project: &HardwareProject) -> Vec<ValidationError> {
             pin_id,
         }));
     }
+    let any_board_source = board_pin_set
+        .iter()
+        .filter(|pin_id| pin_id.as_str() != "GND")
+        .map(|pin_id| Endpoint {
+            node_id: project.board.id.clone(),
+            pin_id: pin_id.clone(),
+        })
+        .collect::<Vec<_>>();
 
     let shorts = short_graph(project);
     for rail in &power {
@@ -191,11 +199,19 @@ pub fn validate_project(project: &HardwareProject) -> Vec<ValidationError> {
             pin_id: "k".into(),
         };
         if !reaches_power_through_resistor(&graph, &anode, &led_sources) {
-            errors.push(ValidationError::new(
-                "LED_RESISTOR_REQUIRED",
-                "LED anode must reach board power or a digital output through a resistor",
-                Some(led.id.clone()),
-            ));
+            if reaches_power_through_resistor(&graph, &anode, &any_board_source) {
+                errors.push(ValidationError::new(
+                    "LED_OUTPUT_CAPABILITY_REQUIRED",
+                    "LED anode source must be a power rail or digital output pin",
+                    Some(led.id.clone()),
+                ));
+            } else {
+                errors.push(ValidationError::new(
+                    "LED_RESISTOR_REQUIRED",
+                    "LED anode must reach board power or a digital output through a resistor",
+                    Some(led.id.clone()),
+                ));
+            }
         }
         if !is_reachable(&graph, &cathode, &ground) {
             errors.push(ValidationError::new(

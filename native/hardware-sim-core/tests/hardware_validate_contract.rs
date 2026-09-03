@@ -97,3 +97,17 @@ fn resistor_between_power_and_ground_is_not_a_short() {
         "{errors:?}"
     );
 }
+
+#[test]
+fn led_source_requires_digital_output_capability() {
+    let mut project = load_project(FIXTURE).unwrap();
+    project.connections[0].from = "uno.A0".into();
+
+    let errors = validate_project(&project);
+    assert!(errors.iter().any(|error| {
+        error.code == "LED_OUTPUT_CAPABILITY_REQUIRED" && error.target.as_deref() == Some("led1")
+    }));
+    assert!(errors
+        .iter()
+        .all(|error| error.code != "LED_RESISTOR_REQUIRED"));
+}
