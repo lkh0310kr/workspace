@@ -76,6 +76,7 @@ git clone --depth 1 https://github.com/gkjohnson/three-gpu-pathtracer.git three-
 git clone --depth 1 https://github.com/google/model-viewer.git model-viewer
 git clone --depth 1 https://github.com/gkjohnson/urdf-loaders.git urdf-loaders
 git clone --depth 1 https://github.com/lichtblick-suite/lichtblick.git lichtblick
+git clone --depth 1 https://github.com/wokwi/avr8js.git avr8js
 ```
 
 > `foxglove/studio` GitHub는 2024년 이후 README만 남은 아카이브 → **Lichtblick** 사용.
@@ -176,6 +177,7 @@ M1 `electron/` renderer 미리보기용. **아키텍처·포맷 파이프라인�
 | `model-viewer/` | google/model-viewer | `297ed2b` | 웹 3D 쇼룸 UX |
 | `urdf-loaders/` | gkjohnson/urdf-loaders | `bb2296f` | URDF→three.js (가벼운 참고) |
 | `lichtblick/` | lichtblick-suite/lichtblick | `0900ce3` | ROS bag/MCAP Electron 뷰어 |
+| `avr8js/` | wokwi/avr8js | `bee6f0a` | ATmega328P CPU/timer/GPIO delegate; Port B pin 5 → Arduino D13 이벤트 |
 
 ---
 
@@ -217,6 +219,7 @@ M1 `electron/` renderer 미리보기용. **아키텍처·포맷 파이프라인�
 
 | 날짜 | 변경 |
 |------|------|
+| 2026-09-03 | avr8js 참고 추가 — Uno Blink GPIO sidecar, `demo/src/execute.ts` 패턴 |
 | 2026-09-01 (2) | **Tier 1 정석 10종** 추가: FreeCAD, OCCT, Assimp, Bullet, Gazebo Sim, Drake, JSBSim, CARLA, Autoware/Universe, RViz2 — JS 뷰어는 Tier 3로 격하 |
 | 2026-09-01 (1) | Web glTF/URDF 참고 6종, README git 추적 시작 |
 | 2026-08-28 | itch fullscreen, ovstream |

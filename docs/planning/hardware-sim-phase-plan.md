@@ -180,7 +180,7 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 ### Phase 60 — Hardware-as-Code contract
 
-**상태:** ✅ DONE (2026-09-03)  
+**상태:** ✅ DONE (2026-09-03)
 **목표:** JSON 로드 + Rust 타입. 초안 전체 enum 복붙 금지.
 
 | IN | OUT |
@@ -205,7 +205,7 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 - ✅ LED anode가 저항을 거쳐 전원에 연결
 - ✅ LED cathode가 (닫힌 버튼을 포함한 경로로) GND에 연결
 - ✅ 보드/컴포넌트 핀 이름 존재
-- ⬜ 디지털 출력 capability 검사 (MCU Phase 63)
+- ✅ 디지털 출력 capability 검사 (`LED_OUTPUT_CAPABILITY_REQUIRED`)
 
 **산출물:** `hardware_validate_contract.rs` — 고의 불량 fixture → 에러 코드.  
 **완료 기준:** 에이전트가 에러 JSON만 보고 회로를 고칠 수 있음 (문구는 프로젝트, 코드는 코어).
@@ -242,7 +242,7 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 ### Phase 63 — MCU delegate (avr8js)
 
-**상태:** 🟨 IN PROGRESS (H0 JSONL/runtime 완료; MCU timeline 미착수)  
+**상태:** ✅ DONE (2026-09-03)
 **목표:** blink.ino → hex → GPIO 토글이 회로에 들어옴.
 
 | IN | OUT |
@@ -250,16 +250,16 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 | Node sidecar, hex 경로, 핀 이벤트 IPC/stdout | in-process V8 in Rust |
 | 코어는 이벤트만 소비 | 자체 AVR 디코더 |
 
-**산출물:** 수동 1회 + `mcu_bridge_contract` (녹화된 GPIO 타임라인 fixture면 CI에서 avr8js 없이도 회로 쪽 회귀 가능).  
-**완료 기준:** 녹화 타임라인으로 LED 주기 assert. 실 sidecar는 스모크.
+**산출물:** `mcu_bridge_contract` 녹화 타임라인 + 실제 avr8js/Uno hex sidecar + Electron runtime push.
+**완료 기준:** 녹화 타임라인으로 LED 주기 assert. 실제 `blink.ino.hex`가 D13을 약 500ms마다 토글하고 Workspace LED가 Rust runtime 상태로 점멸.
 
-컴파일은 시스템에 `arduino-cli`가 있으면 사용, 없으면 hex fixture 체크인.
+`arduino-cli`가 없는 환경에서도 재현되도록 Uno hex fixture를 체크인했다. fixture hex는 Arduino CLI 1.5.1 + Arduino AVR core 1.8.8로 인접 `blink.ino`에서 생성.
 
 ---
 
 ### Phase 64 — Runtime dump (AI debug surface)
 
-**상태:** ⬜ PENDING  
+**상태:** 🟨 IN PROGRESS (JSONL + blink runtime state 완료)
 **목표:** 초안 `RuntimeState`를 **파일/stdout**으로. 에이전트가 `cat` / 로그로 읽음.
 
 필드: `time_ns`, pins, component states. 도메인 문자열 키는 fixture `state` 맵 (WE `sim_var`와 같은 범용 슬롯). H0에서 `hardware-sim` stdin/stdout JSONL 계약까지 구현.
@@ -306,9 +306,9 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 ## 10. 다음 액션
 
-1. Phase 63: avr8js sidecar + GPIO 이벤트 → 회로 (blink.ino / 녹화된 타임라인 fixture).  
-2. `hardware-sim` binary packaging (macOS/Windows/Linux) 후 H0 수동 QA.  
-3. Phase 61 잔여: 디지털 출력 capability는 MCU 핀맵과 같이 63에서.
+1. Phase 64: blink 1초 runtime dump snapshot + CLI dump 명령/파일 계약.
+2. `hardware-sim` + avr8js sidecar packaging (macOS/Windows/Linux).
+3. Phase 65: 펌웨어 저장 → arduino-cli 재컴파일 → 시뮬 재시작.
 
 ---
 
@@ -316,6 +316,7 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-09-03 | Phase 63 DONE: avr8js Uno Blink → D13 GPIO → Rust circuit → Electron LED runtime push. |
 | 2026-09-03 | Phase 61: `POWER_GROUND_SHORT` (전선·닫힌 버튼; 저항은 단락 아님). |
 | 2026-09-03 | H0.2 DONE: Electron persistent child + pointer button + Rust runtime LED pane. |
 | 2026-09-03 | H0.1 DONE: Rust load/validate/circuit/runtime + button→LED fixture + JSONL process. |
