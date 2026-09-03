@@ -41,6 +41,7 @@ export type HardwareSimReloadReason = 'project' | 'firmware-source' | 'firmware-
 export interface HardwareSimReloadResult {
   status: 'restarted' | 'build_failed'
   state: HardwareRuntimeState
+  firmware: string | null
   build?: HardwareBuildResult
 }
 

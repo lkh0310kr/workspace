@@ -345,7 +345,12 @@ export class HardwareSimManager {
       managed = this.requireSession(sessionId);
       if (!build.ok) {
         managed.onStatus?.({ sessionId, phase: "build_failed", build });
-        return { status: "build_failed", state: managed.state, build };
+        return {
+          status: "build_failed",
+          state: managed.state,
+          firmware: managed.firmware,
+          build,
+        };
       }
     }
 
@@ -370,7 +375,12 @@ export class HardwareSimManager {
     this.startMcuIfConfigured(sessionId, generation, config, hexPath);
     managed.onRuntime?.(sessionId, candidate.state);
     managed.onStatus?.({ sessionId, phase: "live", build });
-    return { status: "restarted", state: candidate.state, build };
+    return {
+      status: "restarted",
+      state: candidate.state,
+      firmware: config.firmware,
+      build,
+    };
   }
 
   stop(sessionId: number): void {

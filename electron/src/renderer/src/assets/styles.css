@@ -1711,6 +1711,11 @@ input {
   opacity: 0.55;
 }
 
+.hardware-sim-live.failed {
+  border-color: color-mix(in srgb, #ff7979 55%, var(--border));
+  color: #ff7979;
+}
+
 .hardware-sim-circuit {
   flex: 1;
   min-height: 260px;

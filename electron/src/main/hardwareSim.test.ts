@@ -196,6 +196,7 @@ describe("HardwareSimManager", () => {
       expect(before).toEqual({
         status: "build_failed",
         state: started.state,
+        firmware: "firmware/blink/blink.ino",
         build: failedBuild,
       });
       expect(after.status).toBe("restarted");

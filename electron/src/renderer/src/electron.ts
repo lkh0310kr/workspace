@@ -217,6 +217,7 @@ export async function getModelUrl(tabId: number, rel: string): Promise<string | 
 }
 
 export type {
+  HardwareBuildResult,
   HardwareRuntimeState,
   HardwareSimStartResult,
 } from "../../shared/hardwareSim";

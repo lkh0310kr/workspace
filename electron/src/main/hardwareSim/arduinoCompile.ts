@@ -180,13 +180,13 @@ export async function compileArduinoFirmware(
   const temporaryOutput = path.join(buildDir, `.compile-${process.pid}-${startedAt}`)
   const publishedHex = path.join(buildDir, 'firmware.hex')
 
-  const base = {
+  const base = () => ({
     source: relativeFirmware.replace(/\\/g, '/'),
     fqbn,
     tool: 'arduino-cli' as const,
     toolPath: cliPath,
     completedAt: now().toISOString()
-  }
+  })
 
   let result: HardwareBuildResult
   try {
@@ -233,7 +233,7 @@ export async function compileArduinoFirmware(
           ? `arduino-cli exited with code ${output.exitCode ?? 'unknown'}`
           : 'arduino-cli did not produce exactly one firmware hex'
       result = {
-        ...base,
+        ...base(),
         ok: false,
         version,
         durationMs: Date.now() - startedAt,
@@ -250,7 +250,7 @@ export async function compileArduinoFirmware(
         renameSync(temporaryHex, publishedHex)
       }
       result = {
-        ...base,
+        ...base(),
         ok: true,
         version,
         durationMs: Date.now() - startedAt,
@@ -261,7 +261,7 @@ export async function compileArduinoFirmware(
     }
   } catch (error) {
     result = {
-      ...base,
+      ...base(),
       ok: false,
       version: null,
       durationMs: Date.now() - startedAt,
