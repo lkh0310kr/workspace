@@ -259,12 +259,12 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 ### Phase 64 — Runtime dump (AI debug surface)
 
-**상태:** 🟨 IN PROGRESS (JSONL + blink runtime state 완료)
+**상태:** ✅ DONE (2026-09-03)
 **목표:** 초안 `RuntimeState`를 **파일/stdout**으로. 에이전트가 `cat` / 로그로 읽음.
 
-필드: `time_ns`, pins, component states. 도메인 문자열 키는 fixture `state` 맵 (WE `sim_var`와 같은 범용 슬롯). H0에서 `hardware-sim` stdin/stdout JSONL 계약까지 구현.
+필드: `time_ns`, pins, component states. 도메인 문자열 키는 fixture `state` 맵 (WE `sim_var`와 같은 범용 슬롯). 대화형 Electron은 기존 JSONL을 유지하고, headless agent는 `--replay-gpio`와 `--dump-stdout` 또는 `--dump runtime.json`을 사용한다.
 
-**산출물:** `runtime_dump_contract.rs`  
+**산출물:** `runtime_dump_contract.rs`, `runtime.expected.json`, atomic-replace dump writer, headless CLI
 **완료 기준:** blink 1초 상당 step 후 dump 스냅샷 안정 (결정론: 동일 hex + 동일 시드/이벤트).
 
 ---
@@ -306,9 +306,9 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 ## 10. 다음 액션
 
-1. Phase 64: blink 1초 runtime dump snapshot + CLI dump 명령/파일 계약.
-2. `hardware-sim` + avr8js sidecar packaging (macOS/Windows/Linux).
-3. Phase 65: 펌웨어 저장 → arduino-cli 재컴파일 → 시뮬 재시작.
+1. Phase 65: 펌웨어 저장 → arduino-cli 재컴파일 → 시뮬 재시작.
+2. 컴파일 오류를 pane과 agent-readable 로그에 안정적으로 노출.
+3. `hardware-sim` + avr8js sidecar packaging (macOS/Windows/Linux).
 
 ---
 
@@ -316,6 +316,7 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-09-03 | Phase 64 DONE: 1초 GPIO replay → stable `RuntimeState` snapshot, stdout/file dump CLI. |
 | 2026-09-03 | Phase 63 DONE: avr8js Uno Blink → D13 GPIO → Rust circuit → Electron LED runtime push. |
 | 2026-09-03 | Phase 61: `POWER_GROUND_SHORT` (전선·닫힌 버튼; 저항은 단락 아님). |
 | 2026-09-03 | H0.2 DONE: Electron persistent child + pointer button + Rust runtime LED pane. |
