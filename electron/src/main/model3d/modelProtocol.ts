@@ -65,6 +65,8 @@ export function registerModelProtocol(getAllowedRoots: () => string[]): void {
     const headers = new Headers(fileResponse.headers);
     headers.set("content-type", contentType);
     headers.set("access-control-allow-origin", "*");
+    // Vibe-CAD live reload: never let Chromium / Three FileLoader cache a stale mesh.
+    headers.set("cache-control", "no-store, max-age=0");
     return new Response(fileResponse.body, {
       status: fileResponse.status,
       statusText: fileResponse.statusText,
