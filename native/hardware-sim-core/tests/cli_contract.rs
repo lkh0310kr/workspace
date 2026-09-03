@@ -13,6 +13,14 @@ const BLINK_FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../electron/test-fixtures/hardware-blink/hardware-sim.json"
 );
+const BLINK_TIMELINE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../electron/test-fixtures/hardware-blink/gpio-timeline.json"
+);
+const BLINK_RUNTIME: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../electron/test-fixtures/hardware-blink/runtime.expected.json"
+);
 
 fn read_message(reader: &mut BufReader<std::process::ChildStdout>) -> RuntimeMessage {
     let mut line = String::new();
@@ -82,4 +90,45 @@ fn json_lines_gpio_event_drives_blink_fixture() {
     stdin.flush().unwrap();
     assert!(led_on(&read_message(&mut stdout)));
     assert!(child.wait().unwrap().success());
+}
+
+#[test]
+fn replayed_gpio_timeline_dumps_runtime_to_stdout() {
+    let output = Command::new(env!("CARGO_BIN_EXE_hardware-sim"))
+        .args([
+            BLINK_FIXTURE,
+            "--replay-gpio",
+            BLINK_TIMELINE,
+            "--dump-stdout",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap(),
+        std::fs::read_to_string(BLINK_RUNTIME).unwrap()
+    );
+}
+
+#[test]
+fn replayed_gpio_timeline_dumps_runtime_to_file() {
+    let dump_path = std::env::temp_dir().join(format!(
+        "hardware-sim-cli-contract-{}.json",
+        std::process::id()
+    ));
+    let output = Command::new(env!("CARGO_BIN_EXE_hardware-sim"))
+        .arg(BLINK_FIXTURE)
+        .args(["--replay-gpio", BLINK_TIMELINE, "--dump"])
+        .arg(&dump_path)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert_eq!(
+        std::fs::read_to_string(&dump_path).unwrap(),
+        std::fs::read_to_string(BLINK_RUNTIME).unwrap()
+    );
+    std::fs::remove_file(dump_path).unwrap();
 }

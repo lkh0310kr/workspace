@@ -15,6 +15,10 @@ The LED is off when the button is open and on while it is pressed.
 ```bash
 cargo test
 cargo run --example button_led
+cargo run --bin hardware-sim -- \
+  ../../electron/test-fixtures/hardware-blink/hardware-sim.json \
+  --replay-gpio ../../electron/test-fixtures/hardware-blink/gpio-timeline.json \
+  --dump-stdout
 ```
 
 The example emits stable JSON runtime snapshots for released → pressed →
@@ -22,5 +26,10 @@ released. Opening `electron/test-fixtures/hardware-button-led/hardware-sim.json`
 in Workspace renders the first interactive button/LED pane. That pane speaks
 JSONL to the persistent `hardware-sim` process; it does not duplicate circuit
 behavior in TypeScript.
+
+For headless AI debugging, `--dump-stdout` emits the direct `RuntimeState` JSON
+and `--dump <runtime.json>` publishes the same stable snapshot to a replaceable
+file. `--replay-gpio` deterministically applies a recorded MCU event timeline
+before dumping.
 
 Planning: [`docs/planning/hardware-sim-phase-plan.md`](../../docs/planning/hardware-sim-phase-plan.md).
