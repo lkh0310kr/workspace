@@ -12,17 +12,29 @@ interface Props {
   modelUrl?: string;
   format: DetectedModelFormat;
   active: boolean;
+  live?: boolean;
+  refreshing?: boolean;
+  refreshError?: string | null;
   onReady?: () => void;
 }
 
-export function ModelViewerCanvas({ modelData, modelUrl, format, active, onReady }: Props) {
+export function ModelViewerCanvas({
+  modelData,
+  modelUrl,
+  format,
+  active,
+  live = false,
+  refreshing = false,
+  refreshError = null,
+  onReady,
+}: Props) {
   const cameraRef = useRef<OrbitCameraHandle | null>(null);
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
 
   const session = useMemo<ViewerSession>(
     () => ({
-      setWireframe: setWireframe,
+      setWireframe,
       setGridVisible: setShowGrid,
       getCameraController: () =>
         cameraRef.current ?? {
@@ -47,6 +59,8 @@ export function ModelViewerCanvas({ modelData, modelUrl, format, active, onReady
       byteLength: modelData?.byteLength ?? null,
       modelUrl: modelUrl ?? null,
       active,
+      live,
+      refreshing,
     });
     return () => {
       void logModel3d("viewer_dispose", {
@@ -54,7 +68,7 @@ export function ModelViewerCanvas({ modelData, modelUrl, format, active, onReady
         modelUrl: modelUrl ?? null,
       });
     };
-  }, [modelData, modelUrl, active]);
+  }, [modelData, modelUrl, active, live, refreshing]);
 
   return (
     <div className="model-viewer-canvas-wrap">
@@ -62,6 +76,8 @@ export function ModelViewerCanvas({ modelData, modelUrl, format, active, onReady
         session={session}
         wireframe={wireframe}
         showGrid={showGrid}
+        live={live}
+        refreshing={refreshing}
         onWireframeChange={setWireframe}
         onGridChange={setShowGrid}
       />
@@ -88,6 +104,11 @@ export function ModelViewerCanvas({ modelData, modelUrl, format, active, onReady
             cameraRef.current = handle;
           }}
         />
+        {refreshError ? (
+          <div className="model-viewer-refresh-error" role="status">
+            {refreshError}
+          </div>
+        ) : null}
       </div>
     </div>
   );

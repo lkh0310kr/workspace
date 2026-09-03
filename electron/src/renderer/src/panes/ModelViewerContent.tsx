@@ -34,10 +34,14 @@ export function ModelViewerContent({ tabId, filePath, paneActive, treeOpen, onTo
   } else if (preview.phase === "ready" && (preview.modelData || preview.modelUrl)) {
     body = (
       <ModelViewerCanvas
+        key={preview.revision}
         modelData={preview.modelData ?? undefined}
         modelUrl={preview.modelUrl ?? undefined}
         format={preview.manifest?.source.format ?? "glb"}
         active={paneActive}
+        live
+        refreshing={preview.refreshing}
+        refreshError={preview.error}
       />
     );
   } else {

@@ -4,6 +4,8 @@ interface Props {
   session: ViewerSession | null;
   wireframe: boolean;
   showGrid: boolean;
+  live?: boolean;
+  refreshing?: boolean;
   onWireframeChange: (value: boolean) => void;
   onGridChange: (value: boolean) => void;
 }
@@ -12,11 +14,21 @@ export function ModelViewerToolbar({
   session,
   wireframe,
   showGrid,
+  live = false,
+  refreshing = false,
   onWireframeChange,
   onGridChange,
 }: Props) {
   return (
     <div className="model-viewer-toolbar">
+      {live ? (
+        <span
+          className={`model-viewer-live-badge${refreshing ? " is-refreshing" : ""}`}
+          title="Watches this file and reloads when the terminal / agent saves a new mesh"
+        >
+          {refreshing ? "Updating…" : "Live"}
+        </span>
+      ) : null}
       <button
         type="button"
         className="model-viewer-toolbar-btn"
