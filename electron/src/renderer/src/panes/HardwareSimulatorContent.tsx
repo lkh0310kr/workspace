@@ -120,8 +120,18 @@ export function HardwareSimulatorContent({ tabId, filePath }: Props) {
         </span>
       </header>
 
-      <div className="hardware-sim-circuit" aria-label="Button controlled LED circuit">
-        <div className="hardware-sim-rail">5V</div>
+      <div
+        className="hardware-sim-circuit"
+        aria-label={button ? "Button controlled LED circuit" : "Firmware controlled LED circuit"}
+      >
+        {button ? (
+          <div className="hardware-sim-rail">5V</div>
+        ) : (
+          <div className="hardware-sim-firmware">
+            <strong>avr8js</strong>
+            <span>D13 output</span>
+          </div>
+        )}
         <div className="hardware-sim-wire" />
         <div className="hardware-sim-resistor" title="220 ohm resistor">
           220Ω
@@ -162,13 +172,8 @@ export function HardwareSimulatorContent({ tabId, filePath }: Props) {
             <span />
             Hold button
           </button>
-        ) : (
-          <div className="hardware-sim-firmware">
-            <strong>avr8js</strong>
-            <span>D13 firmware</span>
-          </div>
-        )}
-        <div className="hardware-sim-wire" />
+        ) : null}
+        {button ? <div className="hardware-sim-wire" /> : null}
         <div className="hardware-sim-rail ground">GND</div>
       </div>
 
