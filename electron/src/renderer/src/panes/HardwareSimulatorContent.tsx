@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  onHardwareSimRuntime,
   setHardwareSimButton,
   startHardwareSim,
   stopHardwareSim,
@@ -25,6 +26,7 @@ function firstComponentWithBoolean(
 
 export function HardwareSimulatorContent({ tabId, filePath }: Props) {
   const sessionIdRef = useRef<number | null>(null);
+  const pendingRuntimeRef = useRef(new Map<number, HardwareRuntimeState>());
   const pressedRef = useRef(false);
   const [runtime, setRuntime] = useState<HardwareRuntimeState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,13 @@ export function HardwareSimulatorContent({ tabId, filePath }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    const unsubscribeRuntime = onHardwareSimRuntime((update) => {
+      if (sessionIdRef.current === update.sessionId) {
+        setRuntime(update.state);
+      } else {
+        pendingRuntimeRef.current.set(update.sessionId, update.state);
+      }
+    });
     setStarting(true);
     setError(null);
     setRuntime(null);
@@ -43,7 +52,8 @@ export function HardwareSimulatorContent({ tabId, filePath }: Props) {
           return;
         }
         sessionIdRef.current = result.sessionId;
-        setRuntime(result.state);
+        setRuntime(pendingRuntimeRef.current.get(result.sessionId) ?? result.state);
+        pendingRuntimeRef.current.delete(result.sessionId);
       })
       .catch((reason) => {
         if (!cancelled) {
@@ -56,6 +66,8 @@ export function HardwareSimulatorContent({ tabId, filePath }: Props) {
 
     return () => {
       cancelled = true;
+      unsubscribeRuntime();
+      pendingRuntimeRef.current.clear();
       const sessionId = sessionIdRef.current;
       sessionIdRef.current = null;
       if (sessionId !== null) void stopHardwareSim(sessionId);
@@ -101,7 +113,7 @@ export function HardwareSimulatorContent({ tabId, filePath }: Props) {
       <header className="hardware-sim-header">
         <div>
           <strong>Hardware Simulator</strong>
-          <span>Rust core · {runtime.time_ns} ns</span>
+          <span>Rust core{button ? "" : " + avr8js"} · {runtime.time_ns} ns</span>
         </div>
         <span className={`hardware-sim-live${updating ? " updating" : ""}`}>
           {updating ? "Stepping…" : "Live"}
@@ -124,38 +136,46 @@ export function HardwareSimulatorContent({ tabId, filePath }: Props) {
           <small>{led?.value ? "ON" : "OFF"}</small>
         </div>
         <div className="hardware-sim-wire" />
-        <button
-          type="button"
-          className={`hardware-sim-button${button?.value ? " pressed" : ""}`}
-          aria-pressed={button?.value ?? false}
-          disabled={!button}
-          onPointerDown={(event) => {
-            event.currentTarget.setPointerCapture(event.pointerId);
-            void setPressed(true);
-          }}
-          onPointerUp={() => void setPressed(false)}
-          onPointerCancel={() => void setPressed(false)}
-          onLostPointerCapture={() => void setPressed(false)}
-          onKeyDown={(event) => {
-            if (event.repeat || (event.key !== " " && event.key !== "Enter")) return;
-            event.preventDefault();
-            void setPressed(true);
-          }}
-          onKeyUp={(event) => {
-            if (event.key !== " " && event.key !== "Enter") return;
-            event.preventDefault();
-            void setPressed(false);
-          }}
-        >
-          <span />
-          Hold button
-        </button>
+        {button ? (
+          <button
+            type="button"
+            className={`hardware-sim-button${button.value ? " pressed" : ""}`}
+            aria-pressed={button.value}
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture(event.pointerId);
+              void setPressed(true);
+            }}
+            onPointerUp={() => void setPressed(false)}
+            onPointerCancel={() => void setPressed(false)}
+            onLostPointerCapture={() => void setPressed(false)}
+            onKeyDown={(event) => {
+              if (event.repeat || (event.key !== " " && event.key !== "Enter")) return;
+              event.preventDefault();
+              void setPressed(true);
+            }}
+            onKeyUp={(event) => {
+              if (event.key !== " " && event.key !== "Enter") return;
+              event.preventDefault();
+              void setPressed(false);
+            }}
+          >
+            <span />
+            Hold button
+          </button>
+        ) : (
+          <div className="hardware-sim-firmware">
+            <strong>avr8js</strong>
+            <span>D13 firmware</span>
+          </div>
+        )}
         <div className="hardware-sim-wire" />
         <div className="hardware-sim-rail ground">GND</div>
       </div>
 
       <p className="hardware-sim-hint">
-        Hold the button: pointer down/up is sent to the persistent Rust simulator.
+        {button
+          ? "Hold the button: pointer down/up is sent to the persistent Rust simulator."
+          : "Compiled Arduino firmware drives D13; Rust propagates each GPIO event through the circuit."}
       </p>
       {error ? <div className="hardware-sim-inline-error">{error}</div> : null}
     </div>

@@ -295,6 +295,9 @@ export interface WorkspaceApi {
       pressed: boolean,
     ) => Promise<import('../shared/hardwareSim').HardwareRuntimeState>
     stop: (sessionId: number) => Promise<void>
+    onRuntime: (
+      cb: (update: import('../shared/hardwareSim').HardwareSimRuntimeUpdate) => void,
+    ) => () => void
   }
 }
 

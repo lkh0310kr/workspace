@@ -1806,6 +1806,25 @@ input {
   transform: translateY(2px);
 }
 
+.hardware-sim-firmware {
+  min-width: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.hardware-sim-firmware span {
+  color: var(--text-muted);
+  font: 10px var(--font-mono);
+}
+
 .hardware-sim-hint {
   margin: 0;
   padding: 0 16px 14px;

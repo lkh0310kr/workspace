@@ -51,11 +51,12 @@ function levelForPin(port, pin) {
 
 const hexPath = argument("--hex");
 const durationMs = Number(argument("--duration-ms", "1100"));
+const realtime = process.argv.includes("--realtime");
 if (!hexPath) {
   throw new Error("usage: avr8js-sidecar.mjs --hex <firmware.hex> [--duration-ms 1100]");
 }
-if (!Number.isFinite(durationMs) || durationMs <= 0) {
-  throw new Error("--duration-ms must be a positive number");
+if (!Number.isFinite(durationMs) || durationMs < 0) {
+  throw new Error("--duration-ms must be zero (continuous) or a positive number");
 }
 
 const program = new Uint16Array(FLASH_WORDS);
@@ -82,8 +83,28 @@ portB.addListener(() => {
   );
 });
 
-const targetCycles = Math.floor((durationMs / 1000) * CLOCK_HZ);
-while (cpu.cycles < targetCycles) {
-  avrInstruction(cpu);
-  cpu.tick();
+const targetCycles =
+  durationMs === 0 ? Number.POSITIVE_INFINITY : Math.floor((durationMs / 1000) * CLOCK_HZ);
+
+function executeUntil(cycles) {
+  while (cpu.cycles < cycles) {
+    avrInstruction(cpu);
+    cpu.tick();
+  }
+}
+
+if (!realtime) {
+  if (!Number.isFinite(targetCycles)) {
+    throw new Error("--duration-ms 0 requires --realtime");
+  }
+  executeUntil(targetCycles);
+} else {
+  const startedAt = performance.now();
+  const tick = () => {
+    const elapsedMs = performance.now() - startedAt;
+    const realtimeCycles = Math.floor((elapsedMs / 1000) * CLOCK_HZ);
+    executeUntil(Math.min(realtimeCycles, targetCycles));
+    if (cpu.cycles < targetCycles) setTimeout(tick, 1);
+  };
+  tick();
 }

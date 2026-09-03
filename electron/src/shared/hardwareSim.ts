@@ -15,3 +15,8 @@ export interface HardwareSimStartResult {
   sessionId: number;
   state: HardwareRuntimeState;
 }
+
+export interface HardwareSimRuntimeUpdate {
+  sessionId: number;
+  state: HardwareRuntimeState;
+}

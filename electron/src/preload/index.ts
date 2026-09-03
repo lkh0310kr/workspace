@@ -350,7 +350,12 @@ const api = {
     ): Promise<unknown> =>
       ipcRenderer.invoke('hardwareSim:set-button', sessionId, id, pressed),
     stop: (sessionId: number): Promise<void> =>
-      ipcRenderer.invoke('hardwareSim:stop', sessionId)
+      ipcRenderer.invoke('hardwareSim:stop', sessionId),
+    onRuntime: (cb: (update: unknown) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, update: unknown): void => cb(update)
+      ipcRenderer.on('hardwareSim:runtime', listener)
+      return () => ipcRenderer.removeListener('hardwareSim:runtime', listener)
+    }
   }
 }
 

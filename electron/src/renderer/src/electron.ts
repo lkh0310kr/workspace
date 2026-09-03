@@ -240,6 +240,12 @@ export async function stopHardwareSim(sessionId: number): Promise<void> {
   return window.api.hardwareSim.stop(sessionId);
 }
 
+export function onHardwareSimRuntime(
+  handler: (update: import("../../shared/hardwareSim").HardwareSimRuntimeUpdate) => void,
+): () => void {
+  return window.api.hardwareSim.onRuntime(handler);
+}
+
 import type {
   JapaneseDbStatus,
   JapaneseKanjiDetail,

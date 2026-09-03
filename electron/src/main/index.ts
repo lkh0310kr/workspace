@@ -907,8 +907,15 @@ app.whenReady().then(() => {
     }
     return result
   })
-  ipcMain.handle('hardwareSim:start', (_event, tabId: number, rel: string) =>
-    hardwareSimManager.start(workspace!.hardwareSimProjectPath(tabId, rel))
+  ipcMain.handle('hardwareSim:start', (event, tabId: number, rel: string) =>
+    hardwareSimManager.start(
+      workspace!.hardwareSimProjectPath(tabId, rel),
+      (sessionId, state) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('hardwareSim:runtime', { sessionId, state })
+        }
+      },
+    )
   )
   ipcMain.handle(
     'hardwareSim:set-button',
