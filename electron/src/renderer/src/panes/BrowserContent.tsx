@@ -18,6 +18,10 @@ import {
   syncBrowserPageChromeInset,
 } from "../browser/browserPageViewport";
 import { ensureBrowserPageWebview } from "../browser/ensureBrowserPageWebview";
+import {
+  browserPageGuestNeedsAttach,
+  resolveBrowserPageWebview,
+} from "../browser/browserPageGuestRecovery";
 import { useBrowserPageSlotViewport } from "../browser/useBrowserPageSlotViewport";
 import { useBrowserChromeFocus } from "../browser/useBrowserChromeFocus";
 import { useBrowserGuestActivationFocus } from "../browser/useBrowserGuestActivationFocus";
@@ -63,8 +67,9 @@ export function BrowserContent({
   const isPaintable = paneVisible;
   const chipShown = isActive;
 
-  ensureBrowserPageViewport(item.id, paneNodeId);
   const slotViewport = useBrowserPageSlotViewport(paneNodeId);
+  const [attachNonce, setAttachNonce] = useState(0);
+  const guestRecoveryAttemptsRef = useRef(0);
 
   const chromeHeaderRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
@@ -130,6 +135,25 @@ export function BrowserContent({
       resizeObserver?.disconnect();
     };
   }, [isActive, isPaintable, item.id, slotViewport]);
+
+  // If the overlay slot's viewport shell was recreated while this effect's
+  // deps stayed the same, the guest can sit detached in the registry with
+  // a stale ref — chrome still renders but reload/devtools silently no-op.
+  useEffect(() => {
+    if (!slotViewport || !paneVisible) return;
+    if (!browserPageGuestNeedsAttach(item.id, webviewRef.current)) {
+      guestRecoveryAttemptsRef.current = 0;
+      return;
+    }
+    if (guestRecoveryAttemptsRef.current >= 3) return;
+    guestRecoveryAttemptsRef.current += 1;
+    browserFocusLog("BrowserContent.guestRecovery", "reattach orphaned browser guest", {
+      tabItemId: item.id,
+      paneNodeId,
+      attempt: guestRecoveryAttemptsRef.current,
+    });
+    setAttachNonce((nonce) => nonce + 1);
+  }, [slotViewport, paneVisible, chipActive, item.id, paneNodeId]);
 
   const syncNavState = useCallback(() => {
     const webview = webviewRef.current;
@@ -316,7 +340,7 @@ export function BrowserContent({
       setWebContentsId(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, item.id, paneNodeId, slotViewport, syncNavState]);
+  }, [tabId, item.id, paneNodeId, slotViewport, attachNonce, syncNavState]);
 
   useEffect(() => {
     const webview = webviewRef.current;
@@ -391,7 +415,7 @@ export function BrowserContent({
     const normalized = normalizeBrowserNavigationUrl(url, true);
     if (!normalized) return;
     addressInputRef.current?.blur();
-    const webview = webviewRef.current;
+    const webview = resolveBrowserPageWebview(item.id, webviewRef);
     if (!webview) return;
     const result = loadBrowserPageWebviewUrl(webview, normalized);
     if (result === "not-ready") {
@@ -444,7 +468,7 @@ export function BrowserContent({
               className="browser-nav-btn"
               title={loading ? "Stop" : "Reload"}
               onClick={() => {
-                const wv = webviewRef.current;
+                const wv = resolveBrowserPageWebview(item.id, webviewRef);
                 if (!wv) return;
                 if (loading) {
                   try {
@@ -464,7 +488,7 @@ export function BrowserContent({
               className="browser-nav-btn browser-nav-btn-devtools"
               title="Toggle DevTools"
               onClick={() => {
-                const wv = webviewRef.current;
+                const wv = resolveBrowserPageWebview(item.id, webviewRef);
                 if (!wv) return;
                 if (wv.isDevToolsOpened()) wv.closeDevTools();
                 else wv.openDevTools();
@@ -492,7 +516,7 @@ export function BrowserContent({
             type="button"
             className="browser-crash-reload"
             onClick={() => {
-              const wv = webviewRef.current;
+              const wv = resolveBrowserPageWebview(item.id, webviewRef);
               if (!wv) return;
               reloadBrowserPageWebview(wv, { ignoreCache: false });
             }}

@@ -64,4 +64,21 @@ describe("browserPageViewport", () => {
     expect(viewport.shell.style.display).toBe("none");
     expect(viewport.container.contains(guest)).toBe(true);
   });
+
+  it("drops a disconnected shell when the overlay slot is temporarily gone", () => {
+    const slot = document.createElement("div");
+    document.body.appendChild(slot);
+    registerBrowserOverlaySlotViewport("pane-1", slot);
+    const viewport = ensureBrowserPageViewport("page-1", "pane-1")!;
+    viewport.shell.remove();
+
+    registerBrowserOverlaySlotViewport("pane-1", null);
+    expect(ensureBrowserPageViewport("page-1", "pane-1")).toBeNull();
+
+    registerBrowserOverlaySlotViewport("pane-1", slot);
+    const rebuilt = ensureBrowserPageViewport("page-1", "pane-1");
+    expect(rebuilt).not.toBeNull();
+    expect(rebuilt!.shell).not.toBe(viewport.shell);
+    expect(slot.contains(rebuilt!.shell)).toBe(true);
+  });
 });

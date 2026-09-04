@@ -65,7 +65,10 @@ export function ensureBrowserPageViewport(
   const root = slotViewportRoots.get(paneNodeId);
   const existing = browserPageViewports.get(tabItemId);
   if (existing) {
-    if (!root || existing.shell.parentElement === root) {
+    if (root && existing.shell.parentElement === root) {
+      return existing;
+    }
+    if (!root && existing.shell.isConnected) {
       return existing;
     }
     existing.shell.remove();

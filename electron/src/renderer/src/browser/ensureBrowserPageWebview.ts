@@ -3,6 +3,7 @@
 import { BROWSER_SESSION_PARTITION } from "../browserSessionPartition";
 import { normalizeBrowserNavigationUrl, BLANK_URL } from "../browserUrl";
 import {
+  claimParkedBrowserWebview,
   destroyBrowserWebview,
   getPersistentBrowserWebview,
   registerPersistentWebview,
@@ -26,13 +27,17 @@ export function ensureBrowserPageWebview({
   initialUrl: string;
   initialZoom: number;
 }): { webview: Electron.WebviewTag; created: boolean } | null {
-  let webview = getPersistentBrowserWebview(tabItemId);
+  let webview =
+    claimParkedBrowserWebview(tabItemId, container) ?? getPersistentBrowserWebview(tabItemId);
   let created = false;
-  const parentDrifted = webview?.parentElement !== container;
 
-  if (webview && parentDrifted) {
-    destroyBrowserWebview(tabItemId);
-    webview = undefined;
+  if (webview && webview.parentElement !== container) {
+    if (!webview.isConnected) {
+      destroyBrowserWebview(tabItemId);
+      webview = undefined;
+    } else {
+      container.appendChild(webview);
+    }
   }
 
   if (webview) {
