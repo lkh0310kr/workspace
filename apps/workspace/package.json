@@ -30,7 +30,6 @@
     "prebuild:win:dir": "node scripts/stage-world-engine-win.mjs",
     "build:win": "npm run build && electron-builder --win",
     "build:win:dir": "npm run build && electron-builder --win --dir",
-    "build:native:embed": "cargo build --release --manifest-path ../../world-engine/embed/Cargo.toml && node scripts/stage-world-engine-embed.mjs",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux"
   },

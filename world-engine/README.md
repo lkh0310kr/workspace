@@ -6,7 +6,8 @@ Real-time 3D engine for Workspace — `wgpu` + `rapier3d` + `hecs` + Rhai.
 |-------|------|
 | [`core/`](./core/) | Engine library: simulation, rendering, save/load |
 | [`qt-shell/`](./qt-shell/) | Default shell — Qt window spawned by the desktop app |
-| [`embed/`](./embed/) | Experimental in-pane Electron embed (Node native addon) |
+
+Experimental in-pane Electron embed lives in [`archive/world-engine-embed/`](../archive/world-engine-embed/) (not built).
 
 ```sh
 # From repo root

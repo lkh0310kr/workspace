@@ -1,29 +1,22 @@
-# Build world-engine-qt-shell (release + windeployqt), optional embed addon, then package Electron.
-# Run from repo root or electron/ in PowerShell on a Windows host with Qt 6 MSVC + Rust installed.
+# Build world-engine-qt-shell (release + windeployqt), then package Electron.
+# Run from apps/workspace/scripts in PowerShell on a Windows host with Qt 6 MSVC + Rust installed.
 param(
-    [switch]$DirOnly,
-    [switch]$SkipEmbed
+    [switch]$DirOnly
 )
 
 $ErrorActionPreference = "Stop"
-$electronDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$electronDir = Split-Path -Parent $scriptsDir
 if (-not (Test-Path (Join-Path $electronDir "package.json"))) {
-    $electronDir = Join-Path $electronDir "electron"
+    throw "Expected apps/workspace/package.json next to scripts/"
 }
-$repoRoot = Split-Path -Parent $electronDir
+$repoRoot = Split-Path -Parent (Split-Path -Parent $electronDir)
 
 Write-Host "=== Building world-engine-qt-shell (release) ==="
-& (Join-Path $repoRoot "native\world-engine-qt-shell\scripts\build-windows.ps1") -Release
+& (Join-Path $repoRoot "world-engine\qt-shell\scripts\build-windows.ps1") -Release
 
 Push-Location $electronDir
 try {
-    if (-not $SkipEmbed) {
-        Write-Host "=== Building world-engine-electron-embed (release) ==="
-        npm run build:native:embed
-    } else {
-        Write-Host "=== Skipping embed addon (-SkipEmbed) ==="
-    }
-
     Write-Host "=== Staging world-engine for electron-builder ==="
     node scripts/stage-world-engine-win.mjs
 

@@ -46,7 +46,7 @@ if (!fs.existsSync(exePath)) {
   fs.writeFileSync(
     path.join(stageDir, "README.txt"),
     "world-engine-qt-shell.exe not built yet.\r\n" +
-      "On Windows: native\\world-engine-qt-shell\\scripts\\build-windows.ps1 -Release\r\n",
+      "On Windows: world-engine\\qt-shell\\scripts\\build-windows.ps1 -Release\r\n",
   );
   console.warn(
     `[stage-world-engine-win] Skip — ${exePath} not found (wrote ${stageDir}/README.txt).`,

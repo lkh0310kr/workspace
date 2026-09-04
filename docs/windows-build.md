@@ -61,17 +61,16 @@ cd apps/workspace
 
 This runs:
 
-1. `native\world-engine-qt-shell\scripts\build-windows.ps1 -Release` (+ `windeployqt`)
-2. `npm run build:native:embed` (optional experimental `.node` addon)
-3. Stage artifacts into `apps/workspace/resources/`
-4. `npm run build:win` or `build:win:dir`
+1. `world-engine\qt-shell\scripts\build-windows.ps1 -Release` (+ `windeployqt`)
+2. Stage artifacts into `apps/workspace/resources/`
+3. `npm run build:win` or `build:win:dir`
 
 ## Manual steps
 
 ### World Engine (qt-shell)
 
 ```powershell
-cd native\world-engine-qt-shell
+cd world-engine\qt-shell
 $env:QT_INSTALL_PREFIX = "C:\Qt\6.8.0\msvc2022_64"   # if not auto-detected
 .\scripts\build-windows.ps1 -Release
 .\target\release\world-engine-qt-shell.exe            # smoke test
@@ -89,17 +88,6 @@ Output: `apps/workspace/dist/win-unpacked/electron.exe`
 
 Packaged World Engine path at runtime:
 `resources/world-engine/world-engine-qt-shell.exe` (see `worldEngine.ts`).
-
-### Experimental embed addon
-
-```powershell
-cd apps/workspace
-npm run build:native:embed
-```
-
-Dev menu: **World Engine → Launch Embedded Engine (experimental)**. Requires
-`WORKSPACE_WORLD_ENGINE_EMBED=1` in packaged builds. Input forwarding is still
-experimental (`setIgnoreMouseEvents({ forward: true })`).
 
 ## WSL development
 

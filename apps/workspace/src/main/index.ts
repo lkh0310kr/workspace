@@ -28,7 +28,6 @@ import {
   saveConfig,
   loadWorkspaceSnapshot,
   saveWorkspaceSnapshot,
-  migrateLegacyDevStateIfNeeded
 } from './persistence'
 import {
   preferNativeWorkspacePath,
@@ -49,7 +48,6 @@ import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
-import { startEmbeddedWorldEngine } from './worldEngineEmbed'
 import { hardwareSimManager } from './hardwareSim'
 import { pickDirectory, pickMediaFile } from './nativeDialogs'
 import { initJapaneseDictionary, reloadJapaneseDictionary } from './japanese/init'
@@ -488,20 +486,6 @@ function buildAppMenu(): Menu {
             }
           }
         },
-        {
-          label: 'Launch Embedded Engine (experimental)',
-          click: () => {
-            const win = mainWindowRef
-            if (!win) {
-              dialog.showErrorBox('World Engine', 'Main window is not available.')
-              return
-            }
-            const result = startEmbeddedWorldEngine(win)
-            if (!result.ok) {
-              dialog.showErrorBox('World Engine (embed)', result.error ?? 'Failed to start embedded engine.')
-            }
-          }
-        }
       ]
     }
   ]
@@ -594,7 +578,6 @@ app.whenReady().then(() => {
   setupBrowserDownloads(sendToMainWindow)
   registerBrowserNavIpc()
 
-  migrateLegacyDevStateIfNeeded()
   const config = loadConfig()
   // WSL: never keep a /mnt/<drive> root as the live workspace — 9p sync I/O
   // freezes the main process before ready-to-show (window stays invisible).

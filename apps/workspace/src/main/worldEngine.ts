@@ -7,8 +7,6 @@ import { isWsl, wslPathToWindows } from "./wslPaths";
 // World Engine — Workspace spawns `world-engine-qt-shell` as a child process
 // (see docs/architecture/09-future-native-architecture.md). Packaged Windows
 // builds bundle the release `.exe` under `resources/world-engine/`.
-// Experimental in-pane embed: worldEngineEmbed.ts (not WebRTC — see
-// docs/research/track-b-webrtc-streaming.md).
 
 const PROJECT_MARKER_FILE = "world-engine.json";
 const PACKAGED_WORLD_ENGINE_DIR = "world-engine";

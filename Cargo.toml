@@ -3,6 +3,5 @@ resolver = "2"
 members = [
   "world-engine/core",
   "world-engine/qt-shell",
-  "world-engine/embed",
   "hardware-sim/core",
 ]
