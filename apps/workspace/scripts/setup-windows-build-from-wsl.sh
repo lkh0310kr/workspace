@@ -48,7 +48,10 @@ sed "s/__QT_VERSION__/${QT_VERSION}/g; s/__WIN_USER__/${WIN_USER}/g" \
 echo "[$(date +%H:%M:%S)] Building release..." | tee -a "$LOG"
 cmd.exe /c "cd /d C:\\Users\\${WIN_USER} && powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\${WIN_USER}\\build-qt-shell.ps1" 2>&1 | tr -d '\r' | tee -a "$LOG"
 
-EXE_WSL="${BUILD_ROOT}/world-engine/qt-shell/target/release/world-engine-qt-shell.exe"
+EXE_WSL="${BUILD_ROOT}/target/release/world-engine-qt-shell.exe"
+if [[ ! -f "$EXE_WSL" ]]; then
+  EXE_WSL="${BUILD_ROOT}/world-engine/qt-shell/target/release/world-engine-qt-shell.exe"
+fi
 DEST="${REPO}/world-engine/qt-shell/target/release"
 
 if [[ ! -f "$EXE_WSL" ]]; then
@@ -57,5 +60,5 @@ if [[ ! -f "$EXE_WSL" ]]; then
 fi
 
 mkdir -p "$DEST"
-rsync -a "${BUILD_ROOT}/world-engine/qt-shell/target/release/" "$DEST/"
+rsync -a "$(dirname "$EXE_WSL")/" "$DEST/"
 echo "[$(date +%H:%M:%S)] SUCCESS: ${DEST}/world-engine-qt-shell.exe" | tee -a "$LOG"

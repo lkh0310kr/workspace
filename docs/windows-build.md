@@ -50,13 +50,20 @@ Options: `-SkipVsBuildTools`, `-SkipQt`, `-BuildOnly`
 
 ## One-shot release build (after setup)
 
-From the repo root on **Windows** (not WSL — Qt/WGPU link against MSVC):
+From `apps/workspace` on **Windows** (not WSL — Qt/WGPU link against MSVC):
 
 ```powershell
-cd apps/workspace
+npm run promote:stable
+```
+
+Installs the unpacked prod app to `%LOCALAPPDATA%\Programs\Workspace` and relaunches it (macOS equivalent of `/Applications/Workspace.app`).
+
+Lower-level (build only, no install):
+
+```powershell
 .\scripts\build-world-engine-and-electron-win.ps1 -DirOnly   # unpacked dist\win-unpacked
 # or
-.\scripts\build-world-engine-and-electron-win.ps1            # NSIS installer (needs wine-free Windows host)
+.\scripts\build-world-engine-and-electron-win.ps1            # NSIS installer
 ```
 
 This runs:
@@ -84,7 +91,7 @@ node scripts/stage-world-engine-win.mjs    # copies exe + Qt DLLs if built
 npm run build:win:dir
 ```
 
-Output: `apps/workspace/dist/win-unpacked/electron.exe`
+Output: `apps/workspace/dist/win-unpacked/electron.exe` (workspace Cargo builds also place qt-shell at `target/release/world-engine-qt-shell.exe`).
 
 Packaged World Engine path at runtime:
 `resources/world-engine/world-engine-qt-shell.exe` (see `worldEngine.ts`).

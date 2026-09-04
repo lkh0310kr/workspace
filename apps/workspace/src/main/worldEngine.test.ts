@@ -11,6 +11,7 @@ describe("worldEngineBinaryCandidates", () => {
       resourcesPath: "/app/resources",
     });
     expect(candidates[0]).toMatch(/release\/world-engine-qt-shell\.exe$/);
+    expect(candidates).toContain("/app/target/release/world-engine-qt-shell.exe");
     expect(candidates).toContain(
       "/app/world-engine/qt-shell/target/release/world-engine-qt-shell.exe",
     );

@@ -6,12 +6,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveQtShellReleaseDir } from "./qt-shell-release-dir.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const electronDir = path.resolve(scriptDir, "..");
-const repoRoot = path.resolve(electronDir, "..");
-const sourceDir = path.join(repoRoot, "world-engine", "qt-shell", "target", "release");
+const repoRoot = path.resolve(electronDir, "..", "..");
 const stageDir = path.join(electronDir, "resources", "world-engine");
+const sourceDir = resolveQtShellReleaseDir(repoRoot);
 
 const EXE = "world-engine-qt-shell.exe";
 const COPY_GLOBS = [
@@ -40,8 +41,8 @@ function copyTree(src, dest) {
   }
 }
 
-const exePath = path.join(sourceDir, EXE);
-if (!fs.existsSync(exePath)) {
+if (!sourceDir) {
+  const expected = path.join(repoRoot, "target", "release", EXE);
   fs.mkdirSync(stageDir, { recursive: true });
   fs.writeFileSync(
     path.join(stageDir, "README.txt"),
@@ -49,10 +50,12 @@ if (!fs.existsSync(exePath)) {
       "On Windows: world-engine\\qt-shell\\scripts\\build-windows.ps1 -Release\r\n",
   );
   console.warn(
-    `[stage-world-engine-win] Skip — ${exePath} not found (wrote ${stageDir}/README.txt).`,
+    `[stage-world-engine-win] Skip — ${expected} not found (wrote ${stageDir}/README.txt).`,
   );
   process.exit(0);
 }
+
+const exePath = path.join(sourceDir, EXE);
 
 if (fs.existsSync(stageDir)) {
   fs.rmSync(stageDir, { recursive: true, force: true });

@@ -67,10 +67,16 @@ export function worldEngineBinaryCandidates(options: WorldEngineBinaryOptions = 
     }
   }
   if (electronAppPath) {
-    const base = path.join(electronAppPath, "..", "..", "world-engine", "qt-shell", "target");
-    for (const profile of ["release", "debug"]) {
-      for (const name of binaryBasenames(platform, wsl)) {
-        out.push(path.join(base, profile, name));
+    const repoRoot = path.join(electronAppPath, "..", "..");
+    const targetBases = [
+      path.join(repoRoot, "target"),
+      path.join(repoRoot, "world-engine", "qt-shell", "target"),
+    ];
+    for (const base of targetBases) {
+      for (const profile of ["release", "debug"]) {
+        for (const name of binaryBasenames(platform, wsl)) {
+          out.push(path.join(base, profile, name));
+        }
       }
     }
   }

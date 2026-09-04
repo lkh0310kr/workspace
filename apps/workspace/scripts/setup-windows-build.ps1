@@ -109,9 +109,12 @@ try {
     Log "QT_INSTALL_PREFIX=$env:QT_INSTALL_PREFIX"
 
     Log "=== Building world-engine-qt-shell (release) ==="
-    & (Join-Path $repoRoot "native\world-engine-qt-shell\scripts\build-windows.ps1") -Release
+    & (Join-Path $repoRoot "world-engine\qt-shell\scripts\build-windows.ps1") -Release
 
-    $exe = Join-Path $repoRoot "native\world-engine-qt-shell\target\release\world-engine-qt-shell.exe"
+    $exe = Join-Path $repoRoot "target\release\world-engine-qt-shell.exe"
+    if (-not (Test-Path $exe)) {
+        $exe = Join-Path $repoRoot "world-engine\qt-shell\target\release\world-engine-qt-shell.exe"
+    }
     if (Test-Path $exe) {
         Log "SUCCESS: $exe"
         Log "Smoke test: & '$exe'"

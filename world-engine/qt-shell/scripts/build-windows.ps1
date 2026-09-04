@@ -15,7 +15,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-Set-Location $root
+$repoRoot = Split-Path -Parent (Split-Path -Parent $root)
+$workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 
 if (-not $env:QT_INSTALL_PREFIX) {
     $candidates = @(
@@ -40,13 +41,24 @@ if (-not $env:QT_INSTALL_PREFIX) {
 $profile = if ($Release) { "release" } else { "debug" }
 Write-Host "Building $profile with QT_INSTALL_PREFIX=$env:QT_INSTALL_PREFIX"
 
-if ($Release) {
-    cargo build --release
+if (Test-Path $workspaceManifest) {
+    Set-Location $repoRoot
+    if ($Release) {
+        cargo build --release -p world-engine-qt-shell
+    } else {
+        cargo build -p world-engine-qt-shell
+    }
+    $exe = Join-Path $repoRoot "target\$profile\world-engine-qt-shell.exe"
 } else {
-    cargo build
+    Set-Location $root
+    if ($Release) {
+        cargo build --release
+    } else {
+        cargo build
+    }
+    $exe = Join-Path $root "target\$profile\world-engine-qt-shell.exe"
 }
 
-$exe = Join-Path $root "target\$profile\world-engine-qt-shell.exe"
 if (-not (Test-Path $exe)) {
     Write-Error "Build failed — $exe not found."
 }
