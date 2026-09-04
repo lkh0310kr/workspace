@@ -44,7 +44,14 @@ describe("resolvePtySpawn", () => {
     });
     const spec = resolvePtySpawn("\\\\wsl.localhost\\Ubuntu\\home\\me\\workspace");
     expect(spec.file.toLowerCase()).toContain("wsl.exe");
-    expect(spec.args).toEqual(["-d", "Ubuntu", "--cd", "/home/me/workspace", "--"]);
+    expect(spec.args).toEqual([
+      "-d",
+      "Ubuntu",
+      "--exec",
+      "bash",
+      "-lc",
+      "cd '/home/me/workspace' && exec bash -l",
+    ]);
     expect(spec.cwd).toBe(process.env.USERPROFILE);
   });
 

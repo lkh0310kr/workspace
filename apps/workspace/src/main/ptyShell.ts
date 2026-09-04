@@ -57,10 +57,12 @@ export function resolvePtySpawn(cwd?: string): PtySpawnSpec {
   if (process.platform === "win32") {
     const wslRoot = cwd ? resolveWslLinuxPathFromWindowsRoot(cwd) : null;
     if (wslRoot) {
-      const args = ["-d", wslRoot.distro, "--cd", wslRoot.linuxPath, "--"];
+      // Orca wsl-runner: cd inside the guest (`bash -lc`) — not `wsl.exe --cd`,
+      // which can leave ConPTY stdin detached on some Windows builds.
+      const cdAndShell = `cd ${shellQuoteSingle(wslRoot.linuxPath)} && exec bash -l`;
       return {
         file: resolveWslExecutable(),
-        args,
+        args: ["-d", wslRoot.distro, "--exec", "bash", "-lc", cdAndShell],
         cwd: process.env.USERPROFILE,
       };
     }
