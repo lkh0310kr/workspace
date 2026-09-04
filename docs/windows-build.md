@@ -56,7 +56,7 @@ From `apps/workspace` on **Windows** (not WSL — Qt/WGPU link against MSVC):
 npm run promote:stable
 ```
 
-Installs the unpacked prod app to `%LOCALAPPDATA%\Programs\Workspace` and relaunches it (macOS equivalent of `/Applications/Workspace.app`).
+Installs the unpacked prod app to `%LOCALAPPDATA%\Programs\Workspace`, creates a desktop `Workspace.lnk` shortcut when none already points at that install, and relaunches it (macOS equivalent of `/Applications/Workspace.app`).
 
 Lower-level (build only, no install):
 

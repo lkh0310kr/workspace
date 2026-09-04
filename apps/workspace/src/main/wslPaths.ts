@@ -154,13 +154,87 @@ export function remapWorkspaceRootsInSnapshot<T extends { tabs: Array<{ rootPath
   return changed ? { ...snapshot, tabs } : snapshot;
 }
 
+export interface WslLinuxPath {
+  distro: string;
+  linuxPath: string;
+}
+
+/** Parse `\\wsl.localhost\<distro>\home\…` or `\\wsl$\<distro>\home\…`. */
+export function parseWslUncPath(winPath: string): WslLinuxPath | null {
+  const trimmed = winPath.trim();
+  if (!trimmed) return null;
+
+  const normalized = trimmed.replace(/\//g, "\\");
+  const uncMatch = /^\\\\(?:wsl\.localhost|wsl\$)\\([^\\]+)\\(.*)$/i.exec(normalized);
+  if (!uncMatch) return null;
+
+  const rest = uncMatch[2].replace(/\\/g, "/").replace(/\/+$/, "");
+  const linuxPath = rest ? `/${rest}` : "/";
+  return { distro: uncMatch[1], linuxPath };
+}
+
+/**
+ * On native Windows, resolve a workspace root that lives in WSL to distro +
+ * POSIX path for `wsl.exe`. Returns null for ordinary Windows paths.
+ */
+export function resolveWslLinuxPathFromWindowsRoot(rootPath: string): WslLinuxPath | null {
+  if (process.platform !== "win32") return null;
+
+  const unc = parseWslUncPath(rootPath);
+  if (unc) return unc;
+
+  const posix = rootPath.replace(/\\/g, "/");
+  if (/^\/home\//.test(posix)) {
+    const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
+    return { distro, linuxPath: posix.replace(/\/+$/, "") || "/" };
+  }
+
+  const mistakenWinHome = /^[A-Za-z]:\/(home\/.*)$/i.exec(posix);
+  if (mistakenWinHome) {
+    const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
+    return { distro, linuxPath: `/${mistakenWinHome[1]}` };
+  }
+
+  return null;
+}
+
+export function isWindowsHostedWslRootPath(rootPath: string): boolean {
+  return resolveWslLinuxPathFromWindowsRoot(rootPath) !== null;
+}
+
+function normalizeWindowsHostedWslRootPath(input: string): string | null {
+  const unc = parseWslUncPath(input);
+  if (unc) {
+    return wslPathToWindows(unc.linuxPath, unc.distro) ?? input;
+  }
+
+  const posix = input.replace(/\\/g, "/");
+  if (/^\/home\//.test(posix)) {
+    return wslPathToWindows(posix) ?? input;
+  }
+
+  const mistakenWinHome = /^[A-Za-z]:\/(home\/.*)$/i.exec(posix);
+  if (mistakenWinHome) {
+    return wslPathToWindows(`/${mistakenWinHome[1]}`) ?? input;
+  }
+
+  return null;
+}
+
 /** Normalize a user-chosen directory (settings Browse/Save). Does not remap
  *  /mnt/<drive> paths — explicit picks must stick even on WSL. */
 export function resolveUserSelectedRootPath(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) throw new Error("path cannot be empty");
-  const wslPath = isWsl() ? windowsPathToWsl(trimmed) : trimmed;
-  return path.resolve(wslPath);
+  if (isWsl()) {
+    const wslPath = windowsPathToWsl(trimmed);
+    return path.resolve(wslPath);
+  }
+  if (process.platform === "win32") {
+    const hostedWsl = normalizeWindowsHostedWslRootPath(trimmed);
+    if (hostedWsl) return hostedWsl;
+  }
+  return path.resolve(trimmed);
 }
 
 /** `C:\Users\foo` → `/mnt/c/Users/foo`; `\\wsl.localhost\<distro>\home\...` → `/home/...`. */
@@ -182,15 +256,16 @@ export function windowsPathToWsl(winPath: string): string {
 }
 
 /** `/mnt/c/Users/foo` → `C:\Users\foo`; `/home/...` → `\\wsl.localhost\<distro>\home\...` */
-export function wslPathToWindows(wslPath: string): string | null {
+export function wslPathToWindows(wslPath: string, distroOverride?: string): string | null {
   const normalized = wslPath.replace(/\\/g, "/");
   const mntMatch = /^\/mnt\/([a-zA-Z])\/(.*)$/.exec(normalized);
   if (mntMatch) {
     const rest = mntMatch[2].replace(/\//g, "\\");
     return `${mntMatch[1].toUpperCase()}:\\${rest}`;
   }
-  if (isWsl() && normalized.startsWith("/")) {
-    const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
+  if (normalized.startsWith("/")) {
+    if (process.platform !== "win32" && !isWsl()) return null;
+    const distro = distroOverride ?? process.env.WSL_DISTRO_NAME ?? "Ubuntu";
     const uncRest = normalized.replace(/^\//, "").replace(/\//g, "\\");
     return `\\\\wsl.localhost\\${distro}\\${uncRest}`;
   }

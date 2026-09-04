@@ -3,10 +3,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./wslPaths", () => ({
   isWsl: vi.fn(() => false),
   isWslWindowsMountPath: vi.fn((p: string) => /^\/mnt\/[a-zA-Z]\//.test(p)),
+  resolveWslLinuxPathFromWindowsRoot: vi.fn((p: string) => {
+    const unc = /^\\\\wsl\.localhost\\([^\\]+)\\home\\(.+)$/i.exec(p.replace(/\//g, "\\"));
+    if (unc) return { distro: unc[1], linuxPath: `/home/${unc[2].replace(/\\/g, "/")}` };
+    if (/^\/home\//.test(p)) return { distro: "Ubuntu", linuxPath: p };
+    return null;
+  }),
 }));
 
-import { isWsl } from "./wslPaths";
-import { resolvePtySpawn, resolveWindowsPowerShellExecutable } from "./ptyShell";
+import { isWsl, resolveWslLinuxPathFromWindowsRoot } from "./wslPaths";
+import { resolvePtySpawn, resolveWindowsPowerShellExecutable, resolveWslExecutable } from "./ptyShell";
 
 describe("resolvePtySpawn", () => {
   let platform = "linux";
@@ -29,6 +35,19 @@ describe("resolvePtySpawn", () => {
     expect(spec.cwd).toBe("C:\\Users\\me\\project");
   });
 
+  it("uses wsl.exe for native Windows WSL tab roots", () => {
+    platform = "win32";
+    Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
+    vi.mocked(resolveWslLinuxPathFromWindowsRoot).mockReturnValue({
+      distro: "Ubuntu",
+      linuxPath: "/home/me/workspace",
+    });
+    const spec = resolvePtySpawn("\\\\wsl.localhost\\Ubuntu\\home\\me\\workspace");
+    expect(spec.file.toLowerCase()).toContain("wsl.exe");
+    expect(spec.args).toEqual(["-d", "Ubuntu", "--cd", "/home/me/workspace", "--"]);
+    expect(spec.cwd).toBe(process.env.USERPROFILE);
+  });
+
   it("uses PowerShell for WSL /mnt tab roots", () => {
     vi.mocked(isWsl).mockReturnValue(true);
     const spec = resolvePtySpawn("/mnt/c/Users/me/Documents/bunk");
@@ -47,6 +66,17 @@ describe("resolvePtySpawn", () => {
     expect(spec.args[1]).toBe("-c");
     expect(spec.args[2]).toContain("/home/me/workspace");
     process.env.SHELL = prev;
+  });
+});
+
+describe("resolveWslExecutable", () => {
+  it("returns inbox path on Windows when present, otherwise bare name", () => {
+    const resolved = resolveWslExecutable();
+    if (process.platform === "win32") {
+      expect(resolved.replace(/\\/g, "/").toLowerCase()).toMatch(/system32\/wsl\.exe$/);
+    } else {
+      expect(resolved).toBe("wsl.exe");
+    }
   });
 });
 

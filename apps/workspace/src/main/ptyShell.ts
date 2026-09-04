@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { isWsl, isWslWindowsMountPath } from "./wslPaths";
+import { isWsl, isWslWindowsMountPath, resolveWslLinuxPathFromWindowsRoot } from "./wslPaths";
 
 export interface PtySpawnSpec {
   file: string;
@@ -24,6 +24,18 @@ export function resolveWindowsPowerShellExecutable(): string {
   return "powershell.exe";
 }
 
+/** Inbox `wsl.exe` — same rationale as PowerShell (avoid App Execution Alias stubs). */
+export function resolveWslExecutable(): string {
+  const systemRoot = process.env.SystemRoot ?? process.env.windir ?? "C:\\Windows";
+  const inbox = path.join(systemRoot, "System32", "wsl.exe");
+  try {
+    if (fs.existsSync(inbox) && fs.statSync(inbox).isFile()) return inbox;
+  } catch {
+    // fall through
+  }
+  return "wsl.exe";
+}
+
 /** Linux login shell with an explicit cd on WSL (PTY cwd is often ignored). */
 function linuxLoginShellArgv(shell: string, cwd: string): PtySpawnSpec {
   const base = shell.endsWith("bash") ? "bash" : shell.endsWith("zsh") ? "zsh" : (shell.split("/").pop() ?? "bash");
@@ -36,12 +48,22 @@ function linuxLoginShellArgv(shell: string, cwd: string): PtySpawnSpec {
 
 /**
  * Pick the shell for a new terminal pane.
- * - Native Windows → PowerShell in the tab root (Windows path).
+ * - Native Windows + WSL tab root (`\\wsl.localhost\…` or `/home/…`) → `wsl.exe`.
+ * - Native Windows + ordinary path → PowerShell in the tab root.
  * - WSL + `/mnt/<drive>/…` tab root → PowerShell (Windows side), not a Linux login shell.
  * - WSL + Linux home tab root → user's login shell (bash/zsh).
  */
 export function resolvePtySpawn(cwd?: string): PtySpawnSpec {
   if (process.platform === "win32") {
+    const wslRoot = cwd ? resolveWslLinuxPathFromWindowsRoot(cwd) : null;
+    if (wslRoot) {
+      const args = ["-d", wslRoot.distro, "--cd", wslRoot.linuxPath, "--"];
+      return {
+        file: resolveWslExecutable(),
+        args,
+        cwd: process.env.USERPROFILE,
+      };
+    }
     return {
       file: resolveWindowsPowerShellExecutable(),
       args: ["-NoLogo"],
