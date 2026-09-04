@@ -461,11 +461,15 @@ input {
    button — same visual language as .pane-tab-strip (PaneTabStrip.tsx) so
    switching workspaces looks and behaves like switching any other tab. No
    toggle button, no popover, no separate row. */
+/* Hugs its content instead of filling the titlebar, so "+" stays against
+   the last tab and the leftover width goes to .titlebar-spacer (which is
+   the window's drag region). Shrinks — and scrolls its tab strip — only
+   once the tabs no longer fit. */
 .workspace-tab-rail {
   display: flex;
   align-items: stretch;
   height: 100%;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   -webkit-app-region: no-drag;
 }
@@ -473,7 +477,7 @@ input {
 .workspace-tab-rail-tabs {
   display: flex;
   align-items: stretch;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
