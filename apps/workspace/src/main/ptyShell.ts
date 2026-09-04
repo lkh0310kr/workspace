@@ -1,6 +1,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { isWsl, isWslWindowsMountPath, resolveWslLinuxPathFromWindowsRoot } from "./wslPaths";
+import {
+  isWsl,
+  isWslWindowsMountPath,
+  parseWslUncPath,
+  resolveWslLinuxPathFromWindowsRoot,
+} from "./wslPaths";
+import { getWindowsCmdPath, resolveWindowsPowerShellExecutablePath } from "./windows/windows-powershell-executable";
+import { resolveWindowsShellLaunchArgs } from "./windows/windows-shell-args";
+import { buildWindowsPowerShellSpawnAttempts } from "./windows/windows-shell-fallback-chain";
 
 export interface PtySpawnSpec {
   file: string;
@@ -12,19 +20,7 @@ function shellQuoteSingle(value: string): string {
   return `'${value.replace(/'/g, `'\"'\"'`)}'`;
 }
 
-/** Inbox Windows PowerShell — avoid bare `powershell.exe` (App Execution Alias stubs). */
-export function resolveWindowsPowerShellExecutable(): string {
-  const systemRoot = process.env.SystemRoot ?? process.env.windir ?? "C:\\Windows";
-  const inbox = path.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
-  try {
-    if (fs.existsSync(inbox) && fs.statSync(inbox).isFile()) return inbox;
-  } catch {
-    // fall through
-  }
-  return "powershell.exe";
-}
-
-/** Inbox `wsl.exe` — same rationale as PowerShell (avoid App Execution Alias stubs). */
+/** Inbox `wsl.exe` — avoid App Execution Alias stubs that ConPTY rejects. */
 export function resolveWslExecutable(): string {
   const systemRoot = process.env.SystemRoot ?? process.env.windir ?? "C:\\Windows";
   const inbox = path.join(systemRoot, "System32", "wsl.exe");
@@ -34,6 +30,15 @@ export function resolveWslExecutable(): string {
     // fall through
   }
   return "wsl.exe";
+}
+
+/** Preferred Windows PowerShell executable (pwsh when installed, else inbox). */
+export function resolveWindowsPowerShellExecutable(): string {
+  const pwsh = resolveWindowsPowerShellExecutablePath("pwsh.exe");
+  if (pwsh) return pwsh;
+  const inbox = resolveWindowsPowerShellExecutablePath("powershell.exe");
+  if (inbox) return inbox;
+  return getWindowsCmdPath();
 }
 
 /** Linux login shell with an explicit cd on WSL (PTY cwd is often ignored). */
@@ -46,45 +51,75 @@ function linuxLoginShellArgv(shell: string, cwd: string): PtySpawnSpec {
   };
 }
 
-/**
- * Pick the shell for a new terminal pane.
- * - Native Windows + WSL tab root (`\\wsl.localhost\…` or `/home/…`) → `wsl.exe`.
- * - Native Windows + ordinary path → PowerShell in the tab root.
- * - WSL + `/mnt/<drive>/…` tab root → PowerShell (Windows side), not a Linux login shell.
- * - WSL + Linux home tab root → user's login shell (bash/zsh).
- */
-export function resolvePtySpawn(cwd?: string): PtySpawnSpec {
-  if (process.platform === "win32") {
-    const wslRoot = cwd ? resolveWslLinuxPathFromWindowsRoot(cwd) : null;
-    if (wslRoot) {
-      // Orca wsl-runner: cd inside the guest (`bash -lc`) — not `wsl.exe --cd`,
-      // which can leave ConPTY stdin detached on some Windows builds.
-      const cdAndShell = `cd ${shellQuoteSingle(wslRoot.linuxPath)} && exec bash -l`;
-      return {
+function resolveWin32SpawnAttempts(cwd?: string): PtySpawnSpec[] {
+  const defaultCwd = process.env.USERPROFILE ?? process.env.HOME ?? "C:\\Users\\Default";
+  const effectiveCwd = cwd ?? defaultCwd;
+  const wslRoot = cwd ? resolveWslLinuxPathFromWindowsRoot(cwd) : null;
+
+  if (wslRoot) {
+    const resolved = resolveWindowsShellLaunchArgs(
+      resolveWslExecutable(),
+      cwd!,
+      defaultCwd,
+      parseWslUncPath(cwd!)
+        ? { distro: wslRoot.distro }
+        : { distro: wslRoot.distro, treatPosixCwdAsWsl: true },
+    );
+    return [
+      {
         file: resolveWslExecutable(),
-        args: ["-d", wslRoot.distro, "--exec", "bash", "-lc", cdAndShell],
-        cwd: process.env.USERPROFILE,
-      };
-    }
-    return {
-      file: resolveWindowsPowerShellExecutable(),
-      args: ["-NoLogo"],
-      cwd,
-    };
+        args: resolved.shellArgs,
+        cwd: resolved.effectiveCwd,
+      },
+    ];
+  }
+
+  const shellPath = resolveWindowsPowerShellExecutable();
+  const attempts = buildWindowsPowerShellSpawnAttempts({
+    shellPath,
+    cwd: effectiveCwd,
+    defaultCwd,
+  });
+  if (attempts.length > 0) {
+    return attempts.map((attempt) => ({
+      file: attempt.shellPath,
+      args: attempt.shellArgs,
+      cwd: attempt.effectiveCwd,
+    }));
+  }
+
+  const resolved = resolveWindowsShellLaunchArgs(getWindowsCmdPath(), effectiveCwd, defaultCwd);
+  return [
+    {
+      file: getWindowsCmdPath(),
+      args: resolved.shellArgs,
+      cwd: resolved.effectiveCwd,
+    },
+  ];
+}
+
+/**
+ * Ordered spawn attempts for a new terminal pane. On Windows PowerShell this
+ * follows Orca's pwsh → inbox PowerShell → cmd.exe fallback chain.
+ */
+export function resolvePtySpawnAttempts(cwd?: string): PtySpawnSpec[] {
+  if (process.platform === "win32") {
+    return resolveWin32SpawnAttempts(cwd);
   }
 
   if (isWsl() && cwd && isWslWindowsMountPath(cwd)) {
-    return {
-      file: "powershell.exe",
-      args: ["-NoLogo"],
-      cwd,
-    };
+    return [{ file: "powershell.exe", args: ["-NoLogo"], cwd }];
   }
 
   const shell = process.env.SHELL || "/bin/bash";
   if (!cwd || !isWsl()) {
-    return { file: shell, args: ["-l"], cwd };
+    return [{ file: shell, args: ["-l"], cwd }];
   }
 
-  return linuxLoginShellArgv(shell, cwd);
+  return [linuxLoginShellArgv(shell, cwd)];
+}
+
+/** First spawn attempt (legacy single-spec API). */
+export function resolvePtySpawn(cwd?: string): PtySpawnSpec {
+  return resolvePtySpawnAttempts(cwd)[0];
 }

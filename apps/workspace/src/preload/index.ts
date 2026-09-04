@@ -17,6 +17,16 @@ interface BrowserDownloadEventPayload {
 const api = {
   hostname: (): Promise<string> => ipcRenderer.invoke('hostname'),
   platform: process.platform as NodeJS.Platform,
+  platformInfo: {
+    get: () => ({
+      platform: process.platform,
+      osRelease:
+        (process as NodeJS.Process & { getSystemVersion?: () => string }).getSystemVersion?.() ??
+        '',
+      arch: process.arch,
+      shell: process.env.SHELL?.trim() || process.env.ComSpec?.trim() || '',
+    }),
+  },
   // Preload has Node; cheap sync check so CSS can skip titleBarOverlay padding.
   isWsl:
     process.platform === 'linux' &&

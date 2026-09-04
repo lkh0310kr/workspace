@@ -106,6 +106,14 @@ export interface BrowserDownloadEventPayload {
 export interface WorkspaceApi {
   hostname: () => Promise<string>
   platform: NodeJS.Platform
+  platformInfo: {
+    get: () => {
+      platform: NodeJS.Platform
+      osRelease: string
+      arch: string
+      shell: string
+    }
+  }
   isWsl: boolean
   windowControls: {
     minimize: () => void

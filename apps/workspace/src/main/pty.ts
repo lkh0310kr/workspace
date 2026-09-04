@@ -1,24 +1,47 @@
 import * as pty from "node-pty";
-import { resolvePtySpawn } from "./ptyShell";
+import { resolvePtySpawnAttempts, type PtySpawnSpec } from "./ptyShell";
 
 // Direct shell spawn (Orca-style). PtySession + xterm scrollback handle
 // reconnect while the app is running; no tmux wrapper.
-//
-// A tmux wrapper was tried (2026-08-27, quit/relaunch persistence) and
-// reverted (2026-08-28): tmux is itself a terminal multiplexer that
-// redraws its pane by diffing screen state, not by streaming clean
-// scroll-index escapes — a rich TUI on top of it (e.g. Claude Code's CLI,
-// which repaints an in-place viewport) produces duplicated/misaligned
-// scrollback in xterm.js's own buffer ("double scroll", can't see prior
-// output) and occasional mis-rendered wide/Unicode glyphs ("???") during
-// tmux's own resize/redraw recalculation. Matches this project's own
-// established rule (.cursor/skills/workspace-ref-port/SKILL.md): don't
-// reintroduce a tmux wrapper, spawn the login shell directly like Orca.
 
 export interface PtyOptions {
   cols: number;
   rows: number;
   cwd?: string;
+}
+
+type PtySpawnOptions = {
+  cols: number;
+  rows: number;
+  env: Record<string, string | undefined>;
+};
+
+function spawnPtyWithFallback(attempts: PtySpawnSpec[], options: PtySpawnOptions): pty.IPty {
+  const baseOpts = {
+    name: "xterm-256color",
+    cols: options.cols,
+    rows: options.rows,
+    env: options.env,
+    encoding: null as null,
+    ...(process.platform === "win32" ? { useConptyDll: true as const } : {}),
+  };
+
+  let lastError: unknown;
+  for (let i = 0; i < attempts.length; i++) {
+    const attempt = attempts[i];
+    try {
+      return pty.spawn(attempt.file, attempt.args, {
+        ...baseOpts,
+        cwd: attempt.cwd,
+      });
+    } catch (err) {
+      lastError = err;
+      if (i < attempts.length - 1) {
+        console.warn(`[pty] spawn failed for ${attempt.file}, trying fallback`, err);
+      }
+    }
+  }
+  throw lastError ?? new Error("pty spawn: no attempts");
 }
 
 export class Pty {
@@ -42,9 +65,6 @@ export class Pty {
   private ensureOpen(): void {
     if (this.child) return;
 
-    // A GUI app launched via Finder/Dock/`open` gets minimal env — no
-    // LANG/LC_ALL, minimal PATH. Force UTF-8 so wide (Hangul, CJK) cells
-    // measure correctly in xterm.
     const existingLang = process.env.LANG;
     const locale =
       existingLang && existingLang.toUpperCase().includes("UTF-8") ? existingLang : "en_US.UTF-8";
@@ -55,23 +75,14 @@ export class Pty {
       LANG: locale,
       LC_ALL: locale,
     };
-    const { file, args, cwd } = resolvePtySpawn(this.cwd);
+    const attempts = resolvePtySpawnAttempts(this.cwd);
 
-    this.child = pty.spawn(file, args, {
-      name: "xterm-256color",
+    this.child = spawnPtyWithFallback(attempts, {
       cols: this.cols,
       rows: this.rows,
-      cwd,
       env,
-      // Raw bytes out, not decoded strings — matches the Rust side, which
-      // reads raw bytes and lets the frontend/xterm.js decode.
-      encoding: null,
     });
 
-    // node-pty's own types say onData delivers `string` — that's only
-    // true when `encoding` isn't explicitly nulled out. With
-    // `encoding: null` above it actually hands back a raw Buffer; the
-    // cast reflects that actual runtime behavior, not the type.
     (this.child.onData as unknown as (cb: (data: Buffer) => void) => void)((data: Buffer) => {
       this.onDataCallback?.(data);
     });
@@ -108,9 +119,6 @@ export class Pty {
     this.child = null;
   }
 
-  /** No tmux session to separately tear down — same as dispose(). Kept as
-   * a distinct method so call sites (terminal actually deleted, vs. just
-   * detached on app quit/reload) don't need to change. */
   disposeAndDestroySession(): void {
     this.dispose();
   }

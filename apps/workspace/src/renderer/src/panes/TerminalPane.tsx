@@ -17,6 +17,8 @@ import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
 import { resumePaneRendering, suspendPaneRendering } from "../lib/pane-manager/pane-rendering-control";
 import { resolveExplicitTerminalTitleAgentType } from "../../../shared/agent/terminal-title-agent-type";
 import type { TuiAgent } from "../../../shared/agent/tui-agent";
+import { shouldFocusTerminalFromPanePointerDown } from "../lib/pane-manager/pane-pointer-focus";
+import { focusTerminalTextarea } from "../lib/focus-terminal-textarea";
 import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
 import { installTerminalPasteHandler } from "../terminal/installTerminalPasteHandler";
@@ -68,6 +70,8 @@ function TerminalPaneInner({
     const host = hostRef.current;
     if (!host) return;
 
+    const platformInfo = window.api.platformInfo.get();
+
     const pane = createPaneDOM(terminalId, `terminal-${terminalId}`, {
       terminalGpuAcceleration: "auto",
       linkOpenHint: () => "open in browser",
@@ -79,6 +83,7 @@ function TerminalPaneInner({
           rootPath,
           terminalAgent,
           zoom,
+          osRelease: platformInfo.osRelease,
         }),
         theme: XTERM_THEMES[getCurrentResolvedTheme()],
       }),
@@ -160,7 +165,10 @@ function TerminalPaneInner({
 
     pane.container.addEventListener("focusin", onFocusIn);
     pane.container.addEventListener("focusout", onFocusOut);
-    const onPointerDown = () => {
+    const onPointerDown = (event: PointerEvent) => {
+      if (!shouldFocusTerminalFromPanePointerDown(event.target)) {
+        return;
+      }
       pane.terminal.focus();
     };
     pane.container.addEventListener("pointerdown", onPointerDown);
@@ -223,12 +231,14 @@ function TerminalPaneInner({
     requestAnimationFrame(() => {
       refit();
       if (becameShown) {
+        focusTerminalTextarea(pane.container);
         pane.terminal.focus();
       }
     });
     const timer = window.setTimeout(() => {
       refit();
       if (becameShown) {
+        focusTerminalTextarea(pane.container);
         pane.terminal.focus();
       }
     }, 50);
