@@ -13,9 +13,8 @@ const HardwareSimulatorContent = lazy(() =>
   })),
 );
 
-// File Viewer pane — images, PDF, video, audio, EPUB (minimal v1: unzip,
-// walk the OPF spine in order, one chapter per sandboxed iframe with
-// prev/next — see EpubReaderContent.tsx for the rest).
+// File Viewer pane — images, PDF, video, audio, EPUB (foliate-js paginator
+// over workspace-epub:// — see EpubReaderContent.tsx).
 //
 // Why images/PDF use blob: URLs but video/audio don't (Orca parity for
 // the former — editor/useLocalImageSrc.ts): a raw file:// <img>/<embed>
@@ -285,7 +284,9 @@ export function FileViewerContent({
 
   return (
     <div className="file-viewer">
-      <div className="obsidian-float-actions">
+      {/* The EPUB reader renders this cluster itself so its own settings
+          button sits next to the explorer toggle. */}
+      <div className="obsidian-float-actions" hidden={isEpub}>
         {!isPdf && !isMedia && blobUrl && (
           <>
             <button
@@ -393,9 +394,20 @@ export function FileViewerContent({
         )
       ) : isEpub ? (
         absolutePath ? (
-          <EpubReaderContent absolutePath={absolutePath} />
+          <EpubReaderContent
+            absolutePath={absolutePath}
+            paneActive={paneActive}
+            treeOpen={treeOpen}
+            onToggleTree={onToggleTree}
+          />
         ) : (
-          <EpubReaderContent tabId={tabId} filePath={filePath!} />
+          <EpubReaderContent
+            tabId={tabId}
+            filePath={filePath!}
+            paneActive={paneActive}
+            treeOpen={treeOpen}
+            onToggleTree={onToggleTree}
+          />
         )
       ) : isVideo ? (
         !mediaUrl ? (

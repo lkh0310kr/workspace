@@ -1877,9 +1877,9 @@ input {
   max-width: 480px;
 }
 
-/* EPUB reader (EpubReaderContent.tsx) — minimal v1: toolbar + one
-   sandboxed iframe per chapter. */
+/* EPUB reader (EpubReaderContent.tsx) — foliate-js columns + chrome. */
 .epub-reader {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -1887,13 +1887,81 @@ input {
   background: var(--bg-base);
 }
 
+/* The page palette paints the gutter around the paginated view too, so a
+   light page inside a dark app doesn't bleed dark at the edges. Keyed on
+   the *resolved* theme, so "Match app" lands on one of these as well. */
+.epub-reader.theme-light {
+  background: #fff;
+}
+
+.epub-reader.theme-dark {
+  background: #1c1c1c;
+}
+
+.epub-reader.theme-sepia {
+  background: #f4ecd8;
+}
+
 .epub-reader-toolbar {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
+  /* Right padding clears the floating settings/explorer cluster. */
+  padding: 4px 80px 4px 8px;
   border-bottom: 1px solid var(--border);
+}
+
+/* Reader settings live in a popover off the float-actions gear, so the
+   toolbar stays one row. */
+.epub-reader-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 220px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.epub-reader-settings label {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.epub-reader-settings span {
+  color: var(--text-faint);
+}
+
+.epub-reader-settings em {
+  color: var(--text-faint);
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: right;
+}
+
+.epub-reader-settings select,
+.epub-reader-settings input[type="range"] {
+  grid-column: 2 / span 2;
+  width: 100%;
+}
+
+.epub-reader-settings input[type="range"] {
+  grid-column: 2;
+}
+
+.epub-reader-search {
+  width: calc(100% - 24px);
+  margin: 0 12px 8px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  padding: 0 8px;
 }
 
 .epub-reader-title {
@@ -1915,12 +1983,108 @@ input {
   font-size: 11px;
 }
 
+.epub-reader-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.epub-reader-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  overflow: auto;
+  border-right: 1px solid var(--border);
+  padding: 8px 0;
+}
+
+.epub-reader-toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.epub-reader-toc a,
+.epub-reader-hits button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.epub-reader-hits button span {
+  display: block;
+  color: var(--text-faint);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.epub-reader-empty {
+  margin: 0;
+  padding: 6px 12px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+/* Adding and browsing are separate actions: the toolbar star opens this
+   panel, this button bookmarks (or un-bookmarks) the current page. */
+.epub-reader-mark-toggle {
+  color: var(--accent) !important;
+  font-weight: 600;
+}
+
+.epub-reader-mark {
+  display: flex;
+  align-items: flex-start;
+}
+
+.epub-reader-mark.current {
+  background: var(--bg-hover);
+}
+
+.epub-reader-mark > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.epub-reader-mark-remove {
+  width: 24px;
+  flex-shrink: 0;
+  color: var(--text-faint) !important;
+  text-align: center !important;
+}
+
+.epub-reader-hits button:hover {
+  background: var(--bg-hover);
+}
+
+.epub-reader-mark-remove:hover {
+  color: var(--text) !important;
+}
+
+.epub-reader-view,
 .epub-reader-frame {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   width: 100%;
   border: none;
-  background: #fff;
+  background: transparent;
+}
+
+.epub-reader-view foliate-view {
+  height: 100%;
+}
+
+.epub-reader-slider {
+  flex-shrink: 0;
+  width: 100%;
+  margin: 0;
+  height: 18px;
 }
 
 .file-viewer-subtitle-pick {

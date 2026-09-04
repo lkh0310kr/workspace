@@ -1,4 +1,4 @@
-import { protocol, type Session } from 'electron'
+import type { Session } from 'electron'
 import * as fs from 'node:fs'
 import { Readable } from 'node:stream'
 import { ENGINE_SCHEME, ENGINE_HOST, contentTypeFor, isPathConfined } from './engineBundlePaths'
@@ -34,13 +34,8 @@ import { ENGINE_SCHEME, ENGINE_HOST, contentTypeFor, isPathConfined } from './en
 // Same fixed-host trick as mediaProtocol.ts's MEDIA_HOST, same reason: a
 // custom "standard" scheme doesn't get file:'s empty-authority carve-out
 // for an absolute path, so Chromium's URL parser would otherwise swallow
-// the path's first segment as the hostname.
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: ENGINE_SCHEME,
-    privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true }
-  }
-])
+// the path's first segment as the hostname. The scheme's privileges are
+// declared in protocolSchemeTable.ts with every other workspace scheme.
 
 /**
  * Wires the scheme up to actually serve files — call once per session

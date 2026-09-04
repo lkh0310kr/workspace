@@ -3,6 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { Readable } from 'node:stream'
 import { parseRangeHeader } from './mediaRange'
+import { MEDIA_SCHEME } from './protocolSchemeTable'
 
 // Streaming video/audio protocol — NOT a general file-serving scheme like
 // the abandoned localFileProtocol.ts (removed in d71ce0c/dca0582/d71ce0c's
@@ -17,7 +18,7 @@ import { parseRangeHeader } from './mediaRange'
 // swallow the path's first segment as hostname — must not come back) and
 // adds HTTP Range support, which <video>/<audio> issue automatically on
 // seek.
-export const MEDIA_SCHEME = 'workspace-media'
+export { MEDIA_SCHEME } from './protocolSchemeTable'
 
 // Why a fixed dummy host instead of an empty authority
 // (workspace-media:///Users/...): file: is the one scheme the URL Standard
@@ -56,16 +57,6 @@ export function toMediaUrl(absolutePath: string): string {
 export function toMediaUrlBrowsed(absolutePath: string): string {
   return buildMediaUrl(MEDIA_HOST_BROWSED, absolutePath)
 }
-
-// Must run before app 'ready' — Chromium reads privileged-scheme
-// registration once at startup. Runs at module import time (index.ts
-// imports this before app.whenReady()).
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: MEDIA_SCHEME,
-    privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true }
-  }
-])
 
 export const MEDIA_MIME_TYPES: Record<string, string> = {
   '.mp4': 'video/mp4',

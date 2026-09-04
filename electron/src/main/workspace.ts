@@ -300,6 +300,10 @@ export class Workspace {
     return files.resolveUnderRoot(this.tabRoot(tabId), rel);
   }
 
+  resolveWorkspaceFile(tabId: number, rel: string): string {
+    return files.resolveUnderRoot(this.tabRoot(tabId), rel);
+  }
+
   openEpub(tabId: number, rel: string): Promise<EpubBook> {
     return openEpub(this.tabRoot(tabId), rel);
   }

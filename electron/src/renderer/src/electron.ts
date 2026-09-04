@@ -397,6 +397,7 @@ export interface EpubBook {
   bookId: string;
   title: string;
   spine: EpubSpineItem[];
+  sizes: Record<string, number>;
 }
 
 export async function openEpub(tabId: number, path: string): Promise<EpubBook> {
@@ -405,6 +406,23 @@ export async function openEpub(tabId: number, path: string): Promise<EpubBook> {
 
 export async function openEpubAbsolute(absolutePath: string): Promise<EpubBook> {
   return window.api.epub.openAbsolute(absolutePath);
+}
+
+export async function getEbookState(
+  tabId: number | null,
+  rel: string | null,
+  absolutePath?: string,
+): Promise<import("../../shared/ebookState").EbookBookState> {
+  return window.api.epub.getState(tabId, rel, absolutePath);
+}
+
+export async function saveEbookState(
+  tabId: number | null,
+  rel: string | null,
+  absolutePath: string | undefined,
+  patch: Partial<import("../../shared/ebookState").EbookBookState>,
+): Promise<import("../../shared/ebookState").EbookBookState> {
+  return window.api.epub.saveState(tabId, rel, absolutePath, patch);
 }
 
 export function epubResourceUrl(bookId: string, href: string): string {

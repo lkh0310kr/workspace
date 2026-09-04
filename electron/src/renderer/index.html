@@ -6,7 +6,7 @@
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' workspace-model: workspace-media:; connect-src 'self' workspace-model: workspace-media: https://www.gstatic.com https://cdn.jsdelivr.net; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob: workspace-model:; object-src 'self' blob: workspace-model:; media-src 'self' workspace-media: blob:; frame-src 'self' workspace-epub: workspace-engine:"
+      content="default-src 'self' workspace-model: workspace-media:; connect-src 'self' workspace-model: workspace-media: workspace-epub: https://www.gstatic.com https://cdn.jsdelivr.net; script-src 'self'; style-src 'self' 'unsafe-inline' blob:; font-src 'self' data: blob:; img-src 'self' data: https: blob: workspace-model: workspace-epub:; object-src 'self' blob: workspace-model:; media-src 'self' workspace-media: blob:; frame-src 'self' blob: workspace-epub: workspace-engine:"
     />
   </head>
 

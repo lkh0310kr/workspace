@@ -88,6 +88,7 @@ export interface EpubBook {
   bookId: string
   title: string
   spine: EpubSpineItem[]
+  sizes: Record<string, number>
 }
 
 export interface BrowserDownloadEventPayload {
@@ -269,6 +270,17 @@ export interface WorkspaceApi {
   epub: {
     open: (tabId: number, rel: string) => Promise<EpubBook>
     openAbsolute: (absolutePath: string) => Promise<EpubBook>
+    getState: (
+      tabId: number | null,
+      rel: string | null,
+      absolutePath?: string,
+    ) => Promise<import('../shared/ebookState').EbookBookState>
+    saveState: (
+      tabId: number | null,
+      rel: string | null,
+      absolutePath: string | undefined,
+      patch: Partial<import('../shared/ebookState').EbookBookState>,
+    ) => Promise<import('../shared/ebookState').EbookBookState>
   }
   engine: {
     getBundleUrl: (

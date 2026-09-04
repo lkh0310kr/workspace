@@ -320,7 +320,15 @@ const api = {
   epub: {
     open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),
     openAbsolute: (absolutePath: string): Promise<unknown> =>
-      ipcRenderer.invoke('epub:open-absolute', absolutePath)
+      ipcRenderer.invoke('epub:open-absolute', absolutePath),
+    getState: (tabId: number | null, rel: string | null, absolutePath?: string): Promise<unknown> =>
+      ipcRenderer.invoke('epub:state-get', tabId, rel, absolutePath),
+    saveState: (
+      tabId: number | null,
+      rel: string | null,
+      absolutePath: string | undefined,
+      patch: unknown,
+    ): Promise<unknown> => ipcRenderer.invoke('epub:state-save', tabId, rel, absolutePath, patch)
   },
   engine: {
     getBundleUrl: (

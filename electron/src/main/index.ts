@@ -1,3 +1,4 @@
+import './protocolSchemes'
 import './imeEnv'
 import { ensureLinuxImeDaemon } from './imeEnv'
 import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './shortcuts/relayAppShortcuts'
@@ -20,6 +21,7 @@ import { model3dLog, readModel3dLogs } from './model3d/model3dLog'
 import { importJobQueue } from './model3d/importJobQueue'
 import type { AssetOpenRequest } from '../shared/model3d/types'
 import { registerEpubProtocol, openEpubAbsolute } from './epub'
+import { getEbookState, saveEbookState } from './ebookState'
 import { registerEngineBundleProtocol } from './engineBundleProtocol'
 import {
   loadConfig,
@@ -886,6 +888,21 @@ app.whenReady().then(() => {
   )
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
   ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))
+  ipcMain.handle(
+    'epub:state-get',
+    (_event, tabId: number | null, rel: string | null, absolutePath?: string) =>
+      getEbookState(absolutePath || workspace!.resolveWorkspaceFile(tabId!, rel!)),
+  )
+  ipcMain.handle(
+    'epub:state-save',
+    (
+      _event,
+      tabId: number | null,
+      rel: string | null,
+      absolutePath: string | undefined,
+      patch: import('../shared/ebookState').EbookBookState,
+    ) => saveEbookState(absolutePath || workspace!.resolveWorkspaceFile(tabId!, rel!), patch),
+  )
   ipcMain.handle('engine:get-bundle-url', (_event, tabId: number, rel: string, entry?: string) => {
     try {
       return workspace!.resolveEngineBundle(tabId, rel, entry)

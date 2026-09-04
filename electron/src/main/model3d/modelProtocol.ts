@@ -6,20 +6,6 @@ import { MODEL_MIME_TYPES, MODEL_SCHEME } from "./modelProtocolUrl";
 
 const MODEL_HOST = "local";
 
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: MODEL_SCHEME,
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      corsEnabled: true,
-      stream: true,
-      bypassCSP: true,
-    },
-  },
-]);
-
 export { MODEL_MIME_TYPES, MODEL_SCHEME, toModelUrl } from "./modelProtocolUrl";
 
 export function registerModelProtocol(getAllowedRoots: () => string[]): void {
