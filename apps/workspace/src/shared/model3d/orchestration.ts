@@ -18,7 +18,6 @@ export function resolvePipelineForIntent(intent: AssetIntent): ImportPipeline {
 }
 
 export function normalizeAssetIntent(intent: AssetOpenRequest["intent"]): AssetIntent {
-  if (intent === "thumbnail") return "preview";
   return intent;
 }
 

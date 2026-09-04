@@ -42,28 +42,16 @@ export function ebookLocationKey(path: string): string {
   return path.replace(/\\/g, "/");
 }
 
-/** Schema 0 (unversioned) wrote the whole merged state on every page
- * turn, so its default theme — then "light" — is baked into every book
- * ever opened. Left alone those books would stay pinned to light and
- * ignore the app's dark mode, so an unversioned "light" is read as the
- * default it actually was rather than as a deliberate choice. A pick made
- * after this migration carries schema 1 and is preserved. */
-function migrate(stored: Partial<EbookBookState>): Partial<EbookBookState> {
-  if (stored.schema != null) return stored;
-  return { ...stored, theme: stored.theme === "light" ? "auto" : stored.theme };
-}
-
 export function mergeEbookState(
   stored: Partial<EbookBookState> | undefined,
   patch: Partial<EbookBookState>,
 ): EbookBookState {
-  const migrated = stored ? migrate(stored) : undefined;
   return {
     ...DEFAULT_EBOOK_STATE,
-    ...migrated,
+    ...stored,
     ...patch,
     schema: EBOOK_STATE_SCHEMA,
-    bookmarks: patch.bookmarks ?? migrated?.bookmarks ?? [],
-    updatedAt: patch.updatedAt ?? migrated?.updatedAt ?? new Date().toISOString(),
+    bookmarks: patch.bookmarks ?? stored?.bookmarks ?? [],
+    updatedAt: patch.updatedAt ?? stored?.updatedAt ?? new Date().toISOString(),
   };
 }

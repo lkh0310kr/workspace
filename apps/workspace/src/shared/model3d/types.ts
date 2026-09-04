@@ -1,8 +1,7 @@
 /** Workspace-relative asset open intent — see docs/planning/cad-orchestration-phase-plan.md */
 export type AssetIntent = "preview" | "place" | "simulate" | "edit";
 
-/** Includes legacy thumbnail alias (normalized to preview). */
-export type ModelOpenIntent = AssetIntent | "thumbnail";
+export type ModelOpenIntent = AssetIntent;
 
 export interface AssetOpenRequest {
   tabId: number;

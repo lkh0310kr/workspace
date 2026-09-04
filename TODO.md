@@ -1,7 +1,6 @@
 - [ ] Video/Audio QA — File Viewer 재생, Range 206 시킹, 대용량, 자막, 패키지 빌드 protocol 등록.
 - [ ] EPUB QA
 - [ ] 코드 퀄리티 리뷰
-- [ ] Workspace Tab Add 버튼이 너무 중앙에 있음. 탭 바로 옆에 있어야지.
 - [ ] Markdown Editor iframe html rendering like obsidian
 
 ---

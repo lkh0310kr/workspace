@@ -6,24 +6,16 @@ describe("mergeEbookState", () => {
     expect(mergeEbookState(undefined, {}).theme).toBe("auto");
   });
 
-  it("reads schema 0's baked-in 'light' as the default it was, not a choice", () => {
-    const stored = { theme: "light", cfi: "epubcfi(/6/4)", fontScale: 1.2 } as const;
-    const merged = mergeEbookState(stored, {});
-    expect(merged.theme).toBe("auto");
-    expect(merged.cfi).toBe("epubcfi(/6/4)");
-    expect(merged.fontScale).toBe(1.2);
-  });
-
-  it("keeps a light theme chosen after the migration", () => {
+  it("keeps a stored light theme", () => {
     expect(mergeEbookState({ schema: EBOOK_STATE_SCHEMA, theme: "light" }, {}).theme).toBe("light");
   });
 
-  it("keeps schema 0 themes that could only have been chosen deliberately", () => {
+  it("keeps stored sepia and dark themes", () => {
     expect(mergeEbookState({ theme: "sepia" }, {}).theme).toBe("sepia");
     expect(mergeEbookState({ theme: "dark" }, {}).theme).toBe("dark");
   });
 
-  it("lets an explicit patch win over the migration and stamps the schema", () => {
+  it("stamps the schema on merge", () => {
     const merged = mergeEbookState({ theme: "light" }, { theme: "light" });
     expect(merged.theme).toBe("light");
     expect(merged.schema).toBe(EBOOK_STATE_SCHEMA);

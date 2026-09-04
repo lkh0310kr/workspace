@@ -14,10 +14,6 @@ export type StudyTask =
   | "augment";
 
 export interface StudyAssistContext {
-  /** @deprecated use previousLines */
-  previousLine?: string;
-  /** @deprecated use nextLines */
-  nextLine?: string;
   currentLine?: string;
   previousLines?: string[];
   nextLines?: string[];

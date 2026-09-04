@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPreviewPipeline, normalizeAssetIntent, pipelineForRequest, resolvePipelineForIntent } from "./orchestration";
+import { isPreviewPipeline, resolvePipelineForIntent } from "./orchestration";
 
 describe("orchestration contract", () => {
   it("routes preview and place to import-preview", () => {
@@ -10,18 +10,6 @@ describe("orchestration contract", () => {
   it("routes simulate and edit to delegate pipelines", () => {
     expect(resolvePipelineForIntent("simulate")).toBe("world-engine-simulate");
     expect(resolvePipelineForIntent("edit")).toBe("external-cad-edit");
-  });
-
-  it("normalizes thumbnail to preview pipeline", () => {
-    expect(normalizeAssetIntent("thumbnail")).toBe("preview");
-    expect(
-      pipelineForRequest({
-        tabId: 1,
-        relativePath: "a.glb",
-        intent: "thumbnail",
-        source: "tree",
-      }),
-    ).toBe("import-preview");
   });
 
   it("classifies preview pipelines", () => {

@@ -13,17 +13,6 @@ function isElectronAppReady(): boolean {
   }
 }
 
-function appDataDir(): string {
-  if (process.platform === "darwin") {
-    return join(homedir(), "Library", "Application Support");
-  }
-  try {
-    return app.getPath("appData");
-  } catch {
-    return join(homedir(), ".config");
-  }
-}
-
 export function getJapaneseDataDir(): string {
   if (process.env.WORKSPACE_JAPANESE_USER_DATA) {
     return join(process.env.WORKSPACE_JAPANESE_USER_DATA, "japanese");
@@ -49,32 +38,12 @@ export function getJapaneseLogPath(): string {
   return join(appSupportDir(), "logs", "japanese.ndjson");
 }
 
-/** Other locations users/CLI may have written before path unification. */
+/** Canonical dictionary DB path for this app install. */
 export function getJapaneseDbCandidatePaths(): string[] {
   if (process.env.WORKSPACE_JAPANESE_USER_DATA) {
     return [join(process.env.WORKSPACE_JAPANESE_USER_DATA, "japanese", "dictionary.db")];
   }
-
-  const primary = getJapaneseDictionaryDbPath();
-  const candidates = new Set<string>([primary]);
-
-  // Opposite dev/packaged suffix (common mismatch).
-  const packaged = isElectronAppReady() ? app.isPackaged : false;
-  const oppositeSuffix = packaged ? "-dev" : "";
-  const packagedSuffix = packaged ? "" : "-dev";
-  candidates.add(join(appDataDir(), `workspace-app${oppositeSuffix}`, "japanese", "dictionary.db"));
-  candidates.add(join(appDataDir(), `workspace-app${packagedSuffix}`, "japanese", "dictionary.db"));
-
-  // Raw Electron userData (no -dev suffix) — legacy mismatch.
-  if (isElectronAppReady()) {
-    try {
-      candidates.add(join(app.getPath("userData"), "japanese", "dictionary.db"));
-    } catch {
-      // app not ready
-    }
-  }
-
-  return [...candidates];
+  return [getJapaneseDictionaryDbPath()];
 }
 
 export interface JapaneseDbPathProbe {

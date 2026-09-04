@@ -86,12 +86,8 @@ export function buildStudyPrompt(req: StudyAssistRequest): { system: string; use
 
   const level = levelHint(req.level);
   const direction = resolveTranslateDirection(req);
-  const contextLines = [
-    req.context?.previousLine ? `이전 줄: ${req.context.previousLine}` : null,
-    req.context?.nextLine ? `다음 줄: ${req.context.nextLine}` : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const contextLines = formatContextLines(req.context?.previousLines, "앞 문맥");
+  const nextContext = formatContextLines(req.context?.nextLines, "뒤 문맥");
 
   const system = [
     "당신은 일본어 학습 보조입니다.",
@@ -106,7 +102,8 @@ export function buildStudyPrompt(req: StudyAssistRequest): { system: string; use
   const sourceLabel =
     direction === "to_ja" ? "한국어" : req.task === "check_translation" ? "일본어" : "원문";
   const userParts = [
-    contextLines || null,
+    contextLines,
+    nextContext,
     `${sourceLabel}: ${req.text}`,
     req.koreanDraft ? `학습자 번역: ${req.koreanDraft}` : null,
     tokenBlock || null,
