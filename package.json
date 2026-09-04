@@ -1,0 +1,9 @@
+{
+  "name": "workspace",
+  "private": true,
+  "scripts": {
+    "check": "bash scripts/check.sh",
+    "check:rust": "cargo test -p world-engine-core -p hardware-sim-core",
+    "check:app": "cd apps/workspace && npm run typecheck"
+  }
+}
