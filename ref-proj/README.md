@@ -77,6 +77,15 @@ git clone --depth 1 https://github.com/google/model-viewer.git model-viewer
 git clone --depth 1 https://github.com/gkjohnson/urdf-loaders.git urdf-loaders
 git clone --depth 1 https://github.com/lichtblick-suite/lichtblick.git lichtblick
 git clone --depth 1 https://github.com/wokwi/avr8js.git avr8js
+
+# EPUB / ebook readers (pagination + chrome)
+git clone --depth 1 https://github.com/johnfactotum/foliate-js.git foliate-js
+git clone --depth 1 https://github.com/futurepress/epub.js.git epub.js
+git clone --depth 1 https://github.com/edrlab/thorium-reader.git thorium-reader
+git clone --depth 1 https://github.com/readium/ts-toolkit.git ts-toolkit
+git clone --depth 1 https://github.com/johnfactotum/foliate.git foliate
+git clone --depth 1 https://github.com/readest/readest.git readest          # AGPL — UX only, do not copy src
+git clone --depth 1 https://github.com/koodo-reader/koodo-reader.git koodo-reader  # AGPL — UX only
 ```
 
 > `foxglove/studio` GitHub는 2024년 이후 README만 남은 아카이브 → **Lichtblick** 사용.
@@ -179,6 +188,24 @@ M1 `electron/` renderer 미리보기용. **아키텍처·포맷 파이프라인�
 | `lichtblick/` | lichtblick-suite/lichtblick | `0900ce3` | ROS bag/MCAP Electron 뷰어 |
 | `avr8js/` | wokwi/avr8js | `bee6f0a` | ATmega328P CPU/timer/GPIO delegate; Port B pin 5 → Arduino D13 이벤트 |
 
+### EPUB · ebook 리더 (2026-09-04)
+
+제품 렌더러는 MIT `foliate-js` (`paginator.js` CSS columns). Thorium/Readium은 키보드·클릭존 UX. Foliate GTK는 단축키. **Readest/Koodo는 AGPL — 코드 복사 금지**, 기능표만.
+
+| 디렉터리 | URL | 커밋 | 라이선스 | Workspace에서 볼 것 |
+|----------|-----|------|----------|---------------------|
+| `foliate-js/` | https://github.com/johnfactotum/foliate-js | `78914ae` | MIT | `view.js` `paginator.js` `epub.js` `search.js` `ui/tree.js` — 페이지 넘김 |
+| `epub.js/` | https://github.com/futurepress/epub.js | `eee359d` | BSD-3 | 구세대 교차검증 (Foliate가 버린 경로) |
+| `thorium-reader/` | https://github.com/edrlab/thorium-reader | `f74c991` | BSD-3 | Electron 리더 chrome, 클릭존, 설정 |
+| `ts-toolkit/` | https://github.com/readium/ts-toolkit | `893a5cc` | BSD-3 | CFI/Navigator 스펙 (`js-toolkit` 구이름은 404) |
+| `foliate/` | https://github.com/johnfactotum/foliate | `67b6676` | GPL-3 | 단축키/오버레이 UX만 |
+| `readest/` | https://github.com/readest/readest | `049ed2c` | **AGPL-3** | 기능 목록만 |
+| `koodo-reader/` | https://github.com/koodo-reader/koodo-reader | `1def49c` | **AGPL-3** | 라이브러리 UX만 |
+
+```bash
+rg "prev\\(|next\\(|goLeft|keyup" ref-proj/foliate-js/view.js ref-proj/foliate-js/paginator.js ref-proj/foliate-js/reader.js
+```
+
 ---
 
 ## 디스크 용량 (대략, 2026-09-01)
@@ -219,6 +246,7 @@ M1 `electron/` renderer 미리보기용. **아키텍처·포맷 파이프라인�
 
 | 날짜 | 변경 |
 |------|------|
+| 2026-09-04 | EPUB 리더 참고 7종 — foliate-js 렌더러, Thorium/Readium UX, AGPL은 비복사 |
 | 2026-09-03 | avr8js 참고 추가 — Uno Blink GPIO sidecar, `demo/src/execute.ts` 패턴 |
 | 2026-09-01 (2) | **Tier 1 정석 10종** 추가: FreeCAD, OCCT, Assimp, Bullet, Gazebo Sim, Drake, JSBSim, CARLA, Autoware/Universe, RViz2 — JS 뷰어는 Tier 3로 격하 |
 | 2026-09-01 (1) | Web glTF/URDF 참고 6종, README git 추적 시작 |

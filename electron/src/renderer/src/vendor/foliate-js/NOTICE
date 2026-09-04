@@ -1,0 +1,4 @@
+Vendored from https://github.com/johnfactotum/foliate-js (MIT).
+Do not edit these files except to refresh from ref-proj/foliate-js.
+zip.js is BSD-3-Clause (see vendor/zip.js header). fflate is MIT.
+
