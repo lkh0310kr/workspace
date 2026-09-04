@@ -13,19 +13,17 @@ toward a single write API per concern.
 | Layout revision bump | `workspaceStore.layoutRevisions` | `useLayoutRevision(tabId)` | `bumpLayoutRevision` after structural tab/pane changes |
 
 **Rule:** Do not call `useWorkspaceStore.getState()` from UI components for layout
-mutations — use `layoutActions.ts` (or a future `LayoutSession`).
+mutations — use `layoutActions.ts` or `layoutSession.ts`.
 
 ## Per pane group (flexlayout tab node / `PaneGroup`)
 
 | State | Owner today | Notes |
 |-------|-------------|-------|
-| Tab list + `activeTabId` in flexlayout config | `PaneGroupConfig` inside flexlayout JSON | **Persisted** — source of truth for which chips exist |
-| Ephemeral active chip (UI) | `workspaceStore.activePaneTabByKey` | Synced from `PaneGroup` effects; used for Quick Open |
+| Tab list + `activeTabId` in flexlayout config | `PaneGroupConfig` inside flexlayout JSON | **Persisted** — single source of truth (`layoutSession.ts`) |
 | Focused tabset (split) | `workspaceStore.focusedPaneGroupTabSetByWorkspaceTab` | Set on pointer/focus in `PaneGroup` |
 
-**Known debt:** `activeTabId` exists in both flexlayout config and zustand.
-`PaneGroup` runs bidirectional `useEffect`s to keep them aligned. Prefer
-writing **one** place and projecting to the other until `LayoutSession` exists.
+**Rule:** Pane chip activation writes only through `layoutSession.activatePaneTab` /
+`layoutActions.setActiveTabInGroup` — not a parallel zustand copy.
 
 ## Per pane chip (browser, editor, terminal, …)
 

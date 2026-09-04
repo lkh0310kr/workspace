@@ -31,7 +31,6 @@ describe("executeTabChipWindowDrop", () => {
   const payload: TabDragPayload = { sourceTabNodeId: "pane-a", tabId: "browser-1" };
   const model = { toJson: () => ({}) } as never;
   const bumpLayout = vi.fn();
-  const setActivePaneTab = vi.fn();
 
   beforeEach(async () => {
     vi.resetModules();
@@ -40,7 +39,6 @@ describe("executeTabChipWindowDrop", () => {
     moveTabToNewPane.mockReset();
     resolveTabDropTarget.mockReset();
     bumpLayout.mockReset();
-    setActivePaneTab.mockReset();
   });
 
   it("merges into target pane on center drop over another pane", async () => {
@@ -54,12 +52,10 @@ describe("executeTabChipWindowDrop", () => {
     const handled = executeTabChipWindowDrop(1, 50, 50, payload, {
       getModel: () => model,
       bumpLayout,
-      setActivePaneTab,
     });
     expect(handled).toBe(true);
     expect(moveTabToGroup).toHaveBeenCalled();
     expect(bumpLayout).toHaveBeenCalledWith(1);
-    expect(setActivePaneTab).toHaveBeenCalledWith(1, "pane-b", "browser-1");
   });
 
   it("falls back to new pane when no preview target", async () => {
@@ -69,10 +65,8 @@ describe("executeTabChipWindowDrop", () => {
     const handled = executeTabChipWindowDrop(1, 10, 10, payload, {
       getModel: () => model,
       bumpLayout,
-      setActivePaneTab,
     });
     expect(handled).toBe(true);
     expect(moveTabToNewPane).toHaveBeenCalled();
-    expect(setActivePaneTab).toHaveBeenCalledWith(1, "pane-new", "browser-1");
   });
 });

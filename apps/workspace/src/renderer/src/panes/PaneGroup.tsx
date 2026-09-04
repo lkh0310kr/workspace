@@ -11,10 +11,10 @@ import {
   setActiveTabInGroup,
   updateTabInGroup
 } from '../layout/layoutActions'
+import { activatePaneTab, readPaneGroupConfig, resolveActivePaneTabId } from '../layout/layoutSession'
 import type { TabDragPayload } from '../layout/tabDrag'
-import { PaneGroupConfig, PaneTabItem, TabKind } from '../layout/paneTypes'
+import { PaneTabItem, TabKind } from '../layout/paneTypes'
 import { getPaneKind, type PaneRenderContext } from './paneKindRegistry'
-import { paneTabStoreKey } from '../store/paneTabKey'
 import { useLayoutRevision } from '../hooks/useLayoutRevision'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { countLayoutTabSets } from '../layout/layoutModelParse'
@@ -46,7 +46,7 @@ function activeChipHasExplorer(kind: TabKind): boolean {
 export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }: Props) {
   const visible = usePaneVisibility(workspaceTabId, tabNode)
   const layoutRevision = useLayoutRevision(workspaceTabId)
-  const config = (tabNode.getConfig() ?? { tabs: [], activeTabId: '' }) as PaneGroupConfig
+  const config = readPaneGroupConfig(tabNode)
   const tabs = config.tabs
   void layoutRevision
   const zoom = config.zoom ?? 1
@@ -80,73 +80,46 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const hostClassName = paneGroupHostClassNames({ hasSplitGroups, isFocused: isGroupFocused })
 
-  const storeKey = paneTabStoreKey(workspaceTabId, nodeId)
   const paneHostRef = useRef<HTMLDivElement>(null)
-  const localActiveId = useWorkspaceStore(
-    (s) => s.activePaneTabByKey[storeKey] ?? config.activeTabId
-  )
-  const setActivePaneTab = useWorkspaceStore((s) => s.setActivePaneTab)
   const explorerChrome = usePaneGroupExplorerChrome(workspaceTabId, nodeId)
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({})
   const [pendingJumpByTabId, setPendingJumpByTabId] = useState<Record<string, number>>({})
 
-  useEffect(() => {
-    if (!tabs.some((t) => t.id === localActiveId)) {
-      setActivePaneTab(workspaceTabId, nodeId, config.activeTabId)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabs, config.activeTabId, localActiveId, workspaceTabId, nodeId, setActivePaneTab])
-
-  useEffect(() => {
-    if (localActiveId === config.activeTabId) return
-    setActiveTabInGroup(model, nodeId, localActiveId)
-    onNotifyChanged()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localActiveId])
-
-  const activeItem = tabs.find((t) => t.id === localActiveId) ?? tabs[0]
+  const activeTabId = resolveActivePaneTabId(config)
+  const activeItem = tabs.find((t) => t.id === activeTabId) ?? tabs[0]
 
   const selectTab = useCallback(
     (id: string) => {
-      setActivePaneTab(workspaceTabId, nodeId, id)
+      if (activatePaneTab(model, nodeId, id)) onNotifyChanged()
     },
-    [workspaceTabId, nodeId, setActivePaneTab]
+    [model, nodeId, onNotifyChanged]
   )
 
   const closeTab = useCallback(
     (id: string) => {
       void closeTabInGroup(model, nodeId, id)
-        .then((nextActive) => {
-          if (nextActive) setActivePaneTab(workspaceTabId, nodeId, nextActive)
-          onNotifyChanged()
-        })
+        .then(() => onNotifyChanged())
         .catch(console.error)
     },
-    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab]
+    [model, nodeId, onNotifyChanged]
   )
 
   const newTab = useCallback(
     (kind: TabKind, source?: Partial<PaneTabItem>) => {
       addTabToGroup(model, nodeId, kind, source)
-        .then((id) => {
-          if (id) setActivePaneTab(workspaceTabId, nodeId, id)
-          onNotifyChanged()
-        })
+        .then(() => onNotifyChanged())
         .catch(console.error)
     },
-    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab]
+    [model, nodeId, onNotifyChanged]
   )
 
   const changeKind = useCallback(
     (tabId: string, kind: TabKind) => {
       changeTabKindInGroup(model, nodeId, tabId, kind)
-        .then((id) => {
-          if (id) setActivePaneTab(workspaceTabId, nodeId, id)
-          onNotifyChanged()
-        })
+        .then(() => onNotifyChanged())
         .catch(console.error)
     },
-    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab]
+    [model, nodeId, onNotifyChanged]
   )
 
   const updateItem = useCallback(
@@ -179,7 +152,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
       })
         .then((id) => {
           if (!id) return
-          setActivePaneTab(workspaceTabId, nodeId, id)
+          setActiveTabInGroup(model, nodeId, id)
           onNotifyChanged()
         })
         .catch(console.error)
@@ -190,9 +163,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
       nodeId,
       selectTab,
       onNotifyChanged,
-      dirtyByTabId,
-      workspaceTabId,
-      setActivePaneTab
+      dirtyByTabId
     ]
   )
 
@@ -210,10 +181,10 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
         workspaceTabId
       )
       const movedId = moveTabToGroup(model, payload.sourceTabNodeId, payload.tabId, nodeId, index)
-      if (movedId) setActivePaneTab(workspaceTabId, nodeId, movedId)
+      if (movedId) setActiveTabInGroup(model, nodeId, movedId)
       onNotifyChanged()
     },
-    [model, nodeId, onNotifyChanged, workspaceTabId, setActivePaneTab]
+    [model, nodeId, onNotifyChanged]
   )
 
   if (!activeItem) return null

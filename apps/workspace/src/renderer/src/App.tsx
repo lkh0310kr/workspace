@@ -24,9 +24,9 @@ import { useWorkspaceScope } from "./interaction/useWorkspaceScope";
 import { useHtmlFullscreen } from "./hooks/useHtmlFullscreen";
 import { applyThemePreference, setStoredThemePreference } from "./theme";
 import { useWorkspaceStore } from "./store/workspaceStore";
-import { openFileInPaneGroup } from "./layout/layoutActions";
-import type { PaneGroupConfig } from "./layout/paneTypes";
 import type { Model, TabNode } from "flexlayout-react";
+import { readPaneGroupConfig } from "./layout/layoutSession";
+import { openFileInPaneGroup, setActiveTabInGroup } from "./layout/layoutActions";
 import { useEffect, useCallback, useState } from "react";
 import "flexlayout-react/style/combined.css";
 import "./assets/styles.css";
@@ -36,14 +36,8 @@ if (typeof document !== "undefined" && window.api?.platform) {
   if (window.api.isWsl) document.documentElement.dataset.wsl = "1";
 }
 
-// Cmd+P's "open in the active pane" — mirrors PaneGroup.tsx's own
-// openOrSwitchToFile, but called from outside any one PaneGroup instance
-// (Quick Open isn't scoped to a pane), so it looks up the active tabset's
-// selected tab node the same way useAppShortcuts.ts's zoomActivePane does.
-// Only pushes the store's activePaneTabByKey for an existing-tab match —
-// the target PaneGroup's own effect (watching localActiveId) reactively
-// syncs that into the flexlayout model and persists it, same as a normal
-// in-pane tab click; no need to duplicate that here.
+// Cmd+P's "open in the active pane" — mirrors PaneGroup's openOrSwitchToFile,
+// but called from Quick Open (not scoped to one PaneGroup instance).
 async function openFileInActivePane(
   model: Model,
   workspaceTabId: number,
@@ -55,15 +49,16 @@ async function openFileInActivePane(
   const tabNode = tabset?.getSelectedNode();
   if (!tabNode || tabNode.getType() !== "tab") return;
   const nodeId = tabNode.getId();
-  const config = ((tabNode as TabNode).getConfig() ?? { tabs: [], activeTabId: "" }) as PaneGroupConfig;
+  const config = readPaneGroupConfig(tabNode as TabNode);
   const existing = config.tabs.find((t) => t.filePath === path);
   if (existing) {
-    useWorkspaceStore.getState().setActivePaneTab(workspaceTabId, nodeId, existing.id);
+    setActiveTabInGroup(model, nodeId, existing.id);
+    bumpLayout(workspaceTabId);
     return;
   }
   const id = await openFileInPaneGroup(model, nodeId, path, kind);
   if (!id) return;
-  useWorkspaceStore.getState().setActivePaneTab(workspaceTabId, nodeId, id);
+  setActiveTabInGroup(model, nodeId, id);
   bumpLayout(workspaceTabId);
 }
 

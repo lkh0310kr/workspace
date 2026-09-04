@@ -6,7 +6,6 @@ import { useWorkspaceStore } from "../store/workspaceStore";
 export function useTabChipWindowDrop(activeTabId: number): void {
   const bumpLayout = useWorkspaceStore((s) => s.persistLayout);
   const getModel = useWorkspaceStore((s) => s.getModel);
-  const setActivePaneTab = useWorkspaceStore((s) => s.setActivePaneTab);
 
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {
@@ -22,7 +21,6 @@ export function useTabChipWindowDrop(activeTabId: number): void {
           const model = getModel(tabId);
           if (model) bumpLayout(tabId, model);
         },
-        setActivePaneTab,
       });
       endTabDrag();
     };
@@ -32,5 +30,5 @@ export function useTabChipWindowDrop(activeTabId: number): void {
       window.removeEventListener("dragover", onDragOver);
       window.removeEventListener("drop", onDrop);
     };
-  }, [activeTabId, bumpLayout, getModel, setActivePaneTab]);
+  }, [activeTabId, bumpLayout, getModel]);
 }

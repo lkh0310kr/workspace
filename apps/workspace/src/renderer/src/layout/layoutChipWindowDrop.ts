@@ -7,7 +7,6 @@ import type { TabDragPayload } from "./tabDrag";
 export type LayoutChipDropDeps = {
   getModel: (tabId: number) => Model | undefined;
   bumpLayout: (tabId: number) => void;
-  setActivePaneTab: (workspaceTabId: number, nodeId: string, tabItemId: string) => void;
 };
 
 /**
@@ -56,10 +55,7 @@ export function executeTabChipWindowDrop(
         preview.targetTabNodeId,
         Number.MAX_SAFE_INTEGER,
       );
-      if (movedId) {
-        deps.setActivePaneTab(activeTabId, preview.targetTabNodeId, movedId);
-        handled = true;
-      }
+      if (movedId) handled = true;
     } else if (preview.location !== DockLocation.CENTER) {
       handler = "moveTabToSplitPane";
       const result = moveTabToSplitPane(
@@ -69,20 +65,14 @@ export function executeTabChipWindowDrop(
         preview.targetTabNodeId,
         preview.location,
       );
-      if (result) {
-        deps.setActivePaneTab(activeTabId, result.tabNodeId, result.tabItemId);
-        handled = true;
-      }
+      if (result) handled = true;
     }
   }
 
   if (!handled) {
     handler = "moveTabToNewPane";
     const fallback = moveTabToNewPane(model, payload.sourceTabNodeId, payload.tabId);
-    if (fallback) {
-      deps.setActivePaneTab(activeTabId, fallback.tabNodeId, fallback.tabItemId);
-      handled = true;
-    }
+    if (fallback) handled = true;
   }
 
   layoutLogMutation(

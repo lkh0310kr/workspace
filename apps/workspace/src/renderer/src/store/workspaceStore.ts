@@ -5,7 +5,6 @@ import type { TabInfo, WorkspaceState } from "../electron";
 import { setTabLayout } from "../electron";
 import { countLayoutTabs, modelFromLayoutJson } from "../layout/layoutModelParse";
 import { layoutLog, layoutLogModel } from "../layout/layoutDebugLog";
-import { paneTabStoreKey } from "./paneTabKey";
 import {
   clearEnsureInflight as clearLayoutEnsureInflight,
   deleteLayoutModel,
@@ -50,7 +49,6 @@ export type WorkspaceStoreState = {
   activeTabId: number;
   /** Per workspace-tab layout model revision — bumps when that tab's Model reloads or pane tab structure changes. */
   layoutRevisions: Record<number, number>;
-  activePaneTabByKey: Record<string, string>;
   /** flexlayout tabset id with UI focus when multiple pane groups are visible. */
   focusedPaneGroupTabSetByWorkspaceTab: Record<number, string | undefined>;
 };
@@ -66,9 +64,7 @@ type WorkspaceStoreActions = {
   takePendingRebalance: (tabId: number) => string | null | undefined;
   markEnsureInflight: (tabId: number) => boolean;
   clearEnsureInflight: (tabId: number) => void;
-  setActivePaneTab: (workspaceTabId: number, nodeId: string, tabItemId: string) => void;
-  getActivePaneTab: (workspaceTabId: number, nodeId: string, fallback: string) => string;
-  removePaneTabKeysForWorkspaceTab: (workspaceTabId: number) => void;
+  clearWorkspaceTabFocus: (workspaceTabId: number) => void;
   setFocusedPaneGroupTabSet: (workspaceTabId: number, tabSetId: string) => void;
 };
 
@@ -78,7 +74,6 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     tabs: [],
     activeTabId: 0,
     layoutRevisions: {},
-    activePaneTabByKey: {},
     focusedPaneGroupTabSetByWorkspaceTab: {},
 
     hydrateFromWorkspace(ws: WorkspaceState) {
@@ -122,7 +117,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
       for (const id of layoutModelTabIds()) {
         if (!seen.has(id)) {
           deleteLayoutModel(id);
-          get().removePaneTabKeysForWorkspaceTab(id);
+          get().clearWorkspaceTabFocus(id);
           bumpedTabIds.add(id);
         }
       }
@@ -191,27 +186,10 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
       clearLayoutEnsureInflight(tabId);
     },
 
-    setActivePaneTab(workspaceTabId: number, nodeId: string, tabItemId: string) {
-      const key = paneTabStoreKey(workspaceTabId, nodeId);
-      const prev = get().activePaneTabByKey[key];
-      if (prev === tabItemId) return;
-      set({ activePaneTabByKey: { ...get().activePaneTabByKey, [key]: tabItemId } });
-    },
-
-    getActivePaneTab(workspaceTabId: number, nodeId: string, fallback: string) {
-      const key = paneTabStoreKey(workspaceTabId, nodeId);
-      return get().activePaneTabByKey[key] ?? fallback;
-    },
-
-    removePaneTabKeysForWorkspaceTab(workspaceTabId: number) {
-      const prefix = `${workspaceTabId}:`;
-      const next: Record<string, string> = {};
-      for (const [key, value] of Object.entries(get().activePaneTabByKey)) {
-        if (!key.startsWith(prefix)) next[key] = value;
-      }
+    clearWorkspaceTabFocus(workspaceTabId: number) {
       const nextFocused = { ...get().focusedPaneGroupTabSetByWorkspaceTab };
       delete nextFocused[workspaceTabId];
-      set({ activePaneTabByKey: next, focusedPaneGroupTabSetByWorkspaceTab: nextFocused });
+      set({ focusedPaneGroupTabSetByWorkspaceTab: nextFocused });
     },
 
     setFocusedPaneGroupTabSet(workspaceTabId: number, tabSetId: string) {

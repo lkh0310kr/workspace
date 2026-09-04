@@ -10,7 +10,6 @@ import {
 } from '../electron'
 import { logError } from '../errorLog'
 import { addTabToGroup } from '../layout/layoutActions'
-import { useWorkspaceStore } from '../store/workspaceStore'
 import { deletePathInAllPanes, renamePathInAllPanes } from '../explorer/workspaceExplorerBridge'
 import { paneTabStoreKey } from '../store/paneTabKey'
 import type { PaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
@@ -80,8 +79,7 @@ export function WorkspaceExplorerSidebar({
             logError(`Open as App failed for "${path}": ${result.error ?? 'unknown error'}`)
             return
           }
-          return addTabToGroup(model, nodeId, 'browser', { url: result.url }).then((id) => {
-            if (id) useWorkspaceStore.getState().setActivePaneTab(workspaceTabId, nodeId, id)
+          return addTabToGroup(model, nodeId, 'browser', { url: result.url }).then(() => {
             onNotifyChanged()
           })
         })
