@@ -1,28 +1,5 @@
 import { IJsonModel, Model } from "flexlayout-react";
 import { salvageLayoutJson } from "../../../shared/layoutSalvage";
-import { PaneGroupConfig, PaneTabItem, TabKind } from "./paneTypes";
-
-function migrateLegacyTabNode(record: Record<string, unknown>): void {
-  if (record.component === "tabgroup") return;
-  const legacyKind = record.component as TabKind | undefined;
-  if (!legacyKind) return;
-  const legacyConfig = (record.config ?? {}) as Record<string, unknown>;
-  const id = (record.id as string | undefined) ?? `legacy-${legacyKind}`;
-  const item: PaneTabItem = {
-    id,
-    kind: legacyKind,
-    terminalId: legacyConfig.terminalId as number | undefined,
-    filePath: legacyConfig.filePath as string | null | undefined,
-    url: legacyConfig.url as string | undefined,
-  };
-  const groupConfig: PaneGroupConfig = {
-    tabs: [item],
-    activeTabId: id,
-    zoom: legacyConfig.zoom as number | undefined,
-  };
-  record.component = "tabgroup";
-  record.config = groupConfig;
-}
 
 function normalizeLayoutNode(node: unknown) {
   if (!node || typeof node !== "object") return;
@@ -30,9 +7,6 @@ function normalizeLayoutNode(node: unknown) {
   if (record.type === "tabset") {
     record.enableTabStrip = false;
     record.enableSingleTabStretch = false;
-  }
-  if (record.type === "tab") {
-    migrateLegacyTabNode(record);
   }
   const children = record.children;
   if (Array.isArray(children)) {

@@ -30,20 +30,6 @@ function walkLayout(value: unknown, ids: number[]): void {
   }
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
-    // "component === terminal" is the legacy (pre-tab-group) shape, still
-    // handled here so a layoutJson persisted before that rework still
-    // resolves its terminals on this launch — the renderer's own
-    // migrateLegacyTabNode (App.tsx) rewrites it to the new shape once
-    // loaded, but this file reads the on-disk JSON directly, before that.
-    // "kind === terminal" is a PaneTabItem inside a tab group's
-    // config.tabs — this same generic walk already recurses into that
-    // array via Object.values below, so no shape-specific traversal is
-    // needed beyond checking both field names.
-    if (obj.component === "terminal") {
-      const config = obj.config as Record<string, unknown> | undefined;
-      const terminalId = config?.terminalId;
-      if (typeof terminalId === "number") ids.push(terminalId);
-    }
     if (obj.kind === "terminal" && typeof obj.terminalId === "number") {
       ids.push(obj.terminalId);
     }

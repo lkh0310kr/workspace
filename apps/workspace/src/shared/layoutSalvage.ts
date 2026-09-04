@@ -74,31 +74,6 @@ export function salvagePaneGroupConfig(raw: unknown): SalvagedPaneGroupConfig | 
   };
 }
 
-function migrateLegacyTabNode(record: Record<string, unknown>): boolean {
-  if (record.component === "tabgroup") return false;
-  const legacyKind = record.component;
-  if (typeof legacyKind !== "string" || !TAB_KINDS.includes(legacyKind as TabKind)) return false;
-
-  const legacyConfig = (record.config ?? {}) as Record<string, unknown>;
-  const id = (record.id as string | undefined) ?? `legacy-${legacyKind}`;
-  const item: SalvagedPaneTabItem = {
-    id,
-    kind: legacyKind as TabKind,
-    terminalId: legacyConfig.terminalId as number | undefined,
-    filePath: legacyConfig.filePath as string | null | undefined,
-    url: legacyConfig.url as string | undefined,
-  };
-  const groupConfig = salvagePaneGroupConfig({
-    tabs: [item],
-    activeTabId: id,
-    zoom: legacyConfig.zoom,
-  });
-  if (!groupConfig) return false;
-  record.component = "tabgroup";
-  record.config = groupConfig;
-  return true;
-}
-
 function normalizeLayoutNode(node: unknown, changed: { value: boolean }): void {
   if (!node || typeof node !== "object") return;
   const record = node as Record<string, unknown>;
@@ -109,7 +84,6 @@ function normalizeLayoutNode(node: unknown, changed: { value: boolean }): void {
   }
 
   if (record.type === "tab") {
-    if (migrateLegacyTabNode(record)) changed.value = true;
     if (record.component === "tabgroup") {
       const salvaged = salvagePaneGroupConfig(record.config);
       if (!salvaged) {
