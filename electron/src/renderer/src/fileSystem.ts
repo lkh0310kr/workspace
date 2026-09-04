@@ -30,7 +30,8 @@ export async function listDir(tabId: number, path: string): Promise<DirEntry[]> 
   return entries.map(toDirEntry);
 }
 
-export async function readFile(tabId: number, path: string): Promise<string> {
+/** null when the file no longer exists — see main/files.ts readFileIfExists. */
+export async function readFile(tabId: number, path: string): Promise<string | null> {
   return window.api.fs.readFile(tabId, path);
 }
 

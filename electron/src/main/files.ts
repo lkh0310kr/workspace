@@ -70,6 +70,18 @@ export function readFile(root: string, rel: string): string {
   return fs.readFileSync(resolveUnderRoot(root, rel), "utf8");
 }
 
+/** null when the file is gone. A tab outlives the file it points at, and
+ * the filesystem watcher fires for deletes too, so a missing file is
+ * ordinary here rather than a failed IPC call. */
+export function readFileIfExists(root: string, rel: string): string | null {
+  try {
+    return readFile(root, rel);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
 const BINARY_PREVIEW_MIME_TYPES: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",

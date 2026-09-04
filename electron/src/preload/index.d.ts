@@ -208,7 +208,7 @@ export interface WorkspaceApi {
   }
   fs: {
     listDir: (tabId: number, rel: string) => Promise<DirEntry[]>
-    readFile: (tabId: number, rel: string) => Promise<string>
+    readFile: (tabId: number, rel: string) => Promise<string | null>
     readFileBinaryPreview: (
       tabId: number,
       rel: string

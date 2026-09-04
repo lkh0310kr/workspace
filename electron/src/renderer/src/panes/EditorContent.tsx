@@ -288,7 +288,7 @@ export function EditorContent({
       readFile(tabId, path)
         .then((content) => {
           const activeView = viewRef.current;
-          if (!activeView || pathRef.current !== path) return;
+          if (!activeView || pathRef.current !== path || content === null) return;
           applyLoadedFileContent(activeView, content, jumpLine);
         })
         .catch(console.error);
@@ -670,7 +670,9 @@ export function EditorContent({
       if (lastLoadedContentRef.current !== null && current !== lastLoadedContentRef.current) return;
       readFile(tabId, filePath)
         .then((content) => {
-          if (content === view.state.doc.toString()) return;
+          // The watcher fires for deletes and renames too; a gone file
+          // leaves the buffer alone rather than blanking it.
+          if (content === null || content === view.state.doc.toString()) return;
           const selection = view.state.selection;
           lastLoadedContentRef.current = content;
           view.dispatch({
