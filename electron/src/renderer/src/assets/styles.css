@@ -1953,6 +1953,13 @@ input {
   grid-column: 2;
 }
 
+.epub-reader-settings-check input[type="checkbox"] {
+  grid-column: 2;
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
 .epub-reader-search {
   width: calc(100% - 24px);
   margin: 0 12px 8px;

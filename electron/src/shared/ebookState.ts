@@ -20,6 +20,9 @@ export interface EbookBookState {
   fontScale: number;
   lineHeight: number;
   flow: EbookFlow;
+  /** Off leaves paging to the keyboard and the toolbar, for readers who
+   * click into the text to select or follow notes. */
+  clickToTurn: boolean;
   bookmarks: EbookBookmark[];
   updatedAt: string;
 }
@@ -30,6 +33,7 @@ export const DEFAULT_EBOOK_STATE: EbookBookState = {
   fontScale: 1,
   lineHeight: 1.4,
   flow: "paginated",
+  clickToTurn: true,
   bookmarks: [],
   updatedAt: "",
 };

@@ -76,6 +76,10 @@ export function EpubReaderContent({
   const tocHostRef = useRef<HTMLDivElement | null>(null);
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPatch = useRef<Partial<EbookBookState>>({});
+  // Read through a ref by the click listener below, which is attached
+  // once per section load and would otherwise keep answering with the
+  // setting as it stood when that chapter opened.
+  const clickToTurnRef = useRef(DEFAULT_EBOOK_STATE.clickToTurn);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("Loading…");
   const [chapter, setChapter] = useState("");
@@ -90,6 +94,10 @@ export function EpubReaderContent({
   const [appTheme, setAppTheme] = useState<ResolvedTheme>(getCurrentResolvedTheme);
 
   useEffect(() => subscribeThemeChange(setAppTheme), []);
+
+  useEffect(() => {
+    clickToTurnRef.current = prefs.clickToTurn;
+  }, [prefs.clickToTurn]);
 
   const readerTheme = resolveEbookTheme(prefs.theme, appTheme);
 
@@ -158,6 +166,7 @@ export function EpubReaderContent({
         void (turn === "left" ? view.goLeft() : view.goRight());
       });
       doc.addEventListener("click", (click) => {
+        if (!clickToTurnRef.current) return;
         if (click.defaultPrevented || (click.target as Element | null)?.closest?.("a")) return;
         const selection = doc.getSelection();
         if (selection && !selection.isCollapsed) return;
@@ -487,6 +496,15 @@ export function EpubReaderContent({
               <option value="paginated">Pages</option>
               <option value="scrolled">Scroll</option>
             </select>
+          </label>
+          <label className="epub-reader-settings-check">
+            <span>Click prevention</span>
+            <input
+              type="checkbox"
+              checked={!prefs.clickToTurn}
+              onChange={(event) => applyPrefs({ clickToTurn: !event.target.checked })}
+            />
+            <em>Keyboard only</em>
           </label>
           <label>
             <span>Text size</span>
