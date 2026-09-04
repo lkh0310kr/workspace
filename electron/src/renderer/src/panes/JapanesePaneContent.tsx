@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import "../assets/japanese-fonts.css";
 import { ScrollRegion } from "../components/ScrollRegion";
 import type { PaneTabItem } from "../layout/paneTypes";
+import { sameDetail, type DetailView } from "./japanese/detailView";
 import { DictionarySetup } from "./japanese/DictionarySetup";
 import { JapaneseDetailNav } from "./japanese/JapaneseDetailNav";
 import { JapaneseSettingsDialog } from "./japanese/JapaneseSettingsDialog";
@@ -15,11 +16,6 @@ interface Props {
   onUpdateItem?: (patch: Partial<PaneTabItem>) => void;
 }
 
-type DetailView =
-  | { kind: "none" }
-  | { kind: "lexeme"; entSeq: number }
-  | { kind: "kanji"; literal: string };
-
 const SINGLE_HAN_RE = /^\p{Script=Han}$/u;
 
 export function JapanesePaneContent({ item, onUpdateItem }: Props) {
@@ -29,10 +25,13 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
   const [returnDetail, setReturnDetail] = useState<DetailView | null>(null);
   const [hitIndex, setHitIndex] = useState(0);
   const [handwritingCandidates, setHandwritingCandidates] = useState<{ literal: string; score: number }[]>([]);
-  const { hits, kanjiHits, loading, error } = useJapaneseSearch(query);
-  const hitList = hits ?? [];
-  const kanjiList = kanjiHits ?? [];
+  // `?? []` here would hand the effect below a new array every render.
+  const { hits: hitList, kanjiHits: kanjiList, loading, error } = useJapaneseSearch(query);
   const settingsOpen = item.japaneseSettingsOpen === true;
+
+  const showDetail = useCallback((next: DetailView) => {
+    setDetail((current) => (sameDetail(current, next) ? current : next));
+  }, []);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -40,7 +39,7 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
       if (!trimmed) {
         setHitIndex(0);
         setReturnDetail(null);
-        setDetail({ kind: "none" });
+        showDetail({ kind: "none" });
       }
       return;
     }
@@ -53,13 +52,13 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
 
     if (preferKanji) {
       setReturnDetail(null);
-      setDetail({ kind: "kanji", literal: preferKanji.literal });
+      showDetail({ kind: "kanji", literal: preferKanji.literal });
       return;
     }
 
     if (hitList.length === 0) {
       setHitIndex(0);
-      setDetail({ kind: "none" });
+      showDetail({ kind: "none" });
       return;
     }
 
@@ -67,18 +66,18 @@ export function JapanesePaneContent({ item, onUpdateItem }: Props) {
 
     if (detail.kind === "none") {
       setHitIndex(0);
-      setDetail({ kind: "lexeme", entSeq: hitList[0].entSeq });
+      showDetail({ kind: "lexeme", entSeq: hitList[0].entSeq });
       return;
     }
 
     const currentIndex = hitList.findIndex((hit) => hit.entSeq === detail.entSeq);
     if (currentIndex < 0) {
       setHitIndex(0);
-      setDetail({ kind: "lexeme", entSeq: hitList[0].entSeq });
+      showDetail({ kind: "lexeme", entSeq: hitList[0].entSeq });
       return;
     }
     setHitIndex(currentIndex);
-  }, [hitList, kanjiList, query, detail, loading]);
+  }, [hitList, kanjiList, query, detail, loading, showDetail]);
 
   const selectHit = useCallback(
     (index: number) => {

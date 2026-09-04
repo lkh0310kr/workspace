@@ -12,8 +12,6 @@ import {
   parseHuneumString,
   parseTatoebaLinkLine,
   parseTatoebaSentenceLine,
-  findLexemeMatchesInText,
-  buildLexemeSurfaceIndex,
   rebuildLexemeFts,
 } from "../../../scripts/japanese/import-core.mjs";
 
