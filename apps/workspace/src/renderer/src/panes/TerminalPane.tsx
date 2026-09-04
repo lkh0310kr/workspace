@@ -6,6 +6,7 @@ import { getCurrentResolvedTheme, subscribeThemeChange } from "../theme";
 import { XTERM_THEMES } from "../terminalThemes";
 import { TerminalSearch, useTerminalSearchThemeKey } from "../components/TerminalSearch";
 import { createPaneDOM } from "../lib/pane-manager/pane-dom-creation";
+import { buildTerminalPaneOptions } from "../lib/pane-manager/build-terminal-pane-options";
 import { disposePane, openTerminal } from "../lib/pane-manager/pane-lifecycle";
 import type { ManagedPaneInternal } from "../lib/pane-manager/pane-manager-types";
 import {
@@ -25,6 +26,7 @@ import { writeClipboardText } from "../electron";
 
 interface Props {
   terminalId: number;
+  rootPath?: string | null;
   visible: boolean;
   active: boolean;
   zoom?: number;
@@ -39,7 +41,15 @@ function applyTerminalSurfaceBackground(el: HTMLElement, resolved: ReturnType<ty
   el.style.setProperty("--terminal-surface-bg", bg);
 }
 
-function TerminalPaneInner({ terminalId, visible, active, zoom = 1, terminalAgent, onTerminalTabUpdate }: Props) {
+function TerminalPaneInner({
+  terminalId,
+  rootPath,
+  visible,
+  active,
+  zoom = 1,
+  terminalAgent,
+  onTerminalTabUpdate,
+}: Props) {
   const shellRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<ManagedPaneInternal | null>(null);
@@ -65,7 +75,11 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1, terminalAgen
         window.open(uri, "_blank");
       },
       terminalOptions: () => ({
-        fontSize: Math.round(TERMINAL_BASE_FONT_SIZE * zoom),
+        ...buildTerminalPaneOptions({
+          rootPath,
+          terminalAgent,
+          zoom,
+        }),
         theme: XTERM_THEMES[getCurrentResolvedTheme()],
       }),
     });
@@ -146,6 +160,10 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1, terminalAgen
 
     pane.container.addEventListener("focusin", onFocusIn);
     pane.container.addEventListener("focusout", onFocusOut);
+    const onPointerDown = () => {
+      pane.terminal.focus();
+    };
+    pane.container.addEventListener("pointerdown", onPointerDown);
 
     const unsubscribeTheme = subscribeThemeChange((resolved) => {
       pane.terminal.options.theme = XTERM_THEMES[resolved];
@@ -161,6 +179,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1, terminalAgen
       window.api.terminal.setFocused(null);
       pane.container.removeEventListener("focusin", onFocusIn);
       pane.container.removeEventListener("focusout", onFocusOut);
+      pane.container.removeEventListener("pointerdown", onPointerDown);
       ptyDisposeRef.current?.();
       ptyDisposeRef.current = null;
       unregisterTerminalPane(terminalId, pane);
@@ -169,7 +188,7 @@ function TerminalPaneInner({ terminalId, visible, active, zoom = 1, terminalAgen
       paneRef.current = null;
       searchRef.current = null;
     };
-  }, [terminalId]);
+  }, [terminalId, rootPath]);
 
   useEffect(() => {
     const pane = paneRef.current;

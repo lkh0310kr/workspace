@@ -8,6 +8,7 @@ import { cancelPendingWebglRefresh, disposeWebgl, attachWebgl } from "./pane-web
 import { clearTerminalOutputQueue } from "./pane-terminal-output-scheduler";
 import { clearPendingSplitScrollRestore } from "./pane-split-scroll";
 import { installTerminalImeCandidateAnchor } from "./terminal-ime-candidate-anchor";
+import { installWindowsCtrlAltChordRepair } from "./terminal-windows-ctrl-alt-chord-classification";
 import { attachTerminalMouseWheelMultiplier } from "./pane-terminal-mouse-wheel";
 import { installTerminalWheelScroll } from "../../terminal/terminal-wheel-scroll";
 import { attachTerminalScrollIntentTracking } from "./terminal-scroll-intent-dom-tracking";
@@ -33,6 +34,7 @@ export function openTerminal(pane: ManagedPaneInternal): void {
   } = pane;
 
   terminal.open(xtermContainer);
+  installWindowsCtrlAltChordRepair(terminal);
   container.appendChild(linkTooltip);
 
   terminal.loadAddon(fitAddon);

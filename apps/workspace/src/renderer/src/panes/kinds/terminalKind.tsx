@@ -28,6 +28,7 @@ export const terminalPaneKind: PaneKindDefinition = {
     return (
       <TerminalPane
         terminalId={ctx.item.terminalId ?? 0}
+        rootPath={ctx.rootPath}
         visible={ctx.chipShown}
         active={ctx.active}
         zoom={ctx.zoom}
