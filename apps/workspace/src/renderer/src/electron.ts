@@ -6,17 +6,20 @@
 // with import-path-only changes instead of a field-name rewrite
 // throughout every consumer.
 
-export interface TabInfo {
-  id: number;
-  title: string;
-  layout_json: string;
-  root_path: string;
-}
-
-export interface WorkspaceState {
-  tabs: TabInfo[];
-  active_tab_id: number;
-}
+// Workspace rail tab IPC — see workspaceApi.ts (re-exported here for
+// existing `from "../electron"` import sites).
+export type { TabInfo, WorkspaceState } from "./workspaceApi";
+export {
+  getWorkspaceState,
+  addTab,
+  closeTab,
+  selectTab,
+  renameTab,
+  reorderTabs,
+  setTabLayout,
+  setTabRootPath,
+  onWorkspaceUpdated,
+} from "./workspaceApi";
 
 // File System module — see fileSystem.ts (Phase 1 foundation split; this
 // re-export keeps every existing `from "../electron"` import site
@@ -46,34 +49,10 @@ export function ptyDisconnect(id: number): void {
   window.api.pty.disconnect(id);
 }
 
-interface RawTabInfo {
-  id: number;
-  title: string;
-  layoutJson: string;
-  rootPath: string;
-}
-
-interface RawWorkspaceState {
-  tabs: RawTabInfo[];
-  activeTabId: number;
-}
-
-function toTabInfo(t: RawTabInfo): TabInfo {
-  return { id: t.id, title: t.title, layout_json: t.layoutJson, root_path: t.rootPath };
-}
-
-function toWorkspaceState(s: RawWorkspaceState): WorkspaceState {
-  return { tabs: s.tabs.map(toTabInfo), active_tab_id: s.activeTabId };
-}
-
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
   return btoa(binary);
-}
-
-export async function getWorkspaceState(): Promise<WorkspaceState> {
-  return toWorkspaceState(await window.api.workspace.getState());
 }
 
 export async function hostname(): Promise<string> {
@@ -107,34 +86,6 @@ export async function ptyResize(id: number, cols: number, rows: number): Promise
 
 export async function spawnTerminal(cols = 120, rows = 40, tabId?: number): Promise<number> {
   return window.api.pty.spawn(cols, rows, tabId);
-}
-
-export async function addTab(): Promise<number> {
-  return window.api.workspace.addTab();
-}
-
-export async function closeTab(tabId: number): Promise<void> {
-  return window.api.workspace.closeTab(tabId);
-}
-
-export async function selectTab(tabId: number): Promise<void> {
-  return window.api.workspace.selectTab(tabId);
-}
-
-export async function renameTab(tabId: number, title: string): Promise<void> {
-  return window.api.workspace.renameTab(tabId, title);
-}
-
-export async function reorderTabs(orderedIds: number[]): Promise<void> {
-  return window.api.workspace.reorderTabs(orderedIds);
-}
-
-export async function setTabLayout(tabId: number, layoutJson: string): Promise<void> {
-  return window.api.workspace.setTabLayout(tabId, layoutJson);
-}
-
-export async function setTabRootPath(tabId: number, path: string): Promise<WorkspaceState> {
-  return toWorkspaceState(await window.api.workspace.setTabRootPath(tabId, path));
 }
 
 export async function getMediaUrl(tabId: number, path: string): Promise<string | null> {
@@ -492,10 +443,6 @@ export async function registerProjectApp(
 // work fine against a plain function since `Promise.resolve(fn).then(...)`
 // isn't required — callers are ported to call the returned function
 // directly instead.
-export function onWorkspaceUpdated(handler: (state: WorkspaceState) => void): () => void {
-  return window.api.workspace.onUpdated((s) => handler(toWorkspaceState(s)));
-}
-
 export function onPtyOutput(handler: (payload: PtyOutput) => void): () => void {
   return window.api.pty.onData((id, seq, data) => {
     handler({ id, seq, data_b64: bytesToBase64(data) });
