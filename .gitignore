@@ -2,6 +2,9 @@
 !/ref-proj/README.md
 .DS_Store
 
+# Rust/Cargo build artifacts (local only — .d dep files are misclassified as Makefile on GitHub)
+target/
+
 # Scratch notes (local only)
 untitled*.md
 
