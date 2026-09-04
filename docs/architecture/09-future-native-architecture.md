@@ -55,7 +55,7 @@ of guessing. Findings, each verified (websearch + cloning real repos into
 
 - **True native-window embedding is a dead end.** Electron's own tracker
   has three open, unresolved issues asking for this
-  (`electron/electron#5083`, `#2326`, `#10547`) — no clean cross-platform
+  (`apps/workspace/electron#5083`, `#2326`, `#10547`) — no clean cross-platform
   path exists. The only known workaround is a raw OS-level native module
   doing window reparenting, and even that has real precedent only on
   Windows (MonoGame's `MonoGame.Framework.WpfInterop`/`MonoGame.Forms`
@@ -227,7 +227,7 @@ useful (it's still the right way to host a *third-party* renderer if one
 is ever needed for something Workspace's own engine doesn't cover), but
 it answers a different question than "World Engine" turned out to mean.
 
-**v0 built and verified**: `native/world-engine-core/` — a real, if
+**v0 built and verified**: `world-engine/core/` — a real, if
 minimal, engine library: `wgpu` for GPU rendering, `rapier3d` for
 physics, `hecs` for ECS state. One hardcoded cube, dropped and bounced
 under real gravity, with a basic single-light shader. (An early v0 briefly
@@ -405,7 +405,7 @@ demoted to "plan B."
 Concrete phases toward real Electron integration, defined after the user
 asked to see this through rather than stop at "designed, not built":
 
-- **Phase 1 — DONE, verified.** `native/world-engine-qt-shell/`: Qt
+- **Phase 1 — DONE, verified.** `world-engine/qt-shell/`: Qt
   (native, cross-platform UI toolkit — the "정석"/canonical choice for
   Blender/Unity-grade tools, confirmed by researching what Blender/Unity/
   Unreal/DaVinci Resolve actually use, none of them web-based) creates a
@@ -415,7 +415,7 @@ asked to see this through rather than stop at "designed, not built":
   embedded in Electron yet. Live-verified: a real macOS window with the
   falling/bouncing cube, confirmed on-screen by the user directly (no
   browser client needed this time, unlike the WebRTC-based spikes).
-- **Phase 2 — DONE, verified.** `native/world-engine-electron-embed/`: a
+- **Phase 2 — DONE, verified.** `world-engine/embed/`: a
   native Node addon (`napi-rs`), loaded directly into a real Electron
   process (not Qt this time — Qt was for Phase 1's standalone-app
   question; true in-process pane embedding doesn't need Qt's own window
@@ -447,14 +447,14 @@ asked to see this through rather than stop at "designed, not built":
   becomes worth the unsolved input-routing risk later — but it's no
   longer the near-term integration target.
 - **Phase 3 — DONE.** Wired into the real Workspace app, matching the
-  decoupled shape: `electron/src/main/worldEngine.ts` spawns/tracks
+  decoupled shape: `apps/workspace/src/main/worldEngine.ts` spawns/tracks
   `world-engine-qt-shell` as a child process (`launchWorldEngine`/
   `stopWorldEngine`/`worldEngineStatus`, mirroring `pty.ts`'s own
   spawn/dispose shape), disposed on `before-quit` alongside the terminal's
   own cleanup. Triggered via a new "World Engine → Launch World Engine
   (dev)" application-menu item (`index.ts`) — dev-only for now, matching
   `resolveWorldEngineBinary()` pointing at the debug build under
-  `native/world-engine-qt-shell/target/debug/`; packaging the compiled
+  `world-engine/qt-shell/target/debug/`; packaging the compiled
   binary via `electron-builder` for a real release is real follow-up work,
   not attempted here. `npm run typecheck` and the 250-test suite both
   pass; the binary-path resolution was verified to match the actual built
@@ -487,7 +487,7 @@ asked to see this through rather than stop at "designed, not built":
   spawning a *new* window per call (tracked in a `Set`, not a single
   slot) since different projects are genuinely different windows.
   Live-verified directly (not just typecheck): built a real 3-cube test
-  fixture (`electron/test-fixtures/world-engine-demo/world-engine.json`,
+  fixture (`apps/workspace/test-fixtures/world-engine-demo/world-engine.json`,
   different positions/restitution/colors) and ran the binary against it
   standalone — logged "3 entities" loaded, real window, no crash; also
   regression-checked the no-argument path still logs "1 entities" and
@@ -495,7 +495,7 @@ asked to see this through rather than stop at "designed, not built":
   and the 250-test suite pass after the IPC/TreeView/PaneGroup wiring.
 
 Phases 1 and 2 each stayed intentionally scoped to *proving the
-mechanism* before either touched `electron/` — matching this session's
+mechanism* before either touched `apps/workspace/` — matching this session's
 own established pattern (the transport spike, the physics/render spike
 before it). Phase 3 is real integration, using Phase 1's artifact (the
 Qt window) rather than Phase 2's (the in-process embed) — the safer,
@@ -553,7 +553,7 @@ rather than crashing. `GpuContext` was refactored to hold two independent
 a new `upload_mesh()` helper shared by both.
 
 Live-verified directly: built a real two-box test fixture
-(`electron/test-fixtures/world-engine-mesh-demo/`, referencing a real
+(`apps/workspace/test-fixtures/world-engine-mesh-demo/`, referencing a real
 `.glb` — the official glTF-Sample-Assets "Box" model, a small CC0/public-
 domain test asset bundled with the `gltf` crate's own repo) and ran the
 binary against it standalone — no fallback-to-cube warning printed
@@ -620,7 +620,7 @@ during writing, before a build was even attempted — switched to plain
 
 Verified the same way as every other phase: `cargo build` clean, no
 warnings. New fixture
-`electron/test-fixtures/world-engine-physics-demo/` (one fixed cuboid,
+`apps/workspace/test-fixtures/world-engine-physics-demo/` (one fixed cuboid,
 one dynamic sphere, one kinematic cuboid) run standalone — logs 3
 entities, no crash. Regression-ran the three existing fixtures (default
 single-cube demo: 1 entity; `world-engine-demo`: 3 entities;
@@ -667,7 +667,7 @@ data for the tag to be missing from.
 
 Verified the same way as every other phase: `cargo build` clean, no
 warnings. New fixture
-`electron/test-fixtures/world-engine-joints-demo/` — a revolute-joint
+`apps/workspace/test-fixtures/world-engine-joints-demo/` — a revolute-joint
 pendulum (fixed anchor + dynamic sphere, offset anchor for a lever arm)
 plus a kinematic platform oscillating vertically with a dynamic cuboid
 dropped onto it — run standalone: logs 4 entities, no crash, no
@@ -691,7 +691,7 @@ build a game/simulation, Bevy-flavored) with an editor later as a
 inspector than to GDScript-first Godot). Confirmed with the user this
 session. Two real gaps, both closed by this phase:
 
-**1. No reusable engine library existed.** `native/world-engine-core`
+**1. No reusable engine library existed.** `world-engine/core`
 was the *old*, explicitly superseded WebRTC-transport spike — it
 independently duplicated the same render/physics/ECS code
 `world-engine-qt-shell` had, plus a pile of irrelevant deps (`tokio`,
@@ -733,7 +733,7 @@ Implementation note: `hecs`'s `Component` bound requires `Send + Sync`
 `Box<dyn Behavior>` as a component, not guessed at up front.
 
 Verified as the actual point of this phase, not just that the refactor
-compiles: `native/world-engine-core/examples/chase.rs` builds a `World`
+compiles: `world-engine/core/examples/chase.rs` builds a `World`
 **entirely in code** (no JSON, no window, no Qt) and steps it headless —
 a `ChaseBehavior` moves a kinematic entity toward a fixed target every
 frame via `UpdateCtx::rigid_body`, something the JSON format's
@@ -759,7 +759,7 @@ materials/lighting API, gameplay input routing.
 ### Phase 11–12 — DONE: project scripts + sim fixtures (2026-09-01)
 
 Rhai per-entity scripts (`script`/`script_args`), `entity_pos`, `entry_script`,
-`time_scale`, `script_mode: force`, and multiple `electron/test-fixtures/world-engine-*-demo/`
+`time_scale`, `script_mode: force`, and multiple `apps/workspace/test-fixtures/world-engine-*-demo/`
 projects. See [world-engine-project.md](../planning/world-engine-project.md).
 
 **Production track (Phase 13+):** [world-engine-phase-plan.md](../planning/world-engine-phase-plan.md). **Phase 14 DONE.** Next: **Phase 15 — Collision Events**.
@@ -782,7 +782,7 @@ starting hypothesis per category, not a decision:
 ## Why this doesn't block anything happening now
 
 `PaneKindDefinition.render(ctx): ReactNode` (see
-[`paneKindRegistry.ts`](../../electron/src/renderer/src/panes/paneKindRegistry.ts))
+[`paneKindRegistry.ts`](../../apps/workspace/src/renderer/src/panes/paneKindRegistry.ts))
 already doesn't assume "plain HTML div forever." A future GPU-backed
 canvas pane, or a pane that hosts an external process's rendering surface,
 is just a different kind's `render()` implementation — no rearchitecture
@@ -810,8 +810,8 @@ require rewriting it. Sketch, not a commitment:
 
 ```
 packages/
-├── workspace-ui/        # TypeScript — current electron/src/renderer
-├── workspace-runtime/    # TypeScript — current electron/src/main
+├── workspace-ui/        # TypeScript — current apps/workspace/src/renderer
+├── workspace-runtime/    # TypeScript — current apps/workspace/src/main
 ├── core/
 │   ├── media/            # Rust — timeline/frame scheduling wrapping FFmpeg (Video, if built)
 │   ├── geometry/         # Rust — shared 2D/3D math (if forked engines need a common layer, unlikely — see the "don't merge engines" principle in ideation.md)
@@ -823,7 +823,7 @@ packages/
     └── engineering/       # CAD / game-engine / Omniverse-style, per what actually gets picked
 ```
 
-This is **not** a restructuring to do now — `electron/` stays one package
+This is **not** a restructuring to do now — `apps/workspace/` stays one package
 until there's an actual second consumer of a Rust core (a real perf need,
 not a hypothetical one). Recorded here so the shape is already agreed on
 *if* that day comes, instead of re-litigating it then.

@@ -2,7 +2,7 @@
 
 ## Workspace tab rail
 
-UI: `electron/src/renderer/src/components/WorkspaceTabRail.tsx`
+UI: `apps/workspace/src/renderer/src/components/WorkspaceTabRail.tsx`
 
 Switching calls `switchToTab(tabId)`:
 
@@ -13,7 +13,7 @@ Switching calls `switchToTab(tabId)`:
 All workspace tab `<Layout>` instances stay mounted in `App.tsx`. Only the active tab’s host is visible:
 
 ```tsx
-// electron/src/renderer/src/App.tsx
+// apps/workspace/src/renderer/src/App.tsx
 className={`layout-host-item${active ? " layout-host-item--active" : ""}`}
 style={{
   visibility: active ? "visible" : "hidden",
@@ -21,7 +21,7 @@ style={{
 }}
 ```
 
-CSS (`electron/src/renderer/src/assets/styles.css`):
+CSS (`apps/workspace/src/renderer/src/assets/styles.css`):
 
 - `.layout-host` — `position: relative` container
 - `.layout-host-item` — `position: absolute; inset: 0; z-index: 0`
@@ -49,7 +49,7 @@ CSS (`electron/src/renderer/src/assets/styles.css`):
 
 ### Layout ref map
 
-`electron/src/renderer/src/layout/layoutRef.ts`:
+`apps/workspace/src/renderer/src/layout/layoutRef.ts`:
 
 - `instances: Map<number, ILayoutApi>` — one flexlayout `Layout` ref per workspace tab
 - `setActiveLayoutTab(tabId)` — pane drag targets the active tab’s instance
@@ -59,7 +59,7 @@ Historical note: a single shared layout ref caused drag placeholder bugs when mu
 
 ## PaneGroup (pane-level tabs)
 
-`electron/src/renderer/src/panes/PaneGroup.tsx`
+`apps/workspace/src/renderer/src/panes/PaneGroup.tsx`
 
 Each flexlayout tab node holds `PaneGroupConfig`:
 
@@ -96,9 +96,9 @@ pointer-events: none;
 
 ## Layout actions
 
-`electron/src/renderer/src/layout/layoutActions.ts` — add/close/move tabs in pane groups, add panes to tabsets.
+`apps/workspace/src/renderer/src/layout/layoutActions.ts` — add/close/move tabs in pane groups, add panes to tabsets.
 
-`electron/src/renderer/src/layout/layoutActions.ts` generates stable pane node ids (`crypto.randomUUID()`) so TreeView state keys correctly per pane.
+`apps/workspace/src/renderer/src/layout/layoutActions.ts` generates stable pane node ids (`crypto.randomUUID()`) so TreeView state keys correctly per pane.
 
 ## Legacy layout migration
 

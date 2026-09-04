@@ -2,7 +2,7 @@
 
 ## Preload bridge
 
-`electron/src/preload/index.ts` exposes a typed API on `window.electron` (see `electron/src/preload/index.d.ts`). Renderer code imports shims from `electron/src/renderer/src/electron.ts`.
+`apps/workspace/src/preload/index.ts` exposes a typed API on `window.electron` (see `apps/workspace/src/preload/index.d.ts`). Renderer code imports shims from `apps/workspace/src/renderer/src/electron.ts`.
 
 Context isolation is enabled; renderer cannot import Node modules directly.
 
@@ -18,7 +18,7 @@ Context isolation is enabled; renderer cannot import Node modules directly.
 | `workspace:set-tab-layout` | invoke | Persist flexlayout JSON string |
 | `workspace:set-tab-root-path` | invoke | Change tab root directory |
 
-Main source: `electron/src/main/workspace.ts`, handlers in `electron/src/main/index.ts`.
+Main source: `apps/workspace/src/main/workspace.ts`, handlers in `apps/workspace/src/main/index.ts`.
 
 `persist()` writes `workspace.json` and emits `workspace:updated` via `sendToMainWindow` (handles window recreation on macOS).
 
@@ -50,9 +50,9 @@ Renderer `useWorkspace()` maps snake_case fields (`active_tab_id`, `layout_json`
 | `pty:resize` | send | SIGWINCH dimensions |
 | `pty:dispose` | send | Kill session |
 
-Main: `electron/src/main/ptySession.ts` — `PtySession` wraps `Pty`, maintains `PtyReplayBuffer` (~5000×120 char cap).
+Main: `apps/workspace/src/main/ptySession.ts` — `PtySession` wraps `Pty`, maintains `PtyReplayBuffer` (~5000×120 char cap).
 
-Renderer: `electron/src/renderer/src/terminal/ptyTransport.ts`, `connectPanePty.ts`.
+Renderer: `apps/workspace/src/renderer/src/terminal/ptyTransport.ts`, `connectPanePty.ts`.
 
 ### Connect / reconnect flow
 
@@ -86,7 +86,7 @@ Used by `TreeView` and editors.
 | `browser:reload-shortcut` | Cmd+R routing from main |
 | Guest focus relay | Tracks which webview has focus for shortcuts |
 
-Registry: `electron/src/renderer/src/layout/activeBrowserWebview.ts`.
+Registry: `apps/workspace/src/renderer/src/layout/activeBrowserWebview.ts`.
 
 ## Clipboard
 

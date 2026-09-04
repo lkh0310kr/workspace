@@ -118,7 +118,7 @@ currently conflates a little:
 - **Folder** — where data is stored. A workspace tab's `rootPath`.
   Nothing more; a folder doesn't know what's "in" the project.
 - **Project** — what's being built. Now has a real (if minimal) answer
-  here: [`projectManifest.ts`](../../electron/src/main/projectManifest.ts)
+  here: [`projectManifest.ts`](../../apps/workspace/src/main/projectManifest.ts)
   (Phase 1, just built) — a registry of apps/documents for a `rootPath`,
   independent of which tabs happen to be open right now.
 - **Context** — what world the user (or an agent) is actively working in

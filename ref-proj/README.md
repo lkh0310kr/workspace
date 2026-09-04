@@ -17,9 +17,9 @@ Workspace Electron 앱 개발 시 **이미 검증된 오픈소스**에서 패턴
 ## 규칙
 
 - **읽기 전용** — `ref-proj/` 안 파일을 수정·커밋하지 않는다.
-- **제품 코드는 `electron/`만** 수정한다.
+- **제품 코드는 `apps/workspace/`만** 수정한다.
 - 포팅 시 소스 파일 상단에 `// Ported from ref-proj/...` 주석을 남긴다.
-- 워크플로: `rg "키워드" ref-proj/<repo>` → 해당 파일만 열기 → `electron/`에 이식.
+- 워크플로: `rg "키워드" ref-proj/<repo>` → 해당 파일만 열기 → `apps/workspace/`에 이식.
 
 ---
 
@@ -177,7 +177,7 @@ rg "RobotModel|PointCloud|Marker" ref-proj/rviz2/rviz_default_plugins
 
 ## Tier 3 — Web/JS 뷰어 (보조)
 
-M1 `electron/` renderer 미리보기용. **아키텍처·포맷 파이프라인은 Tier 1(assimp/occt)을 우선.**
+M1 `apps/workspace/` renderer 미리보기용. **아키텍처·포맷 파이프라인은 Tier 1(assimp/occt)을 우선.**
 
 | 디렉터리 | URL | 커밋 | 볼 것 |
 |----------|-----|------|-------|

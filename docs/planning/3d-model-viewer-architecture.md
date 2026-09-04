@@ -181,7 +181,7 @@ interface ImportResult {
 3. unknown → metadata-only + “지원되지 않음” UI + delegate 옵션
 ```
 
-`electron/src/shared/asset.ts`는 **“이 파일을 3D 뷰어 후보로 볼지”** 만 담당하고, 정밀 포맷 판별은 main의 `FormatSniffer`가 담당.
+`apps/workspace/src/shared/asset.ts`는 **“이 파일을 3D 뷰어 후보로 볼지”** 만 담당하고, 정밀 포맷 판별은 main의 `FormatSniffer`가 담당.
 
 ---
 
@@ -439,14 +439,14 @@ Renderer 로딩 UI는 **Job ID**를 구독; 단계별 라벨 (“Sniffing format
 ## 13. 코드 배치 (제안)
 
 ```
-electron/src/shared/
+apps/workspace/src/shared/
   asset.ts                    # coarse AssetType.model3d (확장자 힌트만)
   model3d/
     scene.ts                  # WorkspaceScene, SceneManifest types
     import.ts                 # Importer, ImportResult interfaces
     manifest.ts
 
-electron/src/main/
+apps/workspace/src/main/
   model3d/
     assetRouter.ts
     formatSniffer.ts
@@ -457,7 +457,7 @@ electron/src/main/
     ipc.ts                    # model:open, model:import-status
   index.ts                    # IPC register
 
-electron/src/renderer/src/
+apps/workspace/src/renderer/src/
   model3d/
     viewerHost.ts             # ViewerBackend registry, mount lifecycle
     backends/webglThree.ts

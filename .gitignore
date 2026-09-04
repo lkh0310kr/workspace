@@ -14,13 +14,13 @@ untitled*.md
 
 # Godot's own per-machine import cache (not portable, regenerated on
 # first open/export) and the exported Web build (~40MB, regenerate with
-# electron/test-fixtures/godot-demo/export.sh — see docs/ROADMAP.md's
+# apps/workspace/test-fixtures/godot-demo/export.sh — see docs/ROADMAP.md's
 # Phase 2 checklist). Only the small source project is tracked.
-electron/test-fixtures/godot-demo/.godot/
-electron/test-fixtures/godot-demo-web/
+apps/workspace/test-fixtures/godot-demo/.godot/
+apps/workspace/test-fixtures/godot-demo-web/
 
 # Local Godot CLI (npm run ensure:godot)
-electron/.tools/
+apps/workspace/.tools/
 
 # Per-tab layout export written by the Electron app during dev.
-electron/.workspace/
+apps/workspace/.workspace/

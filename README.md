@@ -5,12 +5,25 @@
 ## Run
 
 ```bash
-cd electron
+cd apps/workspace
 npm install
 npm run dev
 ```
 
 Production build: `npm run build` (then `npm run build:mac` / `build:win` / `build:linux` for a distributable).
+
+## Layout
+
+```
+apps/workspace/     Electron desktop app (main · preload · renderer)
+world-engine/       Rust engine — core · qt-shell · embed
+hardware-sim/       Rust circuit simulator — core
+schemas/            Shared JSON schemas
+docs/               Architecture & planning
+ref-proj/           Reference OSS (read-only; not shipped)
+```
+
+Rust workspace: `cargo test` from repo root.
 
 ## Stack
 
@@ -18,38 +31,24 @@ Production build: `npm run build` (then `npm run build:mac` / `build:win` / `bui
 |-------|------|
 | Shell | Electron 42 + electron-vite |
 | UI | React + flexlayout-react |
-| Terminal | xterm.js + node-pty (direct login-shell spawn, Orca-style — no tmux wrapper; one was tried for quit/relaunch persistence and reverted after it broke scrollback for TUIs like Claude Code's CLI, see `electron/src/main/pty.ts`) |
+| Terminal | xterm.js + node-pty |
 | Editor | CodeMirror 6 |
-| Markdown | CodeMirror live-preview (Obsidian-style) |
+| Markdown | CodeMirror live-preview |
 | Browser | Electron `<webview>` guest |
 
-## Layout
-
-```
-electron/src/main/      Workspace model, PTY, file I/O, IPC handlers
-electron/src/preload/   IPC bridge exposed to the renderer as window.api
-electron/src/renderer/  React UI (panes, layout, editor)
-native/                 Standalone Rust crates outside the Electron app — see native/README.md
-```
-
-Reference implementation (not shipped): `ref-proj/orca/` — Orca Electron app; port patterns from here.
+Reference implementation (not shipped): `ref-proj/orca/`.
 
 ## World Engine
 
-Workspace's own real-time 3D engine — not a hosted third-party one, but
-assembled from `wgpu` + `rapier3d` + `hecs`, running as a real native
-window Workspace spawns/manages (`native/world-engine-qt-shell/`,
-`electron/src/main/worldEngine.ts`). Try it: app menu → **World Engine →
-Launch World Engine (dev)**, or right-click a folder containing
-`world-engine.json` in the file tree → **Open in World Engine** (a real
-example lives at `electron/test-fixtures/world-engine-demo/`). Full
-story, including why it isn't an embedded pane, in
-[`native/README.md`](./native/README.md) and
+Workspace's real-time 3D engine (`world-engine/core`). The desktop app spawns
+`world-engine/qt-shell` as a child process — app menu → **World Engine → Launch
+World Engine (dev)**, or TreeView → **Open in World Engine** on a folder with
+`world-engine.json` (example: `apps/workspace/test-fixtures/world-engine-demo/`).
+
+See [`world-engine/README.md`](./world-engine/README.md) and
 [`docs/architecture/09-future-native-architecture.md`](./docs/architecture/09-future-native-architecture.md).
 
 ## History
 
-This app was originally built on Tauri 2, then moved to Electron to adopt Orca's
-(`ref-proj/orca`) terminal IME, browser webview lifecycle, and pane-manager
-patterns. The old Tauri tree was removed; use `ref-proj/orca` for reference, not
-the former `legacy-tauri` archive.
+Originally Tauri 2; moved to Electron for Orca-style terminal IME, browser
+webview lifecycle, and pane patterns (`ref-proj/orca`).

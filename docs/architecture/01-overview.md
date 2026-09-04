@@ -71,10 +71,10 @@ Phase 2 (planned) will move much of this into a Zustand workspace-scope store. S
 ## Build & run
 
 ```bash
-cd electron
+cd apps/workspace
 npm install
 npm run dev    # development
-npm run build  # production bundle → electron/out/
+npm run build  # production bundle → apps/workspace/out/
 ```
 
 Typecheck: `npm run typecheck` (node + web TS projects).

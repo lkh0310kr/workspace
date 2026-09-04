@@ -29,5 +29,5 @@ Project documentation for the Workspace desktop app (Electron).
 ## Conventions
 
 - Paths in architecture docs are relative to the repo root unless noted.
-- Electron app code lives under `electron/`.
+- Electron app code lives under `apps/workspace/`.
 - Reference implementation patterns from Orca live under `ref-proj/orca/` (not shipped).

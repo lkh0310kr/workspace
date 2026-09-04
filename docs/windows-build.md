@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- **Node.js** 22+ (`electron/`)
+- **Node.js** 22+ (`apps/workspace/`)
 - **Rust** MSVC toolchain (`rustup default stable-msvc` on Windows)
 - **Qt 6** Desktop **MSVC 64-bit** (e.g. `C:\Qt\6.8.0\msvc2022_64`)
 - **Visual Studio Build Tools** — "Desktop development with C++"
@@ -53,7 +53,7 @@ Options: `-SkipVsBuildTools`, `-SkipQt`, `-BuildOnly`
 From the repo root on **Windows** (not WSL — Qt/WGPU link against MSVC):
 
 ```powershell
-cd electron
+cd apps/workspace
 .\scripts\build-world-engine-and-electron-win.ps1 -DirOnly   # unpacked dist\win-unpacked
 # or
 .\scripts\build-world-engine-and-electron-win.ps1            # NSIS installer (needs wine-free Windows host)
@@ -63,7 +63,7 @@ This runs:
 
 1. `native\world-engine-qt-shell\scripts\build-windows.ps1 -Release` (+ `windeployqt`)
 2. `npm run build:native:embed` (optional experimental `.node` addon)
-3. Stage artifacts into `electron/resources/`
+3. Stage artifacts into `apps/workspace/resources/`
 4. `npm run build:win` or `build:win:dir`
 
 ## Manual steps
@@ -80,12 +80,12 @@ $env:QT_INSTALL_PREFIX = "C:\Qt\6.8.0\msvc2022_64"   # if not auto-detected
 ### Electron app only
 
 ```powershell
-cd electron
+cd apps/workspace
 node scripts/stage-world-engine-win.mjs    # copies exe + Qt DLLs if built
 npm run build:win:dir
 ```
 
-Output: `electron/dist/win-unpacked/electron.exe`
+Output: `apps/workspace/dist/win-unpacked/electron.exe`
 
 Packaged World Engine path at runtime:
 `resources/world-engine/world-engine-qt-shell.exe` (see `worldEngine.ts`).
@@ -93,7 +93,7 @@ Packaged World Engine path at runtime:
 ### Experimental embed addon
 
 ```powershell
-cd electron
+cd apps/workspace
 npm run build:native:embed
 ```
 

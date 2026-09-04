@@ -47,4 +47,4 @@ Markdown 노트에서 `/` → **ai › 증강**으로 문서 전체를 읽고 �
 
 ## Apple FM sidecar
 
-`electron/resources/japanese/apple-fm-sidecar/` — macOS 26+에서 `swiftc`로 빌드 후 `apple-fm-sidecar` 바이너리를 resources에 배치.
+`apps/workspace/resources/japanese/apple-fm-sidecar/` — macOS 26+에서 `swiftc`로 빌드 후 `apple-fm-sidecar` 바이너리를 resources에 배치.

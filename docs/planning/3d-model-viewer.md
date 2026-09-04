@@ -79,12 +79,12 @@ TreeView.classifyFile()
 
 | 역할 | 경로 |
 |------|------|
-| 확장자 분류 (canonical) | `electron/src/shared/asset.ts` |
-| TreeView 라우팅 | `electron/src/renderer/src/components/TreeView.tsx` |
-| 뷰어 pane | `electron/src/renderer/src/panes/kinds/viewerKind.tsx` |
-| 미디어 서브분류 | `electron/src/renderer/src/panes/mediaKind.ts` |
-| 콘텐츠 | `electron/src/renderer/src/panes/FileViewerContent.tsx` |
-| 대용량 스트리밍 | `electron/src/main/mediaProtocol.ts` |
+| 확장자 분류 (canonical) | `apps/workspace/src/shared/asset.ts` |
+| TreeView 라우팅 | `apps/workspace/src/renderer/src/components/TreeView.tsx` |
+| 뷰어 pane | `apps/workspace/src/renderer/src/panes/kinds/viewerKind.tsx` |
+| 미디어 서브분류 | `apps/workspace/src/renderer/src/panes/mediaKind.ts` |
+| 콘텐츠 | `apps/workspace/src/renderer/src/panes/FileViewerContent.tsx` |
+| 대용량 스트리밍 | `apps/workspace/src/main/mediaProtocol.ts` |
 
 ### 3.2 권장 통합 방식: `viewer` pane 확장 (신규 TabKind 없음)
 
@@ -313,13 +313,13 @@ FBX는 Khronos가 glTF를 표준으로 밀고, 웹 런타임 네이티브 지원
 ## 부록: 참고 코드 위치
 
 ```
-electron/src/shared/asset.ts              # 확장자 canonical
-electron/src/renderer/src/panes/
+apps/workspace/src/shared/asset.ts              # 확장자 canonical
+apps/workspace/src/renderer/src/panes/
   FileViewerContent.tsx                   # 로딩·미디어 분기 패턴
   mediaKind.ts
   kinds/viewerKind.tsx
-native/world-engine-core/src/render.rs    # load_mesh() — 시뮬용, 뷰어 비재사용
-electron/src/main/mediaProtocol.ts        # 대용량 스트리밍 패턴
-electron/test-fixtures/world-engine-mesh-demo/box.glb  # 기존 CC0 샘플
+world-engine/core/src/render.rs    # load_mesh() — 시뮬용, 뷰어 비재사용
+apps/workspace/src/main/mediaProtocol.ts        # 대용량 스트리밍 패턴
+apps/workspace/test-fixtures/world-engine-mesh-demo/box.glb  # 기존 CC0 샘플
 docs/architecture/09-future-native-architecture.md     # embed vs decouple 결정
 ```

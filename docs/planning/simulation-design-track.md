@@ -8,5 +8,5 @@
 | CAD · 메시 뷰어 | [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md) **Phase 50+** | Electron orchestrator + OCCT/FreeCAD delegate |
 | 회로 · 펌웨어 | [hardware-sim-phase-plan.md](./hardware-sim-phase-plan.md) **Phase 60+** | `hardware-sim-core` (예정) + avr8js delegate |
 
-PKMS/닭장 **공간** 시나리오는 `electron/test-fixtures/` + WE `*_contract.rs`.
+PKMS/닭장 **공간** 시나리오는 `apps/workspace/test-fixtures/` + WE `*_contract.rs`.
 닭장 **컨트롤러(Arduino)** 는 hardware-sim fixture (Phase 60+).

@@ -2,7 +2,7 @@
 
 **Status:** Active planning (2026-09-01)  
 **목표:** 개인 **설계·운영 실험실** (닭장, 물레, 스마트팜 등)을 **엔진 포크 없이** 프로젝트 폴더만으로 반복 검증할 수 있는 수준  
-**구현:** `native/world-engine-core/` · `native/world-engine-qt-shell/`  
+**구현:** `world-engine/core/` · `world-engine/qt-shell/`  
 **관련:** [world-engine-project.md](./world-engine-project.md) (프로젝트 레이아웃) · [09-future-native-architecture.md](../architecture/09-future-native-architecture.md) (Workspace 통합 이력)
 
 ---
@@ -80,8 +80,8 @@
 
 ### 체크리스트 (매 Phase 공통)
 
-- [ ] `native/world-engine-core`: `cargo test --lib` 통과  
-- [ ] `native/world-engine-qt-shell`: `cargo build` 통과  
+- [ ] `world-engine/core`: `cargo test --lib` 통과  
+- [ ] `world-engine/qt-shell`: `cargo build` 통과  
 - [ ] 기존 fixture 회귀 (entity count 동일, 크래시 없음)  
 - [ ] 새 fixture 또는 example 1개 (해당 Phase 기능 증명)  
 - [ ] `world-engine-phase-plan.md` 해당 Phase를 **DONE**으로 갱신  
@@ -311,7 +311,7 @@
 
 - 1 레벨, 3 체크포인트, 골 존  
 - 이동·점프·적 1종·떨어지는 함정  
-- 전부 `electron/test-fixtures/world-engine-game-platformer/` 한 폴더  
+- 전부 `apps/workspace/test-fixtures/world-engine-game-platformer/` 한 폴더  
 
 **완료 기준**
 
@@ -475,12 +475,12 @@ flowchart LR
 
 | 책임 | 소유 |
 |------|------|
-| 프로젝트 폴더 열기, spawn | `electron/src/main/worldEngine.ts` |
+| 프로젝트 폴더 열기, spawn | `apps/workspace/src/main/worldEngine.ts` |
 | TreeView "Open in World Engine" | renderer |
 | 시뮬·렌더·물리 | `world-engine-core` |
 | 창·입력 | `world-engine-qt-shell` |
 
-Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. 게임 로직은 절대 `electron/`에 넣지 않음.
+Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. 게임 로직은 절대 `apps/workspace/`에 넣지 않음.
 
 ---
 
@@ -497,14 +497,14 @@ Phase 13+에서 Electron 변경은 **입력 IPC·메트릭 표시** 정도만. �
 
 커널 계약: [world-engine-simulation.md](./world-engine-simulation.md) · `tests/kernel_contract.rs`
 
-macOS `cargo test` doctest SIGKILL: `native/world-engine-core/scripts/fix-rust-quarantine.sh` 실행.
+macOS `cargo test` doctest SIGKILL: `world-engine/core/scripts/fix-rust-quarantine.sh` 실행.
 
 ---
 
 ## 10. Phase 31+ — Simulation & Design Track (World Engine)
 
 **목표:** 설계·시뮬레이션 프로젝트(PKMS, 공장/농장 모델)를 **엔진 API만으로** headless 검증 가능하게.  
-**범위:** `native/world-engine-core/`, `native/world-engine-qt-shell/`, `schemas/`, `tests/*_contract.rs`  
+**범위:** `world-engine/core/`, `world-engine/qt-shell/`, `schemas/`, `tests/*_contract.rs`  
 **비범위:** 멀티플레이·네트워크, PBR/스키닝, 미니게임 장르 확장, Electron 도메인 로직, Blender/모델링 파이프라인
 
 **설계 vs 시뮬 (엔진 관점)**

@@ -62,14 +62,14 @@ flowchart TB
 
 | Path | Role |
 |------|------|
-| `electron/src/main/` | Node/Electron main: workspace state, PTY, IPC |
-| `electron/src/preload/` | Context bridge (`window.electron`) |
-| `electron/src/renderer/src/` | React UI |
-| `electron/src/renderer/src/interaction/` | InteractionCoordinator |
-| `electron/src/renderer/src/layout/` | flexlayout helpers, drag, active webview |
-| `electron/src/renderer/src/lib/pane-manager/` | Single-leaf xterm + WebGL pipeline |
-| `electron/src/renderer/src/panes/` | PaneGroup, BrowserContent, TerminalSurface |
-| `electron/src/renderer/src/terminal/` | Renderer PTY transport |
+| `apps/workspace/src/main/` | Node/Electron main: workspace state, PTY, IPC |
+| `apps/workspace/src/preload/` | Context bridge (`window.electron`) |
+| `apps/workspace/src/renderer/src/` | React UI |
+| `apps/workspace/src/renderer/src/interaction/` | InteractionCoordinator |
+| `apps/workspace/src/renderer/src/layout/` | flexlayout helpers, drag, active webview |
+| `apps/workspace/src/renderer/src/lib/pane-manager/` | Single-leaf xterm + WebGL pipeline |
+| `apps/workspace/src/renderer/src/panes/` | PaneGroup, BrowserContent, TerminalSurface |
+| `apps/workspace/src/renderer/src/terminal/` | Renderer PTY transport |
 
 ## Debugging interaction issues
 

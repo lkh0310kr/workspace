@@ -83,7 +83,7 @@ Priority order (from `ideation.md`'s "공통화 우선순위"):
   a 3D/CAD/video pane is a near-certain future GPU consumer, not a
   hypothetical one.
 - [x] **Engine bundle hosting protocol** — `workspace-engine://` custom
-  scheme (`electron/src/main/engineBundleProtocol.ts` +
+  scheme (`apps/workspace/src/main/engineBundleProtocol.ts` +
   `engineBundlePaths.ts`, 12 vitest cases) serves a pre-built engine Web
   export's static files (index.html/.js/.wasm/.pck) to a renderer
   `<webview>`, confined to an open workspace root the same way
@@ -141,10 +141,10 @@ behind this direction, revisit later.
 - [x] First infra piece built: the engine bundle hosting protocol (Phase
   1, above) — serves a Godot Web export's static files with the
   COOP/COEP headers a threaded export needs.
-- [x] Real Godot demo project built and exported — `electron/test-fixtures/godot-demo/`
+- [x] Real Godot demo project built and exported — `apps/workspace/test-fixtures/godot-demo/`
   (a rotating square + live timer, proves it's actually running, not a
   screenshot), exported via the real `godot` CLI (`--headless
-  --export-release "Web"`) to `electron/test-fixtures/godot-demo-web/`
+  --export-release "Web"`) to `apps/workspace/test-fixtures/godot-demo-web/`
   (gitignored, ~40MB — regenerate with `godot-demo/export.sh`).
 - [x] "Open as App" — decided **not** to build a new "Engine" pane kind
   with its own webview lifecycle/`InteractionCoordinator` registration
@@ -265,7 +265,7 @@ not hosting one.** Everything above answers "how do we host a third-party
 engine's output in a pane" — the user clarified Workspace should have its
 **own** real engine, assembled from open-source Rust libraries (rendering/
 physics/ECS), not embed/stream someone else's black box. Built and
-verified `native/world-engine-core/` — `wgpu` + `rapier3d` + `hecs`, one
+verified `world-engine/core/` — `wgpu` + `rapier3d` + `hecs`, one
 real physics-driven cube (falls, bounces, visibly rotates — confirmed via
 60 real decoded frames inspected as images, not just "it compiled").
 An early v0 briefly reused Track B WebRTC to show output — **then
@@ -308,12 +308,12 @@ native view is the next concrete thing to check. Full detail in
 **Phases 1-3 built and verified, then a deliberate pivot (2026-08-28).**
 User asked to see this through rather than stop at "designed" — built:
 
-- [x] **Phase 1**: `native/world-engine-qt-shell/` — Qt (the researched
+- [x] **Phase 1**: `world-engine/qt-shell/` — Qt (the researched
   "정석"/canonical cross-platform toolkit real tools like Blender/DaVinci
   Resolve's category actually use) creates a real native window; `wgpu`
   renders directly into it. Standalone process. Live-verified on-screen
   by the user directly.
-- [x] **Phase 2**: `native/world-engine-electron-embed/` — a native Node
+- [x] **Phase 2**: `world-engine/embed/` — a native Node
   addon (`napi-rs`) proving the in-process embed technique above actually
   works: loaded into a real Electron process, embeds our own `NSView` as
   a subview, `wgpu` renders into it directly. Verified against a real
@@ -326,7 +326,7 @@ User asked to see this through rather than stop at "designed" — built:
   artifact), which Workspace spawns/manages — zero input problem, since
   it's a real independent native window. Phase 2 stays documented as a
   proven option, not deleted, just not the near-term target.
-- [x] **Phase 3**: wired into the real app — `electron/src/main/worldEngine.ts`
+- [x] **Phase 3**: wired into the real app — `apps/workspace/src/main/worldEngine.ts`
   spawns/tracks the Phase 1 binary as a child process (mirrors `pty.ts`'s
   own spawn/dispose shape), a "World Engine → Launch World Engine (dev)"
   application-menu item triggers it, disposed on `before-quit`.

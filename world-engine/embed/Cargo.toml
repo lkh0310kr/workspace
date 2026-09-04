@@ -1,0 +1,28 @@
+[package]
+name = "world-engine-electron-embed"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+world-engine-core = { path = "../core" }
+napi = { version = "3", default-features = false, features = ["napi4"] }
+napi-derive = "3"
+glam = { version = "0.33", features = ["bytemuck"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = "0.3"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_LibraryLoader",
+] }
+
+[build-dependencies]
+napi-build = "2"

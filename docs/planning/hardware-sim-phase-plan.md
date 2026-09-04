@@ -26,7 +26,7 @@ Arduino Uno 5V → 220Ω resistor → LED → momentary button → GND
 | 질문 | 결정 | 이유 |
 |------|------|------|
 | World Engine에 넣을까? | **넣지 않는다** | WE는 Rapier 고정 `dt` + Transform/물리. MCU는 **클럭 사이클·ns**, 상태는 **핀 전압/논리**. 도메인 키를 엔진에 넣지 않는다는 WE 계약과 충돌. |
-| TypeScript가 커널인가? | **아니다** | 시뮬 진실은 `native/` Rust 계약 + headless test. Electron은 spawn/IPC/뷰. |
+| TypeScript가 커널인가? | **아니다** | 시뮬 진실은 repo-root Rust crate 계약 + headless test. Electron은 spawn/IPC/뷰. |
 | Rust가 맞는가? | **맞다 — 회로·HaC·런타임만** | `world-engine-core`와 같은 패턴. AVR ISA를 Rust로 재구현하지는 않음. |
 | MCU 백엔드 | **avr8js delegate** | 초안이 맞음. Wokwi 계열 검증된 AVR8. v1에서 cycle-accurate AVR을 직접 짜지 않는다. |
 | AI 연동 | **전용 에이전트 없음** | CAD 뷰어와 같음: 터미널 Claude Code가 파일을 씀 → 시뮬이 reload/재실행. |
@@ -45,7 +45,7 @@ Workspace (Electron)  —  TreeView, PTY, live preview, spawn
 
 이미 있는 것:
 
-- `native/world-engine-core`: wgpu + Rapier + hecs + Rhai, `World::step()`, `sim_var`, pick, save.
+- `world-engine/core`: wgpu + Rapier + hecs + Rhai, `World::step()`, `sim_var`, pick, save.
 - 계약: **엔진 스키마에 도메인 필드 금지** (`feed_stock` 같은 키는 fixture 프로젝트 `properties`/`sim_var`).
 - CAD 오케스트레이션: 공간 배치·메시·시설 시뮬. 전기가 아님.
 
@@ -64,7 +64,7 @@ Hardware 시뮬이 다른 점:
 
 ## 2. 왜 TypeScript 커널이 아닌가
 
-avr8js는 JS라 MCU **한 조각**은 Node sidecar가 맞다. 그걸 이유로 회로 그래프·제약·결정론적 dump를 `electron/`에 두면:
+avr8js는 JS라 MCU **한 조각**은 Node sidecar가 맞다. 그걸 이유로 회로 그래프·제약·결정론적 dump를 `apps/workspace/`에 두면:
 
 - headless `*_contract.rs` / `cargo test` 패턴이 깨짐 (WE·CAD가 이미 이 축).
 - 렌더러가 시뮬 진실이 됨 — 09-native 문서의 “Electron은 얇은 셸”과 반대.
@@ -156,10 +156,10 @@ MCU와 회로의 접합은 **핀 샘플 레이트** 계약 하나:
 
 | 경로 | 역할 | 대응 |
 |------|------|------|
-| `native/hardware-sim-core/` | HaC, validate, circuit, dump | `world-engine-core` |
-| `native/hardware-sim-cli/` 또는 core `examples/` | headless `step` / dump | `cargo run --example chase` |
-| `electron/src/main/hardwareSim.ts` | persistent JSONL process (H0.2) | `worldEngine.ts` |
-| `electron/test-fixtures/hardware-button-led/` | 첫 프로젝트 | `world-engine-chicken-coop-demo` |
+| `hardware-sim/core/` | HaC, validate, circuit, dump | `world-engine-core` |
+| `hardware-sim/cli/` 또는 core `examples/` | headless `step` / dump | `cargo run --example chase` |
+| `apps/workspace/src/main/hardwareSim.ts` | persistent JSONL process (H0.2) | `worldEngine.ts` |
+| `apps/workspace/test-fixtures/hardware-button-led/` | 첫 프로젝트 | `world-engine-chicken-coop-demo` |
 
 Electron pane은 H0.2에서 **버튼 + LED만** 구현한다. 범용 스키매틱 에디터는 Phase 65 이후다. 회로 동작은 TypeScript로 복제하지 않고 JSONL을 통해 Rust 코어만 호출한다.
 

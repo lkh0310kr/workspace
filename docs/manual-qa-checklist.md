@@ -1,6 +1,6 @@
 # Manual QA checklist
 
-Run before release or after large layout/embed changes. Dev: `cd electron && npm run dev`.
+Run before release or after large layout/embed changes. Dev: `cd apps/workspace && npm run dev`.
 
 ## Workspace tabs
 

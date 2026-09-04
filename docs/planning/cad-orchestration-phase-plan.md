@@ -78,7 +78,7 @@
 
 | IN | OUT |
 |----|-----|
-| `AssetOpenRequest`, `ImportJob`, `ImportResult` TS 타입 (`electron/src/shared/model3d/`) | OCCT 바인딩 |
+| `AssetOpenRequest`, `ImportJob`, `ImportResult` TS 타입 (`apps/workspace/src/shared/model3d/`) | OCCT 바인딩 |
 | `AssetIntent`: `preview` \| `place` \| `simulate` \| `edit` | |
 | 이 문서 §1 포맷 표를 코드 주석과 동기화 | |
 

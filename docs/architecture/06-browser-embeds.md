@@ -18,7 +18,7 @@ flowchart TB
   IC[InteractionCoordinator] --> WV
 ```
 
-**Source:** `electron/src/renderer/src/panes/BrowserContent.tsx`
+**Source:** `apps/workspace/src/renderer/src/panes/BrowserContent.tsx`
 
 One webview per pane tab item (`item.id`), created imperatively in `useEffect` with empty deps (lifetime = tab item mount).
 
