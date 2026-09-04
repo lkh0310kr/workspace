@@ -13,6 +13,7 @@ import { DashboardView } from "./dashboard/DashboardView";
 import { useAppBootstrap } from "./hooks/useAppBootstrap";
 import { useAppShellState } from "./hooks/useAppShellState";
 import { useAppShortcuts, useDismissPortalsOnWorkspaceSwitch } from "./hooks/useAppShortcuts";
+import { useShortcutDispatcher } from "./shortcuts/useShortcutDispatcher";
 import { useLayoutHostCallbacks } from "./hooks/useLayoutHostCallbacks";
 import { useLayoutRevisions } from "./hooks/useLayoutRevision";
 import { useEnsureDefaultTerminals, useLayoutHostLifecycle } from "./hooks/useLayoutHostLifecycle";
@@ -90,6 +91,7 @@ export default function App() {
   const htmlFullscreen = useHtmlFullscreen();
 
   useAppBootstrap();
+  useShortcutDispatcher();
   useSplitterDragOverlay();
   useTabChipWindowDrop(activeTabId);
   useLayoutHostLifecycle(activeTabId);

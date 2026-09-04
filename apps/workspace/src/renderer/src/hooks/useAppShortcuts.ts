@@ -5,8 +5,9 @@ import { dismissWorkspacePortals } from '../workspacePortalDismiss'
 import { onClosePaneTabShortcut } from '../electron'
 import { dispatchLocalBrowserZoom } from '../browser/browserZoom'
 import type { WorkspaceSettingsTarget } from './useAppShellState'
-import type { PaneGroupConfig } from '../layout/paneTypes'
+import { readPaneGroupConfig, resolveActivePaneTab } from '../layout/layoutSession'
 import { useWorkspaceStore } from '../store/workspaceStore'
+import { registerShortcut } from '../shortcuts/shortcutRegistry'
 
 const ZOOM_MIN = 0.5
 const ZOOM_MAX = 2.5
@@ -24,8 +25,8 @@ function zoomActivePane(model: Model, focusedTabSetId: string | undefined, delta
   const tabset = resolveFocusedTabSet(model, focusedTabSetId)
   const tabNode = tabset?.getSelectedNode()
   if (!tabNode || tabNode.getType() !== 'tab') return
-  const config = ((tabNode as TabNode).getConfig() ?? {}) as PaneGroupConfig
-  const activeItem = config.tabs.find((t) => t.id === config.activeTabId)
+  const config = readPaneGroupConfig(tabNode as TabNode)
+  const activeItem = resolveActivePaneTab(config)
   if (activeItem?.kind === 'browser') return
   const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, (config.zoom ?? 1) + delta))
   if (nextZoom === (config.zoom ?? 1)) return
@@ -84,27 +85,29 @@ export function useAppShortcuts({
   )
 
   useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (!(e.metaKey || e.ctrlKey)) return
-      if (e.key !== '=' && e.key !== '+' && e.key !== '-' && e.key !== '_') return
-      const model = getModel(activeTabId)
-      if (!model) return
-      const tabset = resolveFocusedTabSet(model, focusedTabSetId)
-      const tabNode = tabset?.getSelectedNode()
-      if (!tabNode || tabNode.getType() !== 'tab') return
-      const config = ((tabNode as TabNode).getConfig() ?? {}) as PaneGroupConfig
-      const activeItem = config.tabs.find((t) => t.id === config.activeTabId)
-      if (activeItem?.kind === 'browser') {
-        e.preventDefault()
-        dispatchLocalBrowserZoom(e.key === '=' || e.key === '+' ? 'in' : 'out')
-        return
-      }
-      e.preventDefault()
-      const grow = e.key === '=' || e.key === '+'
-      zoomActivePane(model, focusedTabSetId, grow ? ZOOM_STEP : -ZOOM_STEP)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return registerShortcut({
+      id: 'pane-zoom',
+      scope: 'app',
+      priority: 10,
+      handle: (e) => {
+        if (!(e.metaKey || e.ctrlKey)) return false
+        if (e.key !== '=' && e.key !== '+' && e.key !== '-' && e.key !== '_') return false
+        const model = getModel(activeTabId)
+        if (!model) return false
+        const tabset = resolveFocusedTabSet(model, focusedTabSetId)
+        const tabNode = tabset?.getSelectedNode()
+        if (!tabNode || tabNode.getType() !== 'tab') return false
+        const config = readPaneGroupConfig(tabNode as TabNode)
+        const activeItem = resolveActivePaneTab(config)
+        if (activeItem?.kind === 'browser') {
+          dispatchLocalBrowserZoom(e.key === '=' || e.key === '+' ? 'in' : 'out')
+          return true
+        }
+        const grow = e.key === '=' || e.key === '+'
+        zoomActivePane(model, focusedTabSetId, grow ? ZOOM_STEP : -ZOOM_STEP)
+        return true
+      },
+    })
   }, [activeTabId, getModel, focusedTabSetId])
 }
 
