@@ -20,7 +20,6 @@ def motor_mount_y() -> float:
 
 
 def belt_plane_z_world() -> float:
-    """World Z of the shared belt plane (inside the plinth cavity)."""
     return -PLINTH_H + 38.0
 
 
@@ -32,17 +31,18 @@ def drive_pulley_z_from_shaft_base() -> float:
     return belt_plane_z_world() - shaft_base_z_world()
 
 
-def motor_pulley_z_from_mount_foot() -> float:
-    return belt_plane_z_world() - shaft_base_z_world()
-
-
-def motor_pulley_center_y() -> float:
-    """Motor pulley center Y when mount foot is at the plinth floor."""
+def motor_pulley_y_from_shaft_floor() -> float:
+    """Motor pulley center Y in the shaft-floor frame (plinth center at origin)."""
     return motor_mount_y() - MOTOR_BODY_D / 2 - MOTOR_PULLEY_H / 2
 
 
 def bearing_journal_z_from_shaft_base() -> float:
     return PLINTH_H - BEARING_POCKET_DEPTH
+
+
+def head_mount_z_from_shaft_base() -> float:
+    """Where the wheel-head bore meets the spindle (flush with plinth top at Z=0)."""
+    return PLINTH_H
 
 
 def pulley_radii() -> tuple[float, float]:
