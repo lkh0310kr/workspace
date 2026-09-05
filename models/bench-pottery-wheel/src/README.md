@@ -2,6 +2,6 @@
 
 | Script | Phase | Output |
 |--------|-------|--------|
-| `wheel_head.py` | B0 | `../STEP/wheel_head.step` |
+| `wheel_head.py` | B0–B1 | `../STEP/wheel_head.step` |
 
 Run from this directory: `python wheel_head.py`

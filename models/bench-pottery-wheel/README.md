@@ -7,7 +7,7 @@ Single assembly grown step-by-step to validate Workspace **STEP → glb viewer**
 | Phase | Model | What it tests |
 |-------|--------|----------------|
 | **B0** ✅ | `wheel_head` — solid disc | STEP build, preview, cache hit |
-| B1 | `wheel_head` — rim, bat pin holes, fillet | tessellation time, triangle count |
+| **B1** ✅ | `wheel_head` — rim, boss, bat pins, fillets | tessellation time, triangle count |
 | B2 | `splash_pan` + compound | multi-solid STEP |
 | B3 | `assembly` — head + plinth + shaft | `AssemblyHelper`, joints |
 | B4 | `motor_mount` | sub-assembly / hardware |
