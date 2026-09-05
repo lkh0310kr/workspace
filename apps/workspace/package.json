@@ -9,7 +9,7 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "test": "node scripts/rebuild-better-sqlite3.mjs && vitest run; node scripts/rebuild-better-sqlite3.mjs --electron",
+    "test": "node scripts/run-vitest.mjs",
     "japanese:import": "node scripts/with-electron-node.mjs scripts/japanese/import-dictionary.mjs",
     "japanese:import:fixtures": "node scripts/with-electron-node.mjs scripts/japanese/import-fixtures.mjs",
     "japanese:build-apple-fm-sidecar": "node scripts/build-apple-fm-sidecar.mjs",

@@ -33,14 +33,12 @@ function run(command, args) {
 }
 
 function systemNodeSqliteWorks() {
-  try {
-    const Database = require("better-sqlite3");
-    const db = new Database(":memory:");
-    db.close();
-    return true;
-  } catch {
-    return false;
-  }
+  const result = spawnSync(
+    process.execPath,
+    ["-e", "const Database = require('better-sqlite3'); const db = new Database(':memory:'); db.close();"],
+    { cwd: electronDir, stdio: "pipe" },
+  );
+  return result.status === 0 && result.signal == null;
 }
 
 function electronSqliteWorks() {
