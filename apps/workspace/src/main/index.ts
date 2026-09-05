@@ -1,5 +1,6 @@
 import './protocolSchemes'
 import './imeEnv'
+import { installMainStartupLogging, appendStartupLog } from './startupLog'
 import { ensureLinuxImeDaemon } from './imeEnv'
 import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './shortcuts/relayAppShortcuts'
 import { assertClipboardImageDimensionsWithinLimit } from '../shared/clipboard-image'
@@ -78,6 +79,8 @@ applyBrowserGpuSwitches((name, value) => {
   else app.commandLine.appendSwitch(name, value)
 })
 
+installMainStartupLogging()
+
 // Two live instances (a forgotten second `npm run dev`, or dev running
 // alongside a packaged daily-use build) race on the same
 // config.electron.json/workspace.electron.json with no locking, and both
@@ -98,14 +101,24 @@ if (!app.isPackaged) {
 }
 
 const gotSingleInstanceLock = app.isPackaged ? app.requestSingleInstanceLock() : true
+appendStartupLog('single_instance_lock', { acquired: gotSingleInstanceLock, packaged: app.isPackaged })
 if (!gotSingleInstanceLock) {
   console.error('[workspace-app] Another instance is already running — quitting.')
+  appendStartupLog('single_instance_quit', { reason: 'lock_not_acquired' })
   app.quit()
 } else if (app.isPackaged) {
   app.on('second-instance', () => {
+    appendStartupLog('second_instance', {
+      hasMainWindow: !!mainWindowRef,
+      mainWindowDestroyed: mainWindowRef?.isDestroyed() ?? null,
+      mainWindowVisible: mainWindowRef?.isVisible() ?? null,
+    })
     if (mainWindowRef && !mainWindowRef.isDestroyed()) {
       reinforceExistingWindowFocus(mainWindowRef, app)
+      return
     }
+    appendStartupLog('second_instance_recreate_window')
+    bindMainWindow(createWindow())
   })
 }
 
@@ -158,6 +171,18 @@ function appendBrowserFocusLog(entry: Record<string, unknown>): void {
   appendNdjsonLog(browserFocusLogPath(), entry)
 }
 
+function logWindowLifecycle(event: string, window: BrowserWindow, extra?: Record<string, unknown>): void {
+  appendStartupLog(event, {
+    windowId: window.id,
+    destroyed: window.isDestroyed(),
+    visible: window.isVisible(),
+    minimized: window.isMinimized(),
+    maximized: window.isMaximized(),
+    bounds: window.isDestroyed() ? null : window.getBounds(),
+    ...(extra ?? {}),
+  })
+}
+
 function createWindow(): BrowserWindow {
   // Window chrome:
   // - macOS: hiddenInset (existing traffic-light gutter).
@@ -187,9 +212,11 @@ function createWindow(): BrowserWindow {
       plugins: true
     }
   })
+  logWindowLifecycle('window_created', mainWindow)
 
-  const revealWindow = (): void => {
+  const revealWindow = (reason: string): void => {
     if (mainWindow.isDestroyed()) return
+    logWindowLifecycle('window_reveal_attempt', mainWindow, { reason })
     if (wsl) {
       revealWslWindow(mainWindow)
       return
@@ -197,15 +224,49 @@ function createWindow(): BrowserWindow {
     if (mainWindow.isVisible()) return
     mainWindow.show()
     mainWindow.maximize()
+    logWindowLifecycle('window_revealed', mainWindow, { reason })
   }
   if (wsl) {
     // WSLg: show only after the first frame is ready (avoids blank COPY MODE surface).
-    mainWindow.webContents.once('did-finish-load', revealWindow)
-    setTimeout(revealWindow, 2500)
+    mainWindow.webContents.once('did-finish-load', () => revealWindow('did-finish-load'))
+    setTimeout(() => revealWindow('timeout_2500ms'), 2500)
   } else {
-    mainWindow.on('ready-to-show', revealWindow)
-    setTimeout(revealWindow, 2500)
+    mainWindow.on('ready-to-show', () => revealWindow('ready-to-show'))
+    setTimeout(() => revealWindow('timeout_2500ms'), 2500)
+    setTimeout(() => {
+      if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+        revealWindow('timeout_10000ms_fallback')
+      }
+    }, 10_000)
   }
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    logWindowLifecycle('webcontents_did_finish_load', mainWindow)
+  })
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    appendStartupLog('webcontents_did_fail_load', {
+      windowId: mainWindow.id,
+      errorCode,
+      errorDescription,
+      validatedURL,
+    })
+  })
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    appendStartupLog('webcontents_render_process_gone', {
+      windowId: mainWindow.id,
+      reason: details.reason,
+      exitCode: details.exitCode,
+    })
+  })
+  mainWindow.on('unresponsive', () => {
+    logWindowLifecycle('window_unresponsive', mainWindow)
+  })
+  mainWindow.on('responsive', () => {
+    logWindowLifecycle('window_responsive', mainWindow)
+  })
+  mainWindow.on('closed', () => {
+    appendStartupLog('window_closed', { windowId: mainWindow.id })
+  })
 
   if (wsl) installWslWindowLifecycle(mainWindow)
 
@@ -497,8 +558,10 @@ function buildAppMenu(): Menu {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   if (!gotSingleInstanceLock) return
+  appendStartupLog('app_when_ready_begin')
   installMainConsoleFileLogging()
   appendAppLog('main', 'info', 'app_ready', { packaged: app.isPackaged, platform: process.platform })
+  appendStartupLog('app_when_ready_logging_installed', { logsDir: getLogsDir() })
   if (process.platform === 'darwin') {
     Menu.setApplicationMenu(buildAppMenu())
   }
@@ -579,6 +642,7 @@ app.whenReady().then(() => {
   registerBrowserNavIpc()
 
   const config = loadConfig()
+  appendStartupLog('config_loaded', { hasRootPath: !!config.rootPath })
   // WSL: never keep a /mnt/<drive> root as the live workspace — 9p sync I/O
   // freezes the main process before ready-to-show (window stays invisible).
   const defaultRoot = preferNativeWorkspacePath(config.rootPath ?? process.cwd())
@@ -607,9 +671,16 @@ app.whenReady().then(() => {
   // meaning a never-touched default tab's terminal id would be lost on the very next relaunch.
   persist()
 
+  appendStartupLog('init_japanese_dictionary_begin')
   initJapaneseDictionary()
+  appendStartupLog('init_japanese_dictionary_end')
 
+  appendStartupLog('create_window_begin')
   bindMainWindow(createWindow())
+  appendStartupLog('create_window_end', {
+    hasMainWindow: !!mainWindowRef,
+    visible: mainWindowRef?.isVisible() ?? null,
+  })
 
   ipcMain.handle('hostname', () => osHostname())
   ipcMain.handle('app:platform', () => process.platform)
@@ -947,6 +1018,8 @@ app.whenReady().then(() => {
     // now-destroyed old window crashes on every subsequent pty data chunk.
     if (BrowserWindow.getAllWindows().length === 0) bindMainWindow(createWindow())
   })
+
+  appendStartupLog('app_when_ready_complete')
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -959,6 +1032,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  appendStartupLog('app_before_quit')
   workspace?.disposeAllTerminals()
   fileWatcher?.close()
   disposeWorldEngine()

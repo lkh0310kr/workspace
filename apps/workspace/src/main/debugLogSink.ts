@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { appSupportDir } from "./persistence";
+import { getBootstrapLogsDir } from "./startupLog";
 
 export type AppLogLevel = "log" | "info" | "warn" | "error" | "debug";
 
@@ -21,7 +21,7 @@ export function getLogsDir(): string {
     return process.env.WORKSPACE_TEST_LOG_DIR;
   }
   if (!isElectronAppReady()) {
-    return join(homedir(), ".config", "workspace-app-dev", "logs");
+    return getBootstrapLogsDir();
   }
   return join(appSupportDir(), "logs");
 }
