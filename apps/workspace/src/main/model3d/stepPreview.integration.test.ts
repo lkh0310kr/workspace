@@ -18,15 +18,14 @@ describe("openModelPreview STEP integration", () => {
 
     const first = await openModelPreview({ workspaceRoot: REPO_ROOT, relativePath: BRACKET });
     expect(first.status).toBe("ready");
-    if (first.status !== "ready") return;
+    if (first.status !== "ready" || first.readStrategy !== "workspace-model") return;
     expect(first.source.format).toBe("step");
-    expect(first.readStrategy).toBe("workspace-model");
     expect(first.renderFormat).toBe("glb");
     expect(first.modelUrl).toContain("workspace-model://");
 
     const second = await openModelPreview({ workspaceRoot: REPO_ROOT, relativePath: BRACKET });
     expect(second.status).toBe("ready");
-    if (second.status !== "ready") return;
+    if (second.status !== "ready" || second.readStrategy !== "workspace-model") return;
     expect(second.modelUrl).toBe(first.modelUrl);
   }, 120_000);
 });

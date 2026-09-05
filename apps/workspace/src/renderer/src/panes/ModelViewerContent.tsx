@@ -1,3 +1,4 @@
+import type { DetectedModelFormat, SceneManifest } from "../../../shared/model3d/types";
 import type { ReactNode } from "react";
 import { ModelViewerCanvas } from "../model3d/components/ModelViewerCanvas";
 import { ModelViewerLoading } from "../model3d/components/ModelViewerLoading";
@@ -10,6 +11,13 @@ interface Props {
   paneActive: boolean;
   treeOpen: boolean;
   onToggleTree: () => void;
+}
+
+function viewerFormat(manifest: SceneManifest | null): DetectedModelFormat {
+  if (manifest?.status === "ready") {
+    return manifest.renderFormat ?? manifest.source.format;
+  }
+  return "glb";
 }
 
 export function ModelViewerContent({ tabId, filePath, paneActive, treeOpen, onToggleTree }: Props) {
@@ -37,7 +45,7 @@ export function ModelViewerContent({ tabId, filePath, paneActive, treeOpen, onTo
         key={preview.revision}
         modelData={preview.modelData ?? undefined}
         modelUrl={preview.modelUrl ?? undefined}
-        format={preview.manifest?.renderFormat ?? preview.manifest?.source.format ?? "glb"}
+        format={viewerFormat(preview.manifest)}
         active={paneActive}
         live
         refreshing={preview.refreshing}
