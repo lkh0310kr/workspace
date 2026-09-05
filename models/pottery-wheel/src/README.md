@@ -1,14 +1,13 @@
-# pottery-wheel models (planned)
+# pottery-wheel models
 
-| Script | Phase | Output | Status |
-|--------|-------|--------|--------|
-| `wheel_head.py` | B0–B1 | `../STEP/wheel_head.step` | planned |
-| `splash_pan.py` | B2 | `../STEP/splash_pan.step` | planned |
-| `plinth.py` | B3, B8 | `../STEP/plinth.step` | planned |
-| `shaft.py` | B3–B4 | `../STEP/shaft.step` | planned |
-| `motor_mount.py` | B4 | `../STEP/motor_mount.step` | planned |
-| `drive_belt.py` | B4 | `../STEP/drive_belt.step` | planned |
-| `assembly.py` | root | `../STEP/assembly.step` | planned |
-| `plinth_drawing.py` | B6 | `../DXF/plinth_drawing.dxf` | planned |
+| Script | Phase | Output |
+|--------|-------|--------|
+| `wheel_head.py` | B0–B1 | `../STEP/wheel_head.step` |
+| `splash_pan.py` | B2 | `../STEP/splash_pan.step` (2 solids) |
+| `plinth.py` | B3 | `../STEP/plinth.step` |
+| `shaft.py` | B3–B4 | `../STEP/shaft.step` |
+| `motor_mount.py` | B4 | `../STEP/motor_mount.step` (3 solids) |
+| `drive_belt.py` | B4 | `../STEP/drive_belt.step` |
+| `assembly.py` | root | `../STEP/assembly.step` |
 
-Build root (when implemented): `python assembly.py`
+Build root: `python assembly.py`

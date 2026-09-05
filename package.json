@@ -11,6 +11,7 @@
     "agents:cad:verify": "node scripts/agents-cad-verify.mjs",
     "agents:cad:viewer": "cd apps/workspace && npx vitest run src/main/cadViewer.integration.test.ts",
     "agents:cad:step": "cd apps/workspace && npx vitest run src/main/model3d/stepPreview.integration.test.ts",
-    "agents:bench:pottery-wheel": "node scripts/agents-bench-pottery-wheel.mjs"
+    "agents:bench:pottery-wheel": "node scripts/agents-bench-pottery-wheel.mjs",
+    "agents:pottery-wheel:bench": "node scripts/agents-pottery-wheel-bench.mjs"
   }
 }

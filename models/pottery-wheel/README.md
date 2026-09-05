@@ -62,26 +62,24 @@ models/pottery-wheel/
 
 ## Phases (same IDs as bench, product deliverables)
 
-| Phase | Build | Delivers | Acceptance |
-|-------|--------|----------|------------|
-| **P0** ✅ | scaffold | `src/`, `lib/`, `STEP/` |
-| **B0** | `wheel_head` disc | `STEP/wheel_head.step` | Single solid; viewer opens; cache hit on reopen |
-| **B1** | `wheel_head` detail | Rim, boss, bat pins, fillets | STEP validate OK; triangle count noted |
-| **B2** | `splash_pan` | 2-solid compound (tray + drain) | `occurrenceCount ≥ 2`; sits on plinth top |
-| **B3** | `plinth`, `shaft`, `assembly` | 3-part assembly | `AssemblyHelper` mates; validate OK |
-| **B4** | `motor_mount`, `drive_belt` | Belt drive connected | Pulleys coplanar; belt spans both; no floating parts |
-| **B5** | `URDF/pottery_wheel.urdf` | Revolute `wheel_joint` | cadgen viewer; head spins on Z |
-| **B6** | `plinth_drawing.py` → DXF | Plinth flat pattern / outline | `$dxf` skill; DXF opens in viewer |
-| **B7** | `dims.py` knobs | Live iteration loop | Edit `WHEEL_D` → rebuild → `fs:changed` reload |
-| **B8** | `plinth` vents / perf | Mesh stress case | Viewer perf logged vs B3 baseline |
+| Phase | Build | Status |
+|-------|--------|--------|
+| **P0** | scaffold | ✅ |
+| **B0** | `wheel_head` disc | ✅ |
+| **B1** | `wheel_head` detail | ✅ |
+| **B2** | `splash_pan` | ✅ |
+| **B3** | `plinth`, `shaft`, `assembly` | ✅ |
+| **B4** | `motor_mount`, `drive_belt` | ✅ |
+| B5 | URDF | — |
+| B6 | plinth DXF | — |
+| **B7** | live reload bench | ✅ |
+| B8 | plinth vents | — |
 
 ### Suggested build order
 
 ```
-P0 → B0 → B1 → B2 → B3 → B4 → B7 → B5 → B6 → B8
+P0 → B0 → B1 → B2 → B3 → B4 → B7 → (verify in viewer) → B5 → B6 → B8
 ```
-
-B7 early so parametric iteration is smooth before URDF/DXF.
 
 ---
 
@@ -108,29 +106,13 @@ Full list lives in code once P0 lands.
 From repo root:
 
 ```bash
-npm run agents:python:setup                              # once
+npm run agents:python:setup
 npm run agents:python -- models/pottery-wheel/src/assembly.py
+npm run agents:pottery-wheel:bench    # B7: rebuild + timing JSON
 ```
 
-Per-part:
-
-```bash
-npm run agents:python -- models/pottery-wheel/src/wheel_head.py
-```
-
-Validate:
-
-```bash
-npm run agents:python -- -m cadgen.cli step inspect validate models/pottery-wheel/STEP/assembly.step
-```
-
-B7 bench script (add when P0+B7 land — mirror bench):
-
-```bash
-npm run agents:bench:pottery-wheel    # planned: rebuild + timing JSON
-```
-
-Preview: open `STEP/assembly.step` in Workspace Model Viewer.
+Live-reload loop: `bench/B7-live-reload.md`  
+Preview: `models/pottery-wheel/STEP/assembly.step`
 
 ---
 
