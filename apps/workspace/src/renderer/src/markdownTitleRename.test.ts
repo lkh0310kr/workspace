@@ -24,6 +24,10 @@ describe("markdownTitleFor", () => {
     expect(markdownTitleFor("a/b/note.markdown")).toBe("note");
   });
 
+  it("handles Windows-style backslash paths", () => {
+    expect(markdownTitleFor("8 animal\\02_공통원리\\유전·육종.md")).toBe("유전·육종");
+  });
+
   it("falls back to Untitled for no path", () => {
     expect(markdownTitleFor(null)).toBe("Untitled");
   });
@@ -47,6 +51,9 @@ describe("validateTitleInput", () => {
 describe("buildRenamedPath", () => {
   it("keeps the directory and existing extension", () => {
     expect(buildRenamedPath("notes/old.markdown", "new")).toBe("notes/new.markdown");
+    expect(buildRenamedPath("8 animal\\02_공통원리\\old.md", "new")).toBe(
+      "8 animal/02_공통원리/new.md",
+    );
   });
 
   it("defaults to .md at root for an untitled tab", () => {

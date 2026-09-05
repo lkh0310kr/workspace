@@ -2,6 +2,10 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { model3dLog } from "./model3d/model3dLog";
 
+function toWorkspaceRelPath(rel: string): string {
+  return rel.replace(/\\/g, "/");
+}
+
 // Direct port of crates/workspace-core/src/files.rs.
 
 export interface DirEntry {
@@ -56,7 +60,7 @@ export function listDir(root: string, rel: string): DirEntry[] {
   for (const entry of names) {
     if (entry.name.startsWith(".")) continue;
     const entryPath = path.join(dirPath, entry.name);
-    const relPath = path.relative(realRoot, entryPath);
+    const relPath = toWorkspaceRelPath(path.relative(realRoot, entryPath));
     entries.push({ name: entry.name, path: relPath, isDir: entry.isDirectory() });
   }
   entries.sort((a, b) => {

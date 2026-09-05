@@ -4,9 +4,17 @@
 // exercise — mirrors layoutSalvage.ts/layoutExport.ts's own pure-module
 // pattern rather than burying this in the component.
 
+// Workspace-relative paths are stored with forward slashes everywhere in the
+// renderer (layout JSON, TreeView keys, title display). path.relative on
+// Windows emits backslashes — normalize at the source.
+function toWorkspaceRelPath(rel: string): string {
+  return rel.replace(/\\/g, "/");
+}
+
 function dirOf(path: string): string {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? "" : path.slice(0, idx);
+  const normalized = toWorkspaceRelPath(path);
+  const idx = normalized.lastIndexOf("/");
+  return idx === -1 ? "" : normalized.slice(0, idx);
 }
 
 function joinPath(dir: string, name: string): string {
@@ -17,12 +25,12 @@ function joinPath(dir: string, name: string): string {
  * default — TreeView.tsx's classifyFile() already treats both as markdown
  * kind, so a title rename must preserve whichever one the file already has. */
 export function markdownExtensionOf(path: string): ".md" | ".markdown" {
-  return /\.markdown$/i.test(path) ? ".markdown" : ".md";
+  return /\.markdown$/i.test(toWorkspaceRelPath(path)) ? ".markdown" : ".md";
 }
 
 export function markdownTitleFor(filePath: string | null): string {
   if (!filePath) return "Untitled";
-  const base = filePath.split("/").pop() ?? filePath;
+  const base = toWorkspaceRelPath(filePath).split("/").pop() ?? filePath;
   return base.replace(/\.(md|markdown)$/i, "");
 }
 
