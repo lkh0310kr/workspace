@@ -52,7 +52,9 @@ MOTOR_PULLEY_OD = 18.0
 MOTOR_PULLEY_H = 12.0
 DRIVE_PULLEY_OD = 60.0
 DRIVE_PULLEY_H = 10.0
-DRIVE_PULLEY_Z = 22.0  # from shaft bottom (+Z)
+BELT_THICKNESS = 2.5
+BELT_WIDTH = 7.0
+SHAFT_L = PLINTH_H + 60.0  # floor to above wheel head bore
 
 # Plinth ventilation (B8)
 VENT_COUNT = 8

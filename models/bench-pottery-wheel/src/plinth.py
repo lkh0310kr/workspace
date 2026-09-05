@@ -14,6 +14,7 @@ from lib.dims import (
     PLINTH_D,
     PLINTH_H,
     PLINTH_WALL,
+    SHAFT_D,
     VENT_COUNT,
     VENT_HOLE_D,
 )
@@ -45,6 +46,9 @@ def plinth():
         BEARING_POCKET_D / 2, BEARING_POCKET_DEPTH + 4
     )
     body -= pocket
+
+    shaft_bore = bd.Pos(0, 0, -PLINTH_H / 2) * bd.Cylinder(SHAFT_D / 2 + 1.0, PLINTH_H + 4)
+    body -= shaft_bore
 
     # Rear cable gland through the shell at mid-height.
     cable_y = PLINTH_D / 2 - PLINTH_WALL / 2
