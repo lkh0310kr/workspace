@@ -24,6 +24,22 @@ describe("shouldReloadModelPreview", () => {
     expect(shouldReloadModelPreview("models/a.glb", ["models/b.glb"])).toBe(false);
   });
 
+  it("reloads STEP assembly when the open preview file changes", () => {
+    expect(
+      shouldReloadModelPreview("models/bench-pottery-wheel/STEP/assembly.step", [
+        "models/bench-pottery-wheel/STEP/assembly.step",
+      ]),
+    ).toBe(true);
+  });
+
+  it("ignores unrelated STEP files in another folder", () => {
+    expect(
+      shouldReloadModelPreview("models/bench-pottery-wheel/STEP/assembly.step", [
+        "models/m3-bracket/bracket.step",
+      ]),
+    ).toBe(false);
+  });
+
   it("reloads on blank/unknown churn", () => {
     expect(shouldReloadModelPreview("models/box.stl", [])).toBe(true);
     expect(shouldReloadModelPreview("models/box.stl", [""])).toBe(true);

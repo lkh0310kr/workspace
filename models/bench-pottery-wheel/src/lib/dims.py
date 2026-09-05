@@ -1,7 +1,10 @@
 """Nominal dimensions (mm) — hobby tabletop pottery wheel scale."""
 
-# Throwing surface
+# --- B7 live-iteration knobs (edit → npm run agents:bench:pottery-wheel) ---
 WHEEL_D = 300.0
+PLINTH_D = 320.0  # keep ~20 mm larger than WHEEL_D
+
+# Throwing surface
 HEAD_THICKNESS = 20.0
 
 # Rim (B1)
@@ -22,7 +25,6 @@ BOSS_WALL = 10.0
 BOSS_FILLET = 1.5
 
 # Plinth + shaft (B3)
-PLINTH_D = 320.0
 PLINTH_H = 80.0
 PLINTH_WALL = 12.0
 SHAFT_D = 24.0

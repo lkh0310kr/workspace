@@ -13,18 +13,18 @@ Single assembly grown step-by-step to validate Workspace **STEP → glb viewer**
 | B4 | `motor_mount` | sub-assembly / hardware |
 | B5 | URDF (lazy susan) | cadgen viewer pane |
 | B6 | `plinth` DXF | drawing track |
-| B7 | change `WHEEL_D` → rebuild | vibe-CAD `fs:changed` loop time |
+| **B7** ✅ | change `WHEEL_D` → rebuild | vibe-CAD `fs:changed` loop time |
 | B8 | ribbed / perforated variant | viewer perf ceiling |
 
 ## Build (from repo root)
 
 ```bash
 npm run agents:python:setup   # once
-npm run agents:python -- models/bench-pottery-wheel/src/wheel_head.py
 npm run agents:python -- models/bench-pottery-wheel/src/assembly.py
+npm run agents:bench:pottery-wheel   # B7: rebuild + timing JSON
 ```
 
-Open `STEP/assembly.step` (or `STEP/wheel_head.step`) in Workspace.
+Open `STEP/assembly.step` in Workspace. For the live-reload loop see `bench/B7-live-reload.md`.
 
 ## Benchmark log (fill each phase)
 
