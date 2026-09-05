@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { SceneManifest } from "../../shared/model3d/types";
+import { toModelUrl } from "./modelProtocolUrl";
 
 export const MODEL3D_CACHE_CONVERTER_VERSION = "cadgen-glb-1";
 
@@ -23,6 +24,29 @@ export function convertedGlbPath(workspaceRoot: string, cacheKey: string): strin
   return path.join(model3dCacheDir(workspaceRoot), `${cacheKey}.glb`);
 }
 
+function workspaceModelAbsolutePath(
+  workspaceRoot: string,
+  cacheKey: string,
+  manifest: Extract<SceneManifest, { status: "ready"; readStrategy: "workspace-model" }>,
+): string {
+  if (manifest.renderFormat === "glb" && manifest.source.format === "step") {
+    return convertedGlbPath(workspaceRoot, cacheKey);
+  }
+  return path.join(workspaceRoot, manifest.source.path);
+}
+
+function rehydrateCachedManifest(
+  workspaceRoot: string,
+  cacheKey: string,
+  manifest: SceneManifest,
+): SceneManifest {
+  if (manifest.status !== "ready" || manifest.readStrategy !== "workspace-model") {
+    return manifest;
+  }
+  const absolutePath = workspaceModelAbsolutePath(workspaceRoot, cacheKey, manifest);
+  return { ...manifest, modelUrl: toModelUrl(absolutePath) };
+}
+
 export async function lookupCachedManifest(
   workspaceRoot: string,
   cacheKey: string,
@@ -33,10 +57,10 @@ export async function lookupCachedManifest(
     const parsed = JSON.parse(raw) as SceneManifest;
     if (parsed.version !== 1) return null;
     if (parsed.status === "ready" && parsed.readStrategy === "workspace-model") {
-      const glbPath = convertedGlbPath(workspaceRoot, cacheKey);
-      if (!fs.existsSync(glbPath)) return null;
+      const target = workspaceModelAbsolutePath(workspaceRoot, cacheKey, parsed);
+      if (!fs.existsSync(target)) return null;
     }
-    return parsed;
+    return rehydrateCachedManifest(workspaceRoot, cacheKey, parsed);
   } catch {
     return null;
   }

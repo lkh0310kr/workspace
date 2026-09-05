@@ -2,22 +2,14 @@ import { net, protocol } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import { MODEL_MIME_TYPES, MODEL_SCHEME } from "./modelProtocolUrl";
+import { MODEL_MIME_TYPES, MODEL_SCHEME, modelUrlToAbsolutePath } from "./modelProtocolUrl";
 
-const MODEL_HOST = "local";
-
-export { MODEL_MIME_TYPES, MODEL_SCHEME, toModelUrl } from "./modelProtocolUrl";
+export { MODEL_MIME_TYPES, MODEL_SCHEME, modelUrlToAbsolutePath, toModelUrl } from "./modelProtocolUrl";
 
 export function registerModelProtocol(getAllowedRoots: () => string[]): void {
   protocol.handle(MODEL_SCHEME, async (request) => {
-    let absolutePath: string;
-    try {
-      const url = new URL(request.url);
-      if (url.hostname !== MODEL_HOST) {
-        return new Response("bad request", { status: 400 });
-      }
-      absolutePath = decodeURIComponent(url.pathname);
-    } catch {
+    const absolutePath = modelUrlToAbsolutePath(request.url);
+    if (!absolutePath) {
       return new Response("bad request", { status: 400 });
     }
 

@@ -8,6 +8,7 @@ import {
   model3dCacheDir,
   storeCachedManifest,
 } from "./cacheStore";
+import { modelUrlToAbsolutePath } from "./modelProtocolUrl";
 
 const tempDirs: string[] = [];
 
@@ -47,5 +48,29 @@ describe("model3d cacheStore", () => {
     expect(fs.existsSync(path.join(model3dCacheDir(root), `${key}.manifest.json`))).toBe(true);
     const loaded = await lookupCachedManifest(root, key);
     expect(loaded).toEqual(manifest);
+  });
+
+  it("rehydrates stale workspace-model URLs from the current workspace root", async () => {
+    const root = makeTempWorkspace();
+    const key = buildCacheKey("models/part.step", 1, 2);
+    const glbPath = path.join(model3dCacheDir(root), `${key}.glb`);
+    fs.mkdirSync(path.dirname(glbPath), { recursive: true });
+    fs.writeFileSync(glbPath, "glb");
+    const staleManifest = {
+      version: 1 as const,
+      status: "ready" as const,
+      source: { path: "models/part.step", format: "step" as const },
+      readStrategy: "workspace-model" as const,
+      modelUrl: "workspace-model://local/home/wsl/.workspace/model3d-cache/stale.glb",
+      mimeType: "model/gltf-binary",
+      renderFormat: "glb" as const,
+      warnings: [],
+    };
+    await storeCachedManifest(root, key, staleManifest);
+    const loaded = await lookupCachedManifest(root, key);
+    expect(loaded?.status).toBe("ready");
+    if (loaded?.status !== "ready" || loaded.readStrategy !== "workspace-model") return;
+    expect(loaded.modelUrl).not.toContain("/home/wsl/");
+    expect(modelUrlToAbsolutePath(loaded.modelUrl)).toBe(glbPath);
   });
 });
