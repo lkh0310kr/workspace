@@ -1,9 +1,34 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   fetchDashboardEconomy,
   fetchDashboardWeather,
   normalizeDashboardCoords,
 } from "./dashboardData";
+
+vi.mock("./dashboardHttp", () => ({
+  fetchDashboardJson: vi.fn(async (url: string) => {
+    if (url.includes("open-meteo.com")) {
+      return {
+        current: {
+          temperature_2m: 12.5,
+          relative_humidity_2m: 55,
+          weather_code: 0,
+          wind_speed_10m: 8,
+        },
+      };
+    }
+    if (url.includes("coingecko.com")) {
+      return {
+        bitcoin: { usd: 50_000, usd_24h_change: 1.2 },
+        ethereum: { usd: 3_000, usd_24h_change: -0.5 },
+      };
+    }
+    if (url.includes("frankfurter.app")) {
+      return { rates: { KRW: 1350, EUR: 0.92, JPY: 150 } };
+    }
+    throw new Error(`unexpected dashboard fetch in test: ${url}`);
+  }),
+}));
 
 describe("normalizeDashboardCoords", () => {
   it("falls back to Seoul for invalid coordinates", () => {
@@ -15,15 +40,15 @@ describe("normalizeDashboardCoords", () => {
 describe("fetchDashboardWeather", () => {
   it("returns current conditions for a fixed coordinate", async () => {
     const weather = await fetchDashboardWeather(37.5665, 126.978);
-    expect(weather.temperatureC).toBeTypeOf("number");
-    expect(weather.humidity).toBeGreaterThanOrEqual(0);
-    expect(weather.label.length).toBeGreaterThan(0);
-  }, 15_000);
+    expect(weather.temperatureC).toBe(12.5);
+    expect(weather.humidity).toBe(55);
+    expect(weather.label).toBe("맑음");
+  });
 
   it("recovers from invalid coordinates via fallback", async () => {
     const weather = await fetchDashboardWeather(Number.NaN, Number.NaN);
-    expect(weather.temperatureC).toBeTypeOf("number");
-  }, 15_000);
+    expect(weather.temperatureC).toBe(12.5);
+  });
 });
 
 describe("fetchDashboardEconomy", () => {
@@ -36,5 +61,5 @@ describe("fetchDashboardEconomy", () => {
       expect(quote.label.length).toBeGreaterThan(0);
       expect(quote.value.length).toBeGreaterThan(0);
     }
-  }, 20_000);
+  });
 });
