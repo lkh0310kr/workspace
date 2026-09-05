@@ -10,11 +10,11 @@ Single assembly grown step-by-step to validate Workspace **STEP → glb viewer**
 | **B1** ✅ | `wheel_head` — rim, boss, bat pins, fillets | tessellation time, triangle count |
 | **B2** ✅ | `splash_pan` — tray + drain compound | multi-solid STEP |
 | **B3** ✅ | `assembly` — head + plinth + shaft | `AssemblyHelper`, joints |
-| B4 | `motor_mount` | sub-assembly / hardware |
+| **B4** ✅ | `motor_mount` — NEMA-17 + pulley | belt drive hardware |
 | B5 | URDF (lazy susan) | cadgen viewer pane |
 | B6 | `plinth` DXF | drawing track |
 | **B7** ✅ | change `WHEEL_D` → rebuild | vibe-CAD `fs:changed` loop time |
-| B8 | ribbed / perforated variant | viewer perf ceiling |
+| **B8** ✅ | plinth ventilation slots | viewer perf / mesh stress |
 
 ## Build (from repo root)
 

@@ -32,11 +32,29 @@ SHAFT_L = 55.0
 BEARING_POCKET_D = 40.0
 BEARING_POCKET_DEPTH = 15.0
 
-# Splash pan (B2) — annular tray + separate drain cup (multi-solid compound)
+# Splash pan (B2)
 PAN_OD = PLINTH_D - 8.0
 PAN_DEPTH = 22.0
 PAN_INNER_GAP = 8.0
 PAN_FILLET = 1.5
 DRAIN_D = 20.0
 DRAIN_H = 14.0
-DRAIN_INSET = 28.0  # from outer edge toward center along -Y
+DRAIN_INSET = 28.0
+
+# Drive train (B4) — NEMA 17 class + belt pulleys
+MOTOR_BODY_W = 42.3
+MOTOR_BODY_D = 42.3
+MOTOR_BODY_H = 48.0
+MOTOR_SHAFT_D = 5.0
+MOUNT_PLATE_T = 4.0
+MOUNT_PAD = 8.0
+MOTOR_PULLEY_OD = 18.0
+MOTOR_PULLEY_H = 12.0
+DRIVE_PULLEY_OD = 60.0
+DRIVE_PULLEY_H = 10.0
+DRIVE_PULLEY_Z = 22.0  # from shaft bottom (+Z)
+
+# Plinth ventilation (B8)
+VENT_COUNT = 8
+VENT_HOLE_D = 10.0
+CABLE_HOLE_D = 16.0
