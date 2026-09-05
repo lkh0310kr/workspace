@@ -1,4 +1,4 @@
-"""B3 — plinth base with hollow shell and bearing pocket."""
+"""B3 — plinth base with bearing pocket, cable exit, and shaft bore."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from cadgen import step
 from lib.dims import (
     BEARING_POCKET_D,
     BEARING_POCKET_DEPTH,
+    CABLE_HOLE_D,
     PLINTH_D,
     PLINTH_H,
     PLINTH_WALL,
@@ -29,6 +30,12 @@ def plinth():
 
     shaft_bore = bd.Pos(0, 0, -PLINTH_H / 2) * bd.Cylinder(SHAFT_D / 2 + 1.0, PLINTH_H + 4)
     body -= shaft_bore
+
+    cable_y = PLINTH_D / 2 - PLINTH_WALL / 2
+    cable = bd.Pos(0, cable_y, -PLINTH_H / 2) * bd.Rot(90, 0, 0) * bd.Cylinder(
+        CABLE_HOLE_D / 2, PLINTH_WALL + 6
+    )
+    body -= cable
     return body
 
 
