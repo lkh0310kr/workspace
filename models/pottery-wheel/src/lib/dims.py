@@ -2,6 +2,24 @@
 
 # --- B7 live-iteration knobs (edit → npm run agents:pottery-wheel:bench) ---
 WHEEL_D = 300.0
+PLINTH_D = 320.0  # keep ~20 mm larger than WHEEL_D
 
 # Throwing surface
 HEAD_THICKNESS = 20.0
+
+# Rim (B1)
+RIM_HEIGHT = 5.0
+RIM_WIDTH = 15.0
+RIM_FILLET = 2.0
+RIM_INNER_FILLET = 1.0
+
+# Bat pins (B1)
+BAT_PIN_D = 8.0
+BAT_PIN_DEPTH = 12.0
+BAT_PIN_RADIUS = 100.0
+
+# Center hub (B1)
+CENTER_BORE_D = 25.0
+BOSS_H = 12.0
+BOSS_WALL = 10.0
+BOSS_FILLET = 1.5
