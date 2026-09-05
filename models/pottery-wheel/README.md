@@ -153,6 +153,8 @@ When porting from bench, copy **patterns** (`drive_layout`, foot datums, belt ta
 
 ---
 
-## Next step
+## Next step (your validation)
 
-**P0 + B0**: create `src/lib/dims.py`, `wheel_head.py` (plain disc), `STEP/`, `.gitignore`, and first green build.
+1. Open `models/pottery-wheel/STEP/assembly.step` in Workspace — check mates, belt, no floating parts.
+2. Run B7 loop: edit `WHEEL_D` in `dims.py` → `npm run agents:pottery-wheel:bench` → confirm viewer reload.
+3. After OK, continue with **B5** (URDF) or **B6** (DXF).
