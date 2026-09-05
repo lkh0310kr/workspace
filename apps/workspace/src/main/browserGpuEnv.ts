@@ -3,6 +3,7 @@ import { isWsl } from './wslPaths'
 /** Chromium GPU/WebGL switches for browser <webview> guests (Godot Web, etc.). */
 export function applyBrowserGpuSwitches(appendSwitch: (name: string, value?: string) => void): void {
   if (process.platform !== 'linux') return
+  appendSwitch('enable-gpu')
   appendSwitch('ignore-gpu-blocklist')
   appendSwitch('enable-gpu-rasterization')
   appendSwitch('enable-webgl')
