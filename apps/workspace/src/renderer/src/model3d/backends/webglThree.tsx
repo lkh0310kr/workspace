@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode, Component } from "react";
+import { Suspense, useEffect, useMemo, useRef, type ComponentRef, type ReactNode, Component } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Bounds, Grid, Html, OrbitControls, useBounds } from "@react-three/drei";
 import * as THREE from "three";
@@ -226,32 +226,6 @@ function CameraBridge({ onReady }: { onReady: (handle: OrbitCameraHandle) => voi
   return <OrbitControls ref={controlsRef} makeDefault enableDamping />;
 }
 
-class WebGLCanvasErrorBoundary extends Component<
-  { onError: (message: string) => void; children: ReactNode },
-  { error: string | null }
-> {
-  state = { error: null as string | null };
-
-  static getDerivedStateFromError(error: Error) {
-    return { error: error.message };
-  }
-
-  componentDidCatch(error: Error) {
-    this.props.onError(error.message);
-  }
-
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="model-viewer-canvas-hint" role="alert">
-          {this.state.error}
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 class ModelLoadErrorBoundary extends Component<
   { onError?: (error: Error) => void; children: ReactNode },
   { error: Error | null }
@@ -284,7 +258,6 @@ export interface WebGlThreeViewerProps {
   format: DetectedModelFormat;
   wireframe: boolean;
   showGrid: boolean;
-  active: boolean;
   pipeline?: RenderPipelineHooks;
   onReady?: () => void;
   onError?: (error: Error) => void;
@@ -297,45 +270,31 @@ export function WebGlThreeViewer({
   format,
   wireframe,
   showGrid,
-  active,
   pipeline,
   onReady,
   onError,
   onCameraReady,
 }: WebGlThreeViewerProps) {
-  const [canvasError, setCanvasError] = useState<string | null>(null);
-
-  if (!active) {
-    return <div className="model-viewer-canvas model-viewer-canvas--inactive" aria-hidden="true" />;
-  }
-
-  if (canvasError) {
-    return (
-      <div className="model-viewer-canvas-hint" role="alert">
-        {canvasError}
-      </div>
-    );
-  }
-
   return (
-    <WebGLCanvasErrorBoundary
-      onError={(message) => {
-        setCanvasError(message);
-        onError?.(new Error(message));
-      }}
-    >
+    <ModelLoadErrorBoundary onError={onError}>
       <Canvas
         className="model-viewer-canvas"
+        style={{ width: "100%", height: "100%" }}
         frameloop="always"
+        dpr={[1, 1.5]}
         camera={{ position: [2.5, 2, 2.5], fov: 45, near: 0.01, far: 1000 }}
         onCreated={() => onReady?.()}
-        gl={{ antialias: true, alpha: false, failIfMajorPerformanceCaveat: false, powerPreference: "default" }}
+        gl={{
+          antialias: true,
+          alpha: false,
+          failIfMajorPerformanceCaveat: false,
+          powerPreference: "default",
+        }}
       >
-      <color attach="background" args={["#1a1a1a"]} />
-      <ambientLight intensity={0.65} />
-      <directionalLight position={[4, 8, 6]} intensity={1.25} />
-      <directionalLight position={[-4, 2, -3]} intensity={0.35} />
-      <ModelLoadErrorBoundary onError={onError}>
+        <color attach="background" args={["#1a1a1a"]} />
+        <ambientLight intensity={0.65} />
+        <directionalLight position={[4, 8, 6]} intensity={1.25} />
+        <directionalLight position={[-4, 2, -3]} intensity={0.35} />
         <Bounds fit clip observe margin={1.3}>
           <Suspense fallback={null}>
             <LoadedModel
@@ -347,10 +306,9 @@ export function WebGlThreeViewer({
           </Suspense>
           <CameraBridge onReady={(handle) => onCameraReady?.(handle)} />
         </Bounds>
-      </ModelLoadErrorBoundary>
-      {showGrid ? <Grid infiniteGrid fadeDistance={30} cellSize={0.5} sectionSize={2} position={[0, -0.001, 0]} /> : null}
-      <PipelineTicker pipeline={pipeline} />
+        {showGrid ? <Grid infiniteGrid fadeDistance={30} cellSize={0.5} sectionSize={2} position={[0, -0.001, 0]} /> : null}
+        <PipelineTicker pipeline={pipeline} />
       </Canvas>
-    </WebGLCanvasErrorBoundary>
+    </ModelLoadErrorBoundary>
   );
 }

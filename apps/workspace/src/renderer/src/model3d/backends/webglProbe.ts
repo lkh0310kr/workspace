@@ -20,7 +20,7 @@ export function probeWebGL(): WebGLProbeResult {
           "WebGL is not available. On WSL/Linux, run the Electron app (not the Vite URL in a browser). If the problem persists, check GPU drivers or close other 3D panes.",
       };
     }
-    const lose = gl.getExtension("WEBGL_lose_context");
+    const lose = (gl as WebGLRenderingContext).getExtension("WEBGL_lose_context");
     lose?.loseContext();
     return { ok: true };
   } catch (err) {

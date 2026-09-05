@@ -1611,6 +1611,16 @@ input {
   position: relative;
 }
 
+.model-viewer-gl-surface {
+  flex: 1;
+  min-height: 240px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
 .model-viewer-canvas {
   width: 100%;
   height: 100%;

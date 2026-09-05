@@ -36,7 +36,6 @@ function StatefulViewer({
       format={initial.manifest.status === "ready" ? initial.manifest.source.format : "glb"}
       wireframe={wireframe}
       showGrid={showGrid}
-      active={initial.active ?? true}
       pipeline={initial.pipeline}
       onReady={initial.onReady}
       onError={initial.onError}
