@@ -31,3 +31,12 @@ SHAFT_D = 24.0
 SHAFT_L = 55.0
 BEARING_POCKET_D = 40.0
 BEARING_POCKET_DEPTH = 15.0
+
+# Splash pan (B2) — annular tray + separate drain cup (multi-solid compound)
+PAN_OD = PLINTH_D - 8.0
+PAN_DEPTH = 22.0
+PAN_INNER_GAP = 8.0
+PAN_FILLET = 1.5
+DRAIN_D = 20.0
+DRAIN_H = 14.0
+DRAIN_INSET = 28.0  # from outer edge toward center along -Y
