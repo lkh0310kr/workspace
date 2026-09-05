@@ -25,6 +25,17 @@ ref-proj/           Reference OSS (read-only; not shipped)
 
 Rust workspace: `cargo test` from repo root.
 
+## Agent skills (CAD / CAE)
+
+Skills for Cursor, Claude Code, and Codex live under [`.agents/`](./.agents/). CAD workflows need Python 3.11+:
+
+```bash
+npm run agents:python:setup
+npm run agents:cad:verify
+```
+
+See [`.agents/README.md`](./.agents/README.md).
+
 ## Stack
 
 | Layer | Tech |

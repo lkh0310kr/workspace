@@ -9,11 +9,13 @@ target/
 untitled*.md
 
 # Personal dev-session state / debug artifacts — not meant to be shared
-# (exported layout snapshots, scratch test files, debug logs). Keeps
-# .cursor/skills/ itself trackable, only ignores its debug-*.log output.
+# (exported layout snapshots, scratch test files, debug logs).
 /.workspace/
 /test/
 .cursor/debug-*.log
+
+# Agent skills Python virtualenv (see .agents/README.md, npm run agents:python:setup)
+.agents/.venv/
 
 # Godot's own per-machine import cache (not portable, regenerated on
 # first open/export) and the exported Web build (~40MB, regenerate with

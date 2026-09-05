@@ -1,0 +1,13 @@
+# Unified Python deps for .agents/skills (text-to-cad + workspace skills).
+# Python >= 3.11 required. Install via: npm run agents:python:setup
+
+# CAD / DXF / URDF / SRDF / SDF / viewer (cadgen snapshot extra includes playwright package)
+cadgen[snapshot]==0.5.0
+
+# DfAM mesh analysis (dfam-check skill)
+trimesh
+numpy
+rtree
+scipy
+networkx
+lxml
