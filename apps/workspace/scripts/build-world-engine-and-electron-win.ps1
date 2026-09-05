@@ -25,6 +25,7 @@ try {
     } else {
         npm run build:win
     }
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } finally {
     Pop-Location
 }

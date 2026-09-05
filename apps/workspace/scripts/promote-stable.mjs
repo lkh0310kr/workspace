@@ -124,17 +124,19 @@ function logPromoteLines(stdout) {
 }
 
 function forceQuitInstalledWindowsApp(installDir, options = {}) {
+  if (!existsSync(installDir)) {
+    return;
+  }
   const maxWaitMs = options.maxWaitMs ?? 20_000;
   const ps = [
     "$ErrorActionPreference = 'SilentlyContinue'",
     "$install = " + JSON.stringify(installDir),
-    "$installPattern = '*{0}*' -f $install",
     "$deadline = [DateTime]::UtcNow.AddMilliseconds(" + maxWaitMs + ")",
     "function Test-InstallProcess($proc) {",
     "  if ($proc.ExecutablePath -and $proc.ExecutablePath.StartsWith($install, [System.StringComparison]::OrdinalIgnoreCase)) {",
     "    return $true",
     "  }",
-    "  if ($proc.CommandLine -and ($proc.CommandLine -like $installPattern)) {",
+    "  if ($proc.CommandLine -and ($proc.CommandLine.IndexOf($install, [System.StringComparison]::OrdinalIgnoreCase) -ge 0)) {",
     "    return $true",
     "  }",
     "  return $false",
@@ -171,8 +173,8 @@ function forceQuitInstalledWindowsApp(installDir, options = {}) {
     "  Write-Output (\"stopping \" + $initial.Count + \" process(es) under install dir\")",
     "  foreach ($p in $initial) {",
     "    $label = if ($p.Name) { $p.Name } elseif ($p.ProcessName) { $p.ProcessName } else { 'process' }",
-    "    $pid = if ($p.ProcessId) { $p.ProcessId } else { $p.Id }",
-    "    Write-Output (\"  taskkill pid=\" + $pid + \" name=\" + $label)",
+    "    $procId = if ($p.ProcessId) { $p.ProcessId } else { $p.Id }",
+    "    Write-Output (\"  taskkill pid=\" + $procId + \" name=\" + $label)",
     "    Stop-InstallProcessTree $p",
     "  }",
     "}",
@@ -185,9 +187,9 @@ function forceQuitInstalledWindowsApp(installDir, options = {}) {
     "    Write-Output 'still-running:'",
     "    foreach ($p in $procs) {",
     "      $label = if ($p.Name) { $p.Name } elseif ($p.ProcessName) { $p.ProcessName } else { 'process' }",
-    "      $pid = if ($p.ProcessId) { $p.ProcessId } else { $p.Id }",
+    "      $procId = if ($p.ProcessId) { $p.ProcessId } else { $p.Id }",
     "      $path = if ($p.ExecutablePath) { $p.ExecutablePath } elseif ($p.Path) { $p.Path } else { '' }",
-    "      Write-Output (\"  pid=\" + $pid + \" name=\" + $label + \" path=\" + $path)",
+    "      Write-Output (\"  pid=\" + $procId + \" name=\" + $label + \" path=\" + $path)",
     "    }",
     "    Write-Error (\"timed out waiting for \" + $procs.Count + \" process(es) under install dir to exit\")",
     "    exit 1",
@@ -198,7 +200,11 @@ function forceQuitInstalledWindowsApp(installDir, options = {}) {
   const result = runPowerShell(ps);
   logPromoteLines(result.stdout);
   if (result.status !== 0) {
-    const detail = result.stderr?.trim() || result.stdout?.trim() || "unknown error";
+    const detail =
+      result.stderr?.trim() ||
+      result.stdout?.trim() ||
+      result.error?.message ||
+      "unknown error";
     throw new Error(
       `Could not stop Workspace under ${installDir}. ` +
         "End electron.exe / winpty-agent.exe under Programs\\Workspace in Task Manager, then re-run npm run promote:stable. " +
