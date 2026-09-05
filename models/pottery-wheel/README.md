@@ -64,7 +64,7 @@ models/pottery-wheel/
 
 | Phase | Build | Delivers | Acceptance |
 |-------|--------|----------|------------|
-| **P0 — scaffold** | `lib/dims.py`, `.gitignore`, catalog | Project tree, default dims | `cadgen doctor` OK |
+| **P0** ✅ | scaffold | `src/`, `lib/`, `STEP/` |
 | **B0** | `wheel_head` disc | `STEP/wheel_head.step` | Single solid; viewer opens; cache hit on reopen |
 | **B1** | `wheel_head` detail | Rim, boss, bat pins, fillets | STEP validate OK; triangle count noted |
 | **B2** | `splash_pan` | 2-solid compound (tray + drain) | `occurrenceCount ≥ 2`; sits on plinth top |
