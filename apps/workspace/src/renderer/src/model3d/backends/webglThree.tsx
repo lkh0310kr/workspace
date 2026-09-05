@@ -280,15 +280,15 @@ export function WebGlThreeViewer({
       <Canvas
         className="model-viewer-canvas"
         style={{ width: "100%", height: "100%" }}
-        frameloop="always"
-        dpr={[1, 1.5]}
+        frameloop="demand"
+        dpr={[1, 1.25]}
         camera={{ position: [2.5, 2, 2.5], fov: 45, near: 0.01, far: 1000 }}
         onCreated={() => onReady?.()}
         gl={{
           antialias: true,
           alpha: false,
           failIfMajorPerformanceCaveat: false,
-          powerPreference: "default",
+          powerPreference: "high-performance",
         }}
       >
         <color attach="background" args={["#1a1a1a"]} />
