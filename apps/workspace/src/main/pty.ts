@@ -23,7 +23,8 @@ function spawnPtyWithFallback(attempts: PtySpawnSpec[], options: PtySpawnOptions
     rows: options.rows,
     env: options.env,
     encoding: null as null,
-    ...(process.platform === "win32" ? { useConptyDll: true as const } : {}),
+    // Packaged builds ship conpty under prebuilds/, not build/Release/conpty/.
+    // useConptyDll expects build/Release/conpty/conpty.dll and breaks stable Windows.
   };
 
   let lastError: unknown;

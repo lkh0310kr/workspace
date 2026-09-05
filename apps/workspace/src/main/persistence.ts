@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { JapaneseStudyConfig } from "../shared/japaneseStudyTypes";
 import type { WorkspaceState } from "./workspace";
+import { isPackagedApp } from "./startupLog";
 
 // Port of src/lib.rs's config_path()/workspace_snapshot_path() and their
 // load/save helpers.
@@ -12,7 +13,7 @@ import type { WorkspaceState } from "./workspace";
 // `workspace-app`, so dev and packaged installs do not fight over the same
 // state files.
 export function appSupportDir(): string {
-  const suffix = app.isPackaged ? "" : "-dev";
+  const suffix = isPackagedApp() ? "" : "-dev";
   const name = `workspace-app${suffix}`;
   // macOS: keep the Tauri-compatible Library path so existing Mac installs
   // and dual-running during migration stay untouched.

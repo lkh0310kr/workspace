@@ -1,10 +1,32 @@
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-/** True when the main process is running from a packaged asar build. */
+/**
+ * True when running a packaged asar build.
+ * `app.isPackaged` is false when electron-builder sets `executableName: electron`
+ * (same basename as the dev Electron binary), so also check for resources/app.asar.
+ */
+export function isPackagedApp(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { app } = require("electron") as typeof import("electron");
+    if (app?.isPackaged) {
+      return true;
+    }
+  } catch {
+    /* electron not ready */
+  }
+  const resourcesPath = process.resourcesPath;
+  if (typeof resourcesPath === "string") {
+    return existsSync(join(resourcesPath, "app.asar"));
+  }
+  return false;
+}
+
+/** @deprecated Use {@link isPackagedApp}. */
 export function isPackagedProcess(): boolean {
-  return typeof process.resourcesPath === "string" && process.resourcesPath.includes("app.asar");
+  return isPackagedApp();
 }
 
 /** App support dir without importing Electron `app` (safe before app.ready). */
@@ -42,7 +64,7 @@ export function appendStartupLog(event: string, data?: Record<string, unknown>):
         ppid: process.ppid,
         event,
         platform: process.platform,
-        packaged: isPackagedProcess(),
+        packaged: isPackagedApp(),
         execPath: process.execPath,
         ...(data ?? {}),
       })}\n`,
