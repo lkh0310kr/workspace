@@ -17,6 +17,9 @@ import {
   revealItemInDir,
   writeFile,
 } from "../fileSystem";
+import { interactionCoordinator } from "../interaction/InteractionCoordinator";
+import { moveFocusToRendererBeforeFocusedWebviewHidden } from "../layout/browserWebviewRegistry";
+import { finishPaneDrag } from "../layout/layoutRef";
 import { classifyAssetType } from "../../../shared/asset";
 import { TextPrompt } from "./TextPrompt";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
@@ -418,6 +421,9 @@ export function TreeView({
     }
     for (const d of new Set(paths.map(dirOf))) refresh(d);
     setSelected(new Set());
+    moveFocusToRendererBeforeFocusedWebviewHidden();
+    interactionCoordinator.reconcile("tree-delete-complete");
+    finishPaneDrag();
     requestAnimationFrame(() => {
       if (scrollEl) {
         scrollEl.scrollTop = Math.min(prevScroll, Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight));

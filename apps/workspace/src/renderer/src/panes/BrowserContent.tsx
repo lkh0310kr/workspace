@@ -30,6 +30,7 @@ import { onBrowserOpenNewTab } from "../electron";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { setActiveBrowserWebview, getActiveBrowserWebview, registerBrowserWebview } from "../layout/activeBrowserWebview";
 import { moveFocusToRendererBeforeFocusedWebviewHidden } from "../layout/browserWebviewRegistry";
+import { setBrowserPageWebviewInputLock } from "../browser/ensureBrowserPageWebview";
 import type { PaneTabItem } from "../layout/paneTypes";
 
 interface Props {
@@ -371,6 +372,7 @@ export function BrowserContent({
       }
     }
     if (chipShown) {
+      setBrowserPageWebviewInputLock(webview, false);
       setActiveBrowserWebview(webview);
       releaseTerminalFocusForBrowser();
       interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, "chip-shown");
@@ -380,6 +382,7 @@ export function BrowserContent({
       browserFocusLog("BrowserContent.chipHidden", "chip hidden", snapshotBrowserFocusState(webview));
       engineBundleShownRef.current = false;
       addressInputRef.current?.blur();
+      setBrowserPageWebviewInputLock(webview, true);
       moveFocusToRendererBeforeFocusedWebviewHidden();
       if (getActiveBrowserWebview() === webview) {
         setActiveBrowserWebview(null);

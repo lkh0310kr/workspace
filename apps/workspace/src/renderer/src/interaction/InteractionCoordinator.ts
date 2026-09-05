@@ -378,13 +378,15 @@ export class InteractionCoordinatorImpl {
 
   private applyRegistrationPolicy(
     reg: WebviewRegistration,
-    _policy: { visible: boolean; interactive: boolean },
+    policy: { visible: boolean; interactive: boolean },
   ): void {
-    // Orca browser-page-webview.ts: viewport shell owns hit-testing; guest stays auto unless input-locked.
-    reg.webview.style.display = "flex";
-    reg.webview.style.flex = "1";
-    reg.webview.style.pointerEvents = "auto";
-    reg.webview.inert = false;
+    const webview = reg.webview;
+    // Windows: native <webview> composites above DOM siblings — viewport-shell
+    // pointer-events:none is not enough; the guest must be locked when inactive.
+    webview.style.display = policy.visible ? "flex" : "none";
+    webview.style.flex = "1";
+    webview.style.pointerEvents = policy.interactive ? "auto" : "none";
+    webview.inert = !policy.interactive;
   }
 
   private isWebviewInteractive(webview: Electron.WebviewTag, reg?: WebviewRegistration): boolean {
@@ -478,4 +480,10 @@ if (typeof window !== "undefined") {
     },
     true,
   );
+
+  // Native dialogs (window.confirm after TreeView delete) and Alt+Tab can leave
+  // a hidden browser guest capturing input on Windows until the window refocuses.
+  window.addEventListener("focus", () => {
+    interactionCoordinator.reconcile("window-focus");
+  });
 }

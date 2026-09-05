@@ -75,44 +75,56 @@ describe("InteractionCoordinator reconcile", () => {
     });
   });
 
-  it("keeps webview pointer-events auto when workspace tab is inactive (viewport shell blocks hits)", () => {
+  it("locks webview input when workspace tab is inactive", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(2);
 
     expect(webviewStyles(wv)).toEqual({
-      display: "flex",
-      pointerEvents: "auto",
-      inert: false,
+      display: "none",
+      pointerEvents: "none",
+      inert: true,
     });
   });
 
-  it("keeps webview pointer-events auto when pane is not visible", () => {
+  it("locks webview input when pane is not visible", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c, { paneVisible: false });
     c.setActiveWorkspaceTab(1);
 
-    expect(webviewStyles(wv).pointerEvents).toBe("auto");
+    expect(webviewStyles(wv)).toEqual({
+      display: "none",
+      pointerEvents: "none",
+      inert: true,
+    });
   });
 
-  it("keeps webview pointer-events auto when chip is inactive", () => {
+  it("locks webview input when chip is inactive", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c, { chipActive: false });
     c.setActiveWorkspaceTab(1);
 
-    expect(webviewStyles(wv).pointerEvents).toBe("auto");
+    expect(webviewStyles(wv)).toEqual({
+      display: "none",
+      pointerEvents: "none",
+      inert: true,
+    });
   });
 
-  it("keeps webview pointer-events auto while overlay is blocked", () => {
+  it("locks webview input while overlay is blocked", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(1);
     c.pushOverlayBlock("splitter-drag");
 
-    expect(webviewStyles(wv).pointerEvents).toBe("auto");
+    expect(webviewStyles(wv)).toEqual({
+      display: "none",
+      pointerEvents: "none",
+      inert: true,
+    });
   });
 
-  it("keeps webview pointer-events auto while a portal is open", () => {
+  it("keeps webview visible but blocks input while a portal is open", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(1);
@@ -120,27 +132,35 @@ describe("InteractionCoordinator reconcile", () => {
 
     expect(webviewStyles(wv)).toEqual({
       display: "flex",
-      pointerEvents: "auto",
-      inert: false,
+      pointerEvents: "none",
+      inert: true,
     });
   });
 
-  it("keeps webview pointer-events auto when pane visibility changes", () => {
+  it("locks webview input when pane visibility changes off", () => {
     const c = freshCoordinator();
     const wv = registerBrowser(c);
     c.setActiveWorkspaceTab(1);
     c.setBrowserPaneVisible(1, "browser-1", false);
 
-    expect(webviewStyles(wv).pointerEvents).toBe("auto");
+    expect(webviewStyles(wv)).toEqual({
+      display: "none",
+      pointerEvents: "none",
+      inert: true,
+    });
   });
 
-  it("keeps webview pointer-events auto when chip active changes", () => {
+  it("locks sibling webview input when chip becomes inactive", () => {
     const c = freshCoordinator();
-    const wv = registerBrowser(c);
+    const active = registerBrowser(c, { paneTabItemId: "browser-a", chipActive: true });
+    const hidden = registerBrowser(c, { paneTabItemId: "browser-b", chipActive: false });
     c.setActiveWorkspaceTab(1);
-    c.setBrowserChipActive(1, "browser-1", false);
 
-    expect(webviewStyles(wv).pointerEvents).toBe("auto");
+    expect(webviewStyles(active).pointerEvents).toBe("auto");
+    expect(webviewStyles(hidden).pointerEvents).toBe("none");
+    c.setBrowserChipActive(1, "browser-b", true);
+    expect(webviewStyles(active).pointerEvents).toBe("none");
+    expect(webviewStyles(hidden).pointerEvents).toBe("auto");
   });
 
   it("focuses webview when chip becomes active and guest is interactive", async () => {
@@ -241,17 +261,6 @@ describe("InteractionCoordinator reconcile", () => {
       pointerEvents: "none",
       inert: true,
     });
-  });
-
-  it("keeps sibling webview pointer-events auto when chip changes", () => {
-    const c = freshCoordinator();
-    const active = registerBrowser(c, { paneTabItemId: "browser-a", chipActive: true });
-    registerBrowser(c, { paneTabItemId: "browser-b", chipActive: false });
-    c.setActiveWorkspaceTab(1);
-
-    expect(webviewStyles(active).pointerEvents).toBe("auto");
-    c.setBrowserChipActive(1, "browser-b", true);
-    expect(webviewStyles(active).pointerEvents).toBe("auto");
   });
 
   it("restores webview interactivity after overlay pop", () => {
