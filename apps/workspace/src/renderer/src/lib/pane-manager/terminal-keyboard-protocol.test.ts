@@ -50,13 +50,15 @@ describe("buildWindowsPtyCompatibilityOptions", () => {
     ).toEqual({ windowsPty: { backend: "conpty", buildNumber: 26100 } });
   });
 
-  it("skips ConPTY options for WSL tab roots", () => {
+  it("enables ConPTY backend for WSL tab roots on Windows", () => {
     expect(
       buildWindowsPtyCompatibilityOptions({
         userAgent: WINDOWS_UA,
+        osRelease: "10.0.26100",
         cwd: "\\\\wsl.localhost\\Ubuntu\\home\\me\\repo",
+        shellIsWsl: true,
       }),
-    ).toEqual({});
+    ).toEqual({ windowsPty: { backend: "conpty", buildNumber: 26100 } });
   });
 });
 

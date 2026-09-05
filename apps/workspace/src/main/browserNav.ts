@@ -46,4 +46,12 @@ export function registerBrowserNavIpc(): void {
     wc.focus()
     return true
   })
+
+  ipcMain.handle('browser:blur-guest', (event, webContentsId: number) => {
+    const wc = webContentsFromId(webContentsId)
+    if (!wc || wc.isDestroyed()) return false
+    // Return keyboard to the Workspace renderer so terminal xterm can type.
+    event.sender.focus()
+    return true
+  })
 }

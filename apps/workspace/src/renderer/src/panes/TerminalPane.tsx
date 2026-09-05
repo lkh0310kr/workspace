@@ -19,6 +19,7 @@ import { resolveExplicitTerminalTitleAgentType } from "../../../shared/agent/ter
 import type { TuiAgent } from "../../../shared/agent/tui-agent";
 import { shouldFocusTerminalFromPanePointerDown } from "../lib/pane-manager/pane-pointer-focus";
 import { focusTerminalTextarea } from "../lib/focus-terminal-textarea";
+import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
 import { installTerminalPasteHandler } from "../terminal/installTerminalPasteHandler";
@@ -141,6 +142,9 @@ function TerminalPaneInner({
 
     const onFocusIn = () => {
       hasFocusRef.current = true;
+      if (platformInfo.platform === "win32") {
+        interactionCoordinator.releaseKeyboardFromBrowserGuests("terminal-focusin");
+      }
       window.api.terminal.setFocused(terminalId);
       termLog(
         "terminal:focus",
@@ -168,6 +172,9 @@ function TerminalPaneInner({
     const onPointerDown = (event: PointerEvent) => {
       if (!shouldFocusTerminalFromPanePointerDown(event.target)) {
         return;
+      }
+      if (platformInfo.platform === "win32") {
+        interactionCoordinator.releaseKeyboardFromBrowserGuests("terminal-pointerdown");
       }
       pane.terminal.focus();
     };

@@ -28,7 +28,7 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "promote:stable": "node scripts/promote-stable.mjs",
     "prebuild:win": "node scripts/stage-world-engine-win.mjs",
-    "prebuild:win:dir": "node scripts/stage-world-engine-win.mjs",
+    "prebuild:win:dir": "node scripts/stage-world-engine-win.mjs && node scripts/apply-xterm-patch.mjs",
     "build:win": "npm run build && electron-builder --win",
     "build:win:dir": "npm run build && electron-builder --win --dir",
     "build:mac": "electron-vite build && electron-builder --mac",

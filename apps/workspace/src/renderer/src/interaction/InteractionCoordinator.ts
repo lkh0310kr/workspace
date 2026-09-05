@@ -8,7 +8,11 @@ import {
   parkBrowserPageViewport,
 } from "../browser/browserPageViewport";
 import { focusBrowserGuestWebview } from "../browser/browserGuestFocus";
-import { getActiveBrowserWebview } from "../layout/activeBrowserWebview";
+import {
+  getActiveBrowserWebview,
+  setActiveBrowserWebview,
+  setGuestWebContentsFocus,
+} from "../layout/activeBrowserWebview";
 import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from "./webviewPolicy";
 
 const WEBVIEW_FOCUS_MAX_FRAMES = 12;
@@ -74,6 +78,28 @@ export class InteractionCoordinatorImpl {
 
   isOverlayBlocked(): boolean {
     return this.overlayStack.length > 0;
+  }
+
+  /** Windows: hidden browser guests can keep OS keyboard focus — release before terminal typing. */
+  releaseKeyboardFromBrowserGuests(reason: string): void {
+    this.pendingFocusWebview = null;
+    for (const reg of this.webviews.values()) {
+      const webview = reg.webview;
+      try {
+        webview.blur();
+        const webContentsId = webview.getWebContentsId();
+        setGuestWebContentsFocus(webContentsId, false);
+        void window.api.browser.blurGuest(webContentsId);
+      } catch {
+        /* guest may be mid-teardown */
+      }
+    }
+    setActiveBrowserWebview(null);
+    this.moveFocusFromEmbeds();
+    browserFocusLog("InteractionCoordinator.releaseKeyboardFromBrowserGuests", reason, {
+      registeredWebviewCount: this.webviews.size,
+      ...snapshotBrowserFocusState(getActiveBrowserWebview()),
+    });
   }
 
   setActiveWorkspaceTab(tabId: number, options?: { force?: boolean }): void {

@@ -125,7 +125,9 @@ const api = {
     goToIndex: (webContentsId: number, index: number): Promise<boolean> =>
       ipcRenderer.invoke('browser:go-to-index', webContentsId, index),
     focusGuest: (webContentsId: number): Promise<boolean> =>
-      ipcRenderer.invoke('browser:focus-guest', webContentsId)
+      ipcRenderer.invoke('browser:focus-guest', webContentsId),
+    blurGuest: (webContentsId: number): Promise<boolean> =>
+      ipcRenderer.invoke('browser:blur-guest', webContentsId)
   },
   shortcuts: {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void): (() => void) => {

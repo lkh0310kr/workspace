@@ -48,7 +48,9 @@ export function isLocalNativeWindowsConpty(context: WindowsPtyCompatibilityConte
 export function buildWindowsPtyCompatibilityOptions(
   context: WindowsPtyCompatibilityContext,
 ): Partial<ITerminalOptions> {
-  if (!isLocalNativeWindowsConpty(context)) {
+  // All Windows Electron panes use ConPTY (PowerShell, cmd, wsl.exe). xterm needs
+  // windowsPty on every Windows host — not only native C:\ tab roots.
+  if (!isWindowsUserAgent(context.userAgent)) {
     return {};
   }
   return { windowsPty: buildXtermWindowsPtyOptions(parseWindowsBuildNumber(context.osRelease)) };

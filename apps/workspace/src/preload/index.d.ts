@@ -171,6 +171,7 @@ export interface WorkspaceApi {
     goForward: (webContentsId: number) => Promise<boolean>
     goToIndex: (webContentsId: number, index: number) => Promise<boolean>
     focusGuest: (webContentsId: number) => Promise<boolean>
+    blurGuest: (webContentsId: number) => Promise<boolean>
   }
   shortcuts: {
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
