@@ -12,6 +12,9 @@ const HardwareSimulatorContent = lazy(() =>
     default: module.HardwareSimulatorContent,
   })),
 );
+const CadViewerContent = lazy(() =>
+  import("./CadViewerContent").then((module) => ({ default: module.CadViewerContent })),
+);
 
 // File Viewer pane — images, PDF, video, audio, EPUB (foliate-js paginator
 // over workspace-epub:// — see EpubReaderContent.tsx).
@@ -130,6 +133,7 @@ export function FileViewerContent({
   const isPdf = kind === "pdf";
   const isEpub = kind === "epub";
   const isModel3d = kind === "model3d";
+  const isCad = kind === "cad";
   const isHardwareSim = kind === "hardware-sim";
   const isMedia = isVideo || isAudio;
 
@@ -156,7 +160,7 @@ export function FileViewerContent({
     // EPUB owns its own load path entirely (EpubReaderContent's openEpub
     // call) — neither the base64-preview path nor the media protocol
     // applies to a zip archive. Model3D uses the import pipeline instead.
-    if (isEpub || isModel3d || isHardwareSim) return;
+    if (isEpub || isModel3d || isCad || isHardwareSim) return;
 
     if (isMedia) {
       let cancelled = false;
@@ -203,7 +207,7 @@ export function FileViewerContent({
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, filePath, absolutePath, isMedia, isEpub, isModel3d, isHardwareSim]);
+  }, [tabId, filePath, absolutePath, isMedia, isEpub, isModel3d, isCad, isHardwareSim]);
 
   // Revoke the subtitle blob URL whenever it's replaced or the pane
   // unmounts — same cleanup shape as the image blob above.
@@ -377,6 +381,20 @@ export function FileViewerContent({
           <div className="file-viewer-empty">
             Hardware simulations must be opened from the workspace tree.
           </div>
+        )
+      ) : isCad ? (
+        filePath ? (
+          <Suspense fallback={<div className="file-viewer-empty">Loading CAD Viewer…</div>}>
+            <CadViewerContent
+              tabId={tabId}
+              filePath={filePath}
+              paneActive={paneActive}
+              treeOpen={treeOpen}
+              onToggleTree={onToggleTree}
+            />
+          </Suspense>
+        ) : (
+          <div className="file-viewer-empty">CAD files must be opened from the workspace tree.</div>
         )
       ) : isModel3d ? (
         filePath ? (

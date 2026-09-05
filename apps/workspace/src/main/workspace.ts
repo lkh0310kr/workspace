@@ -20,6 +20,8 @@ import { isWorldEngineProject, launchWorldEngine as launchWorldEngine_ } from ".
 import type { AssetOpenRequest, ImportJob, SceneManifest } from "../shared/model3d/types";
 import { routeAssetOpen } from "./model3d/assetRouter";
 import { importJobQueue } from "./model3d/importJobQueue";
+import { openCadViewerFile as openCadViewerFile_ } from "./cadViewer";
+import type { CadViewerOpenResult } from "../shared/cadViewer";
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -387,6 +389,10 @@ export class Workspace {
   launchWorldEngine(tabId: number, rel: string): Promise<{ ok: boolean; error?: string }> {
     const projectAbs = files.resolveUnderRoot(this.tabRoot(tabId), rel);
     return launchWorldEngine_(projectAbs);
+  }
+
+  openCadViewerFile(tabId: number, rel: string): Promise<CadViewerOpenResult> {
+    return openCadViewerFile_(this.tabRoot(tabId), rel);
   }
 
   disposeAllTerminals(): void {

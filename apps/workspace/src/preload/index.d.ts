@@ -253,6 +253,12 @@ export interface WorkspaceApi {
     log: (event: string, data?: Record<string, unknown>) => Promise<void>
     logs: (limit?: number) => Promise<Record<string, unknown>[]>
   }
+  cad: {
+    openFile: (
+      tabId: number,
+      rel: string,
+    ) => Promise<import('../shared/cadViewer').CadViewerOpenResult>
+  }
   japanese: {
     dbStatus: () => Promise<JapaneseDbStatus>
     reload: () => Promise<JapaneseDbStatus>

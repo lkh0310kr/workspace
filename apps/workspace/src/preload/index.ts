@@ -303,6 +303,10 @@ const api = {
       ipcRenderer.invoke('model:log', event, data),
     logs: (limit?: number): Promise<unknown> => ipcRenderer.invoke('model:logs', limit),
   },
+  cad: {
+    openFile: (tabId: number, rel: string): Promise<unknown> =>
+      ipcRenderer.invoke('cad:open-file', tabId, rel),
+  },
   japanese: {
     dbStatus: (): Promise<unknown> => ipcRenderer.invoke('japanese:db-status'),
     reload: (): Promise<unknown> => ipcRenderer.invoke('japanese:reload'),

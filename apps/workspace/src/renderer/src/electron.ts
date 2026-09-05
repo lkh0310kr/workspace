@@ -167,6 +167,18 @@ export async function getModelUrl(tabId: number, rel: string): Promise<string | 
   return window.api.model3d.getUrl(tabId, rel);
 }
 
+export type { CadViewerOpenResult } from "../../shared/cadViewer";
+
+export async function openCadViewerFile(
+  tabId: number,
+  rel: string,
+): Promise<import("../../shared/cadViewer").CadViewerOpenResult> {
+  if (!window.api.cad?.openFile) {
+    throw new Error("cad API unavailable — restart the app");
+  }
+  return window.api.cad.openFile(tabId, rel);
+}
+
 export type {
   HardwareBuildResult,
   HardwareRuntimeState,

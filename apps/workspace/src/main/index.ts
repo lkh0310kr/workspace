@@ -49,6 +49,7 @@ import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
+import { disposeCadViewers } from './cadViewer'
 import { hardwareSimManager } from './hardwareSim'
 import { pickDirectory, pickMediaFile } from './nativeDialogs'
 import { initJapaneseDictionary, reloadJapaneseDictionary } from './japanese/init'
@@ -904,6 +905,9 @@ app.whenReady().then(() => {
     model3dLog(event, { source: 'renderer', ...(data ?? {}) });
   })
   ipcMain.handle('model:logs', (_event, limit?: number) => readModel3dLogs(limit ?? 200))
+  ipcMain.handle('cad:open-file', (_event, tabId: number, rel: string) =>
+    workspace!.openCadViewerFile(tabId, rel),
+  )
   ipcMain.handle('japanese:db-status', () => getJapaneseDbStatus())
   ipcMain.handle('japanese:reload', () => reloadJapaneseDictionary())
   ipcMain.handle('japanese:logs', (_event, limit?: number) => readJapaneseLogs(limit ?? 80))
@@ -1031,5 +1035,6 @@ app.on('before-quit', () => {
   workspace?.disposeAllTerminals()
   fileWatcher?.close()
   disposeWorldEngine()
+  disposeCadViewers()
   hardwareSimManager.dispose()
 })
