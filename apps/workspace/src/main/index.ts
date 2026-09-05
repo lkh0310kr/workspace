@@ -1,6 +1,6 @@
 import './protocolSchemes'
 import './imeEnv'
-import { installMainStartupLogging, appendStartupLog } from './startupLog'
+import { installMainStartupLogging, appendStartupLog, isPackagedApp } from './startupLog'
 import { ensureLinuxImeDaemon } from './imeEnv'
 import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './shortcuts/relayAppShortcuts'
 import { assertClipboardImageDimensionsWithinLimit } from '../shared/clipboard-image'
@@ -96,17 +96,17 @@ installMainStartupLogging()
 // actually keeps dev and packaged data apart. This just makes it obvious
 // at a glance (Dock, Cmd+Tab, window menu) which one you're looking at
 // when both are running side by side. Must run before app.whenReady().
-if (!app.isPackaged) {
+if (!isPackagedApp()) {
   app.setName('Workspace (Dev)')
 }
 
-const gotSingleInstanceLock = app.isPackaged ? app.requestSingleInstanceLock() : true
-appendStartupLog('single_instance_lock', { acquired: gotSingleInstanceLock, packaged: app.isPackaged })
+const gotSingleInstanceLock = isPackagedApp() ? app.requestSingleInstanceLock() : true
+appendStartupLog('single_instance_lock', { acquired: gotSingleInstanceLock, packaged: isPackagedApp() })
 if (!gotSingleInstanceLock) {
   console.error('[workspace-app] Another instance is already running — quitting.')
   appendStartupLog('single_instance_quit', { reason: 'lock_not_acquired' })
   app.quit()
-} else if (app.isPackaged) {
+} else if (isPackagedApp()) {
   app.on('second-instance', () => {
     appendStartupLog('second_instance', {
       hasMainWindow: !!mainWindowRef,
@@ -361,6 +361,12 @@ function bindMainWindow(window: BrowserWindow): void {
   }
 }
 
+function wireWorkspaceTerminalData(): void {
+  if (workspace && mainWindowRef && !mainWindowRef.isDestroyed()) {
+    bindMainWindow(mainWindowRef)
+  }
+}
+
 // Watches the active tab's rootPath and pushes 'fs:changed' to the
 // renderer (TreeView/EditorPane's onFileChanged) so external edits (git
 // checkout, another editor, a build script) show up without polling.
@@ -560,7 +566,7 @@ app.whenReady().then(() => {
   if (!gotSingleInstanceLock) return
   appendStartupLog('app_when_ready_begin')
   installMainConsoleFileLogging()
-  appendAppLog('main', 'info', 'app_ready', { packaged: app.isPackaged, platform: process.platform })
+  appendAppLog('main', 'info', 'app_ready', { packaged: isPackagedApp(), platform: process.platform })
   appendStartupLog('app_when_ready_logging_installed', { logsDir: getLogsDir() })
   if (process.platform === 'darwin') {
     Menu.setApplicationMenu(buildAppMenu())
@@ -654,7 +660,16 @@ app.whenReady().then(() => {
   // chosen a /mnt/<drive> path via settings. preferNativeWorkspacePath is
   // only for the default seed root at first launch (see defaultRoot above).
   const snapshot = rawSnapshot
+
+  appendStartupLog('create_window_begin')
+  bindMainWindow(createWindow())
+  appendStartupLog('create_window_end', {
+    hasMainWindow: !!mainWindowRef,
+    visible: mainWindowRef?.isVisible() ?? null,
+  })
+
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
+  wireWorkspaceTerminalData()
   importJobQueue.on('update', (job) => {
     sendToMainWindow('model:import-status', job)
   })
@@ -674,13 +689,6 @@ app.whenReady().then(() => {
   appendStartupLog('init_japanese_dictionary_begin')
   initJapaneseDictionary()
   appendStartupLog('init_japanese_dictionary_end')
-
-  appendStartupLog('create_window_begin')
-  bindMainWindow(createWindow())
-  appendStartupLog('create_window_end', {
-    hasMainWindow: !!mainWindowRef,
-    visible: mainWindowRef?.isVisible() ?? null,
-  })
 
   ipcMain.handle('hostname', () => osHostname())
   ipcMain.handle('app:platform', () => process.platform)

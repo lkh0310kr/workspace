@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { appendAppLog } from "./debugLogSink";
 import { Pty } from "./pty";
 import { PtySession } from "./ptySession";
 import { defaultLayout, extractTerminalIds } from "./layout";
@@ -183,7 +184,14 @@ export class Workspace {
 
   private spawnTerminalWithId(id: number, cols: number, rows: number, root: string): void {
     const pty = new Pty({ cols, rows, cwd: root });
-    pty.start();
+    try {
+      pty.start();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[pty] failed to spawn terminal ${id} in ${root}:`, err);
+      appendAppLog("main", "error", "pty_spawn_failed", { terminalId: id, root, message });
+      return;
+    }
     const session = new PtySession(id, pty, cols, rows);
     session.setOnData((terminalId, seq, data) => {
       this.onTerminalData?.(terminalId, seq, data);
