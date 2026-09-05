@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   avr8jsSidecarCandidates,
@@ -15,6 +16,8 @@ describe("hardwareSimBinaryCandidates", () => {
       packaged: false,
     });
     expect(candidates).toEqual([
+      path.join("/repo/apps/workspace", "..", "..", "target", "release", "hardware-sim"),
+      path.join("/repo/apps/workspace", "..", "..", "target", "debug", "hardware-sim"),
       path.join(
         "/repo/apps/workspace",
         "..",
@@ -58,12 +61,22 @@ describe("hardwareSimBinaryCandidates", () => {
   });
 });
 
+function resolveHardwareSimBinary(appPath: string): string {
+  const candidate = hardwareSimBinaryCandidates({ appPath, packaged: false }).find((entry) =>
+    existsSync(entry),
+  );
+  if (!candidate) {
+    throw new Error(
+      "hardware-sim binary not found — from repo root run: cargo build -p hardware-sim-core --bin hardware-sim",
+    );
+  }
+  return candidate;
+}
+
 describe("HardwareSimManager", () => {
   it("drives the Rust JSON-lines process", async () => {
-    const binary = path.resolve(
-      __dirname,
-      "../../../../hardware-sim/core/target/debug/hardware-sim",
-    );
+    const electronRoot = path.resolve(__dirname, "../../");
+    const binary = resolveHardwareSimBinary(electronRoot);
     const fixture = path.resolve(
       __dirname,
       "../../test-fixtures/hardware-button-led/hardware-sim.json",
@@ -85,10 +98,7 @@ describe("HardwareSimManager", () => {
 
   it("bridges real avr8js GPIO transitions into Rust runtime updates", async () => {
     const electronRoot = path.resolve(__dirname, "../../");
-    const binary = path.resolve(
-      electronRoot,
-      "../../hardware-sim/core/target/debug/hardware-sim",
-    );
+    const binary = resolveHardwareSimBinary(electronRoot);
     const sidecar = path.join(electronRoot, "scripts/hardware/avr8js-sidecar.mjs");
     const fixture = path.join(electronRoot, "test-fixtures/hardware-blink/hardware-sim.json");
     const manager = new HardwareSimManager(
@@ -116,10 +126,7 @@ describe("HardwareSimManager", () => {
 
   it("compiles firmware and replaces the running generation", async () => {
     const electronRoot = path.resolve(__dirname, "../../");
-    const binary = path.resolve(
-      electronRoot,
-      "../../hardware-sim/core/target/debug/hardware-sim",
-    );
+    const binary = resolveHardwareSimBinary(electronRoot);
     const sidecar = path.join(electronRoot, "scripts/hardware/avr8js-sidecar.mjs");
     const fixture = path.join(electronRoot, "test-fixtures/hardware-blink/hardware-sim.json");
     const hexPath = path.join(
@@ -167,10 +174,7 @@ describe("HardwareSimManager", () => {
 
   it("keeps the last good session when compilation fails", async () => {
     const electronRoot = path.resolve(__dirname, "../../");
-    const binary = path.resolve(
-      electronRoot,
-      "../../hardware-sim/core/target/debug/hardware-sim",
-    );
+    const binary = resolveHardwareSimBinary(electronRoot);
     const fixture = path.join(electronRoot, "test-fixtures/hardware-blink/hardware-sim.json");
     const sidecar = path.join(electronRoot, "scripts/hardware/avr8js-sidecar.mjs");
     const failedBuild: HardwareBuildResult = {

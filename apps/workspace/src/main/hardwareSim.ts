@@ -64,9 +64,13 @@ export function hardwareSimBinaryCandidates(options: HardwareSimBinaryOptions = 
     if (resources) candidates.push(path.join(resources, "hardware-sim", executable));
   }
   if (electronAppPath) {
-    const target = path.join(electronAppPath, "..", "..", "hardware-sim", "core", "target");
-    candidates.push(path.join(target, "release", executable));
-    candidates.push(path.join(target, "debug", executable));
+    const repoRoot = path.join(electronAppPath, "..", "..");
+    const workspaceTarget = path.join(repoRoot, "target");
+    candidates.push(path.join(workspaceTarget, "release", executable));
+    candidates.push(path.join(workspaceTarget, "debug", executable));
+    const crateTarget = path.join(repoRoot, "hardware-sim", "core", "target");
+    candidates.push(path.join(crateTarget, "release", executable));
+    candidates.push(path.join(crateTarget, "debug", executable));
   }
   return candidates;
 }
