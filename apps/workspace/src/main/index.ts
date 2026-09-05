@@ -354,17 +354,6 @@ function sendToMainWindow(channel: string, ...args: unknown[]): void {
 // after the original one was closed.
 function bindMainWindow(window: BrowserWindow): void {
   mainWindowRef = window
-  if (workspace) {
-    workspace.onTerminalData = (id, seq, data) => {
-      if (!window.isDestroyed()) window.webContents.send('pty:data', { id, seq, data })
-    }
-  }
-}
-
-function wireWorkspaceTerminalData(): void {
-  if (workspace && mainWindowRef && !mainWindowRef.isDestroyed()) {
-    bindMainWindow(mainWindowRef)
-  }
 }
 
 // Watches the active tab's rootPath and pushes 'fs:changed' to the
@@ -669,7 +658,6 @@ app.whenReady().then(() => {
   })
 
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
-  wireWorkspaceTerminalData()
   importJobQueue.on('update', (job) => {
     sendToMainWindow('model:import-status', job)
   })
@@ -775,10 +763,10 @@ app.whenReady().then(() => {
     return workspace!.spawnTerminal(cols, rows, tabId)
   })
   ipcMain.handle('pty:connect', (event, id: number) => {
-    return workspace!.connectTerminal(id, event.sender.id)
+    return workspace!.connectTerminal(id, event.sender)
   })
   ipcMain.on('pty:disconnect', (event, id: number) => {
-    workspace!.disconnectTerminal(id, event.sender.id)
+    workspace!.disconnectTerminal(id, event.sender)
   })
   ipcMain.on('pty:write', (_event, id: number, data: Uint8Array) => {
     workspace!.terminalWrite(id, Buffer.from(data))
@@ -1021,9 +1009,8 @@ app.whenReady().then(() => {
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open. Must
-    // re-bind mainWindowRef/workspace.onTerminalData to this new window —
-    // see bindMainWindow's comment for why leaving them pointed at the
-    // now-destroyed old window crashes on every subsequent pty data chunk.
+    // re-bind mainWindowRef to this new window — see bindMainWindow's comment
+    // for why leaving it pointed at the now-destroyed old window breaks IPC.
     if (BrowserWindow.getAllWindows().length === 0) bindMainWindow(createWindow())
   })
 

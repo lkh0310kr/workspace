@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { registerBuiltinPaneKinds } from './panes/builtinPaneKinds'
+import { bootstrapPtyDataMultiplexer } from './terminal/ptyDataMultiplexer'
 
 function logRendererBootstrap(event: string, data?: Record<string, unknown>): void {
   try {
@@ -30,6 +31,7 @@ window.addEventListener('unhandledrejection', (event) => {
 })
 
 registerBuiltinPaneKinds()
+bootstrapPtyDataMultiplexer()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

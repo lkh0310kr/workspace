@@ -1,3 +1,4 @@
+import type { WebContents } from "electron";
 import { Pty } from "./pty";
 import { appendTerminalLog, reprTerminalBytesMain } from "./terminalDebugLog";
 
@@ -41,9 +42,8 @@ export class PtySession {
   private cols: number;
   private rows: number;
   private replay = new PtyReplayBuffer();
-  private attachedWebContentsId: number | null = null;
+  private attachedWebContents: WebContents | null = null;
   private wasEverAttached = false;
-  private onDataListener: ((id: number, seq: number, data: Buffer) => void) | null = null;
 
   constructor(id: number, pty: Pty, cols: number, rows: number) {
     this.id = id;
@@ -60,18 +60,34 @@ export class PtySession {
         terminalId: this.id,
         data: { bytes: reprTerminalBytesMain(data), length: data.length, seq },
       });
-      if (this.attachedWebContentsId != null) {
-        this.onDataListener?.(this.id, seq, data);
-      }
+      this.pushLiveOutput(seq, data);
     });
   }
 
-  setOnData(listener: (id: number, seq: number, data: Buffer) => void): void {
-    this.onDataListener = listener;
+  private pushLiveOutput(seq: number, data: Buffer): void {
+    const webContents = this.attachedWebContents;
+    if (!webContents || webContents.isDestroyed()) return;
+    try {
+      webContents.send("pty:data", {
+        id: this.id,
+        seq,
+        data: Uint8Array.from(data),
+      });
+      appendTerminalLog({
+        sessionId: "terminal",
+        timestamp: Date.now(),
+        location: "main:pty:send",
+        message: "to-renderer",
+        terminalId: this.id,
+        data: { bytes: reprTerminalBytesMain(data), length: data.length, seq },
+      });
+    } catch (err) {
+      console.error(`[pty] pty:data send failed for terminal ${this.id}:`, err);
+    }
   }
 
-  connect(webContentsId: number): PtyConnectResult {
-    this.attachedWebContentsId = webContentsId;
+  connect(webContents: WebContents): PtyConnectResult {
+    this.attachedWebContents = webContents;
     const isReattach = this.wasEverAttached;
     this.wasEverAttached = true;
     const { replay, lastSeq } = this.replay.snapshot();
@@ -85,14 +101,14 @@ export class PtySession {
     };
   }
 
-  disconnect(webContentsId: number): void {
-    if (this.attachedWebContentsId === webContentsId) {
-      this.attachedWebContentsId = null;
+  disconnect(webContents: WebContents): void {
+    if (this.attachedWebContents === webContents) {
+      this.attachedWebContents = null;
     }
   }
 
   isAttached(): boolean {
-    return this.attachedWebContentsId != null;
+    return this.attachedWebContents != null && !this.attachedWebContents.isDestroyed();
   }
 
   write(data: Buffer): void {
@@ -114,14 +130,14 @@ export class PtySession {
   }
 
   dispose(): void {
-    this.attachedWebContentsId = null;
+    this.attachedWebContents = null;
     this.pty.dispose();
   }
 
   /** See Pty.disposeAndDestroySession — for when the terminal is actually
    * being deleted, not just detached (app quit, dev restart, reload). */
   disposeAndDestroySession(): void {
-    this.attachedWebContentsId = null;
+    this.attachedWebContents = null;
     this.pty.disposeAndDestroySession();
   }
 

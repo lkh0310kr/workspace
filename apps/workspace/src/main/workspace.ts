@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import type { WebContents } from "electron";
 import { appendAppLog } from "./debugLogSink";
 import { Pty } from "./pty";
 import { PtySession } from "./ptySession";
@@ -55,9 +56,6 @@ export class Workspace {
   private terminals = new Map<number, TerminalEntry>();
   private nextTerminalId = 0;
   private nextTabId = 0;
-  /** Fired whenever a terminal produces output for an attached renderer. */
-  onTerminalData: ((id: number, seq: number, data: Buffer) => void) | null = null;
-
   private constructor(rootPath: string) {
     this.defaultRootPath = rootPath;
   }
@@ -193,22 +191,19 @@ export class Workspace {
       return;
     }
     const session = new PtySession(id, pty, cols, rows);
-    session.setOnData((terminalId, seq, data) => {
-      this.onTerminalData?.(terminalId, seq, data);
-    });
     this.terminals.set(id, { session });
   }
 
-  connectTerminal(id: number, webContentsId: number) {
+  connectTerminal(id: number, webContents: WebContents) {
     const entry = this.terminals.get(id);
     if (!entry) throw new Error("terminal not found");
-    return entry.session.connect(webContentsId);
+    return entry.session.connect(webContents);
   }
 
-  disconnectTerminal(id: number, webContentsId: number): void {
+  disconnectTerminal(id: number, webContents: WebContents): void {
     const entry = this.terminals.get(id);
     if (!entry) return;
-    entry.session.disconnect(webContentsId);
+    entry.session.disconnect(webContents);
   }
 
   getTerminalSession(id: number): PtySession | undefined {

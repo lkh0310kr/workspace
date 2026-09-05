@@ -1,5 +1,5 @@
 import { createPtyInputWriteQueue } from "./ptyInputWriteQueue";
-import { subscribePtyData } from "./ptyDataMultiplexer";
+import { setPtyDataLastSeq, subscribePtyData } from "./ptyDataMultiplexer";
 import { reprTerminalBytes, termLog } from "./terminalDebugLog";
 
 export interface PtyConnectResult {
@@ -44,12 +44,12 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
   return {
     async connect(callbacks) {
       if (destroyed) throw new Error("transport destroyed");
+      dataUnlisten?.();
+      dataUnlisten = subscribePtyData(terminalId, callbacks.onData, -1);
       const result = await window.api.pty.connect(terminalId);
       connected = true;
+      setPtyDataLastSeq(terminalId, result.lastSeq);
       termLog("pty:connect", "connected", { lastSeq: result.lastSeq }, terminalId);
-
-      dataUnlisten?.();
-      dataUnlisten = subscribePtyData(terminalId, callbacks.onData, result.lastSeq);
 
       return result;
     },
