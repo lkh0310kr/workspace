@@ -22,6 +22,7 @@
     "prestart": "node scripts/rebuild-better-sqlite3.mjs --ensure-electron",
     "start": "node scripts/with-linux-ime.mjs electron-vite preview",
     "dev": "node scripts/kill-dev.mjs && node scripts/with-linux-ime.mjs electron-vite dev",
+    "webgl:probe": "node scripts/webgl-probe-electron.mjs",
     "build": "node scripts/copy-three-decoder-libs.mjs && npm run typecheck && electron-vite build",
     "postinstall": "node node_modules/electron/install.js && node scripts/apply-xterm-patch.mjs && electron-builder install-app-deps && node scripts/fix-native-exec-bits.mjs",
     "build:unpack": "npm run build && electron-builder --dir",
