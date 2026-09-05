@@ -31,7 +31,9 @@ export function sniffModelFormat(bytes: Uint8Array, fileName: string): DetectedM
   if (lowerName.endsWith(".stl")) return "stl";
   if (lowerName.endsWith(".ply")) return "ply";
   if (lowerName.endsWith(".dae")) return "dae";
+  if (lowerName.endsWith(".step") || lowerName.endsWith(".stp")) return "step";
 
+  if (header.startsWith("ISO-10303-21") || header.startsWith("STEP")) return "step";
   if (header.startsWith("solid ") || header.startsWith("SOLID ")) return "stl";
   if (header.startsWith("ply") || header.startsWith("PLY")) return "ply";
   if (header.startsWith("v ") || header.startsWith("o ") || header.startsWith("#")) return "obj";
@@ -55,6 +57,8 @@ export function mimeTypeForModelFormat(format: DetectedModelFormat): string {
       return "application/octet-stream";
     case "dae":
       return "model/vnd.collada+xml";
+    case "step":
+      return "model/step";
     default:
       return "application/octet-stream";
   }

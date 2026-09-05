@@ -44,6 +44,7 @@ export type DetectedModelFormat =
   | "stl"
   | "ply"
   | "dae"
+  | "step"
   | "unknown";
 
 export interface ImportWarning {
@@ -58,6 +59,8 @@ export type SceneManifest =
       source: { path: string; format: DetectedModelFormat };
       readStrategy: "blob-preview";
       mimeType: string;
+      /** When set (e.g. STEP→glb), the viewer loads this format instead of `source.format`. */
+      renderFormat?: DetectedModelFormat;
       warnings: ImportWarning[];
     }
   | {
@@ -67,6 +70,7 @@ export type SceneManifest =
       readStrategy: "workspace-model";
       modelUrl: string;
       mimeType: string;
+      renderFormat?: DetectedModelFormat;
       warnings: ImportWarning[];
     }
   | {

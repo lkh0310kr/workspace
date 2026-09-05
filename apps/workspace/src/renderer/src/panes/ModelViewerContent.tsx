@@ -37,7 +37,7 @@ export function ModelViewerContent({ tabId, filePath, paneActive, treeOpen, onTo
         key={preview.revision}
         modelData={preview.modelData ?? undefined}
         modelUrl={preview.modelUrl ?? undefined}
-        format={preview.manifest?.source.format ?? "glb"}
+        format={preview.manifest?.renderFormat ?? preview.manifest?.source.format ?? "glb"}
         active={paneActive}
         live
         refreshing={preview.refreshing}

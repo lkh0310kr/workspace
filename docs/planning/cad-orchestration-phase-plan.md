@@ -103,17 +103,18 @@
 ---
 
 ### Phase 52 — glTF hub + STEP delegate  
-**상태:** ⬜ PENDING  
+**상태:** ✅ DONE (2026-09-05)  
 **목표:** CAD **미리보기** = tessellated mesh만. 편집은 delegate.
 
 | IN | OUT |
 |----|-----|
-| OCCT sidecar: `step → glb` (+ `meta.warnings[]`) | STEP BREP 편집 |
-| content-address cache (`sha256.glb`) | |
+| OCCT delegate (`cadgen glb build`): `step → glb` + cache | STEP BREP 편집 |
+| content-address cache (`.workspace/model3d-cache/`) | |
+| `.step`/`.stp` → Three.js Model Viewer (import pipeline) | Python cadgen viewer for STEP (→ 53b fallback URDF/DXF only) |
 | Assimp path: `.stl`, `.obj` (M2/M3와 동일 큐) | |
 
-**산출물:** `step_preview_contract` — fixture STEP 1개 → glb hash stable.  
-**완료 기준:** 동일 STEP 두 번 열기 → 캐시 hit, OCCT 재실행 없음.
+**산출물:** `stepConvertImporter.ts`, `cacheStore.ts`, `npm run agents:cad:step`.  
+**완료 기준:** 동일 STEP 두 번 열기 → 캐시 hit, cadgen 재실행 없음.
 
 ---
 
@@ -121,6 +122,20 @@
 **상태:** ⬜ PENDING (Electron live preview 先行 — 아래 참고)  
 **목표:** 시설 검토용 **뷰어** — 멀티 메시, 선택, 레이어 표시.
 
+### Phase 53b — CAD Viewer embed (text-to-cad / cadgen)  
+**상태:** ✅ DONE (2026-09-05)  
+**목표:** STEP/URDF/DXF/SRDF/SDF를 Workspace **in-pane**에서 earthtojake CAD Viewer로 검수.
+
+| IN | OUT |
+|----|-----|
+| Electron main: `cadgen viewer` 프로세스 spawn/reuse (`.agents/.venv`) | OCCT in-process tessellation (→ Phase 52) |
+| `cad:open-file` IPC → webview `http://127.0.0.1:PORT/?file=…` | Browser pane 수동 URL |
+| `.step`/`.stp`/`.urdf`/`.srdf`/`.sdf`/`.dxf` → viewer pane | BREP 편집 |
+
+**산출물:** `apps/workspace/src/main/cadViewer.ts`, `CadViewerContent.tsx`, `npm run agents:cad:viewer`.  
+**완료 기준:** `models/m3-bracket/bracket.step` IPC open → viewer URL with encoded `file=` param.
+
+---
 | IN | OUT |
 |----|-----|
 | qt-shell: glTF per-entity mesh (기존 `MeshKind::Loaded` 확장) | PBR |
@@ -235,9 +250,9 @@
 
 ## 5. 다음 액션
 
-**착수:** Phase 52 — glTF hub + STEP delegate (OCCT sidecar).
+**착수:** Phase 53 — World Engine CAD Viewer MVP (qt-shell pick/layers).
 
-**완료:** Phase 50–51 — `orchestration.ts`, `importJobQueue`, `routeAssetOpen`, `model:import-status` IPC.
+**완료:** Phase 50–52, 53b — orchestration, import queue, STEP→glb hub, cadgen viewer embed (URDF/DXF).
 
 ---
 

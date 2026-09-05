@@ -85,7 +85,7 @@ export async function openModelPreview(input: OpenModelPreviewInput): Promise<Sc
   }
 
   const cacheKey = buildCacheKey(input.relativePath, stat.mtimeMs, stat.size);
-  const cached = await lookupCachedManifest(cacheKey);
+  const cached = await lookupCachedManifest(input.workspaceRoot, cacheKey);
   if (cached) {
     model3dLog("open_preview_cache_hit", {
       source: "main",
@@ -142,7 +142,7 @@ export async function openModelPreview(input: OpenModelPreviewInput): Promise<Sc
       format,
     });
     const result = await importer.import(ctx);
-    await storeCachedManifest(cacheKey, result.manifest);
+    await storeCachedManifest(input.workspaceRoot, cacheKey, result.manifest);
     model3dLog("open_preview_import_done", {
       source: "main",
       relativePath: input.relativePath,

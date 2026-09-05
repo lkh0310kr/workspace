@@ -22,6 +22,7 @@ export type AssetType =
   | "ebook"
   | "markdown"
   | "model3d"
+  | "cad"
   | "hardware-sim"
   | "unknown";
 
@@ -65,6 +66,12 @@ const EXTENSION_TYPES: Record<string, AssetType> = {
   ".stl": "model3d",
   ".ply": "model3d",
   ".dae": "model3d",
+  ".step": "model3d",
+  ".stp": "model3d",
+  ".urdf": "cad",
+  ".srdf": "cad",
+  ".sdf": "cad",
+  ".dxf": "cad",
 };
 
 export function classifyAssetType(pathOrName: string): AssetType {

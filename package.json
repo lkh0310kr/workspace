@@ -4,6 +4,12 @@
   "scripts": {
     "check": "bash scripts/check.sh",
     "check:rust": "cargo test -p world-engine-core -p hardware-sim-core",
-    "check:app": "cd apps/workspace && npm run typecheck"
+    "check:app": "cd apps/workspace && npm run typecheck",
+    "agents:python:setup": "node scripts/agents-python-setup.mjs",
+    "agents:python": "node scripts/agents-python.mjs",
+    "agents:cad:doctor": "node scripts/agents-python.mjs -m cadgen.cli doctor .agents/skills/cad",
+    "agents:cad:verify": "node scripts/agents-cad-verify.mjs",
+    "agents:cad:viewer": "cd apps/workspace && npx vitest run src/main/cadViewer.integration.test.ts",
+    "agents:cad:step": "cd apps/workspace && npx vitest run src/main/model3d/stepPreview.integration.test.ts"
   }
 }

@@ -16,16 +16,30 @@ export type MediaKind =
   | "audio"
   | "epub"
   | "model3d"
+  | "cad"
   | "hardware-sim"
   | "other";
 
-const MODEL3D_EXTENSIONS = [".glb", ".gltf", ".fbx", ".obj", ".stl", ".ply", ".dae"];
+const MODEL3D_EXTENSIONS = [
+  ".glb",
+  ".gltf",
+  ".fbx",
+  ".obj",
+  ".stl",
+  ".ply",
+  ".dae",
+  ".step",
+  ".stp",
+];
+
+const CAD_VIEWER_EXTENSIONS = [".urdf", ".srdf", ".sdf", ".dxf"];
 
 export function classifyMediaExtension(filePath: string): MediaKind {
   const lower = filePath.toLowerCase();
   if (lower.split("/").pop() === "hardware-sim.json") return "hardware-sim";
   if (lower.endsWith(".pdf")) return "pdf";
   if (lower.endsWith(".epub")) return "epub";
+  if (CAD_VIEWER_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "cad";
   if (MODEL3D_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "model3d";
   if (IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "image";
   if (VIDEO_EXTENSIONS.some((ext) => lower.endsWith(ext))) return "video";

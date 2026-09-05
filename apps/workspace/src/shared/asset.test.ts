@@ -11,6 +11,8 @@ describe("classifyAssetType", () => {
     expect(classifyAssetType("a.md")).toBe("markdown");
     expect(classifyAssetType("a.glb")).toBe("model3d");
     expect(classifyAssetType("a.fbx")).toBe("model3d");
+    expect(classifyAssetType("a.step")).toBe("model3d");
+    expect(classifyAssetType("a.urdf")).toBe("cad");
   });
 
   it("is case-insensitive", () => {

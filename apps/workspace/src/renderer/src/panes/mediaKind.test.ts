@@ -25,10 +25,17 @@ describe("classifyMediaExtension", () => {
     expect(classifyMediaExtension("a/b.epub")).toBe("epub");
   });
 
-  it("classifies model3d", () => {
+  it("classifies model3d including STEP", () => {
     expect(classifyMediaExtension("a/b.glb")).toBe("model3d");
     expect(classifyMediaExtension("a/b.fbx")).toBe("model3d");
     expect(classifyMediaExtension("a/b.obj")).toBe("model3d");
+    expect(classifyMediaExtension("models/part.step")).toBe("model3d");
+    expect(classifyMediaExtension("models/part.stp")).toBe("model3d");
+  });
+
+  it("classifies cad viewer formats (non-STEP)", () => {
+    expect(classifyMediaExtension("robot.urdf")).toBe("cad");
+    expect(classifyMediaExtension("layout.dxf")).toBe("cad");
   });
 
   it("classifies the hardware simulator marker", () => {
