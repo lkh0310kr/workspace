@@ -9,7 +9,8 @@
  * No GitHub release, no version bump, no update server — single-machine personal app.
  */
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, rmSync, cpSync } from "node:fs";
+import { existsSync, rmSync, cpSync, writeFileSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -84,7 +85,7 @@ function ensureWindowsDesktopShortcut(installDir, installedExe) {
     "Write-Output 'created'",
   ].join("\n");
 
-  const result = spawnSync("powershell", ["-NoProfile", "-Command", ps], { encoding: "utf8" });
+  const result = spawnSync("powershell", ["-NoProfile", "-Command", ps], { encoding: "utf8", windowsHide: true });
   const line = result.stdout
     ?.trim()
     .split(/\r?\n/)
@@ -103,138 +104,133 @@ function ensureWindowsDesktopShortcut(installDir, installedExe) {
   }
 }
 
-function runPowerShell(script, options = {}) {
-  const result = spawnSync("powershell", ["-NoProfile", "-Command", script], {
-    encoding: "utf8",
-    ...options,
-  });
-  return result;
-}
-
-function logPromoteLines(stdout) {
-  const lines = stdout
-    ?.trim()
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  for (const line of lines ?? []) {
-    console.log(`[promote-stable] ${line}`);
+function runPowerShellFile(script) {
+  const scriptPath = path.join(tmpdir(), `promote-stable-${Date.now()}-${Math.random().toString(16).slice(2)}.ps1`);
+  writeFileSync(scriptPath, script, "utf8");
+  try {
+    return spawnSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath], {
+      encoding: "utf8",
+      windowsHide: true,
+    });
+  } finally {
+    try {
+      unlinkSync(scriptPath);
+    } catch {
+      /* ignore */
+    }
   }
-  return lines ?? [];
 }
 
+function runPowerShell(script) {
+  return runPowerShellFile(script);
+}
+
+function taskkillTree(pid) {
+  spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+}
+
+/** Return PIDs whose exe/cmdline lives under installDir (never throws). */
+function listInstallProcessIds(installDir) {
+  const script = [
+    "$ErrorActionPreference = 'SilentlyContinue'",
+    "$install = " + JSON.stringify(installDir),
+    "$pids = New-Object 'System.Collections.Generic.HashSet[int]'",
+    "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object {",
+    "  $hit = $false",
+    "  if ($_.ExecutablePath -and $_.ExecutablePath.StartsWith($install, [System.StringComparison]::OrdinalIgnoreCase)) { $hit = $true }",
+    "  elseif ($_.CommandLine -and $_.CommandLine.IndexOf($install, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) { $hit = $true }",
+    "  if ($hit) { [void]$pids.Add([int]$_.ProcessId) }",
+    "}",
+    "foreach ($name in @('electron', 'winpty-agent', 'OpenConsole', 'world-engine-qt-shell')) {",
+    "  Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object {",
+    "    try {",
+    "      if ($_.Path -and $_.Path.StartsWith($install, [System.StringComparison]::OrdinalIgnoreCase)) {",
+    "        [void]$pids.Add([int]$_.Id)",
+    "      }",
+    "    } catch {}",
+    "  }",
+    "}",
+    "foreach ($procId in $pids) { Write-Output $procId }",
+    "exit 0",
+  ].join("\r\n");
+  const result = runPowerShell(script);
+  const pids = new Set();
+  for (const line of (result.stdout ?? "").split(/\r?\n/)) {
+    const pid = Number.parseInt(line.trim(), 10);
+    if (Number.isFinite(pid) && pid > 0) pids.add(pid);
+  }
+  return [...pids];
+}
+
+/**
+ * macOS pkill equivalent: kill every process under the stable install dir.
+ * Never aborts promote — install retries handle any remaining file locks.
+ */
 function forceQuitInstalledWindowsApp(installDir, options = {}) {
   if (!existsSync(installDir)) {
     return;
   }
   const maxWaitMs = options.maxWaitMs ?? 20_000;
-  const ps = [
-    "$ErrorActionPreference = 'SilentlyContinue'",
-    "$install = " + JSON.stringify(installDir),
-    "$deadline = [DateTime]::UtcNow.AddMilliseconds(" + maxWaitMs + ")",
-    "function Test-InstallProcess($proc) {",
-    "  if ($proc.ExecutablePath -and $proc.ExecutablePath.StartsWith($install, [System.StringComparison]::OrdinalIgnoreCase)) {",
-    "    return $true",
-    "  }",
-    "  if ($proc.CommandLine -and ($proc.CommandLine.IndexOf($install, [System.StringComparison]::OrdinalIgnoreCase) -ge 0)) {",
-    "    return $true",
-    "  }",
-    "  return $false",
-    "}",
-    "function Get-InstallCimProcs {",
-    "  @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { Test-InstallProcess $_ })",
-    "}",
-    "function Get-InstallPsProcs {",
-    "  $names = @('electron', 'winpty-agent', 'OpenConsole', 'world-engine-qt-shell')",
-    "  $found = @()",
-    "  foreach ($name in $names) {",
-    "    foreach ($proc in @(Get-Process -Name $name -ErrorAction SilentlyContinue)) {",
-    "      try {",
-    "        if ($proc.Path -and $proc.Path.StartsWith($install, [System.StringComparison]::OrdinalIgnoreCase)) {",
-    "          $found += $proc",
-    "        }",
-    "      } catch {}",
-    "    }",
-    "  }",
-    "  $found",
-    "}",
-    "function Stop-InstallProcessTree($proc) {",
-    "  if ($proc.ProcessId) {",
-    "    & taskkill.exe /PID $proc.ProcessId /T /F 2>$null | Out-Null",
-    "    return",
-    "  }",
-    "  if ($proc.Id) {",
-    "    & taskkill.exe /PID $proc.Id /T /F 2>$null | Out-Null",
-    "  }",
-    "}",
-    "$initial = @(Get-InstallCimProcs) + @(Get-InstallPsProcs)",
-    "$initial = $initial | Sort-Object -Property { if ($_.ProcessId) { $_.ProcessId } else { $_.Id } } -Unique",
-    "if ($initial.Count -gt 0) {",
-    "  Write-Output (\"stopping \" + $initial.Count + \" process(es) under install dir\")",
-    "  foreach ($p in $initial) {",
-    "    $label = if ($p.Name) { $p.Name } elseif ($p.ProcessName) { $p.ProcessName } else { 'process' }",
-    "    $procId = if ($p.ProcessId) { $p.ProcessId } else { $p.Id }",
-    "    Write-Output (\"  taskkill pid=\" + $procId + \" name=\" + $label)",
-    "    Stop-InstallProcessTree $p",
-    "  }",
-    "}",
-    "while ($true) {",
-    "  $procs = @(Get-InstallCimProcs) + @(Get-InstallPsProcs)",
-    "  $procs = $procs | Sort-Object -Property { if ($_.ProcessId) { $_.ProcessId } else { $_.Id } } -Unique",
-    "  if ($procs.Count -eq 0) { break }",
-    "  foreach ($p in $procs) { Stop-InstallProcessTree $p }",
-    "  if ([DateTime]::UtcNow -ge $deadline) {",
-    "    Write-Output 'still-running:'",
-    "    foreach ($p in $procs) {",
-    "      $label = if ($p.Name) { $p.Name } elseif ($p.ProcessName) { $p.ProcessName } else { 'process' }",
-    "      $procId = if ($p.ProcessId) { $p.ProcessId } else { $p.Id }",
-    "      $path = if ($p.ExecutablePath) { $p.ExecutablePath } elseif ($p.Path) { $p.Path } else { '' }",
-    "      Write-Output (\"  pid=\" + $procId + \" name=\" + $label + \" path=\" + $path)",
-    "    }",
-    "    Write-Error (\"timed out waiting for \" + $procs.Count + \" process(es) under install dir to exit\")",
-    "    exit 1",
-    "  }",
-    "  Start-Sleep -Milliseconds 300",
-    "}",
-  ].join("\n");
-  const result = runPowerShell(ps);
-  logPromoteLines(result.stdout);
-  if (result.status !== 0) {
-    const detail =
-      result.stderr?.trim() ||
-      result.stdout?.trim() ||
-      result.error?.message ||
-      "unknown error";
-    throw new Error(
-      `Could not stop Workspace under ${installDir}. ` +
-        "End electron.exe / winpty-agent.exe under Programs\\Workspace in Task Manager, then re-run npm run promote:stable. " +
-        `(${detail})`,
+  const deadline = Date.now() + maxWaitMs;
+  let logged = false;
+
+  while (Date.now() < deadline) {
+    const pids = listInstallProcessIds(installDir);
+    if (pids.length === 0) {
+      if (logged) {
+        console.log("[promote-stable] all install-dir processes exited");
+      }
+      return;
+    }
+    if (!logged) {
+      console.log(`[promote-stable] stopping ${pids.length} process(es) under install dir`);
+      logged = true;
+    }
+    for (const procId of pids) {
+      console.log(`[promote-stable]   taskkill /PID ${procId} /T /F`);
+      taskkillTree(procId);
+    }
+    sleepMs(400);
+  }
+
+  const remaining = listInstallProcessIds(installDir);
+  if (remaining.length > 0) {
+    console.warn(
+      `[promote-stable] warning: ${remaining.length} process(es) still running under install dir; continuing install anyway`,
     );
+    for (const procId of remaining) {
+      console.warn(`[promote-stable]   still running pid=${procId}`);
+    }
   }
 }
 
 function removeWindowsPathRecursive(targetPath) {
-  const ps = [
-    "$target = " + JSON.stringify(targetPath),
-    "if (-not (Test-Path -LiteralPath $target)) { exit 0 }",
-    "Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction Stop",
-  ].join("\n");
-  const result = runPowerShell(ps);
-  if (result.status !== 0) {
-    throw new Error(result.stderr?.trim() || result.stdout?.trim() || `Remove-Item failed for ${targetPath}`);
+  if (!existsSync(targetPath)) {
+    return true;
   }
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
+    "$target = " + JSON.stringify(targetPath),
+    "if (Test-Path -LiteralPath $target) {",
+    "  Remove-Item -LiteralPath $target -Recurse -Force",
+    "}",
+  ].join("\r\n");
+  const result = runPowerShell(script);
+  return result.status === 0;
 }
 
 function moveWindowsPath(sourcePath, destPath) {
-  const ps = [
+  if (!existsSync(sourcePath)) {
+    return false;
+  }
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
     "$source = " + JSON.stringify(sourcePath),
     "$dest = " + JSON.stringify(destPath),
-    "Move-Item -LiteralPath $source -Destination $dest -Force -ErrorAction Stop",
-  ].join("\n");
-  const result = runPowerShell(ps);
-  if (result.status !== 0) {
-    throw new Error(result.stderr?.trim() || result.stdout?.trim() || `Move-Item failed for ${sourcePath}`);
-  }
+    "Move-Item -LiteralPath $source -Destination $dest -Force",
+  ].join("\r\n");
+  const result = runPowerShell(script);
+  return result.status === 0;
 }
 
 function scheduleWindowsPathCleanup(targetPath) {
@@ -251,26 +247,34 @@ function scheduleWindowsPathCleanup(targetPath) {
 
 function replaceWindowsInstallDir(installDir, builtDir) {
   const incomingDir = `${installDir}.incoming-${Date.now()}`;
-
-  if (existsSync(incomingDir)) {
-    removeWindowsPathRecursive(incomingDir);
-  }
+  removeWindowsPathRecursive(incomingDir);
   cpSync(builtDir, incomingDir, { recursive: true });
 
+  const promoteIncomingTo = (destDir) => {
+    removeWindowsPathRecursive(destDir);
+    if (moveWindowsPath(incomingDir, destDir)) {
+      return destDir;
+    }
+    // Copy fallback when Move-Item fails across volumes or paths.
+    cpSync(incomingDir, destDir, { recursive: true });
+    removeWindowsPathRecursive(incomingDir);
+    return destDir;
+  };
+
   if (!existsSync(installDir)) {
-    moveWindowsPath(incomingDir, installDir);
-    return installDir;
+    return promoteIncomingTo(installDir);
   }
 
   const maxAttempts = 8;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     forceQuitInstalledWindowsApp(installDir, { maxWaitMs: 8_000 });
-    try {
-      removeWindowsPathRecursive(installDir);
-      moveWindowsPath(incomingDir, installDir);
-      return installDir;
-    } catch {
-      if (attempt === maxAttempts - 1) break;
+    if (removeWindowsPathRecursive(installDir) && existsSync(incomingDir)) {
+      if (moveWindowsPath(incomingDir, installDir)) {
+        return installDir;
+      }
+      return promoteIncomingTo(installDir);
+    }
+    if (attempt < maxAttempts - 1) {
       console.log(`[promote-stable] install dir locked, retrying (${attempt + 1}/${maxAttempts})…`);
       sleepMs(750 * (attempt + 1));
     }
@@ -280,24 +284,21 @@ function replaceWindowsInstallDir(installDir, builtDir) {
   console.log(`[promote-stable] moving locked install dir aside → ${staleDir}`);
   forceQuitInstalledWindowsApp(installDir, { maxWaitMs: 20_000 });
   sleepMs(1000);
-  try {
-    moveWindowsPath(installDir, staleDir);
-  } catch {
-    // Install dir is still locked (often electron.exe or Defender). Promote the
-    // fresh incoming tree to a sibling path and point the shortcut there.
-    const altInstallDir = `${installDir}.run-${Date.now()}`;
-    console.log(`[promote-stable] install dir still locked; promoting incoming build → ${altInstallDir}`);
-    moveWindowsPath(incomingDir, altInstallDir);
-    scheduleWindowsPathCleanup(installDir);
-    console.warn(
-      "[promote-stable] left the locked install tree in place; it will be deleted in the background when Windows releases the lock.",
-    );
-    return altInstallDir;
+
+  if (moveWindowsPath(installDir, staleDir)) {
+    scheduleWindowsPathCleanup(staleDir);
+    return promoteIncomingTo(installDir);
   }
 
-  moveWindowsPath(incomingDir, installDir);
+  const altInstallDir = `${installDir}.run-${Date.now()}`;
+  console.log(`[promote-stable] install dir still locked; promoting incoming build → ${altInstallDir}`);
+  const activeDir = promoteIncomingTo(altInstallDir);
+  scheduleWindowsPathCleanup(installDir);
   scheduleWindowsPathCleanup(staleDir);
-  return installDir;
+  console.warn(
+    "[promote-stable] left the locked install tree in place; it will be deleted in the background when Windows releases the lock.",
+  );
+  return activeDir;
 }
 
 function promoteWindows() {
