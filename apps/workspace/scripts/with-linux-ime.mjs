@@ -8,6 +8,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { applyLinuxImeEnv, bootstrapLinuxIme } from "./linux-ime-bootstrap.mjs";
+import { applyWslGpuEnv } from "./wsl-gpu-env.mjs";
 
 const args = process.argv.slice(2);
 if (args.length === 0) {
@@ -25,7 +26,7 @@ if (process.platform === "linux") {
 
 const child = spawn(cmd, cmdArgs, {
   stdio: "inherit",
-  env: applyLinuxImeEnv(),
+  env: applyWslGpuEnv(applyLinuxImeEnv()),
   cwd,
   shell: process.platform === "win32",
 });

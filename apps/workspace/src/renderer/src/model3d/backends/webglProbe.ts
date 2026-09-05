@@ -17,7 +17,9 @@ export function probeWebGL(): WebGLProbeResult {
       return {
         ok: false,
         reason:
-          "WebGL is not available. On WSL/Linux, run the Electron app (not the Vite URL in a browser). If the problem persists, check GPU drivers or close other 3D panes.",
+          "WebGL is not available. On WSL/Linux, use the Electron app (not the Vite URL in a browser). " +
+          "Try: npm run webgl:probe — default is WORKSPACE_GL=angle-gl (Mesa D3D12 GPU). " +
+          "Software fallback: WORKSPACE_GL=swiftshader npm run dev.",
       };
     }
     const lose = (gl as WebGLRenderingContext).getExtension("WEBGL_lose_context");
