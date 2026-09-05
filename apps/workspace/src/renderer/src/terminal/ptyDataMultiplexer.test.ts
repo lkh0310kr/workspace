@@ -15,11 +15,11 @@ describe("ptyDataMultiplexer", () => {
   beforeEach(() => {
     __resetPtyDataMultiplexerForTests();
     emitPtyData = vi.fn();
-    const api = (window as Window & { api: Record<string, unknown> }).api ?? {};
-    (window as Window & { api: Record<string, unknown> }).api = {
-      ...api,
+    const w = window as unknown as { api: Record<string, unknown> };
+    w.api = {
+      ...w.api,
       pty: {
-        ...(api.pty as Record<string, unknown> | undefined),
+        ...(w.api?.pty as Record<string, unknown> | undefined),
         onData: (cb: PtyDataListener) => {
           emitPtyData = cb;
           return () => {
@@ -28,7 +28,7 @@ describe("ptyDataMultiplexer", () => {
         },
       },
       debug: {
-        ...(api.debug as Record<string, unknown> | undefined),
+        ...(w.api?.debug as Record<string, unknown> | undefined),
         terminalLog: vi.fn(),
       },
     };
