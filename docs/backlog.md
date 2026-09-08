@@ -7,6 +7,7 @@ QA and near-term product work for the Electron app.
 - [ ] 코드 퀄리티 리뷰
 - [ ] Markdown Editor iframe html rendering like obsidian
 - [ ] Ebook 번역 기능 구현
-- [ ] 
+- [ ] 기타 악보 뷰어 구현
+- [ ] 대시보드 파일 구현
 
 Longer-term ideation lives in [`backlog-ideas.md`](./backlog-ideas.md).
