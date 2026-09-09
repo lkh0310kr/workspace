@@ -2,6 +2,7 @@
   "name": "workspace",
   "private": true,
   "scripts": {
+    "postinstall": "npm install --prefix apps/workspace",
     "check": "bash scripts/check.sh",
     "check:rust": "cargo test -p world-engine-core -p hardware-sim-core",
     "check:app": "cd apps/workspace && npm run typecheck",

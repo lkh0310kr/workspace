@@ -4,8 +4,19 @@
   /* flexlayout-react 0.10.x: splitter width/hit-area moved from JSON model
      attributes (splitterSize/splitterExtra, used by the ui/ Tauri app's
      0.8.x pin) to these CSS custom properties. */
-  --flexlayout-splitter-size: 9px;
-  --flexlayout-splitter-active-size: 9px;
+  --flexlayout-splitter-size: 7px;
+  --flexlayout-splitter-active-size: 7px;
+  --flexlayout-color-splitter: color-mix(in srgb, var(--border) 55%, transparent);
+  --flexlayout-color-splitter-hover: color-mix(in srgb, var(--accent) 50%, var(--border-strong));
+  --flexlayout-color-splitter-drag: var(--accent);
+  /* Human-touch tokens — restrained, not SaaS-heavy */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-inset-accent: inset 0 -2px 0 var(--accent);
+  --motion-fast: 100ms ease;
+  --motion-hover-delay: 50ms;
   /* Was near-black (#0d0d0d/#121212) — closer to Obsidian's actual dark
      theme (~#1e1e1e), which reads as a soft dark gray rather than a harsh
      near-black. */
@@ -228,6 +239,10 @@
   --syntax-type: #267f99;
   --syntax-property: #001080;
   --syntax-invalid: #cd3131;
+  --flexlayout-color-splitter: color-mix(in srgb, var(--border) 70%, transparent);
+  --flexlayout-color-splitter-hover: color-mix(in srgb, var(--accent) 45%, var(--border-strong));
+  --flexlayout-color-splitter-drag: var(--accent);
+  --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
 *,
@@ -236,8 +251,15 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Default chrome stays sharp; overlays/modals/splitters opt into radius/shadow
+   via tokens (--radius-*, --shadow-*). */
+button,
+input,
+select,
+textarea {
   border-radius: 0;
-  box-shadow: none;
 }
 
 html,
@@ -257,8 +279,6 @@ body,
 button,
 input {
   font: inherit;
-  border-radius: 0;
-  box-shadow: none;
 }
 
 .app-root {
@@ -539,7 +559,7 @@ input {
 .workspace-tab-rail-row.active {
   background: var(--bg-base);
   color: var(--text);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: var(--shadow-inset-accent);
 }
 
 .workspace-tab-rail-title {
@@ -639,7 +659,7 @@ input {
 .workspace-tab-rail-home.active {
   background: var(--bg-base);
   color: var(--text);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: var(--shadow-inset-accent);
 }
 
 .workspace-tab-rail-divider {
@@ -1253,6 +1273,7 @@ input {
 .pane-tab.active {
   background: var(--bg-base);
   color: var(--text);
+  box-shadow: var(--shadow-inset-accent);
 }
 
 .pane-tab-icon {
@@ -1450,13 +1471,10 @@ input {
 }
 
 /* Orca pattern (TabGroupPanel.tsx): when multiple splits are visible, the
-   focused group stays at full opacity and the rest dim (~0.78). */
+   focused group stays at full opacity and the rest dim (~0.78). Active tab
+   chip uses --shadow-inset-accent (see .pane-tab.active). */
 .pane-group-host-unfocused {
   opacity: var(--pane-group-unfocused-opacity);
-}
-
-.pane-group-host-focused .pane-header {
-  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 .flexlayout__tab_moveable {
@@ -4412,14 +4430,22 @@ input {
 }
 
 .flexlayout__splitter {
-  background: var(--border) !important;
-  flex: 0 0 1px !important;
-  min-width: 1px !important;
-  min-height: 1px !important;
+  /* flexlayout horz/vert classes + --flexlayout-splitter-size set hit area.
+     Do not override flex basis — old `flex: 0 0 1px` broke hover + drag. */
+  background-color: var(--color-splitter) !important;
+  transition: background-color var(--motion-fast);
+  transition-delay: var(--motion-hover-delay);
+}
+
+@media (hover: hover) {
+  .flexlayout__splitter:hover {
+    background-color: var(--color-splitter-hover) !important;
+  }
 }
 
 .flexlayout__splitter_drag {
-  flex: 0 0 1px !important;
+  background-color: var(--color-splitter-drag) !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 /* flexlayout enables this during pane drag — it sits above panes and blocks
@@ -4618,15 +4644,31 @@ input {
 
 .obsidian-explorer-resizer {
   flex-shrink: 0;
-  width: 4px;
-  margin-left: -3px;
+  width: 6px;
+  margin-left: -4px;
   cursor: col-resize;
   z-index: 1;
+  position: relative;
+  background: transparent;
 }
 
-.obsidian-explorer-resizer:hover,
-.obsidian-explorer-resizer:active {
-  background: var(--accent);
+.obsidian-explorer-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--border) 55%, transparent);
+  transition: background var(--motion-fast);
+  transition-delay: var(--motion-hover-delay);
+}
+
+.obsidian-explorer-resizer:hover::after,
+.obsidian-explorer-resizer:active::after {
+  background: color-mix(in srgb, var(--accent) 50%, var(--border-strong));
 }
 
 .obsidian-editor-column {
@@ -5117,8 +5159,8 @@ input {
   flex-direction: column;
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
   overflow: hidden;
 }
 
@@ -5166,9 +5208,9 @@ input {
   z-index: 100001;
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-overlay);
 }
 
 .settings-dialog {

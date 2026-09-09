@@ -5,6 +5,7 @@ Project documentation for the Workspace desktop app (Electron).
 | Document | Description |
 |----------|-------------|
 | [DESIGN.md](./DESIGN.md) | Visual design philosophy and UI tokens |
+| [ui-ux-improvements.md](./ui-ux-improvements.md) | UI/UX improvement backlog (orca / VS Code benchmark) |
 | [ROADMAP.md](./ROADMAP.md) | Feature phases and completion status |
 | [planning/world-engine-phase-plan.md](./planning/world-engine-phase-plan.md) | **World Engine** production phases (13+) |
 | [planning/hardware-sim-phase-plan.md](./planning/hardware-sim-phase-plan.md) | **Hardware sim** (HaC + MCU/circuit) Phase 60+ |

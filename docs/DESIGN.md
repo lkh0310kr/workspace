@@ -35,48 +35,36 @@ When uncertain, choose the simpler and quieter solution.
 
 ## Geometry
 
-### Sharp, Rectangular UI
+### Mostly sharp, occasionally soft
 
-**Rounded corners are forbidden.**
+Default chrome (tabs, buttons, pane headers) stays **rectangular** (`border-radius: 0`).
 
-Use a strict rectangular visual language.
+Small radii are allowed where they improve affordance or readability:
 
-```css
-border-radius: 0;
-```
+| Token | Value | Use |
+|-------|-------|-----|
+| `--radius-sm` | 3px | Splitter drag handle, scroll thumbs |
+| `--radius-md` | 6px | Toolbar chips, inline badges |
+| `--radius-lg` | 8px | Modals, Quick Open, anchored popovers |
 
-Do not use:
-
-* Rounded containers
-* Pill-shaped elements
-* Soft corners
-* Excessive geometric decoration
-
-The interface should feel crisp and precise.
+Avoid pill shapes (`999px`) on primary chrome. Dashboard/widgets may use modest radius.
 
 ---
 
 ## Depth
 
-### No Shadows
+### Flat workspace, lifted overlays
 
-**Shadows are forbidden.**
+The main workspace stays visually flat — hierarchy from contrast, borders, typography.
 
-```css
-box-shadow: none;
-```
+**Shadows are allowed sparingly** for floating layers that detach from the canvas:
 
-Do not use shadows to create:
+| Token | Use |
+|-------|-----|
+| `--shadow-overlay` | Quick Open, settings popovers |
+| `--shadow-inset-accent` | Active tab underline (inset, not drop shadow) |
 
-* Elevation
-* Floating surfaces
-* Hierarchy
-* Depth
-* Modal emphasis
-
-The interface should remain visually flat.
-
-Hierarchy should come from **contrast, borders, typography, and position**.
+Do not stack multiple shadows or use shadows on every panel. No glassmorphism.
 
 ---
 
@@ -311,18 +299,20 @@ Interactions should feel immediate and native to a professional desktop tool.
 
 ## Motion Philosophy
 
-Motion should be minimal.
+Motion should be **short and purposeful** — enough to feel responsive, not decorative.
 
-Animations should exist only when they improve:
+| Token | Typical use |
+|-------|-------------|
+| `--motion-fast` (100ms) | Splitter hover, hover background |
+| `--motion-hover-delay` (50ms) | Suppress flicker on fast pointer passes |
 
-* Spatial understanding
-* State transitions
-* Orientation
-* Feedback
+Use motion for:
 
-Avoid motion used purely for visual flair.
+* Splitter / resize handle hover feedback
+* Opacity fades (unfocused pane groups, hover-reveal actions)
+* Theme swap (optional `theme-transition-disabled` to prevent stagger)
 
-The application should feel fast and responsive rather than animated.
+Avoid large scale transforms, bouncy easing, or motion that delays interaction.
 
 ---
 
@@ -428,7 +418,113 @@ CSS custom properties in `apps/workspace/src/renderer/src/assets/styles.css`:
 | `--text` | Primary text |
 | `--text-muted` | Secondary labels |
 | `--accent` | Focus, links, active indicators |
+| `--radius-sm` / `--radius-md` / `--radius-lg` | Allowed corner radii |
+| `--shadow-overlay` | Modal / popover elevation |
+| `--shadow-inset-accent` | Active tab underline |
+| `--motion-fast` / `--motion-hover-delay` | Interaction transitions |
+| `--flexlayout-color-splitter*` | Pane split divider idle / hover / drag |
 | `--font-ui` | UI chrome |
 | `--font-mono` | Editor, terminal |
 | `--scroll-size` / `--scroll-thumb` | Unified scrollbars (`.scroll-region`) |
 | `.ui-btn` | Shared button chrome |
+
+---
+
+## Design System v2 — Orca benchmark & migration (2026-09-09)
+
+Reference: `ref-proj/orca/` (Tier 2 UX). Orca uses Tailwind v4 + shadcn-style
+primitives; **this app keeps the Zed/Obsidian philosophy above** — do not copy
+Orca's rounded cards, floating shadows, or SaaS spacing wholesale.
+
+### Current gaps (workspace vs orca vs DESIGN.md)
+
+| Area | Workspace today | Orca | Action |
+|------|-----------------|------|--------|
+| CSS architecture | Single `styles.css` (~5.5k lines) | `main.css` + Tailwind `@theme` + per-feature CSS | Split into `tokens.css`, `base.css`, `components/*.css` |
+| Token coverage | ~20 vars (`--bg-*`, `--text-*`) | Semantic set: `background`, `sidebar`, `popover`, status/git/agent hues, adaptive terminal chrome | Expand tokens; keep `border-radius: 0` default |
+| DESIGN.md compliance | ~65 rules use `border-radius ≥ 4px` or shadows | Rounded shadcn (intentionally different product tone) | Audit dashboard, popovers, hardware-sim, scrollbars |
+| Quick Open | Plain path list, no icons/footer hints | `CommandDialog`, file-type icons, keyboard legend, deferred search | Rebuild on shared `CommandSurface` primitive |
+| Hover / touch | Always-on or opacity hover | `can-hover:` — controls visible on touch | Port hover-reveal pattern |
+| Typography | System UI stack | Bundled Geist | Optional: ship one variable UI font; keep CJK fallbacks |
+| Light theme | Partial (`data-theme=light`) | Full paired token blocks | Complete light token block in `:root[data-theme=light]` |
+| Component docs | Philosophy only | Implicit in shadcn components | Add **Component catalog** table below |
+
+### Target file layout
+
+```
+apps/workspace/src/renderer/src/assets/
+  tokens.css          # :root semantic vars (dark + light)
+  base.css            # reset, scroll-region, typography
+  components/
+    chrome.css        # titlebar, tab rails, status bar
+    pane.css          # PaneTabStrip, PaneFrame, splitters
+    overlay.css       # QuickOpen, Popover, ContextMenu, dialogs
+    dashboard.css     # home widgets — flat panels, not cards
+    editor.css        # CodeMirror, markdown
+    terminal.css      # xterm overrides (move from terminal-xterm-overrides.css)
+  styles.css          # @import hub only
+```
+
+### Token v2 (semantic, sharp)
+
+Keep existing names as aliases during migration; add:
+
+| Token | Role |
+|-------|------|
+| `--surface-base` | Workspace canvas (= `--bg-base`) |
+| `--surface-chrome` | Titlebar, tab strips (= `--bg-surface`) |
+| `--surface-overlay` | Menus, quick open, dialogs |
+| `--surface-raised` | Inputs on chrome |
+| `--text-primary` / `--text-secondary` / `--text-tertiary` | Text hierarchy |
+| `--accent-muted` | Selection wash (no glow) |
+| `--status-success` / `--status-warning` / `--status-error` | Status only |
+| `--focus-ring` | 1px inset border, not box-shadow |
+| `--space-1` … `--space-4` | 2 / 4 / 8 / 12px — replace ad-hoc padding |
+| `--chrome-h` | Unchanged (34px) |
+
+**Hard rules (updated):** default chrome stays sharp; overlays may use `--radius-lg` +
+`--shadow-overlay`; splitters must show hover + drag feedback via flexlayout tokens;
+no card-grid SaaS dashboard density.
+
+### Known UI fixes (2026-09-09)
+
+| Bug | Cause | Fix |
+|-----|-------|-----|
+| Pane split divider hover invisible | `background: … !important` + `flex: 0 0 1px` overrode flexlayout hover | Use `--flexlayout-color-splitter*` tokens; remove flex override |
+| Focused pane group no accent | `.pane-group-host-focused .pane-header` targeted browser nav only (dead rule) | Opacity dimming + `--shadow-inset-accent` on `.pane-tab.active` |
+
+### Component catalog (shared primitives)
+
+| Primitive | Used by | Notes |
+|-----------|---------|-------|
+| `.ui-btn` / `.ui-btn-ghost` | Settings, pane actions | Already exists; extend sizes `sm/md` |
+| `.ui-input` | Rename fields, search, address bar | Single height (28px), sharp |
+| `.ui-menu` | ContextMenu, Popover, AppSettings | Flat list; no shadow |
+| `.ui-command` | QuickOpen, future palette | Orca CommandDialog behavior, our geometry |
+| `.ui-tab` | WorkspaceTabRail, PaneTabStrip | Shared active underline |
+| `.scroll-region` | All scroll surfaces | Already exists |
+
+### Migration order
+
+1. Extract `tokens.css` + `:root[data-theme=light]` parity
+2. Flatten dashboard widgets (remove `border-radius: 10px` card look)
+3. Unify QuickOpen → `.ui-command`
+4. Split `styles.css` by domain (no visual change per PR)
+5. Hover-reveal + `can-hover` for explorer row actions
+6. Delete duplicate token names once call sites migrated
+
+### Orca patterns worth porting (UX, not aesthetics)
+
+- Terminal pane title colors that adapt to terminal background luminance
+- Quick Open footer keyboard hints (`Enter`, `↑↓`)
+- Theme swap without staggered CSS transitions (`theme-transition-disabled`)
+- Modal focus return (`useModalReturnFocus` equivalent)
+- File-type icons in file pickers
+
+### Orca patterns to reject
+
+- `--radius: 0.625rem` and pill buttons
+- `--shadow-floating` on popovers
+- Card/dashboard SaaS density
+- shadcn default padding (`p-4`, `gap-4` everywhere)
+
