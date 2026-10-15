@@ -87,6 +87,7 @@ export function createPaneDOM(
     linkifierHoverResetDisposable: null,
     linkifierMouseLeaveResetDisposable: null,
     linkifierWindowBlurResetDisposable: null,
+    nativeCopyGutterDisposable: null,
     pendingSplitScrollState: null,
     pendingSplitScrollRafIds: [],
     pendingSplitScrollTimerId: null,

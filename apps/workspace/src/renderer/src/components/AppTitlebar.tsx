@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import type { Model } from 'flexlayout-react'
 import type { TabInfo } from '../electron'
 import { WorkspaceTabRail } from './WorkspaceTabRail'
 
@@ -10,6 +11,8 @@ type Props = {
   activeWorkspaceTabId: number
   homeActive: boolean
   onOpenWorkspaceTabSettings: (tabId: number, anchorRect: DOMRect) => void
+  getModel: (tabId: number) => Model | undefined
+  layoutRevisions: Record<number, number>
 }
 
 const showDrawnWindowControls = typeof window !== 'undefined' && window.api?.platform !== 'darwin'
@@ -21,7 +24,9 @@ export function AppTitlebar({
   workspaceTabs,
   activeWorkspaceTabId,
   homeActive,
-  onOpenWorkspaceTabSettings
+  onOpenWorkspaceTabSettings,
+  getModel,
+  layoutRevisions,
 }: Props) {
   // Windows / Linux: custom caption buttons (Orca — no titleBarOverlay).
   // WSLg: overlay misaligns client surface and hit-test.
@@ -48,6 +53,8 @@ export function AppTitlebar({
         activeTabId={activeWorkspaceTabId}
         homeActive={homeActive}
         onOpenSettings={onOpenWorkspaceTabSettings}
+        getModel={getModel}
+        layoutRevisions={layoutRevisions}
       />
       <div className="titlebar-spacer" />
       {showDrawnWindowControls ? (

@@ -78,6 +78,10 @@ export function readProposedPaneFitDimensions(
 }
 
 function canPreserveScrollIntentForFit(pane: ManagedPane): boolean {
+  // Alt-screen TUIs own the viewport; refit scroll restore scrambles their grid.
+  if (pane.terminal.buffer.active.type === 'alternate') {
+    return false
+  }
   // Why: split reparent has its own delayed restore; restoring here can fight that timer.
   return !(
     'pendingSplitScrollState' in pane && (pane as ManagedPaneInternal).pendingSplitScrollState

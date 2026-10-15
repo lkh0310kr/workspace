@@ -134,6 +134,14 @@ export interface WorkspaceApi {
       totalPercentUsed: number | null
       billingCycleEndMs: number | null
     }>
+    codexRateLimitStatus: () => Promise<{
+      planType: string | null
+      session: { usedPercent: number; resetsAt: number | null; windowMinutes: number | null } | null
+      weekly: { usedPercent: number; resetsAt: number | null; windowMinutes: number | null } | null
+      error: 'no_auth' | 'fetch_failed' | null
+    }>
+    meterSettingsGet: () => Promise<{ enabled: string[] }>
+    meterSettingsSave: (settings: { enabled: string[] }) => Promise<void>
   }
   dialog: {
     openDirectory: (defaultPath?: string) => Promise<DirectoryPickResult>
@@ -188,6 +196,20 @@ export interface WorkspaceApi {
   terminal: {
     setFocused: (id: number | null) => void
     onClearOptionModifiers: (cb: () => void) => () => void
+    onCaptureSessionBuffers: (cb: (terminalIds: number[]) => void) => () => void
+    sendSessionBuffers: (payload: {
+      buffersByTerminalId: Record<string, string>
+    }) => void
+    onOscTitle: (
+      cb: (payload: { terminalId: number; rawTitle: string; normalizedTitle: string }) => void,
+    ) => () => void
+    onPtySpawned: (cb: (payload: { terminalId: number }) => void) => () => void
+  }
+  agentStatus: {
+    onSet: (cb: (data: import('../shared/agent-status-ipc').AgentStatusIpcPayload) => void) => () => void
+    onClear: (cb: (data: import('../shared/agent-status-ipc').AgentStatusClearIpcPayload) => void) => () => void
+    registerTerminalPane: (terminalId: number, paneKey: string) => void
+    unregisterTerminalPane: (terminalId: number) => void
   }
   pty: {
     spawn: (cols: number, rows: number, tabId?: number) => Promise<number>

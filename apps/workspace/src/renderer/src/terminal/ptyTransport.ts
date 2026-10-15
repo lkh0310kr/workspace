@@ -20,6 +20,7 @@ export interface PtyTransport {
   }): Promise<PtyConnectResult>;
   disconnect(): void;
   write(data: string): void;
+  writeQueryReply(data: string): void;
 }
 
 export function createElectronPtyTransport(terminalId: number): PtyTransport {
@@ -72,6 +73,16 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
         terminalId,
       );
       inputQueue.enqueue(String(terminalId), data);
+    },
+
+    writeQueryReply(data: string) {
+      termLog(
+        "pty:transport",
+        "query-reply-immediate",
+        { bytes: reprTerminalBytes(data), length: data.length, connected },
+        terminalId,
+      );
+      inputQueue.enqueueQueryReply(String(terminalId), data);
     },
   };
 }

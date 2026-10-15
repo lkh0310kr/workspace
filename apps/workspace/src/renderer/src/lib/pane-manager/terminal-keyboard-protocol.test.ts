@@ -37,6 +37,7 @@ describe("buildTerminalKeyboardProtocolOptions", () => {
       }),
     ).toEqual({});
   });
+
 });
 
 describe("buildWindowsPtyCompatibilityOptions", () => {

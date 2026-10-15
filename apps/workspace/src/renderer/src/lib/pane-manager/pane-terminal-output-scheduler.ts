@@ -122,3 +122,34 @@ export function clearTerminalOutputQueue(terminal: TerminalOutputTarget): void {
   queues.delete(terminal);
   discardForegroundRenderSettle(terminal);
 }
+
+/** Push queued PTY bytes into xterm before quit-time scrollback capture (Orca shutdown path). */
+export function flushTerminalOutput(terminal: TerminalOutputTarget): void {
+  const entry = queues.get(terminal);
+  if (!entry || entry.chunks.length === 0) {
+    return;
+  }
+  const chunk = entry.chunks.length === 1 ? entry.chunks[0] : entry.chunks.join("");
+  const pendingAcks = entry.ackCredits;
+  const ack =
+    pendingAcks.length > 0
+      ? () => {
+          for (const credit of pendingAcks) credit();
+        }
+      : undefined;
+  entry.chunks = [];
+  entry.ackCredits = [];
+  queues.delete(terminal);
+  if (entry.foreground) {
+    writeForegroundTerminalChunk(terminal, chunk, {
+      onParsed: () => ack?.(),
+      onWriteFailure: () => ack?.(),
+    });
+  } else {
+    runGuardedWriteCompletionStep("background-write", () => {
+      terminal.write(chunk, () => {
+        runGuardedWriteCompletionStep("background-write-callback", () => ack?.());
+      });
+    });
+  }
+}

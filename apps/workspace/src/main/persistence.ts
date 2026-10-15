@@ -4,6 +4,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { JapaneseStudyConfig } from "../shared/japaneseStudyTypes";
 import type { WorkspaceState } from "./workspace";
+import type { TerminalSessionBuffersFile } from "../shared/terminal-session-buffers";
+import type { UsageMeterSettings } from "../shared/usage-meter-settings";
 import { isPackagedApp } from "./startupLog";
 
 // Port of src/lib.rs's config_path()/workspace_snapshot_path() and their
@@ -34,9 +36,14 @@ function workspaceSnapshotPath(): string {
   return path.join(appSupportDir(), "workspace.electron.json");
 }
 
+function terminalSessionBuffersPath(): string {
+  return path.join(appSupportDir(), "terminal-sessions.electron.json");
+}
+
 export interface AppConfig {
   rootPath?: string;
   japaneseStudy?: JapaneseStudyConfig;
+  usageMeters?: UsageMeterSettings;
 }
 
 export function loadConfig(): AppConfig {
@@ -69,5 +76,35 @@ export function saveWorkspaceSnapshot(snapshot: WorkspaceState): void {
   } catch {
     // Best-effort, same as the Rust version (logs and moves on rather
     // than failing the action that triggered the save).
+  }
+}
+
+export function loadTerminalSessionBuffers(): TerminalSessionBuffersFile {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(terminalSessionBuffersPath(), "utf8")) as TerminalSessionBuffersFile;
+    if (parsed && typeof parsed === "object" && parsed.buffersByTerminalId) {
+      return parsed;
+    }
+  } catch {
+    /* missing or corrupt */
+  }
+  return { buffersByTerminalId: {} };
+}
+
+export function saveTerminalSessionBuffers(file: TerminalSessionBuffersFile): void {
+  try {
+    const p = terminalSessionBuffersPath();
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, JSON.stringify(file, null, 2));
+  } catch {
+    /* best-effort */
+  }
+}
+
+export function clearTerminalSessionBuffers(): void {
+  try {
+    fs.unlinkSync(terminalSessionBuffersPath());
+  } catch {
+    /* already absent */
   }
 }

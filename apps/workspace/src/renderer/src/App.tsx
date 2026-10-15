@@ -1,7 +1,9 @@
 import { useWorkspace } from "./components/useWorkspace";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { AppTitlebar } from "./components/AppTitlebar";
-import { ClaudeUsageStatusBar } from "./components/ClaudeUsageStatusBar";
+import { AgentUsageStatusBar } from "./components/AgentUsageStatusBar";
+import { loadUsageMeterSettings, saveUsageMeterSettings } from "./electron";
+import { DEFAULT_USAGE_METER_SETTINGS, type UsageMeterSettings } from "../../shared/usage-meter-settings";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
 import { InteractionDebugPanel } from "./components/InteractionDebugPanel";
 import { LayoutTabDropOverlay } from "./components/LayoutTabDropOverlay";
@@ -29,6 +31,7 @@ import type { Model, TabNode } from "flexlayout-react";
 import { readPaneGroupConfig } from "./layout/layoutSession";
 import { openFileInPaneGroup, setActiveTabInGroup } from "./layout/layoutActions";
 import { useEffect, useCallback, useState } from "react";
+import { syncAgentPaneRegistryFromLayouts } from "./terminal/syncAgentPaneRegistryFromLayouts";
 import "flexlayout-react/style/combined.css";
 import "./assets/styles.css";
 
@@ -88,6 +91,20 @@ export default function App() {
   const visibleWorkspaceTabId = useVisibleWorkspaceTab();
   const activeModel = storeGetModel(activeTabId);
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+  const [usageMeterSettings, setUsageMeterSettings] = useState<UsageMeterSettings>(
+    DEFAULT_USAGE_METER_SETTINGS,
+  );
+
+  useEffect(() => {
+    loadUsageMeterSettings()
+      .then(setUsageMeterSettings)
+      .catch(() => {});
+  }, []);
+
+  const handleUsageMeterSettingsChange = useCallback((next: UsageMeterSettings) => {
+    setUsageMeterSettings(next);
+    void saveUsageMeterSettings(next);
+  }, []);
   const htmlFullscreen = useHtmlFullscreen();
 
   useAppBootstrap();
@@ -108,6 +125,11 @@ export default function App() {
   });
 
   useEffect(() => applyThemePreference(themePreference), [themePreference]);
+
+  useEffect(() => {
+    if (!workspace?.tabs) return;
+    syncAgentPaneRegistryFromLayouts(workspace.tabs, storeGetModel);
+  }, [workspace?.tabs, layoutRevisions, storeGetModel]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -142,6 +164,8 @@ export default function App() {
         activeWorkspaceTabId={visibleWorkspaceTabId}
         homeActive={homeActive}
         onOpenWorkspaceTabSettings={(tabId, anchorRect) => setSettingsTarget({ tabId, anchorRect })}
+        getModel={storeGetModel}
+        layoutRevisions={layoutRevisions}
       />
       <div className="app-shell">
         {homeActive ? <DashboardView /> : null}
@@ -167,6 +191,8 @@ export default function App() {
             onClose={() => setAppSettingsAnchor(null)}
             themePreference={themePreference}
             onThemeChange={handleThemeChange}
+            usageMeterSettings={usageMeterSettings}
+            onUsageMeterSettingsChange={handleUsageMeterSettingsChange}
           />
         )}
       </div>
@@ -180,7 +206,11 @@ export default function App() {
           onClose={() => setQuickOpenOpen(false)}
         />
       )}
-      <ClaudeUsageStatusBar />
+      <AgentUsageStatusBar
+        meterSettings={usageMeterSettings}
+        onMeterSettingsChange={handleUsageMeterSettingsChange}
+        onOpenAppSettings={() => toggleAppSettings()}
+      />
       <LayoutTabDropOverlay />
       <ErrorLogPanel />
       <InteractionDebugPanel />

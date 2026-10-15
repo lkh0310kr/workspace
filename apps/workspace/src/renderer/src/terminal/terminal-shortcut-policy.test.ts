@@ -25,6 +25,26 @@ function event(
   };
 }
 
+describe("resolveTerminalShortcutAction copy", () => {
+  it("maps Cmd+C to copySelection on macOS", () => {
+    expect(
+      resolveTerminalShortcutAction(
+        event({ key: "c", code: "KeyC", metaKey: true }),
+        true,
+      ),
+    ).toEqual({ type: "copySelection" });
+  });
+
+  it("maps Ctrl+Shift+C to copySelection on Linux", () => {
+    expect(
+      resolveTerminalShortcutAction(
+        event({ key: "c", code: "KeyC", ctrlKey: true, shiftKey: true }),
+        false,
+      ),
+    ).toEqual({ type: "copySelection" });
+  });
+});
+
 describe("resolveTerminalShortcutAction macOS Option", () => {
   it("maps Option+Backspace to backward-kill-word (^W)", () => {
     expect(

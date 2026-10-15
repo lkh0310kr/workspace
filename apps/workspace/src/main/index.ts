@@ -29,7 +29,9 @@ import {
   saveConfig,
   loadWorkspaceSnapshot,
   saveWorkspaceSnapshot,
+  saveTerminalSessionBuffers,
 } from './persistence'
+import type { TerminalSessionBuffersFile } from '../shared/terminal-session-buffers'
 import {
   preferNativeWorkspacePath,
   isWsl,
@@ -41,11 +43,30 @@ import { applyBrowserGpuSwitches } from './browserGpuEnv'
 import { shouldIgnoreWatcherPath } from './filesystemWatcherIgnore'
 import { revealWslWindow, toggleWslWindowMaximize, installWslWindowLifecycle } from './wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
-import { installClaudeStatuslineHook, claudeRateLimitStatus, cursorUsageStatus } from './usage'
+import {
+  installClaudeStatuslineHook,
+  claudeRateLimitStatus,
+  cursorUsageStatus,
+  codexRateLimitStatus,
+} from './usage'
+import { loadUsageMeterSettings, saveUsageMeterSettings } from './usageMeterConfig'
+import type { UsageMeterSettings } from '../shared/usage-meter-settings'
 import { setupBrowserSession, BROWSER_SESSION_PARTITION } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
+import {
+  observeTerminalPtyOutput,
+  notifyTerminalPtySpawned,
+  setTerminalOscTitleBroadcastTarget,
+} from './terminalOscTitleBroadcast'
+import {
+  getWorkspaceAgentHookPort,
+  registerTerminalAgentPaneKey,
+  unregisterTerminalAgentPaneKey,
+  setWorkspaceAgentHookBroadcastTarget,
+  startWorkspaceAgentHookServer,
+} from './workspaceAgentHookServer'
 import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
@@ -364,6 +385,7 @@ function bindMainWindow(window: BrowserWindow): void {
 // backed) — fine for this app, but wouldn't be portable to Linux as-is.
 let fileWatcher: fs.FSWatcher | null = null
 let watchedRoot: string | null = null
+let fileWatcherReconcile: ReturnType<typeof setInterval> | null = null
 let fsChangeDebounce: ReturnType<typeof setTimeout> | null = null
 const pendingFsChangePaths = new Set<string>()
 
@@ -390,6 +412,8 @@ function syncFileWatcher(): void {
   if (root === watchedRoot) return
   fileWatcher?.close()
   fileWatcher = null
+  if (fileWatcherReconcile) clearInterval(fileWatcherReconcile)
+  fileWatcherReconcile = null
   watchedRoot = root
   if (!root) return
   try {
@@ -401,6 +425,13 @@ function syncFileWatcher(): void {
       recursive ? { recursive: true } : {},
       (_event, filename) => broadcastFileChanged(filename ? String(filename) : undefined),
     )
+    // A non-recursive watcher cannot see edits inside existing subdirectories.
+    // Reconcile periodically so CLI-created/removed files still converge in UI
+    // on platforms/paths where recursive watching is disabled (notably WSL
+    // drvfs, where recursive inotify can stall the Electron main thread).
+    if (!recursive) {
+      fileWatcherReconcile = setInterval(() => broadcastFileChanged(), 2_000)
+    }
   } catch (err) {
     console.error('fs.watch failed for', root, err)
   }
@@ -659,6 +690,30 @@ app.whenReady().then(() => {
   })
 
   workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
+  workspace.onTerminalPtyOutput = observeTerminalPtyOutput
+  workspace.onTerminalSpawned = notifyTerminalPtySpawned
+  setTerminalOscTitleBroadcastTarget(() => mainWindowRef?.webContents ?? null)
+  setWorkspaceAgentHookBroadcastTarget(() => mainWindowRef?.webContents ?? null)
+  void startWorkspaceAgentHookServer().then((port) => {
+    appendStartupLog('workspace_agent_hook_server', { port })
+    workspace!.agentHookStatusUrl = () => {
+      const p = getWorkspaceAgentHookPort()
+      return p ? `http://127.0.0.1:${p}/status` : null
+    }
+  })
+  for (const terminalId of workspace.allReferencedTerminalIds()) {
+    notifyTerminalPtySpawned(terminalId)
+  }
+  ipcMain.on('agentStatus:register-terminal-pane', (_event, payload: { terminalId: number; paneKey: string }) => {
+    if (typeof payload?.terminalId === 'number' && typeof payload?.paneKey === 'string') {
+      registerTerminalAgentPaneKey(payload.terminalId, payload.paneKey)
+    }
+  })
+  ipcMain.on('agentStatus:unregister-terminal-pane', (_event, terminalId: number) => {
+    if (typeof terminalId === 'number') {
+      unregisterTerminalAgentPaneKey(terminalId)
+    }
+  })
   importJobQueue.on('update', (job) => {
     sendToMainWindow('model:import-status', job)
   })
@@ -674,6 +729,17 @@ app.whenReady().then(() => {
   // never persist anything until the user creates/closes/renames a tab,
   // meaning a never-touched default tab's terminal id would be lost on the very next relaunch.
   persist()
+
+  const terminalBufferAutosaveMs = 45_000
+  const terminalBufferAutosaveTimer = setInterval(() => {
+    if (!workspace) return
+    try {
+      saveTerminalSessionBuffers(workspace.buildTerminalSessionBuffersForAutosave())
+    } catch (err) {
+      console.warn('[terminal] session buffer autosave failed', err)
+    }
+  }, terminalBufferAutosaveMs)
+  app.on('will-quit', () => clearInterval(terminalBufferAutosaveTimer))
 
   appendStartupLog('init_japanese_dictionary_begin')
   initJapaneseDictionary()
@@ -746,6 +812,11 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('usage:claude-rate-limit-status', () => claudeRateLimitStatus())
   ipcMain.handle('usage:cursor-usage-status', () => cursorUsageStatus())
+  ipcMain.handle('usage:codex-rate-limit-status', () => codexRateLimitStatus())
+  ipcMain.handle('usage:meter-settings-get', () => loadUsageMeterSettings())
+  ipcMain.handle('usage:meter-settings-save', (_event, settings: unknown) => {
+    saveUsageMeterSettings(settings as UsageMeterSettings)
+  })
   ipcMain.handle('dialog:open-directory', async (_event, defaultPath?: string) =>
     pickDirectory(mainWindowRef, defaultPath)
   )
@@ -1030,11 +1101,56 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
+let applicationQuitPrepared = false
+
+function requestTerminalSessionBuffersFromRenderer(): Promise<TerminalSessionBuffersFile> {
+  return new Promise((resolve) => {
+    const webContents = mainWindowRef?.webContents
+    if (!webContents || webContents.isDestroyed()) {
+      resolve({ buffersByTerminalId: {} })
+      return
+    }
+    const terminalIds = workspace?.allReferencedTerminalIds() ?? []
+    const timer = setTimeout(() => resolve({ buffersByTerminalId: {} }), 5000)
+    ipcMain.once('terminal:session-buffers', (_event, payload: TerminalSessionBuffersFile) => {
+      clearTimeout(timer)
+      if (payload?.buffersByTerminalId && typeof payload.buffersByTerminalId === 'object') {
+        resolve(payload)
+      } else {
+        resolve({ buffersByTerminalId: {} })
+      }
+    })
+    webContents.send('terminal:capture-session-buffers', terminalIds)
+  })
+}
+
+async function prepareApplicationQuit(): Promise<void> {
   appendStartupLog('app_before_quit')
-  workspace?.disposeAllTerminals()
+  if (workspace) {
+    const captured = await requestTerminalSessionBuffersFromRenderer()
+    const merged = workspace.buildTerminalSessionBuffersForQuit(captured)
+    saveTerminalSessionBuffers(merged)
+    persist()
+    workspace.disposeAllTerminals()
+  }
   fileWatcher?.close()
   disposeWorldEngine()
   disposeCadViewers()
   hardwareSimManager.dispose()
+}
+
+app.on('before-quit', (event) => {
+  if (applicationQuitPrepared) {
+    return
+  }
+  event.preventDefault()
+  void prepareApplicationQuit()
+    .catch((err) => {
+      console.error('[app] prepareApplicationQuit failed', err)
+      workspace?.disposeAllTerminals()
+    })
+    .finally(() => {
+      applicationQuitPrepared = true
+      app.quit()
+    })
 })

@@ -8,6 +8,7 @@ export interface PtyOptions {
   cols: number;
   rows: number;
   cwd?: string;
+  extraEnv?: Record<string, string>;
 }
 
 type PtySpawnOptions = {
@@ -50,6 +51,7 @@ export class Pty {
   private cols: number;
   private rows: number;
   private cwd?: string;
+  private extraEnv?: Record<string, string>;
   private onDataCallback: ((data: Buffer) => void) | null = null;
   private disposed = false;
 
@@ -57,6 +59,7 @@ export class Pty {
     this.cols = options.cols;
     this.rows = options.rows;
     this.cwd = options.cwd;
+    this.extraEnv = options.extraEnv;
   }
 
   onData(cb: (data: Buffer) => void): void {
@@ -71,6 +74,7 @@ export class Pty {
       existingLang && existingLang.toUpperCase().includes("UTF-8") ? existingLang : "en_US.UTF-8";
     const env: { [key: string]: string | undefined } = {
       ...process.env,
+      ...this.extraEnv,
       TERM: "xterm-256color",
       COLORTERM: "truecolor",
       LANG: locale,

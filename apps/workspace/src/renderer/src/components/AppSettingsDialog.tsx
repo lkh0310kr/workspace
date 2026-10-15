@@ -2,12 +2,20 @@ import { useState } from "react";
 import { Popover } from "./Popover";
 import { ThemePreference } from "../theme";
 import { getStoredAutoSave, setStoredAutoSave } from "../autosave";
+import {
+  USAGE_PROVIDER_IDS,
+  USAGE_PROVIDER_LABELS,
+  type UsageMeterSettings,
+  type UsageProviderId,
+} from "../../../shared/usage-meter-settings";
 
 interface Props {
   anchorRect: DOMRect;
   onClose: () => void;
   themePreference: ThemePreference;
   onThemeChange: (preference: ThemePreference) => void;
+  usageMeterSettings: UsageMeterSettings;
+  onUsageMeterSettingsChange: (next: UsageMeterSettings) => void;
 }
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -16,12 +24,28 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "System" },
 ];
 
-export function AppSettingsDialog({ anchorRect, onClose, themePreference, onThemeChange }: Props) {
+export function AppSettingsDialog({
+  anchorRect,
+  onClose,
+  themePreference,
+  onThemeChange,
+  usageMeterSettings,
+  onUsageMeterSettingsChange,
+}: Props) {
   const [autoSave, setAutoSave] = useState(getStoredAutoSave);
 
   const changeAutoSave = (enabled: boolean) => {
     setStoredAutoSave(enabled);
     setAutoSave(enabled);
+  };
+
+  const toggleUsageProvider = (id: UsageProviderId) => {
+    const set = new Set(usageMeterSettings.enabled);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    onUsageMeterSettingsChange({
+      enabled: USAGE_PROVIDER_IDS.filter((p) => set.has(p)),
+    });
   };
 
   return (
@@ -45,6 +69,22 @@ export function AppSettingsDialog({ anchorRect, onClose, themePreference, onThem
             >
               {option.label}
             </button>
+          ))}
+        </div>
+      </div>
+      <div className="settings-section-title">Status bar</div>
+      <div className="settings-row settings-row-column">
+        <span className="settings-row-label">AI agent usage meters — click the status bar for details</span>
+        <div className="usage-settings-toggles">
+          {USAGE_PROVIDER_IDS.map((id) => (
+            <label key={id} className="usage-details-toggle">
+              <input
+                type="checkbox"
+                checked={usageMeterSettings.enabled.includes(id)}
+                onChange={() => toggleUsageProvider(id)}
+              />
+              {USAGE_PROVIDER_LABELS[id]}
+            </label>
           ))}
         </div>
       </div>

@@ -1,20 +1,42 @@
-import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type MouseEvent,
+} from 'react'
+import type { Model } from 'flexlayout-react'
 import { TabInfo, addTab, closeTab, renameTab, reorderTabs } from '../electron'
 import { dismissWorkspacePortals } from '../workspacePortalDismiss'
 import { switchToHome, switchToWorkspaceTab } from '../workspaceNavigation'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
+import { WorkspaceTabStatusIndicator } from './WorkspaceTabStatusIndicator'
+import { computeWorkspaceTabActivityStatus } from '../hooks/useWorkspaceTabActivityStatus'
+import { useAgentStatusStore } from '../store/agentStatusStore'
+import { useRuntimeTerminalTitlesStore } from '../store/runtimeTerminalTitlesStore'
 
 interface Props {
   tabs: TabInfo[]
   activeTabId: number
   homeActive: boolean
   onOpenSettings: (tabId: number, anchorRect: DOMRect) => void
+  getModel: (tabId: number) => Model | undefined
+  layoutRevisions: Record<number, number>
 }
 
 // Always-visible strip, same shape/placement idiom as PaneTabStrip — no
 // toggle button, no popover. Selecting a workspace works exactly like
 // selecting any other tab.
-export function WorkspaceTabRail({ tabs, activeTabId, homeActive, onOpenSettings }: Props) {
+export function WorkspaceTabRail({
+  tabs,
+  activeTabId,
+  homeActive,
+  onOpenSettings,
+  getModel,
+  layoutRevisions,
+}: Props) {
   const [renamingId, setRenamingId] = useState<number | null>(null)
   const [draft, setDraft] = useState('')
   const [contextMenu, setContextMenu] = useState<{ tabId: number; x: number; y: number } | null>(
@@ -92,6 +114,16 @@ export function WorkspaceTabRail({ tabs, activeTabId, homeActive, onOpenSettings
     [tabs]
   )
 
+  const agentEpoch = useAgentStatusStore((s) => s.agentStatusEpoch)
+  const titlesRevision = useRuntimeTerminalTitlesStore((s) => s.revision)
+  const tabStatusById = useMemo(() => {
+    const out = new Map<number, ReturnType<typeof computeWorkspaceTabActivityStatus>>()
+    for (const tab of tabs) {
+      out.set(tab.id, computeWorkspaceTabActivityStatus(tab.id, getModel))
+    }
+    return out
+  }, [tabs, getModel, layoutRevisions, agentEpoch, titlesRevision])
+
   const handleDrop = () => {
     const draggedId = draggedIdRef.current
     setDropIndex(null)
@@ -127,7 +159,9 @@ export function WorkspaceTabRail({ tabs, activeTabId, homeActive, onOpenSettings
       </button>
       <div className="workspace-tab-rail-divider" aria-hidden="true" />
       <div className="workspace-tab-rail-tabs">
-        {tabs.map((tab, index) => (
+        {tabs.map((tab, index) => {
+          const tabStatus = tabStatusById.get(tab.id)
+          return (
           <div key={tab.id} className="workspace-tab-rail-slot">
             {dropIndex === index && <div className="workspace-tab-rail-drop-indicator" />}
             <div
@@ -190,6 +224,7 @@ export function WorkspaceTabRail({ tabs, activeTabId, homeActive, onOpenSettings
                   }}
                   title={tab.root_path}
                 >
+                  {tabStatus ? <WorkspaceTabStatusIndicator status={tabStatus} /> : null}
                   <span className="workspace-tab-rail-title-text">{tab.title}</span>
                 </button>
               )}
@@ -209,7 +244,8 @@ export function WorkspaceTabRail({ tabs, activeTabId, homeActive, onOpenSettings
               )}
             </div>
           </div>
-        ))}
+          )
+        })}
         {dropIndex === tabs.length && <div className="workspace-tab-rail-drop-indicator" />}
       </div>
       <button

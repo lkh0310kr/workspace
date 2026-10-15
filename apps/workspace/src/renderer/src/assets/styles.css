@@ -1,5 +1,15 @@
 /* Design system: docs/DESIGN.md — Zed / Obsidian inspired */
 
+/* PUA / Powerline / Nerd Font glyphs for agent TUIs (Codex, Claude Code, Cursor CLI). */
+@font-face {
+  font-family: "Workspace Nerd Font Symbols";
+  src: url("./fonts/SymbolsNerdFontMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+E000-F8FF, U+F0000-FFFFD, U+100000-10FFFD;
+}
+
 :root {
   /* flexlayout-react 0.10.x: splitter width/hit-area moved from JSON model
      attributes (splitterSize/splitterExtra, used by the ui/ Tauri app's
@@ -418,12 +428,121 @@ input {
   background: var(--bg-base);
   font-size: 11px;
   color: var(--text-muted);
+  font-family: var(--font-ui);
+  position: relative;
+  z-index: 100002;
 }
 
 .status-bar-item {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.status-bar-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.status-bar-clickable:hover {
+  background: var(--bg-hover);
+}
+
+.usage-meter-bar {
+  display: inline-block;
+  width: 28px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+  overflow: hidden;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.usage-meter-bar-fill {
+  display: block;
+  height: 100%;
+}
+
+.usage-details-popover {
+  width: min(320px, calc(100vw - 24px));
+  padding: 0;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  z-index: 100003;
+}
+
+.usage-details-header {
+  padding: 10px 12px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.usage-details-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.usage-details-provider {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.usage-details-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+.usage-details-label {
+  flex-shrink: 0;
+}
+
+.usage-details-value {
+  text-align: right;
+}
+
+.usage-details-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.usage-details-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.usage-details-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.usage-settings-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.usage-details-footer {
+  padding: 8px 12px;
+}
+
+.usage-details-settings-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
 }
 
 .layout-host {
@@ -563,6 +682,9 @@ input {
 }
 
 .workspace-tab-rail-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
   padding: 0;
   background: transparent;
@@ -571,6 +693,57 @@ input {
   cursor: pointer;
   text-align: left;
   font-family: var(--font-ui);
+}
+
+.workspace-tab-rail-agent-indicator {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.workspace-tab-rail-agent-indicator--idle {
+  background: #4e9a06;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #4e9a06 35%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--permission {
+  background: #c79100;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #c79100 40%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--monitoring {
+  background: #e6b422;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #e6b422 35%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--failed {
+  background: #cc0000;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #cc0000 35%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--muted {
+  background: var(--text-faint);
+}
+
+.workspace-tab-rail-agent-indicator--inactive {
+  background: color-mix(in srgb, var(--text-faint) 55%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--working {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, #c79100 25%, transparent);
+  border-top-color: #c79100;
+  background: transparent;
+  animation: workspace-tab-rail-agent-spin 0.75s linear infinite;
+}
+
+@keyframes workspace-tab-rail-agent-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .workspace-tab-rail-title-text {
@@ -2939,28 +3112,6 @@ input {
   font-size: 10px;
   line-height: 1.4;
   white-space: pre-wrap;
-}
-
-  flex-shrink: 0;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.japanese-pane-search {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 6px 10px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 4px;
-  background: var(--bg-raised);
-  color: var(--text);
-  font-family: var(--font-ui);
-  font-size: 13px;
-}
-
-.japanese-pane-search:focus {
-  outline: none;
-  border-color: var(--accent);
 }
 
 .japanese-handwriting {

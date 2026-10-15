@@ -16,6 +16,8 @@ import {
 import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
 import { resumePaneRendering, suspendPaneRendering } from "../lib/pane-manager/pane-rendering-control";
 import { resolveExplicitTerminalTitleAgentType } from "../../../shared/agent/terminal-title-agent-type";
+import { agentPaneKey, useAgentStatusStore } from "../store/agentStatusStore";
+import { registerTerminalAgentPane } from "../terminal/terminalAgentPaneRegistry";
 import type { TuiAgent } from "../../../shared/agent/tui-agent";
 import { shouldFocusTerminalFromPanePointerDown } from "../lib/pane-manager/pane-pointer-focus";
 import { focusTerminalTextarea } from "../lib/focus-terminal-textarea";
@@ -23,12 +25,13 @@ import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
 import { installTerminalPasteHandler } from "../terminal/installTerminalPasteHandler";
-import { copyTerminalSelection } from "../terminal/terminal-selection-copy";
 import { termLog } from "../terminal/terminalDebugLog";
 import { writeClipboardText } from "../electron";
 
 interface Props {
   terminalId: number;
+  workspaceTabId: number;
+  paneTabId: string;
   rootPath?: string | null;
   visible: boolean;
   active: boolean;
@@ -46,6 +49,8 @@ function applyTerminalSurfaceBackground(el: HTMLElement, resolved: ReturnType<ty
 
 function TerminalPaneInner({
   terminalId,
+  workspaceTabId,
+  paneTabId,
   rootPath,
   visible,
   active,
@@ -100,7 +105,19 @@ function TerminalPaneInner({
     if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved);
     applyTerminalSurfaceBackground(host, resolved);
 
+    const paneKey = agentPaneKey(workspaceTabId, paneTabId);
+    registerTerminalAgentPane(terminalId, {
+      workspaceTabId,
+      paneTabId,
+      terminalAgent,
+    });
+    window.api.agentStatus.registerTerminalPane(terminalId, paneKey);
+    useAgentStatusStore.getState().registerLiveTerminal(terminalId);
+
     const { dispose, transport } = connectPanePty(pane, terminalId, {
+      workspaceTabId,
+      paneTabId,
+      terminalAgent,
       onTitleChange: (title) => {
         const terminalAgent = resolveExplicitTerminalTitleAgentType(title);
         onTerminalTabUpdateRef.current?.({
@@ -115,6 +132,7 @@ function TerminalPaneInner({
       terminal: pane.terminal,
       transport,
       terminalId,
+      writeClipboardText,
       getTerminalAgent: () => terminalAgentRef.current,
       isFocused: () => {
         const active = document.activeElement;
@@ -195,6 +213,7 @@ function TerminalPaneInner({
       pane.container.removeEventListener("focusin", onFocusIn);
       pane.container.removeEventListener("focusout", onFocusOut);
       pane.container.removeEventListener("pointerdown", onPointerDown);
+      window.api.agentStatus.unregisterTerminalPane(terminalId);
       ptyDisposeRef.current?.();
       ptyDisposeRef.current = null;
       unregisterTerminalPane(terminalId, pane);
@@ -203,7 +222,19 @@ function TerminalPaneInner({
       paneRef.current = null;
       searchRef.current = null;
     };
-  }, [terminalId, rootPath]);
+  }, [terminalId, rootPath, workspaceTabId, paneTabId, terminalAgent]);
+
+  useEffect(() => {
+    if (!terminalAgent) return;
+    const paneKey = agentPaneKey(workspaceTabId, paneTabId);
+    const existing = useAgentStatusStore.getState().agentStatusByPaneKey[paneKey];
+    if (existing?.state === "working") return;
+    useAgentStatusStore.getState().setAgentStatus(
+      paneKey,
+      { state: "working", prompt: "", agentType: terminalAgent },
+      { workspaceTabId, titleDerived: true },
+    );
+  }, [workspaceTabId, paneTabId, terminalAgent]);
 
   useEffect(() => {
     const pane = paneRef.current;
@@ -250,20 +281,8 @@ function TerminalPaneInner({
       }
     }, 50);
 
-    if (!host) {
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-
-    const ro = new ResizeObserver(() => {
-      if (visible && active) refitPaneTerminal(pane);
-    });
-    ro.observe(host);
-
     return () => {
       clearTimeout(timer);
-      ro.disconnect();
     };
   }, [visible, active, terminalId]);
 
@@ -271,12 +290,6 @@ function TerminalPaneInner({
     const onKey = (e: KeyboardEvent) => {
       const pane = paneRef.current;
       const term = pane?.terminal;
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
-        if (!hasFocusRef.current || !term?.hasSelection()) return;
-        e.preventDefault();
-        void copyTerminalSelection({ terminal: term, writeClipboardText });
-        return;
-      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
         if (!hasFocusRef.current && !searchOpen) return;
         e.preventDefault();

@@ -17,6 +17,7 @@ import {
   installTerminalLinkifierHoverResetOnWindowBlur,
 } from "./terminal-linkifier-hover-reset-on-mouseleave";
 import { installTerminalLinkifierHoverResetOnWrite } from "./terminal-linkifier-hover-reset-on-write";
+import { installTerminalNativeCopyGutterTrim } from "../../terminal/terminal-native-copy-gutter";
 
 export { createPaneDOM } from "./pane-dom-creation";
 
@@ -60,6 +61,7 @@ export function openTerminal(pane: ManagedPaneInternal): void {
     terminal,
     linkTooltip,
   );
+  pane.nativeCopyGutterDisposable = installTerminalNativeCopyGutterTrim(terminal);
 
   activateOrcaTerminalUnicodeProvider(terminal);
 
@@ -102,6 +104,8 @@ export function disposePane(pane: ManagedPaneInternal): void {
   pane.linkifierMouseLeaveResetDisposable = null;
   pane.linkifierWindowBlurResetDisposable?.dispose();
   pane.linkifierWindowBlurResetDisposable = null;
+  pane.nativeCopyGutterDisposable?.dispose();
+  pane.nativeCopyGutterDisposable = null;
   pane.compositionHandler?.();
   pane.compositionHandler = null;
   detachPaneFitResizeObserver(pane);

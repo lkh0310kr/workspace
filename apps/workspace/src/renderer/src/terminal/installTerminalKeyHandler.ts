@@ -6,6 +6,9 @@ import {
 import { releaseTerminalImeTextareaAnchor } from "../lib/pane-manager/terminal-ime-candidate-anchor";
 import { sendCapturedTerminalInput } from "./terminal-captured-input-dispatch";
 import { pasteClipboardIntoTerminal } from "./terminal-clipboard-paste";
+import { readTerminalClipboardSelection } from "./terminal-clipboard-selection-text";
+import { copyTerminalSelection } from "./terminal-selection-copy";
+import { shouldBypassXtermClipboardKeyboardEvent } from "./xterm-clipboard-bypass-policy";
 import {
   notifyTerminalKeyboardPasteHandled,
 } from "./installTerminalPasteHandler";
@@ -56,10 +59,11 @@ export function installTerminalKeyHandler(args: {
   terminal: Terminal;
   transport: PtyTransport;
   terminalId: number;
+  writeClipboardText: (text: string) => void | Promise<void>;
   getTerminalAgent?: () => import("../../../shared/agent/tui-agent").TuiAgent | null | undefined;
   isFocused?: () => boolean;
 }): () => void {
-  const { terminal, transport, terminalId } = args;
+  const { terminal, transport, terminalId, writeClipboardText } = args;
   ensureOptionModifierSync();
   const optionKeyLocations = getSharedOptionKeyTracker();
   const isMac = navigator.userAgent.includes("Mac");
@@ -173,6 +177,22 @@ export function installTerminalKeyHandler(args: {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
+      case "copySelection":
+        if (!readTerminalClipboardSelection(terminal)) {
+          return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (!event.repeat) {
+          void copyTerminalSelection({ terminal, writeClipboardText }).catch(() => undefined);
+        }
+        termLog(
+          "keyboard:capture",
+          "copySelection",
+          { event: serializeKeyboardEvent(event) },
+          terminalId,
+        );
+        return;
       case "paste":
         notifyTerminalKeyboardPasteHandled();
         void pasteClipboardIntoTerminal({
@@ -240,7 +260,24 @@ export function installTerminalKeyHandler(args: {
   window.addEventListener("blur", onWindowBlur);
 
   terminal.attachCustomKeyEventHandler((event) => {
-    if (event.type !== "keydown" || !isForTerminal()) {
+    if (!isForTerminal()) {
+      return true;
+    }
+    const clipboardBypass = shouldBypassXtermClipboardKeyboardEvent(event, {
+      isMac,
+      hasSelection: terminal.hasSelection(),
+      kittyKeyboardFlags: getKittyKeyboardFlags(terminal),
+    });
+    if (clipboardBypass) {
+      termLog(
+        "keyboard:xterm-bypass",
+        "clipboard-pass",
+        { event: serializeKeyboardEvent(event) },
+        terminalId,
+      );
+      return false;
+    }
+    if (event.type !== "keydown") {
       return true;
     }
     const action = resolveAction(event);

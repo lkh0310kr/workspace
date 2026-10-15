@@ -8,7 +8,9 @@ import { pastePlainTextInFocusedEditor } from "../activeEditorView";
 import { getRegisteredTerminalPane } from "../lib/pane-manager/pane-terminal-registry";
 import { pasteClipboardIntoTerminal } from "../terminal/terminal-clipboard-paste";
 import { notifyTerminalKeyboardPasteHandled } from "../terminal/installTerminalPasteHandler";
+import { captureTerminalSessionBuffers } from "../terminal/capture-terminal-session-buffers";
 import { installGlobalErrorLogging } from "../errorLog";
+import { installTerminalAgentStatusBridge } from "../terminal/installTerminalAgentStatusBridge";
 
 /** One-time app-wide side effects (logging, browser embed, downloads). */
 export function useAppBootstrap(): void {
@@ -22,6 +24,7 @@ export function useAppBootstrap(): void {
   }, []);
   useEffect(() => installBrowserEmbedSupport(), []);
   useEffect(() => installBrowserDownloadRelay(), []);
+  useEffect(() => installTerminalAgentStatusBridge(), []);
   useEffect(() => onBrowserReloadShortcut(({ hard }) => reloadFocusedBrowser(hard)), []);
   useEffect(() => onPastePlainTextShortcut(() => pastePlainTextInFocusedEditor()), []);
   useEffect(
@@ -31,6 +34,15 @@ export function useAppBootstrap(): void {
         if (!pane) return;
         notifyTerminalKeyboardPasteHandled();
         void pasteClipboardIntoTerminal({ terminal: pane.terminal });
+      }),
+    [],
+  );
+
+  useEffect(
+    () =>
+      window.api.terminal.onCaptureSessionBuffers((terminalIds) => {
+        const file = captureTerminalSessionBuffers(terminalIds);
+        window.api.terminal.sendSessionBuffers(file);
       }),
     [],
   );

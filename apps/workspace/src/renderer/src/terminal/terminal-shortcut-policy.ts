@@ -17,7 +17,22 @@ export type TerminalShortcutAction =
   | { type: "sendInput"; data: string }
   | { type: "scrollViewport"; position: "top" | "bottom" }
   | { type: "selectAll" }
+  | { type: "copySelection" }
   | { type: "paste" };
+
+function isCopySelectionChord(event: TerminalShortcutEvent, isMac: boolean): boolean {
+  if (event.altKey || event.isComposing) {
+    return false;
+  }
+  const key = event.key.toLowerCase();
+  if (isMac) {
+    return key === "c" && event.metaKey && !event.ctrlKey && !event.shiftKey;
+  }
+  if (key === "c" && event.ctrlKey && event.shiftKey && !event.metaKey) {
+    return true;
+  }
+  return key === "c" && event.ctrlKey && !event.metaKey && !event.shiftKey;
+}
 
 function isOptionNavigationCode(code?: string): boolean {
   return (
@@ -41,6 +56,10 @@ export function resolveTerminalShortcutAction(
 ): TerminalShortcutAction | null {
   if (event.isComposing) {
     return null;
+  }
+
+  if (isCopySelectionChord(event, isMac)) {
+    return { type: "copySelection" };
   }
 
   // Cmd+A (macOS) selects all scrollback. On Windows/Linux Ctrl+A must stay

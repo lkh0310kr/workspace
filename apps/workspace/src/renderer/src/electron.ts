@@ -6,6 +6,11 @@
 // with import-path-only changes instead of a field-name rewrite
 // throughout every consumer.
 
+import {
+  normalizeUsageMeterSettings,
+  type UsageMeterSettings,
+} from "../../shared/usage-meter-settings";
+
 // Workspace rail tab IPC — see workspaceApi.ts (re-exported here for
 // existing `from "../electron"` import sites).
 export type { TabInfo, WorkspaceState } from "./workspaceApi";
@@ -564,6 +569,19 @@ export interface CursorUsageStatus {
   billing_cycle_end_ms: number | null;
 }
 
+export interface CodexRateLimitWindow {
+  used_percent: number;
+  resets_at: number | null;
+  window_minutes: number | null;
+}
+
+export interface CodexRateLimitStatus {
+  plan_type: string | null;
+  session: CodexRateLimitWindow | null;
+  weekly: CodexRateLimitWindow | null;
+  error: "no_auth" | "fetch_failed" | null;
+}
+
 function toRateLimitWindow(
   w: { usedPercent: number; resetsAt: number | null } | null,
 ): ClaudeRateLimitWindow | null {
@@ -583,4 +601,31 @@ export async function cursorUsageStatus(): Promise<CursorUsageStatus> {
     total_percent_used: s.totalPercentUsed,
     billing_cycle_end_ms: s.billingCycleEndMs,
   };
+}
+
+function toCodexWindow(
+  w: { usedPercent: number; resetsAt: number | null; windowMinutes: number | null } | null,
+): CodexRateLimitWindow | null {
+  return w
+    ? { used_percent: w.usedPercent, resets_at: w.resetsAt, window_minutes: w.windowMinutes }
+    : null;
+}
+
+export async function codexRateLimitStatus(): Promise<CodexRateLimitStatus> {
+  const s = await window.api.usage.codexRateLimitStatus();
+  return {
+    plan_type: s.planType,
+    session: toCodexWindow(s.session),
+    weekly: toCodexWindow(s.weekly),
+    error: s.error,
+  };
+}
+
+export async function loadUsageMeterSettings(): Promise<UsageMeterSettings> {
+  const raw = await window.api.usage.meterSettingsGet();
+  return normalizeUsageMeterSettings(raw);
+}
+
+export async function saveUsageMeterSettings(settings: UsageMeterSettings): Promise<void> {
+  await window.api.usage.meterSettingsSave(settings);
 }

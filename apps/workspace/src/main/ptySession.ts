@@ -1,5 +1,6 @@
 import type { WebContents } from "electron";
 import { Pty } from "./pty";
+import { trimTerminalSessionBufferToByteLimit } from "../shared/terminal-session-buffers";
 import { appendTerminalLog, reprTerminalBytesMain } from "./terminalDebugLog";
 
 const REPLAY_MAX_CHARS = 5000 * 120;
@@ -44,6 +45,7 @@ export class PtySession {
   private replay = new PtyReplayBuffer();
   private attachedWebContents: WebContents | null = null;
   private wasEverAttached = false;
+  private onOutputUtf8: ((terminalId: number, chunk: string) => void) | null = null;
 
   constructor(id: number, pty: Pty, cols: number, rows: number) {
     this.id = id;
@@ -51,6 +53,10 @@ export class PtySession {
     this.cols = cols;
     this.rows = rows;
     pty.onData((data) => {
+      const utf8 = data.toString('utf8')
+      if (utf8.length > 0) {
+        this.onOutputUtf8?.(this.id, utf8)
+      }
       const seq = this.replay.appendUtf8(data);
       appendTerminalLog({
         sessionId: "terminal",
@@ -129,8 +135,13 @@ export class PtySession {
     this.pty.resize(cols, rows);
   }
 
+  setOnOutputUtf8(listener: ((terminalId: number, chunk: string) => void) | null): void {
+    this.onOutputUtf8 = listener
+  }
+
   dispose(): void {
     this.attachedWebContents = null;
+    this.onOutputUtf8 = null
     this.pty.dispose();
   }
 
@@ -147,5 +158,10 @@ export class PtySession {
 
   getRows(): number {
     return this.rows;
+  }
+
+  /** Main-process replay fallback when the renderer pane is not mounted at quit. */
+  getReplaySnapshot(): string {
+    return trimTerminalSessionBufferToByteLimit(this.replay.snapshot().replay);
   }
 }

@@ -78,6 +78,7 @@ function createPane(bufferType: "normal" | "alternate"): {
     linkifierHoverResetDisposable: null,
     linkifierMouseLeaveResetDisposable: null,
     linkifierWindowBlurResetDisposable: null,
+    nativeCopyGutterDisposable: null,
     pendingSplitScrollState: scrollState,
     pendingSplitScrollRafIds: [],
     pendingSplitScrollTimerId: null,

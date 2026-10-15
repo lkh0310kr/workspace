@@ -5,17 +5,30 @@ import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
 import { writeTerminalOutput } from "../lib/pane-manager/pane-terminal-output-scheduler";
 import { ptyResize, writeClipboardText } from "../electron";
 import { createElectronPtyTransport, type PtyTransport } from "./ptyTransport";
-import { createPtyTerminalTitleObserver } from "./ptyTerminalTitleObserver";
+import { createPtyOutputTitleObserver } from "./pty-output-title-observer";
+import type { TuiAgent } from "../../../shared/agent/tui-agent";
+import {
+  applyTitleDerivedAgentStatus,
+  applyTitleIdleTransition,
+  clearTitleDerivedOnAgentExit,
+} from "./title-derived-agent-status";
+import { useRuntimeTerminalTitlesStore } from "../store/runtimeTerminalTitlesStore";
 import {
   markTerminalBracketedPasteInterrupted,
   observeTerminalBracketedPasteModeOutput,
 } from "./terminal-bracketed-paste";
+import { forwardXtermInputToPty } from "./forward-xterm-input-to-pty";
 import { reprTerminalBytes, termLog } from "./terminalDebugLog";
 
 export function connectPanePty(
   pane: ManagedPane,
   terminalId: number,
-  options?: { onTitleChange?: (title: string) => void },
+  options?: {
+    workspaceTabId?: number;
+    paneTabId?: string;
+    terminalAgent?: TuiAgent;
+    onTitleChange?: (title: string) => void;
+  },
 ): {
   transport: PtyTransport;
   dispose: () => void;
@@ -26,9 +39,46 @@ export function connectPanePty(
   let onDataDisposable: IDisposable | null = null;
   let oscDisposable: IDisposable | null = null;
 
-  const titleObserver = options?.onTitleChange
-    ? createPtyTerminalTitleObserver(options.onTitleChange)
-    : null;
+  const titleObserver =
+    options?.onTitleChange || options?.workspaceTabId !== undefined
+      ? createPtyOutputTitleObserver({
+          onTitleChange: (normalized, raw) => {
+            if (options?.workspaceTabId !== undefined && options.paneTabId) {
+              useRuntimeTerminalTitlesStore
+                .getState()
+                .setRuntimePaneTitle(options.workspaceTabId, options.paneTabId, normalized);
+              applyTitleDerivedAgentStatus({
+                workspaceTabId: options.workspaceTabId,
+                paneTabId: options.paneTabId,
+                rawTitle: raw,
+                terminalAgent: options.terminalAgent,
+              });
+            }
+            options?.onTitleChange?.(normalized);
+          },
+          onAgentBecameIdle: (title, meta) => {
+            if (meta?.staleWorkingTitleClear) {
+              return;
+            }
+            if (options?.workspaceTabId !== undefined && options.paneTabId) {
+              applyTitleIdleTransition({
+                workspaceTabId: options.workspaceTabId,
+                paneTabId: options.paneTabId,
+                title,
+                terminalAgent: options.terminalAgent,
+              });
+            }
+          },
+          onAgentExited: () => {
+            if (options?.workspaceTabId !== undefined && options.paneTabId) {
+              clearTitleDerivedOnAgentExit({
+                workspaceTabId: options.workspaceTabId,
+                paneTabId: options.paneTabId,
+              });
+            }
+          },
+        })
+      : null;
 
   const writeOutput = (data: string) => {
     observeTerminalBracketedPasteModeOutput(term, data);
@@ -73,7 +123,11 @@ export function connectPanePty(
       { bytes: reprTerminalBytes(data), length: data.length },
       terminalId,
     );
-    transport.write(data);
+    forwardXtermInputToPty(
+      data,
+      (payload) => transport.write(payload),
+      (payload) => transport.writeQueryReply(payload),
+    );
   });
 
   oscDisposable = term.parser.registerOscHandler(52, (data) => {
@@ -90,6 +144,7 @@ export function connectPanePty(
   return {
     transport,
     dispose: () => {
+      titleObserver?.reset();
       setPaneFitListener(internal, null);
       transport.disconnect();
       onDataDisposable?.dispose();

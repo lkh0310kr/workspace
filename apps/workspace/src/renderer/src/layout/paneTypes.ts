@@ -10,6 +10,7 @@
 // a list of heterogeneous PaneTabItems plus which one is active — instead
 // of a single component+config pair.
 
+import type { AgentStatus } from "../../../shared/agent/agent-title-core";
 import type { TuiAgent } from "../../../shared/agent/tui-agent";
 
 export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer" | "rss" | "japanese";
@@ -45,6 +46,8 @@ export interface PaneTabItem {
   title?: string;
   /** kind === "terminal" — detected AI agent (Cursor CLI, Claude Code, etc.). */
   terminalAgent?: TuiAgent;
+  /** kind === "terminal" — last title-derived agent state for workspace chip rollup. */
+  terminalAgentStatus?: AgentStatus;
   /** VSCode-style "preview" tab (TreeView single-click) — at most one per
    * pane. Reused/replaced by the next preview-click instead of piling up
    * a new tab, unless it has unsaved edits (see PaneGroup's

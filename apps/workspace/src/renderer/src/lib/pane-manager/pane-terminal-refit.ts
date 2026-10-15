@@ -3,28 +3,12 @@ import { safeFit } from "./pane-fit";
 import { attachWebgl, shouldUseTerminalWebgl } from "./pane-webgl-renderer";
 import { rebuildAttachedWebgl } from "./pane-webgl-reattach";
 
-/** Fit the pane, rebuild WebGL when attached, and repaint — required after resize. */
-export function refitPaneTerminal(pane: ManagedPane): boolean {
+/** WebGL rebuild + repaint after cols/rows change — without a second scroll-restoring fit. */
+export function applyTerminalWebglAfterFit(pane: ManagedPane): void {
   const internal = pane as ManagedPaneInternal;
-  const prevCols = internal.lastFitCols;
-  const prevRows = internal.lastFitRows;
-  if (!safeFit(pane)) {
-    if (
-      !internal.renderingSuspended &&
-      internal.pendingRefitRetryRafId == null &&
-      (internal.xtermContainer?.isConnected ?? pane.container.isConnected)
-    ) {
-      internal.pendingRefitRetryRafId = requestAnimationFrame(() => {
-        internal.pendingRefitRetryRafId = null;
-        if (!internal.renderingSuspended) refitPaneTerminal(pane);
-      });
-    }
-    return false;
-  }
-
   const cols = pane.terminal.cols;
   const rows = pane.terminal.rows;
-  const dimsChanged = cols !== prevCols || rows !== prevRows;
+  const dimsChanged = cols !== internal.lastFitCols || rows !== internal.lastFitRows;
   internal.lastFitCols = cols;
   internal.lastFitRows = rows;
 
@@ -47,9 +31,32 @@ export function refitPaneTerminal(pane: ManagedPane): boolean {
     internal.webglNeedsRebuildOnResume = false;
   }
 
-  safeFit(pane);
   if (rows > 0) {
-    pane.terminal.refresh(0, rows - 1);
+    try {
+      pane.terminal.refresh(0, rows - 1);
+    } catch {
+      /* pane may be mid-teardown */
+    }
   }
+}
+
+/** Fit the pane, rebuild WebGL when attached, and repaint — required after resize. */
+export function refitPaneTerminal(pane: ManagedPane): boolean {
+  const internal = pane as ManagedPaneInternal;
+  if (!safeFit(pane)) {
+    if (
+      !internal.renderingSuspended &&
+      internal.pendingRefitRetryRafId == null &&
+      (internal.xtermContainer?.isConnected ?? pane.container.isConnected)
+    ) {
+      internal.pendingRefitRetryRafId = requestAnimationFrame(() => {
+        internal.pendingRefitRetryRafId = null;
+        if (!internal.renderingSuspended) refitPaneTerminal(pane);
+      });
+    }
+    return false;
+  }
+
+  applyTerminalWebglAfterFit(pane);
   return true;
 }

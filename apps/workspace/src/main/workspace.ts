@@ -6,6 +6,11 @@ import { Pty } from "./pty";
 import { PtySession } from "./ptySession";
 import { defaultLayout, extractTerminalIds } from "./layout";
 import { salvageLayoutJson } from "../shared/layoutSalvage";
+import {
+  trimTerminalSessionBufferToByteLimit,
+  type TerminalSessionBuffersFile,
+} from "../shared/terminal-session-buffers";
+import { loadTerminalSessionBuffers } from "./persistence";
 import * as files from "./files";
 import type { DirEntry } from "./files";
 import * as search from "./search";
@@ -56,8 +61,14 @@ export class Workspace {
   private tabs: Tab[] = [];
   private activeTabId = 0;
   private terminals = new Map<number, TerminalEntry>();
+  private restoredTerminalBuffers = new Map<number, string>();
   private nextTerminalId = 0;
   private nextTabId = 0;
+  /** Main → renderer: PTY output for agent status (independent of renderer attach). */
+  onTerminalPtyOutput: ((terminalId: number, chunkUtf8: string) => void) | null = null;
+  onTerminalSpawned: ((terminalId: number) => void) | null = null;
+  /** Returns loopback hook POST URL for agent CLIs, if the hook server is up. */
+  agentHookStatusUrl: (() => string | null) | null = null;
   private constructor(rootPath: string) {
     this.defaultRootPath = rootPath;
   }
@@ -73,9 +84,8 @@ export class Workspace {
    * original id and spawns a terminal for each id actually referenced in
    * that tab's layoutJson. PtySession replay restores output while the
    * app is running; across a full app restart, each terminal instead
-   * reattaches to its own tmux session (see pty.ts) — the shell and
-   * everything running in it survived the restart on the OS side, so
-   * there's no scrollback to replay, just a live reattach. */
+   * On full app restart, scrollback is restored from serialized xterm
+   * buffers saved at quit (see terminal-sessions.electron.json). */
   static fromSnapshot(rootPath: string, snapshot: WorkspaceState): Workspace {
     if (snapshot.tabs.length === 0) return Workspace.withRoot(rootPath);
 
@@ -101,6 +111,14 @@ export class Workspace {
     ws.activeTabId = ws.tabs.some((t) => t.id === snapshot.activeTabId)
       ? snapshot.activeTabId
       : ws.tabs[0].id;
+
+    const persisted = loadTerminalSessionBuffers();
+    for (const [key, buffer] of Object.entries(persisted.buffersByTerminalId)) {
+      const id = Number(key);
+      if (Number.isInteger(id) && buffer) {
+        ws.restoredTerminalBuffers.set(id, buffer);
+      }
+    }
 
     return ws;
   }
@@ -183,7 +201,13 @@ export class Workspace {
   }
 
   private spawnTerminalWithId(id: number, cols: number, rows: number, root: string): void {
-    const pty = new Pty({ cols, rows, cwd: root });
+    const hookUrl = this.agentHookStatusUrl?.() ?? null;
+    const pty = new Pty({
+      cols,
+      rows,
+      cwd: root,
+      ...(hookUrl ? { extraEnv: { WORKSPACE_AGENT_HOOK_URL: hookUrl } } : {}),
+    });
     try {
       pty.start();
     } catch (err) {
@@ -193,13 +217,56 @@ export class Workspace {
       return;
     }
     const session = new PtySession(id, pty, cols, rows);
+    session.setOnOutputUtf8((terminalId, chunk) => {
+      this.onTerminalPtyOutput?.(terminalId, chunk)
+    })
     this.terminals.set(id, { session });
+    this.onTerminalSpawned?.(id)
   }
 
   connectTerminal(id: number, webContents: WebContents) {
     const entry = this.terminals.get(id);
     if (!entry) throw new Error("terminal not found");
-    return entry.session.connect(webContents);
+    const result = entry.session.connect(webContents);
+    const restored = this.restoredTerminalBuffers.get(id);
+    if (restored) {
+      this.restoredTerminalBuffers.delete(id);
+      result.snapshot = restored + result.snapshot;
+      result.isReattach = true;
+    }
+    return result;
+  }
+
+  /** Every terminal id referenced by any tab layout (for quit-time capture). */
+  allReferencedTerminalIds(): number[] {
+    const ids = new Set<number>();
+    for (const tab of this.tabs) {
+      for (const terminalId of extractTerminalIds(tab.layoutJson)) {
+        ids.add(terminalId);
+      }
+    }
+    return Array.from(ids).sort((a, b) => a - b);
+  }
+
+  /** Merge renderer xterm snapshots with main replay for unmounted panes. */
+  buildTerminalSessionBuffersForQuit(captured: TerminalSessionBuffersFile): TerminalSessionBuffersFile {
+    const merged: Record<string, string> = { ...captured.buffersByTerminalId };
+    for (const terminalId of this.allReferencedTerminalIds()) {
+      const key = String(terminalId);
+      const entry = this.terminals.get(terminalId);
+      const replay = entry?.session.getReplaySnapshot() ?? "";
+      const persisted = this.restoredTerminalBuffers.get(terminalId) ?? "";
+      const best = merged[key] ?? (replay.length > 0 ? replay : persisted);
+      if (best) {
+        merged[key] = trimTerminalSessionBufferToByteLimit(best);
+      }
+    }
+    return { buffersByTerminalId: merged };
+  }
+
+  /** Best-effort scrollback persistence while the app is running (crash-safe subset of quit capture). */
+  buildTerminalSessionBuffersForAutosave(): TerminalSessionBuffersFile {
+    return this.buildTerminalSessionBuffersForQuit({ buffersByTerminalId: {} });
   }
 
   disconnectTerminal(id: number, webContents: WebContents): void {

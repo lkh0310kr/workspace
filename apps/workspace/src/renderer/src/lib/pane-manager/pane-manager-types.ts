@@ -59,6 +59,7 @@ export type ManagedPaneInternal = ManagedPane & {
   linkifierHoverResetDisposable: { dispose: () => void } | null;
   linkifierMouseLeaveResetDisposable: { dispose: () => void } | null;
   linkifierWindowBlurResetDisposable: { dispose: () => void } | null;
+  nativeCopyGutterDisposable: IDisposable | null;
   pendingSplitScrollState: ScrollState | null;
   pendingSplitScrollRafIds: number[];
   pendingSplitScrollTimerId: ReturnType<typeof setTimeout> | null;

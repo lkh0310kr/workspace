@@ -1,5 +1,8 @@
 import { spawnTerminal } from "../../electron";
-import { normalizeTerminalTitle } from "../../../../shared/agent/agent-title-status";
+import {
+  detectAgentStatusFromTitle,
+  normalizeTerminalTitle,
+} from "../../../../shared/agent/agent-title-status";
 import { getAgentLabel } from "../../agent/agent-catalog";
 import { TerminalPane } from "../TerminalPane";
 import type { PaneKindDefinition } from "../paneKindRegistry";
@@ -28,6 +31,8 @@ export const terminalPaneKind: PaneKindDefinition = {
     return (
       <TerminalPane
         terminalId={ctx.item.terminalId ?? 0}
+        workspaceTabId={ctx.workspaceTabId}
+        paneTabId={ctx.item.id}
         rootPath={ctx.rootPath}
         visible={ctx.chipShown}
         active={ctx.active}
@@ -40,6 +45,9 @@ export const terminalPaneKind: PaneKindDefinition = {
               ? { terminalAgent: patch.terminalAgent ?? undefined }
               : {}),
           };
+          if (patch.title !== undefined) {
+            next.terminalAgentStatus = detectAgentStatusFromTitle(patch.title) ?? undefined;
+          }
           if (Object.keys(next).length > 0) ctx.updateItem(next);
         }}
       />

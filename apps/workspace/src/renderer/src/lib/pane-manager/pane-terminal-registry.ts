@@ -20,3 +20,11 @@ export function unregisterTerminalPane(terminalId: number, pane: ManagedPaneInte
 export function getRegisteredTerminalPane(terminalId: number): ManagedPaneInternal | undefined {
   return paneRegistry.get(terminalId);
 }
+
+export function forEachRegisteredTerminalPane(
+  fn: (terminalId: number, pane: ManagedPaneInternal) => void,
+): void {
+  for (const [terminalId, pane] of paneRegistry) {
+    fn(terminalId, pane);
+  }
+}

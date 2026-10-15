@@ -42,6 +42,20 @@ export function createPtyInputWriteQueue(deps: PtyInputWriteQueueDeps) {
       drain();
       return true;
     },
+    /** xterm query replies must not wait behind rAF-coalesced keystrokes (Orca #7329). */
+    enqueueQueryReply(id: string, data: string): boolean {
+      if (!data) return true;
+      if (!deps.isWritable(id)) {
+        return false;
+      }
+      try {
+        deps.write(id, data);
+        return true;
+      } catch {
+        deps.onDrainFailure?.(id);
+        return false;
+      }
+    },
     clear(): void {
       pending = [];
     },

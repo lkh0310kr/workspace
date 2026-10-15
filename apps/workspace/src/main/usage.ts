@@ -28,6 +28,163 @@ export interface CursorUsageStatus {
   billingCycleEndMs: number | null;
 }
 
+export interface CodexRateLimitWindow {
+  usedPercent: number;
+  resetsAt: number | null;
+  windowMinutes: number | null;
+}
+
+export interface CodexRateLimitStatus {
+  planType: string | null;
+  session: CodexRateLimitWindow | null;
+  weekly: CodexRateLimitWindow | null;
+  /** Set when Codex is enabled but auth or network failed. */
+  error: "no_auth" | "fetch_failed" | null;
+}
+
+const CODEX_SESSION_WINDOW_MINUTES = 300;
+const CODEX_WEEKLY_WINDOW_MINUTES = 10080;
+const CODEX_WINDOW_DURATION_TOLERANCE_MINUTES = 1;
+
+type CodexWindowSnapshot = {
+  usedPercent: number;
+  windowDurationMins?: number;
+  resetsAt: number | null;
+};
+
+function classifyCodexWindows(
+  primary: CodexWindowSnapshot | null,
+  secondary: CodexWindowSnapshot | null,
+): { session: CodexWindowSnapshot | null; weekly: CodexWindowSnapshot | null } {
+  const classifyKind = (w: CodexWindowSnapshot): "session" | "weekly" | null => {
+    const duration = w.windowDurationMins;
+    if (typeof duration !== "number" || !Number.isFinite(duration)) return null;
+    if (Math.abs(duration - CODEX_SESSION_WINDOW_MINUTES) <= CODEX_WINDOW_DURATION_TOLERANCE_MINUTES) {
+      return "session";
+    }
+    if (Math.abs(duration - CODEX_WEEKLY_WINDOW_MINUTES) <= CODEX_WINDOW_DURATION_TOLERANCE_MINUTES) {
+      return "weekly";
+    }
+    return null;
+  };
+
+  let session: CodexWindowSnapshot | null = null;
+  let weekly: CodexWindowSnapshot | null = null;
+  for (const w of [primary, secondary]) {
+    if (!w) continue;
+    const kind = classifyKind(w);
+    if (kind === "session" && !session) session = w;
+    else if (kind === "weekly" && !weekly) weekly = w;
+  }
+  if (!session && primary && classifyKind(primary) === null) session = primary;
+  if (!weekly && secondary && classifyKind(secondary) === null) weekly = secondary;
+  return { session, weekly };
+}
+
+function codexAuthPath(): string {
+  const home = process.env.CODEX_HOME ?? path.join(os.homedir(), ".codex");
+  return path.join(home, "auth.json");
+}
+
+/** Codex usage from ChatGPT backend API (same source as Codex CLI), using ~/.codex/auth.json. */
+export async function codexRateLimitStatus(): Promise<CodexRateLimitStatus> {
+  const empty: CodexRateLimitStatus = {
+    planType: null,
+    session: null,
+    weekly: null,
+    error: null,
+  };
+  let authRaw: string;
+  try {
+    authRaw = fs.readFileSync(codexAuthPath(), "utf8");
+  } catch {
+    return { ...empty, error: "no_auth" };
+  }
+  let auth: { tokens?: { access_token?: string; account_id?: string } };
+  try {
+    auth = JSON.parse(authRaw);
+  } catch {
+    return { ...empty, error: "no_auth" };
+  }
+  const accessToken = auth.tokens?.access_token;
+  if (!accessToken) {
+    return { ...empty, error: "no_auth" };
+  }
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    "User-Agent": "codex-cli",
+    "OpenAI-Beta": "codex-1",
+    originator: "Codex Desktop",
+  };
+  if (auth.tokens?.account_id) {
+    headers["ChatGPT-Account-Id"] = auth.tokens.account_id;
+  }
+  try {
+    const response = await fetch("https://chatgpt.com/backend-api/wham/usage", {
+      headers,
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) {
+      return { ...empty, error: "fetch_failed" };
+    }
+    const payload = (await response.json()) as {
+      plan_type?: string;
+      rate_limit?: {
+        primary_window?: { used_percent?: number; limit_window_seconds?: number; reset_at?: number };
+        secondary_window?: { used_percent?: number; limit_window_seconds?: number; reset_at?: number };
+      };
+    };
+    if (typeof payload.plan_type !== "string") {
+      return { ...empty, error: "fetch_failed" };
+    }
+    const readUsedPercent = (v: unknown): number | null => {
+      if (typeof v === "number" && Number.isFinite(v)) return v;
+      if (typeof v === "string" && v.trim() !== "") {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      }
+      return null;
+    };
+
+    const toSnapshot = (
+      raw:
+        | { used_percent?: unknown; limit_window_seconds?: number; reset_at?: number }
+        | null
+        | undefined,
+    ): CodexWindowSnapshot | null => {
+      const usedPercent = readUsedPercent(raw?.used_percent);
+      if (!raw || usedPercent == null) return null;
+      const secs = raw.limit_window_seconds;
+      const windowDurationMins =
+        typeof secs === "number" && Number.isFinite(secs) && secs > 0 ? Math.ceil(secs / 60) : undefined;
+      return {
+        usedPercent,
+        windowDurationMins,
+        resetsAt: typeof raw.reset_at === "number" ? raw.reset_at : null,
+      };
+    };
+    const primary = toSnapshot(payload.rate_limit?.primary_window);
+    const secondary = toSnapshot(payload.rate_limit?.secondary_window);
+    const classified = classifyCodexWindows(primary, secondary);
+    const mapWindow = (w: CodexWindowSnapshot | null): CodexRateLimitWindow | null =>
+      w
+        ? {
+            usedPercent: w.usedPercent,
+            resetsAt: w.resetsAt,
+            windowMinutes: w.windowDurationMins ?? null,
+          }
+        : null;
+    return {
+      planType: payload.plan_type,
+      session: mapWindow(classified.session),
+      weekly: mapWindow(classified.weekly),
+      error: null,
+    };
+  } catch {
+    return { ...empty, error: "fetch_failed" };
+  }
+}
+
 /**
  * Claude Code (>=2.1.80) pipes a JSON payload containing rate_limits to
  * whatever command statusLine.command names in ~/.claude/settings.json,

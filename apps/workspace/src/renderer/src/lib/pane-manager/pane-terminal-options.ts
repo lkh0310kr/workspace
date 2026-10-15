@@ -1,4 +1,5 @@
 import type { ITerminalOptions } from "@xterm/xterm";
+import { buildTerminalFontFamily } from "../monospace-font-family";
 import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from "../shared/terminal-scrollback-policy";
 
 type TerminalCursorStyle = NonNullable<ITerminalOptions["cursorStyle"]>;
@@ -37,8 +38,7 @@ export function buildDefaultTerminalOptions(): ITerminalOptions {
     // Hangul-capable fallbacks after the Mac/Windows Western mono fonts —
     // without these, Korean IME preedit/commit renders as missing glyphs
     // on Windows/WSL (DejaVu has no Hangul coverage).
-    fontFamily:
-      '"SF Mono", "Menlo", "Monaco", "Cascadia Mono", "Consolas", "D2Coding", "NanumGothicCoding", "Noto Sans Mono CJK KR", "Apple SD Gothic Neo", "Malgun Gothic", "DejaVu Sans Mono", "Liberation Mono", monospace',
+    fontFamily: buildTerminalFontFamily(),
     fontWeight: "400",
     fontWeightBold: "700",
     scrollback: DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT,
