@@ -6,16 +6,24 @@ export const BROWSER_SESSION_PARTITION = "persist:browser";
 
 // Web features that are safe to auto-grant without a per-site prompt UI
 // (which this app has no way to show) — ported from Orca's
-// AUTO_GRANTED_BROWSER_PERMISSIONS, dropping the clipboard/CDP-automation
-// grants that only make sense for Orca's agent-driven browser commands.
+// AUTO_GRANTED_BROWSER_PERMISSIONS, minus Orca-only agent/CDP extras.
 const AUTO_GRANTED_PERMISSIONS = new Set([
   "fullscreen",
+  // chatgpt.com and similar sites copy via navigator.clipboard in the guest
+  // renderer; without these grants the API rejects and surfaces a misleading
+  // "try again while focused" toast even when the webview is focused.
+  "clipboard-read",
+  "clipboard-sanitized-write",
   "notifications",
   // Chromium can request this even though Electron's TS union omits it;
   // some sites use it to keep browser storage from eviction.
   "persistent-storage",
   "pointerLock",
 ]);
+
+export function isAutoGrantedBrowserSessionPermission(permission: string): boolean {
+  return AUTO_GRANTED_PERMISSIONS.has(permission);
+}
 
 // Sets up the shared browser-pane session partition once at startup:
 // a Chrome-shaped (Google-auth-aware) User-Agent, an auto-grant policy for
@@ -32,10 +40,10 @@ export function setupBrowserSession(): void {
   installBrowserWebAuthnAccessHandlers(sess);
 
   sess.setPermissionRequestHandler((_webContents, permission, callback) => {
-    callback(AUTO_GRANTED_PERMISSIONS.has(permission));
+    callback(isAutoGrantedBrowserSessionPermission(permission));
   });
   sess.setPermissionCheckHandler((_webContents, permission, _origin, details) => {
     if (allowsBrowserWebAuthnPermission(permission, details)) return true;
-    return AUTO_GRANTED_PERMISSIONS.has(permission);
+    return isAutoGrantedBrowserSessionPermission(permission);
   });
 }
