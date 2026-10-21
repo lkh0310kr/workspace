@@ -60,7 +60,11 @@ export function parseRipgrepMatchLine(
     return null;
   }
   if (event.type !== "match") return null;
-  const relPath = path.relative(root, event.data.path.text);
+  // `rg --json` emits root-relative paths by default (for example
+  // `./src/file.ts`). Resolve those against the scanned workspace, not the
+  // Electron process cwd, which can differ when the app is launched from Finder.
+  const absolutePath = path.resolve(root, event.data.path.text);
+  const relPath = path.relative(root, absolutePath);
   return {
     path: relPath,
     match: {

@@ -28,6 +28,19 @@ describe("parseRipgrepMatchLine", () => {
     });
   });
 
+  it("resolves ripgrep's relative paths against the workspace root", () => {
+    const relativeMatch = JSON.stringify({
+      type: "match",
+      data: {
+        path: { text: "./notes/todo.md" },
+        lines: { text: "hello world\n" },
+        line_number: 3,
+        submatches: [{ start: 0, end: 5 }],
+      },
+    });
+    expect(parseRipgrepMatchLine(relativeMatch, ROOT)?.path).toBe("notes/todo.md");
+  });
+
   it("strips the trailing newline from the line text", () => {
     const result = parseRipgrepMatchLine(matchLine({ text: "line with match" }), ROOT);
     expect(result?.match.lineText).toBe("line with match");
