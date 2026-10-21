@@ -4,6 +4,7 @@ import { TreeView } from './TreeView'
 import { SearchPanel } from './SearchPanel'
 import {
   exportGodotWeb,
+  onFindInFilesShortcut,
   getEngineBundleUrl,
   launchWorldEngine,
   registerProjectApp
@@ -58,6 +59,12 @@ export function WorkspaceExplorerSidebar({
   // focus (mounted only for explorer-capable groups, so no extra gating
   // needed beyond focus/visibility).
   useEffect(() => {
+    const offMainShortcut = onFindInFilesShortcut(() => {
+      if (!paneVisible) return
+      if (!focusHostRef.current?.contains(document.activeElement)) return
+      setSidebarMode('search')
+      setTreeOpen(true)
+    })
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return
       if (e.key.toLowerCase() !== 'f') return
@@ -67,8 +74,13 @@ export function WorkspaceExplorerSidebar({
       setSidebarMode('search')
       setTreeOpen(true)
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    // Match the app-wide shortcut routing: the pane shortcut must run before
+    // CodeMirror or an embedded surface handles the focused key event.
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      offMainShortcut()
+      window.removeEventListener('keydown', onKeyDown, true)
+    }
   }, [paneVisible, setSidebarMode, setTreeOpen, focusHostRef])
 
   const openEngineBundleTab = useCallback(
@@ -168,11 +180,13 @@ export function WorkspaceExplorerSidebar({
               sidebarMode === 'search' ? 'explorer-sidebar-panel' : 'explorer-sidebar-panel hidden'
             }
           >
-            <SearchPanel
-              tabId={workspaceTabId}
-              onJumpToResult={(path, kind, line) => onOpenFile(path, kind, line)}
-              onClose={() => setSidebarMode('explorer')}
-            />
+            {sidebarMode === 'search' && (
+              <SearchPanel
+                tabId={workspaceTabId}
+                onJumpToResult={(path, kind, line) => onOpenFile(path, kind, line)}
+                onClose={() => setSidebarMode('explorer')}
+              />
+            )}
           </div>
           <div
             className={

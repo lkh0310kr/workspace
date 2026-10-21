@@ -2,7 +2,7 @@ import { useWorkspace } from "./components/useWorkspace";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { AppTitlebar } from "./components/AppTitlebar";
 import { AgentUsageStatusBar } from "./components/AgentUsageStatusBar";
-import { loadUsageMeterSettings, saveUsageMeterSettings } from "./electron";
+import { loadUsageMeterSettings, onQuickOpenShortcut, saveUsageMeterSettings } from "./electron";
 import { DEFAULT_USAGE_METER_SETTINGS, type UsageMeterSettings } from "../../shared/usage-meter-settings";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
 import { InteractionDebugPanel } from "./components/InteractionDebugPanel";
@@ -132,14 +132,19 @@ export default function App() {
   }, [workspace?.tabs, layoutRevisions, storeGetModel]);
 
   useEffect(() => {
+    const offQuickOpen = onQuickOpenShortcut(() => setQuickOpenOpen(true));
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey) || e.shiftKey) return;
       if (e.key.toLowerCase() !== "p") return;
       e.preventDefault();
       setQuickOpenOpen(true);
     }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    // Run before editor keymaps and embedded surfaces can consume the event.
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      offQuickOpen();
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
   }, []);
 
   const handleThemeChange = useCallback(

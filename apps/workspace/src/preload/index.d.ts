@@ -182,6 +182,8 @@ export interface WorkspaceApi {
     blurGuest: (webContentsId: number) => Promise<boolean>
   }
   shortcuts: {
+    onQuickOpen: (cb: () => void) => () => void
+    onFindInFiles: (cb: () => void) => () => void
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
     onBrowserZoom: (
       cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void,

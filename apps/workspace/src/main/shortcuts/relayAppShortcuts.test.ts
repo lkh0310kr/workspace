@@ -91,6 +91,30 @@ describe('relayHostAppShortcuts', () => {
     expect(send).toHaveBeenCalledWith('shortcut:new-workspace-tab')
   })
 
+  it('routes Cmd+P to Quick Open before Chromium handles print', () => {
+    const event = mockEvent()
+    const send = vi.fn()
+    relayHostAppShortcuts(event as never, keyDown('KeyP', { meta: true }) as never, {
+      send,
+      terminalOwnsAppShortcuts: false,
+      focusedTerminalId: null,
+    })
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(send).toHaveBeenCalledWith('shortcut:quick-open')
+  })
+
+  it('routes Cmd+Shift+F to Find in Files', () => {
+    const event = mockEvent()
+    const send = vi.fn()
+    relayHostAppShortcuts(event as never, keyDown('KeyF', { meta: true, shift: true }) as never, {
+      send,
+      terminalOwnsAppShortcuts: false,
+      focusedTerminalId: null,
+    })
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(send).toHaveBeenCalledWith('shortcut:find-in-files')
+  })
+
   it('relays workspace tab index on Cmd+digit while terminal is focused', () => {
     const event = mockEvent()
     const send = vi.fn()

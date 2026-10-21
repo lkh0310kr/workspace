@@ -81,6 +81,20 @@ export function relayHostAppShortcuts(
     gateBrowserReload: options.terminalOwnsAppShortcuts,
   })
 
+  // Chromium consumes Cmd/Ctrl+P for print before a renderer keydown handler
+  // can reliably see it. Route editor search shortcuts at Electron's input
+  // boundary, the same way the workspace's other app shortcuts are routed.
+  if ((input.meta || input.control) && !input.alt && input.code === 'KeyP' && !input.shift) {
+    event.preventDefault()
+    options.send('shortcut:quick-open')
+    return
+  }
+  if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && input.shift) {
+    event.preventDefault()
+    options.send('shortcut:find-in-files')
+    return
+  }
+
   if (isWorkspaceTabIndexInput(input)) {
     event.preventDefault()
     options.send('shortcut:switch-workspace-tab-index', { index: Number(input.code.at(-1)) })

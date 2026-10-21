@@ -512,6 +512,16 @@ export function onBrowserReloadShortcut(handler: (payload: { hard: boolean }) =>
   return window.api.shortcuts.onBrowserReload(handler);
 }
 
+/** Cmd/Ctrl+P, intercepted in Electron before Chromium treats it as Print. */
+export function onQuickOpenShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onQuickOpen(handler);
+}
+
+/** Cmd/Ctrl+Shift+F, routed from Electron so editor keymaps cannot consume it. */
+export function onFindInFilesShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onFindInFiles(handler);
+}
+
 /** Cmd/Ctrl +/- — relayed from main when a browser guest holds focus (Orca pattern). */
 export function onBrowserZoomShortcut(
   handler: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void,

@@ -15,6 +15,8 @@ interface Props {
 export function QuickOpen({ tabId, onOpenFile, onClose }: Props) {
   const [query, setQuery] = useState("");
   const [files, setFiles] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -24,7 +26,26 @@ export function QuickOpen({ tabId, onOpenFile, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    listAllFiles(tabId).then(setFiles).catch(console.error);
+    let cancelled = false;
+    setFiles([]);
+    setLoading(true);
+    setLoadError(null);
+    listAllFiles(tabId).then(
+      (nextFiles) => {
+        if (cancelled) return;
+        setFiles(nextFiles);
+        setLoading(false);
+      },
+      (error: unknown) => {
+        if (cancelled) return;
+        setLoadError(error instanceof Error ? error.message : String(error));
+        setFiles([]);
+        setLoading(false);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
   }, [tabId]);
 
   const filtered = useMemo(() => fuzzyFilter(files, query, (f) => f, 100), [files, query]);
@@ -78,7 +99,11 @@ export function QuickOpen({ tabId, onOpenFile, onClose }: Props) {
           }}
         />
         <div className="quick-open-results" ref={listRef}>
-          {filtered.length === 0 ? (
+          {loadError ? (
+            <div className="quick-open-empty">Could not load files: {loadError}</div>
+          ) : loading ? (
+            <div className="quick-open-empty">Loading files…</div>
+          ) : filtered.length === 0 ? (
             <div className="quick-open-empty">No matching files</div>
           ) : (
             filtered.map((path, i) => (

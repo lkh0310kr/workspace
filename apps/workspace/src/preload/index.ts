@@ -134,6 +134,16 @@ const api = {
       ipcRenderer.invoke('browser:blur-guest', webContentsId)
   },
   shortcuts: {
+    onQuickOpen: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:quick-open', listener)
+      return () => ipcRenderer.removeListener('shortcut:quick-open', listener)
+    },
+    onFindInFiles: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:find-in-files', listener)
+      return () => ipcRenderer.removeListener('shortcut:find-in-files', listener)
+    },
     onBrowserReload: (cb: (payload: { hard: boolean }) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, payload: { hard: boolean }): void => cb(payload)
       ipcRenderer.on('shortcut:browser-reload', listener)
