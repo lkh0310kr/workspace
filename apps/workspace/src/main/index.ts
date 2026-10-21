@@ -60,6 +60,7 @@ import {
   notifyTerminalPtySpawned,
   setTerminalOscTitleBroadcastTarget,
 } from './terminalOscTitleBroadcast'
+import { installAgentStatusHooks } from './agentHooks'
 import {
   getWorkspaceAgentHookPort,
   registerTerminalAgentPaneKey,
@@ -664,6 +665,7 @@ app.whenReady().then(() => {
 
   ensureLinuxImeDaemon()
   installClaudeStatuslineHook()
+  installAgentStatusHooks()
   setupBrowserSession()
   setupBrowserDownloads(sendToMainWindow)
   registerBrowserNavIpc()

@@ -206,7 +206,9 @@ export class Workspace {
       cols,
       rows,
       cwd: root,
-      ...(hookUrl ? { extraEnv: { WORKSPACE_AGENT_HOOK_URL: hookUrl } } : {}),
+      ...(hookUrl
+        ? { extraEnv: { WORKSPACE_AGENT_HOOK_URL: hookUrl, WORKSPACE_TERMINAL_ID: String(id) } }
+        : {}),
     });
     try {
       pty.start();
