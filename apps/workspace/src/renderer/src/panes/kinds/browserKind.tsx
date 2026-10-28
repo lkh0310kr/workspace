@@ -4,8 +4,8 @@ import type { PaneKindDefinition } from "../paneKindRegistry";
 export const browserPaneKind: PaneKindDefinition = {
   kind: "browser",
   label: "Browser",
-  icon: "🌐",
-  pickerEntries: [{ label: "Browser", icon: "🌐" }],
+  icon: "browser",
+  pickerEntries: [{ label: "Browser", icon: "browser" }],
   createItem(id, source) {
     return { id, kind: "browser", url: source?.url ?? "https://www.google.com" };
   },

@@ -34,7 +34,7 @@ function renderEditor(kind: "code" | "markdown") {
 export const codePaneKind: PaneKindDefinition = {
   kind: "code",
   label: "Code",
-  icon: "{}",
+  icon: "code",
   hasFileExplorer: true,
   createItem(id, source) {
     return { id, kind: "code", filePath: source?.filePath ?? null };
@@ -46,9 +46,9 @@ export const codePaneKind: PaneKindDefinition = {
 export const markdownPaneKind: PaneKindDefinition = {
   kind: "markdown",
   label: "Editor",
-  icon: "{}",
+  icon: "code",
   hasFileExplorer: true,
-  pickerEntries: [{ label: "Editor", icon: "{}" }],
+  pickerEntries: [{ label: "Editor", icon: "code" }],
   createItem(id, source) {
     return { id, kind: "markdown", filePath: source?.filePath ?? null };
   },

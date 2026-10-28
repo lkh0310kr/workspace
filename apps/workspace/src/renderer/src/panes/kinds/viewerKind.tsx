@@ -4,7 +4,7 @@ import type { PaneKindDefinition } from "../paneKindRegistry";
 export const viewerPaneKind: PaneKindDefinition = {
   kind: "viewer",
   label: "Viewer",
-  icon: "▣",
+  icon: "viewer",
   hasFileExplorer: true,
   // Video/Audio/Ebook go straight to a Browse dialog instead of only
   // being reachable by clicking a file already in the workspace tree —
@@ -12,9 +12,9 @@ export const viewerPaneKind: PaneKindDefinition = {
   // by extension); the source's viewerHint just decides the blank
   // state's Browse-dialog filter.
   pickerEntries: [
-    { label: "Video", icon: "🎬", source: { viewerHint: "video" } },
-    { label: "Audio", icon: "🎵", source: { viewerHint: "audio" } },
-    { label: "Ebook", icon: "📖", source: { viewerHint: "ebook" } },
+    { label: "Video", icon: "viewer", source: { viewerHint: "video" } },
+    { label: "Audio", icon: "viewer", source: { viewerHint: "audio" } },
+    { label: "Ebook", icon: "book", source: { viewerHint: "ebook" } },
   ],
   createItem(id, source) {
     return {

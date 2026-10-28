@@ -29,7 +29,13 @@ export function isWorkspaceTabIndexInput(input: Input): boolean {
   if (input.type !== 'keyDown') return false
   if (input.shift || input.alt) return false
   if (!(input.control || input.meta)) return false
-  return /^Digit[1-9]$/.test(input.code)
+  return /^Digit[1-9]$/.test(input.code) || /^[1-9]$/.test(input.key ?? '')
+}
+
+function isHomeKey(input: Input): boolean {
+  // `code` is layout independent; `key` covers Electron/macOS variants that
+  // report the produced punctuation without a usable physical code.
+  return input.code === 'Backquote' || input.key === '`'
 }
 
 type SharedRelayOptions = {
@@ -54,6 +60,10 @@ function relaySharedRendererShortcuts(
   if (input.code === 'Comma' && (input.control || input.meta)) {
     event.preventDefault()
     send('shortcut:open-settings')
+  }
+  if (isHomeKey(input) && (input.control || input.meta) && !input.shift && !input.alt) {
+    event.preventDefault()
+    send('shortcut:home')
   }
   if (input.code === 'KeyN' && (input.control || input.meta)) {
     event.preventDefault()
@@ -136,7 +146,19 @@ export function relayGuestWebviewShortcuts(
   if (isImeToggleKey(input)) return
   if (input.type !== 'keyDown') return
 
+  if (isHomeKey(input) && (input.control || input.meta) && !input.shift && !input.alt) {
+    event.preventDefault()
+    send('shortcut:home')
+    return
+  }
+
   relaySharedRendererShortcuts(event, input, send, { gateBrowserReload: false })
+
+  if (isWorkspaceTabIndexInput(input)) {
+    event.preventDefault()
+    send('shortcut:switch-workspace-tab-index', { index: Number(input.code.at(-1) ?? input.key) })
+    return
+  }
 
   const zoomDirection = browserZoomDirectionFromInput(input)
   if (zoomDirection) {

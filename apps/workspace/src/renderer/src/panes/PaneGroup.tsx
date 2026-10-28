@@ -191,7 +191,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const treeOpen = explorerChrome.treeOpen
   const onToggleTree = () => explorerChrome.setTreeOpen((v) => !v)
-  const showExplorer = activeChipHasExplorer(activeItem.kind)
+  const showExplorer = activeChipHasExplorer(activeItem.kind) && treeOpen
   const hasBrowserTabs = tabs.some((t) => t.kind === 'browser')
   const browserTabs = hasBrowserTabs ? tabs.filter((t) => t.kind === 'browser') : []
   const bodyAnchorStyle = { anchorName: paneGroupBodyAnchorName(nodeId) } as React.CSSProperties

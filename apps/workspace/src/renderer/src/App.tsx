@@ -2,7 +2,7 @@ import { useWorkspace } from "./components/useWorkspace";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { AppTitlebar } from "./components/AppTitlebar";
 import { AgentUsageStatusBar } from "./components/AgentUsageStatusBar";
-import { loadUsageMeterSettings, onQuickOpenShortcut, saveUsageMeterSettings } from "./electron";
+import { loadUsageMeterSettings, onHomeShortcut, onQuickOpenShortcut, saveUsageMeterSettings } from "./electron";
 import { DEFAULT_USAGE_METER_SETTINGS, type UsageMeterSettings } from "../../shared/usage-meter-settings";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
 import { InteractionDebugPanel } from "./components/InteractionDebugPanel";
@@ -24,6 +24,7 @@ import { useTabChipWindowDrop } from "./hooks/useTabChipWindowDrop";
 import { useWorkspaceTabHotkeys } from "./hooks/useWorkspaceTabHotkeys";
 import { useVisibleWorkspaceTab } from "./hooks/useVisibleWorkspaceTab";
 import { useWorkspaceScope } from "./interaction/useWorkspaceScope";
+import { switchToHome } from "./workspaceNavigation";
 import { useHtmlFullscreen } from "./hooks/useHtmlFullscreen";
 import { applyThemePreference, setStoredThemePreference } from "./theme";
 import { useWorkspaceStore } from "./store/workspaceStore";
@@ -132,6 +133,7 @@ export default function App() {
   }, [workspace?.tabs, layoutRevisions, storeGetModel]);
 
   useEffect(() => {
+    const offHome = onHomeShortcut(() => switchToHome());
     const offQuickOpen = onQuickOpenShortcut(() => setQuickOpenOpen(true));
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey) || e.shiftKey) return;
@@ -142,6 +144,7 @@ export default function App() {
     // Run before editor keymaps and embedded surfaces can consume the event.
     window.addEventListener("keydown", onKeyDown, true);
     return () => {
+      offHome();
       offQuickOpen();
       window.removeEventListener("keydown", onKeyDown, true);
     };
@@ -173,7 +176,7 @@ export default function App() {
         layoutRevisions={layoutRevisions}
       />
       <div className="app-shell">
-        {homeActive ? <DashboardView /> : null}
+        {homeActive ? <DashboardView tabs={workspace.tabs} /> : null}
         <WorkspaceLayoutHost
           tabs={workspace.tabs}
           visibleWorkspaceTabId={visibleWorkspaceTabId}

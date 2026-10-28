@@ -1,6 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
+import { isWorkbenchIconName, WorkbenchIcon } from "./WorkbenchIcon";
 
 export type ContextMenuItem =
   | { type: "separator" }
@@ -88,7 +89,11 @@ function ContextMenuPanel({
               disabled={item.disabled}
               onClick={() => runButton(item)}
             >
-              {item.icon ? <span className="context-menu-icon">{item.icon}</span> : null}
+              {item.icon ? (
+                <span className="context-menu-icon">
+                  {isWorkbenchIconName(item.icon) ? <WorkbenchIcon name={item.icon} /> : item.icon}
+                </span>
+              ) : null}
               <span className="context-menu-label">{item.label}</span>
             </button>
           );

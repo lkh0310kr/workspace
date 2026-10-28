@@ -9,6 +9,7 @@ export function useAppShellState() {
   const [settingsTarget, setSettingsTarget] = useState<WorkspaceSettingsTarget | null>(null)
   const [appSettingsAnchor, setAppSettingsAnchor] = useState<DOMRect | null>(null)
   const appSettingsButtonRef = useRef<HTMLButtonElement>(null)
+  const lastNewTabShortcutAt = useRef(0)
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference)
 
   const toggleAppSettings = useCallback((anchor?: DOMRect | null) => {
@@ -30,7 +31,18 @@ export function useAppShellState() {
 
   // Cmd/Ctrl+N — same "new tab" action as WorkspaceTabRail's "+" button,
   // relayed the same way as Cmd+, above.
-  useEffect(() => onNewWorkspaceTabShortcut(() => void addTab().catch(console.error)), [])
+  useEffect(
+    () =>
+      onNewWorkspaceTabShortcut(() => {
+        const now = Date.now()
+        // Native menu accelerators and before-input-event both cover embedded
+        // webviews. Collapse a same-keystroke duplicate into one tab creation.
+        if (now - lastNewTabShortcutAt.current < 140) return
+        lastNewTabShortcutAt.current = now
+        void addTab().catch(console.error)
+      }),
+    []
+  )
 
   return {
     settingsTarget,

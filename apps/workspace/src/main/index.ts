@@ -449,12 +449,10 @@ function runPersistSideEffects(state: ReturnType<Workspace['state']>): void {
   syncFileWatcher()
 }
 
-function schedulePersistSideEffects(state: ReturnType<Workspace['state']>): void {
-  const defer = isWsl() && state.tabs.some((t) => isWslWindowsMountPath(t.rootPath))
-  if (!defer) {
-    runPersistSideEffects(state)
-    return
-  }
+function schedulePersistSideEffects(): void {
+  // Exporting layouts and rebuilding the recursive file watcher can block
+  // the main process. Keep those best-effort effects out of latency-sensitive
+  // workspace IPC (especially tab selection), then coalesce rapid changes.
   if (pendingPersistSideEffects) clearImmediate(pendingPersistSideEffects)
   pendingPersistSideEffects = setImmediate(() => {
     pendingPersistSideEffects = null
@@ -470,7 +468,7 @@ function persist(): void {
   // Push UI state immediately — layout export + fs.watch on /mnt/c can take
   // seconds and must not block IPC (e.g. settings Save → "Saving…").
   sendToMainWindow('workspace:updated', state)
-  schedulePersistSideEffects(state)
+  schedulePersistSideEffects()
 }
 
 // Same shape as Electron's own implicit default application menu (which
@@ -503,6 +501,22 @@ function buildAppMenu(): Menu {
         { role: 'unhide' },
         { type: 'separator' },
         { role: 'quit' }
+      ]
+    },
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New Workspace Tab',
+          accelerator: 'CommandOrControl+N',
+          click: () => sendToMainWindow('shortcut:new-workspace-tab')
+        },
+        { type: 'separator' },
+        {
+          label: 'Go to Home',
+          accelerator: 'CommandOrControl+`',
+          click: () => sendToMainWindow('shortcut:home')
+        }
       ]
     },
     {

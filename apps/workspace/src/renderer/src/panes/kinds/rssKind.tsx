@@ -4,8 +4,8 @@ import type { PaneKindDefinition } from "../paneKindRegistry";
 export const rssPaneKind: PaneKindDefinition = {
   kind: "rss",
   label: "RSS",
-  icon: "📰",
-  pickerEntries: [{ label: "RSS", icon: "📰" }],
+  icon: "rss",
+  pickerEntries: [{ label: "RSS", icon: "rss" }],
   createItem(id, source) {
     return { id, kind: "rss", feedUrl: source?.feedUrl };
   },

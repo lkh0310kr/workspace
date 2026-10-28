@@ -134,6 +134,11 @@ const api = {
       ipcRenderer.invoke('browser:blur-guest', webContentsId)
   },
   shortcuts: {
+    onHome: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:home', listener)
+      return () => ipcRenderer.removeListener('shortcut:home', listener)
+    },
     onQuickOpen: (cb: () => void): (() => void) => {
       const listener = (): void => cb()
       ipcRenderer.on('shortcut:quick-open', listener)

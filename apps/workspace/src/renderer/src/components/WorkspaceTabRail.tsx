@@ -16,6 +16,7 @@ import { WorkspaceTabStatusIndicator } from './WorkspaceTabStatusIndicator'
 import { computeWorkspaceTabActivityStatus } from '../hooks/useWorkspaceTabActivityStatus'
 import { useAgentStatusStore } from '../store/agentStatusStore'
 import { useRuntimeTerminalTitlesStore } from '../store/runtimeTerminalTitlesStore'
+import { WorkbenchIcon } from './WorkbenchIcon'
 
 interface Props {
   tabs: TabInfo[]
@@ -142,20 +143,8 @@ export function WorkspaceTabRail({
 
   return (
     <div className="workspace-tab-rail">
-      <button
-        type="button"
-        className={`workspace-tab-rail-home${homeActive ? ' active' : ''}`}
-        title="Home"
-        onClick={() => switchToHome()}
-      >
-        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-          <path
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            d="M2.5 7.2 8 2.5l5.5 4.7V13a.5.5 0 0 1-.5.5H11v-4H5v4H3a.5.5 0 0 1-.5-.5V7.2Z"
-          />
-        </svg>
+      <button type="button" className={`workspace-tab-rail-home${homeActive ? ' active' : ''}`} title="Home (⌘ + `)" onClick={() => switchToHome()}>
+        <WorkbenchIcon name="home" size={14} />
       </button>
       <div className="workspace-tab-rail-divider" aria-hidden="true" />
       <div className="workspace-tab-rail-tabs">
@@ -217,7 +206,15 @@ export function WorkspaceTabRail({
                 <button
                   type="button"
                   className="workspace-tab-rail-title"
-                  onClick={() => void switchToWorkspaceTab(tab.id)}
+                  onPointerDown={(e) => {
+                    if (e.button !== 0) return;
+                    void switchToWorkspaceTab(tab.id);
+                  }}
+                  onClick={(e) => {
+                    // Pointer activation has already switched on pointerdown so
+                    // the pane responds on press. Keep keyboard activation on click.
+                    if (e.detail === 0) void switchToWorkspaceTab(tab.id);
+                  }}
                   onDoubleClick={(e) => {
                     e.stopPropagation()
                     startRename(tab)
@@ -239,7 +236,7 @@ export function WorkspaceTabRail({
                     closeTab(tab.id).catch(console.error)
                   }}
                 >
-                  ×
+                  <WorkbenchIcon name="close" size={13} />
                 </button>
               )}
             </div>
@@ -254,7 +251,7 @@ export function WorkspaceTabRail({
         onClick={() => addTab()}
         title="New workspace tab (Cmd+N)"
       >
-        +
+        <WorkbenchIcon name="plus" size={15} />
       </button>
       {contextMenu && (
         <ContextMenu

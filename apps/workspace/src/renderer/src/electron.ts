@@ -517,6 +517,11 @@ export function onQuickOpenShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onQuickOpen(handler);
 }
 
+/** Cmd/Ctrl+` returns to Home, even while an embedded browser has focus. */
+export function onHomeShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onHome(handler);
+}
+
 /** Cmd/Ctrl+Shift+F, routed from Electron so editor keymaps cannot consume it. */
 export function onFindInFilesShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onFindInFiles(handler);

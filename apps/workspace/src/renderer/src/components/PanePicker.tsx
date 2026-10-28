@@ -1,6 +1,7 @@
 import { Popover, type AnchorRect } from "./Popover";
 import { TabKind, type PaneTabItem } from "../layout/paneTypes";
 import { paneKindPickerOptions } from "../panes/paneKindRegistry";
+import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
 
 interface Props {
   anchorRect: AnchorRect;
@@ -21,7 +22,7 @@ export function PanePicker({ anchorRect, onPick, onClose, current }: Props) {
             className={`context-menu-item${kind.id === current ? " active" : ""}`}
             onClick={() => onPick(kind.id, kind.source)}
           >
-            <span className="context-menu-icon">{kind.icon}</span>
+            <span className="context-menu-icon"><WorkbenchIcon name={kind.icon as WorkbenchIconName} /></span>
             <span className="context-menu-label">{kind.label}</span>
           </button>
         ))}

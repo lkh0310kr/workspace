@@ -10,6 +10,7 @@ import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from "../interaction/d
 import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
 import { startPaneDrag, finishPaneDrag } from "../layout/layoutRef";
 import { layoutLog } from "../layout/layoutDebugLog";
+import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
 
 // The globalized version of ui/EditorTabBar.tsx (which used to be
 // editor-only) — the same tab-chip strip UI now used for every pane kind,
@@ -262,7 +263,7 @@ export function PaneTabStrip({
                   ) : item.kind === "terminal" && item.terminalAgent ? (
                     <AgentIcon agent={item.terminalAgent} size={12} />
                   ) : (
-                    paneKindIcon(item.kind)
+                    <WorkbenchIcon name={paneKindIcon(item.kind) as WorkbenchIconName} size={14} />
                   )}
                 </span>
                 <span className="pane-tab-label">{paneTabLabel(item, dirty)}</span>
