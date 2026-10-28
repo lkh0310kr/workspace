@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchFeed, type FeedItem } from "../../electron";
 import { DASHBOARD_NEWSPAPER_FEEDS, DASHBOARD_REFRESH_MS } from "../dashboardConfig";
 import { DashboardWidget } from "../DashboardWidget";
+import { useDashboardCache } from "../useDashboardCache";
 
 export type NewspaperHeadline = FeedItem & {
   feedId: string;
@@ -13,7 +14,8 @@ type Props = {
 };
 
 export function NewspaperWidget({ onHeadlinesChange }: Props): React.JSX.Element {
-  const [headlines, setHeadlines] = useState<NewspaperHeadline[]>([]);
+  const [cachedHeadlines, cacheHeadlines] = useDashboardCache<NewspaperHeadline[]>("headlines");
+  const [headlines, setHeadlines] = useState<NewspaperHeadline[]>(cachedHeadlines ?? []);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const onHeadlinesChangeRef = useRef(onHeadlinesChange);
@@ -37,6 +39,7 @@ export function NewspaperWidget({ onHeadlinesChange }: Props): React.JSX.Element
         .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
         .slice(0, 10);
       setHeadlines(merged);
+      if (merged.length) cacheHeadlines(merged);
       onHeadlinesChangeRef.current?.(merged);
       if (merged.length === 0) {
         setError("뉴스를 불러오지 못했습니다");
@@ -48,7 +51,7 @@ export function NewspaperWidget({ onHeadlinesChange }: Props): React.JSX.Element
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cacheHeadlines]);
 
   useEffect(() => {
     void load();

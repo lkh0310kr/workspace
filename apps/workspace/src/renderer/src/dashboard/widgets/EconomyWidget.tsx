@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchDashboardEconomy, type EconomyQuote } from "../../electron";
 import { DASHBOARD_REFRESH_MS } from "../dashboardConfig";
 import { DashboardWidget } from "../DashboardWidget";
+import { useDashboardCache } from "../useDashboardCache";
 
 export function EconomyWidget(): React.JSX.Element {
-  const [quotes, setQuotes] = useState<EconomyQuote[]>([]);
+  const [cachedQuotes, cacheQuotes] = useDashboardCache<EconomyQuote[]>("economy");
+  const [quotes, setQuotes] = useState<EconomyQuote[]>(cachedQuotes ?? []);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -12,14 +14,16 @@ export function EconomyWidget(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      setQuotes(await fetchDashboardEconomy());
+      const next = await fetchDashboardEconomy();
+      setQuotes(next);
+      cacheQuotes(next);
     } catch {
       setError("시세를 불러오지 못했습니다");
       setQuotes([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cacheQuotes]);
 
   useEffect(() => {
     void load();
@@ -35,7 +39,7 @@ export function EconomyWidget(): React.JSX.Element {
     >
       {loading && quotes.length === 0 ? (
         <p className="dashboard-muted">불러오는 중…</p>
-      ) : error ? (
+      ) : error && quotes.length === 0 ? (
         <p className="dashboard-muted">{error}</p>
       ) : (
         <div className="dashboard-economy-grid">

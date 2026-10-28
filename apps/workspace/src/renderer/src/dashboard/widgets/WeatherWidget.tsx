@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchDashboardWeather, type DashboardWeather } from "../../electron";
 import { DASHBOARD_DEFAULT_COORDS, DASHBOARD_REFRESH_MS } from "../dashboardConfig";
 import { DashboardWidget } from "../DashboardWidget";
+import { useDashboardCache } from "../useDashboardCache";
+import { WorkbenchIcon, type WorkbenchIconName } from "../../components/WorkbenchIcon";
 
 function normalizeCoords(lat: number, lon: number): { lat: number; lon: number } {
   if (
@@ -15,20 +17,21 @@ function normalizeCoords(lat: number, lon: number): { lat: number; lon: number }
   return { lat, lon };
 }
 
-function weatherEmoji(code: number): string {
-  if (code === 0) return "☀️";
-  if (code <= 3) return "⛅";
-  if (code === 45 || code === 48) return "🌫️";
-  if (code <= 55) return "🌦️";
-  if (code <= 67) return "🌧️";
-  if (code <= 77) return "❄️";
-  if (code <= 82) return "🌧️";
-  if (code >= 95) return "⛈️";
-  return "🌡️";
+function weatherIcon(code: number): WorkbenchIconName {
+  if (code === 0) return "sun";
+  if (code <= 3) return "cloud";
+  if (code === 45 || code === 48) return "fog";
+  if (code <= 55) return "drizzle";
+  if (code <= 67) return "rain";
+  if (code <= 77) return "snow";
+  if (code <= 82) return "rain";
+  if (code >= 95) return "storm";
+  return "sun";
 }
 
 export function WeatherWidget(): React.JSX.Element {
-  const [weather, setWeather] = useState<DashboardWeather | null>(null);
+  const [cachedWeather, cacheWeather] = useDashboardCache<DashboardWeather>("weather");
+  const [weather, setWeather] = useState<DashboardWeather | null>(cachedWeather);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -50,14 +53,16 @@ export function WeatherWidget(): React.JSX.Element {
           { timeout: 4000, maximumAge: 60 * 60_000 },
         );
       });
-      setWeather(await fetchDashboardWeather(coords.lat, coords.lon));
+      const next = await fetchDashboardWeather(coords.lat, coords.lon);
+      setWeather(next);
+      cacheWeather(next);
     } catch {
       setError("날씨를 불러오지 못했습니다");
       setWeather(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cacheWeather]);
 
   useEffect(() => {
     void load();
@@ -73,13 +78,13 @@ export function WeatherWidget(): React.JSX.Element {
     >
       {loading && !weather ? (
         <p className="dashboard-muted">불러오는 중…</p>
-      ) : error ? (
+      ) : error && !weather ? (
         <p className="dashboard-muted">{error}</p>
       ) : weather ? (
         <div className="dashboard-weather">
           <div className="dashboard-weather-main">
             <span className="dashboard-weather-icon" aria-hidden="true">
-              {weatherEmoji(weather.weatherCode)}
+              <WorkbenchIcon name={weatherIcon(weather.weatherCode)} size={28} />
             </span>
             <div className="dashboard-weather-reading">
               <span className="dashboard-weather-temp">{Math.round(weather.temperatureC)}°C</span>
