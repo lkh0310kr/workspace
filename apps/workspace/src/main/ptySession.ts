@@ -1,4 +1,5 @@
 import type { WebContents } from "electron";
+import { StringDecoder } from "node:string_decoder";
 import { Pty } from "./pty";
 import { trimTerminalSessionBufferToByteLimit } from "../shared/terminal-session-buffers";
 import { appendTerminalLog, reprTerminalBytesMain } from "./terminalDebugLog";
@@ -18,18 +19,20 @@ export class PtyReplayBuffer {
   private chunks: string[] = [];
   private totalChars = 0;
   private seq = 0;
+  private decoder = new StringDecoder("utf8");
 
-  appendUtf8(data: Buffer): number {
-    const str = data.toString("utf8");
-    if (str.length === 0) return this.seq;
+  appendUtf8(data: Buffer): { seq: number; text: string } {
+    const str = this.decoder.write(data);
     this.seq++;
-    this.chunks.push(str);
-    this.totalChars += str.length;
-    while (this.totalChars > REPLAY_MAX_CHARS && this.chunks.length > 1) {
-      const removed = this.chunks.shift()!;
-      this.totalChars -= removed.length;
+    if (str.length > 0) {
+      this.chunks.push(str);
+      this.totalChars += str.length;
+      while (this.totalChars > REPLAY_MAX_CHARS && this.chunks.length > 1) {
+        const removed = this.chunks.shift()!;
+        this.totalChars -= removed.length;
+      }
     }
-    return this.seq;
+    return { seq: this.seq, text: str };
   }
 
   snapshot(): { replay: string; lastSeq: number } {
@@ -53,11 +56,10 @@ export class PtySession {
     this.cols = cols;
     this.rows = rows;
     pty.onData((data) => {
-      const utf8 = data.toString('utf8')
-      if (utf8.length > 0) {
-        this.onOutputUtf8?.(this.id, utf8)
+      const { seq, text } = this.replay.appendUtf8(data);
+      if (text.length > 0) {
+        this.onOutputUtf8?.(this.id, text)
       }
-      const seq = this.replay.appendUtf8(data);
       appendTerminalLog({
         sessionId: "terminal",
         timestamp: Date.now(),
@@ -133,6 +135,23 @@ export class PtySession {
     this.cols = cols;
     this.rows = rows;
     this.pty.resize(cols, rows);
+    // Wait for xterm's first real FitAddon measurement. Starting the login
+    // shell at the persisted 120x40 placeholder briefly renders a bogus
+    // prompt, then redraws it after SIGWINCH (visible as a stray `%` line
+    // and destructive to full-screen TUI apps).
+    try {
+      this.pty.start();
+    } catch (err) {
+      appendTerminalLog({
+        sessionId: "terminal",
+        timestamp: Date.now(),
+        location: "main:pty:spawn",
+        message: "failed",
+        terminalId: this.id,
+        data: { error: err instanceof Error ? err.message : String(err) },
+      });
+      console.error(`[pty] failed to start terminal ${this.id}:`, err);
+    }
   }
 
   setOnOutputUtf8(listener: ((terminalId: number, chunk: string) => void) | null): void {

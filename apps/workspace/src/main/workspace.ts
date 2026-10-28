@@ -1,7 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { WebContents } from "electron";
-import { appendAppLog } from "./debugLogSink";
 import { Pty } from "./pty";
 import { PtySession } from "./ptySession";
 import { defaultLayout, extractTerminalIds } from "./layout";
@@ -210,14 +209,6 @@ export class Workspace {
         ? { extraEnv: { WORKSPACE_AGENT_HOOK_URL: hookUrl, WORKSPACE_TERMINAL_ID: String(id) } }
         : {}),
     });
-    try {
-      pty.start();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[pty] failed to spawn terminal ${id} in ${root}:`, err);
-      appendAppLog("main", "error", "pty_spawn_failed", { terminalId: id, root, message });
-      return;
-    }
     const session = new PtySession(id, pty, cols, rows);
     session.setOnOutputUtf8((terminalId, chunk) => {
       this.onTerminalPtyOutput?.(terminalId, chunk)

@@ -106,6 +106,7 @@ export function connectPanePty(
       if (result.snapshot) {
         writeOutput(result.snapshot);
       }
+      transport.activate();
       refitPaneTerminal(pane);
       syncPtySize();
     })
