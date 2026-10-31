@@ -12,7 +12,6 @@ import {
   TabInfo,
   addTab,
   closeTab,
-  onNewWorkspaceTabShortcut,
   onShortcutModifierReleased,
   renameTab,
   reorderTabs,
@@ -79,9 +78,6 @@ export function WorkspaceTabRail({
     }
     const clearOnBlur = () => setShowTabNumbers(false)
     const unsubscribeModifierRelease = onShortcutModifierReleased(clearOnBlur)
-    // macOS can consume the Meta keyup after a native menu accelerator. Cmd+N
-    // itself is therefore also a definitive end to the tab-number hint.
-    const unsubscribeNewTabShortcut = onNewWorkspaceTabShortcut(clearOnBlur)
 
     window.addEventListener('keydown', onKeyDown, true)
     window.addEventListener('keyup', onKeyUp, true)
@@ -93,7 +89,6 @@ export function WorkspaceTabRail({
       window.removeEventListener('blur', clearOnBlur)
       document.removeEventListener('visibilitychange', clearOnBlur)
       unsubscribeModifierRelease()
-      unsubscribeNewTabShortcut()
     }
   }, [])
 

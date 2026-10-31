@@ -113,6 +113,25 @@ describe('relayHostAppShortcuts', () => {
     expect(send).toHaveBeenCalledWith('shortcut:new-workspace-tab')
   })
 
+  it('clears the Cmd+N hint on the following Meta release event', () => {
+    const send = vi.fn()
+    const options = {
+      send,
+      terminalOwnsAppShortcuts: false,
+      focusedTerminalId: null,
+    }
+    relayHostAppShortcuts(mockEvent() as never, keyDown('KeyN', { meta: true }) as never, options)
+    relayHostAppShortcuts(
+      mockEvent() as never,
+      keyUp('MetaLeft', { meta: true }) as never,
+      options,
+    )
+    expect(send.mock.calls).toEqual([
+      ['shortcut:new-workspace-tab'],
+      ['shortcut:modifier-released'],
+    ])
+  })
+
   it('routes Cmd+P to Quick Open before Chromium handles print', () => {
     const event = mockEvent()
     const send = vi.fn()

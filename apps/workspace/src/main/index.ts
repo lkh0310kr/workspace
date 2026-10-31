@@ -492,7 +492,6 @@ function buildAppMenu(): Menu {
       submenu: [
         {
           label: 'New Workspace Tab',
-          accelerator: 'CommandOrControl+N',
           click: () => sendToMainWindow('shortcut:new-workspace-tab')
         },
         { type: 'separator' },
