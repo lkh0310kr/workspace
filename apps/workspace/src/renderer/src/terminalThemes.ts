@@ -6,6 +6,9 @@ import type { ResolvedTheme } from "./theme";
 // contrast because Ghostty's original #3e4451 blends into Codex-style gray blocks.
 export const XTERM_THEMES: Record<ResolvedTheme, ITheme> = {
   dark: {
+    scrollbarSliderBackground: "rgba(180, 180, 185, 0.42)",
+    scrollbarSliderHoverBackground: "rgba(180, 180, 185, 0.62)",
+    scrollbarSliderActiveBackground: "rgba(180, 180, 185, 0.82)",
     background: "#313338",
     foreground: "#f2f3f5",
     cursor: "#f2f3f5",
@@ -30,6 +33,9 @@ export const XTERM_THEMES: Record<ResolvedTheme, ITheme> = {
     brightWhite: "#f2f5fa",
   },
   light: {
+    scrollbarSliderBackground: "rgba(72, 73, 80, 0.36)",
+    scrollbarSliderHoverBackground: "rgba(72, 73, 80, 0.56)",
+    scrollbarSliderActiveBackground: "rgba(72, 73, 80, 0.76)",
     background: "#f2f3f5",
     foreground: "#232428",
     cursor: "#232428",
