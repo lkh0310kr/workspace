@@ -1,17 +1,14 @@
-# Workspace app backlog
+# Workspace 백로그
 
-- [x] Cmd 누르면 Workspace Tab들의 'X' 표시가 사라지고 숫자로 보이도록해줘. border-radius된 background colured된 + 숫자.
+- [x] Cmd+1~9로 Workspace 탭을 고를 때 닫기 X 대신 탭 번호를 표시한다.
 - Terminal Pane
-    - [x] 스크롤 문제(갑자기 스크롤이 끊겨서 안됨), 화면 깨짐 문제(물음표로 나오거나 그냥 막 글자가 밀려서 나옴) 좀 고쳐봐. Codex CLI, Claude Code같은거 쓸때 자주 발생함. Orca랑 똑같이 만들면 이런 버그 안 생기는데.
-    - [x] White Color Scroll Bar Container Left Border 1px 있는거 없애.
-    - [x] Scroll Bar안보임 Codex CLI에서
+  - [x] Codex CLI·Claude Code 사용 중 스크롤이 멈추거나 문자가 깨지는 문제를 수정한다.
+  - [x] Codex CLI에서 스크롤바가 보이지 않는 문제를 수정한다.
 - Editor
-    - [x] UI/UX 전체 점검 및 수정
-        - [x] Ctrl+S가 split editor 전체가 아니라 포커스된 문서만 저장하도록 수정
-        - [x] 비동기 저장 경합으로 최신 문서를 덮거나 Unsaved 상태를 잃는 문제 수정
-        - [x] TreeView 파일 작업 실패 후 pane 경로/선택 상태가 잘못 갱신되는 문제 수정
-        - [x] 미저장 Markdown 문서 제목 변경 시 편집 내용 보존 및 autosave 경합 수정
-    - TreeView
-    - Content Editing
-- [ ] docs 정리좀 하자. 일단 한국어로 좀 변환하고. 구조적으로 파일 폴더 정리해줘. 필요없는거같은 내용 나한테 삭제할지 말지 보고하고 최소한의 폴더 구조로 간단하게 문서화하는거야 알겠지?
-- [x] Japanese 어쩌구 기능 다 삭제해 필요없으니깐.
+  - TreeView
+  - Content Editing
+- [ ] 문서 정리: 한국어를 기본으로 쓰고, 구조와 폴더를 간결하게 유지하며, 삭제 후보는 먼저 검토한다.
+  - [x] 문서 안내를 갱신하고 폴더 역할을 정리한다.
+  - [x] 중복된 짧은 요약을 합치고 상세 이력을 보관 영역으로 옮긴다.
+  - [x] 삭제·병합 후보를 보고하고 진행 방향을 반영한다.
+  - [ ] 남은 주요 설계·계획 문서를 한국어로 번역한다.

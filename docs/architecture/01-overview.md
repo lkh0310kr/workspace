@@ -1,86 +1,86 @@
-# Overview
+# 전체 구조
 
-Workspace is an Electron desktop app that combines **terminal**, **browser**, and **editors** in a multi-tab, multi-split layout—similar to an IDE with embedded browser panes.
+Workspace는 터미널, 브라우저, 편집기를 여러 탭과 분할 pane으로 함께 사용하는 Electron 데스크톱 앱입니다.
 
-## Process model
+## 프로세스 구성
 
 ```mermaid
 flowchart LR
-  Main[Main process]
-  Renderer[Renderer process]
-  Guest[Webview guest processes]
-  Pty[Shell PTY processes]
+  Main[Main 프로세스]
+  Renderer[Renderer 프로세스]
+  Guest[Webview guest 프로세스]
+  Pty[Shell PTY 프로세스]
   Main <-->|IPC| Renderer
   Renderer --> Guest
   Main --> Pty
 ```
 
-| Process | Responsibilities |
-|---------|------------------|
-| **Main** | Window, workspace JSON persistence, PTY spawn/resize, filesystem IPC, clipboard |
-| **Renderer** | React UI, flexlayout, xterm.js, `<webview>` tags |
-| **Guest** | One Chromium renderer per active `<webview>` (can be multiple per window) |
-| **PTY** | User shell (bash/zsh) per terminal id |
+| 프로세스 | 역할 |
+|---------|------|
+| **Main** | 창 관리, Workspace JSON 저장, PTY 생성·크기 조정, 파일시스템 IPC, 클립보드 |
+| **Renderer** | React UI, flexlayout, xterm.js, `<webview>` 태그 |
+| **Guest** | 활성 `<webview>`마다 실행되는 Chromium renderer. 창마다 여러 개일 수 있음 |
+| **PTY** | 터미널 ID마다 실행되는 사용자 셸(bash/zsh) |
 
-The renderer never spawns shells directly. All PTY I/O goes through main via `pty:*` IPC.
+Renderer가 직접 셸을 실행하지 않습니다. 모든 PTY 입출력은 `pty:*` IPC를 통해 Main을 거칩니다.
 
-## UI hierarchy (two tab levels)
+## 두 단계의 탭 구조
 
 ```mermaid
 flowchart TB
-  Rail[Workspace tab rail]
-  WS1[Workspace tab 1 layout]
-  WS2[Workspace tab 2 layout]
+  Rail[Workspace 탭 레일]
+  WS1[Workspace 탭 1 레이아웃]
+  WS2[Workspace 탭 2 레이아웃]
   Rail --> WS1
   Rail --> WS2
-  WS1 --> Split[flexlayout splits]
-  Split --> PaneA[PaneGroup node A]
-  Split --> PaneB[PaneGroup node B]
-  PaneA --> TabStrip[Pane tab strip]
-  PaneA --> Content[terminal / browser / editor tabs]
+  WS1 --> Split[flexlayout 분할]
+  Split --> PaneA[PaneGroup 노드 A]
+  Split --> PaneB[PaneGroup 노드 B]
+  PaneA --> TabStrip[pane 탭 레일]
+  PaneA --> Content[터미널 / 브라우저 / 편집기 탭]
 ```
 
-1. **Workspace tab** — top-level rail entry; each has its own `root_path` and flexlayout JSON.
-2. **flexlayout tab node** — one “pane” in the split grid; component type is always `tabgroup` (`PaneGroup`).
-3. **Pane tab** — heterogeneous tabs inside a pane (terminal, browser, code, markdown).
+1. **Workspace 탭** — 상단 레일의 항목입니다. 각 탭은 별도의 `root_path`와 flexlayout JSON을 가집니다.
+2. **flexlayout 탭 노드** — 분할 그리드 안의 pane입니다. 컴포넌트 형식은 `tabgroup`(`PaneGroup`)입니다.
+3. **Pane 탭** — pane 안에서 전환하는 터미널, 브라우저, 코드, Markdown 탭입니다.
 
-## Visibility model
+## 표시 상태 보존
 
-Both workspace tabs and pane tabs use **keep mounted, hide with CSS**:
+Workspace 탭과 pane 탭은 모두 **마운트 상태를 유지하고 CSS로 숨깁니다.**
 
-| Level | Hidden mechanism | Why not `display: none` on embeds |
-|-------|------------------|-------------------------------------|
-| Workspace tab | `visibility: hidden`, `pointer-events: none`, z-index | `display: none` on workspace host was removed; webviews use `visibility: hidden` at pane level |
-| Pane tab | `visibility: hidden`, `pointer-events: none` on content item | Chromium guests can blank/freeze when ancestors use `display: none` |
+| 수준 | 숨김 처리 | embed에서 `display: none`을 피하는 이유 |
+|------|-----------|----------------------------------------|
+| Workspace 탭 | `visibility: hidden`, `pointer-events: none`, z-index | Workspace host에 `display: none`을 적용하지 않습니다. webview는 pane 수준에서 `visibility: hidden` 처리합니다. |
+| Pane 탭 | 콘텐츠 항목에 `visibility: hidden`, `pointer-events: none` | 상위 요소가 `display: none`이면 Chromium guest가 빈 화면이 되거나 멈출 수 있습니다. |
 
-`InteractionCoordinator` applies **webview `pointer-events`** on top of CSS because Electron guests do not always respect ancestor `pointer-events`.
+Electron guest가 상위 요소의 `pointer-events`를 항상 따르지는 않으므로 `InteractionCoordinator`가 webview 상태도 적용합니다.
 
-## State ownership (current)
+## 상태 소유권
 
-| State | Owner | Notes |
-|-------|-------|-------|
-| Workspace tabs, active tab, layouts | Main `Workspace` + `workspace.json` | Broadcast via `workspace:updated` |
-| flexlayout `Model` per workspace tab | Renderer `App.tsx` `modelsRef` | Debounced persist to main |
-| Active pane tab within a group | Renderer `PaneGroup` `localActiveId` | Synced to model asynchronously |
-| Terminal scrollback / output | Main `PtyReplayBuffer` | Renderer reconnects via `pty:connect` |
-| Browser URL, zoom | flexlayout `PaneGroupConfig` on tab items | Persisted in layout JSON |
-| Overlay / pointer / portals | `InteractionCoordinator` | Module singleton in renderer |
+| 상태 | 소유자 | 동기화 |
+|------|--------|--------|
+| Workspace 탭, 활성 탭, 레이아웃 | Main `Workspace`와 `workspace.json` | `workspace:updated`로 전달 |
+| Workspace 탭별 flexlayout `Model` | Renderer `App.tsx`의 `modelsRef` | debounce 후 Main에 저장 |
+| pane 그룹 안의 활성 탭 | Renderer `PaneGroup`의 `localActiveId` | model에 비동기 반영 |
+| 터미널 스크롤백·출력 | Main `PtyReplayBuffer` | Renderer가 `pty:connect`로 다시 연결 |
+| 브라우저 URL·확대율 | 탭 항목의 flexlayout `PaneGroupConfig` | 레이아웃 JSON에 저장 |
+| overlay·포인터·portal | Renderer의 `InteractionCoordinator` | 모듈 singleton |
 
-Phase 2 (planned) will move much of this into a Zustand workspace-scope store. See [07-future-phases.md](./07-future-phases.md).
+상태 경계와 향후 제안은 [후속 단계](./07-future-phases.md)를 참고하세요.
 
-## Build & run
+## 빌드와 실행
 
 ```bash
 cd apps/workspace
 npm install
-npm run dev    # development
-npm run build  # production bundle → apps/workspace/out/
+npm run dev    # 개발 실행
+npm run build  # apps/workspace/out/에 제품 번들 생성
 ```
 
-Typecheck: `npm run typecheck` (node + web TS projects).
+타입 검사는 `npm run typecheck`로 Node와 웹 TypeScript 프로젝트를 확인합니다.
 
-## Related docs
+## 관련 문서
 
-- [02-process-and-ipc.md](./02-process-and-ipc.md)
-- [03-workspace-and-layout.md](./03-workspace-and-layout.md)
-- [04-interaction-coordinator.md](./04-interaction-coordinator.md)
+- [프로세스와 IPC](./02-process-and-ipc.md)
+- [Workspace와 레이아웃](./03-workspace-and-layout.md)
+- [상호작용 조정기](./04-interaction-coordinator.md)

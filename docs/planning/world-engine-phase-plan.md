@@ -383,8 +383,7 @@
 
 | IN | OUT |
 |----|-----|
-| `tests/benchmark_smoke.rs` (500 bodies × 60 steps) | CI perf gate |
-| `docs/planning/world-engine-performance.md` | |
+| `tests/benchmark_smoke.rs` (구체 500개 × 60회, 5초 미만; fixture 로드 + 120회, 1초 미만) | CI 성능 회귀 확인 |
 
 ---
 

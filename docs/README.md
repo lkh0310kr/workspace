@@ -21,6 +21,14 @@
 | `research/` | 제품에 포함하지 않은 조사와 실험 기록 |
 | `hardware/` | 전자 부품과 데이터시트 출처 |
 
+## 계획 트랙
+
+| 분야 | 계획 | 실행 구성 |
+|------|------|-----------|
+| 월드·시설 시뮬레이션 | [World Engine 단계 계획](./planning/world-engine-phase-plan.md) | `world-engine-core` (Rapier, Rhai) |
+| CAD·메시 | [CAD 오케스트레이션](./planning/cad-orchestration-phase-plan.md) | Electron + OCCT/FreeCAD 위임 |
+| 회로·펌웨어 | [하드웨어 시뮬레이션](./planning/hardware-sim-phase-plan.md) | `hardware-sim-core` + avr8js |
+
 ## 아이디어 메모
 
 - [제품 아이디어](./ideation.md) — 제품 방향과 보류 중인 pane 후보

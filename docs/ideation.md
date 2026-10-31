@@ -54,7 +54,7 @@ Vector Editor(SVG 기반 직접 구현, M1-M6)를 한 번 만들었다가 삭제
     지점은 게임이냐 시뮬레이션이냐가 아니라 **호스팅 방식**(Godot처럼
     Web/WASM export 가능한 엔진 vs Omniverse/FreeCAD처럼 네이티브 전용이라
     완전히 다른 임베딩이 필요한 엔진). 자세한 내용은
-    [ROADMAP.md의 World Engine 섹션](./ROADMAP.md#world-engine--planning-idea-not-started-2026-08-28) 참고.
+    [ROADMAP.md의 World Engine 섹션](./ROADMAP.md#world-engine) 참고.
 
 **첫 타깃: Game Engine(Godot), Web export 방식으로 fork/embed.** 넷 중 뭐가 더
 "근본적"이냐를 따진 게 아니라 — 지금 진짜 검증해야 할 근본 문제는 "포크한 엔진을
@@ -121,7 +121,7 @@ spawn, 생명주기만 관리**(itch.io가 네이티브 게임 다루는 방식�
 Blender/Krita 같은 GPL 소프트웨어를 별도 프로세스로만 다루면 GPL 의무가
 전이될 위험도 없어서(subprocess+IPC는 GPL에서도 안전한 "mere aggregation"
 패턴), 라이선스 문제도 같이 해결됨. 자세한 내용:
-[09-future-native-architecture.md](./architecture/09-future-native-architecture.md#world-engine-build-out--phase-1-4-2026-08-28)
+[World Engine 구현 이력](./research/world-engine-build-history.md#world-engine-build-out--phase-1-4-2026-08-28)
 
 **원본 앱의 내부 엔진/데이터 모델을 억지로 공통화하지 말 것** — Document
 Model/Editor Engine은 앱마다 근본적으로 다르고, 통합 시도는 fork maintenance

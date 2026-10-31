@@ -1,28 +1,28 @@
-# Process & IPC
+# 프로세스와 IPC
 
 ## Preload bridge
 
-`apps/workspace/src/preload/index.ts` exposes a typed API on `window.electron` (see `apps/workspace/src/preload/index.d.ts`). Renderer code imports shims from `apps/workspace/src/renderer/src/electron.ts`.
+`apps/workspace/src/preload/index.ts`는 `window.electron`과 `window.api`에 형식이 지정된 API를 노출합니다. Renderer 코드는 `apps/workspace/src/renderer/src/electron.ts`의 보조 함수를 통해 이 API를 호출합니다.
 
-Context isolation is enabled; renderer cannot import Node modules directly.
+Context isolation이 켜져 있으므로 Renderer는 Node 모듈을 직접 가져올 수 없습니다.
 
 ## Workspace IPC
 
-| Channel | Direction | Purpose |
-|---------|-----------|---------|
-| `workspace:get-state` | invoke → | Initial hydrate |
-| `workspace:updated` | main → renderer event | Push full state after any mutation |
-| `workspace:add-tab` | invoke | New workspace tab |
-| `workspace:close-tab` | invoke | Close tab by id |
-| `workspace:select-tab` | invoke | Set `activeTabId` |
-| `workspace:set-tab-layout` | invoke | Persist flexlayout JSON string |
-| `workspace:set-tab-root-path` | invoke | Change tab root directory |
+| 채널 | 방향 | 목적 |
+|------|------|------|
+| `workspace:get-state` | invoke → Main | 최초 상태 불러오기 |
+| `workspace:updated` | Main → Renderer 이벤트 | 상태가 바뀐 뒤 전체 상태 전달 |
+| `workspace:add-tab` | invoke → Main | Workspace 탭 추가 |
+| `workspace:close-tab` | invoke → Main | ID로 탭 닫기 |
+| `workspace:select-tab` | invoke → Main | `activeTabId` 지정 |
+| `workspace:set-tab-layout` | invoke → Main | flexlayout JSON 저장 |
+| `workspace:set-tab-root-path` | invoke → Main | 탭의 기준 디렉터리 변경 |
 
-Main source: `apps/workspace/src/main/workspace.ts`, handlers in `apps/workspace/src/main/index.ts`.
+Main 구현은 `apps/workspace/src/main/workspace.ts`, IPC handler는 `apps/workspace/src/main/index.ts`에 있습니다.
 
-`persist()` writes `workspace.json` and emits `workspace:updated` via `sendToMainWindow` (handles window recreation on macOS).
+`persist()`는 `workspace.json`을 저장하고 `sendToMainWindow`를 통해 `workspace:updated`를 보냅니다. 이 함수는 macOS에서 창이 다시 만들어지는 경우도 처리합니다.
 
-### Workspace state shape (conceptual)
+### Workspace 상태 형태
 
 ```typescript
 {
@@ -30,31 +30,31 @@ Main source: `apps/workspace/src/main/workspace.ts`, handlers in `apps/workspace
     id: number;
     title: string;
     root_path: string;
-    layout_json: string;  // flexlayout IJsonModel serialized
+    layout_json: string;  // 직렬화한 flexlayout IJsonModel
   }>;
   activeTabId: number;
 }
 ```
 
-Renderer `useWorkspace()` maps snake_case fields (`active_tab_id`, `layout_json`, `root_path`).
+Renderer의 `useWorkspace()`는 `active_tab_id`, `layout_json`, `root_path` 같은 snake_case 필드를 매핑합니다.
 
 ## PTY IPC
 
-| Channel | Direction | Purpose |
-|---------|-----------|---------|
-| `pty:spawn` | invoke | Create terminal id + shell |
-| `pty:connect` | invoke | Attach renderer; returns replay snapshot |
-| `pty:disconnect` | send | Detach renderer (PTY keeps running) |
-| `pty:data` | main → renderer | `{ id, seq, data }` output chunk |
-| `pty:write` | send | Input bytes to shell |
-| `pty:resize` | send | SIGWINCH dimensions |
-| `pty:dispose` | send | Kill session |
+| 채널 | 방향 | 목적 |
+|------|------|------|
+| `pty:spawn` | invoke → Main | 터미널 ID와 셸 생성 |
+| `pty:connect` | invoke → Main | Renderer 연결, 재생용 snapshot 반환 |
+| `pty:disconnect` | send → Main | Renderer 연결 해제. PTY는 계속 실행 |
+| `pty:data` | Main → Renderer | `{ id, seq, data }` 출력 조각 전달 |
+| `pty:write` | send → Main | 셸에 입력 바이트 전달 |
+| `pty:resize` | send → Main | 터미널 크기 변경(SIGWINCH) |
+| `pty:dispose` | send → Main | 개별 PTY 종료에는 아직 연결되지 않음. 현재는 레이아웃 변경 시 orphan 세션을 정리합니다. |
 
-Main: `apps/workspace/src/main/ptySession.ts` — `PtySession` wraps `Pty`, maintains `PtyReplayBuffer` (~5000×120 char cap).
+Main의 `apps/workspace/src/main/ptySession.ts`에서 `PtySession`이 `Pty`를 감싸고 `PtyReplayBuffer`에 출력을 보관합니다. 버퍼 상한은 약 5,000행 × 120자입니다.
 
-Renderer: `apps/workspace/src/renderer/src/terminal/ptyTransport.ts`, `connectPanePty.ts`.
+Renderer 코드는 `apps/workspace/src/renderer/src/terminal/ptyTransport.ts`와 `connectPanePty.ts`에 있습니다.
 
-### Connect / reconnect flow
+### 연결과 재연결
 
 ```mermaid
 sequenceDiagram
@@ -64,42 +64,42 @@ sequenceDiagram
   T->>R: connect(terminalId)
   R->>M: pty:connect(id)
   M-->>R: snapshot, cols, rows, lastSeq
-  R->>T: write snapshot to xterm
-  M-->>R: pty:data (live)
+  R->>T: snapshot을 xterm에 기록
+  M-->>R: pty:data (실시간 출력)
 ```
 
-When a workspace tab is hidden, renderer may call `pty:disconnect`; main keeps PTY alive. On show, `pty:connect` replays buffer.
+Workspace 탭이 숨겨지면 Renderer가 `pty:disconnect`를 보낼 수 있지만 Main은 PTY를 유지합니다. 다시 표시될 때 `pty:connect`로 버퍼 출력을 재생합니다.
 
-## Filesystem IPC
+## 파일시스템 IPC
 
-Scoped per workspace tab id (`tabId` + relative path under tab `root_path`):
+요청은 Workspace 탭 ID와 `root_path` 아래의 상대 경로를 사용해 범위를 제한합니다.
 
-- `fs:list-dir`, `fs:read-file`, `fs:write-file`, `fs:create-dir`, `fs:delete-path`, `fs:rename-path`
+- `fs:list-dir`, `fs:read-file`, `fs:write-file`
+- `fs:create-dir`, `fs:delete-path`, `fs:rename-path`
 
-Used by `TreeView` and editors.
+`TreeView`와 편집기가 이 채널을 사용합니다.
 
-## Browser-related IPC
+## 브라우저 IPC
 
-| Channel | Purpose |
-|---------|---------|
-| `browser:open-new-tab` | `target=_blank` from guest → new pane browser tab |
-| `browser:reload-shortcut` | Cmd+R routing from main |
-| Guest focus relay | Tracks which webview has focus for shortcuts |
+| 채널 | 목적 |
+|------|------|
+| `browser:open-new-tab` | guest의 `target=_blank` 요청으로 pane에 브라우저 탭 추가 |
+| `shortcut:browser-reload` | Main에서 Cmd+R을 현재 브라우저로 전달 |
+| guest focus relay | 단축키 대상이 될 webview를 추적 |
 
-Registry: `apps/workspace/src/renderer/src/layout/activeBrowserWebview.ts`.
+현재 브라우저 guest 등록 정보는 `apps/workspace/src/renderer/src/layout/activeBrowserWebview.ts`에 있습니다.
 
-## Clipboard
+## 클립보드
 
-- `clipboard:write-text` — OSC 52 paste from terminal
-- Renderer `writeClipboardText` in `electron.ts`
+- `clipboard:write-text` — 터미널 OSC 52 클립보드 쓰기
+- Renderer의 `electron.ts`에 있는 `writeClipboardText`
 
-## Error handling
+## 오류 처리
 
-Global renderer logging: `installGlobalErrorLogging()` → `ErrorLogPanel`.
+- Renderer 전역 오류: `installGlobalErrorLogging()` → `ErrorLogPanel`
+- Pane 렌더링 오류: flexlayout factory 노드별 `PaneErrorBoundary`
 
-Pane render errors: `PaneErrorBoundary` per flexlayout factory node.
+## 관련 문서
 
-## Related docs
-
-- [05-terminal-pipeline.md](./05-terminal-pipeline.md)
-- [06-browser-embeds.md](./06-browser-embeds.md)
+- [터미널 파이프라인](./05-terminal-pipeline.md)
+- [브라우저 embed](./06-browser-embeds.md)
