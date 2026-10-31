@@ -769,6 +769,20 @@ input {
   color: var(--text);
 }
 
+.workspace-tab-rail-shortcut-number {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 26%, var(--bg-surface));
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+}
+
 .workspace-tab-rail-add {
   display: flex;
   align-items: center;

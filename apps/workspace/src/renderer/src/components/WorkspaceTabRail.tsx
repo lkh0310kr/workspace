@@ -45,6 +45,7 @@ export function WorkspaceTabRail({
     null
   )
   const [dropIndex, setDropIndex] = useState<number | null>(null)
+  const [showTabNumbers, setShowTabNumbers] = useState(false)
   const draggedIdRef = useRef<number | null>(null)
   const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const inputRef = useRef<HTMLInputElement>(null)
@@ -52,6 +53,24 @@ export function WorkspaceTabRail({
   useEffect(() => {
     if (renamingId !== null) inputRef.current?.select()
   }, [renamingId])
+
+  useEffect(() => {
+    const updateFromKeyboard = (event: KeyboardEvent) => {
+      setShowTabNumbers(event.metaKey || event.ctrlKey)
+    }
+    const clearOnBlur = () => setShowTabNumbers(false)
+
+    window.addEventListener('keydown', updateFromKeyboard)
+    window.addEventListener('keyup', updateFromKeyboard)
+    window.addEventListener('blur', clearOnBlur)
+    document.addEventListener('visibilitychange', clearOnBlur)
+    return () => {
+      window.removeEventListener('keydown', updateFromKeyboard)
+      window.removeEventListener('keyup', updateFromKeyboard)
+      window.removeEventListener('blur', clearOnBlur)
+      document.removeEventListener('visibilitychange', clearOnBlur)
+    }
+  }, [])
 
   const startRename = useCallback((tab: TabInfo) => {
     setRenamingWidth(rowRefs.current.get(tab.id)?.getBoundingClientRect().width ?? null)
@@ -230,7 +249,11 @@ export function WorkspaceTabRail({
                   <span className="workspace-tab-rail-title-text">{tab.title}</span>
                 </button>
               )}
-              {tabs.length > 1 && (
+              {showTabNumbers ? (
+                <span className="workspace-tab-rail-shortcut-number" aria-hidden="true">
+                  {index + 1}
+                </span>
+              ) : tabs.length > 1 ? (
                 <button
                   type="button"
                   className="workspace-tab-rail-close"
@@ -244,7 +267,7 @@ export function WorkspaceTabRail({
                 >
                   <WorkbenchIcon name="close" size={13} />
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
           )
