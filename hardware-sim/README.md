@@ -4,7 +4,7 @@ Deterministic Hardware-as-Code circuit kernel — separate from World Engine's 3
 
 | Crate | Role |
 |-------|------|
-| [`core/`](./core/) | Validation, circuit graph, JSON-lines runtime, `hardware-sim` CLI |
+| [`core/`](./core) | Validation, circuit graph, JSON-lines runtime, `hardware-sim` CLI |
 
 ```sh
 cargo test -p hardware-sim-core

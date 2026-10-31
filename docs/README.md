@@ -1,39 +1,19 @@
 # 문서 안내
 
-## 바로가기
+문서는 상태와 용도에 따라 나눕니다. **현재 구현의 기준은 코드**, 예정 기능의 기준은 `planning/` 문서입니다. 조사·이전 이력은 현재 계획으로 취급하지 않습니다.
 
-- [백로그](./backlog.md) — 진행 중인 작업
-- [시스템 구조](./architecture/README.md) — 실제 구현 구조와 읽는 순서
-- [디자인 원칙](./DESIGN.md) — 레이아웃, 색상, 상호작용 기준
-- [개발 로드맵](./ROADMAP.md) — 저장소의 큰 방향과 단계
-- [수동 QA 체크리스트](./manual-qa-checklist.md) — 릴리스 전 주요 흐름
-- [UI/UX 개선 기록](./ui-ux-improvements.md) — 화면 개선 후보와 완료 내역
-- [하드웨어 부품 자료표](./hardware/component-datasheet-matrix.md)
-- [Windows 빌드 안내](./windows-build.md)
-- [연구·실험 기록](./research/README.md)
+## 어디서 찾나요?
 
-## 문서 영역
+| 알고 싶은 것 | 문서 |
+|---|---|
+| 현재 시스템이 어떻게 동작하는가 | [시스템 아키텍처](./architecture/README.md) |
+| 어떤 일을 진행하거나 계획 중인가 | [계획 문서 색인](./planning/README.md) |
+| 개발·QA·디자인 절차는 무엇인가 | [가이드 색인](./guides/README.md) |
+| 완료된 조사와 이전 결정은 무엇인가 | [연구 기록](./research/README.md) |
 
-| 경로 | 용도 |
-|------|------|
-| `architecture/` | 현재 구현 구조와 장기 기술 방향. `README.md`에서 읽는 순서를 안내합니다. |
-| `planning/` | CAD, 하드웨어 시뮬레이션, World Engine 등 기능별 계획 |
-| `research/` | 제품에 포함하지 않은 조사와 실험 기록 |
-| `hardware/` | 전자 부품과 데이터시트 출처 |
+## 문서 원칙
 
-## 계획 트랙
-
-| 분야 | 계획 | 실행 구성 |
-|------|------|-----------|
-| 월드·시설 시뮬레이션 | [World Engine 단계 계획](./planning/world-engine-phase-plan.md) | `world-engine-core` (Rapier, Rhai) |
-| CAD·메시 | [CAD 오케스트레이션](./planning/cad-orchestration-phase-plan.md) | Electron + OCCT/FreeCAD 위임 |
-| 회로·펌웨어 | [하드웨어 시뮬레이션](./planning/hardware-sim-phase-plan.md) | `hardware-sim-core` + avr8js |
-
-## 아이디어 메모
-
-- [제품 아이디어](./ideation.md) — 제품 방향과 보류 중인 pane 후보
-- [미정 아이디어](./backlog-ideas.md) — 일정에 포함하지 않은 메모
-
-구현 여부와 현재 동작의 기준은 문서가 아니라 `apps/workspace/`와 관련 Rust crate 코드입니다. 계획 문서의 범위와 상태를 확인한 뒤 구현으로 취급하세요.
-
-문서는 한국어를 기본으로 씁니다. 코드 식별자, 경로, 명령, 외부 API 이름은 원문을 유지합니다. 기존 영문 계획·역사 문서는 정리 과정에서 순차적으로 번역합니다.
+- 각 주제에는 기준 문서를 하나만 둡니다. 다른 문서는 상세 계약을 복제하지 말고 기준 문서로 연결합니다.
+- 계획 문서에는 계획 상태를, research에는 보관 상태를 색인에 표시합니다.
+- 문서는 한국어를 기본으로 씁니다. 코드 식별자, 경로, 명령, 외부 API 이름은 원문을 유지합니다.
+- 파일을 삭제하거나 문서 내용을 합치기 전에는 후보와 보존 위치를 먼저 검토합니다.

@@ -3,7 +3,7 @@
 **Status:** Active planning (2026-09-01)  
 **목표:** 개인 **설계·운영 실험실** (닭장, 물레, 스마트팜 등)을 **엔진 포크 없이** 프로젝트 폴더만으로 반복 검증할 수 있는 수준  
 **구현:** `world-engine/core/` · `world-engine/qt-shell/`  
-**관련:** [world-engine-project.md](./world-engine-project.md) (프로젝트 레이아웃) · [09-future-native-architecture.md](../architecture/09-future-native-architecture.md) (Workspace 통합 이력)
+**관련:** [world-engine-project.md](./world-engine-project.md) (프로젝트 레이아웃) · [native-architecture.md](./native-architecture.md) (Workspace 통합 이력)
 
 ---
 
@@ -70,7 +70,7 @@
 | 11 | Rhai per-entity script, `script`/`script_args`, `gravity`, `name` | chase-demo |
 | 12 | `entity_pos`, `entry_script`, `time_scale`, `script_mode: force`, 6+ sim fixtures | `cargo test --lib` |
 
-상세 이력: [09-future-native-architecture.md § World Engine](../architecture/09-future-native-architecture.md)
+상세 이력: [native-architecture.md § World Engine](./native-architecture.md)
 
 ---
 

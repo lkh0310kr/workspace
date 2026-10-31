@@ -12,13 +12,13 @@ engine itself has no Qt/window dependency at all (see the headless
 > Earlier history: this crate used to be a WebRTC-transport spike,
 > superseded by direct native rendering — see the "Transport critique"
 > section of
-> [`docs/architecture/09-future-native-architecture.md`](../../docs/architecture/09-future-native-architecture.md).
+> [`docs/planning/native-architecture.md`](../../docs/planning/native-architecture.md).
 > Its content was fully replaced (not incrementally patched) when it
 > became the real shared engine library — see that doc's "Phase 10".
 
 ## The SDK surface
 
-`World::spawn`/`spawn_with_behavior` (in [`src/world.rs`](src/world.rs))
+`World::spawn`/`spawn_with_behavior` (in [`src/world.rs`](./src/world.rs))
 is the actual point of this crate — real code hooks into a running
 engine here, not just a declarative scene file:
 
@@ -48,7 +48,7 @@ kinematic target) is consumed by that same step. Deliberately minimal
 for this phase: one trait, one way to attach, direct rigid-body access
 only — no event bus, no query DSL beyond what `hecs` itself gives you,
 no scripting language (Rhai project scripts are a separate JSON-driven
-layer — see [`src/script.rs`](src/script.rs) and
+layer — see [`src/script.rs`](./src/script.rs) and
 [`docs/planning/world-engine-project.md`](../../docs/planning/world-engine-project.md)),
 no hot-reload. Real future
 scope, not pretended at here.
@@ -60,7 +60,7 @@ sinusoidal motion on a kinematic body) that don't need the full
 
 ## JSON scenes are a thin layer on the same API
 
-[`src/scene.rs`](src/scene.rs)'s `world-engine.json` loader
+[`src/scene.rs`](./src/scene.rs)'s `world-engine.json` loader
 (`load_scene`/`default_scene`/`build_world`) is **one convenience way**
 to build a `World` from data — `build_world` is a loop that parses JSON
 then calls the exact same `World::spawn`/`add_motion`/`add_joint`
@@ -72,7 +72,7 @@ glTF mesh loading).
 
 ## Rendering
 
-[`src/render.rs`](src/render.rs) — `init_gpu`/`render_frame` build a
+[`src/render.rs`](./src/render.rs) — `init_gpu`/`render_frame` build a
 `wgpu` surface directly from a native view handle (an `NSView*` on
 macOS) and render straight into it every frame: no offscreen texture, no
 readback, no video. Nothing here is Qt-specific; any future shell (a
@@ -86,7 +86,7 @@ its native view handle plus forwarding real input.
 cargo run --example chase
 ```
 
-[`examples/chase.rs`](examples/chase.rs) builds a `World` entirely in
+[`examples/chase.rs`](./examples/chase.rs) builds a `World` entirely in
 code (no JSON, no window) and steps it without any GPU/Qt involved at
 all — a `ChaseBehavior` moves a kinematic entity toward a fixed target
 every frame via `UpdateCtx::rigid_body`, something the JSON scene

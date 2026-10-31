@@ -1,6 +1,6 @@
-# Ideas backlog (not scheduled)
+# 미편성 아이디어 메모
 
-Personal notes and future directions — not part of the current app sprint.
+**상태:** 일정 미편성. 제품 우선순위나 현재 스프린트의 할 일은 [개발 로드맵](./roadmap.md)과 [백로그](./backlog.md)에서 관리합니다.
 
 ---
 

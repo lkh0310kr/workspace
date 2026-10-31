@@ -2,7 +2,7 @@
 
 > **Internal scratch pad.** Raw notes from ref-proj comparison (orca, vscode) and
 > `apps/workspace` inventory. The concise outcome lives in
-> [`ui-ux-improvements.md`](../ui-ux-improvements.md).
+> [`ui-ux-improvements.md`](../planning/ui-ux-improvements.md).
 
 Last updated: **2026-09-09**
 
@@ -14,7 +14,7 @@ Last updated: **2026-09-09**
    - `orca/` — already present; Tier 2 Electron UX reference
    - `vscode/` — shallow clone (`--depth 1`) for workbench/sash/quick-input patterns
 2. Inventoried workspace renderer surfaces (`apps/workspace/src/renderer/src/`)
-3. Cross-read `docs/DESIGN.md` v2 + recent CSS fixes (splitter hover, tokens)
+3. Cross-read `docs/guides/design-principles.md` v2 + recent CSS fixes (splitter hover, tokens)
 4. Did **not** clone zed/logseq (disk/time); orca + vscode cover Electron + IDE baseline
 
 ---

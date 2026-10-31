@@ -1,14 +1,14 @@
 # Core Model (Workspace primitives)
 
-**Status:** Philosophy / target shape (2026-09-03). Not a crate to implement this week.  
+**Status:** Philosophy / target shape (2026-09-03). Not a crate to implement this week.
 **Lineage:** Conversation sketch (“모든 툴이 공통 primitive 위에서 조합”) + existing
-[08-context-modeling.md](./08-context-modeling.md) (“Domain owns meaning. Workspace owns context.”).  
+[context-modeling.md](./context-modeling.md) (“Domain owns meaning. Workspace owns context.”).
 **Does not replace:** fork/embed internals (Penpot Document, FreeCAD BREP, avr8js MCU, Rapier world).
 
 This doc is the **model-design** half of the layered Workspace picture. Command/Event/mobile remote
 are noted only as *consumers of the same model* — they are not designed here
-([제품 아이디어의 i-1](../backlog-ideas.md#i-1-pkms-옵시디언-모바일-연동-방법)). Build them after Core Model refs + a Command Bus
-exist ([ROADMAP.md](../ROADMAP.md) Phase 1).
+([제품 아이디어의 i-1](./uncommitted-ideas.md#i-1-pkms-옵시디언-모바일-연동-방법)). Build them after Core Model refs + a Command Bus
+exist ([roadmap.md](./roadmap.md) Phase 1).
 
 ---
 
@@ -41,7 +41,7 @@ shared context types.
 | Entity = namespaced id + opaque `type` | Entity · Document · Node · … | Extra words are **roles** a handle can play, not new ECS in Electron. `hw:comp:led1` is an Entity; avr8js does not implement Entity. |
 | Build shared abstraction after a **second** consumer | “Graph Engine for shader + circuit + AI” | Circuit (hardware-sim) is consumer #1 of Graph-shaped JSON. Do **not** extract `native/graph-core` until a second real graph (behavior, shader, farm pipeline) needs the same crate. |
 
-**Wrong:** one Rust `CoreModel` crate that Rapier, OCCT, and avr8js all subclass.  
+**Wrong:** one Rust `CoreModel` crate that Rapier, OCCT, and avr8js all subclass.
 **Right:** CAD already did this — Authoring (STEP) vs CIR (glTF) vs Simulation (`world-engine.json`).
 Core Model is the **CIR/handle layer**, not the authoring kernel.
 
@@ -63,15 +63,15 @@ Each row is a *contract*, not a mandate to rewrite panes tomorrow.
 | **Query** | Read without owning domain | `sim_metrics`, pick, `fs:search` | Knowledge graph (08: not now) |
 | **Provenance** | user / agent / imported / generated | 08: bake into Asset when it lands | Full epistemology taxonomy |
 
-**World Engine is not an island:**  
-`World ≈ Entity + Geometry(Resource) + Time + State + Rules(Rhai)`.  
+**World Engine is not an island:**
+`World ≈ Entity + Geometry(Resource) + Time + State + Rules(Rhai)`.
 That is composition of Core kinds *plus* a domain engine (Rapier). Same pattern as hardware-sim.
 
 ---
 
 ## 4. Hardware-as-Code as composition (not a fifth universe)
 
-Maps the Arduino / HaC track onto this model. Detail: [hardware-sim-phase-plan.md](../planning/hardware-sim-phase-plan.md).
+Maps the Arduino / HaC track onto this model. Detail: [hardware-sim-phase-plan.md](./hardware-sim-phase-plan.md).
 
 | HaC piece | Core kind | Domain engine |
 |-----------|-----------|---------------|
@@ -89,7 +89,7 @@ Do not put `PinCapability` into World Engine schema. That is hardware-sim meanin
 
 ## 5. Geometry vs CAD vs WE (already decided, named here)
 
-[cad-orchestration-phase-plan.md](../planning/cad-orchestration-phase-plan.md):
+[cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md):
 
 | Layer | Format | Core kind |
 |-------|--------|-----------|
@@ -97,13 +97,13 @@ Do not put `PinCapability` into World Engine schema. That is hardware-sim meanin
 | CIR | glTF | Resource + Geometry exchange |
 | Facility sim | `world-engine.json` | World |
 
-Vector editor / GIS / CAD sharing “one Geometry kernel” is a **long-term CIR dream**, same failure mode as merging Document Models ([ideation.md](../ideation.md) fork/embed). Share files and importers first.
+Vector editor / GIS / CAD sharing “one Geometry kernel” is a **long-term CIR dream**, same failure mode as merging Document Models ([product-direction.md](./product-direction.md) fork/embed). Share files and importers first.
 
 ---
 
 ## 6. Interaction / Command (boundary only)
 
-Design system in the sketch (Selection, Undo, Shortcut) is **not** buttons. This repo already has a slice: [04-interaction-coordinator.md](./04-interaction-coordinator.md) (pointer, overlay, focus). Phase 1 Command Bus is still the right place for `RunSimulation` / `OpenAsset` — **Capability-shaped**, agent and future mobile both call that, they do not get a second Core Model.
+Design system in the sketch (Selection, Undo, Shortcut) is **not** buttons. This repo already has a slice: [04-interaction-coordinator.md](../architecture/04-interaction-coordinator.md) (pointer, overlay, focus). Phase 1 Command Bus is still the right place for `RunSimulation` / `OpenAsset` — **Capability-shaped**, agent and future mobile both call that, they do not get a second Core Model.
 
 Mobile companion (observe, notify, command queue, eventually-connected): **same Entity/Resource/Event**, different surface. Do not design a phone schema. Order remains: Core refs → Command/Event → desktop → remote API → client.
 
@@ -126,8 +126,8 @@ Until then: duplicate a small JSON shape is cheaper than a premature `graph-core
 
 ## 8. Related
 
-- [08-context-modeling.md](./08-context-modeling.md) — Entity/Resource/Capability/Provenance; what *not* to build
-- [ideation.md](../ideation.md) — do not merge forked engines’ document models
-- [3d-model-viewer-architecture.md](../planning/3d-model-viewer-architecture.md) §14 — viewer mapped onto 08
-- [world-engine-simulation.md](../planning/world-engine-simulation.md) — World as sim kernel, not universal model
-- [hardware-sim-phase-plan.md](../planning/hardware-sim-phase-plan.md) — first Graph-shaped domain crate
+- [context-modeling.md](./context-modeling.md) — Entity/Resource/Capability/Provenance; what *not* to build
+- [product-direction.md](./product-direction.md) — do not merge forked engines’ document models
+- [3d-model-viewer-architecture.md](./3d-model-viewer-architecture.md) §14 — viewer mapped onto 08
+- [world-engine-simulation.md](./world-engine-simulation.md) — World as sim kernel, not universal model
+- [hardware-sim-phase-plan.md](./hardware-sim-phase-plan.md) — first Graph-shaped domain crate

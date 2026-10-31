@@ -1,6 +1,6 @@
 # 이전 상세 로드맵 기록 (2026-08–09)
 
-> 저장소 방향, 완료 단계, 검증 내용을 담은 과거 문서입니다. 현재 우선순위는 [개발 로드맵](../ROADMAP.md), World Engine의 실제 단계는 [계획 문서](../planning/world-engine-phase-plan.md)를 기준으로 확인하세요.
+> 저장소 방향, 완료 단계, 검증 내용을 담은 과거 문서입니다. 현재 우선순위는 [개발 로드맵](../planning/roadmap.md), World Engine의 실제 단계는 [계획 문서](../planning/world-engine-phase-plan.md)를 기준으로 확인하세요.
 
 ## Guiding principle (applies to every phase below)
 
@@ -20,13 +20,13 @@ panes on top of it. Right now every pane (Terminal, Browser, Code/
 Markdown, Viewer, RSS) implements its own version of things that should
 be common infrastructure — this phase formalizes those into shared
 modules, informed by the "Workspace SDK" principles in
-[`ideation.md`](../ideation.md#방향-그래픽설계cad급-pane-2026-08-현재-우선순위)
+[`product-direction.md`](../planning/product-direction.md#방향-그래픽설계cad급-pane-2026-08-현재-우선순위)
 (don't merge per-app engines/document models — only the infra layer
 below them is worth sharing) and given more precise shape by
-[08-context-modeling.md](../architecture/08-context-modeling.md)'s
+[context-modeling.md](../planning/context-modeling.md)'s
 Entity/Resource/Capability/Provenance vocabulary.
 
-Priority order (from `ideation.md`'s "공통화 우선순위"):
+Priority order (from `product-direction.md`'s "공통화 우선순위"):
 
 - [x] **File System module** — `renderer/src/fileSystem.ts`: the
   read/write/watch/search/list/reveal/directory-dialog cluster split out
@@ -51,7 +51,7 @@ Priority order (from `ideation.md`'s "공통화 우선순위"):
   "Open as App" registers an `engine-bundle` entry. **No reader/UI yet**
   — write-only until a real second consumer needs one, per this
   project's "extract after the second concrete case" convention (see
-  [08-context-modeling.md](../architecture/08-context-modeling.md)). Not
+  [context-modeling.md](../planning/context-modeling.md)). Not
   a general document/asset database — see the Asset system item below
   for that, still separate and still not started.
 - [x] **Asset system (v1: classification, not a registry)** —
@@ -63,7 +63,7 @@ Priority order (from `ideation.md`'s "공통화 우선순위"):
   zero behavior change with a dedicated regression test asserting every
   one of the 18 originally-covered extensions still routes to the same
   pane kind. Deliberately **not** the full Entity/Resource/`AssetRef`
-  registry [08-context-modeling.md](../architecture/08-context-modeling.md)
+  registry [context-modeling.md](../planning/context-modeling.md)
   describes — per that doc's own "physical decentralization" section, an
   asset *reference* store only earns its complexity once something
   actually needs to look assets up across panes, which nothing does yet.
@@ -102,7 +102,7 @@ Priority order (from `ideation.md`'s "공통화 우선순위"):
 
 **Goal:** not "build many small panes" — build the foundation to
 eventually host genuinely professional-grade tools in four categories
-(see [`ideation.md`](../ideation.md#방향-그래픽설계cad급-pane-2026-08-현재-우선순위)):
+(see [`product-direction.md`](../planning/product-direction.md#방향-그래픽설계cad급-pane-2026-08-현재-우선순위)):
 
 - **2D** — Figma/Illustrator/Photoshop-class
 - **3D** — Blender-class
@@ -116,15 +116,15 @@ hand-roll from scratch the way Vector Editor was (that experience is
 exactly why: M1-M6 of a plain SVG-DOM 2D editor was already substantial
 work; Blender/CAD/Omniverse-class software is a different order of
 magnitude). Default strategy is **fork/embed a real open-source engine**
-per pane (candidates in `ideation.md`: Penpot/Krita for 2D, Blender
+per pane (candidates in `product-direction.md`: Penpot/Krita for 2D, Blender
 itself for 3D, Shotcut/Kdenlive for video, FreeCAD/Open CASCADE for CAD,
 Godot for game engine) rather than reimplementing one — see
-`ideation.md`'s fork/embed principles and
-[09-future-native-architecture.md](../architecture/09-future-native-architecture.md)'s
+`product-direction.md`'s fork/embed principles and
+[native-architecture.md](../planning/native-architecture.md)'s
 out-of-process direction for Blender-class apps.
 
 Engineering/analysis panes (Database Studio, Network/Packet Analyzer,
-etc. — also in `ideation.md`) are **on hold, not dropped** — deprioritized
+etc. — also in `product-direction.md`) are **on hold, not dropped** — deprioritized
 behind this direction, revisit later.
 
 - [x] Pick which of the four categories to design toward first: **Game
@@ -187,7 +187,7 @@ behind this direction, revisit later.
   Browser pane's nav/address row) stayed visible around it until now —
   `useHtmlFullscreen.ts` + a `.html-fullscreen` CSS class hides both
   while active, restores on exit. 실제 TreeView 흐름의 QA는
-  [수동 QA 체크리스트](../manual-qa-checklist.md#월드-엔진)에 남아 있다.
+  [수동 QA 체크리스트](../guides/manual-qa-checklist.md#월드-엔진)에 남아 있다.
 - [x] One-click "Export Godot (Web) & Open" (2026-08-28) — the original
   ask ("난 그냥 workspace에 넣어서 검증하면 되도록 쉽게 더 완성도 있는
   파이프라인을 만들어야지") was still two manual steps: run `export.sh`
@@ -209,7 +209,7 @@ behind this direction, revisit later.
   `test-fixtures/godot-demo` fixture — real `godot` CLI ran, produced a
   correct bundle (`index.html`/`.js`/`.pck`/`.wasm`/audio worklets).
   실제 TreeView 메뉴 QA는
-  [수동 QA 체크리스트](../manual-qa-checklist.md#월드-엔진)에 남아 있다.
+  [수동 QA 체크리스트](../guides/manual-qa-checklist.md#월드-엔진)에 남아 있다.
 
 ### World Engine — planning idea, not started (2026-08-28)
 
@@ -242,7 +242,7 @@ for "real-time 3D host" panes), with two implementation tracks — both
 ending at "opens as a Browser tab," so neither needs a new pane kind —
 **web-bundle** (solved, Godot proves it) and **pixel-streaming** (design
 + feasibility spike done — see
-[09-future-native-architecture.md](../architecture/09-future-native-architecture.md#unified-hosting-design-research-pass-2026-08-28--no-native-window-embedding-needed-so-far)).
+[네이티브 아키텍처 조사 기록](./native-architecture-history.md#unified-hosting-design-research-pass-2026-08-28--no-native-window-embedding-needed-so-far)).
 Researching real candidates (Bevy, MonoGame, Omniverse, FreeCAD) found
 that **true native-window embedding has no clean cross-platform path at
 all** (three open, unresolved Electron issues) and, encouragingly, isn't
@@ -307,7 +307,7 @@ native view — this project's existing `InteractionCoordinator`
 (`04-interaction-coordinator.md`) solves the closely related `<webview>`
 version of this problem, and whether the same approach extends to a
 native view is the next concrete thing to check. Full detail in
-[09-future-native-architecture.md](../architecture/09-future-native-architecture.md#even-better-than-local-ipc--canvas-render-directly-into-a-native-embedded-view-2026-08-28).
+[네이티브 아키텍처 조사 기록](./native-architecture-history.md#even-better-than-local-ipc--canvas-render-directly-into-a-native-embedded-view-2026-08-28).
 
 **Phases 1-3 built and verified, then a deliberate pivot (2026-08-28).**
 User asked to see this through rather than stop at "designed" — built:
@@ -347,7 +347,7 @@ stay on the *fork the real app, don't reimplement* principle — World
 Engine is the one deliberate exception, and even it now hosts the same
 "separate process, not embedded" way — in
 [World Engine 구현 이력](./world-engine-build-history.md#world-engine-build-out--phase-1-4-2026-08-28)
-and [ideation.md](../ideation.md#그래픽cad-pane을-실제로-만들-때의-원칙--외부-오픈소스-엔진-forkembed).
+and [product-direction.md](../planning/product-direction.md#그래픽cad-pane을-실제로-만들-때의-원칙--외부-오픈소스-엔진-forkembed).
 
 ## History (done)
 

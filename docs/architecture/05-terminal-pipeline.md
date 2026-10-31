@@ -144,4 +144,4 @@ Post-install: `apps/workspace/scripts/apply-xterm-patch.mjs`
 
 - [02-process-and-ipc.md](./02-process-and-ipc.md)
 - [04-interaction-coordinator.md](./04-interaction-coordinator.md)
-- [07-future-phases.md](./07-future-phases.md) — cold-park planned
+- [architecture-phases.md](../planning/architecture-phases.md) — cold-park planned

@@ -188,7 +188,7 @@
 |----|-----|
 | Workspace: STEP/FCStd → spawn FreeCAD (경로 설정) | FreeCAD 임베드 in-process |
 | 저장 후 cache 무효화 → re-import job | |
-| [09-future-native-architecture.md](../architecture/09-future-native-architecture.md) Track B 정렬 | |
+| [native-architecture.md](./native-architecture.md) Track B 정렬 | |
 
 **산출물:** 수동 QA 체크리스트 + IPC `cad:open-external`.  
 **완료 기준:** FreeCAD에서 저장 → Workspace re-preview 성공.

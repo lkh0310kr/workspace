@@ -558,7 +558,7 @@ function buildAppMenu(): Menu {
       ]
     },
     {
-      // World Engine Phase 3 (see docs/architecture/09-future-native-architecture.md):
+      // World Engine Phase 3 (see docs/planning/native-architecture.md):
       // a separate native window Workspace spawns/manages, not an
       // embedded pane — dev-only trigger until it has a real pane/UI
       // surface of its own.

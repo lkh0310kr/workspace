@@ -1,6 +1,6 @@
 # pottery-wheel — tabletop throwing wheel (CAD project)
 
-Hobby-scale **물레 방아** CAD model, built with the same cadgen / build123d workflow and **B0–B8 phase plan** proven in [`bench-pottery-wheel`](../bench-pottery-wheel/).
+Hobby-scale **물레 방아** CAD model, built with the same cadgen / build123d workflow and **B0–B8 phase plan** proven in [`bench-pottery-wheel`](../bench-pottery-wheel).
 
 `bench-pottery-wheel` validated the **pipeline** (STEP → viewer, assembly mates, live reload).  
 This project applies those patterns to a **product-intent** model: clearer datums, documented mates, and printable-friendly proportions.

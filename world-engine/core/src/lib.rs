@@ -2,7 +2,7 @@
 //! physics (`rapier3d`), ECS (`hecs`), assembled as a real Rust library a
 //! game/simulation's own code links against and drives — not a
 //! JSON-only scene player. See `README.md` and
-//! `docs/architecture/09-future-native-architecture.md` ("Phase 10") for
+//! `docs/research/world-engine-build-history.md` ("Phase 10") for
 //! the reasoning behind this split and the API's shape.
 //!
 //! `world::{EntitySpec, Behavior, World::spawn*}` is the actual SDK

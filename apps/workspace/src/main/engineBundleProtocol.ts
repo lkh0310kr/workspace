@@ -4,8 +4,8 @@ import { Readable } from 'node:stream'
 import { ENGINE_SCHEME, ENGINE_HOST, contentTypeFor, isPathConfined } from './engineBundlePaths'
 
 // Serves a directory of pre-built static engine-bundle files (a Web/
-// HTML5 export from a forked engine — Godot first, see docs/architecture/
-// 09-future-native-architecture.md and docs/ideation.md's Phase 2
+// HTML5 export from a forked engine — Godot first, see
+// docs/planning/native-architecture.md and docs/planning/product-direction.md's Phase 2
 // direction) to a renderer <webview>, the same pattern mediaProtocol.ts
 // already uses for video/audio and epub.ts uses for EPUB resources. A
 // *bundle* here is whatever an engine's own export tooling already
@@ -59,7 +59,7 @@ import { ENGINE_SCHEME, ENGINE_HOST, contentTypeFor, isPathConfined } from './en
  * export — same failure either way, pointing at the protocol/session
  * wiring rather than anything Godot-specific. Confirmed fixed against a
  * real Godot Web export in a live app instance (see the World Engine items in
- * docs/manual-qa-checklist.md).
+ * docs/guides/manual-qa-checklist.md).
  */
 export function registerEngineBundleProtocol(targetSession: Session, getAllowedRoots: () => string[]): void {
   targetSession.protocol.handle(ENGINE_SCHEME, async (request) => {

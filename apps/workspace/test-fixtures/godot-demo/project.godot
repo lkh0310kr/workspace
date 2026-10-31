@@ -1,7 +1,7 @@
 ; Engine configuration file.
 ; This is a stripped-down demo project — just enough to verify the
 ; workspace-engine:// protocol against a real Godot Web export, not a
-; real game. See docs/ROADMAP.md's Phase 2 checklist.
+; real game. See docs/planning/roadmap.md's Phase 2 checklist.
 
 config_version=5
 

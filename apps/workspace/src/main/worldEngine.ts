@@ -5,7 +5,7 @@ import { app } from "electron";
 import { isWsl, wslPathToWindows } from "./wslPaths";
 
 // World Engine — Workspace spawns `world-engine-qt-shell` as a child process
-// (see docs/architecture/09-future-native-architecture.md). Packaged Windows
+// (see docs/planning/native-architecture.md). Packaged Windows
 // builds bundle the release `.exe` under `resources/world-engine/`.
 
 const PROJECT_MARKER_FILE = "world-engine.json";
@@ -167,11 +167,11 @@ function buildHint(): string {
     return (
       "On WSL, build the Windows .exe on the Windows host:\n" +
       "  cd world-engine\\qt-shell && .\\scripts\\build-windows.ps1 -Release\n" +
-      "See docs/windows-build.md"
+      "See docs/guides/windows-build.md"
     );
   }
   if (process.platform === "win32") {
-    return "Install Qt 6 MSVC, then: cd world-engine\\qt-shell && .\\scripts\\build-windows.ps1 -Release\nSee docs/windows-build.md";
+    return "Install Qt 6 MSVC, then: cd world-engine\\qt-shell && .\\scripts\\build-windows.ps1 -Release\nSee docs/guides/windows-build.md";
   }
   if (process.platform === "darwin") {
     return "brew install qt, then: cd world-engine/qt-shell && cargo build";

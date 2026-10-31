@@ -1,15 +1,14 @@
 # 3D Model Viewer — 기획서
 
-**Status:** Draft (2026-08-31)  
-**범위:** TreeView에서 `.gltf` / `.glb` / `.fbx` 등 3D 에셋을 클릭하면 로딩 UI와 함께 in-pane 뷰어가 열리는 기능  
-**관련 문서:** [3d-model-viewer-architecture.md](./3d-model-viewer-architecture.md) (확장·범용 포맷 아키텍처), [ideation.md](../ideation.md), [ROADMAP.md](../ROADMAP.md), [09-future-native-architecture.md](../architecture/09-future-native-architecture.md), [08-context-modeling.md](../architecture/08-context-modeling.md)
+**상태:** 2026-08-31 기획 초안. 3D 파일 열기와 뷰어는 이미 코드에 구현되어 있으므로 실제 동작은 `apps/workspace/src/renderer/src/panes/ModelViewerContent.tsx`와 `model3d/` 코드를 기준으로 확인합니다. 아래의 v1/v2 범위는 현재 약속이나 구현 체크리스트가 아닙니다.
+**범위:** Editor에서 `.gltf` / `.glb` / `.fbx` 등 3D 에셋을 열면 내부 형식별 렌더러가 선택되는 기능
+**관련 문서:** [3d-model-viewer-architecture.md](./3d-model-viewer-architecture.md) (확장·범용 포맷 아키텍처), [product-direction.md](./product-direction.md), [roadmap.md](./roadmap.md), [native-architecture.md](./native-architecture.md), [context-modeling.md](./context-modeling.md)
 
 ---
 
 ## 1. 한 줄 요약
 
-Workspace의 **파일 뷰어 패턴**(이미지/PDF/비디오와 동일)을 3D 에셋에 확장한다.  
-TreeView 단일 클릭 → preview tab, 더블클릭 → pinned tab. 로딩 스피너 후 orbit 카메라로 모델을 본다.
+Workspace의 **Editor 파일 열기 흐름**에서 3D 에셋에 맞는 렌더러를 선택한다. 탭 고정·미리보기 동작은 기존 Editor 파일 열기 흐름을 따른다.
 
 **Blender-class 편집기가 아니다.** 정적 메시 미리보기·검수(inspection)가 1차 목표이며, IDEATION의 "fork/embed 실제 OSS 엔진" 원칙과도 충돌하지 않는다 — Blender는 **편집** 트랙, 이 문서는 **뷰잉** 트랙.
 
@@ -22,8 +21,8 @@ TreeView 단일 클릭 → preview tab, 더블클릭 → pinned tab. 로딩 스�
 ### 2.1 기본 플로우
 
 ```
-TreeView에서 model.glb 클릭
-  → 기존 preview tab 재사용 또는 새 viewer tab
+TreeView에서 model.glb 열기
+  → Editor 파일 탭 재사용 또는 생성
   → pane 내부: "Loading model…" + 진행 표시
   → 파싱·GPU 업로드 완료
   → orbit / pan / zoom 가능한 3D 뷰
@@ -71,8 +70,8 @@ TreeView에서 model.glb 클릭
 TreeView.classifyFile()
   → PaneGroup.openOrSwitchToFile()
     → layoutActions.openFileInPaneGroup()
-      → viewerKind → FileViewerContent
-        → classifyMediaExtension() → image / pdf / video / audio / epub
+      → 확장자로 Editor 텍스트 편집기 또는 파일 렌더러 선택
+        → FileViewerContent → image / pdf / video / audio / epub / 3D / CAD 등
 ```
 
 **핵심 파일:**
@@ -81,14 +80,14 @@ TreeView.classifyFile()
 |------|------|
 | 확장자 분류 (canonical) | `apps/workspace/src/shared/asset.ts` |
 | TreeView 라우팅 | `apps/workspace/src/renderer/src/components/TreeView.tsx` |
-| 뷰어 pane | `apps/workspace/src/renderer/src/panes/kinds/viewerKind.tsx` |
+| 확장자 라우팅용 내부 kind | `apps/workspace/src/renderer/src/panes/kinds/viewerKind.tsx` |
 | 미디어 서브분류 | `apps/workspace/src/renderer/src/panes/mediaKind.ts` |
 | 콘텐츠 | `apps/workspace/src/renderer/src/panes/FileViewerContent.tsx` |
 | 대용량 스트리밍 | `apps/workspace/src/main/mediaProtocol.ts` |
 
-### 3.2 권장 통합 방식: `viewer` pane 확장 (신규 TabKind 없음)
+### 3.2 내부 파일 렌더러 통합
 
-`PaneKindDefinition` 레지스트리가 이미 있고, `09-future-native-architecture.md`도 "pane `render()`에 GPU canvas를 올려도 pane 시스템 재설계는 불필요"라고 명시한다.
+`PaneKindDefinition` 레지스트리가 이미 있고, `native-architecture.md`도 "pane `render()`에 GPU canvas를 올려도 pane 시스템 재설계는 불필요"라고 명시한다.
 
 **v1 변경 범위:**
 
@@ -98,7 +97,7 @@ TreeView.classifyFile()
 4. `FileViewerContent.tsx` — `model3d` 분기에서 `Model3DViewerContent` 마운트
 5. **신규** `Model3DViewerContent.tsx` — Three.js / R3F 기반 WebGL 뷰어
 
-별도 `model3d` TabKind는 v2 이후(뷰어 전용 툴바·레이아웃이 viewer와 완전히 갈라질 때) 검토. v1은 파일 뷰어 패밀리 안에 두는 것이 diff가 작다.
+사용자에게 Video/Audio/3D 등 형식별 pane 선택지를 노출하지 않습니다. 파일은 Editor를 통해 열고, 각 형식에 필요한 렌더러를 내부에서 선택합니다. 별도 pane kind가 필요한지는 구체적인 UX 요구가 생길 때만 검토합니다.
 
 ### 3.3 로딩 전략
 
@@ -194,7 +193,7 @@ World Engine의 glTF 로더는 **"떨어지는 큐브 대신 메시 모양 쓰�
 | Rust를 쓸 만한 지점은? | **v2+ FBX/OBJ→GLTF 변환 sidecar** (선택) |
 | World Engine과 충돌? | **없음** — `world-engine.json` 디렉터리는 "Open in World Engine", `.glb` 파일은 "viewer"로 분리 |
 
-`08-context-modeling.md` 원칙: Workspace는 `filePath`만 pane tab에 보관하고, 씬 그래프·리깅 데이터는 뷰어 내부에 캡슐화한다. World Engine의 ECS/physics 모델을 Workspace context에 합치지 않는다.
+`context-modeling.md` 원칙: Workspace는 `filePath`만 pane tab에 보관하고, 씬 그래프·리깅 데이터는 뷰어 내부에 캡슐화한다. World Engine의 ECS/physics 모델을 Workspace context에 합치지 않는다.
 
 ---
 
@@ -263,7 +262,7 @@ FBX는 Khronos가 glTF를 표준으로 밀고, 웹 런타임 네이티브 지원
 - [ ] 스크린샷 export
 - [ ] AR quick look (비목표, macOS Electron)
 
-**ROADMAP.md 반영:** "3D (Blender-class)" 행과 별도로 **"3D file viewer (glTF)"** 행을 추가하는 것을 권장.
+**roadmap.md 반영:** "3D (Blender-class)" 행과 별도로 **"3D file viewer (glTF)"** 행을 추가하는 것을 권장.
 
 ---
 
@@ -321,5 +320,5 @@ apps/workspace/src/renderer/src/panes/
 world-engine/core/src/render.rs    # load_mesh() — 시뮬용, 뷰어 비재사용
 apps/workspace/src/main/mediaProtocol.ts        # 대용량 스트리밍 패턴
 apps/workspace/test-fixtures/world-engine-mesh-demo/box.glb  # 기존 CC0 샘플
-docs/architecture/09-future-native-architecture.md     # embed vs decouple 결정
+docs/planning/native-architecture.md     # embed vs decouple 결정
 ```

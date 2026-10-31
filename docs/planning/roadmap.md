@@ -24,7 +24,7 @@
 - 우선순위와 충돌을 다루는 Shortcut Registry
 - GPU Service Layer는 두 번째 실제 GPU 사용처가 생긴 뒤 검토합니다.
 
-현재 프로세스·레이아웃 구조는 [시스템 구조 문서](./architecture/README.md), 모델 경계는 [컨텍스트 모델링](./architecture/08-context-modeling.md)을 참고하세요.
+현재 프로세스·레이아웃 구조는 [시스템 구조 문서](../architecture/README.md), 모델 경계는 [컨텍스트 모델링](./context-modeling.md)을 참고하세요.
 
 ## Phase 2 — 전문 제작 도구
 
@@ -32,17 +32,17 @@
 
 | 분야 | 현재 방향 | 세부 계획 |
 |------|-----------|-----------|
-| World Engine | Workspace가 소유한 Rust 기반 엔진을 별도 프로세스로 실행 | [World Engine 단계 계획](./planning/world-engine-phase-plan.md) |
-| CAD·3D 오케스트레이션 | 기존 엔진과 라이브러리를 연결하고 Workspace는 실행·파일·뷰를 조정 | [CAD 오케스트레이션 계획](./planning/cad-orchestration-phase-plan.md) |
-| 회로·펌웨어 | 하드웨어 전용 커널과 MCU 위임을 분리 | [하드웨어 시뮬레이션 계획](./planning/hardware-sim-phase-plan.md) |
-| 2D·영상 편집 | 실제 전문 앱을 평가한 뒤 연결 방식 결정 | [제품 아이디어](./ideation.md) |
+| World Engine | Workspace가 소유한 Rust 기반 엔진을 별도 프로세스로 실행 | [World Engine 단계 계획](./world-engine-phase-plan.md) |
+| CAD·3D 오케스트레이션 | 기존 엔진과 라이브러리를 연결하고 Workspace는 실행·파일·뷰를 조정 | [CAD 오케스트레이션 계획](./cad-orchestration-phase-plan.md) |
+| 회로·펌웨어 | 하드웨어 전용 커널과 MCU 위임을 분리 | [하드웨어 시뮬레이션 계획](./hardware-sim-phase-plan.md) |
+| 2D·영상 편집 | 실제 전문 앱을 평가한 뒤 연결 방식 결정 | [제품 아이디어](./product-direction.md) |
 
-이 분야의 장기 호스팅 조사와 완료 이력은 [네이티브 아키텍처 참고](./architecture/09-future-native-architecture.md) 및 [로드맵 기록 보관본](./research/roadmap-history.md)에 있습니다.
+이 분야의 장기 호스팅 조사와 완료 이력은 [네이티브 아키텍처 참고](./native-architecture.md) 및 [로드맵 기록 보관본](../research/roadmap-history.md)에 있습니다.
 
 ## World Engine
 
-World Engine은 제3자 엔진을 하나 더 감싸는 pane이 아니라, Workspace가 소유하는 실시간 3D 엔진입니다. 현재 단계와 다음 작업은 [World Engine 계획](./planning/world-engine-phase-plan.md)이 기준입니다. 과거 검증과 실험은 [아키텍처 이력](./architecture/09-future-native-architecture.md)에서 확인할 수 있습니다.
+World Engine은 제3자 엔진을 하나 더 감싸는 pane이 아니라, Workspace가 소유하는 실시간 3D 엔진입니다. 현재 단계와 다음 작업은 [World Engine 계획](./world-engine-phase-plan.md)이 기준입니다. 과거 검증과 실험은 [아키텍처 이력](./native-architecture.md)에서 확인할 수 있습니다.
 
 ## 보류 중인 아이디어
 
-Database Studio, Network/Packet Analyzer, GIS, Robot Simulator 같은 분석 도구는 삭제하지 않고 우선순위를 뒤로 둡니다. 후보 목록은 [제품 아이디어](./ideation.md)에 있습니다.
+Database Studio, Network/Packet Analyzer, GIS, Robot Simulator 같은 분석 도구는 삭제하지 않고 우선순위를 뒤로 둡니다. 후보 목록은 [제품 아이디어](./product-direction.md)에 있습니다.

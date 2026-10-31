@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-// Project system (Phase 1 foundation — see docs/ROADMAP.md and
-// docs/architecture/08-context-modeling.md's Entity section). Scoped
+// Project system (Phase 1 foundation — see docs/planning/roadmap.md and
+// docs/planning/context-modeling.md's Entity section). Scoped
 // deliberately small: this is *not* a general document/asset database,
-// it's the one concrete gap ROADMAP.md called out — "no per-app document
+// it's the one concrete gap roadmap.md called out — "no per-app document
 // registry ... beyond the flexlayout JSON." The flexlayout/PaneGroupConfig
 // JSON already tracks exactly what's open in *tabs* right now (and
 // restores it on relaunch — see layoutSalvage.ts), but closing a tab

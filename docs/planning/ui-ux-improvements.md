@@ -1,8 +1,8 @@
 # UI/UX 개선안
 
-Workspace Electron 앱의 UI/UX 개선 백로그. 시각적 방향은 [DESIGN.md](./DESIGN.md)를 따른다 (Zed/Obsidian 톤, 절제된 radius·shadow·motion).
+Workspace Electron 앱의 UI/UX 개선 백로그. 시각적 방향은 [DESIGN.md](../guides/design-principles.md)를 따른다 (Zed/Obsidian 톤, 절제된 radius·shadow·motion).
 
-**리서치 원본:** [`ui-ux-improvements-worklog.md`](./research/ui-ux-improvements-worklog.md)
+**리서치 원본:** [`ui-ux-improvements-worklog.md`](../research/ui-ux-improvements-worklog.md)
 **참고 구현 (읽기 전용):** `ref-proj/orca/`, `ref-proj/vscode/`
 
 ---

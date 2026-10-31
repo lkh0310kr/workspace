@@ -6,14 +6,14 @@ forwards real input, and hands its native view handle to
 [`world-engine-core`](../world-engine-core/) to render into every frame.
 This crate has no rendering/physics/ECS code of its own any more — that
 all moved to `world-engine-core` as a real reusable library (see that
-crate's README and `docs/architecture/09-future-native-architecture.md`'s
+crate's README and `docs/planning/native-architecture.md`'s
 "Phase 10" for why).
 
 Runs as its own real native window, spawned and managed by the Workspace
 app as a child process (`apps/workspace/src/main/worldEngine.ts`, mirroring how
 `apps/workspace/src/main/pty.ts` manages a shell) — **not** embedded as a pane.
 See [`../README.md`](../README.md) and
-[`docs/architecture/09-future-native-architecture.md`](../../docs/architecture/09-future-native-architecture.md)
+[`docs/planning/native-architecture.md`](../../docs/planning/native-architecture.md)
 for the full reasoning (why not WebRTC, why not in-process NSView
 embedding, why Qt).
 

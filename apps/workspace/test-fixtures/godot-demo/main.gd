@@ -1,7 +1,7 @@
 extends Node2D
 
 # Proves this is really running (not a static screenshot) — a rotating
-# square and a live frame/time counter. See docs/ROADMAP.md Phase 2.
+# square and a live frame/time counter. See docs/planning/roadmap.md Phase 2.
 
 var elapsed := 0.0
 

@@ -5,7 +5,7 @@
 // cxx-qt, no moc — a QWidget subclass overriding plain virtual event
 // methods is the whole "shell" (overriding virtuals doesn't need
 // Q_OBJECT/moc, only new signals/slots/properties do — kept out on
-// purpose, see docs/architecture/09-future-native-architecture.md).
+// purpose, see docs/planning/native-architecture.md).
 extern "C" {
 
 // Called once, right after the native window/view exists, with its

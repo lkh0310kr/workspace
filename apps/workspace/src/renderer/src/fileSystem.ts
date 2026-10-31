@@ -1,5 +1,5 @@
-// File System module (Phase 1 foundation — see docs/ROADMAP.md and
-// docs/architecture/08-context-modeling.md's Capability section). Every
+// File System module (Phase 1 foundation — see docs/planning/roadmap.md and
+// docs/planning/context-modeling.md's Capability section). Every
 // pane already went through this one shim rather than reimplementing IPC
 // calls — what this file adds isn't new behavior, it's giving that
 // cluster a real name and location instead of living undifferentiated

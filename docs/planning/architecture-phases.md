@@ -81,5 +81,5 @@ Inactive workspace tabs could unmount all embeds; revisit rebuilds from session.
 
 ## Related docs
 
-- [04-interaction-coordinator.md](./04-interaction-coordinator.md) — current stability layer
-- [ROADMAP.md](../ROADMAP.md) — product phases
+- [04-interaction-coordinator.md](../architecture/04-interaction-coordinator.md) — current stability layer
+- [roadmap.md](./roadmap.md) — product phases

@@ -1,8 +1,8 @@
 # 3D Asset Viewer — 확장 아키텍처
 
-**Status:** Architecture draft (2026-08-31)  
-**상위 문서:** [3d-model-viewer.md](./3d-model-viewer.md) (UX·v1 범위)  
-**관련:** [08-context-modeling.md](../architecture/08-context-modeling.md), [09-future-native-architecture.md](../architecture/09-future-native-architecture.md)
+**상태:** 2026-08-31 확장 아키텍처 초안. 현재 구현의 기준이 아니며 실제 지원 형식과 로딩 방식은 코드에서 확인합니다. 이 문서는 향후 importer·cache·backend 확장 논의에만 참고합니다.
+**상위 문서:** [3d-model-viewer.md](./3d-model-viewer.md) (UX·v1 범위)
+**관련:** [context-modeling.md](./context-modeling.md), [native-architecture.md](./native-architecture.md)
 
 ---
 
@@ -476,7 +476,7 @@ native/asset-pipeline/        # M3+
 
 ## 14. Context modeling 정렬
 
-[08-context-modeling.md](../architecture/08-context-modeling.md)와의 매핑:
+[context-modeling.md](./context-modeling.md)와의 매핑:
 
 | 개념 | 3D viewer에서의 형태 |
 |------|---------------------|

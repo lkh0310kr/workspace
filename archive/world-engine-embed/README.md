@@ -38,4 +38,4 @@ mainWindow.setBackgroundColor("#00000000");
 addon.startEmbeddedEngine(mainWindow.getNativeWindowHandle(), width, height);
 ```
 
-See [`docs/architecture/09-future-native-architecture.md`](../../docs/architecture/09-future-native-architecture.md).
+See [`docs/planning/native-architecture.md`](../../docs/planning/native-architecture.md).

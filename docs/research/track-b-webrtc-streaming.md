@@ -56,8 +56,7 @@ same-machine. WebRTC adds:
 | `world-engine-electron-embed` | Experimental in-pane wgpu (direct GPU, no video) |
 | WebRTC / `engine-stream-poc` | **Not used** for our engine |
 
-See [09-future-native-architecture.md](../architecture/09-future-native-architecture.md)
-"Transport critique" and "World Engine build-out".
+See [네이티브 아키텍처 조사 기록](./native-architecture-history.md) for the historical transport critique; current integration direction is in [native-architecture.md](../planning/native-architecture.md).
 
 ## Revised Track B design (not built)
 
@@ -73,6 +72,6 @@ When a real candidate appears:
 ## If reviving implementation
 
 Do not resurrect the deleted crate verbatim. Start from this doc plus
-`docs/architecture/09-future-native-architecture.md` Track B revision
+`docs/research/native-architecture-history.md` Track B revision
 (2026-08-28). The spike's only mandatory carry-over is the **post-negotiation
 payload type** lesson.

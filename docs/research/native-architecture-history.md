@@ -8,7 +8,7 @@ Originally discussed while planning a Vector Editor pane, which was built
 (M1-M6, hand-rolled SVG-DOM) and then deliberately deleted — not because
 2D/graphics was the wrong direction, but because hand-rolling a 2D editor
 from scratch was the wrong *strategy* at the scale now being targeted.
-Current direction (see `docs/ideation.md`) is genuinely professional-grade
+Current direction (see `docs/planning/product-direction.md`) is genuinely professional-grade
 tooling in four categories — **2D** (Figma/Illustrator/Photoshop-class),
 **3D** (Blender-class), **Video** (a real video editor), and
 **Engineering** (CAD, Nvidia Omniverse-style USD pipelines, game
@@ -405,7 +405,7 @@ demoted to "plan B."
 ## Per-pane stack direction (if/when this happens)
 
 Reframed around the confirmed four-category graphics/CAD direction (see
-`docs/ideation.md`) — none of these are designed yet, so this is a
+`docs/planning/product-direction.md`) — none of these are designed yet, so this is a
 starting hypothesis per category, not a decision:
 
 | Pane | Status here | Stack direction |
@@ -415,7 +415,7 @@ starting hypothesis per category, not a decision:
 | 3D (Blender-class) | **Not started** | Fork Blender itself, hosted as a **separate native process** per the out-of-process direction below — not an in-renderer engine. |
 | Video Editor | **Not started** | Fork Shotcut or Kdenlive rather than wrapping FFmpeg from scratch; if built in-process instead, Rust-heavy timeline/media-graph/frame-scheduling engine wrapping FFmpeg (don't reimplement codecs), TS for timeline UI/media bin/inspector only. |
 | Engineering (CAD, Omniverse-style, Game Engine) | **Not started** / CAD orchestration + WE 진행 중 | CAD: FreeCAD/OCCT delegate ([cad-orchestration-phase-plan.md](../planning/cad-orchestration-phase-plan.md)). Game/시설 시뮬: **World Engine** (Rapier). **Arduino/MCU/회로는 WE가 아님** — [hardware-sim-phase-plan.md](../planning/hardware-sim-phase-plan.md) (Rust 코어 + avr8js). |
-| Engineering/analysis panes (Packet Analyzer, Hex/Binary Inspector, Robot Simulator, etc. — see `docs/ideation.md`) | **On hold**, deprioritized behind the graphics/CAD direction | Not being designed right now; revisit later. |
+| Engineering/analysis panes (Packet Analyzer, Hex/Binary Inspector, Robot Simulator, etc. — see `docs/planning/product-direction.md`) | **On hold**, deprioritized behind the graphics/CAD direction | Not being designed right now; revisit later. |
 
 ## Why this doesn't block anything happening now
 
@@ -452,7 +452,7 @@ packages/
 ├── workspace-runtime/    # TypeScript — current apps/workspace/src/main
 ├── core/
 │   ├── media/            # Rust — timeline/frame scheduling wrapping FFmpeg (Video, if built)
-│   ├── geometry/         # Rust — shared 2D/3D math (if forked engines need a common layer, unlikely — see the "don't merge engines" principle in ideation.md)
+│   ├── geometry/         # Rust — shared 2D/3D math (if forked engines need a common layer, unlikely — see the "don't merge engines" principle in product-direction.md)
 │   └── asset/            # Rust — shared project-file (de)serialization
 └── apps/
     ├── 2d/                # hosts the forked 2D engine (Penpot/Krita/etc.)
@@ -470,7 +470,7 @@ not a hypothetical one). Recorded here so the shape is already agreed on
 
 Revisit this doc when:
 - A specific one of the four graphics/CAD categories actually gets
-  picked up for real design work (see ROADMAP.md Phase 2) — that's when
+  picked up for real design work (see roadmap.md Phase 2) — that's when
   a real candidate engine's actual hosting/surface/GPU requirements
   should reshape this doc's guesses into an actual plan.
 - A pane needs to host something that genuinely cannot run inside a
@@ -482,6 +482,6 @@ today.
 
 ## Related docs
 
-- [07-future-phases.md](./07-future-phases.md) — near-term (not long-term) planned work
-- [ideation.md](../ideation.md) — the engineering/analysis pane brainstorm that replaced Creative panes as the near-term direction
-- [ROADMAP.md](../ROADMAP.md)
+- [architecture-phases.md](../planning/architecture-phases.md) — near-term (not long-term) planned work
+- [product-direction.md](../planning/product-direction.md) — the engineering/analysis pane brainstorm that replaced Creative panes as the near-term direction
+- [roadmap.md](../planning/roadmap.md)

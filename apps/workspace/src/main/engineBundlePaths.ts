@@ -47,7 +47,7 @@ export function resolveEngineBundleDir(
   return { ok: true, url: toEngineBundleUrl(absoluteBundleDir, entry) }
 }
 
-// Godot's Web export is the concrete first target (see docs/ideation.md),
+// Godot's Web export is the concrete first target (see docs/planning/product-direction.md),
 // so .wasm/.pck get named treatment; the rest is a generic static-file
 // set any future Web-exportable engine would also need. .wasm's MIME
 // matters for real: Chromium's streaming WebAssembly.instantiateStreaming

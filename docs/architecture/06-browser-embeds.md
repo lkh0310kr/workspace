@@ -94,7 +94,7 @@ Workspace tab hosts also avoid `display: none` (use visibility + z-index). See [
 
 Every workspace tab with browser panes keeps live webviews while mounted. Multiple workspace tabs × multiple browser tabs = multiple guest processes.
 
-Phase 3 plans a **WebviewRegistry** with LRU retention. See [07-future-phases.md](./07-future-phases.md).
+Phase 3 plans a **WebviewRegistry** with LRU retention. See [architecture-phases.md](../planning/architecture-phases.md).
 
 ## Debugging browser interaction
 

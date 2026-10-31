@@ -27,14 +27,14 @@ Rust workspace: `cargo test` from repo root.
 
 ## Agent skills (CAD / CAE)
 
-Skills for Cursor, Claude Code, and Codex live under [`.agents/`](./.agents/). CAD workflows need Python 3.11+:
+Skills for Cursor, Claude Code, and Codex live under [`.agents/`](.agents). CAD workflows need Python 3.11+:
 
 ```bash
 npm run agents:python:setup
 npm run agents:cad:verify
 ```
 
-See [`.agents/README.md`](./.agents/README.md).
+See [`.agents/README.md`](.agents/README.md).
 
 ## Stack
 
@@ -57,7 +57,7 @@ World Engine (dev)**, or TreeView → **Open in World Engine** on a folder with
 `world-engine.json` (example: `apps/workspace/test-fixtures/world-engine-demo/`).
 
 See [`world-engine/README.md`](./world-engine/README.md) and
-[`docs/architecture/09-future-native-architecture.md`](./docs/architecture/09-future-native-architecture.md).
+[`docs/planning/native-architecture.md`](./docs/planning/native-architecture.md).
 
 ## History
 

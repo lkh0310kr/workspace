@@ -1,5 +1,5 @@
-// Asset system (Phase 1 foundation — see docs/ROADMAP.md and
-// docs/architecture/08-context-modeling.md's Resource/"physical
+// Asset system (Phase 1 foundation — see docs/planning/roadmap.md and
+// docs/planning/context-modeling.md's Resource/"physical
 // decentralization, semantic centralization" sections). Scoped to the
 // one concrete duplication that already exists in this codebase: "what
 // kind of file is this" is independently reimplemented as an extension

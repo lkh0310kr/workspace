@@ -1,112 +1,38 @@
-# World Engine — project layout
+# World Engine 프로젝트와 fixture
 
-**Status:** v2 (2026-09-01)  
-**North star:** 개인 설계·운영 실험실 (시설 모델·시뮬). 게임 출시·Workspace embed는 비목표.  
-**구현:** `world-engine/core/`  
-**상위:** [09-future-native-architecture.md](../architecture/09-future-native-architecture.md) Phase 10–12  
-**로드맵:** [world-engine-phase-plan.md](./world-engine-phase-plan.md) — **Production Track (Phase 13+)**  
+이 문서는 프로젝트 디렉터리와 예제 fixture의 관례만 정의합니다. Phase 순서는 [단계 계획](./world-engine-phase-plan.md), 시뮬 실행 의미는 [시뮬레이션 계약](./world-engine-simulation.md), 스크립트 함수는 [Rhai API](./world-engine-rhai-api.md), 장면 오브젝트는 [오브젝트 모델](./world-engine-object-model.md)을 기준으로 확인하세요.
 
----
+## 소유권 원칙
 
-## 원칙
+- 각 시뮬레이션 프로젝트는 장면, Rhai 스크립트, 에셋을 자체 폴더에 둡니다.
+- Workspace/Electron은 프로젝트 선택, 파일 탐색, 엔진 실행과 IPC를 담당합니다.
+- 도메인별 시뮬레이션 로직은 엔진 코어가 아니라 프로젝트와 fixture에 둡니다.
+- 앱 구현 상태는 문서의 완료 표시가 아니라 `world-engine/core/`와 `world-engine/qt-shell/` 코드가 기준입니다.
 
-- **프로젝트 폴더 = 격리 단위** (Godot `project.godot` + `.gd`, Unity `Assets/`)
-- Workspace Electron은 spawn·TreeView·IPC만 담당
-- 도메인 시뮬은 **엔진 기능이 아니라 프로젝트 예제**로 추가
-
-```
-my-sim/
-  world-engine.json     # 씬 + entry_script
-  scripts/              # 이 프로젝트 전용 Rhai
+```text
+my-simulation/
+  world-engine.json     # 장면과 프로젝트 설정
+  scripts/              # 프로젝트 전용 Rhai
     logic.rhai
-  assets/               # (선택) glTF
+  assets/               # 선택적 glTF 등
 ```
 
----
+## 프로젝트 파일
 
-## `world-engine.json`
+`world-engine.json`은 프로젝트의 진입 장면과 월드 설정을 담습니다.
 
-| 필드 | 설명 | 모방 |
-|------|------|------|
-| `gravity` | `[x,y,z]` m/s² | PhysX / Rapier |
-| `time_scale` | 시뮬 배속 (기본 `1.0`) | Unity `Time.timeScale` |
-| `entry_script` | 월드 Rhai (`on_world_update`) | Godot Autoload |
-| `input_map` | action → key / axis (Phase 14) | Unity Input System |
-| `entities[]` | 엔티티 | — |
-| `joints[]` | 조인트 | — |
-| `mesh` | 공통 glTF | — |
+| 필드 | 역할 |
+|---|---|
+| `gravity` | 중력 벡터 `[x, y, z]` (m/s²) |
+| `time_scale` | 시뮬레이션 시간 배율 |
+| `entry_script` | 월드 Rhai 스크립트 경로 |
+| `input_map` | action 이름을 키 또는 축 바인딩에 연결 |
+| `entities[]` / `joints[]` | 장면 오브젝트와 조인트 |
+| `mesh` | 장면의 기본 glTF mesh |
 
-### 엔티티
+오브젝트에는 `name`, `script`, `script_args`, `script_mode`, 초기 `velocity` 같은 필드가 쓰입니다. 상세한 script return 계약은 [Rhai API](./world-engine-rhai-api.md), 물리·저장 의미는 [시뮬레이션 계약](./world-engine-simulation.md), 구성요소와 장면 직렬화는 [오브젝트 모델](./world-engine-object-model.md)을 기준으로 합니다.
 
-| 필드 | 설명 |
-|------|------|
-| `name` | `entity_pos("name")` 조회용 |
-| `script` | `.rhai` 경로 |
-| `script_args` | scope 상수 (숫자·문자열·배열) |
-| `script_mode` | `"kinematic"` (위치 반환) 또는 `"force"` (힘 반환) |
-| `velocity` | `[vx,vy,vz]` m/s 초기 선속도 (dynamic, Phase 13) |
-
----
-
-## Simulation Contract (Phase 13)
-
-| API / 필드 | 의미 |
-|------------|------|
-| `World::fixed_dt()` | Rapier 기본 step (≈ 1/60 s) |
-| `World::time_scale()` | Unity `Time.timeScale` 배율 |
-| `World::step_dt()` | `fixed_dt * time_scale` |
-| `World::sim_time()` | 누적 시뮬 시각 |
-| `World::step_n(n)` | headless 결정론 테스트 |
-| `velocity` | 스폰 시 선속도 |
-| `World::sim_var` / `set_sim_var` | **Phase 31** 런타임 공유 f64 상태 |
-| `World::sim_metrics()` | **Phase 32** `sim_var` 스냅샷 (CI·쉘) |
-| `sim_seed` / `rand()` | **Phase 33** 결정론 RNG (Rhai + JSON) |
-| `properties` / `entity_property*` | **Phase 34** design metadata |
-| `spawn_empty` / `attach_*` / `components[]` | **Phase 41** composition model — [object-model](./world-engine-object-model.md) |
-
-테스트: `cargo test --test simulation_contract` · `cargo test --test metrics_contract`
-
----
-
-## Rhai API (v3)
-
-See [world-engine-rhai-api.md](./world-engine-rhai-api.md). v3 adds `sim_var`, `set_sim_var`, `publish_metric`, `rand` / `rand_range`, `entity_property*`.
-
-### 엔티티 스크립트 — `on_update(dt, time, x, y, z) -> [a,b,c]`
-
-| 반환 | `script_mode` | 동작 |
-|------|---------------|------|
-| `[x,y,z]` | `kinematic` | kinematic 목표 위치 |
-| `[fx,fy,fz]` | `force` | dynamic body에 힘 |
-
-**내장 함수**
-
-| 함수 | 설명 |
-|------|------|
-| `entity_pos(name)` | `[x,y,z]` — Godot `get_node` / Unity `Find` |
-| `entity_x/y/z(name)` | 스칼라 |
-| `dist3(...)` | 거리 |
-| `lerp3(...)` | 선형 보간 |
-
-**상태:** `global` 변수 + 재사용 scope — Godot 인스턴스 변수 / Unity MonoBehaviour 필드
-
-### 월드 스크립트 — `on_world_update(dt, time)`
-
-| 함수 | 설명 |
-|------|------|
-| `set_time_scale(s)` | Unity `Time.timeScale` |
-| `sim_var` / `set_sim_var` | 월드↔엔티티 공유 상태 (Phase 31) |
-| `publish_metric` | headless/쉘 관측용 스칼라 (Phase 32) |
-
-### 입력 (Phase 14)
-
-| 함수 | 설명 |
-|------|------|
-| `input_axis("move_x")` | `-1..1` (JSON axis binding) |
-| `input_pressed("jump")` | 이번 step에 눌림 |
-| `input_down("jump")` | 누르고 있음 |
-
-`input_map` 예:
+입력 맵의 기본 형태:
 
 ```json
 "input_map": {
@@ -115,32 +41,22 @@ See [world-engine-rhai-api.md](./world-engine-rhai-api.md). v3 adds `sim_var`, `
 }
 ```
 
----
+## 예제 fixture
 
-## 예제 프로젝트
+새 동작은 엔진 코어에 도메인 코드를 추가하기 전에 독립 fixture나 예제로 증명합니다.
 
-| 경로 | 패턴 |
-|------|------|
-| `world-engine-chase-demo` | Seek — `entity_pos("target")` |
+| 예제 | 보여주는 패턴 |
+|---|---|
+| `world-engine-chase-demo` | `entity_pos`를 이용한 추적 |
 | `world-engine-orbit-demo` | 궤도 운동 |
-| `world-engine-patrol-demo` | Waypoint patrol + `global` state |
-| `world-engine-swarm-demo` | Boids-lite swarm |
-| `world-engine-thruster-demo` | `script_mode: force` hover |
-| `world-engine-zero-g-demo` | 순수 물리 (스크립트 없음) |
-| `world-engine-slowmo-demo` | `entry_script` + time pulse |
-| `world-engine-drop-demo` | **Phase 13** 초기 `velocity` + 포물선 |
-| `world-engine-fly-demo` | **Phase 14** WASD `input_map` |
-| `world-engine-physics-demo` | body types |
-| `world-engine-joints-demo` | revolute joint |
+| `world-engine-patrol-demo` | waypoint 순찰과 스크립트 상태 |
+| `world-engine-swarm-demo` | Boids-lite 군집 |
+| `world-engine-thruster-demo` | 힘 기반 부양 |
+| `world-engine-zero-g-demo` | 순수 물리 장면 |
+| `world-engine-slowmo-demo` | 월드 스크립트와 시간 배율 |
+| `world-engine-drop-demo` | 초기 속도와 포물선 |
+| `world-engine-fly-demo` | 입력 맵 이동 |
+| `world-engine-physics-demo` | 물체 유형 |
+| `world-engine-joints-demo` | 회전 조인트 |
 
-Headless 테스트: `cd world-engine/core && cargo test --lib`
-
----
-
-## 다음 (미구현)
-
-→ **[world-engine-phase-plan.md](./world-engine-phase-plan.md)** — **Phase 15** 충돌 이벤트 NEXT
-- Phase 15: 충돌 이벤트
-- … Phase 25: Production gate
-
-새 시뮬 = **새 fixture 폴더** — 엔진 코어에 도메인 코드 넣지 않음.
+핵심 계약 검증: `cd world-engine/core && cargo test --lib`. 구현할 다음 Phase는 [단계 계획](./world-engine-phase-plan.md)에서 확인하세요.

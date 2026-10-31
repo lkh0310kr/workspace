@@ -3,11 +3,11 @@
 **Status:** Active planning (2026-09-03)  
 **North star:** 터미널의 AI 에이전트가 **회로·펌웨어를 읽고 → 고치고 → 컴파일 → 시뮬 → 핀/디바이스 상태로 디버그**할 수 있는 **코드 기반 하드웨어 랩**.  
 **Workspace 역할:** 오케스트레이션만 (파일 열기, spawn, live reload, 로그). CAD 트랙과 동일.  
-**관련:** [world-engine-simulation.md](./world-engine-simulation.md) · [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md) · [09-future-native-architecture.md](../architecture/09-future-native-architecture.md) · [미정 아이디어 j-1/j-2](../backlog-ideas.md#j-1-3d) (설계 vs 시뮬, 자급자족 랩)
+**관련:** [world-engine-simulation.md](./world-engine-simulation.md) · [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md) · [native-architecture.md](./native-architecture.md) · [미정 아이디어 j-1/j-2](./uncommitted-ideas.md#j-1-3d) (설계 vs 시뮬, 자급자족 랩)
 
 초안 스펙(Arduino + avr8js + Hardware-as-Code)은 **참고 인벤토리**다. 이 문서는 우리 코드베이스 원칙에 맞춰 **재결정**한 실행 계획이다.
 
-**모델 정렬:** 회로는 새 우주가 아니라 Core Model의 **Graph + Resource + Time/State** 조합이다. 도구끼리 직접 연결하지 않는다. [10-core-model.md](../architecture/10-core-model.md) · [08-context-modeling.md](../architecture/08-context-modeling.md).
+**모델 정렬:** 회로는 새 우주가 아니라 Core Model의 **Graph + Resource + Time/State** 조합이다. 도구끼리 직접 연결하지 않는다. [core-model.md](./core-model.md) · [context-modeling.md](./context-modeling.md).
 
 **첫 목표 H0 — 버튼으로 LED 켜기/끄기**
 
@@ -322,5 +322,5 @@ CAD가 50번대라 하드웨어는 **60번대**. 병행 가능. 착수는 CAD 52
 | 2026-09-03 | Phase 61: `POWER_GROUND_SHORT` (전선·닫힌 버튼; 저항은 단락 아님). |
 | 2026-09-03 | H0.2 DONE: Electron persistent child + pointer button + Rust runtime LED pane. |
 | 2026-09-03 | H0.1 DONE: Rust load/validate/circuit/runtime + button→LED fixture + JSONL process. |
-| 2026-09-03 | Core Model 정렬: Graph/Resource/Entity 조합, [10-core-model.md](../architecture/10-core-model.md) |
+| 2026-09-03 | Core Model 정렬: Graph/Resource/Entity 조합, [core-model.md](./core-model.md) |
 | 2026-09-03 | 트랙 신설. WE 비합류, TS 커널 거부, Rust 코어 + avr8js delegate. |

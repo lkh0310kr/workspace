@@ -1,4 +1,9 @@
-Idea: Code Editting + Markdown Editting (WYSIWYG) + Terminal + Browser In One Workspace
+# 제품 방향과 pane 후보
+
+**상태:** 아이디어와 보류 후보. 실행 계획은 [개발 로드맵](./roadmap.md), 진행 작업은 [백로그](./backlog.md)를 기준으로 관리합니다.
+
+> 아래 일부 항목은 2026-08의 방향 기록입니다. 현재 구현이나 확정된 우선순위를 뜻하지 않습니다.
+
 Feature
 
 - Workspace
@@ -54,7 +59,7 @@ Vector Editor(SVG 기반 직접 구현, M1-M6)를 한 번 만들었다가 삭제
     지점은 게임이냐 시뮬레이션이냐가 아니라 **호스팅 방식**(Godot처럼
     Web/WASM export 가능한 엔진 vs Omniverse/FreeCAD처럼 네이티브 전용이라
     완전히 다른 임베딩이 필요한 엔진). 자세한 내용은
-    [ROADMAP.md의 World Engine 섹션](./ROADMAP.md#world-engine) 참고.
+    [roadmap.md의 World Engine 섹션](./roadmap.md#world-engine) 참고.
 
 **첫 타깃: Game Engine(Godot), Web export 방식으로 fork/embed.** 넷 중 뭐가 더
 "근본적"이냐를 따진 게 아니라 — 지금 진짜 검증해야 할 근본 문제는 "포크한 엔진을
@@ -63,11 +68,11 @@ Godot이라 골랐음(MIT, Web export 문서 잘 되어있음, Blender/FreeCAD�
 훨씬 가벼움). Host 방식은 Godot의 HTML5/WASM Web export를 `<webview>`로
 로드하는 것 — 이미 BrowserContent.tsx가 쓰는 webview 패턴을 거의 그대로
 재사용. 서빙 인프라(`workspace-engine://` 프로토콜, COOP/COEP 헤더 포함)는
-`docs/ROADMAP.md` Phase 1에 구현 완료; 실제 Godot 프로젝트를 Web export해서
+`docs/planning/roadmap.md` Phase 1에 구현 완료; 실제 Godot 프로젝트를 Web export해서
 끝까지 로드되는지 검증하는 게 다음 단계.
 
 이 넷은 전부 무거운 렌더링/연산 엔진이 필요한 카테고리라 — 아래 "만약 외부
-오픈소스 앱을 fork/embed" 원칙과 [09-future-native-architecture.md](./architecture/09-future-native-architecture.md)의
+오픈소스 앱을 fork/embed" 원칙과 [native-architecture.md](./native-architecture.md)의
 Rust 코어/out-of-process 방향이 바로 이 타겟들을 위한 이야기임. Phase 2 pane을
 아무거나 하나 골라서 얕게 구현하기보다, Phase 1(파운데이션)을 이 4개 카테고리를
 실제로 지탱할 수 있는 형태로 설계하는 게 먼저.
@@ -121,7 +126,7 @@ spawn, 생명주기만 관리**(itch.io가 네이티브 게임 다루는 방식�
 Blender/Krita 같은 GPL 소프트웨어를 별도 프로세스로만 다루면 GPL 의무가
 전이될 위험도 없어서(subprocess+IPC는 GPL에서도 안전한 "mere aggregation"
 패턴), 라이선스 문제도 같이 해결됨. 자세한 내용:
-[World Engine 구현 이력](./research/world-engine-build-history.md#world-engine-build-out--phase-1-4-2026-08-28)
+[World Engine 구현 이력](../research/world-engine-build-history.md#world-engine-build-out--phase-1-4-2026-08-28)
 
 **원본 앱의 내부 엔진/데이터 모델을 억지로 공통화하지 말 것** — Document
 Model/Editor Engine은 앱마다 근본적으로 다르고, 통합 시도는 fork maintenance

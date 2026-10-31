@@ -3,7 +3,7 @@
 // crate is only the native window + input glue: a bare Qt window
 // (cpp/shim.cpp — no QML, no moc) whose native view world-engine-core
 // renders straight into every frame, driven by Qt's own QTimer. See
-// docs/architecture/09-future-native-architecture.md ("Phase 10 — engine
+// docs/research/world-engine-build-history.md ("Phase 10 — engine
 // core extracted as a library") for the split's reasoning.
 //
 // Cross-platform Qt linking — see README.md (macOS/Linux/Windows).

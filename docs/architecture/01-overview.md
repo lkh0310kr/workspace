@@ -66,7 +66,7 @@ Electron guest가 상위 요소의 `pointer-events`를 항상 따르지는 않�
 | 브라우저 URL·확대율 | 탭 항목의 flexlayout `PaneGroupConfig` | 레이아웃 JSON에 저장 |
 | overlay·포인터·portal | Renderer의 `InteractionCoordinator` | 모듈 singleton |
 
-상태 경계와 향후 제안은 [후속 단계](./07-future-phases.md)를 참고하세요.
+상태 경계와 향후 제안은 [후속 단계](../planning/architecture-phases.md)를 참고하세요.
 
 ## 빌드와 실행
 

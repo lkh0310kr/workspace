@@ -6,7 +6,7 @@ lineage, not a competing framework) — neither transcribed as-is.
 Filtered against what this codebase actually is (a lightweight Electron
 pane/tab shell, not a knowledge-graph platform) and mapped onto concrete
 existing code and the Phase 1 module list in
-[`ROADMAP.md`](../ROADMAP.md). Sections below are split into what's
+[`roadmap.md`](./roadmap.md). Sections below are split into what's
 actually relevant to decide now vs. what's explicitly premature — the
 point of this doc is to not accidentally build something incompatible
 with the philosophy later, not to implement all of it now.
@@ -16,7 +16,7 @@ with the philosophy later, not to implement all of it now.
 > Domain owns meaning. Workspace owns context. Agent connects them.
 
 This isn't new — it's the exact principle already recorded in
-[`ideation.md`](../ideation.md)'s fork/embed section: don't merge a
+[`product-direction.md`](./product-direction.md)'s fork/embed section: don't merge a
 forked app's internal Shape/Mesh/Scene/Process model into a shared
 "Universal Object", keep the app's own engine intact, and let Workspace
 provide only the infra layer around it (File System, Project, Asset,
@@ -30,7 +30,7 @@ to understand what a Shape or a Scene *is*.
 ## Why this matters for the actual plan, not just abstractly
 
 Phase 2 (2D/3D/Video/Engineering, fork real engines per
-[`ROADMAP.md`](../ROADMAP.md)) already commits to "Domain owns meaning."
+[`roadmap.md`](./roadmap.md)) already commits to "Domain owns meaning."
 The "Workspace owns context" half is *not* decided yet — what does
 Workspace track about a Penpot shape or a Godot scene that lets it do
 anything useful (cross-pane copy/paste, an agent referencing "that
@@ -83,7 +83,7 @@ instead of Workspace needing to know what those commands do).
 
 ### Integration through protocols, not shared internals
 
-Restates `ideation.md`'s fork/embed principle (`third-party/<app>`
+Restates `product-direction.md`'s fork/embed principle (`third-party/<app>`
 untouched, `integrations/<app>` adapters, no merged Document Model) with
 one addition: the *mechanism* for cross-app interaction should always be
 a defined contract (Clipboard MIME conventions, Command Bus, Asset
@@ -151,7 +151,7 @@ somewhere else first).
 > Domain internals directly.
 
 Worth stating explicitly for this app's own still-open **MCP / agent
-orchestration** item (`ROADMAP.md`'s History section). Concretely: if
+orchestration** item (`roadmap.md`'s History section). Concretely: if
 this app ever exposes its state to an MCP server, or lets an agent act
 on open panes programmatically, the interface should be
 Capability-shaped (open/read/write/search per pane kind — the same
@@ -239,14 +239,14 @@ And its own summary of the whole thing:
 
 ## Related docs
 
-- [ideation.md](../ideation.md) — the fork/embed principles this doc
+- [product-direction.md](./product-direction.md) — the fork/embed principles this doc
   generalizes, and the four-category Phase 2 target list
-- [ROADMAP.md](../ROADMAP.md) — Phase 1's module list (Asset, Clipboard,
+- [roadmap.md](./roadmap.md) — Phase 1's module list (Asset, Clipboard,
   Command Bus, Shortcut Registry) this doc's Entity/Resource/Capability
   shapes should inform when those actually get built
-- [10-core-model.md](./10-core-model.md) — layered primitives (Graph, Geometry, World as
+- [core-model.md](./core-model.md) — layered primitives (Graph, Geometry, World as
   composition); reconciles this doc with the “tools share Core Model” sketch
-- [09-future-native-architecture.md](./09-future-native-architecture.md)
+- [native-architecture.md](./native-architecture.md)
   — the "Application Isolation" / out-of-process direction for heavy
   forked engines, same "don't merge internals" principle from a
   hosting-architecture angle instead of a data-modeling one

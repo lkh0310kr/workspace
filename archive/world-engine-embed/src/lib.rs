@@ -1,5 +1,5 @@
 // World Engine — Phase 2: true in-process embedding into an Electron
-// window. See docs/architecture/09-future-native-architecture.md.
+// window. See docs/planning/native-architecture.md.
 //
 // macOS: NSView subview + wgpu (verified). Windows: child HWND + SetParent
 // + wgpu (Phase 2B). Input forwarding is still experimental — qt-shell

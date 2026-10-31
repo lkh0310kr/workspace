@@ -100,7 +100,7 @@ git clone --depth 1 https://github.com/koodo-reader/koodo-reader.git koodo-reade
 
 | 디렉터리 | URL | 커밋 | 스택 | Workspace에서 볼 것 |
 |----------|-----|------|------|---------------------|
-| `freecad/` | https://github.com/FreeCAD/FreeCAD | `b3daf27` | C++, Python, Qt, OCCT | 파라메트릭 CAD, STEP/IGES import, tessellation → mesh, **Track B native embed** 후보 (`docs/IDEATION.md`) |
+| `freecad/` | https://github.com/FreeCAD/FreeCAD | `b3daf27` | C++, Python, Qt, OCCT | 파라메트릭 CAD, STEP/IGES import, tessellation → mesh, **Track B native embed** 후보 (`docs/planning/product-direction.md`) |
 | `occt/` | https://github.com/Open-Cascade-SAS/OCCT | `3d097a03` | C++ (BREP 커널) | STEP/IGES/BREP, `BRepMesh_IncrementalMesh` tessellation, CAD exchange **정석** — M6 `.step` preview 설계 근거 |
 | `assimp/` | https://github.com/assimp/assimp | `a47827a` | C++ | FBX/OBJ/DAE/STL/… **import 파이프라인 정석** — post-process, material, embedded texture; `model3d` importer Tier 2 설계 |
 
@@ -171,7 +171,7 @@ rg "RobotModel|PointCloud|Marker" ref-proj/rviz2/rviz_default_plugins
 | `zed/` | https://github.com/zed-industries/zed | Rust | 패널·포커스 UX |
 | `logseq/`, `Zettlr/` | 각 GitHub | 각 스택 | 에디터·아웃라인 |
 | `cef-rs/` | https://github.com/chromiumembedded/cef-rs | Rust, CEF | webview 대안 |
-| `ovstream/`, `omniverse-web-viewer-sample/` | NVIDIA | CUDA/Web | GPU 픽셀 스트리밍 패턴 (`docs/architecture/09-future-native-architecture.md`) |
+| `ovstream/`, `omniverse-web-viewer-sample/` | NVIDIA | CUDA/Web | GPU 픽셀 스트리밍 패턴 (`docs/planning/native-architecture.md`) |
 
 ---
 
@@ -237,7 +237,7 @@ rg "prev\\(|next\\(|goLeft|keyup" ref-proj/foliate-js/view.js ref-proj/foliate-j
 | 주제 | 문서 |
 |------|------|
 | 3D viewer 아키텍처 (Assimp/OCCT/delegate) | `docs/planning/3d-model-viewer-architecture.md` |
-| CAD/엔진 embed 원칙 | `docs/IDEATION.md`, `docs/architecture/09-future-native-architecture.md` |
+| CAD/엔진 embed 원칙 | `docs/planning/product-direction.md`, `docs/planning/native-architecture.md` |
 | Track B (네이티브 스트리밍) | `docs/research/track-b-webrtc-streaming.md` |
 
 ---
