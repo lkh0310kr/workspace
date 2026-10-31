@@ -237,6 +237,8 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
               rootPath={rootPath}
               model={model}
               paneVisible={visible}
+              isGroupFocused={isGroupFocused}
+              explorerCapable={activeChipHasExplorer(activeItem.kind)}
               focusHostRef={paneHostRef}
               selectedPath={activeItem.filePath ?? null}
               chrome={explorerChrome}

@@ -19,43 +19,59 @@ import { RangeSetBuilder } from "@codemirror/state";
 //    guessing at WebKit stacking-context internals); abandoned rather than
 //    ship something unverifiable.
 //
-// This instead marks individual leading-whitespace characters with a
-// plain `border-left`, which every rendering engine has always supported
-// with zero pseudo-element/z-index/custom-property involvement — the
-// least exotic thing that could possibly work. It costs each guide crossed
-// 1 layout pixel (the border's own width) nudging that line's text right;
-// imperceptible at realistic nesting depths and a fully worthwhile trade
-// for guides that are guaranteed to actually render.
+// Apply a line decoration and paint guides as the line's background. A
+// character border follows glyph boxes, so each guide looked like a stack
+// of short dashes instead of a continuous vertical line.
 const INDENT_UNIT = 4;
+
+const indentLineDecorations = new Map<number, Decoration>();
+
+function indentLineDecoration(level: number): Decoration {
+  let decoration = indentLineDecorations.get(level);
+  if (!decoration) {
+    decoration = Decoration.line({
+      attributes: {
+        class: "cm-indent-guide-line",
+        style: `--indent-guide-width: ${level * INDENT_UNIT + 0.1}ch`,
+      },
+    });
+    indentLineDecorations.set(level, decoration);
+  }
+  return decoration;
+}
+
+function indentLevel(text: string): number {
+  let columns = 0;
+  for (const char of text) {
+    if (char === " ") columns++;
+    else if (char === "\t") columns += INDENT_UNIT - (columns % INDENT_UNIT);
+    else break;
+  }
+  return Math.floor(columns / INDENT_UNIT);
+}
 
 function buildIndentGuideDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
+  let lastLineFrom = -1;
   for (const { from, to } of view.visibleRanges) {
     let pos = from;
     while (pos <= to) {
       const line = doc.lineAt(pos);
-      const text = line.text;
-      let leading = 0;
-      while (leading < text.length && text.charCodeAt(leading) === 32) leading++;
-      const level = Math.floor(leading / INDENT_UNIT);
-      // One guide per ancestor level (not the line's own depth), drawn at
-      // the first character of that level's indent unit — matches this
-      // codebase's own TreeView.tsx guide convention (see its comment on
-      // why ancestor-level, not own-depth).
-      for (let l = 1; l <= level; l++) {
-        const charPos = line.from + (l - 1) * INDENT_UNIT;
-        if (charPos < line.to) {
-          builder.add(charPos, charPos + 1, indentGuideMark);
-        }
+      if (line.from === lastLineFrom) {
+        pos = line.to + 1;
+        continue;
+      }
+      lastLineFrom = line.from;
+      const level = indentLevel(line.text);
+      if (level > 0) {
+        builder.add(line.from, line.from, indentLineDecoration(level));
       }
       pos = line.to + 1;
     }
   }
   return builder.finish();
 }
-
-const indentGuideMark = Decoration.mark({ class: "cm-indent-guide" });
 
 export const indentGuidePlugin = ViewPlugin.fromClass(
   class {
@@ -73,8 +89,11 @@ export const indentGuidePlugin = ViewPlugin.fromClass(
 );
 
 export const indentGuideTheme = EditorView.baseTheme({
-  ".cm-indent-guide": {
-    borderLeft: "1px solid var(--border-strong)",
+  ".cm-indent-guide-line": {
+    backgroundImage:
+      "repeating-linear-gradient(to right, transparent 0 calc(4ch - 0.5px), var(--border) calc(4ch - 0.5px) calc(4ch + 0.5px), transparent calc(4ch + 0.5px) 4ch)",
+    backgroundSize: "var(--indent-guide-width) 100%",
+    backgroundRepeat: "no-repeat",
   },
 });
 

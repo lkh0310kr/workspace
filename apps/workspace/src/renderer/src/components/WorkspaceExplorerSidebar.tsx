@@ -24,6 +24,8 @@ interface Props {
   rootPath: string
   model: Model
   paneVisible: boolean
+  isGroupFocused: boolean
+  explorerCapable: boolean
   focusHostRef: React.RefObject<HTMLElement | null>
   selectedPath: string | null
   chrome: PaneGroupExplorerChrome
@@ -45,6 +47,8 @@ export function WorkspaceExplorerSidebar({
   rootPath,
   model,
   paneVisible,
+  isGroupFocused,
+  explorerCapable,
   focusHostRef,
   selectedPath,
   chrome,
@@ -55,13 +59,11 @@ export function WorkspaceExplorerSidebar({
   const explorerScrollRef = useRef<HTMLDivElement>(null)
   const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
 
-  // Cmd/Ctrl+Shift+F — only this pane group's search when the group has
-  // focus (mounted only for explorer-capable groups, so no extra gating
-  // needed beyond focus/visibility).
+  // Cmd/Ctrl+Shift+F targets the focused, visible pane group that can show
+  // the file explorer, regardless of which embedded surface owns the DOM focus.
   useEffect(() => {
     const offMainShortcut = onFindInFilesShortcut(() => {
-      if (!paneVisible) return
-      if (!focusHostRef.current?.contains(document.activeElement)) return
+      if (!paneVisible || !isGroupFocused || !explorerCapable) return
       setSidebarMode('search')
       setTreeOpen(true)
     })
@@ -69,7 +71,7 @@ export function WorkspaceExplorerSidebar({
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return
       if (e.key.toLowerCase() !== 'f') return
       if (!paneVisible) return
-      if (!focusHostRef.current?.contains(document.activeElement)) return
+      if (!isGroupFocused || !explorerCapable) return
       e.preventDefault()
       setSidebarMode('search')
       setTreeOpen(true)
@@ -81,7 +83,7 @@ export function WorkspaceExplorerSidebar({
       offMainShortcut()
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [paneVisible, setSidebarMode, setTreeOpen, focusHostRef])
+  }, [paneVisible, isGroupFocused, explorerCapable, setSidebarMode, setTreeOpen])
 
   const openEngineBundleTab = useCallback(
     (path: string) => {

@@ -35,6 +35,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { projectVisibleRows } from "../explorer/useTreeProjection";
+import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
 
 interface Props {
   tabId: number;
@@ -70,6 +71,12 @@ export function classifyFile(name: string): "code" | "markdown" | "viewer" {
   if (type === "markdown") return "markdown";
   if (type === "unknown") return "code";
   return "viewer";
+}
+
+function treeEntryIconName(entry: DirEntry): WorkbenchIconName {
+  if (entry.is_dir) return "explorer";
+  const kind = classifyFile(entry.name);
+  return kind === "markdown" ? "book" : kind === "viewer" ? "viewer" : "code";
 }
 
 /** Obsidian-style tree label: hide the `.md` suffix for markdown files. */
@@ -734,8 +741,11 @@ export function TreeView({
             {Array.from({ length: depth }, (_, level) => (
               <span key={level} className="tree-view-guide" style={{ left: level * 14 + 14 }} />
             ))}
-            <span className="tree-view-icon">
-              {entry.is_dir ? (expanded.has(entry.path) ? "▾" : "▸") : "·"}
+            <span className={`tree-view-disclosure${entry.is_dir && expanded.has(entry.path) ? " expanded" : ""}`}>
+              {entry.is_dir ? <WorkbenchIcon name="chevron-right" size={12} /> : null}
+            </span>
+            <span className={`tree-view-icon ${entry.is_dir ? "folder" : classifyFile(entry.name)}`}>
+              <WorkbenchIcon name={treeEntryIconName(entry)} size={16} />
             </span>
             <span className="tree-view-name">{treeEntryDisplayName(entry.name)}</span>
           </div>
