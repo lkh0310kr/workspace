@@ -13,6 +13,7 @@ import {
   addTab,
   closeTab,
   onShortcutModifierReleased,
+  onSwitchWorkspaceTabIndexShortcut,
   renameTab,
   reorderTabs,
 } from '../electron'
@@ -78,6 +79,7 @@ export function WorkspaceTabRail({
     }
     const clearOnBlur = () => setShowTabNumbers(false)
     const unsubscribeModifierRelease = onShortcutModifierReleased(clearOnBlur)
+    const unsubscribeTabSwitch = onSwitchWorkspaceTabIndexShortcut(clearOnBlur)
 
     window.addEventListener('keydown', onKeyDown, true)
     window.addEventListener('keyup', onKeyUp, true)
@@ -89,6 +91,7 @@ export function WorkspaceTabRail({
       window.removeEventListener('blur', clearOnBlur)
       document.removeEventListener('visibilitychange', clearOnBlur)
       unsubscribeModifierRelease()
+      unsubscribeTabSwitch()
     }
   }, [])
 
