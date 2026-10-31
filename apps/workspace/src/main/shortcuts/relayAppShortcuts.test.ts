@@ -14,11 +14,33 @@ function keyDown(
   }
 }
 
+function keyUp(
+  code: string,
+  modifiers: { meta?: boolean; control?: boolean } = {},
+) {
+  return {
+    type: 'keyUp' as const,
+    code,
+    meta: modifiers.meta ?? false,
+    control: modifiers.control ?? false,
+  }
+}
+
 function mockEvent() {
   return { preventDefault: vi.fn() }
 }
 
 describe('relayHostAppShortcuts', () => {
+  it('clears tab shortcut hints when the Meta key is released even if Electron keeps its flag set', () => {
+    const send = vi.fn()
+    relayHostAppShortcuts(mockEvent() as never, keyUp('MetaLeft', { meta: true }) as never, {
+      send,
+      terminalOwnsAppShortcuts: false,
+      focusedTerminalId: null,
+    })
+    expect(send).toHaveBeenCalledWith('shortcut:modifier-released')
+  })
+
   it('relays browser reload when terminal does not own shortcuts', () => {
     const event = mockEvent()
     const send = vi.fn()
@@ -129,6 +151,18 @@ describe('relayHostAppShortcuts', () => {
 })
 
 describe('relayGuestWebviewShortcuts', () => {
+  it('clears tab shortcut hints when the Meta key is released in a guest webview', () => {
+    const send = vi.fn()
+    relayGuestWebviewShortcuts(
+      mockEvent() as never,
+      keyUp('MetaRight', { meta: true }) as never,
+      send,
+      vi.fn(),
+      42,
+    )
+    expect(send).toHaveBeenCalledWith('shortcut:modifier-released')
+  })
+
   it('relays browser reload and invokes guest plain paste', () => {
     const event = mockEvent()
     const send = vi.fn()

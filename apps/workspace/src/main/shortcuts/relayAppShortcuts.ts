@@ -38,6 +38,14 @@ function isHomeKey(input: Input): boolean {
   return input.code === 'Backquote' || input.key === '`'
 }
 
+function isModifierRelease(input: Input): boolean {
+  // Electron can report the modifier flags from before the key was released.
+  // The physical code identifies the released key even in that case.
+  if (/^(Meta|Control)(Left|Right)$/.test(input.code)) return true
+  if (input.key === 'Meta' || input.key === 'Control') return true
+  return !input.meta && !input.control
+}
+
 type SharedRelayOptions = {
   /** When true, Cmd+R stays with the focused terminal (readline/vim redo). */
   gateBrowserReload: boolean
@@ -86,7 +94,7 @@ export function relayHostAppShortcuts(
 ): void {
   if (isImeToggleKey(input)) return
   if (input.type === 'keyUp') {
-    if (!input.meta && !input.control) options.send('shortcut:modifier-released')
+    if (isModifierRelease(input)) options.send('shortcut:modifier-released')
     return
   }
   if (input.type !== 'keyDown') return
@@ -149,7 +157,7 @@ export function relayGuestWebviewShortcuts(
 ): void {
   if (isImeToggleKey(input)) return
   if (input.type === 'keyUp') {
-    if (!input.meta && !input.control) send('shortcut:modifier-released')
+    if (isModifierRelease(input)) send('shortcut:modifier-released')
     return
   }
   if (input.type !== 'keyDown') return
