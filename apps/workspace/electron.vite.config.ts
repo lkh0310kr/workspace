@@ -14,6 +14,15 @@ if (process.platform === "linux") {
 
 export default defineConfig({
   main: {
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve('src/main/index.ts'),
+          ptyHostDaemon: resolve('src/main/ptyHostDaemon.ts')
+        },
+        output: { entryFileNames: '[name].js' }
+      }
+    },
     esbuild: {
       // Vite passes this through as a string (not esbuild's { js, css } form).
       banner: linuxImeEnvBanner

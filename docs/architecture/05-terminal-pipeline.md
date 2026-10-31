@@ -24,12 +24,22 @@ flowchart LR
   Session <-->|pty:connect data write resize| Transport
 ```
 
-## Main process
+## PTY host and main process
+
+The main Electron process is a client of a detached local PTY host. The host
+owns shell processes and a bounded raw output replay buffer, so Cmd+Q can close
+the UI process while shells and foreground TUIs keep running. On the next
+launch, the main process reattaches by stable terminal id and seeds xterm from
+the host replay. Closing the last pane that references a terminal explicitly
+destroys that PTY session. If the machine itself restarts or the host exits,
+the saved xterm scrollback remains the fallback, but the old command process
+cannot be resumed.
 
 | File | Role |
 |------|------|
-| `apps/workspace/src/main/pty.ts` | Low-level PTY spawn |
-| `apps/workspace/src/main/ptySession.ts` | `PtySession`, `PtyReplayBuffer`, attach/detach |
+| `apps/workspace/src/main/pty.ts` | Main-process client for the detached PTY host |
+| `apps/workspace/src/main/ptyHostDaemon.ts` | Detached PTY owner and bounded output replay |
+| `apps/workspace/src/main/ptySession.ts` | `PtySession`, local replay, attach/detach |
 | `apps/workspace/src/main/workspace.ts` | `TerminalEntry` map, spawn on layout restore |
 
 `PtyReplayBuffer` retains ~5000×120 characters for reconnect replay. Output while disconnected is still buffered.

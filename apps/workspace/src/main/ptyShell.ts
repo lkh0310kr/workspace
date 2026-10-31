@@ -102,7 +102,7 @@ function resolveWin32SpawnAttempts(cwd?: string): PtySpawnSpec[] {
  * Ordered spawn attempts for a new terminal pane. On Windows PowerShell this
  * follows Orca's pwsh → inbox PowerShell → cmd.exe fallback chain.
  */
-export function resolvePtySpawnAttempts(cwd?: string): PtySpawnSpec[] {
+export function resolvePtySpawnAttempts(cwd?: string, shellOverride?: string): PtySpawnSpec[] {
   if (process.platform === "win32") {
     return resolveWin32SpawnAttempts(cwd);
   }
@@ -111,7 +111,7 @@ export function resolvePtySpawnAttempts(cwd?: string): PtySpawnSpec[] {
     return [{ file: "powershell.exe", args: ["-NoLogo"], cwd }];
   }
 
-  const shell = process.env.SHELL || "/bin/bash";
+  const shell = shellOverride || process.env.SHELL || "/bin/bash";
   if (!cwd || !isWsl()) {
     return [{ file: shell, args: ["-l"], cwd }];
   }

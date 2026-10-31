@@ -3,6 +3,8 @@ import { StringDecoder } from "node:string_decoder";
 import { Pty } from "./pty";
 import { trimTerminalSessionBufferToByteLimit } from "../shared/terminal-session-buffers";
 import { appendTerminalLog, reprTerminalBytesMain } from "./terminalDebugLog";
+import { extractOnlyTerminalQueryReplies } from "../shared/terminal-query-reply";
+import { TerminalQueryReplyEchoFilter } from "../shared/terminal-query-reply-echo";
 
 const REPLAY_MAX_CHARS = 5000 * 120;
 
@@ -21,8 +23,8 @@ export class PtyReplayBuffer {
   private seq = 0;
   private decoder = new StringDecoder("utf8");
 
-  appendUtf8(data: Buffer): { seq: number; text: string } {
-    const str = this.decoder.write(data);
+  appendUtf8(data: Buffer, transform: (text: string) => string = (text) => text): { seq: number; text: string } {
+    const str = transform(this.decoder.write(data));
     this.seq++;
     if (str.length > 0) {
       this.chunks.push(str);
@@ -46,6 +48,7 @@ export class PtySession {
   private cols: number;
   private rows: number;
   private replay = new PtyReplayBuffer();
+  private queryReplyEchoFilter = new TerminalQueryReplyEchoFilter();
   private attachedWebContents: WebContents | null = null;
   private wasEverAttached = false;
   private onOutputUtf8: ((terminalId: number, chunk: string) => void) | null = null;
@@ -56,7 +59,7 @@ export class PtySession {
     this.cols = cols;
     this.rows = rows;
     pty.onData((data) => {
-      const { seq, text } = this.replay.appendUtf8(data);
+      const { seq, text } = this.replay.appendUtf8(data, (decoded) => this.queryReplyEchoFilter.filter(decoded));
       if (text.length > 0) {
         this.onOutputUtf8?.(this.id, text)
       }
@@ -68,7 +71,7 @@ export class PtySession {
         terminalId: this.id,
         data: { bytes: reprTerminalBytesMain(data), length: data.length, seq },
       });
-      this.pushLiveOutput(seq, data);
+      this.pushLiveOutput(seq, Buffer.from(text, "utf8"));
     });
   }
 
@@ -94,14 +97,19 @@ export class PtySession {
     }
   }
 
-  connect(webContents: WebContents): PtyConnectResult {
+  async connect(webContents: WebContents): Promise<PtyConnectResult> {
+    const attachment = await this.pty.attach();
+    if (attachment.existed && this.replay.snapshot().replay.length === 0 && attachment.snapshot.length > 0) {
+      this.replay.appendUtf8(attachment.snapshot);
+    }
     this.attachedWebContents = webContents;
-    const isReattach = this.wasEverAttached;
+    const isReattach = this.wasEverAttached || attachment.existed;
     this.wasEverAttached = true;
     const { replay, lastSeq } = this.replay.snapshot();
+    this.pty.activate();
     return {
       id: this.id,
-      snapshot: replay,
+      snapshot: replay || attachment.snapshot.toString("utf8"),
       snapshotCols: this.cols,
       snapshotRows: this.rows,
       lastSeq,
@@ -120,6 +128,11 @@ export class PtySession {
   }
 
   write(data: Buffer): void {
+    const text = data.toString("utf8");
+    const replies = extractOnlyTerminalQueryReplies(text);
+    if (replies) {
+      for (const reply of replies) this.queryReplyEchoFilter.expect(reply);
+    }
     appendTerminalLog({
       sessionId: "terminal",
       timestamp: Date.now(),
@@ -168,6 +181,7 @@ export class PtySession {
    * being deleted, not just detached (app quit, dev restart, reload). */
   disposeAndDestroySession(): void {
     this.attachedWebContents = null;
+    this.onOutputUtf8 = null;
     this.pty.disposeAndDestroySession();
   }
 

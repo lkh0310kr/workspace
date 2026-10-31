@@ -202,6 +202,7 @@ export class Workspace {
   private spawnTerminalWithId(id: number, cols: number, rows: number, root: string): void {
     const hookUrl = this.agentHookStatusUrl?.() ?? null;
     const pty = new Pty({
+      id,
       cols,
       rows,
       cwd: root,
@@ -217,15 +218,17 @@ export class Workspace {
     this.onTerminalSpawned?.(id)
   }
 
-  connectTerminal(id: number, webContents: WebContents) {
+  async connectTerminal(id: number, webContents: WebContents) {
     const entry = this.terminals.get(id);
     if (!entry) throw new Error("terminal not found");
-    const result = entry.session.connect(webContents);
+    const result = await entry.session.connect(webContents);
     const restored = this.restoredTerminalBuffers.get(id);
     if (restored) {
       this.restoredTerminalBuffers.delete(id);
-      result.snapshot = restored + result.snapshot;
-      result.isReattach = true;
+      if (!result.isReattach) {
+        result.snapshot = restored + result.snapshot;
+        result.isReattach = true;
+      }
     }
     return result;
   }
