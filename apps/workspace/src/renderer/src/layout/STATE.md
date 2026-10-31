@@ -11,6 +11,7 @@ toward a single write API per concern.
 | flexlayout `Model` instance | `workspaceLayoutModels.ts` (module `Map`) | `workspaceStore.getModel(tabId)` | `setLayoutModel` on hydrate; `persistLayout` on change |
 | Saved layout JSON | main `Workspace` + `setSavedLayoutJson` cache | `TabInfo.layout_json` | `workspaceStore.persistLayout` (debounced) |
 | Layout revision bump | `workspaceStore.layoutRevisions` | `useLayoutRevision(tabId)` | `bumpLayoutRevision` after structural tab/pane changes |
+| Active chip render revision | `workspaceStore.paneTabSelectionRevisions` | `usePaneTabSelectionRevision(workspaceTabId, nodeId)` | `setActiveTabInGroup` immediately after updating flexlayout config |
 
 **Rule:** Do not call `useWorkspaceStore.getState()` from UI components for layout
 mutations — use `layoutActions.ts` or `layoutSession.ts`.

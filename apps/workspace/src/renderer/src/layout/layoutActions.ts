@@ -172,6 +172,10 @@ export function setActiveTabInGroup(model: Model, tabNodeId: string, tabId: stri
   if (!config || config.activeTabId === tabId) return;
   layoutLog("layoutActions.setActiveTabInGroup", "active tab", { tabNodeId, tabId, from: config.activeTabId });
   model.doAction(Actions.updateNodeAttributes(tabNodeId, { config: { ...config, activeTabId: tabId } }));
+  const workspaceTabId = findTabIdForModel(model);
+  if (workspaceTabId !== undefined) {
+    useWorkspaceStore.getState().bumpPaneTabSelectionRevision(workspaceTabId, tabNodeId);
+  }
 }
 
 /** Updates one tab item in place (e.g. a browser page's title/url after

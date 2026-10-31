@@ -15,7 +15,7 @@ import { activatePaneTab, readPaneGroupConfig, resolveActivePaneTabId } from '..
 import type { TabDragPayload } from '../layout/tabDrag'
 import { PaneTabItem, TabKind } from '../layout/paneTypes'
 import { getPaneKind, type PaneRenderContext } from './paneKindRegistry'
-import { useLayoutRevision } from '../hooks/useLayoutRevision'
+import { useLayoutRevision, usePaneTabSelectionRevision } from '../hooks/useLayoutRevision'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { countLayoutTabSets } from '../layout/layoutModelParse'
 import { focusPaneGroupTabSet } from '../layout/layoutRef'
@@ -46,13 +46,15 @@ function activeChipHasExplorer(kind: TabKind): boolean {
 export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }: Props) {
   const visible = usePaneVisibility(workspaceTabId, tabNode)
   const layoutRevision = useLayoutRevision(workspaceTabId)
+  const nodeId = tabNode.getId()
+  const selectionRevision = usePaneTabSelectionRevision(workspaceTabId, nodeId)
   const config = readPaneGroupConfig(tabNode)
   const tabs = config.tabs
   void layoutRevision
+  void selectionRevision
   const zoom = config.zoom ?? 1
 
   const model = tabNode.getModel()
-  const nodeId = tabNode.getId()
   const tabSetId = resolvePaneGroupTabSetId(tabNode.getParent())
 
   const hasSplitGroups = useMemo(

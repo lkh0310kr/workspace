@@ -39,6 +39,7 @@ export function WorkspaceTabRail({
   layoutRevisions,
 }: Props) {
   const [renamingId, setRenamingId] = useState<number | null>(null)
+  const [renamingWidth, setRenamingWidth] = useState<number | null>(null)
   const [draft, setDraft] = useState('')
   const [contextMenu, setContextMenu] = useState<{ tabId: number; x: number; y: number } | null>(
     null
@@ -53,6 +54,7 @@ export function WorkspaceTabRail({
   }, [renamingId])
 
   const startRename = useCallback((tab: TabInfo) => {
+    setRenamingWidth(rowRefs.current.get(tab.id)?.getBoundingClientRect().width ?? null)
     setRenamingId(tab.id)
     setDraft(tab.title)
   }, [])
@@ -61,6 +63,7 @@ export function WorkspaceTabRail({
     if (renamingId === null) return
     const id = renamingId
     setRenamingId(null)
+    setRenamingWidth(null)
     const trimmed = draft.trim()
     const original = tabs.find((t) => t.id === id)?.title
     if (!trimmed || trimmed === original) return
@@ -159,7 +162,17 @@ export function WorkspaceTabRail({
                 else rowRefs.current.delete(tab.id)
               }}
               className={`workspace-tab-rail-row ${!homeActive && tab.id === activeTabId ? 'active' : ''}`}
+              style={renamingId === tab.id && renamingWidth !== null ? { width: renamingWidth } : undefined}
               draggable={renamingId !== tab.id}
+              onPointerDown={(e) => {
+                if (e.button !== 0 || renamingId === tab.id) return
+                if ((e.target as HTMLElement).closest('.workspace-tab-rail-close')) return
+                void switchToWorkspaceTab(tab.id)
+              }}
+              onClick={(e) => {
+                if (e.detail !== 0 || renamingId === tab.id) return
+                void switchToWorkspaceTab(tab.id)
+              }}
               onDragStart={(e: DragEvent) => {
                 draggedIdRef.current = tab.id
                 e.dataTransfer.effectAllowed = 'move'
@@ -199,6 +212,7 @@ export function WorkspaceTabRail({
                     } else if (e.key === 'Escape') {
                       e.preventDefault()
                       setRenamingId(null)
+                      setRenamingWidth(null)
                     }
                   }}
                 />
@@ -206,15 +220,6 @@ export function WorkspaceTabRail({
                 <button
                   type="button"
                   className="workspace-tab-rail-title"
-                  onPointerDown={(e) => {
-                    if (e.button !== 0) return;
-                    void switchToWorkspaceTab(tab.id);
-                  }}
-                  onClick={(e) => {
-                    // Pointer activation has already switched on pointerdown so
-                    // the pane responds on press. Keep keyboard activation on click.
-                    if (e.detail === 0) void switchToWorkspaceTab(tab.id);
-                  }}
                   onDoubleClick={(e) => {
                     e.stopPropagation()
                     startRename(tab)
@@ -230,6 +235,7 @@ export function WorkspaceTabRail({
                   type="button"
                   className="workspace-tab-rail-close"
                   title="Close tab"
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation()
                     dismissWorkspacePortals()

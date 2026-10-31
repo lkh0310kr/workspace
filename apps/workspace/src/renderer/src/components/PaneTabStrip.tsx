@@ -217,6 +217,8 @@ export function PaneTabStrip({
     <div className="pane-tab-strip" draggable onDragStart={onStripDragStart} onDragEnd={onStripDragEnd}>
       <div
         className="pane-tab-strip-tabs"
+        role="tablist"
+        aria-label="Pane tabs"
         draggable
         onDragStart={onStripDragStart}
         onDragEnd={onStripDragEnd}
@@ -235,6 +237,9 @@ export function PaneTabStrip({
                   else chipRefs.current.delete(item.id);
                 }}
                 className={`pane-tab${item.id === activeTabId ? " active" : ""}${item.isPreview ? " preview" : ""}`}
+                role="tab"
+                tabIndex={0}
+                aria-selected={item.id === activeTabId}
                 draggable
                 onDragStart={(e: DragEvent) => {
                   // The strip's own draggable=true (above) is for
@@ -249,7 +254,22 @@ export function PaneTabStrip({
                   endTabDrag();
                   setDropIndex(null);
                 }}
-                onClick={() => {
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  closeAddPicker();
+                  closeContextMenu();
+                  onSelect(item.id);
+                }}
+                onClick={(e) => {
+                  // Pointer selection already happened on press; preserve keyboard activation.
+                  if (e.detail !== 0) return;
+                  closeAddPicker();
+                  closeContextMenu();
+                  onSelect(item.id);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
                   closeAddPicker();
                   closeContextMenu();
                   onSelect(item.id);
@@ -272,6 +292,7 @@ export function PaneTabStrip({
                   className="pane-tab-close"
                   title="Close tab"
                   draggable={false}
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     onClose(item.id);

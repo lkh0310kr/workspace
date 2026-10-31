@@ -49,6 +49,8 @@ export type WorkspaceStoreState = {
   activeTabId: number;
   /** Per workspace-tab layout model revision — bumps when that tab's Model reloads or pane tab structure changes. */
   layoutRevisions: Record<number, number>;
+  /** Per pane active-tab selection revision; avoids waiting for debounced layout persistence. */
+  paneTabSelectionRevisions: Record<string, number>;
   /** flexlayout tabset id with UI focus when multiple pane groups are visible. */
   focusedPaneGroupTabSetByWorkspaceTab: Record<number, string | undefined>;
 };
@@ -57,6 +59,7 @@ type WorkspaceStoreActions = {
   hydrateFromWorkspace: (ws: WorkspaceState) => void;
   syncModelsFromWorkspace: (ws: WorkspaceState) => void;
   bumpLayoutRevision: (tabId: number) => void;
+  bumpPaneTabSelectionRevision: (workspaceTabId: number, nodeId: string) => void;
   getLayoutRevision: (tabId: number) => number;
   getModel: (tabId: number) => Model | undefined;
   persistLayout: (tabId: number, model: Model) => void;
@@ -74,6 +77,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     tabs: [],
     activeTabId: 0,
     layoutRevisions: {},
+    paneTabSelectionRevisions: {},
     focusedPaneGroupTabSetByWorkspaceTab: {},
 
     hydrateFromWorkspace(ws: WorkspaceState) {
@@ -141,6 +145,16 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
         layoutRevisions: {
           ...get().layoutRevisions,
           [tabId]: (get().layoutRevisions[tabId] ?? 0) + 1,
+        },
+      });
+    },
+
+    bumpPaneTabSelectionRevision(workspaceTabId: number, nodeId: string) {
+      const key = `${workspaceTabId}:${nodeId}`;
+      set({
+        paneTabSelectionRevisions: {
+          ...get().paneTabSelectionRevisions,
+          [key]: (get().paneTabSelectionRevisions[key] ?? 0) + 1,
         },
       });
     },
