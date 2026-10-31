@@ -1,36 +1,36 @@
 import type { ITheme } from "@xterm/xterm";
 import type { ResolvedTheme } from "./theme";
 
-// Port of ref-proj/orca/src/renderer/src/lib/terminal-themes/defaults.ts —
-// Ghostty Default Style Dark + Builtin Tango Light. Orca raises dark selection
-// contrast because Ghostty's original #3e4451 blends into Codex-style gray blocks.
+// Ported from ref-proj/orca/src/renderer/src/lib/terminal-themes/defaults.ts.
+// The dark palette is tuned for Workspace's Onyx-like graphite surfaces; light
+// keeps the Tango-derived palette.
 export const XTERM_THEMES: Record<ResolvedTheme, ITheme> = {
   dark: {
-    scrollbarSliderBackground: "rgba(180, 180, 185, 0.42)",
-    scrollbarSliderHoverBackground: "rgba(180, 180, 185, 0.62)",
-    scrollbarSliderActiveBackground: "rgba(180, 180, 185, 0.82)",
-    background: "#313338",
-    foreground: "#f2f3f5",
-    cursor: "#f2f3f5",
-    cursorAccent: "#313338",
-    selectionBackground: "#4752c4",
-    selectionForeground: "#ffffff",
-    black: "#1e1f22",
-    red: "#cc6666",
-    green: "#b5bd68",
-    yellow: "#f0c674",
-    blue: "#5865f2",
-    magenta: "#b586d9",
-    cyan: "#8abeb7",
-    white: "#dbdee1",
-    brightBlack: "#666666",
-    brightRed: "#d54e53",
-    brightGreen: "#b9ca4a",
-    brightYellow: "#e7c547",
-    brightBlue: "#7aa6da",
-    brightMagenta: "#c397d8",
-    brightCyan: "#70c0b1",
-    brightWhite: "#f2f5fa",
+    scrollbarSliderBackground: "rgba(155, 158, 166, 0.34)",
+    scrollbarSliderHoverBackground: "rgba(155, 158, 166, 0.5)",
+    scrollbarSliderActiveBackground: "rgba(155, 158, 166, 0.68)",
+    background: "#111214",
+    foreground: "#d8dade",
+    cursor: "#d8dade",
+    cursorAccent: "#111214",
+    selectionBackground: "#343741",
+    selectionForeground: "#e2e4e7",
+    black: "#111214",
+    red: "#b66f72",
+    green: "#869b70",
+    yellow: "#b59b60",
+    blue: "#727fb7",
+    magenta: "#9d7da8",
+    cyan: "#719894",
+    white: "#c5c7cc",
+    brightBlack: "#6f737c",
+    brightRed: "#c98183",
+    brightGreen: "#97a982",
+    brightYellow: "#c6ae74",
+    brightBlue: "#8794c4",
+    brightMagenta: "#ad8cb8",
+    brightCyan: "#82a9a5",
+    brightWhite: "#e2e4e7",
   },
   light: {
     scrollbarSliderBackground: "rgba(72, 73, 80, 0.36)",
@@ -75,11 +75,11 @@ export function getTerminalSearchDecorations(theme: ResolvedTheme) {
     };
   }
   return {
-    matchBackground: "#5c4a00",
-    matchBorder: "#5c4a00",
-    matchOverviewRuler: "#ffcc00",
-    activeMatchBackground: "#c4580e",
-    activeMatchBorder: "#ffcf6b",
-    activeMatchColorOverviewRuler: "#ff9900",
+    matchBackground: "#433d2c",
+    matchBorder: "#5a5138",
+    matchOverviewRuler: "#8f793e",
+    activeMatchBackground: "#684b36",
+    activeMatchBorder: "#9c794b",
+    activeMatchColorOverviewRuler: "#a77b42",
   };
 }
