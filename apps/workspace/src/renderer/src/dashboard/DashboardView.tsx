@@ -69,7 +69,7 @@ export function DashboardView({ tabs }: { tabs: TabInfo[] }): React.JSX.Element 
                   style={{ "--project-index": index } as React.CSSProperties}
                 >
                   <span className="home-project-index">{index < 9 ? `⌘ ${index + 1}` : "OPEN"}</span>
-                  <span className={`home-project-mark home-project-mark--${index % 5}`} aria-hidden="true">
+                  <span className="home-project-mark" aria-hidden="true">
                     {(tab.title.trim().charAt(0) || "W").toUpperCase()}
                   </span>
                   <span className="home-project-copy">

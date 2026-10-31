@@ -17,8 +17,8 @@
   --flexlayout-splitter-size: 7px;
   --flexlayout-splitter-active-size: 7px;
   --flexlayout-color-splitter: color-mix(in srgb, var(--border) 55%, transparent);
-  --flexlayout-color-splitter-hover: color-mix(in srgb, var(--accent) 50%, var(--border-strong));
-  --flexlayout-color-splitter-drag: var(--accent);
+  --flexlayout-color-splitter-hover: var(--border-strong);
+  --flexlayout-color-splitter-drag: var(--text-muted);
   /* Human-touch tokens — restrained, not SaaS-heavy */
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -39,8 +39,8 @@
   --text-muted: #b5bac1;
   --text-faint: #949ba4;
   --accent: #5865f2;
-  --editor-selection-bg: rgba(88, 101, 242, 0.34);
-  --editor-selection-bg-focused: rgba(88, 101, 242, 0.48);
+  --editor-selection-bg: rgba(255, 255, 255, 0.18);
+  --editor-selection-bg-focused: rgba(255, 255, 255, 0.26);
   /* Syntax colors — mirrors VS Code's own default dark theme palette. */
   --syntax-keyword: #c586c0;
   --syntax-string: #ce9178;
@@ -210,8 +210,8 @@
   --text-muted: #4e5058;
   --text-faint: #6d7078;
   --accent: #5865f2;
-  --editor-selection-bg: rgba(88, 101, 242, 0.2);
-  --editor-selection-bg-focused: rgba(88, 101, 242, 0.34);
+  --editor-selection-bg: rgba(35, 36, 40, 0.12);
+  --editor-selection-bg-focused: rgba(35, 36, 40, 0.2);
   --syntax-keyword: #af00db;
   --syntax-string: #a31515;
   --syntax-comment: #008000;
@@ -221,8 +221,8 @@
   --syntax-property: #001080;
   --syntax-invalid: #cd3131;
   --flexlayout-color-splitter: color-mix(in srgb, var(--border) 70%, transparent);
-  --flexlayout-color-splitter-hover: color-mix(in srgb, var(--accent) 45%, var(--border-strong));
-  --flexlayout-color-splitter-drag: var(--accent);
+  --flexlayout-color-splitter-hover: var(--border-strong);
+  --flexlayout-color-splitter-drag: var(--text-muted);
   --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
@@ -498,7 +498,7 @@ input {
 
 .usage-details-toggle input[type="checkbox"],
 .usage-settings-toggles input[type="checkbox"] {
-  accent-color: var(--accent);
+  accent-color: var(--text-muted);
 }
 
 .usage-settings-toggles {
@@ -516,7 +516,7 @@ input {
   background: none;
   border: none;
   padding: 0;
-  color: var(--accent);
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 12px;
 }
@@ -628,7 +628,7 @@ input {
   width: 2px;
   flex-shrink: 0;
   margin: 4px 0;
-  background: var(--accent);
+  background: var(--text-muted);
   border-radius: 1px;
 }
 
@@ -741,7 +741,7 @@ input {
   width: 0;
   padding: 3px 4px;
   background: var(--bg-base);
-  border: 1px solid var(--accent);
+  border: 1px solid var(--border-strong);
   border-radius: 3px;
   color: var(--text);
   font-family: var(--font-ui);
@@ -776,7 +776,7 @@ input {
   height: 18px;
   flex-shrink: 0;
   border-radius: 5px;
-  background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface));
+  background: var(--bg-active);
   color: var(--text);
   font-size: 11px;
   font-weight: 650;
@@ -844,9 +844,7 @@ input {
   position: absolute;
   inset: 0;
   z-index: 2;
-  background:
-    radial-gradient(ellipse 60% 32% at 82% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent),
-    var(--bg-base);
+  background: var(--bg-base);
 }
 
 .dashboard-view-inner {
@@ -906,11 +904,11 @@ input {
   background: var(--bg-base); color: var(--text); cursor: pointer;
   transition: border-color .16s ease, transform .16s ease, background .16s ease, box-shadow .16s ease;
 }
-.dashboard-project-card:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); background: var(--bg-hover); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0, 0, 0, .12); }
-.dashboard-project-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; flex: 0 0 auto; font-size: 14px; font-weight: 700; background: #304953; color: #c6edf1; }
-.dashboard-project-mark--1 { background: #493958; color: #e4cef4; }
-.dashboard-project-mark--2 { background: #4b4630; color: #eee0a9; }
-.dashboard-project-mark--3 { background: #354a3c; color: #c4e8cf; }
+.dashboard-project-card:hover { border-color: var(--border-strong); background: var(--bg-hover); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0, 0, 0, .12); }
+.dashboard-project-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; flex: 0 0 auto; font-size: 14px; font-weight: 700; background: var(--bg-hover); color: var(--text-muted); }
+.dashboard-project-mark--1,
+.dashboard-project-mark--2,
+.dashboard-project-mark--3 { background: var(--bg-hover); color: var(--text-muted); }
 .dashboard-project-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
 .dashboard-project-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .dashboard-project-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-faint); font-size: 10px; }
@@ -940,7 +938,7 @@ input {
   transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
 
-.dashboard-widget:hover { border-color: color-mix(in srgb, var(--accent) 32%, var(--border)); box-shadow: 0 6px 20px rgba(0, 0, 0, .10); transform: translateY(-1px); }
+.dashboard-widget:hover { border-color: var(--border-strong); box-shadow: 0 6px 20px rgba(0, 0, 0, .10); transform: translateY(-1px); }
 
 .dashboard-widget--brief {
   min-height: 120px;
@@ -1478,7 +1476,7 @@ input {
   width: 2px;
   flex-shrink: 0;
   margin: 4px 0;
-  background: var(--accent);
+  background: var(--text-muted);
   border-radius: 1px;
 }
 
@@ -1806,9 +1804,9 @@ input {
   margin-right: 4px;
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent, #5865f2) 55%, var(--border));
-  background: color-mix(in srgb, var(--accent, #5865f2) 14%, transparent);
-  color: var(--accent, #5865f2);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-hover);
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -1908,7 +1906,7 @@ input {
   width: 28px;
   height: 28px;
   border: 2px solid var(--border);
-  border-top-color: var(--accent);
+  border-top-color: var(--text-muted);
   border-radius: 50%;
   animation: model-viewer-spin 0.8s linear infinite;
 }
@@ -1942,9 +1940,7 @@ input {
 }
 
 .hardware-sim {
-  background:
-    radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 42%),
-    var(--bg-base);
+  background: var(--bg-base);
 }
 
 .hardware-sim-status {
@@ -2099,7 +2095,7 @@ input {
   align-items: center;
   gap: 3px;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--bg-surface);
   color: var(--text);
@@ -2317,7 +2313,7 @@ input {
 /* Adding and browsing are separate actions: the toolbar star opens this
    panel, this button bookmarks (or un-bookmarks) the current page. */
 .epub-reader-mark-toggle {
-  color: var(--accent) !important;
+  color: var(--text) !important;
   font-weight: 600;
 }
 
@@ -2543,7 +2539,7 @@ input {
 
 .rss-reader-url-input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--border-strong);
 }
 
 .rss-reader-url-submit {
@@ -2823,7 +2819,7 @@ input {
 }
 
 .xterm .xterm-viewport::-webkit-scrollbar-thumb:active {
-  background: color-mix(in srgb, var(--accent) 64%, var(--scroll-thumb));
+  background: var(--scroll-thumb-hover);
   border: 3px solid transparent;
   background-clip: padding-box;
 }
@@ -3002,7 +2998,7 @@ input {
 
 .cm-vs-field-wrap input[type="text"]:focus,
 .cm-vs-replace-row input[type="text"]:focus {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
 }
 
 .cm-vs-field-wrap button.cm-vs-toggle {
@@ -3156,7 +3152,7 @@ input {
 }
 
 .cm-md-link {
-  color: var(--accent);
+  color: var(--text);
   text-decoration: underline;
 }
 
@@ -3198,8 +3194,8 @@ input {
 }
 
 .cm-md-task-checkbox:checked {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--text-muted);
+  border-color: var(--text-muted);
 }
 
 .cm-md-task-checkbox:checked::after {
@@ -3209,7 +3205,7 @@ input {
   top: 0.03em;
   width: 0.25em;
   height: 0.48em;
-  border: solid white;
+  border: solid var(--bg-base);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
@@ -3227,8 +3223,8 @@ input {
 }
 
 .cm-md-callout-line {
-  border-left-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-left-color: var(--border-strong);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .cm-md-callout-label {
@@ -3236,7 +3232,7 @@ input {
   align-items: center;
   font-weight: 600;
   font-size: 0.9em;
-  color: var(--accent);
+  color: var(--text);
   margin-right: 4px;
 }
 
@@ -3273,7 +3269,7 @@ input {
 .cm-md-wikilink {
   text-decoration: none;
   cursor: pointer;
-  border-bottom: 1px dotted var(--accent);
+  border-bottom: 1px dotted var(--text-muted);
 }
 
 .cm-md-image {
@@ -3465,7 +3461,7 @@ input {
 
 .browser-download-progress-fill {
   height: 100%;
-  background: var(--accent);
+  background: var(--text-muted);
   transition: width 0.15s ease;
 }
 
@@ -3474,7 +3470,7 @@ input {
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--accent);
+  color: var(--text-muted);
   font-size: 11px;
   cursor: pointer;
 }
@@ -3484,7 +3480,7 @@ input {
 }
 
 .browser-download-item--completed {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-color: var(--border-strong);
 }
 
 .browser-download-item--interrupted,
@@ -3570,7 +3566,7 @@ input {
   top: 0;
   bottom: 0;
   width: 40%;
-  background: var(--accent);
+  background: var(--text-muted);
   animation: browser-loading-slide 1.1s ease-in-out infinite;
 }
 
@@ -3654,8 +3650,8 @@ input {
 
 .flexlayout__outline_rect,
 .flexlayout__outline_rect_edge {
-  border: 2px solid var(--accent) !important;
-  background: color-mix(in srgb, var(--accent) 35%, transparent) !important;
+  border: 2px solid var(--text-muted) !important;
+  background: color-mix(in srgb, var(--text-muted) 28%, transparent) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   transition: none !important;
@@ -3663,8 +3659,8 @@ input {
 }
 
 .flexlayout__edge_rect {
-  background: color-mix(in srgb, var(--accent) 35%, transparent) !important;
-  border: 2px solid var(--accent) !important;
+  background: color-mix(in srgb, var(--text-muted) 28%, transparent) !important;
+  border: 2px solid var(--text-muted) !important;
   border-radius: 0 !important;
   transition: none !important;
 }
@@ -3674,8 +3670,8 @@ input {
   z-index: 100002;
   pointer-events: none;
   box-sizing: border-box;
-  background: color-mix(in srgb, var(--accent) 35%, transparent);
-  border: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--text-muted) 28%, transparent);
+  border: 2px solid var(--text-muted);
   border-radius: 0;
 }
 
@@ -3867,7 +3863,7 @@ input {
 
 .obsidian-explorer-resizer:hover::after,
 .obsidian-explorer-resizer:active::after {
-  background: color-mix(in srgb, var(--accent) 50%, var(--border-strong));
+  background: var(--border-strong);
 }
 
 .obsidian-editor-column {
@@ -3944,7 +3940,7 @@ input {
   outline: none;
   background: transparent;
   cursor: text;
-  box-shadow: inset 0 -1px 0 var(--accent);
+  box-shadow: inset 0 -1px 0 var(--border-strong);
 }
 
 .md-title-input.error {
@@ -4080,13 +4076,13 @@ input {
    file actually open in the pane's editor), so both can apply at once
    without one visually hiding the other. */
 .tree-view-item.selected {
-  background: color-mix(in srgb, var(--accent) 9%, var(--bg-surface));
+  background: var(--bg-hover);
   color: var(--text);
 }
 
 .tree-view-item.selected.active {
   background: var(--bg-active);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, var(--border));
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 /* Find/Replace in Files (SearchPanel.tsx) — reuses .obsidian-explorer's
@@ -4293,18 +4289,18 @@ input {
 }
 
 .search-panel-match-text mark {
-  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--text-muted) 38%, var(--bg-surface));
   color: var(--text);
   border-radius: 2px;
 }
 
 .tree-view-item.drag-over {
-  background: color-mix(in srgb, var(--accent) 28%, transparent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  background: var(--bg-hover);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .tree-view.drag-over-root {
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .md-pane-outline-popover {
@@ -4853,7 +4849,7 @@ textarea,
 .workspace-tab-rail-row.active,
 .workspace-tab-rail-home.active,
 .pane-tab.active {
-  background: color-mix(in srgb, var(--accent) 9%, var(--bg-surface));
+  background: var(--bg-active);
   color: var(--text);
   box-shadow: none;
 }
@@ -4864,7 +4860,7 @@ textarea,
 .workspace-tab-rail-add:hover,
 .browser-nav-btn:hover:not(:disabled),
 .browser-zoom-label:hover {
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-hover));
+  background: var(--bg-hover);
 }
 
 .workspace-tab-rail-close:hover,
@@ -4894,7 +4890,7 @@ textarea,
 
 .quick-open-row.active,
 .context-menu-item.active {
-  background: color-mix(in srgb, var(--accent) 9%, var(--bg-surface));
+  background: var(--bg-active);
 }
 
 .quick-open-input,
@@ -4911,15 +4907,15 @@ textarea,
 
 .dashboard-project-mark {
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
-  color: color-mix(in srgb, var(--accent) 56%, var(--text));
+  background: var(--bg-hover);
+  color: var(--text-muted);
 }
 
 .dashboard-project-mark--1,
 .dashboard-project-mark--2,
 .dashboard-project-mark--3 {
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
-  color: color-mix(in srgb, var(--accent) 56%, var(--text));
+  background: var(--bg-hover);
+  color: var(--text-muted);
 }
 
 button:focus-visible,
@@ -5065,12 +5061,7 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
 .home-project-card:hover { z-index: 1; transform: translateY(-2px); border-color: var(--border-strong); background: var(--bg-hover); box-shadow: 0 10px 24px rgba(0,0,0,.14); }
 .home-project-card:active { transform: translateY(0) scale(.99); box-shadow: none; }
 .home-project-index { grid-column: 2; grid-row: 1; color: var(--text-faint); font-size: 9px; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
-.home-project-mark { grid-column: 1; grid-row: 1 / 3; display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--accent) 13%, var(--bg-base)); color: color-mix(in srgb, var(--accent) 70%, var(--text)); font-size: 17px; font-weight: 700; }
-.home-project-mark--1 { --project-hue: 275; }
-.home-project-mark--2 { --project-hue: 43; }
-.home-project-mark--3 { --project-hue: 150; }
-.home-project-mark--4 { --project-hue: 198; }
-.home-project-mark[class*="--"] { background: hsl(var(--project-hue, 210) 35% 45% / .13); border-color: hsl(var(--project-hue, 210) 50% 60% / .2); color: hsl(var(--project-hue, 210) 65% 72%); }
+.home-project-mark { grid-column: 1; grid-row: 1 / 3; display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-hover); color: var(--text-muted); font-size: 17px; font-weight: 700; }
 .home-project-copy { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .home-project-copy strong { overflow: hidden; color: var(--text); font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .home-project-copy small { overflow: hidden; color: var(--text-faint); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
