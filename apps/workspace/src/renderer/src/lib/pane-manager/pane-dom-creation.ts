@@ -1,4 +1,3 @@
-import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -8,6 +7,7 @@ import type { ITerminalOptions } from "@xterm/xterm";
 import type { ManagedPaneInternal, PaneManagerOptions } from "./pane-manager-types";
 import { buildDefaultTerminalOptions } from "./pane-terminal-options";
 import { ENABLE_WEBGL_RENDERER } from "./pane-webgl-renderer";
+import { StableCellFitAddon } from "./terminal-stable-cell-fit-addon";
 
 export function createPaneDOM(
   id: number,
@@ -30,7 +30,7 @@ export function createPaneDOM(
   };
 
   const terminal = new Terminal(terminalOpts);
-  const fitAddon = new FitAddon();
+  const fitAddon = new StableCellFitAddon();
   const searchAddon = new SearchAddon();
   const unicode11Addon = new Unicode11Addon();
   const linkTooltip = document.createElement("div");

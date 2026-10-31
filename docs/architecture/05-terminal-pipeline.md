@@ -74,6 +74,7 @@ Orca’s full split/divider PaneManager was reduced to **one xterm per pane**:
 |--------|------|
 | `single-leaf-pane-manager.ts` | Public API: create pane, refit, suspend/resume |
 | `pane-dom-creation.ts` | xterm + addons (fit, search, serialize, unicode11, weblinks) |
+| `terminal-stable-cell-fit-addon.ts` | Fits rows/columns from measured cell dimensions, independent of the previous PTY grid |
 | `pane-lifecycle.ts` | `openTerminal`, initial fit RAF loop |
 | `pane-terminal-refit.ts` | `refitPaneTerminal` — fit + WebGL rebuild on resize |
 | `pane-webgl-renderer.ts` | WebGL attach/dispose, context loss |
@@ -85,7 +86,7 @@ Orca’s full split/divider PaneManager was reduced to **one xterm per pane**:
 
 - `@xterm/addon-webgl` beta aligned with Orca; patches in `apps/workspace/patches/`
 - `terminalGpuAcceleration: "auto"` in `TerminalPane` (WebGL via `@xterm/addon-webgl`)
-- Wheel events scroll the xterm viewport only (`terminal-wheel-scroll.ts`) — not forwarded to PTY as arrow keys
+- Wheel events scroll normal-buffer scrollback in xterm; alternate-screen TUIs with mouse reporting receive calibrated wheel reports (`terminal-wheel-scroll.ts`, `pane-terminal-mouse-wheel.ts`)
 - On resize: `refitPaneTerminal` disposes and re-attaches WebGL to avoid tiny-canvas glitches
 - On hide: `suspendPaneRendering` disposes WebGL; resume refits and re-attaches
 - Renderer acknowledges each output chunk after xterm parses it. At 512 KiB unparsed output the PTY host pauses reads; it resumes below 128 KiB. This bounds renderer pressure without discarding terminal bytes.
