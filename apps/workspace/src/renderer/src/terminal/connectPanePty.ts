@@ -80,7 +80,7 @@ export function connectPanePty(
         })
       : null;
 
-  const writeOutput = (data: string) => {
+  const writeOutput = (data: string, seq?: number) => {
     observeTerminalBracketedPasteModeOutput(term, data);
     titleObserver?.observePtyChunk(data);
     termLog(
@@ -89,7 +89,12 @@ export function connectPanePty(
       { bytes: reprTerminalBytes(data), length: data.length },
       terminalId,
     );
-    writeTerminalOutput(term, data, { foreground: true });
+    writeTerminalOutput(term, data, {
+      foreground: true,
+      ...(seq === undefined
+        ? {}
+        : { ackCredit: () => window.api.pty.acknowledgeOutput(terminalId, seq) }),
+    });
   };
 
   const syncPtySize = () => {

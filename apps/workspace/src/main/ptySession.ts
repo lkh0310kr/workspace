@@ -7,6 +7,8 @@ import { extractOnlyTerminalQueryReplies } from "../shared/terminal-query-reply"
 import { TerminalQueryReplyEchoFilter } from "../shared/terminal-query-reply-echo";
 
 const REPLAY_MAX_CHARS = 5000 * 120;
+const OUTPUT_PAUSE_HIGH_WATER_BYTES = 512 * 1024;
+const OUTPUT_PAUSE_LOW_WATER_BYTES = 128 * 1024;
 
 export interface PtyConnectResult {
   id: number;
@@ -52,6 +54,9 @@ export class PtySession {
   private attachedWebContents: WebContents | null = null;
   private wasEverAttached = false;
   private onOutputUtf8: ((terminalId: number, chunk: string) => void) | null = null;
+  private pendingOutputAcks = new Map<number, number>();
+  private pendingOutputAckBytes = 0;
+  private outputPaused = false;
 
   constructor(id: number, pty: Pty, cols: number, rows: number) {
     this.id = id;
@@ -77,7 +82,13 @@ export class PtySession {
 
   private pushLiveOutput(seq: number, data: Buffer): void {
     const webContents = this.attachedWebContents;
-    if (!webContents || webContents.isDestroyed()) return;
+    if (!webContents || webContents.isDestroyed() || data.length === 0) return;
+    this.pendingOutputAcks.set(seq, data.length);
+    this.pendingOutputAckBytes += data.length;
+    if (!this.outputPaused && this.pendingOutputAckBytes >= OUTPUT_PAUSE_HIGH_WATER_BYTES) {
+      this.outputPaused = true;
+      this.pty.pauseOutput();
+    }
     try {
       webContents.send("pty:data", {
         id: this.id,
@@ -93,11 +104,41 @@ export class PtySession {
         data: { bytes: reprTerminalBytesMain(data), length: data.length, seq },
       });
     } catch (err) {
+      this.pendingOutputAckBytes -= this.pendingOutputAcks.get(seq) ?? 0;
+      this.pendingOutputAcks.delete(seq);
+      if (this.outputPaused && this.pendingOutputAckBytes <= OUTPUT_PAUSE_LOW_WATER_BYTES) {
+        this.outputPaused = false;
+        this.pty.resumeOutput();
+      }
       console.error(`[pty] pty:data send failed for terminal ${this.id}:`, err);
     }
   }
 
+  acknowledgeOutput(seq: number): void {
+    const bytes = this.pendingOutputAcks.get(seq);
+    if (bytes === undefined) return;
+    this.pendingOutputAcks.delete(seq);
+    this.pendingOutputAckBytes = Math.max(0, this.pendingOutputAckBytes - bytes);
+    if (this.outputPaused && this.pendingOutputAckBytes <= OUTPUT_PAUSE_LOW_WATER_BYTES) {
+      this.outputPaused = false;
+      this.pty.resumeOutput();
+    }
+  }
+
+  private resetOutputBackpressure(): void {
+    this.pendingOutputAcks.clear();
+    this.pendingOutputAckBytes = 0;
+    if (this.outputPaused) {
+      this.outputPaused = false;
+      this.pty.resumeOutput();
+    }
+  }
+
   async connect(webContents: WebContents): Promise<PtyConnectResult> {
+    if (this.attachedWebContents) {
+      this.attachedWebContents = null;
+      this.resetOutputBackpressure();
+    }
     const attachment = await this.pty.attach();
     if (attachment.existed && this.replay.snapshot().replay.length === 0 && attachment.snapshot.length > 0) {
       this.replay.appendUtf8(attachment.snapshot);
@@ -120,6 +161,7 @@ export class PtySession {
   disconnect(webContents: WebContents): void {
     if (this.attachedWebContents === webContents) {
       this.attachedWebContents = null;
+      this.resetOutputBackpressure();
     }
   }
 
@@ -173,6 +215,7 @@ export class PtySession {
 
   dispose(): void {
     this.attachedWebContents = null;
+    this.resetOutputBackpressure();
     this.onOutputUtf8 = null
     this.pty.dispose();
   }
@@ -181,6 +224,7 @@ export class PtySession {
    * being deleted, not just detached (app quit, dev restart, reload). */
   disposeAndDestroySession(): void {
     this.attachedWebContents = null;
+    this.resetOutputBackpressure();
     this.onOutputUtf8 = null;
     this.pty.disposeAndDestroySession();
   }

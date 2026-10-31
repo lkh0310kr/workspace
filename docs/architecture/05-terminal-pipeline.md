@@ -21,7 +21,7 @@ flowchart LR
     Transport --> Scheduler --> Xterm
     PM --> Xterm
   end
-  Session <-->|pty:connect data write resize| Transport
+  Session <-->|pty:connect data write resize output-ack| Transport
 ```
 
 ## PTY host and main process
@@ -78,7 +78,7 @@ Orca’s full split/divider PaneManager was reduced to **one xterm per pane**:
 | `pane-terminal-refit.ts` | `refitPaneTerminal` — fit + WebGL rebuild on resize |
 | `pane-webgl-renderer.ts` | WebGL attach/dispose, context loss |
 | `pane-rendering-control.ts` | `safeFit`, suspend/resume |
-| `pane-terminal-output-scheduler.ts` | Foreground output queue + backlog cap |
+| `pane-terminal-output-scheduler.ts` | Ordered foreground output queue; never drops partial terminal control sequences |
 | `pane-fit-resize-observer.ts` | ResizeObserver on `xtermContainer` |
 
 ### WebGL / GPU
@@ -88,6 +88,7 @@ Orca’s full split/divider PaneManager was reduced to **one xterm per pane**:
 - Wheel events scroll the xterm viewport only (`terminal-wheel-scroll.ts`) — not forwarded to PTY as arrow keys
 - On resize: `refitPaneTerminal` disposes and re-attaches WebGL to avoid tiny-canvas glitches
 - On hide: `suspendPaneRendering` disposes WebGL; resume refits and re-attaches
+- Renderer acknowledges each output chunk after xterm parses it. At 512 KiB unparsed output the PTY host pauses reads; it resumes below 128 KiB. This bounds renderer pressure without discarding terminal bytes.
 
 ### Visibility / suspend
 

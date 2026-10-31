@@ -859,6 +859,9 @@ app.whenReady().then(() => {
   ipcMain.on('pty:write', (_event, id: number, data: Uint8Array) => {
     workspace!.terminalWrite(id, Buffer.from(data))
   })
+  ipcMain.on('pty:ack-output', (_event, id: number, seq: number) => {
+    workspace!.acknowledgeTerminalOutput(id, seq)
+  })
   ipcMain.on('terminal:set-focused', (_event, id: number | null) => {
     focusedTerminalId = id
   })

@@ -216,6 +216,14 @@ export class Pty {
       .catch((error) => console.error('[pty] resize failed:', error))
   }
 
+  pauseOutput(): void {
+    if (!this.disposed) void this.request('pause').catch((error) => console.error('[pty] pause failed:', error))
+  }
+
+  resumeOutput(): void {
+    if (!this.disposed) void this.request('resume').catch((error) => console.error('[pty] resume failed:', error))
+  }
+
   dispose(): void {
     if (this.disposed) return
     this.disposed = true

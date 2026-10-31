@@ -11,7 +11,7 @@ export interface PtyConnectResult {
   isReattach: boolean;
 }
 
-type DataHandler = (data: string) => void;
+type DataHandler = (data: string, seq: number) => void;
 
 export interface PtyTransport {
   connect(callbacks: {
@@ -29,7 +29,7 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
   let connected = false;
   let destroyed = false;
   let outputActive = false;
-  let bufferedOutput: string[] = [];
+  let bufferedOutput: Array<{ data: string; seq: number }> = [];
   let onLiveData: DataHandler | null = null;
   let dataUnlisten: (() => void) | null = null;
 
@@ -58,9 +58,9 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
       // and hold newer output until connectPanePty has written that snapshot.
       dataUnlisten = subscribePtyData(
         terminalId,
-        (data) => {
-          if (outputActive) callbacks.onData(data);
-          else bufferedOutput.push(data);
+        (data, seq) => {
+          if (outputActive) callbacks.onData(data, seq);
+          else bufferedOutput.push({ data, seq });
         },
         result.lastSeq,
       );
@@ -75,7 +75,7 @@ export function createElectronPtyTransport(terminalId: number): PtyTransport {
       outputActive = true;
       const pending = bufferedOutput;
       bufferedOutput = [];
-      for (const data of pending) onLiveData?.(data);
+      for (const item of pending) onLiveData?.(item.data, item.seq);
     },
 
     disconnect() {

@@ -272,6 +272,7 @@ const api = {
       isReattach: boolean
     }> => ipcRenderer.invoke('pty:connect', id),
     disconnect: (id: number): void => ipcRenderer.send('pty:disconnect', id),
+    acknowledgeOutput: (id: number, seq: number): void => ipcRenderer.send('pty:ack-output', id, seq),
     write: (id: number, data: Uint8Array): void => ipcRenderer.send('pty:write', id, data),
     resize: (id: number, cols: number, rows: number): void =>
       ipcRenderer.send('pty:resize', id, cols, rows),

@@ -13,7 +13,7 @@ type Session = {
 type Request = {
   id: number
   token: string
-  op: 'attach' | 'write' | 'resize' | 'detach' | 'kill'
+  op: 'attach' | 'write' | 'resize' | 'pause' | 'resume' | 'detach' | 'kill'
   terminalId: number
   cwd?: string
   cols?: number
@@ -126,6 +126,8 @@ function handle(socket: net.Socket, request: Request): void {
     }
     if (request.op === 'write' && request.data) session.child.write(Buffer.from(request.data, 'base64'))
     else if (request.op === 'resize') session.child.resize(request.cols ?? 120, request.rows ?? 40)
+    else if (request.op === 'pause') session.child.pause()
+    else if (request.op === 'resume') session.child.resume()
     else if (request.op === 'kill') {
       session.child.kill()
       sessions.delete(request.terminalId)

@@ -1,5 +1,4 @@
 import { flattenRetainedSlice } from "../shared/flatten-retained-slice";
-import { terminalOutputBacklogCapChars } from "../shared/terminal-scrollback-policy";
 import {
   discardForegroundRenderSettle,
   writeForegroundTerminalChunk,
@@ -18,12 +17,7 @@ type QueueEntry = {
 };
 
 const queues = new Map<TerminalOutputTarget, QueueEntry>();
-let backlogCapChars = terminalOutputBacklogCapChars(5000);
 let draining = false;
-
-export function configureTerminalOutputBacklogCap(scrollbackRows: unknown): void {
-  backlogCapChars = terminalOutputBacklogCapChars(scrollbackRows);
-}
 
 export function writeTerminalOutput(
   terminal: TerminalOutputTarget,
@@ -51,14 +45,6 @@ export function writeTerminalOutput(
 
   entry.chunks.push(flattenRetainedSlice(data));
   if (options.ackCredit) entry.ackCredits.push(options.ackCredit);
-
-  let retained = entry.chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-  while (retained > backlogCapChars && entry.chunks.length > 1) {
-    const removed = entry.chunks.shift()!;
-    retained -= removed.length;
-    const credit = entry.ackCredits.shift();
-    credit?.();
-  }
 
   entry.foreground = foreground;
   queues.set(terminal, entry);

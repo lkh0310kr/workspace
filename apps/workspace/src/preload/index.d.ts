@@ -225,6 +225,7 @@ export interface WorkspaceApi {
       isReattach: boolean
     }>
     disconnect: (id: number) => void
+    acknowledgeOutput: (id: number, seq: number) => void
     write: (id: number, data: Uint8Array) => void
     resize: (id: number, cols: number, rows: number) => void
     dispose: (id: number) => void

@@ -1,7 +1,7 @@
 import { reprTerminalBytes, termLog } from "./terminalDebugLog";
 
 type PtyDataHandler = {
-  onData: (data: string) => void;
+  onData: (data: string, seq: number) => void;
   lastSeq: number;
 };
 
@@ -36,7 +36,7 @@ function deliverTextToHandler(terminalId: number, seq: number, text: string): vo
     { bytes: reprTerminalBytes(text), length: text.length, seq },
     terminalId,
   );
-  entry.onData(text);
+  entry.onData(text, seq);
 }
 
 function deliverToHandler(terminalId: number, seq: number, data: Uint8Array): void {
@@ -94,7 +94,7 @@ export function bootstrapPtyDataMultiplexer(): void {
 
 export function subscribePtyData(
   terminalId: number,
-  onData: (data: string) => void,
+  onData: (data: string, seq: number) => void,
   initialLastSeq: number,
 ): () => void {
   handlersByTerminalId.set(terminalId, { onData, lastSeq: initialLastSeq });

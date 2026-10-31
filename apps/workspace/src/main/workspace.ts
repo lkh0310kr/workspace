@@ -271,6 +271,10 @@ export class Workspace {
     entry.session.disconnect(webContents);
   }
 
+  acknowledgeTerminalOutput(id: number, seq: number): void {
+    this.terminals.get(id)?.session.acknowledgeOutput(seq);
+  }
+
   getTerminalSession(id: number): PtySession | undefined {
     return this.terminals.get(id)?.session;
   }
