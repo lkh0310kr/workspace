@@ -1,10 +1,7 @@
-# Research notes
+# 연구·실험 기록
 
-Archived spikes and design explorations that are **not shipped code**. The
-repo keeps conclusions here so crates can be deleted without losing context.
+현재 제품 코드에 포함되지 않은 조사와 실험의 결론을 보관합니다. 구현 또는 계획으로 채택되면 해당 문서에 상태와 코드 경로를 기록하세요.
 
-| Document | Topic |
-|----------|--------|
-| [track-b-webrtc-streaming.md](./track-b-webrtc-streaming.md) | WebRTC/H.264 sidecar for third-party engines (former `engine-stream-poc`) |
-
-UI/UX research worklog: [`../ui-ux-improvements.worklog.md`](../ui-ux-improvements.worklog.md) (not a shipped spec).
+| 문서 | 주제 | 상태 |
+|------|------|------|
+| [WebRTC 픽셀 스트리밍](./track-b-webrtc-streaming.md) | 외부 엔진 화면을 WebRTC/H.264로 표시하는 실험 | 보관된 조사 |

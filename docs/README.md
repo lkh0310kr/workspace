@@ -1,34 +1,36 @@
-# Documentation
+# 문서 안내
 
-Project documentation for the Workspace desktop app (Electron).
+Workspace 저장소의 제품 문서와 개발 참고 자료입니다. 현재 앱 동작은 코드가 기준이며, 구현 여부가 불분명한 설계 문서는 문서 안의 상태 표시를 확인하세요.
 
-| Document | Description |
-|----------|-------------|
-| [DESIGN.md](./DESIGN.md) | Visual design philosophy and UI tokens |
-| [ui-ux-improvements.md](./ui-ux-improvements.md) | UI/UX improvement backlog (orca / VS Code benchmark) |
-| [ROADMAP.md](./ROADMAP.md) | Feature phases and completion status |
-| [planning/world-engine-phase-plan.md](./planning/world-engine-phase-plan.md) | **World Engine** production phases (13+) |
-| [planning/hardware-sim-phase-plan.md](./planning/hardware-sim-phase-plan.md) | **Hardware sim** (HaC + MCU/circuit) Phase 60+ |
-| [planning/hardware-sim-tinkercad-roadmap.md](./planning/hardware-sim-tinkercad-roadmap.md) | **Arduino Uno lab** simulation-first Phase 70+ |
-| [hardware/component-datasheet-matrix.md](./hardware/component-datasheet-matrix.md) | Hardware units, datasheet provenance, component model matrix |
-| [ideation.md](./ideation.md) | Product ideas and pane types |
-| [architecture/README.md](./architecture/README.md) | **System architecture** — start here for code structure |
+## 먼저 볼 문서
 
-## Architecture (quick links)
+- [시스템 구조](./architecture/README.md) — 프로세스, IPC, 레이아웃, 브라우저·터미널 구조
+- [디자인 원칙](./DESIGN.md) — 시각 스타일과 UI 토큰
+- [백로그](./backlog.md) — 진행할 작업과 완료 항목
+- [수동 QA 체크리스트](./manual-qa-checklist.md) — 릴리스 전 주요 흐름 점검
+- [UI/UX 개선 기록](./ui-ux-improvements.md) — 제품 UI 개선안
 
-- [Overview](./architecture/01-overview.md) — processes, layers, data flow
-- [Process & IPC](./architecture/02-process-and-ipc.md) — main ↔ renderer bridge
-- [Workspace & layout](./architecture/03-workspace-and-layout.md) — tabs, flexlayout, PaneGroup
-- [Interaction coordinator](./architecture/04-interaction-coordinator.md) — overlay, pointer-events, portals
-- [Terminal pipeline](./architecture/05-terminal-pipeline.md) — PTY, xterm, WebGL, pane manager
-- [Browser embeds](./architecture/06-browser-embeds.md) — webview lifecycle and navigation
-- [Future phases](./architecture/07-future-phases.md) — planned Zustand, cold-park, persistence
-- [Context modeling](./architecture/08-context-modeling.md) — Entity/Resource/Capability philosophy for Phase 1 modules, reference only
-- [Core model](./architecture/10-core-model.md) — shared primitives (Asset, Graph, Geometry, World); tools compose via model, not pane-to-pane
-- [Future native architecture](./architecture/09-future-native-architecture.md) — long-term direction, reference only
+## 제품 방향과 계획
 
-## Conventions
+- [로드맵](./ROADMAP.md) — 저장소 전반의 단계별 방향
+- [아이디어 메모](./ideation.md) — 제품 아이디어와 pane 구상
+- [미정 아이디어 백로그](./backlog-ideas.md) — 일정에 아직 포함하지 않은 메모
+- [3D 에셋 뷰어 기획](./planning/3d-model-viewer.md)
+- [3D 뷰어 확장 아키텍처](./planning/3d-model-viewer-architecture.md)
+- [CAD·3D 오케스트레이션 계획](./planning/cad-orchestration-phase-plan.md)
+- [하드웨어 시뮬레이션 계획](./planning/hardware-sim-phase-plan.md)
+- [시뮬레이션 설계 트랙](./planning/simulation-design-track.md)
+- [World Engine 계획](./planning/world-engine-phase-plan.md)
 
-- Paths in architecture docs are relative to the repo root unless noted.
-- Electron app code lives under `apps/workspace/`.
-- Reference implementation patterns from Orca live under `ref-proj/orca/` (not shipped).
+## 기술 참고
+
+- [하드웨어 부품 데이터 출처표](./hardware/component-datasheet-matrix.md)
+- [Windows 빌드 안내](./windows-build.md)
+- [연구 기록](./research/README.md) — 현재 제품에 포함되지 않은 조사·실험 결과
+
+## 작성 기준
+
+- 앱 코드는 `apps/workspace/`에 있습니다.
+- 시스템 구조 문서는 실제 구현 위치와 함께 갱신합니다.
+- 계획·아이디어 문서에는 구현 상태를 표시하고, 구현된 내용은 코드와 대조합니다.
+- Orca 등 참고 프로젝트는 `ref-proj/`에 보관하며 제품 빌드에는 포함하지 않습니다.
