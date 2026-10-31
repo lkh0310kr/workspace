@@ -207,6 +207,7 @@ export function EditorContent({
   const editRevisionRef = useRef(0);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [dirty, setDirty] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const dirtyRef = useRef(false);
   const onOpenFileRef = useRef(onOpenFile);
   onOpenFileRef.current = onOpenFile;
@@ -269,6 +270,7 @@ export function EditorContent({
     (view: EditorView, path: string) => {
       const content = view.state.doc.toString();
       const revision = editRevisionRef.current;
+      setSaveError(null);
       const write = saveQueueRef.current
         .catch(() => {})
         .then(() => writeFile(tabId, path, content));
@@ -282,6 +284,9 @@ export function EditorContent({
         ) {
           setDirtyState(false);
         }
+      }).catch((error: unknown) => {
+        setSaveError(error instanceof Error ? error.message : String(error));
+        throw error;
       });
     },
     [tabId, setDirtyState],
@@ -545,6 +550,7 @@ export function EditorContent({
   }, [tabId, isMarkdown]);
 
   useEffect(() => {
+    setSaveError(null);
     if (!filePath) return;
     if (skipPathLoadRef.current === filePath) {
       skipPathLoadRef.current = null;
@@ -666,9 +672,14 @@ export function EditorContent({
               two icons + a save-status label was redundant vertical
               space, and not how VS Code/Obsidian place these either. */}
           <div className="obsidian-float-actions">
-            {!autoSave && (
-              <span className={`md-pane-save-status${dirty ? " unsaved" : ""}`}>
-                {dirty ? "Unsaved" : "Saved"}
+            {(!autoSave || saveError) && (
+              <span
+                className={`md-pane-save-status${saveError ? " error" : dirty ? " unsaved" : ""}`}
+                role="status"
+                aria-live="polite"
+                title={saveError ?? undefined}
+              >
+                {saveError ? "Save failed" : dirty ? "Unsaved" : "Saved"}
               </span>
             )}
             {isMarkdown && (

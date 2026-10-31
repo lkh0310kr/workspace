@@ -3984,6 +3984,11 @@ input {
   color: var(--text-muted);
 }
 
+.md-pane-save-status.error {
+  color: var(--syntax-invalid);
+  cursor: help;
+}
+
 .md-pane-body {
   flex: 1;
   min-width: 0;

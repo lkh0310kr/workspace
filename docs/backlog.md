@@ -6,7 +6,7 @@
     - [x] White Color Scroll Bar Container Left Border 1px 있는거 없애.
     - [x] Scroll Bar안보임 Codex CLI에서
 - Editor
-    - [ ] UI/UX 전체 점검 및 수정
+    - [x] UI/UX 전체 점검 및 수정
         - [x] Ctrl+S가 split editor 전체가 아니라 포커스된 문서만 저장하도록 수정
         - [x] 비동기 저장 경합으로 최신 문서를 덮거나 Unsaved 상태를 잃는 문제 수정
         - [x] TreeView 파일 작업 실패 후 pane 경로/선택 상태가 잘못 갱신되는 문제 수정
