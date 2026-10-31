@@ -3,7 +3,7 @@
 **Status:** Active planning (2026-09-03)  
 **North star:** 터미널의 AI 에이전트가 **회로·펌웨어를 읽고 → 고치고 → 컴파일 → 시뮬 → 핀/디바이스 상태로 디버그**할 수 있는 **코드 기반 하드웨어 랩**.  
 **Workspace 역할:** 오케스트레이션만 (파일 열기, spawn, live reload, 로그). CAD 트랙과 동일.  
-**관련:** [world-engine-simulation.md](./world-engine-simulation.md) · [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md) · [09-future-native-architecture.md](../architecture/09-future-native-architecture.md) · TODO `j-1`/`j-2` (설계 vs 시뮬, 자급자족 랩)
+**관련:** [world-engine-simulation.md](./world-engine-simulation.md) · [cad-orchestration-phase-plan.md](./cad-orchestration-phase-plan.md) · [09-future-native-architecture.md](../architecture/09-future-native-architecture.md) · [미정 아이디어 j-1/j-2](../backlog-ideas.md#j-1-3d) (설계 vs 시뮬, 자급자족 랩)
 
 초안 스펙(Arduino + avr8js + Hardware-as-Code)은 **참고 인벤토리**다. 이 문서는 우리 코드베이스 원칙에 맞춰 **재결정**한 실행 계획이다.
 

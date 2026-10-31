@@ -5,3 +5,4 @@
 | 문서 | 주제 | 상태 |
 |------|------|------|
 | [WebRTC 픽셀 스트리밍](./track-b-webrtc-streaming.md) | 외부 엔진 화면을 WebRTC/H.264로 표시하는 실험 | 보관된 조사 |
+| [UI/UX 개선 작업 기록](./ui-ux-improvements-worklog.md) | Orca·VS Code 참고 조사와 UI 개선 후보 | 요약은 [`ui-ux-improvements.md`](../ui-ux-improvements.md)에 있음 |

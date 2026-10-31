@@ -7,7 +7,7 @@
 
 This doc is the **model-design** half of the layered Workspace picture. Command/Event/mobile remote
 are noted only as *consumers of the same model* — they are not designed here
-([TODO.md](../../TODO.md) i-1, army/companion). Build them after Core Model refs + a Command Bus
+([제품 아이디어의 i-1](../backlog-ideas.md#i-1-pkms-옵시디언-모바일-연동-방법)). Build them after Core Model refs + a Command Bus
 exist ([ROADMAP.md](../ROADMAP.md) Phase 1).
 
 ---
@@ -97,7 +97,7 @@ Do not put `PinCapability` into World Engine schema. That is hardware-sim meanin
 | CIR | glTF | Resource + Geometry exchange |
 | Facility sim | `world-engine.json` | World |
 
-Vector editor / GIS / CAD sharing “one Geometry kernel” is a **long-term CIR dream**, same failure mode as merging Document Models ([ideation.md](../IDEATION.md) fork/embed). Share files and importers first.
+Vector editor / GIS / CAD sharing “one Geometry kernel” is a **long-term CIR dream**, same failure mode as merging Document Models ([ideation.md](../ideation.md) fork/embed). Share files and importers first.
 
 ---
 
@@ -127,7 +127,7 @@ Until then: duplicate a small JSON shape is cheaper than a premature `graph-core
 ## 8. Related
 
 - [08-context-modeling.md](./08-context-modeling.md) — Entity/Resource/Capability/Provenance; what *not* to build
-- [ideation.md](../IDEATION.md) — do not merge forked engines’ document models
+- [ideation.md](../ideation.md) — do not merge forked engines’ document models
 - [3d-model-viewer-architecture.md](../planning/3d-model-viewer-architecture.md) §14 — viewer mapped onto 08
 - [world-engine-simulation.md](../planning/world-engine-simulation.md) — World as sim kernel, not universal model
 - [hardware-sim-phase-plan.md](../planning/hardware-sim-phase-plan.md) — first Graph-shaped domain crate

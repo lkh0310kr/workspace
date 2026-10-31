@@ -2,7 +2,7 @@
 
 **Status:** Draft (2026-08-31)  
 **범위:** TreeView에서 `.gltf` / `.glb` / `.fbx` 등 3D 에셋을 클릭하면 로딩 UI와 함께 in-pane 뷰어가 열리는 기능  
-**관련 문서:** [3d-model-viewer-architecture.md](./3d-model-viewer-architecture.md) (확장·범용 포맷 아키텍처), [IDEATION.md](../IDEATION.md), [ROADMAP.md](../ROADMAP.md), [09-future-native-architecture.md](../architecture/09-future-native-architecture.md), [08-context-modeling.md](../architecture/08-context-modeling.md)
+**관련 문서:** [3d-model-viewer-architecture.md](./3d-model-viewer-architecture.md) (확장·범용 포맷 아키텍처), [ideation.md](../ideation.md), [ROADMAP.md](../ROADMAP.md), [09-future-native-architecture.md](../architecture/09-future-native-architecture.md), [08-context-modeling.md](../architecture/08-context-modeling.md)
 
 ---
 

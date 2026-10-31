@@ -1,12 +1,12 @@
-# Performance budget (Phase 25 / 29)
+# 성능 예산 (25·29단계)
 
-Target: **M-series Mac, debug build, headless**
+대상 환경: **M 시리즈 Mac, 디버그 빌드, 화면 출력 없음**
 
-| Metric | Budget |
+| 측정 항목 | 목표 |
 |--------|--------|
-| 500 dynamic spheres × 60 steps | < 5 s |
-| Single fixture load + 120 steps | < 1 s |
+| 동적 구체 500개 × 60회 계산 | 5초 미만 |
+| fixture 하나 로드 + 120회 계산 | 1초 미만 |
 
-Validated by `tests/benchmark_smoke.rs`.
+검증 위치: `tests/benchmark_smoke.rs`.
 
-Release builds expected 5–10× faster.
+릴리스 빌드는 디버그 빌드보다 5~10배 빠를 것으로 예상합니다.

@@ -628,7 +628,7 @@ app.whenReady().then(() => {
       return { action: 'deny' }
     })
     // Guest WebContents focus/blur — renderer DOM focus events on the
-    // <webview> host element are unreliable (see TODO.md / activeBrowserWebview.ts),
+    // <webview> host element are unreliable (see activeBrowserWebview.ts),
     // but the guest process's own WebContents always fires these.
     contents.on('focus', () => {
       sendToMainWindow('browser:guest-focus', { webContentsId: contents.id, focused: true })

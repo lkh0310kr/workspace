@@ -2,7 +2,7 @@
 
 > **Internal scratch pad.** Raw notes from ref-proj comparison (orca, vscode) and
 > `apps/workspace` inventory. The concise outcome lives in
-> [`ui-ux-improvements.md`](./ui-ux-improvements.md).
+> [`ui-ux-improvements.md`](../ui-ux-improvements.md).
 
 Last updated: **2026-09-09**
 

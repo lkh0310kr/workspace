@@ -36,6 +36,11 @@
 - [ ] Cmd+,로 앱 설정 열기
 - [ ] Cmd+Plus/Minus가 브라우저 guest가 아닌 활성 **pane**을 확대·축소
 
+## 월드 엔진
+
+- [ ] Godot 프로젝트 메뉴에서 Web export 후 결과를 Browser 탭으로 엶
+- [ ] Web 콘텐츠의 전체 화면 진입 시 앱 크롬이 숨고, 종료 시 복구됨
+
 ## 디버그(개발 모드 전용)
 
 - [ ] InteractionDebugPanel에서 대기 중 `overlayBlockCount`가 0

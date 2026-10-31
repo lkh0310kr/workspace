@@ -184,7 +184,8 @@ behind this direction, revisit later.
   window fullscreen for free, but this app's own chrome (titlebar,
   Browser pane's nav/address row) stayed visible around it until now —
   `useHtmlFullscreen.ts` + a `.html-fullscreen` CSS class hides both
-  while active, restores on exit. Pending live QA (see `TODO.md`).
+  while active, restores on exit. 실제 TreeView 흐름의 QA는
+  [수동 QA 체크리스트](./manual-qa-checklist.md#월드-엔진)에 남아 있다.
 - [x] One-click "Export Godot (Web) & Open" (2026-08-28) — the original
   ask ("난 그냥 workspace에 넣어서 검증하면 되도록 쉽게 더 완성도 있는
   파이프라인을 만들어야지") was still two manual steps: run `export.sh`
@@ -205,7 +206,8 @@ behind this direction, revisit later.
   invoking `exportGodotProjectWeb` directly against the real
   `test-fixtures/godot-demo` fixture — real `godot` CLI ran, produced a
   correct bundle (`index.html`/`.js`/`.pck`/`.wasm`/audio worklets).
-  Pending live QA through the actual TreeView menu (see `TODO.md`).
+  실제 TreeView 메뉴 QA는
+  [수동 QA 체크리스트](./manual-qa-checklist.md#월드-엔진)에 남아 있다.
 
 ### World Engine — planning idea, not started (2026-08-28)
 

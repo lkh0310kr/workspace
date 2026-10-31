@@ -58,7 +58,8 @@ import { ENGINE_SCHEME, ENGINE_HOST, contentTypeFor, isPathConfined } from './en
  * exact failure against both the smoke-test fixture and a real Godot
  * export — same failure either way, pointing at the protocol/session
  * wiring rather than anything Godot-specific. Confirmed fixed against a
- * real Godot Web export in a live app instance (see TODO.md's QA item).
+ * real Godot Web export in a live app instance (see the World Engine items in
+ * docs/manual-qa-checklist.md).
  */
 export function registerEngineBundleProtocol(targetSession: Session, getAllowedRoots: () => string[]): void {
   targetSession.protocol.handle(ENGINE_SCHEME, async (request) => {
