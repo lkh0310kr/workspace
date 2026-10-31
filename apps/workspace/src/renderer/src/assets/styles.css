@@ -31,7 +31,7 @@
   --bg-surface: #2b2d31;
   --bg-raised: #1e1f22;
   --bg-hover: #383a40;
-  --bg-active: #3b3f70;
+  --bg-active: #3b3d42;
   --border: #3f4147;
   --border-subtle: #383a40;
   --border-strong: #4e5058;
@@ -202,7 +202,7 @@
   --bg-surface: #ffffff;
   --bg-raised: #e3e5e8;
   --bg-hover: #e8e9eb;
-  --bg-active: #e3e5ff;
+  --bg-active: #e5e7eb;
   --border: #d4d7dc;
   --border-subtle: #e3e5e8;
   --border-strong: #c5c8ce;
@@ -776,7 +776,7 @@ input {
   height: 18px;
   flex-shrink: 0;
   border-radius: 5px;
-  background: color-mix(in srgb, var(--accent) 26%, var(--bg-surface));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface));
   color: var(--text);
   font-size: 11px;
   font-weight: 650;
@@ -2887,7 +2887,7 @@ input {
 
 .terminal-search-bar .terminal-search-toggle.is-active {
   background: var(--bg-active);
-  color: var(--accent);
+  color: var(--text);
 }
 
 .terminal-search-bar .terminal-search-divider {
@@ -3048,9 +3048,9 @@ input {
 }
 
 .cm-vs-toggle.active {
-  color: var(--accent);
-  background: var(--bg-hover);
-  border-color: var(--accent);
+  color: var(--text);
+  background: var(--bg-active);
+  border-color: var(--border-strong);
 }
 
 .cm-vs-toggle-replace {
@@ -4080,13 +4080,13 @@ input {
    file actually open in the pane's editor), so both can apply at once
    without one visually hiding the other. */
 .tree-view-item.selected {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-surface));
   color: var(--text);
 }
 
 .tree-view-item.selected.active {
   background: var(--bg-active);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, var(--border));
 }
 
 /* Find/Replace in Files (SearchPanel.tsx) — reuses .obsidian-explorer's
@@ -4202,9 +4202,9 @@ input {
 }
 
 .search-panel-toggle.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: var(--border-strong);
+  color: var(--text);
+  background: var(--bg-active);
 }
 
 .search-panel-status {
@@ -4853,7 +4853,7 @@ textarea,
 .workspace-tab-rail-row.active,
 .workspace-tab-rail-home.active,
 .pane-tab.active {
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-surface));
   color: var(--text);
   box-shadow: none;
 }
@@ -4894,7 +4894,7 @@ textarea,
 
 .quick-open-row.active,
 .context-menu-item.active {
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-surface));
 }
 
 .quick-open-input,
@@ -4962,9 +4962,7 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
 
 /* Home refresh: task-first hierarchy, restrained motion, and clear control states. */
 .dashboard-view {
-  background:
-    radial-gradient(ellipse 45% 24% at 85% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 72%),
-    var(--bg-base);
+  background: var(--bg-base);
 }
 
 .dashboard-view-inner {
@@ -4984,8 +4982,8 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
 
 .home-masthead { min-height: 30px; animation: home-arrive .42s both; }
 .home-brand-lockup { justify-content: flex-start; gap: 9px; color: var(--text-muted); font-size: 10px; font-weight: 750; letter-spacing: .13em; }
-.home-brand-lockup i { color: var(--accent); font-style: normal; }
-.home-brand-glyph { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border)); border-radius: 8px; background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface)); color: var(--accent); font-size: 12px; letter-spacing: 0; }
+.home-brand-lockup i { color: var(--text); font-style: normal; }
+.home-brand-glyph { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-hover); color: var(--text-muted); font-size: 12px; letter-spacing: 0; }
 .home-date { color: var(--text-faint); font-size: 11px; }
 
 .home-hero {
@@ -4998,16 +4996,16 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
   gap: 24px;
   min-height: 190px;
   padding: 30px clamp(24px, 4vw, 44px);
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: linear-gradient(112deg, color-mix(in srgb, var(--accent) 11%, var(--bg-surface)), var(--bg-surface) 68%);
-  box-shadow: 0 18px 55px color-mix(in srgb, var(--accent) 7%, transparent), inset 0 1px rgba(255,255,255,.035);
+  background: var(--bg-surface);
+  box-shadow: inset 0 1px rgba(255,255,255,.035);
   animation: home-arrive .48s .03s both;
 }
 .home-hero-copy { position: relative; z-index: 1; }
 .home-overline { display: block; color: var(--text-faint); font-size: 9px; font-weight: 750; letter-spacing: .16em; }
 .home-hero h1 { margin: 11px 0 8px; color: var(--text); font-size: clamp(27px, 3.2vw, 39px); line-height: 1.08; letter-spacing: -.055em; }
-.home-hero h1 span { color: var(--accent); }
+.home-hero h1 span { color: var(--text); }
 .home-hero p { margin: 0; color: var(--text-muted); font-size: 12px; }
 .home-create-button {
   position: relative;
@@ -5024,14 +5022,14 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
   font-size: 11px;
   font-weight: 650;
   cursor: pointer;
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--accent) 24%, transparent);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .14);
   transition: transform 160ms cubic-bezier(.2,.8,.2,1), box-shadow 160ms ease, filter 160ms ease;
 }
 .home-create-button > span { font-size: 16px; line-height: 10px; }
 .home-create-button kbd { margin-left: 5px; padding: 3px 5px; border: 1px solid rgba(255,255,255,.27); border-radius: 5px; background: rgba(0,0,0,.12); color: rgba(255,255,255,.84); font: inherit; font-size: 9px; }
-.home-create-button:hover { transform: translateY(-2px); filter: brightness(1.07); box-shadow: 0 9px 23px color-mix(in srgb, var(--accent) 34%, transparent); }
+.home-create-button:hover { transform: translateY(-2px); filter: brightness(1.04); box-shadow: 0 5px 14px rgba(0, 0, 0, .2); }
 .home-create-button:active { transform: translateY(0) scale(.98); filter: brightness(.96); }
-.home-hero-orbit { position: absolute; z-index: -1; width: 270px; aspect-ratio: 1; border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 50%; pointer-events: none; }
+.home-hero-orbit { position: absolute; z-index: -1; width: 270px; aspect-ratio: 1; border: 1px solid color-mix(in srgb, var(--border-strong) 45%, transparent); border-radius: 50%; pointer-events: none; }
 .home-hero-orbit--one { right: 11%; top: -72%; }
 .home-hero-orbit--two { right: 5%; top: -48%; width: 360px; }
 
@@ -5064,10 +5062,7 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
   transition: transform 170ms cubic-bezier(.2,.8,.2,1), border-color 170ms ease, background 170ms ease, box-shadow 170ms ease;
   animation: home-card-arrive .42s calc(.08s + var(--project-index, 0) * 35ms) both;
 }
-.home-project-card::before { position: absolute; inset: 0 auto 0 0; width: 2px; background: color-mix(in srgb, var(--accent) 70%, transparent); content: ''; opacity: 0; transition: opacity 160ms ease; }
-.home-project-card:hover { z-index: 1; transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 42%, var(--border)); background: var(--bg-hover); box-shadow: 0 10px 24px rgba(0,0,0,.14); }
-.home-project-card:hover::before,
-.home-project-card:focus-visible::before { opacity: 1; }
+.home-project-card:hover { z-index: 1; transform: translateY(-2px); border-color: var(--border-strong); background: var(--bg-hover); box-shadow: 0 10px 24px rgba(0,0,0,.14); }
 .home-project-card:active { transform: translateY(0) scale(.99); box-shadow: none; }
 .home-project-index { grid-column: 2; grid-row: 1; color: var(--text-faint); font-size: 9px; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
 .home-project-mark { grid-column: 1; grid-row: 1 / 3; display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--accent) 13%, var(--bg-base)); color: color-mix(in srgb, var(--accent) 70%, var(--text)); font-size: 17px; font-weight: 700; }
@@ -5080,10 +5075,10 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
 .home-project-copy strong { overflow: hidden; color: var(--text); font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .home-project-copy small { overflow: hidden; color: var(--text-faint); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .home-project-open { grid-column: 3; grid-row: 1 / 3; justify-self: end; color: var(--text-faint); font-size: 15px; transition: color 150ms ease, transform 150ms ease; }
-.home-project-card:hover .home-project-open { transform: translate(2px,-2px); color: var(--accent); }
+.home-project-card:hover .home-project-open { transform: translate(2px,-2px); color: var(--text); }
 .home-empty-card { display: flex; align-items: center; gap: 13px; width: 100%; min-height: 80px; padding: 14px; border: 1px dashed var(--border-strong); border-radius: 13px; background: transparent; color: var(--text); text-align: left; cursor: pointer; transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
-.home-empty-card:hover { transform: translateY(-1px); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--bg-surface)); }
-.home-empty-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: color-mix(in srgb, var(--accent) 13%, var(--bg-base)); color: var(--accent); font-size: 19px; }
+.home-empty-card:hover { transform: translateY(-1px); border-color: var(--border-strong); background: var(--bg-hover); }
+.home-empty-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: var(--bg-hover); color: var(--text-muted); font-size: 19px; }
 .home-empty-card > span:nth-child(2) { display: grid; gap: 4px; flex: 1; }
 .home-empty-card strong { font-size: 12px; }
 .home-empty-card small { color: var(--text-muted); font-size: 10px; }
