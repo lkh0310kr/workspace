@@ -86,7 +86,7 @@ Orca’s full split/divider PaneManager was reduced to **one xterm per pane**:
 
 - `@xterm/addon-webgl` beta aligned with Orca; patches in `apps/workspace/patches/`
 - `terminalGpuAcceleration: "auto"` in `TerminalPane` (WebGL via `@xterm/addon-webgl`)
-- Wheel events scroll normal-buffer scrollback in xterm; alternate-screen TUIs with mouse reporting receive calibrated wheel reports (`terminal-wheel-scroll.ts`, `pane-terminal-mouse-wheel.ts`)
+- Wheel events scroll xterm history when no app has enabled mouse reporting; mouse-reporting TUIs receive calibrated wheel reports in either buffer (`terminal-wheel-scroll.ts`, `pane-terminal-mouse-wheel.ts`)
 - On resize: `refitPaneTerminal` disposes and re-attaches WebGL to avoid tiny-canvas glitches
 - On hide: `suspendPaneRendering` disposes WebGL; resume refits and re-attaches
 - Renderer acknowledges each output chunk after xterm parses it. At 512 KiB unparsed output the PTY host pauses reads; it resumes below 128 KiB. This bounds renderer pressure without discarding terminal bytes.

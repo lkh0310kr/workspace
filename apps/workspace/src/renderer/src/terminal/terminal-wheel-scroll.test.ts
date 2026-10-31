@@ -73,18 +73,25 @@ describe("terminal-wheel-scroll", () => {
     ).toBe(1);
   });
 
-  it("forwards wheel only for alternate-buffer mouse reporting", () => {
+  it("forwards wheel to mouse-reporting apps in either terminal buffer", () => {
     const normal = terminalStub();
     expect(
       shouldForwardTerminalWheelEvent(normal as never, { deltaY: 17 } as WheelEvent),
     ).toBe(false);
 
-    const alternate = terminalStub({
+    const normalTui = terminalStub({
+      modes: { mouseTrackingMode: "active" as const },
+    });
+    expect(
+      shouldForwardTerminalWheelEvent(normalTui as never, { deltaY: 17 } as WheelEvent),
+    ).toBe(true);
+
+    const alternateTui = terminalStub({
       buffer: { active: { type: "alternate" as const, length: 24 } },
       modes: { mouseTrackingMode: "active" as const },
     });
     expect(
-      shouldForwardTerminalWheelEvent(alternate as never, { deltaY: 17 } as WheelEvent),
+      shouldForwardTerminalWheelEvent(alternateTui as never, { deltaY: 17 } as WheelEvent),
     ).toBe(true);
   });
 
@@ -120,6 +127,22 @@ describe("terminal-wheel-scroll", () => {
     const scrollLines = vi.fn();
     const terminal = terminalStub({
       buffer: { active: { type: "alternate" as const, length: 24 } },
+      modes: { mouseTrackingMode: "active" as const },
+      scrollLines,
+    });
+    expect(
+      applyTerminalWheelScroll(terminal as never, {
+        deltaY: 17,
+        deltaMode: 0,
+        shiftKey: false,
+      } as WheelEvent),
+    ).toBe(true);
+    expect(scrollLines).not.toHaveBeenCalled();
+  });
+
+  it("forwards wheel to a normal-buffer TUI instead of consuming it as scrollback", () => {
+    const scrollLines = vi.fn();
+    const terminal = terminalStub({
       modes: { mouseTrackingMode: "active" as const },
       scrollLines,
     });

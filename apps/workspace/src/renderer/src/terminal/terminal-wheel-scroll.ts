@@ -59,21 +59,19 @@ export function shouldForwardTerminalWheelEvent(
 ): boolean {
   if (event.deltaY === 0) return false;
 
-  const buf = terminal.buffer.active;
   const mouseReporting = terminal.modes.mouseTrackingMode !== "none";
 
-  // Fullscreen TUIs: Orca wheel multiplier when mouse reporting is active.
-  if (buf.type === "alternate" && mouseReporting) {
-    return true;
-  }
-
-  // Never let xterm forward wheel to the PTY as shell arrow keys.
-  return false;
+  // Orca disables viewport wheel handling whenever the active mouse protocol
+  // supports wheel reports. This applies to normal and alternate buffers:
+  // TUIs may keep the normal buffer while still handling wheel input in-app.
+  // At an ordinary shell prompt (mouseTrackingMode === "none"), keep the
+  // wheel local so it scrolls xterm history rather than emitting arrow keys.
+  return mouseReporting;
 }
 
 /**
- * Drive xterm viewport scroll from wheel on the normal buffer. Uses Orca-patched
- * scrollLines (pixel smooth scroll via ScrollableElement).
+ * Drive xterm viewport scroll when the shell is active and no app has enabled
+ * mouse-wheel reports. Uses Orca-patched scrollLines (pixel-smooth viewport).
  */
 export function applyTerminalWheelScroll(terminal: Terminal, event: WheelEvent): boolean {
   if (!shouldForwardTerminalWheelEvent(terminal, event)) {
