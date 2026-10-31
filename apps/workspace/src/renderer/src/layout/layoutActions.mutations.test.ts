@@ -9,10 +9,11 @@ import {
 } from "./layoutActions.testHelpers";
 
 const bumpLayoutRevision = vi.fn();
+const bumpPaneTabSelectionRevision = vi.fn();
 
 vi.mock("../store/workspaceStore", () => ({
   useWorkspaceStore: {
-    getState: () => ({ bumpLayoutRevision }),
+    getState: () => ({ bumpLayoutRevision, bumpPaneTabSelectionRevision }),
   },
 }));
 
@@ -44,6 +45,7 @@ describe("layoutActions mutations", () => {
   beforeEach(() => {
     vi.resetModules();
     bumpLayoutRevision.mockClear();
+    bumpPaneTabSelectionRevision.mockClear();
     nextItemId = 0;
   });
 
@@ -217,6 +219,7 @@ describe("layoutActions mutations", () => {
 
       expect(lastUpdateConfig(actions)?.activeTabId).toBe(b.id);
       expect(bumpLayoutRevision).not.toHaveBeenCalled();
+      expect(bumpPaneTabSelectionRevision).toHaveBeenCalledWith(1, "pane-a");
     });
   });
 

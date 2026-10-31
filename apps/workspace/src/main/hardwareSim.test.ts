@@ -1,6 +1,7 @@
 import * as path from "node:path";
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   avr8jsSidecarCandidates,
   HardwareSimManager,
@@ -74,6 +75,21 @@ function resolveHardwareSimBinary(appPath: string): string {
 }
 
 describe("HardwareSimManager", () => {
+  beforeAll(() => {
+    const electronRoot = path.resolve(__dirname, "../../");
+    const binary = hardwareSimBinaryCandidates({ appPath: electronRoot, packaged: false }).find(
+      (candidate) => existsSync(candidate),
+    );
+    if (binary) return;
+
+    // Build once on demand so a clean checkout needs no manual test setup.
+    const repoRoot = path.resolve(electronRoot, "../..");
+    execFileSync("cargo", ["build", "-p", "hardware-sim-core", "--bin", "hardware-sim"], {
+      cwd: repoRoot,
+      stdio: "inherit",
+    });
+  });
+
   it("drives the Rust JSON-lines process", async () => {
     const electronRoot = path.resolve(__dirname, "../../");
     const binary = resolveHardwareSimBinary(electronRoot);

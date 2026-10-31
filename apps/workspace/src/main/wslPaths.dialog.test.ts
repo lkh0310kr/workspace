@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { windowsPathToWsl, wslPathToWindows } from "./wslPaths";
+import { isWsl, windowsPathToWsl, wslPathToWindows } from "./wslPaths";
 
 describe("windowsPathToWsl", () => {
   it("maps drive letters to /mnt/<drive>", () => {
@@ -13,12 +13,15 @@ describe("windowsPathToWsl", () => {
     );
   });
 
-  it("round-trips /home paths through wslPathToWindows", () => {
-    const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
-    const win = wslPathToWindows("/home/me/workspace");
-    expect(win).toBe(`\\\\wsl.localhost\\${distro}\\home\\me\\workspace`);
-    expect(windowsPathToWsl(win!)).toBe("/home/me/workspace");
-  });
+  it.skipIf(process.platform !== "win32" && !isWsl())(
+    "round-trips /home paths through wslPathToWindows",
+    () => {
+      const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
+      const win = wslPathToWindows("/home/me/workspace");
+      expect(win).toBe(`\\\\wsl.localhost\\${distro}\\home\\me\\workspace`);
+      expect(windowsPathToWsl(win!)).toBe("/home/me/workspace");
+    },
+  );
 });
 
 describe("wslPathToWindows", () => {
@@ -26,10 +29,13 @@ describe("wslPathToWindows", () => {
     expect(wslPathToWindows("/mnt/c/Users/me/workspace")).toBe("C:\\Users\\me\\workspace");
   });
 
-  it("maps /home paths to wsl.localhost UNC under WSL", () => {
-    const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
-    expect(wslPathToWindows("/home/me/workspace")).toBe(
-      `\\\\wsl.localhost\\${distro}\\home\\me\\workspace`,
-    );
-  });
+  it.skipIf(process.platform !== "win32" && !isWsl())(
+    "maps /home paths to wsl.localhost UNC under WSL",
+    () => {
+      const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
+      expect(wslPathToWindows("/home/me/workspace")).toBe(
+        `\\\\wsl.localhost\\${distro}\\home\\me\\workspace`,
+      );
+    },
+  );
 });

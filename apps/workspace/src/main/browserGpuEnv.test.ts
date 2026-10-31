@@ -19,7 +19,7 @@ describe('browserGpuEnv', () => {
     const switches: string[] = []
     applyBrowserGpuSwitches((name, value) => {
       switches.push(value === undefined ? name : `${name}=${value}`)
-    })
+    }, { platform: 'linux', isWsl: false })
     expect(switches).toContain('disable-gpu-sandbox')
     expect(switches).toContain('use-angle=gl')
     expect(switches).toContain('use-gl=angle')
@@ -30,7 +30,7 @@ describe('browserGpuEnv', () => {
     const switches: string[] = []
     applyBrowserGpuSwitches((name, value) => {
       switches.push(value === undefined ? name : `${name}=${value}`)
-    })
+    }, { platform: 'linux', isWsl: true })
     expect(switches).toContain('use-angle=d3d11')
   })
 })

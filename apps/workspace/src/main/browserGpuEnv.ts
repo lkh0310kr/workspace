@@ -3,7 +3,12 @@ import { isWsl } from './wslPaths'
 /** WORKSPACE_GL — override Chromium GL backend (must be set before Electron starts). */
 export type GlBackend = 'auto' | 'gpu' | 'd3d11' | 'angle-gl' | 'swiftshader' | 'egl' | 'off'
 
-export function resolveGlBackend(): GlBackend {
+export interface BrowserGpuEnvironment {
+  platform?: NodeJS.Platform
+  isWsl?: boolean
+}
+
+export function resolveGlBackend(isWslOverride?: boolean): GlBackend {
   const raw = process.env.WORKSPACE_GL?.trim().toLowerCase()
   switch (raw) {
     case 'gpu':
@@ -16,15 +21,20 @@ export function resolveGlBackend(): GlBackend {
       return raw
     default:
       // WSLg: Mesa D3D12 (Intel/NVIDIA/AMD via /dev/dxg) — much faster than SwiftShader.
-      return isWsl() ? 'angle-gl' : 'auto'
+      return (isWslOverride ?? isWsl()) ? 'angle-gl' : 'auto'
   }
 }
 
 /** Chromium GPU/WebGL switches — main process + browser webviews. */
-export function applyBrowserGpuSwitches(appendSwitch: (name: string, value?: string) => void): void {
-  if (process.platform !== 'linux') return
+export function applyBrowserGpuSwitches(
+  appendSwitch: (name: string, value?: string) => void,
+  environment: BrowserGpuEnvironment = {},
+): void {
+  const platform = environment.platform ?? process.platform
+  const wsl = environment.isWsl ?? isWsl()
+  if (platform !== 'linux') return
 
-  const backend = resolveGlBackend()
+  const backend = resolveGlBackend(wsl)
 
   appendSwitch('enable-webgl')
   appendSwitch('ignore-gpu-blocklist')
@@ -38,9 +48,9 @@ export function applyBrowserGpuSwitches(appendSwitch: (name: string, value?: str
   appendSwitch('disable-gpu-sandbox')
 
   const useSwiftshader = backend === 'swiftshader'
-  const useAngleGl = backend === 'angle-gl' || (backend === 'auto' && isWsl())
+  const useAngleGl = backend === 'angle-gl' || (backend === 'auto' && wsl)
   const useEgl = backend === 'egl'
-  const useD3d11 = backend === 'd3d11' || backend === 'gpu' || (backend === 'auto' && !isWsl())
+  const useD3d11 = backend === 'd3d11' || backend === 'gpu' || (backend === 'auto' && !wsl)
 
   if (useSwiftshader) {
     appendSwitch('use-gl', 'angle')
@@ -62,7 +72,7 @@ export function applyBrowserGpuSwitches(appendSwitch: (name: string, value?: str
   if (useD3d11) {
     appendSwitch('enable-gpu-rasterization')
     appendSwitch('use-gl', 'angle')
-    if (isWsl()) appendSwitch('use-angle', 'd3d11')
+    if (wsl) appendSwitch('use-angle', 'd3d11')
   }
 }
 
