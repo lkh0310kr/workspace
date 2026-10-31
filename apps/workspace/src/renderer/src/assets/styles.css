@@ -312,7 +312,7 @@ input {
 }
 
 .titlebar {
-  height: 29px;
+  height: var(--chrome-h);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -522,6 +522,11 @@ input {
   color: var(--text-muted);
 }
 
+.usage-details-toggle input[type="checkbox"],
+.usage-settings-toggles input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
 .usage-settings-toggles {
   display: flex;
   flex-direction: column;
@@ -604,7 +609,8 @@ input {
 .workspace-tab-rail {
   display: flex;
   align-items: stretch;
-  height: 100%;
+  height: var(--chrome-h);
+  min-height: var(--chrome-h);
   flex: 0 1 auto;
   min-width: 0;
   -webkit-app-region: no-drag;
@@ -657,7 +663,7 @@ input {
   align-items: center;
   gap: 4px;
   max-width: 200px;
-  min-width: 0;
+  min-width: 112px;
   padding: 0 4px 0 10px;
   border: none;
   border-right: 1px solid var(--border);
@@ -681,6 +687,8 @@ input {
 .workspace-tab-rail-title {
   display: flex;
   align-items: center;
+  align-self: stretch;
+  flex: 1;
   gap: 6px;
   min-width: 0;
   padding: 0;
@@ -690,6 +698,7 @@ input {
   cursor: pointer;
   text-align: left;
   font-family: var(--font-ui);
+  touch-action: manipulation;
 }
 
 .workspace-tab-rail-agent-indicator {
@@ -753,8 +762,9 @@ input {
 /* Double-click a tab's title to rename (WorkspaceTabRail.tsx) — same
    inline-input idiom as the markdown title rename. */
 .workspace-tab-rail-title-input {
+  flex: 1;
   min-width: 0;
-  max-width: 140px;
+  width: 0;
   padding: 3px 4px;
   background: var(--bg-base);
   border: 1px solid var(--accent);
@@ -789,8 +799,8 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  min-width: 28px;
+  width: var(--chrome-h);
+  min-width: var(--chrome-h);
   height: 100%;
   padding: 0;
   border: none;
@@ -819,6 +829,7 @@ input {
   color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
+  touch-action: manipulation;
 }
 
 .workspace-tab-rail-home:hover {
@@ -1496,6 +1507,7 @@ input {
   color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
+  touch-action: manipulation;
 }
 
 .pane-tab:hover {
@@ -1566,8 +1578,8 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  min-width: 28px;
+  width: var(--chrome-h);
+  min-width: var(--chrome-h);
   height: 100%;
   padding: 0;
   border: none;
@@ -4314,6 +4326,14 @@ input {
   border-radius: 4px;
 }
 
+.cm-md-html-embed {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  border: 0;
+  background: transparent;
+}
+
 .cm-md-table {
   border-collapse: collapse;
   margin: 6px 0;
@@ -4792,16 +4812,17 @@ input {
   background: transparent;
   color: var(--text-faint);
   cursor: pointer;
+  opacity: 0.82;
 }
 
-.obsidian-topbar-icon:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--bg-hover);
+.obsidian-topbar-icon:hover:not(:disabled):not(.active) {
+  opacity: 0.62;
 }
 
-.obsidian-topbar-icon.active {
-  color: var(--text);
-  background: var(--bg-hover);
+.obsidian-topbar-icon.active,
+.obsidian-topbar-icon.active:hover:not(:disabled) {
+  color: #fff;
+  opacity: 1;
 }
 
 .obsidian-topbar-icon:disabled {
@@ -5962,6 +5983,18 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
   .dashboard-project-card:hover,
   .dashboard-widget:hover {
     transform: none;
+  }
+}
+
+@media (pointer: coarse) {
+  :root {
+    --chrome-h: 44px;
+  }
+
+  .workspace-tab-rail-close,
+  .pane-tab-close {
+    width: 32px;
+    height: 32px;
   }
 }
 
