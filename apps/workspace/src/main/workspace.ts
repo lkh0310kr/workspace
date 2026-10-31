@@ -9,6 +9,7 @@ import {
   trimTerminalSessionBufferToByteLimit,
   type TerminalSessionBuffersFile,
 } from "../shared/terminal-session-buffers";
+import { prepareTerminalColdRestoreSnapshot } from "../shared/terminal-cold-restore";
 import { loadTerminalSessionBuffers } from "./persistence";
 import * as files from "./files";
 import type { DirEntry } from "./files";
@@ -226,7 +227,7 @@ export class Workspace {
     if (restored) {
       this.restoredTerminalBuffers.delete(id);
       if (!result.isReattach) {
-        result.snapshot = restored + result.snapshot;
+        result.snapshot = prepareTerminalColdRestoreSnapshot(restored + result.snapshot);
         result.isReattach = true;
       }
     }
