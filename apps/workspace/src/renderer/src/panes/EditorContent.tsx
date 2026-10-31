@@ -215,6 +215,8 @@ export function EditorContent({
   const autoSaveRef = useRef(autoSave);
   autoSaveRef.current = autoSave;
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pathRenameInFlightRef = useRef(false);
+  const skipPathLoadRef = useRef<string | null>(null);
   const editRevisionRef = useRef(0);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [dirty, setDirty] = useState(false);
@@ -420,6 +422,15 @@ export function EditorContent({
     [tabId, saveNow, setDirtyState],
   );
 
+  const scheduleAutoSave = useCallback((view: EditorView) => {
+    if (!pathRef.current || !autoSaveRef.current || pathRenameInFlightRef.current) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      const path = pathRef.current;
+      if (path) saveNow(view, path).catch(console.error);
+    }, 600);
+  }, [saveNow]);
+
   const enterTitleEdit = useCallback(() => {
     setTitleDraft(markdownTitleFor(pathRef.current));
     setTitleError(null);
@@ -473,25 +484,47 @@ export function EditorContent({
 
     setTitleEditing(false);
     setTitleError(null);
+    const view = viewRef.current;
+    if (!view) return;
+    pathRenameInFlightRef.current = true;
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
 
     if (!pathRef.current) {
-      const content = viewRef.current?.state.doc.toString() ?? "";
-      await writeFile(tabId, targetPath, content);
-      lastLoadedContentRef.current = content;
-      setDirtyState(false);
-      onAssignPathRef.current(targetPath);
+      try {
+        await saveNow(view, targetPath);
+        skipPathLoadRef.current = targetPath;
+        pathRef.current = targetPath;
+        onAssignPathRef.current(targetPath);
+      } catch (err) {
+        setTitleDraft(nextTitle);
+        setTitleEditing(true);
+        setTitleError(String(err));
+      } finally {
+        pathRenameInFlightRef.current = false;
+        if (dirtyRef.current) scheduleAutoSave(view);
+      }
       return;
     }
 
+    const sourcePath = pathRef.current;
     try {
-      await renamePath(tabId, pathRef.current, targetPath);
+      if (autoSaveRef.current && dirtyRef.current) await saveNow(view, sourcePath);
+      await renamePath(tabId, sourcePath, targetPath);
+      skipPathLoadRef.current = targetPath;
+      pathRef.current = targetPath;
       onAssignPathRef.current(targetPath);
     } catch (err) {
       setTitleDraft(nextTitle);
       setTitleEditing(true);
       setTitleError(String(err));
+    } finally {
+      pathRenameInFlightRef.current = false;
+      if (dirtyRef.current) scheduleAutoSave(view);
     }
-  }, [tabId, titleDraft, setDirtyState]);
+  }, [tabId, titleDraft, saveNow, scheduleAutoSave]);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -581,12 +614,8 @@ export function EditorContent({
             if (isMarkdown) setOutline(computeOutline(update.view));
             setDirtyState(true);
             const path = pathRef.current;
-            if (!path || !autoSaveRef.current) return;
-            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-            autoSaveTimerRef.current = setTimeout(() => {
-              const savePath = pathRef.current;
-              if (savePath) saveNow(update.view, savePath).catch(console.error);
-            }, 600);
+            if (!path || !autoSaveRef.current || pathRenameInFlightRef.current) return;
+            scheduleAutoSave(update.view);
           }),
         ],
       }),
@@ -614,6 +643,7 @@ export function EditorContent({
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         if (getFocusedEditorView() !== view) return;
         e.preventDefault();
+        if (pathRenameInFlightRef.current) return;
         if (!viewRef.current) return;
         if (autoSaveTimerRef.current) {
           clearTimeout(autoSaveTimerRef.current);
@@ -644,6 +674,11 @@ export function EditorContent({
 
   useEffect(() => {
     if (!filePath) return;
+    if (skipPathLoadRef.current === filePath) {
+      skipPathLoadRef.current = null;
+      contentLoadedRef.current = true;
+      return;
+    }
     contentLoadedRef.current = false;
     let cancelled = false;
     let frameId = 0;
