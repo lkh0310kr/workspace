@@ -8,7 +8,15 @@ import {
   type MouseEvent,
 } from 'react'
 import type { Model } from 'flexlayout-react'
-import { TabInfo, addTab, closeTab, onShortcutModifierReleased, renameTab, reorderTabs } from '../electron'
+import {
+  TabInfo,
+  addTab,
+  closeTab,
+  onNewWorkspaceTabShortcut,
+  onShortcutModifierReleased,
+  renameTab,
+  reorderTabs,
+} from '../electron'
 import { dismissWorkspacePortals } from '../workspacePortalDismiss'
 import { switchToHome, switchToWorkspaceTab } from '../workspaceNavigation'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
@@ -71,6 +79,9 @@ export function WorkspaceTabRail({
     }
     const clearOnBlur = () => setShowTabNumbers(false)
     const unsubscribeModifierRelease = onShortcutModifierReleased(clearOnBlur)
+    // macOS can consume the Meta keyup after a native menu accelerator. Cmd+N
+    // itself is therefore also a definitive end to the tab-number hint.
+    const unsubscribeNewTabShortcut = onNewWorkspaceTabShortcut(clearOnBlur)
 
     window.addEventListener('keydown', onKeyDown, true)
     window.addEventListener('keyup', onKeyUp, true)
@@ -82,6 +93,7 @@ export function WorkspaceTabRail({
       window.removeEventListener('blur', clearOnBlur)
       document.removeEventListener('visibilitychange', clearOnBlur)
       unsubscribeModifierRelease()
+      unsubscribeNewTabShortcut()
     }
   }, [])
 
