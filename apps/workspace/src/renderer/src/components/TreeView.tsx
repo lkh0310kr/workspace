@@ -366,7 +366,12 @@ export function TreeView({
     setMenu(null);
     const name = await findAvailableName(tabId, dir, "untitled", ".md");
     const path = joinPath(dir, name);
-    await writeFile(tabId, path, "").catch(console.error);
+    try {
+      await writeFile(tabId, path, "");
+    } catch (err) {
+      window.alert(String(err));
+      return;
+    }
     openFileFromTree(path, "markdown");
     refresh(dir);
   };
@@ -394,7 +399,12 @@ export function TreeView({
       onSubmit: async (name) => {
         if (name === entry.name) return;
         const to = joinPath(dirOf(entry.path), name);
-        await renamePath(tabId, entry.path, to).catch((err) => alert(String(err)));
+        try {
+          await renamePath(tabId, entry.path, to);
+        } catch (err) {
+          window.alert(String(err));
+          return;
+        }
         onPathRenamed?.(entry.path, to);
         refresh(dirOf(entry.path));
       },
@@ -415,12 +425,24 @@ export function TreeView({
     const confirmed = window.confirm(`Delete ${label}?\n\n${paths.join("\n")}`);
     if (!confirmed) return;
 
+    const deleted: string[] = [];
     for (const p of paths) {
-      await deletePath(tabId, p).catch((err) => alert(String(err)));
-      onPathDeleted?.(p);
+      try {
+        await deletePath(tabId, p);
+        deleted.push(p);
+        onPathDeleted?.(p);
+      } catch (err) {
+        window.alert(String(err));
+        break;
+      }
     }
-    for (const d of new Set(paths.map(dirOf))) refresh(d);
-    setSelected(new Set());
+    if (deleted.length === 0) return;
+    for (const d of new Set(deleted.map(dirOf))) refresh(d);
+    const remaining = paths.filter((path) => !deleted.includes(path));
+    setSelected(new Set(remaining));
+    if (selectionAnchor && deleted.includes(selectionAnchor)) {
+      setSelectionAnchor(remaining[0] ?? null);
+    }
     moveFocusToRendererBeforeFocusedWebviewHidden();
     interactionCoordinator.reconcile("tree-delete-complete");
     finishPaneDrag();
@@ -446,15 +468,23 @@ export function TreeView({
   };
 
   const moveEntries = async (paths: string[], targetDir: string) => {
+    const moved: string[] = [];
     for (const p of paths) {
       if (dirOf(p) === targetDir) continue;
       if (targetDir === p || targetDir.startsWith(`${p}/`)) continue;
       const to = joinPath(targetDir, baseName(p));
-      await renamePath(tabId, p, to).catch((err) => alert(String(err)));
+      try {
+        await renamePath(tabId, p, to);
+      } catch (err) {
+        window.alert(String(err));
+        continue;
+      }
+      moved.push(p);
       onPathRenamed?.(p, to);
     }
-    for (const d of new Set([...paths.map(dirOf), targetDir])) refresh(d);
-    setSelected(new Set());
+    if (moved.length === 0) return;
+    for (const d of new Set([...moved.map(dirOf), targetDir])) refresh(d);
+    setSelected((prev) => new Set([...prev].filter((path) => !moved.includes(path))));
   };
 
   const onEntryDragStart = (e: DragEvent, entry: DirEntry) => {

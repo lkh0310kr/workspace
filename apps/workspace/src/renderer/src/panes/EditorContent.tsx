@@ -46,7 +46,7 @@ import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markd
 import { pastePlainTextCommand } from "../editorPlainPaste";
 import { DocumentAugmentPreviewPanel } from "../japanese/DocumentAugmentPreviewPanel";
 import { runDocumentAugment } from "../japanese/studyAssistAugment";
-import { replaceRangeAndInsert } from "../activeEditorView";
+import { getFocusedEditorView, replaceRangeAndInsert } from "../activeEditorView";
 import {
   createMarkdownSlashCommandExtension,
   type SlashCommandKeyboardHost,
@@ -215,6 +215,8 @@ export function EditorContent({
   const autoSaveRef = useRef(autoSave);
   autoSaveRef.current = autoSave;
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editRevisionRef = useRef(0);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [dirty, setDirty] = useState(false);
   const dirtyRef = useRef(false);
   const onOpenFileRef = useRef(onOpenFile);
@@ -385,9 +387,20 @@ export function EditorContent({
   const saveNow = useCallback(
     (view: EditorView, path: string) => {
       const content = view.state.doc.toString();
-      return writeFile(tabId, path, content).then(() => {
+      const revision = editRevisionRef.current;
+      const write = saveQueueRef.current
+        .catch(() => {})
+        .then(() => writeFile(tabId, path, content));
+      saveQueueRef.current = write.then(() => {}, () => {});
+      return write.then(() => {
         lastLoadedContentRef.current = content;
-        setDirtyState(false);
+        if (
+          viewRef.current === view &&
+          (pathRef.current === path || pathRef.current === null) &&
+          editRevisionRef.current === revision
+        ) {
+          setDirtyState(false);
+        }
       });
     },
     [tabId, setDirtyState],
@@ -401,10 +414,7 @@ export function EditorContent({
         return;
       }
       const name = await findAvailableUntitledName(tabId);
-      const content = view.state.doc.toString();
-      await writeFile(tabId, name, content);
-      lastLoadedContentRef.current = content;
-      setDirtyState(false);
+      await saveNow(view, name);
       onAssignPathRef.current(name);
     },
     [tabId, saveNow, setDirtyState],
@@ -567,6 +577,7 @@ export function EditorContent({
           EditorView.updateListener.of((update) => {
             setSearchOpen(searchPanelOpen(update.view.state));
             if (!update.docChanged) return;
+            editRevisionRef.current += 1;
             if (isMarkdown) setOutline(computeOutline(update.view));
             setDirtyState(true);
             const path = pathRef.current;
@@ -601,6 +612,7 @@ export function EditorContent({
 
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        if (getFocusedEditorView() !== view) return;
         e.preventDefault();
         if (!viewRef.current) return;
         if (autoSaveTimerRef.current) {
