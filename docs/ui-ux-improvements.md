@@ -14,7 +14,7 @@ Workspace Electron 앱의 UI/UX 개선 백로그. 시각적 방향은 [DESIGN.md
 | 통합 pane 탭 스트립, flexlayout 분할, Orca식 포커스 dimming | Quick Open이 빈약함 (경로만, 로딩·힌트 없음) |
 | 플랫 컨텍스트 메뉴, 컴팩트 titlebar 탭 레일 | 단축키는 동작하지만 UI에 거의 안 보임 |
 | light/dark/system 테마, terminal·browser pane | 빈 pane용 “여기서 시작” 워터마크 없음 |
-| pane별 empty state (viewer, RSS, Japanese 등) | Explorer·Quick Open 로딩 표시 없음 |
+| pane별 empty state (viewer, RSS 등) | Explorer·Quick Open 로딩 표시 없음 |
 | splitter·active tab 수정 완료 (2026-09-09) | CSS 5.6k줄 monolith, 토큰 파일 분리 전 |
 
 ---

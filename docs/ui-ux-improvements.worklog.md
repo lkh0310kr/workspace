@@ -35,7 +35,7 @@ Last updated: **2026-09-09**
 
 ### Pane kinds (`panes/kinds/*`)
 
-`terminal`, `browser`, `code`, `markdown`, `viewer` (image/video/audio/PDF/EPUB/CAD/3D/hardware), `rss`, `japanese`
+`terminal`, `browser`, `code`, `markdown`, `viewer` (image/video/audio/PDF/EPUB/CAD/3D/hardware), `rss`
 
 ### Styles monolith
 

@@ -1,2 +1,0 @@
-/* Bundled Japanese glyphs — avoids tofu on Linux/WSL when system fonts lack CJK. */
-@import "@fontsource-variable/noto-sans-jp/wght.css";

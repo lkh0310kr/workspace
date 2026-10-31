@@ -44,20 +44,7 @@ import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdow
 import { wikiLinkExtension } from "../markdownWikilink";
 import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markdownTitleRename";
 import { pastePlainTextCommand } from "../editorPlainPaste";
-import { DocumentAugmentPreviewPanel } from "../japanese/DocumentAugmentPreviewPanel";
-import { runDocumentAugment } from "../japanese/studyAssistAugment";
-import { getFocusedEditorView, replaceRangeAndInsert } from "../activeEditorView";
-import {
-  createMarkdownSlashCommandExtension,
-  type SlashCommandKeyboardHost,
-} from "../markdownSlashCommandExtension";
-import { MarkdownSlashCommandPopover } from "../MarkdownSlashCommandPopover";
-import {
-  createMarkdownSlashCommands,
-  filterSlashCommands,
-  type SlashCommandActiveState,
-  type SlashCommandContext,
-} from "../markdownSlashCommands";
+import { getFocusedEditorView } from "../activeEditorView";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
 import type { TabKind } from "../layout/paneTypes";
 import { Popover, type AnchorRect } from "../components/Popover";
@@ -232,31 +219,6 @@ export function EditorContent({
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const isMarkdown = kind === "markdown";
-  const [slashState, setSlashState] = useState<SlashCommandActiveState | null>(null);
-  const slashStateRef = useRef(slashState);
-  slashStateRef.current = slashState;
-  const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
-  const slashFilteredCountRef = useRef(0);
-  const slashCommandsRef = useRef(createMarkdownSlashCommands({ onAugment: () => {} }));
-  const [augmentPreview, setAugmentPreview] = useState<{
-    slashFrom: number;
-    slashTo: number;
-    text: string;
-    loading: boolean;
-    error: string | null;
-  } | null>(null);
-  const augmentPreviewOpenRef = useRef(false);
-  augmentPreviewOpenRef.current = Boolean(augmentPreview);
-  const slashOnStateChangeRef = useRef<(state: SlashCommandActiveState | null) => void>(() => {});
-  slashOnStateChangeRef.current = setSlashState;
-  const slashKeyboardHostRef = useRef<SlashCommandKeyboardHost>({
-    selectedIndex: 0,
-    resetSelection: () => {},
-    moveSelection: () => {},
-    onExecute: () => {},
-    onClose: () => {},
-  });
-
   const setDirtyState = useCallback((next: boolean) => {
     if (dirtyRef.current === next) return;
     dirtyRef.current = next;
@@ -302,89 +264,6 @@ export function EditorContent({
   );
 
   useEffect(() => subscribeAutoSave(setAutoSave), []);
-
-  useEffect(() => {
-    setSlashState(null);
-    setAugmentPreview(null);
-  }, [filePath]);
-
-  const startDocumentAugment = useCallback(
-    async (ctx: SlashCommandContext) => {
-      const view = viewRef.current;
-      if (!view) return;
-      setSlashState(null);
-      setAugmentPreview({
-        slashFrom: ctx.slashFrom,
-        slashTo: ctx.slashTo,
-        text: "",
-        loading: true,
-        error: null,
-      });
-      try {
-        const text = await runDocumentAugment(view, filePath);
-        setAugmentPreview((prev) =>
-          prev ? { ...prev, text, loading: false, error: text.trim() ? null : "생성된 내용이 없습니다." } : null,
-        );
-      } catch (err) {
-        setAugmentPreview((prev) =>
-          prev
-            ? {
-                ...prev,
-                loading: false,
-                error: err instanceof Error ? err.message : String(err),
-              }
-            : null,
-        );
-      }
-    },
-    [filePath],
-  );
-
-  slashCommandsRef.current = createMarkdownSlashCommands({ onAugment: startDocumentAugment });
-
-  useEffect(() => {
-    if (!slashState) {
-      slashFilteredCountRef.current = 0;
-      return;
-    }
-    slashFilteredCountRef.current = filterSlashCommands(slashState.query, slashCommandsRef.current).length;
-  }, [slashState]);
-
-  slashKeyboardHostRef.current = {
-    selectedIndex: slashSelectedIndex,
-    resetSelection: () => setSlashSelectedIndex(0),
-    moveSelection: (delta) => {
-      setSlashSelectedIndex((index) => {
-        const max = slashFilteredCountRef.current;
-        if (max <= 0) return 0;
-        return Math.max(0, Math.min(index + delta, max - 1));
-      });
-    },
-    onExecute: () => {
-      const state = slashStateRef.current;
-      if (!state) return;
-      const filtered = filterSlashCommands(state.query, slashCommandsRef.current);
-      const command = filtered[slashSelectedIndex];
-      command?.run({
-        slashFrom: state.slashFrom,
-        slashTo: state.slashTo,
-        query: state.query,
-      });
-    },
-    onClose: () => setSlashState(null),
-  };
-
-  const closeAugmentPreview = useCallback(() => {
-    setAugmentPreview(null);
-  }, []);
-
-  const acceptAugmentPreview = useCallback(() => {
-    const view = viewRef.current;
-    const preview = augmentPreview;
-    if (!view || !preview?.text.trim() || preview.loading) return;
-    replaceRangeAndInsert(view, preview.slashFrom, preview.slashTo, preview.text);
-    setAugmentPreview(null);
-  }, [augmentPreview]);
 
   const saveNow = useCallback(
     (view: EditorView, path: string) => {
@@ -557,11 +436,6 @@ export function EditorContent({
           ...markdownLivePreview,
           markdownProseTheme,
           wikiLinkClickHandler,
-          createMarkdownSlashCommandExtension({
-            onStateChange: (state) => slashOnStateChangeRef.current(state),
-            getKeyboardHost: () => slashKeyboardHostRef.current,
-            isActive: () => !augmentPreviewOpenRef.current,
-          }),
           keymap.of([
             { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
             { key: "Enter", run: insertNewlineAndIndent },
@@ -658,8 +532,6 @@ export function EditorContent({
       window.removeEventListener("keydown", onKey);
       view.dom.removeEventListener("focus", onEditorFocus, true);
       view.dom.removeEventListener("blur", onEditorBlur, true);
-      setSlashState(null);
-      setAugmentPreview(null);
       clearFocusedEditorView(view);
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       view.destroy();
@@ -770,10 +642,9 @@ export function EditorContent({
   // own DOM (the title input and any of its own content still handle
   // their own clicks normally).
   const onScrollContainerClick = (e: ReactMouseEvent) => {
-    if (augmentPreviewOpenRef.current) return;
     if (
       (e.target as HTMLElement).closest(
-        ".cm-editor, .md-title, .md-title-edit, .document-augment-preview, .markdown-slash-popover",
+        ".cm-editor, .md-title, .md-title-edit",
       )
     ) {
       return;
@@ -892,33 +763,7 @@ export function EditorContent({
               <div className="md-editor-host" ref={hostRef} />
             </div>
           )}
-          {isMarkdown && augmentPreview ? (
-            <DocumentAugmentPreviewPanel
-              previewText={augmentPreview.text}
-              loading={augmentPreview.loading}
-              error={augmentPreview.error}
-              onAccept={acceptAugmentPreview}
-              onDiscard={closeAugmentPreview}
-            />
-          ) : null}
         </div>
-        {isMarkdown && slashState ? (
-          <MarkdownSlashCommandPopover
-            anchorRect={slashState.anchorRect}
-            query={slashState.query}
-            selectedIndex={slashSelectedIndex}
-            commands={slashCommandsRef.current}
-            onSelect={(command) =>
-              command.run({
-                slashFrom: slashState.slashFrom,
-                slashTo: slashState.slashTo,
-                query: slashState.query,
-              })
-            }
-            onClose={() => setSlashState(null)}
-            onSelectedIndexChange={setSlashSelectedIndex}
-          />
-        ) : null}
         {isMarkdown && outlineAnchor && (
           <Popover anchorRect={outlineAnchor} onClose={() => setOutlineAnchor(null)} align="end" className="md-pane-outline-popover">
             {outline.length === 0 ? (

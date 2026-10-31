@@ -2,7 +2,6 @@ import { app } from "electron";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { JapaneseStudyConfig } from "../shared/japaneseStudyTypes";
 import type { WorkspaceState } from "./workspace";
 import type { TerminalSessionBuffersFile } from "../shared/terminal-session-buffers";
 import type { UsageMeterSettings } from "../shared/usage-meter-settings";
@@ -42,13 +41,13 @@ function terminalSessionBuffersPath(): string {
 
 export interface AppConfig {
   rootPath?: string;
-  japaneseStudy?: JapaneseStudyConfig;
   usageMeters?: UsageMeterSettings;
 }
 
 export function loadConfig(): AppConfig {
   try {
-    return JSON.parse(fs.readFileSync(configPath(), "utf8"));
+    const { japaneseStudy: _legacyJapaneseStudy, ...config } = JSON.parse(fs.readFileSync(configPath(), "utf8"));
+    return config;
   } catch {
     return {};
   }

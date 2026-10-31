@@ -74,22 +74,6 @@ import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
 import { disposeCadViewers } from './cadViewer'
 import { hardwareSimManager } from './hardwareSim'
 import { pickDirectory, pickMediaFile } from './nativeDialogs'
-import { initJapaneseDictionary, reloadJapaneseDictionary } from './japanese/init'
-import { analyzeJapaneseStudyLine, studyAssist } from './japanese/studyAssist'
-import { studyAssistLog } from './japanese/studyAssistLog'
-import { listStudyProviderStatus } from './japanese/llm/router'
-import { getJapaneseStudyConfig, saveJapaneseStudyConfig } from './japanese/studyConfig'
-import { readJapaneseLogs } from './japanese/japaneseLog'
-import {
-  getJapaneseDbStatus,
-  getJapaneseKanji,
-  getJapaneseLexeme,
-  getJapaneseStrokes,
-  recognizeJapaneseStrokes,
-  scoreJapanesePractice,
-  searchJapaneseByKanji,
-  searchJapaneseDictionary,
-} from './japanese/service'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
 
@@ -757,10 +741,6 @@ app.whenReady().then(() => {
   }, terminalBufferAutosaveMs)
   app.on('will-quit', () => clearInterval(terminalBufferAutosaveTimer))
 
-  appendStartupLog('init_japanese_dictionary_begin')
-  initJapaneseDictionary()
-  appendStartupLog('init_japanese_dictionary_end')
-
   ipcMain.handle('hostname', () => osHostname())
   ipcMain.handle('app:platform', () => process.platform)
   ipcMain.on('window:minimize', (event) => {
@@ -997,38 +977,6 @@ app.whenReady().then(() => {
   ipcMain.handle('model:logs', (_event, limit?: number) => readModel3dLogs(limit ?? 200))
   ipcMain.handle('cad:open-file', (_event, tabId: number, rel: string) =>
     workspace!.openCadViewerFile(tabId, rel),
-  )
-  ipcMain.handle('japanese:db-status', () => getJapaneseDbStatus())
-  ipcMain.handle('japanese:reload', () => reloadJapaneseDictionary())
-  ipcMain.handle('japanese:logs', (_event, limit?: number) => readJapaneseLogs(limit ?? 80))
-  ipcMain.handle('japanese:search', (_event, query: string, limit?: number) =>
-    searchJapaneseDictionary(query, limit),
-  )
-  ipcMain.handle('japanese:get-lexeme', (_event, entSeq: number) => getJapaneseLexeme(entSeq))
-  ipcMain.handle('japanese:get-kanji', (_event, literal: string) => getJapaneseKanji(literal))
-  ipcMain.handle('japanese:get-strokes', (_event, literal: string) => getJapaneseStrokes(literal))
-  ipcMain.handle('japanese:search-by-kanji', (_event, literal: string) => searchJapaneseByKanji(literal))
-  ipcMain.handle('japanese:recognize-strokes', (_event, strokes: unknown) =>
-    recognizeJapaneseStrokes(strokes as Parameters<typeof recognizeJapaneseStrokes>[0]),
-  )
-  ipcMain.handle('japanese:score-practice', (_event, literal: string, strokes: unknown) =>
-    scoreJapanesePractice(literal, strokes as Parameters<typeof scoreJapanesePractice>[1]),
-  )
-  ipcMain.handle('japanese:analyze-line', (_event, text: string) => analyzeJapaneseStudyLine(text))
-  ipcMain.handle('japanese:study-assist', (_event, request: unknown) => {
-    studyAssistLog('ipc_assist', {
-      task: (request as { task?: string })?.task ?? null,
-      textLength: String((request as { text?: string })?.text ?? '').length,
-    })
-    return studyAssist(request as Parameters<typeof studyAssist>[0])
-  })
-  ipcMain.handle('japanese:study-log', (_event, event: string, data?: Record<string, unknown>) => {
-    studyAssistLog(`renderer_${event}`, data)
-  })
-  ipcMain.handle('japanese:study-provider-status', () => listStudyProviderStatus())
-  ipcMain.handle('japanese:study-config-get', () => getJapaneseStudyConfig())
-  ipcMain.handle('japanese:study-config-save', (_event, patch: unknown) =>
-    saveJapaneseStudyConfig(patch as Parameters<typeof saveJapaneseStudyConfig>[0]),
   )
   ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
   ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))

@@ -13,7 +13,7 @@
 import type { AgentStatus } from "../../../shared/agent/agent-title-core";
 import type { TuiAgent } from "../../../shared/agent/tui-agent";
 
-export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer" | "rss" | "japanese";
+export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer" | "rss";
 
 export interface PaneTabItem {
   id: string;
@@ -54,8 +54,6 @@ export interface PaneTabItem {
    * openOrSwitchToFile) or gets explicitly pinned (double-click, or
    * Cmd/Ctrl+click opens a new pinned tab directly). */
   isPreview?: boolean;
-  /** kind === "japanese" — dictionary setup dialog from tab context menu */
-  japaneseSettingsOpen?: boolean;
 }
 
 export interface PaneGroupConfig {

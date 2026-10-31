@@ -8,7 +8,7 @@ import type { PaneTabItem, TabKind } from "../layout/paneTypes";
 // PaneTabStrip.tsx (tab chip label), layoutActions.ts (factory), and
 // paneTypes.ts (label/icon/picker entries) into one PaneKindDefinition
 // object per kind, registered once in builtinPaneKinds.ts. Adding a new
-// pane kind (e.g. a Japanese-study flashcard panel) now touches:
+// pane kind now touches:
 //   1. TabKind in paneTypes.ts (+ any kind-specific optional fields on
 //      PaneTabItem, + layoutSalvage.ts's zod schema) — kept as a closed
 //      union deliberately, not an open string: it's the thing that keeps

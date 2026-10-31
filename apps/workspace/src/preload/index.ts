@@ -380,30 +380,6 @@ const api = {
     openFile: (tabId: number, rel: string): Promise<unknown> =>
       ipcRenderer.invoke('cad:open-file', tabId, rel),
   },
-  japanese: {
-    dbStatus: (): Promise<unknown> => ipcRenderer.invoke('japanese:db-status'),
-    reload: (): Promise<unknown> => ipcRenderer.invoke('japanese:reload'),
-    logs: (limit?: number): Promise<unknown> => ipcRenderer.invoke('japanese:logs', limit),
-    search: (query: string, limit?: number): Promise<unknown> =>
-      ipcRenderer.invoke('japanese:search', query, limit),
-    getLexeme: (entSeq: number): Promise<unknown> => ipcRenderer.invoke('japanese:get-lexeme', entSeq),
-    getKanji: (literal: string): Promise<unknown> => ipcRenderer.invoke('japanese:get-kanji', literal),
-    getStrokes: (literal: string): Promise<unknown> => ipcRenderer.invoke('japanese:get-strokes', literal),
-    searchByKanji: (literal: string): Promise<unknown> =>
-      ipcRenderer.invoke('japanese:search-by-kanji', literal),
-    recognizeStrokes: (strokes: unknown): Promise<unknown> =>
-      ipcRenderer.invoke('japanese:recognize-strokes', strokes),
-    scorePractice: (literal: string, strokes: unknown): Promise<unknown> =>
-      ipcRenderer.invoke('japanese:score-practice', literal, strokes),
-    analyzeLine: (text: string): Promise<unknown> => ipcRenderer.invoke('japanese:analyze-line', text),
-    studyAssist: (request: unknown): Promise<unknown> => ipcRenderer.invoke('japanese:study-assist', request),
-    studyConfigGet: (): Promise<unknown> => ipcRenderer.invoke('japanese:study-config-get'),
-    studyConfigSave: (patch: unknown): Promise<unknown> =>
-      ipcRenderer.invoke('japanese:study-config-save', patch),
-    studyLog: (event: string, data?: Record<string, unknown>): Promise<void> =>
-      ipcRenderer.invoke('japanese:study-log', event, data),
-    studyProviderStatus: (): Promise<unknown> => ipcRenderer.invoke('japanese:study-provider-status'),
-  },
   epub: {
     open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),
     openAbsolute: (absolutePath: string): Promise<unknown> =>

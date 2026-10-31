@@ -2,7 +2,6 @@ import { registerPaneKind } from "./paneKindRegistry";
 import { terminalPaneKind } from "./kinds/terminalKind";
 import { browserPaneKind } from "./kinds/browserKind";
 import { codePaneKind, markdownPaneKind } from "./kinds/editorKind";
-import { japanesePaneKind } from "./kinds/japaneseKind";
 import { rssPaneKind } from "./kinds/rssKind";
 import { viewerPaneKind } from "./kinds/viewerKind";
 
@@ -21,7 +20,6 @@ export function registerBuiltinPaneKinds(): void {
     codePaneKind,
     markdownPaneKind,
     rssPaneKind,
-    japanesePaneKind,
     viewerPaneKind,
   ]) {
     registerPaneKind(def);

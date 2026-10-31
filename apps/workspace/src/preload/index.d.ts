@@ -1,15 +1,4 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type {
-  JapaneseDbPathProbe,
-  JapaneseDbStatus,
-  JapaneseKanjiDetail,
-  JapaneseLexemeDetail,
-  JapaneseSearchResult,
-  JapaneseStrokeData,
-  JapaneseStrokeRecognitionResult,
-  JapanesePracticeScore,
-} from '../shared/japaneseTypes'
-
 export interface TabInfo {
   id: number
   title: string
@@ -285,28 +274,6 @@ export interface WorkspaceApi {
       tabId: number,
       rel: string,
     ) => Promise<import('../shared/cadViewer').CadViewerOpenResult>
-  }
-  japanese: {
-    dbStatus: () => Promise<JapaneseDbStatus>
-    reload: () => Promise<JapaneseDbStatus>
-    logs: (limit?: number) => Promise<Record<string, unknown>[]>
-    search: (query: string, limit?: number) => Promise<JapaneseSearchResult>
-    getLexeme: (entSeq: number) => Promise<JapaneseLexemeDetail | null>
-    getKanji: (literal: string) => Promise<JapaneseKanjiDetail | null>
-    getStrokes: (literal: string) => Promise<JapaneseStrokeData | null>
-    searchByKanji: (literal: string) => Promise<JapaneseSearchResult>
-    recognizeStrokes: (strokes: { points: { x: number; y: number }[] }[]) => Promise<JapaneseStrokeRecognitionResult>
-    scorePractice: (literal: string, strokes: { points: { x: number; y: number }[] }[]) => Promise<JapanesePracticeScore>
-    analyzeLine: (text: string) => Promise<import('../shared/japaneseStudyTypes').StudyAssistResult>
-    studyAssist: (
-      request: import('../shared/japaneseStudyTypes').StudyAssistRequest,
-    ) => Promise<import('../shared/japaneseStudyTypes').StudyAssistResult>
-    studyConfigGet: () => Promise<import('../shared/japaneseStudyTypes').JapaneseStudyConfig>
-    studyConfigSave: (
-      patch: import('../shared/japaneseStudyTypes').JapaneseStudyConfig,
-    ) => Promise<import('../shared/japaneseStudyTypes').JapaneseStudyConfig>
-    studyLog: (event: string, data?: Record<string, unknown>) => Promise<void>
-    studyProviderStatus: () => Promise<{ id: string; label: string; available: boolean }[]>
   }
   epub: {
     open: (tabId: number, rel: string) => Promise<EpubBook>
