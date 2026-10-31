@@ -38,10 +38,9 @@ interface Props {
    * Browse dialog rather than opened from within the workspace root — see
    * PaneTabItem.absolutePath's doc comment. */
   absolutePath: string | null;
-  /** Set only on a blank tab created via the Video/Audio/Ebook picker
-   * entries, before a file has been picked. Decides the Browse button's
-   * label/dialog filters and the empty state; ignored once filePath or
-   * absolutePath is set. */
+  /** Legacy hint for blank viewer tabs persisted from before
+   * media-specific picker entries were removed. Decides Browse filters;
+   * ignored once filePath or absolutePath is set. */
   viewerHint?: "video" | "audio" | "ebook";
   onAssignAbsolutePath: (path: string) => void;
   treeOpen: boolean;

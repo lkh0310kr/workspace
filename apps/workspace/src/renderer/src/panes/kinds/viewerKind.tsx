@@ -3,19 +3,14 @@ import type { PaneKindDefinition } from "../paneKindRegistry";
 
 export const viewerPaneKind: PaneKindDefinition = {
   kind: "viewer",
-  label: "Viewer",
+  // Kept as an internal renderer kind for files opened from the explorer.
+  // Users create the single Editor entry; this kind is selected by extension.
+  label: "Editor",
   icon: "viewer",
   hasFileExplorer: true,
-  // Video/Audio/Ebook go straight to a Browse dialog instead of only
-  // being reachable by clicking a file already in the workspace tree —
-  // all three create a "viewer" tab (FileViewerContent already dispatches
-  // by extension); the source's viewerHint just decides the blank
-  // state's Browse-dialog filter.
-  pickerEntries: [
-    { label: "Video", icon: "viewer", source: { viewerHint: "video" } },
-    { label: "Audio", icon: "viewer", source: { viewerHint: "audio" } },
-    { label: "Ebook", icon: "book", source: { viewerHint: "ebook" } },
-  ],
+  // FileViewerContent remains the format-specific renderer for media,
+  // EPUB, images, PDF, and 3D/CAD assets. Files reach it by extension
+  // through TreeView/Quick Open; it is not a separate picker destination.
   createItem(id, source) {
     return {
       id,

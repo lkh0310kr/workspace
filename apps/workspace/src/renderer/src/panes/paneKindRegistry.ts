@@ -93,10 +93,9 @@ export interface PaneKindDefinition {
    * active. */
   hasFileExplorer?: boolean;
   /** Zero or more "+ New Tab" / pane-picker entries this kind offers — a
-   * kind can have none (not directly pickable — "code" isn't; untitled
-   * files are always created as "markdown"), one, or several sharing the
-   * kind with a different `source` (Video/Audio/Ebook all create a
-   * "viewer" tab, differing only in viewerHint). */
+   * kind can have none (not directly pickable — "code" and the internal
+   * extension-routed viewer aren't; untitled files are always created as
+   * "markdown"), or one or more entries. */
   pickerEntries?: PaneKindPickerEntry[];
   /** Extra tab-strip context menu entries for this kind (prepended). */
   tabContextMenuItems?: (

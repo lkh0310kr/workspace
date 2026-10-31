@@ -28,10 +28,9 @@ export interface PaneTabItem {
    * confined to any workspace root — the user picked it explicitly
    * through an OS-level file dialog. */
   absolutePath?: string;
-  /** kind === "viewer" — set only on a blank tab created via the Video/
-   * Audio/Ebook picker entries, before a file has been picked; decides the
-   * Browse button's label/dialog filters and the "no file yet" empty
-   * state. Irrelevant (and ignored) once filePath/absolutePath is set. */
+  /** kind === "viewer" — legacy hint on blank viewer tabs created before
+   * media-specific picker entries were removed. Decides Browse filters;
+   * ignored once filePath/absolutePath is set. */
   viewerHint?: "video" | "audio" | "ebook";
   /** kind === "browser" */
   url?: string;

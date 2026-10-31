@@ -306,7 +306,7 @@ FBX는 Khronos가 glTF를 표준으로 밀고, 웹 런타임 네이티브 지원
 2. **임계값:** blob IPC 상한을 몇 MB로 둘지 (16 / 32 / 64)?
 3. **FBX v2:** Rust crate vs `fbx2gltf` 바이너리 번들 vs WASM?
 4. **별도 TabKind:** viewer 안에 둘지 `model3d` kind를 early에 분리할지?
-5. **픽커:** viewer pane "+" 메뉴에 "3D Model" Browse 항목을 넣을지 (video/audio처럼)?
+5. **픽커:** Editor pane에서 파일을 열 때 확장자로 3D 모델을 선택하는 흐름을 유지한다. 별도 3D 전용 pane 항목은 추가하지 않는다.
 
 ---
 
