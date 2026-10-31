@@ -15,7 +15,7 @@
     "ensure:godot": "node scripts/ensure-godot.mjs",
     "godot:export:demo": "node scripts/ensure-godot.mjs && WORKSPACE_GODOT_PATH=\"${WORKSPACE_GODOT_PATH:-$PWD/.tools/godot/Godot_v4.3-stable_linux.x86_64}\" sh test-fixtures/godot-demo/export.sh",
     "rebuild:native": "npx electron-rebuild -f -w better-sqlite3",
-    "predev": "node scripts/rebuild-better-sqlite3.mjs --ensure-electron && node scripts/copy-three-decoder-libs.mjs && node scripts/build-apple-fm-sidecar.mjs",
+    "predev": "node scripts/rebuild-better-sqlite3.mjs --ensure-electron && node scripts/copy-three-decoder-libs.mjs",
     "prestart": "node scripts/rebuild-better-sqlite3.mjs --ensure-electron",
     "start": "node scripts/with-linux-ime.mjs electron-vite preview",
     "dev": "node scripts/kill-dev.mjs && node scripts/with-linux-ime.mjs electron-vite dev",
