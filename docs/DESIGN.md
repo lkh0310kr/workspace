@@ -1,87 +1,85 @@
-# Workspace Design Guide
+# Workspace 디자인 가이드
 
-## Direction
+## 방향
 
-Workspace is a desktop tool for people who spend long sessions in code, terminals, browsers, and project files. Keep its familiar workbench structure and information density, while giving the interface a more finished, welcoming feel.
+Workspace는 코드, 터미널, 브라우저, 프로젝트 파일을 오래 다루는 데스크톱 작업 공간입니다. 익숙한 작업대 구조와 정보 밀도를 유지하면서 화면을 더 정돈되고 편안하게 다듬습니다.
 
-Use **Discord** as the color reference and **Orca** as the interaction reference:
+색상은 **Discord**, 상호작용은 **Orca**를 참고합니다.
 
-- Discord: charcoal surfaces, soft neutral text, restrained separators, and blurple for selection and primary actions.
-- Orca: clean desktop chrome, clear focus states, and direct input handling.
-- Workspace: preserve the existing pane, tab, sidebar, and titlebar model. Improve their styling before proposing new navigation or large layout changes.
+- Discord: 차콜 표면, 부드러운 중립색 텍스트, 절제된 구분선, 선택·주요 동작에 blurple 사용
+- Orca: 깔끔한 데스크톱 크롬, 분명한 포커스 상태, 즉각적인 입력 반응
+- Workspace: pane, 탭, 사이드바, 타이틀바 구조를 유지하고 큰 탐색·레이아웃 변경보다 기존 요소의 완성도를 높임
 
-The goal is a focused developer workspace with enough warmth and personality to feel considered. Do not turn it into a marketing page or a generic admin dashboard.
+개발자가 집중해서 쓸 수 있는 작업 공간에 세심한 온기를 더합니다. 마케팅 페이지나 일반 관리 대시보드처럼 보이게 만들지 않습니다.
 
-## Layout and density
+## 레이아웃과 밀도
 
-- Keep the current titlebar, workspace tabs, panes, sidebars, and status areas in their established places.
-- Favor useful information density, but allow breathing room around headings and grouped content.
-- Make small layout changes when they improve scanning, alignment, or responsive behavior. Large structural changes need a clear user benefit.
-- Group related content visually. Cards are welcome for dashboard modules, recent projects, and distinct settings sections when they help scanning.
-- Use consistent spacing and align controls to nearby content. Avoid both cramped controls and oversized empty regions.
+- 타이틀바, Workspace 탭, pane, 사이드바, 상태 영역의 현재 위치를 유지합니다.
+- 필요한 정보 밀도는 지키되 제목과 묶음 콘텐츠 주변에는 여백을 둡니다.
+- 훑어보기, 정렬, 반응형 동작이 나아지는 작은 변경을 우선합니다. 큰 구조 변경은 분명한 사용자 이점이 있어야 합니다.
+- 대시보드 모듈, 최근 프로젝트, 구분이 필요한 설정은 훑어보기 쉬워질 때 카드로 묶습니다.
+- 관련 요소를 시각적으로 묶고 컨트롤을 주변 콘텐츠에 맞춥니다. 너무 빽빽하거나 지나치게 비어 있는 영역은 피합니다.
 
-## Surfaces and geometry
+## 표면과 형태
 
-Build hierarchy from a mix of background, border, typography, and spacing. The main editor area should still read as one work surface, while dialogs, menus, and separate dashboard modules may sit on subtly raised surfaces.
+배경, 테두리, 글꼴, 간격을 조합해 위계를 만듭니다. 편집 영역은 하나의 작업 표면처럼 보이게 하고, 대화상자·메뉴·대시보드 모듈은 필요한 만큼만 표면을 띄웁니다.
 
-Use corner rounding as a useful design tool:
-
-| Token | Starting value | Common use |
+| 토큰 | 기본값 | 주 용도 |
 | --- | ---: | --- |
-| `--radius-sm` | 4px | Inputs, compact buttons, small controls |
-| `--radius-md` | 6px | Cards, tab groups, tool panels |
-| `--radius-lg` | 8px | Dialogs, command surfaces, larger overlays |
+| `--radius-sm` | 4px | 입력, 작은 버튼, 소형 컨트롤 |
+| `--radius-md` | 6px | 카드, 탭 묶음, 도구 패널 |
+| `--radius-lg` | 8px | 대화상자, 명령 표면, 큰 오버레이 |
 
-Use larger radii when they make a surface easier to recognize. Reserve pill shapes for compact status labels and chips. Keep separators subtle and use them where they clarify ownership or grouping.
+모서리 둥글림은 표면을 알아보기 쉽게 할 때 사용합니다. 알약 형태는 작은 상태 라벨과 칩에 한정합니다. 구분선은 소유 관계나 그룹을 분명히 할 때만 씁니다.
 
-A soft shadow can help a menu or dialog separate from the canvas. A faint accent tint or gradient can add depth to a selected surface or dashboard header. Keep these treatments local so they do not compete with editor content.
+부드러운 그림자는 메뉴와 대화상자를 작업 화면과 구분할 때 사용합니다. 선택된 표면이나 대시보드 제목에 약한 강조색이나 그라데이션을 더할 수 있지만 편집 콘텐츠와 경쟁하지 않도록 국소적으로 적용합니다.
 
-## Color
+## 색상
 
-Use neutral backgrounds and readable text, with color carrying state and brand identity. The primary accent is Discord blurple (`#5865f2`). Keep it consistent across focus rings, active tabs, links, selected rows, and primary actions.
+중립 배경과 읽기 쉬운 텍스트를 기본으로 하고, 색상은 상태와 브랜드를 표현합니다. 기본 강조색은 Discord blurple(`#5865f2`)이며 포커스 링, 활성 탭, 링크, 선택 행, 주요 동작에 일관되게 씁니다.
 
-- Dark theme: use Discord charcoal surfaces (`#313338`, `#2b2d31`, `#1e1f22`) with readable soft-white text.
-- Light theme: keep the same blurple accent with neutral gray surfaces and dark text.
-- Use green, amber, and red for success, warnings, and errors.
-- Keep selection washes translucent so code and terminal output remain legible.
-- Keep light and dark token sets paired; do not add a one-off color when a semantic token fits.
+- 어두운 테마: Discord 차콜(`#313338`, `#2b2d31`, `#1e1f22`)과 부드러운 흰색 텍스트
+- 밝은 테마: 같은 blurple 강조색, 중립 회색 표면, 어두운 텍스트
+- 성공·경고·오류에는 초록·황색·빨강 사용
+- 선택 배경은 코드와 터미널을 읽을 수 있도록 투명하게 적용
+- 밝은 테마와 어두운 테마의 토큰을 짝지어 관리하고, 의미 토큰으로 표현할 수 있는 색을 별도로 만들지 않음
 
-All color values should come from CSS custom properties in `assets/styles.css` where practical. Prefer semantic tokens over repeating raw color values in component rules.
+가능하면 색상값은 `assets/styles.css`의 CSS 사용자 속성에서 가져옵니다. 컴포넌트 CSS에 원시 색상값을 반복하기보다 의미가 분명한 토큰을 사용합니다.
 
-## Typography and icons
+## 글꼴과 아이콘
 
-Use the system UI stack for app chrome and the monospace stack for code, terminal output, paths, and keyboard keys. Headings can be larger than pane labels, but should not overpower the workspace. Secondary text must remain readable at normal window sizes.
+앱 크롬에는 시스템 UI 글꼴, 코드·터미널·경로·키보드 키에는 고정폭 글꼴을 사용합니다. 제목은 pane 라벨보다 크게 설정하되 작업 공간을 압도하지 않도록 합니다. 보조 텍스트도 일반 창 크기에서 읽을 수 있어야 합니다.
 
-Use one consistent SVG icon style with aligned stroke weight and optical size. Avoid emoji as interface icons. Give icon-only controls an accessible label and a useful tooltip.
+SVG 아이콘은 선 굵기와 시각적 크기를 통일합니다. 이모지를 인터페이스 아이콘으로 쓰지 않습니다. 아이콘만 있는 컨트롤에는 접근 가능한 이름과 유용한 툴팁을 제공합니다.
 
-## Interaction and motion
+## 상호작용과 움직임
 
-Controls should respond clearly to hover, focus, pressed, selected, and disabled states. Pane and workspace switching must be immediate, without transition animation. Other controls may use a brief color change where it helps communicate interaction.
+컨트롤은 hover, focus, pressed, selected, disabled 상태를 분명히 보여줍니다. pane과 Workspace 전환은 애니메이션 없이 즉시 반응해야 합니다. 다른 컨트롤은 상호작용을 알리는 짧은 색상 변화만 사용할 수 있습니다.
 
-- Avoid movement on repeated workbench controls. Use small state color changes instead.
-- Keep motion off pane and workspace changes so input feels immediate.
-- Avoid animation that delays input or distracts while reading terminal and editor content.
-- Respect `prefers-reduced-motion` for nonessential transitions.
-- Keep keyboard focus visible; do not rely on color alone to identify the active pane or control.
+- 반복해서 쓰는 작업대 컨트롤은 위치를 움직이기보다 상태 색상으로 피드백합니다.
+- 입력이 즉시 반응하도록 pane과 Workspace 전환에 애니메이션을 넣지 않습니다.
+- 터미널과 편집기를 읽을 때 방해가 되거나 입력을 늦추는 애니메이션은 피합니다.
+- 필수적이지 않은 전환은 `prefers-reduced-motion` 설정을 따릅니다.
+- 키보드 포커스를 항상 표시하고 활성 pane이나 컨트롤을 색상만으로 구분하지 않습니다.
 
-## Accessibility and responsive behavior
+## 접근성과 반응형 동작
 
-Maintain readable contrast in both themes, visible focus indicators, clear hit targets, and meaningful names for controls. When the window narrows, wrap or scroll secondary content before shrinking text or hiding essential actions.
+두 테마 모두 읽을 수 있는 대비, 보이는 포커스 표시, 충분한 클릭 영역, 의미 있는 컨트롤 이름을 유지합니다. 창이 좁아지면 글자를 줄이거나 필수 동작을 숨기기 전에 보조 콘텐츠를 줄 바꿈하거나 스크롤하게 합니다.
 
-## Design tokens
+## 디자인 토큰
 
-The current renderer tokens live in `apps/workspace/src/renderer/src/assets/styles.css`:
+현재 renderer 토큰은 `apps/workspace/src/renderer/src/assets/styles.css`에 있습니다.
 
-| Token | Role |
+| 토큰 | 역할 |
 | --- | --- |
-| `--bg-base`, `--bg-surface`, `--bg-raised`, `--bg-hover`, `--bg-active` | Workspace and component surfaces |
-| `--border`, `--border-subtle`, `--border-strong` | Structural separators |
-| `--text`, `--text-muted`, `--text-faint` | Text hierarchy |
-| `--accent` | Primary brand and interaction color |
-| `--radius-sm`, `--radius-md`, `--radius-lg` | Shared corner geometry |
-| `--shadow-overlay` | Menus and dialogs |
-| `--motion-fast`, `--motion-hover-delay` | Shared interaction timing |
-| `--scroll-size`, `--scroll-thumb`, `--scroll-thumb-hover` | Scrollbar treatment |
-| `--font-ui`, `--font-mono` | Interface and technical text |
+| `--bg-base`, `--bg-surface`, `--bg-raised`, `--bg-hover`, `--bg-active` | Workspace와 컴포넌트 표면 |
+| `--border`, `--border-subtle`, `--border-strong` | 구조 구분선 |
+| `--text`, `--text-muted`, `--text-faint` | 텍스트 위계 |
+| `--accent` | 브랜드와 상호작용 기본 색 |
+| `--radius-sm`, `--radius-md`, `--radius-lg` | 공통 모서리 형태 |
+| `--shadow-overlay` | 메뉴와 대화상자 그림자 |
+| `--motion-fast`, `--motion-hover-delay` | 공통 상호작용 시간 |
+| `--scroll-size`, `--scroll-thumb`, `--scroll-thumb-hover` | 스크롤바 스타일 |
+| `--font-ui`, `--font-mono` | 인터페이스와 기술 텍스트 글꼴 |
 
-Use these guidelines as defaults, not prohibitions. A visual treatment is welcome when it improves clarity, feedback, or identity and remains consistent with the desktop workbench.
+이 가이드는 기본 원칙이지 금지 목록이 아닙니다. 명확성, 피드백, 정체성을 높이고 데스크톱 작업대와 일관된다면 다른 시각 표현도 사용할 수 있습니다.

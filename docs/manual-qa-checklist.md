@@ -1,42 +1,42 @@
-# Manual QA checklist
+# 수동 QA 체크리스트
 
-Run before release or after large layout/embed changes. Dev: `cd apps/workspace && npm run dev`.
+릴리스 전이나 레이아웃·embed를 크게 변경한 뒤 실행합니다. 개발 모드 실행: `cd apps/workspace && npm run dev`.
 
-## Workspace tabs
+## Workspace 탭
 
-- [ ] Switch workspace tab via rail — layout visible, no orphan popover blocking clicks
-- [ ] Sidebar quick-switch (rail closed, hover sidebar toggle) opens and selects tab
-- [ ] Close workspace tab (×) — remaining tab active, no stuck overlay
+- [ ] 탭 레일에서 Workspace 탭 전환 — 레이아웃이 보이고 클릭을 막는 팝오버가 남지 않음
+- [ ] 사이드바 빠른 전환 — 레일이 닫힌 상태에서 사이드바 토글에 올리면 탭이 열리고 선택됨
+- [ ] Workspace 탭 닫기(×) — 남은 탭이 활성화되고 오버레이가 고정되지 않음
 
-## Layout / drag
+## 레이아웃과 드래그
 
-- [ ] Pane strip drag — split placeholder shows half-pane fill, drop creates split
-- [ ] Tab chip drag within strip — reorder and merge into another pane
-- [ ] Tab chip drag to empty area — new pane or edge split
-- [ ] Splitter resize over browser pane — completes, browser clickable after release
-- [ ] flexlayout pane drag (strip background) — works, popovers still open on chip click
+- [ ] pane 스트립 드래그 — 절반 pane 자리 표시가 보이고 놓으면 분할됨
+- [ ] 스트립 안에서 탭 칩 드래그 — 순서를 바꾸거나 다른 pane에 합칠 수 있음
+- [ ] 탭 칩을 빈 영역으로 드래그 — 새 pane 또는 가장자리 분할 생성
+- [ ] 브라우저 pane 위에서 분할선 크기 변경 — 완료 후 브라우저를 다시 클릭할 수 있음
+- [ ] flexlayout pane 드래그(스트립 배경) — 동작하고 칩 클릭으로 팝오버를 열 수 있음
 
-## Browser
+## 브라우저
 
-- [ ] Address bar: history suggestions, Enter navigates, Escape reverts to current URL
-- [ ] Cmd+L focuses address bar when browser pane active
-- [ ] Cmd+R reloads focused browser guest (not wrong pane)
-- [ ] Reload/stop button toggles while loading
-- [ ] Popover (settings) open — browser stays visible, clicks hit popover not page
-- [ ] `target=_blank` opens new tab in same pane group
+- [ ] 주소창 — 방문 기록 제안, Enter 이동, Escape로 현재 URL 복구
+- [ ] 브라우저 pane 활성 시 Cmd+L로 주소창 포커스
+- [ ] Cmd+R로 잘못된 pane이 아니라 포커스된 브라우저 guest 새로고침
+- [ ] 로딩 중 새로고침/중지 버튼 전환
+- [ ] 설정 팝오버 열기 — 브라우저가 계속 보이고 클릭이 페이지가 아닌 팝오버에 전달됨
+- [ ] `target=_blank`가 같은 pane 그룹의 새 탭을 엶
 
-## Terminal / editor
+## 터미널과 편집기
 
-- [ ] New terminal pane — shell prompt, scrollback after tab switch
-- [ ] Editor tab switch — dirty indicator, tree width persists per tab item
-- [ ] Cmd+W closes active pane tab (or dismisses settings first)
+- [ ] 새 터미널 pane — 셸 프롬프트와 탭 전환 후 스크롤백 확인
+- [ ] 편집기 탭 전환 — 수정 표시와 탭별 트리 너비 유지
+- [ ] Cmd+W로 활성 pane 탭 닫기(또는 설정을 먼저 닫기)
 
-## Shortcuts
+## 단축키
 
-- [ ] Cmd+, opens app settings
-- [ ] Cmd+Plus/Minus zooms active **pane** (flexlayout tab), not browser guest zoom
+- [ ] Cmd+,로 앱 설정 열기
+- [ ] Cmd+Plus/Minus가 브라우저 guest가 아닌 활성 **pane**을 확대·축소
 
-## Debug (dev only)
+## 디버그(개발 모드 전용)
 
-- [ ] InteractionDebugPanel: `overlayBlockCount` 0 when idle
-- [ ] No macOS menu spam in packaged build (Electron ≥42 reduces upstream log)
+- [ ] InteractionDebugPanel에서 대기 중 `overlayBlockCount`가 0
+- [ ] 패키징 빌드에서 macOS 메뉴 로그가 반복되지 않음(Electron ≥42에서 upstream 로그 감소)
