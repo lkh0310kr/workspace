@@ -15,6 +15,12 @@
   background-color: var(--terminal-surface-bg, var(--bg-base));
 }
 
+.pane-manager-root .xterm .xterm-scrollable-element > .xterm-scrollbar,
+.terminal-pane-shell .xterm .xterm-scrollable-element > .xterm-scrollbar {
+  background: transparent !important;
+  border-left: 0 !important;
+}
+
 .pane-manager-root .xterm canvas,
 .terminal-pane-shell .xterm canvas {
   background-color: transparent;
