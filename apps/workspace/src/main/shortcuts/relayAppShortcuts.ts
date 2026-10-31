@@ -85,6 +85,10 @@ export function relayHostAppShortcuts(
   options: HostShortcutRelayOptions,
 ): void {
   if (isImeToggleKey(input)) return
+  if (input.type === 'keyUp') {
+    if (input.key === 'Meta' || input.key === 'Control') options.send('shortcut:modifier-released')
+    return
+  }
   if (input.type !== 'keyDown') return
 
   relaySharedRendererShortcuts(event, input, options.send, {
@@ -144,6 +148,10 @@ export function relayGuestWebviewShortcuts(
   webContentsId: number,
 ): void {
   if (isImeToggleKey(input)) return
+  if (input.type === 'keyUp') {
+    if (input.key === 'Meta' || input.key === 'Control') send('shortcut:modifier-released')
+    return
+  }
   if (input.type !== 'keyDown') return
 
   if (isHomeKey(input) && (input.control || input.meta) && !input.shift && !input.alt) {

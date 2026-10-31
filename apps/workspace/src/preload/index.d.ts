@@ -181,6 +181,7 @@ export interface WorkspaceApi {
     onClosePaneTab: (cb: () => void) => () => void
     onOpenSettings: (cb: () => void) => () => void
     onNewWorkspaceTab: (cb: () => void) => () => void
+    onShortcutModifierReleased: (cb: () => void) => () => void
     onSwitchWorkspaceTabIndex: (cb: (payload: { index: number }) => void) => () => void
     onPastePlainText: (cb: () => void) => () => void
     onTerminalPaste: (cb: (payload: { terminalId: number }) => void) => () => void

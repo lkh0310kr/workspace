@@ -8,7 +8,7 @@ import {
   type MouseEvent,
 } from 'react'
 import type { Model } from 'flexlayout-react'
-import { TabInfo, addTab, closeTab, renameTab, reorderTabs } from '../electron'
+import { TabInfo, addTab, closeTab, onShortcutModifierReleased, renameTab, reorderTabs } from '../electron'
 import { dismissWorkspacePortals } from '../workspacePortalDismiss'
 import { switchToHome, switchToWorkspaceTab } from '../workspaceNavigation'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
@@ -55,20 +55,33 @@ export function WorkspaceTabRail({
   }, [renamingId])
 
   useEffect(() => {
-    const updateFromKeyboard = (event: KeyboardEvent) => {
-      setShowTabNumbers(event.metaKey || event.ctrlKey)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Meta' || event.key === 'Control' || event.metaKey || event.ctrlKey) {
+        setShowTabNumbers(true)
+      }
+    }
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (
+        event.key === 'Meta' ||
+        event.key === 'Control' ||
+        (!event.metaKey && !event.ctrlKey)
+      ) {
+        setShowTabNumbers(false)
+      }
     }
     const clearOnBlur = () => setShowTabNumbers(false)
+    const unsubscribeModifierRelease = onShortcutModifierReleased(clearOnBlur)
 
-    window.addEventListener('keydown', updateFromKeyboard)
-    window.addEventListener('keyup', updateFromKeyboard)
+    window.addEventListener('keydown', onKeyDown, true)
+    window.addEventListener('keyup', onKeyUp, true)
     window.addEventListener('blur', clearOnBlur)
     document.addEventListener('visibilitychange', clearOnBlur)
     return () => {
-      window.removeEventListener('keydown', updateFromKeyboard)
-      window.removeEventListener('keyup', updateFromKeyboard)
+      window.removeEventListener('keydown', onKeyDown, true)
+      window.removeEventListener('keyup', onKeyUp, true)
       window.removeEventListener('blur', clearOnBlur)
       document.removeEventListener('visibilitychange', clearOnBlur)
+      unsubscribeModifierRelease()
     }
   }, [])
 

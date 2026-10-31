@@ -179,6 +179,11 @@ const api = {
       ipcRenderer.on('shortcut:new-workspace-tab', listener)
       return () => ipcRenderer.removeListener('shortcut:new-workspace-tab', listener)
     },
+    onShortcutModifierReleased: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:modifier-released', listener)
+      return () => ipcRenderer.removeListener('shortcut:modifier-released', listener)
+    },
     onSwitchWorkspaceTabIndex: (cb: (payload: { index: number }) => void): (() => void) => {
       const listener = (
         _event: Electron.IpcRendererEvent,
