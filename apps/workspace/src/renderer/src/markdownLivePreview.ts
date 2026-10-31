@@ -253,6 +253,68 @@ class TableWidget extends WidgetType {
   }
 }
 
+class HtmlBlockWidget extends WidgetType {
+  constructor(readonly html: string) {
+    super();
+  }
+
+  eq(other: HtmlBlockWidget): boolean {
+    return other.html === this.html;
+  }
+
+  toDOM(): HTMLIFrameElement {
+    const frame = document.createElement("iframe");
+    frame.className = "cm-md-html-embed";
+    frame.title = "Embedded HTML preview";
+    frame.setAttribute("sandbox", "allow-same-origin");
+    frame.setAttribute("scrolling", "no");
+    const hostStyle = getComputedStyle(document.documentElement);
+    const textColor = hostStyle.getPropertyValue("--text").trim() || "#d4d4d4";
+    const background = hostStyle.getPropertyValue("--bg-base").trim() || "transparent";
+    frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;overflow:hidden}body{color:${textColor};background:${background};font:14px/1.5 system-ui,sans-serif}img,video,iframe{max-width:100%}</style></head><body>${this.html}</body></html>`;
+
+    let observer: ResizeObserver | null = null;
+    const resize = () => {
+      try {
+        const doc = frame.contentDocument;
+        if (!doc) return;
+        const height = Math.max(
+          doc.documentElement.scrollHeight,
+          doc.body?.scrollHeight ?? 0,
+          doc.documentElement.getBoundingClientRect().height,
+        );
+        frame.style.height = `${Math.min(Math.max(height, 32), 2400)}px`;
+      } catch {
+        // The iframe remains scrollable if its document cannot be measured.
+      }
+    };
+    frame.addEventListener("load", resize);
+    observer = new ResizeObserver(resize);
+    htmlFrameObservers.set(frame, observer);
+    frame.addEventListener("load", () => {
+      try {
+        if (frame.contentDocument?.documentElement) observer?.observe(frame.contentDocument.documentElement);
+      } catch {
+        // Keep the initial height when the embedded document is inaccessible.
+      }
+    });
+    frame.style.height = "120px";
+    return frame;
+  }
+
+  destroy(dom: HTMLElement): void {
+    const observer = htmlFrameObservers.get(dom as HTMLIFrameElement);
+    observer?.disconnect();
+    htmlFrameObservers.delete(dom as HTMLIFrameElement);
+  }
+
+  ignoreEvent(): boolean {
+    return true;
+  }
+}
+
+const htmlFrameObservers = new WeakMap<HTMLIFrameElement, ResizeObserver>();
+
 function buildDecorations(view: EditorView): DecorationSet {
   const collected: { from: number; to: number; deco: Decoration }[] = [];
 
@@ -685,6 +747,33 @@ const tableDecorations = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 });
 
+function buildHtmlBlockDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  syntaxTree(state).iterate({
+    enter: (node: SyntaxNodeRef) => {
+      if (node.type.name !== "HTMLBlock" || selectionOverlaps(state, node.from, node.to)) return;
+      const firstLine = state.doc.lineAt(node.from);
+      const lastLine = state.doc.lineAt(Math.max(node.from, node.to - 1));
+      if (firstLine.from !== node.from) return;
+      builder.add(
+        node.from,
+        lastLine.to,
+        Decoration.replace({ widget: new HtmlBlockWidget(state.doc.sliceString(node.from, lastLine.to)), block: true }),
+      );
+    },
+  });
+  return builder.finish();
+}
+
+const htmlBlockDecorations = StateField.define<DecorationSet>({
+  create: (state) => buildHtmlBlockDecorations(state),
+  update: (decorations, transaction) =>
+    transaction.docChanged || transaction.selection
+      ? buildHtmlBlockDecorations(transaction.state)
+      : decorations.map(transaction.changes),
+  provide: (field) => EditorView.decorations.from(field),
+});
+
 // `EditorView.atomicRanges` (making hidden marker ranges an indivisible
 // unit for cursor motion — the "correct", CM6-documented fix for a minor
 // cursor-lands-one-char-off bug when arrowing into a heading/link line)
@@ -705,4 +794,9 @@ const tableDecorations = StateField.define<DecorationSet>({
 // cosmetic bug atomicRanges was meant to fix — so rather than ship an
 // unverified fix for something this severe, atomicRanges is left out
 // entirely until it can be revisited with a way to test it for real.
-export const markdownLivePreview: Extension[] = [inlineDecorations, blockDecorations, tableDecorations];
+export const markdownLivePreview: Extension[] = [
+  inlineDecorations,
+  blockDecorations,
+  tableDecorations,
+  htmlBlockDecorations,
+];
