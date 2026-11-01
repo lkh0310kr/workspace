@@ -11,6 +11,7 @@
 5. [터미널 파이프라인](./05-terminal-pipeline.md) — PTY, xterm, 출력·스크롤 흐름
 6. [브라우저 embed](./06-browser-embeds.md) — webview 수명과 탐색
 7. [PKMS 통합](./07-pkms-integration.md) — 공용 클라이언트, pane, Worker IPC 경계
+8. [Monorepo 모듈 경계](./08-monorepo-module-boundaries.md) — Workspace, Web, iOS, 공유 패키지 간 책임과 의존 방향
 
 ## 범위
 
