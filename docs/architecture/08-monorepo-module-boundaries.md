@@ -58,13 +58,21 @@ The PKMS pane mounts the same React client used by Web. `packages/pkms-client/sr
 - `components/` holds leaf UI such as icons and the Markdown editor.
 - `PkmsClientApp.tsx` still composes most feature state and screens. Split it into account, repository, file browser, editor, and sync feature modules in follow-up work without changing its public Web/Desktop entry point.
 
-## Refactoring order
+## Refactoring progress
 
-1. Keep the current runtime boundaries and move pure domain helpers out of UI components.
-2. Extract Workspace Main IPC handlers by capability and keep `main/index.ts` as composition root.
-3. Split the PKMS client into feature components/hooks, preserving shared Web/Desktop behavior.
-4. Split the iOS state model into API, auth, document, and Realtime coordinators.
-5. Separate Worker routing into auth, workspace API, MCP, and scheduled sync modules.
-6. Generate client DTOs from the language-neutral schemas and add contract checks before changing the wire format.
+The first modularization pass has:
+
+- moved PKMS client pure helpers into `domain/`, API transport into `client/`, and leaf icons into `components/`;
+- moved Workspace tab/filesystem/search and PTY registration out of `main/index.ts` into `main/ipc/`;
+- introduced shared TypeScript API and Realtime models in `@pkms/protocol` for the Worker and React client;
+- moved iOS wire DTOs out of `PKMSModel.swift` into `PKMSProtocolModels.swift`.
+
+The next steps are:
+
+1. Split `PkmsClientApp.tsx` into account, repository, file browser, editor, and sync feature components/hooks while keeping the Web/Desktop entry point stable.
+2. Split the iOS state model into API, auth, document, and Realtime coordinators.
+3. Separate Worker routing into auth, workspace API, MCP, and scheduled sync modules.
+4. Generate client DTOs from the language-neutral schemas and add contract checks before changing the wire format.
+5. Review repeated Markdown editor behavior between Workspace and PKMS; extract only the CodeMirror behavior that can be shared without coupling either app's styles or lifecycle.
 
 Each step should preserve the current API, database schema, deployment bindings, and iOS FFI contract. A module move alone must not alter authorization, persistence, or sync semantics.
