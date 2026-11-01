@@ -13,7 +13,6 @@ import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
-import type { SearchOptions } from './search'
 import { registerMediaProtocol, toMediaUrlBrowsed } from './mediaProtocol'
 import { registerModelProtocol } from './model3d/modelProtocol'
 import { fetchDashboardEconomy, fetchDashboardWeather } from './dashboardData'
@@ -36,7 +35,6 @@ import {
   isWsl,
   isWslWindowsMountPath,
   applyWslDpiScaleFix,
-  resolveUserSelectedRootPath,
 } from './wslPaths'
 import { applyBrowserGpuSwitches } from './browserGpuEnv'
 import { shouldIgnoreWatcherPath } from './filesystemWatcherIgnore'
@@ -54,6 +52,8 @@ import { setupBrowserSession, BROWSER_SESSION_PARTITION } from './browserSession
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
 import { registerPkmsIpc } from './pkms/ipc'
+import { registerWorkspaceIpc } from './ipc/workspace'
+import { registerTerminalIpc } from './ipc/terminal'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import {
   observeTerminalPtyOutput,
@@ -828,115 +828,8 @@ app.whenReady().then(() => {
     pickMediaFile(mainWindowRef, kind)
   )
 
-  ipcMain.handle('pty:spawn', (_event, cols: number, rows: number, tabId?: number) => {
-    return workspace!.spawnTerminal(cols, rows, tabId)
-  })
-  ipcMain.handle('pty:connect', (event, id: number) => {
-    return workspace!.connectTerminal(id, event.sender)
-  })
-  ipcMain.on('pty:disconnect', (event, id: number) => {
-    workspace!.disconnectTerminal(id, event.sender)
-  })
-  ipcMain.on('pty:write', (_event, id: number, data: Uint8Array) => {
-    workspace!.terminalWrite(id, Buffer.from(data))
-  })
-  ipcMain.on('pty:ack-output', (_event, id: number, seq: number) => {
-    workspace!.acknowledgeTerminalOutput(id, seq)
-  })
-  ipcMain.on('terminal:set-focused', (_event, id: number | null) => {
-    focusedTerminalId = id
-  })
-  ipcMain.on('pty:resize', (_event, id: number, cols: number, rows: number) => {
-    workspace!.terminalResize(id, cols, rows)
-  })
-  ipcMain.on('pty:dispose', () => {
-    // Individual-terminal disposal isn't wired to the Workspace model yet
-    // (it only releases terminals no longer referenced by any tab's
-    // layout, via setTabLayout) — a real "close this terminal" action
-    // belongs to the layout port (task 6), not this milestone.
-  })
-
-  ipcMain.handle('workspace:get-state', () => workspace!.state())
-  ipcMain.handle('workspace:add-tab', () => {
-    const id = workspace!.addTab()
-    persist()
-    return id
-  })
-  ipcMain.handle('workspace:close-tab', (_event, tabId: number) => {
-    workspace!.closeTab(tabId)
-    persist()
-  })
-  ipcMain.handle('workspace:select-tab', (_event, tabId: number) => {
-    workspace!.selectTab(tabId)
-    persist()
-  })
-  ipcMain.handle('workspace:rename-tab', (_event, tabId: number, title: string) => {
-    workspace!.renameTab(tabId, title)
-    persist()
-  })
-  ipcMain.handle('workspace:reorder-tabs', (_event, orderedIds: number[]) => {
-    workspace!.reorderTabs(orderedIds)
-    persist()
-  })
-  ipcMain.handle('workspace:set-tab-layout', (_event, tabId: number, layoutJson: string) => {
-    workspace!.setTabLayout(tabId, layoutJson)
-    persist()
-  })
-  ipcMain.handle('workspace:set-tab-root-path', (_event, tabId: number, rootPath: string) => {
-    const nativeRoot = resolveUserSelectedRootPath(rootPath)
-    workspace!.setTabRootPath(tabId, nativeRoot)
-    if (tabId === workspace!.state().activeTabId) {
-      workspace!.defaultRootPath = nativeRoot
-      saveConfig({ rootPath: nativeRoot })
-    }
-    persist()
-    return workspace!.state()
-  })
-
-  ipcMain.handle('fs:list-dir', (_event, tabId: number, rel: string) => workspace!.listDir(tabId, rel))
-  ipcMain.handle('fs:read-file', (_event, tabId: number, rel: string) => workspace!.readFile(tabId, rel))
-  ipcMain.handle('fs:read-file-binary-preview', (_event, tabId: number, rel: string) =>
-    workspace!.readFileBinaryPreview(tabId, rel)
-  )
-  ipcMain.handle('fs:write-file', (_event, tabId: number, rel: string, content: string) =>
-    workspace!.writeFile(tabId, rel, content)
-  )
-  ipcMain.handle('fs:create-dir', (_event, tabId: number, rel: string) => workspace!.createDir(tabId, rel))
-  ipcMain.handle('fs:delete-path', (_event, tabId: number, rel: string) => workspace!.deletePath(tabId, rel))
-  ipcMain.handle('fs:rename-path', (_event, tabId: number, fromRel: string, toRel: string) =>
-    workspace!.renamePath(tabId, fromRel, toRel)
-  )
-
-  // Streaming/cancelable, unlike the single-shot fs:* handlers above — a
-  // search can run long and the renderer needs to cancel a stale one (a new
-  // keystroke superseding the previous query), so this uses ipcMain.on +
-  // event.sender.send instead of ipcMain.handle's one-shot request/response.
-  const activeSearches = new Map<string, { cancel: () => void }>()
-  ipcMain.on(
-    'fs:search-in-files',
-    (event, requestId: string, tabId: number, query: string, opts: SearchOptions) => {
-      activeSearches.get(requestId)?.cancel()
-      const handle = workspace!.searchInFiles(
-        tabId,
-        query,
-        opts,
-        (result) => {
-          if (!event.sender.isDestroyed()) event.sender.send('fs:search-result', requestId, result)
-        },
-        (error) => {
-          activeSearches.delete(requestId)
-          if (!event.sender.isDestroyed()) event.sender.send('fs:search-done', requestId, error)
-        }
-      )
-      activeSearches.set(requestId, handle)
-    }
-  )
-  ipcMain.on('fs:search-cancel', (_event, requestId: string) => {
-    activeSearches.get(requestId)?.cancel()
-    activeSearches.delete(requestId)
-  })
-  ipcMain.handle('fs:list-all-files', (_event, tabId: number) => workspace!.listAllFiles(tabId))
-  ipcMain.handle('media:get-url', (_event, tabId: number, rel: string) => workspace!.mediaUrl(tabId, rel))
+  registerTerminalIpc(() => workspace!, (id) => { focusedTerminalId = id })
+  registerWorkspaceIpc(() => workspace!, persist)
   // Unconfined counterpart of media:get-url, for a file picked via
   // dialog:pick-media-file — see toMediaUrlBrowsed's doc comment.
   ipcMain.handle('media:get-url-absolute', (_event, absolutePath: string) => toMediaUrlBrowsed(absolutePath))
