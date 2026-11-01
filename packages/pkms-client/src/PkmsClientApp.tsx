@@ -1,13 +1,13 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
+import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
 import { desktopBridge } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
 import { submitWorkspaceOperation } from "./client/workspaceOperations";
 import { useLocation, useNavigate } from "react-router";
 import type { FileNavigation, FileRecord, Peer, RealtimeMessage, Repository, SyncStatus, TreeContextMenu, TreeRow, Workspace } from "./domain/types";
-import { fromBase64, toBase64, createOperationId } from "./domain/encoding";
+import { toBase64, createOperationId } from "./domain/encoding";
 import { entryName, flattenTree, mergeFileRecords, parentPath, treeSelectionRoots } from "./domain/fileTree";
 import { fileLocationPath, parseFileLocation } from "./domain/fileLocation";
 import { matchesExcludePattern } from "./domain/excludePattern";
@@ -21,6 +21,7 @@ import { useRealtimeMessages } from "./features/editor/useRealtimeMessages";
 import { useAccountSession } from "./features/account/useAccountSession";
 import { useWorkspaceFileCreation } from "./features/files/useWorkspaceFileCreation";
 import { useWorkspaceFileActions } from "./features/files/useWorkspaceFileActions";
+import { useDocumentSession } from "./features/editor/useDocumentSession";
 
 const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
 const api = requestPkmsApi;
@@ -109,6 +110,13 @@ export default function Home() {
     setSync,
     setNotice,
   });
+  const { openFile, clearActiveFile } = useDocumentSession({
+    workspace: activeWorkspace, api, pathname: location.pathname, navigate, routedPath,
+    documents: docs, activeDocument: activeRef, pending, socket, openSequence: openFileSequence, hydrating,
+    scheduleAutoSave, setCurrentFolder, setExpandedFolders, setActiveFile, setText, setOpeningFileId,
+    setError, setSaving, setSidebarOpen, setNotice,
+  });
+  openFileRef.current = openFile;
   const handleRealtimeMessage = useRealtimeMessages({
     workspaceId: activeWorkspace?.id ?? "",
     documents: docs,
@@ -145,20 +153,6 @@ export default function Home() {
 
   useEffect(() => { setOutlineOpen(false); }, [activeFile?.id]);
 
-  const clearActiveFile = () => {
-    openFileSequence.current++;
-    hydrating.current = false;
-    setOpeningFileId(null);
-    const current = activeRef.current;
-    if (current.file && current.text) {
-      const entry = docs.current.get(current.file.id);
-      if (entry?.observer) current.text.unobserve(entry.observer);
-      if (entry) entry.observer = undefined;
-    }
-    activeRef.current = { file: null, doc: null, text: null, value: "" };
-    setActiveFile(null);
-    setText("");
-  };
 
   useEffect(() => {
     const desktop = desktopBridge();
@@ -304,120 +298,6 @@ export default function Home() {
     localStorage.setItem(`pkms:tree:${activeWorkspace.id}`, JSON.stringify({ expanded: [...expandedFolders].filter(Boolean), currentFolder }));
   }, [activeWorkspace?.id, currentFolder, expandedFolders, loadedFolders]);
 
-  const openFile = useCallback(async (file: FileRecord, historyAction: FileNavigation = "push") => {
-    const request = ++openFileSequence.current;
-    hydrating.current = false;
-    if (activeWorkspace && historyAction !== "none") {
-      const target = fileLocationPath(activeWorkspace.id, file.path);
-      if (location.pathname !== target) {
-        routedPath.current = target;
-        navigate(target, { replace: historyAction === "replace", preventScrollReset: true });
-      }
-    }
-    setNotice("");
-    if (window.matchMedia("(max-width: 580px)").matches) setSidebarOpen(false);
-    const parent = parentPath(file.path);
-    setCurrentFolder(parent);
-    setExpandedFolders((current) => {
-      const next = new Set(current).add("");
-      let ancestor = parent;
-      while (ancestor) { next.add(ancestor); ancestor = parentPath(ancestor); }
-      return next;
-    });
-    const previous = activeRef.current;
-    if (previous.file && previous.text) {
-      const oldEntry = docs.current.get(previous.file.id);
-      if (oldEntry?.observer) previous.text.unobserve(oldEntry.observer);
-      if (oldEntry) oldEntry.observer = undefined;
-    }
-    setActiveFile(file);
-    setText("");
-    setOpeningFileId(file.id);
-    activeRef.current = { file, doc: null, text: null, value: "" };
-    if (file.kind !== "markdown") {
-      setOpeningFileId(null);
-      return;
-    }
-    setError(""); setSaving(false); hydrating.current = true;
-    let entry = docs.current.get(file.id);
-    try {
-      if (!entry) {
-        const doc = new Y.Doc({ guid: file.id });
-        const persistence = new IndexeddbPersistence(`pkms:${activeWorkspace?.id}:${file.id}`, doc);
-        entry = { doc, persistence };
-        docs.current.set(file.id, entry);
-        await persistence.whenSynced;
-        if (request !== openFileSequence.current) return;
-      }
-      let currentText = entry.doc.getText("markdown");
-      if (!currentText.length) {
-        const server = await api<{ update: string }>(`/api/workspaces/${activeWorkspace?.id}/files/${file.id}/updates`);
-        if (request !== openFileSequence.current) return;
-        Y.applyUpdate(entry.doc, fromBase64(server.update), "server");
-      }
-    } catch (cause) {
-      if (request === openFileSequence.current) { setError(cause instanceof Error ? cause.message : "Could not open file"); setOpeningFileId(null); }
-      hydrating.current = false;
-      return;
-    }
-    if (request !== openFileSequence.current) return;
-    let currentText = entry.doc.getText("markdown");
-    const queuedState = pending.current.get(`state:${file.id}`);
-    if (queuedState?.update) {
-      Y.applyUpdate(entry.doc, fromBase64(queuedState.update), "server");
-      pending.current.delete(`state:${file.id}`);
-    }
-    currentText = entry.doc.getText("markdown");
-    activeRef.current = { file, doc: entry.doc, text: currentText, value: currentText.toString() };
-    setText(currentText.toString());
-    const update = () => {
-      const value = currentText.toString();
-      activeRef.current.value = value;
-      setText(value);
-    };
-    currentText.observe(update);
-    entry.observer = update;
-    const currentSocket = socket.current;
-    const cacheKey = `pkms:${activeWorkspace?.id}:${file.id}`;
-    const stored = JSON.parse(localStorage.getItem("pkms:recent-files") ?? "[]") as Array<{ key: string; lastOpened: number }>;
-    const recent = [{ key: cacheKey, lastOpened: Date.now() }, ...stored.filter((item) => item.key !== cacheKey)].slice(0, 20);
-    localStorage.setItem("pkms:recent-files", JSON.stringify(recent));
-    const evicted = stored.filter((item) => !recent.some((kept) => kept.key === item.key));
-    for (const item of evicted) {
-      const fileId = item.key.split(":").at(-1) ?? "";
-      const old = docs.current.get(fileId);
-      if (old && activeRef.current.file?.id !== fileId) {
-        old.doc.destroy();
-        old.persistence.destroy();
-        docs.current.delete(fileId);
-      }
-      const deletion = indexedDB.deleteDatabase(item.key);
-      deletion.onerror = () => {};
-    }
-    if (entry.updateHandler) entry.doc.off("update", entry.updateHandler);
-    const updateHandler = (updateBytes: Uint8Array, origin: unknown) => {
-      if (origin === "server") return;
-      scheduleAutoSave(file.id, entry.doc);
-      const current = socket.current;
-      if (!current || current.readyState !== WebSocket.OPEN) return;
-      const operationId = createOperationId();
-      pending.current.set(operationId, { type: "document-update", operationId, fileId: file.id });
-      setSaving(true);
-      current.send(JSON.stringify({ type: "document-update", operationId, fileId: file.id, update: toBase64(updateBytes) }));
-    };
-    entry.doc.on("update", updateHandler);
-    entry.updateHandler = updateHandler;
-    if (currentSocket?.readyState === WebSocket.OPEN) {
-      currentSocket.send(JSON.stringify({ type: "presence", fileId: file.id }));
-      const operationId = createOperationId();
-      pending.current.set(operationId, { type: "document-update", operationId, fileId: file.id });
-      setSaving(true);
-      currentSocket.send(JSON.stringify({ type: "document-update", operationId, fileId: file.id, update: toBase64(Y.encodeStateAsUpdate(entry.doc)) }));
-    }
-    hydrating.current = false;
-    if (request === openFileSequence.current) setOpeningFileId(null);
-  }, [activeWorkspace, api, location.pathname, navigate, scheduleAutoSave]);
-  openFileRef.current = openFile;
 
   const fileLocation = parseFileLocation(location.pathname);
   useEffect(() => {
