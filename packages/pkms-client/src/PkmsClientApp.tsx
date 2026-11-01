@@ -19,6 +19,7 @@ import { useWorkspaceDirectory } from "./features/files/useWorkspaceDirectory";
 import { useDocumentSync } from "./features/editor/useDocumentSync";
 import { useRealtimeMessages } from "./features/editor/useRealtimeMessages";
 import { useAccountSession } from "./features/account/useAccountSession";
+import { useWorkspaceFileCreation } from "./features/files/useWorkspaceFileCreation";
 
 const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
 const api = requestPkmsApi;
@@ -512,40 +513,7 @@ export default function Home() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not connect repository"); }
   };
 
-  const newNote = async (directory = currentFolder) => {
-    if (!activeWorkspace) return;
-    const path = `${directory ? `${directory}/` : ""}Untitled ${new Date().toLocaleString("sv-SE").replaceAll(":", "-")}.md`;
-    try {
-      const result = await submitWorkspaceOperation(api, activeWorkspace, {
-        type: "create-file", path, fileId: createOperationId(), content: "# Untitled\n\n",
-      }, "web");
-      const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
-      setFiles(snapshot.files);
-      const created = snapshot.files.find((item) => item.path === (result.conflictCopyPath ?? path));
-      if (created) await openFile(created);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create note"); }
-  };
-
-  const newFolder = async (directory = currentFolder) => {
-    if (!activeWorkspace) return;
-    const name = window.prompt("New folder");
-    if (!name?.trim()) return;
-    try {
-      await submitWorkspaceOperation(api, activeWorkspace, { type: "create-folder", path: `${directory ? `${directory}/` : ""}${name.trim()}` });
-      const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
-      setFiles(snapshot.files);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create folder"); }
-  };
-
-  const uploadFile = async (file?: File) => {
-    if (!file || !activeWorkspace) return;
-    const form = new FormData(); form.set("file", file); form.set("path", `${currentFolder ? `${currentFolder}/` : ""}${file.name}`); form.set("clientId", `web-${createOperationId()}`);
-    try {
-      await api(`/api/workspaces/${activeWorkspace.id}/upload`, { method: "POST", body: form });
-      const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
-      setFiles(snapshot.files);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Upload failed"); }
-  };
+  const { newNote, newFolder, uploadFile } = useWorkspaceFileCreation({ workspace: activeWorkspace, currentFolder, request: api, setFiles, setError, openFile });
 
   const handleText = (next: string) => {
     const current = activeRef.current;
