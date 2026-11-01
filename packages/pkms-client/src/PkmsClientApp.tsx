@@ -1,120 +1,19 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import { PKMSRealtimeSocket } from "./realtime";
-import { desktopBridge, requestDesktopApi } from "./platform/desktopApi";
+import { desktopBridge } from "./platform/desktopApi";
+import { requestPkmsApi } from "./client/api";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
+import type { FileNavigation, FileRecord, Peer, RealtimeMessage, Repository, SyncStatus, TreeContextMenu, TreeRow, User, Workspace } from "./domain/types";
+import { fromBase64, toBase64, createOperationId } from "./domain/encoding";
+import { entryName, flattenTree, mergeFileRecords, parentPath, parseTreeDragPaths, treeSelectionRoots } from "./domain/fileTree";
+import { fileLocationPath, parseFileLocation } from "./domain/fileLocation";
+import { matchesExcludePattern } from "./domain/excludePattern";
+import { applyTextDiff } from "./domain/yjsText";
+import { AppIcon, GitHubIcon } from "./components/Icons";
 
 const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
-
-interface User { login: string; avatarUrl?: string }
-interface Repository { fullName: string; defaultBranch: string; private: boolean; canWrite: boolean }
-interface Workspace { id: string; repository: string; branch: string; revision: number; githubStatus: string; message?: string }
-interface FileRecord { id: string; path: string; kind: "markdown" | "asset" | "folder"; content?: string; size?: number; revision?: number }
-interface SyncStatus { githubStatus: string; pendingFiles: number; message?: string; lastGitHubCommitAt?: string; nextGitHubFlushAt?: number }
-interface RealtimeMessage { type: string; fileId?: string; update?: string; operationId?: string; acceptedRevision?: number; conflictCopyPath?: string; revision?: number; message?: string; code?: string }
-interface Peer { clientId: string; login: string; avatarUrl?: string; fileId?: string }
-function toBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
-}
-
-function fromBase64(value: string): Uint8Array {
-  return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
-}
-
-function id(): string { return crypto.randomUUID(); }
-
-function parentPath(path: string): string {
-  const separator = path.lastIndexOf("/");
-  return separator < 0 ? "" : path.slice(0, separator);
-}
-
-function entryName(path: string): string {
-  return path.slice(path.lastIndexOf("/") + 1);
-}
-
-function mergeFileRecords(current: FileRecord[], incoming: FileRecord[]): FileRecord[] {
-  const byPath = new Map(current.map((file) => [file.path, file]));
-  for (const file of incoming) byPath.set(file.path, file);
-  return [...byPath.values()];
-}
-
-interface FileLocation { workspaceId: string; path: string }
-type FileNavigation = "push" | "replace" | "none";
-function fileLocationPath(workspaceId: string, path: string): string {
-  return `/workspace/${encodeURIComponent(workspaceId)}/${path.split("/").map(encodeURIComponent).join("/")}`;
-}
-function parseFileLocation(pathname: string): FileLocation | null {
-  if (!pathname.startsWith("/workspace/")) return null;
-  const segments = pathname.slice("/workspace/".length).split("/");
-  if (segments.length < 2 || !segments[0]) return null;
-  try { return { workspaceId: decodeURIComponent(segments[0]), path: segments.slice(1).map(decodeURIComponent).join("/") }; }
-  catch { return null; }
-}
-
-function matchesExcludePattern(path: string, pattern: string): boolean {
-  const normalized = pattern.trim().replace(/^\/+|\/+$/g, "");
-  if (!normalized) return false;
-  const escape = (value: string) => value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&").replace(/\*/g, "\\*?");
-  const source = normalized.split("**").map(escape).join(".*").replace(/\\\*\?/g, "[^/]*");
-  const expression = new RegExp(normalized.includes("/") ? `^${source}$` : `(^|/)${source}$`);
-  const segments = path.split("/");
-  return segments.some((_, index) => expression.test(segments.slice(0, index + 1).join("/")) || expression.test(segments[index]));
-}
-
-interface TreeRow { file: FileRecord; depth: number }
-interface TreeContextMenu { file: FileRecord; x: number; y: number }
-function treeSelectionRoots(files: FileRecord[], selectedPaths: Set<string>): FileRecord[] {
-  const folders = new Set(files.filter((file) => file.kind === "folder" && selectedPaths.has(file.path)).map((file) => file.path));
-  return files.filter((file) => {
-    if (!selectedPaths.has(file.path)) return false;
-    let parent = parentPath(file.path);
-    while (parent) { if (folders.has(parent)) return false; parent = parentPath(parent); }
-    return true;
-  });
-}
-function parseTreeDragPaths(data: string): string[] {
-  try { const paths: unknown = JSON.parse(data); return Array.isArray(paths) ? paths.filter((path): path is string => typeof path === "string") : []; }
-  catch { return []; }
-}
-function flattenTree(files: FileRecord[], expanded: Set<string>): TreeRow[] {
-  const children = new Map<string, FileRecord[]>();
-  for (const file of files) {
-    const parent = parentPath(file.path);
-    const siblings = children.get(parent) ?? [];
-    siblings.push(file);
-    children.set(parent, siblings);
-  }
-  const rows: TreeRow[] = [];
-  const visit = (parent: string, depth: number) => {
-    const siblings = children.get(parent) ?? [];
-    siblings.sort((a, b) => Number(b.kind === "folder") - Number(a.kind === "folder") || entryName(a.path).localeCompare(entryName(b.path), undefined, { sensitivity: "base" }));
-    for (const file of siblings) {
-      rows.push({ file, depth });
-      if (file.kind === "folder" && expanded.has(file.path)) visit(file.path, depth + 1);
-    }
-  };
-  visit("", 0);
-  return rows;
-}
-
-function applyTextDiff(text: Y.Text, previous: string, next: string): void {
-  if (previous === next) return;
-  let prefix = 0;
-  const maxPrefix = Math.min(previous.length, next.length);
-  while (prefix < maxPrefix && previous.charCodeAt(prefix) === next.charCodeAt(prefix)) prefix++;
-  let suffix = 0;
-  while (suffix < previous.length - prefix && suffix < next.length - prefix &&
-    previous.charCodeAt(previous.length - suffix - 1) === next.charCodeAt(next.length - suffix - 1)) suffix++;
-  const removed = previous.length - prefix - suffix;
-  const inserted = next.slice(prefix, next.length - suffix);
-  text.doc!.transact(() => {
-    if (removed) text.delete(prefix, removed);
-    if (inserted) text.insert(prefix, inserted);
-  }, "local-editor");
-}
 
 export function meta() {
   return [{ title: "PKMS — Markdown workspace" }];
@@ -214,23 +113,7 @@ export default function Home() {
     setText("");
   };
 
-  const api = useCallback(async <T,>(path: string, init?: RequestInit): Promise<T> => {
-    const desktop = desktopBridge();
-    if (desktop) {
-      return requestDesktopApi<T>(path, init);
-    }
-    const response = await fetch(path, { credentials: "same-origin", ...init });
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({})) as { message?: string; error?: string };
-      const requestId = response.headers.get("X-Request-ID") ?? (body as { requestId?: string }).requestId;
-      const message = body.message ?? body.error ?? `Request failed (${response.status})`;
-      const error = new Error(`${message}${requestId ? ` · ${requestId}` : ""}`) as Error & { code?: string };
-      error.code = body.error;
-      throw error;
-    }
-    if (response.status === 204) return undefined as T;
-    return response.json() as Promise<T>;
-  }, []);
+  const api = requestPkmsApi;
 
   useEffect(() => {
     mounted.current = true;
@@ -270,7 +153,7 @@ export default function Home() {
     try {
       await api(`/api/workspaces/${workspaceId}/files/${fileId}/updates`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: id(), fileId, update: toBase64(Y.encodeStateAsUpdate(doc)) }),
+        body: JSON.stringify({ operationId: createOperationId(), fileId, update: toBase64(Y.encodeStateAsUpdate(doc)) }),
       });
       const status = flushToGitHub
         ? await api<SyncStatus>(`/api/workspaces/${workspaceId}/flush`, { method: "POST" })
@@ -438,7 +321,7 @@ export default function Home() {
       return;
     }
     let alive = true;
-    const clientId = `web-${id()}`;
+    const clientId = `web-${createOperationId()}`;
     let retryTimer = 0;
     let stableTimer = 0;
     let retries = 0;
@@ -453,7 +336,7 @@ export default function Home() {
         ws.send(JSON.stringify({ type: "hello", protocolVersion: 1, clientId, afterRevision: activeWorkspace.revision, user, fileId: activeRef.current.file?.id }));
         const current = activeRef.current;
         if (current.file && current.doc) {
-          const operationId = id();
+          const operationId = createOperationId();
           ws.send(JSON.stringify({ type: "document-update", operationId, fileId: current.file.id, update: toBase64(Y.encodeStateAsUpdate(current.doc)) }));
           pending.current.set(operationId, { type: "document-update", operationId, fileId: current.file.id });
         }
@@ -659,7 +542,7 @@ export default function Home() {
       scheduleAutoSave(file.id, entry.doc);
       const current = socket.current;
       if (!current || current.readyState !== WebSocket.OPEN) return;
-      const operationId = id();
+      const operationId = createOperationId();
       pending.current.set(operationId, { type: "document-update", operationId, fileId: file.id });
       setSaving(true);
       current.send(JSON.stringify({ type: "document-update", operationId, fileId: file.id, update: toBase64(updateBytes) }));
@@ -668,7 +551,7 @@ export default function Home() {
     entry.updateHandler = updateHandler;
     if (currentSocket?.readyState === WebSocket.OPEN) {
       currentSocket.send(JSON.stringify({ type: "presence", fileId: file.id }));
-      const operationId = id();
+      const operationId = createOperationId();
       pending.current.set(operationId, { type: "document-update", operationId, fileId: file.id });
       setSaving(true);
       currentSocket.send(JSON.stringify({ type: "document-update", operationId, fileId: file.id, update: toBase64(Y.encodeStateAsUpdate(entry.doc)) }));
@@ -791,7 +674,7 @@ export default function Home() {
     try {
       const result = await api<{ operationId: string; acceptedRevision: number; conflictCopyPath?: string }>(`/api/workspaces/${activeWorkspace.id}/operations`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: id(), baseRevision: activeWorkspace.revision, clientId: "web", operation: { type: "create-file", path, fileId: id(), content: "# Untitled\n\n" } }),
+        body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: "web", operation: { type: "create-file", path, fileId: createOperationId(), content: "# Untitled\n\n" } }),
       });
       const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
       setFiles(snapshot.files);
@@ -805,7 +688,7 @@ export default function Home() {
     const name = window.prompt("New folder");
     if (!name?.trim()) return;
     try {
-      await api(`/api/workspaces/${activeWorkspace.id}/operations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operationId: id(), baseRevision: activeWorkspace.revision, clientId: `web-${id()}`, operation: { type: "create-folder", path: `${directory ? `${directory}/` : ""}${name.trim()}` } }) });
+      await api(`/api/workspaces/${activeWorkspace.id}/operations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "create-folder", path: `${directory ? `${directory}/` : ""}${name.trim()}` } }) });
       const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
       setFiles(snapshot.files);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create folder"); }
@@ -813,7 +696,7 @@ export default function Home() {
 
   const uploadFile = async (file?: File) => {
     if (!file || !activeWorkspace) return;
-    const form = new FormData(); form.set("file", file); form.set("path", `${currentFolder ? `${currentFolder}/` : ""}${file.name}`); form.set("clientId", `web-${id()}`);
+    const form = new FormData(); form.set("file", file); form.set("path", `${currentFolder ? `${currentFolder}/` : ""}${file.name}`); form.set("clientId", `web-${createOperationId()}`);
     try {
       await api(`/api/workspaces/${activeWorkspace.id}/upload`, { method: "POST", body: form });
       const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
@@ -937,7 +820,7 @@ export default function Home() {
     try {
       const result = await api<{ conflictCopyPath?: string }>(`/api/workspaces/${activeWorkspace.id}/operations`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: id(), baseRevision: activeWorkspace.revision, clientId: `web-${id()}`, operation: { type: "move", fileId: file.id, toPath } }),
+        body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "move", fileId: file.id, toPath } }),
       });
       const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
       setFiles(snapshot.files);
@@ -983,7 +866,7 @@ export default function Home() {
       for (const move of moves) {
         const result = await api<{ conflictCopyPath?: string }>(`/api/workspaces/${activeWorkspace.id}/operations`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ operationId: id(), baseRevision: activeWorkspace.revision, clientId: `web-${id()}`, operation: { type: "move", fileId: move.file.id, toPath: move.toPath } }),
+          body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "move", fileId: move.file.id, toPath: move.toPath } }),
         });
         resolvedMoves.push({ file: move.file, destination: result.conflictCopyPath ?? move.toPath });
       }
@@ -1062,7 +945,7 @@ export default function Home() {
       for (const file of roots) {
         await api(`/api/workspaces/${activeWorkspace.id}/operations`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ operationId: id(), baseRevision: activeWorkspace.revision, clientId: `web-${id()}`, operation: { type: "delete", fileId: file.id } }),
+          body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "delete", fileId: file.id } }),
         });
       }
       const isInsideDeleted = (path: string) => roots.some((file) => path === file.path || (file.kind === "folder" && path.startsWith(`${file.path}/`)));
@@ -1109,7 +992,7 @@ export default function Home() {
     try {
       await api(`/api/workspaces/${activeWorkspace.id}/operations`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: id(), baseRevision: activeWorkspace.revision, clientId: `web-${id()}`, operation: { type: "delete", fileId: activeFile.id } }),
+        body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "delete", fileId: activeFile.id } }),
       });
       clearActiveFile();
       routedPath.current = null;
@@ -1124,7 +1007,7 @@ export default function Home() {
     try {
       await api(`/api/workspaces/${activeWorkspace.id}/operations`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: id(), baseRevision: activeWorkspace.revision, clientId: `web-${id()}`, operation: { type: "delete", fileId: folder.id } }),
+        body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "delete", fileId: folder.id } }),
       });
       setFiles((current) => current.filter((file) => file.path !== currentFolder && !file.path.startsWith(`${currentFolder}/`)));
       setExpandedFolders((current) => new Set([...current].filter((path) => path !== currentFolder && !path.startsWith(`${currentFolder}/`))));
@@ -1264,32 +1147,4 @@ export default function Home() {
       </section>
     </main>
   );
-}
-
-type AppIconName = "plus" | "filter" | "filePlus" | "folderPlus" | "upload" | "pencil" | "trash" | "folder" | "fileText" | "file" | "chevron" | "logout" | "menu" | "lock" | "arrowRight" | "list" | "close";
-function AppIcon({ name, className = "" }: { name: AppIconName; className?: string }) {
-  const path = {
-    plus: <path d="M12 5v14M5 12h14" />,
-    filter: <path d="M4 5h16l-6.5 7.3V19l-3 1.5v-8.2L4 5Z" />,
-    filePlus: <><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M13 3v6h6M13 3l6 6" /><path d="M17 14v7m-3.5-3.5h7" /></>,
-    folderPlus: <><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v3M3 7v11a2 2 0 0 0 2 2h8" /><path d="M18 14v7m-3.5-3.5h7" /></>,
-    upload: <><path d="M12 16V4m-4 4 4-4 4 4" /><path d="M5 14v5h14v-5" /></>,
-    pencil: <><path d="m4 16.5-.8 4.3 4.3-.8L19 8.5 15.5 5 4 16.5Z" /><path d="m13.8 6.7 3.5 3.5" /></>,
-    trash: <><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" /></>,
-    folder: <path d="M3 6.5a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-11Z" />,
-    fileText: <><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-6Z" /><path d="M13 3v6h7M8 13h8m-8 4h8" /></>,
-    file: <><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-6Z" /><path d="M13 3v6h7" /></>,
-    chevron: <path d="m9 18 6-6-6-6" />,
-    logout: <><path d="M10 17l5-5-5-5m5 5H3" /><path d="M13 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" /></>,
-    menu: <><path d="M4 6h16M4 12h16M4 18h16" /></>,
-    lock: <><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" /></>,
-    arrowRight: <><path d="M4 12h15m-6-6 6 6-6 6" /></>,
-    list: <><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6h.01M4 12h.01M4 18h.01" /></>,
-    close: <path d="m6 6 12 12M18 6 6 18" />,
-  } satisfies Record<AppIconName, ReactNode>;
-  return <svg className={`app-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{path[name]}</svg>;
-}
-
-function GitHubIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.56.1.76-.24.76-.54v-2.1c-3.1.67-3.76-1.31-3.76-1.31-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1 .1.12.1.2.09.1-.78.39-1.3.71-1.6-2.48-.28-5.09-1.24-5.09-5.52 0-1.22.44-2.22 1.16-3-.12-.28-.5-1.42.1-2.96 0 0 .95-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.1-1.43 3.04-1.15 3.04-1.15.61 1.54.23 2.68.12 2.96.72.78 1.15 1.78 1.15 3 0 4.3-2.61 5.24-5.1 5.51.4.35.76 1.03.76 2.08v3.08c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z" /></svg>;
 }
