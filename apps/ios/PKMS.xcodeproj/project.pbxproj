@@ -15,6 +15,7 @@
 		A10000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework */; };
 		A10000000000000000000007 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A2000000000000000000000A /* Supabase */; };
 		A10000000000000000000008 /* PKMSProtocolModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* PKMSProtocolModels.swift */; };
+		A10000000000000000000009 /* PKMSAPITransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* PKMSAPITransport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 		A20000000000000000000008 /* PKMS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PKMS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000009 /* Native/include */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Native/include; sourceTree = "<group>"; };
 		A2000000000000000000000C /* PKMSProtocolModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKMSProtocolModels.swift; sourceTree = "<group>"; };
+		A2000000000000000000000D /* PKMSAPITransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKMSAPITransport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,6 +62,7 @@
 				A20000000000000000000004 /* PKMSModel.swift */,
 				A20000000000000000000005 /* SessionVault.swift */,
 				A2000000000000000000000C /* PKMSProtocolModels.swift */,
+				A2000000000000000000000D /* PKMSAPITransport.swift */,
 				A20000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework */,
 				A20000000000000000000007 /* Info.plist */,
 				A20000000000000000000009 /* Native/include */,
@@ -154,6 +157,7 @@
 				A10000000000000000000004 /* PKMSModel.swift in Sources */,
 				A10000000000000000000005 /* SessionVault.swift in Sources */,
 				A10000000000000000000008 /* PKMSProtocolModels.swift in Sources */,
+				A10000000000000000000009 /* PKMSAPITransport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -43,19 +43,7 @@ final class PKMSModel {
     private var flushTask: Task<Void, Never>?
     private var clientID = "ios-\(UUID().uuidString.lowercased())"
     private(set) var expandedFolders: Set<String> = [""]
-    @ObservationIgnored private var cachedURLSession: URLSession?
-
-    private var urlSession: URLSession {
-        if let cachedURLSession { return cachedURLSession }
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.waitsForConnectivity = true
-        configuration.timeoutIntervalForRequest = 30
-        configuration.timeoutIntervalForResource = 60
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        let session = URLSession(configuration: configuration)
-        cachedURLSession = session
-        return session
-    }
+    private let transport = PKMSAPITransport()
 
     init() {
         let savedAddress = UserDefaults.standard.string(forKey: "pkms.serverAddress")
@@ -93,7 +81,7 @@ final class PKMSModel {
         } catch {
             let urlError = error as? URLError
             let errorCode = urlError?.code.rawValue ?? 0
-            let host = endpoint("/api/auth/device/start").host ?? "unknown"
+            let host = transport.endpoint(serverAddress: serverAddress, path: "/api/auth/device/start").host ?? "unknown"
             authLogger.error("device sign-in start failed: \(String(reflecting: type(of: error)), privacy: .public), urlCode=\(errorCode, privacy: .public), host=\(host, privacy: .public)")
             errorMessage = userFacingMessage(error)
         }
@@ -566,60 +554,27 @@ final class PKMSModel {
     }
 
     private func makeRequest(_ path: String, method: String, authenticated: Bool) throws -> URLRequest {
-        var request = URLRequest(url: endpoint(path))
-        request.httpMethod = method
-        if authenticated, let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        return request
+        transport.makeRequest(serverAddress: serverAddress, token: token, path: path, method: method, authenticated: authenticated)
     }
 
     private func endpoint(_ path: String) -> URL {
-        let base = URL(string: serverAddress) ?? URL(string: "https://pkms-cloud.lkh0310kr.workers.dev")!
-        return URL(string: path, relativeTo: base) ?? base
+        transport.endpoint(serverAddress: serverAddress, path: path)
     }
 
     private func send(_ request: URLRequest) async throws -> (Data, URLResponse) {
-        var attempt = 0
-        let path = request.url?.path ?? ""
-        let mayRetry = request.httpMethod == "GET" || path == "/api/auth/device/start" || path == "/api/auth/device/poll"
-        while true {
-            do { return try await urlSession.data(for: request) }
-            catch {
-                let retryable: Set<URLError.Code> = [.networkConnectionLost, .timedOut, .cannotConnectToHost, .dnsLookupFailed, .notConnectedToInternet]
-                guard mayRetry, attempt < 2, let urlError = error as? URLError, retryable.contains(urlError.code) else { throw error }
-                attempt += 1
-                authLogger.warning("network request retry attempt=\(attempt, privacy: .public), urlCode=\(urlError.code.rawValue, privacy: .public)")
-                try await Task.sleep(for: .seconds(attempt))
-            }
-        }
+        try await transport.send(request)
     }
 
     private func userFacingMessage(_ error: Error) -> String {
-        guard let urlError = error as? URLError else { return error.localizedDescription }
-        switch urlError.code {
-        case .networkConnectionLost:
-            return "The network connection was lost. Reconnecting… Please try again if it continues."
-        case .notConnectedToInternet:
-            return "Connect to Wi-Fi or cellular data, then try again."
-        case .timedOut:
-            return "The connection timed out. Please try again."
-        default:
-            return error.localizedDescription
-        }
+        transport.userFacingMessage(error)
     }
 
     private func check(_ response: URLResponse, data: Data) throws {
-        guard let http = response as? HTTPURLResponse else { throw PKMSClientError.malformedResponse }
-        guard (200..<300).contains(http.statusCode) else {
-            let requestID = http.value(forHTTPHeaderField: "X-Request-ID")
-            if http.statusCode == 401 { throw PKMSClientError.unauthorized(requestID) }
-            throw decodeServerError(data, status: http.statusCode, requestID: requestID)
-        }
+        try transport.check(response, data: data)
     }
 
     private func decodeServerError(_ data: Data, status: Int, requestID: String? = nil) -> Error {
-        let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-        let message = payload?["message"] as? String ?? payload?["error"] as? String ?? "Request failed"
-        return PKMSClientError.http(status, requestID.map { "\(message) · \($0)" } ?? message)
+        transport.decodeServerError(data, status: status, requestID: requestID)
     }
 }
 
