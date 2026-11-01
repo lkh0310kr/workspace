@@ -142,6 +142,25 @@ export function indentGuideColumns(indentColumns: number, indentSize: number): n
   return Array.from({ length: count }, (_unused, level) => level * indentSize)
 }
 
+function guideColumnsForDepth(depth: number, indentSize: number): number[] {
+  return Array.from({ length: depth }, (_unused, level) => level * indentSize)
+}
+
+export function whitespaceGuideDepth(
+  aboveContentIndent: number,
+  belowContentIndent: number,
+  indentSize: number,
+  offSide = false
+): number {
+  if (aboveContentIndent < 0 || belowContentIndent < 0) return 0
+  if (aboveContentIndent < belowContentIndent)
+    return 1 + Math.floor(aboveContentIndent / indentSize)
+  if (aboveContentIndent === belowContentIndent) return Math.ceil(belowContentIndent / indentSize)
+  return offSide
+    ? Math.ceil(belowContentIndent / indentSize)
+    : 1 + Math.floor(belowContentIndent / indentSize)
+}
+
 function documentIndentSize(view: EditorView): number {
   const doc = view.state.doc
   const scanTo = Math.min(doc.lines, INDENT_SCAN_LIMIT)
@@ -157,6 +176,67 @@ function documentIndentSize(view: EditorView): number {
     defaultInsertSpaces
   )
   return guess.insertSpaces ? guess.indentSize : view.state.tabSize
+}
+
+function visibleGuideDepths(view: EditorView, indentSize: number): Map<number, number> {
+  const doc = view.state.doc
+  const visibleLines = new Map<number, { number: number; from: number; text: string }>()
+  for (const range of view.visibleRanges) {
+    let pos = range.from
+    while (pos <= range.to) {
+      const line = doc.lineAt(pos)
+      visibleLines.set(line.from, { number: line.number, from: line.from, text: line.text })
+      pos = line.to + 1
+    }
+  }
+
+  const lines = [...visibleLines.values()].sort((a, b) => a.from - b.from)
+  const depths = new Map<number, number>()
+  for (let index = 0; index < lines.length;) {
+    const current = lines[index]
+    const columns = leadingIndentColumns(current.text, view.state.tabSize)
+    if (columns < current.text.length) {
+      depths.set(current.from, Math.ceil(columns / indentSize))
+      index++
+      continue
+    }
+
+    const firstBlank = index
+    let lastBlank = index
+    while (
+      lastBlank + 1 < lines.length &&
+      lines[lastBlank + 1].number === lines[lastBlank].number + 1 &&
+      leadingIndentColumns(lines[lastBlank + 1].text, view.state.tabSize) ===
+        lines[lastBlank + 1].text.length
+    ) {
+      lastBlank++
+    }
+
+    let aboveIndent = -1
+    for (let lineNumber = lines[firstBlank].number - 1; lineNumber >= 1; lineNumber--) {
+      const line = doc.line(lineNumber)
+      const indent = leadingIndentColumns(line.text, view.state.tabSize)
+      if (indent < line.text.length) {
+        aboveIndent = indent
+        break
+      }
+    }
+    let belowIndent = -1
+    for (let lineNumber = lines[lastBlank].number + 1; lineNumber <= doc.lines; lineNumber++) {
+      const line = doc.line(lineNumber)
+      const indent = leadingIndentColumns(line.text, view.state.tabSize)
+      if (indent < line.text.length) {
+        belowIndent = indent
+        break
+      }
+    }
+    const depth = whitespaceGuideDepth(aboveIndent, belowIndent, indentSize)
+    for (let blankIndex = firstBlank; blankIndex <= lastBlank; blankIndex++) {
+      depths.set(lines[blankIndex].from, depth)
+    }
+    index = lastBlank + 1
+  }
+  return depths
 }
 
 function documentOffsetAtVisualColumn(text: string, column: number, tabSize: number): number {
@@ -185,12 +265,11 @@ function lineElementAt(view: EditorView, position: number): HTMLElement | null {
 
 function indentLineDecoration(
   line: { from: number; text: string },
-  tabSize: number,
   indentSize: number,
+  guideDepth: number,
   measuredPositions: Map<number, number[]>
 ): Decoration | null {
-  const columns = leadingIndentColumns(line.text, tabSize)
-  const guideColumns = indentGuideColumns(columns, indentSize)
+  const guideColumns = guideColumnsForDepth(guideDepth, indentSize)
   if (guideColumns.length === 0) return null
 
   const measured = measuredPositions.get(line.from)
@@ -214,6 +293,7 @@ function buildIndentGuideDecorations(
 ): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>()
   const indentSize = documentIndentSize(view)
+  const guideDepths = visibleGuideDepths(view, indentSize)
   const doc = view.state.doc
   let lastLineFrom = -1
   for (const { from, to } of view.visibleRanges) {
@@ -225,12 +305,8 @@ function buildIndentGuideDecorations(
         continue
       }
       lastLineFrom = line.from
-      const decoration = indentLineDecoration(
-        line,
-        view.state.tabSize,
-        indentSize,
-        measuredPositions
-      )
+      const guideDepth = guideDepths.get(line.from) ?? 0
+      const decoration = indentLineDecoration(line, indentSize, guideDepth, measuredPositions)
       if (decoration) builder.add(line.from, line.from, decoration)
       pos = line.to + 1
     }
@@ -248,6 +324,7 @@ type GuideMeasurement = {
 function measureGuidePositions(view: EditorView): GuideMeasurement {
   const positions = new Map<number, number[]>()
   const indentSize = documentIndentSize(view)
+  const guideDepths = visibleGuideDepths(view, indentSize)
   const doc = view.state.doc
   let lastLineFrom = -1
   for (const { from, to } of view.visibleRanges) {
@@ -259,8 +336,8 @@ function measureGuidePositions(view: EditorView): GuideMeasurement {
         continue
       }
       lastLineFrom = line.from
-      const columns = leadingIndentColumns(line.text, view.state.tabSize)
-      const guideColumns = indentGuideColumns(columns, indentSize)
+      const guideDepth = guideDepths.get(line.from) ?? 0
+      const guideColumns = guideColumnsForDepth(guideDepth, indentSize)
       if (guideColumns.length > 0) {
         const lineElement = lineElementAt(view, line.from)
         if (lineElement) {
