@@ -39,6 +39,7 @@ Expected remaining work: **5 phases, roughly 8–12 focused commits**. Complete 
 
 - `packages/pkms-client/src/domain/` contains file tree, path, filter, encoding, and Yjs text helpers; `client/` contains API and revisioned operation transport.
 - `components/FileTreeList.tsx` renders and delegates tree interactions; `features/files/useFileTreeSelection.ts` owns focus and selection state.
+- `features/files/useWorkspaceDirectory.ts` owns folder loading, directory restoration, and directory tree state.
 - `apps/workspace/src/main/ipc/` has terminal and workspace/filesystem/search registrars.
 - `packages/pkms-protocol/src/types.ts` is shared by the Worker and React client; Realtime presence data is checked against that contract.
 - `apps/ios/PKMSProtocolModels.swift` contains iOS HTTP and Realtime DTOs outside the app state model.
@@ -65,4 +66,4 @@ Run Rust checks only if `packages/pkms-core/` changes. This phase plan does not 
 
 ## Current next action
 
-Continue Phase 1 by extracting file browser directory loading/restoration and mutations from `PkmsClientApp.tsx` into `features/files/`. Then isolate editor document lifecycle and sync coordination before splitting the remaining account/repository UI.
+Continue Phase 1 by extracting editor document lifecycle and sync coordination from `PkmsClientApp.tsx`. Then split the remaining account/repository UI and finish the file-browser action state before closing Phase 1.
