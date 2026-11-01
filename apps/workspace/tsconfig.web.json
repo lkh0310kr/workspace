@@ -14,6 +14,9 @@
     "paths": {
       "@renderer/*": [
         "src/renderer/src/*"
+      ],
+      "@pkms/client/*": [
+        "../../pkms/apps/web/app/client/*"
       ]
     }
   }

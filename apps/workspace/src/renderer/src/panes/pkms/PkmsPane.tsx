@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
-import PkmsClientApp from "../../../../../../../pkms/apps/web/app/client/PkmsClientApp";
-import pkmsStyles from "../../../../../../../pkms/apps/web/app/client/styles.css?inline";
+import PkmsClientApp from "@pkms/client/PkmsClientApp";
+import pkmsStyles from "@pkms/client/styles.css?inline";
 
 export function PkmsPane(): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null);
