@@ -12,8 +12,8 @@ import {
   TabInfo,
   addTab,
   closeTab,
+  onShortcutModifierPressed,
   onShortcutModifierReleased,
-  onSwitchWorkspaceTabIndexShortcut,
   renameTab,
   reorderTabs,
 } from '../electron'
@@ -63,35 +63,17 @@ export function WorkspaceTabRail({
   }, [renamingId])
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Meta' || event.key === 'Control' || event.metaKey || event.ctrlKey) {
-        setShowTabNumbers(true)
-      }
-    }
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (
-        event.key === 'Meta' ||
-        event.key === 'Control' ||
-        (!event.metaKey && !event.ctrlKey)
-      ) {
-        setShowTabNumbers(false)
-      }
-    }
+    const unsubscribeModifierPress = onShortcutModifierPressed(() => setShowTabNumbers(true))
     const clearOnBlur = () => setShowTabNumbers(false)
     const unsubscribeModifierRelease = onShortcutModifierReleased(clearOnBlur)
-    const unsubscribeTabSwitch = onSwitchWorkspaceTabIndexShortcut(clearOnBlur)
 
-    window.addEventListener('keydown', onKeyDown, true)
-    window.addEventListener('keyup', onKeyUp, true)
     window.addEventListener('blur', clearOnBlur)
     document.addEventListener('visibilitychange', clearOnBlur)
     return () => {
-      window.removeEventListener('keydown', onKeyDown, true)
-      window.removeEventListener('keyup', onKeyUp, true)
       window.removeEventListener('blur', clearOnBlur)
       document.removeEventListener('visibilitychange', clearOnBlur)
+      unsubscribeModifierPress()
       unsubscribeModifierRelease()
-      unsubscribeTabSwitch()
     }
   }, [])
 

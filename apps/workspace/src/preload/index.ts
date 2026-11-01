@@ -211,6 +211,11 @@ const api = {
       ipcRenderer.on('shortcut:modifier-released', listener)
       return () => ipcRenderer.removeListener('shortcut:modifier-released', listener)
     },
+    onShortcutModifierPressed: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:modifier-pressed', listener)
+      return () => ipcRenderer.removeListener('shortcut:modifier-pressed', listener)
+    },
     onSwitchWorkspaceTabIndex: (cb: (payload: { index: number }) => void): (() => void) => {
       const listener = (
         _event: Electron.IpcRendererEvent,

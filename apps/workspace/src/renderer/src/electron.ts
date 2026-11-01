@@ -424,6 +424,10 @@ export function onShortcutModifierReleased(handler: () => void): () => void {
   return window.api.shortcuts.onShortcutModifierReleased(handler);
 }
 
+export function onShortcutModifierPressed(handler: () => void): () => void {
+  return window.api.shortcuts.onShortcutModifierPressed(handler);
+}
+
 /** Cmd/Ctrl+1..9 — relayed from main so terminal focus cannot swallow the meta chord. */
 export function onSwitchWorkspaceTabIndexShortcut(
   handler: (payload: { index: number }) => void,

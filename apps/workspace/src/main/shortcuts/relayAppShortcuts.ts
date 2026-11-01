@@ -38,12 +38,26 @@ function isHomeKey(input: Input): boolean {
   return input.code === 'Backquote' || input.key === '`'
 }
 
+function workspaceModifierName(): 'Meta' | 'Control' {
+  return process.platform === 'darwin' ? 'Meta' : 'Control'
+}
+
 function isModifierRelease(input: Input): boolean {
+  const modifierName = workspaceModifierName()
   // Electron can report the modifier flags from before the key was released.
   // The physical code identifies the released key even in that case.
-  if (/^(Meta|Control)(Left|Right)$/.test(input.code)) return true
-  if (input.key === 'Meta' || input.key === 'Control') return true
-  return !input.meta && !input.control
+  if (input.code === `${modifierName}Left` || input.code === `${modifierName}Right`) return true
+  return input.key === modifierName
+}
+
+function isModifierPress(input: Input): boolean {
+  if (input.type !== 'keyDown') return false
+  const modifierName = workspaceModifierName()
+  return (
+    input.code === `${modifierName}Left` ||
+    input.code === `${modifierName}Right` ||
+    input.key === modifierName
+  )
 }
 
 type SharedRelayOptions = {
@@ -98,6 +112,10 @@ export function relayHostAppShortcuts(
     return
   }
   if (input.type !== 'keyDown') return
+  if (isModifierPress(input)) {
+    options.send('shortcut:modifier-pressed')
+    return
+  }
 
   relaySharedRendererShortcuts(event, input, options.send, {
     gateBrowserReload: options.terminalOwnsAppShortcuts,
@@ -161,6 +179,10 @@ export function relayGuestWebviewShortcuts(
     return
   }
   if (input.type !== 'keyDown') return
+  if (isModifierPress(input)) {
+    send('shortcut:modifier-pressed')
+    return
+  }
 
   if (isHomeKey(input) && (input.control || input.meta) && !input.shift && !input.alt) {
     event.preventDefault()

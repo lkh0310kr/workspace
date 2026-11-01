@@ -31,6 +31,16 @@ function mockEvent() {
 }
 
 describe('relayHostAppShortcuts', () => {
+  it('shows tab numbers as soon as the Meta key is pressed', () => {
+    const send = vi.fn()
+    relayHostAppShortcuts(mockEvent() as never, keyDown('MetaLeft') as never, {
+      send,
+      terminalOwnsAppShortcuts: false,
+      focusedTerminalId: null,
+    })
+    expect(send).toHaveBeenCalledWith('shortcut:modifier-pressed')
+  })
+
   it('clears tab shortcut hints when the Meta key is released even if Electron keeps its flag set', () => {
     const send = vi.fn()
     relayHostAppShortcuts(mockEvent() as never, keyUp('MetaLeft', { meta: true }) as never, {
@@ -39,6 +49,16 @@ describe('relayHostAppShortcuts', () => {
       focusedTerminalId: null,
     })
     expect(send).toHaveBeenCalledWith('shortcut:modifier-released')
+  })
+
+  it('does not end the held modifier state when a digit key is released', () => {
+    const send = vi.fn()
+    relayHostAppShortcuts(mockEvent() as never, keyUp('Digit2') as never, {
+      send,
+      terminalOwnsAppShortcuts: false,
+      focusedTerminalId: null,
+    })
+    expect(send).not.toHaveBeenCalledWith('shortcut:modifier-released')
   })
 
   it('relays browser reload when terminal does not own shortcuts', () => {
@@ -147,10 +167,23 @@ describe('relayHostAppShortcuts', () => {
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:switch-workspace-tab-index', { index: 2 })
+    expect(send).not.toHaveBeenCalledWith('shortcut:modifier-released')
   })
 })
 
 describe('relayGuestWebviewShortcuts', () => {
+  it('shows tab numbers while Meta is held in a browser guest', () => {
+    const send = vi.fn()
+    relayGuestWebviewShortcuts(
+      mockEvent() as never,
+      keyDown('MetaRight') as never,
+      send,
+      vi.fn(),
+      42,
+    )
+    expect(send).toHaveBeenCalledWith('shortcut:modifier-pressed')
+  })
+
   it('clears tab shortcut hints when the Meta key is released in a guest webview', () => {
     const send = vi.fn()
     relayGuestWebviewShortcuts(
