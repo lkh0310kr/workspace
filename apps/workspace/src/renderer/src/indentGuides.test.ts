@@ -1,31 +1,21 @@
-// @vitest-environment jsdom
-import { EditorState } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
-import { indentGuides } from "./indentGuides";
+import { detectIndentSize, indentGuideColumns } from "./indentGuides";
 
 describe("indent guides", () => {
-  it("paints guides on the full line box at each indentation depth", () => {
-    const parent = document.createElement("div");
-    document.body.append(parent);
-    const view = new EditorView({
-      parent,
-      state: EditorState.create({
-        doc: "root\n    @State private var child = false\n        nested\n            deeper\n  partial",
-        extensions: indentGuides,
-      }),
-    });
+  it("detects two and four space project indentation from document lines", () => {
+    expect(detectIndentSize(["root", "  child", "    nested", "      deeper"], 4)).toBe(2);
+    expect(detectIndentSize(["root", "    child", "        nested", "            deeper"], 2)).toBe(4);
+  });
 
-    try {
-      const lines = Array.from(parent.querySelectorAll<HTMLElement>(".cm-indent-guide-line"));
-      expect(lines).toHaveLength(2);
-      expect(lines[0].textContent).toBe("        nested");
-      expect(lines[1].textContent).toBe("            deeper");
-      expect(lines[0].style.getPropertyValue("--indent-guide-width")).toBe("4.1ch");
-      expect(lines[1].style.getPropertyValue("--indent-guide-width")).toBe("8.1ch");
-    } finally {
-      view.destroy();
-      parent.remove();
-    }
+  it("places guides at the start of each nested indent level, not at text start", () => {
+    expect(indentGuideColumns(4, 4)).toEqual([0]);
+    expect(indentGuideColumns(8, 4)).toEqual([0, 4]);
+    expect(indentGuideColumns(12, 4)).toEqual([0, 4, 8]);
+    expect(indentGuideColumns(6, 2)).toEqual([0, 2, 4]);
+  });
+
+  it("uses tab stops for tab indented files", () => {
+    expect(detectIndentSize(["root", "\tchild", "\t\tnested"], 4, 4)).toBe(4);
+    expect(indentGuideColumns(8, 4)).toEqual([0, 4]);
   });
 });
