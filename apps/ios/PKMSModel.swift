@@ -11,37 +11,37 @@ final class PKMSModel {
     var serverAddress: String {
         didSet { UserDefaults.standard.set(serverAddress, forKey: "pkms.serverAddress") }
     }
-    private(set) var user: PKMSUser?
+    internal(set) var user: PKMSUser?
     private(set) var workspaces: [PKMSWorkspace] = []
     private(set) var repositories: [PKMSRepository] = []
     private(set) var files: [PKMSFile] = []
-    private(set) var activeWorkspace: PKMSWorkspace?
-    private(set) var activeFile: PKMSFile?
+    internal(set) var activeWorkspace: PKMSWorkspace?
+    internal(set) var activeFile: PKMSFile?
     private(set) var activeFolderPath: String?
-    private(set) var markdown = ""
+    internal(set) var markdown = ""
     private(set) var githubStatus = "synced"
     private(set) var pendingFiles = 0
     private(set) var statusMessage = ""
-    private(set) var errorMessage: String?
+    internal(set) var errorMessage: String?
     private(set) var deviceCode: String?
     private(set) var verificationURL: URL?
     private(set) var isLoading = false
     private(set) var isRestoringSession = true
     private(set) var isSigningIn = false
     private(set) var previewURL: URL?
-    private(set) var collaborators: [PKMSPeer] = []
+    internal(set) var collaborators: [PKMSPeer] = []
 
-    private var token: String?
-    private var document: NativeMarkdownDocument?
-    private var realtimeClient: SupabaseClient?
-    private var realtimeChannel: RealtimeChannelV2?
-    private var realtimeSubscriptions: [RealtimeSubscription] = []
-    private var realtimeTokenTask: Task<Void, Never>?
-    private var socketTask: Task<Void, Never>?
+    var token: String?
+    var document: NativeMarkdownDocument?
+    var realtimeClient: SupabaseClient?
+    var realtimeChannel: RealtimeChannelV2?
+    var realtimeSubscriptions: [RealtimeSubscription] = []
+    var realtimeTokenTask: Task<Void, Never>?
+    var socketTask: Task<Void, Never>?
     private var deviceTask: Task<Void, Never>?
     private var cacheTask: Task<Void, Never>?
     private var flushTask: Task<Void, Never>?
-    private var clientID = "ios-\(UUID().uuidString.lowercased())"
+    var clientID = "ios-\(UUID().uuidString.lowercased())"
     private(set) var expandedFolders: Set<String> = [""]
     private let transport = PKMSAPITransport()
 
@@ -384,124 +384,6 @@ final class PKMSModel {
         catch { errorMessage = error.localizedDescription }
     }
 
-    private func connectSocket(_ workspace: PKMSWorkspace) {
-        disconnectRealtime()
-        socketTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                let config = try await get("/api/realtime/config", as: PKMSRealtimeConfig.self)
-                let auth = try await get("/api/realtime/token", as: PKMSRealtimeToken.self)
-                let client = SupabaseClient(supabaseURL: config.url, supabaseKey: config.anonKey)
-                realtimeClient = client
-                await client.realtimeV2.setAuth(auth.token)
-                let presenceKey = clientID
-                let channel = client.channel("pkms:\(workspace.id)") { config in
-                    config.isPrivate = true
-                    config.presence = PresenceJoinConfig(key: presenceKey)
-                }
-                realtimeChannel = channel
-                realtimeSubscriptions.append(channel.onBroadcast(event: "protocol") { [weak self] payload in
-                    guard let data = try? JSONEncoder().encode(payload), let raw = String(data: data, encoding: .utf8) else { return }
-                    Task { @MainActor in await self?.handleSocketMessage(raw) }
-                })
-                realtimeSubscriptions.append(channel.onPresenceChange { [weak self] action in
-                    let joins = (try? action.decodeJoins(as: PKMSPeer.self)) ?? []
-                    let leaves = (try? action.decodeLeaves(as: PKMSPeer.self)) ?? []
-                    Task { @MainActor in
-                        guard let self else { return }
-                        for peer in leaves { self.collaborators.removeAll { $0.clientId == peer.clientId } }
-                        for peer in joins where peer.clientId != self.clientID {
-                            self.collaborators.removeAll { $0.clientId == peer.clientId }
-                            self.collaborators.append(peer)
-                        }
-                    }
-                })
-                try await channel.subscribeWithError()
-                try await channel.track(PKMSPresence(clientId: clientID, login: user?.login ?? "", avatarUrl: user?.avatarUrl, fileId: activeFile?.id))
-                if let file = activeFile, let document { sendFullState(document, fileID: file.id) }
-                realtimeTokenTask = Task { [weak self] in
-                    while !Task.isCancelled {
-                        try? await Task.sleep(for: .seconds(10 * 60))
-                        guard !Task.isCancelled, let self else { return }
-                        do {
-                            let refreshed = try await get("/api/realtime/token", as: PKMSRealtimeToken.self)
-                            await realtimeClient?.realtimeV2.setAuth(refreshed.token)
-                        } catch {
-                            errorMessage = "Live sync authorization expired. Reconnect to continue collaborating."
-                            disconnectRealtime()
-                            return
-                        }
-                    }
-                }
-            } catch {
-                if !Task.isCancelled { errorMessage = "Live sync is unavailable. Your changes remain saved." }
-                disconnectRealtime(cancelConnectionTask: false)
-            }
-        }
-    }
-
-    private func disconnectRealtime(cancelConnectionTask: Bool = true) {
-        if cancelConnectionTask { socketTask?.cancel() }
-        socketTask = nil
-        realtimeTokenTask?.cancel(); realtimeTokenTask = nil
-        realtimeSubscriptions.removeAll()
-        if let channel = realtimeChannel, let client = realtimeClient {
-            Task { await client.removeChannel(channel) }
-        }
-        realtimeChannel = nil; realtimeClient = nil
-        collaborators = []
-    }
-
-    private func trackPresence(fileID: String?) {
-        guard let channel = realtimeChannel else { return }
-        let presence = PKMSPresence(clientId: clientID, login: user?.login ?? "", avatarUrl: user?.avatarUrl, fileId: fileID)
-        Task { try? await channel.track(presence) }
-    }
-
-    private func handleSocketMessage(_ raw: String) async {
-        guard let data = raw.data(using: .utf8), let message = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
-        if message["type"] as? String == "document-update",
-           let fileID = message["fileId"] as? String, let updateText = message["update"] as? String,
-           let update = Data(base64Encoded: updateText) {
-            if activeFile?.id == fileID, let document {
-                _ = document.apply(update)
-                markdown = document.text
-                if let workspace = activeWorkspace { saveCache(document, workspaceID: workspace.id, fileID: fileID) }
-            }
-            if let revision = message["acceptedRevision"] as? Int { updateWorkspaceRevision(revision) }
-            return
-        }
-        if let conflictPath = message["conflictCopyPath"] as? String, message["acceptedRevision"] != nil {
-            await reloadFiles()
-            if let conflict = files.first(where: { $0.path == conflictPath }) { await open(conflict) }
-            return
-        }
-        if message["acceptedRevision"] != nil {
-            if message["type"] as? String == "ack", let revision = message["acceptedRevision"] as? Int { updateWorkspaceRevision(revision) }
-            else { await reloadFiles() }
-        }
-    }
-
-    private func updateWorkspaceRevision(_ revision: Int) {
-        guard var workspace = activeWorkspace else { return }
-        workspace.revision = max(workspace.revision, revision)
-        activeWorkspace = workspace
-    }
-
-    private func sendFullState(_ doc: NativeMarkdownDocument, fileID: String) { send(doc.snapshot, fileID: fileID) }
-
-    private func send(_ update: Data, fileID: String?) {
-        guard !update.isEmpty, let fileID, let workspace = activeWorkspace, realtimeChannel != nil else { return }
-        let body = PKMSDocumentUpdate(operationId: UUID().uuidString, fileId: fileID, update: update.base64EncodedString())
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                let ack = try await post("/api/workspaces/\(workspace.id)/files/\(fileID)/updates", body: body, as: PKMSOperationResponse.self)
-                updateWorkspaceRevision(ack.acceptedRevision)
-            } catch { errorMessage = "The change could not be saved. Retry shortly." }
-        }
-    }
-
     private func scheduleCache(_ doc: NativeMarkdownDocument, workspaceID: String, fileID: String) {
         cacheTask?.cancel()
         cacheTask = Task { [weak self] in
@@ -511,7 +393,7 @@ final class PKMSModel {
         }
     }
 
-    private func saveCache(_ doc: NativeMarkdownDocument, workspaceID: String, fileID: String) {
+    func saveCache(_ doc: NativeMarkdownDocument, workspaceID: String, fileID: String) {
         let url = cacheURL(workspaceID: workspaceID, fileID: fileID)
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? doc.snapshot.write(to: url, options: .atomic)
@@ -531,11 +413,11 @@ final class PKMSModel {
         URL.applicationSupportDirectory.appending(path: "PKMS/RecentCache/\(workspaceID)/\(fileID).crdt")
     }
 
-    private func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
+    func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
         try await get(endpoint(path), as: type)
     }
 
-    private func get<T: Decodable>(_ url: URL, as type: T.Type) async throws -> T {
+    func get<T: Decodable>(_ url: URL, as type: T.Type) async throws -> T {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
@@ -544,7 +426,7 @@ final class PKMSModel {
         return try JSONDecoder.pkms.decode(type, from: data)
     }
 
-    private func post<Body: Encodable, Response: Decodable>(_ path: String, body: Body, as type: Response.Type, authenticated: Bool = true) async throws -> Response {
+    func post<Body: Encodable, Response: Decodable>(_ path: String, body: Body, as type: Response.Type, authenticated: Bool = true) async throws -> Response {
         var request = try makeRequest(path, method: "POST", authenticated: authenticated)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
@@ -557,7 +439,7 @@ final class PKMSModel {
         transport.makeRequest(serverAddress: serverAddress, token: token, path: path, method: method, authenticated: authenticated)
     }
 
-    private func endpoint(_ path: String) -> URL {
+    func endpoint(_ path: String) -> URL {
         transport.endpoint(serverAddress: serverAddress, path: path)
     }
 
