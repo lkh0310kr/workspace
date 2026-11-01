@@ -1,0 +1,14 @@
+[workspace]
+members = ["crates/pkms-core", "crates/pkms-wasm", "crates/pkms-ffi"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+version = "0.1.0"
+rust-version = "1.85"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+yrs = "0.28"

@@ -1,0 +1,287 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* ContentView.swift */; };
+		A10000000000000000000002 /* NativeMarkdownDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* NativeMarkdownDocument.swift */; };
+		A10000000000000000000003 /* PKMSCloudApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* PKMSCloudApp.swift */; };
+		A10000000000000000000004 /* PKMSModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* PKMSModel.swift */; };
+		A10000000000000000000005 /* SessionVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* SessionVault.swift */; };
+		A10000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework */; };
+		A10000000000000000000007 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A2000000000000000000000A /* Supabase */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A20000000000000000000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* NativeMarkdownDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeMarkdownDocument.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* PKMSCloudApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKMSCloudApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000004 /* PKMSModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKMSModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* SessionVault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVault.swift; sourceTree = "<group>"; };
+		A20000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Frameworks/PKMSRustFFI.xcframework; sourceTree = "<group>"; };
+		A20000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000000000000000000008 /* PKMS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PKMS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000009 /* Native/include */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Native/include; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A30000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework in Frameworks */,
+				A10000000000000000000007 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A40000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A40000000000000000000002 /* . */,
+				A40000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A40000000000000000000002 /* . */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000001 /* ContentView.swift */,
+				A20000000000000000000002 /* NativeMarkdownDocument.swift */,
+				A20000000000000000000003 /* PKMSCloudApp.swift */,
+				A20000000000000000000004 /* PKMSModel.swift */,
+				A20000000000000000000005 /* SessionVault.swift */,
+				A20000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework */,
+				A20000000000000000000007 /* Info.plist */,
+				A20000000000000000000009 /* Native/include */,
+			);
+			path = .;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000008 /* PKMS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000000000000000000001 /* PKMS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A60000000000000000000002 /* Build configuration list for PBXNativeTarget "PKMS" */;
+			buildPhases = (
+				A30000000000000000000001 /* Frameworks */,
+				A70000000000000000000002 /* Sources */,
+				A70000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PKMS;
+			productName = PKMS;
+			productReference = A20000000000000000000008 /* PKMS.app */;
+			packageProductDependencies = (
+				A2000000000000000000000A /* Supabase */,
+			);
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A80000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2610;
+				TargetAttributes = {
+					A50000000000000000000001 = {
+						CreatedOnToolsVersion = 26.1;
+					};
+				};
+			};
+			buildConfigurationList = A60000000000000000000001 /* Build configuration list for PBXProject "PKMS" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A40000000000000000000001;
+			packageReferences = (
+				A2000000000000000000000B /* XCRemoteSwiftPackageReference \"supabase-swift\" */,
+			);
+			productRefGroup = A40000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A50000000000000000000001 /* PKMS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A70000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A70000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* ContentView.swift in Sources */,
+				A10000000000000000000002 /* NativeMarkdownDocument.swift in Sources */,
+				A10000000000000000000003 /* PKMSCloudApp.swift in Sources */,
+				A10000000000000000000004 /* PKMSModel.swift in Sources */,
+				A10000000000000000000005 /* SessionVault.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A90000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A90000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		A90000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B42SPPS3PR;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lc++",
+					"-framework",
+					Security,
+					"-framework",
+					CoreFoundation,
+					"-framework",
+					SystemConfiguration,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lkh0310kr.pkms.cloud;
+				PRODUCT_NAME = PKMS;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A90000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B42SPPS3PR;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lc++",
+					"-framework",
+					Security,
+					"-framework",
+					CoreFoundation,
+					"-framework",
+					SystemConfiguration,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lkh0310kr.pkms.cloud;
+				PRODUCT_NAME = PKMS;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* Begin XCRemoteSwiftPackageReference section */
+		A2000000000000000000000B /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = { kind = upToNextMajorVersion; minimumVersion = 2.51.0; };
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A2000000000000000000000A /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A2000000000000000000000B /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A60000000000000000000001 /* Build configuration list for PBXProject "PKMS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A90000000000000000000001 /* Debug */,
+				A90000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A60000000000000000000002 /* Build configuration list for PBXNativeTarget "PKMS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A90000000000000000000003 /* Debug */,
+				A90000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A80000000000000000000001 /* Project object */;
+}

@@ -1,0 +1,4 @@
+module PkmsNativeFFI {
+  header "pkms_ffi.h"
+  export *
+}

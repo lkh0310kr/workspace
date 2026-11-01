@@ -1,0 +1,14 @@
+[package]
+name = "pkms-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+pkms-core = { path = "../pkms-core" }
+thiserror.workspace = true
+uniffi = "0.32"

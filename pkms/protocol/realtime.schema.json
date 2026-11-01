@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pkms.example.com/protocol/realtime.schema.json",
+  "title": "PKMS realtime envelope",
+  "description": "JSON envelopes carried over the authenticated workspace WebSocket. CRDT updates use Yjs/Yrs v1 encoding and base64 transport.",
+  "oneOf": [
+    { "$ref": "#/$defs/hello" },
+    { "$ref": "#/$defs/documentUpdate" },
+    { "$ref": "#/$defs/documentUpdateEvent" },
+    { "$ref": "#/$defs/documentState" },
+    { "$ref": "#/$defs/ready" },
+    { "$ref": "#/$defs/presence" },
+    { "$ref": "#/$defs/presenceState" },
+    { "$ref": "#/$defs/presenceEvent" },
+    { "$ref": "#/$defs/ack" },
+    { "$ref": "#/$defs/operationResult" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "peer": {
+      "type": "object",
+      "required": ["clientId", "login"],
+      "properties": {
+        "clientId": { "type": "string" },
+        "login": { "type": "string" },
+        "avatarUrl": { "type": "string", "format": "uri" },
+        "fileId": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "hello": {
+      "type": "object",
+      "required": ["type", "protocolVersion", "clientId", "afterRevision"],
+      "properties": {
+        "type": { "const": "hello" },
+        "protocolVersion": { "const": 1 },
+        "clientId": { "type": "string" },
+        "afterRevision": { "type": "integer", "minimum": 0 },
+        "user": { "type": "object", "properties": { "login": { "type": "string" }, "avatarUrl": { "type": "string", "format": "uri" } } },
+        "fileId": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "documentUpdate": {
+      "type": "object",
+      "required": ["type", "operationId", "fileId", "update"],
+      "properties": {
+        "type": { "const": "document-update" },
+        "operationId": { "type": "string", "format": "uuid" },
+        "fileId": { "type": "string" },
+        "update": { "type": "string", "contentEncoding": "base64" }
+      },
+      "additionalProperties": false
+    },
+    "documentState": {
+      "type": "object",
+      "required": ["type", "fileId", "revision", "update"],
+      "properties": {
+        "type": { "const": "document-state" },
+        "fileId": { "type": "string" },
+        "revision": { "type": "integer", "minimum": 0 },
+        "update": { "type": "string", "contentEncoding": "base64" }
+      },
+      "additionalProperties": false
+    },
+    "documentUpdateEvent": {
+      "type": "object",
+      "required": ["type", "fileId", "revision", "update", "operationId"],
+      "properties": {
+        "type": { "const": "document-update" },
+        "fileId": { "type": "string" },
+        "revision": { "type": "integer", "minimum": 0 },
+        "update": { "type": "string", "contentEncoding": "base64" },
+        "operationId": { "type": "string", "format": "uuid" }
+      },
+      "additionalProperties": false
+    },
+    "ready": {
+      "type": "object",
+      "required": ["type", "revision"],
+      "properties": { "type": { "const": "ready" }, "revision": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "presence": {
+      "type": "object",
+      "required": ["type", "fileId"],
+      "properties": { "type": { "const": "presence" }, "fileId": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "presenceState": {
+      "type": "object",
+      "required": ["type", "peers"],
+      "properties": { "type": { "const": "presence-state" }, "peers": { "type": "array", "items": { "$ref": "#/$defs/peer" } } },
+      "additionalProperties": false
+    },
+    "presenceEvent": {
+      "type": "object",
+      "required": ["type", "action"],
+      "properties": {
+        "type": { "const": "presence" },
+        "action": { "enum": ["join", "update", "leave"] },
+        "peer": { "$ref": "#/$defs/peer" },
+        "clientId": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "ack": {
+      "type": "object",
+      "required": ["type", "operationId", "acceptedRevision", "duplicate"],
+      "properties": {
+        "type": { "const": "ack" },
+        "operationId": { "type": "string", "format": "uuid" },
+        "acceptedRevision": { "type": "integer", "minimum": 0 },
+        "duplicate": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "operationResult": {
+      "type": "object",
+      "required": ["operationId", "acceptedRevision", "duplicate"],
+      "properties": {
+        "operationId": { "type": "string", "format": "uuid" },
+        "acceptedRevision": { "type": "integer", "minimum": 0 },
+        "duplicate": { "type": "boolean" },
+        "conflictCopyPath": { "type": "string" },
+        "rebasedFrom": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "error": {
+      "type": "object",
+      "required": ["type", "code", "message"],
+      "properties": {
+        "type": { "const": "error" },
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "operationId": { "type": "string", "format": "uuid" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

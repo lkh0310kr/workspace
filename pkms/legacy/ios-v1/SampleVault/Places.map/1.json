@@ -1,0 +1,27 @@
+[
+  {
+    "address" : "서울 종로구 사직로 161",
+    "createdAt" : "2026-01-01 09:00:00",
+    "id" : 101,
+    "lat" : 37.579617,
+    "lon" : 126.977041,
+    "memo" : "Palace grounds; changing of the guard at 10:00",
+    "name" : "Gyeongbokgung Palace"
+  },
+  {
+    "address" : "서울 용산구 남산공원길 105",
+    "createdAt" : "2026-01-01 09:05:00",
+    "id" : 102,
+    "lat" : 37.551169,
+    "lon" : 126.988227,
+    "name" : "N Seoul Tower"
+  },
+  {
+    "address" : "서울 송파구 올림픽로 300",
+    "createdAt" : "2026-01-01 09:10:00",
+    "id" : 103,
+    "lat" : 37.512533,
+    "lon" : 127.102552,
+    "name" : "Lotte World Tower"
+  }
+]

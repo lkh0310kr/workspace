@@ -1,0 +1,7 @@
+{
+  "folders" : [
+    { "count" : 3, "icon" : "01", "id" : 1, "title" : "Seoul" },
+    { "count" : 2, "icon" : "01", "id" : 2, "title" : "Cafés" }
+  ],
+  "version" : 1
+}
