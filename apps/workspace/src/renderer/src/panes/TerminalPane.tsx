@@ -25,6 +25,7 @@ import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { connectPanePty } from "../terminal/connectPanePty";
 import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
 import { installTerminalPasteHandler } from "../terminal/installTerminalPasteHandler";
+import { installTerminalFileDropHandler } from "../terminal/terminal-file-drop";
 import { termLog } from "../terminal/terminalDebugLog";
 import { writeClipboardText } from "../electron";
 
@@ -157,6 +158,12 @@ function TerminalPaneInner({
         );
       },
     });
+    const fileDropHandlerDispose = installTerminalFileDropHandler({
+      container: pane.container,
+      focus: () => pane.terminal.focus(),
+      write: (text) => transport.write(text),
+      getTerminalAgent: () => terminalAgentRef.current,
+    });
 
     const onFocusIn = () => {
       hasFocusRef.current = true;
@@ -209,6 +216,7 @@ function TerminalPaneInner({
       unsubscribeTheme();
       keyHandlerDispose();
       pasteHandlerDispose();
+      fileDropHandlerDispose();
       window.api.terminal.setFocused(null);
       pane.container.removeEventListener("focusin", onFocusIn);
       pane.container.removeEventListener("focusout", onFocusOut);

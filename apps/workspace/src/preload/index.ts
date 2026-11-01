@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 interface BrowserDownloadEventPayload {
@@ -12,6 +12,33 @@ interface BrowserDownloadEventPayload {
   totalBytes?: number
   state?: 'progressing' | 'interrupted' | 'completed' | 'cancelled'
 }
+
+// Resolve dropped File objects in preload: File.path is unavailable in the
+// isolated renderer, while Electron's webUtils can safely provide the path.
+window.addEventListener(
+  'drop',
+  (event: DragEvent) => {
+    const target = event.composedPath().find(
+      (item): item is Element => item instanceof Element && item.matches('.xterm'),
+    )
+    if (!target || !event.dataTransfer?.files.length) return
+
+    const paths = Array.from(event.dataTransfer.files)
+      .map((file) => webUtils.getPathForFile(file))
+      .filter((path) => path.length > 0)
+    if (!paths.length) return
+
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    target.dispatchEvent(
+      new CustomEvent('workspace-terminal-file-drop', {
+        bubbles: true,
+        detail: { paths },
+      }),
+    )
+  },
+  true,
+)
 
 // Custom APIs for renderer
 const api = {
