@@ -10,6 +10,7 @@ struct PKMSPeer: Decodable, Identifiable, Hashable {
     let clientId: String
     let login: String
     let avatarUrl: URL?
+    let fileId: String?
     var id: String { clientId }
 }
 
@@ -38,14 +39,18 @@ struct PKMSWorkspace: Codable, Identifiable, Hashable {
     var revision: Int
     var githubStatus: String
     var message: String?
+    var lastGitHubCommitAt: Date?
 }
 
 struct PKMSFile: Decodable, Identifiable, Hashable {
     let id: String
     let path: String
     let kind: String
+    let revision: Int
     let content: String?
+    let contentType: String?
     let size: Int?
+    let sha256: String?
     var isMarkdown: Bool { kind == "markdown" }
 }
 

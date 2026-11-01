@@ -30,12 +30,16 @@ export interface PkmsFile {
   path: string;
   kind: PkmsFileKind;
   content?: string;
+  contentType?: string;
   size?: number;
-  revision?: number;
+  sha256?: string;
+  revision: number;
 }
 
 export interface PkmsSyncStatus {
+  serverRevision: number;
   githubStatus: PkmsGitHubStatus;
+  githubHead?: string;
   pendingFiles: number;
   message?: string;
   lastGitHubCommitAt?: string;

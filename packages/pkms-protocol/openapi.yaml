@@ -328,6 +328,8 @@ components:
         branch: { type: string }
         revision: { type: integer, minimum: 0 }
         githubStatus: { type: string, enum: [synced, pending, failed, external-change] }
+        message: { type: string }
+        lastGitHubCommitAt: { type: string, format: date-time }
     FileRecord:
       type: object
       required: [id, path, kind, revision]
