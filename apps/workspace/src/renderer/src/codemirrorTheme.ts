@@ -8,12 +8,12 @@ export const workspaceEditorTheme = EditorView.theme({
     // resets every other background sub-property it doesn't mention,
     // including `background-image`, which used to silently erase a
     // gradient-based indent guide on this same selector.
-    backgroundColor: "var(--bg-base)",
+    backgroundColor: "var(--editor-bg)",
     color: "var(--text)",
     caretColor: "var(--text)",
   },
   ".cm-gutters": {
-    background: "var(--bg-surface)",
+    background: "var(--editor-bg)",
     color: "var(--text-muted)",
     border: "none",
   },

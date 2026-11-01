@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   cancelSearch,
   onSearchDone,
@@ -69,7 +77,7 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
     [caseSensitive, regex, wholeWord],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     queryInputRef.current?.focus();
   }, []);
 

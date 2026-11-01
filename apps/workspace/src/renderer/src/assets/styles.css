@@ -33,6 +33,7 @@
   --bg-elevated: #23252a;
   --bg-hover: #25272b;
   --bg-active: #2c2e32;
+  --editor-bg: #111214;
   --border: #292b30;
   --border-subtle: #202226;
   --border-strong: #3b3e44;
@@ -208,6 +209,7 @@
   --bg-raised: #e3e5e8;
   --bg-hover: #e8e9eb;
   --bg-active: #e5e7eb;
+  --editor-bg: #ffffff;
   --bg-elevated: #ffffff;
   --border: #d4d7dc;
   --border-subtle: #e3e5e8;
@@ -3743,7 +3745,7 @@ input {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: var(--bg-base);
+  background: var(--editor-bg);
 }
 
 /* Floating search/outline/save-status cluster, top-right of the editor
@@ -4356,6 +4358,14 @@ input {
 
 .tree-view-icon.folder {
   color: var(--text-muted);
+}
+
+:root[data-theme="light"] .tree-view-icon.folder {
+  color: #414852;
+}
+
+:root[data-theme="light"] .tree-view-icon.folder svg {
+  stroke-width: 1.6px;
 }
 
 .tree-view-item:hover .tree-view-icon,

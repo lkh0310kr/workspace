@@ -32,7 +32,9 @@ function indentLineDecoration(level: number): Decoration {
     decoration = Decoration.line({
       attributes: {
         class: "cm-indent-guide-line",
-        style: `--indent-guide-width: ${level * INDENT_UNIT + 0.1}ch`,
+        // The final indentation boundary is where the first glyph starts.
+        // Drawing there runs the guide through decorators such as `@State`.
+        style: `--indent-guide-width: ${(level - 1) * INDENT_UNIT + 0.1}ch`,
       },
     });
     indentLineDecorations.set(level, decoration);
@@ -64,7 +66,9 @@ function buildIndentGuideDecorations(view: EditorView): DecorationSet {
       }
       lastLineFrom = line.from;
       const level = indentLevel(line.text);
-      if (level > 0) {
+      // A single indentation unit has no interior guide. Each additional
+      // unit adds one guide inside the whitespace, never at the code edge.
+      if (level > 1) {
         builder.add(line.from, line.from, indentLineDecoration(level));
       }
       pos = line.to + 1;

@@ -11,7 +11,7 @@ describe("indent guides", () => {
     const view = new EditorView({
       parent,
       state: EditorState.create({
-        doc: "root\n    child\n        nested\n  partial",
+        doc: "root\n    @State private var child = false\n        nested\n            deeper\n  partial",
         extensions: indentGuides,
       }),
     });
@@ -19,8 +19,8 @@ describe("indent guides", () => {
     try {
       const lines = Array.from(parent.querySelectorAll<HTMLElement>(".cm-indent-guide-line"));
       expect(lines).toHaveLength(2);
-      expect(lines[0].textContent).toBe("    child");
-      expect(lines[1].textContent).toBe("        nested");
+      expect(lines[0].textContent).toBe("        nested");
+      expect(lines[1].textContent).toBe("            deeper");
       expect(lines[0].style.getPropertyValue("--indent-guide-width")).toBe("4.1ch");
       expect(lines[1].style.getPropertyValue("--indent-guide-width")).toBe("8.1ch");
     } finally {
