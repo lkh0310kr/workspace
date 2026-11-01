@@ -4,14 +4,16 @@ import * as Y from "yjs";
 import { PKMSRealtimeSocket } from "./realtime";
 import { desktopBridge } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
+import { submitWorkspaceOperation } from "./client/workspaceOperations";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import type { FileNavigation, FileRecord, Peer, RealtimeMessage, Repository, SyncStatus, TreeContextMenu, TreeRow, User, Workspace } from "./domain/types";
 import { fromBase64, toBase64, createOperationId } from "./domain/encoding";
-import { entryName, flattenTree, mergeFileRecords, parentPath, parseTreeDragPaths, treeSelectionRoots } from "./domain/fileTree";
+import { entryName, flattenTree, mergeFileRecords, parentPath, treeSelectionRoots } from "./domain/fileTree";
 import { fileLocationPath, parseFileLocation } from "./domain/fileLocation";
 import { matchesExcludePattern } from "./domain/excludePattern";
 import { applyTextDiff } from "./domain/yjsText";
 import { AppIcon, GitHubIcon } from "./components/Icons";
+import { FileTreeList } from "./components/FileTreeList";
 
 const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
 
@@ -672,10 +674,9 @@ export default function Home() {
     if (!activeWorkspace) return;
     const path = `${directory ? `${directory}/` : ""}Untitled ${new Date().toLocaleString("sv-SE").replaceAll(":", "-")}.md`;
     try {
-      const result = await api<{ operationId: string; acceptedRevision: number; conflictCopyPath?: string }>(`/api/workspaces/${activeWorkspace.id}/operations`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: "web", operation: { type: "create-file", path, fileId: createOperationId(), content: "# Untitled\n\n" } }),
-      });
+      const result = await submitWorkspaceOperation(api, activeWorkspace, {
+        type: "create-file", path, fileId: createOperationId(), content: "# Untitled\n\n",
+      }, "web");
       const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
       setFiles(snapshot.files);
       const created = snapshot.files.find((item) => item.path === (result.conflictCopyPath ?? path));
@@ -688,7 +689,7 @@ export default function Home() {
     const name = window.prompt("New folder");
     if (!name?.trim()) return;
     try {
-      await api(`/api/workspaces/${activeWorkspace.id}/operations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "create-folder", path: `${directory ? `${directory}/` : ""}${name.trim()}` } }) });
+      await submitWorkspaceOperation(api, activeWorkspace, { type: "create-folder", path: `${directory ? `${directory}/` : ""}${name.trim()}` });
       const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
       setFiles(snapshot.files);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create folder"); }
@@ -818,10 +819,7 @@ export default function Home() {
   const updateFilePath = async (file: FileRecord, toPath: string) => {
     if (!activeWorkspace) return;
     try {
-      const result = await api<{ conflictCopyPath?: string }>(`/api/workspaces/${activeWorkspace.id}/operations`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "move", fileId: file.id, toPath } }),
-      });
+      const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "move", fileId: file.id, toPath });
       const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
       setFiles(snapshot.files);
       const activeMovesWithItem = activeFile && (activeFile.id === file.id || (file.kind === "folder" && activeFile.path.startsWith(`${file.path}/`)));
@@ -864,10 +862,7 @@ export default function Home() {
     const resolvedMoves: Array<{ file: FileRecord; destination: string }> = [];
     try {
       for (const move of moves) {
-        const result = await api<{ conflictCopyPath?: string }>(`/api/workspaces/${activeWorkspace.id}/operations`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "move", fileId: move.file.id, toPath: move.toPath } }),
-        });
+        const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "move", fileId: move.file.id, toPath: move.toPath });
         resolvedMoves.push({ file: move.file, destination: result.conflictCopyPath ?? move.toPath });
       }
       const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
@@ -943,10 +938,7 @@ export default function Home() {
     if (!window.confirm(prompt)) return;
     try {
       for (const file of roots) {
-        await api(`/api/workspaces/${activeWorkspace.id}/operations`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "delete", fileId: file.id } }),
-        });
+        await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: file.id });
       }
       const isInsideDeleted = (path: string) => roots.some((file) => path === file.path || (file.kind === "folder" && path.startsWith(`${file.path}/`)));
       setFiles((current) => current.filter((entry) => !isInsideDeleted(entry.path)));
@@ -990,10 +982,7 @@ export default function Home() {
   const deleteActiveFile = async () => {
     if (!activeWorkspace || !activeFile || !window.confirm(`Delete ${entryName(activeFile.path)}?`)) return;
     try {
-      await api(`/api/workspaces/${activeWorkspace.id}/operations`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "delete", fileId: activeFile.id } }),
-      });
+      await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: activeFile.id });
       clearActiveFile();
       routedPath.current = null;
       navigate("/", { replace: true, preventScrollReset: true });
@@ -1005,10 +994,7 @@ export default function Home() {
     const folder = files.find((file) => file.kind === "folder" && file.path === currentFolder);
     if (!activeWorkspace || !folder || !window.confirm(`Delete ${entryName(currentFolder)}?`)) return;
     try {
-      await api(`/api/workspaces/${activeWorkspace.id}/operations`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: createOperationId(), baseRevision: activeWorkspace.revision, clientId: `web-${createOperationId()}`, operation: { type: "delete", fileId: folder.id } }),
-      });
+      await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: folder.id });
       setFiles((current) => current.filter((file) => file.path !== currentFolder && !file.path.startsWith(`${currentFolder}/`)));
       setExpandedFolders((current) => new Set([...current].filter((path) => path !== currentFolder && !path.startsWith(`${currentFolder}/`))));
       setCurrentFolder(parentFolder);
@@ -1057,56 +1043,40 @@ export default function Home() {
             {!activeFile && currentFolder && <button className="mini-button" title="Delete folder" onClick={() => void deleteCurrentFolder()}><AppIcon name="trash" /></button>}
           </div></div>
           {showFileFilters && <div className="file-filter-panel"><div className="file-filter-heading"><span>Ignored files</span><span className="filter-state">{showIgnoredFiles ? "Shown" : "Hidden"} · ⌘⇧.</span></div><label htmlFor="excluded-files">Exclude paths</label><textarea id="excluded-files" value={excludedPatterns} placeholder={"*.tmp\n**/drafts/**"} spellCheck={false} onChange={(event) => { const next = event.target.value; setExcludedPatterns(next); localStorage.setItem(`pkms:excluded-files:${activeWorkspace.id}`, next); }} /><p>Press ⌘⇧. to show ignored files</p></div>}
-          <nav ref={treeRef} className={`file-list file-tree${treeDropTarget === "" ? " tree-root-drop" : ""}`} role="tree" aria-multiselectable="true" aria-label="Repository files" aria-busy={loadingFolder || loadingFolderPaths.size > 0} onKeyDown={handleTreeKeyDown} onContextMenu={(event) => event.preventDefault()} onScroll={(event) => persistTreeScroll(event.currentTarget.scrollTop)} onDragOver={(event) => { event.preventDefault(); if (event.target === event.currentTarget) setTreeDropTarget(""); }} onDragLeave={(event) => { if (event.target === event.currentTarget) setTreeDropTarget(null); }} onDrop={(event) => { if (event.target !== event.currentTarget) return; event.preventDefault(); event.stopPropagation(); setTreeDropTarget(null); const paths = parseTreeDragPaths(event.dataTransfer.getData("application/x-pkms-tree-paths")); void moveTreeItems(files.filter((file) => paths.includes(file.path)), ""); }}>
-            {treeRows.map(({ file, depth }, index) => <button
-              key={file.id}
-              type="button"
-              role="treeitem"
-              data-tree-path={file.path}
-              aria-selected={selectedTreePaths.has(file.path)}
-              aria-level={depth + 1}
-              aria-expanded={file.kind === "folder" ? expandedFolders.has(file.path) : undefined}
-              tabIndex={focusedTreePath === file.path || (!focusedTreePath && index === 0) ? 0 : -1}
-              draggable
-              className={`tree-row ${file.kind === "folder" ? "folder-row" : "file-row"}${file.path === currentFolder && file.kind === "folder" ? " selected" : ""}${activeFile?.id === file.id ? " selected" : ""}${selectedTreePaths.has(file.path) ? " multi-selected" : ""}${cutTreePaths.has(file.path) ? " cut-pending" : ""}${treeDropTarget === file.path ? " drop-target" : ""}`}
-              style={{ paddingLeft: 8 + depth * 14 }}
-              onFocus={() => setFocusedTreePath(file.path)}
-              onDragStart={(event) => {
-                const selected = selectedTreePaths.has(file.path) ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file) : [file];
-                const roots = treeSelectionRoots(selected, new Set(selected.map((entry) => entry.path)));
-                event.dataTransfer.setData("application/x-pkms-tree-paths", JSON.stringify(roots.map((entry) => entry.path)));
-                event.dataTransfer.effectAllowed = "move";
-                if (!selectedTreePaths.has(file.path)) selectTreeRow(file.path, index);
-              }}
-              onDragOver={(event) => { if (file.kind !== "folder") return; event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "move"; setTreeDropTarget(file.path); }}
-              onDragLeave={(event) => { if (file.kind === "folder" && !event.currentTarget.contains(event.relatedTarget as Node)) setTreeDropTarget(null); }}
-              onDrop={(event) => {
-                if (file.kind !== "folder") return;
-                event.preventDefault(); event.stopPropagation(); setTreeDropTarget(null);
-                const paths = parseTreeDragPaths(event.dataTransfer.getData("application/x-pkms-tree-paths"));
-                void moveTreeItems(files.filter((entry) => paths.includes(entry.path)), file.path);
-              }}
-              onContextMenu={(event) => {
-                event.preventDefault();
-                event.currentTarget.focus();
-                setFocusedTreePath(file.path);
-                if (!selectedTreePaths.has(file.path)) { setSelectedTreePaths(new Set([file.path])); setSelectionAnchorPath(file.path); }
-                const menuHeight = file.kind === "folder" ? 240 : 136;
-                setTreeContextMenu({ file, x: Math.max(8, Math.min(event.clientX, window.innerWidth - 196)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)) });
-              }}
-              onClick={(event) => {
-                const additive = event.metaKey || event.ctrlKey;
-                if (additive || event.shiftKey) { selectTreeRow(file.path, index, additive, event.shiftKey); return; }
-                selectTreeRow(file.path, index);
-                if (file.kind === "folder") void toggleFolder(file); else void openFile(file);
-              }}
-            >
-              <span className={`tree-chevron${expandedFolders.has(file.path) ? " expanded" : ""}`} aria-hidden="true">{file.kind === "folder" && (loadingFolderPaths.has(file.path) ? <span className="tree-loading-indicator" /> : <AppIcon name="chevron" />)}</span>
-              <span className="file-icon" aria-hidden="true"><AppIcon name={file.kind === "folder" ? "folder" : file.kind === "markdown" ? "fileText" : "file"} /></span>
-              <span className="tree-label">{entryName(file.path)}</span>
-            </button>)}
-            {!treeRows.length && <p className="empty-hint">{loadingFolder ? "Loading…" : "Empty folder"}</p>}
-          </nav>
+          <FileTreeList
+            treeRef={treeRef}
+            rows={treeRows}
+            selectedPaths={selectedTreePaths}
+            expandedFolders={expandedFolders}
+            focusedPath={focusedTreePath}
+            currentFolder={currentFolder}
+            activeFileId={activeFile?.id ?? null}
+            cutPaths={cutTreePaths}
+            dropTarget={treeDropTarget}
+            loadingFolders={loadingFolderPaths}
+            busy={loadingFolder || loadingFolderPaths.size > 0}
+            loading={loadingFolder}
+            onKeyDown={handleTreeKeyDown}
+            onScroll={persistTreeScroll}
+            onSetDropTarget={setTreeDropTarget}
+            onDropItems={(paths, destination) => void moveTreeItems(files.filter((file) => paths.includes(file.path)), destination)}
+            onFocusPath={setFocusedTreePath}
+            onDragStart={(file, index, event) => {
+              const selected = selectedTreePaths.has(file.path) ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file) : [file];
+              const roots = treeSelectionRoots(selected, new Set(selected.map((entry) => entry.path)));
+              event.dataTransfer.setData("application/x-pkms-tree-paths", JSON.stringify(roots.map((entry) => entry.path)));
+              event.dataTransfer.effectAllowed = "move";
+              if (!selectedTreePaths.has(file.path)) selectTreeRow(file.path, index);
+            }}
+            onContextMenu={(file, event) => {
+              setFocusedTreePath(file.path);
+              if (!selectedTreePaths.has(file.path)) { setSelectedTreePaths(new Set([file.path])); setSelectionAnchorPath(file.path); }
+              const menuHeight = file.kind === "folder" ? 240 : 136;
+              setTreeContextMenu({ file, x: Math.max(8, Math.min(event.clientX, window.innerWidth - 196)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)) });
+            }}
+            onSelectRow={selectTreeRow}
+            onActivate={(file) => { if (file.kind === "folder") void toggleFolder(file); else void openFile(file); }}
+          />
           {treeContextMenu && <div ref={treeContextMenuRef} className="tree-context-menu" role="menu" aria-label={`${entryName(treeContextMenu.file.path)} actions`} style={{ left: treeContextMenu.x, top: treeContextMenu.y }}>
             <button role="menuitem" onClick={() => openTreeItem(treeContextMenu.file)}>{treeContextMenu.file.kind === "folder" ? "Open folder" : "Open"}</button>
             {treeContextMenu.file.kind === "folder" && <>
