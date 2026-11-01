@@ -17,6 +17,7 @@
 | 문서 | 범위 |
 |---|---|
 | [아키텍처 후속 단계](./architecture-phases.md) | 공통 아키텍처의 다음 단계 |
+| [모노레포 모듈화 단계 계획](./monorepo-modularization-phase-plan.md) | PKMS·Workspace 통합 구조 개선의 범위, 완료 기준, 단계별 작업 |
 | [컨텍스트 모델링](./context-modeling.md) | Domain, Entity, Resource 경계에 대한 참고 모델 |
 | [네이티브 아키텍처 방향](./native-architecture.md) | 장기 호스팅 조사와 완료 이력 요약 |
 | [Workspace 핵심 모델](./core-model.md) | 목표 primitive와 도입 순서 |
