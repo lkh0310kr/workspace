@@ -2,8 +2,8 @@ import { indentUnit } from "@codemirror/language";
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
 
-const INDENT_SIZE_CANDIDATES = [2, 3, 4, 6, 8];
-const INDENT_SCAN_LIMIT = 300;
+const INDENT_SIZE_CANDIDATES = [2, 4, 6, 8, 3, 5, 7];
+const INDENT_SCAN_LIMIT = 10_000;
 
 function leadingIndentColumns(text: string, tabSize: number): number {
   let columns = 0;
@@ -15,44 +15,142 @@ function leadingIndentColumns(text: string, tabSize: number): number {
   return columns;
 }
 
-/** Match VS Code's indentation detection closely for common project styles. */
-export function detectIndentSize(lines: Iterable<string>, fallback: number, tabSize = 4): number {
-  const widths: number[] = [];
-  for (const text of lines) {
-    if (text.startsWith("\t")) return tabSize;
-    const columns = leadingIndentColumns(text, tabSize);
-    if (columns > 0) widths.push(columns);
-  }
-  if (widths.length === 0) return fallback;
+interface IndentationGuess {
+  indentSize: number;
+  insertSpaces: boolean;
+}
 
-  let bestSize = fallback;
-  let bestScore = -1;
-  for (const candidate of INDENT_SIZE_CANDIDATES) {
-    const score = widths.filter((width) => width % candidate === 0).length;
-    if (score > bestScore || (score === bestScore && candidate > bestSize)) {
-      bestScore = score;
-      bestSize = candidate;
+function indentationLength(text: string): number {
+  let length = 0;
+  while (text[length] === " " || text[length] === "\t") length++;
+  return length;
+}
+
+function indentationDifference(a: string, aLength: number, b: string, bLength: number) {
+  let commonPrefixLength = 0;
+  while (
+    commonPrefixLength < aLength &&
+    commonPrefixLength < bLength &&
+    a[commonPrefixLength] === b[commonPrefixLength]
+  ) {
+    commonPrefixLength++;
+  }
+
+  let aSpaces = 0;
+  let aTabs = 0;
+  for (let i = commonPrefixLength; i < aLength; i++) {
+    if (a[i] === " ") aSpaces++;
+    else aTabs++;
+  }
+  let bSpaces = 0;
+  let bTabs = 0;
+  for (let i = commonPrefixLength; i < bLength; i++) {
+    if (b[i] === " ") bSpaces++;
+    else bTabs++;
+  }
+
+  if ((aSpaces > 0 && aTabs > 0) || (bSpaces > 0 && bTabs > 0)) {
+    return { spaces: 0, looksLikeAlignment: false };
+  }
+
+  const tabsDifference = Math.abs(aTabs - bTabs);
+  const spacesDifference = Math.abs(aSpaces - bSpaces);
+  if (tabsDifference === 0) {
+    const looksLikeAlignment =
+      spacesDifference > 0 &&
+      bSpaces - 1 >= 0 &&
+      bSpaces - 1 < a.length &&
+      bSpaces < b.length &&
+      b.charCodeAt(bSpaces) !== 32 &&
+      a.charCodeAt(bSpaces - 1) === 32 &&
+      a.charCodeAt(a.length - 1) === 44;
+    return { spaces: spacesDifference, looksLikeAlignment };
+  }
+  if (spacesDifference % tabsDifference === 0) {
+    return { spaces: spacesDifference / tabsDifference, looksLikeAlignment: false };
+  }
+  return { spaces: 0, looksLikeAlignment: false };
+}
+
+/** Port of VS Code's indentationGuesser: compare adjacent content lines,
+ * ignore alignment-only continuation lines, and prefer its allowed sizes. */
+export function detectIndentation(
+  lines: Iterable<string>,
+  defaultIndentSize: number,
+  defaultInsertSpaces: boolean,
+): IndentationGuess {
+  let tabsLines = 0;
+  let spacesLines = 0;
+  let previousText = "";
+  let previousIndent = 0;
+  const differences = Array<number>(9).fill(0);
+
+  for (const text of lines) {
+    const currentIndent = indentationLength(text);
+    if (currentIndent === text.length) continue;
+
+    const indentText = text.slice(0, currentIndent);
+    if (indentText.includes("\t")) tabsLines++;
+    else if (indentText.length > 1) spacesLines++;
+
+    const difference = indentationDifference(previousText, previousIndent, text, currentIndent);
+    if (
+      difference.looksLikeAlignment &&
+      !(defaultInsertSpaces && defaultIndentSize === difference.spaces)
+    ) {
+      continue;
+    }
+    if (difference.spaces <= 8) differences[difference.spaces]++;
+    previousText = text;
+    previousIndent = currentIndent;
+  }
+
+  let insertSpaces = defaultInsertSpaces;
+  if (tabsLines !== spacesLines) insertSpaces = tabsLines < spacesLines;
+
+  let indentSize = defaultIndentSize;
+  if (insertSpaces) {
+    let bestScore = 0;
+    for (const candidate of INDENT_SIZE_CANDIDATES) {
+      if (differences[candidate] > bestScore) {
+        bestScore = differences[candidate];
+        indentSize = candidate;
+      }
+    }
+    if (
+      indentSize === 4 &&
+      differences[4] > 0 &&
+      differences[2] > 0 &&
+      differences[2] >= (differences[4] * 2) / 3
+    ) {
+      indentSize = 2;
     }
   }
-  return bestSize;
+  return { indentSize, insertSpaces };
 }
 
 /** VS Code places guides at the start of each indent level, never at the
  * current line's text start (the final indentation boundary). */
 export function indentGuideColumns(indentColumns: number, indentSize: number): number[] {
-  const count = Math.floor(indentColumns / indentSize);
+  const count = Math.ceil(indentColumns / indentSize);
   return Array.from({ length: count }, (_unused, level) => level * indentSize);
 }
 
 function documentIndentSize(view: EditorView): number {
-  const lines: string[] = [];
   const doc = view.state.doc;
   const scanTo = Math.min(doc.lines, INDENT_SCAN_LIMIT);
+  const lines: string[] = [];
   for (let lineNumber = 1; lineNumber <= scanTo; lineNumber++) {
     lines.push(doc.line(lineNumber).text);
   }
-  const configuredIndentSize = view.state.facet(indentUnit).replaceAll("\t", "    ").length;
-  return detectIndentSize(lines, configuredIndentSize || 4, view.state.tabSize);
+  const configuredIndent = view.state.facet(indentUnit);
+  const defaultInsertSpaces = !configuredIndent.includes("\t");
+  const guess = detectIndentation(
+    lines,
+    configuredIndent.replaceAll("\t", "    ").length || view.state.tabSize,
+    defaultInsertSpaces,
+  );
+  return guess.insertSpaces ? guess.indentSize : view.state.tabSize;
 }
 
 function documentOffsetAtVisualColumn(text: string, column: number, tabSize: number): number {

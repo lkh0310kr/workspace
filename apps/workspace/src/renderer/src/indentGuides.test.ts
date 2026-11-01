@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { detectIndentSize, indentGuideColumns } from "./indentGuides";
+import { detectIndentation, indentGuideColumns } from "./indentGuides";
 
 describe("indent guides", () => {
   it("detects two and four space project indentation from document lines", () => {
-    expect(detectIndentSize(["root", "  child", "    nested", "      deeper"], 4)).toBe(2);
-    expect(detectIndentSize(["root", "    child", "        nested", "            deeper"], 2)).toBe(4);
+    expect(
+      detectIndentation(["root", "  child", "    nested", "      deeper"], 4, true),
+    ).toEqual({ indentSize: 2, insertSpaces: true });
+    expect(
+      detectIndentation(["root", "    child", "        nested", "            deeper"], 2, true),
+    ).toEqual({ indentSize: 4, insertSpaces: true });
   });
 
   it("places guides at the start of each nested indent level, not at text start", () => {
+    expect(indentGuideColumns(2, 4)).toEqual([0]);
     expect(indentGuideColumns(4, 4)).toEqual([0]);
     expect(indentGuideColumns(8, 4)).toEqual([0, 4]);
     expect(indentGuideColumns(12, 4)).toEqual([0, 4, 8]);
@@ -15,7 +20,10 @@ describe("indent guides", () => {
   });
 
   it("uses tab stops for tab indented files", () => {
-    expect(detectIndentSize(["root", "\tchild", "\t\tnested"], 4, 4)).toBe(4);
+    expect(detectIndentation(["root", "\tchild", "\t\tnested"], 4, true)).toEqual({
+      indentSize: 4,
+      insertSpaces: false,
+    });
     expect(indentGuideColumns(8, 4)).toEqual([0, 4]);
   });
 });
