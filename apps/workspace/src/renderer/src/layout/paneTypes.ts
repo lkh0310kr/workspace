@@ -13,7 +13,7 @@
 import type { AgentStatus } from "../../../shared/agent/agent-title-core";
 import type { TuiAgent } from "../../../shared/agent/tui-agent";
 
-export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer" | "rss";
+export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer" | "pkms";
 
 export interface PaneTabItem {
   id: string;
@@ -34,9 +34,6 @@ export interface PaneTabItem {
   viewerHint?: "video" | "audio" | "ebook";
   /** kind === "browser" */
   url?: string;
-  /** kind === "rss" — one feed per tab, entered once then persisted like
-   * browser's url. */
-  feedUrl?: string;
   /** kind === "browser" — page favicon URL from page-favicon-updated */
   favicon?: string;
   /** kind === "browser" — guest page zoom (1 = 100%) */

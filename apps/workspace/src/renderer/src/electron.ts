@@ -101,22 +101,6 @@ export async function getMediaUrlAbsolute(absolutePath: string): Promise<string>
   return window.api.media.getUrlAbsolute(absolutePath);
 }
 
-export interface FeedItem {
-  title: string;
-  link: string;
-  pubDate: string | null;
-  contentSnippet: string | null;
-}
-
-export interface FeedResult {
-  title: string;
-  items: FeedItem[];
-}
-
-export async function fetchFeed(url: string): Promise<FeedResult> {
-  return window.api.rss.fetchFeed(url);
-}
-
 export interface DashboardWeather {
   temperatureC: number;
   weatherCode: number;

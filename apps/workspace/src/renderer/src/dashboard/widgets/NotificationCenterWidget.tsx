@@ -5,17 +5,12 @@ import {
   type BrowserDownloadItem,
 } from "../../browserDownloads";
 import { DashboardWidget } from "../DashboardWidget";
-import type { NewspaperHeadline } from "./NewspaperWidget";
 
 type NotificationItem = {
   id: string;
   primary: string;
   secondary: string;
   at: number;
-};
-
-type Props = {
-  feedHeadlines: NewspaperHeadline[];
 };
 
 function formatRelativeTime(at: number): string {
@@ -36,27 +31,17 @@ function downloadNotification(item: BrowserDownloadItem): NotificationItem {
   };
 }
 
-function feedNotification(item: NewspaperHeadline, index: number): NotificationItem {
-  return {
-    id: `feed-${item.feedId}-${index}`,
-    primary: item.title,
-    secondary: item.feedLabel,
-    at: item.pubDate ? new Date(item.pubDate).getTime() : Date.now() - index,
-  };
-}
-
-export function NotificationCenterWidget({ feedHeadlines }: Props): React.JSX.Element {
+export function NotificationCenterWidget(): React.JSX.Element {
   const [downloads, setDownloads] = useState(() => getBrowserDownloads());
 
   useEffect(() => subscribeBrowserDownloads(() => setDownloads(getBrowserDownloads())), []);
 
   const notifications = useMemo(() => {
     const items: NotificationItem[] = [
-      ...downloads.slice(0, 5).map(downloadNotification),
-      ...feedHeadlines.slice(0, 4).map(feedNotification),
+      ...downloads.slice(0, 8).map(downloadNotification),
     ];
     return items.sort((a, b) => b.at - a.at).slice(0, 8);
-  }, [downloads, feedHeadlines]);
+  }, [downloads]);
 
   return (
     <DashboardWidget ariaLabel="최근 알림">

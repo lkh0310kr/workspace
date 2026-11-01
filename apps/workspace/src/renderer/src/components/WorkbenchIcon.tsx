@@ -2,7 +2,7 @@ import type { SVGProps } from "react";
 
 export type WorkbenchIconName =
   | "home" | "explorer" | "search" | "settings" | "terminal" | "browser"
-  | "code" | "viewer" | "rss" | "book" | "plus" | "close" | "chevron-right"
+  | "code" | "viewer" | "book" | "plus" | "close" | "chevron-right"
   | "refresh" | "sun" | "cloud" | "drizzle" | "rain" | "snow" | "storm" | "fog";
 
 type Props = SVGProps<SVGSVGElement> & { name: WorkbenchIconName; size?: number };
@@ -19,7 +19,6 @@ export function WorkbenchIcon({ name, size = 16, ...props }: Props): React.JSX.E
     case "browser": art = <><rect x="1.4" y="2" width="13.2" height="12" rx="1.7" /><path d="M1.8 5.2h12.4M4 3.65h.1M6 3.65h.1" /><circle cx="8" cy="9.65" r="2.75" /><path d="M5.25 9.65h5.5M8 6.9c-.8.72-1.2 1.64-1.2 2.75s.4 2.03 1.2 2.75M8 6.9c.8.72 1.2 1.64 1.2 2.75s-.4 2.03-1.2 2.75" /></>; break;
     case "code": art = <><path d="m5.2 4-3.4 4 3.4 4M10.8 4l3.4 4-3.4 4M9.3 2.8 6.7 13.2" /></>; break;
     case "viewer": art = <><path d="M1.5 8s2.2-4 6.5-4 6.5 4 6.5 4-2.2 4-6.5 4S1.5 8 1.5 8Z" /><circle cx="8" cy="8" r="1.8" /></>; break;
-    case "rss": art = <><circle cx="3" cy="12" r=".7" /><path d="M2.5 7.7a5.8 5.8 0 0 1 5.8 5.8M2.5 3.5a10 10 0 0 1 10 10" /></>; break;
     case "book": art = <><path d="M2 3.2c2.2-.8 4.2-.5 6 1v9c-1.8-1.5-3.8-1.8-6-1zM14 3.2c-2.2-.8-4.2-.5-6 1v9c1.8-1.5 3.8-1.8 6-1z" /></>; break;
     case "plus": art = <><path d="M8 3v10M3 8h10" /></>; break;
     case "close": art = <><path d="m4 4 8 8M12 4l-8 8" /></>; break;
@@ -37,5 +36,5 @@ export function WorkbenchIcon({ name, size = 16, ...props }: Props): React.JSX.E
 }
 
 export function isWorkbenchIconName(value: string): value is WorkbenchIconName {
-  return ["home", "explorer", "search", "settings", "terminal", "browser", "code", "viewer", "rss", "book", "plus", "close", "chevron-right", "refresh", "sun", "cloud", "drizzle", "rain", "snow", "storm", "fog"].includes(value);
+  return ["home", "explorer", "search", "settings", "terminal", "browser", "code", "viewer", "book", "plus", "close", "chevron-right", "refresh", "sun", "cloud", "drizzle", "rain", "snow", "storm", "fog"].includes(value);
 }

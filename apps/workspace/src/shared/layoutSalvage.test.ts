@@ -15,14 +15,12 @@ describe("layoutSalvage", () => {
     expect(salvagePaneTabItem({ id: "t1", kind: "terminal" })).toBeNull();
   });
 
-  it("salvagePaneTabItem round-trips an rss tab's feedUrl", () => {
-    expect(
-      salvagePaneTabItem({ id: "r1", kind: "rss", feedUrl: "https://example.com/feed.xml" }),
-    ).toEqual({
-      id: "r1",
-      kind: "rss",
-      feedUrl: "https://example.com/feed.xml",
-    });
+  it("salvages a PKMS pane tab", () => {
+    expect(salvagePaneTabItem({ id: "p1", kind: "pkms" })).toEqual({ id: "p1", kind: "pkms" });
+  });
+
+  it("rejects removed RSS tabs when salvaging persisted layouts", () => {
+    expect(salvagePaneTabItem({ id: "r1", kind: "rss", feedUrl: "https://example.com/feed.xml" })).toBeNull();
   });
 
   it("salvagePaneGroupConfig picks first tab when activeTabId is invalid", () => {

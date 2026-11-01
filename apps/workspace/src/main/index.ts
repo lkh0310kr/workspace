@@ -16,7 +16,6 @@ import { Workspace } from './workspace'
 import type { SearchOptions } from './search'
 import { registerMediaProtocol, toMediaUrlBrowsed } from './mediaProtocol'
 import { registerModelProtocol } from './model3d/modelProtocol'
-import { fetchFeed } from './rss'
 import { fetchDashboardEconomy, fetchDashboardWeather } from './dashboardData'
 import { model3dLog, readModel3dLogs } from './model3d/model3dLog'
 import { importJobQueue } from './model3d/importJobQueue'
@@ -54,6 +53,7 @@ import type { UsageMeterSettings } from '../shared/usage-meter-settings'
 import { setupBrowserSession, BROWSER_SESSION_PARTITION } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
+import { registerPkmsIpc } from './pkmsClient'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import {
   observeTerminalPtyOutput,
@@ -667,6 +667,7 @@ app.whenReady().then(() => {
   setupBrowserSession()
   setupBrowserDownloads(sendToMainWindow)
   registerBrowserNavIpc()
+  registerPkmsIpc()
 
   const config = loadConfig()
   appendStartupLog('config_loaded', { hasRootPath: !!config.rootPath })
@@ -939,10 +940,6 @@ app.whenReady().then(() => {
   // Unconfined counterpart of media:get-url, for a file picked via
   // dialog:pick-media-file — see toMediaUrlBrowsed's doc comment.
   ipcMain.handle('media:get-url-absolute', (_event, absolutePath: string) => toMediaUrlBrowsed(absolutePath))
-  // Why unconfined (unlike every fs:*/media:* handler above): a feed URL
-  // is an arbitrary external HTTP resource by design, not a
-  // workspace-relative path — there's nothing to resolveUnderRoot against.
-  ipcMain.handle('rss:fetch-feed', (_event, url: string) => fetchFeed(url))
   ipcMain.handle('dashboard:fetch-weather', async (_event, lat: number, lon: number) => {
     try {
       return await fetchDashboardWeather(lat, lon)

@@ -25,14 +25,11 @@ Feature
         - File System (Tree View)
     - Spotify
     - File Viewer (Image, PDF, Video(+ 영화 자막 파일 추가 및 조정 기능), E-Book, Audio Player)
-    - RSS Reader
     - Calendar
     - Dashboard
         - Weather, Clock, Stock chart 등 종합적으로 brief
         - Notification Center
-            - RSS, Download, Mail, Calendar
-        - Newspaper
-            - Blog, News
+            - Download, Mail, Calendar
         - Economy
             - Stock/Crypto/Index/Gold/Exchange Rate
     - System

@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { addTab, type TabInfo } from "../electron";
 import { switchToWorkspaceTab } from "../workspaceNavigation";
 import { ClockWidget } from "./widgets/ClockWidget";
 import { EconomyWidget } from "./widgets/EconomyWidget";
-import { NewspaperWidget, type NewspaperHeadline } from "./widgets/NewspaperWidget";
 import { NotificationCenterWidget } from "./widgets/NotificationCenterWidget";
 import { WeatherWidget } from "./widgets/WeatherWidget";
 
@@ -22,7 +20,6 @@ function formatDate(date: Date): string {
 }
 
 export function DashboardView({ tabs }: { tabs: TabInfo[] }): React.JSX.Element {
-  const [feedHeadlines, setFeedHeadlines] = useState<NewspaperHeadline[]>([]);
   const now = new Date();
 
   return (
@@ -100,8 +97,7 @@ export function DashboardView({ tabs }: { tabs: TabInfo[] }): React.JSX.Element 
           </div>
           <div className="dashboard-grid">
             <EconomyWidget />
-            <NewspaperWidget onHeadlinesChange={setFeedHeadlines} />
-            <NotificationCenterWidget feedHeadlines={feedHeadlines} />
+            <NotificationCenterWidget />
           </div>
         </section>
       </div>

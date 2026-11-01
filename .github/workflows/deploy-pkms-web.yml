@@ -1,0 +1,35 @@
+name: Deploy PKMS Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pkms/**"
+      - ".github/workflows/deploy-pkms-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-pkms-web
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pkms
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: pkms/package-lock.json
+      - run: npm ci
+      - run: npm run deploy -w @pkms/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ff0bd6a425dcd9b7b348d3db0dec6448

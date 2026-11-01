@@ -387,9 +387,6 @@ const api = {
     getUrlAbsolute: (absolutePath: string): Promise<string> =>
       ipcRenderer.invoke('media:get-url-absolute', absolutePath)
   },
-  rss: {
-    fetchFeed: (url: string): Promise<unknown> => ipcRenderer.invoke('rss:fetch-feed', url)
-  },
   dashboard: {
     fetchWeather: (lat: number, lon: number): Promise<unknown> =>
       ipcRenderer.invoke('dashboard:fetch-weather', lat, lon),
@@ -474,6 +471,14 @@ const api = {
   }
 }
 
+const pkmsDesktop = {
+  request: <T = unknown>(path: string, options: import('../shared/pkmsClient').PkmsRequestOptions) =>
+    ipcRenderer.invoke('pkms:request', path, options) as Promise<import('../shared/pkmsClient').PkmsResponse<T>>,
+  fetchAsset: (path: string) =>
+    ipcRenderer.invoke('pkms:fetch-asset', path) as Promise<import('../shared/pkmsClient').PkmsAssetResponse>,
+  openVerification: (url: string): Promise<void> => ipcRenderer.invoke('pkms:open-verification', url)
+}
+
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
@@ -481,6 +486,7 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('pkmsDesktop', pkmsDesktop)
   } catch (error) {
     console.error(error)
   }
@@ -489,4 +495,6 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   // @ts-ignore (define in dts)
   window.api = api
+  // @ts-ignore (define in dts)
+  window.pkmsDesktop = pkmsDesktop
 }

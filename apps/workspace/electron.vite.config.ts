@@ -31,6 +31,7 @@ export default defineConfig({
   preload: {},
   renderer: {
     resolve: {
+      dedupe: ['react', 'react-dom', 'react-router'],
       alias: {
         '@renderer': resolve('src/renderer/src')
       }

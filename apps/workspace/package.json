@@ -62,9 +62,11 @@
     "better-sqlite3": "^12.11.1",
     "flexlayout-react": "^0.10.5",
     "node-pty": "^1.1.0",
-    "rss-parser": "^3.13.0",
+    "react-router": "^8.5.1",
     "three": "^0.185.1",
     "xml2js": "^0.6.2",
+    "y-indexeddb": "^9.0.12",
+    "yjs": "^13.6.27",
     "zod": "^4.4.3",
     "zustand": "^5.0.15"
   },

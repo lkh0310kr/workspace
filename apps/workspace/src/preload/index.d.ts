@@ -40,18 +40,6 @@ export interface SearchFileResult {
   matches: SearchMatch[]
 }
 
-export interface FeedItem {
-  title: string
-  link: string
-  pubDate: string | null
-  contentSnippet: string | null
-}
-
-export interface FeedResult {
-  title: string
-  items: FeedItem[]
-}
-
 export interface DashboardWeather {
   temperatureC: number
   weatherCode: number
@@ -255,9 +243,6 @@ export interface WorkspaceApi {
     getUrl: (tabId: number, rel: string) => Promise<string | null>
     getUrlAbsolute: (absolutePath: string) => Promise<string>
   }
-  rss: {
-    fetchFeed: (url: string) => Promise<FeedResult>
-  }
   dashboard: {
     fetchWeather: (lat: number, lon: number) => Promise<DashboardWeather>
     fetchEconomy: () => Promise<EconomyQuote[]>
@@ -334,5 +319,12 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api: WorkspaceApi
+    pkmsDesktop: PkmsDesktopApi
   }
+}
+
+export interface PkmsDesktopApi {
+  request: <T = unknown>(path: string, options: import('../shared/pkmsClient').PkmsRequestOptions) => Promise<import('../shared/pkmsClient').PkmsResponse<T>>
+  fetchAsset: (path: string) => Promise<import('../shared/pkmsClient').PkmsAssetResponse>
+  openVerification: (url: string) => Promise<void>
 }
