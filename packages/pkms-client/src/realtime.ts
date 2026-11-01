@@ -74,8 +74,17 @@ export class PKMSRealtimeSocket {
       this.channel = channel;
       channel.on("broadcast", { event: "protocol" }, ({ payload }) => this.dispatch(payload as RealtimeEnvelope));
       const dispatchPeers = () => {
-        const peers = Object.values(channel.presenceState()).flat().map((presence) => presence as unknown as Record<string, unknown>);
-        this.dispatch({ type: "presence-state", peers } as RealtimeEnvelope);
+        const peers = Object.values(channel.presenceState()).flat().flatMap((presence) => {
+          const value = presence as { clientId?: unknown; login?: unknown; avatarUrl?: unknown; fileId?: unknown };
+          if (typeof value.clientId !== "string" || typeof value.login !== "string") return [];
+          return [{
+            clientId: value.clientId,
+            login: value.login,
+            ...(typeof value.avatarUrl === "string" ? { avatarUrl: value.avatarUrl } : {}),
+            ...(typeof value.fileId === "string" ? { fileId: value.fileId } : {}),
+          }];
+        });
+        this.dispatch({ type: "presence-state", peers });
       };
       channel.on("presence", { event: "sync" }, dispatchPeers);
       channel.on("presence", { event: "join" }, dispatchPeers);
