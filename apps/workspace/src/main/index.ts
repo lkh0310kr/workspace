@@ -4,7 +4,7 @@ import { installMainStartupLogging, appendStartupLog, isPackagedApp } from './st
 import { ensureLinuxImeDaemon } from './imeEnv'
 import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './shortcuts/relayAppShortcuts'
 
-import { app, shell, BrowserWindow, ipcMain, Menu, dialog, clipboard, session } from 'electron'
+import { app, shell, BrowserWindow, Menu, dialog, clipboard, session } from 'electron'
 import { join } from 'path'
 import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -22,7 +22,6 @@ import {
   saveWorkspaceSnapshot,
   saveTerminalSessionBuffers,
 } from './persistence'
-import type { TerminalSessionBuffersFile } from '../shared/terminal-session-buffers'
 import {
   preferNativeWorkspacePath,
   isWsl,
@@ -42,6 +41,8 @@ import { registerWorkspaceIpc } from './ipc/workspace'
 import { registerTerminalIpc } from './ipc/terminal'
 import { registerContentCapabilityIpc } from './ipc/contentCapabilities'
 import { registerSystemCapabilityIpc } from './ipc/systemCapabilities'
+import { registerAgentStatusIpc } from './ipc/agentStatus'
+import { requestTerminalSessionBuffers } from './ipc/terminalSessionBuffers'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import {
   observeTerminalPtyOutput,
@@ -51,8 +52,6 @@ import {
 import { installAgentStatusHooks } from './agentHooks'
 import {
   getWorkspaceAgentHookPort,
-  registerTerminalAgentPaneKey,
-  unregisterTerminalAgentPaneKey,
   setWorkspaceAgentHookBroadcastTarget,
   startWorkspaceAgentHookServer,
 } from './workspaceAgentHookServer'
@@ -675,16 +674,7 @@ app.whenReady().then(() => {
   for (const terminalId of workspace.allReferencedTerminalIds()) {
     notifyTerminalPtySpawned(terminalId)
   }
-  ipcMain.on('agentStatus:register-terminal-pane', (_event, payload: { terminalId: number; paneKey: string }) => {
-    if (typeof payload?.terminalId === 'number' && typeof payload?.paneKey === 'string') {
-      registerTerminalAgentPaneKey(payload.terminalId, payload.paneKey)
-    }
-  })
-  ipcMain.on('agentStatus:unregister-terminal-pane', (_event, terminalId: number) => {
-    if (typeof terminalId === 'number') {
-      unregisterTerminalAgentPaneKey(terminalId)
-    }
-  })
+  registerAgentStatusIpc()
   importJobQueue.on('update', (job) => {
     sendToMainWindow('model:import-status', job)
   })
@@ -739,31 +729,10 @@ app.on('window-all-closed', () => {
 
 let applicationQuitPrepared = false
 
-function requestTerminalSessionBuffersFromRenderer(): Promise<TerminalSessionBuffersFile> {
-  return new Promise((resolve) => {
-    const webContents = mainWindowRef?.webContents
-    if (!webContents || webContents.isDestroyed()) {
-      resolve({ buffersByTerminalId: {} })
-      return
-    }
-    const terminalIds = workspace?.allReferencedTerminalIds() ?? []
-    const timer = setTimeout(() => resolve({ buffersByTerminalId: {} }), 5000)
-    ipcMain.once('terminal:session-buffers', (_event, payload: TerminalSessionBuffersFile) => {
-      clearTimeout(timer)
-      if (payload?.buffersByTerminalId && typeof payload.buffersByTerminalId === 'object') {
-        resolve(payload)
-      } else {
-        resolve({ buffersByTerminalId: {} })
-      }
-    })
-    webContents.send('terminal:capture-session-buffers', terminalIds)
-  })
-}
-
 async function prepareApplicationQuit(): Promise<void> {
   appendStartupLog('app_before_quit')
   if (workspace) {
-    const captured = await requestTerminalSessionBuffersFromRenderer()
+    const captured = await requestTerminalSessionBuffers(mainWindowRef, workspace)
     const merged = workspace.buildTerminalSessionBuffersForQuit(captured)
     saveTerminalSessionBuffers(merged)
     persist()
