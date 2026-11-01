@@ -89,6 +89,18 @@ Workspace 탭이 숨겨지면 Renderer가 `pty:disconnect`를 보낼 수 있지�
 
 현재 브라우저 guest 등록 정보는 `apps/workspace/src/renderer/src/layout/activeBrowserWebview.ts`에 있습니다.
 
+## PKMS IPC
+
+PKMS desktop adapter는 기존 파일시스템 IPC와 별도 경로로 Worker API에 연결됩니다.
+
+| 채널 | 목적 |
+|------|------|
+| `pkms:request` | 고정된 Worker의 `/api/*` 요청 및 device-flow 인증 |
+| `pkms:fetch-asset` | 인증된 workspace attachment 읽기 |
+| `pkms:open-verification` | GitHub device verification 페이지 열기 |
+
+채널 타입은 `apps/workspace/src/shared/pkmsClient.ts`, preload 노출은 `apps/workspace/src/preload/index.ts`, Main 처리는 `apps/workspace/src/main/pkms/`에 있습니다. Main이 bearer token을 보관하므로 renderer에는 token을 전달하지 않습니다. 전체 Web/iOS/Desktop 경계와 캐시 동작은 [PKMS integration](./07-pkms-integration.md)을 참고하세요.
+
 ## 클립보드
 
 - `clipboard:write-text` — 터미널 OSC 52 클립보드 쓰기

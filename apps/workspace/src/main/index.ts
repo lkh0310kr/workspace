@@ -53,7 +53,7 @@ import type { UsageMeterSettings } from '../shared/usage-meter-settings'
 import { setupBrowserSession, BROWSER_SESSION_PARTITION } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
-import { registerPkmsIpc } from './pkmsClient'
+import { registerPkmsIpc } from './pkms/ipc'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import {
   observeTerminalPtyOutput,

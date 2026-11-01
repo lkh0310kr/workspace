@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
-import Home from "../../../../../../pkms/apps/web/app/routes/home";
-import pkmsStyles from "../../../../../../pkms/apps/web/app/styles.css?inline";
+import PkmsClientApp from "../../../../../../../pkms/apps/web/app/client/PkmsClientApp";
+import pkmsStyles from "../../../../../../../pkms/apps/web/app/client/styles.css?inline";
 
-export function PkmsPaneContent(): React.JSX.Element {
+export function PkmsPane(): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export function PkmsPaneContent(): React.JSX.Element {
     const root: Root = createRoot(mount);
     root.render(
       <MemoryRouter initialEntries={["/"]}>
-        <Home />
+        <PkmsClientApp />
       </MemoryRouter>,
     );
 

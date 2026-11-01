@@ -1,4 +1,4 @@
-import { PkmsPaneContent } from "../PkmsPaneContent";
+import { PkmsPane } from "../pkms/PkmsPane";
 import type { PaneKindDefinition } from "../paneKindRegistry";
 
 export const pkmsPaneKind: PaneKindDefinition = {
@@ -13,6 +13,6 @@ export const pkmsPaneKind: PaneKindDefinition = {
     return "PKMS";
   },
   render() {
-    return <PkmsPaneContent />;
+    return <PkmsPane />;
   },
 };
