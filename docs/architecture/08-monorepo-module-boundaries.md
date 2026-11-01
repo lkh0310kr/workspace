@@ -64,6 +64,7 @@ The first modularization pass has:
 
 - moved PKMS client pure helpers into `domain/`, API transport into `client/`, and leaf icons into `components/`;
 - extracted the file-tree list view and a shared revisioned file-operation request module;
+- extracted tree focus, multi-selection, range-selection, and cut-selection state into `features/files/useFileTreeSelection.ts`;
 - moved Workspace tab/filesystem/search and PTY registration out of `main/index.ts` into `main/ipc/`;
 - introduced shared TypeScript API and Realtime models in `@pkms/protocol` for the Worker and React client;
 - moved iOS wire DTOs out of `PKMSModel.swift` into `PKMSProtocolModels.swift`.
