@@ -1,7 +1,8 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
+import type { PkmsRealtimeMessage, PkmsUser } from "@pkms/protocol/types";
 
-export interface RealtimeUser { login: string; avatarUrl?: string }
-export interface RealtimeEnvelope { type: string; fileId?: string; update?: string; operationId?: string; acceptedRevision?: number; conflictCopyPath?: string; revision?: number; message?: string; code?: string; [key: string]: unknown }
+export type RealtimeUser = PkmsUser;
+export type RealtimeEnvelope = PkmsRealtimeMessage;
 type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
 type RealtimeStatus = "SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED" | "CONNECT_ERROR" | "SYSTEM_ERROR" | "SOCKET_CREATED" | "SOCKET_OPEN" | "SOCKET_CLOSE" | "SOCKET_ERROR";
 const clients = new Map<string, SupabaseClient>();

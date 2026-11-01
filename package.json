@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/web",
-    "packages/pkms-client"
+    "packages/pkms-client",
+    "packages/pkms-protocol"
   ],
   "scripts": {
     "postinstall": "npm install --prefix apps/workspace",

@@ -1,60 +1,21 @@
-export interface User {
-  login: string;
-  avatarUrl?: string;
-}
+import type {
+  PkmsFile,
+  PkmsPeer,
+  PkmsRealtimeMessage,
+  PkmsRepository,
+  PkmsSyncStatus,
+  PkmsUser,
+  PkmsWorkspace,
+} from "@pkms/protocol/types";
 
-export interface Repository {
-  fullName: string;
-  defaultBranch: string;
-  private: boolean;
-  canWrite: boolean;
-}
-
-export interface Workspace {
-  id: string;
-  repository: string;
-  branch: string;
-  revision: number;
-  githubStatus: string;
-  message?: string;
-}
-
-export interface FileRecord {
-  id: string;
-  path: string;
-  kind: "markdown" | "asset" | "folder";
-  content?: string;
-  size?: number;
-  revision?: number;
-}
-
-export interface SyncStatus {
-  githubStatus: string;
-  pendingFiles: number;
-  message?: string;
-  lastGitHubCommitAt?: string;
-  nextGitHubFlushAt?: number;
-}
-
-export interface RealtimeMessage {
-  type: string;
-  fileId?: string;
-  update?: string;
-  operationId?: string;
-  acceptedRevision?: number;
-  conflictCopyPath?: string;
-  revision?: number;
-  message?: string;
-  code?: string;
-  [key: string]: unknown;
-}
-
-export interface Peer {
-  clientId: string;
-  login: string;
-  avatarUrl?: string;
-  fileId?: string;
-}
+export type { PkmsFileKind, PkmsGitHubStatus } from "@pkms/protocol/types";
+export type User = PkmsUser;
+export type Repository = PkmsRepository;
+export type Workspace = PkmsWorkspace;
+export type FileRecord = PkmsFile;
+export type SyncStatus = PkmsSyncStatus;
+export type RealtimeMessage = PkmsRealtimeMessage;
+export type Peer = PkmsPeer;
 
 export interface FileLocation {
   workspaceId: string;

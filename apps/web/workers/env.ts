@@ -1,3 +1,5 @@
+import type { PkmsWorkspace } from "@pkms/protocol/types";
+
 export interface Env {
   ASSET_BUCKET: R2Bucket;
   GITHUB_CLIENT_ID: string;
@@ -22,12 +24,4 @@ export interface Session {
   tokenId?: string;
 }
 
-export interface WorkspaceRecord {
-  id: string;
-  repository: string;
-  branch: string;
-  githubStatus: "synced" | "pending" | "failed" | "external-change";
-  revision: number;
-  lastGitHubCommitAt?: string;
-  message?: string;
-}
+export type WorkspaceRecord = PkmsWorkspace;
