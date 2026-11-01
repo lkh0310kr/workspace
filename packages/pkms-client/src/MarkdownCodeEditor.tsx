@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { defaultHighlightStyle, indentOnInput, syntaxHighlighting, syntaxTree } from "@codemirror/language";
-import { EditorState, RangeSetBuilder } from "@codemirror/state";
+import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
 import { Decoration, EditorView, keymap, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 
 const hide = Decoration.replace({});
@@ -175,10 +175,7 @@ function collectInline(view: EditorView): DecorationSet {
         }
         return;
       }
-      if (name === "HorizontalRule" && !raw) {
-        add(node.from, node.to, Decoration.replace({ widget: new DividerWidget(node.from), block: true }));
-        return;
-      }
+      if (name === "HorizontalRule") return;
       if (name === "FencedCode" && !raw) {
         const marks = node.node.getChildren("CodeMark");
         if (marks.length >= 2) {
@@ -190,48 +187,72 @@ function collectInline(view: EditorView): DecorationSet {
       }
     }});
   }
-  const document = view.state.doc;
-  const checkedTables = new Set<number>();
   for (const visible of view.visibleRanges) {
-    const firstVisible = document.lineAt(visible.from).number;
-    const lastVisible = document.lineAt(visible.to).number;
-    for (let number = firstVisible; number <= lastVisible; number++) {
-      const visibleLine = document.line(number);
-      const task = taskMarker(visibleLine.text);
-      if (task && !selectionTouches(view.state, visibleLine.from, visibleLine.to)) {
-        const from = visibleLine.from + task.from;
-        add(from, from + 3, Decoration.replace({ widget: new TaskCheckboxWidget(from, from + 3, task.checked) }));
-      }
-      if (!visibleLine.text.includes("|")) continue;
-      let headerNumber = number;
-      while (headerNumber > 1 && document.line(headerNumber - 1).text.includes("|")) headerNumber--;
-      if (checkedTables.has(headerNumber)) continue;
-      const header = document.line(headerNumber);
-      const separator = headerNumber < document.lines ? document.line(headerNumber + 1) : null;
-      const alignments = separator ? tableAlignment(separator.text) : null;
-      if (!alignments || !header.text.includes("|")) continue;
-      const headers = splitTableCells(header.text);
-      if (headers.length !== alignments.length) continue;
-      const rows: string[][] = [];
-      const rowStarts = [header.from, separator!.from];
-      let end = separator!.to;
-      for (let rowNumber = headerNumber + 2; rowNumber <= document.lines; rowNumber++) {
-        const line = document.line(rowNumber);
-        if (!line.text.trim() || !line.text.includes("|")) break;
-        rows.push(splitTableCells(line.text));
-        rowStarts.push(line.from);
-        end = line.to;
-      }
-      checkedTables.add(headerNumber);
-      let insideCode = false;
-      syntaxTree(view.state).iterate({ from: header.from, to: end, enter(node) {
-        if (node.type.name === "FencedCode" && node.from <= header.from && node.to >= end) insideCode = true;
-      }});
-      if (!insideCode && !selectionTouches(view.state, header.from, end)) {
-        add(header.from, end, Decoration.replace({ widget: new TablePreviewWidget(header.from, headers, rows, alignments, rowStarts), block: true }));
-      }
+    const first = view.state.doc.lineAt(visible.from).number;
+    const last = view.state.doc.lineAt(visible.to).number;
+    for (let number = first; number <= last; number++) {
+      const line = view.state.doc.line(number);
+      const task = taskMarker(line.text);
+      if (!task || selectionTouches(view.state, line.from, line.to)) continue;
+      const from = line.from + task.from;
+      add(from, from + 3, Decoration.replace({ widget: new TaskCheckboxWidget(from, from + 3, task.checked) }));
     }
   }
+  ranges.sort((a, b) => a.from - b.from || a.to - b.to);
+  const builder = new RangeSetBuilder<Decoration>();
+  for (const range of ranges) builder.add(range.from, range.to, range.decoration);
+  return builder.finish();
+}
+
+// CodeMirror only accepts block replace decorations from StateFields. Keep
+// these separate from the viewport-aware inline ViewPlugin above.
+function collectBlock(viewState: EditorState): DecorationSet {
+  const ranges: { from: number; to: number; decoration: Decoration }[] = [];
+  const add = (from: number, to: number, decoration: Decoration) => {
+    if (from < to) ranges.push({ from, to, decoration });
+  };
+  const document = viewState.doc;
+  syntaxTree(viewState).iterate({
+    enter(node) {
+      if (node.type.name === "HorizontalRule" && !selectionTouches(viewState, node.from, node.to)) {
+        add(node.from, node.to, Decoration.replace({ widget: new DividerWidget(node.from), block: true }));
+      }
+    },
+  });
+
+  const checkedTables = new Set<number>();
+  for (let number = 1; number <= document.lines; number++) {
+    const visibleLine = document.line(number);
+    if (!visibleLine.text.includes("|")) continue;
+    let headerNumber = number;
+    while (headerNumber > 1 && document.line(headerNumber - 1).text.includes("|")) headerNumber--;
+    if (checkedTables.has(headerNumber)) continue;
+    const header = document.line(headerNumber);
+    const separator = headerNumber < document.lines ? document.line(headerNumber + 1) : null;
+    const alignments = separator ? tableAlignment(separator.text) : null;
+    if (!alignments || !header.text.includes("|")) continue;
+    const headers = splitTableCells(header.text);
+    if (headers.length !== alignments.length) continue;
+    const rows: string[][] = [];
+    const rowStarts = [header.from, separator!.from];
+    let end = separator!.to;
+    for (let rowNumber = headerNumber + 2; rowNumber <= document.lines; rowNumber++) {
+      const line = document.line(rowNumber);
+      if (!line.text.trim() || !line.text.includes("|")) break;
+      rows.push(splitTableCells(line.text));
+      rowStarts.push(line.from);
+      end = line.to;
+    }
+    checkedTables.add(headerNumber);
+    let insideCode = false;
+    syntaxTree(viewState).iterate({ from: header.from, to: end, enter(node) {
+      if (node.type.name === "FencedCode" && node.from <= header.from && node.to >= end) insideCode = true;
+    }});
+    if (!insideCode && !selectionTouches(viewState, header.from, end)) {
+      add(header.from, end, Decoration.replace({ widget: new TablePreviewWidget(header.from, headers, rows, alignments, rowStarts), block: true }));
+    }
+  }
+
   ranges.sort((a, b) => a.from - b.from || a.to - b.to);
   const builder = new RangeSetBuilder<Decoration>();
   for (const range of ranges) builder.add(range.from, range.to, range.decoration);
@@ -257,7 +278,17 @@ const inlineLivePreview = ViewPlugin.fromClass(class {
   }
 }, { decorations: (plugin) => plugin.decorations });
 
-const blockLivePreview = ViewPlugin.fromClass(class {
+const blockLivePreview = StateField.define<DecorationSet>({
+  create: collectBlock,
+  update(decorations, transaction) {
+    return transaction.docChanged || transaction.selection
+      ? collectBlock(transaction.state)
+      : decorations.map(transaction.changes);
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
+
+const blockLineLivePreview = ViewPlugin.fromClass(class {
   decorations: DecorationSet;
   constructor(readonly view: EditorView) { this.decorations = this.build(); }
   update(update: ViewUpdate) {
@@ -295,7 +326,7 @@ export function MarkdownCodeEditor({ value, onChange, onNavigateReady }: { value
       doc: value,
       extensions: [
         markdown(), history(), indentOnInput(), syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-        inlineLivePreview, blockLivePreview,
+        inlineLivePreview, blockLineLivePreview, blockLivePreview,
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]), EditorView.lineWrapping,
         EditorView.contentAttributes.of({ "aria-label": "Markdown editor", autocapitalize: "sentences", spellcheck: "true" }),
         EditorView.updateListener.of((update) => { if (update.docChanged) onChangeRef.current(update.state.doc.toString()); }),
