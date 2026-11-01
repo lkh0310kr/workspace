@@ -17,6 +17,7 @@ import { FileTreeList } from "./components/FileTreeList";
 import { useFileTreeSelection } from "./features/files/useFileTreeSelection";
 import { useWorkspaceDirectory } from "./features/files/useWorkspaceDirectory";
 import { useDocumentSync } from "./features/editor/useDocumentSync";
+import { useRealtimeMessages } from "./features/editor/useRealtimeMessages";
 
 const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
 const api = requestPkmsApi;
@@ -43,7 +44,7 @@ export default function Home() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickQuery, setQuickQuery] = useState("");
   const [text, setText] = useState("");
-  const [sync, setSync] = useState<SyncStatus>({ githubStatus: "pending", pendingFiles: 0 });
+  const [sync, setSync] = useState<SyncStatus>({ serverRevision: 0, githubStatus: "pending", pendingFiles: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -108,6 +109,18 @@ export default function Home() {
     setError,
     setSync,
     setNotice,
+  });
+  const handleRealtimeMessage = useRealtimeMessages({
+    workspaceId: activeWorkspace?.id ?? "",
+    documents: docs,
+    pending,
+    activeDocument: activeRef,
+    openFileRef,
+    request: api,
+    setPeers,
+    setSaving,
+    setError,
+    setFiles,
   });
 
   useEffect(() => {
@@ -325,44 +338,7 @@ export default function Home() {
           pending.current.set(operationId, { type: "document-update", operationId, fileId: current.file.id });
         }
       };
-      ws.onmessage = (event) => {
-      let message: RealtimeMessage;
-      try { message = JSON.parse(String(event.data)) as RealtimeMessage; } catch { return; }
-      if (message.type === "presence-state") {
-        setPeers((message as RealtimeMessage & { peers?: Peer[] }).peers ?? []);
-      } else if (message.type === "presence") {
-        const presence = message as RealtimeMessage & { action?: string; peer?: Peer; clientId?: string };
-        if (presence.action === "leave") setPeers((current) => current.filter((peer) => peer.clientId !== presence.clientId));
-        else if (presence.peer) setPeers((current) => [...current.filter((peer) => peer.clientId !== presence.peer!.clientId), presence.peer!]);
-      } else if (message.type === "document-state" && message.fileId && message.update) {
-        const document = docs.current.get(message.fileId)?.doc;
-        if (document) Y.applyUpdate(document, fromBase64(message.update), "server");
-        else pending.current.set(`state:${message.fileId}`, message);
-      } else if (message.type === "document-update" && message.fileId && message.update) {
-        const document = docs.current.get(message.fileId)?.doc;
-        if (document) Y.applyUpdate(document, fromBase64(message.update), "server");
-      } else if (message.type === "ack" && message.operationId) {
-        pending.current.delete(message.operationId);
-        setSaving(pending.current.size > 0);
-        if (message.conflictCopyPath) {
-          void api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`).then(async (snapshot) => {
-            setFiles(snapshot.files);
-            const conflict = snapshot.files.find((file) => file.path === message.conflictCopyPath);
-            if (conflict) await openFileRef.current?.(conflict);
-          }).catch(() => {});
-        }
-      } else if (message.type === "error") {
-        setError(message.message ?? "Collaboration sync failed");
-      } else if (typeof message.acceptedRevision === "number") {
-        void api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`).then(async (snapshot) => {
-          setFiles(snapshot.files);
-          if (message.conflictCopyPath) {
-            const conflict = snapshot.files.find((file) => file.path === message.conflictCopyPath);
-            if (conflict) await openFileRef.current?.(conflict);
-          }
-        }).catch(() => {});
-      }
-      };
+      ws.onmessage = handleRealtimeMessage;
       ws.onclose = () => {
         window.clearTimeout(stableTimer);
         if (socket.current === ws) socket.current = null;
@@ -414,7 +390,7 @@ export default function Home() {
     };
     pollSyncStatus(15_000);
     return () => { alive = false; window.clearTimeout(syncTimer); window.clearTimeout(retryTimer); window.clearTimeout(stableTimer); socket.current?.close(); socket.current = null; setPeers([]); };
-  }, [activeWorkspace, api, restoreWorkspaceTree, user]);
+  }, [activeWorkspace, api, handleRealtimeMessage, restoreWorkspaceTree, user]);
 
   useEffect(() => {
     if (!activeWorkspace || !loadedFolders.has("")) return;
