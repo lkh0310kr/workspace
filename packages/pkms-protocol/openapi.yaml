@@ -58,15 +58,7 @@ paths:
           description: GitHub Device Flow instructions.
           content:
             application/json:
-              schema:
-                type: object
-                required: [device_code, user_code, verification_uri, expires_in, interval]
-                properties:
-                  device_code: { type: string }
-                  user_code: { type: string }
-                  verification_uri: { type: string, format: uri }
-                  expires_in: { type: integer }
-                  interval: { type: integer }
+              schema: { $ref: '#/components/schemas/DeviceStart' }
   /api/auth/device/poll:
     post:
       operationId: pollGitHubDeviceLogin
@@ -80,8 +72,16 @@ paths:
               required: [deviceCode]
               properties: { deviceCode: { type: string } }
       responses:
-        '200': { description: Device login completed and returned a signed PKMS token. }
-        '202': { description: User authorization is still pending. }
+        '200':
+          description: Device login completed and returned a signed PKMS token.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DevicePollResponse' }
+        '202':
+          description: User authorization is still pending.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DevicePollResponse' }
   /api/logout:
     post:
       operationId: logout
@@ -297,6 +297,24 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ApiError' }
   schemas:
+    DeviceStart:
+      type: object
+      required: [device_code, user_code, verification_uri, expires_in, interval]
+      properties:
+        device_code: { type: string }
+        user_code: { type: string }
+        verification_uri: { type: string, format: uri }
+        expires_in: { type: integer }
+        interval: { type: integer }
+    DevicePollResponse:
+      type: object
+      required: [pending]
+      properties:
+        pending: { type: boolean }
+        interval: { type: integer }
+        token: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+        expiresAt: { type: integer, description: Unix epoch milliseconds. }
     SessionResponse:
       type: object
       required: [user]
@@ -353,6 +371,7 @@ components:
           items: { $ref: '#/components/schemas/FileRecord' }
         hasMore: { type: boolean }
         nextRevision: { type: integer, minimum: 0 }
+        afterRevision: { type: integer, minimum: 0 }
     OperationRequest:
       type: object
       required: [operationId, baseRevision, clientId, operation]
@@ -387,9 +406,10 @@ components:
                 fileId: { type: string }
     DocumentUpdateRequest:
       type: object
-      required: [operationId, update]
+      required: [operationId, fileId, update]
       properties:
         operationId: { type: string, format: uuid }
+        fileId: { type: string }
         update: { type: string, contentEncoding: base64 }
     OperationResponse:
       type: object
@@ -399,6 +419,7 @@ components:
         acceptedRevision: { type: integer, minimum: 0 }
         duplicate: { type: boolean }
         conflictCopyPath: { type: string }
+        rebasedFrom: { type: integer, minimum: 0 }
     SyncStatus:
       type: object
       required: [serverRevision, githubStatus, pendingFiles]
@@ -412,8 +433,14 @@ components:
         message: { type: string }
     ApiError:
       type: object
-      required: [code, message]
       properties:
+        error: { type: string }
         code: { type: string }
         message: { type: string }
+        requestId: { type: string }
         currentRevision: { type: integer }
+        conflictCopyPath: { type: string }
+        maxBytes: { type: integer }
+        retryAfterSeconds: { type: integer }
+        requiredScope: { type: string }
+      additionalProperties: true

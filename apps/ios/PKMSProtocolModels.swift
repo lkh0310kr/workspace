@@ -58,6 +58,9 @@ struct PKMSSnapshot: Decodable {
     let workspaceId: String
     let revision: Int
     let files: [PKMSFile]
+    let hasMore: Bool
+    let nextRevision: Int?
+    let afterRevision: Int?
 }
 
 struct PKMSDirectory: Decodable { let path: String; let files: [PKMSFile] }
@@ -72,7 +75,9 @@ struct PKMSSyncStatus: Decodable {
     let message: String?
 }
 
-struct PKMSSessionResponse: Decodable { let user: PKMSUser? }
+struct PKMSSessionResponse: Decodable {
+    let user: PKMSUser?
+}
 struct PKMSWorkspaceList: Decodable { let workspaces: [PKMSWorkspace] }
 struct PKMSRepositoryList: Decodable { let repositories: [PKMSRepository] }
 struct PKMSConnectedWorkspace: Decodable { let workspace: PKMSWorkspace }
@@ -94,10 +99,17 @@ struct PKMSDevicePoll: Decodable {
     let interval: Int?
     let token: String?
     let user: PKMSUser?
+    let expiresAt: Double?
 }
 
 struct PKMSFileUpdate: Decodable { let update: String }
-struct PKMSOperationResponse: Decodable { let acceptedRevision: Int; let conflictCopyPath: String? }
+struct PKMSOperationResponse: Decodable {
+    let operationId: String
+    let acceptedRevision: Int
+    let duplicate: Bool
+    let conflictCopyPath: String?
+    let rebasedFrom: Int?
+}
 
 struct PKMSOperationRequest: Encodable {
     let operationId: String
@@ -128,6 +140,18 @@ struct PKMSHello: Encodable {
     let afterRevision: Int
     let user: PKMSUser?
     let fileId: String?
+}
+
+struct PKMSAPIError: Decodable {
+    let error: String?
+    let code: String?
+    let message: String?
+    let requestId: String?
+    let currentRevision: Int?
+    let conflictCopyPath: String?
+    let maxBytes: Int?
+    let retryAfterSeconds: Int?
+    let requiredScope: String?
 }
 
 enum PKMSClientError: LocalizedError {

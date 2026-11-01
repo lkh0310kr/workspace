@@ -4,12 +4,11 @@ import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
 import { desktopBridge } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
-import { submitWorkspaceOperation } from "./client/workspaceOperations";
 import { useLocation, useNavigate } from "react-router";
 import type { FileNavigation, FileRecord, Peer, RealtimeMessage, Repository, SyncStatus, TreeContextMenu, TreeRow, Workspace } from "./domain/types";
 import { toBase64, createOperationId } from "./domain/encoding";
 import { entryName, flattenTree, mergeFileRecords, parentPath, treeSelectionRoots } from "./domain/fileTree";
-import { fileLocationPath, parseFileLocation } from "./domain/fileLocation";
+import { parseFileLocation } from "./domain/fileLocation";
 import { matchesExcludePattern } from "./domain/excludePattern";
 import { applyTextDiff } from "./domain/yjsText";
 import { AppIcon, GitHubIcon } from "./components/Icons";
@@ -481,7 +480,7 @@ export default function Home() {
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
   const contextMoveRoots = treeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)));
 
-  const { updateFilePath, moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItem, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder } = useWorkspaceFileActions({
+  const { moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItem, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder } = useWorkspaceFileActions({
     workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders,
     api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders,
     setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice,
