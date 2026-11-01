@@ -15,8 +15,10 @@ import { applyTextDiff } from "./domain/yjsText";
 import { AppIcon, GitHubIcon } from "./components/Icons";
 import { FileTreeList } from "./components/FileTreeList";
 import { useFileTreeSelection } from "./features/files/useFileTreeSelection";
+import { useWorkspaceDirectory } from "./features/files/useWorkspaceDirectory";
 
 const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
+const api = requestPkmsApi;
 
 export function meta() {
   return [{ title: "PKMS — Markdown workspace" }];
@@ -27,12 +29,6 @@ export default function Home() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
-  const [currentFolder, setCurrentFolder] = useState("");
-  const [files, setFiles] = useState<FileRecord[]>([]);
-  const [loadingFolder, setLoadingFolder] = useState(false);
-  const [loadingFolderPaths, setLoadingFolderPaths] = useState<Set<string>>(() => new Set());
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set([""]));
-  const [loadedFolders, setLoadedFolders] = useState<Set<string>>(() => new Set());
   const [treeContextMenu, setTreeContextMenu] = useState<TreeContextMenu | null>(null);
   const [treeDropTarget, setTreeDropTarget] = useState<string | null>(null);
   const [showIgnoredFiles, setShowIgnoredFiles] = useState(false);
@@ -58,6 +54,22 @@ export default function Home() {
   const [peers, setPeers] = useState<Peer[]>([]);
   const [deviceFlow, setDeviceFlow] = useState<{ deviceCode: string; userCode: string; verificationUri: string; interval: number; expiresAt: number } | null>(null);
   const [assetPreviewUrl, setAssetPreviewUrl] = useState<string | null>(null);
+  const {
+    currentFolder,
+    setCurrentFolder,
+    files,
+    setFiles,
+    loadingFolder,
+    setLoadingFolder,
+    loadingFolderPaths,
+    setLoadingFolderPaths,
+    expandedFolders,
+    setExpandedFolders,
+    loadedFolders,
+    setLoadedFolders,
+    toggleDirectory,
+    restoreWorkspaceTree,
+  } = useWorkspaceDirectory(activeWorkspace, api, setError);
   const visibleFiles = files.filter((file) => showIgnoredFiles || (
     !file.path.split("/").some((part) => part.startsWith(".")) &&
     !excludedPatterns.split("\n").some((pattern) => matchesExcludePattern(file.path, pattern))
@@ -126,8 +138,6 @@ export default function Home() {
     setActiveFile(null);
     setText("");
   };
-
-  const api = requestPkmsApi;
 
   useEffect(() => {
     mounted.current = true;
@@ -409,28 +419,19 @@ export default function Home() {
     };
     connect();
     const loadSnapshot = async () => {
+      const scrollTop = await restoreWorkspaceTree(() => alive);
+      if (!alive || scrollTop === null) return;
+      setFocusedTreePath(null);
+      requestAnimationFrame(() => { if (treeRef.current) treeRef.current.scrollTop = scrollTop; });
       try {
-        setLoadingFolder(true);
-        const result = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/directory`);
-        if (!alive) return;
-        const storageKey = `pkms:tree:${activeWorkspace.id}`;
-        let saved: { expanded?: string[]; currentFolder?: string; scrollTop?: number } = {};
-        try { saved = JSON.parse(localStorage.getItem(storageKey) ?? "{}"); } catch { saved = {}; }
-        const expanded = [...new Set(["", ...(saved.expanded ?? [])])];
-        const restored = await Promise.allSettled(expanded.filter(Boolean).map((path) => api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/directory?path=${encodeURIComponent(path)}`)));
-        if (!alive) return;
-        const restoredFiles = restored.flatMap((entry) => entry.status === "fulfilled" ? entry.value.files : []);
-        const loaded = new Set(["", ...expanded.filter((_path, index) => index > 0 && restored[index - 1]?.status === "fulfilled")]);
-        setFiles([...result.files, ...restoredFiles]);
-        setCurrentFolder(saved.currentFolder ?? "");
-        setExpandedFolders(new Set(expanded));
-        setLoadedFolders(loaded);
-        setFocusedTreePath(null);
-        setLoadingFolder(false);
-        requestAnimationFrame(() => { if (treeRef.current) treeRef.current.scrollTop = saved.scrollTop ?? 0; });
         const state = await api<SyncStatus>(`/api/workspaces/${activeWorkspace.id}/sync-status`);
         if (alive) setSync(state);
-      } catch (cause) { if (alive) { setLoadingFolder(false); setError(cause instanceof Error ? cause.message : "Could not load workspace"); } }
+      } catch (cause) {
+        if (alive) {
+          setLoadingFolder(false);
+          setError(cause instanceof Error ? cause.message : "Could not load workspace");
+        }
+      }
     };
     void loadSnapshot();
     let syncTimer = 0;
@@ -453,7 +454,7 @@ export default function Home() {
     };
     pollSyncStatus(15_000);
     return () => { alive = false; window.clearTimeout(syncTimer); window.clearTimeout(retryTimer); window.clearTimeout(stableTimer); socket.current?.close(); socket.current = null; setPeers([]); };
-  }, [activeWorkspace, api, user]);
+  }, [activeWorkspace, api, restoreWorkspaceTree, user]);
 
   useEffect(() => {
     if (!activeWorkspace || !loadedFolders.has("")) return;
@@ -637,19 +638,7 @@ export default function Home() {
     if (!activeWorkspace) return;
     setCurrentFolder(file.path);
     setFocusedTreePath(file.path);
-    if (expandedFolders.has(file.path)) {
-      setExpandedFolders((current) => { const next = new Set(current); next.delete(file.path); return next; });
-      return;
-    }
-    setExpandedFolders((current) => new Set(current).add(file.path));
-    if (loadedFolders.has(file.path)) return;
-    setLoadingFolderPaths((current) => new Set(current).add(file.path));
-    try {
-      const result = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/directory?path=${encodeURIComponent(file.path)}`);
-      setFiles((current) => [...current.filter((entry) => parentPath(entry.path) !== file.path), ...result.files]);
-      setLoadedFolders((current) => new Set(current).add(file.path));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not open folder"); }
-    finally { setLoadingFolderPaths((current) => { const next = new Set(current); next.delete(file.path); return next; }); }
+    await toggleDirectory(file);
   };
 
   const chooseWorkspace = (workspace: Workspace) => {
