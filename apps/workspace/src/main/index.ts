@@ -3,12 +3,9 @@ import './imeEnv'
 import { installMainStartupLogging, appendStartupLog, isPackagedApp } from './startupLog'
 import { ensureLinuxImeDaemon } from './imeEnv'
 import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './shortcuts/relayAppShortcuts'
-import { assertClipboardImageDimensionsWithinLimit } from '../shared/clipboard-image'
-import { saveClipboardImageBufferAsTempFile } from './clipboard/clipboardImageTempFile'
 
 import { app, shell, BrowserWindow, ipcMain, Menu, dialog, clipboard, session } from 'electron'
 import { join } from 'path'
-import { hostname as osHostname } from 'os'
 import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -34,16 +31,9 @@ import {
 } from './wslPaths'
 import { applyBrowserGpuSwitches } from './browserGpuEnv'
 import { shouldIgnoreWatcherPath } from './filesystemWatcherIgnore'
-import { revealWslWindow, toggleWslWindowMaximize, installWslWindowLifecycle } from './wslWindow'
+import { revealWslWindow, installWslWindowLifecycle } from './wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
-import {
-  installClaudeStatuslineHook,
-  claudeRateLimitStatus,
-  cursorUsageStatus,
-  codexRateLimitStatus,
-} from './usage'
-import { loadUsageMeterSettings, saveUsageMeterSettings } from './usageMeterConfig'
-import type { UsageMeterSettings } from '../shared/usage-meter-settings'
+import { installClaudeStatuslineHook } from './usage'
 import { setupBrowserSession, BROWSER_SESSION_PARTITION } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
@@ -51,6 +41,7 @@ import { registerPkmsIpc } from './pkms/ipc'
 import { registerWorkspaceIpc } from './ipc/workspace'
 import { registerTerminalIpc } from './ipc/terminal'
 import { registerContentCapabilityIpc } from './ipc/contentCapabilities'
+import { registerSystemCapabilityIpc } from './ipc/systemCapabilities'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import {
   observeTerminalPtyOutput,
@@ -65,11 +56,9 @@ import {
   setWorkspaceAgentHookBroadcastTarget,
   startWorkspaceAgentHookServer,
 } from './workspaceAgentHookServer'
-import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
 import { disposeCadViewers } from './cadViewer'
-import { pickDirectory, pickMediaFile } from './nativeDialogs'
 import { hardwareSimManager } from './hardwareSim'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
@@ -157,23 +146,7 @@ function handleMacTerminalOptionShortcut(
   return true
 }
 
-import { appendAppLog, appendConsoleLog, appendNdjsonLog, getLogsDir, installMainConsoleFileLogging } from './debugLogSink'
-
-function interactionLogPath(): string {
-  return 'interaction.ndjson'
-}
-
-function browserFocusLogPath(): string {
-  return 'browser-focus.ndjson'
-}
-
-function appendInteractionLog(entry: Record<string, unknown>): void {
-  appendNdjsonLog(interactionLogPath(), entry)
-}
-
-function appendBrowserFocusLog(entry: Record<string, unknown>): void {
-  appendNdjsonLog(browserFocusLogPath(), entry)
-}
+import { appendAppLog, getLogsDir, installMainConsoleFileLogging } from './debugLogSink'
 
 function logWindowLifecycle(event: string, window: BrowserWindow, extra?: Record<string, unknown>): void {
   appendStartupLog(event, {
@@ -739,92 +712,7 @@ app.whenReady().then(() => {
   }, terminalBufferAutosaveMs)
   app.on('will-quit', () => clearInterval(terminalBufferAutosaveTimer))
 
-  ipcMain.handle('hostname', () => osHostname())
-  ipcMain.handle('app:platform', () => process.platform)
-  ipcMain.on('window:minimize', (event) => {
-    BrowserWindow.fromWebContents(event.sender)?.minimize()
-  })
-  ipcMain.on('window:maximize', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return
-    if (isWsl()) {
-      toggleWslWindowMaximize(win)
-      return
-    }
-    if (win.isMaximized()) win.unmaximize()
-    else win.maximize()
-  })
-  ipcMain.on('window:close', (event) => {
-    BrowserWindow.fromWebContents(event.sender)?.close()
-  })
-  ipcMain.on('debug:interaction-log', (_event, entry: Record<string, unknown>) => {
-    appendInteractionLog(entry)
-    if (entry.sessionId === 'browser-focus') {
-      appendBrowserFocusLog(entry)
-    }
-  })
-  ipcMain.on('debug:terminal-log', (_event, entry: Record<string, unknown>) => {
-    appendTerminalLog(entry)
-  })
-  ipcMain.on('debug:layout-log', (_event, entry: Record<string, unknown>) => {
-    appendLayoutLog(entry)
-  })
-  ipcMain.on('debug:app-log', (_event, source: string, level: string, event: string, data?: Record<string, unknown>) => {
-    appendAppLog(source, level as 'log' | 'info' | 'warn' | 'error' | 'debug', event, data)
-  })
-  ipcMain.on('debug:error-log', (_event, message: string, stack?: string, extra?: Record<string, unknown>) => {
-    appendNdjsonLog('errors.ndjson', {
-      ts: new Date().toISOString(),
-      source: 'renderer',
-      level: 'error',
-      message,
-      stack: stack ?? null,
-      ...(extra ?? {}),
-    })
-  })
-  ipcMain.on('debug:console-log', (_event, level: string, args: unknown[]) => {
-    appendConsoleLog('renderer', level as 'log' | 'info' | 'warn' | 'error' | 'debug', args)
-  })
-  ipcMain.handle('debug:get-logs-dir', () => getLogsDir())
-  // OSC 52 from nested apps (vim, ssh tmux, etc.) — xterm forwards via
-  // registerOscHandler(52) in connectPanePty; renderer has no clipboard API.
-  ipcMain.on('clipboard:write-text', (_event, text: string) => {
-    clipboard.writeText(text)
-  })
-  ipcMain.handle('clipboard:read-text', () => clipboard.readText())
-  // Why: Claude Code / Cursor CLI accept image input via pasted temp-file paths.
-  ipcMain.handle('clipboard:save-image-as-temp-file', () => {
-    const image = clipboard.readImage()
-    if (image.isEmpty()) {
-      return null
-    }
-    assertClipboardImageDimensionsWithinLimit(image.getSize())
-    return saveClipboardImageBufferAsTempFile(image.toPNG())
-  })
-  ipcMain.handle('shell:reveal-item-in-dir', (_event, path: string) => {
-    shell.showItemInFolder(path)
-  })
-  ipcMain.handle('usage:claude-rate-limit-status', () => claudeRateLimitStatus())
-  ipcMain.handle('usage:cursor-usage-status', () => cursorUsageStatus())
-  ipcMain.handle('usage:codex-rate-limit-status', () => codexRateLimitStatus())
-  ipcMain.handle('usage:meter-settings-get', () => loadUsageMeterSettings())
-  ipcMain.handle('usage:meter-settings-save', (_event, settings: unknown) => {
-    saveUsageMeterSettings(settings as UsageMeterSettings)
-  })
-  ipcMain.handle('dialog:open-directory', async (_event, defaultPath?: string) =>
-    pickDirectory(mainWindowRef, defaultPath)
-  )
-
-  // For the Video/Audio/Ebook pane-picker entries — a file the user opens
-  // "directly" rather than through TreeView/Quick Open, so it's
-  // deliberately not confined to any open workspace root. The dialog
-  // itself is the trust boundary (see toMediaUrlBrowsed's doc comment):
-  // the returned path only ever came from this native picker, never from
-  // renderer-supplied input.
-  ipcMain.handle('dialog:pick-media-file', async (_event, kind: 'video' | 'audio' | 'ebook') =>
-    pickMediaFile(mainWindowRef, kind)
-  )
-
+  registerSystemCapabilityIpc(() => mainWindowRef)
   registerTerminalIpc(() => workspace!, (id) => { focusedTerminalId = id })
   registerWorkspaceIpc(() => workspace!, persist)
   registerContentCapabilityIpc(() => workspace!)
