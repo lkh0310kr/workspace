@@ -53,23 +53,24 @@ The PKMS pane mounts the same React client used by Web. `packages/pkms-client/sr
 `packages/pkms-client/src/` is being separated by responsibility:
 
 - `domain/` holds typed client models and pure file-tree, path, filter, encoding, and document helpers.
-- `client/` holds API transport shared by Web and Desktop.
+- `client/` holds API transport and revisioned file-operation requests shared by Web and Desktop.
 - `platform/` adapts the same client to Electron IPC.
 - `components/` holds leaf UI such as icons and the Markdown editor.
-- `PkmsClientApp.tsx` still composes most feature state and screens. Split it into account, repository, file browser, editor, and sync feature modules in follow-up work without changing its public Web/Desktop entry point.
+- `PkmsClientApp.tsx` still composes most feature state and screens. Continue splitting account, repository, file browser state/actions, editor, and sync features without changing its public Web/Desktop entry point.
 
 ## Refactoring progress
 
 The first modularization pass has:
 
 - moved PKMS client pure helpers into `domain/`, API transport into `client/`, and leaf icons into `components/`;
+- extracted the file-tree list view and a shared revisioned file-operation request module;
 - moved Workspace tab/filesystem/search and PTY registration out of `main/index.ts` into `main/ipc/`;
 - introduced shared TypeScript API and Realtime models in `@pkms/protocol` for the Worker and React client;
 - moved iOS wire DTOs out of `PKMSModel.swift` into `PKMSProtocolModels.swift`.
 
 The next steps are:
 
-1. Split `PkmsClientApp.tsx` into account, repository, file browser, editor, and sync feature components/hooks while keeping the Web/Desktop entry point stable.
+1. Continue splitting `PkmsClientApp.tsx` into account, repository, file browser state/actions, editor, and sync feature hooks while keeping the Web/Desktop entry point stable.
 2. Split the iOS state model into API, auth, document, and Realtime coordinators.
 3. Separate Worker routing into auth, workspace API, MCP, and scheduled sync modules.
 4. Generate client DTOs from the language-neutral schemas and add contract checks before changing the wire format.
