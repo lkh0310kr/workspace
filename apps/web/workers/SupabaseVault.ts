@@ -207,8 +207,9 @@ export async function flushWorkspace(env:Env,id:string,login:string,leaseToken:s
   const token=await accessToken(env,login);const [owner,repo]=w.repository.split("/");const branch=w.branch.split("/").map(encodeURIComponent).join("/");const refPath=`/repos/${owner}/${repo}/git/ref/heads/${branch}`;
   const ref=await(await github(token,refPath)).json() as {object:{sha:string}};
   if(ref.object.sha!==w.github_head){
-    if(await recoverCompletedFlush(env,token,owner,repo,id,leaseToken,w,changed,ref.object.sha))return;
-    await supabaseRpc(env,"pkms_finish_flush",{p_workspace_id:id,p_lease_token:leaseToken,p_captured_revision:Number(w.server_revision),p_new_head:ref.object.sha,p_files:[],p_github_status:"external-change",p_message:"GitHub branch changed outside PKMS. Automatic push is paused to protect those changes."});return;
+    if(!await recoverPreviousPkmsCommit(token,owner,repo,login,w,changed,ref.object.sha)){
+      await supabaseRpc(env,"pkms_finish_flush",{p_workspace_id:id,p_lease_token:leaseToken,p_captured_revision:Number(w.server_revision),p_new_head:ref.object.sha,p_files:[],p_github_status:"external-change",p_message:"GitHub branch changed outside PKMS. Automatic push is paused to protect those changes."});return;
+    }
   }
   if(!changed.length){await supabaseRpc(env,"pkms_finish_flush",{p_workspace_id:id,p_lease_token:leaseToken,p_captured_revision:Number(w.server_revision),p_new_head:ref.object.sha,p_files:[]});return;}
   const base=await(await github(token,`/repos/${owner}/${repo}/git/commits/${ref.object.sha}`)).json() as {tree:{sha:string}};const revision=capturedRevision;const tree:Array<{path:string;mode:string;type:"blob";sha:string|null}>=[];const blobSha=new Map<string,string>();
@@ -219,44 +220,22 @@ export async function flushWorkspace(env:Env,id:string,login:string,leaseToken:s
   await supabaseRpc(env,"pkms_finish_flush",{p_workspace_id:id,p_lease_token:leaseToken,p_captured_revision:revision,p_new_head:newHead,p_files:completed});
   for(const f of changed)if(f.object_key)await env.ASSET_BUCKET.delete(f.object_key);
 }
-async function recoverCompletedFlush(env:Env,token:string,owner:string,repo:string,id:string,leaseToken:string,w:WorkspaceRow,changed:FileRow[],remoteHead:string):Promise<boolean>{
+async function recoverPreviousPkmsCommit(token:string,owner:string,repo:string,login:string,w:WorkspaceRow,changed:FileRow[],remoteHead:string):Promise<boolean>{
   if(!w.github_head||!changed.length)return false;
   const response=await github(token,`/repos/${owner}/${repo}/commits/${remoteHead}`);
-  const commit=await response.json() as {commit?:{message?:string};parents?:Array<{sha:string}>;files?:Array<{filename:string;status:string;sha:string|null;previous_filename?:string}>};
+  const commit=await response.json() as {commit?:{message?:string};author?:{login?:string|null};parents?:Array<{sha:string}>;files?:Array<{filename:string;status:string;sha:string|null;previous_filename?:string}>};
   const committed=commit.files;
-  if(commit.commit?.message?.trim()!=="Sync PKMS workspace"||commit.parents?.length!==1||commit.parents[0].sha!==w.github_head||!committed||committed.length>=300)return false;
+  if(commit.commit?.message?.trim()!=="Sync PKMS workspace"||commit.author?.login?.toLowerCase()!==login.toLowerCase()||commit.parents?.length!==1||commit.parents[0].sha!==w.github_head||!committed||committed.length>=300){
+    console.warn("github_flush_recovery_skipped",{reason:"commit_metadata_mismatch",changedFileCount:changed.length,remoteFileCount:committed?.length??-1});return false;
+  }
   const paths=new Set<string>();
   for(const item of committed){paths.add(item.filename);if(item.previous_filename)paths.add(item.previous_filename);}
   const expectedPaths=new Set<string>();
   for(const file of changed){if(file.kind==="folder")continue;expectedPaths.add(file.path);if(file.previous_path)expectedPaths.add(file.previous_path);}
-  if([...paths].some(path=>!expectedPaths.has(path)))return false;
-  const completed:Array<{fileId:string;revision:number;deleted:boolean;sha?:string}>=[];
-  for(const file of changed){
-    if(file.kind==="folder"){completed.push({fileId:file.file_id,revision:file.revision,deleted:file.deleted});continue;}
-    if(file.deleted){
-      const removal=committed.find(item=>item.filename===file.path&&item.status==="removed");
-      if(!removal)return false;
-      if(file.previous_path&&!committed.some(item=>item.filename===file.previous_path&&item.status==="removed"))return false;
-      completed.push({fileId:file.file_id,revision:file.revision,deleted:true});
-      continue;
-    }
-    const item=committed.find(entry=>entry.filename===file.path);
-    if(!item?.sha)return false;
-    if(file.previous_path&&!committed.some(entry=>entry.filename===file.path&&entry.previous_filename===file.previous_path))return false;
-    let bytes:Uint8Array;
-    if(file.kind==="markdown")bytes=encoder.encode(file.content??"");
-    else{if(!file.object_key)return false;const object=await env.ASSET_BUCKET.get(file.object_key);if(!object)return false;bytes=new Uint8Array(await object.arrayBuffer());}
-    if(item.sha!==await gitBlobSha(bytes))return false;
-    completed.push({fileId:file.file_id,revision:file.revision,deleted:false,sha:item.sha});
+  if([...paths].some(path=>!expectedPaths.has(path))){
+    console.warn("github_flush_recovery_skipped",{reason:"remote_paths_not_pending",changedFileCount:changed.length,remoteFileCount:committed.length});return false;
   }
-  const latest=await(await github(token,`/repos/${owner}/${repo}/git/ref/heads/${w.branch.split("/").map(encodeURIComponent).join("/")}`)).json() as {object:{sha:string}};
-  if(latest.object.sha!==remoteHead)return false;
-  await supabaseRpc(env,"pkms_finish_flush",{p_workspace_id:id,p_lease_token:leaseToken,p_captured_revision:Number(w.server_revision),p_new_head:remoteHead,p_files:completed});
   return true;
-}
-async function gitBlobSha(bytes:Uint8Array):Promise<string>{
-  const header=encoder.encode(`blob ${bytes.byteLength}\0`);const content=new Uint8Array(header.byteLength+bytes.byteLength);content.set(header);content.set(bytes,header.byteLength);
-  return[...new Uint8Array(await crypto.subtle.digest("SHA-1",content))].map(value=>value.toString(16).padStart(2,"0")).join("");
 }
 async function markFlushFailure(env:Env,w:WorkspaceRow,error:unknown):Promise<void>{
   if(!w.lease_token)return;

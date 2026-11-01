@@ -234,6 +234,18 @@ async function invokeTool(
     if (!response.ok) return toolError("Could not read sync status.");
     return toolResult(await response.json());
   }
+  if (name === "flush_now") {
+    const workspaceId = String(args.workspaceId ?? "");
+    if (!/^[a-f0-9]{32}$/.test(workspaceId)) return toolError("Invalid workspaceId.");
+    const response = await callApi(new Request(`${base}/api/workspaces/${encodeURIComponent(workspaceId)}/flush`, {
+      method: "POST", headers: { Authorization: request.headers.get("Authorization") ?? "" },
+    }), env, requestId, dependencies);
+    if (!response.ok) {
+      const failure = await response.json().catch(() => ({})) as { message?: string };
+      return toolError(failure.message ?? "Could not start the GitHub backup.");
+    }
+    return toolResult(await response.json());
+  }
   return toolError("Unknown PKMS tool.");
 }
 
@@ -270,10 +282,11 @@ async function mcpPost(request: Request, env: Env, requestId: string, dependenci
       { name: "read_file", description: "Read one Markdown file by its repository-relative path.", inputSchema: { type: "object", properties: { workspaceId: { type: "string" }, path: { type: "string" } }, required: ["workspaceId", "path"], additionalProperties: false }, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true } },
       { name: "write_file", description: "Create or update one Markdown file through the PKMS collaboration protocol. This changes the workspace and will be backed up to GitHub.", inputSchema: { type: "object", properties: { workspaceId: { type: "string" }, path: { type: "string" }, content: { type: "string" } }, required: ["workspaceId", "path", "content"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false } },
       { name: "sync_status", description: "Read server revision and GitHub backup state for one workspace.", inputSchema: { type: "object", properties: { workspaceId: { type: "string" } }, required: ["workspaceId"], additionalProperties: false }, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true } },
+      { name: "flush_now", description: "Retry the pending GitHub backup for a workspace and return sync metadata.", inputSchema: { type: "object", properties: { workspaceId: { type: "string" } }, required: ["workspaceId"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } },
     ] };
   } else if (message.method === "tools/call") {
     const params = message.params as { name?: string; arguments?: Record<string, unknown> } | undefined;
-    if (params?.name === "write_file" && !authenticated.scopes?.includes("pkms:write")) result = toolError("This MCP token has read-only access. Reconnect and approve the pkms:write permission to edit files.");
+    if ((params?.name === "write_file" || params?.name === "flush_now") && !authenticated.scopes?.includes("pkms:write")) result = toolError("This MCP token has read-only access. Reconnect and approve the pkms:write permission to make changes.");
     else if (params?.name && !authenticated.scopes?.includes("pkms:read")) result = toolError("This MCP token does not have pkms:read permission.");
     else if (!params?.name) result = toolError("Tool name is required.");
     else result = await invokeTool(params.name, params.arguments ?? {}, request, env, requestId, dependencies);
