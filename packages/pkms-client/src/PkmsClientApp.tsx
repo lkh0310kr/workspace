@@ -16,6 +16,7 @@ import { AppIcon, GitHubIcon } from "./components/Icons";
 import { FileTreeList } from "./components/FileTreeList";
 import { useFileTreeSelection } from "./features/files/useFileTreeSelection";
 import { useWorkspaceDirectory } from "./features/files/useWorkspaceDirectory";
+import { useDocumentSync } from "./features/editor/useDocumentSync";
 
 const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
 const api = requestPkmsApi;
@@ -98,8 +99,16 @@ export default function Home() {
   const activeRef = useRef<{ file: FileRecord | null; doc: Y.Doc | null; text: Y.Text | null; value: string }>({ file: null, doc: null, text: null, value: "" });
   const pending = useRef(new Map<string, RealtimeMessage>());
   const hydrating = useRef(false);
-  const autoSaveTimers = useRef(new Map<string, number>());
   const registerEditorNavigator = useCallback((navigate: ((line: number) => void) | null) => { editorNavigate.current = navigate; }, []);
+  const { scheduleAutoSave, saveActiveFileNow } = useDocumentSync({
+    workspaceId: activeWorkspace?.id,
+    activeDocument: activeRef,
+    request: api,
+    setSaving,
+    setError,
+    setSync,
+    setNotice,
+  });
 
   useEffect(() => {
     if (!treeContextMenu) return;
@@ -168,55 +177,6 @@ export default function Home() {
       setAssetPreviewUrl(null);
     };
   }, [activeWorkspace?.id, activeFile?.id, activeFile?.kind]);
-
-  const saveMarkdownToGitHub = useCallback(async (fileId: string, doc: Y.Doc, flushToGitHub = true) => {
-    const workspaceId = activeWorkspace?.id;
-    if (!workspaceId) return;
-    setSaving(true);
-    setError("");
-    try {
-      await api(`/api/workspaces/${workspaceId}/files/${fileId}/updates`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: createOperationId(), fileId, update: toBase64(Y.encodeStateAsUpdate(doc)) }),
-      });
-      const status = flushToGitHub
-        ? await api<SyncStatus>(`/api/workspaces/${workspaceId}/flush`, { method: "POST" })
-        : await api<SyncStatus>(`/api/workspaces/${workspaceId}/sync-status`);
-      if (activeRef.current.file?.id === fileId && activeWorkspace?.id === workspaceId) {
-        setSync(status);
-        if (flushToGitHub && status.githubStatus === "synced") setNotice("Saved to GitHub");
-        else if (!flushToGitHub) setNotice("Saved");
-        else if (status.githubStatus === "external-change") setError(status.message ?? "GitHub changed outside PKMS.");
-        else setNotice("Saved locally");
-      }
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not save to GitHub");
-    } finally { setSaving(false); }
-  }, [activeWorkspace?.id, api]);
-
-  const scheduleAutoSave = useCallback((fileId: string, doc: Y.Doc) => {
-    const workspaceId = activeWorkspace?.id;
-    if (!workspaceId) return;
-    const key = `${workspaceId}:${fileId}`;
-    setNotice("Unsaved");
-    const previous = autoSaveTimers.current.get(key);
-    if (previous !== undefined) window.clearTimeout(previous);
-    const timer = window.setTimeout(() => {
-      autoSaveTimers.current.delete(key);
-      void saveMarkdownToGitHub(fileId, doc, false);
-    }, 5_000);
-    autoSaveTimers.current.set(key, timer);
-  }, [saveMarkdownToGitHub]);
-
-  const saveActiveFileNow = useCallback(() => {
-    const current = activeRef.current;
-    if (!current.file || current.file.kind !== "markdown" || !current.doc) return;
-    const key = `${activeWorkspace?.id}:${current.file.id}`;
-    const timer = autoSaveTimers.current.get(key);
-    if (timer !== undefined) window.clearTimeout(timer);
-    autoSaveTimers.current.delete(key);
-    void saveMarkdownToGitHub(current.file.id, current.doc);
-  }, [saveMarkdownToGitHub]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
