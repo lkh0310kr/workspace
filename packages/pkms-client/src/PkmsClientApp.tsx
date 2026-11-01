@@ -14,6 +14,7 @@ import { matchesExcludePattern } from "./domain/excludePattern";
 import { applyTextDiff } from "./domain/yjsText";
 import { AppIcon, GitHubIcon } from "./components/Icons";
 import { FileTreeList } from "./components/FileTreeList";
+import { useFileTreeSelection } from "./features/files/useFileTreeSelection";
 
 const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
 
@@ -32,12 +33,8 @@ export default function Home() {
   const [loadingFolderPaths, setLoadingFolderPaths] = useState<Set<string>>(() => new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set([""]));
   const [loadedFolders, setLoadedFolders] = useState<Set<string>>(() => new Set());
-  const [focusedTreePath, setFocusedTreePath] = useState<string | null>(null);
   const [treeContextMenu, setTreeContextMenu] = useState<TreeContextMenu | null>(null);
-  const [selectedTreePaths, setSelectedTreePaths] = useState<Set<string>>(() => new Set());
-  const [selectionAnchorPath, setSelectionAnchorPath] = useState<string | null>(null);
   const [treeDropTarget, setTreeDropTarget] = useState<string | null>(null);
-  const [cutTreePaths, setCutTreePaths] = useState<Set<string>>(() => new Set());
   const [showIgnoredFiles, setShowIgnoredFiles] = useState(false);
   const [excludedPatterns, setExcludedPatterns] = useState("");
   const [showFileFilters, setShowFileFilters] = useState(false);
@@ -61,6 +58,21 @@ export default function Home() {
   const [peers, setPeers] = useState<Peer[]>([]);
   const [deviceFlow, setDeviceFlow] = useState<{ deviceCode: string; userCode: string; verificationUri: string; interval: number; expiresAt: number } | null>(null);
   const [assetPreviewUrl, setAssetPreviewUrl] = useState<string | null>(null);
+  const visibleFiles = files.filter((file) => showIgnoredFiles || (
+    !file.path.split("/").some((part) => part.startsWith(".")) &&
+    !excludedPatterns.split("\n").some((pattern) => matchesExcludePattern(file.path, pattern))
+  ));
+  const treeRows = flattenTree(visibleFiles, expandedFolders);
+  const {
+    focusedPath: focusedTreePath,
+    setFocusedPath: setFocusedTreePath,
+    selectedPaths: selectedTreePaths,
+    setSelectedPaths: setSelectedTreePaths,
+    setSelectionAnchorPath,
+    cutPaths: cutTreePaths,
+    setCutPaths: setCutTreePaths,
+    selectRow: selectTreeRow,
+  } = useFileTreeSelection(treeRows);
   const mounted = useRef(true);
   const socket = useRef<PKMSRealtimeSocket | null>(null);
   const treeRef = useRef<HTMLElement>(null);
@@ -714,11 +726,6 @@ export default function Home() {
     setText(next);
   };
 
-  const visibleFiles = files.filter((file) => showIgnoredFiles || (
-    !file.path.split("/").some((part) => part.startsWith(".")) &&
-    !excludedPatterns.split("\n").some((pattern) => matchesExcludePattern(file.path, pattern))
-  ));
-  const treeRows = flattenTree(visibleFiles, expandedFolders);
   const outlineItems = text.split("\n").flatMap((line, index) => {
     const heading = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
     return heading ? [{ line: index + 1, level: heading[1].length, title: heading[2] }] : [];
@@ -730,27 +737,6 @@ export default function Home() {
     let saved: Record<string, unknown> = {};
     try { saved = JSON.parse(localStorage.getItem(key) ?? "{}"); } catch { saved = {}; }
     localStorage.setItem(key, JSON.stringify({ ...saved, scrollTop }));
-  };
-
-  const selectTreeRow = (path: string, index: number, additive = false, range = false) => {
-    setFocusedTreePath(path);
-    if (range) {
-      const anchor = treeRows.findIndex((row) => row.file.path === (selectionAnchorPath ?? path));
-      const from = anchor < 0 ? index : anchor;
-      const paths = treeRows.slice(Math.min(from, index), Math.max(from, index) + 1).map((row) => row.file.path);
-      setSelectedTreePaths((current) => new Set([...(additive ? current : []), ...paths]));
-      if (!selectionAnchorPath) setSelectionAnchorPath(path);
-    } else if (additive) {
-      setSelectedTreePaths((current) => {
-        const next = new Set(current);
-        if (next.has(path)) next.delete(path); else next.add(path);
-        return next;
-      });
-      setSelectionAnchorPath(path);
-    } else {
-      setSelectedTreePaths(new Set([path]));
-      setSelectionAnchorPath(path);
-    }
   };
 
   const handleTreeKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
