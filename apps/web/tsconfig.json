@@ -10,6 +10,10 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@pkms/client/*": ["../../packages/pkms-client/src/*"]
+    },
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "types": ["@cloudflare/workers-types", "vite/client"]

@@ -1,4 +1,4 @@
-import PkmsClientApp from "../client/PkmsClientApp";
+import PkmsClientApp from "@pkms/client/PkmsClientApp";
 
 export function meta() {
   return [{ title: "PKMS — Markdown workspace" }];

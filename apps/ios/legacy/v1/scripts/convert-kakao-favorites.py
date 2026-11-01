@@ -3,7 +3,7 @@
 Input folder: `list.md` (response of favorite/mine/list) plus one `<folderid>.md` per folder
 (response of the folder's favorites). Output: `<out>/folders.json` and `<out>/<folderid>.json`.
 
-    python3 -I scripts/convert-kakao-favorites.py data ../pkms/map.map
+    python3 -I scripts/convert-kakao-favorites.py data ../converted.map
 """
 import json
 import sys

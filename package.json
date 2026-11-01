@@ -1,8 +1,16 @@
 {
   "name": "workspace",
   "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/pkms-client"
+  ],
   "scripts": {
     "postinstall": "npm install --prefix apps/workspace",
+    "web:dev": "npm run dev --workspace @pkms/web",
+    "web:build": "npm run build --workspace @pkms/web",
+    "web:deploy": "npm run deploy --workspace @pkms/web",
+    "web:typecheck": "npm run typecheck --workspace @pkms/web",
     "check": "bash scripts/check.sh",
     "check:rust": "cargo test -p world-engine-core -p hardware-sim-core",
     "check:app": "cd apps/workspace && npm run typecheck",

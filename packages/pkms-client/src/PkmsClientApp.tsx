@@ -1,11 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
-import { PKMSRealtimeSocket } from "../realtime";
-import { desktopBridge, requestDesktopApi } from "../platform/desktopApi";
+import { PKMSRealtimeSocket } from "./realtime";
+import { desktopBridge, requestDesktopApi } from "./platform/desktopApi";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 
-const MarkdownCodeEditor = lazy(() => import("../components/MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
+const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
 
 interface User { login: string; avatarUrl?: string }
 interface Repository { fullName: string; defaultBranch: string; private: boolean; canWrite: boolean }

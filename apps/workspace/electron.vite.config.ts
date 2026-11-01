@@ -34,7 +34,7 @@ export default defineConfig({
       dedupe: ['react', 'react-dom', 'react-router'],
       alias: {
         '@renderer': resolve('src/renderer/src'),
-        '@pkms/client': resolve('../../pkms/apps/web/app/client')
+        '@pkms/client': resolve('../../packages/pkms-client/src')
       }
     },
     plugins: [react()]

@@ -1,14 +1,16 @@
 # Workspace
 
-4-pane native workspace: **Code + Markdown + Terminal + Browser** in one view.
+Native workspace shell for **Code + Markdown + Terminal + Browser**, with the PKMS client available as a pane.
 
 ## Run
 
 ```bash
-cd apps/workspace
 npm install
+cd apps/workspace
 npm run dev
 ```
+
+The Web client and Cloudflare Worker are in `apps/web`. Install the root npm workspaces once, then run `npm run web:dev` or `npm run web:deploy` from the repository root.
 
 Production build: `npm run build` (then `npm run build:mac` / `build:win` / `build:linux` for a distributable).
 
@@ -16,14 +18,19 @@ Production build: `npm run build` (then `npm run build:mac` / `build:win` / `bui
 
 ```
 apps/workspace/     Electron desktop app (main · preload · renderer)
+apps/web/           PKMS web client and Cloudflare Worker
+apps/ios/           PKMS SwiftUI app and archived v1 client
+packages/pkms-client/ Shared PKMS React UI used by Web and Workspace
+packages/pkms-core/   PKMS Rust workspace (core · wasm · ffi)
+packages/pkms-protocol/ HTTP and realtime protocol schemas
 world-engine/       Rust engine — core · qt-shell · embed
 hardware-sim/       Rust circuit simulator — core
 schemas/            Shared JSON schemas
-docs/               Architecture & planning
+docs/               Architecture, planning, and PKMS project docs
 ref-proj/           Reference OSS (read-only; not shipped)
 ```
 
-Rust workspace: `cargo test` from repo root.
+Workspace Rust tests: `cargo test` from the repository root. PKMS Rust tests: `cargo test --manifest-path packages/pkms-core/Cargo.toml`.
 
 ## Agent skills (CAD / CAE)
 

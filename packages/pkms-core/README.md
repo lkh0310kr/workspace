@@ -5,7 +5,7 @@
 - `pkms-wasm` exposes the core to web clients through wasm-bindgen.
 - `pkms-ffi` exposes the same core to Swift through UniFFI; the generated XCFramework and Swift source are build artifacts, not committed binaries.
 
-The wire contract is in `../protocol`. Do not add transport, GitHub API, Cloudflare, React, or SwiftUI dependencies to `pkms-core`.
+The wire contract is in `../pkms-protocol`. Do not add transport, GitHub API, Cloudflare, React, or SwiftUI dependencies to `pkms-core`.
 
 To create platform bindings:
 
@@ -13,4 +13,4 @@ To create platform bindings:
 wasm-pack build crates/pkms-wasm --target web --out-dir ../../apps/web/app/generated/pkms-wasm
 ```
 
-The iOS release build should produce an XCFramework for device and simulator targets, run `uniffi-bindgen` for Swift sources, and package those artifacts as a local Swift package. A reproducible build script will be added with the iOS app integration.
+From the repository root, `bash apps/ios/scripts/build-rust-framework.sh` produces an XCFramework for device and Apple Silicon simulator targets.

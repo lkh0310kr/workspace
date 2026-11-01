@@ -4,7 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - "pkms/**"
+      - "apps/web/**"
+      - "packages/pkms-client/**"
+      - "packages/pkms-protocol/**"
+      - "package.json"
+      - "package-lock.json"
       - ".github/workflows/deploy-pkms-web.yml"
   workflow_dispatch:
 
@@ -18,18 +22,15 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: pkms
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: pkms/package-lock.json
-      - run: npm ci
-      - run: npm run deploy -w @pkms/web
+          cache-dependency-path: package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run web:deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ff0bd6a425dcd9b7b348d3db0dec6448

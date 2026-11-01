@@ -71,8 +71,8 @@ Electron guest가 상위 요소의 `pointer-events`를 항상 따르지는 않�
 ## 빌드와 실행
 
 ```bash
+npm install                 # repository root; installs shared client packages and Workspace dependencies
 cd apps/workspace
-npm install
 npm run dev    # 개발 실행
 npm run build  # apps/workspace/out/에 제품 번들 생성
 ```

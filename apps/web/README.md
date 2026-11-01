@@ -4,13 +4,13 @@ The React Router app and API run in one Cloudflare Worker. Supabase Postgres sto
 
 ## Local setup
 
-1. Install dependencies from the repository root with `npm install`.
+1. Install the repository npm workspaces from the repository root with `npm install`.
 2. Create a GitHub App configured for user authorization, enable expiring user access tokens, and grant repository Contents read/write permission. Set its callback URL to `http://localhost:5173/api/auth/github/callback`.
 3. Copy `.dev.vars.example` to `.dev.vars`; fill in the app client ID/secret, a random session HMAC secret, and a base64-encoded 32-byte AES key. Generate the AES key with `openssl rand -base64 32`.
-4. Create a Supabase project, link it with `supabase link`, and apply the schema with `supabase db push`.
+4. Create a Supabase project, then from `apps/web` link it with `npx supabase link` and apply the schema with `npx supabase db push`.
 5. Create the attachment bucket once with `npx wrangler r2 bucket create pkms-attachments`.
 6. Set the Supabase URL, anon key, service role key, and ES256 Realtime signing key as Worker secrets.
-7. Start with `npm run dev` from the repository root.
+7. Start with `npm run web:dev` from the repository root.
 
 The current deployment uses `https://pkms-cloud.lkh0310kr.workers.dev` as `PUBLIC_ORIGIN`. Its `SESSION_SECRET` and `DATA_ENCRYPTION_KEY` are already configured. Configure the GitHub App callback URL as `https://pkms-cloud.lkh0310kr.workers.dev/api/auth/github/callback`, then add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` with `npx wrangler secret put NAME` to enable sign-in.
 
@@ -28,9 +28,9 @@ Match the log `requestId` to the ID shown in the browser. Filtering removes the 
 
 Supabase stores edits and schedules them for GitHub backup 15 minutes after the first pending change. A one-minute Worker Cron claims due workspaces and commits through GitHub's Git Data API. Supabase Realtime delivers Yjs updates and presence. External branch movement pauses automatic commits to protect GitHub changes.
 
-Deploy with `npm run deploy` after authenticating Wrangler using `npx wrangler login`. Configure Supabase secrets and the R2 bucket binding in `wrangler.jsonc` first. The cutover deletes the old Durable Object namespaces; after deployment, sign in to GitHub again and reconnect the repositories you use. GitHub remains the source of note contents.
+Deploy from the repository root with `npm run web:deploy` after authenticating Wrangler using `npx wrangler login`. Configure Supabase secrets and the R2 bucket binding in `apps/web/wrangler.jsonc` first. The cutover deletes the old Durable Object namespaces; after deployment, sign in to GitHub again and reconnect the repositories you use. GitHub remains the source of note contents.
 
-Pushes to `main` that change the web app, root npm manifests, or deployment workflow deploy automatically through GitHub Actions. Add a Cloudflare API token with Workers deployment permissions as the `CLOUDFLARE_API_TOKEN` repository secret in GitHub. Manual runs are available from Actions → Deploy web → Run workflow.
+Pushes to `main` that change `apps/web`, `packages/pkms-client`, the protocol package, root npm manifests, or the deployment workflow deploy automatically through GitHub Actions. Add a Cloudflare API token with Workers deployment permissions as the `CLOUDFLARE_API_TOKEN` repository secret in GitHub. Manual runs are available from Actions → Deploy PKMS Web → Run workflow.
 
 ## Current scope
 

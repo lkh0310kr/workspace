@@ -1,6 +1,31 @@
 /ref-proj/*
 !/ref-proj/README.md
 .DS_Store
+**/node_modules/
+
+# PKMS Web / Cloudflare local state
+apps/web/.wrangler/
+apps/web/.react-router/
+apps/web/build/
+apps/web/.dev.vars
+apps/web/.dev.vars.*
+!apps/web/.dev.vars.example
+
+# PKMS iOS generated state
+apps/ios/DerivedData/
+apps/ios/build/
+apps/ios/build-sim/
+apps/ios/.build/
+apps/ios/Frameworks/*.xcframework
+apps/ios/**/xcuserdata/
+apps/ios/**/*.xcuserstate
+apps/ios/legacy/v1/data/
+apps/ios/legacy/v1/AgentRuntime/Vendor/
+apps/ios/legacy/v1/AgentRuntime/RuntimeTemplate/vendor/
+apps/ios/legacy/v1/AgentRuntime/RuntimeTemplate/*.tgz
+
+# PKMS Rust build artifacts
+packages/pkms-core/target/
 
 # Rust/Cargo build artifacts (local only — .d dep files are misclassified as Makefile on GitHub)
 target/

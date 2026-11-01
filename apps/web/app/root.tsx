@@ -1,6 +1,6 @@
 import type { LinksFunction, MetaFunction } from "react-router";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
-import styles from "./client/styles.css?url";
+import styles from "@pkms/client/styles.css?url";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: styles },
