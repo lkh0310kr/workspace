@@ -13,14 +13,10 @@ import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace'
-import { registerMediaProtocol, toMediaUrlBrowsed } from './mediaProtocol'
+import { registerMediaProtocol } from './mediaProtocol'
 import { registerModelProtocol } from './model3d/modelProtocol'
-import { fetchDashboardEconomy, fetchDashboardWeather } from './dashboardData'
-import { model3dLog, readModel3dLogs } from './model3d/model3dLog'
 import { importJobQueue } from './model3d/importJobQueue'
-import type { AssetOpenRequest } from '../shared/model3d/types'
-import { registerEpubProtocol, openEpubAbsolute } from './epub'
-import { getEbookState, saveEbookState } from './ebookState'
+import { registerEpubProtocol } from './epub'
 import { registerEngineBundleProtocol } from './engineBundleProtocol'
 import {
   loadConfig,
@@ -54,6 +50,7 @@ import { registerBrowserNavIpc } from './browserNav'
 import { registerPkmsIpc } from './pkms/ipc'
 import { registerWorkspaceIpc } from './ipc/workspace'
 import { registerTerminalIpc } from './ipc/terminal'
+import { registerContentCapabilityIpc } from './ipc/contentCapabilities'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import {
   observeTerminalPtyOutput,
@@ -72,8 +69,8 @@ import { appendLayoutLog } from './layoutDebugLog'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { launchWorldEngine, disposeWorldEngine } from './worldEngine'
 import { disposeCadViewers } from './cadViewer'
-import { hardwareSimManager } from './hardwareSim'
 import { pickDirectory, pickMediaFile } from './nativeDialogs'
+import { hardwareSimManager } from './hardwareSim'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
 
@@ -830,113 +827,7 @@ app.whenReady().then(() => {
 
   registerTerminalIpc(() => workspace!, (id) => { focusedTerminalId = id })
   registerWorkspaceIpc(() => workspace!, persist)
-  // Unconfined counterpart of media:get-url, for a file picked via
-  // dialog:pick-media-file — see toMediaUrlBrowsed's doc comment.
-  ipcMain.handle('media:get-url-absolute', (_event, absolutePath: string) => toMediaUrlBrowsed(absolutePath))
-  ipcMain.handle('dashboard:fetch-weather', async (_event, lat: number, lon: number) => {
-    try {
-      return await fetchDashboardWeather(lat, lon)
-    } catch (err) {
-      console.error('[dashboard] weather fetch failed:', err)
-      throw err
-    }
-  })
-  ipcMain.handle('dashboard:fetch-economy', async () => {
-    try {
-      return await fetchDashboardEconomy()
-    } catch (err) {
-      console.error('[dashboard] economy fetch failed:', err)
-      throw err
-    }
-  })
-  ipcMain.handle('model:open-preview', (_event, tabId: number, rel: string) =>
-    workspace!.openModelPreview(tabId, rel)
-  )
-  ipcMain.handle('model:open-asset', (_event, request: AssetOpenRequest) =>
-    workspace!.openModelAsset(request)
-  )
-  ipcMain.handle('model:import-job', (_event, jobId: string) =>
-    workspace!.getImportJob(jobId) ?? null
-  )
-  ipcMain.handle('model:get-url', (_event, tabId: number, rel: string) =>
-    workspace!.modelUrl(tabId, rel)
-  )
-  ipcMain.handle('model:log', (_event, event: string, data?: Record<string, unknown>) => {
-    model3dLog(event, { source: 'renderer', ...(data ?? {}) });
-  })
-  ipcMain.handle('model:logs', (_event, limit?: number) => readModel3dLogs(limit ?? 200))
-  ipcMain.handle('cad:open-file', (_event, tabId: number, rel: string) =>
-    workspace!.openCadViewerFile(tabId, rel),
-  )
-  ipcMain.handle('epub:open', (_event, tabId: number, rel: string) => workspace!.openEpub(tabId, rel))
-  ipcMain.handle('epub:open-absolute', (_event, absolutePath: string) => openEpubAbsolute(absolutePath))
-  ipcMain.handle(
-    'epub:state-get',
-    (_event, tabId: number | null, rel: string | null, absolutePath?: string) =>
-      getEbookState(absolutePath || workspace!.resolveWorkspaceFile(tabId!, rel!)),
-  )
-  ipcMain.handle(
-    'epub:state-save',
-    (
-      _event,
-      tabId: number | null,
-      rel: string | null,
-      absolutePath: string | undefined,
-      patch: import('../shared/ebookState').EbookBookState,
-    ) => saveEbookState(absolutePath || workspace!.resolveWorkspaceFile(tabId!, rel!), patch),
-  )
-  ipcMain.handle('engine:get-bundle-url', (_event, tabId: number, rel: string, entry?: string) => {
-    try {
-      return workspace!.resolveEngineBundle(tabId, rel, entry)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return { ok: false as const, error: message }
-    }
-  })
-  ipcMain.handle('project:register-app', (_event, tabId: number, kind: string, rel: string, title?: string) =>
-    workspace!.registerProjectApp(tabId, kind, rel, title)
-  )
-  ipcMain.handle('engine:export-godot-web', (_event, tabId: number, rel: string) =>
-    workspace!.exportGodotWeb(tabId, rel)
-  )
-  ipcMain.handle('worldEngine:launch', async (_event, tabId: number, rel: string) => {
-    const result = await workspace!.launchWorldEngine(tabId, rel)
-    if (!result.ok) {
-      dialog.showErrorBox('World Engine', result.error ?? 'Failed to launch World Engine.')
-    }
-    return result
-  })
-  ipcMain.handle('hardwareSim:start', (event, tabId: number, rel: string) =>
-    hardwareSimManager.start(
-      workspace!.hardwareSimProjectPath(tabId, rel),
-      (sessionId, state) => {
-        if (!event.sender.isDestroyed()) {
-          event.sender.send('hardwareSim:runtime', { sessionId, state })
-        }
-      },
-      (update) => {
-        if (!event.sender.isDestroyed()) {
-          event.sender.send('hardwareSim:status', update)
-        }
-      },
-    )
-  )
-  ipcMain.handle(
-    'hardwareSim:reload',
-    (
-      _event,
-      sessionId: number,
-      reason: import('../shared/hardwareSim').HardwareSimReloadReason,
-    ) => hardwareSimManager.reload(sessionId, reason),
-  )
-  ipcMain.handle(
-    'hardwareSim:set-button',
-    (_event, sessionId: number, id: string, pressed: boolean) =>
-      hardwareSimManager.setButton(sessionId, id, pressed),
-  )
-  ipcMain.handle('hardwareSim:stop', (_event, sessionId: number) => {
-    hardwareSimManager.stop(sessionId)
-  })
+  registerContentCapabilityIpc(() => workspace!)
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
