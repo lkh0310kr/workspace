@@ -5,6 +5,19 @@ import { entryName, parentPath, treeSelectionRoots } from "../../domain/fileTree
 import { fileLocationPath } from "../../domain/fileLocation";
 import { submitWorkspaceOperation } from "../../client/workspaceOperations";
 
+function remapPath(path: string, from: string, to: string, kind: FileRecord["kind"]): string {
+  if (path === from) return to;
+  if (kind === "folder" && path.startsWith(`${from}/`)) return `${to}${path.slice(from.length)}`;
+  return path;
+}
+
+function remapFiles(files: FileRecord[], file: FileRecord, from: string, to: string): FileRecord[] {
+  return files.map((entry) => {
+    const path = remapPath(entry.path, from, to, file.kind);
+    return path === entry.path ? entry : { ...entry, path };
+  });
+}
+
 interface Options {
   workspace: Workspace | null; activeFile: FileRecord | null; currentFolder: string; parentFolder: string; files: FileRecord[];
   selectedTreePaths: Set<string>; treeRows: TreeRow[]; expandedFolders: Set<string>;
@@ -23,32 +36,35 @@ export function useWorkspaceFileActions(options: Options) {
   const { workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders, api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders, setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, requestName, confirm } = options;
   const updateFilePath = async (file: FileRecord, toPath: string) => {
     if (!activeWorkspace) return;
-    try {
-      const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "move", fileId: file.id, toPath });
-      const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
-      setFiles(snapshot.files);
-      const activeMovesWithItem = activeFile && (activeFile.id === file.id || (file.kind === "folder" && activeFile.path.startsWith(`${file.path}/`)));
-      const renamedActive = activeMovesWithItem ? snapshot.files.find((entry) => entry.id === activeFile.id) : null;
-      if (renamedActive) {
-        setActiveFile(renamedActive);
-        const target = fileLocationPath(activeWorkspace.id, renamedActive.path);
+    let activePath = activeFile?.path;
+    const applyLocalPath = (from: string, destination: string) => {
+      setFiles((current) => remapFiles(current, file, from, destination));
+      setCurrentFolder((path) => remapPath(path, from, destination, file.kind));
+      if (file.kind === "folder") {
+        setExpandedFolders((current) => new Set([...current].map((path) => remapPath(path, from, destination, file.kind))));
+        setLoadedFolders((current) => new Set([...current].map((path) => remapPath(path, from, destination, file.kind))));
+      }
+      setSelectedTreePaths((current) => new Set([...current].map((path) => remapPath(path, from, destination, file.kind))));
+      setCutTreePaths((current) => new Set([...current].map((path) => remapPath(path, from, destination, file.kind))));
+      if (activeFile && activePath && (activeFile.id === file.id || (file.kind === "folder" && activePath.startsWith(`${from}/`)))) {
+        activePath = remapPath(activePath, from, destination, file.kind);
+        const path = activePath;
+        setActiveFile((current) => current?.id === activeFile.id ? { ...current, path } : current);
+        const target = fileLocationPath(activeWorkspace.id, path);
         routedPath.current = target;
         navigate(target, { replace: true, preventScrollReset: true });
       }
-      const destination = result.conflictCopyPath ?? toPath;
-      const movePath = (path: string) => file.kind === "folder"
-        ? (path === file.path || path.startsWith(`${file.path}/`) ? `${destination}${path.slice(file.path.length)}` : path)
-        : path === file.path ? destination : path;
-      if (file.kind === "folder" && (currentFolder === file.path || currentFolder.startsWith(`${file.path}/`))) {
-        setCurrentFolder(`${destination}${currentFolder.slice(file.path.length)}`);
-      }
-      if (file.kind === "folder") {
-        setExpandedFolders((current) => new Set([...current].map(movePath)));
-        setLoadedFolders((current) => new Set([...current].map(movePath)));
-      }
-      setSelectedTreePaths((current) => new Set([...current].map(movePath)));
-      setCutTreePaths((current) => new Set([...current].map(movePath)));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not rename item"); }
+    };
+    setError("");
+    applyLocalPath(file.path, toPath);
+    try {
+      const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "move", fileId: file.id, toPath });
+      if (result.conflictCopyPath && result.conflictCopyPath !== toPath) applyLocalPath(toPath, result.conflictCopyPath);
+      if (result.conflictCopyPath) setNotice("Name conflict resolved while moving the item.");
+    } catch (cause) {
+      applyLocalPath(toPath, file.path);
+      setError(cause instanceof Error ? cause.message : "Could not rename item");
+    }
   };
 
   const moveTreeItems = async (items: FileRecord[], destination: string) => {
@@ -64,29 +80,36 @@ export function useWorkspaceFileActions(options: Options) {
     }
     setTreeContextMenu(null);
     setError("");
+    let activePath = activeFile?.path;
+    const applyMoves = (changes: Array<{ file: FileRecord; fromPath: string; toPath: string }>) => {
+      const mapPath = (path: string) => changes.reduce((next, change) => remapPath(next, change.fromPath, change.toPath, change.file.kind), path);
+      setFiles((current) => changes.reduce((next, change) => remapFiles(next, change.file, change.fromPath, change.toPath), current));
+      setCurrentFolder((path) => mapPath(path));
+      setExpandedFolders((paths) => new Set([...paths].map(mapPath)));
+      setLoadedFolders((paths) => new Set([...paths].map(mapPath)));
+      setSelectedTreePaths((paths) => new Set([...paths].map(mapPath)));
+      setCutTreePaths((paths) => new Set([...paths].map(mapPath)));
+      setFocusedTreePath((path) => path ? mapPath(path) : path);
+      if (activeFile && activePath) {
+        const path = mapPath(activePath);
+        if (path !== activePath) {
+          activePath = path;
+          setActiveFile((current) => current?.id === activeFile.id ? { ...current, path } : current);
+          const target = fileLocationPath(activeWorkspace.id, path);
+          routedPath.current = target;
+          navigate(target, { replace: true, preventScrollReset: true });
+        }
+      }
+    };
+    applyMoves(moves.map(({ file, toPath }) => ({ file, fromPath: file.path, toPath })));
     const resolvedMoves: Array<{ file: FileRecord; destination: string }> = [];
     try {
       for (const move of moves) {
         const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "move", fileId: move.file.id, toPath: move.toPath });
         resolvedMoves.push({ file: move.file, destination: result.conflictCopyPath ?? move.toPath });
-      }
-      const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
-      setFiles(snapshot.files);
-      const pathAfterMove = (path: string) => {
-        const move = resolvedMoves.find(({ file }) => file.kind === "folder" && (path === file.path || path.startsWith(`${file.path}/`)));
-        if (move) return `${move.destination}${path.slice(move.file.path.length)}`;
-        const exact = resolvedMoves.find(({ file }) => file.path === path);
-        return exact?.destination ?? path;
-      };
-      setCurrentFolder((path) => pathAfterMove(path));
-      setExpandedFolders((paths) => new Set([...paths].map(pathAfterMove)));
-      setLoadedFolders((paths) => new Set([...paths].map(pathAfterMove)));
-      const movedActive = activeFile ? snapshot.files.find((file) => file.id === activeFile.id) : null;
-      if (movedActive && movedActive.path !== activeFile?.path) {
-        setActiveFile(movedActive);
-        const target = fileLocationPath(activeWorkspace.id, movedActive.path);
-        routedPath.current = target;
-        navigate(target, { replace: true, preventScrollReset: true });
+        if (result.conflictCopyPath && result.conflictCopyPath !== move.toPath) {
+          applyMoves([{ file: move.file, fromPath: move.toPath, toPath: result.conflictCopyPath }]);
+        }
       }
       setSelectedTreePaths(new Set(resolvedMoves.map((move) => move.destination)));
       setCutTreePaths(new Set());
@@ -141,21 +164,22 @@ export function useWorkspaceFileActions(options: Options) {
     const roots = treeSelectionRoots(filesToDelete, new Set(filesToDelete.map((file) => file.path)));
     const message = roots.length === 1 ? `Delete ${entryName(roots[0].path)}?` : `Delete ${roots.length} selected items?`;
     if (!await confirm(message)) return;
+    const previousFiles = files;
+    const isInsideDeleted = (path: string) => roots.some((file) => path === file.path || (file.kind === "folder" && path.startsWith(`${file.path}/`)));
+    setFiles((current) => current.filter((entry) => !isInsideDeleted(entry.path)));
+    setExpandedFolders((current) => new Set([...current].filter((path) => !isInsideDeleted(path))));
+    setLoadedFolders((current) => new Set([...current].filter((path) => !isInsideDeleted(path))));
+    if (currentFolder && isInsideDeleted(currentFolder)) setCurrentFolder(parentPath(roots.find((file) => currentFolder === file.path || currentFolder.startsWith(`${file.path}/`))?.path ?? currentFolder));
+    if (activeFile && isInsideDeleted(activeFile.path)) {
+      clearActiveFile();
+      routedPath.current = null;
+      navigate("/", { replace: true, preventScrollReset: true });
+    }
+    setSelectedTreePaths(new Set());
     try {
       for (const file of roots) {
         await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: file.id });
       }
-      const isInsideDeleted = (path: string) => roots.some((file) => path === file.path || (file.kind === "folder" && path.startsWith(`${file.path}/`)));
-      setFiles((current) => current.filter((entry) => !isInsideDeleted(entry.path)));
-      setExpandedFolders((current) => new Set([...current].filter((path) => !isInsideDeleted(path))));
-      setLoadedFolders((current) => new Set([...current].filter((path) => !isInsideDeleted(path))));
-      if (currentFolder && isInsideDeleted(currentFolder)) setCurrentFolder(parentPath(roots.find((file) => currentFolder === file.path || currentFolder.startsWith(`${file.path}/`))?.path ?? currentFolder));
-      if (activeFile && isInsideDeleted(activeFile.path)) {
-        clearActiveFile();
-        routedPath.current = null;
-        navigate("/", { replace: true, preventScrollReset: true });
-      }
-      setSelectedTreePaths(new Set());
     } catch (cause) {
       try {
         const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
@@ -167,7 +191,10 @@ export function useWorkspaceFileActions(options: Options) {
           clearActiveFile(); routedPath.current = null; navigate("/", { replace: true, preventScrollReset: true });
         }
         setCurrentFolder((path) => { let next = path; while (next && !snapshot.files.some((file) => file.kind === "folder" && file.path === next)) next = parentPath(next); return next; });
-      } catch { /* Keep the original operation error visible. */ }
+      } catch {
+        setFiles(previousFiles);
+        if (activeFile && isInsideDeleted(activeFile.path)) void openFile(activeFile, "none");
+      }
       setError(`${roots.length > 1 ? "Some selected items may have been deleted. " : ""}${cause instanceof Error ? cause.message : "Could not delete item"}`);
     }
   };
@@ -186,24 +213,45 @@ export function useWorkspaceFileActions(options: Options) {
 
   const deleteActiveFile = async () => {
     if (!activeWorkspace || !activeFile || !await confirm(`Delete ${entryName(activeFile.path)}?`)) return;
+    const deleted = activeFile;
+    clearActiveFile();
+    routedPath.current = null;
+    navigate("/", { replace: true, preventScrollReset: true });
+    setFiles((current) => current.filter((file) => file.id !== deleted.id));
     try {
-      await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: activeFile.id });
-      clearActiveFile();
-      routedPath.current = null;
-      navigate("/", { replace: true, preventScrollReset: true });
-      setFiles((current) => current.filter((file) => file.id !== activeFile.id));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete item"); }
+      await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: deleted.id });
+    } catch (cause) {
+      setFiles((current) => [...current, deleted]);
+      void openFile(deleted, "none");
+      setError(cause instanceof Error ? cause.message : "Could not delete item");
+    }
   };
 
   const deleteCurrentFolder = async () => {
     const folder = files.find((file) => file.kind === "folder" && file.path === currentFolder);
     if (!activeWorkspace || !folder || !await confirm(`Delete ${entryName(currentFolder)}?`)) return;
+    const deletedPath = currentFolder;
+    const previousFiles = files;
+    const deletedActive = activeFile && (activeFile.path === deletedPath || activeFile.path.startsWith(`${deletedPath}/`)) ? activeFile : null;
+    setFiles((current) => current.filter((file) => file.path !== deletedPath && !file.path.startsWith(`${deletedPath}/`)));
+    setExpandedFolders((current) => new Set([...current].filter((path) => path !== deletedPath && !path.startsWith(`${deletedPath}/`))));
+    setLoadedFolders((current) => new Set([...current].filter((path) => path !== deletedPath && !path.startsWith(`${deletedPath}/`))));
+    setCurrentFolder(parentFolder);
+    if (deletedActive) {
+      clearActiveFile();
+      routedPath.current = null;
+      navigate("/", { replace: true, preventScrollReset: true });
+    }
     try {
       await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: folder.id });
-      setFiles((current) => current.filter((file) => file.path !== currentFolder && !file.path.startsWith(`${currentFolder}/`)));
-      setExpandedFolders((current) => new Set([...current].filter((path) => path !== currentFolder && !path.startsWith(`${currentFolder}/`))));
-      setCurrentFolder(parentFolder);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete folder"); }
+    } catch (cause) {
+      setFiles(previousFiles);
+      setCurrentFolder(deletedPath);
+      setExpandedFolders((current) => new Set(current).add(deletedPath));
+      setLoadedFolders((current) => new Set(current).add(deletedPath));
+      if (deletedActive) void openFile(deletedActive, "none");
+      setError(cause instanceof Error ? cause.message : "Could not delete folder");
+    }
   };
 
   return { updateFilePath, moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItem, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder };
