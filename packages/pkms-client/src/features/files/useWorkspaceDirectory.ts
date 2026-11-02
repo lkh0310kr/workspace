@@ -1,20 +1,80 @@
-import { useCallback, useState } from "react";
-import { parentPath } from "../../domain/fileTree";
+import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { FileRecord, Workspace } from "../../domain/types";
+import { readWorkspaceTree, replaceDirectoryEntries, sameFileRecords, writeWorkspaceTree, type WorkspaceTreeCache } from "../../client/workspaceTreeCache";
 
-type Api = <T = unknown>(path: string, init?: RequestInit) => Promise<T>;
+type Api = <T>(path: string) => Promise<T>;
+type DirectoryResponse = { files: FileRecord[] };
 
 export function useWorkspaceDirectory(
   activeWorkspace: Workspace | null,
   api: Api,
   reportError: (message: string) => void,
 ) {
-  const [currentFolder, setCurrentFolder] = useState("");
-  const [files, setFiles] = useState<FileRecord[]>([]);
+  const [currentFolder, setCurrentFolderState] = useState("");
+  const [files, setFilesState] = useState<FileRecord[]>([]);
   const [loadingFolder, setLoadingFolder] = useState(false);
   const [loadingFolderPaths, setLoadingFolderPaths] = useState<Set<string>>(() => new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set([""]));
-  const [loadedFolders, setLoadedFolders] = useState<Set<string>>(() => new Set());
+  const [loadedFoldersState, setLoadedFoldersState] = useState<Set<string>>(() => new Set());
+  const filesRef = useRef(files);
+  const loadedFoldersRef = useRef(loadedFoldersState);
+  const workspaceIdRef = useRef(activeWorkspace?.id);
+  const inFlight = useRef(new Map<string, Promise<void>>());
+  workspaceIdRef.current = activeWorkspace?.id;
+
+  const persist = useCallback((nextFiles = filesRef.current, nextLoaded = loadedFoldersRef.current) => {
+    const workspaceId = activeWorkspace?.id;
+    if (!workspaceId || (!nextFiles.length && !nextLoaded.has(""))) return;
+    void writeWorkspaceTree({ workspaceId, files: nextFiles, loadedFolders: [...nextLoaded], savedAt: Date.now() }).catch(() => {});
+  }, [activeWorkspace?.id]);
+
+  const setFiles: Dispatch<SetStateAction<FileRecord[]>> = useCallback((action) => {
+    const next = typeof action === "function" ? action(filesRef.current) : action;
+    if (sameFileRecords(filesRef.current, next)) return;
+    filesRef.current = next;
+    setFilesState(next);
+    persist(next);
+  }, [persist]);
+
+  const setLoadedFolders: Dispatch<SetStateAction<Set<string>>> = useCallback((action) => {
+    const next = typeof action === "function" ? action(loadedFoldersRef.current) : action;
+    if (next.size === loadedFoldersRef.current.size && [...next].every((path) => loadedFoldersRef.current.has(path))) return;
+    loadedFoldersRef.current = next;
+    setLoadedFoldersState(next);
+    persist(filesRef.current, next);
+  }, [persist]);
+
+  const setCurrentFolder: Dispatch<SetStateAction<string>> = useCallback((action) => {
+    setCurrentFolderState((current) => typeof action === "function" ? action(current) : action);
+  }, []);
+
+  const replaceDirectory = useCallback((directory: string, entries: FileRecord[]) => {
+    if (workspaceIdRef.current !== activeWorkspace?.id) return;
+    setFiles((current) => replaceDirectoryEntries(current, directory, entries));
+    setLoadedFolders((current) => new Set(current).add(directory));
+  }, [activeWorkspace?.id, setFiles, setLoadedFolders]);
+
+  const refreshDirectory = useCallback((directory: string, showLoading: boolean): Promise<void> => {
+    if (!activeWorkspace) return Promise.resolve();
+    const existing = inFlight.current.get(directory);
+    if (existing) return existing;
+    if (showLoading) setLoadingFolderPaths((current) => new Set(current).add(directory));
+    const workspaceId = activeWorkspace.id;
+    const request = api<DirectoryResponse>(`/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(directory)}`)
+      .then((result) => {
+        if (workspaceIdRef.current === workspaceId) replaceDirectory(directory, result.files);
+      })
+      .finally(() => {
+        inFlight.current.delete(directory);
+        if (showLoading) setLoadingFolderPaths((current) => {
+          const next = new Set(current);
+          next.delete(directory);
+          return next;
+        });
+      });
+    inFlight.current.set(directory, request);
+    return request;
+  }, [activeWorkspace, api, replaceDirectory]);
 
   const toggleDirectory = useCallback(async (file: FileRecord) => {
     if (!activeWorkspace) return;
@@ -27,70 +87,89 @@ export function useWorkspaceDirectory(
       return;
     }
     setExpandedFolders((current) => new Set(current).add(file.path));
-    if (loadedFolders.has(file.path)) return;
-    setLoadingFolderPaths((current) => new Set(current).add(file.path));
+    const cached = loadedFoldersRef.current.has(file.path);
+    if (cached) {
+      void refreshDirectory(file.path, false).catch(() => {});
+      return;
+    }
     try {
-      const result = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/directory?path=${encodeURIComponent(file.path)}`);
-      setFiles((current) => [...current.filter((entry) => parentPath(entry.path) !== file.path), ...result.files]);
-      setLoadedFolders((current) => new Set(current).add(file.path));
+      await refreshDirectory(file.path, true);
     } catch (cause) {
       reportError(cause instanceof Error ? cause.message : "Could not open folder");
-    } finally {
-      setLoadingFolderPaths((current) => {
-        const next = new Set(current);
-        next.delete(file.path);
-        return next;
-      });
     }
-  }, [activeWorkspace, api, expandedFolders, loadedFolders, reportError]);
+  }, [activeWorkspace, expandedFolders, refreshDirectory, reportError]);
 
   const restoreWorkspaceTree = useCallback(async (isActive: () => boolean): Promise<number | null> => {
     if (!activeWorkspace) return null;
+    const workspaceId = activeWorkspace.id;
+    const storageKey = `pkms:tree:${workspaceId}`;
+    let saved: { expanded?: string[]; currentFolder?: string; scrollTop?: number } = {};
+    try { saved = JSON.parse(localStorage.getItem(storageKey) ?? "{}"); } catch { saved = {}; }
+    const expanded = [...new Set(["", ...(saved.expanded ?? [])])];
     setLoadingFolder(true);
-    try {
-      const root = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/directory`);
-      if (!isActive()) return null;
 
-      const storageKey = `pkms:tree:${activeWorkspace.id}`;
-      let saved: { expanded?: string[]; currentFolder?: string; scrollTop?: number } = {};
-      try { saved = JSON.parse(localStorage.getItem(storageKey) ?? "{}"); } catch { saved = {}; }
-      const expanded = [...new Set(["", ...(saved.expanded ?? [])])];
-      const restored = await Promise.allSettled(expanded.filter(Boolean).map((path) =>
-        api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/directory?path=${encodeURIComponent(path)}`),
-      ));
-      if (!isActive()) return null;
+    let cached: WorkspaceTreeCache | null = null;
+    try { cached = await readWorkspaceTree(workspaceId); } catch { /* Use the network when local cache is unavailable. */ }
+    if (!isActive() || workspaceIdRef.current !== workspaceId) return null;
 
-      const restoredFiles = restored.flatMap((entry) => entry.status === "fulfilled" ? entry.value.files : []);
-      const loaded = new Set(["", ...expanded.filter((_path, index) => restored[index - 1]?.status === "fulfilled")]);
-      setFiles([...root.files, ...restoredFiles]);
-      setCurrentFolder(saved.currentFolder ?? "");
+    if (cached) {
+      filesRef.current = cached.files;
+      setFilesState(cached.files);
+      loadedFoldersRef.current = new Set(cached.loadedFolders);
+      loadedFoldersRef.current.add("");
+      setLoadedFoldersState(loadedFoldersRef.current);
+      setCurrentFolderState(saved.currentFolder ?? "");
       setExpandedFolders(new Set(expanded));
-      setLoadedFolders(loaded);
       setLoadingFolder(false);
+      const refresh = async () => {
+        const paths = [...new Set(["", ...expanded.filter(Boolean)])];
+        const results = await Promise.allSettled(paths.map((path) => api<DirectoryResponse>(
+          `/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(path)}`,
+        )));
+        if (!isActive() || workspaceIdRef.current !== workspaceId) return;
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") replaceDirectory(paths[index], result.value.files);
+        });
+      };
+      void refresh().catch(() => {});
+      return saved.scrollTop ?? 0;
+    }
+
+    try {
+      const paths = [...new Set(["", ...expanded.filter(Boolean)])];
+      const results = await Promise.allSettled(paths.map((path) => api<DirectoryResponse>(
+        `/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(path)}`,
+      )));
+      if (!isActive() || workspaceIdRef.current !== workspaceId) return null;
+      const loaded = new Set<string>();
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          replaceDirectory(paths[index], result.value.files);
+          loaded.add(paths[index]);
+        }
+      });
+      setLoadedFolders(loaded);
+      if (!loaded.has("")) throw results[0].status === "rejected" ? results[0].reason : new Error("Could not load workspace");
+      setCurrentFolderState(saved.currentFolder ?? "");
+      setExpandedFolders(new Set(expanded));
+      setLoadingFolder(false);
+      persist(filesRef.current, loaded);
       return saved.scrollTop ?? 0;
     } catch (cause) {
-      if (isActive()) {
+      if (isActive() && workspaceIdRef.current === workspaceId) {
         setLoadingFolder(false);
         reportError(cause instanceof Error ? cause.message : "Could not load workspace");
       }
       return null;
     }
-  }, [activeWorkspace, api, reportError]);
+  }, [activeWorkspace, api, persist, replaceDirectory, reportError, setLoadedFolders]);
 
   return {
-    currentFolder,
-    setCurrentFolder,
-    files,
-    setFiles,
-    loadingFolder,
-    setLoadingFolder,
-    loadingFolderPaths,
-    setLoadingFolderPaths,
-    expandedFolders,
-    setExpandedFolders,
-    loadedFolders,
-    setLoadedFolders,
-    toggleDirectory,
-    restoreWorkspaceTree,
+    currentFolder, setCurrentFolder, files, setFiles,
+    loadingFolder, setLoadingFolder,
+    loadingFolderPaths, setLoadingFolderPaths,
+    expandedFolders, setExpandedFolders,
+    loadedFolders: loadedFoldersState, setLoadedFolders,
+    toggleDirectory, restoreWorkspaceTree,
   };
 }
