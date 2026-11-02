@@ -1,7 +1,7 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import type { FileRecord, Workspace } from "../../domain/types";
 import { createOperationId } from "../../domain/encoding";
-import { submitWorkspaceOperation } from "../../client/workspaceOperations";
+import { submitWorkspaceAsset, submitWorkspaceOperation } from "../../client/workspaceOperations";
 
 interface Options {
   workspace: Workspace | null;
@@ -68,9 +68,7 @@ export function useWorkspaceFileCreation({ workspace, files, currentFolder, requ
 
   const uploadFile = useCallback(async (file?: File) => {
     if (!file || !workspace) return;
-    const form = new FormData();
     const fileId = createOperationId();
-    form.set("file", file);
     const basePath = `${currentFolder ? `${currentFolder}/` : ""}${file.name}`;
     let path = basePath;
     let suffix = 2;
@@ -78,12 +76,10 @@ export function useWorkspaceFileCreation({ workspace, files, currentFolder, requ
       const dot = file.name.lastIndexOf(".");
       path = dot > 0 ? `${currentFolder ? `${currentFolder}/` : ""}${file.name.slice(0, dot)} (${suffix++})${file.name.slice(dot)}` : `${basePath} (${suffix++})`;
     }
-    form.set("path", path);
-    form.set("fileId", fileId);
-    form.set("clientId", `web-${createOperationId()}`);
+    const clientId = `web-${createOperationId()}`;
     setFiles((current) => [...current, { id: fileId, path, kind: "asset", revision: 0, size: file.size, contentType: file.type || "application/octet-stream" }]);
     try {
-      const result = await request<{ path?: string; acceptedRevision?: number }>(`/api/workspaces/${workspace.id}/upload`, { method: "POST", body: form });
+      const result = await submitWorkspaceAsset(request, workspace.id, file, path, fileId, clientId);
       const actualPath = result.path ?? path;
       setFiles((current) => current.map((entry) => entry.id === fileId ? { ...entry, path: actualPath } : entry));
     } catch (cause) {

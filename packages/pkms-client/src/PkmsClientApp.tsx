@@ -4,7 +4,7 @@ import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
 import { desktopBridge } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
-import { flushQueuedWorkspaceOperations, WORKSPACE_OPERATION_QUEUE_EVENT } from "./client/workspaceOperations";
+import { flushQueuedWorkspaceAssets, flushQueuedWorkspaceOperations, WORKSPACE_OPERATION_QUEUE_EVENT } from "./client/workspaceOperations";
 import { useLocation, useNavigate } from "react-router";
 import type { FileNavigation, FileRecord, Peer, RealtimeMessage, Repository, SyncStatus, TreeContextMenu, TreeRow, Workspace } from "./domain/types";
 import { toBase64, createOperationId } from "./domain/encoding";
@@ -179,13 +179,20 @@ export default function Home() {
   useEffect(() => {
     if (!activeWorkspace) return;
     const workspaceId = activeWorkspace.id;
-    const flush = () => { void flushQueuedWorkspaceOperations(workspaceId, api).catch(() => {}); };
+    const flush = () => {
+      void flushQueuedWorkspaceOperations(workspaceId, api)
+        .then((drained) => drained ? flushQueuedWorkspaceAssets(workspaceId, api) : false)
+        .catch(() => {});
+    };
     const onQueueEvent = (event: Event) => {
       const detail = (event as CustomEvent<{
         state?: string;
         workspaceId?: string;
         operation?: { type?: string; path?: string; fileId?: string; toPath?: string };
-        result?: { conflictCopyPath?: string };
+        result?: { conflictCopyPath?: string; path?: string };
+        kind?: string;
+        fileId?: string;
+        path?: string;
         message?: string;
         hasPending?: boolean;
       }>).detail;
@@ -204,6 +211,12 @@ export default function Home() {
         return;
       }
       if (detail.state !== "applied") return;
+      if (detail.kind === "asset" && detail.fileId) {
+        const actualPath = detail.result?.path ?? detail.result?.conflictCopyPath ?? detail.path;
+        if (actualPath) setFiles((current) => current.map((file) => file.id === detail.fileId ? { ...file, path: actualPath } : file));
+        setNotice("Local changes synced.");
+        return;
+      }
       const conflictPath = detail.result?.conflictCopyPath;
       const operation = detail.operation;
       if (conflictPath && operation) {
@@ -336,14 +349,16 @@ export default function Home() {
         stableTimer = window.setTimeout(() => { retries = 0; }, 30_000);
         setError((current) => current.startsWith("Live sync disconnected") ? "" : current);
         ws.send(JSON.stringify({ type: "hello", protocolVersion: 1, clientId, afterRevision: activeWorkspace.revision, user, fileId: activeRef.current.file?.id }));
-        void flushQueuedWorkspaceOperations(activeWorkspace.id, api).then((queueDrained) => {
-          if (!queueDrained || !alive || socket.current !== ws || ws.readyState !== WebSocket.OPEN) return;
-          const current = activeRef.current;
-          if (!current.file || !current.doc) return;
-          const operationId = createOperationId();
-          ws.send(JSON.stringify({ type: "document-update", operationId, fileId: current.file.id, update: toBase64(Y.encodeStateAsUpdate(current.doc)) }));
-          pending.current.set(operationId, { type: "document-update", operationId, fileId: current.file.id });
-        }).catch(() => {});
+        void flushQueuedWorkspaceOperations(activeWorkspace.id, api)
+          .then((queueDrained) => queueDrained ? flushQueuedWorkspaceAssets(activeWorkspace.id, api) : false)
+          .then((queueDrained) => {
+            if (!queueDrained || !alive || socket.current !== ws || ws.readyState !== WebSocket.OPEN) return;
+            const current = activeRef.current;
+            if (!current.file || !current.doc) return;
+            const operationId = createOperationId();
+            ws.send(JSON.stringify({ type: "document-update", operationId, fileId: current.file.id, update: toBase64(Y.encodeStateAsUpdate(current.doc)) }));
+            pending.current.set(operationId, { type: "document-update", operationId, fileId: current.file.id });
+          }).catch(() => {});
       };
       ws.onmessage = handleRealtimeMessage;
       ws.onclose = () => {
@@ -381,7 +396,9 @@ export default function Home() {
     const pollSyncStatus = (delay: number) => {
       syncTimer = window.setTimeout(() => {
         void api<SyncStatus>(`/api/workspaces/${activeWorkspace.id}/sync-status`).then((status) => {
-          void flushQueuedWorkspaceOperations(activeWorkspace.id, api).catch(() => {});
+          void flushQueuedWorkspaceOperations(activeWorkspace.id, api)
+            .then((drained) => drained ? flushQueuedWorkspaceAssets(activeWorkspace.id, api) : false)
+            .catch(() => {});
           setSync(status);
           pollSyncStatus(15_000);
         }).catch((cause) => {

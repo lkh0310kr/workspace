@@ -1,9 +1,10 @@
 import type { FileRecord } from "../domain/types";
 
 const DATABASE_NAME = "pkms-workspace-cache";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 const TREE_STORE = "workspace-trees";
 const OPERATION_STORE = "workspace-operations";
+const ASSET_STORE = "workspace-assets";
 
 export interface WorkspaceTreeCache {
   workspaceId: string;
@@ -22,6 +23,19 @@ export interface QueuedWorkspaceOperation {
   queuedAt: number;
 }
 
+export interface QueuedWorkspaceAsset {
+  key: string;
+  workspaceId: string;
+  fileId: string;
+  path: string;
+  fileName: string;
+  contentType: string;
+  size: number;
+  blob: Blob;
+  clientId: string;
+  queuedAt: number;
+}
+
 let databasePromise: Promise<IDBDatabase> | null = null;
 const writes = new Map<string, Promise<void>>();
 
@@ -33,6 +47,7 @@ function database(): Promise<IDBDatabase> {
       const db = request.result;
       if (!db.objectStoreNames.contains(TREE_STORE)) db.createObjectStore(TREE_STORE, { keyPath: "workspaceId" });
       if (!db.objectStoreNames.contains(OPERATION_STORE)) db.createObjectStore(OPERATION_STORE, { keyPath: "key" });
+      if (!db.objectStoreNames.contains(ASSET_STORE)) db.createObjectStore(ASSET_STORE, { keyPath: "key" });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("Could not open local workspace cache"));
@@ -99,6 +114,37 @@ export async function removeQueuedWorkspaceOperation(workspaceId: string, operat
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove local workspace operation"));
     transaction.onabort = () => reject(transaction.error ?? new Error("Local workspace operation removal was aborted"));
+  });
+}
+
+export async function queueWorkspaceAsset(asset: QueuedWorkspaceAsset): Promise<void> {
+  const db = await database();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(ASSET_STORE, "readwrite");
+    transaction.objectStore(ASSET_STORE).put(asset);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("Could not cache local attachment"));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Local attachment cache write was aborted"));
+  });
+}
+
+export async function readQueuedWorkspaceAssets(workspaceId: string): Promise<QueuedWorkspaceAsset[]> {
+  const db = await database();
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(ASSET_STORE, "readonly").objectStore(ASSET_STORE).getAll();
+    request.onsuccess = () => resolve((request.result as QueuedWorkspaceAsset[]).filter((item) => item.workspaceId === workspaceId).sort((a, b) => a.queuedAt - b.queuedAt));
+    request.onerror = () => reject(request.error ?? new Error("Could not read cached attachments"));
+  });
+}
+
+export async function removeQueuedWorkspaceAsset(workspaceId: string, fileId: string): Promise<void> {
+  const db = await database();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(ASSET_STORE, "readwrite");
+    transaction.objectStore(ASSET_STORE).delete(`${workspaceId}:${fileId}`);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove cached attachment"));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Cached attachment removal was aborted"));
   });
 }
 

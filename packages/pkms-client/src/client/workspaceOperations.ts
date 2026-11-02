@@ -5,11 +5,16 @@ import {
   readQueuedWorkspaceOperations,
   removeQueuedWorkspaceOperation,
   type QueuedWorkspaceOperation,
+  queueWorkspaceAsset,
+  readQueuedWorkspaceAssets,
+  removeQueuedWorkspaceAsset,
+  type QueuedWorkspaceAsset,
 } from "./workspaceTreeCache";
 
 type Api = <T = unknown>(path: string, init?: RequestInit) => Promise<T>;
 export const WORKSPACE_OPERATION_QUEUE_EVENT = "pkms:workspace-operation-queue";
 const flushes = new Map<string, Promise<boolean>>();
+const assetFlushes = new Map<string, Promise<boolean>>();
 let operationSequence = 0;
 
 export type WorkspaceFileOperation =
@@ -119,5 +124,79 @@ export function flushQueuedWorkspaceOperations(workspaceId: string, api: Api): P
     return remaining.length === 0;
   })().finally(() => flushes.delete(workspaceId));
   flushes.set(workspaceId, flush);
+  return flush;
+}
+
+function assetForm(asset: QueuedWorkspaceAsset): FormData {
+  const form = new FormData();
+  form.set("file", new File([asset.blob], asset.fileName, { type: asset.contentType }));
+  form.set("path", asset.path);
+  form.set("fileId", asset.fileId);
+  form.set("clientId", asset.clientId);
+  return form;
+}
+
+export async function submitWorkspaceAsset(
+  api: Api,
+  workspaceId: string,
+  file: File,
+  path: string,
+  fileId: string,
+  clientId: string,
+): Promise<WorkspaceOperationResult & { path?: string }> {
+  const asset: QueuedWorkspaceAsset = {
+    key: `${workspaceId}:${fileId}`,
+    workspaceId,
+    fileId,
+    path,
+    fileName: file.name,
+    contentType: file.type || "application/octet-stream",
+    size: file.size,
+    blob: file.slice(0, file.size, file.type),
+    clientId,
+    queuedAt: Date.now() * 1_000 + operationSequence++,
+  };
+  let stored = false;
+  try {
+    await queueWorkspaceAsset(asset);
+    stored = true;
+  } catch { /* Large or quota-limited files still upload when online. */ }
+  try {
+    const result = await api<WorkspaceOperationResult & { path?: string }>(`/api/workspaces/${workspaceId}/upload`, { method: "POST", body: assetForm(asset) });
+    if (stored) void removeQueuedWorkspaceAsset(workspaceId, fileId).catch(() => {});
+    return result;
+  } catch (error) {
+    if (stored && isConnectivityFailure(error)) {
+      notifyQueue({ state: "queued", kind: "asset", workspaceId, fileId });
+      return { queued: true, path, operationId: fileId };
+    }
+    if (stored) void removeQueuedWorkspaceAsset(workspaceId, fileId).catch(() => {});
+    throw error;
+  }
+}
+
+/** Upload cached attachment bytes after pending folders and file operations have been replayed. */
+export function flushQueuedWorkspaceAssets(workspaceId: string, api: Api): Promise<boolean> {
+  const active = assetFlushes.get(workspaceId);
+  if (active) return active;
+  const flush = (async () => {
+    const queued = await readQueuedWorkspaceAssets(workspaceId);
+    const rejected: Array<{ asset: QueuedWorkspaceAsset; message: string }> = [];
+    for (const asset of queued) {
+      try {
+        const result = await api<WorkspaceOperationResult & { path?: string }>(`/api/workspaces/${workspaceId}/upload`, { method: "POST", body: assetForm(asset) });
+        await removeQueuedWorkspaceAsset(workspaceId, asset.fileId);
+        notifyQueue({ state: "applied", kind: "asset", workspaceId, fileId: asset.fileId, path: asset.path, result });
+      } catch (error) {
+        if (isConnectivityFailure(error)) break;
+        await removeQueuedWorkspaceAsset(workspaceId, asset.fileId).catch(() => {});
+        rejected.push({ asset, message: error instanceof Error ? error.message : "Attachment could not be synced." });
+      }
+    }
+    const remaining = await readQueuedWorkspaceAssets(workspaceId).catch(() => []);
+    for (const item of rejected) notifyQueue({ state: "rejected", kind: "asset", workspaceId, fileId: item.asset.fileId, message: item.message, hasPending: remaining.length > 0 });
+    return remaining.length === 0;
+  })().finally(() => assetFlushes.delete(workspaceId));
+  assetFlushes.set(workspaceId, flush);
   return flush;
 }
