@@ -381,6 +381,7 @@ export default function Home() {
     const pollSyncStatus = (delay: number) => {
       syncTimer = window.setTimeout(() => {
         void api<SyncStatus>(`/api/workspaces/${activeWorkspace.id}/sync-status`).then((status) => {
+          void flushQueuedWorkspaceOperations(activeWorkspace.id, api).catch(() => {});
           setSync(status);
           pollSyncStatus(15_000);
         }).catch((cause) => {

@@ -1,8 +1,9 @@
 import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { FileRecord, Workspace } from "../../domain/types";
 import { readWorkspaceTree, replaceDirectoryEntries, sameFileRecords, writeWorkspaceTree, type WorkspaceTreeCache } from "../../client/workspaceTreeCache";
+import { flushQueuedWorkspaceOperations } from "../../client/workspaceOperations";
 
-type Api = <T>(path: string) => Promise<T>;
+type Api = <T = unknown>(path: string, init?: RequestInit) => Promise<T>;
 type DirectoryResponse = { files: FileRecord[] };
 
 export function useWorkspaceDirectory(
@@ -62,7 +63,9 @@ export function useWorkspaceDirectory(
     if (existing) return existing;
     if (showLoading) setLoadingFolderPaths((current) => new Set(current).add(directory));
     const workspaceId = activeWorkspace.id;
-    const request = api<DirectoryResponse>(`/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(directory)}`)
+    const request = flushQueuedWorkspaceOperations(workspaceId, api)
+      .catch(() => false)
+      .then(() => api<DirectoryResponse>(`/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(directory)}`))
       .then((result) => {
         if (workspaceIdRef.current === workspaceId) replaceDirectory(directory, result.files);
       })
@@ -124,6 +127,7 @@ export function useWorkspaceDirectory(
       setExpandedFolders(new Set(expanded));
       setLoadingFolder(false);
       const refresh = async () => {
+        await flushQueuedWorkspaceOperations(workspaceId, api).catch(() => false);
         const paths = [...new Set(["", ...expanded.filter(Boolean)])];
         const results = await Promise.allSettled(paths.map((path) => api<DirectoryResponse>(
           `/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(path)}`,
@@ -138,24 +142,30 @@ export function useWorkspaceDirectory(
     }
 
     try {
-      const paths = [...new Set(["", ...expanded.filter(Boolean)])];
-      const results = await Promise.allSettled(paths.map((path) => api<DirectoryResponse>(
-        `/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(path)}`,
-      )));
+      await flushQueuedWorkspaceOperations(workspaceId, api).catch(() => false);
+      const root = await api<DirectoryResponse>(`/api/workspaces/${workspaceId}/directory`);
       if (!isActive() || workspaceIdRef.current !== workspaceId) return null;
-      const loaded = new Set<string>();
-      results.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          replaceDirectory(paths[index], result.value.files);
-          loaded.add(paths[index]);
-        }
-      });
+      replaceDirectory("", root.files);
+      const loaded = new Set([""]);
       setLoadedFolders(loaded);
-      if (!loaded.has("")) throw results[0].status === "rejected" ? results[0].reason : new Error("Could not load workspace");
       setCurrentFolderState(saved.currentFolder ?? "");
       setExpandedFolders(new Set(expanded));
       setLoadingFolder(false);
       persist(filesRef.current, loaded);
+      const paths = expanded.filter(Boolean);
+      if (paths.length) {
+        setLoadingFolderPaths(new Set(paths));
+        void Promise.allSettled(paths.map((path) => api<DirectoryResponse>(
+          `/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(path)}`,
+        ))).then((results) => {
+          if (!isActive() || workspaceIdRef.current !== workspaceId) return;
+          results.forEach((result, index) => {
+            if (result.status === "fulfilled") replaceDirectory(paths[index], result.value.files);
+          });
+        }).finally(() => {
+          if (workspaceIdRef.current === workspaceId) setLoadingFolderPaths(new Set());
+        });
+      }
       return saved.scrollTop ?? 0;
     } catch (cause) {
       if (isActive() && workspaceIdRef.current === workspaceId) {
