@@ -423,7 +423,7 @@ export default function Home() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not connect repository"); }
   };
 
-  const { newNote, newFolder, uploadFile } = useWorkspaceFileCreation({ workspace: activeWorkspace, currentFolder, request: api, setFiles, setError, openFile, requestName });
+  const { newNote, newFolder, uploadFile } = useWorkspaceFileCreation({ workspace: activeWorkspace, files, currentFolder, request: api, setFiles, setLoadedFolders, setError, openFile, requestName });
 
   const handleText = (next: string) => {
     const current = activeRef.current;

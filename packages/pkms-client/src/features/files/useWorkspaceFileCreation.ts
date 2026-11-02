@@ -5,53 +5,92 @@ import { submitWorkspaceOperation } from "../../client/workspaceOperations";
 
 interface Options {
   workspace: Workspace | null;
+  files: FileRecord[];
   currentFolder: string;
   request: <T = unknown>(path: string, options?: RequestInit) => Promise<T>;
   setFiles: Dispatch<SetStateAction<FileRecord[]>>;
+  setLoadedFolders: Dispatch<SetStateAction<Set<string>>>;
   setError: Dispatch<SetStateAction<string>>;
   openFile: (file: FileRecord) => Promise<void>;
   requestName: (title: string, initialValue?: string) => Promise<string | null>;
 }
 
-export function useWorkspaceFileCreation({ workspace, currentFolder, request, setFiles, setError, openFile, requestName }: Options) {
-  const refreshFiles = useCallback(async (workspaceId: string) => {
-    const snapshot = await request<{ files: FileRecord[] }>(`/api/workspaces/${workspaceId}/snapshot`);
-    setFiles(snapshot.files);
-    return snapshot.files;
-  }, [request, setFiles]);
-
+export function useWorkspaceFileCreation({ workspace, files, currentFolder, request, setFiles, setLoadedFolders, setError, openFile, requestName }: Options) {
   const newNote = useCallback(async (directory = currentFolder) => {
     if (!workspace) return;
-    const path = `${directory ? `${directory}/` : ""}Untitled ${new Date().toLocaleString("sv-SE").replaceAll(":", "-")}.md`;
+    const basePath = `${directory ? `${directory}/` : ""}Untitled ${new Date().toLocaleString("sv-SE").replaceAll(":", "-")}.md`;
+    const fileId = createOperationId();
+    let path = basePath;
+    let suffix = 2;
+    while (files.some((file) => file.path === path)) path = basePath.replace(/\.md$/i, ` (${suffix++}).md`);
+    const optimistic: FileRecord = { id: fileId, path, kind: "markdown", revision: 0, content: "# Untitled\n\n" };
+    setFiles((current) => [...current, optimistic]);
     try {
-      const result = await submitWorkspaceOperation(request, workspace, { type: "create-file", path, fileId: createOperationId(), content: "# Untitled\n\n" }, "web");
-      const files = await refreshFiles(workspace.id);
-      const created = files.find((item) => item.path === (result.conflictCopyPath ?? path));
-      if (created) await openFile(created);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create note"); }
-  }, [currentFolder, openFile, refreshFiles, request, setError, workspace]);
+      const result = await submitWorkspaceOperation(request, workspace, { type: "create-file", path, fileId, content: "# Untitled\n\n" }, "web");
+      const actualPath = result.conflictCopyPath ?? path;
+      setFiles((current) => current.map((file) => file.id === fileId
+        ? { id: fileId, path: actualPath, kind: "markdown", revision: file.revision }
+        : file));
+      const created = { id: fileId, path: actualPath, kind: "markdown" as const, revision: 0, content: "# Untitled\n\n" };
+      await openFile(created);
+    } catch (cause) {
+      setFiles((current) => current.filter((file) => file.id !== fileId));
+      setError(cause instanceof Error ? cause.message : "Could not create note");
+    }
+  }, [currentFolder, files, openFile, request, setError, setFiles, workspace]);
 
   const newFolder = useCallback(async (directory = currentFolder) => {
     if (!workspace) return;
     const name = await requestName("New folder");
     if (!name?.trim()) return;
+    const basePath = `${directory ? `${directory}/` : ""}${name.trim()}`;
+    let path = basePath;
+    let suffix = 2;
+    while (files.some((file) => file.path === path)) path = `${basePath} (${suffix++})`;
+    setFiles((current) => [...current, { id: `folder-${path}`, path, kind: "folder", revision: 0 }]);
+    setLoadedFolders((current) => new Set(current).add(path));
     try {
-      await submitWorkspaceOperation(request, workspace, { type: "create-folder", path: `${directory ? `${directory}/` : ""}${name.trim()}` });
-      await refreshFiles(workspace.id);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create folder"); }
-  }, [currentFolder, refreshFiles, request, requestName, setError, workspace]);
+      const result = await submitWorkspaceOperation(request, workspace, { type: "create-folder", path });
+      const actualPath = result.conflictCopyPath ?? path;
+      const actualId = `folder-${actualPath}`;
+      setFiles((current) => current.map((file) => file.path === path && file.kind === "folder"
+        ? { ...file, id: actualId, path: actualPath }
+        : file));
+      if (actualPath !== path) {
+        setLoadedFolders((current) => { const next = new Set(current); next.delete(path); next.add(actualPath); return next; });
+      }
+    } catch (cause) {
+      setFiles((current) => current.filter((file) => file.path !== path));
+      setLoadedFolders((current) => { const next = new Set(current); next.delete(path); return next; });
+      setError(cause instanceof Error ? cause.message : "Could not create folder");
+    }
+  }, [currentFolder, files, request, requestName, setError, setFiles, setLoadedFolders, workspace]);
 
   const uploadFile = useCallback(async (file?: File) => {
     if (!file || !workspace) return;
     const form = new FormData();
+    const fileId = createOperationId();
     form.set("file", file);
-    form.set("path", `${currentFolder ? `${currentFolder}/` : ""}${file.name}`);
+    const basePath = `${currentFolder ? `${currentFolder}/` : ""}${file.name}`;
+    let path = basePath;
+    let suffix = 2;
+    while (files.some((entry) => entry.path === path)) {
+      const dot = file.name.lastIndexOf(".");
+      path = dot > 0 ? `${currentFolder ? `${currentFolder}/` : ""}${file.name.slice(0, dot)} (${suffix++})${file.name.slice(dot)}` : `${basePath} (${suffix++})`;
+    }
+    form.set("path", path);
+    form.set("fileId", fileId);
     form.set("clientId", `web-${createOperationId()}`);
+    setFiles((current) => [...current, { id: fileId, path, kind: "asset", revision: 0, size: file.size, contentType: file.type || "application/octet-stream" }]);
     try {
-      await request(`/api/workspaces/${workspace.id}/upload`, { method: "POST", body: form });
-      await refreshFiles(workspace.id);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Upload failed"); }
-  }, [currentFolder, refreshFiles, request, setError, workspace]);
+      const result = await request<{ path?: string; acceptedRevision?: number }>(`/api/workspaces/${workspace.id}/upload`, { method: "POST", body: form });
+      const actualPath = result.path ?? path;
+      setFiles((current) => current.map((entry) => entry.id === fileId ? { ...entry, path: actualPath } : entry));
+    } catch (cause) {
+      setFiles((current) => current.filter((entry) => entry.id !== fileId));
+      setError(cause instanceof Error ? cause.message : "Upload failed");
+    }
+  }, [currentFolder, files, request, setError, setFiles, workspace]);
 
   return { newNote, newFolder, uploadFile };
 }

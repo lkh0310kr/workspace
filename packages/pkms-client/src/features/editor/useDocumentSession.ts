@@ -102,9 +102,13 @@ export function useDocumentSession(options: Options) {
       }
       const cachedText = entry.doc.getText("markdown");
       if (!cachedText.length) {
-        const server = await api<{ update: string }>(`/api/workspaces/${workspace?.id}/files/${file.id}/updates`);
-        if (request !== openSequence.current) return;
-        Y.applyUpdate(entry.doc, fromBase64(server.update), "server");
+        if (typeof file.content === "string") {
+          if (file.content) entry.doc.transact(() => cachedText.insert(0, file.content!), "server");
+        } else {
+          const server = await api<{ update: string }>(`/api/workspaces/${workspace?.id}/files/${file.id}/updates`);
+          if (request !== openSequence.current) return;
+          Y.applyUpdate(entry.doc, fromBase64(server.update), "server");
+        }
       }
     } catch (cause) {
       if (request === openSequence.current) { setError(cause instanceof Error ? cause.message : "Could not open file"); setOpeningFileId(null); }

@@ -33,7 +33,7 @@ export function useWorkspaceDirectory(
     if (sameFileRecords(filesRef.current, next)) return;
     filesRef.current = next;
     setFilesState(next);
-    persist(next);
+    if (next.length) persist(next);
   }, [persist]);
 
   const setLoadedFolders: Dispatch<SetStateAction<Set<string>>> = useCallback((action) => {
@@ -51,8 +51,10 @@ export function useWorkspaceDirectory(
   const replaceDirectory = useCallback((directory: string, entries: FileRecord[]) => {
     if (workspaceIdRef.current !== activeWorkspace?.id) return;
     setFiles((current) => replaceDirectoryEntries(current, directory, entries));
-    setLoadedFolders((current) => new Set(current).add(directory));
-  }, [activeWorkspace?.id, setFiles, setLoadedFolders]);
+    const loaded = new Set(loadedFoldersRef.current).add(directory);
+    setLoadedFolders(loaded);
+    persist(filesRef.current, loaded);
+  }, [activeWorkspace?.id, persist, setFiles, setLoadedFolders]);
 
   const refreshDirectory = useCallback((directory: string, showLoading: boolean): Promise<void> => {
     if (!activeWorkspace) return Promise.resolve();
