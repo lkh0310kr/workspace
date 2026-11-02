@@ -11,10 +11,19 @@ export interface ExplorerKeyboardHandlers {
   getFocusedEntry: () => DirEntry | null;
 }
 
-function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
+function isTypingTarget(event: KeyboardEvent): boolean {
+  return event.composedPath().some((target) => {
+    if (!(target instanceof HTMLElement)) return false;
+    const tag = target.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
+  });
+}
+
+function isOutsideTreeShadowRoot(event: KeyboardEvent, tree: HTMLElement | null): boolean {
+  const origin = event.composedPath()[0];
+  if (!(origin instanceof Node)) return false;
+  const root = origin.getRootNode();
+  return root instanceof ShadowRoot && !tree?.contains(origin);
 }
 
 /** VS Code-style explorer keys when the tree (or its pane host) has focus. */
@@ -28,9 +37,11 @@ export function useExplorerKeyboard(
     if (!enabled) return;
 
     function onKeyDown(e: KeyboardEvent): void {
-      if (isTypingTarget(e.target)) return;
       const host = hostRef.current;
       const tree = treeRef.current;
+      // Events from embedded panes (such as PKMS) are retargeted to their host
+      // outside Shadow DOM. Do not treat them as explorer navigation keys.
+      if (isTypingTarget(e) || isOutsideTreeShadowRoot(e, tree)) return;
       if (!host?.contains(document.activeElement) && document.activeElement !== tree) return;
       if (!tree) return;
 
