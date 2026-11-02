@@ -187,8 +187,10 @@ export function useWorkspaceFileActions(options: Options) {
         setSelectedTreePaths(new Set());
         setExpandedFolders((current) => new Set([...current].filter((path) => snapshot.files.some((file) => file.kind === "folder" && file.path === path))));
         setLoadedFolders((current) => new Set([...current].filter((path) => snapshot.files.some((file) => file.kind === "folder" && file.path === path))));
-        if (activeFile && !snapshot.files.some((file) => file.id === activeFile.id)) {
-          clearActiveFile(); routedPath.current = null; navigate("/", { replace: true, preventScrollReset: true });
+        if (activeFile && isInsideDeleted(activeFile.path)) {
+          const restored = snapshot.files.find((file) => file.id === activeFile.id);
+          if (restored) void openFile(restored, "none");
+          else { clearActiveFile(); routedPath.current = null; navigate("/", { replace: true, preventScrollReset: true }); }
         }
         setCurrentFolder((path) => { let next = path; while (next && !snapshot.files.some((file) => file.kind === "folder" && file.path === next)) next = parentPath(next); return next; });
       } catch {
