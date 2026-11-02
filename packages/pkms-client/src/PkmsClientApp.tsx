@@ -622,6 +622,7 @@ export default function Home() {
     .slice(0, 30), [quickQuery, visibleFiles]);
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
   const contextMoveRoots = treeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)));
+  const cutMoveRoots = treeSelectionRoots(files.filter((file) => cutTreePaths.has(file.path)), cutTreePaths);
   const saveAttachment = () => {
     if (!assetPreviewUrl || !activeFile) return;
     const link = document.createElement("a");
@@ -675,7 +676,7 @@ export default function Home() {
             <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}><AppIcon name="folderPlus" /></button>
             <label className="mini-button upload-button" title="Upload file"><AppIcon name="upload" /><input type="file" onChange={(event) => { void uploadFile(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
             {activeFile && <button className="mini-button" title="Rename" onClick={renameActiveFile}><AppIcon name="pencil" /></button>}
-            {activeFile && <button className="mini-button" title="Delete" onClick={() => void deleteActiveFile()}><AppIcon name="trash" /></button>}
+            {(selectedTreePaths.size > 0 || activeFile) && <button className="mini-button" title={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} aria-label={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} onClick={() => selectedTreePaths.size > 0 ? void deleteTreeItems(treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file)) : void deleteActiveFile()}><AppIcon name="trash" /></button>}
             {!activeFile && currentFolder && <button className="mini-button" title="Rename folder" onClick={renameCurrentFolder}><AppIcon name="pencil" /></button>}
             {!activeFile && currentFolder && <button className="mini-button" title="Delete folder" onClick={() => void deleteCurrentFolder()}><AppIcon name="trash" /></button>}
           </div></div>
@@ -723,6 +724,7 @@ export default function Home() {
             {treeContextMenu.file.kind === "folder" && <>
               <button role="menuitem" onClick={() => { const directory = treeContextMenu.file.path; setTreeContextMenu(null); beginTreeCreation("file", directory); }}>New note</button>
               <button role="menuitem" onClick={() => { const directory = treeContextMenu.file.path; setTreeContextMenu(null); beginTreeCreation("folder", directory); }}>New folder</button>
+              {cutMoveRoots.length > 0 && <button role="menuitem" onClick={() => void moveTreeItems(cutMoveRoots, treeContextMenu.file.path)}>Paste into folder</button>}
               {contextMoveRoots.some((item) => item.path !== treeContextMenu.file.path && parentPath(item.path) !== treeContextMenu.file.path && !(item.kind === "folder" && treeContextMenu.file.path.startsWith(`${item.path}/`))) && <button role="menuitem" onClick={() => void moveTreeItems(contextMoveRoots, treeContextMenu.file.path)}>Move selection here</button>}
             </>}
             <button role="menuitem" onClick={() => { setCutTreePaths(new Set(contextMoveRoots.map((item) => item.path))); setTreeContextMenu(null); }}>Cut</button>
