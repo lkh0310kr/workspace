@@ -1,14 +1,25 @@
 import type { FileRecord } from "../domain/types";
 
 const DATABASE_NAME = "pkms-workspace-cache";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const TREE_STORE = "workspace-trees";
+const OPERATION_STORE = "workspace-operations";
 
 export interface WorkspaceTreeCache {
   workspaceId: string;
   files: FileRecord[];
   loadedFolders: string[];
   savedAt: number;
+}
+
+export interface QueuedWorkspaceOperation {
+  key: string;
+  workspaceId: string;
+  operationId: string;
+  baseRevision: number;
+  clientId: string;
+  operation: import("@pkms/protocol/types").PkmsWorkspaceOperation;
+  queuedAt: number;
 }
 
 let databasePromise: Promise<IDBDatabase> | null = null;
@@ -21,6 +32,7 @@ function database(): Promise<IDBDatabase> {
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(TREE_STORE)) db.createObjectStore(TREE_STORE, { keyPath: "workspaceId" });
+      if (!db.objectStoreNames.contains(OPERATION_STORE)) db.createObjectStore(OPERATION_STORE, { keyPath: "key" });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("Could not open local workspace cache"));
@@ -57,6 +69,37 @@ export function writeWorkspaceTree(cache: WorkspaceTreeCache): Promise<void> {
   writes.set(cache.workspaceId, next);
   void next.finally(() => { if (writes.get(cache.workspaceId) === next) writes.delete(cache.workspaceId); }).catch(() => {});
   return next;
+}
+
+export async function queueWorkspaceOperation(operation: QueuedWorkspaceOperation): Promise<void> {
+  const db = await database();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(OPERATION_STORE, "readwrite");
+    transaction.objectStore(OPERATION_STORE).put(operation);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("Could not queue local workspace operation"));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Local workspace operation queue write was aborted"));
+  });
+}
+
+export async function readQueuedWorkspaceOperations(workspaceId: string): Promise<QueuedWorkspaceOperation[]> {
+  const db = await database();
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(OPERATION_STORE, "readonly").objectStore(OPERATION_STORE).getAll();
+    request.onsuccess = () => resolve((request.result as QueuedWorkspaceOperation[]).filter((item) => item.workspaceId === workspaceId).sort((a, b) => a.queuedAt - b.queuedAt));
+    request.onerror = () => reject(request.error ?? new Error("Could not read local workspace operation queue"));
+  });
+}
+
+export async function removeQueuedWorkspaceOperation(workspaceId: string, operationId: string): Promise<void> {
+  const db = await database();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(OPERATION_STORE, "readwrite");
+    transaction.objectStore(OPERATION_STORE).delete(`${workspaceId}:${operationId}`);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove local workspace operation"));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Local workspace operation removal was aborted"));
+  });
 }
 
 export function sameFileRecords(left: FileRecord[], right: FileRecord[]): boolean {

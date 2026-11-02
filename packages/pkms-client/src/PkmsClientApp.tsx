@@ -1,14 +1,15 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
 import { desktopBridge } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
+import { flushQueuedWorkspaceOperations, WORKSPACE_OPERATION_QUEUE_EVENT } from "./client/workspaceOperations";
 import { useLocation, useNavigate } from "react-router";
 import type { FileNavigation, FileRecord, Peer, RealtimeMessage, Repository, SyncStatus, TreeContextMenu, TreeRow, Workspace } from "./domain/types";
 import { toBase64, createOperationId } from "./domain/encoding";
 import { entryName, flattenTree, mergeFileRecords, parentPath, treeSelectionRoots } from "./domain/fileTree";
-import { parseFileLocation } from "./domain/fileLocation";
+import { fileLocationPath, parseFileLocation } from "./domain/fileLocation";
 import { matchesExcludePattern } from "./domain/excludePattern";
 import { applyTextDiff } from "./domain/yjsText";
 import { AppIcon, GitHubIcon } from "./components/Icons";
@@ -91,11 +92,15 @@ export default function Home() {
     toggleDirectory,
     restoreWorkspaceTree,
   } = useWorkspaceDirectory(activeWorkspace, api, setError);
-  const visibleFiles = files.filter((file) => showIgnoredFiles || (
+  const treeFilesRef = useRef(files);
+  const activeFileStateRef = useRef(activeFile);
+  treeFilesRef.current = files;
+  activeFileStateRef.current = activeFile;
+  const visibleFiles = useMemo(() => files.filter((file) => showIgnoredFiles || (
     !file.path.split("/").some((part) => part.startsWith(".")) &&
     !excludedPatterns.split("\n").some((pattern) => matchesExcludePattern(file.path, pattern))
-  ));
-  const treeRows = flattenTree(visibleFiles, expandedFolders);
+  )), [excludedPatterns, files, showIgnoredFiles]);
+  const treeRows = useMemo(() => flattenTree(visibleFiles, expandedFolders), [expandedFolders, visibleFiles]);
   const {
     focusedPath: focusedTreePath,
     setFocusedPath: setFocusedTreePath,
@@ -170,6 +175,76 @@ export default function Home() {
   }, [activeWorkspace?.id]);
 
   useEffect(() => { setOutlineOpen(false); }, [activeFile?.id]);
+
+  useEffect(() => {
+    if (!activeWorkspace) return;
+    const workspaceId = activeWorkspace.id;
+    const flush = () => { void flushQueuedWorkspaceOperations(workspaceId, api).catch(() => {}); };
+    const onQueueEvent = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        state?: string;
+        workspaceId?: string;
+        operation?: { type?: string; path?: string; fileId?: string; toPath?: string };
+        result?: { conflictCopyPath?: string };
+        message?: string;
+        hasPending?: boolean;
+      }>).detail;
+      if (detail?.workspaceId !== workspaceId) return;
+      if (detail.state === "queued") {
+        setNotice("Saved on this device. Waiting for connection…");
+        return;
+      }
+      if (detail.state === "rejected") {
+        setError(detail.message ?? "A local change could not be synced.");
+        if (!detail.hasPending) {
+          void api<{ files: FileRecord[] }>(`/api/workspaces/${workspaceId}/snapshot`).then((snapshot) => {
+            if (activeWorkspace?.id === workspaceId) setFiles(snapshot.files);
+          }).catch(() => {});
+        }
+        return;
+      }
+      if (detail.state !== "applied") return;
+      const conflictPath = detail.result?.conflictCopyPath;
+      const operation = detail.operation;
+      if (conflictPath && operation) {
+        const moved = operation.type === "create-file"
+          ? treeFilesRef.current.find((file) => file.id === operation.fileId)
+          : operation.type === "create-folder"
+            ? treeFilesRef.current.find((file) => file.path === operation.path && file.kind === "folder")
+            : operation.type === "move" ? treeFilesRef.current.find((file) => file.id === operation.fileId) : undefined;
+        const fromPath = operation.type === "create-file" || operation.type === "create-folder" ? operation.path : moved?.path;
+        if (moved && fromPath) {
+          const remap = (path: string) => path === fromPath ? conflictPath : moved.kind === "folder" && path.startsWith(`${fromPath}/`) ? `${conflictPath}${path.slice(fromPath.length)}` : path;
+          setFiles((current) => current.map((file) => {
+            const path = remap(file.path);
+            const id = operation.type === "create-folder" && file.id === moved.id ? `folder-${conflictPath}` : file.id;
+            return path === file.path && id === file.id ? file : { ...file, id, path };
+          }));
+          if (moved.kind === "folder") {
+            setExpandedFolders((current) => new Set([...current].map(remap)));
+            setLoadedFolders((current) => new Set([...current].map(remap)));
+            setCurrentFolder((current) => remap(current));
+          }
+          const active = activeFileStateRef.current;
+          if (active && (active.id === moved.id || (moved.kind === "folder" && active.path.startsWith(`${fromPath}/`)))) {
+            const path = remap(active.path);
+            setActiveFile((current) => current?.id === active.id ? { ...current, path } : current);
+            const target = fileLocationPath(workspaceId, path);
+            routedPath.current = target;
+            navigate(target, { replace: true, preventScrollReset: true });
+          }
+        }
+      }
+      setNotice("Local changes synced.");
+    };
+    window.addEventListener("online", flush);
+    window.addEventListener(WORKSPACE_OPERATION_QUEUE_EVENT, onQueueEvent);
+    flush();
+    return () => {
+      window.removeEventListener("online", flush);
+      window.removeEventListener(WORKSPACE_OPERATION_QUEUE_EVENT, onQueueEvent);
+    };
+  }, [activeWorkspace?.id, api, navigate, setActiveFile, setCurrentFolder, setError, setExpandedFolders, setFiles, setLoadedFolders, setNotice]);
 
 
   useEffect(() => {
@@ -261,12 +336,14 @@ export default function Home() {
         stableTimer = window.setTimeout(() => { retries = 0; }, 30_000);
         setError((current) => current.startsWith("Live sync disconnected") ? "" : current);
         ws.send(JSON.stringify({ type: "hello", protocolVersion: 1, clientId, afterRevision: activeWorkspace.revision, user, fileId: activeRef.current.file?.id }));
-        const current = activeRef.current;
-        if (current.file && current.doc) {
+        void flushQueuedWorkspaceOperations(activeWorkspace.id, api).then((queueDrained) => {
+          if (!queueDrained || !alive || socket.current !== ws || ws.readyState !== WebSocket.OPEN) return;
+          const current = activeRef.current;
+          if (!current.file || !current.doc) return;
           const operationId = createOperationId();
           ws.send(JSON.stringify({ type: "document-update", operationId, fileId: current.file.id, update: toBase64(Y.encodeStateAsUpdate(current.doc)) }));
           pending.current.set(operationId, { type: "document-update", operationId, fileId: current.file.id });
-        }
+        }).catch(() => {});
       };
       ws.onmessage = handleRealtimeMessage;
       ws.onclose = () => {
@@ -434,10 +511,10 @@ export default function Home() {
     setText(next);
   };
 
-  const outlineItems = text.split("\n").flatMap((line, index) => {
+  const outlineItems = useMemo(() => text.split("\n").flatMap((line, index) => {
     const heading = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
     return heading ? [{ line: index + 1, level: heading[1].length, title: heading[2] }] : [];
-  });
+  }), [text]);
   const parentFolder = parentPath(currentFolder);
   const persistTreeScroll = (scrollTop: number) => {
     if (!activeWorkspace) return;
@@ -504,9 +581,9 @@ export default function Home() {
     }
   };
 
-  const quickOpenResults = [...new Map(visibleFiles.filter((file) => file.kind !== "folder").map((file) => [file.id, file])).values()]
+  const quickOpenResults = useMemo(() => [...new Map(visibleFiles.filter((file) => file.kind !== "folder").map((file) => [file.id, file])).values()]
     .filter((file) => !quickQuery.trim() || file.path.toLocaleLowerCase().includes(quickQuery.trim().toLocaleLowerCase()))
-    .slice(0, 30);
+    .slice(0, 30), [quickQuery, visibleFiles]);
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
   const contextMoveRoots = treeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)));
   const saveAttachment = () => {
