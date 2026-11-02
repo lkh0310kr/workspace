@@ -1,4 +1,4 @@
-import type { DragEvent, KeyboardEvent, MouseEvent, RefObject } from "react";
+import { Fragment, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type RefObject } from "react";
 import { AppIcon } from "./Icons";
 import { entryName, parseTreeDragPaths } from "../domain/fileTree";
 import type { FileRecord, TreeRow } from "../domain/types";
@@ -26,9 +26,27 @@ interface FileTreeListProps {
   onSelectRow: (path: string, index: number, additive: boolean, range: boolean) => void;
   onClearSelection: () => void;
   onActivate: (file: FileRecord) => void;
+  creation: { kind: "file" | "folder"; parentPath: string } | null;
+  onCreate: (kind: "file" | "folder", parentPath: string, name: string) => void;
+  onCancelCreate: () => void;
 }
 
 const TREE_PATHS_MIME = "application/x-pkms-tree-paths";
+
+function InlineCreationRow({ kind, depth, onCreate, onCancel }: { kind: "file" | "folder"; depth: number; onCreate: (name: string) => void; onCancel: () => void }) {
+  const [name, setName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+  return <div className="tree-row tree-creation-row" role="treeitem" aria-level={depth + 1} style={{ paddingLeft: 8 + depth * 14 }}>
+    <span className="tree-chevron" aria-hidden="true" />
+    <span className="file-icon" aria-hidden="true"><AppIcon name={kind === "folder" ? "folder" : "fileText"} /></span>
+    <input ref={inputRef} aria-label={kind === "folder" ? "Folder name" : "File name"} placeholder={kind === "folder" ? "New folder name" : "New file name.md"} value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => {
+      event.stopPropagation();
+      if (event.key === "Enter") { event.preventDefault(); if (name.trim()) onCreate(name); else onCancel(); }
+      if (event.key === "Escape") { event.preventDefault(); onCancel(); }
+    }} />
+  </div>;
+}
 
 export function FileTreeList({
   treeRef,
@@ -53,6 +71,9 @@ export function FileTreeList({
   onSelectRow,
   onClearSelection,
   onActivate,
+  creation,
+  onCreate,
+  onCancelCreate,
 }: FileTreeListProps) {
   const handleDrop = (event: DragEvent<HTMLElement>, destination: string) => {
     event.preventDefault();
@@ -86,9 +107,10 @@ export function FileTreeList({
         if (event.target === event.currentTarget) handleDrop(event, "");
       }}
     >
+      {creation?.parentPath === "" && <InlineCreationRow key={`create-${creation.kind}-${creation.parentPath}`} kind={creation.kind} depth={0} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} />}
       {rows.map(({ file, depth }, index) => (
+        <Fragment key={file.id}>
         <button
-          key={file.id}
           type="button"
           role="treeitem"
           data-tree-path={file.path}
@@ -135,6 +157,8 @@ export function FileTreeList({
           <span className="file-icon" aria-hidden="true"><AppIcon name={file.kind === "folder" ? "folder" : file.kind === "markdown" ? "fileText" : "file"} /></span>
           <span className="tree-label">{entryName(file.path)}</span>
         </button>
+        {creation?.parentPath === file.path && file.kind === "folder" && <InlineCreationRow key={`create-${creation.kind}-${creation.parentPath}`} kind={creation.kind} depth={depth + 1} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} />}
+        </Fragment>
       ))}
       {!rows.length && <p className="empty-hint">{loading ? "Loading…" : "Empty folder"}</p>}
     </nav>

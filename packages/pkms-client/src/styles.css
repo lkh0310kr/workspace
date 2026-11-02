@@ -95,6 +95,8 @@ button { cursor: pointer; }
 .file-row.selected { color: var(--text); background: var(--selected); }
 .file-tree { outline: 0; }
 .tree-row { flex: 0 0 27px; white-space: nowrap; }
+.tree-creation-row { display: flex; align-items: center; gap: 5px; }
+.tree-creation-row input { min-width: 0; width: calc(100% - 48px); height: 22px; padding: 1px 4px; color: var(--text); background: var(--surface); border: 1px solid var(--accent); border-radius: 3px; outline: 0; font: inherit; }
 .tree-row:focus-visible { outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent); outline-offset: -1px; }
 .tree-row.selected { color: var(--text); background: var(--selected); }
 .tree-row.multi-selected { color: var(--text); background: color-mix(in srgb, var(--accent) 17%, var(--surface)); }

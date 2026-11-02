@@ -12,13 +12,14 @@ interface Options {
   setLoadedFolders: Dispatch<SetStateAction<Set<string>>>;
   setError: Dispatch<SetStateAction<string>>;
   openFile: (file: FileRecord) => Promise<void>;
-  requestName: (title: string, initialValue?: string) => Promise<string | null>;
 }
 
-export function useWorkspaceFileCreation({ workspace, files, currentFolder, request, setFiles, setLoadedFolders, setError, openFile, requestName }: Options) {
-  const newNote = useCallback(async (directory = currentFolder) => {
+export function useWorkspaceFileCreation({ workspace, files, currentFolder, request, setFiles, setLoadedFolders, setError, openFile }: Options) {
+  const createNote = useCallback(async (directory: string, name: string) => {
     if (!workspace) return;
-    const basePath = `${directory ? `${directory}/` : ""}Untitled ${new Date().toLocaleString("sv-SE").replaceAll(":", "-")}.md`;
+    const fileName = name.trim().endsWith(".md") ? name.trim() : `${name.trim()}.md`;
+    if (!fileName || /[\\/]/.test(fileName)) { setError("Enter a file name without a slash"); return; }
+    const basePath = `${directory ? `${directory}/` : ""}${fileName}`;
     const fileId = createOperationId();
     let path = basePath;
     let suffix = 2;
@@ -37,13 +38,13 @@ export function useWorkspaceFileCreation({ workspace, files, currentFolder, requ
       setFiles((current) => current.filter((file) => file.id !== fileId));
       setError(cause instanceof Error ? cause.message : "Could not create note");
     }
-  }, [currentFolder, files, openFile, request, setError, setFiles, workspace]);
+  }, [files, openFile, request, setError, setFiles, workspace]);
 
-  const newFolder = useCallback(async (directory = currentFolder) => {
+  const createFolder = useCallback(async (directory: string, name: string) => {
     if (!workspace) return;
-    const name = await requestName("New folder");
-    if (!name?.trim()) return;
-    const basePath = `${directory ? `${directory}/` : ""}${name.trim()}`;
+    const folderName = name.trim();
+    if (!folderName || /[\\/]/.test(folderName)) { setError("Enter a folder name without a slash"); return; }
+    const basePath = `${directory ? `${directory}/` : ""}${folderName}`;
     let path = basePath;
     let suffix = 2;
     while (files.some((file) => file.path === path)) path = `${basePath} (${suffix++})`;
@@ -64,7 +65,7 @@ export function useWorkspaceFileCreation({ workspace, files, currentFolder, requ
       setLoadedFolders((current) => { const next = new Set(current); next.delete(path); return next; });
       setError(cause instanceof Error ? cause.message : "Could not create folder");
     }
-  }, [currentFolder, files, request, requestName, setError, setFiles, setLoadedFolders, workspace]);
+  }, [files, request, setError, setFiles, setLoadedFolders, workspace]);
 
   const uploadFile = useCallback(async (file?: File) => {
     if (!file || !workspace) return;
@@ -88,5 +89,5 @@ export function useWorkspaceFileCreation({ workspace, files, currentFolder, requ
     }
   }, [currentFolder, files, request, setError, setFiles, workspace]);
 
-  return { newNote, newFolder, uploadFile };
+  return { createNote, createFolder, uploadFile };
 }
