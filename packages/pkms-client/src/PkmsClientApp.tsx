@@ -545,7 +545,8 @@ export default function Home() {
   const handleTreeKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     const index = treeRows.findIndex((row) => row.file.path === focusedTreePath);
     const row = treeRows[index];
-    if (!row) return;
+    const selectedFiles = treeRows.filter((item) => selectedTreePaths.has(item.file.path)).map((item) => item.file);
+    const commandFiles = selectedFiles.length ? selectedFiles : row ? [row.file] : [];
     const focusRow = (next: TreeRow | undefined) => {
       if (!next) return;
       setFocusedTreePath(next.file.path);
@@ -554,23 +555,27 @@ export default function Home() {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
       event.preventDefault();
       setSelectedTreePaths(new Set(treeRows.map((item) => item.file.path)));
-      setSelectionAnchorPath(row.file.path);
+      if (row) setSelectionAnchorPath(row.file.path);
       return;
     }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "x") {
       event.preventDefault();
-      setCutTreePaths(new Set(selectedTreePaths));
+      setCutTreePaths(new Set(treeSelectionRoots(commandFiles, new Set(commandFiles.map((file) => file.path))).map((file) => file.path)));
       return;
     }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v" && cutTreePaths.size) {
       event.preventDefault();
-      void moveTreeItems(files.filter((file) => cutTreePaths.has(file.path)), currentFolder);
+      const target = selectedFiles.length === 1 && selectedFiles[0].kind === "folder"
+        ? selectedFiles[0].path
+        : row ? (row.file.kind === "folder" ? row.file.path : parentPath(row.file.path)) : currentFolder;
+      void moveTreeItems(files.filter((file) => cutTreePaths.has(file.path)), target);
       return;
     }
     if (event.key === "Delete" || event.key === "Backspace") {
-      if (selectedTreePaths.size) { event.preventDefault(); void deleteTreeItems(treeRows.filter((item) => selectedTreePaths.has(item.file.path)).map((item) => item.file)); }
+      if (commandFiles.length) { event.preventDefault(); void deleteTreeItems(commandFiles); }
       return;
     }
+    if (!row) return;
     if (event.key === "F2" && selectedTreePaths.size === 1) {
       event.preventDefault();
       const selected = files.find((file) => selectedTreePaths.has(file.path));
@@ -694,6 +699,7 @@ export default function Home() {
               setTreeContextMenu({ file, x: Math.max(8, Math.min(event.clientX, window.innerWidth - 196)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)) });
             }}
             onSelectRow={selectTreeRow}
+            onClearSelection={() => { setSelectedTreePaths(new Set()); setSelectionAnchorPath(null); setFocusedTreePath(null); }}
             onActivate={(file) => { if (file.kind === "folder") void toggleFolder(file); else void openFile(file); }}
           />
           {treeContextMenu && <div ref={treeContextMenuRef} className="tree-context-menu" role="menu" aria-label={`${entryName(treeContextMenu.file.path)} actions`} style={{ left: treeContextMenu.x, top: treeContextMenu.y }}>

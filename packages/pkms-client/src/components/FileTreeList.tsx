@@ -24,6 +24,7 @@ interface FileTreeListProps {
   onDragStart: (file: FileRecord, index: number, event: DragEvent<HTMLButtonElement>) => void;
   onContextMenu: (file: FileRecord, event: MouseEvent<HTMLButtonElement>) => void;
   onSelectRow: (path: string, index: number, additive: boolean, range: boolean) => void;
+  onClearSelection: () => void;
   onActivate: (file: FileRecord) => void;
 }
 
@@ -50,6 +51,7 @@ export function FileTreeList({
   onDragStart,
   onContextMenu,
   onSelectRow,
+  onClearSelection,
   onActivate,
 }: FileTreeListProps) {
   const handleDrop = (event: DragEvent<HTMLElement>, destination: string) => {
@@ -69,6 +71,9 @@ export function FileTreeList({
       aria-busy={busy}
       onKeyDown={onKeyDown}
       onContextMenu={(event) => event.preventDefault()}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClearSelection();
+      }}
       onScroll={(event) => onScroll(event.currentTarget.scrollTop)}
       onDragOver={(event) => {
         event.preventDefault();
