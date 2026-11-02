@@ -11,7 +11,9 @@ export function PkmsPane(): React.JSX.Element {
     const host = hostRef.current;
     if (!host) return;
 
-    const shadow = host.attachShadow({ mode: "open" });
+    // React StrictMode replays effects in development on the same host node.
+    // A host can only receive one shadow root, so reuse it after effect cleanup.
+    const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
     style.textContent = `${pkmsStyles
       .replaceAll(":root", ":host")
