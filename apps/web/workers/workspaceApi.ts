@@ -21,7 +21,7 @@ async function githubRequest(token: string, path: string): Promise<Response> {
 export async function handleWorkspaceApi(request: Request, env: Env, requestId: string, auth: Session): Promise<Response> {
   const url = new URL(request.url);
   if (request.method === "GET" && url.pathname === "/api/realtime/config") {
-    return json({ url: env.SUPABASE_URL, anonKey: env.SUPABASE_ANON_KEY });
+    return json({ url: env.SUPABASE_URL, anonKey: env.SUPABASE_ANON_KEY, issuer: env.PUBLIC_ORIGIN.replace(/\/$/, "") });
   }
   if (request.method === "GET" && url.pathname === "/api/realtime/token") {
     const issued = await issueRealtimeToken(env, auth);

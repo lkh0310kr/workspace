@@ -23,7 +23,7 @@ function sharedClient(url: string, anonKey: string): SupabaseClient {
   if (!client) {
     client = createClient(url, anonKey, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-      realtime: { transport: DiagnosticWebSocket, logLevel: "warn" },
+      realtime: { transport: DiagnosticWebSocket, logLevel: "info" },
       accessToken: async () => realtimeTokens.get(key) ?? null,
     });
     clients.set(key, client);
@@ -52,7 +52,7 @@ export class PKMSRealtimeSocket {
 
   async connect(): Promise<void> {
     try {
-      const config = await this.api<{ url: string; anonKey: string }>("/api/realtime/config");
+      const config = await this.api<{ url: string; anonKey: string; issuer: string }>("/api/realtime/config");
       const initial = await this.api<{ token: string }>("/api/realtime/token");
       if (this.closed) return;
       this.clientKey = `${config.url}\0${config.anonKey}`;
@@ -63,7 +63,7 @@ export class PKMSRealtimeSocket {
       const appMetadata = claims.app_metadata && typeof claims.app_metadata === "object" ? claims.app_metadata as Record<string, unknown> : {};
       void this.api<void>(`/api/workspaces/${encodeURIComponent(this.workspaceId)}/diagnostics/realtime`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "TOKEN_CHECK", clientId: this.clientId, tokenRole: claims.role, issuerMatches: claims.iss === window.location.origin, loginMatches: appMetadata.github_login === this.user.login.toLowerCase(), subjectPresent: typeof claims.sub === "string" && claims.sub.length > 0 }),
+        body: JSON.stringify({ status: "TOKEN_CHECK", clientId: this.clientId, tokenRole: claims.role, issuerMatches: claims.iss === config.issuer.replace(/\/$/, ""), loginMatches: appMetadata.github_login === this.user.login.toLowerCase(), subjectPresent: typeof claims.sub === "string" && claims.sub.length > 0 }),
       }).catch(() => {});
       reportSocketEvent = (status, closeCode, wasClean) => { void this.reportStatus(status, undefined, closeCode, wasClean); };
       this.client = sharedClient(config.url, config.anonKey);
