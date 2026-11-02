@@ -10,9 +10,10 @@ interface Options {
   setFiles: Dispatch<SetStateAction<FileRecord[]>>;
   setError: Dispatch<SetStateAction<string>>;
   openFile: (file: FileRecord) => Promise<void>;
+  requestName: (title: string, initialValue?: string) => Promise<string | null>;
 }
 
-export function useWorkspaceFileCreation({ workspace, currentFolder, request, setFiles, setError, openFile }: Options) {
+export function useWorkspaceFileCreation({ workspace, currentFolder, request, setFiles, setError, openFile, requestName }: Options) {
   const refreshFiles = useCallback(async (workspaceId: string) => {
     const snapshot = await request<{ files: FileRecord[] }>(`/api/workspaces/${workspaceId}/snapshot`);
     setFiles(snapshot.files);
@@ -32,13 +33,13 @@ export function useWorkspaceFileCreation({ workspace, currentFolder, request, se
 
   const newFolder = useCallback(async (directory = currentFolder) => {
     if (!workspace) return;
-    const name = window.prompt("New folder");
+    const name = await requestName("New folder");
     if (!name?.trim()) return;
     try {
       await submitWorkspaceOperation(request, workspace, { type: "create-folder", path: `${directory ? `${directory}/` : ""}${name.trim()}` });
       await refreshFiles(workspace.id);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create folder"); }
-  }, [currentFolder, refreshFiles, request, setError, workspace]);
+  }, [currentFolder, refreshFiles, request, requestName, setError, workspace]);
 
   const uploadFile = useCallback(async (file?: File) => {
     if (!file || !workspace) return;

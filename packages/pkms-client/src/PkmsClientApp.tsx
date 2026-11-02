@@ -12,6 +12,7 @@ import { parseFileLocation } from "./domain/fileLocation";
 import { matchesExcludePattern } from "./domain/excludePattern";
 import { applyTextDiff } from "./domain/yjsText";
 import { AppIcon, GitHubIcon } from "./components/Icons";
+import { PkmsDialog, type PkmsDialogRequest } from "./components/PkmsDialog";
 import { FileTreeList } from "./components/FileTreeList";
 import { useFileTreeSelection } from "./features/files/useFileTreeSelection";
 import { useWorkspaceDirectory } from "./features/files/useWorkspaceDirectory";
@@ -24,6 +25,15 @@ import { useDocumentSession } from "./features/editor/useDocumentSession";
 
 const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
 const api = requestPkmsApi;
+function attachmentContentType(path: string, contentType: string): string {
+  if (contentType.startsWith("image/")) return contentType;
+  const extension = path.split(".").at(-1)?.toLowerCase();
+  const imageTypes: Record<string, string> = {
+    avif: "image/avif", gif: "image/gif", jpeg: "image/jpeg", jpg: "image/jpeg",
+    png: "image/png", svg: "image/svg+xml", webp: "image/webp",
+  };
+  return imageTypes[extension ?? ""] ?? contentType;
+}
 
 export function meta() {
   return [{ title: "PKMS — Markdown workspace" }];
@@ -48,6 +58,7 @@ export default function Home() {
   const [sync, setSync] = useState<SyncStatus>({ serverRevision: 0, githubStatus: "pending", pendingFiles: 0 });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [dialogRequest, setDialogRequest] = useState<PkmsDialogRequest | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const account = useAccountSession({ request: api, setError, setActiveWorkspace });
@@ -56,6 +67,14 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [peers, setPeers] = useState<Peer[]>([]);
   const [assetPreviewUrl, setAssetPreviewUrl] = useState<string | null>(null);
+  const [assetPreviewType, setAssetPreviewType] = useState("");
+  const requestName = useCallback((title: string, initialValue = "") => new Promise<string | null>((resolve) => {
+    setDialogRequest({ kind: "name", title, initialValue, resolve });
+  }), []);
+  const confirm = useCallback((message: string) => new Promise<boolean>((resolve) => {
+    setDialogRequest({ kind: "confirm", message, resolve });
+  }), []);
+  const closeDialog = useCallback(() => setDialogRequest(null), []);
   const {
     currentFolder,
     setCurrentFolder,
@@ -154,18 +173,28 @@ export default function Home() {
 
 
   useEffect(() => {
-    const desktop = desktopBridge();
-    if (!desktop || !activeWorkspace || !activeFile || activeFile.kind !== "asset") {
+    if (!activeWorkspace || !activeFile || activeFile.kind !== "asset") {
       setAssetPreviewUrl(null);
+      setAssetPreviewType("");
       return;
     }
     let alive = true;
     let objectUrl: string | null = null;
-    void desktop.fetchAsset(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/assets/${encodeURIComponent(activeFile.id)}`)
+    const path = `/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/assets/${encodeURIComponent(activeFile.id)}`;
+    const desktop = desktopBridge();
+    const loadAsset = desktop
+      ? desktop.fetchAsset(path)
+      : fetch(path, { credentials: "same-origin" }).then(async (response) => {
+        if (!response.ok) throw new Error(`Could not open attachment (${response.status})`);
+        return { bytes: new Uint8Array(await response.arrayBuffer()), contentType: response.headers.get("content-type") ?? "" };
+      });
+    void loadAsset
       .then(({ bytes, contentType }) => {
         if (!alive) return;
         const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-        objectUrl = URL.createObjectURL(new Blob([data], { type: contentType }));
+        const previewType = attachmentContentType(activeFile.path, contentType);
+        objectUrl = URL.createObjectURL(new Blob([data], { type: previewType }));
+        setAssetPreviewType(previewType);
         setAssetPreviewUrl(objectUrl);
       })
       .catch((cause: unknown) => {
@@ -175,8 +204,9 @@ export default function Home() {
       alive = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
       setAssetPreviewUrl(null);
+      setAssetPreviewType("");
     };
-  }, [activeWorkspace?.id, activeFile?.id, activeFile?.kind]);
+  }, [activeWorkspace?.id, activeFile?.id, activeFile?.kind, activeFile?.path]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -393,7 +423,7 @@ export default function Home() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not connect repository"); }
   };
 
-  const { newNote, newFolder, uploadFile } = useWorkspaceFileCreation({ workspace: activeWorkspace, currentFolder, request: api, setFiles, setError, openFile });
+  const { newNote, newFolder, uploadFile } = useWorkspaceFileCreation({ workspace: activeWorkspace, currentFolder, request: api, setFiles, setError, openFile, requestName });
 
   const handleText = (next: string) => {
     const current = activeRef.current;
@@ -479,11 +509,20 @@ export default function Home() {
     .slice(0, 30);
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
   const contextMoveRoots = treeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)));
+  const saveAttachment = () => {
+    if (!assetPreviewUrl || !activeFile) return;
+    const link = document.createElement("a");
+    link.href = assetPreviewUrl;
+    link.download = activeFile.path.split("/").at(-1) ?? "attachment";
+    document.body.append(link);
+    link.click();
+    link.remove();
+  };
 
   const { moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItem, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder } = useWorkspaceFileActions({
     workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders,
     api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders,
-    setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice,
+    setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, requestName, confirm,
   });
 
   if (loading) return <main className="loading-screen"><div className="brand-mark">P</div><span>Opening your workspace…</span></main>;
@@ -597,9 +636,13 @@ export default function Home() {
           <div className="editor-heading"><div className="editor-title-block"><h1>{activeFile.path.split("/").at(-1)?.replace(/\.md$/i, "")}</h1>{peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}</div></div>
           <div className="outline-control outline-rail"><button className={`mini-button outline-button${outlineOpen ? " active" : ""}${outlineHover || outlineOpen ? " revealed" : ""}`} title="Note outline" aria-label="Note outline" aria-expanded={outlineOpen} onClick={() => setOutlineOpen((open) => !open)}><AppIcon name="list" /></button>{outlineOpen && <div className="outline-popover" role="navigation" aria-label="Note outline">{outlineItems.length ? outlineItems.map((item) => <button key={`${item.line}-${item.title}`} style={{ paddingLeft: 8 + (item.level - 1) * 11 }} title={item.title} onClick={() => { setOutlineOpen(false); requestAnimationFrame(() => editorNavigate.current?.(item.line)); }}>{item.title}</button>) : <span>No headings</span>}</div>}</div>
           <div className="editor-columns"><div className="source-column"><Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} value={text} onChange={handleText} onNavigateReady={registerEditorNavigator} /></Suspense></div></div>
-        </div> : <div className="asset-view"><div className="file-icon large"><AppIcon name="file" /></div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p>{desktopBridge() ? assetPreviewUrl ? <iframe className="asset-preview-frame" src={assetPreviewUrl} title={activeFile.path} /> : <span className="file-opening-spinner" aria-label="Loading attachment" /> : <a className="primary-button" href={`/api/workspaces/${activeWorkspace.id}/assets/${activeFile.id}`} target="_blank" rel="noreferrer">Open file</a>}</div>}
+        </div> : <div className="asset-view">
+          <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>
+          {assetPreviewUrl ? assetPreviewType.startsWith("image/") ? <img className="asset-image-preview" src={assetPreviewUrl} alt={activeFile.path} /> : <iframe className="asset-preview-frame" src={assetPreviewUrl} title={activeFile.path} /> : <span className="file-opening-spinner" aria-label="Loading attachment" />}
+        </div>}
         {sync.githubStatus === "external-change" && <div className="external-warning"><strong>GitHub branch changed outside PKMS.</strong><span>PKMS paused its commit so it won’t overwrite that change. {sync.message}</span></div>}
       </section>
+      <PkmsDialog request={dialogRequest} onClose={closeDialog} />
     </main>
   );
 }

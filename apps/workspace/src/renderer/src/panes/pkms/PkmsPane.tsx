@@ -8,12 +8,16 @@ export function PkmsPane(): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
+    const container = hostRef.current;
+    if (!container) return;
 
-    // React StrictMode replays effects in development on the same host node.
-    // A host can only receive one shadow root, so reuse it after effect cleanup.
-    const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
+    // Give every effect mount a fresh host. React StrictMode and Fast Refresh can
+    // replay effects on the same outer element, which cannot accept a second root.
+    const mountContainer: HTMLElement | ShadowRoot = container.shadowRoot ?? container;
+    const host = document.createElement("div");
+    host.className = "pkms-pane-shadow-host";
+    mountContainer.replaceChildren(host);
+    const shadow = host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
     style.textContent = `${pkmsStyles
       .replaceAll(":root", ":host")
@@ -33,9 +37,9 @@ export function PkmsPane(): React.JSX.Element {
 
     return () => {
       root.unmount();
-      shadow.replaceChildren();
+      host.remove();
     };
   }, []);
 
-  return <div ref={hostRef} className="pkms-pane-host" />;
+  return <div ref={hostRef} className="pkms-pane-host" style={{ display: "block", width: "100%", height: "100%", minWidth: 0, minHeight: 0, overflow: "hidden" }} />;
 }
