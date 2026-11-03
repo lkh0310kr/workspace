@@ -9,7 +9,7 @@ const MAX_MARKDOWN_BYTES = 512 * 1024;
 const MAX_GIT_FILE_BYTES = 50 * 1024 * 1024;
 const encoder = new TextEncoder();
 type FileRow = { file_id: string; path: string; parent_path: string; kind: "markdown"|"asset"|"folder"; content: string|null; object_key: string|null; size: number; sha: string|null; previous_path: string|null; revision: number; deleted: boolean; dirty: boolean };
-type WorkspaceRow = { workspace_id: string; owner_login: string; repository: string; branch: string; server_revision: number; github_status: WorkspaceRecord["githubStatus"]; github_head: string|null; github_message: string|null; last_github_commit_at: string|null; flush_due_at: string|null; lease_token?: string };
+type WorkspaceRow = { workspace_id: string; owner_login: string; repository: string; branch: string; server_revision: number; github_status: WorkspaceRecord["githubStatus"]; github_head: string|null; mirrored_head?: string|null; github_message: string|null; last_github_commit_at: string|null; flush_due_at: string|null; lease_token?: string };
 type GitHubTree = { sha: string; tree: Array<{path:string;mode:string;type:string;sha:string;size?:number}>; truncated: boolean };
 class GitHubError extends Error { constructor(readonly status:number){super(`github_${status}`)} }
 const b64=(value:Uint8Array)=>{let s="";for(const b of value)s+=String.fromCharCode(b);return btoa(s)};
@@ -77,6 +77,7 @@ export async function handleVaultRequest(env:Env,login:string,workspaceId:string
   }
   if(p==="/directory"&&request.method==="GET")return directory(env,login,workspace,url.searchParams.get("path")??"",requestId);
   if(p==="/sync-status"&&request.method==="GET")return syncStatus(env,workspace);
+  if(p==="/mirror"&&request.method==="POST")return mirror(env,login,workspace,requestId);
   if(p==="/flush"&&request.method==="POST"){
     const claimed=await supabaseRpc<WorkspaceRow|null>(env,"pkms_claim_workspace",{p_workspace_id:workspaceId});if(!claimed?.lease_token)return json({error:"flush_in_progress",message:"GitHub backup is already running."},{status:409,headers:{"Retry-After":"10"}});
     try{await flushWorkspace(env,workspaceId,login,claimed.lease_token);const fresh=await row(env,workspaceId,login);return fresh?syncStatus(env,fresh):json({error:"not_found"},{status:404});}
@@ -143,6 +144,65 @@ async function stableId(repository:string,path:string):Promise<string>{const dig
 async function syncStatus(env:Env,w:WorkspaceRow):Promise<Response>{
   const q=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,dirty:"eq.true",select:"file_id",limit:"1000"});const r=await supabaseRequest(env,`/rest/v1/pkms_files?${q}`);
   return json({serverRevision:Number(w.server_revision),githubStatus:w.github_status,githubHead:w.github_head,lastGitHubCommitAt:w.last_github_commit_at,nextGitHubFlushAt:w.flush_due_at?Date.parse(w.flush_due_at):null,pendingFiles:(await r.json() as unknown[]).length,message:w.github_message});
+}
+
+const MIRROR_NOTES_PER_CALL=600;const MIRROR_GRAPHQL_BATCH=50;const MIRROR_TREE_BATCH=2000;
+const chunk=<T,>(items:T[],size:number)=>{const out:T[][]=[];for(let i=0;i<items.length;i+=size)out.push(items.slice(i,i+size));return out;};
+/** Seed state for a note that has never been edited. Persisted once, so every client shares the same Yjs structs. */
+function seedState(content:string):string{const doc=new Y.Doc();if(content)doc.getText("markdown").insert(0,content);return b64(Y.encodeStateAsUpdate(doc));}
+async function githubBlobTexts(token:string,owner:string,repo:string,shas:string[]):Promise<Map<string,string>>{
+  const fields=shas.map((sha,i)=>`b${i}:object(oid:"${sha}"){... on Blob{text isTruncated isBinary byteSize}}`).join(" ");
+  const res=await fetch("https://api.github.com/graphql",{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json","User-Agent":"pkms-cloud"},body:JSON.stringify({query:`query($owner:String!,$name:String!){repository(owner:$owner,name:$name){${fields}}}`,variables:{owner,name:repo}})});
+  if(!res.ok)throw new GitHubError(res.status);
+  const data=await res.json() as {data?:{repository?:Record<string,{text:string|null;isTruncated:boolean;isBinary:boolean;byteSize:number}|null>};errors?:unknown[]};
+  const repository=data.data?.repository;if(!repository)throw new GitHubError(502);
+  const out=new Map<string,string>();
+  shas.forEach((sha,i)=>{const blob=repository[`b${i}`];if(blob&&typeof blob.text==="string"&&!blob.isTruncated&&!blob.isBinary&&encoder.encode(blob.text).byteLength===blob.byteSize)out.set(sha,blob.text);});
+  return out;
+}
+/** Mirrors GitHub into Supabase in bounded steps: tree first, then note bodies; the caller repeats until `complete`. */
+async function mirror(env:Env,login:string,w:WorkspaceRow,requestId?:string):Promise<Response>{
+  let stage="precheck";
+  try{
+    const [owner,repo]=w.repository.split("/");
+    if(!w.mirrored_head){
+      // The tree is cached only against a clean, fully backed-up workspace so it cannot collide with unsynced local moves.
+    const dirty=await(await supabaseRequest(env,`/rest/v1/pkms_files?${new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,dirty:"eq.true",select:"file_id",limit:"1"})}`)).json() as unknown[];
+    if(dirty.length||w.github_status==="pending"||w.github_status==="failed")return json({status:"deferred",reason:"unsynced_changes"});
+      stage="github_head";
+      const token=await accessToken(env,login);const branch=w.branch.split("/").map(encodeURIComponent).join("/");
+      const ref=await(await github(token,`/repos/${owner}/${repo}/git/ref/heads/${branch}`)).json() as {object:{sha:string}};
+      if(w.github_head&&ref.object.sha!==w.github_head)return json({status:"deferred",reason:"external_change"});
+      stage="github_tree";
+      const commit=await(await github(token,`/repos/${owner}/${repo}/git/commits/${ref.object.sha}`)).json() as {tree:{sha:string}};
+      const tree=await(await github(token,`/repos/${owner}/${repo}/git/trees/${commit.tree.sha}?recursive=1`)).json() as GitHubTree;
+      if(tree.truncated)return json({status:"unsupported",reason:"tree_too_large"});
+      const fileRows:Record<string,unknown>[]=[];const dirRows:Record<string,unknown>[]=[];
+      for(const e of tree.tree){if(!validPath(e.path))continue;
+        if(e.type==="tree"){fileRows.push({fileId:`folder-${e.path}`,path:e.path,parentPath:parent(e.path),kind:"folder",size:0,sha:null});dirRows.push({path:e.path,treeSha:e.sha});}
+        else if(e.type==="blob"&&["100644","100755","120000"].includes(e.mode))fileRows.push({fileId:await stableId(w.repository,e.path),path:e.path,parentPath:parent(e.path),kind:isMarkdown(e.path)?"markdown":"asset",size:e.size??0,sha:e.sha});}
+      stage="mirror_tree";
+      for(const [i,batch] of chunk(fileRows,MIRROR_TREE_BATCH).entries())await supabaseRpc(env,"pkms_mirror_tree",{p_workspace_id:w.workspace_id,p_files:batch,p_dirs:i===0?dirRows:[]});
+      await supabaseRpc(env,"pkms_mark_mirrored",{p_workspace_id:w.workspace_id,p_head:ref.object.sha});
+      return json({status:"progress",phase:"tree",files:fileRows.length});
+    }
+    // Once mirrored, the database is authoritative; later GitHub changes are handled by the existing external-change flow.
+    stage="select_notes";
+    const q=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,deleted:"eq.false",dirty:"eq.false",kind:"eq.markdown",content:"is.null",sha:"not.is.null",size:`lte.${MAX_MARKDOWN_BYTES}`,select:"file_id,sha",order:"path.asc",limit:String(MIRROR_NOTES_PER_CALL)});
+    const pending=await(await supabaseRequest(env,`/rest/v1/pkms_files?${q}`)).json() as Array<{file_id:string;sha:string}>;
+    if(!pending.length)return json({status:"complete"});
+    const token=await accessToken(env,login);
+    stage="github_blobs";let mirrored=0;
+    for(const group of chunk(pending,MIRROR_GRAPHQL_BATCH)){
+      const texts=await githubBlobTexts(token,owner,repo,group.map(n=>n.sha));
+      const items=group.flatMap(n=>{const content=texts.get(n.sha);return content===undefined?[]:[{fileId:n.file_id,sha:n.sha,content,state:seedState(content)}];});
+      if(items.length){stage="mirror_content";mirrored+=await supabaseRpc<number>(env,"pkms_mirror_content",{p_workspace_id:w.workspace_id,p_items:items});stage="github_blobs";}
+    }
+    return json({status:mirrored?"progress":"stalled",phase:"content",mirrored,more:pending.length===MIRROR_NOTES_PER_CALL});
+  }catch(error){
+    console.error(JSON.stringify({time:new Date().toISOString(),level:"error",requestId:requestId??"missing",event:"mirror.failed",stage,errorType:error instanceof Error?error.name:"UnknownError",...(error instanceof GitHubError?{upstreamStatus:error.status}:{})}));
+    return json({error:"mirror_failed",message:"Could not mirror the repository yet. It will retry."},{status:502});
+  }
 }
 
 const MAX_LINK_NOTES=100;

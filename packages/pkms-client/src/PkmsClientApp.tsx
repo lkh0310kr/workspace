@@ -403,6 +403,14 @@ export default function Home() {
       }
     };
     void loadSnapshot();
+    // Mirror GitHub into the server cache in bounded steps (tree, then note bodies) so links and notes resolve without GitHub.
+    const runMirror = async () => {
+      for (let step = 0; step < 60 && alive; step++) {
+        const result = await api<{ status: string }>(`/api/workspaces/${activeWorkspace.id}/mirror`, { method: "POST" });
+        if (result.status !== "progress") return;
+      }
+    };
+    void runMirror().catch(() => {});
     let syncTimer = 0;
     const pollSyncStatus = (delay: number) => {
       syncTimer = window.setTimeout(() => {
