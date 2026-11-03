@@ -356,3 +356,9 @@ export async function flushDueWorkspaces(env:Env):Promise<void>{
   const due=await supabaseRpc<WorkspaceRow[]>(env,"pkms_claim_due_workspaces",{p_limit:20});
   for(const w of due??[]){if(!w.lease_token)continue;try{await flushWorkspace(env,w.workspace_id,w.owner_login,w.lease_token);}catch(error){await markFlushFailure(env,w,error);}}
 }
+
+/** Cron step: advances each workspace's GitHub mirror by one bounded chunk, so it completes without a client open. */
+export async function mirrorDueWorkspaces(env:Env):Promise<void>{
+  const list=await(await supabaseRequest(env,`/rest/v1/pkms_workspaces?${new URLSearchParams({select:"*",limit:"20"})}`)).json() as WorkspaceRow[];
+  for(const w of list)await mirror(env,w.owner_login,w,"cron").catch(()=>undefined);
+}

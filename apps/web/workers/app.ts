@@ -3,7 +3,7 @@ import type { Env, Session } from "./env";
 import { accountStore } from "./SupabaseAccountStore";
 import { cookie, decryptSecret, encryptSecret, json, verifySession } from "./crypto";
 import { handleMcpGithubCallback, handleMcpRequest, isMcpTokenActive } from "./mcp";
-import { flushDueWorkspaces } from "./SupabaseVault";
+import { flushDueWorkspaces, mirrorDueWorkspaces } from "./SupabaseVault";
 import { openIdConfiguration, publicJwks } from "./realtimeAuth";
 import { handleWorkspaceApi } from "./workspaceApi";
 import { handleAuthRoute, authFailure, sameOrigin } from "./authRoutes";
@@ -106,6 +106,7 @@ const requestHandler = createRequestHandler(() => import("virtual:react-router/s
 export default {
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(flushDueWorkspaces(env));
+    ctx.waitUntil(mirrorDueWorkspaces(env));
   },
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
