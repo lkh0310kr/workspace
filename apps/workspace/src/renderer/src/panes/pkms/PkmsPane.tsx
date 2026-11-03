@@ -23,7 +23,10 @@ export function PkmsPane(): React.JSX.Element {
       .replaceAll(":root", ":host")
       .replace(/(^|,)\s*body(?=\s*[, {])/gm, "$1:host")}
 :host { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
-.pkms-root { width: 100%; height: 100%; min-width: 0; min-height: 0; }`;
+.pkms-root { width: 100%; height: 100%; min-width: 0; min-height: 0; }
+/* The client sizes itself to the window (100dvh); inside a pane it must fill the pane so the tree can scroll. */
+.app-shell { height: 100%; }
+.welcome-screen, .loading-screen { min-height: 100%; }`;
     const mount = document.createElement("div");
     mount.className = "pkms-root";
     shadow.append(style, mount);
