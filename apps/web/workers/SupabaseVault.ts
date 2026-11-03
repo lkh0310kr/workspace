@@ -3,6 +3,7 @@ import type { Env, WorkspaceRecord } from "./env";
 import { accountStore } from "./SupabaseAccountStore";
 import { json } from "./crypto";
 import { SupabaseError, supabaseRequest, supabaseRpc } from "./supabase";
+import { computeLinkEdits } from "./linkRewrite";
 
 const MAX_MARKDOWN_BYTES = 512 * 1024;
 const MAX_GIT_FILE_BYTES = 50 * 1024 * 1024;
@@ -143,10 +144,58 @@ async function syncStatus(env:Env,w:WorkspaceRow):Promise<Response>{
   const q=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,dirty:"eq.true",select:"file_id",limit:"1000"});const r=await supabaseRequest(env,`/rest/v1/pkms_files?${q}`);
   return json({serverRevision:Number(w.server_revision),githubStatus:w.github_status,githubHead:w.github_head,lastGitHubCommitAt:w.last_github_commit_at,nextGitHubFlushAt:w.flush_due_at?Date.parse(w.flush_due_at):null,pendingFiles:(await r.json() as unknown[]).length,message:w.github_message});
 }
+
+const MAX_LINK_NOTES=100;
+type MoveSnapshot={file:{path:string;kind:FileRow["kind"]};files:string[];paths:Set<string>};
+async function pagedRows<T>(env:Env,base:URLSearchParams):Promise<T[]>{
+  const out:T[]=[];
+  for(let offset=0;;offset+=1000){const q=new URLSearchParams(base);q.set("limit","1000");q.set("offset",String(offset));const page=await(await supabaseRequest(env,`/rest/v1/pkms_files?${q}`)).json() as T[];out.push(...page);if(page.length<1000)return out;}
+}
+/** Captures the pre-move tree so links can be resolved against the paths as they were. */
+async function moveSnapshot(env:Env,w:WorkspaceRow,fileId:string):Promise<MoveSnapshot|null>{
+  const rows=await pagedRows<{file_id:string;path:string;kind:FileRow["kind"]}>(env,new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,deleted:"eq.false",select:"file_id,path,kind",order:"path.asc"}));
+  const file=rows.find(r=>r.file_id===fileId);if(!file)return null;
+  const files=rows.filter(r=>r.kind!=="folder"&&(file.kind==="folder"?r.path.startsWith(`${file.path}/`):r.file_id===fileId)).map(r=>r.path);
+  return {file,files,paths:new Set(rows.filter(r=>r.kind!=="folder").map(r=>r.path))};
+}
+async function rewriteLinksAfterMove(env:Env,w:WorkspaceRow,before:MoveSnapshot,fileId:string,dest:string):Promise<{updated:number;truncated?:boolean}>{
+  const from=before.file.path;if(dest===from)return {updated:0};
+  const moves=new Map(before.files.map(path=>[path,dest+path.slice(from.length)]));const reverse=new Map([...moves].map(([oldPath,newPath])=>[newPath,oldPath]));
+  const names=[...new Set(before.files.map(path=>path.slice(path.lastIndexOf("/")+1).replace(/\.md$/i,"")))];
+  const select="file_id,path,content";const base=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,deleted:"eq.false",kind:"eq.markdown",content:"not.is.null",select});
+  let candidates:Array<{file_id:string;path:string}>;
+  if(before.file.kind!=="folder"&&names.length<=40&&!names.some(n=>/["\\]/.test(n))){
+    const q=new URLSearchParams(base);q.set("or",`(${names.map(n=>`content.ilike."*${n.replaceAll("%","\\%").replaceAll("_","\\_")}*"`).join(",")},file_id.eq."${fileId}")`);
+    candidates=await pagedRows(env,q);
+  }else candidates=await pagedRows(env,base);
+  let updated=0;let truncated=false;
+  for(const note of candidates){
+    if(updated>=MAX_LINK_NOTES){truncated=true;break;}
+    const current=await supabaseRpc<{file:FileRow;stateUpdate:string;updates:Array<{update:string}>}>(env,"pkms_read_document",{p_workspace_id:w.workspace_id,p_file_id:note.file_id});
+    if(!current?.file||current.file.kind!=="markdown")continue;
+    const doc=new Y.Doc({guid:note.file_id});if(current.stateUpdate)Y.applyUpdate(doc,fromB64(current.stateUpdate));for(const x of current.updates)Y.applyUpdate(doc,fromB64(x.update));
+    const text=doc.getText("markdown");const content=text.toString();if(!content)continue;
+    const edits=computeLinkEdits({content,oldSource:reverse.get(note.path)??note.path,newSource:note.path,moves,paths:before.paths});
+    if(!edits.length)continue;
+    const vector=Y.encodeStateVector(doc);
+    doc.transact(()=>{for(const e of [...edits].sort((a,b)=>b.start-a.start)){text.delete(e.start,e.end-e.start);if(e.text)text.insert(e.start,e.text);}});
+    const res=await writeDocument(env,w,note.file_id,{operationId:crypto.randomUUID(),update:b64(Y.encodeStateAsUpdate(doc,vector))});
+    if(res.ok)updated++;
+  }
+  return truncated?{updated,truncated}:{updated};
+}
 async function applyOperation(env:Env,w:WorkspaceRow,b:Record<string,unknown>):Promise<Response>{
   const op=b.operation as Record<string,unknown>|undefined;const id=String(b.operationId??"");if(!op||!id)return json({error:"invalid_operation"},{status:400});
   if(op.type==="create-file"&&typeof op.content==="string"){const doc=new Y.Doc();if(op.content)doc.getText("markdown").insert(0,op.content);b.initialState=b64(Y.encodeStateAsUpdate(doc));}
-  try{const result=await supabaseRpc<Record<string,unknown>>(env,"pkms_apply_operation",{p_workspace_id:w.workspace_id,p_operation_id:id,p_base_revision:Number(b.baseRevision??0),p_client_id:String(b.clientId??"offline"),p_operation:op,p_initial_state_b64:b.initialState??null});await publishRealtime(env,w.workspace_id,{...result,type:"operation"});return json(result);}
+  try{
+    const before=op.type==="move"&&typeof op.fileId==="string"?await moveSnapshot(env,w,op.fileId).catch(()=>null):null;
+    const result=await supabaseRpc<Record<string,unknown>>(env,"pkms_apply_operation",{p_workspace_id:w.workspace_id,p_operation_id:id,p_base_revision:Number(b.baseRevision??0),p_client_id:String(b.clientId??"offline"),p_operation:op,p_initial_state_b64:b.initialState??null});await publishRealtime(env,w.workspace_id,{...result,type:"operation"});
+    if(before&&!result.duplicate){
+      const dest=typeof result.conflictCopyPath==="string"?result.conflictCopyPath:String(op.toPath);
+      const links=await rewriteLinksAfterMove(env,w,before,String(op.fileId),dest).catch((error)=>{console.error(JSON.stringify({level:"error",event:"links.rewrite.failed",errorType:error instanceof Error?error.name:"UnknownError"}));return {updated:0,failed:true};});
+      return json({...result,links});
+    }
+    return json(result);}
   catch(error){const code=error instanceof Error&&error.message.includes("invalid_path")?"invalid_path":error instanceof Error&&error.message.includes("workspace_not_found")?"workspace_not_found":"operation_failed";return json({error:code},{status:code==="invalid_path"?400:409});}
 }
 async function readDocument(env:Env,w:WorkspaceRow,fileId:string,vector:string|null):Promise<Response>{

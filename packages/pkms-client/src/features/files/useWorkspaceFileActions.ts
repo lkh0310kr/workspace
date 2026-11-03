@@ -61,6 +61,8 @@ export function useWorkspaceFileActions(options: Options) {
       const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "move", fileId: file.id, toPath });
       if (result.conflictCopyPath && result.conflictCopyPath !== toPath) applyLocalPath(toPath, result.conflictCopyPath);
       if (result.conflictCopyPath) setNotice("Name conflict resolved while moving the item.");
+      else if (result.links?.updated) setNotice(`Updated links in ${result.links.updated} note${result.links.updated === 1 ? "" : "s"}.`);
+      if (result.links?.failed) setError("The item moved, but some links could not be updated.");
     } catch (cause) {
       applyLocalPath(toPath, file.path);
       setError(cause instanceof Error ? cause.message : "Could not rename item");
@@ -103,10 +105,12 @@ export function useWorkspaceFileActions(options: Options) {
     };
     applyMoves(moves.map(({ file, toPath }) => ({ file, fromPath: file.path, toPath })));
     const resolvedMoves: Array<{ file: FileRecord; destination: string }> = [];
+    let linksUpdated = 0;
     try {
       for (const move of moves) {
         const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "move", fileId: move.file.id, toPath: move.toPath });
         resolvedMoves.push({ file: move.file, destination: result.conflictCopyPath ?? move.toPath });
+        linksUpdated += result.links?.updated ?? 0;
         if (result.conflictCopyPath && result.conflictCopyPath !== move.toPath) {
           applyMoves([{ file: move.file, fromPath: move.toPath, toPath: result.conflictCopyPath }]);
         }
@@ -115,6 +119,7 @@ export function useWorkspaceFileActions(options: Options) {
       setCutTreePaths(new Set());
       setFocusedTreePath(resolvedMoves[0]?.destination ?? null);
       if (resolvedMoves.some((move, index) => move.destination !== moves[index]?.toPath)) setNotice("Name conflict resolved while moving items.");
+      else if (linksUpdated) setNotice(`Updated links in ${linksUpdated} note${linksUpdated === 1 ? "" : "s"}.`);
     } catch (cause) {
       try {
         const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);

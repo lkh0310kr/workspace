@@ -27,6 +27,7 @@ export interface WorkspaceOperationResult {
   acceptedRevision?: number;
   conflictCopyPath?: string;
   queued?: boolean;
+  links?: { updated: number; failed?: boolean; truncated?: boolean };
   operationId?: string;
 }
 
