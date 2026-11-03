@@ -333,6 +333,14 @@ export default function Home() {
   useEffect(() => { if (quickOpen) quickOpenInput.current?.focus(); }, [quickOpen]);
 
 
+  const workspaceRef = useRef(activeWorkspace);
+  const userRef = useRef(user);
+  const realtimeHandlerRef = useRef(handleRealtimeMessage);
+  const restoreTreeRef = useRef(restoreWorkspaceTree);
+  workspaceRef.current = activeWorkspace;
+  userRef.current = user;
+  realtimeHandlerRef.current = handleRealtimeMessage;
+  restoreTreeRef.current = restoreWorkspaceTree;
   useEffect(() => {
     if (!activeWorkspace) {
       setFiles([]); setActiveFile(null); setText("");
@@ -345,13 +353,13 @@ export default function Home() {
     let retries = 0;
     const connect = () => {
       if (!alive) return;
-      const ws = new PKMSRealtimeSocket(activeWorkspace.id, clientId, user ?? { login: "Guest" }, api);
+      const ws = new PKMSRealtimeSocket(activeWorkspace.id, clientId, userRef.current ?? { login: "Guest" }, api);
       socket.current = ws;
       ws.onopen = () => {
         window.clearTimeout(stableTimer);
         stableTimer = window.setTimeout(() => { retries = 0; }, 30_000);
         setError((current) => current.startsWith("Live sync disconnected") ? "" : current);
-        ws.send(JSON.stringify({ type: "hello", protocolVersion: 1, clientId, afterRevision: activeWorkspace.revision, user, fileId: activeRef.current.file?.id }));
+        ws.send(JSON.stringify({ type: "hello", protocolVersion: 1, clientId, afterRevision: workspaceRef.current?.revision ?? activeWorkspace.revision, user: userRef.current, fileId: activeRef.current.file?.id }));
         void flushQueuedWorkspaceOperations(activeWorkspace.id, api)
           .then((queueDrained) => queueDrained ? flushQueuedWorkspaceAssets(activeWorkspace.id, api) : false)
           .then((queueDrained) => {
@@ -363,7 +371,7 @@ export default function Home() {
             pending.current.set(operationId, { type: "document-update", operationId, fileId: current.file.id });
           }).catch(() => {});
       };
-      ws.onmessage = handleRealtimeMessage;
+      ws.onmessage = (event) => realtimeHandlerRef.current(event);
       ws.onclose = () => {
         window.clearTimeout(stableTimer);
         if (socket.current === ws) socket.current = null;
@@ -380,7 +388,7 @@ export default function Home() {
     };
     connect();
     const loadSnapshot = async () => {
-      const scrollTop = await restoreWorkspaceTree(() => alive);
+      const scrollTop = await restoreTreeRef.current(() => alive);
       if (!alive || scrollTop === null) return;
       setFocusedTreePath(null);
       requestAnimationFrame(() => { if (treeRef.current) treeRef.current.scrollTop = scrollTop; });
@@ -418,7 +426,9 @@ export default function Home() {
     };
     pollSyncStatus(15_000);
     return () => { alive = false; window.clearTimeout(syncTimer); window.clearTimeout(retryTimer); window.clearTimeout(stableTimer); socket.current?.close(); socket.current = null; setPeers([]); };
-  }, [activeWorkspace, api, handleRealtimeMessage, restoreWorkspaceTree, user]);
+    // Reconnect only when the workspace (or signed-in login) changes; callbacks and revisions are read through refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspace?.id, api, user?.login]);
 
   useEffect(() => {
     if (!activeWorkspace || !loadedFolders.has("")) return;

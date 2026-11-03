@@ -7,6 +7,8 @@ type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
 type RealtimeStatus = "SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED" | "CONNECT_ERROR" | "SYSTEM_ERROR" | "SOCKET_CREATED" | "SOCKET_OPEN" | "SOCKET_CLOSE" | "SOCKET_ERROR";
 const clients = new Map<string, SupabaseClient>();
 const realtimeTokens = new Map<string, string>();
+// supabase-js hands back the still-registered channel for a topic, so a reconnect must wait for the previous removal.
+const pendingRemovals = new Map<string, Promise<unknown>>();
 let reportSocketEvent: ((status: "SOCKET_CREATED" | "SOCKET_OPEN" | "SOCKET_CLOSE" | "SOCKET_ERROR", closeCode?: number, wasClean?: boolean) => void) | undefined;
 class DiagnosticWebSocket extends WebSocket {
   constructor(url: string | URL, protocols?: string | string[]) {
@@ -68,7 +70,10 @@ export class PKMSRealtimeSocket {
       reportSocketEvent = (status, closeCode, wasClean) => { void this.reportStatus(status, undefined, closeCode, wasClean); };
       this.client = sharedClient(config.url, config.anonKey);
       await this.client.realtime.setAuth(initial.token);
-      const channel = this.client.channel(`pkms:${this.workspaceId}`, {
+      const topic = `pkms:${this.workspaceId}`;
+      await pendingRemovals.get(topic);
+      if (this.closed) return;
+      const channel = this.client.channel(topic, {
         config: { private: true, presence: { key: this.clientId }, broadcast: { self: false } },
       });
       this.channel = channel;
@@ -162,7 +167,11 @@ export class PKMSRealtimeSocket {
     this.closed = true;
     this.readyState = 3;
     window.clearInterval(this.tokenTimer);
-    if (this.channel) void this.client?.removeChannel(this.channel);
+    if (this.channel && this.client) {
+      const topic = `pkms:${this.workspaceId}`;
+      const removal = this.client.removeChannel(this.channel).catch(() => {}).finally(() => { if (pendingRemovals.get(topic) === removal) pendingRemovals.delete(topic); });
+      pendingRemovals.set(topic, removal);
+    }
     this.channel = undefined;
   }
 
