@@ -196,11 +196,20 @@ async function mirror(env:Env,login:string,w:WorkspaceRow,requestId?:string):Pro
     for(const group of chunk(pending,MIRROR_GRAPHQL_BATCH)){
       const texts=await githubBlobTexts(token,owner,repo,group.map(n=>n.sha));
       const items=group.flatMap(n=>{const content=texts.get(n.sha);return content===undefined?[]:[{fileId:n.file_id,sha:n.sha,content,state:seedState(content)}];});
-      if(items.length){stage="mirror_content";mirrored+=await supabaseRpc<number>(env,"pkms_mirror_content",{p_workspace_id:w.workspace_id,p_items:items});stage="github_blobs";}
+      if(items.length){
+        stage="mirror_content";
+        // Postgres text cannot hold NUL; such notes stay lazily loaded instead of blocking the whole batch.
+        const storable=items.filter(item=>!item.content.includes("\u0000"));
+        try{mirrored+=await supabaseRpc<number>(env,"pkms_mirror_content",{p_workspace_id:w.workspace_id,p_items:storable});}
+        catch(batchError){
+          // Isolate the rejected note(s) so one bad file cannot stall the mirror.
+          for(const item of storable){try{mirrored+=await supabaseRpc<number>(env,"pkms_mirror_content",{p_workspace_id:w.workspace_id,p_items:[item]});}catch(itemError){console.error(JSON.stringify({level:"error",event:"mirror.note.skipped",fileId:item.fileId,bytes:item.content.length,...(itemError instanceof SupabaseError?{upstreamStatus:itemError.status,upstreamCode:itemError.code}:{})}));}}
+        }
+        stage="github_blobs";}
     }
     return json({status:mirrored?"progress":"stalled",phase:"content",mirrored,more:pending.length===MIRROR_NOTES_PER_CALL});
   }catch(error){
-    console.error(JSON.stringify({time:new Date().toISOString(),level:"error",requestId:requestId??"missing",event:"mirror.failed",stage,errorType:error instanceof Error?error.name:"UnknownError",...(error instanceof GitHubError?{upstreamStatus:error.status}:{})}));
+    console.error(JSON.stringify({time:new Date().toISOString(),level:"error",requestId:requestId??"missing",event:"mirror.failed",stage,errorType:error instanceof Error?error.name:"UnknownError",...(error instanceof GitHubError?{upstreamStatus:error.status}:{}),...(error instanceof SupabaseError?{upstreamStatus:error.status,upstreamCode:error.code}:{})}));
     return json({error:"mirror_failed",message:"Could not mirror the repository yet. It will retry."},{status:502});
   }
 }
