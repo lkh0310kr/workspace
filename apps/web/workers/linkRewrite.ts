@@ -69,6 +69,8 @@ export function computeLinkEdits(input: LinkRewriteInput): TextEdit[] {
     byName.set(key, [...(byName.get(key) ?? []), path]);
   }
 
+  const oldDir = dirname(oldSource);
+  const newDir = dirname(newSource);
   const wikilink = /(!?)\[\[([^\]\n|#]+)(#[^\]\n|]*)?(\|[^\]\n]*)?\]\]/dg;
   for (let match = wikilink.exec(content); match; match = wikilink.exec(content)) {
     if (inFence(match.index)) continue;
@@ -77,20 +79,29 @@ export function computeLinkEdits(input: LinkRewriteInput): TextEdit[] {
     const [start, end] = match.indices![2];
     const hadMd = /\.md$/i.test(target);
     let resolved: string | undefined;
+    let relativeStyle = false;
     if (target.includes("/")) {
-      const key = normalize(target.replace(/^\//, ""));
-      if (!key) continue;
-      resolved = [key, `${key}.md`].find((candidate) => paths.has(candidate));
+      // Obsidian tries the path relative to the note first, then from the vault root.
+      const relativeKey = normalize(`${oldDir ? `${oldDir}/` : ""}${target}`);
+      const rootKey = normalize(target.replace(/^\//, ""));
+      const find = (key: string | null) => key === null ? undefined : [key, `${key}.md`].find((candidate) => paths.has(candidate));
+      resolved = find(relativeKey);
+      relativeStyle = resolved !== undefined && (target.startsWith("./") || target.startsWith("../") || resolved !== find(rootKey));
+      if (resolved === undefined) resolved = find(rootKey);
     } else {
       const matches = byName.get(stripMd(target).toLowerCase()) ?? [];
       if (matches.length === 1) resolved = matches[0];
     }
-    const next = resolved ? moves.get(resolved) : undefined;
-    if (!resolved || !next) continue;
+    if (!resolved) continue;
+    const next = moves.get(resolved) ?? resolved;
     let replacement: string;
     if (target.includes("/")) {
-      replacement = hadMd || !/\.md$/i.test(next) ? next : stripMd(next);
+      if (next === resolved && !(relativeStyle && oldDir !== newDir)) continue;
+      let written = relativeStyle ? relativePath(newDir, next) : next;
+      if (relativeStyle && target.startsWith("./") && !written.startsWith("../")) written = `./${written}`;
+      replacement = hadMd || !/\.md$/i.test(next) ? written : stripMd(written);
     } else {
+      if (next === resolved) continue;
       const name = basename(next);
       if (name === basename(resolved)) continue; // same name stays resolvable by name alone
       replacement = hadMd || !/\.md$/i.test(name) ? name : stripMd(name);
@@ -99,8 +110,6 @@ export function computeLinkEdits(input: LinkRewriteInput): TextEdit[] {
   }
 
   const mdLink = /(!?)\[[^\]\n]*\]\((<[^>\n]+>|[^)\n]+?)(\s+"[^"\n]*")?\)/dg;
-  const oldDir = dirname(oldSource);
-  const newDir = dirname(newSource);
   for (let match = mdLink.exec(content); match; match = mdLink.exec(content)) {
     if (inFence(match.index)) continue;
     const wrapped = match[2].startsWith("<");

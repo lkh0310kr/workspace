@@ -182,8 +182,8 @@ async function mirror(env:Env,login:string,w:WorkspaceRow,requestId?:string):Pro
         if(e.type==="tree"){fileRows.push({fileId:`folder-${e.path}`,path:e.path,parentPath:parent(e.path),kind:"folder",size:0,sha:null});dirRows.push({path:e.path,treeSha:e.sha});}
         else if(e.type==="blob"&&["100644","100755","120000"].includes(e.mode))fileRows.push({fileId:await stableId(w.repository,e.path),path:e.path,parentPath:parent(e.path),kind:isMarkdown(e.path)?"markdown":"asset",size:e.size??0,sha:e.sha});}
       stage="mirror_tree";
-      for(const [i,batch] of chunk(fileRows,MIRROR_TREE_BATCH).entries())await supabaseRpc(env,"pkms_mirror_tree",{p_workspace_id:w.workspace_id,p_files:batch,p_dirs:i===0?dirRows:[]});
-      await supabaseRpc(env,"pkms_mark_mirrored",{p_workspace_id:w.workspace_id,p_head:ref.object.sha});
+      for(const [i,batch] of chunk(fileRows,MIRROR_TREE_BATCH).entries())await rpcVoid(env,"pkms_mirror_tree",{p_workspace_id:w.workspace_id,p_files:batch,p_dirs:i===0?dirRows:[]});
+      await rpcVoid(env,"pkms_mark_mirrored",{p_workspace_id:w.workspace_id,p_head:ref.object.sha});
       return json({status:"progress",phase:"tree",files:fileRows.length});
     }
     // Once mirrored, the database is authoritative; later GitHub changes are handled by the existing external-change flow.
@@ -207,6 +207,7 @@ async function mirror(env:Env,login:string,w:WorkspaceRow,requestId?:string):Pro
 
 const MAX_LINK_NOTES=100;
 type MoveSnapshot={file:{path:string;kind:FileRow["kind"]};files:string[];paths:Set<string>};
+const rpcVoid=async(env:Env,name:string,args:Record<string,unknown>)=>{await supabaseRequest(env,`/rest/v1/rpc/${name}`,{method:"POST",body:JSON.stringify(args)});};
 async function pagedRows<T>(env:Env,base:URLSearchParams):Promise<T[]>{
   const out:T[]=[];
   for(let offset=0;;offset+=1000){const q=new URLSearchParams(base);q.set("limit","1000");q.set("offset",String(offset));const page=await(await supabaseRequest(env,`/rest/v1/pkms_files?${q}`)).json() as T[];out.push(...page);if(page.length<1000)return out;}
