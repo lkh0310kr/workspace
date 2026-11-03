@@ -157,7 +157,9 @@ export default function Home() {
   useEffect(() => {
     if (!treeContextMenu) return;
     const dismissOutside = (event: PointerEvent) => {
-      if (!treeContextMenuRef.current?.contains(event.target as Node)) setTreeContextMenu(null);
+      // The pane renders in a shadow root, so document-level listeners see a retargeted event.target.
+      const menu = treeContextMenuRef.current;
+      if (!menu || !event.composedPath().includes(menu)) setTreeContextMenu(null);
     };
     const dismissEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") { setTreeContextMenu(null); treeRef.current?.focus(); }
@@ -520,9 +522,16 @@ export default function Home() {
   };
 
   const { createNote, createFolder, uploadFile } = useWorkspaceFileCreation({ workspace: activeWorkspace, files, currentFolder, request: api, setFiles, setLoadedFolders, setError, openFile });
+  const [treeRenaming, setTreeRenaming] = useState<string | null>(null);
   const beginTreeCreation = (kind: "file" | "folder", parentPath = currentFolder) => {
+    setTreeRenaming(null);
     setTreeCreation({ kind, parentPath });
     if (parentPath) setExpandedFolders((current) => new Set(current).add(parentPath));
+  };
+  const beginTreeRename = (file: FileRecord) => {
+    setTreeContextMenu(null);
+    setTreeCreation(null);
+    setTreeRenaming(file.path);
   };
   const submitTreeCreation = (kind: "file" | "folder", parentPath: string, name: string) => {
     setTreeCreation(null);
@@ -592,7 +601,7 @@ export default function Home() {
     if (event.key === "F2" && selectedTreePaths.size === 1) {
       event.preventDefault();
       const selected = files.find((file) => selectedTreePaths.has(file.path));
-      if (selected) renameTreeItem(selected);
+      if (selected) beginTreeRename(selected);
       return;
     }
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -633,7 +642,7 @@ export default function Home() {
     link.remove();
   };
 
-  const { moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItem, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder } = useWorkspaceFileActions({
+  const { moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItemTo, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder } = useWorkspaceFileActions({
     workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders,
     api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders,
     setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, requestName, confirm,
@@ -718,6 +727,9 @@ export default function Home() {
             creation={treeCreation}
             onCreate={submitTreeCreation}
             onCancelCreate={() => setTreeCreation(null)}
+            renamingPath={treeRenaming}
+            onRename={(file, name) => { setTreeRenaming(null); renameTreeItemTo(file, name); }}
+            onCancelRename={() => setTreeRenaming(null)}
           />
           {treeContextMenu && <div ref={treeContextMenuRef} className="tree-context-menu" role="menu" aria-label={`${entryName(treeContextMenu.file.path)} actions`} style={{ left: treeContextMenu.x, top: treeContextMenu.y }}>
             <button role="menuitem" onClick={() => openTreeItem(treeContextMenu.file)}>{treeContextMenu.file.kind === "folder" ? "Open folder" : "Open"}</button>
@@ -728,7 +740,7 @@ export default function Home() {
               {contextMoveRoots.some((item) => item.path !== treeContextMenu.file.path && parentPath(item.path) !== treeContextMenu.file.path && !(item.kind === "folder" && treeContextMenu.file.path.startsWith(`${item.path}/`))) && <button role="menuitem" onClick={() => void moveTreeItems(contextMoveRoots, treeContextMenu.file.path)}>Move selection here</button>}
             </>}
             <button role="menuitem" onClick={() => { setCutTreePaths(new Set(contextMoveRoots.map((item) => item.path))); setTreeContextMenu(null); }}>Cut</button>
-            <button role="menuitem" onClick={() => renameTreeItem(treeContextMenu.file)}>Rename</button>
+            <button role="menuitem" onClick={() => beginTreeRename(treeContextMenu.file)}>Rename</button>
             <button className="danger" role="menuitem" onClick={() => void deleteTreeItem(treeContextMenu.file)}>Delete</button>
           </div>}
         </>}

@@ -158,6 +158,13 @@ export function useWorkspaceFileActions(options: Options) {
     void updateFilePath(file, `${parent ? `${parent}/` : ""}${name.trim()}`);
   };
 
+  const renameTreeItemTo = (file: FileRecord, name: string) => {
+    const nextName = name.trim();
+    if (!nextName || nextName === entryName(file.path)) return;
+    const parent = parentPath(file.path);
+    void updateFilePath(file, `${parent ? `${parent}/` : ""}${nextName}`);
+  };
+
   const deleteTreeItems = async (filesToDelete: FileRecord[]) => {
     setTreeContextMenu(null);
     if (!activeWorkspace || !filesToDelete.length) return;
@@ -256,5 +263,5 @@ export function useWorkspaceFileActions(options: Options) {
     }
   };
 
-  return { updateFilePath, moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItem, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder };
+  return { updateFilePath, moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItem, renameTreeItemTo, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder };
 }

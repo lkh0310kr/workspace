@@ -29,21 +29,39 @@ interface FileTreeListProps {
   creation: { kind: "file" | "folder"; parentPath: string } | null;
   onCreate: (kind: "file" | "folder", parentPath: string, name: string) => void;
   onCancelCreate: () => void;
+  renamingPath: string | null;
+  onRename: (file: FileRecord, name: string) => void;
+  onCancelRename: () => void;
 }
 
 const TREE_PATHS_MIME = "application/x-pkms-tree-paths";
 
-function InlineCreationRow({ kind, depth, onCreate, onCancel }: { kind: "file" | "folder"; depth: number; onCreate: (name: string) => void; onCancel: () => void }) {
-  const [name, setName] = useState("");
+function InlineCreationRow({ kind, depth, initialValue = "", onCreate, onCancel }: { kind: "file" | "folder"; depth: number; initialValue?: string; onCreate: (name: string) => void; onCancel: () => void }) {
+  const [name, setName] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  const settled = useRef(false);
+  useEffect(() => {
+    // Defer so focus restoration from a closing context menu cannot blur (and cancel) the fresh input.
+    const frame = requestAnimationFrame(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      input.focus();
+      if (initialValue) input.setSelectionRange(0, initialValue.lastIndexOf(".") > 0 ? initialValue.lastIndexOf(".") : initialValue.length);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [initialValue]);
+  const settle = (action: () => void) => {
+    if (settled.current) return;
+    settled.current = true;
+    action();
+  };
   return <div className="tree-row tree-creation-row" role="treeitem" aria-level={depth + 1} style={{ paddingLeft: 8 + depth * 14 }}>
     <span className="tree-chevron" aria-hidden="true" />
     <span className="file-icon" aria-hidden="true"><AppIcon name={kind === "folder" ? "folder" : "fileText"} /></span>
-    <input ref={inputRef} aria-label={kind === "folder" ? "Folder name" : "File name"} placeholder={kind === "folder" ? "New folder name" : "New file name.md"} value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => {
+    <input ref={inputRef} aria-label={kind === "folder" ? "Folder name" : "File name"} placeholder={kind === "folder" ? "New folder name" : "New file name.md"} value={name} onChange={(event) => setName(event.target.value)} onBlur={() => settle(onCancel)} onKeyDown={(event) => {
       event.stopPropagation();
-      if (event.key === "Enter") { event.preventDefault(); if (name.trim()) onCreate(name); else onCancel(); }
-      if (event.key === "Escape") { event.preventDefault(); onCancel(); }
+      if (event.key === "Enter") { event.preventDefault(); settle(name.trim() ? () => onCreate(name) : onCancel); }
+      if (event.key === "Escape") { event.preventDefault(); settle(onCancel); }
     }} />
   </div>;
 }
@@ -74,6 +92,9 @@ export function FileTreeList({
   creation,
   onCreate,
   onCancelCreate,
+  renamingPath,
+  onRename,
+  onCancelRename,
 }: FileTreeListProps) {
   const handleDrop = (event: DragEvent<HTMLElement>, destination: string) => {
     event.preventDefault();
@@ -110,7 +131,7 @@ export function FileTreeList({
       {creation?.parentPath === "" && <InlineCreationRow key={`create-${creation.kind}-${creation.parentPath}`} kind={creation.kind} depth={0} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} />}
       {rows.map(({ file, depth }, index) => (
         <Fragment key={file.id}>
-        <button
+        {renamingPath === file.path ? <InlineCreationRow key={`rename-${file.path}`} kind={file.kind === "folder" ? "folder" : "file"} depth={depth} initialValue={entryName(file.path)} onCreate={(name) => onRename(file, name)} onCancel={onCancelRename} /> : <button
           type="button"
           role="treeitem"
           data-tree-path={file.path}
@@ -156,7 +177,7 @@ export function FileTreeList({
           </span>
           <span className="file-icon" aria-hidden="true"><AppIcon name={file.kind === "folder" ? "folder" : file.kind === "markdown" ? "fileText" : "file"} /></span>
           <span className="tree-label">{entryName(file.path)}</span>
-        </button>
+        </button>}
         {creation?.parentPath === file.path && file.kind === "folder" && <InlineCreationRow key={`create-${creation.kind}-${creation.parentPath}`} kind={creation.kind} depth={depth + 1} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} />}
         </Fragment>
       ))}
