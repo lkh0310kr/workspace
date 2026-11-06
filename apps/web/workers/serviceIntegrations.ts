@@ -152,19 +152,27 @@ async function cloudflareSummary(token: string): Promise<unknown> {
     const end = new Date();
     const start = new Date(end.getTime() - 7 * 24 * 60 * 60_000);
     const dayAgo = end.getTime() - 24 * 60 * 60_000;
-    const query = `query WorkerDaily($accountTag: string, $start: string, $end: string) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive(limit: 5000, filter: { datetime_geq: $start, datetime_leq: $end }) { sum { requests errors subrequests } quantiles { cpuTimeP99 } dimensions { datetime } } } } }`;
-    const analyticsResponse = await fetch("https://api.cloudflare.com/client/v4/graphql", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ query, variables: { accountTag: account.id, start: start.toISOString(), end: end.toISOString() } }) });
+    const query = `query WorkerDaily($accountTag: string, $start: string, $dayAgo: string, $end: string) { viewer { accounts(filter: { accountTag: $accountTag }) { trend: workersInvocationsAdaptive(limit: 10000, orderBy: [datetime_DESC], filter: { datetime_geq: $start, datetime_leq: $end }) { sum { requests errors subrequests } quantiles { cpuTimeP99 } dimensions { datetime } } workerTotals: workersInvocationsAdaptive(limit: 100, filter: { datetime_geq: $dayAgo, datetime_leq: $end }) { sum { requests errors subrequests } quantiles { cpuTimeP99 } dimensions { scriptName } } } } }`;
+    const analyticsResponse = await fetch("https://api.cloudflare.com/client/v4/graphql", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ query, variables: { accountTag: account.id, start: start.toISOString(), dayAgo: new Date(dayAgo).toISOString(), end: end.toISOString() } }) });
     let analytics24h: { requests: number; errors: number; subrequests: number; cpuTimeP99: number | null } | null = null;
     let trend: Array<{ timestamp: string; requests: number; errors: number; subrequests: number; cpuTimeP99: number | null }> = [];
+    let detailedWorkers = workers.map((worker) => ({ ...worker, requests24h: null as number | null, errors24h: null as number | null, subrequests24h: null as number | null, cpuTimeP99: null as number | null }));
     if (analyticsResponse.ok) {
-      const data = await analyticsResponse.json() as { errors?: Array<{ message?: string }> | null; data?: { viewer?: { accounts?: Array<{ workersInvocationsAdaptive?: Array<{ sum?: { requests?: number; errors?: number; subrequests?: number }; quantiles?: { cpuTimeP99?: number }; dimensions?: { datetime?: string } }> }> } } };
+      const data = await analyticsResponse.json() as { errors?: Array<{ message?: string }> | null; data?: { viewer?: { accounts?: Array<{ trend?: Array<{ sum?: { requests?: number; errors?: number; subrequests?: number }; quantiles?: { cpuTimeP99?: number }; dimensions?: { datetime?: string } }>; workerTotals?: Array<{ sum?: { requests?: number; errors?: number; subrequests?: number }; quantiles?: { cpuTimeP99?: number }; dimensions?: { scriptName?: string } }> }> } } };
       // GraphQL can return HTTP 200 alongside an errors array. Treat that as
       // unavailable data instead of turning a missing series into false zeroes.
-      const series = data.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive;
-      if (data.errors?.length || !Array.isArray(series)) {
+      const accountAnalytics = data.data?.viewer?.accounts?.[0];
+      const series = accountAnalytics?.trend;
+      const workerTotals = accountAnalytics?.workerTotals;
+      if (data.errors?.length || !Array.isArray(series) || !Array.isArray(workerTotals)) {
         return { id: account.id, name: account.name, dashboardUrl: `https://dash.cloudflare.com/${encodeURIComponent(account.id)}/workers-and-pages`, workers, analytics24h: null, analyticsStatus: "provider_error", trend: [] };
       }
       type AnalyticsPoint = { sum?: { requests?: number; errors?: number; subrequests?: number }; quantiles?: { cpuTimeP99?: number }; dimensions?: { datetime?: string } };
+      const workerMetrics = new Map<string, { requests24h: number; errors24h: number; subrequests24h: number; cpuTimeP99: number | null }>();
+      for (const point of workerTotals) {
+        if (point.dimensions?.scriptName) workerMetrics.set(point.dimensions.scriptName, { requests24h: point.sum?.requests ?? 0, errors24h: point.sum?.errors ?? 0, subrequests24h: point.sum?.subrequests ?? 0, cpuTimeP99: point.quantiles?.cpuTimeP99 ?? null });
+      }
+      detailedWorkers = workers.map((worker) => ({ ...worker, ...(workerMetrics.get(worker.name) ?? { requests24h: 0, errors24h: 0, subrequests24h: 0, cpuTimeP99: null }) }));
       const byQuarterHour = new Map<string, { timestamp: string; requests: number; errors: number; subrequests: number; cpuTimeP99: number | null }>();
       const recent = series.filter((point: AnalyticsPoint) => point.dimensions?.datetime && new Date(point.dimensions.datetime).getTime() >= dayAgo);
       analytics24h = recent.reduce((total: { requests: number; errors: number; subrequests: number; cpuTimeP99: number | null }, point: AnalyticsPoint) => ({ requests: total.requests + (point.sum?.requests ?? 0), errors: total.errors + (point.sum?.errors ?? 0), subrequests: total.subrequests + (point.sum?.subrequests ?? 0), cpuTimeP99: Math.max(total.cpuTimeP99 ?? 0, point.quantiles?.cpuTimeP99 ?? 0) || null }), { requests: 0, errors: 0, subrequests: 0, cpuTimeP99: null });
@@ -183,7 +191,7 @@ async function cloudflareSummary(token: string): Promise<unknown> {
       }
       trend = [...byQuarterHour.values()].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     }
-    return { id: account.id, name: account.name, dashboardUrl: `https://dash.cloudflare.com/${encodeURIComponent(account.id)}/workers-and-pages`, workers, analytics24h, analyticsStatus: analytics24h ? "available" : "provider_error", trend };
+    return { id: account.id, name: account.name, dashboardUrl: `https://dash.cloudflare.com/${encodeURIComponent(account.id)}/workers-and-pages`, workers: detailedWorkers, analytics24h, analyticsStatus: analytics24h ? "available" : "provider_error", trend };
   }));
   return { provider: "cloudflare", connected: true, accounts };
 }
