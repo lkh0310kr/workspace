@@ -176,7 +176,7 @@ export default function App() {
         layoutRevisions={layoutRevisions}
       />
       <div className="app-shell">
-        {homeActive ? <DashboardView tabs={workspace.tabs} /> : null}
+        {homeActive ? <DashboardView /> : null}
         <WorkspaceLayoutHost
           tabs={workspace.tabs}
           visibleWorkspaceTabId={visibleWorkspaceTabId}

@@ -151,15 +151,29 @@ async function cloudflareSummary(token: string): Promise<unknown> {
     const workers = (body.result ?? []).slice(0, 50).map((worker) => ({ name: worker.id, lastModified: worker.modified_on ?? worker.created_on ?? null, usageModel: worker.usage_model ?? null }));
     const end = new Date();
     const start = new Date(end.getTime() - 24 * 60 * 60_000);
-    const query = `query WorkerDaily($accountTag: string, $start: string, $end: string) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive(limit: 1000, filter: { datetime_geq: $start, datetime_leq: $end }) { sum { requests errors subrequests } } } } }`;
+    const query = `query WorkerDaily($accountTag: string, $start: string, $end: string) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive(limit: 5000, filter: { datetime_geq: $start, datetime_leq: $end }) { sum { requests errors subrequests } quantiles { cpuTimeP99 } dimensions { datetime } } } } }`;
     const analyticsResponse = await fetch("https://api.cloudflare.com/client/v4/graphql", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ query, variables: { accountTag: account.id, start: start.toISOString(), end: end.toISOString() } }) });
-    let analytics24h: { requests: number; errors: number; subrequests: number } | null = null;
+    let analytics24h: { requests: number; errors: number; subrequests: number; cpuTimeP99: number | null } | null = null;
+    let hourly: Array<{ timestamp: string; requests: number; errors: number }> = [];
     if (analyticsResponse.ok) {
-      const data = await analyticsResponse.json() as { data?: { viewer?: { accounts?: Array<{ workersInvocationsAdaptive?: Array<{ sum?: { requests?: number; errors?: number; subrequests?: number } }> }> } } };
+      const data = await analyticsResponse.json() as { data?: { viewer?: { accounts?: Array<{ workersInvocationsAdaptive?: Array<{ sum?: { requests?: number; errors?: number; subrequests?: number }; quantiles?: { cpuTimeP99?: number }; dimensions?: { datetime?: string } }> }> } } };
       const sums = data.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive ?? [];
-      analytics24h = sums.reduce((total, point) => ({ requests: total.requests + (point.sum?.requests ?? 0), errors: total.errors + (point.sum?.errors ?? 0), subrequests: total.subrequests + (point.sum?.subrequests ?? 0) }), { requests: 0, errors: 0, subrequests: 0 });
+      analytics24h = sums.reduce((total, point) => ({ requests: total.requests + (point.sum?.requests ?? 0), errors: total.errors + (point.sum?.errors ?? 0), subrequests: total.subrequests + (point.sum?.subrequests ?? 0), cpuTimeP99: Math.max(total.cpuTimeP99 ?? 0, point.quantiles?.cpuTimeP99 ?? 0) || null }), { requests: 0, errors: 0, subrequests: 0, cpuTimeP99: null as number | null });
+      const byHour = new Map<string, { timestamp: string; requests: number; errors: number }>();
+      for (const point of sums) {
+        if (!point.dimensions?.datetime) continue;
+        const date = new Date(point.dimensions.datetime);
+        if (!Number.isFinite(date.getTime())) continue;
+        date.setUTCMinutes(0, 0, 0);
+        const timestamp = date.toISOString();
+        const bucket = byHour.get(timestamp) ?? { timestamp, requests: 0, errors: 0 };
+        bucket.requests += point.sum?.requests ?? 0;
+        bucket.errors += point.sum?.errors ?? 0;
+        byHour.set(timestamp, bucket);
+      }
+      hourly = [...byHour.values()].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     }
-    return { id: account.id, name: account.name, workers, analytics24h };
+    return { id: account.id, name: account.name, workers, analytics24h, hourly };
   }));
   return { provider: "cloudflare", connected: true, accounts };
 }
@@ -174,39 +188,56 @@ async function supabaseSummary(token: string, metricsToken: string | null): Prom
     let storageRequests: number | null = null;
     let apiRequests: number | null = null;
     let diskUsedBytes: number | null = null;
+    let diskSizeBytes: number | null = null;
+    let diskAvailableBytes: number | null = null;
+    let usageTrend: Array<{ timestamp: string; requests: number; errors: number }> = [];
     let metricsError: string | null = null;
+    let databaseMetricsStatus: SupplementStatus = "provider_error";
     let usageStatus: SupplementStatus = metricsToken ? "provider_error" : "not_configured";
     let diskStatus: SupplementStatus = metricsToken ? "provider_error" : "not_configured";
     const active = project.status === "ACTIVE_HEALTHY" || project.status === "ACTIVE_UNHEALTHY";
     if (!active) {
       usageStatus = "inactive";
       diskStatus = "inactive";
+      databaseMetricsStatus = "inactive";
     }
-    try {
-      const metricsResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/analytics/endpoints/metrics`, { headers: { Authorization: `Bearer ${token}`, Accept: "text/plain" } });
-      if (metricsResponse.ok) {
-        const text = await metricsResponse.text();
-        const lines = text.split("\n").filter((line) => line && !line.startsWith("#"));
-        const sumMetric = (name: string): number | null => {
-          const values = lines.flatMap((line) => {
-            const match = new RegExp(`^${name}(?:\\{[^}]*\\})?\\s+([-+0-9.eE]+)$`).exec(line);
-            return match ? [Number(match[1])] : [];
-          });
-          return values.length ? values.reduce((sum, value) => sum + value, 0) : null;
-        };
-        databaseSizeMb = sumMetric("pg_database_size_mb");
-        activeConnections = sumMetric("supavisor_connections_active");
-      } else metricsError = `metrics_http_${metricsResponse.status}`;
-    } catch { metricsError = "metrics_unavailable"; }
+    if (active) {
+      try {
+        const metricsResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/analytics/endpoints/metrics`, { headers: { Authorization: `Bearer ${token}`, Accept: "text/plain" } });
+        if (metricsResponse.ok) {
+          const text = await metricsResponse.text();
+          const lines = text.split("\n").filter((line) => line && !line.startsWith("#"));
+          const sumMetric = (name: string): number | null => {
+            const values = lines.flatMap((line) => {
+              const match = new RegExp(`^${name}(?:\\{[^}]*\\})?\\s+([-+0-9.eE]+)$`).exec(line);
+              return match ? [Number(match[1])] : [];
+            });
+            return values.length ? values.reduce((sum, value) => sum + value, 0) : null;
+          };
+          databaseSizeMb = sumMetric("pg_database_size_mb");
+          activeConnections = sumMetric("supavisor_connections_active");
+          databaseMetricsStatus = databaseSizeMb === null && activeConnections === null ? "no_data" : "available";
+        } else {
+          databaseMetricsStatus = metricsResponse.status === 401 || metricsResponse.status === 403 ? "permission_required" : "provider_error";
+          metricsError = `metrics_http_${metricsResponse.status}`;
+        }
+      } catch { metricsError = "metrics_unavailable"; databaseMetricsStatus = "provider_error"; }
+    }
     if (metricsToken && active) {
       try {
-        const usageResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/analytics/endpoints/usage.api-counts`, { headers: { Authorization: `Bearer ${metricsToken}`, Accept: "application/json" } });
+        const usageResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/analytics/endpoints/usage.api-counts?interval=1hr`, { headers: { Authorization: `Bearer ${metricsToken}`, Accept: "application/json" } });
         if (usageResponse.ok) {
-          const usage = await usageResponse.json() as { result?: Array<{ total_storage_requests?: number; total_auth_requests?: number; total_realtime_requests?: number; total_rest_requests?: number }> };
-          const latest = usage.result?.at(-1);
-          if (latest) {
-            storageRequests = latest.total_storage_requests ?? null;
-            apiRequests = (latest.total_auth_requests ?? 0) + (latest.total_realtime_requests ?? 0) + (latest.total_rest_requests ?? 0) + (latest.total_storage_requests ?? 0);
+          const usage = await usageResponse.json() as { result?: Array<{ timestamp?: string; total_storage_requests?: number; total_auth_requests?: number; total_realtime_requests?: number; total_rest_requests?: number }> };
+          const rows = (usage.result ?? []).filter((row) => row.timestamp).map((row) => ({
+            timestamp: row.timestamp!,
+            requests: (row.total_auth_requests ?? 0) + (row.total_realtime_requests ?? 0) + (row.total_rest_requests ?? 0) + (row.total_storage_requests ?? 0),
+            storage: row.total_storage_requests ?? 0,
+          }));
+          if (rows.length) {
+            const last24h = rows.slice(-24);
+            usageTrend = last24h.map(({ timestamp, requests }) => ({ timestamp, requests, errors: 0 }));
+            apiRequests = last24h.reduce((sum, row) => sum + row.requests, 0);
+            storageRequests = last24h.reduce((sum, row) => sum + row.storage, 0);
             usageStatus = "available";
           } else usageStatus = "no_data";
         } else usageStatus = usageResponse.status === 401 || usageResponse.status === 403 ? "permission_required" : "provider_error";
@@ -214,37 +245,129 @@ async function supabaseSummary(token: string, metricsToken: string | null): Prom
       try {
         const diskResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/config/disk/util`, { headers: { Authorization: `Bearer ${metricsToken}`, Accept: "application/json" } });
         if (diskResponse.ok) {
-          const disk = await diskResponse.json() as { metrics?: { fs_used_bytes?: number } };
+          const disk = await diskResponse.json() as { metrics?: { fs_size_bytes?: number; fs_avail_bytes?: number; fs_used_bytes?: number } };
           diskUsedBytes = disk.metrics?.fs_used_bytes ?? null;
+          diskSizeBytes = disk.metrics?.fs_size_bytes ?? null;
+          diskAvailableBytes = disk.metrics?.fs_avail_bytes ?? null;
           diskStatus = diskUsedBytes === null ? "no_data" : "available";
         } else diskStatus = diskResponse.status === 401 || diskResponse.status === 403 ? "permission_required" : "provider_error";
       } catch { diskStatus = "provider_error"; }
     }
-    return { id: project.id, name: project.name, status: project.status ?? "unknown", region: project.region ?? null, databaseSizeMb, activeConnections, storageRequests, apiRequests, diskUsedBytes, usageStatus, diskStatus, ...(metricsError ? { metricsError } : {}) };
+    return { id: project.id, name: project.name, status: project.status ?? "unknown", region: project.region ?? null, databaseSizeMb, activeConnections, storageRequests, apiRequests, usageTrend, diskUsedBytes, diskSizeBytes, diskAvailableBytes, usageStatus, diskStatus, databaseMetricsStatus, ...(metricsError ? { metricsError } : {}) };
   }));
   return { provider: "supabase", connected: true, supplementalTokenConfigured: metricsToken !== null, projects: result };
+}
+
+async function vercelSummary(token: string): Promise<unknown> {
+  const headers = { Authorization: "Bearer " + token, Accept: "application/json" };
+  const since = Date.now() - 24 * 60 * 60_000;
+  const [teamsResponse, personalProjectsResponse, personalDeploymentsResponse] = await Promise.all([
+    fetch("https://api.vercel.com/v2/teams?limit=100", { headers }),
+    fetch("https://api.vercel.com/v9/projects?limit=100", { headers }),
+    fetch("https://api.vercel.com/v6/deployments?limit=50&since=" + since, { headers }),
+  ]);
+  if (!personalProjectsResponse.ok && personalProjectsResponse.status !== 403) throw new Error("vercel_projects_failed");
+  type Project = { id: string; name: string; framework?: string | null; teamId?: string | null; latestDeployment?: Record<string, unknown> | null };
+  type Deployment = { id: string; name?: string; projectId?: string; url?: string; state?: string; readyState?: string; target?: string; createdAt?: number; ready?: number };
+  const projects: Project[] = [];
+  const deployments: Deployment[] = [];
+  if (personalProjectsResponse.ok) projects.push(...((await personalProjectsResponse.json() as { projects?: Project[] }).projects ?? []));
+  if (personalDeploymentsResponse.ok) deployments.push(...((await personalDeploymentsResponse.json() as { deployments?: Deployment[] }).deployments ?? []));
+  let teams: Array<{ id: string; name: string }> = [];
+  if (teamsResponse.ok) teams = (await teamsResponse.json() as { teams?: typeof teams }).teams ?? [];
+  const teamResults = await Promise.all(teams.map(async (team) => {
+    const query = new URLSearchParams({ limit: "100", teamId: team.id });
+    const deployQuery = new URLSearchParams({ limit: "50", since: String(since), teamId: team.id });
+    const [projectResponse, deploymentResponse] = await Promise.all([
+      fetch("https://api.vercel.com/v9/projects?" + query, { headers }),
+      fetch("https://api.vercel.com/v6/deployments?" + deployQuery, { headers }),
+    ]);
+    const teamProjects = projectResponse.ok ? (await projectResponse.json() as { projects?: Project[] }).projects ?? [] : [];
+    const teamDeployments = deploymentResponse.ok ? (await deploymentResponse.json() as { deployments?: Deployment[] }).deployments ?? [] : [];
+    return { teamProjects, teamDeployments };
+  }));
+  for (const result of teamResults) { projects.push(...result.teamProjects); deployments.push(...result.teamDeployments); }
+  const uniqueProjects = [...new Map(projects.map((project) => [project.id, project])).values()];
+  const uniqueDeployments = [...new Map(deployments.map((deployment) => [deployment.id, deployment])).values()]
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  const last24h = uniqueDeployments.filter((deployment) => (deployment.createdAt ?? 0) >= since);
+  const deploymentState = (deployment: Deployment) => deployment.readyState ?? deployment.state ?? "";
+  const latestByProject = new Map<string, Deployment>();
+  for (const deployment of uniqueDeployments) if (deployment.projectId && !latestByProject.has(deployment.projectId)) latestByProject.set(deployment.projectId, deployment);
+  const deploymentHourly = Array.from({ length: 24 }, (_, index) => {
+    const hour = new Date(); hour.setMinutes(0, 0, 0); hour.setHours(hour.getHours() - (23 - index));
+    const timestamp = hour.toISOString();
+    const next = hour.getTime() + 60 * 60_000;
+    const inHour = last24h.filter((deployment) => (deployment.createdAt ?? 0) >= hour.getTime() && (deployment.createdAt ?? 0) < next);
+    return { timestamp, total: inHour.length, failed: inHour.filter((deployment) => ["ERROR", "CANCELED"].includes(deploymentState(deployment).toUpperCase())).length };
+  });
+  return {
+    provider: "vercel", connected: true, tokenConfigured: true,
+    projects: uniqueProjects.map((project) => ({ ...project, latestDeployment: latestByProject.get(project.id) ?? project.latestDeployment ?? null })),
+    deployments: uniqueDeployments.slice(0, 30),
+    deployments24h: { total: last24h.length, ready: last24h.filter((deployment) => deploymentState(deployment).toUpperCase() === "READY").length, failed: last24h.filter((deployment) => ["ERROR", "CANCELED"].includes(deploymentState(deployment).toUpperCase())).length },
+    deploymentHourly,
+  };
+}
+
+async function publicPlatformStatus(): Promise<Array<{ id: string; name: string; status: string; description: string; incidentCount: number }>> {
+  const providers = [
+    { id: "cloudflare", name: "Cloudflare", url: "https://www.cloudflarestatus.com/api/v2/summary.json" },
+    { id: "supabase", name: "Supabase", url: "https://status.supabase.com/api/v2/summary.json" },
+    { id: "vercel", name: "Vercel", url: "https://www.vercel-status.com/api/v2/summary.json" },
+  ];
+  return Promise.all(providers.map(async (provider) => {
+    try {
+      const response = await fetch(provider.url, { headers: { Accept: "application/json", "User-Agent": "WorkspaceHomeDashboard/1.0" } });
+      if (!response.ok) return { id: provider.id, name: provider.name, status: "unknown", description: "HTTP " + response.status, incidentCount: 0 };
+      const body = await response.json() as { status?: { indicator?: string; description?: string }; incidents?: unknown[] };
+      return { id: provider.id, name: provider.name, status: body.status?.indicator ?? "unknown", description: body.status?.description ?? "상태 정보 없음", incidentCount: body.incidents?.length ?? 0 };
+    } catch { return { id: provider.id, name: provider.name, status: "unknown", description: "상태 API에 연결할 수 없음", incidentCount: 0 }; }
+  }));
 }
 
 export async function handleServiceApi(request: Request, env: Env, session: Session): Promise<Response | null> {
   const url = new URL(request.url);
   if (!url.pathname.startsWith("/api/services/")) return null;
   if (request.method === "GET" && url.pathname === "/api/services/status") {
-    const result = await Promise.all(([
-      ["cloudflare", cloudflareSummary], ["supabase", supabaseSummary],
-    ] as const).map(async ([provider, fetchSummary]) => {
-      try {
-        const token = await accessToken(env, session.login, provider);
-        if (provider === "supabase") {
-          const sealedMetricsToken = await getAccountValue(env, session.login, "service:supabase:metrics-token");
-          const metricsToken = typeof sealedMetricsToken === "string" ? await decryptSecret(env, sealedMetricsToken) : null;
-          if (!token) return { provider, connected: false, supplementalTokenConfigured: metricsToken !== null };
-          return await supabaseSummary(token, metricsToken);
-        }
-        if (!token) return { provider, connected: false };
-        return await fetchSummary(token);
-      } catch { return { provider, connected: true, error: "metrics_unavailable" }; }
-    }));
-    return json({ services: result, updatedAt: new Date().toISOString() });
+    const [services, vercel, platforms] = await Promise.all([
+      Promise.all(([
+        ["cloudflare", cloudflareSummary], ["supabase", supabaseSummary],
+      ] as const).map(async ([provider, fetchSummary]) => {
+        try {
+          const token = await accessToken(env, session.login, provider);
+          if (provider === "supabase") {
+            const sealedMetricsToken = await getAccountValue(env, session.login, "service:supabase:metrics-token");
+            const metricsToken = typeof sealedMetricsToken === "string" ? await decryptSecret(env, sealedMetricsToken) : null;
+            if (!token) return { provider, connected: false, supplementalTokenConfigured: metricsToken !== null };
+            return await supabaseSummary(token, metricsToken);
+          }
+          if (!token) return { provider, connected: false };
+          return await fetchSummary(token);
+        } catch { return { provider, connected: true, error: "metrics_unavailable" }; }
+      })),
+      (async () => {
+        const sealedToken = await getAccountValue(env, session.login, "service:vercel:token");
+        if (typeof sealedToken !== "string") return { provider: "vercel", connected: false, tokenConfigured: false };
+        try { return await vercelSummary(await decryptSecret(env, sealedToken)); }
+        catch { return { provider: "vercel", connected: true, tokenConfigured: true, error: "metrics_unavailable" }; }
+      })(),
+      publicPlatformStatus(),
+    ]);
+    return json({ services: [...services, vercel], platforms, updatedAt: new Date().toISOString() });
+  }
+  if (url.pathname === "/api/services/vercel/token") {
+    if (request.method === "PUT") {
+      let body: { token?: unknown };
+      try { body = await request.json() as { token?: unknown }; } catch { return json({ error: "invalid_request" }, { status: 400 }); }
+      if (typeof body.token !== "string" || !body.token.trim() || body.token.length > 8192) return json({ error: "invalid_token" }, { status: 400 });
+      await putAccountValue(env, session.login, "service:vercel:token", await encryptSecret(env, body.token.trim()));
+      return json({ ok: true });
+    }
+    if (request.method === "DELETE") {
+      await removeAccountValue(env, session.login, "service:vercel:token");
+      return json({ ok: true });
+    }
   }
   const provider = providerFromPath(url.pathname);
   if (!provider) return json({ error: "not_found" }, { status: 404 });
