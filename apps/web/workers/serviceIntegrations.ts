@@ -4,6 +4,7 @@ import { getAccountValue, putAccountValue, removeAccountValue } from "./Supabase
 
 type Provider = "cloudflare" | "supabase";
 type SavedConnection = { accessToken: string; refreshToken?: string; expiresAt?: number; connectedAt: string };
+type SupplementStatus = "available" | "not_configured" | "permission_required" | "provider_error" | "inactive" | "no_data";
 type OAuthState = { provider: Provider; login: string; verifier: string; createdAt: number };
 const redirectUri = (env: Env) => `${env.PUBLIC_ORIGIN}/api/services/oauth/callback`;
 
@@ -163,24 +164,29 @@ async function cloudflareSummary(token: string): Promise<unknown> {
   return { provider: "cloudflare", connected: true, accounts };
 }
 
-async function supabaseSummary(token: string): Promise<unknown> {
+async function supabaseSummary(token: string, metricsToken: string | null): Promise<unknown> {
   const response = await fetch("https://api.supabase.com/v1/projects", { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
   if (!response.ok) throw new Error("supabase_projects_failed");
   const projects = await response.json() as Array<{ id: string; name: string; status?: string; region?: string; organization_id?: string }>;
   const result = await Promise.all(projects.slice(0, 10).map(async (project) => {
-    let metricCount: number | null = null;
     let databaseSizeMb: number | null = null;
     let activeConnections: number | null = null;
     let storageRequests: number | null = null;
     let apiRequests: number | null = null;
     let diskUsedBytes: number | null = null;
     let metricsError: string | null = null;
+    let usageStatus: SupplementStatus = metricsToken ? "provider_error" : "not_configured";
+    let diskStatus: SupplementStatus = metricsToken ? "provider_error" : "not_configured";
+    const active = project.status === "ACTIVE_HEALTHY" || project.status === "ACTIVE_UNHEALTHY";
+    if (!active) {
+      usageStatus = "inactive";
+      diskStatus = "inactive";
+    }
     try {
       const metricsResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/analytics/endpoints/metrics`, { headers: { Authorization: `Bearer ${token}`, Accept: "text/plain" } });
       if (metricsResponse.ok) {
         const text = await metricsResponse.text();
         const lines = text.split("\n").filter((line) => line && !line.startsWith("#"));
-        metricCount = lines.length;
         const sumMetric = (name: string): number | null => {
           const values = lines.flatMap((line) => {
             const match = new RegExp(`^${name}(?:\\{[^}]*\\})?\\s+([-+0-9.eE]+)$`).exec(line);
@@ -192,27 +198,31 @@ async function supabaseSummary(token: string): Promise<unknown> {
         activeConnections = sumMetric("supavisor_connections_active");
       } else metricsError = `metrics_http_${metricsResponse.status}`;
     } catch { metricsError = "metrics_unavailable"; }
-    try {
-      const usageResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/analytics/endpoints/usage.api-counts`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
-      if (usageResponse.ok) {
-        const usage = await usageResponse.json() as { result?: Array<{ total_storage_requests?: number; total_auth_requests?: number; total_realtime_requests?: number; total_rest_requests?: number }> };
-        const latest = usage.result?.at(-1);
-        if (latest) {
-          storageRequests = latest.total_storage_requests ?? null;
-          apiRequests = (latest.total_auth_requests ?? 0) + (latest.total_realtime_requests ?? 0) + (latest.total_rest_requests ?? 0) + (latest.total_storage_requests ?? 0);
-        }
-      }
-    } catch { /* usage analytics are optional */ }
-    try {
-      const diskResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/config/disk/util`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
-      if (diskResponse.ok) {
-        const disk = await diskResponse.json() as { metrics?: { fs_used_bytes?: number } };
-        diskUsedBytes = disk.metrics?.fs_used_bytes ?? null;
-      }
-    } catch { /* disk usage is optional */ }
-    return { id: project.id, name: project.name, status: project.status ?? "unknown", region: project.region ?? null, metricSeries: metricCount, databaseSizeMb, activeConnections, storageRequests, apiRequests, diskUsedBytes, ...(metricsError ? { metricsError } : {}) };
+    if (metricsToken && active) {
+      try {
+        const usageResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/analytics/endpoints/usage.api-counts`, { headers: { Authorization: `Bearer ${metricsToken}`, Accept: "application/json" } });
+        if (usageResponse.ok) {
+          const usage = await usageResponse.json() as { result?: Array<{ total_storage_requests?: number; total_auth_requests?: number; total_realtime_requests?: number; total_rest_requests?: number }> };
+          const latest = usage.result?.at(-1);
+          if (latest) {
+            storageRequests = latest.total_storage_requests ?? null;
+            apiRequests = (latest.total_auth_requests ?? 0) + (latest.total_realtime_requests ?? 0) + (latest.total_rest_requests ?? 0) + (latest.total_storage_requests ?? 0);
+            usageStatus = "available";
+          } else usageStatus = "no_data";
+        } else usageStatus = usageResponse.status === 401 || usageResponse.status === 403 ? "permission_required" : "provider_error";
+      } catch { usageStatus = "provider_error"; }
+      try {
+        const diskResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/config/disk/util`, { headers: { Authorization: `Bearer ${metricsToken}`, Accept: "application/json" } });
+        if (diskResponse.ok) {
+          const disk = await diskResponse.json() as { metrics?: { fs_used_bytes?: number } };
+          diskUsedBytes = disk.metrics?.fs_used_bytes ?? null;
+          diskStatus = diskUsedBytes === null ? "no_data" : "available";
+        } else diskStatus = diskResponse.status === 401 || diskResponse.status === 403 ? "permission_required" : "provider_error";
+      } catch { diskStatus = "provider_error"; }
+    }
+    return { id: project.id, name: project.name, status: project.status ?? "unknown", region: project.region ?? null, databaseSizeMb, activeConnections, storageRequests, apiRequests, diskUsedBytes, usageStatus, diskStatus, ...(metricsError ? { metricsError } : {}) };
   }));
-  return { provider: "supabase", connected: true, projects: result };
+  return { provider: "supabase", connected: true, supplementalTokenConfigured: metricsToken !== null, projects: result };
 }
 
 export async function handleServiceApi(request: Request, env: Env, session: Session): Promise<Response | null> {
@@ -224,16 +234,36 @@ export async function handleServiceApi(request: Request, env: Env, session: Sess
     ] as const).map(async ([provider, fetchSummary]) => {
       try {
         const token = await accessToken(env, session.login, provider);
-        return token ? await fetchSummary(token) : { provider, connected: false };
+        if (!token) return { provider, connected: false };
+        if (provider === "supabase") {
+          const sealedMetricsToken = await getAccountValue(env, session.login, "service:supabase:metrics-token");
+          const metricsToken = typeof sealedMetricsToken === "string" ? await decryptSecret(env, sealedMetricsToken) : null;
+          return await supabaseSummary(token, metricsToken);
+        }
+        return await fetchSummary(token);
       } catch { return { provider, connected: true, error: "metrics_unavailable" }; }
     }));
     return json({ services: result, updatedAt: new Date().toISOString() });
   }
   const provider = providerFromPath(url.pathname);
   if (!provider) return json({ error: "not_found" }, { status: 404 });
+  if (provider === "supabase" && url.pathname === "/api/services/supabase/metrics-token") {
+    if (request.method === "PUT") {
+      let body: { token?: unknown };
+      try { body = await request.json() as { token?: unknown }; } catch { return json({ error: "invalid_request" }, { status: 400 }); }
+      if (typeof body.token !== "string" || !body.token.trim() || body.token.length > 8192) return json({ error: "invalid_token" }, { status: 400 });
+      await putAccountValue(env, session.login, "service:supabase:metrics-token", await encryptSecret(env, body.token.trim()));
+      return json({ ok: true });
+    }
+    if (request.method === "DELETE") {
+      await removeAccountValue(env, session.login, "service:supabase:metrics-token");
+      return json({ ok: true });
+    }
+  }
   if (request.method === "POST" && url.pathname.endsWith("/connect")) return beginOAuth(env, provider, session.login);
   if (request.method === "DELETE" && url.pathname.endsWith("/connect")) {
     await revokeConnection(env, session.login, provider);
+    if (provider === "supabase") await removeAccountValue(env, session.login, "service:supabase:metrics-token");
     return json({ ok: true });
   }
   return json({ error: "not_found" }, { status: 404 });
