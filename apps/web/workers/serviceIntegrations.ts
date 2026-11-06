@@ -156,8 +156,14 @@ async function cloudflareSummary(token: string): Promise<unknown> {
     let analytics24h: { requests: number; errors: number; subrequests: number; cpuTimeP99: number | null } | null = null;
     let hourly: Array<{ timestamp: string; requests: number; errors: number }> = [];
     if (analyticsResponse.ok) {
-      const data = await analyticsResponse.json() as { data?: { viewer?: { accounts?: Array<{ workersInvocationsAdaptive?: Array<{ sum?: { requests?: number; errors?: number; subrequests?: number }; quantiles?: { cpuTimeP99?: number }; dimensions?: { datetime?: string } }> }> } } };
-      const sums = data.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive ?? [];
+      const data = await analyticsResponse.json() as { errors?: Array<{ message?: string }> | null; data?: { viewer?: { accounts?: Array<{ workersInvocationsAdaptive?: Array<{ sum?: { requests?: number; errors?: number; subrequests?: number }; quantiles?: { cpuTimeP99?: number }; dimensions?: { datetime?: string } }> }> } } };
+      // GraphQL can return HTTP 200 alongside an errors array. Treat that as
+      // unavailable data instead of turning a missing series into false zeroes.
+      const series = data.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive;
+      if (data.errors?.length || !Array.isArray(series)) {
+        return { id: account.id, name: account.name, workers, analytics24h: null, analyticsStatus: "provider_error", hourly };
+      }
+      const sums = series;
       analytics24h = sums.reduce((total, point) => ({ requests: total.requests + (point.sum?.requests ?? 0), errors: total.errors + (point.sum?.errors ?? 0), subrequests: total.subrequests + (point.sum?.subrequests ?? 0), cpuTimeP99: Math.max(total.cpuTimeP99 ?? 0, point.quantiles?.cpuTimeP99 ?? 0) || null }), { requests: 0, errors: 0, subrequests: 0, cpuTimeP99: null as number | null });
       const byHour = new Map<string, { timestamp: string; requests: number; errors: number }>();
       for (const point of sums) {
@@ -173,7 +179,7 @@ async function cloudflareSummary(token: string): Promise<unknown> {
       }
       hourly = [...byHour.values()].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     }
-    return { id: account.id, name: account.name, workers, analytics24h, hourly };
+    return { id: account.id, name: account.name, workers, analytics24h, analyticsStatus: analytics24h ? "available" : "provider_error", hourly };
   }));
   return { provider: "cloudflare", connected: true, accounts };
 }
@@ -310,19 +316,47 @@ async function vercelSummary(token: string): Promise<unknown> {
   };
 }
 
-async function publicPlatformStatus(): Promise<Array<{ id: string; name: string; status: string; description: string; incidentCount: number }>> {
+type PublicPlatformIncident = { id: string; name: string; status: string; impact: string; updatedAt: string | null; url: string; update: string; components: Array<{ name: string; status: string }> };
+type PublicPlatformStatus = { id: string; name: string; status: string; description: string; incidentCount: number; incidents: PublicPlatformIncident[]; maintenanceCount: number; statusUrl: string };
+
+async function publicPlatformStatus(): Promise<PublicPlatformStatus[]> {
   const providers = [
-    { id: "cloudflare", name: "Cloudflare", url: "https://www.cloudflarestatus.com/api/v2/summary.json" },
-    { id: "supabase", name: "Supabase", url: "https://status.supabase.com/api/v2/summary.json" },
-    { id: "vercel", name: "Vercel", url: "https://www.vercel-status.com/api/v2/summary.json" },
+    { id: "cloudflare", name: "Cloudflare", url: "https://www.cloudflarestatus.com/api/v2/summary.json", statusUrl: "https://www.cloudflarestatus.com/" },
+    { id: "supabase", name: "Supabase", url: "https://status.supabase.com/api/v2/summary.json", statusUrl: "https://status.supabase.com/" },
+    { id: "vercel", name: "Vercel", url: "https://www.vercel-status.com/api/v2/summary.json", statusUrl: "https://www.vercel-status.com/" },
   ];
   return Promise.all(providers.map(async (provider) => {
     try {
       const response = await fetch(provider.url, { headers: { Accept: "application/json", "User-Agent": "WorkspaceHomeDashboard/1.0" } });
-      if (!response.ok) return { id: provider.id, name: provider.name, status: "unknown", description: "HTTP " + response.status, incidentCount: 0 };
-      const body = await response.json() as { status?: { indicator?: string; description?: string }; incidents?: unknown[] };
-      return { id: provider.id, name: provider.name, status: body.status?.indicator ?? "unknown", description: body.status?.description ?? "상태 정보 없음", incidentCount: body.incidents?.length ?? 0 };
-    } catch { return { id: provider.id, name: provider.name, status: "unknown", description: "상태 API에 연결할 수 없음", incidentCount: 0 }; }
+      if (!response.ok) return { id: provider.id, name: provider.name, status: "unknown", description: "HTTP " + response.status, incidentCount: 0, incidents: [], maintenanceCount: 0, statusUrl: provider.statusUrl };
+      type IncidentUpdate = { body?: string; created_at?: string; affected_components?: Array<{ name?: string; new_status?: string }> };
+      type Incident = { id?: string; name?: string; status?: string; impact?: string; updated_at?: string; shortlink?: string; incident_updates?: IncidentUpdate[] };
+      type Maintenance = { id?: string; name?: string; status?: string; scheduled_for?: string; scheduled_until?: string };
+      const body = await response.json() as { status?: { indicator?: string; description?: string }; incidents?: Incident[]; scheduled_maintenances?: Maintenance[] };
+      const incidents = (body.incidents ?? []).filter((incident) => incident.status !== "resolved").slice(0, 5).map((incident) => {
+        const latest = [...(incident.incident_updates ?? [])].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))[0];
+        return {
+          id: incident.id ?? incident.name ?? provider.id,
+          name: incident.name ?? "제목 없는 사건",
+          status: incident.status ?? "unknown",
+          impact: incident.impact ?? "unknown",
+          updatedAt: incident.updated_at ?? latest?.created_at ?? null,
+          url: incident.shortlink ?? provider.statusUrl,
+          update: latest?.body?.slice(0, 600) ?? "",
+          components: (latest?.affected_components ?? []).map((component) => ({ name: component.name ?? "", status: component.new_status ?? "unknown" })),
+        };
+      });
+      const inProgressMaintenance = new Set((body.scheduled_maintenances ?? []).filter((item) => item.status === "in_progress").map((item) => item.name).filter(Boolean));
+      return {
+        id: provider.id, name: provider.name,
+        status: body.status?.indicator ?? "unknown",
+        description: body.status?.description ?? "상태 정보 없음",
+        incidentCount: incidents.length,
+        incidents,
+        maintenanceCount: inProgressMaintenance.size,
+        statusUrl: provider.statusUrl,
+      };
+    } catch { return { id: provider.id, name: provider.name, status: "unknown", description: "상태 API에 연결할 수 없음", incidentCount: 0, incidents: [], maintenanceCount: 0, statusUrl: provider.statusUrl }; }
   }));
 }
 

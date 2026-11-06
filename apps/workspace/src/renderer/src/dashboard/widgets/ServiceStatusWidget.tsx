@@ -8,6 +8,7 @@ type CloudflareAccount = {
   name: string;
   workers?: CloudflareWorker[];
   analytics24h?: { requests: number; errors: number; subrequests: number; cpuTimeP99: number | null } | null;
+  analyticsStatus?: "available" | "provider_error";
   hourly?: MetricPoint[];
 };
 type SupabaseProject = {
@@ -31,7 +32,8 @@ type ServiceSummary = {
   deployments24h?: { total: number; ready: number; failed: number };
   deploymentHourly?: Array<{ timestamp: string; total: number; failed: number }>;
 };
-type PlatformStatus = { id: string; name: string; status: string; description: string; incidentCount: number };
+type PlatformIncident = { id: string; name: string; status: string; impact: string; updatedAt: string | null; url: string; update: string; components: Array<{ name: string; status: string }> };
+type PlatformStatus = { id: string; name: string; status: string; description: string; incidentCount: number; incidents?: PlatformIncident[]; maintenanceCount?: number; statusUrl?: string };
 type StatusResponse = { services?: ServiceSummary[]; platforms?: PlatformStatus[]; updatedAt?: string };
 type Series = { name: string; color: string; values: number[] };
 
@@ -49,10 +51,10 @@ function bytes(value: number | null): string {
   return gb < 1 ? (value / (1024 ** 2)).toFixed(0) + " MB" : gb.toFixed(2) + " GB";
 }
 
-function platformState(status: string): "up" | "degraded" | "down" | "unknown" {
+function platformState(status: string, description = ""): "up" | "degraded" | "down" | "unknown" {
   if (["none", "operational"].includes(status)) return "up";
-  if (["minor", "maintenance"].includes(status)) return "degraded";
-  if (["major", "critical", "partial_outage", "major_outage"].includes(status)) return "down";
+  if (["minor", "maintenance", "degraded_performance", "partial_outage"].includes(status)) return "degraded";
+  if (["major", "critical", "major_outage"].includes(status)) return /partial|minor|degrad/i.test(description) ? "degraded" : "down";
   return "unknown";
 }
 
@@ -63,19 +65,52 @@ function projectState(status: string): "healthy" | "paused" | "degraded" {
 }
 
 function statusLabel(state: "up" | "degraded" | "down" | "unknown"): string {
-  return state === "up" ? "정상" : state === "degraded" ? "주의" : state === "down" ? "장애" : "확인 불가";
+  return state === "up" ? "정상" : state === "degraded" ? "일부 영향" : state === "down" ? "서비스 장애" : "확인 불가";
 }
 
 function platformDescription(status: string, fallback: string): string {
+  if (/partial/i.test(fallback)) return "일부 서비스에 영향";
   switch (status) {
     case "none": case "operational": return "모든 시스템 정상";
-    case "minor": return "일부 성능 저하";
+    case "minor": return "일부 서비스 성능 저하";
     case "maintenance": return "계획된 점검";
     case "major": return "주요 서비스 장애";
     case "partial_outage": return "일부 서비스 장애";
     case "major_outage": return "광범위한 서비스 장애";
     default: return fallback;
   }
+}
+
+function incidentTitle(name: string): string {
+  if (/increased errors for durable objects in western europe/i.test(name)) return "서유럽 Durable Objects 오류 증가";
+  return name;
+}
+
+function incidentPhase(status: string): string {
+  switch (status) {
+    case "investigating": return "원인 조사 중";
+    case "identified": return "원인 확인 · 조치 중";
+    case "monitoring": return "복구 확인 중";
+    case "postmortem": return "사후 분석 중";
+    default: return "제공자 업데이트 확인";
+  }
+}
+
+function incidentImpact(impact: string): string {
+  switch (impact) {
+    case "none": return "영향 없음";
+    case "minor": return "영향 범위 제한적";
+    case "major": return "영향 큼";
+    case "critical": return "심각한 영향";
+    default: return "영향도 확인 중";
+  }
+}
+
+function incidentUpdate(update: string): string {
+  if (/issue has been resolved.*monitoring/i.test(update.replaceAll("\n", " "))) return "문제는 해결됐고, 재발 여부를 확인하고 있습니다.";
+  if (/investigating/i.test(update)) return "제공자가 원인을 조사하고 있습니다.";
+  if (/identified/i.test(update)) return "제공자가 원인을 확인하고 조치 중입니다.";
+  return update || "제공자의 추가 설명이 없습니다.";
 }
 
 function projectMetricStatus(status: string): string {
@@ -98,8 +133,7 @@ function getHours(): Array<{ timestamp: string; label: string }> {
   });
 }
 
-function FlowChart({ series }: { series: Series[] }): React.JSX.Element {
-  const hours = useMemo(getHours, []);
+function FlowChart({ series, hours }: { series: Series[]; hours: Array<{ timestamp: string; label: string }> }): React.JSX.Element {
   const activeSeries = series.filter((item) => item.values.some((value) => value > 0));
   const maximum = Math.max(1, ...activeSeries.flatMap((item) => item.values));
   const width = 720;
@@ -133,7 +167,7 @@ function FlowChart({ series }: { series: Series[] }): React.JSX.Element {
             return <circle key={index} cx={x} cy={y} r="3" fill={item.color} className="ops-chart-point" />;
           })}
         </g>)}
-      </svg> : <div className="ops-chart-empty"><span>···</span><strong>요청 추이를 모으는 중입니다</strong><small>연결된 서비스에서 시간별 데이터가 들어오면 여기에 표시됩니다.</small></div>}
+      </svg> : <div className="ops-chart-empty"><span>···</span><strong>{series.length ? "최근 24시간 요청이 없습니다" : "요청 지표를 확인할 수 없습니다"}</strong><small>{series.length ? "연결된 서비스의 이 시간대 요청이 0건입니다." : "연결 상태와 지표 권한을 확인하세요. 조회 오류는 0건으로 표시하지 않습니다."}</small></div>}
       <div className="ops-chart-x-labels"><span>{hours[0]?.label}</span><span>{hours[5]?.label}</span><span>{hours[11]?.label}</span><span>{hours[17]?.label}</span><span>지금</span></div>
     </div>
   );
@@ -267,16 +301,23 @@ export function ServiceStatusWidget(): React.JSX.Element {
   const cfAccounts = cloudflare?.accounts ?? [];
   const sbProjects = (supabase?.projects ?? []) as SupabaseProject[];
   const vercelProjects = (vercel?.projects ?? []) as VercelProject[];
-  const cfHasMetrics = cfAccounts.some((account) => account.analytics24h !== null && account.analytics24h !== undefined);
-  const supabaseHasMetrics = sbProjects.some((project) => project.apiRequests !== null);
+  const cfHasMetrics = cfAccounts.length > 0 && cfAccounts.every((account) => account.analytics24h !== null && account.analytics24h !== undefined);
+  const trackedSupabaseProjects = sbProjects.filter((project) => project.status !== "INACTIVE");
+  const supabaseHasMetrics = trackedSupabaseProjects.length > 0 && trackedSupabaseProjects.every((project) => project.apiRequests !== null);
   const requestSources = [cfHasMetrics ? "Cloudflare" : null, supabaseHasMetrics ? "Supabase" : null].filter((source): source is string => source !== null);
   const requestTotals = requestSources.length
-    ? cfAccounts.reduce((total, account) => total + (account.analytics24h?.requests ?? 0), 0) + sbProjects.reduce((total, project) => total + (project.apiRequests ?? 0), 0)
+    ? cfAccounts.reduce((total, account) => total + (account.analytics24h?.requests ?? 0), 0) + trackedSupabaseProjects.reduce((total, project) => total + (project.apiRequests ?? 0), 0)
     : null;
   const errorTotals = cfHasMetrics ? cfAccounts.reduce((total, account) => total + (account.analytics24h?.errors ?? 0), 0) : null;
   const activeProjects = sbProjects.filter((project) => project.status === "ACTIVE_HEALTHY").length;
-  const platformHealthy = platforms.filter((platform) => platformState(platform.status) === "up").length;
-  const hours = useMemo(getHours, []);
+  const platformHealthy = platforms.filter((platform) => platformState(platform.status, platform.description) === "up").length;
+  const platformIssues = platforms.filter((platform) => ["degraded", "down"].includes(platformState(platform.status, platform.description))).length;
+  const platformIncidents = platforms.flatMap((platform) => (platform.incidents ?? []).map((incident) => ({ platformName: platform.name, incident })));
+  const maintenanceCount = platforms.reduce((sum, platform) => sum + (platform.maintenanceCount ?? 0), 0);
+  const platformSummary = platformIssues
+    ? platforms.some((platform) => platformState(platform.status, platform.description) === "down") ? platformIssues + "곳 서비스 장애" : platformIssues + "곳 일부 영향"
+    : platforms.length ? number(platformHealthy) + "/" + number(platforms.length) + " 정상" : "확인 중";
+  const hours = useMemo(getHours, [updatedAt]);
   const requestSeries = useMemo(() => {
     const toHourMap = (points: MetricPoint[]) => {
       const map = new Map<string, number>();
@@ -290,12 +331,12 @@ export function ServiceStatusWidget(): React.JSX.Element {
       return map;
     };
     const cloudflareMap = toHourMap(cfAccounts.flatMap((account) => account.hourly ?? []));
-    const supabaseMap = toHourMap(sbProjects.flatMap((project) => project.usageTrend ?? []));
+    const supabaseMap = toHourMap(trackedSupabaseProjects.flatMap((project) => project.usageTrend ?? []));
     return [
-      { name: "Cloudflare Workers", color: "#f6821f", values: hours.map((hour) => cloudflareMap.get(hour.timestamp) ?? 0) },
-      { name: "Supabase API", color: "#58c699", values: hours.map((hour) => supabaseMap.get(hour.timestamp) ?? 0) },
+      ...(cfHasMetrics ? [{ name: "Cloudflare Workers", color: "#f6821f", values: hours.map((hour) => cloudflareMap.get(hour.timestamp) ?? 0) }] : []),
+      ...(supabaseHasMetrics ? [{ name: "Supabase API", color: "#58c699", values: hours.map((hour) => supabaseMap.get(hour.timestamp) ?? 0) }] : []),
     ];
-  }, [cfAccounts, sbProjects, hours]);
+  }, [cfAccounts, sbProjects, cfHasMetrics, supabaseHasMetrics, hours]);
 
   return (
     <DashboardWidget className="dashboard-widget--wide dashboard-widget--operations" ariaLabel="서비스 흐름 및 상태" onRefresh={() => void refresh()}>
@@ -315,18 +356,28 @@ export function ServiceStatusWidget(): React.JSX.Element {
         <div className="ops-section-grid">
           <section className="ops-panel ops-panel--flow">
             <div className="ops-panel-heading"><div><h2>요청 추이</h2><p>서비스별 시간당 요청 · 최근 24시간</p></div></div>
-            <FlowChart series={requestSeries} />
+            <FlowChart series={requestSeries} hours={hours} />
           </section>
           <section className="ops-panel ops-panel--status">
-            <div className="ops-panel-heading"><div><h2>제공자 상태</h2><p>Cloudflare · Supabase · Vercel</p></div><span className="ops-platform-count">{platforms.length ? number(platformHealthy) + "/" + number(platforms.length) + " 정상" : "확인 중"}</span></div>
+            <div className="ops-panel-heading"><div><h2>제공자 상태</h2><p>Cloudflare · Supabase · Vercel</p></div><span className="ops-platform-count">{platformSummary}</span></div>
             <div className="ops-platform-list">
               {platforms.map((platform) => {
-                const state = platformState(platform.status);
-                return <div className="ops-platform-row" key={platform.id}><span className={"ops-state-indicator ops-state-indicator--" + state} /><span className="ops-platform-name"><strong>{platform.name}</strong><small>{platformDescription(platform.status, platform.description)}</small></span><span className={"ops-state-label ops-state-label--" + state}>{statusLabel(state)}</span>{platform.incidentCount ? <b className="ops-incident-count">{platform.incidentCount}</b> : null}</div>;
+                const state = platformState(platform.status, platform.description);
+                return <div className="ops-platform-row" key={platform.id}><span className={"ops-state-indicator ops-state-indicator--" + state} /><span className="ops-platform-name"><strong>{platform.name}</strong><small>{platformDescription(platform.status, platform.description)}{platform.incidentCount ? " · " + platform.incidentCount + "건 추적" : ""}</small></span><span className={"ops-state-label ops-state-label--" + state}>{statusLabel(state)}</span></div>;
               })}
               <div className="ops-platform-row"><span className="ops-state-indicator ops-state-indicator--up" /><span className="ops-platform-name"><strong>PKMS Cloud</strong><small>상태 API 응답 정상</small></span><span className="ops-state-label ops-state-label--up">정상</span></div>
             </div>
-            <div className="ops-status-foot">각 제공자의 공개 상태 페이지 기준</div>
+            {platformIncidents.length ? <div className="ops-incident-list">
+              <h3>제공자 사건</h3>
+              {platformIncidents.map(({ platformName, incident }) => <article className="ops-incident" key={incident.id}>
+                <div className="ops-incident-heading"><strong>{incidentTitle(incident.name)}</strong><span>{incidentPhase(incident.status)}</span></div>
+                <div className="ops-incident-meta">{platformName} · {incidentImpact(incident.impact)}{incident.updatedAt ? " · " + new Date(incident.updatedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}</div>
+                <p>{incidentUpdate(incident.update)}</p>
+                {incident.components.length ? <small>영향 구성 요소: {incident.components.map((component) => component.name.replace("Western Europe", "서유럽")).filter(Boolean).join(", ")}</small> : null}
+                <a href={incident.url} target="_blank" rel="noreferrer">{platformName} 공지 보기 ↗</a>
+              </article>)}
+            </div> : null}
+            <div className="ops-status-foot"><span>{maintenanceCount ? "제공자 전체에서 " + maintenanceCount + "개 지역 점검 중 · " : ""}공개 상태와 사건을 구분해 표시</span>{platforms.find((platform) => platform.id === "cloudflare")?.statusUrl ? <a href={platforms.find((platform) => platform.id === "cloudflare")?.statusUrl} target="_blank" rel="noreferrer">공식 상태 페이지 ↗</a> : null}</div>
           </section>
         </div>
 
@@ -337,7 +388,8 @@ export function ServiceStatusWidget(): React.JSX.Element {
               <header className="ops-provider-heading"><div><strong>Cloudflare</strong><small>{cloudflare?.connected ? number(cfAccounts.reduce((sum, account) => sum + (account.workers?.length ?? 0), 0)) + "개 Worker" : "연결되지 않음"}</small></div>{cloudflare?.connected ? <button type="button" className="ops-text-button" onClick={() => void disconnect("cloudflare")} disabled={busy === "cloudflare"}>연결 해제</button> : <button type="button" className="ops-text-button" onClick={() => void connect("cloudflare")} disabled={busy === "cloudflare"}>계정 연결</button>}</header>
               {cloudflare?.connected ? cfAccounts.length ? cfAccounts.map((account) => <div className="ops-resource-card" key={account.id}>
                   <div className="ops-resource-card-top"><div><strong>{account.name}</strong></div></div>
-                <div className="ops-mini-stats"><div><small>최근 24시간 요청</small><b>{number(account.analytics24h?.requests ?? 0)}</b></div><div><small>하위 요청</small><b>{number(account.analytics24h?.subrequests ?? 0)}</b></div></div>
+                <div className="ops-mini-stats"><div><small>최근 24시간 요청</small><b>{number(account.analytics24h?.requests)}</b></div><div><small>하위 요청</small><b>{number(account.analytics24h?.subrequests)}</b></div></div>
+                {!account.analytics24h ? <small className="ops-inline-error">Cloudflare Analytics 응답을 확인할 수 없습니다. 0건으로 집계하지 않았습니다.</small> : null}
                 <div className="ops-worker-list">{(account.workers ?? []).map((worker) => <div key={worker.name}><span className="ops-worker-dot" /><strong>{worker.name}</strong><small>{worker.lastModified ? new Date(worker.lastModified).toLocaleDateString("ko-KR") + " 배포" : "배포 시각 없음"}</small></div>)}</div>
               </div>) : <div className="ops-empty-state">배포된 Worker가 없습니다.</div> : <div className="ops-connect-state"><span>Workers 배포와 요청 지표를 연결합니다.</span><small>읽기 전용 계정 권한</small></div>}
             </section>

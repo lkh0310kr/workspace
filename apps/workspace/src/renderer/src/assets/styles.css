@@ -5372,3 +5372,17 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
   .ops-resource-columns { gap: 25px; }
   .ops-resource-group { padding-bottom: 4px; }
 }
+.ops-platform-count { padding: 0; border: 0; border-radius: 0; color: var(--text-muted); font-weight: 600; }
+.ops-platform-row { min-height: 57px; }
+.ops-incident-list { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--border); }
+.ops-incident-list h3 { margin: 0 0 8px; color: var(--text-muted); font-size: 12px; font-weight: 600; }
+.ops-incident { display: grid; gap: 5px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.ops-incident:last-child { border-bottom: 0; }
+.ops-incident-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.ops-incident-heading strong { color: var(--text); font-size: 12px; font-weight: 600; }
+.ops-incident-heading span { flex: 0 0 auto; color: #d5ab5c; font-size: 12px; }
+.ops-incident-meta, .ops-incident small { color: var(--text-faint); font-size: 12px; line-height: 1.45; }
+.ops-incident p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+.ops-incident a, .ops-status-foot a { width: fit-content; color: var(--accent); font-size: 12px; text-decoration: none; }
+.ops-incident a:hover, .ops-status-foot a:hover { text-decoration: underline; }
+.ops-status-foot { align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
