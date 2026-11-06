@@ -35,7 +35,8 @@ const pkmsDesktop = {
     ipcRenderer.invoke('pkms:request', path, options) as Promise<import('../shared/pkmsClient').PkmsResponse<T>>,
   fetchAsset: (path: string) =>
     ipcRenderer.invoke('pkms:fetch-asset', path) as Promise<import('../shared/pkmsClient').PkmsAssetResponse>,
-  openVerification: (url: string): Promise<void> => ipcRenderer.invoke('pkms:open-verification', url)
+  openVerification: (url: string): Promise<void> => ipcRenderer.invoke('pkms:open-verification', url),
+  openServiceOAuth: (url: string): Promise<void> => ipcRenderer.invoke('pkms:open-service-oauth', url)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

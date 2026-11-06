@@ -7,3 +7,9 @@ SUPABASE_ANON_KEY=your-supabase-publishable-or-anon-key
 SUPABASE_SERVICE_ROLE_KEY=server-only-supabase-secret-key
 PKMS_REALTIME_PRIVATE_KEY=base64-encoded-pkcs8-es256-private-key
 PKMS_REALTIME_KEY_ID=realtime-key-id
+SUPABASE_OAUTH_CLIENT_ID=your-supabase-oauth-client-id
+SUPABASE_OAUTH_CLIENT_SECRET=your-supabase-oauth-client-secret
+CLOUDFLARE_OAUTH_CLIENT_ID=your-cloudflare-oauth-client-id
+CLOUDFLARE_OAUTH_CLIENT_SECRET=
+# Optional: exact whitespace-separated OAuth scope IDs configured in your Cloudflare OAuth app
+CLOUDFLARE_OAUTH_SCOPES=

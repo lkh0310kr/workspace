@@ -14,6 +14,14 @@ The React Router app and API run in one Cloudflare Worker. Supabase Postgres sto
 
 The current deployment uses `https://pkms-cloud.lkh0310kr.workers.dev` as `PUBLIC_ORIGIN`. Its `SESSION_SECRET` and `DATA_ENCRYPTION_KEY` are already configured. Configure the GitHub App callback URL as `https://pkms-cloud.lkh0310kr.workers.dev/api/auth/github/callback`, then add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` with `npx wrangler secret put NAME` to enable sign-in.
 
+## Home service dashboard integrations
+
+The Workspace Home dashboard reads public Cloudflare/Supabase status pages and the PKMS Cloud health endpoint. Sign in to PKMS in the desktop app before connecting provider accounts. Connection tokens are encrypted with `DATA_ENCRYPTION_KEY` and stored in the existing account-value table; tokens are never returned to the desktop renderer.
+
+Register two OAuth applications with this exact callback URL: `https://pkms-cloud.lkh0310kr.workers.dev/api/services/oauth/callback` (use the matching localhost callback when testing locally). Add their IDs and secrets as Worker secrets with `npx wrangler secret put SUPABASE_OAUTH_CLIENT_ID`, `SUPABASE_OAUTH_CLIENT_SECRET`, `CLOUDFLARE_OAUTH_CLIENT_ID`, and, when the Cloudflare client uses confidential token authentication, `CLOUDFLARE_OAUTH_CLIENT_SECRET`. Enable refresh-token grants for both clients so connections can renew without another login. Supabase OAuth scope configuration should include Projects Read, Analytics Read, Usage Analytics Read, and the read-only disk configuration permission required by the disk utilization endpoint. The authorization request uses `projects:read analytics:read`; configure the OAuth app scopes for the additional usage/disk endpoints as well. Configure the Cloudflare client for Authorization Code with PKCE and read-only account, Workers metadata, and Analytics scopes. `CLOUDFLARE_OAUTH_SCOPES` can override the requested whitespace-separated Cloudflare scope IDs when the OAuth app uses different IDs. The redirect URL must be registered exactly in both providers.
+
+The dashboard lists Cloudflare accounts and Workers, showing the last modification and 24-hour request/error counts where Analytics permission and data are available. Supabase projects show status, region, database metrics, disk usage, and recent API/Storage request counts where the connected OAuth scopes allow them. Supabase Metrics API is beta. Account metrics refresh every minute. Provider API failures are shown as unavailable while the public status cards remain available. Disconnect deletes the encrypted local credential and attempts to revoke the provider authorization.
+
 ## Login diagnostics
 
 Each request returns an `X-Request-ID`. Sign-in failures show this ID on the page and emit structured stage events without OAuth codes, tokens, cookies, or request query strings. Stored invocation logs are disabled. To follow only safe application events, run this from the web app directory:
@@ -70,4 +78,9 @@ Available tools list workspaces and directory entries, read one Markdown file on
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret | Server-only database access |
 | `PKMS_REALTIME_PRIVATE_KEY` | Secret | ES256 signer for scoped Realtime JWTs |
 | `PKMS_REALTIME_KEY_ID` | Variable | Public JWKS key identifier |
+| `SUPABASE_OAUTH_CLIENT_ID` | Secret | Supabase Management API OAuth client ID |
+| `SUPABASE_OAUTH_CLIENT_SECRET` | Secret | Supabase Management API OAuth client secret |
+| `CLOUDFLARE_OAUTH_CLIENT_ID` | Secret | Cloudflare OAuth client ID |
+| `CLOUDFLARE_OAUTH_CLIENT_SECRET` | Secret | Optional Cloudflare confidential-client secret |
+| `CLOUDFLARE_OAUTH_SCOPES` | Variable | Optional whitespace-separated OAuth scope IDs; defaults to `account-analytics.read account-settings.read workers-scripts.metadata_read` |
 | `ASSET_BUCKET` | Binding | R2 attachment bucket |

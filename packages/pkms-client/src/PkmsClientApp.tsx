@@ -655,7 +655,7 @@ export default function Home() {
     const link = document.createElement("a");
     link.href = assetPreviewUrl;
     link.download = activeFile.path.split("/").at(-1) ?? "attachment";
-    document.body.append(link);
+    document.body.appendChild(link);
     link.click();
     link.remove();
   };

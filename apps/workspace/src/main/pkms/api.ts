@@ -7,11 +7,23 @@ import type {
 } from "../../shared/pkmsClient";
 import { clearPkmsSession, readPkmsSession, writePkmsSession } from "./session";
 
-const PKMS_ORIGIN = "https://pkms-cloud.lkh0310kr.workers.dev";
+const DEFAULT_PKMS_ORIGIN = "https://pkms-cloud.lkh0310kr.workers.dev";
+
+function pkmsOrigin(): string {
+  const configured = process.env.PKMS_API_ORIGIN?.replace(/\/$/, "");
+  if (!configured) return DEFAULT_PKMS_ORIGIN;
+  let url: URL;
+  try { url = new URL(configured); } catch { throw new Error("invalid_pkms_origin"); }
+  const allowed = url.origin === DEFAULT_PKMS_ORIGIN ||
+    (url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname));
+  if (!allowed || url.username || url.password || url.pathname !== "/") throw new Error("invalid_pkms_origin");
+  return url.origin;
+}
 
 function resolveApiPath(pathname: string): URL {
-  const url = new URL(pathname, PKMS_ORIGIN);
-  if (url.origin !== PKMS_ORIGIN || !url.pathname.startsWith("/api/") || url.username || url.password) {
+  const origin = pkmsOrigin();
+  const url = new URL(pathname, origin);
+  if (url.origin !== origin || !url.pathname.startsWith("/api/") || url.username || url.password) {
     throw new Error("invalid_pkms_path");
   }
   return url;
@@ -92,5 +104,13 @@ export function parsePkmsVerificationUrl(rawUrl: string): string {
   if (url.origin !== "https://github.com" || url.pathname !== "/login/device") {
     throw new Error("invalid_verification_url");
   }
+  return url.toString();
+}
+
+export function parseServiceOAuthUrl(rawUrl: string): string {
+  const url = new URL(rawUrl);
+  const allowed = (url.origin === "https://dash.cloudflare.com" && url.pathname === "/oauth2/auth") ||
+    (url.origin === "https://api.supabase.com" && url.pathname === "/v1/oauth/authorize");
+  if (!allowed || url.username || url.password || url.protocol !== "https:") throw new Error("invalid_service_oauth_url");
   return url.toString();
 }

@@ -1,6 +1,6 @@
 import { ipcMain, shell } from "electron";
 import type { PkmsRequestOptions } from "../../shared/pkmsClient";
-import { fetchPkmsAsset, parsePkmsVerificationUrl, requestPkmsApi } from "./api";
+import { fetchPkmsAsset, parsePkmsVerificationUrl, parseServiceOAuthUrl, requestPkmsApi } from "./api";
 
 function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
   const rawUrl = event.senderFrame?.url;
@@ -23,5 +23,9 @@ export function registerPkmsIpc(): void {
   ipcMain.handle("pkms:open-verification", (event, rawUrl: string) => {
     assertTrustedSender(event);
     return shell.openExternal(parsePkmsVerificationUrl(rawUrl));
+  });
+  ipcMain.handle("pkms:open-service-oauth", (event, rawUrl: string) => {
+    assertTrustedSender(event);
+    return shell.openExternal(parseServiceOAuthUrl(rawUrl));
   });
 }

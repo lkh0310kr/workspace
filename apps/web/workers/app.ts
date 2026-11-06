@@ -7,6 +7,7 @@ import { flushDueWorkspaces, mirrorDueWorkspaces } from "./SupabaseVault";
 import { openIdConfiguration, publicJwks } from "./realtimeAuth";
 import { handleWorkspaceApi } from "./workspaceApi";
 import { handleAuthRoute, authFailure, sameOrigin } from "./authRoutes";
+import { handleServiceApi, handleServiceOAuthCallback } from "./serviceIntegrations";
 
 
 const ALLOWED_GITHUB_LOGIN = "lkh0310kr";
@@ -88,6 +89,8 @@ async function requireSession(request: Request, env: Env, requestId: string): Pr
 async function api(request: Request, env: Env, requestId: string): Promise<Response> {
   const url = new URL(request.url);
   if (request.method === "GET" && url.pathname === "/api/health") return json({ ok: true, protocolVersion: 1 });
+  const serviceCallback = await handleServiceOAuthCallback(request, env);
+  if (serviceCallback) return serviceCallback;
   const authRoute = await handleAuthRoute(request, env, requestId, trace, saveGitHubGrant);
   if (authRoute) return authRoute;
   const auth = await requireSession(request, env, requestId);
@@ -97,6 +100,8 @@ async function api(request: Request, env: Env, requestId: string): Promise<Respo
     if (!auth.scopes?.includes(scope)) return json({ error: "insufficient_scope", requiredScope: scope, requestId }, { status: 403, headers: { "WWW-Authenticate": `Bearer error="insufficient_scope", scope="${scope}"` } });
   }
   if (!sameOrigin(request, env)) return json({ error: "origin_mismatch" }, { status: 403 });
+  const serviceResponse = await handleServiceApi(request, env, auth);
+  if (serviceResponse) return serviceResponse;
   return handleWorkspaceApi(request, env, requestId, auth);
 }
 

@@ -4985,6 +4985,37 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
 .home-pulse-section .dashboard-grid { gap: 10px; }
 .home-pulse-section .dashboard-widget { border-radius: 8px; transition: transform 170ms cubic-bezier(.2,.8,.2,1), border-color 170ms ease, box-shadow 170ms ease; }
 .home-pulse-section .dashboard-widget:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.12); }
+.service-status-widget { display: grid; gap: 12px; }
+.service-status-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.service-status-heading h3 { margin: 4px 0 0; color: var(--text); font-size: 14px; letter-spacing: -.02em; }
+.service-status-heading > span, .service-status-note { color: var(--text-faint); font-size: 10px; }
+.service-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 8px; }
+.service-status-card { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 11px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); text-decoration: none; transition: border-color 150ms ease, background 150ms ease; }
+.service-status-card:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.service-status-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--text-faint); }
+.service-status-dot--up { background: #46b17b; box-shadow: 0 0 0 3px rgba(70,177,123,.12); }
+.service-status-dot--degraded { background: #e1a43b; box-shadow: 0 0 0 3px rgba(225,164,59,.12); }
+.service-status-copy { display: grid; flex: 1; gap: 3px; min-width: 0; }
+.service-status-copy strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.service-status-copy small { overflow: hidden; color: var(--text-faint); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.service-status-value { color: var(--text-muted); font-size: 9px; white-space: nowrap; }
+.service-status-note { margin: 0; }
+.service-account-heading { display: flex; align-items: center; justify-content: space-between; padding-top: 3px; color: var(--text-faint); font-size: 10px; }
+.service-account-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 8px; }
+.service-account-card { display: grid; align-content: start; gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: color-mix(in srgb, var(--bg-surface) 75%, transparent); }
+.service-account-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.service-account-top strong { font-size: 11px; }
+.service-account-top button { padding: 5px 8px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg-hover); color: var(--text); font-size: 9px; cursor: pointer; }
+.service-account-top button:disabled { opacity: .55; cursor: wait; }
+.service-account-card > small { color: var(--text-faint); font-size: 9px; }
+.service-resource-list { display: grid; gap: 7px; max-height: 190px; overflow: auto; }
+.service-resource-list > div { display: grid; gap: 3px; padding-top: 7px; border-top: 1px solid var(--border); }
+.service-resource-list b { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.service-resource-list small { color: var(--text-muted); font-size: 9px; }
+.service-resource-list .service-resource-line { color: var(--text-faint); padding-left: 7px; }
+.service-status-message { margin: 0; padding: 8px 10px; border-radius: 6px; background: var(--bg-hover); color: var(--text-muted); font-size: 10px; }
+.service-login-prompt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; color: var(--text-muted); font-size: 10px; }
+.service-login-prompt button { padding: 6px 9px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg-hover); color: var(--text); font-size: 9px; cursor: pointer; }
 .home-project-card:focus-visible,
 .home-create-button:focus-visible,
 .home-empty-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }

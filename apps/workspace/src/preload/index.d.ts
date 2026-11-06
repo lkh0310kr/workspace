@@ -327,4 +327,5 @@ export interface PkmsDesktopApi {
   request: <T = unknown>(path: string, options: import('../shared/pkmsClient').PkmsRequestOptions) => Promise<import('../shared/pkmsClient').PkmsResponse<T>>
   fetchAsset: (path: string) => Promise<import('../shared/pkmsClient').PkmsAssetResponse>
   openVerification: (url: string) => Promise<void>
+  openServiceOAuth: (url: string) => Promise<void>
 }

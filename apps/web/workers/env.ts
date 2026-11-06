@@ -12,6 +12,11 @@ export interface Env {
   SUPABASE_ANON_KEY: string;
   PKMS_REALTIME_PRIVATE_KEY: string;
   PKMS_REALTIME_KEY_ID: string;
+  CLOUDFLARE_OAUTH_CLIENT_ID?: string;
+  CLOUDFLARE_OAUTH_CLIENT_SECRET?: string;
+  CLOUDFLARE_OAUTH_SCOPES?: string;
+  SUPABASE_OAUTH_CLIENT_ID?: string;
+  SUPABASE_OAUTH_CLIENT_SECRET?: string;
 }
 
 export interface Session {

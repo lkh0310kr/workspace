@@ -25,6 +25,18 @@ async function deleteValue(env: Env, login: string, key: string): Promise<void> 
   });
 }
 
+export async function getAccountValue(env: Env, login: string, key: string): Promise<unknown | null> {
+  return readValue(env, login, key);
+}
+
+export async function putAccountValue(env: Env, login: string, key: string, value: unknown): Promise<void> {
+  await writeValue(env, login, key, value);
+}
+
+export async function removeAccountValue(env: Env, login: string, key: string): Promise<void> {
+  await deleteValue(env, login, key);
+}
+
 export function accountStore(env: Env, login: string): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> } {
   const owner = login.toLowerCase();
   return {

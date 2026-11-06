@@ -4,6 +4,7 @@ import { ClockWidget } from "./widgets/ClockWidget";
 import { EconomyWidget } from "./widgets/EconomyWidget";
 import { NotificationCenterWidget } from "./widgets/NotificationCenterWidget";
 import { WeatherWidget } from "./widgets/WeatherWidget";
+import { ServiceStatusWidget } from "./widgets/ServiceStatusWidget";
 
 function greetingForHour(hour: number): string {
   if (hour < 11) return "좋은 아침이에요";
@@ -99,6 +100,7 @@ export function DashboardView({ tabs }: { tabs: TabInfo[] }): React.JSX.Element 
             <EconomyWidget />
             <NotificationCenterWidget />
           </div>
+          <ServiceStatusWidget />
         </section>
       </div>
     </div>
