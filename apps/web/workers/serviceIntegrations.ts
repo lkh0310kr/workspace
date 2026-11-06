@@ -234,12 +234,13 @@ export async function handleServiceApi(request: Request, env: Env, session: Sess
     ] as const).map(async ([provider, fetchSummary]) => {
       try {
         const token = await accessToken(env, session.login, provider);
-        if (!token) return { provider, connected: false };
         if (provider === "supabase") {
           const sealedMetricsToken = await getAccountValue(env, session.login, "service:supabase:metrics-token");
           const metricsToken = typeof sealedMetricsToken === "string" ? await decryptSecret(env, sealedMetricsToken) : null;
+          if (!token) return { provider, connected: false, supplementalTokenConfigured: metricsToken !== null };
           return await supabaseSummary(token, metricsToken);
         }
+        if (!token) return { provider, connected: false };
         return await fetchSummary(token);
       } catch { return { provider, connected: true, error: "metrics_unavailable" }; }
     }));
