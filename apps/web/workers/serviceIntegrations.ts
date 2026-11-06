@@ -148,7 +148,7 @@ async function cloudflareSummary(token: string): Promise<unknown> {
     const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(account.id)}/workers/scripts`, { headers: { Authorization: `Bearer ${token}` } });
     if (!response.ok) return { id: account.id, name: account.name, error: "workers_unavailable", workers: [] };
     const body = await response.json() as { result?: Array<{ id: string; created_on?: string; modified_on?: string; usage_model?: string }> };
-    const workers = (body.result ?? []).slice(0, 50).map((worker) => ({ name: worker.id, lastModified: worker.modified_on ?? worker.created_on ?? null, usageModel: worker.usage_model ?? null }));
+    const workers = (body.result ?? []).slice(0, 50).map((worker) => ({ name: worker.id, lastModified: worker.modified_on ?? worker.created_on ?? null, usageModel: worker.usage_model ?? null, dashboardUrl: `https://dash.cloudflare.com/${encodeURIComponent(account.id)}/workers/services/view/${encodeURIComponent(worker.id)}/production` }));
     const end = new Date();
     const start = new Date(end.getTime() - 24 * 60 * 60_000);
     const query = `query WorkerDaily($accountTag: string, $start: string, $end: string) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive(limit: 5000, filter: { datetime_geq: $start, datetime_leq: $end }) { sum { requests errors subrequests } quantiles { cpuTimeP99 } dimensions { datetime } } } } }`;
@@ -179,7 +179,7 @@ async function cloudflareSummary(token: string): Promise<unknown> {
       }
       hourly = [...byHour.values()].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     }
-    return { id: account.id, name: account.name, workers, analytics24h, analyticsStatus: analytics24h ? "available" : "provider_error", hourly };
+    return { id: account.id, name: account.name, dashboardUrl: `https://dash.cloudflare.com/${encodeURIComponent(account.id)}/workers-and-pages`, workers, analytics24h, analyticsStatus: analytics24h ? "available" : "provider_error", hourly };
   }));
   return { provider: "cloudflare", connected: true, accounts };
 }
@@ -267,10 +267,11 @@ async function supabaseSummary(token: string, metricsToken: string | null): Prom
 async function vercelSummary(token: string): Promise<unknown> {
   const headers = { Authorization: "Bearer " + token, Accept: "application/json" };
   const since = Date.now() - 24 * 60 * 60_000;
-  const [teamsResponse, personalProjectsResponse, personalDeploymentsResponse] = await Promise.all([
+  const [teamsResponse, personalProjectsResponse, personalDeploymentsResponse, userResponse] = await Promise.all([
     fetch("https://api.vercel.com/v2/teams?limit=100", { headers }),
     fetch("https://api.vercel.com/v9/projects?limit=100", { headers }),
     fetch("https://api.vercel.com/v6/deployments?limit=50&since=" + since, { headers }),
+    fetch("https://api.vercel.com/v2/user", { headers }),
   ]);
   if (!personalProjectsResponse.ok && personalProjectsResponse.status !== 403) throw new Error("vercel_projects_failed");
   type Project = { id: string; name: string; framework?: string | null; teamId?: string | null; latestDeployment?: Record<string, unknown> | null };
@@ -279,8 +280,10 @@ async function vercelSummary(token: string): Promise<unknown> {
   const deployments: Deployment[] = [];
   if (personalProjectsResponse.ok) projects.push(...((await personalProjectsResponse.json() as { projects?: Project[] }).projects ?? []));
   if (personalDeploymentsResponse.ok) deployments.push(...((await personalDeploymentsResponse.json() as { deployments?: Deployment[] }).deployments ?? []));
-  let teams: Array<{ id: string; name: string }> = [];
+  let teams: Array<{ id: string; name: string; slug?: string }> = [];
   if (teamsResponse.ok) teams = (await teamsResponse.json() as { teams?: typeof teams }).teams ?? [];
+  const currentUser = userResponse.ok ? await userResponse.json() as { user?: { username?: string } } : null;
+  const personalSlug = currentUser?.user?.username;
   const teamResults = await Promise.all(teams.map(async (team) => {
     const query = new URLSearchParams({ limit: "100", teamId: team.id });
     const deployQuery = new URLSearchParams({ limit: "50", since: String(since), teamId: team.id });
@@ -290,9 +293,14 @@ async function vercelSummary(token: string): Promise<unknown> {
     ]);
     const teamProjects = projectResponse.ok ? (await projectResponse.json() as { projects?: Project[] }).projects ?? [] : [];
     const teamDeployments = deploymentResponse.ok ? (await deploymentResponse.json() as { deployments?: Deployment[] }).deployments ?? [] : [];
-    return { teamProjects, teamDeployments };
+    return { team, teamProjects, teamDeployments };
   }));
-  for (const result of teamResults) { projects.push(...result.teamProjects); deployments.push(...result.teamDeployments); }
+  const teamSlugById = new Map<string, string>();
+  for (const result of teamResults) {
+    projects.push(...result.teamProjects.map((project) => ({ ...project, teamId: project.teamId ?? result.team.id })));
+    deployments.push(...result.teamDeployments);
+    if (result.team.slug) teamSlugById.set(result.team.id, result.team.slug);
+  }
   const uniqueProjects = [...new Map(projects.map((project) => [project.id, project])).values()];
   const uniqueDeployments = [...new Map(deployments.map((deployment) => [deployment.id, deployment])).values()]
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
@@ -309,7 +317,10 @@ async function vercelSummary(token: string): Promise<unknown> {
   });
   return {
     provider: "vercel", connected: true, tokenConfigured: true,
-    projects: uniqueProjects.map((project) => ({ ...project, latestDeployment: latestByProject.get(project.id) ?? project.latestDeployment ?? null })),
+    projects: uniqueProjects.map((project) => {
+      const scope = project.teamId ? teamSlugById.get(project.teamId) : personalSlug;
+      return { ...project, dashboardUrl: scope ? `https://vercel.com/${encodeURIComponent(scope)}/${encodeURIComponent(project.name)}` : null, latestDeployment: latestByProject.get(project.id) ?? project.latestDeployment ?? null };
+    }),
     deployments: uniqueDeployments.slice(0, 30),
     deployments24h: { total: last24h.length, ready: last24h.filter((deployment) => deploymentState(deployment).toUpperCase() === "READY").length, failed: last24h.filter((deployment) => ["ERROR", "CANCELED"].includes(deploymentState(deployment).toUpperCase())).length },
     deploymentHourly,

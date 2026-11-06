@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardWidget } from "../DashboardWidget";
 
 type MetricPoint = { timestamp: string; requests: number; errors: number };
-type CloudflareWorker = { name: string; lastModified: string | null; usageModel?: string | null };
+type CloudflareWorker = { name: string; lastModified: string | null; usageModel?: string | null; dashboardUrl?: string };
 type CloudflareAccount = {
   id: string;
   name: string;
+  dashboardUrl?: string;
   workers?: CloudflareWorker[];
   analytics24h?: { requests: number; errors: number; subrequests: number; cpuTimeP99: number | null } | null;
   analyticsStatus?: "available" | "provider_error";
@@ -18,7 +19,7 @@ type SupabaseProject = {
   diskUsedBytes: number | null; diskSizeBytes: number | null; diskAvailableBytes: number | null;
   usageStatus: string; diskStatus: string; databaseMetricsStatus: string; metricsError?: string;
 };
-type VercelProject = { id: string; name: string; framework?: string | null; latestDeployment?: VercelDeployment | null };
+type VercelProject = { id: string; name: string; framework?: string | null; dashboardUrl?: string | null; latestDeployment?: VercelDeployment | null };
 type VercelDeployment = { id: string; name?: string; projectId?: string; url?: string; state?: string; readyState?: string; target?: string; createdAt?: number; ready?: number };
 type ServiceSummary = {
   provider: "cloudflare" | "supabase" | "vercel";
@@ -43,6 +44,14 @@ function number(value: number | null | undefined): string {
 
 function compact(value: number): string {
   return new Intl.NumberFormat("ko-KR", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
+
+function deploymentUrl(value?: string): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value.startsWith("https://") ? value : "https://" + value);
+    return parsed.protocol === "https:" ? parsed.toString() : null;
+  } catch { return null; }
 }
 
 function bytes(value: number | null): string {
@@ -387,10 +396,10 @@ export function ServiceStatusWidget(): React.JSX.Element {
             <section className="ops-resource-group">
               <header className="ops-provider-heading"><div><strong>Cloudflare</strong><small>{cloudflare?.connected ? number(cfAccounts.reduce((sum, account) => sum + (account.workers?.length ?? 0), 0)) + "개 Worker" : "연결되지 않음"}</small></div>{cloudflare?.connected ? <button type="button" className="ops-text-button" onClick={() => void disconnect("cloudflare")} disabled={busy === "cloudflare"}>연결 해제</button> : <button type="button" className="ops-text-button" onClick={() => void connect("cloudflare")} disabled={busy === "cloudflare"}>계정 연결</button>}</header>
               {cloudflare?.connected ? cfAccounts.length ? cfAccounts.map((account) => <div className="ops-resource-card" key={account.id}>
-                  <div className="ops-resource-card-top"><div><strong>{account.name}</strong></div></div>
+                <div className="ops-resource-card-top"><div><strong>{account.dashboardUrl ? <a className="ops-resource-link" href={account.dashboardUrl} target="_blank" rel="noreferrer">{account.name} <span aria-hidden="true">↗</span></a> : account.name}</strong><small>Cloudflare 계정 · Workers &amp; Pages</small></div></div>
                 <div className="ops-mini-stats"><div><small>최근 24시간 요청</small><b>{number(account.analytics24h?.requests)}</b></div><div><small>하위 요청</small><b>{number(account.analytics24h?.subrequests)}</b></div></div>
                 {!account.analytics24h ? <small className="ops-inline-error">Cloudflare Analytics 응답을 확인할 수 없습니다. 0건으로 집계하지 않았습니다.</small> : null}
-                <div className="ops-worker-list">{(account.workers ?? []).map((worker) => <div key={worker.name}><span className="ops-worker-dot" /><strong>{worker.name}</strong><small>{worker.lastModified ? new Date(worker.lastModified).toLocaleDateString("ko-KR") + " 배포" : "배포 시각 없음"}</small></div>)}</div>
+                <div className="ops-worker-list">{(account.workers ?? []).map((worker) => <div key={worker.name}><span className="ops-worker-dot" />{worker.dashboardUrl ? <a className="ops-resource-link" href={worker.dashboardUrl} target="_blank" rel="noreferrer"><strong>{worker.name}</strong><span aria-hidden="true">↗</span></a> : <strong>{worker.name}</strong>}<small>{worker.lastModified ? new Date(worker.lastModified).toLocaleDateString("ko-KR") + " 배포" : "배포 시각 없음"}</small></div>)}</div>
               </div>) : <div className="ops-empty-state">배포된 Worker가 없습니다.</div> : <div className="ops-connect-state"><span>Workers 배포와 요청 지표를 연결합니다.</span><small>읽기 전용 계정 권한</small></div>}
             </section>
 
@@ -399,7 +408,7 @@ export function ServiceStatusWidget(): React.JSX.Element {
               {supabase?.connected ? sbProjects.map((project) => {
                 const state = projectState(project.status);
                 return <div className={"ops-resource-card ops-project-card ops-project-card--" + state} key={project.id}>
-                <div className="ops-resource-card-top"><div><strong>{project.name}</strong><small>{project.region ?? "리전 정보 없음"}</small></div><span className={"ops-project-chip ops-project-chip--" + state}>{state === "healthy" ? "정상" : state === "paused" ? "일시 중지" : "상태 확인 필요"}</span></div>
+                <div className="ops-resource-card-top"><div><strong><a className="ops-resource-link" href={`https://supabase.com/dashboard/project/${encodeURIComponent(project.id)}`} target="_blank" rel="noreferrer">{project.name} <span aria-hidden="true">↗</span></a></strong><small>{project.region ?? "리전 정보 없음"} · Supabase 프로젝트</small></div><span className={"ops-project-chip ops-project-chip--" + state}>{state === "healthy" ? "정상" : state === "paused" ? "일시 중지" : "상태 확인 필요"}</span></div>
                   {state === "healthy" ? <div className="ops-mini-stats"><div><small>DB 크기</small><b>{project.databaseSizeMb === null ? projectMetricStatus(project.databaseMetricsStatus) || "—" : project.databaseSizeMb.toFixed(1) + " MB"}</b></div><div><small>활성 연결</small><b>{number(project.activeConnections)}</b></div><div><small>API 요청 · 24H</small><b>{number(project.apiRequests)}</b></div></div> : <div className="ops-project-paused">프로젝트가 일시 중지되어 실시간 지표가 제공되지 않습니다.</div>}
                   <DiskMeter project={project} />
                   {project.storageRequests !== null ? <div className="ops-project-foot"><span>Storage 요청</span><strong>{number(project.storageRequests)} <small>/ 24H</small></strong></div> : null}
@@ -415,7 +424,8 @@ export function ServiceStatusWidget(): React.JSX.Element {
                 {(vercel?.error ? <div className="ops-connect-state"><span>토큰에 프로젝트·배포 읽기 권한이 있는지 확인하세요.</span></div> : null)}
                 {vercelProjects.map((project) => {
                   const deploy = project.latestDeployment as VercelDeployment | null | undefined;
-                  return <div className="ops-vercel-project" key={project.id}><div><strong>{project.name}</strong><small>{project.framework || "Vercel Project"}</small></div><div>{deploy ? <><DeploymentState state={deploy.readyState ?? deploy.state} /><small>{deploy.createdAt ? new Date(deploy.createdAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "시간 없음"}</small></> : <small>최근 배포 없음</small>}</div></div>;
+                  const liveUrl = deploymentUrl(deploy?.url);
+                  return <div className="ops-vercel-project" key={project.id}><div><strong>{project.dashboardUrl ? <a className="ops-resource-link" href={project.dashboardUrl} target="_blank" rel="noreferrer">{project.name} <span aria-hidden="true">↗</span></a> : project.name}</strong><small>{project.framework || "Vercel Project"}</small></div><div>{deploy ? <><DeploymentState state={deploy.readyState ?? deploy.state} /><small>{deploy.createdAt ? new Date(deploy.createdAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "시간 없음"}</small>{liveUrl ? <a className="ops-deployment-link" href={liveUrl} target="_blank" rel="noreferrer">배포 미리보기 ↗</a> : null}</> : <small>최근 배포 없음</small>}</div></div>;
                 })}
                 <div className="ops-deployment-summary"><span>최근 24시간</span><b>{number(vercel?.deployments24h?.ready ?? 0)}회 성공</b><b className="ops-deploy-failed">{number(vercel?.deployments24h?.failed ?? 0)}회 실패</b></div>
               </> : <div className="ops-connect-state"><span>프로젝트와 최근 배포 상태를 불러옵니다.</span><small>Vercel Access Token · 읽기 전용 사용</small></div>}
