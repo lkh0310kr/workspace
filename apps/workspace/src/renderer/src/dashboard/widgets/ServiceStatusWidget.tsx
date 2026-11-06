@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardWidget } from "../DashboardWidget";
 
-type MetricPoint = { timestamp: string; requests: number; errors: number };
+type MetricPoint = { timestamp: string; requests: number; errors?: number; subrequests?: number; cpuTimeP99?: number | null; authRequests?: number; realtimeRequests?: number; restRequests?: number; storageRequests?: number };
+type GraphRange = "1h" | "24h" | "7d";
+type GraphMetric = "requests" | "errors" | "subrequests";
 type CloudflareWorker = { name: string; lastModified: string | null; usageModel?: string | null; dashboardUrl?: string };
 type CloudflareAccount = {
   id: string;
@@ -10,7 +12,7 @@ type CloudflareAccount = {
   workers?: CloudflareWorker[];
   analytics24h?: { requests: number; errors: number; subrequests: number; cpuTimeP99: number | null } | null;
   analyticsStatus?: "available" | "provider_error";
-  hourly?: MetricPoint[];
+  trend?: MetricPoint[];
 };
 type SupabaseProject = {
   id: string; name: string; status: string; region: string | null;
@@ -133,16 +135,21 @@ function projectMetricStatus(status: string): string {
   }
 }
 
-function getHours(): Array<{ timestamp: string; label: string }> {
-  const now = new Date();
-  now.setMinutes(0, 0, 0);
-  return Array.from({ length: 24 }, (_, index) => {
-    const date = new Date(now.getTime() - (23 - index) * 60 * 60_000);
-    return { timestamp: date.toISOString(), label: date.toLocaleTimeString("ko-KR", { hour: "2-digit" }) };
+function getBuckets(range: GraphRange): Array<{ timestamp: string; label: string }> {
+  const size = range === "1h" ? 15 * 60_000 : range === "24h" ? 60 * 60_000 : 24 * 60 * 60_000;
+  const count = range === "1h" ? 4 : range === "24h" ? 24 : 7;
+  const now = Date.now();
+  const end = Math.floor(now / size) * size;
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(end - (count - 1 - index) * size);
+    const label = range === "7d"
+      ? date.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" })
+      : date.toLocaleTimeString("ko-KR", { hour: "2-digit", ...(range === "1h" ? { minute: "2-digit" } : {}) });
+    return { timestamp: date.toISOString(), label };
   });
 }
 
-function FlowChart({ series, hours }: { series: Series[]; hours: Array<{ timestamp: string; label: string }> }): React.JSX.Element {
+function FlowChart({ series, buckets, range, metric }: { series: Series[]; buckets: Array<{ timestamp: string; label: string }>; range: GraphRange; metric: GraphMetric }): React.JSX.Element {
   const activeSeries = series.filter((item) => item.values.some((value) => value > 0));
   const maximum = Math.max(1, ...activeSeries.flatMap((item) => item.values));
   const width = 720;
@@ -160,7 +167,7 @@ function FlowChart({ series, hours }: { series: Series[]; hours: Array<{ timesta
     <div className="ops-chart-shell">
       <div className="ops-chart-legend">
         {series.map((item) => <span key={item.name}><i style={{ background: item.color }} />{item.name}</span>)}
-        <span className="ops-chart-window">최근 24시간</span>
+        <span className="ops-chart-window">{range === "1h" ? "최근 1시간 · 15분 단위" : range === "24h" ? "최근 24시간 · 1시간 단위" : "최근 7일 · 일 단위"}</span>
       </div>
       {activeSeries.length ? <svg className="ops-flow-chart" viewBox={"0 0 " + width + " " + height} role="img" aria-label="최근 24시간 서비스 요청 추이">
         {[0, 1, 2, 3].map((line) => {
@@ -170,14 +177,13 @@ function FlowChart({ series, hours }: { series: Series[]; hours: Array<{ timesta
         {activeSeries.map((item) => <g key={item.name}>
           <path d={toPath(item.values)} fill="none" stroke={item.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ops-chart-line" />
           {item.values.map((value, index) => {
-            if (index % 4 !== 0 && index !== item.values.length - 1) return null;
             const x = padX + (index / Math.max(1, item.values.length - 1)) * chartWidth;
             const y = height - padY - (value / maximum) * chartHeight;
-            return <circle key={index} cx={x} cy={y} r="3" fill={item.color} className="ops-chart-point" />;
+            return <circle key={index} cx={x} cy={y} r="3" fill={item.color} className="ops-chart-point"><title>{buckets[index]?.label}: {number(value)}{metric === "requests" ? " 요청" : metric === "errors" ? " 오류" : " 하위 요청"}</title></circle>;
           })}
         </g>)}
-      </svg> : <div className="ops-chart-empty"><span>···</span><strong>{series.length ? "최근 24시간 요청이 없습니다" : "요청 지표를 확인할 수 없습니다"}</strong><small>{series.length ? "연결된 서비스의 이 시간대 요청이 0건입니다." : "연결 상태와 지표 권한을 확인하세요. 조회 오류는 0건으로 표시하지 않습니다."}</small></div>}
-      <div className="ops-chart-x-labels"><span>{hours[0]?.label}</span><span>{hours[5]?.label}</span><span>{hours[11]?.label}</span><span>{hours[17]?.label}</span><span>지금</span></div>
+      </svg> : <div className="ops-chart-empty"><span>···</span><strong>{series.length ? "선택한 기간에 요청이 없습니다" : "선택한 지표를 제공하는 연결 서비스가 없습니다"}</strong><small>{series.length ? "연결된 서비스가 이 기간에 보고한 값은 0입니다." : "계정 연결과 지표 권한을 확인하세요. 조회 오류는 0건으로 표시하지 않습니다."}</small></div>}
+      <div className="ops-chart-x-labels">{[0, Math.floor((buckets.length - 1) / 3), Math.floor(2 * (buckets.length - 1) / 3), buckets.length - 1].filter((index, position, array) => array.indexOf(index) === position).map((index) => <span key={index}>{buckets[index]?.label}</span>)}</div>
     </div>
   );
 }
@@ -212,6 +218,8 @@ export function ServiceStatusWidget(): React.JSX.Element {
   const [vercelToken, setVercelToken] = useState("");
   const [showSupabaseToken, setShowSupabaseToken] = useState(false);
   const [showVercelToken, setShowVercelToken] = useState(false);
+  const [graphRange, setGraphRange] = useState<GraphRange>("24h");
+  const [graphMetric, setGraphMetric] = useState<GraphMetric>("requests");
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -326,26 +334,33 @@ export function ServiceStatusWidget(): React.JSX.Element {
   const platformSummary = platformIssues
     ? platforms.some((platform) => platformState(platform.status, platform.description) === "down") ? platformIssues + "곳 서비스 장애" : platformIssues + "곳 일부 영향"
     : platforms.length ? number(platformHealthy) + "/" + number(platforms.length) + " 정상" : "확인 중";
-  const hours = useMemo(getHours, [updatedAt]);
+  const buckets = useMemo(() => getBuckets(graphRange), [graphRange, updatedAt]);
   const requestSeries = useMemo(() => {
-    const toHourMap = (points: MetricPoint[]) => {
+    const bucketSize = graphRange === "1h" ? 15 * 60_000 : graphRange === "24h" ? 60 * 60_000 : 24 * 60 * 60_000;
+    const metricValue = (point: MetricPoint): number | null => {
+      if (graphMetric === "requests") return point.requests;
+      if (graphMetric === "errors") return point.errors ?? null;
+      return point.subrequests ?? null;
+    };
+    const toBucketMap = (points: MetricPoint[]) => {
       const map = new Map<string, number>();
       for (const point of points) {
         const date = new Date(point.timestamp);
-        if (!Number.isFinite(date.getTime())) continue;
-        date.setUTCMinutes(0, 0, 0);
+        const value = metricValue(point);
+        if (!Number.isFinite(date.getTime()) || value === null) continue;
+        date.setTime(Math.floor(date.getTime() / bucketSize) * bucketSize);
         const key = date.toISOString();
-        map.set(key, (map.get(key) ?? 0) + point.requests);
+        map.set(key, (map.get(key) ?? 0) + value);
       }
       return map;
     };
-    const cloudflareMap = toHourMap(cfAccounts.flatMap((account) => account.hourly ?? []));
-    const supabaseMap = toHourMap(trackedSupabaseProjects.flatMap((project) => project.usageTrend ?? []));
+    const cloudflareMap = toBucketMap(cfAccounts.flatMap((account) => account.trend ?? []));
+    const supabaseMap = toBucketMap(trackedSupabaseProjects.flatMap((project) => project.usageTrend ?? []));
     return [
-      ...(cfHasMetrics ? [{ name: "Cloudflare Workers", color: "#f6821f", values: hours.map((hour) => cloudflareMap.get(hour.timestamp) ?? 0) }] : []),
-      ...(supabaseHasMetrics ? [{ name: "Supabase API", color: "#58c699", values: hours.map((hour) => supabaseMap.get(hour.timestamp) ?? 0) }] : []),
+      ...(cfHasMetrics ? [{ name: "Cloudflare Workers", color: "#f6821f", values: buckets.map((bucket) => cloudflareMap.get(bucket.timestamp) ?? 0) }] : []),
+      ...(graphMetric === "requests" && supabaseHasMetrics ? [{ name: "Supabase API", color: "#58c699", values: buckets.map((bucket) => supabaseMap.get(bucket.timestamp) ?? 0) }] : []),
     ];
-  }, [cfAccounts, sbProjects, cfHasMetrics, supabaseHasMetrics, hours]);
+  }, [cfAccounts, trackedSupabaseProjects, cfHasMetrics, supabaseHasMetrics, buckets, graphRange, graphMetric]);
 
   return (
     <DashboardWidget className="dashboard-widget--wide dashboard-widget--operations" ariaLabel="서비스 흐름 및 상태" onRefresh={() => void refresh()}>
@@ -364,8 +379,11 @@ export function ServiceStatusWidget(): React.JSX.Element {
 
         <div className="ops-section-grid">
           <section className="ops-panel ops-panel--flow">
-            <div className="ops-panel-heading"><div><h2>요청 추이</h2><p>서비스별 시간당 요청 · 최근 24시간</p></div></div>
-            <FlowChart series={requestSeries} hours={hours} />
+            <div className="ops-panel-heading ops-chart-heading"><div><h2>서비스 지표 추이</h2><p>{graphMetric === "requests" ? "서비스별 요청 수" : graphMetric === "errors" ? "Cloudflare Worker 오류" : "Cloudflare Worker 하위 요청"} · {graphRange === "1h" ? "최근 1시간" : graphRange === "24h" ? "최근 24시간" : "최근 7일"}</p></div><div className="ops-chart-controls">
+              <div className="ops-chart-control-group" role="group" aria-label="그래프 기간">{([ ["1h", "1시간"], ["24h", "24시간"], ["7d", "7일"] ] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={graphRange === value} onClick={() => setGraphRange(value)}>{label}</button>)}</div>
+              <div className="ops-chart-control-group" role="group" aria-label="그래프 지표">{([ ["requests", "요청"], ["errors", "오류"], ["subrequests", "하위 요청"] ] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={graphMetric === value} onClick={() => setGraphMetric(value)}>{label}</button>)}</div>
+            </div></div>
+            <FlowChart series={requestSeries} buckets={buckets} range={graphRange} metric={graphMetric} />
           </section>
           <section className="ops-panel ops-panel--status">
             <div className="ops-panel-heading"><div><h2>제공자 상태</h2><p>Cloudflare · Supabase · Vercel</p></div><span className="ops-platform-count">{platformSummary}</span></div>

@@ -5392,3 +5392,9 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
 .ops-worker-list a { min-width: 0; }
 .ops-deployment-link { display: inline-block; margin-top: 4px; text-decoration: none; }
 .ops-deployment-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ops-chart-heading { align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.ops-chart-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ops-chart-control-group { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-surface); }
+.ops-chart-control-group button { min-height: 28px; padding: 0 8px; border: 0; border-radius: 5px; background: transparent; color: var(--text-muted); font: inherit; font-size: 12px; cursor: pointer; }
+.ops-chart-control-group button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface)); color: var(--text); font-weight: 600; }
+.ops-chart-control-group button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

@@ -150,36 +150,40 @@ async function cloudflareSummary(token: string): Promise<unknown> {
     const body = await response.json() as { result?: Array<{ id: string; created_on?: string; modified_on?: string; usage_model?: string }> };
     const workers = (body.result ?? []).slice(0, 50).map((worker) => ({ name: worker.id, lastModified: worker.modified_on ?? worker.created_on ?? null, usageModel: worker.usage_model ?? null, dashboardUrl: `https://dash.cloudflare.com/${encodeURIComponent(account.id)}/workers/services/view/${encodeURIComponent(worker.id)}/production` }));
     const end = new Date();
-    const start = new Date(end.getTime() - 24 * 60 * 60_000);
+    const start = new Date(end.getTime() - 7 * 24 * 60 * 60_000);
+    const dayAgo = end.getTime() - 24 * 60 * 60_000;
     const query = `query WorkerDaily($accountTag: string, $start: string, $end: string) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive(limit: 5000, filter: { datetime_geq: $start, datetime_leq: $end }) { sum { requests errors subrequests } quantiles { cpuTimeP99 } dimensions { datetime } } } } }`;
     const analyticsResponse = await fetch("https://api.cloudflare.com/client/v4/graphql", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ query, variables: { accountTag: account.id, start: start.toISOString(), end: end.toISOString() } }) });
     let analytics24h: { requests: number; errors: number; subrequests: number; cpuTimeP99: number | null } | null = null;
-    let hourly: Array<{ timestamp: string; requests: number; errors: number }> = [];
+    let trend: Array<{ timestamp: string; requests: number; errors: number; subrequests: number; cpuTimeP99: number | null }> = [];
     if (analyticsResponse.ok) {
       const data = await analyticsResponse.json() as { errors?: Array<{ message?: string }> | null; data?: { viewer?: { accounts?: Array<{ workersInvocationsAdaptive?: Array<{ sum?: { requests?: number; errors?: number; subrequests?: number }; quantiles?: { cpuTimeP99?: number }; dimensions?: { datetime?: string } }> }> } } };
       // GraphQL can return HTTP 200 alongside an errors array. Treat that as
       // unavailable data instead of turning a missing series into false zeroes.
       const series = data.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive;
       if (data.errors?.length || !Array.isArray(series)) {
-        return { id: account.id, name: account.name, workers, analytics24h: null, analyticsStatus: "provider_error", hourly };
+        return { id: account.id, name: account.name, dashboardUrl: `https://dash.cloudflare.com/${encodeURIComponent(account.id)}/workers-and-pages`, workers, analytics24h: null, analyticsStatus: "provider_error", trend: [] };
       }
-      const sums = series;
-      analytics24h = sums.reduce((total, point) => ({ requests: total.requests + (point.sum?.requests ?? 0), errors: total.errors + (point.sum?.errors ?? 0), subrequests: total.subrequests + (point.sum?.subrequests ?? 0), cpuTimeP99: Math.max(total.cpuTimeP99 ?? 0, point.quantiles?.cpuTimeP99 ?? 0) || null }), { requests: 0, errors: 0, subrequests: 0, cpuTimeP99: null as number | null });
-      const byHour = new Map<string, { timestamp: string; requests: number; errors: number }>();
-      for (const point of sums) {
+      type AnalyticsPoint = { sum?: { requests?: number; errors?: number; subrequests?: number }; quantiles?: { cpuTimeP99?: number }; dimensions?: { datetime?: string } };
+      const byQuarterHour = new Map<string, { timestamp: string; requests: number; errors: number; subrequests: number; cpuTimeP99: number | null }>();
+      const recent = series.filter((point: AnalyticsPoint) => point.dimensions?.datetime && new Date(point.dimensions.datetime).getTime() >= dayAgo);
+      analytics24h = recent.reduce((total: { requests: number; errors: number; subrequests: number; cpuTimeP99: number | null }, point: AnalyticsPoint) => ({ requests: total.requests + (point.sum?.requests ?? 0), errors: total.errors + (point.sum?.errors ?? 0), subrequests: total.subrequests + (point.sum?.subrequests ?? 0), cpuTimeP99: Math.max(total.cpuTimeP99 ?? 0, point.quantiles?.cpuTimeP99 ?? 0) || null }), { requests: 0, errors: 0, subrequests: 0, cpuTimeP99: null });
+      for (const point of series as AnalyticsPoint[]) {
         if (!point.dimensions?.datetime) continue;
         const date = new Date(point.dimensions.datetime);
-        if (!Number.isFinite(date.getTime())) continue;
-        date.setUTCMinutes(0, 0, 0);
+        if (!Number.isFinite(date.getTime()) || date.getTime() < start.getTime()) continue;
+        date.setUTCMinutes(Math.floor(date.getUTCMinutes() / 15) * 15, 0, 0);
         const timestamp = date.toISOString();
-        const bucket = byHour.get(timestamp) ?? { timestamp, requests: 0, errors: 0 };
+        const bucket = byQuarterHour.get(timestamp) ?? { timestamp, requests: 0, errors: 0, subrequests: 0, cpuTimeP99: null };
         bucket.requests += point.sum?.requests ?? 0;
         bucket.errors += point.sum?.errors ?? 0;
-        byHour.set(timestamp, bucket);
+        bucket.subrequests += point.sum?.subrequests ?? 0;
+        bucket.cpuTimeP99 = Math.max(bucket.cpuTimeP99 ?? 0, point.quantiles?.cpuTimeP99 ?? 0) || null;
+        byQuarterHour.set(timestamp, bucket);
       }
-      hourly = [...byHour.values()].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      trend = [...byQuarterHour.values()].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     }
-    return { id: account.id, name: account.name, dashboardUrl: `https://dash.cloudflare.com/${encodeURIComponent(account.id)}/workers-and-pages`, workers, analytics24h, analyticsStatus: analytics24h ? "available" : "provider_error", hourly };
+    return { id: account.id, name: account.name, dashboardUrl: `https://dash.cloudflare.com/${encodeURIComponent(account.id)}/workers-and-pages`, workers, analytics24h, analyticsStatus: analytics24h ? "available" : "provider_error", trend };
   }));
   return { provider: "cloudflare", connected: true, accounts };
 }
@@ -196,7 +200,7 @@ async function supabaseSummary(token: string, metricsToken: string | null): Prom
     let diskUsedBytes: number | null = null;
     let diskSizeBytes: number | null = null;
     let diskAvailableBytes: number | null = null;
-    let usageTrend: Array<{ timestamp: string; requests: number; errors: number }> = [];
+    let usageTrend: Array<{ timestamp: string; requests: number; authRequests: number; realtimeRequests: number; restRequests: number; storageRequests: number }> = [];
     let metricsError: string | null = null;
     let databaseMetricsStatus: SupplementStatus = "provider_error";
     let usageStatus: SupplementStatus = metricsToken ? "provider_error" : "not_configured";
@@ -231,19 +235,23 @@ async function supabaseSummary(token: string, metricsToken: string | null): Prom
     }
     if (metricsToken && active) {
       try {
-        const usageResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/analytics/endpoints/usage.api-counts?interval=1hr`, { headers: { Authorization: `Bearer ${metricsToken}`, Accept: "application/json" } });
+        const usageResponse = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(project.id)}/analytics/endpoints/usage.api-counts?interval=15min`, { headers: { Authorization: `Bearer ${metricsToken}`, Accept: "application/json" } });
         if (usageResponse.ok) {
           const usage = await usageResponse.json() as { result?: Array<{ timestamp?: string; total_storage_requests?: number; total_auth_requests?: number; total_realtime_requests?: number; total_rest_requests?: number }> };
-          const rows = (usage.result ?? []).filter((row) => row.timestamp).map((row) => ({
+          const rangeStart = Date.now() - 7 * 24 * 60 * 60_000;
+          const rows = (usage.result ?? []).filter((row) => row.timestamp && new Date(row.timestamp).getTime() >= rangeStart).map((row) => ({
             timestamp: row.timestamp!,
+            authRequests: row.total_auth_requests ?? 0,
+            realtimeRequests: row.total_realtime_requests ?? 0,
+            restRequests: row.total_rest_requests ?? 0,
+            storageRequests: row.total_storage_requests ?? 0,
             requests: (row.total_auth_requests ?? 0) + (row.total_realtime_requests ?? 0) + (row.total_rest_requests ?? 0) + (row.total_storage_requests ?? 0),
-            storage: row.total_storage_requests ?? 0,
           }));
           if (rows.length) {
-            const last24h = rows.slice(-24);
-            usageTrend = last24h.map(({ timestamp, requests }) => ({ timestamp, requests, errors: 0 }));
+            usageTrend = rows;
+            const last24h = rows.filter((row) => new Date(row.timestamp).getTime() >= Date.now() - 24 * 60 * 60_000);
             apiRequests = last24h.reduce((sum, row) => sum + row.requests, 0);
-            storageRequests = last24h.reduce((sum, row) => sum + row.storage, 0);
+            storageRequests = last24h.reduce((sum, row) => sum + row.storageRequests, 0);
             usageStatus = "available";
           } else usageStatus = "no_data";
         } else usageStatus = usageResponse.status === 401 || usageResponse.status === 403 ? "permission_required" : "provider_error";
