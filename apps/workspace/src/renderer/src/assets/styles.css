@@ -5013,6 +5013,15 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
 .service-resource-list b { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .service-resource-list small { color: var(--text-muted); font-size: 9px; }
 .service-resource-list .service-resource-line { color: var(--text-faint); padding-left: 7px; }
+.service-token-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.service-token-controls > div:first-child { display: grid; gap: 3px; min-width: 0; }
+.service-token-controls small, .service-token-form label { color: var(--text-faint); font-size: 9px; }
+.service-token-actions, .service-token-form > div { display: flex; gap: 5px; }
+.service-token-actions button, .service-token-form button { padding: 5px 8px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg-hover); color: var(--text); font-size: 9px; cursor: pointer; white-space: nowrap; }
+.service-token-actions button:disabled, .service-token-form button:disabled { opacity: .55; cursor: wait; }
+.service-token-form { display: grid; gap: 8px; padding: 9px; border: 1px solid var(--border); border-radius: 7px; }
+.service-token-form label { display: grid; gap: 5px; }
+.service-token-form input { width: 100%; padding: 7px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--bg); color: var(--text); font: inherit; font-size: 10px; }
 .service-status-message { margin: 0; padding: 8px 10px; border-radius: 6px; background: var(--bg-hover); color: var(--text-muted); font-size: 10px; }
 .service-login-prompt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; color: var(--text-muted); font-size: 10px; }
 .service-login-prompt button { padding: 6px 9px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg-hover); color: var(--text); font-size: 9px; cursor: pointer; }

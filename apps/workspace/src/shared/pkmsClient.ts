@@ -12,7 +12,7 @@ export type PkmsRequestBody =
   | { kind: "multipart"; parts: PkmsUploadPart[] };
 
 export interface PkmsRequestOptions {
-  method: "GET" | "POST" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "DELETE";
   headers?: Record<string, string>;
   body?: PkmsRequestBody;
 }
