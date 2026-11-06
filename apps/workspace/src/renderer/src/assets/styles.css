@@ -5284,3 +5284,91 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
   .ops-chart-x-labels { font-size: 12px; }
   .ops-platform-row { min-height: 52px; }
 }
+
+/* Home should read as an operations work surface, not a stack of promo cards. */
+.dashboard-view--operations .dashboard-view-inner { padding-top: 24px; gap: 0; }
+.ops-dashboard { gap: 22px; }
+.ops-overview { gap: 16px; }
+.ops-page-title h1 { font-size: 27px; letter-spacing: -.035em; }
+.ops-page-title p { margin-top: 7px; font-size: 13px; }
+.ops-updated { padding: 5px 0 5px 12px; border: 0; border-left: 1px solid var(--border); border-radius: 0; background: transparent; font-size: 12px; }
+.ops-kpi-grid { gap: 0; border-block: 1px solid var(--border); }
+.ops-kpi { min-height: 91px; padding: 15px 18px 13px; border: 0; border-right: 1px solid var(--border); border-radius: 0; background: transparent; }
+.ops-kpi:last-child { border-right: 0; }
+.ops-kpi::after, .ops-kpi > i { display: none; }
+.ops-kpi > span { color: var(--text-muted); font-size: 12px; font-weight: 600; letter-spacing: 0; }
+.ops-kpi > strong { font-size: 26px; letter-spacing: -.035em; }
+.ops-kpi > small { font-size: 12px; }
+.ops-section-grid { grid-template-columns: minmax(0, 1.65fr) minmax(290px, .85fr); gap: 26px; }
+.ops-panel { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.ops-panel-heading { margin-bottom: 12px; }
+.ops-panel-heading h2 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
+.ops-panel-heading p { margin: 5px 0 0; color: var(--text-muted); font-size: 12px; }
+.ops-chart-shell { min-height: 236px; }
+.ops-flow-chart { height: 198px; }
+.ops-chart-legend { gap: 18px; }
+.ops-chart-legend span { font-size: 12px; }
+.ops-chart-legend i { width: 8px; height: 8px; border-radius: 1px; }
+.ops-chart-window { display: none !important; }
+.ops-chart-empty > span { display: none; }
+.ops-chart-empty { align-content: center; justify-items: start; padding-left: 40px; text-align: left; }
+.ops-chart-empty strong { font-size: 13px; }
+.ops-chart-empty small { font-size: 12px; }
+.ops-platform-row { min-height: 51px; gap: 11px; }
+.ops-state-indicator--up, .ops-state-indicator--degraded, .ops-state-indicator--down { box-shadow: none; }
+.ops-platform-name { gap: 2px; }
+.ops-platform-name strong { font-size: 13px; font-weight: 600; }
+.ops-platform-name small { font-size: 12px; white-space: normal; }
+.ops-state-label { font-size: 12px; }
+.ops-status-foot { margin-top: 12px; font-size: 12px; }
+.ops-panel--resources { padding-top: 17px; border-top: 1px solid var(--border); }
+.ops-panel--resources .ops-panel-heading { margin-bottom: 15px; }
+.ops-count-pill { padding: 0; border: 0; font-size: 12px; }
+.ops-resource-columns { gap: 28px; }
+.ops-resource-group { gap: 10px; }
+.ops-provider-heading { min-height: 42px; gap: 9px; padding: 0 0 9px; }
+.ops-provider-heading strong { font-size: 14px; }
+.ops-provider-heading small { font-size: 12px; }
+.ops-provider-icon { width: auto; height: auto; border: 0; border-radius: 0; background: transparent; font-size: 12px; }
+.ops-text-button { border-color: var(--border); font-weight: 500; }
+.ops-resource-card { gap: 10px; padding: 11px 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; }
+.ops-resource-card-top strong { font-size: 13px; }
+.ops-resource-card-top small { font-size: 12px; }
+.ops-resource-card:not(.ops-project-card) .ops-mini-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ops-healthy-chip, .ops-project-chip { padding: 0; border-radius: 0; background: transparent; font-size: 12px; font-weight: 600; letter-spacing: 0; }
+.ops-mini-stats { gap: 9px; }
+.ops-mini-stats small { font-size: 12px; }
+.ops-mini-stats b { font-size: 13px; }
+.ops-worker-list { gap: 8px; }
+.ops-worker-list strong { font-size: 12px; }
+.ops-worker-list small { font-size: 12px; }
+.ops-worker-dot { width: 6px; height: 6px; box-shadow: none; }
+.ops-project-paused { padding: 8px 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; font-size: 12px; }
+.ops-disk > div:first-child, .ops-disk > div:first-child strong, .ops-disk small { font-size: 12px; }
+.ops-meter { height: 5px; border-radius: 0; }
+.ops-meter i { background: #55b987; }
+.ops-vercel-project { min-height: 47px; padding: 8px 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; }
+.ops-vercel-project strong { font-size: 13px; }
+.ops-vercel-project small, .ops-deploy-state { font-size: 12px; }
+.ops-deploy-state { padding: 0; border-radius: 0; background: transparent; font-weight: 600; }
+.ops-deployment-summary { border-top: 1px solid var(--border); padding-top: 10px; font-size: 12px; }
+.ops-deployment-summary b { font-size: 12px; }
+.ops-connect-state, .ops-empty-state { padding: 10px 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; font-size: 12px; }
+.ops-connect-state small { font-size: 12px; }
+.ops-token-row { padding-top: 8px; border-top: 1px solid var(--border); font-size: 12px; }
+.ops-token-help { flex-basis: 100%; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+.ops-token-form { flex-wrap: wrap; gap: 8px; padding-top: 6px; }
+.ops-token-form input { flex: 1 1 200px; min-height: 36px; font-size: 13px; }
+.ops-token-form button { min-width: 72px; }
+.ops-token-cta { border-color: var(--border); border-radius: 4px; background: transparent; }
+.ops-toast { font-size: 12px; }
+@media (max-width: 700px) {
+  .dashboard-view--operations .dashboard-view-inner { padding-top: 16px; }
+  .ops-kpi { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+  .ops-kpi:nth-child(2) { border-right: 0; }
+  .ops-kpi:nth-child(n + 3) { border-bottom: 0; }
+  .ops-section-grid { gap: 20px; }
+  .ops-status-foot { padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .ops-resource-columns { gap: 25px; }
+  .ops-resource-group { padding-bottom: 4px; }
+}

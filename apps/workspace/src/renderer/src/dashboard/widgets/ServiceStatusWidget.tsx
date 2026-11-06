@@ -66,6 +66,18 @@ function statusLabel(state: "up" | "degraded" | "down" | "unknown"): string {
   return state === "up" ? "정상" : state === "degraded" ? "주의" : state === "down" ? "장애" : "확인 불가";
 }
 
+function platformDescription(status: string, fallback: string): string {
+  switch (status) {
+    case "none": case "operational": return "모든 시스템 정상";
+    case "minor": return "일부 성능 저하";
+    case "maintenance": return "계획된 점검";
+    case "major": return "주요 서비스 장애";
+    case "partial_outage": return "일부 서비스 장애";
+    case "major_outage": return "광범위한 서비스 장애";
+    default: return fallback;
+  }
+}
+
 function projectMetricStatus(status: string): string {
   switch (status) {
     case "inactive": return "일시 중지";
@@ -140,7 +152,7 @@ function DiskMeter({ project }: { project: SupabaseProject }): React.JSX.Element
 function DeploymentState({ state }: { state?: string }): React.JSX.Element {
   const normalized = (state ?? "unknown").toLowerCase();
   const status = normalized === "ready" ? "healthy" : normalized === "error" || normalized === "canceled" ? "degraded" : "pending";
-  const label = status === "healthy" ? "READY" : status === "degraded" ? normalized.toUpperCase() : (state ?? "진행 중");
+  const label = status === "healthy" ? "성공" : normalized === "canceled" ? "취소" : status === "degraded" ? "실패" : "진행 중";
   return <span className={"ops-deploy-state ops-deploy-state--" + status}>{label}</span>;
 }
 
@@ -234,10 +246,14 @@ export function ServiceStatusWidget(): React.JSX.Element {
     try {
       const path = "/api/services/" + provider + (provider === "supabase" ? "/metrics-token" : "/token");
       const result = await window.pkmsDesktop.request(path, { method: "PUT", body: { kind: "json", value: JSON.stringify({ token: value }) } });
-      if (result.status !== 200) throw new Error("토큰을 저장하지 못했습니다.");
+      if (result.status !== 200) {
+        const detail = result.body && typeof result.body === "object" && "error" in result.body ? String(result.body.error) : "요청이 거부되었습니다";
+        const requestId = result.body && typeof result.body === "object" && "requestId" in result.body ? String(result.body.requestId) : result.requestId;
+        throw new Error(`저장 실패 (HTTP ${result.status} · ${detail}${requestId ? ` · 요청 ${requestId}` : ""})`);
+      }
       if (provider === "supabase") { setSupabaseToken(""); setShowSupabaseToken(false); }
       else { setVercelToken(""); setShowVercelToken(false); }
-      setMessage(provider === "supabase" ? "Supabase 토큰을 암호화해 저장했습니다." : "Vercel 토큰을 암호화해 저장했습니다.");
+      setMessage(provider === "supabase" ? "Supabase 토큰을 저장했습니다." : "Vercel 토큰을 저장했습니다.");
       await refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "토큰 저장에 실패했습니다."); }
     finally { setBusy(null); }
@@ -251,8 +267,13 @@ export function ServiceStatusWidget(): React.JSX.Element {
   const cfAccounts = cloudflare?.accounts ?? [];
   const sbProjects = (supabase?.projects ?? []) as SupabaseProject[];
   const vercelProjects = (vercel?.projects ?? []) as VercelProject[];
-  const requestTotals = cfAccounts.reduce((total, account) => total + (account.analytics24h?.requests ?? 0), 0) + sbProjects.reduce((total, project) => total + (project.apiRequests ?? 0), 0);
-  const errorTotals = cfAccounts.reduce((total, account) => total + (account.analytics24h?.errors ?? 0), 0);
+  const cfHasMetrics = cfAccounts.some((account) => account.analytics24h !== null && account.analytics24h !== undefined);
+  const supabaseHasMetrics = sbProjects.some((project) => project.apiRequests !== null);
+  const requestSources = [cfHasMetrics ? "Cloudflare" : null, supabaseHasMetrics ? "Supabase" : null].filter((source): source is string => source !== null);
+  const requestTotals = requestSources.length
+    ? cfAccounts.reduce((total, account) => total + (account.analytics24h?.requests ?? 0), 0) + sbProjects.reduce((total, project) => total + (project.apiRequests ?? 0), 0)
+    : null;
+  const errorTotals = cfHasMetrics ? cfAccounts.reduce((total, account) => total + (account.analytics24h?.errors ?? 0), 0) : null;
   const activeProjects = sbProjects.filter((project) => project.status === "ACTIVE_HEALTHY").length;
   const platformHealthy = platforms.filter((platform) => platformState(platform.status) === "up").length;
   const hours = useMemo(getHours, []);
@@ -280,74 +301,74 @@ export function ServiceStatusWidget(): React.JSX.Element {
     <DashboardWidget className="dashboard-widget--wide dashboard-widget--operations" ariaLabel="서비스 흐름 및 상태" onRefresh={() => void refresh()}>
       <div className="ops-dashboard">
         <section className="ops-overview">
-          <div className="ops-page-title"><div><span className="home-overline">SERVICE OBSERVABILITY</span><h1>서비스 흐름과 상태</h1><p>배포, 트래픽, 데이터베이스 상태를 한눈에 확인합니다.</p></div><div className="ops-updated"><span className={loading ? "ops-refresh-dot is-loading" : "ops-refresh-dot"} />{loading ? "동기화 중" : updatedAt ? "마지막 갱신 " + updatedAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) : "대기 중"}</div></div>
+          <div className="ops-page-title"><div><h1>서비스 운영</h1><p>Cloudflare · Supabase · Vercel의 요청, 배포, 상태</p></div><div className="ops-updated"><span className={loading ? "ops-refresh-dot is-loading" : "ops-refresh-dot"} />{loading ? "갱신 중" : updatedAt ? updatedAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) + " 기준" : "아직 갱신 안 됨"}</div></div>
           {apiError ? <div className="ops-alert"><span>!</span>{apiError}</div> : null}
           {authenticated === false ? <div className="ops-alert"><span>↗</span><span>계정별 지표를 연결하려면 PKMS 로그인이 필요합니다.</span><button type="button" onClick={() => void login()} disabled={busy === "pkms"}>PKMS 로그인</button></div> : null}
           <div className="ops-kpi-grid">
-            <div className="ops-kpi ops-kpi--requests"><span>24H REQUESTS</span><strong>{compact(requestTotals)}</strong><small>Cloudflare + Supabase</small><i>↗</i></div>
-            <div className="ops-kpi ops-kpi--errors"><span>24H ERRORS</span><strong>{number(errorTotals)}</strong><small>Cloudflare Worker invocations</small><i>!</i></div>
-            <div className="ops-kpi ops-kpi--projects"><span>ACTIVE DATABASES</span><strong>{number(activeProjects)}<em> / {number(sbProjects.length)}</em></strong><small>Supabase projects</small><i>◫</i></div>
-            <div className="ops-kpi ops-kpi--deploys"><span>READY DEPLOYMENTS</span><strong>{number(vercel?.deployments24h?.ready ?? 0)}</strong><small>Vercel · last 24 hours</small><i>⌁</i></div>
+            <div className="ops-kpi ops-kpi--requests"><span>최근 24시간 요청</span><strong>{requestTotals === null ? "—" : compact(requestTotals)}</strong><small>{requestSources.length ? requestSources.join(" + ") : "사용량 지표를 불러오지 못함"}</small></div>
+            <div className="ops-kpi ops-kpi--errors"><span>Cloudflare 오류</span><strong>{number(errorTotals)}</strong><small>최근 24시간 Worker 요청</small></div>
+            <div className="ops-kpi ops-kpi--projects"><span>활성 데이터베이스</span><strong>{number(activeProjects)}<em> / {number(sbProjects.length)}</em></strong><small>Supabase 프로젝트</small></div>
+            <div className="ops-kpi ops-kpi--deploys"><span>성공한 배포</span><strong>{number(vercel?.connected ? vercel.deployments24h?.ready ?? 0 : null)}</strong><small>Vercel · 최근 24시간</small></div>
           </div>
         </section>
 
         <div className="ops-section-grid">
           <section className="ops-panel ops-panel--flow">
-            <div className="ops-panel-heading"><div><span className="home-overline">TRAFFIC FLOW</span><h2>요청 추이</h2></div><span className="ops-range-pill">24시간</span></div>
+            <div className="ops-panel-heading"><div><h2>요청 추이</h2><p>서비스별 시간당 요청 · 최근 24시간</p></div></div>
             <FlowChart series={requestSeries} />
           </section>
           <section className="ops-panel ops-panel--status">
-            <div className="ops-panel-heading"><div><span className="home-overline">PLATFORM STATUS</span><h2>플랫폼 상태</h2></div><span className="ops-platform-count">{platforms.length ? number(platformHealthy) + "/" + number(platforms.length) + " 정상" : "확인 중"}</span></div>
+            <div className="ops-panel-heading"><div><h2>제공자 상태</h2><p>Cloudflare · Supabase · Vercel</p></div><span className="ops-platform-count">{platforms.length ? number(platformHealthy) + "/" + number(platforms.length) + " 정상" : "확인 중"}</span></div>
             <div className="ops-platform-list">
               {platforms.map((platform) => {
                 const state = platformState(platform.status);
-                return <div className="ops-platform-row" key={platform.id}><span className={"ops-state-indicator ops-state-indicator--" + state} /><span className="ops-platform-name"><strong>{platform.name}</strong><small>{platform.description}</small></span><span className={"ops-state-label ops-state-label--" + state}>{statusLabel(state)}</span>{platform.incidentCount ? <b className="ops-incident-count">{platform.incidentCount}</b> : null}</div>;
+                return <div className="ops-platform-row" key={platform.id}><span className={"ops-state-indicator ops-state-indicator--" + state} /><span className="ops-platform-name"><strong>{platform.name}</strong><small>{platformDescription(platform.status, platform.description)}</small></span><span className={"ops-state-label ops-state-label--" + state}>{statusLabel(state)}</span>{platform.incidentCount ? <b className="ops-incident-count">{platform.incidentCount}</b> : null}</div>;
               })}
               <div className="ops-platform-row"><span className="ops-state-indicator ops-state-indicator--up" /><span className="ops-platform-name"><strong>PKMS Cloud</strong><small>상태 API 응답 정상</small></span><span className="ops-state-label ops-state-label--up">정상</span></div>
             </div>
-            <div className="ops-status-foot"><span className="ops-refresh-dot" /> 공급자 공개 상태 + 실제 계정 API를 함께 확인합니다</div>
+            <div className="ops-status-foot">각 제공자의 공개 상태 페이지 기준</div>
           </section>
         </div>
 
         <section className="ops-panel ops-panel--resources">
-          <div className="ops-panel-heading"><div><span className="home-overline">CONNECTED SERVICES</span><h2>서비스 리소스</h2></div><span className="ops-count-pill">{number(cfAccounts.length + sbProjects.length + vercelProjects.length)} resources</span></div>
+          <div className="ops-panel-heading"><div><h2>연결된 리소스</h2></div><span className="ops-count-pill">{number(cfAccounts.length + sbProjects.length + vercelProjects.length)}개</span></div>
           <div className="ops-resource-columns">
             <section className="ops-resource-group">
-              <header className="ops-provider-heading"><span className="ops-provider-icon ops-provider-icon--cf">C</span><div><strong>Cloudflare</strong><small>{cloudflare?.connected ? number(cfAccounts.reduce((sum, account) => sum + (account.workers?.length ?? 0), 0)) + " Workers" : "연결되지 않음"}</small></div>{cloudflare?.connected ? <button type="button" className="ops-text-button" onClick={() => void disconnect("cloudflare")} disabled={busy === "cloudflare"}>연결 해제</button> : <button type="button" className="ops-text-button" onClick={() => void connect("cloudflare")} disabled={busy === "cloudflare"}>계정 연결</button>}</header>
+              <header className="ops-provider-heading"><div><strong>Cloudflare</strong><small>{cloudflare?.connected ? number(cfAccounts.reduce((sum, account) => sum + (account.workers?.length ?? 0), 0)) + "개 Worker" : "연결되지 않음"}</small></div>{cloudflare?.connected ? <button type="button" className="ops-text-button" onClick={() => void disconnect("cloudflare")} disabled={busy === "cloudflare"}>연결 해제</button> : <button type="button" className="ops-text-button" onClick={() => void connect("cloudflare")} disabled={busy === "cloudflare"}>계정 연결</button>}</header>
               {cloudflare?.connected ? cfAccounts.length ? cfAccounts.map((account) => <div className="ops-resource-card" key={account.id}>
-                <div className="ops-resource-card-top"><div><strong>{account.name}</strong><small>{number(account.analytics24h?.requests ?? 0)} requests · {number(account.analytics24h?.errors ?? 0)} errors</small></div><span className="ops-healthy-chip">LIVE</span></div>
-                <div className="ops-mini-stats"><div><small>요청</small><b>{number(account.analytics24h?.requests ?? 0)}</b></div><div><small>하위 요청</small><b>{number(account.analytics24h?.subrequests ?? 0)}</b></div><div><small>CPU p99</small><b>{account.analytics24h?.cpuTimeP99 === null || account.analytics24h?.cpuTimeP99 === undefined ? "—" : account.analytics24h.cpuTimeP99.toFixed(0) + " ms"}</b></div></div>
+                  <div className="ops-resource-card-top"><div><strong>{account.name}</strong></div></div>
+                <div className="ops-mini-stats"><div><small>최근 24시간 요청</small><b>{number(account.analytics24h?.requests ?? 0)}</b></div><div><small>하위 요청</small><b>{number(account.analytics24h?.subrequests ?? 0)}</b></div></div>
                 <div className="ops-worker-list">{(account.workers ?? []).map((worker) => <div key={worker.name}><span className="ops-worker-dot" /><strong>{worker.name}</strong><small>{worker.lastModified ? new Date(worker.lastModified).toLocaleDateString("ko-KR") + " 배포" : "배포 시각 없음"}</small></div>)}</div>
               </div>) : <div className="ops-empty-state">배포된 Worker가 없습니다.</div> : <div className="ops-connect-state"><span>Workers 배포와 요청 지표를 연결합니다.</span><small>읽기 전용 계정 권한</small></div>}
             </section>
 
             <section className="ops-resource-group">
-              <header className="ops-provider-heading"><span className="ops-provider-icon ops-provider-icon--sb">S</span><div><strong>Supabase</strong><small>{supabase?.connected ? number(sbProjects.length) + " projects · " + number(activeProjects) + " active" : "OAuth 미연결"}</small></div>{supabase?.connected ? <button type="button" className="ops-text-button" onClick={() => void disconnect("supabase")} disabled={busy === "supabase"}>연결 해제</button> : <button type="button" className="ops-text-button" onClick={() => void connect("supabase")} disabled={busy === "supabase"}>OAuth 연결</button>}</header>
+              <header className="ops-provider-heading"><div><strong>Supabase</strong><small>{supabase?.connected ? number(sbProjects.length) + "개 프로젝트 · " + number(activeProjects) + "개 운영 중" : "계정 연결 안 됨"}</small></div>{supabase?.connected ? <button type="button" className="ops-text-button" onClick={() => void disconnect("supabase")} disabled={busy === "supabase"}>연결 해제</button> : <button type="button" className="ops-text-button" onClick={() => void connect("supabase")} disabled={busy === "supabase"}>계정 연결</button>}</header>
               {supabase?.connected ? sbProjects.map((project) => {
                 const state = projectState(project.status);
                 return <div className={"ops-resource-card ops-project-card ops-project-card--" + state} key={project.id}>
-                  <div className="ops-resource-card-top"><div><strong>{project.name}</strong><small>{project.region ?? "리전 정보 없음"}</small></div><span className={"ops-project-chip ops-project-chip--" + state}>{state === "healthy" ? "HEALTHY" : state === "paused" ? "INACTIVE" : project.status}</span></div>
+                <div className="ops-resource-card-top"><div><strong>{project.name}</strong><small>{project.region ?? "리전 정보 없음"}</small></div><span className={"ops-project-chip ops-project-chip--" + state}>{state === "healthy" ? "정상" : state === "paused" ? "일시 중지" : "상태 확인 필요"}</span></div>
                   {state === "healthy" ? <div className="ops-mini-stats"><div><small>DB 크기</small><b>{project.databaseSizeMb === null ? projectMetricStatus(project.databaseMetricsStatus) || "—" : project.databaseSizeMb.toFixed(1) + " MB"}</b></div><div><small>활성 연결</small><b>{number(project.activeConnections)}</b></div><div><small>API 요청 · 24H</small><b>{number(project.apiRequests)}</b></div></div> : <div className="ops-project-paused">프로젝트가 일시 중지되어 실시간 지표가 제공되지 않습니다.</div>}
                   <DiskMeter project={project} />
                   {project.storageRequests !== null ? <div className="ops-project-foot"><span>Storage 요청</span><strong>{number(project.storageRequests)} <small>/ 24H</small></strong></div> : null}
                 </div>;
               }) : <div className="ops-connect-state"><span>프로젝트·DB 지표는 Supabase OAuth 연결에서 가져옵니다.</span><small>{supabase?.supplementalTokenConfigured ? "보조 토큰 등록 완료 · OAuth 연결 후 사용량/디스크 조회" : "Usage Analytics Read + Disk Config Read 토큰 필요"}</small></div>}
               {authenticated ? <div className="ops-token-row"><span>{supabase?.supplementalTokenConfigured ? "보조 토큰 등록됨" : "읽기 전용 Management API 토큰"}</span><div><button type="button" className="ops-text-button" onClick={() => setShowSupabaseToken((value) => !value)}>{supabase?.supplementalTokenConfigured ? "교체" : "등록"}</button>{supabase?.supplementalTokenConfigured ? <button type="button" className="ops-text-button ops-text-button--danger" onClick={() => void deleteSupabaseToken()} disabled={busy === "supabase-token"}>토큰 삭제</button> : null}</div></div> : null}
-              {showSupabaseToken ? <form className="ops-token-form" onSubmit={(event) => void saveToken("supabase", event)}><input type="password" autoComplete="new-password" value={supabaseToken} onChange={(event) => setSupabaseToken(event.target.value)} placeholder="Supabase 읽기 전용 토큰" aria-label="Supabase 읽기 전용 토큰" /><button type="submit" disabled={!supabaseToken.trim() || busy === "supabase-token"}>저장</button></form> : null}
+              {showSupabaseToken ? <form className="ops-token-form" onSubmit={(event) => void saveToken("supabase", event)}><div className="ops-token-help">서버에는 토큰을 잠가 보관하고, Supabase 지표를 불러올 때만 열어 씁니다.</div><input type="password" autoComplete="new-password" value={supabaseToken} onChange={(event) => setSupabaseToken(event.target.value)} placeholder="Supabase 읽기 전용 토큰" aria-label="Supabase 읽기 전용 토큰" /><button type="submit" disabled={!supabaseToken.trim() || busy === "supabase-token"}>저장</button></form> : null}
             </section>
 
             <section className="ops-resource-group">
-              <header className="ops-provider-heading"><span className="ops-provider-icon ops-provider-icon--vc">▲</span><div><strong>Vercel</strong><small>{vercel?.connected ? number(vercelProjects.length) + " projects · " + number(vercel?.deployments24h?.total ?? 0) + " deployments / 24H" : "토큰 미연결"}</small></div>{vercel?.tokenConfigured ? <button type="button" className="ops-text-button ops-text-button--danger" onClick={() => void disconnect("vercel")} disabled={busy === "vercel"}>토큰 삭제</button> : null}</header>
+              <header className="ops-provider-heading"><div><strong>Vercel</strong><small>{vercel?.connected ? number(vercelProjects.length) + "개 프로젝트 · " + number(vercel?.deployments24h?.total ?? 0) + "회 배포 / 24시간" : "토큰 연결 안 됨"}</small></div>{vercel?.tokenConfigured ? <button type="button" className="ops-text-button ops-text-button--danger" onClick={() => void disconnect("vercel")} disabled={busy === "vercel"}>토큰 삭제</button> : null}</header>
               {vercel?.connected ? <>
                 {(vercel?.error ? <div className="ops-connect-state"><span>토큰에 프로젝트·배포 읽기 권한이 있는지 확인하세요.</span></div> : null)}
                 {vercelProjects.map((project) => {
                   const deploy = project.latestDeployment as VercelDeployment | null | undefined;
                   return <div className="ops-vercel-project" key={project.id}><div><strong>{project.name}</strong><small>{project.framework || "Vercel Project"}</small></div><div>{deploy ? <><DeploymentState state={deploy.readyState ?? deploy.state} /><small>{deploy.createdAt ? new Date(deploy.createdAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "시간 없음"}</small></> : <small>최근 배포 없음</small>}</div></div>;
                 })}
-                <div className="ops-deployment-summary"><span>최근 24시간</span><b>{number(vercel?.deployments24h?.ready ?? 0)} READY</b><b className="ops-deploy-failed">{number(vercel?.deployments24h?.failed ?? 0)} FAILED</b></div>
+                <div className="ops-deployment-summary"><span>최근 24시간</span><b>{number(vercel?.deployments24h?.ready ?? 0)}회 성공</b><b className="ops-deploy-failed">{number(vercel?.deployments24h?.failed ?? 0)}회 실패</b></div>
               </> : <div className="ops-connect-state"><span>프로젝트와 최근 배포 상태를 불러옵니다.</span><small>Vercel Access Token · 읽기 전용 사용</small></div>}
               {authenticated && !vercel?.tokenConfigured ? <button type="button" className="ops-token-cta" onClick={() => setShowVercelToken((value) => !value)}>{showVercelToken ? "토큰 입력 닫기" : "Vercel 토큰 등록"}</button> : null}
-              {showVercelToken ? <form className="ops-token-form" onSubmit={(event) => void saveToken("vercel", event)}><input type="password" autoComplete="new-password" value={vercelToken} onChange={(event) => setVercelToken(event.target.value)} placeholder="Vercel Access Token" aria-label="Vercel Access Token" /><button type="submit" disabled={!vercelToken.trim() || busy === "vercel-token"}>암호화해 저장</button></form> : null}
+              {showVercelToken ? <form className="ops-token-form" onSubmit={(event) => void saveToken("vercel", event)}><div className="ops-token-help">서버에는 토큰을 잠가 보관하고, Vercel 정보를 불러올 때만 열어 씁니다.</div><input type="password" autoComplete="new-password" value={vercelToken} onChange={(event) => setVercelToken(event.target.value)} placeholder="Vercel Access Token" aria-label="Vercel Access Token" /><button type="submit" disabled={!vercelToken.trim() || busy === "vercel-token"}>저장</button></form> : null}
               {vercel?.error ? <small className="ops-inline-error">Vercel API에서 정보를 가져오지 못했습니다.</small> : null}
             </section>
           </div>
