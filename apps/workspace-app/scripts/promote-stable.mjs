@@ -35,6 +35,9 @@ function promoteMac() {
   if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS) {
     builderArgs.push(`-c.mac.entitlements=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS)}`);
   }
+  if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT) {
+    builderArgs.push(`-c.mac.entitlementsInherit=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT)}`);
+  }
   if (process.env.PROMOTE_STABLE_ELECTRON_DIST) {
     builderArgs.push(`-c.electronDist=${path.resolve(process.env.PROMOTE_STABLE_ELECTRON_DIST)}`);
   }
