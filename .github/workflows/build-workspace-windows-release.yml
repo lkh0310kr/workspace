@@ -12,7 +12,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-windows:
@@ -51,12 +51,19 @@ jobs:
           }
       - name: Build Windows installer and update metadata
         run: npm run release:win --prefix apps/workspace-app
-      - uses: actions/upload-artifact@v4
-        with:
-          name: workspace-windows-release
-          path: |
-            apps/workspace-app/dist/*.exe
-            apps/workspace-app/dist/*.blockmap
-            apps/workspace-app/dist/latest.yml
-          if-no-files-found: error
-          retention-days: 14
+      - name: Upload Windows installer and update metadata to the draft release
+        shell: pwsh
+        working-directory: apps/workspace-app
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          $releaseTag = if ($env:INPUT_VERSION) { "v$env:INPUT_VERSION" } else { $env:GITHUB_REF_NAME }
+          $assets = Get-ChildItem -Path dist -File | Where-Object {
+            $_.Name -like '*.exe' -or $_.Name -like '*.blockmap' -or $_.Name -eq 'latest.yml'
+          } | ForEach-Object { $_.FullName }
+          if (-not ($assets | Where-Object { $_ -like '*latest.yml' })) {
+            throw 'Windows update metadata latest.yml was not generated'
+          }
+          gh release upload $releaseTag $assets --repo lkh0310kr/workspace --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
