@@ -1,0 +1,5 @@
+HOME_DATA_ENCRYPTION_KEY=base64-encoded-32-byte-key
+CLOUDFLARE_OAUTH_CLIENT_ID=cloudflare-oauth-client-id
+CLOUDFLARE_OAUTH_CLIENT_SECRET=cloudflare-oauth-client-secret
+SUPABASE_OAUTH_CLIENT_ID=supabase-oauth-client-id
+SUPABASE_OAUTH_CLIENT_SECRET=supabase-oauth-client-secret

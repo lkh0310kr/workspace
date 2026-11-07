@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "workspace-home",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "vars": {
+    "HOME_PUBLIC_ORIGIN": "https://workspace-home.lkh0310kr.workers.dev",
+    "PKMS_ISSUER": "https://pkms-cloud.lkh0310kr.workers.dev",
+    "PKMS_JWKS_URL": "https://pkms-cloud.lkh0310kr.workers.dev/.well-known/jwks.json",
+    "PKMS_TOKEN_AUDIENCE": "workspace-home",
+    "ALLOWED_GITHUB_LOGIN": "lkh0310kr"
+  },
+  "d1_databases": [
+    { "binding": "HOME_DB", "database_name": "workspace-home", "database_id": "0971cedc-2cfa-4d74-ba11-a0f7d953134f", "migrations_dir": "migrations" }
+  ]
+}
