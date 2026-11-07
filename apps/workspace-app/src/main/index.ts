@@ -58,6 +58,7 @@ import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { disposeCadViewers } from './cadViewer'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
+import { checkForUpdatesByUser, initializeAutoUpdates } from './autoUpdate'
 
 // WSLg + Windows DPI: must run before ready / BrowserWindow (see wslPaths).
 applyWslDpiScaleFix((name, value) => {
@@ -432,6 +433,10 @@ function buildAppMenu(): Menu {
       label: appName,
       submenu: [
         { role: 'about' },
+        {
+          label: 'Check for Updates…',
+          click: () => void checkForUpdatesByUser()
+        },
         { type: 'separator' },
         { role: 'services' },
         { type: 'separator' },
@@ -623,6 +628,7 @@ app.whenReady().then(() => {
 
   appendStartupLog('create_window_begin')
   bindMainWindow(createWindow())
+  initializeAutoUpdates()
   appendStartupLog('create_window_end', {
     hasMainWindow: !!mainWindowRef,
     visible: mainWindowRef?.isVisible() ?? null,

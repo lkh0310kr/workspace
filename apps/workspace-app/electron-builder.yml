@@ -1,5 +1,10 @@
 appId: com.kanghyun.workspace
 productName: Workspace
+publish:
+  provider: github
+  owner: lkh0310kr
+  repo: workspace
+  releaseType: draft
 directories:
   buildResources: build
 files:
@@ -29,6 +34,9 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
+  target:
+    - dmg
+    - zip
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.

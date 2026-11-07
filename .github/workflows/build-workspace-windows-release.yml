@@ -1,0 +1,43 @@
+name: Build Workspace Windows release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/workspace-app/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/workspace-app
+      - name: Verify release tag matches app version
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          if ($env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Release tag $env:GITHUB_REF_NAME does not match app version $version"
+          }
+        working-directory: apps/workspace-app
+      - name: Build Windows installer and update metadata
+        run: npm run release:win
+        working-directory: apps/workspace-app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: workspace-windows-release
+          path: |
+            apps/workspace-app/dist/*.exe
+            apps/workspace-app/dist/*.blockmap
+            apps/workspace-app/dist/latest.yml
+          if-no-files-found: error
+          retention-days: 14

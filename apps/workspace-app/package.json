@@ -1,6 +1,6 @@
 {
   "name": "workspace-app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Personal terminal/editor/browser workspace app",
   "main": "./out/main/index.js",
   "scripts": {
@@ -25,7 +25,9 @@
     "prebuild:win:dir": "node scripts/apply-xterm-patch.mjs",
     "build:win": "npm run build && electron-builder --win",
     "build:win:dir": "npm run build && electron-builder --win --dir",
-    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:mac": "npm run build && electron-builder --mac --publish never",
+    "release:mac": "npm run build && electron-builder --mac --publish never",
+    "release:win": "npm run build && electron-builder --win --publish never",
     "build:linux": "electron-vite build && electron-builder --linux"
   },
   "dependencies": {
@@ -56,6 +58,7 @@
     "@xterm/xterm": "6.1.0-beta.287",
     "adm-zip": "^0.6.0",
     "better-sqlite3": "^12.11.1",
+    "electron-updater": "^6.8.11",
     "flexlayout-react": "^0.10.5",
     "node-pty": "^1.1.0",
     "react-router": "^8.5.1",

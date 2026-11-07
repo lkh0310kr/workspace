@@ -25,3 +25,9 @@ npm run build:mac
 npm run build:win
 npm run build:linux
 ```
+
+## Updates and releases
+
+Packaged macOS and Windows builds check the public `lkh0310kr/workspace` GitHub Releases feed after launch and download a newer stable release in the background. When it is ready, Workspace asks before restarting to install it. On macOS, use **Workspace → Check for Updates…** to check manually.
+
+Create each release from a signed native build (`npm run release:mac` on macOS or `npm run release:win` on Windows), then upload that build's installer and generated update metadata to a GitHub Draft Release. Publish the release only after both platforms are ready. Keep the app version in `package.json` and the Git tag aligned (electron-builder expects `v<version>`). macOS updates require a Developer ID signed app; public distribution should also be notarized. Windows updates require the NSIS installer target. Never mix update metadata from different platform builds.
