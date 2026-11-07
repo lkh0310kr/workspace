@@ -9,8 +9,8 @@
  * No GitHub release, no version bump, no update server — single-machine personal app.
  */
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, rmSync, cpSync, writeFileSync, unlinkSync, renameSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, rmSync, cpSync, writeFileSync, unlinkSync, renameSync, readFileSync } from "node:fs";
+import { tmpdir, homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,38 +22,69 @@ function sleepMs(ms) {
   });
 }
 
+const WORKSPACE_BUNDLE_EXECUTABLE = /\/Applications\/Workspace[^/]*\.app\/Contents\/MacOS\/Workspace(?! Helper)(?:\s|$)/;
+
+function listWorkspaceMainPids() {
+  const result = spawnSync("ps", ["-A", "-o", "pid=,command="], { encoding: "utf8" });
+  if (result.status !== 0) throw new Error(`could not inspect Workspace processes: ${result.stderr?.trim() || "ps failed"}`);
+  return (result.stdout ?? "").split(/\r?\n/).flatMap(line => {
+    if (!WORKSPACE_BUNDLE_EXECUTABLE.test(line) || line.includes("ptyHostDaemon.js")) return [];
+    const pid = Number.parseInt(line.trim().split(/\s+/, 1)[0], 10);
+    return Number.isFinite(pid) && pid !== process.pid ? [pid] : [];
+  });
+}
+
+async function stopWorkspaceMacProcesses() {
+  let pids = listWorkspaceMainPids();
+  for (const pid of pids) {
+    try { process.kill(pid, "SIGTERM"); } catch { /* exited between listing and signal */ }
+  }
+  const gracefulDeadline = Date.now() + 12_000;
+  while (Date.now() < gracefulDeadline) {
+    pids = listWorkspaceMainPids();
+    if (pids.length === 0) return;
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  for (const pid of pids) {
+    console.warn(`[promote-stable] force-stopping Workspace process ${pid} after graceful shutdown timeout`);
+    try { process.kill(pid, "SIGKILL"); } catch { /* exited between listing and signal */ }
+  }
+  const forceDeadline = Date.now() + 3_000;
+  while (Date.now() < forceDeadline && listWorkspaceMainPids().length > 0) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  if (listWorkspaceMainPids().length > 0) throw new Error("could not stop all Workspace app instances");
+}
+
+function readStartupEvents() {
+  const file = path.join(homedir(), "Library", "Application Support", "workspace-app", "logs", "startup.ndjson");
+  if (!existsSync(file)) return [];
+  return readFileSync(file, "utf8").split(/\r?\n/).flatMap(line => {
+    try { return [JSON.parse(line)]; } catch { return []; }
+  });
+}
+
 async function promoteMac() {
   const builtApp = path.join(root, "dist", "mac-arm64", "Workspace.app");
   const installedApp = "/Applications/Workspace.app";
 
+  const identities = spawnSync("security", ["find-identity", "-v", "-p", "codesigning"], { encoding: "utf8" });
+  const hasValidIdentity = /\b[1-9]\d* valid identities found\b/.test(identities.stdout ?? "");
+  const signingIdentity = process.env.PROMOTE_STABLE_MAC_IDENTITY;
+  if (!signingIdentity && !hasValidIdentity) {
+    throw new Error(
+      "No valid macOS code-signing identity is available. Install/select the Developer ID Application certificate used for Workspace before promoting; ad-hoc signed Electron builds cannot be launched reliably by macOS.",
+    );
+  }
   console.log("[promote-stable] building…");
   execFileSync("npm", ["run", "build"], { cwd: root, stdio: "inherit" });
   const builderArgs = ["electron-builder", "--mac", "--dir"];
-  const identities = spawnSync("security", ["find-identity", "-v", "-p", "codesigning"], { encoding: "utf8" });
-  const hasValidIdentity = /\b[1-9]\d* valid identities found\b/.test(identities.stdout ?? "");
-  const signingIdentity = process.env.PROMOTE_STABLE_MAC_IDENTITY ?? (hasValidIdentity ? undefined : "-");
-  let localEntitlementsPath;
   if (signingIdentity) builderArgs.push(`-c.mac.identity=${signingIdentity}`);
-  if (signingIdentity === "-") {
-    console.warn("[promote-stable] no Developer ID certificate; using local-only ad-hoc signing (not for distribution)");
-    localEntitlementsPath = path.join(tmpdir(), `workspace-local-entitlements-${Date.now()}.plist`);
-    writeFileSync(localEntitlementsPath, `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>com.apple.security.cs.allow-jit</key><true/>
-<key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/>
-<key>com.apple.security.cs.allow-dyld-environment-variables</key><true/>
-<key>com.apple.security.cs.disable-library-validation</key><true/>
-</dict></plist>`);
-    builderArgs.push(`-c.mac.entitlements=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS ?? localEntitlementsPath)}`);
-    builderArgs.push(`-c.mac.entitlementsInherit=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT ?? localEntitlementsPath)}`);
-  } else {
-    if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS) {
-      builderArgs.push(`-c.mac.entitlements=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS)}`);
-    }
-    if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT) {
-      builderArgs.push(`-c.mac.entitlementsInherit=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT)}`);
-    }
+  if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS) {
+    builderArgs.push(`-c.mac.entitlements=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS)}`);
+  }
+  if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT) {
+    builderArgs.push(`-c.mac.entitlementsInherit=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT)}`);
   }
   const electronDist = process.env.PROMOTE_STABLE_ELECTRON_DIST
     ? path.resolve(process.env.PROMOTE_STABLE_ELECTRON_DIST)
@@ -61,11 +92,7 @@ async function promoteMac() {
   if (existsSync(electronDist)) {
     builderArgs.push(`-c.electronDist=${electronDist}`);
   }
-  try {
-    execFileSync("npx", builderArgs, { cwd: root, stdio: "inherit" });
-  } finally {
-    if (localEntitlementsPath) unlinkSync(localEntitlementsPath);
-  }
+  execFileSync("npx", builderArgs, { cwd: root, stdio: "inherit" });
 
   if (!existsSync(builtApp)) {
     console.error(`[promote-stable] expected build output missing: ${builtApp}`);
@@ -74,12 +101,8 @@ async function promoteMac() {
 
   execFileSync("codesign", ["--verify", "--deep", "--strict", builtApp], { stdio: "inherit" });
 
-  console.log("[promote-stable] quitting the running stable app, if any…");
-  try {
-    execFileSync("pkill", ["-x", "Workspace"], { stdio: "ignore" });
-  } catch {
-    /* not running */
-  }
+  console.log("[promote-stable] quitting every running Workspace app instance…");
+  await stopWorkspaceMacProcesses();
 
   console.log(`[promote-stable] installing to ${installedApp}…`);
   const incomingApp = `${installedApp}.incoming-${Date.now()}`;
@@ -96,17 +119,19 @@ async function promoteMac() {
 
   console.log("[promote-stable] relaunching…");
   const executable = path.join(installedApp, "Contents", "MacOS", "Workspace");
+  const launchStartedAt = Date.now();
   const child = spawn(executable, [], { detached: true, stdio: "ignore" });
   child.unref();
   try {
     if (!child.pid) throw new Error("Workspace did not start");
     await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        try { process.kill(child.pid, 0); resolve(); }
-        catch { reject(new Error("Workspace exited during relaunch")); }
-      }, 2500);
+      const timeout = setTimeout(() => resolve(), 8_000);
       child.once("error", error => { clearTimeout(timeout); reject(error); });
     });
+    const startupEvents = readStartupEvents().filter(event => event.pid === child.pid && event.execPath === executable && Date.parse(event.ts) >= launchStartedAt);
+    const windowShown = startupEvents.some(event => event.event === "window_revealed");
+    const rendererCrashed = startupEvents.some(event => event.event === "webcontents_render_process_gone" && event.reason === "crashed");
+    if (!windowShown || rendererCrashed) throw new Error("new Workspace process did not show a healthy window");
   } catch (error) {
     if (existsSync(backupApp)) {
       const failedApp = `${installedApp}.failed-${Date.now()}.app`;
@@ -398,13 +423,16 @@ function promoteWindows() {
   child.unref();
 }
 
-if (process.platform === "darwin") {
-  promoteMac();
-} else if (process.platform === "win32") {
-  promoteWindows();
-} else {
-  console.error("promote-stable supports macOS and Windows only.");
-  process.exit(1);
+try {
+  if (process.platform === "darwin") {
+    await promoteMac();
+  } else if (process.platform === "win32") {
+    promoteWindows();
+  } else {
+    throw new Error("promote-stable supports macOS and Windows only.");
+  }
+  console.log("[promote-stable] done.");
+} catch (error) {
+  console.error(`[promote-stable] failed: ${error instanceof Error ? error.message : String(error)}`);
+  process.exitCode = 1;
 }
-
-console.log("[promote-stable] done.");
