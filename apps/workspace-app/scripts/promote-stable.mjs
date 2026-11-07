@@ -9,7 +9,7 @@
  * No GitHub release, no version bump, no update server — single-machine personal app.
  */
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, rmSync, cpSync, writeFileSync, unlinkSync } from "node:fs";
+import { existsSync, rmSync, cpSync, writeFileSync, unlinkSync, renameSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,21 +22,38 @@ function sleepMs(ms) {
   });
 }
 
-function promoteMac() {
+async function promoteMac() {
   const builtApp = path.join(root, "dist", "mac-arm64", "Workspace.app");
   const installedApp = "/Applications/Workspace.app";
 
   console.log("[promote-stable] building…");
   execFileSync("npm", ["run", "build"], { cwd: root, stdio: "inherit" });
   const builderArgs = ["electron-builder", "--mac", "--dir"];
-  if (process.env.PROMOTE_STABLE_MAC_IDENTITY) {
-    builderArgs.push(`-c.mac.identity=${process.env.PROMOTE_STABLE_MAC_IDENTITY}`);
-  }
-  if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS) {
-    builderArgs.push(`-c.mac.entitlements=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS)}`);
-  }
-  if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT) {
-    builderArgs.push(`-c.mac.entitlementsInherit=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT)}`);
+  const identities = spawnSync("security", ["find-identity", "-v", "-p", "codesigning"], { encoding: "utf8" });
+  const hasValidIdentity = /\b[1-9]\d* valid identities found\b/.test(identities.stdout ?? "");
+  const signingIdentity = process.env.PROMOTE_STABLE_MAC_IDENTITY ?? (hasValidIdentity ? undefined : "-");
+  let localEntitlementsPath;
+  if (signingIdentity) builderArgs.push(`-c.mac.identity=${signingIdentity}`);
+  if (signingIdentity === "-") {
+    console.warn("[promote-stable] no Developer ID certificate; using local-only ad-hoc signing (not for distribution)");
+    localEntitlementsPath = path.join(tmpdir(), `workspace-local-entitlements-${Date.now()}.plist`);
+    writeFileSync(localEntitlementsPath, `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>com.apple.security.cs.allow-jit</key><true/>
+<key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/>
+<key>com.apple.security.cs.allow-dyld-environment-variables</key><true/>
+<key>com.apple.security.cs.disable-library-validation</key><true/>
+</dict></plist>`);
+    builderArgs.push(`-c.mac.entitlements=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS ?? localEntitlementsPath)}`);
+    builderArgs.push(`-c.mac.entitlementsInherit=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT ?? localEntitlementsPath)}`);
+  } else {
+    if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS) {
+      builderArgs.push(`-c.mac.entitlements=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS)}`);
+    }
+    if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT) {
+      builderArgs.push(`-c.mac.entitlementsInherit=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS_INHERIT)}`);
+    }
   }
   const electronDist = process.env.PROMOTE_STABLE_ELECTRON_DIST
     ? path.resolve(process.env.PROMOTE_STABLE_ELECTRON_DIST)
@@ -44,12 +61,18 @@ function promoteMac() {
   if (existsSync(electronDist)) {
     builderArgs.push(`-c.electronDist=${electronDist}`);
   }
-  execFileSync("npx", builderArgs, { cwd: root, stdio: "inherit" });
+  try {
+    execFileSync("npx", builderArgs, { cwd: root, stdio: "inherit" });
+  } finally {
+    if (localEntitlementsPath) unlinkSync(localEntitlementsPath);
+  }
 
   if (!existsSync(builtApp)) {
     console.error(`[promote-stable] expected build output missing: ${builtApp}`);
     process.exit(1);
   }
+
+  execFileSync("codesign", ["--verify", "--deep", "--strict", builtApp], { stdio: "inherit" });
 
   console.log("[promote-stable] quitting the running stable app, if any…");
   try {
@@ -59,11 +82,41 @@ function promoteMac() {
   }
 
   console.log(`[promote-stable] installing to ${installedApp}…`);
-  rmSync(installedApp, { recursive: true, force: true });
-  cpSync(builtApp, installedApp, { recursive: true, dereference: false, verbatimSymlinks: true });
+  const incomingApp = `${installedApp}.incoming-${Date.now()}`;
+  const backupApp = `${installedApp}.previous-${new Date().toISOString().replace(/[:.]/g, "-")}.app`;
+  rmSync(incomingApp, { recursive: true, force: true });
+  cpSync(builtApp, incomingApp, { recursive: true, dereference: false, verbatimSymlinks: true });
+  if (existsSync(installedApp)) renameSync(installedApp, backupApp);
+  try {
+    renameSync(incomingApp, installedApp);
+  } catch (error) {
+    if (existsSync(backupApp) && !existsSync(installedApp)) renameSync(backupApp, installedApp);
+    throw error;
+  }
 
   console.log("[promote-stable] relaunching…");
-  execFileSync("open", ["-a", installedApp]);
+  const executable = path.join(installedApp, "Contents", "MacOS", "Workspace");
+  const child = spawn(executable, [], { detached: true, stdio: "ignore" });
+  child.unref();
+  try {
+    if (!child.pid) throw new Error("Workspace did not start");
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        try { process.kill(child.pid, 0); resolve(); }
+        catch { reject(new Error("Workspace exited during relaunch")); }
+      }, 2500);
+      child.once("error", error => { clearTimeout(timeout); reject(error); });
+    });
+  } catch (error) {
+    if (existsSync(backupApp)) {
+      const failedApp = `${installedApp}.failed-${Date.now()}.app`;
+      renameSync(installedApp, failedApp);
+      renameSync(backupApp, installedApp);
+      console.error(`[promote-stable] restored previous app after relaunch failure; failed build kept at ${failedApp}`);
+    }
+    throw error;
+  }
+  console.log(`[promote-stable] launched (${executable})`);
 }
 
 const WINDOWS_SHORTCUT_NAME = "Workspace";
