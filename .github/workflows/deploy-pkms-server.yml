@@ -1,0 +1,36 @@
+name: Deploy PKMS Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/pkms-server/**"
+      - "packages/pkms-protocol/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-pkms-server.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-pkms-server
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run pkms:server:typecheck
+      - run: npm run pkms:server:deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ff0bd6a425dcd9b7b348d3db0dec6448

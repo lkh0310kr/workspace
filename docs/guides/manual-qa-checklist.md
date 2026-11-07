@@ -1,6 +1,6 @@
 # 수동 QA 체크리스트
 
-릴리스 전이나 레이아웃·embed를 크게 변경한 뒤 실행합니다. 개발 모드 실행: `cd apps/workspace && npm run dev`.
+릴리스 전이나 레이아웃·embed를 크게 변경한 뒤 실행합니다. 개발 모드 실행: `cd apps/workspace-app && npm run dev`.
 
 ## Workspace 탭
 
@@ -38,7 +38,6 @@
 
 ## 월드 엔진
 
-- [ ] Godot 프로젝트 메뉴에서 Web export 후 결과를 Browser 탭으로 엶
 - [ ] Web 콘텐츠의 전체 화면 진입 시 앱 크롬이 숨고, 종료 시 복구됨
 
 ## 디버그(개발 모드 전용)

@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "apps/web/**"
+      - "apps/pkms-web/**"
       - "packages/pkms-client/**"
       - "packages/pkms-protocol/**"
       - "package.json"
@@ -30,7 +30,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci --ignore-scripts
-      - run: npm run web:deploy
+      - run: npm run pkms:web:typecheck
+      - run: npm run pkms:web:deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ff0bd6a425dcd9b7b348d3db0dec6448

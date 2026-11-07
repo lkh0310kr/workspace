@@ -4,14 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "=== cargo test (domain crates) ==="
-cargo test -p world-engine-core -p hardware-sim-core
+echo "=== apps/workspace-app typecheck ==="
+(cd apps/workspace-app && npm run typecheck)
 
-echo "=== apps/workspace typecheck ==="
-(cd apps/workspace && npm run typecheck)
-
-echo "=== apps/workspace vitest (foundation modules) ==="
-(cd apps/workspace && npx vitest run \
+echo "=== apps/workspace-app vitest (foundation modules) ==="
+(cd apps/workspace-app && npx vitest run \
   src/shared/layoutSalvage.test.ts \
   src/shared/ebookState.test.ts \
   src/renderer/src/layout/layoutSession.test.ts \

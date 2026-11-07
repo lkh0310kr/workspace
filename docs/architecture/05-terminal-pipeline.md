@@ -37,10 +37,10 @@ cannot be resumed.
 
 | File | Role |
 |------|------|
-| `apps/workspace/src/main/pty.ts` | Main-process client for the detached PTY host |
-| `apps/workspace/src/main/ptyHostDaemon.ts` | Detached PTY owner and bounded output replay |
-| `apps/workspace/src/main/ptySession.ts` | `PtySession`, local replay, attach/detach |
-| `apps/workspace/src/main/workspace.ts` | `TerminalEntry` map, spawn on layout restore |
+| `apps/workspace-app/src/main/pty.ts` | Main-process client for the detached PTY host |
+| `apps/workspace-app/src/main/ptyHostDaemon.ts` | Detached PTY owner and bounded output replay |
+| `apps/workspace-app/src/main/ptySession.ts` | `PtySession`, local replay, attach/detach |
+| `apps/workspace-app/src/main/workspace.ts` | `TerminalEntry` map, spawn on layout restore |
 
 `PtyReplayBuffer` retains ~5000×120 characters for reconnect replay. Output while disconnected is still buffered.
 
@@ -66,7 +66,7 @@ Resize: `pane-fit-resize-observer` + `setPaneFitListener` for PTY sync (not a du
 
 ## Pane manager (single-leaf subset)
 
-Directory: `apps/workspace/src/renderer/src/lib/pane-manager/`
+Directory: `apps/workspace-app/src/renderer/src/lib/pane-manager/`
 
 Orca’s full split/divider PaneManager was reduced to **one xterm per pane**:
 
@@ -84,7 +84,7 @@ Orca’s full split/divider PaneManager was reduced to **one xterm per pane**:
 
 ### WebGL / GPU
 
-- `@xterm/addon-webgl` beta aligned with Orca; patches in `apps/workspace/patches/`
+- `@xterm/addon-webgl` beta aligned with Orca; patches in `apps/workspace-app/patches/`
 - `terminalGpuAcceleration: "auto"` in `TerminalPane` (WebGL via `@xterm/addon-webgl`)
 - Wheel events scroll xterm history when no app has enabled mouse reporting; mouse-reporting TUIs receive calibrated wheel reports in either buffer (`terminal-wheel-scroll.ts`, `pane-terminal-mouse-wheel.ts`)
 - On resize: `refitPaneTerminal` disposes and re-attaches WebGL to avoid tiny-canvas glitches
@@ -124,12 +124,12 @@ Safe find wrapper: `terminalSearchSafeFind.ts` — limits query size.
 
 ## xterm dependencies
 
-Declared in `apps/workspace/package.json`:
+Declared in `apps/workspace-app/package.json`:
 
 - `@xterm/xterm`, `@xterm/addon-fit`, `@xterm/addon-search`, `@xterm/addon-serialize`
 - `@xterm/addon-unicode11`, `@xterm/addon-web-links`, `@xterm/addon-webgl`, `@xterm/addon-ligatures`
 
-Post-install: `apps/workspace/scripts/apply-xterm-patch.mjs`
+Post-install: `apps/workspace-app/scripts/apply-xterm-patch.mjs`
 
 ## Debugging terminal display
 
@@ -144,4 +144,3 @@ Post-install: `apps/workspace/scripts/apply-xterm-patch.mjs`
 
 - [02-process-and-ipc.md](./02-process-and-ipc.md)
 - [04-interaction-coordinator.md](./04-interaction-coordinator.md)
-- [architecture-phases.md](../planning/architecture-phases.md) — cold-park planned

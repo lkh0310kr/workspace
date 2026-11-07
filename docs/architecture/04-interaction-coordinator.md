@@ -2,8 +2,8 @@
 
 Phase 1 stability layer: a single module owns overlay blocking, embed pointer-events, portal lifecycle, and focus handoff.
 
-**Source:** `apps/workspace/src/renderer/src/interaction/InteractionCoordinator.ts`  
-**Policy:** `apps/workspace/src/renderer/src/interaction/webviewPolicy.ts` (unit-tested pure function)
+**Source:** `apps/workspace-app/src/renderer/src/interaction/InteractionCoordinator.ts`  
+**Policy:** `apps/workspace-app/src/renderer/src/interaction/webviewPolicy.ts` (unit-tested pure function)
 
 **Singleton:** `interactionCoordinator`
 
@@ -39,7 +39,7 @@ Every input change calls `reconcile(reason)` which applies the full policy in on
 
 ## Overlay block stack
 
-Wrapped by `apps/workspace/src/renderer/src/browser/overlayBarrier.ts`:
+Wrapped by `apps/workspace-app/src/renderer/src/browser/overlayBarrier.ts`:
 
 ```typescript
 pushOverlayBlock(source)  // e.g. 'splitter-drag', 'add-tab-picker', 'pane-tab-strip-drag'
@@ -119,7 +119,7 @@ dismissAllPortals()
 
 ## Debug panel
 
-`apps/workspace/src/renderer/src/components/InteractionDebugPanel.tsx` — fixed bottom-right **IC** badge.
+`apps/workspace-app/src/renderer/src/components/InteractionDebugPanel.tsx` — fixed bottom-right **IC** badge.
 
 Shows: overlay count/sources, active workspace tab, webview count, portal ids, last reconcile reason.
 
@@ -154,4 +154,3 @@ If `overlayBlockCount > 0` stuck, badge highlights and offers **Clear overlay bl
 
 - [03-workspace-and-layout.md](./03-workspace-and-layout.md)
 - [06-browser-embeds.md](./06-browser-embeds.md)
-- [architecture-phases.md](../planning/architecture-phases.md)

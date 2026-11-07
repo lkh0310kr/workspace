@@ -1,2 +1,0 @@
-# git apply requires LF; Windows checkouts otherwise rewrite these to CRLF.
-patches/*.patch text eol=lf

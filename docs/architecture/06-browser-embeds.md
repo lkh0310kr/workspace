@@ -18,7 +18,7 @@ flowchart TB
   IC[InteractionCoordinator] --> WV
 ```
 
-**Source:** `apps/workspace/src/renderer/src/panes/BrowserContent.tsx`
+**Source:** `apps/workspace-app/src/renderer/src/panes/BrowserContent.tsx`
 
 One webview per pane tab item (`item.id`), created imperatively in `useEffect` with empty deps (lifetime = tab item mount).
 
@@ -92,9 +92,7 @@ Workspace tab hosts also avoid `display: none` (use visibility + z-index). See [
 
 ## Memory note
 
-Every workspace tab with browser panes keeps live webviews while mounted. Multiple workspace tabs × multiple browser tabs = multiple guest processes.
-
-Phase 3 plans a **WebviewRegistry** with LRU retention. See [architecture-phases.md](../planning/architecture-phases.md).
+Every mounted workspace tab with browser panes keeps live webviews. Multiple workspace tabs × browser tabs can therefore create many guest processes; a retention budget has not been implemented or scheduled.
 
 ## Debugging browser interaction
 

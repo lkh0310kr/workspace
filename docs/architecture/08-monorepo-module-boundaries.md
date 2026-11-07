@@ -1,80 +1,69 @@
-# Monorepo module boundaries
+# 제품별 앱 경계
 
-This repository contains three applications with different runtime and security needs. They share contracts and platform independent rules where the code is genuinely common; each application owns its UI, lifecycle, credentials, and integrations.
+`apps/`는 실행·배포 가능한 제품 앱을 둡니다. `packages/`는 둘 이상의 앱이 실제로 공유하는 코드와 계약을 둡니다. 앱 내부 코드는 기능 책임을 따라 나누고, 저장소 전체를 `frontend/`, `backend/` 같은 기술 계층으로 나누지 않습니다.
 
-## Repository map
+## 목표 구조
 
-| Area | Owns | Depends on |
-|---|---|---|
-| `apps/workspace` | Electron shell, panes, filesystem/PTY access, IPC registration, secure desktop session | Workspace libraries; shared PKMS client source for the PKMS pane |
-| `apps/web` | Web route adapter, Cloudflare Worker, Supabase and GitHub service integrations | `@pkms/client`, `@pkms/protocol` |
-| `apps/ios` | SwiftUI, iOS lifecycle, Keychain-backed session, native Rust bridge | `pkms-core` through FFI; HTTP/Realtime wire contract |
-| `packages/pkms-client` | React UI shared by Web and Desktop, client-side collaboration and local cache | `@pkms/protocol`; React peer dependencies; platform adapters |
-| `packages/pkms-protocol` | HTTP and Realtime wire types alongside language-neutral OpenAPI/JSON Schema | No application code |
-| `packages/pkms-core` | Path rules and Yjs-compatible document operations, exported through WASM and FFI | No application code or network services |
+```text
+apps/
+  pkms-web/                 # PKMS 브라우저 UI
+  pkms-server/              # 여러 PKMS 클라이언트를 위한 API·인증·MCP·동기화 Worker
+  pkms-ios/                 # PKMS iOS 앱
+  workspace-app/            # Electron 셸, 파일·PTY 권한, Home 대시보드 UI
+  workspace-server/         # Home 서비스 연결·상태 API와 provider OAuth Worker
 
-The dependency direction is inward: applications compose packages; packages do not import application code. Platform security and storage stay in the owning app.
-
-```mermaid
-flowchart TD
-  W[Workspace Electron app] --> C[Shared PKMS React client]
-  WEB[PKMS Web app / Worker] --> C
-  C --> P[PKMS protocol]
-  WEB --> P
-  IOS[iOS app] --> R[Rust core through FFI]
-  W --> WP[Workspace renderer and main feature modules]
-  WEB --> S[Supabase / GitHub integrations]
+packages/
+  pkms-client/              # Web/Desktop에서 공유하는 PKMS 클라이언트 UI와 동작
+  pkms-protocol/            # PKMS HTTP·Realtime 계약
+  workspace-home-protocol/  # Workspace Home API 계약
+  pkms-core/                # 플랫폼 독립 문서·경로 규칙과 FFI/WASM 구현
 ```
 
-## Runtime boundaries
+`workspace-server`는 Home 대시보드가 Cloudflare·Supabase 등의 외부 서비스 상태를 보여주고 계정을 연결하는 데 필요한 서버입니다. Workspace의 범용 백엔드나 Electron의 로컬 기능을 서버로 옮긴다는 뜻은 아닙니다.
 
-### Workspace desktop
+## 소유권과 의존 방향
 
-`apps/workspace/src/main/index.ts` is the Electron composition root. Feature IPC registrations live under `src/main/ipc/`; terminal and tab/filesystem/search handlers are registered there. The renderer talks to Main through the preload bridge. Main validates requests and owns privileged operations such as filesystem access and PKMS session tokens.
+| 앱/패키지 | 소유 책임 |
+|---|---|
+| `apps/pkms-web` | PKMS 웹 UI, React Router SSR, browser API same-origin proxy |
+| `apps/pkms-server` | PKMS 세션·저장소/문서 API·협업·GitHub 백업·MCP·Realtime/Home token 발급 |
+| `apps/pkms-ios` | iOS UI·Keychain 세션·네이티브 생명주기·Rust FFI 연결 |
+| `apps/workspace-app` | Electron UI·파일시스템/PTY 권한·IPC·Home 화면과 로컬 위젯 |
+| `apps/workspace-server` | Home provider 연결/OAuth·상태 조회·provider 자격 증명 보관 |
+| `packages/pkms-client` | Web과 Desktop에서 재사용하는 PKMS React UI와 클라이언트 로직. 서버가 아님 |
+| `packages/pkms-protocol` | PKMS API와 Realtime의 언어 중립 계약 및 TypeScript 타입 |
+| `packages/workspace-home-protocol` | Workspace Home 서버와 Desktop 사이의 API 계약 |
+| `packages/pkms-core` | 네트워크/서비스에 의존하지 않는 PKMS 도메인 규칙 |
 
-The PKMS pane mounts the same React client used by Web. `packages/pkms-client/src/platform/desktopApi.ts` selects the IPC adapter when it runs inside Electron. It never receives the stored bearer token.
+앱은 패키지를 가져올 수 있지만 패키지는 앱 코드를 가져오지 않습니다. PKMS와 Workspace Home은 서로 다른 제품·인증·자격 증명 경계입니다. Workspace Home 서버는 PKMS 세션 비밀이나 PKMS 저장소 데이터에 접근하지 않고, PKMS가 발급하는 짧은 audience 제한 토큰으로 사용자를 확인합니다.
 
-### Web and service
+```mermaid
+flowchart LR
+  WEB[pkms-web UI/proxy] --> CLIENT[pkms-client]
+  WEB --> PKMS[pkms-server]
+  DESKTOP[workspace-app] --> CLIENT
+  DESKTOP --> PKMS
+  IOS[pkms-ios] --> PKMS
+  CLIENT --> PK[pkms-protocol]
+  PKMS --> PK
+  IOS --> CORE[pkms-core via FFI]
+  DESKTOP --> HOME[workspace-server]
+  DESKTOP --> HP[workspace-home-protocol]
+  HOME --> HP
+```
 
-`apps/web/app/` adapts React Router to the shared client. `apps/web/workers/` owns authentication, authorization, API routing, persistence, GitHub backup, and Realtime token issuance. These server responsibilities must not move into the React package.
+## 배포 경계
 
-### iOS
+각 `apps/<product>`는 독립적으로 설정하고 검증할 수 있어야 합니다. `pkms-web`과 `pkms-server`는 서로 다른 소비자와 책임을 가지므로 소스·설정·배포 작업을 분리합니다. `workspace-app`과 `workspace-server`도 같은 원칙을 따릅니다. 여러 앱을 한 호스트나 저장소에서 배포하는 선택은 앱의 코드 소유권을 합치지 않습니다.
 
-`apps/ios/PKMSProtocolModels.swift` contains HTTP and Realtime DTOs. `PKMSModel.swift` owns observable app state and coordinates API, session, and Realtime adapters. `NativeMarkdownDocument.swift` wraps the Rust FFI document model. SwiftUI views remain in the iOS app.
+PKMS Web UI와 PKMS API는 각각 `apps/pkms-web`과 `apps/pkms-server`에서 빌드·배포합니다. 사용자 주소는 기존 `pkms-cloud` origin으로 유지합니다. PKMS API Worker가 API 요청과 세션을 처리하고 페이지 요청을 Web Worker로 전달하므로 host-only 세션 쿠키와 기존 GitHub OAuth callback을 보존합니다. `pkms-web`은 별도 배포되며 직접 접근을 canonical origin으로 redirect합니다. Workspace Home 화면과 API는 `apps/workspace-app`과 `apps/workspace-server`에 있습니다. Home provider OAuth secrets와 callback 설정은 별도 구성 대기 상태입니다.
 
-### Shared contracts and domain rules
+## 이전 순서
 
-`packages/pkms-protocol/openapi.yaml` and `realtime.schema.json` describe the language-neutral wire contract. `src/types.ts` is the TypeScript view consumed by the Worker and React client. Keep those definitions aligned; generate TypeScript and Swift models from the schemas in a later step to remove the remaining manual synchronization.
+1. **완료:** Home 대시보드를 복구하고 `apps/workspace-server` Worker와 전용 D1을 만들었다. 기존 provider grant는 옮기지 않고 Workspace 서버에서 다시 연결한다.
+2. **완료:** PKMS가 5분짜리 `workspace-home` audience token을 발급한다. Electron Main이 이를 받아 Workspace Home API에 전달하며 renderer에는 PKMS 세션이나 bearer token을 노출하지 않는다.
+3. **배포됨, provider 연결 설정 대기:** `pkms-cloud`와 `workspace-home` API Worker는 서로 다른 배포다. Workspace Worker에 Cloudflare/Supabase OAuth client secrets를 등록하고 provider callback URL을 바꾼 뒤 연결을 확인한다.
+4. **배포됨:** `apps/pkms-web`은 UI를, `apps/pkms-server`는 shared PKMS API를 소유한다. `pkms-cloud` 기존 Worker 이름과 secrets는 API 서버에 보존하고 페이지 요청을 Web Worker로 전달한다.
+5. **구현됨:** Electron과 iOS 폴더를 각각 `apps/workspace-app`, `apps/pkms-ios`로 옮기고 패키지 스크립트, CI 경로 필터, 문서와 앱 내부 경로를 갱신했다.
 
-`packages/pkms-core/crates/pkms-core` owns platform-independent path validation and Yjs/Yrs document behavior. The WASM and FFI crates expose that behavior to browser and iOS runtimes. It does not own HTTP, GitHub, Supabase, or UI state.
-
-## Client package modules
-
-`packages/pkms-client/src/` is being separated by responsibility:
-
-- `domain/` holds typed client models and pure file-tree, path, filter, encoding, and document helpers.
-- `client/` holds API transport and revisioned file-operation requests shared by Web and Desktop.
-- `platform/` adapts the same client to Electron IPC.
-- `components/` holds leaf UI such as icons and the Markdown editor.
-- `PkmsClientApp.tsx` still composes most feature state and screens. Continue splitting account, repository, file browser state/actions, editor, and sync features without changing its public Web/Desktop entry point.
-
-## Refactoring progress
-
-The first modularization pass has:
-
-- moved PKMS client pure helpers into `domain/`, API transport into `client/`, and leaf icons into `components/`;
-- extracted the file-tree list view and a shared revisioned file-operation request module;
-- extracted tree focus, multi-selection, range-selection, and cut-selection state into `features/files/useFileTreeSelection.ts`;
-- moved Workspace tab/filesystem/search and PTY registration out of `main/index.ts` into `main/ipc/`;
-- introduced shared TypeScript API and Realtime models in `@pkms/protocol` for the Worker and React client;
-- moved iOS wire DTOs out of `PKMSModel.swift` into `PKMSProtocolModels.swift`.
-
-The next steps are:
-
-1. Continue splitting `PkmsClientApp.tsx` into account, repository, file browser state/actions, editor, and sync feature hooks while keeping the Web/Desktop entry point stable.
-2. Split the iOS state model into API, auth, document, and Realtime coordinators.
-3. Separate Worker routing into auth, workspace API, MCP, and scheduled sync modules.
-4. Generate client DTOs from the language-neutral schemas and add contract checks before changing the wire format.
-5. Review repeated Markdown editor behavior between Workspace and PKMS; extract only the CodeMirror behavior that can be shared without coupling either app's styles or lifecycle.
-
-Each step should preserve the current API, database schema, deployment bindings, and iOS FFI contract. A module move alone must not alter authorization, persistence, or sync semantics.
+한 번에 디렉터리 이름만 바꾸지 않습니다. 각 단계에서 빌드·개발·배포 경계를 검증하고, 완료한 경계만 기능 상태에서 `implemented`로 표시합니다.

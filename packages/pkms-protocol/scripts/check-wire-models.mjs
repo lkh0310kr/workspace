@@ -6,7 +6,7 @@ const root = new URL("../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
 const openapi = read("openapi.yaml");
 const tsSource = ts.createSourceFile("types.ts", read("src/types.ts"), ts.ScriptTarget.Latest, true);
-const swift = readFileSync(fileURLToPath(new URL("../../apps/ios/PKMSProtocolModels.swift", root)), "utf8");
+const swift = readFileSync(fileURLToPath(new URL("../../apps/pkms-ios/PKMSProtocolModels.swift", root)), "utf8");
 const realtime = JSON.parse(read("realtime.schema.json"));
 
 function parseOpenApiSchemas(source) {

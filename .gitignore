@@ -4,25 +4,32 @@
 **/node_modules/
 
 # PKMS Web / Cloudflare local state
-apps/web/.wrangler/
-apps/web/.react-router/
-apps/web/build/
-apps/web/.dev.vars
-apps/web/.dev.vars.*
-!apps/web/.dev.vars.example
+apps/pkms-web/.wrangler/
+apps/pkms-web/.react-router/
+apps/pkms-web/build/
+apps/pkms-server/.wrangler/
+apps/pkms-server/.dev.vars
+apps/pkms-server/.dev.vars.*
+!apps/pkms-server/.dev.vars.example
+apps/pkms-web/.dev.vars
+apps/pkms-web/.dev.vars.*
+apps/workspace-server/.dev.vars
+apps/workspace-server/.dev.vars.*
+!apps/workspace-server/.dev.vars.example
+apps/workspace-server/.wrangler/
 
 # PKMS iOS generated state
-apps/ios/DerivedData/
-apps/ios/build/
-apps/ios/build-sim/
-apps/ios/.build/
-apps/ios/Frameworks/*.xcframework
-apps/ios/**/xcuserdata/
-apps/ios/**/*.xcuserstate
-apps/ios/legacy/v1/data/
-apps/ios/legacy/v1/AgentRuntime/Vendor/
-apps/ios/legacy/v1/AgentRuntime/RuntimeTemplate/vendor/
-apps/ios/legacy/v1/AgentRuntime/RuntimeTemplate/*.tgz
+apps/pkms-ios/DerivedData/
+apps/pkms-ios/build/
+apps/pkms-ios/build-sim/
+apps/pkms-ios/.build/
+apps/pkms-ios/Frameworks/*.xcframework
+apps/pkms-ios/**/xcuserdata/
+apps/pkms-ios/**/*.xcuserstate
+apps/pkms-ios/legacy/v1/data/
+apps/pkms-ios/legacy/v1/AgentRuntime/Vendor/
+apps/pkms-ios/legacy/v1/AgentRuntime/RuntimeTemplate/vendor/
+apps/pkms-ios/legacy/v1/AgentRuntime/RuntimeTemplate/*.tgz
 
 # PKMS Rust build artifacts
 packages/pkms-core/target/

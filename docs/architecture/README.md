@@ -1,6 +1,6 @@
-# 현재 시스템 아키텍처
+# 시스템 및 제품 아키텍처
 
-아래 문서는 저장소의 현재 Electron 구현을 설명합니다. 코드 경로와 다른 설명을 발견하면 코드에 맞춰 문서를 갱신하세요.
+아래 문서는 현재 동작과 채택한 제품 경계를 설명합니다. 각 문서에서 목표 구조와 현재 구현을 구분합니다. 코드 경로와 다른 설명을 발견하면 코드에 맞춰 문서를 갱신하세요.
 
 ## 읽는 순서
 
@@ -11,10 +11,11 @@
 5. [터미널 파이프라인](./05-terminal-pipeline.md) — PTY, xterm, 출력·스크롤 흐름
 6. [브라우저 embed](./06-browser-embeds.md) — webview 수명과 탐색
 7. [PKMS 통합](./07-pkms-integration.md) — 공용 클라이언트, pane, Worker IPC 경계
-8. [Monorepo 모듈 경계](./08-monorepo-module-boundaries.md) — Workspace, Web, iOS, 공유 패키지 간 책임과 의존 방향
+8. [제품별 앱 경계](./08-monorepo-module-boundaries.md) — PKMS와 Workspace 앱, 서버, 공유 패키지의 목표 구조와 이전 순서
+
 
 ## 범위
 
 - 이 폴더에는 **현재 구현된 시스템**만 둡니다.
-- 미래 단계, 목표 모델, 조사 중인 호스팅 구조는 [계획 문서의 공통 기술 방향](../planning/README.md#공통-기술-방향)에 둡니다.
-- 기능별 계획은 [계획 문서 색인](../planning/README.md)을 참고하세요.
+- 구현되지 않은 다음 작업은 [백로그](../planning/backlog.md)에서만 관리합니다.
+- 기능 구현 여부는 [기능 상태](../planning/feature-status.md)를 참고하세요.

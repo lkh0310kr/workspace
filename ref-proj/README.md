@@ -11,8 +11,7 @@ Workspace Electron 앱 개발 시 **이미 검증된 오픈소스**에서 패턴
 | **2 앱 UX** | Electron/에디터/터미널 패턴 | orca, itch, vscode, zed |
 | **3 Web 보조** | glTF 미리보기·로더 wiring (작은 JS 뷰어) | three-gpu-pathtracer, gltf-sample-viewer — **아키텍처·임베드 전략은 Tier 1을 먼저** |
 
-> Workspace 3D 로드맵(`docs/planning/3d-model-viewer-architecture.md`)은 Assimp/OCCT/네이티브 delegate를 전제로 한다.  
-> JS three.js 뷰어는 **M1 미리보기**용이지, CAD·시뮬·로보틱스의 정석 참고가 아니다.
+> 현재 3D/CAD 미리보기 범위는 코드와 [기능 상태](../docs/planning/feature-status.md)를 확인한다. 이 레포는 후보 제품의 장기 통합 계획이 아니라 구현 참고용이다.
 
 ## 규칙
 
@@ -100,7 +99,7 @@ git clone --depth 1 https://github.com/koodo-reader/koodo-reader.git koodo-reade
 
 | 디렉터리 | URL | 커밋 | 스택 | Workspace에서 볼 것 |
 |----------|-----|------|------|---------------------|
-| `freecad/` | https://github.com/FreeCAD/FreeCAD | `b3daf27` | C++, Python, Qt, OCCT | 파라메트릭 CAD, STEP/IGES import, tessellation → mesh, **Track B native embed** 후보 (`docs/planning/product-direction.md`) |
+| `freecad/` | https://github.com/FreeCAD/FreeCAD | `b3daf27` | C++, Python, Qt, OCCT | 파라메트릭 CAD, STEP/IGES import, tessellation → mesh. 참고 코드일 뿐 통합 작업은 채택되지 않음 |
 | `occt/` | https://github.com/Open-Cascade-SAS/OCCT | `3d097a03` | C++ (BREP 커널) | STEP/IGES/BREP, `BRepMesh_IncrementalMesh` tessellation, CAD exchange **정석** — M6 `.step` preview 설계 근거 |
 | `assimp/` | https://github.com/assimp/assimp | `a47827a` | C++ | FBX/OBJ/DAE/STL/… **import 파이프라인 정석** — post-process, material, embedded texture; `model3d` importer Tier 2 설계 |
 
@@ -171,7 +170,7 @@ rg "RobotModel|PointCloud|Marker" ref-proj/rviz2/rviz_default_plugins
 | `zed/` | https://github.com/zed-industries/zed | Rust | 패널·포커스 UX |
 | `logseq/`, `Zettlr/` | 각 GitHub | 각 스택 | 에디터·아웃라인 |
 | `cef-rs/` | https://github.com/chromiumembedded/cef-rs | Rust, CEF | webview 대안 |
-| `ovstream/`, `omniverse-web-viewer-sample/` | NVIDIA | CUDA/Web | GPU 픽셀 스트리밍 패턴 (`docs/planning/native-architecture.md`) |
+| `ovstream/`, `omniverse-web-viewer-sample/` | NVIDIA | CUDA/Web | GPU 픽셀 스트리밍 패턴 (`docs/architecture/09-tool-hosting.md`) |
 
 ---
 
@@ -236,8 +235,8 @@ rg "prev\\(|next\\(|goLeft|keyup" ref-proj/foliate-js/view.js ref-proj/foliate-j
 
 | 주제 | 문서 |
 |------|------|
-| 3D viewer 아키텍처 (Assimp/OCCT/delegate) | `docs/planning/3d-model-viewer-architecture.md` |
-| CAD/엔진 embed 원칙 | `docs/planning/product-direction.md`, `docs/planning/native-architecture.md` |
+| 앱 경계와 패키지 책임 | `docs/architecture/08-monorepo-module-boundaries.md` |
+| 도구 호스팅 경계 | `docs/architecture/09-tool-hosting.md` |
 | Track B (네이티브 스트리밍) | `docs/research/track-b-webrtc-streaming.md` |
 
 ---

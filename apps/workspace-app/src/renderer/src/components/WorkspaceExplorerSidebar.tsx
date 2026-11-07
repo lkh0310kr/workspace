@@ -1,0 +1,168 @@
+import { useCallback, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
+import type { Model } from 'flexlayout-react'
+import { TreeView } from './TreeView'
+import { SearchPanel } from './SearchPanel'
+import { onFindInFilesShortcut } from '../electron'
+import { deletePathInAllPanes, renamePathInAllPanes } from '../explorer/workspaceExplorerBridge'
+import { paneTabStoreKey } from '../store/paneTabKey'
+import type { PaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
+
+const TREE_MIN_WIDTH = 120
+const TREE_MAX_WIDTH = 480
+
+interface Props {
+  workspaceTabId: number
+  nodeId: string
+  rootPath: string
+  model: Model
+  paneVisible: boolean
+  isGroupFocused: boolean
+  explorerCapable: boolean
+  focusHostRef: React.RefObject<HTMLElement | null>
+  selectedPath: string | null
+  chrome: PaneGroupExplorerChrome
+  onOpenFile: (
+    path: string,
+    kind: 'code' | 'markdown' | 'viewer',
+    jumpToLine?: number,
+    pin?: boolean
+  ) => void
+  onNotifyChanged: () => void
+}
+
+/** One per pane group — below the tab strip, beside editor/viewer content.
+ * Expand/collapse state is keyed by pane group (`explorerStateKey`), not by
+ * the active file tab. */
+export function WorkspaceExplorerSidebar({
+  workspaceTabId,
+  nodeId,
+  rootPath,
+  model,
+  paneVisible,
+  isGroupFocused,
+  explorerCapable,
+  focusHostRef,
+  selectedPath,
+  chrome,
+  onOpenFile,
+  onNotifyChanged
+}: Props) {
+  const { treeOpen, treeWidth, sidebarMode, setTreeOpen, setTreeWidth, setSidebarMode } = chrome
+  const explorerScrollRef = useRef<HTMLDivElement>(null)
+  const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
+
+  // Cmd/Ctrl+Shift+F targets the focused, visible pane group that can show
+  // the file explorer, regardless of which embedded surface owns the DOM focus.
+  useEffect(() => {
+    const offMainShortcut = onFindInFilesShortcut(() => {
+      if (!paneVisible || !isGroupFocused || !explorerCapable) return
+      setSidebarMode('search')
+      setTreeOpen(true)
+    })
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return
+      if (e.key.toLowerCase() !== 'f') return
+      if (!paneVisible) return
+      if (!isGroupFocused || !explorerCapable) return
+      e.preventDefault()
+      setSidebarMode('search')
+      setTreeOpen(true)
+    }
+    // Match the app-wide shortcut routing: the pane shortcut must run before
+    // CodeMirror or an embedded surface handles the focused key event.
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      offMainShortcut()
+      window.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [paneVisible, isGroupFocused, explorerCapable, setSidebarMode, setTreeOpen])
+
+
+
+  const onPathRenamed = useCallback(
+    (from: string, to: string) => {
+      renamePathInAllPanes(model, from, to, onNotifyChanged)
+    },
+    [model, onNotifyChanged]
+  )
+
+  const onPathDeleted = useCallback(
+    (path: string) => {
+      deletePathInAllPanes(model, path, onNotifyChanged)
+    },
+    [model, onNotifyChanged]
+  )
+
+  const onTreeResizeMouseDown = (e: ReactMouseEvent) => {
+    e.preventDefault()
+    treeResizeRef.current = { startX: e.clientX, startWidth: treeWidth }
+    const onMouseMove = (ev: MouseEvent) => {
+      const drag = treeResizeRef.current
+      if (!drag) return
+      const next = drag.startWidth + (ev.clientX - drag.startX)
+      setTreeWidth(Math.min(TREE_MAX_WIDTH, Math.max(TREE_MIN_WIDTH, next)))
+    }
+    const onMouseUp = () => {
+      treeResizeRef.current = null
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+
+  const showExplorerPanel = treeOpen || sidebarMode === 'search'
+
+  return (
+    <>
+      <div className="workspace-explorer-host">
+        <div
+          ref={explorerScrollRef}
+          className="scroll-region obsidian-explorer"
+          style={{
+            width: treeWidth,
+            display: showExplorerPanel ? undefined : 'none'
+          }}
+        >
+          <div
+            className={
+              sidebarMode === 'search' ? 'explorer-sidebar-panel' : 'explorer-sidebar-panel hidden'
+            }
+          >
+            {sidebarMode === 'search' && (
+              <SearchPanel
+                tabId={workspaceTabId}
+                onJumpToResult={(path, kind, line) => onOpenFile(path, kind, line)}
+                onClose={() => setSidebarMode('explorer')}
+              />
+            )}
+          </div>
+          <div
+            className={
+              sidebarMode === 'explorer'
+                ? 'explorer-sidebar-panel'
+                : 'explorer-sidebar-panel hidden'
+            }
+          >
+            <TreeView
+              tabId={workspaceTabId}
+              rootPath={rootPath}
+              explorerStateKey={paneTabStoreKey(workspaceTabId, nodeId)}
+              scrollContainerRef={explorerScrollRef}
+              paneHostRef={focusHostRef}
+              selectedPath={selectedPath}
+              paneVisible={paneVisible}
+              explorerModeActive={sidebarMode === 'explorer'}
+              onOpenFile={(path, kind, pin) => onOpenFile(path, kind, undefined, pin)}
+              onPathRenamed={onPathRenamed}
+              onPathDeleted={onPathDeleted}
+            />
+          </div>
+        </div>
+      </div>
+      {showExplorerPanel && (
+        <div className="obsidian-explorer-resizer" onMouseDown={onTreeResizeMouseDown} />
+      )}
+    </>
+  )
+}

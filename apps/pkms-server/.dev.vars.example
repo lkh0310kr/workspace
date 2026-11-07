@@ -1,0 +1,12 @@
+GITHUB_CLIENT_ID=your-github-app-client-id
+GITHUB_CLIENT_SECRET=your-github-app-client-secret
+SESSION_SECRET=replace-with-at-least-32-random-bytes
+DATA_ENCRYPTION_KEY=base64-encoded-32-byte-key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-supabase-publishable-or-anon-key
+SUPABASE_SERVICE_ROLE_KEY=server-only-supabase-secret-key
+PKMS_REALTIME_PRIVATE_KEY=base64-encoded-pkcs8-es256-private-key
+PKMS_REALTIME_KEY_ID=realtime-key-id
+WORKSPACE_HOME_AUDIENCE=workspace-home
+PKMS_WEB_ORIGIN=https://pkms-web.lkh0310kr.workers.dev
+# Optional: exact whitespace-separated OAuth scope IDs configured in your Cloudflare OAuth app

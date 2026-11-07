@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "pkms-cloud",
+  "main": "src/app.ts",
+  "compatibility_date": "2026-10-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "invocation_logs": true, "head_sampling_rate": 1 }
+  },
+  "vars": {
+    "PUBLIC_ORIGIN": "https://pkms-cloud.lkh0310kr.workers.dev",
+    "PKMS_WEB_ORIGIN": "https://pkms-web.lkh0310kr.workers.dev",
+    "PKMS_REALTIME_KEY_ID": "pkms-64825bda-dec8-4a78-b684-25f96cb3ae2f",
+    "WORKSPACE_HOME_AUDIENCE": "workspace-home"
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["AccountStore", "VaultRoom"] },
+    { "tag": "v2", "deleted_classes": ["AccountStore", "VaultRoom"] }
+  ],
+  "r2_buckets": [
+    { "binding": "ASSET_BUCKET", "bucket_name": "pkms-attachments" }
+  ],
+  "services": [
+    { "binding": "PKMS_WEB", "service": "pkms-web" }
+  ]
+}

@@ -66,15 +66,15 @@ Electron guest가 상위 요소의 `pointer-events`를 항상 따르지는 않�
 | 브라우저 URL·확대율 | 탭 항목의 flexlayout `PaneGroupConfig` | 레이아웃 JSON에 저장 |
 | overlay·포인터·portal | Renderer의 `InteractionCoordinator` | 모듈 singleton |
 
-상태 경계와 향후 제안은 [후속 단계](../planning/architecture-phases.md)를 참고하세요.
+구현 상태는 [기능 상태](../planning/feature-status.md)에서 확인하세요.
 
 ## 빌드와 실행
 
 ```bash
 npm install                 # repository root; installs shared client packages and Workspace dependencies
-cd apps/workspace
+cd apps/workspace-app
 npm run dev    # 개발 실행
-npm run build  # apps/workspace/out/에 제품 번들 생성
+npm run build  # apps/workspace-app/out/에 제품 번들 생성
 ```
 
 타입 검사는 `npm run typecheck`로 Node와 웹 TypeScript 프로젝트를 확인합니다.

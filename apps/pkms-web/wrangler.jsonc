@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "pkms-web",
+  "main": "workers/web.ts",
+  "compatibility_date": "2026-10-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "./build/client", "binding": "ASSET_FILES" },
+  "observability": { "enabled": true },
+  "vars": {
+    "PKMS_SERVER_ORIGIN": "https://pkms-cloud.lkh0310kr.workers.dev",
+    "PKMS_CANONICAL_ORIGIN": "https://pkms-cloud.lkh0310kr.workers.dev"
+  },
+  "services": [
+    { "binding": "PKMS_SERVER", "service": "pkms-cloud" }
+  ]
+}

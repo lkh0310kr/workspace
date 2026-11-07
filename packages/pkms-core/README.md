@@ -10,7 +10,7 @@ The wire contract is in `../pkms-protocol`. Do not add transport, GitHub API, Cl
 To create platform bindings:
 
 ```sh
-wasm-pack build crates/pkms-wasm --target web --out-dir ../../apps/web/app/generated/pkms-wasm
+wasm-pack build crates/pkms-wasm --target web --out-dir ../../apps/pkms-web/app/generated/pkms-wasm
 ```
 
-From the repository root, `bash apps/ios/scripts/build-rust-framework.sh` produces an XCFramework for device and Apple Silicon simulator targets.
+From the repository root, `bash apps/pkms-ios/scripts/build-rust-framework.sh` produces an XCFramework for device and Apple Silicon simulator targets.

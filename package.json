@@ -2,27 +2,25 @@
   "name": "workspace",
   "private": true,
   "workspaces": [
-    "apps/web",
+    "apps/pkms-web",
+    "apps/pkms-server",
+    "apps/workspace-server",
     "packages/pkms-client",
     "packages/pkms-protocol"
   ],
   "scripts": {
-    "postinstall": "npm install --prefix apps/workspace",
-    "web:dev": "npm run dev --workspace @pkms/web",
-    "web:build": "npm run build --workspace @pkms/web",
-    "web:deploy": "npm run deploy --workspace @pkms/web",
-    "web:typecheck": "npm run typecheck --workspace @pkms/web",
+    "postinstall": "npm install --prefix apps/workspace-app",
+    "pkms:web:dev": "npm run dev --workspace @pkms/web",
+    "pkms:web:build": "npm run build --workspace @pkms/web",
+    "pkms:web:deploy": "npm run deploy --workspace @pkms/web",
+    "pkms:web:typecheck": "npm run typecheck --workspace @pkms/web",
+    "pkms:server:deploy": "npm run deploy --workspace @pkms/server",
+    "pkms:server:typecheck": "npm run typecheck --workspace @pkms/server",
+    "workspace:server:deploy": "npm run deploy --workspace @workspace/server",
+    "workspace:server:typecheck": "npm run typecheck --workspace @workspace/server",
     "check": "bash scripts/check.sh",
-    "check:rust": "cargo test -p world-engine-core -p hardware-sim-core",
-    "check:app": "cd apps/workspace && npm run typecheck",
+    "check:app": "cd apps/workspace-app && npm run typecheck",
     "agents:python:setup": "node scripts/agents-python-setup.mjs",
-    "agents:python": "node scripts/agents-python.mjs",
-    "agents:cad:doctor": "node scripts/agents-python.mjs -m cadgen.cli doctor .agents/skills/cad",
-    "agents:cad:verify": "node scripts/agents-cad-verify.mjs",
-    "agents:cad:assembly-validate": "node scripts/agents-cad-assembly-validate.mjs",
-    "agents:cad:viewer": "cd apps/workspace && npx vitest run src/main/cadViewer.integration.test.ts",
-    "agents:cad:step": "cd apps/workspace && npx vitest run src/main/model3d/stepPreview.integration.test.ts",
-    "agents:bench:pottery-wheel": "node scripts/agents-bench-pottery-wheel.mjs",
-    "agents:pottery-wheel:bench": "node scripts/agents-pottery-wheel-bench.mjs"
+    "agents:python": "node scripts/agents-python.mjs"
   }
 }
