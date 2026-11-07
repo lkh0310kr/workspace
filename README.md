@@ -6,9 +6,10 @@ Native desktop workspace for **code, Markdown, terminal and browser work**, with
 
 ```bash
 npm install
-cd apps/workspace-app
 npm run dev
 ```
+
+`npm run dev` at the repository root starts the Workspace desktop app. The app-local equivalent is `cd apps/workspace-app && npm run dev`. PKMS Web and the Workers keep their product-specific dev commands below.
 
 The PKMS browser app and API server are separate apps: `apps/pkms-web` owns the UI and same-origin API proxy; `apps/pkms-server` owns PKMS authentication and data APIs. Workspace Home has its own API Worker in `apps/workspace-server`. Install root npm workspaces once, then use `npm run pkms:web:dev`, `npm run pkms:web:deploy`, `npm run pkms:server:deploy`, or `npm run workspace:server:deploy` from the repository root.
 

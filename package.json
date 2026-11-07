@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "postinstall": "npm install --prefix apps/workspace-app",
+    "dev": "npm run dev --prefix apps/workspace-app",
     "pkms:web:dev": "npm run dev --workspace @pkms/web",
     "pkms:web:build": "npm run build --workspace @pkms/web",
     "pkms:web:deploy": "npm run deploy --workspace @pkms/web",

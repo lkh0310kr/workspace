@@ -18,6 +18,8 @@ Home service account linking remains unavailable until the Cloudflare and Supaba
 
 ## Build
 
+Run the development app from the repository root with `npm run dev`, or from this directory with `npm run dev`.
+
 ```sh
 npm run build:mac
 npm run build:win
