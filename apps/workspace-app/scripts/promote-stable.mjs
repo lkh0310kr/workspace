@@ -27,8 +27,18 @@ function promoteMac() {
   const installedApp = "/Applications/Workspace.app";
 
   console.log("[promote-stable] building…");
-  execFileSync("npx", ["electron-vite", "build"], { cwd: root, stdio: "inherit" });
-  execFileSync("npx", ["electron-builder", "--mac", "--dir"], { cwd: root, stdio: "inherit" });
+  execFileSync("npm", ["run", "build"], { cwd: root, stdio: "inherit" });
+  const builderArgs = ["electron-builder", "--mac", "--dir"];
+  if (process.env.PROMOTE_STABLE_MAC_IDENTITY) {
+    builderArgs.push(`-c.mac.identity=${process.env.PROMOTE_STABLE_MAC_IDENTITY}`);
+  }
+  if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS) {
+    builderArgs.push(`-c.mac.entitlements=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS)}`);
+  }
+  if (process.env.PROMOTE_STABLE_ELECTRON_DIST) {
+    builderArgs.push(`-c.electronDist=${path.resolve(process.env.PROMOTE_STABLE_ELECTRON_DIST)}`);
+  }
+  execFileSync("npx", builderArgs, { cwd: root, stdio: "inherit" });
 
   if (!existsSync(builtApp)) {
     console.error(`[promote-stable] expected build output missing: ${builtApp}`);
