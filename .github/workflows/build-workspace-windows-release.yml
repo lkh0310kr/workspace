@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing app version to build (for example 0.1.1)
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -13,25 +19,29 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: apps/workspace-app/package-lock.json
-      - name: Install dependencies
+          cache-dependency-path: |
+            package-lock.json
+            apps/workspace-app/package-lock.json
+      - name: Install workspace dependencies
         run: npm ci
-        working-directory: apps/workspace-app
       - name: Verify release tag matches app version
         shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          $version = node -p "require('./package.json').version"
-          if ($env:GITHUB_REF_NAME -ne "v$version") {
-            throw "Release tag $env:GITHUB_REF_NAME does not match app version $version"
+          $appVersion = node -p "require('./apps/workspace-app/package.json').version"
+          $releaseTag = if ($env:INPUT_VERSION) { "v$env:INPUT_VERSION" } else { $env:GITHUB_REF_NAME }
+          if ($releaseTag -ne "v$appVersion") {
+            throw "Release tag $releaseTag does not match app version $appVersion"
           }
-        working-directory: apps/workspace-app
       - name: Build Windows installer and update metadata
-        run: npm run release:win
-        working-directory: apps/workspace-app
+        run: npm run release:win --prefix apps/workspace-app
       - uses: actions/upload-artifact@v4
         with:
           name: workspace-windows-release
