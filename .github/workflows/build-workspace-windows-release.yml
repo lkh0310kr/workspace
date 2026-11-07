@@ -28,8 +28,17 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             apps/workspace-app/package-lock.json
-      - name: Install workspace dependencies
-        run: npm install --no-audit --no-fund
+      - name: Install repository workspace dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Install desktop dependencies
+        run: npm install --prefix apps/workspace-app --workspaces=false --ignore-scripts --no-audit --no-fund
+      - name: Prepare Electron and native modules
+        run: |
+          node scripts/apply-xterm-patch.mjs
+          node node_modules/electron/install.js
+          npx electron-builder install-app-deps
+          node scripts/fix-native-exec-bits.mjs
+        working-directory: apps/workspace-app
       - name: Verify release tag matches app version
         shell: pwsh
         env:
