@@ -1,0 +1,23 @@
+{
+  "gravity": [0.0, -9.81, 0.0],
+  "entities": [
+    {
+      "name": "target",
+      "position": [5.0, 1.0, 0.0],
+      "body_type": "fixed",
+      "shape": "sphere",
+      "radius": 0.3,
+      "color": [0.9, 0.2, 0.2]
+    },
+    {
+      "name": "chaser",
+      "position": [-5.0, 1.0, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.3,
+      "color": [0.2, 0.9, 0.3],
+      "script": "scripts/chase.rhai",
+      "script_args": { "speed": 3.0 }
+    }
+  ]
+}

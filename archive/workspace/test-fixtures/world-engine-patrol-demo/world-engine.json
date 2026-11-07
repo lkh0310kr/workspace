@@ -1,0 +1,39 @@
+{
+  "gravity": [0.0, -9.81, 0.0],
+  "entities": [
+    {
+      "name": "guard",
+      "position": [0.0, 1.0, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.35,
+      "color": [0.3, 0.5, 0.95],
+      "script": "scripts/patrol.rhai",
+      "script_args": {
+        "speed": 2.5,
+        "waypoints": [
+          [0.0, 1.0, 0.0],
+          [7.0, 1.0, 0.0],
+          [7.0, 1.0, 7.0],
+          [0.0, 1.0, 7.0]
+        ]
+      }
+    },
+    {
+      "name": "marker_a",
+      "position": [0.0, 0.5, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.15, 0.5, 0.15],
+      "color": [0.9, 0.9, 0.2]
+    },
+    {
+      "name": "marker_b",
+      "position": [7.0, 0.5, 7.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [0.15, 0.5, 0.15],
+      "color": [0.9, 0.9, 0.2]
+    }
+  ]
+}

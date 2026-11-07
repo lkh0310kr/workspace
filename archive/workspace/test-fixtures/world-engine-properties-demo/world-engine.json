@@ -1,0 +1,29 @@
+{
+  "gravity": [0.0, 0.0, 0.0],
+  "entry_script": "scripts/director.rhai",
+  "camera": { "mode": "orbit", "distance": 12.0 },
+  "entities": [
+    {
+      "name": "hen_a",
+      "position": [-2.0, 0.0, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.2,
+      "color": [0.9, 0.7, 0.2],
+      "properties": { "breed": "layer", "hunger": 0.5 },
+      "script": "scripts/hen.rhai",
+      "script_mode": "kinematic"
+    },
+    {
+      "name": "hen_b",
+      "position": [2.0, 0.0, 0.0],
+      "body_type": "kinematic",
+      "shape": "sphere",
+      "radius": 0.2,
+      "color": [0.8, 0.6, 0.3],
+      "properties": { "breed": "broiler", "hunger": 0.8 },
+      "script": "scripts/hen.rhai",
+      "script_mode": "kinematic"
+    }
+  ]
+}

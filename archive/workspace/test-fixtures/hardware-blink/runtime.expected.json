@@ -1,0 +1,25 @@
+{
+  "time_ns": 1000000000,
+  "pins": {
+    "led1.a": "high",
+    "led1.k": "low",
+    "r1.a": "high",
+    "r1.b": "high",
+    "uno.3V3": "high",
+    "uno.5V": "high",
+    "uno.D13": "high",
+    "uno.GND": "low"
+  },
+  "components": {
+    "led1": {
+      "component_id": "led1",
+      "state": {
+        "on": true
+      }
+    },
+    "r1": {
+      "component_id": "r1",
+      "state": {}
+    }
+  }
+}

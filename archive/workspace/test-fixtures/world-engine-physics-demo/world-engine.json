@@ -1,0 +1,7 @@
+{
+  "entities": [
+    { "position": [-2, 1, 0], "body_type": "fixed", "shape": "cuboid", "half_extents": [1, 1, 1], "color": [0.3, 0.5, 0.9] },
+    { "position": [0, 6, 0], "body_type": "dynamic", "shape": "sphere", "radius": 0.7, "restitution": 0.7, "color": [0.9, 0.7, 0.2] },
+    { "position": [2, 1, 0], "body_type": "kinematic", "shape": "cuboid", "half_extents": [0.6, 0.6, 0.6], "color": [0.5, 0.9, 0.5] }
+  ]
+}

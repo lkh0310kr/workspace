@@ -1,0 +1,15 @@
+{
+  "gravity": [0.0, -9.81, 0.0],
+  "entry_script": "scripts/time_director.rhai",
+  "entities": [
+    {
+      "name": "ball",
+      "position": [0.0, 8.0, 0.0],
+      "body_type": "dynamic",
+      "shape": "sphere",
+      "radius": 0.5,
+      "restitution": 0.75,
+      "color": [0.9, 0.4, 0.2]
+    }
+  ]
+}

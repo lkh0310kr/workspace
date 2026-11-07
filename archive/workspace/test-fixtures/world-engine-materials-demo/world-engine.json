@@ -1,0 +1,33 @@
+{
+  "gravity": [0.0, -9.81, 0.0],
+  "show_grid": true,
+  "entities": [
+    {
+      "name": "floor",
+      "position": [0.0, -0.5, 0.0],
+      "body_type": "fixed",
+      "shape": "cuboid",
+      "half_extents": [6.0, 0.5, 6.0],
+      "color": [0.25, 0.28, 0.32],
+      "mesh": "cube"
+    },
+    {
+      "name": "red_orb",
+      "position": [-2.0, 1.0, 0.0],
+      "body_type": "dynamic",
+      "shape": "sphere",
+      "radius": 0.45,
+      "color": [0.9, 0.2, 0.2],
+      "mesh": "sphere"
+    },
+    {
+      "name": "blue_box",
+      "position": [2.0, 1.5, 1.0],
+      "body_type": "dynamic",
+      "shape": "cuboid",
+      "half_extents": [0.4, 0.4, 0.4],
+      "color": [0.2, 0.4, 0.95],
+      "mesh": "cube"
+    }
+  ]
+}
