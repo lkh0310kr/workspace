@@ -209,7 +209,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         progress: { completed, total, percent: total === 0 ? 100 : Math.floor((completed / total) * 100) },
       });
       reportProgress();
-      for (const relative of paths) {
+      const reconcilePath = async (relative: string): Promise<void> => {
         let itemComplete = false;
         try {
         const localText = local.get(relative);
@@ -229,9 +229,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
             baselines[created.path] = { fileId: created.id, hash: hash(localText), revision: created.revision };
           }
           itemComplete = true;
-          continue;
+          return;
         }
-        if (!remote) { delete baselines[relative]; itemComplete = true; continue; }
+        if (!remote) { delete baselines[relative]; itemComplete = true; return; }
         const remoteNeedsRead = !baseline || baseline.fileId !== remote.id || baseline.revision !== remote.revision;
         const remoteContent = remoteNeedsRead ? await readRemoteText(workspaceId, remote) : null;
         const remoteText = remoteContent?.text;
@@ -249,7 +249,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             baselines[relative] = { fileId: remote.id, hash: hash(text), revision: remoteContent?.revision ?? remote.revision };
           }
           itemComplete = true;
-          continue;
+          return;
         }
         const localHash = hash(actualLocal);
         if (!baseline) {
@@ -263,7 +263,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             baselines[relative] = { fileId: remote.id, hash: hash(remoteText ?? ""), revision: remoteContent?.revision ?? remote.revision };
           }
           itemComplete = true;
-          continue;
+          return;
         }
         const localChanged = localHash !== baseline.hash;
         const remoteChanged = remote.id !== baseline.fileId || (remoteContent !== null && remoteContent.revision !== baseline.revision);
@@ -287,8 +287,20 @@ async function syncOnce(workspaceId: string): Promise<void> {
           if (itemComplete) completed++;
           reportProgress();
         }
-      }
+      };
+      let nextPath = 0;
+      let firstError: unknown;
+      const worker = async () => {
+        while (true) {
+          const index = nextPath++;
+          if (index >= total) return;
+          try { await reconcilePath(paths[index]); }
+          catch (error) { firstError ??= error; }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(6, total) }, () => worker()));
       await save();
+      if (firstError) throw firstError;
       const conflictFiles = [...new Set([...local.keys(), ...Object.keys(baselines)])].filter((relative) => /\.local-conflict-[^/]+\.md$/i.test(relative));
       setStatus(workspaceId, { state: "synced", progress: { completed: total, total, percent: 100 }, enabled: true, folderPath: root, lastScannedAt: Date.now(), lastSyncedAt: Date.now(), pendingFiles: 0, conflictFiles, error: null });
     } catch (error) {
