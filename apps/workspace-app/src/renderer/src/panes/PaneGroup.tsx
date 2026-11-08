@@ -88,6 +88,17 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({})
   const [pendingJumpByTabId, setPendingJumpByTabId] = useState<Record<string, number>>({})
 
+  useEffect(() => {
+    for (const item of tabs) {
+      setEditorDocumentDirty(
+        item.id,
+        dirtyByTabId[item.id] ?? false,
+        item.title ?? item.filePath ?? 'This document',
+        item.filePath ?? undefined,
+      )
+    }
+  }, [tabs, dirtyByTabId])
+
   const activeTabId = resolveActivePaneTabId(config)
   const activeItem = tabs.find((t) => t.id === activeTabId) ?? tabs[0]
 
