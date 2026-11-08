@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorTreeSelectionRoots, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorTreeSelectionRoots, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -75,6 +75,9 @@ export default function Home() {
   const [openingFileId, setOpeningFileId] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickQuery, setQuickQuery] = useState("");
+  const [quickOpenLoading, setQuickOpenLoading] = useState(false);
+  const [quickOpenError, setQuickOpenError] = useState<string | null>(null);
+  const [quickOpenResults, setQuickOpenResults] = useState<FileRecord[]>([]);
   const [, setText] = useState("");
   const [sync, setSync] = useState<SyncStatus>({ serverRevision: 0, githubStatus: "pending", pendingFiles: 0 });
   const [error, setError] = useState("");
@@ -968,13 +971,37 @@ export default function Home() {
     }
   };
 
-  const quickOpenResults = useMemo(() => fuzzyEditorSearch(
-    visibleFiles.filter((file) => file.kind !== "folder"),
-    quickQuery,
-    (file) => file.path,
-    30,
-  ), [quickQuery, visibleFiles]);
   const quickOpenItems = useMemo(() => quickOpenResults.map((file) => ({ id: file.id, label: entryName(file.path), description: file.path })), [quickOpenResults]);
+  useEffect(() => {
+    if (!quickOpen || !editorProvider) {
+      setQuickOpenResults([]);
+      setQuickOpenLoading(false);
+      setQuickOpenError(null);
+      return;
+    }
+    const controller = new AbortController();
+    setQuickOpenResults([]);
+    setQuickOpenLoading(true);
+    setQuickOpenError(null);
+    void editorProvider.search(quickQuery, {
+      target: "names",
+      caseSensitive: false,
+      regex: false,
+      wholeWord: false,
+      fuzzy: true,
+    }, controller.signal).then((results) => {
+      if (controller.signal.aborted) return;
+      const byId = new Map(visibleFiles.map((file) => [file.id, file]));
+      setQuickOpenResults(results.map(({ item }) => byId.get(item.itemId)).filter((file): file is FileRecord => Boolean(file)).slice(0, 30));
+      setQuickOpenLoading(false);
+    }).catch((cause: unknown) => {
+      if (controller.signal.aborted) return;
+      setQuickOpenResults([]);
+      setQuickOpenError(cause instanceof Error ? cause.message : "Could not search PKMS files");
+      setQuickOpenLoading(false);
+    });
+    return () => controller.abort();
+  }, [editorProvider, visibleFiles, quickOpen, quickQuery]);
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
   const contextMoveRoots = editorTreeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)), (file) => file.kind === "folder");
   const cutMoveRoots = editorTreeSelectionRoots(files.filter((file) => cutTreePaths.has(file.path)), cutTreePaths, (file) => file.kind === "folder");
@@ -1199,6 +1226,8 @@ export default function Home() {
           query={quickQuery}
           items={quickOpenItems}
           placeholder="Search open and loaded files…"
+          loading={quickOpenLoading}
+          error={quickOpenError}
           emptyMessage="No loaded files found"
           onQueryChange={setQuickQuery}
           onClose={() => setQuickOpen(false)}

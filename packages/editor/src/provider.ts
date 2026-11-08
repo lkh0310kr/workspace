@@ -135,6 +135,10 @@ export interface EditorSearchOptions {
   caseSensitive: boolean;
   regex: boolean;
   wholeWord: boolean;
+  /** Rank name candidates by fuzzy subsequence score for Quick Open. */
+  fuzzy?: boolean;
+  /** Maximum number of name candidates to return. */
+  limit?: number;
 }
 
 export interface EditorSearchResult {

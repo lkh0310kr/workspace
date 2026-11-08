@@ -65,7 +65,7 @@ export function EditorQuickOpenDialog({
             } else if (event.key === "Enter") {
               event.preventDefault();
               const item = items[selectedIndex];
-              if (item) onSelect(item.id);
+              if (!loading && item) onSelect(item.id);
             }
           }}
         />

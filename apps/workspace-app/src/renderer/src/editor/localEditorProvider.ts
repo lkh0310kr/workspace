@@ -9,6 +9,7 @@ import type {
   EditorTreeItem,
 } from "@workspace/editor";
 import { EditorProviderError, withEditorProviderErrors } from "@workspace/editor";
+import { fuzzyEditorSearch } from "@workspace/editor";
 import { cancelSearch, createDir, deletePath, getMediaUrl, listDir, onFileChanged, onSearchDone, onSearchResult, readFile, renamePath, searchInFiles, writeFile, writeFileIfUnchanged, type SearchFileResult } from "../electron";
 
 const capabilities: EditorProviderCapabilities = {
@@ -161,23 +162,22 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       }
     },
     async search(query, options, signal, onResult) {
-      if (!query) return [];
       if (options.target === "names") {
         const paths = await window.api.fs.listAllFiles(tabId);
         abortIfNeeded(signal);
-        const results: EditorSearchResult[] = [];
-        for (const path of paths) {
+        const candidates = paths.map((path) => itemFor(path, false));
+        const matches = options.fuzzy
+          ? fuzzyEditorSearch(candidates, query, (item) => item.path, options.limit ?? 100)
+          : candidates.filter((item) => findMatch(item.name, query, options) >= 0);
+        const results = matches.map((item) => ({ item }));
+        for (const result of results) {
           abortIfNeeded(signal);
-          const item = itemFor(path, false);
-          if (findMatch(item.name, query, options) >= 0) {
-            const result = { item };
-            results.push(result);
-            onResult?.(result);
-          }
+          onResult?.(result);
         }
         persistItemIds();
         return results;
       }
+      if (!query) return [];
       const toEditorResult = (file: SearchFileResult): EditorSearchResult => ({
         item: itemFor(file.path, false),
         matches: file.matches.map((match) => ({

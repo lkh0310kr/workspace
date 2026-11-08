@@ -8,6 +8,7 @@ import type {
   EditorTreeItem,
 } from "@workspace/editor";
 import { EditorProviderError, withEditorProviderErrors } from "@workspace/editor";
+import { fuzzyEditorSearch } from "@workspace/editor";
 import type { FileRecord } from "../../domain/types";
 import { entryName } from "../../domain/fileTree";
 
@@ -103,6 +104,16 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
     },
     async search(query: string, searchOptions: EditorSearchOptions, signal) {
       if (searchOptions.target !== "names") return [];
+      if (searchOptions.fuzzy) {
+        const matches = fuzzyEditorSearch(
+          options.listLoadedFiles().filter((file) => file.kind !== "folder"),
+          query,
+          (file) => file.path,
+          searchOptions.limit ?? Number.MAX_SAFE_INTEGER,
+        );
+        abortIfNeeded(signal);
+        return matches.map((file) => ({ item: treeItem(workspaceId, file) }));
+      }
       const needle = searchOptions.caseSensitive ? query : query.toLocaleLowerCase();
       const results: EditorSearchResult[] = [];
       for (const file of options.listLoadedFiles()) {

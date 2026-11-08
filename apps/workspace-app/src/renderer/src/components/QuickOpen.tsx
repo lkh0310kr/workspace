@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { listAllFiles } from "../electron";
-import { fuzzyEditorSearch } from "@workspace/editor";
-import { classifyFile } from "./TreeView";
+import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { EditorQuickOpenDialog } from "@workspace/editor";
+import type { EditorTreeItem } from "@workspace/editor";
 
 // Cmd+P fuzzy file switcher — a centered modal, not anchor-rect-based like
 // Popover.tsx (nothing to anchor to; it's summoned from anywhere).
@@ -14,42 +13,53 @@ interface Props {
 
 export function QuickOpen({ tabId, onOpenFile, onClose }: Props) {
   const [query, setQuery] = useState("");
-  const [files, setFiles] = useState<string[]>([]);
+  const [items, setItems] = useState<EditorTreeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const providerLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
+  const provider = providerLease.provider;
+
+  useEffect(() => () => providerLease.release(), [providerLease]);
+
   useEffect(() => {
-    let cancelled = false;
-    setFiles([]);
+    const controller = new AbortController();
+    setItems([]);
     setLoading(true);
     setLoadError(null);
-    listAllFiles(tabId).then(
-      (nextFiles) => {
-        if (cancelled) return;
-        setFiles(nextFiles);
+    provider.search(query, {
+      target: "names",
+      caseSensitive: false,
+      regex: false,
+      wholeWord: false,
+      fuzzy: true,
+      limit: 100,
+    }, controller.signal).then(
+      (results) => {
+        if (controller.signal.aborted) return;
+        setItems(results.map(({ item }) => item));
         setLoading(false);
       },
       (error: unknown) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setLoadError(error instanceof Error ? error.message : String(error));
-        setFiles([]);
+        setItems([]);
         setLoading(false);
       },
     );
-    return () => {
-      cancelled = true;
-    };
-  }, [tabId]);
+    return () => controller.abort();
+  }, [provider, query]);
 
-  const filtered = useMemo(() => fuzzyEditorSearch(files, query, (f) => f, 100), [files, query]);
-
-  const openSelected = (path: string): void => {
-    onOpenFile(path, classifyFile(path));
+  const openSelected = (itemId: string): void => {
+    const item = items.find((candidate) => candidate.itemId === itemId);
+    if (!item) return;
+    const kind = item.kind === "markdown" ? "markdown" : item.kind === "asset" ? "viewer" : "code";
+    onOpenFile(item.path, kind);
     onClose();
   };
 
   return <EditorQuickOpenDialog
     query={query}
-    items={filtered.map((path) => ({ id: path, label: path }))}
+    items={items.map((item) => ({ id: item.itemId, label: item.path }))}
     loading={loading}
     error={loadError}
     onQueryChange={setQuery}
