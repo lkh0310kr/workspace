@@ -68,21 +68,14 @@ export function EditorTreeRow({
 }: EditorTreeRowProps) {
   const classes = [
     "editor-tree-item",
-    "tree-row",
     className,
-    active && "active",
-    selected && "selected",
-    multiSelected && "multi-selected",
-    cut && "cut-pending",
-    dropTarget && "drop-target",
-    dropTarget && "drag-over",
-    `editor-tree-item--${kind}`,
     active && "is-active",
     selected && "is-selected",
     multiSelected && "is-multi-selected",
     cut && "is-cut",
     dropTarget && "is-drop-target",
     expanded && "is-expanded",
+    `editor-tree-item--${kind}`,
   ].filter(Boolean).join(" ");
 
   return (
