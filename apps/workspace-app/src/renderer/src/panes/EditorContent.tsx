@@ -11,7 +11,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { buildRenamedPath, editorDocumentKey, EditorMarkdownDocument, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
+import { buildRenamedPath, editorDocumentKey, EditorMarkdownDocument, EditorMarkdownTitleInput, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
 const EditorMarkdownSurface = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
@@ -670,29 +670,7 @@ export function EditorContent({
               outlineKey={documentCacheKey}
               onOutlineNavigate={(position) => { const view = viewRef.current; if (view) jumpToPos(view, position); }}
               title={titleEditing ? (
-                <div className="md-title-edit">
-                  <input
-                    ref={titleInputRef}
-                    className={`editor-markdown-title md-title-input${titleError ? " error" : ""}`}
-                    value={titleDraft}
-                    onChange={(e) => {
-                      setTitleDraft(e.target.value);
-                      setTitleError(null);
-                    }}
-                    onBlur={() => void commitTitleRename()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        titleInputRef.current?.blur();
-                      } else if (e.key === "Escape") {
-                        e.preventDefault();
-                        setTitleEditing(false);
-                        setTitleError(null);
-                      }
-                    }}
-                  />
-                  {titleError && <div className="md-title-error">{titleError}</div>}
-                </div>
+                <EditorMarkdownTitleInput inputRef={titleInputRef} value={titleDraft} error={titleError} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { setTitleEditing(false); setTitleError(null); }} />
               ) : (
                 <div className="editor-markdown-title" title={filePath ?? undefined} onClick={enterTitleEdit}>
                   {markdownTitleFor(filePath)}

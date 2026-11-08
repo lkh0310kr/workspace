@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorTreeSelectionRoots, markdownTitleFor, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitleInput, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorTreeSelectionRoots, markdownTitleFor, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -1313,21 +1313,7 @@ export default function Home() {
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <div className="editor-layout">
           <EditorMarkdownDocument
             title={<div className="editor-title-block">
-              {titleEditing ? <div className="md-title-edit">
-                <input
-                  ref={titleInputRef}
-                  aria-label="Markdown document title"
-                  className={`editor-markdown-title md-title-input${titleError ? " error" : ""}`}
-                  value={titleDraft}
-                  onChange={(event) => { setTitleDraft(event.target.value); setTitleError(null); }}
-                  onBlur={() => void commitTitleRename()}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") { event.preventDefault(); titleInputRef.current?.blur(); }
-                    else if (event.key === "Escape") { event.preventDefault(); titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }
-                  }}
-                />
-                {titleError && <div className="md-title-error" role="alert">{titleError}</div>}
-              </div> : <div className="editor-markdown-title" title={activeFile.path} onClick={enterTitleEdit}>{markdownTitleFor(activeFile.path)}</div>}
+              {titleEditing ? <EditorMarkdownTitleInput inputRef={titleInputRef} value={titleDraft} error={titleError} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} /> : <div className="editor-markdown-title" title={activeFile.path} onClick={enterTitleEdit}>{markdownTitleFor(activeFile.path)}</div>}
               {peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}
             </div>}
             outlineItems={outlineItems.map((item) => ({ id: `${item.position}-${item.title}`, level: item.level, label: item.title, position: item.position }))}
