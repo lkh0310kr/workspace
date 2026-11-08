@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorOutlineList, EditorTextSurface, markdownOutlineFromState, markdownRootPath, replaceEditorDocument, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorOutlineList, EditorTextSurface, externalEditorChange, markdownOutlineFromState, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -136,7 +136,8 @@ export function EditorContent({
   const editorProviderLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
   const editorProvider = editorProviderLease.provider;
   const documentSessionRef = useRef<EditorDocumentSession | null>(null);
-  const unsubscribeDocumentRef = useRef<(() => void) | null>(null);
+  const [activeDocumentSession, setActiveDocumentSession] = useState<EditorDocumentSession | null>(null);
+  const documentSnapshot = useEditorDocumentSnapshot(activeDocumentSession);
   const documentLoadSequenceRef = useRef(0);
   const editorShellRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -145,7 +146,6 @@ export function EditorContent({
   const markdownRootCompartmentRef = useRef<Compartment | null>(null);
   const pathRef = useRef<string | null>(filePath);
   pathRef.current = filePath;
-  const lastLoadedContentRef = useRef<string | null>(null);
   const contentLoadedRef = useRef(false);
   const suppressProviderEditRef = useRef(false);
   const onJumpConsumedRef = useRef(onJumpConsumed);
@@ -188,9 +188,8 @@ export function EditorContent({
 
   const applyLoadedFileContent = useCallback(
     (view: EditorView, content: string, jumpLine?: number | null) => {
-      lastLoadedContentRef.current = content;
       suppressProviderEditRef.current = true;
-      replaceEditorDocument(view, content);
+      replaceEditorDocument(view, content, externalEditorChange);
       suppressProviderEditRef.current = false;
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
@@ -212,10 +211,9 @@ export function EditorContent({
       if (!view) return false;
       const sequence = ++documentLoadSequenceRef.current;
       if (documentSessionRef.current?.item.path !== path) {
-        unsubscribeDocumentRef.current?.();
-        unsubscribeDocumentRef.current = null;
         const previous = documentSessionRef.current;
         documentSessionRef.current = null;
+        setActiveDocumentSession(null);
         if (previous) void previous.close();
       }
       editorProvider.itemRefForPath(path)
@@ -231,25 +229,9 @@ export function EditorContent({
             await session.close();
             return;
           }
-          unsubscribeDocumentRef.current?.();
           const previous = documentSessionRef.current;
           documentSessionRef.current = session;
-          unsubscribeDocumentRef.current = session.subscribe((snapshot) => {
-            if (pathRef.current !== path || documentSessionRef.current !== session) return;
-            if (snapshot.savePhase === "conflict") {
-              setSaveError(snapshot.message ?? "The file changed on disk.");
-              return;
-            }
-            if (snapshot.content.type !== "text") return;
-            const activeView = viewRef.current;
-            if (activeView && snapshot.savePhase === "clean" && snapshot.content.text !== activeView.state.doc.toString()) {
-              lastLoadedContentRef.current = snapshot.content.text;
-              suppressProviderEditRef.current = true;
-              replaceEditorDocument(activeView, snapshot.content.text);
-              suppressProviderEditRef.current = false;
-              setDirtyState(false);
-            }
-          });
+          setActiveDocumentSession(session);
           if (previous && previous !== session) await previous.close();
           const snapshot = session.snapshot();
           if (snapshot.content.type === "text") {
@@ -265,10 +247,18 @@ export function EditorContent({
 
   useEffect(() => () => {
     documentLoadSequenceRef.current += 1;
-    unsubscribeDocumentRef.current?.();
     void documentSessionRef.current?.close();
     editorProviderLease.release();
   }, [editorProviderLease]);
+
+  useEffect(() => {
+    if (documentSnapshot?.savePhase === "conflict") {
+      setSaveError(documentSnapshot.message ?? "The file changed on disk.");
+    } else if (documentSnapshot?.savePhase === "clean") {
+      setSaveError(null);
+      setDirtyState(false);
+    }
+  }, [documentSnapshot, setDirtyState]);
 
   useEffect(() => subscribeAutoSave(setAutoSave), []);
 
@@ -280,8 +270,6 @@ export function EditorContent({
       const session = documentSessionRef.current;
       const write = saveQueueRef.current.catch(() => {}).then(async () => {
         if (session && session.item.path === path) {
-          const snapshot = session.snapshot();
-          await session.replaceText(content, snapshot.revision);
           await session.save();
         } else {
           await writeFile(tabId, path, content);
@@ -289,7 +277,6 @@ export function EditorContent({
       });
       saveQueueRef.current = write.then(() => {}, () => {});
       return write.then(() => {
-        lastLoadedContentRef.current = content;
         if (
           viewRef.current === view &&
           (pathRef.current === path || pathRef.current === null) &&
@@ -391,16 +378,8 @@ export function EditorContent({
         if (!update.docChanged) return;
         editRevisionRef.current += 1;
         if (isMarkdown) setOutline(computeOutline(update.view));
-        if (suppressProviderEditRef.current) return;
+        if (suppressProviderEditRef.current || update.transactions.some((transaction) => transaction.annotation(externalEditorChange))) return;
         setDirtyState(true);
-        const session = documentSessionRef.current;
-        if (session && session.item.path === pathRef.current) {
-          const current = session.snapshot();
-          if (current.content.type === "text") {
-            void session.replaceText(update.state.doc.toString(), current.revision)
-              .catch((error: unknown) => setSaveError(error instanceof Error ? error.message : String(error)));
-          }
-        }
         const path = pathRef.current;
         if (!path || !autoSaveRef.current || pathRenameInFlightRef.current) return;
         scheduleAutoSave(update.view);
@@ -752,12 +731,12 @@ export function EditorContent({
                 </div>
               )}
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Markdown editor" />
+                <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Markdown editor" />
               </div>
             </div>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Code editor" />
+              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>

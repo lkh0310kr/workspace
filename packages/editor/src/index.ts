@@ -13,6 +13,7 @@ export type {
   EditorSyncPhase,
   EditorTreeItem,
 } from "./provider";
+export { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
 export { createEditorView, replaceEditorDocument } from "./codeMirror";
 export type { CreateEditorViewOptions } from "./codeMirror";
 export { markdownEditorTheme, markdownProseTheme } from "./themes";

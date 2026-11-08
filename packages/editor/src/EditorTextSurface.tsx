@@ -5,6 +5,8 @@ import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { createEditorView, replaceEditorDocument } from "./codeMirror";
 import { readEditorViewState, writeEditorViewState } from "./viewStateCache";
+import { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
+import type { EditorDocumentSession } from "./provider";
 import "./markdown.css";
 
 export const externalEditorChange = Annotation.define<boolean>();
@@ -12,9 +14,12 @@ export const externalEditorChange = Annotation.define<boolean>();
 export interface EditorTextSurfaceProps {
   /** Omit value for hosts that load documents through an EditorDocumentSession. */
   value?: string;
+  /** Optional provider session; owns the initial text, edits, and remote snapshots. */
+  session?: EditorDocumentSession | null;
   initialValue?: string;
   extensions: readonly Extension[];
   onChange?: (value: string, view: EditorView) => void;
+  onSessionError?: (error: unknown) => void;
   onViewReady?: (view: EditorView | null) => void;
   className?: string;
   ariaLabel?: string;
@@ -27,9 +32,11 @@ export interface EditorTextSurfaceProps {
 /** Shared CodeMirror owner for both products; hosts contribute feature extensions. */
 export function EditorTextSurface({
   value,
+  session,
   initialValue,
   extensions,
   onChange,
+  onSessionError,
   onViewReady,
   className,
   ariaLabel,
@@ -42,8 +49,17 @@ export function EditorTextSurface({
   const documentKeyRef = useRef(documentKey);
   const viewExtensionsRef = useRef<Extension[]>([]);
   const onChangeRef = useRef(onChange);
+  const onSessionErrorRef = useRef(onSessionError);
   const onViewReadyRef = useRef(onViewReady);
+  const sessionSnapshot = useEditorDocumentSnapshot(session);
+  const sessionRef = useRef(session);
+  const sessionSnapshotRef = useRef(sessionSnapshot);
+  const sessionText = sessionSnapshot?.content.type === "text" ? sessionSnapshot.content.text : undefined;
+  const effectiveValue = sessionText ?? value;
+  sessionRef.current = session;
+  sessionSnapshotRef.current = sessionSnapshot;
   onChangeRef.current = onChange;
+  onSessionErrorRef.current = onSessionError;
   onViewReadyRef.current = onViewReady;
 
   useEffect(() => {
@@ -57,7 +73,15 @@ export function EditorTextSurface({
     hostExtensions.push(
       EditorView.updateListener.of((update) => {
         if (!update.docChanged || update.transactions.some((transaction) => transaction.annotation(externalEditorChange))) return;
-        onChangeRef.current?.(update.state.doc.toString(), update.view);
+        const text = update.state.doc.toString();
+        const currentSession = sessionRef.current;
+        const snapshot = sessionSnapshotRef.current ?? currentSession?.snapshot();
+        if (currentSession && !currentSession.readOnly && snapshot?.content.type === "text") {
+          const write = currentSession.replaceText(text, snapshot.revision);
+          sessionSnapshotRef.current = currentSession.snapshot();
+          void write.catch((error) => onSessionErrorRef.current?.(error));
+        }
+        onChangeRef.current?.(text, update.view);
       }),
     );
     const cached = documentKey ? readEditorViewState(documentKey) : undefined;
@@ -80,7 +104,7 @@ export function EditorTextSurface({
     viewExtensionsRef.current = viewExtensions;
     const view = createEditorView({
       parent: hostRef.current,
-      doc: initialValue ?? value ?? "",
+      doc: sessionText ?? initialValue ?? value ?? "",
       state: restoredState,
       extensions: viewExtensions,
     });
@@ -131,9 +155,9 @@ export function EditorTextSurface({
 
   useEffect(() => {
     const view = viewRef.current;
-    if (!view || value === undefined || view.state.doc.toString() === value) return;
-    replaceEditorDocument(view, value, externalEditorChange);
-  }, [value]);
+    if (!view || effectiveValue === undefined || view.state.doc.toString() === effectiveValue) return;
+    replaceEditorDocument(view, effectiveValue, externalEditorChange);
+  }, [effectiveValue]);
 
   return <div ref={hostRef} className={className} />;
 }

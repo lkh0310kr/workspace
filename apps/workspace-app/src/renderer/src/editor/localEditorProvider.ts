@@ -329,12 +329,13 @@ class LocalDocumentSession implements EditorDocumentSession {
   async save(): Promise<EditorDocumentSnapshot> {
     if (this.phase === "conflict") throw new Error(this.message ?? "File changed on disk");
     if (this.phase !== "dirty") return this.snapshot();
+    const savedValue = this.value;
     this.phase = "saving";
     this.emit();
     try {
-      await writeFile(this.tabId, this.item.path, this.value);
+      await writeFile(this.tabId, this.item.path, savedValue);
       this.revision = crypto.randomUUID();
-      this.phase = "clean";
+      this.phase = this.value === savedValue ? "clean" : "dirty";
       this.message = undefined;
     } catch (error) {
       this.phase = "error";

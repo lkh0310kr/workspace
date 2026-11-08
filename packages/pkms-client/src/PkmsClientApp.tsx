@@ -14,7 +14,6 @@ import { toBase64, createOperationId } from "./domain/encoding";
 import { entryName, flattenTree, mergeFileRecords, parentPath, treeSelectionRoots } from "./domain/fileTree";
 import { fileLocationPath, parseFileLocation } from "./domain/fileLocation";
 import { matchesExcludePattern } from "./domain/excludePattern";
-import { applyTextDiff } from "./domain/yjsText";
 import { AppIcon, GitHubIcon } from "./components/Icons";
 import { PkmsDialog, type PkmsDialogRequest } from "./components/PkmsDialog";
 import { FileTreeList } from "./components/FileTreeList";
@@ -65,6 +64,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeFile, setActiveFile] = useState<FileRecord | null>(null);
   const [openDocuments, setOpenDocuments] = useState<Array<{ workspaceId: string; file: FileRecord }>>([]);
+  const [activeEditorSession, setActiveEditorSession] = useState<EditorDocumentSession | null>(null);
   const [openingFileId, setOpeningFileId] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickQuery, setQuickQuery] = useState("");
@@ -280,12 +280,17 @@ export default function Home() {
     }
     if (editorProvider && file.kind === "markdown") {
       const existingSession = pkmsEditorSessions.current.get(file.id);
-      if (existingSession) await openDocumentSession(file, historyAction);
+      if (existingSession) {
+        await openDocumentSession(file, historyAction);
+        setActiveEditorSession(existingSession);
+      }
       else {
+        setActiveEditorSession(null);
         editorNavigationRef.current = historyAction;
         try {
           const session = await editorProvider.openDocument({ providerId: editorProvider.id, itemId: file.id });
           pkmsEditorSessions.current.set(file.id, session);
+          setActiveEditorSession(session);
         } catch (cause) {
           setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === file.id)));
           setError(cause instanceof Error ? cause.message : "Could not open PKMS document");
@@ -295,6 +300,7 @@ export default function Home() {
       }
       return;
     }
+    setActiveEditorSession(null);
     await openDocumentSession(file, historyAction);
   }, [activeWorkspace, editorProvider, openDocumentSession]);
   const visibleOpenDocuments = useMemo(
@@ -316,6 +322,7 @@ export default function Home() {
       void session.close();
     }
     if (!closingActive) return;
+    setActiveEditorSession(null);
     if (nextTab) void openFile(nextTab.file, "replace");
     else {
       clearActiveFile();
@@ -643,7 +650,10 @@ export default function Home() {
   useEffect(() => {
     if (loading || !user) return;
     if (!fileLocation) {
-      if (location.pathname === "/" && activeRef.current.file) clearActiveFile();
+      if (location.pathname === "/" && activeRef.current.file) {
+        setActiveEditorSession(null);
+        clearActiveFile();
+      }
       routedPath.current = null;
       return;
     }
@@ -655,6 +665,7 @@ export default function Home() {
       return;
     }
     if (activeWorkspace?.id !== workspace.id) {
+      setActiveEditorSession(null);
       clearActiveFile();
       setFiles([]); setLoadingFolder(true); setLoadingFolderPaths(new Set());
       setCurrentFolder("");
@@ -705,7 +716,7 @@ export default function Home() {
   };
 
   const chooseWorkspace = (workspace: Workspace) => {
-    setActiveWorkspace(workspace); clearActiveFile(); setFiles([]); setLoadingFolder(true); setLoadingFolderPaths(new Set()); setCurrentFolder(""); setExpandedFolders(new Set([""])); setLoadedFolders(new Set());
+    setActiveEditorSession(null); setActiveWorkspace(workspace); clearActiveFile(); setFiles([]); setLoadingFolder(true); setLoadingFolderPaths(new Set()); setCurrentFolder(""); setExpandedFolders(new Set([""])); setLoadedFolders(new Set());
     setSelectedTreePaths(new Set()); setCutTreePaths(new Set()); setSelectionAnchorPath(null);
     routedPath.current = null;
     navigate("/", { preventScrollReset: true });
@@ -725,6 +736,7 @@ export default function Home() {
     try {
       const result = await api<{ workspace: Workspace }>("/api/workspaces", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repository: repository.fullName, branch: repository.defaultBranch }) });
       setShowRepositories(false);
+      setActiveEditorSession(null);
       clearActiveFile(); setFiles([]); setLoadingFolder(true); setLoadingFolderPaths(new Set()); setCurrentFolder(""); setExpandedFolders(new Set([""])); setLoadedFolders(new Set());
       setSelectedTreePaths(new Set()); setCutTreePaths(new Set()); setSelectionAnchorPath(null);
       await refreshWorkspaces();
@@ -759,15 +771,6 @@ export default function Home() {
   const toolbarCreationFolder = selectedTreePaths.size === 1
     ? files.find((file) => file.path === [...selectedTreePaths][0] && file.kind === "folder")?.path ?? currentFolder
     : currentFolder;
-
-  const handleText = (next: string) => {
-    const current = activeRef.current;
-    if (!current.text || hydrating.current) { setText(next); return; }
-    const previous = current.text.toString();
-    applyTextDiff(current.text, previous, next);
-    activeRef.current.value = next;
-    setText(next);
-  };
 
   const outlineItems = useMemo(() => markdownOutlineFromText(text), [text]);
   const parentFolder = parentPath(currentFolder);
@@ -1036,7 +1039,7 @@ export default function Home() {
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <div className="editor-layout" onPointerMove={(event) => { const next = event.currentTarget.getBoundingClientRect().right - event.clientX < 48; setOutlineHover((current) => current === next ? current : next); }} onPointerLeave={() => setOutlineHover(false)}>
           <div className="editor-heading"><div className="editor-title-block"><h1>{activeFile.path.split("/").at(-1)?.replace(/\.md$/i, "")}</h1>{peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}</div></div>
           <div className="outline-control outline-rail"><button className={`mini-button outline-button${outlineOpen ? " active" : ""}${outlineHover || outlineOpen ? " revealed" : ""}`} title="Note outline" aria-label="Note outline" aria-expanded={outlineOpen} onClick={() => setOutlineOpen((open) => !open)}><AppIcon name="list" /></button>{outlineOpen && <EditorOutlineList className="outline-popover" items={outlineItems.map((item) => ({ id: `${item.line}-${item.title}`, level: item.level, label: item.title, position: item.line }))} indentSize={11} onNavigate={(line) => { setOutlineOpen(false); requestAnimationFrame(() => editorNavigate.current?.(line)); }} />}</div>
-          <div className="editor-columns"><div className="source-column"><Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeFile.id}`} value={text} onChange={handleText} onNavigateReady={registerEditorNavigator} /></Suspense></div></div>
+          <div className="editor-columns"><div className="source-column"><Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeFile.id}`} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} /></Suspense></div></div>
         </div> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>
           {assetPreviewUrl ? assetPreviewType.startsWith("image/") ? <img className="asset-image-preview" src={assetPreviewUrl} alt={activeFile.path} /> : <iframe className="asset-preview-frame" src={assetPreviewUrl} title={activeFile.path} /> : <span className="file-opening-spinner" aria-label="Loading attachment" />}

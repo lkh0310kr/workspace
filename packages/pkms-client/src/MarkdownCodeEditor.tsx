@@ -5,22 +5,21 @@ import {
   EditorTextSurface,
   createMarkdownEditorExtensions,
   markdownEditorTheme,
+  type EditorDocumentSession,
 } from "@workspace/editor";
 
 export function MarkdownCodeEditor({
-  value,
-  onChange,
   documentKey,
+  session,
   onNavigateReady,
+  onSessionError,
 }: {
-  value: string;
-  onChange: (value: string) => void;
   documentKey: string;
+  session: EditorDocumentSession | null;
   onNavigateReady?: (navigate: ((line: number) => void) | null) => void;
+  onSessionError?: (error: unknown) => void;
 }) {
   const view = useRef<EditorView | null>(null);
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
   const onViewReady = useCallback((editor: EditorView | null) => { view.current = editor; }, []);
 
   useEffect(() => {
@@ -37,10 +36,10 @@ export function MarkdownCodeEditor({
   }, [onNavigateReady]);
 
   return <EditorTextSurface
-    value={value}
+    session={session}
     documentKey={documentKey}
     extensions={markdownSurfaceExtensions}
-    onChange={(next) => onChangeRef.current(next)}
+    onSessionError={onSessionError}
     onViewReady={onViewReady}
     className="markdown-code-editor"
     ariaLabel="Markdown editor"
