@@ -210,10 +210,16 @@ export default function Home() {
       session.item.itemId === root.id || (root.kind === "folder" && session.item.path.startsWith(`${root.path}/`)),
     ));
     await Promise.all(affected.map(async ([fileId, session]) => {
+      const optimistic = getFiles().find((file) => file.id === fileId);
+      if (optimistic) session.updateItem?.(pkmsItemForFile(activeWorkspace.id, optimistic));
       const latest = await getPkmsFileById(fileId);
-      if (latest) session.updateItem?.(pkmsItemForFile(activeWorkspace.id, latest));
+      if (!latest) return;
+      // An offline move may be queued while the metadata endpoint still returns
+      // the previous server path. Keep the optimistic path until replay applies.
+      if (optimistic && optimistic.path !== latest.path) return;
+      session.updateItem?.(pkmsItemForFile(activeWorkspace.id, latest));
     }));
-  }, [activeWorkspace?.id, getPkmsFileById]);
+  }, [activeWorkspace?.id, getFiles, getPkmsFileById]);
   const editorProvider = useMemo(() => activeWorkspace ? createPkmsEditorProvider({
     workspaceId: activeWorkspace.id,
     listDirectory: async (path) => {
