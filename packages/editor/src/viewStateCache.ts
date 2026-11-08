@@ -120,7 +120,7 @@ export function writeEditorViewState(key: string, state: EditorState, scrollTop:
 
 export function moveEditorViewState(fromKey: string, toKey: string, storage?: EditorViewStateStorage): void {
   if (fromKey === toKey) return;
-  const state = cache.get(fromKey);
+  const state = cache.get(fromKey) ?? readEditorViewState(fromKey, storage);
   if (!state) return;
   cache.delete(fromKey);
   state.touchedAt = Date.now();
