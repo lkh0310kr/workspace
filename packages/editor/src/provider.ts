@@ -73,7 +73,7 @@ export interface EditorProvider {
   readonly id: string;
   readonly capabilities: EditorProviderCapabilities;
   listChildren(parentId: string | null, signal?: AbortSignal): Promise<EditorTreeItem[]>;
-  /** Invalidate affected parent IDs; the Workbench reloads only those branches. */
+  /** Invalidate affected parent IDs; the shared editor reloads only those branches. */
   /** `null` identifies the provider root. */
   subscribeTree(listener: (changedParentIds: readonly (string | null)[]) => void): () => void;
   openDocument(item: EditorItemRef, signal?: AbortSignal): Promise<EditorDocumentSession>;
@@ -105,7 +105,7 @@ export interface EditorDocumentSnapshot {
   content:
     | { type: "text"; text: string }
     | { type: "asset"; previewUrl: string; mediaType: string };
-  /** Opaque to the Workbench. Providers use it to detect/reconcile stale edits. */
+  /** Opaque to the shared editor. Providers use it to detect/reconcile stale edits. */
   revision: string;
   savePhase: EditorSavePhase;
   message?: string;
