@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, fuzzyEditorSearch, markdownOutlineFromText, projectEditorTreeRows, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
+import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, fuzzyEditorSearch, markdownOutlineFromText, projectEditorTreeRows, resolveEditorTreeArrowKey, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -822,29 +822,33 @@ export default function Home() {
       if (commandFiles.length) { event.preventDefault(); void deleteThroughEditorProvider(commandFiles); }
       return;
     }
-    if (!row) return;
-    if (event.key === "F2" && selectedTreePaths.size === 1) {
+    if (row && event.key === "F2" && selectedTreePaths.size === 1) {
       event.preventDefault();
       const selected = files.find((file) => selectedTreePaths.has(file.path));
       if (selected) beginTreeRename(selected);
       return;
     }
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+      const navigationRows: EditorTreeNavigationRow[] = treeRows.map(({ file, depth }) => ({
+        path: file.path,
+        kind: file.kind === "folder" ? "directory" : file.kind === "markdown" ? "markdown" : "asset",
+        depth,
+      }));
+      const action = resolveEditorTreeArrowKey(navigationRows, row?.file.path ?? null, expandedFolders, event.key);
+      if (!action) return;
       event.preventDefault();
-      const nextIndex = index + (event.key === "ArrowDown" ? 1 : -1);
-      const next = treeRows[nextIndex];
-      if (event.shiftKey && next) selectTreeRow(next.file.path, nextIndex, true, true);
-      else if (next) selectTreeRow(next.file.path, nextIndex);
-      focusRow(next);
-    } else if (event.key === "ArrowRight" && row.file.kind === "folder") {
-      event.preventDefault();
-      if (!expandedFolders.has(row.file.path)) void toggleFolder(row.file);
-      else if (treeRows[index + 1]?.depth === row.depth + 1) focusRow(treeRows[index + 1]);
-    } else if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      if (row.file.kind === "folder" && expandedFolders.has(row.file.path)) void toggleFolder(row.file);
-      else focusRow(treeRows.find((candidate) => candidate.file.path === parentPath(row.file.path)));
-    } else if (event.key === "Enter") {
+      if (action.type === "focus") {
+        const next = treeRows[action.index];
+        if (event.shiftKey) selectTreeRow(action.path, action.index, true, true);
+        else selectTreeRow(action.path, action.index);
+        focusRow(next);
+      } else {
+        const folder = files.find((file) => file.path === action.path && file.kind === "folder");
+        if (folder) void toggleFolder(folder);
+      }
+      return;
+    }
+    if (row && event.key === "Enter") {
       event.preventDefault();
       if (row.file.kind === "folder") void toggleFolder(row.file);
       else void openFile(row.file);

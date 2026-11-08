@@ -1,14 +1,15 @@
 import { useEffect, type RefObject } from "react";
 import type { DirEntry } from "../fileSystem";
+import { resolveEditorTreeArrowKey, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 
 export interface ExplorerKeyboardHandlers {
   onDelete: () => void;
   onRename: () => void;
   onEnter: (entry: DirEntry) => void;
-  onMoveSelection: (delta: number) => void;
-  onCollapse: () => void;
-  onExpand: () => void;
   getFocusedEntry: () => DirEntry | null;
+  getVisibleRows: () => readonly EditorTreeNavigationRow[];
+  getExpandedPaths: () => ReadonlySet<string>;
+  onArrowAction: (action: EditorTreeArrowAction, extendSelection: boolean) => void;
 }
 
 function isTypingTarget(event: KeyboardEvent): boolean {
@@ -48,6 +49,15 @@ export function useExplorerKeyboard(
       const entry = handlers.getFocusedEntry();
       if (!entry && e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
 
+      if (e.key.startsWith("Arrow")) {
+        const action = resolveEditorTreeArrowKey(handlers.getVisibleRows(), entry?.path ?? null, handlers.getExpandedPaths(), e.key);
+        if (action) {
+          e.preventDefault();
+          handlers.onArrowAction(action, e.shiftKey);
+        }
+        return;
+      }
+
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         handlers.onDelete();
@@ -62,25 +72,6 @@ export function useExplorerKeyboard(
         e.preventDefault();
         handlers.onEnter(entry);
         return;
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        handlers.onMoveSelection(-1);
-        return;
-      }
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        handlers.onMoveSelection(1);
-        return;
-      }
-      if (e.key === "ArrowLeft" && entry?.is_dir) {
-        e.preventDefault();
-        handlers.onCollapse();
-        return;
-      }
-      if (e.key === "ArrowRight" && entry?.is_dir) {
-        e.preventDefault();
-        handlers.onExpand();
       }
     }
 

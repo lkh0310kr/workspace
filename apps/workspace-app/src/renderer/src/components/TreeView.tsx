@@ -30,7 +30,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, flattenEditorTree, projectEditorTreeRows } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, flattenEditorTree, projectEditorTreeRows, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -551,39 +551,44 @@ export function TreeView({
         if (entry.is_dir) toggle(entry.path);
         else openFileFromTree(entry.path, classifyFile(entry.name), true);
       },
-      onMoveSelection: (delta: number) => {
-        const entry = focusedEntry();
-        const idx = entry ? flatList.findIndex((r) => r.entry.path === entry.path) : -1;
-        const nextIdx = idx === -1 ? (delta > 0 ? 0 : flatList.length - 1) : Math.max(0, Math.min(flatList.length - 1, idx + delta));
-        const next = flatList[nextIdx];
-        if (!next) return;
-        setSelected(new Set([next.entry.path]));
-        setSelectionAnchor(next.entry.path);
-        scrollRowIntoView(next.entry.path);
-      },
-      onCollapse: () => {
-        const entry = focusedEntry();
-        if (entry?.is_dir) {
+      getVisibleRows: (): EditorTreeNavigationRow[] => flatList.map(({ entry, depth }) => ({
+        path: entry.path,
+        kind: entry.is_dir ? "directory" : classifyFile(entry.name) === "markdown" ? "markdown" : "code",
+        depth,
+      })),
+      getExpandedPaths: () => expanded,
+      onArrowAction: (action: EditorTreeArrowAction, extendSelection: boolean) => {
+        if (action.type === "focus") {
+          const next = flatList[action.index];
+          if (!next) return;
+          if (extendSelection) {
+            const anchorPath = selectionAnchor ?? focusedEntry()?.path ?? next.entry.path;
+            const anchor = flatList.findIndex((row) => row.entry.path === anchorPath);
+            const low = Math.min(anchor < 0 ? action.index : anchor, action.index);
+            const high = Math.max(anchor < 0 ? action.index : anchor, action.index);
+            setSelected(new Set(flatList.slice(low, high + 1).map((row) => row.entry.path)));
+            if (!selectionAnchor) setSelectionAnchor(anchorPath);
+          } else {
+            setSelected(new Set([next.entry.path]));
+            setSelectionAnchor(next.entry.path);
+          }
+          scrollRowIntoView(next.entry.path);
+          return;
+        }
+        const path = action.path;
+        if (action.type === "collapse") {
           setExpandedPersisted((prev) => {
             const next = new Set(prev);
-            next.delete(entry.path);
+            next.delete(path);
             return next;
           });
+          return;
         }
-      },
-      onExpand: () => {
-        const entry = focusedEntry();
-        if (entry?.is_dir) {
-          setExpandedPersisted((prev) => {
-            const next = new Set(prev);
-            next.add(entry.path);
-            return next;
-          });
-          if (!dirs.get(entry.path)?.loaded) loadDir(entry.path);
-        }
+        setExpandedPersisted((prev) => new Set(prev).add(path));
+        if (!dirs.get(path)?.loaded) loadDir(path);
       },
     }),
-    [focusedEntry, flatList, openFileFromTree, dirs, loadDir, setExpandedPersisted],
+    [focusedEntry, flatList, openFileFromTree, dirs, loadDir, setExpandedPersisted, expanded, selectionAnchor],
   );
 
   useExplorerKeyboard(
