@@ -37,8 +37,6 @@ apps/pkms-web/                   # PKMS 웹 진입점과 세션 경계
 모든 트리 항목과 문서는 provider ID와 provider 내부의 안정적인 ID로 식별한다. 경로는 표시·탐색 주소이며 rename/move 때 바뀔 수 있으므로 열린 문서의 identity로 사용하지 않는다.
 
 ```ts
-import type { Extension } from "@codemirror/state";
-
 type EditorItemKind = "directory" | "markdown" | "code" | "asset";
 type EditorOperation = "createFile" | "createDirectory" | "rename" | "move" | "delete";
 type EditorSavePhase = "clean" | "dirty" | "saving" | "conflict" | "error";
@@ -114,8 +112,6 @@ interface EditorDocumentSnapshot {
 interface EditorDocumentSession {
   readonly item: EditorTreeItem;
   readonly readOnly: boolean;
-  /** Document synchronization only, such as a PKMS Yjs binding. */
-  readonly extensions?: readonly Extension[];
   snapshot(): EditorDocumentSnapshot;
   subscribe(listener: (snapshot: EditorDocumentSnapshot) => void): () => void;
   replaceText(text: string, baseRevision: string): Promise<void>;
@@ -136,7 +132,7 @@ interface EditorDocumentSession {
 
 `previewUrl`은 provider가 수명을 관리하는 임시 URL일 수 있다. 공통 편집기는 문서 세션이 닫힐 때 asset preview도 해제한다. `asset` 문서는 읽기 전용 세션이며 `replaceText`를 제공하지 않는다.
 
-공용 Editor는 CodeMirror 인스턴스를 만들고 공통 명령, 문법 UI, Markdown 미리보기, 목차, 선택, 포커스 수명을 소유한다. 문서 세션은 PKMS 협업 바인딩 같은 문서 동기화 확장만 제공할 수 있다. Provider가 편집 UI를 교체하거나 공통 키 동작을 조용히 바꾸지는 않는다.
+공용 Editor는 CodeMirror 인스턴스를 만들고 공통 명령, 문법 UI, Markdown 미리보기, 목차, 선택, 포커스 수명을 소유한다. 문서 세션은 `replaceText`와 snapshot으로 협업·저장 동기화를 제공하며 CodeMirror extension을 주입하지 않는다. Provider가 편집 UI를 교체하거나 공통 키 동작을 조용히 바꾸지는 않는다.
 
 여기서 **공통 편집기**는 단일 root React 컴포넌트나 제품 shell이 아니라 `packages/editor`의 UI와 기능 집합을 뜻한다. 공통 패키지는 편집 surface·Markdown 동작·outline·트리 알고리즘과 재사용 UI를 소유한다. 열린 문서의 membership과 active document는 host가 소유한다. Workspace는 pane/tabset 모델에, PKMS는 workspace별 document tab 모델에 연결한다. `EditorDocumentTabBar`는 재사용 가능한 표시 UI이며 두 제품의 tab state를 강제로 같은 모델로 바꾸지 않는다. 문서별 커서·스크롤·선택·undo 이력은 안정적인 provider item identity로 공통 저장 기능을 사용하고 상태 저장 키/저장소는 host가 전달한다. 트리 확장·선택·스크롤의 보존 키도 host가 전달한다. PKMS에서 뒤로/앞으로는 열린 탭을 대신하지 않고 기존 문서 탐색 이력을 이동한다.
 
