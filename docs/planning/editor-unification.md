@@ -169,4 +169,6 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 | Quick open·검색 UI와 host 조립 | in progress | Quick-open dialog와 fuzzy ranking은 공유한다. Workspace 파일 목록 조회와 PKMS loaded repository 후보 범위, 검색 상태는 host 소유다. Workspace Find/Replace는 공통 provider 검색 계약을 사용하고 PKMS는 name search만 제공한다. 각 host는 공통 Editor 요소를 기존 pane/tab/navigation shell에 연결하며, 중복된 편집 조립 로직을 더 공통화하고 양쪽에 연결하는 작업이 남아 있다. |
 | 전체 acceptance 검증과 중복 UI 제거 | not yet | PKMS Web/Desktop 및 Workspace 각각에서 문서 전환, 외부 변경 conflict, 저장 상태, Markdown 기능을 확인한 뒤 구 구현을 제거한다. |
 
+트리에서 폴더와 그 하위 항목을 함께 선택해 삭제·이동하는 경우 `packages/editor`의 `editorTreeSelectionRoots`가 선택된 폴더만 남긴다. PKMS와 Workspace가 같은 규칙을 쓰므로 하위 항목 stale ID로 작업이 중단되거나 같은 경로를 중복 처리하지 않는다.
+
 구현은 위 표의 `not yet` 항목부터 공통 UI로 이동하고, 매 단계에서 두 provider가 보존해야 할 차이를 계약 capability와 adapter로 표현한다. `done (implemented)`는 코드 연결이 있다는 뜻이며 전체 acceptance 통과를 의미하지 않는다.
