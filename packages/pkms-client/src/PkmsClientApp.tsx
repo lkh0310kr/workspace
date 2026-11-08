@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { buildRenamedPath, clearEditorDocumentDirty, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, setEditorDocumentDirty, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { buildRenamedPath, clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, setEditorDocumentDirty, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -166,6 +166,22 @@ export default function Home() {
   const editorNavigationRef = useRef<FileNavigation>("none");
   const editorSessionOpenController = useRef<AbortController | null>(null);
   const pkmsEditorSessions = useRef(new Map<string, EditorDocumentSession>());
+  const pkmsDirtySubscriptions = useRef(new Map<string, () => void>());
+  const trackPkmsEditorSession = useCallback((sessionKey: string, session: EditorDocumentSession) => {
+    pkmsDirtySubscriptions.current.get(sessionKey)?.();
+    const unsubscribe = session.subscribe((snapshot) => {
+      const item = session.item;
+      setEditorDocumentDirty(sessionKey, snapshot.savePhase !== "clean", entryName(item.path), item.path, sessionKey);
+    });
+    pkmsDirtySubscriptions.current.set(sessionKey, unsubscribe);
+  }, []);
+  const closePkmsEditorSession = useCallback((sessionKey: string, session: EditorDocumentSession) => {
+    pkmsDirtySubscriptions.current.get(sessionKey)?.();
+    pkmsDirtySubscriptions.current.delete(sessionKey);
+    clearEditorDocumentDirty(sessionKey);
+    pkmsEditorSessions.current.delete(sessionKey);
+    void session.close();
+  }, []);
   const openFileRef = useRef<((file: FileRecord, historyAction?: FileNavigation) => Promise<void>) | null>(null);
   const docs = useRef(new Map<string, { doc: Y.Doc; persistence: IndexeddbPersistence; updateHandler?: (update: Uint8Array, origin: unknown) => void }>());
   const activeRef = useRef<{ file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null }>({ file: null, documentKey: null, doc: null, text: null });
@@ -323,12 +339,11 @@ export default function Home() {
       editorSessionOpenController.current = null;
       for (const [fileId, session] of pkmsEditorSessions.current) {
         if (session.item.providerId === providerId) {
-          void session.close();
-          pkmsEditorSessions.current.delete(fileId);
+          closePkmsEditorSession(fileId, session);
         }
       }
     };
-  }, [editorProvider]);
+  }, [closePkmsEditorSession, editorProvider]);
   const openFile = useCallback(async (file: FileRecord, historyAction: FileNavigation = "push") => {
     editorSessionOpenController.current?.abort();
     const controller = new AbortController();
@@ -358,6 +373,7 @@ export default function Home() {
             await session.close();
             return;
           }
+          trackPkmsEditorSession(sessionKey, session);
           pkmsEditorSessions.current.set(sessionKey, session);
           setActiveEditorSession(session);
         } catch (cause) {
@@ -380,7 +396,7 @@ export default function Home() {
     } finally {
       if (editorSessionOpenController.current === controller) editorSessionOpenController.current = null;
     }
-  }, [activeWorkspace, editorProvider, openDocumentSession]);
+  }, [activeWorkspace, editorProvider, openDocumentSession, trackPkmsEditorSession]);
   const visibleOpenDocuments = useMemo(
     () => activeWorkspace ? openDocuments.filter((tab) => tab.workspaceId === activeWorkspace.id) : [],
     [activeWorkspace?.id, openDocuments],
@@ -393,20 +409,12 @@ export default function Home() {
     const session = pkmsEditorSessions.current.get(sessionKey);
     const savePhase = session?.snapshot().savePhase;
     const discardingUnsaved = Boolean(savePhase && savePhase !== "clean");
-    if (activeWorkspace) {
-      const file = openDocuments.find((tab) => tab.workspaceId === activeWorkspace.id && tab.file.id === fileId)?.file;
-      setEditorDocumentDirty(sessionKey, discardingUnsaved, file ? entryName(file.path) : "This note", file?.path, sessionKey);
-    }
     if (!confirmEditorDocumentCloseById(sessionKey)) return;
     if (discardingUnsaved) discardEditorDocumentViewState(sessionKey);
-    clearEditorDocumentDirty(sessionKey);
     const closingActive = activeFile?.id === fileId;
     const nextTab = tabs[index + 1] ?? tabs[index - 1] ?? null;
     setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === fileId)));
-    if (session) {
-      pkmsEditorSessions.current.delete(sessionKey);
-      void session.close();
-    }
+    if (session) closePkmsEditorSession(sessionKey, session);
     if (!closingActive) return;
     setActiveEditorSession(null);
     if (nextTab) void openFile(nextTab.file, "replace");
@@ -414,7 +422,7 @@ export default function Home() {
       clearActiveFile();
       navigate("/", { replace: true, preventScrollReset: true });
     }
-  }, [activeFile?.id, activeWorkspace?.id, clearActiveFile, navigate, openDocuments, openFile, visibleOpenDocuments]);
+  }, [activeFile?.id, activeWorkspace?.id, clearActiveFile, closePkmsEditorSession, navigate, openFile, visibleOpenDocuments]);
   openFileRef.current = openFile;
   const activateMarkdownLink = useCallback((link: { kind: "markdown" | "wikilink"; target: string }) => {
     if (link.kind !== "markdown" || link.target.startsWith("#") || !activeWorkspace || !activeFile) return false;
@@ -1063,19 +1071,7 @@ export default function Home() {
     workspace: activeWorkspace, activeFile, currentFolder, files, expandedFolders,
     api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders,
     setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, confirm,
-    beforeDelete: (roots) => {
-      const affected = openDocuments.filter((tab) => tab.workspaceId === activeWorkspace?.id && roots.some((root) =>
-        tab.file.path === root.path || (root.kind === "folder" && tab.file.path.startsWith(`${root.path}/`)),
-      ));
-      const dirty = affected.filter((tab) => {
-        const workspaceId = activeWorkspace?.id;
-        const phase = workspaceId ? pkmsEditorSessions.current.get(pkmsDocumentKey(workspaceId, tab.file.id))?.snapshot().savePhase : undefined;
-        return phase ? phase !== "clean" : tab.file.id === activeFile?.id && (saving || notice === "Unsaved");
-      });
-      if (!dirty.length) return true;
-      const labels = dirty.map((tab) => entryName(tab.file.path));
-      return window.confirm(`Deleting these items will discard unsaved edits in:\n\n${labels.join("\n")}\n\nContinue?`);
-    },
+    beforeDelete: (roots) => confirmDirtyEditorDocumentsInPaths(roots.map((root) => root.path)),
     afterDelete: (roots) => {
       const deletedIds = new Set(openDocuments.filter((tab) => tab.workspaceId === activeWorkspace?.id && roots.some((root) =>
         tab.file.path === root.path || (root.kind === "folder" && tab.file.path.startsWith(`${root.path}/`)),
@@ -1084,10 +1080,7 @@ export default function Home() {
         if (activeWorkspace) discardEditorViewState(pkmsDocumentKey(activeWorkspace.id, fileId));
         const sessionKey = activeWorkspace ? pkmsDocumentKey(activeWorkspace.id, fileId) : "";
         const session = pkmsEditorSessions.current.get(sessionKey);
-        if (session) {
-          void session.close();
-          pkmsEditorSessions.current.delete(sessionKey);
-        }
+        if (session) closePkmsEditorSession(sessionKey, session);
       }
       setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && deletedIds.has(tab.file.id))));
       setActiveEditorSession((current) => current?.item.providerId === `pkms:${activeWorkspace?.id}` && deletedIds.has(current.item.itemId) ? null : current);
