@@ -943,10 +943,7 @@ export default function Home() {
           {showFileFilters && <div className="file-filter-panel"><div className="file-filter-heading"><span>Ignored files</span><span className="filter-state">{showIgnoredFiles ? "Shown" : "Hidden"} · ⌘⇧.</span></div><label htmlFor="excluded-files">Exclude paths</label><textarea id="excluded-files" value={excludedPatterns} placeholder={"*.tmp\n**/drafts/**"} spellCheck={false} onChange={(event) => { const next = event.target.value; setExcludedPatterns(next); localStorage.setItem(`pkms:excluded-files:${activeWorkspace.id}`, next); }} /><p>Press ⌘⇧. to show ignored files</p></div>}
           <FileTreeList
             treeRef={treeRef}
-            rows={treeProjection.rows}
-            rowOffset={treeProjection.startIndex}
-            paddingTop={treeProjection.paddingTop}
-            paddingBottom={treeProjection.paddingBottom}
+            projection={treeProjection}
             selectedPaths={selectedTreePaths}
             expandedFolders={expandedFolders}
             focusedPath={focusedTreePath}

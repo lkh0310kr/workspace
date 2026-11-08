@@ -30,7 +30,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, flattenEditorTree, projectEditorTreeRows, resolveEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, flattenEditorTree, projectEditorTreeRows, resolveEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -645,15 +645,12 @@ export function TreeView({
       onDragOver={onTreeDragOver}
       onDrop={(e) => onFolderDrop(e, "")}
     >
-      <div
-        className="tree-view-rows"
-        style={{ paddingTop: projection.paddingTop, paddingBottom: projection.paddingBottom, minHeight: projection.totalHeight }}
-        onDragOver={onTreeDragOver}
-        onDrop={(e) => onFolderDrop(e, "")}
-      >
-        {projection.rows.map(({ entry, depth }) => (
+      <div className="tree-view-rows" onDragOver={onTreeDragOver} onDrop={(e) => onFolderDrop(e, "")}>
+        <EditorTreeVirtualList
+          projection={projection}
+          itemKey={({ entry }) => entry.path}
+          renderItem={({ entry, depth }) => (
           <EditorTreeRow
-            key={entry.path}
             id={entry.editorItemId}
             path={entry.path}
             name={treeEntryDisplayName(entry.name)}
@@ -699,7 +696,8 @@ export function TreeView({
               if (entry.is_dir && !dirs.get(entry.path)?.loaded) loadDir(entry.path);
             }}
           />
-        ))}
+          )}
+        />
       </div>
       {menu ? <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} /> : null}
       {prompt && (

@@ -31,6 +31,7 @@
 .editor-tree-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .editor-tree-loading { width: 9px; height: 9px; border: 1px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: editor-tree-spin .7s linear infinite; }
 @keyframes editor-tree-spin { to { transform: rotate(360deg); } }
+.editor-tree-virtual-list { display:flex; width:100%; flex:0 0 auto; flex-direction:column; }
 
 .editor-document-tabs { display: flex; flex: 0 0 auto; min-width: 0; overflow-x: auto; gap: 2px; border-bottom: 1px solid var(--border); scrollbar-width: none; }
 .editor-document-tabs::-webkit-scrollbar { display: none; }
