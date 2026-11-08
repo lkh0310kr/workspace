@@ -499,7 +499,7 @@ export async function closeTabInGroup(
   const idx = config.tabs.findIndex((t) => t.id === tabId);
   if (idx === -1) return config.activeTabId;
   const closing = config.tabs[idx];
-  if (!options.skipDirtyConfirm && !confirmEditorDocumentCloseById(tabId)) return config.activeTabId;
+  if (!options.skipDirtyConfirm && !confirmEditorDocumentCloseById(tabId, (message) => window.confirm(message))) return config.activeTabId;
   discardEditorDocumentViewState(tabId);
   clearEditorDocumentDirty(tabId);
   if (closing?.kind === "browser") {

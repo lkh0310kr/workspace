@@ -406,7 +406,7 @@ export default function Home() {
     const session = pkmsEditorSessions.current.get(sessionKey);
     const savePhase = session?.snapshot().savePhase;
     const discardingUnsaved = Boolean(savePhase && savePhase !== "clean");
-    if (!confirmEditorDocumentCloseById(sessionKey)) return;
+    if (!confirmEditorDocumentCloseById(sessionKey, (message) => window.confirm(message))) return;
     if (discardingUnsaved) discardEditorDocumentViewState(sessionKey);
     const closingActive = activeFile?.id === fileId;
     const nextTab = tabs[index + 1] ?? tabs[index - 1] ?? null;
@@ -1064,7 +1064,7 @@ export default function Home() {
     workspace: activeWorkspace, activeFile, currentFolder, files, expandedFolders,
     api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders,
     setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, confirm,
-    beforeDelete: (roots) => confirmDirtyEditorDocumentsInPaths(roots.map((root) => root.path)),
+    beforeDelete: (roots) => confirmDirtyEditorDocumentsInPaths(roots.map((root) => root.path), (message) => window.confirm(message)),
     afterDelete: (roots) => {
       const deletedIds = new Set(openDocuments.filter((tab) => tab.workspaceId === activeWorkspace?.id && roots.some((root) =>
         tab.file.path === root.path || (root.kind === "folder" && tab.file.path.startsWith(`${root.path}/`)),

@@ -422,7 +422,7 @@ export function TreeView({
 
     const confirmed = window.confirm(`Delete ${label}?\n\n${paths.join("\n")}`);
     if (!confirmed) return;
-    if (!confirmDirtyEditorDocumentsInPaths(paths)) return;
+    if (!confirmDirtyEditorDocumentsInPaths(paths, (message) => window.confirm(message))) return;
 
     const deleted: string[] = [];
     for (const p of paths) {

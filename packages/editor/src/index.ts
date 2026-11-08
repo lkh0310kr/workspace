@@ -68,6 +68,7 @@ export type { EditorQuickOpenItem } from "./EditorQuickOpenDialog";
 export { flattenEditorTree, projectEditorTreeRows, EDITOR_TREE_ROW_HEIGHT } from "./treeModel";
 export type { EditorTreeBranchEntry, EditorVisibleTreeRow, EditorTreeProjection } from "./treeModel";
 export { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentClose, confirmEditorDocumentCloseById, discardEditorDocumentViewState, setEditorDocumentDirty } from "./documentDirtyRegistry";
+export type { EditorConfirm } from "./documentDirtyRegistry";
 export { fuzzyEditorSearch } from "./fuzzySearch";
 export type { EditorFuzzyMatch } from "./fuzzySearch";
 export { resolveEditorTreeArrowKey, resolveEditorTreeKeyboardAction } from "./treeNavigation";
