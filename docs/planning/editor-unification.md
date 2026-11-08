@@ -183,6 +183,8 @@ PKMS 전용 `useFileTreeSelection` wrapper를 제거했다. 두 host 모두 `use
 
 두 host의 새 Markdown 문서 생성은 `nextEditorItemNameInDirectory`를 사용한다. 이 helper가 provider 경로에서 부모 디렉터리를 확인하고 case-insensitive sibling 이름을 선택해 host별 parent lookup과 중복 이름 탐색을 제거한다.
 
+생성·이동·제목 rename의 경로 검증은 `resolveEditorTreeDirectory`를 공통으로 사용한다. provider root만 `null`로 허용하며, 지정된 경로가 없거나 디렉터리가 아니면 구조화된 `notFound` 오류를 반환한다.
+
 Workspace의 tree row roving tabIndex와 키보드 이동 기준도 공통 hook의 focused path를 따르며, range anchor와 현재 키보드 focus를 별도 상태로 유지한다.
 
 두 host 모두 바깥 빈 영역 클릭에서 공통 `clear()`로 selection·anchor·focus를 함께 비운다. PKMS workspace 전환도 같은 경로를 사용하고, Workspace는 외부에서 활성 문서를 바꾸면 hook의 tree focus를 동기화한다.
