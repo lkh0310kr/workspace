@@ -34,6 +34,7 @@ export function isEditorAbortError(error: unknown): boolean {
 
 const providerOperationMessages: Readonly<Record<string, string>> = {
   listChildren: "Could not load this folder.",
+  subscribeTree: "Could not monitor this file tree.",
   openDocument: "Could not open this document.",
   search: "Could not search files.",
   replaceContents: "Could not replace file contents.",
@@ -81,6 +82,15 @@ export function withEditorProviderErrors<T extends EditorProvider>(provider: T):
   return new Proxy(provider, {
     get(target, property, receiver) {
       const value = Reflect.get(target, property, receiver) as unknown;
+      if (property === "subscribeTree" && typeof value === "function") {
+        return (...args: unknown[]) => {
+          try {
+            return Reflect.apply(value, target, args);
+          } catch (error) {
+            throw normalizeProviderError(error, property);
+          }
+        };
+      }
       if (typeof property !== "string" || !asyncMethods.has(property) || typeof value !== "function") return value;
       return async (...args: unknown[]) => {
         try {
