@@ -1319,8 +1319,7 @@ export default function Home() {
             outlineItems={outlineItems.map((item) => ({ id: `${item.position}-${item.title}`, level: item.level, label: item.title, position: item.position }))}
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(position) => requestAnimationFrame(() => editorNavigate.current?.(position))}
-            onBackgroundClick={(event) => {
-              if ((event.target as HTMLElement).closest(".cm-editor, .editor-title-block, .editor-markdown-title, .md-title-edit")) return;
+            onBackgroundClick={() => {
               const content = activeEditorSession?.snapshot().content;
               if (content?.type === "text") editorNavigate.current?.(content.text.length);
             }}

@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type MouseEvent as ReactMouseEvent,
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
@@ -635,13 +634,8 @@ export function EditorContent({
   // CodeMirror's own full-height box and just move the cursor to the
   // nearest position (ordinary editor behavior), now it hits nothing.
   // Restores that by focusing and moving the cursor to the end of the
-  // document whenever the click didn't actually land inside CodeMirror's
-  // own DOM (the title input and any of its own content still handle
-  // their own clicks normally).
-  const onScrollContainerClick = (e: ReactMouseEvent) => {
-    if ((e.target as HTMLElement).closest(".cm-editor, .editor-markdown-title, .md-title-edit")) {
-      return;
-    }
+  // document when the shared frame reports a click on blank document space.
+  const onScrollContainerClick = () => {
     const view = viewRef.current;
     if (!view) return;
     jumpToPos(view, view.state.doc.length);

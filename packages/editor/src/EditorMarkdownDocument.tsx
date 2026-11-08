@@ -17,6 +17,10 @@ export interface EditorMarkdownDocumentProps {
 export function EditorMarkdownDocument({ title, actions, outlineItems, outlineKey, onOutlineNavigate, children, onBackgroundClick, className }: EditorMarkdownDocumentProps) {
   const [outlineOpen, setOutlineOpen] = useState(false);
   useEffect(() => setOutlineOpen(false), [outlineKey]);
+  const handleBackgroundClick = (event: MouseEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest(".cm-editor, .editor-title-block, .editor-markdown-title, .md-title-edit")) return;
+    onBackgroundClick?.(event);
+  };
 
   return (
     <div className={["editor-markdown-document", className].filter(Boolean).join(" ")}>
@@ -29,7 +33,7 @@ export function EditorMarkdownDocument({ title, actions, outlineItems, outlineKe
           {outlineOpen && <div className="editor-markdown-outline-popover"><EditorOutlineList items={outlineItems} onNavigate={(position) => { setOutlineOpen(false); onOutlineNavigate?.(position); }} className="editor-markdown-outline-list" itemClassName="editor-markdown-outline-item" emptyMessage="No headings" /></div>}
         </div>}
       </div>}
-      <div className="editor-markdown-scroll" onClick={onBackgroundClick}>
+      <div className="editor-markdown-scroll" onClick={handleBackgroundClick}>
         {title}
         <div className="editor-markdown-content">{children}</div>
       </div>
