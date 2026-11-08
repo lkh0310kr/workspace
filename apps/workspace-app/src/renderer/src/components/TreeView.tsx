@@ -49,8 +49,12 @@ interface Props {
 }
 
 interface DirState {
-  entries: DirEntry[];
+  entries: EditorDirEntry[];
   loaded: boolean;
+}
+
+interface EditorDirEntry extends DirEntry {
+  editorItemId: string;
 }
 
 interface MenuState {
@@ -114,7 +118,7 @@ async function findAvailableName(tabId: number, dir: string, base: string, ext: 
 const TREE_DRAG_MIME = "application/x-workspace-tree-paths";
 
 interface FlatRow {
-  entry: DirEntry;
+  entry: EditorDirEntry;
   depth: number;
 }
 
@@ -164,7 +168,7 @@ export function TreeView({
     (path: string) => {
       editorProvider.listChildren(path)
         .then((items) => {
-          const entries: DirEntry[] = items.map((item) => ({ name: item.name, path: item.path, is_dir: item.kind === "directory" }));
+          const entries: EditorDirEntry[] = items.map((item) => ({ name: item.name, path: item.path, is_dir: item.kind === "directory", editorItemId: item.itemId }));
           setDirs((prev) => new Map(prev).set(path, { entries, loaded: true }));
         })
         .catch(console.error);
@@ -660,7 +664,7 @@ export function TreeView({
         {projection.rows.map(({ entry, depth }) => (
           <EditorTreeRow
             key={entry.path}
-            id={entry.path}
+            id={entry.editorItemId}
             path={entry.path}
             name={treeEntryDisplayName(entry.name)}
             kind={entry.is_dir ? "directory" : classifyFile(entry.name) === "markdown" ? "markdown" : classifyFile(entry.name) === "code" ? "code" : "asset"}
