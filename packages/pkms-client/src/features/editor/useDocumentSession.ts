@@ -58,7 +58,7 @@ export function useDocumentSession(options: Options) {
     setText("");
   };
 
-  const openFile = useCallback(async (file: FileRecord, historyAction: FileNavigation = "push") => {
+  const openFile = useCallback(async (file: FileRecord, historyAction: FileNavigation = "push", signal?: AbortSignal) => {
     const request = ++openSequence.current;
     hydrating.current = false;
     if (workspace && historyAction !== "none") {
@@ -99,23 +99,27 @@ export function useDocumentSession(options: Options) {
         documents.current.set(file.id, entry);
         await persistence.whenSynced;
         if (request !== openSequence.current) return;
+        if (signal?.aborted) { hydrating.current = false; setOpeningFileId(null); return; }
       }
       const cachedText = entry.doc.getText("markdown");
       if (!cachedText.length) {
         if (typeof file.content === "string") {
           if (file.content) entry.doc.transact(() => cachedText.insert(0, file.content!), "server");
         } else {
-          const server = await api<{ update: string }>(`/api/workspaces/${workspace?.id}/files/${file.id}/updates`);
+          const server = await api<{ update: string }>(`/api/workspaces/${workspace?.id}/files/${file.id}/updates`, { signal });
           if (request !== openSequence.current) return;
+          if (signal?.aborted) { hydrating.current = false; setOpeningFileId(null); return; }
           Y.applyUpdate(entry.doc, fromBase64(server.update), "server");
         }
       }
     } catch (cause) {
-      if (request === openSequence.current) { setError(cause instanceof Error ? cause.message : "Could not open file"); setOpeningFileId(null); }
+      if (request === openSequence.current && !signal?.aborted) { setError(cause instanceof Error ? cause.message : "Could not open file"); setOpeningFileId(null); }
+      else if (request === openSequence.current) setOpeningFileId(null);
       hydrating.current = false;
       return;
     }
     if (request !== openSequence.current) return;
+    if (signal?.aborted) { hydrating.current = false; setOpeningFileId(null); return; }
     let currentText = entry.doc.getText("markdown");
     const queuedState = pending.current.get(`state:${file.id}`);
     if (queuedState?.update) {

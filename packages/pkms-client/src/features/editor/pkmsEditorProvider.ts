@@ -92,7 +92,14 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
       const file = await options.getFile(ref.itemId, signal);
       abortIfNeeded(signal);
       if (!file || file.kind === "folder") throw new EditorProviderError("notFound", "PKMS document no longer exists");
-      return options.openSession(file, signal);
+      const session = await options.openSession(file, signal);
+      try {
+        abortIfNeeded(signal);
+        return session;
+      } catch (error) {
+        await session.close();
+        throw error;
+      }
     },
     async search(query: string, searchOptions: EditorSearchOptions, signal) {
       if (searchOptions.target !== "names") return [];

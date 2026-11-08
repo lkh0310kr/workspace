@@ -151,6 +151,7 @@ export default function Home() {
   const routedPath = useRef<string | null>(null);
   const openFileSequence = useRef(0);
   const editorNavigationRef = useRef<FileNavigation>("none");
+  const editorSessionOpenController = useRef<AbortController | null>(null);
   const pkmsEditorSessions = useRef(new Map<string, EditorDocumentSession>());
   const openFileRef = useRef<((file: FileRecord, historyAction?: FileNavigation) => Promise<void>) | null>(null);
   const docs = useRef(new Map<string, { doc: Y.Doc; persistence: IndexeddbPersistence; observer?: () => void; updateHandler?: (update: Uint8Array, origin: unknown) => void }>());
@@ -198,8 +199,9 @@ export default function Home() {
       return getFiles().filter((file) => parentPath(file.path) === path);
     },
     getFile: async (fileId) => getFiles().find((file) => file.id === fileId) ?? null,
-    openSession: async (file) => {
-      await openDocumentSessionRef.current(file, editorNavigationRef.current);
+    openSession: async (file, signal) => {
+      await openDocumentSessionRef.current(file, editorNavigationRef.current, signal);
+      if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
       if (file.kind === "asset") {
         const path = `/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/assets/${encodeURIComponent(file.id)}`;
         const desktop = desktopBridge();
@@ -263,6 +265,8 @@ export default function Home() {
     if (!editorProvider) return;
     const providerId = editorProvider.id;
     return () => {
+      editorSessionOpenController.current?.abort();
+      editorSessionOpenController.current = null;
       for (const [fileId, session] of pkmsEditorSessions.current) {
         if (session.item.providerId === providerId) {
           void session.close();
@@ -272,6 +276,9 @@ export default function Home() {
     };
   }, [editorProvider]);
   const openFile = useCallback(async (file: FileRecord, historyAction: FileNavigation = "push") => {
+    editorSessionOpenController.current?.abort();
+    const controller = new AbortController();
+    editorSessionOpenController.current = controller;
     if (activeWorkspace) {
       setOpenDocuments((current) => {
         const index = current.findIndex((tab) => tab.workspaceId === activeWorkspace.id && tab.file.id === file.id);
@@ -284,27 +291,40 @@ export default function Home() {
     if (editorProvider && file.kind === "markdown") {
       const existingSession = pkmsEditorSessions.current.get(file.id);
       if (existingSession) {
-        await openDocumentSession(file, historyAction);
-        setActiveEditorSession(existingSession);
+        await openDocumentSession(file, historyAction, controller.signal);
+        if (!controller.signal.aborted) setActiveEditorSession(existingSession);
       }
       else {
         setActiveEditorSession(null);
         editorNavigationRef.current = historyAction;
         try {
-          const session = await editorProvider.openDocument({ providerId: editorProvider.id, itemId: file.id });
+          const session = await editorProvider.openDocument({ providerId: editorProvider.id, itemId: file.id }, controller.signal);
+          if (controller.signal.aborted) {
+            await session.close();
+            return;
+          }
           pkmsEditorSessions.current.set(file.id, session);
           setActiveEditorSession(session);
         } catch (cause) {
+          if (controller.signal.aborted) return;
           setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === file.id)));
           setError(cause instanceof Error ? cause.message : "Could not open PKMS document");
         } finally {
-          editorNavigationRef.current = "none";
+          if (editorSessionOpenController.current === controller) {
+            editorNavigationRef.current = "none";
+            editorSessionOpenController.current = null;
+          }
         }
       }
+      if (editorSessionOpenController.current === controller) editorSessionOpenController.current = null;
       return;
     }
     setActiveEditorSession(null);
-    await openDocumentSession(file, historyAction);
+    try {
+      await openDocumentSession(file, historyAction, controller.signal);
+    } finally {
+      if (editorSessionOpenController.current === controller) editorSessionOpenController.current = null;
+    }
   }, [activeWorkspace, editorProvider, openDocumentSession]);
   const visibleOpenDocuments = useMemo(
     () => activeWorkspace ? openDocuments.filter((tab) => tab.workspaceId === activeWorkspace.id) : [],

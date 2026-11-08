@@ -15,7 +15,7 @@ export type {
   EditorSyncPhase,
   EditorTreeItem,
 } from "./provider";
-export { EditorProviderError, isEditorProviderError } from "./provider";
+export { EditorProviderError, isEditorAbortError, isEditorProviderError } from "./provider";
 export { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
 export { createEditorView, editorDocumentReplacement, replaceEditorDocument } from "./codeMirror";
 export type { CreateEditorViewOptions } from "./codeMirror";

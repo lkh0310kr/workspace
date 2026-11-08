@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, EditorTextSurface, externalEditorChange, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -134,6 +134,7 @@ export function EditorContent({
   const [activeDocumentSession, setActiveDocumentSession] = useState<EditorDocumentSession | null>(null);
   const documentSnapshot = useEditorDocumentSnapshot(activeDocumentSession);
   const documentLoadSequenceRef = useRef(0);
+  const documentLoadControllerRef = useRef<AbortController | null>(null);
   const editorShellRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const viewCleanupRef = useRef<(() => void) | null>(null);
@@ -206,19 +207,22 @@ export function EditorContent({
       const view = viewRef.current;
       if (!view) return false;
       const sequence = ++documentLoadSequenceRef.current;
+      documentLoadControllerRef.current?.abort();
+      const controller = new AbortController();
+      documentLoadControllerRef.current = controller;
       if (documentSessionRef.current?.item.path !== path) {
         const previous = documentSessionRef.current;
         documentSessionRef.current = null;
         setActiveDocumentSession(null);
         if (previous) void previous.close();
       }
-      resolveEditorTreePath(editorProvider, path)
+      resolveEditorTreePath(editorProvider, path, controller.signal)
         .then((item) => {
           if (!item) throw new Error(`File not found: ${path}`);
           if (sequence === documentLoadSequenceRef.current && pathRef.current === path) {
             setResolvedDocumentIdentity({ path, key: `${item.providerId}:${item.itemId}` });
           }
-          return editorProvider.openDocument(item);
+          return editorProvider.openDocument(item, controller.signal);
         })
         .then(async (session) => {
           if (sequence !== documentLoadSequenceRef.current || pathRef.current !== path) {
@@ -235,7 +239,13 @@ export function EditorContent({
             if (activeView) applyLoadedFileContent(activeView, snapshot.content.text, jumpLine);
           }
         })
-        .catch((error) => setSaveError(error instanceof Error ? error.message : String(error)));
+        .catch((error) => {
+          if (isEditorAbortError(error)) return;
+          setSaveError(error instanceof Error ? error.message : String(error));
+        })
+        .finally(() => {
+          if (documentLoadControllerRef.current === controller) documentLoadControllerRef.current = null;
+        });
       return true;
     },
     [editorProvider, applyLoadedFileContent, setDirtyState],
@@ -243,6 +253,8 @@ export function EditorContent({
 
   useEffect(() => () => {
     documentLoadSequenceRef.current += 1;
+    documentLoadControllerRef.current?.abort();
+    documentLoadControllerRef.current = null;
     void documentSessionRef.current?.close();
     editorProviderLease.release();
   }, [editorProviderLease]);

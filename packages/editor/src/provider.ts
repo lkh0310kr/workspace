@@ -28,6 +28,10 @@ export function isEditorProviderError(error: unknown): error is EditorProviderEr
   return error instanceof EditorProviderError;
 }
 
+export function isEditorAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
+}
+
 export interface EditorItemRef {
   /** Stable ID of a provider instance, such as one local workspace or PKMS vault. */
   providerId: string;
