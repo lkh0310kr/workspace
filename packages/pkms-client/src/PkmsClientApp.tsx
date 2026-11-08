@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { buildRenamedPath, clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, setEditorDocumentDirty, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -1153,16 +1153,10 @@ export default function Home() {
       setTitleError(null);
       return;
     }
-    const targetPath = buildRenamedPath(file.path, title);
-    const parentPathValue = parentPath(file.path);
     try {
-      const parent = parentPathValue ? await resolveEditorTreePath(editorProvider, parentPathValue) : null;
-      if (parentPathValue && (!parent || parent.kind !== "directory")) throw new Error("The destination folder no longer exists.");
-      const entries = await editorProvider.listChildren(parent?.itemId ?? null);
-      const targetName = targetPath.split("/").at(-1) ?? targetPath;
-      const collision = entries.some((entry) => entry.itemId !== file.id && entry.name.toLowerCase() === targetName.toLowerCase());
-      if (collision) throw new Error(`"${title}" already exists.`);
-      await editorProvider.rename({ providerId: editorProvider.id, itemId: file.id }, targetName);
+      const target = await resolveMarkdownTitleRenameTarget(editorProvider, file.path, title);
+      if (!editorProvider.rename || !target.currentItem) throw new Error("Renaming is not supported by this provider");
+      await editorProvider.rename(target.currentItem, target.name);
       if (activeFileStateRef.current?.id !== file.id) return;
       titleEditFileIdRef.current = null;
       setTitleEditing(false);

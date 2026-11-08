@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { buildRenamedPath, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, EditorMarkdownDocument, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem, type MarkdownHeading } from "@workspace/editor";
+import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, EditorMarkdownDocument, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
 const EditorMarkdownSurface = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
@@ -472,27 +472,22 @@ export function EditorContent({
       return;
     }
 
-    const targetPath = buildRenamedPath(pathRef.current, nextTitle);
-    const targetDir = targetPath.includes("/") ? targetPath.slice(0, targetPath.lastIndexOf("/")) : "";
-    const targetBase = (targetPath.split("/").pop() ?? targetPath).toLowerCase();
-    let entries: EditorTreeItem[];
+    const currentPath = pathRef.current;
+    let target: Awaited<ReturnType<typeof resolveMarkdownTitleRenameTarget>>;
     try {
-      const parent = targetDir ? await resolveEditorTreePath(editorProvider, targetDir) : null;
-      if (targetDir && !parent) throw new Error("The destination folder no longer exists.");
-      entries = await editorProvider.listChildren(parent?.itemId ?? null);
+      const session = documentSessionRef.current;
+      target = await resolveMarkdownTitleRenameTarget(
+        editorProvider,
+        currentPath,
+        nextTitle,
+        session?.item.path === currentPath ? session.item : undefined,
+      );
     } catch (error) {
       setTitleError(error instanceof Error ? error.message : String(error));
       titleInputRef.current?.focus();
       return;
     }
-    const collision = entries.some(
-      (entry) => entry.kind !== "directory" && entry.name.toLowerCase() === targetBase && targetPath !== pathRef.current,
-    );
-    if (collision) {
-      setTitleError(`"${nextTitle}" already exists.`);
-      titleInputRef.current?.focus();
-      return;
-    }
+    const targetPath = target.path;
 
     setTitleEditing(false);
     setTitleError(null);
@@ -524,14 +519,8 @@ export function EditorContent({
     const sourcePath = pathRef.current;
     try {
       if (autoSaveRef.current && dirtyRef.current) await saveNow(view, sourcePath);
-      const session = documentSessionRef.current;
-      if (session && session.item.path === sourcePath) {
-        await editorProvider.rename(session.item, targetPath.split("/").at(-1) ?? targetPath);
-      } else {
-        const item = await resolveEditorTreePath(editorProvider, sourcePath);
-        if (!item) throw new Error("File no longer exists");
-        await editorProvider.rename(item, targetPath.split("/").at(-1) ?? targetPath);
-      }
+      if (!target.currentItem || !editorProvider.rename) throw new Error("Renaming is not supported by this provider");
+      await editorProvider.rename(target.currentItem, target.name);
       skipPathLoadRef.current = targetPath;
       pathRef.current = targetPath;
       onAssignPathRef.current(targetPath);

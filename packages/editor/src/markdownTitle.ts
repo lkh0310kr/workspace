@@ -1,3 +1,6 @@
+import { EditorProviderError, type EditorProvider, type EditorTreeItem } from "./provider";
+import { resolveEditorTreePath } from "./resolveEditorTreePath";
+
 // Shared Markdown title path helpers used by editor hosts.
 function toEditorRelativePath(path: string): string {
   return path.replace(/\\/g, "/");
@@ -39,4 +42,38 @@ export function buildRenamedPath(currentPath: string | null, newTitle: string): 
   const directory = currentPath ? directoryOf(currentPath) : "";
   const extension = currentPath ? markdownExtensionOf(currentPath) : ".md";
   return joinPath(directory, `${newTitle}${extension}`);
+}
+export interface MarkdownTitleRenameTarget {
+  title: string;
+  path: string;
+  name: string;
+  currentItem: EditorTreeItem | null;
+}
+
+/** Resolve a Markdown title rename through the provider and reject sibling collisions. */
+export async function resolveMarkdownTitleRenameTarget(
+  provider: EditorProvider,
+  currentPath: string | null,
+  title: string,
+  currentItem?: EditorTreeItem,
+): Promise<MarkdownTitleRenameTarget> {
+  const path = buildRenamedPath(currentPath, title);
+  const name = path.split("/").at(-1) ?? path;
+  const directory = directoryOf(path);
+  const parent = directory ? await resolveEditorTreePath(provider, directory) : null;
+  if (directory && (!parent || parent.kind !== "directory")) {
+    throw new EditorProviderError("notFound", "The destination folder no longer exists.");
+  }
+  const source = currentPath
+    ? currentItem ?? await resolveEditorTreePath(provider, currentPath)
+    : null;
+  if (currentPath && !source) throw new EditorProviderError("notFound", "File no longer exists");
+  if (currentPath && !provider.rename) throw new EditorProviderError("unsupported", "Renaming is not supported by this provider");
+
+  const siblings = await provider.listChildren(parent?.itemId ?? null);
+  const collision = siblings.some((item) =>
+    item.name.toLowerCase() === name.toLowerCase() && item.itemId !== source?.itemId,
+  );
+  if (collision) throw new Error(`"${title}" already exists.`);
+  return { title, path, name, currentItem: source };
 }
