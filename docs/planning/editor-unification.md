@@ -175,7 +175,7 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 
 PKMS 저장 완료·오류 상태도 저장 시작 시의 document key와 현재 열린 문서 key가 같을 때만 전역 saving/error UI에 반영한다. 이전 workspace에서 늦게 끝난 저장은 현재 workspace의 상태 표시를 덮지 않는다.
 
-`EditorMarkdownSurface`는 공통 Markdown parser·highlighting·theme 확장을 기본으로 항상 구성하고, host 확장은 그 위에 추가한다. Workspace의 WikiLink는 parser extension 계약으로 주입하므로 제품 확장을 전달해도 공통 편집 기반을 대체하지 않는다.
+`EditorMarkdownSurface`는 공통 Markdown parser·highlighting·theme 확장을 기본으로 항상 구성하고, host 확장은 그 위에 추가한다. Workspace의 WikiLink는 parser extension 계약으로 주입하므로 제품 확장을 전달해도 공통 편집 기반을 대체하지 않는다. 이미지 resolver facet도 항상 설치하고 현재 host callback을 ref로 읽어, resolver가 비동기적으로 생기는 host에서도 extension set을 다시 만들지 않고 반영한다.
 
 Quick Open도 두 host가 파일 목록을 직접 취합·필터링하지 않고 provider의 fuzzy name search를 사용한다. Workspace provider는 전체 로컬 파일 후보를, PKMS provider는 현재 로드된 저장소 파일 후보를 검색한다. 공통 dialog는 검색 중 이전 후보를 Enter로 열지 않는다.
 
