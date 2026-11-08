@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState, type DragEvent, type KeyboardEve
 import { AppIcon } from "./Icons";
 import { entryName, parseTreeDragPaths } from "../domain/fileTree";
 import type { FileRecord, TreeRow } from "../domain/types";
+import { EditorTreeRow } from "@workspace/editor";
 
 interface FileTreeListProps {
   treeRef: RefObject<HTMLElement | null>;
@@ -131,17 +132,24 @@ export function FileTreeList({
       {creation?.parentPath === "" && <InlineCreationRow key={`create-${creation.kind}-${creation.parentPath}`} kind={creation.kind} depth={0} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} />}
       {rows.map(({ file, depth }, index) => (
         <Fragment key={file.id}>
-        {renamingPath === file.path ? <InlineCreationRow key={`rename-${file.path}`} kind={file.kind === "folder" ? "folder" : "file"} depth={depth} initialValue={entryName(file.path)} onCreate={(name) => onRename(file, name)} onCancel={onCancelRename} /> : <button
-          type="button"
-          role="treeitem"
-          data-tree-path={file.path}
-          aria-selected={selectedPaths.has(file.path)}
-          aria-level={depth + 1}
-          aria-expanded={file.kind === "folder" ? expandedFolders.has(file.path) : undefined}
+        {renamingPath === file.path ? <InlineCreationRow key={`rename-${file.path}`} kind={file.kind === "folder" ? "folder" : "file"} depth={depth} initialValue={entryName(file.path)} onCreate={(name) => onRename(file, name)} onCancel={onCancelRename} /> : <EditorTreeRow
+          id={file.id}
+          path={file.path}
+          name={entryName(file.path)}
+          kind={file.kind === "folder" ? "directory" : file.kind}
+          depth={depth}
+          className={file.kind === "folder" ? "folder-row" : "file-row"}
+          icon={<AppIcon name={file.kind === "folder" ? "folder" : file.kind === "markdown" ? "fileText" : "file"} />}
+          disclosure={<AppIcon name="chevron" />}
+          expandable={file.kind === "folder"}
+          expanded={expandedFolders.has(file.path)}
+          loading={file.kind === "folder" && loadingFolders.has(file.path)}
+          active={(file.path === currentFolder && file.kind === "folder") || activeFileId === file.id}
+          selected={selectedPaths.has(file.path)}
+          multiSelected={selectedPaths.size > 1 && selectedPaths.has(file.path)}
+          cut={cutPaths.has(file.path)}
+          dropTarget={dropTarget === file.path}
           tabIndex={focusedPath === file.path || (!focusedPath && index === 0) ? 0 : -1}
-          draggable
-          className={`tree-row ${file.kind === "folder" ? "folder-row" : "file-row"}${file.path === currentFolder && file.kind === "folder" ? " selected" : ""}${activeFileId === file.id ? " selected" : ""}${selectedPaths.has(file.path) ? " multi-selected" : ""}${cutPaths.has(file.path) ? " cut-pending" : ""}${dropTarget === file.path ? " drop-target" : ""}`}
-          style={{ paddingLeft: 8 + depth * 14 }}
           onFocus={() => onFocusPath(file.path)}
           onDragStart={(event) => onDragStart(file, index, event)}
           onDragOver={(event) => {
@@ -171,13 +179,7 @@ export function FileTreeList({
             onSelectRow(file.path, index, false, false);
             onActivate(file);
           }}
-        >
-          <span className={`tree-chevron${expandedFolders.has(file.path) ? " expanded" : ""}`} aria-hidden="true">
-            {file.kind === "folder" && (loadingFolders.has(file.path) ? <span className="tree-loading-indicator" /> : <AppIcon name="chevron" />)}
-          </span>
-          <span className="file-icon" aria-hidden="true"><AppIcon name={file.kind === "folder" ? "folder" : file.kind === "markdown" ? "fileText" : "file"} /></span>
-          <span className="tree-label">{entryName(file.path)}</span>
-        </button>}
+        />}
         {creation?.parentPath === file.path && file.kind === "folder" && <InlineCreationRow key={`create-${creation.kind}-${creation.parentPath}`} kind={creation.kind} depth={depth + 1} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} />}
         </Fragment>
       ))}

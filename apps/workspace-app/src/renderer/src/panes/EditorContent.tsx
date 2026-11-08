@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Compartment, EditorSelection, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
+import { createEditorView } from "@workspace/editor";
 import {
   defaultKeymap,
   history,
@@ -471,10 +472,10 @@ export function EditorContent({
           ]),
         ];
 
-    const view = new EditorView({
-      state: EditorState.create({
-        doc: "",
-        extensions: [
+    const view = createEditorView({
+      parent: hostRef.current,
+      doc: "",
+      extensions: [
           ...kindExtensions,
           ...workspaceSearch,
           indentUnit.of("    "),
@@ -497,8 +498,6 @@ export function EditorContent({
             scheduleAutoSave(update.view);
           }),
         ],
-      }),
-      parent: hostRef.current,
     });
     viewRef.current = view;
     if (isMarkdown) setOutline([]);

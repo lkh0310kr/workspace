@@ -17,6 +17,48 @@
       ],
       "@pkms/client/*": [
         "../../packages/pkms-client/src/*"
+      ],
+      "@workspace/editor": [
+        "../../packages/editor/src/index.ts"
+      ],
+      "@workspace/editor/*": [
+        "../../packages/editor/src/*"
+      ],
+      "@codemirror/state": [
+        "../../node_modules/@codemirror/state"
+      ],
+      "@codemirror/view": [
+        "../../node_modules/@codemirror/view"
+      ],
+      "@codemirror/commands": [
+        "../../node_modules/@codemirror/commands"
+      ],
+      "@codemirror/language": [
+        "../../node_modules/@codemirror/language"
+      ],
+      "@codemirror/lang-markdown": [
+        "../../node_modules/@codemirror/lang-markdown"
+      ],
+      "@codemirror/autocomplete": [
+        "../../node_modules/@codemirror/autocomplete"
+      ],
+      "@codemirror/search": [
+        "../../node_modules/@codemirror/search"
+      ],
+      "@codemirror/language-data": [
+        "../../node_modules/@codemirror/language-data"
+      ],
+      "@lezer/common": [
+        "../../node_modules/@lezer/common"
+      ],
+      "@lezer/lr": [
+        "../../node_modules/@lezer/lr"
+      ],
+      "@lezer/highlight": [
+        "../../node_modules/@lezer/highlight"
+      ],
+      "@lezer/markdown": [
+        "../../node_modules/@lezer/markdown"
       ]
     }
   }

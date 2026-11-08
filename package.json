@@ -5,6 +5,7 @@
     "apps/pkms-web",
     "apps/pkms-server",
     "apps/workspace-server",
+    "packages/editor",
     "packages/pkms-client",
     "packages/pkms-protocol"
   ],

@@ -1,4 +1,5 @@
 import { EditorView } from "@codemirror/view";
+import { markdownProseTheme } from "@workspace/editor";
 
 export const workspaceEditorTheme = EditorView.theme({
   "&": { height: "100%", fontSize: "var(--editor-font-size, 13px)" },
@@ -42,9 +43,7 @@ export const workspaceEditorTheme = EditorView.theme({
 // `.cm-md-codeblock-line` (styles.css) still force monospace for inline
 // code and fenced code blocks specifically, since those keep their own
 // explicit font-family rule regardless of what their container inherits.
-export const markdownProseTheme = EditorView.theme({
-  ".cm-content": { fontFamily: "var(--font-ui)" },
-});
+export { markdownProseTheme };
 
 // Indent guides moved to indentGuides.ts — see that file for why (two
 // prior approaches attempted here didn't pan out).

@@ -36,6 +36,7 @@ import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { projectVisibleRows } from "../explorer/useTreeProjection";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
+import { EditorTreeRow } from "@workspace/editor";
 
 interface Props {
   tabId: number;
@@ -651,12 +652,23 @@ export function TreeView({
         onDrop={(e) => onFolderDrop(e, "")}
       >
         {projection.rows.map(({ entry, depth }) => (
-          <div
+          <EditorTreeRow
             key={entry.path}
-            data-tree-path={entry.path}
-            className={`tree-view-item${entry.path === selectedPath ? " active" : ""}${selected.has(entry.path) ? " selected" : ""}${dragOverPath === entry.path ? " drag-over" : ""}`}
-            style={{ paddingLeft: depth * 14 + 8 }}
-            draggable
+            id={entry.path}
+            path={entry.path}
+            name={treeEntryDisplayName(entry.name)}
+            kind={entry.is_dir ? "directory" : classifyFile(entry.name) === "markdown" ? "markdown" : classifyFile(entry.name) === "code" ? "code" : "asset"}
+            depth={depth}
+            className="tree-view-item"
+            icon={<WorkbenchIcon name={treeEntryIconName(entry)} size={16} />}
+            disclosure={<WorkbenchIcon name="chevron-right" size={12} />}
+            expandable={entry.is_dir}
+            expanded={expanded.has(entry.path)}
+            active={entry.path === selectedPath}
+            selected={selected.has(entry.path)}
+            multiSelected={selected.size > 1 && selected.has(entry.path)}
+            dropTarget={dragOverPath === entry.path}
+            showGuides
             onDragStart={(e) => onEntryDragStart(e, entry)}
             onDragOver={(e) => {
               if (entry.is_dir) onFolderDragOver(e, entry.path);
@@ -686,18 +698,7 @@ export function TreeView({
               });
               if (entry.is_dir && !dirs.get(entry.path)?.loaded) loadDir(entry.path);
             }}
-          >
-            {Array.from({ length: depth }, (_, level) => (
-              <span key={level} className="tree-view-guide" style={{ left: level * 14 + 14 }} />
-            ))}
-            <span className={`tree-view-disclosure${entry.is_dir && expanded.has(entry.path) ? " expanded" : ""}`}>
-              {entry.is_dir ? <WorkbenchIcon name="chevron-right" size={12} /> : null}
-            </span>
-            <span className={`tree-view-icon ${entry.is_dir ? "folder" : classifyFile(entry.name)}`}>
-              <WorkbenchIcon name={treeEntryIconName(entry)} size={16} />
-            </span>
-            <span className="tree-view-name">{treeEntryDisplayName(entry.name)}</span>
-          </div>
+          />
         ))}
       </div>
       {menu ? <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} /> : null}

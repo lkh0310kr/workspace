@@ -1,0 +1,20 @@
+{
+  "name": "@workspace/editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./code-mirror": "./src/codeMirror.ts",
+    "./tree-row": "./src/EditorTreeRow.tsx",
+    "./tree.css": "./src/tree.css"
+  },
+  "peerDependencies": {
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "dependencies": {
+    "@codemirror/state": "^6.7.1",
+    "@codemirror/view": "^6.43.9"
+  }
+}

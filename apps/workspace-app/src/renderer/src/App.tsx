@@ -35,6 +35,7 @@ import { useEffect, useCallback, useState } from "react";
 import { syncAgentPaneRegistryFromLayouts } from "./terminal/syncAgentPaneRegistryFromLayouts";
 import "flexlayout-react/style/combined.css";
 import "./assets/styles.css";
+import "@workspace/editor/tree.css";
 
 if (typeof document !== "undefined" && window.api?.platform) {
   document.documentElement.dataset.platform = window.api.platform;

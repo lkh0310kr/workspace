@@ -31,10 +31,27 @@ export default defineConfig({
   preload: {},
   renderer: {
     resolve: {
-      dedupe: ['react', 'react-dom', 'react-router'],
+      dedupe: [
+        'react',
+        'react-dom',
+        'react-router',
+        '@codemirror/state',
+        '@codemirror/view',
+        '@codemirror/commands',
+        '@codemirror/language',
+        '@codemirror/lang-markdown',
+        '@codemirror/autocomplete',
+        '@codemirror/search',
+        '@codemirror/language-data',
+        '@lezer/common',
+        '@lezer/lr',
+        '@lezer/highlight',
+        '@lezer/markdown'
+      ],
       alias: {
         '@renderer': resolve('src/renderer/src'),
-        '@pkms/client': resolve('../../packages/pkms-client/src')
+        '@pkms/client': resolve('../../packages/pkms-client/src'),
+        '@workspace/editor': resolve('../../packages/editor/src')
       }
     },
     plugins: [react()]

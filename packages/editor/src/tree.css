@@ -1,0 +1,33 @@
+.editor-tree-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 27px;
+  padding-block: 3px;
+  padding-inline-end: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  color: var(--editor-tree-text, var(--text, var(--muted)));
+  background: transparent;
+  text-align: start;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.editor-tree-item:hover { background: var(--editor-tree-hover, var(--bg-hover, var(--hover))); }
+.editor-tree-item.is-active { background: var(--editor-tree-active, var(--bg-active, var(--selected))); }
+.editor-tree-item.is-selected, .editor-tree-item.is-multi-selected { background: var(--editor-tree-selected, var(--bg-hover, var(--selected))); }
+.editor-tree-item.is-cut { opacity: .55; }
+.editor-tree-item.is-drop-target { outline: 1px solid var(--accent); outline-offset: -1px; }
+.editor-tree-item:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.editor-tree-guide { position: absolute; inset-block: 0; width: 1px; background: var(--border); pointer-events: none; }
+.editor-tree-disclosure { display: inline-flex; flex: 0 0 12px; align-items: center; justify-content: center; width: 12px; height: 16px; color: var(--editor-tree-muted, var(--text-faint, var(--muted))); }
+.editor-tree-disclosure.is-expanded > :first-child { transform: rotate(90deg); }
+.editor-tree-icon { display: inline-flex; flex: 0 0 18px; align-items: center; justify-content: center; width: 18px; height: 18px; color: var(--editor-tree-muted, var(--text-faint, var(--muted))); }
+.editor-tree-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor-tree-loading { width: 9px; height: 9px; border: 1px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: editor-tree-spin .7s linear infinite; }
+@keyframes editor-tree-spin { to { transform: rotate(360deg); } }
