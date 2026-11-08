@@ -34,6 +34,7 @@ export function createPkmsYjsEditorSession(
   let message: string | undefined;
   let sequence = 0;
   let closed = false;
+  let saveTail: Promise<void> = Promise.resolve();
 
   const revision = () => `${doc.clientID}:${sequence}:${text.length}`;
   const snapshot = (): EditorDocumentSnapshot => ({
@@ -52,10 +53,40 @@ export function createPkmsYjsEditorSession(
     if (event.transaction.origin !== "server") {
       phase = "dirty";
       syncPhase = "pending";
+      message = undefined;
+    } else if (phase === "clean") {
+      // A remote edit is durable on the PKMS server, but its GitHub mirror may now lag.
+      syncPhase = "pending";
     }
     emit();
   };
   text.observe(onText);
+
+  const performSave = async (options: { flushSync?: boolean } = {}): Promise<EditorDocumentSnapshot> => {
+    if (closed) throw new Error("Document session is closed");
+    if (file.kind !== "markdown") return snapshot();
+    const savedSequence = sequence;
+    phase = "saving";
+    syncPhase = "pending";
+    message = undefined;
+    emit();
+    try {
+      const result = await saveDocument(file.id, doc, options.flushSync !== false);
+      syncPhase = result.syncPhase;
+      phase = sequence === savedSequence ? result.savePhase : "dirty";
+      if (sequence !== savedSequence) syncPhase = "pending";
+      message = result.message;
+      if (phase === "error") throw new Error(message ?? "Could not save PKMS document");
+    } catch (error) {
+      phase = "error";
+      syncPhase = "blocked";
+      message = error instanceof Error ? error.message : "Could not save PKMS document";
+      emit();
+      throw error;
+    }
+    emit();
+    return snapshot();
+  };
 
   return {
     item,
@@ -86,30 +117,10 @@ export function createPkmsYjsEditorSession(
         if (value.length - prefix - suffix) text.insert(prefix, value.slice(prefix, value.length - suffix));
       }, origin);
     },
-    async save(options = {}) {
-      if (closed) throw new Error("Document session is closed");
-      if (file.kind !== "markdown") return snapshot();
-      const savedSequence = sequence;
-      phase = "saving";
-      syncPhase = "pending";
-      message = undefined;
-      emit();
-      try {
-        const result = await saveDocument(file.id, doc, options.flushSync !== false);
-        syncPhase = result.syncPhase;
-        phase = sequence === savedSequence ? result.savePhase : "dirty";
-        if (sequence !== savedSequence) syncPhase = "pending";
-        message = result.message;
-        if (phase === "error") throw new Error(message ?? "Could not save PKMS document");
-      } catch (error) {
-        phase = "error";
-        syncPhase = "blocked";
-        message = error instanceof Error ? error.message : "Could not save PKMS document";
-        emit();
-        throw error;
-      }
-      emit();
-      return snapshot();
+    save(options = {}) {
+      const task = saveTail.catch(() => {}).then(() => performSave(options));
+      saveTail = task.then(() => {}, () => {});
+      return task;
     },
     async close() {
       if (closed) return;

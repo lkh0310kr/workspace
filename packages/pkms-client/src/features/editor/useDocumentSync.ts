@@ -65,7 +65,9 @@ export function useDocumentSync({ workspaceId, activeDocument, request, setSavin
     if (previous !== undefined) window.clearTimeout(previous);
     const timer = window.setTimeout(() => {
       autoSaveTimers.current.delete(key);
-      void (save ? save() : saveMarkdownToGitHub(fileId, doc, false));
+      void (save ? save() : saveMarkdownToGitHub(fileId, doc, false)).catch((cause: unknown) => {
+        setError(cause instanceof Error ? cause.message : "Could not autosave PKMS document");
+      });
     }, 5_000);
     autoSaveTimers.current.set(key, timer);
   }, [saveMarkdownToGitHub, setNotice, workspaceId]);
