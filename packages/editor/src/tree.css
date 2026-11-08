@@ -27,11 +27,10 @@
 .editor-tree-item:hover { background: var(--editor-tree-hover, var(--bg-hover, var(--hover))); color: var(--text, var(--muted)); }
 .editor-tree-item.is-active { background: var(--editor-tree-active, var(--bg-active, var(--selected))); }
 .editor-tree-item.is-selected, .editor-tree-item.is-multi-selected { background: var(--editor-tree-selected, var(--bg-hover, var(--selected))); }
-.editor-tree-item.is-selected.is-active { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.editor-tree-item.is-selected.is-active { background: var(--editor-tree-active, var(--bg-active, var(--selected))); box-shadow: inset 0 0 0 1px var(--border-strong); }
 .editor-tree-item.is-cut { opacity: .55; }
-.editor-tree-item.is-drop-target { outline: 1px solid var(--accent); outline-offset: -1px; }
+.editor-tree-item.is-drop-target { outline: 1px solid var(--editor-tree-drop, var(--border-strong, var(--accent))); outline-offset: -1px; background: var(--editor-tree-hover, var(--bg-hover, var(--hover))); }
 .editor-tree-item:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
-.editor-tree-item.is-drop-target { background: var(--editor-tree-hover, var(--bg-hover, var(--hover))); }
 .editor-tree-guide { position: absolute; inset-block: 0; width: 1px; background: var(--border); pointer-events: none; }
 .editor-tree-disclosure { display: inline-flex; flex: 0 0 12px; align-items: center; justify-content: center; width: 12px; height: 16px; color: var(--editor-tree-muted, var(--text-faint, var(--muted))); }
 .editor-tree-disclosure.is-expanded > :first-child { transform: rotate(90deg); }
