@@ -11,11 +11,7 @@ import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
 import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, externalEditorChange, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
-import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
-import {
-  deleteMarkupBackward,
-  insertNewlineContinueMarkupCommand,
-} from "@codemirror/lang-markdown";
+import { toggleComment } from "@codemirror/commands";
 import {
   bracketMatching,
   foldGutter,
@@ -342,9 +338,6 @@ export function EditorContent({
           markdownProseTheme,
           wikiLinkClickHandler,
           keymap.of([
-            { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
-            { key: "Enter", run: insertNewlineAndIndent },
-            { key: "Backspace", run: deleteMarkupBackward },
             { key: "Mod-Shift-v", run: pastePlainTextCommand },
           ]),
         ]
