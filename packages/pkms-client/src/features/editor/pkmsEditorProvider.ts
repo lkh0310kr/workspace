@@ -78,9 +78,9 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
     subscribeTree(listener) {
       return options.subscribeTree((paths) => {
         const parentIds = paths.map((path) => {
-          if (!path) return "";
+          if (!path) return null;
           const folder = options.listLoadedFiles().find((file) => file.kind === "folder" && file.path === path);
-          return folder?.id ?? "";
+          return folder?.id ?? null;
         });
         listener([...new Set(parentIds)]);
       });

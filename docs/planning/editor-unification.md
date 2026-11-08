@@ -121,7 +121,7 @@ interface EditorDocumentSession {
 
 계약 규칙은 다음과 같다.
 
-- `itemId` stays stable across rename and move. A provider emits tree invalidations and updated metadata; the Workbench updates labels and tree position without reopening or discarding the editor session.
+- `itemId` stays stable across rename and move. `parentId: null` identifies the provider root; all other parent IDs are provider item IDs. A provider emits tree invalidations and updated metadata; the Workbench updates labels and tree position without reopening or discarding the editor session.
 - `revision` is opaque to the Workbench. The provider checks or reconciles it when accepting edits; it reports an external-edit conflict rather than silently overwriting newer content.
 - `replaceText` reports local editor edits to the provider. Provider snapshots report remote or external changes back to the Workbench. Implementations suppress echo updates and preserve selection/undo state when applying snapshots.
 - `save()` flushes pending durable writes. For PKMS, server persistence and GitHub mirroring are distinct: `savePhase: clean` confirms server persistence, while `syncPhase` reports mirror progress. For Workspace, `clean` confirms the local file write.

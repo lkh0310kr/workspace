@@ -166,12 +166,14 @@ export function TreeView({
 
   const loadDir = useCallback(
     (path: string) => {
-      editorProvider.listChildren(path)
-        .then((items) => {
-          const entries: EditorDirEntry[] = items.map((item) => ({ name: item.name, path: item.path, is_dir: item.kind === "directory", editorItemId: item.itemId }));
-          setDirs((prev) => new Map(prev).set(path, { entries, loaded: true }));
-        })
-        .catch(console.error);
+      const load = async () => {
+        const parent = path ? await editorProvider.itemRefForPath(path) : null;
+        if (path && !parent) return;
+        const items = await editorProvider.listChildren(parent?.itemId ?? null);
+        const entries: EditorDirEntry[] = items.map((item) => ({ name: item.name, path: item.path, is_dir: item.kind === "directory", editorItemId: item.itemId }));
+        setDirs((prev) => new Map(prev).set(path, { entries, loaded: true }));
+      };
+      void load().catch(console.error);
     },
     [editorProvider],
   );
@@ -228,7 +230,8 @@ export function TreeView({
   }, [scrollContainerRef, explorerStateKey, rootPath]);
 
   useEffect(() => {
-    return editorProvider.subscribeTree((parentPaths) => {
+    return editorProvider.subscribeTree((parentIds) => {
+      const parentPaths = parentIds.map((parentId) => parentId === null ? "" : editorProvider.pathForItemId(parentId) ?? "");
       const fullReload = parentPaths.includes("");
       if (fullReload) {
         loadDir("");
@@ -373,7 +376,9 @@ export function TreeView({
     const name = await findAvailableName(tabId, dir, "untitled", ".md");
     const path = joinPath(dir, name);
     try {
-      await editorProvider.create(dir || null, "file", name);
+      const parent = dir ? await editorProvider.itemRefForPath(dir) : null;
+      if (dir && !parent) throw new Error("Parent directory no longer exists");
+      await editorProvider.create(parent?.itemId ?? null, "file", name);
     } catch (err) {
       window.alert(String(err));
       return;
@@ -389,9 +394,15 @@ export function TreeView({
       title: "Folder name",
       defaultValue: "",
       onSubmit: async (name) => {
-        await editorProvider.create(dir || null, "directory", name).catch((err) => alert(String(err)));
-        setExpandedPersisted((prev) => new Set(prev).add(dir));
-        refresh(dir);
+        try {
+          const parent = dir ? await editorProvider.itemRefForPath(dir) : null;
+          if (dir && !parent) throw new Error("Parent directory no longer exists");
+          await editorProvider.create(parent?.itemId ?? null, "directory", name);
+          setExpandedPersisted((prev) => new Set(prev).add(dir));
+          refresh(dir);
+        } catch (error) {
+          window.alert(String(error));
+        }
       },
     });
   };
@@ -486,7 +497,9 @@ export function TreeView({
       try {
         const ref = await editorProvider.itemRefForPath(p);
         if (!ref) throw new Error("Item no longer exists");
-        await editorProvider.move([ref], targetDir || null);
+        const parent = targetDir ? await editorProvider.itemRefForPath(targetDir) : null;
+        if (targetDir && !parent) throw new Error("Destination directory no longer exists");
+        await editorProvider.move([ref], parent?.itemId ?? null);
       } catch (err) {
         window.alert(String(err));
         continue;

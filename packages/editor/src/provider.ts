@@ -59,7 +59,8 @@ export interface EditorProvider {
   readonly capabilities: EditorProviderCapabilities;
   listChildren(parentId: string | null, signal?: AbortSignal): Promise<EditorTreeItem[]>;
   /** Invalidate affected parent IDs; the Workbench reloads only those branches. */
-  subscribeTree(listener: (changedParentIds: readonly string[]) => void): () => void;
+  /** `null` identifies the provider root. */
+  subscribeTree(listener: (changedParentIds: readonly (string | null)[]) => void): () => void;
   openDocument(item: EditorItemRef, signal?: AbortSignal): Promise<EditorDocumentSession>;
   search(
     query: string,

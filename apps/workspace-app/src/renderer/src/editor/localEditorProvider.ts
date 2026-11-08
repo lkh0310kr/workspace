@@ -40,6 +40,7 @@ function findMatch(text: string, query: string, options: { caseSensitive: boolea
 type LocalEditorProvider = Omit<EditorProvider, "create" | "rename" | "delete" | "move"> & Required<Pick<EditorProvider, "create" | "rename" | "delete" | "move">> & {
   dispose: () => void;
   itemRefForPath: (path: string) => Promise<EditorItemRef | null>;
+  pathForItemId: (itemId: string) => string | null;
 };
 
 function kindFor(path: string, directory: boolean): EditorTreeItem["kind"] {
@@ -64,7 +65,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
   const id = `workspace:${tabId}`;
   const pathByItemId = new Map<string, string>();
   const itemIdByPath = new Map<string, string>();
-  const listeners = new Set<(parents: readonly string[]) => void>();
+  const listeners = new Set<(parents: readonly (string | null)[]) => void>();
   const sessions = new Set<LocalDocumentSession>();
 
   const itemFor = (path: string, directory: boolean, name = path.split("/").at(-1) ?? ""): EditorTreeItem => {
@@ -74,15 +75,22 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       itemIdByPath.set(path, itemId);
       pathByItemId.set(itemId, path);
     }
-    return { providerId: id, itemId, parentId: parentOf(path), name, path, kind: kindFor(path, directory), readOnly: false };
+    const parentPath = parentOf(path);
+    const parentId = parentPath ? itemIdByPath.get(parentPath) ?? itemFor(parentPath, true).itemId : null;
+    return { providerId: id, itemId, parentId, name, path, kind: kindFor(path, directory), readOnly: false };
+  };
+  const parentItemId = (path: string): string | null => {
+    const parentPath = parentOf(path);
+    return parentPath ? itemFor(parentPath, true).itemId : null;
   };
 
   const unsubscribeFiles = onFileChanged((changedPaths) => {
     if (changedPaths.length === 0 || changedPaths.every((path) => !path)) {
-      for (const listener of listeners) listener([""]);
+      for (const listener of listeners) listener([null]);
       return;
     }
-    const parents = [...new Set(changedPaths.map(parentOf).filter((path): path is string => path !== null))];
+    const parentPaths = [...new Set(changedPaths.map(parentOf))];
+    const parents = [...new Set(parentPaths.map((path) => path ? itemFor(path, true).itemId : null))];
     for (const session of sessions) session.externalChange(changedPaths);
     if (parents.length) for (const listener of listeners) listener(parents);
   });
@@ -92,14 +100,22 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
     capabilities,
     async listChildren(parentId, signal) {
       abortIfNeeded(signal);
-      const entries = await listDir(tabId, parentId ?? "");
+      const parentPath = parentId === null ? "" : pathByItemId.get(parentId);
+      if (parentPath === undefined) return [];
+      const entries = await listDir(tabId, parentPath);
       abortIfNeeded(signal);
       return entries.map((entry) => itemFor(entry.path, entry.is_dir, entry.name));
     },
     async itemRefForPath(path) {
-      const entries = await provider.listChildren(parentOf(path));
+      const parentPath = parentOf(path);
+      const parentRef = parentPath ? await provider.itemRefForPath(parentPath) : null;
+      if (parentPath && !parentRef) return null;
+      const entries = await provider.listChildren(parentRef?.itemId ?? null);
       const item = entries.find((entry) => entry.path === path);
       return item ? { providerId: id, itemId: item.itemId } : null;
+    },
+    pathForItemId(itemId) {
+      return pathByItemId.get(itemId) ?? null;
     },
     subscribeTree(listener) {
       listeners.add(listener);
@@ -147,7 +163,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       return results;
     },
     async create(parentId, kind, name) {
-      const path = [parentId ?? "", name].filter(Boolean).join("/");
+      const parentPath = parentId === null ? "" : pathByItemId.get(parentId);
+      if (parentPath === undefined) throw new Error("Parent directory no longer exists");
+      const path = [parentPath, name].filter(Boolean).join("/");
       if (kind === "directory") await createDir(tabId, path);
       else await writeFile(tabId, path, "");
       return itemFor(path, kind === "directory", name);
@@ -166,9 +184,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         itemIdByPath.delete(oldPath);
         itemIdByPath.set(nextPath, itemId);
         pathByItemId.set(itemId, nextPath);
-        for (const session of sessions) session.renamePath(oldPath, nextPath, nextPath.split("/").at(-1) ?? "");
+        for (const session of sessions) session.renamePath(oldPath, nextPath, nextPath.split("/").at(-1) ?? "", parentItemId(nextPath));
       }
-      for (const listener of listeners) listener([parentOf(from) ?? "", parentOf(to) ?? ""]);
+      for (const listener of listeners) listener([...new Set([parentItemId(from), parentItemId(to)])]);
       return itemFor(to, isDirectory, name);
     },
     async delete(refs) {
@@ -185,12 +203,14 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       }
     },
     async move(refs, parentId) {
+      const targetDir = parentId === null ? "" : pathByItemId.get(parentId);
+      if (targetDir === undefined) throw new Error("Destination directory no longer exists");
       for (const ref of refs) {
         if (ref.providerId !== id) continue;
         const from = pathByItemId.get(ref.itemId);
         if (from === undefined) continue;
         const name = from.split("/").at(-1) ?? from;
-        const to = [parentId ?? "", name].filter(Boolean).join("/");
+        const to = [targetDir, name].filter(Boolean).join("/");
         if (from === to || to.startsWith(`${from}/`)) continue;
         const oldEntries = await listDir(tabId, parentOf(from) ?? "");
         const isDirectory = oldEntries.find((entry) => entry.path === from)?.is_dir ?? false;
@@ -201,9 +221,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
           itemIdByPath.delete(oldPath);
           itemIdByPath.set(nextPath, itemId);
           pathByItemId.set(itemId, nextPath);
-          for (const session of sessions) session.renamePath(oldPath, nextPath, nextPath.split("/").at(-1) ?? "");
+          for (const session of sessions) session.renamePath(oldPath, nextPath, nextPath.split("/").at(-1) ?? "", parentItemId(nextPath));
         }
-        for (const listener of listeners) listener([parentOf(from) ?? "", parentOf(to) ?? ""]);
+        for (const listener of listeners) listener([...new Set([parentItemId(from), parentItemId(to)])]);
         // Resolve the moved root again to retain the directory kind in its metadata.
         itemFor(to, isDirectory, name);
       }
@@ -341,9 +361,9 @@ class LocalDocumentSession implements EditorDocumentSession {
     });
   }
 
-  renamePath(from: string, to: string, name: string): void {
+  renamePath(from: string, to: string, name: string, parentId: string | null): void {
     if (this.item.path !== from) return;
-    this.item = { ...this.item, path: to, parentId: parentOf(to), name, kind: kindFor(to, false) };
+    this.item = { ...this.item, path: to, parentId, name, kind: kindFor(to, false) };
     this.emit();
   }
 
