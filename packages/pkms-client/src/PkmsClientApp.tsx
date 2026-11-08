@@ -4,7 +4,7 @@ import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
 import { EditorDocumentTabBar, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
-import { createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
+import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
 import { flushQueuedWorkspaceAssets, flushQueuedWorkspaceOperations, WORKSPACE_OPERATION_QUEUE_EVENT } from "./client/workspaceOperations";
@@ -177,6 +177,20 @@ export default function Home() {
     getFile: async (fileId) => getFiles().find((file) => file.id === fileId) ?? null,
     openSession: async (file) => {
       await openDocumentSessionRef.current(file, editorNavigationRef.current);
+      if (file.kind === "asset") {
+        const path = `/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/assets/${encodeURIComponent(file.id)}`;
+        const desktop = desktopBridge();
+        const asset = desktop
+          ? await desktop.fetchAsset(path)
+          : await fetch(path, { credentials: "same-origin" }).then(async (response) => {
+            if (!response.ok) throw new Error(`Could not open attachment (${response.status})`);
+            return { bytes: new Uint8Array(await response.arrayBuffer()), contentType: response.headers.get("content-type") ?? "" };
+          });
+        const data = asset.bytes.buffer.slice(asset.bytes.byteOffset, asset.bytes.byteOffset + asset.bytes.byteLength) as ArrayBuffer;
+        const mediaType = attachmentContentType(file.path, asset.contentType);
+        const previewUrl = URL.createObjectURL(new Blob([data], { type: mediaType }));
+        return createPkmsAssetEditorSession(activeWorkspace.id, file, previewUrl, mediaType, () => URL.revokeObjectURL(previewUrl));
+      }
       const current = activeRef.current;
       if (!current.doc || !current.text) throw new Error("Could not activate the PKMS document");
       return createPkmsYjsEditorSession(activeWorkspace.id, file, current.doc, current.text, saveDocumentRef.current);
@@ -252,6 +266,9 @@ export default function Home() {
         try {
           const session = await editorProvider.openDocument({ providerId: editorProvider.id, itemId: file.id });
           pkmsEditorSessions.current.set(file.id, session);
+        } catch (cause) {
+          setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === file.id)));
+          setError(cause instanceof Error ? cause.message : "Could not open PKMS document");
         } finally {
           editorNavigationRef.current = "none";
         }

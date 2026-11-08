@@ -1,9 +1,10 @@
 import * as Y from "yjs";
 import type { EditorDocumentSession, EditorDocumentSnapshot, EditorTreeItem, EditorSyncPhase } from "@workspace/editor";
 import type { FileRecord } from "../../domain/types";
-import { entryName, parentPath } from "../../domain/fileTree";
+import { entryName } from "../../domain/fileTree";
+import type { PkmsSaveResult } from "./useDocumentSync";
 
-export type PkmsDocumentSave = (fileId: string, doc: Y.Doc) => Promise<EditorSyncPhase>;
+export type PkmsDocumentSave = (fileId: string, doc: Y.Doc) => Promise<PkmsSaveResult>;
 
 function itemFor(workspaceId: string, file: FileRecord): EditorTreeItem {
   return {
@@ -93,8 +94,11 @@ export function createPkmsYjsEditorSession(
       message = undefined;
       emit();
       try {
-        syncPhase = await saveDocument(file.id, doc);
-        phase = "clean";
+        const result = await saveDocument(file.id, doc);
+        syncPhase = result.syncPhase;
+        phase = result.savePhase;
+        message = result.message;
+        if (phase === "error") throw new Error(message ?? "Could not save PKMS document");
       } catch (error) {
         phase = "error";
         syncPhase = "blocked";
@@ -119,6 +123,35 @@ export function pkmsItemForFile(workspaceId: string, file: FileRecord): EditorTr
   return { ...item, parentId: null };
 }
 
-export function pkmsParentPath(file: FileRecord): string {
-  return parentPath(file.path);
+export function createPkmsAssetEditorSession(
+  workspaceId: string,
+  file: FileRecord,
+  previewUrl: string,
+  mediaType: string,
+  dispose: () => void,
+): EditorDocumentSession {
+  const item = itemFor(workspaceId, file);
+  const value: EditorDocumentSnapshot = {
+    content: { type: "asset", previewUrl, mediaType },
+    revision: `${file.id}:${file.revision}`,
+    savePhase: "clean",
+    syncPhase: "idle",
+  };
+  let closed = false;
+  return {
+    item,
+    readOnly: true,
+    snapshot: () => value,
+    subscribe(listener) {
+      listener(value);
+      return () => {};
+    },
+    async replaceText() { throw new Error("PKMS assets are read only"); },
+    async save() { return value; },
+    async close() {
+      if (closed) return;
+      closed = true;
+      dispose();
+    },
+  };
 }

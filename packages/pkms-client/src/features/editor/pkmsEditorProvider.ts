@@ -26,7 +26,7 @@ export interface PkmsEditorProviderOptions {
 }
 
 const defaultCapabilities: EditorProviderCapabilities = {
-  operations: new Set(["createFile", "createDirectory", "rename", "move", "delete"]),
+  operations: new Set(),
   searchNames: true,
   searchContents: false,
   replaceContents: false,

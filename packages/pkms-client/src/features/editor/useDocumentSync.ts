@@ -1,8 +1,13 @@
 import { useCallback, useRef, type Dispatch, type SetStateAction } from "react";
 import * as Y from "yjs";
 import type { FileRecord, SyncStatus } from "../../domain/types";
-import type { EditorSyncPhase } from "@workspace/editor";
 import { createOperationId, toBase64 } from "../../domain/encoding";
+
+export interface PkmsSaveResult {
+  savePhase: "clean" | "error";
+  syncPhase: "synced" | "pending" | "blocked";
+  message?: string;
+}
 
 interface ActiveDocument {
   file: FileRecord | null;
@@ -22,9 +27,9 @@ interface Options {
 export function useDocumentSync({ workspaceId, activeDocument, request, setSaving, setError, setSync, setNotice }: Options) {
   const autoSaveTimers = useRef(new Map<string, number>());
 
-  const saveMarkdownToGitHub = useCallback(async (fileId: string, doc: Y.Doc, flushToGitHub = true): Promise<EditorSyncPhase> => {
+  const saveMarkdownToGitHub = useCallback(async (fileId: string, doc: Y.Doc, flushToGitHub = true): Promise<PkmsSaveResult> => {
     const targetWorkspaceId = workspaceId;
-    if (!targetWorkspaceId) return "blocked";
+    if (!targetWorkspaceId) return { savePhase: "error", syncPhase: "blocked", message: "No active PKMS workspace" };
     setSaving(true);
     setError("");
     try {
@@ -42,12 +47,13 @@ export function useDocumentSync({ workspaceId, activeDocument, request, setSavin
         else if (status.githubStatus === "external-change") setError(status.message ?? "GitHub changed outside PKMS.");
         else setNotice("Saved locally");
       }
-      if (status.githubStatus === "synced") return "synced";
-      if (status.githubStatus === "external-change") return "blocked";
-      return "pending";
+      if (status.githubStatus === "synced") return { savePhase: "clean", syncPhase: "synced" };
+      if (status.githubStatus === "external-change") return { savePhase: "clean", syncPhase: "blocked", message: status.message };
+      return { savePhase: "clean", syncPhase: "pending" };
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not save to GitHub");
-      return "blocked";
+      const message = cause instanceof Error ? cause.message : "Could not save to GitHub";
+      setError(message);
+      return { savePhase: "error", syncPhase: "blocked", message };
     } finally { setSaving(false); }
   }, [activeDocument, request, setError, setNotice, setSaving, setSync, workspaceId]);
 
