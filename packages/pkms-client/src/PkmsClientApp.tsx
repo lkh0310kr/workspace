@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { buildRenamedPath, clearEditorDocumentDirty, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, setEditorDocumentDirty, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -393,8 +393,13 @@ export default function Home() {
     const session = pkmsEditorSessions.current.get(sessionKey);
     const savePhase = session?.snapshot().savePhase;
     const discardingUnsaved = Boolean(savePhase && savePhase !== "clean");
-    if (!confirmEditorDocumentClose(discardingUnsaved, "This note")) return;
-    if (discardingUnsaved && activeWorkspace) discardEditorViewState(pkmsDocumentKey(activeWorkspace.id, fileId));
+    if (activeWorkspace) {
+      const file = openDocuments.find((tab) => tab.workspaceId === activeWorkspace.id && tab.file.id === fileId)?.file;
+      setEditorDocumentDirty(sessionKey, discardingUnsaved, file ? entryName(file.path) : "This note", file?.path, sessionKey);
+    }
+    if (!confirmEditorDocumentCloseById(sessionKey)) return;
+    if (discardingUnsaved) discardEditorDocumentViewState(sessionKey);
+    clearEditorDocumentDirty(sessionKey);
     const closingActive = activeFile?.id === fileId;
     const nextTab = tabs[index + 1] ?? tabs[index - 1] ?? null;
     setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === fileId)));
@@ -409,7 +414,7 @@ export default function Home() {
       clearActiveFile();
       navigate("/", { replace: true, preventScrollReset: true });
     }
-  }, [activeFile?.id, activeWorkspace?.id, clearActiveFile, navigate, openFile, visibleOpenDocuments]);
+  }, [activeFile?.id, activeWorkspace?.id, clearActiveFile, navigate, openDocuments, openFile, visibleOpenDocuments]);
   openFileRef.current = openFile;
   const activateMarkdownLink = useCallback((link: { kind: "markdown" | "wikilink"; target: string }) => {
     if (link.kind !== "markdown" || link.target.startsWith("#") || !activeWorkspace || !activeFile) return false;
