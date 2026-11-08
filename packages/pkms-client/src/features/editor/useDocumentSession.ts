@@ -46,7 +46,6 @@ export function useDocumentSession(options: Options) {
     openSequence.current++;
     hydrating.current = false;
     setOpeningFileId(null);
-    const current = activeDocument.current;
     activeDocument.current = { file: null, documentKey: null, doc: null, text: null };
     setActiveFile(null);
   };
@@ -71,7 +70,6 @@ export function useDocumentSession(options: Options) {
       while (ancestor) { next.add(ancestor); ancestor = parentPath(ancestor); }
       return next;
     });
-    const previous = activeDocument.current;
     setActiveFile(file);
     setOpeningFileId(file.id);
     const documentKey = editorDocumentKey({ providerId: `pkms:${workspace?.id ?? ""}`, itemId: file.id });

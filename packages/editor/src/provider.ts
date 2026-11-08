@@ -1,5 +1,3 @@
-import type { Extension } from "@codemirror/state";
-
 export type EditorItemKind = "directory" | "markdown" | "code" | "asset";
 export type EditorOperation = "createFile" | "createDirectory" | "rename" | "move" | "delete";
 export type EditorSavePhase = "clean" | "dirty" | "saving" | "conflict" | "error";
@@ -213,8 +211,6 @@ export interface EditorDocumentSession {
   readonly readOnly: boolean;
   /** Refreshes provider metadata after a rename/move without reopening the document. */
   updateItem?(item: EditorTreeItem): void;
-  /** Synchronization extensions only; shared editing UI remains in @workspace/editor. */
-  readonly extensions?: readonly Extension[];
   snapshot(): EditorDocumentSnapshot;
   subscribe(listener: (snapshot: EditorDocumentSnapshot) => void): () => void;
   replaceText(text: string, baseRevision: string): Promise<void>;
