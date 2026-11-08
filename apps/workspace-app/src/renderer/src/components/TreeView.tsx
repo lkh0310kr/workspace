@@ -224,13 +224,6 @@ export function TreeView({
   }, [editorProvider, loadDir, expanded]);
 
   useEffect(() => {
-    if (!selectedPath || !explorerModeActive) return;
-    setSelected(new Set([selectedPath]));
-    setSelectionAnchor(selectedPath);
-    treeSelection.setFocusedPath(selectedPath);
-  }, [selectedPath, explorerModeActive, treeSelection.setFocusedPath]);
-
-  useEffect(() => {
     const clearDrag = () => setDragOverPath(null);
     window.addEventListener("dragend", clearDrag);
     return () => window.removeEventListener("dragend", clearDrag);
@@ -294,6 +287,13 @@ export function TreeView({
   const keyboardFocusPath = treeSelection.focusedPath && treePaths.includes(treeSelection.focusedPath)
     ? treeSelection.focusedPath
     : null;
+
+  useEffect(() => {
+    if (!selectedPath || !explorerModeActive) return;
+    setSelected(new Set([selectedPath]));
+    setSelectionAnchor(selectedPath);
+    treeSelection.setFocusedPath(selectedPath);
+  }, [selectedPath, explorerModeActive, treeSelection.setFocusedPath]);
 
   const projection = useMemo(
     () => projectEditorTreeRows(flatList, scrollTop, viewportHeight),
