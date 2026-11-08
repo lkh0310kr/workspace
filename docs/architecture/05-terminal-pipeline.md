@@ -19,7 +19,8 @@ Runtime testing then reproduced a separate scroll defect: a pane pinned at the t
 the live bottom after switching away and back. Orca routes reveal through `fitRevealedPane`,
 which avoids a raw reflow when the pane's pixel size and PTY grid are unchanged. Workspace
 called `refitPaneTerminal` directly on every reveal. The reveal path now uses Orca's stable
-fit decision and applies WebGL refresh separately; installed-build verification is pending.
+fit decision and applies WebGL refresh separately. Installed-build verification confirms
+that switching away from a terminal tab and back preserves the visible first line in both panes.
 
 These are concrete architectural risks consistent with the reported failures, not yet a
 confirmed single cause for every scroll, glyph, or color symptom. Color rendering also
@@ -50,7 +51,9 @@ Treat the terminal as one vertical slice with these invariants:
 - [x] Split UTF-8 delivery test added for Hangul and emoji; 5 multiplexer tests pass.
 - [x] Installed build retains long scrollback; asynchronous output does not move a pinned
   viewport; live Hangul and ANSI color rendering verified.
-- [ ] Hide/show viewport preservation and reconnect scroll restoration in installed build
+- [x] Installed-build hide/show check preserves both terminal viewports across a tab switch.
+- [ ] Reconnect scroll restoration in installed build (not yet exercised independently of
+  app restart and output replay).
 
 ### Implementation order
 
@@ -60,7 +63,8 @@ Treat the terminal as one vertical slice with these invariants:
 2. Port the byte/sequence ownership contract through PTY host → main → renderer and align
    live delivery with snapshot replay. Keep terminal query filtering explicit and byte-safe.
 3. Port replay/fit/scroll restoration as one lifecycle contract, then verify wheel behavior
-   both with and without TUI mouse reporting. (Reveal fit ported; hide/show acceptance pending.)
+   both with and without TUI mouse reporting. Reveal fit and hide/show acceptance are complete;
+   independent reconnect scroll restoration remains open.
 4. Verify theme/ANSI/Unicode/font behavior from an actual shell session and fix the first
    failing boundary found. Keep the per-chunk terminal trace disabled in normal production;
    use bounded opt-in diagnostics for fault reports.
