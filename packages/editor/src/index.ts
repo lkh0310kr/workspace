@@ -16,6 +16,7 @@ export type {
   EditorTreeItem,
 } from "./provider";
 export { EditorProviderError, isEditorAbortError, isEditorProviderError, withEditorProviderErrors } from "./provider";
+export { editorSavePhaseLabel } from "./editorSaveStatus";
 export { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
 export { editorDocumentKey } from "./documentIdentity";
 export { createEditorView, editorDocumentReplacement, replaceEditorDocument } from "./codeMirror";
