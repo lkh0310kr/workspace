@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -842,13 +842,16 @@ export default function Home() {
     setTreeCreation(null);
     setTreeRenaming(file.path);
   };
-  const submitTreeCreation = (kind: "file" | "folder", parentPath: string, name: string) => {
+  const submitTreeCreation = async (kind: "file" | "folder", parentPath: string, name: string) => {
     setTreeCreation(null);
-    const parent = files.find((file) => file.kind === "folder" && file.path === parentPath);
     if (editorProvider?.create) {
-      void editorProvider.create(parent?.id ?? null, kind === "folder" ? "directory" : "file", name).catch((cause) => {
+      try {
+        const parent = parentPath ? await resolveEditorTreePath(editorProvider, parentPath) : null;
+        if (parentPath && (!parent || parent.kind !== "directory")) throw new EditorProviderError("notFound", "Parent folder no longer exists");
+        await editorProvider.create(parent?.itemId ?? null, kind === "folder" ? "directory" : "file", name);
+      } catch (cause) {
         setError(cause instanceof Error ? cause.message : "Could not create PKMS item");
-      });
+      }
     } else if (kind === "file") void createNote(parentPath, name);
     else void createFolder(parentPath, name);
   };
