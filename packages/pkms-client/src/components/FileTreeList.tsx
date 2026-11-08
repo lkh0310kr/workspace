@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type RefObject } from "react";
+import { type DragEvent, type KeyboardEvent, type MouseEvent, type RefObject } from "react";
 import { AppIcon } from "./Icons";
 import { entryName, parseTreeDragPaths } from "../domain/fileTree";
 import type { FileRecord, TreeRow } from "../domain/types";
@@ -27,45 +27,9 @@ interface FileTreeListProps {
   onSelectRow: (path: string, index: number, additive: boolean, range: boolean) => void;
   onClearSelection: () => void;
   onActivate: (file: FileRecord) => void;
-  creation: { kind: "file" | "folder"; parentPath: string } | null;
-  onCreate: (kind: "file" | "folder", parentPath: string, name: string) => void;
-  onCancelCreate: () => void;
-  renamingPath: string | null;
-  onRename: (file: FileRecord, name: string) => void;
-  onCancelRename: () => void;
 }
 
 const TREE_PATHS_MIME = "application/x-pkms-tree-paths";
-
-function InlineCreationRow({ kind, depth, initialValue = "", onCreate, onCancel }: { kind: "file" | "folder"; depth: number; initialValue?: string; onCreate: (name: string) => void; onCancel: () => void }) {
-  const [name, setName] = useState(initialValue);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const settled = useRef(false);
-  useEffect(() => {
-    // Defer so focus restoration from a closing context menu cannot blur (and cancel) the fresh input.
-    const frame = requestAnimationFrame(() => {
-      const input = inputRef.current;
-      if (!input) return;
-      input.focus();
-      if (initialValue) input.setSelectionRange(0, initialValue.lastIndexOf(".") > 0 ? initialValue.lastIndexOf(".") : initialValue.length);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [initialValue]);
-  const settle = (action: () => void) => {
-    if (settled.current) return;
-    settled.current = true;
-    action();
-  };
-  return <div className="tree-row tree-creation-row" role="treeitem" aria-level={depth + 1} style={{ paddingLeft: 8 + depth * 14 }}>
-    <span className="tree-chevron" aria-hidden="true" />
-    <span className="file-icon" aria-hidden="true"><AppIcon name={kind === "folder" ? "folder" : "fileText"} /></span>
-    <input ref={inputRef} aria-label={kind === "folder" ? "Folder name" : "File name"} placeholder={kind === "folder" ? "New folder name" : "New file name.md"} value={name} onChange={(event) => setName(event.target.value)} onBlur={() => settle(onCancel)} onKeyDown={(event) => {
-      event.stopPropagation();
-      if (event.key === "Enter") { event.preventDefault(); settle(name.trim() ? () => onCreate(name) : onCancel); }
-      if (event.key === "Escape") { event.preventDefault(); settle(onCancel); }
-    }} />
-  </div>;
-}
 
 export function FileTreeList({
   treeRef,
@@ -90,12 +54,6 @@ export function FileTreeList({
   onSelectRow,
   onClearSelection,
   onActivate,
-  creation,
-  onCreate,
-  onCancelCreate,
-  renamingPath,
-  onRename,
-  onCancelRename,
 }: FileTreeListProps) {
   const handleDrop = (event: DragEvent<HTMLElement>, destination: string) => {
     event.preventDefault();
@@ -132,10 +90,8 @@ export function FileTreeList({
       <EditorTreeVirtualList
         projection={projection}
         itemKey={({ file }) => file.id}
-        beforeItems={creation?.parentPath === "" ? <InlineCreationRow kind={creation.kind} depth={0} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} /> : null}
         renderItem={({ file, depth }, index) => (
-        <Fragment key={file.id}>
-        {renamingPath === file.path ? <InlineCreationRow key={`rename-${file.path}`} kind={file.kind === "folder" ? "folder" : "file"} depth={depth} initialValue={entryName(file.path)} onCreate={(name) => onRename(file, name)} onCancel={onCancelRename} /> : <EditorTreeRow
+        <EditorTreeRow
           id={file.id}
           path={file.path}
           name={entryName(file.path)}
@@ -182,9 +138,7 @@ export function FileTreeList({
             onSelectRow(file.path, index, false, false);
             onActivate(file);
           }}
-        />}
-        {creation?.parentPath === file.path && file.kind === "folder" && <InlineCreationRow key={`create-${creation.kind}-${creation.parentPath}`} kind={creation.kind} depth={depth + 1} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} />}
-        </Fragment>
+        />
         )}
         emptyContent={<p className="empty-hint">{loading ? "Loading…" : "Empty folder"}</p>}
       />

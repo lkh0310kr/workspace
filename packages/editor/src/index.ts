@@ -48,6 +48,7 @@ export { markdownLinkNavigation } from "./markdownLinkNavigation";
 export type { EditorMarkdownLink } from "./markdownLinkNavigation";
 export { buildRenamedPath, markdownExtensionOf, markdownTitleFor, validateTitleInput } from "./markdownTitle";
 export type { TitleValidationError } from "./markdownTitle";
+export { nextEditorItemName } from "./uniqueItemName";
 export { resolveEditorRelativeLink } from "./relativeLink";
 export { resolveEditorTreePath } from "./resolveEditorTreePath";
 export { HEADING_TYPES, markdownImageResolver, markdownLivePreview, markdownRootPath } from "./markdownLivePreview";

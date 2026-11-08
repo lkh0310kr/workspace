@@ -32,7 +32,7 @@ export function PkmsDialog({ request, onClose }: Props): React.JSX.Element | nul
       {request.kind === "name" ? <form onSubmit={(event) => { event.preventDefault(); request.resolve(value.trim()); onClose(); }}>
         <h2>{request.title}</h2>
         <input ref={inputRef} autoFocus value={value} onChange={(event) => setValue(event.target.value)} aria-label={request.title} />
-        <div className="pkms-dialog-actions"><button type="button" className="secondary-button" onClick={cancel}>Cancel</button><button type="submit" className="primary-button" disabled={!value.trim()}>{request.title === "New folder" ? "Create" : "Save"}</button></div>
+        <div className="pkms-dialog-actions"><button type="button" className="secondary-button" onClick={cancel}>Cancel</button><button type="submit" className="primary-button" disabled={!value.trim()}>{request.title.toLowerCase().includes("folder") ? "Create" : "Save"}</button></div>
       </form> : <>
         <h2>Confirm</h2>
         <p>{request.message}</p>

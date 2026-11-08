@@ -29,7 +29,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, projectEditorTreeRows, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, nextEditorItemName, projectEditorTreeRows, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -107,12 +107,7 @@ async function findAvailableName(provider: ReturnType<typeof acquireLocalEditorP
   const parent = dir ? await resolveEditorTreePath(provider, dir) : null;
   if (dir && !parent) throw new Error("Folder no longer exists");
   const entries = await provider.listChildren(parent?.itemId ?? null);
-  const names = new Set(entries.map((entry) => entry.name.toLowerCase()));
-  const first = `${base}${ext}`;
-  if (!names.has(first.toLowerCase())) return first;
-  let i = 1;
-  while (names.has(`${base} ${i}${ext}`.toLowerCase())) i++;
-  return `${base} ${i}${ext}`;
+  return nextEditorItemName(entries.map((entry) => entry.name), base, ext);
 }
 
 const TREE_DRAG_MIME = "application/x-workspace-tree-paths";
