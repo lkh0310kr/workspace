@@ -185,6 +185,8 @@ Markdown 제목 표시·검증·확장자/경로 생성은 `packages/editor`의 
 
 트리의 이름 prompt도 `EditorNameForm`이 trim·빈 값 처리·submit form을 공유한다. Workspace Popover와 PKMS modal의 배치 및 host styling은 각 shell에 둔다.
 
+PKMS의 열린 문서 session은 provider snapshot을 구독해 공통 dirty-document registry를 갱신한다. 따라서 PKMS 탭 닫기와 파일 삭제 확인은 Workspace와 같은 공통 registry를 기준으로 판단하고, 세션이 닫히거나 삭제되면 dirty 등록과 구독을 정리한다.
+
 공통 Markdown frame은 제목/CodeMirror 내부 클릭을 제외한 빈 본문 영역 클릭을 판별한다. 두 host는 각자 surface navigator를 통해 문서 끝으로 cursor와 focus를 옮긴다.
 
 `useEditorDocumentSnapshot`은 현재 session identity에 맞는 snapshot만 반환한다. session 교체 render와 subscription effect 사이에도 이전 문서의 본문·save phase가 새 문서에 노출되지 않는다.
