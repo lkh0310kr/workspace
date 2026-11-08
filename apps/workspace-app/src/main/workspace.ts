@@ -316,6 +316,9 @@ export class Workspace {
   writeFile(tabId: number, rel: string, content: string): void {
     files.writeFile(this.tabRoot(tabId), rel, content);
   }
+  writeFileIfUnchanged(tabId: number, rel: string, expected: string, content: string): boolean {
+    return files.writeFileIfUnchanged(this.tabRoot(tabId), rel, expected, content);
+  }
   createDir(tabId: number, rel: string): void {
     files.createDir(this.tabRoot(tabId), rel);
   }

@@ -8,7 +8,7 @@ import type {
   EditorSearchResult,
   EditorTreeItem,
 } from "@workspace/editor";
-import { cancelSearch, createDir, deletePath, getMediaUrl, listDir, onFileChanged, onSearchDone, onSearchResult, readFile, renamePath, searchInFiles, writeFile, type SearchFileResult } from "../electron";
+import { cancelSearch, createDir, deletePath, getMediaUrl, listDir, onFileChanged, onSearchDone, onSearchResult, readFile, renamePath, searchInFiles, writeFile, writeFileIfUnchanged, type SearchFileResult } from "../electron";
 
 const capabilities: EditorProviderCapabilities = {
   operations: new Set(["createFile", "createDirectory", "rename", "move", "delete"]),
@@ -113,6 +113,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
 
   const unsubscribeFiles = onFileChanged((changedPaths) => {
     if (changedPaths.length === 0 || changedPaths.every((path) => !path)) {
+      for (const session of sessions) session.externalChange([session.item.path]);
       for (const listener of listeners) listener([null]);
       return;
     }
@@ -249,7 +250,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       const currentCount = [...current.matchAll(matcher)].length;
       if (currentCount !== expectedMatchCount) return false;
       const next = current.replace(matcher, replacement);
-      if (next !== current) await writeFile(tabId, path, next);
+      if (next !== current && !await writeFileIfUnchanged(tabId, path, current, next)) return false;
       return true;
     },
     async create(parentId, kind, name) {
@@ -363,6 +364,8 @@ export function acquireLocalEditorProvider(tabId: number): { provider: LocalEdit
 
 class LocalDocumentSession implements EditorDocumentSession {
   private value = "";
+  private baseValue = "";
+  private savingValue: string | null = null;
   private previewUrl = "";
   private mediaType = "application/octet-stream";
   private revision = "0";
@@ -389,7 +392,10 @@ class LocalDocumentSession implements EditorDocumentSession {
     const value = await readFile(this.tabId, this.item.path);
     if (value === null) throw new Error("Document no longer exists");
     this.value = value;
+    this.baseValue = value;
     this.revision = crypto.randomUUID();
+    this.phase = "clean";
+    this.message = undefined;
     this.emit();
   }
 
@@ -425,18 +431,31 @@ class LocalDocumentSession implements EditorDocumentSession {
     if (this.phase === "conflict") throw new Error(this.message ?? "File changed on disk");
     if (this.phase !== "dirty") return this.snapshot();
     const savedValue = this.value;
+    const expectedValue = this.baseValue;
+    this.savingValue = savedValue;
     this.phase = "saving";
     this.emit();
     try {
-      await writeFile(this.tabId, this.item.path, savedValue);
+      const written = await writeFileIfUnchanged(this.tabId, this.item.path, expectedValue, savedValue);
+      if (!written) {
+        this.markConflict("The file changed on disk before this save could be applied.");
+        throw new Error(this.message);
+      }
+      this.baseValue = savedValue;
       this.revision = crypto.randomUUID();
-      this.phase = this.value === savedValue ? "clean" : "dirty";
-      this.message = undefined;
+      if (!this.isConflicted()) {
+        this.phase = this.value === savedValue ? "clean" : "dirty";
+        this.message = undefined;
+      }
     } catch (error) {
-      this.phase = "error";
-      this.message = error instanceof Error ? error.message : "Could not save file";
-      this.emit();
+      if (!this.isConflicted()) {
+        this.phase = "error";
+        this.message = error instanceof Error ? error.message : "Could not save file";
+        this.emit();
+      }
       throw error;
+    } finally {
+      this.savingValue = null;
     }
     this.emit();
     return this.snapshot();
@@ -444,15 +463,34 @@ class LocalDocumentSession implements EditorDocumentSession {
 
   externalChange(paths: string[]): void {
     if (!paths.includes(this.item.path)) return;
-    if (this.phase === "dirty" || this.phase === "saving") {
-      this.phase = "conflict";
-      this.message = "The file changed on disk while you had unsaved edits.";
+    void readFile(this.tabId, this.item.path).then((diskValue) => {
+      if (this.closed) return;
+      if (this.phase === "conflict") return;
+      if (diskValue === null) {
+        if (this.phase === "dirty" || this.phase === "saving") this.markConflict("The file was removed while you had unsaved edits.");
+        else {
+          this.phase = "error";
+          this.message = "Document no longer exists";
+          this.emit();
+        }
+        return;
+      }
+      if (this.phase === "saving" && diskValue === this.savingValue) return;
+      if (this.phase === "dirty" || this.phase === "saving") {
+        if (diskValue !== this.baseValue) this.markConflict("The file changed on disk while you had unsaved edits.");
+        return;
+      }
+      if (diskValue === this.baseValue) return;
+      this.value = diskValue;
+      this.baseValue = diskValue;
+      this.revision = crypto.randomUUID();
+      this.phase = "clean";
+      this.message = undefined;
       this.emit();
-      return;
-    }
-    void this.load().catch((error) => {
+    }).catch((error) => {
+      if (this.closed) return;
       this.phase = "error";
-      this.message = error instanceof Error ? error.message : "Could not reload file";
+      this.message = error instanceof Error ? error.message : "Could not check the file after a change";
       this.emit();
     });
   }
@@ -472,6 +510,16 @@ class LocalDocumentSession implements EditorDocumentSession {
   private emit(): void {
     const snapshot = this.snapshot();
     for (const listener of this.listeners) listener(snapshot);
+  }
+
+  private markConflict(message: string): void {
+    this.phase = "conflict";
+    this.message = message;
+    this.emit();
+  }
+
+  private isConflicted(): boolean {
+    return this.phase === "conflict";
   }
 }
 

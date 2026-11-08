@@ -220,6 +220,7 @@ export interface WorkspaceApi {
       rel: string
     ) => Promise<{ content: string; mimeType: string } | null>
     writeFile: (tabId: number, rel: string, content: string) => Promise<void>
+    writeFileIfUnchanged: (tabId: number, rel: string, expected: string, content: string) => Promise<boolean>
     createDir: (tabId: number, rel: string) => Promise<void>
     deletePath: (tabId: number, rel: string) => Promise<void>
     renamePath: (tabId: number, fromRel: string, toRel: string) => Promise<void>

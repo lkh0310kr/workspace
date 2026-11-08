@@ -52,6 +52,9 @@ export function registerWorkspaceIpc(getWorkspace: () => Workspace, persist: () 
   ipcMain.handle('fs:write-file', (_event, tabId: number, rel: string, content: string) =>
     getWorkspace().writeFile(tabId, rel, content)
   )
+  ipcMain.handle('fs:write-file-if-unchanged', (_event, tabId: number, rel: string, expected: string, content: string) =>
+    getWorkspace().writeFileIfUnchanged(tabId, rel, expected, content)
+  )
   ipcMain.handle('fs:create-dir', (_event, tabId: number, rel: string) => getWorkspace().createDir(tabId, rel))
   ipcMain.handle('fs:delete-path', (_event, tabId: number, rel: string) => getWorkspace().deletePath(tabId, rel))
   ipcMain.handle('fs:rename-path', (_event, tabId: number, fromRel: string, toRel: string) =>

@@ -31,6 +31,8 @@ export const contentApi = {
       ipcRenderer.invoke('fs:read-file-binary-preview', tabId, rel),
     writeFile: (tabId: number, rel: string, content: string): Promise<void> =>
       ipcRenderer.invoke('fs:write-file', tabId, rel, content),
+    writeFileIfUnchanged: (tabId: number, rel: string, expected: string, content: string): Promise<boolean> =>
+      ipcRenderer.invoke('fs:write-file-if-unchanged', tabId, rel, expected, content),
     createDir: (tabId: number, rel: string): Promise<void> =>
       ipcRenderer.invoke('fs:create-dir', tabId, rel),
     deletePath: (tabId: number, rel: string): Promise<void> =>

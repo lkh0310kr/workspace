@@ -165,6 +165,22 @@ export function writeFile(root: string, rel: string, content: string): void {
   fs.writeFileSync(target, content, "utf8");
 }
 
+/** Compare and write synchronously in the main process so stale editor snapshots cannot silently overwrite newer file contents. */
+export function writeFileIfUnchanged(root: string, rel: string, expected: string, content: string): boolean {
+  const target = resolveUnderRoot(root, rel);
+  let current: string;
+  try {
+    current = fs.readFileSync(target, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+  if (current !== expected) return false;
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, content, "utf8");
+  return true;
+}
+
 export function createDir(root: string, rel: string): void {
   fs.mkdirSync(resolveUnderRoot(root, rel), { recursive: true });
 }

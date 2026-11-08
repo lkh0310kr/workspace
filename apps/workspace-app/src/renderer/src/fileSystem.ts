@@ -46,6 +46,10 @@ export async function writeFile(tabId: number, path: string, content: string): P
   return window.api.fs.writeFile(tabId, path, content);
 }
 
+export async function writeFileIfUnchanged(tabId: number, path: string, expected: string, content: string): Promise<boolean> {
+  return window.api.fs.writeFileIfUnchanged(tabId, path, expected, content);
+}
+
 export async function createDir(tabId: number, path: string): Promise<void> {
   return window.api.fs.createDir(tabId, path);
 }
