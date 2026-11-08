@@ -81,6 +81,7 @@ export interface EditorProvider {
     query: string,
     options: EditorSearchOptions,
     signal?: AbortSignal,
+    onResult?: (result: EditorSearchResult) => void,
   ): Promise<EditorSearchResult[]>;
   /** Replace matches only if the provider can confirm the searched occurrence count is unchanged. */
   replaceContents?(

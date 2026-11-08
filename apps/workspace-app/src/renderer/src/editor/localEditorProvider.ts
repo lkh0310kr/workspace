@@ -167,7 +167,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         throw error;
       }
     },
-    async search(query, options, signal) {
+    async search(query, options, signal, onResult) {
       if (!query) return [];
       if (options.target === "names") {
         const paths = await window.api.fs.listAllFiles(tabId);
@@ -176,11 +176,24 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         for (const path of paths) {
           abortIfNeeded(signal);
           const item = itemFor(path, false);
-          if (findMatch(item.name, query, options) >= 0) results.push({ item });
+          if (findMatch(item.name, query, options) >= 0) {
+            const result = { item };
+            results.push(result);
+            onResult?.(result);
+          }
         }
         persistItemIds();
         return results;
       }
+      const toEditorResult = (file: SearchFileResult): EditorSearchResult => ({
+        item: itemFor(file.path, false),
+        matches: file.matches.map((match) => ({
+          line: match.lineNumber,
+          column: match.ranges[0]?.start + 1 || 1,
+          preview: match.lineText,
+          ranges: match.ranges,
+        })),
+      });
       return new Promise<EditorSearchResult[]>((resolve, reject) => {
         const requestId = crypto.randomUUID();
         const files = new Map<string, SearchFileResult>();
@@ -195,15 +208,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
           settled = true;
           cleanup();
           if (error) { reject(new Error(error)); return; }
-          const results = [...files.values()].map((file) => ({
-            item: itemFor(file.path, false),
-            matches: file.matches.map((match) => ({
-              line: match.lineNumber,
-              column: match.ranges[0]?.start + 1 || 1,
-              preview: match.lineText,
-              ranges: match.ranges,
-            })),
-          }));
+          const results = [...files.values()].map(toEditorResult);
           persistItemIds();
           resolve(results);
         };
@@ -212,7 +217,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
           finish("Search aborted");
         };
         const offResult = onSearchResult((id, result) => {
-          if (id === requestId) files.set(result.path, result);
+          if (id !== requestId) return;
+          files.set(result.path, result);
+          onResult?.(toEditorResult(result));
         });
         const offDone = onSearchDone((id, error) => { if (id === requestId) finish(error); });
         if (signal?.aborted) { abort(); return; }

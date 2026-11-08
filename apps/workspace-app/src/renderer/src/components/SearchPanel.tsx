@@ -79,7 +79,16 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
       const controller = new AbortController();
       searchAbortRef.current = controller;
       setSearching(true);
-      void provider.search(q, { ...searchOpts, target: "contents" }, controller.signal)
+      void provider.search(q, { ...searchOpts, target: "contents" }, controller.signal, (result) => {
+        if (searchAbortRef.current !== controller) return;
+        setResults((current) => {
+          const index = current.findIndex((entry) => entry.item.itemId === result.item.itemId);
+          if (index < 0) return [...current, result];
+          const next = [...current];
+          next[index] = result;
+          return next;
+        });
+      })
         .then((next) => {
           if (searchAbortRef.current !== controller) return;
           setResults(next);
