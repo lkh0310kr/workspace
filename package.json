@@ -19,6 +19,8 @@
     "pkms:server:typecheck": "npm run typecheck --workspace @pkms/server",
     "workspace:server:deploy": "npm run deploy --workspace @workspace/server",
     "workspace:server:typecheck": "npm run typecheck --workspace @workspace/server",
+    "logs:compress": "node apps/workspace-app/scripts/manage-workspace-logs.mjs compress",
+    "logs:restore": "node apps/workspace-app/scripts/manage-workspace-logs.mjs restore",
     "check": "bash scripts/check.sh",
     "check:app": "cd apps/workspace-app && npm run typecheck",
     "agents:python:setup": "node scripts/agents-python-setup.mjs",

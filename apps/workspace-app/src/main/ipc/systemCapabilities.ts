@@ -26,7 +26,6 @@ export function registerSystemCapabilityIpc(getMainWindow: () => BrowserWindow |
   ipcMain.on('window:close', (event) => BrowserWindow.fromWebContents(event.sender)?.close())
   ipcMain.on('debug:interaction-log', (_event, entry: Record<string, unknown>) => {
     appendNdjsonLog('interaction.ndjson', entry)
-    if (entry.sessionId === 'browser-focus') appendNdjsonLog('browser-focus.ndjson', entry)
   })
   ipcMain.on('debug:terminal-log', (_event, entry: Record<string, unknown>) => appendTerminalLog(entry))
   ipcMain.on('debug:layout-log', (_event, entry: Record<string, unknown>) => appendLayoutLog(entry))

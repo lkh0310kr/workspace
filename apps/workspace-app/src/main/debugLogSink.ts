@@ -1,7 +1,7 @@
-import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { appSupportDir } from "./persistence";
 import { getBootstrapLogsDir } from "./startupLog";
+import { appendRotatingLogLine } from "./logFileWriter";
 
 export type AppLogLevel = "log" | "info" | "warn" | "error" | "debug";
 
@@ -38,9 +38,7 @@ export function shouldWriteDebugLogs(): boolean {
 export function appendNdjsonLog(fileName: string, entry: Record<string, unknown>): void {
   if (!shouldWriteDebugLogs()) return;
   try {
-    const dir = getLogsDir();
-    mkdirSync(dir, { recursive: true });
-    appendFileSync(join(dir, fileName), `${JSON.stringify(entry)}\n`);
+    appendRotatingLogLine(join(getLogsDir(), fileName), `${JSON.stringify(entry)}\n`);
   } catch {
     /* ignore logging failures */
   }

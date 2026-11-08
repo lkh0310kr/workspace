@@ -29,7 +29,7 @@ export function installBrowserEmbedSupport(): () => void {
     };
     win.__browserFocusLog = () => getBrowserFocusLogRing();
     win.__browserFocusLogPath =
-      "~/Library/Application Support/workspace-app/logs/browser-focus.ndjson (macOS userData/logs)";
+      "~/Library/Application Support/workspace-app/logs/interaction.ndjson (macOS userData/logs)";
   }
   return () => {
     unlistenFocus();

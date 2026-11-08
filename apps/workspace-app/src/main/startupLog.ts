@@ -1,6 +1,7 @@
-import { appendFileSync, existsSync, mkdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { appendRotatingLogLine } from "./logFileWriter";
 
 /**
  * True when running a packaged asar build.
@@ -54,10 +55,8 @@ export function getBootstrapLogsDir(): string {
 export function appendStartupLog(event: string, data?: Record<string, unknown>): void {
   if (process.env.WORKSPACE_DISABLE_FILE_LOGS === "1") return;
   try {
-    const dir = getBootstrapLogsDir();
-    mkdirSync(dir, { recursive: true });
-    appendFileSync(
-      join(dir, "startup.ndjson"),
+    appendRotatingLogLine(
+      join(getBootstrapLogsDir(), "startup.ndjson"),
       `${JSON.stringify({
         ts: new Date().toISOString(),
         pid: process.pid,
