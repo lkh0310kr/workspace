@@ -1,5 +1,57 @@
 # Terminal pipeline
 
+## Reference-port decision: port a working terminal feature, not its appearance
+
+**Status: implementation in progress.** Orca is the behavioral reference. Workspace keeps
+its current Electron IPC, one-terminal-per-pane UI, and local PTY host, but those adapters
+must preserve Orca's terminal contracts end to end.
+
+The current implementation is not yet feature-equivalent. In particular, Orca's output
+scheduler is a coordinated queue, parse-progress, backpressure, and stalled-write recovery
+system. Workspace currently replaces it with a smaller animation-frame coalescer. That
+removes queue priority, throughput budgeting, pipeline health/recovery, and the parse barrier.
+The existing scroll-intent helpers do not compensate for those missing output/lifecycle
+contracts. The PTY transport preserves bytes through its local socket, then `PtySession`
+decodes and re-encodes them before renderer delivery; this creates an avoidable second text
+boundary and requires live output and snapshot replay to agree exactly about decoder state.
+
+These are concrete architectural risks consistent with the reported failures, not yet a
+confirmed single cause for every scroll, glyph, or color symptom. Color rendering also
+depends on shell capabilities (`TERM`, `COLORTERM`), preserving ANSI bytes, and applying
+the active xterm theme; each needs an end-to-end check instead of being inferred from config.
+
+### Porting contract
+
+Treat the terminal as one vertical slice with these invariants:
+
+1. PTY output bytes are ordered and lossless from shell through IPC into one UTF-8 decoder;
+   snapshot replay and live data share the same sequence/decoder boundary.
+2. xterm parsing has bounded queues, acknowledgements on parse or discard, fairness between
+   foreground/background panes, and explicit stalled-parser recovery.
+3. Scroll position follows xterm's user-scroll state for live writes. Structural changes
+   (reattach/replay/refit) restore a saved viewport only after parsing and fitting settle.
+4. Color capability is consistent across PTY environment, ANSI bytes, xterm options, and
+   resolved theme. Unicode width/font behavior is verified with Hangul, emoji, and Nerd Font.
+5. Hiding/remounting a pane never loses sequence state, pending output credit, or scroll intent.
+
+### Implementation order
+
+1. Port Orca's output-scheduler dependency closure and its tests, adapting only imports,
+   PTY acknowledgement, and Workspace pane lifecycle. Do not retain the simplified scheduler
+   alongside the port.
+2. Port the byte/sequence ownership contract through PTY host → main → renderer and align
+   live delivery with snapshot replay. Keep terminal query filtering explicit and byte-safe.
+3. Port replay/fit/scroll restoration as one lifecycle contract, then verify wheel behavior
+   both with and without TUI mouse reporting.
+4. Verify theme/ANSI/Unicode/font behavior from an actual shell session and fix the first
+   failing boundary found. Keep the per-chunk terminal trace disabled in normal production;
+   use bounded opt-in diagnostics for fault reports.
+5. Run relevant tests and build, then manually exercise long scrollback, high-rate colored
+   output, split Hangul/emoji output, pane hide/show, and reconnect before claiming parity.
+
+The app is complete only when these invariants pass in the installed build. Porting a module
+or matching Orca's visual layout alone is not acceptance evidence.
+
 Terminal rendering follows an Orca-inspired **session vs mount** split: the shell PTY lives in main; xterm.js is a mount that can suspend without killing the session.
 
 ## Data flow
