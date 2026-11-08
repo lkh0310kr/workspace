@@ -40,6 +40,7 @@ export type { EditorTextSurfaceProps } from "./EditorTextSurface";
 export { EditorMarkdownDocument } from "./EditorMarkdownDocument";
 export type { EditorMarkdownDocumentProps } from "./EditorMarkdownDocument";
 export { EditorMarkdownTitleInput } from "./EditorMarkdownTitleInput";
+export { EditorMarkdownTitle } from "./EditorMarkdownTitle";
 export { discardEditorViewState, moveEditorViewState, readEditorViewState, writeEditorViewState } from "./viewStateCache";
 export type { EditorViewStateStorage, CachedEditorState } from "./viewStateCache";
 export { EditorOutlineList } from "./EditorOutlineList";

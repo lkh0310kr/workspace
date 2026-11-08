@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitleInput, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -1332,10 +1332,7 @@ export default function Home() {
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <div className="editor-layout">
           <EditorMarkdownDocument
             actions={<EditorSearchButton active={searchOpen} onClick={() => { const view = markdownView.current; if (view) setSearchOpen(toggleEditorSearch(view)); }} />}
-            title={<div className="editor-title-block">
-              {titleEditing ? <EditorMarkdownTitleInput inputRef={titleInputRef} value={titleDraft} error={titleError} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} /> : <div className="editor-markdown-title" title={activeFile.path} onClick={enterTitleEdit}>{markdownTitleFor(activeFile.path)}</div>}
-              {peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}
-            </div>}
+            title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={enterTitleEdit} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
             outlineItems={outlineItems.map((item) => ({ id: `${item.position}-${item.title}`, level: item.level, label: item.title, position: item.position }))}
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(position) => requestAnimationFrame(() => editorNavigate.current?.(position))}

@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { buildRenamedPath, editorDocumentKey, editorSavePhaseLabel, EditorMarkdownDocument, EditorMarkdownTitleInput, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
+import { buildRenamedPath, editorDocumentKey, editorSavePhaseLabel, EditorMarkdownDocument, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
 const EditorMarkdownSurface = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
@@ -653,13 +653,7 @@ export function EditorContent({
               outlineItems={outline.map((item) => ({ id: String(item.pos), level: item.level, label: item.text, position: item.pos }))}
               outlineKey={documentCacheKey}
               onOutlineNavigate={(position) => { const view = viewRef.current; if (view) jumpToPos(view, position); }}
-              title={titleEditing ? (
-                <EditorMarkdownTitleInput inputRef={titleInputRef} value={titleDraft} error={titleError} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { setTitleEditing(false); setTitleError(null); }} />
-              ) : (
-                <div className="editor-markdown-title" title={filePath ?? undefined} onClick={enterTitleEdit}>
-                  {markdownTitleFor(filePath)}
-                </div>
-              )}
+              title={<EditorMarkdownTitle path={filePath} title={markdownTitleFor(filePath)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} onStartEditing={enterTitleEdit} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { setTitleEditing(false); setTitleError(null); }} />}
               onBackgroundClick={onScrollContainerClick}
             >
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
