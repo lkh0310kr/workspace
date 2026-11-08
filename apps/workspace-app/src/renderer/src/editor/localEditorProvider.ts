@@ -1,0 +1,323 @@
+import type {
+  EditorDocumentSession,
+  EditorDocumentSnapshot,
+  EditorItemRef,
+  EditorProvider,
+  EditorProviderCapabilities,
+  EditorSearchResult,
+  EditorTreeItem,
+} from "@workspace/editor";
+import { createDir, deletePath, getMediaUrl, listDir, onFileChanged, readFile, renamePath, writeFile } from "../electron";
+
+const capabilities: EditorProviderCapabilities = {
+  operations: new Set(["createFile", "createDirectory", "rename", "delete"]),
+  searchNames: true,
+  searchContents: true,
+  replaceContents: true,
+  multiSelect: true,
+  dragMove: true,
+  codeLanguages: new Set(["*"]),
+  collaborativeDocuments: false,
+};
+
+type LocalEditorProvider = Omit<EditorProvider, "create" | "rename" | "delete" | "move"> & Required<Pick<EditorProvider, "create" | "rename" | "delete" | "move">> & {
+  dispose: () => void;
+  itemRefForPath: (path: string) => Promise<EditorItemRef | null>;
+};
+
+function kindFor(path: string, directory: boolean): EditorTreeItem["kind"] {
+  if (directory) return "directory";
+  const extension = path.split(".").at(-1)?.toLowerCase();
+  if (["md", "markdown", "mdown"].includes(extension ?? "")) return "markdown";
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg", "pdf", "zip", "7z", "glb", "gltf", "stl", "step", "stp", "epub"].includes(extension ?? "")) return "asset";
+  return "code";
+}
+
+function parentOf(path: string): string | null {
+  const slash = path.lastIndexOf("/");
+  return slash < 0 ? "" : path.slice(0, slash);
+}
+
+function abortIfNeeded(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+}
+
+/** Workspace filesystem adapter. Electron IPC remains behind the renderer shim. */
+export function createLocalEditorProvider(tabId: number): LocalEditorProvider {
+  const id = `workspace:${tabId}`;
+  const pathByItemId = new Map<string, string>();
+  const itemIdByPath = new Map<string, string>();
+  const listeners = new Set<(parents: readonly string[]) => void>();
+  const sessions = new Set<LocalDocumentSession>();
+
+  const itemFor = (path: string, directory: boolean, name = path.split("/").at(-1) ?? ""): EditorTreeItem => {
+    let itemId = itemIdByPath.get(path);
+    if (!itemId) {
+      itemId = `${id}:item:${crypto.randomUUID()}`;
+      itemIdByPath.set(path, itemId);
+      pathByItemId.set(itemId, path);
+    }
+    return { providerId: id, itemId, parentId: parentOf(path), name, path, kind: kindFor(path, directory), readOnly: false };
+  };
+
+  const unsubscribeFiles = onFileChanged((changedPaths) => {
+    if (changedPaths.length === 0 || changedPaths.every((path) => !path)) {
+      for (const listener of listeners) listener([""]);
+      return;
+    }
+    const parents = [...new Set(changedPaths.map(parentOf).filter((path): path is string => path !== null))];
+    for (const session of sessions) session.externalChange(changedPaths);
+    if (parents.length) for (const listener of listeners) listener(parents);
+  });
+
+  const provider: LocalEditorProvider = {
+    id,
+    capabilities,
+    async listChildren(parentId, signal) {
+      abortIfNeeded(signal);
+      const entries = await listDir(tabId, parentId ?? "");
+      abortIfNeeded(signal);
+      return entries.map((entry) => itemFor(entry.path, entry.is_dir, entry.name));
+    },
+    async itemRefForPath(path) {
+      const entries = await provider.listChildren(parentOf(path));
+      const item = entries.find((entry) => entry.path === path);
+      return item ? { providerId: id, itemId: item.itemId } : null;
+    },
+    subscribeTree(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    async openDocument(ref: EditorItemRef, signal) {
+      abortIfNeeded(signal);
+      if (ref.providerId !== id) throw new Error("Document belongs to a different provider");
+      const path = pathByItemId.get(ref.itemId);
+      if (path === undefined) throw new Error("Document no longer exists");
+      const item = itemFor(path, false);
+      const session = new LocalDocumentSession(item, tabId, () => sessions.delete(session));
+      sessions.add(session);
+      try {
+        await session.load();
+        abortIfNeeded(signal);
+        return session;
+      } catch (error) {
+        await session.close();
+        throw error;
+      }
+    },
+    async search(query, options, signal) {
+      if (!query) return [];
+      const paths = await window.api.fs.listAllFiles(tabId);
+      abortIfNeeded(signal);
+      const matcher = options.target === "names" ? null : options.regex
+        ? new RegExp(query, options.caseSensitive ? "g" : "gi")
+        : null;
+      const needle = options.caseSensitive ? query : query.toLocaleLowerCase();
+      const results: EditorSearchResult[] = [];
+      for (const path of paths) {
+        abortIfNeeded(signal);
+        const item = itemFor(path, false);
+        if (options.target === "names") {
+          const haystack = options.caseSensitive ? item.name : item.name.toLocaleLowerCase();
+          if (haystack.includes(needle)) results.push({ item });
+          continue;
+        }
+        if (item.kind === "asset") continue;
+        const text = await readFile(tabId, path);
+        if (text == null) continue;
+        const lines = text.split(/\r?\n/);
+        for (let index = 0; index < lines.length; index++) {
+          const line = lines[index];
+          const match = matcher ? matcher.exec(line) : (options.caseSensitive ? line : line.toLocaleLowerCase()).indexOf(needle) >= 0;
+          if (match) results.push({ item, line: index + 1, column: typeof match === "object" ? match.index + 1 : (options.caseSensitive ? line : line.toLocaleLowerCase()).indexOf(needle) + 1, preview: line });
+        }
+      }
+      return results;
+    },
+    async create(parentId, kind, name) {
+      const path = [parentId ?? "", name].filter(Boolean).join("/");
+      if (kind === "directory") await createDir(tabId, path);
+      else await writeFile(tabId, path, "");
+      return itemFor(path, kind === "directory", name);
+    },
+    async rename(ref, name) {
+      if (ref.providerId !== id) throw new Error("Item belongs to a different provider");
+      const from = pathByItemId.get(ref.itemId);
+      if (from === undefined) throw new Error("Item no longer exists");
+      const oldEntries = await listDir(tabId, parentOf(from) ?? "");
+      const isDirectory = oldEntries.find((entry) => entry.path === from)?.is_dir ?? false;
+      const to = [parentOf(from) ?? "", name].filter(Boolean).join("/");
+      await renamePath(tabId, from, to);
+      const itemId = ref.itemId;
+      itemIdByPath.delete(from);
+      itemIdByPath.set(to, itemId);
+      pathByItemId.set(itemId, to);
+      for (const session of sessions) session.renamePath(from, to, name);
+      for (const listener of listeners) listener([parentOf(from) ?? "", parentOf(to) ?? ""]);
+      return itemFor(to, isDirectory, name);
+    },
+    async delete(refs) {
+      for (const ref of refs) {
+        if (ref.providerId !== id) continue;
+        const path = pathByItemId.get(ref.itemId);
+        if (path === undefined) continue;
+        await deletePath(tabId, path);
+        pathByItemId.delete(ref.itemId);
+        itemIdByPath.delete(path);
+      }
+    },
+    async move(refs, parentId) {
+      for (const ref of refs) {
+        if (ref.providerId !== id) continue;
+        const from = pathByItemId.get(ref.itemId);
+        if (from === undefined) continue;
+        const name = from.split("/").at(-1) ?? from;
+        const to = [parentId ?? "", name].filter(Boolean).join("/");
+        if (from === to || to.startsWith(`${from}/`)) continue;
+        const oldEntries = await listDir(tabId, parentOf(from) ?? "");
+        const isDirectory = oldEntries.find((entry) => entry.path === from)?.is_dir ?? false;
+        await renamePath(tabId, from, to);
+        const affected = [...pathByItemId.entries()].filter(([, path]) => path === from || path.startsWith(`${from}/`));
+        for (const [itemId, oldPath] of affected) {
+          const nextPath = `${to}${oldPath.slice(from.length)}`;
+          itemIdByPath.delete(oldPath);
+          itemIdByPath.set(nextPath, itemId);
+          pathByItemId.set(itemId, nextPath);
+          for (const session of sessions) session.renamePath(oldPath, nextPath, nextPath.split("/").at(-1) ?? "");
+        }
+        for (const listener of listeners) listener([parentOf(from) ?? "", parentOf(to) ?? ""]);
+        // Resolve the moved root again to retain the directory kind in its metadata.
+        itemFor(to, isDirectory, name);
+      }
+    },
+    dispose() {
+      unsubscribeFiles();
+      listeners.clear();
+      for (const session of [...sessions]) void session.close();
+    },
+  };
+
+  // The owner controls provider lifetime; dispose stops the file watcher.
+  return provider;
+}
+
+class LocalDocumentSession implements EditorDocumentSession {
+  private value = "";
+  private previewUrl = "";
+  private mediaType = "application/octet-stream";
+  private revision = "0";
+  private phase: EditorDocumentSnapshot["savePhase"] = "clean";
+  private message?: string;
+  private listeners = new Set<(snapshot: EditorDocumentSnapshot) => void>();
+  private closed = false;
+
+  constructor(public item: EditorTreeItem, private tabId: number, private onClose: () => void) {}
+
+  get readOnly(): boolean { return this.item.kind === "asset"; }
+
+  async load(): Promise<void> {
+    if (this.item.kind === "asset") {
+      const url = await getMediaUrl(this.tabId, this.item.path);
+      if (!url) throw new Error("Could not preview this file");
+      this.previewUrl = url;
+      this.mediaType = mediaTypeFor(this.item.path);
+      this.revision = url;
+      this.phase = "clean";
+      this.emit();
+      return;
+    }
+    const value = await readFile(this.tabId, this.item.path);
+    if (value === null) throw new Error("Document no longer exists");
+    this.value = value;
+    this.revision = crypto.randomUUID();
+    this.emit();
+  }
+
+  snapshot(): EditorDocumentSnapshot {
+    return { content: this.item.kind === "asset"
+      ? { type: "asset", previewUrl: this.previewUrl, mediaType: this.mediaType }
+      : { type: "text", text: this.value }, revision: this.revision, savePhase: this.phase, ...(this.message ? { message: this.message } : {}) };
+  }
+
+  subscribe(listener: (snapshot: EditorDocumentSnapshot) => void): () => void {
+    this.listeners.add(listener);
+    listener(this.snapshot());
+    return () => this.listeners.delete(listener);
+  }
+
+  async replaceText(text: string, baseRevision: string): Promise<void> {
+    if (this.closed) throw new Error("Document session is closed");
+    if (this.readOnly) throw new Error("Document is read only");
+    if (baseRevision !== this.revision) {
+      this.phase = "conflict";
+      this.message = "The file changed on disk. Reload it before saving.";
+      this.emit();
+      throw new Error(this.message);
+    }
+    this.value = text;
+    this.phase = "dirty";
+    this.message = undefined;
+    this.emit();
+  }
+
+  async save(): Promise<EditorDocumentSnapshot> {
+    if (this.phase === "conflict") throw new Error(this.message ?? "File changed on disk");
+    if (this.phase !== "dirty") return this.snapshot();
+    this.phase = "saving";
+    this.emit();
+    try {
+      await writeFile(this.tabId, this.item.path, this.value);
+      this.revision = crypto.randomUUID();
+      this.phase = "clean";
+      this.message = undefined;
+    } catch (error) {
+      this.phase = "error";
+      this.message = error instanceof Error ? error.message : "Could not save file";
+      this.emit();
+      throw error;
+    }
+    this.emit();
+    return this.snapshot();
+  }
+
+  externalChange(paths: string[]): void {
+    if (!paths.includes(this.item.path)) return;
+    if (this.phase === "dirty" || this.phase === "saving") {
+      this.phase = "conflict";
+      this.message = "The file changed on disk while you had unsaved edits.";
+      this.emit();
+      return;
+    }
+    void this.load().catch((error) => {
+      this.phase = "error";
+      this.message = error instanceof Error ? error.message : "Could not reload file";
+      this.emit();
+    });
+  }
+
+  renamePath(from: string, to: string, name: string): void {
+    if (this.item.path !== from) return;
+    this.item = { ...this.item, path: to, parentId: parentOf(to), name, kind: kindFor(to, false) };
+    this.emit();
+  }
+
+  async close(): Promise<void> {
+    this.closed = true;
+    this.listeners.clear();
+    this.onClose();
+  }
+
+  private emit(): void {
+    const snapshot = this.snapshot();
+    for (const listener of this.listeners) listener(snapshot);
+  }
+}
+
+function mediaTypeFor(path: string): string {
+  const ext = path.split(".").at(-1)?.toLowerCase();
+  const types: Record<string, string> = {
+    avif: "image/avif", gif: "image/gif", jpeg: "image/jpeg", jpg: "image/jpeg", png: "image/png",
+    svg: "image/svg+xml", webp: "image/webp", pdf: "application/pdf",
+  };
+  return types[ext ?? ""] ?? "application/octet-stream";
+}

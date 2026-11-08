@@ -9,13 +9,8 @@ import {
 } from "react";
 import {
   DirEntry,
-  createDir,
-  deletePath,
   listDir,
-  onFileChanged,
-  renamePath,
   revealItemInDir,
-  writeFile,
 } from "../fileSystem";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { moveFocusToRendererBeforeFocusedWebviewHidden } from "../layout/browserWebviewRegistry";
@@ -37,6 +32,7 @@ import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { projectVisibleRows } from "../explorer/useTreeProjection";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
 import { EditorTreeRow } from "@workspace/editor";
+import { createLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
   tabId: number;
@@ -146,6 +142,7 @@ export function TreeView({
   onPathRenamed,
   onPathDeleted,
 }: Props) {
+  const editorProvider = useMemo(() => createLocalEditorProvider(tabId), [tabId]);
   const treeRef = useRef<HTMLDivElement>(null);
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(loadExplorerTreeState(explorerStateKey, rootPath).expanded));
@@ -164,14 +161,17 @@ export function TreeView({
 
   const loadDir = useCallback(
     (path: string) => {
-      listDir(tabId, path)
-        .then((entries) => {
+      editorProvider.listChildren(path)
+        .then((items) => {
+          const entries: DirEntry[] = items.map((item) => ({ name: item.name, path: item.path, is_dir: item.kind === "directory" }));
           setDirs((prev) => new Map(prev).set(path, { entries, loaded: true }));
         })
         .catch(console.error);
     },
-    [tabId],
+    [editorProvider],
   );
+
+  useEffect(() => () => editorProvider.dispose(), [editorProvider]);
 
   const setExpandedPersisted = useCallback(
     (updater: (prev: Set<string>) => Set<string>) => {
@@ -223,21 +223,20 @@ export function TreeView({
   }, [scrollContainerRef, explorerStateKey, rootPath]);
 
   useEffect(() => {
-    const unlisten = onFileChanged((paths) => {
-      const fullReload = paths.length === 0 || paths.every((p) => !p);
+    return editorProvider.subscribeTree((parentPaths) => {
+      const fullReload = parentPaths.includes("");
       if (fullReload) {
         loadDir("");
         for (const path of expanded) loadDir(path);
         return;
       }
       const toReload = new Set<string>();
-      for (const p of paths) {
+      for (const p of parentPaths) {
         for (const d of dirsToReloadForChange(p, expanded)) toReload.add(d);
       }
       for (const d of toReload) loadDir(d);
     });
-    return unlisten;
-  }, [loadDir, expanded]);
+  }, [editorProvider, loadDir, expanded]);
 
   useEffect(() => {
     if (!selectedPath || !explorerModeActive) return;
@@ -369,7 +368,7 @@ export function TreeView({
     const name = await findAvailableName(tabId, dir, "untitled", ".md");
     const path = joinPath(dir, name);
     try {
-      await writeFile(tabId, path, "");
+      await editorProvider.create(dir || null, "file", name);
     } catch (err) {
       window.alert(String(err));
       return;
@@ -385,7 +384,7 @@ export function TreeView({
       title: "Folder name",
       defaultValue: "",
       onSubmit: async (name) => {
-        await createDir(tabId, joinPath(dir, name)).catch((err) => alert(String(err)));
+        await editorProvider.create(dir || null, "directory", name).catch((err) => alert(String(err)));
         setExpandedPersisted((prev) => new Set(prev).add(dir));
         refresh(dir);
       },
@@ -402,7 +401,9 @@ export function TreeView({
         if (name === entry.name) return;
         const to = joinPath(dirOf(entry.path), name);
         try {
-          await renamePath(tabId, entry.path, to);
+          const ref = await editorProvider.itemRefForPath(entry.path);
+          if (!ref) throw new Error("Item no longer exists");
+          await editorProvider.rename(ref, name);
         } catch (err) {
           window.alert(String(err));
           return;
@@ -430,7 +431,9 @@ export function TreeView({
     const deleted: string[] = [];
     for (const p of paths) {
       try {
-        await deletePath(tabId, p);
+        const ref = await editorProvider.itemRefForPath(p);
+        if (!ref) throw new Error("Item no longer exists");
+        await editorProvider.delete([ref]);
         deleted.push(p);
         onPathDeleted?.(p);
       } catch (err) {
@@ -476,7 +479,9 @@ export function TreeView({
       if (targetDir === p || targetDir.startsWith(`${p}/`)) continue;
       const to = joinPath(targetDir, baseName(p));
       try {
-        await renamePath(tabId, p, to);
+        const ref = await editorProvider.itemRefForPath(p);
+        if (!ref) throw new Error("Item no longer exists");
+        await editorProvider.move([ref], targetDir || null);
       } catch (err) {
         window.alert(String(err));
         continue;
