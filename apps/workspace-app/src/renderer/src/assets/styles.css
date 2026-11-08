@@ -4857,6 +4857,21 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
 .dashboard-widget--operations .dashboard-widget-body { padding: 0; }
 .dashboard-widget--operations .dashboard-widget-refresh { top: -34px; right: 0; width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-surface); font-size: 17px; opacity: 1; }
 .ops-dashboard { display: grid; gap: 14px; color: var(--text); }
+.home-system-widget { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-surface); }
+.home-system-widget:hover { border-color: var(--border-strong); box-shadow: 0 6px 20px rgba(0,0,0,.10); transform: translateY(-1px); }
+.home-system-widget .dashboard-widget-body { display: grid; gap: 18px; }
+.home-system-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-right: 28px; }
+.home-system-header > div { display: grid; gap: 4px; }
+.home-system-kicker { color: var(--text-faint); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+.home-system-header h2 { margin: 0; color: var(--text); font-size: 17px; letter-spacing: -.02em; }
+.home-system-header > span { color: var(--text-muted); font-size: 12px; }
+.home-system-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.home-system-metric, .home-system-uptime { display: grid; align-content: start; gap: 9px; min-width: 0; }
+.home-system-metric-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: var(--text-muted); font-size: 12px; }
+.home-system-metric-heading strong, .home-system-uptime strong { color: var(--text); font-size: 17px; font-variant-numeric: tabular-nums; }
+.home-system-widget .ops-meter { height: 6px; }
+.home-system-metric > small, .home-system-uptime small { color: var(--text-faint); font-size: 11px; }
+.home-system-uptime > span { color: var(--text-muted); font-size: 12px; }
 .ops-overview { display: grid; gap: 14px; }
 .ops-page-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 3px 0 1px; }
 .ops-page-title h1 { margin: 5px 0 4px; color: var(--text); font-size: clamp(21px, 2.4vw, 30px); letter-spacing: -.055em; line-height: 1.1; }
@@ -5070,6 +5085,14 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
 .ops-vercel-project { min-height: 49px; padding: 9px 10px; }
 .ops-deploy-state { font-size: 12px; }
 .ops-chart-legend .ops-chart-window { font-size: 12px; }
+@media (max-width: 700px) {
+  .home-system-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .home-system-header { flex-direction: column; gap: 7px; }
+}
+@media (max-width: 420px) {
+  .home-system-widget { padding: 15px; }
+  .home-system-grid { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 700px) {
   .ops-updated { font-size: 12px; }
   .ops-kpi > span { font-size: 12px; }

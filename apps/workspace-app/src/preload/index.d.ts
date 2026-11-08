@@ -66,6 +66,13 @@ export interface BrowserDownloadEventPayload {
 
 export interface WorkspaceApi {
   hostname: () => Promise<string>
+  system: {
+    summary: () => Promise<{
+      hostname: string; platform: string; release: string; arch: string
+      cpuPercent: number | null; cpuCores: number; memoryTotal: number; memoryAvailable: number
+      diskTotal: number | null; diskAvailable: number | null; uptimeSeconds: number
+    }>
+  }
   platform: NodeJS.Platform
   platformInfo: {
     get: () => {

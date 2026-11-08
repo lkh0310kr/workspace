@@ -1,5 +1,6 @@
 import { BrowserWindow, clipboard, ipcMain, shell } from 'electron'
-import { hostname } from 'os'
+import { cpus, freemem, homedir, hostname, platform, release, totalmem, uptime } from 'node:os'
+import { statfsSync } from 'node:fs'
 import { assertClipboardImageDimensionsWithinLimit } from '../../shared/clipboard-image'
 import type { UsageMeterSettings } from '../../shared/usage-meter-settings'
 import { saveClipboardImageBufferAsTempFile } from '../clipboard/clipboardImageTempFile'
@@ -15,6 +16,30 @@ import { toggleWslWindowMaximize } from '../wslWindow'
 export function registerSystemCapabilityIpc(getMainWindow: () => BrowserWindow | null): void {
   ipcMain.handle('hostname', () => hostname())
   ipcMain.handle('app:platform', () => process.platform)
+  let previousCpu: { idle: number; total: number } | null = null
+  ipcMain.handle('system:summary', () => {
+    const cores = cpus()
+    const cpu = cores.reduce((sum, core) => {
+      const times = core.times
+      return { idle: sum.idle + times.idle, total: sum.total + Object.values(times).reduce((a, b) => a + b, 0) }
+    }, { idle: 0, total: 0 })
+    const cpuPercent = previousCpu && cpu.total > previousCpu.total
+      ? Math.round(100 * (1 - (cpu.idle - previousCpu.idle) / (cpu.total - previousCpu.total)))
+      : null
+    previousCpu = cpu
+    let disk: { total: number; available: number } | null = null
+    try {
+      const fs = statfsSync(homedir())
+      disk = { total: fs.blocks * fs.bsize, available: fs.bavail * fs.bsize }
+    } catch { /* filesystem metrics may be unavailable on virtual or remote home directories */ }
+    return {
+      hostname: hostname(), platform: platform(), release: release(), arch: process.arch,
+      cpuPercent, cpuCores: cores.length,
+      memoryTotal: totalmem(), memoryAvailable: freemem(),
+      diskTotal: disk?.total ?? null, diskAvailable: disk?.available ?? null,
+      uptimeSeconds: uptime(),
+    }
+  })
   ipcMain.on('window:minimize', (event) => BrowserWindow.fromWebContents(event.sender)?.minimize())
   ipcMain.on('window:maximize', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)

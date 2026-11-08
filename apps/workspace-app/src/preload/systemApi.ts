@@ -2,6 +2,13 @@ import { ipcRenderer } from 'electron'
 
 export const systemApi = {
   hostname: (): Promise<string> => ipcRenderer.invoke('hostname'),
+  system: {
+    summary: (): Promise<{
+      hostname: string; platform: string; release: string; arch: string;
+      cpuPercent: number | null; cpuCores: number; memoryTotal: number; memoryAvailable: number;
+      diskTotal: number | null; diskAvailable: number | null; uptimeSeconds: number;
+    }> => ipcRenderer.invoke('system:summary')
+  },
   platform: process.platform as NodeJS.Platform,
   platformInfo: {
     get: () => ({
