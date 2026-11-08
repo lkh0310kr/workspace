@@ -175,8 +175,8 @@ export default function Home() {
   const scheduleEditorAutoSave = useCallback((fileId: string, doc: Y.Doc, documentKey?: string) => {
     scheduleAutoSave(fileId, doc, () => {
       const session = documentKey ? pkmsEditorSessions.current.get(documentKey) : undefined;
-      return session ? session.save({ flushSync: false }) : saveDocument(fileId, doc, false);
-    });
+      return session ? session.save({ flushSync: false }) : saveDocument(fileId, doc, false, documentKey);
+    }, documentKey);
   }, [saveDocument, scheduleAutoSave]);
   const { openFile: openDocumentSession, clearActiveFile } = useDocumentSession({
     workspace: activeWorkspace, api, pathname: location.pathname, navigate, routedPath,

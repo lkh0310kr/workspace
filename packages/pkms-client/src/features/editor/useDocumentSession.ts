@@ -90,8 +90,9 @@ export function useDocumentSession(options: Options) {
     setOpeningFileId(file.id);
     const documentKey = editorDocumentKey({ providerId: `pkms:${workspace?.id ?? ""}`, itemId: file.id });
     activeDocument.current = { file, documentKey, doc: null, text: null, value: "" };
+    setSaving(false);
     if (file.kind !== "markdown") { setOpeningFileId(null); return; }
-    setError(""); setSaving(false); hydrating.current = true;
+    setError(""); hydrating.current = true;
     let entry = documents.current.get(documentKey);
     try {
       if (!entry) {

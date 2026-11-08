@@ -1,11 +1,11 @@
 import * as Y from "yjs";
 import type { EditorDocumentSession, EditorDocumentSnapshot, EditorTreeItem, EditorSyncPhase } from "@workspace/editor";
-import { EditorProviderError } from "@workspace/editor";
+import { EditorProviderError, editorDocumentKey } from "@workspace/editor";
 import type { FileRecord } from "../../domain/types";
 import { entryName } from "../../domain/fileTree";
 import type { PkmsSaveResult } from "./useDocumentSync";
 
-export type PkmsDocumentSave = (fileId: string, doc: Y.Doc, flushToGitHub?: boolean) => Promise<PkmsSaveResult>;
+export type PkmsDocumentSave = (fileId: string, doc: Y.Doc, flushToGitHub?: boolean, documentKey?: string) => Promise<PkmsSaveResult>;
 
 function itemFor(workspaceId: string, file: FileRecord): EditorTreeItem {
   return {
@@ -72,7 +72,7 @@ export function createPkmsYjsEditorSession(
     message = undefined;
     emit();
     try {
-      const result = await saveDocument(file.id, doc, options.flushSync !== false);
+      const result = await saveDocument(file.id, doc, options.flushSync !== false, editorDocumentKey(item));
       syncPhase = result.syncPhase;
       phase = sequence === savedSequence ? result.savePhase : "dirty";
       if (sequence !== savedSequence) syncPhase = "pending";

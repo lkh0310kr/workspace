@@ -11,6 +11,7 @@ export interface PkmsSaveResult {
 
 interface ActiveDocument {
   file: FileRecord | null;
+  documentKey: string | null;
   doc: Y.Doc | null;
 }
 
@@ -27,11 +28,15 @@ interface Options {
 export function useDocumentSync({ workspaceId, activeDocument, request, setSaving, setError, setSync, setNotice }: Options) {
   const autoSaveTimers = useRef(new Map<string, number>());
 
-  const saveMarkdownToGitHub = useCallback(async (fileId: string, doc: Y.Doc, flushToGitHub = true): Promise<PkmsSaveResult> => {
+  const saveMarkdownToGitHub = useCallback(async (fileId: string, doc: Y.Doc, flushToGitHub = true, documentKey?: string): Promise<PkmsSaveResult> => {
     const targetWorkspaceId = workspaceId;
+    const targetDocumentKey = documentKey ?? (activeDocument.current.doc === doc ? activeDocument.current.documentKey ?? undefined : undefined);
+    const isActiveDocument = () => Boolean(targetDocumentKey && activeDocument.current.documentKey === targetDocumentKey);
     if (!targetWorkspaceId) return { savePhase: "error", syncPhase: "blocked", message: "No active PKMS workspace" };
-    setSaving(true);
-    setError("");
+    if (isActiveDocument()) {
+      setSaving(true);
+      setError("");
+    }
     try {
       await request(`/api/workspaces/${targetWorkspaceId}/files/${fileId}/updates`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -40,7 +45,7 @@ export function useDocumentSync({ workspaceId, activeDocument, request, setSavin
       const status = flushToGitHub
         ? await request<SyncStatus>(`/api/workspaces/${targetWorkspaceId}/flush`, { method: "POST" })
         : await request<SyncStatus>(`/api/workspaces/${targetWorkspaceId}/sync-status`);
-      if (activeDocument.current.file?.id === fileId && workspaceId === targetWorkspaceId) {
+      if (targetDocumentKey && activeDocument.current.documentKey === targetDocumentKey && workspaceId === targetWorkspaceId) {
         setSync(status);
         if (flushToGitHub && status.githubStatus === "synced") setNotice("Saved to GitHub");
         else if (!flushToGitHub) setNotice("Saved");
@@ -52,12 +57,14 @@ export function useDocumentSync({ workspaceId, activeDocument, request, setSavin
       return { savePhase: "clean", syncPhase: "pending" };
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "Could not save to GitHub";
-      setError(message);
+      if (isActiveDocument()) setError(message);
       return { savePhase: "error", syncPhase: "blocked", message };
-    } finally { setSaving(false); }
+    } finally {
+      if (isActiveDocument()) setSaving(false);
+    }
   }, [activeDocument, request, setError, setNotice, setSaving, setSync, workspaceId]);
 
-  const scheduleAutoSave = useCallback((fileId: string, doc: Y.Doc, save?: () => Promise<unknown>) => {
+  const scheduleAutoSave = useCallback((fileId: string, doc: Y.Doc, save?: () => Promise<unknown>, documentKey?: string) => {
     if (!workspaceId) return;
     const key = `${workspaceId}:${fileId}`;
     setNotice("Unsaved");
@@ -65,7 +72,7 @@ export function useDocumentSync({ workspaceId, activeDocument, request, setSavin
     if (previous !== undefined) window.clearTimeout(previous);
     const timer = window.setTimeout(() => {
       autoSaveTimers.current.delete(key);
-      void (save ? save() : saveMarkdownToGitHub(fileId, doc, false)).catch((cause: unknown) => {
+      void (save ? save() : saveMarkdownToGitHub(fileId, doc, false, documentKey)).catch((cause: unknown) => {
         setError(cause instanceof Error ? cause.message : "Could not autosave PKMS document");
       });
     }, 5_000);
