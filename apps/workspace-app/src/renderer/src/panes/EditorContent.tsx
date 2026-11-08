@@ -176,9 +176,11 @@ export function EditorContent({
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const isMarkdown = kind === "markdown";
-  const documentCacheKey = resolvedDocumentIdentity?.path === filePath
-    ? resolvedDocumentIdentity.key
-    : `${editorProvider.id}:path:${filePath ?? `untitled:${tabId}`}`;
+  const documentCacheKey = activeDocumentSession
+    ? `${activeDocumentSession.item.providerId}:${activeDocumentSession.item.itemId}`
+    : resolvedDocumentIdentity?.path === filePath
+      ? resolvedDocumentIdentity.key
+      : `${editorProvider.id}:path:${filePath ?? `untitled:${tabId}`}`;
   const setDirtyState = useCallback((next: boolean) => {
     if (dirtyRef.current === next) return;
     dirtyRef.current = next;

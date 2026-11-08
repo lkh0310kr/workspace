@@ -46,6 +46,7 @@ export function EditorTextSurface({
 }: EditorTextSurfaceProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const persistViewStateRef = useRef<(() => void) | null>(null);
   const documentKeyRef = useRef(documentKey);
   const viewExtensionsRef = useRef<Extension[]>([]);
   const onChangeRef = useRef(onChange);
@@ -64,6 +65,21 @@ export function EditorTextSurface({
 
   useEffect(() => {
     if (!hostRef.current) return;
+    let persistenceTimer: ReturnType<typeof setTimeout> | null = null;
+    const persistNow = () => {
+      if (persistenceTimer) clearTimeout(persistenceTimer);
+      persistenceTimer = null;
+      const view = viewRef.current;
+      const key = documentKeyRef.current;
+      const snapshot = sessionSnapshotRef.current;
+      const persist = snapshot == null || snapshot.savePhase === "clean";
+      if (view && key) writeEditorViewState(key, view.state, view.scrollDOM.scrollTop, view.scrollDOM.scrollLeft, persist);
+    };
+    const schedulePersist = () => {
+      if (persistenceTimer) clearTimeout(persistenceTimer);
+      persistenceTimer = setTimeout(persistNow, 700);
+    };
+    persistViewStateRef.current = persistNow;
     const attributes: Record<string, string> = {};
     if (ariaLabel) attributes["aria-label"] = ariaLabel;
     if (spellcheck !== undefined) attributes.spellcheck = String(spellcheck);
@@ -72,6 +88,7 @@ export function EditorTextSurface({
     if (Object.keys(attributes).length) hostExtensions.push(EditorView.contentAttributes.of(attributes));
     hostExtensions.push(
       EditorView.updateListener.of((update) => {
+        if (update.docChanged || update.selectionSet) schedulePersist();
         if (!update.docChanged || update.transactions.some((transaction) => transaction.annotation(externalEditorChange))) return;
         const text = update.state.doc.toString();
         const currentSession = sessionRef.current;
@@ -109,6 +126,7 @@ export function EditorTextSurface({
       extensions: viewExtensions,
     });
     viewRef.current = view;
+    view.scrollDOM.addEventListener("scroll", schedulePersist, { passive: true });
     if (cached) {
       requestAnimationFrame(() => {
         if (viewRef.current === view) {
@@ -119,7 +137,9 @@ export function EditorTextSurface({
     }
     onViewReadyRef.current?.(view);
     return () => {
-      if (documentKeyRef.current) writeEditorViewState(documentKeyRef.current, view.state, view.scrollDOM.scrollTop, view.scrollDOM.scrollLeft);
+      view.scrollDOM.removeEventListener("scroll", schedulePersist);
+      persistNow();
+      persistViewStateRef.current = null;
       onViewReadyRef.current?.(null);
       viewRef.current = null;
       view.destroy();
@@ -136,7 +156,7 @@ export function EditorTextSurface({
       documentKeyRef.current = documentKey;
       return;
     }
-    if (previousKey) writeEditorViewState(previousKey, view.state, view.scrollDOM.scrollTop, view.scrollDOM.scrollLeft);
+    persistViewStateRef.current?.();
     documentKeyRef.current = documentKey;
 
     const cached = documentKey ? readEditorViewState(documentKey) : undefined;
@@ -158,6 +178,10 @@ export function EditorTextSurface({
     if (!view || effectiveValue === undefined || view.state.doc.toString() === effectiveValue) return;
     replaceEditorDocument(view, effectiveValue, externalEditorChange);
   }, [effectiveValue]);
+
+  useEffect(() => {
+    if (sessionSnapshot?.savePhase === "clean") persistViewStateRef.current?.();
+  }, [sessionSnapshot]);
 
   return <div ref={hostRef} className={className} />;
 }
