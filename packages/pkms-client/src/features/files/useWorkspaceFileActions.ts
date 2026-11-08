@@ -79,9 +79,6 @@ export function useWorkspaceFileActions(options: Options) {
     if (!moves.length) { setTreeContextMenu(null); return; }
     const invalid = moves.find(({ file }) => file.kind === "folder" && destination.startsWith(`${file.path}/`));
     if (invalid) { setError("A folder cannot be moved into itself or one of its subfolders."); setTreeContextMenu(null); return; }
-    if (destination && !files.some((file) => file.path === destination && file.kind === "folder")) {
-      setError("Destination folder is not available in the file tree."); setTreeContextMenu(null); return;
-    }
     setTreeContextMenu(null);
     setError("");
     let activePath = activeFile?.path;

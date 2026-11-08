@@ -258,19 +258,16 @@ export default function Home() {
         return pkmsItemForFile(activeWorkspace.id, { ...file, path });
       },
       async move(refs, parentId) {
-        const moving = refs.flatMap((ref) => {
-          const file = getFiles().find((item) => item.id === ref.itemId);
-          return file ? [file] : [];
-        });
-        const parent = parentId ? getFiles().find((file) => file.id === parentId) : null;
-        await treeOperationsRef.current.move(moving, parent?.path ?? "");
+        const moving = await Promise.all(refs.map((ref) => getPkmsFileById(ref.itemId)));
+        if (moving.some((file) => !file)) throw new EditorProviderError("notFound", "A PKMS move source no longer exists");
+        const parent = parentId ? await getPkmsFileById(parentId) : null;
+        if (parentId && (!parent || parent.kind !== "folder")) throw new EditorProviderError("notFound", "Destination folder no longer exists");
+        await treeOperationsRef.current.move(moving.filter((file): file is FileRecord => file !== null), parent?.path ?? "");
       },
       async delete(refs) {
-        const deleting = refs.flatMap((ref) => {
-          const file = getFiles().find((item) => item.id === ref.itemId);
-          return file ? [file] : [];
-        });
-        await treeOperationsRef.current.delete(deleting);
+        const deleting = await Promise.all(refs.map((ref) => getPkmsFileById(ref.itemId)));
+        if (deleting.some((file) => !file)) throw new EditorProviderError("notFound", "A PKMS delete target no longer exists");
+        await treeOperationsRef.current.delete(deleting.filter((file): file is FileRecord => file !== null));
       },
     },
   }) : null, [activeWorkspace?.id, getPkmsFileById, getFiles, refreshDirectory]);
