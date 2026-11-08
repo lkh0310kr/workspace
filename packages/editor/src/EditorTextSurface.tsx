@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { Annotation, type Extension } from "@codemirror/state";
+import { historyField } from "@codemirror/commands";
+import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { createEditorView, replaceEditorDocument } from "./codeMirror";
+import { readEditorViewState, writeEditorViewState } from "./viewStateCache";
 
 export const externalEditorChange = Annotation.define<boolean>();
 
@@ -17,6 +19,8 @@ export interface EditorTextSurfaceProps {
   ariaLabel?: string;
   spellcheck?: boolean;
   autocapitalize?: string;
+  /** Stable provider item identity, used to retain cursor, selection, scroll, and undo history. */
+  documentKey?: string;
 }
 
 /** Shared CodeMirror owner for both products; hosts contribute feature extensions. */
@@ -30,6 +34,7 @@ export function EditorTextSurface({
   ariaLabel,
   spellcheck,
   autocapitalize,
+  documentKey,
 }: EditorTextSurfaceProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -52,9 +57,21 @@ export function EditorTextSurface({
         onChangeRef.current?.(update.state.doc.toString(), update.view);
       }),
     );
+    const cached = documentKey ? readEditorViewState(documentKey) : undefined;
+    let restoredState: EditorState | undefined;
+    if (cached) {
+      try {
+        restoredState = EditorState.fromJSON(cached.serialized, { extensions: [
+          history(), ...hostExtensions, keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]), EditorView.lineWrapping,
+        ] }, { history: historyField });
+      } catch {
+        restoredState = undefined;
+      }
+    }
     const view = createEditorView({
       parent: hostRef.current,
       doc: initialValue ?? value ?? "",
+      state: restoredState,
       extensions: [
         history(),
         ...hostExtensions,
@@ -63,8 +80,17 @@ export function EditorTextSurface({
       ],
     });
     viewRef.current = view;
+    if (cached) {
+      requestAnimationFrame(() => {
+        if (viewRef.current === view) {
+          view.scrollDOM.scrollTop = cached.scrollTop;
+          view.scrollDOM.scrollLeft = cached.scrollLeft;
+        }
+      });
+    }
     onViewReadyRef.current?.(view);
     return () => {
+      if (documentKey) writeEditorViewState(documentKey, view.state, view.scrollDOM.scrollTop, view.scrollDOM.scrollLeft);
       onViewReadyRef.current?.(null);
       viewRef.current = null;
       view.destroy();

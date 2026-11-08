@@ -5,12 +5,13 @@ export interface CreateEditorViewOptions {
   parent: HTMLElement;
   doc: string;
   extensions: readonly Extension[];
+  state?: EditorState;
 }
 
 /** Create CodeMirror views through the shared Editor runtime in every product. */
-export function createEditorView({ parent, doc, extensions }: CreateEditorViewOptions): EditorView {
+export function createEditorView({ parent, doc, extensions, state }: CreateEditorViewOptions): EditorView {
   return new EditorView({
-    state: EditorState.create({ doc, extensions: [...extensions] }),
+    state: state ?? EditorState.create({ doc, extensions: [...extensions] }),
     parent,
   });
 }

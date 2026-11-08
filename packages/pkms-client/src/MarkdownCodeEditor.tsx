@@ -314,7 +314,7 @@ const blockLineLivePreview = ViewPlugin.fromClass(class {
   }
 }, { decorations: (plugin) => plugin.decorations });
 
-export function MarkdownCodeEditor({ value, onChange, onNavigateReady }: { value: string; onChange: (value: string) => void; onNavigateReady?: (navigate: ((line: number) => void) | null) => void }) {
+export function MarkdownCodeEditor({ value, onChange, documentKey, onNavigateReady }: { value: string; onChange: (value: string) => void; documentKey: string; onNavigateReady?: (navigate: ((line: number) => void) | null) => void }) {
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -335,6 +335,7 @@ export function MarkdownCodeEditor({ value, onChange, onNavigateReady }: { value
 
   return <EditorTextSurface
     value={value}
+    documentKey={documentKey}
     extensions={markdownSurfaceExtensions}
     onChange={(next) => onChangeRef.current(next)}
     onViewReady={onViewReady}

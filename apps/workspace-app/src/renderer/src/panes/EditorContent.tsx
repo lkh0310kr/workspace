@@ -789,12 +789,12 @@ export function EditorContent({
                 </div>
               )}
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <EditorTextSurface key={`${tabId}:${isMarkdown}`} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Markdown editor" />
+                <EditorTextSurface key={`${tabId}:${isMarkdown}:${filePath ?? "untitled"}`} documentKey={`${editorProvider.id}:${filePath ?? `tab:${tabId}`}`} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Markdown editor" />
               </div>
             </div>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-              <EditorTextSurface key={`${tabId}:${isMarkdown}`} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Code editor" />
+              <EditorTextSurface key={`${tabId}:${isMarkdown}:${filePath ?? "untitled"}`} documentKey={`${editorProvider.id}:${filePath ?? `tab:${tabId}`}`} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>
