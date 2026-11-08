@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorMarkdownDocument, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -1031,18 +1031,31 @@ export default function Home() {
             onRename={(file, name) => { setTreeRenaming(null); void renameThroughEditorProvider(file, name); }}
             onCancelRename={() => setTreeRenaming(null)}
           />
-          {treeContextMenu && <div ref={treeContextMenuRef} className="tree-context-menu" role="menu" aria-label={`${entryName(treeContextMenu.file.path)} actions`} style={{ left: treeContextMenu.x, top: treeContextMenu.y }}>
-            <button role="menuitem" onClick={() => openTreeItem(treeContextMenu.file)}>{treeContextMenu.file.kind === "folder" ? "Open folder" : "Open"}</button>
-            {treeContextMenu.file.kind === "folder" && <>
-              <button role="menuitem" onClick={() => { const directory = treeContextMenu.file.path; setTreeContextMenu(null); beginTreeCreation("file", directory); }}>New note</button>
-              <button role="menuitem" onClick={() => { const directory = treeContextMenu.file.path; setTreeContextMenu(null); beginTreeCreation("folder", directory); }}>New folder</button>
-              {cutMoveRoots.length > 0 && <button role="menuitem" onClick={() => void moveThroughEditorProvider(cutMoveRoots, treeContextMenu.file.path)}>Paste into folder</button>}
-              {contextMoveRoots.some((item) => item.path !== treeContextMenu.file.path && parentPath(item.path) !== treeContextMenu.file.path && !(item.kind === "folder" && treeContextMenu.file.path.startsWith(`${item.path}/`))) && <button role="menuitem" onClick={() => void moveThroughEditorProvider(contextMoveRoots, treeContextMenu.file.path)}>Move selection here</button>}
-            </>}
-            <button role="menuitem" onClick={() => { setCutTreePaths(new Set(contextMoveRoots.map((item) => item.path))); setTreeContextMenu(null); }}>Cut</button>
-            <button role="menuitem" onClick={() => beginTreeRename(treeContextMenu.file)}>Rename</button>
-            <button className="danger" role="menuitem" onClick={() => void deleteTreeItem(treeContextMenu.file)}>Delete</button>
-          </div>}
+          {treeContextMenu && (() => {
+            const file = treeContextMenu.file;
+            const canMoveSelection = contextMoveRoots.some((item) => item.path !== file.path && parentPath(item.path) !== file.path && !(item.kind === "folder" && file.path.startsWith(`${item.path}/`)));
+            const menuItems: EditorMenuItem[] = [
+              { type: "item", id: "open", label: file.kind === "folder" ? "Open folder" : "Open", onSelect: () => void openTreeItem(file) },
+              ...(file.kind === "folder" ? [
+                { type: "item" as const, id: "new-note", label: "New note", onSelect: () => beginTreeCreation("file", file.path) },
+                { type: "item" as const, id: "new-folder", label: "New folder", onSelect: () => beginTreeCreation("folder", file.path) },
+                ...(cutMoveRoots.length ? [{ type: "item" as const, id: "paste", label: "Paste into folder", onSelect: () => void moveThroughEditorProvider(cutMoveRoots, file.path) }] : []),
+                ...(canMoveSelection ? [{ type: "item" as const, id: "move-selection", label: "Move selection here", onSelect: () => void moveThroughEditorProvider(contextMoveRoots, file.path) }] : []),
+              ] : []),
+              { type: "item", id: "cut", label: "Cut", onSelect: () => setCutTreePaths(new Set(contextMoveRoots.map((item) => item.path))) },
+              { type: "item", id: "rename", label: "Rename", onSelect: () => beginTreeRename(file) },
+              { type: "item", id: "delete", label: "Delete", danger: true, onSelect: () => void deleteTreeItem(file) },
+            ];
+            return <EditorMenuList
+              ref={treeContextMenuRef}
+              className="tree-context-menu"
+              ariaLabel={`${entryName(file.path)} actions`}
+              dangerClassName="danger"
+              items={menuItems}
+              style={{ left: treeContextMenu.x, top: treeContextMenu.y }}
+              onClose={() => setTreeContextMenu(null)}
+            />;
+          })()}
         </>}
         <div className="sidebar-bottom">
           <div className="account-row"><img src={user.avatarUrl} alt="" /><span>@{user.login}</span><button className="icon-button logout-button" title="Sign out" onClick={() => void api("/api/logout", { method: "POST" }).then(() => { if (desktopBridge()) { account.clearAccount(); } else window.location.reload(); })}><AppIcon name="logout" /></button></div>

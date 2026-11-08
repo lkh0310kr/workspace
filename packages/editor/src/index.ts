@@ -25,6 +25,8 @@ export { EditorTreeVirtualList } from "./EditorTreeVirtualList";
 export type { EditorTreeVirtualListProps } from "./EditorTreeVirtualList";
 export { EditorDocumentTabBar } from "./EditorDocumentTabBar";
 export type { EditorDocumentTab } from "./EditorDocumentTabBar";
+export { EditorMenuList } from "./EditorMenuList";
+export type { EditorMenuItem } from "./EditorMenuList";
 export { EditorTabChip } from "./EditorTabChip";
 export type { EditorTabChipProps } from "./EditorTabChip";
 export { EditorTextSurface, externalEditorChange } from "./EditorTextSurface";

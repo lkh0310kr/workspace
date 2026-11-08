@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "re
 import { createPortal } from "react-dom";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
 import { isWorkbenchIconName, WorkbenchIcon } from "./WorkbenchIcon";
+import { EditorMenuList, type EditorMenuItem } from "@workspace/editor";
 
 export type ContextMenuItem =
   | { type: "separator" }
@@ -67,6 +68,27 @@ function ContextMenuPanel({
     item.onClick();
     onClose();
   };
+
+  if (!items.some((item) => item.type === "submenu")) {
+    const sharedItems: EditorMenuItem[] = items.map((item, index) => {
+      if (item.type === "separator") return { type: "separator" };
+      const button = item as Extract<ContextMenuItem, { type: "button" }>;
+      return { type: "item", id: `${index}:${button.label}`, label: button.label, disabled: button.disabled, active: button.active, icon: button.icon, onSelect: () => runButton(button) };
+    });
+    return <EditorMenuList
+      ref={panelRef}
+      items={sharedItems}
+      className={`context-menu${flyout ? " context-menu-flyout" : ""}${flipLeft ? " context-menu-flyout-left" : ""}`}
+      itemClassName="context-menu-item"
+      activeClassName="active"
+      separatorClassName="context-menu-sep"
+      iconClassName="context-menu-icon"
+      labelClassName="context-menu-label"
+      renderIcon={(icon) => isWorkbenchIconName(icon) ? <WorkbenchIcon name={icon} /> : icon}
+      style={flyout ? style : position}
+      onClick={(event) => event.stopPropagation()}
+    />;
+  }
 
   return (
     <div
