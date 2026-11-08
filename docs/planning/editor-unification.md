@@ -173,4 +173,6 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 
 문서별 view state와 PKMS의 열린 Yjs document/session 캐시는 `editorDocumentKey(providerId, itemId)`를 사용한다. 따라서 같은 저장소·파일 ID가 여러 PKMS workspace에 나타나도 문서와 실시간 업데이트가 workspace 사이에서 섞이지 않는다.
 
+PKMS 저장 완료·오류 상태도 저장 시작 시의 document key와 현재 열린 문서 key가 같을 때만 전역 saving/error UI에 반영한다. 이전 workspace에서 늦게 끝난 저장은 현재 workspace의 상태 표시를 덮지 않는다.
+
 구현은 위 표의 `not yet` 항목부터 공통 UI로 이동하고, 매 단계에서 두 provider가 보존해야 할 차이를 계약 capability와 adapter로 표현한다. `done (implemented)`는 코드 연결이 있다는 뜻이며 전체 acceptance 통과를 의미하지 않는다.
