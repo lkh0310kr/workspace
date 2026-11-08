@@ -147,7 +147,7 @@ export default function Home() {
     return () => observer.disconnect();
   }, [activeWorkspace?.id]);
   const treeContextMenuRef = useRef<HTMLDivElement>(null);
-  const editorNavigate = useRef<((line: number) => void) | null>(null);
+  const editorNavigate = useRef<((position: number) => void) | null>(null);
   const routedPath = useRef<string | null>(null);
   const openFileSequence = useRef(0);
   const editorNavigationRef = useRef<FileNavigation>("none");
@@ -158,7 +158,7 @@ export default function Home() {
   const activeRef = useRef<{ file: FileRecord | null; doc: Y.Doc | null; text: Y.Text | null; value: string }>({ file: null, doc: null, text: null, value: "" });
   const pending = useRef(new Map<string, RealtimeMessage>());
   const hydrating = useRef(false);
-  const registerEditorNavigator = useCallback((navigate: ((line: number) => void) | null) => { editorNavigate.current = navigate; }, []);
+  const registerEditorNavigator = useCallback((navigate: ((position: number) => void) | null) => { editorNavigate.current = navigate; }, []);
   const { scheduleAutoSave, saveActiveFileNow, saveDocument } = useDocumentSync({
     workspaceId: activeWorkspace?.id,
     activeDocument: activeRef,
@@ -1125,9 +1125,9 @@ export default function Home() {
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <div className="editor-layout">
           <EditorMarkdownDocument
             title={<div className="editor-title-block"><div className="editor-markdown-title">{activeFile.path.split("/").at(-1)?.replace(/\.md$/i, "")}</div>{peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}</div>}
-            outlineItems={outlineItems.map((item) => ({ id: `${item.line}-${item.title}`, level: item.level, label: item.title, position: item.line }))}
+            outlineItems={outlineItems.map((item) => ({ id: `${item.position}-${item.title}`, level: item.level, label: item.title, position: item.position }))}
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
-            onOutlineNavigate={(line) => requestAnimationFrame(() => editorNavigate.current?.(line))}
+            onOutlineNavigate={(position) => requestAnimationFrame(() => editorNavigate.current?.(position))}
           >
             <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} viewStateStorage={getEditorViewStateStorage()} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} resolveImage={resolveMarkdownImage} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
           </EditorMarkdownDocument>

@@ -13,7 +13,7 @@ export interface EditorMarkdownSurfaceProps extends Omit<EditorTextSurfaceProps,
   /** Product-specific language, link, and interaction extensions. */
   extensions?: readonly Extension[];
   onViewReady?: EditorTextSurfaceProps["onViewReady"];
-  onNavigateReady?: (navigate: ((line: number) => void) | null) => void;
+  onNavigateReady?: (navigate: ((position: number) => void) | null) => void;
   onOutlineChange?: (headings: MarkdownHeading[]) => void;
   onActivateLink?: (link: EditorMarkdownLink) => boolean;
   resolveImage?: MarkdownImageResolver;
@@ -58,9 +58,9 @@ export function EditorMarkdownSurface({
       return;
     }
     onOutlineChangeRef.current?.(markdownOutlineFromState(view.state));
-    onNavigateReady?.((line) => {
-      const position = view.state.doc.line(Math.max(1, Math.min(line, view.state.doc.lines))).from;
-      view.dispatch({ selection: { anchor: position }, scrollIntoView: true });
+    onNavigateReady?.((position) => {
+      const target = Math.max(0, Math.min(position, view.state.doc.length));
+      view.dispatch({ selection: { anchor: target }, scrollIntoView: true });
       view.focus();
     });
   }, [onNavigateReady, onViewReadyProp]);
