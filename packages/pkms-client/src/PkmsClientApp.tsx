@@ -160,8 +160,8 @@ export default function Home() {
   const editorSessionOpenController = useRef<AbortController | null>(null);
   const pkmsEditorSessions = useRef(new Map<string, EditorDocumentSession>());
   const openFileRef = useRef<((file: FileRecord, historyAction?: FileNavigation) => Promise<void>) | null>(null);
-  const docs = useRef(new Map<string, { doc: Y.Doc; persistence: IndexeddbPersistence; observer?: () => void; updateHandler?: (update: Uint8Array, origin: unknown) => void }>());
-  const activeRef = useRef<{ file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null; value: string }>({ file: null, documentKey: null, doc: null, text: null, value: "" });
+  const docs = useRef(new Map<string, { doc: Y.Doc; persistence: IndexeddbPersistence; updateHandler?: (update: Uint8Array, origin: unknown) => void }>());
+  const activeRef = useRef<{ file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null }>({ file: null, documentKey: null, doc: null, text: null });
   const pending = useRef(new Map<string, RealtimeMessage>());
   const hydrating = useRef(false);
   const registerEditorNavigator = useCallback((navigate: ((position: number) => void) | null) => { editorNavigate.current = navigate; }, []);

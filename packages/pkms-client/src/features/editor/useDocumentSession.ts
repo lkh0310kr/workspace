@@ -12,10 +12,9 @@ import type { PKMSRealtimeSocket } from "../../realtime";
 interface DocumentEntry {
   doc: Y.Doc;
   persistence: IndexeddbPersistence;
-  observer?: () => void;
   updateHandler?: (update: Uint8Array, origin: unknown) => void;
 }
-interface ActiveDocument { file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null; value: string }
+interface ActiveDocument { file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null }
 interface Options {
   workspace: Workspace | null;
   api: <T = unknown>(path: string, options?: RequestInit) => Promise<T>;
@@ -48,12 +47,7 @@ export function useDocumentSession(options: Options) {
     hydrating.current = false;
     setOpeningFileId(null);
     const current = activeDocument.current;
-    if (current.file && current.text) {
-      const entry = current.documentKey ? documents.current.get(current.documentKey) : undefined;
-      if (entry?.observer) current.text.unobserve(entry.observer);
-      if (entry) entry.observer = undefined;
-    }
-    activeDocument.current = { file: null, documentKey: null, doc: null, text: null, value: "" };
+    activeDocument.current = { file: null, documentKey: null, doc: null, text: null };
     setActiveFile(null);
   };
 
@@ -78,15 +72,10 @@ export function useDocumentSession(options: Options) {
       return next;
     });
     const previous = activeDocument.current;
-    if (previous.file && previous.text) {
-      const oldEntry = previous.documentKey ? documents.current.get(previous.documentKey) : undefined;
-      if (oldEntry?.observer) previous.text.unobserve(oldEntry.observer);
-      if (oldEntry) oldEntry.observer = undefined;
-    }
     setActiveFile(file);
     setOpeningFileId(file.id);
     const documentKey = editorDocumentKey({ providerId: `pkms:${workspace?.id ?? ""}`, itemId: file.id });
-    activeDocument.current = { file, documentKey, doc: null, text: null, value: "" };
+    activeDocument.current = { file, documentKey, doc: null, text: null };
     setSaving(false);
     if (file.kind !== "markdown") { setOpeningFileId(null); return; }
     setError(""); hydrating.current = true;
@@ -129,13 +118,7 @@ export function useDocumentSession(options: Options) {
       pending.current.delete(`state:${documentKey}`);
     }
     currentText = entry.doc.getText("markdown");
-    activeDocument.current = { file, documentKey, doc: entry.doc, text: currentText, value: currentText.toString() };
-    const update = () => {
-      const value = currentText.toString();
-      activeDocument.current.value = value;
-    };
-    currentText.observe(update);
-    entry.observer = update;
+    activeDocument.current = { file, documentKey, doc: entry.doc, text: currentText };
     const currentSocket = socket.current;
     const cacheKey = documentKey;
     const stored = JSON.parse(localStorage.getItem("pkms:recent-files") ?? "[]") as Array<{ key: string; lastOpened: number }>;
