@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorMarkdownSurface, EditorOutlineList, externalEditorChange, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, EditorOutlineList, externalEditorChange, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -598,8 +598,8 @@ export function EditorContent({
     jumpToPos(view, pos);
   };
 
-  // Markdown's .md-scroll-container switched CodeMirror to auto-height
-  // (see its CSS comment) so the title can scroll away with the content —
+  // The shared Markdown document frame scrolls CodeMirror at auto-height
+  // so the title moves away with the content —
   // but that also shrank .cm-editor's own clickable area down to exactly
   // the text's height, leaving the blank space below the last line (most
   // notes don't fill the pane) dead: clicking there used to land inside
@@ -610,11 +610,7 @@ export function EditorContent({
   // own DOM (the title input and any of its own content still handle
   // their own clicks normally).
   const onScrollContainerClick = (e: ReactMouseEvent) => {
-    if (
-      (e.target as HTMLElement).closest(
-        ".cm-editor, .md-title, .md-title-edit",
-      )
-    ) {
+    if ((e.target as HTMLElement).closest(".cm-editor, .editor-markdown-title, .md-title-edit")) {
       return;
     }
     const view = viewRef.current;
@@ -623,86 +619,33 @@ export function EditorContent({
   };
 
   const editorFontStyle = { "--editor-font-size": `${13 * zoom}px` } as CSSProperties;
+  const editorActions = (
+    <div className="obsidian-float-actions">
+      {(!autoSave || saveError) && <span className={`md-pane-save-status${saveError ? " error" : dirty ? " unsaved" : ""}`} role="status" aria-live="polite" title={saveError ?? undefined}>{saveError ? "Save failed" : dirty ? "Unsaved" : "Saved"}</span>}
+      {isMarkdown && <button type="button" className={`obsidian-topbar-icon${outlineAnchor ? " active" : ""}`} title="Toggle outline" onClick={(event) => {
+        if (outlineAnchor) setOutlineAnchor(null);
+        else setOutlineAnchor(event.currentTarget.getBoundingClientRect());
+      }}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3h12v1H2V3Zm0 4h12v1H2V7Zm0 4h8v1H2v-1Z" /></svg></button>}
+      <button type="button" className={`obsidian-topbar-icon${searchOpen ? " active" : ""}`} title="Search" onClick={toggleSearch}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85Zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z" /></svg></button>
+      <button type="button" className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`} title="Toggle file explorer" onClick={onToggleTree}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z" /></svg></button>
+    </div>
+  );
 
   return (
     <div className="obsidian-editor-shell">
       <div className="obsidian-body">
         <div className="obsidian-editor-column">
-          {/* Floats over the editor's top-right corner instead of taking
-              its own chrome row — PaneTabStrip is already a full row of
-              chrome above this, so a second full-width topbar just for
-              two icons + a save-status label was redundant vertical
-              space, and not how VS Code/Obsidian place these either. */}
-          <div className="obsidian-float-actions">
-            {(!autoSave || saveError) && (
-              <span
-                className={`md-pane-save-status${saveError ? " error" : dirty ? " unsaved" : ""}`}
-                role="status"
-                aria-live="polite"
-                title={saveError ?? undefined}
-              >
-                {saveError ? "Save failed" : dirty ? "Unsaved" : "Saved"}
-              </span>
-            )}
-            {isMarkdown && (
-              <button
-                type="button"
-                className={`obsidian-topbar-icon${outlineAnchor ? " active" : ""}`}
-                title="Toggle outline"
-                onClick={(e) => {
-                  if (outlineAnchor) {
-                    setOutlineAnchor(null);
-                    return;
-                  }
-                  setOutlineAnchor(e.currentTarget.getBoundingClientRect());
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-                  <path fill="currentColor" d="M2 3h12v1H2V3Zm0 4h12v1H2V7Zm0 4h8v1H2v-1Z" />
-                </svg>
-              </button>
-            )}
-            <button
-              type="button"
-              className={`obsidian-topbar-icon${searchOpen ? " active" : ""}`}
-              title="Search"
-              onClick={toggleSearch}
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-                <path
-                  fill="currentColor"
-                  d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85Zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`}
-              title="Toggle file explorer"
-              onClick={onToggleTree}
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-                <path
-                  fill="currentColor"
-                  d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z"
-                />
-              </svg>
-            </button>
-          </div>
+          {!isMarkdown && editorActions}
           {isMarkdown ? (
-            // Obsidian-style: the title lives in the same scroll container
-            // as the editor content (not a fixed header above it) so it
-            // scrolls away with the rest of the note instead of staying
-            // pinned — see .md-scroll-container's CSS for how CodeMirror
-            // itself is switched to auto-height/no-internal-scroll to make
-            // that possible. Code files (below) keep the ordinary
-            // internally-scrolling .md-editor unchanged.
-            <div className="md-scroll-container" onClick={onScrollContainerClick}>
-              {titleEditing ? (
+            // The shared Markdown frame keeps the title in the document
+            // scroll; code files below keep their internally scrolling editor.
+            <EditorMarkdownDocument
+              actions={editorActions}
+              title={titleEditing ? (
                 <div className="md-title-edit">
                   <input
                     ref={titleInputRef}
-                    className={`md-title md-title-input${titleError ? " error" : ""}`}
+                    className={`editor-markdown-title md-title-input${titleError ? " error" : ""}`}
                     value={titleDraft}
                     onChange={(e) => {
                       setTitleDraft(e.target.value);
@@ -723,14 +666,16 @@ export function EditorContent({
                   {titleError && <div className="md-title-error">{titleError}</div>}
                 </div>
               ) : (
-                <div className="md-title" title={filePath ?? undefined} onClick={enterTitleEdit}>
+                <div className="editor-markdown-title" title={filePath ?? undefined} onClick={enterTitleEdit}>
                   {markdownTitleFor(filePath)}
                 </div>
               )}
+              onBackgroundClick={onScrollContainerClick}
+            >
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
                 <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Markdown editor" />
               </div>
-            </div>
+            </EditorMarkdownDocument>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
               <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />

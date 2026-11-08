@@ -1,0 +1,90 @@
+.editor-markdown-document {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--editor-bg, var(--editor, var(--bg-base, var(--bg))));
+}
+
+.editor-markdown-actions,
+.obsidian-float-actions {
+  position: absolute;
+  z-index: 10;
+  top: 6px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-surface, var(--surface, var(--bg)));
+  box-shadow: 0 2px 6px #0003;
+}
+
+.editor-markdown-actions .obsidian-topbar-icon,
+.obsidian-float-actions .obsidian-topbar-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--text-faint, var(--muted));
+  background: transparent;
+  cursor: pointer;
+}
+
+.editor-markdown-actions .obsidian-topbar-icon:hover,
+.editor-markdown-actions .obsidian-topbar-icon.active,
+.obsidian-float-actions .obsidian-topbar-icon:hover,
+.obsidian-float-actions .obsidian-topbar-icon.active {
+  color: var(--text);
+  background: var(--bg-hover, var(--hover));
+}
+
+.editor-markdown-scroll {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  cursor: text;
+  background: var(--bg-base, var(--bg));
+}
+
+.editor-markdown-title {
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 20px 100px 4px 6px;
+  color: var(--text);
+  background: var(--bg-base, var(--bg));
+  font-family: var(--font-ui, var(--editor-font, sans-serif));
+  font-size: 24px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-markdown-content,
+.editor-markdown-content > .md-editor,
+.editor-markdown-content .md-editor-host,
+.editor-markdown-content .markdown-code-editor {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.editor-markdown-content .cm-editor {
+  height: auto;
+}
+
+.editor-markdown-content .cm-scroller {
+  overflow: visible;
+}
+
+.editor-markdown-content .markdown-code-editor .cm-editor {
+  height: auto;
+}

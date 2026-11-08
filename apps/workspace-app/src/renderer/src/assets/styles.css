@@ -77,7 +77,7 @@
 .browser-nav-history-list,
 .browser-address-suggestions,
 .obsidian-explorer,
-.md-scroll-container,
+.editor-markdown-scroll,
 .md-editor,
 .md-pane-sidebar,
 .search-panel-results,
@@ -98,7 +98,7 @@
 .browser-nav-history-list::-webkit-scrollbar,
 .browser-address-suggestions::-webkit-scrollbar,
 .obsidian-explorer::-webkit-scrollbar,
-.md-scroll-container::-webkit-scrollbar,
+.editor-markdown-scroll::-webkit-scrollbar,
 .md-editor::-webkit-scrollbar,
 .md-pane-sidebar::-webkit-scrollbar,
 .search-panel-results::-webkit-scrollbar,
@@ -116,7 +116,7 @@
 .browser-nav-history-list::-webkit-scrollbar-track,
 .browser-address-suggestions::-webkit-scrollbar-track,
 .obsidian-explorer::-webkit-scrollbar-track,
-.md-scroll-container::-webkit-scrollbar-track,
+.editor-markdown-scroll::-webkit-scrollbar-track,
 .md-editor::-webkit-scrollbar-track,
 .md-pane-sidebar::-webkit-scrollbar-track,
 .search-panel-results::-webkit-scrollbar-track,
@@ -133,7 +133,7 @@
 .browser-nav-history-list::-webkit-scrollbar-thumb,
 .browser-address-suggestions::-webkit-scrollbar-thumb,
 .obsidian-explorer::-webkit-scrollbar-thumb,
-.md-scroll-container::-webkit-scrollbar-thumb,
+.editor-markdown-scroll::-webkit-scrollbar-thumb,
 .md-editor::-webkit-scrollbar-thumb,
 .md-pane-sidebar::-webkit-scrollbar-thumb,
 .search-panel-results::-webkit-scrollbar-thumb,
@@ -151,7 +151,7 @@
 .browser-nav-history-list::-webkit-scrollbar-thumb:hover,
 .browser-address-suggestions::-webkit-scrollbar-thumb:hover,
 .obsidian-explorer::-webkit-scrollbar-thumb:hover,
-.md-scroll-container::-webkit-scrollbar-thumb:hover,
+.editor-markdown-scroll::-webkit-scrollbar-thumb:hover,
 .md-editor::-webkit-scrollbar-thumb:hover,
 .md-pane-sidebar::-webkit-scrollbar-thumb:hover,
 .search-panel-results::-webkit-scrollbar-thumb:hover,
@@ -2582,11 +2582,6 @@ input {
   min-height: 0;
 }
 
-.md-scroll-container .md-editor-host {
-  height: auto;
-  min-height: 0;
-}
-
 /* CodeMirror selection — theme extension + native ::selection during drag. */
 .cm-editor .cm-selectionLayer {
   z-index: 2;
@@ -3555,54 +3550,6 @@ input {
   min-height: 0;
 }
 
-/* Markdown only: this wrapper (not .md-editor) owns the scroll, with
-   .md-title and .md-editor both inside it, so the title scrolls away
-   with the content instead of staying pinned above it. */
-.obsidian-editor-column .md-scroll-container {
-  flex: 1;
-  min-width: 0;
-}
-
-/* CodeMirror's default is to size to its own container and scroll
-   internally (.cm-scroller { overflow: auto }) — the standard CM6
-   "auto-height" recipe flips that off so the editor grows to its
-   content's natural height instead, letting .md-scroll-container above
-   do the actual scrolling. */
-.md-scroll-container .md-editor {
-  height: auto;
-  overflow: visible;
-}
-
-.md-scroll-container .cm-editor {
-  height: auto;
-}
-
-.md-scroll-container .cm-scroller {
-  overflow: visible;
-}
-
-/* Obsidian-style in-page title (EditorContent.tsx) — the filename doubles
-   as the note's heading instead of the user typing a redundant "# Title"
-   line. padding-right clears .obsidian-float-actions' icon cluster so a
-   long filename doesn't run underneath it. padding-left is 6px, not an
-   arbitrary inset — it matches CodeMirror's own actual text start (.cm-line
-   padding-left, a library default nothing in this project overrides) so the
-   title lines up with the body text below it instead of sitting off to one
-   side of it. */
-.md-title {
-  flex-shrink: 0;
-  padding: 20px 100px 4px 6px;
-  font-family: var(--font-ui);
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text);
-  background: var(--bg-base);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: text;
-}
-
 .md-title-edit {
   flex-shrink: 0;
   position: relative;
@@ -3892,12 +3839,6 @@ input {
   min-height: 0;
   overflow-y: auto;
   border-top: 1px solid var(--border);
-}
-
-.md-scroll-container {
-  flex: 1;
-  min-width: 0;
-  cursor: text;
 }
 
 .search-panel-file-header {
