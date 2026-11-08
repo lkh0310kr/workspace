@@ -136,20 +136,8 @@ button { cursor: pointer; }
 .save-label.active .status-dot { background: var(--warning); }
 .collaborators { color: var(--muted); font-size: 11px; }
 .editor-layout { position: relative; display: flex; width: min(1440px, 100%); height: auto; min-height: 0; flex: 1; flex-direction: column; overflow: hidden; margin: 0 auto; padding: 18px clamp(18px, 4vw, 54px) 16px; }
-.editor-heading { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 16px; padding: 3px 0 10px; }
 .editor-title-block { min-width: 0; }
-.outline-control { position: relative; }
-.outline-rail { position: absolute; z-index: 3; top: 18px; right: 7px; }
-.outline-button { width: 30px; height: 30px; color: var(--muted); background: var(--surface); opacity: 0; pointer-events: none; transform: translateX(4px); transition: opacity 140ms ease, transform 140ms ease; }
-.outline-button.revealed, .outline-button.active, .outline-button:focus-visible { opacity: 1; pointer-events: auto; transform: translateX(0); }
-.outline-popover { position: absolute; z-index: 4; top: 0; right: 36px; display: flex; width: min(260px, 70vw); max-height: min(50dvh, 360px); flex-direction: column; overflow: auto; padding: 5px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); box-shadow: 0 3px 10px #0002; }
-.outline-popover button { min-height: 28px; overflow: hidden; padding-right: 8px; border: 0; border-radius: 4px; color: var(--muted); background: transparent; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
-.outline-popover button:hover { color: var(--text); background: var(--hover); }
-.outline-popover > span { padding: 8px; color: var(--muted); font-size: 11px; }
-.editor-heading h1 { overflow: hidden; margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.025em; text-overflow: ellipsis; white-space: nowrap; }
 .live-presence { margin-top: 5px; color: var(--muted); font-size: 11px; }
-.editor-columns { display: flex; min-height: 0; flex: 1; overflow: hidden; background: var(--bg); }
-.source-column { display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; overflow: hidden; }
 .column-label { display: none; }
 .markdown-code-editor { width: 100%; min-height: 0; flex: 1; overflow: hidden; }
 .editor-loading { display: grid; min-height: 0; flex: 1; place-items: center; color: var(--muted); font-size: 12px; }
@@ -217,7 +205,6 @@ button { cursor: pointer; }
   .sidebar-collapsed .sidebar { height: 0; min-height: 0; max-height: 0; padding: 0; border: 0; }
   .sidebar-top { padding-bottom: 8px; }.workspace-select { padding: 6px 7px 8px; }.sidebar-bottom { display: none; }
   .main-panel { height: 100%; min-height: 0; }.topbar { height: 42px; flex-basis: 42px; font-size: 11px; }.save-label { font-size: 0; }.topbar-right { gap: 8px; }
-  .editor-layout { height: auto; min-height: 0; padding: 10px; }.editor-heading { padding-bottom: 9px; }.editor-heading h1 { font-size: 16px; }
-  .editor-columns { min-height: 0; }.source-column { min-height: 0; }
+  .editor-layout { height: auto; min-height: 0; padding: 10px; }
   .welcome-card { padding: 24px; }
 }

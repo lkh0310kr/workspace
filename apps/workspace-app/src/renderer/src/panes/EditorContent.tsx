@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, EditorOutlineList, externalEditorChange, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, externalEditorChange, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -39,7 +39,6 @@ import { pastePlainTextCommand } from "../editorPlainPaste";
 import { getFocusedEditorView } from "../activeEditorView";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
 import type { TabKind } from "../layout/paneTypes";
-import { Popover, type AnchorRect } from "../components/Popover";
 
 // The per-file content half of what used to be ui/EditorPane.tsx — tab strip
 // and multi-file routing live in PaneGroup; TreeView/explorer sidebar renders
@@ -146,7 +145,6 @@ export function EditorContent({
   const suppressProviderEditRef = useRef(false);
   const onJumpConsumedRef = useRef(onJumpConsumed);
   onJumpConsumedRef.current = onJumpConsumed;
-  const [outlineAnchor, setOutlineAnchor] = useState<AnchorRect | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [resolvedDocumentIdentity, setResolvedDocumentIdentity] = useState<{ path: string; key: string } | null>(null);
@@ -591,13 +589,6 @@ export function EditorContent({
     }
   };
 
-  const jumpToHeading = (pos: number) => {
-    const view = viewRef.current;
-    setOutlineAnchor(null);
-    if (!view) return;
-    jumpToPos(view, pos);
-  };
-
   // The shared Markdown document frame scrolls CodeMirror at auto-height
   // so the title moves away with the content —
   // but that also shrank .cm-editor's own clickable area down to exactly
@@ -620,27 +611,26 @@ export function EditorContent({
 
   const editorFontStyle = { "--editor-font-size": `${13 * zoom}px` } as CSSProperties;
   const editorActions = (
-    <div className="obsidian-float-actions">
+    <>
       {(!autoSave || saveError) && <span className={`md-pane-save-status${saveError ? " error" : dirty ? " unsaved" : ""}`} role="status" aria-live="polite" title={saveError ?? undefined}>{saveError ? "Save failed" : dirty ? "Unsaved" : "Saved"}</span>}
-      {isMarkdown && <button type="button" className={`obsidian-topbar-icon${outlineAnchor ? " active" : ""}`} title="Toggle outline" onClick={(event) => {
-        if (outlineAnchor) setOutlineAnchor(null);
-        else setOutlineAnchor(event.currentTarget.getBoundingClientRect());
-      }}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3h12v1H2V3Zm0 4h12v1H2V7Zm0 4h8v1H2v-1Z" /></svg></button>}
       <button type="button" className={`obsidian-topbar-icon${searchOpen ? " active" : ""}`} title="Search" onClick={toggleSearch}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85Zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z" /></svg></button>
       <button type="button" className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`} title="Toggle file explorer" onClick={onToggleTree}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z" /></svg></button>
-    </div>
+    </>
   );
 
   return (
     <div className="obsidian-editor-shell">
       <div className="obsidian-body">
         <div className="obsidian-editor-column">
-          {!isMarkdown && editorActions}
+          {!isMarkdown && <div className="obsidian-float-actions">{editorActions}</div>}
           {isMarkdown ? (
             // The shared Markdown frame keeps the title in the document
             // scroll; code files below keep their internally scrolling editor.
             <EditorMarkdownDocument
               actions={editorActions}
+              outlineItems={outline.map((item) => ({ id: String(item.pos), level: item.level, label: item.text, position: item.pos }))}
+              outlineKey={documentCacheKey}
+              onOutlineNavigate={(position) => { const view = viewRef.current; if (view) jumpToPos(view, position); }}
               title={titleEditing ? (
                 <div className="md-title-edit">
                   <input
@@ -682,18 +672,6 @@ export function EditorContent({
             </div>
           )}
         </div>
-        {isMarkdown && outlineAnchor && (
-          <Popover anchorRect={outlineAnchor} onClose={() => setOutlineAnchor(null)} align="end" className="md-pane-outline-popover">
-            <EditorOutlineList
-              items={outline.map((item) => ({ id: String(item.pos), level: item.level, label: item.text, position: item.pos }))}
-              onNavigate={jumpToHeading}
-              emptyMessage="No headings"
-              className="md-pane-outline-empty"
-              itemClassName="tree-view-item"
-              indentSize={14}
-            />
-          </Popover>
-        )}
       </div>
     </div>
   );

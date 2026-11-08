@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorMarkdownDocument, EditorOutlineList, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorTreeArrowKey, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorMarkdownDocument, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorTreeArrowKey, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -59,7 +59,6 @@ export default function Home() {
   const [showIgnoredFiles, setShowIgnoredFiles] = useState(false);
   const [excludedPatterns, setExcludedPatterns] = useState("");
   const [showFileFilters, setShowFileFilters] = useState(false);
-  const [outlineOpen, setOutlineOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeFile, setActiveFile] = useState<FileRecord | null>(null);
   const [openDocuments, setOpenDocuments] = useState<Array<{ workspaceId: string; file: FileRecord }>>([]);
@@ -378,7 +377,7 @@ export default function Home() {
     setShowFileFilters(false);
   }, [activeWorkspace?.id]);
 
-  useEffect(() => { setOutlineOpen(false); setOutlineItems([]); }, [activeFile?.id]);
+  useEffect(() => { setOutlineItems([]); }, [activeFile?.id]);
 
   useEffect(() => {
     if (!activeWorkspace) return;
@@ -1042,7 +1041,9 @@ export default function Home() {
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <div className="editor-layout">
           <EditorMarkdownDocument
             title={<div className="editor-title-block"><div className="editor-markdown-title">{activeFile.path.split("/").at(-1)?.replace(/\.md$/i, "")}</div>{peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}</div>}
-            actions={<div className="obsidian-float-actions"><div className="outline-control"><button className={`obsidian-topbar-icon${outlineOpen ? " active" : ""}`} title="Note outline" aria-label="Note outline" aria-expanded={outlineOpen} onClick={() => setOutlineOpen((open) => !open)}><AppIcon name="list" /></button>{outlineOpen && <EditorOutlineList className="outline-popover" items={outlineItems.map((item) => ({ id: `${item.line}-${item.title}`, level: item.level, label: item.title, position: item.position }))} indentSize={11} onNavigate={(line) => { setOutlineOpen(false); requestAnimationFrame(() => editorNavigate.current?.(line)); }} />}</div></div>}
+            outlineItems={outlineItems.map((item) => ({ id: `${item.line}-${item.title}`, level: item.level, label: item.title, position: item.line }))}
+            outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
+            onOutlineNavigate={(line) => requestAnimationFrame(() => editorNavigate.current?.(line))}
           >
             <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
           </EditorMarkdownDocument>

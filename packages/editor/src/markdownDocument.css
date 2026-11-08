@@ -46,6 +46,47 @@
   background: var(--bg-hover, var(--hover));
 }
 
+.editor-markdown-outline-control {
+  position: relative;
+}
+
+.editor-markdown-outline-popover {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  width: min(260px, 70vw);
+  max-height: min(50dvh, 360px);
+  flex-direction: column;
+  overflow: auto;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-surface, var(--surface, var(--bg)));
+  box-shadow: 0 3px 10px #0003;
+}
+
+.editor-markdown-outline-item {
+  min-height: 28px;
+  overflow: hidden;
+  padding-block: 4px;
+  padding-inline-end: 8px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--text-muted, var(--muted));
+  background: transparent;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.editor-markdown-outline-item:hover {
+  color: var(--text);
+  background: var(--bg-hover, var(--hover));
+}
+
 .editor-markdown-scroll {
   min-width: 0;
   min-height: 0;

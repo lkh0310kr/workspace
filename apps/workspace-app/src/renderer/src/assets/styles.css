@@ -3922,19 +3922,6 @@ input {
   box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
-.md-pane-outline-popover {
-  width: 240px;
-  max-height: min(60vh, 420px);
-  overflow-y: auto;
-}
-
-.md-pane-outline-empty {
-  padding: 8px;
-  color: var(--text-faint);
-  font-family: var(--font-mono);
-  font-size: 12px;
-}
-
 .tree-view-icon {
   display: inline-flex;
   align-items: center;
