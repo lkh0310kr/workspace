@@ -32,5 +32,7 @@ export { HEADING_TYPES, markdownLivePreview, markdownRootPath } from "./markdown
 export { wikiLinkExtension } from "./markdownWikilink";
 export { createMarkdownEditorExtensions } from "./markdownEditor";
 export type { MarkdownEditorOptions } from "./markdownEditor";
+export { markdownOutlineFromState, markdownOutlineFromText } from "./markdownOutline";
+export type { MarkdownHeading } from "./markdownOutline";
 export { EditorQuickOpenDialog } from "./EditorQuickOpenDialog";
 export type { EditorQuickOpenItem } from "./EditorQuickOpenDialog";

@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
+import { EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, markdownOutlineFromText, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -743,10 +743,7 @@ export default function Home() {
     setText(next);
   };
 
-  const outlineItems = useMemo(() => text.split("\n").flatMap((line, index) => {
-    const heading = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
-    return heading ? [{ line: index + 1, level: heading[1].length, title: heading[2] }] : [];
-  }), [text]);
+  const outlineItems = useMemo(() => markdownOutlineFromText(text), [text]);
   const parentFolder = parentPath(currentFolder);
   const persistTreeScroll = (scrollTop: number) => {
     if (!activeWorkspace) return;

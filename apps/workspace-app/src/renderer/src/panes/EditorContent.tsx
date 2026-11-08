@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorOutlineList, EditorTextSurface, HEADING_TYPES, markdownRootPath, replaceEditorDocument, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorOutlineList, EditorTextSurface, markdownOutlineFromState, markdownRootPath, replaceEditorDocument, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -116,19 +116,7 @@ function lineStartPos(view: EditorView, line: number): number {
 }
 
 function computeOutline(view: EditorView): OutlineItem[] {
-  const items: OutlineItem[] = [];
-  syntaxTree(view.state).iterate({
-    enter: (node) => {
-      if (!HEADING_TYPES.has(node.type.name)) return;
-      const level = Number(node.type.name[node.type.name.length - 1]);
-      const text = view.state.doc
-        .sliceString(node.from, node.to)
-        .replace(/^#+\s*/, "")
-        .trim();
-      items.push({ level, text, pos: node.from });
-    },
-  });
-  return items;
+  return markdownOutlineFromState(view.state).map(({ level, title, position }) => ({ level, text: title, pos: position }));
 }
 
 export function EditorContent({
