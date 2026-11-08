@@ -11,5 +11,6 @@
 
 ## 다음
 
-- home에 시스템 정보. Activity Monitor / Storage 등 확인할 수 있도록
+- PKMS·Workspace Editor 통합 — [기능 스펙과 provider 계약](./editor-unification.md)
+- Home 시스템 정보: Activity Monitor, Storage 확인
 

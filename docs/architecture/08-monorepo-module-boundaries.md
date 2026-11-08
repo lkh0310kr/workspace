@@ -13,6 +13,7 @@ apps/
   workspace-server/         # Home 서비스 연결·상태 API와 provider OAuth Worker
 
 packages/
+  editor/                    # Workspace와 PKMS Web/Desktop이 공유하는 Editor Workbench와 provider 계약
   pkms-client/              # Web/Desktop에서 공유하는 PKMS 클라이언트 UI와 동작
   pkms-protocol/            # PKMS HTTP·Realtime 계약
   workspace-home-protocol/  # Workspace Home API 계약
@@ -30,21 +31,27 @@ packages/
 | `apps/pkms-ios` | iOS UI·Keychain 세션·네이티브 생명주기·Rust FFI 연결 |
 | `apps/workspace-app` | Electron UI·파일시스템/PTY 권한·IPC·Home 화면과 로컬 위젯 |
 | `apps/workspace-server` | Home provider 연결/OAuth·상태 조회·provider 자격 증명 보관 |
-| `packages/pkms-client` | Web과 Desktop에서 재사용하는 PKMS React UI와 클라이언트 로직. 서버가 아님 |
+| `packages/editor` | 파일 provider에 독립적인 Editor Workbench, CodeMirror 편집, 트리·탐색 UI와 provider 계약 |
+| `packages/pkms-client` | PKMS 로그인·저장소 선택, 문서 provider와 PKMS 클라이언트 로직. 공통 Editor UI는 `packages/editor`가 소유 |
 | `packages/pkms-protocol` | PKMS API와 Realtime의 언어 중립 계약 및 TypeScript 타입 |
 | `packages/workspace-home-protocol` | Workspace Home 서버와 Desktop 사이의 API 계약 |
 | `packages/pkms-core` | 네트워크/서비스에 의존하지 않는 PKMS 도메인 규칙 |
 
 앱은 패키지를 가져올 수 있지만 패키지는 앱 코드를 가져오지 않습니다. PKMS와 Workspace Home은 서로 다른 제품·인증·자격 증명 경계입니다. Workspace Home 서버는 PKMS 세션 비밀이나 PKMS 저장소 데이터에 접근하지 않고, PKMS가 발급하는 짧은 audience 제한 토큰으로 사용자를 확인합니다.
 
+Editor UI는 제품 간 공유 패키지 `packages/editor`가 소유합니다. PKMS 계정·저장소와 Yjs 데이터 연결은 `packages/pkms-client`, 로컬 파일 접근은 `apps/workspace-app`의 provider가 소유합니다. 세부 계약과 이전 순서는 [Editor 통합 스펙](../planning/editor-unification.md)을 따릅니다.
+
 ```mermaid
 flowchart LR
   WEB[pkms-web UI/proxy] --> CLIENT[pkms-client]
+  WEB --> EDITOR[editor workbench]
   WEB --> PKMS[pkms-server]
   DESKTOP[workspace-app] --> CLIENT
+  DESKTOP --> EDITOR
   DESKTOP --> PKMS
   IOS[pkms-ios] --> PKMS
   CLIENT --> PK[pkms-protocol]
+  CLIENT --> EDITOR
   PKMS --> PK
   IOS --> CORE[pkms-core via FFI]
   DESKTOP --> HOME[workspace-server]
