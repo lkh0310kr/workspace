@@ -28,8 +28,9 @@ import { switchToHome } from "./workspaceNavigation";
 import { useHtmlFullscreen } from "./hooks/useHtmlFullscreen";
 import { applyThemePreference, setStoredThemePreference } from "./theme";
 import { useWorkspaceStore } from "./store/workspaceStore";
-import type { Model, TabNode } from "flexlayout-react";
-import { readPaneGroupConfig } from "./layout/layoutSession";
+import { PKMS_QUICK_OPEN_EVENT } from "@pkms/client/hostEvents";
+import type { Model, TabNode, TabSetNode } from "flexlayout-react";
+import { readPaneGroupConfig, resolveActivePaneTab } from "./layout/layoutSession";
 import { openFileInPaneGroup, setActiveTabInGroup } from "./layout/layoutActions";
 import { useEffect, useCallback, useState } from "react";
 import { syncAgentPaneRegistryFromLayouts } from "./terminal/syncAgentPaneRegistryFromLayouts";
@@ -50,8 +51,10 @@ async function openFileInActivePane(
   path: string,
   kind: "code" | "markdown" | "viewer",
   bumpLayout: (tabId: number) => void,
+  focusedTabSetId?: string,
 ): Promise<void> {
-  const tabset = model.getActiveTabset();
+  const focusedNode = focusedTabSetId ? model.getNodeById(focusedTabSetId) : undefined;
+  const tabset = focusedNode?.getType() === "tabset" ? focusedNode as TabSetNode : model.getActiveTabset();
   const tabNode = tabset?.getSelectedNode();
   if (!tabNode || tabNode.getType() !== "tab") return;
   const nodeId = tabNode.getId();
@@ -92,7 +95,25 @@ export default function App() {
   const { homeActive } = useWorkspaceScope();
   const visibleWorkspaceTabId = useVisibleWorkspaceTab();
   const activeModel = storeGetModel(activeTabId);
+  const visibleModel = storeGetModel(visibleWorkspaceTabId);
+  const focusedPaneGroupId = useWorkspaceStore((s) => s.focusedPaneGroupTabSetByWorkspaceTab[visibleWorkspaceTabId]);
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+  const openQuickOpenForFocusedPane = useCallback(() => {
+    if (homeActive) return;
+    const focusedNode = focusedPaneGroupId ? visibleModel?.getNodeById(focusedPaneGroupId) : undefined;
+    const tabSet = focusedNode?.getType() === "tabset"
+      ? focusedNode as TabSetNode
+      : visibleModel?.getActiveTabset();
+    const selectedNode = tabSet?.getSelectedNode();
+    const activePaneItem = selectedNode?.getType() === "tab"
+      ? resolveActivePaneTab(readPaneGroupConfig(selectedNode as TabNode))
+      : undefined;
+    if (activePaneItem?.kind === "pkms") {
+      window.dispatchEvent(new Event(PKMS_QUICK_OPEN_EVENT));
+      return;
+    }
+    setQuickOpenOpen(true);
+  }, [focusedPaneGroupId, homeActive, visibleModel]);
   const [usageMeterSettings, setUsageMeterSettings] = useState<UsageMeterSettings>(
     DEFAULT_USAGE_METER_SETTINGS,
   );
@@ -135,12 +156,13 @@ export default function App() {
 
   useEffect(() => {
     const offHome = onHomeShortcut(() => switchToHome());
-    const offQuickOpen = onQuickOpenShortcut(() => setQuickOpenOpen(true));
+    const offQuickOpen = onQuickOpenShortcut(openQuickOpenForFocusedPane);
     function onKeyDown(e: KeyboardEvent) {
-      if (!(e.metaKey || e.ctrlKey) || e.shiftKey) return;
+      if (e.defaultPrevented || !(e.metaKey || e.ctrlKey) || e.shiftKey) return;
       if (e.key.toLowerCase() !== "p") return;
       e.preventDefault();
-      setQuickOpenOpen(true);
+      e.stopImmediatePropagation();
+      openQuickOpenForFocusedPane();
     }
     // Run before editor keymaps and embedded surfaces can consume the event.
     window.addEventListener("keydown", onKeyDown, true);
@@ -149,7 +171,7 @@ export default function App() {
       offQuickOpen();
       window.removeEventListener("keydown", onKeyDown, true);
     };
-  }, []);
+  }, [openQuickOpenForFocusedPane]);
 
   const handleThemeChange = useCallback(
     (preference: typeof themePreference) => {
@@ -210,7 +232,7 @@ export default function App() {
           tabId={visibleWorkspaceTabId}
           onOpenFile={(path, kind) => {
             const model = storeGetModel(visibleWorkspaceTabId);
-            if (model) void openFileInActivePane(model, visibleWorkspaceTabId, path, kind, bumpLayout);
+            if (model) void openFileInActivePane(model, visibleWorkspaceTabId, path, kind, bumpLayout, focusedPaneGroupId);
           }}
           onClose={() => setQuickOpenOpen(false)}
         />

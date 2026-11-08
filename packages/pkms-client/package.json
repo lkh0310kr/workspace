@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./PkmsClientApp": "./src/PkmsClientApp.tsx",
+    "./hostEvents": "./src/hostEvents.ts",
     "./styles.css": "./src/styles.css"
   },
   "peerDependencies": {

@@ -15,6 +15,7 @@ import { toBase64, createOperationId } from "./domain/encoding";
 import { entryName, flattenTree, mergeFileRecords, parentPath } from "./domain/fileTree";
 import { fileLocationPath, parseFileLocation } from "./domain/fileLocation";
 import { matchesExcludePattern } from "./domain/excludePattern";
+import { PKMS_QUICK_OPEN_EVENT } from "./hostEvents";
 import { AppIcon, GitHubIcon } from "./components/Icons";
 import { PkmsDialog, type PkmsDialogRequest } from "./components/PkmsDialog";
 import { FileTreeList } from "./components/FileTreeList";
@@ -679,6 +680,15 @@ export default function Home() {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [activeWorkspace, editorProvider, saveActiveFileNow, setError]);
+
+  useEffect(() => {
+    const openQuickOpen = () => {
+      setQuickQuery("");
+      setQuickOpen(true);
+    };
+    window.addEventListener(PKMS_QUICK_OPEN_EVENT, openQuickOpen);
+    return () => window.removeEventListener(PKMS_QUICK_OPEN_EVENT, openQuickOpen);
+  }, []);
 
   const workspaceRef = useRef(activeWorkspace);
   const userRef = useRef(user);
