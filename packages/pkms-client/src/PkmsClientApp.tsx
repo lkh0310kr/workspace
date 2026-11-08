@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -1333,7 +1333,7 @@ export default function Home() {
           <EditorMarkdownDocument
             actions={<EditorSearchButton active={searchOpen} onClick={() => { const view = markdownView.current; if (view) setSearchOpen(toggleEditorSearch(view)); }} />}
             title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={enterTitleEdit} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
-            outlineItems={outlineItems.map((item) => ({ id: `${item.position}-${item.title}`, level: item.level, label: item.title, position: item.position }))}
+            outlineItems={editorOutlineEntries(outlineItems)}
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(position) => requestAnimationFrame(() => editorNavigate.current?.(position))}
             onBackgroundClick={() => {

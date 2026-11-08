@@ -10,6 +10,23 @@ export interface MarkdownHeading {
   line: number;
 }
 
+export interface EditorOutlineEntry {
+  id: string;
+  level: number;
+  label: string;
+  position: number;
+}
+
+/** Convert parser headings to the shared outline view model. */
+export function editorOutlineEntries(headings: readonly MarkdownHeading[]): EditorOutlineEntry[] {
+  return headings.map((heading) => ({
+    id: `${heading.position}-${heading.title}`,
+    level: heading.level,
+    label: heading.title,
+    position: heading.position,
+  }));
+}
+
 function headingTitle(source: string): string {
   return source.replace(/^\s*#+\s*/, "").replace(/\s+#+\s*$/, "").trim();
 }

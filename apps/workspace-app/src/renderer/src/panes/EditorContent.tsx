@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { buildRenamedPath, editorDocumentKey, editorSavePhaseLabel, EditorMarkdownDocument, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
+import { buildRenamedPath, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, EditorMarkdownDocument, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem, type MarkdownHeading } from "@workspace/editor";
 const EditorMarkdownSurface = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
@@ -38,11 +38,6 @@ const workspaceMarkdownParserExtensions = [wikiLinkExtension] as const;
 // The per-file content half of what used to be ui/EditorPane.tsx — tab strip
 // and multi-file routing live in PaneGroup; TreeView/explorer sidebar renders
 // inside this component when the editor chip is active (not beside browser tabs).
-interface OutlineItem {
-  level: number;
-  text: string;
-  pos: number;
-}
 
 interface Props {
   tabId: number;
@@ -148,7 +143,7 @@ export function EditorContent({
   const onJumpConsumedRef = useRef(onJumpConsumed);
   onJumpConsumedRef.current = onJumpConsumed;
   const [searchOpen, setSearchOpen] = useState(false);
-  const [outline, setOutline] = useState<OutlineItem[]>([]);
+  const [outline, setOutline] = useState<MarkdownHeading[]>([]);
   const [resolvedDocumentIdentity, setResolvedDocumentIdentity] = useState<{ path: string; key: string } | null>(null);
   const [autoSave, setAutoSave] = useState(getStoredAutoSave);
   const autoSaveRef = useRef(autoSave);
@@ -650,14 +645,14 @@ export function EditorContent({
             // scroll; code files below keep their internally scrolling editor.
             <EditorMarkdownDocument
               actions={editorActions}
-              outlineItems={outline.map((item) => ({ id: String(item.pos), level: item.level, label: item.text, position: item.pos }))}
+              outlineItems={editorOutlineEntries(outline)}
               outlineKey={documentCacheKey}
               onOutlineNavigate={(position) => { const view = viewRef.current; if (view) jumpToPos(view, position); }}
               title={<EditorMarkdownTitle path={filePath} title={markdownTitleFor(filePath)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} onStartEditing={enterTitleEdit} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { setTitleEditing(false); setTitleError(null); }} />}
               onBackgroundClick={onScrollContainerClick}
             >
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" parserExtensions={workspaceMarkdownParserExtensions} extensions={editorExtensions} onViewReady={onViewReady} onSearchPanelChange={setSearchOpen} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
+                <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" parserExtensions={workspaceMarkdownParserExtensions} extensions={editorExtensions} onViewReady={onViewReady} onSearchPanelChange={setSearchOpen} onOutlineChange={setOutline} onActivateLink={(link) => {
                   if (link.kind === "wikilink") {
                     void resolveWikiLinkTarget(editorProvider, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;

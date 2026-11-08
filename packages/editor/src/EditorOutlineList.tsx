@@ -1,9 +1,6 @@
-export interface EditorOutlineEntry {
-  id: string;
-  level: number;
-  label: string;
-  position: number;
-}
+import type { EditorOutlineEntry } from "./markdownOutline";
+
+export type { EditorOutlineEntry } from "./markdownOutline";
 
 export interface EditorOutlineListProps {
   items: readonly EditorOutlineEntry[];
