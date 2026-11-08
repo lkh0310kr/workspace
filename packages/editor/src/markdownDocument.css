@@ -9,8 +9,7 @@
   background: var(--editor-bg, var(--editor, var(--bg-base, var(--bg))));
 }
 
-.editor-markdown-actions,
-.obsidian-float-actions {
+.editor-floating-actions {
   position: absolute;
   z-index: 10;
   top: 6px;
@@ -25,8 +24,7 @@
   box-shadow: 0 2px 6px #0003;
 }
 
-.editor-markdown-actions .obsidian-topbar-icon,
-.obsidian-float-actions .obsidian-topbar-icon {
+.editor-floating-actions .editor-action-button {
   display: grid;
   width: 28px;
   height: 28px;
@@ -38,10 +36,8 @@
   cursor: pointer;
 }
 
-.editor-markdown-actions .obsidian-topbar-icon:hover,
-.editor-markdown-actions .obsidian-topbar-icon.active,
-.obsidian-float-actions .obsidian-topbar-icon:hover,
-.obsidian-float-actions .obsidian-topbar-icon.active {
+.editor-floating-actions .editor-action-button:hover,
+.editor-floating-actions .editor-action-button.active {
   color: var(--text);
   background: var(--bg-hover, var(--hover));
 }

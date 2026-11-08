@@ -3240,7 +3240,8 @@ input {
 /* Floating search/outline/save-status cluster, top-right of the editor
    content — see EditorContent.tsx for why this replaced a dedicated
    topbar row. */
-.obsidian-float-actions {
+.obsidian-float-actions,
+.editor-floating-actions {
   position: absolute;
   top: 6px;
   right: 8px;
@@ -3255,7 +3256,8 @@ input {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
-.obsidian-topbar-icon {
+.obsidian-topbar-icon,
+.editor-action-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3269,17 +3271,21 @@ input {
   opacity: 0.82;
 }
 
-.obsidian-topbar-icon:hover:not(:disabled):not(.active) {
+.obsidian-topbar-icon:hover:not(:disabled):not(.active),
+.editor-action-button:hover:not(:disabled):not(.active) {
   opacity: 0.62;
 }
 
 .obsidian-topbar-icon.active,
-.obsidian-topbar-icon.active:hover:not(:disabled) {
+.obsidian-topbar-icon.active:hover:not(:disabled),
+.editor-action-button.active,
+.editor-action-button.active:hover:not(:disabled) {
   color: #fff;
   opacity: 1;
 }
 
-.obsidian-topbar-icon:disabled {
+.obsidian-topbar-icon:disabled,
+.editor-action-button:disabled {
   opacity: 0.35;
   cursor: default;
 }
