@@ -28,6 +28,11 @@ import { useDocumentSession } from "./features/editor/useDocumentSession";
 
 const MarkdownCodeEditor = lazy(() => import("@workspace/editor").then((module) => ({ default: module.EditorMarkdownSurface })));
 const api = requestPkmsApi;
+function getEditorViewStateStorage(): Storage | undefined {
+  if (typeof window === "undefined") return undefined;
+  try { return window.localStorage; } catch { return undefined; }
+}
+
 function attachmentContentType(path: string, contentType: string): string {
   if (contentType.startsWith("image/")) return contentType;
   const extension = path.split(".").at(-1)?.toLowerCase();
@@ -1104,7 +1109,7 @@ export default function Home() {
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(line) => requestAnimationFrame(() => editorNavigate.current?.(line))}
           >
-            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} resolveImage={resolveMarkdownImage} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
+            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} viewStateStorage={getEditorViewStateStorage()} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} resolveImage={resolveMarkdownImage} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
           </EditorMarkdownDocument>
         </div> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>

@@ -4,7 +4,7 @@ import { historyField } from "@codemirror/commands";
 import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { createEditorView, editorDocumentReplacement, replaceEditorDocument } from "./codeMirror";
-import { readEditorViewState, writeEditorViewState } from "./viewStateCache";
+import { readEditorViewState, writeEditorViewState, type EditorViewStateStorage } from "./viewStateCache";
 import { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
 import type { EditorDocumentSession } from "./provider";
 import "./markdown.css";
@@ -27,6 +27,8 @@ export interface EditorTextSurfaceProps {
   autocapitalize?: string;
   /** Stable provider item identity, used to retain cursor, selection, scroll, and undo history. */
   documentKey?: string;
+  /** Host-owned persistence adapter; omitted to keep editor state in memory only. */
+  viewStateStorage?: EditorViewStateStorage;
 }
 
 /** Shared CodeMirror owner for both products; hosts contribute feature extensions. */
@@ -43,11 +45,13 @@ export function EditorTextSurface({
   spellcheck,
   autocapitalize,
   documentKey,
+  viewStateStorage,
 }: EditorTextSurfaceProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const persistViewStateRef = useRef<(() => void) | null>(null);
   const documentKeyRef = useRef(documentKey);
+  const viewStateStorageRef = useRef(viewStateStorage);
   const viewExtensionsRef = useRef<Extension[]>([]);
   const onChangeRef = useRef(onChange);
   const onSessionErrorRef = useRef(onSessionError);
@@ -62,6 +66,7 @@ export function EditorTextSurface({
   onChangeRef.current = onChange;
   onSessionErrorRef.current = onSessionError;
   onViewReadyRef.current = onViewReady;
+  viewStateStorageRef.current = viewStateStorage;
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -73,7 +78,7 @@ export function EditorTextSurface({
       const key = documentKeyRef.current;
       const snapshot = sessionSnapshotRef.current;
       const persist = snapshot == null || snapshot.savePhase === "clean";
-      if (view && key) writeEditorViewState(key, view.state, view.scrollDOM.scrollTop, view.scrollDOM.scrollLeft, persist);
+      if (view && key) writeEditorViewState(key, view.state, view.scrollDOM.scrollTop, view.scrollDOM.scrollLeft, persist, viewStateStorageRef.current);
     };
     const schedulePersist = () => {
       if (persistenceTimer) clearTimeout(persistenceTimer);
@@ -101,7 +106,7 @@ export function EditorTextSurface({
         onChangeRef.current?.(text, update.view);
       }),
     );
-    const cached = documentKey ? readEditorViewState(documentKey) : undefined;
+    const cached = documentKey ? readEditorViewState(documentKey, viewStateStorageRef.current) : undefined;
     const initialDocument = sessionText ?? initialValue ?? value ?? "";
     let restoredState: EditorState | undefined;
     if (cached) {
@@ -164,7 +169,7 @@ export function EditorTextSurface({
     persistViewStateRef.current?.();
     documentKeyRef.current = documentKey;
 
-    const cached = documentKey ? readEditorViewState(documentKey) : undefined;
+    const cached = documentKey ? readEditorViewState(documentKey, viewStateStorageRef.current) : undefined;
     const targetDocument = effectiveValue ?? "";
     let nextState: EditorState | undefined;
     if (cached) {

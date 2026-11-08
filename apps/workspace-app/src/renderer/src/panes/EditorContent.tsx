@@ -65,6 +65,10 @@ interface Props {
   onJumpConsumed?: () => void;
 }
 
+function getEditorViewStateStorage(): Storage | undefined {
+  try { return window.localStorage; } catch { return undefined; }
+}
+
 async function findAvailableUntitledName(tabId: number): Promise<string> {
   const entries = await listDir(tabId, "").catch(() => []);
   const names = new Set(entries.filter((e) => !e.is_dir).map((e) => e.name.toLowerCase()));
@@ -635,7 +639,7 @@ export function EditorContent({
               onBackgroundClick={onScrollContainerClick}
             >
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
+                <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
                   if (link.kind === "wikilink") {
                     void resolveWikiLinkTarget(tabId, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;
@@ -652,7 +656,7 @@ export function EditorContent({
             </EditorMarkdownDocument>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
+              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>
