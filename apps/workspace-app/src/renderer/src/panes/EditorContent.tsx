@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorSelection, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { EditorTextSurface, type EditorDocumentSession } from "@workspace/editor";
+import { EditorOutlineList, EditorTextSurface, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -800,20 +800,14 @@ export function EditorContent({
         </div>
         {isMarkdown && outlineAnchor && (
           <Popover anchorRect={outlineAnchor} onClose={() => setOutlineAnchor(null)} align="end" className="md-pane-outline-popover">
-            {outline.length === 0 ? (
-              <div className="md-pane-outline-empty">No headings</div>
-            ) : (
-              outline.map((item, i) => (
-                <div
-                  key={i}
-                  className="tree-view-item"
-                  style={{ paddingLeft: (item.level - 1) * 14 + 8 }}
-                  onClick={() => jumpToHeading(item.pos)}
-                >
-                  {item.text || "(empty heading)"}
-                </div>
-              ))
-            )}
+            <EditorOutlineList
+              items={outline.map((item) => ({ id: String(item.pos), level: item.level, label: item.text, position: item.pos }))}
+              onNavigate={jumpToHeading}
+              emptyMessage="No headings"
+              className="md-pane-outline-empty"
+              itemClassName="tree-view-item"
+              indentSize={14}
+            />
           </Popover>
         )}
       </div>
