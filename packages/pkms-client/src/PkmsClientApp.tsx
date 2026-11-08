@@ -78,7 +78,6 @@ export default function Home() {
   const [quickOpenLoading, setQuickOpenLoading] = useState(false);
   const [quickOpenError, setQuickOpenError] = useState<string | null>(null);
   const [quickOpenResults, setQuickOpenResults] = useState<FileRecord[]>([]);
-  const [, setText] = useState("");
   const [sync, setSync] = useState<SyncStatus>({ serverRevision: 0, githubStatus: "pending", pendingFiles: 0 });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -184,7 +183,7 @@ export default function Home() {
   const { openFile: openDocumentSession, clearActiveFile } = useDocumentSession({
     workspace: activeWorkspace, api, pathname: location.pathname, navigate, routedPath,
     documents: docs, activeDocument: activeRef, pending, socket, openSequence: openFileSequence, hydrating,
-    scheduleAutoSave: scheduleEditorAutoSave, setCurrentFolder, setExpandedFolders, setActiveFile, setText, setOpeningFileId,
+    scheduleAutoSave: scheduleEditorAutoSave, setCurrentFolder, setExpandedFolders, setActiveFile, setOpeningFileId,
     setError, setSaving, setSidebarOpen, setNotice,
   });
   const openDocumentSessionRef = useRef(openDocumentSession);
@@ -659,7 +658,7 @@ export default function Home() {
   restoreTreeRef.current = restoreWorkspaceTree;
   useEffect(() => {
     if (!activeWorkspace) {
-      setFiles([]); setActiveFile(null); setText("");
+      setFiles([]); setActiveFile(null);
       return;
     }
     let alive = true;

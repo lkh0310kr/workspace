@@ -32,7 +32,6 @@ interface Options {
   setCurrentFolder: Dispatch<SetStateAction<string>>;
   setExpandedFolders: Dispatch<SetStateAction<Set<string>>>;
   setActiveFile: Dispatch<SetStateAction<FileRecord | null>>;
-  setText: Dispatch<SetStateAction<string>>;
   setOpeningFileId: Dispatch<SetStateAction<string | null>>;
   setError: Dispatch<SetStateAction<string>>;
   setSaving: Dispatch<SetStateAction<boolean>>;
@@ -42,7 +41,7 @@ interface Options {
 
 export function useDocumentSession(options: Options) {
   const { workspace, api, pathname, navigate, routedPath, documents, activeDocument, pending, socket, openSequence, hydrating, scheduleAutoSave,
-    setCurrentFolder, setExpandedFolders, setActiveFile, setText, setOpeningFileId, setError, setSaving, setSidebarOpen, setNotice } = options;
+    setCurrentFolder, setExpandedFolders, setActiveFile, setOpeningFileId, setError, setSaving, setSidebarOpen, setNotice } = options;
 
   const clearActiveFile = () => {
     openSequence.current++;
@@ -56,7 +55,6 @@ export function useDocumentSession(options: Options) {
     }
     activeDocument.current = { file: null, documentKey: null, doc: null, text: null, value: "" };
     setActiveFile(null);
-    setText("");
   };
 
   const openFile = useCallback(async (file: FileRecord, historyAction: FileNavigation = "push", signal?: AbortSignal) => {
@@ -86,7 +84,6 @@ export function useDocumentSession(options: Options) {
       if (oldEntry) oldEntry.observer = undefined;
     }
     setActiveFile(file);
-    setText("");
     setOpeningFileId(file.id);
     const documentKey = editorDocumentKey({ providerId: `pkms:${workspace?.id ?? ""}`, itemId: file.id });
     activeDocument.current = { file, documentKey, doc: null, text: null, value: "" };
@@ -133,11 +130,9 @@ export function useDocumentSession(options: Options) {
     }
     currentText = entry.doc.getText("markdown");
     activeDocument.current = { file, documentKey, doc: entry.doc, text: currentText, value: currentText.toString() };
-    setText(currentText.toString());
     const update = () => {
       const value = currentText.toString();
       activeDocument.current.value = value;
-      setText(value);
     };
     currentText.observe(update);
     entry.observer = update;
