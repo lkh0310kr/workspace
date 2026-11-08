@@ -11,7 +11,7 @@ PKMS와 Workspace가 같은 Editor Workbench를 사용한다. 파일 탐색, 열
 | 영역 | 공통 동작 | Workspace provider | PKMS provider |
 |---|---|---|---|
 | 파일 트리 | 확장/선택/키보드 탐색, 선택한 문서 열기, 선택 상태 표시 | 로컬 디렉터리 지연 로드, 파일 변경 감시, 다중 선택과 파일시스템 작업 | 저장소 디렉터리와 파일 조회, 원격 변경 및 캐시 반영 |
-| 문서 탭 | 문서 식별, 활성화, 닫기, dirty 표시, 문서별 편집 상태 유지 | pane group 안에서 code, Markdown, 지원하는 파일 viewer 열기 | PKMS 문서를 여러 탭으로 열기. 기존 뒤로/앞으로는 문서 탐색 이력으로 유지 |
+| 문서 탭 | 문서 식별, 활성화, 닫기 전 dirty 확인, dirty 표시, 문서별 편집 상태 유지 | pane group 안에서 code, Markdown, 지원하는 파일 viewer 열기 | PKMS 문서를 여러 탭으로 열기. 기존 뒤로/앞으로는 문서 탐색 이력으로 유지 |
 | 텍스트 편집 | 공통 키 입력, 선택/undo, 저장 명령, 검색, outline, 테마 토큰 | Markdown과 일반 코드 편집, 언어 감지, 자동 저장, 로컬 파일 충돌 표시 | Markdown 편집, 협업 상태, 로컬 캐시와 서버 저장 상태 표시 |
 | Markdown | 공통 Markdown 문법, 실시간 미리보기, task/table, 링크, 목차 동작 | 로컬 이미지와 Workspace 위키 링크 해석, callout 포함 Workspace 확장 | PKMS 자산 링크 해석, PKMS 링크 규칙과 task/table 지원 |
 | 파일 작업 | 트리·검색 결과에서 열기, capability가 있는 작업의 공통 확인/오류 표시 | 파일 생성·폴더 생성·rename·move·delete·로컬 검색/치환 | 저장소 생성·rename·move·delete, 로드된 저장소 목록에서 이름 검색 |
@@ -114,7 +114,7 @@ interface EditorDocumentSession {
   snapshot(): EditorDocumentSnapshot;
   subscribe(listener: (snapshot: EditorDocumentSnapshot) => void): () => void;
   replaceText(text: string, baseRevision: string): Promise<void>;
-  save(): Promise<EditorDocumentSnapshot>;
+  save(options?: { flushSync?: boolean }): Promise<EditorDocumentSnapshot>;
   close(): Promise<void>;
 }
 ```
@@ -124,7 +124,7 @@ interface EditorDocumentSession {
 - `itemId` stays stable across rename and move. `parentId: null` identifies the provider root; all other parent IDs are provider item IDs. A provider emits tree invalidations and updated metadata; the Workbench updates labels and tree position without reopening or discarding the editor session.
 - `revision` is opaque to the Workbench. The provider checks or reconciles it when accepting edits; it reports an external-edit conflict rather than silently overwriting newer content.
 - `replaceText` reports local editor edits to the provider. Provider snapshots report remote or external changes back to the Workbench. Implementations suppress echo updates and preserve selection/undo state when applying snapshots.
-- `save()` flushes pending durable writes. For PKMS, server persistence and GitHub mirroring are distinct: `savePhase: clean` confirms server persistence, while `syncPhase` reports mirror progress. For Workspace, `clean` confirms the local file write.
+- `save()` flushes pending durable writes. `flushSync: false` permits secondary mirrors to remain pending. For PKMS, server persistence and GitHub mirroring are distinct: `savePhase: clean` confirms server persistence, while `syncPhase` reports mirror progress. For Workspace, `clean` confirms the local file write.
 - Save or operation failures use `EditorProviderErrorCode` with a user-safe message. The provider owns recovery and retry rules.
 - Optional operations are callable only when declared in `capabilities`; the UI hides unsupported commands and does not infer support from product name.
 - `close()` releases subscriptions, realtime resources, and pending provider work. The Workbench asks before closing a dirty session unless the provider reports that all edits are durable.
@@ -157,7 +157,7 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 |---|---|---|
 | Provider 계약과 Workspace·PKMS adapter | done (implemented) | `packages/editor/src/provider.ts`와 두 adapter가 트리·문서·검색·작업 capability를 사용한다. Workspace CodeMirror 입력은 저장 전에 session `replaceText`로 전달되어 provider dirty phase를 갱신한다. 각 provider 오류와 dirty close 정책은 공통 UI에서 마무리해야 한다. |
 | 공통 CodeMirror 표면 | done (implemented) | 두 앱이 `EditorTextSurface`를 사용한다. 공통 history, keymap, 외부 문서 갱신 처리를 소유한다. |
-| 문서별 편집 상태 | in progress | 커서·선택·scroll·undo를 안정 item ID로 메모리 캐시한다. rename/move와 앱 재시작까지의 수명, 두 앱의 실제 탭 전환 동작을 확인해야 한다. |
+| 문서별 편집 상태 | in progress | 커서·선택·scroll·undo를 안정 item ID로 메모리 캐시한다. Workspace 입력은 provider dirty phase를 갱신한다. PKMS 탭도 session dirty phase를 표시하고 닫기 전 확인하며, rename/move와 앱 재시작까지의 수명을 확인해야 한다. |
 | Outline과 트리 row·문서 tab 구성요소 | in progress | Outline UI와 Markdown heading parsing, row, PKMS 문서 tab, loaded branch 정렬·가시 행 계산·가상 스크롤 projection은 공유한다. PKMS 폴더 조회는 provider 계약을 통한다. 확장·선택·스크롤 상태와 트리 명령 UI는 아직 제품별이다. Workspace pane tab 배치는 Workspace 소유로 남긴다. |
 | Markdown 편집 기능과 명령 | in progress | Markdown parser, indent-on-input, Bold/italic 단축키, live-preview decoration은 공통 패키지다. Workspace 이미지 root와 WikiLink target resolver, PKMS 저장소 asset/link resolver는 host 책임으로 남아 있다. 두 제품에서 링크·asset·callout 동작을 맞추고 확인한다. |
 | Quick open·검색 UI와 Workbench 조립 | in progress | Quick-open dialog와 키보드 탐색 UI는 공유한다. 결과 조회·검색 상태와 트리·열린 문서·편집기·outline을 조립하는 공통 Workbench는 남아 있다. |
