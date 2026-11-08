@@ -4,6 +4,9 @@ import { MemoryRouter } from "react-router";
 import PkmsClientApp from "@pkms/client/PkmsClientApp";
 import pkmsStyles from "@pkms/client/styles.css?inline";
 import editorTreeStyles from "@workspace/editor/tree.css?inline";
+import editorMarkdownStyles from "@workspace/editor/markdown.css?inline";
+import editorMarkdownDocumentStyles from "@workspace/editor/markdownDocument.css?inline";
+import editorSearchStyles from "@workspace/editor/editorSearch.css?inline";
 
 export function PkmsPane(): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -20,10 +23,16 @@ export function PkmsPane(): React.JSX.Element {
     mountContainer.replaceChildren(host);
     const shadow = host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
-    style.textContent = `${pkmsStyles}
+    const scopedPkmsStyles = pkmsStyles
+      .replaceAll(":root", ":host")
+      .replace(/(^|,)\s*body(?=\s*[, {])/gm, "$1:host");
+    style.textContent = `${scopedPkmsStyles}
 ${editorTreeStyles
       .replaceAll(":root", ":host")
       .replace(/(^|,)\s*body(?=\s*[, {])/gm, "$1:host")}
+${editorMarkdownStyles}
+${editorMarkdownDocumentStyles}
+${editorSearchStyles}
 :host { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
 .pkms-root { width: 100%; height: 100%; min-width: 0; min-height: 0; }
 /* The client sizes itself to the window (100dvh); inside a pane it must fill the pane so the tree can scroll. */

@@ -1,12 +1,20 @@
 /* Shared VS Code style in-document Find/Replace panel. */
-.editor-text-surface .cm-panel.cm-vs-search {
+.editor-text-surface .cm-panels,
+.editor-text-surface .cm-panels-top,
+.editor-text-surface .cm-panels-bottom {
+  background: transparent;
+  border: 0;
+}
+
+.editor-text-surface .cm-search.cm-vs-search {
   position: absolute;
   top: 40px;
   right: 8px;
   z-index: 15;
+  box-sizing: border-box;
   width: min(360px, calc(100% - 16px));
-  background: var(--bg-surface, var(--surface, #fff));
-  border: 1px solid var(--border-strong, var(--border, #d4d4d4));
+  background: var(--bg-surface, var(--surface, #1d1f22));
+  border: 1px solid var(--border-strong, var(--border, #3a3d43));
   border-radius: 8px;
   padding: 6px 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -21,10 +29,10 @@
 .cm-vs-field-wrap input[type="text"],
 .cm-vs-replace-row input[type="text"] {
   width: 100%;
-  background: var(--bg-base, var(--bg, #fff));
-  border: 1px solid var(--border, #d4d4d4);
+  background: var(--bg-base, var(--bg, #111214));
+  border: 1px solid var(--border, #3a3d43);
   border-radius: 4px;
-  color: var(--text, #171717);
+  color: var(--text, #e2e4e7);
   padding: 4px 78px 4px 8px;
   min-width: 140px;
   font-size: 12px;
@@ -38,7 +46,7 @@
 .cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(1) { right: 52px; }
 .cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(2) { right: 30px; }
 .cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(3) { right: 4px; }
-.cm-vs-btn {
+.editor-text-surface .cm-vs-btn {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -46,7 +54,7 @@
   cursor: pointer;
   font-family: var(--font-ui, var(--editor-font, sans-serif));
 }
-.cm-vs-btn:hover { color: var(--text, #171717); background: var(--bg-hover, var(--hover, #f5f5f5)); }
+.editor-text-surface .cm-vs-btn:hover { color: var(--text, #e2e4e7); background: var(--bg-hover, var(--hover, #25272b)); }
 .cm-vs-toggle { border: 1px solid transparent; font-size: 10px; line-height: 1; padding: 3px 5px; }
 .cm-vs-toggle.active {
   color: var(--text, #171717);

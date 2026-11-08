@@ -27,6 +27,8 @@ export { EditorTreeRow } from "./EditorTreeRow";
 export type { EditorTreeRowProps } from "./EditorTreeRow";
 export { EditorTreeVirtualList } from "./EditorTreeVirtualList";
 export type { EditorTreeVirtualListProps } from "./EditorTreeVirtualList";
+export { EditorTreeView, EDITOR_TREE_DRAG_MIME_TYPE } from "./EditorTreeView";
+export type { EditorTreeViewItem, EditorTreeViewProps } from "./EditorTreeView";
 export { EditorDocumentTabBar } from "./EditorDocumentTabBar";
 export type { EditorDocumentTab } from "./EditorDocumentTabBar";
 export { EditorMenuList } from "./EditorMenuList";
@@ -66,7 +68,7 @@ export { editorOutlineEntries, markdownOutlineFromState, markdownOutlineFromText
 export type { MarkdownHeading } from "./markdownOutline";
 export { EditorQuickOpenDialog } from "./EditorQuickOpenDialog";
 export type { EditorQuickOpenItem } from "./EditorQuickOpenDialog";
-export { flattenEditorTree, projectEditorTreeRows, EDITOR_TREE_ROW_HEIGHT } from "./treeModel";
+export { flattenEditorTree, projectEditorTreeRows, editorTreeItemLabel, EDITOR_TREE_ROW_HEIGHT } from "./treeModel";
 export type { EditorTreeBranchEntry, EditorVisibleTreeRow, EditorTreeProjection } from "./treeModel";
 export { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentClose, confirmEditorDocumentCloseById, discardEditorDocumentViewState, setEditorDocumentDirty } from "./documentDirtyRegistry";
 export type { EditorConfirm } from "./documentDirtyRegistry";

@@ -12,6 +12,11 @@ export interface EditorVisibleTreeRow<T extends EditorTreeBranchEntry> {
 export const EDITOR_TREE_ROW_HEIGHT = 27;
 const TREE_OVERSCAN = 4;
 
+/** Keep Markdown labels consistent across provider-backed file trees. */
+export function editorTreeItemLabel(name: string, kind: string): string {
+  return kind === "markdown" ? name.replace(/\.md$/i, "") : name;
+}
+
 export interface EditorTreeProjection<T> {
   rows: T[];
   startIndex: number;

@@ -1,8 +1,7 @@
-import { type DragEvent, type KeyboardEvent, type MouseEvent, type RefObject } from "react";
-import { AppIcon } from "./Icons";
-import { entryName, parseTreeDragPaths } from "../domain/fileTree";
+import type { DragEvent, KeyboardEvent, MouseEvent, RefObject } from "react";
+import { entryName } from "../domain/fileTree";
 import type { FileRecord, TreeRow } from "../domain/types";
-import { EditorTreeRow, EditorTreeVirtualList, type EditorTreeProjection } from "@workspace/editor";
+import { EditorTreeView, EDITOR_TREE_DRAG_MIME_TYPE, editorTreeItemLabel, type EditorTreeProjection, type EditorTreeViewItem } from "@workspace/editor";
 
 interface FileTreeListProps {
   treeRef: RefObject<HTMLElement | null>;
@@ -31,121 +30,55 @@ interface FileTreeListProps {
   onActivate: (file: FileRecord) => void;
 }
 
-const TREE_PATHS_MIME = "application/x-pkms-tree-paths";
-
-export function FileTreeList({
-  treeRef,
-  projection,
-  selectedPaths,
-  expandedFolders,
-  focusedPath,
-  currentFolder,
-  activeFileId,
-  cutPaths,
-  dropTarget,
-  loadingFolders,
-  busy,
-  loading,
-  canMove,
-  canMultiSelect,
-  onKeyDown,
-  onScroll,
-  onSetDropTarget,
-  onDropItems,
-  onFocusPath,
-  onDragStart,
-  onContextMenu,
-  onSelectRow,
-  onClearSelection,
-  onActivate,
-}: FileTreeListProps) {
-  const handleDrop = (event: DragEvent<HTMLElement>, destination: string) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onSetDropTarget(null);
-    onDropItems(parseTreeDragPaths(event.dataTransfer.getData(TREE_PATHS_MIME)), destination);
+export function FileTreeList(props: FileTreeListProps) {
+  const {
+    treeRef, projection, selectedPaths, expandedFolders, focusedPath, currentFolder,
+    activeFileId, cutPaths, dropTarget, loadingFolders, busy, loading, canMove,
+    canMultiSelect, onKeyDown, onScroll, onSetDropTarget, onDropItems, onFocusPath,
+    onDragStart, onContextMenu, onSelectRow, onClearSelection, onActivate,
+  } = props;
+  const viewProjection: EditorTreeProjection<EditorTreeViewItem> = {
+    ...projection,
+    rows: projection.rows.map(({ file, depth }) => ({
+      id: file.id,
+      path: file.path,
+      name: editorTreeItemLabel(entryName(file.path), file.kind === "markdown" ? "markdown" : "asset"),
+      kind: file.kind === "folder" ? "directory" : file.kind,
+      depth,
+      expandable: file.kind === "folder",
+      expanded: expandedFolders.has(file.path),
+      loading: file.kind === "folder" && loadingFolders.has(file.path),
+      active: (file.path === currentFolder && file.kind === "folder") || activeFileId === file.id,
+      selected: selectedPaths.has(file.path),
+      multiSelected: selectedPaths.size > 1 && selectedPaths.has(file.path),
+      cut: cutPaths.has(file.path),
+      dropTarget: dropTarget === file.path,
+      tabIndex: focusedPath === file.path || (!focusedPath && projection.startIndex === 0 && file === projection.rows[0]?.file) ? 0 : -1,
+      source: file,
+    })),
   };
 
   return (
-    <nav
-      ref={treeRef}
+    <EditorTreeView
+      rootRef={treeRef}
+      projection={viewProjection}
       className={`file-list file-tree${dropTarget === "" ? " tree-root-drop" : ""}`}
-      role="tree"
-      aria-multiselectable={canMultiSelect}
-      aria-label="Repository files"
-      aria-busy={busy}
+      ariaLabel="Repository files"
+      ariaBusy={busy}
+      canMove={canMove}
+      canMultiSelect={canMultiSelect}
+      dragMimeType={EDITOR_TREE_DRAG_MIME_TYPE}
+      emptyContent={<p className="empty-hint">{loading ? "Loading…" : "Empty folder"}</p>}
       onKeyDown={onKeyDown}
-      onContextMenu={(event) => event.preventDefault()}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClearSelection();
-      }}
-      onScroll={(event) => onScroll(event.currentTarget.scrollTop)}
-      onDragOver={canMove ? (event) => {
-        event.preventDefault();
-        if (event.target === event.currentTarget) onSetDropTarget("");
-      } : undefined}
-      onDragLeave={canMove ? (event) => {
-        if (event.target === event.currentTarget) onSetDropTarget(null);
-      } : undefined}
-      onDrop={canMove ? (event) => {
-        if (event.target === event.currentTarget) handleDrop(event, "");
-      } : undefined}
-    >
-      <EditorTreeVirtualList
-        projection={projection}
-        itemKey={({ file }) => file.id}
-        renderItem={({ file, depth }, index) => (
-        <EditorTreeRow
-          id={file.id}
-          path={file.path}
-          name={entryName(file.path)}
-          kind={file.kind === "folder" ? "directory" : file.kind}
-          depth={depth}
-          icon={<AppIcon name={file.kind === "folder" ? "folder" : file.kind === "markdown" ? "fileText" : "file"} />}
-          disclosure={<AppIcon name="chevron" />}
-          expandable={file.kind === "folder"}
-          expanded={expandedFolders.has(file.path)}
-          loading={file.kind === "folder" && loadingFolders.has(file.path)}
-          active={(file.path === currentFolder && file.kind === "folder") || activeFileId === file.id}
-          selected={selectedPaths.has(file.path)}
-          multiSelected={selectedPaths.size > 1 && selectedPaths.has(file.path)}
-          cut={cutPaths.has(file.path)}
-          dropTarget={dropTarget === file.path}
-          tabIndex={focusedPath === file.path || (!focusedPath && index === 0) ? 0 : -1}
-          onFocus={() => onFocusPath(file.path)}
-          onDragStart={onDragStart ? (event) => onDragStart(file, index, event) : undefined}
-          onDragOver={canMove ? (event) => {
-            if (file.kind !== "folder") return;
-            event.preventDefault();
-            event.stopPropagation();
-            event.dataTransfer.dropEffect = "move";
-            onSetDropTarget(file.path);
-          } : undefined}
-          onDragLeave={canMove ? (event) => {
-            if (file.kind === "folder" && !event.currentTarget.contains(event.relatedTarget as Node)) onSetDropTarget(null);
-          } : undefined}
-          onDrop={canMove ? (event) => {
-            if (file.kind === "folder") handleDrop(event, file.path);
-          } : undefined}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            event.currentTarget.focus();
-            onContextMenu(file, event);
-          }}
-          onClick={(event) => {
-            const additive = canMultiSelect && (event.metaKey || event.ctrlKey);
-            const range = canMultiSelect && event.shiftKey;
-            if (additive || range) {
-              onSelectRow(file.path, index, additive, range);
-              return;
-            }
-            onSelectRow(file.path, index, false, false);
-            onActivate(file);
-          }}
-        />
-        )}
-        emptyContent={<p className="empty-hint">{loading ? "Loading…" : "Empty folder"}</p>}
-      />
-    </nav>
+      onScroll={onScroll}
+      onSetDropTarget={onSetDropTarget}
+      onDropItems={onDropItems}
+      onFocusPath={onFocusPath}
+      onClearSelection={onClearSelection}
+      onSelectRow={onSelectRow}
+      onDragStart={onDragStart ? (item, index, event) => onDragStart(item.source as FileRecord, index, event) : undefined}
+      onContextMenu={(item, event) => onContextMenu(item.source as FileRecord, event)}
+      onActivate={(item) => onActivate(item.source as FileRecord)}
+    />
   );
 }

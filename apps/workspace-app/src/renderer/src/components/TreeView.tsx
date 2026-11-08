@@ -28,8 +28,7 @@ import {
 } from "../explorer/explorerState";
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
-import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, editorSupportsOperation, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, isEditorProviderError, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreeDirectory, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, editorSupportsOperation, editorTreeItemLabel, EditorTreeView, EDITOR_TREE_DRAG_MIME_TYPE, editorTreeSelectionRoots, flattenEditorTree, isEditorProviderError, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreeDirectory, resolveEditorTreePath, useEditorTreeSelection, type EditorItemKind, type EditorTreeArrowAction, type EditorTreeNavigationRow, type EditorTreeProjection, type EditorTreeViewItem } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -69,15 +68,9 @@ export function classifyFile(name: string): "code" | "markdown" | "viewer" {
   return "viewer";
 }
 
-function treeEntryIconName(entry: DirEntry): WorkbenchIconName {
-  if (entry.is_dir) return "explorer";
-  const kind = classifyFile(entry.name);
-  return kind === "markdown" ? "book" : kind === "viewer" ? "viewer" : "code";
-}
-
 /** Obsidian-style tree label: hide the `.md` suffix for markdown files. */
 export function treeEntryDisplayName(name: string): string {
-  return /\.md$/i.test(name) ? name.slice(0, -3) : name;
+  return editorTreeItemLabel(name, classifyFile(name) === "markdown" ? "markdown" : "code");
 }
 
 function dirOf(path: string): string {
@@ -103,7 +96,7 @@ function rowAnchor(entry: DirEntry, treeEl: HTMLElement | null): AnchorRect {
   return { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 };
 }
 
-const TREE_DRAG_MIME = "application/x-workspace-tree-paths";
+const TREE_DRAG_MIME = EDITOR_TREE_DRAG_MIME_TYPE;
 
 export function TreeView({
   tabId,
@@ -303,6 +296,28 @@ export function TreeView({
     () => projectEditorTreeRows(flatList, scrollTop, viewportHeight),
     [flatList, scrollTop, viewportHeight],
   );
+  const treeViewProjection: EditorTreeProjection<EditorTreeViewItem> = {
+    ...projection,
+    rows: projection.rows.map(({ entry, depth }) => {
+      const detected: EditorItemKind = entry.is_dir ? "directory" : classifyFile(entry.name) === "markdown" ? "markdown" : classifyFile(entry.name) === "code" ? "code" : "asset";
+      return {
+        id: entry.editorItemId,
+        path: entry.path,
+        name: editorTreeItemLabel(entry.name, detected),
+        kind: detected,
+        depth,
+        expandable: entry.is_dir,
+        expanded: expanded.has(entry.path),
+        active: entry.path === selectedPath,
+        selected: selected.has(entry.path),
+        multiSelected: selected.size > 1 && selected.has(entry.path),
+        dropTarget: dragOverPath === entry.path,
+        showGuides: true,
+        tabIndex: (keyboardFocusPath ?? selectionAnchor ?? selectedPath ?? [...selected][0] ?? flatList[0]?.entry.path) === entry.path ? 0 : -1,
+        source: entry,
+      };
+    }),
+  };
 
   const toggle = (path: string) => {
     setExpandedPersisted((prev) => {
@@ -329,24 +344,6 @@ export function TreeView({
     treeRef.current
       ?.querySelector<HTMLElement>(`[data-tree-path="${path.replace(/"/g, '\\"')}"]`)
       ?.scrollIntoView({ block: "nearest" });
-  };
-
-  const handleRowClick = (
-    e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean },
-    entry: DirEntry,
-  ) => {
-    const path = entry.path;
-    treeRef.current?.focus();
-    const modifiers = canMultiSelect
-      ? { additive: e.metaKey || e.ctrlKey, range: e.shiftKey }
-      : { additive: false, range: false };
-    treeSelection.select(path, focusedEntry()?.path ?? null, modifiers);
-    if (modifiers.additive || modifiers.range) return;
-    if (entry.is_dir) {
-      toggle(path);
-    } else {
-      openFileFromTree(path, classifyFile(entry.name), false);
-    }
   };
 
   const newFile = async (dir: string) => {
@@ -516,38 +513,6 @@ export function TreeView({
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const onFolderDragOver = (e: DragEvent, targetDir: string) => {
-    if (!canMove) return;
-    if (!e.dataTransfer.types.includes(TREE_DRAG_MIME)) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = "move";
-    setDragOverPath(targetDir);
-  };
-
-  const onTreeDragOver = (e: DragEvent) => {
-    if (!canMove) return;
-    if (!e.dataTransfer.types.includes(TREE_DRAG_MIME)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDragOverPath("");
-  };
-
-  const onFolderDrop = (e: DragEvent, targetDir: string) => {
-    if (!canMove) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOverPath(null);
-    const raw = e.dataTransfer.getData(TREE_DRAG_MIME);
-    if (!raw) return;
-    try {
-      const paths: string[] = JSON.parse(raw);
-      void moveEntries(paths, targetDir);
-    } catch (err) {
-      console.error("tree-view: bad drag payload", err);
-    }
-  };
-
   const keyboardHandlers = useMemo(
     () => ({
       getFocusedEntry: focusedEntry,
@@ -654,75 +619,50 @@ export function TreeView({
   }, [menu, selected, tabId, rootPath, dirs, canCreateFile, canCreateDirectory, canRename, canDelete]);
 
   return (
-    <div
-      ref={treeRef}
-      className={`tree-view${dragOverPath === "" ? " drag-over-root" : ""}`}
-      tabIndex={0}
-      role="tree"
-      aria-label="Files"
-      aria-multiselectable={canMultiSelect}
-      onClick={() => treeSelection.clear()}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setMenu({ x: e.clientX, y: e.clientY, dir: "", entry: null });
-      }}
-      onDragOver={canMove ? onTreeDragOver : undefined}
-      onDrop={canMove ? (e) => onFolderDrop(e, "") : undefined}
-    >
-      <div className="tree-view-rows" onDragOver={canMove ? onTreeDragOver : undefined} onDrop={canMove ? (e) => onFolderDrop(e, "") : undefined}>
-        <EditorTreeVirtualList
-          projection={projection}
-          itemKey={({ entry }) => entry.path}
-          renderItem={({ entry, depth }) => (
-          <EditorTreeRow
-            id={entry.editorItemId}
-            path={entry.path}
-            name={treeEntryDisplayName(entry.name)}
-            kind={entry.is_dir ? "directory" : classifyFile(entry.name) === "markdown" ? "markdown" : classifyFile(entry.name) === "code" ? "code" : "asset"}
-            depth={depth}
-            icon={<WorkbenchIcon name={treeEntryIconName(entry)} size={16} />}
-            disclosure={<WorkbenchIcon name="chevron-right" size={12} />}
-            expandable={entry.is_dir}
-            expanded={expanded.has(entry.path)}
-            active={entry.path === selectedPath}
-            selected={selected.has(entry.path)}
-            multiSelected={selected.size > 1 && selected.has(entry.path)}
-            dropTarget={dragOverPath === entry.path}
-            showGuides
-            tabIndex={(keyboardFocusPath ?? selectionAnchor ?? selectedPath ?? [...selected][0] ?? flatList[0]?.entry.path) === entry.path ? 0 : -1}
-            onDragStart={canMove ? (e) => onEntryDragStart(e, entry) : undefined}
-            onDragOver={canMove ? (e) => {
-              if (entry.is_dir) onFolderDragOver(e, entry.path);
-              else onTreeDragOver(e);
-            } : undefined}
-            onDrop={canMove ? (entry.is_dir ? (e) => onFolderDrop(e, entry.path) : (e) => onFolderDrop(e, dirOf(entry.path))) : undefined}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRowClick(e, entry);
-            }}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              if (!entry.is_dir) openFileFromTree(entry.path, classifyFile(entry.name), true);
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (!selected.has(entry.path)) {
-                setSelected(new Set([entry.path]));
-                setSelectionAnchor(entry.path);
-              }
-              setMenu({
-                x: e.clientX,
-                y: e.clientY,
-                dir: entry.is_dir ? entry.path : dirOf(entry.path),
-                entry,
-              });
-              if (entry.is_dir && !dirs.get(entry.path)?.loaded) loadDir(entry.path);
-            }}
-          />
-          )}
-        />
-      </div>
+    <>
+      <EditorTreeView
+        rootRef={treeRef}
+        scrollRef={scrollContainerRef}
+        projection={treeViewProjection}
+        className={`tree-view${dragOverPath === "" ? " drag-over-root" : ""}`}
+        listClassName="tree-view-rows"
+        ariaLabel="Files"
+        canMove={canMove}
+        canMultiSelect={canMultiSelect}
+        dragMimeType={TREE_DRAG_MIME}
+        onClearSelection={treeSelection.clear}
+        onSetDropTarget={setDragOverPath}
+        onDropItems={(paths, destination) => void moveEntries(paths, destination)}
+        onFocusPath={treeSelection.setFocusedPath}
+        onKeyDown={(event) => {
+          if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+          event.preventDefault();
+          const entry = focusedEntry();
+          const rect = entry ? rowAnchor(entry, treeRef.current) : null;
+          setMenu({ x: rect?.left ?? 0, y: rect?.bottom ?? 0, dir: entry ? (entry.is_dir ? entry.path : dirOf(entry.path)) : "", entry });
+        }}
+        onRootContextMenu={(event) => setMenu({ x: event.clientX, y: event.clientY, dir: "", entry: null })}
+        onSelectRow={(path, _index, additive, range) => {
+          treeRef.current?.focus();
+          treeSelection.select(path, focusedEntry()?.path ?? null, { additive, range });
+        }}
+        onActivate={(item) => {
+          const entry = item.source as DirEntry;
+          if (entry.is_dir) toggle(entry.path);
+          else openFileFromTree(entry.path, classifyFile(entry.name), false);
+        }}
+        onDoubleActivate={(item) => {
+          const entry = item.source as DirEntry;
+          if (!entry.is_dir) openFileFromTree(entry.path, classifyFile(entry.name), true);
+        }}
+        onDragStart={(item, _index, event) => onEntryDragStart(event, item.source as DirEntry)}
+        onContextMenu={(item, event) => {
+          const entry = item.source as DirEntry;
+          if (!selected.has(entry.path)) treeSelection.select(entry.path, focusedEntry()?.path ?? null);
+          setMenu({ x: event.clientX, y: event.clientY, dir: entry.is_dir ? entry.path : dirOf(entry.path), entry });
+          if (entry.is_dir && !dirs.get(entry.path)?.loaded) loadDir(entry.path);
+        }}
+      />
       {menu ? <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} /> : null}
       {prompt && (
         <TextPrompt
@@ -733,6 +673,6 @@ export function TreeView({
           onClose={() => setPrompt(null)}
         />
       )}
-    </div>
+    </>
   );
 }
