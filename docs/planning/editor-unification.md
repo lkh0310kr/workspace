@@ -179,6 +179,8 @@ Quick Open도 두 host가 파일 목록을 직접 취합·필터링하지 않고
 
 공통 트리 virtual list는 tree root 아래 `group`으로 노출된다. Workspace root도 PKMS처럼 multi-select tree semantics를 제공하고, 방향키 이동 시 다음 선택 행에 DOM focus를 맞춘다.
 
+PKMS 전용 `useFileTreeSelection` wrapper를 제거했다. 두 host 모두 `useEditorTreeSelection`에서 focused path, anchor, additive/range selection, visible-row validation을 관리하고, 각 host는 별도로 필요한 cut state와 DOM focus/scroll만 연결한다.
+
 Markdown 제목 표시·검증·확장자/경로 생성은 `packages/editor`의 공통 helper와 shared frame CSS를 사용한다. Workspace와 PKMS는 충돌 확인 및 rename 호출에 각각의 provider를 연결한다.
 
 제목 rename target의 sibling 조회와 대소문자 무시 collision 검사는 `resolveMarkdownTitleRenameTarget`이 공통 provider 계약으로 수행한다. 현재 문서는 안정 item ID로 충돌 검사에서 제외해 대소문자만 바꾸는 rename도 자기 자신과 충돌하지 않는다. Workspace의 dirty 저장/untitled 저장과 PKMS의 활성 workspace 검증은 host 책임이다.
