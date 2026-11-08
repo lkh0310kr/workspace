@@ -133,7 +133,7 @@ interface EditorDocumentSession {
 
 공용 Editor는 CodeMirror 인스턴스를 만들고 공통 명령, 문법 UI, Markdown 미리보기, 목차, 선택, 포커스 수명을 소유한다. 문서 세션은 PKMS 협업 바인딩 같은 문서 동기화 확장만 제공할 수 있다. Provider가 편집 UI를 교체하거나 공통 키 동작을 조용히 바꾸지는 않는다.
 
-Workbench가 소유하는 상태는 열린 문서 탭, 활성 문서, 문서별 커서·스크롤·선택·undo 이력, 트리 확장·선택·스크롤이다. 상태 저장 키는 제품 shell이 전달한다. PKMS에서 뒤로/앞으로는 열린 탭을 대신하지 않고 기존 문서 탐색 이력을 이동한다.
+여기서 **Workbench는 단일 root React 컴포넌트나 제품 shell이 아니라 공통 Editor 패키지와 그 기능 집합**을 뜻한다. 공통 패키지는 편집 surface·Markdown 동작·outline·트리 알고리즘과 재사용 UI를 소유한다. 열린 문서의 membership과 active document는 host가 소유한다. Workspace는 pane/tabset 모델에, PKMS는 workspace별 document tab 모델에 연결한다. `EditorDocumentTabBar`는 재사용 가능한 표시 UI이며 두 제품의 tab state를 강제로 같은 모델로 바꾸지 않는다. 문서별 커서·스크롤·선택·undo 이력은 안정적인 provider item identity로 공통 저장 기능을 사용하고 상태 저장 키/저장소는 host가 전달한다. 트리 확장·선택·스크롤의 보존 키도 host가 전달한다. PKMS에서 뒤로/앞으로는 열린 탭을 대신하지 않고 기존 문서 탐색 이력을 이동한다.
 
 ## Acceptance and migration order
 
@@ -144,7 +144,7 @@ Migrate in this order:
 1. Extract the common CodeMirror surface, Markdown extensions, outline, and command definitions into `packages/editor`. Match the current Workspace and PKMS feature sets before consolidating duplicate behavior.
 2. Move the Workspace local tree and document I/O behind `EditorProvider`. Keep Electron IPC and filesystem permission checks in `apps/workspace-app`.
 3. Move PKMS document/tree operations behind the same provider contract. Keep login, repository selection, API transport, Yjs, cache, and GitHub status in `packages/pkms-client`.
-4. Replace each product's editor UI with the shared Workbench. Retain the current Workspace pane layout and PKMS web navigation shell.
+4. Replace duplicated editor surfaces and interactions with shared Editor components. Each host composes them into its existing navigation model: retain the current Workspace pane layout and PKMS web navigation shell/document tabs.
 5. Verify each acceptance item against both providers before removing old UI implementations.
 
 PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔드 서비스, iOS 네이티브 편집기는 통합 범위에 넣지 않는다. 사용자가 조작하는 Editor 환경을 통일하면서 데이터와 보안 경계는 유지한다.
@@ -161,7 +161,7 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 | 문서별 편집 상태 | in progress | Workspace의 path→item ID 매핑은 재시작 뒤에도 복원되고 두 provider 모두 rename/move 중 item ID를 유지한다. CodeMirror 커서·선택·scroll·undo 상태는 provider clean 시 안정 identity 키로 저장하고, 24개 LRU·문서별 40,000자 제한 안에서 재시작 뒤 복원한다. dirty이거나 더 큰 상태는 메모리에서만 유지한다. 양쪽 입력은 provider dirty phase를 갱신하고 PKMS 탭은 dirty 확인을 한다. 전체 rename/move·재시작 동작은 acceptance 검증이 남아 있다. |
 | Outline과 트리 row·문서 tab 구성요소 | in progress | Outline UI와 Markdown heading parsing, row, PKMS 문서 tab, loaded branch 정렬·가시 행 계산·가상 스크롤 projection 및 spacer/행 렌더링, 방향키/Enter/Delete/F2 해석, 단일·다중·범위 선택 상태 전이를 공유한다. 두 제품은 같은 selection hook/controller와 keyboard action resolver 및 virtual list를 쓰며 상태 저장, focus/scroll 반영, 실제 파일 명령은 각 트리 host가 수행한다. PKMS 폴더 조회는 provider 계약을 통한다. 트리 명령 UI는 아직 제품별이다. Workspace pane tab 배치는 Workspace 소유로 남긴다. |
 | Markdown 편집 기능과 명령 | in progress | Markdown parser, 4칸 들여쓰기, indent-on-input, 목록 연속 입력, markup Backspace, Bold/italic 단축키, live-preview decoration은 공통 패키지다. Workspace plain-text paste와 이미지 root/WikiLink target resolver, PKMS 저장소 asset/link resolver는 host 책임으로 남아 있다. 두 제품에서 링크·asset·callout 동작을 맞추고 확인한다. |
-| Quick open·검색 UI와 Workbench 조립 | in progress | Quick-open dialog와 fuzzy ranking은 공유한다. Workspace 파일 목록 조회와 PKMS loaded repository 후보 범위, 검색 상태는 host 소유다. 트리·열린 문서·편집기·outline을 조립하는 공통 Workbench는 남아 있다. |
+| Quick open·검색 UI와 host 조립 | in progress | Quick-open dialog와 fuzzy ranking은 공유한다. Workspace 파일 목록 조회와 PKMS loaded repository 후보 범위, 검색 상태는 host 소유다. 각 host는 공통 Editor 요소를 기존 pane/tab/navigation shell에 연결하며, 중복된 편집 조립 로직을 더 공통화하고 양쪽에 연결하는 작업이 남아 있다. |
 | 전체 acceptance 검증과 중복 UI 제거 | not yet | PKMS Web/Desktop 및 Workspace 각각에서 문서 전환, 외부 변경 conflict, 저장 상태, Markdown 기능을 확인한 뒤 구 구현을 제거한다. |
 
 구현은 위 표의 `not yet` 항목부터 공통 UI로 이동하고, 매 단계에서 두 provider가 보존해야 할 차이를 계약 capability와 adapter로 표현한다. `done (implemented)`는 코드 연결이 있다는 뜻이며 전체 acceptance 통과를 의미하지 않는다.
