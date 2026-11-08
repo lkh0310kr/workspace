@@ -16,6 +16,15 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+function getPromotedAppEnvironment() {
+  const env = { ...process.env };
+  // Codex and other automation hosts may set NO_COLOR for their own output.
+  // Do not let that launcher-only preference disable color in Workspace's
+  // interactive terminal sessions after promoting the desktop app.
+  delete env.NO_COLOR;
+  return env;
+}
+
 function sleepMs(ms) {
   spawnSync("powershell", ["-NoProfile", "-Command", `Start-Sleep -Milliseconds ${ms}`], {
     stdio: "ignore",
@@ -120,7 +129,7 @@ async function promoteMac() {
   console.log("[promote-stable] relaunching…");
   const executable = path.join(installedApp, "Contents", "MacOS", "Workspace");
   const launchStartedAt = Date.now();
-  const child = spawn(executable, [], { detached: true, stdio: "ignore" });
+  const child = spawn(executable, [], { detached: true, stdio: "ignore", env: getPromotedAppEnvironment() });
   child.unref();
   try {
     if (!child.pid) throw new Error("Workspace did not start");
@@ -419,7 +428,12 @@ function promoteWindows() {
 
   console.log("[promote-stable] relaunching…");
   sleepMs(500);
-  const child = spawn(activeExe, [], { detached: true, stdio: "ignore", windowsHide: true });
+  const child = spawn(activeExe, [], {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+    env: getPromotedAppEnvironment(),
+  });
   child.unref();
 }
 

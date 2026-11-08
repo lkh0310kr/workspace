@@ -22,6 +22,15 @@ called `refitPaneTerminal` directly on every reveal. The reveal path now uses Or
 fit decision and applies WebGL refresh separately. Installed-build verification confirms
 that switching away from a terminal tab and back preserves the visible first line in both panes.
 
+The missing Codex CLI colors had a separate environment cause. The promoted Workspace process
+had inherited `NO_COLOR=1` from the Codex launcher, while Codex's own config already selected
+`catppuccin-mocha` and enabled status-line colors. Because the PTY host is detached and outlives
+Workspace, its stale environment continued to put new shells into no-color mode after app
+restart. Promotion now removes the launcher-only `NO_COLOR`, PTY attach sends the current app
+environment, and the host uses that environment for newly spawned shells. An unset preference
+is sent as an empty `NO_COLOR` to clear stale host state; a non-empty user value is preserved.
+The installed build now starts Codex with the configured purple/yellow TUI accents visible.
+
 These are concrete architectural risks consistent with the reported failures, not yet a
 confirmed single cause for every scroll, glyph, or color symptom. Color rendering also
 depends on shell capabilities (`TERM`, `COLORTERM`), preserving ANSI bytes, and applying
@@ -52,6 +61,8 @@ Treat the terminal as one vertical slice with these invariants:
 - [x] Installed build retains long scrollback; asynchronous output does not move a pinned
   viewport; live Hangul and ANSI color rendering verified.
 - [x] Installed-build hide/show check preserves both terminal viewports across a tab switch.
+- [x] Codex TUI color suppression traced to stale `NO_COLOR=1` inherited by the detached PTY
+  host; installed app now launches a fresh Codex session with theme colors visible.
 - [ ] Reconnect scroll restoration in installed build (not yet exercised independently of
   app restart and output replay).
 

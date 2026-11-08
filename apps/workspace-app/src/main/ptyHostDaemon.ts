@@ -38,7 +38,11 @@ function send(socket: net.Socket, message: unknown): void {
 function spawnSession(request: Request): Session {
   const existing = sessions.get(request.terminalId)
   if (existing) return existing
-  const inheritedEnv = { ...process.env }
+  // The app sends its current environment on attach. The detached PTY host can
+  // outlive the app that launched it, so its own process.env may contain stale
+  // launcher flags (for example NO_COLOR=1 inherited from Codex) that should
+  // not leak into new terminal sessions after Workspace has restarted.
+  const inheritedEnv = { ...(request.env ?? process.env) }
   delete inheritedEnv.WORKSPACE_PTY_SOCKET
   delete inheritedEnv.WORKSPACE_PTY_TOKEN
   delete inheritedEnv.ELECTRON_RUN_AS_NODE

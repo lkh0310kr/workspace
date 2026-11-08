@@ -177,11 +177,17 @@ export class Pty {
 
   attach(): Promise<AttachResult> {
     if (!this.attachPromise) {
+      const env = { ...process.env, ...this.options.extraEnv }
+      // A long-lived PTY host may have started under a launcher that set
+      // NO_COLOR for its own UI. Send an explicit empty value when the current
+      // Workspace process has no such preference so new shells clear that
+      // stale inherited opt-out. A non-empty user value remains respected.
+      if (!env.NO_COLOR) env.NO_COLOR = ''
       this.attachPromise = this.request('attach', {
         cwd: this.options.cwd,
         cols: this.cols,
         rows: this.rows,
-        env: { ...process.env, ...this.options.extraEnv }
+        env
       }).then((result) => ({ snapshot: Buffer.from(result.snapshot, 'base64'), existed: result.existed }))
     }
     return this.attachPromise
