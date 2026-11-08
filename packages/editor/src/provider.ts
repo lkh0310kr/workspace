@@ -194,6 +194,18 @@ export interface EditorProvider {
   delete?(items: readonly EditorItemRef[]): Promise<void>;
 }
 
+/** Whether a provider both declares and implements a command. */
+export function editorSupportsOperation(provider: EditorProvider | null | undefined, operation: EditorOperation): boolean {
+  if (!provider || !provider.capabilities.operations.has(operation)) return false;
+  switch (operation) {
+    case "createFile":
+    case "createDirectory": return typeof provider.create === "function";
+    case "rename": return typeof provider.rename === "function";
+    case "move": return typeof provider.move === "function";
+    case "delete": return typeof provider.delete === "function";
+  }
+}
+
 export interface EditorDocumentSnapshot {
   content:
     | { type: "text"; text: string }

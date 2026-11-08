@@ -29,7 +29,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, isEditorProviderError, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreeDirectory, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, editorSupportsOperation, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, isEditorProviderError, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreeDirectory, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -120,6 +120,12 @@ export function TreeView({
 }: Props) {
   const editorProviderLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
   const editorProvider = editorProviderLease.provider;
+  const canCreateFile = editorSupportsOperation(editorProvider, "createFile");
+  const canCreateDirectory = editorSupportsOperation(editorProvider, "createDirectory");
+  const canRename = editorSupportsOperation(editorProvider, "rename");
+  const canDelete = editorSupportsOperation(editorProvider, "delete");
+  const canMove = editorProvider.capabilities.dragMove && editorSupportsOperation(editorProvider, "move");
+  const canMultiSelect = editorProvider.capabilities.multiSelect;
   const treeRef = useRef<HTMLDivElement>(null);
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(loadExplorerTreeState(explorerStateKey, rootPath).expanded));
@@ -331,7 +337,9 @@ export function TreeView({
   ) => {
     const path = entry.path;
     treeRef.current?.focus();
-    const modifiers = { additive: e.metaKey || e.ctrlKey, range: e.shiftKey };
+    const modifiers = canMultiSelect
+      ? { additive: e.metaKey || e.ctrlKey, range: e.shiftKey }
+      : { additive: false, range: false };
     treeSelection.select(path, focusedEntry()?.path ?? null, modifiers);
     if (modifiers.additive || modifiers.range) return;
     if (entry.is_dir) {
@@ -348,7 +356,8 @@ export function TreeView({
       const result = await nextEditorItemNameInDirectory(editorProvider, dir, "untitled", ".md");
       name = result.name;
       const parent = result.parent;
-      await editorProvider.create(parent?.itemId ?? null, "file", name);
+      if (!editorSupportsOperation(editorProvider, "createFile")) throw new Error("File creation is not supported by this provider");
+      await editorProvider.create!(parent?.itemId ?? null, "file", name);
     } catch (err) {
       window.alert(String(err));
       return;
@@ -367,7 +376,8 @@ export function TreeView({
       onSubmit: async (name) => {
         try {
           const parent = await resolveEditorTreeDirectory(editorProvider, dir, "Parent directory no longer exists");
-          await editorProvider.create(parent?.itemId ?? null, "directory", name);
+          if (!editorSupportsOperation(editorProvider, "createDirectory")) throw new Error("Folder creation is not supported by this provider");
+          await editorProvider.create!(parent?.itemId ?? null, "directory", name);
           setExpandedPersisted((prev) => new Set(prev).add(dir));
           refresh(dir);
         } catch (error) {
@@ -389,7 +399,8 @@ export function TreeView({
         try {
           const ref = await resolveEditorTreePath(editorProvider, entry.path);
           if (!ref) throw new Error("Item no longer exists");
-          await editorProvider.rename(ref, name);
+          if (!editorSupportsOperation(editorProvider, "rename")) throw new Error("Renaming is not supported by this provider");
+          await editorProvider.rename!(ref, name);
         } catch (err) {
           window.alert(String(err));
           return;
@@ -429,7 +440,8 @@ export function TreeView({
       try {
         const ref = await resolveEditorTreePath(editorProvider, p);
         if (!ref) throw new Error("Item no longer exists");
-        await editorProvider.delete([ref]);
+        if (!editorSupportsOperation(editorProvider, "delete")) throw new Error("Deletion is not supported by this provider");
+        await editorProvider.delete!([ref]);
         deleted.push(p);
         onPathDeleted?.(p);
       } catch (err) {
@@ -472,6 +484,7 @@ export function TreeView({
   };
 
   const moveEntries = async (paths: string[], targetDir: string) => {
+    if (!canMove) return;
     paths = selectionRootPaths(paths);
     const moved: string[] = [];
     for (const p of paths) {
@@ -482,7 +495,8 @@ export function TreeView({
         const ref = await resolveEditorTreePath(editorProvider, p);
         if (!ref) throw new Error("Item no longer exists");
         const parent = await resolveEditorTreeDirectory(editorProvider, targetDir, "Destination directory no longer exists");
-        await editorProvider.move([ref], parent?.itemId ?? null);
+        if (!editorSupportsOperation(editorProvider, "move")) throw new Error("Moving is not supported by this provider");
+        await editorProvider.move!([ref], parent?.itemId ?? null);
       } catch (err) {
         window.alert(String(err));
         continue;
@@ -496,12 +510,14 @@ export function TreeView({
   };
 
   const onEntryDragStart = (e: DragEvent, entry: DirEntry) => {
+    if (!canMove) return;
     const paths = selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
     e.dataTransfer.setData(TREE_DRAG_MIME, JSON.stringify(paths));
     e.dataTransfer.effectAllowed = "move";
   };
 
   const onFolderDragOver = (e: DragEvent, targetDir: string) => {
+    if (!canMove) return;
     if (!e.dataTransfer.types.includes(TREE_DRAG_MIME)) return;
     e.preventDefault();
     e.stopPropagation();
@@ -510,6 +526,7 @@ export function TreeView({
   };
 
   const onTreeDragOver = (e: DragEvent) => {
+    if (!canMove) return;
     if (!e.dataTransfer.types.includes(TREE_DRAG_MIME)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -517,6 +534,7 @@ export function TreeView({
   };
 
   const onFolderDrop = (e: DragEvent, targetDir: string) => {
+    if (!canMove) return;
     e.preventDefault();
     e.stopPropagation();
     setDragOverPath(null);
@@ -534,10 +552,12 @@ export function TreeView({
     () => ({
       getFocusedEntry: focusedEntry,
       onDelete: () => {
+        if (!canDelete) return;
         const entry = focusedEntry();
         if (entry) void remove(entry);
       },
       onRename: () => {
+        if (!canRename) return;
         const entry = focusedEntry();
         if (entry) rename(entry, rowAnchor(entry, treeRef.current));
       },
@@ -555,7 +575,7 @@ export function TreeView({
         if (action.type === "focus") {
           const next = flatList[action.index];
           if (!next) return;
-          treeSelection.select(action.path, focusedEntry()?.path ?? null, { range: extendSelection });
+          treeSelection.select(action.path, focusedEntry()?.path ?? null, { range: canMultiSelect && extendSelection });
           scrollRowIntoView(next.entry.path);
           requestAnimationFrame(() => treeRef.current?.querySelector<HTMLElement>(`[data-tree-path="${CSS.escape(next.entry.path)}"]`)?.focus());
           return;
@@ -573,7 +593,7 @@ export function TreeView({
         if (!dirs.get(path)?.loaded) loadDir(path);
       },
     }),
-    [focusedEntry, flatList, openFileFromTree, dirs, loadDir, setExpandedPersisted, expanded, selectionAnchor, selected],
+    [focusedEntry, flatList, openFileFromTree, dirs, loadDir, setExpandedPersisted, expanded, selectionAnchor, selected, canDelete, canRename],
   );
 
   useExplorerKeyboard(
@@ -593,22 +613,21 @@ export function TreeView({
       width: 0,
       height: 0,
     };
-    const items: ContextMenuItem[] = [
-      { type: "button", label: "New File", onClick: () => void newFile(menu.dir) },
-      { type: "button", label: "New Folder", onClick: () => newFolder(menu.dir, clickAnchor) },
-    ];
+    const items: ContextMenuItem[] = [];
+    if (canCreateFile) items.push({ type: "button", label: "New File", onClick: () => void newFile(menu.dir) });
+    if (canCreateDirectory) items.push({ type: "button", label: "New Folder", onClick: () => newFolder(menu.dir, clickAnchor) });
     if (!menu.entry) return items;
 
 
     items.push({ type: "separator" });
-    if (selected.size <= 1) {
+    if (canRename && selected.size <= 1) {
       items.push({
         type: "button",
         label: "Rename",
         onClick: () => rename(menu.entry!, clickAnchor),
       });
     }
-    items.push({
+    if (canDelete) items.push({
       type: "button",
       label: selected.size > 1 ? `Delete ${selected.size} items` : "Delete",
       onClick: () => void remove(menu.entry!),
@@ -632,7 +651,7 @@ export function TreeView({
       });
     }
     return items;
-  }, [menu, selected, tabId, rootPath, dirs]);
+  }, [menu, selected, tabId, rootPath, dirs, canCreateFile, canCreateDirectory, canRename, canDelete]);
 
   return (
     <div
@@ -641,16 +660,16 @@ export function TreeView({
       tabIndex={0}
       role="tree"
       aria-label="Files"
-      aria-multiselectable="true"
+      aria-multiselectable={canMultiSelect}
       onClick={() => treeSelection.clear()}
       onContextMenu={(e) => {
         e.preventDefault();
         setMenu({ x: e.clientX, y: e.clientY, dir: "", entry: null });
       }}
-      onDragOver={onTreeDragOver}
-      onDrop={(e) => onFolderDrop(e, "")}
+      onDragOver={canMove ? onTreeDragOver : undefined}
+      onDrop={canMove ? (e) => onFolderDrop(e, "") : undefined}
     >
-      <div className="tree-view-rows" onDragOver={onTreeDragOver} onDrop={(e) => onFolderDrop(e, "")}>
+      <div className="tree-view-rows" onDragOver={canMove ? onTreeDragOver : undefined} onDrop={canMove ? (e) => onFolderDrop(e, "") : undefined}>
         <EditorTreeVirtualList
           projection={projection}
           itemKey={({ entry }) => entry.path}
@@ -671,12 +690,12 @@ export function TreeView({
             dropTarget={dragOverPath === entry.path}
             showGuides
             tabIndex={(keyboardFocusPath ?? selectionAnchor ?? selectedPath ?? [...selected][0] ?? flatList[0]?.entry.path) === entry.path ? 0 : -1}
-            onDragStart={(e) => onEntryDragStart(e, entry)}
-            onDragOver={(e) => {
+            onDragStart={canMove ? (e) => onEntryDragStart(e, entry) : undefined}
+            onDragOver={canMove ? (e) => {
               if (entry.is_dir) onFolderDragOver(e, entry.path);
               else onTreeDragOver(e);
-            }}
-            onDrop={entry.is_dir ? (e) => onFolderDrop(e, entry.path) : (e) => onFolderDrop(e, dirOf(entry.path))}
+            } : undefined}
+            onDrop={canMove ? (entry.is_dir ? (e) => onFolderDrop(e, entry.path) : (e) => onFolderDrop(e, dirOf(entry.path))) : undefined}
             onClick={(e) => {
               e.stopPropagation();
               handleRowClick(e, entry);

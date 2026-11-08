@@ -8,7 +8,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, EditorMarkdownEditor, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
+import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsOperation, EditorMarkdownEditor, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -90,7 +90,8 @@ async function resolveWikiLinkTarget(provider: LocalProvider, target: string): P
     }
   }
   const created = `${base}.md`;
-  const item = await provider.create(null, "file", created);
+  if (!editorSupportsOperation(provider, "createFile")) throw new Error("File creation is not supported by this provider");
+  const item = await provider.create!(null, "file", created);
   return item.path;
 }
 
@@ -299,7 +300,8 @@ export function EditorContent({
               const parentPath = slash < 0 ? "" : path.slice(0, slash);
               const parent = parentPath ? await resolveEditorTreePath(editorProvider, parentPath) : null;
               const name = slash < 0 ? path : path.slice(slash + 1);
-              item = await editorProvider.create(parent?.itemId ?? null, "file", name);
+              if (!editorSupportsOperation(editorProvider, "createFile")) throw new Error("File creation is not supported by this provider");
+              item = await editorProvider.create!(parent?.itemId ?? null, "file", name);
             }
             targetSession = await editorProvider.openDocument(item);
             requestViewStateMigration(editorDocumentKey(targetSession.item));
@@ -514,8 +516,8 @@ export function EditorContent({
     const sourcePath = pathRef.current;
     try {
       if (autoSaveRef.current && dirtyRef.current) await saveNow(view, sourcePath);
-      if (!target.currentItem || !editorProvider.rename) throw new Error("Renaming is not supported by this provider");
-      await editorProvider.rename(target.currentItem, target.name);
+      if (!target.currentItem || !editorSupportsOperation(editorProvider, "rename")) throw new Error("Renaming is not supported by this provider");
+      await editorProvider.rename!(target.currentItem, target.name);
       skipPathLoadRef.current = targetPath;
       pathRef.current = targetPath;
       onAssignPathRef.current(targetPath);
@@ -632,7 +634,7 @@ export function EditorContent({
               outlineItems={editorOutlineEntries(outline)}
               outlineKey={documentCacheKey}
               onOutlineNavigate={(position) => { const view = viewRef.current; if (view) jumpToPos(view, position); }}
-              title={<EditorMarkdownTitle path={filePath} title={markdownTitleFor(filePath)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} onStartEditing={enterTitleEdit} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { setTitleEditing(false); setTitleError(null); }} />}
+              title={<EditorMarkdownTitle path={filePath} title={markdownTitleFor(filePath)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} onStartEditing={editorSupportsOperation(editorProvider, "rename") ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { setTitleEditing(false); setTitleError(null); }} />}
               onBackgroundClick={onScrollContainerClick}
               surfaceContainerClassName="md-editor"
               surfaceContainerStyle={editorFontStyle}

@@ -9,7 +9,7 @@ interface Props {
   error: string | null;
   inputRef: RefObject<HTMLInputElement | null>;
   trailing?: ReactNode;
-  onStartEditing: () => void;
+  onStartEditing?: () => void;
   onChange: (value: string) => void;
   onCommit: () => void;
   onCancel: () => void;

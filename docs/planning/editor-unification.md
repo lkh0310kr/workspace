@@ -181,6 +181,8 @@ TextSurface는 host가 전달한 class 외에 공통 `.editor-text-surface` root
 
 공통 dirty-document registry는 브라우저 confirm 전역을 호출하지 않는다. 탭 닫기와 파일 삭제 확인 문구는 공통으로 만들고, 실제 확인 UI는 Workspace/PKMS host가 주입한다.
 
+`editorSupportsOperation(provider, operation)`은 provider가 capability로 선언하고 실제 method도 구현한 경우에만 명령을 허용한다. 두 tree host는 미지원 create/rename/move/delete를 메뉴·toolbar·keyboard·drag 경로에서 숨기거나 거부하고, PKMS는 미지원 명령을 legacy file-action 경로로 우회하지 않는다. `multiSelect`도 click modifier, range navigation과 tree ARIA 상태에 반영한다.
+
 Quick Open도 두 host가 파일 목록을 직접 취합·필터링하지 않고 provider의 fuzzy name search를 사용한다. Workspace provider는 전체 로컬 파일 후보를, PKMS provider는 현재 로드된 저장소 파일 후보를 검색한다. 공통 dialog는 검색 중 이전 후보를 Enter로 열지 않는다.
 
 공통 트리 virtual list는 tree root 아래 `group`으로 노출된다. Workspace root도 PKMS처럼 multi-select tree semantics를 제공하고, 방향키 이동 시 다음 선택 행에 DOM focus를 맞춘다.

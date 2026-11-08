@@ -17,12 +17,14 @@ interface FileTreeListProps {
   loadingFolders: Set<string>;
   busy: boolean;
   loading: boolean;
+  canMove: boolean;
+  canMultiSelect: boolean;
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   onScroll: (scrollTop: number) => void;
   onSetDropTarget: (path: string | null) => void;
   onDropItems: (paths: string[], destination: string) => void;
   onFocusPath: (path: string) => void;
-  onDragStart: (file: FileRecord, index: number, event: DragEvent<HTMLButtonElement>) => void;
+  onDragStart?: (file: FileRecord, index: number, event: DragEvent<HTMLButtonElement>) => void;
   onContextMenu: (file: FileRecord, event: MouseEvent<HTMLButtonElement>) => void;
   onSelectRow: (path: string, index: number, additive: boolean, range: boolean) => void;
   onClearSelection: () => void;
@@ -44,6 +46,8 @@ export function FileTreeList({
   loadingFolders,
   busy,
   loading,
+  canMove,
+  canMultiSelect,
   onKeyDown,
   onScroll,
   onSetDropTarget,
@@ -67,7 +71,7 @@ export function FileTreeList({
       ref={treeRef}
       className={`file-list file-tree${dropTarget === "" ? " tree-root-drop" : ""}`}
       role="tree"
-      aria-multiselectable="true"
+      aria-multiselectable={canMultiSelect}
       aria-label="Repository files"
       aria-busy={busy}
       onKeyDown={onKeyDown}
@@ -76,16 +80,16 @@ export function FileTreeList({
         if (event.target === event.currentTarget) onClearSelection();
       }}
       onScroll={(event) => onScroll(event.currentTarget.scrollTop)}
-      onDragOver={(event) => {
+      onDragOver={canMove ? (event) => {
         event.preventDefault();
         if (event.target === event.currentTarget) onSetDropTarget("");
-      }}
-      onDragLeave={(event) => {
+      } : undefined}
+      onDragLeave={canMove ? (event) => {
         if (event.target === event.currentTarget) onSetDropTarget(null);
-      }}
-      onDrop={(event) => {
+      } : undefined}
+      onDrop={canMove ? (event) => {
         if (event.target === event.currentTarget) handleDrop(event, "");
-      }}
+      } : undefined}
     >
       <EditorTreeVirtualList
         projection={projection}
@@ -109,29 +113,30 @@ export function FileTreeList({
           dropTarget={dropTarget === file.path}
           tabIndex={focusedPath === file.path || (!focusedPath && index === 0) ? 0 : -1}
           onFocus={() => onFocusPath(file.path)}
-          onDragStart={(event) => onDragStart(file, index, event)}
-          onDragOver={(event) => {
+          onDragStart={onDragStart ? (event) => onDragStart(file, index, event) : undefined}
+          onDragOver={canMove ? (event) => {
             if (file.kind !== "folder") return;
             event.preventDefault();
             event.stopPropagation();
             event.dataTransfer.dropEffect = "move";
             onSetDropTarget(file.path);
-          }}
-          onDragLeave={(event) => {
+          } : undefined}
+          onDragLeave={canMove ? (event) => {
             if (file.kind === "folder" && !event.currentTarget.contains(event.relatedTarget as Node)) onSetDropTarget(null);
-          }}
-          onDrop={(event) => {
+          } : undefined}
+          onDrop={canMove ? (event) => {
             if (file.kind === "folder") handleDrop(event, file.path);
-          }}
+          } : undefined}
           onContextMenu={(event) => {
             event.preventDefault();
             event.currentTarget.focus();
             onContextMenu(file, event);
           }}
           onClick={(event) => {
-            const additive = event.metaKey || event.ctrlKey;
-            if (additive || event.shiftKey) {
-              onSelectRow(file.path, index, additive, event.shiftKey);
+            const additive = canMultiSelect && (event.metaKey || event.ctrlKey);
+            const range = canMultiSelect && event.shiftKey;
+            if (additive || range) {
+              onSelectRow(file.path, index, additive, range);
               return;
             }
             onSelectRow(file.path, index, false, false);

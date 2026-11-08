@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsOperation, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -140,7 +140,6 @@ export default function Home() {
   const selectedTreePaths = treeSelection.selectedPaths;
   const setSelectedTreePaths = treeSelection.setSelectedPaths;
   const setSelectionAnchorPath = treeSelection.setAnchorPath;
-  const selectTreeRow = treeSelection.selectRow;
   const [cutTreePaths, setCutTreePaths] = useState<Set<string>>(() => new Set());
   const socket = useRef<PKMSRealtimeSocket | null>(null);
   const treeRef = useRef<HTMLElement>(null);
@@ -328,6 +327,14 @@ export default function Home() {
       },
     },
   }) : null, [activeWorkspace?.id, getPkmsFileById, getFiles, refreshDirectory, refreshOpenEditorItemMetadata]);
+  const canCreateFile = editorSupportsOperation(editorProvider, "createFile");
+  const canCreateDirectory = editorSupportsOperation(editorProvider, "createDirectory");
+  const canRename = editorSupportsOperation(editorProvider, "rename");
+  const canDelete = editorSupportsOperation(editorProvider, "delete");
+  const canMove = Boolean(editorProvider?.capabilities.dragMove && editorSupportsOperation(editorProvider, "move"));
+  const canMultiSelect = Boolean(editorProvider?.capabilities.multiSelect);
+  const selectTreeRow = (path: string, index: number, additive = false, range = false) =>
+    treeSelection.selectRow(path, index, canMultiSelect && additive, canMultiSelect && range);
   useEffect(() => {
     if (!editorProvider) return;
     const providerId = editorProvider.id;
@@ -892,8 +899,8 @@ export default function Home() {
     if (!provider) { setError("PKMS editor is not ready"); return; }
     try {
       const { parent, name } = await nextEditorItemNameInDirectory(provider, parentPath, "untitled", ".md");
-      if (!provider.create) throw new EditorProviderError("unsupported", "PKMS note creation is unavailable");
-      const item = await provider.create(parent?.itemId ?? null, "file", name);
+      if (!editorSupportsOperation(provider, "createFile")) throw new EditorProviderError("unsupported", "PKMS note creation is unavailable");
+      const item = await provider.create!(parent?.itemId ?? null, "file", name);
       const file: FileRecord = { id: item.itemId, path: item.path, kind: "markdown", revision: 0, content: "# Untitled\n\n" };
       await openFile(file);
     } catch (cause) {
@@ -907,8 +914,8 @@ export default function Home() {
     if (!provider) { setError("PKMS editor is not ready"); return; }
     try {
       const parent = await resolveEditorTreeDirectory(provider, parentPath, "Parent folder no longer exists");
-      if (!provider.create) throw new EditorProviderError("unsupported", "PKMS folder creation is unavailable");
-      await provider.create(parent?.itemId ?? null, "directory", name);
+      if (!editorSupportsOperation(provider, "createDirectory")) throw new EditorProviderError("unsupported", "PKMS folder creation is unavailable");
+      await provider.create!(parent?.itemId ?? null, "directory", name);
       if (parentPath) setExpandedFolders((current) => new Set(current).add(parentPath));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not create PKMS folder");
@@ -966,12 +973,12 @@ export default function Home() {
       if (row) setSelectionAnchorPath(row.file.path);
       return;
     }
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "x") {
+    if (canMove && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "x") {
       event.preventDefault();
       setCutTreePaths(new Set(editorTreeSelectionRoots(commandFiles, new Set(commandFiles.map((file) => file.path)), (file) => file.kind === "folder").map((file) => file.path)));
       return;
     }
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v" && cutTreePaths.size) {
+    if (canMove && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v" && cutTreePaths.size) {
       event.preventDefault();
       const target = selectedFiles.length === 1 && selectedFiles[0].kind === "folder"
         ? selectedFiles[0].path
@@ -986,10 +993,11 @@ export default function Home() {
     }));
     const keyAction = resolveEditorTreeKeyboardAction(event.key, navigationRows, row?.file.path ?? null, expandedFolders);
     if (keyAction?.type === "delete") {
-      if (commandFiles.length) { event.preventDefault(); void deleteThroughEditorProvider(commandFiles); }
+      if (canDelete && commandFiles.length) { event.preventDefault(); void deleteThroughEditorProvider(commandFiles); }
       return;
     }
     if (keyAction?.type === "rename" && row && selectedTreePaths.size === 1) {
+      if (!canRename) return;
       event.preventDefault();
       const selected = files.find((file) => selectedTreePaths.has(file.path));
       if (selected) beginTreeRename(selected);
@@ -1060,7 +1068,7 @@ export default function Home() {
     link.remove();
   };
 
-  const { updateFilePath, moveTreeItems, renameTreeItemTo, deleteTreeItems, openTreeItem } = useWorkspaceFileActions({
+  const { updateFilePath, moveTreeItems, deleteTreeItems, openTreeItem } = useWorkspaceFileActions({
     workspace: activeWorkspace, activeFile, currentFolder, files, expandedFolders,
     api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders,
     setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, confirm,
@@ -1087,12 +1095,12 @@ export default function Home() {
     delete: (items) => deleteTreeItems(items),
   };
   const moveThroughEditorProvider = async (items: FileRecord[], destination: string) => {
-    if (!editorProvider?.move) { await moveTreeItems(items, destination); return; }
+    if (!editorSupportsOperation(editorProvider, "move") || !editorProvider?.move) throw new EditorProviderError("unsupported", "Moving is not supported by this provider");
     const parent = await resolveEditorTreeDirectory(editorProvider, destination, "Destination folder no longer exists");
     await editorProvider.move(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })), parent?.itemId ?? null);
   };
   const deleteThroughEditorProvider = async (items: FileRecord[]) => {
-    if (!editorProvider?.delete) return deleteTreeItems(items);
+    if (!editorSupportsOperation(editorProvider, "delete") || !editorProvider?.delete) throw new EditorProviderError("unsupported", "Deletion is not supported by this provider");
     return editorProvider.delete(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })));
   };
   const deleteActiveFileThroughEditorProvider = () => {
@@ -1103,7 +1111,7 @@ export default function Home() {
     if (folder) void deleteThroughEditorProvider([folder]);
   };
   const renameThroughEditorProvider = async (file: FileRecord, name: string) => {
-    if (!editorProvider?.rename) return renameTreeItemTo(file, name);
+    if (!editorSupportsOperation(editorProvider, "rename") || !editorProvider?.rename) throw new EditorProviderError("unsupported", "Renaming is not supported by this provider");
     await editorProvider.rename({ providerId: editorProvider.id, itemId: file.id }, name);
   };
   const renameActiveFileThroughEditorProvider = async () => {
@@ -1122,7 +1130,7 @@ export default function Home() {
   };
   const commitTitleRename = async () => {
     const file = activeFile;
-    if (!file || titleEditFileIdRef.current !== file.id || !editorProvider?.rename) return;
+    if (!file || titleEditFileIdRef.current !== file.id || !editorSupportsOperation(editorProvider, "rename") || !editorProvider?.rename) return;
     const validation = validateTitleInput(titleDraft);
     if ("error" in validation) {
       if (validation.error === "empty") {
@@ -1145,7 +1153,7 @@ export default function Home() {
     }
     try {
       const target = await resolveMarkdownTitleRenameTarget(editorProvider, file.path, title);
-      if (!editorProvider.rename || !target.currentItem) throw new Error("Renaming is not supported by this provider");
+      if (!editorSupportsOperation(editorProvider, "rename") || !editorProvider.rename || !target.currentItem) throw new Error("Renaming is not supported by this provider");
       await editorProvider.rename(target.currentItem, target.name);
       if (activeFileStateRef.current?.id !== file.id) return;
       titleEditFileIdRef.current = null;
@@ -1199,13 +1207,13 @@ export default function Home() {
         {activeWorkspace && <>
           <div className="file-toolbar"><span className="eyebrow">Files</span><div className="toolbar-actions">
             <button className={`mini-button visibility-button${showFileFilters ? " active" : ""}`} title="File filter settings" aria-label="File filter settings" aria-expanded={showFileFilters} onClick={() => setShowFileFilters((open) => !open)}><AppIcon name="filter" /></button>
-            <button className="mini-button" title="New note" onClick={() => beginTreeCreation("file", toolbarCreationFolder)}><AppIcon name="filePlus" /></button>
-            <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}><AppIcon name="folderPlus" /></button>
+            {canCreateFile && <button className="mini-button" title="New note" onClick={() => beginTreeCreation("file", toolbarCreationFolder)}><AppIcon name="filePlus" /></button>}
+            {canCreateDirectory && <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}><AppIcon name="folderPlus" /></button>}
             <label className="mini-button upload-button" title="Upload file"><AppIcon name="upload" /><input type="file" onChange={(event) => { void uploadFile(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
-            {activeFile && <button className="mini-button" title="Rename" onClick={() => void renameActiveFileThroughEditorProvider()}><AppIcon name="pencil" /></button>}
-            {(selectedTreePaths.size > 0 || activeFile) && <button className="mini-button" title={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} aria-label={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} onClick={() => selectedTreePaths.size > 0 ? void deleteThroughEditorProvider(treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file)) : deleteActiveFileThroughEditorProvider()}><AppIcon name="trash" /></button>}
-            {!activeFile && currentFolder && <button className="mini-button" title="Rename folder" onClick={() => void renameCurrentFolderThroughEditorProvider()}><AppIcon name="pencil" /></button>}
-            {!activeFile && currentFolder && <button className="mini-button" title="Delete folder" onClick={deleteCurrentFolderThroughEditorProvider}><AppIcon name="trash" /></button>}
+            {canRename && activeFile && <button className="mini-button" title="Rename" onClick={() => void renameActiveFileThroughEditorProvider()}><AppIcon name="pencil" /></button>}
+            {canDelete && (selectedTreePaths.size > 0 || activeFile) && <button className="mini-button" title={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} aria-label={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} onClick={() => selectedTreePaths.size > 0 ? void deleteThroughEditorProvider(treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file)) : deleteActiveFileThroughEditorProvider()}><AppIcon name="trash" /></button>}
+            {canRename && !activeFile && currentFolder && <button className="mini-button" title="Rename folder" onClick={() => void renameCurrentFolderThroughEditorProvider()}><AppIcon name="pencil" /></button>}
+            {canDelete && !activeFile && currentFolder && <button className="mini-button" title="Delete folder" onClick={deleteCurrentFolderThroughEditorProvider}><AppIcon name="trash" /></button>}
           </div></div>
           {showFileFilters && <div className="file-filter-panel"><div className="file-filter-heading"><span>Ignored files</span><span className="filter-state">{showIgnoredFiles ? "Shown" : "Hidden"} · ⌘⇧.</span></div><label htmlFor="excluded-files">Exclude paths</label><textarea id="excluded-files" value={excludedPatterns} placeholder={"*.tmp\n**/drafts/**"} spellCheck={false} onChange={(event) => { const next = event.target.value; setExcludedPatterns(next); localStorage.setItem(`pkms:excluded-files:${activeWorkspace.id}`, next); }} /><p>Press ⌘⇧. to show ignored files</p></div>}
           <FileTreeList
@@ -1221,18 +1229,20 @@ export default function Home() {
             loadingFolders={loadingFolderPaths}
             busy={loadingFolder || loadingFolderPaths.size > 0}
             loading={loadingFolder}
+            canMove={canMove}
+            canMultiSelect={canMultiSelect}
             onKeyDown={handleTreeKeyDown}
             onScroll={persistTreeScroll}
             onSetDropTarget={setTreeDropTarget}
             onDropItems={(paths, destination) => void moveThroughEditorProvider(files.filter((file) => paths.includes(file.path)), destination)}
             onFocusPath={setFocusedTreePath}
-            onDragStart={(file, index, event) => {
+            onDragStart={canMove ? (file, index, event) => {
               const selected = selectedTreePaths.has(file.path) ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file) : [file];
               const roots = editorTreeSelectionRoots(selected, new Set(selected.map((entry) => entry.path)), (entry) => entry.kind === "folder");
               event.dataTransfer.setData("application/x-pkms-tree-paths", JSON.stringify(roots.map((entry) => entry.path)));
               event.dataTransfer.effectAllowed = "move";
               if (!selectedTreePaths.has(file.path)) selectTreeRow(file.path, index);
-            }}
+            } : undefined}
             onContextMenu={(file, event) => {
               setFocusedTreePath(file.path);
               if (!selectedTreePaths.has(file.path)) { setSelectedTreePaths(new Set([file.path])); setSelectionAnchorPath(file.path); }
@@ -1249,14 +1259,14 @@ export default function Home() {
             const menuItems: EditorMenuItem[] = [
               { type: "item", id: "open", label: file.kind === "folder" ? "Open folder" : "Open", onSelect: () => void openTreeItem(file) },
               ...(file.kind === "folder" ? [
-                { type: "item" as const, id: "new-note", label: "New note", onSelect: () => beginTreeCreation("file", file.path) },
-                { type: "item" as const, id: "new-folder", label: "New folder", onSelect: () => beginTreeCreation("folder", file.path) },
-                ...(cutMoveRoots.length ? [{ type: "item" as const, id: "paste", label: "Paste into folder", onSelect: () => void moveThroughEditorProvider(cutMoveRoots, file.path) }] : []),
-                ...(canMoveSelection ? [{ type: "item" as const, id: "move-selection", label: "Move selection here", onSelect: () => void moveThroughEditorProvider(contextMoveRoots, file.path) }] : []),
+                ...(canCreateFile ? [{ type: "item" as const, id: "new-note", label: "New note", onSelect: () => beginTreeCreation("file", file.path) }] : []),
+                ...(canCreateDirectory ? [{ type: "item" as const, id: "new-folder", label: "New folder", onSelect: () => beginTreeCreation("folder", file.path) }] : []),
+                ...(canMove && cutMoveRoots.length ? [{ type: "item" as const, id: "paste", label: "Paste into folder", onSelect: () => void moveThroughEditorProvider(cutMoveRoots, file.path) }] : []),
+                ...(canMove && canMoveSelection ? [{ type: "item" as const, id: "move-selection", label: "Move selection here", onSelect: () => void moveThroughEditorProvider(contextMoveRoots, file.path) }] : []),
               ] : []),
-              { type: "item", id: "cut", label: "Cut", onSelect: () => setCutTreePaths(new Set(contextMoveRoots.map((item) => item.path))) },
-              { type: "item", id: "rename", label: "Rename", onSelect: () => beginTreeRename(file) },
-              { type: "item", id: "delete", label: "Delete", danger: true, onSelect: () => void deleteThroughEditorProvider(selectedTreePaths.has(file.path) ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file) : [file]) },
+              ...(canMove ? [{ type: "item" as const, id: "cut", label: "Cut", onSelect: () => setCutTreePaths(new Set(contextMoveRoots.map((item) => item.path))) }] : []),
+              ...(canRename ? [{ type: "item" as const, id: "rename", label: "Rename", onSelect: () => beginTreeRename(file) }] : []),
+              ...(canDelete ? [{ type: "item" as const, id: "delete", label: "Delete", danger: true, onSelect: () => void deleteThroughEditorProvider(selectedTreePaths.has(file.path) ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file) : [file]) }] : []),
             ];
             return <EditorMenuList
               ref={treeContextMenuRef}
@@ -1313,7 +1323,7 @@ export default function Home() {
         />}
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <EditorMarkdownEditor
             actions={<EditorSearchButton active={searchOpen} onClick={() => { const view = markdownView.current; if (view) setSearchOpen(toggleEditorSearch(view)); }} />}
-            title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={enterTitleEdit} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
+            title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={canRename ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
             outlineItems={editorOutlineEntries(outlineItems)}
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(position) => requestAnimationFrame(() => editorNavigate.current?.(position))}
