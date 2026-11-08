@@ -164,10 +164,16 @@ export default function Home() {
     setSync,
     setNotice,
   });
+  const scheduleEditorAutoSave = useCallback((fileId: string, doc: Y.Doc) => {
+    scheduleAutoSave(fileId, doc, () => {
+      const session = pkmsEditorSessions.current.get(fileId);
+      return session ? session.save({ flushSync: false }) : saveDocument(fileId, doc, false);
+    });
+  }, [saveDocument, scheduleAutoSave]);
   const { openFile: openDocumentSession, clearActiveFile } = useDocumentSession({
     workspace: activeWorkspace, api, pathname: location.pathname, navigate, routedPath,
     documents: docs, activeDocument: activeRef, pending, socket, openSequence: openFileSequence, hydrating,
-    scheduleAutoSave, setCurrentFolder, setExpandedFolders, setActiveFile, setText, setOpeningFileId,
+    scheduleAutoSave: scheduleEditorAutoSave, setCurrentFolder, setExpandedFolders, setActiveFile, setText, setOpeningFileId,
     setError, setSaving, setSidebarOpen, setNotice,
   });
   const openDocumentSessionRef = useRef(openDocumentSession);
@@ -299,10 +305,12 @@ export default function Home() {
     const tabs = visibleOpenDocuments;
     const index = tabs.findIndex((tab) => tab.file.id === fileId);
     if (index < 0) return;
+    const session = pkmsEditorSessions.current.get(fileId);
+    const savePhase = session?.snapshot().savePhase;
+    if (savePhase && savePhase !== "clean" && !window.confirm("This note has unsaved changes. Close it anyway?")) return;
     const closingActive = activeFile?.id === fileId;
     const nextTab = tabs[index + 1] ?? tabs[index - 1] ?? null;
     setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === fileId)));
-    const session = pkmsEditorSessions.current.get(fileId);
     if (session) {
       pkmsEditorSessions.current.delete(fileId);
       void session.close();
@@ -510,12 +518,15 @@ export default function Home() {
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s" && activeRef.current.file?.kind === "markdown") {
         event.preventDefault();
-        saveActiveFileNow();
+        const fileId = activeRef.current.file.id;
+        const session = pkmsEditorSessions.current.get(fileId);
+        if (session) void session.save().catch((cause) => setError(cause instanceof Error ? cause.message : "Could not save PKMS document"));
+        else saveActiveFileNow();
       }
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [activeWorkspace, saveActiveFileNow]);
+  }, [activeWorkspace, saveActiveFileNow, setError]);
 
   const workspaceRef = useRef(activeWorkspace);
   const userRef = useRef(user);
@@ -1025,7 +1036,10 @@ export default function Home() {
           }}
         />}
         {activeWorkspace && visibleOpenDocuments.length > 0 && <EditorDocumentTabBar
-          tabs={visibleOpenDocuments.map(({ file }) => ({ id: file.id, label: entryName(file.path), title: file.path, dirty: file.id === activeFile?.id && (saving || notice === "Unsaved") }))}
+          tabs={visibleOpenDocuments.map(({ file }) => {
+            const phase = pkmsEditorSessions.current.get(file.id)?.snapshot().savePhase;
+            return { id: file.id, label: entryName(file.path), title: file.path, dirty: phase ? phase !== "clean" : file.id === activeFile?.id && (saving || notice === "Unsaved") };
+          })}
           activeId={activeFile?.id ?? null}
           onSelect={(id) => { const tab = visibleOpenDocuments.find((item) => item.file.id === id); if (tab) void openFile(tab.file); }}
           onClose={closeOpenDocument}

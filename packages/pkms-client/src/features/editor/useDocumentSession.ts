@@ -27,7 +27,7 @@ interface Options {
   socket: MutableRefObject<PKMSRealtimeSocket | null>;
   openSequence: MutableRefObject<number>;
   hydrating: MutableRefObject<boolean>;
-  scheduleAutoSave: (fileId: string, doc: Y.Doc) => void;
+  scheduleAutoSave: (fileId: string, doc: Y.Doc, save?: () => Promise<unknown>) => void;
   setCurrentFolder: Dispatch<SetStateAction<string>>;
   setExpandedFolders: Dispatch<SetStateAction<Set<string>>>;
   setActiveFile: Dispatch<SetStateAction<FileRecord | null>>;

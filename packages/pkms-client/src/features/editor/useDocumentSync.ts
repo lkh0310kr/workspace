@@ -57,7 +57,7 @@ export function useDocumentSync({ workspaceId, activeDocument, request, setSavin
     } finally { setSaving(false); }
   }, [activeDocument, request, setError, setNotice, setSaving, setSync, workspaceId]);
 
-  const scheduleAutoSave = useCallback((fileId: string, doc: Y.Doc) => {
+  const scheduleAutoSave = useCallback((fileId: string, doc: Y.Doc, save?: () => Promise<unknown>) => {
     if (!workspaceId) return;
     const key = `${workspaceId}:${fileId}`;
     setNotice("Unsaved");
@@ -65,7 +65,7 @@ export function useDocumentSync({ workspaceId, activeDocument, request, setSavin
     if (previous !== undefined) window.clearTimeout(previous);
     const timer = window.setTimeout(() => {
       autoSaveTimers.current.delete(key);
-      void saveMarkdownToGitHub(fileId, doc, false);
+      void (save ? save() : saveMarkdownToGitHub(fileId, doc, false));
     }, 5_000);
     autoSaveTimers.current.set(key, timer);
   }, [saveMarkdownToGitHub, setNotice, workspaceId]);

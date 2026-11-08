@@ -98,7 +98,8 @@ export interface EditorDocumentSession {
   subscribe(listener: (snapshot: EditorDocumentSnapshot) => void): () => void;
   replaceText(text: string, baseRevision: string): Promise<void>;
   /** Flushes pending durable writes. */
-  save(): Promise<EditorDocumentSnapshot>;
+  /** Flush durable provider writes. `flushSync: false` may leave a secondary mirror pending. */
+  save(options?: { flushSync?: boolean }): Promise<EditorDocumentSnapshot>;
   /** Releases provider subscriptions and session resources. */
   close(): Promise<void>;
 }

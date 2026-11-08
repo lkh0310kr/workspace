@@ -4,7 +4,7 @@ import type { FileRecord } from "../../domain/types";
 import { entryName } from "../../domain/fileTree";
 import type { PkmsSaveResult } from "./useDocumentSync";
 
-export type PkmsDocumentSave = (fileId: string, doc: Y.Doc) => Promise<PkmsSaveResult>;
+export type PkmsDocumentSave = (fileId: string, doc: Y.Doc, flushToGitHub?: boolean) => Promise<PkmsSaveResult>;
 
 function itemFor(workspaceId: string, file: FileRecord): EditorTreeItem {
   return {
@@ -86,17 +86,19 @@ export function createPkmsYjsEditorSession(
         if (value.length - prefix - suffix) text.insert(prefix, value.slice(prefix, value.length - suffix));
       }, origin);
     },
-    async save() {
+    async save(options = {}) {
       if (closed) throw new Error("Document session is closed");
       if (file.kind !== "markdown") return snapshot();
+      const savedSequence = sequence;
       phase = "saving";
       syncPhase = "pending";
       message = undefined;
       emit();
       try {
-        const result = await saveDocument(file.id, doc);
+        const result = await saveDocument(file.id, doc, options.flushSync !== false);
         syncPhase = result.syncPhase;
-        phase = result.savePhase;
+        phase = sequence === savedSequence ? result.savePhase : "dirty";
+        if (sequence !== savedSequence) syncPhase = "pending";
         message = result.message;
         if (phase === "error") throw new Error(message ?? "Could not save PKMS document");
       } catch (error) {
