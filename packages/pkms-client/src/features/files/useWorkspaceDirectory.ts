@@ -180,12 +180,14 @@ export function useWorkspaceDirectory(
     }
   }, [activeWorkspace, api, persist, replaceDirectory, reportError, setLoadedFolders]);
 
+  const getFiles = useCallback(() => filesRef.current, []);
+
   return {
     currentFolder, setCurrentFolder, files, setFiles,
     loadingFolder, setLoadingFolder,
     loadingFolderPaths, setLoadingFolderPaths,
     expandedFolders, setExpandedFolders,
     loadedFolders: loadedFoldersState, setLoadedFolders,
-    toggleDirectory, restoreWorkspaceTree,
+    toggleDirectory, restoreWorkspaceTree, refreshDirectory, getFiles,
   };
 }

@@ -2,7 +2,9 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { EditorDocumentTabBar } from "@workspace/editor";
+import { EditorDocumentTabBar, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
+import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
+import { createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
 import { flushQueuedWorkspaceAssets, flushQueuedWorkspaceOperations, WORKSPACE_OPERATION_QUEUE_EVENT } from "./client/workspaceOperations";
@@ -39,6 +41,14 @@ function attachmentContentType(path: string, contentType: string): string {
 
 export function meta() {
   return [{ title: "PKMS — Markdown workspace" }];
+}
+
+interface PkmsTreeOperations {
+  createFile: (parentPath: string, name: string) => Promise<FileRecord | undefined>;
+  createFolder: (parentPath: string, name: string) => Promise<FileRecord | undefined>;
+  rename: (file: FileRecord, path: string) => Promise<void>;
+  move: (files: FileRecord[], parentPath: string) => Promise<void>;
+  delete: (files: FileRecord[]) => Promise<void>;
 }
 
 export default function Home() {
@@ -94,6 +104,8 @@ export default function Home() {
     setLoadedFolders,
     toggleDirectory,
     restoreWorkspaceTree,
+    refreshDirectory,
+    getFiles,
   } = useWorkspaceDirectory(activeWorkspace, api, setError);
   const treeFilesRef = useRef(files);
   const activeFileStateRef = useRef(activeFile);
@@ -121,13 +133,15 @@ export default function Home() {
   const editorNavigate = useRef<((line: number) => void) | null>(null);
   const routedPath = useRef<string | null>(null);
   const openFileSequence = useRef(0);
+  const editorNavigationRef = useRef<FileNavigation>("none");
+  const pkmsEditorSessions = useRef(new Map<string, EditorDocumentSession>());
   const openFileRef = useRef<((file: FileRecord, historyAction?: FileNavigation) => Promise<void>) | null>(null);
   const docs = useRef(new Map<string, { doc: Y.Doc; persistence: IndexeddbPersistence; observer?: () => void; updateHandler?: (update: Uint8Array, origin: unknown) => void }>());
   const activeRef = useRef<{ file: FileRecord | null; doc: Y.Doc | null; text: Y.Text | null; value: string }>({ file: null, doc: null, text: null, value: "" });
   const pending = useRef(new Map<string, RealtimeMessage>());
   const hydrating = useRef(false);
   const registerEditorNavigator = useCallback((navigate: ((line: number) => void) | null) => { editorNavigate.current = navigate; }, []);
-  const { scheduleAutoSave, saveActiveFileNow } = useDocumentSync({
+  const { scheduleAutoSave, saveActiveFileNow, saveDocument } = useDocumentSync({
     workspaceId: activeWorkspace?.id,
     activeDocument: activeRef,
     request: api,
@@ -142,6 +156,84 @@ export default function Home() {
     scheduleAutoSave, setCurrentFolder, setExpandedFolders, setActiveFile, setText, setOpeningFileId,
     setError, setSaving, setSidebarOpen, setNotice,
   });
+  const openDocumentSessionRef = useRef(openDocumentSession);
+  const saveDocumentRef = useRef(saveDocument);
+  const treeOperationsRef = useRef<PkmsTreeOperations>({
+    createFile: async () => undefined,
+    createFolder: async () => undefined,
+    rename: async () => { throw new Error("PKMS tree is not ready"); },
+    move: async () => { throw new Error("PKMS tree is not ready"); },
+    delete: async () => { throw new Error("PKMS tree is not ready"); },
+  });
+  openDocumentSessionRef.current = openDocumentSession;
+  saveDocumentRef.current = saveDocument;
+  const treeProviderListeners = useRef(new Set<(paths: readonly string[]) => void>());
+  const editorProvider = useMemo(() => activeWorkspace ? createPkmsEditorProvider({
+    workspaceId: activeWorkspace.id,
+    listDirectory: async (path) => {
+      await refreshDirectory(path, true);
+      return getFiles().filter((file) => parentPath(file.path) === path);
+    },
+    getFile: async (fileId) => getFiles().find((file) => file.id === fileId) ?? null,
+    openSession: async (file) => {
+      await openDocumentSessionRef.current(file, editorNavigationRef.current);
+      const current = activeRef.current;
+      if (!current.doc || !current.text) throw new Error("Could not activate the PKMS document");
+      return createPkmsYjsEditorSession(activeWorkspace.id, file, current.doc, current.text, saveDocumentRef.current);
+    },
+    subscribeTree: (listener) => {
+      treeProviderListeners.current.add(listener);
+      return () => treeProviderListeners.current.delete(listener);
+    },
+    listLoadedFiles: getFiles,
+    capabilities: { operations: new Set(["createFile", "createDirectory", "rename", "move", "delete"]) },
+    operations: {
+      async create(parentId, kind, name) {
+        const parent = parentId ? getFiles().find((file) => file.id === parentId) : null;
+        const parentPathValue = parent?.path ?? "";
+        const created = kind === "directory"
+          ? await treeOperationsRef.current.createFolder(parentPathValue, name)
+          : await treeOperationsRef.current.createFile(parentPathValue, name);
+        if (!created) throw new Error("Could not create PKMS item");
+        return pkmsItemForFile(activeWorkspace.id, created);
+      },
+      async rename(ref: EditorItemRef, name) {
+        const file = getFiles().find((item) => item.id === ref.itemId);
+        if (!file) throw new Error("PKMS item no longer exists");
+        const parent = parentPath(file.path);
+        const path = `${parent ? `${parent}/` : ""}${name}`;
+        await treeOperationsRef.current.rename(file, path);
+        return pkmsItemForFile(activeWorkspace.id, { ...file, path });
+      },
+      async move(refs, parentId) {
+        const moving = refs.flatMap((ref) => {
+          const file = getFiles().find((item) => item.id === ref.itemId);
+          return file ? [file] : [];
+        });
+        const parent = parentId ? getFiles().find((file) => file.id === parentId) : null;
+        await treeOperationsRef.current.move(moving, parent?.path ?? "");
+      },
+      async delete(refs) {
+        const deleting = refs.flatMap((ref) => {
+          const file = getFiles().find((item) => item.id === ref.itemId);
+          return file ? [file] : [];
+        });
+        await treeOperationsRef.current.delete(deleting);
+      },
+    },
+  }) : null, [activeWorkspace?.id, getFiles, refreshDirectory]);
+  useEffect(() => {
+    if (!editorProvider) return;
+    const providerId = editorProvider.id;
+    return () => {
+      for (const [fileId, session] of pkmsEditorSessions.current) {
+        if (session.item.providerId === providerId) {
+          void session.close();
+          pkmsEditorSessions.current.delete(fileId);
+        }
+      }
+    };
+  }, [editorProvider]);
   const openFile = useCallback(async (file: FileRecord, historyAction: FileNavigation = "push") => {
     if (activeWorkspace) {
       setOpenDocuments((current) => {
@@ -152,8 +244,22 @@ export default function Home() {
         return next;
       });
     }
+    if (editorProvider && file.kind === "markdown") {
+      const existingSession = pkmsEditorSessions.current.get(file.id);
+      if (existingSession) await openDocumentSession(file, historyAction);
+      else {
+        editorNavigationRef.current = historyAction;
+        try {
+          const session = await editorProvider.openDocument({ providerId: editorProvider.id, itemId: file.id });
+          pkmsEditorSessions.current.set(file.id, session);
+        } finally {
+          editorNavigationRef.current = "none";
+        }
+      }
+      return;
+    }
     await openDocumentSession(file, historyAction);
-  }, [activeWorkspace, openDocumentSession]);
+  }, [activeWorkspace, editorProvider, openDocumentSession]);
   const visibleOpenDocuments = useMemo(
     () => activeWorkspace ? openDocuments.filter((tab) => tab.workspaceId === activeWorkspace.id) : [],
     [activeWorkspace?.id, openDocuments],
@@ -165,6 +271,11 @@ export default function Home() {
     const closingActive = activeFile?.id === fileId;
     const nextTab = tabs[index + 1] ?? tabs[index - 1] ?? null;
     setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === fileId)));
+    const session = pkmsEditorSessions.current.get(fileId);
+    if (session) {
+      pkmsEditorSessions.current.delete(fileId);
+      void session.close();
+    }
     if (!closingActive) return;
     if (nextTab) void openFile(nextTab.file, "replace");
     else {
@@ -183,6 +294,9 @@ export default function Home() {
       return updated ? { ...tab, file: updated } : tab;
     }));
   }, [activeWorkspace?.id, files]);
+  useEffect(() => {
+    for (const listener of treeProviderListeners.current) listener([""]);
+  }, [files]);
   const handleRealtimeMessage = useRealtimeMessages({
     workspaceId: activeWorkspace?.id ?? "",
     documents: docs,
@@ -686,9 +800,23 @@ export default function Home() {
     }
   };
 
-  const quickOpenResults = useMemo(() => [...new Map(visibleFiles.filter((file) => file.kind !== "folder").map((file) => [file.id, file])).values()]
-    .filter((file) => !quickQuery.trim() || file.path.toLocaleLowerCase().includes(quickQuery.trim().toLocaleLowerCase()))
-    .slice(0, 30), [quickQuery, visibleFiles]);
+  const [quickOpenResults, setQuickOpenResults] = useState<FileRecord[]>([]);
+  useEffect(() => {
+    if (!editorProvider || !quickOpen) { setQuickOpenResults([]); return; }
+    let current = true;
+    void editorProvider.search(quickQuery.trim(), {
+      target: "names", caseSensitive: false, regex: false, wholeWord: false,
+    }).then((results) => {
+      if (!current) return;
+      const visibleIds = new Set(visibleFiles.filter((file) => file.kind !== "folder").map((file) => file.id));
+      const byId = new Map(getFiles().map((file) => [file.id, file]));
+      setQuickOpenResults(results.flatMap((result) => {
+        const file = byId.get(result.item.itemId);
+        return file && visibleIds.has(file.id) ? [file] : [];
+      }).slice(0, 30));
+    }).catch(() => { if (current) setQuickOpenResults([]); });
+    return () => { current = false; };
+  }, [editorProvider, getFiles, quickOpen, quickQuery, visibleFiles]);
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
   const contextMoveRoots = treeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)));
   const cutMoveRoots = treeSelectionRoots(files.filter((file) => cutTreePaths.has(file.path)), cutTreePaths);
@@ -702,11 +830,18 @@ export default function Home() {
     link.remove();
   };
 
-  const { moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItemTo, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder } = useWorkspaceFileActions({
+  const { updateFilePath, moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItemTo, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder } = useWorkspaceFileActions({
     workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders,
     api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders,
     setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, requestName, confirm,
   });
+  treeOperationsRef.current = {
+    createFile: (directory, name) => createNote(directory, name, false),
+    createFolder,
+    rename: updateFilePath,
+    move: moveTreeItems,
+    delete: deleteTreeItems,
+  };
 
   if (loading) return <main className="loading-screen"><div className="brand-mark">P</div><span>Opening your workspace…</span></main>;
   if (!user) return (

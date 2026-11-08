@@ -1,6 +1,7 @@
 import { useCallback, useRef, type Dispatch, type SetStateAction } from "react";
 import * as Y from "yjs";
 import type { FileRecord, SyncStatus } from "../../domain/types";
+import type { EditorSyncPhase } from "@workspace/editor";
 import { createOperationId, toBase64 } from "../../domain/encoding";
 
 interface ActiveDocument {
@@ -21,9 +22,9 @@ interface Options {
 export function useDocumentSync({ workspaceId, activeDocument, request, setSaving, setError, setSync, setNotice }: Options) {
   const autoSaveTimers = useRef(new Map<string, number>());
 
-  const saveMarkdownToGitHub = useCallback(async (fileId: string, doc: Y.Doc, flushToGitHub = true) => {
+  const saveMarkdownToGitHub = useCallback(async (fileId: string, doc: Y.Doc, flushToGitHub = true): Promise<EditorSyncPhase> => {
     const targetWorkspaceId = workspaceId;
-    if (!targetWorkspaceId) return;
+    if (!targetWorkspaceId) return "blocked";
     setSaving(true);
     setError("");
     try {
@@ -41,8 +42,12 @@ export function useDocumentSync({ workspaceId, activeDocument, request, setSavin
         else if (status.githubStatus === "external-change") setError(status.message ?? "GitHub changed outside PKMS.");
         else setNotice("Saved locally");
       }
+      if (status.githubStatus === "synced") return "synced";
+      if (status.githubStatus === "external-change") return "blocked";
+      return "pending";
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not save to GitHub");
+      return "blocked";
     } finally { setSaving(false); }
   }, [activeDocument, request, setError, setNotice, setSaving, setSync, workspaceId]);
 
@@ -69,5 +74,5 @@ export function useDocumentSync({ workspaceId, activeDocument, request, setSavin
     void saveMarkdownToGitHub(current.file.id, current.doc);
   }, [activeDocument, saveMarkdownToGitHub, workspaceId]);
 
-  return { scheduleAutoSave, saveActiveFileNow };
+  return { scheduleAutoSave, saveActiveFileNow, saveDocument: saveMarkdownToGitHub };
 }

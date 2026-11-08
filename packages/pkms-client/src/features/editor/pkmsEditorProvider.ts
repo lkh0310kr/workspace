@@ -26,7 +26,7 @@ export interface PkmsEditorProviderOptions {
 }
 
 const defaultCapabilities: EditorProviderCapabilities = {
-  operations: new Set(),
+  operations: new Set(["createFile", "createDirectory", "rename", "move", "delete"]),
   searchNames: true,
   searchContents: false,
   replaceContents: false,
@@ -78,9 +78,9 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
     subscribeTree(listener) {
       return options.subscribeTree((paths) => {
         const parentIds = paths.map((path) => {
-          if (!path) return null;
+          if (!path) return "";
           const folder = options.listLoadedFiles().find((file) => file.kind === "folder" && file.path === path);
-          return folder?.id ?? null;
+          return folder?.id ?? "";
         });
         listener([...new Set(parentIds)]);
       });
@@ -94,7 +94,7 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
       return options.openSession(file, signal);
     },
     async search(query: string, searchOptions: EditorSearchOptions, signal) {
-      if (!query || searchOptions.target !== "names") return [];
+      if (searchOptions.target !== "names") return [];
       const needle = searchOptions.caseSensitive ? query : query.toLocaleLowerCase();
       const results: EditorSearchResult[] = [];
       for (const file of options.listLoadedFiles()) {
