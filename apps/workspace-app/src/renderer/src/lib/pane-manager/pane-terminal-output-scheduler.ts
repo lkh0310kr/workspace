@@ -1,141 +1,116 @@
-import { flattenRetainedSlice } from "../shared/flatten-retained-slice";
 import {
-  discardForegroundRenderSettle,
-  writeForegroundTerminalChunk,
-  type ForegroundTerminalOutputTarget,
-} from "./pane-terminal-foreground-render-settle";
-import { runGuardedWriteCompletionStep } from "./xterm-write-callback-guard";
-import { reprTerminalBytes, termLog } from "../../terminal/terminalDebugLog";
+  failTerminalWriteStallWatch,
+  isTerminalWritePipelineCertifiedDead,
+  recordTerminalParseProgress
+} from './terminal-write-pipeline-health'
+import { exposeTerminalOutputSchedulerDebugApi as exposeDebugApi } from './pane-terminal-output-scheduler-debug'
+import { flushTerminalOutputImpl } from './pane-terminal-output-flusher'
+import { writeTerminalOutputImpl } from './pane-terminal-output-writer'
+import { writeXtermParseBarrier } from './xterm-parse-barrier'
+import { noteTerminalOutputArrival } from './terminal-output-arrival-observer'
+import { discardTerminalOutput } from './pane-terminal-output-queue-registry'
+import {
+  requestRegisteredTerminalBacklogRecovery,
+  type TerminalOutputTarget,
+  type WriteTerminalOutputOptions
+} from './pane-terminal-output-queue-registry'
+// Import for registration: drain installs the runner used by scheduleDrain; this facade is every consumer’s graph entry point.
+import './pane-terminal-output-drain'
 
-type TerminalOutputTarget = ForegroundTerminalOutputTarget;
+export {
+  ALWAYS_REFRESH_FOREGROUND_SYNCHRONOUSLY,
+  BACKGROUND_BACKLOG_WARNING,
+  BACKGROUND_CHUNK_CHARS,
+  BACKGROUND_DRAIN_INTERVAL_MS,
+  BACKGROUND_FLUSH_DELAY_MS,
+  DRAIN_TIME_BUDGET_MS,
+  FOREGROUND_BACKLOG_WARNING,
+  HIGH_PRIORITY_DRAIN_INTERVAL_MS,
+  HIGH_PRIORITY_MAX_WRITES_PER_DRAIN,
+  LARGE_BACKLOG_CHARS,
+  MAX_BACKGROUND_QUEUE_CHUNKS,
+  MAX_WRITES_PER_DRAIN,
+  configureTerminalOutputBacklogCap,
+  discardTerminalOutput,
+  getTerminalOutputMaxQueueChars,
+  isMessageChannelDrainEnabled,
+  markTerminalOutputDrainStarted,
+  queuedByTerminal,
+  registerTerminalBacklogRecovery,
+  requestRegisteredTerminalBacklogRecovery,
+  scheduleDrain,
+  type QueueEntry,
+  type QueuedWrite,
+  type TerminalOutputBeforeWrite,
+  type TerminalOutputParsedCallback,
+  type TerminalOutputTarget,
+  type WriteTerminalOutputOptions
+} from './pane-terminal-output-queue-registry'
 
-type QueueEntry = {
-  terminal: TerminalOutputTarget;
-  chunks: string[];
-  foreground: boolean;
-  ackCredits: (() => void)[];
-};
-
-const queues = new Map<TerminalOutputTarget, QueueEntry>();
-let draining = false;
+const PARSE_SETTLE_TIMEOUT_MS = 250
 
 export function writeTerminalOutput(
   terminal: TerminalOutputTarget,
   data: string,
-  options: { foreground?: boolean; ackCredit?: () => void } = {},
+  options: WriteTerminalOutputOptions
 ): void {
-  if (!data) {
-    options.ackCredit?.();
-    return;
+  if (data) {
+    noteTerminalOutputArrival(terminal)
+  }
+  writeTerminalOutputImpl(terminal, data, options)
+}
+
+export function flushTerminalOutput(
+  terminal: TerminalOutputTarget,
+  options?: { maxChars?: number }
+): void {
+  flushTerminalOutputImpl(terminal, options)
+}
+
+export function requestTerminalBacklogRecovery(terminal: TerminalOutputTarget): void {
+  exposeDebugApi()
+  requestRegisteredTerminalBacklogRecovery(terminal)
+}
+
+export function waitForTerminalOutputParsed(terminal: TerminalOutputTarget): Promise<void> {
+  flushTerminalOutput(terminal)
+  if (isTerminalWritePipelineCertifiedDead(terminal)) {
+    // Why: a dead pipeline cannot settle; recovery owns it and serializers must not enqueue probe writes during a pending remount retry.
+    return Promise.resolve()
   }
 
-  termLog("xterm:write", "schedule", {
-    bytes: reprTerminalBytes(data),
-    length: data.length,
-    foreground: options.foreground ?? true,
-  });
-
-  const foreground = options.foreground ?? true;
-  const entry = queues.get(terminal) ?? {
-    terminal,
-    chunks: [],
-    foreground,
-    ackCredits: [],
-  };
-
-  entry.chunks.push(flattenRetainedSlice(data));
-  if (options.ackCredit) entry.ackCredits.push(options.ackCredit);
-
-  entry.foreground = foreground;
-  queues.set(terminal, entry);
-  scheduleDrain();
-}
-
-function scheduleDrain(): void {
-  if (draining) return;
-  draining = true;
-  requestAnimationFrame(() => {
-    draining = false;
-    drainQueues();
-  });
-}
-
-function drainQueues(): void {
-  for (const [terminal, entry] of queues) {
-    if (entry.chunks.length === 0) continue;
-    // Why (2026-08-28): draining exactly one chunk per animation frame meant
-    // a burst of many small PTY writes (a fast-redrawing TUI like Claude
-    // Code's CLI) took one frame *per chunk* to reach the live state — the
-    // terminal stayed visibly seconds behind, and any scroll/interaction
-    // issued mid-catch-up looked "queued" behind the stale backlog. Coalesce
-    // everything queued right now into one write so a burst lands in one
-    // frame instead of trickling in chunk by chunk (Orca's own scheduler
-    // does this via its `coalesceForeground` path — same idea, applied here
-    // unconditionally since this scheduler has no per-write priority tiers).
-    const chunk = entry.chunks.length === 1 ? entry.chunks[0] : entry.chunks.join("");
-    const pendingAcks = entry.ackCredits;
-    const ack =
-      pendingAcks.length > 0
-        ? () => {
-            for (const credit of pendingAcks) credit();
-          }
-        : undefined;
-    entry.chunks = [];
-    entry.ackCredits = [];
-    const write = () => {
-      if (entry.foreground) {
-        writeForegroundTerminalChunk(terminal, chunk, {
-          onParsed: () => ack?.(),
-          onWriteFailure: () => ack?.(),
-        });
-      } else {
-        runGuardedWriteCompletionStep("background-write", () => {
-          terminal.write(chunk, () => {
-            runGuardedWriteCompletionStep("background-write-callback", () => ack?.());
-          });
-        });
+  return new Promise((resolve) => {
+    let settled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const finish = (): void => {
+      if (settled) {
+        return
       }
-    };
-    write();
-    queues.delete(terminal);
-  }
+      settled = true
+      if (timer !== null) {
+        clearTimeout(timer)
+      }
+      resolve()
+    }
+    const finishParsed = (): void => {
+      // Why: serializer/startup probes share xterm's FIFO with replay guards; their completion is real parser progress despite carrying no bytes.
+      recordTerminalParseProgress(terminal)
+      finish()
+    }
+    timer = setTimeout(finish, PARSE_SETTLE_TIMEOUT_MS)
+    try {
+      writeXtermParseBarrier(terminal, finishParsed)
+    } catch {
+      // Why: a synchronous rejection means this xterm can't accept even an empty FIFO probe; recovery must replace it before reuse.
+      failTerminalWriteStallWatch(terminal)
+      finish()
+    }
+  })
 }
 
+exposeDebugApi()
+
+/** Drop queued writes and release their PTY delivery credits during pane disposal. */
 export function clearTerminalOutputQueue(terminal: TerminalOutputTarget): void {
-  const entry = queues.get(terminal);
-  if (!entry) return;
-  for (const credit of entry.ackCredits) credit();
-  queues.delete(terminal);
-  discardForegroundRenderSettle(terminal);
-}
-
-/** Push queued PTY bytes into xterm before quit-time scrollback capture (Orca shutdown path). */
-export function flushTerminalOutput(terminal: TerminalOutputTarget): void {
-  const entry = queues.get(terminal);
-  if (!entry || entry.chunks.length === 0) {
-    return;
-  }
-  const chunk = entry.chunks.length === 1 ? entry.chunks[0] : entry.chunks.join("");
-  const pendingAcks = entry.ackCredits;
-  const ack =
-    pendingAcks.length > 0
-      ? () => {
-          for (const credit of pendingAcks) credit();
-        }
-      : undefined;
-  entry.chunks = [];
-  entry.ackCredits = [];
-  queues.delete(terminal);
-  if (entry.foreground) {
-    writeForegroundTerminalChunk(terminal, chunk, {
-      onParsed: () => ack?.(),
-      onWriteFailure: () => ack?.(),
-    });
-  } else {
-    runGuardedWriteCompletionStep("background-write", () => {
-      terminal.write(chunk, () => {
-        runGuardedWriteCompletionStep("background-write-callback", () => ack?.());
-      });
-    });
-  }
+  discardTerminalOutput(terminal)
 }

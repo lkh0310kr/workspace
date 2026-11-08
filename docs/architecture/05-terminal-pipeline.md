@@ -34,6 +34,15 @@ Treat the terminal as one vertical slice with these invariants:
    resolved theme. Unicode width/font behavior is verified with Hangul, emoji, and Nerd Font.
 5. Hiding/remounting a pane never loses sequence state, pending output credit, or scroll intent.
 
+### Progress
+
+- [x] Output scheduler dependency closure ported (queueing, fair drain, parse barrier,
+  backlog bounds, ACK release, and stalled-write health/recovery). Adapted to Workspace's
+  PTY ACK API and pane disposal. The focused Orca scheduler suite passes: 104 tests.
+- [ ] Byte ownership and live/replay decoder contract
+- [ ] Replay/refit/scroll lifecycle parity
+- [ ] Installed-build checks for scroll, UTF-8, and ANSI colors
+
 ### Implementation order
 
 1. Port Orca's output-scheduler dependency closure and its tests, adapting only imports,
