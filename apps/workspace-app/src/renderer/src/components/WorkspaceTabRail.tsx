@@ -87,13 +87,17 @@ export function WorkspaceTabRail({
       setShowTabNumbers(!modifierKeyReleased && modifierHeld)
     }
 
-    window.addEventListener('blur', clearOnBlur)
+    const onWindowBlur = clearOnBlur
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') clearOnBlur('visibility-change')
+    }
+    window.addEventListener('blur', onWindowBlur)
     window.addEventListener('keyup', syncOnKeyUp, true)
-    document.addEventListener('visibilitychange', clearOnBlur)
+    document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
-      window.removeEventListener('blur', clearOnBlur)
+      window.removeEventListener('blur', onWindowBlur)
       window.removeEventListener('keyup', syncOnKeyUp, true)
-      document.removeEventListener('visibilitychange', clearOnBlur)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
       unsubscribeModifierPress()
       unsubscribeModifierRelease()
     }
