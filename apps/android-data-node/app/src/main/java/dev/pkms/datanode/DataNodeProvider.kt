@@ -92,6 +92,29 @@ class DataNodeProvider : ContentProvider() {
                     JSONObject().put("ok", true).put("objectId", id).put("state", store.objectState(id))
                 }
 
+                "debug.object.missing" -> {
+                    require(BuildConfig.DEBUG) { "Crash fixtures are available only in debug builds" }
+                    val bytes = Base64.decode(payload.getString("bytesBase64"), Base64.NO_WRAP)
+                    val id = store.injectCommittedObjectDamageForTest(bytes, missing = true)
+                    JSONObject().put("ok", true).put("objectId", id).put("state", store.objectState(id))
+                }
+
+                "debug.object.corrupt" -> {
+                    require(BuildConfig.DEBUG) { "Crash fixtures are available only in debug builds" }
+                    val bytes = Base64.decode(payload.getString("bytesBase64"), Base64.NO_WRAP)
+                    val id = store.injectCommittedObjectDamageForTest(bytes, missing = false)
+                    JSONObject().put("ok", true).put("objectId", id).put("state", store.objectState(id))
+                }
+
+                "debug.object.orphan" -> {
+                    require(BuildConfig.DEBUG) { "Crash fixtures are available only in debug builds" }
+                    val bytes = Base64.decode(payload.getString("bytesBase64"), Base64.NO_WRAP)
+                    val id = store.injectOrphanObjectForTest(bytes)
+                    JSONObject().put("ok", true).put("objectId", id)
+                }
+
+                "diagnostics.errors" -> JSONObject().put("ok", true).put("counts", store.errorCounts())
+
                 else -> throw IllegalArgumentException("Unknown local command")
             }
             Bundle().apply { putString("result", Base64.encodeToString(result.toString().toByteArray(Charsets.UTF_8), Base64.NO_WRAP)) }

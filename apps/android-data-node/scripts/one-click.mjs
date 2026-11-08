@@ -170,15 +170,30 @@ try {
   assertHostCheck(hostChecks, "adb_prepare_crash_recovery_fixtures", () => {
     const stagingBytes = Buffer.from(`recovery-staging:${runId}`, "utf8");
     const publishedBytes = Buffer.from(`recovery-published:${runId}`, "utf8");
+    const missingBytes = Buffer.from(`recovery-missing:${runId}`, "utf8");
+    const corruptBytes = Buffer.from(`recovery-corrupt:${runId}`, "utf8");
+    const orphanBytes = Buffer.from(`recovery-orphan:${runId}`, "utf8");
     const stagingFixture = callNode(serial, "debug.object.after_staging", { bytesBase64: stagingBytes.toString("base64") });
     const publishedFixture = callNode(serial, "debug.object.after_publish", { bytesBase64: publishedBytes.toString("base64") });
+    const missingFixture = callNode(serial, "debug.object.missing", { bytesBase64: missingBytes.toString("base64") });
+    const corruptFixture = callNode(serial, "debug.object.corrupt", { bytesBase64: corruptBytes.toString("base64") });
+    const orphanFixture = callNode(serial, "debug.object.orphan", { bytesBase64: orphanBytes.toString("base64") });
     if (!stagingFixture.ok || stagingFixture.state !== "PREPARING" || stagingFixture.objectId !== sha256(stagingBytes)) {
       throw new Error(JSON.stringify(stagingFixture));
     }
     if (!publishedFixture.ok || publishedFixture.state !== "PREPARING" || publishedFixture.objectId !== sha256(publishedBytes)) {
       throw new Error(JSON.stringify(publishedFixture));
     }
-    return { abandonedObjectId: stagingFixture.objectId, publishedObjectId: publishedFixture.objectId };
+    if (!missingFixture.ok || missingFixture.state !== "COMMITTED" || missingFixture.objectId !== sha256(missingBytes)) throw new Error(JSON.stringify(missingFixture));
+    if (!corruptFixture.ok || corruptFixture.state !== "COMMITTED" || corruptFixture.objectId !== sha256(corruptBytes)) throw new Error(JSON.stringify(corruptFixture));
+    if (!orphanFixture.ok || orphanFixture.objectId !== sha256(orphanBytes)) throw new Error(JSON.stringify(orphanFixture));
+    return {
+      abandonedObjectId: stagingFixture.objectId,
+      publishedObjectId: publishedFixture.objectId,
+      missingObjectId: missingFixture.objectId,
+      corruptObjectId: corruptFixture.objectId,
+      orphanObjectId: orphanFixture.objectId,
+    };
   });
 
   adbRun(serial, "shell", "am", "force-stop", packageName);
@@ -197,6 +212,20 @@ try {
     const bytes = Buffer.from(result.bytesBase64 ?? "", "base64");
     if (!result.ok || !result.found || !bytes.equals(objectBytes) || result.sha256 !== sha256(objectBytes)) throw new Error(JSON.stringify(result));
   });
+  assertHostCheck(hostChecks, "adb_missing_and_corrupt_objects_not_served", () => {
+    const missing = callNode(serial, "object.get", { objectId: sha256(Buffer.from(`recovery-missing:${runId}`, "utf8")) });
+    const corrupt = callNode(serial, "object.get", { objectId: sha256(Buffer.from(`recovery-corrupt:${runId}`, "utf8")) });
+    const orphan = callNode(serial, "object.get", { objectId: sha256(Buffer.from(`recovery-orphan:${runId}`, "utf8")) });
+    if (missing.ok || missing.errorCode !== "ObjectUnavailable" || corrupt.ok || corrupt.errorCode !== "ObjectUnavailable" || !orphan.ok || orphan.found) {
+      throw new Error(JSON.stringify({ missing, corrupt, orphan }));
+    }
+  });
+  assertHostCheck(hostChecks, "adb_error_tracker_reports_recovery_findings", () => {
+    const result = callNode(serial, "diagnostics.errors");
+    const counts = result.counts ?? {};
+    if (!result.ok || !counts.OBJECT_MISSING || !counts.OBJECT_HASH_MISMATCH || !counts.OBJECT_ORPHAN_DETECTED) throw new Error(JSON.stringify(result));
+    return { errorCodes: ["OBJECT_MISSING", "OBJECT_HASH_MISMATCH", "OBJECT_ORPHAN_DETECTED"] };
+  });
 
   mkdirSync(outputDir, { recursive: true });
   writeFileSync(resolve(outputDir, "initial.json"), `${JSON.stringify(initial, null, 2)}\n`);
@@ -210,6 +239,7 @@ try {
     model: initial.device,
     sdk: initial.sdk,
     databaseVersion: initial.databaseVersion,
+    migratedFromVersionOne: initial.migratedFromVersionOne,
     migratedFromVersionOne: initial.migratedFromVersionOne,
     initialChecks: initial.checkCount,
     restartChecks: restarted.checkCount,

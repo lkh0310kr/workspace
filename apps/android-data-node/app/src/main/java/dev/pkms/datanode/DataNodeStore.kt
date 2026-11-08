@@ -50,8 +50,9 @@ internal class DataNodeStore(context: Context) : SQLiteOpenHelper(
         db.execSQL("CREATE TABLE error_events(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, message TEXT NOT NULL, created_at INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE diagnostic_runs(id TEXT PRIMARY KEY, report_json TEXT NOT NULL, created_at INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at INTEGER NOT NULL)")
+        db.execSQL("CREATE TABLE orphan_candidates(object_id TEXT PRIMARY KEY, byte_size INTEGER NOT NULL, first_seen INTEGER NOT NULL, state TEXT NOT NULL)")
         db.insertOrThrow("schema_migrations", null, ContentValues().apply {
-            put("version", DATABASE_VERSION); put("name", "initial-data-node-schema-v2"); put("applied_at", System.currentTimeMillis())
+            put("version", DATABASE_VERSION); put("name", "initial-data-node-schema-v3"); put("applied_at", System.currentTimeMillis())
         })
     }
 
@@ -65,6 +66,12 @@ internal class DataNodeStore(context: Context) : SQLiteOpenHelper(
             })
             db.insertOrThrow("schema_migrations", null, ContentValues().apply {
                 put("version", 2); put("name", "object-store-recovery-state"); put("applied_at", System.currentTimeMillis())
+            })
+        }
+        if (oldVersion < 3) {
+            db.execSQL("CREATE TABLE orphan_candidates(object_id TEXT PRIMARY KEY, byte_size INTEGER NOT NULL, first_seen INTEGER NOT NULL, state TEXT NOT NULL)")
+            db.insertOrThrow("schema_migrations", null, ContentValues().apply {
+                put("version", 3); put("name", "orphan-object-detection"); put("applied_at", System.currentTimeMillis())
             })
         }
         if (newVersion > DATABASE_VERSION) error("No migration path from schema $oldVersion to $newVersion")
@@ -138,6 +145,30 @@ internal class DataNodeStore(context: Context) : SQLiteOpenHelper(
     fun injectObjectCrashForTest(bytes: ByteArray, contentType: String, point: ObjectCrashPoint): String =
         writeObject(bytes, contentType, point)
 
+    fun injectCommittedObjectDamageForTest(bytes: ByteArray, missing: Boolean): String = synchronized(objectLock) {
+        val id = putObject(bytes, "application/octet-stream")
+        val file = objectFile(id)
+        if (missing) {
+            check(file.delete()) { "Could not create missing-object fixture" }
+        } else {
+            val corrupted = bytes.copyOf().also { if (it.isNotEmpty()) it[0] = (it[0].toInt() xor 0x01).toByte() }
+            FileOutputStream(file).use { out -> out.write(corrupted); out.fd.sync() }
+        }
+        id
+    }
+
+    fun injectOrphanObjectForTest(bytes: ByteArray): String = synchronized(objectLock) {
+        val id = sha256(bytes)
+        val final = objectFile(id)
+        check(!final.exists() && objectState(id) == null) { "Orphan fixture object already exists" }
+        val temp = File(staging, "orphan-${UUID.randomUUID()}.part")
+        FileOutputStream(temp).use { out -> out.write(bytes); out.fd.sync() }
+        final.parentFile?.mkdirs()
+        check(temp.renameTo(final)) { "Could not publish orphan fixture" }
+        syncDirectory(final.parentFile ?: error("Object directory missing"))
+        id
+    }
+
     private fun writeObject(bytes: ByteArray, contentType: String, crashPoint: ObjectCrashPoint?): String = synchronized(objectLock) {
         require(bytes.size <= 16 * 1024 * 1024) { "Local prototype object limit is 16 MiB" }
         require(contentType.isNotBlank() && contentType.length <= 255) { "Invalid content type" }
@@ -199,7 +230,7 @@ internal class DataNodeStore(context: Context) : SQLiteOpenHelper(
         val db = writableDatabase
         val report = JSONObject().put("schemaVersion", schemaVersion())
             .put("pendingCommitted", 0).put("abandonedUploads", 0).put("missingObjects", 0)
-            .put("corruptObjects", 0).put("stagingFilesRemoved", 0)
+            .put("corruptObjects", 0).put("stagingFilesRemoved", 0).put("orphanFiles", 0)
         val pending = mutableListOf<Triple<String, Long, String?>>()
         db.rawQuery("SELECT object_id, byte_size, staging_path FROM object_metadata WHERE state = ?", arrayOf(STATE_PREPARING)).use { c ->
             while (c.moveToNext()) pending += Triple(c.getString(0), c.getLong(1), if (c.isNull(2)) null else c.getString(2))
@@ -238,12 +269,38 @@ internal class DataNodeStore(context: Context) : SQLiteOpenHelper(
         staging.listFiles()?.forEach { file ->
             if (file.delete()) report.put("stagingFilesRemoved", report.getInt("stagingFilesRemoved") + 1)
         }
+        val known = mutableSetOf<String>()
+        db.rawQuery("SELECT object_id FROM object_metadata", null).use { c -> while (c.moveToNext()) known += c.getString(0) }
+        objects.listFiles()?.filter { it.isDirectory }?.forEach { prefixDir ->
+            prefixDir.listFiles()?.filter { it.isFile }?.forEach { file ->
+                val id = file.name
+                if (OBJECT_ID_PATTERN.matches(id) && id !in known && id.startsWith(prefixDir.name)) {
+                    val inserted = db.insertWithOnConflict("orphan_candidates", null, ContentValues().apply {
+                        put("object_id", id); put("byte_size", file.length()); put("first_seen", System.currentTimeMillis()); put("state", "DETECTED")
+                    }, SQLiteDatabase.CONFLICT_IGNORE)
+                    if (inserted != -1L) recordError("OBJECT_ORPHAN_DETECTED", "Unreferenced object file was marked as an orphan candidate")
+                    report.put("orphanFiles", report.getInt("orphanFiles") + 1)
+                }
+            }
+        }
         report
     }
 
     fun objectState(objectId: String): String? = readableDatabase.rawQuery(
         "SELECT state FROM object_metadata WHERE object_id = ?", arrayOf(objectId),
     ).use { c -> if (c.moveToFirst()) c.getString(0) else null }
+
+    fun isOrphanCandidate(objectId: String): Boolean = readableDatabase.rawQuery(
+        "SELECT 1 FROM orphan_candidates WHERE object_id = ? AND state = 'DETECTED'", arrayOf(objectId),
+    ).use { it.moveToFirst() }
+
+    fun errorCounts(): JSONObject {
+        val counts = JSONObject()
+        readableDatabase.rawQuery("SELECT code, COUNT(*) FROM error_events GROUP BY code", null).use { c ->
+            while (c.moveToNext()) counts.put(c.getString(0), c.getInt(1))
+        }
+        return counts
+    }
 
     fun recordError(code: String, message: String) {
         writableDatabase.insert("error_events", null, ContentValues().apply {
@@ -309,7 +366,7 @@ internal class DataNodeStore(context: Context) : SQLiteOpenHelper(
     }
 
     companion object {
-        const val DATABASE_VERSION = 2
+        const val DATABASE_VERSION = 3
         const val STATE_PREPARING = "PREPARING"
         const val STATE_COMMITTED = "COMMITTED"
         const val STATE_MISSING = "MISSING"

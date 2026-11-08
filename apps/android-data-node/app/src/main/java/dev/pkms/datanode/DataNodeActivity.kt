@@ -62,6 +62,9 @@ class DataNodeActivity : Activity() {
                     require(recovery.optString("status") == "passed") { "Startup recovery did not pass: $recovery" }
                     require(recovery.optInt("pendingCommitted") >= 1) { "Published pending object was not committed by recovery: $recovery" }
                     require(recovery.optInt("abandonedUploads") >= 1) { "Staging-only upload was not discarded by recovery: $recovery" }
+                    require(recovery.optInt("missingObjects") >= 1) { "Missing object was not recorded by recovery: $recovery" }
+                    require(recovery.optInt("corruptObjects") >= 1) { "Corrupt object was not recorded by recovery: $recovery" }
+                    require(recovery.optInt("orphanFiles") >= 1) { "Orphan file was not recorded by recovery: $recovery" }
                 }
                 check("sqlite_integrity") { require(store.integrityCheck() == "ok") { "SQLite integrity check was not ok" } }
                 check("process_restart_records") {
@@ -85,6 +88,28 @@ class DataNodeActivity : Activity() {
                     val id = store.objectDigest(expected)
                     require(store.objectState(id) == null && store.getObject(id) == null) { "Unpublished upload became visible after recovery" }
                 }
+                check("recovery_marks_missing_metadata_object") {
+                    val expected = "recovery-missing:$runId".toByteArray()
+                    val id = store.objectDigest(expected)
+                    require(store.objectState(id) == DataNodeStore.STATE_MISSING) { "Missing object state was not recorded" }
+                }
+                check("recovery_marks_corrupt_object") {
+                    val expected = "recovery-corrupt:$runId".toByteArray()
+                    val id = store.objectDigest(expected)
+                    require(store.objectState(id) == DataNodeStore.STATE_CORRUPT) { "Corrupt object state was not recorded" }
+                }
+                check("recovery_preserves_orphan_candidate") {
+                    val expected = "recovery-orphan:$runId".toByteArray()
+                    val id = store.objectDigest(expected)
+                    require(store.isOrphanCandidate(id)) { "Orphan candidate was not recorded" }
+                    require(store.getObject(id) == null) { "Orphan object became visible without metadata" }
+                }
+                check("recovery_writes_error_events") {
+                    val counts = store.errorCounts()
+                    require(counts.optInt("OBJECT_MISSING") > 0) { "Missing object error event not found" }
+                    require(counts.optInt("OBJECT_HASH_MISMATCH") > 0) { "Object checksum error event not found" }
+                    require(counts.optInt("OBJECT_ORPHAN_DETECTED") > 0) { "Orphan detection event not found" }
+                }
                 check("adb_command_record_persistence") {
                     val namespace = "adb-e2e-$runId"
                     val expected = JSONObject().put("source", "adb").put("runId", runId).toString()
@@ -98,7 +123,7 @@ class DataNodeActivity : Activity() {
                     require(stored.contentEquals(expected) && store.objectDigest(stored) == id) { "ADB-written object hash mismatch after process restart" }
                 }
             } else {
-                check("schema_migration_v2") {
+                check("schema_migration_v3") {
                     require(store.schemaVersion() == DataNodeStore.DATABASE_VERSION) { "Unexpected SQLite schema version ${store.schemaVersion()}" }
                     require(store.migrationApplied(DataNodeStore.DATABASE_VERSION)) { "Schema migration audit row is missing" }
                 }

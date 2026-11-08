@@ -28,9 +28,9 @@ Cloudflare Worker
 
 ## 현재 구현·검증 상태
 
-`apps/android-data-node/`에 네트워크를 사용하지 않는 Android 로컬 프로토타입을 추가했다. SQLite record transaction과 앱 전용 파일 기반 content-addressed object store를 구현했고, 제한된 `android.permission.DUMP` 권한의 ContentProvider를 통해 ADB shell이 로컬 명령을 직접 호출한다. `npm run data-node:one-click`은 빌드·설치 뒤 앱 내부 검사와 호스트에서 호출한 배치 기록 트랜잭션/idempotency/conflict/rollback/object round-trip을 실행하고, 앱 프로세스 강제 종료 뒤 저장 내용을 재조회한다. Android API 36 에뮬레이터와 S21 Ultra(SM-G998N, API 35) 실기기에서 통과했다. 최신 S21 실행은 v1→v2 migration 보존 검사, 내부 초기 9개, 재시작 8개, ADB 호스트 검사 10개가 모두 통과했다. 개발 도중 USB 연결이 한 번 사라졌다가 다시 나타났으므로 장시간 연결 안정성은 별도 확인이 필요하다.
+`apps/android-data-node/`에 네트워크를 사용하지 않는 Android 로컬 프로토타입을 추가했다. SQLite record transaction과 앱 전용 파일 기반 content-addressed object store를 구현했고, 제한된 `android.permission.DUMP` 권한의 ContentProvider를 통해 ADB shell이 로컬 명령을 직접 호출한다. `npm run data-node:one-click`은 빌드·설치 뒤 앱 내부 검사와 호스트에서 호출한 배치 기록 트랜잭션/idempotency/conflict/rollback/object round-trip을 실행하고, 앱 프로세스 강제 종료 뒤 저장 내용을 재조회한다. Android API 36 에뮬레이터와 S21 Ultra(SM-G998N, API 35) 실기기에서 통과했다. 최신 S21 실행에서 v1→v3 migration이 기존 record/object를 보존했고, 초기 9개, 재시작 12개, ADB 호스트 검사 12개가 통과했다. recovery는 pending commit 1건, staging 업로드 중단 1건, missing 1건, corrupt 1건, orphan 후보 1건을 예상한 상태로 분류했다. 개발 도중 USB 연결이 한 번 사라졌다가 다시 나타났으므로 장시간 연결 안정성은 별도 확인이 필요하다.
 
-이 단계는 저장소 기본 동작, v1→v2 마이그레이션, staging/final publish 경계의 crash 복구를 확인하는 프로토타입이다. 일반 앱 권한의 API/인증, network listener, 스트리밍 object API, 암호화·키 관리, 전원 차단/저장공간 부족 주입, unreferenced orphan file 복구, 백그라운드 운영 및 백업은 아직 구현되지 않았다. 실행 방법과 범위는 [Android Data Node 프로토타입 안내](../../../apps/android-data-node/README.md)를 참조한다.
+이 단계는 저장소 기본 동작, schema migration, pending/missing/corrupt/orphan object의 시작 시 reconciliation을 확인하는 프로토타입이다. orphan 파일은 후보로 기록하고 자동 삭제하지 않는다. 일반 앱 권한의 API/인증, network listener, 스트리밍 object API, 암호화·키 관리, 전원 차단/저장공간 부족 주입, reference 기반 GC, 백그라운드 운영 및 백업은 아직 구현되지 않았다. 실행 방법과 범위는 [Android Data Node 프로토타입 안내](../../../apps/android-data-node/README.md)를 참조한다.
 
 ## 목표와 제외 범위
 
