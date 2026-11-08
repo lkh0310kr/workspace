@@ -900,8 +900,8 @@ export default function Home() {
       const nextIndex = treeRows.findIndex((item) => item.file.id === next.file.id);
       const element = treeRef.current;
       if (element && nextIndex >= 0) {
-        const top = nextIndex * 28;
-        if (top < element.scrollTop || top + 28 > element.scrollTop + element.clientHeight) element.scrollTop = top;
+        const top = nextIndex * EDITOR_TREE_ROW_HEIGHT;
+        if (top < element.scrollTop || top + EDITOR_TREE_ROW_HEIGHT > element.scrollTop + element.clientHeight) element.scrollTop = top;
       }
       requestAnimationFrame(() => treeRef.current?.querySelector<HTMLElement>(`[data-tree-path="${CSS.escape(next.file.path)}"]`)?.focus());
     };
