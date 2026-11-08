@@ -29,7 +29,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, nextEditorItemName, projectEditorTreeRows, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -101,13 +101,6 @@ function rowAnchor(entry: DirEntry, treeEl: HTMLElement | null): AnchorRect {
     return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
   }
   return { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 };
-}
-
-async function findAvailableName(provider: ReturnType<typeof acquireLocalEditorProvider>["provider"], dir: string, base: string, ext: string) {
-  const parent = dir ? await resolveEditorTreePath(provider, dir) : null;
-  if (dir && !parent) throw new Error("Folder no longer exists");
-  const entries = await provider.listChildren(parent?.itemId ?? null);
-  return nextEditorItemName(entries.map((entry) => entry.name), base, ext);
 }
 
 const TREE_DRAG_MIME = "application/x-workspace-tree-paths";
@@ -347,9 +340,9 @@ export function TreeView({
     setMenu(null);
     let name: string;
     try {
-      name = await findAvailableName(editorProvider, dir, "untitled", ".md");
-      const parent = dir ? await resolveEditorTreePath(editorProvider, dir) : null;
-      if (dir && !parent) throw new Error("Parent directory no longer exists");
+      const result = await nextEditorItemNameInDirectory(editorProvider, dir, "untitled", ".md");
+      name = result.name;
+      const parent = result.parent;
       await editorProvider.create(parent?.itemId ?? null, "file", name);
     } catch (err) {
       window.alert(String(err));

@@ -1,3 +1,6 @@
+import { EditorProviderError, type EditorProvider, type EditorTreeItem } from "./provider";
+import { resolveEditorTreePath } from "./resolveEditorTreePath";
+
 /** Return the first case-insensitively unused sibling name. */
 export function nextEditorItemName(existingNames: Iterable<string>, base: string, extension: string): string {
   const names = new Set([...existingNames].map((name) => name.toLowerCase()));
@@ -6,4 +9,19 @@ export function nextEditorItemName(existingNames: Iterable<string>, base: string
   let index = 1;
   while (names.has(`${base} ${index}${extension}`.toLowerCase())) index++;
   return `${base} ${index}${extension}`;
+}
+
+/** Resolve a provider directory and select a collision-free sibling name. */
+export async function nextEditorItemNameInDirectory(
+  provider: Pick<EditorProvider, "listChildren">,
+  directoryPath: string,
+  base: string,
+  extension: string,
+): Promise<{ parent: EditorTreeItem | null; name: string }> {
+  const parent = directoryPath ? await resolveEditorTreePath(provider, directoryPath) : null;
+  if (directoryPath && (!parent || parent.kind !== "directory")) {
+    throw new EditorProviderError("notFound", "Parent folder no longer exists");
+  }
+  const children = await provider.listChildren(parent?.itemId ?? null);
+  return { parent, name: nextEditorItemName(children.map((item) => item.name), base, extension) };
 }

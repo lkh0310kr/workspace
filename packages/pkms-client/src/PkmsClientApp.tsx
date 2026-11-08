@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -892,10 +892,7 @@ export default function Home() {
     const provider = editorProvider;
     if (!provider) { setError("PKMS editor is not ready"); return; }
     try {
-      const parent = parentPath ? await resolveEditorTreePath(provider, parentPath) : null;
-      if (parentPath && (!parent || parent.kind !== "directory")) throw new EditorProviderError("notFound", "Parent folder no longer exists");
-      const children = await provider.listChildren(parent?.itemId ?? null);
-      const name = nextEditorItemName(children.map((item) => item.name), "untitled", ".md");
+      const { parent, name } = await nextEditorItemNameInDirectory(provider, parentPath, "untitled", ".md");
       if (!provider.create) throw new EditorProviderError("unsupported", "PKMS note creation is unavailable");
       const item = await provider.create(parent?.itemId ?? null, "file", name);
       const file: FileRecord = { id: item.itemId, path: item.path, kind: "markdown", revision: 0, content: "# Untitled\n\n" };
