@@ -183,4 +183,6 @@ Quick Open도 두 host가 파일 목록을 직접 취합·필터링하지 않고
 
 `useEditorDocumentSnapshot`은 현재 session identity에 맞는 snapshot만 반환한다. session 교체 render와 subscription effect 사이에도 이전 문서의 본문·save phase가 새 문서에 노출되지 않는다.
 
+PKMS shell은 더 이상 편집 본문의 React `text` 복사본을 유지하지 않는다. 공통 surface는 Yjs provider session snapshot을 읽고, Yjs update observer는 autosave·realtime transport만 담당해 문서 입력마다 shell 전체가 rerender되지 않게 한다.
+
 구현은 위 표의 `not yet` 항목부터 공통 UI로 이동하고, 매 단계에서 두 provider가 보존해야 할 차이를 계약 capability와 adapter로 표현한다. `done (implemented)`는 코드 연결이 있다는 뜻이며 전체 acceptance 통과를 의미하지 않는다.
