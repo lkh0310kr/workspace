@@ -5,18 +5,27 @@ import { resolveEditorTreeSelection } from "./treeSelection";
 export function useEditorTreeSelection(paths: readonly string[]) {
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(() => new Set());
   const [anchorPath, setAnchorPath] = useState<string | null>(null);
+  const [focusedPath, setFocusedPath] = useState<string | null>(null);
 
-  const select = useCallback((path: string, focusedPath: string | null, modifiers?: { additive?: boolean; range?: boolean }) => {
-    const next = resolveEditorTreeSelection(paths, { focusedPath, anchorPath, selectedPaths }, path, modifiers);
+  const select = useCallback((path: string, focusedPathOverride: string | null | undefined = focusedPath, modifiers?: { additive?: boolean; range?: boolean }) => {
+    const next = resolveEditorTreeSelection(paths, { focusedPath: focusedPathOverride, anchorPath, selectedPaths }, path, modifiers);
     setSelectedPaths(new Set(next.selectedPaths));
     setAnchorPath(next.anchorPath);
+    setFocusedPath(next.focusedPath);
     return next;
-  }, [paths, anchorPath, selectedPaths]);
+  }, [paths, anchorPath, selectedPaths, focusedPath]);
+
+  const selectRow = useCallback((path: string, index: number, additive = false, range = false) => {
+    const targetPath = paths[index] === path ? path : paths.find((rowPath) => rowPath === path);
+    if (!targetPath) return;
+    return select(targetPath, focusedPath, { additive, range });
+  }, [paths, focusedPath, select]);
 
   const clear = useCallback(() => {
     setSelectedPaths(new Set());
     setAnchorPath(null);
+    setFocusedPath(null);
   }, []);
 
-  return { selectedPaths, setSelectedPaths, anchorPath, setAnchorPath, select, clear };
+  return { selectedPaths, setSelectedPaths, anchorPath, setAnchorPath, focusedPath, setFocusedPath, select, selectRow, clear };
 }

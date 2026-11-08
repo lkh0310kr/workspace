@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemName, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -18,7 +18,6 @@ import { matchesExcludePattern } from "./domain/excludePattern";
 import { AppIcon, GitHubIcon } from "./components/Icons";
 import { PkmsDialog, type PkmsDialogRequest } from "./components/PkmsDialog";
 import { FileTreeList } from "./components/FileTreeList";
-import { useFileTreeSelection } from "./features/files/useFileTreeSelection";
 import { useWorkspaceDirectory } from "./features/files/useWorkspaceDirectory";
 import { useDocumentSync } from "./features/editor/useDocumentSync";
 import { useRealtimeMessages } from "./features/editor/useRealtimeMessages";
@@ -135,16 +134,15 @@ export default function Home() {
     () => projectEditorTreeRows(treeRows, treeScrollTop, treeViewportHeight, EDITOR_TREE_ROW_HEIGHT),
     [treeRows, treeScrollTop, treeViewportHeight],
   );
-  const {
-    focusedPath: focusedTreePath,
-    setFocusedPath: setFocusedTreePath,
-    selectedPaths: selectedTreePaths,
-    setSelectedPaths: setSelectedTreePaths,
-    setSelectionAnchorPath,
-    cutPaths: cutTreePaths,
-    setCutPaths: setCutTreePaths,
-    selectRow: selectTreeRow,
-  } = useFileTreeSelection(treeRows);
+  const treeSelectionPaths = useMemo(() => treeRows.map((row) => row.file.path), [treeRows]);
+  const treeSelection = useEditorTreeSelection(treeSelectionPaths);
+  const focusedTreePath = treeSelection.focusedPath;
+  const setFocusedTreePath = treeSelection.setFocusedPath;
+  const selectedTreePaths = treeSelection.selectedPaths;
+  const setSelectedTreePaths = treeSelection.setSelectedPaths;
+  const setSelectionAnchorPath = treeSelection.setAnchorPath;
+  const selectTreeRow = treeSelection.selectRow;
+  const [cutTreePaths, setCutTreePaths] = useState<Set<string>>(() => new Set());
   const socket = useRef<PKMSRealtimeSocket | null>(null);
   const treeRef = useRef<HTMLElement>(null);
   useEffect(() => {
