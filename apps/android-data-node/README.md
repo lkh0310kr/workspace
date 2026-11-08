@@ -12,7 +12,7 @@ From the workspace root:
 npm run data-node:one-click
 ```
 
-The command builds and installs the debug APK, runs local storage checks, sends record and object operations from the laptop through `adb shell content call`, force-stops and relaunches the app, then checks that the records and objects survive the process restart. It keeps the app's private data so repeated runs also exercise an existing database. If multiple Android devices are connected, select one explicitly:
+The command builds and installs the debug APK, runs local storage checks, sends record and object operations from the laptop through `adb shell content call`, creates synthetic crash fixtures at both sides of the final object-file publish boundary, force-stops and relaunches the app, then checks that committed records and objects survive and pending uploads are reconciled. It keeps the app's private data so repeated runs also exercise an existing database. If multiple Android devices are connected, select one explicitly:
 
 ```bash
 npm run data-node:one-click -- --serial=DEVICE_SERIAL
@@ -36,6 +36,7 @@ adb shell run-as dev.pkms.datanode cat files/data-node/latest-diagnostics.json
 - Direct host-to-Android commands over ADB without an IP network
 - ADB shell batch transaction, retry/conflict behavior, rollback, and object round-trip
 - ADB-written records and objects after the app process is stopped and restarted
+- Migration from the original schema and startup recovery of pending object uploads before/after final file publication
 
 ## ADB local command bridge
 
@@ -50,4 +51,4 @@ adb shell content call \
 
 The response is returned as base64 JSON in the `result` Bundle field. The one-click runner performs encoding, decoding, and response checks automatically. The current shell bridge transports bytes inline in a Binder call and is only for small local validation payloads; it is not the streaming object API needed for larger files.
 
-This prototype is not yet a production database service: it has no remote API, object streaming/chunking, encryption/key management, migration framework, deletion/reference/GC semantics, replication, backup export, foreground service, or long-running background operation. The next gates are cross-store crash recovery, larger streamed objects, schema migration/restore, and repeating the same one-click run on the A Quantum.
+This prototype is not yet a production database service: it has no remote API, object streaming/chunking, encryption/key management, deletion/reference/GC semantics, replication, backup export, foreground service, or long-running background operation. The next gates are broader failure injection (missing/corrupt files, power-loss behavior), larger streamed objects, backup/restore, and repeating the same one-click run on the A Quantum.

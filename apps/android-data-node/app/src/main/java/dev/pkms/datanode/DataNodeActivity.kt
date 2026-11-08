@@ -38,6 +38,8 @@ class DataNodeActivity : Activity() {
         val runId = intent.getStringExtra("run_id") ?: "manual-${UUID.randomUUID()}"
         val report = JSONObject().put("schemaVersion", 1).put("runId", runId).put("mode", mode)
             .put("device", android.os.Build.MODEL).put("sdk", android.os.Build.VERSION.SDK_INT)
+            .put("databaseVersion", store.schemaVersion()).put("migratedFromVersionOne", store.migrationApplied(1))
+            .put("startupRecovery", DataNodeStartup.snapshot())
             .put("checks", org.json.JSONArray()).put("startedAt", System.currentTimeMillis())
         val checks = report.getJSONArray("checks")
         fun check(name: String, action: () -> Unit) {
@@ -55,6 +57,12 @@ class DataNodeActivity : Activity() {
         }
         try {
             if (mode == "restart") {
+                check("startup_recovery_succeeded") {
+                    val recovery = DataNodeStartup.snapshot()
+                    require(recovery.optString("status") == "passed") { "Startup recovery did not pass: $recovery" }
+                    require(recovery.optInt("pendingCommitted") >= 1) { "Published pending object was not committed by recovery: $recovery" }
+                    require(recovery.optInt("abandonedUploads") >= 1) { "Staging-only upload was not discarded by recovery: $recovery" }
+                }
                 check("sqlite_integrity") { require(store.integrityCheck() == "ok") { "SQLite integrity check was not ok" } }
                 check("process_restart_records") {
                     require(store.read(PERSIST_NS, "record-a")?.first == "{\"value\":\"alpha\"}") { "Persisted record A missing" }
@@ -65,6 +73,17 @@ class DataNodeActivity : Activity() {
                     val id = store.objectDigest(expected)
                     val stored = store.getObject(id) ?: error("Persisted object missing")
                     require(stored.contentEquals(expected) && store.objectDigest(stored) == id) { "Persisted object hash mismatch" }
+                }
+                check("recovery_commits_published_object") {
+                    val expected = "recovery-published:$runId".toByteArray()
+                    val id = store.objectDigest(expected)
+                    val stored = store.getObject(id) ?: error("Published pending object was not readable after recovery")
+                    require(stored.contentEquals(expected)) { "Recovered object payload differs" }
+                }
+                check("recovery_discards_staging_only_upload") {
+                    val expected = "recovery-staging:$runId".toByteArray()
+                    val id = store.objectDigest(expected)
+                    require(store.objectState(id) == null && store.getObject(id) == null) { "Unpublished upload became visible after recovery" }
                 }
                 check("adb_command_record_persistence") {
                     val namespace = "adb-e2e-$runId"
@@ -79,6 +98,17 @@ class DataNodeActivity : Activity() {
                     require(stored.contentEquals(expected) && store.objectDigest(stored) == id) { "ADB-written object hash mismatch after process restart" }
                 }
             } else {
+                check("schema_migration_v2") {
+                    require(store.schemaVersion() == DataNodeStore.DATABASE_VERSION) { "Unexpected SQLite schema version ${store.schemaVersion()}" }
+                    require(store.migrationApplied(DataNodeStore.DATABASE_VERSION)) { "Schema migration audit row is missing" }
+                }
+                check("schema_migration_preserves_existing_data") {
+                    if (store.migrationApplied(1)) {
+                        require(store.read(PERSIST_NS, "record-a")?.first == "{\"value\":\"alpha\"}") { "Legacy record was lost during migration" }
+                        val previousObject = "offline-data-node-object-v1".toByteArray()
+                        require(store.getObject(store.objectDigest(previousObject))?.contentEquals(previousObject) == true) { "Legacy object was lost during migration" }
+                    }
+                }
                 check("sqlite_integrity_before") { require(store.integrityCheck() == "ok") { "SQLite integrity check was not ok" } }
                 check("atomic_transaction_and_revision") {
                     val result = store.apply("$runId-batch", listOf(

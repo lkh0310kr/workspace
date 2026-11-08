@@ -70,7 +70,7 @@ function assertPassed(report, phase) {
 }
 
 try {
-  console.log("[data-node] Building Android debug APK...");
+  console.log("[data-node] Building Android debug APK and preparing recovery checks...");
   run(resolve(appDir, "gradlew"), ["--no-daemon", "assembleDebug"], { cwd: appDir, stdio: "inherit" });
 
   const deviceList = run(adb, ["devices", "-l"]);
@@ -111,7 +111,7 @@ try {
   const objectBytes = Buffer.from(`adb-object:${runId}`, "utf8");
   assertHostCheck(hostChecks, "adb_provider_health", () => {
     const result = callNode(serial, "health");
-    if (!result.ok || result.integrity !== "ok") throw new Error(JSON.stringify(result));
+    if (!result.ok || result.integrity !== "ok" || result.startupRecovery?.status !== "passed") throw new Error(JSON.stringify(result));
     return { device: result.device, sdk: result.sdk };
   });
   assertHostCheck(hostChecks, "adb_transactional_batch_and_idempotent_retry", () => {
@@ -120,7 +120,7 @@ try {
     if (!first.ok || !retry.ok || first.revision !== retry.revision || first.replayed || !retry.replayed || first.changedRecords !== 2) {
       throw new Error(JSON.stringify({ first, retry }));
     }
-    return { revision: first.revision, version: retry.version };
+    return { revision: first.revision, changedRecords: first.changedRecords };
   });
   assertHostCheck(hostChecks, "adb_idempotency_conflict_rejected", () => {
     const result = callNode(serial, "record.batch", {
@@ -167,6 +167,19 @@ try {
     if (!result.ok || !result.found || !bytes.equals(objectBytes) || result.sha256 !== sha256(objectBytes)) throw new Error(JSON.stringify(result));
     return { objectId, byteSize: bytes.length };
   });
+  assertHostCheck(hostChecks, "adb_prepare_crash_recovery_fixtures", () => {
+    const stagingBytes = Buffer.from(`recovery-staging:${runId}`, "utf8");
+    const publishedBytes = Buffer.from(`recovery-published:${runId}`, "utf8");
+    const stagingFixture = callNode(serial, "debug.object.after_staging", { bytesBase64: stagingBytes.toString("base64") });
+    const publishedFixture = callNode(serial, "debug.object.after_publish", { bytesBase64: publishedBytes.toString("base64") });
+    if (!stagingFixture.ok || stagingFixture.state !== "PREPARING" || stagingFixture.objectId !== sha256(stagingBytes)) {
+      throw new Error(JSON.stringify(stagingFixture));
+    }
+    if (!publishedFixture.ok || publishedFixture.state !== "PREPARING" || publishedFixture.objectId !== sha256(publishedBytes)) {
+      throw new Error(JSON.stringify(publishedFixture));
+    }
+    return { abandonedObjectId: stagingFixture.objectId, publishedObjectId: publishedFixture.objectId };
+  });
 
   adbRun(serial, "shell", "am", "force-stop", packageName);
   adbRun(serial, "shell", "am", "start", "-W", "-n", `${packageName}/.DataNodeActivity`, "--es", "mode", "restart", "--es", "run_id", runId);
@@ -196,9 +209,12 @@ try {
     serial,
     model: initial.device,
     sdk: initial.sdk,
+    databaseVersion: initial.databaseVersion,
+    migratedFromVersionOne: initial.migratedFromVersionOne,
     initialChecks: initial.checkCount,
     restartChecks: restarted.checkCount,
     adbHostChecks: hostChecks.length,
+    recovery: restarted.startupRecovery,
     runId,
     artifacts: outputDir,
   };

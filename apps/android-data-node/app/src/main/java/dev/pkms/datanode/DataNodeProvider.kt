@@ -11,7 +11,10 @@ import org.json.JSONObject
 
 /** ADB-only local command bridge, protected by the system DUMP permission. */
 class DataNodeProvider : ContentProvider() {
-    override fun onCreate(): Boolean = true
+    override fun onCreate(): Boolean {
+        context?.let { DataNodeStartup.recover(it) }
+        return true
+    }
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle {
         val store = DataNodeStore(requireNotNull(context))
@@ -23,6 +26,7 @@ class DataNodeProvider : ContentProvider() {
                     .put("integrity", store.integrityCheck())
                     .put("device", android.os.Build.MODEL)
                     .put("sdk", android.os.Build.VERSION.SDK_INT)
+                    .put("startupRecovery", DataNodeStartup.snapshot())
 
                 "record.put" -> {
                     val mutation = Mutation(
@@ -72,6 +76,20 @@ class DataNodeProvider : ContentProvider() {
                     if (bytes == null) JSONObject().put("ok", true).put("found", false)
                     else JSONObject().put("ok", true).put("found", true).put("bytesBase64", Base64.encodeToString(bytes, Base64.NO_WRAP))
                         .put("byteSize", bytes.size).put("sha256", store.objectDigest(bytes))
+                }
+
+                "debug.object.after_staging" -> {
+                    require(BuildConfig.DEBUG) { "Crash fixtures are available only in debug builds" }
+                    val bytes = Base64.decode(payload.getString("bytesBase64"), Base64.NO_WRAP)
+                    val id = store.injectObjectCrashForTest(bytes, payload.optString("contentType", "application/octet-stream"), ObjectCrashPoint.AFTER_STAGING_SYNC)
+                    JSONObject().put("ok", true).put("objectId", id).put("state", store.objectState(id))
+                }
+
+                "debug.object.after_publish" -> {
+                    require(BuildConfig.DEBUG) { "Crash fixtures are available only in debug builds" }
+                    val bytes = Base64.decode(payload.getString("bytesBase64"), Base64.NO_WRAP)
+                    val id = store.injectObjectCrashForTest(bytes, payload.optString("contentType", "application/octet-stream"), ObjectCrashPoint.AFTER_PUBLISH)
+                    JSONObject().put("ok", true).put("objectId", id).put("state", store.objectState(id))
                 }
 
                 else -> throw IllegalArgumentException("Unknown local command")
