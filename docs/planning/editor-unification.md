@@ -82,6 +82,7 @@ interface EditorSearchResult {
     line: number;
     column: number;
     preview: string;
+    /** UTF-16 string offsets for editor/display slicing. */
     ranges: readonly { start: number; end: number }[];
   }[];
 }
