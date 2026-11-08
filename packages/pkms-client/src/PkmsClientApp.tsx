@@ -198,7 +198,17 @@ export default function Home() {
       await refreshDirectory(path, true);
       return getFiles().filter((file) => parentPath(file.path) === path);
     },
-    getFile: async (fileId) => getFiles().find((file) => file.id === fileId) ?? null,
+    getFile: async (fileId, signal) => {
+      if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+      try {
+        const file = await api<FileRecord>(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/files/${encodeURIComponent(fileId)}`, { signal });
+        if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+        return file;
+      } catch (cause) {
+        if (cause && typeof cause === "object" && "code" in cause && cause.code === "not_found") return null;
+        throw cause;
+      }
+    },
     openSession: async (file, signal) => {
       await openDocumentSessionRef.current(file, editorNavigationRef.current, signal);
       if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
