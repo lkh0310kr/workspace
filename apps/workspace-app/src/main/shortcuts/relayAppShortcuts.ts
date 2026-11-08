@@ -43,11 +43,16 @@ function workspaceModifierName(): 'Meta' | 'Control' {
 }
 
 function isModifierRelease(input: Input): boolean {
+  if (input.type !== 'keyUp') return false
   const modifierName = workspaceModifierName()
   // Electron can report the modifier flags from before the key was released.
   // The physical code identifies the released key even in that case.
   if (input.code === `${modifierName}Left` || input.code === `${modifierName}Right`) return true
-  return input.key === modifierName
+  if (input.key === modifierName) return true
+  // Some focused web contents omit the physical key code for the modifier-up
+  // event. Any key-up observed with the app shortcut modifier no longer held
+  // is sufficient to clear the titlebar's temporary number hints.
+  return modifierName === 'Meta' ? input.meta !== true : input.control !== true
 }
 
 function isModifierPress(input: Input): boolean {
