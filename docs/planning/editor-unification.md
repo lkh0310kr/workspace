@@ -160,7 +160,7 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 | 문서별 편집 상태 | in progress | 커서·선택·scroll·undo를 안정 item ID로 메모리 캐시한다. Workspace 입력은 provider dirty phase를 갱신한다. PKMS 탭도 session dirty phase를 표시하고 닫기 전 확인하며, rename/move와 앱 재시작까지의 수명을 확인해야 한다. |
 | Outline과 트리 row·문서 tab 구성요소 | in progress | Outline UI와 Markdown heading parsing, row, PKMS 문서 tab, loaded branch 정렬·가시 행 계산·가상 스크롤 projection은 공유한다. PKMS 폴더 조회는 provider 계약을 통한다. 확장·선택·스크롤 상태와 트리 명령 UI는 아직 제품별이다. Workspace pane tab 배치는 Workspace 소유로 남긴다. |
 | Markdown 편집 기능과 명령 | in progress | Markdown parser, indent-on-input, Bold/italic 단축키, live-preview decoration은 공통 패키지다. Workspace 이미지 root와 WikiLink target resolver, PKMS 저장소 asset/link resolver는 host 책임으로 남아 있다. 두 제품에서 링크·asset·callout 동작을 맞추고 확인한다. |
-| Quick open·검색 UI와 Workbench 조립 | in progress | Quick-open dialog와 키보드 탐색 UI는 공유한다. 결과 조회·검색 상태와 트리·열린 문서·편집기·outline을 조립하는 공통 Workbench는 남아 있다. |
+| Quick open·검색 UI와 Workbench 조립 | in progress | Quick-open dialog와 fuzzy ranking은 공유한다. Workspace 파일 목록 조회와 PKMS loaded repository 후보 범위, 검색 상태는 host 소유다. 트리·열린 문서·편집기·outline을 조립하는 공통 Workbench는 남아 있다. |
 | 전체 acceptance 검증과 중복 UI 제거 | not yet | PKMS Web/Desktop 및 Workspace 각각에서 문서 전환, 외부 변경 conflict, 저장 상태, Markdown 기능을 확인한 뒤 구 구현을 제거한다. |
 
 구현은 위 표의 `not yet` 항목부터 공통 UI로 이동하고, 매 단계에서 두 provider가 보존해야 할 차이를 계약 capability와 adapter로 표현한다. `done (implemented)`는 코드 연결이 있다는 뜻이며 전체 acceptance 통과를 의미하지 않는다.
