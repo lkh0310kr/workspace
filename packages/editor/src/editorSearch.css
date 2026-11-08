@@ -1,6 +1,5 @@
 /* Shared VS Code style in-document Find/Replace panel. */
-.editor-markdown-document .cm-panel.cm-vs-search,
-.obsidian-editor-column .cm-panel.cm-vs-search {
+.editor-text-surface .cm-panel.cm-vs-search {
   position: absolute;
   top: 40px;
   right: 8px;

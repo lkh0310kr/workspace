@@ -215,5 +215,5 @@ export function EditorTextSurface({
     if (sessionSnapshot?.savePhase === "clean") persistViewStateRef.current?.();
   }, [sessionSnapshot]);
 
-  return <div ref={hostRef} className={className} />;
+  return <div ref={hostRef} className={["editor-text-surface", className].filter(Boolean).join(" ")} />;
 }
