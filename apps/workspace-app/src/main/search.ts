@@ -24,6 +24,31 @@ export interface SearchFileResult {
   matches: SearchMatch[];
 }
 
+/** ripgrep reports UTF-8 byte offsets; renderer string slicing uses UTF-16 indexes. */
+function utf8RangesToUtf16(text: string, ranges: readonly { start: number; end: number }[]): { start: number; end: number }[] {
+  const offsets = ranges.flatMap((range, rangeIndex) => [
+    { byte: range.start, rangeIndex, edge: "start" as const },
+    { byte: range.end, rangeIndex, edge: "end" as const },
+  ]).sort((a, b) => a.byte - b.byte);
+  const converted: { start: number; end: number }[] = ranges.map(() => ({ start: 0, end: 0 }));
+  let bytes = 0;
+  let utf16 = 0;
+  let offsetIndex = 0;
+  for (const character of text) {
+    while (offsetIndex < offsets.length && offsets[offsetIndex].byte <= bytes) {
+      const offset = offsets[offsetIndex++];
+      converted[offset.rangeIndex][offset.edge] = utf16;
+    }
+    bytes += Buffer.byteLength(character, "utf8");
+    utf16 += character.length;
+  }
+  while (offsetIndex < offsets.length) {
+    const offset = offsets[offsetIndex++];
+    converted[offset.rangeIndex][offset.edge] = utf16;
+  }
+  return converted;
+}
+
 export interface SearchOptions {
   caseSensitive?: boolean;
   regex?: boolean;
@@ -65,12 +90,14 @@ export function parseRipgrepMatchLine(
   // Electron process cwd, which can differ when the app is launched from Finder.
   const absolutePath = path.resolve(root, event.data.path.text);
   const relPath = path.relative(root, absolutePath);
+  const lineText = event.data.lines.text.replace(/\r?\n$/, "");
+  const ranges = utf8RangesToUtf16(lineText, event.data.submatches);
   return {
     path: relPath,
     match: {
       lineNumber: event.data.line_number,
-      lineText: event.data.lines.text.replace(/\r?\n$/, ""),
-      ranges: event.data.submatches.map((m) => ({ start: m.start, end: m.end })),
+      lineText,
+      ranges,
     },
   };
 }

@@ -58,6 +58,7 @@ export interface EditorSearchMatch {
   line: number;
   column: number;
   preview: string;
+  /** UTF-16 string offsets, suitable for CodeMirror and DOM string slicing. */
   ranges: readonly { start: number; end: number }[];
 }
 
