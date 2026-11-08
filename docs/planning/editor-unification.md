@@ -155,9 +155,9 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 
 | 영역 | 상태 | 현재 근거 / 남은 일 |
 |---|---|---|
-| Provider 계약과 Workspace·PKMS adapter | done (implemented) | `packages/editor/src/provider.ts`와 두 adapter가 트리·문서·검색·작업 capability를 사용한다. Workspace CodeMirror 입력은 저장 전에 session `replaceText`로 전달되어 provider dirty phase를 갱신한다. 공통 tab-ID dirty registry가 탭 버튼과 전역 닫기 단축키를 보호하고, 파일 삭제는 열린 dirty 문서 확인 후 수행한다. |
-| 공통 CodeMirror 표면 | done (implemented) | 두 앱이 `EditorTextSurface`를 사용한다. 공통 history, keymap, 외부 문서 갱신 처리를 소유한다. |
-| 문서별 편집 상태 | in progress | 커서·선택·scroll·undo를 안정 item ID로 메모리 캐시한다. Workspace 입력은 provider dirty phase를 갱신한다. PKMS 탭도 session dirty phase를 표시하고 닫기 전 확인하며, rename/move와 앱 재시작까지의 수명을 확인해야 한다. |
+| Provider 계약과 Workspace·PKMS adapter | done (implemented) | `packages/editor/src/provider.ts`와 두 adapter가 트리·문서·검색·작업 capability를 사용한다. 공통 CodeMirror 표면이 편집 내용을 session `replaceText`로 전달해 provider dirty phase를 갱신한다. 공통 tab-ID dirty registry가 탭 버튼과 전역 닫기 단축키를 보호하고, 파일 삭제는 열린 dirty 문서 확인 후 수행한다. |
+| 공통 CodeMirror 표면 | done (implemented) | 두 앱이 `EditorTextSurface`에 provider session을 전달한다. 공통 history, keymap, provider snapshot 반영, 편집 변경의 `replaceText` 전달을 소유한다. 각 제품은 Markdown 확장과 화면 chrome만 전달한다. |
+| 문서별 편집 상태 | in progress | 커서·선택·scroll·undo를 안정 item ID로 메모리 캐시한다. 두 제품의 편집 입력은 provider dirty phase를 갱신한다. PKMS 탭은 session dirty phase를 표시하고 닫기 전 확인한다. rename/move와 앱 재시작까지의 수명을 확인해야 한다. |
 | Outline과 트리 row·문서 tab 구성요소 | in progress | Outline UI와 Markdown heading parsing, row, PKMS 문서 tab, loaded branch 정렬·가시 행 계산·가상 스크롤 projection은 공유한다. PKMS 폴더 조회는 provider 계약을 통한다. 확장·선택·스크롤 상태와 트리 명령 UI는 아직 제품별이다. Workspace pane tab 배치는 Workspace 소유로 남긴다. |
 | Markdown 편집 기능과 명령 | in progress | Markdown parser, indent-on-input, Bold/italic 단축키, live-preview decoration은 공통 패키지다. Workspace 이미지 root와 WikiLink target resolver, PKMS 저장소 asset/link resolver는 host 책임으로 남아 있다. 두 제품에서 링크·asset·callout 동작을 맞추고 확인한다. |
 | Quick open·검색 UI와 Workbench 조립 | in progress | Quick-open dialog와 fuzzy ranking은 공유한다. Workspace 파일 목록 조회와 PKMS loaded repository 후보 범위, 검색 상태는 host 소유다. 트리·열린 문서·편집기·outline을 조립하는 공통 Workbench는 남아 있다. |
