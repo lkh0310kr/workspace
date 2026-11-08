@@ -31,7 +31,7 @@ const defaultCapabilities: EditorProviderCapabilities = {
   searchContents: false,
   replaceContents: false,
   multiSelect: true,
-  dragMove: false,
+  dragMove: true,
   codeLanguages: new Set(),
   collaborativeDocuments: true,
 };

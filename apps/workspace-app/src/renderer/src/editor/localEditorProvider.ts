@@ -10,7 +10,7 @@ import type {
 import { createDir, deletePath, getMediaUrl, listDir, onFileChanged, readFile, renamePath, writeFile } from "../electron";
 
 const capabilities: EditorProviderCapabilities = {
-  operations: new Set(["createFile", "createDirectory", "rename", "delete"]),
+  operations: new Set(["createFile", "createDirectory", "rename", "move", "delete"]),
   searchNames: true,
   searchContents: true,
   replaceContents: true,
@@ -19,6 +19,23 @@ const capabilities: EditorProviderCapabilities = {
   codeLanguages: new Set(["*"]),
   collaborativeDocuments: false,
 };
+
+function findMatch(text: string, query: string, options: { caseSensitive: boolean; regex: boolean; wholeWord: boolean }): number {
+  if (!query) return -1;
+  const flags = options.caseSensitive ? "gu" : "giu";
+  const matcher = options.regex
+    ? new RegExp(query, flags)
+    : new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags);
+  let match: RegExpExecArray | null;
+  while ((match = matcher.exec(text))) {
+    const before = text[match.index - 1] ?? "";
+    const after = text[match.index + match[0].length] ?? "";
+    const word = /[\p{L}\p{N}_]/u;
+    if (!options.wholeWord || (!word.test(before) && !word.test(after))) return match.index;
+    if (!match[0].length) matcher.lastIndex++;
+  }
+  return -1;
+}
 
 type LocalEditorProvider = Omit<EditorProvider, "create" | "rename" | "delete" | "move"> & Required<Pick<EditorProvider, "create" | "rename" | "delete" | "move">> & {
   dispose: () => void;
@@ -109,17 +126,12 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       if (!query) return [];
       const paths = await window.api.fs.listAllFiles(tabId);
       abortIfNeeded(signal);
-      const matcher = options.target === "names" ? null : options.regex
-        ? new RegExp(query, options.caseSensitive ? "g" : "gi")
-        : null;
-      const needle = options.caseSensitive ? query : query.toLocaleLowerCase();
       const results: EditorSearchResult[] = [];
       for (const path of paths) {
         abortIfNeeded(signal);
         const item = itemFor(path, false);
         if (options.target === "names") {
-          const haystack = options.caseSensitive ? item.name : item.name.toLocaleLowerCase();
-          if (haystack.includes(needle)) results.push({ item });
+          if (findMatch(item.name, query, options) >= 0) results.push({ item });
           continue;
         }
         if (item.kind === "asset") continue;
@@ -128,8 +140,8 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         const lines = text.split(/\r?\n/);
         for (let index = 0; index < lines.length; index++) {
           const line = lines[index];
-          const match = matcher ? matcher.exec(line) : (options.caseSensitive ? line : line.toLocaleLowerCase()).indexOf(needle) >= 0;
-          if (match) results.push({ item, line: index + 1, column: typeof match === "object" ? match.index + 1 : (options.caseSensitive ? line : line.toLocaleLowerCase()).indexOf(needle) + 1, preview: line });
+          const column = findMatch(line, query, options);
+          if (column >= 0) results.push({ item, line: index + 1, column: column + 1, preview: line });
         }
       }
       return results;
