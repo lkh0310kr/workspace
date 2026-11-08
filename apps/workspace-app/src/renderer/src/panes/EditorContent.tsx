@@ -147,6 +147,7 @@ export function EditorContent({
   pathRef.current = filePath;
   const lastLoadedContentRef = useRef<string | null>(null);
   const contentLoadedRef = useRef(false);
+  const suppressProviderEditRef = useRef(false);
   const onJumpConsumedRef = useRef(onJumpConsumed);
   onJumpConsumedRef.current = onJumpConsumed;
   const [outlineAnchor, setOutlineAnchor] = useState<AnchorRect | null>(null);
@@ -188,7 +189,9 @@ export function EditorContent({
   const applyLoadedFileContent = useCallback(
     (view: EditorView, content: string, jumpLine?: number | null) => {
       lastLoadedContentRef.current = content;
+      suppressProviderEditRef.current = true;
       replaceEditorDocument(view, content);
+      suppressProviderEditRef.current = false;
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
         autoSaveTimerRef.current = null;
@@ -241,7 +244,9 @@ export function EditorContent({
             const activeView = viewRef.current;
             if (activeView && snapshot.savePhase === "clean" && snapshot.content.text !== activeView.state.doc.toString()) {
               lastLoadedContentRef.current = snapshot.content.text;
+              suppressProviderEditRef.current = true;
               replaceEditorDocument(activeView, snapshot.content.text);
+              suppressProviderEditRef.current = false;
               setDirtyState(false);
             }
           });
@@ -386,7 +391,16 @@ export function EditorContent({
         if (!update.docChanged) return;
         editRevisionRef.current += 1;
         if (isMarkdown) setOutline(computeOutline(update.view));
+        if (suppressProviderEditRef.current) return;
         setDirtyState(true);
+        const session = documentSessionRef.current;
+        if (session && session.item.path === pathRef.current) {
+          const current = session.snapshot();
+          if (current.content.type === "text") {
+            void session.replaceText(update.state.doc.toString(), current.revision)
+              .catch((error: unknown) => setSaveError(error instanceof Error ? error.message : String(error)));
+          }
+        }
         const path = pathRef.current;
         if (!path || !autoSaveRef.current || pathRenameInFlightRef.current) return;
         scheduleAutoSave(update.view);
