@@ -26,6 +26,7 @@ export function EditorTreeVirtualList<T>({
       className={["editor-tree-virtual-list", className]
         .filter(Boolean)
         .join(" ")}
+      role="group"
       style={{ minHeight: projection.totalHeight }}
     >
       {projection.paddingTop > 0 && (

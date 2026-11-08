@@ -559,6 +559,7 @@ export function TreeView({
           if (!next) return;
           treeSelection.select(action.path, focusedEntry()?.path ?? null, { range: extendSelection });
           scrollRowIntoView(next.entry.path);
+          requestAnimationFrame(() => treeRef.current?.querySelector<HTMLElement>(`[data-tree-path="${CSS.escape(next.entry.path)}"]`)?.focus());
           return;
         }
         const path = action.path;
@@ -640,6 +641,9 @@ export function TreeView({
       ref={treeRef}
       className={`tree-view${dragOverPath === "" ? " drag-over-root" : ""}`}
       tabIndex={0}
+      role="tree"
+      aria-label="Files"
+      aria-multiselectable="true"
       onClick={() => setSelected(new Set())}
       onContextMenu={(e) => {
         e.preventDefault();
@@ -669,6 +673,7 @@ export function TreeView({
             multiSelected={selected.size > 1 && selected.has(entry.path)}
             dropTarget={dragOverPath === entry.path}
             showGuides
+            tabIndex={(selectionAnchor ?? selectedPath ?? [...selected][0] ?? flatList[0]?.entry.path) === entry.path ? 0 : -1}
             onDragStart={(e) => onEntryDragStart(e, entry)}
             onDragOver={(e) => {
               if (entry.is_dir) onFolderDragOver(e, entry.path);
