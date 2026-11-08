@@ -26,6 +26,10 @@ apps/pkms-ios/.build/
 apps/pkms-ios/Frameworks/*.xcframework
 apps/pkms-ios/**/xcuserdata/
 apps/pkms-ios/**/*.xcuserstate
+apps/android-data-node/.gradle/
+apps/android-data-node/.artifacts/
+apps/android-data-node/app/build/
+apps/android-data-node/build/
 apps/pkms-ios/legacy/v1/data/
 apps/pkms-ios/legacy/v1/AgentRuntime/Vendor/
 apps/pkms-ios/legacy/v1/AgentRuntime/RuntimeTemplate/vendor/

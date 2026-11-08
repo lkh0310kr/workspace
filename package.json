@@ -18,6 +18,7 @@
     "pkms:web:typecheck": "npm run typecheck --workspace @pkms/web",
     "pkms:server:deploy": "npm run deploy --workspace @pkms/server",
     "pkms:server:typecheck": "npm run typecheck --workspace @pkms/server",
+    "data-node:one-click": "node apps/android-data-node/scripts/one-click.mjs",
     "workspace:server:deploy": "npm run deploy --workspace @workspace/server",
     "workspace:server:typecheck": "npm run typecheck --workspace @workspace/server",
     "logs:compress": "node apps/workspace-app/scripts/manage-workspace-logs.mjs compress",
