@@ -11,7 +11,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { editorDocumentKey, EditorMarkdownDocument, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
+import { buildRenamedPath, editorDocumentKey, EditorMarkdownDocument, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
 const EditorMarkdownSurface = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
@@ -31,7 +31,6 @@ import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { indentGuides } from "../indentGuides";
 import { syntaxTheme } from "../codemirrorSyntax";
 import { workspaceSearch } from "../codemirrorSearch";
-import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markdownTitleRename";
 import { pastePlainTextCommand } from "../editorPlainPaste";
 import { getFocusedEditorView } from "../activeEditorView";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";

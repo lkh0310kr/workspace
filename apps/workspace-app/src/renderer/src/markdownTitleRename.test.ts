@@ -4,7 +4,7 @@ import {
   markdownExtensionOf,
   markdownTitleFor,
   validateTitleInput,
-} from "./markdownTitleRename";
+} from "@workspace/editor";
 
 describe("markdownExtensionOf", () => {
   it("preserves .markdown", () => {

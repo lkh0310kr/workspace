@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorTreeSelectionRoots, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorTreeSelectionRoots, markdownTitleFor, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -78,6 +78,9 @@ export default function Home() {
   const [quickOpenLoading, setQuickOpenLoading] = useState(false);
   const [quickOpenError, setQuickOpenError] = useState<string | null>(null);
   const [quickOpenResults, setQuickOpenResults] = useState<FileRecord[]>([]);
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [sync, setSync] = useState<SyncStatus>({ serverRevision: 0, githubStatus: "pending", pendingFiles: 0 });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -153,6 +156,8 @@ export default function Home() {
     return () => observer.disconnect();
   }, [activeWorkspace?.id]);
   const treeContextMenuRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleEditFileIdRef = useRef<string | null>(null);
   const editorNavigate = useRef<((position: number) => void) | null>(null);
   const routedPath = useRef<string | null>(null);
   const openFileSequence = useRef(0);
@@ -165,6 +170,16 @@ export default function Home() {
   const pending = useRef(new Map<string, RealtimeMessage>());
   const hydrating = useRef(false);
   const registerEditorNavigator = useCallback((navigate: ((position: number) => void) | null) => { editorNavigate.current = navigate; }, []);
+  useEffect(() => {
+    titleEditFileIdRef.current = null;
+    setTitleEditing(false);
+    setTitleError(null);
+  }, [activeWorkspace?.id, activeFile?.id]);
+  useEffect(() => {
+    if (!titleEditing) return;
+    titleInputRef.current?.focus();
+    titleInputRef.current?.select();
+  }, [titleEditing]);
   const { scheduleAutoSave, saveActiveFileNow, saveDocument } = useDocumentSync({
     workspaceId: activeWorkspace?.id,
     activeDocument: activeRef,
@@ -1085,6 +1100,56 @@ export default function Home() {
     if (!name?.trim() || name.trim() === currentName) return;
     await renameThroughEditorProvider(activeFile, name.trim());
   };
+  const enterTitleEdit = () => {
+    if (!activeFile || activeFile.kind !== "markdown") return;
+    titleEditFileIdRef.current = activeFile.id;
+    setTitleDraft(markdownTitleFor(activeFile.path));
+    setTitleError(null);
+    setTitleEditing(true);
+  };
+  const commitTitleRename = async () => {
+    const file = activeFile;
+    if (!file || titleEditFileIdRef.current !== file.id || !editorProvider?.rename) return;
+    const validation = validateTitleInput(titleDraft);
+    if ("error" in validation) {
+      if (validation.error === "empty") {
+        titleEditFileIdRef.current = null;
+        setTitleEditing(false);
+        setTitleError(null);
+        return;
+      }
+      setTitleError('Title can’t contain "/" or "\\".');
+      titleInputRef.current?.focus();
+      return;
+    }
+
+    const title = validation.title;
+    if (title === markdownTitleFor(file.path)) {
+      titleEditFileIdRef.current = null;
+      setTitleEditing(false);
+      setTitleError(null);
+      return;
+    }
+    const targetPath = buildRenamedPath(file.path, title);
+    const parentPathValue = parentPath(file.path);
+    try {
+      const parent = parentPathValue ? await resolveEditorTreePath(editorProvider, parentPathValue) : null;
+      if (parentPathValue && (!parent || parent.kind !== "directory")) throw new Error("The destination folder no longer exists.");
+      const entries = await editorProvider.listChildren(parent?.itemId ?? null);
+      const targetName = targetPath.split("/").at(-1) ?? targetPath;
+      const collision = entries.some((entry) => entry.itemId !== file.id && entry.name.toLowerCase() === targetName.toLowerCase());
+      if (collision) throw new Error(`"${title}" already exists.`);
+      await editorProvider.rename({ providerId: editorProvider.id, itemId: file.id }, targetName);
+      if (activeFileStateRef.current?.id !== file.id) return;
+      titleEditFileIdRef.current = null;
+      setTitleEditing(false);
+      setTitleError(null);
+    } catch (cause) {
+      if (activeFileStateRef.current?.id !== file.id) return;
+      setTitleError(cause instanceof Error ? cause.message : "Could not rename PKMS note");
+      titleInputRef.current?.focus();
+    }
+  };
   const renameCurrentFolderThroughEditorProvider = async () => {
     const folder = files.find((file) => file.kind === "folder" && file.path === currentFolder);
     if (!folder) return;
@@ -1247,7 +1312,24 @@ export default function Home() {
         />}
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <div className="editor-layout">
           <EditorMarkdownDocument
-            title={<div className="editor-title-block"><div className="editor-markdown-title">{activeFile.path.split("/").at(-1)?.replace(/\.md$/i, "")}</div>{peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}</div>}
+            title={<div className="editor-title-block">
+              {titleEditing ? <div className="md-title-edit">
+                <input
+                  ref={titleInputRef}
+                  aria-label="Markdown document title"
+                  className={`editor-markdown-title md-title-input${titleError ? " error" : ""}`}
+                  value={titleDraft}
+                  onChange={(event) => { setTitleDraft(event.target.value); setTitleError(null); }}
+                  onBlur={() => void commitTitleRename()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") { event.preventDefault(); titleInputRef.current?.blur(); }
+                    else if (event.key === "Escape") { event.preventDefault(); titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }
+                  }}
+                />
+                {titleError && <div className="md-title-error" role="alert">{titleError}</div>}
+              </div> : <div className="editor-markdown-title" title={activeFile.path} onClick={enterTitleEdit}>{markdownTitleFor(activeFile.path)}</div>}
+              {peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}
+            </div>}
             outlineItems={outlineItems.map((item) => ({ id: `${item.position}-${item.title}`, level: item.level, label: item.title, position: item.position }))}
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(position) => requestAnimationFrame(() => editorNavigate.current?.(position))}
