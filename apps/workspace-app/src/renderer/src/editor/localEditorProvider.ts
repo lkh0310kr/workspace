@@ -196,25 +196,25 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
           offDone();
           signal?.removeEventListener("abort", abort);
         };
-        const finish = (error?: string) => {
+        const finish = (error?: unknown) => {
           if (settled) return;
           settled = true;
           cleanup();
-          if (error) { reject(new Error(error)); return; }
+          if (error) { reject(error instanceof Error ? error : new Error(String(error))); return; }
           const results = [...files.values()].map(toEditorResult);
           persistItemIds();
           resolve(results);
         };
         const abort = () => {
           cancelSearch(requestId);
-          finish("Search aborted");
+          finish(new DOMException("The operation was aborted", "AbortError"));
         };
         const offResult = onSearchResult((id, result) => {
           if (id !== requestId) return;
           files.set(result.path, result);
           onResult?.(toEditorResult(result));
         });
-        const offDone = onSearchDone((id, error) => { if (id === requestId) finish(error); });
+        const offDone = onSearchDone((id, error) => { if (id === requestId) finish(error ? new Error(error) : undefined); });
         if (signal?.aborted) { abort(); return; }
         signal?.addEventListener("abort", abort, { once: true });
         try {
