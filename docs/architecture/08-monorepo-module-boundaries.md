@@ -13,7 +13,7 @@ apps/
   workspace-server/         # Home 서비스 연결·상태 API와 provider OAuth Worker
 
 packages/
-  editor/                    # Workspace와 PKMS Web/Desktop이 공유하는 Editor Workbench와 provider 계약
+  editor/                    # Workspace와 PKMS Web/Desktop이 공유하는 편집기 UI와 provider 계약
   pkms-client/              # Web/Desktop에서 공유하는 PKMS 클라이언트 UI와 동작
   pkms-protocol/            # PKMS HTTP·Realtime 계약
   workspace-home-protocol/  # Workspace Home API 계약
@@ -31,7 +31,7 @@ packages/
 | `apps/pkms-ios` | iOS UI·Keychain 세션·네이티브 생명주기·Rust FFI 연결 |
 | `apps/workspace-app` | Electron UI·파일시스템/PTY 권한·IPC·Home 화면과 로컬 위젯 |
 | `apps/workspace-server` | Home provider 연결/OAuth·상태 조회·provider 자격 증명 보관 |
-| `packages/editor` | 파일 provider에 독립적인 Editor Workbench, CodeMirror 편집, 트리·탐색 UI와 provider 계약 |
+| `packages/editor` | 파일 provider에 독립적인 공통 편집기, CodeMirror 편집, 트리·탐색 UI와 provider 계약 |
 | `packages/pkms-client` | PKMS 로그인·저장소 선택, 문서 provider와 PKMS 클라이언트 로직. 공통 Editor UI는 `packages/editor`가 소유 |
 | `packages/pkms-protocol` | PKMS API와 Realtime의 언어 중립 계약 및 TypeScript 타입 |
 | `packages/workspace-home-protocol` | Workspace Home 서버와 Desktop 사이의 API 계약 |
@@ -44,7 +44,7 @@ Editor UI는 제품 간 공유 패키지 `packages/editor`가 소유합니다. P
 ```mermaid
 flowchart LR
   WEB[pkms-web UI/proxy] --> CLIENT[pkms-client]
-  WEB --> EDITOR[editor workbench]
+  WEB --> EDITOR[shared editor]
   WEB --> PKMS[pkms-server]
   DESKTOP[workspace-app] --> CLIENT
   DESKTOP --> EDITOR

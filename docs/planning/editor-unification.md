@@ -2,9 +2,9 @@
 
 ## 목표
 
-PKMS와 Workspace가 같은 Editor Workbench를 사용한다. 파일 탐색, 열린 문서, 편집기, 목차, quick open, 검색 UI와 편집 상호작용을 공유하고, 로컬 파일과 PKMS 저장소의 읽기·쓰기·협업은 각 문서 provider가 담당한다.
+PKMS와 Workspace가 `packages/editor`의 공통 편집기를 사용한다. 파일 탐색, 열린 문서, 편집기, 목차, quick open, 검색 UI와 편집 상호작용을 공유하고, 로컬 파일과 PKMS 저장소의 읽기·쓰기·협업은 각 문서 provider가 담당한다.
 
-통합 기준은 제품 이름이 아니라 문서 소스다. 같은 Workbench가 로컬 파일과 PKMS 문서를 열 수 있지만, 파일 권한이나 PKMS 인증을 공통 UI 패키지에 옮기지 않는다.
+통합 기준은 제품 이름이 아니라 문서 소스다. 같은 공통 편집기가 로컬 파일과 PKMS 문서를 열 수 있지만, 파일 권한이나 PKMS 인증을 공통 UI 패키지에 옮기지 않는다.
 
 ## 제품 동작 스펙
 
@@ -22,13 +22,13 @@ PKMS는 일반 코드 파일 편집과 파일 내용 검색/치환을 현재 제
 ## 패키지와 소유권
 
 ```text
-packages/editor/                 # 공통 Workbench, CodeMirror 표면, Markdown 기능, tree/search UI
+packages/editor/                 # 공통 편집기, CodeMirror 표면, Markdown 기능, tree/search UI
 packages/pkms-client/            # PKMS 계정/저장소 진입 UI, PKMS provider, Web/Desktop transport
 apps/workspace-app/              # 로컬 파일 provider, Electron 권한/IPC, pane 배치와 Workspace 설정
 apps/pkms-web/                   # PKMS 웹 진입점과 세션 경계
 ```
 
-`packages/editor`는 React와 CodeMirror 기반 UI 및 문서 provider 계약만 의존한다. Electron, 파일시스템 권한, PKMS API·token·Yjs 세션을 직접 참조하지 않는다. 제품 앱은 Editor Workbench를 조립하고 제품 설정과 테마 토큰을 전달한다.
+`packages/editor`는 React와 CodeMirror 기반 UI 및 문서 provider 계약만 의존한다. Electron, 파일시스템 권한, PKMS API·token·Yjs 세션을 직접 참조하지 않는다. 제품 앱은 공통 편집기를 기존 앱 구조에 조립하고 제품 설정과 테마 토큰을 전달한다.
 
 공통 패키지는 편집 화면의 뼈대와 상호작용을 소유한다. Workspace pane 분할과 배치, PKMS 계정 로그인·저장소 선택, 각 provider의 저장·충돌·협업 정책은 제품/adapter 책임으로 남긴다.
 
@@ -126,23 +126,23 @@ interface EditorDocumentSession {
 
 계약 규칙은 다음과 같다.
 
-- `itemId` stays stable across rename and move. `parentId: null` identifies the provider root; all other parent IDs are provider item IDs. A provider emits tree invalidations and updated metadata; the Workbench updates labels and tree position without reopening or discarding the editor session.
-- `revision` is opaque to the Workbench. The provider checks or reconciles it when accepting edits; it reports an external-edit conflict rather than silently overwriting newer content.
-- `replaceText` reports local editor edits to the provider. Provider snapshots report remote or external changes back to the Workbench. Implementations suppress echo updates and preserve selection/undo state when applying snapshots.
+- `itemId` stays stable across rename and move. `parentId: null` identifies the provider root; all other parent IDs are provider item IDs. A provider emits tree invalidations and updated metadata; the shared editor updates labels and tree position without reopening or discarding the editor session.
+- `revision` is opaque to the shared editor. The provider checks or reconciles it when accepting edits; it reports an external-edit conflict rather than silently overwriting newer content.
+- `replaceText` reports local editor edits to the provider. Provider snapshots report remote or external changes back to the shared editor. Implementations suppress echo updates and preserve selection/undo state when applying snapshots.
 - `save()` flushes pending durable writes. `flushSync: false` permits secondary mirrors to remain pending. For PKMS, server persistence and GitHub mirroring are distinct: `savePhase: clean` confirms server persistence, while `syncPhase` reports mirror progress. For Workspace, `clean` confirms the local file write.
 - Save or operation failures use `EditorProviderErrorCode` with a user-safe message. The provider owns recovery and retry rules.
 - Optional operations are callable only when declared in `capabilities`; the UI hides unsupported commands and does not infer support from product name.
-- `close()` releases subscriptions, realtime resources, and pending provider work. The Workbench asks before closing a dirty session unless the provider reports that all edits are durable.
+- `close()` releases subscriptions, realtime resources, and pending provider work. The shared editor asks before closing a dirty session unless the provider reports that all edits are durable.
 
-`previewUrl`은 provider가 수명을 관리하는 임시 URL일 수 있다. Workbench는 문서 세션이 닫힐 때 asset preview도 해제한다. `asset` 문서는 읽기 전용 세션이며 `replaceText`를 제공하지 않는다.
+`previewUrl`은 provider가 수명을 관리하는 임시 URL일 수 있다. 공통 편집기는 문서 세션이 닫힐 때 asset preview도 해제한다. `asset` 문서는 읽기 전용 세션이며 `replaceText`를 제공하지 않는다.
 
 공용 Editor는 CodeMirror 인스턴스를 만들고 공통 명령, 문법 UI, Markdown 미리보기, 목차, 선택, 포커스 수명을 소유한다. 문서 세션은 PKMS 협업 바인딩 같은 문서 동기화 확장만 제공할 수 있다. Provider가 편집 UI를 교체하거나 공통 키 동작을 조용히 바꾸지는 않는다.
 
-여기서 **Workbench는 단일 root React 컴포넌트나 제품 shell이 아니라 공통 Editor 패키지와 그 기능 집합**을 뜻한다. 공통 패키지는 편집 surface·Markdown 동작·outline·트리 알고리즘과 재사용 UI를 소유한다. 열린 문서의 membership과 active document는 host가 소유한다. Workspace는 pane/tabset 모델에, PKMS는 workspace별 document tab 모델에 연결한다. `EditorDocumentTabBar`는 재사용 가능한 표시 UI이며 두 제품의 tab state를 강제로 같은 모델로 바꾸지 않는다. 문서별 커서·스크롤·선택·undo 이력은 안정적인 provider item identity로 공통 저장 기능을 사용하고 상태 저장 키/저장소는 host가 전달한다. 트리 확장·선택·스크롤의 보존 키도 host가 전달한다. PKMS에서 뒤로/앞으로는 열린 탭을 대신하지 않고 기존 문서 탐색 이력을 이동한다.
+여기서 **공통 편집기**는 단일 root React 컴포넌트나 제품 shell이 아니라 `packages/editor`의 UI와 기능 집합을 뜻한다. 공통 패키지는 편집 surface·Markdown 동작·outline·트리 알고리즘과 재사용 UI를 소유한다. 열린 문서의 membership과 active document는 host가 소유한다. Workspace는 pane/tabset 모델에, PKMS는 workspace별 document tab 모델에 연결한다. `EditorDocumentTabBar`는 재사용 가능한 표시 UI이며 두 제품의 tab state를 강제로 같은 모델로 바꾸지 않는다. 문서별 커서·스크롤·선택·undo 이력은 안정적인 provider item identity로 공통 저장 기능을 사용하고 상태 저장 키/저장소는 host가 전달한다. 트리 확장·선택·스크롤의 보존 키도 host가 전달한다. PKMS에서 뒤로/앞으로는 열린 탭을 대신하지 않고 기존 문서 탐색 이력을 이동한다.
 
 ## Acceptance and migration order
 
-통합 완료 조건은 PKMS Web/Desktop과 Workspace가 같은 Workbench와 provider 계약을 사용하고, 표에 적힌 제품별 동작을 유지하는 것이다. 문서를 전환해도 각 문서의 커서·스크롤·선택·undo 이력이 보존되어야 한다. 원격 또는 로컬 변경이 저장하지 않은 편집 내용을 조용히 덮어쓰면 안 된다.
+통합 완료 조건은 PKMS Web/Desktop과 Workspace가 같은 공통 편집기와 provider 계약을 사용하고, 표에 적힌 제품별 동작을 유지하는 것이다. 문서를 전환해도 각 문서의 커서·스크롤·선택·undo 이력이 보존되어야 한다. 원격 또는 로컬 변경이 저장하지 않은 편집 내용을 조용히 덮어쓰면 안 된다.
 
 Migrate in this order:
 
@@ -156,7 +156,7 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 
 ## 구현 상태
 
-화면과 조작 기준은 **Workspace Editor**다. 공통 편집기 UI는 Workspace의 밀도, 탐색, Markdown 편집 흐름을 따른다. PKMS의 로그인·저장소 선택·협업·동기화 표시는 PKMS shell에 남고, 그 안의 편집기와 트리는 공통 Workbench로 교체한다.
+화면과 조작 기준은 **Workspace Editor**다. 공통 편집기 UI는 Workspace의 밀도, 탐색, Markdown 편집 흐름을 따른다. PKMS의 로그인·저장소 선택·협업·동기화 표시는 PKMS shell에 남고, 그 안의 편집기와 트리는 `packages/editor`의 공통 UI로 교체한다.
 
 | 영역 | 상태 | 현재 근거 / 남은 일 |
 |---|---|---|
