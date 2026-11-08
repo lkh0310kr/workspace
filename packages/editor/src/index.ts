@@ -30,5 +30,7 @@ export type { EditorOutlineEntry, EditorOutlineListProps } from "./EditorOutline
 export { markdownFormattingKeymap, toggleMarkdownWrap } from "./markdownCommands";
 export { HEADING_TYPES, markdownLivePreview, markdownRootPath } from "./markdownLivePreview";
 export { wikiLinkExtension } from "./markdownWikilink";
+export { createMarkdownEditorExtensions } from "./markdownEditor";
+export type { MarkdownEditorOptions } from "./markdownEditor";
 export { EditorQuickOpenDialog } from "./EditorQuickOpenDialog";
 export type { EditorQuickOpenItem } from "./EditorQuickOpenDialog";

@@ -9,14 +9,12 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { EditorOutlineList, EditorTextSurface, HEADING_TYPES, markdownLivePreview, markdownRootPath, replaceEditorDocument, toggleMarkdownWrap, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorOutlineList, EditorTextSurface, HEADING_TYPES, markdownRootPath, replaceEditorDocument, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
   deleteMarkupBackward,
   insertNewlineContinueMarkupCommand,
-  markdown,
-  markdownLanguage,
 } from "@codemirror/lang-markdown";
 import {
   bracketMatching,
@@ -363,17 +361,14 @@ export function EditorContent({
 
     const modeExtensions = isMarkdown
       ? [
-          markdown({ base: markdownLanguage, extensions: [wikiLinkExtension], addKeymap: false }),
+          ...createMarkdownEditorExtensions({ parserExtensions: [wikiLinkExtension] }),
           rootCompartment.of(markdownRootPath.of(rootPath)),
-          ...markdownLivePreview,
           markdownProseTheme,
           wikiLinkClickHandler,
           keymap.of([
             { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
             { key: "Enter", run: insertNewlineAndIndent },
             { key: "Backspace", run: deleteMarkupBackward },
-            { key: "Mod-b", run: toggleMarkdownWrap("**") },
-            { key: "Mod-i", run: toggleMarkdownWrap("*") },
             { key: "Mod-Shift-v", run: pastePlainTextCommand },
           ]),
         ]

@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
-import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { defaultHighlightStyle, indentOnInput, syntaxHighlighting } from "@codemirror/language";
+import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import {
   EditorTextSurface,
+  createMarkdownEditorExtensions,
   markdownEditorTheme,
-  markdownFormattingKeymap,
-  markdownLivePreview,
 } from "@workspace/editor";
 
 export function MarkdownCodeEditor({
@@ -52,10 +50,7 @@ export function MarkdownCodeEditor({
 }
 
 const markdownSurfaceExtensions = [
-  markdown({ base: markdownLanguage, addKeymap: false }),
-  indentOnInput(),
+  ...createMarkdownEditorExtensions(),
   syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-  markdownLivePreview,
   markdownEditorTheme,
-  markdownFormattingKeymap(),
 ];
