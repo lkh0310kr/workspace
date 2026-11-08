@@ -27,7 +27,7 @@ export function createPkmsYjsEditorSession(
   text: Y.Text,
   saveDocument: PkmsDocumentSave,
 ): EditorDocumentSession {
-  const item = itemFor(workspaceId, file);
+  let item = itemFor(workspaceId, file);
   const origin = Symbol(`editor:${file.id}`);
   const listeners = new Set<(snapshot: EditorDocumentSnapshot) => void>();
   let phase: EditorDocumentSnapshot["savePhase"] = "clean";
@@ -90,8 +90,12 @@ export function createPkmsYjsEditorSession(
   };
 
   return {
-    item,
+    get item() { return item; },
     readOnly: file.kind !== "markdown",
+    updateItem(nextItem) {
+      if (nextItem.providerId !== item.providerId || nextItem.itemId !== item.itemId) return;
+      item = nextItem;
+    },
     snapshot,
     subscribe(listener) {
       listeners.add(listener);
@@ -144,7 +148,7 @@ export function createPkmsAssetEditorSession(
   mediaType: string,
   dispose: () => void,
 ): EditorDocumentSession {
-  const item = itemFor(workspaceId, file);
+  let item = itemFor(workspaceId, file);
   const value: EditorDocumentSnapshot = {
     content: { type: "asset", previewUrl, mediaType },
     revision: `${file.id}:${file.revision}`,
@@ -153,8 +157,12 @@ export function createPkmsAssetEditorSession(
   };
   let closed = false;
   return {
-    item,
+    get item() { return item; },
     readOnly: true,
+    updateItem(nextItem) {
+      if (nextItem.providerId !== item.providerId || nextItem.itemId !== item.itemId) return;
+      item = nextItem;
+    },
     snapshot: () => value,
     subscribe(listener) {
       listener(value);

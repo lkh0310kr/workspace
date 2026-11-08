@@ -204,6 +204,16 @@ export default function Home() {
       throw cause;
     }
   }, [activeWorkspace?.id]);
+  const refreshOpenEditorItemMetadata = useCallback(async (roots: readonly FileRecord[]) => {
+    if (!activeWorkspace) return;
+    const affected = [...pkmsEditorSessions.current.entries()].filter(([, session]) => roots.some((root) =>
+      session.item.itemId === root.id || (root.kind === "folder" && session.item.path.startsWith(`${root.path}/`)),
+    ));
+    await Promise.all(affected.map(async ([fileId, session]) => {
+      const latest = await getPkmsFileById(fileId);
+      if (latest) session.updateItem?.(pkmsItemForFile(activeWorkspace.id, latest));
+    }));
+  }, [activeWorkspace?.id, getPkmsFileById]);
   const editorProvider = useMemo(() => activeWorkspace ? createPkmsEditorProvider({
     workspaceId: activeWorkspace.id,
     listDirectory: async (path) => {
@@ -255,6 +265,7 @@ export default function Home() {
         const parent = parentPath(file.path);
         const path = `${parent ? `${parent}/` : ""}${name}`;
         await treeOperationsRef.current.rename(file, path);
+        await refreshOpenEditorItemMetadata([file]);
         return pkmsItemForFile(activeWorkspace.id, { ...file, path });
       },
       async move(refs, parentId) {
@@ -263,6 +274,7 @@ export default function Home() {
         const parent = parentId ? await getPkmsFileById(parentId) : null;
         if (parentId && (!parent || parent.kind !== "folder")) throw new EditorProviderError("notFound", "Destination folder no longer exists");
         await treeOperationsRef.current.move(moving.filter((file): file is FileRecord => file !== null), parent?.path ?? "");
+        await refreshOpenEditorItemMetadata(moving.filter((file): file is FileRecord => file !== null));
       },
       async delete(refs) {
         const deleting = await Promise.all(refs.map((ref) => getPkmsFileById(ref.itemId)));
@@ -270,7 +282,7 @@ export default function Home() {
         await treeOperationsRef.current.delete(deleting.filter((file): file is FileRecord => file !== null));
       },
     },
-  }) : null, [activeWorkspace?.id, getPkmsFileById, getFiles, refreshDirectory]);
+  }) : null, [activeWorkspace?.id, getPkmsFileById, getFiles, refreshDirectory, refreshOpenEditorItemMetadata]);
   useEffect(() => {
     if (!editorProvider) return;
     const providerId = editorProvider.id;

@@ -207,6 +207,8 @@ export interface EditorDocumentSnapshot {
 export interface EditorDocumentSession {
   readonly item: EditorTreeItem;
   readonly readOnly: boolean;
+  /** Refreshes provider metadata after a rename/move without reopening the document. */
+  updateItem?(item: EditorTreeItem): void;
   /** Synchronization extensions only; shared editing UI remains in @workspace/editor. */
   readonly extensions?: readonly Extension[];
   snapshot(): EditorDocumentSnapshot;
