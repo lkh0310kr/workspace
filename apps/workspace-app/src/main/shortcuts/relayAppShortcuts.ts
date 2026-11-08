@@ -141,12 +141,7 @@ export function relayHostAppShortcuts(
   }
 
   if (isWorkspaceTabIndexInput(input)) {
-    event.preventDefault()
     options.send('shortcut:switch-workspace-tab-index', { index: Number(input.code.at(-1)) })
-    // Cmd+number is prevented at Electron's native input boundary. On macOS
-    // that can suppress the corresponding modifier keyUp as well, leaving the
-    // titlebar hint latched. Selecting a tab consumes the hint mode.
-    options.send('shortcut:modifier-released')
     return
   }
 
@@ -202,9 +197,7 @@ export function relayGuestWebviewShortcuts(
   relaySharedRendererShortcuts(event, input, send, { gateBrowserReload: false })
 
   if (isWorkspaceTabIndexInput(input)) {
-    event.preventDefault()
     send('shortcut:switch-workspace-tab-index', { index: Number(input.code.at(-1) ?? input.key) })
-    send('shortcut:modifier-released')
     return
   }
 
