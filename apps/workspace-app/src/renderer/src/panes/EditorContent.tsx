@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { EditorOutlineList, EditorTextSurface, replaceEditorDocument, toggleMarkdownWrap, type EditorDocumentSession } from "@workspace/editor";
+import { EditorOutlineList, EditorTextSurface, HEADING_TYPES, markdownLivePreview, markdownRootPath, replaceEditorDocument, toggleMarkdownWrap, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -36,8 +36,6 @@ import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { indentGuides } from "../indentGuides";
 import { syntaxTheme } from "../codemirrorSyntax";
 import { workspaceSearch } from "../codemirrorSearch";
-import { markdownLivePreview, markdownRootPath, HEADING_TYPES } from "../markdownLivePreview";
-import { wikiLinkExtension } from "../markdownWikilink";
 import { buildRenamedPath, markdownTitleFor, validateTitleInput } from "../markdownTitleRename";
 import { pastePlainTextCommand } from "../editorPlainPaste";
 import { getFocusedEditorView } from "../activeEditorView";

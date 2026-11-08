@@ -2776,7 +2776,7 @@ input {
 
 /* —— Markdown live preview (Obsidian-style: markdown syntax renders as
    real formatting, syntax markers only reappear when the cursor is on
-   that element) — decorations applied by markdownLivePreview.ts —— */
+   that element) — decorations applied by the shared editor package —— */
 .cm-md-h1,
 .cm-md-h2,
 .cm-md-h3,

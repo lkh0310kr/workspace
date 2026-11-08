@@ -1,0 +1,35 @@
+/* Shared Workspace-baseline live preview decorations. Product colors fall back
+   to each host's token names so the same preview renders in Workspace and PKMS. */
+.cm-md-h1, .cm-md-h2, .cm-md-h3, .cm-md-h4, .cm-md-h5, .cm-md-h6 {
+  color: var(--text);
+  font-weight: 600;
+}
+.cm-md-h1 { font-size: 1.6em; }
+.cm-md-h2 { font-size: 1.35em; }
+.cm-md-h3 { font-size: 1.2em; }
+.cm-md-h4 { font-size: 1.1em; }
+.cm-md-h5 { font-size: 1em; }
+.cm-md-h6 { color: var(--text-muted, var(--muted)); font-size: .95em; }
+.cm-md-strong { font-weight: 600; }
+.cm-md-em { font-style: italic; }
+.cm-md-code { padding: 0 3px; background: var(--bg-hover, var(--hover)); font-family: var(--font-mono, var(--editor-font, monospace)); }
+.cm-md-link { color: var(--text); text-decoration: underline; }
+.cm-md-strike { color: var(--text-muted, var(--muted)); text-decoration: line-through; }
+.cm-md-hr { display: inline-block; width: 100%; height: 0; overflow: hidden; border-top: 1px solid var(--border-strong, var(--border)); color: transparent; vertical-align: middle; }
+.cm-md-task-checkbox { appearance: none; -webkit-appearance: none; position: relative; width: 1em; height: 1em; margin: 0 .4em 0 0; vertical-align: middle; border: 1.5px solid var(--border-strong, var(--border)); background: var(--bg-base, var(--bg)); cursor: pointer; }
+.cm-md-task-checkbox:checked { border-color: var(--text-muted, var(--muted)); background: var(--text-muted, var(--muted)); }
+.cm-md-task-checkbox:checked::after { position: absolute; top: .03em; left: .27em; width: .25em; height: .48em; transform: rotate(45deg); border: solid var(--bg-base, var(--bg)); border-width: 0 2px 2px 0; content: ""; }
+.cm-md-quote-line { padding-left: 10px; border-left: 3px solid var(--border-strong, var(--border)); color: var(--text-muted, var(--muted)); }
+.cm-md-codeblock-line { background: var(--bg-hover, var(--hover)); font-family: var(--font-mono, var(--editor-font, monospace)); }
+.cm-md-callout-line { border-left-color: var(--border-strong, var(--border)); background: color-mix(in srgb, var(--text) 4%, transparent); }
+.cm-md-callout-label { display: inline-flex; align-items: center; margin-right: 4px; color: var(--text); font-size: .9em; font-weight: 600; }
+.cm-md-callout-warning-line, .cm-md-callout-danger-line, .cm-md-callout-failure-line, .cm-md-callout-bug-line { border-left-color: #d9822b; background: color-mix(in srgb, #d9822b 8%, transparent); }
+.cm-md-callout-label.cm-md-callout-warning, .cm-md-callout-label.cm-md-callout-danger, .cm-md-callout-label.cm-md-callout-failure, .cm-md-callout-label.cm-md-callout-bug { color: #d9822b; }
+.cm-md-bullet, .cm-md-bullet-raw { display: inline-block; width: 1.4em; color: var(--text-muted, var(--muted)); }
+.cm-md-list-number { display: inline-block; min-width: 1em; margin-right: .4em; color: var(--text-muted, var(--muted)); text-align: right; }
+.cm-md-wikilink { border-bottom: 1px dotted var(--text-muted, var(--muted)); cursor: pointer; text-decoration: none; }
+.cm-md-image { display: block; max-width: 100%; margin: 4px 0; border-radius: 4px; }
+.cm-md-html-embed { display: block; width: 100%; min-height: 32px; border: 0; background: transparent; }
+.cm-md-table { margin: 6px 0; border-collapse: collapse; font-size: .95em; }
+.cm-md-table th, .cm-md-table td { padding: 4px 10px; border: 1px solid var(--border); text-align: left; }
+.cm-md-table th { background: var(--bg-hover, var(--hover)); font-weight: 600; }

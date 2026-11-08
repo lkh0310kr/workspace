@@ -28,5 +28,7 @@ export { moveEditorViewState, readEditorViewState, writeEditorViewState } from "
 export { EditorOutlineList } from "./EditorOutlineList";
 export type { EditorOutlineEntry, EditorOutlineListProps } from "./EditorOutlineList";
 export { markdownFormattingKeymap, toggleMarkdownWrap } from "./markdownCommands";
+export { HEADING_TYPES, markdownLivePreview, markdownRootPath } from "./markdownLivePreview";
+export { wikiLinkExtension } from "./markdownWikilink";
 export { EditorQuickOpenDialog } from "./EditorQuickOpenDialog";
 export type { EditorQuickOpenItem } from "./EditorQuickOpenDialog";

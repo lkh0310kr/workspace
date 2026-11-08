@@ -5,6 +5,7 @@ import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { createEditorView, replaceEditorDocument } from "./codeMirror";
 import { readEditorViewState, writeEditorViewState } from "./viewStateCache";
+import "./markdown.css";
 
 export const externalEditorChange = Annotation.define<boolean>();
 
