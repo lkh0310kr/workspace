@@ -78,9 +78,12 @@ interface EditorSearchOptions {
 
 interface EditorSearchResult {
   item: EditorTreeItem;
-  line?: number;
-  column?: number;
-  preview?: string;
+  matches?: readonly {
+    line: number;
+    column: number;
+    preview: string;
+    ranges: readonly { start: number; end: number }[];
+  }[];
 }
 
 interface EditorProvider {
@@ -90,6 +93,7 @@ interface EditorProvider {
   subscribeTree(listener: (changedParentIds: readonly string[]) => void): () => void;
   openDocument(item: EditorItemRef, signal?: AbortSignal): Promise<EditorDocumentSession>;
   search(query: string, options: EditorSearchOptions, signal?: AbortSignal): Promise<EditorSearchResult[]>;
+  replaceContents?(item: EditorItemRef, query: string, replacement: string, options: Omit<EditorSearchOptions, "target">, expectedMatchCount: number): Promise<boolean>;
   create?(parentId: string | null, kind: "file" | "directory", name: string): Promise<EditorTreeItem>;
   rename?(item: EditorItemRef, name: string): Promise<EditorTreeItem>;
   move?(items: readonly EditorItemRef[], parentId: string | null): Promise<void>;
@@ -155,13 +159,13 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 
 | 영역 | 상태 | 현재 근거 / 남은 일 |
 |---|---|---|
-| Provider 계약과 Workspace·PKMS adapter | done (implemented) | `packages/editor/src/provider.ts`와 두 adapter가 트리·문서·검색·작업 capability를 사용한다. 공통 CodeMirror 표면이 편집 내용을 session `replaceText`로 전달해 provider dirty phase를 갱신한다. 공통 tab-ID dirty registry가 탭 버튼과 전역 닫기 단축키를 보호하고, 파일 삭제는 열린 dirty 문서 확인 후 수행한다. |
+| Provider 계약과 Workspace·PKMS adapter | in progress | `packages/editor/src/provider.ts`와 두 adapter가 트리·문서·검색·작업 capability를 사용한다. 공통 CodeMirror 표면이 편집 내용을 session `replaceText`로 전달하고, Workspace Find/Replace가 `search`·`replaceContents`로 adapter를 경유한다. 공통 tab-ID dirty registry가 탭 버튼과 전역 닫기 단축키를 보호하고, 파일 삭제는 열린 dirty 문서 확인 후 수행한다. 남은 provider operations와 오류/취소 흐름의 양쪽 acceptance 확인이 필요하다. |
 | 공통 CodeMirror 표면 | done (implemented) | 두 앱이 `EditorMarkdownSurface`에 provider session을 전달한다. 공통 history, keymap, provider snapshot 반영, 편집 변경의 `replaceText` 전달, 기본 Markdown 구문·syntax highlighting, 줄 이동기, 문법 트리 기반 outline 갱신을 소유한다. Workspace는 WikiLink·로컬 검색·코드 편집 확장을 주입하고 PKMS는 기본 Markdown 확장을 사용한다. 편집기 주변 레이아웃과 Workbench 조립은 계속 통합 중이다. |
 | Markdown 문서 프레임 | in progress | 두 앱이 `EditorMarkdownDocument`의 공통 제목·floating actions·스크롤 가능한 문서 본문·outline 버튼/목록/이동 구조를 쓴다. PKMS의 Markdown 제목이 Workspace처럼 본문과 함께 스크롤된다. 문서별 feature chrome은 host 책임으로 남아 있다. |
 | 문서별 편집 상태 | in progress | Workspace의 path→item ID 매핑은 재시작 뒤에도 복원되고 두 provider 모두 rename/move 중 item ID를 유지한다. CodeMirror 커서·선택·scroll·undo 상태는 provider clean 시 안정 identity 키로 저장하고, 24개 LRU·문서별 40,000자 제한 안에서 재시작 뒤 복원한다. dirty이거나 더 큰 상태는 메모리에서만 유지한다. 양쪽 입력은 provider dirty phase를 갱신하고 PKMS 탭은 dirty 확인을 한다. 전체 rename/move·재시작 동작은 acceptance 검증이 남아 있다. |
 | Outline과 트리 row·문서 tab 구성요소 | in progress | Outline UI와 Markdown heading parsing, row, PKMS 문서 tab, loaded branch 정렬·가시 행 계산·가상 스크롤 projection 및 spacer/행 렌더링, 방향키/Enter/Delete/F2 해석, 단일·다중·범위 선택 상태 전이를 공유한다. 두 제품은 같은 selection hook/controller와 keyboard action resolver 및 virtual list를 쓰며 상태 저장, focus/scroll 반영, 실제 파일 명령은 각 트리 host가 수행한다. PKMS 폴더 조회는 provider 계약을 통한다. 트리 명령 UI는 아직 제품별이다. Workspace pane tab 배치는 Workspace 소유로 남긴다. |
 | Markdown 편집 기능과 명령 | in progress | Markdown parser, 4칸 들여쓰기, indent-on-input, 목록 연속 입력, markup Backspace, Bold/italic 단축키, live-preview decoration은 공통 패키지다. Workspace plain-text paste와 이미지 root/WikiLink target resolver, PKMS 저장소 asset/link resolver는 host 책임으로 남아 있다. 두 제품에서 링크·asset·callout 동작을 맞추고 확인한다. |
-| Quick open·검색 UI와 host 조립 | in progress | Quick-open dialog와 fuzzy ranking은 공유한다. Workspace 파일 목록 조회와 PKMS loaded repository 후보 범위, 검색 상태는 host 소유다. 각 host는 공통 Editor 요소를 기존 pane/tab/navigation shell에 연결하며, 중복된 편집 조립 로직을 더 공통화하고 양쪽에 연결하는 작업이 남아 있다. |
+| Quick open·검색 UI와 host 조립 | in progress | Quick-open dialog와 fuzzy ranking은 공유한다. Workspace 파일 목록 조회와 PKMS loaded repository 후보 범위, 검색 상태는 host 소유다. Workspace Find/Replace는 공통 provider 검색 계약을 사용하고 PKMS는 name search만 제공한다. 각 host는 공통 Editor 요소를 기존 pane/tab/navigation shell에 연결하며, 중복된 편집 조립 로직을 더 공통화하고 양쪽에 연결하는 작업이 남아 있다. |
 | 전체 acceptance 검증과 중복 UI 제거 | not yet | PKMS Web/Desktop 및 Workspace 각각에서 문서 전환, 외부 변경 conflict, 저장 상태, Markdown 기능을 확인한 뒤 구 구현을 제거한다. |
 
 구현은 위 표의 `not yet` 항목부터 공통 UI로 이동하고, 매 단계에서 두 provider가 보존해야 할 차이를 계약 capability와 adapter로 표현한다. `done (implemented)`는 코드 연결이 있다는 뜻이며 전체 acceptance 통과를 의미하지 않는다.
