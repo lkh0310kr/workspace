@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, externalEditorChange, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, EditorTextSurface, externalEditorChange, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -661,7 +661,7 @@ export function EditorContent({
             </EditorMarkdownDocument>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-              <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
+              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>

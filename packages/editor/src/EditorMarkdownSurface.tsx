@@ -21,7 +21,7 @@ const baseMarkdownExtensions: readonly Extension[] = [
   markdownEditorTheme,
 ];
 
-/** Shared Markdown and code editing surface; hosts supply provider sessions and product extensions. */
+/** Shared Markdown editing surface; hosts supply provider sessions and product extensions. */
 export function EditorMarkdownSurface({
   extensions = baseMarkdownExtensions,
   onViewReady: onViewReadyProp,
