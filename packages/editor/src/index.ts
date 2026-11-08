@@ -38,3 +38,4 @@ export { EditorQuickOpenDialog } from "./EditorQuickOpenDialog";
 export type { EditorQuickOpenItem } from "./EditorQuickOpenDialog";
 export { flattenEditorTree, projectEditorTreeRows, EDITOR_TREE_ROW_HEIGHT } from "./treeModel";
 export type { EditorTreeBranchEntry, EditorVisibleTreeRow, EditorTreeProjection } from "./treeModel";
+export { confirmEditorDocumentClose } from "./closeGuard";

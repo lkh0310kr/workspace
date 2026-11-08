@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { type TabNode } from 'flexlayout-react'
 import { PaneFrame } from '../components/PaneFrame'
 import { PaneTabStrip } from '../components/PaneTabStrip'
+import { confirmEditorDocumentClose } from '@workspace/editor'
 import {
   addTabToGroup,
   changeTabKindInGroup,
@@ -99,11 +100,13 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const closeTab = useCallback(
     (id: string) => {
+      const item = tabs.find((tab) => tab.id === id)
+      if (!confirmEditorDocumentClose(dirtyByTabId[id] ?? false, item?.title ?? item?.filePath ?? 'This document')) return
       void closeTabInGroup(model, nodeId, id)
         .then(() => onNotifyChanged())
         .catch(console.error)
     },
-    [model, nodeId, onNotifyChanged]
+    [model, nodeId, onNotifyChanged, dirtyByTabId, tabs]
   )
 
   const newTab = useCallback(

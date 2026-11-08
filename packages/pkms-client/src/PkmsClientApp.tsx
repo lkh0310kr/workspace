@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, markdownOutlineFromText, projectEditorTreeRows, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
+import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, markdownOutlineFromText, projectEditorTreeRows, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -307,7 +307,7 @@ export default function Home() {
     if (index < 0) return;
     const session = pkmsEditorSessions.current.get(fileId);
     const savePhase = session?.snapshot().savePhase;
-    if (savePhase && savePhase !== "clean" && !window.confirm("This note has unsaved changes. Close it anyway?")) return;
+    if (!confirmEditorDocumentClose(Boolean(savePhase && savePhase !== "clean"), "This note")) return;
     const closingActive = activeFile?.id === fileId;
     const nextTab = tabs[index + 1] ?? tabs[index - 1] ?? null;
     setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === fileId)));
