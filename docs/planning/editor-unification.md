@@ -175,6 +175,8 @@ PKMS 저장 완료·오류 상태도 저장 시작 시의 document key와 현재
 
 문서 내 Find/Replace panel과 Cmd/Ctrl+F·Mod+D 동작 및 panel styling은 `packages/editor`의 `editorSearch`가 소유한다. Markdown surface와 일반 text surface가 같은 검색 확장을 사용하며, Workspace/PKMS toolbar는 공통 `EditorSearchButton`으로 panel을 연다. 파일 전체 검색/치환은 provider capability에 따라 host별로 유지한다.
 
+TextSurface는 host가 전달한 class 외에 공통 `.editor-text-surface` root를 제공한다. in-document Find/Replace panel은 이 shared surface에 anchor되어 Workspace shell selector에 의존하지 않는다.
+
 Quick Open도 두 host가 파일 목록을 직접 취합·필터링하지 않고 provider의 fuzzy name search를 사용한다. Workspace provider는 전체 로컬 파일 후보를, PKMS provider는 현재 로드된 저장소 파일 후보를 검색한다. 공통 dialog는 검색 중 이전 후보를 Enter로 열지 않는다.
 
 공통 트리 virtual list는 tree root 아래 `group`으로 노출된다. Workspace root도 PKMS처럼 multi-select tree semantics를 제공하고, 방향키 이동 시 다음 선택 행에 DOM focus를 맞춘다.
