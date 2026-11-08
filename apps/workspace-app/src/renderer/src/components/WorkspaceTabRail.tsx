@@ -66,11 +66,25 @@ export function WorkspaceTabRail({
     const unsubscribeModifierPress = onShortcutModifierPressed(() => setShowTabNumbers(true))
     const clearOnBlur = () => setShowTabNumbers(false)
     const unsubscribeModifierRelease = onShortcutModifierReleased(clearOnBlur)
+    const syncOnKeyUp = (event: KeyboardEvent) => {
+      // The native before-input-event relay does not always deliver the
+      // modifier's own keyUp after Cmd+number switches focus. The renderer's
+      // keyUp still reports the post-release modifier state, so reconcile the
+      // hints here as well (and keep them visible if Cmd is still held).
+      const mac = window.api.platform === 'darwin'
+      const modifierKeyReleased = mac
+        ? event.key === 'Meta' || event.code === 'MetaLeft' || event.code === 'MetaRight'
+        : event.key === 'Control' || event.code === 'ControlLeft' || event.code === 'ControlRight'
+      const modifierHeld = mac ? event.metaKey : event.ctrlKey
+      setShowTabNumbers(!modifierKeyReleased && modifierHeld)
+    }
 
     window.addEventListener('blur', clearOnBlur)
+    window.addEventListener('keyup', syncOnKeyUp, true)
     document.addEventListener('visibilitychange', clearOnBlur)
     return () => {
       window.removeEventListener('blur', clearOnBlur)
+      window.removeEventListener('keyup', syncOnKeyUp, true)
       document.removeEventListener('visibilitychange', clearOnBlur)
       unsubscribeModifierPress()
       unsubscribeModifierRelease()
