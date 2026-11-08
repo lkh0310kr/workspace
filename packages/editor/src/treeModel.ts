@@ -9,7 +9,7 @@ export interface EditorVisibleTreeRow<T extends EditorTreeBranchEntry> {
   depth: number;
 }
 
-export const EDITOR_TREE_ROW_HEIGHT = 24;
+export const EDITOR_TREE_ROW_HEIGHT = 27;
 const TREE_OVERSCAN = 4;
 
 export interface EditorTreeProjection<T> {

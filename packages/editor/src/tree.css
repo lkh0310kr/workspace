@@ -1,10 +1,16 @@
+:root {
+  --editor-tree-row-height: 27px;
+}
+
 .editor-tree-item {
   position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
   width: 100%;
-  min-height: 27px;
+  flex: 0 0 var(--editor-tree-row-height, 27px);
+  height: var(--editor-tree-row-height, 27px);
+  min-height: var(--editor-tree-row-height, 27px);
   padding-block: 3px;
   padding-inline-end: 8px;
   overflow: hidden;

@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -122,7 +122,7 @@ export default function Home() {
   const [treeScrollTop, setTreeScrollTop] = useState(0);
   const [treeViewportHeight, setTreeViewportHeight] = useState(0);
   const treeProjection = useMemo(
-    () => projectEditorTreeRows(treeRows, treeScrollTop, treeViewportHeight, 28),
+    () => projectEditorTreeRows(treeRows, treeScrollTop, treeViewportHeight, EDITOR_TREE_ROW_HEIGHT),
     [treeRows, treeScrollTop, treeViewportHeight],
   );
   const {
