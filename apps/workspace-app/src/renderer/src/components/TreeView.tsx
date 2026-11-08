@@ -9,7 +9,6 @@ import {
 } from "react";
 import {
   DirEntry,
-  listDir,
   revealItemInDir,
 } from "../fileSystem";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
@@ -30,7 +29,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, flattenEditorTree, projectEditorTreeRows, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, flattenEditorTree, projectEditorTreeRows, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -104,9 +103,11 @@ function rowAnchor(entry: DirEntry, treeEl: HTMLElement | null): AnchorRect {
   return { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 };
 }
 
-async function findAvailableName(tabId: number, dir: string, base: string, ext: string) {
-  const entries = await listDir(tabId, dir).catch(() => []);
-  const names = new Set(entries.map((e) => e.name.toLowerCase()));
+async function findAvailableName(provider: ReturnType<typeof acquireLocalEditorProvider>["provider"], dir: string, base: string, ext: string) {
+  const parent = dir ? await resolveEditorTreePath(provider, dir) : null;
+  if (dir && !parent) throw new Error("Folder no longer exists");
+  const entries = await provider.listChildren(parent?.itemId ?? null);
+  const names = new Set(entries.map((entry) => entry.name.toLowerCase()));
   const first = `${base}${ext}`;
   if (!names.has(first.toLowerCase())) return first;
   let i = 1;
@@ -148,7 +149,7 @@ export function TreeView({
   const loadDir = useCallback(
     (path: string) => {
       const load = async () => {
-        const parent = path ? await editorProvider.itemRefForPath(path) : null;
+        const parent = path ? await resolveEditorTreePath(editorProvider, path) : null;
         if (path && !parent) return;
         const items = await editorProvider.listChildren(parent?.itemId ?? null);
         const entries: EditorDirEntry[] = items.map((item) => ({ name: item.name, path: item.path, is_dir: item.kind === "directory", editorItemId: item.itemId }));
@@ -345,16 +346,17 @@ export function TreeView({
 
   const newFile = async (dir: string) => {
     setMenu(null);
-    const name = await findAvailableName(tabId, dir, "untitled", ".md");
-    const path = joinPath(dir, name);
+    let name: string;
     try {
-      const parent = dir ? await editorProvider.itemRefForPath(dir) : null;
+      name = await findAvailableName(editorProvider, dir, "untitled", ".md");
+      const parent = dir ? await resolveEditorTreePath(editorProvider, dir) : null;
       if (dir && !parent) throw new Error("Parent directory no longer exists");
       await editorProvider.create(parent?.itemId ?? null, "file", name);
     } catch (err) {
       window.alert(String(err));
       return;
     }
+    const path = joinPath(dir, name);
     openFileFromTree(path, "markdown");
     refresh(dir);
   };
@@ -367,7 +369,7 @@ export function TreeView({
       defaultValue: "",
       onSubmit: async (name) => {
         try {
-          const parent = dir ? await editorProvider.itemRefForPath(dir) : null;
+          const parent = dir ? await resolveEditorTreePath(editorProvider, dir) : null;
           if (dir && !parent) throw new Error("Parent directory no longer exists");
           await editorProvider.create(parent?.itemId ?? null, "directory", name);
           setExpandedPersisted((prev) => new Set(prev).add(dir));
@@ -389,7 +391,7 @@ export function TreeView({
         if (name === entry.name) return;
         const to = joinPath(dirOf(entry.path), name);
         try {
-          const ref = await editorProvider.itemRefForPath(entry.path);
+          const ref = await resolveEditorTreePath(editorProvider, entry.path);
           if (!ref) throw new Error("Item no longer exists");
           await editorProvider.rename(ref, name);
         } catch (err) {
@@ -420,7 +422,7 @@ export function TreeView({
     const deleted: string[] = [];
     for (const p of paths) {
       try {
-        const ref = await editorProvider.itemRefForPath(p);
+        const ref = await resolveEditorTreePath(editorProvider, p);
         if (!ref) throw new Error("Item no longer exists");
         await editorProvider.delete([ref]);
         deleted.push(p);
@@ -468,9 +470,9 @@ export function TreeView({
       if (targetDir === p || targetDir.startsWith(`${p}/`)) continue;
       const to = joinPath(targetDir, baseName(p));
       try {
-        const ref = await editorProvider.itemRefForPath(p);
+        const ref = await resolveEditorTreePath(editorProvider, p);
         if (!ref) throw new Error("Item no longer exists");
-        const parent = targetDir ? await editorProvider.itemRefForPath(targetDir) : null;
+        const parent = targetDir ? await resolveEditorTreePath(editorProvider, targetDir) : null;
         if (targetDir && !parent) throw new Error("Destination directory no longer exists");
         await editorProvider.move([ref], parent?.itemId ?? null);
       } catch (err) {

@@ -46,7 +46,6 @@ function replaceRegex(query: string, options: EditorReplaceOptions): RegExp {
 
 type LocalEditorProvider = Omit<EditorProvider, "create" | "rename" | "delete" | "move"> & Required<Pick<EditorProvider, "create" | "rename" | "delete" | "move">> & {
   dispose: () => void;
-  itemRefForPath: (path: string) => Promise<EditorItemRef | null>;
   pathForItemId: (itemId: string) => string | null;
 };
 
@@ -135,14 +134,6 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       const items = entries.map((entry) => itemFor(entry.path, entry.is_dir, entry.name));
       persistItemIds();
       return items;
-    },
-    async itemRefForPath(path) {
-      const parentPath = parentOf(path);
-      const parentRef = parentPath ? await provider.itemRefForPath(parentPath) : null;
-      if (parentPath && !parentRef) return null;
-      const entries = await provider.listChildren(parentRef?.itemId ?? null);
-      const item = entries.find((entry) => entry.path === path);
-      return item ? { providerId: id, itemId: item.itemId } : null;
     },
     pathForItemId(itemId) {
       return pathByItemId.get(itemId) ?? null;

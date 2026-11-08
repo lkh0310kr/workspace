@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, EditorTextSurface, externalEditorChange, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, EditorTextSurface, externalEditorChange, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -23,7 +23,6 @@ import {
 import { languages as languageData } from "@codemirror/language-data";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { closeSearchPanel, openSearchPanel, searchPanelOpen, selectNextOccurrence } from "@codemirror/search";
-import { listDir, writeFile } from "../electron";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
 import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { indentGuides } from "../indentGuides";
@@ -69,35 +68,37 @@ function getEditorViewStateStorage(): Storage | undefined {
   try { return window.localStorage; } catch { return undefined; }
 }
 
-async function findAvailableUntitledName(tabId: number): Promise<string> {
-  const entries = await listDir(tabId, "").catch(() => []);
-  const names = new Set(entries.filter((e) => !e.is_dir).map((e) => e.name.toLowerCase()));
+type LocalProvider = ReturnType<typeof acquireLocalEditorProvider>["provider"];
+
+async function findAvailableUntitledName(provider: LocalProvider): Promise<string> {
+  const entries = await provider.listChildren(null);
+  const names = new Set(entries.filter((entry) => entry.kind !== "directory").map((entry) => entry.name.toLowerCase()));
   if (!names.has("untitled.md")) return "untitled.md";
   let i = 1;
   while (names.has(`untitled ${i}.md`)) i++;
   return `untitled ${i}.md`;
 }
 
-async function resolveWikiLinkTarget(tabId: number, target: string): Promise<string> {
+async function resolveWikiLinkTarget(provider: LocalProvider, target: string): Promise<string> {
   const base = target.split("/").pop()?.trim() || target;
   const wanted = `${base.toLowerCase()}.md`;
-  const queue: string[] = [""];
+  const queue: Array<{ parentId: string | null }> = [{ parentId: null }];
   let visited = 0;
   while (queue.length > 0 && visited < 500) {
     const dir = queue.shift()!;
     visited++;
-    const entries = await listDir(tabId, dir).catch(() => []);
+    const entries = await provider.listChildren(dir.parentId);
     for (const entry of entries) {
-      if (entry.is_dir) {
-        queue.push(entry.path);
-      } else if (entry.name.toLowerCase() === wanted) {
+      if (entry.kind === "directory") {
+        queue.push({ parentId: entry.itemId });
+      } else if (entry.kind === "markdown" && entry.name.toLowerCase() === wanted) {
         return entry.path;
       }
     }
   }
   const created = `${base}.md`;
-  await writeFile(tabId, created, "");
-  return created;
+  const item = await provider.create(null, "file", created);
+  return item.path;
 }
 
 function jumpToPos(view: EditorView, pos: number): void {
@@ -211,7 +212,7 @@ export function EditorContent({
         setActiveDocumentSession(null);
         if (previous) void previous.close();
       }
-      editorProvider.itemRefForPath(path)
+      resolveEditorTreePath(editorProvider, path)
         .then((item) => {
           if (!item) throw new Error(`File not found: ${path}`);
           if (sequence === documentLoadSequenceRef.current && pathRef.current === path) {
@@ -267,7 +268,24 @@ export function EditorContent({
         if (session && session.item.path === path) {
           await session.save();
         } else {
-          await writeFile(tabId, path, content);
+          let targetSession = session;
+          if (!targetSession || targetSession.item.path !== path) {
+            let item = await resolveEditorTreePath(editorProvider, path);
+            if (!item) {
+              const slash = path.lastIndexOf("/");
+              const parentPath = slash < 0 ? "" : path.slice(0, slash);
+              const parent = parentPath ? await resolveEditorTreePath(editorProvider, parentPath) : null;
+              const name = slash < 0 ? path : path.slice(slash + 1);
+              item = await editorProvider.create(parent?.itemId ?? null, "file", name);
+            }
+            targetSession = await editorProvider.openDocument(item);
+            documentSessionRef.current = targetSession;
+            setActiveDocumentSession(targetSession);
+          }
+          const snapshot = targetSession.snapshot();
+          if (snapshot.content.type !== "text") throw new Error("This file cannot be edited as text");
+          if (snapshot.content.text !== content) await targetSession.replaceText(content, snapshot.revision);
+          await targetSession.save();
         }
       });
       saveQueueRef.current = write.then(() => {}, () => {});
@@ -284,7 +302,7 @@ export function EditorContent({
         throw error;
       });
     },
-    [tabId, setDirtyState],
+    [editorProvider, setDirtyState],
   );
 
   const saveActiveFile = useCallback(
@@ -294,11 +312,11 @@ export function EditorContent({
         await saveNow(view, path);
         return;
       }
-      const name = await findAvailableUntitledName(tabId);
+      const name = await findAvailableUntitledName(editorProvider);
       await saveNow(view, name);
       onAssignPathRef.current(name);
     },
-    [tabId, saveNow, setDirtyState],
+    [editorProvider, saveNow],
   );
 
   const scheduleAutoSave = useCallback((view: EditorView) => {
@@ -433,9 +451,18 @@ export function EditorContent({
     const targetPath = buildRenamedPath(pathRef.current, nextTitle);
     const targetDir = targetPath.includes("/") ? targetPath.slice(0, targetPath.lastIndexOf("/")) : "";
     const targetBase = (targetPath.split("/").pop() ?? targetPath).toLowerCase();
-    const entries = await listDir(tabId, targetDir).catch(() => []);
+    let entries: EditorTreeItem[];
+    try {
+      const parent = targetDir ? await resolveEditorTreePath(editorProvider, targetDir) : null;
+      if (targetDir && !parent) throw new Error("The destination folder no longer exists.");
+      entries = await editorProvider.listChildren(parent?.itemId ?? null);
+    } catch (error) {
+      setTitleError(error instanceof Error ? error.message : String(error));
+      titleInputRef.current?.focus();
+      return;
+    }
     const collision = entries.some(
-      (e) => !e.is_dir && e.name.toLowerCase() === targetBase && targetPath !== pathRef.current,
+      (entry) => entry.kind !== "directory" && entry.name.toLowerCase() === targetBase && targetPath !== pathRef.current,
     );
     if (collision) {
       setTitleError(`"${nextTitle}" already exists.`);
@@ -477,7 +504,7 @@ export function EditorContent({
       if (session && session.item.path === sourcePath) {
         await editorProvider.rename(session.item, targetPath.split("/").at(-1) ?? targetPath);
       } else {
-        const item = await editorProvider.itemRefForPath(sourcePath);
+        const item = await resolveEditorTreePath(editorProvider, sourcePath);
         if (!item) throw new Error("File no longer exists");
         await editorProvider.rename(item, targetPath.split("/").at(-1) ?? targetPath);
       }
@@ -641,7 +668,7 @@ export function EditorContent({
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
                 <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
                   if (link.kind === "wikilink") {
-                    void resolveWikiLinkTarget(tabId, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
+                    void resolveWikiLinkTarget(editorProvider, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;
                   }
                   const path = resolveEditorRelativeLink(filePath ?? "", link.target);

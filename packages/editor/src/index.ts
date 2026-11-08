@@ -43,6 +43,7 @@ export { markdownFormattingKeymap, toggleMarkdownWrap } from "./markdownCommands
 export { markdownLinkNavigation } from "./markdownLinkNavigation";
 export type { EditorMarkdownLink } from "./markdownLinkNavigation";
 export { resolveEditorRelativeLink } from "./relativeLink";
+export { resolveEditorTreePath } from "./resolveEditorTreePath";
 export { HEADING_TYPES, markdownImageResolver, markdownLivePreview, markdownRootPath } from "./markdownLivePreview";
 export type { MarkdownImageResolver, MarkdownImageResource } from "./markdownLivePreview";
 export { wikiLinkExtension } from "./markdownWikilink";
