@@ -47,7 +47,10 @@ export function EditorMarkdownSurface({
   const resolveImageRef = useRef(resolveImage);
   resolveImageRef.current = resolveImage;
   const linkNavigation = useMemo(() => markdownLinkNavigation((link) => onActivateLinkRef.current?.(link) ?? false), []);
-  const imageResolver = useMemo(() => resolveImage ? markdownImageResolver.of((url) => resolveImageRef.current?.(url) ?? null) : [], []);
+  const imageResolver = useMemo(
+    () => markdownImageResolver.of((url) => resolveImageRef.current?.(url) ?? null),
+    [],
+  );
   const sharedExtensions = useMemo(() => [
     ...baseExtensions,
     ...extensions,
