@@ -810,7 +810,7 @@ export default function Home() {
       clearActiveFile();
       setFiles([]); setLoadingFolder(true); setLoadingFolderPaths(new Set());
       setCurrentFolder("");
-      setSelectedTreePaths(new Set()); setCutTreePaths(new Set()); setSelectionAnchorPath(null);
+      treeSelection.clear(); setCutTreePaths(new Set());
       setExpandedFolders(new Set([""]));
       setLoadedFolders(new Set());
       setActiveWorkspace(workspace);
@@ -847,7 +847,7 @@ export default function Home() {
         navigate("/", { replace: true });
       }
     })();
-  }, [activeWorkspace?.id, api, fileLocation?.path, fileLocation?.workspaceId, files, loadedFolders, loading, location.pathname, navigate, user, workspaces]);
+  }, [activeWorkspace?.id, api, fileLocation?.path, fileLocation?.workspaceId, files, loadedFolders, loading, location.pathname, navigate, treeSelection.clear, user, workspaces]);
 
   const toggleFolder = async (file: FileRecord) => {
     if (!activeWorkspace || !editorProvider) return;
@@ -858,7 +858,7 @@ export default function Home() {
 
   const chooseWorkspace = (workspace: Workspace) => {
     setActiveEditorSession(null); setActiveWorkspace(workspace); clearActiveFile(); setFiles([]); setLoadingFolder(true); setLoadingFolderPaths(new Set()); setCurrentFolder(""); setExpandedFolders(new Set([""])); setLoadedFolders(new Set());
-    setSelectedTreePaths(new Set()); setCutTreePaths(new Set()); setSelectionAnchorPath(null);
+    treeSelection.clear(); setCutTreePaths(new Set());
     routedPath.current = null;
     navigate("/", { preventScrollReset: true });
   };
@@ -879,7 +879,7 @@ export default function Home() {
       setShowRepositories(false);
       setActiveEditorSession(null);
       clearActiveFile(); setFiles([]); setLoadingFolder(true); setLoadingFolderPaths(new Set()); setCurrentFolder(""); setExpandedFolders(new Set([""])); setLoadedFolders(new Set());
-      setSelectedTreePaths(new Set()); setCutTreePaths(new Set()); setSelectionAnchorPath(null);
+      treeSelection.clear(); setCutTreePaths(new Set());
       await refreshWorkspaces();
       setActiveWorkspace(result.workspace);
       routedPath.current = null;
@@ -1248,7 +1248,7 @@ export default function Home() {
               setTreeContextMenu({ file, x: Math.max(8, Math.min(event.clientX, window.innerWidth - 196)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)) });
             }}
             onSelectRow={selectTreeRow}
-            onClearSelection={() => { setSelectedTreePaths(new Set()); setSelectionAnchorPath(null); setFocusedTreePath(null); }}
+            onClearSelection={treeSelection.clear}
             onActivate={(file) => { if (file.kind === "folder") void toggleFolder(file); else void openFile(file); }}
           />
           {treeContextMenu && (() => {

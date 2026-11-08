@@ -227,7 +227,8 @@ export function TreeView({
     if (!selectedPath || !explorerModeActive) return;
     setSelected(new Set([selectedPath]));
     setSelectionAnchor(selectedPath);
-  }, [selectedPath, explorerModeActive]);
+    treeSelection.setFocusedPath(selectedPath);
+  }, [selectedPath, explorerModeActive, treeSelection.setFocusedPath]);
 
   useEffect(() => {
     const clearDrag = () => setDragOverPath(null);
@@ -446,6 +447,9 @@ export function TreeView({
     if (selectionAnchor && deleted.includes(selectionAnchor)) {
       setSelectionAnchor(remaining[0] ?? null);
     }
+    if (treeSelection.focusedPath && deleted.includes(treeSelection.focusedPath)) {
+      treeSelection.setFocusedPath(remaining[0] ?? null);
+    }
     moveFocusToRendererBeforeFocusedWebviewHidden();
     interactionCoordinator.reconcile("tree-delete-complete");
     finishPaneDrag();
@@ -642,7 +646,7 @@ export function TreeView({
       role="tree"
       aria-label="Files"
       aria-multiselectable="true"
-      onClick={() => setSelected(new Set())}
+      onClick={() => treeSelection.clear()}
       onContextMenu={(e) => {
         e.preventDefault();
         setMenu({ x: e.clientX, y: e.clientY, dir: "", entry: null });
