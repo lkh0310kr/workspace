@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { listAllFiles } from "../electron";
-import { fuzzyFilter } from "../quickOpenFuzzy";
+import { fuzzyEditorSearch } from "@workspace/editor";
 import { classifyFile } from "./TreeView";
 import { EditorQuickOpenDialog } from "@workspace/editor";
 
@@ -40,7 +40,7 @@ export function QuickOpen({ tabId, onOpenFile, onClose }: Props) {
     };
   }, [tabId]);
 
-  const filtered = useMemo(() => fuzzyFilter(files, query, (f) => f, 100), [files, query]);
+  const filtered = useMemo(() => fuzzyEditorSearch(files, query, (f) => f, 100), [files, query]);
 
   const openSelected = (path: string): void => {
     onOpenFile(path, classifyFile(path));

@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, markdownOutlineFromText, projectEditorTreeRows, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
+import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, fuzzyEditorSearch, markdownOutlineFromText, projectEditorTreeRows, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -848,24 +848,13 @@ export default function Home() {
     }
   };
 
-  const [quickOpenResults, setQuickOpenResults] = useState<FileRecord[]>([]);
+  const quickOpenResults = useMemo(() => fuzzyEditorSearch(
+    visibleFiles.filter((file) => file.kind !== "folder"),
+    quickQuery,
+    (file) => file.path,
+    30,
+  ), [quickQuery, visibleFiles]);
   const quickOpenItems = useMemo(() => quickOpenResults.map((file) => ({ id: file.id, label: entryName(file.path), description: file.path })), [quickOpenResults]);
-  useEffect(() => {
-    if (!editorProvider || !quickOpen) { setQuickOpenResults([]); return; }
-    let current = true;
-    void editorProvider.search(quickQuery.trim(), {
-      target: "names", caseSensitive: false, regex: false, wholeWord: false,
-    }).then((results) => {
-      if (!current) return;
-      const visibleIds = new Set(visibleFiles.filter((file) => file.kind !== "folder").map((file) => file.id));
-      const byId = new Map(getFiles().map((file) => [file.id, file]));
-      setQuickOpenResults(results.flatMap((result) => {
-        const file = byId.get(result.item.itemId);
-        return file && visibleIds.has(file.id) ? [file] : [];
-      }).slice(0, 30));
-    }).catch(() => { if (current) setQuickOpenResults([]); });
-    return () => { current = false; };
-  }, [editorProvider, getFiles, quickOpen, quickQuery, visibleFiles]);
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
   const contextMoveRoots = treeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)));
   const cutMoveRoots = treeSelectionRoots(files.filter((file) => cutTreePaths.has(file.path)), cutTreePaths);
