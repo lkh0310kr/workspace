@@ -37,7 +37,7 @@ export interface PaneRenderContext {
   /** Cmd+'+'/Cmd+'-' per-pane text zoom, shared by every tab in the group. */
   zoom: number;
   dirty: boolean;
-  setDirty: (dirty: boolean) => void;
+  setDirty: (dirty: boolean, viewStateKey?: string) => void;
   /** File-explorer sidebar state — only meaningful when hasFileExplorer. */
   treeOpen: boolean;
   onToggleTree: () => void;

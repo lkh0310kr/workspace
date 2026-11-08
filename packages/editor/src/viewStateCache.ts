@@ -132,3 +132,10 @@ export function moveEditorViewState(fromKey: string, toKey: string, storage?: Ed
   if (state.persistable !== false) persistState(toKey, state, storage);
 }
 
+/** Drop provider-unsaved in-memory content after the user confirms discarding a document. */
+export function discardEditorViewState(key: string): void {
+  cache.delete(key);
+  // The view's unmount cleanup runs in the same React commit and may write one final dirty snapshot.
+  setTimeout(() => cache.delete(key), 0);
+}
+

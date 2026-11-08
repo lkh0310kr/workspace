@@ -86,6 +86,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   const paneHostRef = useRef<HTMLDivElement>(null)
   const explorerChrome = usePaneGroupExplorerChrome(workspaceTabId, nodeId)
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({})
+  const [viewStateKeyByTabId, setViewStateKeyByTabId] = useState<Record<string, string>>({})
   const [pendingJumpByTabId, setPendingJumpByTabId] = useState<Record<string, number>>({})
 
   useEffect(() => {
@@ -95,9 +96,10 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
         dirtyByTabId[item.id] ?? false,
         item.title ?? item.filePath ?? 'This document',
         item.filePath ?? undefined,
+        viewStateKeyByTabId[item.id],
       )
     }
-  }, [tabs, dirtyByTabId])
+  }, [tabs, dirtyByTabId, viewStateKeyByTabId])
 
   const activeTabId = resolveActivePaneTabId(config)
   const activeItem = tabs.find((t) => t.id === activeTabId) ?? tabs[0]
@@ -302,8 +304,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                 chipShown,
                 zoom,
                 dirty: dirtyByTabId[item.id] ?? false,
-                setDirty: (dirty) => {
-                  setEditorDocumentDirty(item.id, dirty, item.title ?? item.filePath ?? 'This document', item.filePath ?? undefined)
+                setDirty: (dirty, viewStateKey) => {
+                  if (viewStateKey) setViewStateKeyByTabId((prev) => ({ ...prev, [item.id]: viewStateKey }))
+                  setEditorDocumentDirty(item.id, dirty, item.title ?? item.filePath ?? 'This document', item.filePath ?? undefined, viewStateKey ?? viewStateKeyByTabId[item.id])
                   setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))
                 },
                 treeOpen,

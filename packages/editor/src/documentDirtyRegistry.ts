@@ -1,14 +1,23 @@
+import { discardEditorViewState } from "./viewStateCache";
+
 interface DirtyDocument {
   label: string;
   path?: string;
+  viewStateKey?: string;
 }
 
 const dirtyDocuments = new Map<string, DirtyDocument>();
 
 /** Register editor dirty state for shell level close actions. */
-export function setEditorDocumentDirty(id: string, dirty: boolean, label = "This document", path?: string): void {
-  if (dirty) dirtyDocuments.set(id, { label, path });
+export function setEditorDocumentDirty(id: string, dirty: boolean, label = "This document", path?: string, viewStateKey?: string): void {
+  if (dirty) dirtyDocuments.set(id, { label, path, viewStateKey });
   else dirtyDocuments.delete(id);
+}
+
+/** Clear unsaved CodeMirror snapshots after a confirmed tab close. */
+export function discardEditorDocumentViewState(id: string): void {
+  const viewStateKey = dirtyDocuments.get(id)?.viewStateKey;
+  if (viewStateKey) discardEditorViewState(viewStateKey);
 }
 
 export function confirmEditorDocumentCloseById(id: string): boolean {

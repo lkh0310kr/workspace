@@ -9,7 +9,7 @@ import { countLayoutTabs } from "./layoutModelParse";
 import { findReplaceableEditorTab } from "./paneTabSlots";
 import { destroyBrowserWebview, getPersistentBrowserWebview } from "./browserWebviewRegistry";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
-import { clearEditorDocumentDirty, confirmEditorDocumentCloseById } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmEditorDocumentCloseById, discardEditorDocumentViewState } from "@workspace/editor";
 
 /** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
  * structure changes, not on activeTabId-only persists (that remounted
@@ -500,6 +500,7 @@ export async function closeTabInGroup(
   if (idx === -1) return config.activeTabId;
   const closing = config.tabs[idx];
   if (!options.skipDirtyConfirm && !confirmEditorDocumentCloseById(tabId)) return config.activeTabId;
+  discardEditorDocumentViewState(tabId);
   clearEditorDocumentDirty(tabId);
   if (closing?.kind === "browser") {
     const webview = getPersistentBrowserWebview(tabId);

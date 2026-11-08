@@ -57,7 +57,7 @@ interface Props {
   /** "Save" on an untitled tab assigns it a real path — bubbles up so the
    * tab strip / persisted layout reflect it. */
   onAssignPath: (path: string) => void;
-  onDirtyChange: (dirty: boolean) => void;
+  onDirtyChange: (dirty: boolean, viewStateKey?: string) => void;
   treeOpen: boolean;
   onToggleTree: () => void;
   /** 1-based line to scroll to and select, e.g. from a Find-in-Files result
@@ -179,12 +179,18 @@ export function EditorContent({
     : resolvedDocumentIdentity?.path === filePath
       ? resolvedDocumentIdentity.key
       : `${editorProvider.id}:path:${filePath ?? `untitled:${tabId}`}`;
+  const documentCacheKeyRef = useRef(documentCacheKey);
+  documentCacheKeyRef.current = documentCacheKey;
   const setDirtyState = useCallback((next: boolean) => {
     if (dirtyRef.current === next) return;
     dirtyRef.current = next;
     setDirty(next);
-    onDirtyChangeRef.current(next);
+    onDirtyChangeRef.current(next, documentCacheKeyRef.current);
   }, []);
+
+  useEffect(() => {
+    onDirtyChangeRef.current(dirtyRef.current, documentCacheKey);
+  }, [documentCacheKey]);
 
   const applyLoadedFileContent = useCallback(
     (view: EditorView, content: string, jumpLine?: number | null) => {
