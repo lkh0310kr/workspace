@@ -30,10 +30,12 @@ interface Options {
   setError: Dispatch<SetStateAction<string>>; setNotice: Dispatch<SetStateAction<string>>;
   requestName: (title: string, initialValue?: string) => Promise<string | null>;
   confirm: (message: string) => Promise<boolean>;
+  beforeDelete?: (roots: FileRecord[]) => boolean;
+  afterDelete?: (roots: FileRecord[]) => void;
 }
 
 export function useWorkspaceFileActions(options: Options) {
-  const { workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders, api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders, setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, requestName, confirm } = options;
+  const { workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders, api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders, setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, requestName, confirm, beforeDelete, afterDelete } = options;
   const updateFilePath = async (file: FileRecord, toPath: string) => {
     if (!activeWorkspace) return;
     let activePath = activeFile?.path;
@@ -170,12 +172,13 @@ export function useWorkspaceFileActions(options: Options) {
     void updateFilePath(file, `${parent ? `${parent}/` : ""}${nextName}`);
   };
 
-  const deleteTreeItems = async (filesToDelete: FileRecord[]) => {
+  const deleteTreeItems = async (filesToDelete: FileRecord[]): Promise<boolean> => {
     setTreeContextMenu(null);
-    if (!activeWorkspace || !filesToDelete.length) return;
+    if (!activeWorkspace || !filesToDelete.length) return false;
     const roots = treeSelectionRoots(filesToDelete, new Set(filesToDelete.map((file) => file.path)));
     const message = roots.length === 1 ? `Delete ${entryName(roots[0].path)}?` : `Delete ${roots.length} selected items?`;
-    if (!await confirm(message)) return;
+    if (!await confirm(message)) return false;
+    if (beforeDelete && !beforeDelete(roots)) return false;
     const previousFiles = files;
     const isInsideDeleted = (path: string) => roots.some((file) => path === file.path || (file.kind === "folder" && path.startsWith(`${file.path}/`)));
     setFiles((current) => current.filter((entry) => !isInsideDeleted(entry.path)));
@@ -192,10 +195,14 @@ export function useWorkspaceFileActions(options: Options) {
       for (const file of roots) {
         await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: file.id });
       }
+      afterDelete?.(roots);
+      return true;
     } catch (cause) {
       try {
         const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
+        const removedRoots = roots.filter((root) => !snapshot.files.some((file) => file.id === root.id));
         setFiles(snapshot.files);
+        if (removedRoots.length) afterDelete?.(removedRoots);
         setSelectedTreePaths(new Set());
         setExpandedFolders((current) => new Set([...current].filter((path) => snapshot.files.some((file) => file.kind === "folder" && file.path === path))));
         setLoadedFolders((current) => new Set([...current].filter((path) => snapshot.files.some((file) => file.kind === "folder" && file.path === path))));
@@ -210,6 +217,7 @@ export function useWorkspaceFileActions(options: Options) {
         if (activeFile && isInsideDeleted(activeFile.path)) void openFile(activeFile, "none");
       }
       setError(`${roots.length > 1 ? "Some selected items may have been deleted. " : ""}${cause instanceof Error ? cause.message : "Could not delete item"}`);
+      return false;
     }
   };
 

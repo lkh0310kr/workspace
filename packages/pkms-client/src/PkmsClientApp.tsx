@@ -52,7 +52,7 @@ interface PkmsTreeOperations {
   createFolder: (parentPath: string, name: string) => Promise<FileRecord | undefined>;
   rename: (file: FileRecord, path: string) => Promise<void>;
   move: (files: FileRecord[], parentPath: string) => Promise<void>;
-  delete: (files: FileRecord[]) => Promise<void>;
+  delete: (files: FileRecord[]) => Promise<boolean>;
 }
 
 export default function Home() {
@@ -962,17 +962,44 @@ export default function Home() {
     link.remove();
   };
 
-  const { updateFilePath, moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItemTo, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder } = useWorkspaceFileActions({
+  const { updateFilePath, moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItemTo, deleteTreeItems, openTreeItem } = useWorkspaceFileActions({
     workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders,
     api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders,
     setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, requestName, confirm,
+    beforeDelete: (roots) => {
+      const affected = openDocuments.filter((tab) => tab.workspaceId === activeWorkspace?.id && roots.some((root) =>
+        tab.file.path === root.path || (root.kind === "folder" && tab.file.path.startsWith(`${root.path}/`)),
+      ));
+      const dirty = affected.filter((tab) => {
+        const phase = pkmsEditorSessions.current.get(tab.file.id)?.snapshot().savePhase;
+        return phase ? phase !== "clean" : tab.file.id === activeFile?.id && (saving || notice === "Unsaved");
+      });
+      if (!dirty.length) return true;
+      const labels = dirty.map((tab) => entryName(tab.file.path));
+      return window.confirm(`Deleting these items will discard unsaved edits in:\n\n${labels.join("\n")}\n\nContinue?`);
+    },
+    afterDelete: (roots) => {
+      const deletedIds = new Set(openDocuments.filter((tab) => tab.workspaceId === activeWorkspace?.id && roots.some((root) =>
+        tab.file.path === root.path || (root.kind === "folder" && tab.file.path.startsWith(`${root.path}/`)),
+      )).map((tab) => tab.file.id));
+      for (const fileId of deletedIds) {
+        discardEditorViewState(`pkms:${activeWorkspace?.id}:${fileId}`);
+        const session = pkmsEditorSessions.current.get(fileId);
+        if (session) {
+          void session.close();
+          pkmsEditorSessions.current.delete(fileId);
+        }
+      }
+      setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && deletedIds.has(tab.file.id))));
+      setActiveEditorSession((current) => current && deletedIds.has(current.item.itemId) ? null : current);
+    },
   });
   treeOperationsRef.current = {
     createFile: (directory, name) => createNote(directory, name, false),
     createFolder,
     rename: updateFilePath,
     move: moveTreeItems,
-    delete: deleteTreeItems,
+    delete: (items) => deleteTreeItems(items),
   };
   const moveThroughEditorProvider = async (items: FileRecord[], destination: string) => {
     if (!editorProvider?.move) return moveTreeItems(items, destination);
@@ -982,6 +1009,13 @@ export default function Home() {
   const deleteThroughEditorProvider = async (items: FileRecord[]) => {
     if (!editorProvider?.delete) return deleteTreeItems(items);
     await editorProvider.delete(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })));
+  };
+  const deleteActiveFileThroughEditorProvider = () => {
+    if (activeFile) void deleteThroughEditorProvider([activeFile]);
+  };
+  const deleteCurrentFolderThroughEditorProvider = () => {
+    const folder = files.find((file) => file.kind === "folder" && file.path === currentFolder);
+    if (folder) void deleteThroughEditorProvider([folder]);
   };
   const renameThroughEditorProvider = async (file: FileRecord, name: string) => {
     if (!editorProvider?.rename) return renameTreeItemTo(file, name);
@@ -1025,9 +1059,9 @@ export default function Home() {
             <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}><AppIcon name="folderPlus" /></button>
             <label className="mini-button upload-button" title="Upload file"><AppIcon name="upload" /><input type="file" onChange={(event) => { void uploadFile(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
             {activeFile && <button className="mini-button" title="Rename" onClick={renameActiveFile}><AppIcon name="pencil" /></button>}
-            {(selectedTreePaths.size > 0 || activeFile) && <button className="mini-button" title={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} aria-label={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} onClick={() => selectedTreePaths.size > 0 ? void deleteThroughEditorProvider(treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file)) : void deleteActiveFile()}><AppIcon name="trash" /></button>}
+            {(selectedTreePaths.size > 0 || activeFile) && <button className="mini-button" title={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} aria-label={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} onClick={() => selectedTreePaths.size > 0 ? void deleteThroughEditorProvider(treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file)) : deleteActiveFileThroughEditorProvider()}><AppIcon name="trash" /></button>}
             {!activeFile && currentFolder && <button className="mini-button" title="Rename folder" onClick={renameCurrentFolder}><AppIcon name="pencil" /></button>}
-            {!activeFile && currentFolder && <button className="mini-button" title="Delete folder" onClick={() => void deleteCurrentFolder()}><AppIcon name="trash" /></button>}
+            {!activeFile && currentFolder && <button className="mini-button" title="Delete folder" onClick={deleteCurrentFolderThroughEditorProvider}><AppIcon name="trash" /></button>}
           </div></div>
           {showFileFilters && <div className="file-filter-panel"><div className="file-filter-heading"><span>Ignored files</span><span className="filter-state">{showIgnoredFiles ? "Shown" : "Hidden"} · ⌘⇧.</span></div><label htmlFor="excluded-files">Exclude paths</label><textarea id="excluded-files" value={excludedPatterns} placeholder={"*.tmp\n**/drafts/**"} spellCheck={false} onChange={(event) => { const next = event.target.value; setExcludedPatterns(next); localStorage.setItem(`pkms:excluded-files:${activeWorkspace.id}`, next); }} /><p>Press ⌘⇧. to show ignored files</p></div>}
           <FileTreeList
@@ -1084,7 +1118,7 @@ export default function Home() {
               ] : []),
               { type: "item", id: "cut", label: "Cut", onSelect: () => setCutTreePaths(new Set(contextMoveRoots.map((item) => item.path))) },
               { type: "item", id: "rename", label: "Rename", onSelect: () => beginTreeRename(file) },
-              { type: "item", id: "delete", label: "Delete", danger: true, onSelect: () => void deleteTreeItem(file) },
+              { type: "item", id: "delete", label: "Delete", danger: true, onSelect: () => void deleteThroughEditorProvider(selectedTreePaths.has(file.path) ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file) : [file]) },
             ];
             return <EditorMenuList
               ref={treeContextMenuRef}
