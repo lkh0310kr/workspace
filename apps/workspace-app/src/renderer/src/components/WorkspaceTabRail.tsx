@@ -76,6 +76,14 @@ export function WorkspaceTabRail({
         ? event.key === 'Meta' || event.code === 'MetaLeft' || event.code === 'MetaRight'
         : event.key === 'Control' || event.code === 'ControlLeft' || event.code === 'ControlRight'
       const modifierHeld = mac ? event.metaKey : event.ctrlKey
+      const tabIndexKeyReleased = /^Digit[1-9]$/.test(event.code) || /^[1-9]$/.test(event.key)
+      // Electron/macOS can omit the Cmd keyUp entirely. The tab-switch digit
+      // keyUp is the last reliable event in Cmd+1..9, so end the hint mode here
+      // instead of leaving it visible until the next unrelated key is pressed.
+      if (tabIndexKeyReleased && modifierHeld) {
+        setShowTabNumbers(false)
+        return
+      }
       setShowTabNumbers(!modifierKeyReleased && modifierHeld)
     }
 
