@@ -45,7 +45,7 @@ export function deletePathInAllPanes(model: Model, path: string, onChanged: () =
     const config = (node.getConfig() ?? { tabs: [], activeTabId: '' }) as PaneGroupConfig
     for (const t of config.tabs) {
       if (t.filePath === path || t.filePath?.startsWith(`${path}/`)) {
-        void closeTabInGroup(model, nodeId, t.id).then(() => onChanged())
+        void closeTabInGroup(model, nodeId, t.id, { skipDirtyConfirm: true }).then(() => onChanged())
       }
     }
   })

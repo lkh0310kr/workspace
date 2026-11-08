@@ -9,6 +9,7 @@ import { countLayoutTabs } from "./layoutModelParse";
 import { findReplaceableEditorTab } from "./paneTabSlots";
 import { destroyBrowserWebview, getPersistentBrowserWebview } from "./browserWebviewRegistry";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
+import { clearEditorDocumentDirty, confirmEditorDocumentCloseById } from "@workspace/editor";
 
 /** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
  * structure changes, not on activeTabId-only persists (that remounted
@@ -466,7 +467,8 @@ export async function closeActivePaneTab(model: Model, focusedTabSetId?: string)
   const activeId = config.activeTabId;
   if (!activeId || !config.tabs.some((t) => t.id === activeId)) return false;
   await closeTabInGroup(model, tabNode.getId(), activeId);
-  return true;
+  const after = getGroupConfig(model, tabNode.getId());
+  return !after?.tabs.some((item) => item.id === activeId);
 }
 
 function resolveFocusedTabSet(model: Model, focusedTabSetId?: string): TabSetNode | undefined {
@@ -486,6 +488,7 @@ export async function closeTabInGroup(
   model: Model,
   tabNodeId: string,
   tabId: string,
+  options: { skipDirtyConfirm?: boolean } = {},
 ): Promise<string | null> {
   const before = summarizeLayoutModel(model);
   const config = getGroupConfig(model, tabNodeId);
@@ -496,6 +499,8 @@ export async function closeTabInGroup(
   const idx = config.tabs.findIndex((t) => t.id === tabId);
   if (idx === -1) return config.activeTabId;
   const closing = config.tabs[idx];
+  if (!options.skipDirtyConfirm && !confirmEditorDocumentCloseById(tabId)) return config.activeTabId;
+  clearEditorDocumentDirty(tabId);
   if (closing?.kind === "browser") {
     const webview = getPersistentBrowserWebview(tabId);
     if (webview) interactionCoordinator.unregisterWebview(webview);

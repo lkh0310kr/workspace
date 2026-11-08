@@ -30,7 +30,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { EditorTreeRow, flattenEditorTree, projectEditorTreeRows } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, flattenEditorTree, projectEditorTreeRows } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -431,6 +431,7 @@ export function TreeView({
 
     const confirmed = window.confirm(`Delete ${label}?\n\n${paths.join("\n")}`);
     if (!confirmed) return;
+    if (!confirmDirtyEditorDocumentsInPaths(paths)) return;
 
     const deleted: string[] = [];
     for (const p of paths) {

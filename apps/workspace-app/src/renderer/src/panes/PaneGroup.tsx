@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { type TabNode } from 'flexlayout-react'
 import { PaneFrame } from '../components/PaneFrame'
 import { PaneTabStrip } from '../components/PaneTabStrip'
-import { confirmEditorDocumentClose } from '@workspace/editor'
+import { setEditorDocumentDirty } from '@workspace/editor'
 import {
   addTabToGroup,
   changeTabKindInGroup,
@@ -100,13 +100,11 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const closeTab = useCallback(
     (id: string) => {
-      const item = tabs.find((tab) => tab.id === id)
-      if (!confirmEditorDocumentClose(dirtyByTabId[id] ?? false, item?.title ?? item?.filePath ?? 'This document')) return
       void closeTabInGroup(model, nodeId, id)
         .then(() => onNotifyChanged())
         .catch(console.error)
     },
-    [model, nodeId, onNotifyChanged, dirtyByTabId, tabs]
+    [model, nodeId, onNotifyChanged]
   )
 
   const newTab = useCallback(
@@ -293,7 +291,10 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                 chipShown,
                 zoom,
                 dirty: dirtyByTabId[item.id] ?? false,
-                setDirty: (dirty) => setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty })),
+                setDirty: (dirty) => {
+                  setEditorDocumentDirty(item.id, dirty, item.title ?? item.filePath ?? 'This document', item.filePath ?? undefined)
+                  setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))
+                },
                 treeOpen,
                 onToggleTree,
                 jumpToLine: pendingJumpByTabId[item.id],
