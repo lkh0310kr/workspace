@@ -3,7 +3,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { historyField } from "@codemirror/commands";
 import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
-import { createEditorView, replaceEditorDocument } from "./codeMirror";
+import { createEditorView, editorDocumentReplacement, replaceEditorDocument } from "./codeMirror";
 import { readEditorViewState, writeEditorViewState } from "./viewStateCache";
 import { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
 import type { EditorDocumentSession } from "./provider";
@@ -102,6 +102,7 @@ export function EditorTextSurface({
       }),
     );
     const cached = documentKey ? readEditorViewState(documentKey) : undefined;
+    const initialDocument = sessionText ?? initialValue ?? value ?? "";
     let restoredState: EditorState | undefined;
     if (cached) {
       try {
@@ -112,6 +113,10 @@ export function EditorTextSurface({
         restoredState = undefined;
       }
     }
+    if (restoredState) {
+      const replacement = editorDocumentReplacement(restoredState, initialDocument, externalEditorChange);
+      if (replacement) restoredState = replacement.state;
+    }
     const viewExtensions = [
       history(),
       ...hostExtensions,
@@ -121,7 +126,7 @@ export function EditorTextSurface({
     viewExtensionsRef.current = viewExtensions;
     const view = createEditorView({
       parent: hostRef.current,
-      doc: sessionText ?? initialValue ?? value ?? "",
+      doc: initialDocument,
       state: restoredState,
       extensions: viewExtensions,
     });
@@ -160,6 +165,7 @@ export function EditorTextSurface({
     documentKeyRef.current = documentKey;
 
     const cached = documentKey ? readEditorViewState(documentKey) : undefined;
+    const targetDocument = effectiveValue ?? "";
     let nextState: EditorState | undefined;
     if (cached) {
       try {
@@ -168,10 +174,14 @@ export function EditorTextSurface({
         nextState = undefined;
       }
     }
-    view.setState(nextState ?? EditorState.create({ doc: "", extensions: viewExtensionsRef.current }));
+    if (nextState) {
+      const replacement = editorDocumentReplacement(nextState, targetDocument, externalEditorChange);
+      if (replacement) nextState = replacement.state;
+    }
+    view.setState(nextState ?? EditorState.create({ doc: targetDocument, extensions: viewExtensionsRef.current }));
     view.scrollDOM.scrollTop = cached?.scrollTop ?? 0;
     view.scrollDOM.scrollLeft = cached?.scrollLeft ?? 0;
-  }, [documentKey]);
+  }, [documentKey, effectiveValue]);
 
   useEffect(() => {
     const view = viewRef.current;
