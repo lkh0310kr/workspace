@@ -28,8 +28,11 @@ had inherited `NO_COLOR=1` from the Codex launcher, while Codex's own config alr
 Workspace, its stale environment continued to put new shells into no-color mode after app
 restart. Promotion now removes the launcher-only `NO_COLOR`, PTY attach sends the current app
 environment, and the host uses that environment for newly spawned shells. An unset preference
-is sent as an empty `NO_COLOR` to clear stale host state; a non-empty user value is preserved.
-The installed build now starts Codex with the configured purple/yellow TUI accents visible.
+stays absent; it must not be sent as an empty variable because Codex treats a present
+`NO_COLOR` variable as disabled color. Existing detached hosts can retain stale environment, so
+`PROMOTE_STABLE_RESTART_PTY_HOST=1 npm run promote:stable` restarts that host when explicitly
+needed. The paired screenshots showed iTerm's colored status line and syntax spans versus the
+Workspace session's mostly monochrome view; final verification must compare a fresh session.
 
 These are concrete architectural risks consistent with the reported failures, not yet a
 confirmed single cause for every scroll, glyph, or color symptom. Color rendering also
@@ -62,7 +65,9 @@ Treat the terminal as one vertical slice with these invariants:
   viewport; live Hangul and ANSI color rendering verified.
 - [x] Installed-build hide/show check preserves both terminal viewports across a tab switch.
 - [x] Codex TUI color suppression traced to stale `NO_COLOR=1` inherited by the detached PTY
-  host; installed app now launches a fresh Codex session with theme colors visible.
+  host; promotion now removes that launcher flag and the host uses the app's current environment.
+- [ ] Fresh Workspace Codex session matches iTerm status-line and syntax colors after PTY-host
+  restart.
 - [ ] Reconnect scroll restoration in installed build (not yet exercised independently of
   app restart and output replay).
 

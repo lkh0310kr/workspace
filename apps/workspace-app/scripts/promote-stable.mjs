@@ -65,6 +65,31 @@ async function stopWorkspaceMacProcesses() {
   if (listWorkspaceMainPids().length > 0) throw new Error("could not stop all Workspace app instances");
 }
 
+async function stopWorkspacePtyHostMacProcesses() {
+  const result = spawnSync("ps", ["-A", "-o", "pid=,command="], { encoding: "utf8" });
+  if (result.status !== 0) throw new Error(`could not inspect PTY host processes: ${result.stderr?.trim() || "ps failed"}`);
+  const pids = (result.stdout ?? "").split(/\r?\n/).flatMap(line => {
+    if (!WORKSPACE_BUNDLE_EXECUTABLE.test(line) || !line.includes("ptyHostDaemon.js")) return [];
+    const pid = Number.parseInt(line.trim().split(/\s+/, 1)[0], 10);
+    return Number.isFinite(pid) && pid !== process.pid ? [pid] : [];
+  });
+  for (const pid of pids) {
+    console.log(`[promote-stable] stopping detached PTY host ${pid}`);
+    try { process.kill(pid, "SIGTERM"); } catch { /* exited between listing and signal */ }
+  }
+  const deadline = Date.now() + 3_000;
+  while (Date.now() < deadline) {
+    const alive = pids.filter(pid => {
+      try { process.kill(pid, 0); return true; } catch { return false; }
+    });
+    if (alive.length === 0) return;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  for (const pid of pids) {
+    try { process.kill(pid, "SIGKILL"); } catch { /* already exited */ }
+  }
+}
+
 function readStartupEvents() {
   const file = path.join(homedir(), "Library", "Application Support", "workspace-app", "logs", "startup.ndjson");
   if (!existsSync(file)) return [];
@@ -112,6 +137,9 @@ async function promoteMac() {
 
   console.log("[promote-stable] quitting every running Workspace app instance…");
   await stopWorkspaceMacProcesses();
+  if (process.env.PROMOTE_STABLE_RESTART_PTY_HOST === "1") {
+    await stopWorkspacePtyHostMacProcesses();
+  }
 
   console.log(`[promote-stable] installing to ${installedApp}…`);
   const incomingApp = `${installedApp}.incoming-${Date.now()}`;
