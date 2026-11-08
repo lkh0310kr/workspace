@@ -20,6 +20,18 @@ export const markdownRootPath = Facet.define<string, string>({
   combine: (values) => values[0] ?? "",
 });
 
+export interface MarkdownImageResource {
+  src: string;
+  release?: () => void;
+}
+
+export type MarkdownImageResolver = (url: string) => Promise<MarkdownImageResource | null> | MarkdownImageResource | null;
+
+/** Optional host resolver for providers whose assets need authenticated async loading. */
+export const markdownImageResolver = Facet.define<MarkdownImageResolver, MarkdownImageResolver | null>({
+  combine: (values) => values[0] ?? null,
+});
+
 // Tauri's convertFileSrc (routed through a registered asset-protocol Scope
 // per tab root_path, src/lib.rs's allow_asset_scope) has no Electron
 // equivalent in use here — the renderer isn't sandboxed against the
@@ -187,22 +199,46 @@ class BulletWidget extends WidgetType {
 }
 
 class ImageWidget extends WidgetType {
-  constructor(readonly src: string) {
+  constructor(readonly rawSrc: string, readonly resolver: MarkdownImageResolver | null, readonly rootPath: string) {
     super();
   }
 
   eq(other: ImageWidget) {
-    return other.src === this.src;
+    return other.rawSrc === this.rawSrc && other.resolver === this.resolver && other.rootPath === this.rootPath;
   }
 
   toDOM() {
     const img = document.createElement("img");
-    img.src = this.src;
     img.loading = "lazy";
     img.className = "cm-md-image";
+    const state: { disposed: boolean; release?: () => void } = { disposed: false };
+    imageWidgetStates.set(img, state);
+    Promise.resolve().then(() => this.resolver?.(this.rawSrc) ?? null).then((resource) => {
+      const src = resource?.src ?? resolveImageSrc(this.rootPath, this.rawSrc);
+      if (!src || state.disposed) {
+        resource?.release?.();
+        if (!state.disposed) img.hidden = true;
+        return;
+      }
+      state.release = resource?.release;
+      img.src = src;
+    }).catch(() => {
+      if (!state.disposed) img.hidden = true;
+    });
     return img;
   }
+
+  destroy(dom: HTMLElement): void {
+    const img = dom as HTMLImageElement;
+    const state = imageWidgetStates.get(img);
+    if (!state) return;
+    state.disposed = true;
+    state.release?.();
+    imageWidgetStates.delete(img);
+  }
 }
+
+const imageWidgetStates = new WeakMap<HTMLImageElement, { disposed: boolean; release?: () => void }>();
 
 // Rendered via a block-replace decoration (`block: true`) — unlike
 // HorizontalRule, a table genuinely spans multiple lines, and CodeMirror
@@ -519,13 +555,14 @@ function buildDecorations(view: EditorView): DecorationSet {
           const url = node.node.getChild("URL");
           if (!url) return;
           const rawUrl = view.state.doc.sliceString(url.from, url.to);
-          const src = resolveImageSrc(view.state.facet(markdownRootPath), rawUrl);
-          if (!src) return;
           if (selectionOverlaps(view.state, node.from, node.to)) return;
+          const rootPath = view.state.facet(markdownRootPath);
+          const resolver = view.state.facet(markdownImageResolver);
+          if (!resolver && !resolveImageSrc(rootPath, rawUrl)) return;
           collected.push({
             from: node.from,
             to: node.to,
-            deco: Decoration.replace({ widget: new ImageWidget(src) }),
+            deco: Decoration.replace({ widget: new ImageWidget(rawUrl, resolver, rootPath) }),
           });
           return;
         }

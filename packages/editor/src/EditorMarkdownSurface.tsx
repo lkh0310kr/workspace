@@ -4,6 +4,7 @@ import { EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
 import { createMarkdownEditorExtensions } from "./markdownEditor";
 import { markdownLinkNavigation, type EditorMarkdownLink } from "./markdownLinkNavigation";
+import { markdownImageResolver, type MarkdownImageResolver } from "./markdownLivePreview";
 import { markdownEditorTheme } from "./themes";
 import { EditorTextSurface, type EditorTextSurfaceProps } from "./EditorTextSurface";
 import { markdownOutlineFromState, type MarkdownHeading } from "./markdownOutline";
@@ -15,6 +16,7 @@ export interface EditorMarkdownSurfaceProps extends Omit<EditorTextSurfaceProps,
   onNavigateReady?: (navigate: ((line: number) => void) | null) => void;
   onOutlineChange?: (headings: MarkdownHeading[]) => void;
   onActivateLink?: (link: EditorMarkdownLink) => boolean;
+  resolveImage?: MarkdownImageResolver;
 }
 
 const baseMarkdownExtensions: readonly Extension[] = [
@@ -30,20 +32,25 @@ export function EditorMarkdownSurface({
   onNavigateReady,
   onOutlineChange,
   onActivateLink,
+  resolveImage,
   ...surfaceProps
 }: EditorMarkdownSurfaceProps) {
   const onOutlineChangeRef = useRef(onOutlineChange);
   onOutlineChangeRef.current = onOutlineChange;
   const onActivateLinkRef = useRef(onActivateLink);
   onActivateLinkRef.current = onActivateLink;
+  const resolveImageRef = useRef(resolveImage);
+  resolveImageRef.current = resolveImage;
   const linkNavigation = useMemo(() => markdownLinkNavigation((link) => onActivateLinkRef.current?.(link) ?? false), []);
+  const imageResolver = useMemo(() => resolveImage ? markdownImageResolver.of((url) => resolveImageRef.current?.(url) ?? null) : [], []);
   const sharedExtensions = useMemo(() => [
     ...extensions,
     linkNavigation,
+    imageResolver,
     EditorView.updateListener.of((update) => {
       if (update.docChanged) onOutlineChangeRef.current?.(markdownOutlineFromState(update.state));
     }),
-  ], [extensions, linkNavigation]);
+  ], [extensions, imageResolver, linkNavigation]);
   const onViewReady = useCallback((view: EditorView | null) => {
     onViewReadyProp?.(view);
     if (!view) {

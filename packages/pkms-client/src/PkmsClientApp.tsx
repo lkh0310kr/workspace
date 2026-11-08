@@ -349,6 +349,34 @@ export default function Home() {
     }
     return true;
   }, [activeWorkspace, activeFile, getFiles, refreshDirectory, setError]);
+  const resolveMarkdownImage = useCallback(async (source: string) => {
+    if (/^https?:\/\//i.test(source)) return { src: source };
+    if (!activeWorkspace || !activeFile) return null;
+    const assetPath = resolveEditorRelativeLink(activeFile.path, source);
+    if (!assetPath) return null;
+    let assetFile = getFiles().find((file) => file.path === assetPath);
+    if (!assetFile) {
+      await refreshDirectory(parentPath(assetPath), false).catch(() => {});
+      assetFile = getFiles().find((file) => file.path === assetPath);
+    }
+    if (!assetFile || assetFile.kind !== "asset") return null;
+    try {
+      const endpoint = `/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/assets/${encodeURIComponent(assetFile.id)}`;
+      const desktop = desktopBridge();
+      const asset = desktop
+        ? await desktop.fetchAsset(endpoint)
+        : await fetch(endpoint, { credentials: "same-origin" }).then(async (response) => {
+          if (!response.ok) throw new Error(`Could not load embedded attachment (${response.status})`);
+          return { bytes: new Uint8Array(await response.arrayBuffer()), contentType: response.headers.get("content-type") ?? "" };
+        });
+      const data = asset.bytes.buffer.slice(asset.bytes.byteOffset, asset.bytes.byteOffset + asset.bytes.byteLength) as ArrayBuffer;
+      const mediaType = attachmentContentType(assetFile.path, asset.contentType);
+      const src = URL.createObjectURL(new Blob([data], { type: mediaType }));
+      return { src, release: () => URL.revokeObjectURL(src) };
+    } catch {
+      return null;
+    }
+  }, [activeWorkspace?.id, activeFile?.path, getFiles, refreshDirectory]);
 
   useEffect(() => {
     if (!activeWorkspace) return;
@@ -1063,7 +1091,7 @@ export default function Home() {
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(line) => requestAnimationFrame(() => editorNavigate.current?.(line))}
           >
-            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
+            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} resolveImage={resolveMarkdownImage} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
           </EditorMarkdownDocument>
         </div> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>

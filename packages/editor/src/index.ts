@@ -40,7 +40,8 @@ export { markdownFormattingKeymap, toggleMarkdownWrap } from "./markdownCommands
 export { markdownLinkNavigation } from "./markdownLinkNavigation";
 export type { EditorMarkdownLink } from "./markdownLinkNavigation";
 export { resolveEditorRelativeLink } from "./relativeLink";
-export { HEADING_TYPES, markdownLivePreview, markdownRootPath } from "./markdownLivePreview";
+export { HEADING_TYPES, markdownImageResolver, markdownLivePreview, markdownRootPath } from "./markdownLivePreview";
+export type { MarkdownImageResolver, MarkdownImageResource } from "./markdownLivePreview";
 export { wikiLinkExtension } from "./markdownWikilink";
 export { createMarkdownEditorExtensions } from "./markdownEditor";
 export type { MarkdownEditorOptions } from "./markdownEditor";
