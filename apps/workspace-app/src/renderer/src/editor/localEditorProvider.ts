@@ -65,6 +65,26 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
   const id = `workspace:${tabId}`;
   const pathByItemId = new Map<string, string>();
   const itemIdByPath = new Map<string, string>();
+  const itemIdStorageKey = `workspace:editor-item-ids:${tabId}`;
+  try {
+    const saved = JSON.parse(localStorage.getItem(itemIdStorageKey) ?? "{}") as Record<string, unknown>;
+    for (const [path, value] of Object.entries(saved)) {
+      if (typeof value !== "string" || value.length === 0) continue;
+      const itemId = value.startsWith(`${id}:item:`) ? value : `${id}:item:${value}`;
+      if (pathByItemId.has(itemId)) continue;
+      itemIdByPath.set(path, itemId);
+      pathByItemId.set(itemId, path);
+    }
+  } catch {
+    // A corrupt or unavailable identity cache must not prevent the Explorer from opening.
+  }
+  const persistItemIds = () => {
+    try {
+      localStorage.setItem(itemIdStorageKey, JSON.stringify(Object.fromEntries(itemIdByPath)));
+    } catch {
+      // Storage quota/private mode can disable persistence; current provider IDs remain valid in memory.
+    }
+  };
   const listeners = new Set<(parents: readonly (string | null)[]) => void>();
   const sessions = new Set<LocalDocumentSession>();
 
@@ -104,7 +124,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       if (parentPath === undefined) return [];
       const entries = await listDir(tabId, parentPath);
       abortIfNeeded(signal);
-      return entries.map((entry) => itemFor(entry.path, entry.is_dir, entry.name));
+      const items = entries.map((entry) => itemFor(entry.path, entry.is_dir, entry.name));
+      persistItemIds();
+      return items;
     },
     async itemRefForPath(path) {
       const parentPath = parentOf(path);
@@ -160,6 +182,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
           if (column >= 0) results.push({ item, line: index + 1, column: column + 1, preview: line });
         }
       }
+      persistItemIds();
       return results;
     },
     async create(parentId, kind, name) {
@@ -168,7 +191,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       const path = [parentPath, name].filter(Boolean).join("/");
       if (kind === "directory") await createDir(tabId, path);
       else await writeFile(tabId, path, "");
-      return itemFor(path, kind === "directory", name);
+      const item = itemFor(path, kind === "directory", name);
+      persistItemIds();
+      return item;
     },
     async rename(ref, name) {
       if (ref.providerId !== id) throw new Error("Item belongs to a different provider");
@@ -186,6 +211,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         pathByItemId.set(itemId, nextPath);
         for (const session of sessions) session.renamePath(oldPath, nextPath, nextPath.split("/").at(-1) ?? "", parentItemId(nextPath));
       }
+      persistItemIds();
       for (const listener of listeners) listener([...new Set([parentItemId(from), parentItemId(to)])]);
       return itemFor(to, isDirectory, name);
     },
@@ -201,6 +227,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
           itemIdByPath.delete(candidate);
         }
       }
+      persistItemIds();
     },
     async move(refs, parentId) {
       const targetDir = parentId === null ? "" : pathByItemId.get(parentId);
@@ -223,6 +250,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
           pathByItemId.set(itemId, nextPath);
           for (const session of sessions) session.renamePath(oldPath, nextPath, nextPath.split("/").at(-1) ?? "", parentItemId(nextPath));
         }
+        persistItemIds();
         for (const listener of listeners) listener([...new Set([parentItemId(from), parentItemId(to)])]);
         // Resolve the moved root again to retain the directory kind in its metadata.
         itemFor(to, isDirectory, name);
