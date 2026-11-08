@@ -1,6 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { NavigateFunction } from "react-router";
-import type { FileRecord, TreeContextMenu, TreeRow, Workspace } from "../../domain/types";
+import type { FileRecord, TreeContextMenu, Workspace } from "../../domain/types";
 import { entryName, parentPath, treeSelectionRoots } from "../../domain/fileTree";
 import { fileLocationPath } from "../../domain/fileLocation";
 import { submitWorkspaceOperation } from "../../client/workspaceOperations";
@@ -19,8 +19,8 @@ function remapFiles(files: FileRecord[], file: FileRecord, from: string, to: str
 }
 
 interface Options {
-  workspace: Workspace | null; activeFile: FileRecord | null; currentFolder: string; parentFolder: string; files: FileRecord[];
-  selectedTreePaths: Set<string>; treeRows: TreeRow[]; expandedFolders: Set<string>;
+  workspace: Workspace | null; activeFile: FileRecord | null; currentFolder: string; files: FileRecord[];
+  expandedFolders: Set<string>;
   api: <T = unknown>(path: string, options?: RequestInit) => Promise<T>; navigate: NavigateFunction; routedPath: MutableRefObject<string | null>;
   clearActiveFile: () => void; openFile: (file: FileRecord, historyAction?: "push" | "replace" | "none") => Promise<void>; toggleFolder: (file: FileRecord) => Promise<void>;
   setFiles: Dispatch<SetStateAction<FileRecord[]>>; setActiveFile: Dispatch<SetStateAction<FileRecord | null>>; setCurrentFolder: Dispatch<SetStateAction<string>>;
@@ -28,14 +28,13 @@ interface Options {
   setSelectedTreePaths: Dispatch<SetStateAction<Set<string>>>; setCutTreePaths: Dispatch<SetStateAction<Set<string>>>;
   setFocusedTreePath: Dispatch<SetStateAction<string | null>>; setTreeContextMenu: Dispatch<SetStateAction<TreeContextMenu | null>>;
   setError: Dispatch<SetStateAction<string>>; setNotice: Dispatch<SetStateAction<string>>;
-  requestName: (title: string, initialValue?: string) => Promise<string | null>;
   confirm: (message: string) => Promise<boolean>;
   beforeDelete?: (roots: FileRecord[]) => boolean;
   afterDelete?: (roots: FileRecord[]) => void;
 }
 
 export function useWorkspaceFileActions(options: Options) {
-  const { workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders, api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders, setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, requestName, confirm, beforeDelete, afterDelete } = options;
+  const { workspace: activeWorkspace, activeFile, currentFolder, files, expandedFolders, api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders, setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, confirm, beforeDelete, afterDelete } = options;
   const updateFilePath = async (file: FileRecord, toPath: string) => {
     if (!activeWorkspace) return;
     let activePath = activeFile?.path;
@@ -137,31 +136,6 @@ export function useWorkspaceFileActions(options: Options) {
     }
   };
 
-  const renameActiveFile = async () => {
-    if (!activeFile) return;
-    const name = await requestName("Rename", entryName(activeFile.path));
-    if (!name?.trim() || name.trim() === entryName(activeFile.path)) return;
-    const parent = parentPath(activeFile.path);
-    void updateFilePath(activeFile, `${parent ? `${parent}/` : ""}${name.trim()}`);
-  };
-
-  const renameCurrentFolder = async () => {
-    const folder = files.find((file) => file.kind === "folder" && file.path === currentFolder);
-    if (!folder) return;
-    const name = await requestName("Rename", entryName(currentFolder));
-    if (!name?.trim() || name.trim() === entryName(currentFolder)) return;
-    void updateFilePath(folder, `${parentPath(currentFolder) ? `${parentPath(currentFolder)}/` : ""}${name.trim()}`);
-  };
-
-  const renameTreeItem = async (file: FileRecord) => {
-    setTreeContextMenu(null);
-    const currentName = entryName(file.path);
-    const name = await requestName("Rename", currentName);
-    if (!name?.trim() || name.trim() === currentName) return;
-    const parent = parentPath(file.path);
-    void updateFilePath(file, `${parent ? `${parent}/` : ""}${name.trim()}`);
-  };
-
   const renameTreeItemTo = (file: FileRecord, name: string) => {
     const nextName = name.trim();
     if (!nextName || nextName === entryName(file.path)) return;
@@ -218,10 +192,6 @@ export function useWorkspaceFileActions(options: Options) {
     }
   };
 
-  const deleteTreeItem = (file: FileRecord) => void deleteTreeItems(selectedTreePaths.has(file.path)
-    ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file)
-    : [file]);
-
   const openTreeItem = (file: FileRecord) => {
     setTreeContextMenu(null);
     if (file.kind !== "folder") { void openFile(file); return; }
@@ -230,48 +200,5 @@ export function useWorkspaceFileActions(options: Options) {
     if (!expandedFolders.has(file.path)) void toggleFolder(file);
   };
 
-  const deleteActiveFile = async () => {
-    if (!activeWorkspace || !activeFile || !await confirm(`Delete ${entryName(activeFile.path)}?`)) return;
-    const deleted = activeFile;
-    clearActiveFile();
-    routedPath.current = null;
-    navigate("/", { replace: true, preventScrollReset: true });
-    setFiles((current) => current.filter((file) => file.id !== deleted.id));
-    try {
-      await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: deleted.id });
-    } catch (cause) {
-      setFiles((current) => [...current, deleted]);
-      void openFile(deleted, "none");
-      setError(cause instanceof Error ? cause.message : "Could not delete item");
-    }
-  };
-
-  const deleteCurrentFolder = async () => {
-    const folder = files.find((file) => file.kind === "folder" && file.path === currentFolder);
-    if (!activeWorkspace || !folder || !await confirm(`Delete ${entryName(currentFolder)}?`)) return;
-    const deletedPath = currentFolder;
-    const previousFiles = files;
-    const deletedActive = activeFile && (activeFile.path === deletedPath || activeFile.path.startsWith(`${deletedPath}/`)) ? activeFile : null;
-    setFiles((current) => current.filter((file) => file.path !== deletedPath && !file.path.startsWith(`${deletedPath}/`)));
-    setExpandedFolders((current) => new Set([...current].filter((path) => path !== deletedPath && !path.startsWith(`${deletedPath}/`))));
-    setLoadedFolders((current) => new Set([...current].filter((path) => path !== deletedPath && !path.startsWith(`${deletedPath}/`))));
-    setCurrentFolder(parentFolder);
-    if (deletedActive) {
-      clearActiveFile();
-      routedPath.current = null;
-      navigate("/", { replace: true, preventScrollReset: true });
-    }
-    try {
-      await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: folder.id });
-    } catch (cause) {
-      setFiles(previousFiles);
-      setCurrentFolder(deletedPath);
-      setExpandedFolders((current) => new Set(current).add(deletedPath));
-      setLoadedFolders((current) => new Set(current).add(deletedPath));
-      if (deletedActive) void openFile(deletedActive, "none");
-      setError(cause instanceof Error ? cause.message : "Could not delete folder");
-    }
-  };
-
-  return { updateFilePath, moveTreeItems, renameActiveFile, renameCurrentFolder, renameTreeItem, renameTreeItemTo, deleteTreeItems, deleteTreeItem, openTreeItem, deleteActiveFile, deleteCurrentFolder };
+  return { updateFilePath, moveTreeItems, renameTreeItemTo, deleteTreeItems, openTreeItem };
 }

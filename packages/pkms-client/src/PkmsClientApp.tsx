@@ -857,7 +857,6 @@ export default function Home() {
     : currentFolder;
 
   const [outlineItems, setOutlineItems] = useState<MarkdownHeading[]>([]);
-  const parentFolder = parentPath(currentFolder);
   const persistTreeScroll = (scrollTop: number) => {
     setTreeScrollTop(scrollTop);
     if (!activeWorkspace) return;
@@ -960,9 +959,9 @@ export default function Home() {
   };
 
   const { updateFilePath, moveTreeItems, renameTreeItemTo, deleteTreeItems, openTreeItem } = useWorkspaceFileActions({
-    workspace: activeWorkspace, activeFile, currentFolder, parentFolder, files, selectedTreePaths, treeRows, expandedFolders,
+    workspace: activeWorkspace, activeFile, currentFolder, files, expandedFolders,
     api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders,
-    setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, requestName, confirm,
+    setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, confirm,
     beforeDelete: (roots) => {
       const affected = openDocuments.filter((tab) => tab.workspaceId === activeWorkspace?.id && roots.some((root) =>
         tab.file.path === root.path || (root.kind === "folder" && tab.file.path.startsWith(`${root.path}/`)),
