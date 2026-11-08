@@ -1002,8 +1002,11 @@ export default function Home() {
   };
   const moveThroughEditorProvider = async (items: FileRecord[], destination: string) => {
     if (!editorProvider?.move) return moveTreeItems(items, destination);
-    const parent = files.find((file) => file.kind === "folder" && file.path === destination);
-    await editorProvider.move(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })), parent?.id ?? null);
+    const parent = destination ? await resolveEditorTreePath(editorProvider, destination) : null;
+    if (destination && (!parent || parent.kind !== "directory")) {
+      throw new EditorProviderError("notFound", "Destination folder no longer exists");
+    }
+    await editorProvider.move(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })), parent?.itemId ?? null);
   };
   const deleteThroughEditorProvider = async (items: FileRecord[]) => {
     if (!editorProvider?.delete) return deleteTreeItems(items);
