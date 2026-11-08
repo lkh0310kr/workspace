@@ -8,6 +8,7 @@ import type {
   EditorSearchResult,
   EditorTreeItem,
 } from "@workspace/editor";
+import { EditorProviderError } from "@workspace/editor";
 import { cancelSearch, createDir, deletePath, getMediaUrl, listDir, onFileChanged, onSearchDone, onSearchResult, readFile, renamePath, searchInFiles, writeFile, writeFileIfUnchanged, type SearchFileResult } from "../electron";
 
 const capabilities: EditorProviderCapabilities = {
@@ -144,9 +145,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
     },
     async openDocument(ref: EditorItemRef, signal) {
       abortIfNeeded(signal);
-      if (ref.providerId !== id) throw new Error("Document belongs to a different provider");
+      if (ref.providerId !== id) throw new EditorProviderError("notFound", "Document belongs to a different provider");
       const path = pathByItemId.get(ref.itemId);
-      if (path === undefined) throw new Error("Document no longer exists");
+      if (path === undefined) throw new EditorProviderError("notFound", "Document no longer exists");
       const item = itemFor(path, false);
       const session = new LocalDocumentSession(item, tabId, () => sessions.delete(session));
       sessions.add(session);
@@ -230,9 +231,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       });
     },
     async replaceContents(ref, query, replacement, options, expectedMatchCount) {
-      if (ref.providerId !== id) throw new Error("Item belongs to a different provider");
+      if (ref.providerId !== id) throw new EditorProviderError("notFound", "Item belongs to a different provider");
       const path = pathByItemId.get(ref.itemId);
-      if (path === undefined) throw new Error("Item no longer exists");
+      if (path === undefined) throw new EditorProviderError("notFound", "Item no longer exists");
       const openSession = [...sessions].find((session) => session.item.itemId === ref.itemId);
       if (openSession && openSession.snapshot().savePhase !== "clean") return false;
       const current = await readFile(tabId, path);
@@ -246,7 +247,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
     },
     async create(parentId, kind, name) {
       const parentPath = parentId === null ? "" : pathByItemId.get(parentId);
-      if (parentPath === undefined) throw new Error("Parent directory no longer exists");
+      if (parentPath === undefined) throw new EditorProviderError("notFound", "Parent directory no longer exists");
       const path = [parentPath, name].filter(Boolean).join("/");
       if (kind === "directory") await createDir(tabId, path);
       else await writeFile(tabId, path, "");
@@ -255,9 +256,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       return item;
     },
     async rename(ref, name) {
-      if (ref.providerId !== id) throw new Error("Item belongs to a different provider");
+      if (ref.providerId !== id) throw new EditorProviderError("notFound", "Item belongs to a different provider");
       const from = pathByItemId.get(ref.itemId);
-      if (from === undefined) throw new Error("Item no longer exists");
+      if (from === undefined) throw new EditorProviderError("notFound", "Item no longer exists");
       const oldEntries = await listDir(tabId, parentOf(from) ?? "");
       const isDirectory = oldEntries.find((entry) => entry.path === from)?.is_dir ?? false;
       const to = [parentOf(from) ?? "", name].filter(Boolean).join("/");
@@ -290,7 +291,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
     },
     async move(refs, parentId) {
       const targetDir = parentId === null ? "" : pathByItemId.get(parentId);
-      if (targetDir === undefined) throw new Error("Destination directory no longer exists");
+      if (targetDir === undefined) throw new EditorProviderError("notFound", "Destination directory no longer exists");
       for (const ref of refs) {
         if (ref.providerId !== id) continue;
         const from = pathByItemId.get(ref.itemId);
@@ -381,7 +382,7 @@ class LocalDocumentSession implements EditorDocumentSession {
       return;
     }
     const value = await readFile(this.tabId, this.item.path);
-    if (value === null) throw new Error("Document no longer exists");
+    if (value === null) throw new EditorProviderError("notFound", "Document no longer exists");
     this.value = value;
     this.baseValue = value;
     this.revision = crypto.randomUUID();
@@ -403,14 +404,14 @@ class LocalDocumentSession implements EditorDocumentSession {
   }
 
   async replaceText(text: string, baseRevision: string): Promise<void> {
-    if (this.closed) throw new Error("Document session is closed");
-    if (this.readOnly) throw new Error("Document is read only");
-    if (this.phase === "conflict") throw new Error(this.message ?? "The file changed on disk. Reload it before saving.");
+    if (this.closed) throw new EditorProviderError("notFound", "Document session is closed");
+    if (this.readOnly) throw new EditorProviderError("readOnly", "Document is read only");
+    if (this.phase === "conflict") throw new EditorProviderError("conflict", this.message ?? "The file changed on disk. Reload it before saving.");
     if (baseRevision !== this.revision) {
       this.phase = "conflict";
       this.message = "The file changed on disk. Reload it before saving.";
       this.emit();
-      throw new Error(this.message);
+      throw new EditorProviderError("conflict", this.message);
     }
     this.value = text;
     this.phase = "dirty";
@@ -419,7 +420,7 @@ class LocalDocumentSession implements EditorDocumentSession {
   }
 
   async save(): Promise<EditorDocumentSnapshot> {
-    if (this.phase === "conflict") throw new Error(this.message ?? "File changed on disk");
+    if (this.phase === "conflict") throw new EditorProviderError("conflict", this.message ?? "File changed on disk");
     if (this.phase !== "dirty") return this.snapshot();
     const savedValue = this.value;
     const expectedValue = this.baseValue;
@@ -430,7 +431,7 @@ class LocalDocumentSession implements EditorDocumentSession {
       const written = await writeFileIfUnchanged(this.tabId, this.item.path, expectedValue, savedValue);
       if (!written) {
         this.markConflict("The file changed on disk before this save could be applied.");
-        throw new Error(this.message);
+        throw new EditorProviderError("conflict", this.message ?? "The file changed on disk before this save could be applied.");
       }
       this.baseValue = savedValue;
       this.revision = crypto.randomUUID();

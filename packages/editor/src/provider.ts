@@ -13,6 +13,21 @@ export type EditorProviderErrorCode =
   | "unsupported"
   | "unknown";
 
+/** A user-safe provider failure with a stable code for shared editor behavior. */
+export class EditorProviderError extends Error {
+  readonly code: EditorProviderErrorCode;
+
+  constructor(code: EditorProviderErrorCode, message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "EditorProviderError";
+    this.code = code;
+  }
+}
+
+export function isEditorProviderError(error: unknown): error is EditorProviderError {
+  return error instanceof EditorProviderError;
+}
+
 export interface EditorItemRef {
   /** Stable ID of a provider instance, such as one local workspace or PKMS vault. */
   providerId: string;

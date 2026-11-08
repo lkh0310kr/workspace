@@ -1,5 +1,6 @@
 import * as Y from "yjs";
 import type { EditorDocumentSession, EditorDocumentSnapshot, EditorTreeItem, EditorSyncPhase } from "@workspace/editor";
+import { EditorProviderError } from "@workspace/editor";
 import type { FileRecord } from "../../domain/types";
 import { entryName } from "../../domain/fileTree";
 import type { PkmsSaveResult } from "./useDocumentSync";
@@ -63,7 +64,7 @@ export function createPkmsYjsEditorSession(
   text.observe(onText);
 
   const performSave = async (options: { flushSync?: boolean } = {}): Promise<EditorDocumentSnapshot> => {
-    if (closed) throw new Error("Document session is closed");
+    if (closed) throw new EditorProviderError("notFound", "Document session is closed");
     if (file.kind !== "markdown") return snapshot();
     const savedSequence = sequence;
     phase = "saving";
@@ -76,7 +77,7 @@ export function createPkmsYjsEditorSession(
       phase = sequence === savedSequence ? result.savePhase : "dirty";
       if (sequence !== savedSequence) syncPhase = "pending";
       message = result.message;
-      if (phase === "error") throw new Error(message ?? "Could not save PKMS document");
+      if (phase === "error") throw new EditorProviderError("unknown", message ?? "Could not save PKMS document");
     } catch (error) {
       phase = "error";
       syncPhase = "blocked";
@@ -98,13 +99,13 @@ export function createPkmsYjsEditorSession(
       return () => listeners.delete(listener);
     },
     async replaceText(value, baseRevision) {
-      if (closed) throw new Error("Document session is closed");
-      if (file.kind !== "markdown") throw new Error("PKMS asset documents are read only");
+      if (closed) throw new EditorProviderError("notFound", "Document session is closed");
+      if (file.kind !== "markdown") throw new EditorProviderError("readOnly", "PKMS asset documents are read only");
       if (baseRevision !== revision()) {
         phase = "conflict";
         message = "The collaborative document changed before this edit was applied.";
         emit();
-        throw new Error(message);
+        throw new EditorProviderError("conflict", message);
       }
       const previous = text.toString();
       let prefix = 0;
@@ -159,7 +160,7 @@ export function createPkmsAssetEditorSession(
       listener(value);
       return () => {};
     },
-    async replaceText() { throw new Error("PKMS assets are read only"); },
+    async replaceText() { throw new EditorProviderError("readOnly", "PKMS assets are read only"); },
     async save() { return value; },
     async close() {
       if (closed) return;

@@ -7,6 +7,7 @@ import type {
   EditorSearchResult,
   EditorTreeItem,
 } from "@workspace/editor";
+import { EditorProviderError } from "@workspace/editor";
 import type { FileRecord } from "../../domain/types";
 import { entryName } from "../../domain/fileTree";
 
@@ -87,10 +88,10 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
     },
     async openDocument(ref: EditorItemRef, signal) {
       abortIfNeeded(signal);
-      if (ref.providerId !== id) throw new Error("Document belongs to a different PKMS workspace");
+      if (ref.providerId !== id) throw new EditorProviderError("notFound", "Document belongs to a different PKMS workspace");
       const file = await options.getFile(ref.itemId, signal);
       abortIfNeeded(signal);
-      if (!file || file.kind === "folder") throw new Error("PKMS document no longer exists");
+      if (!file || file.kind === "folder") throw new EditorProviderError("notFound", "PKMS document no longer exists");
       return options.openSession(file, signal);
     },
     async search(query: string, searchOptions: EditorSearchOptions, signal) {
