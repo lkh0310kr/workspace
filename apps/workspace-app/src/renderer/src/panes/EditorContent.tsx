@@ -240,7 +240,7 @@ export function EditorContent({
           }
         })
         .catch((error) => {
-          if (isEditorAbortError(error)) return;
+          if (sequence !== documentLoadSequenceRef.current || controller.signal.aborted || isEditorAbortError(error)) return;
           setSaveError(error instanceof Error ? error.message : String(error));
         })
         .finally(() => {

@@ -113,9 +113,11 @@ export function useDocumentSession(options: Options) {
         }
       }
     } catch (cause) {
-      if (request === openSequence.current && !signal?.aborted) { setError(cause instanceof Error ? cause.message : "Could not open file"); setOpeningFileId(null); }
-      else if (request === openSequence.current) setOpeningFileId(null);
-      hydrating.current = false;
+      if (request === openSequence.current) {
+        if (!signal?.aborted) setError(cause instanceof Error ? cause.message : "Could not open file");
+        setOpeningFileId(null);
+        hydrating.current = false;
+      }
       return;
     }
     if (request !== openSequence.current) return;
