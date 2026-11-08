@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorOutlineList, EditorTextSurface, externalEditorChange, markdownOutlineFromState, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorMarkdownSurface, EditorOutlineList, externalEditorChange, markdownOutlineFromState, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -733,12 +733,12 @@ export function EditorContent({
                 </div>
               )}
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Markdown editor" />
+                <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Markdown editor" />
               </div>
             </div>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
+              <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>

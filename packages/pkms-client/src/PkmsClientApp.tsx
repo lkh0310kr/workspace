@@ -26,7 +26,7 @@ import { useWorkspaceFileCreation } from "./features/files/useWorkspaceFileCreat
 import { useWorkspaceFileActions } from "./features/files/useWorkspaceFileActions";
 import { useDocumentSession } from "./features/editor/useDocumentSession";
 
-const MarkdownCodeEditor = lazy(() => import("./MarkdownCodeEditor").then((module) => ({ default: module.MarkdownCodeEditor })));
+const MarkdownCodeEditor = lazy(() => import("@workspace/editor").then((module) => ({ default: module.EditorMarkdownSurface })));
 const api = requestPkmsApi;
 function attachmentContentType(path: string, contentType: string): string {
   if (contentType.startsWith("image/")) return contentType;

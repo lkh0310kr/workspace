@@ -25,6 +25,8 @@ export { EditorTabChip } from "./EditorTabChip";
 export type { EditorTabChipProps } from "./EditorTabChip";
 export { EditorTextSurface, externalEditorChange } from "./EditorTextSurface";
 export type { EditorTextSurfaceProps } from "./EditorTextSurface";
+export { EditorMarkdownSurface } from "./EditorMarkdownSurface";
+export type { EditorMarkdownSurfaceProps } from "./EditorMarkdownSurface";
 export { moveEditorViewState, readEditorViewState, writeEditorViewState } from "./viewStateCache";
 export { EditorOutlineList } from "./EditorOutlineList";
 export type { EditorOutlineEntry, EditorOutlineListProps } from "./EditorOutlineList";
