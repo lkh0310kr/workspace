@@ -1,10 +1,9 @@
-import { useEffect, useRef } from "react";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { useCallback, useEffect, useRef } from "react";
 import { markdown } from "@codemirror/lang-markdown";
 import { defaultHighlightStyle, indentOnInput, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
-import { Decoration, EditorView, keymap, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
-import { createEditorView, markdownEditorTheme, replaceEditorDocument } from "@workspace/editor";
+import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
+import { EditorTextSurface, markdownEditorTheme } from "@workspace/editor";
 
 const hide = Decoration.replace({});
 const headingTypes = new Set(["ATXHeading1", "ATXHeading2", "ATXHeading3", "ATXHeading4", "ATXHeading5", "ATXHeading6"]);
@@ -316,28 +315,10 @@ const blockLineLivePreview = ViewPlugin.fromClass(class {
 }, { decorations: (plugin) => plugin.decorations });
 
 export function MarkdownCodeEditor({ value, onChange, onNavigateReady }: { value: string; onChange: (value: string) => void; onNavigateReady?: (navigate: ((line: number) => void) | null) => void }) {
-  const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
-
-  useEffect(() => {
-    if (!host.current) return;
-    const editor = createEditorView({
-      parent: host.current,
-      doc: value,
-      extensions: [
-        markdown(), history(), indentOnInput(), syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-        inlineLivePreview, blockLineLivePreview, blockLivePreview,
-        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]), EditorView.lineWrapping,
-        EditorView.contentAttributes.of({ "aria-label": "Markdown editor", autocapitalize: "sentences", spellcheck: "true" }),
-        EditorView.updateListener.of((update) => { if (update.docChanged) onChangeRef.current(update.state.doc.toString()); }),
-        markdownEditorTheme,
-      ],
-    });
-    view.current = editor;
-    return () => { view.current = null; editor.destroy(); };
-  }, []);
+  const onViewReady = useCallback((editor: EditorView | null) => { view.current = editor; }, []);
 
   useEffect(() => {
     if (!view.current || !onNavigateReady) return;
@@ -352,11 +333,19 @@ export function MarkdownCodeEditor({ value, onChange, onNavigateReady }: { value
     return () => onNavigateReady(null);
   }, [onNavigateReady]);
 
-  useEffect(() => {
-    const editor = view.current;
-    if (!editor || editor.state.doc.toString() === value) return;
-    replaceEditorDocument(editor, value);
-  }, [value]);
-
-  return <div ref={host} className="markdown-code-editor" />;
+  return <EditorTextSurface
+    value={value}
+    extensions={markdownSurfaceExtensions}
+    onChange={(next) => onChangeRef.current(next)}
+    onViewReady={onViewReady}
+    className="markdown-code-editor"
+    ariaLabel="Markdown editor"
+    autocapitalize="sentences"
+    spellcheck
+  />;
 }
+
+const markdownSurfaceExtensions = [
+  markdown(), indentOnInput(), syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+  inlineLivePreview, blockLineLivePreview, blockLivePreview, markdownEditorTheme,
+];

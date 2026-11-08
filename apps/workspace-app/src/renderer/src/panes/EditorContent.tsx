@@ -9,16 +9,9 @@ import {
 } from "react";
 import { Compartment, EditorSelection, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createEditorView, type EditorDocumentSession } from "@workspace/editor";
+import { EditorTextSurface, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
-import {
-  defaultKeymap,
-  history,
-  historyKeymap,
-  indentWithTab,
-  insertNewlineAndIndent,
-  toggleComment,
-} from "@codemirror/commands";
+import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
   deleteMarkupBackward,
   insertNewlineContinueMarkupCommand,
@@ -189,7 +182,6 @@ export function EditorContent({
   jumpToLine,
   onJumpConsumed,
 }: Props) {
-  const hostRef = useRef<HTMLDivElement>(null);
   const editorProviderLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
   const editorProvider = editorProviderLease.provider;
   const documentSessionRef = useRef<EditorDocumentSession | null>(null);
@@ -197,6 +189,9 @@ export function EditorContent({
   const documentLoadSequenceRef = useRef(0);
   const editorShellRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const viewCleanupRef = useRef<(() => void) | null>(null);
+  const languageCompartmentRef = useRef<Compartment | null>(null);
+  const markdownRootCompartmentRef = useRef<Compartment | null>(null);
   const pathRef = useRef<string | null>(filePath);
   pathRef.current = filePath;
   const lastLoadedContentRef = useRef<string | null>(null);
@@ -376,6 +371,114 @@ export function EditorContent({
     }, 600);
   }, [saveNow]);
 
+  const editorExtensions = useMemo(() => {
+    const rootCompartment = new Compartment();
+    const languageCompartment = new Compartment();
+    markdownRootCompartmentRef.current = rootCompartment;
+    languageCompartmentRef.current = languageCompartment;
+    const wikiLinkClickHandler = EditorView.domEventHandlers({
+      click(event, view) {
+        const target = event.target as HTMLElement | null;
+        if (!target?.classList.contains("cm-md-wikilink")) return false;
+        const pos = view.posAtDOM(target);
+        let node = syntaxTree(view.state).resolveInner(pos, 1);
+        while (node && node.type.name !== "WikiLink" && node.parent) node = node.parent;
+        if (!node || node.type.name !== "WikiLink") return false;
+        const full = view.state.doc.sliceString(node.from, node.to);
+        const noteName = (full.slice(2, -2).split("|")[0] ?? "").trim();
+        if (!noteName) return false;
+        event.preventDefault();
+        resolveWikiLinkTarget(tabId, noteName)
+          .then((path) => onOpenFileRef.current(path))
+          .catch(console.error);
+        return true;
+      },
+    });
+
+    const modeExtensions = isMarkdown
+      ? [
+          markdown({ base: markdownLanguage, extensions: [wikiLinkExtension], addKeymap: false }),
+          rootCompartment.of(markdownRootPath.of(rootPath)),
+          ...markdownLivePreview,
+          markdownProseTheme,
+          wikiLinkClickHandler,
+          keymap.of([
+            { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
+            { key: "Enter", run: insertNewlineAndIndent },
+            { key: "Backspace", run: deleteMarkupBackward },
+            { key: "Mod-b", run: toggleMarkdownWrap("**") },
+            { key: "Mod-i", run: toggleMarkdownWrap("*") },
+            { key: "Mod-Shift-v", run: pastePlainTextCommand },
+          ]),
+        ]
+      : [
+          languageCompartment.of([]),
+          lineNumbers(), highlightActiveLineGutter(), foldGutter(), bracketMatching(), closeBrackets(),
+          autocompletion(), indentOnInput(), syntaxTheme,
+          keymap.of([
+            { key: "Mod-/", run: toggleComment },
+            { key: "Mod-Shift-v", run: pastePlainTextCommand },
+            ...closeBracketsKeymap, ...completionKeymap, ...foldKeymap,
+          ]),
+        ];
+
+    return [
+      ...modeExtensions,
+      ...workspaceSearch,
+      indentUnit.of("    "),
+      EditorState.allowMultipleSelections.of(true),
+      drawSelection(),
+      keymap.of([{ key: "Mod-d", run: selectNextOccurrence }]),
+      workspaceEditorTheme,
+      indentGuides,
+      EditorView.clickAddsSelectionRange.of((event) => event.altKey),
+      EditorView.updateListener.of((update) => {
+        setSearchOpen(searchPanelOpen(update.view.state));
+        if (!update.docChanged) return;
+        editRevisionRef.current += 1;
+        if (isMarkdown) setOutline(computeOutline(update.view));
+        setDirtyState(true);
+        const path = pathRef.current;
+        if (!path || !autoSaveRef.current || pathRenameInFlightRef.current) return;
+        scheduleAutoSave(update.view);
+      }),
+    ];
+    // rootPath is updated through its compartment below; mode-specific extensions remount on kind changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMarkdown, scheduleAutoSave, setDirtyState, tabId]);
+
+  const onViewReady = useCallback((view: EditorView | null) => {
+    viewCleanupRef.current?.();
+    viewCleanupRef.current = null;
+    viewRef.current = view;
+    if (!view) return;
+    if (isMarkdown) setOutline([]);
+    const onEditorFocus = (): void => setFocusedEditorView(view);
+    const onEditorBlur = (): void => clearFocusedEditorView(view);
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "s") {
+        if (getFocusedEditorView() !== view) return;
+        event.preventDefault();
+        if (pathRenameInFlightRef.current || !viewRef.current) return;
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+          autoSaveTimerRef.current = null;
+        }
+        void saveActiveFile(view).catch(console.error);
+      }
+    };
+    view.dom.addEventListener("focus", onEditorFocus, true);
+    view.dom.addEventListener("blur", onEditorBlur, true);
+    window.addEventListener("keydown", onKey);
+    viewCleanupRef.current = () => {
+      window.removeEventListener("keydown", onKey);
+      view.dom.removeEventListener("focus", onEditorFocus, true);
+      view.dom.removeEventListener("blur", onEditorBlur, true);
+      clearFocusedEditorView(view);
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [isMarkdown, saveActiveFile]);
+
   const enterTitleEdit = useCallback(() => {
     setTitleDraft(markdownTitleFor(pathRef.current));
     setTitleError(null);
@@ -479,141 +582,25 @@ export function EditorContent({
   }, [tabId, titleDraft, saveNow, scheduleAutoSave, editorProvider]);
 
   useEffect(() => {
-    if (!hostRef.current) return;
+    if (!isMarkdown) return;
+    const view = viewRef.current;
+    const compartment = markdownRootCompartmentRef.current;
+    if (view && compartment) view.dispatch({ effects: compartment.reconfigure(markdownRootPath.of(rootPath)) });
+  }, [isMarkdown, rootPath]);
 
-    const wikiLinkClickHandler = EditorView.domEventHandlers({
-      click(event, view) {
-        const target = event.target as HTMLElement | null;
-        if (!target?.classList.contains("cm-md-wikilink")) return false;
-        const pos = view.posAtDOM(target);
-        let node = syntaxTree(view.state).resolveInner(pos, 1);
-        while (node && node.type.name !== "WikiLink" && node.parent) node = node.parent;
-        if (!node || node.type.name !== "WikiLink") return false;
-        const full = view.state.doc.sliceString(node.from, node.to);
-        const noteName = (full.slice(2, -2).split("|")[0] ?? "").trim();
-        if (!noteName) return false;
-        event.preventDefault();
-        resolveWikiLinkTarget(tabId, noteName)
-          .then((path) => onOpenFileRef.current(path))
-          .catch(console.error);
-        return true;
-      },
-    });
-
-    const langCompartment = new Compartment();
-
-    const kindExtensions = isMarkdown
-      ? [
-          markdown({ base: markdownLanguage, extensions: [wikiLinkExtension], addKeymap: false }),
-          markdownRootPath.of(rootPath),
-          ...markdownLivePreview,
-          markdownProseTheme,
-          wikiLinkClickHandler,
-          keymap.of([
-            { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
-            { key: "Enter", run: insertNewlineAndIndent },
-            { key: "Backspace", run: deleteMarkupBackward },
-            { key: "Mod-b", run: toggleMarkdownWrap("**") },
-            { key: "Mod-i", run: toggleMarkdownWrap("*") },
-            { key: "Mod-Shift-v", run: pastePlainTextCommand },
-            ...defaultKeymap,
-          ]),
-        ]
-      : [
-          langCompartment.of([]),
-          lineNumbers(),
-          highlightActiveLineGutter(),
-          foldGutter(),
-          bracketMatching(),
-          closeBrackets(),
-          autocompletion(),
-          indentOnInput(),
-          syntaxTheme,
-          keymap.of([
-            { key: "Mod-/", run: toggleComment },
-            { key: "Mod-Shift-v", run: pastePlainTextCommand },
-            ...closeBracketsKeymap,
-            ...completionKeymap,
-            ...foldKeymap,
-            ...defaultKeymap,
-          ]),
-        ];
-
-    const view = createEditorView({
-      parent: hostRef.current,
-      doc: "",
-      extensions: [
-          ...kindExtensions,
-          ...workspaceSearch,
-          indentUnit.of("    "),
-          history(),
-          EditorState.allowMultipleSelections.of(true),
-          drawSelection(),
-          keymap.of([indentWithTab, ...historyKeymap, { key: "Mod-d", run: selectNextOccurrence }]),
-          EditorView.lineWrapping,
-          workspaceEditorTheme,
-          indentGuides,
-          EditorView.clickAddsSelectionRange.of((event) => event.altKey),
-          EditorView.updateListener.of((update) => {
-            setSearchOpen(searchPanelOpen(update.view.state));
-            if (!update.docChanged) return;
-            editRevisionRef.current += 1;
-            if (isMarkdown) setOutline(computeOutline(update.view));
-            setDirtyState(true);
-            const path = pathRef.current;
-            if (!path || !autoSaveRef.current || pathRenameInFlightRef.current) return;
-            scheduleAutoSave(update.view);
-          }),
-        ],
-    });
-    viewRef.current = view;
-    if (isMarkdown) setOutline([]);
-
-    const onEditorFocus = (): void => setFocusedEditorView(view);
-    const onEditorBlur = (): void => clearFocusedEditorView(view);
-    view.dom.addEventListener("focus", onEditorFocus, true);
-    view.dom.addEventListener("blur", onEditorBlur, true);
-
-    if (!isMarkdown && filePath) {
-      const desc = LanguageDescription.matchFilename(languageData, filePath);
-      desc
-        ?.load()
-        .then((support) => {
-          if (viewRef.current === view) view.dispatch({ effects: langCompartment.reconfigure(support) });
-        })
-        .catch(console.error);
-    }
-
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-        if (getFocusedEditorView() !== view) return;
-        e.preventDefault();
-        if (pathRenameInFlightRef.current) return;
-        if (!viewRef.current) return;
-        if (autoSaveTimerRef.current) {
-          clearTimeout(autoSaveTimerRef.current);
-          autoSaveTimerRef.current = null;
-        }
-        saveActiveFile(viewRef.current).catch(console.error);
+  useEffect(() => {
+    if (isMarkdown || !filePath) return;
+    let cancelled = false;
+    const view = viewRef.current;
+    const compartment = languageCompartmentRef.current;
+    const desc = LanguageDescription.matchFilename(languageData, filePath);
+    desc?.load().then((support) => {
+      if (!cancelled && view && viewRef.current === view && compartment) {
+        view.dispatch({ effects: compartment.reconfigure(support) });
       }
-    };
-    window.addEventListener("keydown", onKey);
-
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      view.dom.removeEventListener("focus", onEditorFocus, true);
-      view.dom.removeEventListener("blur", onEditorBlur, true);
-      clearFocusedEditorView(view);
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-      view.destroy();
-      viewRef.current = null;
-    };
-    // Deliberately excludes filePath/rootPath from deps beyond first mount
-    // — this component is mounted once per open editor tab (keyed by tab
-    // id at the call site), and the load effect below handles switching
-    // *content* when filePath changes (e.g. Save-As on an untitled tab).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, isMarkdown]);
+    }).catch(console.error);
+    return () => { cancelled = true; };
+  }, [filePath, isMarkdown]);
 
   useEffect(() => {
     setSaveError(null);
@@ -802,12 +789,12 @@ export function EditorContent({
                 </div>
               )}
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <div className="md-editor-host" ref={hostRef} />
+                <EditorTextSurface key={`${tabId}:${isMarkdown}`} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Markdown editor" />
               </div>
             </div>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-              <div className="md-editor-host" ref={hostRef} />
+              <EditorTextSurface key={`${tabId}:${isMarkdown}`} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>

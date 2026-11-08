@@ -22,3 +22,5 @@ export { EditorDocumentTabBar } from "./EditorDocumentTabBar";
 export type { EditorDocumentTab } from "./EditorDocumentTabBar";
 export { EditorTabChip } from "./EditorTabChip";
 export type { EditorTabChipProps } from "./EditorTabChip";
+export { EditorTextSurface, externalEditorChange } from "./EditorTextSurface";
+export type { EditorTextSurfaceProps } from "./EditorTextSurface";

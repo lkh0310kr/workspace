@@ -16,7 +16,7 @@ export function createEditorView({ parent, doc, extensions }: CreateEditorViewOp
 }
 
 /** Apply provider snapshots as non-user edits so they do not enter local undo history. */
-export function replaceEditorDocument(view: EditorView, text: string): void {
+export function replaceEditorDocument(view: EditorView, text: string, externalChange?: import("@codemirror/state").AnnotationType<boolean>): void {
   const previous = view.state.doc.toString();
   if (previous === text) return;
   let prefix = 0;
@@ -29,6 +29,9 @@ export function replaceEditorDocument(view: EditorView, text: string): void {
   ) suffix++;
   view.dispatch({
     changes: { from: prefix, to: previous.length - suffix, insert: text.slice(prefix, text.length - suffix) },
-    annotations: Transaction.addToHistory.of(false),
+    annotations: [
+      Transaction.addToHistory.of(false),
+      ...(externalChange ? [externalChange.of(true)] : []),
+    ],
   });
 }
