@@ -46,6 +46,7 @@ async function upsertFiles(env:Env,items:Record<string,unknown>[],onStage?:(stag
   if(!missing.length)return;
   onStage?.("file_cache_insert");
   await supabaseRequest(env,"/rest/v1/pkms_files?on_conflict=workspace_id,file_id",{method:"POST",headers:{Prefer:"resolution=ignore-duplicates,return=minimal"},body:JSON.stringify(missing)});
+  await supabaseRpc(env,"pkms_register_imported_files",{p_workspace_id:String(items[0].workspace_id),p_file_ids:missing.map(item=>String(item.file_id))});
 }
 function fileRecord(f:FileRow){return {id:f.file_id,path:f.path,kind:f.kind,revision:f.revision,...(f.kind!=="folder"?{size:f.size,...(f.kind==="asset"?{contentType:"application/octet-stream"}:{})}:{})};}
 async function publishRealtime(env:Env,workspaceId:string,message:Record<string,unknown>):Promise<void>{
@@ -72,9 +73,16 @@ export async function handleVaultRequest(env:Env,login:string,workspaceId:string
     return new Response(null,{status:204});
   }
   if(p==="/snapshot"&&request.method==="GET"){
-    const list=await files(env,workspaceId,{deleted:"eq.false",order:"path.asc",...(url.searchParams.has("afterRevision")?{revision:`gt.${Number(url.searchParams.get("afterRevision"))}`}:{})},"file_id,path,kind,size,revision");
-    return json({workspaceId,revision:Number(workspace.server_revision),files:list.map(fileRecord),hasMore:false,nextRevision:Number(workspace.server_revision),afterRevision:Number(url.searchParams.get("afterRevision")??0)});
+    const atRevision=Number(url.searchParams.get("atRevision")??workspace.server_revision);
+    const afterPath=url.searchParams.get("afterPath");
+    if(!Number.isSafeInteger(atRevision)||atRevision<0||atRevision>Number(workspace.server_revision))return json({error:"invalid_snapshot_cursor"},{status:400});
+    const filter:Record<string,string>={deleted:"eq.false",revision:`lte.${atRevision}`,order:"path.asc",limit:"500"};
+    if(afterPath)filter.path=`gt.${afterPath}`;
+    const list=await files(env,workspaceId,filter,"file_id,path,kind,size,revision");
+    const lastPath=list.at(-1)?.path??afterPath??"";
+    return json({workspaceId,revision:atRevision,files:list.map(fileRecord),hasMore:list.length===500,nextPath:lastPath,nextRevision:atRevision,afterRevision:Number(url.searchParams.get("afterRevision")??0)});
   }
+  if(p==="/sync/changes"&&request.method==="GET")return listSyncChanges(env,workspace,url.searchParams);
   if(p==="/sync/download"&&request.method==="POST")return downloadDocuments(env,workspace,await request.json().catch(()=>null));
   if(p==="/directory"&&request.method==="GET")return directory(env,login,workspace,url.searchParams.get("path")??"",requestId);
   if(p==="/sync-status"&&request.method==="GET")return syncStatus(env,workspace);
@@ -300,6 +308,29 @@ async function downloadDocuments(env:Env,w:WorkspaceRow,body:unknown):Promise<Re
     return {id:row.file_id,path:row.path,revision:data.revision,text:doc.getText("markdown").toString()};
   }));
   return json({documents});
+}
+
+async function listSyncChanges(env:Env,w:WorkspaceRow,params:URLSearchParams):Promise<Response>{
+  const afterRevision=Number(params.get("afterRevision"));
+  const lastRevision=Number(params.get("lastRevision")??afterRevision);
+  const lastFileId=params.get("lastFileId")??"";
+  if(!Number.isSafeInteger(afterRevision)||afterRevision<0||!Number.isSafeInteger(lastRevision)||lastRevision<afterRevision||lastFileId&&!/^[A-Za-z0-9_-]{1,128}$/.test(lastFileId))return json({error:"invalid_sync_cursor"},{status:400});
+  const currentRevision=Number(w.server_revision);
+  if(afterRevision>=currentRevision)return json({changes:[],hasMore:false,nextRevision:currentRevision});
+  const range=lastFileId
+    ?`and=(revision.gt.${afterRevision},revision.lte.${currentRevision},or(revision.gt.${lastRevision},and(revision.eq.${lastRevision},file_id.gt.${lastFileId})))`
+    :`and=(revision.gt.${afterRevision},revision.lte.${currentRevision})`;
+  const query=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,select:"file_id,path,previous_path,kind,size,revision,deleted",order:"revision.asc,file_id.asc",limit:"500",[range.split("=")[0]]:range.slice(range.indexOf("=")+1)});
+  const response=await supabaseRequest(env,`/rest/v1/pkms_files?${query}`);
+  const rows=await response.json() as Array<{file_id:string;path:string;previous_path:string|null;kind:string;size:number;revision:number;deleted:boolean}>;
+  const last=rows.at(-1);
+  return json({
+    changes:rows.map(file=>({id:file.file_id,path:file.path,previousPath:file.previous_path,kind:file.kind,size:file.size,revision:file.revision,deleted:file.deleted})),
+    hasMore:rows.length===500,
+    nextRevision:rows.length===500?afterRevision:currentRevision,
+    lastRevision:last?.revision??lastRevision,
+    lastFileId:last?.file_id??lastFileId,
+  });
 }
 
 async function writeDocument(env:Env,w:WorkspaceRow,fileId:string,b:Record<string,unknown>):Promise<Response>{

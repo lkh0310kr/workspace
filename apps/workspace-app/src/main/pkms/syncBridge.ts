@@ -7,10 +7,11 @@ import { requestPkmsApi } from "./api";
 import type { PkmsSyncBridgeStatus } from "../../shared/pkmsSyncBridge";
 
 type BridgeFile = { id: string; path: string; kind: string; revision: number };
-type BridgeSnapshot = { revision: number; files: BridgeFile[] };
+type BridgeSnapshotPage = { revision: number; files: BridgeFile[]; hasMore: boolean; nextPath: string };
+type BridgeChange = BridgeFile & { deleted: boolean };
 type Baseline = { fileId: string; hash: string; revision: number };
-type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>> };
-const EMPTY: Persisted = { configs: {}, baselines: {} };
+type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>>; remoteFiles: Record<string, Record<string, BridgeFile>>; syncCursors: Record<string, number> };
+const EMPTY: Persisted = { configs: {}, baselines: {}, remoteFiles: {}, syncCursors: {} };
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const pollers = new Map<string, ReturnType<typeof setInterval>>();
 const watchers = new Map<string, FSWatcher>();
@@ -21,7 +22,10 @@ let persisted: Persisted | null = null;
 function statePath(): string { return path.join(app.getPath("userData"), "pkms-sync-bridge.json"); }
 async function load(): Promise<Persisted> {
   if (persisted) return persisted;
-  try { persisted = { ...EMPTY, ...(JSON.parse(await fs.readFile(statePath(), "utf8")) as Partial<Persisted>) }; }
+  try {
+    const saved = JSON.parse(await fs.readFile(statePath(), "utf8")) as Partial<Persisted>;
+    persisted = { ...EMPTY, ...saved, remoteFiles: saved.remoteFiles ?? {}, syncCursors: saved.syncCursors ?? {} };
+  }
   catch { persisted = structuredClone(EMPTY); }
   return persisted;
 }
@@ -169,6 +173,36 @@ async function readRemoteTexts(workspaceId: string, files: BridgeFile[]): Promis
   await Promise.all(Array.from({ length: Math.min(3, batches.length) }, () => worker()));
   return documents;
 }
+async function readRemoteChanges(workspaceId: string, afterRevision: number): Promise<{ changes: BridgeChange[]; nextRevision: number }> {
+  const changes: BridgeChange[] = [];
+  let lastRevision = afterRevision;
+  let lastFileId = "";
+  while (true) {
+    const query = new URLSearchParams({ afterRevision: String(afterRevision), lastRevision: String(lastRevision), lastFileId });
+    const page = await request<{ changes: BridgeChange[]; hasMore: boolean; nextRevision: number; lastRevision: number; lastFileId: string }>(
+      `/api/workspaces/${encodeURIComponent(workspaceId)}/sync/changes?${query}`, "GET",
+    );
+    changes.push(...page.changes);
+    if (!page.hasMore) return { changes, nextRevision: page.nextRevision };
+    lastRevision = page.lastRevision;
+    lastFileId = page.lastFileId;
+  }
+}
+async function readRemoteSnapshot(workspaceId: string): Promise<{ revision: number; files: BridgeFile[] }> {
+  const files: BridgeFile[] = [];
+  let atRevision: number | undefined;
+  let afterPath = "";
+  while (true) {
+    const query = new URLSearchParams();
+    if (atRevision !== undefined) query.set("atRevision", String(atRevision));
+    if (afterPath) query.set("afterPath", afterPath);
+    const page = await request<BridgeSnapshotPage>(`/api/workspaces/${encodeURIComponent(workspaceId)}/snapshot${query.size ? `?${query}` : ""}`, "GET");
+    atRevision = page.revision;
+    files.push(...page.files);
+    if (!page.hasMore) return { files, revision: atRevision };
+    afterPath = page.nextPath;
+  }
+}
 async function createRemoteFile(workspaceId: string, snapshotRevision: number, relative: string, content: string): Promise<BridgeFile> {
   const fileId = randomUUID();
   const doc = new Y.Doc({ guid: fileId });
@@ -218,9 +252,23 @@ async function syncOnce(workspaceId: string): Promise<void> {
     setStatus(workspaceId, { state: "syncing", progress: { completed: 0, total: 0, percent: 0 }, error: null });
     try {
       const local = await markdownFiles(root, config.excludedPaths ?? []);
-      const snapshot = await request<BridgeSnapshot>(`/api/workspaces/${encodeURIComponent(workspaceId)}/snapshot`, "GET");
-      const remoteByPath = new Map(snapshot.files.filter((file) => file.kind === "markdown").map((file) => [file.path, file]));
-      const baselines = (await load()).baselines[workspaceId] ??= {};
+      const state = await load();
+      let knownRemoteFiles = state.remoteFiles[workspaceId];
+      let nextSyncRevision = state.syncCursors[workspaceId];
+      if (!knownRemoteFiles || nextSyncRevision === undefined) {
+        const snapshot = await readRemoteSnapshot(workspaceId);
+        knownRemoteFiles = Object.fromEntries(snapshot.files.filter((file) => file.kind === "markdown").map((file) => [file.id, file]));
+        nextSyncRevision = snapshot.revision;
+      } else {
+        const page = await readRemoteChanges(workspaceId, nextSyncRevision);
+        for (const change of page.changes) {
+          delete knownRemoteFiles[change.id];
+          if (!change.deleted && change.kind === "markdown") knownRemoteFiles[change.id] = change;
+        }
+        nextSyncRevision = page.nextRevision;
+      }
+      const remoteByPath = new Map(Object.values(knownRemoteFiles).map((file) => [file.path, file]));
+      const baselines = state.baselines[workspaceId] ??= {};
       const paths = [...new Set([...local.keys(), ...remoteByPath.keys(), ...Object.keys(baselines)])]
         .filter((relative) => !isReservedSyncPath(relative) && !matchesExclusion(relative, config.excludedPaths ?? []));
       let completed = 0;
@@ -245,13 +293,13 @@ async function syncOnce(workspaceId: string): Promise<void> {
           if (baseline) {
             if (hash(localText) !== baseline.hash) {
               const conflict = await conflictCopy(root, relative, localText);
-              const created = await createRemoteFile(workspaceId, snapshot.revision, conflict, localText);
+              const created = await createRemoteFile(workspaceId, nextSyncRevision, conflict, localText);
               baselines[created.path] = { fileId: created.id, hash: hash(localText), revision: created.revision };
             }
             await removeLocalFile(root, relative);
             delete baselines[relative];
           } else {
-            const created = await createRemoteFile(workspaceId, snapshot.revision, relative, localText);
+            const created = await createRemoteFile(workspaceId, nextSyncRevision, relative, localText);
             baselines[created.path] = { fileId: created.id, hash: hash(localText), revision: created.revision };
           }
           itemComplete = true;
@@ -265,7 +313,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         if (actualLocal === undefined) {
           if (baseline) {
             await request(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
-              operationId: randomUUID(), baseRevision: snapshot.revision, clientId: "desktop-sync-bridge",
+              operationId: randomUUID(), baseRevision: nextSyncRevision, clientId: "desktop-sync-bridge",
               operation: { type: "delete", fileId: remote.id },
             });
             delete baselines[relative];
@@ -283,7 +331,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             baselines[relative] = { fileId: remote.id, hash: localHash, revision: remoteContent?.revision ?? remote.revision };
           } else {
             const conflict = await conflictCopy(root, relative, actualLocal);
-            const created = await createRemoteFile(workspaceId, snapshot.revision, conflict, actualLocal);
+            const created = await createRemoteFile(workspaceId, nextSyncRevision, conflict, actualLocal);
             baselines[created.path] = { fileId: created.id, hash: localHash, revision: created.revision };
             await writeAtomic(root, relative, remoteText ?? "");
             baselines[relative] = { fileId: remote.id, hash: hash(remoteText ?? ""), revision: remoteContent?.revision ?? remote.revision };
@@ -295,7 +343,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         const remoteChanged = remote.id !== baseline.fileId || (remoteContent !== null && remoteContent.revision !== baseline.revision);
         if (localChanged && remoteChanged) {
           const localCopy = await conflictCopy(root, relative, actualLocal);
-          const created = await createRemoteFile(workspaceId, snapshot.revision, localCopy, actualLocal);
+          const created = await createRemoteFile(workspaceId, nextSyncRevision, localCopy, actualLocal);
           baselines[created.path] = { fileId: created.id, hash: localHash, revision: created.revision };
           const text = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
           await writeAtomic(root, relative, text);
@@ -327,6 +375,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
       await Promise.all(Array.from({ length: Math.min(6, total) }, () => worker()));
       await save();
       if (firstError) throw firstError;
+      state.remoteFiles[workspaceId] = knownRemoteFiles;
+      state.syncCursors[workspaceId] = nextSyncRevision;
+      await save();
       const conflictFiles = [...new Set([...local.keys(), ...Object.keys(baselines)])].filter((relative) => /\.local-conflict-[^/]+\.md$/i.test(relative));
       setStatus(workspaceId, { state: "synced", progress: { completed: total, total, percent: 100 }, enabled: true, folderPath: root, lastScannedAt: Date.now(), lastSyncedAt: Date.now(), pendingFiles: 0, conflictFiles, error: null });
     } catch (error) {
