@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, fuzzyEditorSearch, markdownOutlineFromText, projectEditorTreeRows, resolveEditorTreeArrowKey, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorTreeArrowKey, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -68,7 +68,7 @@ export default function Home() {
   const [openingFileId, setOpeningFileId] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickQuery, setQuickQuery] = useState("");
-  const [text, setText] = useState("");
+  const [, setText] = useState("");
   const [sync, setSync] = useState<SyncStatus>({ serverRevision: 0, githubStatus: "pending", pendingFiles: 0 });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -379,7 +379,7 @@ export default function Home() {
     setShowFileFilters(false);
   }, [activeWorkspace?.id]);
 
-  useEffect(() => { setOutlineOpen(false); }, [activeFile?.id]);
+  useEffect(() => { setOutlineOpen(false); setOutlineItems([]); }, [activeFile?.id]);
 
   useEffect(() => {
     if (!activeWorkspace) return;
@@ -772,7 +772,7 @@ export default function Home() {
     ? files.find((file) => file.path === [...selectedTreePaths][0] && file.kind === "folder")?.path ?? currentFolder
     : currentFolder;
 
-  const outlineItems = useMemo(() => markdownOutlineFromText(text), [text]);
+  const [outlineItems, setOutlineItems] = useState<MarkdownHeading[]>([]);
   const parentFolder = parentPath(currentFolder);
   const persistTreeScroll = (scrollTop: number) => {
     setTreeScrollTop(scrollTop);
@@ -1043,7 +1043,7 @@ export default function Home() {
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <div className="editor-layout" onPointerMove={(event) => { const next = event.currentTarget.getBoundingClientRect().right - event.clientX < 48; setOutlineHover((current) => current === next ? current : next); }} onPointerLeave={() => setOutlineHover(false)}>
           <div className="editor-heading"><div className="editor-title-block"><h1>{activeFile.path.split("/").at(-1)?.replace(/\.md$/i, "")}</h1>{peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}</div></div>
           <div className="outline-control outline-rail"><button className={`mini-button outline-button${outlineOpen ? " active" : ""}${outlineHover || outlineOpen ? " revealed" : ""}`} title="Note outline" aria-label="Note outline" aria-expanded={outlineOpen} onClick={() => setOutlineOpen((open) => !open)}><AppIcon name="list" /></button>{outlineOpen && <EditorOutlineList className="outline-popover" items={outlineItems.map((item) => ({ id: `${item.line}-${item.title}`, level: item.level, label: item.title, position: item.line }))} indentSize={11} onNavigate={(line) => { setOutlineOpen(false); requestAnimationFrame(() => editorNavigate.current?.(line)); }} />}</div>
-          <div className="editor-columns"><div className="source-column"><Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} /></Suspense></div></div>
+          <div className="editor-columns"><div className="source-column"><Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} /></Suspense></div></div>
         </div> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>
           {assetPreviewUrl ? assetPreviewType.startsWith("image/") ? <img className="asset-image-preview" src={assetPreviewUrl} alt={activeFile.path} /> : <iframe className="asset-preview-frame" src={assetPreviewUrl} title={activeFile.path} /> : <span className="file-opening-spinner" aria-label="Loading attachment" />}

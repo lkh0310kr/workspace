@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorMarkdownSurface, EditorOutlineList, externalEditorChange, markdownOutlineFromState, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorMarkdownSurface, EditorOutlineList, externalEditorChange, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -113,10 +113,6 @@ function jumpToPos(view: EditorView, pos: number): void {
 function lineStartPos(view: EditorView, line: number): number {
   const clamped = Math.min(Math.max(1, line), view.state.doc.lines);
   return view.state.doc.line(clamped).from;
-}
-
-function computeOutline(view: EditorView): OutlineItem[] {
-  return markdownOutlineFromState(view.state).map(({ level, title, position }) => ({ level, text: title, pos: position }));
 }
 
 export function EditorContent({
@@ -379,7 +375,6 @@ export function EditorContent({
         setSearchOpen(searchPanelOpen(update.view.state));
         if (!update.docChanged) return;
         editRevisionRef.current += 1;
-        if (isMarkdown) setOutline(computeOutline(update.view));
         if (suppressProviderEditRef.current || update.transactions.some((transaction) => transaction.annotation(externalEditorChange))) return;
         setDirtyState(true);
         const path = pathRef.current;
@@ -733,7 +728,7 @@ export function EditorContent({
                 </div>
               )}
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Markdown editor" />
+                <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Markdown editor" />
               </div>
             </div>
           ) : (
