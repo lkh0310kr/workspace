@@ -193,6 +193,8 @@ Markdown 제목 표시·검증·확장자/경로 생성은 `packages/editor`의 
 
 공통 제목 wrapper의 intrinsic sizing(`min-width: 0`)도 `markdownDocument.css`가 소유한다. PKMS host stylesheet는 이 공통 frame 규칙을 다시 정의하지 않는다.
 
+PKMS Markdown frame은 별도의 max-width/padding wrapper 없이 `EditorMarkdownDocument`가 pane을 채운다. Workspace와 동일한 폭·여백 기준을 사용하고 `.editor-layout` host 규칙은 제거했다.
+
 제목 rename target의 sibling 조회와 대소문자 무시 collision 검사는 `resolveMarkdownTitleRenameTarget`이 공통 provider 계약으로 수행한다. 현재 문서는 안정 item ID로 충돌 검사에서 제외해 대소문자만 바꾸는 rename도 자기 자신과 충돌하지 않는다. Workspace의 dirty 저장/untitled 저장과 PKMS의 활성 workspace 검증은 host 책임이다.
 
 제목 inline input의 렌더링, Enter/Escape 처리, 오류 표시도 `EditorMarkdownTitleInput`으로 공유한다. 각 host는 입력값 상태와 검증 결과·provider rename 동작을 전달한다.
