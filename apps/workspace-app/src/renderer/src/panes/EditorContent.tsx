@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -8,7 +9,8 @@ import {
 } from "react";
 import { Compartment, EditorSelection, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createEditorView } from "@workspace/editor";
+import { createEditorView, type EditorDocumentSession } from "@workspace/editor";
+import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import {
   defaultKeymap,
   history,
@@ -35,7 +37,7 @@ import {
 import { languages as languageData } from "@codemirror/language-data";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { closeSearchPanel, openSearchPanel, searchPanelOpen, selectNextOccurrence } from "@codemirror/search";
-import { listDir, onFileChanged, readFile, renamePath, writeFile } from "../electron";
+import { listDir, writeFile } from "../electron";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
 import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { indentGuides } from "../indentGuides";
@@ -188,6 +190,11 @@ export function EditorContent({
   onJumpConsumed,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const editorProviderLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
+  const editorProvider = editorProviderLease.provider;
+  const documentSessionRef = useRef<EditorDocumentSession | null>(null);
+  const unsubscribeDocumentRef = useRef<(() => void) | null>(null);
+  const documentLoadSequenceRef = useRef(0);
   const editorShellRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const pathRef = useRef<string | null>(filePath);
@@ -253,17 +260,63 @@ export function EditorContent({
     (path: string, jumpLine?: number | null): boolean => {
       const view = viewRef.current;
       if (!view) return false;
-      readFile(tabId, path)
-        .then((content) => {
-          const activeView = viewRef.current;
-          if (!activeView || pathRef.current !== path || content === null) return;
-          applyLoadedFileContent(activeView, content, jumpLine);
+      const sequence = ++documentLoadSequenceRef.current;
+      if (documentSessionRef.current?.item.path !== path) {
+        unsubscribeDocumentRef.current?.();
+        unsubscribeDocumentRef.current = null;
+        const previous = documentSessionRef.current;
+        documentSessionRef.current = null;
+        if (previous) void previous.close();
+      }
+      editorProvider.itemRefForPath(path)
+        .then((item) => {
+          if (!item) throw new Error(`File not found: ${path}`);
+          return editorProvider.openDocument(item);
         })
-        .catch(console.error);
+        .then(async (session) => {
+          if (sequence !== documentLoadSequenceRef.current || pathRef.current !== path) {
+            await session.close();
+            return;
+          }
+          unsubscribeDocumentRef.current?.();
+          const previous = documentSessionRef.current;
+          documentSessionRef.current = session;
+          unsubscribeDocumentRef.current = session.subscribe((snapshot) => {
+            if (pathRef.current !== path || documentSessionRef.current !== session) return;
+            if (snapshot.savePhase === "conflict") {
+              setSaveError(snapshot.message ?? "The file changed on disk.");
+              return;
+            }
+            if (snapshot.content.type !== "text") return;
+            const activeView = viewRef.current;
+            if (activeView && snapshot.savePhase === "clean" && snapshot.content.text !== activeView.state.doc.toString()) {
+              lastLoadedContentRef.current = snapshot.content.text;
+              activeView.dispatch({
+                changes: { from: 0, to: activeView.state.doc.length, insert: snapshot.content.text },
+                annotations: Transaction.addToHistory.of(false),
+              });
+              setDirtyState(false);
+            }
+          });
+          if (previous && previous !== session) await previous.close();
+          const snapshot = session.snapshot();
+          if (snapshot.content.type === "text") {
+            const activeView = viewRef.current;
+            if (activeView) applyLoadedFileContent(activeView, snapshot.content.text, jumpLine);
+          }
+        })
+        .catch((error) => setSaveError(error instanceof Error ? error.message : String(error)));
       return true;
     },
-    [tabId, applyLoadedFileContent],
+    [editorProvider, applyLoadedFileContent, setDirtyState],
   );
+
+  useEffect(() => () => {
+    documentLoadSequenceRef.current += 1;
+    unsubscribeDocumentRef.current?.();
+    void documentSessionRef.current?.close();
+    editorProviderLease.release();
+  }, [editorProviderLease]);
 
   useEffect(() => subscribeAutoSave(setAutoSave), []);
 
@@ -272,9 +325,16 @@ export function EditorContent({
       const content = view.state.doc.toString();
       const revision = editRevisionRef.current;
       setSaveError(null);
-      const write = saveQueueRef.current
-        .catch(() => {})
-        .then(() => writeFile(tabId, path, content));
+      const session = documentSessionRef.current;
+      const write = saveQueueRef.current.catch(() => {}).then(async () => {
+        if (session && session.item.path === path) {
+          const snapshot = session.snapshot();
+          await session.replaceText(content, snapshot.revision);
+          await session.save();
+        } else {
+          await writeFile(tabId, path, content);
+        }
+      });
       saveQueueRef.current = write.then(() => {}, () => {});
       return write.then(() => {
         lastLoadedContentRef.current = content;
@@ -397,7 +457,14 @@ export function EditorContent({
     const sourcePath = pathRef.current;
     try {
       if (autoSaveRef.current && dirtyRef.current) await saveNow(view, sourcePath);
-      await renamePath(tabId, sourcePath, targetPath);
+      const session = documentSessionRef.current;
+      if (session && session.item.path === sourcePath) {
+        await editorProvider.rename(session.item, targetPath.split("/").at(-1) ?? targetPath);
+      } else {
+        const item = await editorProvider.itemRefForPath(sourcePath);
+        if (!item) throw new Error("File no longer exists");
+        await editorProvider.rename(item, targetPath.split("/").at(-1) ?? targetPath);
+      }
       skipPathLoadRef.current = targetPath;
       pathRef.current = targetPath;
       onAssignPathRef.current(targetPath);
@@ -409,7 +476,7 @@ export function EditorContent({
       pathRenameInFlightRef.current = false;
       if (dirtyRef.current) scheduleAutoSave(view);
     }
-  }, [tabId, titleDraft, saveNow, scheduleAutoSave]);
+  }, [tabId, titleDraft, saveNow, scheduleAutoSave, editorProvider]);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -584,36 +651,6 @@ export function EditorContent({
     jumpToPos(view, lineStartPos(view, jumpToLine));
     onJumpConsumedRef.current?.();
   }, [jumpToLine]);
-
-  useEffect(() => {
-    if (!filePath) return;
-    const unlisten = onFileChanged(() => {
-      const view = viewRef.current;
-      if (!view) return;
-      const current = view.state.doc.toString();
-      if (lastLoadedContentRef.current !== null && current !== lastLoadedContentRef.current) return;
-      readFile(tabId, filePath)
-        .then((content) => {
-          // The watcher fires for deletes and renames too; a gone file
-          // leaves the buffer alone rather than blanking it.
-          if (content === null || content === view.state.doc.toString()) return;
-          const selection = view.state.selection;
-          lastLoadedContentRef.current = content;
-          view.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: content },
-            selection: selection.main.to <= content.length ? selection : undefined,
-            annotations: Transaction.addToHistory.of(false),
-          });
-          if (autoSaveTimerRef.current) {
-            clearTimeout(autoSaveTimerRef.current);
-            autoSaveTimerRef.current = null;
-          }
-          setDirtyState(false);
-        })
-        .catch(console.error);
-    });
-    return unlisten;
-  }, [filePath, tabId, setDirtyState]);
 
   const toggleSearch = () => {
     const view = viewRef.current;

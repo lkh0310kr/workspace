@@ -43,7 +43,7 @@ function abortIfNeeded(signal?: AbortSignal): void {
 }
 
 /** Workspace filesystem adapter. Electron IPC remains behind the renderer shim. */
-export function createLocalEditorProvider(tabId: number): LocalEditorProvider {
+function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
   const id = `workspace:${tabId}`;
   const pathByItemId = new Map<string, string>();
   const itemIdByPath = new Map<string, string>();
@@ -148,11 +148,14 @@ export function createLocalEditorProvider(tabId: number): LocalEditorProvider {
       const isDirectory = oldEntries.find((entry) => entry.path === from)?.is_dir ?? false;
       const to = [parentOf(from) ?? "", name].filter(Boolean).join("/");
       await renamePath(tabId, from, to);
-      const itemId = ref.itemId;
-      itemIdByPath.delete(from);
-      itemIdByPath.set(to, itemId);
-      pathByItemId.set(itemId, to);
-      for (const session of sessions) session.renamePath(from, to, name);
+      const affected = [...pathByItemId.entries()].filter(([, path]) => path === from || (isDirectory && path.startsWith(`${from}/`)));
+      for (const [itemId, oldPath] of affected) {
+        const nextPath = `${to}${oldPath.slice(from.length)}`;
+        itemIdByPath.delete(oldPath);
+        itemIdByPath.set(nextPath, itemId);
+        pathByItemId.set(itemId, nextPath);
+        for (const session of sessions) session.renamePath(oldPath, nextPath, nextPath.split("/").at(-1) ?? "");
+      }
       for (const listener of listeners) listener([parentOf(from) ?? "", parentOf(to) ?? ""]);
       return itemFor(to, isDirectory, name);
     },
@@ -162,8 +165,11 @@ export function createLocalEditorProvider(tabId: number): LocalEditorProvider {
         const path = pathByItemId.get(ref.itemId);
         if (path === undefined) continue;
         await deletePath(tabId, path);
-        pathByItemId.delete(ref.itemId);
-        itemIdByPath.delete(path);
+        const affected = [...pathByItemId.entries()].filter(([, candidate]) => candidate === path || candidate.startsWith(`${path}/`));
+        for (const [itemId, candidate] of affected) {
+          pathByItemId.delete(itemId);
+          itemIdByPath.delete(candidate);
+        }
       }
     },
     async move(refs, parentId) {
@@ -199,6 +205,33 @@ export function createLocalEditorProvider(tabId: number): LocalEditorProvider {
 
   // The owner controls provider lifetime; dispose stops the file watcher.
   return provider;
+}
+
+const providerPool = new Map<number, { provider: LocalEditorProvider; references: number }>();
+
+/** Share one provider identity across the explorer and editor panes for a workspace tab. */
+export function acquireLocalEditorProvider(tabId: number): { provider: LocalEditorProvider; release: () => void } {
+  let entry = providerPool.get(tabId);
+  if (!entry) {
+    entry = { provider: buildLocalEditorProvider(tabId), references: 0 };
+    providerPool.set(tabId, entry);
+  }
+  entry.references++;
+  let released = false;
+  return {
+    provider: entry.provider,
+    release: () => {
+      if (released) return;
+      released = true;
+      const current = providerPool.get(tabId);
+      if (!current || current !== entry) return;
+      current.references--;
+      if (current.references <= 0) {
+        providerPool.delete(tabId);
+        current.provider.dispose();
+      }
+    },
+  };
 }
 
 class LocalDocumentSession implements EditorDocumentSession {
@@ -248,6 +281,7 @@ class LocalDocumentSession implements EditorDocumentSession {
   async replaceText(text: string, baseRevision: string): Promise<void> {
     if (this.closed) throw new Error("Document session is closed");
     if (this.readOnly) throw new Error("Document is read only");
+    if (this.phase === "conflict") throw new Error(this.message ?? "The file changed on disk. Reload it before saving.");
     if (baseRevision !== this.revision) {
       this.phase = "conflict";
       this.message = "The file changed on disk. Reload it before saving.";

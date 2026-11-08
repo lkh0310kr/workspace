@@ -32,7 +32,7 @@ import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { projectVisibleRows } from "../explorer/useTreeProjection";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
 import { EditorTreeRow } from "@workspace/editor";
-import { createLocalEditorProvider } from "../editor/localEditorProvider";
+import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
   tabId: number;
@@ -142,7 +142,8 @@ export function TreeView({
   onPathRenamed,
   onPathDeleted,
 }: Props) {
-  const editorProvider = useMemo(() => createLocalEditorProvider(tabId), [tabId]);
+  const editorProviderLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
+  const editorProvider = editorProviderLease.provider;
   const treeRef = useRef<HTMLDivElement>(null);
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(loadExplorerTreeState(explorerStateKey, rootPath).expanded));
@@ -171,7 +172,7 @@ export function TreeView({
     [editorProvider],
   );
 
-  useEffect(() => () => editorProvider.dispose(), [editorProvider]);
+  useEffect(() => () => editorProviderLease.release(), [editorProviderLease]);
 
   const setExpandedPersisted = useCallback(
     (updater: (prev: Set<string>) => Set<string>) => {
