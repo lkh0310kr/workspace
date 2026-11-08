@@ -51,6 +51,20 @@ export interface EditorSearchResult {
   line?: number;
   column?: number;
   preview?: string;
+  matches?: readonly EditorSearchMatch[];
+}
+
+export interface EditorSearchMatch {
+  line: number;
+  column: number;
+  preview: string;
+  ranges: readonly { start: number; end: number }[];
+}
+
+export interface EditorReplaceOptions {
+  caseSensitive: boolean;
+  regex: boolean;
+  wholeWord: boolean;
 }
 
 export interface EditorProvider {
@@ -67,6 +81,14 @@ export interface EditorProvider {
     options: EditorSearchOptions,
     signal?: AbortSignal,
   ): Promise<EditorSearchResult[]>;
+  /** Replace matches only if the provider can confirm the searched occurrence count is unchanged. */
+  replaceContents?(
+    item: EditorItemRef,
+    query: string,
+    replacement: string,
+    options: EditorReplaceOptions,
+    expectedMatchCount: number,
+  ): Promise<boolean>;
   create?(
     parentId: string | null,
     kind: "file" | "directory",

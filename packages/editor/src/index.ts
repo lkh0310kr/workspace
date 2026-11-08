@@ -9,6 +9,8 @@ export type {
   EditorProviderErrorCode,
   EditorSavePhase,
   EditorSearchOptions,
+  EditorSearchMatch,
+  EditorReplaceOptions,
   EditorSearchResult,
   EditorSyncPhase,
   EditorTreeItem,

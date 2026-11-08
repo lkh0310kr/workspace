@@ -8,16 +8,12 @@ import {
   type ReactNode,
 } from "react";
 import {
-  cancelSearch,
-  onSearchDone,
-  onSearchResult,
-  readFile,
-  searchInFiles,
-  writeFile,
-  type SearchFileResult,
-  type SearchOptions,
-} from "../electron";
-import { classifyFile } from "./TreeView";
+  type EditorProvider,
+  type EditorSearchMatch,
+  type EditorSearchResult,
+  type EditorReplaceOptions,
+} from "@workspace/editor";
+import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 // VSCode-parity Find/Replace in Files, backed by the ripgrep IPC in
 // src/main/search.ts. Swapped into PaneGroup.tsx's .obsidian-explorer
@@ -30,20 +26,7 @@ interface Props {
 
 const DEBOUNCE_MS = 250;
 
-function escapeRegExp(literal: string): string {
-  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/** For Replace: builds the same regex the search used, so occurrence counts
- * (for the stale-file-skip check) and the actual substitution agree with
- * what the search matched. */
-function buildReplaceRegex(query: string, opts: SearchOptions): RegExp {
-  const source = opts.regex ? query : escapeRegExp(query);
-  const bounded = opts.wholeWord ? `\\b(?:${source})\\b` : source;
-  return new RegExp(bounded, `g${opts.caseSensitive ? "" : "i"}`);
-}
-
-function highlightLine(lineText: string, ranges: { start: number; end: number }[]): ReactNode {
+function highlightLine(lineText: string, ranges: EditorSearchMatch["ranges"]): ReactNode {
   if (ranges.length === 0) return lineText;
   const parts: ReactNode[] = [];
   let cursor = 0;
@@ -57,22 +40,24 @@ function highlightLine(lineText: string, ranges: { start: number; end: number }[
 }
 
 export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
+  const providerLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
+  const provider: EditorProvider = providerLease.provider;
   const [query, setQuery] = useState("");
   const [replaceQuery, setReplaceQuery] = useState("");
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [regex, setRegex] = useState(false);
   const [wholeWord, setWholeWord] = useState(false);
-  const [results, setResults] = useState<SearchFileResult[]>([]);
+  const [results, setResults] = useState<EditorSearchResult[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [replaceSummary, setReplaceSummary] = useState<string | null>(null);
-  const requestIdRef = useRef<string | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryInputRef = useRef<HTMLInputElement>(null);
 
-  const opts = useMemo<SearchOptions>(
+  const opts = useMemo<EditorReplaceOptions>(
     () => ({ caseSensitive, regex, wholeWord }),
     [caseSensitive, regex, wholeWord],
   );
@@ -81,45 +66,32 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
     queryInputRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const offResult = onSearchResult((requestId, result) => {
-      if (requestId !== requestIdRef.current) return;
-      setResults((prev) => {
-        const idx = prev.findIndex((r) => r.path === result.path);
-        if (idx === -1) return [...prev, result];
-        const next = [...prev];
-        next[idx] = result;
-        return next;
-      });
-    });
-    const offDone = onSearchDone((requestId, err) => {
-      if (requestId !== requestIdRef.current) return;
-      setSearching(false);
-      if (err) setError(err);
-    });
-    return () => {
-      offResult();
-      offDone();
-    };
-  }, []);
-
   const runSearch = useCallback(
-    (q: string, searchOpts: SearchOptions) => {
-      if (requestIdRef.current) cancelSearch(requestIdRef.current);
+    (q: string, searchOpts: EditorReplaceOptions) => {
+      searchAbortRef.current?.abort();
       setResults([]);
       setError(null);
       setReplaceSummary(null);
       if (!q) {
-        requestIdRef.current = null;
         setSearching(false);
         return;
       }
-      const requestId = crypto.randomUUID();
-      requestIdRef.current = requestId;
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
       setSearching(true);
-      searchInFiles(requestId, tabId, q, searchOpts);
+      void provider.search(q, { ...searchOpts, target: "contents" }, controller.signal)
+        .then((next) => {
+          if (searchAbortRef.current !== controller) return;
+          setResults(next);
+          setSearching(false);
+        })
+        .catch((cause) => {
+          if (searchAbortRef.current !== controller) return;
+          if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
+          setSearching(false);
+        });
     },
-    [tabId],
+    [provider],
   );
 
   useEffect(() => {
@@ -133,27 +105,31 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
 
   useEffect(() => {
     return () => {
-      if (requestIdRef.current) cancelSearch(requestIdRef.current);
+      searchAbortRef.current?.abort();
+      providerLease.release();
     };
-  }, []);
+  }, [providerLease]);
 
-  const totalMatches = results.reduce((sum, r) => sum + r.matches.length, 0);
+  const totalMatches = results.reduce((sum, result) => sum + (result.matches?.length ?? 0), 0);
 
   const replaceInFile = useCallback(
-    async (file: SearchFileResult) => {
-      const current = await readFile(tabId, file.path).catch(() => null);
-      if (current == null) return false;
-      const re = buildReplaceRegex(query, opts);
-      const currentCount = (current.match(re) ?? []).length;
-      if (currentCount !== file.matches.reduce((n, m) => n + m.ranges.length, 0)) {
+    async (result: EditorSearchResult) => {
+      if (!provider.replaceContents) return false;
+      const expectedMatchCount = (result.matches ?? []).reduce((count, match) => count + match.ranges.length, 0);
+      try {
+        return await provider.replaceContents(
+          { providerId: result.item.providerId, itemId: result.item.itemId },
+          query,
+          replaceQuery,
+          opts,
+          expectedMatchCount,
+        );
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : String(cause));
         return false;
       }
-      const next = current.replace(re, replaceQuery);
-      if (next === current) return true;
-      await writeFile(tabId, file.path, next);
-      return true;
     },
-    [tabId, query, opts, replaceQuery],
+    [provider, query, opts, replaceQuery],
   );
 
   const replaceAll = useCallback(async () => {
@@ -166,7 +142,7 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
     }
     setReplaceSummary(
       skipped > 0
-        ? `Replaced in ${ok} file${ok === 1 ? "" : "s"}, ${skipped} skipped (changed since search)`
+        ? `Replaced in ${ok} file${ok === 1 ? "" : "s"}, ${skipped} skipped (changed or unsaved)`
         : `Replaced in ${ok} file${ok === 1 ? "" : "s"}`,
     );
     runSearch(query, opts);
@@ -211,7 +187,7 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
           <button
             type="button"
             className="search-panel-replace-all"
-            disabled={results.length === 0}
+            disabled={results.length === 0 || !provider.capabilities.replaceContents || !provider.replaceContents}
             onClick={() => void replaceAll()}
           >
             Replace All
@@ -256,27 +232,27 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
                 : ""}
       </div>
       <div className="search-panel-results">
-        {results.map((file) => (
-          <div key={file.path} className="search-panel-file">
+        {results.map((result) => (
+          <div key={result.item.itemId} className="search-panel-file">
             <div
               className="search-panel-file-header"
-              onClick={() => setCollapsed((prev) => ({ ...prev, [file.path]: !prev[file.path] }))}
+              onClick={() => setCollapsed((prev) => ({ ...prev, [result.item.path]: !prev[result.item.path] }))}
             >
-              <span className="search-panel-file-caret">{collapsed[file.path] ? "▸" : "▾"}</span>
-              <span className="search-panel-file-path" title={file.path}>
-                {file.path}
+              <span className="search-panel-file-caret">{collapsed[result.item.path] ? "▸" : "▾"}</span>
+              <span className="search-panel-file-path" title={result.item.path}>
+                {result.item.path}
               </span>
-              <span className="search-panel-file-count">{file.matches.length}</span>
+              <span className="search-panel-file-count">{result.matches?.length ?? 0}</span>
             </div>
-            {!collapsed[file.path] &&
-              file.matches.map((m, i) => (
+            {!collapsed[result.item.path] &&
+              (result.matches ?? []).map((match, i) => (
                 <div
                   key={i}
                   className="search-panel-match"
-                  onClick={() => onJumpToResult(file.path, classifyFile(file.path), m.lineNumber)}
+                  onClick={() => onJumpToResult(result.item.path, result.item.kind === "markdown" ? "markdown" : result.item.kind === "asset" ? "viewer" : "code", match.line)}
                 >
-                  <span className="search-panel-match-line">{m.lineNumber}</span>
-                  <span className="search-panel-match-text">{highlightLine(m.lineText, m.ranges)}</span>
+                  <span className="search-panel-match-line">{match.line}</span>
+                  <span className="search-panel-match-text">{highlightLine(match.preview, match.ranges)}</span>
                 </div>
               ))}
           </div>

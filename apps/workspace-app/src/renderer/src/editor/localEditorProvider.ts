@@ -4,10 +4,11 @@ import type {
   EditorItemRef,
   EditorProvider,
   EditorProviderCapabilities,
+  EditorReplaceOptions,
   EditorSearchResult,
   EditorTreeItem,
 } from "@workspace/editor";
-import { createDir, deletePath, getMediaUrl, listDir, onFileChanged, readFile, renamePath, writeFile } from "../electron";
+import { cancelSearch, createDir, deletePath, getMediaUrl, listDir, onFileChanged, onSearchDone, onSearchResult, readFile, renamePath, searchInFiles, writeFile, type SearchFileResult } from "../electron";
 
 const capabilities: EditorProviderCapabilities = {
   operations: new Set(["createFile", "createDirectory", "rename", "move", "delete"]),
@@ -35,6 +36,12 @@ function findMatch(text: string, query: string, options: { caseSensitive: boolea
     if (!match[0].length) matcher.lastIndex++;
   }
   return -1;
+}
+
+function replaceRegex(query: string, options: EditorReplaceOptions): RegExp {
+  const source = options.regex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const bounded = options.wholeWord ? `\\b(?:${source})\\b` : source;
+  return new RegExp(bounded, `g${options.caseSensitive ? "" : "i"}`);
 }
 
 type LocalEditorProvider = Omit<EditorProvider, "create" | "rename" | "delete" | "move"> & Required<Pick<EditorProvider, "create" | "rename" | "delete" | "move">> & {
@@ -162,28 +169,81 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
     },
     async search(query, options, signal) {
       if (!query) return [];
-      const paths = await window.api.fs.listAllFiles(tabId);
-      abortIfNeeded(signal);
-      const results: EditorSearchResult[] = [];
-      for (const path of paths) {
+      if (options.target === "names") {
+        const paths = await window.api.fs.listAllFiles(tabId);
         abortIfNeeded(signal);
-        const item = itemFor(path, false);
-        if (options.target === "names") {
+        const results: EditorSearchResult[] = [];
+        for (const path of paths) {
+          abortIfNeeded(signal);
+          const item = itemFor(path, false);
           if (findMatch(item.name, query, options) >= 0) results.push({ item });
-          continue;
         }
-        if (item.kind === "asset") continue;
-        const text = await readFile(tabId, path);
-        if (text == null) continue;
-        const lines = text.split(/\r?\n/);
-        for (let index = 0; index < lines.length; index++) {
-          const line = lines[index];
-          const column = findMatch(line, query, options);
-          if (column >= 0) results.push({ item, line: index + 1, column: column + 1, preview: line });
-        }
+        persistItemIds();
+        return results;
       }
-      persistItemIds();
-      return results;
+      return new Promise<EditorSearchResult[]>((resolve, reject) => {
+        const requestId = crypto.randomUUID();
+        const files = new Map<string, SearchFileResult>();
+        let settled = false;
+        const cleanup = () => {
+          offResult();
+          offDone();
+          signal?.removeEventListener("abort", abort);
+        };
+        const finish = (error?: string) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          if (error) { reject(new Error(error)); return; }
+          const results = [...files.values()].map((file) => ({
+            item: itemFor(file.path, false),
+            matches: file.matches.map((match) => ({
+              line: match.lineNumber,
+              column: match.ranges[0]?.start + 1 || 1,
+              preview: match.lineText,
+              ranges: match.ranges,
+            })),
+          }));
+          persistItemIds();
+          resolve(results);
+        };
+        const abort = () => {
+          cancelSearch(requestId);
+          finish("Search aborted");
+        };
+        const offResult = onSearchResult((id, result) => {
+          if (id === requestId) files.set(result.path, result);
+        });
+        const offDone = onSearchDone((id, error) => { if (id === requestId) finish(error); });
+        if (signal?.aborted) { abort(); return; }
+        signal?.addEventListener("abort", abort, { once: true });
+        try {
+          searchInFiles(requestId, tabId, query, {
+            caseSensitive: options.caseSensitive,
+            regex: options.regex,
+            wholeWord: options.wholeWord,
+          });
+        } catch (error) {
+          settled = true;
+          cleanup();
+          reject(error);
+        }
+      });
+    },
+    async replaceContents(ref, query, replacement, options, expectedMatchCount) {
+      if (ref.providerId !== id) throw new Error("Item belongs to a different provider");
+      const path = pathByItemId.get(ref.itemId);
+      if (path === undefined) throw new Error("Item no longer exists");
+      const openSession = [...sessions].find((session) => session.item.itemId === ref.itemId);
+      if (openSession && openSession.snapshot().savePhase !== "clean") return false;
+      const current = await readFile(tabId, path);
+      if (current == null) return false;
+      const matcher = replaceRegex(query, options);
+      const currentCount = [...current.matchAll(matcher)].length;
+      if (currentCount !== expectedMatchCount) return false;
+      const next = current.replace(matcher, replacement);
+      if (next !== current) await writeFile(tabId, path, next);
+      return true;
     },
     async create(parentId, kind, name) {
       const parentPath = parentId === null ? "" : pathByItemId.get(parentId);
