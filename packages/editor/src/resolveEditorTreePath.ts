@@ -1,4 +1,5 @@
 import type { EditorProvider, EditorTreeItem } from "./provider";
+import { EditorProviderError } from "./provider";
 
 /** Resolve a provider-relative path through its lazy tree without using host filesystem APIs. */
 export async function resolveEditorTreePath(
@@ -21,4 +22,17 @@ export async function resolveEditorTreePath(
     }
   }
   return found ?? null;
+}
+
+/** Resolve a provider directory path, returning null only for the provider root. */
+export async function resolveEditorTreeDirectory(
+  provider: Pick<EditorProvider, "listChildren">,
+  path: string,
+  message = "Directory no longer exists",
+  signal?: AbortSignal,
+): Promise<EditorTreeItem | null> {
+  if (!path) return null;
+  const item = await resolveEditorTreePath(provider, path, signal);
+  if (!item || item.kind !== "directory") throw new EditorProviderError("notFound", message);
+  return item;
 }

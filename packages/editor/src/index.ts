@@ -53,7 +53,7 @@ export type { MarkdownTitleRenameTarget } from "./markdownTitle";
 export type { TitleValidationError } from "./markdownTitle";
 export { nextEditorItemName, nextEditorItemNameInDirectory } from "./uniqueItemName";
 export { resolveEditorRelativeLink } from "./relativeLink";
-export { resolveEditorTreePath } from "./resolveEditorTreePath";
+export { resolveEditorTreeDirectory, resolveEditorTreePath } from "./resolveEditorTreePath";
 export { HEADING_TYPES, markdownImageResolver, markdownLivePreview, markdownRootPath } from "./markdownLivePreview";
 export type { MarkdownImageResolver, MarkdownImageResource } from "./markdownLivePreview";
 export { wikiLinkExtension } from "./markdownWikilink";

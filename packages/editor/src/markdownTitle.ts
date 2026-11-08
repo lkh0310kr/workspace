@@ -1,5 +1,5 @@
 import { EditorProviderError, type EditorProvider, type EditorTreeItem } from "./provider";
-import { resolveEditorTreePath } from "./resolveEditorTreePath";
+import { resolveEditorTreeDirectory, resolveEditorTreePath } from "./resolveEditorTreePath";
 
 // Shared Markdown title path helpers used by editor hosts.
 function toEditorRelativePath(path: string): string {
@@ -60,10 +60,7 @@ export async function resolveMarkdownTitleRenameTarget(
   const path = buildRenamedPath(currentPath, title);
   const name = path.split("/").at(-1) ?? path;
   const directory = directoryOf(path);
-  const parent = directory ? await resolveEditorTreePath(provider, directory) : null;
-  if (directory && (!parent || parent.kind !== "directory")) {
-    throw new EditorProviderError("notFound", "The destination folder no longer exists.");
-  }
+  const parent = await resolveEditorTreeDirectory(provider, directory, "The destination folder no longer exists.");
   const source = currentPath
     ? currentItem ?? await resolveEditorTreePath(provider, currentPath)
     : null;

@@ -29,7 +29,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreeDirectory, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -361,8 +361,7 @@ export function TreeView({
       defaultValue: "",
       onSubmit: async (name) => {
         try {
-          const parent = dir ? await resolveEditorTreePath(editorProvider, dir) : null;
-          if (dir && !parent) throw new Error("Parent directory no longer exists");
+          const parent = await resolveEditorTreeDirectory(editorProvider, dir, "Parent directory no longer exists");
           await editorProvider.create(parent?.itemId ?? null, "directory", name);
           setExpandedPersisted((prev) => new Set(prev).add(dir));
           refresh(dir);
@@ -477,8 +476,7 @@ export function TreeView({
       try {
         const ref = await resolveEditorTreePath(editorProvider, p);
         if (!ref) throw new Error("Item no longer exists");
-        const parent = targetDir ? await resolveEditorTreePath(editorProvider, targetDir) : null;
-        if (targetDir && !parent) throw new Error("Destination directory no longer exists");
+        const parent = await resolveEditorTreeDirectory(editorProvider, targetDir, "Destination directory no longer exists");
         await editorProvider.move([ref], parent?.itemId ?? null);
       } catch (err) {
         window.alert(String(err));

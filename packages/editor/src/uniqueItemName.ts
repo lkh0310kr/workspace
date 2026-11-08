@@ -1,5 +1,5 @@
-import { EditorProviderError, type EditorProvider, type EditorTreeItem } from "./provider";
-import { resolveEditorTreePath } from "./resolveEditorTreePath";
+import type { EditorProvider, EditorTreeItem } from "./provider";
+import { resolveEditorTreeDirectory } from "./resolveEditorTreePath";
 
 /** Return the first case-insensitively unused sibling name. */
 export function nextEditorItemName(existingNames: Iterable<string>, base: string, extension: string): string {
@@ -18,10 +18,7 @@ export async function nextEditorItemNameInDirectory(
   base: string,
   extension: string,
 ): Promise<{ parent: EditorTreeItem | null; name: string }> {
-  const parent = directoryPath ? await resolveEditorTreePath(provider, directoryPath) : null;
-  if (directoryPath && (!parent || parent.kind !== "directory")) {
-    throw new EditorProviderError("notFound", "Parent folder no longer exists");
-  }
+  const parent = await resolveEditorTreeDirectory(provider, directoryPath, "Parent folder no longer exists");
   const children = await provider.listChildren(parent?.itemId ?? null);
   return { parent, name: nextEditorItemName(children.map((item) => item.name), base, extension) };
 }
