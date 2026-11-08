@@ -726,7 +726,12 @@ export default function Home() {
   };
   const submitTreeCreation = (kind: "file" | "folder", parentPath: string, name: string) => {
     setTreeCreation(null);
-    if (kind === "file") void createNote(parentPath, name);
+    const parent = files.find((file) => file.kind === "folder" && file.path === parentPath);
+    if (editorProvider?.create) {
+      void editorProvider.create(parent?.id ?? null, kind === "folder" ? "directory" : "file", name).catch((cause) => {
+        setError(cause instanceof Error ? cause.message : "Could not create PKMS item");
+      });
+    } else if (kind === "file") void createNote(parentPath, name);
     else void createFolder(parentPath, name);
   };
   const toolbarCreationFolder = selectedTreePaths.size === 1
@@ -781,11 +786,11 @@ export default function Home() {
       const target = selectedFiles.length === 1 && selectedFiles[0].kind === "folder"
         ? selectedFiles[0].path
         : row ? (row.file.kind === "folder" ? row.file.path : parentPath(row.file.path)) : currentFolder;
-      void moveTreeItems(files.filter((file) => cutTreePaths.has(file.path)), target);
+      void moveThroughEditorProvider(files.filter((file) => cutTreePaths.has(file.path)), target);
       return;
     }
     if (event.key === "Delete" || event.key === "Backspace") {
-      if (commandFiles.length) { event.preventDefault(); void deleteTreeItems(commandFiles); }
+      if (commandFiles.length) { event.preventDefault(); void deleteThroughEditorProvider(commandFiles); }
       return;
     }
     if (!row) return;
@@ -859,6 +864,19 @@ export default function Home() {
     move: moveTreeItems,
     delete: deleteTreeItems,
   };
+  const moveThroughEditorProvider = async (items: FileRecord[], destination: string) => {
+    if (!editorProvider?.move) return moveTreeItems(items, destination);
+    const parent = files.find((file) => file.kind === "folder" && file.path === destination);
+    await editorProvider.move(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })), parent?.id ?? null);
+  };
+  const deleteThroughEditorProvider = async (items: FileRecord[]) => {
+    if (!editorProvider?.delete) return deleteTreeItems(items);
+    await editorProvider.delete(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })));
+  };
+  const renameThroughEditorProvider = async (file: FileRecord, name: string) => {
+    if (!editorProvider?.rename) return renameTreeItemTo(file, name);
+    await editorProvider.rename({ providerId: editorProvider.id, itemId: file.id }, name);
+  };
 
   if (loading) return <main className="loading-screen"><div className="brand-mark">P</div><span>Opening your workspace…</span></main>;
   if (!user) return (
@@ -897,7 +915,7 @@ export default function Home() {
             <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}><AppIcon name="folderPlus" /></button>
             <label className="mini-button upload-button" title="Upload file"><AppIcon name="upload" /><input type="file" onChange={(event) => { void uploadFile(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
             {activeFile && <button className="mini-button" title="Rename" onClick={renameActiveFile}><AppIcon name="pencil" /></button>}
-            {(selectedTreePaths.size > 0 || activeFile) && <button className="mini-button" title={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} aria-label={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} onClick={() => selectedTreePaths.size > 0 ? void deleteTreeItems(treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file)) : void deleteActiveFile()}><AppIcon name="trash" /></button>}
+            {(selectedTreePaths.size > 0 || activeFile) && <button className="mini-button" title={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} aria-label={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} onClick={() => selectedTreePaths.size > 0 ? void deleteThroughEditorProvider(treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file)) : void deleteActiveFile()}><AppIcon name="trash" /></button>}
             {!activeFile && currentFolder && <button className="mini-button" title="Rename folder" onClick={renameCurrentFolder}><AppIcon name="pencil" /></button>}
             {!activeFile && currentFolder && <button className="mini-button" title="Delete folder" onClick={() => void deleteCurrentFolder()}><AppIcon name="trash" /></button>}
           </div></div>
@@ -918,7 +936,7 @@ export default function Home() {
             onKeyDown={handleTreeKeyDown}
             onScroll={persistTreeScroll}
             onSetDropTarget={setTreeDropTarget}
-            onDropItems={(paths, destination) => void moveTreeItems(files.filter((file) => paths.includes(file.path)), destination)}
+            onDropItems={(paths, destination) => void moveThroughEditorProvider(files.filter((file) => paths.includes(file.path)), destination)}
             onFocusPath={setFocusedTreePath}
             onDragStart={(file, index, event) => {
               const selected = selectedTreePaths.has(file.path) ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file) : [file];
@@ -940,7 +958,7 @@ export default function Home() {
             onCreate={submitTreeCreation}
             onCancelCreate={() => setTreeCreation(null)}
             renamingPath={treeRenaming}
-            onRename={(file, name) => { setTreeRenaming(null); renameTreeItemTo(file, name); }}
+            onRename={(file, name) => { setTreeRenaming(null); void renameThroughEditorProvider(file, name); }}
             onCancelRename={() => setTreeRenaming(null)}
           />
           {treeContextMenu && <div ref={treeContextMenuRef} className="tree-context-menu" role="menu" aria-label={`${entryName(treeContextMenu.file.path)} actions`} style={{ left: treeContextMenu.x, top: treeContextMenu.y }}>
@@ -948,8 +966,8 @@ export default function Home() {
             {treeContextMenu.file.kind === "folder" && <>
               <button role="menuitem" onClick={() => { const directory = treeContextMenu.file.path; setTreeContextMenu(null); beginTreeCreation("file", directory); }}>New note</button>
               <button role="menuitem" onClick={() => { const directory = treeContextMenu.file.path; setTreeContextMenu(null); beginTreeCreation("folder", directory); }}>New folder</button>
-              {cutMoveRoots.length > 0 && <button role="menuitem" onClick={() => void moveTreeItems(cutMoveRoots, treeContextMenu.file.path)}>Paste into folder</button>}
-              {contextMoveRoots.some((item) => item.path !== treeContextMenu.file.path && parentPath(item.path) !== treeContextMenu.file.path && !(item.kind === "folder" && treeContextMenu.file.path.startsWith(`${item.path}/`))) && <button role="menuitem" onClick={() => void moveTreeItems(contextMoveRoots, treeContextMenu.file.path)}>Move selection here</button>}
+              {cutMoveRoots.length > 0 && <button role="menuitem" onClick={() => void moveThroughEditorProvider(cutMoveRoots, treeContextMenu.file.path)}>Paste into folder</button>}
+              {contextMoveRoots.some((item) => item.path !== treeContextMenu.file.path && parentPath(item.path) !== treeContextMenu.file.path && !(item.kind === "folder" && treeContextMenu.file.path.startsWith(`${item.path}/`))) && <button role="menuitem" onClick={() => void moveThroughEditorProvider(contextMoveRoots, treeContextMenu.file.path)}>Move selection here</button>}
             </>}
             <button role="menuitem" onClick={() => { setCutTreePaths(new Set(contextMoveRoots.map((item) => item.path))); setTreeContextMenu(null); }}>Cut</button>
             <button role="menuitem" onClick={() => beginTreeRename(treeContextMenu.file)}>Rename</button>
