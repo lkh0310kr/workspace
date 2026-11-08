@@ -1,7 +1,7 @@
 # Android Data Node 설계안
 
 작성일: 2026-11-08  
-상태: 로컬 Android 저장소 프로토타입 구현·에뮬레이터 검증 완료; 실기기 반복 검증 및 운영 기능은 진행 전
+상태: 구현 작업 취소 — 2026-11-08 사용자 요청. 완료·검증 범위와 미완료 항목은 [취소 기록](CANCELLATION.md)을 참조.
 
 ## 요약
 
@@ -26,7 +26,7 @@ Cloudflare Worker
 
 **중요한 결론:** Supabase와 Android 구현을 교체 가능하게 만들 수 있지만, 교체 단위는 한 개의 `DataNode` class가 아니다. MetadataStore, ObjectStore, RealtimeBus, BackupPublisher를 분리하고 각각의 계약을 맞춘다. Worker가 Android에 도달하는 네트워크 경로를 검증하기 전에는 실제 backend 교체 가능성을 확정할 수 없다.
 
-## 현재 구현·검증 상태
+## 구현·검증 기록
 
 `apps/android-data-node/`에 네트워크를 사용하지 않는 Android 로컬 프로토타입을 추가했다. SQLite record transaction과 앱 전용 파일 기반 content-addressed object store를 구현했고, 제한된 `android.permission.DUMP` 권한의 ContentProvider를 통해 ADB shell이 로컬 명령을 직접 호출한다. `npm run data-node:one-click`은 빌드·설치 뒤 앱 내부 검사와 호스트에서 호출한 배치 기록 트랜잭션/idempotency/conflict/rollback/object round-trip을 실행하고, 앱 프로세스 강제 종료 뒤 저장 내용을 재조회한다. Android API 36 에뮬레이터와 S21 Ultra(SM-G998N, API 35) 실기기에서 통과했다. 최신 S21 실행에서 v1→v3 migration이 기존 record/object를 보존했고, 초기 9개, 재시작 12개, ADB 호스트 검사 12개가 통과했다. recovery는 pending commit 1건, staging 업로드 중단 1건, missing 1건, corrupt 1건, orphan 후보 1건을 예상한 상태로 분류했다. 개발 도중 USB 연결이 한 번 사라졌다가 다시 나타났으므로 장시간 연결 안정성은 별도 확인이 필요하다.
 

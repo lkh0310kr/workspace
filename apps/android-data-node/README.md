@@ -1,5 +1,7 @@
 # Android Data Node prototype
 
+> **Status: Cancelled** — implementation work stopped at the user's request on 2026-11-08. See the [cancellation record](../../docs/research/data-node/CANCELLATION.md) for verified scope and unfinished work.
+
 This is a local storage-engine prototype. It does not use the network, Supabase, Cloudflare, GitHub, or USB port forwarding. The app stores records in SQLite and immutable objects in its private app files directory. During local development, a protected Android ContentProvider lets the ADB shell send storage commands directly to the app; ordinary apps do not receive its `android.permission.DUMP` permission.
 
 ## One-click device verification
