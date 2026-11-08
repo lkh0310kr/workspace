@@ -59,6 +59,6 @@ export { fuzzyEditorSearch } from "./fuzzySearch";
 export type { EditorFuzzyMatch } from "./fuzzySearch";
 export { resolveEditorTreeArrowKey, resolveEditorTreeKeyboardAction } from "./treeNavigation";
 export type { EditorTreeArrowAction, EditorTreeKeyboardAction, EditorTreeNavigationRow } from "./treeNavigation";
-export { resolveEditorTreeSelection } from "./treeSelection";
+export { editorTreeSelectionRoots, resolveEditorTreeSelection } from "./treeSelection";
 export type { EditorTreeSelectionModifiers, EditorTreeSelectionState } from "./treeSelection";
 export { useEditorTreeSelection } from "./useEditorTreeSelection";

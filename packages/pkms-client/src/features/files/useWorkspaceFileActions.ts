@@ -1,7 +1,8 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { NavigateFunction } from "react-router";
 import type { FileRecord, TreeContextMenu, Workspace } from "../../domain/types";
-import { entryName, parentPath, treeSelectionRoots } from "../../domain/fileTree";
+import { entryName, parentPath } from "../../domain/fileTree";
+import { editorTreeSelectionRoots } from "@workspace/editor";
 import { fileLocationPath } from "../../domain/fileLocation";
 import { submitWorkspaceOperation } from "../../client/workspaceOperations";
 
@@ -74,7 +75,7 @@ export function useWorkspaceFileActions(options: Options) {
 
   const moveTreeItems = async (items: FileRecord[], destination: string) => {
     if (!activeWorkspace || !items.length) return false;
-    const roots = treeSelectionRoots(items, new Set(items.map((file) => file.path)));
+    const roots = editorTreeSelectionRoots(items, new Set(items.map((file) => file.path)), (file) => file.kind === "folder");
     const moves = roots.map((file) => ({ file, toPath: `${destination ? `${destination}/` : ""}${entryName(file.path)}` }))
       .filter(({ file, toPath }) => toPath !== file.path);
     if (!moves.length) { setTreeContextMenu(null); return true; }
@@ -150,7 +151,7 @@ export function useWorkspaceFileActions(options: Options) {
   const deleteTreeItems = async (filesToDelete: FileRecord[]): Promise<boolean> => {
     setTreeContextMenu(null);
     if (!activeWorkspace || !filesToDelete.length) return false;
-    const roots = treeSelectionRoots(filesToDelete, new Set(filesToDelete.map((file) => file.path)));
+    const roots = editorTreeSelectionRoots(filesToDelete, new Set(filesToDelete.map((file) => file.path)), (file) => file.kind === "folder");
     const message = roots.length === 1 ? `Delete ${entryName(roots[0].path)}?` : `Delete ${roots.length} selected items?`;
     if (!await confirm(message)) return false;
     if (beforeDelete && !beforeDelete(roots)) return false;

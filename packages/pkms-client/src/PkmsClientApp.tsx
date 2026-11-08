@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorTreeSelectionRoots, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -11,7 +11,7 @@ import { flushQueuedWorkspaceAssets, flushQueuedWorkspaceOperations, WORKSPACE_O
 import { useLocation, useNavigate } from "react-router";
 import type { FileNavigation, FileRecord, Peer, RealtimeMessage, Repository, SyncStatus, TreeContextMenu, TreeRow, Workspace } from "./domain/types";
 import { toBase64, createOperationId } from "./domain/encoding";
-import { entryName, flattenTree, mergeFileRecords, parentPath, treeSelectionRoots } from "./domain/fileTree";
+import { entryName, flattenTree, mergeFileRecords, parentPath } from "./domain/fileTree";
 import { fileLocationPath, parseFileLocation } from "./domain/fileLocation";
 import { matchesExcludePattern } from "./domain/excludePattern";
 import { AppIcon, GitHubIcon } from "./components/Icons";
@@ -913,7 +913,7 @@ export default function Home() {
     }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "x") {
       event.preventDefault();
-      setCutTreePaths(new Set(treeSelectionRoots(commandFiles, new Set(commandFiles.map((file) => file.path))).map((file) => file.path)));
+      setCutTreePaths(new Set(editorTreeSelectionRoots(commandFiles, new Set(commandFiles.map((file) => file.path)), (file) => file.kind === "folder").map((file) => file.path)));
       return;
     }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v" && cutTreePaths.size) {
@@ -969,8 +969,8 @@ export default function Home() {
   ), [quickQuery, visibleFiles]);
   const quickOpenItems = useMemo(() => quickOpenResults.map((file) => ({ id: file.id, label: entryName(file.path), description: file.path })), [quickOpenResults]);
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
-  const contextMoveRoots = treeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)));
-  const cutMoveRoots = treeSelectionRoots(files.filter((file) => cutTreePaths.has(file.path)), cutTreePaths);
+  const contextMoveRoots = editorTreeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)), (file) => file.kind === "folder");
+  const cutMoveRoots = editorTreeSelectionRoots(files.filter((file) => cutTreePaths.has(file.path)), cutTreePaths, (file) => file.kind === "folder");
   const saveAttachment = () => {
     if (!assetPreviewUrl || !activeFile) return;
     const link = document.createElement("a");
@@ -1121,7 +1121,7 @@ export default function Home() {
             onFocusPath={setFocusedTreePath}
             onDragStart={(file, index, event) => {
               const selected = selectedTreePaths.has(file.path) ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file) : [file];
-              const roots = treeSelectionRoots(selected, new Set(selected.map((entry) => entry.path)));
+              const roots = editorTreeSelectionRoots(selected, new Set(selected.map((entry) => entry.path)), (entry) => entry.kind === "folder");
               event.dataTransfer.setData("application/x-pkms-tree-paths", JSON.stringify(roots.map((entry) => entry.path)));
               event.dataTransfer.effectAllowed = "move";
               if (!selectedTreePaths.has(file.path)) selectTreeRow(file.path, index);

@@ -9,6 +9,27 @@ export interface EditorTreeSelectionModifiers {
   range?: boolean;
 }
 
+/** Remove selected descendants whose selected directory ancestor owns the operation. */
+export function editorTreeSelectionRoots<T extends { path: string }>(
+  items: readonly T[],
+  selectedPaths: ReadonlySet<string>,
+  isDirectory: (item: T) => boolean,
+): T[] {
+  const selectedDirectories = new Set(items
+    .filter((item) => selectedPaths.has(item.path) && isDirectory(item))
+    .map((item) => item.path));
+  return items.filter((item) => {
+    if (!selectedPaths.has(item.path)) return false;
+    let separator = item.path.lastIndexOf("/");
+    while (separator >= 0) {
+      const parent = item.path.slice(0, separator);
+      if (selectedDirectories.has(parent)) return false;
+      separator = parent.lastIndexOf("/");
+    }
+    return true;
+  });
+}
+
 /** Apply the shared single, additive, and range-selection rules to visible tree paths. */
 export function resolveEditorTreeSelection(
   visiblePaths: readonly string[],

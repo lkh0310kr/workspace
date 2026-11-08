@@ -16,19 +16,6 @@ export function mergeFileRecords(current: FileRecord[], incoming: FileRecord[]):
   return [...byPath.values()];
 }
 
-export function treeSelectionRoots(files: FileRecord[], selectedPaths: Set<string>): FileRecord[] {
-  const folders = new Set(files.filter((file) => file.kind === "folder" && selectedPaths.has(file.path)).map((file) => file.path));
-  return files.filter((file) => {
-    if (!selectedPaths.has(file.path)) return false;
-    let parent = parentPath(file.path);
-    while (parent) {
-      if (folders.has(parent)) return false;
-      parent = parentPath(parent);
-    }
-    return true;
-  });
-}
-
 export function parseTreeDragPaths(data: string): string[] {
   try {
     const paths: unknown = JSON.parse(data);

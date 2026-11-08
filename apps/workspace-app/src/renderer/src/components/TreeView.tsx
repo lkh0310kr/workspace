@@ -29,7 +29,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, flattenEditorTree, projectEditorTreeRows, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, projectEditorTreeRows, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -404,8 +404,17 @@ export function TreeView({
     });
   };
 
-  const targetPaths = (entry: DirEntry): string[] =>
-    selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
+  const selectionRootPaths = (paths: readonly string[]): string[] => {
+    const selectedPaths = new Set(paths);
+    const knownEntries = new Map([...dirs.values()].flatMap((state) => state.entries).map((entry) => [entry.path, entry]));
+    const candidates = paths.map((path) => knownEntries.get(path) ?? { path, is_dir: false, name: path.split("/").at(-1) ?? path });
+    return editorTreeSelectionRoots(candidates, selectedPaths, (item) => item.is_dir).map((item) => item.path);
+  };
+
+  const targetPaths = (entry: DirEntry): string[] => {
+    const paths = selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
+    return selectionRootPaths(paths);
+  };
 
   const remove = async (entry: DirEntry) => {
     setMenu(null);
@@ -464,6 +473,7 @@ export function TreeView({
   };
 
   const moveEntries = async (paths: string[], targetDir: string) => {
+    paths = selectionRootPaths(paths);
     const moved: string[] = [];
     for (const p of paths) {
       if (dirOf(p) === targetDir) continue;
