@@ -159,8 +159,8 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 | 공통 CodeMirror 표면 | done (implemented) | 두 앱이 `EditorTextSurface`를 사용한다. 공통 history, keymap, 외부 문서 갱신 처리를 소유한다. |
 | 문서별 편집 상태 | in progress | 커서·선택·scroll·undo를 안정 item ID로 메모리 캐시한다. rename/move와 앱 재시작까지의 수명, 두 앱의 실제 탭 전환 동작을 확인해야 한다. |
 | Outline과 트리 row·문서 tab 구성요소 | in progress | Outline·row·PKMS 문서 tab은 공유한다. Workspace pane tab 배치는 Workspace 소유로 남기고, 트리 상태와 공통 탐색 동작은 통합해야 한다. |
-| Markdown 편집 기능과 명령 | not yet | PKMS live preview와 Workspace live preview, wikilink·자산 링크·callout이 제품별 코드에 남아 있다. Workspace 동작을 기준으로 공통 기능을 만들고 PKMS 링크 resolver를 adapter 확장으로 연결한다. |
-| Quick open·검색 UI와 Workbench 조립 | not yet | provider 호출은 사용하지만 화면과 상태는 각 앱에 남아 있다. 공통 Workbench가 트리, 열린 문서, 편집기, outline, 검색을 조립해야 한다. |
+| Markdown 편집 기능과 명령 | in progress | Bold/italic 단축키는 공통 명령이다. PKMS live preview와 Workspace live preview, wikilink·자산 링크·callout은 제품별 코드에 남아 있다. Workspace 동작을 기준으로 공통 기능을 만들고 PKMS 링크 resolver를 adapter 확장으로 연결한다. |
+| Quick open·검색 UI와 Workbench 조립 | in progress | Quick-open dialog와 키보드 탐색 UI는 공유한다. 결과 조회·검색 상태와 트리·열린 문서·편집기·outline을 조립하는 공통 Workbench는 남아 있다. |
 | 전체 acceptance 검증과 중복 UI 제거 | not yet | PKMS Web/Desktop 및 Workspace 각각에서 문서 전환, 외부 변경 conflict, 저장 상태, Markdown 기능을 확인한 뒤 구 구현을 제거한다. |
 
 구현은 위 표의 `not yet` 항목부터 공통 UI로 이동하고, 매 단계에서 두 provider가 보존해야 할 차이를 계약 capability와 adapter로 표현한다. `done (implemented)`는 코드 연결이 있다는 뜻이며 전체 acceptance 통과를 의미하지 않는다.
