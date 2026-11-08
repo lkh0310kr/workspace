@@ -11,7 +11,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
+import { createMarkdownEditorExtensions, editorDocumentKey, EditorMarkdownDocument, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
 const EditorMarkdownSurface = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
@@ -175,7 +175,7 @@ export function EditorContent({
   const titleInputRef = useRef<HTMLInputElement>(null);
   const isMarkdown = kind === "markdown";
   const documentCacheKey = activeDocumentSession
-    ? `${activeDocumentSession.item.providerId}:${activeDocumentSession.item.itemId}`
+    ? editorDocumentKey(activeDocumentSession.item)
     : resolvedDocumentIdentity?.path === filePath
       ? resolvedDocumentIdentity.key
       : `${editorProvider.id}:path:${filePath ?? `untitled:${tabId}`}`;
@@ -240,7 +240,7 @@ export function EditorContent({
         .then((item) => {
           if (!item) throw new Error(`File not found: ${path}`);
           if (sequence === documentLoadSequenceRef.current && pathRef.current === path) {
-            const identityKey = `${item.providerId}:${item.itemId}`;
+            const identityKey = editorDocumentKey(item);
             requestViewStateMigration(identityKey);
             setResolvedDocumentIdentity({ path, key: identityKey });
           }
@@ -313,7 +313,7 @@ export function EditorContent({
               item = await editorProvider.create(parent?.itemId ?? null, "file", name);
             }
             targetSession = await editorProvider.openDocument(item);
-            requestViewStateMigration(`${targetSession.item.providerId}:${targetSession.item.itemId}`);
+            requestViewStateMigration(editorDocumentKey(targetSession.item));
             documentSessionRef.current = targetSession;
             setActiveDocumentSession(targetSession);
           }

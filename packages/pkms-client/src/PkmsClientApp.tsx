@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorTreeSelectionRoots, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorTreeSelectionRoots, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -45,6 +45,10 @@ function attachmentContentType(path: string, contentType: string): string {
 
 export function meta() {
   return [{ title: "PKMS — Markdown workspace" }];
+}
+
+function pkmsDocumentKey(workspaceId: string, fileId: string): string {
+  return editorDocumentKey({ providerId: `pkms:${workspaceId}`, itemId: fileId });
 }
 
 interface PkmsTreeOperations {
@@ -155,7 +159,7 @@ export default function Home() {
   const pkmsEditorSessions = useRef(new Map<string, EditorDocumentSession>());
   const openFileRef = useRef<((file: FileRecord, historyAction?: FileNavigation) => Promise<void>) | null>(null);
   const docs = useRef(new Map<string, { doc: Y.Doc; persistence: IndexeddbPersistence; observer?: () => void; updateHandler?: (update: Uint8Array, origin: unknown) => void }>());
-  const activeRef = useRef<{ file: FileRecord | null; doc: Y.Doc | null; text: Y.Text | null; value: string }>({ file: null, doc: null, text: null, value: "" });
+  const activeRef = useRef<{ file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null; value: string }>({ file: null, documentKey: null, doc: null, text: null, value: "" });
   const pending = useRef(new Map<string, RealtimeMessage>());
   const hydrating = useRef(false);
   const registerEditorNavigator = useCallback((navigate: ((position: number) => void) | null) => { editorNavigate.current = navigate; }, []);
@@ -168,9 +172,9 @@ export default function Home() {
     setSync,
     setNotice,
   });
-  const scheduleEditorAutoSave = useCallback((fileId: string, doc: Y.Doc) => {
+  const scheduleEditorAutoSave = useCallback((fileId: string, doc: Y.Doc, documentKey?: string) => {
     scheduleAutoSave(fileId, doc, () => {
-      const session = pkmsEditorSessions.current.get(fileId);
+      const session = documentKey ? pkmsEditorSessions.current.get(documentKey) : undefined;
       return session ? session.save({ flushSync: false }) : saveDocument(fileId, doc, false);
     });
   }, [saveDocument, scheduleAutoSave]);
@@ -209,7 +213,8 @@ export default function Home() {
     const affected = [...pkmsEditorSessions.current.entries()].filter(([, session]) => roots.some((root) =>
       session.item.itemId === root.id || (root.kind === "folder" && session.item.path.startsWith(`${root.path}/`)),
     ));
-    await Promise.all(affected.map(async ([fileId, session]) => {
+    await Promise.all(affected.map(async ([, session]) => {
+      const fileId = session.item.itemId;
       const optimistic = getFiles().find((file) => file.id === fileId);
       if (optimistic) session.updateItem?.(pkmsItemForFile(activeWorkspace.id, optimistic));
       const latest = await getPkmsFileById(fileId);
@@ -319,7 +324,8 @@ export default function Home() {
       });
     }
     if (editorProvider && file.kind === "markdown") {
-      const existingSession = pkmsEditorSessions.current.get(file.id);
+      const sessionKey = editorDocumentKey({ providerId: editorProvider.id, itemId: file.id });
+      const existingSession = pkmsEditorSessions.current.get(sessionKey);
       if (existingSession) {
         await openDocumentSession(file, historyAction, controller.signal);
         if (!controller.signal.aborted) setActiveEditorSession(existingSession);
@@ -333,7 +339,7 @@ export default function Home() {
             await session.close();
             return;
           }
-          pkmsEditorSessions.current.set(file.id, session);
+          pkmsEditorSessions.current.set(sessionKey, session);
           setActiveEditorSession(session);
         } catch (cause) {
           if (controller.signal.aborted) return;
@@ -364,16 +370,17 @@ export default function Home() {
     const tabs = visibleOpenDocuments;
     const index = tabs.findIndex((tab) => tab.file.id === fileId);
     if (index < 0) return;
-    const session = pkmsEditorSessions.current.get(fileId);
+    const sessionKey = activeWorkspace ? pkmsDocumentKey(activeWorkspace.id, fileId) : "";
+    const session = pkmsEditorSessions.current.get(sessionKey);
     const savePhase = session?.snapshot().savePhase;
     const discardingUnsaved = Boolean(savePhase && savePhase !== "clean");
     if (!confirmEditorDocumentClose(discardingUnsaved, "This note")) return;
-    if (discardingUnsaved && activeWorkspace) discardEditorViewState(`pkms:${activeWorkspace.id}:${fileId}`);
+    if (discardingUnsaved && activeWorkspace) discardEditorViewState(pkmsDocumentKey(activeWorkspace.id, fileId));
     const closingActive = activeFile?.id === fileId;
     const nextTab = tabs[index + 1] ?? tabs[index - 1] ?? null;
     setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === fileId)));
     if (session) {
-      pkmsEditorSessions.current.delete(fileId);
+      pkmsEditorSessions.current.delete(sessionKey);
       void session.close();
     }
     if (!closingActive) return;
@@ -629,8 +636,8 @@ export default function Home() {
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s" && activeRef.current.file?.kind === "markdown") {
         event.preventDefault();
-        const fileId = activeRef.current.file.id;
-        const session = pkmsEditorSessions.current.get(fileId);
+        const documentKey = activeRef.current.documentKey;
+        const session = documentKey ? pkmsEditorSessions.current.get(documentKey) : undefined;
         if (session) void session.save().catch((cause) => setError(cause instanceof Error ? cause.message : "Could not save PKMS document"));
         else saveActiveFileNow();
       }
@@ -990,7 +997,8 @@ export default function Home() {
         tab.file.path === root.path || (root.kind === "folder" && tab.file.path.startsWith(`${root.path}/`)),
       ));
       const dirty = affected.filter((tab) => {
-        const phase = pkmsEditorSessions.current.get(tab.file.id)?.snapshot().savePhase;
+        const workspaceId = activeWorkspace?.id;
+        const phase = workspaceId ? pkmsEditorSessions.current.get(pkmsDocumentKey(workspaceId, tab.file.id))?.snapshot().savePhase : undefined;
         return phase ? phase !== "clean" : tab.file.id === activeFile?.id && (saving || notice === "Unsaved");
       });
       if (!dirty.length) return true;
@@ -1002,15 +1010,16 @@ export default function Home() {
         tab.file.path === root.path || (root.kind === "folder" && tab.file.path.startsWith(`${root.path}/`)),
       )).map((tab) => tab.file.id));
       for (const fileId of deletedIds) {
-        discardEditorViewState(`pkms:${activeWorkspace?.id}:${fileId}`);
-        const session = pkmsEditorSessions.current.get(fileId);
+        if (activeWorkspace) discardEditorViewState(pkmsDocumentKey(activeWorkspace.id, fileId));
+        const sessionKey = activeWorkspace ? pkmsDocumentKey(activeWorkspace.id, fileId) : "";
+        const session = pkmsEditorSessions.current.get(sessionKey);
         if (session) {
           void session.close();
-          pkmsEditorSessions.current.delete(fileId);
+          pkmsEditorSessions.current.delete(sessionKey);
         }
       }
       setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && deletedIds.has(tab.file.id))));
-      setActiveEditorSession((current) => current && deletedIds.has(current.item.itemId) ? null : current);
+      setActiveEditorSession((current) => current?.item.providerId === `pkms:${activeWorkspace?.id}` && deletedIds.has(current.item.itemId) ? null : current);
     },
   });
   treeOperationsRef.current = {
@@ -1201,7 +1210,7 @@ export default function Home() {
         />}
         {activeWorkspace && visibleOpenDocuments.length > 0 && <EditorDocumentTabBar
           tabs={visibleOpenDocuments.map(({ file }) => {
-            const phase = pkmsEditorSessions.current.get(file.id)?.snapshot().savePhase;
+            const phase = pkmsEditorSessions.current.get(pkmsDocumentKey(activeWorkspace.id, file.id))?.snapshot().savePhase;
             return { id: file.id, label: entryName(file.path), title: file.path, dirty: phase ? phase !== "clean" : file.id === activeFile?.id && (saving || notice === "Unsaved") };
           })}
           activeId={activeFile?.id ?? null}
@@ -1215,7 +1224,7 @@ export default function Home() {
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(position) => requestAnimationFrame(() => editorNavigate.current?.(position))}
           >
-            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} viewStateStorage={getEditorViewStateStorage()} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} resolveImage={resolveMarkdownImage} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
+            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={pkmsDocumentKey(activeWorkspace.id, activeFile.id)} viewStateStorage={getEditorViewStateStorage()} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} resolveImage={resolveMarkdownImage} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
           </EditorMarkdownDocument>
         </div> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>

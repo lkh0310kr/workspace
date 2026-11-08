@@ -6,6 +6,7 @@ import type { FileNavigation, FileRecord, RealtimeMessage, Workspace } from "../
 import { createOperationId, fromBase64, toBase64 } from "../../domain/encoding";
 import { parentPath } from "../../domain/fileTree";
 import { fileLocationPath } from "../../domain/fileLocation";
+import { editorDocumentKey } from "@workspace/editor";
 import type { PKMSRealtimeSocket } from "../../realtime";
 
 interface DocumentEntry {
@@ -14,7 +15,7 @@ interface DocumentEntry {
   observer?: () => void;
   updateHandler?: (update: Uint8Array, origin: unknown) => void;
 }
-interface ActiveDocument { file: FileRecord | null; doc: Y.Doc | null; text: Y.Text | null; value: string }
+interface ActiveDocument { file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null; value: string }
 interface Options {
   workspace: Workspace | null;
   api: <T = unknown>(path: string, options?: RequestInit) => Promise<T>;
@@ -27,7 +28,7 @@ interface Options {
   socket: MutableRefObject<PKMSRealtimeSocket | null>;
   openSequence: MutableRefObject<number>;
   hydrating: MutableRefObject<boolean>;
-  scheduleAutoSave: (fileId: string, doc: Y.Doc, save?: () => Promise<unknown>) => void;
+  scheduleAutoSave: (fileId: string, doc: Y.Doc, documentKey?: string) => void;
   setCurrentFolder: Dispatch<SetStateAction<string>>;
   setExpandedFolders: Dispatch<SetStateAction<Set<string>>>;
   setActiveFile: Dispatch<SetStateAction<FileRecord | null>>;
@@ -49,11 +50,11 @@ export function useDocumentSession(options: Options) {
     setOpeningFileId(null);
     const current = activeDocument.current;
     if (current.file && current.text) {
-      const entry = documents.current.get(current.file.id);
+      const entry = current.documentKey ? documents.current.get(current.documentKey) : undefined;
       if (entry?.observer) current.text.unobserve(entry.observer);
       if (entry) entry.observer = undefined;
     }
-    activeDocument.current = { file: null, doc: null, text: null, value: "" };
+    activeDocument.current = { file: null, documentKey: null, doc: null, text: null, value: "" };
     setActiveFile(null);
     setText("");
   };
@@ -80,23 +81,24 @@ export function useDocumentSession(options: Options) {
     });
     const previous = activeDocument.current;
     if (previous.file && previous.text) {
-      const oldEntry = documents.current.get(previous.file.id);
+      const oldEntry = previous.documentKey ? documents.current.get(previous.documentKey) : undefined;
       if (oldEntry?.observer) previous.text.unobserve(oldEntry.observer);
       if (oldEntry) oldEntry.observer = undefined;
     }
     setActiveFile(file);
     setText("");
     setOpeningFileId(file.id);
-    activeDocument.current = { file, doc: null, text: null, value: "" };
+    const documentKey = editorDocumentKey({ providerId: `pkms:${workspace?.id ?? ""}`, itemId: file.id });
+    activeDocument.current = { file, documentKey, doc: null, text: null, value: "" };
     if (file.kind !== "markdown") { setOpeningFileId(null); return; }
     setError(""); setSaving(false); hydrating.current = true;
-    let entry = documents.current.get(file.id);
+    let entry = documents.current.get(documentKey);
     try {
       if (!entry) {
-        const doc = new Y.Doc({ guid: file.id });
-        const persistence = new IndexeddbPersistence(`pkms:${workspace?.id}:${file.id}`, doc);
+        const doc = new Y.Doc({ guid: documentKey });
+        const persistence = new IndexeddbPersistence(documentKey, doc);
         entry = { doc, persistence };
-        documents.current.set(file.id, entry);
+        documents.current.set(documentKey, entry);
         await persistence.whenSynced;
         if (request !== openSequence.current) return;
         if (signal?.aborted) { hydrating.current = false; setOpeningFileId(null); return; }
@@ -123,13 +125,13 @@ export function useDocumentSession(options: Options) {
     if (request !== openSequence.current) return;
     if (signal?.aborted) { hydrating.current = false; setOpeningFileId(null); return; }
     let currentText = entry.doc.getText("markdown");
-    const queuedState = pending.current.get(`state:${file.id}`);
+    const queuedState = pending.current.get(`state:${documentKey}`);
     if (queuedState?.update) {
       Y.applyUpdate(entry.doc, fromBase64(queuedState.update), "server");
-      pending.current.delete(`state:${file.id}`);
+      pending.current.delete(`state:${documentKey}`);
     }
     currentText = entry.doc.getText("markdown");
-    activeDocument.current = { file, doc: entry.doc, text: currentText, value: currentText.toString() };
+    activeDocument.current = { file, documentKey, doc: entry.doc, text: currentText, value: currentText.toString() };
     setText(currentText.toString());
     const update = () => {
       const value = currentText.toString();
@@ -139,16 +141,15 @@ export function useDocumentSession(options: Options) {
     currentText.observe(update);
     entry.observer = update;
     const currentSocket = socket.current;
-    const cacheKey = `pkms:${workspace?.id}:${file.id}`;
+    const cacheKey = documentKey;
     const stored = JSON.parse(localStorage.getItem("pkms:recent-files") ?? "[]") as Array<{ key: string; lastOpened: number }>;
     const recent = [{ key: cacheKey, lastOpened: Date.now() }, ...stored.filter((item) => item.key !== cacheKey)].slice(0, 20);
     localStorage.setItem("pkms:recent-files", JSON.stringify(recent));
     const evicted = stored.filter((item) => !recent.some((kept) => kept.key === item.key));
     for (const item of evicted) {
-      const fileId = item.key.split(":").at(-1) ?? "";
-      const old = documents.current.get(fileId);
-      if (old && activeDocument.current.file?.id !== fileId) {
-        old.doc.destroy(); old.persistence.destroy(); documents.current.delete(fileId);
+      const old = documents.current.get(item.key);
+      if (old && activeDocument.current.documentKey !== item.key) {
+        old.doc.destroy(); old.persistence.destroy(); documents.current.delete(item.key);
       }
       const deletion = indexedDB.deleteDatabase(item.key);
       deletion.onerror = () => {};
@@ -156,7 +157,7 @@ export function useDocumentSession(options: Options) {
     if (entry.updateHandler) entry.doc.off("update", entry.updateHandler);
     const updateHandler = (updateBytes: Uint8Array, origin: unknown) => {
       if (origin === "server") return;
-      scheduleAutoSave(file.id, entry.doc);
+      scheduleAutoSave(file.id, entry.doc, documentKey);
       const current = socket.current;
       if (!current || current.readyState !== WebSocket.OPEN) return;
       const operationId = createOperationId();

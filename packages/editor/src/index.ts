@@ -17,6 +17,7 @@ export type {
 } from "./provider";
 export { EditorProviderError, isEditorAbortError, isEditorProviderError, withEditorProviderErrors } from "./provider";
 export { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
+export { editorDocumentKey } from "./documentIdentity";
 export { createEditorView, editorDocumentReplacement, replaceEditorDocument } from "./codeMirror";
 export type { CreateEditorViewOptions } from "./codeMirror";
 export { markdownEditorTheme, markdownProseTheme } from "./themes";

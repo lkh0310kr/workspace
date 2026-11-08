@@ -2,6 +2,7 @@ import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction 
 import * as Y from "yjs";
 import type { FileRecord, Peer, RealtimeMessage } from "../../domain/types";
 import { fromBase64 } from "../../domain/encoding";
+import { editorDocumentKey } from "@workspace/editor";
 
 interface DocumentEntry { doc: Y.Doc }
 interface ActiveFile { file: FileRecord | null; doc: Y.Doc | null }
@@ -31,11 +32,13 @@ export function useRealtimeMessages({ workspaceId, documents, pending, activeDoc
       if (presence.action === "leave") setPeers((current) => current.filter((peer) => peer.clientId !== presence.clientId));
       else if (presence.peer) setPeers((current) => [...current.filter((peer) => peer.clientId !== presence.peer!.clientId), presence.peer!]);
     } else if (message.type === "document-state" && message.fileId && message.update) {
-      const document = documents.current.get(message.fileId)?.doc;
+      const documentKey = editorDocumentKey({ providerId: `pkms:${workspaceId}`, itemId: message.fileId });
+      const document = documents.current.get(documentKey)?.doc;
       if (document) Y.applyUpdate(document, fromBase64(message.update), "server");
-      else pending.current.set(`state:${message.fileId}`, message);
+      else pending.current.set(`state:${documentKey}`, message);
     } else if (message.type === "document-update" && message.fileId && message.update) {
-      const document = documents.current.get(message.fileId)?.doc;
+      const documentKey = editorDocumentKey({ providerId: `pkms:${workspaceId}`, itemId: message.fileId });
+      const document = documents.current.get(documentKey)?.doc;
       if (document) Y.applyUpdate(document, fromBase64(message.update), "server");
     } else if (message.type === "ack" && message.operationId) {
       pending.current.delete(message.operationId);
