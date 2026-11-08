@@ -12,7 +12,7 @@ description: >-
 
 **Goal:** Workspace는 이미 검증된 앱의 해결책을 **재발명하지 않고** `apps/workspace/`에 이식한다. 도메인 무관 — 터미널이든, 벡터 에디터 interaction이든, 게임 호스팅 UX든 똑같은 워크플로.
 
-**원칙:** 참고 레포 전체를 읽지 않는다. **해당 문제를 이미 푼 파일/모듈만** 찾아서 가져온다. 필요하면 그 자리에서 새로 `git clone`해서 쓴다 — 아래 표는 이미 클론된 것들의 기록이지, "이 목록에 있는 것만 참고 가능"이라는 뜻이 아니다.
+**원칙:** 목표가 검증된 기능을 가져오는 것이라면 파일을 최소 복사하는 데서 끝내지 않는다. 먼저 참조 기능의 **동작 계약과 필요한 dependency closure**를 파악하고, Workspace에서 같은 계약이 성립하도록 포팅한다. UI가 비슷하거나 이름이 같은 모듈을 옮긴 것만으로 기능 포팅이 완료된 것으로 보지 않는다. 참고 레포 전체를 읽지는 않되, 해당 기능이 의존하는 경로와 복구/오류 처리를 함께 추적한다.
 
 ## 레포 구조
 
@@ -44,12 +44,17 @@ description: >-
                     있으면 재사용, 없으면 그 자리에서 git clone — 라이선스
                     확인, MIT류 선호)
 3. 참고 탐색     → 레포 전체를 읽지 않는다. grep으로 해당 모듈만 찾기 (아래 힌트)
-4. 최소 복사     → 필요한 파일/패턴만 apps/workspace/ 동일 경로 근처에 이식
-5. 어댑터 연결   → import 경로, IPC, 타입, lifecycle hook만 맞춤
-6. 테스트/검증   → cd apps/workspace && npm test -- --run, typecheck, 가능하면
-                    실제 아티팩트(fixture)로 동작 검증 — "타입체크 통과"만으로
-                    "작동함"이라고 보고하지 않는다
-7. 작업별 커밋   → 한 논리 단위당 한 커밋 (사용자 요청 시만), 커밋 메시지에
+4. 계약 정의     → 입력/출력, 순서, 상태 수명, backpressure, 복구, 사용자 관찰 결과를
+                    적고 참조 구현의 책임 경계를 표시
+5. dependency closure → 계약을 성립시키는 모듈·테스트·lifecycle hook·설정까지 확인.
+                    기존 코드가 참조 구현보다 축소돼 있으면 그 차이를 명시하고,
+                    동작 동등성 근거가 없는 생략은 포팅 대상에 포함
+6. 포팅          → 관련 모듈과 계약 검증을 같이 가져오고 Workspace IPC/레이아웃에
+                    필요한 어댑터만 둔다. 포팅 경계는 파일이 아니라 기능 계약으로 설정
+7. 검증          → typecheck와 관련 테스트, 실제 실행 환경의 증상별 확인. scroll,
+                    encoding, color 등 사용자 관찰 결과를 직접 확인하며,
+                    "타입체크 통과"만으로 동작한다고 보고하지 않는다
+8. 작업별 커밋   → 한 논리 단위당 한 커밋 (사용자 요청 시만), 커밋 메시지에
                     어느 ref-proj/모듈에서 포팅했는지 명시
 ```
 
@@ -78,7 +83,11 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 
 ### DO
 
-- Orca 모듈을 **파일 단위**로 복사 후 Workspace 타입/IPC에 맞게 최소 수정
+- Orca 모듈은 파일 단위로 추적하되 포팅 경계는 **기능 계약 단위**로 잡는다
+- 기능을 분리해 옮길 때는 생략한 Orca 책임(예: parser progress, stalled write 복구,
+  replay ordering, hidden-pane backpressure)에 대응하는 Workspace 처리가 있는지 확인
+- 참조 기능에 PTY owner, replay, output scheduler, render lifecycle 간 계약이 있으면
+  하나의 vertical slice로 포팅하고 경계마다 사용자 증상을 검증한다
 - 기존 `apps/workspace/src/renderer/src/lib/pane-manager/` 패턴·네이밍 유지
 - `docs/architecture/05-terminal-pipeline.md` 등 문서와 실제 코드 정합성 유지
 - 포팅 후 **vitest** 추가/복사 (Orca에 `.test.ts` 있으면 같이 가져오기)
@@ -107,6 +116,9 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 **Session vs mount:** main의 `PtySession` + replay buffer = 세션; renderer xterm/WebGL = 마운트. 세션은 탭 전환해도 유지, 마운트만 suspend/resume.
 
 ## 이미 이식됨 (2026-08-28 기준)
+
+이 목록은 파일/패턴의 이식 기록이지 Orca terminal feature parity의 증거가 아니다.
+완료 여부는 현재 참조 구현과 Workspace의 동작 계약을 다시 대조하고 실제로 확인한다.
 
 - itch.io 데스크톱 클라이언트 → HTML fullscreen chrome 숨김 (`enter/leave-html-full-screen`, `src/main/reactors/winds.ts` 참고, `7d76fb9`)
 - tldraw → Vector Editor interaction 버그 수정(rotation delta, resize anchor) — 이후 Vector Editor pane 자체는 삭제됐지만 포팅 방식 자체는 선례로 유효
