@@ -36,7 +36,7 @@ interface Options {
 export function useWorkspaceFileActions(options: Options) {
   const { workspace: activeWorkspace, activeFile, currentFolder, files, expandedFolders, api, navigate, routedPath, clearActiveFile, openFile, toggleFolder, setFiles, setActiveFile, setCurrentFolder, setExpandedFolders, setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, confirm, beforeDelete, afterDelete } = options;
   const updateFilePath = async (file: FileRecord, toPath: string) => {
-    if (!activeWorkspace) return;
+    if (!activeWorkspace) return false;
     let activePath = activeFile?.path;
     const applyLocalPath = (from: string, destination: string) => {
       setFiles((current) => remapFiles(current, file, from, destination));
@@ -64,20 +64,22 @@ export function useWorkspaceFileActions(options: Options) {
       if (result.conflictCopyPath) setNotice("Name conflict resolved while moving the item.");
       else if (result.links?.updated) setNotice(`Updated links in ${result.links.updated} note${result.links.updated === 1 ? "" : "s"}.`);
       if (result.links?.failed) setError("The item moved, but some links could not be updated.");
+      return true;
     } catch (cause) {
       applyLocalPath(toPath, file.path);
       setError(cause instanceof Error ? cause.message : "Could not rename item");
+      return false;
     }
   };
 
   const moveTreeItems = async (items: FileRecord[], destination: string) => {
-    if (!activeWorkspace || !items.length) return;
+    if (!activeWorkspace || !items.length) return false;
     const roots = treeSelectionRoots(items, new Set(items.map((file) => file.path)));
     const moves = roots.map((file) => ({ file, toPath: `${destination ? `${destination}/` : ""}${entryName(file.path)}` }))
       .filter(({ file, toPath }) => toPath !== file.path);
-    if (!moves.length) { setTreeContextMenu(null); return; }
+    if (!moves.length) { setTreeContextMenu(null); return true; }
     const invalid = moves.find(({ file }) => file.kind === "folder" && destination.startsWith(`${file.path}/`));
-    if (invalid) { setError("A folder cannot be moved into itself or one of its subfolders."); setTreeContextMenu(null); return; }
+    if (invalid) { setError("A folder cannot be moved into itself or one of its subfolders."); setTreeContextMenu(null); return false; }
     setTreeContextMenu(null);
     setError("");
     let activePath = activeFile?.path;
@@ -118,6 +120,7 @@ export function useWorkspaceFileActions(options: Options) {
       setFocusedTreePath(resolvedMoves[0]?.destination ?? null);
       if (resolvedMoves.some((move, index) => move.destination !== moves[index]?.toPath)) setNotice("Name conflict resolved while moving items.");
       else if (linksUpdated) setNotice(`Updated links in ${linksUpdated} note${linksUpdated === 1 ? "" : "s"}.`);
+      return true;
     } catch (cause) {
       try {
         const snapshot = await api<{ files: FileRecord[] }>(`/api/workspaces/${activeWorkspace.id}/snapshot`);
@@ -133,6 +136,7 @@ export function useWorkspaceFileActions(options: Options) {
         }
       } catch { /* Keep the original operation error visible. */ }
       setError(`${resolvedMoves.length ? "Some items may have moved. The tree was refreshed. " : ""}${cause instanceof Error ? cause.message : "Could not move selected items"}`);
+      return false;
     }
   };
 

@@ -50,8 +50,8 @@ export function meta() {
 interface PkmsTreeOperations {
   createFile: (parentPath: string, name: string) => Promise<FileRecord | undefined>;
   createFolder: (parentPath: string, name: string) => Promise<FileRecord | undefined>;
-  rename: (file: FileRecord, path: string) => Promise<void>;
-  move: (files: FileRecord[], parentPath: string) => Promise<void>;
+  rename: (file: FileRecord, path: string) => Promise<boolean>;
+  move: (files: FileRecord[], parentPath: string) => Promise<boolean>;
   delete: (files: FileRecord[]) => Promise<boolean>;
 }
 
@@ -264,7 +264,7 @@ export default function Home() {
         if (!file) throw new EditorProviderError("notFound", "PKMS item no longer exists");
         const parent = parentPath(file.path);
         const path = `${parent ? `${parent}/` : ""}${name}`;
-        await treeOperationsRef.current.rename(file, path);
+        if (!await treeOperationsRef.current.rename(file, path)) throw new EditorProviderError("unknown", "Could not rename PKMS item");
         await refreshOpenEditorItemMetadata([file]);
         return pkmsItemForFile(activeWorkspace.id, { ...file, path });
       },
@@ -273,7 +273,9 @@ export default function Home() {
         if (moving.some((file) => !file)) throw new EditorProviderError("notFound", "A PKMS move source no longer exists");
         const parent = parentId ? await getPkmsFileById(parentId) : null;
         if (parentId && (!parent || parent.kind !== "folder")) throw new EditorProviderError("notFound", "Destination folder no longer exists");
-        await treeOperationsRef.current.move(moving.filter((file): file is FileRecord => file !== null), parent?.path ?? "");
+        if (!await treeOperationsRef.current.move(moving.filter((file): file is FileRecord => file !== null), parent?.path ?? "")) {
+          throw new EditorProviderError("unknown", "Could not move PKMS items");
+        }
         await refreshOpenEditorItemMetadata(moving.filter((file): file is FileRecord => file !== null));
       },
       async delete(refs) {
@@ -1013,7 +1015,7 @@ export default function Home() {
     delete: (items) => deleteTreeItems(items),
   };
   const moveThroughEditorProvider = async (items: FileRecord[], destination: string) => {
-    if (!editorProvider?.move) return moveTreeItems(items, destination);
+    if (!editorProvider?.move) { await moveTreeItems(items, destination); return; }
     const parent = destination ? await resolveEditorTreePath(editorProvider, destination) : null;
     if (destination && (!parent || parent.kind !== "directory")) {
       throw new EditorProviderError("notFound", "Destination folder no longer exists");
