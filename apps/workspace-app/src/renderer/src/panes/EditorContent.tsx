@@ -7,9 +7,9 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { Compartment, EditorSelection, EditorState, Transaction } from "@codemirror/state";
+import { Compartment, EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { EditorOutlineList, EditorTextSurface, type EditorDocumentSession } from "@workspace/editor";
+import { EditorOutlineList, EditorTextSurface, replaceEditorDocument, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -201,6 +201,7 @@ export function EditorContent({
   const [outlineAnchor, setOutlineAnchor] = useState<AnchorRect | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
+  const [resolvedDocumentIdentity, setResolvedDocumentIdentity] = useState<{ path: string; key: string } | null>(null);
   const [autoSave, setAutoSave] = useState(getStoredAutoSave);
   const autoSaveRef = useRef(autoSave);
   autoSaveRef.current = autoSave;
@@ -223,6 +224,9 @@ export function EditorContent({
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const isMarkdown = kind === "markdown";
+  const documentCacheKey = resolvedDocumentIdentity?.path === filePath
+    ? resolvedDocumentIdentity.key
+    : `${editorProvider.id}:path:${filePath ?? `untitled:${tabId}`}`;
   const setDirtyState = useCallback((next: boolean) => {
     if (dirtyRef.current === next) return;
     dirtyRef.current = next;
@@ -233,10 +237,7 @@ export function EditorContent({
   const applyLoadedFileContent = useCallback(
     (view: EditorView, content: string, jumpLine?: number | null) => {
       lastLoadedContentRef.current = content;
-      view.dispatch({
-        changes: { from: 0, to: view.state.doc.length, insert: content },
-        annotations: Transaction.addToHistory.of(false),
-      });
+      replaceEditorDocument(view, content);
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
         autoSaveTimerRef.current = null;
@@ -266,6 +267,9 @@ export function EditorContent({
       editorProvider.itemRefForPath(path)
         .then((item) => {
           if (!item) throw new Error(`File not found: ${path}`);
+          if (sequence === documentLoadSequenceRef.current && pathRef.current === path) {
+            setResolvedDocumentIdentity({ path, key: `${item.providerId}:${item.itemId}` });
+          }
           return editorProvider.openDocument(item);
         })
         .then(async (session) => {
@@ -286,10 +290,7 @@ export function EditorContent({
             const activeView = viewRef.current;
             if (activeView && snapshot.savePhase === "clean" && snapshot.content.text !== activeView.state.doc.toString()) {
               lastLoadedContentRef.current = snapshot.content.text;
-              activeView.dispatch({
-                changes: { from: 0, to: activeView.state.doc.length, insert: snapshot.content.text },
-                annotations: Transaction.addToHistory.of(false),
-              });
+              replaceEditorDocument(activeView, snapshot.content.text);
               setDirtyState(false);
             }
           });
@@ -789,12 +790,12 @@ export function EditorContent({
                 </div>
               )}
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <EditorTextSurface key={`${tabId}:${isMarkdown}:${filePath ?? "untitled"}`} documentKey={`${editorProvider.id}:${filePath ?? `tab:${tabId}`}`} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Markdown editor" />
+                <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Markdown editor" />
               </div>
             </div>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-              <EditorTextSurface key={`${tabId}:${isMarkdown}:${filePath ?? "untitled"}`} documentKey={`${editorProvider.id}:${filePath ?? `tab:${tabId}`}`} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Code editor" />
+              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>

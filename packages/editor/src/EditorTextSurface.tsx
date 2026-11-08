@@ -38,6 +38,8 @@ export function EditorTextSurface({
 }: EditorTextSurfaceProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const documentKeyRef = useRef(documentKey);
+  const viewExtensionsRef = useRef<Extension[]>([]);
   const onChangeRef = useRef(onChange);
   const onViewReadyRef = useRef(onViewReady);
   onChangeRef.current = onChange;
@@ -68,16 +70,18 @@ export function EditorTextSurface({
         restoredState = undefined;
       }
     }
+    const viewExtensions = [
+      history(),
+      ...hostExtensions,
+      keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+      EditorView.lineWrapping,
+    ];
+    viewExtensionsRef.current = viewExtensions;
     const view = createEditorView({
       parent: hostRef.current,
       doc: initialValue ?? value ?? "",
       state: restoredState,
-      extensions: [
-        history(),
-        ...hostExtensions,
-        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-        EditorView.lineWrapping,
-      ],
+      extensions: viewExtensions,
     });
     viewRef.current = view;
     if (cached) {
@@ -90,7 +94,7 @@ export function EditorTextSurface({
     }
     onViewReadyRef.current?.(view);
     return () => {
-      if (documentKey) writeEditorViewState(documentKey, view.state, view.scrollDOM.scrollTop, view.scrollDOM.scrollLeft);
+      if (documentKeyRef.current) writeEditorViewState(documentKeyRef.current, view.state, view.scrollDOM.scrollTop, view.scrollDOM.scrollLeft);
       onViewReadyRef.current?.(null);
       viewRef.current = null;
       view.destroy();
@@ -98,6 +102,31 @@ export function EditorTextSurface({
     // Editor extensions define the lifetime of this view; change the host key when their mode changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const previousKey = documentKeyRef.current;
+    if (previousKey === documentKey) return;
+    const view = viewRef.current;
+    if (!view) {
+      documentKeyRef.current = documentKey;
+      return;
+    }
+    if (previousKey) writeEditorViewState(previousKey, view.state, view.scrollDOM.scrollTop, view.scrollDOM.scrollLeft);
+    documentKeyRef.current = documentKey;
+
+    const cached = documentKey ? readEditorViewState(documentKey) : undefined;
+    let nextState: EditorState | undefined;
+    if (cached) {
+      try {
+        nextState = EditorState.fromJSON(cached.serialized, { extensions: viewExtensionsRef.current }, { history: historyField });
+      } catch {
+        nextState = undefined;
+      }
+    }
+    view.setState(nextState ?? EditorState.create({ doc: "", extensions: viewExtensionsRef.current }));
+    view.scrollDOM.scrollTop = cached?.scrollTop ?? 0;
+    view.scrollDOM.scrollLeft = cached?.scrollLeft ?? 0;
+  }, [documentKey]);
 
   useEffect(() => {
     const view = viewRef.current;
