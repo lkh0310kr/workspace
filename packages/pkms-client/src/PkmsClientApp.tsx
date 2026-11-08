@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -192,23 +192,25 @@ export default function Home() {
   openDocumentSessionRef.current = openDocumentSession;
   saveDocumentRef.current = saveDocument;
   const treeProviderListeners = useRef(new Set<(paths: readonly string[]) => void>());
+  const getPkmsFileById = useCallback(async (fileId: string, signal?: AbortSignal) => {
+    if (!activeWorkspace) return null;
+    if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+    try {
+      const file = await api<FileRecord>(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/files/${encodeURIComponent(fileId)}`, { signal });
+      if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+      return file;
+    } catch (cause) {
+      if (cause && typeof cause === "object" && "code" in cause && cause.code === "not_found") return null;
+      throw cause;
+    }
+  }, [activeWorkspace?.id]);
   const editorProvider = useMemo(() => activeWorkspace ? createPkmsEditorProvider({
     workspaceId: activeWorkspace.id,
     listDirectory: async (path) => {
       await refreshDirectory(path, true);
       return getFiles().filter((file) => parentPath(file.path) === path);
     },
-    getFile: async (fileId, signal) => {
-      if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
-      try {
-        const file = await api<FileRecord>(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/files/${encodeURIComponent(fileId)}`, { signal });
-        if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
-        return file;
-      } catch (cause) {
-        if (cause && typeof cause === "object" && "code" in cause && cause.code === "not_found") return null;
-        throw cause;
-      }
-    },
+    getFile: getPkmsFileById,
     openSession: async (file, signal) => {
       await openDocumentSessionRef.current(file, editorNavigationRef.current, signal);
       if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
@@ -238,7 +240,8 @@ export default function Home() {
     capabilities: { operations: new Set(["createFile", "createDirectory", "rename", "move", "delete"]) },
     operations: {
       async create(parentId, kind, name) {
-        const parent = parentId ? getFiles().find((file) => file.id === parentId) : null;
+        const parent = parentId ? await getPkmsFileById(parentId) : null;
+        if (parentId && (!parent || parent.kind !== "folder")) throw new EditorProviderError("notFound", "Parent folder no longer exists");
         const parentPathValue = parent?.path ?? "";
         const created = kind === "directory"
           ? await treeOperationsRef.current.createFolder(parentPathValue, name)
@@ -270,7 +273,7 @@ export default function Home() {
         await treeOperationsRef.current.delete(deleting);
       },
     },
-  }) : null, [activeWorkspace?.id, getFiles, refreshDirectory]);
+  }) : null, [activeWorkspace?.id, getPkmsFileById, getFiles, refreshDirectory]);
   useEffect(() => {
     if (!editorProvider) return;
     const providerId = editorProvider.id;
