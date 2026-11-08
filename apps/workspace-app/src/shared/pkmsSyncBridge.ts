@@ -6,6 +6,7 @@ export interface PkmsSyncBridgeStatus {
   folderPath: string | null;
   excludedPaths: string[];
   state: PkmsSyncBridgeState;
+  progress: { completed: number; total: number; percent: number } | null;
   lastScannedAt: number | null;
   lastSyncedAt: number | null;
   pendingFiles: number;

@@ -41,7 +41,7 @@ function safePath(root: string, relative: string): string {
 function status(workspaceId: string): PkmsSyncBridgeStatus {
   return statuses.get(workspaceId) ?? {
     workspaceId, enabled: false, folderPath: null, state: "disconnected",
-    excludedPaths: [], lastScannedAt: null, lastSyncedAt: null, pendingFiles: 0, conflictFiles: [], error: null,
+    excludedPaths: [], progress: null, lastScannedAt: null, lastSyncedAt: null, pendingFiles: 0, conflictFiles: [], error: null,
   };
 }
 function setStatus(workspaceId: string, patch: Partial<PkmsSyncBridgeStatus>): PkmsSyncBridgeStatus {
@@ -194,15 +194,24 @@ async function syncOnce(workspaceId: string): Promise<void> {
   if (active) return active;
   const job = (async () => {
     const root = path.resolve(config.folderPath);
-    setStatus(workspaceId, { state: "syncing", error: null });
+    setStatus(workspaceId, { state: "syncing", progress: { completed: 0, total: 0, percent: 0 }, error: null });
     try {
       const local = await markdownFiles(root, config.excludedPaths ?? []);
       const snapshot = await request<BridgeSnapshot>(`/api/workspaces/${encodeURIComponent(workspaceId)}/snapshot`, "GET");
       const remoteByPath = new Map(snapshot.files.filter((file) => file.kind === "markdown").map((file) => [file.path, file]));
       const baselines = (await load()).baselines[workspaceId] ??= {};
-      const paths = new Set([...local.keys(), ...remoteByPath.keys(), ...Object.keys(baselines)]);
+      const paths = [...new Set([...local.keys(), ...remoteByPath.keys(), ...Object.keys(baselines)])]
+        .filter((relative) => !isReservedSyncPath(relative) && !matchesExclusion(relative, config.excludedPaths ?? []));
+      let completed = 0;
+      const total = paths.length;
+      const reportProgress = () => setStatus(workspaceId, {
+        state: "syncing",
+        progress: { completed, total, percent: total === 0 ? 100 : Math.floor((completed / total) * 100) },
+      });
+      reportProgress();
       for (const relative of paths) {
-        if (isReservedSyncPath(relative) || matchesExclusion(relative, config.excludedPaths ?? [])) continue;
+        let itemComplete = false;
+        try {
         const localText = local.get(relative);
         const remote = remoteByPath.get(relative);
         const baseline = baselines[relative];
@@ -219,9 +228,10 @@ async function syncOnce(workspaceId: string): Promise<void> {
             const created = await createRemoteFile(workspaceId, snapshot.revision, relative, localText);
             baselines[created.path] = { fileId: created.id, hash: hash(localText), revision: created.revision };
           }
+          itemComplete = true;
           continue;
         }
-        if (!remote) { delete baselines[relative]; continue; }
+        if (!remote) { delete baselines[relative]; itemComplete = true; continue; }
         const remoteNeedsRead = !baseline || baseline.fileId !== remote.id || baseline.revision !== remote.revision;
         const remoteContent = remoteNeedsRead ? await readRemoteText(workspaceId, remote) : null;
         const remoteText = remoteContent?.text;
@@ -238,6 +248,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             await writeAtomic(root, relative, text);
             baselines[relative] = { fileId: remote.id, hash: hash(text), revision: remoteContent?.revision ?? remote.revision };
           }
+          itemComplete = true;
           continue;
         }
         const localHash = hash(actualLocal);
@@ -251,6 +262,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             await writeAtomic(root, relative, remoteText ?? "");
             baselines[relative] = { fileId: remote.id, hash: hash(remoteText ?? ""), revision: remoteContent?.revision ?? remote.revision };
           }
+          itemComplete = true;
           continue;
         }
         const localChanged = localHash !== baseline.hash;
@@ -270,10 +282,15 @@ async function syncOnce(workspaceId: string): Promise<void> {
           await writeAtomic(root, relative, text);
           baselines[relative] = { fileId: remote.id, hash: hash(text), revision: remoteContent?.revision ?? remote.revision };
         }
+        itemComplete = true;
+        } finally {
+          if (itemComplete) completed++;
+          reportProgress();
+        }
       }
       await save();
       const conflictFiles = [...new Set([...local.keys(), ...Object.keys(baselines)])].filter((relative) => /\.local-conflict-[^/]+\.md$/i.test(relative));
-      setStatus(workspaceId, { state: "synced", enabled: true, folderPath: root, lastScannedAt: Date.now(), lastSyncedAt: Date.now(), pendingFiles: 0, conflictFiles, error: null });
+      setStatus(workspaceId, { state: "synced", progress: { completed: total, total, percent: 100 }, enabled: true, folderPath: root, lastScannedAt: Date.now(), lastSyncedAt: Date.now(), pendingFiles: 0, conflictFiles, error: null });
     } catch (error) {
       await save().catch(() => {});
       const message = error instanceof Error ? error.message : "Folder sync failed";
@@ -323,7 +340,7 @@ export async function disconnectPkmsSyncBridge(workspaceId: string): Promise<Pkm
   stopRuntime(workspaceId);
   const state = await load(); delete state.configs[workspaceId];
   await save();
-  return setStatus(workspaceId, { enabled: false, folderPath: null, excludedPaths: [], state: "disconnected", pendingFiles: 0, conflictFiles: [], error: null });
+  return setStatus(workspaceId, { enabled: false, folderPath: null, excludedPaths: [], state: "disconnected", progress: null, pendingFiles: 0, conflictFiles: [], error: null });
 }
 export async function getPkmsSyncBridgeStatus(workspaceId: string): Promise<PkmsSyncBridgeStatus> {
   const config = (await load()).configs[workspaceId];
