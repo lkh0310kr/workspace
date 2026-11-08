@@ -1333,6 +1333,11 @@ export default function Home() {
             outlineItems={outlineItems.map((item) => ({ id: `${item.position}-${item.title}`, level: item.level, label: item.title, position: item.position }))}
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(position) => requestAnimationFrame(() => editorNavigate.current?.(position))}
+            onBackgroundClick={(event) => {
+              if ((event.target as HTMLElement).closest(".cm-editor, .editor-title-block, .editor-markdown-title, .md-title-edit")) return;
+              const content = activeEditorSession?.snapshot().content;
+              if (content?.type === "text") editorNavigate.current?.(content.text.length);
+            }}
           >
             <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={pkmsDocumentKey(activeWorkspace.id, activeFile.id)} viewStateStorage={getEditorViewStateStorage()} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} resolveImage={resolveMarkdownImage} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
           </EditorMarkdownDocument>
