@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./EditorMarkdownSurface": "./src/EditorMarkdownSurface.tsx",
     "./code-mirror": "./src/codeMirror.ts",
     "./tree-row": "./src/EditorTreeRow.tsx",
     "./tree.css": "./src/tree.css"

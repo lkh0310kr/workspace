@@ -26,7 +26,7 @@ import { useWorkspaceFileCreation } from "./features/files/useWorkspaceFileCreat
 import { useWorkspaceFileActions } from "./features/files/useWorkspaceFileActions";
 import { useDocumentSession } from "./features/editor/useDocumentSession";
 
-const MarkdownCodeEditor = lazy(() => import("@workspace/editor").then((module) => ({ default: module.EditorMarkdownSurface })));
+const MarkdownCodeEditor = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
 const api = requestPkmsApi;
 function getEditorViewStateStorage(): Storage | undefined {
   if (typeof window === "undefined") return undefined;

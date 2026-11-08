@@ -21,6 +21,9 @@
       "@workspace/editor": [
         "../../packages/editor/src/index.ts"
       ],
+      "@workspace/editor/EditorMarkdownSurface": [
+        "../../packages/editor/src/EditorMarkdownSurface.tsx"
+      ],
       "@workspace/editor/*": [
         "../../packages/editor/src/*"
       ],
