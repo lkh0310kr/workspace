@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { EditorDocumentTabBar, EditorOutlineList, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
+import { EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -129,7 +129,6 @@ export default function Home() {
   const socket = useRef<PKMSRealtimeSocket | null>(null);
   const treeRef = useRef<HTMLElement>(null);
   const treeContextMenuRef = useRef<HTMLDivElement>(null);
-  const quickOpenInput = useRef<HTMLInputElement>(null);
   const editorNavigate = useRef<((line: number) => void) | null>(null);
   const routedPath = useRef<string | null>(null);
   const openFileSequence = useRef(0);
@@ -503,9 +502,6 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [activeWorkspace, saveActiveFileNow]);
 
-  useEffect(() => { if (quickOpen) quickOpenInput.current?.focus(); }, [quickOpen]);
-
-
   const workspaceRef = useRef(activeWorkspace);
   const userRef = useRef(user);
   const realtimeHandlerRef = useRef(handleRealtimeMessage);
@@ -823,6 +819,7 @@ export default function Home() {
   };
 
   const [quickOpenResults, setQuickOpenResults] = useState<FileRecord[]>([]);
+  const quickOpenItems = useMemo(() => quickOpenResults.map((file) => ({ id: file.id, label: entryName(file.path), description: file.path })), [quickOpenResults]);
   useEffect(() => {
     if (!editorProvider || !quickOpen) { setQuickOpenResults([]); return; }
     let current = true;
@@ -992,7 +989,19 @@ export default function Home() {
           <button className="modal-close" onClick={() => setShowRepositories(false)} aria-label="Close"><AppIcon name="close" /></button><span className="eyebrow">GitHub</span><h2>Choose a repository</h2>
           <div className="repository-list">{repositories.map((repository) => <button key={repository.fullName} className="repository-option" onClick={() => void connectRepository(repository)}><span className="repo-icon"><AppIcon name={repository.private ? "lock" : "folder"} /></span><span><strong>{repository.fullName}</strong><small>{repository.defaultBranch} · {repository.private ? "Private" : "Public"}</small></span><span className="option-arrow"><AppIcon name="arrowRight" /></span></button>)}{!repositories.length && <p className="empty-hint">No writable repositories found.</p>}</div>
         </section></div>}
-        {quickOpen && <div className="modal-backdrop quick-open-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setQuickOpen(false); }}><section className="quick-open-modal" role="dialog" aria-modal="true" aria-label="Quick open"><input ref={quickOpenInput} value={quickQuery} onChange={(event) => setQuickQuery(event.target.value)} placeholder="Search open and loaded files…" onKeyDown={(event) => { if (event.key === "Escape") setQuickOpen(false); else if (event.key === "Enter" && quickOpenResults[0]) { void openFile(quickOpenResults[0]); setQuickOpen(false); } }} /><div className="quick-open-results">{quickOpenResults.map((file) => <button key={file.id} onClick={() => { void openFile(file); setQuickOpen(false); }}><span>{entryName(file.path)}</span><small>{file.path}</small></button>)}{!quickOpenResults.length && <p className="empty-hint">No loaded files found</p>}</div></section></div>}
+        {quickOpen && <EditorQuickOpenDialog
+          query={quickQuery}
+          items={quickOpenItems}
+          placeholder="Search open and loaded files…"
+          emptyMessage="No loaded files found"
+          onQueryChange={setQuickQuery}
+          onClose={() => setQuickOpen(false)}
+          onSelect={(id) => {
+            const file = quickOpenResults.find((result) => result.id === id);
+            if (file) void openFile(file);
+            setQuickOpen(false);
+          }}
+        />}
         {activeWorkspace && visibleOpenDocuments.length > 0 && <EditorDocumentTabBar
           tabs={visibleOpenDocuments.map(({ file }) => ({ id: file.id, label: entryName(file.path), title: file.path, dirty: file.id === activeFile?.id && (saving || notice === "Unsaved") }))}
           activeId={activeFile?.id ?? null}

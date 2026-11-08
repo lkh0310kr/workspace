@@ -197,7 +197,7 @@ button { cursor: pointer; }
 .repository-modal h2 { margin: 8px 0 16px; font-size: 20px; font-weight: 600; letter-spacing: -.03em; }
 .modal-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; }
 .repository-list { display: flex; flex-direction: column; gap: 3px; }
-.quick-open-backdrop { align-items: start; padding-top: min(18vh, 150px); }
+.quick-open-backdrop { position: fixed; z-index: 100; inset: 0; display: flex; justify-content: center; align-items: flex-start; padding: min(18vh, 150px) 16px 16px; background: #0006; }
 .quick-open-modal { width: min(620px, 100%); max-height: min(560px, 72dvh); overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 14px 50px #0005; }
 .dialog-backdrop { z-index: 12; }
 .pkms-dialog { width: min(400px, 100%); padding: 22px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 14px 50px #0005; text-align: left; }
@@ -214,7 +214,9 @@ button { cursor: pointer; }
 .quick-open-results { max-height: min(500px, calc(72dvh - 48px)); overflow: auto; padding: 5px; }
 .quick-open-results button { display: flex; width: 100%; min-height: 42px; flex-direction: column; justify-content: center; gap: 3px; padding: 5px 10px; border: 0; border-radius: 6px; color: var(--text); background: transparent; text-align: left; }
 .quick-open-results button:hover { background: var(--hover); }
+.quick-open-results button.active { background: var(--hover); }
 .quick-open-results small { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+.quick-open-empty { padding: 12px 10px; color: var(--muted); font-size: 12px; }
 .repository-option { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 1px solid transparent; border-radius: 6px; background: transparent; text-align: left; }
 .repository-option:hover { border-color: var(--border); background: var(--hover); }
 .repository-option > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 3px; }.repository-option strong { font-size: 12px; font-weight: 500; }.repository-option small { color: var(--muted); font-size: 11px; }
