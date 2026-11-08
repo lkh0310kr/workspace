@@ -31,17 +31,20 @@ export function EditorQuickOpenDialog({
   onSelect,
   onClose,
 }: Props) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selection, setSelection] = useState({ query, resultKey: "", index: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const resultKey = JSON.stringify(items.map((item) => item.id));
+  const selectedIndex = selection.query === query && selection.resultKey === resultKey ? selection.index : 0;
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-  useEffect(() => setSelectedIndex(0), [query, items]);
   useEffect(() => {
     listRef.current?.querySelector<HTMLElement>(`[data-index="${selectedIndex}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [selectedIndex]);
+  }, [selectedIndex, resultKey]);
+
+  const selectIndex = (index: number): void => setSelection({ query, resultKey, index });
 
   return createPortal(
     <div className="quick-open-backdrop" onClick={onClose}>
@@ -58,10 +61,10 @@ export function EditorQuickOpenDialog({
               onClose();
             } else if (event.key === "ArrowDown") {
               event.preventDefault();
-              setSelectedIndex((index) => Math.min(index + 1, Math.max(items.length - 1, 0)));
+              selectIndex(Math.min(selectedIndex + 1, Math.max(items.length - 1, 0)));
             } else if (event.key === "ArrowUp") {
               event.preventDefault();
-              setSelectedIndex((index) => Math.max(index - 1, 0));
+              selectIndex(Math.max(selectedIndex - 1, 0));
             } else if (event.key === "Enter") {
               event.preventDefault();
               const item = items[selectedIndex];
@@ -79,7 +82,7 @@ export function EditorQuickOpenDialog({
                     key={item.id}
                     data-index={index}
                     className={`quick-open-row${index === selectedIndex ? " active" : ""}`}
-                    onMouseEnter={() => setSelectedIndex(index)}
+                    onMouseEnter={() => selectIndex(index)}
                     onClick={() => onSelect(item.id)}
                   >
                     <span>{item.label}</span>

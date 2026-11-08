@@ -18,6 +18,7 @@ export type {
 export { EditorProviderError, editorSupportsCodeLanguage, editorSupportsOperation, editorSupportsSearch, isEditorAbortError, isEditorProviderError, withEditorProviderErrors } from "./provider";
 export { editorSavePhaseLabel } from "./editorSaveStatus";
 export { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
+export { useEditorQuickOpenSearch } from "./useEditorQuickOpenSearch";
 export { editorDocumentKey } from "./documentIdentity";
 export { createEditorView, editorDocumentReplacement, replaceEditorDocument } from "./codeMirror";
 export type { CreateEditorViewOptions } from "./codeMirror";

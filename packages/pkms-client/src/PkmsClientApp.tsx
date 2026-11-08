@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -73,9 +73,6 @@ export default function Home() {
   const [openingFileId, setOpeningFileId] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickQuery, setQuickQuery] = useState("");
-  const [quickOpenLoading, setQuickOpenLoading] = useState(false);
-  const [quickOpenError, setQuickOpenError] = useState<string | null>(null);
-  const [quickOpenResults, setQuickOpenResults] = useState<FileRecord[]>([]);
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
@@ -1025,37 +1022,12 @@ export default function Home() {
     }
   };
 
+  const { items: quickOpenMatches, loading: quickOpenLoading, error: quickOpenError } = useEditorQuickOpenSearch({ provider: editorProvider, query: quickQuery, enabled: quickOpen, errorMessage: "Could not search PKMS files" });
+  const quickOpenResults = useMemo(() => {
+    const byId = new Map(visibleFiles.map((file) => [file.id, file]));
+    return quickOpenMatches.map((item) => byId.get(item.itemId)).filter((file): file is FileRecord => Boolean(file)).slice(0, 30);
+  }, [quickOpenMatches, visibleFiles]);
   const quickOpenItems = useMemo(() => quickOpenResults.map((file) => ({ id: file.id, label: entryName(file.path), description: file.path })), [quickOpenResults]);
-  useEffect(() => {
-    if (!quickOpen || !editorProvider || !editorSupportsSearch(editorProvider, "names")) {
-      setQuickOpenResults([]);
-      setQuickOpenLoading(false);
-      setQuickOpenError(null);
-      return;
-    }
-    const controller = new AbortController();
-    setQuickOpenResults([]);
-    setQuickOpenLoading(true);
-    setQuickOpenError(null);
-    void editorProvider.search(quickQuery, {
-      target: "names",
-      caseSensitive: false,
-      regex: false,
-      wholeWord: false,
-      fuzzy: true,
-    }, controller.signal).then((results) => {
-      if (controller.signal.aborted) return;
-      const byId = new Map(visibleFiles.map((file) => [file.id, file]));
-      setQuickOpenResults(results.map(({ item }) => byId.get(item.itemId)).filter((file): file is FileRecord => Boolean(file)).slice(0, 30));
-      setQuickOpenLoading(false);
-    }).catch((cause: unknown) => {
-      if (controller.signal.aborted) return;
-      setQuickOpenResults([]);
-      setQuickOpenError(cause instanceof Error ? cause.message : "Could not search PKMS files");
-      setQuickOpenLoading(false);
-    });
-    return () => controller.abort();
-  }, [editorProvider, visibleFiles, quickOpen, quickQuery]);
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
   const contextMoveRoots = editorTreeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)), (file) => file.kind === "folder");
   const cutMoveRoots = editorTreeSelectionRoots(files.filter((file) => cutTreePaths.has(file.path)), cutTreePaths, (file) => file.kind === "folder");
