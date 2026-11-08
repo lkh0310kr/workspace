@@ -25,7 +25,7 @@ import {
 import { languages as languageData } from "@codemirror/language-data";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
-import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
+import { workspaceEditorTheme } from "../codemirrorTheme";
 import { indentGuides } from "../indentGuides";
 import { syntaxTheme } from "../codemirrorSyntax";
 import { pastePlainTextCommand } from "../editorPlainPaste";
@@ -364,7 +364,6 @@ export function EditorContent({
     const modeExtensions = isMarkdown
       ? [
           rootCompartment.of(markdownRootPath.of(rootPath)),
-          markdownProseTheme,
           keymap.of([
             { key: "Mod-Shift-v", run: pastePlainTextCommand },
           ]),

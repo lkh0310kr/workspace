@@ -146,10 +146,8 @@
   white-space: nowrap;
 }
 
-.editor-markdown-content,
-.editor-markdown-content > .md-editor,
-.editor-markdown-content .md-editor-host,
-.editor-markdown-content .markdown-code-editor {
+.editor-markdown-content .editor-markdown-surface {
+  width: 100%;
   height: auto;
   min-height: 0;
   overflow: visible;
@@ -163,6 +161,6 @@
   overflow: visible;
 }
 
-.editor-markdown-content .markdown-code-editor .cm-editor {
+.editor-markdown-content .editor-markdown-surface .cm-editor {
   height: auto;
 }

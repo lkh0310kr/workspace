@@ -6,7 +6,7 @@ import type { MarkdownConfig } from "@lezer/markdown";
 import { createMarkdownEditorExtensions } from "./markdownEditor";
 import { markdownLinkNavigation, type EditorMarkdownLink } from "./markdownLinkNavigation";
 import { markdownImageResolver, type MarkdownImageResolver } from "./markdownLivePreview";
-import { markdownEditorTheme } from "./themes";
+import { markdownEditorTheme, markdownProseTheme } from "./themes";
 import { EditorTextSurface, type EditorTextSurfaceProps } from "./EditorTextSurface";
 import { markdownOutlineFromState, type MarkdownHeading } from "./markdownOutline";
 
@@ -41,6 +41,7 @@ export function EditorMarkdownSurface({
     ...createMarkdownEditorExtensions({ parserExtensions }),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     markdownEditorTheme,
+    markdownProseTheme,
   ], [parserExtensions]);
   const onOutlineChangeRef = useRef(onOutlineChange);
   onOutlineChangeRef.current = onOutlineChange;
@@ -76,5 +77,6 @@ export function EditorMarkdownSurface({
     });
   }, [onNavigateReady, onViewReadyProp]);
 
-  return <EditorTextSurface {...surfaceProps} extensions={sharedExtensions} onViewReady={onViewReady} onSearchPanelChange={onSearchPanelChange} />;
+  const { className, ...textSurfaceProps } = surfaceProps;
+  return <EditorTextSurface {...textSurfaceProps} className={["editor-markdown-surface", className].filter(Boolean).join(" ")} extensions={sharedExtensions} onViewReady={onViewReady} onSearchPanelChange={onSearchPanelChange} />;
 }
