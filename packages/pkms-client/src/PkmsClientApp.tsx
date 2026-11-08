@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, markdownOutlineFromText, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
+import { EditorDocumentTabBar, EditorOutlineList, EditorQuickOpenDialog, markdownOutlineFromText, projectEditorTreeRows, type EditorDocumentSession, type EditorItemRef } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -116,6 +116,12 @@ export default function Home() {
     !excludedPatterns.split("\n").some((pattern) => matchesExcludePattern(file.path, pattern))
   )), [excludedPatterns, files, showIgnoredFiles]);
   const treeRows = useMemo(() => flattenTree(visibleFiles, expandedFolders), [expandedFolders, visibleFiles]);
+  const [treeScrollTop, setTreeScrollTop] = useState(0);
+  const [treeViewportHeight, setTreeViewportHeight] = useState(0);
+  const treeProjection = useMemo(
+    () => projectEditorTreeRows(treeRows, treeScrollTop, treeViewportHeight, 28),
+    [treeRows, treeScrollTop, treeViewportHeight],
+  );
   const {
     focusedPath: focusedTreePath,
     setFocusedPath: setFocusedTreePath,
@@ -128,6 +134,15 @@ export default function Home() {
   } = useFileTreeSelection(treeRows);
   const socket = useRef<PKMSRealtimeSocket | null>(null);
   const treeRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const element = treeRef.current;
+    if (!element) return;
+    const updateHeight = () => setTreeViewportHeight(element.clientHeight);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [activeWorkspace?.id]);
   const treeContextMenuRef = useRef<HTMLDivElement>(null);
   const editorNavigate = useRef<((line: number) => void) | null>(null);
   const routedPath = useRef<string | null>(null);
@@ -672,10 +687,10 @@ export default function Home() {
   }, [activeWorkspace?.id, api, fileLocation?.path, fileLocation?.workspaceId, files, loadedFolders, loading, location.pathname, navigate, user, workspaces]);
 
   const toggleFolder = async (file: FileRecord) => {
-    if (!activeWorkspace) return;
+    if (!activeWorkspace || !editorProvider) return;
     setCurrentFolder(file.path);
     setFocusedTreePath(file.path);
-    await toggleDirectory(file);
+    await toggleDirectory(file, () => editorProvider.listChildren(file.id));
   };
 
   const chooseWorkspace = (workspace: Workspace) => {
@@ -746,6 +761,7 @@ export default function Home() {
   const outlineItems = useMemo(() => markdownOutlineFromText(text), [text]);
   const parentFolder = parentPath(currentFolder);
   const persistTreeScroll = (scrollTop: number) => {
+    setTreeScrollTop(scrollTop);
     if (!activeWorkspace) return;
     const key = `pkms:tree:${activeWorkspace.id}`;
     let saved: Record<string, unknown> = {};
@@ -761,6 +777,12 @@ export default function Home() {
     const focusRow = (next: TreeRow | undefined) => {
       if (!next) return;
       setFocusedTreePath(next.file.path);
+      const nextIndex = treeRows.findIndex((item) => item.file.id === next.file.id);
+      const element = treeRef.current;
+      if (element && nextIndex >= 0) {
+        const top = nextIndex * 28;
+        if (top < element.scrollTop || top + 28 > element.scrollTop + element.clientHeight) element.scrollTop = top;
+      }
       requestAnimationFrame(() => treeRef.current?.querySelector<HTMLElement>(`[data-tree-path="${CSS.escape(next.file.path)}"]`)?.focus());
     };
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
@@ -916,7 +938,10 @@ export default function Home() {
           {showFileFilters && <div className="file-filter-panel"><div className="file-filter-heading"><span>Ignored files</span><span className="filter-state">{showIgnoredFiles ? "Shown" : "Hidden"} · ⌘⇧.</span></div><label htmlFor="excluded-files">Exclude paths</label><textarea id="excluded-files" value={excludedPatterns} placeholder={"*.tmp\n**/drafts/**"} spellCheck={false} onChange={(event) => { const next = event.target.value; setExcludedPatterns(next); localStorage.setItem(`pkms:excluded-files:${activeWorkspace.id}`, next); }} /><p>Press ⌘⇧. to show ignored files</p></div>}
           <FileTreeList
             treeRef={treeRef}
-            rows={treeRows}
+            rows={treeProjection.rows}
+            rowOffset={treeProjection.startIndex}
+            paddingTop={treeProjection.paddingTop}
+            paddingBottom={treeProjection.paddingBottom}
             selectedPaths={selectedTreePaths}
             expandedFolders={expandedFolders}
             focusedPath={focusedTreePath}

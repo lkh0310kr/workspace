@@ -17,6 +17,9 @@ interface FileTreeListProps {
   loadingFolders: Set<string>;
   busy: boolean;
   loading: boolean;
+  rowOffset?: number;
+  paddingTop?: number;
+  paddingBottom?: number;
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   onScroll: (scrollTop: number) => void;
   onSetDropTarget: (path: string | null) => void;
@@ -80,6 +83,9 @@ export function FileTreeList({
   loadingFolders,
   busy,
   loading,
+  rowOffset = 0,
+  paddingTop = 0,
+  paddingBottom = 0,
   onKeyDown,
   onScroll,
   onSetDropTarget,
@@ -129,8 +135,11 @@ export function FileTreeList({
         if (event.target === event.currentTarget) handleDrop(event, "");
       }}
     >
+      {paddingTop > 0 && <div aria-hidden="true" className="tree-virtual-spacer" style={{ height: paddingTop }} />}
       {creation?.parentPath === "" && <InlineCreationRow key={`create-${creation.kind}-${creation.parentPath}`} kind={creation.kind} depth={0} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} />}
-      {rows.map(({ file, depth }, index) => (
+      {rows.map(({ file, depth }, visibleIndex) => {
+        const index = rowOffset + visibleIndex;
+        return (
         <Fragment key={file.id}>
         {renamingPath === file.path ? <InlineCreationRow key={`rename-${file.path}`} kind={file.kind === "folder" ? "folder" : "file"} depth={depth} initialValue={entryName(file.path)} onCreate={(name) => onRename(file, name)} onCancel={onCancelRename} /> : <EditorTreeRow
           id={file.id}
@@ -182,7 +191,8 @@ export function FileTreeList({
         />}
         {creation?.parentPath === file.path && file.kind === "folder" && <InlineCreationRow key={`create-${creation.kind}-${creation.parentPath}`} kind={creation.kind} depth={depth + 1} onCreate={(name) => onCreate(creation.kind, creation.parentPath, name)} onCancel={onCancelCreate} />}
         </Fragment>
-      ))}
+      ); })}
+      {paddingBottom > 0 && <div aria-hidden="true" className="tree-virtual-spacer" style={{ height: paddingBottom }} />}
       {!rows.length && <p className="empty-hint">{loading ? "Loading…" : "Empty folder"}</p>}
     </nav>
   );

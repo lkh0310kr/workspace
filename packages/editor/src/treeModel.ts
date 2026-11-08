@@ -9,6 +9,35 @@ export interface EditorVisibleTreeRow<T extends EditorTreeBranchEntry> {
   depth: number;
 }
 
+export const EDITOR_TREE_ROW_HEIGHT = 24;
+const TREE_OVERSCAN = 4;
+
+export interface EditorTreeProjection<T> {
+  rows: T[];
+  startIndex: number;
+  paddingTop: number;
+  paddingBottom: number;
+  totalHeight: number;
+}
+
+/** Window the common tree row list for large directories. */
+export function projectEditorTreeRows<T>(rows: T[], scrollTop: number, viewportHeight: number, rowHeight = EDITOR_TREE_ROW_HEIGHT): EditorTreeProjection<T> {
+  const totalHeight = rows.length * rowHeight;
+  if (viewportHeight <= 0 || rows.length === 0) {
+    return { rows, startIndex: 0, paddingTop: 0, paddingBottom: 0, totalHeight };
+  }
+  const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - TREE_OVERSCAN);
+  const count = Math.ceil(viewportHeight / rowHeight) + TREE_OVERSCAN * 2;
+  const end = Math.min(rows.length, startIndex + count);
+  return {
+    rows: rows.slice(startIndex, end),
+    startIndex,
+    paddingTop: startIndex * rowHeight,
+    paddingBottom: Math.max(0, (rows.length - end) * rowHeight),
+    totalHeight,
+  };
+}
+
 /** Flatten loaded branches with the shared Workspace tree ordering. */
 export function flattenEditorTree<T extends EditorTreeBranchEntry>(
   branches: ReadonlyMap<string, readonly T[]>,

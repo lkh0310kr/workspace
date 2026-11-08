@@ -95,6 +95,7 @@ button { cursor: pointer; }
 .file-row.selected { color: var(--text); background: var(--selected); }
 .file-tree { outline: 0; }
 .tree-row { flex: 0 0 27px; white-space: nowrap; }
+.tree-virtual-spacer { width: 100%; flex: 0 0 auto; pointer-events: none; }
 .tree-creation-row { display: flex; min-width: 0; align-items: center; gap: 6px; padding-right: 8px; color: var(--text); }
 .tree-creation-row input { min-width: 0; height: 22px; flex: 1; padding: 1px 5px; border: 1px solid var(--accent); border-radius: 3px; outline: 0; color: var(--text); background: var(--surface); font: inherit; font-size: 12px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent); }
 .tree-creation-row input::placeholder { color: var(--subtle); }

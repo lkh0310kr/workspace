@@ -85,7 +85,7 @@ export function useWorkspaceDirectory(
     return request;
   }, [activeWorkspace, api, replaceDirectory]);
 
-  const toggleDirectory = useCallback(async (file: FileRecord) => {
+  const toggleDirectory = useCallback(async (file: FileRecord, loadChildren?: () => Promise<unknown>) => {
     if (!activeWorkspace) return;
     if (expandedFolders.has(file.path)) {
       setExpandedFolders((current) => {
@@ -98,11 +98,12 @@ export function useWorkspaceDirectory(
     setExpandedFolders((current) => new Set(current).add(file.path));
     const cached = loadedFoldersRef.current.has(file.path);
     if (cached) {
-      void refreshDirectory(file.path, false).catch(() => {});
+      void (loadChildren ? loadChildren() : refreshDirectory(file.path, false)).catch(() => {});
       return;
     }
     try {
-      await refreshDirectory(file.path, true);
+      if (loadChildren) await loadChildren();
+      else await refreshDirectory(file.path, true);
     } catch (cause) {
       reportError(cause instanceof Error ? cause.message : "Could not open folder");
     }

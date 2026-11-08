@@ -36,5 +36,5 @@ export { markdownOutlineFromState, markdownOutlineFromText } from "./markdownOut
 export type { MarkdownHeading } from "./markdownOutline";
 export { EditorQuickOpenDialog } from "./EditorQuickOpenDialog";
 export type { EditorQuickOpenItem } from "./EditorQuickOpenDialog";
-export { flattenEditorTree } from "./treeModel";
-export type { EditorTreeBranchEntry, EditorVisibleTreeRow } from "./treeModel";
+export { flattenEditorTree, projectEditorTreeRows, EDITOR_TREE_ROW_HEIGHT } from "./treeModel";
+export type { EditorTreeBranchEntry, EditorVisibleTreeRow, EditorTreeProjection } from "./treeModel";

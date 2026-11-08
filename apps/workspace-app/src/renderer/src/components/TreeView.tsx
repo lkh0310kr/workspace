@@ -29,9 +29,8 @@ import {
 } from "../explorer/explorerState";
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
-import { projectVisibleRows } from "../explorer/useTreeProjection";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { EditorTreeRow, flattenEditorTree } from "@workspace/editor";
+import { EditorTreeRow, flattenEditorTree, projectEditorTreeRows } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -292,7 +291,7 @@ export function TreeView({
   }, [dirs, expanded]);
 
   const projection = useMemo(
-    () => projectVisibleRows(flatList, scrollTop, viewportHeight),
+    () => projectEditorTreeRows(flatList, scrollTop, viewportHeight),
     [flatList, scrollTop, viewportHeight],
   );
 
