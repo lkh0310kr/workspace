@@ -13,7 +13,8 @@ import {
   registerTerminalPane,
   unregisterTerminalPane,
 } from "../lib/pane-manager/pane-terminal-registry";
-import { refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
+import { applyTerminalWebglAfterFit, refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
+import { fitRevealedPane } from "../lib/pane-manager/pane-reveal-fit";
 import { resumePaneRendering, suspendPaneRendering } from "../lib/pane-manager/pane-rendering-control";
 import { resolveExplicitTerminalTitleAgentType } from "../../../shared/agent/terminal-title-agent-type";
 import { agentPaneKey, useAgentStatusStore } from "../store/agentStatusStore";
@@ -267,12 +268,19 @@ function TerminalPaneInner({
 
     resumePaneRendering(pane);
 
-    const refit = (): void => {
-      refitPaneTerminal(pane);
-    };
-
     const becameShown = shown && !wasShownRef.current;
     wasShownRef.current = shown;
+
+    const refit = (): void => {
+      if (becameShown) {
+        // Reveal uses Orca's stable-grid fit. A raw fit after `display:none`
+        // can observe transient cell metrics and reflow pinned scrollback.
+        fitRevealedPane(pane);
+        applyTerminalWebglAfterFit(pane);
+        return;
+      }
+      refitPaneTerminal(pane);
+    };
 
     requestAnimationFrame(() => {
       refit();

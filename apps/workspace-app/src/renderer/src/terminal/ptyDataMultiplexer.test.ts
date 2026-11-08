@@ -59,6 +59,18 @@ describe("ptyDataMultiplexer", () => {
     expect(received).toEqual(["live"]);
   });
 
+  it("keeps Hangul and emoji intact when UTF-8 code points span PTY chunks", () => {
+    const received: string[] = [];
+    subscribePtyData(12, (data) => received.push(data), 0);
+
+    emitPtyData(12, 1, new Uint8Array([0xed, 0x95]));
+    emitPtyData(12, 2, new Uint8Array([0x9c, 0xf0, 0x9f]));
+    emitPtyData(12, 3, new Uint8Array([0x92, 0xbb]));
+
+    expect(received.join("")).toBe("한💻");
+    expect(received.join("")).not.toContain("�");
+  });
+
   it("coerces string terminal ids from IPC payloads", () => {
     const received: string[] = [];
     subscribePtyData(9, (data) => received.push(data), 0);

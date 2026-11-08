@@ -15,6 +15,12 @@ contracts. The PTY transport preserves bytes through its local socket, then `Pty
 decodes and re-encodes them before renderer delivery; this creates an avoidable second text
 boundary and requires live output and snapshot replay to agree exactly about decoder state.
 
+Runtime testing then reproduced a separate scroll defect: a pane pinned at the top jumped to
+the live bottom after switching away and back. Orca routes reveal through `fitRevealedPane`,
+which avoids a raw reflow when the pane's pixel size and PTY grid are unchanged. Workspace
+called `refitPaneTerminal` directly on every reveal. The reveal path now uses Orca's stable
+fit decision and applies WebGL refresh separately; installed-build verification is pending.
+
 These are concrete architectural risks consistent with the reported failures, not yet a
 confirmed single cause for every scroll, glyph, or color symptom. Color rendering also
 depends on shell capabilities (`TERM`, `COLORTERM`), preserving ANSI bytes, and applying
@@ -39,9 +45,12 @@ Treat the terminal as one vertical slice with these invariants:
 - [x] Output scheduler dependency closure ported (queueing, fair drain, parse barrier,
   backlog bounds, ACK release, and stalled-write health/recovery). Adapted to Workspace's
   PTY ACK API and pane disposal. The focused Orca scheduler suite passes: 104 tests.
-- [ ] Byte ownership and live/replay decoder contract
-- [ ] Replay/refit/scroll lifecycle parity
-- [ ] Installed-build checks for scroll, UTF-8, and ANSI colors
+- [x] Reveal fit decision ported; it preserves matching PTY grids and defers mismatched
+  stable fits. Focused reveal-fit tests pass: 6 tests.
+- [x] Split UTF-8 delivery test added for Hangul and emoji; 5 multiplexer tests pass.
+- [x] Installed build retains long scrollback; asynchronous output does not move a pinned
+  viewport; live Hangul and ANSI color rendering verified.
+- [ ] Hide/show viewport preservation and reconnect scroll restoration in installed build
 
 ### Implementation order
 
@@ -51,7 +60,7 @@ Treat the terminal as one vertical slice with these invariants:
 2. Port the byte/sequence ownership contract through PTY host → main → renderer and align
    live delivery with snapshot replay. Keep terminal query filtering explicit and byte-safe.
 3. Port replay/fit/scroll restoration as one lifecycle contract, then verify wheel behavior
-   both with and without TUI mouse reporting.
+   both with and without TUI mouse reporting. (Reveal fit ported; hide/show acceptance pending.)
 4. Verify theme/ANSI/Unicode/font behavior from an actual shell session and fix the first
    failing boundary found. Keep the per-chunk terminal trace disabled in normal production;
    use bounded opt-in diagnostics for fault reports.
