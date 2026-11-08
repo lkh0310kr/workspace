@@ -36,11 +36,12 @@ adb shell run-as dev.pkms.datanode cat files/data-node/latest-diagnostics.json
 - Direct host-to-Android commands over ADB without an IP network
 - ADB shell batch transaction, retry/conflict behavior, rollback, and object round-trip
 - ADB-written records and objects after the app process is stopped and restarted
-- Schema migration from the original version and startup recovery of pending, missing, corrupt, and orphan object states
+- v1→v3 SQLite migration preserving existing records and objects
+- Startup recovery of pending uploads, missing objects, checksum-corrupt objects, and orphan files; orphan data is retained as a candidate, not deleted
 
 ## ADB local command bridge
 
-The debug app exposes `content://dev.pkms.datanode.provider/node` through these methods: `health`, `record.put`, `record.batch`, `record.get`, `object.put`, and `object.get`. The `--arg` is a base64-encoded UTF-8 JSON object. For example, the empty JSON object is `e30=`:
+The debug app exposes `content://dev.pkms.datanode.provider/node` through these methods: `health`, `record.put`, `record.batch`, `record.get`, `object.put`, `object.get`, and `diagnostics.errors`. The `--arg` is a base64-encoded UTF-8 JSON object. For example, the empty JSON object is `e30=`:
 
 ```bash
 adb shell content call \
@@ -51,4 +52,4 @@ adb shell content call \
 
 The response is returned as base64 JSON in the `result` Bundle field. The one-click runner performs encoding, decoding, and response checks automatically. The current shell bridge transports bytes inline in a Binder call and is only for small local validation payloads; it is not the streaming object API needed for larger files.
 
-This prototype is not yet a production database service: it has no remote API, object streaming/chunking, encryption/key management, deletion/reference/GC semantics, replication, backup export, foreground service, or long-running background operation. The next gates are power-loss and storage-full testing, larger streamed objects, backup/restore, and repeating the same one-click run on the A Quantum.
+This prototype is not yet a production database service: it has no remote API, streaming object uploads/downloads, encryption/key management, deletion/reference/GC semantics, replication, backup export, foreground service, or long-running background operation. The next gates are the streamed object API, power-loss and storage-full testing, backup/restore, and repeating the same one-click run on the A Quantum.
