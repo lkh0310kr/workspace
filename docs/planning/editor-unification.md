@@ -174,7 +174,7 @@ Acceptance checklist:
 | 외부 변경 conflict, 저장 오류, autosave/Cmd+S 상태 표시 | not yet | not yet | not yet |
 | Markdown outline, formatting, links, images/attachments 동작 | not yet | not yet | not yet |
 | 트리 keyboard/multi-select, capability 작업, Quick Open 결과 | not yet | not yet | not yet |
-| `Cmd+P`가 포커스된 pane의 Quick Open을 여는지 | not yet | not yet | in progress |
+| `Cmd+P`가 포커스된 pane의 Quick Open을 여는지 | not yet | not yet | done (verified: PKMS pane에서 PKMS 전용 Quick Open 표시 확인) |
 
 트리에서 폴더와 그 하위 항목을 함께 선택해 삭제·이동하는 경우 `packages/editor`의 `editorTreeSelectionRoots`가 선택된 폴더만 남긴다. PKMS와 Workspace가 같은 규칙을 쓰므로 하위 항목 stale ID로 작업이 중단되거나 같은 경로를 중복 처리하지 않는다.
 
