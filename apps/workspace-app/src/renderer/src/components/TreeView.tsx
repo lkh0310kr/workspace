@@ -661,7 +661,6 @@ export function TreeView({
             name={treeEntryDisplayName(entry.name)}
             kind={entry.is_dir ? "directory" : classifyFile(entry.name) === "markdown" ? "markdown" : classifyFile(entry.name) === "code" ? "code" : "asset"}
             depth={depth}
-            className="tree-view-item"
             icon={<WorkbenchIcon name={treeEntryIconName(entry)} size={16} />}
             disclosure={<WorkbenchIcon name="chevron-right" size={12} />}
             expandable={entry.is_dir}

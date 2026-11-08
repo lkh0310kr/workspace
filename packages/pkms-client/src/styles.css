@@ -89,33 +89,18 @@ button { cursor: pointer; }
 .upload-button { position: relative; overflow: hidden; }
 .upload-button input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
 .file-list { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 1px; overflow: auto; overscroll-behavior: contain; padding: 2px 0; }
-.file-row, .folder-row { display: flex; min-height: 29px; align-items: center; gap: 7px; width: 100%; padding: 4px 8px; overflow: hidden; border: 0; border-radius: 5px; color: var(--muted); background: transparent; text-align: left; font-size: 12px; }
-.file-row span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file-row:hover, .folder-row:hover { color: var(--text); background: var(--hover); }
-.file-row.selected { color: var(--text); background: var(--selected); }
 .file-tree { outline: 0; }
-.tree-row { flex: 0 0 var(--editor-tree-row-height, 27px); white-space: nowrap; }
 .tree-virtual-spacer { width: 100%; flex: 0 0 auto; pointer-events: none; }
 .tree-creation-row { display: flex; min-width: 0; align-items: center; gap: 6px; padding-right: 8px; color: var(--text); }
 .tree-creation-row input { min-width: 0; height: 22px; flex: 1; padding: 1px 5px; border: 1px solid var(--accent); border-radius: 3px; outline: 0; color: var(--text); background: var(--surface); font: inherit; font-size: 12px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent); }
 .tree-creation-row input::placeholder { color: var(--subtle); }
-.tree-row:focus-visible { outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent); outline-offset: -1px; }
-.tree-row.selected { color: var(--text); background: var(--selected); }
-.tree-row.multi-selected { color: var(--text); background: color-mix(in srgb, var(--accent) 17%, var(--surface)); }
-.tree-row.cut-pending { opacity: .55; }
-.tree-row.drop-target { outline: 1px solid var(--accent); outline-offset: -1px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 .file-tree.tree-root-drop { box-shadow: inset 0 0 0 1px var(--accent); }
-.tree-chevron { display: grid; width: 12px; flex: 0 0 12px; place-items: center; color: var(--subtle); }
-.tree-chevron .app-icon { width: 13px; height: 13px; transition: transform 120ms ease; }.tree-chevron.expanded .app-icon { transform: rotate(90deg); }
 .tree-loading-indicator { display: block; width: 10px; height: 10px; margin: 0 auto; border: 1.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: tree-loading-spin 700ms linear infinite; }
 @keyframes tree-loading-spin { to { transform: rotate(360deg); } }
-.tree-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-context-menu { position: fixed; z-index: 40; display: flex; width: 188px; flex-direction: column; gap: 2px; padding: 5px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 8px 28px #0003; }
 .tree-context-menu button { min-height: 30px; padding: 5px 9px; border: 0; border-radius: 5px; color: var(--text); background: transparent; text-align: left; font: inherit; font-size: 12px; }
 .tree-context-menu button:hover, .tree-context-menu button:focus-visible { outline: 0; background: var(--hover); }
 .tree-context-menu button.danger { color: var(--danger); }
-.file-icon, .folder-icon { flex: 0 0 15px; color: var(--muted); text-align: center; }
-.file-icon .app-icon { width: 14px; height: 14px; margin: 0 auto; }
 .sidebar-bottom { margin-top: auto; padding: 10px 5px 0; border-top: 1px solid var(--border); }
 .status-dot { display: inline-block; width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--subtle); }
 .account-row { justify-content: flex-start; gap: 8px; padding: 6px 2px 0; color: var(--muted); font-size: 12px; }

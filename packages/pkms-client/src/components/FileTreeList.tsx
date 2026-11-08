@@ -97,7 +97,6 @@ export function FileTreeList({
           name={entryName(file.path)}
           kind={file.kind === "folder" ? "directory" : file.kind}
           depth={depth}
-          className={file.kind === "folder" ? "folder-row" : "file-row"}
           icon={<AppIcon name={file.kind === "folder" ? "folder" : file.kind === "markdown" ? "fileText" : "file"} />}
           disclosure={<AppIcon name="chevron" />}
           expandable={file.kind === "folder"}

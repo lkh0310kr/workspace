@@ -3457,52 +3457,6 @@ input {
   min-height: 100%;
 }
 
-.tree-view-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 26px;
-  padding: 3px 8px 3px 0;
-  cursor: pointer;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.tree-view-guide {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--border);
-  pointer-events: none;
-}
-
-.tree-view-item:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.tree-view-item.active {
-  background: var(--bg-active);
-  color: var(--text);
-}
-
-/* Multi-selection (Cmd/Ctrl/Shift+click) — distinct from .active (the
-   file actually open in the pane's editor), so both can apply at once
-   without one visually hiding the other. */
-.tree-view-item.selected {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.tree-view-item.selected.active {
-  background: var(--bg-active);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-}
-
 /* Find/Replace in Files (SearchPanel.tsx) — reuses .obsidian-explorer's
    sidebar slot in place of TreeView, same flat/no-shadow language as
    .tree-view* above. */
@@ -3708,55 +3662,8 @@ input {
   border-radius: 2px;
 }
 
-.tree-view-item.drag-over {
-  background: var(--bg-hover);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-}
-
 .tree-view.drag-over-root {
   box-shadow: inset 0 0 0 1px var(--border-strong);
-}
-
-.tree-view-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  color: var(--text-faint);
-}
-
-.tree-view-disclosure {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 16px;
-  flex-shrink: 0;
-  color: var(--text-faint);
-  transition: transform 100ms ease;
-}
-
-.tree-view-disclosure.expanded {
-  transform: rotate(90deg);
-}
-
-.tree-view-icon.folder {
-  color: var(--text-muted);
-}
-
-:root[data-theme="light"] .tree-view-icon.folder {
-  color: #414852;
-}
-
-:root[data-theme="light"] .tree-view-icon.folder svg {
-  stroke-width: 1.6px;
-}
-
-.tree-view-item:hover .tree-view-icon,
-.tree-view-item.active .tree-view-icon {
-  color: var(--text);
 }
 
 /* —— Settings dialog —— */

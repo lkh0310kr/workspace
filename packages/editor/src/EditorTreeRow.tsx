@@ -111,11 +111,11 @@ export function EditorTreeRow({
       {showGuides && Array.from({ length: depth }, (_, level) => (
         <span key={level} className="editor-tree-guide" style={{ insetInlineStart: level * 14 + 14 }} />
       ))}
-      <span className={`editor-tree-disclosure tree-view-disclosure tree-chevron${expanded ? " is-expanded expanded" : ""}`} aria-hidden="true">
+      <span className={`editor-tree-disclosure${expanded ? " is-expanded" : ""}`} aria-hidden="true">
         {loading ? <span className="editor-tree-loading" /> : expandable ? disclosure : null}
       </span>
-      <span className={`editor-tree-icon tree-view-icon file-icon ${kind === "directory" ? "folder" : kind}`} aria-hidden="true">{icon}</span>
-      <span className="editor-tree-name tree-view-name tree-label">{name}</span>
+      <span className={`editor-tree-icon editor-tree-icon--${kind}`} aria-hidden="true">{icon}</span>
+      <span className="editor-tree-name">{name}</span>
     </button>
   );
 }
