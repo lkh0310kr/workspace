@@ -1,4 +1,5 @@
 import type { FileRecord, TreeRow } from "./types";
+import { flattenEditorTree } from "@workspace/editor";
 
 export function parentPath(path: string): string {
   const separator = path.lastIndexOf("/");
@@ -45,15 +46,13 @@ export function flattenTree(files: FileRecord[], expanded: Set<string>): TreeRow
     siblings.push(file);
     children.set(parent, siblings);
   }
-  const rows: TreeRow[] = [];
-  const visit = (parent: string, depth: number) => {
-    const siblings = children.get(parent) ?? [];
-    siblings.sort((a, b) => Number(b.kind === "folder") - Number(a.kind === "folder") || entryName(a.path).localeCompare(entryName(b.path), undefined, { sensitivity: "base" }));
-    for (const file of siblings) {
-      rows.push({ file, depth });
-      if (file.kind === "folder" && expanded.has(file.path)) visit(file.path, depth + 1);
-    }
-  };
-  visit("", 0);
-  return rows;
+  return flattenEditorTree(
+    new Map([...children].map(([path, entries]) => [path, entries.map((file) => ({
+      file,
+      path: file.path,
+      name: entryName(file.path),
+      directory: file.kind === "folder",
+    }))])),
+    expanded,
+  ).map(({ item, depth }) => ({ file: item.file, depth }));
 }

@@ -31,7 +31,7 @@ import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { projectVisibleRows } from "../explorer/useTreeProjection";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { EditorTreeRow } from "@workspace/editor";
+import { EditorTreeRow, flattenEditorTree } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -116,22 +116,6 @@ async function findAvailableName(tabId: number, dir: string, base: string, ext: 
 }
 
 const TREE_DRAG_MIME = "application/x-workspace-tree-paths";
-
-interface FlatRow {
-  entry: EditorDirEntry;
-  depth: number;
-}
-
-function flattenVisible(dirs: Map<string, DirState>, expanded: Set<string>, dir: string, depth: number, out: FlatRow[]): void {
-  const state = dirs.get(dir);
-  if (!state) return;
-  for (const entry of state.entries) {
-    out.push({ entry, depth });
-    if (entry.is_dir && expanded.has(entry.path)) {
-      flattenVisible(dirs, expanded, entry.path, depth + 1, out);
-    }
-  }
-}
 
 export function TreeView({
   tabId,
@@ -297,9 +281,14 @@ export function TreeView({
   }, [paneVisible]);
 
   const flatList = useMemo(() => {
-    const out: FlatRow[] = [];
-    flattenVisible(dirs, expanded, "", 0, out);
-    return out;
+    return flattenEditorTree(
+      new Map([...dirs].map(([path, state]) => [path, state.entries.map((entry) => ({
+        ...entry,
+        name: entry.name,
+        directory: entry.is_dir,
+      }))])),
+      expanded,
+    ).map(({ item, depth }) => ({ entry: item, depth }));
   }, [dirs, expanded]);
 
   const projection = useMemo(
