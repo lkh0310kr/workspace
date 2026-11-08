@@ -93,7 +93,7 @@ interface EditorProvider {
   listChildren(parentId: string | null, signal?: AbortSignal): Promise<EditorTreeItem[]>;
   subscribeTree(listener: (changedParentIds: readonly string[]) => void): () => void;
   openDocument(item: EditorItemRef, signal?: AbortSignal): Promise<EditorDocumentSession>;
-  search(query: string, options: EditorSearchOptions, signal?: AbortSignal): Promise<EditorSearchResult[]>;
+  search(query: string, options: EditorSearchOptions, signal?: AbortSignal, onResult?: (result: EditorSearchResult) => void): Promise<EditorSearchResult[]>;
   replaceContents?(item: EditorItemRef, query: string, replacement: string, options: Omit<EditorSearchOptions, "target">, expectedMatchCount: number): Promise<boolean>;
   create?(parentId: string | null, kind: "file" | "directory", name: string): Promise<EditorTreeItem>;
   rename?(item: EditorItemRef, name: string): Promise<EditorTreeItem>;
