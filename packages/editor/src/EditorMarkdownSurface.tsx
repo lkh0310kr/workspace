@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
+import type { MarkdownConfig } from "@lezer/markdown";
 import { createMarkdownEditorExtensions } from "./markdownEditor";
 import { markdownLinkNavigation, type EditorMarkdownLink } from "./markdownLinkNavigation";
 import { markdownImageResolver, type MarkdownImageResolver } from "./markdownLivePreview";
@@ -9,8 +10,12 @@ import { markdownEditorTheme } from "./themes";
 import { EditorTextSurface, type EditorTextSurfaceProps } from "./EditorTextSurface";
 import { markdownOutlineFromState, type MarkdownHeading } from "./markdownOutline";
 
+const emptyExtensions: readonly Extension[] = [];
+
 export interface EditorMarkdownSurfaceProps extends Omit<EditorTextSurfaceProps, "extensions" | "onViewReady"> {
-  /** Product-specific language, link, and interaction extensions. */
+  /** Product-specific syntax additions to the shared Markdown parser. */
+  parserExtensions?: readonly MarkdownConfig[];
+  /** Product-specific link, styling, and interaction extensions. */
   extensions?: readonly Extension[];
   onViewReady?: EditorTextSurfaceProps["onViewReady"];
   onNavigateReady?: (navigate: ((position: number) => void) | null) => void;
@@ -19,15 +24,10 @@ export interface EditorMarkdownSurfaceProps extends Omit<EditorTextSurfaceProps,
   resolveImage?: MarkdownImageResolver;
 }
 
-const baseMarkdownExtensions: readonly Extension[] = [
-  ...createMarkdownEditorExtensions(),
-  syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-  markdownEditorTheme,
-];
-
 /** Shared Markdown editing surface; hosts supply provider sessions and product extensions. */
 export function EditorMarkdownSurface({
-  extensions = baseMarkdownExtensions,
+  parserExtensions,
+  extensions = emptyExtensions,
   onViewReady: onViewReadyProp,
   onNavigateReady,
   onOutlineChange,
@@ -35,6 +35,11 @@ export function EditorMarkdownSurface({
   resolveImage,
   ...surfaceProps
 }: EditorMarkdownSurfaceProps) {
+  const baseExtensions = useMemo<readonly Extension[]>(() => [
+    ...createMarkdownEditorExtensions({ parserExtensions }),
+    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+    markdownEditorTheme,
+  ], [parserExtensions]);
   const onOutlineChangeRef = useRef(onOutlineChange);
   onOutlineChangeRef.current = onOutlineChange;
   const onActivateLinkRef = useRef(onActivateLink);
@@ -44,13 +49,14 @@ export function EditorMarkdownSurface({
   const linkNavigation = useMemo(() => markdownLinkNavigation((link) => onActivateLinkRef.current?.(link) ?? false), []);
   const imageResolver = useMemo(() => resolveImage ? markdownImageResolver.of((url) => resolveImageRef.current?.(url) ?? null) : [], []);
   const sharedExtensions = useMemo(() => [
+    ...baseExtensions,
     ...extensions,
     linkNavigation,
     imageResolver,
     EditorView.updateListener.of((update) => {
       if (update.docChanged) onOutlineChangeRef.current?.(markdownOutlineFromState(update.state));
     }),
-  ], [extensions, imageResolver, linkNavigation]);
+  ], [baseExtensions, extensions, imageResolver, linkNavigation]);
   const onViewReady = useCallback((view: EditorView | null) => {
     onViewReadyProp?.(view);
     if (!view) {

@@ -11,7 +11,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, editorDocumentKey, EditorMarkdownDocument, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
+import { editorDocumentKey, EditorMarkdownDocument, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
 const EditorMarkdownSurface = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
@@ -36,6 +36,8 @@ import { pastePlainTextCommand } from "../editorPlainPaste";
 import { getFocusedEditorView } from "../activeEditorView";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
 import type { TabKind } from "../layout/paneTypes";
+
+const workspaceMarkdownParserExtensions = [wikiLinkExtension] as const;
 
 // The per-file content half of what used to be ui/EditorPane.tsx — tab strip
 // and multi-file routing live in PaneGroup; TreeView/explorer sidebar renders
@@ -370,7 +372,6 @@ export function EditorContent({
     languageCompartmentRef.current = languageCompartment;
     const modeExtensions = isMarkdown
       ? [
-          ...createMarkdownEditorExtensions({ parserExtensions: [wikiLinkExtension] }),
           rootCompartment.of(markdownRootPath.of(rootPath)),
           markdownProseTheme,
           keymap.of([
@@ -701,7 +702,7 @@ export function EditorContent({
               onBackgroundClick={onScrollContainerClick}
             >
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
+                <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" parserExtensions={workspaceMarkdownParserExtensions} extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
                   if (link.kind === "wikilink") {
                     void resolveWikiLinkTarget(editorProvider, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;
