@@ -181,6 +181,17 @@ export function EditorContent({
       : `${editorProvider.id}:path:${filePath ?? `untitled:${tabId}`}`;
   const documentCacheKeyRef = useRef(documentCacheKey);
   documentCacheKeyRef.current = documentCacheKey;
+  const pendingViewStateMigrationRef = useRef<{ from: string; to: string } | null>(null);
+  const requestViewStateMigration = useCallback((nextKey: string) => {
+    const currentKey = documentCacheKeyRef.current;
+    pendingViewStateMigrationRef.current = currentKey && currentKey !== nextKey ? { from: currentKey, to: nextKey } : null;
+  }, []);
+  const onDocumentKeyChange = useCallback((previousKey: string | undefined, nextKey: string | undefined) => {
+    const pending = pendingViewStateMigrationRef.current;
+    if (!pending || pending.from !== previousKey || pending.to !== nextKey) return false;
+    pendingViewStateMigrationRef.current = null;
+    return true;
+  }, []);
   const setDirtyState = useCallback((next: boolean) => {
     if (dirtyRef.current === next) return;
     dirtyRef.current = next;
@@ -229,7 +240,9 @@ export function EditorContent({
         .then((item) => {
           if (!item) throw new Error(`File not found: ${path}`);
           if (sequence === documentLoadSequenceRef.current && pathRef.current === path) {
-            setResolvedDocumentIdentity({ path, key: `${item.providerId}:${item.itemId}` });
+            const identityKey = `${item.providerId}:${item.itemId}`;
+            requestViewStateMigration(identityKey);
+            setResolvedDocumentIdentity({ path, key: identityKey });
           }
           return editorProvider.openDocument(item, controller.signal);
         })
@@ -257,7 +270,7 @@ export function EditorContent({
         });
       return true;
     },
-    [editorProvider, applyLoadedFileContent, setDirtyState],
+    [editorProvider, applyLoadedFileContent, requestViewStateMigration, setDirtyState],
   );
 
   useEffect(() => () => {
@@ -300,6 +313,7 @@ export function EditorContent({
               item = await editorProvider.create(parent?.itemId ?? null, "file", name);
             }
             targetSession = await editorProvider.openDocument(item);
+            requestViewStateMigration(`${targetSession.item.providerId}:${targetSession.item.itemId}`);
             documentSessionRef.current = targetSession;
             setActiveDocumentSession(targetSession);
           }
@@ -323,7 +337,7 @@ export function EditorContent({
         throw error;
       });
     },
-    [editorProvider, setDirtyState],
+    [editorProvider, requestViewStateMigration, setDirtyState],
   );
 
   const saveActiveFile = useCallback(
@@ -687,7 +701,7 @@ export function EditorContent({
               onBackgroundClick={onScrollContainerClick}
             >
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
+                <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
                   if (link.kind === "wikilink") {
                     void resolveWikiLinkTarget(editorProvider, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;
@@ -704,7 +718,7 @@ export function EditorContent({
             </EditorMarkdownDocument>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
+              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import { historyField } from "@codemirror/commands";
 import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { createEditorView, editorDocumentReplacement, replaceEditorDocument } from "./codeMirror";
-import { readEditorViewState, writeEditorViewState, type EditorViewStateStorage } from "./viewStateCache";
+import { moveEditorViewState, readEditorViewState, writeEditorViewState, type EditorViewStateStorage } from "./viewStateCache";
 import { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
 import type { EditorDocumentSession } from "./provider";
 import "./markdown.css";
@@ -27,6 +27,8 @@ export interface EditorTextSurfaceProps {
   autocapitalize?: string;
   /** Stable provider item identity, used to retain cursor, selection, scroll, and undo history. */
   documentKey?: string;
+  /** Return true only when a key change is the same document acquiring a stable provider identity. */
+  onDocumentKeyChange?: (previousKey: string | undefined, nextKey: string | undefined) => boolean;
   /** Host-owned persistence adapter; omitted to keep editor state in memory only. */
   viewStateStorage?: EditorViewStateStorage;
 }
@@ -45,12 +47,15 @@ export function EditorTextSurface({
   spellcheck,
   autocapitalize,
   documentKey,
+  onDocumentKeyChange,
   viewStateStorage,
 }: EditorTextSurfaceProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const persistViewStateRef = useRef<(() => void) | null>(null);
   const documentKeyRef = useRef(documentKey);
+  const onDocumentKeyChangeRef = useRef(onDocumentKeyChange);
+  onDocumentKeyChangeRef.current = onDocumentKeyChange;
   const viewStateStorageRef = useRef(viewStateStorage);
   const viewExtensionsRef = useRef<Extension[]>([]);
   const onChangeRef = useRef(onChange);
@@ -167,6 +172,9 @@ export function EditorTextSurface({
       return;
     }
     persistViewStateRef.current?.();
+    if (previousKey && documentKey && onDocumentKeyChangeRef.current?.(previousKey, documentKey)) {
+      moveEditorViewState(previousKey, documentKey, viewStateStorageRef.current);
+    }
     documentKeyRef.current = documentKey;
 
     const cached = documentKey ? readEditorViewState(documentKey, viewStateStorageRef.current) : undefined;
