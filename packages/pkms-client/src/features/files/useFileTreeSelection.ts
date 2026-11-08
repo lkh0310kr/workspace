@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { resolveEditorTreeSelection } from "@workspace/editor";
 import type { TreeRow } from "../../domain/types";
 
 export function useFileTreeSelection(rows: TreeRow[]) {
@@ -8,26 +9,18 @@ export function useFileTreeSelection(rows: TreeRow[]) {
   const [cutPaths, setCutPaths] = useState<Set<string>>(() => new Set());
 
   const selectRow = useCallback((path: string, index: number, additive = false, range = false) => {
-    setFocusedPath(path);
-    if (range) {
-      const anchor = rows.findIndex((row) => row.file.path === (selectionAnchorPath ?? path));
-      const from = anchor < 0 ? index : anchor;
-      const paths = rows.slice(Math.min(from, index), Math.max(from, index) + 1).map((row) => row.file.path);
-      setSelectedPaths((current) => new Set([...(additive ? current : []), ...paths]));
-      if (!selectionAnchorPath) setSelectionAnchorPath(path);
-    } else if (additive) {
-      setSelectedPaths((current) => {
-        const next = new Set(current);
-        if (next.has(path)) next.delete(path);
-        else next.add(path);
-        return next;
-      });
-      setSelectionAnchorPath(path);
-    } else {
-      setSelectedPaths(new Set([path]));
-      setSelectionAnchorPath(path);
-    }
-  }, [rows, selectionAnchorPath]);
+    const targetPath = rows[index]?.file.path === path ? path : rows.find((row) => row.file.path === path)?.file.path;
+    if (!targetPath) return;
+    const next = resolveEditorTreeSelection(
+      rows.map((row) => row.file.path),
+      { focusedPath, anchorPath: selectionAnchorPath, selectedPaths },
+      targetPath,
+      { additive, range },
+    );
+    setFocusedPath(next.focusedPath);
+    setSelectionAnchorPath(next.anchorPath);
+    setSelectedPaths(new Set(next.selectedPaths));
+  }, [rows, focusedPath, selectionAnchorPath, selectedPaths]);
 
   return {
     focusedPath,

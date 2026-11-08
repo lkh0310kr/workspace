@@ -30,7 +30,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, flattenEditorTree, projectEditorTreeRows, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, flattenEditorTree, projectEditorTreeRows, resolveEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -328,30 +328,16 @@ export function TreeView({
   ) => {
     const path = entry.path;
     treeRef.current?.focus();
-
-    if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
-      setSelected((prev) => {
-        const next = new Set(prev);
-        if (next.has(path)) next.delete(path);
-        else next.add(path);
-        return next;
-      });
-      setSelectionAnchor(path);
-      return;
-    }
-
-    if (e.shiftKey && selectionAnchor) {
-      const fromIdx = flatList.findIndex((r) => r.entry.path === selectionAnchor);
-      const toIdx = flatList.findIndex((r) => r.entry.path === path);
-      if (fromIdx !== -1 && toIdx !== -1) {
-        const [lo, hi] = fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
-        setSelected(new Set(flatList.slice(lo, hi + 1).map((r) => r.entry.path)));
-        return;
-      }
-    }
-
-    setSelected(new Set([path]));
-    setSelectionAnchor(path);
+    const modifiers = { additive: e.metaKey || e.ctrlKey, range: e.shiftKey };
+    const next = resolveEditorTreeSelection(
+      flatList.map((row) => row.entry.path),
+      { focusedPath: focusedEntry()?.path ?? null, anchorPath: selectionAnchor, selectedPaths: selected },
+      path,
+      modifiers,
+    );
+    setSelected(new Set(next.selectedPaths));
+    setSelectionAnchor(next.anchorPath);
+    if (modifiers.additive || modifiers.range) return;
     if (entry.is_dir) {
       toggle(path);
     } else {
@@ -561,17 +547,14 @@ export function TreeView({
         if (action.type === "focus") {
           const next = flatList[action.index];
           if (!next) return;
-          if (extendSelection) {
-            const anchorPath = selectionAnchor ?? focusedEntry()?.path ?? next.entry.path;
-            const anchor = flatList.findIndex((row) => row.entry.path === anchorPath);
-            const low = Math.min(anchor < 0 ? action.index : anchor, action.index);
-            const high = Math.max(anchor < 0 ? action.index : anchor, action.index);
-            setSelected(new Set(flatList.slice(low, high + 1).map((row) => row.entry.path)));
-            if (!selectionAnchor) setSelectionAnchor(anchorPath);
-          } else {
-            setSelected(new Set([next.entry.path]));
-            setSelectionAnchor(next.entry.path);
-          }
+          const selection = resolveEditorTreeSelection(
+            flatList.map((row) => row.entry.path),
+            { focusedPath: focusedEntry()?.path ?? null, anchorPath: selectionAnchor, selectedPaths: selected },
+            action.path,
+            { range: extendSelection },
+          );
+          setSelected(new Set(selection.selectedPaths));
+          setSelectionAnchor(selection.anchorPath);
           scrollRowIntoView(next.entry.path);
           return;
         }
@@ -588,7 +571,7 @@ export function TreeView({
         if (!dirs.get(path)?.loaded) loadDir(path);
       },
     }),
-    [focusedEntry, flatList, openFileFromTree, dirs, loadDir, setExpandedPersisted, expanded, selectionAnchor],
+    [focusedEntry, flatList, openFileFromTree, dirs, loadDir, setExpandedPersisted, expanded, selectionAnchor, selected],
   );
 
   useExplorerKeyboard(
