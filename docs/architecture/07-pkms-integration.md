@@ -13,7 +13,7 @@ PKMS는 Workspace에 pane으로 들어오지만 기존 Cloudflare Worker를 사�
 | 클라이언트 API | `packages/pkms-client/src/client/` | Web 쿠키 요청과 Desktop IPC 요청을 연결하는 공용 transport |
 | Web route adapter | `apps/pkms-web/app/routes/home.tsx` | Web 앱의 라우트 트리에서 공용 클라이언트 렌더링 |
 | 공용 클라이언트 스타일 | `packages/pkms-client/src/styles.css` | Web과 격리된 Desktop pane이 함께 사용하는 스타일 |
-| Desktop HTTP 어댑터 | `packages/pkms-client/src/platform/desktopApi.ts` | Desktop bridge가 있을 때만 API 요청을 Workspace IPC로 전달. Web은 기존 same-origin `fetch` 사용 |
+| Desktop HTTP·Sync Bridge 어댑터 | `packages/pkms-client/src/platform/desktopApi.ts`, `apps/workspace-app/src/main/pkms/syncBridge.ts` | Desktop bridge가 있을 때 API 요청과 선택한 로컬 Markdown 폴더를 Main으로 연결. Web은 same-origin `fetch`를 사용하고 로컬 폴더 연결 기능은 제공하지 않음 |
 | IPC 계약 | `apps/workspace-app/src/shared/pkmsClient.ts` | 요청, multipart 업로드, 첨부 파일 메시지 타입 |
 | Preload bridge | `apps/workspace-app/src/preload/index.ts` | 범위가 제한된 `window.pkmsDesktop` API 노출 |
 | Main IPC handler | `apps/workspace-app/src/main/pkms/ipc.ts` | renderer sender를 검증하고 요청, 첨부 파일, GitHub 인증 페이지 handler 등록 |
@@ -47,7 +47,7 @@ Web 앱은 Electron bridge를 사용하지 않습니다. 기존 쿠키·세션 �
 
 ## 클라이언트 동작과 수명
 
-Desktop pane은 기존 PKMS 동작을 재사용합니다. 폴더와 문서는 필요할 때 읽고, 최근 Markdown 문서는 Yjs 상태를 IndexedDB에 저장하며, 첨부 파일은 선택한 뒤 가져옵니다. 동시 편집 상태는 Supabase Realtime으로 전달합니다. Workspace 로컬 파일 편집기나 파일시스템에는 PKMS 문서를 복제하지 않습니다. GitHub는 기존 Worker API 뒤에서 데이터 원본·백업 역할을 계속합니다.
+Desktop pane은 기존 PKMS 동작을 재사용하며, 선택 사항인 Sync Bridge로 workspace마다 로컬 Markdown 폴더를 연결할 수 있습니다. Main process가 파일 감시와 15초 주기 재검사를 수행하고, 서버 문서 업데이트와 파일 변경을 반영합니다. 동기화 기준 정보는 앱 userData에 저장하며 `.git`, `.obsidian`, `node_modules`, `.pkms`와 pane에서 설정한 제외 패턴은 건너뜁니다. 다른 쪽도 바뀐 파일은 로컬 conflict 사본을 만들고 서버 버전을 원래 경로에 둡니다. 기존 Yjs 저장 및 실시간 전달을 사용하며 GitHub backup 진행 상태는 별도로 표시합니다. Web은 브라우저의 로컬 폴더 접근을 시도하지 않고 Desktop 연결이 필요하다고 안내합니다.
 
 각 pane host가 자체 React root를 만들고 해제합니다. Shadow DOM은 PKMS 초기화 스타일과 컴포넌트 스타일이 다른 Workspace pane에 새지 않게 격리합니다. Web route와 Workspace pane은 같은 `PkmsClientApp`을 마운트하며, 플랫폼별 요청 차이는 `desktopApi.ts` 경계에 둡니다.
 

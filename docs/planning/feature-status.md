@@ -10,6 +10,7 @@
 | Editor·파일 탐색·검색 | `implemented` | 코드·Markdown 편집, 파일 트리와 검색 | `apps/workspace-app/src/renderer/src/panes/EditorContent.tsx` |
 | 파일·미디어 뷰어 | `implemented` | 이미지, PDF, EPUB, 오디오·비디오와 모델 미리보기 | `apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx` |
 | PKMS Web·Desktop·iOS | `implemented` | GitHub 기반 지식 관리, 협업과 플랫폼별 클라이언트 | `apps/pkms-web/`, `apps/pkms-server/`, `packages/pkms-client/`, `apps/pkms-ios/` |
+| PKMS Desktop Folder Sync Bridge | `in_progress` | pane에서 workspace별 Markdown 폴더 연결·제외 패턴·sync 상태 관리. Main process의 file watch와 주기 재검사, Yjs 문서와 파일 간 양방향 동기화 및 conflict copy. 수동 end-to-end acceptance와 attachment 지원은 남음 | `apps/workspace-app/src/main/pkms/syncBridge.ts`, `packages/pkms-client/src/components/SyncBridgePanel.tsx` |
 | Workspace Home 서비스 대시보드 | `in_progress` | Desktop UI 복구 및 독립 Worker 배포 완료. provider OAuth secret/callback 설정과 재연결이 남음 | `apps/workspace-app/src/renderer/src/dashboard/`, `apps/workspace-server/`, `apps/pkms-server/src/realtimeAuth.ts` |
 
 PKMS Web/Server와 Workspace App/Server의 소스 디렉터리 경계 정리는 별도 후속 작업입니다. 목표 구조와 현재 분리 상태는 [제품별 앱 경계](../architecture/08-monorepo-module-boundaries.md)에 있습니다.

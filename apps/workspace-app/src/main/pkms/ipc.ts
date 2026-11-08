@@ -1,6 +1,7 @@
-import { ipcMain, shell } from "electron";
+import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import type { PkmsRequestOptions } from "../../shared/pkmsClient";
 import { fetchPkmsAsset, parsePkmsVerificationUrl, parseServiceOAuthUrl, requestPkmsApi, requestWorkspaceHomeApi } from "./api";
+import { configurePkmsSyncBridge, disconnectPkmsSyncBridge, getPkmsSyncBridgeStatus, scanPkmsSyncBridge, startConfiguredPkmsSyncBridges, updatePkmsSyncBridgeExclusions } from "./syncBridge";
 
 function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
   const rawUrl = event.senderFrame?.url;
@@ -12,6 +13,7 @@ function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
 }
 
 export function registerPkmsIpc(): void {
+  void startConfiguredPkmsSyncBridges();
   ipcMain.handle("pkms:request", (event, pathName: string, options: PkmsRequestOptions) => {
     assertTrustedSender(event);
     return requestPkmsApi(pathName, options);
@@ -19,6 +21,32 @@ export function registerPkmsIpc(): void {
   ipcMain.handle("pkms:fetch-asset", (event, pathName: string) => {
     assertTrustedSender(event);
     return fetchPkmsAsset(pathName);
+  });
+  ipcMain.handle("pkms:sync-bridge:status", (event, workspaceId: string) => {
+    assertTrustedSender(event);
+    return getPkmsSyncBridgeStatus(workspaceId);
+  });
+  ipcMain.handle("pkms:sync-bridge:connect", async (event, workspaceId: string) => {
+    assertTrustedSender(event);
+    if (!/^[A-Za-z0-9_-]{1,100}$/.test(workspaceId)) throw new Error("invalid_workspace_id");
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    const options = { properties: ["openDirectory", "createDirectory"] as Array<"openDirectory" | "createDirectory"> };
+    const picked = owner ? await dialog.showOpenDialog(owner, options) : await dialog.showOpenDialog(options);
+    if (picked.canceled || !picked.filePaths[0]) return { canceled: true };
+    return { canceled: false, status: await configurePkmsSyncBridge(workspaceId, picked.filePaths[0]) };
+  });
+  ipcMain.handle("pkms:sync-bridge:disconnect", (event, workspaceId: string) => {
+    assertTrustedSender(event);
+    return disconnectPkmsSyncBridge(workspaceId);
+  });
+  ipcMain.handle("pkms:sync-bridge:scan", (event, workspaceId: string) => {
+    assertTrustedSender(event);
+    return scanPkmsSyncBridge(workspaceId);
+  });
+  ipcMain.handle("pkms:sync-bridge:exclusions", (event, workspaceId: string, paths: string[]) => {
+    assertTrustedSender(event);
+    if (!Array.isArray(paths) || paths.some((item) => typeof item !== "string")) throw new Error("invalid_exclusions");
+    return updatePkmsSyncBridgeExclusions(workspaceId, paths);
   });
   ipcMain.handle("workspace-home:request", (event, pathName: string, options: PkmsRequestOptions) => {
     assertTrustedSender(event);

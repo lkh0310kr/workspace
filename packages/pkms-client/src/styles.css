@@ -77,6 +77,30 @@ button { cursor: pointer; }
 .workspace-select select { display: block; width: 100%; margin-top: 7px; padding: 7px 8px; border: 1px solid var(--border); border-radius: 6px; outline-color: var(--muted); color: var(--text); background: var(--surface); font-size: 12px; }
 .connect-link { display: flex; width: 100%; justify-content: space-between; margin-top: 8px; padding: 2px 0; border: 0; color: var(--text); background: transparent; text-align: left; font-size: 12px; }
 .connect-link:hover { color: var(--muted); }
+.sync-bridge-panel { margin: 0 2px 5px; padding: 8px 8px 7px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); font-size: 10px; }
+.sync-bridge-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sync-bridge-heading > div { display: flex; align-items: center; gap: 6px; }
+.sync-bridge-state { color: var(--muted); white-space: nowrap; }
+.sync-bridge-indicator { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--subtle); }
+.sync-bridge-indicator--synced { background: #36a269; }
+.sync-bridge-indicator--syncing { background: var(--accent); animation: sync-bridge-pulse 1s ease-in-out infinite alternate; }
+.sync-bridge-indicator--offline, .sync-bridge-indicator--error { background: var(--danger); }
+@keyframes sync-bridge-pulse { to { opacity: .35; } }
+.sync-bridge-path { overflow: hidden; margin-top: 6px; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
+.sync-bridge-meta { margin-top: 5px; color: var(--muted); line-height: 1.4; }
+.sync-bridge-error { margin-top: 5px; color: var(--danger); overflow-wrap: anywhere; }
+.sync-bridge-conflicts { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; color: var(--warning); line-height: 1.35; }
+.sync-bridge-conflicts span { overflow-wrap: anywhere; color: var(--muted); }
+.sync-bridge-github { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--border); color: var(--muted); }
+.sync-bridge-github-state { color: var(--text); font-weight: 500; }
+.sync-bridge-github-state.is-failed, .sync-bridge-github-state.is-external-change { color: var(--danger); }
+.sync-bridge-exclusions { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; color: var(--muted); }
+.sync-bridge-exclusions textarea { width: 100%; min-height: 42px; resize: vertical; padding: 5px 6px; border: 1px solid var(--border); border-radius: 5px; color: var(--text); background: var(--bg); font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.sync-bridge-exclusions button { align-self: flex-start; min-height: 22px; padding: 3px 7px; border: 1px solid var(--border); border-radius: 5px; color: var(--text); background: transparent; font-size: 10px; }
+.sync-bridge-actions { display: flex; gap: 6px; margin-top: 7px; }
+.sync-bridge-actions button { min-height: 23px; padding: 3px 7px; border: 1px solid var(--border); border-radius: 5px; color: var(--text); background: transparent; font-size: 10px; }
+.sync-bridge-actions button:hover:not(:disabled) { background: var(--hover); }
+.sync-bridge-actions button:disabled { opacity: .5; }
 .file-toolbar { padding: 9px 6px 5px; }
 .toolbar-actions { display: flex; gap: 2px; }
 .file-filter-panel { display: flex; flex: 0 0 auto; flex-direction: column; gap: 7px; margin: 4px 2px 8px; padding: 9px; border: 1px solid var(--border); border-radius: 7px; color: var(--muted); background: var(--surface); font-size: 11px; }

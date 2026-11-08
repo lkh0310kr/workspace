@@ -19,6 +19,7 @@ import { PKMS_QUICK_OPEN_EVENT } from "./hostEvents";
 import { AppIcon, GitHubIcon } from "./components/Icons";
 import { PkmsDialog, type PkmsDialogRequest } from "./components/PkmsDialog";
 import { FileTreeList } from "./components/FileTreeList";
+import { SyncBridgePanel } from "./components/SyncBridgePanel";
 import { useWorkspaceDirectory } from "./features/files/useWorkspaceDirectory";
 import { useDocumentSync } from "./features/editor/useDocumentSync";
 import { useRealtimeMessages } from "./features/editor/useRealtimeMessages";
@@ -760,14 +761,6 @@ export default function Home() {
       }
     };
     void loadSnapshot();
-    // Mirror GitHub into the server cache in bounded steps (tree, then note bodies) so links and notes resolve without GitHub.
-    const runMirror = async () => {
-      for (let step = 0; step < 60 && alive; step++) {
-        const result = await api<{ status: string }>(`/api/workspaces/${activeWorkspace.id}/mirror`, { method: "POST" });
-        if (result.status !== "progress") return;
-      }
-    };
-    void runMirror().catch(() => {});
     let syncTimer = 0;
     const pollSyncStatus = (delay: number) => {
       syncTimer = window.setTimeout(() => {
@@ -1188,6 +1181,7 @@ export default function Home() {
           </select> : <button className="connect-link" onClick={openRepositoryPicker}>Connect a repository <span>↗</span></button>}
         </div>
         {activeWorkspace && <>
+          <SyncBridgePanel workspaceId={activeWorkspace.id} githubStatus={sync.githubStatus} githubLastCommitAt={sync.lastGitHubCommitAt} githubPendingFiles={sync.pendingFiles} githubMessage={sync.message} />
           <div className="file-toolbar"><span className="eyebrow">Files</span><div className="toolbar-actions">
             <button className={`mini-button visibility-button${showFileFilters ? " active" : ""}`} title="File filter settings" aria-label="File filter settings" aria-expanded={showFileFilters} onClick={() => setShowFileFilters((open) => !open)}><AppIcon name="filter" /></button>
             {canCreateFile && <button className="mini-button" title="New note" onClick={() => beginTreeCreation("file", toolbarCreationFolder)}><AppIcon name="filePlus" /></button>}

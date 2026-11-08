@@ -36,6 +36,7 @@ import { setupBrowserSession } from './browserSession'
 import { setupBrowserDownloads } from './browserDownloads'
 import { registerBrowserNavIpc } from './browserNav'
 import { registerPkmsIpc } from './pkms/ipc'
+import { stopPkmsSyncBridges } from './pkms/syncBridge'
 import { registerWorkspaceIpc } from './ipc/workspace'
 import { registerTerminalIpc } from './ipc/terminal'
 import { registerContentCapabilityIpc } from './ipc/contentCapabilities'
@@ -709,6 +710,7 @@ async function prepareApplicationQuit(): Promise<void> {
     workspace.disposeAllTerminals()
   }
   fileWatcher?.close()
+  stopPkmsSyncBridges()
   disposeCadViewers()
 }
 

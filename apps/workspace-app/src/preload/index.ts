@@ -36,6 +36,11 @@ const pkmsDesktop = {
     ipcRenderer.invoke('pkms:request', path, options) as Promise<import('../shared/pkmsClient').PkmsResponse<T>>,
   fetchAsset: (path: string) =>
     ipcRenderer.invoke('pkms:fetch-asset', path) as Promise<import('../shared/pkmsClient').PkmsAssetResponse>,
+  syncBridgeStatus: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:status', workspaceId),
+  connectSyncBridge: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:connect', workspaceId),
+  disconnectSyncBridge: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:disconnect', workspaceId),
+  scanSyncBridge: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:scan', workspaceId),
+  updateSyncBridgeExclusions: (workspaceId: string, paths: string[]) => ipcRenderer.invoke('pkms:sync-bridge:exclusions', workspaceId, paths),
   openServiceOAuth: (url: string): Promise<void> => ipcRenderer.invoke('pkms:open-service-oauth', url),
 }
 const workspaceHome = {

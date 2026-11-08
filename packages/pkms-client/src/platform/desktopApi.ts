@@ -14,7 +14,29 @@ interface DesktopBridge {
   }): Promise<{ status: number; requestId?: string; body: T }>;
   fetchAsset(path: string): Promise<{ bytes: Uint8Array; contentType: string }>;
   openVerification(url: string): Promise<void>;
+  syncBridgeStatus(workspaceId: string): Promise<PkmsSyncBridgeStatus>;
+  connectSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeConnectResult>;
+  disconnectSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus>;
+  scanSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus>;
+  updateSyncBridgeExclusions(workspaceId: string, paths: string[]): Promise<PkmsSyncBridgeStatus>;
 }
+
+export interface PkmsSyncBridgeStatus {
+  workspaceId: string;
+  enabled: boolean;
+  folderPath: string | null;
+  excludedPaths: string[];
+  state: "disconnected" | "syncing" | "synced" | "offline" | "error";
+  lastScannedAt: number | null;
+  lastSyncedAt: number | null;
+  pendingFiles: number;
+  conflictFiles: string[];
+  error: string | null;
+}
+
+export type PkmsSyncBridgeConnectResult =
+  | { canceled: true }
+  | { canceled: false; status: PkmsSyncBridgeStatus };
 
 export function desktopBridge(): DesktopBridge | null {
   return (window as Window & { pkmsDesktop?: DesktopBridge }).pkmsDesktop ?? null;
