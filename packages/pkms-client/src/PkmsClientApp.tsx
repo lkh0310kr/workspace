@@ -1007,7 +1007,7 @@ export default function Home() {
   };
   const deleteThroughEditorProvider = async (items: FileRecord[]) => {
     if (!editorProvider?.delete) return deleteTreeItems(items);
-    await editorProvider.delete(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })));
+    return editorProvider.delete(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })));
   };
   const deleteActiveFileThroughEditorProvider = () => {
     if (activeFile) void deleteThroughEditorProvider([activeFile]);

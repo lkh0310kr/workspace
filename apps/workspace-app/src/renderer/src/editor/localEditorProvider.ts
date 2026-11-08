@@ -276,10 +276,22 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       return itemFor(to, isDirectory, name);
     },
     async delete(refs) {
-      for (const ref of refs) {
-        if (ref.providerId !== id) continue;
+      const paths = refs.map((ref) => {
+        if (ref.providerId !== id) throw new EditorProviderError("notFound", "Item belongs to a different provider");
         const path = pathByItemId.get(ref.itemId);
-        if (path === undefined) continue;
+        if (path === undefined) throw new EditorProviderError("notFound", "Item no longer exists");
+        return path;
+      });
+      // Validate all identities before the first filesystem mutation so a stale
+      // selection cannot produce a partially deleted batch.
+      for (const path of paths) {
+        const parentEntries = await listDir(tabId, parentOf(path) ?? "");
+        if (!parentEntries.some((entry) => entry.path === path)) {
+          throw new EditorProviderError("notFound", "Item no longer exists");
+        }
+      }
+      const roots = paths.filter((path) => !paths.some((candidate) => candidate !== path && path.startsWith(`${candidate}/`)));
+      for (const path of roots) {
         await deletePath(tabId, path);
         const affected = [...pathByItemId.entries()].filter(([, candidate]) => candidate === path || candidate.startsWith(`${path}/`));
         for (const [itemId, candidate] of affected) {
@@ -292,10 +304,25 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
     async move(refs, parentId) {
       const targetDir = parentId === null ? "" : pathByItemId.get(parentId);
       if (targetDir === undefined) throw new EditorProviderError("notFound", "Destination directory no longer exists");
-      for (const ref of refs) {
-        if (ref.providerId !== id) continue;
+      if (targetDir) {
+        const targetParentEntries = await listDir(tabId, parentOf(targetDir) ?? "");
+        if (!targetParentEntries.some((entry) => entry.path === targetDir && entry.is_dir)) {
+          throw new EditorProviderError("notFound", "Destination directory no longer exists");
+        }
+      }
+      const sources = refs.map((ref) => {
+        if (ref.providerId !== id) throw new EditorProviderError("notFound", "Item belongs to a different provider");
         const from = pathByItemId.get(ref.itemId);
-        if (from === undefined) continue;
+        if (from === undefined) throw new EditorProviderError("notFound", "Item no longer exists");
+        return from;
+      });
+      for (const from of sources) {
+        const oldEntries = await listDir(tabId, parentOf(from) ?? "");
+        const sourceEntry = oldEntries.find((entry) => entry.path === from);
+        if (!sourceEntry) throw new EditorProviderError("notFound", "Item no longer exists");
+      }
+      const roots = sources.filter((path) => !sources.some((candidate) => candidate !== path && path.startsWith(`${candidate}/`)));
+      for (const from of roots) {
         const name = from.split("/").at(-1) ?? from;
         const to = [targetDir, name].filter(Boolean).join("/");
         if (from === to || to.startsWith(`${from}/`)) continue;
