@@ -148,6 +148,27 @@ async function readRemoteText(workspaceId: string, file: BridgeFile): Promise<{ 
   Y.applyUpdate(doc, fromB64(data.update));
   return { text: doc.getText("markdown").toString(), revision: data.revision };
 }
+async function readRemoteTexts(workspaceId: string, files: BridgeFile[]): Promise<Map<string, { text: string; revision: number }>> {
+  const batches: BridgeFile[][] = [];
+  for (let index = 0; index < files.length; index += 4) batches.push(files.slice(index, index + 4));
+  const documents = new Map<string, { text: string; revision: number }>();
+  let nextBatch = 0;
+  const worker = async () => {
+    while (true) {
+      const batch = batches[nextBatch++];
+      if (!batch) return;
+      const result = await request<{ documents: Array<{ id: string; path: string; revision: number; text?: string; error?: string }> }>(
+        `/api/workspaces/${encodeURIComponent(workspaceId)}/sync/download`, "POST", { fileIds: batch.map((file) => file.id) },
+      );
+      for (const document of result.documents) {
+        if (document.error || typeof document.text !== "string") throw new Error(document.error ?? "document_load_failed");
+        documents.set(document.id, { text: document.text, revision: document.revision });
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(3, batches.length) }, () => worker()));
+  return documents;
+}
 async function createRemoteFile(workspaceId: string, snapshotRevision: number, relative: string, content: string): Promise<BridgeFile> {
   const fileId = randomUUID();
   const doc = new Y.Doc({ guid: fileId });
@@ -209,6 +230,11 @@ async function syncOnce(workspaceId: string): Promise<void> {
         progress: { completed, total, percent: total === 0 ? 100 : Math.floor((completed / total) * 100) },
       });
       reportProgress();
+      const remoteReads = await readRemoteTexts(workspaceId, paths.flatMap((relative) => {
+        const remote = remoteByPath.get(relative);
+        const baseline = baselines[relative];
+        return remote && (!baseline || baseline.fileId !== remote.id || baseline.revision !== remote.revision) ? [remote] : [];
+      }));
       const reconcilePath = async (relative: string): Promise<void> => {
         let itemComplete = false;
         try {
@@ -233,7 +259,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         }
         if (!remote) { delete baselines[relative]; itemComplete = true; return; }
         const remoteNeedsRead = !baseline || baseline.fileId !== remote.id || baseline.revision !== remote.revision;
-        const remoteContent = remoteNeedsRead ? await readRemoteText(workspaceId, remote) : null;
+        const remoteContent = remoteNeedsRead ? (remoteReads.get(remote.id) ?? await readRemoteText(workspaceId, remote)) : null;
         const remoteText = remoteContent?.text;
         const actualLocal = localText;
         if (actualLocal === undefined) {

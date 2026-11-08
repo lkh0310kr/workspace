@@ -75,6 +75,7 @@ export async function handleVaultRequest(env:Env,login:string,workspaceId:string
     const list=await files(env,workspaceId,{deleted:"eq.false",order:"path.asc",...(url.searchParams.has("afterRevision")?{revision:`gt.${Number(url.searchParams.get("afterRevision"))}`}:{})},"file_id,path,kind,size,revision");
     return json({workspaceId,revision:Number(workspace.server_revision),files:list.map(fileRecord),hasMore:false,nextRevision:Number(workspace.server_revision),afterRevision:Number(url.searchParams.get("afterRevision")??0)});
   }
+  if(p==="/sync/download"&&request.method==="POST")return downloadDocuments(env,workspace,await request.json().catch(()=>null));
   if(p==="/directory"&&request.method==="GET")return directory(env,login,workspace,url.searchParams.get("path")??"",requestId);
   if(p==="/sync-status"&&request.method==="GET")return syncStatus(env,workspace);
   if(p==="/mirror"&&request.method==="POST")return mirror(env,login,workspace,requestId);
@@ -280,6 +281,27 @@ async function readDocument(env:Env,w:WorkspaceRow,fileId:string,vector:string|n
     const update=vector?Y.encodeStateAsUpdate(doc,fromB64(vector)):Y.encodeStateAsUpdate(doc);return json({fileId,update:b64(update),protocolVersion:1,revision:data.file.revision});
   }catch{return json({error:"document_load_failed",message:"Could not load this document. Try again shortly."},{status:502});}
 }
+
+async function downloadDocuments(env:Env,w:WorkspaceRow,body:unknown):Promise<Response>{
+  const fileIds=body&&typeof body==="object"&&!Array.isArray(body)?(body as {fileIds?:unknown}).fileIds:null;
+  if(!Array.isArray(fileIds)||fileIds.length<1||fileIds.length>4||fileIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]{1,128}$/.test(id)))return json({error:"invalid_file_ids",maxItems:4},{status:400});
+  const unique=[...new Set(fileIds as string[])];
+  const members=unique.map(id=>`"${id}"`).join(",");
+  const query=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,file_id:`in.(${members})`,kind:"eq.markdown",deleted:"eq.false",select:"file_id,path,content,revision,size",order:"path.asc"});
+  const response=await supabaseRequest(env,`/rest/v1/pkms_files?${query}`);
+  const rows=await response.json() as Array<{file_id:string;path:string;content:string|null;revision:number;size:number}>;
+  const documents=await Promise.all(rows.map(async row=>{
+    if(row.size>MAX_MARKDOWN_BYTES)return {id:row.file_id,path:row.path,revision:row.revision,error:"file_too_large"};
+    if(row.content!==null)return {id:row.file_id,path:row.path,revision:row.revision,text:row.content};
+    const result=await readDocument(env,w,row.file_id,null);
+    if(!result.ok)return {id:row.file_id,path:row.path,revision:row.revision,error:"document_load_failed"};
+    const data=await result.json() as {update:string;revision:number};
+    const doc=new Y.Doc({guid:row.file_id});Y.applyUpdate(doc,fromB64(data.update));
+    return {id:row.file_id,path:row.path,revision:data.revision,text:doc.getText("markdown").toString()};
+  }));
+  return json({documents});
+}
+
 async function writeDocument(env:Env,w:WorkspaceRow,fileId:string,b:Record<string,unknown>):Promise<Response>{
   const operationId=String(b.operationId??"");if(!operationId||typeof b.update!=="string")return json({error:"invalid_document_update"},{status:400});
   try{
