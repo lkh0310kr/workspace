@@ -30,7 +30,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, flattenEditorTree, projectEditorTreeRows, resolveEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, flattenEditorTree, projectEditorTreeRows, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -141,8 +141,6 @@ export function TreeView({
     defaultValue: string;
     onSubmit: (value: string) => void;
   } | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
@@ -290,6 +288,13 @@ export function TreeView({
     ).map(({ item, depth }) => ({ entry: item, depth }));
   }, [dirs, expanded]);
 
+  const treePaths = useMemo(() => flatList.map(({ entry }) => entry.path), [flatList]);
+  const treeSelection = useEditorTreeSelection(treePaths);
+  const selected = treeSelection.selectedPaths;
+  const setSelected = treeSelection.setSelectedPaths;
+  const selectionAnchor = treeSelection.anchorPath;
+  const setSelectionAnchor = treeSelection.setAnchorPath;
+
   const projection = useMemo(
     () => projectEditorTreeRows(flatList, scrollTop, viewportHeight),
     [flatList, scrollTop, viewportHeight],
@@ -329,14 +334,7 @@ export function TreeView({
     const path = entry.path;
     treeRef.current?.focus();
     const modifiers = { additive: e.metaKey || e.ctrlKey, range: e.shiftKey };
-    const next = resolveEditorTreeSelection(
-      flatList.map((row) => row.entry.path),
-      { focusedPath: focusedEntry()?.path ?? null, anchorPath: selectionAnchor, selectedPaths: selected },
-      path,
-      modifiers,
-    );
-    setSelected(new Set(next.selectedPaths));
-    setSelectionAnchor(next.anchorPath);
+    treeSelection.select(path, focusedEntry()?.path ?? null, modifiers);
     if (modifiers.additive || modifiers.range) return;
     if (entry.is_dir) {
       toggle(path);
@@ -547,14 +545,7 @@ export function TreeView({
         if (action.type === "focus") {
           const next = flatList[action.index];
           if (!next) return;
-          const selection = resolveEditorTreeSelection(
-            flatList.map((row) => row.entry.path),
-            { focusedPath: focusedEntry()?.path ?? null, anchorPath: selectionAnchor, selectedPaths: selected },
-            action.path,
-            { range: extendSelection },
-          );
-          setSelected(new Set(selection.selectedPaths));
-          setSelectionAnchor(selection.anchorPath);
+          treeSelection.select(action.path, focusedEntry()?.path ?? null, { range: extendSelection });
           scrollRowIntoView(next.entry.path);
           return;
         }

@@ -1,34 +1,28 @@
-import { useCallback, useState } from "react";
-import { resolveEditorTreeSelection } from "@workspace/editor";
+import { useCallback, useMemo, useState } from "react";
+import { useEditorTreeSelection } from "@workspace/editor";
 import type { TreeRow } from "../../domain/types";
 
 export function useFileTreeSelection(rows: TreeRow[]) {
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
-  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(() => new Set());
-  const [selectionAnchorPath, setSelectionAnchorPath] = useState<string | null>(null);
+  const paths = useMemo(() => rows.map((row) => row.file.path), [rows]);
+  const selection = useEditorTreeSelection(paths);
   const [cutPaths, setCutPaths] = useState<Set<string>>(() => new Set());
 
   const selectRow = useCallback((path: string, index: number, additive = false, range = false) => {
-    const targetPath = rows[index]?.file.path === path ? path : rows.find((row) => row.file.path === path)?.file.path;
+    const targetPath = paths[index] === path ? path : paths.find((rowPath) => rowPath === path);
     if (!targetPath) return;
-    const next = resolveEditorTreeSelection(
-      rows.map((row) => row.file.path),
-      { focusedPath, anchorPath: selectionAnchorPath, selectedPaths },
-      targetPath,
-      { additive, range },
-    );
+    const next = selection.select(targetPath, focusedPath, { additive, range });
     setFocusedPath(next.focusedPath);
-    setSelectionAnchorPath(next.anchorPath);
-    setSelectedPaths(new Set(next.selectedPaths));
-  }, [rows, focusedPath, selectionAnchorPath, selectedPaths]);
+  }, [paths, focusedPath, selection.select]);
 
   return {
     focusedPath,
     setFocusedPath,
-    selectedPaths,
-    setSelectedPaths,
-    selectionAnchorPath,
-    setSelectionAnchorPath,
+    selectedPaths: selection.selectedPaths,
+    setSelectedPaths: selection.setSelectedPaths,
+    selectionAnchorPath: selection.anchorPath,
+    setSelectionAnchorPath: selection.setAnchorPath,
+    clearSelection: selection.clear,
     cutPaths,
     setCutPaths,
     selectRow,
