@@ -136,7 +136,6 @@ button { cursor: pointer; }
 .save-label.active .status-dot { background: var(--warning); }
 .collaborators { color: var(--muted); font-size: 11px; }
 .editor-layout { position: relative; display: flex; width: min(1440px, 100%); height: auto; min-height: 0; flex: 1; flex-direction: column; overflow: hidden; margin: 0 auto; padding: 18px clamp(18px, 4vw, 54px) 16px; }
-.editor-title-block { min-width: 0; }
 .live-presence { margin-top: 5px; color: var(--muted); font-size: 11px; }
 .column-label { display: none; }
 .markdown-code-editor { width: 100%; min-height: 0; flex: 1; overflow: hidden; }

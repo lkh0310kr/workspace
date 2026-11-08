@@ -96,6 +96,10 @@
   background: var(--bg-base, var(--bg));
 }
 
+.editor-title-block {
+  min-width: 0;
+}
+
 .editor-markdown-title {
   flex-shrink: 0;
   overflow: hidden;
