@@ -18,3 +18,7 @@ export type { CreateEditorViewOptions } from "./codeMirror";
 export { markdownEditorTheme, markdownProseTheme } from "./themes";
 export { EditorTreeRow } from "./EditorTreeRow";
 export type { EditorTreeRowProps } from "./EditorTreeRow";
+export { EditorDocumentTabBar } from "./EditorDocumentTabBar";
+export type { EditorDocumentTab } from "./EditorDocumentTabBar";
+export { EditorTabChip } from "./EditorTabChip";
+export type { EditorTabChipProps } from "./EditorTabChip";

@@ -31,3 +31,15 @@
 .editor-tree-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .editor-tree-loading { width: 9px; height: 9px; border: 1px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: editor-tree-spin .7s linear infinite; }
 @keyframes editor-tree-spin { to { transform: rotate(360deg); } }
+
+.editor-document-tabs { display: flex; flex: 0 0 auto; min-width: 0; overflow-x: auto; gap: 2px; border-bottom: 1px solid var(--border); scrollbar-width: none; }
+.editor-document-tabs::-webkit-scrollbar { display: none; }
+.editor-document-tab-slot { position: relative; display: flex; flex: 0 0 auto; align-items: stretch; min-width: 0; }
+.editor-document-tab { display: flex; min-width: 80px; max-width: 220px; min-height: 34px; align-items: center; gap: 7px; overflow: hidden; padding: 0 8px 0 10px; border: 0; border-bottom: 2px solid transparent; color: var(--muted, var(--text-muted)); background: transparent; text-align: start; font: inherit; font-size: 12px; cursor: pointer; }
+.editor-document-tab.active { border-bottom-color: var(--accent); color: var(--text); background: var(--bg-hover, var(--hover)); }
+.editor-document-tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor-document-tab-icon { display: inline-flex; flex: 0 0 auto; align-items: center; }
+.editor-document-tab-dirty { color: var(--accent); font-size: 9px; }
+.editor-document-tab-close { display: grid; width: 24px; flex: 0 0 24px; place-items: center; border: 0; color: var(--muted, var(--text-muted)); background: transparent; opacity: .55; cursor: pointer; }
+.editor-document-tab-slot:hover .editor-document-tab-close, .editor-document-tab-close:focus-visible { opacity: 1; }
+.editor-document-tab-close:hover { color: var(--text); background: var(--bg-hover, var(--hover)); }

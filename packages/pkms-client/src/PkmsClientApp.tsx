@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
+import { EditorDocumentTabBar } from "@workspace/editor";
 import { desktopBridge } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
 import { flushQueuedWorkspaceAssets, flushQueuedWorkspaceOperations, WORKSPACE_OPERATION_QUEUE_EVENT } from "./client/workspaceOperations";
@@ -53,6 +54,7 @@ export default function Home() {
   const [outlineHover, setOutlineHover] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeFile, setActiveFile] = useState<FileRecord | null>(null);
+  const [openDocuments, setOpenDocuments] = useState<Array<{ workspaceId: string; file: FileRecord }>>([]);
   const [openingFileId, setOpeningFileId] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickQuery, setQuickQuery] = useState("");
@@ -134,13 +136,53 @@ export default function Home() {
     setSync,
     setNotice,
   });
-  const { openFile, clearActiveFile } = useDocumentSession({
+  const { openFile: openDocumentSession, clearActiveFile } = useDocumentSession({
     workspace: activeWorkspace, api, pathname: location.pathname, navigate, routedPath,
     documents: docs, activeDocument: activeRef, pending, socket, openSequence: openFileSequence, hydrating,
     scheduleAutoSave, setCurrentFolder, setExpandedFolders, setActiveFile, setText, setOpeningFileId,
     setError, setSaving, setSidebarOpen, setNotice,
   });
+  const openFile = useCallback(async (file: FileRecord, historyAction: FileNavigation = "push") => {
+    if (activeWorkspace) {
+      setOpenDocuments((current) => {
+        const index = current.findIndex((tab) => tab.workspaceId === activeWorkspace.id && tab.file.id === file.id);
+        if (index < 0) return [...current, { workspaceId: activeWorkspace.id, file }];
+        const next = [...current];
+        next[index] = { workspaceId: activeWorkspace.id, file };
+        return next;
+      });
+    }
+    await openDocumentSession(file, historyAction);
+  }, [activeWorkspace, openDocumentSession]);
+  const visibleOpenDocuments = useMemo(
+    () => activeWorkspace ? openDocuments.filter((tab) => tab.workspaceId === activeWorkspace.id) : [],
+    [activeWorkspace?.id, openDocuments],
+  );
+  const closeOpenDocument = useCallback((fileId: string) => {
+    const tabs = visibleOpenDocuments;
+    const index = tabs.findIndex((tab) => tab.file.id === fileId);
+    if (index < 0) return;
+    const closingActive = activeFile?.id === fileId;
+    const nextTab = tabs[index + 1] ?? tabs[index - 1] ?? null;
+    setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === fileId)));
+    if (!closingActive) return;
+    if (nextTab) void openFile(nextTab.file, "replace");
+    else {
+      clearActiveFile();
+      navigate("/", { replace: true, preventScrollReset: true });
+    }
+  }, [activeFile?.id, activeWorkspace?.id, clearActiveFile, navigate, openFile, visibleOpenDocuments]);
   openFileRef.current = openFile;
+
+  useEffect(() => {
+    if (!activeWorkspace) return;
+    const byId = new Map(files.map((file) => [file.id, file]));
+    setOpenDocuments((current) => current.map((tab) => {
+      if (tab.workspaceId !== activeWorkspace.id) return tab;
+      const updated = byId.get(tab.file.id);
+      return updated ? { ...tab, file: updated } : tab;
+    }));
+  }, [activeWorkspace?.id, files]);
   const handleRealtimeMessage = useRealtimeMessages({
     workspaceId: activeWorkspace?.id ?? "",
     documents: docs,
@@ -781,6 +823,12 @@ export default function Home() {
           <div className="repository-list">{repositories.map((repository) => <button key={repository.fullName} className="repository-option" onClick={() => void connectRepository(repository)}><span className="repo-icon"><AppIcon name={repository.private ? "lock" : "folder"} /></span><span><strong>{repository.fullName}</strong><small>{repository.defaultBranch} · {repository.private ? "Private" : "Public"}</small></span><span className="option-arrow"><AppIcon name="arrowRight" /></span></button>)}{!repositories.length && <p className="empty-hint">No writable repositories found.</p>}</div>
         </section></div>}
         {quickOpen && <div className="modal-backdrop quick-open-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setQuickOpen(false); }}><section className="quick-open-modal" role="dialog" aria-modal="true" aria-label="Quick open"><input ref={quickOpenInput} value={quickQuery} onChange={(event) => setQuickQuery(event.target.value)} placeholder="Search open and loaded files…" onKeyDown={(event) => { if (event.key === "Escape") setQuickOpen(false); else if (event.key === "Enter" && quickOpenResults[0]) { void openFile(quickOpenResults[0]); setQuickOpen(false); } }} /><div className="quick-open-results">{quickOpenResults.map((file) => <button key={file.id} onClick={() => { void openFile(file); setQuickOpen(false); }}><span>{entryName(file.path)}</span><small>{file.path}</small></button>)}{!quickOpenResults.length && <p className="empty-hint">No loaded files found</p>}</div></section></div>}
+        {activeWorkspace && visibleOpenDocuments.length > 0 && <EditorDocumentTabBar
+          tabs={visibleOpenDocuments.map(({ file }) => ({ id: file.id, label: entryName(file.path), title: file.path, dirty: file.id === activeFile?.id && (saving || notice === "Unsaved") }))}
+          activeId={activeFile?.id ?? null}
+          onSelect={(id) => { const tab = visibleOpenDocuments.find((item) => item.file.id === id); if (tab) void openFile(tab.file); }}
+          onClose={closeOpenDocument}
+        />}
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <div className="editor-layout" onPointerMove={(event) => { const next = event.currentTarget.getBoundingClientRect().right - event.clientX < 48; setOutlineHover((current) => current === next ? current : next); }} onPointerLeave={() => setOutlineHover(false)}>
           <div className="editor-heading"><div className="editor-title-block"><h1>{activeFile.path.split("/").at(-1)?.replace(/\.md$/i, "")}</h1>{peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}</div></div>
           <div className="outline-control outline-rail"><button className={`mini-button outline-button${outlineOpen ? " active" : ""}${outlineHover || outlineOpen ? " revealed" : ""}`} title="Note outline" aria-label="Note outline" aria-expanded={outlineOpen} onClick={() => setOutlineOpen((open) => !open)}><AppIcon name="list" /></button>{outlineOpen && <div className="outline-popover" role="navigation" aria-label="Note outline">{outlineItems.length ? outlineItems.map((item) => <button key={`${item.line}-${item.title}`} style={{ paddingLeft: 8 + (item.level - 1) * 11 }} title={item.title} onClick={() => { setOutlineOpen(false); requestAnimationFrame(() => editorNavigate.current?.(item.line)); }}>{item.title}</button>) : <span>No headings</span>}</div>}</div>

@@ -11,6 +11,7 @@ import { onWorkspaceDismissPortals } from "../workspacePortalDismiss";
 import { startPaneDrag, finishPaneDrag } from "../layout/layoutRef";
 import { layoutLog } from "../layout/layoutDebugLog";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
+import { EditorTabChip } from "@workspace/editor";
 
 // The globalized version of ui/EditorTabBar.tsx (which used to be
 // editor-only) — the same tab-chip strip UI now used for every pane kind,
@@ -231,15 +232,28 @@ export function PaneTabStrip({
           return (
             <div key={item.id} className="pane-tab-slot">
               {dropIndex === index && <div className="pane-tab-drop-indicator" />}
-              <div
+              <EditorTabChip
                 ref={(el) => {
                   if (el) chipRefs.current.set(item.id, el);
                   else chipRefs.current.delete(item.id);
                 }}
-                className={`pane-tab${item.id === activeTabId ? " active" : ""}${item.isPreview ? " preview" : ""}`}
-                role="tab"
-                tabIndex={0}
-                aria-selected={item.id === activeTabId}
+                id={item.id}
+                label={paneTabLabel(item, dirty)}
+                icon={item.kind === "browser" && item.favicon ? (
+                  <img src={item.favicon} className="pane-tab-favicon" alt="" />
+                ) : item.kind === "terminal" && item.terminalAgent ? (
+                  <AgentIcon agent={item.terminalAgent} size={12} />
+                ) : (
+                  <WorkbenchIcon name={paneKindIcon(item.kind) as WorkbenchIconName} size={14} />
+                )}
+                active={item.id === activeTabId}
+                preview={item.isPreview}
+                title={item.kind === "browser" ? item.url : item.filePath ?? undefined}
+                className="pane-tab"
+                iconClassName="pane-tab-icon"
+                labelClassName="pane-tab-label"
+                closeClassName="pane-tab-close"
+                closeLabel="Close tab"
                 draggable
                 onDragStart={(e: DragEvent) => {
                   // The strip's own draggable=true (above) is for
@@ -275,32 +289,8 @@ export function PaneTabStrip({
                   onSelect(item.id);
                 }}
                 onContextMenu={(e) => openContextMenu(e, item.id)}
-                title={item.kind === "browser" ? item.url : item.filePath ?? undefined}
-              >
-                <span className="pane-tab-icon">
-                  {item.kind === "browser" && item.favicon ? (
-                    <img src={item.favicon} className="pane-tab-favicon" alt="" />
-                  ) : item.kind === "terminal" && item.terminalAgent ? (
-                    <AgentIcon agent={item.terminalAgent} size={12} />
-                  ) : (
-                    <WorkbenchIcon name={paneKindIcon(item.kind) as WorkbenchIconName} size={14} />
-                  )}
-                </span>
-                <span className="pane-tab-label">{paneTabLabel(item, dirty)}</span>
-                <button
-                  type="button"
-                  className="pane-tab-close"
-                  title="Close tab"
-                  draggable={false}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClose(item.id);
-                  }}
-                >
-                  ×
-                </button>
-              </div>
+                onClose={() => onClose(item.id)}
+              />
             </div>
           );
         })}
