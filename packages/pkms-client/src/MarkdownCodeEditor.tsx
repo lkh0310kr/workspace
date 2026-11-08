@@ -3,7 +3,7 @@ import { markdown } from "@codemirror/lang-markdown";
 import { defaultHighlightStyle, indentOnInput, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
-import { EditorTextSurface, markdownEditorTheme } from "@workspace/editor";
+import { EditorTextSurface, markdownEditorTheme, markdownFormattingKeymap } from "@workspace/editor";
 
 const hide = Decoration.replace({});
 const headingTypes = new Set(["ATXHeading1", "ATXHeading2", "ATXHeading3", "ATXHeading4", "ATXHeading5", "ATXHeading6"]);
@@ -348,5 +348,5 @@ export function MarkdownCodeEditor({ value, onChange, documentKey, onNavigateRea
 
 const markdownSurfaceExtensions = [
   markdown(), indentOnInput(), syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-  inlineLivePreview, blockLineLivePreview, blockLivePreview, markdownEditorTheme,
+  inlineLivePreview, blockLineLivePreview, blockLivePreview, markdownEditorTheme, markdownFormattingKeymap(),
 ];

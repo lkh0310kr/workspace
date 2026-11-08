@@ -27,3 +27,4 @@ export type { EditorTextSurfaceProps } from "./EditorTextSurface";
 export { moveEditorViewState, readEditorViewState, writeEditorViewState } from "./viewStateCache";
 export { EditorOutlineList } from "./EditorOutlineList";
 export type { EditorOutlineEntry, EditorOutlineListProps } from "./EditorOutlineList";
+export { markdownFormattingKeymap, toggleMarkdownWrap } from "./markdownCommands";

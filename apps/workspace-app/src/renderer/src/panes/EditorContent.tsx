@@ -7,9 +7,9 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { Compartment, EditorSelection, EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { EditorOutlineList, EditorTextSurface, replaceEditorDocument, type EditorDocumentSession } from "@workspace/editor";
+import { EditorOutlineList, EditorTextSurface, replaceEditorDocument, toggleMarkdownWrap, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { insertNewlineAndIndent, toggleComment } from "@codemirror/commands";
 import {
@@ -104,39 +104,6 @@ async function resolveWikiLinkTarget(tabId: number, target: string): Promise<str
   const created = `${base}.md`;
   await writeFile(tabId, created, "");
   return created;
-}
-
-// Cmd+B/Cmd+I: wrap the selection in `marker` (**bold**/*italic*), or
-// unwrap it if it's already exactly wrapped (toggle, matching every other
-// editor's bold/italic shortcut behavior). CodeMirror 6 ships no built-in
-// markdown formatting commands, so this is a small hand-rolled one.
-function toggleMarkdownWrap(marker: string) {
-  return (view: EditorView): boolean => {
-    const { state } = view;
-    const changes = state.changeByRange((range) => {
-      const { from, to } = range;
-      const before = state.sliceDoc(Math.max(0, from - marker.length), from);
-      const after = state.sliceDoc(to, Math.min(state.doc.length, to + marker.length));
-      if (from !== to && before === marker && after === marker) {
-        return {
-          changes: [
-            { from: from - marker.length, to: from },
-            { from: to, to: to + marker.length },
-          ],
-          range: EditorSelection.range(from - marker.length, to - marker.length),
-        };
-      }
-      return {
-        changes: [
-          { from, insert: marker },
-          { from: to, insert: marker },
-        ],
-        range: EditorSelection.range(from + marker.length, to + marker.length),
-      };
-    });
-    view.dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
-    return true;
-  };
 }
 
 function jumpToPos(view: EditorView, pos: number): void {
