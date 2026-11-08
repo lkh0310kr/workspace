@@ -158,7 +158,7 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 | Provider 계약과 Workspace·PKMS adapter | done (implemented) | `packages/editor/src/provider.ts`와 두 adapter가 트리·문서·검색·작업 capability를 사용한다. 각 provider 오류와 dirty close 정책을 공통 UI에서 마무리해야 한다. |
 | 공통 CodeMirror 표면 | done (implemented) | 두 앱이 `EditorTextSurface`를 사용한다. 공통 history, keymap, 외부 문서 갱신 처리를 소유한다. |
 | 문서별 편집 상태 | in progress | 커서·선택·scroll·undo를 안정 item ID로 메모리 캐시한다. rename/move와 앱 재시작까지의 수명, 두 앱의 실제 탭 전환 동작을 확인해야 한다. |
-| Outline과 트리 row·문서 tab 구성요소 | in progress | Outline UI와 Markdown heading parsing, row, PKMS 문서 tab, 두 앱의 loaded branch 가시 행 계산·정렬은 공유한다. 확장·선택·스크롤 상태와 트리 명령 UI는 아직 제품별이다. Workspace pane tab 배치는 Workspace 소유로 남긴다. |
+| Outline과 트리 row·문서 tab 구성요소 | in progress | Outline UI와 Markdown heading parsing, row, PKMS 문서 tab, loaded branch 정렬·가시 행 계산·가상 스크롤 projection은 공유한다. PKMS 폴더 조회는 provider 계약을 통한다. 확장·선택·스크롤 상태와 트리 명령 UI는 아직 제품별이다. Workspace pane tab 배치는 Workspace 소유로 남긴다. |
 | Markdown 편집 기능과 명령 | in progress | Markdown parser, indent-on-input, Bold/italic 단축키, live-preview decoration은 공통 패키지다. Workspace 이미지 root와 WikiLink target resolver, PKMS 저장소 asset/link resolver는 host 책임으로 남아 있다. 두 제품에서 링크·asset·callout 동작을 맞추고 확인한다. |
 | Quick open·검색 UI와 Workbench 조립 | in progress | Quick-open dialog와 키보드 탐색 UI는 공유한다. 결과 조회·검색 상태와 트리·열린 문서·편집기·outline을 조립하는 공통 Workbench는 남아 있다. |
 | 전체 acceptance 검증과 중복 UI 제거 | not yet | PKMS Web/Desktop 및 Workspace 각각에서 문서 전환, 외부 변경 conflict, 저장 상태, Markdown 기능을 확인한 뒤 구 구현을 제거한다. |
