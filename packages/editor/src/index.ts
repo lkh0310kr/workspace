@@ -34,6 +34,7 @@ export { EditorTabChip } from "./EditorTabChip";
 export type { EditorTabChipProps } from "./EditorTabChip";
 export { EditorSearchButton } from "./EditorSearchButton";
 export { editorSearch, toggleEditorSearch } from "./editorSearch";
+export { EditorNameForm } from "./EditorNameForm";
 export { EditorTextSurface, externalEditorChange } from "./EditorTextSurface";
 export type { EditorTextSurfaceProps } from "./EditorTextSurface";
 export { EditorMarkdownDocument } from "./EditorMarkdownDocument";

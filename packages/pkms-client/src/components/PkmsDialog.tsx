@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { EditorNameForm } from "@workspace/editor";
 
 export type PkmsDialogRequest =
   | { kind: "name"; title: string; initialValue: string; resolve: (value: string | null) => void }
@@ -10,15 +10,6 @@ interface Props {
 }
 
 export function PkmsDialog({ request, onClose }: Props): React.JSX.Element | null {
-  const [value, setValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (request?.kind !== "name") return;
-    setValue(request.initialValue);
-    requestAnimationFrame(() => inputRef.current?.select());
-  }, [request]);
-
   if (!request) return null;
 
   const cancel = () => {
@@ -29,11 +20,19 @@ export function PkmsDialog({ request, onClose }: Props): React.JSX.Element | nul
 
   return <div className="modal-backdrop dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) cancel(); }} onKeyDown={(event) => { if (event.key === "Escape") cancel(); }}>
     <section className="pkms-dialog" role="dialog" aria-modal="true" aria-label={request.kind === "name" ? request.title : "Confirm action"}>
-      {request.kind === "name" ? <form onSubmit={(event) => { event.preventDefault(); request.resolve(value.trim()); onClose(); }}>
-        <h2>{request.title}</h2>
-        <input ref={inputRef} autoFocus value={value} onChange={(event) => setValue(event.target.value)} aria-label={request.title} />
-        <div className="pkms-dialog-actions"><button type="button" className="secondary-button" onClick={cancel}>Cancel</button><button type="submit" className="primary-button" disabled={!value.trim()}>{request.title.toLowerCase().includes("folder") ? "Create" : "Save"}</button></div>
-      </form> : <>
+      {request.kind === "name" ? <EditorNameForm
+        key={`${request.title}:${request.initialValue}`}
+        title={request.title}
+        initialValue={request.initialValue}
+        submitLabel={request.title.toLowerCase().includes("folder") ? "Create" : "Save"}
+        titleTag="h2"
+        actionsClassName="pkms-dialog-actions"
+        cancelButtonClassName="secondary-button"
+        submitButtonClassName="primary-button"
+        selectInitialValue={Boolean(request.initialValue)}
+        onSubmit={(value) => { request.resolve(value); onClose(); }}
+        onCancel={cancel}
+      /> : <>
         <h2>Confirm</h2>
         <p>{request.message}</p>
         <div className="pkms-dialog-actions"><button className="secondary-button" onClick={cancel}>Cancel</button><button className="primary-button danger-button" onClick={() => { request.resolve(true); onClose(); }}>Delete</button></div>

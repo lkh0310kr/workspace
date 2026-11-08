@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
 import { Popover, type AnchorRect } from "./Popover";
+import { EditorNameForm } from "@workspace/editor";
 
 // Electron doesn't implement window.prompt() at all — it throws
 // "prompt() is not supported" unconditionally (a long-standing, never-
@@ -18,45 +18,17 @@ interface Props {
 }
 
 export function TextPrompt({ anchorRect, title, defaultValue = "", submitLabel = "OK", onSubmit, onClose }: Props) {
-  const [value, setValue] = useState(defaultValue);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const submit = () => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    onSubmit(trimmed);
-    onClose();
-  };
-
   return (
     <Popover anchorRect={anchorRect} onClose={onClose} className="text-prompt">
-      <div className="text-prompt-title">{title}</div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <input
-          ref={inputRef}
-          // Popover portals synchronously, so this can autofocus without
-          // a mount-effect race.
-          autoFocus
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") onClose();
-          }}
-        />
-        <div className="text-prompt-actions">
-          <button type="button" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" disabled={!value.trim()}>
-            {submitLabel}
-          </button>
-        </div>
-      </form>
+      <EditorNameForm
+        title={title}
+        initialValue={defaultValue}
+        submitLabel={submitLabel}
+        titleClassName="text-prompt-title"
+        actionsClassName="text-prompt-actions"
+        onSubmit={(value) => { onSubmit(value); onClose(); }}
+        onCancel={onClose}
+      />
     </Popover>
   );
 }
