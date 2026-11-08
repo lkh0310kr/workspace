@@ -290,6 +290,9 @@ export function TreeView({
   const setSelected = treeSelection.setSelectedPaths;
   const selectionAnchor = treeSelection.anchorPath;
   const setSelectionAnchor = treeSelection.setAnchorPath;
+  const keyboardFocusPath = treeSelection.focusedPath && treePaths.includes(treeSelection.focusedPath)
+    ? treeSelection.focusedPath
+    : null;
 
   const projection = useMemo(
     () => projectEditorTreeRows(flatList, scrollTop, viewportHeight),
@@ -312,10 +315,10 @@ export function TreeView({
   const refresh = (dir: string) => loadDir(dir);
 
   const focusedEntry = useCallback((): DirEntry | null => {
-    const path = selectionAnchor ?? selectedPath ?? [...selected][0] ?? null;
+    const path = keyboardFocusPath ?? selectionAnchor ?? selectedPath ?? [...selected][0] ?? null;
     if (!path) return flatList[0]?.entry ?? null;
     return flatList.find((r) => r.entry.path === path)?.entry ?? flatList[0]?.entry ?? null;
-  }, [selectionAnchor, selectedPath, selected, flatList]);
+  }, [keyboardFocusPath, selectionAnchor, selectedPath, selected, flatList]);
 
   const scrollRowIntoView = (path: string) => {
     treeRef.current
@@ -668,7 +671,7 @@ export function TreeView({
             multiSelected={selected.size > 1 && selected.has(entry.path)}
             dropTarget={dragOverPath === entry.path}
             showGuides
-            tabIndex={(selectionAnchor ?? selectedPath ?? [...selected][0] ?? flatList[0]?.entry.path) === entry.path ? 0 : -1}
+            tabIndex={(keyboardFocusPath ?? selectionAnchor ?? selectedPath ?? [...selected][0] ?? flatList[0]?.entry.path) === entry.path ? 0 : -1}
             onDragStart={(e) => onEntryDragStart(e, entry)}
             onDragOver={(e) => {
               if (entry.is_dir) onFolderDragOver(e, entry.path);
