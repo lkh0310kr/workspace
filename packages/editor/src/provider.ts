@@ -206,6 +206,19 @@ export function editorSupportsOperation(provider: EditorProvider | null | undefi
   }
 }
 
+/** Whether a provider advertises a search target supported by its search method. */
+export function editorSupportsSearch(provider: EditorProvider | null | undefined, target: EditorSearchOptions["target"]): boolean {
+  if (!provider) return false;
+  return target === "names" ? provider.capabilities.searchNames : provider.capabilities.searchContents;
+}
+
+/** Match a CodeMirror language name against a provider's declared language support. */
+export function editorSupportsCodeLanguage(provider: EditorProvider | null | undefined, language: string): boolean {
+  if (!provider) return false;
+  const languages = provider.capabilities.codeLanguages;
+  return languages.has("*") || languages.has(language.toLocaleLowerCase());
+}
+
 export interface EditorDocumentSnapshot {
   content:
     | { type: "text"; text: string }

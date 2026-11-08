@@ -15,7 +15,7 @@ export type {
   EditorSyncPhase,
   EditorTreeItem,
 } from "./provider";
-export { EditorProviderError, editorSupportsOperation, isEditorAbortError, isEditorProviderError, withEditorProviderErrors } from "./provider";
+export { EditorProviderError, editorSupportsCodeLanguage, editorSupportsOperation, editorSupportsSearch, isEditorAbortError, isEditorProviderError, withEditorProviderErrors } from "./provider";
 export { editorSavePhaseLabel } from "./editorSaveStatus";
 export { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
 export { editorDocumentKey } from "./documentIdentity";

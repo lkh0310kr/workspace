@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsOperation, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -333,6 +333,7 @@ export default function Home() {
   const canDelete = editorSupportsOperation(editorProvider, "delete");
   const canMove = Boolean(editorProvider?.capabilities.dragMove && editorSupportsOperation(editorProvider, "move"));
   const canMultiSelect = Boolean(editorProvider?.capabilities.multiSelect);
+  const supportsCollaboration = Boolean(editorProvider?.capabilities.collaborativeDocuments);
   const selectTreeRow = (path: string, index: number, additive = false, range = false) =>
     treeSelection.selectRow(path, index, canMultiSelect && additive, canMultiSelect && range);
   useEffect(() => {
@@ -650,7 +651,7 @@ export default function Home() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "p" && activeWorkspace) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "p" && activeWorkspace && editorSupportsSearch(editorProvider, "names")) {
         event.preventDefault();
         setQuickQuery("");
         setQuickOpen(true);
@@ -680,7 +681,7 @@ export default function Home() {
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [activeWorkspace, saveActiveFileNow, setError]);
+  }, [activeWorkspace, editorProvider, saveActiveFileNow, setError]);
 
   const workspaceRef = useRef(activeWorkspace);
   const userRef = useRef(user);
@@ -1026,7 +1027,7 @@ export default function Home() {
 
   const quickOpenItems = useMemo(() => quickOpenResults.map((file) => ({ id: file.id, label: entryName(file.path), description: file.path })), [quickOpenResults]);
   useEffect(() => {
-    if (!quickOpen || !editorProvider) {
+    if (!quickOpen || !editorProvider || !editorSupportsSearch(editorProvider, "names")) {
       setQuickOpenResults([]);
       setQuickOpenLoading(false);
       setQuickOpenError(null);
@@ -1289,7 +1290,7 @@ export default function Home() {
           <div className="topbar-left"><button className="sidebar-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-expanded={sidebarOpen} aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"} title={sidebarOpen ? "Hide sidebar (⌘\\)" : "Show sidebar (⌘\\)"}><AppIcon name="menu" /></button><div className="breadcrumbs"><span>{activeWorkspace?.repository ?? "No workspace"}</span>{(activeFile || currentFolder) && <><span className="crumb-slash">/</span><span>{activeFile?.path ?? currentFolder}</span></>}</div></div>
           <div className="topbar-right">
             <span className={`save-label ${saving ? "active" : ""}`}><span className="status-dot" />{saving ? editorSavePhaseLabel("saving") : notice || (sync.githubStatus === "synced" ? "Synced" : editorSavePhaseLabel(activeEditorSession?.snapshot().savePhase ?? "clean"))}</span>
-            {peers.length > 1 && <div className="collaborators" aria-label="Collaborators"><span>{peers.length} here</span></div>}
+            {supportsCollaboration && peers.length > 1 && <div className="collaborators" aria-label="Collaborators"><span>{peers.length} here</span></div>}
           </div>
         </header>
         {error && <button className="notice error dismissible" onClick={() => setError("")}>{error}<AppIcon name="close" /></button>}
@@ -1297,7 +1298,7 @@ export default function Home() {
           <button className="modal-close" onClick={() => setShowRepositories(false)} aria-label="Close"><AppIcon name="close" /></button><span className="eyebrow">GitHub</span><h2>Choose a repository</h2>
           <div className="repository-list">{repositories.map((repository) => <button key={repository.fullName} className="repository-option" onClick={() => void connectRepository(repository)}><span className="repo-icon"><AppIcon name={repository.private ? "lock" : "folder"} /></span><span><strong>{repository.fullName}</strong><small>{repository.defaultBranch} · {repository.private ? "Private" : "Public"}</small></span><span className="option-arrow"><AppIcon name="arrowRight" /></span></button>)}{!repositories.length && <p className="empty-hint">No writable repositories found.</p>}</div>
         </section></div>}
-        {quickOpen && <EditorQuickOpenDialog
+        {quickOpen && editorSupportsSearch(editorProvider, "names") && <EditorQuickOpenDialog
           query={quickQuery}
           items={quickOpenItems}
           placeholder="Search open and loaded files…"
@@ -1323,7 +1324,7 @@ export default function Home() {
         />}
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <EditorMarkdownEditor
             actions={<EditorSearchButton active={searchOpen} onClick={() => { const view = markdownView.current; if (view) setSearchOpen(toggleEditorSearch(view)); }} />}
-            title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={canRename ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
+            title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={supportsCollaboration && peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={canRename ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
             outlineItems={editorOutlineEntries(outlineItems)}
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(position) => requestAnimationFrame(() => editorNavigate.current?.(position))}

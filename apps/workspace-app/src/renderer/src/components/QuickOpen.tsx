@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
-import { EditorQuickOpenDialog } from "@workspace/editor";
+import { editorSupportsSearch, EditorQuickOpenDialog } from "@workspace/editor";
 import type { EditorTreeItem } from "@workspace/editor";
 
 // Cmd+P fuzzy file switcher — a centered modal, not anchor-rect-based like
@@ -18,10 +18,20 @@ export function QuickOpen({ tabId, onOpenFile, onClose }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const providerLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
   const provider = providerLease.provider;
+  const supportsNameSearch = editorSupportsSearch(provider, "names");
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => () => providerLease.release(), [providerLease]);
 
   useEffect(() => {
+    if (!supportsNameSearch) {
+      setItems([]);
+      setLoading(false);
+      setLoadError(null);
+      onCloseRef.current();
+      return;
+    }
     const controller = new AbortController();
     setItems([]);
     setLoading(true);
@@ -47,7 +57,7 @@ export function QuickOpen({ tabId, onOpenFile, onClose }: Props) {
       },
     );
     return () => controller.abort();
-  }, [provider, query]);
+  }, [provider, query, supportsNameSearch]);
 
   const openSelected = (itemId: string): void => {
     const item = items.find((candidate) => candidate.itemId === itemId);
@@ -57,6 +67,7 @@ export function QuickOpen({ tabId, onOpenFile, onClose }: Props) {
     onClose();
   };
 
+  if (!supportsNameSearch) return null;
   return <EditorQuickOpenDialog
     query={query}
     items={items.map((item) => ({ id: item.itemId, label: item.path }))}

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  editorSupportsSearch,
   type EditorProvider,
   type EditorSearchMatch,
   type EditorSearchResult,
@@ -42,6 +43,7 @@ function highlightLine(lineText: string, ranges: EditorSearchMatch["ranges"]): R
 export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
   const providerLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
   const provider: EditorProvider = providerLease.provider;
+  const supportsContentSearch = editorSupportsSearch(provider, "contents");
   const [query, setQuery] = useState("");
   const [replaceQuery, setReplaceQuery] = useState("");
   const [replaceOpen, setReplaceOpen] = useState(false);
@@ -72,6 +74,11 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
       setResults([]);
       setError(null);
       setReplaceSummary(null);
+      if (!supportsContentSearch) {
+        setSearching(false);
+        setError("Content search is not supported by this provider.");
+        return;
+      }
       if (!q) {
         setSearching(false);
         return;
@@ -100,7 +107,7 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
           setSearching(false);
         });
     },
-    [provider],
+    [provider, supportsContentSearch],
   );
 
   useEffect(() => {
@@ -196,7 +203,7 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
           <button
             type="button"
             className="search-panel-replace-all"
-            disabled={results.length === 0 || !provider.capabilities.replaceContents || !provider.replaceContents}
+            disabled={results.length === 0 || !supportsContentSearch || !provider.capabilities.replaceContents || !provider.replaceContents}
             onClick={() => void replaceAll()}
           >
             Replace All
@@ -230,7 +237,9 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
         </button>
       </div>
       <div className="search-panel-status">
-        {searching
+        {!supportsContentSearch
+          ? "Content search is not supported by this provider."
+          : searching
           ? "Searching…"
           : error
             ? error

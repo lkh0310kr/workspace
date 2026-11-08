@@ -8,7 +8,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsOperation, EditorMarkdownEditor, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
+import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorMarkdownEditor, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -543,14 +543,18 @@ export function EditorContent({
     let cancelled = false;
     const view = viewRef.current;
     const compartment = languageCompartmentRef.current;
+    if (!view || !compartment) return;
     const desc = LanguageDescription.matchFilename(languageData, filePath);
-    desc?.load().then((support) => {
-      if (!cancelled && view && viewRef.current === view && compartment) {
-        view.dispatch({ effects: compartment.reconfigure(support) });
+    const support = desc && editorSupportsCodeLanguage(editorProvider, desc.name)
+      ? desc.load()
+      : Promise.resolve([]);
+    support.then((extensions) => {
+      if (!cancelled && viewRef.current === view) {
+        view.dispatch({ effects: compartment.reconfigure(extensions) });
       }
     }).catch(console.error);
     return () => { cancelled = true; };
-  }, [filePath, isMarkdown]);
+  }, [editorProvider, filePath, isMarkdown]);
 
   useEffect(() => {
     setSaveError(null);
