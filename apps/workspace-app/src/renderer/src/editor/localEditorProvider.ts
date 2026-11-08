@@ -8,7 +8,7 @@ import type {
   EditorSearchResult,
   EditorTreeItem,
 } from "@workspace/editor";
-import { EditorProviderError } from "@workspace/editor";
+import { EditorProviderError, withEditorProviderErrors } from "@workspace/editor";
 import { cancelSearch, createDir, deletePath, getMediaUrl, listDir, onFileChanged, onSearchDone, onSearchResult, readFile, renamePath, searchInFiles, writeFile, writeFileIfUnchanged, type SearchFileResult } from "../electron";
 
 const capabilities: EditorProviderCapabilities = {
@@ -156,7 +156,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         abortIfNeeded(signal);
         return session;
       } catch (error) {
-        await session.close();
+        await session.close().catch(() => {});
         throw error;
       }
     },
@@ -324,7 +324,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
   };
 
   // The owner controls provider lifetime; dispose stops the file watcher.
-  return provider;
+  return withEditorProviderErrors(provider);
 }
 
 const providerPool = new Map<number, { provider: LocalEditorProvider; references: number }>();

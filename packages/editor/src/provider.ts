@@ -29,7 +29,69 @@ export function isEditorProviderError(error: unknown): error is EditorProviderEr
 }
 
 export function isEditorAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
+  return typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
+}
+
+const providerOperationMessages: Readonly<Record<string, string>> = {
+  listChildren: "Could not load this folder.",
+  openDocument: "Could not open this document.",
+  search: "Could not search files.",
+  replaceContents: "Could not replace file contents.",
+  create: "Could not create this item.",
+  rename: "Could not rename this item.",
+  move: "Could not move this item.",
+  delete: "Could not delete this item.",
+  replaceText: "Could not update this document.",
+  save: "Could not save this document.",
+  close: "Could not close this document cleanly.",
+};
+
+function normalizeProviderError(error: unknown, operation: string): Error {
+  if (error instanceof EditorProviderError) return error;
+  if (isEditorAbortError(error)) return error as Error;
+  return new EditorProviderError(
+    "unknown",
+    providerOperationMessages[operation] ?? "The editor operation failed.",
+    { cause: error },
+  );
+}
+
+function wrapSessionErrors(session: EditorDocumentSession): EditorDocumentSession {
+  const asyncMethods = new Set(["replaceText", "save", "close"]);
+  return new Proxy(session, {
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver) as unknown;
+      if (typeof property !== "string" || !asyncMethods.has(property) || typeof value !== "function") return value;
+      return async (...args: unknown[]) => {
+        try {
+          return await Reflect.apply(value, target, args);
+        } catch (error) {
+          throw normalizeProviderError(error, property);
+        }
+      };
+    },
+  });
+}
+
+/** Normalize unclassified provider failures while preserving typed and cancelled operations. */
+export function withEditorProviderErrors<T extends EditorProvider>(provider: T): T {
+  const asyncMethods = new Set([
+    "listChildren", "openDocument", "search", "replaceContents", "create", "rename", "move", "delete",
+  ]);
+  return new Proxy(provider, {
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver) as unknown;
+      if (typeof property !== "string" || !asyncMethods.has(property) || typeof value !== "function") return value;
+      return async (...args: unknown[]) => {
+        try {
+          const result: unknown = await Reflect.apply(value, target, args);
+          return property === "openDocument" ? wrapSessionErrors(result as EditorDocumentSession) : result;
+        } catch (error) {
+          throw normalizeProviderError(error, property);
+        }
+      };
+    },
+  });
 }
 
 export interface EditorItemRef {

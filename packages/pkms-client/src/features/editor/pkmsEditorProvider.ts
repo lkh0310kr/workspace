@@ -7,7 +7,7 @@ import type {
   EditorSearchResult,
   EditorTreeItem,
 } from "@workspace/editor";
-import { EditorProviderError } from "@workspace/editor";
+import { EditorProviderError, withEditorProviderErrors } from "@workspace/editor";
 import type { FileRecord } from "../../domain/types";
 import { entryName } from "../../domain/fileTree";
 
@@ -64,7 +64,7 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
     operations: options.capabilities?.operations ?? defaultCapabilities.operations,
   };
 
-  return {
+  return withEditorProviderErrors({
     id,
     capabilities,
     async listChildren(parentId, signal) {
@@ -97,7 +97,7 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
         abortIfNeeded(signal);
         return session;
       } catch (error) {
-        await session.close();
+        await session.close().catch(() => {});
         throw error;
       }
     },
@@ -127,5 +127,5 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
       return results;
     },
     ...options.operations,
-  };
+  });
 }
