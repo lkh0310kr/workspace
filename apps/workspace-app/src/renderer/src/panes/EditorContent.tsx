@@ -1,6 +1,4 @@
 import {
-  lazy,
-  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -10,8 +8,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, EditorMarkdownDocument, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
-const EditorMarkdownSurface = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
+import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, EditorMarkdownEditor, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -131,7 +128,6 @@ export function EditorContent({
   const documentSnapshot = useEditorDocumentSnapshot(activeDocumentSession);
   const documentLoadSequenceRef = useRef(0);
   const documentLoadControllerRef = useRef<AbortController | null>(null);
-  const editorShellRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const viewCleanupRef = useRef<(() => void) | null>(null);
   const languageCompartmentRef = useRef<Compartment | null>(null);
@@ -631,16 +627,17 @@ export function EditorContent({
           {isMarkdown ? (
             // The shared Markdown frame keeps the title in the document
             // scroll; code files below keep their internally scrolling editor.
-            <EditorMarkdownDocument
+            <EditorMarkdownEditor
               actions={editorActions}
               outlineItems={editorOutlineEntries(outline)}
               outlineKey={documentCacheKey}
               onOutlineNavigate={(position) => { const view = viewRef.current; if (view) jumpToPos(view, position); }}
               title={<EditorMarkdownTitle path={filePath} title={markdownTitleFor(filePath)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} onStartEditing={enterTitleEdit} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { setTitleEditing(false); setTitleError(null); }} />}
               onBackgroundClick={onScrollContainerClick}
-            >
-              <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" parserExtensions={workspaceMarkdownParserExtensions} extensions={editorExtensions} onViewReady={onViewReady} onSearchPanelChange={setSearchOpen} onOutlineChange={setOutline} onActivateLink={(link) => {
+              surfaceContainerClassName="md-editor"
+              surfaceContainerStyle={editorFontStyle}
+              surfaceKey={`${tabId}:${isMarkdown}`}
+              surfaceProps={{ documentKey: documentCacheKey, onDocumentKeyChange, viewStateStorage: getEditorViewStateStorage(), session: activeDocumentSession, initialValue: "", parserExtensions: workspaceMarkdownParserExtensions, extensions: editorExtensions, onViewReady, onSearchPanelChange: setSearchOpen, onOutlineChange: setOutline, onActivateLink: (link) => {
                   if (link.kind === "wikilink") {
                     void resolveWikiLinkTarget(editorProvider, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;
@@ -652,11 +649,10 @@ export function EditorContent({
                     : ["png", "jpg", "jpeg", "gif", "webp", "svg", "pdf", "zip", "7z", "glb", "gltf", "stl", "step", "stp", "epub"].includes(extension) ? "viewer" : "code";
                   onOpenFileRef.current(path, kind);
                   return true;
-                }} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Markdown editor" /></Suspense>
-              </div>
-            </EditorMarkdownDocument>
+                }, onSessionError: (error) => setSaveError(error instanceof Error ? error.message : String(error)), className: "md-editor-host", ariaLabel: "Markdown editor" }}
+            />
           ) : (
-            <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
+            <div className="md-editor" style={editorFontStyle}>
               <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSearchPanelChange={setSearchOpen} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}

@@ -39,6 +39,8 @@ export { EditorTextSurface, externalEditorChange } from "./EditorTextSurface";
 export type { EditorTextSurfaceProps } from "./EditorTextSurface";
 export { EditorMarkdownDocument } from "./EditorMarkdownDocument";
 export type { EditorMarkdownDocumentProps } from "./EditorMarkdownDocument";
+export { EditorMarkdownEditor } from "./EditorMarkdownEditor";
+export type { EditorMarkdownEditorProps } from "./EditorMarkdownEditor";
 export { EditorMarkdownTitleInput } from "./EditorMarkdownTitleInput";
 export { EditorMarkdownTitle } from "./EditorMarkdownTitle";
 export { discardEditorViewState, moveEditorViewState, readEditorViewState, writeEditorViewState } from "./viewStateCache";
