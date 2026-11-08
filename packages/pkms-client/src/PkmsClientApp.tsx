@@ -196,7 +196,7 @@ export default function Home() {
     if (!activeWorkspace) return null;
     if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
     try {
-      const file = await api<FileRecord>(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/files/${encodeURIComponent(fileId)}`, { signal });
+      const file = await api<FileRecord>(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/files/${encodeURIComponent(fileId)}?metadata=1`, { signal });
       if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
       return file;
     } catch (cause) {
