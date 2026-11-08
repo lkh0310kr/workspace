@@ -29,7 +29,7 @@ import {
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
 import { WorkbenchIcon, type WorkbenchIconName } from "./WorkbenchIcon";
-import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreeDirectory, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, EditorTreeRow, EditorTreeVirtualList, editorTreeSelectionRoots, flattenEditorTree, isEditorProviderError, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreeDirectory, resolveEditorTreePath, useEditorTreeSelection, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -137,8 +137,13 @@ export function TreeView({
   const loadDir = useCallback(
     (path: string) => {
       const load = async () => {
-        const parent = path ? await resolveEditorTreePath(editorProvider, path) : null;
-        if (path && !parent) return;
+        let parent: Awaited<ReturnType<typeof resolveEditorTreeDirectory>>;
+        try {
+          parent = await resolveEditorTreeDirectory(editorProvider, path);
+        } catch (error) {
+          if (isEditorProviderError(error) && error.code === "notFound") return;
+          throw error;
+        }
         const items = await editorProvider.listChildren(parent?.itemId ?? null);
         const entries: EditorDirEntry[] = items.map((item) => ({ name: item.name, path: item.path, is_dir: item.kind === "directory", editorItemId: item.itemId }));
         setDirs((prev) => new Map(prev).set(path, { entries, loaded: true }));
