@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorMarkdownDocument, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorMarkdownDocument, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -328,6 +328,27 @@ export default function Home() {
     }
   }, [activeFile?.id, activeWorkspace?.id, clearActiveFile, navigate, openFile, visibleOpenDocuments]);
   openFileRef.current = openFile;
+  const activateMarkdownLink = useCallback((link: { kind: "markdown" | "wikilink"; target: string }) => {
+    if (link.kind !== "markdown" || link.target.startsWith("#") || !activeWorkspace || !activeFile) return false;
+    const targetPath = resolveEditorRelativeLink(activeFile.path, link.target);
+    if (!targetPath) return false;
+    const openTarget = (file: FileRecord | undefined) => {
+      if (!file || file.kind === "folder") {
+        setError(`Could not find linked file: ${targetPath}`);
+        return;
+      }
+      void openFileRef.current?.(file);
+    };
+    const loaded = getFiles().find((file) => file.path === targetPath);
+    if (loaded) {
+      openTarget(loaded);
+    } else {
+      void refreshDirectory(parentPath(targetPath), true)
+        .then(() => openTarget(getFiles().find((file) => file.path === targetPath)))
+        .catch((cause) => setError(cause instanceof Error ? cause.message : `Could not load linked file: ${targetPath}`));
+    }
+    return true;
+  }, [activeWorkspace, activeFile, getFiles, refreshDirectory, setError]);
 
   useEffect(() => {
     if (!activeWorkspace) return;
@@ -1042,7 +1063,7 @@ export default function Home() {
             outlineKey={`${activeWorkspace.id}:${activeFile.id}`}
             onOutlineNavigate={(line) => requestAnimationFrame(() => editorNavigate.current?.(line))}
           >
-            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
+            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={`pkms:${activeWorkspace.id}:${activeFile.id}`} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
           </EditorMarkdownDocument>
         </div> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>

@@ -15,7 +15,7 @@ function renderEditor(kind: "code" | "markdown") {
         filePath={ctx.item.filePath ?? null}
         kind={kind}
         zoom={ctx.zoom}
-        onOpenFile={(path) => ctx.openOrSwitchToFile(path, "markdown")}
+        onOpenFile={(path, linkedKind) => ctx.openOrSwitchToFile(path, linkedKind)}
         onAssignPath={(path) => ctx.updateItem({ filePath: path })}
         onDirtyChange={ctx.setDirty}
         treeOpen={ctx.treeOpen}

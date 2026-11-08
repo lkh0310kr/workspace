@@ -3,6 +3,7 @@ import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language"
 import { EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
 import { createMarkdownEditorExtensions } from "./markdownEditor";
+import { markdownLinkNavigation, type EditorMarkdownLink } from "./markdownLinkNavigation";
 import { markdownEditorTheme } from "./themes";
 import { EditorTextSurface, type EditorTextSurfaceProps } from "./EditorTextSurface";
 import { markdownOutlineFromState, type MarkdownHeading } from "./markdownOutline";
@@ -13,6 +14,7 @@ export interface EditorMarkdownSurfaceProps extends Omit<EditorTextSurfaceProps,
   onViewReady?: EditorTextSurfaceProps["onViewReady"];
   onNavigateReady?: (navigate: ((line: number) => void) | null) => void;
   onOutlineChange?: (headings: MarkdownHeading[]) => void;
+  onActivateLink?: (link: EditorMarkdownLink) => boolean;
 }
 
 const baseMarkdownExtensions: readonly Extension[] = [
@@ -27,16 +29,21 @@ export function EditorMarkdownSurface({
   onViewReady: onViewReadyProp,
   onNavigateReady,
   onOutlineChange,
+  onActivateLink,
   ...surfaceProps
 }: EditorMarkdownSurfaceProps) {
   const onOutlineChangeRef = useRef(onOutlineChange);
   onOutlineChangeRef.current = onOutlineChange;
+  const onActivateLinkRef = useRef(onActivateLink);
+  onActivateLinkRef.current = onActivateLink;
+  const linkNavigation = useMemo(() => markdownLinkNavigation((link) => onActivateLinkRef.current?.(link) ?? false), []);
   const sharedExtensions = useMemo(() => [
     ...extensions,
+    linkNavigation,
     EditorView.updateListener.of((update) => {
       if (update.docChanged) onOutlineChangeRef.current?.(markdownOutlineFromState(update.state));
     }),
-  ], [extensions]);
+  ], [extensions, linkNavigation]);
   const onViewReady = useCallback((view: EditorView | null) => {
     onViewReadyProp?.(view);
     if (!view) {

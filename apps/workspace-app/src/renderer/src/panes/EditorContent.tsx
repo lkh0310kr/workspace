@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, EditorTextSurface, externalEditorChange, markdownRootPath, replaceEditorDocument, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
+import { createMarkdownEditorExtensions, EditorMarkdownDocument, EditorMarkdownSurface, EditorTextSurface, externalEditorChange, markdownRootPath, replaceEditorDocument, resolveEditorRelativeLink, useEditorDocumentSnapshot, wikiLinkExtension, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -18,7 +18,6 @@ import {
   foldKeymap,
   indentOnInput,
   indentUnit,
-  syntaxTree,
   LanguageDescription,
 } from "@codemirror/language";
 import { languages as languageData } from "@codemirror/language-data";
@@ -52,7 +51,7 @@ interface Props {
   kind: TabKind;
   zoom: number;
   /** Wikilink click ([[Note]]) — open (or switch to) that file as a tab. */
-  onOpenFile: (path: string) => void;
+  onOpenFile: (path: string, kind: "code" | "markdown" | "viewer") => void;
   /** "Save" on an untitled tab assigns it a real path — bubbles up so the
    * tab strip / persisted layout reflect it. */
   onAssignPath: (path: string) => void;
@@ -312,31 +311,11 @@ export function EditorContent({
     const languageCompartment = new Compartment();
     markdownRootCompartmentRef.current = rootCompartment;
     languageCompartmentRef.current = languageCompartment;
-    const wikiLinkClickHandler = EditorView.domEventHandlers({
-      click(event, view) {
-        const target = event.target as HTMLElement | null;
-        if (!target?.classList.contains("cm-md-wikilink")) return false;
-        const pos = view.posAtDOM(target);
-        let node = syntaxTree(view.state).resolveInner(pos, 1);
-        while (node && node.type.name !== "WikiLink" && node.parent) node = node.parent;
-        if (!node || node.type.name !== "WikiLink") return false;
-        const full = view.state.doc.sliceString(node.from, node.to);
-        const noteName = (full.slice(2, -2).split("|")[0] ?? "").trim();
-        if (!noteName) return false;
-        event.preventDefault();
-        resolveWikiLinkTarget(tabId, noteName)
-          .then((path) => onOpenFileRef.current(path))
-          .catch(console.error);
-        return true;
-      },
-    });
-
     const modeExtensions = isMarkdown
       ? [
           ...createMarkdownEditorExtensions({ parserExtensions: [wikiLinkExtension] }),
           rootCompartment.of(markdownRootPath.of(rootPath)),
           markdownProseTheme,
-          wikiLinkClickHandler,
           keymap.of([
             { key: "Mod-Shift-v", run: pastePlainTextCommand },
           ]),
@@ -656,7 +635,19 @@ export function EditorContent({
               onBackgroundClick={onScrollContainerClick}
             >
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Markdown editor" />
+                <EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
+                  if (link.kind === "wikilink") {
+                    void resolveWikiLinkTarget(tabId, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
+                    return true;
+                  }
+                  const path = resolveEditorRelativeLink(filePath ?? "", link.target);
+                  if (!path) return false;
+                  const extension = path.split(".").at(-1)?.toLowerCase() ?? "";
+                  const kind = ["md", "markdown", "mdown"].includes(extension) ? "markdown"
+                    : ["png", "jpg", "jpeg", "gif", "webp", "svg", "pdf", "zip", "7z", "glb", "gltf", "stl", "step", "stp", "epub"].includes(extension) ? "viewer" : "code";
+                  onOpenFileRef.current(path, kind);
+                  return true;
+                }} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Markdown editor" />
               </div>
             </EditorMarkdownDocument>
           ) : (
