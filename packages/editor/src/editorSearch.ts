@@ -11,9 +11,11 @@ import {
   SearchQuery,
   findNext,
   findPrevious,
+  selectNextOccurrence,
   replaceNext,
   replaceAll,
 } from "@codemirror/search";
+import "./editorSearch.css";
 
 // VSCode-parity in-editor Find/Replace (Cmd+F) — a custom createPanel
 // replacing @codemirror/search's stock one, which has no live match
@@ -122,8 +124,16 @@ class VscodeSearchPanel implements Panel {
     findRow.className = "cm-vs-row";
     const fieldWrap = document.createElement("div");
     fieldWrap.className = "cm-vs-field-wrap";
-    fieldWrap.append(this.searchField, this.caseBtn, this.wordBtn, this.regexBtn);
-    findRow.append(this.toggleReplaceBtn, fieldWrap, this.countEl, this.prevBtn, this.nextBtn, closeBtn);
+    fieldWrap.appendChild(this.searchField);
+    fieldWrap.appendChild(this.caseBtn);
+    fieldWrap.appendChild(this.wordBtn);
+    fieldWrap.appendChild(this.regexBtn);
+    findRow.appendChild(this.toggleReplaceBtn);
+    findRow.appendChild(fieldWrap);
+    findRow.appendChild(this.countEl);
+    findRow.appendChild(this.prevBtn);
+    findRow.appendChild(this.nextBtn);
+    findRow.appendChild(closeBtn);
 
     this.replaceField = input(query.replace, "Replace", false);
     this.replaceField.addEventListener("input", () => {
@@ -145,11 +155,15 @@ class VscodeSearchPanel implements Panel {
     this.replaceRow.className = "cm-vs-row cm-vs-replace-row";
     const replaceSpacer = document.createElement("span");
     replaceSpacer.className = "cm-vs-spacer";
-    this.replaceRow.append(replaceSpacer, this.replaceField, replaceOneBtn, replaceAllBtn);
+    this.replaceRow.appendChild(replaceSpacer);
+    this.replaceRow.appendChild(this.replaceField);
+    this.replaceRow.appendChild(replaceOneBtn);
+    this.replaceRow.appendChild(replaceAllBtn);
 
     this.dom = document.createElement("div");
     this.dom.className = "cm-search cm-vs-search";
-    this.dom.append(findRow, this.replaceRow);
+    this.dom.appendChild(findRow);
+    this.dom.appendChild(this.replaceRow);
 
     this.syncReplaceVisibility();
     this.syncToggleButtons(query);
@@ -255,13 +269,22 @@ const toggleSearchKeymap = keymap.of([
     key: "Mod-f",
     run: (view) => (searchPanelOpen(view.state) ? closeSearchPanel(view) : openSearchPanel(view)),
   },
+  { key: "Mod-d", run: selectNextOccurrence },
   ...searchKeymap.filter((binding) => binding.key !== "Mod-f"),
 ]);
 
-/** Cmd+F search, toggling closed on a second press. CodeMirror's own
- * keymap only fires for whichever EditorView has focus, so this is
- * already scoped to one pane at a time without extra wiring. */
-export const workspaceSearch = [
+/** In-document Find/Replace shared by Markdown and code editor surfaces. */
+export const editorSearch = [
   search({ top: true, createPanel: (view) => new VscodeSearchPanel(view) }),
   toggleSearchKeymap,
 ];
+
+/** Toggle the common find panel and return its resulting open state. */
+export function toggleEditorSearch(view: EditorView): boolean {
+  if (searchPanelOpen(view.state)) {
+    closeSearchPanel(view);
+    return false;
+  }
+  openSearchPanel(view);
+  return true;
+}

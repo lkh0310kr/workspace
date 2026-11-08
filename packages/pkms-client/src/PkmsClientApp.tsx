@@ -1,8 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
+import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitleInput, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { buildRenamedPath, confirmEditorDocumentClose, discardEditorViewState, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownDocument, EditorMarkdownTitleInput, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorSavePhaseLabel, editorTreeSelectionRoots, markdownTitleFor, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeKeyboardAction, resolveEditorTreePath, toggleEditorSearch, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -81,6 +82,7 @@ export default function Home() {
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [sync, setSync] = useState<SyncStatus>({ serverRevision: 0, githubStatus: "pending", pendingFiles: 0 });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -159,6 +161,7 @@ export default function Home() {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const titleEditFileIdRef = useRef<string | null>(null);
   const editorNavigate = useRef<((position: number) => void) | null>(null);
+  const markdownView = useRef<EditorView | null>(null);
   const routedPath = useRef<string | null>(null);
   const openFileSequence = useRef(0);
   const editorNavigationRef = useRef<FileNavigation>("none");
@@ -1312,6 +1315,7 @@ export default function Home() {
         />}
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <div className="editor-layout">
           <EditorMarkdownDocument
+            actions={<EditorSearchButton active={searchOpen} onClick={() => { const view = markdownView.current; if (view) setSearchOpen(toggleEditorSearch(view)); }} />}
             title={<div className="editor-title-block">
               {titleEditing ? <EditorMarkdownTitleInput inputRef={titleInputRef} value={titleDraft} error={titleError} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} /> : <div className="editor-markdown-title" title={activeFile.path} onClick={enterTitleEdit}>{markdownTitleFor(activeFile.path)}</div>}
               {peers.length > 1 && <div className="live-presence">{peers.length} editing</div>}
@@ -1324,7 +1328,7 @@ export default function Home() {
               if (content?.type === "text") editorNavigate.current?.(content.text.length);
             }}
           >
-            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={pkmsDocumentKey(activeWorkspace.id, activeFile.id)} viewStateStorage={getEditorViewStateStorage()} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} resolveImage={resolveMarkdownImage} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
+            <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><MarkdownCodeEditor key={activeFile.id} documentKey={pkmsDocumentKey(activeWorkspace.id, activeFile.id)} viewStateStorage={getEditorViewStateStorage()} session={activeEditorSession} onNavigateReady={registerEditorNavigator} onViewReady={(view) => { markdownView.current = view; if (!view) setSearchOpen(false); }} onSearchPanelChange={setSearchOpen} onOutlineChange={setOutlineItems} onActivateLink={activateMarkdownLink} resolveImage={resolveMarkdownImage} onSessionError={(cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document")} className="markdown-code-editor" ariaLabel="Markdown editor" /></Suspense>
           </EditorMarkdownDocument>
         </div> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>

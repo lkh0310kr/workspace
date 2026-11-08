@@ -3,9 +3,11 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { historyField } from "@codemirror/commands";
 import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
+import { searchPanelOpen } from "@codemirror/search";
 import { createEditorView, editorDocumentReplacement, replaceEditorDocument } from "./codeMirror";
 import { moveEditorViewState, readEditorViewState, writeEditorViewState, type EditorViewStateStorage } from "./viewStateCache";
 import { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
+import { editorSearch } from "./editorSearch";
 import type { EditorDocumentSession } from "./provider";
 import "./markdown.css";
 
@@ -21,6 +23,7 @@ export interface EditorTextSurfaceProps {
   onChange?: (value: string, view: EditorView) => void;
   onSessionError?: (error: unknown) => void;
   onViewReady?: (view: EditorView | null) => void;
+  onSearchPanelChange?: (open: boolean) => void;
   className?: string;
   ariaLabel?: string;
   spellcheck?: boolean;
@@ -42,6 +45,7 @@ export function EditorTextSurface({
   onChange,
   onSessionError,
   onViewReady,
+  onSearchPanelChange,
   className,
   ariaLabel,
   spellcheck,
@@ -61,6 +65,7 @@ export function EditorTextSurface({
   const onChangeRef = useRef(onChange);
   const onSessionErrorRef = useRef(onSessionError);
   const onViewReadyRef = useRef(onViewReady);
+  const onSearchPanelChangeRef = useRef(onSearchPanelChange);
   const sessionSnapshot = useEditorDocumentSnapshot(session);
   const sessionRef = useRef(session);
   const sessionSnapshotRef = useRef(sessionSnapshot);
@@ -71,6 +76,7 @@ export function EditorTextSurface({
   onChangeRef.current = onChange;
   onSessionErrorRef.current = onSessionError;
   onViewReadyRef.current = onViewReady;
+  onSearchPanelChangeRef.current = onSearchPanelChange;
   viewStateStorageRef.current = viewStateStorage;
 
   useEffect(() => {
@@ -94,10 +100,11 @@ export function EditorTextSurface({
     if (ariaLabel) attributes["aria-label"] = ariaLabel;
     if (spellcheck !== undefined) attributes.spellcheck = String(spellcheck);
     if (autocapitalize) attributes.autocapitalize = autocapitalize;
-    const hostExtensions: Extension[] = [...extensions];
+    const hostExtensions: Extension[] = [...editorSearch, ...extensions];
     if (Object.keys(attributes).length) hostExtensions.push(EditorView.contentAttributes.of(attributes));
     hostExtensions.push(
       EditorView.updateListener.of((update) => {
+        onSearchPanelChangeRef.current?.(searchPanelOpen(update.state));
         if (update.docChanged || update.selectionSet) schedulePersist();
         if (!update.docChanged || update.transactions.some((transaction) => transaction.annotation(externalEditorChange))) return;
         const text = update.state.doc.toString();
@@ -151,6 +158,7 @@ export function EditorTextSurface({
       });
     }
     onViewReadyRef.current?.(view);
+    onSearchPanelChangeRef.current?.(searchPanelOpen(view.state));
     return () => {
       view.scrollDOM.removeEventListener("scroll", schedulePersist);
       persistNow();
@@ -192,6 +200,7 @@ export function EditorTextSurface({
       if (replacement) nextState = replacement.state;
     }
     view.setState(nextState ?? EditorState.create({ doc: targetDocument, extensions: viewExtensionsRef.current }));
+    onSearchPanelChangeRef.current?.(searchPanelOpen(view.state));
     view.scrollDOM.scrollTop = cached?.scrollTop ?? 0;
     view.scrollDOM.scrollLeft = cached?.scrollLeft ?? 0;
   }, [documentKey, effectiveValue]);

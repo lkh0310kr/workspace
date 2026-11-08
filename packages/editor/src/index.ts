@@ -32,6 +32,8 @@ export { EditorMenuList } from "./EditorMenuList";
 export type { EditorMenuItem } from "./EditorMenuList";
 export { EditorTabChip } from "./EditorTabChip";
 export type { EditorTabChipProps } from "./EditorTabChip";
+export { EditorSearchButton } from "./EditorSearchButton";
+export { editorSearch, toggleEditorSearch } from "./editorSearch";
 export { EditorTextSurface, externalEditorChange } from "./EditorTextSurface";
 export type { EditorTextSurfaceProps } from "./EditorTextSurface";
 export { EditorMarkdownDocument } from "./EditorMarkdownDocument";

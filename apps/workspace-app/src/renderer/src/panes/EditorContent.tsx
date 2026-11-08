@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { buildRenamedPath, editorDocumentKey, editorSavePhaseLabel, EditorMarkdownDocument, EditorMarkdownTitleInput, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
+import { buildRenamedPath, editorDocumentKey, editorSavePhaseLabel, EditorMarkdownDocument, EditorMarkdownTitleInput, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type EditorTreeItem } from "@workspace/editor";
 const EditorMarkdownSurface = lazy(() => import("@workspace/editor/EditorMarkdownSurface").then((module) => ({ default: module.EditorMarkdownSurface })));
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
@@ -24,12 +24,10 @@ import {
 } from "@codemirror/language";
 import { languages as languageData } from "@codemirror/language-data";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
-import { closeSearchPanel, openSearchPanel, searchPanelOpen, selectNextOccurrence } from "@codemirror/search";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
 import { markdownProseTheme, workspaceEditorTheme } from "../codemirrorTheme";
 import { indentGuides } from "../indentGuides";
 import { syntaxTheme } from "../codemirrorSyntax";
-import { workspaceSearch } from "../codemirrorSearch";
 import { pastePlainTextCommand } from "../editorPlainPaste";
 import { getFocusedEditorView } from "../activeEditorView";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
@@ -389,16 +387,13 @@ export function EditorContent({
 
     return [
       ...modeExtensions,
-      ...workspaceSearch,
       indentUnit.of("    "),
       EditorState.allowMultipleSelections.of(true),
       drawSelection(),
-      keymap.of([{ key: "Mod-d", run: selectNextOccurrence }]),
       workspaceEditorTheme,
       indentGuides,
       EditorView.clickAddsSelectionRange.of((event) => event.altKey),
       EditorView.updateListener.of((update) => {
-        setSearchOpen(searchPanelOpen(update.view.state));
         if (!update.docChanged) return;
         editRevisionRef.current += 1;
         if (suppressProviderEditRef.current || update.transactions.some((transaction) => transaction.annotation(externalEditorChange))) return;
@@ -616,14 +611,9 @@ export function EditorContent({
   const toggleSearch = () => {
     const view = viewRef.current;
     if (!view) return;
-    if (searchPanelOpen(view.state)) {
-      closeSearchPanel(view);
-      setSearchOpen(false);
-    } else {
-      openSearchPanel(view);
-      setSearchOpen(true);
-      view.focus();
-    }
+    const open = toggleEditorSearch(view);
+    setSearchOpen(open);
+    if (open) view.focus();
   };
 
   // The shared Markdown document frame scrolls CodeMirror at auto-height
@@ -645,7 +635,7 @@ export function EditorContent({
   const editorActions = (
     <>
       {(!autoSave || saveError) && <span className={`md-pane-save-status${saveError ? " error" : dirty ? " unsaved" : ""}`} role="status" aria-live="polite" title={saveError ?? undefined}>{editorSavePhaseLabel(saveError ? "error" : dirty ? "dirty" : "clean")}</span>}
-      <button type="button" className={`obsidian-topbar-icon${searchOpen ? " active" : ""}`} title="Search" onClick={toggleSearch}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85Zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z" /></svg></button>
+      <EditorSearchButton active={searchOpen} onClick={toggleSearch} />
       <button type="button" className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`} title="Toggle file explorer" onClick={onToggleTree}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z" /></svg></button>
     </>
   );
@@ -673,7 +663,7 @@ export function EditorContent({
               onBackgroundClick={onScrollContainerClick}
             >
               <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-                <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" parserExtensions={workspaceMarkdownParserExtensions} extensions={editorExtensions} onViewReady={onViewReady} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
+                <Suspense fallback={<div className="editor-loading">Opening editor…</div>}><EditorMarkdownSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" parserExtensions={workspaceMarkdownParserExtensions} extensions={editorExtensions} onViewReady={onViewReady} onSearchPanelChange={setSearchOpen} onOutlineChange={(headings) => setOutline(headings.map(({ level, title, position }) => ({ level, text: title, pos: position })))} onActivateLink={(link) => {
                   if (link.kind === "wikilink") {
                     void resolveWikiLinkTarget(editorProvider, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;
@@ -690,7 +680,7 @@ export function EditorContent({
             </EditorMarkdownDocument>
           ) : (
             <div className="md-editor" ref={editorShellRef} style={editorFontStyle}>
-              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
+              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSearchPanelChange={setSearchOpen} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>

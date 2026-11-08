@@ -20,6 +20,7 @@ export interface EditorMarkdownSurfaceProps extends Omit<EditorTextSurfaceProps,
   onViewReady?: EditorTextSurfaceProps["onViewReady"];
   onNavigateReady?: (navigate: ((position: number) => void) | null) => void;
   onOutlineChange?: (headings: MarkdownHeading[]) => void;
+  onSearchPanelChange?: EditorTextSurfaceProps["onSearchPanelChange"];
   onActivateLink?: (link: EditorMarkdownLink) => boolean;
   resolveImage?: MarkdownImageResolver;
 }
@@ -31,6 +32,7 @@ export function EditorMarkdownSurface({
   onViewReady: onViewReadyProp,
   onNavigateReady,
   onOutlineChange,
+  onSearchPanelChange,
   onActivateLink,
   resolveImage,
   ...surfaceProps
@@ -74,5 +76,5 @@ export function EditorMarkdownSurface({
     });
   }, [onNavigateReady, onViewReadyProp]);
 
-  return <EditorTextSurface {...surfaceProps} extensions={sharedExtensions} onViewReady={onViewReady} />;
+  return <EditorTextSurface {...surfaceProps} extensions={sharedExtensions} onViewReady={onViewReady} onSearchPanelChange={onSearchPanelChange} />;
 }
