@@ -48,8 +48,8 @@ export type { EditorTreeBranchEntry, EditorVisibleTreeRow, EditorTreeProjection 
 export { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentClose, confirmEditorDocumentCloseById, setEditorDocumentDirty } from "./documentDirtyRegistry";
 export { fuzzyEditorSearch } from "./fuzzySearch";
 export type { EditorFuzzyMatch } from "./fuzzySearch";
-export { resolveEditorTreeArrowKey } from "./treeNavigation";
-export type { EditorTreeArrowAction, EditorTreeNavigationRow } from "./treeNavigation";
+export { resolveEditorTreeArrowKey, resolveEditorTreeKeyboardAction } from "./treeNavigation";
+export type { EditorTreeArrowAction, EditorTreeKeyboardAction, EditorTreeNavigationRow } from "./treeNavigation";
 export { resolveEditorTreeSelection } from "./treeSelection";
 export type { EditorTreeSelectionModifiers, EditorTreeSelectionState } from "./treeSelection";
 export { useEditorTreeSelection } from "./useEditorTreeSelection";

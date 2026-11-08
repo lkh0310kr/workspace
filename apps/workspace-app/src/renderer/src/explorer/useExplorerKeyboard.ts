@@ -1,6 +1,6 @@
 import { useEffect, type RefObject } from "react";
 import type { DirEntry } from "../fileSystem";
-import { resolveEditorTreeArrowKey, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
+import { resolveEditorTreeKeyboardAction, type EditorTreeArrowAction, type EditorTreeNavigationRow } from "@workspace/editor";
 
 export interface ExplorerKeyboardHandlers {
   onDelete: () => void;
@@ -49,29 +49,20 @@ export function useExplorerKeyboard(
       const entry = handlers.getFocusedEntry();
       if (!entry && e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
 
-      if (e.key.startsWith("Arrow")) {
-        const action = resolveEditorTreeArrowKey(handlers.getVisibleRows(), entry?.path ?? null, handlers.getExpandedPaths(), e.key);
-        if (action) {
-          e.preventDefault();
-          handlers.onArrowAction(action, e.shiftKey);
-        }
-        return;
-      }
-
-      if (e.key === "Delete" || e.key === "Backspace") {
+      const action = resolveEditorTreeKeyboardAction(e.key, handlers.getVisibleRows(), entry?.path ?? null, handlers.getExpandedPaths());
+      if (!action) return;
+      if (action.type === "navigate") {
+        e.preventDefault();
+        handlers.onArrowAction(action.action, e.shiftKey);
+      } else if (action.type === "delete") {
         e.preventDefault();
         handlers.onDelete();
-        return;
-      }
-      if (e.key === "F2") {
+      } else if (action.type === "rename") {
         e.preventDefault();
         handlers.onRename();
-        return;
-      }
-      if (e.key === "Enter" && entry) {
+      } else if (action.type === "activate" && entry) {
         e.preventDefault();
         handlers.onEnter(entry);
-        return;
       }
     }
 

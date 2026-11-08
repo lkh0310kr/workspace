@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorMarkdownDocument, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorTreeArrowKey, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
+import { confirmEditorDocumentClose, EditorDocumentTabBar, EditorMarkdownDocument, EditorQuickOpenDialog, fuzzyEditorSearch, projectEditorTreeRows, resolveEditorTreeKeyboardAction, type EditorDocumentSession, type EditorItemRef, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
@@ -816,24 +816,24 @@ export default function Home() {
       void moveThroughEditorProvider(files.filter((file) => cutTreePaths.has(file.path)), target);
       return;
     }
-    if (event.key === "Delete" || event.key === "Backspace") {
+    const navigationRows: EditorTreeNavigationRow[] = treeRows.map(({ file, depth }) => ({
+      path: file.path,
+      kind: file.kind === "folder" ? "directory" : file.kind === "markdown" ? "markdown" : "asset",
+      depth,
+    }));
+    const keyAction = resolveEditorTreeKeyboardAction(event.key, navigationRows, row?.file.path ?? null, expandedFolders);
+    if (keyAction?.type === "delete") {
       if (commandFiles.length) { event.preventDefault(); void deleteThroughEditorProvider(commandFiles); }
       return;
     }
-    if (row && event.key === "F2" && selectedTreePaths.size === 1) {
+    if (keyAction?.type === "rename" && row && selectedTreePaths.size === 1) {
       event.preventDefault();
       const selected = files.find((file) => selectedTreePaths.has(file.path));
       if (selected) beginTreeRename(selected);
       return;
     }
-    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
-      const navigationRows: EditorTreeNavigationRow[] = treeRows.map(({ file, depth }) => ({
-        path: file.path,
-        kind: file.kind === "folder" ? "directory" : file.kind === "markdown" ? "markdown" : "asset",
-        depth,
-      }));
-      const action = resolveEditorTreeArrowKey(navigationRows, row?.file.path ?? null, expandedFolders, event.key);
-      if (!action) return;
+    if (keyAction?.type === "navigate") {
+      const action = keyAction.action;
       event.preventDefault();
       if (action.type === "focus") {
         const next = treeRows[action.index];
@@ -846,7 +846,7 @@ export default function Home() {
       }
       return;
     }
-    if (row && event.key === "Enter") {
+    if (row && keyAction?.type === "activate") {
       event.preventDefault();
       if (row.file.kind === "folder") void toggleFolder(row.file);
       else void openFile(row.file);

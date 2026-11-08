@@ -10,6 +10,27 @@ export type EditorTreeArrowAction =
   | { type: "focus"; path: string; index: number }
   | { type: "expand" | "collapse"; path: string };
 
+export type EditorTreeKeyboardAction =
+  | { type: "navigate"; action: EditorTreeArrowAction }
+  | { type: "delete" | "rename" | "activate" };
+
+/** Map common tree keyboard input to a semantic action; hosts execute product operations. */
+export function resolveEditorTreeKeyboardAction(
+  key: string,
+  rows: readonly EditorTreeNavigationRow[],
+  focusedPath: string | null,
+  expandedPaths: ReadonlySet<string>,
+): EditorTreeKeyboardAction | null {
+  if (key.startsWith("Arrow")) {
+    const action = resolveEditorTreeArrowKey(rows, focusedPath, expandedPaths, key);
+    return action ? { type: "navigate", action } : null;
+  }
+  if (key === "Delete" || key === "Backspace") return { type: "delete" };
+  if (key === "F2") return { type: "rename" };
+  if (key === "Enter") return { type: "activate" };
+  return null;
+}
+
 /** Shared arrow-key navigation for loaded tree rows. */
 export function resolveEditorTreeArrowKey(
   rows: readonly EditorTreeNavigationRow[],
