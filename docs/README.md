@@ -7,6 +7,7 @@
 | 알고 싶은 것 | 문서 |
 |---|---|
 | 현재 시스템이 어떻게 동작하는가 | [시스템 아키텍처](./architecture/README.md) |
+| 프로세스·IPC·레이아웃 등 구현 구조는 무엇인가 | [엔지니어링 문서](./engineering/README.md) |
 | 어떤 일을 진행하거나 계획 중인가 | [계획 문서 색인](./planning/README.md) |
 | 개발·QA·디자인 절차는 무엇인가 | [가이드 색인](./guides/README.md) |
 | 보관된 기능과 이전 조사는 어디에 있는가 | [아카이브 색인](../archive/README.md) |

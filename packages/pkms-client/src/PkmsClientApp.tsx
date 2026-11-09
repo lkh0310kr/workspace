@@ -132,6 +132,9 @@ export default function Home() {
   const [localCloudTree, setLocalCloudTree] = useState<Array<FileRecord & { upToDate?: boolean }>>([]);
   const [showSyncSettings, setShowSyncSettings] = useState(false);
   const localCloudTreeRevision = useRef(-1);
+  const pendingLocalDeletePaths = useRef(new Set<string>());
+  const completedLocalDeletePaths = useRef(new Set<string>());
+  const confirmedCloudDeletePaths = useRef(new Set<string>());
   const localTreeGeneration = useRef(0);
   const pendingEmptyTreeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -157,12 +160,21 @@ export default function Home() {
       const tree = await desktop.syncBridgeTree(activeWorkspace.id, localCloudTreeRevision.current);
       if (!alive || tree.revision === localCloudTreeRevision.current) return;
       localCloudTreeRevision.current = tree.revision;
-      if (tree.files) setLocalCloudTree(tree.files.map((file) => ({
+      if (tree.files) {
+        const remotePaths = new Set(tree.files.map((file) => file.path));
+        for (const pendingPath of pendingLocalDeletePaths.current) {
+          if (!remotePaths.has(pendingPath)) {
+            confirmedCloudDeletePaths.current.add(pendingPath);
+            if (completedLocalDeletePaths.current.has(pendingPath)) pendingLocalDeletePaths.current.delete(pendingPath);
+          }
+        }
+        setLocalCloudTree(tree.files.map((file) => ({
         id: file.id, path: file.path, kind: file.kind, revision: file.revision,
         ...(file.size !== undefined ? { size: file.size } : {}),
         ...(file.sha ? { sha256: file.sha } : {}),
         ...(file.upToDate !== undefined ? { upToDate: file.upToDate } : {}),
-      })));
+        })));
+      }
     }).catch(() => {});
     refresh();
     const timer = setInterval(refresh, 2000);
@@ -185,7 +197,8 @@ export default function Home() {
         // retain the last good tree instead of replacing it with an empty one.
         const rootEntries = await desktop.listLocalDirectory(activeWorkspace.id, "");
         if (!alive || generation !== localTreeGeneration.current) return;
-        for (const entry of rootEntries) items.set(entry.id, entry);
+        const isPendingDelete = (path: string) => [...pendingLocalDeletePaths.current].some((root) => path === root || path.startsWith(`${root}/`));
+        for (const entry of rootEntries) if (!isPendingDelete(entry.path)) items.set(entry.id, entry);
         const loaded = new Set([""]);
         const children = await Promise.allSettled(directories.slice(1).map((directory) =>
           desktop.listLocalDirectory(activeWorkspace.id, directory).then((entries) => ({ directory, entries })),
@@ -194,10 +207,11 @@ export default function Home() {
         for (const result of children) {
           if (result.status !== "fulfilled") continue; // A folder may have been renamed or removed externally.
           loaded.add(result.value.directory);
-          for (const entry of result.value.entries) items.set(entry.id, entry);
+          for (const entry of result.value.entries) if (!isPendingDelete(entry.path)) items.set(entry.id, entry);
         }
         const localPaths = new Set([...items.values()].map((entry) => entry.path));
         for (const cloudEntry of localCloudTree) {
+          if (isPendingDelete(cloudEntry.path)) continue;
           if (!localPaths.has(cloudEntry.path)) items.set(cloudEntry.id, cloudEntry);
         }
         const nextFiles = [...items.values()];
@@ -590,28 +604,50 @@ export default function Home() {
           }
           if (!confirmDirtyEditorDocumentsInPaths(roots.map((root) => root.path), (dirtyMessage) => window.confirm(dirtyMessage))) return;
           const paths = roots.map((file) => parentPath(file.path));
+          const previousFiles = getFiles();
+          for (const root of roots) pendingLocalDeletePaths.current.add(root.path);
+          const isInsideDeleted = (path: string) => roots.some((root) => path === root.path || (root.kind === "folder" && path.startsWith(`${root.path}/`)));
+          // Hide the selected roots immediately. Filesystem and cloud work can take longer.
+          setFiles((current) => current.filter((file) => !isInsideDeleted(file.path)));
+          setExpandedFolders((current) => new Set([...current].filter((path) => !isInsideDeleted(path))));
+          setLoadedFolders((current) => new Set([...current].filter((path) => !isInsideDeleted(path))));
+          treeProviderListeners.current.forEach((listener) => listener(paths));
           console.info("[pkms-delete] started", { workspaceId: activeWorkspace.id, paths: roots.map((file) => file.path) });
           try {
             // Remove the cloud manifest entry first; otherwise the next sync pass recreates the local folder.
             for (const root of roots) {
               const remote = localCloudTree.find((entry) => entry.path === root.path && entry.kind === root.kind);
-              if (remote) await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: remote.id }, `desktop-${createOperationId()}`);
+              if (remote) {
+                const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: remote.id }, `desktop-${createOperationId()}`);
+                if (!result.queued) confirmedCloudDeletePaths.current.add(root.path);
+              } else confirmedCloudDeletePaths.current.add(root.path);
             }
             await desktop.deleteLocalItems(activeWorkspace.id, roots.map((file) => file.id));
+            for (const root of roots) {
+              completedLocalDeletePaths.current.add(root.path);
+              if (confirmedCloudDeletePaths.current.has(root.path)) pendingLocalDeletePaths.current.delete(root.path);
+            }
           } catch (cause) {
+            for (const root of roots) {
+              pendingLocalDeletePaths.current.delete(root.path);
+              completedLocalDeletePaths.current.delete(root.path);
+              confirmedCloudDeletePaths.current.delete(root.path);
+            }
+            setFiles(previousFiles);
+            treeProviderListeners.current.forEach((listener) => listener(paths));
             console.error("[pkms-delete] failed", { workspaceId: activeWorkspace.id, paths: roots.map((file) => file.path), error: cause instanceof Error ? cause.message : String(cause) });
             setError(cause instanceof Error ? `Could not delete item: ${cause.message}` : "Could not delete item");
             throw new EditorProviderError("unknown", cause instanceof Error ? cause.message : "Could not delete PKMS items");
           }
           console.info("[pkms-delete] completed", { workspaceId: activeWorkspace.id, paths: roots.map((file) => file.path) });
-          const removed = (file: FileRecord) => roots.some((root) => file.path === root.path || (root.kind === "folder" && file.path.startsWith(`${root.path}/`)));
+          const removed = (file: FileRecord) => isInsideDeleted(file.path);
           const deletedIds = new Set(getFiles().filter(removed).map((file) => file.id));
           for (const [sessionKey, session] of [...pkmsEditorSessions.current]) {
             if (!deleting.some((root) => root && (session.item.path === root.path || (root.kind === "folder" && session.item.path.startsWith(`${root.path}/`)))) && !deletedIds.has(session.item.itemId)) continue;
             deletedIds.add(session.item.itemId);
             closePkmsEditorSession(sessionKey, session);
           }
-          setFiles(getFiles().filter((file) => !removed(file)));
+          setFiles((current) => current.filter((file) => !removed(file)));
           setOpenDocuments((current) => current.filter((tab) => tab.workspaceId !== activeWorkspace.id || !removed(tab.file)));
           setActiveFile((current) => current && removed(current) ? null : current);
           setActiveEditorSession((current) => current && roots.some((root) => current.item.path === root.path || (root.kind === "folder" && current.item.path.startsWith(`${root.path}/`))) ? null : current);

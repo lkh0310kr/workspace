@@ -27,7 +27,7 @@ CSS (`apps/workspace-app/src/renderer/src/assets/styles.css`):
 - `.layout-host-item` — `position: absolute; inset: 0; z-index: 0`
 - `.layout-host-item--active` — `z-index: 1`
 
-**Do not** use `display: none` on workspace tab hosts — it conflicts with webview compositing (see [06-browser-embeds.md](./06-browser-embeds.md)).
+**Do not** use `display: none` on workspace tab hosts — it conflicts with webview compositing (see [06-browser-embeds.md](../architecture/06-browser-embeds.md)).
 
 ## flexlayout-react
 
@@ -118,4 +118,4 @@ Overlay blocks during drag: `pushOverlayBlock('pane-tab-strip-drag')` — see [0
 
 - [04-interaction-coordinator.md](./04-interaction-coordinator.md)
 - [05-terminal-pipeline.md](./05-terminal-pipeline.md)
-- [06-browser-embeds.md](./06-browser-embeds.md)
+- [06-browser-embeds.md](../architecture/06-browser-embeds.md)
