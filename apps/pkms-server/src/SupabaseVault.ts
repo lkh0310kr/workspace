@@ -283,7 +283,14 @@ async function applyOperation(env:Env,w:WorkspaceRow,b:Record<string,unknown>,ct
       return json({...result,links});
     }
     return json(result);}
-  catch(error){const code=error instanceof Error&&error.message.includes("invalid_path")?"invalid_path":error instanceof Error&&error.message.includes("workspace_not_found")?"workspace_not_found":"operation_failed";return json({error:code},{status:code==="invalid_path"?400:409});}
+  catch(error){
+    // A newer sync pass may have deleted this same file after the manifest
+    // page was read. Treat that race as an idempotent delete, so stale entries
+    // cannot stall a folder reconciliation.
+    if(op.type==="delete"&&error instanceof SupabaseError&&error.code==="P0002")return json({duplicate:true,alreadyDeleted:true,acceptedRevision:w.server_revision});
+    const code=error instanceof Error&&error.message.includes("invalid_path")?"invalid_path":error instanceof Error&&error.message.includes("workspace_not_found")?"workspace_not_found":"operation_failed";
+    return json({error:code},{status:code==="invalid_path"?400:409});
+  }
 }
 async function readDocument(env:Env,w:WorkspaceRow,fileId:string,vector:string|null):Promise<Response>{
   try{

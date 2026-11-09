@@ -570,6 +570,18 @@ async function syncOnce(workspaceId: string): Promise<void> {
       let knownRemoteFiles = state.remoteFiles[workspaceId];
       let nextSyncRevision = state.syncCursors[workspaceId];
       const remoteChangedPaths = new Set<string>();
+      const baselines = state.baselines[workspaceId] ??= {};
+      const onlyNewLocalMarkdown = scannedLocalPaths.length > 0
+        && scannedLocalPaths.every((relative) =>
+          relative.toLowerCase().endsWith(".md")
+          && !baselines[relative]
+          && !Object.values(knownRemoteFiles ?? {}).some((file) => file.path === relative),
+        );
+      // A new local file can be created immediately. The server checks the
+      // path atomically and assigns a conflict path if another device created
+      // the same name, so a serial change-feed request adds latency without
+      // improving correctness.
+      const skipRemoteChangeFeed = !fullScan && onlyNewLocalMarkdown;
       const needsRemoteHashMetadata = !!knownRemoteFiles && Object.values(knownRemoteFiles).some((file) => file.revision === 0 && file.sha === undefined);
       const backgroundCheck = !fullScan && scannedLocalPaths.length === 0 && !!knownRemoteFiles && nextSyncRevision !== undefined && !needsRemoteHashMetadata;
       if (!backgroundCheck) setStatus(workspaceId, { state: "syncing", stage: "scanning", progress: null, error: null });
@@ -579,7 +591,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         knownRemoteFiles = Object.fromEntries(snapshot.files.filter((file) => file.kind === "markdown").map((file) => [file.id, file]));
         nextSyncRevision = snapshot.revision;
         fullScan = true;
-      } else {
+      } else if (!skipRemoteChangeFeed) {
         const page = await readRemoteChanges(workspaceId, nextSyncRevision);
         for (const change of page.changes) {
           const previous = knownRemoteFiles[change.id];
@@ -633,7 +645,6 @@ async function syncOnce(workspaceId: string): Promise<void> {
         local.set(conflict, content);
         return createAndRememberRemoteFile(conflict, content);
       };
-      const baselines = state.baselines[workspaceId] ??= {};
       const changedPaths = fullScan
         ? [...local.keys(), ...remoteByPath.keys(), ...Object.keys(baselines)]
         : [
@@ -840,7 +851,7 @@ function schedule(workspaceId: string, fullScan = false, localPath?: string): vo
   if (previous) clearTimeout(previous);
   // Coalesce atomic-save event bursts while keeping one file edit under a
   // second from reaching the cloud.
-  timers.set(workspaceId, setTimeout(() => { timers.delete(workspaceId); void syncOnce(workspaceId); }, 100));
+  timers.set(workspaceId, setTimeout(() => { timers.delete(workspaceId); void syncOnce(workspaceId); }, 25));
 }
 async function stopRuntime(workspaceId: string, releaseLock = true): Promise<void> {
   watchers.get(workspaceId)?.close(); watchers.delete(workspaceId);
