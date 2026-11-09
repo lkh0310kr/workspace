@@ -110,8 +110,12 @@ async function promoteMac() {
       "No valid macOS code-signing identity is available. Install/select the Developer ID Application certificate used for Workspace before promoting; ad-hoc signed Electron builds cannot be launched reliably by macOS.",
     );
   }
-  console.log("[promote-stable] building…");
-  execFileSync("npm", ["run", "build"], { cwd: root, stdio: "inherit" });
+  if (process.env.PROMOTE_STABLE_SKIP_BUILD === "1") {
+    console.log("[promote-stable] using the existing production build…");
+  } else {
+    console.log("[promote-stable] building…");
+    execFileSync("npm", ["run", "build"], { cwd: root, stdio: "inherit" });
+  }
   const builderArgs = ["electron-builder", "--mac", "--dir"];
   if (signingIdentity) builderArgs.push(`-c.mac.identity=${signingIdentity}`);
   if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS) {
