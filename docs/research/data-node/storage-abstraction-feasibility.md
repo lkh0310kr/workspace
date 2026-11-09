@@ -30,7 +30,7 @@ DB는 관련 데이터를 하나의 원자적 단위로 기록해야 한다. 현
 - file의 dirty 상태 갱신
 - workspace GitHub flush 상태/예정 시간 갱신
 
-이 동작은 [migration의 `pkms_append_document_update`](../../../apps/pkms-server/supabase/migrations/20261101130000_atomic_document_write.sql) 한 DB 함수에서 수행된다. 이것들이 “트랜잭션 DB”의 예시이며 DB가 PKMS 비즈니스 API라는 뜻은 아니다. 다만 현재 migration function은 PKMS 의미와 SQL을 직접 포함하므로 adapter 경계 뒤로 옮기려면 이 명령의 의미를 명시적인 storage contract로 추출해야 한다.
+이 동작은 [migration의 `pkms_append_document_update`](../../apps/pkms-server/supabase/migrations/20261101130000_atomic_document_write.sql) 한 DB 함수에서 수행된다. 이것들이 “트랜잭션 DB”의 예시이며 DB가 PKMS 비즈니스 API라는 뜻은 아니다. 다만 현재 migration function은 PKMS 의미와 SQL을 직접 포함하므로 adapter 경계 뒤로 옮기려면 이 명령의 의미를 명시적인 storage contract로 추출해야 한다.
 
 Yjs 로그는 저장 데이터의 한 종류다. Realtime은 그 로그 자체가 아니라 다른 연결된 클라이언트에게 변경을 알려 주는 별도 전송 계층이다. 연결이 끊겼을 때는 DB의 update log/revision을 다시 조회해 회복할 수 있어야 하며, WebSocket broadcast를 durability 원천으로 삼으면 안 된다. Supabase 문서도 Broadcast를 connected clients로 보내는 메시지 경로로 설명하고, DB-backed replay는 보존 기간이 제한되어 있다. [Supabase Broadcast](https://supabase.com/docs/guides/realtime/broadcast)
 
@@ -45,7 +45,7 @@ Yjs 로그는 저장 데이터의 한 종류다. Realtime은 그 로그 자체�
 
 ### 가장 어려운 부분
 
-`SupabaseVault.ts`는 DB transport와 PKMS domain logic이 섞여 있다. 파일 전반에 `supabaseRequest`, `supabaseRpc`, PostgREST query/filter string, PKMS 이름을 가진 RPC 호출이 직접 등장한다. 예를 들어 document read/write, directory mirror, operation, asset upload, dirty flush 및 recovery가 한 `SupabaseVault` 모듈에서 직접 Supabase를 호출한다. [SupabaseVault.ts](../../../apps/pkms-server/src/SupabaseVault.ts), [supabase.ts](../../../apps/pkms-server/src/supabase.ts)
+`SupabaseVault.ts`는 DB transport와 PKMS domain logic이 섞여 있다. 파일 전반에 `supabaseRequest`, `supabaseRpc`, PostgREST query/filter string, PKMS 이름을 가진 RPC 호출이 직접 등장한다. 예를 들어 document read/write, directory mirror, operation, asset upload, dirty flush 및 recovery가 한 `SupabaseVault` 모듈에서 직접 Supabase를 호출한다. [SupabaseVault.ts](../../apps/pkms-server/src/SupabaseVault.ts), [supabase.ts](../../apps/pkms-server/src/supabase.ts)
 
 DB contract가 너무 낮은 수준이면 Worker가 SQLite/Postgres 차이를 직접 알아야 하고, 너무 PKMS 전용이면 Data Node가 “범용 storage”가 아니라 PKMS backend가 된다. 적당한 경계는 Worker use case가 필요한 **원자적 명령 단위**를 선언하고, provider가 그 명령을 자기 DB transaction으로 구현하는 것이다.
 

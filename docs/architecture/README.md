@@ -4,11 +4,15 @@
 
 ## 읽는 순서
 
-1. [엔지니어링 문서](../engineering/README.md) — 프로세스, IPC, 레이아웃, 상호작용, 터미널
-2. [브라우저 embed](./06-browser-embeds.md) — webview 수명과 탐색
-3. [PKMS 아키텍처](./pkms/README.md) — 전체 통합 경계와 Desktop 폴더 동기화
-4. [제품별 앱 경계](./08-monorepo-module-boundaries.md) — PKMS와 Workspace 앱, 서버, 공유 패키지의 목표 구조와 이전 순서
-5. [Desktop 릴리스 원칙](./desktop-release.md) — 활성 플랫폼 우선 검증, 네이티브 패키지 기준, 업데이트 배포
+1. [전체 구조](./01-overview.md) — 프로세스, 계층, 데이터 흐름
+2. [프로세스와 IPC](./02-process-and-ipc.md) — main, preload, renderer 호출
+3. [Workspace와 레이아웃](./03-workspace-and-layout.md) — Workspace·pane 탭과 flexlayout
+4. [상호작용 조정기](./04-interaction-coordinator.md) — overlay, 포커스, 브라우저 embed
+5. [터미널 파이프라인](./05-terminal-pipeline.md) — PTY, xterm, 출력·스크롤 흐름
+6. [브라우저 embed](./06-browser-embeds.md) — webview 수명과 탐색
+7. [PKMS 아키텍처](./pkms/README.md) — 전체 통합 경계와 Desktop 폴더 동기화
+8. [제품별 앱 경계](./08-monorepo-module-boundaries.md) — PKMS와 Workspace 앱, 서버, 공유 패키지의 목표 구조와 이전 순서
+9. [Desktop 릴리스 원칙](./desktop-release.md) — 활성 플랫폼 우선 검증, 네이티브 패키지 기준, 업데이트 배포
 
 
 ## 범위

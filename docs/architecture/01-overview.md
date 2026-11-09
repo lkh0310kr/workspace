@@ -84,4 +84,4 @@ npm run build  # apps/workspace-app/out/에 제품 번들 생성
 - [프로세스와 IPC](./02-process-and-ipc.md)
 - [Workspace와 레이아웃](./03-workspace-and-layout.md)
 - [상호작용 조정기](./04-interaction-coordinator.md)
-- [PKMS pane 및 서비스 경계](../architecture/pkms/overview.md)
+- [PKMS pane 및 서비스 경계](./pkms/overview.md)

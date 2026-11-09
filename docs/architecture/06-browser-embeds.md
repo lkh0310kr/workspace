@@ -88,7 +88,7 @@ Address bar suggestions register as coordinator portal when open.
 
 Chromium can suspend or blank guest compositing when an ancestor uses `display: none`. Pane-level content uses `visibility: hidden` only (`PaneGroup.tsx` comment).
 
-Workspace tab hosts also avoid `display: none` (use visibility + z-index). See [03-workspace-and-layout.md](../engineering/03-workspace-and-layout.md).
+Workspace tab hosts also avoid `display: none` (use visibility + z-index). See [03-workspace-and-layout.md](./03-workspace-and-layout.md).
 
 ## Memory note
 
@@ -105,5 +105,5 @@ Every mounted workspace tab with browser panes keeps live webviews. Multiple wor
 
 ## Related docs
 
-- [04-interaction-coordinator.md](../engineering/04-interaction-coordinator.md)
-- [03-workspace-and-layout.md](../engineering/03-workspace-and-layout.md)
+- [04-interaction-coordinator.md](./04-interaction-coordinator.md)
+- [03-workspace-and-layout.md](./03-workspace-and-layout.md)

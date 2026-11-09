@@ -153,4 +153,4 @@ If `overlayBlockCount > 0` stuck, badge highlights and offers **Clear overlay bl
 ## Related docs
 
 - [03-workspace-and-layout.md](./03-workspace-and-layout.md)
-- [06-browser-embeds.md](../architecture/06-browser-embeds.md)
+- [06-browser-embeds.md](./06-browser-embeds.md)

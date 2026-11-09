@@ -99,7 +99,7 @@ PKMS desktop adapter는 기존 파일시스템 IPC와 별도 경로로 Worker AP
 | `pkms:fetch-asset` | 인증된 workspace attachment 읽기 |
 | `pkms:open-verification` | GitHub device verification 페이지 열기 |
 
-채널 타입은 `apps/workspace-app/src/shared/pkmsClient.ts`, preload 노출은 `apps/workspace-app/src/preload/index.ts`, Main 처리는 `apps/workspace-app/src/main/pkms/`에 있습니다. Main이 bearer token을 보관하므로 renderer에는 token을 전달하지 않습니다. 전체 Web/iOS/Desktop 경계와 캐시 동작은 [PKMS integration](../architecture/pkms/overview.md)을 참고하세요.
+채널 타입은 `apps/workspace-app/src/shared/pkmsClient.ts`, preload 노출은 `apps/workspace-app/src/preload/index.ts`, Main 처리는 `apps/workspace-app/src/main/pkms/`에 있습니다. Main이 bearer token을 보관하므로 renderer에는 token을 전달하지 않습니다. 전체 Web/iOS/Desktop 경계와 캐시 동작은 [PKMS integration](./pkms/overview.md)을 참고하세요.
 
 ## 클립보드
 
@@ -114,4 +114,4 @@ PKMS desktop adapter는 기존 파일시스템 IPC와 별도 경로로 Worker AP
 ## 관련 문서
 
 - [터미널 파이프라인](./05-terminal-pipeline.md)
-- [브라우저 embed](../architecture/06-browser-embeds.md)
+- [브라우저 embed](./06-browser-embeds.md)
