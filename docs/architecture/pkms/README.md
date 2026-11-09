@@ -6,5 +6,6 @@ PKMS-specific architecture documents live here. Keep the system-wide process and
 
 - [Integration overview](./overview.md) — Web, Desktop, iOS, Worker, IPC, and shared client boundaries.
 - [Desktop folder sync](./folder-sync.md) — current algorithm, target data flow, local tree UX, and rollout steps.
+- [Local deletion sync](./local-deletion-sync.md) — file/folder deletion detection, durable tombstones, remote-change safety, and acceptance criteria.
 
 The overview explains where sync belongs in the product. The folder-sync document owns its algorithm and interaction contract. Do not duplicate sync timings or reconciliation rules in the overview.
