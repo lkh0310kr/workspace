@@ -19,6 +19,14 @@ interface DesktopBridge {
   disconnectSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus>;
   scanSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus>;
   updateSyncBridgeExclusions(workspaceId: string, paths: string[]): Promise<PkmsSyncBridgeStatus>;
+  readLocalMarkdown(workspaceId: string, relativePath: string): Promise<{ text: string; revision: string }>;
+  writeLocalMarkdown(workspaceId: string, relativePath: string, text: string, expectedRevision: string): Promise<{ revision: string }>;
+  listLocalDirectory(workspaceId: string, relativePath: string): Promise<Array<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }>>;
+  getLocalFile(workspaceId: string, id: string): Promise<{ id: string; path: string; kind: "markdown" | "folder"; revision: number } | null>;
+  createLocalItem(workspaceId: string, parent: string, kind: "markdown" | "folder", name: string): Promise<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }>;
+  renameLocalItem(workspaceId: string, id: string, name: string): Promise<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }>;
+  moveLocalItems(workspaceId: string, ids: string[], parent: string): Promise<Array<{ oldId: string; file: { id: string; path: string; kind: "markdown" | "folder"; revision: number } }>>;
+  deleteLocalItems(workspaceId: string, ids: string[]): Promise<void>;
 }
 
 export interface PkmsSyncBridgeStatus {
@@ -28,6 +36,7 @@ export interface PkmsSyncBridgeStatus {
   excludedPaths: string[];
   state: "disconnected" | "syncing" | "synced" | "offline" | "error";
   progress: { completed: number; total: number; percent: number } | null;
+  stage?: "scanning" | "loading-remote-list" | "downloading-remote-files" | "reconciling" | null;
   lastScannedAt: number | null;
   lastSyncedAt: number | null;
   pendingFiles: number;
@@ -42,6 +51,7 @@ export type PkmsSyncBridgeConnectResult =
 export function desktopBridge(): DesktopBridge | null {
   return (window as Window & { pkmsDesktop?: DesktopBridge }).pkmsDesktop ?? null;
 }
+
 
 export async function requestDesktopApi<T>(path: string, init?: RequestInit): Promise<T> {
   const desktop = desktopBridge();

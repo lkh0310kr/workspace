@@ -287,6 +287,14 @@ export interface PkmsDesktopApi {
   disconnectSyncBridge: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
   scanSyncBridge: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
   updateSyncBridgeExclusions: (workspaceId: string, paths: string[]) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
+  readLocalMarkdown: (workspaceId: string, relativePath: string) => Promise<{ text: string; revision: string }>
+  writeLocalMarkdown: (workspaceId: string, relativePath: string, text: string, revision: string) => Promise<{ revision: string }>
+  listLocalDirectory: (workspaceId: string, relativePath: string) => Promise<import('../shared/pkmsClient').PkmsFile[]>
+  getLocalFile: (workspaceId: string, id: string) => Promise<import('../shared/pkmsClient').PkmsFile | null>
+  createLocalItem: (workspaceId: string, parent: string, kind: 'markdown' | 'folder', name: string) => Promise<import('../shared/pkmsClient').PkmsFile>
+  renameLocalItem: (workspaceId: string, id: string, name: string) => Promise<import('../shared/pkmsClient').PkmsFile>
+  moveLocalItems: (workspaceId: string, ids: string[], parent: string) => Promise<Array<{ oldId: string; file: import('../shared/pkmsClient').PkmsFile }>>
+  deleteLocalItems: (workspaceId: string, ids: string[]) => Promise<void>
 }
 
 export interface WorkspaceHomeApi {

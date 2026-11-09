@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import type { PkmsRequestOptions } from "../../shared/pkmsClient";
 import { fetchPkmsAsset, parsePkmsVerificationUrl, parseServiceOAuthUrl, requestPkmsApi, requestWorkspaceHomeApi } from "./api";
-import { configurePkmsSyncBridge, disconnectPkmsSyncBridge, getPkmsSyncBridgeStatus, scanPkmsSyncBridge, startConfiguredPkmsSyncBridges, updatePkmsSyncBridgeExclusions } from "./syncBridge";
+import { configurePkmsSyncBridge, createPkmsLocalItem, deletePkmsLocalItems, disconnectPkmsSyncBridge, getPkmsSyncBridgeStatus, getPkmsLocalFile, listPkmsLocalDirectory, movePkmsLocalItems, readPkmsLocalMarkdown, renamePkmsLocalItem, scanPkmsSyncBridge, startConfiguredPkmsSyncBridges, updatePkmsSyncBridgeExclusions, writePkmsLocalMarkdown } from "./syncBridge";
 
 function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
   const rawUrl = event.senderFrame?.url;
@@ -47,6 +47,42 @@ export function registerPkmsIpc(): void {
     assertTrustedSender(event);
     if (!Array.isArray(paths) || paths.some((item) => typeof item !== "string")) throw new Error("invalid_exclusions");
     return updatePkmsSyncBridgeExclusions(workspaceId, paths);
+  });
+  ipcMain.handle("pkms:local-file:read", async (event, workspaceId: string, relativePath: string) => {
+    assertTrustedSender(event);
+    return readPkmsLocalMarkdown(workspaceId, relativePath);
+  });
+  ipcMain.handle("pkms:local-file:list", async (event, workspaceId: string, relativePath: string) => {
+    assertTrustedSender(event);
+    return listPkmsLocalDirectory(workspaceId, relativePath);
+  });
+  ipcMain.handle("pkms:local-file:get", async (event, workspaceId: string, id: string) => {
+    assertTrustedSender(event);
+    return getPkmsLocalFile(workspaceId, id);
+  });
+  ipcMain.handle("pkms:local-item:create", async (event, workspaceId: string, parent: string, kind: "markdown" | "folder", name: string) => {
+    assertTrustedSender(event);
+    if (kind !== "markdown" && kind !== "folder") throw new Error("invalid_local_item_kind");
+    return createPkmsLocalItem(workspaceId, parent, kind, name);
+  });
+  ipcMain.handle("pkms:local-item:rename", async (event, workspaceId: string, id: string, name: string) => {
+    assertTrustedSender(event);
+    return renamePkmsLocalItem(workspaceId, id, name);
+  });
+  ipcMain.handle("pkms:local-item:move", async (event, workspaceId: string, ids: string[], parent: string) => {
+    assertTrustedSender(event);
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string")) throw new Error("invalid_local_item_ids");
+    return movePkmsLocalItems(workspaceId, ids, parent);
+  });
+  ipcMain.handle("pkms:local-item:delete", async (event, workspaceId: string, ids: string[]) => {
+    assertTrustedSender(event);
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string")) throw new Error("invalid_local_item_ids");
+    return deletePkmsLocalItems(workspaceId, ids);
+  });
+  ipcMain.handle("pkms:local-file:write", async (event, workspaceId: string, relativePath: string, text: string, revision: string) => {
+    assertTrustedSender(event);
+    if (typeof text !== "string" || typeof revision !== "string") throw new Error("invalid_local_file_write");
+    return writePkmsLocalMarkdown(workspaceId, relativePath, text, revision);
   });
   ipcMain.handle("workspace-home:request", (event, pathName: string, options: PkmsRequestOptions) => {
     assertTrustedSender(event);

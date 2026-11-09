@@ -5,6 +5,7 @@ import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
 import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow, type MarkdownHeading } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
+import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
@@ -50,6 +51,12 @@ export function meta() {
 
 function pkmsDocumentKey(workspaceId: string, fileId: string): string {
   return editorDocumentKey({ providerId: `pkms:${workspaceId}`, itemId: fileId });
+}
+function localItemIdForPath(path: string): string {
+  const bytes = new TextEncoder().encode(path);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `local-${btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "")}`;
 }
 
 interface PkmsTreeOperations {
@@ -117,6 +124,46 @@ export default function Home() {
     refreshDirectory,
     getFiles,
   } = useWorkspaceDirectory(activeWorkspace, api, setError);
+  const [localFolderEnabled, setLocalFolderEnabled] = useState(false);
+  const [localCloudSyncing, setLocalCloudSyncing] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setLocalFolderEnabled(false);
+    setLocalCloudSyncing(false);
+    const desktop = desktopBridge();
+    if (!desktop || !activeWorkspace) return () => { alive = false; };
+    const refresh = () => void desktop.syncBridgeStatus(activeWorkspace.id).then((status) => {
+      if (alive) {
+        setLocalFolderEnabled(status.enabled);
+        setLocalCloudSyncing(status.state === "syncing");
+      }
+    }).catch(() => {});
+    refresh();
+    const timer = setInterval(refresh, 2000);
+    return () => { alive = false; clearInterval(timer); };
+  }, [activeWorkspace?.id]);
+  useEffect(() => {
+    const desktop = desktopBridge();
+    if (!desktop || !activeWorkspace || !localFolderEnabled) return;
+    let alive = true;
+    const refreshLocalTree = async () => {
+      const directories = new Set(["", ...expandedFolders]);
+      const items = new Map<string, FileRecord>();
+      for (const directory of directories) {
+        try {
+          const entries = await desktop.listLocalDirectory(activeWorkspace.id, directory);
+          if (!alive) return;
+          for (const entry of entries) items.set(entry.id, entry);
+        } catch { /* A folder may have been renamed or removed by an external editor. */ }
+      }
+      if (!alive) return;
+      setFiles([...items.values()]);
+      setLoadedFolders(directories);
+    };
+    void refreshLocalTree();
+    const timer = setInterval(() => void refreshLocalTree(), 2000);
+    return () => { alive = false; clearInterval(timer); };
+  }, [activeWorkspace?.id, expandedFolders, localFolderEnabled, setFiles, setLoadedFolders]);
   const treeFilesRef = useRef(files);
   const activeFileStateRef = useRef(activeFile);
   treeFilesRef.current = files;
@@ -177,6 +224,17 @@ export default function Home() {
     pkmsEditorSessions.current.delete(sessionKey);
     void session.close();
   }, []);
+  const rekeyPkmsEditorSession = useCallback((oldKey: string, nextItem: EditorDocumentSession["item"], session: EditorDocumentSession) => {
+    const nextKey = editorDocumentKey(nextItem);
+    if (oldKey === nextKey) { session.updateItem?.(nextItem); return; }
+    pkmsDirtySubscriptions.current.get(oldKey)?.();
+    pkmsDirtySubscriptions.current.delete(oldKey);
+    clearEditorDocumentDirty(oldKey);
+    session.updateItem?.(nextItem);
+    pkmsEditorSessions.current.delete(oldKey);
+    pkmsEditorSessions.current.set(nextKey, session);
+    trackPkmsEditorSession(nextKey, session);
+  }, [trackPkmsEditorSession]);
   const openFileRef = useRef<((file: FileRecord, historyAction?: FileNavigation) => Promise<void>) | null>(null);
   const docs = useRef(new Map<string, { doc: Y.Doc; persistence: IndexeddbPersistence; updateHandler?: (update: Uint8Array, origin: unknown) => void }>());
   const activeRef = useRef<{ file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null }>({ file: null, documentKey: null, doc: null, text: null });
@@ -229,6 +287,11 @@ export default function Home() {
   const getPkmsFileById = useCallback(async (fileId: string, signal?: AbortSignal) => {
     if (!activeWorkspace) return null;
     if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+    if (fileId.startsWith("local-")) {
+      const local = await desktopBridge()?.getLocalFile(activeWorkspace.id, fileId);
+      if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+      return local ?? null;
+    }
     try {
       const file = await api<FileRecord>(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/files/${encodeURIComponent(fileId)}?metadata=1`, { signal });
       if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
@@ -258,11 +321,23 @@ export default function Home() {
   const editorProvider = useMemo(() => activeWorkspace ? createPkmsEditorProvider({
     workspaceId: activeWorkspace.id,
     listDirectory: async (path) => {
+      const desktop = desktopBridge();
+      if (desktop && (await desktop.syncBridgeStatus(activeWorkspace.id)).enabled) {
+        return desktop.listLocalDirectory(activeWorkspace.id, path);
+      }
       await refreshDirectory(path, true);
       return getFiles().filter((file) => parentPath(file.path) === path);
     },
     getFile: getPkmsFileById,
     openSession: async (file, signal) => {
+      const desktop = desktopBridge();
+      if (desktop && file.kind === "markdown") {
+        const local = await desktop.syncBridgeStatus(activeWorkspace.id);
+        if (local.enabled) {
+          if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+          return createPkmsLocalEditorSession(activeWorkspace.id, file);
+        }
+      }
       await openDocumentSessionRef.current(file, editorNavigationRef.current, signal);
       if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
       if (file.kind === "asset") {
@@ -285,7 +360,16 @@ export default function Home() {
     },
     subscribeTree: (listener) => {
       treeProviderListeners.current.add(listener);
-      return () => treeProviderListeners.current.delete(listener);
+      const desktop = desktopBridge();
+      let poll: ReturnType<typeof setInterval> | undefined;
+      if (desktop) {
+        poll = setInterval(() => {
+          void desktop.syncBridgeStatus(activeWorkspace.id).then((status) => {
+            if (status.enabled && treeProviderListeners.current.has(listener)) listener([...loadedFolders]);
+          }).catch(() => {});
+        }, 2000);
+      }
+      return () => { if (poll) clearInterval(poll); treeProviderListeners.current.delete(listener); };
     },
     listLoadedFiles: getFiles,
     capabilities: { operations: new Set(["createFile", "createDirectory", "rename", "move", "delete"]) },
@@ -294,6 +378,12 @@ export default function Home() {
         const parent = parentId ? await getPkmsFileById(parentId) : null;
         if (parentId && (!parent || parent.kind !== "folder")) throw new EditorProviderError("notFound", "Parent folder no longer exists");
         const parentPathValue = parent?.path ?? "";
+        const desktop = desktopBridge();
+        if (desktop && (await desktop.syncBridgeStatus(activeWorkspace.id)).enabled) {
+          const created = await desktop.createLocalItem(activeWorkspace.id, parentPathValue, kind === "directory" ? "folder" : "markdown", name);
+          treeProviderListeners.current.forEach((listener) => listener([parentPathValue]));
+          return pkmsItemForFile(activeWorkspace.id, created);
+        }
         const created = kind === "directory"
           ? await treeOperationsRef.current.createFolder(parentPathValue, name)
           : await treeOperationsRef.current.createFile(parentPathValue, name);
@@ -305,6 +395,36 @@ export default function Home() {
         if (!file) throw new EditorProviderError("notFound", "PKMS item no longer exists");
         const parent = parentPath(file.path);
         const path = `${parent ? `${parent}/` : ""}${name}`;
+        const desktop = desktopBridge();
+        if (desktop && file.id.startsWith("local-") && (await desktop.syncBridgeStatus(activeWorkspace.id)).enabled) {
+          const renamed = await desktop.renameLocalItem(activeWorkspace.id, file.id, name);
+          const oldToNew = new Map<string, FileRecord>();
+          const remapped = getFiles().map((entry) => {
+            if (entry.path !== file.path && !(file.kind === "folder" && entry.path.startsWith(`${file.path}/`))) return entry;
+            const nextPath = renamed.path + entry.path.slice(file.path.length);
+            const next = { ...entry, id: localItemIdForPath(nextPath), path: nextPath };
+            oldToNew.set(entry.id, next);
+            return next;
+          });
+          for (const [sessionKey, session] of [...pkmsEditorSessions.current]) {
+            const nextFile = oldToNew.get(session.item.itemId);
+            if (!nextFile) continue;
+            const nextItem = pkmsItemForFile(activeWorkspace.id, nextFile);
+            rekeyPkmsEditorSession(sessionKey, nextItem, session);
+          }
+          setFiles(remapped);
+          setOpenDocuments((current) => current.map((tab) => {
+            const next = oldToNew.get(tab.file.id);
+            return tab.workspaceId === activeWorkspace.id && next ? { ...tab, file: next } : tab;
+          }));
+          setActiveFile((current) => current ? oldToNew.get(current.id) ?? current : current);
+          if (file.kind === "folder") {
+            setExpandedFolders((current) => new Set([...current].map((item) => item === file.path || item.startsWith(`${file.path}/`) ? `${renamed.path}${item.slice(file.path.length)}` : item)));
+            setCurrentFolder((current) => current === file.path || current.startsWith(`${file.path}/`) ? `${renamed.path}${current.slice(file.path.length)}` : current);
+          }
+          treeProviderListeners.current.forEach((listener) => listener([parent]));
+          return pkmsItemForFile(activeWorkspace.id, renamed);
+        }
         if (!await treeOperationsRef.current.rename(file, path)) throw new EditorProviderError("unknown", "Could not rename PKMS item");
         await refreshOpenEditorItemMetadata([file]);
         return pkmsItemForFile(activeWorkspace.id, { ...file, path });
@@ -314,6 +434,48 @@ export default function Home() {
         if (moving.some((file) => !file)) throw new EditorProviderError("notFound", "A PKMS move source no longer exists");
         const parent = parentId ? await getPkmsFileById(parentId) : null;
         if (parentId && (!parent || parent.kind !== "folder")) throw new EditorProviderError("notFound", "Destination folder no longer exists");
+        const desktop = desktopBridge();
+        if (desktop && moving.every((file) => file?.id.startsWith("local-")) && (await desktop.syncBridgeStatus(activeWorkspace.id)).enabled) {
+          await desktop.moveLocalItems(activeWorkspace.id, moving.map((file) => file!.id), parent?.path ?? "");
+          const roots = moving.filter((file): file is FileRecord => file !== null);
+          const oldToNew = new Map<string, FileRecord>();
+          const remapped = getFiles().map((file) => {
+            const root = roots.find((candidate) => candidate.path === file.path || (candidate.kind === "folder" && file.path.startsWith(`${candidate.path}/`)));
+            if (!root) return file;
+            const suffix = file.path.slice(root.path.length);
+            const destination = [parent?.path, entryName(root.path)].filter(Boolean).join("/") + suffix;
+            const next = { ...file, id: localItemIdForPath(destination), path: destination };
+            oldToNew.set(file.id, next);
+            return next;
+          });
+          const remappedById = new Map(remapped.map((file) => [file.id, file]));
+          for (const [sessionKey, session] of [...pkmsEditorSessions.current]) {
+            const old = roots.find((root) => session.item.itemId === root.id || (root.kind === "folder" && session.item.path.startsWith(`${root.path}/`)));
+            if (!old) continue;
+            const suffix = session.item.path.slice(old.path.length);
+            const nextPath = [parent?.path ?? "", entryName(old.path)].filter(Boolean).join("/") + suffix;
+            const nextId = localItemIdForPath(nextPath);
+            const nextFile = remappedById.get(nextId) ?? { ...old, id: nextId, path: nextPath };
+            const nextItem = pkmsItemForFile(activeWorkspace.id, nextFile);
+            rekeyPkmsEditorSession(sessionKey, nextItem, session);
+          }
+          setFiles(remapped);
+          setOpenDocuments((current) => current.map((tab) => {
+            const next = oldToNew.get(tab.file.id);
+            return tab.workspaceId === activeWorkspace.id && next ? { ...tab, file: next } : tab;
+          }));
+          setActiveFile((current) => current ? oldToNew.get(current.id) ?? current : current);
+          setExpandedFolders((current) => new Set([...current].map((currentPath) => {
+            const root = roots.find((candidate) => candidate.kind === "folder" && (currentPath === candidate.path || currentPath.startsWith(`${candidate.path}/`)));
+            return root ? [parent?.path, entryName(root.path)].filter(Boolean).join("/") + currentPath.slice(root.path.length) : currentPath;
+          })));
+          setCurrentFolder((current) => {
+            const root = roots.find((candidate) => candidate.kind === "folder" && (current === candidate.path || current.startsWith(`${candidate.path}/`)));
+            return root ? [parent?.path, entryName(root.path)].filter(Boolean).join("/") + current.slice(root.path.length) : current;
+          });
+          treeProviderListeners.current.forEach((listener) => listener(["", parent?.path ?? ""]));
+          return;
+        }
         if (!await treeOperationsRef.current.move(moving.filter((file): file is FileRecord => file !== null), parent?.path ?? "")) {
           throw new EditorProviderError("unknown", "Could not move PKMS items");
         }
@@ -322,10 +484,28 @@ export default function Home() {
       async delete(refs) {
         const deleting = await Promise.all(refs.map((ref) => getPkmsFileById(ref.itemId)));
         if (deleting.some((file) => !file)) throw new EditorProviderError("notFound", "A PKMS delete target no longer exists");
+        const desktop = desktopBridge();
+        if (desktop && deleting.every((file) => file?.id.startsWith("local-")) && (await desktop.syncBridgeStatus(activeWorkspace.id)).enabled) {
+          const paths = deleting.map((file) => parentPath(file!.path));
+          await desktop.deleteLocalItems(activeWorkspace.id, deleting.map((file) => file!.id));
+          const removed = (file: FileRecord) => deleting.some((root) => root && (file.path === root.path || (root.kind === "folder" && file.path.startsWith(`${root.path}/`))));
+          const deletedIds = new Set(getFiles().filter(removed).map((file) => file.id));
+          for (const [sessionKey, session] of [...pkmsEditorSessions.current]) {
+            if (!deleting.some((root) => root && (session.item.path === root.path || (root.kind === "folder" && session.item.path.startsWith(`${root.path}/`)))) && !deletedIds.has(session.item.itemId)) continue;
+            deletedIds.add(session.item.itemId);
+            closePkmsEditorSession(sessionKey, session);
+          }
+          setFiles(getFiles().filter((file) => !removed(file)));
+          setOpenDocuments((current) => current.filter((tab) => tab.workspaceId !== activeWorkspace.id || !removed(tab.file)));
+          setActiveFile((current) => current && removed(current) ? null : current);
+          setActiveEditorSession((current) => current && deleting.some((root) => root && (current.item.path === root.path || (root.kind === "folder" && current.item.path.startsWith(`${root.path}/`)))) ? null : current);
+          treeProviderListeners.current.forEach((listener) => listener(paths));
+          return;
+        }
         await treeOperationsRef.current.delete(deleting.filter((file): file is FileRecord => file !== null));
       },
     },
-  }) : null, [activeWorkspace?.id, getPkmsFileById, getFiles, refreshDirectory, refreshOpenEditorItemMetadata]);
+  }) : null, [activeWorkspace?.id, getPkmsFileById, getFiles, loadedFolders, rekeyPkmsEditorSession, refreshDirectory, refreshOpenEditorItemMetadata]);
   const canCreateFile = editorSupportsOperation(editorProvider, "createFile");
   const canCreateDirectory = editorSupportsOperation(editorProvider, "createDirectory");
   const canRename = editorSupportsOperation(editorProvider, "rename");
@@ -361,11 +541,33 @@ export default function Home() {
         return next;
       });
     }
+    const isLocalFile = file.id.startsWith("local-");
+    if (isLocalFile && activeWorkspace) {
+      const target = fileLocationPath(activeWorkspace.id, file.path);
+      if (historyAction !== "none" && location.pathname !== target) {
+        routedPath.current = target;
+        navigate(target, { replace: historyAction === "replace", preventScrollReset: true });
+      }
+      const parent = parentPath(file.path);
+      setCurrentFolder(parent);
+      setExpandedFolders((current) => {
+        const next = new Set(current).add("");
+        let ancestor = parent;
+        while (ancestor) { next.add(ancestor); ancestor = parentPath(ancestor); }
+        return next;
+      });
+      setActiveFile(file);
+      setOpeningFileId(file.id);
+      setSaving(false);
+      setError("");
+      activeRef.current = { file, documentKey: editorDocumentKey({ providerId: `pkms:${activeWorkspace.id}`, itemId: file.id }), doc: null, text: null };
+    }
     if (editorProvider && file.kind === "markdown") {
       const sessionKey = editorDocumentKey({ providerId: editorProvider.id, itemId: file.id });
       const existingSession = pkmsEditorSessions.current.get(sessionKey);
       if (existingSession) {
-        await openDocumentSession(file, historyAction, controller.signal);
+        if (!isLocalFile) await openDocumentSession(file, historyAction, controller.signal);
+        else { setActiveFile(file); setOpeningFileId(null); }
         if (!controller.signal.aborted) setActiveEditorSession(existingSession);
       }
       else {
@@ -380,8 +582,10 @@ export default function Home() {
           trackPkmsEditorSession(sessionKey, session);
           pkmsEditorSessions.current.set(sessionKey, session);
           setActiveEditorSession(session);
+          if (isLocalFile) setOpeningFileId(null);
         } catch (cause) {
           if (controller.signal.aborted) return;
+          if (isLocalFile) setOpeningFileId(null);
           setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === file.id)));
           setError(cause instanceof Error ? cause.message : "Could not open PKMS document");
         } finally {
@@ -400,7 +604,27 @@ export default function Home() {
     } finally {
       if (editorSessionOpenController.current === controller) editorSessionOpenController.current = null;
     }
-  }, [activeWorkspace, editorProvider, openDocumentSession, trackPkmsEditorSession]);
+  }, [activeWorkspace, editorProvider, location.pathname, navigate, openDocumentSession, setCurrentFolder, setExpandedFolders, trackPkmsEditorSession]);
+  useEffect(() => {
+    const desktop = desktopBridge();
+    const current = activeFile;
+    const workspaceId = activeWorkspace?.id;
+    if (!desktop || !workspaceId || !localFolderEnabled || !current || current.kind !== "markdown" || current.id.startsWith("local-")) return;
+    let alive = true;
+    void desktop.listLocalDirectory(workspaceId, parentPath(current.path)).then(async (entries) => {
+      if (!alive || activeFileStateRef.current?.id !== current.id) return;
+      const localFile = entries.find((entry) => entry.path === current.path && entry.kind === "markdown");
+      if (!localFile) return;
+      for (const [sessionKey, session] of [...pkmsEditorSessions.current]) {
+        if (session.item.itemId === current.id) closePkmsEditorSession(sessionKey, session);
+      }
+      setActiveEditorSession(null);
+      setActiveFile(localFile);
+      setOpenDocuments((tabs) => tabs.map((tab) => tab.workspaceId === workspaceId && tab.file.id === current.id ? { ...tab, file: localFile } : tab));
+      await openFile(localFile, "none");
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [activeFile, activeWorkspace?.id, closePkmsEditorSession, files, localFolderEnabled, openFile]);
   const visibleOpenDocuments = useMemo(
     () => activeWorkspace ? openDocuments.filter((tab) => tab.workspaceId === activeWorkspace.id) : [],
     [activeWorkspace?.id, openDocuments],
@@ -717,13 +941,14 @@ export default function Home() {
         window.clearTimeout(stableTimer);
         stableTimer = window.setTimeout(() => { retries = 0; }, 30_000);
         setError((current) => current.startsWith("Live sync disconnected") ? "" : current);
-        ws.send(JSON.stringify({ type: "hello", protocolVersion: 1, clientId, afterRevision: workspaceRef.current?.revision ?? activeWorkspace.revision, user: userRef.current, fileId: activeRef.current.file?.id }));
+        const activeFileId = activeRef.current.file?.id;
+        ws.send(JSON.stringify({ type: "hello", protocolVersion: 1, clientId, afterRevision: workspaceRef.current?.revision ?? activeWorkspace.revision, user: userRef.current, fileId: activeFileId?.startsWith("local-") ? undefined : activeFileId }));
         void flushQueuedWorkspaceOperations(activeWorkspace.id, api)
           .then((queueDrained) => queueDrained ? flushQueuedWorkspaceAssets(activeWorkspace.id, api) : false)
           .then((queueDrained) => {
             if (!queueDrained || !alive || socket.current !== ws || ws.readyState !== WebSocket.OPEN) return;
             const current = activeRef.current;
-            if (!current.file || !current.doc) return;
+            if (!current.file || current.file.id.startsWith("local-") || !current.doc) return;
             const operationId = createOperationId();
             ws.send(JSON.stringify({ type: "document-update", operationId, fileId: current.file.id, update: toBase64(Y.encodeStateAsUpdate(current.doc)) }));
             pending.current.set(operationId, { type: "document-update", operationId, fileId: current.file.id });
@@ -835,15 +1060,19 @@ export default function Home() {
       try {
         for (const folder of folders) {
           prefix = prefix ? `${prefix}/${folder}` : folder;
-          if (loadedFolders.has(prefix)) continue;
-          const result = await api<{ files: FileRecord[] }>(`/api/workspaces/${workspace.id}/directory?path=${encodeURIComponent(prefix)}`);
-          records = mergeFileRecords(records, result.files);
+          if (!localFolderEnabled && loadedFolders.has(prefix)) continue;
+          const desktop = desktopBridge();
+          const entries = localFolderEnabled && desktop
+            ? await desktop.listLocalDirectory(workspace.id, prefix)
+            : (await api<{ files: FileRecord[] }>(`/api/workspaces/${workspace.id}/directory?path=${encodeURIComponent(prefix)}`)).files;
+          records = mergeFileRecords(records, entries);
           setFiles(records);
           setLoadedFolders((current) => new Set(current).add(prefix));
         }
         if (routedPath.current !== location.pathname) return;
         const target = records.find((file) => file.path === fileLocation.path && file.kind !== "folder");
         if (!target) {
+          if (localFolderEnabled && localCloudSyncing) { routedPath.current = null; return; }
           setError("File not found in this repository.");
           navigate("/", { replace: true });
           return;
@@ -854,7 +1083,7 @@ export default function Home() {
         navigate("/", { replace: true });
       }
     })();
-  }, [activeWorkspace?.id, api, fileLocation?.path, fileLocation?.workspaceId, files, loadedFolders, loading, location.pathname, navigate, treeSelection.clear, user, workspaces]);
+  }, [activeWorkspace?.id, api, fileLocation?.path, fileLocation?.workspaceId, files, loadedFolders, loading, localCloudSyncing, localFolderEnabled, location.pathname, navigate, treeSelection.clear, user, workspaces]);
 
   const toggleFolder = async (file: FileRecord) => {
     if (!activeWorkspace || !editorProvider) return;
@@ -1181,7 +1410,7 @@ export default function Home() {
           </select> : <button className="connect-link" onClick={openRepositoryPicker}>Connect a repository <span>↗</span></button>}
         </div>
         {activeWorkspace && <>
-          <SyncBridgePanel workspaceId={activeWorkspace.id} githubStatus={sync.githubStatus} githubLastCommitAt={sync.lastGitHubCommitAt} githubPendingFiles={sync.pendingFiles} githubMessage={sync.message} />
+          <SyncBridgePanel workspaceId={activeWorkspace.id} githubStatus={sync.githubStatus} githubLastCommitAt={sync.lastGitHubCommitAt} githubPendingFiles={sync.pendingFiles} githubMessage={sync.message} onResumeGithubBackup={async () => { const status = await api<SyncStatus>(`/api/workspaces/${activeWorkspace.id}/flush`, { method: "POST" }); setSync(status); return status; }} />
           <div className="file-toolbar"><span className="eyebrow">Files</span><div className="toolbar-actions">
             <button className={`mini-button visibility-button${showFileFilters ? " active" : ""}`} title="File filter settings" aria-label="File filter settings" aria-expanded={showFileFilters} onClick={() => setShowFileFilters((open) => !open)}><AppIcon name="filter" /></button>
             {canCreateFile && <button className="mini-button" title="New note" onClick={() => beginTreeCreation("file", toolbarCreationFolder)}><AppIcon name="filePlus" /></button>}

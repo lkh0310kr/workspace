@@ -1,6 +1,7 @@
 import { app } from "electron";
 import { randomUUID, createHash } from "node:crypto";
 import { promises as fs, watch, type FSWatcher } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import * as Y from "yjs";
 import { requestPkmsApi } from "./api";
@@ -12,12 +13,79 @@ type BridgeChange = BridgeFile & { deleted: boolean };
 type Baseline = { fileId: string; hash: string; revision: number };
 type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>>; remoteFiles: Record<string, Record<string, BridgeFile>>; syncCursors: Record<string, number> };
 const EMPTY: Persisted = { configs: {}, baselines: {}, remoteFiles: {}, syncCursors: {} };
+// Poll the cloud's revision feed frequently; full disk walks are a recovery path.
+const REMOTE_CHANGE_POLL_INTERVAL_MS = 15_000;
+const FULL_LOCAL_SCAN_INTERVAL_MS = 60_000;
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
+const retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const retryAttempts = new Map<string, number>();
 const pollers = new Map<string, ReturnType<typeof setInterval>>();
+const fullScanners = new Map<string, ReturnType<typeof setInterval>>();
 const watchers = new Map<string, FSWatcher>();
 const statuses = new Map<string, PkmsSyncBridgeStatus>();
 const running = new Map<string, Promise<void>>();
+const folderLocks = new Map<string, FolderSyncLock>();
+const starting = new Set<string>();
+const suppressSyncWatchUntil = new Map<string, number>();
+const fullScanRequests = new Set<string>();
+const dirtyLocalPaths = new Map<string, Set<string>>();
 let persisted: Persisted | null = null;
+
+type FolderSyncLock = { path: string; token: string };
+
+function folderSyncLockPath(root: string): string {
+  const key = createHash("sha256").update(path.resolve(root)).digest("hex");
+  return path.join(tmpdir(), "workspace-pkms-sync-locks", `${key}.lock`);
+}
+function processIsRunning(pid: number): boolean {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+  try { process.kill(pid, 0); return true; }
+  catch (error) { return (error as NodeJS.ErrnoException).code === "EPERM"; }
+}
+async function acquireFolderSyncLock(root: string, workspaceId: string): Promise<FolderSyncLock> {
+  const lockPath = folderSyncLockPath(root);
+  await fs.mkdir(path.dirname(lockPath), { recursive: true, mode: 0o700 });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const token = randomUUID();
+    try {
+      const handle = await fs.open(lockPath, "wx", 0o600);
+      try {
+        await handle.writeFile(JSON.stringify({ pid: process.pid, workspaceId, token, startedAt: Date.now() }));
+        await handle.sync();
+      } catch (writeError) {
+        await fs.unlink(lockPath).catch(() => {});
+        throw writeError;
+      } finally {
+        await handle.close();
+      }
+      return { path: lockPath, token };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      let owner: { pid?: number; token?: string } | null = null;
+      try { owner = JSON.parse(await fs.readFile(lockPath, "utf8")) as { pid?: number; token?: string }; }
+      catch { /* A process may have exited while creating the lock. */ }
+      if (owner && processIsRunning(owner.pid ?? 0)) throw new Error("editing_folder_in_use");
+      if (!owner) {
+        try {
+          const stat = await fs.stat(lockPath);
+          if (Date.now() - stat.mtimeMs < 120_000) throw new Error("editing_folder_in_use");
+        } catch (statError) {
+          if ((statError as NodeJS.ErrnoException).code === "ENOENT") continue;
+          throw statError;
+        }
+      }
+      try { await fs.unlink(lockPath); }
+      catch (unlinkError) { if ((unlinkError as NodeJS.ErrnoException).code !== "ENOENT") throw unlinkError; }
+    }
+  }
+  throw new Error("editing_folder_in_use");
+}
+async function releaseFolderSyncLock(lock: FolderSyncLock): Promise<void> {
+  try {
+    const owner = JSON.parse(await fs.readFile(lock.path, "utf8")) as { token?: string };
+    if (owner.token === lock.token) await fs.unlink(lock.path);
+  } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+}
 
 function statePath(): string { return path.join(app.getPath("userData"), "pkms-sync-bridge.json"); }
 async function load(): Promise<Persisted> {
@@ -41,6 +109,157 @@ function safePath(root: string, relative: string): string {
   const target = path.resolve(root, relative);
   if (target !== root && !target.startsWith(`${root}${path.sep}`)) throw new Error("invalid_sync_path");
   return target;
+}
+async function assertSafeParentDirectories(root: string, relative: string): Promise<void> {
+  let current = root;
+  for (const part of path.posix.dirname(relative).split("/").filter((item) => item && item !== ".")) {
+    current = path.join(current, part);
+    const stat = await fs.lstat(current);
+    if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error("unsafe_local_path");
+  }
+}
+async function localPathIsAbsent(root: string, relative: string): Promise<boolean> {
+  try {
+    await assertSafeParentDirectories(root, relative);
+    await fs.lstat(safePath(root, relative));
+    return false;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return true;
+    throw error;
+  }
+}
+async function assertDestinationFree(root: string, relative: string): Promise<void> {
+  try { await fs.lstat(safePath(root, relative)); throw new Error("local_destination_exists"); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+}
+export async function getPkmsLocalFolder(workspaceId: string): Promise<string | null> {
+  return (await load()).configs[workspaceId]?.folderPath ?? null;
+}
+function localFileId(relative: string): string { return `local-${Buffer.from(relative).toString("base64url")}`; }
+function localPathFromId(id: string): string | null {
+  if (!id.startsWith("local-")) return null;
+  try { return Buffer.from(id.slice(6), "base64url").toString("utf8"); } catch { return null; }
+}
+export async function listPkmsLocalDirectory(workspaceId: string, relativeDirectory: string): Promise<Array<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }>> {
+  const root = await getPkmsLocalFolder(workspaceId);
+  if (!root) throw new Error("local_folder_not_connected");
+  const rootStat = await fs.lstat(root);
+  if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) throw new Error("unsafe_local_path");
+  const directory = relativeDirectory ? safePath(root, relativeDirectory) : root;
+  let directoryStat = rootStat;
+  if (relativeDirectory) {
+    try {
+      await assertSafeParentDirectories(root, path.posix.join(relativeDirectory, "_"));
+      directoryStat = await fs.lstat(directory);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+      throw error;
+    }
+  }
+  if (directoryStat.isSymbolicLink() || !directoryStat.isDirectory()) throw new Error("unsafe_local_path");
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const output: Array<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }> = [];
+  const excludedPaths = (await load()).configs[workspaceId]?.excludedPaths ?? [];
+  for (const entry of entries) {
+    if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules", ".pkms"].includes(entry.name) || entry.name.startsWith(".")) continue;
+    const relative = path.posix.join(relativeDirectory, entry.name);
+    const kind = entry.isDirectory() ? "folder" : entry.isFile() && entry.name.toLowerCase().endsWith(".md") ? "markdown" : null;
+    if (!kind || matchesExclusion(relative, excludedPaths)) continue;
+    output.push({ id: localFileId(relative), path: relative, kind, revision: 0 });
+  }
+  return output.sort((a, b) => a.kind === b.kind ? a.path.localeCompare(b.path) : a.kind === "folder" ? -1 : 1);
+}
+export async function getPkmsLocalFile(workspaceId: string, id: string): Promise<{ id: string; path: string; kind: "markdown" | "folder"; revision: number } | null> {
+  const relative = localPathFromId(id);
+  if (!relative || isReservedSyncPath(relative)) return null;
+  const root = await getPkmsLocalFolder(workspaceId);
+  if (!root) throw new Error("local_folder_not_connected");
+  try {
+    await assertSafeParentDirectories(root, relative);
+    const stat = await fs.lstat(safePath(root, relative));
+    if (stat.isSymbolicLink() || (!stat.isDirectory() && !(stat.isFile() && relative.toLowerCase().endsWith(".md")))) return null;
+    return { id, path: relative, kind: stat.isDirectory() ? "folder" : "markdown", revision: 0 };
+  } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
+}
+function validateLocalName(name: string): void {
+  if (!name.trim() || name === "." || name === ".." || /[\\/:\0]/.test(name) || name.startsWith(".")) throw new Error("invalid_local_name");
+}
+export async function createPkmsLocalItem(workspaceId: string, parent: string, kind: "markdown" | "folder", name: string) {
+  validateLocalName(name);
+  if (kind === "markdown" && !name.toLowerCase().endsWith(".md")) throw new Error("markdown_extension_required");
+  const root = await getPkmsLocalFolder(workspaceId);
+  if (!root) throw new Error("local_folder_not_connected");
+  const relative = path.posix.join(parent, name);
+  if (matchesExclusion(relative, (await load()).configs[workspaceId]?.excludedPaths ?? [])) throw new Error("path_is_excluded");
+  const target = safePath(root, relative);
+  await assertSafeParentDirectories(root, relative);
+  await assertDestinationFree(root, relative);
+  if (kind === "folder") await fs.mkdir(target);
+  else await fs.writeFile(target, "", { flag: "wx" });
+  return { id: localFileId(relative), path: relative, kind, revision: 0 };
+}
+export async function renamePkmsLocalItem(workspaceId: string, id: string, name: string) {
+  validateLocalName(name);
+  const file = await getPkmsLocalFile(workspaceId, id);
+  if (!file) throw new Error("local_file_not_found");
+  if (file.kind === "markdown" && !name.toLowerCase().endsWith(".md")) throw new Error("markdown_extension_required");
+  const destination = path.posix.join(path.posix.dirname(file.path), name);
+  const root = await getPkmsLocalFolder(workspaceId);
+  if (!root) throw new Error("local_folder_not_connected");
+  await assertSafeParentDirectories(root, destination);
+  await assertDestinationFree(root, destination);
+  await fs.rename(safePath(root, file.path), safePath(root, destination));
+  return { ...file, id: localFileId(destination), path: destination };
+}
+export async function movePkmsLocalItems(workspaceId: string, ids: string[], destinationDirectory: string): Promise<Array<{ oldId: string; file: { id: string; path: string; kind: "markdown" | "folder"; revision: number } }>> {
+  const root = await getPkmsLocalFolder(workspaceId);
+  if (!root) throw new Error("local_folder_not_connected");
+  const destination = safePath(root, destinationDirectory || ".");
+  if (destinationDirectory) await assertSafeParentDirectories(root, path.posix.join(destinationDirectory, "_"));
+  const destinationStat = await fs.lstat(destination);
+  if (!destinationStat.isDirectory() || destinationStat.isSymbolicLink()) throw new Error("invalid_local_destination");
+  const moves = await Promise.all(ids.map(async (id) => {
+    const file = await getPkmsLocalFile(workspaceId, id);
+    if (!file) throw new Error("local_file_not_found");
+    const next = path.posix.join(destinationDirectory, path.posix.basename(file.path));
+    if (file.kind === "folder" && (destinationDirectory === file.path || destinationDirectory.startsWith(`${file.path}/`))) throw new Error("cannot_move_folder_into_itself");
+    return { oldId: file.id, from: safePath(root, file.path), to: safePath(root, next), file: { id: localFileId(next), path: next, kind: file.kind, revision: 0 as const } };
+  }));
+  const destinations = new Set<string>();
+  for (const move of moves) {
+    const relative = path.relative(root, move.to).split(path.sep).join("/");
+    if (destinations.has(relative)) throw new Error("local_destination_exists");
+    destinations.add(relative);
+    if (move.from !== move.to) await assertDestinationFree(root, relative);
+  }
+  for (const move of moves) await fs.rename(move.from, move.to);
+  return moves.map(({ oldId, file }) => ({ oldId, file }));
+}
+export async function deletePkmsLocalItems(workspaceId: string, ids: string[]): Promise<void> {
+  const root = await getPkmsLocalFolder(workspaceId);
+  if (!root) throw new Error("local_folder_not_connected");
+  const files = await Promise.all(ids.map((id) => getPkmsLocalFile(workspaceId, id)));
+  if (files.some((file) => !file)) throw new Error("local_file_not_found");
+  for (const file of files) await fs.rm(safePath(root, file!.path), { recursive: file!.kind === "folder", force: false });
+}
+export async function readPkmsLocalMarkdown(workspaceId: string, relative: string): Promise<{ text: string; revision: string }> {
+  const root = await getPkmsLocalFolder(workspaceId);
+  if (!root) throw new Error("local_folder_not_connected");
+  if (!relative.toLowerCase().endsWith(".md") || isReservedSyncPath(relative)) throw new Error("invalid_local_markdown_path");
+  const target = safePath(root, relative);
+  await assertSafeParentDirectories(root, relative);
+  const stat = await fs.lstat(target);
+  if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("unsafe_local_markdown_path");
+  const text = await fs.readFile(target, "utf8");
+  return { text, revision: hash(text) };
+}
+export async function writePkmsLocalMarkdown(workspaceId: string, relative: string, text: string, expectedRevision: string): Promise<{ revision: string }> {
+  const current = await readPkmsLocalMarkdown(workspaceId, relative);
+  if (current.revision !== expectedRevision) throw new Error("local_file_changed_conflict");
+  const root = await getPkmsLocalFolder(workspaceId);
+  if (!root) throw new Error("local_folder_not_connected");
+  await writeAtomic(root, relative, text, current.revision);
+  return { revision: hash(text) };
 }
 function status(workspaceId: string): PkmsSyncBridgeStatus {
   return statuses.get(workspaceId) ?? {
@@ -102,10 +321,40 @@ async function markdownFiles(root: string, excludedPaths: string[]): Promise<Map
   await visit(root);
   return found;
 }
+async function markdownFilesAt(root: string, relativePaths: Iterable<string>, excludedPaths: string[]): Promise<Map<string, string>> {
+  const found = new Map<string, string>();
+  const visit = async (directory: string, prefix: string): Promise<void> => {
+    const entries = await fs.readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules", ".pkms"].includes(entry.name)) continue;
+      const relative = path.posix.join(prefix, entry.name);
+      if (matchesExclusion(relative, excludedPaths)) continue;
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) await visit(absolute, relative);
+      else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) found.set(relative, await fs.readFile(absolute, "utf8"));
+    }
+  };
+  for (const relative of relativePaths) {
+    if (!relative || relative.startsWith("/") || relative.split("/").some((part) => !part || part === "." || part === "..") || isReservedSyncPath(relative) || matchesExclusion(relative, excludedPaths)) continue;
+    const target = safePath(root, relative);
+    try {
+      await assertSafeParentDirectories(root, relative);
+      const stat = await fs.lstat(target);
+      if (stat.isSymbolicLink()) continue;
+      if (stat.isDirectory()) await visit(target, relative);
+      else if (stat.isFile() && relative.toLowerCase().endsWith(".md")) {
+        found.set(relative, await fs.readFile(target, "utf8"));
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  return found;
+}
 function isReservedSyncPath(relative: string): boolean {
   return relative.split("/").some((part) => [".git", ".obsidian", "node_modules", ".pkms"].includes(part));
 }
-async function writeAtomic(root: string, relative: string, content: string): Promise<void> {
+async function writeAtomic(root: string, relative: string, content: string, expectedCurrentHash?: string | null): Promise<void> {
   const target = safePath(root, relative);
   const parentParts = path.posix.dirname(relative).split("/").filter((part) => part && part !== ".");
   let current = root;
@@ -127,9 +376,23 @@ async function writeAtomic(root: string, relative: string, content: string): Pro
   } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
   const temp = `${target}.${randomUUID()}.pkms-tmp`;
   await fs.writeFile(temp, content, { encoding: "utf8", mode });
-  await fs.rename(temp, target);
+  try {
+    if (expectedCurrentHash !== undefined) {
+      let actualHash: string | null = null;
+      try {
+        const currentStat = await fs.lstat(target);
+        if (currentStat.isSymbolicLink() || !currentStat.isFile()) throw new Error("unsafe_sync_path");
+        actualHash = hash(await fs.readFile(target, "utf8"));
+      } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+      if (actualHash !== expectedCurrentHash) throw new Error("local_file_changed_retry");
+    }
+    await fs.rename(temp, target);
+  } catch (error) {
+    await fs.rm(temp, { force: true }).catch(() => {});
+    throw error;
+  }
 }
-async function removeLocalFile(root: string, relative: string): Promise<void> {
+async function removeLocalFile(root: string, relative: string, expectedHash?: string): Promise<void> {
   const target = safePath(root, relative);
   let current = root;
   for (const part of path.posix.dirname(relative).split("/").filter((item) => item && item !== ".")) {
@@ -142,7 +405,11 @@ async function removeLocalFile(root: string, relative: string): Promise<void> {
       throw error;
     }
   }
-  try { if ((await fs.lstat(target)).isSymbolicLink()) throw new Error("unsafe_sync_path"); }
+  try {
+    const stat = await fs.lstat(target);
+    if (stat.isSymbolicLink() || !stat.isFile()) throw new Error("unsafe_sync_path");
+    if (expectedHash !== undefined && hash(await fs.readFile(target, "utf8")) !== expectedHash) throw new Error("local_file_changed_retry");
+  }
   catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }
   await fs.rm(target, { force: true });
 }
@@ -152,25 +419,36 @@ async function readRemoteText(workspaceId: string, file: BridgeFile): Promise<{ 
   Y.applyUpdate(doc, fromB64(data.update));
   return { text: doc.getText("markdown").toString(), revision: data.revision };
 }
-async function readRemoteTexts(workspaceId: string, files: BridgeFile[]): Promise<Map<string, { text: string; revision: number }>> {
+async function readRemoteTexts(workspaceId: string, files: BridgeFile[], onProgress: (completed: number, total: number) => void): Promise<Map<string, { text: string; revision: number }>> {
   const batches: BridgeFile[][] = [];
-  for (let index = 0; index < files.length; index += 4) batches.push(files.slice(index, index + 4));
+  const batchSize = 12;
+  for (let index = 0; index < files.length; index += batchSize) batches.push(files.slice(index, index + batchSize));
   const documents = new Map<string, { text: string; revision: number }>();
   let nextBatch = 0;
+  let completed = 0;
+  let firstError: unknown;
+  onProgress(0, files.length);
   const worker = async () => {
     while (true) {
+      if (firstError !== undefined) return;
       const batch = batches[nextBatch++];
       if (!batch) return;
-      const result = await request<{ documents: Array<{ id: string; path: string; revision: number; text?: string; error?: string }> }>(
-        `/api/workspaces/${encodeURIComponent(workspaceId)}/sync/download`, "POST", { fileIds: batch.map((file) => file.id) },
-      );
-      for (const document of result.documents) {
-        if (document.error || typeof document.text !== "string") throw new Error(document.error ?? "document_load_failed");
-        documents.set(document.id, { text: document.text, revision: document.revision });
+      try {
+        const result = await request<{ documents: Array<{ id: string; path: string; revision: number; text?: string; error?: string }> }>(
+          `/api/workspaces/${encodeURIComponent(workspaceId)}/sync/download`, "POST", { fileIds: batch.map((file) => file.id) },
+        );
+        for (const document of result.documents) {
+          if (document.error || typeof document.text !== "string") throw new Error(`${document.error ?? "document_load_failed"}:${document.id}`);
+          documents.set(document.id, { text: document.text, revision: document.revision });
+          onProgress(++completed, files.length);
+        }
+      } catch (error) {
+        firstError ??= error;
       }
     }
   };
-  await Promise.all(Array.from({ length: Math.min(3, batches.length) }, () => worker()));
+  await Promise.all(Array.from({ length: Math.min(6, batches.length) }, () => worker()));
+  if (firstError !== undefined) throw firstError;
   return documents;
 }
 async function readRemoteChanges(workspaceId: string, afterRevision: number): Promise<{ changes: BridgeChange[]; nextRevision: number }> {
@@ -213,7 +491,7 @@ async function createRemoteFile(workspaceId: string, snapshotRevision: number, r
       operation: { type: "create-file", path: relative, fileId, content }, initialState: b64(Y.encodeStateAsUpdate(doc)),
     },
   );
-  return { id: result.file?.id ?? result.fileId ?? fileId, path: result.file?.path ?? result.conflictCopyPath ?? result.path ?? relative, kind: "markdown", revision: result.file?.revision ?? 0 };
+  return { id: result.file?.id ?? result.fileId ?? fileId, path: result.file?.path ?? result.conflictCopyPath ?? result.path ?? relative, kind: "markdown", revision: result.file?.revision ?? result.acceptedRevision ?? 0 };
 }
 async function replaceRemoteText(workspaceId: string, file: BridgeFile, currentRemote: string, nextText: string): Promise<number> {
   const latest = await request<{ update: string; revision: number }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/${encodeURIComponent(file.id)}/updates`, "GET");
@@ -247,42 +525,100 @@ async function syncOnce(workspaceId: string): Promise<void> {
   if (!config) return;
   const active = running.get(workspaceId);
   if (active) return active;
+  let fullScan = false;
+  let scannedLocalPaths: string[] = [];
   const job = (async () => {
     const root = path.resolve(config.folderPath);
-    setStatus(workspaceId, { state: "syncing", progress: { completed: 0, total: 0, percent: 0 }, error: null });
+    setStatus(workspaceId, { state: "syncing", stage: "scanning", progress: { completed: 0, total: 0, percent: 0 }, error: null });
     try {
-      const local = await markdownFiles(root, config.excludedPaths ?? []);
+      if (!folderLocks.has(workspaceId)) folderLocks.set(workspaceId, await acquireFolderSyncLock(root, workspaceId));
+      fullScan = fullScanRequests.delete(workspaceId);
+      scannedLocalPaths = [...(dirtyLocalPaths.get(workspaceId) ?? [])];
+      dirtyLocalPaths.delete(workspaceId);
+      setStatus(workspaceId, { stage: "loading-remote-list" });
       const state = await load();
       let knownRemoteFiles = state.remoteFiles[workspaceId];
       let nextSyncRevision = state.syncCursors[workspaceId];
+      const remoteChangedPaths = new Set<string>();
       if (!knownRemoteFiles || nextSyncRevision === undefined) {
         const snapshot = await readRemoteSnapshot(workspaceId);
         knownRemoteFiles = Object.fromEntries(snapshot.files.filter((file) => file.kind === "markdown").map((file) => [file.id, file]));
         nextSyncRevision = snapshot.revision;
+        fullScan = true;
       } else {
         const page = await readRemoteChanges(workspaceId, nextSyncRevision);
         for (const change of page.changes) {
+          const previous = knownRemoteFiles[change.id];
+          if (previous) remoteChangedPaths.add(previous.path);
           delete knownRemoteFiles[change.id];
-          if (!change.deleted && change.kind === "markdown") knownRemoteFiles[change.id] = change;
+          if (!change.deleted && change.kind === "markdown") {
+            knownRemoteFiles[change.id] = change;
+            remoteChangedPaths.add(change.path);
+          }
         }
         nextSyncRevision = page.nextRevision;
       }
+      const local = fullScan
+        ? await markdownFiles(root, config.excludedPaths ?? [])
+        : await markdownFilesAt(root, new Set([...scannedLocalPaths, ...remoteChangedPaths]), config.excludedPaths ?? []);
       const remoteByPath = new Map(Object.values(knownRemoteFiles).map((file) => [file.path, file]));
+      const createAndRememberRemoteFile = async (relative: string, content: string): Promise<BridgeFile> => {
+        const created = await createRemoteFile(workspaceId, nextSyncRevision, relative, content);
+        knownRemoteFiles[created.id] = created;
+        remoteByPath.set(created.path, created);
+        return created;
+      };
+      const preserveConflictCopy = async (relative: string, content: string): Promise<BridgeFile> => {
+        const sourceExtension = path.posix.extname(relative);
+        const ext = sourceExtension || ".md";
+        const base = sourceExtension ? relative.slice(0, -sourceExtension.length) : relative;
+        const prefix = `${base}.local-conflict-`;
+        const contentHash = hash(content);
+        const existingPath = [...local].find(([candidate, existing]) =>
+          candidate.startsWith(prefix) && candidate.endsWith(ext) && hash(existing) === contentHash,
+        )?.[0];
+        if (existingPath) {
+          const remoteCopy = remoteByPath.get(existingPath);
+          if (remoteCopy) return remoteCopy;
+          return createAndRememberRemoteFile(existingPath, content);
+        }
+        const conflict = await conflictCopy(root, relative, content);
+        local.set(conflict, content);
+        return createAndRememberRemoteFile(conflict, content);
+      };
       const baselines = state.baselines[workspaceId] ??= {};
-      const paths = [...new Set([...local.keys(), ...remoteByPath.keys(), ...Object.keys(baselines)])]
+      const changedPaths = fullScan
+        ? [...local.keys(), ...remoteByPath.keys(), ...Object.keys(baselines)]
+        : [
+          ...local.keys(),
+          ...remoteChangedPaths,
+          ...scannedLocalPaths.flatMap((changedPath) => [
+            ...(changedPath.toLowerCase().endsWith(".md") || baselines[changedPath] || remoteByPath.has(changedPath) ? [changedPath] : []),
+            ...Object.keys(baselines).filter((relative) => relative.startsWith(`${changedPath}/`)),
+            ...remoteByPath.keys().filter((relative) => relative.startsWith(`${changedPath}/`)),
+          ]),
+        ];
+      const paths = [...new Set(changedPaths)]
         .filter((relative) => !isReservedSyncPath(relative) && !matchesExclusion(relative, config.excludedPaths ?? []));
       let completed = 0;
       const total = paths.length;
-      const reportProgress = () => setStatus(workspaceId, {
-        state: "syncing",
-        progress: { completed, total, percent: total === 0 ? 100 : Math.floor((completed / total) * 100) },
-      });
-      reportProgress();
-      const remoteReads = await readRemoteTexts(workspaceId, paths.flatMap((relative) => {
+      const filesToRead = paths.flatMap((relative) => {
         const remote = remoteByPath.get(relative);
         const baseline = baselines[relative];
         return remote && (!baseline || baseline.fileId !== remote.id || baseline.revision !== remote.revision) ? [remote] : [];
+      });
+      const totalWork = filesToRead.length + total;
+      const reportProgress = () => setStatus(workspaceId, {
+        state: "syncing", stage: "reconciling",
+        progress: { completed: filesToRead.length + completed, total: totalWork, percent: totalWork ? Math.floor((filesToRead.length + completed) / totalWork * 100) : 100 },
+      });
+      setStatus(workspaceId, { stage: "downloading-remote-files", progress: { completed: 0, total: totalWork, percent: totalWork ? 0 : 100 } });
+      const remoteReads = await readRemoteTexts(workspaceId, filesToRead, (downloaded) => setStatus(workspaceId, {
+        state: "syncing", stage: "downloading-remote-files",
+        progress: { completed: downloaded, total: totalWork, percent: totalWork ? Math.floor(downloaded / totalWork * 100) : 100 },
       }));
+      completed = 0;
+      reportProgress();
       const reconcilePath = async (relative: string): Promise<void> => {
         let itemComplete = false;
         try {
@@ -292,14 +628,13 @@ async function syncOnce(workspaceId: string): Promise<void> {
         if (!remote && localText !== undefined) {
           if (baseline) {
             if (hash(localText) !== baseline.hash) {
-              const conflict = await conflictCopy(root, relative, localText);
-              const created = await createRemoteFile(workspaceId, nextSyncRevision, conflict, localText);
+              const created = await preserveConflictCopy(relative, localText);
               baselines[created.path] = { fileId: created.id, hash: hash(localText), revision: created.revision };
             }
-            await removeLocalFile(root, relative);
+            await removeLocalFile(root, relative, hash(localText));
             delete baselines[relative];
           } else {
-            const created = await createRemoteFile(workspaceId, nextSyncRevision, relative, localText);
+            const created = await createAndRememberRemoteFile(relative, localText);
             baselines[created.path] = { fileId: created.id, hash: hash(localText), revision: created.revision };
           }
           itemComplete = true;
@@ -311,7 +646,16 @@ async function syncOnce(workspaceId: string): Promise<void> {
         const remoteText = remoteContent?.text;
         const actualLocal = localText;
         if (actualLocal === undefined) {
+          if (!await localPathIsAbsent(root, relative)) {
+            throw new Error(`A non-file item occupies the synced Markdown path: ${relative}`);
+          }
           if (baseline) {
+            const remoteChanged = remote.id !== baseline.fileId || (remoteContent !== null && remoteContent.revision !== baseline.revision);
+            if (remoteChanged) {
+              const latestText = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
+              const created = await preserveConflictCopy(relative, latestText);
+              baselines[created.path] = { fileId: created.id, hash: hash(latestText), revision: created.revision };
+            }
             await request(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
               operationId: randomUUID(), baseRevision: nextSyncRevision, clientId: "desktop-sync-bridge",
               operation: { type: "delete", fileId: remote.id },
@@ -319,7 +663,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             delete baselines[relative];
           } else {
             const text = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
-            await writeAtomic(root, relative, text);
+            await writeAtomic(root, relative, text, null);
             baselines[relative] = { fileId: remote.id, hash: hash(text), revision: remoteContent?.revision ?? remote.revision };
           }
           itemComplete = true;
@@ -330,10 +674,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
           if (localHash === hash(remoteText ?? "")) {
             baselines[relative] = { fileId: remote.id, hash: localHash, revision: remoteContent?.revision ?? remote.revision };
           } else {
-            const conflict = await conflictCopy(root, relative, actualLocal);
-            const created = await createRemoteFile(workspaceId, nextSyncRevision, conflict, actualLocal);
+            const created = await preserveConflictCopy(relative, actualLocal);
             baselines[created.path] = { fileId: created.id, hash: localHash, revision: created.revision };
-            await writeAtomic(root, relative, remoteText ?? "");
+            await writeAtomic(root, relative, remoteText ?? "", localHash);
             baselines[relative] = { fileId: remote.id, hash: hash(remoteText ?? ""), revision: remoteContent?.revision ?? remote.revision };
           }
           itemComplete = true;
@@ -342,18 +685,17 @@ async function syncOnce(workspaceId: string): Promise<void> {
         const localChanged = localHash !== baseline.hash;
         const remoteChanged = remote.id !== baseline.fileId || (remoteContent !== null && remoteContent.revision !== baseline.revision);
         if (localChanged && remoteChanged) {
-          const localCopy = await conflictCopy(root, relative, actualLocal);
-          const created = await createRemoteFile(workspaceId, nextSyncRevision, localCopy, actualLocal);
+          const created = await preserveConflictCopy(relative, actualLocal);
           baselines[created.path] = { fileId: created.id, hash: localHash, revision: created.revision };
           const text = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
-          await writeAtomic(root, relative, text);
+          await writeAtomic(root, relative, text, localHash);
           baselines[relative] = { fileId: remote.id, hash: hash(text), revision: remoteContent?.revision ?? remote.revision };
         } else if (localChanged) {
           const nextRevision = await replaceRemoteText(workspaceId, remote, remoteText ?? (await readRemoteText(workspaceId, remote)).text, actualLocal);
           baselines[relative] = { fileId: remote.id, hash: localHash, revision: nextRevision };
         } else if (remoteChanged) {
           const text = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
-          await writeAtomic(root, relative, text);
+          await writeAtomic(root, relative, text, localHash);
           baselines[relative] = { fileId: remote.id, hash: hash(text), revision: remoteContent?.revision ?? remote.revision };
         }
         itemComplete = true;
@@ -378,38 +720,118 @@ async function syncOnce(workspaceId: string): Promise<void> {
       state.remoteFiles[workspaceId] = knownRemoteFiles;
       state.syncCursors[workspaceId] = nextSyncRevision;
       await save();
+      retryAttempts.delete(workspaceId);
       const conflictFiles = [...new Set([...local.keys(), ...Object.keys(baselines)])].filter((relative) => /\.local-conflict-[^/]+\.md$/i.test(relative));
-      setStatus(workspaceId, { state: "synced", progress: { completed: total, total, percent: 100 }, enabled: true, folderPath: root, lastScannedAt: Date.now(), lastSyncedAt: Date.now(), pendingFiles: 0, conflictFiles, error: null });
+      setStatus(workspaceId, { state: "synced", stage: null, progress: { completed: total, total, percent: 100 }, enabled: true, folderPath: root, lastScannedAt: Date.now(), lastSyncedAt: Date.now(), pendingFiles: 0, conflictFiles, error: null });
     } catch (error) {
+      if (fullScan) fullScanRequests.add(workspaceId);
+      if (scannedLocalPaths.length) {
+        const pending = dirtyLocalPaths.get(workspaceId) ?? new Set<string>();
+        for (const relative of scannedLocalPaths) pending.add(relative);
+        dirtyLocalPaths.set(workspaceId, pending);
+      }
       await save().catch(() => {});
       const message = error instanceof Error ? error.message : "Folder sync failed";
-      setStatus(workspaceId, { state: /fetch|network|offline|connection/i.test(message) ? "offline" : "error", enabled: true, folderPath: config.folderPath, lastScannedAt: Date.now(), pendingFiles: 1, error: message });
+      const folderBusy = message === "editing_folder_in_use";
+      const retryable = folderBusy || message === "local_file_changed_retry" || message === "remote_changed_retry" || /\b(?:429|5\d\d)\b|rate.?limit|temporar|timed? ?out/i.test(message);
+      if (retryable) {
+        setStatus(workspaceId, { state: "syncing", stage: "scanning", enabled: true, folderPath: config.folderPath, pendingFiles: 1, error: folderBusy ? "This editing folder is already syncing in another Workspace instance." : null });
+        const previousRetry = retryTimers.get(workspaceId);
+        if (previousRetry) clearTimeout(previousRetry);
+        const attempts = (retryAttempts.get(workspaceId) ?? 0) + 1;
+        retryAttempts.set(workspaceId, attempts);
+        const delay = Math.min(60_000, 1_000 * (2 ** Math.min(attempts - 1, 6)));
+        retryTimers.set(workspaceId, setTimeout(() => {
+          retryTimers.delete(workspaceId);
+          suppressSyncWatchUntil.delete(workspaceId);
+          schedule(workspaceId);
+        }, delay));
+      } else {
+        setStatus(workspaceId, { state: /fetch|network|offline|connection/i.test(message) ? "offline" : "error", stage: null, enabled: true, folderPath: config.folderPath, lastScannedAt: Date.now(), pendingFiles: 1, error: message });
+      }
     }
-  })().finally(() => running.delete(workspaceId));
+  })().finally(() => {
+    running.delete(workspaceId);
+    // Let atomic file writes settle, then coalesce any local changes observed
+    // during reconciliation into one follow-up full scan.
+    suppressSyncWatchUntil.set(workspaceId, Date.now() + 1_500);
+    if ((fullScanRequests.has(workspaceId) || dirtyLocalPaths.has(workspaceId)) && !timers.has(workspaceId)) {
+      schedule(workspaceId, fullScanRequests.has(workspaceId));
+    }
+  });
   running.set(workspaceId, job);
   return job;
 }
 
-function schedule(workspaceId: string): void {
+function schedule(workspaceId: string, fullScan = false, localPath?: string): void {
+  if (fullScan) fullScanRequests.add(workspaceId);
+  if (localPath) {
+    const pending = dirtyLocalPaths.get(workspaceId) ?? new Set<string>();
+    pending.add(localPath);
+    dirtyLocalPaths.set(workspaceId, pending);
+  }
+  if (running.has(workspaceId)) return;
+  if (status(workspaceId).state === "error") return;
   const previous = timers.get(workspaceId);
   if (previous) clearTimeout(previous);
-  timers.set(workspaceId, setTimeout(() => { timers.delete(workspaceId); void syncOnce(workspaceId); }, 800));
+  const suppressUntil = suppressSyncWatchUntil.get(workspaceId) ?? 0;
+  const delay = Math.max(800, suppressUntil - Date.now() + 10);
+  timers.set(workspaceId, setTimeout(() => { timers.delete(workspaceId); void syncOnce(workspaceId); }, delay));
 }
-function stopRuntime(workspaceId: string): void {
+async function stopRuntime(workspaceId: string, releaseLock = true): Promise<void> {
   watchers.get(workspaceId)?.close(); watchers.delete(workspaceId);
   const poll = pollers.get(workspaceId); if (poll) clearInterval(poll); pollers.delete(workspaceId);
+  const fullScan = fullScanners.get(workspaceId); if (fullScan) clearInterval(fullScan); fullScanners.delete(workspaceId);
   const timer = timers.get(workspaceId); if (timer) clearTimeout(timer); timers.delete(workspaceId);
-}
-function startRuntime(workspaceId: string, folderPath: string): void {
-  stopRuntime(workspaceId);
-  try {
-    const watcher = watch(folderPath, { recursive: true }, () => schedule(workspaceId));
-    watcher.on("error", () => { watcher.close(); watchers.delete(workspaceId); schedule(workspaceId); });
-    watchers.set(workspaceId, watcher);
+  const retryTimer = retryTimers.get(workspaceId); if (retryTimer) clearTimeout(retryTimer); retryTimers.delete(workspaceId);
+  retryAttempts.delete(workspaceId);
+  if (releaseLock) {
+    await running.get(workspaceId)?.catch(() => {});
+    // A sync already in flight may have scheduled its retry timer while the
+    // stop above was waiting for it. Clear again so disconnect/reconfigure
+    // cannot leave a delayed pass behind.
+    const retryAfterRun = retryTimers.get(workspaceId);
+    if (retryAfterRun) clearTimeout(retryAfterRun);
+    retryTimers.delete(workspaceId);
+    retryAttempts.delete(workspaceId);
+    const timerAfterRun = timers.get(workspaceId);
+    if (timerAfterRun) clearTimeout(timerAfterRun);
+    timers.delete(workspaceId);
+    const lock = folderLocks.get(workspaceId);
+    if (lock) {
+      folderLocks.delete(workspaceId);
+      await releaseFolderSyncLock(lock).catch(() => {});
+    }
   }
-  catch { /* Periodic reconciliation remains available if native recursive watching is unsupported. */ }
-  pollers.set(workspaceId, setInterval(() => schedule(workspaceId), 15_000));
-  schedule(workspaceId);
+}
+async function startRuntime(workspaceId: string, folderPath: string): Promise<void> {
+  if (starting.has(workspaceId)) return;
+  starting.add(workspaceId);
+  try {
+    await stopRuntime(workspaceId);
+    fullScanRequests.delete(workspaceId);
+    dirtyLocalPaths.delete(workspaceId);
+    try {
+      const watcher = watch(folderPath, { recursive: true }, (_eventType, filename) => {
+        if (filename === null) { schedule(workspaceId, true); return; }
+        const relative = path.posix.normalize(filename.toString().replaceAll("\\", "/"));
+        if (!relative || relative === "." || relative.startsWith("../") || relative.startsWith("/")) {
+          schedule(workspaceId, true);
+          return;
+        }
+        schedule(workspaceId, false, relative);
+      });
+      watcher.on("error", () => { watcher.close(); watchers.delete(workspaceId); schedule(workspaceId, true); });
+      watchers.set(workspaceId, watcher);
+    } catch { /* Polling remains available if native recursive watching is unsupported. */ }
+    pollers.set(workspaceId, setInterval(() => schedule(workspaceId), REMOTE_CHANGE_POLL_INTERVAL_MS));
+    fullScanners.set(workspaceId, setInterval(() => {
+      if (!running.has(workspaceId)) schedule(workspaceId, true);
+    }, FULL_LOCAL_SCAN_INTERVAL_MS));
+    schedule(workspaceId, true);
+  } finally {
+    starting.delete(workspaceId);
+  }
 }
 
 export async function configurePkmsSyncBridge(workspaceId: string, folderPath: string, excludedPaths: string[] = []): Promise<PkmsSyncBridgeStatus> {
@@ -418,28 +840,33 @@ export async function configurePkmsSyncBridge(workspaceId: string, folderPath: s
   const stat = await fs.stat(root);
   if (!stat.isDirectory()) throw new Error("folder_required");
   const state = await load();
+  const duplicate = Object.entries(state.configs).find(([configuredWorkspaceId, config]) => configuredWorkspaceId !== workspaceId && path.resolve(config.folderPath) === root);
+  if (duplicate) throw new Error("local_folder_already_connected");
   state.configs[workspaceId] = { folderPath: root, excludedPaths: excludedPaths.map((item) => item.trim()).filter(Boolean).slice(0, 100) };
   state.baselines[workspaceId] ??= {};
   await save();
   setStatus(workspaceId, { enabled: true, folderPath: root, excludedPaths: state.configs[workspaceId].excludedPaths, state: "syncing", error: null });
-  startRuntime(workspaceId, root);
+  await startRuntime(workspaceId, root);
   return status(workspaceId);
 }
 export async function disconnectPkmsSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus> {
-  stopRuntime(workspaceId);
+  await stopRuntime(workspaceId);
+  fullScanRequests.delete(workspaceId);
+  dirtyLocalPaths.delete(workspaceId);
   const state = await load(); delete state.configs[workspaceId];
   await save();
   return setStatus(workspaceId, { enabled: false, folderPath: null, excludedPaths: [], state: "disconnected", progress: null, pendingFiles: 0, conflictFiles: [], error: null });
 }
 export async function getPkmsSyncBridgeStatus(workspaceId: string): Promise<PkmsSyncBridgeStatus> {
   const config = (await load()).configs[workspaceId];
-  if (config && !pollers.has(workspaceId)) {
+  if (config && !pollers.has(workspaceId) && !starting.has(workspaceId)) {
     setStatus(workspaceId, { enabled: true, folderPath: config.folderPath, excludedPaths: config.excludedPaths ?? [], state: "offline" });
-    startRuntime(workspaceId, config.folderPath);
+    void startRuntime(workspaceId, config.folderPath).catch((error) => setStatus(workspaceId, { state: "error", error: error instanceof Error ? error.message : "Could not start cloud sync." }));
   }
   return status(workspaceId);
 }
 export async function scanPkmsSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus> {
+  fullScanRequests.add(workspaceId);
   await syncOnce(workspaceId);
   return status(workspaceId);
 }
@@ -450,15 +877,18 @@ export async function updatePkmsSyncBridgeExclusions(workspaceId: string, exclud
   config.excludedPaths = excludedPaths.map((item) => item.trim()).filter(Boolean).slice(0, 100);
   await save();
   setStatus(workspaceId, { excludedPaths: config.excludedPaths });
-  schedule(workspaceId);
+  schedule(workspaceId, true);
   return status(workspaceId);
 }
 
 export async function startConfiguredPkmsSyncBridges(): Promise<void> {
   const config = await load();
   for (const [workspaceId, value] of Object.entries(config.configs)) {
-    try { await fs.access(value.folderPath); setStatus(workspaceId, { enabled: true, folderPath: value.folderPath, excludedPaths: value.excludedPaths ?? [], state: "syncing" }); startRuntime(workspaceId, value.folderPath); }
+    try { await fs.access(value.folderPath); setStatus(workspaceId, { enabled: true, folderPath: value.folderPath, excludedPaths: value.excludedPaths ?? [], state: "syncing" }); await startRuntime(workspaceId, value.folderPath); }
     catch { setStatus(workspaceId, { enabled: true, folderPath: value.folderPath, excludedPaths: value.excludedPaths ?? [], state: "error", error: "Connected folder is unavailable." }); }
   }
 }
-export function stopPkmsSyncBridges(): void { for (const workspaceId of [...watchers.keys(), ...pollers.keys()]) stopRuntime(workspaceId); }
+export async function stopPkmsSyncBridges(): Promise<void> {
+  const workspaceIds = [...new Set([...watchers.keys(), ...pollers.keys(), ...fullScanners.keys(), ...folderLocks.keys()])];
+  await Promise.all(workspaceIds.map((workspaceId) => stopRuntime(workspaceId, false)));
+}

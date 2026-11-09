@@ -41,6 +41,14 @@ const pkmsDesktop = {
   disconnectSyncBridge: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:disconnect', workspaceId),
   scanSyncBridge: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:scan', workspaceId),
   updateSyncBridgeExclusions: (workspaceId: string, paths: string[]) => ipcRenderer.invoke('pkms:sync-bridge:exclusions', workspaceId, paths),
+  readLocalMarkdown: (workspaceId: string, relativePath: string) => ipcRenderer.invoke('pkms:local-file:read', workspaceId, relativePath),
+  writeLocalMarkdown: (workspaceId: string, relativePath: string, text: string, revision: string) => ipcRenderer.invoke('pkms:local-file:write', workspaceId, relativePath, text, revision),
+  listLocalDirectory: (workspaceId: string, relativePath: string) => ipcRenderer.invoke('pkms:local-file:list', workspaceId, relativePath),
+  getLocalFile: (workspaceId: string, id: string) => ipcRenderer.invoke('pkms:local-file:get', workspaceId, id),
+  createLocalItem: (workspaceId: string, parent: string, kind: 'markdown' | 'folder', name: string) => ipcRenderer.invoke('pkms:local-item:create', workspaceId, parent, kind, name),
+  renameLocalItem: (workspaceId: string, id: string, name: string) => ipcRenderer.invoke('pkms:local-item:rename', workspaceId, id, name),
+  moveLocalItems: (workspaceId: string, ids: string[], parent: string) => ipcRenderer.invoke('pkms:local-item:move', workspaceId, ids, parent),
+  deleteLocalItems: (workspaceId: string, ids: string[]) => ipcRenderer.invoke('pkms:local-item:delete', workspaceId, ids),
   openServiceOAuth: (url: string): Promise<void> => ipcRenderer.invoke('pkms:open-service-oauth', url),
 }
 const workspaceHome = {

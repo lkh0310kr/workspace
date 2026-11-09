@@ -76,7 +76,7 @@ export async function handleVaultRequest(env:Env,login:string,workspaceId:string
     const atRevision=Number(url.searchParams.get("atRevision")??workspace.server_revision);
     const afterPath=url.searchParams.get("afterPath");
     if(!Number.isSafeInteger(atRevision)||atRevision<0||atRevision>Number(workspace.server_revision))return json({error:"invalid_snapshot_cursor"},{status:400});
-    const filter:Record<string,string>={deleted:"eq.false",revision:`lte.${atRevision}`,order:"path.asc",limit:"500"};
+    const filter:Record<string,string>={deleted:"eq.false",kind:"eq.markdown",revision:`lte.${atRevision}`,order:"path.asc",limit:"500"};
     if(afterPath)filter.path=`gt.${afterPath}`;
     const list=await files(env,workspaceId,filter,"file_id,path,kind,size,revision");
     const lastPath=list.at(-1)?.path??afterPath??"";
@@ -285,14 +285,17 @@ async function readDocument(env:Env,w:WorkspaceRow,fileId:string,vector:string|n
     if(!data?.file||data.file.kind!=="markdown")return json({error:"not_found"},{status:404});
     if(data.file.size>MAX_MARKDOWN_BYTES)return json({error:"file_too_large",maxBytes:MAX_MARKDOWN_BYTES},{status:413});
     const doc=new Y.Doc({guid:fileId});if(data.stateUpdate)Y.applyUpdate(doc,fromB64(data.stateUpdate));for(const u of data.updates)Y.applyUpdate(doc,fromB64(u.update));
-    if(!doc.getText("markdown").length&&!data.file.content&&data.file.sha){const token=await accessToken(env,w.owner_login);const [owner,repo]=w.repository.split("/");const raw=await(await github(token,`/repos/${owner}/${repo}/git/blobs/${data.file.sha}`,{headers:{Accept:"application/vnd.github.raw+json"}})).arrayBuffer();if(raw.byteLength!==data.file.size)return json({error:"github_file_size_mismatch"},{status:502});const content=new TextDecoder("utf-8",{fatal:true}).decode(raw);doc.getText("markdown").insert(0,content);await supabaseRequest(env,"/rest/v1/pkms_files?workspace_id=eq."+encodeURIComponent(w.workspace_id)+"&file_id=eq."+encodeURIComponent(fileId),{method:"PATCH",body:JSON.stringify({content})});}
+    if(!doc.getText("markdown").length&&!data.file.content&&data.file.sha){const token=await accessToken(env,w.owner_login);const [owner,repo]=w.repository.split("/");const raw=await(await github(token,`/repos/${owner}/${repo}/git/blobs/${data.file.sha}`,{headers:{Accept:"application/vnd.github.raw+json"}})).arrayBuffer();if(raw.byteLength!==data.file.size)return json({error:"github_file_size_mismatch"},{status:502});const content=new TextDecoder("utf-8",{fatal:true}).decode(raw);doc.getText("markdown").insert(0,content);/* PostgreSQL text cannot store NUL bytes; return the document to the client without caching that invalid text value. */if(!content.includes("\u0000"))await supabaseRequest(env,"/rest/v1/pkms_files?workspace_id=eq."+encodeURIComponent(w.workspace_id)+"&file_id=eq."+encodeURIComponent(fileId),{method:"PATCH",body:JSON.stringify({content})});}
     const update=vector?Y.encodeStateAsUpdate(doc,fromB64(vector)):Y.encodeStateAsUpdate(doc);return json({fileId,update:b64(update),protocolVersion:1,revision:data.file.revision});
-  }catch{return json({error:"document_load_failed",message:"Could not load this document. Try again shortly."},{status:502});}
+  }catch(error){
+    console.error(JSON.stringify({time:new Date().toISOString(),level:"error",event:"sync.document.read.failed",fileId,errorType:error instanceof Error?error.name:"UnknownError",...(error instanceof SupabaseError?{upstreamStatus:error.status,upstreamCode:error.code}:{}),...(error instanceof GitHubError?{upstreamStatus:error.status}:{})}));
+    return json({error:"document_load_failed",message:"Could not load this document. Try again shortly."},{status:502});
+  }
 }
 
 async function downloadDocuments(env:Env,w:WorkspaceRow,body:unknown):Promise<Response>{
   const fileIds=body&&typeof body==="object"&&!Array.isArray(body)?(body as {fileIds?:unknown}).fileIds:null;
-  if(!Array.isArray(fileIds)||fileIds.length<1||fileIds.length>4||fileIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]{1,128}$/.test(id)))return json({error:"invalid_file_ids",maxItems:4},{status:400});
+  if(!Array.isArray(fileIds)||fileIds.length<1||fileIds.length>12||fileIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]{1,128}$/.test(id)))return json({error:"invalid_file_ids",maxItems:12},{status:400});
   const unique=[...new Set(fileIds as string[])];
   const members=unique.map(id=>`"${id}"`).join(",");
   const query=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,file_id:`in.(${members})`,kind:"eq.markdown",deleted:"eq.false",select:"file_id,path,content,revision,size",order:"path.asc"});
@@ -302,7 +305,11 @@ async function downloadDocuments(env:Env,w:WorkspaceRow,body:unknown):Promise<Re
     if(row.size>MAX_MARKDOWN_BYTES)return {id:row.file_id,path:row.path,revision:row.revision,error:"file_too_large"};
     if(row.content!==null)return {id:row.file_id,path:row.path,revision:row.revision,text:row.content};
     const result=await readDocument(env,w,row.file_id,null);
-    if(!result.ok)return {id:row.file_id,path:row.path,revision:row.revision,error:"document_load_failed"};
+    if(!result.ok){
+      const detail=await result.json().catch(()=>({})) as {error?:unknown};
+      console.error(JSON.stringify({time:new Date().toISOString(),level:"error",event:"sync.download.document_failed",fileId:row.file_id,status:result.status,error:typeof detail.error==="string"?detail.error:"document_load_failed"}));
+      return {id:row.file_id,path:row.path,revision:row.revision,error:typeof detail.error==="string"?detail.error:"document_load_failed"};
+    }
     const data=await result.json() as {update:string;revision:number};
     const doc=new Y.Doc({guid:row.file_id});Y.applyUpdate(doc,fromB64(data.update));
     return {id:row.file_id,path:row.path,revision:data.revision,text:doc.getText("markdown").toString()};
@@ -382,7 +389,8 @@ export async function flushWorkspace(env:Env,id:string,login:string,leaseToken:s
   const token=await accessToken(env,login);const [owner,repo]=w.repository.split("/");const branch=w.branch.split("/").map(encodeURIComponent).join("/");const refPath=`/repos/${owner}/${repo}/git/ref/heads/${branch}`;
   const ref=await(await github(token,refPath)).json() as {object:{sha:string}};
   if(ref.object.sha!==w.github_head){
-    if(!await recoverPreviousPkmsCommit(token,owner,repo,login,w,changed,ref.object.sha)){
+    if(!await recoverPreviousPkmsCommit(token,owner,repo,login,w,changed,ref.object.sha)
+      && !await recoverExcludedGitHubCommit(token,owner,repo,login,w,changed,ref.object.sha)){
       await supabaseRpc(env,"pkms_finish_flush",{p_workspace_id:id,p_lease_token:leaseToken,p_captured_revision:Number(w.server_revision),p_new_head:ref.object.sha,p_files:[],p_github_status:"external-change",p_message:"GitHub branch changed outside PKMS. Automatic push is paused to protect those changes."});return;
     }
   }
@@ -409,6 +417,30 @@ async function recoverPreviousPkmsCommit(token:string,owner:string,repo:string,l
   for(const file of changed){if(file.kind==="folder")continue;expectedPaths.add(file.path);if(file.previous_path)expectedPaths.add(file.previous_path);}
   if([...paths].some(path=>!expectedPaths.has(path))){
     console.warn("github_flush_recovery_skipped",{reason:"remote_paths_not_pending",changedFileCount:changed.length,remoteFileCount:committed.length});return false;
+  }
+  return true;
+}
+/**
+ * Rebase pending PKMS backups onto a direct GitHub commit when it only changed
+ * paths PKMS deliberately excludes from local sync. This preserves the external
+ * commit's tree while allowing the next PKMS commit to use it as its parent.
+ */
+async function recoverExcludedGitHubCommit(token:string,owner:string,repo:string,login:string,w:WorkspaceRow,changed:FileRow[],remoteHead:string):Promise<boolean>{
+  if(!w.github_head)return false;
+  const response=await github(token,`/repos/${owner}/${repo}/commits/${remoteHead}`);
+  const commit=await response.json() as {commit?:{message?:string};author?:{login?:string|null};parents?:Array<{sha:string}>;files?:Array<{filename:string;previous_filename?:string}>};
+  const committed=commit.files;
+  if(commit.author?.login?.toLowerCase()!==login.toLowerCase()||commit.parents?.length!==1||commit.parents[0].sha!==w.github_head||!committed?.length||committed.length>=300){
+    console.warn("github_flush_recovery_skipped",{reason:"external_commit_not_direct_or_bounded",changedFileCount:changed.length,remoteFileCount:committed?.length??-1});return false;
+  }
+  const excluded=(path:string)=>path.split("/").some(part=>[".git",".obsidian","node_modules",".pkms"].includes(part));
+  const remotePaths=committed.flatMap(file=>[file.filename,file.previous_filename].filter((path):path is string=>Boolean(path)));
+  if(!remotePaths.every(excluded)){
+    console.warn("github_flush_recovery_skipped",{reason:"external_commit_touches_pkms_managed_path",changedFileCount:changed.length,remoteFileCount:committed.length});return false;
+  }
+  const pendingPaths=new Set(changed.flatMap(file=>[file.path,file.previous_path].filter((path):path is string=>Boolean(path))));
+  if(remotePaths.some(path=>pendingPaths.has(path))){
+    console.warn("github_flush_recovery_skipped",{reason:"external_commit_overlaps_pending_path",changedFileCount:changed.length,remoteFileCount:committed.length});return false;
   }
   return true;
 }

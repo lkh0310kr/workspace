@@ -83,10 +83,9 @@ installMainStartupLogging()
 // Packaged builds must be single-instance. Dev skips the lock so electron-vite
 // can restart Electron after main-process rebuilds; otherwise the new process
 // loses the lock, quits immediately, and electron-vite exits all of `npm run dev`.
-// Dock/menu-bar label only — appSupportDir() in persistence.ts is what
-// actually keeps dev and packaged data apart. This just makes it obvious
-// at a glance (Dock, Cmd+Tab, window menu) which one you're looking at
-// when both are running side by side. Must run before app.whenReady().
+// The dev profile is redirected to workspace-app-dev by protocolSchemes.ts;
+// this label makes it obvious which window is running when both are open.
+// Must run before app.whenReady().
 if (!isPackagedApp()) {
   app.setName('Workspace (Dev)')
 }
@@ -710,7 +709,7 @@ async function prepareApplicationQuit(): Promise<void> {
     workspace.disposeAllTerminals()
   }
   fileWatcher?.close()
-  stopPkmsSyncBridges()
+  await stopPkmsSyncBridges()
   disposeCadViewers()
 }
 

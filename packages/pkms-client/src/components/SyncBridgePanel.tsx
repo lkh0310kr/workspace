@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { SyncStatus } from "../domain/types";
 import { desktopBridge, type PkmsSyncBridgeStatus } from "../platform/desktopApi";
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
   githubLastCommitAt?: string;
   githubPendingFiles: number;
   githubMessage?: string;
+  onResumeGithubBackup: () => Promise<SyncStatus>;
 }
 
 function stateLabel(status: PkmsSyncBridgeStatus | null): string {
@@ -14,7 +16,7 @@ function stateLabel(status: PkmsSyncBridgeStatus | null): string {
   return ({ disconnected: "Not connected", syncing: "Syncing", synced: "Up to date", offline: "Offline", error: "Needs attention" } as const)[status.state];
 }
 
-export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt, githubPendingFiles, githubMessage }: Props) {
+export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt, githubPendingFiles, githubMessage, onResumeGithubBackup }: Props) {
   const bridge = desktopBridge();
   const [status, setStatus] = useState<PkmsSyncBridgeStatus | null>(null);
   const [busy, setBusy] = useState(false);
@@ -23,7 +25,7 @@ export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt,
   const refresh = useCallback(async () => {
     if (!bridge) return;
     try { setStatus(await bridge.syncBridgeStatus(workspaceId)); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Could not read folder sync status."); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Could not read cloud sync status."); }
   }, [bridge, workspaceId]);
   const excludedKey = status?.excludedPaths.join("\n") ?? "";
   useEffect(() => setExcludedDraft(excludedKey), [workspaceId, excludedKey]);
@@ -39,7 +41,7 @@ export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt,
   const run = async (action: () => Promise<PkmsSyncBridgeStatus>) => {
     setBusy(true); setMessage("");
     try { setStatus(await action()); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Folder sync failed."); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Cloud sync failed."); }
     finally { setBusy(false); }
   };
   const connect = async () => {
@@ -51,21 +53,31 @@ export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt,
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not connect the folder."); }
     finally { setBusy(false); }
   };
+  const resumeGithubBackup = async () => {
+    setBusy(true); setMessage("");
+    try {
+      const result = await onResumeGithubBackup();
+      if (result.githubStatus === "external-change") setMessage(result.message ?? "The branch has overlapping changes. Backup remains paused.");
+      else if (result.githubStatus === "pending") setMessage("GitHub branch accepted. Pending files will be backed up automatically.");
+      else if (result.githubStatus === "synced") setMessage("GitHub backup is up to date.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not resume GitHub backup."); }
+    finally { setBusy(false); }
+  };
 
   return (
-    <section className="sync-bridge-panel" aria-label="Folder sync">
+    <section className="sync-bridge-panel" aria-label={bridge ? "Editing folder and cloud sync" : "Cloud workspace and GitHub backup"}>
       <div className="sync-bridge-heading">
-        <div><span className={`sync-bridge-indicator sync-bridge-indicator--${status?.state ?? "loading"}`} /> <span className="eyebrow">Folder sync</span></div>
-        <span className="sync-bridge-state">{bridge ? stateLabel(status) : "Desktop only"}</span>
+        <div><span className={`sync-bridge-indicator sync-bridge-indicator--${bridge ? status?.state ?? "loading" : "synced"}`} /> <span className="eyebrow">{bridge ? "Editing folder" : "Cloud workspace"}</span></div>
+        <span className="sync-bridge-state">{bridge ? stateLabel(status) : "Active"}</span>
       </div>
       {bridge ? <>
         {status?.folderPath && <div className="sync-bridge-path" title={status.folderPath}>{status.folderPath}</div>}
         {status?.progress && (status.state === "syncing" || status.state === "synced" || status.state === "error" || status.state === "offline") && <div className="sync-bridge-progress" aria-label={`Sync progress ${status.progress.percent}%`}>
-          <div className="sync-bridge-progress-label"><span>{status.state === "syncing" ? "Sync progress" : "Last sync"}</span><strong>{status.progress.percent}% · {status.progress.completed}/{status.progress.total}</strong></div>
+          <div className="sync-bridge-progress-label"><span>{status.state === "syncing" ? "Cloud sync" : "Last cloud sync"}</span><strong>{status.progress.percent}% · {status.progress.completed}/{status.progress.total}</strong></div>
           <div className="sync-bridge-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={status.progress.percent}><span style={{ width: `${status.progress.percent}%` }} /></div>
         </div>}
         <div className="sync-bridge-meta">
-          {status?.lastSyncedAt ? `Last synced ${new Date(status.lastSyncedAt).toLocaleTimeString()}` : status?.enabled ? "Preparing initial sync…" : "Markdown files sync with this workspace. Differing files are preserved as conflict copies."}
+          {status?.lastSyncedAt ? `Last synced ${new Date(status.lastSyncedAt).toLocaleTimeString()}` : status?.enabled ? ({ scanning: "Checking the local folder…", "loading-remote-list": "Checking cloud files…", "downloading-remote-files": "Downloading cloud files…", reconciling: "Syncing local and cloud files…" } as const)[status.stage ?? "scanning"] : "PKMS and external editors use this same folder. Cloud sync keeps it up to date across devices; conflicting edits are saved as conflict copies."}
           {status?.pendingFiles ? ` · ${status.pendingFiles} pending` : ""}
         </div>
         {(status?.error || message) && <div className="sync-bridge-error">{status?.error ?? message}</div>}
@@ -77,13 +89,14 @@ export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt,
         </div>}
         <div className="sync-bridge-actions">
           {status?.enabled ? <>
-            <button type="button" disabled={busy} onClick={() => void run(() => bridge.scanSyncBridge(workspaceId))}>Sync now</button>
+            <button type="button" disabled={busy} onClick={() => void run(() => bridge.scanSyncBridge(workspaceId))}>Sync with cloud now</button>
             <button type="button" disabled={busy} onClick={() => void run(() => bridge.disconnectSyncBridge(workspaceId))}>Disconnect</button>
-          </> : <button type="button" disabled={busy} onClick={() => void connect()}>Connect folder</button>}
+          </> : <button type="button" disabled={busy} onClick={() => void connect()}>Choose editing folder</button>}
         </div>
-      </> : <div className="sync-bridge-meta">Connect a folder from Workspace Desktop to sync Markdown files and AI agent edits.</div>}
-      <div className="sync-bridge-github"><span>GitHub backup</span><strong className={`sync-bridge-github-state is-${githubStatus}`}>{githubStatus === "external-change" ? "External change" : githubStatus === "failed" ? "Needs attention" : githubStatus === "pending" ? "Pending" : "Up to date"}</strong></div>
-      <div className="sync-bridge-meta">{githubStatus === "synced" && githubLastCommitAt ? `Last commit ${new Date(githubLastCommitAt).toLocaleString()}` : githubPendingFiles ? `${githubPendingFiles} files awaiting backup` : githubMessage ?? "GitHub backup is separate from cloud sync."}</div>
+      </> : <div className="sync-bridge-meta">Web and mobile edit this cloud workspace. Desktop sync keeps its editing folder up to date.</div>}
+      <div className="sync-bridge-github"><span>Optional GitHub backup</span><strong className={`sync-bridge-github-state is-${githubStatus}`}>{githubStatus === "external-change" ? "External change" : githubStatus === "failed" ? "Needs attention" : githubStatus === "pending" ? "Pending" : "Up to date"}</strong></div>
+      <div className="sync-bridge-meta">{githubStatus === "synced" && githubLastCommitAt ? `Last commit ${new Date(githubLastCommitAt).toLocaleString()}` : githubPendingFiles ? `${githubPendingFiles} files awaiting backup` : githubMessage ?? "This is an optional GitHub copy. It does not control cloud sync."}</div>
+      {githubStatus === "external-change" && <div className="sync-bridge-actions"><button type="button" disabled={busy} onClick={() => void resumeGithubBackup()}>{busy ? "Checking branch…" : "Check and resume backup"}</button></div>}
     </section>
   );
 }

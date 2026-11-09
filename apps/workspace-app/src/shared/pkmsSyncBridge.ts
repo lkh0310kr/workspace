@@ -1,4 +1,5 @@
 export type PkmsSyncBridgeState = "disconnected" | "syncing" | "synced" | "offline" | "error";
+export type PkmsSyncBridgeStage = "scanning" | "loading-remote-list" | "downloading-remote-files" | "reconciling";
 
 export interface PkmsSyncBridgeStatus {
   workspaceId: string;
@@ -7,6 +8,7 @@ export interface PkmsSyncBridgeStatus {
   excludedPaths: string[];
   state: PkmsSyncBridgeState;
   progress: { completed: number; total: number; percent: number } | null;
+  stage?: PkmsSyncBridgeStage | null;
   lastScannedAt: number | null;
   lastSyncedAt: number | null;
   pendingFiles: number;

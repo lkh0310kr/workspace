@@ -6,6 +6,7 @@ import type {
   PkmsUploadPart,
 } from "../../shared/pkmsClient";
 import { clearPkmsSession, readPkmsSession, writePkmsSession } from "./session";
+import { appendStartupLog } from "../startupLog";
 
 const DEFAULT_PKMS_ORIGIN = "https://pkms-cloud.lkh0310kr.workers.dev";
 const DEFAULT_WORKSPACE_HOME_ORIGIN = "https://workspace-home.lkh0310kr.workers.dev";
@@ -77,12 +78,27 @@ export async function requestPkmsApi<T = unknown>(
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(url, {
-    method: options.method,
-    headers,
-    body: options.body ? toFormData(options.body) : undefined,
-    redirect: "follow",
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: options.method,
+      headers,
+      body: options.body ? toFormData(options.body) : undefined,
+      redirect: "follow",
+    });
+  } catch (error) {
+    const cause = error instanceof Error && "cause" in error ? error.cause : undefined;
+    const detail = cause && typeof cause === "object" ? cause as Record<string, unknown> : {};
+    appendStartupLog("pkms_fetch_failed", {
+      host: url.host,
+      method: options.method,
+      errorName: error instanceof Error ? error.name : "unknown",
+      causeCode: typeof detail.code === "string" ? detail.code : null,
+      causeName: typeof detail.name === "string" ? detail.name : null,
+      causeMessage: typeof detail.message === "string" ? detail.message.slice(0, 240) : null,
+    });
+    throw error;
+  }
   const requestId = response.headers.get("X-Request-ID") ?? undefined;
   let body: unknown;
   const contentType = response.headers.get("content-type") ?? "";
