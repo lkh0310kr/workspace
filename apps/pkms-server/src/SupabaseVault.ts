@@ -8,7 +8,7 @@ import { computeLinkEdits } from "./linkRewrite";
 const MAX_MARKDOWN_BYTES = 512 * 1024;
 const MAX_GIT_FILE_BYTES = 50 * 1024 * 1024;
 const encoder = new TextEncoder();
-type FileRow = { file_id: string; path: string; parent_path: string; kind: "markdown"|"asset"|"folder"; content: string|null; object_key: string|null; size: number; sha: string|null; previous_path: string|null; revision: number; deleted: boolean; dirty: boolean };
+type FileRow = { file_id: string; path: string; parent_path: string; kind: "markdown"|"asset"|"folder"; content: string|null; content_revision?: number|null; object_key: string|null; size: number; sha: string|null; previous_path: string|null; revision: number; deleted: boolean; dirty: boolean };
 type WorkspaceRow = { workspace_id: string; owner_login: string; repository: string; branch: string; server_revision: number; github_status: WorkspaceRecord["githubStatus"]; github_head: string|null; mirrored_head?: string|null; github_message: string|null; last_github_commit_at: string|null; flush_due_at: string|null; lease_token?: string };
 type GitHubTree = { sha: string; tree: Array<{path:string;mode:string;type:string;sha:string;size?:number}>; truncated: boolean };
 class GitHubError extends Error { constructor(readonly status:number){super(`github_${status}`)} }
@@ -99,7 +99,7 @@ export async function handleVaultRequest(env:Env,login:string,workspaceId:string
   const fileMatch=p.match(/^\/files\/([^/]+)$/);
   if(fileMatch&&request.method==="GET")return url.searchParams.get("metadata")==="1"
     ?getFileMetadata(env,workspaceId,decodeURIComponent(fileMatch[1]))
-    :getFile(env,workspaceId,decodeURIComponent(fileMatch[1]));
+    :getFile(env,workspace,decodeURIComponent(fileMatch[1]));
   const assetMatch=p.match(/^\/assets\/([^/]+)$/);
   if(assetMatch&&request.method==="GET")return getAsset(env,workspaceId,decodeURIComponent(assetMatch[1]));
   if(p==="/upload"&&request.method==="POST")return upload(env,workspace,request);
@@ -283,9 +283,17 @@ async function readDocument(env:Env,w:WorkspaceRow,fileId:string,vector:string|n
   try{
     const data=await supabaseRpc<{file:FileRow;stateUpdate:string;compactedRevision:number;updates:Array<{revision:number;update:string}>}>(env,"pkms_read_document",{p_workspace_id:w.workspace_id,p_file_id:fileId});
     if(!data?.file||data.file.kind!=="markdown")return json({error:"not_found"},{status:404});
-    if(data.file.size>MAX_MARKDOWN_BYTES)return json({error:"file_too_large",maxBytes:MAX_MARKDOWN_BYTES},{status:413});
     const doc=new Y.Doc({guid:fileId});if(data.stateUpdate)Y.applyUpdate(doc,fromB64(data.stateUpdate));for(const u of data.updates)Y.applyUpdate(doc,fromB64(u.update));
-    if(!doc.getText("markdown").length&&!data.file.content&&data.file.sha){const token=await accessToken(env,w.owner_login);const [owner,repo]=w.repository.split("/");const raw=await(await github(token,`/repos/${owner}/${repo}/git/blobs/${data.file.sha}`,{headers:{Accept:"application/vnd.github.raw+json"}})).arrayBuffer();if(raw.byteLength!==data.file.size)return json({error:"github_file_size_mismatch"},{status:502});const content=new TextDecoder("utf-8",{fatal:true}).decode(raw);doc.getText("markdown").insert(0,content);/* PostgreSQL text cannot store NUL bytes; return the document to the client without caching that invalid text value. */if(!content.includes("\u0000"))await supabaseRequest(env,"/rest/v1/pkms_files?workspace_id=eq."+encodeURIComponent(w.workspace_id)+"&file_id=eq."+encodeURIComponent(fileId),{method:"PATCH",body:JSON.stringify({content})});}
+    const hasDocumentState=Boolean(data.stateUpdate||data.updates.length);
+    if(!hasDocumentState&&data.file.content!==null){doc.getText("markdown").insert(0,data.file.content);}
+    else if(!hasDocumentState&&!data.file.content&&data.file.sha){const token=await accessToken(env,w.owner_login);const [owner,repo]=w.repository.split("/");const raw=await(await github(token,`/repos/${owner}/${repo}/git/blobs/${data.file.sha}`,{headers:{Accept:"application/vnd.github.raw+json"}})).arrayBuffer();if(raw.byteLength!==data.file.size)return json({error:"github_file_size_mismatch"},{status:502});const content=new TextDecoder("utf-8",{fatal:true}).decode(raw);doc.getText("markdown").insert(0,content);}
+    const content=doc.getText("markdown").toString();const size=encoder.encode(content).byteLength;if(size>MAX_MARKDOWN_BYTES)return json({error:"file_too_large",maxBytes:MAX_MARKDOWN_BYTES},{status:413});
+    // Keep the REST cache a revision-matched projection of the Yjs source of truth.
+    // A guarded update avoids replacing a newer write that landed while this read ran.
+    if(!content.includes("\u0000")&&(data.file.content_revision!==data.file.revision||data.file.content!==content)){
+      const repairQuery=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,file_id:`eq.${fileId}`,revision:`eq.${data.file.revision}`});
+      await supabaseRequest(env,`/rest/v1/pkms_files?${repairQuery}`,{method:"PATCH",body:JSON.stringify({content,content_revision:data.file.revision,size})}).catch(()=>undefined);
+    }
     // URL query parsing treats an unescaped `+` as a space. iOS sends its
     // Base64 state vector in a URLQueryItem, so restore Base64 plus signs
     // before decoding the vector.
@@ -302,12 +310,12 @@ async function downloadDocuments(env:Env,w:WorkspaceRow,body:unknown):Promise<Re
   if(!Array.isArray(fileIds)||fileIds.length<1||fileIds.length>12||fileIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]{1,128}$/.test(id)))return json({error:"invalid_file_ids",maxItems:12},{status:400});
   const unique=[...new Set(fileIds as string[])];
   const members=unique.map(id=>`"${id}"`).join(",");
-  const query=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,file_id:`in.(${members})`,kind:"eq.markdown",deleted:"eq.false",select:"file_id,path,content,revision,size",order:"path.asc"});
+  const query=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,file_id:`in.(${members})`,kind:"eq.markdown",deleted:"eq.false",select:"file_id,path,content,content_revision,revision,size",order:"path.asc"});
   const response=await supabaseRequest(env,`/rest/v1/pkms_files?${query}`);
-  const rows=await response.json() as Array<{file_id:string;path:string;content:string|null;revision:number;size:number}>;
+  const rows=await response.json() as Array<{file_id:string;path:string;content:string|null;content_revision:number|null;revision:number;size:number}>;
   const documents=await Promise.all(rows.map(async row=>{
-    if(row.size>MAX_MARKDOWN_BYTES)return {id:row.file_id,path:row.path,revision:row.revision,error:"file_too_large"};
-    if(row.content!==null)return {id:row.file_id,path:row.path,revision:row.revision,text:row.content};
+    if(row.content_revision===row.revision&&row.size>MAX_MARKDOWN_BYTES)return {id:row.file_id,path:row.path,revision:row.revision,error:"file_too_large"};
+    if(row.content!==null&&row.content_revision===row.revision)return {id:row.file_id,path:row.path,revision:row.revision,text:row.content};
     const result=await readDocument(env,w,row.file_id,null);
     if(!result.ok){
       const detail=await result.json().catch(()=>({})) as {error?:unknown};
@@ -356,11 +364,11 @@ async function writeDocument(env:Env,w:WorkspaceRow,fileId:string,b:Record<strin
       return json({type:"ack",fileId,operationId,acceptedRevision:current.file.revision,duplicate:false,noOp:true});
     }
     const content=doc.getText("markdown").toString();const size=encoder.encode(content).byteLength;if(size>MAX_MARKDOWN_BYTES)return json({error:"markdown_too_large",maxBytes:MAX_MARKDOWN_BYTES},{status:413});
-    const result=await supabaseRpc<Record<string,unknown>>(env,"pkms_append_document_update",{p_workspace_id:w.workspace_id,p_file_id:fileId,p_operation_id:operationId,p_update_b64:b.update,p_content:content,p_size:size});
+    const result=await supabaseRpc<Record<string,unknown>>(env,"pkms_append_document_update",{p_workspace_id:w.workspace_id,p_file_id:fileId,p_operation_id:operationId,p_update_b64:b.update,p_content:content,p_size:size,p_base_revision:current.file.revision});
     const ack={type:"ack",...result,fileId};await publishRealtime(env,w.workspace_id,{type:"document-update",operationId,fileId,update:b.update,acceptedRevision:result.acceptedRevision});return json(ack);
   }catch{return json({error:"document_update_failed",message:"The change could not be saved. Retry shortly."},{status:409});}
 }
-async function getFile(env:Env,id:string,fileId:string):Promise<Response>{const q=new URLSearchParams({workspace_id:`eq.${id}`,file_id:`eq.${fileId}`,deleted:"eq.false",select:"file_id,path,kind,content,size,sha,revision",limit:"1"});const r=await supabaseRequest(env,`/rest/v1/pkms_files?${q}`);const f=(await r.json() as FileRow[])[0];return f?json({id:f.file_id,path:f.path,kind:f.kind,revision:f.revision,content:f.content,contentType:f.kind==="markdown"?"text/markdown; charset=utf-8":"application/octet-stream",size:f.size,sha256:f.sha}):json({error:"not_found"},{status:404});}
+async function getFile(env:Env,w:WorkspaceRow,fileId:string):Promise<Response>{const q=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,file_id:`eq.${fileId}`,deleted:"eq.false",select:"file_id,path,kind,content,content_revision,size,sha,revision",limit:"1"});const r=await supabaseRequest(env,`/rest/v1/pkms_files?${q}`);const f=(await r.json() as FileRow[])[0];if(!f)return json({error:"not_found"},{status:404});let content=f.content;let size=f.size;if(f.kind==="markdown"&&(content===null||f.content_revision!==f.revision)){const result=await readDocument(env,w,fileId,null);if(!result.ok)return result;const data=await result.json() as {update:string;revision:number};const doc=new Y.Doc({guid:fileId});Y.applyUpdate(doc,fromB64(data.update));content=doc.getText("markdown").toString();size=encoder.encode(content).byteLength;}return json({id:f.file_id,path:f.path,kind:f.kind,revision:f.revision,content,contentType:f.kind==="markdown"?"text/markdown; charset=utf-8":"application/octet-stream",size,sha256:f.sha});}
 async function getFileMetadata(env:Env,id:string,fileId:string):Promise<Response>{const q=new URLSearchParams({workspace_id:`eq.${id}`,file_id:`eq.${fileId}`,deleted:"eq.false",select:"file_id,path,kind,size,sha,revision",limit:"1"});const r=await supabaseRequest(env,`/rest/v1/pkms_files?${q}`);const f=(await r.json() as FileRow[])[0];return f?json({id:f.file_id,path:f.path,kind:f.kind,revision:f.revision,contentType:f.kind==="markdown"?"text/markdown; charset=utf-8":"application/octet-stream",size:f.size,sha256:f.sha}):json({error:"not_found"},{status:404});}
 async function getAsset(env:Env,id:string,fileId:string):Promise<Response>{const q=new URLSearchParams({workspace_id:`eq.${id}`,file_id:`eq.${fileId}`,deleted:"eq.false",kind:"eq.asset",select:"path,size,sha,object_key",limit:"1"});const r=await supabaseRequest(env,`/rest/v1/pkms_files?${q}`);const f=(await r.json() as Array<Pick<FileRow,"path"|"size"|"sha"|"object_key">>)[0];if(!f)return json({error:"not_found"},{status:404});if(f.size>MAX_GIT_FILE_BYTES)return json({error:"file_too_large",maxBytes:MAX_GIT_FILE_BYTES},{status:413});
   if(f.object_key){const object=await env.ASSET_BUCKET.get(f.object_key);if(object){const h=new Headers();object.writeHttpMetadata(h);h.set("Content-Length",String(object.size));h.set("Content-Disposition",`inline; filename*=UTF-8''${encodeURIComponent(f.path.split("/").at(-1)??"download")}`);h.set("Cache-Control","private, max-age=60");return new Response(object.body,{headers:h});}}
