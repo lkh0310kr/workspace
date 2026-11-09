@@ -47,7 +47,7 @@ Web 앱은 Electron bridge를 사용하지 않습니다. 기존 쿠키·세션 �
 
 ## 클라이언트 동작과 수명
 
-Desktop pane은 기존 PKMS 동작을 재사용하며, 선택 사항인 Sync Bridge로 workspace마다 로컬 Markdown 폴더를 연결할 수 있습니다. Main process가 파일 감시와 15초 주기 재검사를 수행하고, 서버 문서 업데이트와 파일 변경을 반영합니다. 동기화 기준 정보와 원격 파일 manifest·revision cursor는 앱 userData에 저장하며 `.git`, `.obsidian`, `node_modules`, `.pkms`와 pane에서 설정한 제외 패턴은 건너뜁니다. 최초 연결은 workspace revision을 고정해 전체 snapshot을 500개 단위로 가져오고, 이후에는 cursor 이후 바뀐 파일과 삭제 항목만 받아 원격 manifest를 갱신합니다. 다른 쪽도 바뀐 파일은 로컬 conflict 사본을 만들고 서버 버전을 원래 경로에 둡니다. 본문이 필요한 원격 문서는 4개 단위 API 배치로 내려받고, 최대 3개 배치를 병렬 처리합니다. 서버는 캐시된 Markdown 본문을 한 번의 DB 요청으로 조회하며, 본문 캐시가 없는 레거시 문서는 기존 Yjs 로딩 경로를 사용합니다. 로컬 폴더는 watcher 이벤트를 놓칠 수 있어 주기적으로 다시 전체 검사합니다. 기존 Yjs 저장 및 실시간 전달을 사용하며 GitHub backup 진행 상태는 별도로 표시합니다. Web은 브라우저의 로컬 폴더 접근을 시도하지 않고 Desktop 연결이 필요하다고 안내합니다.
+Desktop pane은 기존 PKMS 동작을 재사용하며, 선택 사항인 Sync Bridge로 workspace마다 로컬 Markdown 폴더를 연결할 수 있습니다. Main process는 파일 watcher, cloud revision feed, 복구용 전체 검사를 이용해 로컬 파일과 서버 문서를 조정합니다. 기준 hash, 원격 manifest, revision cursor는 앱 userData에 저장합니다. 실제 일정, snapshot/change-feed 페이지 크기, 충돌·삭제·재시도 규칙은 [PKMS Desktop folder sync](./09-pkms-folder-sync.md)를 단일 기준으로 삼습니다. Web은 브라우저의 로컬 폴더 접근을 시도하지 않고 Desktop 연결이 필요하다고 안내합니다.
 
 각 pane host가 자체 React root를 만들고 해제합니다. Shadow DOM은 PKMS 초기화 스타일과 컴포넌트 스타일이 다른 Workspace pane에 새지 않게 격리합니다. Web route와 Workspace pane은 같은 `PkmsClientApp`을 마운트하며, 플랫폼별 요청 차이는 `desktopApi.ts` 경계에 둡니다.
 
