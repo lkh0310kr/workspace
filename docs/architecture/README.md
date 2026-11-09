@@ -10,7 +10,7 @@
 4. [상호작용 조정기](./04-interaction-coordinator.md) — overlay, 포커스, 브라우저 embed
 5. [터미널 파이프라인](./05-terminal-pipeline.md) — PTY, xterm, 출력·스크롤 흐름
 6. [브라우저 embed](./06-browser-embeds.md) — webview 수명과 탐색
-7. [PKMS 통합](./07-pkms-integration.md) — 공용 클라이언트, pane, Worker IPC 경계
+7. [PKMS 아키텍처](./pkms/README.md) — 전체 통합 경계와 Desktop 폴더 동기화
 8. [제품별 앱 경계](./08-monorepo-module-boundaries.md) — PKMS와 Workspace 앱, 서버, 공유 패키지의 목표 구조와 이전 순서
 
 

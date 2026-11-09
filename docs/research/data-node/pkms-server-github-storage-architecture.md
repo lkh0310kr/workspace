@@ -38,7 +38,7 @@ GitHub tree와 Markdown 본문을 Supabase 테이블에 mirror/cache 한다. dir
 
 ### Realtime와 hosting
 
-Cloudflare Worker가 API/auth/OAuth token/MCP/cron을 제공하고, Supabase Realtime이 live update broadcast를 제공한다. Supabase를 빼면 편집의 transaction store뿐 아니라 realtime fanout도 새 구현이 필요하거나, 실시간 공동 편집 요구를 낮춰야 한다. [PKMS integration architecture](../../architecture/07-pkms-integration.md)
+Cloudflare Worker가 API/auth/OAuth token/MCP/cron을 제공하고, Supabase Realtime이 live update broadcast를 제공한다. Supabase를 빼면 편집의 transaction store뿐 아니라 realtime fanout도 새 구현이 필요하거나, 실시간 공동 편집 요구를 낮춰야 한다. [PKMS integration architecture](../../architecture/pkms/overview.md)
 
 ## GitHub commit 모델에 대한 정확한 평가
 

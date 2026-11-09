@@ -47,8 +47,8 @@ Web 앱은 Electron bridge를 사용하지 않습니다. 기존 쿠키·세션 �
 
 ## 클라이언트 동작과 수명
 
-Desktop pane은 기존 PKMS 동작을 재사용하며, 선택 사항인 Sync Bridge로 workspace마다 로컬 Markdown 폴더를 연결할 수 있습니다. Main process는 파일 watcher, cloud revision feed, 복구용 전체 검사를 이용해 로컬 파일과 서버 문서를 조정합니다. 기준 hash, 원격 manifest, revision cursor는 앱 userData에 저장합니다. 실제 일정, snapshot/change-feed 페이지 크기, 충돌·삭제·재시도 규칙은 [PKMS Desktop folder sync](./09-pkms-folder-sync.md)를 단일 기준으로 삼습니다. Web은 브라우저의 로컬 폴더 접근을 시도하지 않고 Desktop 연결이 필요하다고 안내합니다.
+Desktop pane은 기존 PKMS 동작을 재사용하며, 선택 사항인 Sync Bridge로 workspace마다 로컬 Markdown 폴더를 연결할 수 있습니다. Main process는 파일 watcher, cloud revision feed, 복구용 전체 검사를 이용해 로컬 파일과 서버 문서를 조정합니다. 기준 hash, 원격 manifest, revision cursor는 앱 userData에 저장합니다. 현재 구현과 목표 동기화·UX 구조는 [Desktop folder sync](./folder-sync.md)를 단일 기준으로 삼습니다. Web은 브라우저의 로컬 폴더 접근을 시도하지 않고 Desktop 연결이 필요하다고 안내합니다.
 
 각 pane host가 자체 React root를 만들고 해제합니다. Shadow DOM은 PKMS 초기화 스타일과 컴포넌트 스타일이 다른 Workspace pane에 새지 않게 격리합니다. Web route와 Workspace pane은 같은 `PkmsClientApp`을 마운트하며, 플랫폼별 요청 차이는 `desktopApi.ts` 경계에 둡니다.
 
-전체 앱과 패키지의 의존 방향은 [Monorepo module boundaries](./08-monorepo-module-boundaries.md)에 정리되어 있습니다.
+전체 앱과 패키지의 의존 방향은 [Monorepo module boundaries](../08-monorepo-module-boundaries.md)에 정리되어 있습니다.

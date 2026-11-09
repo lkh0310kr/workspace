@@ -491,7 +491,7 @@ RPO는 GitHub export 주기만큼이 아니라 **마지막 확인된 independent
 
 ## 관련 근거
 
-- Current implementation: [SupabaseVault.ts](../../../apps/pkms-server/src/SupabaseVault.ts), [Supabase request adapters](../../../apps/pkms-server/src/supabase.ts), [SQLite/Postgres atomic write migration](../../../apps/pkms-server/supabase/migrations/20261101130000_atomic_document_write.sql), [R2 binding](../../../apps/pkms-server/wrangler.jsonc), [PKMS integration](../../architecture/07-pkms-integration.md).
+- Current implementation: [SupabaseVault.ts](../../../apps/pkms-server/src/SupabaseVault.ts), [Supabase request adapters](../../../apps/pkms-server/src/supabase.ts), [SQLite/Postgres atomic write migration](../../../apps/pkms-server/supabase/migrations/20261101130000_atomic_document_write.sql), [R2 binding](../../../apps/pkms-server/wrangler.jsonc), [PKMS integration](../../architecture/pkms/overview.md).
 - Android foreground service timeouts/type requirements: [Android Developers — FGS timeouts](https://developer.android.com/develop/background-work/services/fgs/timeout), [service types](https://developer.android.com/develop/background-work/services/fgs/service-types).
 - Android transaction/WAL and storage lifecycle: [SQLiteDatabase API](https://developer.android.com/reference/android/database/sqlite/SQLiteDatabase), [SQLite best practices](https://developer.android.com/topic/performance/sqlite-performance-best-practices), [app-specific storage](https://developer.android.com/training/data-storage/app-specific).
 - Realtime message model: [Supabase Broadcast](https://supabase.com/docs/guides/realtime/broadcast).
