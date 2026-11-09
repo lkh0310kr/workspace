@@ -286,7 +286,11 @@ async function readDocument(env:Env,w:WorkspaceRow,fileId:string,vector:string|n
     if(data.file.size>MAX_MARKDOWN_BYTES)return json({error:"file_too_large",maxBytes:MAX_MARKDOWN_BYTES},{status:413});
     const doc=new Y.Doc({guid:fileId});if(data.stateUpdate)Y.applyUpdate(doc,fromB64(data.stateUpdate));for(const u of data.updates)Y.applyUpdate(doc,fromB64(u.update));
     if(!doc.getText("markdown").length&&!data.file.content&&data.file.sha){const token=await accessToken(env,w.owner_login);const [owner,repo]=w.repository.split("/");const raw=await(await github(token,`/repos/${owner}/${repo}/git/blobs/${data.file.sha}`,{headers:{Accept:"application/vnd.github.raw+json"}})).arrayBuffer();if(raw.byteLength!==data.file.size)return json({error:"github_file_size_mismatch"},{status:502});const content=new TextDecoder("utf-8",{fatal:true}).decode(raw);doc.getText("markdown").insert(0,content);/* PostgreSQL text cannot store NUL bytes; return the document to the client without caching that invalid text value. */if(!content.includes("\u0000"))await supabaseRequest(env,"/rest/v1/pkms_files?workspace_id=eq."+encodeURIComponent(w.workspace_id)+"&file_id=eq."+encodeURIComponent(fileId),{method:"PATCH",body:JSON.stringify({content})});}
-    const update=vector?Y.encodeStateAsUpdate(doc,fromB64(vector)):Y.encodeStateAsUpdate(doc);return json({fileId,update:b64(update),protocolVersion:1,revision:data.file.revision});
+    // URL query parsing treats an unescaped `+` as a space. iOS sends its
+    // Base64 state vector in a URLQueryItem, so restore Base64 plus signs
+    // before decoding the vector.
+    const stateVector=vector?.replaceAll(" ", "+");
+    const update=stateVector?Y.encodeStateAsUpdate(doc,fromB64(stateVector)):Y.encodeStateAsUpdate(doc);return json({fileId,update:b64(update),protocolVersion:1,revision:data.file.revision});
   }catch(error){
     console.error(JSON.stringify({time:new Date().toISOString(),level:"error",event:"sync.document.read.failed",fileId,errorType:error instanceof Error?error.name:"UnknownError",...(error instanceof SupabaseError?{upstreamStatus:error.status,upstreamCode:error.code}:{}),...(error instanceof GitHubError?{upstreamStatus:error.status}:{})}));
     return json({error:"document_load_failed",message:"Could not load this document. Try again shortly."},{status:502});
@@ -344,7 +348,13 @@ async function writeDocument(env:Env,w:WorkspaceRow,fileId:string,b:Record<strin
   const operationId=String(b.operationId??"");if(!operationId||typeof b.update!=="string")return json({error:"invalid_document_update"},{status:400});
   try{
     const current=await supabaseRpc<{file:FileRow;stateUpdate:string;updates:Array<{update:string}>}>(env,"pkms_read_document",{p_workspace_id:w.workspace_id,p_file_id:fileId});if(!current?.file||current.file.kind!=="markdown")return json({error:"not_found"},{status:404});
-    const doc=new Y.Doc({guid:fileId});if(current.stateUpdate)Y.applyUpdate(doc,fromB64(current.stateUpdate));for(const x of current.updates)Y.applyUpdate(doc,fromB64(x.update));Y.applyUpdate(doc,fromB64(b.update));
+    const doc=new Y.Doc({guid:fileId});if(current.stateUpdate)Y.applyUpdate(doc,fromB64(current.stateUpdate));for(const x of current.updates)Y.applyUpdate(doc,fromB64(x.update));
+    const previousState=Y.encodeStateAsUpdate(doc);
+    Y.applyUpdate(doc,fromB64(b.update));
+    const nextState=Y.encodeStateAsUpdate(doc);
+    if(previousState.length===nextState.length&&previousState.every((value,index)=>value===nextState[index])){
+      return json({type:"ack",fileId,operationId,acceptedRevision:current.file.revision,duplicate:false,noOp:true});
+    }
     const content=doc.getText("markdown").toString();const size=encoder.encode(content).byteLength;if(size>MAX_MARKDOWN_BYTES)return json({error:"markdown_too_large",maxBytes:MAX_MARKDOWN_BYTES},{status:413});
     const result=await supabaseRpc<Record<string,unknown>>(env,"pkms_append_document_update",{p_workspace_id:w.workspace_id,p_file_id:fileId,p_operation_id:operationId,p_update_b64:b.update,p_content:content,p_size:size});
     const ack={type:"ack",...result,fileId};await publishRealtime(env,w.workspace_id,{type:"document-update",operationId,fileId,update:b.update,acceptedRevision:result.acceptedRevision});return json(ack);

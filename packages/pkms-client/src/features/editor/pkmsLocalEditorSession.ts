@@ -23,9 +23,19 @@ export async function createPkmsLocalEditorSession(workspaceId: string, file: Fi
   let readRetryDelayMs = 1_000;
   let nextReadAt = 0;
   let pollInFlight = false;
+  let autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
   const listeners = new Set<(snapshot: EditorDocumentSnapshot) => void>();
+  let session: EditorDocumentSession;
   const snapshot = (): EditorDocumentSnapshot => ({ content: { type: "text", text }, revision, savePhase: phase, syncPhase, ...(message ? { message } : {}) });
   const emit = () => { const value = snapshot(); for (const listener of listeners) listener(value); };
+  const scheduleAutoSave = () => {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+      autoSaveTimer = undefined;
+      if (closed || phase !== "dirty") return;
+      void session.save().catch(() => undefined);
+    }, 5_000);
+  };
   const poll = setInterval(() => {
     if (closed || pollInFlight) return;
     pollInFlight = true;
@@ -61,7 +71,7 @@ export async function createPkmsLocalEditorSession(workspaceId: string, file: Fi
       if (changed) emit();
     }).finally(() => { pollInFlight = false; });
   }, 1000);
-  return {
+  session = {
     get item() { return item; },
     readOnly: false,
     updateItem(next) { if (next.providerId === item.providerId) item = next; },
@@ -71,10 +81,11 @@ export async function createPkmsLocalEditorSession(workspaceId: string, file: Fi
       if (closed) throw new EditorProviderError("notFound", "Document session is closed");
       if (baseRevision !== revision) { phase = "conflict"; message = "The local file changed outside PKMS. Reopen it before editing."; emit(); throw new EditorProviderError("conflict", message); }
       if (value === text) return;
-      text = value; editGeneration++; phase = "dirty"; syncPhase = "pending"; message = undefined; emit();
+      text = value; editGeneration++; phase = "dirty"; syncPhase = "pending"; message = undefined; emit(); scheduleAutoSave();
     },
     async save() {
       if (closed) throw new EditorProviderError("notFound", "Document session is closed");
+      if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = undefined; }
       if (phase !== "dirty") return snapshot();
       const savingText = text;
       const savingGeneration = editGeneration;
@@ -88,8 +99,11 @@ export async function createPkmsLocalEditorSession(workspaceId: string, file: Fi
         phase = "conflict"; message = error instanceof Error ? error.message : "Could not save local file";
         emit(); throw new EditorProviderError("conflict", message);
       }
-      emit(); return snapshot();
+      emit();
+      if (phase === "dirty") scheduleAutoSave();
+      return snapshot();
     },
-    async close() { if (closed) return; closed = true; clearInterval(poll); listeners.clear(); },
+    async close() { if (closed) return; closed = true; clearInterval(poll); if (autoSaveTimer) clearTimeout(autoSaveTimer); listeners.clear(); },
   };
+  return session;
 }
