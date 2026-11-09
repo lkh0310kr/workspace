@@ -128,7 +128,10 @@ export default function Home() {
   const [localCloudSyncing, setLocalCloudSyncing] = useState(false);
   const [localSyncState, setLocalSyncState] = useState<PkmsSyncBridgeStatus["state"]>("disconnected");
   const [localSyncItemStates, setLocalSyncItemStates] = useState<PkmsSyncBridgeStatus["itemStates"]>({});
+  const [localSyncExcludedPaths, setLocalSyncExcludedPaths] = useState<string[]>([]);
+  const [localCloudTree, setLocalCloudTree] = useState<Array<FileRecord & { upToDate?: boolean }>>([]);
   const [showSyncSettings, setShowSyncSettings] = useState(false);
+  const localCloudTreeRevision = useRef(-1);
   const localTreeGeneration = useRef(0);
   const pendingEmptyTreeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -137,16 +140,29 @@ export default function Home() {
     setLocalCloudSyncing(false);
     setLocalSyncState("disconnected");
     setLocalSyncItemStates({});
+    setLocalSyncExcludedPaths([]);
+    setLocalCloudTree([]);
+    localCloudTreeRevision.current = -1;
     setShowSyncSettings(false);
     const desktop = desktopBridge();
     if (!desktop || !activeWorkspace) return () => { alive = false; };
-    const refresh = () => void desktop.syncBridgeStatus(activeWorkspace.id).then((status) => {
+    const refresh = () => void desktop.syncBridgeStatus(activeWorkspace.id).then(async (status) => {
       if (alive) {
         setLocalFolderEnabled(status.enabled);
         setLocalCloudSyncing(status.state === "syncing");
         setLocalSyncState(status.state);
         setLocalSyncItemStates(status.itemStates ?? {});
+        setLocalSyncExcludedPaths(status.excludedPaths ?? []);
       }
+      const tree = await desktop.syncBridgeTree(activeWorkspace.id, localCloudTreeRevision.current);
+      if (!alive || tree.revision === localCloudTreeRevision.current) return;
+      localCloudTreeRevision.current = tree.revision;
+      if (tree.files) setLocalCloudTree(tree.files.map((file) => ({
+        id: file.id, path: file.path, kind: file.kind, revision: file.revision,
+        ...(file.size !== undefined ? { size: file.size } : {}),
+        ...(file.sha ? { sha256: file.sha } : {}),
+        ...(file.upToDate !== undefined ? { upToDate: file.upToDate } : {}),
+      })));
     }).catch(() => {});
     refresh();
     const timer = setInterval(refresh, 2000);
@@ -180,6 +196,10 @@ export default function Home() {
           loaded.add(result.value.directory);
           for (const entry of result.value.entries) items.set(entry.id, entry);
         }
+        const localPaths = new Set([...items.values()].map((entry) => entry.path));
+        for (const cloudEntry of localCloudTree) {
+          if (!localPaths.has(cloudEntry.path)) items.set(cloudEntry.id, cloudEntry);
+        }
         const nextFiles = [...items.values()];
         if (!nextFiles.length && treeFilesRef.current.length) {
           // A transient empty response must not flash "Empty folder" over a
@@ -212,17 +232,33 @@ export default function Home() {
       }
     };
     void refreshLocalTree();
-    const timer = setInterval(() => void refreshLocalTree(), 1000);
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = desktop.onLocalTreeChanged((change) => {
+      if (change.workspaceId !== activeWorkspace.id) return;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { refreshTimer = null; void refreshLocalTree(); }, 60);
+    });
+    const timer = setInterval(() => void refreshLocalTree(), 30_000);
     return () => {
       alive = false;
       clearInterval(timer);
+      unsubscribe();
+      if (refreshTimer) clearTimeout(refreshTimer);
       if (generation === localTreeGeneration.current) localTreeGeneration.current++;
       if (pendingEmptyTreeTimer.current) {
         clearTimeout(pendingEmptyTreeTimer.current);
         pendingEmptyTreeTimer.current = null;
       }
     };
-  }, [activeWorkspace?.id, expandedFolders, localFolderEnabled, setFiles, setLoadedFolders]);
+  }, [activeWorkspace?.id, expandedFolders, localCloudTree, localFolderEnabled, setFiles, setLoadedFolders]);
+  const treeSyncItemStates = useMemo(() => {
+    const states: PkmsSyncBridgeStatus["itemStates"] = { ...localSyncItemStates };
+    for (const file of localCloudTree) {
+      const excluded = localSyncExcludedPaths.some((pattern) => matchesExcludePattern(file.path, pattern));
+      if (file.kind === "markdown" && !file.upToDate && !excluded) states[file.path] ??= "pending";
+    }
+    return states;
+  }, [localCloudTree, localSyncExcludedPaths, localSyncItemStates]);
   const treeFilesRef = useRef(files);
   const activeFileStateRef = useRef(activeFile);
   treeFilesRef.current = files;
@@ -1534,7 +1570,7 @@ export default function Home() {
             focusedPath={focusedTreePath}
             currentFolder={currentFolder}
             activeFileId={activeFile?.id ?? null}
-            syncItemStates={localSyncItemStates}
+            syncItemStates={treeSyncItemStates}
             cutPaths={cutTreePaths}
             dropTarget={treeDropTarget}
             loadingFolders={loadingFolderPaths}
@@ -1602,7 +1638,7 @@ export default function Home() {
         <header className="topbar">
           <div className="topbar-left"><button className="sidebar-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-expanded={sidebarOpen} aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"} title={sidebarOpen ? "Hide sidebar (⌘\\)" : "Show sidebar (⌘\\)"}><AppIcon name="menu" /></button><div className="breadcrumbs"><span>{activeWorkspace?.repository ?? "No workspace"}</span>{(activeFile || currentFolder) && <><span className="crumb-slash">/</span><span>{activeFile?.path ?? currentFolder}</span></>}</div></div>
           <div className="topbar-right">
-            <span className={`save-label ${saving ? "active" : ""}`}><span className="status-dot" />{saving ? editorSavePhaseLabel("saving") : notice || (sync.githubStatus === "synced" ? "Synced" : editorSavePhaseLabel(activeEditorSession?.snapshot().savePhase ?? "clean"))}</span>
+            <span className={`save-label ${saving ? "active" : ""}`}><span className="status-dot" />{saving ? editorSavePhaseLabel("saving") : notice || editorSavePhaseLabel(activeEditorSession?.snapshot().savePhase ?? "clean")}</span>
             {supportsCollaboration && peers.length > 1 && <div className="collaborators" aria-label="Collaborators"><span>{peers.length} here</span></div>}
           </div>
         </header>

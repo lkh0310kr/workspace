@@ -1,4 +1,4 @@
-import { app } from "electron";
+import { app, BrowserWindow } from "electron";
 import { randomUUID, createHash } from "node:crypto";
 import { promises as fs, watch, type FSWatcher } from "node:fs";
 import { tmpdir } from "node:os";
@@ -11,8 +11,8 @@ type BridgeFile = { id: string; path: string; kind: string; revision: number; si
 type BridgeSnapshotPage = { revision: number; files: BridgeFile[]; hasMore: boolean; nextPath: string };
 type BridgeChange = BridgeFile & { deleted: boolean };
 type Baseline = { fileId: string; hash: string; revision: number };
-type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>>; remoteFiles: Record<string, Record<string, BridgeFile>>; syncCursors: Record<string, number> };
-const EMPTY: Persisted = { configs: {}, baselines: {}, remoteFiles: {}, syncCursors: {} };
+type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>>; remoteFiles: Record<string, Record<string, BridgeFile>>; syncCursors: Record<string, number>; remoteTrees: Record<string, BridgeFile[]>; remoteTreeVersions: Record<string, number> };
+const EMPTY: Persisted = { configs: {}, baselines: {}, remoteFiles: {}, syncCursors: {}, remoteTrees: {}, remoteTreeVersions: {} };
 // Poll the cloud's revision feed frequently; full disk walks are a recovery path.
 // The revision feed is metadata-only; poll it frequently so edits from web/iOS
 // reach the local source of truth promptly. Full disk walks remain a recovery
@@ -34,6 +34,12 @@ const dirtyLocalPaths = new Map<string, Set<string>>();
 let persisted: Persisted | null = null;
 
 type FolderSyncLock = { path: string; token: string };
+
+function notifyLocalTreeChanged(workspaceId: string, relativePath: string | null): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send("pkms:local-tree:changed", { workspaceId, path: relativePath });
+  }
+}
 
 function folderSyncLockPath(root: string): string {
   const key = createHash("sha256").update(path.resolve(root)).digest("hex");
@@ -94,7 +100,7 @@ async function load(): Promise<Persisted> {
   if (persisted) return persisted;
   try {
     const saved = JSON.parse(await fs.readFile(statePath(), "utf8")) as Partial<Persisted>;
-    persisted = { ...EMPTY, ...saved, remoteFiles: saved.remoteFiles ?? {}, syncCursors: saved.syncCursors ?? {} };
+    persisted = { ...EMPTY, ...saved, remoteFiles: saved.remoteFiles ?? {}, syncCursors: saved.syncCursors ?? {}, remoteTrees: saved.remoteTrees ?? {}, remoteTreeVersions: saved.remoteTreeVersions ?? {} };
   }
   catch { persisted = structuredClone(EMPTY); }
   return persisted;
@@ -508,14 +514,37 @@ async function readRemoteSnapshot(workspaceId: string): Promise<{ revision: numb
   const files: BridgeFile[] = [];
   let atRevision: number | undefined;
   let afterPath = "";
+  let legacySnapshot = false;
   while (true) {
     const query = new URLSearchParams();
     if (atRevision !== undefined) query.set("atRevision", String(atRevision));
     if (afterPath) query.set("afterPath", afterPath);
-    const page = await request<BridgeSnapshotPage>(`/api/workspaces/${encodeURIComponent(workspaceId)}/snapshot${query.size ? `?${query}` : ""}`, "GET");
+    let page: BridgeSnapshotPage;
+    try {
+      page = await request<BridgeSnapshotPage>(`/api/workspaces/${encodeURIComponent(workspaceId)}/${legacySnapshot ? "snapshot" : "sync/tree"}${query.size ? `?${query}` : ""}`, "GET");
+    } catch (error) {
+      if (!legacySnapshot && !files.length && error instanceof Error && error.message === "not_found") {
+        legacySnapshot = true;
+        continue;
+      }
+      throw error;
+    }
     atRevision = page.revision;
     files.push(...page.files);
-    if (!page.hasMore) return { files, revision: atRevision };
+    if (!page.hasMore) {
+      if (legacySnapshot) {
+        const folders = new Map<string, BridgeFile>();
+        for (const file of files) {
+          let parent = file.path.includes("/") ? file.path.slice(0, file.path.lastIndexOf("/")) : "";
+          while (parent) {
+            if (!folders.has(parent)) folders.set(parent, { id: `folder-${parent}`, path: parent, kind: "folder", revision: 0 });
+            parent = parent.includes("/") ? parent.slice(0, parent.lastIndexOf("/")) : "";
+          }
+        }
+        files.push(...folders.values());
+      }
+      return { files, revision: atRevision };
+    }
     afterPath = page.nextPath;
   }
 }
@@ -574,6 +603,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
       dirtyLocalPaths.delete(workspaceId);
       const state = await load();
       let knownRemoteFiles = state.remoteFiles[workspaceId];
+      let knownRemoteTree = state.remoteTrees[workspaceId];
       let nextSyncRevision = state.syncCursors[workspaceId];
       const remoteChangedPaths = new Set<string>();
       const baselines = state.baselines[workspaceId] ??= {};
@@ -592,14 +622,21 @@ async function syncOnce(workspaceId: string): Promise<void> {
       const backgroundCheck = !fullScan && scannedLocalPaths.length === 0 && !!knownRemoteFiles && nextSyncRevision !== undefined && !needsRemoteHashMetadata;
       if (!backgroundCheck) setStatus(workspaceId, { state: "syncing", stage: "scanning", progress: null, error: null });
       if (!backgroundCheck) setStatus(workspaceId, { stage: "loading-remote-list" });
-      if (!knownRemoteFiles || nextSyncRevision === undefined || needsRemoteHashMetadata) {
+      if (!knownRemoteFiles || nextSyncRevision === undefined || needsRemoteHashMetadata || !knownRemoteTree) {
         const snapshot = await readRemoteSnapshot(workspaceId);
+        knownRemoteTree = snapshot.files;
+        state.remoteTrees[workspaceId] = snapshot.files;
+        state.remoteTreeVersions[workspaceId] = Math.max((state.remoteTreeVersions[workspaceId] ?? -1) + 1, snapshot.revision);
+        await save();
         knownRemoteFiles = Object.fromEntries(snapshot.files.filter((file) => file.kind === "markdown").map((file) => [file.id, file]));
         nextSyncRevision = snapshot.revision;
         fullScan = true;
       } else if (!skipRemoteChangeFeed) {
         const page = await readRemoteChanges(workspaceId, nextSyncRevision);
+        const treeById = new Map((knownRemoteTree ?? Object.values(knownRemoteFiles)).map((file) => [file.id, file]));
         for (const change of page.changes) {
+          treeById.delete(change.id);
+          if (!change.deleted && (change.kind === "markdown" || change.kind === "folder")) treeById.set(change.id, change);
           const previous = knownRemoteFiles[change.id];
           if (previous) remoteChangedPaths.add(previous.path);
           delete knownRemoteFiles[change.id];
@@ -608,6 +645,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
             remoteChangedPaths.add(change.path);
           }
         }
+        knownRemoteTree = [...treeById.values()];
+        state.remoteTrees[workspaceId] = knownRemoteTree;
+        state.remoteTreeVersions[workspaceId] = Math.max((state.remoteTreeVersions[workspaceId] ?? -1) + 1, page.nextRevision);
         nextSyncRevision = page.nextRevision;
       }
       if (!fullScan && scannedLocalPaths.length === 0 && remoteChangedPaths.size === 0) {
@@ -616,6 +656,8 @@ async function syncOnce(workspaceId: string): Promise<void> {
         // relevant changed; persist only cursor movement from non-Markdown rows.
         if (nextSyncRevision !== state.syncCursors[workspaceId]) {
           state.remoteFiles[workspaceId] = knownRemoteFiles;
+          if (knownRemoteTree) state.remoteTrees[workspaceId] = knownRemoteTree;
+          state.remoteTreeVersions[workspaceId] = Math.max((state.remoteTreeVersions[workspaceId] ?? -1) + 1, nextSyncRevision);
           state.syncCursors[workspaceId] = nextSyncRevision;
           await save();
         }
@@ -630,6 +672,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
       const createAndRememberRemoteFile = async (relative: string, content: string): Promise<BridgeFile> => {
         const created = await createRemoteFile(workspaceId, nextSyncRevision, relative, content);
         knownRemoteFiles[created.id] = created;
+        knownRemoteTree = [...(knownRemoteTree ?? []), created];
         remoteByPath.set(created.path, created);
         return created;
       };
@@ -804,6 +847,8 @@ async function syncOnce(workspaceId: string): Promise<void> {
       await save();
       if (firstError) throw firstError;
       state.remoteFiles[workspaceId] = knownRemoteFiles;
+      if (knownRemoteTree) state.remoteTrees[workspaceId] = knownRemoteTree;
+      state.remoteTreeVersions[workspaceId] = Math.max((state.remoteTreeVersions[workspaceId] ?? -1) + 1, nextSyncRevision);
       state.syncCursors[workspaceId] = nextSyncRevision;
       await save();
       retryAttempts.delete(workspaceId);
@@ -899,15 +944,17 @@ async function startRuntime(workspaceId: string, folderPath: string): Promise<vo
     dirtyLocalPaths.delete(workspaceId);
     try {
       const watcher = watch(folderPath, { recursive: true }, (_eventType, filename) => {
-        if (filename === null) { schedule(workspaceId, true); return; }
+        if (filename === null) { schedule(workspaceId, true); notifyLocalTreeChanged(workspaceId, null); return; }
         const relative = path.posix.normalize(filename.toString().replaceAll("\\", "/"));
         if (!relative || relative === "." || relative.startsWith("../") || relative.startsWith("/")) {
           schedule(workspaceId, true);
+          notifyLocalTreeChanged(workspaceId, null);
           return;
         }
         schedule(workspaceId, false, relative);
+        notifyLocalTreeChanged(workspaceId, relative);
       });
-      watcher.on("error", () => { watcher.close(); watchers.delete(workspaceId); schedule(workspaceId, true); });
+      watcher.on("error", () => { watcher.close(); watchers.delete(workspaceId); schedule(workspaceId, true); notifyLocalTreeChanged(workspaceId, null); });
       watchers.set(workspaceId, watcher);
     } catch { /* Polling remains available if native recursive watching is unsupported. */ }
     pollers.set(workspaceId, setInterval(() => schedule(workspaceId), REMOTE_CHANGE_POLL_INTERVAL_MS));
@@ -950,6 +997,17 @@ export async function getPkmsSyncBridgeStatus(workspaceId: string): Promise<Pkms
     void startRuntime(workspaceId, config.folderPath).catch((error) => setStatus(workspaceId, { state: "error", error: error instanceof Error ? error.message : "Could not start cloud sync." }));
   }
   return status(workspaceId);
+}
+export async function getPkmsSyncBridgeTree(workspaceId: string, knownRevision = -1): Promise<{ revision: number; files?: BridgeFile[] }> {
+  if (!/^[A-Za-z0-9_-]{1,100}$/.test(workspaceId)) throw new Error("invalid_workspace_id");
+  const state = await load();
+  const revision = state.remoteTreeVersions[workspaceId] ?? -1;
+  if (knownRevision === revision) return { revision };
+  const baselines = state.baselines[workspaceId] ?? {};
+  return { revision, files: (state.remoteTrees[workspaceId] ?? []).map((file) => ({
+    ...file,
+    upToDate: file.kind === "markdown" ? baselines[file.path]?.fileId === file.id && baselines[file.path]?.revision === file.revision : undefined,
+  })) };
 }
 export async function scanPkmsSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus> {
   fullScanRequests.add(workspaceId);

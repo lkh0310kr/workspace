@@ -84,6 +84,16 @@ export async function handleVaultRequest(env:Env,login:string,workspaceId:string
     const lastPath=list.at(-1)?.path??afterPath??"";
     return json({workspaceId,revision:atRevision,files:list.map(file=>({...fileRecord(file),sha:file.sha})),hasMore:list.length===1000,nextPath:lastPath,nextRevision:atRevision,afterRevision:Number(url.searchParams.get("afterRevision")??0)});
   }
+  if(p==="/sync/tree"&&request.method==="GET"){
+    const atRevision=Number(url.searchParams.get("atRevision")??workspace.server_revision);
+    const afterPath=url.searchParams.get("afterPath");
+    if(!Number.isSafeInteger(atRevision)||atRevision<0||atRevision>Number(workspace.server_revision))return json({error:"invalid_snapshot_cursor"},{status:400});
+    const filter:Record<string,string>={deleted:"eq.false",kind:"in.(markdown,folder)",revision:`lte.${atRevision}`,order:"path.asc",limit:"1000"};
+    if(afterPath)filter.path=`gt.${afterPath}`;
+    const list=await files(env,workspaceId,filter,"file_id,path,kind,size,revision,sha");
+    const lastPath=list.at(-1)?.path??afterPath??"";
+    return json({workspaceId,revision:atRevision,files:list.map(file=>({...fileRecord(file),sha:file.sha})),hasMore:list.length===1000,nextPath:lastPath});
+  }
   if(p==="/sync/changes"&&request.method==="GET")return listSyncChanges(env,workspace,url.searchParams);
   if(p==="/sync/download"&&request.method==="POST")return downloadDocuments(env,workspace,await request.json().catch(()=>null));
   if(p==="/directory"&&request.method==="GET")return directory(env,login,workspace,url.searchParams.get("path")??"",requestId);

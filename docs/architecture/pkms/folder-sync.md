@@ -19,13 +19,25 @@ The Desktop Main process persists folder configuration, local SHA-256 baselines,
 | Local filesystem event | Recursive `fs.watch` queues paths; a 25 ms debounce starts one serialized pass. Unusable watcher events request a full scan. |
 | Cloud changes | Revision metadata is polled every 750 ms. The cursor prevents downloading unrelated history, but each poll is still an API request. |
 | Recovery | A complete local Markdown walk runs every 15 minutes and at startup/reconfiguration. |
-| Initial remote inventory | `/snapshot` reads Markdown metadata, pinned to a server revision, 1,000 entries per page. It does not include explicit folder rows. |
+| Initial remote inventory | `/sync/tree` reads Markdown and folder metadata (including empty folders), pinned to a server revision, 1,000 entries per page. The bridge caches this independently from Markdown bodies and returns it to the Desktop tree with a baseline/revision freshness hint. |
 | Content transfer | `/sync/download` accepts up to 32 Markdown IDs. Up to 4 batches and 6 path reconciliations run concurrently. Imported Git blob SHAs can avoid unchanged body reads. |
 | Retry | Retryable failures use exponential delay starting at 1 second, capped at 60 seconds. |
 
-The local file tree is populated from filesystem IPC for the root and expanded folders. The renderer currently refreshes those directories every second. The Files view now keeps only a compact global state and in-memory per-path markers for pending, active, or failed local work; the detailed percentage, exclusions, conflict list, and GitHub controls live in a Sync settings surface. Cloud-only metadata rows are not yet exposed in the tree, and per-path queue state is not durable across process restarts. The remaining UX constraints are the one-second directory polling, lack of a metadata-first remote tree, and lack of a durable queue.
+The Desktop bridge reads `/sync/tree` for the revision-pinned metadata tree and `/sync/changes` for subsequent metadata. `/snapshot` remains available to older consumers. If a deployed Worker does not yet expose `/sync/tree`, Desktop falls back to `/snapshot` and infers non-empty folders from Markdown paths; explicit empty-folder metadata requires the updated Worker. The version sent over IPC is a local cache version that also changes when baseline freshness changes; it is not the server sync cursor.
+
+The local file tree is populated from filesystem IPC for the root and expanded folders, then merged with the cached cloud metadata tree. Cloud Markdown items without a matching local baseline file ID and revision are shown as waiting to sync; local rows take precedence when both sources contain the same path. Main forwards filesystem watch invalidations to the renderer, which coalesces them before refreshing the tree; a 30-second refresh remains as recovery. Folder rows can be shown from either tree, but Desktop currently synchronizes Markdown content only; local empty-folder create/rename/delete operations are not yet mirrored to cloud. The Files view keeps a compact global state and in-memory per-path markers for pending, active, or failed local work; detailed percentage, exclusions, conflict list, and GitHub controls live in a Sync settings surface. Per-path queue state is not durable across process restarts. The remaining gaps are durable per-path work and local folder operation sync.
 
 The bridge compares local content hashes and remote revisions against a persisted common baseline. A local-only edit uploads; a remote-only edit writes locally; a two-sided edit preserves local bytes in a conflict copy and places the cloud version at the original path. Deletes use the same baseline comparison. Cloud document state is Yjs; the revision-matched Markdown cache is used for efficient reads. Full reconciliation rules remain in code until the target durable queue and item-state implementation replaces them; do not infer undocumented behavior from this summary.
+
+### Sync endpoints
+
+| Endpoint | Current responsibility |
+|---|---|
+| `GET /sync/tree?atRevision=&afterPath=` | Paginated Markdown and folder metadata, pinned to one revision. No bodies. |
+| `GET /sync/changes?afterRevision=&lastRevision=&lastFileId=` | Revision changes and tombstones after the bridge cursor. |
+| `POST /sync/download` | Fetch up to 32 Markdown bodies per request, using the revision-matched content cache where possible. |
+| `POST /operations` | Apply revisioned create, move, and delete operations. |
+| `GET/POST /files/:id/updates` | Read and append Yjs document updates. |
 
 ## Research findings applied to this design
 
@@ -116,8 +128,8 @@ Show queue counts and current activity instead of a global percent whose denomin
 
 Implement in small spec-backed slices:
 
-1. **Tree metadata contract:** extend the revision-pinned server tree response to include folder rows; add paging/cursor invariants and retain compatibility with clients that only consume Markdown entries.
-2. **Tree-first UI:** use cached/local tree immediately, then merge metadata changes without replacing a populated tree with an empty response. Stop one-second polling of every expanded directory; push path invalidations from Main watcher events to the renderer, with a slower recovery refresh.
+1. **Tree metadata contract:** implemented as `GET /sync/tree`, with revision-pinned Markdown and folder rows and path pagination. Existing `/snapshot` remains unchanged for clients that only consume Markdown entries.
+2. **Tree-first UI:** implemented as cached metadata merged with local rows and Main-to-renderer watcher invalidations with a 30-second recovery refresh. Keep improving targeted directory refresh and event delivery across renderer reloads.
 3. **Item-state contract:** persist per-path pending/syncing/conflict/attention state from Main to the tree provider; folders aggregate descendant state. The first UI slice already shows transient local work in rows and moves detailed global progress to Sync settings.
 4. **Durable queue:** persist per-path work and stable operation IDs, add idempotent replay and per-path retry; make progress independent from the tree manifest.
 5. **Event-driven cloud catch-up:** use realtime as a wake-up and revision cursor for correctness; back off metadata polling while idle and catch up after reconnect.

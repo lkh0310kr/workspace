@@ -15,6 +15,8 @@ interface DesktopBridge {
   fetchAsset(path: string): Promise<{ bytes: Uint8Array; contentType: string }>;
   openVerification(url: string): Promise<void>;
   syncBridgeStatus(workspaceId: string): Promise<PkmsSyncBridgeStatus>;
+  syncBridgeTree(workspaceId: string, knownRevision?: number): Promise<{ revision: number; files?: Array<{ id: string; path: string; kind: "markdown" | "folder"; revision: number; size?: number; sha?: string | null; upToDate?: boolean }> }>;
+  onLocalTreeChanged(listener: (change: { workspaceId: string; path: string | null }) => void): () => void;
   connectSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeConnectResult>;
   disconnectSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus>;
   scanSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus>;

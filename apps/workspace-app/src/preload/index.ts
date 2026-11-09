@@ -37,6 +37,12 @@ const pkmsDesktop = {
   fetchAsset: (path: string) =>
     ipcRenderer.invoke('pkms:fetch-asset', path) as Promise<import('../shared/pkmsClient').PkmsAssetResponse>,
   syncBridgeStatus: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:status', workspaceId),
+  syncBridgeTree: (workspaceId: string, knownRevision?: number) => ipcRenderer.invoke('pkms:sync-bridge:tree', workspaceId, knownRevision),
+  onLocalTreeChanged: (listener: (change: { workspaceId: string; path: string | null }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, change: { workspaceId: string; path: string | null }) => listener(change)
+    ipcRenderer.on('pkms:local-tree:changed', handler)
+    return () => ipcRenderer.removeListener('pkms:local-tree:changed', handler)
+  },
   connectSyncBridge: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:connect', workspaceId),
   disconnectSyncBridge: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:disconnect', workspaceId),
   scanSyncBridge: (workspaceId: string) => ipcRenderer.invoke('pkms:sync-bridge:scan', workspaceId),

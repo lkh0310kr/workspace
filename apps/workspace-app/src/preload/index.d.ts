@@ -283,6 +283,8 @@ export interface PkmsDesktopApi {
   request: <T = unknown>(path: string, options: import('../shared/pkmsClient').PkmsRequestOptions) => Promise<import('../shared/pkmsClient').PkmsResponse<T>>
   fetchAsset: (path: string) => Promise<import('../shared/pkmsClient').PkmsAssetResponse>
   syncBridgeStatus: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
+  syncBridgeTree: (workspaceId: string, knownRevision?: number) => Promise<{ revision: number; files?: Array<import('../shared/pkmsClient').PkmsFile & { sha?: string | null; upToDate?: boolean }> }>
+  onLocalTreeChanged: (listener: (change: { workspaceId: string; path: string | null }) => void) => () => void
   connectSyncBridge: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeConnectResult>
   disconnectSyncBridge: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
   scanSyncBridge: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
