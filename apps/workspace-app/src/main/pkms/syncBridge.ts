@@ -434,11 +434,12 @@ async function readRemoteText(workspaceId: string, file: BridgeFile): Promise<{ 
   Y.applyUpdate(doc, fromB64(data.update));
   return { text: doc.getText("markdown").toString(), revision: data.revision };
 }
-async function readRemoteTexts(workspaceId: string, files: BridgeFile[], onProgress: (completed: number, total: number) => void): Promise<Map<string, { text: string; revision: number }>> {
+async function readRemoteTexts(workspaceId: string, files: BridgeFile[], onProgress: (completed: number, total: number) => void): Promise<{ documents: Map<string, { text: string; revision: number }>; missingIds: Set<string> }> {
   const batches: BridgeFile[][] = [];
   const batchSize = 32;
   for (let index = 0; index < files.length; index += batchSize) batches.push(files.slice(index, index + batchSize));
   const documents = new Map<string, { text: string; revision: number }>();
+  const missingIds = new Set<string>();
   let nextBatch = 0;
   let completed = 0;
   let firstError: unknown;
@@ -452,10 +453,26 @@ async function readRemoteTexts(workspaceId: string, files: BridgeFile[], onProgr
         const result = await request<{ documents: Array<{ id: string; path: string; revision: number; text?: string; error?: string }> }>(
           `/api/workspaces/${encodeURIComponent(workspaceId)}/sync/download`, "POST", { fileIds: batch.map((file) => file.id) },
         );
+        const returnedIds = new Set<string>();
         for (const document of result.documents) {
+          returnedIds.add(document.id);
+          if (document.error === "not_found") {
+            missingIds.add(document.id);
+            onProgress(++completed, files.length);
+            continue;
+          }
           if (document.error || typeof document.text !== "string") throw new Error(`${document.error ?? "document_load_failed"}:${document.id}`);
           documents.set(document.id, { text: document.text, revision: document.revision });
           onProgress(++completed, files.length);
+        }
+        // A file can disappear between the manifest read and this batch query.
+        // Treat omitted rows like tombstones instead of falling back to one GET
+        // per file, which turns a stale manifest into minutes of serial traffic.
+        for (const file of batch) {
+          if (!returnedIds.has(file.id)) {
+            missingIds.add(file.id);
+            onProgress(++completed, files.length);
+          }
         }
       } catch (error) {
         firstError ??= error;
@@ -464,7 +481,7 @@ async function readRemoteTexts(workspaceId: string, files: BridgeFile[], onProgr
   };
   await Promise.all(Array.from({ length: Math.min(4, batches.length) }, () => worker()));
   if (firstError !== undefined) throw firstError;
-  return documents;
+  return { documents, missingIds };
 }
 async function readRemoteChanges(workspaceId: string, afterRevision: number): Promise<{ changes: BridgeChange[]; nextRevision: number }> {
   const changes: BridgeChange[] = [];
@@ -649,10 +666,17 @@ async function syncOnce(workspaceId: string): Promise<void> {
         progress: { completed: filesToRead.length + completed, total: totalWork, percent: totalWork ? Math.floor((filesToRead.length + completed) / totalWork * 100) : 100 },
       });
       setStatus(workspaceId, { stage: "downloading-remote-files", progress: { completed: 0, total: totalWork, percent: totalWork ? 0 : 100 } });
-      const remoteReads = await readRemoteTexts(workspaceId, filesToRead, (downloaded) => setStatus(workspaceId, {
+      const remoteBatch = await readRemoteTexts(workspaceId, filesToRead, (downloaded) => setStatus(workspaceId, {
         state: "syncing", stage: "downloading-remote-files",
         progress: { completed: downloaded, total: totalWork, percent: totalWork ? Math.floor(downloaded / totalWork * 100) : 100 },
       }));
+      for (const file of filesToRead) {
+        if (!remoteBatch.missingIds.has(file.id)) continue;
+        delete knownRemoteFiles[file.id];
+        remoteByPath.delete(file.path);
+        remoteChangedPaths.add(file.path);
+      }
+      const remoteReads = remoteBatch.documents;
       completed = 0;
       reportProgress();
       const reconcilePath = async (relative: string): Promise<void> => {

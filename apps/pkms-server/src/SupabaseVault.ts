@@ -49,13 +49,15 @@ async function upsertFiles(env:Env,items:Record<string,unknown>[],onStage?:(stag
   await supabaseRpc(env,"pkms_register_imported_files",{p_workspace_id:String(items[0].workspace_id),p_file_ids:missing.map(item=>String(item.file_id))});
 }
 function fileRecord(f:FileRow){return {id:f.file_id,path:f.path,kind:f.kind,revision:f.revision,...(f.kind!=="folder"?{size:f.size,...(f.kind==="asset"?{contentType:"application/octet-stream"}:{})}:{})};}
-async function publishRealtime(env:Env,workspaceId:string,message:Record<string,unknown>):Promise<void>{
+async function publishRealtime(env:Env,workspaceId:string,message:Record<string,unknown>,ctx?:ExecutionContext):Promise<void>{
   const endpoint=`${env.SUPABASE_URL.replace(/\/$/,"")}/realtime/v1/api/broadcast`;
-  const response=await fetch(endpoint,{method:"POST",headers:{apikey:env.SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({messages:[{topic:`pkms:${workspaceId}`,event:"protocol",payload:message,private:true}]})});
-  if(!response.ok)console.error(JSON.stringify({event:"realtime.broadcast.failed",status:response.status}));
+  const request=fetch(endpoint,{method:"POST",headers:{apikey:env.SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({messages:[{topic:`pkms:${workspaceId}`,event:"protocol",payload:message,private:true}]})})
+    .then(response=>{if(!response.ok)console.error(JSON.stringify({event:"realtime.broadcast.failed",status:response.status}));})
+    .catch(()=>console.error(JSON.stringify({event:"realtime.broadcast.failed",status:0})));
+  if(ctx)ctx.waitUntil(request);else await request;
 }
 
-export async function handleVaultRequest(env:Env,login:string,workspaceId:string,request:Request,requestId?:string):Promise<Response>{
+export async function handleVaultRequest(env:Env,login:string,workspaceId:string,request:Request,requestId?:string,ctx?:ExecutionContext):Promise<Response>{
   const url=new URL(request.url);const workspace=await row(env,workspaceId,login);const p=url.pathname;
   if(p==="/initialize"&&request.method==="POST")return initialize(env,login,workspaceId,await request.json() as {repository:string;branch:string;accountLogin:string});
   if(!workspace)return json({error:"not_found"},{status:404});
@@ -92,10 +94,10 @@ export async function handleVaultRequest(env:Env,login:string,workspaceId:string
     try{await flushWorkspace(env,workspaceId,login,claimed.lease_token);const fresh=await row(env,workspaceId,login);return fresh?syncStatus(env,fresh):json({error:"not_found"},{status:404});}
     catch(error){await markFlushFailure(env,claimed,error);return json({error:"github_sync_failed",message:error instanceof GitHubError?`GitHub returned HTTP ${error.status}. Retrying automatically.`:"GitHub backup failed. Retrying automatically."},{status:502});}
   }
-  if(p==="/operations"&&request.method==="POST")return applyOperation(env,workspace,await request.json() as Record<string,unknown>);
+  if(p==="/operations"&&request.method==="POST")return applyOperation(env,workspace,await request.json() as Record<string,unknown>,ctx);
   const updates=p.match(/^\/files\/([^/]+)\/updates$/);
   if(updates&&request.method==="GET")return readDocument(env,workspace,decodeURIComponent(updates[1]),url.searchParams.get("stateVector"));
-  if(updates&&request.method==="POST")return writeDocument(env,workspace,decodeURIComponent(updates[1]),await request.json() as Record<string,unknown>);
+  if(updates&&request.method==="POST")return writeDocument(env,workspace,decodeURIComponent(updates[1]),await request.json() as Record<string,unknown>,ctx);
   const fileMatch=p.match(/^\/files\/([^/]+)$/);
   if(fileMatch&&request.method==="GET")return url.searchParams.get("metadata")==="1"
     ?getFileMetadata(env,workspaceId,decodeURIComponent(fileMatch[1]))
@@ -269,12 +271,12 @@ async function rewriteLinksAfterMove(env:Env,w:WorkspaceRow,before:MoveSnapshot,
   }
   return truncated?{updated,truncated}:{updated};
 }
-async function applyOperation(env:Env,w:WorkspaceRow,b:Record<string,unknown>):Promise<Response>{
+async function applyOperation(env:Env,w:WorkspaceRow,b:Record<string,unknown>,ctx?:ExecutionContext):Promise<Response>{
   const op=b.operation as Record<string,unknown>|undefined;const id=String(b.operationId??"");if(!op||!id)return json({error:"invalid_operation"},{status:400});
   if(op.type==="create-file"&&typeof op.content==="string"){const doc=new Y.Doc();if(op.content)doc.getText("markdown").insert(0,op.content);b.initialState=b64(Y.encodeStateAsUpdate(doc));}
   try{
     const before=op.type==="move"&&typeof op.fileId==="string"?await moveSnapshot(env,w,op.fileId).catch(()=>null):null;
-    const result=await supabaseRpc<Record<string,unknown>>(env,"pkms_apply_operation",{p_workspace_id:w.workspace_id,p_operation_id:id,p_base_revision:Number(b.baseRevision??0),p_client_id:String(b.clientId??"offline"),p_operation:op,p_initial_state_b64:b.initialState??null});await publishRealtime(env,w.workspace_id,{...result,type:"operation"});
+    const result=await supabaseRpc<Record<string,unknown>>(env,"pkms_apply_operation",{p_workspace_id:w.workspace_id,p_operation_id:id,p_base_revision:Number(b.baseRevision??0),p_client_id:String(b.clientId??"offline"),p_operation:op,p_initial_state_b64:b.initialState??null});await publishRealtime(env,w.workspace_id,{...result,type:"operation"},ctx);
     if(before&&!result.duplicate){
       const dest=typeof result.conflictCopyPath==="string"?result.conflictCopyPath:String(op.toPath);
       const links=await rewriteLinksAfterMove(env,w,before,String(op.fileId),dest).catch((error)=>{console.error(JSON.stringify({level:"error",event:"links.rewrite.failed",errorType:error instanceof Error?error.name:"UnknownError"}));return {updated:0,failed:true};});
@@ -356,7 +358,7 @@ async function listSyncChanges(env:Env,w:WorkspaceRow,params:URLSearchParams):Pr
   });
 }
 
-async function writeDocument(env:Env,w:WorkspaceRow,fileId:string,b:Record<string,unknown>):Promise<Response>{
+async function writeDocument(env:Env,w:WorkspaceRow,fileId:string,b:Record<string,unknown>,ctx?:ExecutionContext):Promise<Response>{
   const operationId=String(b.operationId??"");if(!operationId||typeof b.update!=="string")return json({error:"invalid_document_update"},{status:400});
   try{
     const current=await supabaseRpc<{file:FileRow;stateUpdate:string;updates:Array<{update:string}>}>(env,"pkms_read_document",{p_workspace_id:w.workspace_id,p_file_id:fileId});if(!current?.file||current.file.kind!=="markdown")return json({error:"not_found"},{status:404});
@@ -369,7 +371,7 @@ async function writeDocument(env:Env,w:WorkspaceRow,fileId:string,b:Record<strin
     }
     const content=doc.getText("markdown").toString();const size=encoder.encode(content).byteLength;if(size>MAX_MARKDOWN_BYTES)return json({error:"markdown_too_large",maxBytes:MAX_MARKDOWN_BYTES},{status:413});
     const result=await supabaseRpc<Record<string,unknown>>(env,"pkms_append_document_update",{p_workspace_id:w.workspace_id,p_file_id:fileId,p_operation_id:operationId,p_update_b64:b.update,p_content:content,p_size:size,p_base_revision:current.file.revision});
-    const ack={type:"ack",...result,fileId};await publishRealtime(env,w.workspace_id,{type:"document-update",operationId,fileId,update:b.update,acceptedRevision:result.acceptedRevision});return json(ack);
+    const ack={type:"ack",...result,fileId};await publishRealtime(env,w.workspace_id,{type:"document-update",operationId,fileId,update:b.update,acceptedRevision:result.acceptedRevision},ctx);return json(ack);
   }catch{return json({error:"document_update_failed",message:"The change could not be saved. Retry shortly."},{status:409});}
 }
 async function getFile(env:Env,w:WorkspaceRow,fileId:string):Promise<Response>{const q=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,file_id:`eq.${fileId}`,deleted:"eq.false",select:"file_id,path,kind,content,content_revision,size,sha,revision",limit:"1"});const r=await supabaseRequest(env,`/rest/v1/pkms_files?${q}`);const f=(await r.json() as FileRow[])[0];if(!f)return json({error:"not_found"},{status:404});let content=f.content;let size=f.size;if(f.kind==="markdown"&&(content===null||f.content_revision!==f.revision)){const result=await readDocument(env,w,fileId,null);if(!result.ok)return result;const data=await result.json() as {update:string;revision:number};const doc=new Y.Doc({guid:fileId});Y.applyUpdate(doc,fromB64(data.update));content=doc.getText("markdown").toString();size=encoder.encode(content).byteLength;}return json({id:f.file_id,path:f.path,kind:f.kind,revision:f.revision,content,contentType:f.kind==="markdown"?"text/markdown; charset=utf-8":"application/octet-stream",size,sha256:f.sha});}

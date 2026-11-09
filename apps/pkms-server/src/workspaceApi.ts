@@ -18,7 +18,7 @@ async function githubRequest(token: string, path: string): Promise<Response> {
   });
 }
 
-export async function handleWorkspaceApi(request: Request, env: Env, requestId: string, auth: Session): Promise<Response> {
+export async function handleWorkspaceApi(request: Request, env: Env, requestId: string, auth: Session, ctx?: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   if (request.method === "GET" && url.pathname === "/api/realtime/config") {
     return json({ url: env.SUPABASE_URL, anonKey: env.SUPABASE_ANON_KEY, issuer: env.PUBLIC_ORIGIN.replace(/\/$/, "") });
@@ -76,7 +76,7 @@ export async function handleWorkspaceApi(request: Request, env: Env, requestId: 
   const internalUrl = new URL(request.url);
   internalUrl.pathname = internalPath;
   const forwarded = new Request(internalUrl, request);
-  const response = await handleVaultRequest(env, auth.login, workspaceId, forwarded, requestId);
+  const response = await handleVaultRequest(env, auth.login, workspaceId, forwarded, requestId, ctx);
   if (!internalPath.startsWith("/stream") && response.ok) {
     const clone = response.clone();
     if (internalPath === "/snapshot") {

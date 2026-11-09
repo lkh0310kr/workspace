@@ -84,7 +84,7 @@ async function requireSession(request: Request, env: Env, requestId: string): Pr
 }
 
 
-async function api(request: Request, env: Env, requestId: string): Promise<Response> {
+async function api(request: Request, env: Env, requestId: string, ctx?: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   if (request.method === "GET" && url.pathname === "/api/health") return json({ ok: true, protocolVersion: 1 });
   const authRoute = await handleAuthRoute(request, env, requestId, trace, saveGitHubGrant);
@@ -101,7 +101,7 @@ async function api(request: Request, env: Env, requestId: string): Promise<Respo
     if (!auth.scopes?.includes(scope)) return json({ error: "insufficient_scope", requiredScope: scope, requestId }, { status: 403, headers: { "WWW-Authenticate": `Bearer error="insufficient_scope", scope="${scope}"` } });
   }
   if (!sameOrigin(request, env)) return json({ error: "origin_mismatch" }, { status: 403 });
-  return handleWorkspaceApi(request, env, requestId, auth);
+  return handleWorkspaceApi(request, env, requestId, auth, ctx);
 }
 
 
@@ -110,7 +110,7 @@ export default {
     ctx.waitUntil(flushDueWorkspaces(env));
     ctx.waitUntil(mirrorDueWorkspaces(env));
   },
-  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const requestId = request.headers.get("cf-ray") ?? crypto.randomUUID();
     const startedAt = Date.now();
@@ -123,11 +123,11 @@ export default {
         dispatchApi: (input, bindings, id) => api(input, bindings, id),
         saveGitHubGrant,
       });
-      if (mcpResponse) response = mcpResponse;
+        if (mcpResponse) response = mcpResponse;
       else {
         const mcpCallback = await handleMcpGithubCallback(request, env, requestId, saveGitHubGrant);
         if (mcpCallback) response = mcpCallback;
-        else if (url.pathname.startsWith("/api/")) response = await api(request, env, requestId);
+        else if (url.pathname.startsWith("/api/")) response = await api(request, env, requestId, ctx);
         else {
           const webUrl = new URL(`${url.pathname}${url.search}`, env.PKMS_WEB_ORIGIN);
           const headers = new Headers(request.headers);
