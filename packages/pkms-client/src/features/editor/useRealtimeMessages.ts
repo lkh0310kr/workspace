@@ -19,9 +19,10 @@ interface Options {
   setSaving: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string>>;
   setFiles: Dispatch<SetStateAction<FileRecord[]>>;
+  localFolderEnabled: boolean;
 }
 
-export function useRealtimeMessages({ workspaceId, documents, pending, activeDocument, openFileRef, request, setPeers, setSaving, setError, setFiles }: Options) {
+export function useRealtimeMessages({ workspaceId, documents, pending, activeDocument, openFileRef, request, setPeers, setSaving, setError, setFiles, localFolderEnabled }: Options) {
   return useCallback((event: MessageEvent) => {
     let message: RealtimeMessage;
     try { message = JSON.parse(String(event.data)) as RealtimeMessage; } catch { return; }
@@ -53,12 +54,25 @@ export function useRealtimeMessages({ workspaceId, documents, pending, activeDoc
     async function refreshSnapshot(conflictCopyPath?: string) {
       try {
         const snapshot = await request<{ files: FileRecord[] }>(`/api/workspaces/${workspaceId}/snapshot`);
-        setFiles(snapshot.files);
+        // When a desktop folder is connected, it owns the tree. Replacing it
+        // with a cloud snapshot races the filesystem refresh and drops files
+        // that have not reached the cloud yet, producing repeated empty rows.
+        if (!localFolderEnabled) setFiles(snapshot.files);
         if (conflictCopyPath) {
           const conflict = snapshot.files.find((file) => file.path === conflictCopyPath);
-          if (conflict && activeDocument.current.file?.id !== conflict.id) await openFileRef.current?.(conflict);
+          const localConflict = conflict && localFolderEnabled
+            ? { ...conflict, id: localItemIdForPath(conflict.path) }
+            : conflict;
+          if (localConflict && activeDocument.current.file?.path !== localConflict.path) await openFileRef.current?.(localConflict);
         }
       } catch { /* A later snapshot refresh will reconcile transient failures. */ }
     }
-  }, [activeDocument, documents, openFileRef, pending, request, setError, setFiles, setPeers, setSaving, workspaceId]);
+  }, [activeDocument, documents, localFolderEnabled, openFileRef, pending, request, setError, setFiles, setPeers, setSaving, workspaceId]);
+}
+
+function localItemIdForPath(path: string): string {
+  const bytes = new TextEncoder().encode(path);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `local-${btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "")}`;
 }

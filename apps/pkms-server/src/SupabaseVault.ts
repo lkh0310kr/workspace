@@ -76,11 +76,11 @@ export async function handleVaultRequest(env:Env,login:string,workspaceId:string
     const atRevision=Number(url.searchParams.get("atRevision")??workspace.server_revision);
     const afterPath=url.searchParams.get("afterPath");
     if(!Number.isSafeInteger(atRevision)||atRevision<0||atRevision>Number(workspace.server_revision))return json({error:"invalid_snapshot_cursor"},{status:400});
-    const filter:Record<string,string>={deleted:"eq.false",kind:"eq.markdown",revision:`lte.${atRevision}`,order:"path.asc",limit:"500"};
+    const filter:Record<string,string>={deleted:"eq.false",kind:"eq.markdown",revision:`lte.${atRevision}`,order:"path.asc",limit:"1000"};
     if(afterPath)filter.path=`gt.${afterPath}`;
-    const list=await files(env,workspaceId,filter,"file_id,path,kind,size,revision");
+    const list=await files(env,workspaceId,filter,"file_id,path,kind,size,revision,sha");
     const lastPath=list.at(-1)?.path??afterPath??"";
-    return json({workspaceId,revision:atRevision,files:list.map(fileRecord),hasMore:list.length===500,nextPath:lastPath,nextRevision:atRevision,afterRevision:Number(url.searchParams.get("afterRevision")??0)});
+    return json({workspaceId,revision:atRevision,files:list.map(file=>({...fileRecord(file),sha:file.sha})),hasMore:list.length===1000,nextPath:lastPath,nextRevision:atRevision,afterRevision:Number(url.searchParams.get("afterRevision")??0)});
   }
   if(p==="/sync/changes"&&request.method==="GET")return listSyncChanges(env,workspace,url.searchParams);
   if(p==="/sync/download"&&request.method==="POST")return downloadDocuments(env,workspace,await request.json().catch(()=>null));
@@ -311,7 +311,7 @@ async function readDocument(env:Env,w:WorkspaceRow,fileId:string,vector:string|n
 
 async function downloadDocuments(env:Env,w:WorkspaceRow,body:unknown):Promise<Response>{
   const fileIds=body&&typeof body==="object"&&!Array.isArray(body)?(body as {fileIds?:unknown}).fileIds:null;
-  if(!Array.isArray(fileIds)||fileIds.length<1||fileIds.length>12||fileIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]{1,128}$/.test(id)))return json({error:"invalid_file_ids",maxItems:12},{status:400});
+  if(!Array.isArray(fileIds)||fileIds.length<1||fileIds.length>32||fileIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]{1,128}$/.test(id)))return json({error:"invalid_file_ids",maxItems:32},{status:400});
   const unique=[...new Set(fileIds as string[])];
   const members=unique.map(id=>`"${id}"`).join(",");
   const query=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,file_id:`in.(${members})`,kind:"eq.markdown",deleted:"eq.false",select:"file_id,path,content,content_revision,revision,size",order:"path.asc"});
@@ -343,12 +343,12 @@ async function listSyncChanges(env:Env,w:WorkspaceRow,params:URLSearchParams):Pr
   const range=lastFileId
     ?`and=(revision.gt.${afterRevision},revision.lte.${currentRevision},or(revision.gt.${lastRevision},and(revision.eq.${lastRevision},file_id.gt.${lastFileId})))`
     :`and=(revision.gt.${afterRevision},revision.lte.${currentRevision})`;
-  const query=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,select:"file_id,path,previous_path,kind,size,revision,deleted",order:"revision.asc,file_id.asc",limit:"500",[range.split("=")[0]]:range.slice(range.indexOf("=")+1)});
+  const query=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,select:"file_id,path,previous_path,kind,size,revision,deleted,sha",order:"revision.asc,file_id.asc",limit:"500",[range.split("=")[0]]:range.slice(range.indexOf("=")+1)});
   const response=await supabaseRequest(env,`/rest/v1/pkms_files?${query}`);
-  const rows=await response.json() as Array<{file_id:string;path:string;previous_path:string|null;kind:string;size:number;revision:number;deleted:boolean}>;
+  const rows=await response.json() as Array<{file_id:string;path:string;previous_path:string|null;kind:string;size:number;revision:number;deleted:boolean;sha:string|null}>;
   const last=rows.at(-1);
   return json({
-    changes:rows.map(file=>({id:file.file_id,path:file.path,previousPath:file.previous_path,kind:file.kind,size:file.size,revision:file.revision,deleted:file.deleted})),
+    changes:rows.map(file=>({id:file.file_id,path:file.path,previousPath:file.previous_path,kind:file.kind,size:file.size,revision:file.revision,deleted:file.deleted,sha:file.sha})),
     hasMore:rows.length===500,
     nextRevision:rows.length===500?afterRevision:currentRevision,
     lastRevision:last?.revision??lastRevision,

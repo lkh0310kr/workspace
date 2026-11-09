@@ -7,15 +7,18 @@ import * as Y from "yjs";
 import { requestPkmsApi } from "./api";
 import type { PkmsSyncBridgeStatus } from "../../shared/pkmsSyncBridge";
 
-type BridgeFile = { id: string; path: string; kind: string; revision: number };
+type BridgeFile = { id: string; path: string; kind: string; revision: number; size?: number; sha?: string | null };
 type BridgeSnapshotPage = { revision: number; files: BridgeFile[]; hasMore: boolean; nextPath: string };
 type BridgeChange = BridgeFile & { deleted: boolean };
 type Baseline = { fileId: string; hash: string; revision: number };
 type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>>; remoteFiles: Record<string, Record<string, BridgeFile>>; syncCursors: Record<string, number> };
 const EMPTY: Persisted = { configs: {}, baselines: {}, remoteFiles: {}, syncCursors: {} };
 // Poll the cloud's revision feed frequently; full disk walks are a recovery path.
-const REMOTE_CHANGE_POLL_INTERVAL_MS = 15_000;
-const FULL_LOCAL_SCAN_INTERVAL_MS = 60_000;
+// The revision feed is metadata-only; poll it frequently so edits from web/iOS
+// reach the local source of truth promptly. Full disk walks remain a recovery
+// path because native watcher events cover normal local edits.
+const REMOTE_CHANGE_POLL_INTERVAL_MS = 750;
+const FULL_LOCAL_SCAN_INTERVAL_MS = 15 * 60_000;
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const retryAttempts = new Map<string, number>();
@@ -26,7 +29,6 @@ const statuses = new Map<string, PkmsSyncBridgeStatus>();
 const running = new Map<string, Promise<void>>();
 const folderLocks = new Map<string, FolderSyncLock>();
 const starting = new Set<string>();
-const suppressSyncWatchUntil = new Map<string, number>();
 const fullScanRequests = new Set<string>();
 const dirtyLocalPaths = new Map<string, Set<string>>();
 let persisted: Persisted | null = null;
@@ -105,6 +107,10 @@ async function save(): Promise<void> {
   await fs.rename(temp, statePath());
 }
 function hash(content: string): string { return createHash("sha256").update(content).digest("hex"); }
+function gitBlobHash(content: string): string {
+  const bytes = Buffer.from(content, "utf8");
+  return createHash("sha1").update(`blob ${bytes.byteLength}\0`).update(bytes).digest("hex");
+}
 function safePath(root: string, relative: string): string {
   const target = path.resolve(root, relative);
   if (target !== root && !target.startsWith(`${root}${path.sep}`)) throw new Error("invalid_sync_path");
@@ -304,7 +310,7 @@ function matchesExclusion(relative: string, patterns: string[]): boolean {
   });
 }
 async function markdownFiles(root: string, excludedPaths: string[]): Promise<Map<string, string>> {
-  const found = new Map<string, string>();
+  const paths: string[] = [];
   const visit = async (dir: string): Promise<void> => {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
@@ -314,11 +320,20 @@ async function markdownFiles(root: string, excludedPaths: string[]): Promise<Map
       else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) {
         const relative = path.relative(root, absolute).split(path.sep).join("/");
         if (matchesExclusion(relative, excludedPaths)) continue;
-        found.set(relative, await fs.readFile(absolute, "utf8"));
+        paths.push(relative);
       }
     }
   };
   await visit(root);
+  const found = new Map<string, string>();
+  let next = 0;
+  const worker = async () => {
+    while (next < paths.length) {
+      const relative = paths[next++];
+      found.set(relative, await fs.readFile(safePath(root, relative), "utf8"));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(16, paths.length) }, () => worker()));
   return found;
 }
 async function markdownFilesAt(root: string, relativePaths: Iterable<string>, excludedPaths: string[]): Promise<Map<string, string>> {
@@ -421,7 +436,7 @@ async function readRemoteText(workspaceId: string, file: BridgeFile): Promise<{ 
 }
 async function readRemoteTexts(workspaceId: string, files: BridgeFile[], onProgress: (completed: number, total: number) => void): Promise<Map<string, { text: string; revision: number }>> {
   const batches: BridgeFile[][] = [];
-  const batchSize = 12;
+  const batchSize = 32;
   for (let index = 0; index < files.length; index += batchSize) batches.push(files.slice(index, index + batchSize));
   const documents = new Map<string, { text: string; revision: number }>();
   let nextBatch = 0;
@@ -447,7 +462,7 @@ async function readRemoteTexts(workspaceId: string, files: BridgeFile[], onProgr
       }
     }
   };
-  await Promise.all(Array.from({ length: Math.min(6, batches.length) }, () => worker()));
+  await Promise.all(Array.from({ length: Math.min(4, batches.length) }, () => worker()));
   if (firstError !== undefined) throw firstError;
   return documents;
 }
@@ -529,18 +544,20 @@ async function syncOnce(workspaceId: string): Promise<void> {
   let scannedLocalPaths: string[] = [];
   const job = (async () => {
     const root = path.resolve(config.folderPath);
-    setStatus(workspaceId, { state: "syncing", stage: "scanning", progress: null, error: null });
     try {
       if (!folderLocks.has(workspaceId)) folderLocks.set(workspaceId, await acquireFolderSyncLock(root, workspaceId));
       fullScan = fullScanRequests.delete(workspaceId);
       scannedLocalPaths = [...(dirtyLocalPaths.get(workspaceId) ?? [])];
       dirtyLocalPaths.delete(workspaceId);
-      setStatus(workspaceId, { stage: "loading-remote-list" });
       const state = await load();
       let knownRemoteFiles = state.remoteFiles[workspaceId];
       let nextSyncRevision = state.syncCursors[workspaceId];
       const remoteChangedPaths = new Set<string>();
-      if (!knownRemoteFiles || nextSyncRevision === undefined) {
+      const needsRemoteHashMetadata = !!knownRemoteFiles && Object.values(knownRemoteFiles).some((file) => file.revision === 0 && file.sha === undefined);
+      const backgroundCheck = !fullScan && scannedLocalPaths.length === 0 && !!knownRemoteFiles && nextSyncRevision !== undefined && !needsRemoteHashMetadata;
+      if (!backgroundCheck) setStatus(workspaceId, { state: "syncing", stage: "scanning", progress: null, error: null });
+      if (!backgroundCheck) setStatus(workspaceId, { stage: "loading-remote-list" });
+      if (!knownRemoteFiles || nextSyncRevision === undefined || needsRemoteHashMetadata) {
         const snapshot = await readRemoteSnapshot(workspaceId);
         knownRemoteFiles = Object.fromEntries(snapshot.files.filter((file) => file.kind === "markdown").map((file) => [file.id, file]));
         nextSyncRevision = snapshot.revision;
@@ -558,6 +575,19 @@ async function syncOnce(workspaceId: string): Promise<void> {
         }
         nextSyncRevision = page.nextRevision;
       }
+      if (!fullScan && scannedLocalPaths.length === 0 && remoteChangedPaths.size === 0) {
+        // The fast revision poll is intentionally frequent. Avoid rescanning
+        // the vault and rewriting the multi-megabyte baseline JSON when nothing
+        // relevant changed; persist only cursor movement from non-Markdown rows.
+        if (nextSyncRevision !== state.syncCursors[workspaceId]) {
+          state.remoteFiles[workspaceId] = knownRemoteFiles;
+          state.syncCursors[workspaceId] = nextSyncRevision;
+          await save();
+        }
+        setStatus(workspaceId, { state: "synced", stage: null, enabled: true, folderPath: root, lastScannedAt: Date.now(), pendingFiles: 0, error: null });
+        return;
+      }
+      setStatus(workspaceId, { state: "syncing", stage: "scanning", progress: null, error: null });
       const local = fullScan
         ? await markdownFiles(root, config.excludedPaths ?? [])
         : await markdownFilesAt(root, new Set([...scannedLocalPaths, ...remoteChangedPaths]), config.excludedPaths ?? []);
@@ -602,10 +632,16 @@ async function syncOnce(workspaceId: string): Promise<void> {
         .filter((relative) => !isReservedSyncPath(relative) && !matchesExclusion(relative, config.excludedPaths ?? []));
       let completed = 0;
       const total = paths.length;
-      const filesToRead = paths.flatMap((relative) => {
+  const filesToRead = paths.flatMap((relative) => {
         const remote = remoteByPath.get(relative);
         const baseline = baselines[relative];
-        return remote && (!baseline || baseline.fileId !== remote.id || baseline.revision !== remote.revision) ? [remote] : [];
+        const localText = local.get(relative);
+        // Imported GitHub files carry Git's content-addressed blob SHA. When
+        // local bytes still match that hash, seed the baseline without
+        // downloading the document body. Edited cloud files have a revision > 0
+        // and always take the normal content reconciliation path.
+        const matchesGitBlob = remote?.revision === 0 && !!remote.sha && localText !== undefined && gitBlobHash(localText) === remote.sha;
+        return remote && (!baseline || baseline.fileId !== remote.id || baseline.revision !== remote.revision) && !matchesGitBlob ? [remote] : [];
       });
       const totalWork = filesToRead.length + total;
       const reportProgress = () => setStatus(workspaceId, {
@@ -641,6 +677,11 @@ async function syncOnce(workspaceId: string): Promise<void> {
           return;
         }
         if (!remote) { delete baselines[relative]; itemComplete = true; return; }
+        if (!baseline && remote.revision === 0 && remote.sha && localText !== undefined && gitBlobHash(localText) === remote.sha) {
+          baselines[relative] = { fileId: remote.id, hash: hash(localText), revision: remote.revision };
+          itemComplete = true;
+          return;
+        }
         const remoteNeedsRead = !baseline || baseline.fileId !== remote.id || baseline.revision !== remote.revision;
         const remoteContent = remoteNeedsRead ? (remoteReads.get(remote.id) ?? await readRemoteText(workspaceId, remote)) : null;
         const remoteText = remoteContent?.text;
@@ -743,7 +784,6 @@ async function syncOnce(workspaceId: string): Promise<void> {
         const delay = Math.min(60_000, 1_000 * (2 ** Math.min(attempts - 1, 6)));
         retryTimers.set(workspaceId, setTimeout(() => {
           retryTimers.delete(workspaceId);
-          suppressSyncWatchUntil.delete(workspaceId);
           schedule(workspaceId);
         }, delay));
       } else {
@@ -752,9 +792,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
     }
   })().finally(() => {
     running.delete(workspaceId);
-    // Let atomic file writes settle, then coalesce any local changes observed
-    // during reconciliation into one follow-up full scan.
-    suppressSyncWatchUntil.set(workspaceId, Date.now() + 1_500);
+    // Baseline hashes make watcher events caused by our own atomic writes
+    // idempotent, so there is no multi-second suppression window that could
+    // delay a real edit made immediately afterward.
     if ((fullScanRequests.has(workspaceId) || dirtyLocalPaths.has(workspaceId)) && !timers.has(workspaceId)) {
       schedule(workspaceId, fullScanRequests.has(workspaceId));
     }
@@ -774,9 +814,9 @@ function schedule(workspaceId: string, fullScan = false, localPath?: string): vo
   if (status(workspaceId).state === "error") return;
   const previous = timers.get(workspaceId);
   if (previous) clearTimeout(previous);
-  const suppressUntil = suppressSyncWatchUntil.get(workspaceId) ?? 0;
-  const delay = Math.max(800, suppressUntil - Date.now() + 10);
-  timers.set(workspaceId, setTimeout(() => { timers.delete(workspaceId); void syncOnce(workspaceId); }, delay));
+  // Coalesce atomic-save event bursts while keeping one file edit under a
+  // second from reaching the cloud.
+  timers.set(workspaceId, setTimeout(() => { timers.delete(workspaceId); void syncOnce(workspaceId); }, 100));
 }
 async function stopRuntime(workspaceId: string, releaseLock = true): Promise<void> {
   watchers.get(workspaceId)?.close(); watchers.delete(workspaceId);

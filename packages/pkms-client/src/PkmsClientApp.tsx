@@ -126,6 +126,8 @@ export default function Home() {
   } = useWorkspaceDirectory(activeWorkspace, api, setError);
   const [localFolderEnabled, setLocalFolderEnabled] = useState(false);
   const [localCloudSyncing, setLocalCloudSyncing] = useState(false);
+  const localTreeGeneration = useRef(0);
+  const pendingEmptyTreeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     let alive = true;
     setLocalFolderEnabled(false);
@@ -146,23 +148,72 @@ export default function Home() {
     const desktop = desktopBridge();
     if (!desktop || !activeWorkspace || !localFolderEnabled) return;
     let alive = true;
+    let inFlight = false;
+    let refreshAgain = false;
+    const generation = ++localTreeGeneration.current;
     const refreshLocalTree = async () => {
-      const directories = new Set(["", ...expandedFolders]);
-      const items = new Map<string, FileRecord>();
-      for (const directory of directories) {
-        try {
-          const entries = await desktop.listLocalDirectory(activeWorkspace.id, directory);
-          if (!alive) return;
-          for (const entry of entries) items.set(entry.id, entry);
-        } catch { /* A folder may have been renamed or removed by an external editor. */ }
+      if (inFlight) { refreshAgain = true; return; }
+      inFlight = true;
+      try {
+        const directories = [...new Set(["", ...expandedFolders])];
+        const items = new Map<string, FileRecord>();
+        // Root is the commit point for a tree snapshot. If it cannot be read,
+        // retain the last good tree instead of replacing it with an empty one.
+        const rootEntries = await desktop.listLocalDirectory(activeWorkspace.id, "");
+        if (!alive || generation !== localTreeGeneration.current) return;
+        for (const entry of rootEntries) items.set(entry.id, entry);
+        const loaded = new Set([""]);
+        const children = await Promise.allSettled(directories.slice(1).map((directory) =>
+          desktop.listLocalDirectory(activeWorkspace.id, directory).then((entries) => ({ directory, entries })),
+        ));
+        if (!alive || generation !== localTreeGeneration.current) return;
+        for (const result of children) {
+          if (result.status !== "fulfilled") continue; // A folder may have been renamed or removed externally.
+          loaded.add(result.value.directory);
+          for (const entry of result.value.entries) items.set(entry.id, entry);
+        }
+        const nextFiles = [...items.values()];
+        if (!nextFiles.length && treeFilesRef.current.length) {
+          // A transient empty response must not flash "Empty folder" over a
+          // populated tree. Confirm it once after the filesystem settles.
+          if (pendingEmptyTreeTimer.current) clearTimeout(pendingEmptyTreeTimer.current);
+          pendingEmptyTreeTimer.current = setTimeout(() => {
+            pendingEmptyTreeTimer.current = null;
+            void desktop.listLocalDirectory(activeWorkspace.id, "").then((confirmed) => {
+              if (!alive || generation !== localTreeGeneration.current || confirmed.length) return;
+              setFiles([]);
+              setLoadedFolders(new Set([""]));
+            }).catch(() => {});
+          }, 350);
+          return;
+        }
+        if (pendingEmptyTreeTimer.current) {
+          clearTimeout(pendingEmptyTreeTimer.current);
+          pendingEmptyTreeTimer.current = null;
+        }
+        setFiles(nextFiles);
+        setLoadedFolders(loaded);
+      } catch {
+        // Keep the last successful snapshot on transient filesystem/IPC errors.
+      } finally {
+        inFlight = false;
+        if (refreshAgain && alive && generation === localTreeGeneration.current) {
+          refreshAgain = false;
+          queueMicrotask(() => void refreshLocalTree());
+        }
       }
-      if (!alive) return;
-      setFiles([...items.values()]);
-      setLoadedFolders(directories);
     };
     void refreshLocalTree();
-    const timer = setInterval(() => void refreshLocalTree(), 2000);
-    return () => { alive = false; clearInterval(timer); };
+    const timer = setInterval(() => void refreshLocalTree(), 1000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      if (generation === localTreeGeneration.current) localTreeGeneration.current++;
+      if (pendingEmptyTreeTimer.current) {
+        clearTimeout(pendingEmptyTreeTimer.current);
+        pendingEmptyTreeTimer.current = null;
+      }
+    };
   }, [activeWorkspace?.id, expandedFolders, localFolderEnabled, setFiles, setLoadedFolders]);
   const treeFilesRef = useRef(files);
   const activeFileStateRef = useRef(activeFile);
@@ -770,6 +821,7 @@ export default function Home() {
     setSaving,
     setError,
     setFiles,
+    localFolderEnabled,
   });
 
   useEffect(() => {
@@ -824,7 +876,7 @@ export default function Home() {
       }
       if (detail.state === "rejected") {
         setError(detail.message ?? "A local change could not be synced.");
-        if (!detail.hasPending) {
+          if (!detail.hasPending && !localFolderEnabled) {
           void api<{ files: FileRecord[] }>(`/api/workspaces/${workspaceId}/snapshot`).then((snapshot) => {
             if (activeWorkspace?.id === workspaceId) setFiles(snapshot.files);
           }).catch(() => {});
@@ -949,7 +1001,7 @@ export default function Home() {
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [activeWorkspace, editorProvider, saveActiveFileNow, setError]);
+  }, [activeWorkspace, editorProvider, localFolderEnabled, saveActiveFileNow, setError]);
 
   useEffect(() => {
     const openQuickOpen = () => {
