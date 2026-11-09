@@ -6,14 +6,16 @@ import path from "node:path";
 import * as Y from "yjs";
 import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
 import { requestPkmsApi } from "./api";
+import { appendStartupLog } from "../startupLog";
 import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from "../../shared/pkmsSyncBridge";
 
 type BridgeFile = { id: string; path: string; kind: string; revision: number; size?: number; sha?: string | null; localHash?: string };
 type BridgeSnapshotPage = { revision: number; files: BridgeFile[]; hasMore: boolean; nextPath: string };
 type BridgeChange = BridgeFile & { deleted: boolean };
 type Baseline = { fileId: string; hash: string; revision: number };
-type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>>; remoteFiles: Record<string, Record<string, BridgeFile>>; syncCursors: Record<string, number>; remoteTrees: Record<string, BridgeFile[]>; remoteTreeVersions: Record<string, number>; pendingPaths: Record<string, string[]>; pendingUpdates: Record<string, Record<string, { operationId: string; targetHash: string; update: string }>>; pendingCreates: Record<string, Record<string, { operationId: string; fileId: string; contentHash: string; content: string }>>; pendingFolderCreates: Record<string, Record<string, string>> };
-const EMPTY: Persisted = { configs: {}, baselines: {}, remoteFiles: {}, syncCursors: {}, remoteTrees: {}, remoteTreeVersions: {}, pendingPaths: {}, pendingUpdates: {}, pendingCreates: {}, pendingFolderCreates: {} };
+type PendingDelete = { kind: "markdown" | "folder"; path: string; fileId: string; operationId: string; baseRevision: number; expectedItemRevision?: number; firstObservedAt: number; attempts: number };
+type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>>; remoteFiles: Record<string, Record<string, BridgeFile>>; syncCursors: Record<string, number>; remoteTrees: Record<string, BridgeFile[]>; remoteTreeVersions: Record<string, number>; pendingPaths: Record<string, string[]>; pendingUpdates: Record<string, Record<string, { operationId: string; targetHash: string; update: string }>>; pendingCreates: Record<string, Record<string, { operationId: string; fileId: string; contentHash: string; content: string }>>; pendingFolderCreates: Record<string, Record<string, string>>; localDirectories: Record<string, Record<string, string | null>>; pendingDeletes: Record<string, Record<string, PendingDelete>> };
+const EMPTY: Persisted = { configs: {}, baselines: {}, remoteFiles: {}, syncCursors: {}, remoteTrees: {}, remoteTreeVersions: {}, pendingPaths: {}, pendingUpdates: {}, pendingCreates: {}, pendingFolderCreates: {}, localDirectories: {}, pendingDeletes: {} };
 // Poll the cloud's revision feed frequently; full disk walks are a recovery path.
 // The revision feed is metadata-only; poll it frequently so edits from web/iOS
 // reach the local source of truth promptly. Full disk walks remain a recovery
@@ -32,6 +34,7 @@ const running = new Map<string, Promise<void>>();
 const folderLocks = new Map<string, FolderSyncLock>();
 const starting = new Set<string>();
 const fullScanRequests = new Set<string>();
+const directoryScanRequests = new Set<string>();
 const dirtyLocalPaths = new Map<string, Set<string>>();
 let persisted: Persisted | null = null;
 
@@ -102,7 +105,7 @@ async function load(): Promise<Persisted> {
   if (persisted) return persisted;
   try {
     const saved = JSON.parse(await fs.readFile(statePath(), "utf8")) as Partial<Persisted>;
-    persisted = { ...EMPTY, ...saved, remoteFiles: saved.remoteFiles ?? {}, syncCursors: saved.syncCursors ?? {}, remoteTrees: saved.remoteTrees ?? {}, remoteTreeVersions: saved.remoteTreeVersions ?? {}, pendingPaths: saved.pendingPaths ?? {}, pendingUpdates: saved.pendingUpdates ?? {}, pendingCreates: saved.pendingCreates ?? {}, pendingFolderCreates: saved.pendingFolderCreates ?? {} };
+    persisted = { ...EMPTY, ...saved, remoteFiles: saved.remoteFiles ?? {}, syncCursors: saved.syncCursors ?? {}, remoteTrees: saved.remoteTrees ?? {}, remoteTreeVersions: saved.remoteTreeVersions ?? {}, pendingPaths: saved.pendingPaths ?? {}, pendingUpdates: saved.pendingUpdates ?? {}, pendingCreates: saved.pendingCreates ?? {}, pendingFolderCreates: saved.pendingFolderCreates ?? {}, localDirectories: saved.localDirectories ?? {}, pendingDeletes: saved.pendingDeletes ?? {} };
   }
   catch { persisted = structuredClone(EMPTY); }
   return persisted;
@@ -293,6 +296,9 @@ function setItemState(workspaceId: string, relative: string, itemState: PkmsSync
   setStatus(workspaceId, { itemStates });
 }
 
+class PkmsBridgeRequestError extends Error {
+  constructor(readonly status: number, readonly code: string) { super(code || `PKMS request failed (${status})`); }
+}
 async function request<T>(pathName: string, method: "GET" | "POST", value?: unknown): Promise<T> {
   const response = await requestPkmsApi<T>(pathName, {
     method,
@@ -300,7 +306,7 @@ async function request<T>(pathName: string, method: "GET" | "POST", value?: unkn
   });
   if (response.status < 200 || response.status >= 300) {
     const detail = response.body && typeof response.body === "object" ? (response.body as { message?: string; error?: string }) : {};
-    throw new Error(detail.message ?? detail.error ?? `PKMS request failed (${response.status})`);
+    throw new PkmsBridgeRequestError(response.status, detail.error ?? detail.message ?? `PKMS request failed (${response.status})`);
   }
   return response.body;
 }
@@ -380,6 +386,27 @@ async function markdownFiles(root: string, excludedPaths: string[]): Promise<Map
   };
   await Promise.all(Array.from({ length: Math.min(16, paths.length) }, () => worker()));
   return found;
+}
+async function localDirectoryInventory(root: string, excludedPaths: string[]): Promise<Record<string, string | null>> {
+  const directories: Record<string, string | null> = {};
+  const visit = async (directory: string, prefix: string): Promise<void> => {
+    const entries = await fs.readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules", ".pkms"].includes(entry.name)) continue;
+      const relative = path.posix.join(prefix, entry.name);
+      if (matchesExclusion(relative, excludedPaths)) continue;
+      if (!entry.isDirectory()) continue;
+      const absolute = path.join(directory, entry.name);
+      const stat = await fs.lstat(absolute, { bigint: true });
+      if (stat.isSymbolicLink() || !stat.isDirectory()) continue;
+      directories[relative] = `${stat.dev}:${stat.ino}`;
+      await visit(absolute, relative);
+    }
+  };
+  const rootStat = await fs.lstat(root);
+  if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) throw new Error("sync_root_unavailable");
+  await visit(root, "");
+  return directories;
 }
 async function markdownFilesAt(root: string, relativePaths: Iterable<string>, excludedPaths: string[]): Promise<Map<string, string>> {
   const found = new Map<string, string>();
@@ -647,12 +674,15 @@ async function syncOnce(workspaceId: string): Promise<void> {
   const active = running.get(workspaceId);
   if (active) return active;
   let fullScan = false;
+  let scanDirectories = false;
+  let scannedDirectories: Record<string, string | null> | null = null;
   let scannedLocalPaths: string[] = [];
   const job = (async () => {
     const root = path.resolve(config.folderPath);
     try {
       if (!folderLocks.has(workspaceId)) folderLocks.set(workspaceId, await acquireFolderSyncLock(root, workspaceId));
       fullScan = fullScanRequests.delete(workspaceId);
+      scanDirectories = directoryScanRequests.delete(workspaceId);
       scannedLocalPaths = [...new Set([...(dirtyLocalPaths.get(workspaceId) ?? []), ...((await load()).pendingPaths[workspaceId] ?? [])])];
       dirtyLocalPaths.delete(workspaceId);
       const state = await load();
@@ -663,6 +693,64 @@ async function syncOnce(workspaceId: string): Promise<void> {
       let nextSyncRevision = state.syncCursors[workspaceId];
       const remoteChangedPaths = new Set<string>();
       const baselines = state.baselines[workspaceId] ??= {};
+      if (scanDirectories || fullScan) {
+        try {
+          scannedDirectories = await localDirectoryInventory(root, config.excludedPaths ?? []);
+        } catch (error) {
+          appendStartupLog("pkms_local_scan_incomplete", { workspaceId, error: error instanceof Error ? error.message : "unknown" });
+          throw error;
+        }
+        const previousDirectories = state.localDirectories[workspaceId];
+        if (!previousDirectories) {
+          // Migration is seed-only: never interpret the first inventory as a mass delete.
+          state.localDirectories[workspaceId] = scannedDirectories;
+          await save();
+        } else {
+          const missing = Object.keys(previousDirectories).filter((relative) => !Object.hasOwn(scannedDirectories!, relative));
+          const added = Object.keys(scannedDirectories).filter((relative) => !Object.hasOwn(previousDirectories, relative));
+          const movedDirectoryPaths = new Set<string>();
+          // Preserve cloud identity for a local folder rename/move when inode identity is unique.
+          for (const oldPath of missing) {
+            const identity = previousDirectories[oldPath];
+            if (!identity) continue;
+            const destinations = added.filter((relative) => scannedDirectories![relative] === identity);
+            if (destinations.length !== 1) continue;
+            const toPath = destinations[0];
+            const remoteFolder = (knownRemoteTree ?? []).find((file) => file.kind === "folder" && file.path === oldPath);
+            if (!remoteFolder) continue;
+            const operationId = randomUUID();
+            const result = await request<{ acceptedRevision?: number; conflictCopyPath?: string }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
+              operationId, baseRevision: nextSyncRevision ?? 0, clientId: "desktop-sync-bridge",
+              operation: { type: "move", fileId: remoteFolder.id, toPath },
+            });
+            const actualPath = result.conflictCopyPath ?? toPath;
+            const remap = (value: string) => value === oldPath || value.startsWith(`${oldPath}/`) ? `${actualPath}${value.slice(oldPath.length)}` : value;
+            knownRemoteTree = (knownRemoteTree ?? []).map((file) => file.path === oldPath || file.path.startsWith(`${oldPath}/`) ? { ...file, path: remap(file.path), revision: result.acceptedRevision ?? file.revision } : file);
+            for (const file of Object.values(knownRemoteFiles ?? {})) if (file.path === oldPath || file.path.startsWith(`${oldPath}/`)) { file.path = remap(file.path); file.revision = result.acceptedRevision ?? file.revision; }
+            for (const [relative, baseline] of Object.entries(baselines)) if (relative === oldPath || relative.startsWith(`${oldPath}/`)) { delete baselines[relative]; baselines[remap(relative)] = baseline; }
+            nextSyncRevision = Math.max(nextSyncRevision ?? 0, result.acceptedRevision ?? 0);
+            movedDirectoryPaths.add(oldPath);
+            appendStartupLog("pkms_local_folder_move", { workspaceId, fromPath: oldPath, toPath: actualPath, operationId });
+          }
+          const missingAfterMoves = missing.filter((relative) => !movedDirectoryPaths.has(relative));
+          const missingRoots = missingAfterMoves.filter((relative) => !missingAfterMoves.some((candidate) => candidate !== relative && relative.startsWith(`${candidate}/`)));
+          const pending = state.pendingDeletes[workspaceId] ??= {};
+          for (const relative of missingRoots) {
+            const remote = (knownRemoteTree ?? []).find((file) => file.kind === "folder" && file.path === relative);
+            if (!remote || isReservedSyncPath(relative) || matchesExclusion(relative, config.excludedPaths ?? [])) continue;
+            if (!pending[relative]) {
+              pending[relative] = { kind: "folder", path: relative, fileId: remote.id, operationId: randomUUID(), baseRevision: nextSyncRevision ?? 0, firstObservedAt: Date.now(), attempts: 0 };
+              state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1;
+              setItemState(workspaceId, relative, "pending");
+              notifyLocalTreeChanged(workspaceId, relative);
+            }
+            appendStartupLog("pkms_local_delete_queued", { workspaceId, kind: "folder", path: relative, operationId: pending[relative].operationId });
+          }
+          // Retain identities for remote folders that have not yet been materialized.
+          state.localDirectories[workspaceId] = scannedDirectories;
+          await save();
+        }
+      }
       const onlyNewLocalMarkdown = scannedLocalPaths.length > 0
         && scannedLocalPaths.every((relative) =>
           relative.toLowerCase().endsWith(".md")
@@ -706,12 +794,77 @@ async function syncOnce(workspaceId: string): Promise<void> {
         state.remoteTreeVersions[workspaceId] = Math.max((state.remoteTreeVersions[workspaceId] ?? -1) + 1, page.nextRevision);
         nextSyncRevision = page.nextRevision;
       }
+      const pendingDeletes = state.pendingDeletes[workspaceId] ??= {};
+      const deletedFolderRoots = Object.values(pendingDeletes).filter((item) => item.kind === "folder");
+      for (const deletion of deletedFolderRoots) {
+        if (scannedDirectories && Object.hasOwn(scannedDirectories, deletion.path)) {
+          delete pendingDeletes[deletion.path];
+          state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1;
+          setItemState(workspaceId, deletion.path, null);
+          continue;
+        }
+        const remote = (knownRemoteTree ?? []).find((file) => file.id === deletion.fileId && file.kind === "folder");
+        if (!remote || remote.path !== deletion.path) {
+          delete pendingDeletes[deletion.path];
+          state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1;
+          setItemState(workspaceId, deletion.path, null);
+          continue;
+        }
+        deletion.attempts++;
+        await save();
+        try {
+          const result = await request<{ acceptedRevision?: number }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
+            operationId: deletion.operationId, baseRevision: deletion.baseRevision, clientId: "desktop-sync-bridge",
+            operation: { type: "delete", fileId: deletion.fileId, protectSubtree: true },
+          });
+          const under = (candidate: string) => candidate === deletion.path || candidate.startsWith(`${deletion.path}/`);
+          knownRemoteTree = (knownRemoteTree ?? []).filter((file) => !under(file.path));
+          for (const [id, file] of Object.entries(knownRemoteFiles ?? {})) if (under(file.path)) delete knownRemoteFiles![id];
+          for (const relative of Object.keys(baselines)) if (under(relative)) delete baselines[relative];
+          for (const relative of Object.keys(pendingDeletes)) if (under(relative)) delete pendingDeletes[relative];
+          state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1;
+          state.localDirectories[workspaceId] = Object.fromEntries(Object.entries(state.localDirectories[workspaceId] ?? {}).filter(([relative]) => !under(relative)));
+          nextSyncRevision = Math.max(nextSyncRevision ?? 0, result.acceptedRevision ?? 0);
+          appendStartupLog("pkms_local_delete_ack", { workspaceId, kind: "folder", path: deletion.path, operationId: deletion.operationId });
+          setItemState(workspaceId, deletion.path, null);
+          notifyLocalTreeChanged(workspaceId, deletion.path);
+        } catch (error) {
+          if (error instanceof PkmsBridgeRequestError && error.code === "folder_changed_since_base") {
+            delete pendingDeletes[deletion.path];
+            state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1;
+            appendStartupLog("pkms_local_delete_conflict", { workspaceId, kind: "folder", path: deletion.path, operationId: deletion.operationId });
+            setItemState(workspaceId, deletion.path, "attention");
+            const latest = await readRemoteSnapshot(workspaceId);
+            knownRemoteTree = latest.files;
+            knownRemoteFiles = Object.fromEntries(latest.files.filter((file) => file.kind === "markdown").map((file) => [file.id, file]));
+            nextSyncRevision = latest.revision;
+            fullScan = true;
+            state.localDirectories[workspaceId] ??= {};
+            const restore = latest.files.filter((file) => file.kind === "folder" && (file.path === deletion.path || file.path.startsWith(`${deletion.path}/`)));
+            for (const folder of restore.sort((a, b) => a.path.split("/").length - b.path.split("/").length)) {
+              if (!Object.hasOwn(scannedDirectories ?? {}, folder.path)) {
+                await fs.mkdir(safePath(root, folder.path), { recursive: true });
+                const stat = await fs.lstat(safePath(root, folder.path), { bigint: true });
+                (state.localDirectories[workspaceId] ??= {})[folder.path] = `${stat.dev}:${stat.ino}`;
+              }
+            }
+            continue;
+          }
+          appendStartupLog("pkms_local_delete_retry", { workspaceId, kind: "folder", path: deletion.path, operationId: deletion.operationId, message: error instanceof Error ? error.message : "unknown" });
+          throw error;
+        }
+      }
+      state.remoteTrees[workspaceId] = knownRemoteTree ?? [];
+      state.remoteFiles[workspaceId] = knownRemoteFiles ?? {};
+      state.syncCursors[workspaceId] = nextSyncRevision ?? 0;
+      await save();
       // Folder metadata is cheap and the manifest is already cached. Materialize
       // remote folders locally; local watcher paths create the corresponding
       // cloud entries. Folder deletions are intentionally not inferred from a
       // single OS delete event (recursive watcher events are ambiguous).
       for (const folder of (knownRemoteTree ?? []).filter((file) => file.kind === "folder").sort((a, b) => a.path.split("/").length - b.path.split("/").length)) {
         if (isReservedSyncPath(folder.path) || matchesExclusion(folder.path, config.excludedPaths ?? [])) continue;
+        if (Object.values(pendingDeletes).some((item) => item.kind === "folder" && (folder.path === item.path || folder.path.startsWith(`${item.path}/`)))) continue;
         const target = safePath(root, folder.path);
         try {
           await assertSafeParentDirectories(root, folder.path);
@@ -720,6 +873,8 @@ async function syncOnce(workspaceId: string): Promise<void> {
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
           await fs.mkdir(target, { recursive: true });
+          const createdStat = await fs.lstat(target, { bigint: true });
+          (state.localDirectories[workspaceId] ??= {})[folder.path] = `${createdStat.dev}:${createdStat.ino}`;
           notifyLocalTreeChanged(workspaceId, folder.path);
         }
       }
@@ -855,7 +1010,16 @@ async function syncOnce(workspaceId: string): Promise<void> {
           itemComplete = true;
           return;
         }
-        if (!remote) { delete baselines[relative]; itemComplete = true; return; }
+        if (!remote) {
+          delete baselines[relative];
+          const pending = state.pendingDeletes[workspaceId]?.[relative];
+          if (pending) {
+            delete state.pendingDeletes[workspaceId][relative];
+            state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1;
+          }
+          itemComplete = true;
+          return;
+        }
         if (!baseline && remote.revision === 0 && remote.sha && localText !== undefined && gitBlobHash(localText) === remote.sha) {
           baselines[relative] = { fileId: remote.id, hash: hash(localText), revision: remote.revision };
           itemComplete = true;
@@ -876,10 +1040,46 @@ async function syncOnce(workspaceId: string): Promise<void> {
               const created = await preserveConflictCopy(relative, latestText);
               baselines[created.path] = { fileId: created.id, hash: created.localHash ?? hash(latestText), revision: created.revision };
             }
-            await request(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
-              operationId: randomUUID(), baseRevision: nextSyncRevision, clientId: "desktop-sync-bridge",
-              operation: { type: "delete", fileId: remote.id },
-            });
+            const pending = state.pendingDeletes[workspaceId] ??= {};
+            const isNewDeletion = !pending[relative];
+            const deletion = pending[relative] ??= { kind: "markdown", path: relative, fileId: remote.id, operationId: randomUUID(), baseRevision: nextSyncRevision ?? 0, expectedItemRevision: remote.revision, firstObservedAt: Date.now(), attempts: 0 };
+            deletion.attempts++;
+            if (isNewDeletion) state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1;
+            await save();
+            appendStartupLog("pkms_local_delete_queued", { workspaceId, kind: "markdown", path: relative, operationId: deletion.operationId });
+            try {
+              const result = await request<{ acceptedRevision?: number }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
+                operationId: deletion.operationId, baseRevision: deletion.baseRevision, clientId: "desktop-sync-bridge",
+                operation: { type: "delete", fileId: remote.id, expectedRevision: deletion.expectedItemRevision },
+              });
+              delete pending[relative];
+              state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1;
+              delete knownRemoteFiles[remote.id];
+              knownRemoteTree = (knownRemoteTree ?? []).filter((file) => file.id !== remote.id);
+              remoteByPath.delete(relative);
+              nextSyncRevision = Math.max(nextSyncRevision ?? 0, result.acceptedRevision ?? 0);
+              appendStartupLog("pkms_local_delete_ack", { workspaceId, kind: "markdown", path: relative, operationId: deletion.operationId });
+            } catch (error) {
+              if (error instanceof PkmsBridgeRequestError && error.code === "file_changed_since_base") {
+                delete pending[relative];
+                state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1;
+                const latestTree = await readRemoteSnapshot(workspaceId);
+                const latest = latestTree.files.find((file) => file.path === relative && file.kind === "markdown");
+                if (latest) {
+                  const text = (await readRemoteText(workspaceId, latest)).text;
+                  await writeAtomic(root, relative, text, null);
+                  knownRemoteFiles[latest.id] = latest;
+                  knownRemoteTree = latestTree.files;
+                  baselines[relative] = { fileId: latest.id, hash: hash(text), revision: latest.revision };
+                  nextSyncRevision = latestTree.revision;
+                }
+                setItemState(workspaceId, relative, "attention");
+                appendStartupLog("pkms_local_delete_conflict", { workspaceId, kind: "markdown", path: relative, operationId: deletion.operationId });
+                return;
+              }
+              appendStartupLog("pkms_local_delete_retry", { workspaceId, kind: "markdown", path: relative, operationId: deletion.operationId, message: error instanceof Error ? error.message : "unknown" });
+              throw error;
+            }
             delete baselines[relative];
           } else {
             const text = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
@@ -957,6 +1157,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
       await save();
     } catch (error) {
       if (fullScan) fullScanRequests.add(workspaceId);
+      if (scanDirectories) directoryScanRequests.add(workspaceId);
       if (scannedLocalPaths.length) {
         const pending = dirtyLocalPaths.get(workspaceId) ?? new Set<string>();
         for (const relative of scannedLocalPaths) pending.add(relative);
@@ -986,7 +1187,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
     // Baseline hashes make watcher events caused by our own atomic writes
     // idempotent, so there is no multi-second suppression window that could
     // delay a real edit made immediately afterward.
-    if ((fullScanRequests.has(workspaceId) || dirtyLocalPaths.has(workspaceId)) && !timers.has(workspaceId)) {
+    if ((fullScanRequests.has(workspaceId) || directoryScanRequests.has(workspaceId) || dirtyLocalPaths.has(workspaceId)) && !timers.has(workspaceId)) {
       schedule(workspaceId, fullScanRequests.has(workspaceId));
     }
   });
@@ -1051,24 +1252,25 @@ async function startRuntime(workspaceId: string, folderPath: string): Promise<vo
     fullScanRequests.delete(workspaceId);
     dirtyLocalPaths.delete(workspaceId);
     try {
-      const watcher = watch(folderPath, { recursive: true }, (_eventType, filename) => {
-        if (filename === null) { schedule(workspaceId, true); notifyLocalTreeChanged(workspaceId, null); return; }
+      const watcher = watch(folderPath, { recursive: true }, (eventType, filename) => {
+        if (filename === null) { directoryScanRequests.add(workspaceId); schedule(workspaceId, true); notifyLocalTreeChanged(workspaceId, null); return; }
         const relative = path.posix.normalize(filename.toString().replaceAll("\\", "/"));
         if (!relative || relative === "." || relative.startsWith("../") || relative.startsWith("/")) {
           schedule(workspaceId, true);
           notifyLocalTreeChanged(workspaceId, null);
           return;
         }
+        if (eventType === "rename") directoryScanRequests.add(workspaceId);
         schedule(workspaceId, false, relative);
         notifyLocalTreeChanged(workspaceId, relative);
       });
-      watcher.on("error", () => { watcher.close(); watchers.delete(workspaceId); schedule(workspaceId, true); notifyLocalTreeChanged(workspaceId, null); });
+      watcher.on("error", () => { watcher.close(); watchers.delete(workspaceId); directoryScanRequests.add(workspaceId); schedule(workspaceId, true); notifyLocalTreeChanged(workspaceId, null); });
       watchers.set(workspaceId, watcher);
     } catch { /* Polling remains available if native recursive watching is unsupported. */ }
     pollers.set(workspaceId, setInterval(() => schedule(workspaceId), REMOTE_CHANGE_POLL_INTERVAL_MS));
     void startCloudWakeup(workspaceId);
     fullScanners.set(workspaceId, setInterval(() => {
-      if (!running.has(workspaceId)) schedule(workspaceId, true);
+      if (!running.has(workspaceId)) { directoryScanRequests.add(workspaceId); schedule(workspaceId, true); }
     }, FULL_LOCAL_SCAN_INTERVAL_MS));
     schedule(workspaceId, true);
   } finally {
@@ -1084,6 +1286,10 @@ export async function configurePkmsSyncBridge(workspaceId: string, folderPath: s
   const state = await load();
   const duplicate = Object.entries(state.configs).find(([configuredWorkspaceId, config]) => configuredWorkspaceId !== workspaceId && path.resolve(config.folderPath) === root);
   if (duplicate) throw new Error("local_folder_already_connected");
+  if (state.configs[workspaceId] && path.resolve(state.configs[workspaceId].folderPath) !== root) {
+    delete state.localDirectories[workspaceId];
+    delete state.pendingDeletes[workspaceId];
+  }
   state.configs[workspaceId] = { folderPath: root, excludedPaths: excludedPaths.map((item) => item.trim()).filter(Boolean).slice(0, 100) };
   state.baselines[workspaceId] ??= {};
   await save();
@@ -1113,13 +1319,15 @@ export async function getPkmsSyncBridgeTree(workspaceId: string, knownRevision =
   const revision = state.remoteTreeVersions[workspaceId] ?? -1;
   if (knownRevision === revision) return { revision };
   const baselines = state.baselines[workspaceId] ?? {};
-  return { revision, files: (state.remoteTrees[workspaceId] ?? []).map((file) => ({
+  const pendingDeletes = Object.values(state.pendingDeletes[workspaceId] ?? {});
+  return { revision, files: (state.remoteTrees[workspaceId] ?? []).filter((file) => !pendingDeletes.some((item) => file.path === item.path || (item.kind === "folder" && file.path.startsWith(`${item.path}/`)))).map((file) => ({
     ...file,
     upToDate: file.kind === "markdown" ? baselines[file.path]?.fileId === file.id && baselines[file.path]?.revision === file.revision : undefined,
   })) };
 }
 export async function scanPkmsSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus> {
   fullScanRequests.add(workspaceId);
+  directoryScanRequests.add(workspaceId);
   await syncOnce(workspaceId);
   return status(workspaceId);
 }

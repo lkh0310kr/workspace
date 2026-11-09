@@ -618,7 +618,7 @@ export default function Home() {
             for (const root of roots) {
               const remote = localCloudTree.find((entry) => entry.path === root.path && entry.kind === root.kind);
               if (remote) {
-                const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: remote.id }, `desktop-${createOperationId()}`);
+                const result = await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: remote.id, ...(remote.kind === "markdown" ? { expectedRevision: remote.revision } : { protectSubtree: true }) }, `desktop-${createOperationId()}`);
                 if (!result.queued) confirmedCloudDeletePaths.current.add(root.path);
               } else confirmedCloudDeletePaths.current.add(root.path);
             }

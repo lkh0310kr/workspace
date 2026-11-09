@@ -21,7 +21,7 @@ export type WorkspaceFileOperation =
   | { type: "create-file"; path: string; fileId: string; content: string }
   | { type: "create-folder"; path: string }
   | { type: "move"; fileId: string; toPath: string }
-  | { type: "delete"; fileId: string };
+  | { type: "delete"; fileId: string; expectedRevision?: number; protectSubtree?: boolean };
 
 export interface WorkspaceOperationResult {
   acceptedRevision?: number;

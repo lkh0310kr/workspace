@@ -169,7 +169,7 @@ export function useWorkspaceFileActions(options: Options) {
     setSelectedTreePaths(new Set());
     try {
       for (const file of roots) {
-        await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: file.id });
+        await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: file.id, ...(file.kind === "folder" ? { protectSubtree: true } : { expectedRevision: file.revision }) });
       }
       afterDelete?.(roots);
       return true;

@@ -4,7 +4,7 @@ This is the implementation contract for propagating local file and folder deleti
 
 ## Status
 
-**R&D complete; ready for implementation.** Current code does not meet this contract.
+**Implemented in source; awaiting deployed migration and macOS runtime acceptance.**
 
 ## Problem and observed failure
 
@@ -25,11 +25,10 @@ The `engineering` cleanup preserved the three non-empty robotics notes under `�
 
 In `apps/workspace-app/src/main/pkms/syncBridge.ts`:
 
-- `fs.watch()` records changed path hints, ignores `eventType`, and has no durable local directory inventory.
-- `syncOnce()` materializes remote folders before scanning local Markdown paths.
-- Local directory changes only emit `create-folder`; there is no folder-delete operation from a local directory diff.
-- Missing Markdown files with a baseline call `POST /operations`, but use a fresh random operation ID per attempt. They do not persist a delete intent, prune `remoteFiles`/`remoteTrees` immediately, or advance the cursor to the accepted revision. Until the change feed catches up, stale metadata can reappear in the merged tree.
-- `POST /operations` already cascades folder deletes in the database, but `baseRevision` is currently rebased for offline mutations and is not a file or subtree concurrency guard.
+- The bridge now persists a directory identity inventory and uses watcher rename/drop events plus periodic scans to detect folder absence.
+- Pending file and folder deletes retain their operation ID, hide the row from the bridge tree, and prune cached state after acknowledgement.
+- Stable directory identities are used to send a cloud move when a local folder is renamed.
+- The server validates file `expectedRevision`. Folder deletes with `protectSubtree` currently use a conservative workspace revision equality guard: any concurrent workspace mutation can reject the delete, even when outside the target subtree. This is stricter than the target-only guard in the design and favors preserving remote data. A future operation-path index can narrow this guard.
 - The folder bridge currently syncs Markdown documents and folder metadata. Other local file types and binary attachments are not in this deletion contract until they are added to the bridge's manifest and transfer protocol.
 
 Watcher ambiguity means one callback is insufficient evidence. It does not justify never detecting deletion. Events are hints; a complete local directory inventory is the evidence.
@@ -92,7 +91,7 @@ Retry the same operation ID and payload. Exclude pending paths and descendants f
 
 Keep the existing `delete` operation. For a Markdown file, the server must compare the target's current revision with `expectedItemRevision`. For a folder, it must reject atomically if the folder or any descendant changed after `baseRevision`. Return stable errors such as `file_changed_since_base` or `folder_changed_since_base`; make no partial deletion.
 
-Check revisions only on the target file or folder subtree, so unrelated workspace changes do not block deletion. The current endpoint reports a rebase but does not enforce these guards.
+File deletes check the target revision. Folder deletes currently require the workspace revision to equal the submitted base revision because legacy operation rows do not retain affected paths. This safely rejects a concurrent unrelated change too; narrow subtree-only checking after the operation journal records paths.
 
 On a stale-revision conflict, cancel the pending delete and catch up the remote cursor. For a file, preserve the latest cloud version as a conflict copy before retrying or restore it and mark `attention`. For a folder, restore the latest cloud subtree locally and set the folder to `attention`. The user can delete again after the restored copy has a current baseline. This rare path preserves remote edits instead of silently destroying them.
 
@@ -128,7 +127,7 @@ On a stale-revision conflict, cancel the pending delete and catch up the remote 
 - Hide a pending deletion from the Files tree immediately; stale cloud metadata must not re-add it.
 - A successful operation removes empty folder rows from all clients through the existing revision feed.
 - A remote-change conflict restores the folder with an attention marker and an explanation.
-- Main-process logs record lifecycle events without note contents: `pkms_delete_candidate`, `pkms_delete_queued`, `pkms_delete_acknowledged`, `pkms_delete_conflict`, `pkms_delete_retry`, and `pkms_local_scan_incomplete`. Include workspace ID, relative path, item kind/ID, operation ID, generation, base/accepted revision, and error code where applicable.
+- Main-process logs record lifecycle events without note contents: `pkms_local_delete_queued`, `pkms_local_delete_ack`, `pkms_local_delete_conflict`, `pkms_local_delete_retry`, `pkms_local_folder_move`, and `pkms_local_scan_incomplete` where a scan cannot complete. They include workspace ID, relative path, item kind, operation ID, and error message where applicable.
 
 ## Implementation slices
 
@@ -137,7 +136,7 @@ On a stale-revision conflict, cancel the pending delete and catch up the remote 
 3. Add atomic server file-revision and folder-subtree guards with typed conflict responses.
 4. Reorder the pass: local file/directory scan → persist candidates → apply remote cursor → submit local deletes → materialize remaining remote folders → reconcile Markdown.
 5. Add directory move detection where stable identity exists; retain conservative fallback.
-6. Add structured lifecycle logs and acceptance evidence.
+6. Add structured lifecycle logs. Runtime acceptance still needs to cover the listed macOS cases against a deployed guarded migration.
 
 Do not fix this by disabling folder materialization. Remote-only and empty cloud folders must still appear locally. The bridge must decide whether a folder is missing locally before it recreates that folder.
 

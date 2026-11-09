@@ -298,6 +298,8 @@ async function applyOperation(env:Env,w:WorkspaceRow,b:Record<string,unknown>,ct
     // page was read. Treat that race as an idempotent delete, so stale entries
     // cannot stall a folder reconciliation.
     if(op.type==="delete"&&error instanceof SupabaseError&&error.code==="P0002")return json({duplicate:true,alreadyDeleted:true,acceptedRevision:w.server_revision});
+    if(error instanceof SupabaseError&&error.code==="PZ001")return json({error:"file_changed_since_base"},{status:409});
+    if(error instanceof SupabaseError&&error.code==="PZ002")return json({error:"folder_changed_since_base"},{status:409});
     const code=error instanceof Error&&error.message.includes("invalid_path")?"invalid_path":error instanceof Error&&error.message.includes("workspace_not_found")?"workspace_not_found":"operation_failed";
     return json({error:code},{status:code==="invalid_path"?400:409});
   }
