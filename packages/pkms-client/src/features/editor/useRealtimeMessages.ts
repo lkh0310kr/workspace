@@ -47,7 +47,7 @@ export function useRealtimeMessages({ workspaceId, documents, pending, activeDoc
       if (message.conflictCopyPath) void refreshSnapshot(message.conflictCopyPath);
     } else if (message.type === "error") {
       setError(message.message ?? "Collaboration sync failed");
-    } else if (typeof message.acceptedRevision === "number") {
+    } else if (typeof message.acceptedRevision === "number" && (!localFolderEnabled || message.conflictCopyPath)) {
       void refreshSnapshot(message.conflictCopyPath);
     }
 
