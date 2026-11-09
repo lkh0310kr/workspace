@@ -9,6 +9,7 @@ interface Props {
   githubPendingFiles: number;
   githubMessage?: string;
   onResumeGithubBackup: () => Promise<SyncStatus>;
+  onClose?: () => void;
 }
 
 function stateLabel(status: PkmsSyncBridgeStatus | null): string {
@@ -17,7 +18,7 @@ function stateLabel(status: PkmsSyncBridgeStatus | null): string {
   return ({ disconnected: "Not connected", syncing: "Syncing", synced: "Up to date", offline: "Offline", error: "Needs attention" } as const)[status.state];
 }
 
-export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt, githubPendingFiles, githubMessage, onResumeGithubBackup }: Props) {
+export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt, githubPendingFiles, githubMessage, onResumeGithubBackup, onClose }: Props) {
   const bridge = desktopBridge();
   const [status, setStatus] = useState<PkmsSyncBridgeStatus | null>(null);
   const [busy, setBusy] = useState(false);
@@ -68,8 +69,8 @@ export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt,
   return (
     <section className="sync-bridge-panel" aria-label={bridge ? "Editing folder and cloud sync" : "Cloud workspace and GitHub backup"}>
       <div className="sync-bridge-heading">
-        <div><span className={`sync-bridge-indicator sync-bridge-indicator--${bridge ? status?.state ?? "loading" : "synced"}`} /> <span className="eyebrow">{bridge ? "Editing folder" : "Cloud workspace"}</span></div>
-        <span className="sync-bridge-state">{bridge ? stateLabel(status) : "Active"}</span>
+        <div><span className={`sync-bridge-indicator sync-bridge-indicator--${bridge ? status?.state ?? "loading" : "synced"}`} /> <span className="eyebrow">Sync settings</span></div>
+        <div><span className="sync-bridge-state">{bridge ? stateLabel(status) : "Active"}</span>{onClose && <button type="button" className="sync-bridge-close" aria-label="Close sync settings" onClick={onClose}>×</button>}</div>
       </div>
       {bridge ? <>
         {status?.folderPath && <div className="sync-bridge-path" title={status.folderPath}>{status.folderPath}</div>}

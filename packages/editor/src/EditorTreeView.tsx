@@ -21,6 +21,7 @@ export interface EditorTreeViewItem {
   cut?: boolean;
   dropTarget?: boolean;
   tabIndex?: number;
+  trailingStatus?: ReactNode;
   showGuides?: boolean;
   source?: unknown;
 }
@@ -162,6 +163,7 @@ export function EditorTreeView({
             id={item.id}
             path={item.path}
             name={item.name}
+            trailingStatus={item.trailingStatus}
             kind={item.kind}
             depth={item.depth}
             icon={<TreeIcon kind={item.kind} />}

@@ -10,6 +10,7 @@ export interface EditorTreeRowProps {
   id: string;
   path: string;
   name: string;
+  trailingStatus?: ReactNode;
   kind: EditorItemKind;
   depth: number;
   icon: ReactNode;
@@ -41,6 +42,7 @@ export function EditorTreeRow({
   id,
   path,
   name,
+  trailingStatus,
   kind,
   depth,
   icon,
@@ -109,6 +111,7 @@ export function EditorTreeRow({
       </span>
       <span className={`editor-tree-icon editor-tree-icon--${kind}`} aria-hidden="true">{icon}</span>
       <span className="editor-tree-name">{name}</span>
+      {trailingStatus && <span className="editor-tree-trailing-status">{trailingStatus}</span>}
     </button>
   );
 }

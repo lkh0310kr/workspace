@@ -1,6 +1,7 @@
 import type { DragEvent, KeyboardEvent, MouseEvent, RefObject } from "react";
 import { entryName } from "../domain/fileTree";
 import type { FileRecord, TreeRow } from "../domain/types";
+import type { PkmsSyncBridgeStatus } from "../platform/desktopApi";
 import { EditorTreeView, EDITOR_TREE_DRAG_MIME_TYPE, editorTreeItemLabel, type EditorTreeProjection, type EditorTreeViewItem } from "@workspace/editor";
 
 interface FileTreeListProps {
@@ -11,6 +12,7 @@ interface FileTreeListProps {
   focusedPath: string | null;
   currentFolder: string;
   activeFileId: string | null;
+  syncItemStates?: PkmsSyncBridgeStatus["itemStates"];
   cutPaths: Set<string>;
   dropTarget: string | null;
   loadingFolders: Set<string>;
@@ -33,29 +35,39 @@ interface FileTreeListProps {
 export function FileTreeList(props: FileTreeListProps) {
   const {
     treeRef, projection, selectedPaths, expandedFolders, focusedPath, currentFolder,
-    activeFileId, cutPaths, dropTarget, loadingFolders, busy, loading, canMove,
+    activeFileId, syncItemStates = {}, cutPaths, dropTarget, loadingFolders, busy, loading, canMove,
     canMultiSelect, onKeyDown, onScroll, onSetDropTarget, onDropItems, onFocusPath,
     onDragStart, onContextMenu, onSelectRow, onClearSelection, onActivate,
   } = props;
   const viewProjection: EditorTreeProjection<EditorTreeViewItem> = {
     ...projection,
-    rows: projection.rows.map(({ file, depth }) => ({
-      id: file.id,
-      path: file.path,
-      name: editorTreeItemLabel(entryName(file.path), file.kind === "markdown" ? "markdown" : "asset"),
-      kind: file.kind === "folder" ? "directory" : file.kind,
-      depth,
-      expandable: file.kind === "folder",
-      expanded: expandedFolders.has(file.path),
-      loading: file.kind === "folder" && loadingFolders.has(file.path),
-      active: (file.path === currentFolder && file.kind === "folder") || activeFileId === file.id,
-      selected: selectedPaths.has(file.path),
-      multiSelected: selectedPaths.size > 1 && selectedPaths.has(file.path),
-      cut: cutPaths.has(file.path),
-      dropTarget: dropTarget === file.path,
-      tabIndex: focusedPath === file.path || (!focusedPath && projection.startIndex === 0 && file === projection.rows[0]?.file) ? 0 : -1,
-      source: file,
-    })),
+    rows: projection.rows.map(({ file, depth }) => {
+      const ownState = syncItemStates[file.path] ?? (/\.local-conflict-[^/]+\.md$/i.test(file.path) ? "attention" : undefined);
+      const descendantStates = file.kind === "folder"
+        ? Object.entries(syncItemStates).filter(([path]) => path.startsWith(`${file.path}/`)).map(([, state]) => state)
+        : [];
+      const state = ownState ?? (descendantStates.includes("attention") ? "attention" : descendantStates.includes("syncing") ? "syncing" : descendantStates.includes("pending") ? "pending" : undefined);
+      const stateLabel = state === "attention" ? "Sync needs attention" : state === "syncing" ? "Syncing" : "Waiting to sync";
+      const trailingStatus = state ? <><span className={`editor-tree-trailing-status--${state}`} aria-hidden="true">{state === "syncing" ? "↻" : state === "attention" ? "!" : "•"}</span><span className="sr-only">{stateLabel}</span></> : undefined;
+      return {
+        id: file.id,
+        path: file.path,
+        name: editorTreeItemLabel(entryName(file.path), file.kind === "markdown" ? "markdown" : "asset"),
+        kind: file.kind === "folder" ? "directory" : file.kind,
+        depth,
+        expandable: file.kind === "folder",
+        expanded: expandedFolders.has(file.path),
+        loading: file.kind === "folder" && loadingFolders.has(file.path),
+        active: (file.path === currentFolder && file.kind === "folder") || activeFileId === file.id,
+        selected: selectedPaths.has(file.path),
+        multiSelected: selectedPaths.size > 1 && selectedPaths.has(file.path),
+        cut: cutPaths.has(file.path),
+        dropTarget: dropTarget === file.path,
+        trailingStatus,
+        tabIndex: focusedPath === file.path || (!focusedPath && projection.startIndex === 0 && file === projection.rows[0]?.file) ? 0 : -1,
+        source: file,
+      };
+    }),
   };
 
   return (

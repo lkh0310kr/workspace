@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import * as Y from "yjs";
 import { requestPkmsApi } from "./api";
-import type { PkmsSyncBridgeStatus } from "../../shared/pkmsSyncBridge";
+import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from "../../shared/pkmsSyncBridge";
 
 type BridgeFile = { id: string; path: string; kind: string; revision: number; size?: number; sha?: string | null };
 type BridgeSnapshotPage = { revision: number; files: BridgeFile[]; hasMore: boolean; nextPath: string };
@@ -270,13 +270,19 @@ export async function writePkmsLocalMarkdown(workspaceId: string, relative: stri
 function status(workspaceId: string): PkmsSyncBridgeStatus {
   return statuses.get(workspaceId) ?? {
     workspaceId, enabled: false, folderPath: null, state: "disconnected",
-    excludedPaths: [], progress: null, lastScannedAt: null, lastSyncedAt: null, pendingFiles: 0, conflictFiles: [], error: null,
+    excludedPaths: [], progress: null, lastScannedAt: null, lastSyncedAt: null, pendingFiles: 0, conflictFiles: [], itemStates: {}, error: null,
   };
 }
 function setStatus(workspaceId: string, patch: Partial<PkmsSyncBridgeStatus>): PkmsSyncBridgeStatus {
   const next = { ...status(workspaceId), ...patch };
   statuses.set(workspaceId, next);
   return next;
+}
+function setItemState(workspaceId: string, relative: string, itemState: PkmsSyncItemState | null): void {
+  const itemStates = { ...status(workspaceId).itemStates };
+  if (itemState) itemStates[relative] = itemState;
+  else delete itemStates[relative];
+  setStatus(workspaceId, { itemStates });
 }
 
 async function request<T>(pathName: string, method: "GET" | "POST", value?: unknown): Promise<T> {
@@ -692,6 +698,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
       reportProgress();
       const reconcilePath = async (relative: string): Promise<void> => {
         let itemComplete = false;
+        setItemState(workspaceId, relative, "syncing");
         try {
         const localText = local.get(relative);
         const remote = remoteByPath.get(relative);
@@ -776,7 +783,10 @@ async function syncOnce(workspaceId: string): Promise<void> {
         }
         itemComplete = true;
         } finally {
-          if (itemComplete) completed++;
+          if (itemComplete) {
+            completed++;
+            setItemState(workspaceId, relative, dirtyLocalPaths.get(workspaceId)?.has(relative) ? "pending" : null);
+          }
           reportProgress();
         }
       };
@@ -787,7 +797,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
           const index = nextPath++;
           if (index >= total) return;
           try { await reconcilePath(paths[index]); }
-          catch (error) { firstError ??= error; }
+          catch (error) { setItemState(workspaceId, paths[index], "attention"); firstError ??= error; }
         }
       };
       await Promise.all(Array.from({ length: Math.min(6, total) }, () => worker()));
@@ -844,6 +854,7 @@ function schedule(workspaceId: string, fullScan = false, localPath?: string): vo
     const pending = dirtyLocalPaths.get(workspaceId) ?? new Set<string>();
     pending.add(localPath);
     dirtyLocalPaths.set(workspaceId, pending);
+    if (!isReservedSyncPath(localPath)) setItemState(workspaceId, localPath, "pending");
   }
   if (running.has(workspaceId)) return;
   if (status(workspaceId).state === "error") return;

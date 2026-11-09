@@ -7,7 +7,7 @@ import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEd
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
-import { desktopBridge } from "./platform/desktopApi";
+import { desktopBridge, type PkmsSyncBridgeStatus } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
 import { flushQueuedWorkspaceAssets, flushQueuedWorkspaceOperations, WORKSPACE_OPERATION_QUEUE_EVENT } from "./client/workspaceOperations";
 import { useLocation, useNavigate } from "react-router";
@@ -126,18 +126,26 @@ export default function Home() {
   } = useWorkspaceDirectory(activeWorkspace, api, setError);
   const [localFolderEnabled, setLocalFolderEnabled] = useState(false);
   const [localCloudSyncing, setLocalCloudSyncing] = useState(false);
+  const [localSyncState, setLocalSyncState] = useState<PkmsSyncBridgeStatus["state"]>("disconnected");
+  const [localSyncItemStates, setLocalSyncItemStates] = useState<PkmsSyncBridgeStatus["itemStates"]>({});
+  const [showSyncSettings, setShowSyncSettings] = useState(false);
   const localTreeGeneration = useRef(0);
   const pendingEmptyTreeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     let alive = true;
     setLocalFolderEnabled(false);
     setLocalCloudSyncing(false);
+    setLocalSyncState("disconnected");
+    setLocalSyncItemStates({});
+    setShowSyncSettings(false);
     const desktop = desktopBridge();
     if (!desktop || !activeWorkspace) return () => { alive = false; };
     const refresh = () => void desktop.syncBridgeStatus(activeWorkspace.id).then((status) => {
       if (alive) {
         setLocalFolderEnabled(status.enabled);
         setLocalCloudSyncing(status.state === "syncing");
+        setLocalSyncState(status.state);
+        setLocalSyncItemStates(status.itemStates ?? {});
       }
     }).catch(() => {});
     refresh();
@@ -1507,8 +1515,7 @@ export default function Home() {
           </select> : <button className="connect-link" onClick={openRepositoryPicker}>Connect a repository <span>↗</span></button>}
         </div>
         {activeWorkspace && <>
-          <SyncBridgePanel workspaceId={activeWorkspace.id} githubStatus={sync.githubStatus} githubLastCommitAt={sync.lastGitHubCommitAt} githubPendingFiles={sync.pendingFiles} githubMessage={sync.message} onResumeGithubBackup={async () => { const status = await api<SyncStatus>(`/api/workspaces/${activeWorkspace.id}/flush`, { method: "POST" }); setSync(status); return status; }} />
-          <div className="file-toolbar"><span className="eyebrow">Files</span><div className="toolbar-actions">
+          <div className="file-toolbar"><div className="file-toolbar-heading"><span className="eyebrow">Files</span><button type="button" className="sync-compact-state" onClick={() => setShowSyncSettings(true)} aria-label="Open sync settings" title="Open sync settings"><span className={`sync-bridge-indicator sync-bridge-indicator--${localSyncState}`} />{!desktopBridge() ? "GitHub backup" : !localFolderEnabled ? "Connect folder" : localSyncState === "syncing" ? "Syncing" : localSyncState === "offline" ? "Offline" : localSyncState === "error" ? "Needs attention" : "Up to date"}</button></div><div className="toolbar-actions">
             <button className={`mini-button visibility-button${showFileFilters ? " active" : ""}`} title="File filter settings" aria-label="File filter settings" aria-expanded={showFileFilters} onClick={() => setShowFileFilters((open) => !open)}><AppIcon name="filter" /></button>
             {canCreateFile && <button className="mini-button" title="New note" onClick={() => beginTreeCreation("file", toolbarCreationFolder)}><AppIcon name="filePlus" /></button>}
             {canCreateDirectory && <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}><AppIcon name="folderPlus" /></button>}
@@ -1527,6 +1534,7 @@ export default function Home() {
             focusedPath={focusedTreePath}
             currentFolder={currentFolder}
             activeFileId={activeFile?.id ?? null}
+            syncItemStates={localSyncItemStates}
             cutPaths={cutTreePaths}
             dropTarget={treeDropTarget}
             loadingFolders={loadingFolderPaths}
@@ -1585,6 +1593,9 @@ export default function Home() {
         <div className="sidebar-bottom">
           <div className="account-row"><img src={user.avatarUrl} alt="" /><span>@{user.login}</span><button className="icon-button logout-button" title="Sign out" onClick={() => void api("/api/logout", { method: "POST" }).then(() => { if (desktopBridge()) { account.clearAccount(); } else window.location.reload(); })}><AppIcon name="logout" /></button></div>
         </div>
+        {showSyncSettings && activeWorkspace && <div className="sync-settings-surface" role="dialog" aria-modal="true" aria-label="Sync settings" onKeyDown={(event) => { if (event.key === "Escape") setShowSyncSettings(false); }}>
+          <SyncBridgePanel workspaceId={activeWorkspace.id} githubStatus={sync.githubStatus} githubLastCommitAt={sync.lastGitHubCommitAt} githubPendingFiles={sync.pendingFiles} githubMessage={sync.message} onClose={() => setShowSyncSettings(false)} onResumeGithubBackup={async () => { const status = await api<SyncStatus>(`/api/workspaces/${activeWorkspace.id}/flush`, { method: "POST" }); setSync(status); return status; }} />
+        </div>}
       </aside>
 
       <section className="main-panel">
