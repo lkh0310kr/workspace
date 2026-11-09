@@ -153,8 +153,12 @@ async function directory(env:Env,login:string,w:WorkspaceRow,path:string,request
 }
 async function stableId(repository:string,path:string):Promise<string>{const digest=await crypto.subtle.digest("SHA-256",encoder.encode(`${repository}\0${path}`));return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("").slice(0,32);}
 async function syncStatus(env:Env,w:WorkspaceRow):Promise<Response>{
-  const q=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,dirty:"eq.true",select:"file_id",limit:"1000"});const r=await supabaseRequest(env,`/rest/v1/pkms_files?${q}`);
-  return json({serverRevision:Number(w.server_revision),githubStatus:w.github_status,githubHead:w.github_head,lastGitHubCommitAt:w.last_github_commit_at,nextGitHubFlushAt:w.flush_due_at?Date.parse(w.flush_due_at):null,pendingFiles:(await r.json() as unknown[]).length,message:w.github_message});
+  const q=new URLSearchParams({workspace_id:`eq.${w.workspace_id}`,dirty:"eq.true",select:"file_id",limit:"1"});
+  const r=await supabaseRequest(env,`/rest/v1/pkms_files?${q}`,{headers:{Prefer:"count=exact"}});
+  const countValue=r.headers.get("content-range")?.split("/").at(-1);
+  const pendingFiles=countValue&&countValue!=="*"?Number(countValue):Number.NaN;
+  if(!Number.isSafeInteger(pendingFiles)||pendingFiles<0)throw new Error("pending_file_count_unavailable");
+  return json({serverRevision:Number(w.server_revision),githubStatus:w.github_status,githubHead:w.github_head,lastGitHubCommitAt:w.last_github_commit_at,nextGitHubFlushAt:w.flush_due_at?Date.parse(w.flush_due_at):null,pendingFiles,message:w.github_message});
 }
 
 const MIRROR_NOTES_PER_CALL=600;const MIRROR_GRAPHQL_BATCH=50;const MIRROR_TREE_BATCH=2000;
