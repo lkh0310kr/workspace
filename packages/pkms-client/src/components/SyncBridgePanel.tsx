@@ -13,6 +13,7 @@ interface Props {
 
 function stateLabel(status: PkmsSyncBridgeStatus | null): string {
   if (!status) return "Loading";
+  if (status.state === "syncing" && (!status.progress || status.progress.total === 0)) return "Checking";
   return ({ disconnected: "Not connected", syncing: "Syncing", synced: "Up to date", offline: "Offline", error: "Needs attention" } as const)[status.state];
 }
 
@@ -72,12 +73,20 @@ export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt,
       </div>
       {bridge ? <>
         {status?.folderPath && <div className="sync-bridge-path" title={status.folderPath}>{status.folderPath}</div>}
-        {status?.progress && (status.state === "syncing" || status.state === "synced" || status.state === "error" || status.state === "offline") && <div className="sync-bridge-progress" aria-label={`Sync progress ${status.progress.percent}%`}>
+        {status?.progress && status.progress.total > 0 && (status.state === "syncing" || status.state === "synced" || status.state === "error" || status.state === "offline") && <div className="sync-bridge-progress" aria-label={`Sync progress ${status.progress.percent}%`}>
           <div className="sync-bridge-progress-label"><span>{status.state === "syncing" ? "Cloud sync" : "Last cloud sync"}</span><strong>{status.progress.percent}% · {status.progress.completed}/{status.progress.total}</strong></div>
           <div className="sync-bridge-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={status.progress.percent}><span style={{ width: `${status.progress.percent}%` }} /></div>
         </div>}
         <div className="sync-bridge-meta">
-          {status?.lastSyncedAt ? `Last synced ${new Date(status.lastSyncedAt).toLocaleTimeString()}` : status?.enabled ? ({ scanning: "Checking the local folder…", "loading-remote-list": "Checking cloud files…", "downloading-remote-files": "Downloading cloud files…", reconciling: "Syncing local and cloud files…" } as const)[status.stage ?? "scanning"] : "PKMS and external editors use this same folder. Cloud sync keeps it up to date across devices; conflicting edits are saved as conflict copies."}
+          {status?.state === "syncing"
+            ? (!status.progress || status.progress.total === 0
+              ? "Checking for local and cloud changes…"
+              : ({ scanning: "Checking the local folder…", "loading-remote-list": "Checking cloud files…", "downloading-remote-files": "Downloading cloud files…", reconciling: "Syncing local and cloud files…" } as const)[status.stage ?? "scanning"])
+            : status?.lastSyncedAt
+              ? `Last synced ${new Date(status.lastSyncedAt).toLocaleTimeString()}`
+              : status?.enabled
+                ? ({ scanning: "Checking the local folder…", "loading-remote-list": "Checking cloud files…", "downloading-remote-files": "Downloading cloud files…", reconciling: "Syncing local and cloud files…" } as const)[status.stage ?? "scanning"]
+                : "PKMS and external editors use this same folder. Cloud sync keeps it up to date across devices; conflicting edits are saved as conflict copies."}
           {status?.pendingFiles ? ` · ${status.pendingFiles} pending` : ""}
         </div>
         {(status?.error || message) && <div className="sync-bridge-error">{status?.error ?? message}</div>}

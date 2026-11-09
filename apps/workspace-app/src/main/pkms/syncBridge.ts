@@ -529,7 +529,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
   let scannedLocalPaths: string[] = [];
   const job = (async () => {
     const root = path.resolve(config.folderPath);
-    setStatus(workspaceId, { state: "syncing", stage: "scanning", progress: { completed: 0, total: 0, percent: 0 }, error: null });
+    setStatus(workspaceId, { state: "syncing", stage: "scanning", progress: null, error: null });
     try {
       if (!folderLocks.has(workspaceId)) folderLocks.set(workspaceId, await acquireFolderSyncLock(root, workspaceId));
       fullScan = fullScanRequests.delete(workspaceId);
