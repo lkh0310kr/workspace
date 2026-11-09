@@ -2,6 +2,7 @@ import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import type { PkmsRequestOptions } from "../../shared/pkmsClient";
 import { fetchPkmsAsset, parsePkmsVerificationUrl, parseServiceOAuthUrl, requestPkmsApi, requestWorkspaceHomeApi } from "./api";
 import { configurePkmsSyncBridge, createPkmsLocalItem, deletePkmsLocalItems, disconnectPkmsSyncBridge, getPkmsSyncBridgeStatus, getPkmsSyncBridgeTree, getPkmsLocalFile, listPkmsLocalDirectory, movePkmsLocalItems, readPkmsLocalMarkdown, renamePkmsLocalItem, scanPkmsSyncBridge, startConfiguredPkmsSyncBridges, updatePkmsSyncBridgeExclusions, writePkmsLocalMarkdown } from "./syncBridge";
+import { appendStartupLog } from "../startupLog";
 
 function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
   const rawUrl = event.senderFrame?.url;
@@ -81,7 +82,15 @@ export function registerPkmsIpc(): void {
   ipcMain.handle("pkms:local-item:delete", async (event, workspaceId: string, ids: string[]) => {
     assertTrustedSender(event);
     if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string")) throw new Error("invalid_local_item_ids");
-    return deletePkmsLocalItems(workspaceId, ids);
+    const paths = (await Promise.all(ids.map((id) => getPkmsLocalFile(workspaceId, id)))).filter(Boolean).map((file) => file!.path);
+    appendStartupLog("pkms_local_delete_started", { workspaceId, paths });
+    try {
+      await deletePkmsLocalItems(workspaceId, ids);
+      appendStartupLog("pkms_local_delete_completed", { workspaceId, paths });
+    } catch (error) {
+      appendStartupLog("pkms_local_delete_failed", { workspaceId, paths, error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
   });
   ipcMain.handle("pkms:local-file:write", async (event, workspaceId: string, relativePath: string, text: string, revision: string) => {
     assertTrustedSender(event);

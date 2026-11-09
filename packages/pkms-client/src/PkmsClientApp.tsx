@@ -9,7 +9,7 @@ import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorS
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
 import { desktopBridge, type PkmsSyncBridgeStatus } from "./platform/desktopApi";
 import { requestPkmsApi } from "./client/api";
-import { flushQueuedWorkspaceAssets, flushQueuedWorkspaceOperations, WORKSPACE_OPERATION_QUEUE_EVENT } from "./client/workspaceOperations";
+import { flushQueuedWorkspaceAssets, flushQueuedWorkspaceOperations, submitWorkspaceOperation, WORKSPACE_OPERATION_QUEUE_EVENT } from "./client/workspaceOperations";
 import { useLocation, useNavigate } from "react-router";
 import type { FileNavigation, FileRecord, Peer, RealtimeMessage, Repository, SyncStatus, TreeContextMenu, TreeRow, Workspace } from "./domain/types";
 import { toBase64, createOperationId } from "./domain/encoding";
@@ -579,11 +579,32 @@ export default function Home() {
       async delete(refs) {
         const deleting = await Promise.all(refs.map((ref) => getPkmsFileById(ref.itemId)));
         if (deleting.some((file) => !file)) throw new EditorProviderError("notFound", "A PKMS delete target no longer exists");
+        const targets = deleting.filter((file): file is FileRecord => file !== null);
         const desktop = desktopBridge();
-        if (desktop && deleting.every((file) => file?.id.startsWith("local-")) && (await desktop.syncBridgeStatus(activeWorkspace.id)).enabled) {
-          const paths = deleting.map((file) => parentPath(file!.path));
-          await desktop.deleteLocalItems(activeWorkspace.id, deleting.map((file) => file!.id));
-          const removed = (file: FileRecord) => deleting.some((root) => root && (file.path === root.path || (root.kind === "folder" && file.path.startsWith(`${root.path}/`))));
+        if (desktop && targets.every((file) => file.id.startsWith("local-")) && (await desktop.syncBridgeStatus(activeWorkspace.id)).enabled) {
+          const roots = editorTreeSelectionRoots(targets, new Set(targets.map((file) => file.path)), (file) => file.kind === "folder");
+          const message = roots.length === 1 ? `Delete ${entryName(roots[0].path)}?` : `Delete ${roots.length} selected items?`;
+          if (!await confirm(message)) {
+            console.info("[pkms-delete] cancelled", { workspaceId: activeWorkspace.id, paths: roots.map((file) => file.path) });
+            return;
+          }
+          if (!confirmDirtyEditorDocumentsInPaths(roots.map((root) => root.path), (dirtyMessage) => window.confirm(dirtyMessage))) return;
+          const paths = roots.map((file) => parentPath(file.path));
+          console.info("[pkms-delete] started", { workspaceId: activeWorkspace.id, paths: roots.map((file) => file.path) });
+          try {
+            // Remove the cloud manifest entry first; otherwise the next sync pass recreates the local folder.
+            for (const root of roots) {
+              const remote = localCloudTree.find((entry) => entry.path === root.path && entry.kind === root.kind);
+              if (remote) await submitWorkspaceOperation(api, activeWorkspace, { type: "delete", fileId: remote.id }, `desktop-${createOperationId()}`);
+            }
+            await desktop.deleteLocalItems(activeWorkspace.id, roots.map((file) => file.id));
+          } catch (cause) {
+            console.error("[pkms-delete] failed", { workspaceId: activeWorkspace.id, paths: roots.map((file) => file.path), error: cause instanceof Error ? cause.message : String(cause) });
+            setError(cause instanceof Error ? `Could not delete item: ${cause.message}` : "Could not delete item");
+            throw new EditorProviderError("unknown", cause instanceof Error ? cause.message : "Could not delete PKMS items");
+          }
+          console.info("[pkms-delete] completed", { workspaceId: activeWorkspace.id, paths: roots.map((file) => file.path) });
+          const removed = (file: FileRecord) => roots.some((root) => file.path === root.path || (root.kind === "folder" && file.path.startsWith(`${root.path}/`)));
           const deletedIds = new Set(getFiles().filter(removed).map((file) => file.id));
           for (const [sessionKey, session] of [...pkmsEditorSessions.current]) {
             if (!deleting.some((root) => root && (session.item.path === root.path || (root.kind === "folder" && session.item.path.startsWith(`${root.path}/`)))) && !deletedIds.has(session.item.itemId)) continue;
@@ -593,14 +614,14 @@ export default function Home() {
           setFiles(getFiles().filter((file) => !removed(file)));
           setOpenDocuments((current) => current.filter((tab) => tab.workspaceId !== activeWorkspace.id || !removed(tab.file)));
           setActiveFile((current) => current && removed(current) ? null : current);
-          setActiveEditorSession((current) => current && deleting.some((root) => root && (current.item.path === root.path || (root.kind === "folder" && current.item.path.startsWith(`${root.path}/`)))) ? null : current);
+          setActiveEditorSession((current) => current && roots.some((root) => current.item.path === root.path || (root.kind === "folder" && current.item.path.startsWith(`${root.path}/`))) ? null : current);
           treeProviderListeners.current.forEach((listener) => listener(paths));
           return;
         }
         await treeOperationsRef.current.delete(deleting.filter((file): file is FileRecord => file !== null));
       },
     },
-  }) : null, [activeWorkspace?.id, getPkmsFileById, getFiles, loadedFolders, rekeyPkmsEditorSession, refreshDirectory, refreshOpenEditorItemMetadata]);
+  }) : null, [activeWorkspace, confirm, localCloudTree, getPkmsFileById, getFiles, loadedFolders, rekeyPkmsEditorSession, refreshDirectory, refreshOpenEditorItemMetadata]);
   const canCreateFile = editorSupportsOperation(editorProvider, "createFile");
   const canCreateDirectory = editorSupportsOperation(editorProvider, "createDirectory");
   const canRename = editorSupportsOperation(editorProvider, "rename");
