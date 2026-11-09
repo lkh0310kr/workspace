@@ -434,8 +434,8 @@ struct ContentView: View {
                 .background(Color(uiColor: .systemBackground))
 
             HStack(spacing: 8) {
-                Circle().fill(model.githubStatus == "synced" ? Color.green : Color.orange).frame(width: 7, height: 7)
-                Text(syncLabel).lineLimit(1)
+                Circle().fill(backupStatusColor).frame(width: 7, height: 7)
+                Text(backupLabel).lineLimit(1)
                 Spacer()
                 if model.collaborators.count > 1 {
                     Label("\(model.collaborators.count)", systemImage: "person.2")
@@ -448,10 +448,25 @@ struct ContentView: View {
         .navigationTitle(model.activeFile.map { entryName($0.path) } ?? "Note")
     }
 
-    private var syncLabel: String {
-        if model.githubStatus == "synced" { return "Synced with GitHub" }
-        if model.pendingFiles > 0 { return "\(model.pendingFiles) changes · syncing" }
-        return model.githubStatus.capitalized
+    private var backupStatusColor: Color {
+        switch model.githubStatus {
+        case "synced": return .green
+        case "failed", "external-change": return .red
+        default: return .orange
+        }
+    }
+
+    private var backupLabel: String {
+        switch model.githubStatus {
+        case "synced": return "GitHub backup up to date"
+        case "pending":
+            return model.pendingFiles > 0
+                ? "\(model.pendingFiles) files awaiting GitHub backup"
+                : "GitHub backup pending"
+        case "failed": return model.statusMessage.isEmpty ? "GitHub backup failed" : model.statusMessage
+        case "external-change": return model.statusMessage.isEmpty ? "GitHub changed externally · backup paused" : model.statusMessage
+        default: return "GitHub backup: \(model.githubStatus)"
+        }
     }
 
     private var repositoryPicker: some View {
