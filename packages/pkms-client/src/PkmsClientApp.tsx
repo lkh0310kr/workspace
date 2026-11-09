@@ -532,9 +532,54 @@ export default function Home() {
     editorSessionOpenController.current?.abort();
     const controller = new AbortController();
     editorSessionOpenController.current = controller;
+    const sourceFileId = file.id;
+    if (activeWorkspace && file.kind === "markdown" && !file.id.startsWith("local-")) {
+      const desktop = desktopBridge();
+      if (desktop) {
+        try {
+          const bridge = await desktop.syncBridgeStatus(activeWorkspace.id);
+          if (bridge.enabled) {
+            let localFile = (await desktop.listLocalDirectory(activeWorkspace.id, parentPath(file.path)))
+              .find((entry) => entry.path === file.path && entry.kind === "markdown");
+            let currentBridge = bridge;
+            for (let attempt = 0; !localFile && currentBridge.state === "syncing" && attempt < 60; attempt++) {
+              await new Promise((resolve) => setTimeout(resolve, 500));
+              currentBridge = await desktop.syncBridgeStatus(activeWorkspace.id);
+              localFile = (await desktop.listLocalDirectory(activeWorkspace.id, parentPath(file.path)))
+                .find((entry) => entry.path === file.path && entry.kind === "markdown");
+            }
+            const cloudKey = pkmsDocumentKey(activeWorkspace.id, sourceFileId);
+            const cloudSession = pkmsEditorSessions.current.get(cloudKey);
+            if (cloudSession && cloudSession.snapshot().savePhase !== "clean") {
+              await cloudSession.save({ flushSync: false });
+              await desktop.scanSyncBridge(activeWorkspace.id);
+              let synced = await desktop.syncBridgeStatus(activeWorkspace.id);
+              for (let attempt = 0; synced.state === "syncing" && attempt < 60; attempt++) {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                synced = await desktop.syncBridgeStatus(activeWorkspace.id);
+              }
+              if (synced.state !== "synced") throw new Error("Cloud changes are still syncing. Reopen this note after folder sync finishes.");
+              localFile = (await desktop.listLocalDirectory(activeWorkspace.id, parentPath(file.path)))
+                .find((entry) => entry.path === file.path && entry.kind === "markdown");
+            }
+            if (!localFile) throw new Error("This note is not available in the connected local folder yet. Wait for folder sync or check its exclude paths.");
+            if (cloudSession) {
+              closePkmsEditorSession(cloudKey, cloudSession);
+              if (activeEditorSession === cloudSession) setActiveEditorSession(null);
+            }
+            file = localFile;
+          }
+        } catch (cause) {
+          if (controller.signal.aborted) return;
+          setError(cause instanceof Error ? cause.message : "Could not switch this note to the connected local folder.");
+          if (editorSessionOpenController.current === controller) editorSessionOpenController.current = null;
+          return;
+        }
+      }
+    }
     if (activeWorkspace) {
       setOpenDocuments((current) => {
-        const index = current.findIndex((tab) => tab.workspaceId === activeWorkspace.id && tab.file.id === file.id);
+        const index = current.findIndex((tab) => tab.workspaceId === activeWorkspace.id && (tab.file.id === file.id || tab.file.id === sourceFileId || tab.file.path === file.path));
         if (index < 0) return [...current, { workspaceId: activeWorkspace.id, file }];
         const next = [...current];
         next[index] = { workspaceId: activeWorkspace.id, file };
@@ -604,7 +649,7 @@ export default function Home() {
     } finally {
       if (editorSessionOpenController.current === controller) editorSessionOpenController.current = null;
     }
-  }, [activeWorkspace, editorProvider, location.pathname, navigate, openDocumentSession, setCurrentFolder, setExpandedFolders, trackPkmsEditorSession]);
+  }, [activeEditorSession, activeWorkspace, closePkmsEditorSession, editorProvider, location.pathname, navigate, openDocumentSession, setCurrentFolder, setExpandedFolders, trackPkmsEditorSession]);
   useEffect(() => {
     const desktop = desktopBridge();
     const current = activeFile;
