@@ -12,6 +12,7 @@
 6. [브라우저 embed](./06-browser-embeds.md) — webview 수명과 탐색
 7. [PKMS 아키텍처](./pkms/README.md) — 전체 통합 경계와 Desktop 폴더 동기화
 8. [제품별 앱 경계](./08-monorepo-module-boundaries.md) — PKMS와 Workspace 앱, 서버, 공유 패키지의 목표 구조와 이전 순서
+9. [Desktop 릴리스 원칙](./desktop-release.md) — 활성 플랫폼 우선 검증, 네이티브 패키지 기준, 업데이트 배포
 
 
 ## 범위
