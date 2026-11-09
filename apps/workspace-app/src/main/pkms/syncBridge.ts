@@ -4,25 +4,27 @@ import { promises as fs, watch, type FSWatcher } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import * as Y from "yjs";
+import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
 import { requestPkmsApi } from "./api";
 import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from "../../shared/pkmsSyncBridge";
 
-type BridgeFile = { id: string; path: string; kind: string; revision: number; size?: number; sha?: string | null };
+type BridgeFile = { id: string; path: string; kind: string; revision: number; size?: number; sha?: string | null; localHash?: string };
 type BridgeSnapshotPage = { revision: number; files: BridgeFile[]; hasMore: boolean; nextPath: string };
 type BridgeChange = BridgeFile & { deleted: boolean };
 type Baseline = { fileId: string; hash: string; revision: number };
-type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>>; remoteFiles: Record<string, Record<string, BridgeFile>>; syncCursors: Record<string, number>; remoteTrees: Record<string, BridgeFile[]>; remoteTreeVersions: Record<string, number> };
-const EMPTY: Persisted = { configs: {}, baselines: {}, remoteFiles: {}, syncCursors: {}, remoteTrees: {}, remoteTreeVersions: {} };
+type Persisted = { configs: Record<string, { folderPath: string; excludedPaths: string[] }>; baselines: Record<string, Record<string, Baseline>>; remoteFiles: Record<string, Record<string, BridgeFile>>; syncCursors: Record<string, number>; remoteTrees: Record<string, BridgeFile[]>; remoteTreeVersions: Record<string, number>; pendingPaths: Record<string, string[]>; pendingUpdates: Record<string, Record<string, { operationId: string; targetHash: string; update: string }>>; pendingCreates: Record<string, Record<string, { operationId: string; fileId: string; contentHash: string; content: string }>>; pendingFolderCreates: Record<string, Record<string, string>> };
+const EMPTY: Persisted = { configs: {}, baselines: {}, remoteFiles: {}, syncCursors: {}, remoteTrees: {}, remoteTreeVersions: {}, pendingPaths: {}, pendingUpdates: {}, pendingCreates: {}, pendingFolderCreates: {} };
 // Poll the cloud's revision feed frequently; full disk walks are a recovery path.
 // The revision feed is metadata-only; poll it frequently so edits from web/iOS
 // reach the local source of truth promptly. Full disk walks remain a recovery
 // path because native watcher events cover normal local edits.
-const REMOTE_CHANGE_POLL_INTERVAL_MS = 750;
+const REMOTE_CHANGE_POLL_INTERVAL_MS = 30_000;
 const FULL_LOCAL_SCAN_INTERVAL_MS = 15 * 60_000;
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const retryAttempts = new Map<string, number>();
 const pollers = new Map<string, ReturnType<typeof setInterval>>();
+const realtimeChannels = new Map<string, { client: SupabaseClient; channel: RealtimeChannel; tokenTimer: ReturnType<typeof setInterval> }>();
 const fullScanners = new Map<string, ReturnType<typeof setInterval>>();
 const watchers = new Map<string, FSWatcher>();
 const statuses = new Map<string, PkmsSyncBridgeStatus>();
@@ -100,7 +102,7 @@ async function load(): Promise<Persisted> {
   if (persisted) return persisted;
   try {
     const saved = JSON.parse(await fs.readFile(statePath(), "utf8")) as Partial<Persisted>;
-    persisted = { ...EMPTY, ...saved, remoteFiles: saved.remoteFiles ?? {}, syncCursors: saved.syncCursors ?? {}, remoteTrees: saved.remoteTrees ?? {}, remoteTreeVersions: saved.remoteTreeVersions ?? {} };
+    persisted = { ...EMPTY, ...saved, remoteFiles: saved.remoteFiles ?? {}, syncCursors: saved.syncCursors ?? {}, remoteTrees: saved.remoteTrees ?? {}, remoteTreeVersions: saved.remoteTreeVersions ?? {}, pendingPaths: saved.pendingPaths ?? {}, pendingUpdates: saved.pendingUpdates ?? {}, pendingCreates: saved.pendingCreates ?? {}, pendingFolderCreates: saved.pendingFolderCreates ?? {} };
   }
   catch { persisted = structuredClone(EMPTY); }
   return persisted;
@@ -301,6 +303,37 @@ async function request<T>(pathName: string, method: "GET" | "POST", value?: unkn
     throw new Error(detail.message ?? detail.error ?? `PKMS request failed (${response.status})`);
   }
   return response.body;
+}
+async function startCloudWakeup(workspaceId: string): Promise<void> {
+  stopCloudWakeup(workspaceId);
+  try {
+    const config = await request<{ url: string; anonKey: string }>("/api/realtime/config", "GET");
+    const initial = await request<{ token: string }>("/api/realtime/token", "GET");
+    let activeToken = initial.token;
+    const client = createClient(config.url, config.anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      accessToken: async () => activeToken,
+    });
+    await client.realtime.setAuth(initial.token);
+    const channel = client.channel(`pkms:${workspaceId}`, { config: { private: true, broadcast: { self: false } } });
+    channel.on("broadcast", { event: "protocol" }, () => schedule(workspaceId));
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") schedule(workspaceId); // cursor catch-up after connect/reconnect
+    });
+    const tokenTimer = setInterval(() => {
+      void request<{ token: string }>("/api/realtime/token", "GET").then(({ token }) => { activeToken = token; return client.realtime.setAuth(token); }).catch(() => schedule(workspaceId));
+    }, 10 * 60_000);
+    realtimeChannels.set(workspaceId, { client, channel, tokenTimer });
+  } catch {
+    // Revision polling remains the recovery path when realtime auth/network is unavailable.
+  }
+}
+function stopCloudWakeup(workspaceId: string): void {
+  const active = realtimeChannels.get(workspaceId);
+  if (!active) return;
+  clearInterval(active.tokenTimer);
+  void active.client.removeChannel(active.channel);
+  realtimeChannels.delete(workspaceId);
 }
 function b64(bytes: Uint8Array): string { return Buffer.from(bytes).toString("base64"); }
 function fromB64(value: string): Uint8Array { return new Uint8Array(Buffer.from(value, "base64")); }
@@ -549,18 +582,34 @@ async function readRemoteSnapshot(workspaceId: string): Promise<{ revision: numb
   }
 }
 async function createRemoteFile(workspaceId: string, snapshotRevision: number, relative: string, content: string): Promise<BridgeFile> {
-  const fileId = randomUUID();
+  const state = await load();
+  const creates = state.pendingCreates[workspaceId] ??= {};
+  const contentHash = hash(content);
+  const pending = creates[relative] ?? { operationId: randomUUID(), fileId: randomUUID(), contentHash, content };
+  creates[relative] = pending;
+  await save();
+  const { operationId, fileId } = pending;
   const doc = new Y.Doc({ guid: fileId });
-  if (content) doc.getText("markdown").insert(0, content);
+  if (pending.content) doc.getText("markdown").insert(0, pending.content);
   const result = await request<{ file?: BridgeFile; path?: string; fileId?: string; acceptedRevision?: number; conflictCopyPath?: string }>(
     `/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
-      operationId: randomUUID(), baseRevision: snapshotRevision, clientId: "desktop-sync-bridge",
-      operation: { type: "create-file", path: relative, fileId, content }, initialState: b64(Y.encodeStateAsUpdate(doc)),
+      operationId, baseRevision: snapshotRevision, clientId: "desktop-sync-bridge",
+      operation: { type: "create-file", path: relative, fileId, content: pending.content }, initialState: b64(Y.encodeStateAsUpdate(doc)),
     },
   );
-  return { id: result.file?.id ?? result.fileId ?? fileId, path: result.file?.path ?? result.conflictCopyPath ?? result.path ?? relative, kind: "markdown", revision: result.file?.revision ?? result.acceptedRevision ?? 0 };
+  return { id: result.file?.id ?? result.fileId ?? fileId, path: result.file?.path ?? result.conflictCopyPath ?? result.path ?? relative, kind: "markdown", revision: result.file?.revision ?? result.acceptedRevision ?? 0, localHash: hash(pending.content) };
 }
 async function replaceRemoteText(workspaceId: string, file: BridgeFile, currentRemote: string, nextText: string): Promise<number> {
+  const state = await load();
+  const updates = state.pendingUpdates[workspaceId] ??= {};
+  const targetHash = hash(nextText);
+  const existingPending = updates[file.id];
+  if (existingPending?.targetHash === targetHash) {
+    const ack = await request<{ acceptedRevision?: number }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/${encodeURIComponent(file.id)}/updates`, "POST", existingPending);
+    delete updates[file.id];
+    await save();
+    return ack.acceptedRevision ?? file.revision;
+  }
   const latest = await request<{ update: string; revision: number }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/${encodeURIComponent(file.id)}/updates`, "GET");
   const doc = new Y.Doc({ guid: file.id });
   Y.applyUpdate(doc, fromB64(latest.update));
@@ -574,9 +623,14 @@ async function replaceRemoteText(workspaceId: string, file: BridgeFile, currentR
   const removed = currentRemote.length - prefix - suffix;
   const inserted = nextText.slice(prefix, nextText.length - suffix);
   doc.transact(() => { if (removed) text.delete(prefix, removed); if (inserted) text.insert(prefix, inserted); });
-  const result = await request<{ acceptedRevision?: number }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/${encodeURIComponent(file.id)}/updates`, "POST", {
-    operationId: randomUUID(), update: b64(Y.encodeStateAsUpdate(doc, vector)),
-  });
+  const mutation = {
+    operationId: randomUUID(), targetHash, update: b64(Y.encodeStateAsUpdate(doc, vector)),
+  };
+  updates[file.id] = mutation;
+  await save();
+  const result = await request<{ acceptedRevision?: number }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/${encodeURIComponent(file.id)}/updates`, "POST", mutation);
+  delete updates[file.id];
+  await save();
   return result.acceptedRevision ?? latest.revision;
 }
 async function conflictCopy(root: string, relative: string, content: string): Promise<string> {
@@ -599,9 +653,11 @@ async function syncOnce(workspaceId: string): Promise<void> {
     try {
       if (!folderLocks.has(workspaceId)) folderLocks.set(workspaceId, await acquireFolderSyncLock(root, workspaceId));
       fullScan = fullScanRequests.delete(workspaceId);
-      scannedLocalPaths = [...(dirtyLocalPaths.get(workspaceId) ?? [])];
+      scannedLocalPaths = [...new Set([...(dirtyLocalPaths.get(workspaceId) ?? []), ...((await load()).pendingPaths[workspaceId] ?? [])])];
       dirtyLocalPaths.delete(workspaceId);
       const state = await load();
+      state.pendingPaths[workspaceId] = [...new Set([...(state.pendingPaths[workspaceId] ?? []), ...scannedLocalPaths])];
+      await save();
       let knownRemoteFiles = state.remoteFiles[workspaceId];
       let knownRemoteTree = state.remoteTrees[workspaceId];
       let nextSyncRevision = state.syncCursors[workspaceId];
@@ -649,6 +705,44 @@ async function syncOnce(workspaceId: string): Promise<void> {
         state.remoteTrees[workspaceId] = knownRemoteTree;
         state.remoteTreeVersions[workspaceId] = Math.max((state.remoteTreeVersions[workspaceId] ?? -1) + 1, page.nextRevision);
         nextSyncRevision = page.nextRevision;
+      }
+      // Folder metadata is cheap and the manifest is already cached. Materialize
+      // remote folders locally; local watcher paths create the corresponding
+      // cloud entries. Folder deletions are intentionally not inferred from a
+      // single OS delete event (recursive watcher events are ambiguous).
+      for (const folder of (knownRemoteTree ?? []).filter((file) => file.kind === "folder").sort((a, b) => a.path.split("/").length - b.path.split("/").length)) {
+        if (isReservedSyncPath(folder.path) || matchesExclusion(folder.path, config.excludedPaths ?? [])) continue;
+        const target = safePath(root, folder.path);
+        try {
+          await assertSafeParentDirectories(root, folder.path);
+          const stat = await fs.lstat(target);
+          if (stat.isSymbolicLink() || !stat.isDirectory()) continue;
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+          await fs.mkdir(target, { recursive: true });
+          notifyLocalTreeChanged(workspaceId, folder.path);
+        }
+      }
+      for (const relative of scannedLocalPaths) {
+        if (!relative || isReservedSyncPath(relative) || matchesExclusion(relative, config.excludedPaths ?? [])) continue;
+        const target = safePath(root, relative);
+        let stat;
+        try { stat = await fs.lstat(target); } catch { continue; }
+        if (!stat.isDirectory() || (knownRemoteTree ?? []).some((file) => file.kind === "folder" && file.path === relative)) continue;
+        const pendingFolders = state.pendingFolderCreates[workspaceId] ??= {};
+        const operationId = pendingFolders[relative] ??= randomUUID();
+        await save();
+        const result = await request<{ acceptedRevision?: number; conflictCopyPath?: string }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
+          operationId, baseRevision: nextSyncRevision, clientId: "desktop-sync-bridge",
+          operation: { type: "create-folder", path: relative },
+        });
+        delete pendingFolders[relative];
+        const cloudPath = result.conflictCopyPath ?? relative;
+        const folder = { id: `folder-${cloudPath}`, path: cloudPath, kind: "folder", revision: result.acceptedRevision ?? 0 };
+        knownRemoteTree = [...(knownRemoteTree ?? []).filter((file) => file.path !== cloudPath), folder];
+        state.remoteTrees[workspaceId] = knownRemoteTree;
+        nextSyncRevision = Math.max(nextSyncRevision ?? 0, result.acceptedRevision ?? 0);
+        await save();
       }
       if (!fullScan && scannedLocalPaths.length === 0 && remoteChangedPaths.size === 0) {
         // The fast revision poll is intentionally frequent. Avoid rescanning
@@ -750,13 +844,13 @@ async function syncOnce(workspaceId: string): Promise<void> {
           if (baseline) {
             if (hash(localText) !== baseline.hash) {
               const created = await preserveConflictCopy(relative, localText);
-              baselines[created.path] = { fileId: created.id, hash: hash(localText), revision: created.revision };
+              baselines[created.path] = { fileId: created.id, hash: created.localHash ?? hash(localText), revision: created.revision };
             }
             await removeLocalFile(root, relative, hash(localText));
             delete baselines[relative];
           } else {
             const created = await createAndRememberRemoteFile(relative, localText);
-            baselines[created.path] = { fileId: created.id, hash: hash(localText), revision: created.revision };
+            baselines[created.path] = { fileId: created.id, hash: created.localHash ?? hash(localText), revision: created.revision };
           }
           itemComplete = true;
           return;
@@ -780,7 +874,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             if (remoteChanged) {
               const latestText = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
               const created = await preserveConflictCopy(relative, latestText);
-              baselines[created.path] = { fileId: created.id, hash: hash(latestText), revision: created.revision };
+              baselines[created.path] = { fileId: created.id, hash: created.localHash ?? hash(latestText), revision: created.revision };
             }
             await request(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
               operationId: randomUUID(), baseRevision: nextSyncRevision, clientId: "desktop-sync-bridge",
@@ -801,7 +895,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             baselines[relative] = { fileId: remote.id, hash: localHash, revision: remoteContent?.revision ?? remote.revision };
           } else {
             const created = await preserveConflictCopy(relative, actualLocal);
-            baselines[created.path] = { fileId: created.id, hash: localHash, revision: created.revision };
+            baselines[created.path] = { fileId: created.id, hash: created.localHash ?? localHash, revision: created.revision };
             await writeAtomic(root, relative, remoteText ?? "", localHash);
             baselines[relative] = { fileId: remote.id, hash: hash(remoteText ?? ""), revision: remoteContent?.revision ?? remote.revision };
           }
@@ -812,7 +906,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         const remoteChanged = remote.id !== baseline.fileId || (remoteContent !== null && remoteContent.revision !== baseline.revision);
         if (localChanged && remoteChanged) {
           const created = await preserveConflictCopy(relative, actualLocal);
-          baselines[created.path] = { fileId: created.id, hash: localHash, revision: created.revision };
+          baselines[created.path] = { fileId: created.id, hash: created.localHash ?? localHash, revision: created.revision };
           const text = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
           await writeAtomic(root, relative, text, localHash);
           baselines[relative] = { fileId: remote.id, hash: hash(text), revision: remoteContent?.revision ?? remote.revision };
@@ -850,10 +944,17 @@ async function syncOnce(workspaceId: string): Promise<void> {
       if (knownRemoteTree) state.remoteTrees[workspaceId] = knownRemoteTree;
       state.remoteTreeVersions[workspaceId] = Math.max((state.remoteTreeVersions[workspaceId] ?? -1) + 1, nextSyncRevision);
       state.syncCursors[workspaceId] = nextSyncRevision;
+      for (const [relative, create] of Object.entries(state.pendingCreates[workspaceId] ?? {})) {
+        if (Object.values(baselines).some((baseline) => baseline.fileId === create.fileId)) delete state.pendingCreates[workspaceId][relative];
+      }
       await save();
       retryAttempts.delete(workspaceId);
       const conflictFiles = [...new Set([...local.keys(), ...Object.keys(baselines)])].filter((relative) => /\.local-conflict-[^/]+\.md$/i.test(relative));
       setStatus(workspaceId, { state: "synced", stage: null, progress: { completed: total, total, percent: 100 }, enabled: true, folderPath: root, lastScannedAt: Date.now(), lastSyncedAt: Date.now(), pendingFiles: 0, conflictFiles, error: null });
+      const pendingPaths = new Set(state.pendingPaths[workspaceId] ?? []);
+      for (const relative of scannedLocalPaths) if (!dirtyLocalPaths.get(workspaceId)?.has(relative)) pendingPaths.delete(relative);
+      state.pendingPaths[workspaceId] = [...pendingPaths];
+      await save();
     } catch (error) {
       if (fullScan) fullScanRequests.add(workspaceId);
       if (scannedLocalPaths.length) {
@@ -899,6 +1000,12 @@ function schedule(workspaceId: string, fullScan = false, localPath?: string): vo
     const pending = dirtyLocalPaths.get(workspaceId) ?? new Set<string>();
     pending.add(localPath);
     dirtyLocalPaths.set(workspaceId, pending);
+    void load().then(async (state) => {
+      const queued = new Set(state.pendingPaths[workspaceId] ?? []);
+      queued.add(localPath);
+      state.pendingPaths[workspaceId] = [...queued];
+      await save();
+    }).catch(() => {});
     if (!isReservedSyncPath(localPath)) setItemState(workspaceId, localPath, "pending");
   }
   if (running.has(workspaceId)) return;
@@ -912,6 +1019,7 @@ function schedule(workspaceId: string, fullScan = false, localPath?: string): vo
 async function stopRuntime(workspaceId: string, releaseLock = true): Promise<void> {
   watchers.get(workspaceId)?.close(); watchers.delete(workspaceId);
   const poll = pollers.get(workspaceId); if (poll) clearInterval(poll); pollers.delete(workspaceId);
+  stopCloudWakeup(workspaceId);
   const fullScan = fullScanners.get(workspaceId); if (fullScan) clearInterval(fullScan); fullScanners.delete(workspaceId);
   const timer = timers.get(workspaceId); if (timer) clearTimeout(timer); timers.delete(workspaceId);
   const retryTimer = retryTimers.get(workspaceId); if (retryTimer) clearTimeout(retryTimer); retryTimers.delete(workspaceId);
@@ -958,6 +1066,7 @@ async function startRuntime(workspaceId: string, folderPath: string): Promise<vo
       watchers.set(workspaceId, watcher);
     } catch { /* Polling remains available if native recursive watching is unsupported. */ }
     pollers.set(workspaceId, setInterval(() => schedule(workspaceId), REMOTE_CHANGE_POLL_INTERVAL_MS));
+    void startCloudWakeup(workspaceId);
     fullScanners.set(workspaceId, setInterval(() => {
       if (!running.has(workspaceId)) schedule(workspaceId, true);
     }, FULL_LOCAL_SCAN_INTERVAL_MS));
