@@ -116,7 +116,10 @@ async function promoteMac() {
     console.log("[promote-stable] building…");
     execFileSync("npm", ["run", "build"], { cwd: root, stdio: "inherit" });
   }
-  const builderArgs = ["electron-builder", "--mac", "--dir"];
+  // The `dir` target does not cause electron-builder to write app-update.yml.
+  // Build the ZIP target so the installed app carries the same updater config
+  // as the public macOS release package.
+  const builderArgs = ["electron-builder", "--mac", "zip", "--publish", "never"];
   if (signingIdentity) builderArgs.push(`-c.mac.identity=${signingIdentity}`);
   if (process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS) {
     builderArgs.push(`-c.mac.entitlements=${path.resolve(process.env.PROMOTE_STABLE_MAC_ENTITLEMENTS)}`);
@@ -135,6 +138,9 @@ async function promoteMac() {
   if (!existsSync(builtApp)) {
     console.error(`[promote-stable] expected build output missing: ${builtApp}`);
     process.exit(1);
+  }
+  if (!existsSync(path.join(builtApp, "Contents", "Resources", "app-update.yml"))) {
+    throw new Error("The packaged Workspace app is missing its GitHub updater configuration (app-update.yml).");
   }
 
   execFileSync("codesign", ["--verify", "--deep", "--strict", builtApp], { stdio: "inherit" });
