@@ -40,15 +40,15 @@ Desktop과 Web PKMS는 같은 `PkmsClientApp`을 사용한다. 따라서 `packag
 |---|---|---|---|---|
 | Markdown frame 및 filename title | `EditorMarkdownEditor` + `EditorMarkdownTitle`; 공용 문서 폭·title·width toggle | 같은 공용 컴포넌트를 `PkmsClientApp`에서 사용 | 공유됨 / 검증 필요 | component 복제 없이 같은 CSS와 상호작용을 유지한다. 양 host의 title/body 폭, padding, wide/readable 동작이 같아야 한다. |
 | Markdown surface 및 렌더러 | `EditorMarkdownSurface` 공용 CodeMirror parser, syntax theme, live preview, link/image pipeline | 같은 surface 사용. PKMS는 provider 이미지 resolver와 link activation을 주입 | 공유됨 / 검증 필요 | 표·Mermaid·TeX·HTML·code fence는 공용 renderer 기준. provider 차이는 resource/link resolver에서만 허용한다. |
-| PKMS 링크 문법 | Desktop Editor는 `wikiLinkExtension`을 parser에 주입 | PKMS는 parser extension 없이 기본 shared parser 사용 | 불일치 | PKMS에서도 `[[wikilink]]`/alias/내부 링크 활성화 결과가 Desktop 기준과 같아야 한다. 지원 범위와 미지원 target fallback을 문서화한다. |
-| Markdown breadcrumbs | Desktop Editor는 `EditorBreadcrumbs`를 title/document 위에 렌더하고 provider로 경로 이동 지원 | PKMS는 별도 topbar에서 repository와 파일 경로를 표시. 공유 `EditorBreadcrumbs` 미사용 | 불일치 | 공용 breadcrumb interaction/visual을 사용한다. PKMS 저장소명은 Workspace 이름/context로 chrome에 둘지 breadcrumb 시작점으로 둘지 구현 전 확정한다. 중복 경로는 표시하지 않는다. |
+| PKMS 링크 문법 | Desktop Editor와 PKMS가 `editorMarkdownParserExtensions`를 parser에 주입 | 공용 Markdown parser extension preset 사용 | 정렬 완료 / UI 검증 필요 | `[[wikilink]]`/alias parser configuration은 한 export를 사용한다. 실제 open/alias/target behavior는 host별 확인한다. |
+| Markdown breadcrumbs | Desktop Editor는 `EditorBreadcrumbs`를 title/document 위에 렌더하고 provider로 경로 이동 지원 | PKMS Markdown 화면도 shared `EditorBreadcrumbs`를 사용하고 provider에서 sibling entries를 읽음 | 1차 반영 / UI 검증 필요 | repository는 shell chrome에, 파일 경로는 공용 breadcrumb에 둬 중복 표시하지 않는다. Web/Desktop sibling menu 및 파일 open 결과를 확인한다. |
 | Markdown title 편집 | 공용 title component, click 위치 caret, provider rename 지원 시에만 edit | 공용 title component와 PKMS provider rename 사용 | 공유됨 / 검증 필요 | 기존 동작을 보존하고 PKMS rename·충돌·동기화 후 경로/title 갱신을 확인한다. |
 | Markdown search | Desktop Editor는 편집기 내부 `Cmd/Ctrl+F` 검색 panel을 사용 | 공용 text surface 기반. PKMS 전체 앱 단축키/검색 진입을 별도 보유할 수 있음 | 검증 필요 | 문서 내 찾기와 파일 전체 검색을 구분하고, 같은 단축키가 shell과 surface에서 중복 실행되지 않게 한다. |
 | Code editor | Desktop Editor는 Markdown 외 코드 파일을 CodeMirror 언어 지원·syntax theme와 함께 편집 | PKMS의 문서 화면은 Markdown 편집 및 asset preview 중심, 일반 코드 편집 surface 없음 | 불일치 / 제품 결정 | PKMS 저장소의 코드 파일 편집이 범위라면 Desktop Editor와 동일한 shared `EditorTextSurface`/language registry를 재사용한다. PKMS 전용 syntax editor를 만들지 않는다. 범위 밖이면 파일을 편집 가능하다고 노출하지 않는다. |
 | 코드 fence | shared Markdown surface에서 언어 식별·highlight 및 fence presentation | 같은 Markdown surface를 사용하지만 PKMS host 실기 확인 부족 | 검증 필요 | fence 안 언어 표시 위치, 클릭 복사, 배경/모서리/높이, 지원 언어 색상이 Web/Desktop에서 같아야 한다. |
 | 문서 탭 | Workspace Pane tab strip가 탭·dirty marker·close를 소유 | PKMS `EditorDocumentTabBar`와 PKMS 전용 open-document state 사용 | 불일치 | PKMS는 multi-document 기능을 유지하되 동일 `EditorDocumentTabBar` visual/keyboard/dirty/close 계약을 따른다. Desktop Pane tab strip 자체를 PKMS에 복제하지 않는다. |
-| 저장 표시 및 오류 | Desktop Editor는 clean/saving 상태 라벨을 노출하지 않고 실패 시에만 오류 표시 | PKMS topbar에 `Saved`/`Saving`/notice 기반 save-label 존재 | 불일치 | 정상 저장 상태 문구를 제거한다. 실패·충돌·재시도처럼 사용자가 조치할 상태만 공용 alert/toast 또는 PKMS sync surface로 알린다. |
-| 키보드 단축키 | Editor surface와 Workspace shell이 책임을 나눔 | PKMS 자체 sidebar `Cmd+\`, Quick Open `Cmd+P`, save 및 검색 처리 포함. Desktop shell도 `Cmd+\`를 Explorer에 사용 | 불일치 | Desktop shell이 `Cmd+\`를 단독 소유한다. PKMS 문서 편집 단축키는 Editor shared contract를 따르고 중복 등록을 제거한다. Web은 browser-reserved shortcut 제약을 별도 표기한다. |
+| 저장 표시 및 오류 | Desktop Editor는 clean/saving 상태 라벨을 노출하지 않고 실패 시에만 오류 표시 | 정상 `Saved`/`Saving` label 제거. 로컬 sync notice는 status message로 유지 | 1차 반영 / 추가 정리 필요 | 정상 문서 저장 label은 없다. sync notice는 PKMS 동기화 결과를 안내한다. 실패·충돌은 actionable error/sync UI로 유지한다. |
+| 키보드 단축키 | Editor surface와 Workspace shell이 책임을 나눔 | PKMS 자체 sidebar `Cmd+\\`, Quick Open `Cmd+P`, save 및 검색 처리 포함. Desktop shell도 `Cmd+\\`를 Explorer에 사용 | 부분 정렬 | Desktop PKMS의 `Cmd+\\` key handler를 비활성화해 shell과의 중복을 막았다. Web standalone은 sidebar shortcut을 유지한다. 그 외 shortcut ownership은 후속 정렬 항목이다. |
 | Scroll/view state | Editor 문서 key로 CodeMirror selection/scroll state 저장 및 restore | PKMS도 document key 및 view-state cache 사용 | 공유됨 / 검증 필요 | 동일 문서의 재열기·workspace 전환·저장 rename 후 scroll/caret 복원과 서로 다른 문서 간 상태 격리를 확인한다. PKMS session key를 바꿀 때 view state를 유실하지 않는다. |
 | TreeView | Workspace Explorer가 tree scroll/selection/expand와 pane navigation을 소유 | PKMS FileTreeList는 shared EditorTreeView를 사용하지만 PKMS가 별도 sidebar·selection/state/chrome를 소유 | 부분 정렬 | 공통 row visual/keyboard/context interaction을 따르고 PKMS provider capability만 주입한다. Desktop Explorer 상태와 PKMS 전용 파일 tree 상태의 소유권을 혼동하지 않는다. |
 | 파일 생성/rename/move/delete | Desktop Editor provider capability와 공용 tree actions | PKMS client provider/API가 PKMS mutation, collaboration dirty guard 및 sync 보호를 소유 | 부분 정렬 | UI 동작은 공용 editor/tree action, 권한·충돌·revision·folder-sync 안전성은 PKMS provider에서 처리한다. destructive mutation guard를 약화하지 않는다. |
@@ -73,6 +73,14 @@ Desktop과 Web PKMS는 같은 `PkmsClientApp`을 사용한다. 따라서 `packag
 
 구체적인 syntax coverage와 미완료 상태는 [Markdown product completeness](../../../../packages/editor/docs/markdown/product-completeness.md)가 기준이다. 이 문서의 표는 제품별 parity 적용과 acceptance만 다룬다.
 
+## 1차 반영 상태
+
+- Desktop Editor와 PKMS가 각각 선언하던 wikilink parser extension 목록을 `packages/editor`의 `editorMarkdownParserExtensions` 하나로 통합했다. Desktop Editor와 `PkmsClientApp` 모두 같은 preset을 Markdown surface에 전달한다.
+- PKMS Markdown 화면을 Desktop Editor와 같은 `EditorBreadcrumbs` component로 연결했다. PKMS provider에서 sibling list를 공급하고 선택 시 provider file ID로 파일을 연다. Repository context는 topbar에 남기고 active Markdown 경로는 breadcrumb에만 둔다.
+- PKMS topbar의 일반 저장 단계(`Saved`/`Saving`) 표시를 제거했다. 파일 탭의 dirty state 및 저장 오류 처리는 유지하고, folder sync notice는 별도 status message로 남겼다.
+- Desktop PKMS에서 `Cmd+\\`가 PKMS sidebar와 Workspace Explorer를 동시에 토글하지 않도록 PKMS shortcut listener가 해당 키를 처리하지 않게 했다. Web standalone의 PKMS sidebar shortcut은 유지한다.
+- 다음 우선 순위는 Markdown host render 검증 및 code editing 범위 결정이다. 이번 1차는 전체 PKMS shell 통합이나 코드 파일 편집 지원을 완료한 것으로 간주하지 않는다.
+
 ## 작업 목록
 
 ### P0 — 편집기 화면·조작 parity
@@ -80,12 +88,12 @@ Desktop과 Web PKMS는 같은 `PkmsClientApp`을 사용한다. 따라서 `packag
 1. 공유 Editor의 현재 title, body width, breadcrumb, Markdown preview, code fence, shortcut 결과를 기준 캡처/fixture로 고정한다.
 2. PKMS 정상 저장 `Saved`/`Saving` 라벨을 제거하고 오류/충돌 안내를 분리한다.
 3. Desktop PKMS의 `Cmd+\` 중복 sidebar/Explorer 처리를 제거하고 shortcut 소유자를 명시한다.
-4. PKMS 문서 상단 breadcrumb를 shared `EditorBreadcrumbs`와 정렬하고 repository context를 중복 없이 배치한다.
+4. Shared breadcrumb의 Web/Desktop menu interaction과 좁은 화면 결과를 검증한다.
 5. Web/Desktop PKMS에서 heading, link, table, Mermaid, TeX, HTML, code fence의 theme/style override를 조사하고 shared CSS가 결과를 소유하게 한다.
 
 ### P1 — 기능 parity 및 provider 연결
 
-1. PKMS Markdown parser에 Desktop Editor와 동일한 wikilink extension/동작을 연결한다.
+1. Wikilink open/alias 동작이 Desktop/Web PKMS에서 동일한지 수용 검증한다.
 2. PKMS 문서 검색, Quick Open, 파일 전체 검색, shell shortcut을 공용 Editor/PKMS command contract로 정렬한다.
 3. 문서 tab visual/dirty/close interaction을 Editor 공용 기준으로 정렬하면서 PKMS multi-document session을 유지한다.
 4. View-state identity migration 및 scroll/caret restore를 PKMS id/path rename·workspace switch·session reopen에서 검증한다.

@@ -64,7 +64,7 @@ export { resolveEditorTreeDirectory, resolveEditorTreePath } from "./resolveEdit
 export { HEADING_TYPES, markdownDocumentPath, markdownImageResolver, markdownLivePreview, markdownRootPath } from "./markdownLivePreview";
 export { markdownMathExtension } from "./markdownMath";
 export type { MarkdownImageResolver, MarkdownImageResource } from "./markdownLivePreview";
-export { wikiLinkExtension } from "./markdownWikilink";
+export { editorMarkdownParserExtensions, wikiLinkExtension } from "./markdownWikilink";
 export { createMarkdownEditorExtensions } from "./markdownEditor";
 export type { MarkdownEditorOptions } from "./markdownEditor";
 export { EditorQuickOpenDialog } from "./EditorQuickOpenDialog";

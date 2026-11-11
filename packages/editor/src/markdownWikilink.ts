@@ -22,3 +22,6 @@ export const wikiLinkExtension: MarkdownConfig = {
   defineNodes: ["WikiLink"],
   parseInline: [wikiLinkParser],
 };
+
+/** Markdown syntax extensions enabled by default across first-party editors. */
+export const editorMarkdownParserExtensions: readonly MarkdownConfig[] = [wikiLinkExtension];

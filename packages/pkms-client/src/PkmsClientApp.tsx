@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorSavePhaseLabel, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
@@ -854,6 +854,29 @@ export default function Home() {
     }
   }, [activeFile?.id, activeWorkspace?.id, clearActiveFile, closePkmsEditorSession, navigate, openFile, visibleOpenDocuments]);
   openFileRef.current = openFile;
+  const loadEditorBreadcrumbChildren = useCallback(async (directoryPath: string): Promise<EditorBreadcrumbEntry[]> => {
+    if (!editorProvider) return [];
+    const parent = await resolveEditorTreeDirectory(editorProvider, directoryPath);
+    const children = await editorProvider.listChildren(parent?.itemId ?? null);
+    return children.map((item) => ({
+      name: item.name,
+      path: item.path,
+      kind: item.kind === "directory" ? "directory" : item.kind === "asset" ? "viewer" : item.kind,
+    }));
+  }, [editorProvider]);
+  const openEditorBreadcrumbFile = useCallback((path: string) => {
+    void (async () => {
+      if (!editorProvider) return;
+      const item = await resolveEditorTreePath(editorProvider, path);
+      if (!item || item.kind === "directory") return;
+      const file = await getPkmsFileById(item.itemId);
+      if (!file) {
+        setError(`Could not find file: ${path}`);
+        return;
+      }
+      void openFileRef.current?.(file);
+    })().catch((cause) => setError(cause instanceof Error ? cause.message : "Could not open PKMS file"));
+  }, [editorProvider, getPkmsFileById, setError]);
   const activateMarkdownLink = useCallback((link: { kind: "markdown" | "wikilink"; target: string }) => {
     if (link.kind !== "markdown" || link.target.startsWith("#") || !activeWorkspace || !activeFile) return false;
     const targetPath = resolveEditorRelativeLink(activeFile.path, link.target);
@@ -1090,7 +1113,7 @@ export default function Home() {
         });
         return;
       }
-      if ((event.metaKey || event.ctrlKey) && (event.key === "\\" || event.code === "Backslash")) {
+      if (!desktopBridge() && (event.metaKey || event.ctrlKey) && (event.key === "\\" || event.code === "Backslash")) {
         event.preventDefault();
         setSidebarOpen((open) => !open);
         return;
@@ -1696,12 +1719,12 @@ export default function Home() {
 
       <section className="main-panel">
         <header className="topbar">
-          <div className="topbar-left"><button className="sidebar-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-expanded={sidebarOpen} aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"} title={sidebarOpen ? "Hide sidebar (⌘\\)" : "Show sidebar (⌘\\)"}><AppIcon name="menu" /></button><div className="breadcrumbs"><span>{activeWorkspace?.repository ?? "No workspace"}</span>{(activeFile || currentFolder) && <><span className="crumb-slash">/</span><span>{activeFile?.path ?? currentFolder}</span></>}</div></div>
+          <div className="topbar-left"><button className="sidebar-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-expanded={sidebarOpen} aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"} title={sidebarOpen ? `Hide sidebar${desktopBridge() ? "" : " (⌘\\)"}` : `Show sidebar${desktopBridge() ? "" : " (⌘\\)"}`}><AppIcon name="menu" /></button><div className="breadcrumbs"><span>{activeWorkspace?.repository ?? "No workspace"}</span>{!activeFile && currentFolder && <><span className="crumb-slash">/</span><span>{currentFolder}</span></>}</div></div>
           <div className="topbar-right">
-            <span className={`save-label ${saving ? "active" : ""}`}><span className="status-dot" />{saving ? editorSavePhaseLabel("saving") : notice || editorSavePhaseLabel(activeEditorSession?.snapshot().savePhase ?? "clean")}</span>
             {supportsCollaboration && peers.length > 1 && <div className="collaborators" aria-label="Collaborators"><span>{peers.length} here</span></div>}
           </div>
         </header>
+        {notice && <div className="notice sync-notice" role="status" aria-live="polite">{notice}</div>}
         {error && <button className="notice error dismissible" onClick={() => setError("")}>{error}<AppIcon name="close" /></button>}
         {showRepositories && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowRepositories(false); }}><section className="repository-modal">
           <button className="modal-close" onClick={() => setShowRepositories(false)} aria-label="Close"><AppIcon name="close" /></button><span className="eyebrow">GitHub</span><h2>Choose a repository</h2>
@@ -1731,6 +1754,7 @@ export default function Home() {
           onSelect={(id) => { const tab = visibleOpenDocuments.find((item) => item.file.id === id); if (tab) void openFile(tab.file); }}
           onClose={closeOpenDocument}
         />}
+        {activeFile?.kind === "markdown" && <EditorBreadcrumbs path={activeFile.path} onLoadChildren={loadEditorBreadcrumbChildren} onOpenFile={openEditorBreadcrumbFile} />}
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <EditorMarkdownEditor
             title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={supportsCollaboration && peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={canRename ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
             onBackgroundClick={() => {
@@ -1738,7 +1762,7 @@ export default function Home() {
               if (content?.type === "text") editorNavigate.current?.(content.text.length);
             }}
             surfaceKey={activeFile.id}
-            surfaceProps={{ documentKey: pkmsDocumentKey(activeWorkspace.id, activeFile.id), viewStateStorage: getEditorViewStateStorage(), session: activeEditorSession, documentPath: activeFile.path, onNavigateReady: registerEditorNavigator, onActivateLink: activateMarkdownLink, resolveImage: resolveMarkdownImage, onSessionError: (cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document"), ariaLabel: "Markdown editor" }}
+            surfaceProps={{ documentKey: pkmsDocumentKey(activeWorkspace.id, activeFile.id), viewStateStorage: getEditorViewStateStorage(), session: activeEditorSession, documentPath: activeFile.path, parserExtensions: editorMarkdownParserExtensions, onNavigateReady: registerEditorNavigator, onActivateLink: activateMarkdownLink, resolveImage: resolveMarkdownImage, onSessionError: (cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document"), ariaLabel: "Markdown editor" }}
           /> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>
           {assetPreviewUrl ? assetPreviewType.startsWith("image/") ? <img className="asset-image-preview" src={assetPreviewUrl} alt={activeFile.path} /> : <iframe className="asset-preview-frame" src={assetPreviewUrl} title={activeFile.path} /> : <span className="file-opening-spinner" aria-label="Loading attachment" />}

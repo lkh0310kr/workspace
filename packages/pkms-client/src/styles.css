@@ -158,9 +158,6 @@ button { cursor: pointer; }
 .sidebar-toggle { display: inline-grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border: 0; border-radius: 6px; color: var(--muted); background: transparent; }
 .sidebar-toggle:hover { color: var(--text); background: var(--hover); }
 .modal-close .app-icon { width: 14px; height: 14px; margin: 0 auto; }
-.save-label { display: flex; align-items: center; gap: 7px; color: var(--muted); white-space: nowrap; }
-.save-label .status-dot { width: 6px; height: 6px; flex-basis: 6px; }
-.save-label.active .status-dot { background: var(--warning); }
 .collaborators { color: var(--muted); font-size: 11px; }
 .live-presence { margin-top: 5px; color: var(--muted); font-size: 11px; }
 .column-label { display: none; }
@@ -224,6 +221,6 @@ button { cursor: pointer; }
   .sidebar { height: 34dvh; min-height: 0; max-height: 34dvh; border-right: 0; border-bottom: 1px solid var(--border); }
   .sidebar-collapsed .sidebar { height: 0; min-height: 0; max-height: 0; padding: 0; border: 0; }
   .sidebar-top { padding-bottom: 8px; }.workspace-select { padding: 6px 7px 8px; }.sidebar-bottom { display: none; }
-  .main-panel { height: 100%; min-height: 0; }.topbar { height: 42px; flex-basis: 42px; font-size: 11px; }.save-label { font-size: 0; }.topbar-right { gap: 8px; }
+  .main-panel { height: 100%; min-height: 0; }.topbar { height: 42px; flex-basis: 42px; font-size: 11px; }.topbar-right { gap: 8px; }
   .welcome-card { padding: 24px; }
 }

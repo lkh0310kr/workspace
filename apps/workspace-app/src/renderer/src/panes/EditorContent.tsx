@@ -8,7 +8,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { editorDocumentKey, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
+import { editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -29,8 +29,6 @@ import { pastePlainTextCommand } from "../editorPlainPaste";
 import { getFocusedEditorView } from "../activeEditorView";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
 import type { TabKind } from "../layout/paneTypes";
-
-const workspaceMarkdownParserExtensions = [wikiLinkExtension] as const;
 
 // The per-file content half of what used to be ui/EditorPane.tsx — tab strip,
 // multi-file routing, and the docked Explorer sidebar live in PaneGroup.
@@ -639,7 +637,7 @@ export function EditorContent({
               surfaceContainerClassName="md-editor"
               surfaceContainerStyle={editorFontStyle}
               surfaceKey={`${tabId}:${isMarkdown}`}
-              surfaceProps={{ documentKey: documentCacheKey, onDocumentKeyChange, viewStateStorage: getEditorViewStateStorage(), session: activeDocumentSession, initialValue: "", documentPath: filePath ?? "", parserExtensions: workspaceMarkdownParserExtensions, extensions: editorExtensions, onViewReady, onActivateLink: (link) => {
+              surfaceProps={{ documentKey: documentCacheKey, onDocumentKeyChange, viewStateStorage: getEditorViewStateStorage(), session: activeDocumentSession, initialValue: "", documentPath: filePath ?? "", parserExtensions: editorMarkdownParserExtensions, extensions: editorExtensions, onViewReady, onActivateLink: (link) => {
                   if (link.kind === "wikilink") {
                     void resolveWikiLinkTarget(editorProvider, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;
