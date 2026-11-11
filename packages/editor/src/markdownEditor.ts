@@ -2,7 +2,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { insertNewlineAndIndent } from "@codemirror/commands";
 import { deleteMarkupBackward, insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
-import { indentOnInput, indentUnit, syntaxTree } from "@codemirror/language";
+import { foldGutter, foldKeymap, foldNodeProp, indentOnInput, indentUnit, syntaxTree } from "@codemirror/language";
 import type { MarkdownConfig } from "@lezer/markdown";
 import type { Extension } from "@codemirror/state";
 import { keymap, type Command } from "@codemirror/view";
@@ -46,11 +46,32 @@ export function createMarkdownEditorExtensions(options: MarkdownEditorOptions = 
     markdown({
       base: markdownLanguage,
       codeLanguages: languages,
-      extensions: [markdownMathExtension, ...(options.parserExtensions ?? [])],
+      extensions: [
+        markdownMathExtension,
+        {
+          props: [foldNodeProp.add({
+            ListItem: (tree, state) => {
+              const firstLine = state.doc.lineAt(tree.from);
+              const lastLine = state.doc.lineAt(tree.to);
+              return lastLine.number > firstLine.number ? { from: firstLine.to, to: tree.to } : null;
+            },
+          })],
+        },
+        ...(options.parserExtensions ?? []),
+      ],
       addKeymap: false,
     }),
     indentOnInput(),
     indentUnit.of("    "),
+    foldGutter({
+      markerDOM(open) {
+        const marker = document.createElement("span");
+        marker.className = "cm-md-fold-marker";
+        marker.textContent = open ? "⌄" : "›";
+        return marker;
+      },
+    }),
+    keymap.of(foldKeymap),
     keymap.of([
       { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
       { key: "Enter", run: insertNewlineAndIndent },

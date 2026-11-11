@@ -21,7 +21,11 @@ export const markdownEditorTheme = EditorView.theme({
     maxWidth: "820px",
     margin: "0 auto",
   },
-  ".cm-gutters": { display: "none" },
+  ".cm-gutters": { display: "flex", backgroundColor: "transparent", border: "none", color: "var(--text-muted, var(--muted))" },
+  ".cm-foldGutter": { width: "18px" },
+  ".cm-foldGutter .cm-gutterElement": { padding: "0", cursor: "pointer", opacity: "0.55" },
+  ".cm-foldGutter .cm-gutterElement:hover": { opacity: "1", color: "var(--text)" },
+  ".cm-foldGutter .cm-gutterElement .cm-md-fold-marker": { display: "inline-flex", width: "16px", height: "20px", alignItems: "center", justifyContent: "center", fontSize: "14px" },
   ".cm-activeLine": { backgroundColor: "transparent" },
   ".cm-md-h1, .cm-md-h2, .cm-md-h3, .cm-md-h4, .cm-md-h5, .cm-md-h6": {
     color: "var(--text)",
