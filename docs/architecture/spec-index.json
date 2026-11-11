@@ -758,6 +758,13 @@
       "documents": [
         "apps/workspace-app/docs/pkms/README.md",
         "apps/workspace-app/docs/pkms/folder-sync.md",
+        "apps/workspace-app/docs/pkms/folder-sync/README.md",
+        "apps/workspace-app/docs/pkms/folder-sync/reconciliation.md",
+        "apps/workspace-app/docs/pkms/folder-sync/durability-recovery.md",
+        "apps/workspace-app/docs/pkms/folder-sync/server-protocol.md",
+        "apps/workspace-app/docs/pkms/folder-sync/ui-acceptance.md",
+        "apps/workspace-app/docs/pkms/folder-sync/deletion.md",
+        "apps/workspace-app/docs/pkms/folder-sync/implementation-status.md",
         "apps/workspace-app/docs/pkms/local-deletion-sync.md"
       ],
       "sources": [
@@ -776,6 +783,30 @@
         {
           "path": "apps/workspace-app/src/main/pkms/syncBridge.ts",
           "sha256": "28c3b21dbe03d1a90dc40a565105039d29101f83f7b2a0d88fe307ed929ecc9d"
+        },
+        {
+          "path": "apps/workspace-app/src/shared/pkmsSyncBridge.ts",
+          "sha256": "c0b81ce6e818fd71805a872be67485af16e2cbac6afc4c5bd58db4e2a5be672d"
+        },
+        {
+          "path": "apps/pkms-server/src/SupabaseVault.ts",
+          "sha256": "6658c58eadda7023645be5f085867f9cba82b3e2b9b4c3ebbdf3f647fc7330b8"
+        },
+        {
+          "path": "apps/pkms-server/src/workspaceApi.ts",
+          "sha256": "1b6e1b27eb92cfe8d4d9613482f717e5b8907d48dd10b30ccd2590cdb02c6591"
+        },
+        {
+          "path": "apps/pkms-server/supabase/migrations/20261101100000_workspace_operations.sql",
+          "sha256": "b7c3458182de0633c44c08772d3baab3cc7d6d2cb6cafe3a8541ca3bf3dc14bd"
+        },
+        {
+          "path": "apps/pkms-server/supabase/migrations/20261109160000_guarded_sync_deletes.sql",
+          "sha256": "c006c878c9a53e0e9cf38882c9519f8ce9d6b2e63c85e9967adb736bf6a4863e"
+        },
+        {
+          "path": "packages/pkms-client/src/components/SyncBridgePanel.tsx",
+          "sha256": "c57c31d11f36fe3e19638f23dddfbb966ff94ea0708d74390d9d6c794d5e19d6"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsPane.tsx",

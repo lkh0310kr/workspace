@@ -2,6 +2,13 @@
 
 ## 진행 중
 
+### PKMS folder sync root 교체 안전성
+
+- **문제:** `configurePkmsSyncBridge`가 workspace에 다른 root를 연결할 때 directory inventory와 pending delete를 초기화하지만 path baseline은 유지한다. 새 root full scan이 기존 baseline path의 부재를 local deletion으로 해석할 가능성이 있다. 이는 source 대조에서 확인한 경로이며 실제 원격 삭제 동작은 아직 재현 테스트하지 않았다.
+- **요구 결과:** root 교체는 그 자체로 원격 파일/폴더 삭제 의사가 아니다. 새 root는 명시적 연결/이전 절차로 inventory를 seed하고, 첫 complete reconciliation에서 remote-only 항목을 보존한다. 의도적으로 다른 local tree를 authoritative source로 삼으려면 destructive action을 별도 확인하고 복구 가능성을 제공한다.
+- **완료 조건:** 기존 remote workspace가 populated된 상태에서 새 empty/populated root로 재연결, process restart, partial scan, concurrent remote update를 시험한다. 의도하지 않은 file/folder tombstone이 없고, 명시적 사용자 선택 없이는 remote baseline을 삭제 의도로 전환하지 않는다. migration/OS matrix와 evidence를 기록한다.
+- **스펙:** [Folder sync 결과·durability 계약](../../apps/workspace-app/docs/pkms/folder-sync/README.md), [삭제 acceptance](../../apps/workspace-app/docs/pkms/folder-sync/deletion.md)
+
 ### Workspace Home 운영 연결과 제품 acceptance
 
 - **문제:** 앱·서버 디렉터리 분리와 Home source 복구는 구현됐지만 provider 운영 연결과 제품 acceptance가 남아 있다.
