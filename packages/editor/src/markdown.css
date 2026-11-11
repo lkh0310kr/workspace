@@ -80,6 +80,9 @@
 .cm-md-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: .95em; }
 .cm-md-table th, .cm-md-table td { padding: 4px 10px; border: 1px solid var(--border); text-align: left; cursor: text; }
 .cm-md-table th { background: var(--bg-hover, var(--hover)); font-weight: 600; }
+.cm-md-table th { position: relative; }
+.cm-md-table-resize-handle { position: absolute; z-index: 2; top: 0; right: -3px; width: 6px; height: 100%; cursor: col-resize; touch-action: none; }
+.cm-md-table-resize-handle:hover, .cm-md-table-resize-handle:active { background: color-mix(in srgb, var(--primary, var(--accent, var(--link))) 48%, transparent); }
 .cm-md-mermaid { max-width: 100%; margin: 12px 0; overflow: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-surface, var(--surface)); text-align: center; }
 .cm-md-mermaid svg { max-width: 100%; height: auto; color: var(--text); }
 .cm-md-mermaid svg text { fill: var(--text) !important; }

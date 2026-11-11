@@ -58,7 +58,14 @@ export function EditorMarkdownProperties({ view, revision }: { view: EditorView 
   if (!view) return null;
   void revision;
   const frontmatter = readFrontmatter(view); const { rows } = frontmatter;
-  const replaceRange = (from: number, to: number, insert: string) => view.dispatch({ changes: { from, to, insert } });
+  if (rows.length === 0) return null;
+  const replaceRange = (from: number, to: number, insert: string) => {
+    const scroll = view.dom.closest<HTMLElement>(".editor-markdown-scroll");
+    const top = scroll?.scrollTop ?? 0;
+    const left = scroll?.scrollLeft ?? 0;
+    view.dispatch({ changes: { from, to, insert } });
+    if (scroll) requestAnimationFrame(() => { scroll.scrollTop = top; scroll.scrollLeft = left; });
+  };
   const replaceValue = (row: PropertyRow, value: string | string[]) => {
     let serialized: string;
     if (row.type === "list") serialized = stringify((Array.isArray(value) ? value : [value]).filter(Boolean).map((v) => String(v)), { collectionStyle: "flow" }).trimEnd();

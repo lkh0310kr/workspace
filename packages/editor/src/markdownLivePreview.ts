@@ -329,6 +329,9 @@ class TableWidget extends WidgetType {
     readonly header: string[],
     readonly rows: string[][],
     readonly alignments: Array<"left" | "center" | "right">,
+    readonly widths: number[],
+    readonly sourceFrom: number,
+    readonly sourceTo: number,
     readonly headerRanges: TableCellSourceRange[],
     readonly rowRanges: TableCellSourceRange[][],
   ) {
@@ -340,6 +343,8 @@ class TableWidget extends WidgetType {
       JSON.stringify(other.header) === JSON.stringify(this.header) &&
       JSON.stringify(other.rows) === JSON.stringify(this.rows) &&
       JSON.stringify(other.alignments) === JSON.stringify(this.alignments) &&
+      JSON.stringify(other.widths) === JSON.stringify(this.widths) &&
+      other.sourceFrom === this.sourceFrom && other.sourceTo === this.sourceTo &&
       JSON.stringify(other.headerRanges) === JSON.stringify(this.headerRanges) &&
       JSON.stringify(other.rowRanges) === JSON.stringify(this.rowRanges)
     );
@@ -350,14 +355,61 @@ class TableWidget extends WidgetType {
     wrapper.className = "cm-md-table-wrap";
     const table = document.createElement("table");
     table.className = "cm-md-table";
+    table.style.tableLayout = this.widths.length ? "fixed" : "auto";
     const thead = document.createElement("thead");
     const headRow = document.createElement("tr");
     const columnCount = Math.max(this.header.length, ...this.rows.map((row) => row.length));
+    const colgroup = document.createElement("colgroup");
+    for (let index = 0; index < columnCount; index++) {
+      const col = document.createElement("col");
+      if (this.widths.length === columnCount) col.style.width = `${this.widths[index]}%`;
+      colgroup.appendChild(col);
+    }
+    table.appendChild(colgroup);
+    if (this.widths.length === columnCount) table.style.width = "100%";
     for (let index = 0; index < columnCount; index++) {
       const cell = this.header[index] ?? "";
       const th = document.createElement("th");
       th.style.textAlign = this.alignments[index] ?? "left";
       appendTableCellContent(th, cell);
+      if (index < columnCount - 1) {
+        const handle = document.createElement("span");
+        handle.className = "cm-md-table-resize-handle";
+        handle.setAttribute("role", "separator");
+        handle.setAttribute("aria-orientation", "vertical");
+        handle.setAttribute("aria-label", `Resize table column ${index + 1}`);
+        handle.addEventListener("pointerdown", (event) => {
+          event.preventDefault(); event.stopPropagation();
+          const tableWidth = table.getBoundingClientRect().width;
+          if (!tableWidth) return;
+          const startX = event.clientX;
+          const initial = this.widths.length === columnCount
+            ? [...this.widths]
+            : Array.from(table.querySelectorAll("th"), (headerCell) => headerCell.getBoundingClientRect().width / tableWidth * 100);
+          const initialLeft = initial[index];
+          const minWidth = 80 / tableWidth * 100;
+          const cols = Array.from(table.querySelectorAll("col"));
+          const apply = (left: number) => {
+            if (!cols.length) return;
+            const pairTotal = initial[index] + initial[index + 1];
+            const leftWidth = Math.max(minWidth, Math.min(pairTotal - minWidth, left));
+            initial[index] = leftWidth;
+            initial[index + 1] = pairTotal - leftWidth;
+            table.style.tableLayout = "fixed"; table.style.width = "100%";
+            cols.forEach((col, colIndex) => { col.style.width = `${initial[colIndex]}%`; });
+          };
+          apply(initial[index]);
+          const move = (moveEvent: PointerEvent) => apply(initialLeft + (moveEvent.clientX - startX) / tableWidth * 100);
+          const up = () => {
+            window.removeEventListener("pointermove", move);
+            window.removeEventListener("pointerup", up);
+            writeTableWidths(view, this.sourceTo, initial);
+          };
+          window.addEventListener("pointermove", move);
+          window.addEventListener("pointerup", up, { once: true });
+        });
+        th.appendChild(handle);
+      }
       headRow.appendChild(th);
     }
     thead.appendChild(headRow);
@@ -376,6 +428,7 @@ class TableWidget extends WidgetType {
     }
     table.appendChild(tbody);
     table.addEventListener("click", (event) => {
+      if (event.target instanceof Element && event.target.closest(".cm-md-table-resize-handle")) return;
       const target = event.target instanceof Element ? event.target.closest("th, td") : null;
       const row = target?.parentElement;
       if (!target || !row) return;
@@ -384,14 +437,47 @@ class TableWidget extends WidgetType {
       const range = row.parentElement === thead ? this.headerRanges[column] : this.rowRanges[rowIndex]?.[column];
       if (!range) return;
       event.preventDefault();
-      view.dispatch({ selection: { anchor: range.from }, scrollIntoView: true });
-      view.focus();
+      const scroll = view.dom.closest<HTMLElement>(".editor-markdown-scroll");
+      const top = scroll?.scrollTop ?? 0; const left = scroll?.scrollLeft ?? 0;
+      const rect = target.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (event instanceof MouseEvent ? event.clientX - rect.left : 0) / Math.max(1, rect.width)));
+      const position = Math.round(range.from + (range.to - range.from) * ratio);
+      view.dispatch({ selection: { anchor: position } });
+      view.contentDOM.focus({ preventScroll: true });
+      if (scroll) requestAnimationFrame(() => { scroll.scrollTop = top; scroll.scrollLeft = left; });
     });
     wrapper.appendChild(table);
     return wrapper;
   }
 
   ignoreEvent(): boolean { return true; }
+}
+
+function readTableWidths(state: EditorState, tableEnd: number, columns: number): number[] {
+  const endLine = state.doc.lineAt(tableEnd);
+  const metadataLine = endLine.number < state.doc.lines ? state.doc.line(endLine.number + 1) : null;
+  const match = metadataLine?.text.match(/^\s*<!-- workspace-table-widths: ([\d., ]+) -->\s*$/);
+  if (!match) return [];
+  const values = match[1].split(",").map(Number);
+  return values.length === columns && values.every((value) => Number.isFinite(value) && value > 0)
+    ? values.map((value) => value / values.reduce((sum, item) => sum + item, 0) * 100)
+    : [];
+}
+
+function writeTableWidths(view: EditorView, sourceTo: number, widths: number[]): void {
+  const doc = view.state.doc;
+  const endLine = doc.lineAt(sourceTo);
+  const nextLine = endLine.number < doc.lines ? doc.line(endLine.number + 1) : null;
+  const metadata = `<!-- workspace-table-widths: ${widths.map((width) => Math.round(width)).join(",")} -->`;
+  const current = nextLine?.text.match(/^\s*<!-- workspace-table-widths: [\d., ]+ -->\s*$/);
+  const scroll = view.dom.closest<HTMLElement>(".editor-markdown-scroll");
+  const top = scroll?.scrollTop ?? 0; const left = scroll?.scrollLeft ?? 0;
+  if (current && nextLine) view.dispatch({ changes: { from: nextLine.from, to: nextLine.to, insert: metadata } });
+  else {
+    const prefix = endLine.to < doc.length ? "\n" : "\n\n";
+    view.dispatch({ changes: { from: endLine.to, insert: `${prefix}${metadata}` } });
+  }
+  if (scroll) requestAnimationFrame(() => { scroll.scrollTop = top; scroll.scrollLeft = left; });
 }
 
 function isEscapedAt(source: string, index: number): boolean {
@@ -1233,12 +1319,13 @@ function buildTableDecorations(state: EditorState): DecorationSet {
         splitMarkdownTableRowDetailed(state.doc.sliceString(row.from, row.to), row.from),
       );
       const bodyRows = bodyParts.map((row) => row.map((cell) => cell.text));
+      const columnCount = Math.max(headerCells.length, ...bodyRows.map((row) => row.length));
       const headerRanges = headerParts.map(({ from, to }) => ({ from, to }));
       const rowRanges = bodyParts.map((row) => row.map(({ from, to }) => ({ from, to })));
       builder.add(
         node.from,
         node.to,
-        Decoration.replace({ widget: new TableWidget(headerCells, bodyRows, alignments, headerRanges, rowRanges), block: true }),
+        Decoration.replace({ widget: new TableWidget(headerCells, bodyRows, alignments, readTableWidths(state, node.to, columnCount), node.from, node.to, headerRanges, rowRanges), block: true }),
       );
     },
   });
@@ -1343,10 +1430,15 @@ function buildHtmlBlockDecorations(state: EditorState): DecorationSet {
       const firstLine = state.doc.lineAt(node.from);
       const lastLine = state.doc.lineAt(Math.max(node.from, node.to - 1));
       if (firstLine.from !== node.from) return;
+      const source = state.doc.sliceString(node.from, lastLine.to);
+      if (/^\s*<!-- workspace-table-widths: [\d., ]+ -->\s*$/.test(source)) {
+        builder.add(node.from, lastLine.to, Decoration.replace({ block: true }));
+        return;
+      }
       builder.add(
         node.from,
         lastLine.to,
-        Decoration.replace({ widget: new HtmlBlockWidget(state.doc.sliceString(node.from, lastLine.to)), block: true }),
+        Decoration.replace({ widget: new HtmlBlockWidget(source), block: true }),
       );
     },
   });
