@@ -41,6 +41,88 @@
 
 Notion의 `Full width`는 page width 선택 결과의 기준이다. Notion 공식 도움말은 appearance 설정에서 Full width를 켜 폭을 넓히고, 기본/serif/mono 글꼴과 small text도 선택하도록 설명한다. Workspace는 파일 호환 편집기이므로 이러한 선택 중 폭/글꼴/글자 크기만 문서 보기 설정으로 제공하고, 데이터베이스 page layout은 범위 밖으로 둔다.
 
+## P0 — Markdown title·heading·link 시각 규칙을 통일한다
+
+현재 화면에서 보이는 세 스타일 문제는 각각 다른 규칙에서 온다.
+
+| 보이는 요소 | 현재 코드 근거 | 결과 |
+|---|---|---|
+| 본문 H1/H2 underline | [EditorMarkdownSurface](../../src/EditorMarkdownSurface.tsx)가 CodeMirror `defaultHighlightStyle`을 설치한다. 해당 기본 style은 `tags.heading`에 underline을 부여한다. | heading은 크기·굵기만으로 구분되지 않고 링크처럼 밑줄이 생긴다. |
+| `#` marker 색 | 같은 `defaultHighlightStyle`이 `tags.meta`에 고정색 `#404740`을 부여한다. 라이브러리는 이 기본 style을 light theme에 적합하다고 설명하지만 dark/light 양쪽에서 사용한다. `markdownLivePreview.ts`가 marker와 heading text에 같은 `cm-md-hN` decoration을 주더라도 내부 syntax token style이 더 구체적인 색을 덮을 수 있다. | 편집 중 표시되는 `#`가 제목 글자와 다른, 현재 theme에 맞지 않는 색으로 보인다. |
+| Markdown link 색 | [markdown.css](../../src/markdown.css)는 `.cm-md-link`에 본문과 같은 `var(--text)` 색을 준다. 기본 highlight와 app global CSS도 underline을 추가한다. | 링크임을 색으로 구분하지 못하고, 밑줄만 겹쳐 강조가 어색하다. WikiLink는 별도 dotted underline 규칙을 쓴다. |
+| 파일명 title edit 밑줄 | [markdownDocument.css](../../src/markdownDocument.css)의 `.md-title-input`이 `box-shadow: inset 0 -1px ...`를 사용한다. display 상태 `.editor-markdown-title` 자체에는 underline이 없다. | filename display와 rename editing의 상태 구분이 흐리며, display heading underline과 함께 보면 이유 없는 밑줄처럼 느껴진다. |
+
+### 시각 hierarchy 계약
+
+이 문서의 `filename title`은 파일명에서 계산해 문서 frame 위에 놓는 이름이다. `Markdown H1`은 본문 안의 첫 heading이며 별개의 콘텐츠다. 두 값이 같은 문자열이어도 합치거나 숨기지 않는다.
+
+| 요소 | 기본 표시 | 크기와 간격 | 색/장식 |
+|---|---|---|---|
+| Filename title | basename, 확장자 제외 | 26px, weight 700, line-height 1.2; page column의 첫 줄 | `--text`; underline 없음 |
+| H1 | 본문 heading 1 | 28px, weight 700, line-height 1.25; 위 32px/아래 16px | `--text`; underline 없음 |
+| H2 | 본문 heading 2 | 22px, weight 650, line-height 1.3; 위 28px/아래 12px | `--text`; underline 없음 |
+| H3 | 본문 heading 3 | 18px, weight 650, line-height 1.35; 위 24px/아래 10px | `--text`; underline 없음 |
+| H4 | 본문 heading 4 | 16px, weight 600, line-height 1.4; 위 20px/아래 8px | `--text`; underline 없음 |
+| H5 | 본문 heading 5 | 14px, weight 600, line-height 1.5; 위 18px/아래 6px | `--text`; underline 없음 |
+| H6 | 본문 heading 6 | 13px, weight 600, line-height 1.5; 위 16px/아래 6px | `--text-muted`; underline 없음 |
+| Active `#` marker | caret/selection이 heading syntax에 닿을 때만 source marker 표시 | heading text와 같은 font metrics | 같은 heading color/weight. syntax meta color를 적용하지 않음 |
+| Inline Markdown link | link label은 보이고 destination syntax는 비활성 preview에서 숨김 | 문단과 같은 font metrics | 전용 `--link` token; 기본 underline 1px, offset 2px; hover에서만 더 강한 link color |
+| WikiLink | resolved label은 보이고 `[[ ]]`/alias syntax는 비활성 preview에서 숨김 | inline link와 동일 | inline Markdown link와 같은 색·underline·hover/focus 규칙 |
+| Rename input | filename을 편집 가능한 텍스트로 표시 | display title과 같은 column/크기 | 기본 상태에 장식 underline 없음; focus 때 2px `--focus-ring`, validation 오류 때 오류 border/message |
+
+위 수치는 첫 visual baseline이다. 창 너비와 pane 폭에 따라 글자 크기를 임의로 각각 줄이지 않는다. page width를 바꾸면 title과 본문 block container만 같이 재배치하고, heading hierarchy와 inline font token은 유지한다. 사용자가 글자 크기 설정을 바꾸면 모든 Markdown block과 title에 같은 scale factor를 적용한다.
+
+### Link token 및 interaction 결과
+
+현재 theme에는 전용 link color variable이 없다. `--text`를 사용하면 본문과 같고, `--accent`를 그대로 쓰면 dark theme에서 충분한 contrast가 나오지 않을 수 있다. theme별 `--link` 및 `--link-hover` token을 정의하고 normal/hover/focus에서 각각 contrast를 확인한다.
+
+| 상태 | 결과 |
+|---|---|
+| 기본 링크 | 본문색과 구별되는 link token + 얇은 underline으로 색만으로 의미를 전달하지 않는다. |
+| Hover | link-hover token, underline 두께/offset 변화; layout shift 없음 |
+| Keyboard focus | 보이는 2px focus ring 또는 underline outline; 주변 문장을 밀지 않음 |
+| Visited | local file link와 external link 모두 visited color를 바꾸지 않음. 같은 문서의 의미가 history에 따라 달라지지 않음 |
+| Cursor/selection이 syntax 위 | 원문 delimiter와 destination이 보이고, link label은 link color를 유지한다. focus 표시가 cursor/selection을 가리지 않음 |
+| Broken link | 일반 link 색을 유지하면서 missing target 표시를 추가한다. 단순히 색만 빨강으로 바꾸지 않음 |
+
+Internal Markdown link와 WikiLink는 목적지 해석만 다르고 label의 색·hover·focus·underline은 같은 시각 component contract를 따른다. 외부 링크는 external navigation 여부를 표시할 때 별도 아이콘을 쓸 수 있지만, 파일명/본문 폭을 바꾸지 않는다.
+
+### Theme와 CSS 소유권
+
+`markdown.css`의 shared 규칙과 `apps/workspace-app/src/renderer/src/assets/styles.css`의 `.cm-md-*` 규칙은 현재 중복돼 있다. 어느 stylesheet가 마지막에 로드되느냐에 따라 결과가 달라지는 구조를 없애고, shared package가 semantic component token을 소유하며 host는 light/dark token 값만 제공한다.
+
+| ID | 사용자 결과 | 수용 기준 |
+|---|---|---|
+| VIS-01 | filename title은 파일 식별자처럼 보이고 본문 heading과 명확히 구분된다. | display state에 밑줄이 없고, rename input은 focus/오류 상태가 분명하다. title text와 첫 본문 글자의 x 좌표가 맞는다. |
+| VIS-02 | Markdown H1–H6는 hierarchy만으로 heading임을 알 수 있다. | 어떤 heading level에도 default CodeMirror underline이 적용되지 않는다. H1–H6 크기·weight·margin은 양 theme에서 동일한 비율이다. |
+| VIS-03 | `#` marker가 제목 글자와 같은 heading을 구성한다. | marker가 보이는 editing/selection 상태에서 marker와 text의 color/font/line-height가 일치한다. dark/light theme 전환 뒤에도 회색 fixed meta color가 남지 않는다. |
+| VIS-04 | Markdown link와 WikiLink는 같은 link language를 사용한다. | `--link` token이 body text와 구별되고 contrast 기준을 만족한다. 기본/hover/focus/broken/selected 상태를 모두 확인한다. |
+| VIS-05 | syntax token color와 product design token이 충돌하지 않는다. | `defaultHighlightStyle`의 light-only color/heading underline을 Markdown surface에서 사용하지 않거나, 제품 전용 HighlightStyle이 해당 tag를 명시적으로 덮는다. |
+| VIS-06 | Markdown component 스타일은 package 전체에서 한 번만 정의된다. | Workspace/PKMS에서 import 순서를 바꿔도 computed style이 같다. host global stylesheet가 shared `.cm-md-*` color/decoration을 다시 정의하지 않는다. |
+| VIS-07 | title·heading·link은 dark/light 모두 읽기 쉽다. | normal, hover, selection, focus 및 disabled/error 상태의 text/background contrast를 검토한다. 테마 전환 시 inline style에 남은 고정 hex가 없다. |
+
+### 재생성용 visual fixture
+
+동일한 fixture를 Workspace와 PKMS host에서 열어 visual baseline을 비교한다.
+
+```markdown
+# Heading title
+
+Filename title와 본문 H1이 함께 있을 때 두 이름과 hierarchy를 구분한다.
+
+## Heading two
+### Heading three
+#### Heading four
+##### Heading five
+###### Heading six
+
+`#` marker 색은 caret가 heading에 없을 때 보이지 않고, heading을 편집할 때는 글자와 같은 색이다.
+
+[External link](https://example.com)와 [[Internal Note|internal alias]]를 비교한다.
+```
+
+이 fixture에서 caret을 각 heading marker·heading text·Markdown link label·WikiLink alias로 옮기고, selection을 가로질러 드래그하며, light/dark theme을 바꾼다. filename display, rename input normal/focus/error, body H1–H6, link default/hover/focus의 screenshot을 각각 보관한다. computed style은 색상·text-decoration·font-size·line-height·left edge를 비교하고, app CSS import 순서를 바꾸어도 값이 동일해야 한다.
+
 ## P1 — 읽기와 편집 모드를 분리하되 원문을 보존한다
 
 현재 shared editor는 CodeMirror 기반 Live Preview 하나를 제공한다. syntax decoration은 caret/selection이 문법에 닿으면 원문 기호를 보이게 하는 일부 규칙을 갖는다. Obsidian의 사용자 결과는 Reading view, Editing view, Live Preview, Source mode를 구분한다. Workspace는 원문 파일을 직접 편집하므로 이 모드를 명시적으로 다루어야 한다.
