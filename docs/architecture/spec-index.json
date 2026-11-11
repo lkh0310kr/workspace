@@ -266,7 +266,7 @@
         },
         {
           "path": "packages/editor/src/treeModel.ts",
-          "sha256": "0d906fb21e81941286a2c0c94f5259e567f6190c01f458d7d855319729c7211c"
+          "sha256": "9d03541d7c3da9b47c8e6297ecb45d7b4d13c17499f6b07ae72ce9db673f71ee"
         },
         {
           "path": "packages/editor/src/treeNavigation.ts",

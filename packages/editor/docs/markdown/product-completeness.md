@@ -208,7 +208,7 @@ Obsidian Flavored Markdown은 CommonMark/GFM 위에 내부 링크, embed, block 
 | ID | 코드 근거 | 관찰 결과/목표 |
 |---|---|---|
 | MD-GAP-01 | [image resolver](../../src/markdownLivePreview.ts)의 fallback은 `rootPath + image URL`로 만든다. | nested Markdown 파일의 `./image.png`가 현재 문서 folder 기준이 아니라 workspace root 기준으로 해석될 수 있다. source document path 기준 상대 URL, root-absolute URL, remote URL 정책을 분리한다. |
-| MD-GAP-02 | [Tree label helper](../../src/treeModel.ts)는 `.md`만 숨기고 [title helper](../../src/markdownTitle.ts)는 `.markdown`도 제거한다. | 같은 파일의 TreeView 표기와 editor title 표기가 달라질 수 있다. 지원하는 Markdown suffix를 한 계약으로 공유한다. |
+| MD-GAP-02 | [Tree label helper](../../src/treeModel.ts)와 [title helper](../../src/markdownTitle.ts)는 지원 suffix를 일치시킨다. | 완료: `.md`와 `.markdown` 모두 TreeView/editor title에서 같은 확장자 제거 규칙을 쓴다. |
 | MD-GAP-03 | [Markdown surface](../../src/EditorMarkdownSurface.tsx)는 기본 Markdown parser와 fallback highlight를 사용하고 language-specific code extension을 선택하지 않는다. | fenced block에 line 배경/monospace는 적용해도 언어별 syntax highlighting·copy·line number·fold 결과가 명시돼 있지 않다. |
 | MD-GAP-04 | [HTML block widget](../../src/markdownLivePreview.ts)은 `allow-same-origin` sandbox token을 둔다. | script는 차단하지만 embedded content/resource origin과 CSP 정책은 따로 명시되지 않았다. 허용 origin, image URL, navigation, local file 접근을 보안 acceptance로 고정한다. |
 | MD-GAP-05 | [PKMS editor host](../../../pkms-client/src/PkmsClientApp.tsx)는 `EditorSearchButton`을 action으로 전달한다. | Workspace는 toolbar search button을 숨기고 `Cmd/Ctrl+F`를 쓰지만 PKMS Markdown chrome에는 버튼이 남아 제품 간 조작이 다르다. 검색 UI 기준을 package-level로 결정한다. |
