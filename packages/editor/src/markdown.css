@@ -1,11 +1,5 @@
 /* Shared Workspace-baseline live preview decorations. Product colors fall back
    to each host's token names so the same preview renders in Workspace and PKMS. */
-.editor-markdown-surface .cm-selectionLayer { z-index: 2; }
-.editor-markdown-surface .cm-selectionLayer .cm-selectionBackground { background-color: var(--editor-selection-bg, rgba(90, 110, 240, .2)) !important; }
-.editor-markdown-surface .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground { background-color: var(--editor-selection-bg-focused, rgba(90, 110, 240, .3)) !important; }
-.editor-markdown-surface .cm-content ::selection,
-.editor-markdown-surface .cm-line ::selection { background-color: var(--editor-selection-bg-focused, rgba(90, 110, 240, .3)) !important; }
-
 .cm-md-strong { font-weight: 600; }
 .cm-md-em { font-style: italic; }
 .cm-md-code { padding: 0 3px; background: var(--bg-hover, var(--hover)); font-family: var(--font-mono, var(--editor-font, monospace)); }

@@ -40,9 +40,5 @@ export const markdownEditorTheme = EditorView.theme({
   ".cm-line:has(.cm-md-h4)": { paddingTop: "20px", paddingBottom: "8px" },
   ".cm-line:has(.cm-md-h5)": { paddingTop: "18px", paddingBottom: "6px" },
   ".cm-line:has(.cm-md-h6)": { paddingTop: "16px", paddingBottom: "6px" },
-  // Keep selection paint inside CodeMirror's root so it works in PKMS's Shadow DOM
-  // as well as the normal Workspace document. Global editor CSS cannot cross that root.
-  "& .cm-selectionBackground": { backgroundColor: "var(--editor-selection-bg, var(--selected)) !important" },
-  "&.cm-focused .cm-selectionBackground": { backgroundColor: "var(--editor-selection-bg-focused, var(--selected)) !important" },
   ".cm-cursor": { borderLeftColor: "var(--text)" },
 });
