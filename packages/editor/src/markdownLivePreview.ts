@@ -619,6 +619,34 @@ class MermaidWidget extends WidgetType {
   }
 }
 
+class CodeBlockHeaderWidget extends WidgetType {
+  constructor(readonly language: string, readonly source: string) { super(); }
+
+  eq(other: CodeBlockHeaderWidget): boolean {
+    return other.language === this.language && other.source === this.source;
+  }
+
+  toDOM(): HTMLElement {
+    const header = document.createElement("div");
+    header.className = "cm-md-codeblock-header";
+    const label = document.createElement("span");
+    label.textContent = this.language || "Code";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Copy";
+    button.addEventListener("mousedown", (event) => event.preventDefault());
+    button.addEventListener("click", () => {
+      void navigator.clipboard?.writeText(this.source).then(() => {
+        button.textContent = "Copied";
+        window.setTimeout(() => { button.textContent = "Copy"; }, 1200);
+      }).catch(() => { button.textContent = "Copy failed"; });
+    });
+    header.appendChild(label);
+    header.appendChild(button);
+    return header;
+  }
+}
+
 function mermaidSource(state: EditorState, node: SyntaxNodeRef): string | null {
   const info = node.node.getChild("CodeInfo");
   if (!info || state.doc.sliceString(info.from, info.to).trim().split(/\s+/, 1)[0]?.toLowerCase() !== "mermaid") return null;
@@ -829,11 +857,21 @@ function buildDecorations(view: EditorView): DecorationSet {
           const openMark = marks[0];
           const closeMark = marks[marks.length - 1];
           if (selectionOverlaps(view.state, node.from, node.to)) return;
-          // CodeInfo (the fenced language tag) sits on the same line as
-          // openMark, so hiding to end-of-line takes it too.
-          const openLineEnd = view.state.doc.lineAt(openMark.from).to;
-          collected.push({ from: openMark.from, to: Math.min(openLineEnd, node.to), deco: HIDE });
-          if (closeMark.from > openMark.to) {
+          const openingLine = view.state.doc.lineAt(openMark.from);
+          const closingLine = view.state.doc.lineAt(closeMark.from);
+          const source = view.state.doc.sliceString(Math.min(openingLine.to + 1, closingLine.from), closingLine.from);
+          const languageNode = node.node.getChild("CodeInfo");
+          const language = languageNode ? view.state.doc.sliceString(languageNode.from, languageNode.to).trim() : "";
+          const isMermaid = language.toLowerCase() === "mermaid";
+          if (!isMermaid) {
+            collected.push({
+              from: openingLine.from,
+              to: openingLine.to,
+              deco: Decoration.replace({ widget: new CodeBlockHeaderWidget(language, source), block: true }),
+            });
+          }
+          // The opening fence and info string are replaced by the toolbar.
+          if (!isMermaid && closeMark.from > openMark.to) {
             const closeLineStart = view.state.doc.lineAt(closeMark.from).from;
             collected.push({ from: closeLineStart, to: closeMark.to, deco: HIDE });
           }

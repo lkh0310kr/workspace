@@ -214,7 +214,7 @@
         },
         {
           "path": "packages/editor/src/markdown.css",
-          "sha256": "01fafa87507e809f02b316c3d7f18cc65c531383a85ef8c9d5787529344c4a26"
+          "sha256": "6114770df40557b993c8127e8216371ee64f386b2afa30ba6bc6131932201c8a"
         },
         {
           "path": "packages/editor/src/markdownCommands.ts",
@@ -234,7 +234,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "88c3161402c96e50ee272ad340fa19e8f403184145232afbcd6f44cde9c46339"
+          "sha256": "bc9754a14669fa680c1db3b03bb5051cf5235053dc61593071cab9e8dedc5719"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",
