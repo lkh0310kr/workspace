@@ -85,10 +85,14 @@ export function EditorBreadcrumbs({ path, onLoadChildren, onOpenFile }: EditorBr
             aria-haspopup="menu"
             aria-expanded={menu?.anchorPath === crumb.path}
             title={crumb.path}
-            onClick={(event) => {
-              triggerRef.current = event.currentTarget;
-              void openMenu(crumb.path, crumb.directoryPath);
-            }}
+              onClick={(event) => {
+                if (menu?.anchorPath === crumb.path) {
+                  setMenu(null);
+                  return;
+                }
+                triggerRef.current = event.currentTarget;
+                void openMenu(crumb.path, crumb.directoryPath);
+              }}
           >{crumb.name}</button>
           {menu?.anchorPath === crumb.path && (
             <div className="editor-breadcrumb-menu" role="menu" aria-label={`Items in ${menu.directoryPath || "workspace"}`}>

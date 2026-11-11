@@ -630,7 +630,7 @@ export function EditorContent({
     <>
       {(!autoSave || saveError) && <span className={`md-pane-save-status${saveError ? " error" : dirty ? " unsaved" : ""}`} role="status" aria-live="polite" title={saveError ?? undefined}>{editorSavePhaseLabel(saveError ? "error" : dirty ? "dirty" : "clean")}</span>}
       <EditorSearchButton active={searchOpen} onClick={toggleSearch} />
-      <button type="button" className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`} title="Toggle file explorer" onClick={onToggleTree}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z" /></svg></button>
+      <button type="button" className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`} title="Toggle file explorer" aria-label="Toggle file explorer" aria-expanded={treeOpen} onClick={(event) => { event.stopPropagation(); onToggleTree(); }}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z" /></svg></button>
     </>
   );
 
