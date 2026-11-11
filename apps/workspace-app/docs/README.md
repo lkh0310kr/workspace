@@ -11,10 +11,12 @@ App scope 기준이다. [전역 제품 여정](../../../docs/product/README.md)�
 | runtime | [시작·종료](./runtime/README.md) | Main/renderer 초기화·restore·quit |
 | IPC | [Bridge 계약 지도](./ipc/README.md) | invoke/send/event·family·권한·수명 |
 | persistence | [저장과 복구 inventory](./persistence/README.md) | layout·terminal·cache·credentials 저장 경계 |
+| terminal | [출력·replay·입력](./terminal/README.md) | detached host·sequence·ACK·xterm 수명 |
+| PKMS adapter | [폴더 sync](./pkms/README.md) | token proxy·durable queue·삭제 guard |
 | editor adapter | [로컬 provider](./editor/providers.md) | filesystem identity·조건부 쓰기·충돌 |
 | browser | [Browser](./browser/README.md) | guest·viewport·navigation·session·IPC |
 
-공유 [Editor](../../../packages/editor/docs/README.md), [PKMS client session](../../../packages/pkms-client/docs/editor-sessions.md), [PKMS 통합 경계](../../../docs/architecture/pkms/overview.md)를 함께 읽는다. 아직 상세 문서가 없는 terminal/viewer/Home/agent/usage의 범위는 [감사](../../../docs/planning/top-down-documentation-audit.md)와 [계획](../../../docs/planning/spec-driven-development-roadmap.md)에서 추적한다.
+공유 [Editor](../../../packages/editor/docs/README.md), [PKMS client session](../../../packages/pkms-client/docs/editor-sessions.md), [PKMS 통합 경계](../../../docs/architecture/pkms/overview.md)를 함께 읽는다. 아직 상세 문서가 없는 viewer/Home/agent/usage의 범위는 [감사](../../../docs/planning/top-down-documentation-audit.md)와 [계획](../../../docs/planning/spec-driven-development-roadmap.md)에서 추적한다.
 
 ## 재구현 경계
 
