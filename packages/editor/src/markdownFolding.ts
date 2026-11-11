@@ -13,7 +13,9 @@ class MarkdownFoldControl extends WidgetType {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "cm-md-fold-control";
-    button.textContent = this.folded ? "›" : "⌄";
+    button.innerHTML = this.folded
+      ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>'
+      : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 6 5 5 5-5" /></svg>';
     button.setAttribute("aria-label", this.folded ? "Expand section" : "Collapse section");
     button.title = this.folded ? "Expand section" : "Collapse section";
     button.addEventListener("mousedown", (event) => {
@@ -52,7 +54,7 @@ function controlsFor(state: EditorState): DecorationSet {
 }
 
 export const markdownFolding = [
-  codeFolding(),
+  codeFolding({ placeholderText: "..." }),
   ViewPlugin.fromClass(class {
     decorations: DecorationSet;
 
