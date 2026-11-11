@@ -18,6 +18,7 @@ App scope 기준이다. [전역 제품 여정](../../../docs/product/README.md)�
 | Home | [기기·서비스 상태](./home/README.md) | local summary·provider 상태 UI |
 | agents | [evidence와 freshness](./agents/README.md) | hook/title·pane identity·rollup |
 | settings/usage | [설정과 usage](./settings/README.md) | defaults·theme·zoom·실제 adapter |
+| operations | [로그](./operations/logging.md) · [Windows build](./operations/windows-build.md) | 진단·보관·native build 절차 |
 | browser | [Browser](./browser/README.md) | guest·viewport·navigation·session·IPC |
 
 공유 [Editor](../../../packages/editor/docs/README.md), [PKMS client session](../../../packages/pkms-client/docs/editor-sessions.md), [PKMS 통합 경계](../../../docs/architecture/pkms/overview.md)를 함께 읽는다. 아직 모든 분기·native 수락까지 상세화하지 않은 영역은 [감사](../../../docs/planning/top-down-documentation-audit.md)와 [계획](../../../docs/planning/spec-driven-development-roadmap.md)에서 추적한다.
