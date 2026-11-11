@@ -101,18 +101,17 @@ S/M/L은 한 번의 파일 편집/모듈 조사/여러 런타임 경계 조사 �
 
 ## 문서별 필수 계약
 
-모든 문서에 같은 장황한 template를 강제하지 않는다. 재생성 대상 모듈에는 다음 정보가 빠지지 않아야 한다.
+모든 문서에 같은 장황한 template를 강제하지 않는다. 스펙의 기본 단위는 목표 상태와 결과이며, 구현 세부는 선택에 따라 결과가 달라지는 영역에서만 요구한다. 아래 결과 정의를 우선 두고, protocol·인증·동시성·내구성처럼 구현 선택이 호환성/보안/데이터 안전성을 좌우하는 곳에만 상세 계약을 추가한다.
 
-1. 사용자 문제·책임·입력/출력·제외 범위·소유자와 의존 방향.
-2. 공개 타입/enum/default/상수·단위·encoding·ID/path/revision 규칙. 기존 TS/Swift/Rust 타입을 기준으로 사용한다.
-3. 상태 owner와 초기/로딩/활성/저장/완료/실패/취소/종료 전이. sync와 durable save처럼 독립 상태는 별개 축으로 표시.
-4. concurrency·stale response·abort·queue·retry/idempotency·conflict 정책.
-5. persistence 위치/schema/version/migration·복구와 정상 종료/crash 차이.
-6. DOM/native/network/process/observer/timer/URL/subscription의 생성·해제 책임.
-7. 사용자 입력·shortcut·ARIA·focus·UI 토큰. 시각 재생성이 범위면 수치와 viewport별 fixture도 포함.
-8. 요구 ID·source·test case 또는 manual 기록·남은 검증. 성공뿐 아니라 오류·경합·복구 시나리오를 포함.
+1. 사용자/소비자, 목표 상태, 선행 조건, 입력, 성공 시 관찰 결과와 명시적 제외 범위.
+2. 실패·거부·취소·재시작·복구 때의 결과와 요구 ID 기반 수락 시나리오.
+3. 결과를 이해하거나 검증하는 데 필요한 상태·데이터·소유 경계. 세부 전이표는 결과 분기가 실제로 중요한 경우에 둔다.
+4. 결과를 바꾸는 공개 계약만 명시한다. protocol DTO/version, 권한, ID/encoding 등이 해당하며 결과에 영향 없는 내부 함수/타입 목록은 요구하지 않는다.
+5. 동시성·retry·idempotency·conflict·저장 위치·cleanup은 안전성이나 관찰 결과를 좌우하는 범위에서만 규정한다.
+6. UI/플랫폼 세부도 결과 또는 검증 기준이 되는 경우에 적는다. 시각 동등성이 요구되지 않으면 내부 CSS/컴포넌트 구조를 고정하지 않는다.
+7. 요구 ID와 source 근거, test/manual evidence 및 미검증 범위. 내부 코드 링크는 현 상태의 근거이지 유일한 목표 구현 recipe가 아니다.
 
-파일 목록·함수명 나열·코드 통째 복사는 동작 스펙의 완료 조건으로 인정하지 않는다. 여러 제품이 공통 UI를 써도 host 저장/인증/이미지/링크 정책이 다르면 adapter 차이를 명시한다.
+파일 목록·함수명 나열·코드 통째 복사는 동작 스펙의 완료 조건으로 인정하지 않는다. host별 차이가 사용자 결과·권한·데이터 보존을 바꿀 때만 경계별 adapter 결과를 규정한다. 기존 상세 문서는 점진적으로 이 원칙에 맞춰 목표 결과와 현재 구현 근거를 분리한다.
 
 ## 계약 지도와 영속 데이터 inventory
 

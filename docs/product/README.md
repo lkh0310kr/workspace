@@ -31,6 +31,8 @@ Workspace는 로컬 terminal·browser·editor·viewer를 한 Desktop 작업 공�
 
 각 owner의 app/package 문서가 이 여정의 구체 상태 전이를 정의한다. 전역 여정 표에서 provider timer나 protocol payload를 다시 정의하지 않는다.
 
+여정 스펙의 기본은 사용자가 시작하는 상태와 성공/실패 후 관찰할 결과다. 내부 구현 순서는 요구하지 않는다. 구현 선택에 따라 결과·보안·호환성·데이터 안전성이 달라지는 경계는 owner 스펙에서 필요한 만큼 구체화한다.
+
 ## 상태 읽기
 
 기능별 구현/운영/acceptance는 [기능 상태](../planning/feature-status.md), 스펙 상세화와 검증의 남은 범위는 [SDD 진행 계획](../planning/spec-driven-development-roadmap.md)을 따른다. UI 구현, 서버 배포, secrets/migration 적용, 실제 다중 기기 acceptance는 서로 다른 증거다.
