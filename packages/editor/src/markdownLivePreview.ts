@@ -86,6 +86,27 @@ function resolveImageSrc(rootPath: string, url: string, documentPath: string): s
 
 const HIDE = Decoration.replace({});
 
+function buildFrontmatterDecorations(state: EditorState): DecorationSet {
+  const doc = state.doc;
+  if (doc.lines < 2 || doc.line(1).text.trim() !== "---") return Decoration.none;
+  let close = 0;
+  for (let number = 2; number <= doc.lines; number++) {
+    if (/^(---|\.\.\.)\s*$/.test(doc.line(number).text)) { close = number; break; }
+  }
+  if (!close) return Decoration.none;
+  const end = doc.line(close).to;
+  if (selectionOverlaps(state, 0, end)) return Decoration.none;
+  return Decoration.set([Decoration.replace({ block: true }).range(0, end)]);
+}
+
+const frontmatterDecorations = StateField.define<DecorationSet>({
+  create: buildFrontmatterDecorations,
+  update: (decorations, transaction) => transaction.docChanged || transaction.selection
+    ? buildFrontmatterDecorations(transaction.state)
+    : decorations.map(transaction.changes),
+  provide: (field) => EditorView.decorations.from(field),
+});
+
 export const HEADING_TYPES = new Set([
   "ATXHeading1",
   "ATXHeading2",
@@ -1362,6 +1383,7 @@ const htmlBlockDecorations = StateField.define<DecorationSet>({
 // unverified fix for something this severe, atomicRanges is left out
 // entirely until it can be revisited with a way to test it for real.
 export const markdownLivePreview: Extension[] = [
+  frontmatterDecorations,
   inlineDecorations,
   blockDecorations,
   codeBlockHeaderDecorations,

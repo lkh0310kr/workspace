@@ -272,3 +272,37 @@
 .editor-markdown-document.is-wide .editor-markdown-content .cm-content {
   max-width: none;
 }
+
+/* Keep the metadata panel on the same reading column as the title and body. */
+.editor-markdown-document .editor-markdown-properties {
+  flex: none;
+  width: min(100%, 820px);
+  margin: 0 auto;
+  padding: 14px clamp(18px, 5vw, 64px) 18px;
+}
+.editor-markdown-document .editor-properties-heading {
+  margin: 0 0 8px 30px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+.editor-markdown-document .editor-property-row {
+  grid-template-columns: 22px minmax(112px, 220px) minmax(0, 1fr) 22px;
+  min-height: 36px;
+}
+.editor-markdown-document .editor-property-name,
+.editor-markdown-document .editor-property-value {
+  min-height: 30px;
+  padding: 4px 7px;
+  border-radius: 4px;
+}
+.editor-markdown-document .editor-property-add {
+  min-height: 32px;
+  margin: 3px 0 0 30px;
+  padding-inline: 7px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--text-muted, var(--muted));
+}
+.editor-markdown-document .editor-property-structured { color: var(--text-muted, var(--muted)); }
+.editor-markdown-document.is-wide .editor-markdown-properties { width: 100%; }
