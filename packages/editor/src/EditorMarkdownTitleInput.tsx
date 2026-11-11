@@ -1,5 +1,12 @@
 import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
 
+function titleInputColumns(value: string): number {
+  return Array.from(value).reduce((columns, character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return columns + (codePoint > 0xff ? 2 : 1);
+  }, 0);
+}
+
 interface Props {
   inputRef: RefObject<HTMLInputElement | null>;
   value: string;
@@ -25,6 +32,7 @@ export function EditorMarkdownTitleInput({ inputRef, value, error, onChange, onC
     <input
       ref={inputRef}
       aria-label="Markdown document title"
+      size={Math.max(4, titleInputColumns(value))}
       className={`editor-markdown-title md-title-input${error ? " error" : ""}`}
       value={value}
       onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}

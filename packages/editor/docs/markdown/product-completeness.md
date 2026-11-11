@@ -10,27 +10,27 @@
 
 ## P0 — Explorer 탐색 상태를 안정화한다
 
-현재 [PaneGroup](../../../../apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx)은 `treeOpen`과 active pane kind로 Explorer를 노출하고, [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx)는 `Cmd/Ctrl+B`를 처리한다. CSS는 pane 폭 560px 이하에서 slot을 강제로 숨긴다. 이 CSS 조건은 저장된 `treeOpen=true`와 별개라 단축키로 열려 있어도 보이지 않을 수 있다. 폭 임계값에서 닫힘/복귀 규칙을 단일 상태 전이로 정의해야 한다.
+현재 [PaneGroup](../../../../apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx)은 `treeOpen`과 active pane kind로 Explorer를 노출하고, [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx)는 `Cmd/Ctrl+\`를 처리한다. CSS는 pane 폭 560px 이하에서 slot을 강제로 숨긴다. 이 CSS 조건은 저장된 `treeOpen=true`와 별개라 단축키로 열려 있어도 보이지 않을 수 있다. 폭 임계값에서 닫힘/복귀 규칙을 단일 상태 전이로 정의해야 한다.
 
 [TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx)는 활성 파일 경로 변경 때 ancestor를 펼치고 해당 행을 `scrollIntoView`한다. 트리 내용 변경 때 anchor를 유지하는 동작과 이 자동 reveal은 현재 하나의 active-path 효과에서 섞여 있다. 따라서 “스크롤을 유지하라”는 결과와 “활성 파일을 보여라”는 결과가 서로 덮어쓸 수 있다.
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
-| EXP-01 | editor 바깥에서 `Cmd+B` / `Ctrl+B`로 focused file pane의 Explorer를 열고 닫는다. | 닫기 직후, 검색 pane에서 전환, pane split, 창 크기 변경 후에도 shortcut이 동작한다. Markdown editor focus에서는 KEY-01을 따른다. 키 입력 시 `treeOpen`, sidebar mode, 실제 표시 여부가 일치한다. |
+| EXP-01 | `Cmd+\` / `Ctrl+\`로 focused file pane의 Explorer를 열고 닫는다. | editor focus 여부와 관계없이 동작한다. 닫기 직후, 검색 pane에서 전환, pane split, 창 크기 변경 후에도 shortcut이 동작한다. 키 입력 시 `treeOpen`, sidebar mode, 실제 표시 여부가 일치한다. |
 | EXP-02 | 좁은 pane에서 Explorer가 editor 위를 덮지 않고 사라진다. | 가용 너비가 임계값 아래면 dock 폭을 해제하고 editor가 남은 폭을 쓴다. 임계값 위로 돌아오면 명시된 open 상태에 따라 재표시된다. “숨겨진 상태”와 “열렸지만 CSS로 가려진 상태”가 동시에 존재하지 않는다. |
 | EXP-03 | 일반 선택·열기·refresh·folder expand/collapse 뒤 현재 보던 첫 행을 유지한다. | 이전 첫 가시 행의 path가 남아 있으면 같은 viewport y 위치에 둔다. 행이 삭제되면 가장 가까운 생존 행을 사용한다. 선택/focus 변화는 viewport를 초기화하지 않는다. active file 변경만으로 ancestor expand나 scroll reveal을 하지 않는다. |
 | EXP-04 | 탭 전환·Explorer 닫기/열기·pane 폭 조정·TreeView 재마운트 후 scroll이 유지된다. | 저장한 row path + row 내부 offset을 우선 복원한다. 데이터가 준비되기 전에 0으로 점프하는 화면을 보이지 않는다. path 복원이 불가능한 경우에만 pixel offset을 fallback으로 쓴다. |
 | EXP-05 | 별도 탐색 의도가 있을 때 활성 파일을 찾아갈 수 있다. | `Cmd/Ctrl+Shift+E`는 Explorer를 열고 현재 활성 파일의 ancestor를 펼쳐 그 파일을 reveal한다. 이 명시 동작만 자동 보존 규칙보다 우선한다. |
 
-현재 shortcut 설계에는 문맥 충돌도 있다. shared Markdown keymap은 `Mod-b`로 bold를 감싸지만, Workspace Explorer는 window capture 단계에서 같은 키를 선점해 TreeView를 토글한다. 단축키 한 개를 양 기능에 동시에 배정할 수 없으므로 focused editor에서는 서식 명령, editor 바깥에서는 Explorer 명령으로 우선순위를 분리하고, TreeView를 항상 토글하는 별도 명령도 제공해야 한다.
+Markdown formatting의 `Mod-b`는 bold 동작에 사용한다. Explorer toggle은 겹치지 않는 `Cmd/Ctrl+\`로 제공하며, keyboard capture 단계에서 editor focus를 포함해 현재 focused pane group을 토글한다.
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
-| KEY-01 | Markdown 본문에서 `Cmd/Ctrl+B`는 선택 텍스트를 bold 처리한다. | Explorer가 열려 있거나 닫혀 있어도 editor focus의 bold 명령이 동작한다. editor 바깥에서는 Explorer를 토글한다. `Cmd/Ctrl+Shift+E`는 활성 파일 reveal이다. 두 동작 모두 keyboard shortcut help에 표시한다. |
+| KEY-01 | Markdown 본문에서 `Cmd/Ctrl+B`는 선택 텍스트를 bold 처리한다. | Explorer가 열려 있거나 닫혀 있어도 bold 명령이 동작한다. `Cmd/Ctrl+\`는 editor focus 여부와 관계없이 Explorer를 토글한다. `Cmd/Ctrl+Shift+E`는 활성 파일 reveal이다. |
 
 ## P0 — 문서 제목과 본문 폭을 하나의 레이아웃으로 만든다
 
-현재 [Markdown theme](../../src/themes.ts)는 `.cm-content`에 `maxWidth: 820px`, 가운데 정렬, 좌우 padding을 적용한다. [Markdown title CSS](../../src/markdownDocument.css)의 제목은 전체 폭을 쓰며 다른 좌우 padding을 사용한다. 제목과 첫 본문 글자의 x 좌표·사용 폭이 달라질 수 있는 코드상 근거다. 실제 목표는 두 요소가 같은 페이지 column 규칙을 공유하는 것이다.
+현재 [Markdown theme](../../src/themes.ts)는 `.cm-content`에 `maxWidth: 820px`, 가운데 정렬, 좌우 padding을 적용한다. [Markdown title CSS](../../src/markdownDocument.css)는 display title과 rename input을 같은 820px column 및 좌우 padding으로 정렬한다. rename input의 실제 focus/click 영역은 제목 문자열 폭에 맞추고, 긴 제목만 가용 column 안에서 가로로 편집한다. 수동 위치·폭 acceptance는 남아 있다.
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|

@@ -8,7 +8,7 @@
 
 Desktop은 path→`{entries,loaded}` branch Map, expanded Set, focusedPath/anchorPath/selectedPaths, menu/prompt, dropTarget, scrollTop, 첫 가시 행의 path와 행 내 offset, viewportHeight를 소유한다. provider lease는 Explorer와 Editor가 공유한다. loadDir는 path를 directory item으로 resolve하고 listChildren(parentId)를 수행한다. notFound는 로딩 중단, 기타 오류는 console.error다. 요청마다 branch sequence와 root path를 캡처하며, 늦게 완료된 오래된 branch/root 응답은 버린다.
 
-Desktop TreeView는 pane 본문 위에 떠 있는 왼쪽 sidebar다. visible toggle button은 두지 않는다. 열림은 pane group별 persistent chrome state이며 본문 폭을 줄이지 않는다. 사용자가 resize handle을 120px 아래로 줄이면 닫히고, pane 본문 폭이 560px 이하이면 sidebar를 숨긴다. `Cmd+B`(macOS) / `Ctrl+B`(Windows/Linux)는 현재 focused pane group의 Explorer를 토글한다. 닫았다 다시 열면 마지막 폭을 복원한다. 열린 상태에서는 panel surface/shadow가 editor 내용과 구분되며 빈 바깥 영역은 editor input을 가로채지 않는다.
+Desktop TreeView는 pane 본문 위에 떠 있는 왼쪽 sidebar다. visible toggle button은 두지 않는다. 열림은 pane group별 persistent chrome state이며 본문 폭을 줄이지 않는다. 사용자가 resize handle을 120px 아래로 줄이면 닫히고, pane 본문 폭이 560px 이하이면 sidebar를 숨긴다. `Cmd+\`(macOS) / `Ctrl+\`(Windows/Linux)는 editor focus 여부와 관계없이 현재 focused pane group의 Explorer를 토글한다. 닫았다 다시 열면 마지막 폭을 복원한다. 열린 상태에서는 panel surface/shadow가 editor 내용과 구분되며 빈 바깥 영역은 editor input을 가로채지 않는다.
 
 초기화/루트 변경 때 branch와 selection을 초기화하고 root와 복원된 expanded branch를 로드한다. root가 바뀌면 저장된 tree state를 reset한다. 저장된 anchor path/offset을 우선 복원하고, anchor가 없거나 목록에서 사라졌으면 pixel scrollTop을 사용한다. 복원은 root와 expanded branch 응답이 끝난 뒤 적용해 초기 빈 목록에 의해 clamp되지 않게 한다. 외부 scroll container는 passive scroll listener와 ResizeObserver로 가상화를 갱신한다. 행 목록이 바뀌면 직전 첫 가시 행의 path와 행 내 offset을 찾아 같은 viewport 위치를 유지하고, 해당 행이 삭제된 경우 이전 행 index에서 가장 가까운 생존 행으로 보정한다. workspace/tab 범위 변경은 이전 anchor를 폐기한다. expanded, pixel scrollTop, anchor는 host의 explorer state storage에서 관리하며 공통 UI가 localStorage를 직접 소유하지 않는다. 패널 숨김/표시와 너비 조정은 scroll 위치를 초기화하지 않는다.
 
@@ -73,7 +73,7 @@ host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용�
 | TREE-09 | 다른 editor tab/Quick Open에서 접힌 폴더의 파일 활성화 | 조상 폴더를 펼치고 활성 행을 viewport에 reveal |
 | TREE-10 | 동일 branch refresh 두 건을 시작하고 첫 요청을 늦게 완료 | 마지막 요청 응답만 branch에 반영 |
 | TREE-11 | root A의 branch 로드 중 root B로 전환, 두 root에 같은 상대 경로 존재 | root A의 늦은 응답이 root B의 tree를 바꾸지 않음 |
-| TREE-12 | `Cmd+B` 또는 `Ctrl+B`를 focused file pane에서 입력 | 해당 pane의 docked Explorer만 열리고 닫힘; editor shortcut으로 전달되지 않음 |
+| TREE-12 | `Cmd+\` 또는 `Ctrl+\`를 focused file pane에서 입력 | 해당 pane의 docked Explorer만 열리고 닫힘; editor focus 상태에서도 동작 |
 | TREE-13 | Explorer resize handle을 120px 미만으로 줄임 | Explorer가 닫히고 다음 열기에서 마지막 유효 폭으로 나타남 |
 | TREE-14 | pane 본문 폭을 560px 이하로 축소 | Explorer는 보이지 않고 본문이 pane 전체를 사용함; 폭을 넓히면 open state일 때 다시 표시 |
 

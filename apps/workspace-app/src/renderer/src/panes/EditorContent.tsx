@@ -152,7 +152,7 @@ export function EditorContent({
   const skipPathLoadRef = useRef<string | null>(null);
   const editRevisionRef = useRef(0);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const [dirty, setDirty] = useState(false);
+  const [, setDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const dirtyRef = useRef(false);
   const onOpenFileRef = useRef(onOpenFile);
@@ -610,8 +610,8 @@ export function EditorContent({
   };
 
   const editorFontStyle = { "--editor-font-size": `${13 * zoom}px` } as CSSProperties;
-  const editorActions = dirty || saveError
-    ? <span className={`md-pane-save-status${saveError ? " error" : " unsaved"}`} role="status" aria-live="polite" title={saveError ?? undefined}>{editorSavePhaseLabel(saveError ? "error" : "dirty")}</span>
+  const editorActions = saveError
+    ? <span className="md-pane-save-status error" role="status" aria-live="polite" title={saveError}>{editorSavePhaseLabel("error")}</span>
     : null;
 
   return (

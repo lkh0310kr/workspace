@@ -63,10 +63,8 @@ export function WorkspaceExplorerSidebar({
       setTreeOpen(true)
     })
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b') {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === '\\') {
         if (!paneVisible || !isGroupFocused || !explorerCapable) return
-        const target = e.target instanceof Element ? e.target : null
-        if (target?.closest('.cm-content[contenteditable="true"], input, textarea, [contenteditable="true"]')) return
         e.preventDefault()
         e.stopImmediatePropagation()
         setSidebarMode('explorer')

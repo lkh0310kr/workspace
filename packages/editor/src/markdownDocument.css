@@ -64,7 +64,16 @@
   min-width: 0;
 }
 
+.md-title-edit {
+  position: relative;
+  box-sizing: border-box;
+  width: min(100%, 820px);
+  margin: 0 auto;
+  padding: 20px clamp(18px, 5vw, 64px) 4px;
+}
+
 .editor-markdown-title {
+  box-sizing: border-box;
   width: min(100%, 820px);
   margin: 0 auto;
   flex-shrink: 0;
@@ -83,14 +92,16 @@
   width: 100%;
 }
 
-.md-title-edit {
-  position: relative;
-  flex-shrink: 0;
+.editor-markdown-document.is-wide .md-title-edit {
+  width: 100%;
 }
 
 .md-title-input {
-  display: block;
-  width: 100%;
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0;
   border: 0;
   outline: 0;
   background: transparent;

@@ -62,7 +62,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx",
-          "sha256": "38ac5804587dccf0b31f6d4f37fe78a51abbb52cd06ea64b60a8869a3865a90a"
+          "sha256": "fa09d9136e2fb60684a1a79acce649f14a581be8777519107fb7a525c53f619a"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/assets/styles.css",
@@ -78,7 +78,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/EditorContent.tsx",
-          "sha256": "c3de1ed7701c5e5f16f1ab003da98819a098e224b6f687a6ce952e742021af2c"
+          "sha256": "9572f45db3e185be8ec42fa4a0a56426fa665ae0ae1e7639866757ddd042af6f"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
@@ -154,7 +154,7 @@
         },
         {
           "path": "packages/editor/src/EditorMarkdownTitleInput.tsx",
-          "sha256": "709c57b63bebf60afe54b4daeae036eb687796454a133d1aab3d3f35a9f70708"
+          "sha256": "0ff4d3987db53682f06f3beb4a83b81cda724a706f1697becd0a5189b092be8e"
         },
         {
           "path": "packages/editor/src/EditorMenuList.tsx",
@@ -222,7 +222,7 @@
         },
         {
           "path": "packages/editor/src/markdownDocument.css",
-          "sha256": "5bd5b54541cdc7a1c39b3e44aaca5f35304223ac5e6f940a673ec6686afe8bae"
+          "sha256": "bbd9e5227977b43726fa5f0c83e8e351dc4bfeb60b82c497c55299f39bdde7a6"
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",
@@ -354,7 +354,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/EditorContent.tsx",
-          "sha256": "c3de1ed7701c5e5f16f1ab003da98819a098e224b6f687a6ce952e742021af2c"
+          "sha256": "9572f45db3e185be8ec42fa4a0a56426fa665ae0ae1e7639866757ddd042af6f"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
