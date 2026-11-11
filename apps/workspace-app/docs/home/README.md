@@ -31,6 +31,6 @@ Main [pkms API](../../src/main/pkms/api.ts)는 PKMS 세션으로 Home audience t
 
 ## 수락과 운영 경계
 
-HOME-UI-01 첫 CPU 조회 null과 다음 표본을 구분. HOME-UI-02 unavailable disk/memory를 0 사용으로 오해하지 않음. HOME-UI-03 PKMS 로그인 대기와 provider 연결 대기 구분. HOME-UI-04 provider 오류 하나가 local system widget을 막지 않음. HOME-UI-05 숨김/해제 때 구독과 timer 수명 확인.
+HOME-UI-01 기기 측정이 아직 불가능할 때 사용자가 CPU를 0으로 오해하지 않고 측정 결과가 준비된 뒤 실제 값을 확인한다. HOME-UI-02 unavailable disk/memory를 0 사용으로 오해하지 않는다. HOME-UI-03 PKMS 로그인 대기와 provider 연결 대기를 구분하고 알맞은 다음 행동을 알린다. HOME-UI-04 provider 오류 하나가 local system widget이나 다른 provider 결과를 가리지 않는다. HOME-UI-05 Home을 벗어나거나 다시 열어도 이전 요청의 늦은 응답이 현재 상태를 덮지 않고, 화면을 사용하지 않을 때 갱신 요청이 계속 누적되지 않는다.
 
 provider secrets/callback 등록·reconnect는 운영 작업이다. 기본 summary는 source 구현됐지만 프로세스별 monitor·상세 storage는 별도 요구다. 실제 OAuth/metric acceptance와 UI race의 자동 fixture는 후속 검증이다.

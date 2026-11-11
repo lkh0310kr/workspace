@@ -16,18 +16,18 @@ Workspace는 로컬 terminal·browser·editor·viewer를 한 Desktop 작업 공�
 
 ## 핵심 여정과 보존할 동작
 
-| ID | 여정 | 성공·실패에서 보존할 계약 | owner 진입점 |
+| ID | 여정 | 성공·실패 후 사용자가 확인할 결과 | owner 진입점 |
 |---|---|---|---|
-| J-01 | workspace/pane을 배치하고 다시 열기 | 탭·활성 선택·layout 복원, 손상 salvage, 닫기 취소, 정상 종료/crash 차이 | workspace-app |
-| J-02 | 파일을 찾아 Markdown/code 수정·저장 | 안정 identity, undo·dirty·조건부 쓰기, 외부 충돌 보존 | editor + Desktop adapter |
-| J-03 | shell/TUI 실행, 다른 pane 이동 | 순서·UTF-8·ACK·scroll·IME·focus, 재연결과 프로세스 수명 | workspace-app terminal |
-| J-04 | browser 탐색과 pane 전환 | URL/history·guest focus·overlay·drag·download·재부착 | workspace-app browser |
-| J-05 | 이미지/책/영상/모델 열기 | 포맷별 pipeline·로딩/실패·자원 cleanup·읽기 상태 | workspace-app viewers |
-| J-06 | PKMS 로그인·저장소 선택·협업 편집 | 계정/권한·CRDT·cache·presence, 만료·offline·remote mirror | PKMS apps + pkms-client |
-| J-07 | 연결 폴더에서 수정·이동·삭제 | durable intent·cursor·idempotency·충돌 복사·삭제 guard | Desktop bridge + PKMS server |
-| J-08 | Home 연결·기기 상태 확인 | 기본 summary와 상세 monitor 구분, OAuth 설정 대기·만료·provider 오류 | Desktop Home + Home server |
-| J-09 | agent 상태·사용량·설정 확인 | evidence freshness·실제 adapter 지원·측정 실패·설정 적용 범위 | workspace-app |
-| J-10 | 업데이트·장애 진단·복구 | native build/서명·업데이트 수명·로그 보존·검증 기록 | 각 앱 운영 문서 |
+| J-01 | workspace/pane을 배치하고 다시 열기 | 다시 열었을 때 작업 구성이 복원된다. 손상이나 취소된 닫기는 가능한 작업과 편집 내용을 잃지 않고, 복원할 수 없는 상태는 구분해 알린다. | workspace-app |
+| J-02 | 파일을 찾아 Markdown/code 수정·저장 | 사용자가 편집한 내용이 선택한 파일에 저장된다. 저장 충돌·실패·취소 시 어떤 내용이 남았는지 확인하고 안전하게 복구할 수 있다. | editor + Desktop adapter |
+| J-03 | shell/TUI 실행, 다른 pane 이동 | pane을 바꿔도 명령 입력과 출력이 의도치 않게 끊기거나 뒤섞이지 않는다. 앱을 닫거나 연결이 끊겼을 때 복원 가능한 화면 내용과 재개할 수 없는 프로세스를 구분한다. | workspace-app terminal |
+| J-04 | browser 탐색과 pane 전환 | 현재 페이지와 사용자의 탐색 작업을 유지하면서 주소 이동, 뒤로/앞으로, 다운로드, 다른 pane 전환을 할 수 있다. 페이지가 종료되거나 복구 중일 때 상태와 가능한 다음 행동이 보인다. | workspace-app browser |
+| J-05 | 이미지/책/영상/모델 열기 | 지원되는 파일은 해당 형식에 맞게 확인할 수 있고 읽기 위치 등 지원 상태가 보존된다. 지원 불가·손상·취소·변환 실패는 빈 화면이나 성공으로 오인되지 않는다. | workspace-app viewers |
+| J-06 | PKMS 로그인·저장소 선택·협업 편집 | 권한 있는 사용자가 지원 클라이언트에서 같은 문서를 확인·편집할 수 있다. 오프라인·세션 만료·동시 수정 뒤에도 저장된 변경과 해결이 필요한 충돌을 구분한다. | PKMS apps + pkms-client |
+| J-07 | 연결 폴더에서 수정·이동·삭제 | 로컬과 원격의 변경이 일관되게 반영된다. 충돌이나 연결 중단 때 변경이 조용히 유실·삭제되지 않고, 재시도 후 해결 여부를 확인할 수 있다. | Desktop bridge + PKMS server |
+| J-08 | Home 연결·기기 상태 확인 | 기기와 연결 서비스의 현재 상태를 확인하고, 미연결·권한 부족·측정 실패·실제 0을 구분해 다음 조치를 알 수 있다. | Desktop Home + Home server |
+| J-09 | agent 상태·사용량·설정 확인 | 표시된 상태와 사용량이 확인 가능한 근거·시점에 기반하며, 알 수 없음·오래된 정보·측정 실패를 정상/0으로 오해하지 않는다. 설정 변경 결과도 확인할 수 있다. | workspace-app |
+| J-10 | 업데이트·장애 진단·복구 | 사용자가 지원되는 앱 버전을 설치·실행하고, 업데이트나 실행 실패 시 현재 버전·실패 원인·복구 방법을 확인할 수 있다. | 각 앱 운영 문서 |
 
 각 owner의 app/package 문서가 이 여정의 구체 상태 전이를 정의한다. 전역 여정 표에서 provider timer나 protocol payload를 다시 정의하지 않는다.
 
