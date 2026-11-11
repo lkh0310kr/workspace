@@ -136,7 +136,7 @@ Filename title와 본문 H1이 함께 있을 때 두 이름과 hierarchy를 구�
 
 ## P1 — 표는 렌더 가능한 콘텐츠이자 편집 가능한 원문이다
 
-현재 [TableWidget](../../src/markdownLivePreview.ts)은 alignment와 좁은 폭 가로 스크롤, escaped pipe, inline `$…$` KaTeX를 처리하지만 셀 본문은 대부분 text로 표시하고 직접 편집은 지원하지 않는다. 나머지 inline formatting/link/image와 셀 원문 mapping은 여전히 미완료다.
+현재 [TableWidget](../../src/markdownLivePreview.ts)은 alignment와 좁은 폭 가로 스크롤, escaped pipe, inline `$…$` KaTeX, strong/emphasis/strike/inline code를 처리한다. 셀 click과 Tab 이동으로 원문 편집을 지원한다. link/image/wikilink, 행·열 편집, 복잡한 inline syntax의 round-trip은 여전히 미완료다.
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
@@ -246,7 +246,7 @@ Notion 데이터베이스 block, 협업 presence, access control, page discussio
 
 - 제목은 [markdownTitleFor](../../src/markdownTitle.ts)에서 파일 basename으로 계산하고 [EditorMarkdownTitle](../../src/EditorMarkdownTitle.tsx)에서 표시/rename 입력을 전환한다.
 - 본문 폭은 [themes.ts](../../src/themes.ts)의 `.cm-content` max-width 820px에 있지만 title은 [markdownDocument.css](../../src/markdownDocument.css)에서 별도 전체 폭 규칙을 쓴다.
-- 표는 [markdownLivePreview.ts](../../src/markdownLivePreview.ts)의 `TableWidget`이 alignment·column sizing·escaped pipe·inline math를 렌더한다. 나머지 inline Markdown과 direct editing은 구현하지 않았다.
+- 표는 [markdownLivePreview.ts](../../src/markdownLivePreview.ts)의 `TableWidget`이 alignment·column sizing·escaped pipe·inline math·기본 inline formatting을 렌더하고 source cell click/Tab navigation을 제공한다. link/image/wikilink와 행·열 조작은 구현하지 않았다.
 - Mermaid fenced block과 inline/display TeX는 각각 strict Mermaid renderer와 KaTeX로 preview한다. 각 renderer의 제한과 미완료 acceptance는 위 ID별 표를 따른다.
 - HTML block은 iframe widget으로 렌더되며 script 실행은 허용하지 않는다. allowlist/CSP/resource origin 계약은 이 spec에서 정해야 한다.
 - Explorer는 [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx), [TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx), [explorer state](../../../../apps/workspace-app/src/renderer/src/explorer/explorerState.ts), [PaneGroup](../../../../apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx)이 협력한다. open state는 pane group에, tree selection/scroll anchor는 tree state에 둔다. active file 선택은 viewport를 움직이지 않고 `Cmd/Ctrl+Shift+E`만 명시 reveal한다. scroll 복원은 준비가 끝나고 tree가 실제 표시된 뒤 저장 상태를 적용하며, 복원 전 임시 scroll event는 저장하지 않는다. 실제 UI 수용 확인은 남아 있다.
