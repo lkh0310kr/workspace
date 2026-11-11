@@ -6,6 +6,8 @@
 
 공유 row model은 `id,path,name,kind,depth`와 선택적 expandable/expanded/loading/active/selected/multiSelected/cut/dropTarget/tabIndex/trailingStatus/showGuides/source를 가진다. projection은 rows/startIndex/paddingTop/paddingBottom/totalHeight다. 공유 UI는 provider를 직접 호출하지 않고 callback으로 선택·activate·context·drop을 위임한다.
 
+row에는 file/folder type icon을 표시하지 않는다. folder expand/collapse disclosure와 depth guide만 유지하고, 아이콘 폭 없이 이름을 정렬한다.
+
 Desktop은 path→`{entries,loaded}` branch Map, expanded Set, focusedPath/anchorPath/selectedPaths, menu/prompt, dropTarget, scrollTop, 첫 가시 행의 path와 행 내 offset, viewportHeight를 소유한다. provider lease는 Explorer와 Editor가 공유한다. loadDir는 path를 directory item으로 resolve하고 listChildren(parentId)를 수행한다. notFound는 로딩 중단, 기타 오류는 console.error다. 요청마다 branch sequence와 root path를 캡처하며, 늦게 완료된 오래된 branch/root 응답은 버린다.
 
 Desktop TreeView는 pane 본문 위에 떠 있는 왼쪽 sidebar다. visible toggle button은 두지 않는다. 열림은 pane group별 persistent chrome state이며 본문 폭을 줄이지 않는다. 사용자가 resize handle을 120px 아래로 줄이면 닫히고, pane 본문 폭이 560px 이하이면 sidebar를 숨긴다. `Cmd+\`(macOS) / `Ctrl+\`(Windows/Linux)는 editor focus 여부와 관계없이 현재 focused pane group의 Explorer를 토글한다. 닫았다 다시 열면 마지막 폭을 복원한다. 열린 상태에서는 panel surface/shadow가 editor 내용과 구분되며 빈 바깥 영역은 editor input을 가로채지 않는다.

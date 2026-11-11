@@ -283,6 +283,37 @@ input {
   background: var(--bg-base);
 }
 
+.app-toast-viewport {
+  position: fixed;
+  z-index: 100010;
+  top: calc(var(--chrome-h, 0px) + 12px);
+  right: 16px;
+  display: flex;
+  width: min(360px, calc(100vw - 32px));
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.app-toast {
+  padding: 10px 14px;
+  border: 1px solid var(--border-strong, var(--border));
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--bg-surface, var(--surface, var(--bg-base)));
+  color: var(--text);
+  box-shadow: var(--shadow-overlay, 0 8px 24px #0005);
+  font-size: 13px;
+  line-height: 1.4;
+  pointer-events: auto;
+  animation: app-toast-enter 150ms ease-out;
+}
+.app-toast--success { border-left-color: var(--status-success, var(--accent)); }
+.app-toast--error { border-left-color: var(--status-danger, var(--danger, #c87b7b)); }
+@keyframes app-toast-enter {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Overlay title bar (see tauri.conf.json titleBarStyle) leaves the traffic
    lights floating over the web content with no native bar underneath — this
    strip reserves that height so content doesn't render under them, stays

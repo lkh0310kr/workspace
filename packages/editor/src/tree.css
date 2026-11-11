@@ -34,11 +34,6 @@
 .editor-tree-guide { position: absolute; inset-block: 0; width: 1px; background: var(--border); pointer-events: none; }
 .editor-tree-disclosure { display: inline-flex; flex: 0 0 12px; align-items: center; justify-content: center; width: 12px; height: 16px; color: var(--editor-tree-muted, var(--text-faint, var(--muted))); }
 .editor-tree-disclosure.is-expanded > :first-child { transform: rotate(90deg); }
-.editor-tree-icon { display: inline-flex; flex: 0 0 18px; align-items: center; justify-content: center; width: 18px; height: 18px; color: var(--editor-tree-muted, var(--text-faint, var(--muted))); }
-.editor-tree-item:hover .editor-tree-icon, .editor-tree-item.is-active .editor-tree-icon { color: var(--text, var(--muted)); }
-.editor-tree-icon--directory { color: var(--editor-tree-folder, var(--text-muted, var(--muted))); }
-:root[data-theme="light"] .editor-tree-icon--directory { color: #414852; }
-:root[data-theme="light"] .editor-tree-icon--directory svg { stroke-width: 1.6px; }
 .editor-tree-name { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .editor-tree-trailing-status { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; min-width: 12px; color: var(--muted, var(--text-muted)); font-size: 9px; }
 .editor-tree-trailing-status--pending { color: var(--muted, var(--text-muted)); }

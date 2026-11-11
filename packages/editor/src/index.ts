@@ -17,6 +17,8 @@ export type {
 } from "./provider";
 export { EditorProviderError, editorSupportsCodeLanguage, editorSupportsOperation, editorSupportsSearch, isEditorAbortError, isEditorProviderError, withEditorProviderErrors } from "./provider";
 export { editorSavePhaseLabel } from "./editorSaveStatus";
+export { dispatchEditorNotification, EDITOR_NOTIFICATION_EVENT } from "./editorNotifications";
+export type { EditorNotificationDetail } from "./editorNotifications";
 export { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
 export { useEditorQuickOpenSearch } from "./useEditorQuickOpenSearch";
 export { editorDocumentKey } from "./documentIdentity";

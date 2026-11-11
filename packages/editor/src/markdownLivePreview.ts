@@ -10,6 +10,7 @@ import { syntaxTree } from "@codemirror/language";
 import { Facet, RangeSetBuilder, StateField, type EditorState, type Extension } from "@codemirror/state";
 import type { SyntaxNodeRef } from "@lezer/common";
 import katex from "katex";
+import { dispatchEditorNotification } from "./editorNotifications";
 
 // Per-view configuration carrying the active tab's root_path and document
 // path, so relative images resolve beside the Markdown file and root-relative
@@ -666,6 +667,7 @@ class CodeBlockHeaderWidget extends WidgetType {
         label.classList.add("is-copied");
         label.setAttribute("aria-label", `Could not copy ${language} code`);
         label.title = "Clipboard access failed";
+        dispatchEditorNotification({ message: "Could not copy code to clipboard", kind: "error" });
         window.setTimeout(() => label.classList.remove("is-copied"), 900);
         return;
       }
@@ -673,9 +675,11 @@ class CodeBlockHeaderWidget extends WidgetType {
       void clipboard.writeText(this.source).then(() => {
         label.setAttribute("aria-label", `Copied ${language} code`);
         label.title = `Copied ${language} code`;
+        dispatchEditorNotification({ message: `Copied ${language} code to clipboard`, kind: "success" });
       }).catch(() => {
         label.setAttribute("aria-label", `Could not copy ${language} code`);
         label.title = "Clipboard access failed";
+        dispatchEditorNotification({ message: "Could not copy code to clipboard", kind: "error" });
       }).finally(() => {
         window.setTimeout(() => {
           label.classList.remove("is-copied");

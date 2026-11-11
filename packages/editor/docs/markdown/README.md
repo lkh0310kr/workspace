@@ -28,7 +28,7 @@ Mod-b는 `**`, Mod-i는 `*`로 모든 selection을 감싼다. 선택 양쪽에 �
 | 강조·code·link·WikiLink | 원문 marker 숨김과 내용 class; 링크 클릭은 별도 resolver |
 | 목록·task | bullet/checkbox widget; checkbox 조작은 해당 원문 task marker 변경 |
 | blockquote/callout | line 스타일과 `[!type]` label; note/info/tip/success/question/warning/danger/failure/bug/example/quote label |
-| fenced code | CodeMirror language-data의 language/alias/extension 매칭 및 syntax colors; preview header language label click은 fence body copy; 원문 편집 상태에서도 같은 background/frame |
+| fenced code | CodeMirror language-data의 language/alias/extension 매칭 및 syntax colors; preview header의 오른쪽 language label click은 fence body copy 후 host global toast를 요청; 원문 편집 상태에서도 같은 background/frame |
 | table | header/rows를 table DOM의 th/td textContent로 표시; rich HTML cell renderer가 아님 |
 | image | host resolver 또는 rootPath 기반 URL, 자원 cleanup |
 | HTML block | sandbox iframe srcdoc 미리보기; 원문 보존 |

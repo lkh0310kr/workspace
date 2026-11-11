@@ -67,16 +67,6 @@ function parsePaths(value: string): string[] {
   }
 }
 
-function TreeIcon({ kind }: { kind: EditorItemKind }) {
-  if (kind === "directory") {
-    return <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinejoin="round" aria-hidden="true"><path d="M1.8 4.2h4l1.5 1.6h6.9v6.1H1.8z" /><path d="M1.8 4.2V3.1h4.1l1.3 1.2" /></svg>;
-  }
-  if (kind === "code") {
-    return <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" aria-hidden="true"><path d="M3 1.8h6l4 4v8.4H3z" /><path d="M9 1.8v4h4M6.2 8l-1.4 1.3 1.4 1.3m3.6-2.6 1.4 1.3-1.4 1.3" /></svg>;
-  }
-  return <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" aria-hidden="true"><path d="M3 1.8h6l4 4v8.4H3z" /><path d="M9 1.8v4h4M5.2 8.3h4.6m-4.6 2h5.5" /></svg>;
-}
-
 function TreeDisclosure() {
   return <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m4 2 4 4-4 4" /></svg>;
 }
@@ -166,7 +156,6 @@ export function EditorTreeView({
             trailingStatus={item.trailingStatus}
             kind={item.kind}
             depth={item.depth}
-            icon={<TreeIcon kind={item.kind} />}
             disclosure={<TreeDisclosure />}
             expandable={item.expandable}
             expanded={item.expanded}

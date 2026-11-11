@@ -5,6 +5,7 @@ import { AgentUsageStatusBar } from "./components/AgentUsageStatusBar";
 import { loadUsageMeterSettings, onHomeShortcut, onQuickOpenShortcut, saveUsageMeterSettings } from "./electron";
 import { DEFAULT_USAGE_METER_SETTINGS, type UsageMeterSettings } from "../../shared/usage-meter-settings";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
+import { GlobalToastViewport } from "./components/GlobalToastViewport";
 import { InteractionDebugPanel } from "./components/InteractionDebugPanel";
 import { LayoutTabDropOverlay } from "./components/LayoutTabDropOverlay";
 import { LoadingWorkspace } from "./components/LoadingWorkspace";
@@ -245,6 +246,7 @@ export default function App() {
       <LayoutTabDropOverlay />
       <ErrorLogPanel />
       <InteractionDebugPanel />
+      <GlobalToastViewport />
     </div>
   );
 }

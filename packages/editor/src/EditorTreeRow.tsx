@@ -13,7 +13,6 @@ export interface EditorTreeRowProps {
   trailingStatus?: ReactNode;
   kind: EditorItemKind;
   depth: number;
-  icon: ReactNode;
   disclosure?: ReactNode;
   expandable?: boolean;
   expanded?: boolean;
@@ -45,7 +44,6 @@ export function EditorTreeRow({
   trailingStatus,
   kind,
   depth,
-  icon,
   disclosure,
   expandable = false,
   expanded = false,
@@ -109,7 +107,6 @@ export function EditorTreeRow({
       <span className={`editor-tree-disclosure${expanded ? " is-expanded" : ""}`} aria-hidden="true">
         {loading ? <span className="editor-tree-loading" /> : expandable ? disclosure : null}
       </span>
-      <span className={`editor-tree-icon editor-tree-icon--${kind}`} aria-hidden="true">{icon}</span>
       <span className="editor-tree-name">{name}</span>
       {trailingStatus && <span className="editor-tree-trailing-status">{trailingStatus}</span>}
     </button>

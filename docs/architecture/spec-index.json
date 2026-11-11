@@ -66,7 +66,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/assets/styles.css",
-          "sha256": "c1725b1d3a736321235b0e63eb4c6e0def8e3e40612a8757d386c185c6255515"
+          "sha256": "9949440e845500f9495bb8dd94602bcca5ff373f699f961c3bd4865d41dfb424"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts",
@@ -194,11 +194,11 @@
         },
         {
           "path": "packages/editor/src/EditorTreeRow.tsx",
-          "sha256": "16862c6348964bff005474a386ed50e8879aa835b25878b3b4c44d23d9212105"
+          "sha256": "5374f739a62e52061645765cdef5a838be357d173c3bca9e44253e43f326ec2f"
         },
         {
           "path": "packages/editor/src/EditorTreeView.tsx",
-          "sha256": "1405f352a5a36cc8a0025d30998229f36b4f34aa73c70bcf0e91071a34c10b3c"
+          "sha256": "7651bf61a151d6fb0cf618738ec2f98973bb46adfe19185fa89e958eeafd5544"
         },
         {
           "path": "packages/editor/src/EditorTreeVirtualList.tsx",
@@ -210,11 +210,11 @@
         },
         {
           "path": "packages/editor/src/index.ts",
-          "sha256": "a61b5d92518ca79ae6d67ee29419e3712909e8eabbb951e90c1688ba15423f95"
+          "sha256": "29bc167572e5bcc23bd5a505268ff7bbd672481db4ff14068c633377bc29a632"
         },
         {
           "path": "packages/editor/src/markdown.css",
-          "sha256": "93ab401d057c551da9678b16ed604b8cd608aa4317aa18a27629fbf0992722f3"
+          "sha256": "5d18d04a98e8dcbe406f59472f32b25019da8e1fa6ce0f2fbda02a9305ad0dd6"
         },
         {
           "path": "packages/editor/src/markdownCommands.ts",
@@ -234,7 +234,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "87269a19a035f251dc569c390e64e308deef5e9f74573a4994fb0b6423694f3f"
+          "sha256": "bce56b04a45ab0adc6a4f028d5ca2a240226e43ccf0b21a4a3d41503510371bd"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",
@@ -262,7 +262,7 @@
         },
         {
           "path": "packages/editor/src/tree.css",
-          "sha256": "ac1b8a9ac599e4a343e59e6e8217694fde80823ebe89d804be452d156445ae68"
+          "sha256": "68aeb0dfba0d2fc02c40225945a3589c7bd86a87776b8fd41a82c8e281defb17"
         },
         {
           "path": "packages/editor/src/treeModel.ts",
