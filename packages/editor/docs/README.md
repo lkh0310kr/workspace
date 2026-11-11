@@ -6,6 +6,7 @@
 
 | 스펙 | 재구현 책임 |
 |---|---|
+| [공개 API와 UI](./public-api.md) | export owner·tab·menu·이름 form |
 | [Provider 계약](provider.md) | 타입, capability, 오류, snapshot, session 수명 |
 | [Desktop provider 구현](../../../apps/workspace-app/docs/editor/providers.md) | Workspace 파일시스템·ID·충돌·lease |
 | [PKMS provider 구현](../../pkms-client/docs/editor-sessions.md) | PKMS local/Yjs/asset session |
