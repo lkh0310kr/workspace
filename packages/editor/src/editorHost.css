@@ -1,13 +1,9 @@
-/* CodeMirror renders ranges in a layer behind its editable content. Keep the
-   content surface clear and theme the range markers in every editor host. */
-.cm-editor .cm-content {
-  background-color: transparent !important;
-}
-
-.cm-editor .cm-selectionLayer .cm-selectionBackground {
-  background-color: var(--editor-selection-bg, var(--selected, #ededed)) !important;
-}
-
-.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
-  background-color: var(--editor-selection-bg-focused, var(--editor-selection-bg, var(--selected, #ededed))) !important;
+/* Match the text-only selection used by the original Markdown surface.
+   CodeMirror's synthetic rectangles fill line width, so let the browser paint
+   the selected glyphs while its `.cm-content` backdrop hides those rectangles. */
+.editor-text-surface .cm-editor .cm-content ::selection,
+.editor-text-surface .cm-editor .cm-content::selection,
+.editor-text-surface .cm-editor .cm-line ::selection,
+.editor-text-surface .cm-editor .cm-line::selection {
+  background-color: var(--editor-selection-bg-focused, var(--selected, #ededed)) !important;
 }
