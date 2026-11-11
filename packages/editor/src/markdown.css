@@ -20,6 +20,10 @@
 .cm-md-strong { font-weight: 600; }
 .cm-md-em { font-style: italic; }
 .cm-md-code { padding: 0 3px; background: var(--bg-hover, var(--hover)); font-family: var(--font-mono, var(--editor-font, monospace)); }
+.cm-md-math .katex { font-size: 1em; }
+.cm-md-math-block { max-width: 100%; overflow-x: auto; margin: 12px 0; text-align: center; }
+.cm-md-math-block .katex-display { margin: 0; }
+.cm-md-math-error { color: var(--status-danger, #e5484d); }
 .cm-md-link {
   color: var(--link, var(--accent));
   text-decoration: underline;
@@ -48,6 +52,7 @@
 .cm-md-wikilink:hover { text-decoration-thickness: 2px; }
 .cm-md-image { display: block; max-width: 100%; margin: 4px 0; border-radius: 4px; }
 .cm-md-html-embed { display: block; width: 100%; min-height: 32px; border: 0; background: transparent; }
-.cm-md-table { margin: 6px 0; border-collapse: collapse; font-size: .95em; }
+.cm-md-table-wrap { max-width: 100%; margin: 6px 0; overflow-x: auto; }
+.cm-md-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: .95em; }
 .cm-md-table th, .cm-md-table td { padding: 4px 10px; border: 1px solid var(--border); text-align: left; }
 .cm-md-table th { background: var(--bg-hover, var(--hover)); font-weight: 600; }

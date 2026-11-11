@@ -60,6 +60,7 @@ export { nextEditorItemName, nextEditorItemNameInDirectory } from "./uniqueItemN
 export { resolveEditorRelativeLink } from "./relativeLink";
 export { resolveEditorTreeDirectory, resolveEditorTreePath } from "./resolveEditorTreePath";
 export { HEADING_TYPES, markdownDocumentPath, markdownImageResolver, markdownLivePreview, markdownRootPath } from "./markdownLivePreview";
+export { markdownMathExtension } from "./markdownMath";
 export type { MarkdownImageResolver, MarkdownImageResource } from "./markdownLivePreview";
 export { wikiLinkExtension } from "./markdownWikilink";
 export { createMarkdownEditorExtensions } from "./markdownEditor";

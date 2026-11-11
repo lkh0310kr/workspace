@@ -136,22 +136,22 @@ Filename title와 본문 H1이 함께 있을 때 두 이름과 hierarchy를 구�
 
 ## P1 — 표는 렌더 가능한 콘텐츠이자 편집 가능한 원문이다
 
-현재 [TableWidget](../../src/markdownLivePreview.ts)은 header/row cell 문자열을 `textContent`로 DOM에 넣는 read-only table이다. 즉 셀 안쪽 Markdown formatting/link/image/math가 다시 렌더되지 않고, 위젯 안에서 직접 편집하는 계약도 없다. 이 두 제약은 source에서 확인된다.
+현재 [TableWidget](../../src/markdownLivePreview.ts)은 alignment와 좁은 폭 가로 스크롤, escaped pipe, inline `$…$` KaTeX를 처리하지만 셀 본문은 대부분 text로 표시하고 직접 편집은 지원하지 않는다. 나머지 inline formatting/link/image와 셀 원문 mapping은 여전히 미완료다.
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
-| TBL-01 | GFM 표의 header, body, 빈 cell, alignment가 기대한 표로 보인다. | 왼쪽/가운데/오른쪽 alignment marker를 적용하고, 긴 cell·좁은 폭에서는 문서 전체 폭을 깨지 않으면서 표를 가로 스크롤하거나 감싼다. |
-| TBL-02 | cell 안 기본 inline Markdown이 다른 문단처럼 렌더된다. | bold, italic, strike, inline code, link, image, wikilink, task marker와 inline math를 cell 안에서도 처리한다. |
+| TBL-01 | GFM 표의 header, body, 빈 cell, alignment가 기대한 표로 보인다. | 왼쪽/가운데/오른쪽 alignment marker를 적용하고, 긴 cell·좁은 폭에서는 문서 전체 폭을 깨지 않으면서 표를 가로 스크롤하거나 감싼다. 기본 렌더 경로는 구현했으며 수동 acceptance가 남아 있다. |
+| TBL-02 | cell 안 기본 inline Markdown이 다른 문단처럼 렌더된다. | inline `$…$`는 같은 KaTeX renderer로 처리한다. bold, italic, strike, inline code, link, image, wikilink, task marker 등 나머지는 미완료다. |
 | TBL-03 | 표 셀을 클릭해 직접 편집한다. | 셀 focus와 caret가 원본 markdown의 정확한 range로 연결된다. 키보드 이동은 셀 사이에서 예측 가능하고, Tab 마지막 셀에서 행 생성/종료 중 하나의 합의된 결과를 낸다. |
 | TBL-04 | 행과 열을 추가·삭제·이동하고 header를 바꾼다. | 마우스 context menu와 keyboard path가 같은 명령을 호출한다. 한 행/열만 남긴 경우, 병합된/불규칙 표의 처리 결과를 명시한다. 문서의 다른 표에는 영향이 없다. |
 | TBL-05 | 표 편집은 Markdown text를 보존한다. | escaped pipe `\\|`, inline code/math의 pipe, 정렬 marker, cell 내 link alias와 embed 크기를 parse/render/serialize round-trip해 의도하지 않은 열 분리를 만들지 않는다. |
-| TBL-06 | 수식은 표 안과 밖에서 같은 의미로 렌더된다. | 한 cell 안의 `$...$`와 수식 pipe 문자를 table delimiter로 오인하지 않는다. display math를 cell 안에서 허용할지 금지할지 문법 규칙을 정하고 UI도 일치시킨다. |
+| TBL-06 | 수식은 표 안과 밖에서 같은 의미로 렌더된다. | table cell의 `$…$`는 inline KaTeX로 렌더한다. cell 안 `\(...\)`/display math 지원과 math pipe escaping은 미완료이며 별도 수용 기준을 정한다. |
 
 Obsidian 표 결과를 기준으로 formatting, 내부 링크, embed, alignment, 행/열 추가·삭제를 포함한다. 표 셀 편집이 여러 방식으로 구현될 수 있으므로 원문 range ↔ cell mapping, cursor 이동, round-trip 보존을 먼저 계약하고 구현 도구는 그 뒤에 선택한다.
 
 ## P1 — TeX/LaTeX 수식
 
-현재 package dependencies와 `markdownLivePreview.ts`에는 math parser/renderer가 없다. 코드 fence의 `CodeInfo`만 숨기고 수식 처리는 하지 않으므로 inline/display 수식은 원문 기호 상태다.
+공통 parser가 inline `$…$`/`\(…\)` 문법을 인식하고 KaTeX로 preview한다. `$$…$$`/`\[…\]` display block도 source를 유지하며 KaTeX로 렌더하고, caret/selection이 식 안에 오면 원문을 보여 준다. equation environment와 실제 브라우저 visual/error acceptance는 별도로 검증해야 한다.
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|

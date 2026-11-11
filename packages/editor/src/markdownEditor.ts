@@ -6,6 +6,7 @@ import type { MarkdownConfig } from "@lezer/markdown";
 import type { Extension } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import { markdownFormattingKeymap } from "./markdownCommands";
+import { markdownMathExtension } from "./markdownMath";
 import { markdownLivePreview } from "./markdownLivePreview";
 
 export interface MarkdownEditorOptions {
@@ -18,7 +19,7 @@ export function createMarkdownEditorExtensions(options: MarkdownEditorOptions = 
   return [
     markdown({
       base: markdownLanguage,
-      extensions: [...(options.parserExtensions ?? [])],
+      extensions: [markdownMathExtension, ...(options.parserExtensions ?? [])],
       addKeymap: false,
     }),
     indentOnInput(),

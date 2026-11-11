@@ -9,6 +9,7 @@ import {
 import { syntaxTree } from "@codemirror/language";
 import { Facet, RangeSetBuilder, StateField, type EditorState, type Extension } from "@codemirror/state";
 import type { SyntaxNodeRef } from "@lezer/common";
+import katex from "katex";
 
 // Per-view configuration carrying the active tab's root_path and document
 // path, so relative images resolve beside the Markdown file and root-relative
@@ -255,6 +256,43 @@ class ImageWidget extends WidgetType {
 
 const imageWidgetStates = new WeakMap<HTMLImageElement, { disposed: boolean; release?: () => void }>();
 
+function insideDisplayMath(state: EditorState, position: number): boolean {
+  const targetLine = state.doc.lineAt(position).number;
+  let closeMarker: string | null = null;
+  for (let number = 1; number <= targetLine; number++) {
+    const line = state.doc.line(number);
+    let syntax = syntaxTree(state).resolveInner(line.from, 1);
+    let isFencedCode = false;
+    while (syntax) {
+      if (syntax.type.name === "FencedCode") {
+        isFencedCode = true;
+        break;
+      }
+      if (!syntax.parent) break;
+      syntax = syntax.parent;
+    }
+    if (isFencedCode) continue;
+    const text = line.text.trim();
+    if (!closeMarker) {
+      if (text === "$$") closeMarker = "$$";
+      else if (text === "\\[") closeMarker = "\\]";
+    } else if (text === closeMarker) {
+      closeMarker = null;
+    }
+  }
+  return closeMarker !== null;
+}
+
+function insideTable(state: EditorState, position: number): boolean {
+  let node = syntaxTree(state).resolveInner(position, 1);
+  while (node) {
+    if (node.type.name === "Table") return true;
+    if (!node.parent) break;
+    node = node.parent;
+  }
+  return false;
+}
+
 // Rendered via a block-replace decoration (`block: true`) — unlike
 // HorizontalRule, a table genuinely spans multiple lines, and CodeMirror
 // only allows a replace decoration to cross a line break when it's
@@ -266,6 +304,7 @@ class TableWidget extends WidgetType {
   constructor(
     readonly header: string[],
     readonly rows: string[][],
+    readonly alignments: Array<"left" | "center" | "right">,
   ) {
     super();
   }
@@ -273,18 +312,24 @@ class TableWidget extends WidgetType {
   eq(other: TableWidget) {
     return (
       JSON.stringify(other.header) === JSON.stringify(this.header) &&
-      JSON.stringify(other.rows) === JSON.stringify(this.rows)
+      JSON.stringify(other.rows) === JSON.stringify(this.rows) &&
+      JSON.stringify(other.alignments) === JSON.stringify(this.alignments)
     );
   }
 
   toDOM() {
+    const wrapper = document.createElement("div");
+    wrapper.className = "cm-md-table-wrap";
     const table = document.createElement("table");
     table.className = "cm-md-table";
     const thead = document.createElement("thead");
     const headRow = document.createElement("tr");
-    for (const cell of this.header) {
+    const columnCount = Math.max(this.header.length, ...this.rows.map((row) => row.length));
+    for (let index = 0; index < columnCount; index++) {
+      const cell = this.header[index] ?? "";
       const th = document.createElement("th");
-      th.textContent = cell;
+      th.style.textAlign = this.alignments[index] ?? "left";
+      appendTableCellContent(th, cell);
       headRow.appendChild(th);
     }
     thead.appendChild(headRow);
@@ -292,16 +337,59 @@ class TableWidget extends WidgetType {
     const tbody = document.createElement("tbody");
     for (const row of this.rows) {
       const tr = document.createElement("tr");
-      for (const cell of row) {
+      for (let index = 0; index < columnCount; index++) {
+        const cell = row[index] ?? "";
         const td = document.createElement("td");
-        td.textContent = cell;
+        td.style.textAlign = this.alignments[index] ?? "left";
+        appendTableCellContent(td, cell);
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-    return table;
+    wrapper.appendChild(table);
+    return wrapper;
   }
+}
+
+function isEscapedAt(source: string, index: number): boolean {
+  let count = 0;
+  while (index > count && source[index - count - 1] === "\\") count++;
+  return count % 2 === 1;
+}
+
+function appendTableCellContent(target: HTMLElement, source: string): void {
+  if (source.includes("`")) {
+    target.textContent = source.replace(/\\\|/g, "|");
+    return;
+  }
+  let plainStart = 0;
+  for (let start = 0; start < source.length; start++) {
+    if (source[start] !== "$" || isEscapedAt(source, start) || source[start - 1] === "$" || source[start + 1] === "$" || /\s/.test(source[start + 1] ?? "")) continue;
+    let close = start + 1;
+    while (close < source.length && (source[close] !== "$" || isEscapedAt(source, close))) close++;
+    if (close >= source.length || close === start + 1 || source[close - 1] === "$" || /\s/.test(source[close - 1])) continue;
+    target.appendChild(document.createTextNode(source.slice(plainStart, start).replace(/\\\|/g, "|")));
+    target.appendChild(new InlineMathWidget(source.slice(start + 1, close)).toDOM());
+    plainStart = close + 1;
+    start = close;
+  }
+  target.appendChild(document.createTextNode(source.slice(plainStart).replace(/\\\|/g, "|")));
+}
+
+function splitMarkdownTableRow(source: string): string[] {
+  const row = source.trim();
+  const start = row.startsWith("|") ? 1 : 0;
+  const end = row.endsWith("|") && !isEscapedAt(row, row.length - 1) ? row.length - 1 : row.length;
+  const cells: string[] = [];
+  let cellStart = start;
+  for (let index = start; index < end; index++) {
+    if (row[index] !== "|" || isEscapedAt(row, index)) continue;
+    cells.push(row.slice(cellStart, index).trim());
+    cellStart = index + 1;
+  }
+  cells.push(row.slice(cellStart, end).trim());
+  return cells;
 }
 
 class HtmlBlockWidget extends WidgetType {
@@ -365,6 +453,32 @@ class HtmlBlockWidget extends WidgetType {
   }
 }
 
+class InlineMathWidget extends WidgetType {
+  constructor(readonly source: string, readonly display = false) { super(); }
+
+  eq(other: InlineMathWidget): boolean { return other.source === this.source && other.display === this.display; }
+
+  toDOM(): HTMLElement {
+    const span = document.createElement(this.display ? "div" : "span");
+    span.className = this.display ? "cm-md-math-block" : "cm-md-math";
+    try {
+      span.innerHTML = katex.renderToString(this.source, {
+        displayMode: this.display,
+        output: "htmlAndMathml",
+        strict: "ignore",
+        throwOnError: false,
+        trust: false,
+        maxExpand: 1000,
+        maxSize: 20,
+      });
+    } catch {
+      span.classList.add("cm-md-math-error");
+      span.textContent = this.display ? `$$\n${this.source}\n$$` : `$${this.source}$`;
+    }
+    return span;
+  }
+}
+
 function sanitizeHtmlBlock(html: string): string {
   const parsed = new DOMParser().parseFromString(html, "text/html");
   parsed.querySelectorAll("script, iframe, object, embed, form, base, link, meta").forEach((node) => node.remove());
@@ -390,6 +504,18 @@ function buildDecorations(view: EditorView): DecorationSet {
       to,
       enter: (node: SyntaxNodeRef) => {
         const type = node.type.name;
+
+        if (type === "InlineMath") {
+          const content = node.node.getChild("MathContent");
+          if (content && !insideDisplayMath(view.state, node.from) && !insideTable(view.state, node.from) && !selectionOverlaps(view.state, node.from, node.to)) {
+            collected.push({
+              from: node.from,
+              to: node.to,
+              deco: Decoration.replace({ widget: new InlineMathWidget(view.state.doc.sliceString(content.from, content.to)) }),
+            });
+          }
+          return;
+        }
 
         if (HEADING_TYPES.has(type)) {
           const level = Number(type[type.length - 1]);
@@ -801,15 +927,19 @@ function buildTableDecorations(state: EditorState): DecorationSet {
       if (startLine.from !== node.from || endLine.to !== node.to) return;
       const header = node.node.getChild("TableHeader");
       if (!header) return;
-      const cellText = (n: SyntaxNodeRef) => state.doc.sliceString(n.from, n.to).trim();
-      const headerCells = header.getChildren("TableCell").map(cellText);
-      const bodyRows = node.node
-        .getChildren("TableRow")
-        .map((row) => row.getChildren("TableCell").map(cellText));
+      const headerCells = splitMarkdownTableRow(state.doc.sliceString(header.from, header.to));
+      const delimiter = node.node.getChildren("TableDelimiter").find((candidate) => candidate.from > header.to);
+      const delimiterText = delimiter ? state.doc.sliceString(delimiter.from, delimiter.to) : "";
+      const delimiterCells = splitMarkdownTableRow(delimiterText);
+      const alignments = headerCells.map((_, index) => {
+        const rule = delimiterCells[index]?.trim() ?? "";
+        return rule.startsWith(":") && rule.endsWith(":") ? "center" : rule.endsWith(":") ? "right" : "left";
+      });
+      const bodyRows = node.node.getChildren("TableRow").map((row) => splitMarkdownTableRow(state.doc.sliceString(row.from, row.to)));
       builder.add(
         node.from,
         node.to,
-        Decoration.replace({ widget: new TableWidget(headerCells, bodyRows), block: true }),
+        Decoration.replace({ widget: new TableWidget(headerCells, bodyRows, alignments), block: true }),
       );
     },
   });
@@ -819,6 +949,66 @@ function buildTableDecorations(state: EditorState): DecorationSet {
 const tableDecorations = StateField.define<DecorationSet>({
   create: (state) => buildTableDecorations(state),
   update: (deco, tr) => (tr.docChanged || tr.selection ? buildTableDecorations(tr.state) : deco.map(tr.changes)),
+  provide: (field) => EditorView.decorations.from(field),
+});
+
+function buildDisplayMathDecorations(state: EditorState): DecorationSet {
+  const fencedRanges: Array<{ from: number; to: number }> = [];
+  syntaxTree(state).iterate({
+    enter: (node) => {
+      if (node.type.name === "FencedCode") fencedRanges.push({ from: node.from, to: node.to });
+    },
+  });
+  const inFence = (from: number, to: number) => fencedRanges.some((range) => from < range.to && to > range.from);
+  const builder = new RangeSetBuilder<Decoration>();
+  let lineNumber = 1;
+  while (lineNumber <= state.doc.lines) {
+    const line = state.doc.line(lineNumber);
+    if (inFence(line.from, line.to)) {
+      lineNumber++;
+      continue;
+    }
+    const single = line.text.match(/^\s*\$\$(.+)\$\$\s*$|^\s*\\\[(.+)\\\]\s*$/);
+    if (single) {
+      const source = single[1] ?? single[2] ?? "";
+      if (!selectionOverlaps(state, line.from, line.to)) {
+        builder.add(line.from, line.to, Decoration.replace({ widget: new InlineMathWidget(source, true), block: true }));
+      }
+      lineNumber++;
+      continue;
+    }
+    const open = line.text.match(/^\s*(\$\$|\\\[)\s*$/);
+    if (!open) {
+      lineNumber++;
+      continue;
+    }
+    const closeText = open[1] === "$$" ? "$$" : "\\]";
+    let closeLineNumber = lineNumber + 1;
+    while (closeLineNumber <= state.doc.lines) {
+      const candidate = state.doc.line(closeLineNumber);
+      if (inFence(candidate.from, candidate.to)) break;
+      if (candidate.text.trim() === closeText) break;
+      closeLineNumber++;
+    }
+    if (closeLineNumber > state.doc.lines || state.doc.line(closeLineNumber).text.trim() !== closeText) {
+      lineNumber++;
+      continue;
+    }
+    const closeLine = state.doc.line(closeLineNumber);
+    const source = state.doc.sliceString(line.to + 1, closeLine.from);
+    if (!selectionOverlaps(state, line.from, closeLine.to)) {
+      builder.add(line.from, closeLine.to, Decoration.replace({ widget: new InlineMathWidget(source, true), block: true }));
+    }
+    lineNumber = closeLineNumber + 1;
+  }
+  return builder.finish();
+}
+
+const displayMathDecorations = StateField.define<DecorationSet>({
+  create: buildDisplayMathDecorations,
+  update: (decorations, transaction) => transaction.docChanged || transaction.selection
+    ? buildDisplayMathDecorations(transaction.state)
+    : decorations.map(transaction.changes),
   provide: (field) => EditorView.decorations.from(field),
 });
 
@@ -873,5 +1063,6 @@ export const markdownLivePreview: Extension[] = [
   inlineDecorations,
   blockDecorations,
   tableDecorations,
+  displayMathDecorations,
   htmlBlockDecorations,
 ];

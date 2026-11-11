@@ -114,7 +114,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "b240db39b0d29cc201465f5670b4c462b82c9ff5afc6d81d7e6a3f8779e7b9f8"
+          "sha256": "6848f5ca0466db43f6dcee33605864d23f8f1d95973083a95ed4d683ffb5d399"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -190,7 +190,7 @@
         },
         {
           "path": "packages/editor/src/EditorTextSurface.tsx",
-          "sha256": "046c525805b2db65de8b9e1f2e6485ac8d809b15ab024ee63ff377c4053f0e7d"
+          "sha256": "ffb5d1cd51c76cfb8791a21ef20549f6e9adb031d62a2d14c729d2bef51826f3"
         },
         {
           "path": "packages/editor/src/EditorTreeRow.tsx",
@@ -210,11 +210,11 @@
         },
         {
           "path": "packages/editor/src/index.ts",
-          "sha256": "b664dc544bfba44957a002a78371918ab4017c4fe18a785ae0ba763e9519ad29"
+          "sha256": "a61b5d92518ca79ae6d67ee29419e3712909e8eabbb951e90c1688ba15423f95"
         },
         {
           "path": "packages/editor/src/markdown.css",
-          "sha256": "27e2433830935ce6049e68175a88204bae01a87adbf879baf834af7dbc5795b6"
+          "sha256": "5a0c15203a987bff93e22474c35decb141e167ed945ae747a55e1a2f19c5f8c5"
         },
         {
           "path": "packages/editor/src/markdownCommands.ts",
@@ -226,7 +226,7 @@
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",
-          "sha256": "628de507c722b0ddea040de18952361779d39ae135354d1fe09b000d8a3b05ef"
+          "sha256": "ec63c16382f19f36702df63ffb617a214333fad0cd420def67938c6828ff616f"
         },
         {
           "path": "packages/editor/src/markdownLinkNavigation.ts",
@@ -234,7 +234,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "8e8049d8394ac2046e5b878a6006f36ab652be2a324fc1961f985e3956372e3b"
+          "sha256": "2ae2c12cf121239bdac178ae5100c766be1c10b65cf45b7673fad48ea31c15bb"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",
