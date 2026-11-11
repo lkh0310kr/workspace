@@ -29,15 +29,15 @@
 
 실행·배포·OS 권한·서비스 저장의 동작은 앱이 소유합니다.
 
-- [Workspace Desktop](../apps/workspace-app/README.md)
-- [PKMS Web](../apps/pkms-web/README.md) · [PKMS Server](../apps/pkms-server/README.md) · [PKMS iOS](../apps/pkms-ios/README.md)
-- [Workspace Home Server](../apps/workspace-server/README.md)
+- [Workspace Desktop](../apps/workspace-app/docs/README.md)
+- [PKMS Web](../apps/pkms-web/docs/README.md) · [PKMS Server](../apps/pkms-server/docs/README.md) · [PKMS iOS](../apps/pkms-ios/docs/README.md)
+- [Workspace Home Server](../apps/workspace-server/docs/README.md)
 
 ## Package scope
 
 공유 API와 플랫폼 독립 동작은 패키지가 소유합니다.
 
 - [Editor](../packages/editor/docs/README.md)
-- [PKMS client](../packages/pkms-client/docs/editor-sessions.md)
+- [PKMS client](../packages/pkms-client/docs/README.md)
 - [PKMS protocol](../packages/pkms-protocol/README.md)
 - [PKMS Core·FFI·WASM](../packages/pkms-core/README.md)

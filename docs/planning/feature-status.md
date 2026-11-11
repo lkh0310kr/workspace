@@ -1,16 +1,22 @@
-# 기능 상태
+# 기능·검증 상태
 
-현재 유지하는 제품 범위만 기록합니다. `implemented`는 현재 앱에서 동작하는 구현을 뜻합니다. 보관된 기능과 실험은 목록에 넣지 않습니다.
+Global scope의 현재 제품 inventory다. `source 구현`은 코드 경로가 있다는 뜻이며 배포·secrets/migration·installed/native acceptance 완료를 자동 의미하지 않는다. 제품 여정은 [J-01~10](../product/README.md), 문서 검증 범위는 [SDD 진행](./spec-driven-development-roadmap.md)에서 관리한다.
 
-| 기능 | 상태 | 범위 | 코드 근거 |
+| 기능·여정 | source 상태 | 운영·검증 경계 | owner 문서 |
 |---|---|---|---|
-| Workspace 셸·탭·분할 pane | `implemented` | Electron 창, 탭과 pane 레이아웃 | `apps/workspace-app/src/renderer/src/App.tsx` |
-| Terminal | `implemented` | PTY 세션을 사용하는 터미널 pane | `apps/workspace-app/src/main/pty.ts` |
-| Browser | `implemented` | 웹 탐색 pane | `apps/workspace-app/src/renderer/src/panes/BrowserContent.tsx` |
-| Editor·파일 탐색·검색 | `implemented` | 코드·Markdown 편집, 파일 트리와 검색 | `apps/workspace-app/src/renderer/src/panes/EditorContent.tsx` |
-| 파일·미디어 뷰어 | `implemented` | 이미지, PDF, EPUB, 오디오·비디오와 모델 미리보기 | `apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx` |
-| PKMS Web·Desktop·iOS | `implemented` | GitHub 기반 지식 관리, 협업과 플랫폼별 클라이언트 | `apps/pkms-web/`, `apps/pkms-server/`, `packages/pkms-client/`, `apps/pkms-ios/` |
-| PKMS Desktop Folder Sync Bridge | `in_progress` | revision 고정 metadata tree, durable changed-path/Yjs queue, Realtime wake-up + cursor recovery, 폴더 identity inventory 기반 로컬 삭제/이동 감지, durable 파일·폴더 삭제 queue와 pending tree suppression, 서버 삭제 guard를 소스에 구현. DB migration 적용과 macOS에서 파일/빈 폴더/하위 항목 삭제 및 충돌 복구 acceptance, attachment sync, durable item-state 복원이 남음. folder guard는 현재 workspace revision 기준으로 보수적으로 거부함. | `apps/workspace-app/src/main/pkms/syncBridge.ts`, `apps/pkms-server/src/SupabaseVault.ts`, `apps/pkms-server/supabase/migrations/20261109160000_guarded_sync_deletes.sql` |
-| Workspace Home 서비스 대시보드 | `in_progress` | Desktop UI 복구 및 독립 Worker 배포 완료. provider OAuth secret/callback 설정과 재연결이 남음 | `apps/workspace-app/src/renderer/src/dashboard/`, `apps/workspace-server/`, `apps/pkms-server/src/realtimeAuth.ts` |
+| 앱·서버 디렉터리 경계 | 구현 | 별도 apps와 공유 packages 존재. 전체 boundary 재이동 작업 아님 | [경계](../architecture/08-monorepo-module-boundaries.md) |
+| Workspace·pane·preview/pin·layout J-01 | 구현 | per-workspace persist timer 개선 후보, close 실패 baseline·installed acceptance 별도 | [Desktop layout](../../apps/workspace-app/docs/layout/README.md) |
+| bootstrap·저장·복구 J-01/10 | 구현 | direct JSON write와 best-effort·crash 제한 구분 | [runtime](../../apps/workspace-app/docs/runtime/README.md), [저장](../../apps/workspace-app/docs/persistence/README.md) |
+| Terminal J-03 | 구현 | bytes/ACK/replay/scroll·IME·OS별 검증 범위 별도 | [Terminal](../../apps/workspace-app/docs/terminal/README.md) |
+| Browser J-04 | 구현 | persistent guest·focus·OAuth/passkey/download 실제 검증 별도 | [Browser](../../apps/workspace-app/docs/browser/README.md) |
+| Editor·tree·search J-02 | 공통 package 연결 구현 | Web/Desktop 제품 acceptance와 전체 UI/decoration fixture 남음 | [Editor](../../packages/editor/docs/README.md), [통합 잔여](./editor-unification.md) |
+| 파일/media/EPUB/model/CAD J-05 | 구현 | 포맷별 fidelity·대형 파일·native pipeline 상세/수락 남음 | [Viewer](../../apps/workspace-app/docs/viewers/README.md) |
+| PKMS Web/Desktop/iOS J-06 | 구현 | 계정·multi-client/offline·협업·native UI acceptance 별도 | [PKMS 통합](../architecture/pkms/README.md) |
+| PKMS folder sync J-07 | 진행 중 | durable create/update/delete·inventory·guard source 구현. deployed migration·macOS 삭제/충돌 수락, attachment sync·durable visual state 남음 | [Desktop PKMS](../../apps/workspace-app/docs/pkms/README.md) |
+| Home 서비스 J-08 | 진행 중 | UI/server source 분리·이전 배포 기록 있음. OAuth secrets/callback/reconnect 이번 미확인 | [Home UI](../../apps/workspace-app/docs/home/README.md), [서버](../../apps/workspace-server/docs/README.md) |
+| Home 기본 기기 summary J-08 | 구현 | CPU/메모리/홈 volume 제공. 프로세스별 monitor·상세 storage와 다름 | [Home UI](../../apps/workspace-app/docs/home/README.md) |
+| agent evidence/rollup J-09 | 구현 | title/hook freshness와 CLI별 실제 acceptance·전 분기 상세 남음 | [Agents](../../apps/workspace-app/docs/agents/README.md) |
+| usage·설정/theme/zoom J-09 | 구현 일부 | enum provider 목록과 실제 adapter 지원 범위 구분 | [Settings/usage](../../apps/workspace-app/docs/settings/README.md) |
+| release/update/logging J-10 | 구현·정책 존재 | 활성 macOS native 패키지·서명/update/운영 수락을 릴리스별 기록 | [릴리스 정책](../architecture/desktop-release.md), [로그 운영](../../apps/workspace-app/docs/operations/logging.md) |
 
-PKMS Web/Server와 Workspace App/Server의 소스 디렉터리 경계 정리는 별도 후속 작업입니다. 목표 구조와 현재 분리 상태는 [제품별 앱 경계](../architecture/08-monorepo-module-boundaries.md)에 있습니다.
+cancelled Data Node와 archive 모델·실험은 활성 기능 목록에 추가하지 않는다. source 존재만으로 미검증을 숨기거나 과거 배포를 재확인한 것처럼 기록하지 않는다.
