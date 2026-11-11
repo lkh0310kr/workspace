@@ -138,7 +138,7 @@
         },
         {
           "path": "packages/editor/src/EditorMarkdownDocument.tsx",
-          "sha256": "9ee093ca5d5efad9650e51f1099998a2afbbe8ef7750e523ca43ff87e27dea57"
+          "sha256": "801bcf38f278b8f6e2a85075971b3619aedf9722ae54b90abbe8c882a85b7167"
         },
         {
           "path": "packages/editor/src/EditorMarkdownEditor.tsx",
@@ -222,7 +222,7 @@
         },
         {
           "path": "packages/editor/src/markdownDocument.css",
-          "sha256": "cc605870dccdc4f1d6d8fe2965515730f2692f796932df11883d3538914bca59"
+          "sha256": "5bd5b54541cdc7a1c39b3e44aaca5f35304223ac5e6f940a673ec6686afe8bae"
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",
@@ -432,7 +432,7 @@
         },
         {
           "path": "packages/pkms-client/src/PkmsClientApp.tsx",
-          "sha256": "1ad126a3f999a673c47d1c21ecefbae20dd01f0a6a276cfd485798ecf7ca59e2"
+          "sha256": "5f4c4de067f78800d8cb8b927e621cdda46a5f6a217f2fb046f77ed181ae17a4"
         },
         {
           "path": "packages/pkms-client/src/realtime.ts",

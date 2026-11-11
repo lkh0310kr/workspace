@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
-import type { EditorView } from "@codemirror/view";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorSearchButton, editorDocumentKey, editorSavePhaseLabel, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, toggleEditorSearch, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorSavePhaseLabel, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
@@ -85,7 +84,6 @@ export default function Home() {
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [sync, setSync] = useState<SyncStatus>({ serverRevision: 0, githubStatus: "pending", pendingFiles: 0 });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -311,7 +309,6 @@ export default function Home() {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const titleEditFileIdRef = useRef<string | null>(null);
   const editorNavigate = useRef<((position: number) => void) | null>(null);
-  const markdownView = useRef<EditorView | null>(null);
   const routedPath = useRef<string | null>(null);
   const openFileSequence = useRef(0);
   const editorNavigationRef = useRef<FileNavigation>("none");
@@ -1726,14 +1723,13 @@ export default function Home() {
           onClose={closeOpenDocument}
         />}
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <EditorMarkdownEditor
-            actions={<EditorSearchButton active={searchOpen} onClick={() => { const view = markdownView.current; if (view) setSearchOpen(toggleEditorSearch(view)); }} />}
             title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={supportsCollaboration && peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={canRename ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
             onBackgroundClick={() => {
               const content = activeEditorSession?.snapshot().content;
               if (content?.type === "text") editorNavigate.current?.(content.text.length);
             }}
             surfaceKey={activeFile.id}
-            surfaceProps={{ documentKey: pkmsDocumentKey(activeWorkspace.id, activeFile.id), viewStateStorage: getEditorViewStateStorage(), session: activeEditorSession, onNavigateReady: registerEditorNavigator, onViewReady: (view) => { markdownView.current = view; if (!view) setSearchOpen(false); }, onSearchPanelChange: setSearchOpen, onActivateLink: activateMarkdownLink, resolveImage: resolveMarkdownImage, onSessionError: (cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document"), ariaLabel: "Markdown editor" }}
+            surfaceProps={{ documentKey: pkmsDocumentKey(activeWorkspace.id, activeFile.id), viewStateStorage: getEditorViewStateStorage(), session: activeEditorSession, onNavigateReady: registerEditorNavigator, onActivateLink: activateMarkdownLink, resolveImage: resolveMarkdownImage, onSessionError: (cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document"), ariaLabel: "Markdown editor" }}
           /> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>
           {assetPreviewUrl ? assetPreviewType.startsWith("image/") ? <img className="asset-image-preview" src={assetPreviewUrl} alt={activeFile.path} /> : <iframe className="asset-preview-frame" src={assetPreviewUrl} title={activeFile.path} /> : <span className="file-opening-spinner" aria-label="Loading attachment" />}

@@ -36,7 +36,7 @@
 |---|---|---|
 | DOC-01 | 파일 제목은 basename에서 편집 확장자를 제외한 이름으로 표시된다. | `a.md`와 `a.markdown`은 각각 `a`; 경로 breadcrumb는 전체 경로/확장자를 보여 준다. 제목 수정은 현재 확장자를 보존한 파일 rename이며 저장 내용·열린 탭·breadcrumb·TreeView가 같은 새 path를 반영한다. |
 | DOC-02 | 제목, 본문, 표, 이미지, 수식, 다이어그램이 같은 문서 column 안에 정렬된다. | 같은 viewport에서 title/body 시작 x와 max width가 일치한다. 창 및 pane 폭 변경 시 둘 다 같은 규칙으로 재배치되며 title만 full-width로 튀지 않는다. |
-| DOC-03 | 사용자는 읽기 좋은 폭과 넓은 폭을 선택할 수 있다. | 기본 readable width는 문장을 과도하게 길게 만들지 않고, wide/full-width 선택은 문서 프레임 전체에 일관되게 적용한다. 설정 상태는 문서/사용자 중 정한 소유 범위에 따라 재실행 후 유지된다. |
+| DOC-03 | 사용자는 읽기 좋은 폭과 넓은 폭을 선택할 수 있다. | 기본 readable width는 title/body 모두 820px column이다. wide 선택은 title/body를 pane 폭으로 늘린다. shared toolbar의 접근 가능한 토글로 바꾸고 host별 사용자 설정으로 재실행 후 유지한다. |
 | DOC-04 | 제목·본문 스크롤이 하나의 문서 viewport로 동작한다. | wheel, PageUp/PageDown, home/end, 검색 결과 이동 후 제목이나 콘텐츠가 겹치지 않고 스크롤 위치가 예측 가능하다. 빈 문서·긴 제목·좁은 pane에서도 액션 chrome이 본문을 가리지 않는다. |
 
 Notion의 `Full width`는 page width 선택 결과의 기준이다. Notion 공식 도움말은 appearance 설정에서 Full width를 켜 폭을 넓히고, 기본/serif/mono 글꼴과 small text도 선택하도록 설명한다. Workspace는 파일 호환 편집기이므로 이러한 선택 중 폭/글꼴/글자 크기만 문서 보기 설정으로 제공하고, 데이터베이스 page layout은 범위 밖으로 둔다.

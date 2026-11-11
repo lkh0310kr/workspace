@@ -44,7 +44,7 @@
 
 .editor-markdown-document > .editor-floating-actions {
   top: 10px;
-  right: 50px;
+  right: 8px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -77,6 +77,10 @@
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.editor-markdown-document.is-wide .editor-markdown-title {
+  width: 100%;
 }
 
 .md-title-edit {
@@ -130,4 +134,8 @@
 
 .editor-markdown-content .editor-markdown-surface .cm-editor {
   height: auto;
+}
+
+.editor-markdown-document.is-wide .editor-markdown-content .cm-content {
+  max-width: none;
 }
