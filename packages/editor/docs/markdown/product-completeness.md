@@ -68,7 +68,7 @@ Notion의 `Full width`는 page width 선택 결과의 기준이다. Notion 공�
 | Active `#` marker | caret/selection이 heading syntax에 닿을 때만 source marker 표시 | heading text와 같은 font metrics | 같은 heading color/weight. syntax meta color를 적용하지 않음 |
 | Inline Markdown link | link label은 보이고 destination syntax는 비활성 preview에서 숨김 | 문단과 같은 font metrics | 전용 `--link` token; 기본 underline 1px, offset 2px; hover에서만 더 강한 link color |
 | WikiLink | resolved label은 보이고 `[[ ]]`/alias syntax는 비활성 preview에서 숨김 | inline link와 동일 | inline Markdown link와 같은 색·underline·hover/focus 규칙 |
-| Rename input | filename을 편집 가능한 텍스트로 표시 | display title과 같은 column/크기 | 기본 상태에 장식 underline 없음; focus 때 2px `--focus-ring`, validation 오류 때 오류 border/message |
+| Rename input | filename을 편집 가능한 텍스트로 표시 | display title과 같은 column/크기 | unfocused 상태에 1px subtle divider; focus 때 2px `--focus-ring`, validation 오류 때 오류 divider/message. 별도 둥근 input box는 만들지 않음 |
 
 위 수치는 첫 visual baseline이다. 창 너비와 pane 폭에 따라 글자 크기를 임의로 각각 줄이지 않는다. page width를 바꾸면 title과 본문 block container만 같이 재배치하고, heading hierarchy와 inline font token은 유지한다. 사용자가 글자 크기 설정을 바꾸면 모든 Markdown block과 title에 같은 scale factor를 적용한다.
 

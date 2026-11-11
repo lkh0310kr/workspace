@@ -1,28 +1,11 @@
 /* Shared Workspace-baseline live preview decorations. Product colors fall back
    to each host's token names so the same preview renders in Workspace and PKMS. */
-.cm-md-h1, .cm-md-h2, .cm-md-h3, .cm-md-h4, .cm-md-h5, .cm-md-h6 {
-  color: var(--text);
-  font-weight: 600;
-  text-decoration: none;
-}
-.cm-md-h1 { font-size: 28px; font-weight: 700; line-height: 1.25; }
-.cm-md-h2 { font-size: 22px; font-weight: 650; line-height: 1.3; }
-.cm-md-h3 { font-size: 18px; font-weight: 650; line-height: 1.35; }
-.cm-md-h4 { font-size: 16px; font-weight: 600; line-height: 1.4; }
-.cm-md-h5 { font-size: 14px; font-weight: 600; line-height: 1.5; }
-.cm-md-h6 { color: var(--text-muted, var(--muted)); font-size: 13px; font-weight: 600; line-height: 1.5; }
 .editor-markdown-surface .cm-selectionLayer { z-index: 2; }
 .editor-markdown-surface .cm-selectionLayer .cm-selectionBackground { background-color: var(--editor-selection-bg, rgba(90, 110, 240, .2)) !important; }
 .editor-markdown-surface .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground { background-color: var(--editor-selection-bg-focused, rgba(90, 110, 240, .3)) !important; }
 .editor-markdown-surface .cm-content ::selection,
 .editor-markdown-surface .cm-line ::selection { background-color: var(--editor-selection-bg-focused, rgba(90, 110, 240, .3)) !important; }
 
-.cm-line:has(.cm-md-h1) { padding-top: 20px; padding-bottom: 10px; }
-.cm-line:has(.cm-md-h2) { padding-top: 16px; padding-bottom: 8px; }
-.cm-line:has(.cm-md-h3) { padding-top: 24px; padding-bottom: 10px; }
-.cm-line:has(.cm-md-h4) { padding-top: 20px; padding-bottom: 8px; }
-.cm-line:has(.cm-md-h5) { padding-top: 18px; padding-bottom: 6px; }
-.cm-line:has(.cm-md-h6) { padding-top: 16px; padding-bottom: 6px; }
 .cm-md-strong { font-weight: 600; }
 .cm-md-em { font-style: italic; }
 .cm-md-code { padding: 0 3px; background: var(--bg-hover, var(--hover)); font-family: var(--font-mono, var(--editor-font, monospace)); }

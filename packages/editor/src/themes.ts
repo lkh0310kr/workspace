@@ -23,6 +23,23 @@ export const markdownEditorTheme = EditorView.theme({
   },
   ".cm-gutters": { display: "none" },
   ".cm-activeLine": { backgroundColor: "transparent" },
+  ".cm-md-h1, .cm-md-h2, .cm-md-h3, .cm-md-h4, .cm-md-h5, .cm-md-h6": {
+    color: "var(--text)",
+    fontWeight: "600",
+    textDecoration: "none",
+  },
+  ".cm-md-h1": { fontSize: "28px", fontWeight: "700", lineHeight: "1.25" },
+  ".cm-md-h2": { fontSize: "22px", fontWeight: "650", lineHeight: "1.3" },
+  ".cm-md-h3": { fontSize: "18px", fontWeight: "650", lineHeight: "1.35" },
+  ".cm-md-h4": { fontSize: "16px", fontWeight: "600", lineHeight: "1.4" },
+  ".cm-md-h5": { fontSize: "14px", fontWeight: "600", lineHeight: "1.5" },
+  ".cm-md-h6": { color: "var(--text-muted, var(--muted))", fontSize: "13px", fontWeight: "600", lineHeight: "1.5" },
+  ".cm-line:has(.cm-md-h1)": { paddingTop: "32px", paddingBottom: "16px" },
+  ".cm-line:has(.cm-md-h2)": { paddingTop: "28px", paddingBottom: "12px" },
+  ".cm-line:has(.cm-md-h3)": { paddingTop: "24px", paddingBottom: "10px" },
+  ".cm-line:has(.cm-md-h4)": { paddingTop: "20px", paddingBottom: "8px" },
+  ".cm-line:has(.cm-md-h5)": { paddingTop: "18px", paddingBottom: "6px" },
+  ".cm-line:has(.cm-md-h6)": { paddingTop: "16px", paddingBottom: "6px" },
   // Keep selection paint inside CodeMirror's root so it works in PKMS's Shadow DOM
   // as well as the normal Workspace document. Global editor CSS cannot cross that root.
   "& .cm-selectionBackground": { backgroundColor: "var(--editor-selection-bg, var(--selected)) !important" },
