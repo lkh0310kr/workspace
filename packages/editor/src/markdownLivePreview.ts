@@ -322,7 +322,8 @@ class HtmlBlockWidget extends WidgetType {
     const hostStyle = getComputedStyle(document.documentElement);
     const textColor = hostStyle.getPropertyValue("--text").trim() || "#d4d4d4";
     const background = hostStyle.getPropertyValue("--bg-base").trim() || "transparent";
-    frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;overflow:hidden}body{color:${textColor};background:${background};font:14px/1.5 system-ui,sans-serif}img,video,iframe{max-width:100%}</style></head><body>${this.html}</body></html>`;
+    const csp = "default-src 'none'; img-src data:; media-src data:; font-src data:; style-src 'unsafe-inline'; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'";
+    frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><style>html,body{margin:0;padding:0;overflow:hidden}body{color:${textColor};background:${background};font:14px/1.5 system-ui,sans-serif}img,video,iframe{max-width:100%}</style></head><body>${sanitizeHtmlBlock(this.html)}</body></html>`;
 
     let observer: ResizeObserver | null = null;
     const resize = () => {
@@ -362,6 +363,20 @@ class HtmlBlockWidget extends WidgetType {
   ignoreEvent(): boolean {
     return true;
   }
+}
+
+function sanitizeHtmlBlock(html: string): string {
+  const parsed = new DOMParser().parseFromString(html, "text/html");
+  parsed.querySelectorAll("script, iframe, object, embed, form, base, link, meta").forEach((node) => node.remove());
+  parsed.body.querySelectorAll("*").forEach((element) => {
+    for (const attribute of [...element.attributes]) {
+      const name = attribute.name.toLowerCase();
+      if (name.startsWith("on") || ["href", "xlink:href", "action", "formaction", "srcdoc"].includes(name)) {
+        element.removeAttribute(attribute.name);
+      }
+    }
+  });
+  return parsed.body.innerHTML;
 }
 
 const htmlFrameObservers = new WeakMap<HTMLIFrameElement, ResizeObserver>();
