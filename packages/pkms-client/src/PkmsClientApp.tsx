@@ -1248,21 +1248,38 @@ export default function Home() {
             ? await desktop.listLocalDirectory(workspace.id, prefix)
             : (await api<{ files: FileRecord[] }>(`/api/workspaces/${workspace.id}/directory?path=${encodeURIComponent(prefix)}`)).files;
           records = mergeFileRecords(records, entries);
-          setFiles(records);
+          setFiles((current) => mergeFileRecords(current, entries));
           setLoadedFolders((current) => new Set(current).add(prefix));
         }
         if (routedPath.current !== location.pathname) return;
-        const target = records.find((file) => file.path === fileLocation.path && file.kind !== "folder");
+        let target = records.find((file) => file.path === fileLocation.path && file.kind !== "folder");
         if (!target) {
           if (localFolderEnabled && localCloudSyncing) { routedPath.current = null; return; }
-          setError("File not found in this repository.");
-          navigate("/", { replace: true });
-          return;
+          // Cached tree state may lag a title rename or an external move. Read
+          // the exact parent once before treating a missing cached row as a
+          // deleted file; otherwise an old cache ejects the editor to Home.
+          const directory = parentPath(fileLocation.path);
+          const desktop = desktopBridge();
+          const entries = localFolderEnabled && desktop
+            ? await desktop.listLocalDirectory(workspace.id, directory)
+            : (await api<{ files: FileRecord[] }>(`/api/workspaces/${workspace.id}/directory${directory ? `?path=${encodeURIComponent(directory)}` : ""}`)).files;
+          if (routedPath.current !== location.pathname) return;
+          records = mergeFileRecords(records, entries);
+          setFiles((current) => mergeFileRecords(current, entries));
+          setLoadedFolders((current) => new Set(current).add(directory));
+          target = records.find((file) => file.path === fileLocation.path && file.kind !== "folder");
+          if (!target) {
+            setError(`File not found in this repository: ${fileLocation.path}`);
+            routedPath.current = null;
+            return;
+          }
         }
         if (activeRef.current.file?.id !== target.id) await openFileRef.current?.(target, "none");
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : "Could not open file from URL");
-        navigate("/", { replace: true });
+        // Keep the route and existing editor state visible when a refresh
+        // fails. A transient network/cache error should not discard the tab.
+        routedPath.current = null;
       }
     })();
   }, [activeWorkspace?.id, api, fileLocation?.path, fileLocation?.workspaceId, files, loadedFolders, loading, localCloudSyncing, localFolderEnabled, location.pathname, navigate, treeSelection.clear, user, workspaces]);

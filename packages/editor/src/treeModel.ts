@@ -31,8 +31,13 @@ export function projectEditorTreeRows<T>(rows: T[], scrollTop: number, viewportH
   if (viewportHeight <= 0 || rows.length === 0) {
     return { rows, startIndex: 0, paddingTop: 0, paddingBottom: 0, totalHeight };
   }
-  const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - TREE_OVERSCAN);
   const count = Math.ceil(viewportHeight / rowHeight) + TREE_OVERSCAN * 2;
+  // The tree can shrink after a rename, folder collapse, filter change, or
+  // workspace restore while its old scroll offset is still being reconciled.
+  // Clamp the window to the remaining rows so a stale offset never projects
+  // an empty slice for a non-empty tree (which looks like an empty folder).
+  const maxStartIndex = Math.max(0, rows.length - count);
+  const startIndex = Math.min(maxStartIndex, Math.max(0, Math.floor(scrollTop / rowHeight) - TREE_OVERSCAN));
   const end = Math.min(rows.length, startIndex + count);
   return {
     rows: rows.slice(startIndex, end),
