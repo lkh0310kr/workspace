@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import type { Model } from 'flexlayout-react'
 import { TreeView } from './TreeView'
 import { SearchPanel } from './SearchPanel'
@@ -16,6 +16,7 @@ interface Props {
   rootPath: string
   model: Model
   paneVisible: boolean
+  explorerVisible: boolean
   isGroupFocused: boolean
   explorerCapable: boolean
   focusHostRef: React.RefObject<HTMLElement | null>
@@ -39,6 +40,7 @@ export function WorkspaceExplorerSidebar({
   rootPath,
   model,
   paneVisible,
+  explorerVisible,
   isGroupFocused,
   explorerCapable,
   focusHostRef,
@@ -50,6 +52,7 @@ export function WorkspaceExplorerSidebar({
   const { treeOpen, treeWidth, sidebarMode, setTreeOpen, setTreeWidth, setSidebarMode } = chrome
   const explorerScrollRef = useRef<HTMLDivElement>(null)
   const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
+  const [revealRevision, setRevealRevision] = useState(0)
 
   // Pane shortcuts target the focused, visible group even when an embedded
   // editor surface owns DOM focus.
@@ -62,6 +65,8 @@ export function WorkspaceExplorerSidebar({
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b') {
         if (!paneVisible || !isGroupFocused || !explorerCapable) return
+        const target = e.target instanceof Element ? e.target : null
+        if (target?.closest('.cm-content[contenteditable="true"], input, textarea, [contenteditable="true"]')) return
         e.preventDefault()
         e.stopImmediatePropagation()
         setSidebarMode('explorer')
@@ -69,6 +74,15 @@ export function WorkspaceExplorerSidebar({
         return
       }
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return
+      if (e.key.toLowerCase() === 'e' && !e.altKey) {
+        if (!paneVisible || !isGroupFocused || !explorerCapable) return
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setSidebarMode('explorer')
+        setTreeOpen(true)
+        setRevealRevision((revision) => revision + 1)
+        return
+      }
       if (e.key.toLowerCase() !== 'f') return
       if (!paneVisible) return
       if (!isGroupFocused || !explorerCapable) return
@@ -164,8 +178,9 @@ export function WorkspaceExplorerSidebar({
               scrollContainerRef={explorerScrollRef}
               paneHostRef={focusHostRef}
               selectedPath={selectedPath}
+              revealRevision={revealRevision}
               paneVisible={paneVisible}
-              explorerModeActive={sidebarMode === 'explorer'}
+              explorerModeActive={explorerVisible && paneVisible && sidebarMode === 'explorer'}
               onOpenFile={(path, kind, pin) => onOpenFile(path, kind, undefined, pin)}
               onPathRenamed={onPathRenamed}
               onPathDeleted={onPathDeleted}

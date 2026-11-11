@@ -1759,12 +1759,6 @@ input {
   width: auto;
 }
 
-@container pane-group-body (max-width: 560px) {
-  .pane-group-body-with-explorer > .workspace-explorer-slot {
-    display: none !important;
-  }
-}
-
 .pane-group-content {
   flex: 1;
   min-width: 0;

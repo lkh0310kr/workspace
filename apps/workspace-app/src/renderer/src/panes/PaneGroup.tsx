@@ -48,6 +48,8 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   const visible = usePaneVisibility(workspaceTabId, tabNode)
   const layoutRevision = useLayoutRevision(workspaceTabId)
   const nodeId = tabNode.getId()
+  const paneGroupBodyRef = useRef<HTMLDivElement>(null)
+  const [explorerFits, setExplorerFits] = useState(true)
   const selectionRevision = usePaneTabSelectionRevision(workspaceTabId, nodeId)
   const config = readPaneGroupConfig(tabNode)
   const tabs = config.tabs
@@ -82,6 +84,16 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   }, [tabSetId, workspaceTabId])
 
   const hostClassName = paneGroupHostClassNames({ hasSplitGroups, isFocused: isGroupFocused })
+
+  useEffect(() => {
+    const body = paneGroupBodyRef.current
+    if (!body) return
+    const update = () => setExplorerFits(body.clientWidth > 560)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(body)
+    return () => observer.disconnect()
+  }, [])
 
   const paneHostRef = useRef<HTMLDivElement>(null)
   const explorerChrome = usePaneGroupExplorerChrome(workspaceTabId, nodeId)
@@ -206,7 +218,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   if (!activeItem) return null
 
   const treeOpen = explorerChrome.treeOpen
-  const showExplorer = activeChipHasExplorer(activeItem.kind) && treeOpen
+  const showExplorer = activeChipHasExplorer(activeItem.kind) && treeOpen && explorerFits
   const hasBrowserTabs = tabs.some((t) => t.kind === 'browser')
   const browserTabs = hasBrowserTabs ? tabs.filter((t) => t.kind === 'browser') : []
   const bodyAnchorStyle = { anchorName: paneGroupBodyAnchorName(nodeId) } as React.CSSProperties
@@ -239,7 +251,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
           />
         }
       >
-        <div className={`pane-group-body${showExplorer ? ' pane-group-body-with-explorer' : ''}`}>
+        <div ref={paneGroupBodyRef} className={`pane-group-body${showExplorer ? ' pane-group-body-with-explorer' : ''}`} data-explorer-compact-hidden={!explorerFits || undefined}>
           <div
             className="workspace-explorer-slot"
             style={{ display: showExplorer ? undefined : 'none' }}
@@ -250,6 +262,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
               rootPath={rootPath}
               model={model}
               paneVisible={visible}
+              explorerVisible={showExplorer}
               isGroupFocused={isGroupFocused}
               explorerCapable={activeChipHasExplorer(activeItem.kind)}
               focusHostRef={paneHostRef}

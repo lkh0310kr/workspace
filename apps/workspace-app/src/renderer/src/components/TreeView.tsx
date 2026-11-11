@@ -40,6 +40,7 @@ interface Props {
   scrollContainerRef?: RefObject<HTMLElement | null>;
   paneHostRef?: RefObject<HTMLElement | null>;
   selectedPath?: string | null;
+  revealRevision?: number;
   paneVisible?: boolean;
   explorerModeActive?: boolean;
   onOpenFile: (path: string, kind: "code" | "markdown" | "viewer", pin?: boolean) => void;
@@ -107,6 +108,7 @@ export function TreeView({
   scrollContainerRef,
   paneHostRef,
   selectedPath,
+  revealRevision = 0,
   paneVisible = true,
   explorerModeActive = true,
   onOpenFile,
@@ -139,10 +141,10 @@ export function TreeView({
   const loadSequenceRef = useRef(new Map<string, number>());
   const pendingScrollRestoreRef = useRef<{ scope: string; scrollTop: number; anchorPath?: string; anchorOffset?: number } | null>(null);
   const pendingRevealPathRef = useRef<string | null>(null);
-  const lastRevealRequestRef = useRef<string | null>(null);
+  const lastRevealRevisionRef = useRef(revealRevision);
   const scrollAnchorRef = useRef<{ path: string; index: number; offset: number } | null>(null);
   const previousFlatListRef = useRef<Array<{ entry: DirEntry; depth: number }> | null>(null);
-  const previousAnchorScopeRef = useRef(`${tabId}:${rootPath}`);
+  const previousAnchorScopeRef = useRef(`${explorerStateKey}:${tabId}:${rootPath}`);
 
   useLayoutEffect(() => {
     rootPathRef.current = rootPath;
@@ -212,10 +214,9 @@ export function TreeView({
     const el = scrollContainerRef?.current;
     if (!el) return;
     const restored = loadExplorerTreeState(explorerStateKey, rootPath);
-    el.scrollTop = 0;
-    setScrollTop(0);
-    pendingScrollRestoreRef.current = { scope: `${tabId}:${rootPath}`, scrollTop: restored.scrollTop, anchorPath: restored.scrollAnchorPath, anchorOffset: restored.scrollAnchorOffset };
+    pendingScrollRestoreRef.current = { scope: `${explorerStateKey}:${tabId}:${rootPath}`, scrollTop: restored.scrollTop, anchorPath: restored.scrollAnchorPath, anchorOffset: restored.scrollAnchorOffset };
     const onScroll = () => {
+      if (pendingScrollRestoreRef.current) return;
       setScrollTop(el.scrollTop);
       const rows = previousFlatListRef.current;
       const index = Math.min(rows?.length ?? 0, Math.floor(el.scrollTop / EDITOR_TREE_ROW_HEIGHT));
@@ -311,26 +312,26 @@ export function TreeView({
 
   useEffect(() => {
     const pending = pendingScrollRestoreRef.current;
-    if (!pending || pending.scope !== `${tabId}:${rootPath}` || !dirs.get("")?.loaded) return;
+    if (!pending || pending.scope !== `${explorerStateKey}:${tabId}:${rootPath}` || !explorerModeActive || !dirs.get("")?.loaded) return;
     if ([...expanded].some((path) => !dirs.get(path)?.loaded)) return;
     const el = scrollContainerRef?.current;
-    pendingScrollRestoreRef.current = null;
-    if (!el) return;
+    if (!el || el.clientHeight <= 0) return;
     const anchorIndex = pending.anchorPath ? flatList.findIndex(({ entry }) => entry.path === pending.anchorPath) : -1;
     const targetTop = anchorIndex >= 0 ? anchorIndex * EDITOR_TREE_ROW_HEIGHT + (pending.anchorOffset ?? 0) : pending.scrollTop;
     const restoredTop = Math.max(0, Math.min(targetTop, el.scrollHeight - el.clientHeight));
     el.scrollTop = restoredTop;
     setScrollTop(restoredTop);
+    pendingScrollRestoreRef.current = null;
     const index = Math.floor(restoredTop / EDITOR_TREE_ROW_HEIGHT);
     const row = flatList[index];
     scrollAnchorRef.current = row
       ? { path: row.entry.path, index, offset: restoredTop - index * EDITOR_TREE_ROW_HEIGHT }
       : null;
-  }, [dirs, expanded, flatList, rootPath, scrollContainerRef, tabId]);
+  }, [dirs, expanded, explorerModeActive, explorerStateKey, flatList, rootPath, scrollContainerRef, tabId]);
 
   useLayoutEffect(() => {
     const previous = previousFlatListRef.current;
-    const anchorScope = `${tabId}:${rootPath}`;
+    const anchorScope = `${explorerStateKey}:${tabId}:${rootPath}`;
     if (previousAnchorScopeRef.current !== anchorScope) {
       previousAnchorScopeRef.current = anchorScope;
       scrollAnchorRef.current = null;
@@ -339,6 +340,10 @@ export function TreeView({
     }
     const anchor = scrollAnchorRef.current;
     const el = scrollContainerRef?.current;
+    if (pendingScrollRestoreRef.current?.scope === anchorScope) {
+      previousFlatListRef.current = flatList;
+      return;
+    }
     if (previous && el && previous !== flatList && previous.length > 0) {
       const oldIndex = anchor?.index ?? Math.floor(el.scrollTop / EDITOR_TREE_ROW_HEIGHT);
       const offset = anchor?.offset ?? el.scrollTop - oldIndex * EDITOR_TREE_ROW_HEIGHT;
@@ -370,12 +375,15 @@ export function TreeView({
     setSelected(new Set([selectedPath]));
     setSelectionAnchor(selectedPath);
     treeSelection.setFocusedPath(selectedPath);
-    const revealKey = `${rootPath}:${selectedPath}`;
-    if (lastRevealRequestRef.current === revealKey) return;
-    lastRevealRequestRef.current = revealKey;
+  }, [selectedPath, explorerModeActive, treeSelection.setFocusedPath]);
+
+  useEffect(() => {
+    if (revealRevision === lastRevealRevisionRef.current) return;
+    if (!selectedPath || !explorerModeActive) return;
+    lastRevealRevisionRef.current = revealRevision;
     pendingRevealPathRef.current = selectedPath;
     revealAncestors(selectedPath);
-  }, [selectedPath, explorerModeActive, rootPath, treeSelection.setFocusedPath, revealAncestors]);
+  }, [explorerModeActive, revealAncestors, revealRevision, selectedPath]);
 
   const projection = useMemo(
     () => projectEditorTreeRows(flatList, scrollTop, viewportHeight),
@@ -433,10 +441,15 @@ export function TreeView({
 
   useEffect(() => {
     const path = pendingRevealPathRef.current;
-    if (!path || !treePaths.includes(path)) return;
+    if (!path || !explorerModeActive) return;
+    const index = treePaths.indexOf(path);
+    const el = scrollContainerRef?.current;
+    if (index < 0 || !el || el.clientHeight <= 0) return;
     pendingRevealPathRef.current = null;
-    scrollRowIntoView(path);
-  }, [treePaths, flatList, scrollContainerRef]);
+    const nextTop = Math.max(0, Math.min(index * EDITOR_TREE_ROW_HEIGHT, el.scrollHeight - el.clientHeight));
+    el.scrollTop = nextTop;
+    setScrollTop(nextTop);
+  }, [explorerModeActive, scrollContainerRef, treePaths]);
 
   const newFile = async (dir: string) => {
     setMenu(null);

@@ -16,17 +16,17 @@
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
-| EXP-01 | `Cmd+B` / `Ctrl+B`로 focused file pane의 Explorer를 언제나 다시 열고 닫는다. | 닫기 직후, 검색 pane에서 전환, Markdown editor 포커스, pane split, 창 크기 변경 후에도 shortcut이 동작한다. 키 입력 시 `treeOpen`, sidebar mode, 실제 표시 여부가 일치한다. |
+| EXP-01 | editor 바깥에서 `Cmd+B` / `Ctrl+B`로 focused file pane의 Explorer를 열고 닫는다. | 닫기 직후, 검색 pane에서 전환, pane split, 창 크기 변경 후에도 shortcut이 동작한다. Markdown editor focus에서는 KEY-01을 따른다. 키 입력 시 `treeOpen`, sidebar mode, 실제 표시 여부가 일치한다. |
 | EXP-02 | 좁은 pane에서 Explorer가 editor 위를 덮지 않고 사라진다. | 가용 너비가 임계값 아래면 dock 폭을 해제하고 editor가 남은 폭을 쓴다. 임계값 위로 돌아오면 명시된 open 상태에 따라 재표시된다. “숨겨진 상태”와 “열렸지만 CSS로 가려진 상태”가 동시에 존재하지 않는다. |
-| EXP-03 | 일반 선택·열기·refresh·folder expand/collapse 뒤 현재 보던 첫 행을 유지한다. | 이전 첫 가시 행의 path가 남아 있으면 같은 viewport y 위치에 둔다. 행이 삭제되면 가장 가까운 생존 행을 사용한다. 선택/focus 변화는 viewport를 초기화하지 않는다. |
+| EXP-03 | 일반 선택·열기·refresh·folder expand/collapse 뒤 현재 보던 첫 행을 유지한다. | 이전 첫 가시 행의 path가 남아 있으면 같은 viewport y 위치에 둔다. 행이 삭제되면 가장 가까운 생존 행을 사용한다. 선택/focus 변화는 viewport를 초기화하지 않는다. active file 변경만으로 ancestor expand나 scroll reveal을 하지 않는다. |
 | EXP-04 | 탭 전환·Explorer 닫기/열기·pane 폭 조정·TreeView 재마운트 후 scroll이 유지된다. | 저장한 row path + row 내부 offset을 우선 복원한다. 데이터가 준비되기 전에 0으로 점프하는 화면을 보이지 않는다. path 복원이 불가능한 경우에만 pixel offset을 fallback으로 쓴다. |
-| EXP-05 | 별도 탐색 의도가 있을 때 활성 파일을 찾아갈 수 있다. | “현재 편집 파일 reveal” 같은 명시 동작은 자동 보존 규칙보다 우선하며 그 외 단순 상태 변경은 reveal로 해석하지 않는다. active-file auto-reveal의 기본값/설정은 이 계약의 별도 사용자 결과로 정한다. |
+| EXP-05 | 별도 탐색 의도가 있을 때 활성 파일을 찾아갈 수 있다. | `Cmd/Ctrl+Shift+E`는 Explorer를 열고 현재 활성 파일의 ancestor를 펼쳐 그 파일을 reveal한다. 이 명시 동작만 자동 보존 규칙보다 우선한다. |
 
 현재 shortcut 설계에는 문맥 충돌도 있다. shared Markdown keymap은 `Mod-b`로 bold를 감싸지만, Workspace Explorer는 window capture 단계에서 같은 키를 선점해 TreeView를 토글한다. 단축키 한 개를 양 기능에 동시에 배정할 수 없으므로 focused editor에서는 서식 명령, editor 바깥에서는 Explorer 명령으로 우선순위를 분리하고, TreeView를 항상 토글하는 별도 명령도 제공해야 한다.
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
-| KEY-01 | Markdown 본문에서 `Cmd/Ctrl+B`는 선택 텍스트를 bold 처리한다. | Explorer가 열려 있거나 닫혀 있어도 editor focus의 bold 명령이 동작한다. editor 바깥에서는 정한 TreeView shortcut으로 Explorer를 토글한다. 두 동작 모두 keyboard shortcut help에 표시한다. |
+| KEY-01 | Markdown 본문에서 `Cmd/Ctrl+B`는 선택 텍스트를 bold 처리한다. | Explorer가 열려 있거나 닫혀 있어도 editor focus의 bold 명령이 동작한다. editor 바깥에서는 Explorer를 토글한다. `Cmd/Ctrl+Shift+E`는 활성 파일 reveal이다. 두 동작 모두 keyboard shortcut help에 표시한다. |
 
 ## P0 — 문서 제목과 본문 폭을 하나의 레이아웃으로 만든다
 
@@ -249,7 +249,7 @@ Notion 데이터베이스 block, 협업 presence, access control, page discussio
 - 표는 [markdownLivePreview.ts](../../src/markdownLivePreview.ts)의 `TableWidget`이 cell source를 `textContent`로 배치한다.
 - fence preview는 fenced marker/info string을 숨기지만 Mermaid/TeX renderer는 source/dependency에 없다.
 - HTML block은 iframe widget으로 렌더되며 script 실행은 허용하지 않는다. allowlist/CSP/resource origin 계약은 이 spec에서 정해야 한다.
-- Explorer는 [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx), [TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx), [explorer state](../../../../apps/workspace-app/src/renderer/src/explorer/explorerState.ts), [pane layout CSS](../../../../apps/workspace-app/src/renderer/src/assets/styles.css) 네 소유 영역에 open state·active reveal·scroll host·폭 임계값이 나뉘어 있다. 런타임에서 scroll이 유지되지 않는 문제는 아직 해결 완료로 판정하지 않는다.
+- Explorer는 [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx), [TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx), [explorer state](../../../../apps/workspace-app/src/renderer/src/explorer/explorerState.ts), [PaneGroup](../../../../apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx)이 협력한다. open state는 pane group에, tree selection/scroll anchor는 tree state에 둔다. active file 선택은 viewport를 움직이지 않고 `Cmd/Ctrl+Shift+E`만 명시 reveal한다. scroll 복원은 준비가 끝나고 tree가 실제 표시된 뒤 저장 상태를 적용하며, 복원 전 임시 scroll event는 저장하지 않는다. 실제 UI 수용 확인은 남아 있다.
 
 ## 기준 자료
 
