@@ -1,5 +1,7 @@
 # PKMS Cloud for iOS
 
+현재 앱의 경계·상태·계약은 [app scope 문서](./docs/README.md)를 기준으로 합니다.
+
 The native SwiftUI client uses the Rust/Yrs document implementation through a C FFI. The generated XCFramework stays local and is ignored by Git.
 
 ## Build
