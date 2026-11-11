@@ -307,6 +307,7 @@ export default function Home() {
   }, [activeWorkspace?.id]);
   const treeContextMenuRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleCaretPositionRef = useRef<number | null>(null);
   const titleEditFileIdRef = useRef<string | null>(null);
   const editorNavigate = useRef<((position: number) => void) | null>(null);
   const routedPath = useRef<string | null>(null);
@@ -354,8 +355,15 @@ export default function Home() {
   }, [activeWorkspace?.id, activeFile?.id]);
   useEffect(() => {
     if (!titleEditing) return;
-    titleInputRef.current?.focus();
-    titleInputRef.current?.select();
+    const input = titleInputRef.current;
+    if (!input) return;
+    input.focus();
+    const caretPosition = titleCaretPositionRef.current;
+    if (caretPosition !== null) {
+      const position = Math.max(0, Math.min(caretPosition, input.value.length));
+      input.setSelectionRange(position, position);
+      titleCaretPositionRef.current = null;
+    }
   }, [titleEditing]);
   const { scheduleAutoSave, saveActiveFileNow, saveDocument } = useDocumentSync({
     workspaceId: activeWorkspace?.id,
@@ -1518,8 +1526,9 @@ export default function Home() {
     if (!name?.trim() || name.trim() === currentName) return;
     await renameThroughEditorProvider(activeFile, name.trim());
   };
-  const enterTitleEdit = () => {
+  const enterTitleEdit = (caretPosition: number) => {
     if (!activeFile || activeFile.kind !== "markdown") return;
+    titleCaretPositionRef.current = caretPosition;
     titleEditFileIdRef.current = activeFile.id;
     setTitleDraft(markdownTitleFor(activeFile.path));
     setTitleError(null);

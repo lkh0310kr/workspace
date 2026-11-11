@@ -165,6 +165,7 @@ export function EditorContent({
   const [titleDraft, setTitleDraft] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleCaretPositionRef = useRef<number | null>(null);
   const isMarkdown = kind === "markdown";
   const documentCacheKey = activeDocumentSession
     ? editorDocumentKey(activeDocumentSession.item)
@@ -432,7 +433,8 @@ export function EditorContent({
     };
   }, [isMarkdown, saveActiveFile]);
 
-  const enterTitleEdit = useCallback(() => {
+  const enterTitleEdit = useCallback((caretPosition: number) => {
+    titleCaretPositionRef.current = caretPosition;
     setTitleDraft(markdownTitleFor(pathRef.current));
     setTitleError(null);
     setTitleEditing(true);
@@ -440,8 +442,15 @@ export function EditorContent({
 
   useEffect(() => {
     if (!titleEditing) return;
-    titleInputRef.current?.focus();
-    titleInputRef.current?.select();
+    const input = titleInputRef.current;
+    if (!input) return;
+    input.focus();
+    const caretPosition = titleCaretPositionRef.current;
+    if (caretPosition !== null) {
+      const position = Math.max(0, Math.min(caretPosition, input.value.length));
+      input.setSelectionRange(position, position);
+      titleCaretPositionRef.current = null;
+    }
   }, [titleEditing]);
 
   // Obsidian-style click-to-rename: commits by renaming the real file

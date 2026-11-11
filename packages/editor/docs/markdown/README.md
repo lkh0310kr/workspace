@@ -50,7 +50,7 @@ HTML iframe의 sandbox는 `allow-same-origin`이며 script 허용 flag는 없다
 
 ## 링크
 
-[markdownLinkNavigation.ts](../../src/markdownLinkNavigation.ts)는 `.cm-md-link` click을 syntax node Link/WikiLink로 역추적한다. WikiLink는 `[[target|label]]`의 target만 trim한다. 일반 Link는 URL child를 사용한다. host callback이 true를 반환할 때만 preventDefault하고 처리 완료로 본다.
+[markdownLinkNavigation.ts](../../src/markdownLinkNavigation.ts)는 `.cm-md-link` click을 syntax node Link/WikiLink로 역추적한다. WikiLink는 `[[target|label]]`의 target만 trim한다. 일반 Link는 URL child를 사용한다. http(s) destination은 새 외부 browser context로 열고, 다른 일반 링크는 host callback이 true를 반환할 때 preventDefault하고 처리 완료로 본다.
 
 [relativeLink.ts](../../src/relativeLink.ts)는 query/hash를 제거하고 segment별 decode한다. scheme/`//`/빈 path/잘못된 percent encoding을 거부한다. `/`는 provider root, 그 외 현재 파일 directory 기준이다. `..`가 root 밖으로 나가면 null. hash-only 이동은 이 함수로 해결되지 않는다. Desktop WikiLink는 target의 마지막 path segment를 trim하고 `.md`를 붙인 이름을 case-insensitive 비교한다. root부터 directory를 BFS하며 최대 500 directory를 조회하고 첫 markdown 일치를 연다. 없으면 root에 해당 이름의 빈 .md 파일을 생성한다. target이 이미 확장자를 가졌다고 확장자를 생략하는 규칙은 없다. 이 resolver로 대상 문서를 열며 일반 상대 링크는 확장자로 pane kind를 선택한다.
 

@@ -28,6 +28,18 @@ export function markdownLinkNavigation(onActivate: (link: EditorMarkdownLink) =>
         const href = url ? view.state.doc.sliceString(url.from, url.to).trim() : "";
         if (href) link = { kind: "markdown", target: href };
       }
+      if (link?.kind === "markdown") {
+        try {
+          const url = new URL(link.target);
+          if (url.protocol === "http:" || url.protocol === "https:") {
+            window.open(url.toString(), "_blank", "noopener,noreferrer");
+            event.preventDefault();
+            return true;
+          }
+        } catch {
+          // Relative/provider links are resolved by the host callback below.
+        }
+      }
       if (!link || !onActivate(link)) return false;
       event.preventDefault();
       return true;
