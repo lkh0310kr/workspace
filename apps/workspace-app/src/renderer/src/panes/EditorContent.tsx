@@ -8,7 +8,7 @@ import {
 } from "react";
 import { Compartment } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
-import { editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
+import { editorCodeMirrorCodeSelectionExtensions, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -378,6 +378,7 @@ export function EditorContent({
     return [
       ...modeExtensions,
       ...editorCodeMirrorHostExtensions,
+      ...(!isMarkdown ? editorCodeMirrorCodeSelectionExtensions : []),
       EditorView.updateListener.of((update) => {
         if (!update.docChanged) return;
         editRevisionRef.current += 1;

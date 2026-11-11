@@ -67,7 +67,7 @@ export type { MarkdownImageResolver, MarkdownImageResource } from "./markdownLiv
 export { editorMarkdownParserExtensions, wikiLinkExtension } from "./markdownWikilink";
 export { createMarkdownEditorExtensions } from "./markdownEditor";
 export type { MarkdownEditorOptions } from "./markdownEditor";
-export { editorCodeMirrorHostExtensions } from "./editorCodeMirrorHost";
+export { editorCodeMirrorCodeSelectionExtensions, editorCodeMirrorHostExtensions } from "./editorCodeMirrorHost";
 export { detectIndentation, indentGuideColumns, indentGuides, whitespaceGuideDepth } from "./indentGuides";
 export { EditorQuickOpenDialog } from "./EditorQuickOpenDialog";
 export type { EditorQuickOpenItem } from "./EditorQuickOpenDialog";

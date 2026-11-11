@@ -7,9 +7,13 @@ import { workspaceEditorTheme } from "./editorHostTheme";
 /** CodeMirror host behavior shared by the Desktop Editor and PKMS surfaces. */
 export const editorCodeMirrorHostExtensions = [
   indentUnit.of("    "),
-  EditorState.allowMultipleSelections.of(true),
-  drawSelection(),
   workspaceEditorTheme,
   indentGuides,
   EditorView.clickAddsSelectionRange.of((event) => event.altKey),
+];
+
+/** Code-only selection rendering: Markdown preview widgets distort drawSelection's range rectangles. */
+export const editorCodeMirrorCodeSelectionExtensions = [
+  EditorState.allowMultipleSelections.of(true),
+  drawSelection(),
 ];

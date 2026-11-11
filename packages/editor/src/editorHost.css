@@ -1,6 +1,10 @@
-/* Match the text-only selection used by the original Markdown surface.
-   CodeMirror's synthetic rectangles fill line width, so let the browser paint
-   the selected glyphs while its `.cm-content` backdrop hides those rectangles. */
+/* Markdown selection uses the browser's real text range. CodeMirror's
+   synthetic selection rectangles mis-measure ranges around preview widgets. */
+.editor-text-surface .cm-editor .cm-content,
+.editor-text-surface .cm-editor .cm-line {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
 .editor-text-surface .cm-editor .cm-content ::selection,
 .editor-text-surface .cm-editor .cm-content::selection,
 .editor-text-surface .cm-editor .cm-line ::selection,
