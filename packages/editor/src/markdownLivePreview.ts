@@ -880,20 +880,9 @@ function buildDecorations(view: EditorView): DecorationSet {
           const openMark = marks[0];
           const closeMark = marks[marks.length - 1];
           if (selectionOverlaps(view.state, node.from, node.to)) return;
-          const openingLine = view.state.doc.lineAt(openMark.from);
-          const closingLine = view.state.doc.lineAt(closeMark.from);
-          const source = view.state.doc.sliceString(Math.min(openingLine.to + 1, closingLine.from), closingLine.from);
           const languageNode = node.node.getChild("CodeInfo");
           const language = languageNode ? view.state.doc.sliceString(languageNode.from, languageNode.to).trim() : "";
           const isMermaid = language.toLowerCase() === "mermaid";
-          if (!isMermaid) {
-            collected.push({
-              from: openingLine.from,
-              to: openingLine.to,
-              deco: Decoration.replace({ widget: new CodeBlockHeaderWidget(language, source), block: true }),
-            });
-          }
-          // The opening fence and info string are replaced by the toolbar.
           if (!isMermaid && closeMark.from > openMark.to) {
             const closeLineStart = view.state.doc.lineAt(closeMark.from).from;
             collected.push({ from: closeLineStart, to: closeMark.to, deco: HIDE });
@@ -1125,6 +1114,40 @@ const blockDecorations = ViewPlugin.fromClass(
   },
 );
 
+function buildCodeBlockHeaderDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const decorations: Array<{ from: number; to: number; decoration: Decoration }> = [];
+  syntaxTree(state).iterate({
+    enter: (node: SyntaxNodeRef) => {
+      if (node.type.name !== "FencedCode" || selectionOverlaps(state, node.from, node.to)) return;
+      const marks = node.node.getChildren("CodeMark");
+      if (marks.length < 2) return;
+      const languageNode = node.node.getChild("CodeInfo");
+      const language = languageNode ? state.doc.sliceString(languageNode.from, languageNode.to).trim() : "";
+      if (language.toLowerCase() === "mermaid") return;
+      const openingLine = state.doc.lineAt(marks[0].from);
+      const closingLine = state.doc.lineAt(marks[marks.length - 1].from);
+      const source = state.doc.sliceString(Math.min(openingLine.to + 1, closingLine.from), closingLine.from);
+      decorations.push({
+        from: openingLine.from,
+        to: openingLine.to,
+        decoration: Decoration.replace({ widget: new CodeBlockHeaderWidget(language, source), block: true }),
+      });
+    },
+  });
+  decorations.sort((a, b) => a.from - b.from || a.to - b.to);
+  for (const item of decorations) builder.add(item.from, item.to, item.decoration);
+  return builder.finish();
+}
+
+const codeBlockHeaderDecorations = StateField.define<DecorationSet>({
+  create: buildCodeBlockHeaderDecorations,
+  update: (decorations, transaction) => transaction.docChanged || transaction.selection
+    ? buildCodeBlockHeaderDecorations(transaction.state)
+    : decorations.map(transaction.changes),
+  provide: (field) => EditorView.decorations.from(field),
+});
+
 // Tables render as a `block: true` replace decoration (see TableWidget),
 // which CodeMirror only allows from a StateField — hence this being a
 // separate extension from inlineDecorations/blockDecorations above (both
@@ -1310,6 +1333,7 @@ const htmlBlockDecorations = StateField.define<DecorationSet>({
 export const markdownLivePreview: Extension[] = [
   inlineDecorations,
   blockDecorations,
+  codeBlockHeaderDecorations,
   tableDecorations,
   mermaidDecorations,
   displayMathDecorations,

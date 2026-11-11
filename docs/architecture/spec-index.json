@@ -234,7 +234,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "1f78ecc8010d942727d5cda31701e64c78dbc10e3d58e13c4c4458a16fbefce6"
+          "sha256": "6668656183a4f69c81dfdadd90739dcf7976c7ecd3620cc239999fd9309af4f8"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",
