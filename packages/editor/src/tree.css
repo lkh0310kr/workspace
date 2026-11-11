@@ -55,7 +55,7 @@
 .editor-document-tab-slot:hover .editor-document-tab-close, .editor-document-tab-close:focus-visible { opacity: 1; }
 .editor-document-tab-close:hover { color: var(--text); background: var(--bg-hover, var(--hover)); }
 
-.editor-breadcrumbs { position: relative; z-index: 4; display: flex; flex: 0 0 30px; align-items: center; gap: 2px; min-width: 0; height: 30px; padding: 0 12px; border-bottom: 1px solid var(--border); color: var(--muted, var(--text-muted)); font-size: 12px; white-space: nowrap; }
+.editor-breadcrumbs { position: relative; z-index: 4; display: flex; flex: 0 0 30px; align-items: center; gap: 2px; min-width: 0; height: 30px; padding: 0 12px; color: var(--muted, var(--text-muted)); font-size: 12px; white-space: nowrap; }
 .editor-breadcrumb-root { flex: 0 0 auto; }
 .editor-breadcrumb-slot { position: relative; display: inline-flex; flex: 0 1 auto; align-items: center; min-width: 0; }
 .editor-breadcrumb-separator { padding: 0 4px; color: var(--muted, var(--text-muted)); }

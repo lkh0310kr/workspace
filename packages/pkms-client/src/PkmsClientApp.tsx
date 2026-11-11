@@ -94,7 +94,7 @@ export default function Home() {
   const { user, workspaces, loading, deviceFlow, refreshWorkspaces, beginDesktopSignIn } = account;
   const [showRepositories, setShowRepositories] = useState(false);
   const [, setSaving] = useState(false);
-  const [peers, setPeers] = useState<Peer[]>([]);
+  const [, setPeers] = useState<Peer[]>([]);
   const [assetPreviewUrl, setAssetPreviewUrl] = useState<string | null>(null);
   const [assetPreviewType, setAssetPreviewType] = useState("");
   const requestName = useCallback((title: string, initialValue = "") => new Promise<string | null>((resolve) => {
@@ -660,7 +660,6 @@ export default function Home() {
   const canDelete = editorSupportsOperation(editorProvider, "delete");
   const canMove = Boolean(editorProvider?.capabilities.dragMove && editorSupportsOperation(editorProvider, "move"));
   const canMultiSelect = Boolean(editorProvider?.capabilities.multiSelect);
-  const supportsCollaboration = Boolean(editorProvider?.capabilities.collaborativeDocuments);
   const selectTreeRow = (path: string, index: number, additive = false, range = false) =>
     treeSelection.selectRow(path, index, canMultiSelect && additive, canMultiSelect && range);
   useEffect(() => {
@@ -1697,7 +1696,7 @@ export default function Home() {
         />}
         {activeFile?.kind === "markdown" && <EditorBreadcrumbs path={activeFile.path} onLoadChildren={loadEditorBreadcrumbChildren} onOpenFile={openEditorBreadcrumbFile} />}
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <EditorMarkdownEditor
-            title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={supportsCollaboration && peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={canRename ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
+            title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} onStartEditing={canRename ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
             onBackgroundClick={() => {
               const content = activeEditorSession?.snapshot().content;
               if (content?.type === "text") editorNavigate.current?.(content.text.length);

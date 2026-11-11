@@ -182,7 +182,6 @@ button { cursor: pointer; }
 .logout-button { margin-left: auto; font-size: 16px; }
 .main-panel { position: relative; display: flex; height: 100%; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; background: var(--bg); }
 .modal-close .app-icon { width: 14px; height: 14px; margin: 0 auto; }
-.live-presence { margin-top: 5px; color: var(--muted); font-size: 11px; }
 .column-label { display: none; }
 .editor-loading { display: grid; min-height: 0; flex: 1; place-items: center; color: var(--muted); font-size: 12px; }
 .file-opening { display: flex; min-height: 0; flex: 1; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 12px; }
