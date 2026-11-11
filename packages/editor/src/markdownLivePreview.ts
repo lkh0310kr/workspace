@@ -433,10 +433,13 @@ function buildDecorations(view: EditorView): DecorationSet {
           const openBracket = marks[0];
           const closeBracket = marks[1];
           if (openBracket.to >= closeBracket.from) return;
+          const linkClass = selectionOverlaps(view.state, node.from, node.to)
+            ? "cm-md-link cm-md-link-active"
+            : "cm-md-link";
           collected.push({
             from: openBracket.to,
             to: closeBracket.from,
-            deco: Decoration.mark({ class: "cm-md-link" }),
+            deco: Decoration.mark({ class: linkClass }),
           });
           if (!selectionOverlaps(view.state, node.from, node.to)) {
             collected.push({ from: openBracket.from, to: openBracket.to, deco: HIDE });
@@ -537,7 +540,11 @@ function buildDecorations(view: EditorView): DecorationSet {
           collected.push({
             from: displayFrom,
             to: innerTo,
-            deco: Decoration.mark({ class: "cm-md-link cm-md-wikilink" }),
+            deco: Decoration.mark({
+              class: selectionOverlaps(view.state, node.from, node.to)
+                ? "cm-md-link cm-md-wikilink cm-md-link-active"
+                : "cm-md-link cm-md-wikilink",
+            }),
           });
           if (!selectionOverlaps(view.state, node.from, node.to)) {
             collected.push({ from: node.from, to: displayFrom, deco: HIDE });

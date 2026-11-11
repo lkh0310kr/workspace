@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef } from "react";
-import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import { EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
 import type { MarkdownConfig } from "@lezer/markdown";
@@ -10,6 +11,14 @@ import { markdownEditorTheme, markdownProseTheme } from "./themes";
 import { EditorTextSurface, type EditorTextSurfaceProps } from "./EditorTextSurface";
 
 const emptyExtensions: readonly Extension[] = [];
+
+// CodeMirror's default theme is light-only and underlines headings and links.
+// Markdown visuals are owned by the shared product CSS and semantic tokens.
+const markdownSyntaxHighlight = HighlightStyle.define([
+  { tag: tags.heading, textDecoration: "none" },
+  { tag: tags.meta, color: "inherit" },
+  { tag: tags.link, color: "inherit", textDecoration: "none" },
+]);
 
 export interface EditorMarkdownSurfaceProps extends Omit<EditorTextSurfaceProps, "extensions" | "onViewReady"> {
   /** Product-specific syntax additions to the shared Markdown parser. */
@@ -36,7 +45,7 @@ export function EditorMarkdownSurface({
 }: EditorMarkdownSurfaceProps) {
   const baseExtensions = useMemo<readonly Extension[]>(() => [
     ...createMarkdownEditorExtensions({ parserExtensions }),
-    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+    syntaxHighlighting(markdownSyntaxHighlight, { fallback: true }),
     markdownEditorTheme,
     markdownProseTheme,
   ], [parserExtensions]);

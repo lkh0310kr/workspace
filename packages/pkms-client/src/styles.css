@@ -15,6 +15,9 @@
   --danger: #b42318;
   --warning: #a16207;
   --accent: #606ac8;
+  --link: #4653d5;
+  --link-hover: #3542c1;
+  --focus-ring: #4653d5;
   --editor-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --scroll-size: 8px;
   --scroll-thumb: rgba(121, 121, 121, .4);
@@ -39,6 +42,9 @@
     --primary-text: #fff;
     --danger: #f87171;
     --warning: #ad9258;
+    --link: #aab2ff;
+    --link-hover: #c6cbff;
+    --focus-ring: #aab2ff;
   }
 }
 * { box-sizing: border-box; }
