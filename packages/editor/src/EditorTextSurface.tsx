@@ -10,6 +10,7 @@ import { useEditorDocumentSnapshot } from "./useEditorDocumentSnapshot";
 import { editorSearch } from "./editorSearch";
 import type { EditorDocumentSession } from "./provider";
 import "katex/dist/katex.min.css";
+import "./editorHost.css";
 import "./markdown.css";
 
 export const externalEditorChange = Annotation.define<boolean>();

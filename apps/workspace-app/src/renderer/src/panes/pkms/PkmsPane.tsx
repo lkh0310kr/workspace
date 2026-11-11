@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router";
 import PkmsClientApp from "@pkms/client/PkmsClientApp";
 import pkmsStyles from "@pkms/client/styles.css?inline";
 import editorTreeStyles from "@workspace/editor/tree.css?inline";
+import editorHostStyles from "@workspace/editor/editorHost.css?inline";
 import editorMarkdownStyles from "@workspace/editor/markdown.css?inline";
 import editorMarkdownDocumentStyles from "@workspace/editor/markdownDocument.css?inline";
 import editorSearchStyles from "@workspace/editor/editorSearch.css?inline";
@@ -30,6 +31,7 @@ export function PkmsPane(): React.JSX.Element {
 ${editorTreeStyles
       .replaceAll(":root", ":host")
       .replace(/(^|,)\s*body(?=\s*[, {])/gm, "$1:host")}
+${editorHostStyles}
 ${editorMarkdownStyles}
 ${editorMarkdownDocumentStyles}
 ${editorSearchStyles}

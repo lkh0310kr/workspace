@@ -9,6 +9,7 @@
     "./code-mirror": "./src/codeMirror.ts",
     "./tree-row": "./src/EditorTreeRow.tsx",
     "./tree.css": "./src/tree.css",
+    "./editor-host.css": "./src/editorHost.css",
     "./markdown.css": "./src/markdown.css",
     "./markdown-document.css": "./src/markdownDocument.css",
     "./editor-search.css": "./src/editorSearch.css"

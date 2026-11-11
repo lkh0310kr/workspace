@@ -1,14 +1,16 @@
 import { EditorView } from "@codemirror/view";
 
 export const workspaceEditorTheme = EditorView.theme({
-  "&": { height: "100%", fontSize: "var(--editor-font-size, 13px)" },
+  "&": {
+    height: "100%",
+    fontSize: "var(--editor-font-size, 13px)",
+    backgroundColor: "var(--editor-bg, transparent)",
+  },
   ".cm-scroller": { fontFamily: "var(--font-mono)" },
   ".cm-content": {
-    // `backgroundColor`, not the `background` shorthand — the shorthand
-    // resets every other background sub-property it doesn't mention,
-    // including `background-image`, which used to silently erase a
-    // gradient-based indent guide on this same selector.
-    backgroundColor: "var(--editor-bg)",
+    // Keep the editable surface transparent. CodeMirror paints selection
+    // rectangles in a sibling layer behind `.cm-content`; an opaque content
+    // background hides those rectangles even when the selection theme matches.
     color: "var(--text)",
     caretColor: "var(--text)",
   },
@@ -19,10 +21,9 @@ export const workspaceEditorTheme = EditorView.theme({
   },
   ".cm-activeLine": { background: "var(--bg-hover)" },
   ".cm-cursor": { borderLeftColor: "var(--text)" },
-  // CodeMirror's selection layer sits behind the opaque .cm-content surface by
-  // default. Raise it explicitly and theme it here so code, Markdown, and PKMS
-  // Shadow DOM views all paint ranges with the same visible accent color.
-  ".cm-selectionLayer": { zIndex: "2" },
+  // CodeMirror deliberately puts its selection layer at z-index -1, behind
+  // `.cm-content`. Keep the content surface transparent so the range markers
+  // remain visible while text is painted above them.
   ".cm-selectionLayer .cm-selectionBackground": {
     backgroundColor: "var(--editor-selection-bg, var(--selected)) !important",
   },
