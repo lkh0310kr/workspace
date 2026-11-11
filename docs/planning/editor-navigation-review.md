@@ -1,13 +1,13 @@
 # Editor navigation review
 
-This review compares the TreeView and Editor behavior with the reported scroll cancellation and requested editor breadcrumbs. The navigation fixes and code/Markdown breadcrumb described below are implemented; image/document viewer breadcrumbs and configurable auto-reveal remain future scope. VS Code and Zed are reference points for interaction outcomes, not full feature parity targets.
+This review compares TreeView and Editor behavior with the reported scroll cancellation and requested breadcrumbs. Source changes exist, but the user has re-reported that TreeView cannot be reopened and scroll still moves; therefore scroll and toggle behavior are **not accepted as fixed**. Markdown rendering, title/width, and reference parity are expanded in the [Editor completeness spec](../../packages/editor/docs/markdown/product-completeness.md). VS Code and Zed are reference points for outcomes, not full feature parity targets.
 
 ## Findings
 
 | ID | Finding | Evidence in this repository | User-visible consequence | Priority |
 |---|---|---|---|---|
-| NAV-01 | Tree scroll restoration previously used only a raw pixel offset and did not persist the visible row identity. | `TreeView.tsx` retains the first visible row path and intra-row offset across projection changes and saves them in pane-scoped explorer state. | The same visible row is restored after closing/reopening the panel or remounting the tree; row insertions/removals above it preserve its viewport position. If the anchor row is deleted, the nearest surviving row at its previous index is used. | Implemented |
-| NAV-02 | Active-file synchronization previously updated selection without reveal. | The selected-path effect now expands ancestors and reveals the row after it enters the visible projection. | Tab switches and external file opens bring the active file into view. Tree-originated opening shares the same path. | Implemented |
+| NAV-01 | A prior anchor-storage change did not resolve the user's runtime scroll report. | `TreeView.tsx` saves row path/offset, but active-path reveal also calls `scrollIntoView`; no runtime acceptance evidence proves preservation through selection/open. | Scroll may still move when active file changes. Separate viewport preservation from explicit reveal intent and verify the reported sequence before marking fixed. | Open |
+| NAV-02 | Active-file synchronization reveals from the same effect as selection synchronization. | The selected-path effect expands ancestors and schedules row reveal. | This can compete with the required scroll preservation. Auto-reveal intent and ordinary selection must be distinguished. | Needs contract |
 | NAV-03 | Directory reads previously had no latest-request/root guard. | `loadDir` now checks per-branch sequence, workspace root, and provider identity before committing. | Slower stale responses cannot replace newer branch data or data from another provider/root. | Implemented |
 | NAV-04 | The Editor had no file-path breadcrumb bar. | `packages/editor/src/EditorBreadcrumbs.tsx` is mounted by Desktop `EditorContent` for code and Markdown files; viewer panes are not yet integrated. | Users can inspect the workspace-relative path and open sibling files from a segment menu. | Implemented for code/Markdown |
 | NAV-05 | The tree specification omitted scroll anchoring and active-file reveal outcomes. | The Treeview spec now records behavior and TREE-08–TREE-11 regeneration scenarios; `breadcrumbs.md` records BREADCRUMB-01–06. | Future implementations have explicit visible outcomes. | Implemented |
@@ -24,7 +24,7 @@ Official references: [VS Code breadcrumbs](https://code.visualstudio.com/docs/ed
 
 ## Proposed result contract
 
-The following outcomes are implemented for the Desktop code/Markdown editor and TreeView. Viewer breadcrumbs and a user preference for auto-reveal are not included yet.
+The following are target outcomes; tree reopen and scroll preservation have not passed runtime acceptance.
 
 ### Tree navigation
 
@@ -51,9 +51,9 @@ The following outcomes are implemented for the Desktop code/Markdown editor and 
 
 ## Implementation status
 
-1. TreeView anchor preservation and stale-load invalidation — implemented.
-2. Active-file ancestor expansion and reveal — implemented.
+1. TreeView anchor persistence and stale-load invalidation — code present; runtime acceptance failed per latest user report.
+2. Active-file ancestor expansion and reveal — code present; intent must be separated from scroll preservation.
 3. Shared path breadcrumbs with host-provided child listing and file routing — implemented for code/Markdown.
 4. Automated UI regression scenarios for scrolling, root changes, active-file reveal, rename/move, keyboard access, and long paths — still needed.
 
-The exact reported scroll reproduction was not captured in a running app before implementation. App typecheck passed after the changes; automated tests were not added or run.
+The current app was not manually exercised after the last change. Workspace typecheck and architecture source/link checks passed, but they do not establish scroll or toggle behavior. Automated tests were not added or run. Do not close NAV-01 until the exact selection/open, toggle, resize, and tab-switch sequences are observed in the running app.

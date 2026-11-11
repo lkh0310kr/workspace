@@ -13,7 +13,7 @@
 | [PKMS provider 구현](../../pkms-client/docs/editor-sessions.md) | PKMS local/Yjs/asset session |
 | [텍스트 surface](./code/README.md) | CodeMirror, 외부 변경, undo, cache, Desktop 저장 |
 | [Treeview](./treeview/README.md) | docked Explorer·pane shortcut·폭 임계값·스크롤 복원·로딩·정렬·가상화·선택·파일 작업 |
-| [Markdown](./markdown/README.md) | live preview, 제목 rename, 링크·이미지; 문서 outline/structure UI 없음 |
+| [Markdown](./markdown/README.md) | [현재 동작](./markdown/README.md) · [완성도 목표 스펙](./markdown/product-completeness.md): live preview, 제목 rename, 링크·이미지, 표·수식·다이어그램 계획 |
 | [검색](./search.md) | 문서 검색, Quick Open, 파일 내용 검색·치환 |
 | [Asset viewer 경계](./assets.md) | Editor에서 포맷별 viewer로 연결하는 계약 |
 | [Editor 탐색 비교 검토](../../../docs/planning/editor-navigation-review.md) | TreeView 스크롤·active-file reveal·breadcrumb 구현 배경과 외부 비교 |

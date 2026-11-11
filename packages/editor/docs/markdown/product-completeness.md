@@ -1,0 +1,186 @@
+# Markdown 편집기 완성도 목표 스펙
+
+이 문서는 Workspace의 파일 기반 Markdown 편집기가 도달해야 할 사용자 결과를 정의한다. 현재 구현 목록이 아니며, 항목마다 코드 근거와 완료 조건을 구분한다. 구현의 세부 선택은 호환성·보안·편집 위치 보존에 여러 유효한 방식이 있는 항목에 한해 별도 결정 기록으로 남긴다.
+
+이 편집기는 원본 Markdown 파일을 유지하는 지식 문서 편집기다. Obsidian은 파일 탐색·Live Preview·Markdown 호환성의 기준으로, Notion은 문서 프레임·넓이·블록 조작 결과의 시각/상호작용 기준으로 삼는다. Notion 데이터베이스·권한·실시간 협업 전체를 복제한다는 뜻은 아니다.
+
+## 목표 상태
+
+파일을 열면 제목과 본문이 같은 문서 폭에 정렬되고, 제목은 파일 이름을 정확히 나타낸다. 사용자는 Markdown 원문을 보존하면서 읽기 쉬운 미리보기로 작성하고, 표·수식·다이어그램·HTML을 예측 가능하고 안전하게 다룬다. Explorer와 문서는 각각의 위치·선택·편집 상태를 유지하며, 한 영역의 상태 변경이 다른 영역의 viewport를 임의로 이동시키지 않는다.
+
+## P0 — Explorer 탐색 상태를 안정화한다
+
+현재 [PaneGroup](../../../../apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx)은 `treeOpen`과 active pane kind로 Explorer를 노출하고, [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx)는 `Cmd/Ctrl+B`를 처리한다. CSS는 pane 폭 560px 이하에서 slot을 강제로 숨긴다. 이 CSS 조건은 저장된 `treeOpen=true`와 별개라 단축키로 열려 있어도 보이지 않을 수 있다. 폭 임계값에서 닫힘/복귀 규칙을 단일 상태 전이로 정의해야 한다.
+
+[TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx)는 활성 파일 경로 변경 때 ancestor를 펼치고 해당 행을 `scrollIntoView`한다. 트리 내용 변경 때 anchor를 유지하는 동작과 이 자동 reveal은 현재 하나의 active-path 효과에서 섞여 있다. 따라서 “스크롤을 유지하라”는 결과와 “활성 파일을 보여라”는 결과가 서로 덮어쓸 수 있다.
+
+| ID | 사용자 결과 | 수용 기준 |
+|---|---|---|
+| EXP-01 | `Cmd+B` / `Ctrl+B`로 focused file pane의 Explorer를 언제나 다시 열고 닫는다. | 닫기 직후, 검색 pane에서 전환, Markdown editor 포커스, pane split, 창 크기 변경 후에도 shortcut이 동작한다. 키 입력 시 `treeOpen`, sidebar mode, 실제 표시 여부가 일치한다. |
+| EXP-02 | 좁은 pane에서 Explorer가 editor 위를 덮지 않고 사라진다. | 가용 너비가 임계값 아래면 dock 폭을 해제하고 editor가 남은 폭을 쓴다. 임계값 위로 돌아오면 명시된 open 상태에 따라 재표시된다. “숨겨진 상태”와 “열렸지만 CSS로 가려진 상태”가 동시에 존재하지 않는다. |
+| EXP-03 | 일반 선택·열기·refresh·folder expand/collapse 뒤 현재 보던 첫 행을 유지한다. | 이전 첫 가시 행의 path가 남아 있으면 같은 viewport y 위치에 둔다. 행이 삭제되면 가장 가까운 생존 행을 사용한다. 선택/focus 변화는 viewport를 초기화하지 않는다. |
+| EXP-04 | 탭 전환·Explorer 닫기/열기·pane 폭 조정·TreeView 재마운트 후 scroll이 유지된다. | 저장한 row path + row 내부 offset을 우선 복원한다. 데이터가 준비되기 전에 0으로 점프하는 화면을 보이지 않는다. path 복원이 불가능한 경우에만 pixel offset을 fallback으로 쓴다. |
+| EXP-05 | 별도 탐색 의도가 있을 때 활성 파일을 찾아갈 수 있다. | “현재 편집 파일 reveal” 같은 명시 동작은 자동 보존 규칙보다 우선하며 그 외 단순 상태 변경은 reveal로 해석하지 않는다. active-file auto-reveal의 기본값/설정은 이 계약의 별도 사용자 결과로 정한다. |
+
+현재 shortcut 설계에는 문맥 충돌도 있다. shared Markdown keymap은 `Mod-b`로 bold를 감싸지만, Workspace Explorer는 window capture 단계에서 같은 키를 선점해 TreeView를 토글한다. 단축키 한 개를 양 기능에 동시에 배정할 수 없으므로 focused editor에서는 서식 명령, editor 바깥에서는 Explorer 명령으로 우선순위를 분리하고, TreeView를 항상 토글하는 별도 명령도 제공해야 한다.
+
+| ID | 사용자 결과 | 수용 기준 |
+|---|---|---|
+| KEY-01 | Markdown 본문에서 `Cmd/Ctrl+B`는 선택 텍스트를 bold 처리한다. | Explorer가 열려 있거나 닫혀 있어도 editor focus의 bold 명령이 동작한다. editor 바깥에서는 정한 TreeView shortcut으로 Explorer를 토글한다. 두 동작 모두 keyboard shortcut help에 표시한다. |
+
+## P0 — 문서 제목과 본문 폭을 하나의 레이아웃으로 만든다
+
+현재 [Markdown theme](../../src/themes.ts)는 `.cm-content`에 `maxWidth: 820px`, 가운데 정렬, 좌우 padding을 적용한다. [Markdown title CSS](../../src/markdownDocument.css)의 제목은 전체 폭을 쓰며 다른 좌우 padding을 사용한다. 제목과 첫 본문 글자의 x 좌표·사용 폭이 달라질 수 있는 코드상 근거다. 실제 목표는 두 요소가 같은 페이지 column 규칙을 공유하는 것이다.
+
+| ID | 사용자 결과 | 수용 기준 |
+|---|---|---|
+| DOC-01 | 파일 제목은 basename에서 편집 확장자를 제외한 이름으로 표시된다. | `a.md`와 `a.markdown`은 각각 `a`; 경로 breadcrumb는 전체 경로/확장자를 보여 준다. 제목 수정은 현재 확장자를 보존한 파일 rename이며 저장 내용·열린 탭·breadcrumb·TreeView가 같은 새 path를 반영한다. |
+| DOC-02 | 제목, 본문, 표, 이미지, 수식, 다이어그램이 같은 문서 column 안에 정렬된다. | 같은 viewport에서 title/body 시작 x와 max width가 일치한다. 창 및 pane 폭 변경 시 둘 다 같은 규칙으로 재배치되며 title만 full-width로 튀지 않는다. |
+| DOC-03 | 사용자는 읽기 좋은 폭과 넓은 폭을 선택할 수 있다. | 기본 readable width는 문장을 과도하게 길게 만들지 않고, wide/full-width 선택은 문서 프레임 전체에 일관되게 적용한다. 설정 상태는 문서/사용자 중 정한 소유 범위에 따라 재실행 후 유지된다. |
+| DOC-04 | 제목·본문 스크롤이 하나의 문서 viewport로 동작한다. | wheel, PageUp/PageDown, home/end, 검색 결과 이동 후 제목이나 콘텐츠가 겹치지 않고 스크롤 위치가 예측 가능하다. 빈 문서·긴 제목·좁은 pane에서도 액션 chrome이 본문을 가리지 않는다. |
+
+Notion의 `Full width`는 page width 선택 결과의 기준이다. Notion 공식 도움말은 appearance 설정에서 Full width를 켜 폭을 넓히고, 기본/serif/mono 글꼴과 small text도 선택하도록 설명한다. Workspace는 파일 호환 편집기이므로 이러한 선택 중 폭/글꼴/글자 크기만 문서 보기 설정으로 제공하고, 데이터베이스 page layout은 범위 밖으로 둔다.
+
+## P1 — 읽기와 편집 모드를 분리하되 원문을 보존한다
+
+현재 shared editor는 CodeMirror 기반 Live Preview 하나를 제공한다. syntax decoration은 caret/selection이 문법에 닿으면 원문 기호를 보이게 하는 일부 규칙을 갖는다. Obsidian의 사용자 결과는 Reading view, Editing view, Live Preview, Source mode를 구분한다. Workspace는 원문 파일을 직접 편집하므로 이 모드를 명시적으로 다루어야 한다.
+
+| ID | 사용자 결과 | 수용 기준 |
+|---|---|---|
+| MD-01 | Live Preview에서 지원 문법은 렌더되고 문법에 커서가 오면 그 부분을 원문으로 편집한다. | caret 이동, 범위 선택, 다중 선택, undo/redo, 입력 중 decoration이 원문 offset과 일치한다. 문서 전체의 마크업이 숨겨지거나 선택 범위를 잃지 않는다. |
+| MD-02 | Source mode에서 원문을 숨김 없이 편집한다. | heading/list/link/code/table/math/HTML 구문 기호가 그대로 보이고 syntax decoration은 동작하지 않는다. 모드 전환 시 selection, cursor, scroll을 보존한다. |
+| MD-03 | Reading view에서 렌더 결과만 탐색한다. | 편집 widget이 키 입력을 받지 않고 링크·embed·checkbox·목차 등 읽기 동작은 제공된 계약을 따른다. 편집 view로 돌아오면 기존 편집 상태를 회복한다. |
+| MD-04 | 기본 Markdown 형식과 Obsidian 문법을 정확히 판별한다. | CommonMark/GFM과 채택된 Obsidian 확장을 명시한 호환성 표에 따라 parse/render/edit 결과가 결정된다. 미지원 syntax는 깨진 HTML/사라진 원문 대신 입력 그대로 보인다. |
+
+## P1 — 표는 렌더 가능한 콘텐츠이자 편집 가능한 원문이다
+
+현재 [TableWidget](../../src/markdownLivePreview.ts)은 header/row cell 문자열을 `textContent`로 DOM에 넣는 read-only table이다. 즉 셀 안쪽 Markdown formatting/link/image/math가 다시 렌더되지 않고, 위젯 안에서 직접 편집하는 계약도 없다. 이 두 제약은 source에서 확인된다.
+
+| ID | 사용자 결과 | 수용 기준 |
+|---|---|---|
+| TBL-01 | GFM 표의 header, body, 빈 cell, alignment가 기대한 표로 보인다. | 왼쪽/가운데/오른쪽 alignment marker를 적용하고, 긴 cell·좁은 폭에서는 문서 전체 폭을 깨지 않으면서 표를 가로 스크롤하거나 감싼다. |
+| TBL-02 | cell 안 기본 inline Markdown이 다른 문단처럼 렌더된다. | bold, italic, strike, inline code, link, image, wikilink, task marker와 inline math를 cell 안에서도 처리한다. |
+| TBL-03 | 표 셀을 클릭해 직접 편집한다. | 셀 focus와 caret가 원본 markdown의 정확한 range로 연결된다. 키보드 이동은 셀 사이에서 예측 가능하고, Tab 마지막 셀에서 행 생성/종료 중 하나의 합의된 결과를 낸다. |
+| TBL-04 | 행과 열을 추가·삭제·이동하고 header를 바꾼다. | 마우스 context menu와 keyboard path가 같은 명령을 호출한다. 한 행/열만 남긴 경우, 병합된/불규칙 표의 처리 결과를 명시한다. 문서의 다른 표에는 영향이 없다. |
+| TBL-05 | 표 편집은 Markdown text를 보존한다. | escaped pipe `\\|`, inline code/math의 pipe, 정렬 marker, cell 내 link alias와 embed 크기를 parse/render/serialize round-trip해 의도하지 않은 열 분리를 만들지 않는다. |
+| TBL-06 | 수식은 표 안과 밖에서 같은 의미로 렌더된다. | 한 cell 안의 `$...$`와 수식 pipe 문자를 table delimiter로 오인하지 않는다. display math를 cell 안에서 허용할지 금지할지 문법 규칙을 정하고 UI도 일치시킨다. |
+
+Obsidian 표 결과를 기준으로 formatting, 내부 링크, embed, alignment, 행/열 추가·삭제를 포함한다. 표 셀 편집이 여러 방식으로 구현될 수 있으므로 원문 range ↔ cell mapping, cursor 이동, round-trip 보존을 먼저 계약하고 구현 도구는 그 뒤에 선택한다.
+
+## P1 — TeX/LaTeX 수식
+
+현재 package dependencies와 `markdownLivePreview.ts`에는 math parser/renderer가 없다. 코드 fence의 `CodeInfo`만 숨기고 수식 처리는 하지 않으므로 inline/display 수식은 원문 기호 상태다.
+
+| ID | 사용자 결과 | 수용 기준 |
+|---|---|---|
+| TEX-01 | inline `$…$`, `\\(…\\)`를 문장 안에서 읽는다. | escaped dollar, 통화 기호, 빈/닫히지 않은 delimiter, inline code와 fenced code는 수식으로 오인하지 않는다. |
+| TEX-02 | display `$$…$$`, `\\[…\\]`, 합의된 equation environment를 별도 수식 블록으로 본다. | 긴 식은 수평 넘침을 통제하고 baseline·위아래 간격이 문단과 일관된다. multiple equations와 align 환경이 편집 가능한 plain source로 유지된다. |
+| TEX-03 | 수식 안에서 caret을 움직이고 오류를 복구한다. | 해당 식에 selection이 들어오면 원문 전체가 정확한 위치에 노출된다. parse/render 실패 시 원문과 오류 위치를 보존하며 다른 문서/식 렌더링은 멈추지 않는다. |
+| TEX-04 | 표·callout·list 등 inline content container에서 같은 delimiter policy를 사용한다. | 표 cell 수식은 TBL-06, code/raw HTML은 제외 규칙, nested delimiter의 우선순위를 한 공통 grammar 계약으로 유지한다. |
+
+Obsidian은 LaTeX 문법을 MathJax로 지원하고 inline/display delimiter를 문서화한다. 엔진 선택은 구현 선택으로 열어 두되 해당 문법과 실패 fallback은 엔진에 종속되지 않는 결과 계약으로 고정한다.
+
+## P1 — Mermaid 및 diagram code block
+
+현재 fenced code block은 marker와 info string을 숨기는 preview만 제공한다. `mermaid` info string을 식별해 diagram을 렌더하는 경로/의존성은 없다. 따라서 현재 Mermaid block은 diagram이 아니라 source text로 남는다.
+
+| ID | 사용자 결과 | 수용 기준 |
+|---|---|---|
+| DIA-01 | `mermaid` fenced block은 flowchart, sequence, class, state, ER, gantt 등 Mermaid가 지원하는 타입을 diagram으로 보여 준다. | fence language가 mermaid가 아니면 기존 code block 결과를 유지한다. 문서 내 여러 diagram이 독립적으로 mount/unmount된다. |
+| DIA-02 | diagram 편집은 plain source를 유지한다. | cursor/selection이 diagram source에 오면 원문 code와 language marker를 편집한다. focus가 벗어나면 preview로 돌아가며 document text는 그대로다. |
+| DIA-03 | 오류와 큰 diagram을 제어한다. | parse 오류는 해당 block 아래에 오류와 source 보기 동작을 표시한다. 무한 layout/매우 큰 SVG가 전체 editor를 멈추지 않게 실행 시간·크기 한계를 둔다. |
+| DIA-04 | Mermaid 출력은 안전하고 테마에 맞는다. | HTML label, external link, SVG attribute, CSS 및 URL 실행 규칙을 제한한다. light/dark theme과 zoom/가로 넘침을 처리한다. |
+
+Mermaid는 `mermaid` fence의 source code를 graph syntax로 렌더하는 형식을 공식 문서화한다. Mermaid 버전 변경 가능성을 감안해 Markdown 파일 호환 결과와 보안 설정을 versioned feature policy에 기록한다.
+
+## P1 — Markdown 안의 HTML
+
+현재 HTML block은 [HtmlBlockWidget](../../src/markdownLivePreview.ts)이 sandboxed iframe으로 보여 주며 scripts는 허용하지 않는다. 반면 inline HTML, Markdown-inside-HTML 정책, 외부 resource policy, iframe navigation은 별도 완전 계약이 없다. Obsidian은 HTML 안에서 Markdown 문법을 다시 parse하지 않는다고 명시한다.
+
+| ID | 사용자 결과 | 수용 기준 |
+|---|---|---|
+| HTML-01 | 표준 inline/block HTML의 정적인 읽기 결과를 볼 수 있다. | 허용 tag/attribute 목록과 block boundary를 정의한다. HTML 안 Markdown 재파싱 여부는 Obsidian과 동일하게 하지 않는 정책을 기본값으로 명시한다. |
+| HTML-02 | 문서의 HTML은 로컬 앱과 파일을 실행할 수 없다. | script/event handler/javascript URL/form submission/top navigation/unsolicited popup을 금지한다. iframe과 remote resource는 default deny 또는 명시된 allowlist를 따른다. |
+| HTML-03 | preview와 source 편집 사이에 위치가 대응한다. | HTML block에 caret/selection이 들어오면 원문 전체가 보이고 편집 후 iframe preview는 해당 block만 갱신된다. 렌더 실패는 source를 보존한다. |
+| HTML-04 | sandbox lifecycle은 자원을 정리한다. | iframe 제거·문서 전환·빠른 연속 수정 뒤 observer/listener/remote resource가 정리되고 stale render가 현재 문서를 덮지 않는다. |
+
+HTML은 rich content를 보여 주는 기능으로 제공하되 임의 script 실행은 목표에 포함하지 않는다. sandbox flags를 넓히는 구현 변경은 보안 review와 별도 acceptance가 선행된다.
+
+## P2 — Obsidian 문서 호환성
+
+Obsidian Flavored Markdown은 CommonMark/GFM 위에 내부 링크, embed, block reference, footnote, comments, highlight, callouts 등을 더한다. 현재 제품은 일부 `[[wikilink]]`, standard image/link, task, 제한된 callout을 지원하지만 이 전체 집합은 아니다.
+
+| 기능군 | 목표 결과 | 현재 확인된 차이 |
+|---|---|---|
+| Internal links | `[[note]]`, alias, heading/block target을 rename 후에도 찾아 연다. | Workspace는 `[[target|alias]]`와 파일 생성 fallback이 있으며 heading/block anchor 규칙이 없다. |
+| Embeds | note/image/audio/video/PDF를 문서 안에서 type별 preview로 보여 준다. | standard Markdown image는 widget으로 처리한다. `![[file]]` transclusion 및 media embed는 없다. |
+| Callouts | Obsidian callout type/title/fold marker에 따라 시각화하고 접고 편다. | 현재 limited type set과 label replace가 있으며 folding state/action의 전체 계약이 없다. |
+| Properties/frontmatter | YAML frontmatter를 파일 상단에서 읽고 source 또는 typed property UI로 편집한다. | frontmatter 전용 parse/render/edit UI가 없다. |
+| Footnotes/comments/highlights | 선택된 syntax를 본문에서 보여 주고 source와 왕복한다. | `[^id]`, `%%…%%`, `==…==` 전용 preview/result 계약이 없다. |
+| Block identity | `^id` block reference가 해당 block을 안정적으로 가리킨다. | stable block anchor 기능이 없다. |
+
+각 row는 사용자 가치와 plain Markdown interoperability를 비교해 채택 여부를 결정한다. 채택한 기능만 source syntax, resolution, broken-reference fallback, rename/move 결과까지 재생성 가능한 spec을 가진다.
+
+### 추가로 확인된 구현 차이
+
+| ID | 코드 근거 | 관찰 결과/목표 |
+|---|---|---|
+| MD-GAP-01 | [image resolver](../../src/markdownLivePreview.ts)의 fallback은 `rootPath + image URL`로 만든다. | nested Markdown 파일의 `./image.png`가 현재 문서 folder 기준이 아니라 workspace root 기준으로 해석될 수 있다. source document path 기준 상대 URL, root-absolute URL, remote URL 정책을 분리한다. |
+| MD-GAP-02 | [Tree label helper](../../src/treeModel.ts)는 `.md`만 숨기고 [title helper](../../src/markdownTitle.ts)는 `.markdown`도 제거한다. | 같은 파일의 TreeView 표기와 editor title 표기가 달라질 수 있다. 지원하는 Markdown suffix를 한 계약으로 공유한다. |
+| MD-GAP-03 | [Markdown surface](../../src/EditorMarkdownSurface.tsx)는 기본 Markdown parser와 fallback highlight를 사용하고 language-specific code extension을 선택하지 않는다. | fenced block에 line 배경/monospace는 적용해도 언어별 syntax highlighting·copy·line number·fold 결과가 명시돼 있지 않다. |
+| MD-GAP-04 | [HTML block widget](../../src/markdownLivePreview.ts)은 `allow-same-origin` sandbox token을 둔다. | script는 차단하지만 embedded content/resource origin과 CSP 정책은 따로 명시되지 않았다. 허용 origin, image URL, navigation, local file 접근을 보안 acceptance로 고정한다. |
+| MD-GAP-05 | [PKMS editor host](../../../pkms-client/src/PkmsClientApp.tsx)는 `EditorSearchButton`을 action으로 전달한다. | Workspace는 toolbar search button을 숨기고 `Cmd/Ctrl+F`를 쓰지만 PKMS Markdown chrome에는 버튼이 남아 제품 간 조작이 다르다. 검색 UI 기준을 package-level로 결정한다. |
+| MD-GAP-06 | [EditorMarkdownSurface](../../src/EditorMarkdownSurface.tsx)는 Markdown parser와 일반 fallback highlight만 설치한다. | language tag별 code highlighter, code copy, wrap 상태는 목표 계약이 없다. Notion은 코드 block 언어·highlight·wrap·copy 조작을 제공한다. |
+
+## P2 — Notion의 글쓰기 상호작용 결과
+
+Notion 문서 편집의 시각 기준은 고정된 한 덩어리 textarea가 아니라 제목과 콘텐츠 폭, block 경계, hover 시 나타나는 block controls, `/` 메뉴, drag/reorder를 통해 문서를 구성하는 결과다. 파일 포맷은 Markdown으로 유지하면서 다음의 작은 공통 결과를 단계적으로 채택한다.
+
+| ID | 결과 | 범위 결정 |
+|---|---|---|
+| NUI-01 | heading/paragraph/list/quote/code/table/image 등 block 시작점에서 block 삽입 메뉴를 호출한다. | `/` command palette와 Markdown syntax 자동 완성의 최소 집합부터 정의한다. |
+| NUI-02 | block 단위 선택·이동·삭제를 키보드와 포인터로 수행한다. | 문서 원문 순서를 보존하고 source selection과 block selection을 혼동하지 않는다. |
+| NUI-03 | 페이지 폭과 typography를 한 곳에서 바꾼다. | readable/wide, default/serif/mono, compact typography 중 채택한 항목은 title/body/table/diagram 전부에 같은 토큰을 적용한다. |
+| NUI-04 | 사용자가 별도 창/패널을 열지 않고 서식/블록 action을 발견한다. | hover toolbar가 문서 내용을 덮지 않고 keyboard focus에서도 같은 동작에 접근 가능하다. |
+
+Notion 데이터베이스 block, 협업 presence, access control, page discussion은 PKMS domain과 별도다. 이 문서는 기존 파일 편집 흐름 안의 writing interaction 결과만 정의한다.
+
+## 적용 순서와 완료 기준
+
+| 순서 | Slice | 선행 조건 | 완료 결과 |
+|---|---|---|---|
+| 0 | Explorer state & viewport | 별도 | 재열기/선택/refresh/resize 수용 시나리오에서 open 상태와 scroll 상태가 유지된다. |
+| 1 | Document frame/title/width | 별도 | title filename, breadcrumb, 본문 column의 정렬·폭 규칙이 한 spec에 일치한다. |
+| 2 | Markdown compatibility ledger | 0–1 | CommonMark/GFM/Obsidian syntax별 지원·미지원·fallback이 명시되고 미지원 표시는 원문을 보존한다. |
+| 3 | Table data/render/edit | 2 | inline Markdown, alignment, direct edit, row/column action, pipe escaping, source round-trip을 만족한다. |
+| 4 | Math pipeline | 2–3 | inline/display/table TeX와 오류·selection·fallback을 만족한다. |
+| 5 | Diagram pipeline | 2 | Mermaid source edit/preview/error/theme/security/size 동작을 만족한다. |
+| 6 | HTML safety/rendering | 2 | 허용 문법, source mapping, CSP/sandbox/resource, failure recovery를 만족한다. |
+| 7 | Obsidian/Notion extensions | 2–6 | 채택한 기능만 링크·embed·metadata·block 조작 계약과 함께 들어간다. |
+
+각 slice는 실제 파일 예제에서 저장 전/후 원문이 의도치 않게 바뀌지 않는지, preview와 source selection이 맞물리는지, pane 분할과 크기 조정 중 문서/Explorer 위치가 유지되는지 확인해야 완료다. typecheck, source digest, 스크린샷만으로 렌더링 acceptance를 완료 처리하지 않는다.
+
+## 현재 코드에서 확인한 핵심 근거
+
+- 제목은 [markdownTitleFor](../../src/markdownTitle.ts)에서 파일 basename으로 계산하고 [EditorMarkdownTitle](../../src/EditorMarkdownTitle.tsx)에서 표시/rename 입력을 전환한다.
+- 본문 폭은 [themes.ts](../../src/themes.ts)의 `.cm-content` max-width 820px에 있지만 title은 [markdownDocument.css](../../src/markdownDocument.css)에서 별도 전체 폭 규칙을 쓴다.
+- 표는 [markdownLivePreview.ts](../../src/markdownLivePreview.ts)의 `TableWidget`이 cell source를 `textContent`로 배치한다.
+- fence preview는 fenced marker/info string을 숨기지만 Mermaid/TeX renderer는 source/dependency에 없다.
+- HTML block은 iframe widget으로 렌더되며 script 실행은 허용하지 않는다. allowlist/CSP/resource origin 계약은 이 spec에서 정해야 한다.
+- Explorer는 [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx), [TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx), [explorer state](../../../../apps/workspace-app/src/renderer/src/explorer/explorerState.ts), [pane layout CSS](../../../../apps/workspace-app/src/renderer/src/assets/styles.css) 네 소유 영역에 open state·active reveal·scroll host·폭 임계값이 나뉘어 있다. 런타임에서 scroll이 유지되지 않는 문제는 아직 해결 완료로 판정하지 않는다.
+
+## 기준 자료
+
+- [Obsidian: Views and editing mode](https://obsidian.md/help/edit-and-read)
+- [Obsidian: Obsidian Flavored Markdown](https://obsidian.md/help/obsidian-flavored-markdown)
+- [Obsidian: Advanced formatting syntax — tables, diagrams, math](https://obsidian.md/help/advanced-syntax)
+- [Obsidian: Editor settings](https://obsidian.md/help/settings)
+- [Notion: Writing and editing basics](https://www.notion.com/help/writing-and-editing-basics)
+- [Notion: Code blocks](https://www.notion.com/help/code-blocks)
+- [Notion: Math equations](https://www.notion.com/en-us/help/math-equations)
+- [Notion: Style and customize your page](https://www.notion.com/help/customize-and-style-your-content)
+- [VS Code: User interface and Explorer](https://code.visualstudio.com/docs/editing/getting-started/userinterface)
+- [Zed: Project Panel](https://zed.dev/docs/project-panel)
+- [GitHub Flavored Markdown spec](https://github.github.com/gfm/)
+- [Mermaid syntax reference](https://mermaid.js.org/intro/syntax-reference)
+- [KaTeX auto-render delimiters](https://katex.org/docs/autorender)

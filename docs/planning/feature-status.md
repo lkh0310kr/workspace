@@ -9,7 +9,7 @@ Global scope의 현재 제품 inventory다. `source 구현`은 코드 경로가 
 | bootstrap·저장·복구 J-01/10 | 구현 | direct JSON write와 best-effort·crash 제한 구분 | [runtime](../../apps/workspace-app/docs/runtime/README.md), [저장](../../apps/workspace-app/docs/persistence/README.md) |
 | Terminal J-03 | 구현 | bytes/ACK/replay/scroll·IME·OS별 검증 범위 별도 | [Terminal](../../apps/workspace-app/docs/terminal/README.md) |
 | Browser J-04 | 구현 | persistent guest·focus·OAuth/passkey/download 실제 검증 별도 | [Browser](../../apps/workspace-app/docs/browser/README.md) |
-| Editor·tree·search J-02 | 공통 package 연결 구현 | Web/Desktop 제품 acceptance와 전체 UI/decoration fixture 남음 | [Editor](../../packages/editor/docs/README.md), [통합 잔여](./editor-unification.md) |
+| Editor·tree·search J-02 | 공통 package 연결; Explorer scroll/reopen runtime issue open | Markdown renderer·table editing·math/Mermaid·HTML safety와 Web/Desktop 제품 acceptance 남음 | [Editor](../../packages/editor/docs/README.md), [완성도 목표](../../packages/editor/docs/markdown/product-completeness.md), [통합 잔여](./editor-unification.md) |
 | 파일/media/EPUB/model/CAD J-05 | 구현 | 포맷별 fidelity·대형 파일·native pipeline 상세/수락 남음 | [Viewer](../../apps/workspace-app/docs/viewers/README.md) |
 | PKMS Web/Desktop/iOS J-06 | 구현 | 계정·multi-client/offline·협업·native UI acceptance 별도 | [PKMS 통합](../architecture/pkms/README.md) |
 | PKMS folder sync J-07 | 진행 중 | durable create/update/delete·inventory·guard source 구현. deployed migration·macOS 삭제/충돌 수락, attachment sync·durable visual state 남음 | [Desktop PKMS](../../apps/workspace-app/docs/pkms/README.md) |

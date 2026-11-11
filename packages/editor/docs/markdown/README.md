@@ -2,6 +2,8 @@
 
 Markdown은 plain text 문서에 CodeMirror decoration을 적용하는 live preview다. HTML로 변환한 문서를 저장하지 않는다. [Text surface](../code/README.md)와 [provider](../provider.md)를 먼저 구현한다.
 
+제품 목표, 미지원 결과, 표·수식·Mermaid·HTML acceptance는 [Markdown 편집기 완성도 목표 스펙](./product-completeness.md)을 따른다. 이 문서는 코드에서 확인한 현재 동작의 상세 근거다.
+
 ## 구성과 프레임
 
 [EditorMarkdownEditor](../../src/EditorMarkdownEditor.tsx)는 document frame과 MarkdownSurface를 조합한다. Surface는 shared grammar, syntax fallback highlighting, markdownEditorTheme/markdownProseTheme, host extensions, linkNavigation, imageResolver를 구성한다.

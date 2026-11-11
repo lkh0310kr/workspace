@@ -16,6 +16,14 @@
 - **완료 조건:** Home 대시보드가 다시 동작하고 Cloudflare/Supabase 연결과 상태 API를 제공한다. PKMS 서버는 PKMS 기능만 소유한다. Web·Desktop·iOS는 같은 PKMS 서버 계약을 사용한다. CI, 개발/배포 명령, 문서가 새 경로를 가리키며 각 앱 경계를 독립적으로 검증할 수 있다.
 - **설계 기준:** [제품별 앱 경계](../architecture/08-monorepo-module-boundaries.md)
 
+### Editor 탐색·Markdown 문서 품질 완성
+
+- **문제:** TreeView가 다시 열리지 않고 scroll 위치가 선택/열기 뒤에도 유지되지 않는다고 보고됐다. Markdown 파일 제목과 본문 폭이 어긋나고, 표는 읽기 전용 text widget이며 Mermaid/TeX 렌더링 경로가 없다. HTML 정책과 Obsidian/Notion 대비 문서 결과도 미완성이다.
+- **요구 결과:** Explorer open/visible state와 scroll restoration이 일치하고, 파일 제목·본문 column이 함께 정렬된다. 표·수식·다이어그램·HTML은 source를 보존하며 편집 가능한 predictable preview를 제공한다. 미지원 syntax는 사라지거나 깨진 output 대신 원문을 보인다.
+- **착수 순서:** P0 Explorer 재열기/scroll을 실제 pane에서 재현·수용 → P0 title/width 통일 → Markdown syntax compatibility ledger → 직접 편집 표 → inline/display/table TeX → Mermaid → 안전한 HTML → 채택된 Obsidian/Notion 편집 상호작용.
+- **완료 조건:** [Editor 완성도 목표 스펙](../../packages/editor/docs/markdown/product-completeness.md)의 EXP/DOC/MD/TBL/TEX/DIA/HTML/KEY acceptance를 실제 실행 화면과 file round-trip으로 확인한다. typecheck만으로 완료하지 않으며 scroll/reopen issue는 실행 증거가 생길 때까지 열린다.
+- **기준:** [현재 Markdown 구현](../../packages/editor/docs/markdown/README.md), [TreeView](../../packages/editor/docs/treeview/README.md), [탐색 검토](./editor-navigation-review.md)
+
 ## 문서·검증 체계 정비
 
 ### 제품 전체 스펙 주도 개발 전환

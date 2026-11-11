@@ -7,6 +7,7 @@
 - [전체 문서 감사](./top-down-documentation-audit.md): 제품부터 모듈·검증까지 누락·불일치 24건
 - [결과 중심 스펙 점검](./result-oriented-spec-review.md): 목표/결과 우선 원칙에 따른 구조·계약 개선 순서
 - [Editor 탐색 비교 검토](./editor-navigation-review.md): TreeView 스크롤·활성 파일 reveal·Editor breadcrumb 결과 요구와 VS Code/Zed 비교
+- [Editor 완성도 계획](../../packages/editor/docs/markdown/product-completeness.md): TreeView 복원, Markdown title/폭, 표·수식·Mermaid·HTML 및 Obsidian/Notion 결과 계약
 - [SDD 전환 계획](./spec-driven-development-roadmap.md): 우선순위·작업 의존성·산출물·완료 기준
 
 새 작업은 사용자 문제, 범위, 완료 조건이 정해진 뒤 백로그에 한 건씩 추가합니다.
