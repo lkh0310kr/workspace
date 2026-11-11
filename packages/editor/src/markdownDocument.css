@@ -70,6 +70,11 @@
   width: min(100%, 820px);
   margin: 0 auto;
   padding: 20px clamp(18px, 5vw, 64px) 4px;
+  color: var(--text);
+  font-family: var(--font-ui, var(--editor-font, sans-serif));
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 .editor-markdown-title {
@@ -84,6 +89,7 @@
   font-family: var(--font-ui, var(--editor-font, sans-serif));
   font-size: 28px;
   font-weight: 700;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -99,13 +105,16 @@
 .md-title-input {
   display: block;
   width: 100%;
-  max-width: 100%;
+  max-width: none;
   box-sizing: border-box;
   padding: 0;
+  margin: 0;
   border: 0;
   border-radius: 0;
   outline: 0;
   background: transparent;
+  color: inherit;
+  font: inherit;
   cursor: text;
   box-shadow: none;
 }
