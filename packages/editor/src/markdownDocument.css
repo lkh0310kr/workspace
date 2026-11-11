@@ -69,7 +69,7 @@
   box-sizing: border-box;
   width: min(100%, 820px);
   margin: 0 auto;
-  padding: 20px clamp(18px, 5vw, 64px) 4px;
+  padding: 10px clamp(18px, 5vw, 64px) 2px;
 }
 
 .editor-markdown-title {
@@ -78,7 +78,7 @@
   margin: 0 auto;
   flex-shrink: 0;
   overflow: hidden;
-  padding: 20px clamp(18px, 5vw, 64px) 4px;
+  padding: 10px clamp(18px, 5vw, 64px) 2px;
   color: var(--text);
   background: var(--bg-base, var(--bg));
   font-family: var(--font-ui, var(--editor-font, sans-serif));

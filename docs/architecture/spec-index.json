@@ -222,7 +222,7 @@
         },
         {
           "path": "packages/editor/src/markdownDocument.css",
-          "sha256": "bbd9e5227977b43726fa5f0c83e8e351dc4bfeb60b82c497c55299f39bdde7a6"
+          "sha256": "19bb2a734791cafe97cf94b5af0f233c93da557454a65ad841e2dd2d701f48d6"
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",
