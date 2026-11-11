@@ -24,14 +24,12 @@ export function EditorMarkdownDocument({ title, actions, outlineItems, outlineKe
 
   return (
     <div className={["editor-markdown-document", className].filter(Boolean).join(" ")}>
-      {(actions || outlineItems !== undefined) && <div className="editor-floating-actions">
-        {actions}
-        {outlineItems !== undefined && <div className="editor-markdown-outline-control">
-          <button type="button" className={`editor-action-button${outlineOpen ? " active" : ""}`} title="Toggle outline" aria-label="Toggle outline" aria-expanded={outlineOpen} onClick={() => setOutlineOpen((open) => !open)}>
-            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3h12v1H2V3Zm0 4h12v1H2V7Zm0 4h8v1H2v-1Z" /></svg>
-          </button>
-          {outlineOpen && <div className="editor-markdown-outline-popover"><EditorOutlineList items={outlineItems} onNavigate={(position) => { setOutlineOpen(false); onOutlineNavigate?.(position); }} className="editor-markdown-outline-list" itemClassName="editor-markdown-outline-item" emptyMessage="No headings" /></div>}
-        </div>}
+      {actions && <div className="editor-floating-actions">{actions}</div>}
+      {outlineItems !== undefined && <div className="editor-markdown-outline-control">
+        <button type="button" className={`editor-action-button${outlineOpen ? " active" : ""}`} title="Toggle outline" aria-label="Toggle outline" aria-expanded={outlineOpen} onClick={() => setOutlineOpen((open) => !open)}>
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3h12v1H2V3Zm0 4h12v1H2V7Zm0 4h8v1H2v-1Z" /></svg>
+        </button>
+        {outlineOpen && <div className="editor-markdown-outline-popover"><EditorOutlineList items={outlineItems} onNavigate={(position) => { setOutlineOpen(false); onOutlineNavigate?.(position); }} className="editor-markdown-outline-list" itemClassName="editor-markdown-outline-item" emptyMessage="No headings" /></div>}
       </div>}
       <div className="editor-markdown-scroll" onClick={handleBackgroundClick}>
         {title}

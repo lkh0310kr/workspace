@@ -38,9 +38,6 @@ export interface PaneRenderContext {
   zoom: number;
   dirty: boolean;
   setDirty: (dirty: boolean, viewStateKey?: string) => void;
-  /** File-explorer sidebar state — only meaningful when hasFileExplorer. */
-  treeOpen: boolean;
-  onToggleTree: () => void;
   /** Find-in-Files "jump to this line" — ephemeral, only meaningful for
    * kind === "code" | "markdown". */
   jumpToLine: number | undefined;

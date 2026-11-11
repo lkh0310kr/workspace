@@ -42,8 +42,20 @@
   background: var(--bg-hover, var(--hover));
 }
 
+.editor-markdown-document > .editor-floating-actions {
+  top: 10px;
+  right: 50px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .editor-markdown-outline-control {
-  position: relative;
+  position: absolute;
+  z-index: 12;
+  top: 10px;
+  right: 14px;
 }
 
 .editor-markdown-outline-popover {
@@ -52,7 +64,7 @@
   top: calc(100% + 6px);
   right: 0;
   display: flex;
-  width: min(260px, 70vw);
+  width: min(300px, 70vw);
   max-height: min(50dvh, 360px);
   flex-direction: column;
   overflow: auto;

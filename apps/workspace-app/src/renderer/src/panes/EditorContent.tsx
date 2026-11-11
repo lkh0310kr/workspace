@@ -8,7 +8,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorBreadcrumbEntry, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
+import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorBreadcrumbEntry, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -48,8 +48,6 @@ interface Props {
    * tab strip / persisted layout reflect it. */
   onAssignPath: (path: string) => void;
   onDirtyChange: (dirty: boolean, viewStateKey?: string) => void;
-  treeOpen: boolean;
-  onToggleTree: () => void;
   /** 1-based line to scroll to and select, e.g. from a Find-in-Files result
    * click — ephemeral (not persisted layout state), consumed once via
    * onJumpConsumed so PaneGroup can clear it. */
@@ -117,8 +115,6 @@ export function EditorContent({
   onOpenFile,
   onAssignPath,
   onDirtyChange,
-  treeOpen,
-  onToggleTree,
   jumpToLine,
   onJumpConsumed,
 }: Props) {
@@ -148,7 +144,6 @@ export function EditorContent({
   const suppressProviderEditRef = useRef(false);
   const onJumpConsumedRef = useRef(onJumpConsumed);
   onJumpConsumedRef.current = onJumpConsumed;
-  const [searchOpen, setSearchOpen] = useState(false);
   const [outline, setOutline] = useState<MarkdownHeading[]>([]);
   const [resolvedDocumentIdentity, setResolvedDocumentIdentity] = useState<{ path: string; key: string } | null>(null);
   const [autoSave, setAutoSave] = useState(getStoredAutoSave);
@@ -173,6 +168,7 @@ export function EditorContent({
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const isMarkdown = kind === "markdown";
+  const showMarkdownOutline = isMarkdown && filePath?.toLowerCase().endsWith(".md") === true;
   const documentCacheKey = activeDocumentSession
     ? editorDocumentKey(activeDocumentSession.item)
     : resolvedDocumentIdentity?.path === filePath
@@ -602,14 +598,6 @@ export function EditorContent({
     onJumpConsumedRef.current?.();
   }, [jumpToLine]);
 
-  const toggleSearch = () => {
-    const view = viewRef.current;
-    if (!view) return;
-    const open = toggleEditorSearch(view);
-    setSearchOpen(open);
-    if (open) view.focus();
-  };
-
   // The shared Markdown document frame scrolls CodeMirror at auto-height
   // so the title moves away with the content —
   // but that also shrank .cm-editor's own clickable area down to exactly
@@ -626,26 +614,22 @@ export function EditorContent({
   };
 
   const editorFontStyle = { "--editor-font-size": `${13 * zoom}px` } as CSSProperties;
-  const editorActions = (
-    <>
-      {(!autoSave || saveError) && <span className={`md-pane-save-status${saveError ? " error" : dirty ? " unsaved" : ""}`} role="status" aria-live="polite" title={saveError ?? undefined}>{editorSavePhaseLabel(saveError ? "error" : dirty ? "dirty" : "clean")}</span>}
-      <EditorSearchButton active={searchOpen} onClick={toggleSearch} />
-      <button type="button" className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`} title="Toggle file explorer" aria-label="Toggle file explorer" aria-expanded={treeOpen} onClick={(event) => { event.stopPropagation(); onToggleTree(); }}><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z" /></svg></button>
-    </>
-  );
+  const editorActions = dirty || saveError
+    ? <span className={`md-pane-save-status${saveError ? " error" : " unsaved"}`} role="status" aria-live="polite" title={saveError ?? undefined}>{editorSavePhaseLabel(saveError ? "error" : "dirty")}</span>
+    : null;
 
   return (
     <div className="obsidian-editor-shell">
       <div className="obsidian-body">
         <div className="obsidian-editor-column">
           <EditorBreadcrumbs path={filePath} onLoadChildren={loadBreadcrumbChildren} onOpenFile={(path, nextKind) => onOpenFileRef.current(path, nextKind)} />
-          {!isMarkdown && <div className="obsidian-float-actions">{editorActions}</div>}
+          {!isMarkdown && editorActions && <div className="obsidian-float-actions">{editorActions}</div>}
           {isMarkdown ? (
             // The shared Markdown frame keeps the title in the document
             // scroll; code files below keep their internally scrolling editor.
             <EditorMarkdownEditor
               actions={editorActions}
-              outlineItems={editorOutlineEntries(outline)}
+              outlineItems={showMarkdownOutline ? editorOutlineEntries(outline) : undefined}
               outlineKey={documentCacheKey}
               onOutlineNavigate={(position) => { const view = viewRef.current; if (view) jumpToPos(view, position); }}
               title={<EditorMarkdownTitle path={filePath} title={markdownTitleFor(filePath)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} onStartEditing={editorSupportsOperation(editorProvider, "rename") ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { setTitleEditing(false); setTitleError(null); }} />}
@@ -653,7 +637,7 @@ export function EditorContent({
               surfaceContainerClassName="md-editor"
               surfaceContainerStyle={editorFontStyle}
               surfaceKey={`${tabId}:${isMarkdown}`}
-              surfaceProps={{ documentKey: documentCacheKey, onDocumentKeyChange, viewStateStorage: getEditorViewStateStorage(), session: activeDocumentSession, initialValue: "", parserExtensions: workspaceMarkdownParserExtensions, extensions: editorExtensions, onViewReady, onSearchPanelChange: setSearchOpen, onOutlineChange: setOutline, onActivateLink: (link) => {
+              surfaceProps={{ documentKey: documentCacheKey, onDocumentKeyChange, viewStateStorage: getEditorViewStateStorage(), session: activeDocumentSession, initialValue: "", parserExtensions: workspaceMarkdownParserExtensions, extensions: editorExtensions, onViewReady, onOutlineChange: setOutline, onActivateLink: (link) => {
                   if (link.kind === "wikilink") {
                     void resolveWikiLinkTarget(editorProvider, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;
@@ -669,7 +653,7 @@ export function EditorContent({
             />
           ) : (
             <div className="md-editor" style={editorFontStyle}>
-              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSearchPanelChange={setSearchOpen} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
+              <EditorTextSurface key={`${tabId}:${isMarkdown}`} documentKey={documentCacheKey} onDocumentKeyChange={onDocumentKeyChange} viewStateStorage={getEditorViewStateStorage()} session={activeDocumentSession} initialValue="" extensions={editorExtensions} onViewReady={onViewReady} onSessionError={(error) => setSaveError(error instanceof Error ? error.message : String(error))} className="md-editor-host" ariaLabel="Code editor" />
             </div>
           )}
         </div>

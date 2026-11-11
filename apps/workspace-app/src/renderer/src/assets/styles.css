@@ -1727,6 +1727,9 @@ input {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+  container-type: inline-size;
+  container-name: pane-group-body;
 }
 
 .pane-group-body-with-explorer {
@@ -1734,15 +1737,29 @@ input {
 }
 
 .pane-group-body-with-explorer > .workspace-explorer-slot {
-  display: flex;
-  align-self: stretch;
+  position: absolute;
+  z-index: 20;
+  inset-block: 0;
+  left: 0;
   min-height: 0;
   height: 100%;
+  pointer-events: none;
 }
 
 .pane-group-body-with-explorer > .pane-group-content {
   flex: 1;
   min-width: 0;
+  width: 100%;
+}
+
+.pane-group-body-with-explorer > .workspace-explorer-slot .workspace-explorer-host {
+  pointer-events: auto;
+}
+
+@container pane-group-body (max-width: 560px) {
+  .pane-group-body-with-explorer > .workspace-explorer-slot {
+    display: none !important;
+  }
 }
 
 .pane-group-content {
@@ -3334,6 +3351,11 @@ input {
   width: 0;
   overflow: hidden;
   border-right: none;
+}
+
+.pane-group-body-with-explorer .obsidian-explorer {
+  background: var(--bg-surface);
+  box-shadow: 6px 0 18px #0005;
 }
 
 .obsidian-explorer-resizer {

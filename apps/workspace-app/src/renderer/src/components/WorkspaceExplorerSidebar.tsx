@@ -30,7 +30,7 @@ interface Props {
   onNotifyChanged: () => void
 }
 
-/** One per pane group — below the tab strip, beside editor/viewer content.
+/** One per pane group — below the tab strip, floating over editor/viewer content.
  * Expand/collapse state is keyed by pane group (`explorerStateKey`), not by
  * the active file tab. */
 export function WorkspaceExplorerSidebar({
@@ -51,8 +51,8 @@ export function WorkspaceExplorerSidebar({
   const explorerScrollRef = useRef<HTMLDivElement>(null)
   const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
 
-  // Cmd/Ctrl+Shift+F targets the focused, visible pane group that can show
-  // the file explorer, regardless of which embedded surface owns the DOM focus.
+  // Pane shortcuts target the focused, visible group even when an embedded
+  // editor surface owns DOM focus.
   useEffect(() => {
     const offMainShortcut = onFindInFilesShortcut(() => {
       if (!paneVisible || !isGroupFocused || !explorerCapable) return
@@ -60,6 +60,14 @@ export function WorkspaceExplorerSidebar({
       setTreeOpen(true)
     })
     function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b') {
+        if (!paneVisible || !isGroupFocused || !explorerCapable) return
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setSidebarMode('explorer')
+        setTreeOpen((open) => !open)
+        return
+      }
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return
       if (e.key.toLowerCase() !== 'f') return
       if (!paneVisible) return
@@ -100,7 +108,12 @@ export function WorkspaceExplorerSidebar({
       const drag = treeResizeRef.current
       if (!drag) return
       const next = drag.startWidth + (ev.clientX - drag.startX)
-      setTreeWidth(Math.min(TREE_MAX_WIDTH, Math.max(TREE_MIN_WIDTH, next)))
+      if (next < TREE_MIN_WIDTH) {
+        setSidebarMode('explorer')
+        setTreeOpen(false)
+        return
+      }
+      setTreeWidth(Math.min(TREE_MAX_WIDTH, next))
     }
     const onMouseUp = () => {
       treeResizeRef.current = null

@@ -6,7 +6,11 @@ Markdown은 plain text 문서에 CodeMirror decoration을 적용하는 live prev
 
 [EditorMarkdownEditor](../../src/EditorMarkdownEditor.tsx)는 document frame과 MarkdownSurface를 조합한다. Surface는 shared grammar, syntax fallback highlighting, markdownEditorTheme/markdownProseTheme, host extensions, linkNavigation, imageResolver, outline listener를 구성한다.
 
-[Document frame](../../src/EditorMarkdownDocument.tsx)은 floating actions와 outline popover, title과 본문이 함께 움직이는 외부 scroll을 가진다. outlineKey가 바뀌면 popover를 닫고 항목 선택 시 닫은 뒤 position으로 이동한다. heading이 없으면 `No headings`다. cm-editor/title 내부 click을 제외한 background click만 host에 전달한다. Desktop은 이때 focus와 cursor를 본문 끝으로 옮긴다. code 모드의 내부 scroll과 구분한다.
+[Document frame](../../src/EditorMarkdownDocument.tsx)은 문서 본문 위의 우측 floating outline과 title·본문이 함께 움직이는 외부 scroll을 가진다. Desktop은 파일 확장자가 `.md`인 Markdown pane에만 outline entry를 전달한다. outlineKey가 바뀌면 popover를 닫고 항목 선택 시 닫은 뒤 position으로 이동한다. heading이 없으면 `No headings`다. Code pane은 Cmd/Ctrl+F search shortcut을 제공하고 toolbar search button은 렌더링하지 않는다. cm-editor/title 내부 click을 제외한 background click만 host에 전달한다. Desktop은 이때 focus와 cursor를 본문 끝으로 옮긴다. code 모드의 내부 scroll과 구분한다.
+
+## Right-side outline result
+
+`.md` file-backed panes show a compact outline trigger at the document's upper-right edge. Activating it opens an opaque floating card aligned to the right; each heading navigates to its source position and closes the card. Other extensions, untitled Markdown documents, and code panes do not render this control. This is the navigation result represented by the supplied Notion screenshots; there is no separate “Structure” toolbar action.
 
 ## 문법과 입력
 

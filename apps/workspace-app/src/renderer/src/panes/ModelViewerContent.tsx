@@ -9,8 +9,6 @@ interface Props {
   tabId: number;
   filePath: string | null;
   paneActive: boolean;
-  treeOpen: boolean;
-  onToggleTree: () => void;
 }
 
 function viewerFormat(manifest: SceneManifest | null): DetectedModelFormat {
@@ -20,7 +18,7 @@ function viewerFormat(manifest: SceneManifest | null): DetectedModelFormat {
   return "glb";
 }
 
-export function ModelViewerContent({ tabId, filePath, paneActive, treeOpen, onToggleTree }: Props) {
+export function ModelViewerContent({ tabId, filePath, paneActive }: Props) {
   const preview = useModelPreview(tabId, filePath);
 
   let body: ReactNode;
@@ -58,21 +56,6 @@ export function ModelViewerContent({ tabId, filePath, paneActive, treeOpen, onTo
 
   return (
     <div className="model-viewer file-viewer">
-      <div className="obsidian-float-actions">
-        <button
-          type="button"
-          className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`}
-          title="Toggle file explorer"
-          onClick={onToggleTree}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z"
-            />
-          </svg>
-        </button>
-      </div>
       <div className="model-viewer-body">{body}</div>
     </div>
   );

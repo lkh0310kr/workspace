@@ -44,8 +44,6 @@ type FoliateView = HTMLElement & {
 
 interface Chrome {
   paneActive?: boolean;
-  treeOpen?: boolean;
-  onToggleTree?: () => void;
 }
 
 type Props =
@@ -63,8 +61,6 @@ export function EpubReaderContent({
   filePath,
   absolutePath,
   paneActive = true,
-  treeOpen = false,
-  onToggleTree,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
@@ -345,21 +341,6 @@ export function EpubReaderContent({
             />
           </svg>
         </button>
-        {onToggleTree ? (
-          <button
-            type="button"
-            className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`}
-            title="Toggle file explorer"
-            onClick={onToggleTree}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z"
-              />
-            </svg>
-          </button>
-        ) : null}
       </div>
       <div className="epub-reader-toolbar">
         <button type="button" className="obsidian-topbar-icon" title="Previous page" onClick={() => void viewRef.current?.goLeft()}>

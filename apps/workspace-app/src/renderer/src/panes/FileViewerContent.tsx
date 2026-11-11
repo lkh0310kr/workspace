@@ -38,8 +38,6 @@ interface Props {
    * ignored once filePath or absolutePath is set. */
   viewerHint?: "video" | "audio" | "ebook";
   onAssignAbsolutePath: (path: string) => void;
-  treeOpen: boolean;
-  onToggleTree: () => void;
   paneActive?: boolean;
 }
 
@@ -99,8 +97,6 @@ export function FileViewerContent({
   absolutePath,
   viewerHint,
   onAssignAbsolutePath,
-  treeOpen,
-  onToggleTree,
   paneActive = true,
 }: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
@@ -338,19 +334,6 @@ export function FileViewerContent({
             )}
           </>
         )}
-        <button
-          type="button"
-          className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`}
-          title="Toggle file explorer"
-          onClick={onToggleTree}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z"
-            />
-          </svg>
-        </button>
       </div>
 
       {!activePath ? (
@@ -372,8 +355,6 @@ export function FileViewerContent({
               tabId={tabId}
               filePath={filePath}
               paneActive={paneActive}
-              treeOpen={treeOpen}
-              onToggleTree={onToggleTree}
             />
           </Suspense>
         ) : (
@@ -386,8 +367,6 @@ export function FileViewerContent({
               tabId={tabId}
               filePath={filePath}
               paneActive={paneActive}
-              treeOpen={treeOpen}
-              onToggleTree={onToggleTree}
             />
           </Suspense>
         ) : (
@@ -398,16 +377,12 @@ export function FileViewerContent({
           <EpubReaderContent
             absolutePath={absolutePath}
             paneActive={paneActive}
-            treeOpen={treeOpen}
-            onToggleTree={onToggleTree}
           />
         ) : (
           <EpubReaderContent
             tabId={tabId}
             filePath={filePath!}
             paneActive={paneActive}
-            treeOpen={treeOpen}
-            onToggleTree={onToggleTree}
           />
         )
       ) : isVideo ? (

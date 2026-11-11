@@ -206,7 +206,6 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   if (!activeItem) return null
 
   const treeOpen = explorerChrome.treeOpen
-  const onToggleTree = () => explorerChrome.setTreeOpen((v) => !v)
   const showExplorer = activeChipHasExplorer(activeItem.kind) && treeOpen
   const hasBrowserTabs = tabs.some((t) => t.kind === 'browser')
   const browserTabs = hasBrowserTabs ? tabs.filter((t) => t.kind === 'browser') : []
@@ -309,8 +308,6 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                   setEditorDocumentDirty(item.id, dirty, item.title ?? item.filePath ?? 'This document', item.filePath ?? undefined, viewStateKey ?? viewStateKeyByTabId[item.id])
                   setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))
                 },
-                treeOpen,
-                onToggleTree,
                 jumpToLine: pendingJumpByTabId[item.id],
                 onJumpConsumed: () =>
                   setPendingJumpByTabId((prev) => {

@@ -18,8 +18,6 @@ function renderEditor(kind: "code" | "markdown") {
         onOpenFile={(path, linkedKind) => ctx.openOrSwitchToFile(path, linkedKind)}
         onAssignPath={(path) => ctx.updateItem({ filePath: path })}
         onDirtyChange={ctx.setDirty}
-        treeOpen={ctx.treeOpen}
-        onToggleTree={ctx.onToggleTree}
         jumpToLine={ctx.jumpToLine}
         onJumpConsumed={ctx.onJumpConsumed}
       />

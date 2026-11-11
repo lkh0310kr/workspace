@@ -12,7 +12,7 @@
 | [Desktop provider 구현](../../../apps/workspace-app/docs/editor/providers.md) | Workspace 파일시스템·ID·충돌·lease |
 | [PKMS provider 구현](../../pkms-client/docs/editor-sessions.md) | PKMS local/Yjs/asset session |
 | [텍스트 surface](./code/README.md) | CodeMirror, 외부 변경, undo, cache, Desktop 저장 |
-| [Treeview](./treeview/README.md) | 로딩·정렬·가상화·선택·키보드·파일 작업 |
+| [Treeview](./treeview/README.md) | floating Explorer·pane shortcut·폭 임계값·로딩·정렬·가상화·선택·파일 작업 |
 | [Markdown](./markdown/README.md) | live preview, 제목 rename, outline, 링크·이미지 |
 | [검색](./search.md) | 문서 검색, Quick Open, 파일 내용 검색·치환 |
 | [Asset viewer 경계](./assets.md) | Editor에서 포맷별 viewer로 연결하는 계약 |

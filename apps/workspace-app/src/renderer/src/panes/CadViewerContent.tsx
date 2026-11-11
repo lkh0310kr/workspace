@@ -5,11 +5,9 @@ interface Props {
   tabId: number;
   filePath: string;
   paneActive: boolean;
-  treeOpen: boolean;
-  onToggleTree: () => void;
 }
 
-export function CadViewerContent({ tabId, filePath, paneActive, treeOpen, onToggleTree }: Props) {
+export function CadViewerContent({ tabId, filePath, paneActive }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
@@ -72,22 +70,6 @@ export function CadViewerContent({ tabId, filePath, paneActive, treeOpen, onTogg
 
   return (
     <div className="file-viewer cad-viewer">
-      <div className="obsidian-float-actions">
-        <button
-          type="button"
-          className={`obsidian-topbar-icon${treeOpen ? " active" : ""}`}
-          title="Toggle file explorer"
-          onClick={onToggleTree}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.586a1 1 0 0 1 .707.293l1.414 1.414A1 1 0 0 0 10.414 3.5H13A1.5 1.5 0 0 1 14.5 5v8.5A1.5 1.5 0 0 1 13 15H3A1.5 1.5 0 0 1 1.5 13.5v-11Z"
-            />
-          </svg>
-        </button>
-      </div>
-
       {phase === "loading" ? (
         <div className="file-viewer-empty">Starting CAD Viewer…</div>
       ) : phase === "error" ? (
