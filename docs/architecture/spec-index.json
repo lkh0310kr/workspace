@@ -78,7 +78,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/EditorContent.tsx",
-          "sha256": "9269609ca52c05e854c593d2bf26bd7e04f65269d9c59706172ecf0e9e9b305c"
+          "sha256": "c3de1ed7701c5e5f16f1ab003da98819a098e224b6f687a6ce952e742021af2c"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
@@ -146,7 +146,7 @@
         },
         {
           "path": "packages/editor/src/EditorMarkdownSurface.tsx",
-          "sha256": "b51f6160bea1cd068bfc48895f247240d7374767cd5e1666f484ee627edfca6e"
+          "sha256": "bd95dc0ec6d385cd8852d5b7f176a5270dc981cd1397433c279d8f71fb72ceca"
         },
         {
           "path": "packages/editor/src/EditorMarkdownTitle.tsx",
@@ -210,7 +210,7 @@
         },
         {
           "path": "packages/editor/src/index.ts",
-          "sha256": "c560573b1d3b8d21441cb8c1282bc4484a6b938f02c6f5ff0378c6609e22b5cd"
+          "sha256": "b664dc544bfba44957a002a78371918ab4017c4fe18a785ae0ba763e9519ad29"
         },
         {
           "path": "packages/editor/src/markdown.css",
@@ -234,7 +234,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "c426f77b21e8fa8f41f49221f86f9b75181e082463c444cba23cec43e66449cc"
+          "sha256": "df47c962a4f1aac845c8e44830697d43c5fc198a384b9650829b9da8f8b05d9d"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",
@@ -354,7 +354,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/EditorContent.tsx",
-          "sha256": "9269609ca52c05e854c593d2bf26bd7e04f65269d9c59706172ecf0e9e9b305c"
+          "sha256": "c3de1ed7701c5e5f16f1ab003da98819a098e224b6f687a6ce952e742021af2c"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
@@ -432,7 +432,7 @@
         },
         {
           "path": "packages/pkms-client/src/PkmsClientApp.tsx",
-          "sha256": "5f4c4de067f78800d8cb8b927e621cdda46a5f6a217f2fb046f77ed181ae17a4"
+          "sha256": "031a02324fae0a7edff2b34af9ea561b6468a24c8e511c8cb6bec375b0d0427c"
         },
         {
           "path": "packages/pkms-client/src/realtime.ts",

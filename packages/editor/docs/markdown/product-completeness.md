@@ -207,7 +207,7 @@ Obsidian Flavored Markdown은 CommonMark/GFM 위에 내부 링크, embed, block 
 
 | ID | 코드 근거 | 관찰 결과/목표 |
 |---|---|---|
-| MD-GAP-01 | [image resolver](../../src/markdownLivePreview.ts)의 fallback은 `rootPath + image URL`로 만든다. | nested Markdown 파일의 `./image.png`가 현재 문서 folder 기준이 아니라 workspace root 기준으로 해석될 수 있다. source document path 기준 상대 URL, root-absolute URL, remote URL 정책을 분리한다. |
+| MD-GAP-01 | [image resolver](../../src/markdownLivePreview.ts)는 Workspace fallback에서 source document path와 root path를 함께 받는다. | 완료: `./image.png`는 현재 문서 folder, `/image.png`는 workspace root, HTTP(S)는 remote resource로 해석한다. PKMS provider resolver는 인증된 asset lookup을 계속 소유한다. |
 | MD-GAP-02 | [Tree label helper](../../src/treeModel.ts)와 [title helper](../../src/markdownTitle.ts)는 지원 suffix를 일치시킨다. | 완료: `.md`와 `.markdown` 모두 TreeView/editor title에서 같은 확장자 제거 규칙을 쓴다. |
 | MD-GAP-03 | [Markdown surface](../../src/EditorMarkdownSurface.tsx)는 기본 Markdown parser와 fallback highlight를 사용하고 language-specific code extension을 선택하지 않는다. | fenced block에 line 배경/monospace는 적용해도 언어별 syntax highlighting·copy·line number·fold 결과가 명시돼 있지 않다. |
 | MD-GAP-04 | [HTML block widget](../../src/markdownLivePreview.ts)은 `allow-same-origin` sandbox token을 둔다. | script는 차단하지만 embedded content/resource origin과 CSP 정책은 따로 명시되지 않았다. 허용 origin, image URL, navigation, local file 접근을 보안 acceptance로 고정한다. |

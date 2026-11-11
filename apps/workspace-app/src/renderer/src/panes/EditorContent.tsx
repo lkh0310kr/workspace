@@ -630,7 +630,7 @@ export function EditorContent({
               surfaceContainerClassName="md-editor"
               surfaceContainerStyle={editorFontStyle}
               surfaceKey={`${tabId}:${isMarkdown}`}
-              surfaceProps={{ documentKey: documentCacheKey, onDocumentKeyChange, viewStateStorage: getEditorViewStateStorage(), session: activeDocumentSession, initialValue: "", parserExtensions: workspaceMarkdownParserExtensions, extensions: editorExtensions, onViewReady, onActivateLink: (link) => {
+              surfaceProps={{ documentKey: documentCacheKey, onDocumentKeyChange, viewStateStorage: getEditorViewStateStorage(), session: activeDocumentSession, initialValue: "", documentPath: filePath ?? "", parserExtensions: workspaceMarkdownParserExtensions, extensions: editorExtensions, onViewReady, onActivateLink: (link) => {
                   if (link.kind === "wikilink") {
                     void resolveWikiLinkTarget(editorProvider, link.target).then((path) => onOpenFileRef.current(path, "markdown")).catch(console.error);
                     return true;

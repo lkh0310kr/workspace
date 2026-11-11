@@ -10,13 +10,18 @@ import { syntaxTree } from "@codemirror/language";
 import { Facet, RangeSetBuilder, StateField, type EditorState, type Extension } from "@codemirror/state";
 import type { SyntaxNodeRef } from "@lezer/common";
 
-// Per-view configuration carrying the active tab's root_path, so local
-// (non-http) image paths in Markdown can be resolved against it — a
-// Facet rather than a constructor argument because the ViewPlugins below
-// are built once as static extensions, not per-pane factories; include
+// Per-view configuration carrying the active tab's root_path and document
+// path, so relative images resolve beside the Markdown file and root-relative
+// images resolve from the workspace. Facets are used because the ViewPlugins
+// below are built once as static extensions, not per-pane factories; include
 // `markdownRootPath.of(rootPath)` in the EditorView's own extensions to
 // set it.
 export const markdownRootPath = Facet.define<string, string>({
+  combine: (values) => values[0] ?? "",
+});
+
+/** Current provider-relative document path for resolving relative media URLs. */
+export const markdownDocumentPath = Facet.define<string, string>({
   combine: (values) => values[0] ?? "",
 });
 
@@ -38,12 +43,22 @@ export const markdownImageResolver = Facet.define<MarkdownImageResolver, Markdow
 // filesystem the way a Tauri asset scope is, so a plain `file://` URL
 // works directly. Path segments are encoded individually (not the whole
 // path — encodeURIComponent would also escape the `/` separators).
-function resolveImageSrc(rootPath: string, url: string): string | null {
-  if (/^https?:\/\//i.test(url)) return url;
+function resolveImageSrc(rootPath: string, url: string, documentPath: string): string | null {
+  if (/^(?:https?:\/\/|data:image\/|blob:)/i.test(url)) return url;
   if (!rootPath) return null;
-  const cleaned = url.replace(/^\.\//, "").replace(/^\/+/, "");
-  const full = `${rootPath.replace(/\/+$/, "")}/${cleaned}`;
-  return `file://${full.split("/").map(encodeURIComponent).join("/")}`;
+  const normalizedUrl = url.replace(/\\/g, "/");
+  const rootRelative = normalizedUrl.startsWith("/");
+  const cleaned = normalizedUrl.replace(/^\/+/, "");
+  const normalizedDocument = documentPath.replace(/\\/g, "/");
+  const documentDirectory = normalizedDocument.includes("/")
+    ? normalizedDocument.slice(0, normalizedDocument.lastIndexOf("/"))
+    : "";
+  const relativePath = rootRelative ? cleaned : [documentDirectory, cleaned].filter(Boolean).join("/");
+  const fullPath = `${rootPath.replace(/\\/g, "/").replace(/\/+$/, "")}/${relativePath}`;
+  const encodedPath = fullPath.split("/").map((part, index) =>
+    index === 0 && /^[a-z]:$/i.test(part) ? part : encodeURIComponent(part),
+  ).join("/");
+  return `file://${encodedPath.startsWith("/") ? encodedPath : `/${encodedPath}`}`;
 }
 
 // Obsidian-style "live preview": markdown syntax markers (##, **, `, [](),
@@ -199,12 +214,12 @@ class BulletWidget extends WidgetType {
 }
 
 class ImageWidget extends WidgetType {
-  constructor(readonly rawSrc: string, readonly resolver: MarkdownImageResolver | null, readonly rootPath: string) {
+  constructor(readonly rawSrc: string, readonly resolver: MarkdownImageResolver | null, readonly rootPath: string, readonly documentPath: string) {
     super();
   }
 
   eq(other: ImageWidget) {
-    return other.rawSrc === this.rawSrc && other.resolver === this.resolver && other.rootPath === this.rootPath;
+    return other.rawSrc === this.rawSrc && other.resolver === this.resolver && other.rootPath === this.rootPath && other.documentPath === this.documentPath;
   }
 
   toDOM() {
@@ -214,7 +229,7 @@ class ImageWidget extends WidgetType {
     const state: { disposed: boolean; release?: () => void } = { disposed: false };
     imageWidgetStates.set(img, state);
     Promise.resolve().then(() => this.resolver?.(this.rawSrc) ?? null).then((resource) => {
-      const src = resource?.src ?? resolveImageSrc(this.rootPath, this.rawSrc);
+      const src = resource?.src ?? resolveImageSrc(this.rootPath, this.rawSrc, this.documentPath);
       if (!src || state.disposed) {
         resource?.release?.();
         if (!state.disposed) img.hidden = true;
@@ -565,11 +580,12 @@ function buildDecorations(view: EditorView): DecorationSet {
           if (selectionOverlaps(view.state, node.from, node.to)) return;
           const rootPath = view.state.facet(markdownRootPath);
           const resolver = view.state.facet(markdownImageResolver);
-          if (!resolver && !resolveImageSrc(rootPath, rawUrl)) return;
+          const documentPath = view.state.facet(markdownDocumentPath);
+          if (!resolver && !resolveImageSrc(rootPath, rawUrl, documentPath)) return;
           collected.push({
             from: node.from,
             to: node.to,
-            deco: Decoration.replace({ widget: new ImageWidget(rawUrl, resolver, rootPath) }),
+            deco: Decoration.replace({ widget: new ImageWidget(rawUrl, resolver, rootPath, documentPath) }),
           });
           return;
         }
@@ -680,7 +696,7 @@ const inlineDecorations = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged || update.selectionSet) {
+      if (update.docChanged || update.viewportChanged || update.selectionSet || update.transactions.some((transaction) => transaction.reconfigured)) {
         this.decorations = buildDecorations(update.view);
       }
     }

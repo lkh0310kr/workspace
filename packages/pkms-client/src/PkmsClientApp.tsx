@@ -1729,7 +1729,7 @@ export default function Home() {
               if (content?.type === "text") editorNavigate.current?.(content.text.length);
             }}
             surfaceKey={activeFile.id}
-            surfaceProps={{ documentKey: pkmsDocumentKey(activeWorkspace.id, activeFile.id), viewStateStorage: getEditorViewStateStorage(), session: activeEditorSession, onNavigateReady: registerEditorNavigator, onActivateLink: activateMarkdownLink, resolveImage: resolveMarkdownImage, onSessionError: (cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document"), ariaLabel: "Markdown editor" }}
+            surfaceProps={{ documentKey: pkmsDocumentKey(activeWorkspace.id, activeFile.id), viewStateStorage: getEditorViewStateStorage(), session: activeEditorSession, documentPath: activeFile.path, onNavigateReady: registerEditorNavigator, onActivateLink: activateMarkdownLink, resolveImage: resolveMarkdownImage, onSessionError: (cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document"), ariaLabel: "Markdown editor" }}
           /> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>
           {assetPreviewUrl ? assetPreviewType.startsWith("image/") ? <img className="asset-image-preview" src={assetPreviewUrl} alt={activeFile.path} /> : <iframe className="asset-preview-frame" src={assetPreviewUrl} title={activeFile.path} /> : <span className="file-opening-spinner" aria-label="Loading attachment" />}
