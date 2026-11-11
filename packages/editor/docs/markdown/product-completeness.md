@@ -30,7 +30,7 @@ Markdown formatting의 `Mod-b`는 bold 동작에 사용한다. Explorer toggle�
 
 ## P0 — 문서 제목과 본문 폭을 하나의 레이아웃으로 만든다
 
-현재 [Markdown theme](../../src/themes.ts)는 `.cm-content`에 `maxWidth: 820px`, 가운데 정렬, 좌우 padding을 적용한다. [Markdown title CSS](../../src/markdownDocument.css)는 display title과 rename input을 같은 820px column 및 좌우 padding으로 정렬한다. rename input의 실제 focus/click 영역은 제목 문자열 폭에 맞추고, 긴 제목만 가용 column 안에서 가로로 편집한다. 수동 위치·폭 acceptance는 남아 있다.
+현재 [Markdown theme](../../src/themes.ts)는 `.cm-content`에 `maxWidth: 820px`, 가운데 정렬, 좌우 padding을 적용한다. [Markdown title CSS](../../src/markdownDocument.css)는 display title과 rename input을 같은 820px column 및 좌우 padding으로 정렬한다. rename input은 이 column 전체 폭을 사용하며 border·radius 없이 caret과 오류 메시지로 편집 상태를 나타낸다. 수동 위치·폭 acceptance는 남아 있다.
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
@@ -93,7 +93,7 @@ Internal Markdown link와 WikiLink는 목적지 해석만 다르고 label의 색
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
-| VIS-01 | filename title은 파일 식별자처럼 보이고 본문 heading과 명확히 구분된다. | display state에 밑줄이 없고, rename input은 focus/오류 상태가 분명하다. title text와 첫 본문 글자의 x 좌표가 맞는다. |
+| VIS-01 | filename title은 파일 식별자처럼 보이고 본문 heading과 명확히 구분된다. | display state에 밑줄이 없고, rename input은 전체 column 폭의 사각·무테 입력으로 보인다. focus는 caret으로, 오류는 메시지로 표시한다. title text와 첫 본문 글자의 x 좌표가 맞는다. |
 | VIS-02 | Markdown H1–H6는 hierarchy만으로 heading임을 알 수 있다. | 어떤 heading level에도 default CodeMirror underline이 적용되지 않는다. H1–H6 크기·weight·margin은 양 theme에서 동일한 비율이다. |
 | VIS-03 | `#` marker가 제목 글자와 같은 heading을 구성한다. | marker가 보이는 editing/selection 상태에서 marker와 text의 color/font/line-height가 일치한다. dark/light theme 전환 뒤에도 회색 fixed meta color가 남지 않는다. |
 | VIS-04 | Markdown link와 WikiLink는 같은 link language를 사용한다. | `--link` token이 body text와 구별되고 contrast 기준을 만족한다. 기본/hover/focus/broken/selected 상태를 모두 확인한다. |

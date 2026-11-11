@@ -69,7 +69,7 @@
   box-sizing: border-box;
   width: min(100%, 820px);
   margin: 0 auto;
-  padding: 10px clamp(18px, 5vw, 64px) 2px;
+  padding: 20px clamp(18px, 5vw, 64px) 4px;
 }
 
 .editor-markdown-title {
@@ -78,7 +78,7 @@
   margin: 0 auto;
   flex-shrink: 0;
   overflow: hidden;
-  padding: 10px clamp(18px, 5vw, 64px) 2px;
+  padding: 20px clamp(18px, 5vw, 64px) 4px;
   color: var(--text);
   background: var(--bg-base, var(--bg));
   font-family: var(--font-ui, var(--editor-font, sans-serif));
@@ -97,20 +97,21 @@
 }
 
 .md-title-input {
-  display: inline-block;
-  width: auto;
+  display: block;
+  width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   padding: 0;
   border: 0;
+  border-radius: 0;
   outline: 0;
   background: transparent;
   cursor: text;
   box-shadow: none;
 }
 
-.md-title-input:focus-visible { outline: 2px solid var(--focus-ring, var(--link, var(--accent))); outline-offset: 3px; }
-.md-title-input.error { outline: 2px solid var(--status-danger, #e5484d); outline-offset: 3px; }
+.md-title-input:focus-visible,
+.md-title-input.error { outline: 0; }
 
 .md-title-error {
   position: absolute;

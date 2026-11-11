@@ -154,7 +154,7 @@
         },
         {
           "path": "packages/editor/src/EditorMarkdownTitleInput.tsx",
-          "sha256": "0ff4d3987db53682f06f3beb4a83b81cda724a706f1697becd0a5189b092be8e"
+          "sha256": "709c57b63bebf60afe54b4daeae036eb687796454a133d1aab3d3f35a9f70708"
         },
         {
           "path": "packages/editor/src/EditorMenuList.tsx",
@@ -214,7 +214,7 @@
         },
         {
           "path": "packages/editor/src/markdown.css",
-          "sha256": "6114770df40557b993c8127e8216371ee64f386b2afa30ba6bc6131932201c8a"
+          "sha256": "52467bd6a998c9bd899fb8d87fc749f019f7e9a544958b3226cecbee9457b940"
         },
         {
           "path": "packages/editor/src/markdownCommands.ts",
@@ -222,7 +222,7 @@
         },
         {
           "path": "packages/editor/src/markdownDocument.css",
-          "sha256": "19bb2a734791cafe97cf94b5af0f233c93da557454a65ad841e2dd2d701f48d6"
+          "sha256": "a2d5feb1500f8d241509be990f659ac1dcaf321098e42fec23cae2ee81f5621c"
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",

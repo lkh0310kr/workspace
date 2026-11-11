@@ -11,8 +11,8 @@
 .cm-md-h4 { font-size: 16px; font-weight: 600; line-height: 1.4; }
 .cm-md-h5 { font-size: 14px; font-weight: 600; line-height: 1.5; }
 .cm-md-h6 { color: var(--text-muted, var(--muted)); font-size: 13px; font-weight: 600; line-height: 1.5; }
-.cm-line:has(.cm-md-h1) { padding-top: 32px; padding-bottom: 16px; }
-.cm-line:has(.cm-md-h2) { padding-top: 28px; padding-bottom: 12px; }
+.cm-line:has(.cm-md-h1) { padding-top: 20px; padding-bottom: 10px; }
+.cm-line:has(.cm-md-h2) { padding-top: 16px; padding-bottom: 8px; }
 .cm-line:has(.cm-md-h3) { padding-top: 24px; padding-bottom: 10px; }
 .cm-line:has(.cm-md-h4) { padding-top: 20px; padding-bottom: 8px; }
 .cm-line:has(.cm-md-h5) { padding-top: 18px; padding-bottom: 6px; }
