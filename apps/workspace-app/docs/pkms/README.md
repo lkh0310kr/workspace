@@ -3,6 +3,7 @@
 App scope다. UI·계정/문서 session은 [pkms-client](../../../../packages/pkms-client/docs/editor-sessions.md), 서버 mutation은 PKMS Server가 소유한다. Desktop은 token/HTTP proxy, asset fetch, 로컬 folder·watcher·durable queue·IPC·pane mount를 맡는다.
 
 - [Folder sync 전체 스펙 색인](./folder-sync/README.md) — 결과·reconciliation·durability·protocol·UI·현 구현 상태
+- [Desktop/Web PKMS 편집기 정렬 계획](./editor-parity.md) — 순수 Editor 경계와 Desktop Editor 기준의 PKMS 편집기 차이·반영 목록
 - [로컬 file/folder 삭제·이동 guard](./folder-sync/deletion.md) — inventory 증거, recursive delete, conflict recovery
 - [native token과 queue 저장 위치](../persistence/README.md)
 - [제품 간 PKMS 통합 경계](../../../../docs/architecture/pkms/overview.md)
