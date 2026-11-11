@@ -54,5 +54,17 @@
 .cm-md-html-embed { display: block; width: 100%; min-height: 32px; border: 0; background: transparent; }
 .cm-md-table-wrap { max-width: 100%; margin: 6px 0; overflow-x: auto; }
 .cm-md-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: .95em; }
-.cm-md-table th, .cm-md-table td { padding: 4px 10px; border: 1px solid var(--border); text-align: left; }
+.cm-md-table th, .cm-md-table td { padding: 4px 10px; border: 1px solid var(--border); text-align: left; cursor: text; }
 .cm-md-table th { background: var(--bg-hover, var(--hover)); font-weight: 600; }
+.cm-md-mermaid { max-width: 100%; margin: 12px 0; overflow: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-surface, var(--surface)); text-align: center; }
+.cm-md-mermaid svg { max-width: 100%; height: auto; color: var(--text); }
+.cm-md-mermaid svg text { fill: var(--text) !important; }
+.cm-md-mermaid svg .node rect,
+.cm-md-mermaid svg .node circle,
+.cm-md-mermaid svg .node ellipse,
+.cm-md-mermaid svg .node polygon,
+.cm-md-mermaid svg .cluster rect { fill: var(--bg-raised, var(--bg-hover, var(--hover))) !important; stroke: var(--border-strong, var(--border)) !important; }
+.cm-md-mermaid svg .edgePath .path,
+.cm-md-mermaid svg marker path { stroke: var(--text-muted, var(--muted)) !important; fill: var(--text-muted, var(--muted)) !important; }
+.cm-md-mermaid.is-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; color: var(--status-danger, #e5484d); text-align: left; }
+.cm-md-mermaid.is-error button { flex: none; padding: 4px 8px; border: 1px solid var(--border-strong, var(--border)); border-radius: 4px; background: var(--bg-base, var(--bg)); color: var(--text); }

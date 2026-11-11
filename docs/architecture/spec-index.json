@@ -114,7 +114,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "6848f5ca0466db43f6dcee33605864d23f8f1d95973083a95ed4d683ffb5d399"
+          "sha256": "f5c9acec88915ad76856ac105dd669d611913525293404fa3040fb8a84df1059"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -214,7 +214,7 @@
         },
         {
           "path": "packages/editor/src/markdown.css",
-          "sha256": "5a0c15203a987bff93e22474c35decb141e167ed945ae747a55e1a2f19c5f8c5"
+          "sha256": "01fafa87507e809f02b316c3d7f18cc65c531383a85ef8c9d5787529344c4a26"
         },
         {
           "path": "packages/editor/src/markdownCommands.ts",
@@ -226,7 +226,7 @@
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",
-          "sha256": "ec63c16382f19f36702df63ffb617a214333fad0cd420def67938c6828ff616f"
+          "sha256": "663b0a8e71462a162b94760952c6252939af2c60e9fffccb1641d4a59d84e192"
         },
         {
           "path": "packages/editor/src/markdownLinkNavigation.ts",
@@ -234,7 +234,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "2ae2c12cf121239bdac178ae5100c766be1c10b65cf45b7673fad48ea31c15bb"
+          "sha256": "88c3161402c96e50ee272ad340fa19e8f403184145232afbcd6f44cde9c46339"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",

@@ -26,6 +26,7 @@
     "@codemirror/view": "^6.43.9",
     "@lezer/common": "^1.2.3",
     "@lezer/highlight": "^1.2.3",
-    "katex": "^0.19.1"
+    "katex": "^0.19.1",
+    "mermaid": "^12.3.0"
   }
 }

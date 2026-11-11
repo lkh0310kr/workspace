@@ -142,7 +142,7 @@ Filename title와 본문 H1이 함께 있을 때 두 이름과 hierarchy를 구�
 |---|---|---|
 | TBL-01 | GFM 표의 header, body, 빈 cell, alignment가 기대한 표로 보인다. | 왼쪽/가운데/오른쪽 alignment marker를 적용하고, 긴 cell·좁은 폭에서는 문서 전체 폭을 깨지 않으면서 표를 가로 스크롤하거나 감싼다. 기본 렌더 경로는 구현했으며 수동 acceptance가 남아 있다. |
 | TBL-02 | cell 안 기본 inline Markdown이 다른 문단처럼 렌더된다. | inline `$…$`는 같은 KaTeX renderer로 처리한다. bold, italic, strike, inline code, link, image, wikilink, task marker 등 나머지는 미완료다. |
-| TBL-03 | 표 셀을 클릭해 직접 편집한다. | 셀 focus와 caret가 원본 markdown의 정확한 range로 연결된다. 키보드 이동은 셀 사이에서 예측 가능하고, Tab 마지막 셀에서 행 생성/종료 중 하나의 합의된 결과를 낸다. |
+| TBL-03 | 표 셀을 클릭해 직접 편집한다. | 완료: 렌더 cell click이 원본 Markdown의 trimmed cell range에 caret을 두고 source 편집을 연다. Tab/Shift+Tab은 cell 순서대로 이동하며 마지막/첫 cell을 벗어난다. 끝 위치에서 Tab은 source에 newline을 만들어 표 밖으로 나간다. 수동 caret/scroll 확인은 남아 있다. |
 | TBL-04 | 행과 열을 추가·삭제·이동하고 header를 바꾼다. | 마우스 context menu와 keyboard path가 같은 명령을 호출한다. 한 행/열만 남긴 경우, 병합된/불규칙 표의 처리 결과를 명시한다. 문서의 다른 표에는 영향이 없다. |
 | TBL-05 | 표 편집은 Markdown text를 보존한다. | escaped pipe `\\|`, inline code/math의 pipe, 정렬 marker, cell 내 link alias와 embed 크기를 parse/render/serialize round-trip해 의도하지 않은 열 분리를 만들지 않는다. |
 | TBL-06 | 수식은 표 안과 밖에서 같은 의미로 렌더된다. | table cell의 `$…$`는 inline KaTeX로 렌더한다. cell 안 `\(...\)`/display math 지원과 math pipe escaping은 미완료이며 별도 수용 기준을 정한다. |
@@ -164,14 +164,14 @@ Obsidian은 LaTeX 문법을 MathJax로 지원하고 inline/display delimiter를 
 
 ## P1 — Mermaid 및 diagram code block
 
-현재 fenced code block은 marker와 info string을 숨기는 preview만 제공한다. `mermaid` info string을 식별해 diagram을 렌더하는 경로/의존성은 없다. 따라서 현재 Mermaid block은 diagram이 아니라 source text로 남는다.
+`mermaid` fenced block은 strict security 설정의 Mermaid renderer로 preview한다. caret/selection이 block 안으로 들어가면 원문 fence와 code를 편집하고, 오류/20,000자 초과는 source로 돌아가는 action을 보여 준다. Diagram preview는 text 20,000자와 edge 300개에서 제한한다. 수동 acceptance에서 타입별 결과와 light/dark theme을 확인해야 한다.
 
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
-| DIA-01 | `mermaid` fenced block은 flowchart, sequence, class, state, ER, gantt 등 Mermaid가 지원하는 타입을 diagram으로 보여 준다. | fence language가 mermaid가 아니면 기존 code block 결과를 유지한다. 문서 내 여러 diagram이 독립적으로 mount/unmount된다. |
+| DIA-01 | `mermaid` fenced block은 flowchart, sequence, class, state, ER, gantt 등 Mermaid가 지원하는 타입을 diagram으로 보여 준다. | strict Mermaid renderer 경로를 구현했다. 문서 내 여러 diagram의 실제 수동 mount/unmount 확인은 남아 있다. |
 | DIA-02 | diagram 편집은 plain source를 유지한다. | cursor/selection이 diagram source에 오면 원문 code와 language marker를 편집한다. focus가 벗어나면 preview로 돌아가며 document text는 그대로다. |
-| DIA-03 | 오류와 큰 diagram을 제어한다. | parse 오류는 해당 block 아래에 오류와 source 보기 동작을 표시한다. 무한 layout/매우 큰 SVG가 전체 editor를 멈추지 않게 실행 시간·크기 한계를 둔다. |
-| DIA-04 | Mermaid 출력은 안전하고 테마에 맞는다. | HTML label, external link, SVG attribute, CSS 및 URL 실행 규칙을 제한한다. light/dark theme과 zoom/가로 넘침을 처리한다. |
+| DIA-03 | 오류와 큰 diagram을 제어한다. | 해당 block만 오류와 Show source action을 표시하고 source 길이 20,000자·edge 300개 제한을 둔다. runtime/type별 visual acceptance는 남아 있다. |
+| DIA-04 | Mermaid 출력은 안전하고 테마에 맞는다. | Mermaid `strict` 보안 설정에서 HTML label/click을 차단하고 CSS token으로 dark/light 색 및 가로 overflow를 적용한다. zoom control과 실제 테마 비교는 미완료다. |
 
 Mermaid는 `mermaid` fence의 source code를 graph syntax로 렌더하는 형식을 공식 문서화한다. Mermaid 버전 변경 가능성을 감안해 Markdown 파일 호환 결과와 보안 설정을 versioned feature policy에 기록한다.
 
@@ -246,8 +246,8 @@ Notion 데이터베이스 block, 협업 presence, access control, page discussio
 
 - 제목은 [markdownTitleFor](../../src/markdownTitle.ts)에서 파일 basename으로 계산하고 [EditorMarkdownTitle](../../src/EditorMarkdownTitle.tsx)에서 표시/rename 입력을 전환한다.
 - 본문 폭은 [themes.ts](../../src/themes.ts)의 `.cm-content` max-width 820px에 있지만 title은 [markdownDocument.css](../../src/markdownDocument.css)에서 별도 전체 폭 규칙을 쓴다.
-- 표는 [markdownLivePreview.ts](../../src/markdownLivePreview.ts)의 `TableWidget`이 cell source를 `textContent`로 배치한다.
-- fence preview는 fenced marker/info string을 숨기지만 Mermaid/TeX renderer는 source/dependency에 없다.
+- 표는 [markdownLivePreview.ts](../../src/markdownLivePreview.ts)의 `TableWidget`이 alignment·column sizing·escaped pipe·inline math를 렌더한다. 나머지 inline Markdown과 direct editing은 구현하지 않았다.
+- Mermaid fenced block과 inline/display TeX는 각각 strict Mermaid renderer와 KaTeX로 preview한다. 각 renderer의 제한과 미완료 acceptance는 위 ID별 표를 따른다.
 - HTML block은 iframe widget으로 렌더되며 script 실행은 허용하지 않는다. allowlist/CSP/resource origin 계약은 이 spec에서 정해야 한다.
 - Explorer는 [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx), [TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx), [explorer state](../../../../apps/workspace-app/src/renderer/src/explorer/explorerState.ts), [PaneGroup](../../../../apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx)이 협력한다. open state는 pane group에, tree selection/scroll anchor는 tree state에 둔다. active file 선택은 viewport를 움직이지 않고 `Cmd/Ctrl+Shift+E`만 명시 reveal한다. scroll 복원은 준비가 끝나고 tree가 실제 표시된 뒤 저장 상태를 적용하며, 복원 전 임시 scroll event는 저장하지 않는다. 실제 UI 수용 확인은 남아 있다.
 

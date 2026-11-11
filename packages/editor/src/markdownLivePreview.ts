@@ -300,11 +300,15 @@ function insideTable(state: EditorState, position: number): boolean {
 // from one line's start to another line's end; the call site verifies
 // that against the document's actual line boundaries before using this
 // widget, rather than assuming the parser guarantees it.
+interface TableCellSourceRange { from: number; to: number }
+
 class TableWidget extends WidgetType {
   constructor(
     readonly header: string[],
     readonly rows: string[][],
     readonly alignments: Array<"left" | "center" | "right">,
+    readonly headerRanges: TableCellSourceRange[],
+    readonly rowRanges: TableCellSourceRange[][],
   ) {
     super();
   }
@@ -313,11 +317,13 @@ class TableWidget extends WidgetType {
     return (
       JSON.stringify(other.header) === JSON.stringify(this.header) &&
       JSON.stringify(other.rows) === JSON.stringify(this.rows) &&
-      JSON.stringify(other.alignments) === JSON.stringify(this.alignments)
+      JSON.stringify(other.alignments) === JSON.stringify(this.alignments) &&
+      JSON.stringify(other.headerRanges) === JSON.stringify(this.headerRanges) &&
+      JSON.stringify(other.rowRanges) === JSON.stringify(this.rowRanges)
     );
   }
 
-  toDOM() {
+  toDOM(view: EditorView) {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-md-table-wrap";
     const table = document.createElement("table");
@@ -347,9 +353,23 @@ class TableWidget extends WidgetType {
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
+    table.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target.closest("th, td") : null;
+      const row = target?.parentElement;
+      if (!target || !row) return;
+      const column = Array.prototype.indexOf.call(row.children, target) as number;
+      const rowIndex = Array.prototype.indexOf.call(tbody.children, row) as number;
+      const range = row.parentElement === thead ? this.headerRanges[column] : this.rowRanges[rowIndex]?.[column];
+      if (!range) return;
+      event.preventDefault();
+      view.dispatch({ selection: { anchor: range.from }, scrollIntoView: true });
+      view.focus();
+    });
     wrapper.appendChild(table);
     return wrapper;
   }
+
+  ignoreEvent(): boolean { return true; }
 }
 
 function isEscapedAt(source: string, index: number): boolean {
@@ -377,19 +397,53 @@ function appendTableCellContent(target: HTMLElement, source: string): void {
   target.appendChild(document.createTextNode(source.slice(plainStart).replace(/\\\|/g, "|")));
 }
 
-function splitMarkdownTableRow(source: string): string[] {
-  const row = source.trim();
-  const start = row.startsWith("|") ? 1 : 0;
-  const end = row.endsWith("|") && !isEscapedAt(row, row.length - 1) ? row.length - 1 : row.length;
-  const cells: string[] = [];
+function splitMarkdownTableRowDetailed(source: string, baseFrom: number): Array<{ text: string; from: number; to: number }> {
+  const leftTrim = source.length - source.trimStart().length;
+  const rightTrim = source.trimEnd().length;
+  const row = source.slice(leftTrim, rightTrim);
+  let start = row.startsWith("|") ? 1 : 0;
+  const cells: Array<{ text: string; from: number; to: number }> = [];
   let cellStart = start;
-  for (let index = start; index < end; index++) {
+  const pushCell = (from: number, to: number) => {
+    const content = row.slice(from, to);
+    const contentLeft = content.length - content.trimStart().length;
+    const contentRight = content.trimEnd().length;
+    const text = content.trim();
+    cells.push({
+      text,
+      from: baseFrom + leftTrim + from + contentLeft,
+      to: baseFrom + leftTrim + from + contentRight,
+    });
+  };
+  for (let index = start; index < row.length; index++) {
     if (row[index] !== "|" || isEscapedAt(row, index)) continue;
-    cells.push(row.slice(cellStart, index).trim());
+    pushCell(cellStart, index);
     cellStart = index + 1;
   }
-  cells.push(row.slice(cellStart, end).trim());
+  if (cellStart < row.length) pushCell(cellStart, row.length);
   return cells;
+}
+
+function splitMarkdownTableRow(source: string): string[] {
+  return splitMarkdownTableRowDetailed(source, 0).map((cell) => cell.text);
+}
+
+export function markdownTableCellRangesAt(state: EditorState, position: number): TableCellSourceRange[] | null {
+  let node = syntaxTree(state).resolveInner(position, 1);
+  while (node && node.type.name !== "Table") {
+    if (!node.parent) return null;
+    node = node.parent;
+  }
+  if (!node || node.type.name !== "Table") return null;
+  const header = node.getChild("TableHeader");
+  if (!header) return null;
+  const ranges = splitMarkdownTableRowDetailed(state.doc.sliceString(header.from, header.to), header.from)
+    .map(({ from, to }) => ({ from, to }));
+  for (const row of node.getChildren("TableRow")) {
+    ranges.push(...splitMarkdownTableRowDetailed(state.doc.sliceString(row.from, row.to), row.from)
+      .map(({ from, to }) => ({ from, to })));
+  }
+  return ranges;
 }
 
 class HtmlBlockWidget extends WidgetType {
@@ -477,6 +531,108 @@ class InlineMathWidget extends WidgetType {
     }
     return span;
   }
+}
+
+let mermaidModulePromise: Promise<typeof import("mermaid")> | null = null;
+let mermaidRenderQueue: Promise<unknown> = Promise.resolve();
+let mermaidId = 0;
+let mermaidInitialized = false;
+const mermaidWidgetStates = new WeakMap<HTMLElement, { disposed: boolean }>();
+
+function renderMermaid(source: string, id: string) {
+  const render = mermaidRenderQueue.then(async () => {
+    mermaidModulePromise ??= import("mermaid");
+    const mermaid = (await mermaidModulePromise).default;
+    if (!mermaidInitialized) {
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: "strict",
+        suppressErrorRendering: true,
+        maxTextSize: 20000,
+        maxEdges: 300,
+        theme: "base",
+        themeVariables: {
+          background: "#ffffff",
+          primaryColor: "#f0f1f5",
+          primaryTextColor: "#232428",
+          primaryBorderColor: "#80838d",
+          lineColor: "#5a5d66",
+          secondaryColor: "#f7f7f9",
+          tertiaryColor: "#ffffff",
+          fontFamily: "system-ui, sans-serif",
+        },
+      });
+      mermaidInitialized = true;
+    }
+    return mermaid.render(id, source);
+  });
+  mermaidRenderQueue = render.then(() => undefined, () => undefined);
+  return render;
+}
+
+class MermaidWidget extends WidgetType {
+  constructor(readonly source: string, readonly from: number, readonly to: number) { super(); }
+
+  eq(other: MermaidWidget): boolean {
+    return other.source === this.source && other.from === this.from && other.to === this.to;
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const container = document.createElement("div");
+    container.className = "cm-md-mermaid";
+    const state = { disposed: false };
+    mermaidWidgetStates.set(container, state);
+    const showSource = () => {
+      view.dispatch({ selection: { anchor: this.from }, scrollIntoView: true });
+      view.focus();
+    };
+    const error = (message: string) => {
+      container.replaceChildren();
+      container.classList.add("is-error");
+      const label = document.createElement("span");
+      label.textContent = message;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Show source";
+      button.addEventListener("mousedown", (event) => event.preventDefault());
+      button.addEventListener("click", showSource);
+      container.appendChild(label);
+      container.appendChild(button);
+    };
+    if (this.source.length > 20000) {
+      error("Diagram exceeds the 20,000 character preview limit.");
+      return container;
+    }
+    const id = `workspace-mermaid-${++mermaidId}`;
+    void renderMermaid(this.source, id).then(({ svg }) => {
+      if (!state.disposed) container.innerHTML = svg;
+    }).catch((cause: unknown) => {
+      if (!state.disposed) error(cause instanceof Error ? cause.message.slice(0, 240) : "Diagram could not be rendered.");
+    });
+    return container;
+  }
+
+  destroy(dom: HTMLElement): void {
+    const state = mermaidWidgetStates.get(dom);
+    if (state) state.disposed = true;
+    mermaidWidgetStates.delete(dom);
+  }
+}
+
+function mermaidSource(state: EditorState, node: SyntaxNodeRef): string | null {
+  const info = node.node.getChild("CodeInfo");
+  if (!info || state.doc.sliceString(info.from, info.to).trim().split(/\s+/, 1)[0]?.toLowerCase() !== "mermaid") return null;
+  const raw = state.doc.sliceString(node.from, node.to);
+  const newline = raw.indexOf("\n");
+  if (newline < 0) return "";
+  let source = raw.slice(newline + 1);
+  const firstLine = raw.slice(0, newline);
+  const fence = firstLine.match(/^\s*(`{3,}|~{3,})/)?.[1];
+  if (fence) {
+    const close = new RegExp(`\\n\\s*${fence[0]}{${fence.length},}\\s*$`);
+    source = source.replace(close, "");
+  }
+  return source.replace(/\n$/, "");
 }
 
 function sanitizeHtmlBlock(html: string): string {
@@ -927,7 +1083,9 @@ function buildTableDecorations(state: EditorState): DecorationSet {
       if (startLine.from !== node.from || endLine.to !== node.to) return;
       const header = node.node.getChild("TableHeader");
       if (!header) return;
-      const headerCells = splitMarkdownTableRow(state.doc.sliceString(header.from, header.to));
+      const headerSource = state.doc.sliceString(header.from, header.to);
+      const headerParts = splitMarkdownTableRowDetailed(headerSource, header.from);
+      const headerCells = headerParts.map((cell) => cell.text);
       const delimiter = node.node.getChildren("TableDelimiter").find((candidate) => candidate.from > header.to);
       const delimiterText = delimiter ? state.doc.sliceString(delimiter.from, delimiter.to) : "";
       const delimiterCells = splitMarkdownTableRow(delimiterText);
@@ -935,11 +1093,16 @@ function buildTableDecorations(state: EditorState): DecorationSet {
         const rule = delimiterCells[index]?.trim() ?? "";
         return rule.startsWith(":") && rule.endsWith(":") ? "center" : rule.endsWith(":") ? "right" : "left";
       });
-      const bodyRows = node.node.getChildren("TableRow").map((row) => splitMarkdownTableRow(state.doc.sliceString(row.from, row.to)));
+      const bodyParts = node.node.getChildren("TableRow").map((row) =>
+        splitMarkdownTableRowDetailed(state.doc.sliceString(row.from, row.to), row.from),
+      );
+      const bodyRows = bodyParts.map((row) => row.map((cell) => cell.text));
+      const headerRanges = headerParts.map(({ from, to }) => ({ from, to }));
+      const rowRanges = bodyParts.map((row) => row.map(({ from, to }) => ({ from, to })));
       builder.add(
         node.from,
         node.to,
-        Decoration.replace({ widget: new TableWidget(headerCells, bodyRows, alignments), block: true }),
+        Decoration.replace({ widget: new TableWidget(headerCells, bodyRows, alignments, headerRanges, rowRanges), block: true }),
       );
     },
   });
@@ -1004,6 +1167,30 @@ function buildDisplayMathDecorations(state: EditorState): DecorationSet {
   return builder.finish();
 }
 
+function buildMermaidDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  syntaxTree(state).iterate({
+    enter: (node: SyntaxNodeRef) => {
+      if (node.type.name !== "FencedCode" || selectionOverlaps(state, node.from, node.to)) return;
+      const source = mermaidSource(state, node);
+      if (source === null) return;
+      const firstLine = state.doc.lineAt(node.from);
+      const lastLine = state.doc.lineAt(Math.max(node.from, node.to - 1));
+      if (firstLine.from !== node.from || lastLine.to !== node.to) return;
+      builder.add(node.from, node.to, Decoration.replace({ widget: new MermaidWidget(source, node.from, node.to), block: true }));
+    },
+  });
+  return builder.finish();
+}
+
+const mermaidDecorations = StateField.define<DecorationSet>({
+  create: buildMermaidDecorations,
+  update: (decorations, transaction) => transaction.docChanged || transaction.selection
+    ? buildMermaidDecorations(transaction.state)
+    : decorations.map(transaction.changes),
+  provide: (field) => EditorView.decorations.from(field),
+});
+
 const displayMathDecorations = StateField.define<DecorationSet>({
   create: buildDisplayMathDecorations,
   update: (decorations, transaction) => transaction.docChanged || transaction.selection
@@ -1063,6 +1250,7 @@ export const markdownLivePreview: Extension[] = [
   inlineDecorations,
   blockDecorations,
   tableDecorations,
+  mermaidDecorations,
   displayMathDecorations,
   htmlBlockDecorations,
 ];
