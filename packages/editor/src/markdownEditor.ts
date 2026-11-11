@@ -2,12 +2,13 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { insertNewlineAndIndent } from "@codemirror/commands";
 import { deleteMarkupBackward, insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
-import { foldGutter, foldKeymap, foldNodeProp, indentOnInput, indentUnit, syntaxTree } from "@codemirror/language";
+import { foldKeymap, foldNodeProp, indentOnInput, indentUnit, syntaxTree } from "@codemirror/language";
 import type { MarkdownConfig } from "@lezer/markdown";
 import type { Extension } from "@codemirror/state";
 import { keymap, type Command } from "@codemirror/view";
 import { markdownFormattingKeymap } from "./markdownCommands";
 import { markdownMathExtension } from "./markdownMath";
+import { markdownFolding } from "./markdownFolding";
 import { markdownLivePreview, markdownTableCellRangesAt } from "./markdownLivePreview";
 
 function tableCellNavigation(direction: -1 | 1): Command {
@@ -63,14 +64,7 @@ export function createMarkdownEditorExtensions(options: MarkdownEditorOptions = 
     }),
     indentOnInput(),
     indentUnit.of("    "),
-    foldGutter({
-      markerDOM(open) {
-        const marker = document.createElement("span");
-        marker.className = "cm-md-fold-marker";
-        marker.textContent = open ? "⌄" : "›";
-        return marker;
-      },
-    }),
+    markdownFolding,
     keymap.of(foldKeymap),
     keymap.of([
       { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
