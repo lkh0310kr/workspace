@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check:wire-models": "node ./scripts/check-wire-models.mjs"
+    "check:realtime-models": "node ./scripts/check-realtime-models.mjs"
   },
   "exports": {
     "./types": "./src/types.ts"
