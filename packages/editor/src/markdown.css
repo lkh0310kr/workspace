@@ -41,10 +41,47 @@
 .cm-md-task-checkbox:checked { border-color: var(--text-muted, var(--muted)); background: var(--text-muted, var(--muted)); }
 .cm-md-task-checkbox:checked::after { position: absolute; top: .03em; left: .27em; width: .25em; height: .48em; transform: rotate(45deg); border: solid var(--bg-base, var(--bg)); border-width: 0 2px 2px 0; content: ""; }
 .cm-md-quote-line { padding-left: 10px; border-left: 3px solid var(--border-strong, var(--border)); color: var(--text-muted, var(--muted)); }
-.cm-md-codeblock-line { background: var(--bg-hover, var(--hover)); font-family: var(--font-mono, var(--editor-font, monospace)); }
-.cm-md-codeblock-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 10px; border: 1px solid var(--border); border-bottom: 0; border-radius: 6px 6px 0 0; background: var(--bg-hover, var(--hover)); color: var(--text-muted, var(--muted)); font: 12px var(--font-sans, system-ui, sans-serif); }
-.cm-md-codeblock-header + .cm-line { border: 1px solid var(--border); border-top: 0; }
-.cm-md-codeblock-header button { padding: 3px 8px; border: 1px solid var(--border-strong, var(--border)); border-radius: 4px; background: var(--bg-base, var(--bg)); color: var(--text); font: inherit; cursor: pointer; }
+.cm-md-codeblock-line {
+  background: var(--bg-hover, var(--hover));
+  box-shadow: inset 1px 0 var(--border), inset -1px 0 var(--border);
+  font-family: var(--font-mono, var(--editor-font, monospace));
+}
+.cm-md-codeblock-start {
+  border-radius: 6px 6px 0 0;
+  box-shadow: inset 1px 0 var(--border), inset -1px 0 var(--border), inset 0 1px var(--border);
+}
+.cm-md-codeblock-end {
+  border-radius: 0 0 6px 6px;
+  box-shadow: inset 1px 0 var(--border), inset -1px 0 var(--border), inset 0 -1px var(--border);
+}
+.cm-md-codeblock-header {
+  display: flex;
+  box-sizing: border-box;
+  height: calc(var(--editor-font-size, 14px) * 1.8);
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 6px 6px 0 0;
+  background: var(--bg-hover, var(--hover));
+  box-shadow: inset 1px 0 var(--border), inset -1px 0 var(--border), inset 0 1px var(--border);
+  color: var(--text-muted, var(--muted));
+  font: 12px var(--font-sans, system-ui, sans-serif);
+}
+.cm-md-codeblock-language {
+  appearance: none;
+  padding: 3px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+.cm-md-codeblock-language:hover,
+.cm-md-codeblock-language:focus-visible { background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--text); }
+.cm-md-codeblock-language:active,
+.cm-md-codeblock-language.is-copied { background: color-mix(in srgb, var(--text) 16%, transparent); color: var(--text); }
+.cm-md-codeblock-language:focus-visible { outline: 2px solid var(--focus-ring, var(--link, var(--accent))); outline-offset: 1px; }
 .cm-md-callout-line { border-left-color: var(--border-strong, var(--border)); background: color-mix(in srgb, var(--text) 4%, transparent); }
 .cm-md-callout-label { display: inline-flex; align-items: center; margin-right: 4px; color: var(--text); font-size: .9em; font-weight: 600; }
 .cm-md-callout-warning-line, .cm-md-callout-danger-line, .cm-md-callout-failure-line, .cm-md-callout-bug-line { border-left-color: #d9822b; background: color-mix(in srgb, #d9822b 8%, transparent); }

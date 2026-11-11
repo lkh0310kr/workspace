@@ -114,7 +114,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "f5c9acec88915ad76856ac105dd669d611913525293404fa3040fb8a84df1059"
+          "sha256": "2582f2a637788369f749edc791d445f803df9676d102b3bdf78d46fc053c1cb0"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -146,7 +146,7 @@
         },
         {
           "path": "packages/editor/src/EditorMarkdownSurface.tsx",
-          "sha256": "bd95dc0ec6d385cd8852d5b7f176a5270dc981cd1397433c279d8f71fb72ceca"
+          "sha256": "0072b4c6c85e82d79f8b55748c4ecf2734a343e6fad1939430c3117327b5ed0e"
         },
         {
           "path": "packages/editor/src/EditorMarkdownTitle.tsx",
@@ -214,7 +214,7 @@
         },
         {
           "path": "packages/editor/src/markdown.css",
-          "sha256": "52467bd6a998c9bd899fb8d87fc749f019f7e9a544958b3226cecbee9457b940"
+          "sha256": "93ab401d057c551da9678b16ed604b8cd608aa4317aa18a27629fbf0992722f3"
         },
         {
           "path": "packages/editor/src/markdownCommands.ts",
@@ -226,7 +226,7 @@
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",
-          "sha256": "663b0a8e71462a162b94760952c6252939af2c60e9fffccb1641d4a59d84e192"
+          "sha256": "686e7c76d6b6d787952dbb31cc71962e53838a3e3981d8138104a6943f1197cd"
         },
         {
           "path": "packages/editor/src/markdownLinkNavigation.ts",
@@ -234,7 +234,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "6668656183a4f69c81dfdadd90739dcf7976c7ecd3620cc239999fd9309af4f8"
+          "sha256": "87269a19a035f251dc569c390e64e308deef5e9f74573a4994fb0b6423694f3f"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",

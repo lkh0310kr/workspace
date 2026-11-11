@@ -1,4 +1,5 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { languages } from "@codemirror/language-data";
 import { insertNewlineAndIndent } from "@codemirror/commands";
 import { deleteMarkupBackward, insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
 import { indentOnInput, indentUnit, syntaxTree } from "@codemirror/language";
@@ -44,6 +45,7 @@ export function createMarkdownEditorExtensions(options: MarkdownEditorOptions = 
   return [
     markdown({
       base: markdownLanguage,
+      codeLanguages: languages,
       extensions: [markdownMathExtension, ...(options.parserExtensions ?? [])],
       addKeymap: false,
     }),

@@ -209,10 +209,10 @@ Obsidian Flavored Markdown은 CommonMark/GFM 위에 내부 링크, embed, block 
 |---|---|---|
 | MD-GAP-01 | [image resolver](../../src/markdownLivePreview.ts)는 Workspace fallback에서 source document path와 root path를 함께 받는다. | 완료: `./image.png`는 현재 문서 folder, `/image.png`는 workspace root, HTTP(S)는 remote resource로 해석한다. PKMS provider resolver는 인증된 asset lookup을 계속 소유한다. |
 | MD-GAP-02 | [Tree label helper](../../src/treeModel.ts)와 [title helper](../../src/markdownTitle.ts)는 지원 suffix를 일치시킨다. | 완료: `.md`와 `.markdown` 모두 TreeView/editor title에서 같은 확장자 제거 규칙을 쓴다. |
-| MD-GAP-03 | [Markdown surface](../../src/EditorMarkdownSurface.tsx)는 기본 Markdown parser와 fallback highlight를 사용하고 language-specific code extension을 선택하지 않는다. | fenced block에 언어 label과 원문 복사 action을 구현했다. language-specific syntax highlighting, line number, fold는 미완료다. |
+| MD-GAP-03 | [Markdown surface](../../src/EditorMarkdownSurface.tsx)는 기본 Markdown parser와 fallback highlight를 사용하고 language-specific code extension을 선택하지 않는다. | 완료: fenced block은 CodeMirror language-data의 language/alias/extension 매칭과 shared syntax color token을 사용한다. 복사는 왼쪽 language label이 수행하며, body click은 source 편집으로 남는다. frame geometry는 두 상태에서 같은 line height·background·radius를 사용한다. line number와 fold는 미완료다. |
 | MD-GAP-04 | [HTML block widget](../../src/markdownLivePreview.ts)은 iframe에 CSP를 넣고 active content와 navigation 속성을 제거한다. | 부분 완료: 외부 resource는 data URL만 허용하고 script/form/frame/object, event handler, link navigation을 차단한다. 높이 자동 측정을 위해 `allow-same-origin`은 남아 있어 제거 가능성을 별도 검토한다. |
 | MD-GAP-05 | [PKMS editor host](../../../pkms-client/src/PkmsClientApp.tsx)는 `EditorSearchButton`을 action으로 전달한다. | Workspace는 toolbar search button을 숨기고 `Cmd/Ctrl+F`를 쓰지만 PKMS Markdown chrome에는 버튼이 남아 제품 간 조작이 다르다. 검색 UI 기준을 package-level로 결정한다. |
-| MD-GAP-06 | [EditorMarkdownSurface](../../src/EditorMarkdownSurface.tsx)는 Markdown parser와 일반 fallback highlight만 설치한다. | code copy는 fenced block toolbar에 구현했다. language tag별 highlighter와 wrap 설정은 미완료이며, line number·fold도 제품 결과와 source 보존 규칙을 정해야 한다. |
+| MD-GAP-06 | [EditorMarkdownSurface](../../src/EditorMarkdownSurface.tsx)는 Markdown parser와 일반 fallback highlight만 설치한다. | 완료: 지원 language-data에 등록된 fence는 언어별 highlight와 color token을 사용하고, 미등록 language는 plain text로 남는다. wrap 설정, line number, fold는 미완료다. |
 
 ## P2 — Notion의 글쓰기 상호작용 결과
 

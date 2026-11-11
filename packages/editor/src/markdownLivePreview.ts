@@ -652,22 +652,43 @@ class CodeBlockHeaderWidget extends WidgetType {
   toDOM(): HTMLElement {
     const header = document.createElement("div");
     header.className = "cm-md-codeblock-header";
-    const label = document.createElement("span");
+    const label = document.createElement("button");
+    label.type = "button";
+    label.className = "cm-md-codeblock-language";
     label.textContent = this.language || "Code";
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = "Copy";
-    button.addEventListener("mousedown", (event) => event.preventDefault());
-    button.addEventListener("click", () => {
-      void navigator.clipboard?.writeText(this.source).then(() => {
-        button.textContent = "Copied";
-        window.setTimeout(() => { button.textContent = "Copy"; }, 1200);
-      }).catch(() => { button.textContent = "Copy failed"; });
+    const language = this.language || "code";
+    const copyLabel = `Copy ${language} code`;
+    label.setAttribute("aria-label", copyLabel);
+    label.title = copyLabel;
+    label.addEventListener("click", () => {
+      const clipboard = navigator.clipboard;
+      if (!clipboard) {
+        label.classList.add("is-copied");
+        label.setAttribute("aria-label", `Could not copy ${language} code`);
+        label.title = "Clipboard access failed";
+        window.setTimeout(() => label.classList.remove("is-copied"), 900);
+        return;
+      }
+      label.classList.add("is-copied");
+      void clipboard.writeText(this.source).then(() => {
+        label.setAttribute("aria-label", `Copied ${language} code`);
+        label.title = `Copied ${language} code`;
+      }).catch(() => {
+        label.setAttribute("aria-label", `Could not copy ${language} code`);
+        label.title = "Clipboard access failed";
+      }).finally(() => {
+        window.setTimeout(() => {
+          label.classList.remove("is-copied");
+          label.setAttribute("aria-label", copyLabel);
+          label.title = copyLabel;
+        }, 900);
+      });
     });
     header.appendChild(label);
-    header.appendChild(button);
     return header;
   }
+
+  ignoreEvent(): boolean { return true; }
 }
 
 function mermaidSource(state: EditorState, node: SyntaxNodeRef): string | null {
@@ -1080,9 +1101,13 @@ function buildLineDecorations(view: EditorView): DecorationSet {
           if (callout) cls += ` cm-md-callout-line cm-md-callout-${callout.type}-line`;
         }
         const startLine = view.state.doc.lineAt(node.from).number;
-        const endLine = view.state.doc.lineAt(node.to).number;
+        const endLine = view.state.doc.lineAt(Math.max(node.from, node.to - 1)).number;
         for (let ln = startLine; ln <= endLine; ln++) {
-          addClass(view.state.doc.line(ln).from, cls);
+          const position = view.state.doc.line(ln).from;
+          const edge = type === "FencedCode"
+            ? `${ln === startLine ? " cm-md-codeblock-start" : ""}${ln === endLine ? " cm-md-codeblock-end" : ""}`
+            : "";
+          addClass(position, `${cls}${edge}`);
         }
       },
     });
@@ -1123,7 +1148,9 @@ function buildCodeBlockHeaderDecorations(state: EditorState): DecorationSet {
       const marks = node.node.getChildren("CodeMark");
       if (marks.length < 2) return;
       const languageNode = node.node.getChild("CodeInfo");
-      const language = languageNode ? state.doc.sliceString(languageNode.from, languageNode.to).trim() : "";
+      const language = languageNode
+        ? state.doc.sliceString(languageNode.from, languageNode.to).trim().split(/\s+/, 1)[0] ?? ""
+        : "";
       if (language.toLowerCase() === "mermaid") return;
       const openingLine = state.doc.lineAt(marks[0].from);
       const closingLine = state.doc.lineAt(marks[marks.length - 1].from);
