@@ -3,23 +3,86 @@
   "baselineDate": "2026-11-11",
   "purpose": "Source traceability for code-derived behavior specifications; not proof of semantic equivalence.",
   "documents": [
-    "docs/architecture/README.md",
+    "docs/README.md",
+    "docs/architecture/01-overview.md",
+    "docs/architecture/02-process-and-ipc.md",
+    "docs/architecture/03-workspace-and-layout.md",
+    "docs/architecture/04-interaction-coordinator.md",
+    "docs/architecture/05-terminal-pipeline.md",
     "docs/architecture/06-browser-embeds.md",
-    "docs/architecture/spec-driven-development.md"
+    "docs/architecture/08-monorepo-module-boundaries.md",
+    "docs/architecture/README.md",
+    "docs/architecture/desktop-release.md",
+    "docs/architecture/pkms/README.md",
+    "docs/architecture/pkms/folder-sync.md",
+    "docs/architecture/pkms/local-deletion-sync.md",
+    "docs/architecture/pkms/overview.md",
+    "docs/architecture/spec-driven-development.md",
+    "docs/documentation-scopes.md",
+    "docs/guides/README.md",
+    "docs/guides/design-principles.md",
+    "docs/guides/logging.md",
+    "docs/guides/manual-qa-checklist.md",
+    "docs/guides/windows-build.md",
+    "docs/planning/README.md",
+    "docs/planning/backlog.md",
+    "docs/planning/editor-unification.md",
+    "docs/planning/feature-status.md",
+    "docs/planning/spec-driven-development-roadmap.md",
+    "docs/planning/top-down-documentation-audit.md",
+    "docs/product/README.md"
   ],
   "modules": [
     {
       "id": "shared-editor",
+      "scope": "package",
+      "owner": "packages/editor",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
+        "packages/editor/README.md",
         "packages/editor/docs/README.md",
         "packages/editor/docs/assets.md",
         "packages/editor/docs/code/README.md",
         "packages/editor/docs/markdown/README.md",
         "packages/editor/docs/provider.md",
+        "packages/editor/docs/public-api.md",
         "packages/editor/docs/search.md",
         "packages/editor/docs/treeview/README.md"
       ],
       "sources": [
+        {
+          "path": "apps/workspace-app/src/renderer/src/components/TreeView.tsx",
+          "sha256": "a54e230f668c540fccfd31724daa169ab14b4b838b6fa2c9f83d283f241761b9"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts",
+          "sha256": "f7cf068030852809ef39e4b458273fedd6dff22a2c18bf78902c775172961d2f"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/explorer/treeReload.ts",
+          "sha256": "0fb74d0f89d1e572b2a9798608c8c680eccdef97c0370bec293b6bfa7f892377"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/EditorContent.tsx",
+          "sha256": "c128052a6bc9dde7a6de259b14a53bf8350205d7b938b5feeaaf39bd95f7835b"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
+          "sha256": "71e2a5b47b40b04ae28ce29a50ab3309a9c8db54043e44eb66e6da4ee26dfcea"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/kinds/editorKind.tsx",
+          "sha256": "68cbc9bed578ef8e2fe6ea9338c4ff1ccf9be77e4539edd3c8fa184a532a84f4"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/kinds/viewerKind.tsx",
+          "sha256": "e622617e7bd6120e37a63875e99c11386d4aa620db1f4f996b14581fbc33ec66"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/mediaKind.ts",
+          "sha256": "58c846e825a50b8e94d17683940eec59bedf4ae97bda1e1f968d963d6b94c013"
+        },
         {
           "path": "packages/editor/package.json",
           "sha256": "f64a2dde71ac0869cbb931b9d53609f51ba2b44a27d76740a7b1267311dc4092"
@@ -212,6 +275,10 @@
     },
     {
       "id": "desktop-editor",
+      "scope": "app",
+      "owner": "apps/workspace-app",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "apps/workspace-app/docs/editor/providers.md"
       ],
@@ -284,10 +351,32 @@
     },
     {
       "id": "pkms-editor",
+      "scope": "package",
+      "owner": "packages/pkms-client",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
+        "packages/pkms-client/README.md",
+        "packages/pkms-client/docs/README.md",
         "packages/pkms-client/docs/editor-sessions.md"
       ],
       "sources": [
+        {
+          "path": "packages/pkms-client/package.json",
+          "sha256": "4ec36a87fcd6aa5d23d3aca8c51dec461fd339bbb9402cb17fa34683141e246e"
+        },
+        {
+          "path": "packages/pkms-client/src/client/api.ts",
+          "sha256": "4588872125eaeee805ee4afb573067c796238fa406b63eb4c62b6067b57b9d5d"
+        },
+        {
+          "path": "packages/pkms-client/src/client/workspaceTreeCache.ts",
+          "sha256": "6e8c269bdc2b2d8c9116671a10bf1eec2e0e9bd3da722496452b45b72120cac5"
+        },
+        {
+          "path": "packages/pkms-client/src/features/account/useAccountSession.ts",
+          "sha256": "4a6d34b9e1f770148628bfbef830f751cda0b77ac04043904f494e87f9d29a85"
+        },
         {
           "path": "packages/pkms-client/src/features/editor/pkmsEditorProvider.ts",
           "sha256": "e3415d9231ef752c9767127f9c6e435fee7dbc173f5629e192677a6f6014dac8"
@@ -311,11 +400,27 @@
         {
           "path": "packages/pkms-client/src/features/editor/useRealtimeMessages.ts",
           "sha256": "e184ed26c23a301a544b4d8fca38f841901936dea063c0d3056e3773caefb006"
+        },
+        {
+          "path": "packages/pkms-client/src/hostEvents.ts",
+          "sha256": "7d276c93faccdeb2dbe1bfe28879aafb31c0f57f338167b357c76c243772b695"
+        },
+        {
+          "path": "packages/pkms-client/src/PkmsClientApp.tsx",
+          "sha256": "41ae46f2cd4479d354789252f69119d659adb1b02610dbe6d5bf66e061ac6eb8"
+        },
+        {
+          "path": "packages/pkms-client/src/realtime.ts",
+          "sha256": "e0112bf85d24f57762ae851f72e63c29368509bf61098b665eb92137a3d92d87"
         }
       ]
     },
     {
       "id": "browser",
+      "scope": "app",
+      "owner": "apps/workspace-app",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "apps/workspace-app/docs/browser/README.md",
         "apps/workspace-app/docs/browser/lifecycle.md",
@@ -471,6 +576,504 @@
           "sha256": "917e5afe7a9c4658c426d504ba6d65dcf1ee811b5208d6d88b2817b53936e6e6"
         }
       ]
+    },
+    {
+      "id": "desktop-shell",
+      "scope": "app",
+      "owner": "apps/workspace-app",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "apps/workspace-app/README.md",
+        "apps/workspace-app/docs/README.md",
+        "apps/workspace-app/docs/runtime/README.md",
+        "apps/workspace-app/docs/layout/README.md",
+        "apps/workspace-app/docs/interaction/README.md",
+        "apps/workspace-app/docs/ipc/README.md",
+        "apps/workspace-app/docs/persistence/README.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/workspace-app/src/main/ebookState.ts",
+          "sha256": "4b69f8c272938a67034d0119c233e07a808213594f66c4bc9d0c7a1e4b34dcb8"
+        },
+        {
+          "path": "apps/workspace-app/src/main/index.ts",
+          "sha256": "d40d72d03cb8da404d9076390b63be3791da33e5aa4bce4425fbda31c789e9e7"
+        },
+        {
+          "path": "apps/workspace-app/src/main/ipc/terminalSessionBuffers.ts",
+          "sha256": "1463bd2fb1dc76de1eb995fc1487fcf1288a04a6c04965b3b04c15bd4f9a0e52"
+        },
+        {
+          "path": "apps/workspace-app/src/main/model3d/cacheStore.ts",
+          "sha256": "2a49be52d3c9e8f43a9ee247ad47f8cd9f10e1d4a44f4b3032d89d015aa30abb"
+        },
+        {
+          "path": "apps/workspace-app/src/main/persistence.ts",
+          "sha256": "2aee95271350c0e42981de3083d38f9b0a7f2d88e6782a3c56f1c0d28295203c"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/session.ts",
+          "sha256": "e1a2b26bdff8048e295b110626ec0631aa5d4ea305dc0a964d9557a8e1243ca0"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/syncBridge.ts",
+          "sha256": "28c3b21dbe03d1a90dc40a565105039d29101f83f7b2a0d88fe307ed929ecc9d"
+        },
+        {
+          "path": "apps/workspace-app/src/main/usageMeterConfig.ts",
+          "sha256": "68ebffda4350fb9348e2ad75a222fed2b3ddfa64888fd01d5691cfa80ed48e49"
+        },
+        {
+          "path": "apps/workspace-app/src/main/workspace.ts",
+          "sha256": "d4c92cbd723b672c7ec961ec4c7e65d40981939f2d0ffde136c502e7ecb5cea9"
+        },
+        {
+          "path": "apps/workspace-app/src/preload/api.ts",
+          "sha256": "3799a1745d4c604f4158f6edfb89460dcc6716974c4671cb36de91834776a72e"
+        },
+        {
+          "path": "apps/workspace-app/src/preload/contentApi.ts",
+          "sha256": "133e729720d7002f386278118cedbb6e9bc024b4daa605fe7aa14db714101e19"
+        },
+        {
+          "path": "apps/workspace-app/src/preload/index.d.ts",
+          "sha256": "feb1b589a5dc6ea6bb936823d07f6d2dc88c0723508821d88ae6724718750f32"
+        },
+        {
+          "path": "apps/workspace-app/src/preload/index.ts",
+          "sha256": "79441356280ffbcb414fa00f433150ba7317a4de25c40c6cff2dabbe8919ec07"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/browser/browserGuestFocus.ts",
+          "sha256": "31fbd8d3761a3ba057bf7cfe9c045f70b1116bebdef0718a3f3ea5bbc47de633"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/electron.ts",
+          "sha256": "e36deb707bd7246c576ba220808d590473127f0c5d9abbcfded9a0f5c84cbb46"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/explorer/explorerState.ts",
+          "sha256": "452846706a2299f94c32bb34002e47b123a9c6d119bd20bdc21d75bdc075318e"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/hooks/useAppBootstrap.ts",
+          "sha256": "99e1e1bbf7c8d7e2146e01544f6bc85d8777154518d6499328beabba5c31a5e6"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/hooks/useLayoutHostCallbacks.tsx",
+          "sha256": "fe36a510c8be88a2bac0d275cf841db53dcdd828101de942f17a7cd5cf22b8ba"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/interaction/embedPolicy.ts",
+          "sha256": "0d19a5eac248669aa4918846e56427eeac648c93b3e53f89d5e1fc7e286ebf00"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/interaction/InteractionCoordinator.test.ts",
+          "sha256": "827219e6cee2908c6b085c5c309c3847776974e6b49de56dc8fd8db267062784"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/interaction/InteractionCoordinator.ts",
+          "sha256": "dca25423ab119c817cd33631129e44b8b6f531d8a9b75c1255e656e0d80cb5a4"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/interaction/webviewPolicy.test.ts",
+          "sha256": "c4a1649566a9c2add2caccd2c8a083b2c2b8a870891dcec8d1b063dcd7b1038a"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/interaction/webviewPolicy.ts",
+          "sha256": "97bc5e096288372f01c43fd96e3f60d9e6d9ab8af2d9ef4211524cbaf27d6024"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/layout/layoutActions.ts",
+          "sha256": "4baa840646596e853141b219ec286fff10d0985c4585332e56f0430c9a752bb5"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/layout/layoutSession.ts",
+          "sha256": "a29b0b4ef1100e2ab2ac4389145efc9002436ed7a0ccdc8ec525314b47e66c9f"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/layout/paneTypes.ts",
+          "sha256": "396a64edb1a456e02318cfdf24f44337cc33bb1b86ed9dc6aa465102d334eeaa"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx",
+          "sha256": "75f8a335cc5508f5a6e18fba52ed803c17669bb97e618a130fac19a73fd9ef45"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/store/workspaceLayoutModels.ts",
+          "sha256": "92aad1c3a8fa376f2360c6b292f2a46e4f1c9be764df8547f1069cab1a35fb7d"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/store/workspaceStore.ts",
+          "sha256": "e4707043689721647c8a920437edd50d1f6506fe261831411a7b338bcc197b30"
+        }
+      ]
+    },
+    {
+      "id": "desktop-terminal",
+      "scope": "app",
+      "owner": "apps/workspace-app",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "apps/workspace-app/docs/terminal/README.md",
+        "apps/workspace-app/docs/terminal/porting-history.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/workspace-app/src/main/ptyHostDaemon.ts",
+          "sha256": "d79cc953aaa311756ec4ecc036c9b8353df50f577d2defcd658117f5d7e90c0b"
+        },
+        {
+          "path": "apps/workspace-app/src/main/ptySession.ts",
+          "sha256": "a252eb858fd67a07f437d1f73b3e111e0492739e735d5cee7a71f9dceb2b8a83"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/lib/pane-manager/pane-terminal-output-scheduler.ts",
+          "sha256": "8648c722b1e89aa9006510ea4f9192c4e32575a7ff9712f50eaf55d36c05778a"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/TerminalPane.tsx",
+          "sha256": "8942e9fa4b5ae0f46bf7cf37a535cea2e34a8f4629660010251d82234645847f"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/terminal/ptyDataMultiplexer.ts",
+          "sha256": "50b66eacec8fd6f276ae9857038653a10dfafc2f6923e5fa3b4aceff46592578"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/terminal/ptyTransport.ts",
+          "sha256": "b7ed348bdfa658cc52bc27fae869eb403552d47a5763938ca41a7aad2b07a787"
+        }
+      ]
+    },
+    {
+      "id": "desktop-sync",
+      "scope": "app",
+      "owner": "apps/workspace-app",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "apps/workspace-app/docs/pkms/README.md",
+        "apps/workspace-app/docs/pkms/folder-sync.md",
+        "apps/workspace-app/docs/pkms/local-deletion-sync.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/workspace-app/src/main/pkms/api.ts",
+          "sha256": "8445ecfa9a1c4e8f3bff079c1fbf8bf7deb8702f4d13f7082b24ab871046965d"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/ipc.ts",
+          "sha256": "f166dd7e42403e140fa62a5ec386ae0d7104bc59828d905a56f91c095ea2992d"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/session.ts",
+          "sha256": "e1a2b26bdff8048e295b110626ec0631aa5d4ea305dc0a964d9557a8e1243ca0"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/syncBridge.ts",
+          "sha256": "28c3b21dbe03d1a90dc40a565105039d29101f83f7b2a0d88fe307ed929ecc9d"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsPane.tsx",
+          "sha256": "a0658ca37d6e450634fa77ae4e757ad7e86306abadae60087eba89785f9be1b9"
+        }
+      ]
+    },
+    {
+      "id": "desktop-features",
+      "scope": "app",
+      "owner": "apps/workspace-app",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "apps/workspace-app/docs/viewers/README.md",
+        "apps/workspace-app/docs/home/README.md",
+        "apps/workspace-app/docs/agents/README.md",
+        "apps/workspace-app/docs/settings/README.md",
+        "apps/workspace-app/docs/operations/logging.md",
+        "apps/workspace-app/docs/operations/windows-build.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/workspace-app/src/main/model3d/assetRouter.ts",
+          "sha256": "bec5f1a78cd77b7275833b8fa49933d886b543e7f66a405d7c134750e5f9c52b"
+        },
+        {
+          "path": "apps/workspace-app/src/main/model3d/formatSniffer.ts",
+          "sha256": "301b6e456ed7ba4e0f5c3477e0994ff2d640d27a7241b7adbf1e75b5f830dbf1"
+        },
+        {
+          "path": "apps/workspace-app/src/main/model3d/importJobQueue.ts",
+          "sha256": "c52f6795c10053d4bed46b09ad2169e480619798c37f8d0a49504f5720b89f9b"
+        },
+        {
+          "path": "apps/workspace-app/src/main/model3d/packageResolver.ts",
+          "sha256": "300c4499260b5a5e54da4399be8cff4509bb34cb7a4617ee7d1d3995283492f8"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/api.ts",
+          "sha256": "8445ecfa9a1c4e8f3bff079c1fbf8bf7deb8702f4d13f7082b24ab871046965d"
+        },
+        {
+          "path": "apps/workspace-app/src/main/usage.ts",
+          "sha256": "536f5f325719b678b1087afb3e3a2670a697900e8f1759452af31c5e4d66163a"
+        },
+        {
+          "path": "apps/workspace-app/src/main/workspaceAgentHookServer.ts",
+          "sha256": "ab05b0ea96a4e3887b0a0d6118e859984359cb899a0ed353fbdf6bdb660ab7bc"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/components/AgentUsageStatusBar.tsx",
+          "sha256": "800f82c5a14b3c4b572d3ff36f491826f459a73098b77311287730de2edfd4d5"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/dashboard/DashboardView.tsx",
+          "sha256": "dfde3157d32cea5e658aed9ee978a317e4973c1404d3c3514a90f708e0c2c632"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/dashboard/widgets/ServiceStatusWidget.tsx",
+          "sha256": "93baef8e757195d7fdf8e7f2c7be720a5de51a1fade34439499c048819e459c1"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/dashboard/widgets/SystemInformationWidget.tsx",
+          "sha256": "64df363aba073f26668279d386fb3c69d337fadbbb08184a99a78269ddaf0120"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/epub/epubKeys.ts",
+          "sha256": "2f8d5442bb711804473c48f0c6df1dd0d42b5b09e03b562c462733c693f81409"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/epub/epubLoader.ts",
+          "sha256": "760f9fd3d7219443b56b45bf7e7ac42e8408ba59a2cb555eddd32568e7d960f0"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
+          "sha256": "71e2a5b47b40b04ae28ce29a50ab3309a9c8db54043e44eb66e6da4ee26dfcea"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/mediaKind.ts",
+          "sha256": "58c846e825a50b8e94d17683940eec59bedf4ae97bda1e1f968d963d6b94c013"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/store/agentStatusStore.ts",
+          "sha256": "910bf9bfec5e8773d7a29bdaa3092348590a8227134ac0437db53aafe6a0bb31"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/theme.ts",
+          "sha256": "e69ff698145deac20bc6a44359b51e85c93a15b71b50025991083276c0049ea0"
+        },
+        {
+          "path": "apps/workspace-app/src/shared/agent-status-freshness.ts",
+          "sha256": "cb24a235641178a953233374f011d1c607ef919f94e88f532c230507fde1554a"
+        },
+        {
+          "path": "apps/workspace-app/src/shared/usage-meter-settings.ts",
+          "sha256": "5fee9f080f0fc83d5ce2937494a55ab5f45def23d90878dba2eda7d604ad4dc7"
+        }
+      ]
+    },
+    {
+      "id": "pkms-web",
+      "scope": "app",
+      "owner": "apps/pkms-web",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "apps/pkms-web/README.md",
+        "apps/pkms-web/docs/README.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/pkms-web/app/routes.ts",
+          "sha256": "90e581491e2fdd0c35d6c36705067eb671e337465560de4cc977e2b81ab688e8"
+        },
+        {
+          "path": "apps/pkms-web/app/routes/home.tsx",
+          "sha256": "c85d1b116e2ec7b0df77c9912206c943db512ef1bfc3dedbd424ebcb8ae4d926"
+        },
+        {
+          "path": "apps/pkms-web/workers/web.ts",
+          "sha256": "e4e7aa42e11ddb79e8c7deeca1582ac2c0048641513071604650bb1296e633f9"
+        }
+      ]
+    },
+    {
+      "id": "pkms-server",
+      "scope": "app",
+      "owner": "apps/pkms-server",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "apps/pkms-server/README.md",
+        "apps/pkms-server/docs/README.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/pkms-server/src/app.ts",
+          "sha256": "97b0ccc7adae9be419abfcaf47a6e10f9f702047afc2f3e4249ee8768dd9d1c0"
+        },
+        {
+          "path": "apps/pkms-server/src/SupabaseAccountStore.ts",
+          "sha256": "32ef40ba7f9ab1888cc85952a8b432bf0e50203c5f2b7787018fb390a820dac0"
+        },
+        {
+          "path": "apps/pkms-server/src/SupabaseVault.ts",
+          "sha256": "6658c58eadda7023645be5f085867f9cba82b3e2b9b4c3ebbdf3f647fc7330b8"
+        },
+        {
+          "path": "packages/pkms-protocol/realtime.schema.json",
+          "sha256": "96693d155870602a94016c5da92446afbd3cac73de6cae0299a389b4163fa764"
+        },
+        {
+          "path": "packages/pkms-protocol/src/types.ts",
+          "sha256": "9f93dc3a8b083b20a196c3105a2c38b848e1c1820a667a9e5b72848062ee4697"
+        }
+      ]
+    },
+    {
+      "id": "workspace-server",
+      "scope": "app",
+      "owner": "apps/workspace-server",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "apps/workspace-server/README.md",
+        "apps/workspace-server/docs/README.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/workspace-server/src/auth.ts",
+          "sha256": "3dbffce1adab45ec07b5c6f1ee664f588f32c0d5d0d38565a834406005c2637f"
+        },
+        {
+          "path": "apps/workspace-server/src/crypto.ts",
+          "sha256": "9759f3d73db21580f3dde96851a769ea08920f5d13dec8798b43d6786f39521e"
+        },
+        {
+          "path": "apps/workspace-server/src/index.ts",
+          "sha256": "c1716241109dac58c49cd078e544f08210e77bb8e7452571db87f9ee5c2c2c11"
+        },
+        {
+          "path": "apps/workspace-server/src/serviceIntegrations.ts",
+          "sha256": "e9cfb9d9e20d515d4c0a44acef1b670638c764d1bfeb55d94187d57b649e945e"
+        },
+        {
+          "path": "apps/workspace-server/src/store.ts",
+          "sha256": "589658f7ee9a968c7fbf491d3337bb3a12a5a64a2bf00abfc0418ab3a6d8bfb6"
+        }
+      ]
+    },
+    {
+      "id": "pkms-ios",
+      "scope": "app",
+      "owner": "apps/pkms-ios",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "apps/pkms-ios/README.md",
+        "apps/pkms-ios/docs/README.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/pkms-ios/NativeMarkdownDocument.swift",
+          "sha256": "b6a9bb4565c64e67f4bacb6b25c5de6d2ee5faca58c861fc3c0f80013cbb6e35"
+        },
+        {
+          "path": "apps/pkms-ios/PKMSAPITransport.swift",
+          "sha256": "f97b3a26882a8faf333d7c1f1976e03e674d924a87f0e3db9437910176bed220"
+        },
+        {
+          "path": "apps/pkms-ios/PKMSCloudApp.swift",
+          "sha256": "b8431b7939d3525f76cadecaaa87fa939e7a6f1cb2a117c0cd2e3db491079aba"
+        },
+        {
+          "path": "apps/pkms-ios/PKMSModel.swift",
+          "sha256": "829f9d9c9ea2181f820d2879e1121630f846917d6b953565bb01c735c99f14e8"
+        },
+        {
+          "path": "apps/pkms-ios/PKMSRealtimeSession.swift",
+          "sha256": "09b0d5b26ef62862b1e8d07c72549e922f59b7ca0ff3f49b613dfd51a976b5e0"
+        },
+        {
+          "path": "apps/pkms-ios/PKMSWorkspaceOperations.swift",
+          "sha256": "02b047173b3f1223e594c66046eca833c630fd554eb06b064d6ddef639a1adf6"
+        },
+        {
+          "path": "apps/pkms-ios/SessionVault.swift",
+          "sha256": "c26915de37dba3f7ef32f60735170893d9d18e5fcd48fc7bb2e341424c65b323"
+        }
+      ]
+    },
+    {
+      "id": "pkms-core",
+      "scope": "package",
+      "owner": "packages/pkms-core",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "packages/pkms-core/README.md",
+        "packages/pkms-core/docs/README.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/pkms-ios/NativeMarkdownDocument.swift",
+          "sha256": "b6a9bb4565c64e67f4bacb6b25c5de6d2ee5faca58c861fc3c0f80013cbb6e35"
+        },
+        {
+          "path": "packages/pkms-core/crates/pkms-core/src/lib.rs",
+          "sha256": "1f3a790f3b4067e621c8ac9b0eb97dacba1005c4e1165cfa28826b0c8684918b"
+        },
+        {
+          "path": "packages/pkms-core/crates/pkms-ffi/src/lib.rs",
+          "sha256": "5ec184547c15d3ede329eba9d155b1ea46bd3e2c2dd3925f1fe4185078827e32"
+        },
+        {
+          "path": "packages/pkms-core/crates/pkms-wasm/src/lib.rs",
+          "sha256": "e46c21c962aefa32281cd4cca950783c757b6cffe0e93cc8d3c01884a26edf12"
+        }
+      ]
+    },
+    {
+      "id": "pkms-protocol",
+      "scope": "package",
+      "owner": "packages/pkms-protocol",
+      "specStatus": "drafted",
+      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "documents": [
+        "packages/pkms-protocol/README.md",
+        "packages/pkms-protocol/docs/README.md"
+      ],
+      "sources": [
+        {
+          "path": "apps/pkms-ios/PKMSProtocolModels.swift",
+          "sha256": "24b46f27fbea67930912368f5edb9c96d4b794a06d3f9dabb3c5b9fc402818fe"
+        },
+        {
+          "path": "apps/pkms-ios/PKMSRealtimeSession.swift",
+          "sha256": "09b0d5b26ef62862b1e8d07c72549e922f59b7ca0ff3f49b613dfd51a976b5e0"
+        },
+        {
+          "path": "packages/pkms-client/src/realtime.ts",
+          "sha256": "e0112bf85d24f57762ae851f72e63c29368509bf61098b665eb92137a3d92d87"
+        },
+        {
+          "path": "packages/pkms-protocol/realtime.schema.json",
+          "sha256": "96693d155870602a94016c5da92446afbd3cac73de6cae0299a389b4163fa764"
+        },
+        {
+          "path": "packages/pkms-protocol/src/types.ts",
+          "sha256": "9f93dc3a8b083b20a196c3105a2c38b848e1c1820a667a9e5b72848062ee4697"
+        }
+      ]
     }
-  ]
+  ],
+  "globalScope": {
+    "owner": "docs",
+    "scope": "global",
+    "specStatus": "drafted",
+    "coverage": "Product journeys, context, ownership, planning and index; module behavior lives beside app/package."
+  }
 }

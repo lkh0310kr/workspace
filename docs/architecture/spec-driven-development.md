@@ -1,6 +1,6 @@
 # 코드에서 추출한 스펙의 운영 규칙
 
-이 문서군은 현재 코드를 역으로 분석한 재구현 기준이다. 모듈 스펙은 코드 소유 모듈에 두고 최상단 architecture는 링크와 공통 규칙을 관리한다. 최초 기준일은 2026-11-11이며 파일별 소스 digest는 [스펙 인덱스](./spec-index.json)에 기록한다. 저장소의 uncommitted 문서 변경을 포함하는 기준이므로 commit 전체와 동일하다고 가정하지 않는다.
+이 문서군은 현재 코드를 역으로 분석한 재구현 기준이다. 모듈 스펙은 코드 소유 모듈에 두고 최상단 architecture는 링크와 공통 규칙을 관리한다. 기준일은 2026-11-11이며 파일별 소스 digest는 [스펙 인덱스](./spec-index.json)에 기록한다. 인덱스는 14개 모듈, 74개 등록 문서, 209개 소스 digest를 추적한다. 이 수치는 문서 등록 범위이지 의미 검토나 재생성 검증의 완료 수가 아니다.
 
 ## 문서를 구현에 사용하는 방법
 
@@ -16,15 +16,15 @@
 
 | 영역 | 현재 문서 | 재생성 상세 범위/남은 범위 |
 |---|---|---|
-| Shared Editor | [packages/editor/docs](../../packages/editor/docs/README.md) | provider 타입·surface·cache·tree·Markdown·검색. CSS 세부 수치/전체 decoration 분기와 탭 chip 세부 UI는 코드 근거로 연결 |
-| Desktop provider/저장 | [workspace-app/docs/editor](../../apps/workspace-app/docs/editor/providers.md) | ID persistence, lease, 파일 작업, 충돌, 저장 중 편집 |
-| PKMS editor sessions | [pkms-client/docs](../../packages/pkms-client/docs/editor-sessions.md) | provider bridge, local polling/save, Yjs·asset session. API 서버 자체는 기존 PKMS 문서 |
-| Browser | [workspace-app/docs/browser](../../apps/workspace-app/docs/browser/README.md) | lifecycle·viewport·focus·navigation·session·IPC·history·zoom. OS focus/실제 로그인은 수동 통합 검증 |
-| Asset viewers | [연결 계약](../../packages/editor/docs/assets.md) | 라우팅·bytes/stream·cleanup. EPUB paginator·3D renderer·CAD viewer 전체 상세는 미작성 |
-| Workspace/layout/interaction | [기존 구조](./03-workspace-and-layout.md), [조정기](./04-interaction-coordinator.md) | 개요 수준; 모든 reducer/action 재생성 상세는 미작성 |
-| Terminal | [기존 파이프라인](./05-terminal-pipeline.md) | 개요 수준; PTY/IME/플랫폼별 전체 상세는 미작성 |
-| PKMS sync | [기존 PKMS](./pkms/README.md) | 기존 문서 범위 유지 |
-| Home/settings/update/agent status | [제품 경계](./08-monorepo-module-boundaries.md), [릴리스](./desktop-release.md) | 상세 구현 스펙 미작성 |
+| Shared Editor | [packages/editor/docs](../../packages/editor/docs/README.md) | 공개 API·provider·tree·Markdown·code·검색·asset 연결. 전체 decoration/CSS·시각 fixture는 잔여 |
+| Desktop editor/provider | [workspace-app editor docs](../../apps/workspace-app/docs/editor/providers.md) | identity·저장·충돌·파일 작업; 수동 host acceptance 일부 잔여 |
+| PKMS client/editor | [pkms-client docs](../../packages/pkms-client/docs/README.md) | account·cache·document session·Realtime·platform bridge; 서버/배포 acceptance 별도 |
+| Browser | [workspace-app browser docs](../../apps/workspace-app/docs/browser/README.md) | lifecycle·navigation·focus·session·IPC·history·zoom; native focus/로그인 검증 잔여 |
+| Desktop shell/layout/interaction/IPC/persistence | [Desktop 앱 문서 색인](../../apps/workspace-app/docs/README.md) | 주요 소유자·전이·데이터 흐름 초안; 전체 action/route fixture·CI 검증 잔여 |
+| Desktop terminal | [Terminal 문서](../../apps/workspace-app/docs/terminal/README.md) | daemon→renderer/replay/ACK·buffer 경로; IME/OS별 실기 수락 잔여 |
+| Desktop viewer/Home/agents/settings/usage/operations | [모듈별 문서 색인](../../apps/workspace-app/docs/README.md) | 라우팅·상태·운영 책임 초안; 포맷별 완전 상세와 native/provider acceptance 잔여 |
+| PKMS Web/server, Workspace server, iOS | [앱 scope 색인](../../docs/README.md) | app별 route·auth·session·ownership 초안; 배포 DB·OAuth·iOS 실기 acceptance 잔여 |
+| PKMS protocol/core | [package scope 색인](../../docs/README.md) | DTO·Realtime·CRDT·UTF-16·FFI 경계; HTTP 전체 자동 계약 및 clean-room 재생성 잔여 |
 
 현재 문서와 소스의 대응은 spec-index의 modules에 기록한다. 문서 범위가 늘면 이 표와 index를 함께 갱신한다. archive/models와 archive/scripts는 활성 제품 범위가 아니다.
 
@@ -57,7 +57,11 @@ node scripts/check-architecture-specs.mjs
 
 refresh는 소스를 생성하거나 스펙 본문을 고치지 않는다. baseline 갱신 자체를 문서 검토 완료나 기능 테스트 성공으로 해석하지 않는다. 새 source 파일도 검토 후 spec-index의 해당 모듈 sources에 추가한다. 스크립트는 아직 CI 필수 gate에 연결하지 않았다.
 
-## 이번 추출 작업의 검증 결과
+## 검증 기준과 실행 기록
+
+2026-11-11 scope 확장 작업에서 Desktop layout·explorer·interaction·terminal·session buffer·ebook 관련 집중 검증은 9개 파일, 37개 테스트가 통과했다. 이번 문서 변경으로 clean-room 재생성, 전체 native 앱, OS focus/login 또는 실제 배포 acceptance를 실행하지 않았다. 재생성 상태는 아직 어떤 모듈에도 부여하지 않는다.
+
+### 초기 editor/browser 추출 기록
 
 2026-11-11 기준으로 등록된 4개 모듈, 문서 15개, 소스 digest 106개와 로컬 링크 검사가 통과했다. 검사 스크립트 자체도 임시 fixture에서 정상 baseline, source drift 실패, refresh 후 성공, 깨진 링크 실패를 확인했다.
 

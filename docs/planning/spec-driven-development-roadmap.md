@@ -1,6 +1,6 @@
 # 제품 전체 SDD 전환 계획
 
-목표는 기능별 개요를 늘리는 것이 아니라 **제품 요구 → 모듈 계약 → 구현 → 수락 근거**가 끊기지 않게 만드는 것이다. [Top-down 감사](./top-down-documentation-audit.md)의 24개 발견 사항을 아래 작업 묶음으로 처리한다. 이번 작업에서 채택된 것은 감사·기획과 미사용 계약 파일 정리이며, 아래 제품 리팩터링과 CI 변경은 실행할 후속 계획이다.
+목표는 기능별 개요를 늘리는 것이 아니라 **제품 요구 → 모듈 계약 → 구현 → 수락 근거**가 끊기지 않게 만드는 것이다. [Top-down 감사](./top-down-documentation-audit.md)의 24개 발견 사항을 아래 작업 묶음으로 처리한다. 문서 기준 정렬과 scope별 계약 추출은 진행됐고, 제품 코드·CI 개선과 완전한 acceptance는 별도 후속 작업이다. 아래 진행표는 `2026-11-11` 현재 상태다.
 
 ## 제품 기획 기준
 
@@ -64,6 +64,27 @@ packages/pkms-core/docs/            # 도메인/UTF-16/CRDT/FFI/WASM
 | WP-10 Viewer 전 경로 스펙 | P1·L | WP-03/04/05 | image/PDF/media/EPUB/model3d/CAD별 입력·상태·오류·protocol·queue/cache/cleanup. native dependency와 Python adapter 실행 경계 명시 | AUD-22 |
 | WP-11 Web/iOS/Core·운영 스펙 | P1·L | WP-03/07 | Web canonical/proxy/SSR, iOS session/cache/Keychain/native FFI, Core invariants·바인딩. release/update/log/diagnostic·복구 runbook | AUD-05/19/23/24 |
 | WP-12 재생성 검증·운영 고정 | P1·M~L | WP-04, 대상 WP별 상세 완료 | 독립 모듈부터 clean-room 복원 실험. 요구 ID↔source↔test/evidence 추적. 신규 source/미소유 기능·anchor·dependency 문서 검사 보강 | AUD-10/12/13/14 |
+
+## 실행 진행 상태
+
+| 작업 | 상태 | 이번 slice 결과 | 남은 종료 조건 |
+|---|---|---|---|
+| WP-01 제품·기능 inventory | 부분 완료 | Global 제품 여정·기능 상태와 app/package owner 색인 작성 | 모든 capability를 구현/배포/acceptance와 검증 근거까지 행 단위로 추적 |
+| WP-02 기존 기준 충돌 정리 | 부분 완료 | layout·sync·terminal·release의 현재 기준을 owner docs로 이동하고 top-level 링크화 | manual QA shortcut/Browser focus 표와 나머지 기존 기준 충돌 대조 |
+| WP-03 시스템·상태·계약 지도 | 부분 완료 | global→app→package scope, IPC·persistence·PKMS·Home·protocol/core 소유 문서 초안 | 모든 IPC/HTTP handler의 field/error/side effect와 저장물 복구 matrix |
+| WP-04 영향 기반 검증 정비 | 미착수 | 누락된 Editor CI path와 Vitest wrapper 제한을 감사에서 재현해 기록 | workflow/wrapper/GC·native ABI 경로 수정, 영향 기반 검증 gate 실행 |
+| WP-05 Shell·layout·interaction | 부분 완료 | runtime·layout·interaction·IPC·persistence 계약과 현재 timer 한계 기록 | 전체 action 분기·복구/충돌 fixture 및 저장 수명 검증 |
+| WP-06 Terminal | 부분 완료 | daemon/client/decoder/replay/ACK/버퍼 계약과 porting history 분리 | IME·clipboard·OS별 focus/scroll/긴 TUI 수락 evidence |
+| WP-07 PKMS 데이터·동기화 | 부분 완료 | client·server·Web·iOS·sync queue/delete/current source 경계 문서화 | DB/RPC field-level·migration, OAuth/배포와 cross-client 실기 sync |
+| WP-08 Editor·Browser | 부분 완료 | 공개 API·메뉴 variant·keyboard·provider·Markdown/tree/browser 주요 동작 작성 | decoration 전체 fixture·시각/host 차이·수락 ID별 evidence 연결 |
+| WP-09 Home·agents·usage·settings | 부분 완료 | OAuth/service, agent evidence/freshness, system summary, settings/usage 지원 범위 문서화 | 전체 provider grammar/fixture, 외부 credentials 및 운영 acceptance |
+| WP-10 Viewer | 부분 완료 | image/media/EPUB/3D/CAD 소유 경로·import queue·cleanup 초안 | 각 포맷 parser/renderer/fallback/error/성능 기준과 native acceptance |
+| WP-11 Web/iOS/Core·운영 | 부분 완료 | app/package 경계·binding 차이·운영 logging/Windows 링크 작성 | iOS/native build·Web deploy·외부 OAuth 및 운영 runbook 검증 |
+| WP-12 재생성 검증·운영 고정 | 부분 완료 | index 14 modules/74 docs/209 source digests; focused 9 files/37 tests 통과 | 원본 없는 clean-room 재생성, semantic drift/acceptance 자동 추적 및 CI gate |
+
+이 표의 `부분 완료`는 문서 slice가 존재한다는 뜻이다. 각 종료 조건 전체, 배포, runtime acceptance 또는 regeneration-verified 상태를 뜻하지 않는다. 모듈의 보수적인 `drafted` 상태와 검증 범위는 [스펙 운영 문서](../architecture/spec-driven-development.md) 및 [기계 판독 색인](../architecture/spec-index.json)에서 확인한다.
+
+각 실행 slice는 별도 커밋으로 기록했다. 그 중 발견된 구현 후보는 별도 추적한다. 예를 들어 `workspaceStore`의 layout 저장 debounce가 모듈 전역 단일 timer를 공유해 workspace 간 연속 저장 요청이 서로 취소될 수 있다는 동작은 [layout spec](../../apps/workspace-app/docs/layout/README.md)에 기록했으며, 제품 수정은 이 문서 작업에 포함하지 않았다.
 
 S/M/L은 한 번의 파일 편집/모듈 조사/여러 런타임 경계 조사 규모를 표현하며 일수·담당자·마감일을 확정한 추정이 아니다. 실제 실행 시 WP-06/07/10 같은 큰 작업은 아래처럼 수락 가능한 slice로 쪼갠다.
 
