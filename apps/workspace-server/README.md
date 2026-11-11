@@ -1,5 +1,7 @@
 # Workspace Home Worker
 
+현재 앱의 경계·상태·계약은 [app scope 문서](./docs/README.md)를 기준으로 합니다.
+
 This Cloudflare Worker serves the Workspace Home service dashboard API. It owns Cloudflare/Supabase OAuth credentials, the optional Supabase metrics token, and the Vercel read-only token. These values are encrypted with `HOME_DATA_ENCRYPTION_KEY` and stored in this Worker’s D1 database.
 
 PKMS remains the identity authority. The Electron main process requests a five-minute `workspace-home` audience token from PKMS and forwards it to this Worker. This Worker validates the signature against PKMS JWKS, issuer, audience, expiry, and scope. It does not use PKMS’s session secret or database.
