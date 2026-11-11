@@ -1702,6 +1702,7 @@ export default function Home() {
               if (content?.type === "text") editorNavigate.current?.(content.text.length);
             }}
             surfaceKey={activeFile.id}
+            surfaceContainerClassName="md-editor"
             surfaceContainerStyle={pkmsEditorFontStyle}
             surfaceProps={{ documentKey: pkmsDocumentKey(activeWorkspace.id, activeFile.id), viewStateStorage: getEditorViewStateStorage(), session: activeEditorSession, documentPath: activeFile.path, parserExtensions: editorMarkdownParserExtensions, extensions: editorCodeMirrorHostExtensions, onNavigateReady: registerEditorNavigator, onActivateLink: activateMarkdownLink, resolveImage: resolveMarkdownImage, onSessionError: (cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document"), ariaLabel: "Markdown editor" }}
           /> : <div className="asset-view">

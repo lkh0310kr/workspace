@@ -82,6 +82,7 @@ Desktop과 Web PKMS는 같은 `PkmsClientApp`을 사용한다. 따라서 `packag
 - PKMS의 일반 저장 단계(`Saved`/`Saving`) 표시를 제거했다. folder sync notice는 별도 status message로 유지한다.
 - Desktop과 Web PKMS가 자체 sidebar shortcut을 처리한다. Desktop PKMS pane은 Workspace Explorer shortcut 대신 PKMS sidebar를 토글한다.
 - 공용 CodeMirror host extension(Workspace theme, selection, multi-cursor, indent guide)을 `packages/editor`로 옮겨 Desktop Editor와 PKMS Markdown surface가 같은 extension set을 쓰게 했다. PKMS font size도 Desktop 기본 13px로 맞췄다.
+- Markdown wrapper class와 CodeMirror selection paint 규칙을 `packages/editor` stylesheet로 옮겼다. PKMS Shadow DOM에서도 선택 강조가 같은 공용 CSS로 적용된다.
 - PKMS 내부 document tab bar와 open-document tab state/close/select 흐름을 제거했다. 한 파일에서 다른 파일로 이동할 때 dirty session을 저장한 뒤 닫고, PKMS 저장소 선택 UI는 sidebar에 남겼다.
 - PKMS 편집 화면의 전용 topbar를 제거했다. `Cmd + \\`는 PKMS pane에 자체 Explorer가 있으므로 PKMS sidebar를 토글하도록 다시 연결했으며, `event.key`와 `event.code`를 모두 확인한다.
 - 다음 우선 순위는 Markdown host render 검증 및 code editing 범위 결정이다. 이번 변경은 전체 PKMS shell 통합이나 코드 파일 편집 지원을 완료한 것으로 간주하지 않는다.

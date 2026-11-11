@@ -2617,32 +2617,9 @@ input {
   font-size: 16px;
 }
 
-.md-editor {
-  height: 100%;
-  position: relative;
-}
-
 .md-editor-host {
   height: 100%;
   min-height: 0;
-}
-
-/* CodeMirror selection — theme extension + native ::selection during drag. */
-.cm-editor .cm-selectionLayer {
-  z-index: 2;
-}
-
-.cm-editor .cm-selectionLayer .cm-selectionBackground {
-  background-color: var(--editor-selection-bg) !important;
-}
-
-.cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground {
-  background-color: var(--editor-selection-bg-focused) !important;
-}
-
-.cm-editor .cm-content ::selection,
-.cm-editor .cm-line ::selection {
-  background-color: var(--editor-selection-bg-focused) !important;
 }
 
 .browser-nav {

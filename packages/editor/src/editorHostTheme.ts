@@ -19,16 +19,6 @@ export const workspaceEditorTheme = EditorView.theme({
   },
   ".cm-activeLine": { background: "var(--bg-hover)" },
   ".cm-cursor": { borderLeftColor: "var(--text)" },
-  ".cm-selectionLayer": { zIndex: 2 },
-  ".cm-selectionLayer .cm-selectionBackground": {
-    backgroundColor: "var(--editor-selection-bg) !important",
-  },
-  "&.cm-focused .cm-selectionLayer .cm-selectionBackground": {
-    backgroundColor: "var(--editor-selection-bg-focused) !important",
-  },
-  ".cm-content ::selection": {
-    backgroundColor: "var(--editor-selection-bg-focused) !important",
-  },
 });
 
 // Indent guides moved to indentGuides.ts — see that file for why (two

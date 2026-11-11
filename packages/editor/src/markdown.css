@@ -11,6 +11,12 @@
 .cm-md-h4 { font-size: 16px; font-weight: 600; line-height: 1.4; }
 .cm-md-h5 { font-size: 14px; font-weight: 600; line-height: 1.5; }
 .cm-md-h6 { color: var(--text-muted, var(--muted)); font-size: 13px; font-weight: 600; line-height: 1.5; }
+.editor-markdown-surface .cm-selectionLayer { z-index: 2; }
+.editor-markdown-surface .cm-selectionLayer .cm-selectionBackground { background-color: var(--editor-selection-bg, rgba(90, 110, 240, .2)) !important; }
+.editor-markdown-surface .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground { background-color: var(--editor-selection-bg-focused, rgba(90, 110, 240, .3)) !important; }
+.editor-markdown-surface .cm-content ::selection,
+.editor-markdown-surface .cm-line ::selection { background-color: var(--editor-selection-bg-focused, rgba(90, 110, 240, .3)) !important; }
+
 .cm-line:has(.cm-md-h1) { padding-top: 20px; padding-bottom: 10px; }
 .cm-line:has(.cm-md-h2) { padding-top: 16px; padding-bottom: 8px; }
 .cm-line:has(.cm-md-h3) { padding-top: 24px; padding-bottom: 10px; }
