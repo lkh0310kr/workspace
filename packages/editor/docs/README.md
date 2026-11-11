@@ -16,6 +16,8 @@
 | [검색](./search.md) | 문서 검색, Quick Open, 파일 내용 검색·치환 |
 | [Asset viewer 경계](./assets.md) | Editor에서 포맷별 viewer로 연결하는 계약 |
 
+TreeView 스크롤 점프, 활성 파일 reveal, breadcrumb의 결과 요구와 비교 근거는 [Editor 탐색 비교 검토](../../../docs/planning/editor-navigation-review.md)에 제안 상태로 기록했다. 채택 후 이 package의 재생성 가능한 동작 계약으로 옮기고 구현 상태를 갱신한다.
+
 ## 소유권
 
 `packages/editor`는 React와 CodeMirror로 만든 UI/순수 규칙을 소유한다. 앱의 Electron API, 인증, Yjs, 파일 저장소를 직접 import하지 않는다. `packages/editor/package.json`의 export는 기본 API, `EditorMarkdownSurface`, `code-mirror`, `tree-row`와 네 CSS 진입점을 제공한다. 실제 의존성 버전과 해석 결과는 package manifest와 lockfile을 사용한다.
