@@ -7,7 +7,7 @@ import {
   indentGuideColumns,
   indentGuides,
   whitespaceGuideDepth
-} from './indentGuides'
+} from '@workspace/editor'
 
 describe('indent guides', () => {
   it('detects two and four space project indentation from document lines', () => {

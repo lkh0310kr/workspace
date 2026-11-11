@@ -6,9 +6,9 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { Compartment, EditorState } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
+import { Compartment } from "@codemirror/state";
+import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
+import { editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -16,14 +16,11 @@ import {
   foldGutter,
   foldKeymap,
   indentOnInput,
-  indentUnit,
   LanguageDescription,
 } from "@codemirror/language";
 import { languages as languageData } from "@codemirror/language-data";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
-import { workspaceEditorTheme } from "../codemirrorTheme";
-import { indentGuides } from "../indentGuides";
 import { syntaxTheme } from "../codemirrorSyntax";
 import { pastePlainTextCommand } from "../editorPlainPaste";
 import { getFocusedEditorView } from "../activeEditorView";
@@ -380,12 +377,7 @@ export function EditorContent({
 
     return [
       ...modeExtensions,
-      indentUnit.of("    "),
-      EditorState.allowMultipleSelections.of(true),
-      drawSelection(),
-      workspaceEditorTheme,
-      indentGuides,
-      EditorView.clickAddsSelectionRange.of((event) => event.altKey),
+      ...editorCodeMirrorHostExtensions,
       EditorView.updateListener.of((update) => {
         if (!update.docChanged) return;
         editRevisionRef.current += 1;

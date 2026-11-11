@@ -4,12 +4,19 @@
   --sidebar: #fafafa;
   --surface: #fff;
   --editor: #fff;
+  --editor-bg: var(--editor);
   --text: #171717;
+  --text-muted: #4e5058;
+  --text-faint: #6d7078;
   --muted: #737373;
   --subtle: #a3a3a3;
   --border: #e5e5e5;
+  --border-strong: #c5c8ce;
   --hover: #f5f5f5;
+  --bg-hover: var(--hover);
   --selected: #ededed;
+  --editor-selection-bg: rgba(35, 36, 40, 0.12);
+  --editor-selection-bg-focused: rgba(35, 36, 40, 0.2);
   --primary: #171717;
   --primary-text: #fafafa;
   --danger: #b42318;
@@ -19,6 +26,16 @@
   --link-hover: #3542c1;
   --focus-ring: #4653d5;
   --editor-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", "Noto Sans KR", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", Consolas, "D2Coding", "NanumGothicCoding", "Noto Sans Mono CJK KR", "Apple SD Gothic Neo", "Malgun Gothic", monospace;
+  --syntax-keyword: #af00db;
+  --syntax-string: #a31515;
+  --syntax-comment: #008000;
+  --syntax-number: #098658;
+  --syntax-function: #795e26;
+  --syntax-type: #267f99;
+  --syntax-property: #001080;
+  --syntax-invalid: #cd3131;
   --scroll-size: 8px;
   --scroll-thumb: rgba(121, 121, 121, .4);
   font-family: Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -32,12 +49,19 @@
     --sidebar: #17181b;
     --surface: #1d1f22;
     --editor: #111214;
+    --editor-bg: var(--editor);
     --text: #e2e4e7;
+    --text-muted: #a1a5ad;
+    --text-faint: #777c85;
     --muted: #a1a5ad;
     --subtle: #777c85;
     --border: #292b30;
+    --border-strong: #3b3e44;
     --hover: #25272b;
+    --bg-hover: var(--hover);
     --selected: #2c2e32;
+    --editor-selection-bg: rgba(225, 230, 255, 0.13);
+    --editor-selection-bg-focused: rgba(225, 230, 255, 0.2);
     --primary: #606ac8;
     --primary-text: #fff;
     --danger: #f87171;
@@ -45,6 +69,14 @@
     --link: #aab2ff;
     --link-hover: #c6cbff;
     --focus-ring: #aab2ff;
+    --syntax-keyword: #b28bad;
+    --syntax-string: #bc937d;
+    --syntax-comment: #788c70;
+    --syntax-number: #a2ad91;
+    --syntax-function: #c5bd98;
+    --syntax-type: #79a79c;
+    --syntax-property: #91a9bc;
+    --syntax-invalid: #cf7777;
   }
 }
 * { box-sizing: border-box; }
@@ -67,7 +99,7 @@ button { cursor: pointer; }
 .app-shell.sidebar-collapsed { grid-template-columns: 0 minmax(0, 1fr); }
 .sidebar-collapsed .sidebar { min-width: 0; padding: 0; border: 0; visibility: hidden; }
 .sidebar { position: relative; display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: hidden; padding: 14px 10px 10px; border-right: 1px solid var(--border); background: var(--sidebar); }
-.sidebar-top, .file-toolbar, .topbar, .topbar-left, .topbar-right, .account-row { display: flex; align-items: center; justify-content: space-between; }
+.sidebar-top, .file-toolbar, .account-row { display: flex; align-items: center; justify-content: space-between; }
 .sidebar-top { padding: 0 5px 16px; }
 .icon-button, .mini-button, .modal-close { display: inline-grid; place-items: center; border: 0; border-radius: 6px; color: var(--muted); background: transparent; }
 .icon-button { width: 30px; height: 30px; font-size: 19px; }
@@ -149,16 +181,7 @@ button { cursor: pointer; }
 .account-row img { width: 23px; height: 23px; border-radius: 50%; background: var(--hover); object-fit: cover; }
 .logout-button { margin-left: auto; font-size: 16px; }
 .main-panel { position: relative; display: flex; height: 100%; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; background: var(--bg); }
-.topbar { height: 48px; flex: 0 0 48px; padding: 0 20px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 12px; }
-.breadcrumbs { display: flex; min-width: 0; align-items: center; gap: 8px; }
-.breadcrumbs span:last-child { overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
-.crumb-slash { color: var(--subtle); }
-.topbar-left { min-width: 0; justify-content: flex-start; gap: 10px; }
-.topbar-right { gap: 16px; }
-.sidebar-toggle { display: inline-grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border: 0; border-radius: 6px; color: var(--muted); background: transparent; }
-.sidebar-toggle:hover { color: var(--text); background: var(--hover); }
 .modal-close .app-icon { width: 14px; height: 14px; margin: 0 auto; }
-.collaborators { color: var(--muted); font-size: 11px; }
 .live-presence { margin-top: 5px; color: var(--muted); font-size: 11px; }
 .column-label { display: none; }
 .editor-loading { display: grid; min-height: 0; flex: 1; place-items: center; color: var(--muted); font-size: 12px; }
@@ -213,7 +236,7 @@ button { cursor: pointer; }
 .external-warning { position: fixed; right: 16px; bottom: 16px; display: flex; max-width: 360px; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border)); border-radius: 8px; color: var(--warning); background: var(--surface); font-size: 11px; }.external-warning span { color: var(--muted); line-height: 1.45; }
 .loading-screen { gap: 12px; align-content: center; color: var(--muted); font-size: 12px; }.loading-screen .brand-mark { margin: 0 auto; }
 @media (max-width: 820px) {
-  .app-shell { grid-template-columns: 210px minmax(0, 1fr); }.topbar { padding: 0 14px; }.topbar-right { gap: 10px; }
+  .app-shell { grid-template-columns: 210px minmax(0, 1fr); }
 }
 @media (max-width: 580px) {
   .app-shell { grid-template-columns: 1fr; grid-template-rows: 34dvh minmax(0, 1fr); }
@@ -221,6 +244,6 @@ button { cursor: pointer; }
   .sidebar { height: 34dvh; min-height: 0; max-height: 34dvh; border-right: 0; border-bottom: 1px solid var(--border); }
   .sidebar-collapsed .sidebar { height: 0; min-height: 0; max-height: 0; padding: 0; border: 0; }
   .sidebar-top { padding-bottom: 8px; }.workspace-select { padding: 6px 7px 8px; }.sidebar-bottom { display: none; }
-  .main-panel { height: 100%; min-height: 0; }.topbar { height: 42px; flex-basis: 42px; font-size: 11px; }.topbar-right { gap: 8px; }
+  .main-panel { height: 100%; min-height: 0; }
   .welcome-card { padding: 24px; }
 }

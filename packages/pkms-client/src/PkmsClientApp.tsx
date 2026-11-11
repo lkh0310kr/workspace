@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, confirmEditorDocumentCloseById, discardEditorDocumentViewState, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorDocumentTabBar, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
@@ -33,6 +33,7 @@ function getEditorViewStateStorage(): Storage | undefined {
   if (typeof window === "undefined") return undefined;
   try { return window.localStorage; } catch { return undefined; }
 }
+const pkmsEditorFontStyle = { "--editor-font-size": "13px" } as CSSProperties;
 
 function attachmentContentType(path: string, contentType: string): string {
   if (contentType.startsWith("image/")) return contentType;
@@ -76,7 +77,6 @@ export default function Home() {
   const [showFileFilters, setShowFileFilters] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeFile, setActiveFile] = useState<FileRecord | null>(null);
-  const [openDocuments, setOpenDocuments] = useState<Array<{ workspaceId: string; file: FileRecord }>>([]);
   const [activeEditorSession, setActiveEditorSession] = useState<EditorDocumentSession | null>(null);
   const [openingFileId, setOpeningFileId] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
@@ -93,7 +93,7 @@ export default function Home() {
   const account = useAccountSession({ request: api, setError, setActiveWorkspace });
   const { user, workspaces, loading, deviceFlow, refreshWorkspaces, beginDesktopSignIn } = account;
   const [showRepositories, setShowRepositories] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [, setSaving] = useState(false);
   const [peers, setPeers] = useState<Peer[]>([]);
   const [assetPreviewUrl, setAssetPreviewUrl] = useState<string | null>(null);
   const [assetPreviewType, setAssetPreviewType] = useState("");
@@ -527,10 +527,6 @@ export default function Home() {
             rekeyPkmsEditorSession(sessionKey, nextItem, session);
           }
           setFiles(remapped);
-          setOpenDocuments((current) => current.map((tab) => {
-            const next = oldToNew.get(tab.file.id);
-            return tab.workspaceId === activeWorkspace.id && next ? { ...tab, file: next } : tab;
-          }));
           setActiveFile((current) => current ? oldToNew.get(current.id) ?? current : current);
           if (file.kind === "folder") {
             setExpandedFolders((current) => new Set([...current].map((item) => item === file.path || item.startsWith(`${file.path}/`) ? `${renamed.path}${item.slice(file.path.length)}` : item)));
@@ -574,10 +570,6 @@ export default function Home() {
             rekeyPkmsEditorSession(sessionKey, nextItem, session);
           }
           setFiles(remapped);
-          setOpenDocuments((current) => current.map((tab) => {
-            const next = oldToNew.get(tab.file.id);
-            return tab.workspaceId === activeWorkspace.id && next ? { ...tab, file: next } : tab;
-          }));
           setActiveFile((current) => current ? oldToNew.get(current.id) ?? current : current);
           setExpandedFolders((current) => new Set([...current].map((currentPath) => {
             const root = roots.find((candidate) => candidate.kind === "folder" && (currentPath === candidate.path || currentPath.startsWith(`${candidate.path}/`)));
@@ -653,7 +645,6 @@ export default function Home() {
             closePkmsEditorSession(sessionKey, session);
           }
           setFiles((current) => current.filter((file) => !removed(file)));
-          setOpenDocuments((current) => current.filter((tab) => tab.workspaceId !== activeWorkspace.id || !removed(tab.file)));
           setActiveFile((current) => current && removed(current) ? null : current);
           setActiveEditorSession((current) => current && roots.some((root) => current.item.path === root.path || (root.kind === "folder" && current.item.path.startsWith(`${root.path}/`))) ? null : current);
           treeProviderListeners.current.forEach((listener) => listener(paths));
@@ -690,6 +681,19 @@ export default function Home() {
     const controller = new AbortController();
     editorSessionOpenController.current = controller;
     const sourceFileId = file.id;
+    const previousSession = activeEditorSession;
+    if (previousSession && previousSession.item.path !== file.path) {
+      const previousKey = editorDocumentKey(previousSession.item);
+      try {
+        if (previousSession.snapshot().savePhase !== "clean") await previousSession.save({ flushSync: true });
+      } catch (cause) {
+        if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Could not save the current PKMS document");
+        if (editorSessionOpenController.current === controller) editorSessionOpenController.current = null;
+        return;
+      }
+      closePkmsEditorSession(previousKey, previousSession);
+      setActiveEditorSession(null);
+    }
     if (activeWorkspace && file.kind === "markdown" && !file.id.startsWith("local-")) {
       const desktop = desktopBridge();
       if (desktop) {
@@ -733,15 +737,6 @@ export default function Home() {
           return;
         }
       }
-    }
-    if (activeWorkspace) {
-      setOpenDocuments((current) => {
-        const index = current.findIndex((tab) => tab.workspaceId === activeWorkspace.id && (tab.file.id === file.id || tab.file.id === sourceFileId || tab.file.path === file.path));
-        if (index < 0) return [...current, { workspaceId: activeWorkspace.id, file }];
-        const next = [...current];
-        next[index] = { workspaceId: activeWorkspace.id, file };
-        return next;
-      });
     }
     const isLocalFile = file.id.startsWith("local-");
     if (isLocalFile && activeWorkspace) {
@@ -788,7 +783,6 @@ export default function Home() {
         } catch (cause) {
           if (controller.signal.aborted) return;
           if (isLocalFile) setOpeningFileId(null);
-          setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === file.id)));
           setError(cause instanceof Error ? cause.message : "Could not open PKMS document");
         } finally {
           if (editorSessionOpenController.current === controller) {
@@ -806,7 +800,7 @@ export default function Home() {
     } finally {
       if (editorSessionOpenController.current === controller) editorSessionOpenController.current = null;
     }
-  }, [activeEditorSession, activeWorkspace, closePkmsEditorSession, editorProvider, location.pathname, navigate, openDocumentSession, setCurrentFolder, setExpandedFolders, trackPkmsEditorSession]);
+  }, [activeEditorSession, activeWorkspace, closePkmsEditorSession, editorProvider, location.pathname, navigate, openDocumentSession, setCurrentFolder, setExpandedFolders, setError, trackPkmsEditorSession]);
   useEffect(() => {
     const desktop = desktopBridge();
     const current = activeFile;
@@ -822,37 +816,10 @@ export default function Home() {
       }
       setActiveEditorSession(null);
       setActiveFile(localFile);
-      setOpenDocuments((tabs) => tabs.map((tab) => tab.workspaceId === workspaceId && tab.file.id === current.id ? { ...tab, file: localFile } : tab));
       await openFile(localFile, "none");
     }).catch(() => {});
     return () => { alive = false; };
   }, [activeFile, activeWorkspace?.id, closePkmsEditorSession, files, localFolderEnabled, openFile]);
-  const visibleOpenDocuments = useMemo(
-    () => activeWorkspace ? openDocuments.filter((tab) => tab.workspaceId === activeWorkspace.id) : [],
-    [activeWorkspace?.id, openDocuments],
-  );
-  const closeOpenDocument = useCallback((fileId: string) => {
-    const tabs = visibleOpenDocuments;
-    const index = tabs.findIndex((tab) => tab.file.id === fileId);
-    if (index < 0) return;
-    const sessionKey = activeWorkspace ? pkmsDocumentKey(activeWorkspace.id, fileId) : "";
-    const session = pkmsEditorSessions.current.get(sessionKey);
-    const savePhase = session?.snapshot().savePhase;
-    const discardingUnsaved = Boolean(savePhase && savePhase !== "clean");
-    if (!confirmEditorDocumentCloseById(sessionKey, (message) => window.confirm(message))) return;
-    if (discardingUnsaved) discardEditorDocumentViewState(sessionKey);
-    const closingActive = activeFile?.id === fileId;
-    const nextTab = tabs[index + 1] ?? tabs[index - 1] ?? null;
-    setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && tab.file.id === fileId)));
-    if (session) closePkmsEditorSession(sessionKey, session);
-    if (!closingActive) return;
-    setActiveEditorSession(null);
-    if (nextTab) void openFile(nextTab.file, "replace");
-    else {
-      clearActiveFile();
-      navigate("/", { replace: true, preventScrollReset: true });
-    }
-  }, [activeFile?.id, activeWorkspace?.id, clearActiveFile, closePkmsEditorSession, navigate, openFile, visibleOpenDocuments]);
   openFileRef.current = openFile;
   const loadEditorBreadcrumbChildren = useCallback(async (directoryPath: string): Promise<EditorBreadcrumbEntry[]> => {
     if (!editorProvider) return [];
@@ -927,15 +894,6 @@ export default function Home() {
     }
   }, [activeWorkspace?.id, activeFile?.path, getFiles, refreshDirectory]);
 
-  useEffect(() => {
-    if (!activeWorkspace) return;
-    const byId = new Map(files.map((file) => [file.id, file]));
-    setOpenDocuments((current) => current.map((tab) => {
-      if (tab.workspaceId !== activeWorkspace.id) return tab;
-      const updated = byId.get(tab.file.id);
-      return updated ? { ...tab, file: updated } : tab;
-    }));
-  }, [activeWorkspace?.id, files]);
   useEffect(() => {
     for (const listener of treeProviderListeners.current) listener([""]);
   }, [files]);
@@ -1113,8 +1071,9 @@ export default function Home() {
         });
         return;
       }
-      if (!desktopBridge() && (event.metaKey || event.ctrlKey) && (event.key === "\\" || event.code === "Backslash")) {
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && (event.key === "\\" || event.code === "Backslash")) {
         event.preventDefault();
+        event.stopImmediatePropagation();
         setSidebarOpen((open) => !open);
         return;
       }
@@ -1502,16 +1461,13 @@ export default function Home() {
     setLoadedFolders, setSelectedTreePaths, setCutTreePaths, setFocusedTreePath, setTreeContextMenu, setError, setNotice, confirm,
     beforeDelete: (roots) => confirmDirtyEditorDocumentsInPaths(roots.map((root) => root.path), (message) => window.confirm(message)),
     afterDelete: (roots) => {
-      const deletedIds = new Set(openDocuments.filter((tab) => tab.workspaceId === activeWorkspace?.id && roots.some((root) =>
-        tab.file.path === root.path || (root.kind === "folder" && tab.file.path.startsWith(`${root.path}/`)),
-      )).map((tab) => tab.file.id));
-      for (const fileId of deletedIds) {
-        if (activeWorkspace) discardEditorViewState(pkmsDocumentKey(activeWorkspace.id, fileId));
-        const sessionKey = activeWorkspace ? pkmsDocumentKey(activeWorkspace.id, fileId) : "";
-        const session = pkmsEditorSessions.current.get(sessionKey);
-        if (session) closePkmsEditorSession(sessionKey, session);
+      const deletedIds = new Set<string>();
+      for (const [sessionKey, session] of [...pkmsEditorSessions.current]) {
+        if (!roots.some((root) => session.item.path === root.path || (root.kind === "folder" && session.item.path.startsWith(`${root.path}/`)))) continue;
+        deletedIds.add(session.item.itemId);
+        discardEditorViewState(sessionKey);
+        closePkmsEditorSession(sessionKey, session);
       }
-      setOpenDocuments((current) => current.filter((tab) => !(tab.workspaceId === activeWorkspace?.id && deletedIds.has(tab.file.id))));
       setActiveEditorSession((current) => current?.item.providerId === `pkms:${activeWorkspace?.id}` && deletedIds.has(current.item.itemId) ? null : current);
     },
   });
@@ -1718,12 +1674,6 @@ export default function Home() {
       </aside>
 
       <section className="main-panel">
-        <header className="topbar">
-          <div className="topbar-left"><button className="sidebar-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-expanded={sidebarOpen} aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"} title={sidebarOpen ? `Hide sidebar${desktopBridge() ? "" : " (⌘\\)"}` : `Show sidebar${desktopBridge() ? "" : " (⌘\\)"}`}><AppIcon name="menu" /></button><div className="breadcrumbs"><span>{activeWorkspace?.repository ?? "No workspace"}</span>{!activeFile && currentFolder && <><span className="crumb-slash">/</span><span>{currentFolder}</span></>}</div></div>
-          <div className="topbar-right">
-            {supportsCollaboration && peers.length > 1 && <div className="collaborators" aria-label="Collaborators"><span>{peers.length} here</span></div>}
-          </div>
-        </header>
         {notice && <div className="notice sync-notice" role="status" aria-live="polite">{notice}</div>}
         {error && <button className="notice error dismissible" onClick={() => setError("")}>{error}<AppIcon name="close" /></button>}
         {showRepositories && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowRepositories(false); }}><section className="repository-modal">
@@ -1745,15 +1695,6 @@ export default function Home() {
             setQuickOpen(false);
           }}
         />}
-        {activeWorkspace && visibleOpenDocuments.length > 0 && <EditorDocumentTabBar
-          tabs={visibleOpenDocuments.map(({ file }) => {
-            const phase = pkmsEditorSessions.current.get(pkmsDocumentKey(activeWorkspace.id, file.id))?.snapshot().savePhase;
-            return { id: file.id, label: entryName(file.path), title: file.path, dirty: phase ? phase !== "clean" : file.id === activeFile?.id && (saving || notice === "Unsaved") };
-          })}
-          activeId={activeFile?.id ?? null}
-          onSelect={(id) => { const tab = visibleOpenDocuments.find((item) => item.file.id === id); if (tab) void openFile(tab.file); }}
-          onClose={closeOpenDocument}
-        />}
         {activeFile?.kind === "markdown" && <EditorBreadcrumbs path={activeFile.path} onLoadChildren={loadEditorBreadcrumbChildren} onOpenFile={openEditorBreadcrumbFile} />}
         {!activeWorkspace ? <div className="empty-workspace"><h2>No workspace</h2><button className="primary-button" onClick={openRepositoryPicker}>Connect repository</button></div> : !activeFile ? <div className="empty-workspace"><h2>No file open</h2><button className="primary-button" onClick={() => beginTreeCreation("file", currentFolder)}>New note</button></div> : openingFileId === activeFile.id ? <div className="file-opening" role="status"><span className="file-opening-spinner" />Opening note…</div> : activeFile.kind === "markdown" ? <EditorMarkdownEditor
             title={<EditorMarkdownTitle path={activeFile.path} title={markdownTitleFor(activeFile.path)} editing={titleEditing} draft={titleDraft} error={titleError} inputRef={titleInputRef} trailing={supportsCollaboration && peers.length > 1 && <div className="live-presence">{peers.length} editing</div>} onStartEditing={canRename ? enterTitleEdit : undefined} onChange={(value) => { setTitleDraft(value); setTitleError(null); }} onCommit={() => void commitTitleRename()} onCancel={() => { titleEditFileIdRef.current = null; setTitleEditing(false); setTitleError(null); }} />}
@@ -1762,7 +1703,8 @@ export default function Home() {
               if (content?.type === "text") editorNavigate.current?.(content.text.length);
             }}
             surfaceKey={activeFile.id}
-            surfaceProps={{ documentKey: pkmsDocumentKey(activeWorkspace.id, activeFile.id), viewStateStorage: getEditorViewStateStorage(), session: activeEditorSession, documentPath: activeFile.path, parserExtensions: editorMarkdownParserExtensions, onNavigateReady: registerEditorNavigator, onActivateLink: activateMarkdownLink, resolveImage: resolveMarkdownImage, onSessionError: (cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document"), ariaLabel: "Markdown editor" }}
+            surfaceContainerStyle={pkmsEditorFontStyle}
+            surfaceProps={{ documentKey: pkmsDocumentKey(activeWorkspace.id, activeFile.id), viewStateStorage: getEditorViewStateStorage(), session: activeEditorSession, documentPath: activeFile.path, parserExtensions: editorMarkdownParserExtensions, extensions: editorCodeMirrorHostExtensions, onNavigateReady: registerEditorNavigator, onActivateLink: activateMarkdownLink, resolveImage: resolveMarkdownImage, onSessionError: (cause) => setError(cause instanceof Error ? cause.message : "Could not update PKMS document"), ariaLabel: "Markdown editor" }}
           /> : <div className="asset-view">
           <div className="asset-heading"><div><h2>{activeFile.path.split("/").at(-1)}</h2><p>{activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} KB` : "Attachment"}</p></div>{assetPreviewUrl && <button className="primary-button" onClick={saveAttachment}>Save</button>}</div>
           {assetPreviewUrl ? assetPreviewType.startsWith("image/") ? <img className="asset-image-preview" src={assetPreviewUrl} alt={activeFile.path} /> : <iframe className="asset-preview-frame" src={assetPreviewUrl} title={activeFile.path} /> : <span className="file-opening-spinner" aria-label="Loading attachment" />}
