@@ -15,8 +15,8 @@
   --hover: #f5f5f5;
   --bg-hover: var(--hover);
   --selected: #ededed;
-  --editor-selection-bg: rgba(35, 36, 40, 0.12);
-  --editor-selection-bg-focused: rgba(35, 36, 40, 0.2);
+  --editor-selection-bg: rgba(88, 101, 242, 0.17);
+  --editor-selection-bg-focused: rgba(88, 101, 242, 0.27);
   --primary: #171717;
   --primary-text: #fafafa;
   --danger: #b42318;
@@ -60,8 +60,8 @@
     --hover: #25272b;
     --bg-hover: var(--hover);
     --selected: #2c2e32;
-    --editor-selection-bg: rgba(225, 230, 255, 0.13);
-    --editor-selection-bg-focused: rgba(225, 230, 255, 0.2);
+    --editor-selection-bg: rgba(96, 106, 200, 0.4);
+    --editor-selection-bg-focused: rgba(96, 106, 200, 0.55);
     --primary: #606ac8;
     --primary-text: #fff;
     --danger: #f87171;

@@ -48,8 +48,8 @@
   --status-warning: #ad9258;
   --status-monitoring: #927c4b;
   --status-danger: #c87b7b;
-  --editor-selection-bg: rgba(225, 230, 255, 0.13);
-  --editor-selection-bg-focused: rgba(225, 230, 255, 0.2);
+  --editor-selection-bg: rgba(96, 106, 200, 0.4);
+  --editor-selection-bg-focused: rgba(96, 106, 200, 0.55);
   /* Syntax colors — muted to sit comfortably on the near-black surfaces. */
   --syntax-keyword: #b28bad;
   --syntax-string: #bc937d;
@@ -223,8 +223,8 @@
   --status-warning: #a87900;
   --status-monitoring: #8c7200;
   --status-danger: #c33b3b;
-  --editor-selection-bg: rgba(35, 36, 40, 0.12);
-  --editor-selection-bg-focused: rgba(35, 36, 40, 0.2);
+  --editor-selection-bg: rgba(88, 101, 242, 0.17);
+  --editor-selection-bg-focused: rgba(88, 101, 242, 0.27);
   --syntax-keyword: #af00db;
   --syntax-string: #a31515;
   --syntax-comment: #008000;
