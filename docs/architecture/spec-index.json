@@ -45,6 +45,7 @@
         "packages/editor/README.md",
         "packages/editor/docs/README.md",
         "packages/editor/docs/assets.md",
+        "packages/editor/docs/breadcrumbs.md",
         "packages/editor/docs/code/README.md",
         "packages/editor/docs/markdown/README.md",
         "packages/editor/docs/provider.md",
@@ -55,7 +56,7 @@
       "sources": [
         {
           "path": "apps/workspace-app/src/renderer/src/components/TreeView.tsx",
-          "sha256": "a54e230f668c540fccfd31724daa169ab14b4b838b6fa2c9f83d283f241761b9"
+          "sha256": "e68a32b0efc2524a18d54b49e484b807d409497174d439fb96aee19b2ccbad2f"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts",
@@ -67,7 +68,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/EditorContent.tsx",
-          "sha256": "c128052a6bc9dde7a6de259b14a53bf8350205d7b938b5feeaaf39bd95f7835b"
+          "sha256": "71e4adab646cd5e3716eb7a7b9f4c4896bbf781071ba6ee6ce6c6892acb87f4e"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
@@ -104,6 +105,10 @@
         {
           "path": "packages/editor/src/EditorDocumentTabBar.tsx",
           "sha256": "fc9107b4e8f973c00c1a63926e6768ef458e12dd4cd196f14743a3335adf8a32"
+        },
+        {
+          "path": "packages/editor/src/EditorBreadcrumbs.tsx",
+          "sha256": "f33c0557e85948d386af71756e39b82a6cbc7d3564ccf3c29d62f8ba0853845e"
         },
         {
           "path": "packages/editor/src/EditorMarkdownDocument.tsx",
@@ -183,7 +188,7 @@
         },
         {
           "path": "packages/editor/src/index.ts",
-          "sha256": "515494532d6ce63090d0560a9920ad16322098e647505e366d76fa6532e1178e"
+          "sha256": "21b3aa4b835221041c9d63d31bee2cf5d6ce39f254d878c2d7330fef2c4b7f13"
         },
         {
           "path": "packages/editor/src/markdown.css",
@@ -239,7 +244,7 @@
         },
         {
           "path": "packages/editor/src/tree.css",
-          "sha256": "ba83ca205d01c2945d33d422f1faf29dc1de96ebd483ca2341b22bdc0b8efa5a"
+          "sha256": "649016641011a0158e135254bd62f270840ff9dc2b17dcc03ba120123cd9e9b7"
         },
         {
           "path": "packages/editor/src/treeModel.ts",
@@ -295,7 +300,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/TreeView.tsx",
-          "sha256": "a54e230f668c540fccfd31724daa169ab14b4b838b6fa2c9f83d283f241761b9"
+          "sha256": "e68a32b0efc2524a18d54b49e484b807d409497174d439fb96aee19b2ccbad2f"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts",
@@ -331,7 +336,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/EditorContent.tsx",
-          "sha256": "c128052a6bc9dde7a6de259b14a53bf8350205d7b938b5feeaaf39bd95f7835b"
+          "sha256": "71e4adab646cd5e3716eb7a7b9f4c4896bbf781071ba6ee6ce6c6892acb87f4e"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",

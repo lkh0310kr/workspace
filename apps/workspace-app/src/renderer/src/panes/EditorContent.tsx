@@ -8,7 +8,7 @@ import {
 } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "@codemirror/view";
-import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorMarkdownEditor, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
+import { editorDocumentKey, editorOutlineEntries, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorSearchButton, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, wikiLinkExtension, type EditorBreadcrumbEntry, type EditorDocumentSession, type MarkdownHeading } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -124,6 +124,15 @@ export function EditorContent({
 }: Props) {
   const editorProviderLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId]);
   const editorProvider = editorProviderLease.provider;
+  const loadBreadcrumbChildren = useCallback(async (directoryPath: string): Promise<EditorBreadcrumbEntry[]> => {
+    const parent = await resolveEditorTreeDirectory(editorProvider, directoryPath);
+    const items = await editorProvider.listChildren(parent?.itemId ?? null);
+    return items.map((item) => ({
+      name: item.name,
+      path: item.path,
+      kind: item.kind === "directory" ? "directory" : item.kind === "asset" ? "viewer" : item.kind,
+    }));
+  }, [editorProvider]);
   const documentSessionRef = useRef<EditorDocumentSession | null>(null);
   const [activeDocumentSession, setActiveDocumentSession] = useState<EditorDocumentSession | null>(null);
   const documentSnapshot = useEditorDocumentSnapshot(activeDocumentSession);
@@ -629,6 +638,7 @@ export function EditorContent({
     <div className="obsidian-editor-shell">
       <div className="obsidian-body">
         <div className="obsidian-editor-column">
+          <EditorBreadcrumbs path={filePath} onLoadChildren={loadBreadcrumbChildren} onOpenFile={(path, nextKind) => onOpenFileRef.current(path, nextKind)} />
           {!isMarkdown && <div className="obsidian-float-actions">{editorActions}</div>}
           {isMarkdown ? (
             // The shared Markdown frame keeps the title in the document

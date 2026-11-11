@@ -6,9 +6,9 @@
 
 공유 row model은 `id,path,name,kind,depth`와 선택적 expandable/expanded/loading/active/selected/multiSelected/cut/dropTarget/tabIndex/trailingStatus/showGuides/source를 가진다. projection은 rows/startIndex/paddingTop/paddingBottom/totalHeight다. 공유 UI는 provider를 직접 호출하지 않고 callback으로 선택·activate·context·drop을 위임한다.
 
-Desktop은 path→`{entries,loaded}` branch Map, expanded Set, focusedPath/anchorPath/selectedPaths, menu/prompt, dropTarget, scrollTop, viewportHeight를 소유한다. provider lease는 Explorer와 Editor가 공유한다. loadDir는 path를 directory item으로 resolve하고 listChildren(parentId)를 수행한다. notFound는 로딩 중단, 기타 오류는 console.error다. 현재 branch 요청에는 latest-request-wins sequence가 없다.
+Desktop은 path→`{entries,loaded}` branch Map, expanded Set, focusedPath/anchorPath/selectedPaths, menu/prompt, dropTarget, scrollTop, viewportHeight를 소유한다. provider lease는 Explorer와 Editor가 공유한다. loadDir는 path를 directory item으로 resolve하고 listChildren(parentId)를 수행한다. notFound는 로딩 중단, 기타 오류는 console.error다. 요청마다 branch sequence와 root path를 캡처하며, 늦게 완료된 오래된 branch/root 응답은 버린다.
 
-초기화/루트 변경 때 branch와 selection을 초기화하고 root와 복원된 expanded branch를 로드한다. root가 바뀌면 저장된 tree state를 reset한다. 외부 scroll container는 scrollTop을 복원하고 passive scroll listener와 ResizeObserver로 가상화 크기를 갱신한다. expanded와 scrollTop은 host의 explorer state storage에서 관리하며 공통 UI가 localStorage를 직접 소유하지 않는다.
+초기화/루트 변경 때 branch와 selection을 초기화하고 root와 복원된 expanded branch를 로드한다. root가 바뀌면 저장된 tree state를 reset한다. 저장된 scrollTop은 root와 expanded branch 응답이 끝난 뒤 적용해 초기 빈 목록에 의해 clamp되지 않게 한다. 외부 scroll container는 passive scroll listener와 ResizeObserver로 가상화 크기를 갱신한다. 행 목록이 바뀌면 직전 첫 가시 행의 path와 행 내 offset을 찾아 같은 viewport 위치를 유지하고, 해당 행이 삭제된 경우 이전 행 index에서 가장 가까운 생존 행으로 보정한다. 기존 행 anchor가 없으면 이전 픽셀 offset을 사용한다. workspace/tab 범위 변경은 이전 anchor를 폐기한다. expanded와 pixel scrollTop은 host의 explorer state storage에서 관리하며 공통 UI가 localStorage를 직접 소유하지 않는다.
 
 ## 정렬과 가상화
 
@@ -42,7 +42,7 @@ Desktop은 path→`{entries,loaded}` branch Map, expanded Set, focusedPath/ancho
 
 ## 파일 열기와 변경
 
-Desktop에서 파일을 열기 전 조상 directory를 expand하고 미로드 branch를 읽는다. onOpenFile은 path와 code/markdown/viewer 및 선택적 pin을 받는다. 공유 shell은 단일 activate와 double activate callback을 구분한다.
+Desktop에서 파일을 열기 전 조상 directory를 expand하고 미로드 branch를 읽는다. 활성 editor path가 외부에서 바뀌면 해당 파일의 조상을 expand하고 행이 projection에 나타난 뒤 scroll viewport로 reveal한다. 이는 목록 갱신 시 anchor 보존과 별개인 명시적 navigation이다. onOpenFile은 path와 code/markdown/viewer 및 선택적 pin을 받는다. 공유 shell은 단일 activate와 double activate callback을 구분한다.
 
 create/rename/menu는 capability와 메서드를 함께 확인한다. 파일 자동 이름은 unique-name helper가 case-insensitive sibling Set에서 `base+extension`을 먼저 시도하고 이미 있으면 `base 1+extension`, `base 2+extension` 순으로 첫 빈 이름을 찾는다. directory 생성 prompt는 입력 이름으로 createDirectory를 실행한다. rename은 provider rename, 성공 path 변경 통지는 host가 담당한다. 삭제는 root 선택으로 축약하고 삭제 확인 후 영향을 받는 열린 dirty 문서 확인을 추가로 수행한다. 확인 취소 시 provider delete를 호출하지 않는다. Desktop UI는 root path마다 delete([ref])를 순차 호출하고 첫 실패에서 중단한다. 성공 경로는 onPathDeleted를 통지하고 부모를 refresh한다. 실패/미처리 선택은 남기며 삭제된 anchor/focus는 남은 첫 항목으로 바꾼다. coordinator reconcile과 drag 정리 후 다음 frame에서 기존 scroll을 새 최대치로 clamp해 복원한다. provider가 여러 ref를 미리 검증하는 것과 UI가 여러 작업을 transaction으로 수행하는 것은 다르다.
 
@@ -67,5 +67,9 @@ host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용�
 | TREE-05 | 잘못된 drag JSON | 예외 없이 [] 전달 |
 | TREE-06 | Right/Left 반복 | expand→첫 자식→부모→collapse |
 | TREE-07 | pane hide | 열린 context menu와 이름 prompt 제거 |
+| TREE-08 | viewport 첫 행 위에 sibling 행을 삽입하거나 제거 | 같은 path가 살아 있으면 첫 가시 행과 행 내 위치 보존; 행이 삭제되면 이전 index의 가장 가까운 생존 행 사용 |
+| TREE-09 | 다른 editor tab/Quick Open에서 접힌 폴더의 파일 활성화 | 조상 폴더를 펼치고 활성 행을 viewport에 reveal |
+| TREE-10 | 동일 branch refresh 두 건을 시작하고 첫 요청을 늦게 완료 | 마지막 요청 응답만 branch에 반영 |
+| TREE-11 | root A의 branch 로드 중 root B로 전환, 두 root에 같은 상대 경로 존재 | root A의 늦은 응답이 root B의 tree를 바꾸지 않음 |
 
-기존 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test다. provider I/O 실패·dirty 확인·실제 DnD는 추가 통합 검증이 필요하다.
+기존 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test다. 위 신규 결과 시나리오는 구현 후 자동화 회귀 검증을 추가해야 한다. provider I/O 실패·dirty 확인·실제 DnD도 추가 통합 검증이 필요하다.

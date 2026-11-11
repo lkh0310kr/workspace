@@ -9,6 +9,7 @@ Package scope에서 [index.ts](../src/index.ts)의 export를 역할별로 연결
 | Provider/Session/Snapshot/Error·capability helpers | [provider](./provider.md) | 저장소·revision·save 정책 |
 | createEditorView/documentReplacement/TextSurface | [text surface](./code/README.md) | extensions·session·storage·onViewReady |
 | MarkdownEditor/Document/Surface/Title·commands | [Markdown](./markdown/README.md) | parser·image/link resolver·title commit |
+| EditorBreadcrumbs | [Breadcrumb](./breadcrumbs.md) | provider-relative path·sibling listing·open-file routing |
 | tree rows/virtual list/selection/navigation | [treeview](./treeview/README.md) | branch data·provider commands·focus·drop |
 | QuickOpen/SearchButton/editorSearch/fuzzy | [search](./search.md) | query/provider·결과 선택·dialog close |
 | documentIdentity/dirtyRegistry/viewStateCache | [text surface](./code/README.md) | shell close confirmation·stable key migration |

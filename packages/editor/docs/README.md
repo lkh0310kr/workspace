@@ -7,6 +7,7 @@
 | 스펙 | 재구현 책임 |
 |---|---|
 | [공개 API와 UI](./public-api.md) | export owner·tab·menu·이름 form |
+| [Breadcrumb](./breadcrumbs.md) | workspace-relative path와 sibling menu |
 | [Provider 계약](provider.md) | 타입, capability, 오류, snapshot, session 수명 |
 | [Desktop provider 구현](../../../apps/workspace-app/docs/editor/providers.md) | Workspace 파일시스템·ID·충돌·lease |
 | [PKMS provider 구현](../../pkms-client/docs/editor-sessions.md) | PKMS local/Yjs/asset session |
@@ -15,8 +16,7 @@
 | [Markdown](./markdown/README.md) | live preview, 제목 rename, outline, 링크·이미지 |
 | [검색](./search.md) | 문서 검색, Quick Open, 파일 내용 검색·치환 |
 | [Asset viewer 경계](./assets.md) | Editor에서 포맷별 viewer로 연결하는 계약 |
-
-TreeView 스크롤 점프, 활성 파일 reveal, breadcrumb의 결과 요구와 비교 근거는 [Editor 탐색 비교 검토](../../../docs/planning/editor-navigation-review.md)에 제안 상태로 기록했다. 채택 후 이 package의 재생성 가능한 동작 계약으로 옮기고 구현 상태를 갱신한다.
+| [Editor 탐색 비교 검토](../../../docs/planning/editor-navigation-review.md) | TreeView 스크롤·active-file reveal·breadcrumb 구현 배경과 외부 비교 |
 
 ## 소유권
 

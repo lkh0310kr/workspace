@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -28,7 +29,7 @@ import {
 } from "../explorer/explorerState";
 import { dirsToReloadForChange } from "../explorer/treeReload";
 import { useExplorerKeyboard } from "../explorer/useExplorerKeyboard";
-import { confirmDirtyEditorDocumentsInPaths, editorSupportsOperation, editorTreeItemLabel, EditorTreeView, EDITOR_TREE_DRAG_MIME_TYPE, editorTreeSelectionRoots, flattenEditorTree, isEditorProviderError, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreeDirectory, resolveEditorTreePath, useEditorTreeSelection, type EditorItemKind, type EditorTreeArrowAction, type EditorTreeNavigationRow, type EditorTreeProjection, type EditorTreeViewItem } from "@workspace/editor";
+import { confirmDirtyEditorDocumentsInPaths, editorSupportsOperation, editorTreeItemLabel, EditorTreeView, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, editorTreeSelectionRoots, flattenEditorTree, isEditorProviderError, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorTreeDirectory, resolveEditorTreePath, useEditorTreeSelection, type EditorItemKind, type EditorTreeArrowAction, type EditorTreeNavigationRow, type EditorTreeProjection, type EditorTreeViewItem } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 
 interface Props {
@@ -132,24 +133,47 @@ export function TreeView({
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+  const rootPathRef = useRef(rootPath);
+  const editorProviderRef = useRef(editorProvider);
+  const loadSequenceRef = useRef(new Map<string, number>());
+  const pendingScrollRestoreRef = useRef<{ scope: string; scrollTop: number } | null>(null);
+  const pendingRevealPathRef = useRef<string | null>(null);
+  const lastRevealRequestRef = useRef<string | null>(null);
+  const scrollAnchorRef = useRef<{ path: string; index: number; offset: number } | null>(null);
+  const previousFlatListRef = useRef<Array<{ entry: DirEntry; depth: number }> | null>(null);
+  const previousAnchorScopeRef = useRef(`${tabId}:${rootPath}`);
+
+  useLayoutEffect(() => {
+    rootPathRef.current = rootPath;
+    editorProviderRef.current = editorProvider;
+  }, [rootPath, editorProvider]);
 
   const loadDir = useCallback(
     (path: string) => {
+      const requestRoot = rootPath;
+      const requestSequence = (loadSequenceRef.current.get(path) ?? 0) + 1;
+      loadSequenceRef.current.set(path, requestSequence);
       const load = async () => {
         let parent: Awaited<ReturnType<typeof resolveEditorTreeDirectory>>;
         try {
           parent = await resolveEditorTreeDirectory(editorProvider, path);
         } catch (error) {
-          if (isEditorProviderError(error) && error.code === "notFound") return;
+          if (isEditorProviderError(error) && error.code === "notFound") {
+            if (rootPathRef.current === requestRoot && editorProviderRef.current === editorProvider && loadSequenceRef.current.get(path) === requestSequence) {
+              setDirs((prev) => new Map(prev).set(path, { entries: [], loaded: true }));
+            }
+            return;
+          }
           throw error;
         }
         const items = await editorProvider.listChildren(parent?.itemId ?? null);
+        if (rootPathRef.current !== requestRoot || editorProviderRef.current !== editorProvider || loadSequenceRef.current.get(path) !== requestSequence) return;
         const entries: EditorDirEntry[] = items.map((item) => ({ name: item.name, path: item.path, is_dir: item.kind === "directory", editorItemId: item.itemId }));
         setDirs((prev) => new Map(prev).set(path, { entries, loaded: true }));
       };
       void load().catch(console.error);
     },
-    [editorProvider],
+    [editorProvider, rootPath],
   );
 
   useEffect(() => () => editorProviderLease.release(), [editorProviderLease]);
@@ -187,9 +211,17 @@ export function TreeView({
     const el = scrollContainerRef?.current;
     if (!el) return;
     const restored = loadExplorerTreeState(explorerStateKey, rootPath);
-    el.scrollTop = restored.scrollTop;
+    el.scrollTop = 0;
+    setScrollTop(0);
+    pendingScrollRestoreRef.current = { scope: `${tabId}:${rootPath}`, scrollTop: restored.scrollTop };
     const onScroll = () => {
       setScrollTop(el.scrollTop);
+      const rows = previousFlatListRef.current;
+      const index = Math.min(rows?.length ?? 0, Math.floor(el.scrollTop / EDITOR_TREE_ROW_HEIGHT));
+      const row = rows?.[index];
+      scrollAnchorRef.current = row
+        ? { path: row.entry.path, index, offset: el.scrollTop - index * EDITOR_TREE_ROW_HEIGHT }
+        : null;
       saveExplorerScrollTop(explorerStateKey, rootPath, el.scrollTop);
     };
     const onResize = () => setViewportHeight(el.clientHeight);
@@ -201,7 +233,7 @@ export function TreeView({
       el.removeEventListener("scroll", onScroll);
       ro.disconnect();
     };
-  }, [scrollContainerRef, explorerStateKey, rootPath]);
+  }, [scrollContainerRef, explorerStateKey, rootPath, tabId]);
 
   useEffect(() => {
     return editorProvider.subscribeTree((parentIds) => {
@@ -275,6 +307,48 @@ export function TreeView({
     ).map(({ item, depth }) => ({ entry: item, depth }));
   }, [dirs, expanded]);
 
+  useEffect(() => {
+    const pending = pendingScrollRestoreRef.current;
+    if (!pending || pending.scope !== `${tabId}:${rootPath}` || !dirs.get("")?.loaded) return;
+    if ([...expanded].some((path) => !dirs.get(path)?.loaded)) return;
+    const el = scrollContainerRef?.current;
+    pendingScrollRestoreRef.current = null;
+    if (!el) return;
+    const restoredTop = Math.max(0, Math.min(pending.scrollTop, el.scrollHeight - el.clientHeight));
+    el.scrollTop = restoredTop;
+    setScrollTop(restoredTop);
+    const index = Math.floor(restoredTop / EDITOR_TREE_ROW_HEIGHT);
+    const row = flatList[index];
+    scrollAnchorRef.current = row
+      ? { path: row.entry.path, index, offset: restoredTop - index * EDITOR_TREE_ROW_HEIGHT }
+      : null;
+  }, [dirs, expanded, flatList, rootPath, scrollContainerRef, tabId]);
+
+  useLayoutEffect(() => {
+    const previous = previousFlatListRef.current;
+    const anchorScope = `${tabId}:${rootPath}`;
+    if (previousAnchorScopeRef.current !== anchorScope) {
+      previousAnchorScopeRef.current = anchorScope;
+      scrollAnchorRef.current = null;
+      previousFlatListRef.current = flatList;
+      return;
+    }
+    const anchor = scrollAnchorRef.current;
+    const el = scrollContainerRef?.current;
+    if (previous && el && previous !== flatList && previous.length > 0) {
+      const oldIndex = anchor?.index ?? Math.floor(el.scrollTop / EDITOR_TREE_ROW_HEIGHT);
+      const offset = anchor?.offset ?? el.scrollTop - oldIndex * EDITOR_TREE_ROW_HEIGHT;
+      const matchingIndex = anchor ? flatList.findIndex((row) => row.entry.path === anchor.path) : -1;
+      const index = matchingIndex >= 0 ? matchingIndex : Math.min(oldIndex, Math.max(0, flatList.length - 1));
+      const nextTop = Math.max(0, Math.min(index * EDITOR_TREE_ROW_HEIGHT + offset, el.scrollHeight - el.clientHeight));
+      if (Math.abs(el.scrollTop - nextTop) > 1) el.scrollTop = nextTop;
+      const row = flatList[index];
+      scrollAnchorRef.current = row ? { path: row.entry.path, index, offset } : null;
+      setScrollTop(nextTop);
+    }
+    previousFlatListRef.current = flatList;
+  }, [flatList, rootPath, tabId, scrollContainerRef]);
+
   const treePaths = useMemo(() => flatList.map(({ entry }) => entry.path), [flatList]);
   const treeSelection = useEditorTreeSelection(treePaths);
   const selected = treeSelection.selectedPaths;
@@ -290,7 +364,12 @@ export function TreeView({
     setSelected(new Set([selectedPath]));
     setSelectionAnchor(selectedPath);
     treeSelection.setFocusedPath(selectedPath);
-  }, [selectedPath, explorerModeActive, treeSelection.setFocusedPath]);
+    const revealKey = `${rootPath}:${selectedPath}`;
+    if (lastRevealRequestRef.current === revealKey) return;
+    lastRevealRequestRef.current = revealKey;
+    pendingRevealPathRef.current = selectedPath;
+    revealAncestors(selectedPath);
+  }, [selectedPath, explorerModeActive, rootPath, treeSelection.setFocusedPath, revealAncestors]);
 
   const projection = useMemo(
     () => projectEditorTreeRows(flatList, scrollTop, viewportHeight),
@@ -345,6 +424,13 @@ export function TreeView({
       ?.querySelector<HTMLElement>(`[data-tree-path="${path.replace(/"/g, '\\"')}"]`)
       ?.scrollIntoView({ block: "nearest" });
   };
+
+  useEffect(() => {
+    const path = pendingRevealPathRef.current;
+    if (!path || !treePaths.includes(path)) return;
+    pendingRevealPathRef.current = null;
+    scrollRowIntoView(path);
+  }, [treePaths, flatList, scrollContainerRef]);
 
   const newFile = async (dir: string) => {
     setMenu(null);

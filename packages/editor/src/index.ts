@@ -31,6 +31,8 @@ export { EditorTreeView, EDITOR_TREE_DRAG_MIME_TYPE } from "./EditorTreeView";
 export type { EditorTreeViewItem, EditorTreeViewProps } from "./EditorTreeView";
 export { EditorDocumentTabBar } from "./EditorDocumentTabBar";
 export type { EditorDocumentTab } from "./EditorDocumentTabBar";
+export { EditorBreadcrumbs } from "./EditorBreadcrumbs";
+export type { EditorBreadcrumbEntry, EditorBreadcrumbsProps } from "./EditorBreadcrumbs";
 export { EditorMenuList } from "./EditorMenuList";
 export type { EditorMenuItem } from "./EditorMenuList";
 export { EditorTabChip } from "./EditorTabChip";
