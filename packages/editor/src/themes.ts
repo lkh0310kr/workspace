@@ -15,7 +15,7 @@ export const markdownEditorTheme = EditorView.theme({
   },
   ".cm-scroller": { overflow: "auto", fontFamily: "var(--font-mono, var(--editor-font, monospace))" },
   ".cm-content": {
-    padding: "24px clamp(18px, 5vw, 64px) 48px",
+    padding: "8px clamp(18px, 5vw, 64px) 48px",
     lineHeight: "1.8",
     caretColor: "var(--text)",
     maxWidth: "820px",

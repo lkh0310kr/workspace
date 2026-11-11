@@ -222,7 +222,7 @@
         },
         {
           "path": "packages/editor/src/markdownDocument.css",
-          "sha256": "a2d5feb1500f8d241509be990f659ac1dcaf321098e42fec23cae2ee81f5621c"
+          "sha256": "e7e60a7c5fd9333c5166ae12a07c188a532edd1a941bbdac42a023a886c6a367"
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",
@@ -258,7 +258,7 @@
         },
         {
           "path": "packages/editor/src/themes.ts",
-          "sha256": "5dd90725329a550e769ccfaecae5de96b43a7d624feb247fce1c5eaacfb2b3f3"
+          "sha256": "bb00bf3a28ac5978d633029adf567e5c7aebd8aa293cfb9275b55bd2ceb7b814"
         },
         {
           "path": "packages/editor/src/tree.css",

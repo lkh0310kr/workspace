@@ -82,7 +82,7 @@
   color: var(--text);
   background: var(--bg-base, var(--bg));
   font-family: var(--font-ui, var(--editor-font, sans-serif));
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
