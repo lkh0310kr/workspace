@@ -8,6 +8,7 @@
 |---|---|
 | 현재 시스템이 어떻게 동작하는가 | [시스템 아키텍처](./architecture/README.md) |
 | 어떤 일을 진행하거나 계획 중인가 | [계획 문서 색인](./planning/README.md) |
+| 문서 누락·불일치와 SDD 전환 순서는 무엇인가 | [전체 감사](./planning/top-down-documentation-audit.md) · [실행 계획](./planning/spec-driven-development-roadmap.md) |
 | 개발·QA·디자인 절차는 무엇인가 | [가이드 색인](./guides/README.md) |
 | 보관된 기능과 이전 조사는 어디에 있는가 | [아카이브 색인](../archive/README.md) |
 

@@ -4,5 +4,7 @@
 
 - [기능 상태](./feature-status.md): 현재 제품 범위의 구현 상태
 - [백로그](./backlog.md): 착수할 작업
+- [전체 문서 감사](./top-down-documentation-audit.md): 제품부터 모듈·검증까지 누락·불일치 24건
+- [SDD 전환 계획](./spec-driven-development-roadmap.md): 우선순위·작업 의존성·산출물·완료 기준
 
 새 작업은 사용자 문제, 범위, 완료 조건이 정해진 뒤 백로그에 한 건씩 추가합니다.
