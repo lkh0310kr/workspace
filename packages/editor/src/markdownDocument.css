@@ -68,22 +68,51 @@
   box-sizing: border-box;
   width: min(100%, 820px);
   margin: 0 auto;
-  padding: 4px clamp(18px, 5vw, 64px) 8px;
-  color: var(--text-muted, var(--muted));
-  font: 12px/1.5 var(--font-ui, var(--editor-font, sans-serif));
+  padding: 8px clamp(18px, 5vw, 64px) 20px;
+  color: var(--text);
+  font: 14px/1.5 var(--font-ui, var(--editor-font, sans-serif));
 }
 
-.editor-property-row, .editor-property-add-form {
+.editor-properties-heading {
+  margin: 0 0 10px;
+  color: var(--text);
+  font: 600 16px/1.4 var(--font-ui, var(--editor-font, sans-serif));
+}
+
+.editor-properties-list { display: grid; gap: 2px; }
+.editor-property-row {
   display: grid;
-  grid-template-columns: minmax(90px, 180px) minmax(0, 1fr) auto auto;
-  gap: 6px;
+  grid-template-columns: 22px minmax(112px, 220px) minmax(0, 1fr) 22px;
+  gap: 8px;
   align-items: center;
-  min-height: 28px;
+  min-height: 38px;
+  margin: 0 -4px;
+  padding: 2px 4px;
+  border-radius: 5px;
 }
 
-.editor-property-row input, .editor-property-add-form input {
+.editor-property-row:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.editor-property-type, .editor-property-add-form > svg {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  color: var(--text-muted, var(--muted));
+}
+.editor-property-type svg, .editor-property-add-form > svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.editor-property-name, .editor-property-value {
+  box-sizing: border-box;
   min-width: 0;
-  padding: 3px 6px;
+  width: 100%;
+  padding: 4px 6px;
   border: 1px solid transparent;
   border-radius: 4px;
   outline: none;
@@ -92,19 +121,47 @@
   font: inherit;
 }
 
-.editor-property-row input:first-child { color: var(--text-muted, var(--muted)); }
-.editor-property-row input:hover, .editor-property-row input:focus, .editor-property-add-form input:focus { border-color: var(--border); background: var(--bg-surface, var(--surface)); }
-.editor-property-add, .editor-property-add-form button {
-  padding: 3px 6px;
+.editor-property-name { color: var(--text-muted, var(--muted)); }
+.editor-property-name:hover, .editor-property-name:focus, .editor-property-value:hover, .editor-property-value:focus { border-color: var(--border); background: var(--bg-surface, var(--surface)); }
+.editor-property-checkbox { display: flex; align-items: center; gap: 8px; color: var(--text-muted, var(--muted)); }
+.editor-property-checkbox input { width: 15px; height: 15px; accent-color: var(--primary, var(--accent, var(--link))); }
+.editor-property-remove {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
   border: 0;
-  border-radius: 4px;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted, var(--muted));
+  font-size: 17px;
+  cursor: pointer;
+  opacity: 0;
+}
+.editor-property-row:hover .editor-property-remove, .editor-property-remove:focus-visible { opacity: 1; }
+.editor-property-remove:hover { color: var(--danger, #d44); background: var(--bg-hover, var(--hover)); }
+.editor-property-add, .editor-property-add-form button, .editor-property-add-form select {
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
   background: transparent;
   color: var(--text-muted, var(--muted));
   font: inherit;
+  text-align: left;
   cursor: pointer;
 }
-.editor-property-add:hover, .editor-property-add-form button:hover { color: var(--primary, var(--accent, var(--link))); background: var(--bg-hover, var(--hover)); }
+.editor-property-add { margin: 5px 0 0 30px; }
+.editor-property-add:hover, .editor-property-add-form button:hover, .editor-property-add-form select:hover { color: var(--text); background: color-mix(in srgb, var(--text) 5%, transparent); }
 .editor-property-add:disabled { display: none; }
+.editor-property-add-form {
+  display: grid;
+  grid-template-columns: 22px minmax(112px, 220px) minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+.editor-property-add-form input { box-sizing: border-box; min-width: 0; width: 100%; padding: 5px 7px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-surface, var(--surface)); color: var(--text); font: inherit; }
 .editor-markdown-document.is-wide .editor-markdown-properties { width: 100%; }
 
 .md-title-edit {

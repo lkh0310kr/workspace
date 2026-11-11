@@ -197,7 +197,7 @@ Obsidian Flavored Markdown은 CommonMark/GFM 위에 내부 링크, embed, block 
 | Internal links | `[[note]]`, alias, heading/block target을 rename 후에도 찾아 연다. | Workspace는 `[[target|alias]]`와 파일 생성 fallback이 있으며 heading/block anchor 규칙이 없다. |
 | Embeds | note/image/audio/video/PDF를 문서 안에서 type별 preview로 보여 준다. | standard Markdown image는 widget으로 처리한다. `![[file]]` transclusion 및 media embed는 없다. |
 | Callouts | Obsidian callout type/title/fold marker에 따라 시각화하고 접고 편다. | 현재 limited type set과 label replace가 있으며 folding state/action의 전체 계약이 없다. |
-| Properties/frontmatter | 문서 제목 바로 아래에 속성을 표시하고 Markdown YAML frontmatter와 왕복 편집한다. | 공유 editor에 문자열 `key: value`의 표시·편집과 속성 추가가 있다. 복합 YAML 값, 타입 선택, 속성 삭제, 주석/순서 보존의 정식 계약은 미완료다. |
+| Properties/frontmatter | 문서 제목 바로 아래 `Properties` 영역에서 frontmatter를 타입별로 확인·편집한다. | 공유 editor가 문자열·날짜·숫자·checkbox·단순 목록을 표시하고 추가·편집·삭제한다. 복합 객체/중첩 YAML은 원문을 보존하며 UI에서 수정하지 않는다. YAML 주석/anchor/alias의 편집 보존은 별도 계약이 필요하다. |
 | Footnotes/comments/highlights | 선택된 syntax를 본문에서 보여 주고 source와 왕복한다. | `[^id]`, `%%…%%`, `==…==` 전용 preview/result 계약이 없다. |
 | Block identity | `^id` block reference가 해당 block을 안정적으로 가리킨다. | stable block anchor 기능이 없다. |
 
