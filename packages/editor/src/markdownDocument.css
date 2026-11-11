@@ -64,6 +64,49 @@
   min-width: 0;
 }
 
+.editor-markdown-document .editor-markdown-properties {
+  box-sizing: border-box;
+  width: min(100%, 820px);
+  margin: 0 auto;
+  padding: 4px clamp(18px, 5vw, 64px) 8px;
+  color: var(--text-muted, var(--muted));
+  font: 12px/1.5 var(--font-ui, var(--editor-font, sans-serif));
+}
+
+.editor-property-row, .editor-property-add-form {
+  display: grid;
+  grid-template-columns: minmax(90px, 180px) minmax(0, 1fr) auto auto;
+  gap: 6px;
+  align-items: center;
+  min-height: 28px;
+}
+
+.editor-property-row input, .editor-property-add-form input {
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.editor-property-row input:first-child { color: var(--text-muted, var(--muted)); }
+.editor-property-row input:hover, .editor-property-row input:focus, .editor-property-add-form input:focus { border-color: var(--border); background: var(--bg-surface, var(--surface)); }
+.editor-property-add, .editor-property-add-form button {
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted, var(--muted));
+  font: inherit;
+  cursor: pointer;
+}
+.editor-property-add:hover, .editor-property-add-form button:hover { color: var(--primary, var(--accent, var(--link))); background: var(--bg-hover, var(--hover)); }
+.editor-property-add:disabled { display: none; }
+.editor-markdown-document.is-wide .editor-markdown-properties { width: 100%; }
+
 .md-title-edit {
   position: relative;
   box-sizing: border-box;

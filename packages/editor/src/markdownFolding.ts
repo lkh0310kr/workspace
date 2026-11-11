@@ -13,6 +13,7 @@ class MarkdownFoldControl extends WidgetType {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "cm-md-fold-control";
+    if (this.folded) button.classList.add("is-folded");
     button.innerHTML = this.folded
       ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>'
       : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 6 5 5 5-5" /></svg>';

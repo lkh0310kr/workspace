@@ -1,4 +1,6 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import type { EditorView } from "@codemirror/view";
+import { EditorMarkdownProperties } from "./EditorMarkdownProperties";
 import "./markdownDocument.css";
 
 const MARKDOWN_WIDTH_MODE_KEY = "workspace.markdownWidthMode";
@@ -17,10 +19,12 @@ export interface EditorMarkdownDocumentProps {
   children: ReactNode;
   onBackgroundClick?: (event: MouseEvent<HTMLDivElement>) => void;
   className?: string;
+  propertiesView?: EditorView | null;
+  propertiesRevision?: number;
 }
 
 /** Workspace-baseline Markdown document frame shared across product shells. */
-export function EditorMarkdownDocument({ title, actions, children, onBackgroundClick, className }: EditorMarkdownDocumentProps) {
+export function EditorMarkdownDocument({ title, actions, children, onBackgroundClick, className, propertiesView = null, propertiesRevision = 0 }: EditorMarkdownDocumentProps) {
   const [wide, setWide] = useState(readWideMode);
 
   useEffect(() => {
@@ -53,6 +57,7 @@ export function EditorMarkdownDocument({ title, actions, children, onBackgroundC
       </div>
       <div className="editor-markdown-scroll" onClick={handleBackgroundClick}>
         {title}
+        <EditorMarkdownProperties view={propertiesView} revision={propertiesRevision} />
         <div className="editor-markdown-content">{children}</div>
       </div>
     </div>
