@@ -9,7 +9,7 @@
 - Long segments truncate visually and retain their complete path in the accessible title.
 - Activating a segment opens a menu of siblings in that segment's parent directory. Selecting a file calls the existing host file router with its code, Markdown, or viewer kind.
 - Selecting a directory browses that directory's children in the same menu. Escape dismisses the menu; changing active path also closes it.
-- Breadcrumbs are path-only. Markdown headings remain in the separate outline control; symbol breadcrumbs require a symbol provider and are not part of this contract.
+- Breadcrumbs are path-only. The editor does not render a document outline/structure control; symbol breadcrumbs require a symbol provider and are not part of this contract.
 
 ## Ownership and API
 

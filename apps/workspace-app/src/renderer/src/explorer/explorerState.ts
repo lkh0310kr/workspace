@@ -4,6 +4,8 @@ export interface ExplorerTreeState {
   rootPath: string;
   expanded: string[];
   scrollTop: number;
+  scrollAnchorPath?: string;
+  scrollAnchorOffset?: number;
 }
 
 const session = new Map<string, ExplorerTreeState>();
@@ -48,6 +50,8 @@ export function loadExplorerTreeState(stateKey: string, rootPath: string): Explo
     rootPath,
     expanded: readExpanded(stateKey, rootPath),
     scrollTop: readScroll(stateKey, rootPath),
+    scrollAnchorPath: readScrollAnchor(stateKey, rootPath)?.path,
+    scrollAnchorOffset: readScrollAnchor(stateKey, rootPath)?.offset,
   };
   session.set(stateKey, next);
   return next;
@@ -59,6 +63,8 @@ export function saveExplorerExpanded(stateKey: string, rootPath: string, expande
     rootPath,
     expanded: list,
     scrollTop: session.get(stateKey)?.scrollTop ?? readScroll(stateKey, rootPath),
+    scrollAnchorPath: session.get(stateKey)?.scrollAnchorPath,
+    scrollAnchorOffset: session.get(stateKey)?.scrollAnchorOffset,
   };
   session.set(stateKey, next);
   try {
@@ -75,6 +81,8 @@ export function saveExplorerScrollTop(stateKey: string, rootPath: string, scroll
     rootPath,
     expanded: prev?.expanded ?? readExpanded(stateKey, rootPath),
     scrollTop,
+    scrollAnchorPath: prev?.scrollAnchorPath,
+    scrollAnchorOffset: prev?.scrollAnchorOffset,
   };
   session.set(stateKey, next);
   try {
@@ -85,12 +93,37 @@ export function saveExplorerScrollTop(stateKey: string, rootPath: string, scroll
   }
 }
 
+function readScrollAnchor(stateKey: string, rootPath: string): { path: string; offset: number } | undefined {
+  try {
+    if (localStorage.getItem(rootStorageKey(stateKey)) !== rootPath) return undefined;
+    const raw = localStorage.getItem(`${SCROLL_KEY}.${stateKey}.anchor`);
+    if (!raw) return undefined;
+    const value = JSON.parse(raw) as { path?: unknown; offset?: unknown };
+    if (typeof value.path !== "string" || typeof value.offset !== "number" || !Number.isFinite(value.offset)) return undefined;
+    return { path: value.path, offset: Math.max(0, value.offset) };
+  } catch {
+    return undefined;
+  }
+}
+
+export function saveExplorerScrollAnchor(stateKey: string, rootPath: string, path: string | undefined, offset = 0): void {
+  try {
+    if (path) localStorage.setItem(`${SCROLL_KEY}.${stateKey}.anchor`, JSON.stringify({ path, offset: Math.max(0, offset) }));
+    else localStorage.removeItem(`${SCROLL_KEY}.${stateKey}.anchor`);
+  } catch {
+    // ignore quota errors
+  }
+  const current = session.get(stateKey) ?? loadExplorerTreeState(stateKey, rootPath);
+  session.set(stateKey, { ...current, rootPath, scrollAnchorPath: path, scrollAnchorOffset: path ? Math.max(0, offset) : undefined });
+}
+
 export function resetExplorerTreeState(stateKey: string, rootPath: string): ExplorerTreeState {
   const next: ExplorerTreeState = { rootPath, expanded: [], scrollTop: 0 };
   session.set(stateKey, next);
   try {
     localStorage.removeItem(expandedStorageKey(stateKey));
     localStorage.removeItem(scrollStorageKey(stateKey));
+    localStorage.removeItem(`${SCROLL_KEY}.${stateKey}.anchor`);
     localStorage.removeItem(rootStorageKey(stateKey));
   } catch {
     // ignore

@@ -8,7 +8,6 @@ import { markdownLinkNavigation, type EditorMarkdownLink } from "./markdownLinkN
 import { markdownImageResolver, type MarkdownImageResolver } from "./markdownLivePreview";
 import { markdownEditorTheme, markdownProseTheme } from "./themes";
 import { EditorTextSurface, type EditorTextSurfaceProps } from "./EditorTextSurface";
-import { markdownOutlineFromState, type MarkdownHeading } from "./markdownOutline";
 
 const emptyExtensions: readonly Extension[] = [];
 
@@ -19,7 +18,6 @@ export interface EditorMarkdownSurfaceProps extends Omit<EditorTextSurfaceProps,
   extensions?: readonly Extension[];
   onViewReady?: EditorTextSurfaceProps["onViewReady"];
   onNavigateReady?: (navigate: ((position: number) => void) | null) => void;
-  onOutlineChange?: (headings: MarkdownHeading[]) => void;
   onSearchPanelChange?: EditorTextSurfaceProps["onSearchPanelChange"];
   onActivateLink?: (link: EditorMarkdownLink) => boolean;
   resolveImage?: MarkdownImageResolver;
@@ -31,7 +29,6 @@ export function EditorMarkdownSurface({
   extensions = emptyExtensions,
   onViewReady: onViewReadyProp,
   onNavigateReady,
-  onOutlineChange,
   onSearchPanelChange,
   onActivateLink,
   resolveImage,
@@ -43,8 +40,6 @@ export function EditorMarkdownSurface({
     markdownEditorTheme,
     markdownProseTheme,
   ], [parserExtensions]);
-  const onOutlineChangeRef = useRef(onOutlineChange);
-  onOutlineChangeRef.current = onOutlineChange;
   const onActivateLinkRef = useRef(onActivateLink);
   onActivateLinkRef.current = onActivateLink;
   const resolveImageRef = useRef(resolveImage);
@@ -59,9 +54,6 @@ export function EditorMarkdownSurface({
     ...extensions,
     linkNavigation,
     imageResolver,
-    EditorView.updateListener.of((update) => {
-      if (update.docChanged) onOutlineChangeRef.current?.(markdownOutlineFromState(update.state));
-    }),
   ], [baseExtensions, extensions, imageResolver, linkNavigation]);
   const onViewReady = useCallback((view: EditorView | null) => {
     onViewReadyProp?.(view);
@@ -69,7 +61,6 @@ export function EditorMarkdownSurface({
       onNavigateReady?.(null);
       return;
     }
-    onOutlineChangeRef.current?.(markdownOutlineFromState(view.state));
     onNavigateReady?.((position) => {
       const target = Math.max(0, Math.min(position, view.state.doc.length));
       view.dispatch({ selection: { anchor: target }, scrollIntoView: true });

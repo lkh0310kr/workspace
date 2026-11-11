@@ -50,8 +50,6 @@ export { EditorMarkdownTitleInput } from "./EditorMarkdownTitleInput";
 export { EditorMarkdownTitle } from "./EditorMarkdownTitle";
 export { discardEditorViewState, moveEditorViewState, readEditorViewState, writeEditorViewState } from "./viewStateCache";
 export type { EditorViewStateStorage, CachedEditorState } from "./viewStateCache";
-export { EditorOutlineList } from "./EditorOutlineList";
-export type { EditorOutlineEntry, EditorOutlineListProps } from "./EditorOutlineList";
 export { markdownFormattingKeymap, toggleMarkdownWrap } from "./markdownCommands";
 export { markdownLinkNavigation } from "./markdownLinkNavigation";
 export type { EditorMarkdownLink } from "./markdownLinkNavigation";
@@ -66,8 +64,6 @@ export type { MarkdownImageResolver, MarkdownImageResource } from "./markdownLiv
 export { wikiLinkExtension } from "./markdownWikilink";
 export { createMarkdownEditorExtensions } from "./markdownEditor";
 export type { MarkdownEditorOptions } from "./markdownEditor";
-export { editorOutlineEntries, markdownOutlineFromState, markdownOutlineFromText } from "./markdownOutline";
-export type { MarkdownHeading } from "./markdownOutline";
 export { EditorQuickOpenDialog } from "./EditorQuickOpenDialog";
 export type { EditorQuickOpenItem } from "./EditorQuickOpenDialog";
 export { flattenEditorTree, projectEditorTreeRows, editorTreeItemLabel, EDITOR_TREE_ROW_HEIGHT } from "./treeModel";

@@ -6,7 +6,7 @@ This review compares the TreeView and Editor behavior with the reported scroll c
 
 | ID | Finding | Evidence in this repository | User-visible consequence | Priority |
 |---|---|---|---|---|
-| NAV-01 | Tree scroll restoration previously used only a raw pixel offset. | `TreeView.tsx` now retains the first visible row path and intra-row offset across row projection changes; exact user reproduction was not captured before the fix. | The prior jump pattern is addressed for rows inserted/removed above the viewport. If the anchor row is deleted, the nearest surviving row at its previous index is used. | Implemented |
+| NAV-01 | Tree scroll restoration previously used only a raw pixel offset and did not persist the visible row identity. | `TreeView.tsx` retains the first visible row path and intra-row offset across projection changes and saves them in pane-scoped explorer state. | The same visible row is restored after closing/reopening the panel or remounting the tree; row insertions/removals above it preserve its viewport position. If the anchor row is deleted, the nearest surviving row at its previous index is used. | Implemented |
 | NAV-02 | Active-file synchronization previously updated selection without reveal. | The selected-path effect now expands ancestors and reveals the row after it enters the visible projection. | Tab switches and external file opens bring the active file into view. Tree-originated opening shares the same path. | Implemented |
 | NAV-03 | Directory reads previously had no latest-request/root guard. | `loadDir` now checks per-branch sequence, workspace root, and provider identity before committing. | Slower stale responses cannot replace newer branch data or data from another provider/root. | Implemented |
 | NAV-04 | The Editor had no file-path breadcrumb bar. | `packages/editor/src/EditorBreadcrumbs.tsx` is mounted by Desktop `EditorContent` for code and Markdown files; viewer panes are not yet integrated. | Users can inspect the workspace-relative path and open sibling files from a segment menu. | Implemented for code/Markdown |
@@ -28,7 +28,7 @@ The following outcomes are implemented for the Desktop code/Markdown editor and 
 
 ### Tree navigation
 
-1. When tree contents change without an explicit navigation request, the same first visible row remains at the same viewport position when that row still exists. If it was removed, use the closest surviving row at its former position. Persist the anchor identity and its intra-row offset, not only a pixel offset.
+1. When tree contents change without an explicit navigation request, the same first visible row remains at the same viewport position when that row still exists. If it was removed, use the closest surviving row at its former position. Persist the anchor identity and its intra-row offset, not only a pixel offset. Hiding/showing or resizing the panel preserves the saved position.
 2. Expanding/collapsing a branch, refreshing a folder, or loading children above the viewport must not send the viewport to the top or a different unrelated region.
 3. When the active editor file changes through a tab switch, Quick Open, or another surface, expand its ancestors and reveal its row in the tree. If reveal is disabled by a future preference, update active state without moving the viewport. Tree-originated opening must not cause a second jump.
 4. Stale directory responses must not replace newer data for the same branch or data belonging to a newer workspace root.

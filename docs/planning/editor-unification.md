@@ -2,7 +2,7 @@
 
 ## 목표
 
-PKMS와 Workspace가 `packages/editor`의 공통 편집기를 사용한다. 파일 탐색, 열린 문서, 편집기, 목차, quick open, 검색 UI와 편집 상호작용을 공유하고, 로컬 파일과 PKMS 저장소의 읽기·쓰기·협업은 각 문서 provider가 담당한다.
+PKMS와 Workspace가 `packages/editor`의 공통 편집기를 사용한다. 파일 탐색, 열린 문서, 편집기, quick open, 검색 UI와 편집 상호작용을 공유하고, 로컬 파일과 PKMS 저장소의 읽기·쓰기·협업은 각 문서 provider가 담당한다.
 
 통합 기준은 제품 이름이 아니라 문서 소스다. 같은 공통 편집기가 로컬 파일과 PKMS 문서를 열 수 있지만, 파일 권한이나 PKMS 인증을 공통 UI 패키지에 옮기지 않는다.
 
@@ -12,8 +12,8 @@ PKMS와 Workspace가 `packages/editor`의 공통 편집기를 사용한다. 파�
 |---|---|---|---|
 | 파일 트리 | 확장/선택/키보드 탐색, 선택한 문서 열기, 선택 상태 표시 | 로컬 디렉터리 지연 로드, 파일 변경 감시, 다중 선택과 파일시스템 작업 | 저장소 디렉터리와 파일 조회, 원격 변경 및 캐시 반영 |
 | 문서 탭 | 문서 식별, 활성화, 닫기 전 dirty 확인, dirty 표시, 문서별 편집 상태 유지 | pane group 안에서 code, Markdown, 지원하는 파일 viewer 열기 | PKMS 문서를 여러 탭으로 열기. 기존 뒤로/앞으로는 문서 탐색 이력으로 유지 |
-| 텍스트 편집 | 공통 키 입력, 선택/undo, 저장 명령, 문서 내 Find/Replace, outline, 테마 토큰 | Markdown과 일반 코드 편집, 언어 감지, 자동 저장, 로컬 파일 충돌 표시 | Markdown 편집, 협업 상태, 로컬 캐시와 서버 저장 상태 표시 |
-| Markdown | 공통 Markdown 문법, 실시간 미리보기, task/table, 링크, 목차 동작 | 로컬 이미지와 Workspace 위키 링크 해석, callout 포함 Workspace 확장 | PKMS 자산 링크 해석, PKMS 링크 규칙과 task/table 지원 |
+| 텍스트 편집 | 공통 키 입력, 선택/undo, 저장 명령, 문서 내 Find/Replace, 테마 토큰 | Markdown과 일반 코드 편집, 언어 감지, 자동 저장, 로컬 파일 충돌 표시 | Markdown 편집, 협업 상태, 로컬 캐시와 서버 저장 상태 표시 |
+| Markdown | 공통 Markdown 문법, 실시간 미리보기, task/table, 링크 | 로컬 이미지와 Workspace 위키 링크 해석, callout 포함 Workspace 확장 | PKMS 자산 링크 해석, PKMS 링크 규칙과 task/table 지원 |
 | 파일 작업 | 트리·검색 결과에서 열기, capability가 있는 작업의 공통 확인/오류 표시 | 파일 생성·폴더 생성·rename·move·delete·로컬 검색/치환 | 저장소 생성·rename·move·delete, 로드된 저장소 목록에서 이름 검색 |
 | 저장 상태 | `clean`, `dirty`, `saving`, `conflict`, `error`의 공통 상태와 메시지 표시 | clean은 디스크에 기록됨을 뜻함 | clean은 PKMS 서버에 기록됨을 뜻함. GitHub 반영은 별도 동기화 상태로 표시 |
 
@@ -132,9 +132,9 @@ interface EditorDocumentSession {
 
 `previewUrl`은 provider가 수명을 관리하는 임시 URL일 수 있다. 공통 편집기는 문서 세션이 닫힐 때 asset preview도 해제한다. `asset` 문서는 읽기 전용 세션이며 `replaceText`를 제공하지 않는다.
 
-공용 Editor는 CodeMirror 인스턴스를 만들고 공통 명령, 문법 UI, Markdown 미리보기, 목차, 선택, 포커스 수명을 소유한다. 문서 세션은 `replaceText`와 snapshot으로 협업·저장 동기화를 제공하며 CodeMirror extension을 주입하지 않는다. Provider가 편집 UI를 교체하거나 공통 키 동작을 조용히 바꾸지는 않는다.
+공용 Editor는 CodeMirror 인스턴스를 만들고 공통 명령, 문법 UI, Markdown 미리보기, 선택, 포커스 수명을 소유한다. 문서 outline/structure UI는 제공하지 않는다. 문서 세션은 `replaceText`와 snapshot으로 협업·저장 동기화를 제공하며 CodeMirror extension을 주입하지 않는다. Provider가 편집 UI를 교체하거나 공통 키 동작을 조용히 바꾸지는 않는다.
 
-여기서 **공통 편집기**는 단일 root React 컴포넌트나 제품 shell이 아니라 `packages/editor`의 UI와 기능 집합을 뜻한다. 공통 패키지는 편집 surface·Markdown 동작·outline·트리 알고리즘과 재사용 UI를 소유한다. 열린 문서의 membership과 active document는 host가 소유한다. Workspace는 pane/tabset 모델에, PKMS는 workspace별 document tab 모델에 연결한다. `EditorDocumentTabBar`는 재사용 가능한 표시 UI이며 두 제품의 tab state를 강제로 같은 모델로 바꾸지 않는다. 문서별 커서·스크롤·선택·undo 이력은 안정적인 provider item identity로 공통 저장 기능을 사용하고 상태 저장 키/저장소는 host가 전달한다. 트리 확장·선택·스크롤의 보존 키도 host가 전달한다. PKMS에서 뒤로/앞으로는 열린 탭을 대신하지 않고 기존 문서 탐색 이력을 이동한다.
+여기서 **공통 편집기**는 단일 root React 컴포넌트나 제품 shell이 아니라 `packages/editor`의 UI와 기능 집합을 뜻한다. 공통 패키지는 편집 surface·Markdown 동작·트리 알고리즘과 재사용 UI를 소유한다. 열린 문서의 membership과 active document는 host가 소유한다. Workspace는 pane/tabset 모델에, PKMS는 workspace별 document tab 모델에 연결한다. `EditorDocumentTabBar`는 재사용 가능한 표시 UI이며 두 제품의 tab state를 강제로 같은 모델로 바꾸지 않는다. 문서별 커서·스크롤·선택·undo 이력은 안정적인 provider item identity로 공통 저장 기능을 사용하고 상태 저장 키/저장소는 host가 전달한다. 트리 확장·선택·스크롤의 보존 키도 host가 전달한다. PKMS에서 뒤로/앞으로는 열린 탭을 대신하지 않고 기존 문서 탐색 이력을 이동한다.
 
 ## Acceptance and migration order
 
@@ -142,7 +142,7 @@ interface EditorDocumentSession {
 
 Migrate in this order:
 
-1. Extract the common CodeMirror surface, Markdown extensions, outline, and command definitions into `packages/editor`. Match the current Workspace and PKMS feature sets before consolidating duplicate behavior.
+1. Extract the common CodeMirror surface, Markdown extensions, and command definitions into `packages/editor`. Match the current Workspace and PKMS feature sets before consolidating duplicate behavior.
 2. Move the Workspace local tree and document I/O behind `EditorProvider`. Keep Electron IPC and filesystem permission checks in `apps/workspace-app`.
 3. Move PKMS document/tree operations behind the same provider contract. Keep login, repository selection, API transport, Yjs, cache, and GitHub status in `packages/pkms-client`.
 4. Replace duplicated editor surfaces and interactions with shared Editor components. Each host composes them into its existing navigation model: retain the current Workspace pane layout and PKMS web navigation shell/document tabs.
@@ -157,10 +157,10 @@ PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔�
 | 영역 | 상태 | 현재 근거 / 남은 일 |
 |---|---|---|
 | Provider 계약과 Workspace·PKMS adapter | done (implemented) | `packages/editor/src/provider.ts`와 두 adapter가 트리·문서·검색·작업 capability를 사용한다. 공통 CodeMirror 표면이 편집 내용을 session `replaceText`로 전달하고, Workspace EditorContent·TreeView의 경로 조회, 문서 생성·저장, rename은 provider를 경유한다. 공통 lazy-tree path resolver를 추가해 Workspace가 경로→항목 조회에 사용한다. Workspace Find/Replace가 `search`·`replaceContents`로 adapter를 경유한다. PKMS adapter는 content를 가져오지 않는 metadata endpoint에서 안정 file ID를 조회해 접힌/미로드 branch의 문서도 열고, PKMS tree 생성 UI도 parent path를 공통 lazy-tree resolver로 ID에 매핑하고 parent ID를 검증해 cache miss를 root 생성으로 바꾸지 않는다. toolbar·tree·문서 제목 rename은 provider를 경유하고, rename 대상도 안정 ID로 서버에서 조회한다. PKMS move/delete도 모든 source와 destination을 안정 ID로 조회하며 cache miss를 무시하지 않는다. PKMS move 목적지도 provider의 lazy-tree path resolver로 안정 ID를 찾고, 잘못된 경로가 root 이동으로 바뀌지 않게 검증한다. PKMS rename/move 뒤에는 열린 session의 `item` metadata를 안정 ID로 다시 조회해 갱신하되, 오프라인 큐 작업에서 서버가 반환한 이전 경로로 낙관적 로컬 경로를 되돌리지 않는다. 파일 작업 hook이 rename/move 성공 여부를 반환하고 PKMS provider가 실패 결과를 구조화 오류로 돌려, 실패한 작업이 성공으로 처리되거나 session metadata를 갱신하지 않게 한다. Workspace move/delete도 provider ID·item ID의 stale/mismatched 값을 조용히 건너뛰지 않고, batch 삭제·이동 전에 원본 항목을 확인하며, move destination이 실제 디렉터리인지 검증한다. 중복 선택된 상위 폴더와 하위 항목은 한 번만 처리한다. PKMS tree 삭제는 영향받는 열린 문서의 dirty 상태를 확인하고 삭제 성공 시 탭·Yjs session·메모리 view snapshot을 정리한다. 공통 tab-ID dirty registry가 탭 버튼과 전역 닫기 단축키를 보호하고, 파일 삭제는 열린 dirty 문서 확인 후 수행한다. Workspace 저장과 Find/Replace는 main-process compare-and-write로 stale disk 내용을 덮어쓰지 않으며, watcher 변경은 저장 중 기록한 내용과 비교해 자체 저장 알림과 외부 충돌을 구분한다. PKMS Yjs 세션은 저장 요청을 직렬화해 autosave와 Cmd+S 결과 경합을 막고, 원격 변경 시 mirror 상태를 pending으로 갱신한다. `EditorProviderError`와 공통 코드를 추가해 두 provider의 not-found·read-only·conflict 오류를 구조화하고, provider 경계가 미분류 비동기 예외를 작업별 안전 메시지의 `unknown` 오류로 변환하며 AbortError는 보존한다. 문서 열기의 AbortSignal을 Workspace·PKMS 경로에 연결하고 취소된 세션을 닫으며, 취소를 사용자 오류로 표시하지 않는다. 오래된 open 요청의 실패가 Workspace 오류나 PKMS의 현재 hydration 상태를 덮어쓰지 않도록 차단한다. 제품별 동작 유지와 open/cancel race는 acceptance 목록에서 별도로 확인한다. |
-| 공통 CodeMirror 표면 | done (implemented) | 두 앱의 Markdown 편집기는 `EditorMarkdownSurface`, Workspace의 일반 코드 편집기는 `EditorTextSurface`를 provider session과 함께 사용한다. 공통 history, keymap, provider snapshot 반영, 편집 변경의 `replaceText` 전달을 소유한다. Markdown 표면은 공통 parser·syntax highlighting·theme·outline 갱신과 문서 내 Find/Replace를 항상 적용하고, Workspace host는 WikiLink parser와 제품별 링크 확장을 추가한다. PKMS는 Markdown과 asset만 제공한다. Pane layout, 코드 언어 확장, 저장/동기화 chrome은 각 host가 소유하는 제품 경계다. |
-| Markdown 문서 프레임 | done (implemented) | 두 앱이 `EditorMarkdownEditor`를 사용해 공통 제목·floating actions·스크롤 가능한 문서 본문·outline 버튼/목록/이동 구조와 lazy Markdown surface 로딩을 함께 조립한다. `EditorMarkdownDocument`와 `EditorMarkdownTitle`의 표시/편집 전환을 공유한다. 제목 표시와 inline rename 입력, 키 처리·오류 접근성·표시를 공통화했고, 경로 충돌 검사와 실제 rename 정책은 각 provider host가 소유한다. 빈 영역 클릭 판별은 공통 frame이 편집기·제목 내부 클릭을 제외하고, 두 host가 같은 문서 끝 focus 동작을 연결한다. 저장 단계(`clean`, `dirty`, `saving`, `conflict`, `error`)의 사용자 라벨은 공통 helper를 사용하고, 제품별 동기화 메시지와 status chrome은 host 책임으로 둔다. |
+| 공통 CodeMirror 표면 | done (implemented) | 두 앱의 Markdown 편집기는 `EditorMarkdownSurface`, Workspace의 일반 코드 편집기는 `EditorTextSurface`를 provider session과 함께 사용한다. 공통 history, keymap, provider snapshot 반영, 편집 변경의 `replaceText` 전달을 소유한다. Markdown 표면은 공통 parser·syntax highlighting·theme과 문서 내 Find/Replace를 항상 적용하며 문서 outline/structure UI는 제공하지 않는다.  Workspace host는 WikiLink parser와 제품별 링크 확장을 추가한다. PKMS는 Markdown과 asset만 제공한다. Pane layout, 코드 언어 확장, 저장/동기화 chrome은 각 host가 소유하는 제품 경계다. |
+| Markdown 문서 프레임 | done (implemented) | 두 앱이 `EditorMarkdownEditor`를 사용해 공통 제목·floating actions·스크롤 가능한 문서 본문·lazy Markdown surface 로딩을 함께 조립한다. 문서 outline/structure control은 렌더링하지 않는다. `EditorMarkdownDocument`와 `EditorMarkdownTitle`의 표시/편집 전환을 공유한다. 제목 표시와 inline rename 입력, 키 처리·오류 접근성·표시를 공통화했고, 경로 충돌 검사와 실제 rename 정책은 각 provider host가 소유한다. 빈 영역 클릭 판별은 공통 frame이 편집기·제목 내부 클릭을 제외하고, 두 host가 같은 문서 끝 focus 동작을 연결한다. 저장 단계(`clean`, `dirty`, `saving`, `conflict`, `error`)의 사용자 라벨은 공통 helper를 사용하고, 제품별 동기화 메시지와 status chrome은 host 책임으로 둔다. |
 | 문서별 편집 상태 | done (implemented) | Workspace의 path→item ID 매핑은 재시작 뒤에도 복원되고 두 provider 모두 rename/move 중 item ID를 유지한다. CodeMirror 커서·선택·scroll·undo 상태는 provider clean 시 안정 identity 키로 저장하고, 24개 persisted LRU·문서별 40,000자 제한 안에서 재시작 뒤 복원한다. 임시 경로 키가 provider의 안정 identity로 확정되는 동일 문서 전환은 host가 명시해 메모리 또는 저장소에만 남은 캐시 상태를 새 키로 옮긴다. 캐시된 본문은 mount와 문서 전환 전에 provider 최신 본문으로 재기반해 오래된 텍스트가 먼저 보이거나 커서 매핑이 유실되지 않게 한다. Snapshot hook은 session identity가 바뀐 render부터 새 provider snapshot을 반환해 이전 문서 snapshot이 새 identity에 적용되지 않게 한다. dirty이거나 더 큰 상태는 메모리에서만 유지한다. 사용자가 dirty 문서 닫기를 확인하면 해당 문서의 in-memory snapshot을 버려 다음 열기에서 discard한 내용이 되살아나지 않게 한다. 저장소 구현은 host가 `viewStateStorage`로 주입하고 공통 패키지는 주어진 adapter만 사용한다. 양쪽 입력은 provider dirty phase를 갱신하고 Workspace와 PKMS 탭 닫기는 공통 dirty-document registry를 사용한다. |
-| Outline·tree primitive·문서 tab 구성요소 | done (implemented) | Outline UI와 Markdown heading parsing·공통 outline view-model 변환, `EditorTreeRow`, `EditorTreeVirtualList`, tree model/selection/navigation helper, PKMS 문서 tab을 공유한다. 두 제품의 provider와 화면은 이 primitive를 각각 host에서 조립한다. Outline 이동 위치는 두 앱 모두 CodeMirror 문서 offset을 사용한다. 가상 스크롤 행 높이는 공통 27px이다. 공통 row CSS가 높이·선택/hover/drop 상태·아이콘 배치를 소유한다. |
+| Tree primitive·문서 tab 구성요소 | done (implemented) | `EditorTreeRow`, `EditorTreeVirtualList`, tree model/selection/navigation helper, PKMS 문서 tab을 공유한다. 두 제품의 provider와 화면은 이 primitive를 각각 host에서 조립한다. 가상 스크롤 행 높이는 공통 27px이다. 공통 row CSS가 높이·선택/hover/drop 상태·아이콘 배치를 소유한다. |
 | TreeView 화면 골격·행 상호작용 | in progress | `packages/editor/src/EditorTreeView.tsx`가 두 제품의 tree root/list/virtual rows, row 아이콘과 disclosure, Markdown label, active/selected/cut/drop 표시, pointer modifier selection, focus callback, context-menu routing, drag/drop MIME·destination routing을 공유한다. Workspace와 PKMS는 같은 화면 밀도와 행 모양을 사용한다. 각 host는 provider별 tree projection/lazy-load·확장 상태·scroll persistence·키보드 command policy·메뉴 내용·파일 열기 및 실제 move 작업을 소유한다. 두 host 수동 acceptance와 drag/drop·keyboard 회귀 확인 전에는 전체 TreeView 완료로 보지 않는다. |
 | Markdown 편집 기능과 명령 | done (implemented) | Markdown parser, 4칸 들여쓰기, indent-on-input, 목록 연속 입력, markup Backspace, Bold/italic 단축키, 문서 내 Find/Replace, live-preview decoration, rendered-link hit testing, relative path normalization, 비동기 image resource 수명 관리는 공통 패키지다. Workspace plain-text paste·로컬 이미지 root·WikiLink resolver와 PKMS 저장소 asset 조회/인증은 host resolver 책임이다. 양쪽 구현 연결은 끝났고, 이미지·첨부파일·callout의 제품별 acceptance 확인은 전체 acceptance 항목에서 진행한다. |
 | Quick open·검색 UI와 host 조립 | done (implemented) | Quick-open dialog, fuzzy ranking, provider 검색의 취소·loading·오류 처리는 공유한다. 양쪽 Quick Open은 `useEditorQuickOpenSearch`를 통해 provider의 `search(target: "names", fuzzy: true)`를 사용하고, 현재 query/result와 맞지 않는 후보 및 선택 index는 렌더 즉시 배제한다. Workspace는 전체 로컬 파일을, PKMS는 loaded repository 파일을 후보로 제공한다. PKMS는 ignored-file 필터를 적용한 뒤 표시 상한을 적용해 hidden 파일이 후보 수를 차지하지 않게 한다. Workspace의 `Cmd+P`는 포커스된 pane kind를 확인해 PKMS pane에서는 PKMS Quick Open을 열고, 다른 pane에서는 Workspace Quick Open을 연다. Find/Replace는 공통 UI이며 Workspace만 전체 내용 검색·치환을 provider로 제공한다. host는 제품별 표시 label, 검색 후보 필터, shell과 탭 모델을 연결한다. |
@@ -173,7 +173,7 @@ Acceptance checklist:
 | 문서 전환 후 cursor/selection/scroll/undo 복원 | not yet | not yet | not yet |
 | dirty 문서 닫기·파일 삭제 확인 및 discard 후 복구 방지 | not yet | not yet | not yet |
 | 외부 변경 conflict, 저장 오류, autosave/Cmd+S 상태 표시 | not yet | not yet | not yet |
-| Markdown outline, formatting, links, images/attachments 동작 | not yet | not yet | not yet |
+| Markdown formatting, links, images/attachments 동작 (outline/structure UI 제외) | not yet | not yet | not yet |
 | 트리 keyboard/multi-select, capability 작업, Quick Open 결과 | not yet | not yet | not yet |
 | `Cmd+P`가 포커스된 pane의 Quick Open을 여는지 | not yet | not yet | done (verified: PKMS pane에서 PKMS 전용 Quick Open 표시 확인) |
 

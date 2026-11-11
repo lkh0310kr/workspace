@@ -4,13 +4,9 @@ Markdown은 plain text 문서에 CodeMirror decoration을 적용하는 live prev
 
 ## 구성과 프레임
 
-[EditorMarkdownEditor](../../src/EditorMarkdownEditor.tsx)는 document frame과 MarkdownSurface를 조합한다. Surface는 shared grammar, syntax fallback highlighting, markdownEditorTheme/markdownProseTheme, host extensions, linkNavigation, imageResolver, outline listener를 구성한다.
+[EditorMarkdownEditor](../../src/EditorMarkdownEditor.tsx)는 document frame과 MarkdownSurface를 조합한다. Surface는 shared grammar, syntax fallback highlighting, markdownEditorTheme/markdownProseTheme, host extensions, linkNavigation, imageResolver를 구성한다.
 
-[Document frame](../../src/EditorMarkdownDocument.tsx)은 문서 본문 위의 우측 floating outline과 title·본문이 함께 움직이는 외부 scroll을 가진다. Desktop은 파일 확장자가 `.md`인 Markdown pane에만 outline entry를 전달한다. outlineKey가 바뀌면 popover를 닫고 항목 선택 시 닫은 뒤 position으로 이동한다. heading이 없으면 `No headings`다. Code pane은 Cmd/Ctrl+F search shortcut을 제공하고 toolbar search button은 렌더링하지 않는다. cm-editor/title 내부 click을 제외한 background click만 host에 전달한다. Desktop은 이때 focus와 cursor를 본문 끝으로 옮긴다. code 모드의 내부 scroll과 구분한다.
-
-## Right-side outline result
-
-`.md` file-backed panes show a compact outline trigger at the document's upper-right edge. Activating it opens an opaque floating card aligned to the right; each heading navigates to its source position and closes the card. Other extensions, untitled Markdown documents, and code panes do not render this control. This is the navigation result represented by the supplied Notion screenshots; there is no separate “Structure” toolbar action.
+[Document frame](../../src/EditorMarkdownDocument.tsx)은 title·본문이 함께 움직이는 외부 scroll을 가진다. 문서 outline/structure control은 제공하지 않는다. Code pane은 Cmd/Ctrl+F search shortcut을 제공하고 toolbar search button은 렌더링하지 않는다. cm-editor/title 내부 click을 제외한 background click만 host에 전달한다. Desktop은 이때 focus와 cursor를 본문 끝으로 옮긴다. code 모드의 내부 scroll과 구분한다.
 
 ## 문법과 입력
 
@@ -26,7 +22,7 @@ Mod-b는 `**`, Mod-i는 `*`로 모든 selection을 감싼다. 선택 양쪽에 �
 
 | 요소 | 현재 렌더 책임 |
 |---|---|
-| ATX heading 1~6 | marker와 level별 스타일; outline의 heading 타입도 같음 |
+| ATX heading 1~6 | marker와 level별 스타일 |
 | 강조·code·link·WikiLink | 원문 marker 숨김과 내용 class; 링크 클릭은 별도 resolver |
 | 목록·task | bullet/checkbox widget; checkbox 조작은 해당 원문 task marker 변경 |
 | blockquote/callout | line 스타일과 `[!type]` label; note/info/tip/success/question/warning/danger/failure/bug/example/quote label |
@@ -50,9 +46,7 @@ HTML iframe의 sandbox는 `allow-same-origin`이며 script 허용 flag는 없다
 - rename 시작 시 자동 저장 timer를 취소하고 pathRenameInFlight=true. untitled는 먼저 대상 path에 저장한 뒤 path를 부여한다. 기존 파일은 autoSave가 켜져 있고 dirty일 때 기존 path를 먼저 저장하고 provider.rename을 수행한다.
 - 성공 시 skipPathLoad를 지정해 rename된 파일을 다시 읽으며 현재 편집을 덮지 않게 한다. 실패 시 title draft와 편집 모드를 복원하고 오류를 표시한다. finally에서 rename flag를 해제하고 dirty면 자동 저장을 다시 예약한다.
 
-## Outline과 링크
-
-[markdownOutline.ts](../../src/markdownOutline.ts)는 ATXHeading1~6만 수집한다. heading의 원문 offset, 1-based line, level, marker와 뒤쪽 closing #를 제거한 title을 반환한다. entry ID는 `${position}-${title}`다. view 준비 시와 docChanged 시 outline을 알린다. navigation position은 0~doc.length로 clamp하고 selection/scroll/focus한다. Setext heading을 자동 포함하는 계약은 없다.
+## 링크
 
 [markdownLinkNavigation.ts](../../src/markdownLinkNavigation.ts)는 `.cm-md-link` click을 syntax node Link/WikiLink로 역추적한다. WikiLink는 `[[target|label]]`의 target만 trim한다. 일반 Link는 URL child를 사용한다. host callback이 true를 반환할 때만 preventDefault하고 처리 완료로 본다.
 
@@ -68,7 +62,6 @@ HTML iframe의 sandbox는 `allow-same-origin`이며 script 허용 flag는 없다
 | MD-04 | sibling `B.md` 존재, 제목 b | collision 오류; 원본 파일 유지 |
 | MD-05 | `notes/a.md`에서 `../b.md?q=1#h` | b.md. `../../b.md`는 null |
 | MD-06 | image load 중 document 전환 | 늦은 resource와 release 정리 |
-| MD-07 | outline 항목 click | 해당 원문 위치로 selection/focus, popover 닫힘 |
-| MD-08 | HTML preview unmount | ResizeObserver 해제; script 실행 허용하지 않음 |
+| MD-07 | HTML preview unmount | ResizeObserver 해제; script 실행 허용하지 않음 |
 
 기존 자동 검증은 markdownTitleRename.test에 연결된다. decoration/이미지/HTML의 실제 브라우저 렌더는 별도 수동 검증 대상이며 스냅샷 검증 완료를 뜻하지 않는다.

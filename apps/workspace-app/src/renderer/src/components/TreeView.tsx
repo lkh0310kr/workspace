@@ -25,6 +25,7 @@ import {
   loadExplorerTreeState,
   resetExplorerTreeState,
   saveExplorerExpanded,
+  saveExplorerScrollAnchor,
   saveExplorerScrollTop,
 } from "../explorer/explorerState";
 import { dirsToReloadForChange } from "../explorer/treeReload";
@@ -136,7 +137,7 @@ export function TreeView({
   const rootPathRef = useRef(rootPath);
   const editorProviderRef = useRef(editorProvider);
   const loadSequenceRef = useRef(new Map<string, number>());
-  const pendingScrollRestoreRef = useRef<{ scope: string; scrollTop: number } | null>(null);
+  const pendingScrollRestoreRef = useRef<{ scope: string; scrollTop: number; anchorPath?: string; anchorOffset?: number } | null>(null);
   const pendingRevealPathRef = useRef<string | null>(null);
   const lastRevealRequestRef = useRef<string | null>(null);
   const scrollAnchorRef = useRef<{ path: string; index: number; offset: number } | null>(null);
@@ -213,7 +214,7 @@ export function TreeView({
     const restored = loadExplorerTreeState(explorerStateKey, rootPath);
     el.scrollTop = 0;
     setScrollTop(0);
-    pendingScrollRestoreRef.current = { scope: `${tabId}:${rootPath}`, scrollTop: restored.scrollTop };
+    pendingScrollRestoreRef.current = { scope: `${tabId}:${rootPath}`, scrollTop: restored.scrollTop, anchorPath: restored.scrollAnchorPath, anchorOffset: restored.scrollAnchorOffset };
     const onScroll = () => {
       setScrollTop(el.scrollTop);
       const rows = previousFlatListRef.current;
@@ -223,6 +224,7 @@ export function TreeView({
         ? { path: row.entry.path, index, offset: el.scrollTop - index * EDITOR_TREE_ROW_HEIGHT }
         : null;
       saveExplorerScrollTop(explorerStateKey, rootPath, el.scrollTop);
+      saveExplorerScrollAnchor(explorerStateKey, rootPath, row?.entry.path, el.scrollTop - index * EDITOR_TREE_ROW_HEIGHT);
     };
     const onResize = () => setViewportHeight(el.clientHeight);
     onResize();
@@ -314,7 +316,9 @@ export function TreeView({
     const el = scrollContainerRef?.current;
     pendingScrollRestoreRef.current = null;
     if (!el) return;
-    const restoredTop = Math.max(0, Math.min(pending.scrollTop, el.scrollHeight - el.clientHeight));
+    const anchorIndex = pending.anchorPath ? flatList.findIndex(({ entry }) => entry.path === pending.anchorPath) : -1;
+    const targetTop = anchorIndex >= 0 ? anchorIndex * EDITOR_TREE_ROW_HEIGHT + (pending.anchorOffset ?? 0) : pending.scrollTop;
+    const restoredTop = Math.max(0, Math.min(targetTop, el.scrollHeight - el.clientHeight));
     el.scrollTop = restoredTop;
     setScrollTop(restoredTop);
     const index = Math.floor(restoredTop / EDITOR_TREE_ROW_HEIGHT);
@@ -344,10 +348,12 @@ export function TreeView({
       if (Math.abs(el.scrollTop - nextTop) > 1) el.scrollTop = nextTop;
       const row = flatList[index];
       scrollAnchorRef.current = row ? { path: row.entry.path, index, offset } : null;
+      saveExplorerScrollTop(explorerStateKey, rootPath, nextTop);
+      saveExplorerScrollAnchor(explorerStateKey, rootPath, row?.entry.path, offset);
       setScrollTop(nextTop);
     }
     previousFlatListRef.current = flatList;
-  }, [flatList, rootPath, tabId, scrollContainerRef]);
+  }, [flatList, rootPath, tabId, scrollContainerRef, explorerStateKey]);
 
   const treePaths = useMemo(() => flatList.map(({ entry }) => entry.path), [flatList]);
   const treeSelection = useEditorTreeSelection(treePaths);
