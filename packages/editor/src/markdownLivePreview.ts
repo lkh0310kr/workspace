@@ -379,22 +379,45 @@ function isEscapedAt(source: string, index: number): boolean {
 }
 
 function appendTableCellContent(target: HTMLElement, source: string): void {
-  if (source.includes("`")) {
-    target.textContent = source.replace(/\\\|/g, "|");
-    return;
-  }
   let plainStart = 0;
+  const appendPlain = (text: string) => appendTableInlineFormatting(target, text.replace(/\\\|/g, "|"));
   for (let start = 0; start < source.length; start++) {
+    if (source[start] === "`" && !isEscapedAt(source, start)) {
+      const close = source.indexOf("`", start + 1);
+      if (close > start + 1 && !isEscapedAt(source, close)) {
+        appendPlain(source.slice(plainStart, start));
+        const code = document.createElement("code");
+        code.textContent = source.slice(start + 1, close).replace(/\\\|/g, "|");
+        target.appendChild(code);
+        plainStart = close + 1;
+        start = close;
+        continue;
+      }
+    }
     if (source[start] !== "$" || isEscapedAt(source, start) || source[start - 1] === "$" || source[start + 1] === "$" || /\s/.test(source[start + 1] ?? "")) continue;
     let close = start + 1;
     while (close < source.length && (source[close] !== "$" || isEscapedAt(source, close))) close++;
     if (close >= source.length || close === start + 1 || source[close - 1] === "$" || /\s/.test(source[close - 1])) continue;
-    target.appendChild(document.createTextNode(source.slice(plainStart, start).replace(/\\\|/g, "|")));
+    appendPlain(source.slice(plainStart, start));
     target.appendChild(new InlineMathWidget(source.slice(start + 1, close)).toDOM());
     plainStart = close + 1;
     start = close;
   }
-  target.appendChild(document.createTextNode(source.slice(plainStart).replace(/\\\|/g, "|")));
+  appendPlain(source.slice(plainStart));
+}
+
+function appendTableInlineFormatting(target: HTMLElement, source: string): void {
+  const pattern = /\*\*([^*\n]+)\*\*|__([^_\n]+)__|~~([^~\n]+)~~|\*([^*\n]+)\*|_([^_\n]+)_/g;
+  let cursor = 0;
+  for (const match of source.matchAll(pattern)) {
+    const index = match.index ?? 0;
+    target.appendChild(document.createTextNode(source.slice(cursor, index)));
+    const element = document.createElement(match[1] || match[2] ? "strong" : match[3] ? "del" : "em");
+    element.textContent = match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5] ?? "";
+    target.appendChild(element);
+    cursor = index + match[0].length;
+  }
+  target.appendChild(document.createTextNode(source.slice(cursor)));
 }
 
 function splitMarkdownTableRowDetailed(source: string, baseFrom: number): Array<{ text: string; from: number; to: number }> {

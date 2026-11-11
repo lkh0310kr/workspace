@@ -141,7 +141,7 @@ Filename title와 본문 H1이 함께 있을 때 두 이름과 hierarchy를 구�
 | ID | 사용자 결과 | 수용 기준 |
 |---|---|---|
 | TBL-01 | GFM 표의 header, body, 빈 cell, alignment가 기대한 표로 보인다. | 왼쪽/가운데/오른쪽 alignment marker를 적용하고, 긴 cell·좁은 폭에서는 문서 전체 폭을 깨지 않으면서 표를 가로 스크롤하거나 감싼다. 기본 렌더 경로는 구현했으며 수동 acceptance가 남아 있다. |
-| TBL-02 | cell 안 기본 inline Markdown이 다른 문단처럼 렌더된다. | inline `$…$`는 같은 KaTeX renderer로 처리한다. bold, italic, strike, inline code, link, image, wikilink, task marker 등 나머지는 미완료다. |
+| TBL-02 | cell 안 기본 inline Markdown이 다른 문단처럼 렌더된다. | inline `$…$`, strong, emphasis, strike, inline code를 렌더한다. link/image/wikilink/task marker 및 nested formatting은 미완료다. |
 | TBL-03 | 표 셀을 클릭해 직접 편집한다. | 완료: 렌더 cell click이 원본 Markdown의 trimmed cell range에 caret을 두고 source 편집을 연다. Tab/Shift+Tab은 cell 순서대로 이동하며 마지막/첫 cell을 벗어난다. 끝 위치에서 Tab은 source에 newline을 만들어 표 밖으로 나간다. 수동 caret/scroll 확인은 남아 있다. |
 | TBL-04 | 행과 열을 추가·삭제·이동하고 header를 바꾼다. | 마우스 context menu와 keyboard path가 같은 명령을 호출한다. 한 행/열만 남긴 경우, 병합된/불규칙 표의 처리 결과를 명시한다. 문서의 다른 표에는 영향이 없다. |
 | TBL-05 | 표 편집은 Markdown text를 보존한다. | escaped pipe `\\|`, inline code/math의 pipe, 정렬 marker, cell 내 link alias와 embed 크기를 parse/render/serialize round-trip해 의도하지 않은 열 분리를 만들지 않는다. |
