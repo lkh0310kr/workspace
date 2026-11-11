@@ -353,6 +353,7 @@ class TableWidget extends WidgetType {
   toDOM(view: EditorView) {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-md-table-wrap";
+    wrapper.dataset.tableFrom = String(this.sourceFrom);
     const table = document.createElement("table");
     table.className = "cm-md-table";
     table.style.tableLayout = this.widths.length ? "fixed" : "auto";
@@ -427,6 +428,48 @@ class TableWidget extends WidgetType {
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
+    const allRanges = [...this.headerRanges, ...this.rowRanges.flat()];
+    let activeCell: HTMLElement | null = null;
+    const activateCell = (cell: HTMLElement, ordinal: number) => {
+      const range = allRanges[ordinal];
+      if (!range || !wrapper.isConnected) return;
+      const raw = view.state.doc.sliceString(range.from, range.to);
+      activeCell = cell;
+      cell.contentEditable = "true";
+      cell.setAttribute("role", "textbox");
+      cell.setAttribute("aria-label", `Edit table cell ${ordinal + 1}`);
+      cell.tabIndex = 0;
+      cell.textContent = raw;
+      cell.focus({ preventScroll: true });
+      cell.addEventListener("keydown", (keyEvent) => {
+        if (keyEvent.key === "Enter") { keyEvent.preventDefault(); cell.blur(); }
+        if (keyEvent.key === "Tab") {
+          keyEvent.preventDefault();
+          const nextOrdinal = Math.max(0, Math.min(allRanges.length - 1, ordinal + (keyEvent.shiftKey ? -1 : 1)));
+          cell.blur();
+          requestAnimationFrame(() => {
+            const freshWrapper = view.dom.querySelector<HTMLElement>(`.cm-md-table-wrap[data-table-from="${this.sourceFrom}"]`) ?? wrapper;
+            const freshCell = freshWrapper.querySelectorAll<HTMLElement>("th, td")[nextOrdinal];
+            if (freshCell) activateCell(freshCell, nextOrdinal);
+          });
+        }
+      });
+      cell.addEventListener("blur", () => {
+        const edited = cell.textContent?.replace(/\r?\n/g, " ") ?? "";
+        const escaped = edited.replace(/\\?\|/g, (pipe) => pipe.startsWith("\\") ? pipe : "\\|");
+        if (edited === raw) {
+          cell.contentEditable = "false";
+          cell.removeAttribute("role"); cell.removeAttribute("aria-label"); cell.removeAttribute("tabindex");
+          cell.replaceChildren(); appendTableCellContent(cell, raw);
+        } else if (range.to <= view.state.doc.length) {
+          const scroll = view.dom.closest<HTMLElement>(".editor-markdown-scroll");
+          const top = scroll?.scrollTop ?? 0; const left = scroll?.scrollLeft ?? 0;
+          view.dispatch({ changes: { from: range.from, to: range.to, insert: escaped } });
+          if (scroll) requestAnimationFrame(() => { scroll.scrollTop = top; scroll.scrollLeft = left; });
+        }
+        if (activeCell === cell) activeCell = null;
+      }, { once: true });
+    };
     table.addEventListener("click", (event) => {
       if (event.target instanceof Element && event.target.closest(".cm-md-table-resize-handle")) return;
       const target = event.target instanceof Element ? event.target.closest("th, td") : null;
@@ -434,17 +477,25 @@ class TableWidget extends WidgetType {
       if (!target || !row) return;
       const column = Array.prototype.indexOf.call(row.children, target) as number;
       const rowIndex = Array.prototype.indexOf.call(tbody.children, row) as number;
-      const range = row.parentElement === thead ? this.headerRanges[column] : this.rowRanges[rowIndex]?.[column];
+      const ordinal = row.parentElement === thead
+        ? column
+        : this.headerRanges.length + this.rowRanges.slice(0, rowIndex).reduce((total, cells) => total + cells.length, 0) + column;
+      const range = allRanges[ordinal];
       if (!range) return;
       event.preventDefault();
-      const scroll = view.dom.closest<HTMLElement>(".editor-markdown-scroll");
-      const top = scroll?.scrollTop ?? 0; const left = scroll?.scrollLeft ?? 0;
-      const rect = target.getBoundingClientRect();
-      const ratio = Math.max(0, Math.min(1, (event instanceof MouseEvent ? event.clientX - rect.left : 0) / Math.max(1, rect.width)));
-      const position = Math.round(range.from + (range.to - range.from) * ratio);
-      view.dispatch({ selection: { anchor: position } });
-      view.contentDOM.focus({ preventScroll: true });
-      if (scroll) requestAnimationFrame(() => { scroll.scrollTop = top; scroll.scrollLeft = left; });
+      if (target === activeCell) return;
+      if (activeCell) {
+        activeCell.blur();
+        if (!wrapper.isConnected) {
+          requestAnimationFrame(() => {
+            const freshWrapper = view.dom.querySelector<HTMLElement>(`.cm-md-table-wrap[data-table-from="${this.sourceFrom}"]`);
+            const freshCell = freshWrapper?.querySelectorAll<HTMLElement>("th, td")[ordinal];
+            if (freshCell) activateCell(freshCell, ordinal);
+          });
+          return;
+        }
+      }
+      activateCell(target as HTMLElement, ordinal);
     });
     wrapper.appendChild(table);
     return wrapper;
