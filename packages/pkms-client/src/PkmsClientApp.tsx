@@ -343,7 +343,7 @@ export default function Home() {
     trackPkmsEditorSession(nextKey, session);
   }, [trackPkmsEditorSession]);
   const openFileRef = useRef<((file: FileRecord, historyAction?: FileNavigation) => Promise<void>) | null>(null);
-  const docs = useRef(new Map<string, { doc: Y.Doc; persistence: IndexeddbPersistence; updateHandler?: (update: Uint8Array, origin: unknown) => void }>());
+  const docs = useRef(new Map<string, { doc: Y.Doc; persistence?: IndexeddbPersistence; persistenceOpening?: Promise<void>; updateHandler?: (update: Uint8Array, origin: unknown) => void }>());
   const activeRef = useRef<{ file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null }>({ file: null, documentKey: null, doc: null, text: null });
   const pending = useRef(new Map<string, RealtimeMessage>());
   const hydrating = useRef(false);

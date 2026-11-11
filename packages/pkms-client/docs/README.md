@@ -20,7 +20,7 @@ Desktop sign-in은 device start, verification page open, 최소 5초 polling과 
 
 directory refresh는 해당 direct child 목록을 대체하고 사라진 folder의 후손을 제거하되 다른 branch는 유지한다. 파일 레코드가 같으면 기존 array reference를 반환한다. lazy loadedFolders와 서버 전체 tree를 구분한다.
 
-[useDocumentSession](../src/features/editor/useDocumentSession.ts)은 openSequence와 AbortSignal로 late response를 차단한다. stable editorDocumentKey별 Y.Doc·IndexeddbPersistence를 열고 local persistence sync 후 필요한 서버 state를 seed한다. server origin update는 사용자 autosave로 되돌리지 않는다. pending remote state를 적용한 뒤 observer/presence/live send를 연결한다. 최근 문서 20개 LRU가 inactive doc/persistence·IndexedDB를 정리한다. storage quota/손상 recovery 전체를 보장하는 transaction은 아니다.
+[useDocumentSession](../src/features/editor/useDocumentSession.ts)은 openSequence와 AbortSignal로 late response를 차단한다. stable editorDocumentKey별 Y.Doc·IndexeddbPersistence를 열고 local persistence sync 후 필요한 서버 state를 seed한다. IndexedDB open 실패 시 원래 문서 DB를 삭제하지 않고 새 로컬 cache 이름으로 전환하며, 이전 DB는 복구 가능성을 위해 보존한다. 새 cache도 열리지 않으면 서버 state로 편집을 계속하고 다음 open에서 재시도한다. server origin update는 사용자 autosave로 되돌리지 않는다. pending remote state를 적용한 뒤 observer/presence/live send를 연결한다. 최근 문서 20개 LRU는 inactive Y.Doc·persistence connection만 닫으며 IndexedDB offline recovery data는 보존한다.
 
 세부 local/Yjs/asset provider의 dirty/save/sync 전이는 [editor sessions](./editor-sessions.md)가 owner다. useDocumentSync와 file operation helper는 durable cloud save·GitHub mirror·operation retry를 조정한다. folder sync는 Desktop bridge가 소유하며 같은 package session 정책으로 합치지 않는다.
 

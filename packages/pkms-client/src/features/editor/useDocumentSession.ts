@@ -11,7 +11,8 @@ import type { PKMSRealtimeSocket } from "../../realtime";
 
 interface DocumentEntry {
   doc: Y.Doc;
-  persistence: IndexeddbPersistence;
+  persistence?: IndexeddbPersistence;
+  persistenceOpening?: Promise<void>;
   updateHandler?: (update: Uint8Array, origin: unknown) => void;
 }
 interface ActiveDocument { file: FileRecord | null; documentKey: string | null; doc: Y.Doc | null; text: Y.Text | null }
@@ -36,6 +37,75 @@ interface Options {
   setSaving: Dispatch<SetStateAction<boolean>>;
   setSidebarOpen: Dispatch<SetStateAction<boolean>>;
   setNotice: Dispatch<SetStateAction<string>>;
+}
+
+/** Open/initialize the Yjs database before constructing y-indexeddb. Its open rejection
+ * is otherwise left unhandled internally by y-indexeddb and `whenSynced` never settles. */
+function prepareYjsDatabase(name: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let request: IDBOpenDBRequest;
+    try {
+      request = indexedDB.open(name);
+    } catch (cause) {
+      reject(cause);
+      return;
+    }
+    let settled = false;
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("updates")) db.createObjectStore("updates", { autoIncrement: true });
+      if (!db.objectStoreNames.contains("custom")) db.createObjectStore("custom");
+    };
+    request.onblocked = () => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("Local document storage is still open in another Workspace window"));
+    };
+    request.onerror = () => {
+      if (settled) return;
+      settled = true;
+      reject(request.error ?? new Error("Could not open local document storage"));
+    };
+    request.onsuccess = () => {
+      request.result.close();
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+  });
+}
+
+function yjsDatabaseAliasKey(documentKey: string): string {
+  return `pkms:yjs-database:${documentKey}`;
+}
+
+function readYjsDatabaseName(documentKey: string): string {
+  try {
+    return localStorage.getItem(yjsDatabaseAliasKey(documentKey)) || documentKey;
+  } catch {
+    return documentKey;
+  }
+}
+
+function rememberYjsDatabaseName(documentKey: string, databaseName: string): void {
+  try {
+    localStorage.setItem(yjsDatabaseAliasKey(documentKey), databaseName);
+  } catch {
+    // The current session can still use IndexedDB even if the alias cannot persist.
+  }
+}
+
+async function openYjsPersistence(databaseName: string, doc: Y.Doc): Promise<IndexeddbPersistence> {
+  await prepareYjsDatabase(databaseName);
+  const persistence = new IndexeddbPersistence(databaseName, doc);
+  try {
+    await persistence._db;
+    await persistence.whenSynced;
+    return persistence;
+  } catch (cause) {
+    await persistence.destroy().catch(() => {});
+    throw cause;
+  }
 }
 
 export function useDocumentSession(options: Options) {
@@ -80,14 +150,41 @@ export function useDocumentSession(options: Options) {
     let entry = documents.current.get(documentKey);
     try {
       if (!entry) {
-        const doc = new Y.Doc({ guid: documentKey });
-        const persistence = new IndexeddbPersistence(documentKey, doc);
-        entry = { doc, persistence };
+        entry = { doc: new Y.Doc({ guid: documentKey }) };
         documents.current.set(documentKey, entry);
-        await persistence.whenSynced;
-        if (request !== openSequence.current) return;
-        if (signal?.aborted) { hydrating.current = false; setOpeningFileId(null); return; }
       }
+      // IndexedDB is a local cache, not a prerequisite for opening a PKMS note.
+      // Chromium can reject open() when its backing store is unavailable or damaged.
+      // Keep the Y.Doc alive and hydrate it from the server instead of failing the editor.
+      if (!entry.persistence && !entry.persistenceOpening) {
+        const currentEntry = entry;
+        currentEntry.persistenceOpening = (async () => {
+          const primaryDatabaseName = readYjsDatabaseName(documentKey);
+          try {
+            currentEntry.persistence = await openYjsPersistence(primaryDatabaseName, currentEntry.doc);
+          } catch (primaryCause) {
+            // Preserve the inaccessible database and switch this document to a fresh
+            // local cache. This recovers from per-database backing-store failures
+            // without erasing potentially recoverable offline updates.
+            const recoveryDatabaseName = `${documentKey}:recovery:${Date.now()}`;
+            try {
+              currentEntry.persistence = await openYjsPersistence(recoveryDatabaseName, currentEntry.doc);
+              rememberYjsDatabaseName(documentKey, recoveryDatabaseName);
+              setNotice("This note is using a fresh local cache because its previous cache could not be opened. The previous cache was preserved.");
+              console.warn("PKMS switched to a fresh local document cache; the previous database was preserved.", primaryCause);
+            } catch (recoveryCause) {
+              currentEntry.persistence = undefined;
+              setNotice("Local document storage is unavailable. This note is open from the server; local offline recovery is paused.");
+              console.warn("PKMS could not open either local document cache; continuing from the server.", primaryCause, recoveryCause);
+            }
+          } finally {
+            currentEntry.persistenceOpening = undefined;
+          }
+        })();
+      }
+      if (entry.persistenceOpening) await entry.persistenceOpening;
+      if (request !== openSequence.current) return;
+      if (signal?.aborted) { hydrating.current = false; setOpeningFileId(null); return; }
       const cachedText = entry.doc.getText("markdown");
       if (!cachedText.length) {
         if (typeof file.content === "string") {
@@ -126,10 +223,10 @@ export function useDocumentSession(options: Options) {
     for (const item of evicted) {
       const old = documents.current.get(item.key);
       if (old && activeDocument.current.documentKey !== item.key) {
-        old.doc.destroy(); old.persistence.destroy(); documents.current.delete(item.key);
+        await old.persistence?.destroy().catch(() => {});
+        old.doc.destroy();
+        documents.current.delete(item.key);
       }
-      const deletion = indexedDB.deleteDatabase(item.key);
-      deletion.onerror = () => {};
     }
     if (entry.updateHandler) entry.doc.off("update", entry.updateHandler);
     const updateHandler = (updateBytes: Uint8Array, origin: unknown) => {
