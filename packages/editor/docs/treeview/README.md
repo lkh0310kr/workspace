@@ -1,0 +1,71 @@
+# Treeview 스펙
+
+공유 [EditorTreeView](../../src/EditorTreeView.tsx)는 렌더·입력 라우팅을, [Desktop TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx)는 provider 로딩·영속 상태·실제 파일 작업을 소유한다.
+
+## 상태와 데이터 흐름
+
+공유 row model은 `id,path,name,kind,depth`와 선택적 expandable/expanded/loading/active/selected/multiSelected/cut/dropTarget/tabIndex/trailingStatus/showGuides/source를 가진다. projection은 rows/startIndex/paddingTop/paddingBottom/totalHeight다. 공유 UI는 provider를 직접 호출하지 않고 callback으로 선택·activate·context·drop을 위임한다.
+
+Desktop은 path→`{entries,loaded}` branch Map, expanded Set, focusedPath/anchorPath/selectedPaths, menu/prompt, dropTarget, scrollTop, viewportHeight를 소유한다. provider lease는 Explorer와 Editor가 공유한다. loadDir는 path를 directory item으로 resolve하고 listChildren(parentId)를 수행한다. notFound는 로딩 중단, 기타 오류는 console.error다. 현재 branch 요청에는 latest-request-wins sequence가 없다.
+
+초기화/루트 변경 때 branch와 selection을 초기화하고 root와 복원된 expanded branch를 로드한다. root가 바뀌면 저장된 tree state를 reset한다. 외부 scroll container는 scrollTop을 복원하고 passive scroll listener와 ResizeObserver로 가상화 크기를 갱신한다. expanded와 scrollTop은 host의 explorer state storage에서 관리하며 공통 UI가 localStorage를 직접 소유하지 않는다.
+
+## 정렬과 가상화
+
+근거: [treeModel.ts](../../src/treeModel.ts).
+
+- root path는 `''`, depth=0. branch마다 directory 먼저, 이름은 localeCompare(undefined,{sensitivity:'base'})로 정렬한다.
+- expanded directory에 대해서만 깊이 우선으로 후손을 펼친다. ancestor path Set으로 순환을 막는다. 로드되지 않은 branch는 행이 없다.
+- 기본 row height=27px, overscan=4. start=max(0,floor(scrollTop/27)-4), count=ceil(height/27)+8, end=min(total,start+count).
+- top=start*27, bottom=max(0,(total-end)*27), totalHeight=total*27이다. height<=0 또는 빈 목록이면 원래 rows를 모두 반환하고 spacer=0이다.
+- VirtualList는 item.id key, `role=group`, minHeight=totalHeight, aria-hidden spacer와 빈 목록 표시를 사용한다.
+- Markdown row label은 `.md`만 대소문자 무관 제거한다. `.markdown`까지 제거하는 본문 제목 규칙과 다르다.
+
+## 선택과 키보드
+
+근거: [treeSelection.ts](../../src/treeSelection.ts), [treeNavigation.ts](../../src/treeNavigation.ts).
+
+| 입력 | 전이 |
+|---|---|
+| 일반 click | focused=anchor=path, 선택은 해당 한 항목; onActivate 실행 |
+| Ctrl/Meta click | multiSelect일 때 선택 toggle, focused/anchor=path; activate하지 않음 |
+| Shift click | anchor 또는 focus 또는 자기 자신을 기준으로 visiblePaths의 inclusive range 선택; additive면 기존 선택과 합침 |
+| 빈 공간 click | onClearSelection |
+| Down/Up | 표시 행 한 칸 이동, 양 끝 clamp; focus 없으면 첫/마지막 행 |
+| Right | directory가 접혔으면 expand, 펼쳤으면 다음 행이 자식일 때 focus |
+| Left | expanded directory면 collapse, 아니면 표시된 부모로 focus |
+| Enter | activate |
+| F2 | rename |
+| Delete/Backspace | delete |
+
+보이지 않는 path에 대한 selection 요청은 현재 상태를 그대로 반환한다. range anchor가 visiblePaths에 없으면 클릭한 위치만 범위로 사용한다. 파일 작업 전 selected directory의 후손을 제거해 작업 root를 만든다. 공유 resolver는 의미 action만 반환하고 host가 capability와 실제 작업을 판단한다. row는 button role=treeitem, aria-level=depth+1, aria-selected=selected||multiSelected, expandable일 때 aria-expanded를 설정한다. 들여쓰기는 8+depth*14 px다. root `role=tree`, aria-label, aria-multiselectable, aria-busy를 제공하고 row의 tabindex 기본값은 -1이다.
+
+## 파일 열기와 변경
+
+Desktop에서 파일을 열기 전 조상 directory를 expand하고 미로드 branch를 읽는다. onOpenFile은 path와 code/markdown/viewer 및 선택적 pin을 받는다. 공유 shell은 단일 activate와 double activate callback을 구분한다.
+
+create/rename/menu는 capability와 메서드를 함께 확인한다. 파일 자동 이름은 unique-name helper가 case-insensitive sibling Set에서 `base+extension`을 먼저 시도하고 이미 있으면 `base 1+extension`, `base 2+extension` 순으로 첫 빈 이름을 찾는다. directory 생성 prompt는 입력 이름으로 createDirectory를 실행한다. rename은 provider rename, 성공 path 변경 통지는 host가 담당한다. 삭제는 root 선택으로 축약하고 삭제 확인 후 영향을 받는 열린 dirty 문서 확인을 추가로 수행한다. 확인 취소 시 provider delete를 호출하지 않는다. Desktop UI는 root path마다 delete([ref])를 순차 호출하고 첫 실패에서 중단한다. 성공 경로는 onPathDeleted를 통지하고 부모를 refresh한다. 실패/미처리 선택은 남기며 삭제된 anchor/focus는 남은 첫 항목으로 바꾼다. coordinator reconcile과 drag 정리 후 다음 frame에서 기존 scroll을 새 최대치로 clamp해 복원한다. provider가 여러 ref를 미리 검증하는 것과 UI가 여러 작업을 transaction으로 수행하는 것은 다르다.
+
+subscribeTree가 전달한 parentId는 host에서 path로 바꾼다. root가 포함되면 root와 모든 expanded branch를 재로드한다. 그 외에는 `dirsToReloadForChange`로 root와 expanded ancestor를 모아 재로드한다. 이 helper는 입력 경로의 부모부터 걷기 때문에 곧바로 해당 branch 하나만 새로 읽는 알고리즘과 다르다. 구체 동작은 [treeReload.ts](../../../../apps/workspace-app/src/renderer/src/explorer/treeReload.ts)를 따른다.
+
+pane이 숨겨지거나 workspace dismiss-portals 이벤트가 오면 menu/prompt를 닫는다. unmount에서 provider lease, scroll/resize/drag listeners를 해제한다.
+
+## Drag and drop
+
+기본 MIME은 `application/x-workspace-editor-tree-paths`, payload는 JSON string[]다. canMove이고 MIME이 일치할 때 dragover를 수락한다. directory/expandable 행은 자기 path, 파일 행은 부모 path, root는 `''`가 destination이다. drop은 propagation/default를 막고 target을 지운 뒤 parse된 paths를 callback에 넘긴다. 잘못된 JSON은 []이며 공유 shell은 실제 move를 하지 않는다.
+
+host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용한다. provider는 stale ref와 destination, 자기 후손 이동을 재확인한다. dragend에서 target 표시를 정리한다.
+
+## 검증 시나리오
+
+| ID | 데이터/행동 | 기대 결과 |
+|---|---|---|
+| TREE-01 | 파일 z, directory b, 파일 A | b→A→z 순서 |
+| TREE-02 | 100행, scroll=270, height=270 | start=6, 최대 18행, top=162, total=2700 |
+| TREE-03 | A 선택 후 Shift-C | visible 순서 A~C 선택, 활성 파일은 modifier click으로 바뀌지 않음 |
+| TREE-04 | 폴더와 그 후손 함께 삭제 | provider에는 조상 작업만, dirty 취소 시 삭제 없음 |
+| TREE-05 | 잘못된 drag JSON | 예외 없이 [] 전달 |
+| TREE-06 | Right/Left 반복 | expand→첫 자식→부모→collapse |
+| TREE-07 | pane hide | 열린 context menu와 이름 prompt 제거 |
+
+기존 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test다. provider I/O 실패·dirty 확인·실제 DnD는 추가 통합 검증이 필요하다.

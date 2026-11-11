@@ -15,6 +15,14 @@
 9. [Desktop 릴리스 원칙](./desktop-release.md) — 활성 플랫폼 우선 검증, 네이티브 패키지 기준, 업데이트 배포
 
 
+## 모듈별 구현 스펙
+
+- [공유 Editor](../../packages/editor/docs/README.md) — provider·treeview·markdown·code·검색·asset 연결
+- [Desktop 파일 provider](../../apps/workspace-app/docs/editor/providers.md) — 안정 ID·저장·충돌·파일 작업
+- [PKMS Editor session](../../packages/pkms-client/docs/editor-sessions.md) — local polling·Yjs·asset
+- [Browser](../../apps/workspace-app/docs/browser/README.md) — guest·viewport·focus·탐색·IPC
+- [스펙 운영과 재생성 검증](./spec-driven-development.md) — 커버리지·수락 기준·drift 검사
+
 ## 범위
 
 - 이 폴더에는 **현재 구현된 시스템**만 둡니다.
