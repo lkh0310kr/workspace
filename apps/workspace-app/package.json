@@ -10,6 +10,7 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "test": "node scripts/run-vitest.mjs",
+    "test:sync": "vitest run src/main/pkms/syncPolicy.test.ts",
     "models:fixtures": "node scripts/fetch-model-fixtures.mjs",
     "models:decoders": "node scripts/copy-three-decoder-libs.mjs",
     "rebuild:native": "npx electron-rebuild -f -w better-sqlite3",

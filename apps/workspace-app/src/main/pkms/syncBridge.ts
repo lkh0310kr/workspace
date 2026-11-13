@@ -8,7 +8,7 @@ import { createClient, type RealtimeChannel, type SupabaseClient } from "@supaba
 import { requestPkmsApi } from "./api";
 import { appendStartupLog } from "../startupLog";
 import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from "../../shared/pkmsSyncBridge";
-import { nextGuardedFolderDeleteRevision, remoteChangedSinceBaseline } from "./syncPolicy";
+import { nextGuardedFolderDeleteRevision, remoteChangedSinceBaseline, resetRootScopedState } from "./syncPolicy";
 
 type BridgeFile = { id: string; path: string; kind: string; revision: number; size?: number; sha?: string | null; localHash?: string };
 type BridgeSnapshotPage = { revision: number; files: BridgeFile[]; hasMore: boolean; nextPath: string };
@@ -1307,8 +1307,8 @@ export async function configurePkmsSyncBridge(workspaceId: string, folderPath: s
   const duplicate = Object.entries(state.configs).find(([configuredWorkspaceId, config]) => configuredWorkspaceId !== workspaceId && path.resolve(config.folderPath) === root);
   if (duplicate) throw new Error("local_folder_already_connected");
   if (state.configs[workspaceId] && path.resolve(state.configs[workspaceId].folderPath) !== root) {
-    delete state.localDirectories[workspaceId];
-    delete state.pendingDeletes[workspaceId];
+    resetRootScopedState(state, workspaceId);
+    appendStartupLog("pkms_sync_root_changed", { workspaceId, outcome: "reset_local_replica_baseline" });
   }
   state.configs[workspaceId] = { folderPath: root, excludedPaths: excludedPaths.map((item) => item.trim()).filter(Boolean).slice(0, 100) };
   state.baselines[workspaceId] ??= {};

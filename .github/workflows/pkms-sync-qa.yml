@@ -1,0 +1,50 @@
+name: PKMS sync QA
+
+on:
+  pull_request:
+    paths:
+      - 'apps/workspace-app/src/main/pkms/**'
+      - 'apps/workspace-app/src/shared/pkmsSyncBridge.ts'
+      - 'apps/pkms-server/src/SupabaseVault.ts'
+      - 'apps/pkms-server/supabase/migrations/**'
+      - 'apps/pkms-server/supabase/tests/**'
+      - 'apps/workspace-app/docs/pkms/folder-sync/**'
+      - 'apps/workspace-app/package.json'
+      - 'apps/workspace-app/package-lock.json'
+      - '.github/workflows/pkms-sync-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/workspace-app/src/main/pkms/**'
+      - 'apps/workspace-app/src/shared/pkmsSyncBridge.ts'
+      - 'apps/pkms-server/src/SupabaseVault.ts'
+      - 'apps/pkms-server/supabase/migrations/**'
+      - 'apps/pkms-server/supabase/tests/**'
+      - 'apps/workspace-app/docs/pkms/folder-sync/**'
+      - 'apps/workspace-app/package.json'
+      - 'apps/workspace-app/package-lock.json'
+      - '.github/workflows/pkms-sync-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/workspace-app/package-lock.json
+      - name: Install desktop test dependencies
+        run: npm ci --ignore-scripts
+        working-directory: apps/workspace-app
+      - name: Run PKMS sync policy regression tests
+        run: npm run test:sync
+        working-directory: apps/workspace-app
+      - name: Typecheck PKMS sync main-process code
+        run: npm run typecheck:node
+        working-directory: apps/workspace-app

@@ -58,7 +58,7 @@ PKMS가 보장해야 하는 결과:
 
 | 순서 | 결과 | 성공 기준 |
 |---|---|---|
-| P0 | root 변경이 이전 baseline으로 cloud delete를 만들지 않음 | empty/new root 연결 fixture에서 기존 Cloud tree/hash 불변, 새 root local content 보존 |
+| P0 | root 변경이 이전 baseline으로 cloud delete를 만들지 않음 | source guard와 policy unit test 통과; empty/new root fake-server fixture에서 Cloud tree/hash 불변, 새 root local content 보존 |
 | P0 | deterministic fake-server sync integration suite | local/cloud/file identity/revision/pending queue parity 자동 판정 |
 | P1 | cursor + idempotent mutation crash recovery matrix | 모든 crash point 뒤 재시도 결과가 단일 item/revision으로 수렴 |
 | P1 | sync UI 의미/문구 개선 | persisted pending, last confirmed revision, per-item conflict/retry를 UI에서 확인 |

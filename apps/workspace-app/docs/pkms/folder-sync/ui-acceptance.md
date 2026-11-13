@@ -41,7 +41,7 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 | FS-UI-05 | 파일 한 개가 permission/format/error에 걸림 | 다른 file/tree는 계속 사용할 수 있고 문제 item만 attention에 남는다 | source-level 일부, UI fixture 미확인 |
 | FS-UI-06 | GitHub mirror 지연, cloud sync 완료 | 두 상태를 구분해 표시한다 | current panel source 확인, 수동 fixture 미확인 |
 | FS-UI-07 | path가 excluded/reserved | local tree 보존과 cloud deletion 여부가 명확하고 의도하지 않은 delete가 없다 | algorithm/source, edge fixtures 미확인 |
-| FS-UI-08 | 연결 해제 또는 root 변경 | 다음 pass에 어떤 local/cloud 자료가 보존되는지 사전/사후 알 수 있다 | product decision/acceptance 미완료 |
+| FS-UI-08 | 연결 해제 또는 root 변경 | 다음 pass에 어떤 local/cloud 자료가 보존되는지 사전/사후 알 수 있다 | root-derived state reset + unit test 통과; preflight UX와 fake-server end-to-end acceptance 미완료 |
 | FS-UI-09 | sync panel 닫고 재열기 | stale response가 최신 상태를 덮지 않고 진행 상태가 다시 읽힌다 | UI lifecycle fixture 미확인 |
 | FS-UI-10 | initial full sync와 새 작업이 동시에 진행 | 진행 숫자/문구가 고정되지 않은 전체 퍼센트를 안정적 의미처럼 표현하지 않는다 | current percent presentation review needed |
 | FS-UI-11 | 같은 path·같은 본문 create가 lost acknowledgement 뒤 재시도 | 같은 기존 item에 수렴하며 conflict copy가 추가되지 않는다 | linked DB SQL regression 통과 |

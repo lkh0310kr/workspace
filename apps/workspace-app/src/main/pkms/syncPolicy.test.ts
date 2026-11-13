@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextGuardedFolderDeleteRevision, remoteChangedSinceBaseline } from "./syncPolicy";
+import { nextGuardedFolderDeleteRevision, remoteChangedSinceBaseline, resetRootScopedState } from "./syncPolicy";
 
 describe("PKMS sync race policy", () => {
   it("restores the remote item when a local deletion raced with a newer cloud revision", () => {
@@ -22,5 +22,50 @@ describe("PKMS sync race policy", () => {
 
   it("never regresses behind a queued deletion revision", () => {
     expect(nextGuardedFolderDeleteRevision(1794, 1795)).toBe(1795);
+  });
+});
+
+describe("PKMS local root transition", () => {
+  it("clears prior-root baselines and caches while retaining durable cloud mutations", () => {
+    const state = {
+      baselines: { workspace: { "old.md": { fileId: "cloud-1", hash: "old", revision: 4 } } },
+      remoteFiles: { workspace: { "cloud-1": { path: "old.md" } } },
+      syncCursors: { workspace: 4 },
+      remoteTrees: { workspace: [{ path: "old.md" }] },
+      remoteTreeVersions: { workspace: 4 },
+      pendingPaths: { workspace: ["old.md"] },
+      pendingFolderCreates: { workspace: { "old-folder": "op-folder" } },
+      localDirectories: { workspace: { "old-folder": "dev:ino" } },
+      pendingDeletes: { workspace: { "old.md": { operationId: "op-delete" } } },
+      pendingCreates: { workspace: { "new.md": { operationId: "op-create" } } },
+      pendingUpdates: { workspace: { "cloud-2": { operationId: "op-update" } } },
+    };
+
+    resetRootScopedState(state, "workspace");
+
+    expect(state.baselines.workspace).toBeUndefined();
+    expect(state.remoteFiles.workspace).toBeUndefined();
+    expect(state.syncCursors.workspace).toBeUndefined();
+    expect(state.remoteTrees.workspace).toBeUndefined();
+    expect(state.remoteTreeVersions.workspace).toBeUndefined();
+    expect(state.pendingPaths.workspace).toBeUndefined();
+    expect(state.pendingFolderCreates.workspace).toBeUndefined();
+    expect(state.localDirectories.workspace).toBeUndefined();
+    expect(state.pendingDeletes.workspace).toBeUndefined();
+    expect(state.pendingCreates.workspace["new.md"].operationId).toBe("op-create");
+    expect(state.pendingUpdates.workspace["cloud-2"].operationId).toBe("op-update");
+  });
+
+  it("does not reset another workspace's local replica state", () => {
+    const state = {
+      baselines: { workspace: { "old.md": {} }, other: { "keep.md": {} } },
+      remoteFiles: {}, syncCursors: { other: 9 }, remoteTrees: {}, remoteTreeVersions: {},
+      pendingPaths: {}, pendingFolderCreates: {}, localDirectories: {}, pendingDeletes: {},
+    };
+
+    resetRootScopedState(state, "workspace");
+
+    expect(state.baselines.other).toEqual({ "keep.md": {} });
+    expect(state.syncCursors.other).toBe(9);
   });
 });

@@ -40,6 +40,6 @@
 
 ## 우선 안전 이슈
 
-현재 `configurePkmsSyncBridge`는 같은 workspace에 다른 root를 연결할 때 directory inventory와 pending delete만 초기화하고 path baseline은 유지한다. 새 root가 비어 있으면 full sync의 `local absent + remote present + baseline present` 경로가 기존 Markdown을 조건부 cloud delete로 제출할 수 있다. **새 root 연결이 이전 workspace의 Markdown을 삭제하지 않는다는 보장은 현재 없다.** 코드에서 이 경로를 막는 seed boundary가 확인되지 않았다. 새 root 전환 시 기존 cloud tree 보존을 기본값으로 하는 요구와 research acceptance는 [동기화 기술 연구](./research/README.md)에 기록했다. source 수정과 destructive-operation test가 완료될 때까지 새 root acceptance를 통과로 표시하지 않는다.
+`configurePkmsSyncBridge` now clears the prior root's baselines, remote caches, cursor, local directory inventory, and pending deletion intents before starting the new root's full pass. That prevents the known `local absent + remote present + old baseline` path from submitting cloud deletes. The new root must fetch an authoritative snapshot and materialize remote Markdown before local-only content is imported. This source fix has policy unit coverage; a temporary-directory/fake-server reconciliation test is still required before marking root-switch acceptance complete. The detailed contract is in [sync research](./research/README.md).
 
 진입 근거: [Main bridge](../../../src/main/pkms/syncBridge.ts), [PKMS vault handler](../../../../pkms-server/src/SupabaseVault.ts), [sync migrations](../../../../pkms-server/supabase/migrations), [Desktop bridge status type](../../../src/shared/pkmsSyncBridge.ts), [설정 패널](../../../../../packages/pkms-client/src/components/SyncBridgePanel.tsx).

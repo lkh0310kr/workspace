@@ -7,6 +7,7 @@
 | 영역 | source에서 확인한 현재 방식 | 결과상 제한 / 검증 필요 |
 |---|---|---|
 | 구성 저장 | `userData/pkms-sync-bridge.json`, temp sibling write 후 rename, mode 0600 | load/JSON 손상은 현재 empty state fallback. 이전 데이터가 안전하게 salvage된다는 보장 없음 |
+| root 전환 | 새 root 연결 전 기존 root 기반 baselines/cache/cursor/local inventory/delete intents 초기화; 새 pass가 Cloud snapshot부터 다시 구성 | policy unit test 통과. 임시 폴더 + fake API로 기존 Cloud file이 삭제되지 않고 새 root가 materialize/import되는 통합 acceptance는 미구현 |
 | 동시 실행 | workspace당 in-process running pass, 같은 root에 process간 PID/token lock | lock filesystem·process 종료 경로를 OS별 테스트해야 함 |
 | local change | recursive `fs.watch`, event hint; 25ms debounce, 불완전 event는 full scan | watcher가 durable journal은 아님 |
 | remote change | private Realtime `pkms:{workspaceId}` wakeup + HTTP revision cursor; 30초 poll | Realtime은 authority가 아니며 poll fallback 유지 |
@@ -27,9 +28,9 @@
 
 `pendingCreates`/`pendingUpdates`/`pendingDeletes`에는 operation identity와 재시도에 필요한 payload/guard 일부가 있다. `pendingPaths`는 dirty path hint이며 모든 파일 변경 payload를 담은 operation journal은 아니다. directory inventory와 pending delete는 durable, item UI state는 현재 status memory다.
 
-## Critical unresolved source risk
+## Remaining critical root-switch acceptance
 
-`configurePkmsSyncBridge`에서 기존 workspace의 `folderPath`가 달라지면 `localDirectories`와 `pendingDeletes`는 지우지만 `baselines`, `remoteFiles`, `remoteTrees`, `syncCursors`는 유지한다. 새 root가 비어 있으면 full reconciliation의 `local absent + remote present + baseline present` 경로가 기존 Markdown을 조건부 cloud delete로 제출할 수 있다. 따라서 root 교체가 remote Markdown을 mass-delete하지 않는다는 acceptance는 현재 통과로 볼 수 없다. 사용자 확인만으로 remote revision/concurrent edits guard가 해결되는 것도 아니므로 source의 신규-root seed/migration 경계를 수정하고 destructive test를 추가해야 한다.
+Source now resets root-derived state before saving the new configuration. This removes the identified stale-baseline delete path. The behavior still needs a fake-server integration scenario that starts with existing cloud files, switches to an empty temporary root, and asserts that cloud IDs/revisions/body hashes are unchanged while the new root receives the files. A second scenario must seed the new root with local-only and divergent same-path content and verify import/conflict preservation. Until those scenarios pass, do not treat root-switch end-to-end acceptance as complete.
 
 ## Current user-visible implementation
 
@@ -50,9 +51,9 @@
 ## 배포·검증
 
 - [local deletion](./deletion.md)의 inventory/pending delete/guarded delete는 source에 있다.
-- migration 적용은 `supabase migration list --linked`로 확인했다. 중복 create 회귀 SQL, 5개 sync policy unit test, `npm run check:app`은 통과했다. 전체 `npm test`는 626 passed, 2 skipped, 8 failed로 끝났으며 실패는 shortcut 2, `global.gc`가 없는 queue-retention 3, CodeMirror extension 1, TreeView display-name 1, closeTab 1이다. 이들은 이번 sync 변경과 무관한 기존 실패로 분류하되 전체 suite는 green이 아니다.
+- migration 적용은 `supabase migration list --linked`로 확인했다. 중복 create 회귀 SQL, 현재 7개 sync policy unit test, `npm run check:app`은 통과했다. 전체 `npm test`는 626 passed, 2 skipped, 8 failed로 끝났으며 실패는 shortcut 2, `global.gc`가 없는 queue-retention 3, CodeMirror extension 1, TreeView display-name 1, closeTab 1이다. 이들은 이번 sync 변경과 무관한 기존 실패로 분류하되 전체 suite는 green이 아니다.
 - 원격 Cloud/Git tree reconciliation, local complete pass 및 데이터 hash 검증은 완료했다. `syncBridge` end-to-end behavioral test와 앱 재시작 후 상태 유지 검증은 여전히 없다. 현재 local↔Cloud 일치 상태와 code-level failure recovery 검증은 구분해서 보고한다.
 - local folder rename (stable inode), empty folder, interrupted delete, dropped watcher, lost successful HTTP response, JSON corruption, disk full, server migration mismatch에 대한 실제 acceptance가 남아 있다.
-- 아래 acceptance matrix의 재시작, lost acknowledgement, macOS watcher, 다중 기기 충돌 fixture와 server transaction race가 필요하다.
+- 아래 acceptance matrix의 root-switch fake-server fixture, 재시작, lost acknowledgement, macOS watcher, 다중 기기 충돌 fixture와 server transaction race가 필요하다.
 
 관련 소스: [Desktop syncBridge](../../../src/main/pkms/syncBridge.ts), [status type](../../../src/shared/pkmsSyncBridge.ts), [settings panel](../../../../../packages/pkms-client/src/components/SyncBridgePanel.tsx), [PKMS vault](../../../../pkms-server/src/SupabaseVault.ts), [delete guard migration](../../../../pkms-server/supabase/migrations/20261109160000_guarded_sync_deletes.sql).
