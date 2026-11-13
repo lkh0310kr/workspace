@@ -32,7 +32,7 @@ describe("code editor document completion", () => {
     const state = EditorState.create({
       extensions: createCodeSnippetExtension("TypeScript"),
     });
-    const snippets = state.languageDataAt<Completion>("autocomplete", 0);
+    const snippets = state.languageDataAt<readonly Completion[]>("autocomplete", 0).flat();
     expect(snippets.map((snippet) => snippet.label)).toContain("log");
     expect(snippets.map((snippet) => snippet.label)).toContain("fn");
     expect(createCodeEditorExtensions()).toBeDefined();
