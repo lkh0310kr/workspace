@@ -47,6 +47,7 @@ untitled*.md
 # Personal dev-session state / debug artifacts — not meant to be shared
 # (exported layout snapshots, scratch test files, debug logs).
 /.workspace/
+/.serena/
 /test/
 .cursor/debug-*.log
 
