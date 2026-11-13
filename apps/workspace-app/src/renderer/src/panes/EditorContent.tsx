@@ -7,8 +7,8 @@ import {
   type CSSProperties,
 } from "react";
 import { Compartment } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
-import { editorCodeMirrorCodeSelectionExtensions, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
+import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from "@codemirror/view";
+import { editorCodeMirrorCodeSelectionExtensions, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
 import { toggleComment } from "@codemirror/commands";
 import {
@@ -19,12 +19,14 @@ import {
   LanguageDescription,
 } from "@codemirror/language";
 import { languages as languageData } from "@codemirror/language-data";
+import { highlightSelectionMatches } from "@codemirror/search";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
 import { syntaxTheme } from "../codemirrorSyntax";
 import { pastePlainTextCommand } from "../editorPlainPaste";
 import { getFocusedEditorView } from "../activeEditorView";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
+import { onFindInEditorShortcut } from "../electron";
 import type { TabKind } from "../layout/paneTypes";
 
 // The per-file content half of what used to be ui/EditorPane.tsx — tab strip,
@@ -366,8 +368,8 @@ export function EditorContent({
         ]
       : [
           languageCompartment.of([]),
-          lineNumbers(), highlightActiveLineGutter(), foldGutter(), bracketMatching(), closeBrackets(),
-          autocompletion(), indentOnInput(), syntaxTheme,
+          lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), foldGutter(), bracketMatching(), closeBrackets(),
+          autocompletion(), indentOnInput(), highlightSelectionMatches(), syntaxTheme,
           keymap.of([
             { key: "Mod-/", run: toggleComment },
             { key: "Mod-Shift-v", run: pastePlainTextCommand },
@@ -392,6 +394,12 @@ export function EditorContent({
     // rootPath is updated through its compartment below; mode-specific extensions remount on kind changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMarkdown, scheduleAutoSave, setDirtyState, tabId]);
+
+  useEffect(() => onFindInEditorShortcut(() => {
+    const view = viewRef.current;
+    if (!view || getFocusedEditorView() !== view) return;
+    toggleEditorSearch(view);
+  }), []);
 
   const onViewReady = useCallback((view: EditorView | null) => {
     viewCleanupRef.current?.();

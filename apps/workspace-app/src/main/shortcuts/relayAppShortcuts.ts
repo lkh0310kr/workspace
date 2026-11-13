@@ -139,6 +139,11 @@ export function relayHostAppShortcuts(
     options.send('shortcut:find-in-files')
     return
   }
+  if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && !input.shift) {
+    event.preventDefault()
+    options.send('shortcut:find-in-editor')
+    return
+  }
 
   if (isWorkspaceTabIndexInput(input)) {
     options.send('shortcut:switch-workspace-tab-index', { index: Number(input.code.at(-1)) })

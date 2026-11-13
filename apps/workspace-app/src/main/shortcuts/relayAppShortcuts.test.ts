@@ -157,6 +157,18 @@ describe('relayHostAppShortcuts', () => {
     expect(send).toHaveBeenCalledWith('shortcut:find-in-files')
   })
 
+  it('routes Cmd+F to the focused editor instead of Chromium Find', () => {
+    const event = mockEvent()
+    const send = vi.fn()
+    relayHostAppShortcuts(event as never, keyDown('KeyF', { meta: true }) as never, {
+      send,
+      terminalOwnsAppShortcuts: false,
+      focusedTerminalId: null,
+    })
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(send).toHaveBeenCalledWith('shortcut:find-in-editor')
+  })
+
   it('relays workspace tab index on Cmd+digit while terminal is focused', () => {
     const event = mockEvent()
     const send = vi.fn()

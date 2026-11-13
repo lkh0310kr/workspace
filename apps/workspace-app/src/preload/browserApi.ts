@@ -68,6 +68,11 @@ export const browserApi = {
       ipcRenderer.on('shortcut:find-in-files', listener)
       return () => ipcRenderer.removeListener('shortcut:find-in-files', listener)
     },
+    onFindInEditor: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:find-in-editor', listener)
+      return () => ipcRenderer.removeListener('shortcut:find-in-editor', listener)
+    },
     onBrowserReload: (cb: (payload: { hard: boolean }) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, payload: { hard: boolean }): void => cb(payload)
       ipcRenderer.on('shortcut:browser-reload', listener)

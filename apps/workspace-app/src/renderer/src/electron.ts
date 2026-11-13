@@ -246,6 +246,11 @@ export function onFindInFilesShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onFindInFiles(handler);
 }
 
+/** Cmd/Ctrl+F, routed through Electron so production shortcuts reach the focused editor. */
+export function onFindInEditorShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onFindInEditor(handler);
+}
+
 /** Cmd/Ctrl +/- — relayed from main when a browser guest holds focus (Orca pattern). */
 export function onBrowserZoomShortcut(
   handler: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void,

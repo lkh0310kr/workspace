@@ -153,6 +153,7 @@ export interface WorkspaceApi {
     onHome: (cb: () => void) => () => void
     onQuickOpen: (cb: () => void) => () => void
     onFindInFiles: (cb: () => void) => () => void
+    onFindInEditor: (cb: () => void) => () => void
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
     onBrowserZoom: (
       cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void,
