@@ -42,7 +42,7 @@
 - 원격 Supabase에 빠져 있던 `20261109160000_guarded_sync_deletes.sql`을 2026-11-13 적용했다. 이 migration은 이후 destructive sync operation의 revision guard를 보강하며 기존 파일 row를 수정하지 않는다.
 - 2026-11-13 `20261113100000_dedupe_identical_sync_creates.sql` 적용. 같은 경로·같은 본문 create retry는 기존 item을 반환하며, 본문이 다를 때만 conflict path를 만든다. `supabase/tests/20261113100000_dedupe_identical_sync_creates.sql`를 linked DB에서 트랜잭션 rollback 방식으로 실행해 동일 본문 Markdown, operation retry, 다른 본문 보존, 같은 folder 생성 수렴을 확인했다.
 - `conflict desktop` 사본 복구: 활성 Cloud Markdown 842개와 local 846개 모두 원본과 본문/hash가 같아 안전하게 정리했다. Cloud 사본은 guarded operation으로 tombstone 처리했고 local copy와 두 빈 충돌 폴더를 제거했다. 다른 내용이었던 과거 `guitaringo.md` conflict row는 기존 tombstone 이력을 보존했고 최신 원본은 유지했다. 복구 전 Cloud snapshot과 local 경로/hash manifest는 `~/Library/Application Support/workspace-app/pkms-recovery-20261113/`에 보관한다.
-- Local↔Cloud 본문 검증: 활성 Markdown 3,706개 전부 로컬 파일과 Cloud Yjs 본문이 byte-for-byte 일치했다. Yjs state가 비어 있는 18개는 같은 revision-0 Git blob SHA로 확인했다. 다만 실행 중인 설치 앱의 persisted bridge cursor는 1,794, Cloud revision은 2,638이며 `pendingPaths=848` (충돌 경로 847개와 빈 충돌 폴더 1개), `pendingDeletes=1`이다. 따라서 로컬 본문은 맞지만 앱의 sync index/cursor 재수렴은 아직 완료됐다고 표시하지 않는다. 앱의 다음 complete pass 후 baseline/cursor/pending을 재확인해야 한다.
+- Local↔Cloud 본문 검증: 활성 Markdown 3,706개 전부 로컬 파일과 Cloud Yjs 본문이 byte-for-byte 일치했다. Yjs state가 비어 있는 18개는 같은 revision-0 Git blob SHA로 확인했다. conflict 정리 후 Desktop PKMS에서 complete sync를 실행했다. persisted cursor 2,638이 Cloud revision 2,638과 같고 baseline/remote cache 각각 3,706개, pending path/create/update/delete 모두 0개임을 확인했다. 패널도 `Up to date`, 100%를 표시했으며 active conflict copy는 0개다.
 - Cloud↔GitHub 복구 완료: 기존 GitHub `main` head `a54094655faa89a7c2263325ea0e8430062f9533`를 parent로 둔 일반 commit `7af23452cc28b4651a0f7dbf7bf05c719331291c`을 만들어 Cloud 활성 tree로 전진시켰다. force update 없이 완료했다. 최종 12,472개 경로의 SHA/mode 비교에서 차이 0개, Cloud `github_head=mirrored_head=7af23452cc28b4651a0f7dbf7bf05c719331291c`, `github_status=synced`, dirty row 0을 확인했다.
 - 최종 Cloud tree와 현재 GitHub `main` tree가 일치하지만 direct Git edits는 여전히 자동 Cloud import/merge하지 않는다. branch가 외부에서 바뀌면 `external-change`로 멈추고 tree reconciliation 후 일반 commit으로 복구한다. force push/reset은 복구 절차가 아니다.
 - Root/workspace source가 다르면 local scan의 deletion inference를 차단해야 한다. 이 guard는 기존 open issue라 전체 recovery acceptance에서 별도 통과가 필요하다.
@@ -51,7 +51,7 @@
 
 - [local deletion](./deletion.md)의 inventory/pending delete/guarded delete는 source에 있다.
 - migration 적용은 `supabase migration list --linked`로 확인했다. 중복 create 회귀 SQL, 5개 sync policy unit test, `npm run check:app`은 통과했다. 전체 `npm test`는 626 passed, 2 skipped, 8 failed로 끝났으며 실패는 shortcut 2, `global.gc`가 없는 queue-retention 3, CodeMirror extension 1, TreeView display-name 1, closeTab 1이다. 이들은 이번 sync 변경과 무관한 기존 실패로 분류하되 전체 suite는 green이 아니다.
-- 원격 Cloud/Git tree reconciliation 및 데이터 hash 검증은 완료했다. `syncBridge` end-to-end behavioral test는 여전히 없다. 설치 앱의 stale cursor/pending path를 실제 complete pass로 비우고 재시작 후에도 유지되는지는 미검증이므로 local↔Cloud 운용 acceptance는 미완료다.
+- 원격 Cloud/Git tree reconciliation, local complete pass 및 데이터 hash 검증은 완료했다. `syncBridge` end-to-end behavioral test와 앱 재시작 후 상태 유지 검증은 여전히 없다. 현재 local↔Cloud 일치 상태와 code-level failure recovery 검증은 구분해서 보고한다.
 - local folder rename (stable inode), empty folder, interrupted delete, dropped watcher, lost successful HTTP response, JSON corruption, disk full, server migration mismatch에 대한 실제 acceptance가 남아 있다.
 - 아래 acceptance matrix의 재시작, lost acknowledgement, macOS watcher, 다중 기기 충돌 fixture와 server transaction race가 필요하다.
 

@@ -47,8 +47,8 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 | FS-UI-12 | 두 sibling empty folder가 한 pass에서 삭제 | 두 삭제가 모두 승인되고 stale revision으로 무한 retry되지 않는다 | source policy unit test 통과; live sync 미확인 |
 | FS-UI-13 | 현재 GitHub branch와 PKMS `github_head` history가 다름 | backup은 멈추고 branch reset/force push 없이 양쪽 tree가 보존된다 | 2026-11-13 복구 완료: Cloud tree 12,472개와 GitHub tree hash/mode 차이 0; 일반 commit parent는 기존 main head |
 | FS-UI-14 | 같은 본문의 local create가 acknowledgement 유실로 재시도되고 이후 앱이 재시작됨 | 원래 path의 Cloud identity 한 개만 남고 duplicate/conflict copy가 늘지 않으며 queue가 사라진다 | 서버 SQL retry/idempotency 통과; 앱 restart E2E 미확인 |
-| FS-UI-15 | 복구된 local Markdown 3,706개와 Cloud 본문, Git backup을 한 시점으로 대조 | 모든 활성 Markdown은 Cloud Yjs 본문 또는 Git blob SHA와 byte/hash가 일치하고 Git tree active path set과 hash/mode 차이가 0이다 | local↔Cloud 3,706/3,706, Git↔Cloud 12,472/12,472 확인. 설치 앱 bridge cursor/pending queue는 아직 stale |
-| FS-UI-16 | conflict duplicate 복구 직후 앱이 다시 complete pass를 수행 | 삭제된 conflict path가 재생성되지 않고 bridge cursor가 Cloud revision까지 전진하며 pending paths/deletes가 0이 된다. 원본 contents/IDs는 변하지 않는다 | 아직 미확인; 현재 persisted cursor 1,794, Cloud revision 2,638, pendingPaths 848, pendingDeletes 1 |
+| FS-UI-15 | 복구된 local Markdown 3,706개와 Cloud 본문, Git backup을 한 시점으로 대조 | 모든 활성 Markdown은 Cloud Yjs 본문 또는 Git blob SHA와 byte/hash가 일치하고 Git tree active path set과 hash/mode 차이가 0이다 | local↔Cloud 3,706/3,706, Git↔Cloud 12,472/12,472 확인. cursor 2,638, local pending 0, Git dirty 0 |
+| FS-UI-16 | conflict duplicate 복구 직후 앱이 다시 complete pass를 수행 | 삭제된 conflict path가 재생성되지 않고 bridge cursor가 Cloud revision까지 전진하며 pending paths/deletes가 0이 된다. 원본 contents/IDs는 변하지 않는다 | 2026-11-13 Desktop에서 실제 실행 통과: cursor 1,794→2,638, baseline/remote 3,706, pending path/create/update/delete 0, active conflict 0. 앱 재시작 후 유지까지는 미검증 |
 
 ## Current UI mapping
 
