@@ -43,6 +43,24 @@ Persisted JSON load 중 parse/read 실패는 현재 코드에서 empty state로 
 
 핵심 규칙은 **network timeout이 성공 여부를 모호하게 해도 재시도 identity와 payload를 바꾸지 않는 것**이다. 정합성이 서버 idempotency에 의존하는 mutation에서 새 operation ID로 무작정 재시도하지 않는다.
 
+### Same-path create retry
+
+첫 요청이 반영된 뒤 acknowledgement가 유실되면, 새 operation ID로 재시도해도 kind와 content가 같은 기존 item에 수렴한다. Markdown 본문이 다르면 양쪽을 보존하는 conflict path를 만든다. 같은 경로의 folder create 재시도는 기존 folder를 반환한다. SQL regression은 `apps/pkms-server/supabase/tests/20261113100000_dedupe_identical_sync_creates.sql`에 있다.
+
+### Concurrent deletion guards
+
+- Local file delete는 remote identity와 item revision이 저장 baseline과 일치할 때만 cloud에 반영한다. 더 새 cloud edit가 있으면 원래 path에 복구하고 delete intent를 취소한다.
+- Folder subtree delete는 pass에서 마지막으로 확인한 revision을 사용한다. 같은 pass에서 sibling folder 삭제가 하나 승인되면 다음 guarded delete도 그 revision으로 전진한다.
+- 실제 remote edit로 guard가 거부되면 manifest를 다시 읽고 새 상태를 반영한다. 오래된 operation을 같은 revision으로 영구 재시도하지 않는다.
+
+### GitHub branch rewrite or unrelated history
+
+1. 마지막 기록 head와 원격 head가 다른 상황을 검출한다.
+2. 원격 commit graph가 direct/bounded recovery 규칙에 맞지 않으면 backup을 pause하고 status에 `external-change`와 사용자 조치 위치를 남긴다.
+3. GitHub tree와 cloud/local tree를 path 및 blob/content hash로 비교한다. GitHub-only와 cloud-only 항목은 각각 보존하고 같은 path의 상이한 본문은 덮어쓰지 않는다.
+4. 정상 parent를 가진 통합 commit을 만든 뒤 branch ref를 fast-forward update한다. 기존 branch history를 강제 교체하지 않는다.
+5. 재시작/retry 이후 같은 import가 중복되거나 conflict copy가 계속 생성되지 않는지 검증한다.
+
 ## Retry·offline·cancel
 
 - 연결 실패 시 cursor/baseline을 실제로 반영된 지점보다 앞으로 진행하지 않는다.
@@ -60,6 +78,6 @@ Root realpath 하나에는 동시에 하나의 Workspace process만 sync한다. 
 
 ## 검증 상태
 
-현재 `syncBridge.ts`에는 독립 behavioral test file이 발견되지 않았다. 따라서 위 순서는 코드에서 추출된 계약이며 실행 검증 완료가 아니다. 필수 failure injection: process restart at each pending state, lost HTTP response after commit, JSON write failure, disk full, incomplete scan, stale lock, auth expiry, symlink substitution, root disappears, watcher drop/reconnect, duplicate event storm.
+sync race policy unit scenarios와 서버 SQL regression은 실행 가능하다. 전체 app-level sync acceptance 및 process/failure injection은 별도 검증으로 남는다: process restart at each pending state, lost HTTP response after commit, JSON write failure, disk full, incomplete scan, stale lock, auth expiry, symlink substitution, root disappears, watcher drop/reconnect, duplicate event storm.
 
 근거: [syncBridge](../../../src/main/pkms/syncBridge.ts), [folder lock and storage](../../../src/main/pkms/syncBridge.ts), [shutdown owner](../../runtime/README.md), [state status type](../../../src/shared/pkmsSyncBridge.ts).

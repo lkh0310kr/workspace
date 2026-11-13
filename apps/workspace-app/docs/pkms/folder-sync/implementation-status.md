@@ -18,6 +18,8 @@
 | local write | UTF-8 temp sibling, baseline/current hash 확인, rename | power loss/disk full의 모든 OS guarantee는 미검증 |
 | status | top-level state/stage, pass progress, transient item state | per-item state durable 복구가 아님; aggregate percent는 denominator가 변할 수 있음 |
 | local delete + cloud edit 경합 | 삭제 intent 대신 최신 cloud 본문을 원래 경로로 복구하고 `attention`을 남김 | 2026-11-13 source fix; 실행 중 packaged app 반영은 새 빌드 필요 |
+| 동일 경로·동일 본문 create 재시도 | 기존 identity로 no-op 수렴; 다른 본문은 conflict path 유지 | 2026-11-13 migration 적용, linked DB regression SQL 통과 |
+| 한 pass의 sibling folder guarded deletes | 매 delete 직전 최신 pass revision 사용 | 2026-11-13 source fix 및 policy unit scenario 추가; full sync acceptance 필요 |
 
 ## Persisted schema source shape
 
@@ -38,6 +40,11 @@
 - GitHub는 초기 repository import 후 PKMS database에서 내보내는 backup 경로다. 이후 GitHub branch 변경은 현재 자동으로 cloud로 import/merge하지 않고 `external-change` 상태에서 자동 push를 멈춘다. 따라서 direct Git edits와 PKMS cloud edits가 같은 파일을 바꿨을 때 자동 수렴은 구현되어 있지 않다.
 - 2026-11-13 원격 확인에서 workspace가 `external-change`였고 로컬 Git branch와 cloud가 기록한 Git head가 달랐다. 이 상태에서는 양쪽 변경을 보존하는 reconciliation 없이 branch reset이나 강제 push를 수행하면 안 된다.
 - 원격 Supabase에 빠져 있던 `20261109160000_guarded_sync_deletes.sql`을 2026-11-13 적용했다. 이 migration은 이후 destructive sync operation의 revision guard를 보강하며 기존 파일 row를 수정하지 않는다.
+- 2026-11-13 `20261113100000_dedupe_identical_sync_creates.sql` 적용. 같은 경로·같은 본문 create retry는 기존 item을 반환하며, 본문이 다를 때만 conflict path를 만든다. `supabase/tests/20261113100000_dedupe_identical_sync_creates.sql`를 linked DB에서 트랜잭션 rollback 방식으로 실행해 동일 본문 Markdown, operation retry, 다른 본문 보존, 같은 folder 생성 수렴을 확인했다.
+- `conflict desktop` 활성 cloud 사본 복구: 활성 Markdown 842개 모두 원본과 본문이 같고 local 846개도 원본과 SHA-256이 같음을 확인했다. Cloud 사본은 guarded operation으로 tombstone 처리했고 local copy와 두 빈 충돌 폴더를 제거했다. 이미 삭제된 과거 row는 감사/복구 이력을 위해 tombstone으로 남긴다. Cloud snapshot과 local 경로/hash manifest는 `~/Library/Application Support/workspace-app/pkms-recovery-20261113/`에 보관한다.
+- Cloud와 GitHub branch 간 `external-change`/unrelated history는 아직 별도의 양방향 data reconciliation이 아니다. 이 상태는 자동 push를 중지해야 하며, 별도 Git 대조/수렴 시나리오가 완료되기 전까지 PKMS 전체 3-way sync acceptance를 통과 처리하지 않는다.
+- 2026-11-13 Git tree metadata 대조 snapshot: GitHub `main` head `a54094655faa89a7c2263325ea0e8430062f9533`(4,609 blobs)와 Cloud 활성 비-folder row 12,472개 중 경로가 같은 항목 4,199개, GitHub-only 410개, Cloud-only 8,273개가 관찰됐다. 같은 경로의 1,464개 Cloud blob SHA가 현재 GitHub SHA와 달랐다. 일부 SHA/본문 표본은 local 파일이 Cloud SHA와 일치함을 확인했다. 이는 branch가 단순히 오래된 commit을 한 번 따라잡는 문제가 아니라 데이터 tree divergence임을 뜻한다. 1.2 GB Cloud asset tree를 포함하므로 이를 자동 overwrite/push하거나 `github_head`를 수동 재기준화하지 않았다. 원격 Git backup은 `pending`/`external-change`가 확정될 때까지 보호 상태다.
+- Root/workspace source가 다르면 local scan의 deletion inference를 차단해야 한다. 이 guard는 기존 open issue라 전체 recovery acceptance에서 별도 통과가 필요하다.
 
 ## 배포·검증
 

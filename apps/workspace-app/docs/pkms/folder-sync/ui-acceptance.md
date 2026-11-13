@@ -43,6 +43,9 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 | FS-UI-08 | 연결 해제 또는 root 변경 | 다음 pass에 어떤 local/cloud 자료가 보존되는지 사전/사후 알 수 있다 | product decision/acceptance 미완료 |
 | FS-UI-09 | sync panel 닫고 재열기 | stale response가 최신 상태를 덮지 않고 진행 상태가 다시 읽힌다 | UI lifecycle fixture 미확인 |
 | FS-UI-10 | initial full sync와 새 작업이 동시에 진행 | 진행 숫자/문구가 고정되지 않은 전체 퍼센트를 안정적 의미처럼 표현하지 않는다 | current percent presentation review needed |
+| FS-UI-11 | 같은 path·같은 본문 create가 lost acknowledgement 뒤 재시도 | 같은 기존 item에 수렴하며 conflict copy가 추가되지 않는다 | linked DB SQL regression 통과 |
+| FS-UI-12 | 두 sibling empty folder가 한 pass에서 삭제 | 두 삭제가 모두 승인되고 stale revision으로 무한 retry되지 않는다 | source policy unit test 통과; live sync 미확인 |
+| FS-UI-13 | 현재 GitHub branch와 PKMS `github_head` history가 다름 | backup은 멈추고 branch reset/force push 없이 양쪽 tree가 보존된다 | 현재 `external-change` 대조가 미완료 |
 
 ## Current UI mapping
 
@@ -58,5 +61,6 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 4. server GitHub backup pending/failed와 folder sync `synced`의 동시 표시.
 5. settings close/reopen, workspace 전환, 오래된 HTTP response 지연 도착.
 6. 대량 초기 sync 중 새 파일 생성/삭제와 퍼센트 표시.
+7. GitHub tree, Cloud tree, local tree의 path/content hash 3-way 대조: GitHub-only, Cloud-only, 같은 path의 divergent body가 각각 보존되고 commit parent가 기존 GitHub head인지 확인.
 
 실행 결과는 OS·server migration·fixture 버전을 기록한다. 코드 존재만으로 UI acceptance를 통과 처리하지 않는다.

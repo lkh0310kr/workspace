@@ -8,6 +8,7 @@ import { createClient, type RealtimeChannel, type SupabaseClient } from "@supaba
 import { requestPkmsApi } from "./api";
 import { appendStartupLog } from "../startupLog";
 import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from "../../shared/pkmsSyncBridge";
+import { nextGuardedFolderDeleteRevision, remoteChangedSinceBaseline } from "./syncPolicy";
 
 type BridgeFile = { id: string; path: string; kind: string; revision: number; size?: number; sha?: string | null; localHash?: string };
 type BridgeSnapshotPage = { revision: number; files: BridgeFile[]; hasMore: boolean; nextPath: string };
@@ -811,6 +812,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
           continue;
         }
         deletion.attempts++;
+        deletion.baseRevision = nextGuardedFolderDeleteRevision(nextSyncRevision, deletion.baseRevision);
         await save();
         try {
           const result = await request<{ acceptedRevision?: number }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, "POST", {
@@ -1035,7 +1037,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             throw new Error(`A non-file item occupies the synced Markdown path: ${relative}`);
           }
           if (baseline) {
-            const remoteChanged = remote.id !== baseline.fileId || (remoteContent !== null && remoteContent.revision !== baseline.revision);
+              const remoteChanged = remoteChangedSinceBaseline({ id: remote.id, revision: remoteContent?.revision ?? remote.revision }, baseline);
             if (remoteChanged) {
               const latestText = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
               // A local deletion is valid only against the exact remote version
