@@ -26,12 +26,12 @@ directory refresh는 해당 direct child 목록을 대체하고 사라진 folder
 
 ## Realtime와 host events
 
-[PKMSRealtimeSocket](../src/realtime.ts)은 WebSocket 형태의 readyState/onopen/onmessage/onclose 인터페이스를 Supabase private channel 위에 제공한다. config/token을 API로 받고 shared client의 auth를 설정한다. 같은 topic 재접속은 이전 channel removal을 기다린다. protocol broadcast와 presence를 shared DTO로 전달한다. close는 token timer·channel 수명과 이후 callback을 정리한다. 원격 event를 authoritative sync cursor 대신 사용하지 않는다.
+[PKMSRealtimeSocket](../src/realtime.ts)은 WebSocket 형태의 readyState/onopen/onmessage/onclose 인터페이스를 Supabase private channel 위에 제공한다. config/token을 API로 받고 **각 socket 인스턴스가 자체 Supabase client, auth token provider, WebSocket 진단 콜백을 소유한다.** 같은 workspace topic에 여러 PKMS 화면이나 host가 동시에 연결되어도 채널·진단 callback을 공유하지 않는다. protocol broadcast와 presence를 shared DTO로 전달한다. close는 token timer·channel 수명과 이후 callback을 정리한다. 원격 event를 authoritative sync cursor 대신 사용하지 않는다.
 
 공개 host event는 [hostEvents](../src/hostEvents.ts)의 pkms:quick-open이다. Desktop shell이 내부 component 상태를 임의 import해 조작하는 API로 만들지 않는다. 스타일은 package styles.css와 editor CSS를 소비하고 Desktop Shadow DOM 경계를 지킨다.
 
 ## 수락·남은 범위
 
-CLIENT-01 Web/desktop transport 선택과 오류 code 보존, CLIENT-02 workspace별 queue identity/retry, CLIENT-03 A 문서 로딩 중 B 선택의 stale 차단, CLIENT-04 server update echo 방지, CLIENT-05 channel removal 후 재접속, CLIENT-06 active cache eviction 제외가 수락 기준이다.
+CLIENT-01 Web/desktop transport 선택과 오류 code 보존, CLIENT-02 workspace별 queue identity/retry, CLIENT-03 A 문서 로딩 중 B 선택의 stale 차단, CLIENT-04 server update echo 방지, CLIENT-05 channel removal 후 재접속, CLIENT-06 active cache eviction 제외, CLIENT-07 같은 workspace에 동시 접속한 socket 두 개가 독립적으로 구독·재접속하고 서로의 진단을 덮어쓰지 않는 것이 수락 기준이다.
 
 독립 package test script는 아직 없다. Web typecheck와 Desktop adapter 테스트는 부분 검증이다. 전체 PkmsClientApp UI 분기·file operation 충돌·실제 offline/multi-client acceptance는 후속이다. 이 문서는 UI 대형 component를 리팩터링하기 전에 책임을 고정하는 기준이며 소스 분해를 수행하지 않는다.

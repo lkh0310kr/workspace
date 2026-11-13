@@ -5,38 +5,23 @@ export type RealtimeUser = PkmsUser;
 export type RealtimeEnvelope = PkmsRealtimeMessage;
 type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
 type RealtimeStatus = "SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED" | "CONNECT_ERROR" | "SYSTEM_ERROR" | "SOCKET_CREATED" | "SOCKET_OPEN" | "SOCKET_CLOSE" | "SOCKET_ERROR";
-const clients = new Map<string, SupabaseClient>();
-const realtimeTokens = new Map<string, string>();
-// supabase-js hands back the still-registered channel for a topic, so a reconnect must wait for the previous removal.
-const pendingRemovals = new Map<string, Promise<unknown>>();
-let reportSocketEvent: ((status: "SOCKET_CREATED" | "SOCKET_OPEN" | "SOCKET_CLOSE" | "SOCKET_ERROR", closeCode?: number, wasClean?: boolean) => void) | undefined;
-class DiagnosticWebSocket extends WebSocket {
-  constructor(url: string | URL, protocols?: string | string[]) {
-    super(url, protocols);
-    reportSocketEvent?.("SOCKET_CREATED");
-    this.addEventListener("open", () => reportSocketEvent?.("SOCKET_OPEN"));
-    this.addEventListener("close", (event) => reportSocketEvent?.("SOCKET_CLOSE", event.code, event.wasClean));
-    this.addEventListener("error", () => reportSocketEvent?.("SOCKET_ERROR"));
-  }
+type SocketDiagnostic = (status: "SOCKET_CREATED" | "SOCKET_OPEN" | "SOCKET_CLOSE" | "SOCKET_ERROR", closeCode?: number, wasClean?: boolean) => void;
+function diagnosticWebSocket(report: SocketDiagnostic): typeof WebSocket {
+  return class DiagnosticWebSocket extends WebSocket {
+    constructor(url: string | URL, protocols?: string | string[]) {
+      super(url, protocols);
+      report("SOCKET_CREATED");
+      this.addEventListener("open", () => report("SOCKET_OPEN"));
+      this.addEventListener("close", (event) => report("SOCKET_CLOSE", event.code, event.wasClean));
+      this.addEventListener("error", () => report("SOCKET_ERROR"));
+    }
+  };
 }
-function sharedClient(url: string, anonKey: string): SupabaseClient {
-  const key = `${url}\0${anonKey}`;
-  let client = clients.get(key);
-  if (!client) {
-    client = createClient(url, anonKey, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-      realtime: { transport: DiagnosticWebSocket, logLevel: "info" },
-      accessToken: async () => realtimeTokens.get(key) ?? null,
-    });
-    clients.set(key, client);
-  }
-  return client;
-}
-function errorMetadata(error: unknown): { errorType?: string; errorCode?: string } {
+function errorMetadata(error: unknown, fallbackCode?: string): { errorType?: string; errorCode?: string } {
   if (!error || typeof error !== "object") return {};
   const value = error as { name?: unknown; code?: unknown };
   const safe = (input: unknown) => typeof input === "string" && /^[A-Za-z0-9_.:-]{1,64}$/.test(input) ? input : undefined;
-  return { errorType: safe(value.name), errorCode: safe(value.code) };
+  return { errorType: safe(value.name), errorCode: safe(value.code) ?? safe(fallbackCode) };
 }
 
 export class PKMSRealtimeSocket {
@@ -45,20 +30,22 @@ export class PKMSRealtimeSocket {
   onmessage: ((event: MessageEvent<string>) => void) | null = null;
   onclose: (() => void) | null = null;
   private client?: SupabaseClient;
-  private clientKey?: string;
   private channel?: RealtimeChannel;
+  private accessToken?: string;
   private tokenTimer = 0;
   private closed = false;
 
   constructor(private readonly workspaceId: string, private readonly clientId: string, private readonly user: RealtimeUser, private readonly api: Api) {}
 
   async connect(): Promise<void> {
+    let failurePhase = "connect_config";
     try {
       const config = await this.api<{ url: string; anonKey: string; issuer: string }>("/api/realtime/config");
+      failurePhase = "connect_token";
       const initial = await this.api<{ token: string }>("/api/realtime/token");
       if (this.closed) return;
-      this.clientKey = `${config.url}\0${config.anonKey}`;
-      realtimeTokens.set(this.clientKey, initial.token);
+      this.accessToken = initial.token;
+      failurePhase = "connect_token_claims";
       const tokenParts = initial.token.split(".");
       const encodedClaims = tokenParts[1]?.replaceAll("-", "+").replaceAll("_", "/");
       const claims = encodedClaims ? JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encodedClaims.padEnd(Math.ceil(encodedClaims.length / 4) * 4, "=")), (char) => char.charCodeAt(0)))) as Record<string, unknown> : {};
@@ -67,16 +54,21 @@ export class PKMSRealtimeSocket {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "TOKEN_CHECK", clientId: this.clientId, tokenRole: claims.role, issuerMatches: claims.iss === config.issuer.replace(/\/$/, ""), loginMatches: appMetadata.github_login === this.user.login.toLowerCase(), subjectPresent: typeof claims.sub === "string" && claims.sub.length > 0 }),
       }).catch(() => {});
-      reportSocketEvent = (status, closeCode, wasClean) => { void this.reportStatus(status, undefined, closeCode, wasClean); };
-      this.client = sharedClient(config.url, config.anonKey);
+      const reportSocket: SocketDiagnostic = (status, closeCode, wasClean) => { void this.reportStatus(status, undefined, closeCode, wasClean); };
+      this.client = createClient(config.url, config.anonKey, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        realtime: { transport: diagnosticWebSocket(reportSocket), logLevel: "info" },
+        accessToken: async () => this.accessToken ?? null,
+      });
+      failurePhase = "connect_set_auth";
       await this.client.realtime.setAuth(initial.token);
       const topic = `pkms:${this.workspaceId}`;
-      await pendingRemovals.get(topic);
-      if (this.closed) return;
+      failurePhase = "connect_create_channel";
       const channel = this.client.channel(topic, {
         config: { private: true, presence: { key: this.clientId }, broadcast: { self: false } },
       });
       this.channel = channel;
+      failurePhase = "connect_register_handlers";
       channel.on("broadcast", { event: "protocol" }, ({ payload }) => this.dispatch(payload as RealtimeEnvelope));
       const dispatchPeers = () => {
         const peers = Object.values(channel.presenceState()).flat().flatMap((presence) => {
@@ -112,6 +104,7 @@ export class PKMSRealtimeSocket {
           void this.reportStatus("SYSTEM_ERROR", { name: "RealtimeSystemError", code });
         }
       });
+      failurePhase = "connect_subscribe";
       channel.subscribe((status, error) => {
         if (this.closed && status === "CLOSED") return;
         if (status === "SUBSCRIBED") {
@@ -128,7 +121,7 @@ export class PKMSRealtimeSocket {
         }
       });
     } catch (error) {
-      void this.reportStatus("CONNECT_ERROR", error);
+      void this.reportStatus("CONNECT_ERROR", error, undefined, undefined, failurePhase);
       this.readyState = 3;
       const notify = !this.closed;
       this.cleanup();
@@ -136,9 +129,9 @@ export class PKMSRealtimeSocket {
     }
   }
 
-  private reportStatus(status: RealtimeStatus, error?: unknown, closeCode?: number, wasClean?: boolean): Promise<void> {
+  private reportStatus(status: RealtimeStatus, error?: unknown, closeCode?: number, wasClean?: boolean, errorCode?: string): Promise<void> {
     return this.api<void>(`/api/workspaces/${encodeURIComponent(this.workspaceId)}/diagnostics/realtime`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status, ...errorMetadata(error), closeCode, wasClean, connectionState: this.client?.realtime.connectionState(), transportClass: this.client?.realtime.transport.name, clientId: this.clientId }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status, ...errorMetadata(error, errorCode), closeCode, wasClean, connectionState: this.client?.realtime.connectionState(), transportClass: this.client?.realtime.transport.name, clientId: this.clientId }),
     }).then(() => {}).catch(() => {});
   }
 
@@ -168,9 +161,7 @@ export class PKMSRealtimeSocket {
     this.readyState = 3;
     window.clearInterval(this.tokenTimer);
     if (this.channel && this.client) {
-      const topic = `pkms:${this.workspaceId}`;
-      const removal = this.client.removeChannel(this.channel).catch(() => {}).finally(() => { if (pendingRemovals.get(topic) === removal) pendingRemovals.delete(topic); });
-      pendingRemovals.set(topic, removal);
+      void this.client.removeChannel(this.channel).catch(() => {});
     }
     this.channel = undefined;
   }
@@ -178,7 +169,7 @@ export class PKMSRealtimeSocket {
   private async refreshToken(): Promise<void> {
     try {
       const result = await this.api<{ token: string }>("/api/realtime/token");
-      if (this.clientKey) realtimeTokens.set(this.clientKey, result.token);
+      this.accessToken = result.token;
       await this.client?.realtime.setAuth(result.token);
     } catch {
       this.dispatch({ type: "error", message: "Live sync authorization expired. Reconnecting…" });

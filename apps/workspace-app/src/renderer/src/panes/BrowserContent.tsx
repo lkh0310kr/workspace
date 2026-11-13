@@ -25,6 +25,7 @@ import {
 import { useBrowserPageSlotViewport } from "../browser/useBrowserPageSlotViewport";
 import { useBrowserChromeFocus } from "../browser/useBrowserChromeFocus";
 import { useBrowserGuestActivationFocus } from "../browser/useBrowserGuestActivationFocus";
+import { readBrowserNavigationState } from "../browser/browserNavigationState";
 import { useWebviewGuestFocus } from "../browser/useWebviewGuestFocus";
 import { onBrowserOpenNewTab } from "../electron";
 import { interactionCoordinator } from "../interaction/InteractionCoordinator";
@@ -157,9 +158,9 @@ export function BrowserContent({
 
   const syncNavState = useCallback(() => {
     const webview = webviewRef.current;
-    if (!webview) return;
-    setCanGoBack(webview.canGoBack());
-    setCanGoForward(webview.canGoForward());
+    const state = readBrowserNavigationState(webview, domReadyRef.current);
+    setCanGoBack(state.canGoBack);
+    setCanGoForward(state.canGoForward);
   }, []);
 
   const goBack = useCallback(() => {
@@ -193,6 +194,8 @@ export function BrowserContent({
     if (!ensured) return;
 
     const guest = ensured.webview;
+    let disposed = false;
+    domReadyRef.current = false;
     webviewRef.current = guest;
 
     applyBrowserPageViewportLayout(item.id, {
@@ -206,24 +209,28 @@ export function BrowserContent({
       setWebContentsId(null);
     }
 
-    const onStartLoading = (): void => setLoading(true);
+    const onStartLoading = (): void => { if (!disposed) setLoading(true); };
     const onStopLoading = (): void => {
+      if (disposed) return;
       setLoading(false);
       syncNavState();
     };
     const onNavigate = (e: Electron.DidNavigateEvent): void => {
+      if (disposed) return;
       setAddressInput(e.url);
       setCurrentUrl(e.url);
       onUpdateRef.current({ url: e.url });
       syncNavState();
     };
     const onNavigateInPage = (e: Electron.DidNavigateInPageEvent): void => {
+      if (disposed || !domReadyRef.current || !guest.isConnected) return;
       setAddressInput(e.url);
       setCurrentUrl(e.url);
       onUpdateRef.current({ url: e.url });
       syncNavState();
     };
     const onPageTitleUpdated = (e: Electron.PageTitleUpdatedEvent): void => {
+      if (disposed) return;
       onUpdateRef.current({ title: e.title });
       try {
         recordBrowserVisit(guest.getURL(), e.title);
@@ -232,11 +239,13 @@ export function BrowserContent({
       }
     };
     const onFaviconUpdated = (e: Electron.PageFaviconUpdatedEvent): void => {
+      if (disposed) return;
       const favicon = e.favicons[0];
       if (favicon) onUpdateRef.current({ favicon });
     };
-    const onRendererGone = (): void => setRendererGone(true);
+    const onRendererGone = (): void => { if (!disposed) setRendererGone(true); };
     const onDomReady = (): void => {
+      if (disposed || !guest.isConnected) return;
       domReadyRef.current = true;
       setRendererGone(false);
       setLoadError(null);
@@ -256,6 +265,7 @@ export function BrowserContent({
       }
     };
     const onFailLoad = (_e: Electron.DidFailLoadEvent): void => {
+      if (disposed) return;
       setLoadError(
         "Could not load this page. Check the address and try again.",
       );
@@ -316,6 +326,7 @@ export function BrowserContent({
     });
 
     return () => {
+      disposed = true;
       domReadyRef.current = false;
       pendingNavigationRef.current = null;
       guest.removeEventListener("did-start-loading", onStartLoading);
