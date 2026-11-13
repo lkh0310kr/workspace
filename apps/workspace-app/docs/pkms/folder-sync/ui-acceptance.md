@@ -45,7 +45,10 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 | FS-UI-10 | initial full sync와 새 작업이 동시에 진행 | 진행 숫자/문구가 고정되지 않은 전체 퍼센트를 안정적 의미처럼 표현하지 않는다 | current percent presentation review needed |
 | FS-UI-11 | 같은 path·같은 본문 create가 lost acknowledgement 뒤 재시도 | 같은 기존 item에 수렴하며 conflict copy가 추가되지 않는다 | linked DB SQL regression 통과 |
 | FS-UI-12 | 두 sibling empty folder가 한 pass에서 삭제 | 두 삭제가 모두 승인되고 stale revision으로 무한 retry되지 않는다 | source policy unit test 통과; live sync 미확인 |
-| FS-UI-13 | 현재 GitHub branch와 PKMS `github_head` history가 다름 | backup은 멈추고 branch reset/force push 없이 양쪽 tree가 보존된다 | 현재 `external-change` 대조가 미완료 |
+| FS-UI-13 | 현재 GitHub branch와 PKMS `github_head` history가 다름 | backup은 멈추고 branch reset/force push 없이 양쪽 tree가 보존된다 | 2026-11-13 복구 완료: Cloud tree 12,472개와 GitHub tree hash/mode 차이 0; 일반 commit parent는 기존 main head |
+| FS-UI-14 | 같은 본문의 local create가 acknowledgement 유실로 재시도되고 이후 앱이 재시작됨 | 원래 path의 Cloud identity 한 개만 남고 duplicate/conflict copy가 늘지 않으며 queue가 사라진다 | 서버 SQL retry/idempotency 통과; 앱 restart E2E 미확인 |
+| FS-UI-15 | 복구된 local Markdown 3,706개와 Cloud 본문, Git backup을 한 시점으로 대조 | 모든 활성 Markdown은 Cloud Yjs 본문 또는 Git blob SHA와 byte/hash가 일치하고 Git tree active path set과 hash/mode 차이가 0이다 | local↔Cloud 3,706/3,706, Git↔Cloud 12,472/12,472 확인. 설치 앱 bridge cursor/pending queue는 아직 stale |
+| FS-UI-16 | conflict duplicate 복구 직후 앱이 다시 complete pass를 수행 | 삭제된 conflict path가 재생성되지 않고 bridge cursor가 Cloud revision까지 전진하며 pending paths/deletes가 0이 된다. 원본 contents/IDs는 변하지 않는다 | 아직 미확인; 현재 persisted cursor 1,794, Cloud revision 2,638, pendingPaths 848, pendingDeletes 1 |
 
 ## Current UI mapping
 
@@ -61,6 +64,9 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 4. server GitHub backup pending/failed와 folder sync `synced`의 동시 표시.
 5. settings close/reopen, workspace 전환, 오래된 HTTP response 지연 도착.
 6. 대량 초기 sync 중 새 파일 생성/삭제와 퍼센트 표시.
-7. GitHub tree, Cloud tree, local tree의 path/content hash 3-way 대조: GitHub-only, Cloud-only, 같은 path의 divergent body가 각각 보존되고 commit parent가 기존 GitHub head인지 확인.
+7. GitHub tree, Cloud tree, local tree의 path/content hash 3-way 대조: GitHub-only, Cloud-only, 같은 path의 divergent body가 각각 보존되고 commit parent가 기존 GitHub head인지 확인. GitHub↔Cloud tree recovery는 2026-11-13에 실제 통과했고, local persisted cursor scenario는 아래 조건으로 별도 재검증한다.
+8. 동일 경로·동일 본문 create를 응답 유실로 두 번 전송하고 앱/서버를 재시작한다. Cloud active identity가 1개, conflict duplicate가 0개인지 확인하고 최종 pass 뒤 queue가 0인지 확인한다.
+9. Local `pendingPaths`/`pendingDeletes`가 남은 상태에서 Cloud revision을 앞당기고 앱을 재시작한다. 확인된 Cloud tombstone은 로컬에서 제거하되 원본과 다른 파일은 보존하고 cursor가 마지막 captured revision까지 전진하는지 확인한다.
+10. Cloud create ACK 이후 GitHub push가 실패한 상태에서 재시도한다. Cloud row를 중복 생성하지 않고 GitHub는 Cloud SHA와 동일한 child commit으로 수렴하며 `github_head=mirrored_head`, dirty=0인지 확인한다.
 
 실행 결과는 OS·server migration·fixture 버전을 기록한다. 코드 존재만으로 UI acceptance를 통과 처리하지 않는다.

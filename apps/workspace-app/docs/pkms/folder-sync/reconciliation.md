@@ -40,7 +40,7 @@ Baseline은 “해당 path를 다음에 무엇과 비교할지”를 정한다. 
 - 삭제된 cloud row는 revision feed/Git mirror가 처리할 수 있도록 tombstone으로 보존한다. UI/active tree에서는 사라지지만 문서 내용이 즉시 DB에서 hard-delete되지는 않는다.
 - 충돌 경로에 데이터가 있는데 같은 경로의 원본이 없으면 자동 삭제하지 않는다. 원본 복구 또는 안전한 이동을 먼저 완료해야 한다.
 
-2026-11-13 복구 결과: 활성 `(conflict desktop-*)` Markdown 842개는 각각 원본이 존재하고 본문이 같았으며, 로컬 846개도 원본과 SHA-256이 같았다. 활성 cloud copy는 revision guard가 있는 delete operation으로 tombstone 처리했고, 로컬 copy 846개와 비어 있던 충돌 폴더 2개를 제거했다. cloud backup과 경로/hash manifest는 사용자 데이터 디렉터리의 `pkms-recovery-20261113`에 보관한다. 다른 내용이었던 `guitaringo.md` 충돌 row는 이미 tombstone이었고 최신 원본은 그대로 유지했다.
+2026-11-13 복구 결과: 활성 `(conflict desktop-*)` Markdown 842개는 각각 원본이 존재하고 본문이 같았으며, 로컬 846개도 SHA-256이 같았다. 활성 cloud copy는 revision guard가 있는 delete operation으로 tombstone 처리했고, 로컬 copy 846개와 비어 있던 충돌 폴더 2개를 제거했다. 기존에 내용이 달랐던 `guitaringo.md` conflict row는 이미 tombstone이었고, 현재 로컬·Cloud 본문은 일치한다. 모든 활성 로컬 Markdown 3,706개를 Cloud Yjs 본문 또는 revision-0 Git blob SHA와 대조해 일치 3,706개, 차이 0개를 확인했다. 복구 전 cloud snapshot과 local 경로/hash manifest는 `~/Library/Application Support/workspace-app/pkms-recovery-20261113/`에 보관한다.
 
 ## 원격 변경 수렴
 
@@ -63,6 +63,8 @@ GitHub backup은 별도 replica다. 원격 branch head가 PKMS가 마지막으�
 | path별 tree/content 대조가 끝나고 양쪽 변경이 안전하게 import됨 | 일반 parent를 가진 새 commit으로 통합 branch를 만든다. force update는 허용하지 않는다. |
 
 GitHub import acceptance는 commit graph만 확인하지 않는다. base tree, 현재 GitHub tree, PKMS 현재 tree를 path/content hash로 비교해 GitHub-only 변경, PKMS-only 변경, 동일 변경, 같은 path의 양쪽 변경을 구분해야 한다. 양쪽이 같은 path를 서로 다르게 수정했으면 두 content를 conflict-preserving 경로에 보존한 뒤 review 완료 전까지 원본을 덮어쓰지 않는다.
+
+2026-11-13 Cloud-authoritative Git backup 복구 결과: 기록된 Cloud `github_head`와 GitHub `main`의 이력은 unrelated였고, 세 tree의 경로·blob 해시 비교를 마친 뒤 Cloud 활성 파일 tree를 담은 일반 Git commit을 만들었다. 기존 GitHub head를 새 commit의 parent로 유지해 force update 없이 `main`을 전진시켰다. 새 tree는 Cloud 활성 비-folder row 12,472개와 경로·SHA·mode가 전부 일치하며 extra/missing/mismatch는 0개다. 완료 후 Cloud `github_head`와 `mirrored_head`를 새 commit으로 맞췄고 `github_status=synced`, dirty row 0을 확인했다. 기존 GitHub head와 cloud snapshot은 복구 디렉터리에 보관한다.
 
 Snapshot은 `atRevision`에 pin된 metadata tree를 페이지 단위로 읽는다. cursor와 path별 revision은 같은 의미가 아니다. tree metadata snapshot이 cursor 이후의 변경을 포함했다고 간주하지 않는다.
 
