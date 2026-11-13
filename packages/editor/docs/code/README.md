@@ -42,7 +42,9 @@ mount 시 history, 공통 검색, host extensions, default/history keymap, Tab i
 
 ## Desktop code 모드
 
-code extension은 lineNumbers, highlightActiveLineGutter, foldGutter, bracketMatching, closeBrackets, autocompletion, indentOnInput, syntaxTheme이다. 공통으로 4칸 indent, 다중 selection, drawSelection, indent guides, Alt-click selection을 사용한다. `Mod-/`는 toggleComment, `Mod-Shift-v`는 plain paste이며 close-bracket/completion/fold keymap도 포함한다. font size CSS 변수는 `13 * zoom` px다.
+공유 [codeEditor.ts](../../src/codeEditor.ts)가 코드 본문 syntax highlighting, 줄 번호/gutter, 접기, bracket matching/자동 닫기, 입력 indent, 자동완성, 검색 일치 표시, 주석 전환, 줄 이동·복제·삭제, 다음 단어 선택 및 completion keymap을 제공한다. 자동완성은 문서 단어와 기본 CodeMirror 언어 제안을 포함하며, 언어별 스니펫은 활성 파일의 language description에 따라 compartment로 교체한다. `Mod-Shift-v`는 host의 plain paste를 사용한다. 공통으로 4칸 indent, 다중 selection, drawSelection, indent guides, Alt-click selection을 사용한다. font size CSS 변수는 `13 * zoom` px다.
+
+현재 LSP 기반 semantic tokens·diagnostics·go to definition·references·format·code actions·symbol rename/refactor는 연결되어 있지 않다. 전체 지원 결과와 완료 순서는 [IDE 편집 기능 스펙](./ide-capabilities.md)에 명시한다.
 
 파일명으로 `LanguageDescription.matchFilename(languageData,filePath)`를 찾고 provider의 codeLanguages가 허용할 때 비동기로 load한다. 없거나 미지원이면 빈 extension. 늦게 완료된 이전 load가 새 view에 적용되지 않도록 cancelled flag와 view identity를 확인한다. 언어 extension만 Compartment로 교체한다. LSP·프로젝트 진단·format-on-save 계약은 현재 없다.
 

@@ -24,6 +24,8 @@ export { useEditorQuickOpenSearch } from "./useEditorQuickOpenSearch";
 export { editorDocumentKey } from "./documentIdentity";
 export { createEditorView, editorDocumentReplacement, replaceEditorDocument } from "./codeMirror";
 export type { CreateEditorViewOptions } from "./codeMirror";
+export { codeSyntaxTheme, collectDocumentWords, createCodeEditorExtensions, createCodeSnippetExtension, documentWordCompletion } from "./codeEditor";
+export type { CodeEditorExtensionOptions } from "./codeEditor";
 export { markdownEditorTheme, markdownProseTheme } from "./themes";
 export { EditorTreeRow } from "./EditorTreeRow";
 export type { EditorTreeRowProps } from "./EditorTreeRow";

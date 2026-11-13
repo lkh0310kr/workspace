@@ -4,19 +4,19 @@
 
 ## 현재 상태와 제품 목표
 
-현재 코드 편집은 `EditorContent`가 CodeMirror 6 확장을 구성하고, 파일명으로 언어 모드를 찾아 활성화한다. `packages/editor/docs/code/README.md`는 공통 surface·저장·상태 복원 계약을 설명한다. 이 문서는 IDE 편집 기능의 현재 공백과 목표 결과를 추가한다.
+현재 코드 편집은 공유 `packages/editor` CodeMirror 6 확장을 사용하고, 파일명으로 언어 모드를 찾아 활성화한다. `packages/editor/docs/code/README.md`는 공통 surface·저장·상태 복원 계약을 설명한다. 아래 표는 기능을 실제 연결 상태에 따라 구분한다.
 
 | 영역 | 현재 동작 | 목표 결과 |
 |---|---|---|
-| 본문 문법 색상 | Lezer 문법 파서의 토큰 범주에 `syntaxTheme` 색상을 적용한다. 파일명으로 지원 언어 모드를 선택하며 언어 지원 목록은 provider capability가 제한한다. | 지원 언어 본문에서 키워드, 문자열, 숫자, 주석, 함수, 타입, 속성, 태그가 테마에 맞는 색을 쓴다. 파일 아이콘 색상과 무관하다. |
+| 본문 문법 색상 | Lezer 문법 파서의 토큰 범주에 공유 `codeSyntaxTheme` 색상을 적용한다. 파일명으로 지원 언어 모드를 선택하며 언어 지원 목록은 provider capability가 제한한다. | 지원 언어 본문에서 키워드, 문자열, 숫자, 주석, 함수, 타입, 속성, 태그가 테마에 맞는 색을 쓴다. 파일 아이콘 색상과 무관하다. |
 | 의미 색상 | symbol resolution 기반 semantic token 제공자 없음. | 언어 서버가 제공하는 semantic tokens가 있으면 syntax 색상 위에 적용하고, 없으면 syntax 색상만으로 완결된 표시를 한다. |
-| 기본 편집 | history/undo, 기본 CodeMirror 키맵, Tab 들여쓰기, 여러 선택, 검색, 괄호 매칭 및 자동 닫기, 입력 시 indent, 접기 gutter, 선택 단어 일치 강조, 주석 토글이 code 모드에 연결돼 있다. | VS Code 수준의 예측 가능한 키보드 편집, 설정 가능한 들여쓰기, 줄/블록 편집, 다중 커서, 괄호/접기 탐색을 제공한다. |
-| 자동완성 | CodeMirror `autocompletion()`과 기본 언어 지원만 연결돼 있다. 프로젝트 인덱스, import, 타입 정보, 문맥 제공자 계약은 없다. | 문맥에 맞는 제안을 제공하고 호출/선택/수락/취소가 일관되며, 제안 출처와 세부 설명을 식별한다. 언어 서버 미연결 시 사용 가능한 로컬 제안만 제공한다. |
+| 기본 편집 | history/undo, 기본 키맵, Tab 들여쓰기, 다중 selection, 줄 이동/복제/삭제, 다음 단어 선택, 검색, 괄호 매칭/자동 닫기, 입력 indent, 접기 gutter, 선택 단어 강조, 주석 토글이 공유 확장에 연결돼 있다. 들여쓰기는 4칸 공백으로 고정이다. | VS Code 수준의 예측 가능한 키보드 편집, 설정 가능한 들여쓰기, 줄/블록 편집, 다중 커서, 괄호/접기 탐색을 제공한다. |
+| 자동완성 | CodeMirror 기본 언어 완성에 문서 내 단어 완성과 TODO 스니펫을 추가했다. JavaScript/TypeScript 및 Python에는 기본 스니펫이 있다. 프로젝트 import나 타입 정보는 계산하지 않는다. | 문맥에 맞는 제안을 제공하고 호출/선택/수락/취소가 일관되며, 제안 출처와 세부 설명을 식별한다. 언어 서버 미연결 시 사용 가능한 로컬 제안만 제공한다. |
 | 진단 및 빠른 수정 | 편집기와 언어 서버 사이의 진단/Code Action 연동 없음. | 오류·경고·정보 진단을 문서 위치에 표시하고, 문제 목록/hover/빠른 수정으로 이동한다. 가능한 수정은 미리보기와 적용을 지원한다. |
 | 코드 탐색 | line jump 외에 정의/참조/구현/심볼 탐색 provider 없음. | 정의, 타입 정의, 참조, 구현, 문서 심볼, workspace 심볼로 이동하고 원래 위치로 돌아온다. 미지원은 빈 응답과 명시적 비활성 상태로 표현한다. |
 | 리팩터링 | rename/refactor/edit provider 없음. | Rename Symbol, Extract/Inline Variable·Method 등 언어가 제공하는 작업을 보여준다. 프로젝트 여러 파일을 바꾸는 작업은 변경 미리보기 후 원자적으로 적용한다. |
 | 포맷·import | formatter, format-on-save/type/paste, organize imports 연결 없음. | 문서·선택 범위 포맷과 import 정리를 제공하고 저장 시 포맷을 선택적으로 실행한다. 편집 중인 최신 revision에만 결과를 적용한다. |
-| 스니펫 | 별도 snippet 정의/탭 정지점/변수 제공 없음. | 언어 및 사용자 스니펫을 완성 목록에서 선택하고 탭 정지점·선택지·변수 순서대로 이동한다. |
+| 스니펫 | 기본 TODO, JavaScript/TypeScript의 log/function, Python의 print/function 스니펫을 완성 목록에서 선택하고 CodeMirror tabstop 순서로 편집할 수 있다. 사용자 정의 스니펫, 선택지, 변수는 미지원이다. | 언어 및 사용자 스니펫을 완성 목록에서 선택하고 탭 정지점·선택지·변수 순서대로 이동한다. |
 
 ## 목표 사용자 경험
 

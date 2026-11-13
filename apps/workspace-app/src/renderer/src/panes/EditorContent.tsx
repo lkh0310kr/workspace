@@ -7,22 +7,12 @@ import {
   type CSSProperties,
 } from "react";
 import { Compartment } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from "@codemirror/view";
-import { editorCodeMirrorCodeSelectionExtensions, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
+import { EditorView, keymap } from "@codemirror/view";
+import { createCodeEditorExtensions, createCodeSnippetExtension, editorCodeMirrorCodeSelectionExtensions, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
-import { toggleComment } from "@codemirror/commands";
-import {
-  bracketMatching,
-  foldGutter,
-  foldKeymap,
-  indentOnInput,
-  LanguageDescription,
-} from "@codemirror/language";
+import { LanguageDescription } from "@codemirror/language";
 import { languages as languageData } from "@codemirror/language-data";
-import { highlightSelectionMatches } from "@codemirror/search";
-import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
-import { syntaxTheme } from "../codemirrorSyntax";
 import { pastePlainTextCommand } from "../editorPlainPaste";
 import { getFocusedEditorView } from "../activeEditorView";
 import { clearFocusedEditorView, setFocusedEditorView } from "../activeEditorView";
@@ -133,6 +123,7 @@ export function EditorContent({
   const viewRef = useRef<EditorView | null>(null);
   const viewCleanupRef = useRef<(() => void) | null>(null);
   const languageCompartmentRef = useRef<Compartment | null>(null);
+  const snippetCompartmentRef = useRef<Compartment | null>(null);
   const markdownRootCompartmentRef = useRef<Compartment | null>(null);
   const pathRef = useRef<string | null>(filePath);
   pathRef.current = filePath;
@@ -357,8 +348,10 @@ export function EditorContent({
   const editorExtensions = useMemo(() => {
     const rootCompartment = new Compartment();
     const languageCompartment = new Compartment();
+    const snippetCompartment = new Compartment();
     markdownRootCompartmentRef.current = rootCompartment;
     languageCompartmentRef.current = languageCompartment;
+    snippetCompartmentRef.current = snippetCompartment;
     const modeExtensions = isMarkdown
       ? [
           rootCompartment.of(markdownRootPath.of(rootPath)),
@@ -368,13 +361,8 @@ export function EditorContent({
         ]
       : [
           languageCompartment.of([]),
-          lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), foldGutter(), bracketMatching(), closeBrackets(),
-          autocompletion(), indentOnInput(), highlightSelectionMatches(), syntaxTheme,
-          keymap.of([
-            { key: "Mod-/", run: toggleComment },
-            { key: "Mod-Shift-v", run: pastePlainTextCommand },
-            ...closeBracketsKeymap, ...completionKeymap, ...foldKeymap,
-          ]),
+          snippetCompartment.of(createCodeSnippetExtension()),
+          ...createCodeEditorExtensions({ pastePlainText: pastePlainTextCommand }),
         ];
 
     return [
@@ -552,6 +540,7 @@ export function EditorContent({
     let cancelled = false;
     const view = viewRef.current;
     const compartment = languageCompartmentRef.current;
+    const snippets = snippetCompartmentRef.current;
     if (!view || !compartment) return;
     const desc = LanguageDescription.matchFilename(languageData, filePath);
     const support = desc && editorSupportsCodeLanguage(editorProvider, desc.name)
@@ -562,6 +551,7 @@ export function EditorContent({
         view.dispatch({ effects: compartment.reconfigure(extensions) });
       }
     }).catch(console.error);
+    if (snippets) view.dispatch({ effects: snippets.reconfigure(createCodeSnippetExtension(desc?.name)) });
     return () => { cancelled = true; };
   }, [editorProvider, filePath, isMarkdown]);
 
