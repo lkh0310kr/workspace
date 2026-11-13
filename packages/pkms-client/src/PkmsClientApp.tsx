@@ -1684,7 +1684,7 @@ export default function Home() {
           <div className="account-row"><img src={user.avatarUrl} alt="" /><span>@{user.login}</span><button className="icon-button logout-button" title="Sign out" onClick={() => void api("/api/logout", { method: "POST" }).then(() => { if (desktopBridge()) { account.clearAccount(); } else window.location.reload(); })}><AppIcon name="logout" /></button></div>
         </div>
         {showSyncSettings && activeWorkspace && <div className="sync-settings-surface" role="dialog" aria-modal="true" aria-label="Sync settings" onKeyDown={(event) => { if (event.key === "Escape") setShowSyncSettings(false); }}>
-          <SyncBridgePanel workspaceId={activeWorkspace.id} githubStatus={sync.githubStatus} githubLastCommitAt={sync.lastGitHubCommitAt} githubPendingFiles={sync.pendingFiles} githubMessage={sync.message} onClose={() => setShowSyncSettings(false)} onResumeGithubBackup={async () => { const status = await api<SyncStatus>(`/api/workspaces/${activeWorkspace.id}/flush`, { method: "POST" }); setSync(status); return status; }} />
+          <SyncBridgePanel workspaceId={activeWorkspace.id} githubStatus={sync.githubStatus} githubLastCommitAt={sync.lastGitHubCommitAt} githubPendingFiles={sync.pendingFiles} githubMessage={sync.message} onOpenConflict={openEditorBreadcrumbFile} onClose={() => setShowSyncSettings(false)} onResumeGithubBackup={async () => { const status = await api<SyncStatus>(`/api/workspaces/${activeWorkspace.id}/flush`, { method: "POST" }); setSync(status); return status; }} />
         </div>}
       </aside>
 

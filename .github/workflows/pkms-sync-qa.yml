@@ -8,6 +8,7 @@ on:
       - 'apps/pkms-server/src/SupabaseVault.ts'
       - 'apps/pkms-server/supabase/migrations/**'
       - 'apps/pkms-server/supabase/tests/**'
+      - 'packages/pkms-client/src/**'
       - 'apps/workspace-app/docs/pkms/folder-sync/**'
       - 'apps/workspace-app/package.json'
       - 'apps/workspace-app/package-lock.json'
@@ -20,6 +21,7 @@ on:
       - 'apps/pkms-server/src/SupabaseVault.ts'
       - 'apps/pkms-server/supabase/migrations/**'
       - 'apps/pkms-server/supabase/tests/**'
+      - 'packages/pkms-client/src/**'
       - 'apps/workspace-app/docs/pkms/folder-sync/**'
       - 'apps/workspace-app/package.json'
       - 'apps/workspace-app/package-lock.json'
@@ -45,6 +47,6 @@ jobs:
       - name: Run PKMS sync policy regression tests
         run: npm run test:sync
         working-directory: apps/workspace-app
-      - name: Typecheck PKMS sync main-process code
-        run: npm run typecheck:node
+      - name: Typecheck desktop and PKMS client code
+        run: npm run typecheck
         working-directory: apps/workspace-app

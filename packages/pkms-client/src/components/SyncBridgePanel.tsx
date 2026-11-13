@@ -9,6 +9,7 @@ interface Props {
   githubPendingFiles: number;
   githubMessage?: string;
   onResumeGithubBackup: () => Promise<SyncStatus>;
+  onOpenConflict?: (path: string) => void;
   onClose?: () => void;
 }
 
@@ -18,7 +19,7 @@ function stateLabel(status: PkmsSyncBridgeStatus | null): string {
   return ({ disconnected: "Not connected", syncing: "Syncing", synced: "Up to date", offline: "Offline", error: "Needs attention" } as const)[status.state];
 }
 
-export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt, githubPendingFiles, githubMessage, onResumeGithubBackup, onClose }: Props) {
+export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt, githubPendingFiles, githubMessage, onResumeGithubBackup, onOpenConflict, onClose }: Props) {
   const bridge = desktopBridge();
   const [status, setStatus] = useState<PkmsSyncBridgeStatus | null>(null);
   const [busy, setBusy] = useState(false);
@@ -74,10 +75,6 @@ export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt,
       </div>
       {bridge ? <>
         {status?.folderPath && <div className="sync-bridge-path" title={status.folderPath}>{status.folderPath}</div>}
-        {status?.progress && status.progress.total > 0 && (status.state === "syncing" || status.state === "synced" || status.state === "error" || status.state === "offline") && <div className="sync-bridge-progress" aria-label={`Sync progress ${status.progress.percent}%`}>
-          <div className="sync-bridge-progress-label"><span>{status.state === "syncing" ? "Cloud sync" : "Last cloud sync"}</span><strong>{status.progress.percent}% · {status.progress.completed}/{status.progress.total}</strong></div>
-          <div className="sync-bridge-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={status.progress.percent}><span style={{ width: `${status.progress.percent}%` }} /></div>
-        </div>}
         <div className="sync-bridge-meta">
           {status?.state === "syncing"
             ? (!status.progress || status.progress.total === 0
@@ -91,7 +88,11 @@ export function SyncBridgePanel({ workspaceId, githubStatus, githubLastCommitAt,
           {status?.pendingFiles ? ` · ${status.pendingFiles} pending` : ""}
         </div>
         {(status?.error || message) && <div className="sync-bridge-error">{status?.error ?? message}</div>}
-        {status?.conflictFiles.length ? <div className="sync-bridge-conflicts"><strong>{status.conflictFiles.length} conflict copy{status.conflictFiles.length === 1 ? "" : "ies"}</strong><span>{status.conflictFiles.slice(0, 3).join(", ")}{status.conflictFiles.length > 3 ? ` and ${status.conflictFiles.length - 3} more` : ""}</span></div> : null}
+        {status?.conflictFiles.length ? <div className="sync-bridge-conflicts">
+          <strong>{status.conflictFiles.length} preserved conflict cop{status.conflictFiles.length === 1 ? "y" : "ies"}</strong>
+          <span>Both versions are kept. Open a copy to review it.</span>
+          <div className="sync-bridge-conflict-list">{status.conflictFiles.slice(0, 5).map((path) => <button key={path} type="button" className="sync-bridge-conflict-link" onClick={() => onOpenConflict?.(path)} disabled={!onOpenConflict}>{path}</button>)}{status.conflictFiles.length > 5 && <span>and {status.conflictFiles.length - 5} more</span>}</div>
+        </div> : null}
         {status?.enabled && <div className="sync-bridge-exclusions">
           <label htmlFor={`sync-bridge-exclusions-${workspaceId}`}>Exclude paths (one pattern per line)</label>
           <textarea id={`sync-bridge-exclusions-${workspaceId}`} value={excludedDraft} onChange={(event) => setExcludedDraft(event.target.value)} placeholder={"**/drafts/**\nprivate/*.md"} rows={2} />

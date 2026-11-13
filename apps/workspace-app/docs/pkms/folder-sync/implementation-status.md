@@ -34,7 +34,7 @@ Source now resets root-derived state before saving the new configuration. This r
 
 ## Current user-visible implementation
 
-`SyncBridgePanel`은 5초 poll로 status를 읽고 aggregate `completed/total` 퍼센트를 표시할 수 있다. Main status는 `disconnected/syncing/synced/offline/error`, item state는 `pending/syncing/attention`이다. conflict path 일부를 텍스트로 보여주지만 직접 열기 action이나 durable review queue는 제공하지 않는다. UI는 GitHub backup 상태도 함께 보여주지만 distinct channel로 표시한다.
+`SyncBridgePanel`은 5초 poll로 status를 읽는다. Main status는 `disconnected/syncing/synced/offline/error`, item state는 `pending/syncing/attention`이다. 가변 aggregate `completed/total` 퍼센트는 제품 UI에서 제거했고 conflict path button은 editor 열기로 연결했다. durable conflict review/resolve queue는 제공하지 않는다. UI는 GitHub backup 상태도 함께 보여주지만 distinct channel로 표시한다.
 
 ## GitHub 방향과 실시간 배포 상태
 
