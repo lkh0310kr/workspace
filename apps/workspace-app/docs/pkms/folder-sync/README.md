@@ -31,7 +31,7 @@
 - `pkms-client`: sync 설정 UI와 bridge API 소비. local filesystem과 Main bearer token은 소유하지 않는다.
 - GitHub export: 서버의 별도 backup state. 이 sync가 GitHub에 반영됐음을 보장하지 않는다.
 - 현재 bridge가 동기화하는 content는 Markdown과 folder metadata다. binary attachment의 local mirror는 이 계약 범위에 포함되지 않는다.
-- 이름이 `.`으로 시작한다는 이유만으로 Markdown이나 폴더를 숨기거나 제외하지 않는다. `.git`, `.obsidian`, `node_modules`, `.pkms` 같은 예약 경로와 사용자가 설정한 제외 경로는 계속 sync 대상에서 제외한다.
+- Files tree와 quick open은 이름이 `.`으로 시작한다는 이유만으로 Cloud 항목을 숨기지 않는다. 별도 규칙인 local folder sync는 `.git`, `.obsidian`, `node_modules`, `.pkms` 같은 예약 경로와 사용자가 설정한 제외 경로를 scan/materialization 대상에서 제외한다. 따라서 기존 Cloud 항목이 보이는 것과 local mirror 대상인지는 다를 수 있다.
 
 ## 신뢰 순서
 
