@@ -5,6 +5,7 @@ import * as net from 'node:net'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { app } from 'electron'
+import { createTerminalEnvironment } from './terminalEnvironment'
 
 export interface PtyOptions {
   id: number
@@ -177,7 +178,7 @@ export class Pty {
 
   attach(): Promise<AttachResult> {
     if (!this.attachPromise) {
-      const env = { ...process.env, ...this.options.extraEnv }
+      const env = createTerminalEnvironment(process.env, this.options.extraEnv)
       this.attachPromise = this.request('attach', {
         cwd: this.options.cwd,
         cols: this.cols,

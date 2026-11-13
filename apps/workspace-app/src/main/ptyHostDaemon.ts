@@ -2,6 +2,7 @@ import * as fs from 'node:fs'
 import * as net from 'node:net'
 import * as pty from 'node-pty'
 import { resolvePtySpawnAttempts } from './ptyShell'
+import { createTerminalEnvironment } from './terminalEnvironment'
 
 type Session = {
   child: pty.IPty
@@ -42,13 +43,12 @@ function spawnSession(request: Request): Session {
   // outlive the app that launched it, so its own process.env may contain stale
   // launcher flags (for example NO_COLOR=1 inherited from Codex) that should
   // not leak into new terminal sessions after Workspace has restarted.
-  const inheritedEnv = { ...(request.env ?? process.env) }
+  const inheritedEnv = createTerminalEnvironment(request.env ?? process.env)
   delete inheritedEnv.WORKSPACE_PTY_SOCKET
   delete inheritedEnv.WORKSPACE_PTY_TOKEN
   delete inheritedEnv.ELECTRON_RUN_AS_NODE
   const env: Record<string, string | undefined> = {
     ...inheritedEnv,
-    ...request.env,
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
     LANG: request.env?.LANG?.toUpperCase().includes('UTF-8') ? request.env.LANG : 'en_US.UTF-8',

@@ -22,6 +22,9 @@ function getPromotedAppEnvironment() {
   // Do not let that launcher-only preference disable color in Workspace's
   // interactive terminal sessions after promoting the desktop app.
   delete env.NO_COLOR;
+  // Some automation launchers also use these nonstandard flags to suppress color.
+  if (env.COLOR === "0") delete env.COLOR;
+  if (!env.TERM || env.TERM === "dumb") env.TERM = "xterm-256color";
   return env;
 }
 
