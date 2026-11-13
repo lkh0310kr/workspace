@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseRipgrepMatchLine } from "./search";
+import { parseRipgrepMatchLine, resolveSearchBinaryPath } from "./search";
 
 const ROOT = "/root/workspace";
 
@@ -55,5 +55,20 @@ describe("parseRipgrepMatchLine", () => {
   it("returns null for empty or malformed lines instead of throwing", () => {
     expect(parseRipgrepMatchLine("", ROOT)).toBeNull();
     expect(parseRipgrepMatchLine("not json", ROOT)).toBeNull();
+  });
+});
+
+describe("resolveSearchBinaryPath", () => {
+  it("uses the unpacked executable when the module resolves inside an asar", () => {
+    const virtualPath = "/Applications/Workspace.app/Contents/Resources/app.asar/node_modules/@vscode/ripgrep-darwin-arm64/bin/rg";
+    const unpackedPath = virtualPath.replace("app.asar/", "app.asar.unpacked/");
+    expect(resolveSearchBinaryPath(virtualPath, (candidate) => candidate === unpackedPath)).toBe(unpackedPath);
+  });
+
+  it("keeps normal and already-unpacked paths unchanged", () => {
+    const normalPath = "/opt/workspace/node_modules/rg";
+    const unpackedPath = "/Applications/Workspace.app/Contents/Resources/app.asar.unpacked/node_modules/rg";
+    expect(resolveSearchBinaryPath(normalPath, () => true)).toBe(normalPath);
+    expect(resolveSearchBinaryPath(unpackedPath, () => true)).toBe(unpackedPath);
   });
 });

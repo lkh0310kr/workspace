@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { rgPath } from "@vscode/ripgrep";
 
@@ -116,6 +117,15 @@ export interface ActiveSearch {
   cancel: () => void;
 }
 
+/** Resolve an Electron asar virtual path to the real unpacked binary path. */
+export function resolveSearchBinaryPath(
+  binaryPath = rgPath,
+  exists: (candidate: string) => boolean = existsSync,
+): string {
+  const unpackedPath = binaryPath.replace(/\.asar(?=[/\\])/, ".asar.unpacked");
+  return unpackedPath !== binaryPath && exists(unpackedPath) ? unpackedPath : binaryPath;
+}
+
 /**
  * Streams matches grouped by file as ripgrep finds them (`onFile` fires
  * once per file, with that file's full match list at end-of-stream for that
@@ -129,9 +139,13 @@ export function searchInFiles(
   onFile: (result: SearchFileResult) => void,
   onDone: (error?: string) => void,
 ): ActiveSearch {
-  const proc: ChildProcessWithoutNullStreams = spawn(rgPath, buildSearchArgs(query, opts), {
-    cwd: root,
-  });
+  let proc: ChildProcessWithoutNullStreams;
+  try {
+    proc = spawn(resolveSearchBinaryPath(), buildSearchArgs(query, opts), { cwd: root });
+  } catch (error) {
+    onDone(error instanceof Error ? error.message : String(error));
+    return { cancel: () => {} };
+  }
   let buffer = "";
   const byFile = new Map<string, SearchFileResult>();
   let stderr = "";
