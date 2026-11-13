@@ -544,20 +544,19 @@ export function EditorContent({
   useEffect(() => {
     if (isMarkdown || !filePath) return;
     let cancelled = false;
-    const view = readyEditorView;
-    const compartment = languageCompartmentRef.current;
-    const snippets = snippetCompartmentRef.current;
-    if (!view || !compartment) return;
+    if (!readyEditorView || !languageCompartmentRef.current) return;
     const desc = LanguageDescription.matchFilename(languageData, filePath);
     const support = desc && editorSupportsCodeLanguage(editorProvider, desc.name)
       ? desc.load()
       : Promise.resolve([]);
     support.then((extensions) => {
-      if (!cancelled && viewRef.current === view) {
-        view.dispatch({ effects: compartment.reconfigure(extensions) });
-      }
+      const activeView = viewRef.current;
+      const activeCompartment = languageCompartmentRef.current;
+      const activeSnippets = snippetCompartmentRef.current;
+      if (cancelled || pathRef.current !== filePath || !activeView || !activeCompartment) return;
+      activeView.dispatch({ effects: activeCompartment.reconfigure(extensions) });
+      if (activeSnippets) activeView.dispatch({ effects: activeSnippets.reconfigure(createCodeSnippetExtension(desc?.name)) });
     }).catch(console.error);
-    if (snippets) view.dispatch({ effects: snippets.reconfigure(createCodeSnippetExtension(desc?.name)) });
     return () => { cancelled = true; };
   }, [editorProvider, filePath, isMarkdown, readyEditorView]);
 

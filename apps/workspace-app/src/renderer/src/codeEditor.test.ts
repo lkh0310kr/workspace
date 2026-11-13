@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { CompletionContext } from "@codemirror/autocomplete";
 import type { Completion } from "@codemirror/autocomplete";
+import { LanguageDescription, highlightingFor, syntaxTree } from "../../../../../node_modules/@codemirror/language";
 import { EditorState } from "../../../../../node_modules/@codemirror/state";
+import { tags } from "../../../../../node_modules/@lezer/highlight";
+import { languages } from "../../../../../node_modules/@codemirror/language-data";
 import { collectDocumentWords, createCodeEditorExtensions, createCodeSnippetExtension, documentWordCompletion } from "@workspace/editor";
 
 describe("code editor document completion", () => {
@@ -36,5 +39,18 @@ describe("code editor document completion", () => {
     expect(snippets.map((snippet) => snippet.label)).toContain("log");
     expect(snippets.map((snippet) => snippet.label)).toContain("fn");
     expect(createCodeEditorExtensions()).toBeDefined();
+  });
+
+  it("loads TypeScript parsing and assigns source-token highlighting", async () => {
+    const description = LanguageDescription.matchFilename(languages, "codeEditor.ts");
+    expect(description?.name).toBe("TypeScript");
+    const support = await description!.load();
+    const state = EditorState.create({
+      doc: "const answer = 42;",
+      extensions: [support, createCodeEditorExtensions()],
+    });
+
+    expect(syntaxTree(state).toString()).toContain("Number");
+    expect(highlightingFor(state, [tags.number])).toBeTruthy();
   });
 });
