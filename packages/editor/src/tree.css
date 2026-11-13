@@ -25,24 +25,6 @@
   cursor: pointer;
 }
 .editor-tree-item:hover { background: var(--editor-tree-hover, var(--bg-hover, var(--hover))); color: var(--text, var(--muted)); }
-.editor-tree-item[class*="editor-tree-file--"] { color: var(--editor-tree-file-color, var(--editor-tree-text, var(--text, var(--muted)))); }
-.editor-tree-file--typescript { --editor-tree-file-color: #4f9de8; }
-.editor-tree-file--javascript { --editor-tree-file-color: #d6ad42; }
-.editor-tree-file--json { --editor-tree-file-color: #d59d55; }
-.editor-tree-file--python { --editor-tree-file-color: #6ca8dc; }
-.editor-tree-file--rust { --editor-tree-file-color: #d8895a; }
-.editor-tree-file--go { --editor-tree-file-color: #58b8c9; }
-.editor-tree-file--java, .editor-tree-file--kotlin { --editor-tree-file-color: #dd806b; }
-.editor-tree-file--swift { --editor-tree-file-color: #e78758; }
-.editor-tree-file--c, .editor-tree-file--cpp { --editor-tree-file-color: #6795d4; }
-.editor-tree-file--html, .editor-tree-file--vue { --editor-tree-file-color: #df805e; }
-.editor-tree-file--css { --editor-tree-file-color: #a78be0; }
-.editor-tree-file--yaml, .editor-tree-file--toml { --editor-tree-file-color: #c58ac7; }
-.editor-tree-file--shell { --editor-tree-file-color: #80b56c; }
-.editor-tree-file--sql { --editor-tree-file-color: #62a9c7; }
-.editor-tree-file--graphql { --editor-tree-file-color: #db79ac; }
-.editor-tree-file--svelte { --editor-tree-file-color: #e78055; }
-.editor-tree-file--markdown { --editor-tree-file-color: #8e9bb0; }
 .editor-tree-item.is-active { background: var(--editor-tree-active, var(--bg-active, var(--selected))); }
 .editor-tree-item.is-selected, .editor-tree-item.is-multi-selected { background: var(--editor-tree-selected, var(--bg-hover, var(--selected))); }
 .editor-tree-item.is-selected.is-active { background: var(--editor-tree-active, var(--bg-active, var(--selected))); box-shadow: inset 0 0 0 1px var(--border-strong); }

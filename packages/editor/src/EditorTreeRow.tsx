@@ -6,24 +6,6 @@ import type {
 } from "react";
 import type { EditorItemKind } from "./provider";
 
-function fileColorClass(name: string, kind: EditorItemKind): string | undefined {
-  if (kind === "directory") return undefined;
-  const extension = name.split(".").at(-1)?.toLowerCase();
-  const colors: Record<string, string> = {
-    ts: "typescript", tsx: "typescript", mts: "typescript", cts: "typescript",
-    js: "javascript", jsx: "javascript", mjs: "javascript", cjs: "javascript",
-    json: "json", jsonc: "json", json5: "json",
-    py: "python", pyw: "python", rs: "rust", go: "go", java: "java", kt: "kotlin",
-    swift: "swift", c: "c", h: "c", cc: "cpp", cpp: "cpp", hpp: "cpp",
-    html: "html", htm: "html", css: "css", scss: "css", less: "css",
-    yaml: "yaml", yml: "yaml", toml: "toml", sh: "shell", bash: "shell",
-    sql: "sql", graphql: "graphql", gql: "graphql", vue: "vue", svelte: "svelte",
-    md: "markdown", markdown: "markdown",
-  };
-  const color = extension ? colors[extension] : undefined;
-  return color ? `editor-tree-file--${color}` : undefined;
-}
-
 export interface EditorTreeRowProps {
   id: string;
   path: string;
@@ -94,7 +76,6 @@ export function EditorTreeRow({
     dropTarget && "is-drop-target",
     expanded && "is-expanded",
     `editor-tree-item--${kind}`,
-    fileColorClass(name, kind),
   ].filter(Boolean).join(" ");
 
   return (
