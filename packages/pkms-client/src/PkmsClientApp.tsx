@@ -659,11 +659,13 @@ export default function Home() {
   const canDelete = editorSupportsOperation(editorProvider, "delete");
   const canMove = Boolean(editorProvider?.capabilities.dragMove && editorSupportsOperation(editorProvider, "move"));
   const canMultiSelect = Boolean(editorProvider?.capabilities.multiSelect);
+  const editorProviderId = editorProvider?.id ?? null;
   const selectTreeRow = (path: string, index: number, additive = false, range = false) =>
     treeSelection.selectRow(path, index, canMultiSelect && additive, canMultiSelect && range);
+  // The provider object closes over changing tree callbacks; its id is the actual session lifetime.
   useEffect(() => {
-    if (!editorProvider) return;
-    const providerId = editorProvider.id;
+    if (!editorProviderId) return;
+    const providerId = editorProviderId;
     return () => {
       editorSessionOpenController.current?.abort();
       editorSessionOpenController.current = null;
@@ -672,8 +674,9 @@ export default function Home() {
           closePkmsEditorSession(fileId, session);
         }
       }
+      setActiveEditorSession((current) => current?.item.providerId === providerId ? null : current);
     };
-  }, [closePkmsEditorSession, editorProvider]);
+  }, [closePkmsEditorSession, editorProviderId]);
   const openFile = useCallback(async (file: FileRecord, historyAction: FileNavigation = "push") => {
     editorSessionOpenController.current?.abort();
     const controller = new AbortController();
