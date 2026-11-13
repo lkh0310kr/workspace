@@ -23,6 +23,7 @@
 | [UI 결과와 acceptance](./ui-acceptance.md) | tree·설정의 사용자 상태, 결과 기반 시나리오, 검증 evidence |
 | [삭제·폴더 이동](./deletion.md) | inventory 기반 안전 삭제, recursive guard, 이동과 삭제 충돌 |
 | [현재 구현과 rollout 상태](./implementation-status.md) | 코드상 값/한계, migration 및 미검증 구분 |
+| [동기화 기술 연구와 개선 설계](./research/README.md) | Apple File Provider/iCloud, Google Drive change feed, CRDT/Yjs의 공개 contract와 PKMS 개선 요구 |
 
 ## 범위·소유 경계
 
@@ -39,6 +40,6 @@
 
 ## 우선 안전 이슈
 
-현재 `configurePkmsSyncBridge`는 같은 workspace에 다른 root를 연결할 때 directory inventory와 pending delete만 초기화하고 path baseline은 유지한다. 새 root가 비어 있으면 full sync의 `local absent + remote present + baseline present` 경로가 기존 Markdown을 조건부 cloud delete로 제출할 수 있다. **새 root 연결이 이전 workspace의 Markdown을 삭제하지 않는다는 보장은 현재 없다.** 코드에서 이 경로를 막는 user confirmation/seed boundary가 확인되지 않았다. 새 root 전환 시 기존 cloud tree 보존을 기본값으로 하는 요구가 필요하며, source 수정과 destructive-operation test가 완료될 때까지 새 root acceptance를 통과로 표시하지 않는다.
+현재 `configurePkmsSyncBridge`는 같은 workspace에 다른 root를 연결할 때 directory inventory와 pending delete만 초기화하고 path baseline은 유지한다. 새 root가 비어 있으면 full sync의 `local absent + remote present + baseline present` 경로가 기존 Markdown을 조건부 cloud delete로 제출할 수 있다. **새 root 연결이 이전 workspace의 Markdown을 삭제하지 않는다는 보장은 현재 없다.** 코드에서 이 경로를 막는 seed boundary가 확인되지 않았다. 새 root 전환 시 기존 cloud tree 보존을 기본값으로 하는 요구와 research acceptance는 [동기화 기술 연구](./research/README.md)에 기록했다. source 수정과 destructive-operation test가 완료될 때까지 새 root acceptance를 통과로 표시하지 않는다.
 
 진입 근거: [Main bridge](../../../src/main/pkms/syncBridge.ts), [PKMS vault handler](../../../../pkms-server/src/SupabaseVault.ts), [sync migrations](../../../../pkms-server/supabase/migrations), [Desktop bridge status type](../../../src/shared/pkmsSyncBridge.ts), [설정 패널](../../../../../packages/pkms-client/src/components/SyncBridgePanel.tsx).
