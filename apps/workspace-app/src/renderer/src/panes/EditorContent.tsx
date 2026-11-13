@@ -121,6 +121,7 @@ export function EditorContent({
   const documentLoadSequenceRef = useRef(0);
   const documentLoadControllerRef = useRef<AbortController | null>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const [readyEditorView, setReadyEditorView] = useState<EditorView | null>(null);
   const viewCleanupRef = useRef<(() => void) | null>(null);
   const languageCompartmentRef = useRef<Compartment | null>(null);
   const snippetCompartmentRef = useRef<Compartment | null>(null);
@@ -397,6 +398,7 @@ export function EditorContent({
     viewCleanupRef.current?.();
     viewCleanupRef.current = null;
     viewRef.current = view;
+    setReadyEditorView(view);
     if (!view) return;
     const onEditorFocus = (): void => setFocusedEditorView(view);
     const onEditorBlur = (): void => clearFocusedEditorView(view);
@@ -542,7 +544,7 @@ export function EditorContent({
   useEffect(() => {
     if (isMarkdown || !filePath) return;
     let cancelled = false;
-    const view = viewRef.current;
+    const view = readyEditorView;
     const compartment = languageCompartmentRef.current;
     const snippets = snippetCompartmentRef.current;
     if (!view || !compartment) return;
@@ -557,18 +559,18 @@ export function EditorContent({
     }).catch(console.error);
     if (snippets) view.dispatch({ effects: snippets.reconfigure(createCodeSnippetExtension(desc?.name)) });
     return () => { cancelled = true; };
-  }, [editorProvider, filePath, isMarkdown]);
+  }, [editorProvider, filePath, isMarkdown, readyEditorView]);
 
   useEffect(() => {
     if (isMarkdown) return;
-    const view = viewRef.current;
+    const view = readyEditorView;
     const compartment = indentationCompartmentRef.current;
     const snapshot = activeDocumentSession?.snapshot();
     if (!view || !compartment || activeDocumentSession?.item.path !== filePath || snapshot?.content.type !== "text") return;
     const indentation = detectIndentation(snapshot.content.text.split(/\r?\n/), 4, true);
     const unit = indentation.insertSpaces ? " ".repeat(indentation.indentSize) : "\t";
     view.dispatch({ effects: compartment.reconfigure(indentUnit.of(unit)) });
-  }, [activeDocumentSession, filePath, isMarkdown]);
+  }, [activeDocumentSession, filePath, isMarkdown, readyEditorView]);
 
   useEffect(() => {
     setSaveError(null);
