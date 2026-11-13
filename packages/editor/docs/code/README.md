@@ -1,5 +1,7 @@
 # Text surface와 code editor 스펙
 
+Code 편집 기능의 현재 상태와 목표 사용자 결과는 [IDE 편집 기능 스펙](./ide-capabilities.md)을 참고한다. 이 문서는 아래에 기술한 공통 CodeMirror surface 및 Desktop host의 구현 계약을 다룬다.
+
 [EditorTextSurface](../../src/EditorTextSurface.tsx)는 Markdown과 code에서 공유하는 유일한 CodeMirror view 소유자다. Desktop의 모드별 extension과 저장은 [EditorContent](../../../../apps/workspace-app/src/renderer/src/panes/EditorContent.tsx)가 조정한다.
 
 ## Surface 입력과 수명

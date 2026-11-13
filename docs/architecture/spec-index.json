@@ -48,6 +48,7 @@
         "packages/editor/docs/assets.md",
         "packages/editor/docs/breadcrumbs.md",
         "packages/editor/docs/code/README.md",
+        "packages/editor/docs/code/ide-capabilities.md",
         "packages/editor/docs/markdown/README.md",
         "packages/editor/docs/markdown/product-completeness.md",
         "packages/editor/docs/provider.md",
