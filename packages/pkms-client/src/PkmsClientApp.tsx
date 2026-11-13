@@ -276,7 +276,6 @@ export default function Home() {
   treeFilesRef.current = files;
   activeFileStateRef.current = activeFile;
   const visibleFiles = useMemo(() => files.filter((file) => showIgnoredFiles || (
-    !file.path.split("/").some((part) => part.startsWith(".")) &&
     !excludedPatterns.split("\n").some((pattern) => matchesExcludePattern(file.path, pattern))
   )), [excludedPatterns, files, showIgnoredFiles]);
   const treeRows = useMemo(() => flattenTree(visibleFiles, expandedFolders), [expandedFolders, visibleFiles]);

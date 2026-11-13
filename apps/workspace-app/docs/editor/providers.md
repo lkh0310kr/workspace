@@ -9,6 +9,7 @@
 - provider ID는 `workspace:${tabId}`. module Map에서 tabId별 provider와 참조 수를 보관한다. acquire마다 참조 증가, release는 한 번만 유효하며 0에서 watcher·listeners·sessions를 dispose한다.
 - 경로→itemId와 itemId→경로 Map을 유지한다. 신규 ID는 `${providerId}:item:${crypto.randomUUID()}`다. localStorage key `workspace:editor-item-ids:${tabId}`에 경로→ID를 보관한다. 이전 ID prefix를 보정하고 중복 ID를 건너뛴다. 손상/저장 불가는 메모리 동작을 막지 않는다.
 - listChildren은 null을 root `''`로 바꾸고 listDir를 호출한다. 알 수 없는 parent ID는 빈 목록이다. 반환 뒤 취소를 재확인한다. 부모 ID가 필요하면 부모 item을 재귀 생성한다.
+- Workspace Explorer는 `.`으로 시작하는 파일과 폴더도 표시한다. `.gitignore`, `.env` 같은 항목을 숨김 처리하지 않는다.
 - rename/move는 파일시스템 작업 성공 후 하위 경로 Map과 열린 session 메타데이터를 갱신한다. ID는 유지한다. 외부 도구의 rename을 inode로 추적하는 기능은 없다.
 - 모든 파일 작업, 이름/내용 검색, 치환, 다중 선택, DnD, 모든 코드 언어를 지원하고 collaboration은 false다.
 

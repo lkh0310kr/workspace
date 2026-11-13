@@ -26,6 +26,7 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 - failed item은 나머지 sync를 막지 않되 사용자에게 attention과 retry/fix를 알린다.
 - 폴더 aggregate 상태를 제공하는 경우 가장 중요한 descendant state를 표시한다. child 수만큼 중복 경고를 띄우지 않는다.
 - GitHub backup 상태는 cloud folder sync 상태와 별도 표시한다.
+- Dot-prefix만으로 숨기지 않는다. 일반 `.name.md` 파일과 `.folder` 아래의 동기화 대상 Markdown은 Files tree와 quick open에서 찾을 수 있다. `.git`, `.obsidian`, `node_modules`, `.pkms` 예약 경로와 사용자가 지정한 제외 경로는 표시/sync 대상이 아니다.
 
 전체 percent는 대상 집합이 달라지면 감소/증가할 수 있어 안정된 결과를 뜻하지 않는다. 고정 revision에 묶인 initial materialization만 필요하면 그 snapshot 기준임을 표시한다. 현재 settings panel은 sync pass의 `completed/total` percent를 보여줄 수 있으므로 product acceptance에서 값이 단조 진행 또는 안정된 진행률이라는 오해가 없는지 확인해야 한다.
 
@@ -49,6 +50,7 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 | FS-UI-14 | 같은 본문의 local create가 acknowledgement 유실로 재시도되고 이후 앱이 재시작됨 | 원래 path의 Cloud identity 한 개만 남고 duplicate/conflict copy가 늘지 않으며 queue가 사라진다 | 서버 SQL retry/idempotency 통과; 앱 restart E2E 미확인 |
 | FS-UI-15 | 복구된 local Markdown 3,706개와 Cloud 본문, Git backup을 한 시점으로 대조 | 모든 활성 Markdown은 Cloud Yjs 본문 또는 Git blob SHA와 byte/hash가 일치하고 Git tree active path set과 hash/mode 차이가 0이다 | local↔Cloud 3,706/3,706, Git↔Cloud 12,472/12,472 확인. cursor 2,638, local pending 0, Git dirty 0 |
 | FS-UI-16 | conflict duplicate 복구 직후 앱이 다시 complete pass를 수행 | 삭제된 conflict path가 재생성되지 않고 bridge cursor가 Cloud revision까지 전진하며 pending paths/deletes가 0이 된다. 원본 contents/IDs는 변하지 않는다 | 2026-11-13 Desktop에서 실제 실행 통과: cursor 1,794→2,638, baseline/remote 3,706, pending path/create/update/delete 0, active conflict 0. 앱 재시작 후 유지까지는 미검증 |
+| FS-UI-17 | 이름이 `.`으로 시작하는 동기화 대상 Markdown/폴더가 존재 | Files tree와 quick open에서 나타나고 일반 항목처럼 열 수 있다. 예약 경로·사용자 제외는 나타나지 않는다 | source 반영; 수동 UI 수락 미확인 |
 
 ## Current UI mapping
 

@@ -179,7 +179,7 @@ export async function listPkmsLocalDirectory(workspaceId: string, relativeDirect
   const output: Array<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }> = [];
   const excludedPaths = (await load()).configs[workspaceId]?.excludedPaths ?? [];
   for (const entry of entries) {
-    if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules", ".pkms"].includes(entry.name) || entry.name.startsWith(".")) continue;
+    if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules", ".pkms"].includes(entry.name)) continue;
     const relative = path.posix.join(relativeDirectory, entry.name);
     const kind = entry.isDirectory() ? "folder" : entry.isFile() && entry.name.toLowerCase().endsWith(".md") ? "markdown" : null;
     if (!kind || matchesExclusion(relative, excludedPaths)) continue;

@@ -58,7 +58,6 @@ export function listDir(root: string, rel: string): DirEntry[] {
   const names = fs.readdirSync(dirPath, { withFileTypes: true });
   const entries: DirEntry[] = [];
   for (const entry of names) {
-    if (entry.name.startsWith(".")) continue;
     const entryPath = path.join(dirPath, entry.name);
     const relPath = toWorkspaceRelPath(path.relative(realRoot, entryPath));
     entries.push({ name: entry.name, path: relPath, isDir: entry.isDirectory() });
