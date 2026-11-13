@@ -8,9 +8,9 @@ import {
 } from "react";
 import { Compartment } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
-import { createCodeEditorExtensions, createCodeSnippetExtension, editorCodeMirrorCodeSelectionExtensions, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
+import { createCodeEditorExtensions, createCodeSnippetExtension, detectIndentation, editorCodeMirrorCodeSelectionExtensions, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSavePhaseLabel, editorSupportsCodeLanguage, editorSupportsOperation, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorTextSurface, externalEditorChange, isEditorAbortError, markdownRootPath, markdownTitleFor, replaceEditorDocument, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveMarkdownTitleRenameTarget, toggleEditorSearch, useEditorDocumentSnapshot, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession } from "@workspace/editor";
 import { acquireLocalEditorProvider } from "../editor/localEditorProvider";
-import { LanguageDescription } from "@codemirror/language";
+import { LanguageDescription, indentUnit } from "@codemirror/language";
 import { languages as languageData } from "@codemirror/language-data";
 import { getStoredAutoSave, subscribeAutoSave } from "../autosave";
 import { pastePlainTextCommand } from "../editorPlainPaste";
@@ -124,6 +124,7 @@ export function EditorContent({
   const viewCleanupRef = useRef<(() => void) | null>(null);
   const languageCompartmentRef = useRef<Compartment | null>(null);
   const snippetCompartmentRef = useRef<Compartment | null>(null);
+  const indentationCompartmentRef = useRef<Compartment | null>(null);
   const markdownRootCompartmentRef = useRef<Compartment | null>(null);
   const pathRef = useRef<string | null>(filePath);
   pathRef.current = filePath;
@@ -349,9 +350,11 @@ export function EditorContent({
     const rootCompartment = new Compartment();
     const languageCompartment = new Compartment();
     const snippetCompartment = new Compartment();
+    const indentationCompartment = new Compartment();
     markdownRootCompartmentRef.current = rootCompartment;
     languageCompartmentRef.current = languageCompartment;
     snippetCompartmentRef.current = snippetCompartment;
+    indentationCompartmentRef.current = indentationCompartment;
     const modeExtensions = isMarkdown
       ? [
           rootCompartment.of(markdownRootPath.of(rootPath)),
@@ -360,6 +363,7 @@ export function EditorContent({
           ]),
         ]
       : [
+          indentationCompartment.of(indentUnit.of("    ")),
           languageCompartment.of([]),
           snippetCompartment.of(createCodeSnippetExtension()),
           ...createCodeEditorExtensions({ pastePlainText: pastePlainTextCommand }),
@@ -554,6 +558,17 @@ export function EditorContent({
     if (snippets) view.dispatch({ effects: snippets.reconfigure(createCodeSnippetExtension(desc?.name)) });
     return () => { cancelled = true; };
   }, [editorProvider, filePath, isMarkdown]);
+
+  useEffect(() => {
+    if (isMarkdown) return;
+    const view = viewRef.current;
+    const compartment = indentationCompartmentRef.current;
+    const snapshot = activeDocumentSession?.snapshot();
+    if (!view || !compartment || activeDocumentSession?.item.path !== filePath || snapshot?.content.type !== "text") return;
+    const indentation = detectIndentation(snapshot.content.text.split(/\r?\n/), 4, true);
+    const unit = indentation.insertSpaces ? " ".repeat(indentation.indentSize) : "\t";
+    view.dispatch({ effects: compartment.reconfigure(indentUnit.of(unit)) });
+  }, [activeDocumentSession, filePath, isMarkdown]);
 
   useEffect(() => {
     setSaveError(null);
