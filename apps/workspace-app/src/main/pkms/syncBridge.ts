@@ -990,6 +990,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
       reportProgress();
       const reconcilePath = async (relative: string): Promise<void> => {
         let itemComplete = false;
+        let deletionConflictRecovered = false;
         setItemState(workspaceId, relative, "syncing");
         try {
         const localText = local.get(relative);
@@ -1037,8 +1038,25 @@ async function syncOnce(workspaceId: string): Promise<void> {
             const remoteChanged = remote.id !== baseline.fileId || (remoteContent !== null && remoteContent.revision !== baseline.revision);
             if (remoteChanged) {
               const latestText = remoteText ?? (await readRemoteText(workspaceId, remote)).text;
-              const created = await preserveConflictCopy(relative, latestText);
-              baselines[created.path] = { fileId: created.id, hash: created.localHash ?? hash(latestText), revision: created.revision };
+              // A local deletion is valid only against the exact remote version
+              // in its baseline. If the cloud changed, restore that version at
+              // its original path and cancel any stale delete intent. Creating
+              // a conflict copy and then deleting the source would strand the
+              // latest cloud content under a new path and break replica parity.
+              await writeAtomic(root, relative, latestText, null);
+              baselines[relative] = { fileId: remote.id, hash: hash(latestText), revision: remoteContent?.revision ?? remote.revision };
+              delete (state.pendingDeletes[workspaceId] ?? {})[relative];
+              nextSyncRevision = Math.max(nextSyncRevision ?? 0, remoteContent?.revision ?? remote.revision);
+              deletionConflictRecovered = true;
+              itemComplete = true;
+              appendStartupLog("pkms_local_delete_conflict", {
+                workspaceId,
+                kind: "markdown",
+                path: relative,
+                outcome: "restored_remote_revision",
+                remoteRevision: remoteContent?.revision ?? remote.revision,
+              });
+              return;
             }
             const pending = state.pendingDeletes[workspaceId] ??= {};
             const isNewDeletion = !pending[relative];
@@ -1122,7 +1140,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         } finally {
           if (itemComplete) {
             completed++;
-            setItemState(workspaceId, relative, dirtyLocalPaths.get(workspaceId)?.has(relative) ? "pending" : null);
+            setItemState(workspaceId, relative, deletionConflictRecovered ? "attention" : dirtyLocalPaths.get(workspaceId)?.has(relative) ? "pending" : null);
           }
           reportProgress();
         }
