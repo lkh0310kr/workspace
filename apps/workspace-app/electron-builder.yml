@@ -26,6 +26,10 @@ asarUnpack:
   # virtual-fs edge cases.
   - node_modules/@vscode/ripgrep/**/*
   - node_modules/@vscode/ripgrep-*/**/*
+  # node-pty resolves its POSIX spawn helper beside the loaded native addon.
+  # The macOS package build stages the helper here because the prebuilt pty.node
+  # may resolve through build/Release even when the source binary is under prebuilds/.
+  - node_modules/node-pty/build/Release/spawn-helper
 win:
   executableName: electron
 nsis:
