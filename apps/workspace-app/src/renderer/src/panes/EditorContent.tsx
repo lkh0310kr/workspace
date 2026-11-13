@@ -558,7 +558,7 @@ export function EditorContent({
       if (activeSnippets) activeView.dispatch({ effects: activeSnippets.reconfigure(createCodeSnippetExtension(desc?.name)) });
     }).catch(console.error);
     return () => { cancelled = true; };
-  }, [editorProvider, filePath, isMarkdown, readyEditorView]);
+  }, [activeDocumentSession, editorProvider, filePath, isMarkdown, readyEditorView]);
 
   useEffect(() => {
     if (isMarkdown) return;

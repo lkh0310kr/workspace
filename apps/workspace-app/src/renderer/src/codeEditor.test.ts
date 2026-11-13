@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CompletionContext } from "@codemirror/autocomplete";
 import type { Completion } from "@codemirror/autocomplete";
 import { LanguageDescription, highlightingFor, syntaxTree } from "../../../../../node_modules/@codemirror/language";
-import { EditorState } from "../../../../../node_modules/@codemirror/state";
+import { Compartment, EditorState } from "../../../../../node_modules/@codemirror/state";
 import { tags } from "../../../../../node_modules/@lezer/highlight";
 import { languages } from "../../../../../node_modules/@codemirror/language-data";
 import { collectDocumentWords, createCodeEditorExtensions, createCodeSnippetExtension, documentWordCompletion } from "@workspace/editor";
@@ -52,5 +52,22 @@ describe("code editor document completion", () => {
 
     expect(syntaxTree(state).toString()).toContain("Number");
     expect(highlightingFor(state, [tags.number])).toBeTruthy();
+  });
+
+  it("reapplies a loaded language after the document state is replaced", async () => {
+    const description = LanguageDescription.matchFilename(languages, "codeEditor.ts");
+    const compartment = new Compartment();
+    const extensions = [compartment.of([]), ...createCodeEditorExtensions()];
+    const support = await description!.load();
+
+    // Opening the document replaces EditorState using the host's base extension
+    // list, which resets compartment reconfigurations made while it was loading.
+    const documentState = EditorState.create({ doc: "const answer = 42;", extensions });
+    const languageReadyState = documentState.update({
+      effects: compartment.reconfigure(support),
+    }).state;
+
+    expect(syntaxTree(languageReadyState).toString()).toContain("Number");
+    expect(highlightingFor(languageReadyState, [tags.number])).toBeTruthy();
   });
 });
