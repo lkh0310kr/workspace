@@ -476,7 +476,7 @@ async function recoverExcludedGitHubCommit(token:string,owner:string,repo:string
   if(commit.author?.login?.toLowerCase()!==login.toLowerCase()||commit.parents?.length!==1||commit.parents[0].sha!==w.github_head||!committed?.length||committed.length>=300){
     console.warn("github_flush_recovery_skipped",{reason:"external_commit_not_direct_or_bounded",changedFileCount:changed.length,remoteFileCount:committed?.length??-1});return false;
   }
-  const excluded=(path:string)=>path.split("/").some(part=>[".git",".obsidian","node_modules",".pkms"].includes(part));
+  const excluded=(path:string)=>path.split("/").some(part=>[".git",".obsidian","node_modules"].includes(part));
   const remotePaths=committed.flatMap(file=>[file.filename,file.previous_filename].filter((path):path is string=>Boolean(path)));
   if(!remotePaths.every(excluded)){
     console.warn("github_flush_recovery_skipped",{reason:"external_commit_touches_pkms_managed_path",changedFileCount:changed.length,remoteFileCount:committed.length});return false;

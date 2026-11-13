@@ -71,7 +71,7 @@ Snapshot은 `atRevision`에 pin된 metadata tree를 페이지 단위로 읽는�
 ## Path safety
 
 - 모든 remote path는 workspace root 기준 상대 경로다. absolute path, `..`, 빈 segment, slash escape를 허용하지 않는다.
-- `.git`, `.obsidian`, `node_modules`, `.pkms` 및 사용자 exclusion은 content scan과 directory inventory 양쪽에서 제외한다.
+- `.git`, `.obsidian`, `node_modules` 및 사용자 exclusion은 content scan과 directory inventory 양쪽에서 제외한다. `.pkms`는 ordinary path다.
 - symlink를 따라가거나 symlink target에 write/delete 하지 않는다. 각 parent segment가 실제 directory인지 검사한다.
 - remote apply가 기존 파일을 교체할 때 baseline hash를 조건으로 사용한다. 검사 도중 외부 편집이 있으면 `local_file_changed_retry`로 멈추고 다음 scan에서 다시 비교한다.
 - local-only collision은 원본을 덮지 않는다. 서버 create operation이 deterministic client conflict suffix를 반환한다.

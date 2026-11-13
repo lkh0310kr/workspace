@@ -179,7 +179,7 @@ export async function listPkmsLocalDirectory(workspaceId: string, relativeDirect
   const output: Array<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }> = [];
   const excludedPaths = (await load()).configs[workspaceId]?.excludedPaths ?? [];
   for (const entry of entries) {
-    if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules", ".pkms"].includes(entry.name)) continue;
+    if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules"].includes(entry.name)) continue;
     const relative = path.posix.join(relativeDirectory, entry.name);
     const kind = entry.isDirectory() ? "folder" : entry.isFile() && entry.name.toLowerCase().endsWith(".md") ? "markdown" : null;
     if (!kind || matchesExclusion(relative, excludedPaths)) continue;
@@ -366,7 +366,7 @@ async function markdownFiles(root: string, excludedPaths: string[]): Promise<Map
   const visit = async (dir: string): Promise<void> => {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules", ".pkms"].includes(entry.name)) continue;
+      if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules"].includes(entry.name)) continue;
       const absolute = path.join(dir, entry.name);
       if (entry.isDirectory()) await visit(absolute);
       else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) {
@@ -393,7 +393,7 @@ async function localDirectoryInventory(root: string, excludedPaths: string[]): P
   const visit = async (directory: string, prefix: string): Promise<void> => {
     const entries = await fs.readdir(directory, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules", ".pkms"].includes(entry.name)) continue;
+      if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules"].includes(entry.name)) continue;
       const relative = path.posix.join(prefix, entry.name);
       if (matchesExclusion(relative, excludedPaths)) continue;
       if (!entry.isDirectory()) continue;
@@ -414,7 +414,7 @@ async function markdownFilesAt(root: string, relativePaths: Iterable<string>, ex
   const visit = async (directory: string, prefix: string): Promise<void> => {
     const entries = await fs.readdir(directory, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules", ".pkms"].includes(entry.name)) continue;
+      if (entry.isSymbolicLink() || [".git", ".obsidian", "node_modules"].includes(entry.name)) continue;
       const relative = path.posix.join(prefix, entry.name);
       if (matchesExclusion(relative, excludedPaths)) continue;
       const absolute = path.join(directory, entry.name);
@@ -440,7 +440,7 @@ async function markdownFilesAt(root: string, relativePaths: Iterable<string>, ex
   return found;
 }
 function isReservedSyncPath(relative: string): boolean {
-  return relative.split("/").some((part) => [".git", ".obsidian", "node_modules", ".pkms"].includes(part));
+  return relative.split("/").some((part) => [".git", ".obsidian", "node_modules"].includes(part));
 }
 async function writeAtomic(root: string, relative: string, content: string, expectedCurrentHash?: string | null): Promise<void> {
   const target = safePath(root, relative);

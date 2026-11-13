@@ -28,7 +28,7 @@ Persisted JSON load 중 parse/read 실패는 현재 코드에서 empty state로 
 - 15분 complete scan은 watcher에서 놓친 변경과 directory identity 변화를 복구한다. root 또는 하위 directory 열거가 실패하면 inventory를 교체하지 않고 deletion을 추론하지 않는다.
 - Initial inventory 없는 기존 설치는 첫 complete scan을 seed-only로 커밋한다. 첫 scan은 cloud-only folder를 삭제하지 않는다.
 - directory identity `(dev, ino)`가 이전 누락 path 하나와 새 경로 하나에만 대응하면 move 후보로 처리한다. 누락/중복 identity면 이동을 추측하지 않는다.
-- `.git`, `.obsidian`, `node_modules`, `.pkms`, configured exclusions와 symlink는 scan 기준에서 제외한다.
+- `.git`, `.obsidian`, `node_modules`, configured exclusions와 symlink는 scan 기준에서 제외한다. `.pkms`는 특별 제외하지 않는다.
 - 수동 scan은 full scan과 directory inventory를 요청한다. 수동 scan 성공은 서버 배포·다른 기기 반영을 의미하지 않는다.
 
 ## Queue·작업 순서

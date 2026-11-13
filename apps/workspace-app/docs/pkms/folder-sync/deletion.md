@@ -66,7 +66,7 @@ type LocalDirectoryInventory = {
 };
 ```
 
-Store relative paths only. Exclude `.git`, `.obsidian`, `node_modules`, `.pkms`, configured exclusions, and symlinks under the same policy as content scans. A scan is complete only if the root and every traversed directory were readable. Any traversal error makes the pass incomplete and forbids delete inference.
+Store relative paths only. Exclude `.git`, `.obsidian`, `node_modules`, configured exclusions, and symlinks under the same policy as content scans. A scan is complete only if the root and every traversed directory were readable. Any traversal error makes the pass incomplete and forbids delete inference.
 
 An existing install without this inventory seeds it from the first complete local scan. That migration pass infers no deletes, avoiding removal of cloud-only folders during first materialization.
 
