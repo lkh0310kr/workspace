@@ -24,3 +24,4 @@
 
 ## Spec Driven Development
 - 제품 또는 코드 변경 전에 관련 개발 규칙, 문서 인덱스 및 담당 스펙을 먼저 확인하세요. 여러 범위에 영향을 주는 경우 각 담당 스펙을 검토하고 업데이트하세요. (참고: [스펙 기반 개발 규칙](docs/architecture/spec-driven-development.md))
+- 제품 스펙, 설계 문서와 상세 개발 가이드는 저장소 root의 `docs/` 아래에서 관리하세요. `apps/`나 `packages/` 내부에 별도 `docs/` 트리를 만들지 말고, 상세 문서를 모듈 소스 경로에 분산하지 마세요. App/package README는 진입 안내와 실행 방법을 제공하고, 자세한 내용은 root `docs/`에 연결하세요.
