@@ -1332,6 +1332,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
   if (active) return active
   let fullScan = false
   let scanDirectories = false
+  let failed = false
   let scannedDirectories: LocalDirectoryInventory | null = null
   let scannedLocalPaths: string[] = []
   const job = (async () => {
@@ -2721,6 +2722,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
       state.pendingPaths[workspaceId] = [...pendingPaths]
       await save()
     } catch (error) {
+      failed = true
       if (fullScan) fullScanRequests.add(workspaceId)
       if (scanDirectories) directoryScanRequests.add(workspaceId)
       if (scannedLocalPaths.length) {
@@ -2779,6 +2781,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
     // idempotent, so there is no multi-second suppression window that could
     // delay a real edit made immediately afterward.
     if (
+      !failed &&
       (fullScanRequests.has(workspaceId) ||
         directoryScanRequests.has(workspaceId) ||
         dirtyLocalPaths.has(workspaceId)) &&
