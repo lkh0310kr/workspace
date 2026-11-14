@@ -4,20 +4,35 @@
  * electron-vite calls process.exit when its Electron child exits; a leftover
  * instance holding requestSingleInstanceLock makes the new child quit instantly.
  */
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const pattern = `${root}/node_modules`;
+const electronPattern = process.platform === "darwin"
+  ? `${root}/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron`
+  : `${root}/node_modules/electron/dist/electron`;
+const patterns = [electronPattern, `${root}/node_modules/.bin/electron-vite`];
 
-try {
-  execSync(`pkill -9 -f '${pattern}/electron/dist/electron'`, { stdio: "ignore" });
-} catch {
-  /* none running */
+function signalMatches(pattern, signal) {
+  try {
+    execFileSync("pkill", [`-${signal}`, "-f", pattern], { stdio: "ignore" });
+  } catch {
+    /* No matching process. */
+  }
 }
-try {
-  execSync(`pkill -9 -f '${pattern}/.bin/electron-vite'`, { stdio: "ignore" });
-} catch {
-  /* none running */
+
+function hasMatches(pattern) {
+  try {
+    execFileSync("pgrep", ["-f", pattern], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+for (const pattern of patterns) signalMatches(pattern, "TERM");
+await new Promise((resolve) => setTimeout(resolve, 1_000));
+for (const pattern of patterns) {
+  if (hasMatches(pattern)) signalMatches(pattern, "KILL");
 }
