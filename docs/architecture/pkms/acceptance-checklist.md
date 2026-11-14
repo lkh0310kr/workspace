@@ -86,7 +86,7 @@
 - `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms/syncBridge.folder-create-ack-loss.test.ts`: **1 test passed**. Folder create commit 뒤 ACK 유실 시 change feed에서 remote folder identity를 확인하고 durable pending folder-create intent를 제거하며 중복 create를 보내지 않는 경로를 확인했다.
 - `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms/syncBridge.pagination-recovery.test.ts`: **1 test passed**. 중간 change-feed page fetch 실패에서 cursor/tree가 유지되고 재시도에서 같은 변경을 재생해 본문과 revision이 수렴하는지 검증했다.
 - `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms/syncBridge.folder-move.test.ts`: **1 test passed**. 로컬 folder move 시 directory identity를 기준으로 remote folder를 한 번 move하고 자식 path/baseline을 같은 file identity로 remap하며 create operation이 발생하지 않는 것을 검증했다.
-- 재시도·ACK 유실·폴더 충돌 수정 후 `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms`: **10 test files, 23 tests passed**. Workspace app `typecheck`와 `npm --prefix apps/workspace-app run build`도 통과했다. Build에는 기존 EPUB dynamic-import와 큰 bundle 경고가 있었지만 실패하지 않았다.
+- 재시도·ACK 유실·폴더 충돌·pagination·folder move 검증 후 `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms`: **14 test files, 27 tests passed**. Workspace app `typecheck`와 `npm --prefix apps/workspace-app run build`도 통과했다. Build에는 기존 EPUB dynamic-import와 큰 bundle 경고가 있었지만 실패하지 않았다.
 
 DB SQL acceptance는 linked production DB에 대한 이전 transaction rollback 검증 근거를 사용한다. 이번 검증에서는 production DB 데이터를 변경하지 않는다. 전체 수동 시나리오를 재현하지 않은 상태에서 sync 전체를 “정상”으로 판정하지 않는다.
 
