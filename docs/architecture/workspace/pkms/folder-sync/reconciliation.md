@@ -27,10 +27,19 @@ Baseline은 “해당 path를 다음에 무엇과 비교할지”를 정한다. 
 | 두 create 요청이 같은 path와 같은 Markdown 본문으로 경합 | retry/동시 생성                   | 기존 remote file identity를 반환하고 추가 item을 만들지 않는다.                                                                                                                   |
 | 두 create 요청이 같은 path에서 본문이 다름               | 실제 내용 충돌                    | 양쪽 내용을 보존하고 생성 요청은 고유 conflict path를 받는다.                                                                                                                     |
 | 두 create-folder 요청이 같은 path                        | retry/동시 생성                   | 이미 존재하는 folder identity에 수렴한다. 빈 conflict folder를 만들지 않는다.                                                                                                     |
+| remote descendant는 있으나 parent folder row가 없음      | 불완전한 tree metadata            | 같은 path에 folder marker와 directory metadata를 복구한다. descendant를 conflict path로 옮기거나 본문을 변경하지 않는다.                                                          |
 | local path가 파일 대신 directory/symlink/비정상 항목     | R Markdown                        | local에 remote 본문을 덮어쓰지 않는다. 경로 안전 오류로 멈추고 attention을 남긴다.                                                                                                |
 | R tombstone/missing                                      | local/B 상태에 따라 다름          | remote deletion을 local에 반영할 때 local이 B보다 바뀌었으면 local copy를 잃지 않도록 conflict-preserve 후 제거/재조정한다. 실제 경로별 분기는 source 대조가 필요한 acceptance다. |
 
 결과 행렬이 보장하는 것은 변경 손실 방지와 결정적 보존 정책이다. 자동 text merge는 하지 않는다. 사용자가 두 문서를 직접 비교·병합한다.
+
+## Folder metadata consistency
+
+Active Markdown/asset path 아래에 child가 있으면 각 ancestor는 active `folder` row로 표현되어야 한다. 각 folder row에는 `/directory` 조회가 가능한 directory metadata가 있어야 한다. 이 조건이 없으면 문서 row가 Cloud에 있어도 Web TreeView에서 parent 폴더에 접근할 수 없다.
+
+완전 directory scan은 local inventory를 remote folder manifest와 비교한다. remote marker가 없는 local directory는 depth 오름차순으로 등록한다. watcher 변경 힌트는 빠른 경로이며, 15분 full scan이 같은 비교를 다시 수행해 누락 이벤트를 복구한다. 서버 `create-folder`는 같은 path에 descendant row가 있을 때 그것을 이름 충돌로 보지 않고 parent marker를 복구한다. 정확히 같은 path에 비-folder row가 있으면 기존 conflict-path 정책을 유지한다.
+
+기존 orphan descendant는 migration에서 ancestor folder/directory row를 보충한다. 복구는 folder metadata와 server revision만 추가하며 Markdown 내용·file identity·path를 이동하거나 삭제하지 않는다. Folder marker revision은 change feed가 발견할 수 있어야 한다.
 
 ## 생성 충돌과 중복 사본 정리
 

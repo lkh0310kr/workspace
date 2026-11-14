@@ -1073,14 +1073,24 @@ async function applyOperation(
       op.type === 'move' && typeof op.fileId === 'string'
         ? await moveSnapshot(env, w, op.fileId).catch(() => null)
         : null
-    const result = await supabaseRpc<Record<string, unknown>>(env, 'pkms_apply_operation', {
-      p_workspace_id: w.workspace_id,
-      p_operation_id: id,
-      p_base_revision: Number(b.baseRevision ?? 0),
-      p_client_id: String(b.clientId ?? 'offline'),
-      p_operation: op,
-      p_initial_state_b64: b.initialState ?? null
-    })
+    const result =
+      op.type === 'create-folder'
+        ? await supabaseRpc<Record<string, unknown>>(env, 'pkms_create_folder', {
+            p_workspace_id: w.workspace_id,
+            p_operation_id: id,
+            p_base_revision: Number(b.baseRevision ?? 0),
+            p_client_id: String(b.clientId ?? 'offline'),
+            p_path: op.path,
+            p_file_id: op.fileId ?? null
+          })
+        : await supabaseRpc<Record<string, unknown>>(env, 'pkms_apply_operation', {
+            p_workspace_id: w.workspace_id,
+            p_operation_id: id,
+            p_base_revision: Number(b.baseRevision ?? 0),
+            p_client_id: String(b.clientId ?? 'offline'),
+            p_operation: op,
+            p_initial_state_b64: b.initialState ?? null
+          })
     await publishRealtime(env, w.workspace_id, { ...result, type: 'operation' }, ctx)
     if (before && !result.duplicate) {
       const dest =

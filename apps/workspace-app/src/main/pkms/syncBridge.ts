@@ -9,6 +9,7 @@ import { requestPkmsApi } from './api'
 import { appendStartupLog, isPackagedApp } from '../startupLog'
 import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from '../../shared/pkmsSyncBridge'
 import {
+  folderPathsToReconcile,
   nextGuardedFolderDeleteRevision,
   remoteChangedSinceBaseline,
   resetRootScopedState
@@ -1478,7 +1479,13 @@ async function syncOnce(workspaceId: string): Promise<void> {
           notifyLocalTreeChanged(workspaceId, folder.path)
         }
       }
-      for (const relative of scannedLocalPaths) {
+      const foldersToReconcile = folderPathsToReconcile(
+        Object.keys(scannedDirectories ?? {}),
+        knownRemoteTree ?? [],
+        scanDirectories || fullScan,
+        scannedLocalPaths
+      )
+      for (const relative of foldersToReconcile) {
         if (
           !relative ||
           isReservedSyncPath(relative) ||
@@ -1492,28 +1499,27 @@ async function syncOnce(workspaceId: string): Promise<void> {
         } catch {
           continue
         }
-        if (
-          !stat.isDirectory() ||
-          (knownRemoteTree ?? []).some((file) => file.kind === 'folder' && file.path === relative)
-        )
-          continue
+        if (!stat.isDirectory()) continue
+        const remoteAtPath = (knownRemoteTree ?? []).find((file) => file.path === relative)
+        if (remoteAtPath) continue
         const pendingFolders = (state.pendingFolderCreates[workspaceId] ??= {})
         const operationId = (pendingFolders[relative] ??= randomUUID())
         await save()
-        const result = await request<{ acceptedRevision?: number; conflictCopyPath?: string }>(
-          `/api/workspaces/${encodeURIComponent(workspaceId)}/operations`,
-          'POST',
-          {
-            operationId,
-            baseRevision: nextSyncRevision,
-            clientId: 'desktop-sync-bridge',
-            operation: { type: 'create-folder', path: relative }
-          }
-        )
+        const result = await request<{
+          acceptedRevision?: number
+          conflictCopyPath?: string
+          path?: string
+          fileId?: string
+        }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/operations`, 'POST', {
+          operationId,
+          baseRevision: nextSyncRevision,
+          clientId: 'desktop-sync-bridge',
+          operation: { type: 'create-folder', path: relative }
+        })
         delete pendingFolders[relative]
-        const cloudPath = result.conflictCopyPath ?? relative
+        const cloudPath = result.path ?? result.conflictCopyPath ?? relative
         const folder = {
-          id: `folder-${cloudPath}`,
+          id: result.fileId ?? `folder-${cloudPath}`,
           path: cloudPath,
           kind: 'folder',
           revision: result.acceptedRevision ?? 0

@@ -41,3 +41,19 @@ export function nextGuardedFolderDeleteRevision(
 ): number {
   return Math.max(currentPassRevision ?? queuedRevision, queuedRevision)
 }
+
+/** Choose local directory paths that need a cloud folder marker, shallowest first. */
+export function folderPathsToReconcile(
+  localDirectories: Iterable<string>,
+  remoteTree: readonly { path: string; kind: string }[],
+  scanAllDirectories: boolean,
+  changedPaths: Iterable<string>
+): string[] {
+  const remoteFolderPaths = new Set(
+    remoteTree.filter((item) => item.kind === 'folder').map((item) => item.path)
+  )
+  const candidates = new Set(scanAllDirectories ? localDirectories : changedPaths)
+  return [...candidates]
+    .filter((path) => path && !remoteFolderPaths.has(path))
+    .sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b))
+}

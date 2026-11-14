@@ -1,11 +1,35 @@
 import { describe, expect, it } from 'vitest'
 import {
+  folderPathsToReconcile,
   nextGuardedFolderDeleteRevision,
   remoteChangedSinceBaseline,
   resetRootScopedState
 } from './syncPolicy'
 
 describe('PKMS sync race policy', () => {
+  it('reconciles missing folder metadata from a directory scan, parent first', () => {
+    expect(
+      folderPathsToReconcile(
+        ['03 electric/chapter', '02 physics', '03 electric', 'engineering'],
+        [
+          { path: 'engineering', kind: 'folder' },
+          { path: '03 electric/chapter/note.md', kind: 'markdown' }
+        ],
+        true,
+        []
+      )
+    ).toEqual(['02 physics', '03 electric', '03 electric/chapter'])
+  })
+
+  it('limits incremental folder repair to watcher paths and preserves existing cloud folders', () => {
+    expect(
+      folderPathsToReconcile(['missing-from-watcher'], [{ path: 'known', kind: 'folder' }], false, [
+        'new/deep',
+        'known'
+      ])
+    ).toEqual(['new/deep'])
+  })
+
   it('restores the remote item when a local deletion raced with a newer cloud revision', () => {
     expect(
       remoteChangedSinceBaseline({ id: 'file-1', revision: 12 }, { fileId: 'file-1', revision: 11 })
