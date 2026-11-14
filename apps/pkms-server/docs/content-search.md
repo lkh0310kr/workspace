@@ -25,7 +25,7 @@
 
 검색은 사용자가 입력한 문자열 그대로 찾는 literal substring 검색이다. 기본은 대소문자 비구분이며 Match Case를 선택하면 대소문자를 구분한다. 정규식, whole-word, replace-in-files는 이번 결과 계약에 포함하지 않는다. 이는 검색어 입력·결과 탐색을 빠르고 예측 가능하게 제공하고, PostgreSQL POSIX regex와 클라이언트 regex의 의미 차이를 피하기 위함이다.
 
-검색어는 1–256 Unicode code point까지 허용한다. 3자 미만 검색은 trigram index를 충분히 활용하지 못해 DB가 작은 workspace corpus를 직접 확인할 수 있으므로, DB statement timeout과 결과 제한을 적용한다. 3자 이상 literal 검색은 기존 trigram GIN index가 후보 문서를 좁힌다. 결과는 파일당 최대 10개 일치 줄, 요청당 최대 100개 파일로 제한하며 각 미리보기 줄은 최대 240 code point다. 클라이언트는 250ms debounce 후 이전 요청을 abort하고 최신 쿼리 결과만 표시한다.
+검색어는 1–200 Unicode code point까지 허용한다. 3자 미만 검색은 trigram index를 충분히 활용하지 못해 DB가 작은 workspace corpus를 직접 확인할 수 있으므로, DB statement timeout과 결과 제한을 적용한다. 3자 이상 literal 검색은 기존 trigram GIN index가 후보 문서를 좁힌다. 결과는 파일당 최대 10개 일치 줄, 페이지당 최대 100개 파일로 제한하며 각 미리보기 줄은 최대 240 code point와 생략 표시다. 페이지는 마지막 경로 cursor로 이어서 가져온다. 클라이언트는 250ms debounce 후 이전 요청을 abort하고 최신 쿼리 결과만 표시한다.
 
 검색 API는 매치 결과와 함께 `indexedFiles`, `searchableFiles`, `pendingFiles`를 반환한다. 활성 Markdown 중 indexable 크기(최대 512 KiB)인 파일 가운데 `content_revision = revision`인 파일만 검색 가능하다. `pendingFiles > 0`이면 검색 UI는 현재 결과가 부분적임을 표시한다. 기존 1분 주기의 mirror 작업이 콘텐츠를 채우며, 다음 검색 요청에서 진행 상태가 갱신된다. 매치가 0개일 때도 index가 진행 중이면 “결과 없음”으로 단정하지 않는다.
 
