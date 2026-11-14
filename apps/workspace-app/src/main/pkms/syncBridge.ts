@@ -1333,6 +1333,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
   let fullScan = false
   let scanDirectories = false
   let failed = false
+  const attentionPaths = new Set<string>()
   let scannedDirectories: LocalDirectoryInventory | null = null
   let scannedLocalPaths: string[] = []
   const job = (async () => {
@@ -1724,6 +1725,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
               operationId: deletion.operationId
             })
             setItemState(workspaceId, deletion.path, 'attention')
+            attentionPaths.add(deletion.path)
             const latest = await readRemoteSnapshot(workspaceId)
             knownRemoteTree = latest.files
             knownRemoteFiles = Object.fromEntries(
@@ -2643,6 +2645,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             .filter(
               (file) =>
                 file.kind === 'folder' &&
+                !attentionPaths.has(file.path) &&
                 !pathIsProtectedByInventory(file.path, scannedDirectories?.protectedPaths ?? [])
             )
             .map((file) => file.path),
