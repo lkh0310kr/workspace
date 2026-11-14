@@ -116,16 +116,21 @@ describe('PKMS local watcher recovery', () => {
     await rm(testRuntime.userData, { recursive: true, force: true })
   })
 
-  it('runs a full local scan after watcher failure and uploads missed edits', async () => {
+  it('runs the periodic full scan after a missed watcher event and uploads the edit', async () => {
+    const intervalSpy = vi.spyOn(globalThis, 'setInterval')
     await configurePkmsSyncBridge(workspaceId, root)
+    const fullScanCallback = intervalSpy.mock.calls.find(([, delay]) => delay === 15 * 60_000)?.[0]
+    intervalSpy.mockRestore()
+    expect(fullScanCallback).toBeTypeOf('function')
     await vi.waitFor(
       async () => expect((await getPkmsSyncBridgeStatus(workspaceId)).state).toBe('synced'),
       { timeout: 2_000, interval: 20 }
     )
     expect(testRuntime.watcher).not.toBeNull()
 
+    // Simulate a dropped filesystem event: the file changes, but the watcher callback never fires.
     await writeFile(path.join(root, 'note.md'), editedText)
-    testRuntime.watcher!.emit('error', new Error('simulated watcher failure'))
+    ;(fullScanCallback as () => void)()
 
     await vi.waitFor(() => expect(testRuntime.updateRequests).toHaveLength(1), {
       timeout: 2_000,
