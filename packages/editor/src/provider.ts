@@ -130,6 +130,7 @@ export interface EditorTreeItem extends EditorItemRef {
   path: string
   kind: EditorItemKind
   readOnly: boolean
+  isIgnored?: boolean
 }
 
 export interface EditorProviderCapabilities {

@@ -311,7 +311,7 @@ export class Workspace {
     }
   }
 
-  listDir(tabId: number, rel: string): DirEntry[] {
+  listDir(tabId: number, rel: string): Promise<DirEntry[]> {
     return files.listDir(this.tabRoot(tabId), rel)
   }
   readFile(tabId: number, rel: string): string | null {

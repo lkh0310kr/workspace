@@ -502,6 +502,7 @@ export function TreeView({
         active: entry.path === selectedPath,
         selected: selected.has(entry.path),
         multiSelected: selected.size > 1 && selected.has(entry.path),
+        isIgnored: entry.is_ignored ?? false,
         dropTarget: dragOverPath === entry.path,
         showGuides: true,
         tabIndex:

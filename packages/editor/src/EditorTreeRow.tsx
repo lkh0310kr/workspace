@@ -17,6 +17,7 @@ export interface EditorTreeRowProps {
   selected?: boolean
   multiSelected?: boolean
   cut?: boolean
+  isIgnored?: boolean
   dropTarget?: boolean
   tabIndex?: number
   showGuides?: boolean
@@ -29,6 +30,44 @@ export interface EditorTreeRowProps {
   onDragOver?: DragEventHandler<HTMLButtonElement>
   onDragLeave?: DragEventHandler<HTMLButtonElement>
   onDrop?: DragEventHandler<HTMLButtonElement>
+}
+
+export function editorTreeRowClassName({
+  className,
+  active,
+  selected,
+  multiSelected,
+  cut,
+  isIgnored,
+  dropTarget,
+  expanded,
+  kind
+}: Pick<
+  EditorTreeRowProps,
+  | 'className'
+  | 'active'
+  | 'selected'
+  | 'multiSelected'
+  | 'cut'
+  | 'isIgnored'
+  | 'dropTarget'
+  | 'expanded'
+  | 'kind'
+>): string {
+  return [
+    'editor-tree-item',
+    className,
+    active && 'is-active',
+    selected && 'is-selected',
+    multiSelected && 'is-multi-selected',
+    cut && 'is-cut',
+    isIgnored && 'is-git-ignored',
+    dropTarget && 'is-drop-target',
+    expanded && 'is-expanded',
+    `editor-tree-item--${kind}`
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 /** Shared tree-row structure and interaction semantics for local and PKMS trees. */
@@ -48,6 +87,7 @@ export function EditorTreeRow({
   selected = false,
   multiSelected = false,
   cut = false,
+  isIgnored = false,
   dropTarget = false,
   tabIndex = -1,
   showGuides = false,
@@ -61,19 +101,17 @@ export function EditorTreeRow({
   onDragLeave,
   onDrop
 }: EditorTreeRowProps) {
-  const classes = [
-    'editor-tree-item',
+  const classes = editorTreeRowClassName({
     className,
-    active && 'is-active',
-    selected && 'is-selected',
-    multiSelected && 'is-multi-selected',
-    cut && 'is-cut',
-    dropTarget && 'is-drop-target',
-    expanded && 'is-expanded',
-    `editor-tree-item--${kind}`
-  ]
-    .filter(Boolean)
-    .join(' ')
+    active,
+    selected,
+    multiSelected,
+    cut,
+    isIgnored,
+    dropTarget,
+    expanded,
+    kind
+  })
 
   return (
     <button

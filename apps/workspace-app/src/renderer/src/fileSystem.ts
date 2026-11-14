@@ -19,10 +19,16 @@ export interface DirEntry {
   name: string
   path: string
   is_dir: boolean
+  is_ignored?: boolean
 }
 
-function toDirEntry(e: { name: string; path: string; isDir: boolean }): DirEntry {
-  return { name: e.name, path: e.path, is_dir: e.isDir }
+function toDirEntry(e: {
+  name: string
+  path: string
+  isDir: boolean
+  isIgnored: boolean
+}): DirEntry {
+  return { name: e.name, path: e.path, is_dir: e.isDir, is_ignored: e.isIgnored }
 }
 
 export async function listDir(tabId: number, path: string): Promise<DirEntry[]> {

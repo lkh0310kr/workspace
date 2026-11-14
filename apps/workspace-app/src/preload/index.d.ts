@@ -15,6 +15,7 @@ export interface DirEntry {
   name: string
   path: string
   isDir: boolean
+  isIgnored: boolean
 }
 
 export type DirectoryPickResult =

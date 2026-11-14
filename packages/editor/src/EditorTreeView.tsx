@@ -26,6 +26,7 @@ export interface EditorTreeViewItem {
   selected?: boolean
   multiSelected?: boolean
   cut?: boolean
+  isIgnored?: boolean
   dropTarget?: boolean
   tabIndex?: number
   trailingStatus?: ReactNode
@@ -204,6 +205,7 @@ export function EditorTreeView({
             selected={item.selected}
             multiSelected={item.multiSelected}
             cut={item.cut}
+            isIgnored={item.isIgnored}
             dropTarget={item.dropTarget}
             tabIndex={item.tabIndex ?? -1}
             showGuides={item.showGuides}

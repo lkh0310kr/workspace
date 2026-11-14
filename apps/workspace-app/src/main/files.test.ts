@@ -1,8 +1,9 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import { execFileSync } from 'node:child_process'
 import { afterEach, describe, expect, it } from 'vitest'
-import { readFileBinaryPreview } from './files'
+import { listDir, readFileBinaryPreview } from './files'
 
 const tempDirs: string[] = []
 
@@ -50,5 +51,39 @@ describe('readFileBinaryPreview', () => {
   it('returns null for unknown extensions', () => {
     const root = makeTempRoot({ 'readme.txt': Buffer.from('hi') })
     expect(readFileBinaryPreview(root, 'readme.txt')).toBeNull()
+  })
+})
+
+describe('listDir Git ignore decorations', () => {
+  it('marks ignored paths but respects negation and tracked files', async () => {
+    const root = makeTempRoot({
+      '.gitignore': Buffer.from('*.log\nignored-dir/\n!keep.log\n'),
+      'debug.log': Buffer.from('ignored'),
+      'keep.log': Buffer.from('included again'),
+      'tracked.log': Buffer.from('already tracked'),
+      'ignored-dir/secret.md': Buffer.from('ignored child'),
+      'visible.md': Buffer.from('visible')
+    })
+    execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+    execFileSync('git', ['add', '--force', 'tracked.log'], { cwd: root, stdio: 'ignore' })
+
+    const entries = await listDir(root, '')
+    const ignoredByName = Object.fromEntries(entries.map((entry) => [entry.name, entry.isIgnored]))
+
+    expect(ignoredByName['debug.log']).toBe(true)
+    expect(ignoredByName['ignored-dir']).toBe(true)
+    expect(ignoredByName['keep.log']).toBe(false)
+    expect(ignoredByName['tracked.log']).toBe(false)
+    expect(ignoredByName['visible.md']).toBe(false)
+
+    const children = await listDir(root, 'ignored-dir')
+    expect(children.find((entry) => entry.name === 'secret.md')?.isIgnored).toBe(true)
+  })
+
+  it('keeps entries visible and unmarked when the root is not a Git repository', async () => {
+    const root = makeTempRoot({ 'notes.md': Buffer.from('visible') })
+    await expect(listDir(root, '')).resolves.toEqual([
+      { name: 'notes.md', path: 'notes.md', isDir: false, isIgnored: false }
+    ])
   })
 })

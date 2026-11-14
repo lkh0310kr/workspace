@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { spawn } from 'node:child_process'
 import { model3dLog } from './model3d/model3dLog'
 
 function toWorkspaceRelPath(rel: string): string {
@@ -12,6 +13,37 @@ export interface DirEntry {
   name: string
   path: string
   isDir: boolean
+  isIgnored: boolean
+}
+
+function findGitIgnoredPaths(root: string, paths: string[]): Promise<Set<string>> {
+  if (paths.length === 0) return Promise.resolve(new Set())
+
+  return new Promise((resolve) => {
+    const child = spawn('git', ['check-ignore', '--stdin', '-z'], {
+      cwd: root,
+      stdio: ['pipe', 'pipe', 'ignore']
+    })
+    let output = ''
+    let settled = false
+    const finish = (ignored: Set<string>) => {
+      if (settled) return
+      settled = true
+      resolve(ignored)
+    }
+
+    child.stdout.setEncoding('utf8')
+    child.stdout.on('data', (chunk: string) => {
+      output += chunk
+    })
+    child.once('error', () => finish(new Set()))
+    child.once('close', (code) => {
+      if (code !== 0 && code !== 1) return finish(new Set())
+      finish(new Set(output.split('\0').filter(Boolean).map(toWorkspaceRelPath)))
+    })
+    child.stdin.on('error', () => {})
+    child.stdin.end(`${paths.join('\0')}\0`)
+  })
 }
 
 /**
@@ -52,21 +84,26 @@ export function resolveUnderRoot(root: string, rel: string): string {
   return canonical
 }
 
-export function listDir(root: string, rel: string): DirEntry[] {
+export async function listDir(root: string, rel: string): Promise<DirEntry[]> {
   const dirPath = resolveUnderRoot(root, rel)
   const realRoot = fs.existsSync(root) ? fs.realpathSync(root) : root
   const names = fs.readdirSync(dirPath, { withFileTypes: true })
-  const entries: DirEntry[] = []
+  const entries: Omit<DirEntry, 'isIgnored'>[] = []
   for (const entry of names) {
     const entryPath = path.join(dirPath, entry.name)
     const relPath = toWorkspaceRelPath(path.relative(realRoot, entryPath))
     entries.push({ name: entry.name, path: relPath, isDir: entry.isDirectory() })
   }
-  entries.sort((a, b) => {
+  const ignoredPaths = await findGitIgnoredPaths(
+    root,
+    entries.map((entry) => entry.path)
+  )
+  const decorated = entries.map((entry) => ({ ...entry, isIgnored: ignoredPaths.has(entry.path) }))
+  decorated.sort((a, b) => {
     if (a.isDir !== b.isDir) return a.isDir ? -1 : 1
     return a.name.localeCompare(b.name)
   })
-  return entries
+  return decorated
 }
 
 export function readFile(root: string, rel: string): string {

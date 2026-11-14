@@ -191,7 +191,10 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       if (parentPath === undefined) return []
       const entries = await listDir(tabId, parentPath)
       abortIfNeeded(signal)
-      const items = entries.map((entry) => itemFor(entry.path, entry.is_dir, entry.name))
+      const items = entries.map((entry) => ({
+        ...itemFor(entry.path, entry.is_dir, entry.name),
+        isIgnored: entry.is_ignored
+      }))
       persistItemIds()
       return items
     },
