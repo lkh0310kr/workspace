@@ -9,7 +9,7 @@
 ## Global scope
 
 - [문서 scope와 소유 규칙](../documentation-scopes.md)
-- [제품 여정](../product/README.md)
+- [제품 여정](../product/프로젝트 정의.md)
 - [전체 시스템 context](./01-overview.md)
 - [모듈 경계](./08-monorepo-module-boundaries.md)
 - [SDD 상태·검사 규칙](./spec-driven-development.md)

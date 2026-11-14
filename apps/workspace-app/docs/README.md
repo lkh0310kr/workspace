@@ -1,6 +1,6 @@
 # Workspace Desktop 문서
 
-App scope 기준이다. [전역 제품 여정](../../../docs/product/README.md)의 Desktop 책임을 Electron Main/preload/renderer와 앱 adapter에 배분한다. 공유 editor UI와 PKMS client의 내부 계약은 해당 package 문서가 소유한다.
+App scope 기준이다. [전역 제품 여정](../../../docs/product/프로젝트 정의.md)의 Desktop 책임을 Electron Main/preload/renderer와 앱 adapter에 배분한다. 공유 editor UI와 PKMS client의 내부 계약은 해당 package 문서가 소유한다.
 
 ## 읽는 순서
 

@@ -4,7 +4,7 @@
 
 ## Global scope
 
-- [제품 범위와 사용자 여정](./product/README.md)
+- [제품 범위와 사용자 여정](./product/프로젝트 정의.md)
 - [문서 scope·소유 규칙](./documentation-scopes.md)
 - [전체 시스템 context](./architecture/01-overview.md)
 

@@ -40,4 +40,4 @@
 
 ## 읽는 경로
 
-[제품과 여정](./product/README.md) → [시스템 context](./architecture/01-overview.md) → 소유 앱 README/docs → 의존 패키지 docs 순서로 읽는다. 전역 색인은 [문서 안내](./README.md), 남은 작업은 [계획 색인](./planning/README.md)에서 찾는다.
+[제품과 여정](./product/프로젝트 정의.md) → [시스템 context](./architecture/01-overview.md) → 소유 앱 README/docs → 의존 패키지 docs 순서로 읽는다. 전역 색인은 [문서 안내](./README.md), 남은 작업은 [계획 색인](./planning/README.md)에서 찾는다.
