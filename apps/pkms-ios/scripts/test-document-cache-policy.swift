@@ -4,6 +4,13 @@ import Foundation
 struct DocumentCachePolicyTests {
     static func main() {
         let pending = Set(["w/dirty-old", "w/dirty-current", "w/dirty-unlisted"])
+        precondition(
+            PKMSDocumentCachePolicy.pendingDocumentIDs(
+                workspaceID: "w",
+                pendingKeys: pending.union(["other/file", "w/"])
+            ) == ["dirty-current", "dirty-old", "dirty-unlisted"],
+            "Reconnect recovery must only select valid pending documents from this workspace"
+        )
         let oldFiles = (1...25).map { "w/clean-\($0)" }
         let recent = oldFiles + ["w/dirty-old"]
         let updated = PKMSDocumentCachePolicy.retainedKeys(afterAdding: "w/dirty-current", to: recent, pending: pending)
@@ -48,6 +55,6 @@ struct DocumentCachePolicyTests {
             requiresFullState: false
         ), "Intermediate update acknowledgement must not clear pending state")
 
-        print("iOS document cache policy: 10 assertions passed")
+        print("iOS document cache policy: 11 assertions passed")
     }
 }

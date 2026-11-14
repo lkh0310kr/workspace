@@ -9,6 +9,16 @@ enum PKMSDocumentCachePolicy {
         recent.dropFirst(recentLimit).filter { !pending.contains($0) }
     }
 
+    static func pendingDocumentIDs(workspaceID: String, pendingKeys: Set<String>) -> [String] {
+        let prefix = "\(workspaceID)/"
+        return Set(pendingKeys.compactMap { key -> String? in
+            guard key.hasPrefix(prefix) else { return nil }
+            let fileID = String(key.dropFirst(prefix.count))
+            guard !fileID.isEmpty, !fileID.contains("/") else { return nil }
+            return fileID
+        }).sorted()
+    }
+
     static func retainedKeys(afterAdding key: String, to recent: [String], pending: Set<String>) -> [String] {
         let ordered = recentKeys(afterAdding: key, to: recent + pending.sorted())
         let protected = ordered.filter { pending.contains($0) }

@@ -18,6 +18,14 @@ extension PKMSModel {
                     config.presence = PresenceJoinConfig(key: presenceKey)
                 }
                 realtimeChannel = channel
+                realtimeSubscriptions.append(channel.onStatusChange { [weak self] status in
+                    guard case .subscribed = status else { return }
+                    let workspaceID = workspace.id
+                    Task { @MainActor [weak self] in
+                        guard let self, activeWorkspace?.id == workspaceID else { return }
+                        resendPendingDocumentCaches(workspaceID: workspaceID)
+                    }
+                })
                 realtimeSubscriptions.append(channel.onBroadcast(event: "protocol") { [weak self] payload in
                     guard let data = try? JSONEncoder().encode(payload), let raw = String(data: data, encoding: .utf8) else { return }
                     Task { @MainActor in await self?.handleSocketMessage(raw) }
@@ -36,7 +44,6 @@ extension PKMSModel {
                 })
                 try await channel.subscribeWithError()
                 try await channel.track(PKMSPresence(clientId: clientID, login: user?.login ?? "", avatarUrl: user?.avatarUrl, fileId: activeFile?.id))
-                if let file = activeFile, let document { sendFullState(document, fileID: file.id) }
                 realtimeTokenTask = Task { [weak self] in
                     while !Task.isCancelled {
                         try? await Task.sleep(for: .seconds(10 * 60))
@@ -111,6 +118,24 @@ extension PKMSModel {
         guard let workspace = activeWorkspace else { return }
         saveCache(doc, workspaceID: workspace.id, fileID: fileID)
         send(snapshot, fileID: fileID, fullState: snapshot)
+    }
+
+    func resendPendingDocumentCaches(workspaceID: String) {
+        guard activeWorkspace?.id == workspaceID, realtimeChannel != nil else { return }
+        let pendingKeys = Set(UserDefaults.standard.stringArray(forKey: "pkms.pending.files") ?? [])
+        let pendingIDs = PKMSDocumentCachePolicy.pendingDocumentIDs(
+            workspaceID: workspaceID,
+            pendingKeys: pendingKeys
+        )
+        let activeFileID = activeFile?.id
+        if let activeFileID, let document { sendFullState(document, fileID: activeFileID) }
+        for fileID in pendingIDs where fileID != activeFileID {
+            let cachedURL = cacheURL(workspaceID: workspaceID, fileID: fileID)
+            guard let cachedSnapshot = try? Data(contentsOf: cachedURL) else { continue }
+            let cachedDocument = NativeMarkdownDocument()
+            guard cachedDocument.apply(cachedSnapshot) else { continue }
+            sendFullState(cachedDocument, fileID: fileID)
+        }
     }
 
     func send(
