@@ -20,7 +20,7 @@
   9. Autosave/Cloud→local: 입력 후 짧은 debounce로 Yjs update를 ACK 받는다. Desktop Realtime wakeup을 우선 쓰고, realtime이 끊긴 동안 revision poll이 bounded interval로 회복한다. 저장된 Cloud revision이 local file의 bytes/hash와 수렴한다.
   10. Search/Quick Open: 키 입력과 focus는 즉시, 요청은 debounce/abort, cache hit는 먼저 노출한다. 검색 결과 열기는 현재 문서 저장 대기로 막히지 않는다.
   11. Error/sync status/toast: red error와 dismiss target이 tree toolbar, breadcrumb, editor control을 가리지 않는다. 경고는 내용·대상·retry/dismiss 행동을 제공한다.
-- **현재 발견 / 구현 진행:** Web autosave debounce 400ms, Desktop revision fallback poll 5초를 적용했다. PKMS toolbar는 filter/create만 유지하며 Upload/Rename/Delete는 context menu에 하나씩 있다. keyboard Delete/F2와 title-click rename은 비활성화했다. 오류 알림 본문은 pointer event를 통과시키고 닫기 버튼만 hit target으로 남겼다. Web Worker를 배포·reload했고 실제 화면을 확인했다. Desktop app을 `promote:stable`로 교체했고 우클릭 메뉴와 toolbar를 확인했다. `invalid_sync_cursor`는 authoritative snapshot + durable full-scan으로 회복했다. 실행 중 Sync settings `Up to date`, cursor 3096, pending paths 0, Web 열린 문서와 local file SHA 일치를 확인했다.
+- **현재 발견 / 구현 진행:** Web autosave debounce 400ms, Desktop revision fallback poll 5초를 적용했다. PKMS toolbar는 filter/create만 유지하며 Upload/Rename/Delete는 context menu에 하나씩 있다. keyboard Delete/F2와 title-click rename은 비활성화했다. 오류 알림 본문은 pointer event를 통과시키고 닫기 버튼만 hit target으로 남겼다. Web Worker를 배포·reload했고 실제 화면을 확인했다. Desktop app을 `promote:stable`로 교체했고 우클릭 메뉴와 toolbar를 확인했다. `invalid_sync_cursor`는 authoritative snapshot + durable full-scan으로 회복했다. per-item `pending/syncing/synced/attention`을 durable state에 저장해 TreeView와 Sync settings에 노출한다. stable 앱 full scan이 `5,733 synced`, pending/syncing/attention 0으로 수렴했고, 세 사용자 폴더의 파일 34개를 Cloud와 hash 대조해 누락·불일치 0을 확인했다. 이 작업은 즉시성 전체 acceptance 및 모든 error/retry 경로의 검증이 남아 있어 진행 중으로 유지한다.
 - **수락 테스트:** 저장한 표본 Markdown 한 개를 Web에서 편집하고 Cloud Yjs revision/내용, Desktop local file bytes/hash, local editor 표시를 같은 변경으로 비교한다. Realtime 정상·차단 두 경우를 확인한다. UI에서는 toolbar에 Upload/Rename/Delete가 0개, 우클릭 menu에 각각 하나, keyboard/title click 경로에서는 시작 불가를 확인한다. 오류 알림이 떠 있는 상태에서도 tree row·breadcrumb·editor control을 클릭할 수 있어야 한다. 모두 production Web과 실행 중인 Desktop에서 재현 확인한다.
 - **근거:** [Folder sync UI acceptance](../architecture/workspace/pkms/folder-sync/ui-acceptance.md), [Folder sync protocol](../architecture/workspace/pkms/folder-sync/server-protocol.md), [PKMS Editor parity](../architecture/workspace/pkms/editor-parity.md)
 
@@ -38,16 +38,6 @@
 - **목표 결과:** 다른 로컬 root를 연결하거나 scan이 불완전하다는 이유만으로 Cloud 파일·폴더가 삭제되지 않는다. 원격 변경과 로컬 삭제가 경합하면 최신 원격 데이터를 보존하고 충돌·복구 결과를 사용자에게 보여준다. attachment와 durable sync 상태도 저장 파일 결과와 일치한다.
 - **수락:** 기존 remote tree를 둔 채 empty/populated root로 재연결하고, 앱 재시작·partial scan·동시 원격 변경·재시도를 수행한다. 의도하지 않은 tombstone이 없는지 확인한다. macOS에서 파일/폴더 삭제와 충돌 복구를 실행하고, attachment 및 재시작 뒤 sync 표시를 검증한다. deployed migration은 실제 적용 버전과 결과를 별도 기록한다.
 - **근거:** [Folder sync 결과·durability 계약](../architecture/workspace/pkms/folder-sync/README.md), [삭제 계약](../architecture/workspace/pkms/folder-sync/deletion.md), [UI acceptance](../architecture/workspace/pkms/folder-sync/ui-acceptance.md), [기능 상태](./feature-status.md)
-
-## 완료
-
-### PKMS Editor tree와 파일명 표시 정리 — 완료
-
-- **결과:** PKMS tree 상단에서 upload·rename·delete 도구를 제거했다. create는 기존 New note/New folder 동작으로, rename/delete는 tree context menu·키보드 명령과 Markdown 제목 rename으로 제공한다.
-- **파일명 규칙:** Workspace Editor tree는 `.md`/`.markdown` suffix를 표시하고 PKMS Editor tree만 숨긴다. 공통 label helper는 제품별 표시 옵션을 받는다.
-- **rename identity:** 제목 rename은 기존 확장자를 보존하며 provider item ID로 rename한다. PKMS provider는 열린 session의 item metadata를 갱신하고, 로컬 sync rename은 session을 새 경로로 rekey한다. Workspace는 기존 파일 path remap 흐름을 사용한다.
-- **검증:** 실행 중인 `npm run dev` 앱에서 PKMS tree toolbar 항목이 사라지고 New note/New folder가 남는지, `.md` suffix가 숨겨지는지 확인했다. Workspace label 규칙과 Markdown rename extension 보존 테스트도 통과했다.
-- **근거:** [Editor 통합·provider 계약](./editor-unification.md), [PKMS Editor parity](../architecture/workspace/pkms/editor-parity.md)
 
 ## 다음
 
