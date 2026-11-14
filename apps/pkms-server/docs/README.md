@@ -39,6 +39,8 @@ vault 내부 route는 아래와 같다. 외부 path에는 `/api/workspaces/:id` 
 
 file metadata/content/attachment/upload의 나머지 분기는 [SupabaseVault](../src/SupabaseVault.ts)에서 확인한다. 이 지도는 모든 HTTP response field를 정식 검증한 endpoint schema가 아니다. 실제 client DTO·handler와 세부 오류 fixture를 연결하는 작업이 남아 있다.
 
+전체 note 본문 검색은 현재 route에 없다. client 전체 다운로드의 egress와 기존 `pg_trgm` index 재사용 가능성을 조사한 [Cloud 본문 검색 검토](./content-search.md)를 따른다. 이 문서는 비용 검토·방향 제안이며 구현 또는 운영 DB 성능 검증 기록은 아니다.
+
 ## 저장과 background 작업
 
 [SupabaseAccountStore](../src/SupabaseAccountStore.ts)는 login별 credentials/workspace/MCP 자료, SupabaseVault는 document·metadata·operation/revision·GitHub 상태를 조정한다. binary object는 R2, 관계/guard/idempotency는 Supabase RPC와 [migrations](../supabase/migrations)가 함께 소유한다. JS source 변경만으로 DB migration 적용을 완료했다고 판단하지 않는다.
