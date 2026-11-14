@@ -8,6 +8,7 @@ import {
   writeWorkspaceTree,
   type WorkspaceTreeCache
 } from '../../client/workspaceTreeCache'
+import { DirectoryRequestRegistry } from './directoryRequestRegistry'
 
 type Api = <T = unknown>(path: string, init?: RequestInit) => Promise<T>
 type DirectoryResponse = { files: FileRecord[] }
@@ -26,7 +27,7 @@ export function useWorkspaceDirectory(
   const filesRef = useRef(files)
   const loadedFoldersRef = useRef(loadedFoldersState)
   const workspaceIdRef = useRef(activeWorkspace?.id)
-  const inFlight = useRef(new Map<string, Promise<void>>())
+  const inFlight = useRef(new DirectoryRequestRegistry())
   workspaceIdRef.current = activeWorkspace?.id
 
   const persist = useCallback(
@@ -87,26 +88,30 @@ export function useWorkspaceDirectory(
   const refreshDirectory = useCallback(
     (directory: string, showLoading: boolean): Promise<void> => {
       if (!activeWorkspace) return Promise.resolve()
-      const existing = inFlight.current.get(directory)
-      if (existing) return existing
-      if (showLoading) setLoadingFolderPaths((current) => new Set(current).add(directory))
       const workspaceId = activeWorkspace.id
-      const request = api<DirectoryResponse>(
-        `/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(directory)}`
-      )
-        .then((result) => {
+      if (showLoading) setLoadingFolderPaths((current) => new Set(current).add(directory))
+      const request = inFlight.current.run(workspaceId, directory, () =>
+        api<DirectoryResponse>(
+          `/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(directory)}`
+        ).then((result) => {
           if (workspaceIdRef.current === workspaceId) replaceDirectory(directory, result.files)
         })
-        .finally(() => {
-          inFlight.current.delete(directory)
-          if (showLoading)
+      )
+      if (showLoading)
+        void request.then(
+          () =>
+            setLoadingFolderPaths((current) => {
+              const next = new Set(current)
+              next.delete(directory)
+              return next
+            }),
+          () =>
             setLoadingFolderPaths((current) => {
               const next = new Set(current)
               next.delete(directory)
               return next
             })
-        })
-      inFlight.current.set(directory, request)
+        )
       return request
     },
     [activeWorkspace, api, replaceDirectory]
