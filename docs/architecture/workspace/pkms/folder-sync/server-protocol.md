@@ -42,7 +42,7 @@ Web Files tree는 `/directory?path=`를 사용해 현재 열려 있거나 확장
 | `create-folder` | `{type,path}`                                                            | folder metadata와 부모 path를 보장하고 accepted revision을 반환한다. 같은 path에 active folder가 있으면 no-op이다. folder row만 없고 descendant row가 있으면 conflict path를 만들지 않고 marker/directory row를 복구한다. 정확한 path에 non-folder item이 있으면 기존 conflict 보존 정책을 적용한다. |
 | `move`          | `{type,fileId,toPath}`                                                   | file 또는 subtree를 이동. path collision은 conflict copy path가 될 수 있음. folder 자신의 하위로 move는 거부.                                                                                                                                                                                        |
 | `delete` file   | `{type,fileId,expectedRevision}`                                         | item revision이 예상값과 같을 때 tombstone. mismatch는 409 `file_changed_since_base`.                                                                                                                                                                                                                |
-| `delete` folder | `{type,fileId,protectSubtree:true}`                                      | subtree를 하나의 조건부 transaction으로 tombstone. 현재 guard는 workspace revision이 `baseRevision`과 같아야 하므로 subtree 밖 변경도 409 `folder_changed_since_base`를 일으킬 수 있음.                                                                                                              |
+| `delete` folder | `{type,fileId,protectSubtree:true}`                                      | subtree를 하나의 transaction으로 tombstone. `protectSubtree`이면 대상 subtree에서 `revision > baseRevision`인 active row가 있을 때만 409 `folder_changed_since_base`를 반환한다. 다른 workspace path의 변경은 삭제를 막지 않는다.                                                                    |
 
 성공 결과는 `operationId`, `acceptedRevision`, `duplicate`; 선택적으로 `conflictCopyPath`, `rebasedFrom`을 포함한다. 기존 operation key의 payload까지 비교해 다르면 거부하는지 등 operation ledger의 전체 오용 조건은 DB migration/RPC와 함께 유지해야 한다. 클라이언트는 같은 key에는 같은 payload를 재사용한다.
 
@@ -66,13 +66,13 @@ Workspace API는 authenticated account의 membership을 먼저 확인한다. Des
 | `400 invalid_path` / invalid cursor         | 경로/요청 계약 오류로 중단, 자동 성공 처리 금지                          |
 | `404 not_found` / missing item              | manifest race 가능성으로 authoritative feed/snapshot 재조정              |
 | `409 file_changed_since_base`               | local deletion을 확정하지 않고 remote 최신본을 보존·복구, attention 표시 |
-| `409 folder_changed_since_base`             | subtree delete를 확정하지 않고 remote subtree를 복구, attention 표시     |
+| `409 folder_changed_since_base`             | base 이후 대상 subtree가 변경됨. subtree delete를 확정하지 않고 remote subtree를 복구, attention 표시 |
 | network/5xx/timeout                         | durable operation identity·payload 보존 후 retry                         |
 | `413 file_too_large` / `markdown_too_large` | 같은 payload를 무한 재시도하지 않음; 사용자에게 제한/조치 표시가 필요    |
 | unauthorized/session expired                | offline/synced로 위장하지 않고 재인증 요구                               |
 
 ## 배포 호환성
 
-새 `/sync/tree`는 folders/empty folders를 표현하고 `/snapshot`은 기존 markdown consumers를 유지한다. Desktop fallback은 route 미존재에만 적용되어야 한다. `guarded_sync_deletes` migration 미적용 server에서 destructive client를 배포하면 conditional subtree safety가 없을 수 있다. 따라서 배포 acceptance는 migration version 확인과 destructive operation runtime test를 포함한다.
+새 `/sync/tree`는 folders/empty folders를 표현하고 `/snapshot`은 기존 markdown consumers를 유지한다. Desktop fallback은 route 미존재에만 적용되어야 한다. `20261114160000_scoped_folder_delete_guard.sql`은 folder delete guard를 target-subtree revision 검사로 변경하고 새 create row에 accepted revision을 기록한다. 이 migration 미적용 server에서 destructive client를 배포하면 이전 workspace-wide guard가 남는다. 배포 acceptance는 migration version 확인과 unrelated-change / subtree-change 각각의 destructive operation runtime test를 포함한다.
 
-근거: [workspace API routing](../../../../../apps/pkms-server/src/workspaceApi.ts), [vault HTTP handlers](../../../../../apps/pkms-server/src/SupabaseVault.ts), [operation RPC migration](../../../../../apps/pkms-server/supabase/migrations/20261101100000_workspace_operations.sql), [guarded delete migration](../../../../../apps/pkms-server/supabase/migrations/20261109160000_guarded_sync_deletes.sql), [Desktop request helpers](../../../../../apps/workspace-app/src/main/pkms/syncBridge.ts).
+근거: [workspace API routing](../../../../../apps/pkms-server/src/workspaceApi.ts), [vault HTTP handlers](../../../../../apps/pkms-server/src/SupabaseVault.ts), [operation RPC migration](../../../../../apps/pkms-server/supabase/migrations/20261101100000_workspace_operations.sql), [guarded delete migration](../../../../../apps/pkms-server/supabase/migrations/20261109160000_guarded_sync_deletes.sql), [scoped folder delete migration](../../../../../apps/pkms-server/supabase/migrations/20261114160000_scoped_folder_delete_guard.sql), [Desktop request helpers](../../../../../apps/workspace-app/src/main/pkms/syncBridge.ts).
