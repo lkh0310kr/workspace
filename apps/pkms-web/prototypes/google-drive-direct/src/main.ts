@@ -467,7 +467,8 @@ async function renameSelected(): Promise<void> {
     body: JSON.stringify({ name })
   })
   selectedFile = { ...selectedFile, ...result }
-  selectedFileLabel.textContent = `${result.name} · ${result.id}`
+  selectedBaseline = { modifiedTime: result.modifiedTime, md5Checksum: result.md5Checksum }
+  selectedFileLabel.textContent = `${result.name} · ${result.id} · ${result.md5Checksum ?? 'checksum unavailable'}`
   log(`Drive item rename 완료: ${name}`)
   await renderCurrentFolder()
 }
