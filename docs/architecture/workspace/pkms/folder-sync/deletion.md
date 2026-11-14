@@ -79,7 +79,9 @@ type LocalDirectoryInventory = {
 }
 ```
 
-상대 경로만 저장한다. Content scan과 같은 정책으로 `.git`, `.obsidian`, `node_modules`, 설정된 제외 경로와 symlink를 제외한다. root와 탐색한 모든 디렉터리를 읽은 경우에만 scan을 완료로 본다. 탐색 중 오류가 있으면 scan이 불완전한 것이므로 삭제를 추론하지 않는다.
+상대 경로만 저장한다. Content scan과 같은 정책으로 `.git`, `.obsidian`, `node_modules`, 설정된 제외 경로와 symlink를 따라가지 않는다. root와 탐색한 모든 디렉터리를 읽은 경우에만 scan을 완료로 본다. 탐색 중 오류가 있으면 scan이 불완전한 것이므로 삭제를 추론하지 않는다.
+
+Symlink가 이전에 확인한 file/folder path를 대체하면 해당 path와 하위 경로는 **opaque/protected**로 취급한다. Target을 읽거나 수정하지 않고, 이전 directory identity와 baselines를 보존하며, 그 path에서 비롯된 pending delete는 취소한다. UI에는 `attention`을 남긴다. Symlink가 제거된 다음 complete scan에서 실제 부재가 다시 확인되면 그때 새 deletion candidate가 될 수 있다. Excluded path는 계속 삭제 비교에서 제외한다.
 
 기존 설치에 inventory가 없으면 첫 번째 완전한 로컬 scan으로 초기화한다. 초기 migration scan에서는 삭제를 추론하지 않아 첫 materialization 때 cloud 전용 폴더가 지워지지 않게 한다.
 
@@ -129,6 +131,7 @@ Stale revision conflict가 발생하면 pending delete를 취소하고 remote cu
 | 이전 inventory 없는 첫 완전 scan                   | Inventory를 초기화하고 cloud 전용 folder를 materialize하며 삭제하지 않는다. |
 | 완전 scan에서 baseline Markdown file 누락          | 조건부 file delete를 queue에 넣는다.                                        |
 | 이전에 확인한 folder가 완전 scan에서 누락          | 조건부 folder delete를 queue에 넣는다.                                      |
+| 이전 folder/file path를 symlink가 대체               | Path를 opaque로 보존하고 delete intent를 취소하며 `attention`을 표시한다.   |
 | Root 누락, 탐색 실패 또는 scan 미완료              | 이전 inventory를 유지하고 재시도하며 삭제하지 않는다.                       |
 | 후보가 제외 또는 reserved 경로임                   | 삭제를 추론하지 않는다.                                                     |
 | Remote file revision이 baseline과 일치             | File을 원자적으로 tombstone한다.                                            |

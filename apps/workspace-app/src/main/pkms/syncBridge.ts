@@ -9,6 +9,14 @@ import { fetchPkmsAsset, requestPkmsApi } from './api'
 import { appendStartupLog, isPackagedApp } from '../startupLog'
 import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from '../../shared/pkmsSyncBridge'
 import {
+  localDirectoryInventory,
+  matchesExclusion,
+  missingLocalDirectories,
+  pathIsProtectedByInventory,
+  preserveProtectedDirectoryIdentities,
+  type LocalDirectoryInventory
+} from './directoryInventory'
+import {
   folderPathsToReconcile,
   nextGuardedFolderDeleteRevision,
   pathIsWithinFolder,
@@ -788,30 +796,6 @@ function fromB64(value: string): Uint8Array {
   return new Uint8Array(Buffer.from(value, 'base64'))
 }
 
-function matchesExclusion(relative: string, patterns: string[]): boolean {
-  return patterns.some((raw) => {
-    const pattern = raw.trim().replaceAll('\\', '/').replace(/\/$/, '')
-    if (!pattern) return false
-    let source = ''
-    for (let index = 0; index < pattern.length; index++) {
-      const char = pattern[index]
-      if (char === '*' && pattern[index + 1] === '*' && pattern[index + 2] === '/') {
-        source += '(?:.*/)?'
-        index += 2
-      } else if (char === '*' && pattern[index + 1] === '*') {
-        source += '.*'
-        index++
-      } else if (char === '*') source += '[^/]*'
-      else if (char === '?') source += '[^/]'
-      else source += /[\\^$+?.()|{}\[\]]/.test(char) ? `\\${char}` : char
-    }
-    try {
-      return new RegExp(`^${source}(?:/.*)?$`).test(relative)
-    } catch {
-      return false
-    }
-  })
-}
 async function markdownFiles(root: string, excludedPaths: string[]): Promise<Map<string, string>> {
   const paths: string[] = []
   const visit = async (dir: string): Promise<void> => {
@@ -839,31 +823,6 @@ async function markdownFiles(root: string, excludedPaths: string[]): Promise<Map
   }
   await Promise.all(Array.from({ length: Math.min(16, paths.length) }, () => worker()))
   return found
-}
-async function localDirectoryInventory(
-  root: string,
-  excludedPaths: string[]
-): Promise<Record<string, string | null>> {
-  const directories: Record<string, string | null> = {}
-  const visit = async (directory: string, prefix: string): Promise<void> => {
-    const entries = await fs.readdir(directory, { withFileTypes: true })
-    for (const entry of entries) {
-      if (entry.isSymbolicLink() || ['.git', '.obsidian', 'node_modules'].includes(entry.name))
-        continue
-      const relative = path.posix.join(prefix, entry.name)
-      if (matchesExclusion(relative, excludedPaths)) continue
-      if (!entry.isDirectory()) continue
-      const absolute = path.join(directory, entry.name)
-      const stat = await fs.lstat(absolute, { bigint: true })
-      if (stat.isSymbolicLink() || !stat.isDirectory()) continue
-      directories[relative] = `${stat.dev}:${stat.ino}`
-      await visit(absolute, relative)
-    }
-  }
-  const rootStat = await fs.lstat(root)
-  if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) throw new Error('sync_root_unavailable')
-  await visit(root, '')
-  return directories
 }
 async function markdownFilesAt(
   root: string,
@@ -1354,7 +1313,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
   if (active) return active
   let fullScan = false
   let scanDirectories = false
-  let scannedDirectories: Record<string, string | null> | null = null
+  let scannedDirectories: LocalDirectoryInventory | null = null
   let scannedLocalPaths: string[] = []
   const job = (async () => {
     const root = path.resolve(config.folderPath)
@@ -1393,16 +1352,16 @@ async function syncOnce(workspaceId: string): Promise<void> {
           })
           throw error
         }
+        for (const relative of scannedDirectories.protectedPaths)
+          setItemState(workspaceId, relative, 'attention')
         const previousDirectories = state.localDirectories[workspaceId]
         if (!previousDirectories) {
           // Migration is seed-only: never interpret the first inventory as a mass delete.
-          state.localDirectories[workspaceId] = scannedDirectories
+          state.localDirectories[workspaceId] = scannedDirectories.directories
           await save()
         } else {
-          const missing = Object.keys(previousDirectories).filter(
-            (relative) => !Object.hasOwn(scannedDirectories!, relative)
-          )
-          const added = Object.keys(scannedDirectories).filter(
+          const missing = missingLocalDirectories(previousDirectories, scannedDirectories)
+          const added = Object.keys(scannedDirectories.directories).filter(
             (relative) => !Object.hasOwn(previousDirectories, relative)
           )
           const movedDirectoryPaths = new Set<string>()
@@ -1411,7 +1370,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             const identity = previousDirectories[oldPath]
             if (!identity) continue
             const destinations = added.filter(
-              (relative) => scannedDirectories![relative] === identity
+              (relative) => scannedDirectories!.directories[relative] === identity
             )
             if (destinations.length !== 1) continue
             const toPath = destinations[0]
@@ -1504,7 +1463,10 @@ async function syncOnce(workspaceId: string): Promise<void> {
             })
           }
           // Retain identities for remote folders that have not yet been materialized.
-          state.localDirectories[workspaceId] = scannedDirectories
+          state.localDirectories[workspaceId] = preserveProtectedDirectoryIdentities(
+            previousDirectories,
+            scannedDirectories
+          )
           await save()
         }
       }
@@ -1657,7 +1619,22 @@ async function syncOnce(workspaceId: string): Promise<void> {
         (item) => item.kind === 'folder'
       )
       for (const deletion of deletedFolderRoots) {
-        if (scannedDirectories && Object.hasOwn(scannedDirectories, deletion.path)) {
+        if (
+          scannedDirectories &&
+          pathIsProtectedByInventory(deletion.path, scannedDirectories.protectedPaths)
+        ) {
+          delete pendingDeletes[deletion.path]
+          state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1
+          setItemState(workspaceId, deletion.path, 'attention')
+          appendStartupLog('pkms_local_delete_blocked', {
+            workspaceId,
+            kind: 'folder',
+            path: deletion.path,
+            reason: 'symlink_at_path'
+          })
+          continue
+        }
+        if (scannedDirectories && Object.hasOwn(scannedDirectories.directories, deletion.path)) {
           delete pendingDeletes[deletion.path]
           state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1
           setItemState(workspaceId, deletion.path, null)
@@ -1745,7 +1722,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             for (const folder of restore.sort(
               (a, b) => a.path.split('/').length - b.path.split('/').length
             )) {
-              if (!Object.hasOwn(scannedDirectories ?? {}, folder.path)) {
+              if (!Object.hasOwn(scannedDirectories?.directories ?? {}, folder.path)) {
                 await fs.mkdir(safePath(root, folder.path), { recursive: true })
                 const stat = await fs.lstat(safePath(root, folder.path), { bigint: true })
                 ;(state.localDirectories[workspaceId] ??= {})[folder.path] =
@@ -1804,7 +1781,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         }
       }
       const foldersToReconcile = folderPathsToReconcile(
-        Object.keys(scannedDirectories ?? {}),
+        Object.keys(scannedDirectories?.directories ?? {}),
         knownRemoteTree ?? [],
         scanDirectories || fullScan,
         scannedLocalPaths
@@ -2622,7 +2599,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         const activePaths = new Set([
           ...local.keys(),
           ...localAssets.keys(),
-          ...Object.keys(scannedDirectories ?? {}),
+          ...Object.keys(scannedDirectories?.directories ?? {}),
           ...(knownRemoteTree ?? []).map((file) => file.path)
         ])
         for (const relative of Object.keys(status(workspaceId).itemStates))
@@ -2631,7 +2608,13 @@ async function syncOnce(workspaceId: string): Promise<void> {
       if (!firstError)
         setItemStates(
           workspaceId,
-          (knownRemoteTree ?? []).filter((file) => file.kind === 'folder').map((file) => file.path),
+          (knownRemoteTree ?? [])
+            .filter(
+              (file) =>
+                file.kind === 'folder' &&
+                !pathIsProtectedByInventory(file.path, scannedDirectories?.protectedPaths ?? [])
+            )
+            .map((file) => file.path),
           'synced'
         )
       await save()

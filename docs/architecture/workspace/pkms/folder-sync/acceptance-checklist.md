@@ -28,7 +28,7 @@
 
 ## 공통 결과 checklist
 
-현재 증거 합계: **24개 중 통과 1, 부분 통과 21, 미검증 2**. Partial에는 기존 production runtime에서 핵심 경로를 통과했지만 모든 장애/순서/다중 client 조합이 빠진 경우가 포함된다. 이 수치는 전체 동기화 검증 완료를 뜻하지 않는다.
+현재 증거 합계: **24개 중 통과 1, 부분 통과 22, 미검증 1**. Partial에는 기존 production runtime에서 핵심 경로를 통과했지만 모든 장애/순서/다중 client 조합이 빠진 경우가 포함된다. 이 수치는 전체 동기화 검증 완료를 뜻하지 않는다.
 
 | ID | 시나리오와 기대 결과 | 상태 | 확인 근거 / 남은 실행 |
 |---|---|---|---|
@@ -47,7 +47,7 @@
 | PKMS-SYNC-13 | Cursor가 만료·잘못되거나 pagination 도중 중단돼도 cursor를 앞당기지 않고 authoritative snapshot + full inventory로 복구한다. | 부분 통과 | invalid cursor 복구는 실제 Desktop run에서 확인. 중간 page 실패, process kill, migration mismatch 주입은 미검증. |
 | PKMS-SYNC-14 | Offline, 인증 만료, 권한 거부, 429/5xx, 시간 초과는 성공 상태로 바뀌지 않고 pending intent를 보존하며 제한된 backoff 뒤 재개한다. 한 item 오류는 다른 경로 작업을 멈추지 않는다. | 부분 통과 | 2026-11-15 `/api/health`에서 Cloudflare HTTP 429 / error 1027을 받았다. stable Desktop durable state에 10개 pending이 남아 있고 5,732개만 synced다. 1개 변경 file, baseline 없는 8개 local item, 1개 folder로 분류했다. create/update/delete operation queue는 0이다. 이 오류가 지속되는 동안 성공·전파로 표시되지 않는 local durable state는 확인했지만, 제한 backoff/recovery와 per-item UI는 확인하지 못했다. |
 | PKMS-SYNC-15 | 종료/재시작 시 마지막 durable cursor, queue, item state를 복원한다. 미확인 item을 synced로 추정하지 않는다. | 부분 통과 | 과거 실제 앱 재시작 후 5,733 synced/0 pending와 invalid cursor 복구 기록. 현재 stable store는 5,732 synced/10 pending 및 queue 0을 durable하게 저장한다. 이번에는 재시작을 하지 않아 pending 복원 및 create/update/delete 각각 ACK 전/후 강제 종료, 손상 JSON/disk full은 미검증. |
-| PKMS-SYNC-16 | Incomplete scan, watcher event 유실, excluded path, symlink, root offline은 deletion evidence로 취급되지 않는다. 다음 complete scan에서만 안전하게 정리한다. | 미검증 | source와 문서 계약은 확인했지만 watcher drop, permission-denied 하위 폴더, symlink substitution fixture 실행 증거 없음. |
+| PKMS-SYNC-16 | Incomplete scan, watcher event 유실, excluded path, symlink, root offline은 deletion evidence로 취급되지 않는다. 다음 complete scan에서만 안전하게 정리한다. | 부분 통과 | 실제 syncBridge가 사용하는 recursive inventory를 분리해 temporary root, nested `EACCES`, missing root, symlink, reserved/excluded directory fixture 3개로 검증. 하위 read 실패는 partial inventory 대신 throw하며 sync catch가 full/directory scan을 재예약한다. Symlink가 기존 folder path를 대체하면 해당 subtree를 opaque로 보존하고 pending delete를 취소해 cloud 폴더를 삭제하지 않는다. watcher drop→다음 scan, root offline 복구 및 전체 syncOnce의 delete 방지는 아직 통합 fixture 미검증. |
 | PKMS-SYNC-17 | 파일별 상태는 실제 hash/ACK와 맞고 재시작 후에도 유지된다. 폴더 상태는 자식 중 가장 주의가 필요한 상태를 집계한다. | 부분 통과 | 이전 stable runtime에서 5,733 `synced`, 0 pending/syncing/attention 및 item state 재시작 복원 확인. mixed-state folder aggregate와 상태 전이 중 강제 종료는 미검증. |
 | PKMS-SYNC-18 | Conflict/error 조치 위치를 열 수 있고 toast, panel, overlay가 tree/editor 조작을 막지 않는다. GitHub 상태는 cloud sync 상태와 분리된다. | 부분 통과 | conflict path 연결과 상태 표시 source 확인. error overlay 실제 겹침 클릭 미확인 기록이 있으며 conflict resolution lifecycle도 미구현/미검증. |
 | PKMS-SYNC-19 | GitHub backup은 Cloud 변경을 누락 없이 반영하되 branch divergence나 같은 path 상이 변경에서 force-push/reset/overwrite하지 않는다. | 부분 통과 | 12,472개 tree path/hash/mode parity, 정상 parent commit, dirty 0까지 확인. 이후 외부 Git divergence 자동 탐지·복구 E2E는 별도 수락이 필요. |
@@ -71,6 +71,9 @@
 - 현재 stable runtime에서 userData의 sync state를 읽기 전용으로 집계했다: **5,732 synced, 10 pending**, durable create/update/delete queue는 0. Pending은 baseline과 다른 local file 1개, baseline 없는 local item 8개, directory 1개다. `/api/health`가 Cloudflare **HTTP 429, error 1027**을 반환해 원격 전송·복구 acceptance가 차단된 상태다. 경로와 본문은 출력하거나 수정하지 않았다.
 - `bash apps/pkms-ios/scripts/test-document-cache-policy.sh`: **10 assertions passed**. Dirty cache 보존, index에 없는 pending 복구, ACK 후 cache 상한, 최신 generation ACK, stale ACK, full-state 요구 상태, 중간 update ACK를 확인했다.
 - `xcodebuild -project apps/pkms-ios/PKMS.xcodeproj -scheme PKMS -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/workspace-pkms-ios-arm64-derived ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build`: **BUILD SUCCEEDED**. 실제 종료·offline/reconnect는 미실행이다.
+- `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms/directoryInventory.test.ts src/main/pkms/syncPolicy.test.ts src/main/pkms/syncBridge.move.test.ts`: **15 tests passed**. 신규 inventory tests는 중첩 접근 오류가 partial result로 성공 처리되지 않는지, dot/reserved/excluded/symlink 경로, symlink가 기존 directory identity와 delete evidence를 덮어쓰지 않는지 검증한다. exclusion `private/**`가 folder marker 자체도 제외하도록 matcher bug를 수정했다.
+- `npm --prefix apps/workspace-app run typecheck`: inventory extraction, exclusion fix, symlink-protected subtree changes 이후 통과.
+- `npm --prefix apps/workspace-app run build`: production Electron main/preload/renderer build 성공. 기존 EPUB dynamic-import 및 큰 bundle 경고는 표시됐으나 build를 막지 않았다.
 
 DB SQL acceptance는 linked production DB에 대한 이전 transaction rollback 검증 근거를 사용한다. 이번 검증에서는 production DB 데이터를 변경하지 않는다. 전체 수동 시나리오를 재현하지 않은 상태에서 sync 전체를 “정상”으로 판정하지 않는다.
 
