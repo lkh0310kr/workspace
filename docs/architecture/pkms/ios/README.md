@@ -16,7 +16,7 @@ restore는 token이 있을 때 /api/session을 읽고 user가 있으면 workspac
 
 [NativeMarkdownDocument](../../../../apps/pkms-ios/NativeMarkdownDocument.swift)는 C handle을 소유하고 deinit에서 pkms_doc_free한다. 반환 PkmsByteBuffer는 Data로 복사한 뒤 pkms_buffer_free한다. insert/delete offset은 UTF-16, byte buffer는 UTF-8 또는 Yjs v1 encoding이며 같은 단위가 아니다.
 
-문서 cache는 400ms 예약 후 snapshot을 저장한다. 최근 workspace/file key를 UserDefaults에 보관하고 최근 20개 밖의 cache 파일을 제거한다. tree metadata는 workspace별 `Application Support/PKMS/TreeCache/{workspaceID}.json`에 atomic write하며 body는 제외한다. Workspace 재선택 시 cache를 먼저 표시한 뒤 root/expanded directory를 갱신한다. 열린 directory의 직접 child folder listing은 background에서 한 단계만 prefetch한다. cache와 실제 server save/Realtime acknowledgement를 구분한다. 파일 선택/operation은 [PKMSWorkspaceOperations](../../../../apps/pkms-ios/PKMSWorkspaceOperations.swift)가 구현한다.
+문서 snapshot은 변경마다 atomic write한다. clean snapshot은 최근 20개를 유지하고, cloud ACK를 기다리는 dirty snapshot은 수량 제한에 의해 제거하지 않는다. 각 문서의 incremental updates는 순차 전송하며 최신 generation의 마지막 update가 ACK된 경우에만 dirty 표시를 해제한다. 실패/offline 후에는 full-state ACK로 복구한다. tree metadata는 workspace별 `Application Support/PKMS/TreeCache/{workspaceID}.json`에 atomic write하며 body는 제외한다. Workspace 재선택 시 cache를 먼저 표시한 뒤 root/expanded directory를 갱신한다. 열린 directory의 직접 child folder listing은 background에서 한 단계만 prefetch한다. 파일 선택/operation은 [PKMSWorkspaceOperations](../../../../apps/pkms-ios/PKMSWorkspaceOperations.swift)가 구현한다.
 
 ## Realtime·cleanup
 
@@ -26,4 +26,4 @@ restore는 token이 있을 때 /api/session을 읽고 user가 있으면 workspac
 
 [build script](../../../../apps/pkms-ios/scripts/build-rust-framework.sh)는 pkms-ffi를 iOS device/Apple Silicon simulator 대상으로 빌드하고 Native/include의 C headers로 XCFramework를 만든다. 실제 Swift 경로는 generated UniFFI Swift API 대신 이 C header를 사용한다. 앱 실행·설정은 [README](../README.md)를 따른다.
 
-IOS-01 origin별 token 분리, IOS-02 device flow 취소/만료, IOS-03 cache eviction과 재열기, IOS-04 한글/emoji UTF-16 edit round trip, IOS-05 network retry 중 mutation 중복 방지, IOS-06 Realtime 재접속과 원격 편집 적용이 수락 기준이다. wire model check는 일부 Realtime field만 검증한다. 실제 Xcode build·simulator/device·Keychain/offline acceptance는 이번 문서 작업에서 실행하지 않았다.
+IOS-01 origin별 token 분리, IOS-02 device flow 취소/만료, IOS-03 dirty cache 보호·clean cache eviction과 재열기, IOS-04 한글/emoji UTF-16 edit round trip, IOS-05 network retry 중 mutation 중복 방지, IOS-06 Realtime 재접속과 원격 편집 적용이 수락 기준이다. `apps/pkms-ios/scripts/test-document-cache-policy.sh`는 cache policy의 10개 assertion을 실행한다. 이 검사는 실제 process termination, disk-full, offline/reconnect와 실기기 UX를 대체하지 않는다.

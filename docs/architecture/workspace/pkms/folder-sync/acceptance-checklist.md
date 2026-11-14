@@ -28,7 +28,7 @@
 
 ## 공통 결과 checklist
 
-현재 증거 합계: **23개 중 통과 1, 부분 통과 19, 미검증 3**. Partial에는 기존 production runtime에서 핵심 경로를 통과했지만 모든 장애/순서/다중 client 조합이 빠진 경우가 포함된다. 이 수치는 전체 동기화 검증 완료를 뜻하지 않는다.
+현재 증거 합계: **24개 중 통과 1, 부분 통과 20, 미검증 3**. Partial에는 기존 production runtime에서 핵심 경로를 통과했지만 모든 장애/순서/다중 client 조합이 빠진 경우가 포함된다. 이 수치는 전체 동기화 검증 완료를 뜻하지 않는다.
 
 | ID | 시나리오와 기대 결과 | 상태 | 확인 근거 / 남은 실행 |
 |---|---|---|---|
@@ -55,6 +55,7 @@
 | PKMS-SYNC-21 | Web/iOS/Desktop 편집을 교대로 수행해 같은 workspace file ID와 본문이 수렴하고 presence/realtime 장애가 저장 성공으로 오인되지 않는다. | 미검증 | 각 client의 source/build 및 Web↔Desktop 개별 확인은 존재. 같은 note에 세 client를 순서대로 연결하는 end-to-end run 없음. |
 | PKMS-SYNC-22 | 5,733개 이상 파일 및 깊은 폴더에서 initial sync, incremental sync, 검색, cache 복원 지연과 요청량이 허용 가능한 수준이며 변화 없는 scan은 대용량 재해시를 피한다. | 부분 통과 | 실제 5,733 local item, 12,472 cloud/GitHub path parity가 있음. 시간·byte·요청량을 기준으로 고정한 성능 acceptance 없음. |
 | PKMS-SYNC-23 | Google Drive direct prototype이 현재 PKMS 동기화 경로와 분리되어 있고, Drive API 후보의 제한을 정확히 드러낸다. | 부분 통과 | `drive.file` OAuth, isolated file CRUD, change cursor, 두 탭 conflict-copy를 별도 실험에서 확인. production PKMS provider integration, move/trash, token expiry, offline/restart 및 atomic conflict safety는 미검증. |
+| PKMS-SYNC-24 | 편집된 로컬 문서는 최신 cloud ACK 전까지 durable cache에 남고, 이전 ACK·중간 update ACK·실패·offline은 dirty 상태를 지우지 않는다. ACK 이후 오래된 clean cache는 최근 20개 한도에 따라 정리된다. | 부분 통과 | iOS debounce 취소 경로를 문서별 atomic cache write와 문서별 순차 update ACK로 수정. 10개 cache policy assertion과 arm64 build를 실행. 실기기 강제종료/offline/reconnect 및 다른 client의 crash consistency는 미검증. |
 
 ## 이번 검증에서 실제 실행한 검사
 
@@ -68,6 +69,8 @@
 - PKMS iOS `xcodebuild` arm64 Simulator build: 통과. generic build가 함께 시도한 x86_64 Simulator slice는 `PKMSRustFFI.xcframework`가 제공하지 않아 해당 architecture 링크에 실패했다. 실제 제공되는 `ios-arm64-simulator` slice로 성공을 확인했다. iOS runtime interaction은 별도 미검증.
 - Linked production `pkms-cloud` project `wmhqmblcxvxnsifmuviz`에서 `20261113100000_dedupe_identical_sync_creates.sql`, `20261114150000_reconcile_missing_folder_metadata.sql`, `20261114160000_scoped_folder_delete_guard.sql`, `20261114170000_sync_asset_bytes.sql`를 각각 실행했다. 모두 SQL exception 없이 끝났고 script의 explicit `ROLLBACK`을 확인했다. 이어 네 fixture workspace ID에 대한 read-only query가 0 rows를 반환해 test data가 남지 않았음을 확인했다. 이 검증은 DB function/transaction 정책만 다루며 API/실제 editor의 전송 경계는 대체하지 않는다.
 - 현재 stable runtime에서 userData의 sync state를 읽기 전용으로 집계했다: **5,732 synced, 10 pending**, durable create/update/delete queue는 0. Pending은 baseline과 다른 local file 1개, baseline 없는 local item 8개, directory 1개다. `/api/health`가 Cloudflare **HTTP 429, error 1027**을 반환해 원격 전송·복구 acceptance가 차단된 상태다. 경로와 본문은 출력하거나 수정하지 않았다.
+- `bash apps/pkms-ios/scripts/test-document-cache-policy.sh`: **10 assertions passed**. Dirty cache 보존, index에 없는 pending 복구, ACK 후 cache 상한, 최신 generation ACK, stale ACK, full-state 요구 상태, 중간 update ACK를 확인했다.
+- `xcodebuild -project apps/pkms-ios/PKMS.xcodeproj -scheme PKMS -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/workspace-pkms-ios-arm64-derived ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build`: **BUILD SUCCEEDED**. 실제 종료·offline/reconnect는 미실행이다.
 
 DB SQL acceptance는 linked production DB에 대한 이전 transaction rollback 검증 근거를 사용한다. 이번 검증에서는 production DB 데이터를 변경하지 않는다. 전체 수동 시나리오를 재현하지 않은 상태에서 sync 전체를 “정상”으로 판정하지 않는다.
 

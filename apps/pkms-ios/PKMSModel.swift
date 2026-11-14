@@ -73,7 +73,10 @@ final class PKMSModel {
     var realtimeTokenTask: Task<Void, Never>?
     var socketTask: Task<Void, Never>?
     var deviceTask: Task<Void, Never>?
-    var cacheTask: Task<Void, Never>?
+    var cacheEditGenerations: [String: UInt64] = [:]
+    var cacheRequiresFullState: Set<String> = []
+    var documentSaveTasks: [String: Task<Void, Never>] = [:]
+    var documentSaveTaskTokens: [String: UUID] = [:]
     var flushTask: Task<Void, Never>?
     var clientID = "ios-\(UUID().uuidString.lowercased())"
     internal(set) var expandedFolders: Set<String> = [""]
@@ -103,6 +106,7 @@ final class PKMSModel {
     }
 
     init() {
+        cacheRequiresFullState = Set(UserDefaults.standard.stringArray(forKey: "pkms.pending.files") ?? [])
         let savedAddress = UserDefaults.standard.string(forKey: "pkms.serverAddress")
         if let savedAddress, !savedAddress.contains("localhost"), !savedAddress.contains("127.0.0.1") {
             serverAddress = savedAddress
@@ -200,28 +204,51 @@ final class PKMSModel {
     }
 
     func scheduleCache(_ doc: NativeMarkdownDocument, workspaceID: String, fileID: String) {
-        cacheTask?.cancel()
-        cacheTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(400))
-            guard !Task.isCancelled else { return }
-            self?.saveCache(doc, workspaceID: workspaceID, fileID: fileID)
-        }
+        saveCache(doc, workspaceID: workspaceID, fileID: fileID)
     }
 
     func saveCache(_ doc: NativeMarkdownDocument, workspaceID: String, fileID: String) {
         let url = cacheURL(workspaceID: workspaceID, fileID: fileID)
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? doc.snapshot.write(to: url, options: .atomic)
-        var recent = UserDefaults.standard.stringArray(forKey: "pkms.recent.files") ?? []
-        let key = "\(workspaceID)/\(fileID)"
-        recent.removeAll { $0 == key }
-        recent.insert(key, at: 0)
-        let evicted = recent.dropFirst(20)
-        for item in evicted {
+        let key = cacheKey(workspaceID: workspaceID, fileID: fileID)
+        trimDocumentCache(afterAdding: key)
+    }
+
+    private func trimDocumentCache(afterAdding key: String) {
+        let recent = UserDefaults.standard.stringArray(forKey: "pkms.recent.files") ?? []
+        let pending = Set(UserDefaults.standard.stringArray(forKey: "pkms.pending.files") ?? [])
+        let retained = PKMSDocumentCachePolicy.retainedKeys(afterAdding: key, to: recent, pending: pending)
+        let retainedSet = Set(retained)
+        for item in recent where !retainedSet.contains(item) && !pending.contains(item) {
             let pieces = item.split(separator: "/", maxSplits: 1).map(String.init)
             if pieces.count == 2 { try? FileManager.default.removeItem(at: cacheURL(workspaceID: pieces[0], fileID: pieces[1])) }
         }
-        UserDefaults.standard.set(Array(recent.prefix(20)), forKey: "pkms.recent.files")
+        UserDefaults.standard.set(retained, forKey: "pkms.recent.files")
+    }
+
+    private func cacheKey(workspaceID: String, fileID: String) -> String {
+        "\(workspaceID)/\(fileID)"
+    }
+
+    func markCachePending(workspaceID: String, fileID: String) -> UInt64 {
+        let key = cacheKey(workspaceID: workspaceID, fileID: fileID)
+        var pending = Set(UserDefaults.standard.stringArray(forKey: "pkms.pending.files") ?? [])
+        if realtimeChannel == nil { cacheRequiresFullState.insert(key) }
+        pending.insert(key)
+        UserDefaults.standard.set(pending.sorted(), forKey: "pkms.pending.files")
+        let generation = (cacheEditGenerations[key] ?? 0) + 1
+        cacheEditGenerations[key] = generation
+        return generation
+    }
+
+    func markCacheSynchronized(workspaceID: String, fileID: String) {
+        let key = cacheKey(workspaceID: workspaceID, fileID: fileID)
+        var pending = Set(UserDefaults.standard.stringArray(forKey: "pkms.pending.files") ?? [])
+        pending.remove(key)
+        UserDefaults.standard.set(pending.sorted(), forKey: "pkms.pending.files")
+        cacheRequiresFullState.remove(key)
+        trimDocumentCache(afterAdding: key)
     }
 
     func cacheURL(workspaceID: String, fileID: String) -> URL {

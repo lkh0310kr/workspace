@@ -106,18 +106,57 @@ extension PKMSModel {
         activeWorkspace = workspace
     }
 
-    func sendFullState(_ doc: NativeMarkdownDocument, fileID: String) { send(doc.snapshot, fileID: fileID) }
+    func sendFullState(_ doc: NativeMarkdownDocument, fileID: String) {
+        let snapshot = doc.snapshot
+        guard let workspace = activeWorkspace else { return }
+        saveCache(doc, workspaceID: workspace.id, fileID: fileID)
+        send(snapshot, fileID: fileID, fullState: snapshot)
+    }
 
-    func send(_ update: Data, fileID: String?) {
+    func send(
+        _ update: Data,
+        fileID: String?,
+        fullState: Data? = nil,
+        editGeneration: UInt64? = nil,
+        isFinalUpdate: Bool = false
+    ) {
         guard !update.isEmpty, let fileID, let workspace = activeWorkspace, realtimeChannel != nil else { return }
         let body = PKMSDocumentUpdate(operationId: UUID().uuidString, fileId: fileID, update: update.base64EncodedString())
-        Task { [weak self] in
+        let key = "\(workspace.id)/\(fileID)"
+        let fullStateGeneration = fullState == nil ? nil : (cacheEditGenerations[key] ?? 0)
+        let previousSave = documentSaveTasks[key]
+        let saveToken = UUID()
+        documentSaveTaskTokens[key] = saveToken
+        let saveTask = Task { [weak self] in
             guard let self else { return }
+            await previousSave?.value
             do {
                 let ack = try await post("/api/workspaces/\(workspace.id)/files/\(fileID)/updates", body: body, as: PKMSOperationResponse.self)
                 updateWorkspaceRevision(ack.acceptedRevision)
-            } catch { errorMessage = "The change could not be saved. Retry shortly." }
+                if fullState != nil {
+                    cacheRequiresFullState.remove(key)
+                    if fullStateGeneration == (cacheEditGenerations[key] ?? 0) {
+                        markCacheSynchronized(workspaceID: workspace.id, fileID: fileID)
+                    }
+                } else if let generation = editGeneration,
+                          PKMSDocumentCachePolicy.canClearPendingAfterIncrementalSave(
+                            requestGeneration: generation,
+                            currentGeneration: cacheEditGenerations[key] ?? 0,
+                            isFinalUpdate: isFinalUpdate,
+                            requiresFullState: cacheRequiresFullState.contains(key)
+                          ) {
+                    markCacheSynchronized(workspaceID: workspace.id, fileID: fileID)
+                }
+            } catch {
+                cacheRequiresFullState.insert(key)
+                errorMessage = "The change could not be saved. Retry shortly."
+            }
+            if documentSaveTaskTokens[key] == saveToken {
+                documentSaveTasks.removeValue(forKey: key)
+                documentSaveTaskTokens.removeValue(forKey: key)
+            }
         }
+        documentSaveTasks[key] = saveTask
     }
 
 }

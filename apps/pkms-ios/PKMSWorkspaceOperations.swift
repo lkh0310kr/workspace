@@ -213,16 +213,27 @@ extension PKMSModel {
         let removed = previous.length - prefix - suffix
         let insertedRange = NSRange(location: prefix, length: next.length - prefix - suffix)
         let inserted = next.substring(with: insertedRange)
+        let target = activeWorkspace.flatMap { workspace in activeFile.map { (workspace, $0) } }
+        let generation = target.map { markCachePending(workspaceID: $0.0.id, fileID: $0.1.id) }
+        var updates: [Data] = []
         if removed > 0 {
             let update = doc.delete(utf16Index: UInt32(prefix), length: UInt32(removed))
-            send(update, fileID: activeFile?.id)
+            updates.append(update)
         }
         if !inserted.isEmpty {
             let update = doc.insert(utf16Index: UInt32(prefix), text: inserted)
-            send(update, fileID: activeFile?.id)
+            updates.append(update)
+        }
+        for (index, update) in updates.enumerated() {
+            send(
+                update,
+                fileID: target?.1.id,
+                editGeneration: generation,
+                isFinalUpdate: index == updates.count - 1
+            )
         }
         markdown = doc.text
-        if let workspace = activeWorkspace, let file = activeFile { scheduleCache(doc, workspaceID: workspace.id, fileID: file.id) }
+        if let (workspace, file) = target { scheduleCache(doc, workspaceID: workspace.id, fileID: file.id) }
         scheduleFlush()
     }
 
