@@ -259,7 +259,14 @@ export function onFindInFilesShortcut(handler: () => void): () => void {
 
 /** Cmd/Ctrl+\\, routed from Electron so embedded surfaces cannot swallow it. */
 export function onToggleExplorerShortcut(handler: () => void): () => void {
-  return window.api.shortcuts.onToggleExplorer(handler)
+  // A renderer can hot-reload before Electron reloads its preload bundle.
+  // Keep that brief version skew from crashing the pane; its DOM shortcut
+  // handler remains available until the Electron process is restarted.
+  const shortcuts = window.api.shortcuts as typeof window.api.shortcuts & {
+    onToggleExplorer?: (cb: () => void) => () => void
+  }
+  const subscribe = shortcuts.onToggleExplorer
+  return typeof subscribe === 'function' ? subscribe(handler) : () => {}
 }
 
 /** Cmd/Ctrl+F, routed through Electron so production shortcuts reach the focused editor. */
