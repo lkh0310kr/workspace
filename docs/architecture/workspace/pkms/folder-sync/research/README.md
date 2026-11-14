@@ -6,7 +6,10 @@
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | [Apple iCloud/File Provider](./apple-icloud-file-provider.md) | sync anchor, metadata/materialized item, 파일 coordination, conflict 시 local change 보존 | OS 제공 기능을 기대할 수 없으므로 Desktop이 직접 filesystem race와 durable intent를 처리       |
 | [Google Drive changes API](./google-drive-changes-api.md)     | 순차 페이지 토큰, 최종 페이지에서 cursor 전진, 알림은 wake-up, 만료되는 watch 채널        | revision cursor 및 snapshot 기반으로 재해석. Google token/wire format은 복사하지 않음          |
+| [Google Drive 직접 동기화](./google-drive-direct-sync.md)       | Drive API/OAuth로 파일을 직접 저장·변경 추적                                      | 단일 사용자 Web/Desktop 전환 가능성, OAuth·quota·충돌·운영 acceptance를 평가                  |
 | [CRDT/Yjs](./crdt-and-yjs.md)                                 | 본문 update의 중복·순서 변경 허용, state vector 기반 차이 전달                            | 본문 convergence에 한정. path/tree/delete/filesystem conflict는 PKMS operation contract가 소유 |
+
+직접 Drive 이전의 제품·auth·storage 결정은 [Google Drive 직접 동기화 설계 조사](./google-drive-direct-sync.md)를 참조한다.
 
 ## 공통 결론
 
