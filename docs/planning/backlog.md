@@ -7,7 +7,7 @@
 ### Editor 탐색·Markdown 회귀와 제품 acceptance
 
 - **목표 결과:** Workspace Editor에서 Explorer의 열림 상태와 스크롤 위치가 선택·파일 열기·새로고침·접기·pane 크기 변경 뒤에도 일관된다. Markdown 제목과 본문은 같은 문서 폭에 정렬되고, 렌더링 또는 직접 편집을 지원하지 않는 문법은 원문을 잃지 않는다.
-- **미해결 보고:** Explorer 재열기/스크롤 복원, Mermaid 문서 렌더링 오류, 표 직접 편집이 실제 앱에서 완결되는지 확인이 필요하다. dark theme active-line gutter는 공통 theme token으로 수정했고 생성 CSS 회귀 테스트를 추가했으나 실제 dark/light 화면 수락은 남아 있다. `Cmd/Ctrl+\\` 토글은 논리 키 값과 물리 `Backslash` 코드를 모두 처리하며 한국어 키 값 회귀 테스트를 추가했다. 실제 Electron 재열기 수락은 미완료다. Mermaid 오류 기록은 재현에 필요한 전체 입력이 없어 먼저 실패 문서 전체를 fixture로 고정한다.
+- **미해결 보고:** Explorer 재열기/스크롤 복원, Mermaid 문서 렌더링 오류, 실제 앱 acceptance가 남아 있다. dark theme active-line gutter는 공통 theme token으로 수정했고 생성 CSS 회귀 테스트를 추가했으나 실제 dark/light 화면 수락은 남아 있다. `Cmd/Ctrl+\\` 토글은 논리 키 값과 물리 `Backslash` 코드를 모두 처리하며 한국어 키 값 회귀 테스트를 추가했다. 실제 Electron 재열기 수락은 미완료다. 표 셀 클릭 편집은 CodeMirror DOM 테스트에서 Markdown source 갱신까지 통과했으며 Tab 이동·caret·scroll의 앱 acceptance가 남아 있다. Mermaid 오류 기록은 전체 입력이 없어 재현할 수 없다.
 - **수락:** [Editor 완성도 목표 스펙](../../packages/editor/docs/markdown/product-completeness.md)의 EXP·DOC·TBL·TEX·DIA·HTML·KEY 시나리오를 실제 Workspace 화면과 저장 파일 round-trip으로 확인한다. 검색 결과를 클릭하면 해당 파일·줄이 열린다. 수정하지 않은 문서와 선택·스크롤 위치가 다른 문서 전환 때문에 이동하지 않는다. 재현된 실패는 입력 fixture, 기대 결과, 실행 증거를 owner 문서에 연결한다.
 - **경계:** 이 항목은 모든 Markdown 기능을 한 번에 구현한다는 뜻이 아니다. 우선 Explorer 복원과 재현 가능한 시각/렌더링 실패를 닫고, 표·수식·HTML 등은 각 수락 ID 단위로 진행한다.
 - **근거:** [TreeView 목표](../../packages/editor/docs/treeview/README.md), [Markdown 구현 현황](../../packages/editor/docs/markdown/README.md), [탐색 검토](./editor-navigation-review.md)

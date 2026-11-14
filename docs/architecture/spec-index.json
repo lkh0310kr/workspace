@@ -308,6 +308,10 @@
         {
           "path": "packages/editor/src/viewStateCache.ts",
           "sha256": "bf5e743a0ccd132729844c11012d6f6b618ee49bb8af29643b36437d3a2731ad"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/markdownTableEditing.test.ts",
+          "sha256": "018c913559c20db14952921a8f367619d7ba29ccd0ae8101b3d3e310d8b48a89"
         }
       ]
     },
