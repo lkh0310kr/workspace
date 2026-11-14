@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -29,7 +29,10 @@ describe('PKMS retryable HTTP failures', () => {
     await writeFile(path.join(root, 'pending.md'), '# pending\n')
     await writeFile(
       stateFile,
-      JSON.stringify({ configs: { [workspaceId]: { folderPath: root, excludedPaths: [] } } })
+      JSON.stringify({
+        configs: { [workspaceId]: { folderPath: root, excludedPaths: [] } },
+        pendingPaths: { [workspaceId]: ['pending.md'] }
+      })
     )
     testRuntime.request.mockImplementation(async () => ({
       status: 429,
@@ -50,6 +53,10 @@ describe('PKMS retryable HTTP failures', () => {
     expect(testRuntime.request).toHaveBeenCalledTimes(1)
     expect(failed.state).toBe('syncing')
     expect(failed.error).toBeNull()
+    const persisted = JSON.parse(await readFile(stateFile, 'utf8')) as {
+      pendingPaths: Record<string, string[]>
+    }
+    expect(persisted.pendingPaths[workspaceId]).toContain('pending.md')
     await vi.waitFor(() => expect(testRuntime.request).toHaveBeenCalledTimes(2), {
       timeout: 3_000,
       interval: 20
