@@ -2,7 +2,7 @@
 
 이 체크리스트는 특정 플랫폼의 화면이나 구현 방식이 아니라 **우리 프로젝트가 보장해야 하는 동기화 결과**를 기준으로 한다. 사용자가 어느 연결 지점에서 자료를 바꾸든 모든 replica가 같은 workspace와 file identity를 기준으로 수렴해야 한다. 한 구현이나 한 실행 환경에서 성공한 동작만으로 다른 연결 지점, 재시작, 네트워크 장애까지 증명되지는 않으므로, 검증 근거에는 실제로 확인한 경계와 남은 경계를 함께 적는다.
 
-Web·iOS·Desktop 같은 client 이름은 관찰한 검증 근거를 설명할 때만 쓴다. 제품 요구사항과 완료 판단은 client별 기능 목록이 아니라 변경 결과, replica 간 수렴, 장애 후 복구로 공통 평가한다.
+제품 요구사항과 완료 판단은 연결 지점별 기능 목록이 아니라 변경 결과, replica 간 수렴, 장애 후 복구로 공통 평가한다. 실제 연결 구현명은 증거의 출처를 식별할 때만 사용한다.
 
 ## 목표 결과
 
@@ -10,7 +10,7 @@ Web·iOS·Desktop 같은 client 이름은 관찰한 검증 근거를 설명할 �
 
 ## PKMS sync 경계
 
-- 현재 운영 경로에서 PKMS cloud workspace가 문서 및 파일 tree의 공통 저장 기준이다. Web과 iOS는 cloud API/Yjs를 사용한다. Desktop은 같은 cloud에 연결하고 사용자가 지정한 local folder를 mirror한다.
+- PKMS cloud workspace는 문서 본문, file identity, path 및 folder tree의 authoritative 저장 기준이다. 연결된 editor나 local folder는 replica로 동작하며, 변경사항은 같은 workspace identity를 사용해 공통 기준에 수렴한다.
 - Realtime은 변경을 빨리 알리는 수단이다. 변경의 진실과 복구 기준은 durable cloud revision/change feed 및 authoritative snapshot이다.
 - Yjs는 Markdown 본문의 concurrent update를 합친다. 파일 identity, path, 폴더 계층, delete, binary asset conflict는 별도의 sync operation이 소유한다.
 - GitHub는 별도 선택 backup이다. PKMS cloud에서 `synced`라고 해서 GitHub backup도 완료된 것은 아니다. 외부 GitHub 변경은 자동 overwrite하지 않고 divergence 상태로 멈춘다.
