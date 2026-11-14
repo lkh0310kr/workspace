@@ -153,7 +153,7 @@ describe('relayHostAppShortcuts', () => {
     expect(send).toHaveBeenCalledWith('shortcut:find-in-files')
   })
 
-  it('routes Cmd+Backslash to Explorer at Electron input time', () => {
+  it('routes Cmd+Backslash to Explorer when no terminal owns focus', () => {
     const event = mockEvent()
     const send = vi.fn()
     relayHostAppShortcuts(
@@ -161,12 +161,30 @@ describe('relayHostAppShortcuts', () => {
       { ...keyDown('Backslash', { meta: true }), key: '₩' } as never,
       {
         send,
-        terminalOwnsAppShortcuts: true,
-        focusedTerminalId: 9
+        terminalOwnsAppShortcuts: false,
+        focusedTerminalId: null
       }
     )
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:toggle-explorer')
+  })
+
+  it.each([
+    ['Cmd+P', keyDown('KeyP', { meta: true })],
+    ['Cmd+Shift+F', keyDown('KeyF', { meta: true, shift: true })],
+    ['Cmd+Backslash', { ...keyDown('Backslash', { meta: true }), key: '₩' }]
+  ])('does not route %s while a terminal owns focus', (_name, input) => {
+    const event = mockEvent()
+    const send = vi.fn()
+    relayHostAppShortcuts(event as never, input as never, {
+      send,
+      terminalOwnsAppShortcuts: true,
+      focusedTerminalId: 9
+    })
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(send).not.toHaveBeenCalledWith('shortcut:quick-open')
+    expect(send).not.toHaveBeenCalledWith('shortcut:find-in-files')
+    expect(send).not.toHaveBeenCalledWith('shortcut:toggle-explorer')
   })
 
   it('routes Cmd+F to the focused editor instead of Chromium Find', () => {

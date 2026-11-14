@@ -66,6 +66,7 @@ describe('Workspace Explorer toggle shortcut', () => {
           explorerVisible: true,
           isGroupFocused: true,
           explorerCapable: true,
+          workspaceShortcutsEnabled: true,
           setShortcutExplorerVisible: vi.fn(),
           focusHostRef: { current: null },
           selectedPath: null,
@@ -104,7 +105,7 @@ describe('Workspace Explorer toggle shortcut', () => {
     expect(open).toBe(true)
   })
 
-  it('opens Find in Files from a focused pane whose active tab is not an editor', async () => {
+  it('ignores editor workspace shortcuts when Terminal owns the focused pane', async () => {
     let open = false
     const setTreeOpen: PaneGroupExplorerChrome['setTreeOpen'] = (next) => {
       open = typeof next === 'function' ? next(open) : next
@@ -133,6 +134,7 @@ describe('Workspace Explorer toggle shortcut', () => {
           explorerVisible: false,
           isGroupFocused: true,
           explorerCapable: false,
+          workspaceShortcutsEnabled: false,
           setShortcutExplorerVisible: vi.fn(),
           focusHostRef: { current: null },
           selectedPath: null,
@@ -144,7 +146,21 @@ describe('Workspace Explorer toggle shortcut', () => {
     })
 
     await act(async () => shortcutCallbacks.find[0]?.())
-    expect(setSidebarMode).toHaveBeenCalledWith('search')
-    expect(open).toBe(true)
+    expect(setSidebarMode).not.toHaveBeenCalled()
+    expect(open).toBe(false)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: '₩',
+          code: 'Backslash',
+          metaKey: true,
+          bubbles: true,
+          cancelable: true
+        })
+      )
+    })
+    expect(setSidebarMode).not.toHaveBeenCalled()
+    expect(open).toBe(false)
   })
 })

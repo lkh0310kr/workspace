@@ -20,6 +20,7 @@ interface Props {
   explorerVisible: boolean
   isGroupFocused: boolean
   explorerCapable: boolean
+  workspaceShortcutsEnabled: boolean
   setShortcutExplorerVisible: React.Dispatch<React.SetStateAction<boolean>>
   focusHostRef: React.RefObject<HTMLElement | null>
   selectedPath: string | null
@@ -45,6 +46,7 @@ export function WorkspaceExplorerSidebar({
   explorerVisible,
   isGroupFocused,
   explorerCapable,
+  workspaceShortcutsEnabled,
   setShortcutExplorerVisible,
   focusHostRef,
   selectedPath,
@@ -59,14 +61,14 @@ export function WorkspaceExplorerSidebar({
   const [searchFocusRequest, setSearchFocusRequest] = useState(0)
 
   const openSearch = useCallback(() => {
-    if (!paneVisible || !isGroupFocused) return
+    if (!workspaceShortcutsEnabled || !paneVisible || !isGroupFocused) return
     setSidebarMode('search')
     setTreeOpen(true)
     setSearchFocusRequest((request) => request + 1)
-  }, [paneVisible, isGroupFocused, setSidebarMode, setTreeOpen])
+  }, [workspaceShortcutsEnabled, paneVisible, isGroupFocused, setSidebarMode, setTreeOpen])
 
   const toggleExplorer = useCallback(() => {
-    if (!paneVisible || !isGroupFocused) return
+    if (!workspaceShortcutsEnabled || !paneVisible || !isGroupFocused) return
     setSidebarMode('explorer')
     if (explorerCapable) {
       setShortcutExplorerVisible(false)
@@ -78,6 +80,7 @@ export function WorkspaceExplorerSidebar({
   }, [
     paneVisible,
     isGroupFocused,
+    workspaceShortcutsEnabled,
     explorerCapable,
     setShortcutExplorerVisible,
     setSidebarMode,
@@ -95,7 +98,7 @@ export function WorkspaceExplorerSidebar({
     })
     function onKeyDown(e: KeyboardEvent) {
       if (isExplorerToggleShortcut(e)) {
-        if (!paneVisible || !isGroupFocused) return
+        if (!workspaceShortcutsEnabled || !paneVisible || !isGroupFocused) return
         e.preventDefault()
         e.stopImmediatePropagation()
         toggleExplorer()
@@ -112,7 +115,7 @@ export function WorkspaceExplorerSidebar({
         return
       }
       if (e.key.toLowerCase() !== 'f') return
-      if (!paneVisible) return
+      if (!workspaceShortcutsEnabled || !paneVisible) return
       if (!isGroupFocused) return
       e.preventDefault()
       openSearch()
@@ -125,7 +128,14 @@ export function WorkspaceExplorerSidebar({
       offExplorerToggle()
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [paneVisible, isGroupFocused, explorerCapable, openSearch, toggleExplorer])
+  }, [
+    paneVisible,
+    isGroupFocused,
+    explorerCapable,
+    workspaceShortcutsEnabled,
+    openSearch,
+    toggleExplorer
+  ])
 
   const onPathRenamed = useCallback(
     (from: string, to: string) => {

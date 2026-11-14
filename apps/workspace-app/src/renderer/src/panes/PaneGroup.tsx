@@ -269,6 +269,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
               explorerVisible={showExplorer}
               isGroupFocused={isGroupFocused}
               explorerCapable={activeChipHasExplorer(activeItem.kind)}
+              workspaceShortcutsEnabled={activeItem.kind !== 'terminal'}
               setShortcutExplorerVisible={setShortcutExplorerVisible}
               focusHostRef={paneHostRef}
               selectedPath={activeItem.filePath ?? null}

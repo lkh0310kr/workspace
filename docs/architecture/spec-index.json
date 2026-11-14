@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx",
-          "sha256": "d3abc1ccaf907b599ecd5d66a6196290d5bb5d5a3a6387533aeddbead355c6d9"
+          "sha256": "08df367edd89611aa9340afa8828d0185f5e6f24de237740c77b3a2515c20a2b"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/assets/styles.css",
@@ -315,7 +315,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.shortcut.test.ts",
-          "sha256": "63287badef6f43735c6352d6c02b6d78eb8079f8ddf8d6c00c92d14cb3056895"
+          "sha256": "c6ec938eb1e9f03c0e141c19f6ebe7bca2e19d87cc2375598b8c412fe63cd970"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/TreeView.scroll.test.ts",
@@ -519,11 +519,11 @@
         },
         {
           "path": "apps/workspace-app/src/main/shortcuts/relayAppShortcuts.ts",
-          "sha256": "4f1ed91c1354ea5c478b321bef84bd112a8dc18b20afb2fc311dbe46d310e740"
+          "sha256": "29feede6cb67403e1f2cf4a35b8fcd05f69832163e0de31cfe0741a87a26c8c7"
         },
         {
           "path": "apps/workspace-app/src/main/shortcuts/relayAppShortcuts.test.ts",
-          "sha256": "f809bc10dd6ea760b46b5202e72f4456bd835950f78be979ce45065319f8d3d1"
+          "sha256": "03b87f23e233c9df2f317a5b96ff93e7f771c1910e9c41b156aebb2c86cd096f"
         },
         {
           "path": "apps/workspace-app/src/preload/browserApi.ts",
@@ -555,7 +555,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx",
-          "sha256": "d3abc1ccaf907b599ecd5d66a6196290d5bb5d5a3a6387533aeddbead355c6d9"
+          "sha256": "08df367edd89611aa9340afa8828d0185f5e6f24de237740c77b3a2515c20a2b"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/browser/browserPageGuestRecovery.ts",
@@ -781,7 +781,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx",
-          "sha256": "7ef3947438af8a4fa2524a01efa915ad295d007070a646ef8abd683d1d6ce517"
+          "sha256": "81573c32b3ce3c78c8fff429825d5de495e391b67fcf308aad7995f9b5e7cd3f"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/store/workspaceLayoutModels.ts",

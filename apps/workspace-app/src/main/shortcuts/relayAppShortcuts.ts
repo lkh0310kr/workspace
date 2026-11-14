@@ -133,17 +133,26 @@ export function relayHostAppShortcuts(
   // Chromium consumes Cmd/Ctrl+P for print before a renderer keydown handler
   // can reliably see it. Route editor search shortcuts at Electron's input
   // boundary, the same way the workspace's other app shortcuts are routed.
-  if ((input.meta || input.control) && !input.alt && input.code === 'KeyP' && !input.shift) {
+  // A focused terminal owns its keyboard input. Consume these commands here
+  // without forwarding them to the pane or triggering workspace editor UI.
+  if (
+    options.focusedTerminalId !== null &&
+    (isQuickOpenInput(input) || isExplorerToggleInput(input) || isFindInFilesInput(input))
+  ) {
+    event.preventDefault()
+    return
+  }
+  if (isQuickOpenInput(input)) {
     event.preventDefault()
     options.send('shortcut:quick-open')
     return
   }
-  if ((input.meta || input.control) && !input.alt && !input.shift && isExplorerToggleKey(input)) {
+  if (isExplorerToggleInput(input)) {
     event.preventDefault()
     options.send('shortcut:toggle-explorer')
     return
   }
-  if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && input.shift) {
+  if (isFindInFilesInput(input)) {
     event.preventDefault()
     options.send('shortcut:find-in-files')
     return
@@ -178,6 +187,18 @@ export function relayHostAppShortcuts(
   if (options.focusedTerminalId !== null && options.onTerminalOptionShortcut) {
     options.onTerminalOptionShortcut(event, input, options.focusedTerminalId)
   }
+}
+
+function isQuickOpenInput(input: Input): boolean {
+  return (input.meta || input.control) && !input.alt && input.code === 'KeyP' && !input.shift
+}
+
+function isExplorerToggleInput(input: Input): boolean {
+  return (input.meta || input.control) && !input.alt && !input.shift && isExplorerToggleKey(input)
+}
+
+function isFindInFilesInput(input: Input): boolean {
+  return (input.meta || input.control) && !input.alt && input.code === 'KeyF' && input.shift
 }
 
 /** Browser <webview> guest — always relays app shortcuts; paste stays in-guest as plain text. */

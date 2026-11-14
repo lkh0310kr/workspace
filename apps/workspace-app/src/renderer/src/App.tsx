@@ -124,6 +124,7 @@ export default function App() {
       selectedNode?.getType() === 'tab'
         ? resolveActivePaneTab(readPaneGroupConfig(selectedNode as TabNode))
         : undefined
+    if (activePaneItem?.kind === 'terminal') return
     if (activePaneItem?.kind === 'pkms') {
       window.dispatchEvent(new Event(PKMS_QUICK_OPEN_EVENT))
       return
