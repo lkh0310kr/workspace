@@ -203,32 +203,51 @@ function statePath(): string {
 }
 async function load(): Promise<Persisted> {
   if (persisted) return persisted
+  let rawState: string
   try {
-    const saved = JSON.parse(await fs.readFile(statePath(), 'utf8')) as Partial<Persisted>
-    persisted = {
-      ...EMPTY,
-      ...saved,
-      remoteFiles: saved.remoteFiles ?? {},
-      syncCursors: saved.syncCursors ?? {},
-      remoteTrees: saved.remoteTrees ?? {},
-      remoteTreeVersions: saved.remoteTreeVersions ?? {},
-      pendingFullScans: saved.pendingFullScans ?? {},
-      pendingPaths: saved.pendingPaths ?? {},
-      pendingUpdates: saved.pendingUpdates ?? {},
-      pendingCreates: saved.pendingCreates ?? {},
-      pendingFolderCreates: saved.pendingFolderCreates ?? {},
-      localDirectories: saved.localDirectories ?? {},
-      pendingDeletes: saved.pendingDeletes ?? {},
-      pendingRemoteFolderDeletes: saved.pendingRemoteFolderDeletes ?? {},
-      itemStates: saved.itemStates ?? {},
-      assetFingerprints: saved.assetFingerprints ?? {}
+    rawState = await fs.readFile(statePath(), 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      persisted = structuredClone(EMPTY)
+      return persisted
     }
-    for (const [workspaceId, itemStates] of Object.entries(persisted.itemStates)) {
-      const existing = statuses.get(workspaceId)
-      if (existing) statuses.set(workspaceId, { ...existing, itemStates })
-    }
-  } catch {
-    persisted = structuredClone(EMPTY)
+    throw new Error('pkms_sync_state_unreadable', { cause: error })
+  }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(rawState)
+  } catch (error) {
+    throw new Error('pkms_sync_state_corrupt', { cause: error })
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+    throw new Error('pkms_sync_state_corrupt')
+  for (const key of Object.keys(EMPTY)) {
+    const value = (parsed as Record<string, unknown>)[key]
+    if (value !== undefined && (!value || typeof value !== 'object' || Array.isArray(value)))
+      throw new Error('pkms_sync_state_corrupt')
+  }
+  const saved = parsed as Partial<Persisted>
+  persisted = {
+    ...EMPTY,
+    ...saved,
+    remoteFiles: saved.remoteFiles ?? {},
+    syncCursors: saved.syncCursors ?? {},
+    remoteTrees: saved.remoteTrees ?? {},
+    remoteTreeVersions: saved.remoteTreeVersions ?? {},
+    pendingFullScans: saved.pendingFullScans ?? {},
+    pendingPaths: saved.pendingPaths ?? {},
+    pendingUpdates: saved.pendingUpdates ?? {},
+    pendingCreates: saved.pendingCreates ?? {},
+    pendingFolderCreates: saved.pendingFolderCreates ?? {},
+    localDirectories: saved.localDirectories ?? {},
+    pendingDeletes: saved.pendingDeletes ?? {},
+    pendingRemoteFolderDeletes: saved.pendingRemoteFolderDeletes ?? {},
+    itemStates: saved.itemStates ?? {},
+    assetFingerprints: saved.assetFingerprints ?? {}
+  }
+  for (const [workspaceId, itemStates] of Object.entries(persisted.itemStates)) {
+    const existing = statuses.get(workspaceId)
+    if (existing) statuses.set(workspaceId, { ...existing, itemStates })
   }
   return persisted
 }

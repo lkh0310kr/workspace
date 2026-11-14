@@ -22,7 +22,7 @@ Main의 `pkms-sync-bridge.json`은 Electron `userData` 아래 저장되며 tempo
 | `itemStates`                   | path별 마지막 sync 상태. restart 후 tree와 panel에 복원                         |
 | `assetFingerprints`            | path별 OS fingerprint 및 확인된 SHA-256. 같은 fingerprint의 asset 재해시 생략   |
 
-Persisted JSON load 중 parse/read 실패는 현재 코드에서 empty state로 fallback한다. 이는 복구된 baseline/queue임을 증명하지 않으므로 손상 파일 복구 여부는 명시적인 test gap이다. save failure는 pass를 성공으로 간주하지 않는다. durability 요구는 storage-full·truncated JSON·power loss에서 별도 검증한다.
+Persisted JSON이 없을 때만 empty state로 초기화한다. 파일 read 오류나 malformed/structurally invalid JSON은 `pkms_sync_state_unreadable` 또는 `pkms_sync_state_corrupt`로 fail-closed한다. 원본을 덮어쓰거나 빈 baseline/queue로 진행하지 않는다. 사용자는 원본 파일을 보존한 상태에서 유효한 backup을 복원하거나 손상 state를 복구한 뒤 sync를 재개해야 한다. 회귀 fixture는 malformed/truncated와 invalid top-level field를 넣고 오류 및 원본 byte 보존을 확인한다. Disk full, power loss, 유효한 backup 자동 복구는 별도 검증한다.
 
 ## Event와 scan 의미
 
