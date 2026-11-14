@@ -1802,6 +1802,17 @@ async function syncOnce(workspaceId: string): Promise<void> {
           notifyLocalTreeChanged(workspaceId, folder.path)
         }
       }
+      const pendingFolderCreates = state.pendingFolderCreates[workspaceId] ?? {}
+      const existingRemoteFolderPaths = new Set(
+        (knownRemoteTree ?? []).filter((file) => file.kind === 'folder').map((file) => file.path)
+      )
+      let clearedFolderCreate = false
+      for (const relative of Object.keys(pendingFolderCreates))
+        if (existingRemoteFolderPaths.has(relative)) {
+          delete pendingFolderCreates[relative]
+          clearedFolderCreate = true
+        }
+      if (clearedFolderCreate) await save()
       const foldersToReconcile = folderPathsToReconcile(
         Object.keys(scannedDirectories?.directories ?? {}),
         knownRemoteTree ?? [],
@@ -1827,8 +1838,14 @@ async function syncOnce(workspaceId: string): Promise<void> {
         }
         if (!stat.isDirectory()) continue
         const remoteAtPath = (knownRemoteTree ?? []).find((file) => file.path === relative)
-        if (remoteAtPath) continue
         const pendingFolders = (state.pendingFolderCreates[workspaceId] ??= {})
+        if (remoteAtPath) {
+          if (pendingFolders[relative]) {
+            delete pendingFolders[relative]
+            await save()
+          }
+          continue
+        }
         const operationId = (pendingFolders[relative] ??= randomUUID())
         await save()
         const result = await request<{
