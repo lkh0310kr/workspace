@@ -78,25 +78,40 @@ export function FileTreeList(props: FileTreeListProps) {
               .filter(([path]) => path.startsWith(`${file.path}/`))
               .map(([, state]) => state)
           : []
-      const state =
-        ownState ??
-        (descendantStates.includes('attention')
-          ? 'attention'
-          : descendantStates.includes('syncing')
-            ? 'syncing'
-            : descendantStates.includes('pending')
-              ? 'pending'
-              : undefined)
+      const descendantState = descendantStates.includes('attention')
+        ? 'attention'
+        : descendantStates.includes('syncing')
+          ? 'syncing'
+          : descendantStates.includes('pending')
+            ? 'pending'
+            : descendantStates.length > 0 && descendantStates.every((value) => value === 'excluded')
+              ? 'excluded'
+              : descendantStates.length > 0 && descendantStates.every((value) => value === 'synced')
+                ? 'synced'
+                : undefined
+      const state = file.kind === 'folder' ? (descendantState ?? ownState) : ownState
       const stateLabel =
-        state === 'attention'
-          ? 'Sync needs attention'
-          : state === 'syncing'
-            ? 'Syncing'
-            : 'Waiting to sync'
+        state === 'synced'
+          ? 'Synced'
+          : state === 'excluded'
+            ? 'Excluded from sync'
+            : state === 'attention'
+              ? 'Sync needs attention'
+              : state === 'syncing'
+                ? 'Syncing'
+                : 'Waiting to sync'
       const trailingStatus = state ? (
         <>
           <span className={`editor-tree-trailing-status--${state}`} aria-hidden="true">
-            {state === 'syncing' ? '↻' : state === 'attention' ? '!' : '•'}
+            {state === 'synced'
+              ? '✓'
+              : state === 'excluded'
+                ? '−'
+                : state === 'syncing'
+                  ? '↻'
+                  : state === 'attention'
+                    ? '!'
+                    : '•'}
           </span>
           <span className="sr-only">{stateLabel}</span>
         </>

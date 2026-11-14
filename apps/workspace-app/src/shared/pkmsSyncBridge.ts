@@ -1,7 +1,7 @@
 export type PkmsSyncBridgeState = 'disconnected' | 'syncing' | 'synced' | 'offline' | 'error'
 export type PkmsSyncBridgeStage =
   'scanning' | 'loading-remote-list' | 'downloading-remote-files' | 'reconciling'
-export type PkmsSyncItemState = 'pending' | 'syncing' | 'attention'
+export type PkmsSyncItemState = 'synced' | 'pending' | 'syncing' | 'attention' | 'excluded'
 
 export interface PkmsSyncBridgeStatus {
   workspaceId: string

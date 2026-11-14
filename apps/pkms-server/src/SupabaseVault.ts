@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import * as Y from 'yjs'
 import type { Env, WorkspaceRecord } from './env'
 import { accountStore } from './SupabaseAccountStore'
@@ -343,7 +344,7 @@ export async function handleVaultRequest(
       return json({ error: 'invalid_snapshot_cursor' }, { status: 400 })
     const filter: Record<string, string> = {
       deleted: 'eq.false',
-      kind: 'in.(markdown,folder)',
+      kind: 'in.(markdown,asset,folder)',
       revision: `lte.${atRevision}`,
       order: 'path.asc',
       limit: '1000'
@@ -1533,48 +1534,76 @@ async function upload(env: Env, w: WorkspaceRow, request: Request): Promise<Resp
   if (file.size > MAX_GIT_FILE_BYTES)
     return json({ error: 'file_too_large', maxBytes: MAX_GIT_FILE_BYTES }, { status: 413 })
   const fileId = String(form.get('fileId') ?? crypto.randomUUID())
-  const key = `${w.workspace_id}/${fileId}`
+  const operationId = String(form.get('operationId') ?? crypto.randomUUID())
+  const expectedRaw = form.get('expectedRevision')
+  const expectedRevision = expectedRaw === null ? null : Number(expectedRaw)
+  if (
+    !/^[0-9a-f-]{36}$/i.test(operationId) ||
+    (expectedRevision !== null && (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0))
+  )
+    return json({ error: 'invalid_upload' }, { status: 400 })
+  const key = `${w.workspace_id}/${fileId}/${operationId}`
+  const hasher = createHash('sha1').update(`blob ${file.size}\0`)
   const fixed = new FixedLengthStream(file.size)
   const uploadPromise = env.ASSET_BUCKET.put(key, fixed.readable, {
     httpMetadata: { contentType: file.type || 'application/octet-stream' }
   })
   try {
-    await file.stream().pipeTo(fixed.writable)
+    await file
+      .stream()
+      .pipeThrough(
+        new TransformStream<Uint8Array, Uint8Array>({
+          transform(chunk, controller) {
+            hasher.update(chunk)
+            controller.enqueue(chunk)
+          }
+        })
+      )
+      .pipeTo(fixed.writable)
     await uploadPromise
   } catch (error) {
     await uploadPromise.catch(() => {})
     await env.ASSET_BUCKET.delete(key).catch(() => {})
     throw error
   }
+  const sha = hasher.digest('hex')
   try {
-    const result = await supabaseRpc<Record<string, unknown>>(env, 'pkms_apply_asset_upload', {
+    const result = await supabaseRpc<Record<string, unknown>>(env, 'pkms_apply_asset_sync', {
       p_workspace_id: w.workspace_id,
-      p_operation_id: crypto.randomUUID(),
+      p_operation_id: operationId,
       p_base_revision: Number(w.server_revision),
       p_client_id: String(form.get('clientId') ?? 'upload'),
       p_path: path,
       p_file_id: fileId,
       p_object_key: key,
-      p_size: file.size
+      p_size: file.size,
+      p_sha: sha,
+      p_expected_revision: expectedRevision
     })
+    const oldObjectKey = result.oldObjectKey
+    if (typeof oldObjectKey === 'string' && oldObjectKey !== key)
+      await env.ASSET_BUCKET.delete(oldObjectKey).catch(() => {})
+    delete result.oldObjectKey
     await publishRealtime(env, w.workspace_id, {
       ...result,
       type: 'operation',
       path: result.conflictCopyPath ?? path
     })
     return json({ ...result, path: result.conflictCopyPath ?? path }, { status: 201 })
-  } catch {
+  } catch (error) {
     const check = new URLSearchParams({
       workspace_id: `eq.${w.workspace_id}`,
-      file_id: `eq.${fileId}`,
-      select: 'file_id',
+      operation_id: `eq.${operationId}`,
+      select: 'operation_id',
       limit: '1'
     })
-    const exists = await supabaseRequest(env, `/rest/v1/pkms_files?${check}`)
+    const exists = await supabaseRequest(env, `/rest/v1/pkms_operations?${check}`)
       .then((r) => r.json() as Promise<unknown[]>)
       .then((rows) => rows.length > 0)
       .catch(() => true)
     if (!exists) await env.ASSET_BUCKET.delete(key).catch(() => {})
+    if (error instanceof SupabaseError && error.code === 'asset_changed_since_base')
+      return json({ error: error.code }, { status: 409 })
     return json(
       { error: 'upload_failed', message: 'The attachment could not be saved.' },
       { status: 409 }

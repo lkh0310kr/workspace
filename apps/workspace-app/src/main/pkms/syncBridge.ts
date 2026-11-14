@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import * as Y from 'yjs'
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
-import { requestPkmsApi } from './api'
+import { fetchPkmsAsset, requestPkmsApi } from './api'
 import { appendStartupLog, isPackagedApp } from '../startupLog'
 import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from '../../shared/pkmsSyncBridge'
 import {
@@ -34,6 +34,7 @@ type BridgeSnapshotPage = {
 }
 type BridgeChange = BridgeFile & { deleted: boolean }
 type Baseline = { fileId: string; hash: string; revision: number }
+type AssetFingerprint = { fingerprint: string; hash: string }
 type PendingDelete = {
   kind: 'markdown' | 'folder'
   path: string
@@ -65,6 +66,8 @@ type Persisted = {
   localDirectories: Record<string, Record<string, string | null>>
   pendingDeletes: Record<string, Record<string, PendingDelete>>
   pendingRemoteFolderDeletes: Record<string, string[]>
+  itemStates: Record<string, Record<string, PkmsSyncItemState>>
+  assetFingerprints: Record<string, Record<string, AssetFingerprint>>
 }
 const EMPTY: Persisted = {
   configs: {},
@@ -80,7 +83,9 @@ const EMPTY: Persisted = {
   pendingFolderCreates: {},
   localDirectories: {},
   pendingDeletes: {},
-  pendingRemoteFolderDeletes: {}
+  pendingRemoteFolderDeletes: {},
+  itemStates: {},
+  assetFingerprints: {}
 }
 // Poll the cloud's revision feed frequently; full disk walks are a recovery path.
 // The revision feed is metadata-only; poll it frequently so edits from web/iOS
@@ -106,6 +111,7 @@ const fullScanRequests = new Set<string>()
 const directoryScanRequests = new Set<string>()
 const dirtyLocalPaths = new Map<string, Set<string>>()
 let persisted: Persisted | null = null
+const itemStateSaveTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 type FolderSyncLock = { path: string; token: string }
 
@@ -205,7 +211,13 @@ async function load(): Promise<Persisted> {
       pendingFolderCreates: saved.pendingFolderCreates ?? {},
       localDirectories: saved.localDirectories ?? {},
       pendingDeletes: saved.pendingDeletes ?? {},
-      pendingRemoteFolderDeletes: saved.pendingRemoteFolderDeletes ?? {}
+      pendingRemoteFolderDeletes: saved.pendingRemoteFolderDeletes ?? {},
+      itemStates: saved.itemStates ?? {},
+      assetFingerprints: saved.assetFingerprints ?? {}
+    }
+    for (const [workspaceId, itemStates] of Object.entries(persisted.itemStates)) {
+      const existing = statuses.get(workspaceId)
+      if (existing) statuses.set(workspaceId, { ...existing, itemStates })
     }
   } catch {
     persisted = structuredClone(EMPTY)
@@ -219,12 +231,62 @@ async function save(): Promise<void> {
   await fs.writeFile(temp, JSON.stringify(state), { mode: 0o600 })
   await fs.rename(temp, statePath())
 }
-function hash(content: string): string {
+function hash(content: string | Uint8Array): string {
   return createHash('sha256').update(content).digest('hex')
 }
 function gitBlobHash(content: string): string {
   const bytes = Buffer.from(content, 'utf8')
   return createHash('sha1').update(`blob ${bytes.byteLength}\0`).update(bytes).digest('hex')
+}
+function gitBlobHashBytes(bytes: Uint8Array): string {
+  return createHash('sha1').update(`blob ${bytes.byteLength}\0`).update(bytes).digest('hex')
+}
+async function writeAtomicBytes(
+  root: string,
+  relative: string,
+  bytes: Uint8Array,
+  expectedCurrentHash?: string | null
+): Promise<void> {
+  const target = safePath(root, relative)
+  let parent = root
+  for (const part of path.posix
+    .dirname(relative)
+    .split('/')
+    .filter((item) => item && item !== '.')) {
+    parent = path.join(parent, part)
+    try {
+      const stat = await fs.lstat(parent)
+      if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('unsafe_sync_path')
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      await fs.mkdir(parent)
+    }
+  }
+  try {
+    const stat = await fs.lstat(target)
+    if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+  const temp = `${target}.${randomUUID()}.pkms-tmp`
+  await fs.writeFile(temp, bytes, { mode: 0o666 })
+  try {
+    if (expectedCurrentHash !== undefined) {
+      let actual: string | null = null
+      try {
+        const stat = await fs.lstat(target)
+        if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
+        actual = hash(await fs.readFile(target))
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
+      if (actual !== expectedCurrentHash) throw new Error('local_file_changed_retry')
+    }
+    await fs.rename(temp, target)
+  } catch (error) {
+    await fs.rm(temp, { force: true }).catch(() => {})
+    throw error
+  }
 }
 function safePath(root: string, relative: string): string {
   const target = path.resolve(root, relative)
@@ -539,7 +601,7 @@ function status(workspaceId: string): PkmsSyncBridgeStatus {
       lastSyncedAt: null,
       pendingFiles: 0,
       conflictFiles: [],
-      itemStates: {},
+      itemStates: persisted?.itemStates[workspaceId] ?? {},
       error: null
     }
   )
@@ -560,6 +622,30 @@ function setItemState(
   const itemStates = { ...status(workspaceId).itemStates }
   if (itemState) itemStates[relative] = itemState
   else delete itemStates[relative]
+  if (persisted) persisted.itemStates[workspaceId] = itemStates
+  const persist = () => {
+    const prior = itemStateSaveTimers.get(workspaceId)
+    if (prior) clearTimeout(prior)
+    itemStateSaveTimers.set(
+      workspaceId,
+      setTimeout(() => {
+        itemStateSaveTimers.delete(workspaceId)
+        void load()
+          .then((state) => {
+            state.itemStates[workspaceId] = { ...status(workspaceId).itemStates }
+            return save()
+          })
+          .catch((error) =>
+            appendStartupLog('pkms_item_state_persist_failed', {
+              workspaceId,
+              error: error instanceof Error ? error.message : 'unknown'
+            })
+          )
+      }, 250)
+    )
+  }
+  if (persisted) persist()
+  else void load().then(persist)
   setStatus(workspaceId, { itemStates })
 }
 
@@ -587,6 +673,58 @@ async function request<T>(pathName: string, method: 'GET' | 'POST', value?: unkn
     )
   }
   return response.body
+}
+async function uploadAsset(
+  workspaceId: string,
+  relative: string,
+  fileId: string | null,
+  expectedRevision: number | null,
+  bytes: Uint8Array
+): Promise<{ fileId: string; path: string; acceptedRevision: number; conflictCopyPath?: string }> {
+  const parts: Array<
+    | { name: string; value: string }
+    | {
+        name: string
+        fileName: string
+        contentType: string
+        bytes: Uint8Array
+      }
+  > = [
+    { name: 'path', value: relative },
+    { name: 'clientId', value: 'desktop-sync-bridge' },
+    { name: 'operationId', value: randomUUID() },
+    {
+      name: 'file',
+      fileName: path.posix.basename(relative),
+      contentType: 'application/octet-stream',
+      bytes
+    }
+  ]
+  if (fileId) parts.push({ name: 'fileId', value: fileId })
+  if (expectedRevision !== null)
+    parts.push({ name: 'expectedRevision', value: String(expectedRevision) })
+  const response = await requestPkmsApi<{
+    fileId?: string
+    path?: string
+    acceptedRevision?: number
+    conflictCopyPath?: string
+    error?: string
+    message?: string
+  }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/upload`, {
+    method: 'POST',
+    body: { kind: 'multipart', parts }
+  })
+  if (response.status < 200 || response.status >= 300)
+    throw new PkmsBridgeRequestError(
+      response.status,
+      response.body?.error ?? response.body?.message ?? 'asset_upload_failed'
+    )
+  return {
+    fileId: response.body.fileId ?? fileId ?? '',
+    path: response.body.path ?? response.body.conflictCopyPath ?? relative,
+    acceptedRevision: response.body.acceptedRevision ?? 0,
+    ...(response.body.conflictCopyPath ? { conflictCopyPath: response.body.conflictCopyPath } : {})
+  }
 }
 async function startCloudWakeup(workspaceId: string): Promise<void> {
   stopCloudWakeup(workspaceId)
@@ -750,6 +888,88 @@ async function markdownFilesAt(
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     }
+  }
+  return found
+}
+type LocalAsset = { hash: string; fingerprint: string }
+async function localAssetInventory(
+  workspaceId: string,
+  root: string,
+  excludedPaths: string[],
+  selectedPaths?: Iterable<string>
+): Promise<Map<string, LocalAsset>> {
+  const state = await load()
+  const cached = (state.assetFingerprints[workspaceId] ??= {})
+  const found = new Map<string, LocalAsset>()
+  const visit = async (directory: string, prefix: string): Promise<void> => {
+    for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+      if (entry.isSymbolicLink() || ['.git', '.obsidian', 'node_modules'].includes(entry.name))
+        continue
+      const relative = path.posix.join(prefix, entry.name)
+      if (matchesExclusion(relative, excludedPaths)) continue
+      const absolute = path.join(directory, entry.name)
+      if (entry.isDirectory()) {
+        await visit(absolute, relative)
+      } else if (entry.isFile() && !entry.name.toLowerCase().endsWith('.md')) {
+        const stat = await fs.lstat(absolute, { bigint: true })
+        if (stat.isSymbolicLink() || !stat.isFile()) continue
+        const fingerprint = [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':')
+        let digest = cached[relative]?.fingerprint === fingerprint ? cached[relative].hash : ''
+        if (!digest) {
+          const bytes = await fs.readFile(absolute)
+          digest = hash(bytes)
+          cached[relative] = { fingerprint, hash: digest }
+        }
+        found.set(relative, { hash: digest, fingerprint })
+      }
+    }
+  }
+  if (!selectedPaths) {
+    await visit(root, '')
+  } else {
+    const visitedDirectories = new Set<string>()
+    for (const relative of selectedPaths) {
+      if (
+        !relative ||
+        relative.startsWith('/') ||
+        isReservedSyncPath(relative) ||
+        matchesExclusion(relative, excludedPaths) ||
+        relative.split('/').some((part) => !part || part === '.' || part === '..')
+      )
+        continue
+      const target = safePath(root, relative)
+      try {
+        await assertSafeParentDirectories(root, relative)
+        const stat = await fs.lstat(target, { bigint: true })
+        if (stat.isSymbolicLink()) continue
+        if (stat.isDirectory()) {
+          if (!visitedDirectories.has(relative)) {
+            visitedDirectories.add(relative)
+            await visit(target, relative)
+          }
+        } else if (stat.isFile() && !relative.toLowerCase().endsWith('.md')) {
+          const fingerprint = [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':')
+          let digest = cached[relative]?.fingerprint === fingerprint ? cached[relative].hash : ''
+          if (!digest) {
+            digest = hash(await fs.readFile(target))
+            cached[relative] = { fingerprint, hash: digest }
+          }
+          found.set(relative, { hash: digest, fingerprint })
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
+    }
+  }
+  for (const relative of Object.keys(cached)) {
+    if (
+      !found.has(relative) &&
+      (!selectedPaths ||
+        [...selectedPaths].some(
+          (changed) => relative === changed || relative.startsWith(`${changed}/`)
+        ))
+    )
+      delete cached[relative]
   }
   return found
 }
@@ -1322,7 +1542,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
         )
         await save()
         knownRemoteFiles = Object.fromEntries(
-          snapshot.files.filter((file) => file.kind === 'markdown').map((file) => [file.id, file])
+          snapshot.files
+            .filter((file) => file.kind === 'markdown' || file.kind === 'asset')
+            .map((file) => [file.id, file])
         )
         nextSyncRevision = snapshot.revision
         fullScan = true
@@ -1346,19 +1568,19 @@ async function syncOnce(workspaceId: string): Promise<void> {
               for (const previous of previousTree) {
                 if (!underDeletedFolder(previous.path)) continue
                 treeById.delete(previous.id)
-                if (previous.kind === 'markdown') {
+                if (previous.kind === 'markdown' || previous.kind === 'asset') {
                   remoteChangedPaths.add(previous.path)
                   delete knownRemoteFiles[previous.id]
                 }
               }
             }
             treeById.delete(change.id)
-            if (!change.deleted && (change.kind === 'markdown' || change.kind === 'folder'))
+            if (!change.deleted && ['markdown', 'asset', 'folder'].includes(change.kind))
               treeById.set(change.id, change)
             const previous = knownRemoteFiles[change.id]
             if (previous) remoteChangedPaths.add(previous.path)
             delete knownRemoteFiles[change.id]
-            if (!change.deleted && change.kind === 'markdown') {
+            if (!change.deleted && (change.kind === 'markdown' || change.kind === 'asset')) {
               knownRemoteFiles[change.id] = change
               remoteChangedPaths.add(change.path)
             }
@@ -1400,7 +1622,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
             snapshot.revision
           )
           knownRemoteFiles = Object.fromEntries(
-            snapshot.files.filter((file) => file.kind === 'markdown').map((file) => [file.id, file])
+            snapshot.files
+              .filter((file) => file.kind === 'markdown' || file.kind === 'asset')
+              .map((file) => [file.id, file])
           )
           nextSyncRevision = snapshot.revision
           fullScan = true
@@ -1489,7 +1713,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
             const latest = await readRemoteSnapshot(workspaceId)
             knownRemoteTree = latest.files
             knownRemoteFiles = Object.fromEntries(
-              latest.files.filter((file) => file.kind === 'markdown').map((file) => [file.id, file])
+              latest.files
+                .filter((file) => file.kind === 'markdown' || file.kind === 'asset')
+                .map((file) => [file.id, file])
             )
             nextSyncRevision = latest.revision
             fullScan = true
@@ -1655,7 +1881,26 @@ async function syncOnce(workspaceId: string): Promise<void> {
             new Set([...scannedLocalPaths, ...remoteChangedPaths]),
             config.excludedPaths ?? []
           )
-      const remoteByPath = new Map(Object.values(knownRemoteFiles).map((file) => [file.path, file]))
+      const localAssetPaths = fullScan
+        ? undefined
+        : new Set([...scannedLocalPaths, ...remoteChangedPaths])
+      const localAssets = await localAssetInventory(
+        workspaceId,
+        root,
+        config.excludedPaths ?? [],
+        localAssetPaths
+      )
+      await save()
+      const remoteAssetsByPath = new Map(
+        Object.values(knownRemoteFiles)
+          .filter((file) => file.kind === 'asset')
+          .map((file) => [file.path, file])
+      )
+      const remoteByPath = new Map(
+        Object.values(knownRemoteFiles)
+          .filter((file) => file.kind === 'markdown')
+          .map((file) => [file.path, file])
+      )
       const createAndRememberRemoteFile = async (
         relative: string,
         content: string
@@ -1709,7 +1954,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
           ]
       const paths = [...new Set(changedPaths)].filter(
         (relative) =>
-          !isReservedSyncPath(relative) && !matchesExclusion(relative, config.excludedPaths ?? [])
+          relative.toLowerCase().endsWith('.md') &&
+          !isReservedSyncPath(relative) &&
+          !matchesExclusion(relative, config.excludedPaths ?? [])
       )
       let completed = 0
       const total = paths.length
@@ -2048,7 +2295,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
                 ? 'attention'
                 : dirtyLocalPaths.get(workspaceId)?.has(relative)
                   ? 'pending'
-                  : null
+                  : 'synced'
             )
           }
           reportProgress()
@@ -2069,6 +2316,305 @@ async function syncOnce(workspaceId: string): Promise<void> {
         }
       }
       await Promise.all(Array.from({ length: Math.min(6, total) }, () => worker()))
+      const changedAssetPaths = fullScan
+        ? [
+            ...localAssets.keys(),
+            ...remoteAssetsByPath.keys(),
+            ...Object.keys(baselines).filter((relative) => !relative.toLowerCase().endsWith('.md'))
+          ]
+        : [
+            ...localAssets.keys(),
+            ...[...remoteChangedPaths].filter((relative) => remoteAssetsByPath.has(relative)),
+            ...scannedLocalPaths.flatMap((changed) => [
+              ...Object.keys(baselines).filter(
+                (relative) => relative === changed || relative.startsWith(`${changed}/`)
+              ),
+              ...remoteAssetsByPath
+                .keys()
+                .filter((relative) => relative === changed || relative.startsWith(`${changed}/`))
+            ])
+          ]
+      const assetPaths = [...new Set(changedAssetPaths)].filter(
+        (relative) =>
+          !relative.toLowerCase().endsWith('.md') &&
+          !isReservedSyncPath(relative) &&
+          !matchesExclusion(relative, config.excludedPaths ?? [])
+      )
+      let assetIndex = 0
+      const reconcileAsset = async (relative: string): Promise<void> => {
+        setItemState(workspaceId, relative, 'syncing')
+        try {
+          let localAsset = localAssets.get(relative)
+          const remote = remoteAssetsByPath.get(relative)
+          let baseline = baselines[relative]
+          const localPath = safePath(root, relative)
+          const readLocal = async () => {
+            await assertSafeParentDirectories(root, relative)
+            const stat = await fs.lstat(localPath)
+            if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
+            return new Uint8Array(await fs.readFile(localPath))
+          }
+          const writeFingerprint = async (bytesHash: string) => {
+            const stat = await fs.lstat(localPath, { bigint: true })
+            const fingerprint = [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(
+              ':'
+            )
+            ;(state.assetFingerprints[workspaceId] ??= {})[relative] = {
+              fingerprint,
+              hash: bytesHash
+            }
+          }
+          const readRemote = async (file: BridgeFile) =>
+            fetchPkmsAsset(
+              `/api/workspaces/${encodeURIComponent(workspaceId)}/assets/${encodeURIComponent(file.id)}`
+            ).then((result) => result.bytes)
+          const remember = (file: BridgeFile, bytesHash: string) => {
+            knownRemoteFiles[file.id] = file
+            remoteAssetsByPath.set(file.path, file)
+            knownRemoteTree = [
+              ...(knownRemoteTree ?? []).filter(
+                (entry) => entry.id !== file.id && entry.path !== file.path
+              ),
+              file
+            ]
+            baselines[file.path] = { fileId: file.id, hash: bytesHash, revision: file.revision }
+            nextSyncRevision = Math.max(nextSyncRevision ?? 0, file.revision)
+          }
+          const uploadNew = async (uploadPath: string, bytes: Uint8Array) => {
+            const result = await uploadAsset(workspaceId, uploadPath, null, null, bytes)
+            const file: BridgeFile = {
+              id: result.fileId,
+              path: result.conflictCopyPath ?? result.path,
+              kind: 'asset',
+              revision: result.acceptedRevision,
+              size: bytes.byteLength,
+              localHash: hash(bytes)
+            }
+            remember(file, hash(bytes))
+            return file
+          }
+          const removeLocalBytes = async (expectedHash: string) => {
+            const current = await readLocal()
+            if (hash(current) !== expectedHash) throw new Error('local_file_changed_retry')
+            await fs.rm(localPath)
+            delete (state.assetFingerprints[workspaceId] ?? {})[relative]
+          }
+          if (!localAsset) {
+            try {
+              await assertSafeParentDirectories(root, relative)
+              const stat = await fs.lstat(localPath)
+              if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
+              const bytes = await readLocal()
+              localAsset = { hash: hash(bytes), fingerprint: '' }
+            } catch (error) {
+              if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+            }
+          }
+          if (!remote && !localAsset) {
+            delete baselines[relative]
+            return
+          }
+          if (!remote && localAsset) {
+            const bytes = await readLocal()
+            if (baseline) {
+              if (hash(bytes) !== baseline.hash) {
+                const ext = path.posix.extname(relative)
+                const conflictPath = `${relative.slice(0, -ext.length)}.local-conflict-${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
+                await writeAtomicBytes(root, conflictPath, bytes, null)
+                const created = await uploadNew(conflictPath, bytes)
+                baselines[created.path] = {
+                  fileId: created.id,
+                  hash: hash(bytes),
+                  revision: created.revision
+                }
+              }
+              await removeLocalBytes(hash(bytes))
+              delete baselines[relative]
+            } else {
+              await uploadNew(relative, bytes)
+            }
+            return
+          }
+          if (remote && !localAsset) {
+            if (!baseline) {
+              const bytes = await readRemote(remote)
+              await writeAtomicBytes(root, relative, bytes, null)
+              const bytesHash = hash(bytes)
+              remember(remote, bytesHash)
+              await writeFingerprint(bytesHash)
+              notifyLocalTreeChanged(workspaceId, relative)
+              return
+            }
+            const remoteChanged =
+              remote.id !== baseline.fileId || remote.revision !== baseline.revision
+            if (remoteChanged) {
+              const bytes = await readRemote(remote)
+              await writeAtomicBytes(root, relative, bytes, null)
+              const bytesHash = hash(bytes)
+              remember(remote, bytesHash)
+              await writeFingerprint(bytesHash)
+              notifyLocalTreeChanged(workspaceId, relative)
+              return
+            }
+            const result = await request<{ acceptedRevision?: number }>(
+              `/api/workspaces/${encodeURIComponent(workspaceId)}/operations`,
+              'POST',
+              {
+                operationId: randomUUID(),
+                baseRevision: nextSyncRevision ?? 0,
+                clientId: 'desktop-sync-bridge',
+                operation: { type: 'delete', fileId: remote.id, expectedRevision: remote.revision }
+              }
+            )
+            delete knownRemoteFiles[remote.id]
+            remoteAssetsByPath.delete(relative)
+            knownRemoteTree = (knownRemoteTree ?? []).filter((entry) => entry.id !== remote.id)
+            delete baselines[relative]
+            nextSyncRevision = Math.max(nextSyncRevision ?? 0, result.acceptedRevision ?? 0)
+            return
+          }
+          if (!remote || !localAsset) return
+          const localBytes = await readLocal()
+          const localHash = hash(localBytes)
+          baseline = baselines[relative]
+          if (!baseline && remote.sha && gitBlobHashBytes(localBytes) === remote.sha) {
+            remember(remote, localHash)
+            return
+          }
+          const remoteChanged =
+            !baseline || remote.id !== baseline.fileId || remote.revision !== baseline.revision
+          const localChanged = !baseline || localHash !== baseline.hash
+          if (remote.sha && gitBlobHashBytes(localBytes) === remote.sha) {
+            remember(remote, localHash)
+            return
+          }
+          if (!baseline) {
+            const remoteBytes = await readRemote(remote)
+            const remoteHash = hash(remoteBytes)
+            if (remoteHash === localHash) {
+              remember(remote, localHash)
+              return
+            }
+            const ext = path.posix.extname(relative)
+            const base = ext ? relative.slice(0, -ext.length) : relative
+            const conflictPath = `${base}.local-conflict-${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
+            await writeAtomicBytes(root, conflictPath, localBytes, null)
+            const created = await uploadNew(conflictPath, localBytes)
+            baselines[created.path] = {
+              fileId: created.id,
+              hash: localHash,
+              revision: created.revision
+            }
+            await writeAtomicBytes(root, relative, remoteBytes, localHash)
+            remember(remote, remoteHash)
+            await writeFingerprint(remoteHash)
+            setItemState(workspaceId, relative, 'attention')
+            notifyLocalTreeChanged(workspaceId, relative)
+            return
+          }
+          if (localChanged && remoteChanged && baseline) {
+            const ext = path.posix.extname(relative)
+            const base = ext ? relative.slice(0, -ext.length) : relative
+            const conflictPath = `${base}.local-conflict-${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
+            await writeAtomicBytes(root, conflictPath, localBytes, null)
+            const created = await uploadNew(conflictPath, localBytes)
+            baselines[created.path] = {
+              fileId: created.id,
+              hash: localHash,
+              revision: created.revision
+            }
+            const remoteBytes = await readRemote(remote)
+            await writeAtomicBytes(root, relative, remoteBytes, localHash)
+            const remoteHash = hash(remoteBytes)
+            remember(remote, remoteHash)
+            await writeFingerprint(remoteHash)
+            setItemState(workspaceId, relative, 'attention')
+            notifyLocalTreeChanged(workspaceId, relative)
+          } else if (localChanged) {
+            const result = await uploadAsset(
+              workspaceId,
+              relative,
+              remote.id,
+              remote.revision,
+              localBytes
+            )
+            const updated: BridgeFile = {
+              ...remote,
+              revision: result.acceptedRevision,
+              size: localBytes.byteLength,
+              sha: gitBlobHashBytes(localBytes),
+              localHash
+            }
+            remember(updated, localHash)
+            await writeFingerprint(localHash)
+          } else if (remoteChanged) {
+            const remoteBytes = await readRemote(remote)
+            const remoteHash = hash(remoteBytes)
+            await writeAtomicBytes(root, relative, remoteBytes, localHash)
+            remember(remote, remoteHash)
+            await writeFingerprint(remoteHash)
+            notifyLocalTreeChanged(workspaceId, relative)
+          } else {
+            remember(remote, localHash)
+          }
+        } finally {
+          if (status(workspaceId).itemStates[relative] === 'syncing')
+            setItemState(workspaceId, relative, 'synced')
+        }
+      }
+      const assetWorker = async () => {
+        while (true) {
+          const index = assetIndex++
+          if (index >= assetPaths.length) return
+          try {
+            await reconcileAsset(assetPaths[index])
+          } catch (error) {
+            if (
+              error instanceof PkmsBridgeRequestError &&
+              error.code === 'asset_changed_since_base'
+            ) {
+              try {
+                const latest = await readRemoteSnapshot(workspaceId)
+                knownRemoteTree = latest.files
+                state.remoteTrees[workspaceId] = latest.files
+                knownRemoteFiles = Object.fromEntries(
+                  latest.files
+                    .filter((file) => file.kind === 'markdown' || file.kind === 'asset')
+                    .map((file) => [file.id, file])
+                )
+                for (const [assetPath, file] of remoteAssetsByPath)
+                  if (!latest.files.some((entry) => entry.id === file.id))
+                    remoteAssetsByPath.delete(assetPath)
+                for (const file of latest.files)
+                  if (file.kind === 'asset') remoteAssetsByPath.set(file.path, file)
+                nextSyncRevision = latest.revision
+                await reconcileAsset(assetPaths[index])
+                continue
+              } catch (retryError) {
+                error = retryError
+              }
+            }
+            setItemState(workspaceId, assetPaths[index], 'attention')
+            firstError ??= error
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(4, assetPaths.length) }, () => assetWorker()))
+      if (fullScan) {
+        const activePaths = new Set([
+          ...local.keys(),
+          ...localAssets.keys(),
+          ...Object.keys(scannedDirectories ?? {}),
+          ...(knownRemoteTree ?? []).map((file) => file.path)
+        ])
+        for (const relative of Object.keys(status(workspaceId).itemStates))
+          if (!activePaths.has(relative)) setItemState(workspaceId, relative, null)
+      }
+      if (!firstError) {
+        for (const folder of knownRemoteTree ?? [])
+          if (folder.kind === 'folder' && !status(workspaceId).itemStates[folder.path])
+            setItemState(workspaceId, folder.path, 'synced')
+      }
       await save()
       if (firstError) throw firstError
       for (const relative of [...remoteDeletedFolderPaths].sort(
@@ -2374,6 +2920,7 @@ export async function configurePkmsSyncBridge(
     folderPath: root,
     excludedPaths: state.configs[workspaceId].excludedPaths,
     state: 'syncing',
+    itemStates: state.itemStates[workspaceId] ?? {},
     error: null
   })
   await startRuntime(workspaceId, root)

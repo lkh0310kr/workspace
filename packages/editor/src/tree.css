@@ -93,6 +93,12 @@
 .editor-tree-trailing-status--pending {
   color: var(--muted, var(--text-muted));
 }
+.editor-tree-trailing-status--synced {
+  color: var(--success, var(--muted, var(--text-muted)));
+}
+.editor-tree-trailing-status--excluded {
+  color: var(--muted, var(--text-muted));
+}
 .editor-tree-trailing-status--syncing {
   color: var(--accent);
 }

@@ -52,6 +52,10 @@ export function SyncBridgePanel({
     }
   }, [bridge, workspaceId])
   const excludedKey = status?.excludedPaths.join('\n') ?? ''
+  const itemStateCounts = Object.values(status?.itemStates ?? {}).reduce(
+    (counts, itemState) => ({ ...counts, [itemState]: (counts[itemState] ?? 0) + 1 }),
+    {} as Record<string, number>
+  )
   useEffect(() => setExcludedDraft(excludedKey), [workspaceId, excludedKey])
 
   useEffect(() => {
@@ -162,6 +166,18 @@ export function SyncBridgePanel({
                   : 'PKMS and external editors use this same folder. Cloud sync keeps it up to date across devices; conflicting edits are saved as conflict copies.'}
             {status?.pendingFiles ? ` · ${status.pendingFiles} pending` : ''}
           </div>
+          {status?.enabled && Object.keys(itemStateCounts).length > 0 && (
+            <div className="sync-bridge-meta" aria-label="File sync status totals">
+              {itemStateCounts.synced ?? 0} synced
+              {' · '}
+              {itemStateCounts.pending ?? 0} pending
+              {' · '}
+              {itemStateCounts.syncing ?? 0} syncing
+              {' · '}
+              {itemStateCounts.attention ?? 0} need attention
+              {(itemStateCounts.excluded ?? 0) > 0 && <> · {itemStateCounts.excluded} excluded</>}
+            </div>
+          )}
           {(status?.error || message) && (
             <div className="sync-bridge-error">{status?.error ?? message}</div>
           )}

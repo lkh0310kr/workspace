@@ -96,7 +96,7 @@ export interface PkmsSyncBridgeStatus {
   lastSyncedAt: number | null
   pendingFiles: number
   conflictFiles: string[]
-  itemStates: Record<string, 'pending' | 'syncing' | 'attention'>
+  itemStates: Record<string, 'synced' | 'pending' | 'syncing' | 'attention' | 'excluded'>
   error: string | null
 }
 

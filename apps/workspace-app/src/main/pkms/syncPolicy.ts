@@ -13,6 +13,8 @@ type RootScopedState = {
   localDirectories: Record<string, unknown>
   pendingDeletes: Record<string, unknown>
   pendingRemoteFolderDeletes: Record<string, unknown>
+  itemStates?: Record<string, unknown>
+  assetFingerprints?: Record<string, unknown>
 }
 
 /** Clear facts derived from a local root when that root changes. */
@@ -31,6 +33,8 @@ export function resetRootScopedState<T extends RootScopedState>(
   delete state.localDirectories[workspaceId]
   delete state.pendingDeletes[workspaceId]
   delete state.pendingRemoteFolderDeletes[workspaceId]
+  if (state.itemStates) delete state.itemStates[workspaceId]
+  if (state.assetFingerprints) delete state.assetFingerprints[workspaceId]
 }
 
 export function remoteChangedSinceBaseline(
