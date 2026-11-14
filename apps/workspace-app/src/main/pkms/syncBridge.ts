@@ -2291,7 +2291,18 @@ async function syncOnce(workspaceId: string): Promise<void> {
           const remoteChanged =
             remote.id !== baseline.fileId ||
             (remoteContent !== null && remoteContent.revision !== baseline.revision)
-          if (localChanged && remoteChanged) {
+          if (localChanged && remoteChanged && remoteText !== undefined && localHash === hash(remoteText)) {
+            const acceptedRevision = remoteContent?.revision ?? remote.revision
+            baselines[relative] = {
+              fileId: remote.id,
+              hash: localHash,
+              revision: acceptedRevision
+            }
+            const pendingUpdate = state.pendingUpdates[workspaceId]?.[remote.id]
+            if (pendingUpdate?.targetHash === localHash)
+              delete state.pendingUpdates[workspaceId][remote.id]
+            nextSyncRevision = Math.max(nextSyncRevision ?? 0, acceptedRevision)
+          } else if (localChanged && remoteChanged) {
             const created = await preserveConflictCopy(relative, actualLocal)
             baselines[created.path] = {
               fileId: created.id,
