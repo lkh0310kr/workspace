@@ -22,28 +22,5 @@
 - Keep documentation/process changes (including this file) in their own commit when they are a separate task from product behavior. Do not combine unrelated fixes merely because they were discovered together.
 - If verification fails, fix the cause and rerun the affected check before committing. If a check cannot run, state why and do not describe the task as fully verified.
 
-## Spec-driven development
-
-- Before product or code changes, read [the spec-driven development rules](docs/architecture/spec-driven-development.md), the docs index for the owning scope, and the specific global/app/package spec for the affected behavior. If the behavior crosses scopes, inspect and update each owner rather than placing all detail at the top level.
-- Write or revise result-based acceptance first: starting conditions, user action, target state, observable result, and failure/cancel/retry/recovery outcome where relevant. Specify implementation details only when choices can alter user-visible results, compatibility, security, concurrency, persistence, or data safety.
-- Separate current implementation facts from intended behavior. Do not treat code links, source digests, or the existence of a document as proof that the requirement is specified or verified.
-- Update the owning spec and implementation in the same task. Add or revise automated checks for repeatable behavior and perform the requested UI/runtime acceptance when the behavior crosses Electron, browser, OS, or packaged-app boundaries. Document any acceptance that remains manual or unverified.
-- After source changes, run the architecture-spec checker and refresh its index only after reviewing source/spec alignment. Include only intentional index changes in the task commit.
-- For defects, trace the full event/data path from user action through owning process/provider to rendered result; add regression coverage at the failing boundary so the defect cannot silently return.
-
-## CAD / CAE workflows
-
-Skills live under `.agents/skills/`; read the relevant `SKILL.md` before CAD, DXF, URDF, G-code, or viewer work. CAD model projects and the old verification scripts are archived under `archive/models/` and `archive/scripts/`; do not treat them as active product scope.
-
-The CAD viewer and STEP conversion still use the project Python environment. Never use system `python` for skill commands:
-
-```bash
-npm run agents:python:setup
-npm run agents:python -- <args>
-npm run agents:python -- -m cadgen.cli doctor .agents/skills/cad
-```
-
-Interpreter paths:
-
-- Unix / WSL / macOS: `.agents/.venv/bin/python`
-- Windows: `.agents\\.venv\\Scripts\\python.exe`
+## Spec Driven Development
+- 제품 또는 코드 변경 전에 관련 개발 규칙, 문서 인덱스 및 담당 스펙을 먼저 확인하세요. 여러 범위에 영향을 주는 경우 각 담당 스펙을 검토하고 업데이트하세요. (참고: [스펙 기반 개발 규칙](docs/architecture/spec-driven-development.md))
