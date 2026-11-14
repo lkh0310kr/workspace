@@ -42,8 +42,11 @@ Google Drive를 PKMS 파일의 canonical storage로 쓰는 것은 가능하다. 
 
 - Desktop은 시스템 browser OAuth authorization code + PKCE를 사용한다. 장기 refresh token은 macOS Keychain 등 OS secure storage에 둔다. Client secret을 Electron 앱에 비밀로 넣을 수는 없다. [OAuth for desktop apps](https://developers.google.com/identity/protocols/oauth2/native-app)
 - Web이 backend 없이 Drive를 직접 호출하면 Google Identity Services token model의 짧은 access token을 사용한다. 만료 뒤 새 token은 사용자 gesture로 요청해야 한다. 장시간/사용자 부재 중 refresh가 필요한 authorization code flow는 endpoint와 refresh token을 관리할 backend가 필요하다. [Web authorization model](https://developers.google.com/identity/oauth2/web/guides/choose-authorization-model), [GIS token model](https://developers.google.com/identity/oauth2/web/guides/use-token-model)
-- OAuth consent screen이 External/Testing이면 Drive scope를 포함한 refresh token은 7일 후 만료된다. 실사용 Desktop의 무인 background sync 전에 앱 publishing/verification 상태를 해결해야 한다. [OAuth refresh token expiration](https://developers.google.com/identity/protocols/oauth2)
-- Browser token은 localStorage에 장기 보관하지 않는다. Web은 현재 탭에서만 token을 memory에 유지하고, 사용자에게 재인증을 요청한다. Desktop refresh token은 OS credential store에 둔다.
+- Access token 수명은 고정 상수로 가정하지 않는다. OAuth token response의 `expires_in`이 발급된 token의 남은 초를 제공하며, Google의 Desktop OAuth 공식 예시에는 `3920`초(65분 20초)가 있다. 구현은 응답의 `expires_in`으로 만료 시각을 계산하고 실제 값을 기록해야 한다. [Desktop OAuth token response](https://developers.google.com/identity/protocols/oauth2/native-app)
+- GIS browser token model은 access token만 발급하며, refresh token을 주지 않는다. 만료 후 `requestAccessToken()`을 사용자 조작으로 다시 실행해야 한다. access token을 장기 저장하지 않는다. [GIS token model](https://developers.google.com/identity/oauth2/web/guides/use-token-model)
+- Desktop refresh token은 통상 사용자 revoke 전까지 재발급에 쓰지만 영구 보장은 아니다. 사용자가 접근을 revoke하거나, 6개월 미사용 등 Google의 만료 규칙이 적용되거나, 테스트 consent가 만료되면 다시 로그인해야 한다. [OAuth refresh token lifecycle](https://developers.google.com/identity/protocols/oauth2)
+- OAuth consent screen이 External/Testing이면 Drive scope를 포함한 grant/refresh token은 7일 후 만료된다. 실사용 Desktop의 무인 background sync 전에 publishing/verification 상태를 해결해야 한다. [OAuth refresh token expiration](https://developers.google.com/identity/protocols/oauth2)
+- Browser token은 localStorage에 저장하지 않는다. Web은 현재 탭 메모리에서 token과 `expires_in` countdown만 관리하고, 만료 후 재인증 button을 제공한다. Desktop refresh token은 OS credential store에 둔다.
 
 ## 데이터 및 충돌 정책 초안
 
@@ -65,6 +68,14 @@ Drive API가 노출하는 `headRevisionId`는 blob file의 revision 식별자이
 - 5초마다 change feed 한 번씩 읽는다면 한 기기에서 분당 12회의 list 요청이다. 문서상 `changes.list`는 100 quota units/request이므로 약 1,200 units/minute다. 즉 무한 재시도는 여전히 방지해야 하지만 현재 Worker Free의 100k/day request cap과 같은 수치/운영 모델은 아니다.
 - 5,733개 파일의 최초 content download는 API 호출 수보다 총 bytes, 첫 tree 구축 지연, offline 재시작 시간에 영향을 준다. 초기 sync 후에는 change feed와 변경 파일만 내려받고, 주기적 full scan은 복구 용도로 제한한다.
 - HTTP 429와 quota 관련 403은 truncated exponential backoff + jitter 후 재시도한다. 한 요청 실패가 모든 file sync를 막지 않게 path별 pending 상태를 유지한다. [Drive API error handling](https://developers.google.com/workspace/drive/api/guides/handle-errors)
+
+## 격리 prototype
+
+`apps/pkms-web/prototypes/google-drive-direct/`는 production route나 기존 PKMS 데이터를 사용하지 않는 static browser prototype을 둔다. Google Identity Services의 public Web client ID를 사용하고, Browser가 Drive API v3를 직접 호출한다. access token은 memory only다. prototype은 API response의 `expires_in`을 화면에 초 단위로 표시하고 만료 후에는 사용자 button으로만 다시 받는다.
+
+Google OAuth client 설정은 [Google Cloud OAuth clients](https://console.cloud.google.com/auth/clients)에서 한다. Cloud project에서 Drive API를 enable하고 OAuth consent audience를 External/Testing으로 지정한 다음, OAuth client type을 Web application으로 생성한다. Authorized JavaScript origin은 prototype의 실제 localhost origin(`http://localhost:4173`)이고, GIS token model에는 redirect URI를 설정하지 않는다. Data Access scope는 `https://www.googleapis.com/auth/drive.file`만 요청한다. Testing audience에서는 계정을 Test users에 추가하고, 7일짜리 testing grant 경계를 확인한다. [Google: Get a client ID](https://developers.google.com/identity/oauth2/web/guides/get-google-api-clientid), [Drive API JavaScript quickstart](https://developers.google.com/workspace/drive/api/quickstart/js)
+
+Client ID는 public identifier이므로 prototype 화면에 입력할 수 있고, client secret은 사용하지 않는다. prototype이 실제 Drive에 만드는 item은 `Workspace Drive Prototype` 폴더 아래에만 둔다. 기존 PKMS root는 선택하거나 수정하지 않는다.
 
 ## 권장 목표 구조
 

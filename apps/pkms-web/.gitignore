@@ -1,0 +1,3 @@
+
+# Local OAuth client ID for isolated direct-Drive prototype
+prototypes/google-drive-direct/.env.local

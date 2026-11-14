@@ -9,7 +9,8 @@
     "dev": "react-router dev",
     "build": "react-router build",
     "deploy": "npm run build && wrangler deploy --config build/server/wrangler.json",
-    "typecheck": "react-router typegen && tsc --noEmit"
+    "typecheck": "react-router typegen && tsc --noEmit",
+    "drive:prototype": "vite --config prototypes/google-drive-direct/vite.config.ts"
   },
   "dependencies": {
     "@workspace/editor": "*",

@@ -4,6 +4,13 @@
 
 ## 진행 중
 
+### Google Drive 직접 연결 prototype acceptance
+
+- **목표 결과:** 별도 동기화 서버 없이 Web browser가 Google Drive API를 직접 사용해 prototype 전용 파일·폴더를 읽고 쓰며, token 만료·변경 feed·충돌 보존을 관찰할 수 있다. 기존 PKMS 저장소는 이 prototype에서 접근하거나 변경하지 않는다.
+- **현재 상태:** 격리된 static prototype 구현 및 로컬 TypeScript 검사, production build, HTTP route 확인 완료. 로컬 Google Web client ID 설정은 `.env.local`에만 저장한다. Google Cloud에서 `http://localhost:4173`을 Authorized JavaScript origin으로 추가하고 Drive API 및 OAuth test user 설정을 마친 뒤 실제 OAuth와 Drive round-trip acceptance가 남아 있다.
+- **완료 조건:** 연결 응답의 실제 `expires_in`과 만료 후 재인증, `drive.file` 범위의 전용 폴더 생성·Markdown round-trip·folder CRUD, multi-page changes cursor commit, 외부 수정 중 conflict copy 보존을 실제 브라우저에서 검증한다. 이후 direct Drive의 공개 가능 범위와 sync 전환 결정을 owner spec에 기록한다.
+- **근거:** [Google Drive direct sync 조사·결과 스펙](../architecture/workspace/pkms/folder-sync/research/google-drive-direct-sync.md), [격리 prototype 실행 안내](../../apps/pkms-web/prototypes/google-drive-direct/README.md)
+
 ### PKMS 즉시 반응과 sync runtime acceptance
 
 - **목표 결과:** TreeView와 Editor 입력은 즉시 반응한다. Cache가 있으면 tree를 먼저 표시하고 서버·파일시스템 작업은 background에서 끝난다. Web에서 저장한 Markdown은 연결된 Desktop local file과 수렴하고, 중단·충돌·재시작에도 변경 내용과 sync 상태가 보존된다.

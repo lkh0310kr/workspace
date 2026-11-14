@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer-when-downgrade" />
+    <title>Google Drive direct sync prototype</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body>
+    <main class="layout">
+      <header class="page-header">
+        <p class="eyebrow">ISOLATED PROTOTYPE · DRIVE API V3</p>
+        <h1>Google Drive 직접 연결</h1>
+        <p>이 화면은 별도 application server 없이 브라우저에서 Google Drive API를 직접 호출합니다. 새 테스트 폴더만 사용하며 기존 PKMS 자료는 건드리지 않습니다.</p>
+      </header>
+
+      <section class="panel auth-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Google OAuth</h2>
+            <p>Client ID는 공개 식별자입니다. Client secret이나 access token을 저장하지 않습니다.</p>
+          </div>
+          <span id="token-state" class="pill">연결 안 됨</span>
+        </div>
+        <label for="client-id">OAuth Web client ID</label>
+        <div class="inline-form">
+          <input id="client-id" type="text" autocomplete="off" spellcheck="false" placeholder="123…apps.googleusercontent.com" />
+          <button id="connect-button" class="primary">Google Drive 연결</button>
+        </div>
+        <div class="token-details">
+          <span>Access token 만료까지</span>
+          <strong id="token-countdown">—</strong>
+          <span id="token-issued">응답의 expires_in을 기다리는 중</span>
+        </div>
+        <p class="hint">Access token이 만료되면 자동 갱신하지 않습니다. 이 페이지에서 다시 연결 버튼을 눌러 Google이 발급한 새 token을 받아야 합니다.</p>
+      </section>
+
+      <section class="panel drive-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Prototype Drive folder</h2>
+            <p id="root-label">아직 테스트 폴더에 연결되지 않았습니다.</p>
+          </div>
+          <button id="root-button" disabled>테스트 폴더 연결 / 생성</button>
+        </div>
+        <div class="toolbar">
+          <button id="back-button" disabled>← 상위 폴더</button>
+          <button id="refresh-button" disabled>목록 새로고침</button>
+          <button id="create-folder-button" disabled>하위 폴더 만들기</button>
+          <button id="create-note-button" disabled>테스트 Markdown 만들기</button>
+          <button id="changes-button" disabled>Drive 변경 확인</button>
+          <button id="open-drive-button" disabled>Drive에서 보기</button>
+        </div>
+        <div id="breadcrumb" class="breadcrumb">Drive 연결 후 prototype folder를 만들 수 있습니다.</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>이름</th><th>종류</th><th>수정 시각</th><th>상태</th><th>작업</th></tr></thead>
+            <tbody id="file-rows"><tr><td colspan="5" class="empty">아직 항목이 없습니다.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel editor-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Markdown write / conflict probe</h2>
+            <p id="selected-file">Markdown 파일을 선택하세요.</p>
+          </div>
+          <div class="button-row">
+            <button id="rename-button" disabled>Rename</button>
+            <button id="trash-button" class="danger" disabled>휴지통으로</button>
+            <button id="save-button" class="primary" disabled>Drive에 저장</button>
+          </div>
+        </div>
+        <textarea id="editor" spellcheck="false" placeholder="테스트 Markdown 파일을 선택하면 내용을 불러옵니다." disabled></textarea>
+        <p class="hint warning">저장 전에 metadata와 checksum을 다시 읽어 충돌을 검사합니다. Drive API가 이 preflight와 upload를 하나의 원자적 조건부 쓰기로 보장하는지는 별도 확인이 필요합니다. 충돌이면 현재 내용을 덮지 않고 conflict copy로 보존합니다.</p>
+      </section>
+
+      <section class="panel log-panel">
+        <div class="panel-heading">
+          <div><h2>실험 로그</h2><p>token 값과 문서 본문은 기록하지 않습니다.</p></div>
+          <button id="clear-log-button">로그 지우기</button>
+        </div>
+        <ol id="event-log" aria-live="polite"></ol>
+      </section>
+      <footer>현재 상태는 browser-local입니다. Token은 memory only, folder ID와 change cursor만 이 origin의 localStorage에 저장됩니다.</footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

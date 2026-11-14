@@ -1,0 +1,94 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --bg: #f4f6f8;
+  --panel: #fff;
+  --text: #20252b;
+  --muted: #64707d;
+  --border: #d9dfe6;
+  --accent: #1769e0;
+  --danger: #b42318;
+  --good: #087443;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171b;
+    --panel: #1d2228;
+    --text: #edf1f5;
+    --muted: #a2adb9;
+    --border: #38424c;
+    --accent: #8ab4f8;
+    --danger: #ff9388;
+    --good: #65d69a;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+button, input, textarea { font: inherit; }
+button {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.danger { color: var(--danger); }
+button:hover:not(:disabled) { filter: brightness(.96); }
+input, textarea {
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 12px;
+}
+.layout { width: min(1120px, calc(100% - 32px)); margin: 36px auto; display: grid; gap: 16px; }
+.page-header { padding: 12px 4px 4px; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; font-weight: 700; color: var(--accent); }
+h1 { font-size: clamp(28px, 4vw, 40px); margin: 8px 0; }
+h2 { font-size: 17px; margin: 0 0 4px; }
+p { color: var(--muted); line-height: 1.5; margin: 6px 0; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px #1111; }
+.panel-heading { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.panel-heading p { font-size: 13px; }
+.panel-heading > div:first-child { min-width: 0; }
+.auth-panel label { display: block; color: var(--muted); font-size: 12px; margin: 12px 0 6px; }
+.inline-form { display: flex; gap: 8px; }
+.inline-form input { flex: 1; min-width: 0; }
+.pill { flex: none; padding: 5px 9px; border-radius: 999px; color: var(--muted); background: var(--bg); font-size: 12px; }
+.pill.connected { color: var(--good); }
+.token-details { display: flex; align-items: baseline; gap: 10px; padding: 12px 0 0; color: var(--muted); font-size: 12px; }
+.token-details strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.token-details span:last-child { margin-left: auto; }
+.hint { font-size: 12px; }
+.warning { color: #a05b00; }
+.toolbar, .button-row { display: flex; gap: 7px; flex-wrap: wrap; }
+.breadcrumb { padding: 10px 0; color: var(--muted); font-size: 13px; }
+.table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 9px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+th { color: var(--muted); font-size: 11px; font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td button { padding: 5px 8px; font-size: 12px; }
+.name-cell { min-width: 200px; }
+.name-action { border: 0; padding: 2px 0; background: none; color: var(--accent); text-align: left; }
+.empty { color: var(--muted); text-align: center; padding: 24px; }
+#editor { width: 100%; min-height: 260px; resize: vertical; font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+#event-log { max-height: 230px; overflow: auto; margin: 0; padding-left: 24px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+#event-log li { padding: 2px 0; overflow-wrap: anywhere; }
+#event-log li[data-level="error"] { color: var(--danger); }
+footer { color: var(--muted); font-size: 12px; padding: 0 4px 20px; }
+@media (max-width: 700px) {
+  .layout { width: min(100% - 20px, 1120px); margin: 16px auto; }
+  .panel { padding: 13px; }
+  .panel-heading { align-items: flex-start; flex-direction: column; }
+  .inline-form { flex-direction: column; }
+  .token-details { flex-wrap: wrap; }
+  .token-details span:last-child { width: 100%; margin-left: 0; }
+}
