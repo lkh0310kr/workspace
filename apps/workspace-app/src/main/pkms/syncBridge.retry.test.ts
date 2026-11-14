@@ -22,11 +22,13 @@ describe('PKMS retryable HTTP failures', () => {
   const workspaceId = 'retry-status-test'
   const offlineWorkspaceId = 'offline-no-loop-test'
   const serverErrorWorkspaceId = 'server-error-retry-test'
+  const timeoutWorkspaceId = 'timeout-retry-test'
   const unauthorizedWorkspaceId = 'unauthorized-no-retry-test'
   const forbiddenWorkspaceId = 'forbidden-no-retry-test'
   let root: string
   let offlineRoot: string
   let serverErrorRoot: string
+  let timeoutRoot: string
   let unauthorizedRoot: string
   let forbiddenRoot: string
   const stateFile = path.join(testRuntime.userData, 'pkms-sync-bridge.json')
@@ -35,6 +37,7 @@ describe('PKMS retryable HTTP failures', () => {
     root = await mkdtemp(path.join(os.tmpdir(), 'pkms-retry-root-'))
     offlineRoot = await mkdtemp(path.join(os.tmpdir(), 'pkms-offline-root-'))
     serverErrorRoot = await mkdtemp(path.join(os.tmpdir(), 'pkms-server-error-root-'))
+    timeoutRoot = await mkdtemp(path.join(os.tmpdir(), 'pkms-timeout-root-'))
     unauthorizedRoot = await mkdtemp(path.join(os.tmpdir(), 'pkms-unauthorized-root-'))
     forbiddenRoot = await mkdtemp(path.join(os.tmpdir(), 'pkms-forbidden-root-'))
     await mkdir(testRuntime.userData, { recursive: true })
@@ -47,6 +50,7 @@ describe('PKMS retryable HTTP failures', () => {
           [workspaceId]: { folderPath: root, excludedPaths: [] },
           [offlineWorkspaceId]: { folderPath: offlineRoot, excludedPaths: [] },
           [serverErrorWorkspaceId]: { folderPath: serverErrorRoot, excludedPaths: [] },
+          [timeoutWorkspaceId]: { folderPath: timeoutRoot, excludedPaths: [] },
           [unauthorizedWorkspaceId]: { folderPath: unauthorizedRoot, excludedPaths: [] },
           [forbiddenWorkspaceId]: { folderPath: forbiddenRoot, excludedPaths: [] }
         },
@@ -54,17 +58,20 @@ describe('PKMS retryable HTTP failures', () => {
           [workspaceId]: ['pending.md'],
           [offlineWorkspaceId]: ['offline.md'],
           [serverErrorWorkspaceId]: ['server-error.md'],
+          [timeoutWorkspaceId]: ['timeout.md'],
           [unauthorizedWorkspaceId]: ['unauthorized.md'],
           [forbiddenWorkspaceId]: ['forbidden.md']
         }
       })
     )
     await writeFile(path.join(serverErrorRoot, 'server-error.md'), '# server error\n')
+    await writeFile(path.join(timeoutRoot, 'timeout.md'), '# timeout\n')
     await writeFile(path.join(unauthorizedRoot, 'unauthorized.md'), '# unauthorized\n')
     await writeFile(path.join(forbiddenRoot, 'forbidden.md'), '# forbidden\n')
     testRuntime.request.mockImplementation(async (url: string) => {
       if (url.includes(offlineWorkspaceId)) throw new TypeError('fetch failed')
       if (url.includes(serverErrorWorkspaceId)) return { status: 503, body: { error: 'db_busy' } }
+      if (url.includes(timeoutWorkspaceId)) throw new TypeError('request timed out')
       if (url.includes(unauthorizedWorkspaceId)) return { status: 401, body: { error: 'expired' } }
       if (url.includes(forbiddenWorkspaceId)) return { status: 403, body: { error: 'forbidden' } }
       return { status: 429, body: { error: 'worker_limit_exceeded' } }
@@ -75,12 +82,14 @@ describe('PKMS retryable HTTP failures', () => {
     await disconnectPkmsSyncBridge(workspaceId)
     await disconnectPkmsSyncBridge(offlineWorkspaceId)
     await disconnectPkmsSyncBridge(serverErrorWorkspaceId)
+    await disconnectPkmsSyncBridge(timeoutWorkspaceId)
     await disconnectPkmsSyncBridge(unauthorizedWorkspaceId)
     await disconnectPkmsSyncBridge(forbiddenWorkspaceId)
     await stopPkmsSyncBridges()
     await rm(root, { recursive: true, force: true })
     await rm(offlineRoot, { recursive: true, force: true })
     await rm(serverErrorRoot, { recursive: true, force: true })
+    await rm(timeoutRoot, { recursive: true, force: true })
     await rm(unauthorizedRoot, { recursive: true, force: true })
     await rm(forbiddenRoot, { recursive: true, force: true })
     await rm(testRuntime.userData, { recursive: true, force: true })
@@ -148,6 +157,30 @@ describe('PKMS retryable HTTP failures', () => {
       { timeout: 2_000, interval: 20 }
     )
     await disconnectPkmsSyncBridge(serverErrorWorkspaceId)
+  })
+
+  it('backs off on request timeout while preserving pending work', async () => {
+    const failed = await scanPkmsSyncBridge(timeoutWorkspaceId)
+    const persisted = JSON.parse(await readFile(stateFile, 'utf8')) as {
+      pendingPaths: Record<string, string[]>
+    }
+
+    expect(failed.state).toBe('syncing')
+    expect(persisted.pendingPaths[timeoutWorkspaceId]).toContain('timeout.md')
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(
+      testRuntime.request.mock.calls.filter(([url]) => String(url).includes(timeoutWorkspaceId))
+    ).toHaveLength(1)
+    await vi.waitFor(
+      () =>
+        expect(
+          testRuntime.request.mock.calls.filter(([url]) =>
+            String(url).includes(timeoutWorkspaceId)
+          )
+        ).toHaveLength(2),
+      { timeout: 2_000, interval: 20 }
+    )
+    await disconnectPkmsSyncBridge(timeoutWorkspaceId)
   })
 
   it.each([
