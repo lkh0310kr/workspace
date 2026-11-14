@@ -312,6 +312,10 @@
         {
           "path": "apps/workspace-app/src/renderer/src/markdownLivePreview.test.ts",
           "sha256": "e69970011988d000480e72827d8699bdbcd3c4732f907ff0a0732159b36570ac"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.shortcut.test.ts",
+          "sha256": "63287badef6f43735c6352d6c02b6d78eb8079f8ddf8d6c00c92d14cb3056895"
         }
       ]
     },

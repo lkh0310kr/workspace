@@ -88,4 +88,4 @@ host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용�
 | TREE-20 | TreeView remount 후 저장한 anchor path 앞에 행이 추가됨                              | anchor row가 같은 row offset에 복원되며 pixel scrollTop보다 anchor가 우선                                                                      |
 | TREE-21 | 저장된 anchor row가 삭제됐거나 scroll 범위를 벗어남                                  | anchor가 없으면 pixel scrollTop으로 대체하고 현재 viewport의 최대 scroll 범위로 clamp                                                          |
 
-기존 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test다. Git ignore 판정은 files.test에서 별도 검증한다. provider I/O 실패·dirty 확인·실제 DnD도 추가 통합 검증이 필요하다.
+기존 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test다. `WorkspaceExplorerSidebar.shortcut.test.ts`는 물리 Backslash 입력으로 toggle handler가 닫기와 재열기를 수행하는지 검증한다. Git ignore 판정은 files.test에서 별도 검증한다. provider I/O 실패·dirty 확인·실제 DnD도 추가 통합 검증이 필요하다.
