@@ -16,7 +16,11 @@ vi.mock('electron', () => ({
 vi.mock('./api', () => ({ requestPkmsApi: testRuntime.request, fetchPkmsAsset: vi.fn() }))
 vi.mock('../startupLog', () => ({ appendStartupLog: vi.fn(), isPackagedApp: () => false }))
 
-import { scanPkmsSyncBridge, stopPkmsSyncBridges } from './syncBridge'
+import {
+  scanPkmsSyncBridge,
+  stopPkmsSyncBridges,
+  updatePkmsSyncBridgeExclusions
+} from './syncBridge'
 
 describe('PKMS exclusions protect pending delete intents', () => {
   const workspaceId = 'excluded-pending-delete-test'
@@ -31,7 +35,7 @@ describe('PKMS exclusions protect pending delete intents', () => {
     await writeFile(
       stateFile,
       JSON.stringify({
-        configs: { [workspaceId]: { folderPath: root, excludedPaths: ['private/**'] } },
+        configs: { [workspaceId]: { folderPath: root, excludedPaths: [] } },
         baselines: {
           [workspaceId]: {
             [child.path]: { fileId: child.id, hash: 'baseline-hash', revision: 10 }
@@ -82,6 +86,7 @@ describe('PKMS exclusions protect pending delete intents', () => {
   })
 
   it('cancels an excluded pending delete and keeps the remote subtree', async () => {
+    await updatePkmsSyncBridgeExclusions(workspaceId, ['private/**'])
     const status = await scanPkmsSyncBridge(workspaceId)
     const persisted = JSON.parse(await readFile(stateFile, 'utf8')) as {
       pendingDeletes: Record<string, Record<string, unknown>>
