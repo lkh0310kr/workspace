@@ -51,6 +51,15 @@ describe('PKMS exclusions protect pending delete intents', () => {
               baseRevision: 10,
               firstObservedAt: 1,
               attempts: 1
+            },
+            [child.path]: {
+              kind: 'markdown',
+              path: child.path,
+              fileId: child.id,
+              operationId: 'delete-private-note',
+              baseRevision: 10,
+              firstObservedAt: 1,
+              attempts: 1
             }
           }
         }
@@ -85,7 +94,7 @@ describe('PKMS exclusions protect pending delete intents', () => {
         ([url, options]) => url.endsWith('/operations') && options.method === 'POST'
       )
     ).toBe(false)
-    expect(persisted.pendingDeletes[workspaceId]?.private).toBeUndefined()
+    expect(persisted.pendingDeletes[workspaceId]).toEqual({})
     expect(persisted.remoteTrees[workspaceId]).toEqual([folder, child])
     expect(persisted.baselines[workspaceId][child.path]).toEqual({
       fileId: child.id,
@@ -93,5 +102,6 @@ describe('PKMS exclusions protect pending delete intents', () => {
       revision: 10
     })
     expect(status.itemStates.private).toBe('excluded')
+    expect(status.itemStates[child.path]).toBe('excluded')
   })
 })
