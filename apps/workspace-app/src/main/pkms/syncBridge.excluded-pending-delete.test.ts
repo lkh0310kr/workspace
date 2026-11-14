@@ -92,6 +92,7 @@ describe('PKMS exclusions protect pending delete intents', () => {
       pendingDeletes: Record<string, Record<string, unknown>>
       remoteTrees: Record<string, Array<{ id: string; path: string }>>
       baselines: Record<string, Record<string, { fileId: string; revision: number }>>
+      itemStates: Record<string, Record<string, string>>
     }
     expect(status.state).toBe('synced')
     expect(
@@ -108,5 +109,9 @@ describe('PKMS exclusions protect pending delete intents', () => {
     })
     expect(status.itemStates.private).toBe('excluded')
     expect(status.itemStates[child.path]).toBe('excluded')
+    expect(persisted.itemStates[workspaceId]).toMatchObject({
+      private: 'excluded',
+      [child.path]: 'excluded'
+    })
   })
 })
