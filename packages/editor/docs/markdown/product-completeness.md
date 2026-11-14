@@ -150,6 +150,7 @@ Filename title와 본문 H1이 함께 있을 때 두 이름과 hierarchy를 구�
 | TBL-04 | 행과 열을 추가·삭제·이동하고 header를 바꾼다.                   | 마우스 context menu와 keyboard path가 같은 명령을 호출한다. 한 행/열만 남긴 경우, 병합된/불규칙 표의 처리 결과를 명시한다. 문서의 다른 표에는 영향이 없다.                                                                                                                   |
 | TBL-05 | 표 편집은 Markdown text를 보존한다.                             | escaped pipe `\\                                                                                                                                                                                                                                                             | `, inline code/math의 pipe, 정렬 marker, cell 내 link alias와 embed 크기를 parse/render/serialize round-trip해 의도하지 않은 열 분리를 만들지 않는다. |
 | TBL-06 | 수식은 표 안과 밖에서 같은 의미로 렌더된다.                     | table cell의 `$…$`는 inline KaTeX로 렌더한다. cell 안 `\(...\)`/display math 지원과 math pipe escaping은 미완료이며 별도 수용 기준을 정한다.                                                                                                                                 |
+| TBL-07 | 표 셀의 HTML 줄바꿈이 읽기 결과에서 줄을 바꾼다.                | 대소문자와 공백·self-closing 변형을 포함한 `<br>`, `<br/>`, `<br />`만 안전한 `br` 요소로 렌더한다. 나머지 HTML은 텍스트로 표시한다. cell 편집은 원문을 유지하며 저장 시 사용자가 실제 변경한 셀만 Markdown으로 갱신한다.                                                    |
 
 Obsidian 표 결과를 기준으로 formatting, 내부 링크, embed, alignment, 행/열 추가·삭제를 포함한다. 표 셀 편집이 여러 방식으로 구현될 수 있으므로 원문 range ↔ cell mapping, cursor 이동, round-trip 보존을 먼저 계약하고 구현 도구는 그 뒤에 선택한다.
 

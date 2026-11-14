@@ -6,6 +6,28 @@ import { describe, expect, it, vi } from 'vitest'
 import { createMarkdownEditorExtensions } from '../../../../../packages/editor/src/markdownEditor'
 
 describe('Markdown table live preview editing', () => {
+  it('renders HTML line breaks inside Markdown table cells', () => {
+    const parent = document.createElement('div')
+    document.body.append(parent)
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: 'Table test\n\n| Tasks | Value |\n| --- | --- |\n| first<br>second<br />third | ok |',
+        extensions: createMarkdownEditorExtensions()
+      })
+    })
+
+    try {
+      const cell = parent.querySelector<HTMLElement>('.cm-md-table-wrap tbody td')!
+      expect(cell.querySelectorAll('br')).toHaveLength(2)
+      expect(cell.textContent).toBe('firstsecondthird')
+      expect(cell.innerHTML).not.toContain('&lt;br')
+    } finally {
+      view.destroy()
+      parent.remove()
+    }
+  })
+
   it('opens a clicked rendered cell for editing and writes the change back to Markdown', () => {
     const parent = document.createElement('div')
     document.body.append(parent)
@@ -136,6 +158,10 @@ describe('Markdown Mermaid live preview', () => {
       configurable: true,
       value: () => ({ x: 0, y: 0, width: 120, height: 24 })
     })
+    Object.defineProperty(SVGElement.prototype, 'getComputedTextLength', {
+      configurable: true,
+      value: () => 120
+    })
     const view = new EditorView({
       parent,
       state: EditorState.create({
@@ -146,8 +172,10 @@ describe('Markdown Mermaid live preview', () => {
 
     try {
       await vi.waitFor(() => {
-        expect(parent.querySelector('.cm-md-mermaid svg')).not.toBeNull()
+        expect(parent.querySelector('.cm-md-mermaid svg, .cm-md-mermaid.is-error')).not.toBeNull()
       })
+      expect(parent.querySelector('.cm-md-mermaid svg'), parent.textContent).not.toBeNull()
+      expect(parent.querySelector('.cm-md-mermaid svg foreignObject')).toBeNull()
       expect(parent.querySelector('.cm-md-mermaid')?.classList.contains('is-error')).toBe(false)
       expect(view.state.doc.toString()).toContain(source)
     } finally {

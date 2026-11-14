@@ -274,7 +274,11 @@
 .cm-md-mermaid svg .node ellipse,
 .cm-md-mermaid svg .node polygon,
 .cm-md-mermaid svg .cluster rect {
-  fill: var(--bg-raised, var(--bg-hover, var(--hover))) !important;
+  fill: color-mix(
+    in srgb,
+    var(--bg-surface, var(--surface, #17181b)) 70%,
+    var(--text, #e2e4e7) 30%
+  ) !important;
   stroke: var(--border-strong, var(--border)) !important;
 }
 .cm-md-mermaid svg .edgePath .path,

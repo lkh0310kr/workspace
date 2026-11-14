@@ -29,7 +29,7 @@ Mod-b는 `**`, Mod-i는 `*`로 모든 selection을 감싼다. 선택 양쪽에 �
 | 목록·task               | bullet/checkbox widget; checkbox 조작은 해당 원문 task marker 변경                                                                                                                                                |
 | blockquote/callout      | line 스타일과 `[!type]` label; note/info/tip/success/question/warning/danger/failure/bug/example/quote label                                                                                                      |
 | fenced code             | CodeMirror language-data의 language/alias/extension 매칭 및 syntax colors; preview header의 오른쪽 language label click은 fence body copy 후 host global toast를 요청; 원문 편집 상태에서도 같은 background/frame |
-| table                   | header/rows를 table DOM의 th/td textContent로 표시; rich HTML cell renderer가 아님                                                                                                                                |
+| table                   | alignment, escaped pipe, inline Markdown·KaTeX와 안전한 `<br>` line break를 th/td DOM으로 표시; 셀 클릭 시 원문 Markdown 편집                                                                                     |
 | image                   | host resolver 또는 rootPath 기반 URL, 자원 cleanup                                                                                                                                                                |
 | HTML block              | sandbox iframe srcdoc 미리보기; 원문 보존                                                                                                                                                                         |
 

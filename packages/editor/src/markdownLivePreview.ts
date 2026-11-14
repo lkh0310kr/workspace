@@ -690,11 +690,17 @@ function appendTableCellContent(target: HTMLElement, source: string): void {
 }
 
 function appendTableInlineFormatting(target: HTMLElement, source: string): void {
-  const pattern = /\*\*([^*\n]+)\*\*|__([^_\n]+)__|~~([^~\n]+)~~|\*([^*\n]+)\*|_([^_\n]+)_/g
+  const pattern =
+    /<br\s*\/?>|\*\*([^*\n]+)\*\*|__([^_\n]+)__|~~([^~\n]+)~~|\*([^*\n]+)\*|_([^_\n]+)_/gi
   let cursor = 0
   for (const match of source.matchAll(pattern)) {
     const index = match.index ?? 0
     target.appendChild(document.createTextNode(source.slice(cursor, index)))
+    if (/^<br\s*\/?>$/i.test(match[0])) {
+      target.appendChild(document.createElement('br'))
+      cursor = index + match[0].length
+      continue
+    }
     const element = document.createElement(
       match[1] || match[2] ? 'strong' : match[3] ? 'del' : 'em'
     )
@@ -893,6 +899,7 @@ function renderMermaid(source: string, id: string) {
         startOnLoad: false,
         securityLevel: 'strict',
         suppressErrorRendering: true,
+        htmlLabels: false,
         maxTextSize: 20000,
         maxEdges: 300,
         theme: 'base',
