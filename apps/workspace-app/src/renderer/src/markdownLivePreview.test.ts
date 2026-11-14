@@ -12,7 +12,7 @@ describe('Markdown table live preview editing', () => {
     const view = new EditorView({
       parent,
       state: EditorState.create({
-        doc: 'Table test\n\n| Tasks | Value |\n| --- | --- |\n| first<br>second<br />third | ok |',
+        doc: 'Table test\n\n| Tasks | Value |\n| --- | --- |\n| * first<br>* second<br />third | ok |',
         extensions: createMarkdownEditorExtensions()
       })
     })
@@ -20,8 +20,8 @@ describe('Markdown table live preview editing', () => {
     try {
       const cell = parent.querySelector<HTMLElement>('.cm-md-table-wrap tbody td')!
       expect(cell.querySelectorAll('br')).toHaveLength(2)
-      expect(cell.textContent).toBe('firstsecondthird')
-      expect(cell.innerHTML).not.toContain('&lt;br')
+      expect(cell.textContent).toBe('* first* secondthird')
+      expect(cell.innerHTML).toBe('* first<br>* second<br>third')
     } finally {
       view.destroy()
       parent.remove()

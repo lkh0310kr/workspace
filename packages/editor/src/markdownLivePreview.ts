@@ -690,25 +690,31 @@ function appendTableCellContent(target: HTMLElement, source: string): void {
 }
 
 function appendTableInlineFormatting(target: HTMLElement, source: string): void {
-  const pattern =
-    /<br\s*\/?>|\*\*([^*\n]+)\*\*|__([^_\n]+)__|~~([^~\n]+)~~|\*([^*\n]+)\*|_([^_\n]+)_/gi
-  let cursor = 0
-  for (const match of source.matchAll(pattern)) {
-    const index = match.index ?? 0
-    target.appendChild(document.createTextNode(source.slice(cursor, index)))
-    if (/^<br\s*\/?>$/i.test(match[0])) {
-      target.appendChild(document.createElement('br'))
+  const pattern = /\*\*([^*\n]+)\*\*|__([^_\n]+)__|~~([^~\n]+)~~|\*([^*\n]+)\*|_([^_\n]+)_/g
+  const appendInline = (text: string) => {
+    let cursor = 0
+    for (const match of text.matchAll(pattern)) {
+      const index = match.index ?? 0
+      target.appendChild(document.createTextNode(text.slice(cursor, index)))
+      const element = document.createElement(
+        match[1] || match[2] ? 'strong' : match[3] ? 'del' : 'em'
+      )
+      element.textContent = match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5] ?? ''
+      target.appendChild(element)
       cursor = index + match[0].length
-      continue
     }
-    const element = document.createElement(
-      match[1] || match[2] ? 'strong' : match[3] ? 'del' : 'em'
-    )
-    element.textContent = match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5] ?? ''
-    target.appendChild(element)
+    target.appendChild(document.createTextNode(text.slice(cursor)))
+  }
+
+  const breaks = /<br\s*\/?>/gi
+  let cursor = 0
+  for (const match of source.matchAll(breaks)) {
+    const index = match.index ?? 0
+    appendInline(source.slice(cursor, index))
+    target.appendChild(document.createElement('br'))
     cursor = index + match[0].length
   }
-  target.appendChild(document.createTextNode(source.slice(cursor)))
+  appendInline(source.slice(cursor))
 }
 
 function splitMarkdownTableRowDetailed(
