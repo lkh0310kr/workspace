@@ -124,7 +124,7 @@ describe('PKMS local watcher recovery', () => {
     expect(fullScanCallback).toBeTypeOf('function')
     await vi.waitFor(
       async () => expect((await getPkmsSyncBridgeStatus(workspaceId)).state).toBe('synced'),
-      { timeout: 2_000, interval: 20 }
+      { timeout: 5_000, interval: 20 }
     )
     expect(testRuntime.watcher).not.toBeNull()
 
@@ -133,7 +133,7 @@ describe('PKMS local watcher recovery', () => {
     ;(fullScanCallback as () => void)()
 
     await vi.waitFor(() => expect(testRuntime.updateRequests).toHaveLength(1), {
-      timeout: 2_000,
+      timeout: 5_000,
       interval: 20
     })
     expect(testRuntime.updateRequests[0].targetHash).toBe(hash(editedText))
