@@ -1,5 +1,6 @@
 {
   "include": ["**/*", ".react-router/types/**/*"],
+  "exclude": ["prototypes/google-drive-direct/**"],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "target": "ES2022",
