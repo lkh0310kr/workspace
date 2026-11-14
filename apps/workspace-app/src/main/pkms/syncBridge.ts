@@ -2061,11 +2061,30 @@ async function syncOnce(workspaceId: string): Promise<void> {
           !isReservedSyncPath(relative) &&
           !matchesExclusion(relative, config.excludedPaths ?? [])
       )
-      setItemStates(workspaceId, [...paths, ...assetsToReconcile], 'pending')
-      setItemStates(workspaceId, unchangedAssetPaths, 'synced')
+      const unchangedMarkdownPaths = paths.filter((relative) => {
+        const localText = local.get(relative)
+        const remote = remoteByPath.get(relative)
+        const baseline = baselines[relative]
+        return (
+          localText !== undefined &&
+          !!remote &&
+          !!baseline &&
+          baseline.fileId === remote.id &&
+          baseline.revision === remote.revision &&
+          hash(localText) === baseline.hash &&
+          status(workspaceId).itemStates[relative] !== 'attention' &&
+          !state.pendingCreates[workspaceId]?.[relative] &&
+          !state.pendingDeletes[workspaceId]?.[relative] &&
+          !state.pendingUpdates[workspaceId]?.[remote.id]
+        )
+      })
+      const unchangedMarkdownPathSet = new Set(unchangedMarkdownPaths)
+      const markdownPathsToReconcile = paths.filter((relative) => !unchangedMarkdownPathSet.has(relative))
+      setItemStates(workspaceId, [...markdownPathsToReconcile, ...assetsToReconcile], 'pending')
+      setItemStates(workspaceId, [...unchangedMarkdownPaths, ...unchangedAssetPaths], 'synced')
       let completed = 0
-      const total = paths.length
-      const filesToRead = paths.flatMap((relative) => {
+      const total = markdownPathsToReconcile.length
+      const filesToRead = markdownPathsToReconcile.flatMap((relative) => {
         const remote = remoteByPath.get(relative)
         const baseline = baselines[relative]
         const localText = local.get(relative)
@@ -2424,9 +2443,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
           const index = nextPath++
           if (index >= total) return
           try {
-            await reconcilePath(paths[index])
+            await reconcilePath(markdownPathsToReconcile[index])
           } catch (error) {
-            setItemState(workspaceId, paths[index], 'attention')
+            setItemState(workspaceId, markdownPathsToReconcile[index], 'attention')
             firstError ??= error
           }
         }
