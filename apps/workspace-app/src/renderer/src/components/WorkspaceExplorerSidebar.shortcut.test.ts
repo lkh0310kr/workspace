@@ -9,9 +9,19 @@ import type { PaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrom
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true
 
+const shortcutCallbacks = vi.hoisted(() => ({ find: [] as Array<() => void> }))
+
 vi.mock('./TreeView', () => ({ TreeView: () => null }))
 vi.mock('./SearchPanel', () => ({ SearchPanel: () => null }))
-vi.mock('../electron', () => ({ onFindInFilesShortcut: () => () => {} }))
+vi.mock('../electron', () => ({
+  onFindInFilesShortcut: (callback: () => void) => {
+    shortcutCallbacks.find.push(callback)
+    return () => {
+      shortcutCallbacks.find = shortcutCallbacks.find.filter((current) => current !== callback)
+    }
+  },
+  onToggleExplorerShortcut: () => () => {}
+}))
 
 import { WorkspaceExplorerSidebar } from './WorkspaceExplorerSidebar'
 
@@ -23,6 +33,7 @@ afterEach(async () => {
   root = null
   container?.remove()
   container = null
+  shortcutCallbacks.find = []
 })
 
 describe('Workspace Explorer toggle shortcut', () => {
@@ -55,6 +66,7 @@ describe('Workspace Explorer toggle shortcut', () => {
           explorerVisible: true,
           isGroupFocused: true,
           explorerCapable: true,
+          setShortcutExplorerVisible: vi.fn(),
           focusHostRef: { current: null },
           selectedPath: null,
           chrome,
@@ -89,6 +101,50 @@ describe('Workspace Explorer toggle shortcut', () => {
         })
       )
     })
+    expect(open).toBe(true)
+  })
+
+  it('opens Find in Files from a focused pane whose active tab is not an editor', async () => {
+    let open = false
+    const setTreeOpen: PaneGroupExplorerChrome['setTreeOpen'] = (next) => {
+      open = typeof next === 'function' ? next(open) : next
+    }
+    const setSidebarMode = vi.fn()
+    const chrome: PaneGroupExplorerChrome = {
+      treeOpen: open,
+      treeWidth: 240,
+      sidebarMode: 'explorer',
+      setTreeOpen,
+      setTreeWidth: vi.fn(),
+      setSidebarMode
+    }
+    container = document.createElement('div')
+    document.body.append(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        createElement(WorkspaceExplorerSidebar, {
+          workspaceTabId: 1,
+          nodeId: 'pane-terminal',
+          rootPath: '/workspace',
+          model: {} as Model,
+          paneVisible: true,
+          explorerVisible: false,
+          isGroupFocused: true,
+          explorerCapable: false,
+          setShortcutExplorerVisible: vi.fn(),
+          focusHostRef: { current: null },
+          selectedPath: null,
+          chrome,
+          onOpenFile: vi.fn(),
+          onNotifyChanged: vi.fn()
+        })
+      )
+    })
+
+    await act(async () => shortcutCallbacks.find[0]?.())
+    expect(setSidebarMode).toHaveBeenCalledWith('search')
     expect(open).toBe(true)
   })
 })

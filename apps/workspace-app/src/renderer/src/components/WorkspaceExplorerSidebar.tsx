@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouse
 import type { Model } from 'flexlayout-react'
 import { TreeView } from './TreeView'
 import { SearchPanel } from './SearchPanel'
-import { onFindInFilesShortcut } from '../electron'
+import { onFindInFilesShortcut, onToggleExplorerShortcut } from '../electron'
 import { deletePathInAllPanes, renamePathInAllPanes } from '../explorer/workspaceExplorerBridge'
 import { paneTabStoreKey } from '../store/paneTabKey'
 import type { PaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
@@ -20,6 +20,7 @@ interface Props {
   explorerVisible: boolean
   isGroupFocused: boolean
   explorerCapable: boolean
+  setShortcutExplorerVisible: React.Dispatch<React.SetStateAction<boolean>>
   focusHostRef: React.RefObject<HTMLElement | null>
   selectedPath: string | null
   chrome: PaneGroupExplorerChrome
@@ -44,6 +45,7 @@ export function WorkspaceExplorerSidebar({
   explorerVisible,
   isGroupFocused,
   explorerCapable,
+  setShortcutExplorerVisible,
   focusHostRef,
   selectedPath,
   chrome,
@@ -57,11 +59,30 @@ export function WorkspaceExplorerSidebar({
   const [searchFocusRequest, setSearchFocusRequest] = useState(0)
 
   const openSearch = useCallback(() => {
-    if (!paneVisible || !isGroupFocused || !explorerCapable) return
+    if (!paneVisible || !isGroupFocused) return
     setSidebarMode('search')
     setTreeOpen(true)
     setSearchFocusRequest((request) => request + 1)
-  }, [paneVisible, isGroupFocused, explorerCapable, setSidebarMode, setTreeOpen])
+  }, [paneVisible, isGroupFocused, setSidebarMode, setTreeOpen])
+
+  const toggleExplorer = useCallback(() => {
+    if (!paneVisible || !isGroupFocused) return
+    setSidebarMode('explorer')
+    if (explorerCapable) {
+      setShortcutExplorerVisible(false)
+      setTreeOpen((open) => !open)
+      return
+    }
+    setShortcutExplorerVisible((visible) => !visible)
+    setTreeOpen(true)
+  }, [
+    paneVisible,
+    isGroupFocused,
+    explorerCapable,
+    setShortcutExplorerVisible,
+    setSidebarMode,
+    setTreeOpen
+  ])
 
   // Pane shortcuts target the focused, visible group even when an embedded
   // editor surface owns DOM focus.
@@ -69,13 +90,15 @@ export function WorkspaceExplorerSidebar({
     const offMainShortcut = onFindInFilesShortcut(() => {
       openSearch()
     })
+    const offExplorerToggle = onToggleExplorerShortcut(() => {
+      toggleExplorer()
+    })
     function onKeyDown(e: KeyboardEvent) {
       if (isExplorerToggleShortcut(e)) {
-        if (!paneVisible || !isGroupFocused || !explorerCapable) return
+        if (!paneVisible || !isGroupFocused) return
         e.preventDefault()
         e.stopImmediatePropagation()
-        setSidebarMode('explorer')
-        setTreeOpen((open) => !open)
+        toggleExplorer()
         return
       }
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return
@@ -90,7 +113,7 @@ export function WorkspaceExplorerSidebar({
       }
       if (e.key.toLowerCase() !== 'f') return
       if (!paneVisible) return
-      if (!isGroupFocused || !explorerCapable) return
+      if (!isGroupFocused) return
       e.preventDefault()
       openSearch()
     }
@@ -99,9 +122,10 @@ export function WorkspaceExplorerSidebar({
     window.addEventListener('keydown', onKeyDown, true)
     return () => {
       offMainShortcut()
+      offExplorerToggle()
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [paneVisible, isGroupFocused, explorerCapable, openSearch, setSidebarMode, setTreeOpen])
+  }, [paneVisible, isGroupFocused, explorerCapable, openSearch, toggleExplorer])
 
   const onPathRenamed = useCallback(
     (from: string, to: string) => {

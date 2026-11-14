@@ -98,6 +98,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const paneHostRef = useRef<HTMLDivElement>(null)
   const explorerChrome = usePaneGroupExplorerChrome(workspaceTabId, nodeId)
+  const [shortcutExplorerVisible, setShortcutExplorerVisible] = useState(false)
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({})
   const [viewStateKeyByTabId, setViewStateKeyByTabId] = useState<Record<string, string>>({})
   const [pendingJumpByTabId, setPendingJumpByTabId] = useState<Record<string, number>>({})
@@ -212,7 +213,12 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   if (!activeItem) return null
 
   const treeOpen = explorerChrome.treeOpen
-  const showExplorer = activeChipHasExplorer(activeItem.kind) && treeOpen && explorerFits
+  const showExplorer =
+    treeOpen &&
+    explorerFits &&
+    (activeChipHasExplorer(activeItem.kind) ||
+      explorerChrome.sidebarMode === 'search' ||
+      shortcutExplorerVisible)
   const hasBrowserTabs = tabs.some((t) => t.kind === 'browser')
   const browserTabs = hasBrowserTabs ? tabs.filter((t) => t.kind === 'browser') : []
   const bodyAnchorStyle = { anchorName: paneGroupBodyAnchorName(nodeId) } as React.CSSProperties
@@ -263,6 +269,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
               explorerVisible={showExplorer}
               isGroupFocused={isGroupFocused}
               explorerCapable={activeChipHasExplorer(activeItem.kind)}
+              setShortcutExplorerVisible={setShortcutExplorerVisible}
               focusHostRef={paneHostRef}
               selectedPath={activeItem.filePath ?? null}
               chrome={explorerChrome}

@@ -38,6 +38,10 @@ function isHomeKey(input: Input): boolean {
   return input.code === 'Backquote' || input.key === '`'
 }
 
+function isExplorerToggleKey(input: Input): boolean {
+  return input.code === 'Backslash' || input.key === '\\'
+}
+
 function workspaceModifierName(): 'Meta' | 'Control' {
   return process.platform === 'darwin' ? 'Meta' : 'Control'
 }
@@ -134,6 +138,11 @@ export function relayHostAppShortcuts(
     options.send('shortcut:quick-open')
     return
   }
+  if ((input.meta || input.control) && !input.alt && !input.shift && isExplorerToggleKey(input)) {
+    event.preventDefault()
+    options.send('shortcut:toggle-explorer')
+    return
+  }
   if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && input.shift) {
     event.preventDefault()
     options.send('shortcut:find-in-files')
@@ -203,6 +212,11 @@ export function relayGuestWebviewShortcuts(
   if ((input.meta || input.control) && !input.alt && input.code === 'KeyP' && !input.shift) {
     event.preventDefault()
     send('shortcut:quick-open')
+    return
+  }
+  if ((input.meta || input.control) && !input.alt && !input.shift && isExplorerToggleKey(input)) {
+    event.preventDefault()
+    send('shortcut:toggle-explorer')
     return
   }
   if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && input.shift) {

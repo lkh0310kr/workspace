@@ -10,6 +10,12 @@ Mod-f는 열기/닫기 toggle, Mod-d는 다음 occurrence 선택이다. Find Ent
 
 query/본문/selection이 바뀌면 count를 다시 계산한다. 비어 있는 query는 label을 비운다. invalid 또는 일치 없음은 `No results`. 현재 selection이 match와 정확히 같을 때 `n of total`, 아니면 total만 표시한다. 999번째 match에서 스캔을 중단하고 `999+`로 표시한다. 따라서 정확히 999개여도 +가 붙는다. panel 상태는 onSearchPanelChange로 host에 알린다.
 
+## Find in Files 단축키와 pane focus
+
+`Cmd+Shift+F`(macOS) / `Ctrl+Shift+F`(Windows/Linux)는 현재 focused pane group의 Find in Files를 연다. 검색 sidebar가 이미 열려 있으면 query input으로 focus를 이동하고 현재 query와 결과를 유지한다. 단축키는 CodeMirror 문서 검색과 별개다.
+
+단축키는 editor뿐 아니라 Terminal과 embedded browser에 focus가 있을 때도 동작해야 한다. Electron host와 webview guest의 키 입력을 main process에서 relay하고, renderer는 focused pane group을 기준으로 검색 sidebar를 표시한다. editor가 아닌 pane에서는 pane 전용 임시 sidebar 표시를 허용한다. query input은 검색 패널 표시 후 focus되어 첫 입력 문자를 받는다.
+
 ## Provider 검색 타입
 
 `EditorSearchOptions`는 target=`names | contents`, caseSensitive, regex, wholeWord, 선택적 fuzzy와 limit이다. 결과는 item과 선택적 line/column/preview/matches를 가진다. 각 match는 line/column/preview/ranges이며 ranges는 UTF-16 start/end다. local contents는 1-based line/column을 반환한다. query 이름 검색과 파일 내용 치환의 word boundary는 adapter별 차이가 있다.
@@ -50,5 +56,6 @@ replaceContents는 provider ID/path를 검증하고 해당 파일의 열린 sess
 | SEARCH-10 | 로컬 Quick Open에서 파일 목록 검색 | 목록 조회는 캐시되며 파일 생성/삭제/이름 변경 뒤 갱신됨                     |
 | SEARCH-11 | 한 파일에 여러 내용 match 발생     | 파일별 결과 갱신으로 반영되고 match마다 누적 전체 결과를 반복 전송하지 않음 |
 | SEARCH-12 | 열린 Find in Files에 단축키 재입력 | query input으로 focus가 이동하고 기존 query는 유지됨                        |
+| SEARCH-13 | Terminal 또는 embedded browser에 focus한 채 `Cmd+Shift+F` / `Ctrl+Shift+F` 입력 | 현재 focused pane group에 Find in Files가 열리고 query input에 focus됨 |
 
 문서 search panel과 Quick Open의 DOM 키보드 동작은 현재 자동 테스트로 전부 검증되지 않았다. 재구현 시 위 시나리오를 수락 기준으로 사용한다.

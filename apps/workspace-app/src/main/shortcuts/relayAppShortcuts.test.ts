@@ -153,6 +153,22 @@ describe('relayHostAppShortcuts', () => {
     expect(send).toHaveBeenCalledWith('shortcut:find-in-files')
   })
 
+  it('routes Cmd+Backslash to Explorer at Electron input time', () => {
+    const event = mockEvent()
+    const send = vi.fn()
+    relayHostAppShortcuts(
+      event as never,
+      { ...keyDown('Backslash', { meta: true }), key: '₩' } as never,
+      {
+        send,
+        terminalOwnsAppShortcuts: true,
+        focusedTerminalId: 9
+      }
+    )
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(send).toHaveBeenCalledWith('shortcut:toggle-explorer')
+  })
+
   it('routes Cmd+F to the focused editor instead of Chromium Find', () => {
     const event = mockEvent()
     const send = vi.fn()
@@ -204,6 +220,20 @@ describe('relayGuestWebviewShortcuts', () => {
     )
     expect(searchEvent.preventDefault).toHaveBeenCalled()
     expect(searchSend).toHaveBeenCalledWith('shortcut:find-in-files')
+  })
+
+  it('routes Cmd+Backslash to Explorer from a browser guest', () => {
+    const event = mockEvent()
+    const send = vi.fn()
+    relayGuestWebviewShortcuts(
+      event as never,
+      { ...keyDown('Backslash', { meta: true }), key: '₩' } as never,
+      send,
+      vi.fn(),
+      42
+    )
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(send).toHaveBeenCalledWith('shortcut:toggle-explorer')
   })
 
   it('shows tab numbers while Meta is held in a browser guest', () => {

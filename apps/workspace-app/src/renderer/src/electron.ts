@@ -257,6 +257,11 @@ export function onFindInFilesShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onFindInFiles(handler)
 }
 
+/** Cmd/Ctrl+\\, routed from Electron so embedded surfaces cannot swallow it. */
+export function onToggleExplorerShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onToggleExplorer(handler)
+}
+
 /** Cmd/Ctrl+F, routed through Electron so production shortcuts reach the focused editor. */
 export function onFindInEditorShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onFindInEditor(handler)

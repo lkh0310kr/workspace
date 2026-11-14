@@ -86,6 +86,11 @@ export const browserApi = {
       ipcRenderer.on('shortcut:find-in-files', listener)
       return () => ipcRenderer.removeListener('shortcut:find-in-files', listener)
     },
+    onToggleExplorer: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:toggle-explorer', listener)
+      return () => ipcRenderer.removeListener('shortcut:toggle-explorer', listener)
+    },
     onFindInEditor: (cb: () => void): (() => void) => {
       const listener = (): void => cb()
       ipcRenderer.on('shortcut:find-in-editor', listener)
