@@ -423,7 +423,8 @@ export async function renamePkmsLocalItem(workspaceId: string, id: string, name:
 export async function movePkmsLocalItems(
   workspaceId: string,
   ids: string[],
-  destinationDirectory: string
+  destinationDirectory: string,
+  overwritePaths: string[] = []
 ): Promise<
   Array<{
     oldId: string
@@ -457,13 +458,27 @@ export async function movePkmsLocalItems(
     })
   )
   const destinations = new Set<string>()
+  const overwriteTargets = new Set(overwritePaths)
   for (const move of moves) {
     const relative = path.relative(root, move.to).split(path.sep).join('/')
     if (destinations.has(relative)) throw new Error('local_destination_exists')
     destinations.add(relative)
-    if (move.from !== move.to) await assertDestinationFree(root, relative)
+    if (move.from === move.to) continue
+    await assertSafeParentDirectories(root, relative)
+    try {
+      const targetStat = await fs.lstat(move.to)
+      if (targetStat.isSymbolicLink()) throw new Error('unsafe_local_path')
+      if (!overwriteTargets.has(relative)) throw new Error('local_destination_exists')
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
   }
-  for (const move of moves) await fs.rename(move.from, move.to)
+  for (const move of moves) {
+    if (move.from === move.to) continue
+    const relative = path.relative(root, move.to).split(path.sep).join('/')
+    if (overwriteTargets.has(relative)) await fs.rm(move.to, { recursive: true, force: false })
+    await fs.rename(move.from, move.to)
+  }
   return moves.map(({ oldId, file }) => ({ oldId, file }))
 }
 export async function deletePkmsLocalItems(workspaceId: string, ids: string[]): Promise<void> {

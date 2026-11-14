@@ -369,7 +369,8 @@ export interface PkmsDesktopApi {
   moveLocalItems: (
     workspaceId: string,
     ids: string[],
-    parent: string
+    parent: string,
+    overwritePaths?: string[]
   ) => Promise<Array<{ oldId: string; file: import('../shared/pkmsClient').PkmsFile }>>
   deleteLocalItems: (workspaceId: string, ids: string[]) => Promise<void>
 }

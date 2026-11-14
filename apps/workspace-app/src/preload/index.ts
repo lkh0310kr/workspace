@@ -83,8 +83,8 @@ const pkmsDesktop = {
   ) => ipcRenderer.invoke('pkms:local-item:create', workspaceId, parent, kind, name),
   renameLocalItem: (workspaceId: string, id: string, name: string) =>
     ipcRenderer.invoke('pkms:local-item:rename', workspaceId, id, name),
-  moveLocalItems: (workspaceId: string, ids: string[], parent: string) =>
-    ipcRenderer.invoke('pkms:local-item:move', workspaceId, ids, parent),
+  moveLocalItems: (workspaceId: string, ids: string[], parent: string, overwritePaths?: string[]) =>
+    ipcRenderer.invoke('pkms:local-item:move', workspaceId, ids, parent, overwritePaths),
   deleteLocalItems: (workspaceId: string, ids: string[]) =>
     ipcRenderer.invoke('pkms:local-item:delete', workspaceId, ids),
   openServiceOAuth: (url: string): Promise<void> =>

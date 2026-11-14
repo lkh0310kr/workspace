@@ -100,8 +100,8 @@ export default function Home() {
   const requestName = useCallback((title: string, initialValue = "") => new Promise<string | null>((resolve) => {
     setDialogRequest({ kind: "name", title, initialValue, resolve });
   }), []);
-  const confirm = useCallback((message: string) => new Promise<boolean>((resolve) => {
-    setDialogRequest({ kind: "confirm", message, resolve });
+  const confirm = useCallback((message: string, options?: { title?: string; confirmLabel?: string; detail?: string }) => new Promise<boolean>((resolve) => {
+    setDialogRequest({ kind: "confirm", message, resolve, ...options });
   }), []);
   const closeDialog = useCallback(() => setDialogRequest(null), []);
   const {
@@ -545,7 +545,26 @@ export default function Home() {
         if (parentId && (!parent || parent.kind !== "folder")) throw new EditorProviderError("notFound", "Destination folder no longer exists");
         const desktop = desktopBridge();
         if (desktop && moving.every((file) => file?.id.startsWith("local-")) && (await desktop.syncBridgeStatus(activeWorkspace.id)).enabled) {
-          await desktop.moveLocalItems(activeWorkspace.id, moving.map((file) => file!.id), parent?.path ?? "");
+          const overwritePaths: string[] = [];
+          for (const file of moving) {
+            if (!file) continue;
+            const targetPath = [parent?.path ?? "", entryName(file.path)].filter(Boolean).join("/");
+            if (targetPath === file.path) continue;
+            const collision = await getPkmsFileById(localItemIdForPath(targetPath));
+            if (collision) overwritePaths.push(targetPath);
+          }
+          if (overwritePaths.length) {
+            const message = overwritePaths.length === 1
+              ? `A file or folder named “${entryName(overwritePaths[0])}” already exists in the destination folder. Replace it?`
+              : `${overwritePaths.length} files or folders already exist in the destination folder. Replace them?`;
+            const confirmed = await confirm(message, {
+              title: "Replace existing items",
+              confirmLabel: "Replace",
+              detail: "This action is irreversible."
+            });
+            if (!confirmed) return;
+          }
+          await desktop.moveLocalItems(activeWorkspace.id, moving.map((file) => file!.id), parent?.path ?? "", overwritePaths);
           const roots = moving.filter((file): file is FileRecord => file !== null);
           const oldToNew = new Map<string, FileRecord>();
           const remapped = getFiles().map((file) => {

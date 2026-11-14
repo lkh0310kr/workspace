@@ -2,7 +2,14 @@ import { EditorNameForm } from '@workspace/editor'
 
 export type PkmsDialogRequest =
   | { kind: 'name'; title: string; initialValue: string; resolve: (value: string | null) => void }
-  | { kind: 'confirm'; message: string; resolve: (value: boolean) => void }
+  | {
+      kind: 'confirm'
+      message: string
+      title?: string
+      confirmLabel?: string
+      detail?: string
+      resolve: (value: boolean) => void
+    }
 
 interface Props {
   request: PkmsDialogRequest | null
@@ -53,8 +60,9 @@ export function PkmsDialog({ request, onClose }: Props): React.JSX.Element | nul
           />
         ) : (
           <>
-            <h2>Confirm</h2>
+            <h2>{request.title ?? 'Confirm'}</h2>
             <p>{request.message}</p>
+            {request.detail && <p>{request.detail}</p>}
             <div className="pkms-dialog-actions">
               <button className="secondary-button" onClick={cancel}>
                 Cancel
@@ -66,7 +74,7 @@ export function PkmsDialog({ request, onClose }: Props): React.JSX.Element | nul
                   onClose()
                 }}
               >
-                Delete
+                {request.confirmLabel ?? 'Delete'}
               </button>
             </div>
           </>

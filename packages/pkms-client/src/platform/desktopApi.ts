@@ -73,7 +73,8 @@ interface DesktopBridge {
   moveLocalItems(
     workspaceId: string,
     ids: string[],
-    parent: string
+    parent: string,
+    overwritePaths?: string[]
   ): Promise<
     Array<{
       oldId: string

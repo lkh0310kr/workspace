@@ -73,3 +73,11 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 10. Cloud create ACK 이후 GitHub push가 실패한 상태에서 재시도한다. Cloud row를 중복 생성하지 않고 GitHub는 Cloud SHA와 동일한 child commit으로 수렴하며 `github_head=mirrored_head`, dirty=0인지 확인한다.
 
 실행 결과는 OS·server migration·fixture 버전을 기록한다. 코드 존재만으로 UI acceptance를 통과 처리하지 않는다.
+
+## Move destination collisions
+
+- PKMS local move uses the VS Code Explorer drag-and-drop collision contract: if the destination already contains the same name, ask whether to replace it or cancel. The dialog identifies the colliding name and warns that replacement is irreversible.
+- A single-item collision names that item. A multi-item move lists the collision count. Only explicitly confirmed destination paths may be replaced; other existing paths abort the operation without being removed.
+- Cancel/Escape leaves source and destination bytes and tree identities unchanged. Replace removes the existing destination item, then moves the source item into its original destination name. A failed preflight must not remove any destination.
+- This applies to both files and directories in Desktop Local Folder mode. Server/cloud conflict copies created by sync reconciliation remain a separate mechanism documented in [reconciliation](./reconciliation.md).
+- Reference: [VS Code Explorer overwrite prompt](https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/files/browser/fileImportExport.ts) and [current Explorer move/copy collision report](https://github.com/microsoft/vscode/issues/208400).

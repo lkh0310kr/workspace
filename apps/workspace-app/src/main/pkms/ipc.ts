@@ -141,11 +141,22 @@ export function registerPkmsIpc(): void {
   )
   ipcMain.handle(
     'pkms:local-item:move',
-    async (event, workspaceId: string, ids: string[], parent: string) => {
+    async (
+      event,
+      workspaceId: string,
+      ids: string[],
+      parent: string,
+      overwritePaths?: string[]
+    ) => {
       assertTrustedSender(event)
       if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string'))
         throw new Error('invalid_local_item_ids')
-      return movePkmsLocalItems(workspaceId, ids, parent)
+      if (
+        overwritePaths !== undefined &&
+        (!Array.isArray(overwritePaths) || overwritePaths.some((item) => typeof item !== 'string'))
+      )
+        throw new Error('invalid_local_overwrite_paths')
+      return movePkmsLocalItems(workspaceId, ids, parent, overwritePaths)
     }
   )
   ipcMain.handle('pkms:local-item:delete', async (event, workspaceId: string, ids: string[]) => {
