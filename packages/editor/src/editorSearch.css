@@ -22,12 +22,27 @@
   font-size: 12px;
 }
 
-.cm-vs-row { display: flex; align-items: center; gap: 6px; }
-.cm-vs-replace-row { margin-top: 4px; }
-.cm-vs-spacer { width: 22px; flex-shrink: 0; }
-.cm-vs-field-wrap { position: relative; display: flex; align-items: center; flex: 1; min-width: 0; }
-.cm-vs-field-wrap input[type="text"],
-.cm-vs-replace-row input[type="text"] {
+.cm-vs-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cm-vs-replace-row {
+  margin-top: 4px;
+}
+.cm-vs-spacer {
+  width: 22px;
+  flex-shrink: 0;
+}
+.cm-vs-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.cm-vs-field-wrap input[type='text'],
+.cm-vs-replace-row input[type='text'] {
   width: 100%;
   background: var(--bg-base, var(--bg, #111214));
   border: 1px solid var(--border, #3a3d43);
@@ -39,13 +54,27 @@
   font-family: var(--font-mono, ui-monospace, monospace);
   outline: none;
 }
-.cm-vs-replace-row input[type="text"] { padding: 4px 8px; }
-.cm-vs-field-wrap input[type="text"]:focus,
-.cm-vs-replace-row input[type="text"]:focus { border-color: var(--border-strong, var(--border, #888)); }
-.cm-vs-field-wrap button.cm-vs-toggle { position: absolute; top: 50%; transform: translateY(-50%); }
-.cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(1) { right: 52px; }
-.cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(2) { right: 30px; }
-.cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(3) { right: 4px; }
+.cm-vs-replace-row input[type='text'] {
+  padding: 4px 8px;
+}
+.cm-vs-field-wrap input[type='text']:focus,
+.cm-vs-replace-row input[type='text']:focus {
+  border-color: var(--border-strong, var(--border, #888));
+}
+.cm-vs-field-wrap button.cm-vs-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(1) {
+  right: 52px;
+}
+.cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(2) {
+  right: 30px;
+}
+.cm-vs-field-wrap button.cm-vs-toggle:nth-of-type(3) {
+  right: 4px;
+}
 .editor-text-surface .cm-vs-btn {
   background: transparent;
   border: 1px solid transparent;
@@ -54,17 +83,47 @@
   cursor: pointer;
   font-family: var(--font-ui, var(--editor-font, sans-serif));
 }
-.editor-text-surface .cm-vs-btn:hover { color: var(--text, #e2e4e7); background: var(--bg-hover, var(--hover, #25272b)); }
-.cm-vs-toggle { border: 1px solid transparent; font-size: 10px; line-height: 1; padding: 3px 5px; }
+.editor-text-surface .cm-vs-btn:hover {
+  color: var(--text, #e2e4e7);
+  background: var(--bg-hover, var(--hover, #25272b));
+}
+.cm-vs-toggle {
+  border: 1px solid transparent;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 5px;
+}
 .cm-vs-toggle.active {
   color: var(--text, #171717);
   background: var(--bg-active, var(--selected, #ededed));
   border-color: var(--border-strong, var(--border, #888));
 }
-.cm-vs-toggle-replace { flex-shrink: 0; width: 22px; height: 22px; font-size: 10px; padding: 0; }
-.cm-vs-nav { flex-shrink: 0; width: 22px; height: 22px; padding: 0; font-size: 12px; }
-.cm-vs-close { flex-shrink: 0; width: 22px; height: 22px; padding: 0; font-size: 15px; line-height: 1; color: var(--text-faint, var(--subtle, #a3a3a3)); }
-.cm-vs-close:hover { color: var(--text, #171717); }
+.cm-vs-toggle-replace {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+  padding: 0;
+}
+.cm-vs-nav {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 12px;
+}
+.cm-vs-close {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-faint, var(--subtle, #a3a3a3));
+}
+.cm-vs-close:hover {
+  color: var(--text, #171717);
+}
 .cm-vs-count {
   flex-shrink: 0;
   min-width: 64px;
@@ -73,5 +132,12 @@
   color: var(--text-faint, var(--subtle, #a3a3a3));
   font-family: var(--font-mono, ui-monospace, monospace);
 }
-.cm-vs-count-empty { color: var(--danger, #e06c75); }
-.cm-vs-text-button { flex-shrink: 0; border: 1px solid var(--border, #d4d4d4); padding: 4px 10px; font-size: 11px; }
+.cm-vs-count-empty {
+  color: var(--danger, #e06c75);
+}
+.cm-vs-text-button {
+  flex-shrink: 0;
+  border: 1px solid var(--border, #d4d4d4);
+  padding: 4px 10px;
+  font-size: 11px;
+}
