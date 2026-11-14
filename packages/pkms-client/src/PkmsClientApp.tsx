@@ -1072,7 +1072,7 @@ export default function Home() {
         });
         return;
       }
-      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && (event.key === "\\" || event.key === "₩" || event.key === "￦" || event.code === "Backslash" || event.code === "IntlBackslash")) {
+      if ((event.metaKey || event.ctrlKey) && (!event.shiftKey || event.key === "|" || event.key === "¥") && !event.altKey && (event.key === "\\" || event.key === "₩" || event.key === "￦" || event.key === "¥" || event.key === "|" || event.code === "Backslash" || event.code === "IntlBackslash" || event.code === "IntlYen")) {
         event.preventDefault();
         event.stopImmediatePropagation();
         setSidebarOpen((open) => !open);
