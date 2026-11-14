@@ -1307,29 +1307,61 @@ async function syncOnce(workspaceId: string): Promise<void> {
         nextSyncRevision = snapshot.revision
         fullScan = true
       } else if (!skipRemoteChangeFeed) {
-        const page = await readRemoteChanges(workspaceId, nextSyncRevision)
-        const treeById = new Map(
-          (knownRemoteTree ?? Object.values(knownRemoteFiles)).map((file) => [file.id, file])
-        )
-        for (const change of page.changes) {
-          treeById.delete(change.id)
-          if (!change.deleted && (change.kind === 'markdown' || change.kind === 'folder'))
-            treeById.set(change.id, change)
-          const previous = knownRemoteFiles[change.id]
-          if (previous) remoteChangedPaths.add(previous.path)
-          delete knownRemoteFiles[change.id]
-          if (!change.deleted && change.kind === 'markdown') {
-            knownRemoteFiles[change.id] = change
-            remoteChangedPaths.add(change.path)
+        try {
+          const page = await readRemoteChanges(workspaceId, nextSyncRevision)
+          const treeById = new Map(
+            (knownRemoteTree ?? Object.values(knownRemoteFiles)).map((file) => [file.id, file])
+          )
+          for (const change of page.changes) {
+            treeById.delete(change.id)
+            if (!change.deleted && (change.kind === 'markdown' || change.kind === 'folder'))
+              treeById.set(change.id, change)
+            const previous = knownRemoteFiles[change.id]
+            if (previous) remoteChangedPaths.add(previous.path)
+            delete knownRemoteFiles[change.id]
+            if (!change.deleted && change.kind === 'markdown') {
+              knownRemoteFiles[change.id] = change
+              remoteChangedPaths.add(change.path)
+            }
           }
+          knownRemoteTree = [...treeById.values()]
+          state.remoteTrees[workspaceId] = knownRemoteTree
+          state.remoteTreeVersions[workspaceId] = Math.max(
+            (state.remoteTreeVersions[workspaceId] ?? -1) + 1,
+            page.nextRevision
+          )
+          nextSyncRevision = page.nextRevision
+        } catch (error) {
+          if (!(error instanceof PkmsBridgeRequestError) || error.code !== 'invalid_sync_cursor')
+            throw error
+
+          // A cursor can outlive the server's retained change feed. Recover from
+          // an authoritative snapshot, then reconcile it against the complete
+          // local inventory so pending local edits are preserved as conflicts.
+          appendStartupLog('pkms_remote_cursor_invalid', {
+            workspaceId,
+            cursor: nextSyncRevision
+          })
+          const snapshot = await readRemoteSnapshot(workspaceId)
+          knownRemoteTree = snapshot.files
+          state.remoteTrees[workspaceId] = snapshot.files
+          state.remoteTreeVersions[workspaceId] = Math.max(
+            (state.remoteTreeVersions[workspaceId] ?? -1) + 1,
+            snapshot.revision
+          )
+          knownRemoteFiles = Object.fromEntries(
+            snapshot.files
+              .filter((file) => file.kind === 'markdown')
+              .map((file) => [file.id, file])
+          )
+          nextSyncRevision = snapshot.revision
+          fullScan = true
+          appendStartupLog('pkms_remote_cursor_recovered', {
+            workspaceId,
+            snapshotRevision: snapshot.revision,
+            files: Object.keys(knownRemoteFiles).length
+          })
         }
-        knownRemoteTree = [...treeById.values()]
-        state.remoteTrees[workspaceId] = knownRemoteTree
-        state.remoteTreeVersions[workspaceId] = Math.max(
-          (state.remoteTreeVersions[workspaceId] ?? -1) + 1,
-          page.nextRevision
-        )
-        nextSyncRevision = page.nextRevision
       }
       const pendingDeletes = (state.pendingDeletes[workspaceId] ??= {})
       const deletedFolderRoots = Object.values(pendingDeletes).filter(
