@@ -21,6 +21,8 @@
 
 `sync/changes.nextRevision`은 완전히 소진된 page에서만 server의 captured current revision으로 전진한다. 중간 page는 `afterRevision`을 유지하고 tuple cursor로 같은 revision의 나머지를 이어 읽는다. 소비자는 마지막 page 이후만 durable cursor로 커밋한다.
 
+Web Files tree는 `/directory?path=`를 사용해 현재 열려 있거나 확장된 directory listing을 갱신한다. 이 응답은 즉시 자식인 Markdown, asset, folder를 포함한다. `/snapshot`은 Markdown-only 문서 metadata 용도이므로 그 응답으로 Files tree 전체를 교체하면 안 된다. realtime mutation 뒤에는 loaded directory listing을 다시 가져와야 folder marker와 asset row가 유지된다.
+
 ## Mutation contract
 
 `POST /operations` outer body:
