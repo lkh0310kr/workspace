@@ -115,6 +115,7 @@ const statuses = new Map<string, PkmsSyncBridgeStatus>()
 const running = new Map<string, Promise<void>>()
 const folderLocks = new Map<string, FolderSyncLock>()
 const starting = new Set<string>()
+const runtimeGenerations = new Map<string, number>()
 const fullScanRequests = new Set<string>()
 const directoryScanRequests = new Set<string>()
 const dirtyLocalPaths = new Map<string, Set<string>>()
@@ -2844,7 +2845,13 @@ function schedule(workspaceId: string, fullScan = false, localPath?: string): vo
     }, 25)
   )
 }
-async function stopRuntime(workspaceId: string, releaseLock = true): Promise<void> {
+async function stopRuntime(
+  workspaceId: string,
+  releaseLock = true,
+  cancelStarting = true
+): Promise<void> {
+  if (cancelStarting)
+    runtimeGenerations.set(workspaceId, (runtimeGenerations.get(workspaceId) ?? 0) + 1)
   watchers.get(workspaceId)?.close()
   watchers.delete(workspaceId)
   const poll = pollers.get(workspaceId)
@@ -2882,9 +2889,12 @@ async function stopRuntime(workspaceId: string, releaseLock = true): Promise<voi
 }
 async function startRuntime(workspaceId: string, folderPath: string): Promise<void> {
   if (starting.has(workspaceId)) return
+  const generation = (runtimeGenerations.get(workspaceId) ?? 0) + 1
+  runtimeGenerations.set(workspaceId, generation)
   starting.add(workspaceId)
   try {
-    await stopRuntime(workspaceId)
+    await stopRuntime(workspaceId, true, false)
+    if (runtimeGenerations.get(workspaceId) !== generation) return
     fullScanRequests.delete(workspaceId)
     dirtyLocalPaths.delete(workspaceId)
     try {
@@ -3099,6 +3109,7 @@ export async function startConfiguredPkmsSyncBridges(): Promise<void> {
 export async function stopPkmsSyncBridges(): Promise<void> {
   const workspaceIds = [
     ...new Set([
+      ...starting,
       ...watchers.keys(),
       ...pollers.keys(),
       ...fullScanners.keys(),

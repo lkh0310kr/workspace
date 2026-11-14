@@ -61,7 +61,10 @@ describe('PKMS durable state restart recovery', () => {
       true
     )
 
+    const callsBeforeStop = testRuntime.request.mock.calls.length
     await restartedRun.stopPkmsSyncBridges()
+    await new Promise((resolve) => setTimeout(resolve, 60))
+    expect(testRuntime.request).toHaveBeenCalledTimes(callsBeforeStop)
     const persisted = JSON.parse(await readFile(stateFile, 'utf8')) as {
       syncCursors: Record<string, number>
       pendingPaths: Record<string, string[]>
