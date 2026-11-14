@@ -85,5 +85,7 @@ host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용�
 | TREE-17 | 무시 패턴과 일치하지만 Git이 이미 추적 중인 파일                                     | ignored 표시가 없음                                                                                                                            |
 | TREE-18 | Git 저장소가 아닌 workspace 또는 Git 판정 실패                                       | 디렉터리 목록은 정상 표시되고 모든 항목은 일반 색으로 보임                                                                                     |
 | TREE-19 | ignored 항목에 hover, keyboard focus, active/selection 적용                          | muted 파일명은 유지되고 hover/selection/focus 배경과 동작은 보존                                                                               |
+| TREE-20 | TreeView remount 후 저장한 anchor path 앞에 행이 추가됨                              | anchor row가 같은 row offset에 복원되며 pixel scrollTop보다 anchor가 우선                                                                      |
+| TREE-21 | 저장된 anchor row가 삭제됐거나 scroll 범위를 벗어남                                  | anchor가 없으면 pixel scrollTop으로 대체하고 현재 viewport의 최대 scroll 범위로 clamp                                                          |
 
 기존 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test다. Git ignore 판정은 files.test에서 별도 검증한다. provider I/O 실패·dirty 확인·실제 DnD도 추가 통합 검증이 필요하다.

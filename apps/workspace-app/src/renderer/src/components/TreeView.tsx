@@ -21,6 +21,7 @@ import {
   ancestorDirPaths,
   loadExplorerTreeState,
   resetExplorerTreeState,
+  resolveExplorerScrollTop,
   saveExplorerExpanded,
   saveExplorerScrollAnchor,
   saveExplorerScrollTop
@@ -387,14 +388,12 @@ export function TreeView({
     if ([...expanded].some((path) => !dirs.get(path)?.loaded)) return
     const el = scrollContainerRef?.current
     if (!el || el.clientHeight <= 0) return
-    const anchorIndex = pending.anchorPath
-      ? flatList.findIndex(({ entry }) => entry.path === pending.anchorPath)
-      : -1
-    const targetTop =
-      anchorIndex >= 0
-        ? anchorIndex * EDITOR_TREE_ROW_HEIGHT + (pending.anchorOffset ?? 0)
-        : pending.scrollTop
-    const restoredTop = Math.max(0, Math.min(targetTop, el.scrollHeight - el.clientHeight))
+    const restoredTop = resolveExplorerScrollTop(
+      pending,
+      flatList.map(({ entry }) => entry.path),
+      el.scrollHeight - el.clientHeight,
+      EDITOR_TREE_ROW_HEIGHT
+    )
     el.scrollTop = restoredTop
     setScrollTop(restoredTop)
     pendingScrollRestoreRef.current = null

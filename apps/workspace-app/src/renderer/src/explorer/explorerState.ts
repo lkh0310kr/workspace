@@ -8,6 +8,19 @@ export interface ExplorerTreeState {
   scrollAnchorOffset?: number
 }
 
+/** Resolve a saved row anchor after tree data is ready, falling back to its pixel offset. */
+export function resolveExplorerScrollTop(
+  state: Pick<ExplorerTreeState, 'scrollTop' | 'scrollAnchorPath' | 'scrollAnchorOffset'>,
+  visiblePaths: readonly string[],
+  maxScrollTop: number,
+  rowHeight: number
+): number {
+  const anchorIndex = state.scrollAnchorPath ? visiblePaths.indexOf(state.scrollAnchorPath) : -1
+  const target =
+    anchorIndex >= 0 ? anchorIndex * rowHeight + (state.scrollAnchorOffset ?? 0) : state.scrollTop
+  return Math.max(0, Math.min(target, Math.max(0, maxScrollTop)))
+}
+
 const session = new Map<string, ExplorerTreeState>()
 const EXPANDED_KEY = 'workspace.explorerExpanded'
 const SCROLL_KEY = 'workspace.explorerScroll'

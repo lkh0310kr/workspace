@@ -3,6 +3,7 @@ import {
   ancestorDirPaths,
   loadExplorerTreeState,
   resetExplorerTreeState,
+  resolveExplorerScrollTop,
   saveExplorerExpanded,
   saveExplorerScrollTop
 } from './explorerState'
@@ -59,5 +60,27 @@ describe('explorer tree state', () => {
     expect(other.rootPath).toBe('/other/root')
     const back = loadExplorerTreeState(key, root)
     expect(back.expanded).toEqual(['src'])
+  })
+
+  it('restores the saved row at its prior offset after rows are inserted above it', () => {
+    expect(
+      resolveExplorerScrollTop(
+        { scrollTop: 240, scrollAnchorPath: 'src/target.ts', scrollAnchorOffset: 7 },
+        ['new.md', 'src/target.ts', 'tail.md'],
+        500,
+        30
+      )
+    ).toBe(37)
+  })
+
+  it('falls back to saved pixels when the anchor row disappeared and clamps to the viewport', () => {
+    expect(
+      resolveExplorerScrollTop(
+        { scrollTop: 240, scrollAnchorPath: 'removed.ts', scrollAnchorOffset: 7 },
+        ['first.md', 'last.md'],
+        90,
+        30
+      )
+    ).toBe(90)
   })
 })
