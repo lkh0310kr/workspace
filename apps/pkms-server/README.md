@@ -1,6 +1,6 @@
 # PKMS Server
 
-현재 앱의 경계·상태·계약은 [app scope 문서](./docs/README.md)를 기준으로 합니다.
+현재 앱의 경계·상태·계약은 [app scope 문서](../../docs/architecture/pkms/server/README.md)를 기준으로 합니다.
 
 This Cloudflare Worker is the shared PKMS backend for Web, Workspace Desktop, iOS, and MCP clients. It owns PKMS authentication, workspace/document APIs, Supabase persistence and Realtime token issuance, GitHub backup, and the MCP endpoint. It does not render the Web UI.
 

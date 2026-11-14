@@ -23,27 +23,18 @@
 
 ## 문서 소유 구조
 
-최상위는 context·상태·연결을 소유하고 기능 상세는 코드 소유 모듈 옆에 둔다. 다음 트리는 예정 목적지이며 아직 존재하지 않는 파일을 현재 스펙으로 링크하지 않는다.
+최상위는 context·상태·연결을 소유하고 기능 상세는 저장소 루트 `docs/` 아래에 모은다. 소유 책임은 global/app/package로 구분하되 문서 파일을 앱·패키지 디렉터리에 분산하지 않는다.
 
 ```text
 docs/
   product/                         # 제품/플랫폼/사용자 여정 색인과 범위
-  architecture/                    # 시스템 context, 모듈 지도, 스펙 운영, 링크
+  architecture/                    # 시스템 context와 기능별 계약
   planning/                        # 감사·실행 순서·미완료 acceptance
   guides/                          # 개발/운영 가이드 색인, 실제 절차는 owner 문서 연결
-apps/workspace-app/docs/
-  product.md
-  runtime/ layout/ interaction/ ipc/ filesystem/ persistence/
-  terminal/ editor/ browser/ viewers/ home/ agents/ usage/ settings/
-  observability/ release/
-apps/workspace-server/docs/         # Home API/OAuth/저장/운영
-apps/pkms-web/docs/                 # SSR/canonical origin/proxy/deploy
-apps/pkms-server/docs/              # auth/routes/vault/storage/realtime/mcp/github
-apps/pkms-ios/docs/                 # 앱 상태/session/cache/native build
-packages/editor/docs/              # UI/provider/helpers/acceptance
-packages/pkms-client/docs/         # 계정/workspace/files/session/platform/cache
-packages/pkms-protocol/             # 실제 TS DTO/Realtime schema + 계약 문서
-packages/pkms-core/docs/            # 도메인/UTF-16/CRDT/FFI/WASM
+  architecture/workspace/          # Desktop runtime, terminal, browser, Home, settings
+  architecture/editor/             # 공통 편집기·Markdown·TreeView·검색
+  architecture/pkms/               # Web·Server·iOS·client·protocol·core·동기화
+  architecture/workspace-server/   # Home API/OAuth/저장/운영
 ```
 
 폴더명 하나당 반드시 파일을 만들지 않는다. 독립 상태·계약·검증 책임이 생길 때 문서를 분리한다. 기존 파일은 재작성 전에 보존할 과거 설명과 새 기준 위치를 확인하고, 이동 후 top-level 링크를 남긴다.
@@ -84,7 +75,7 @@ packages/pkms-core/docs/            # 도메인/UTF-16/CRDT/FFI/WASM
 
 이 표의 `부분 완료`는 문서 slice가 존재한다는 뜻이다. 각 종료 조건 전체, 배포, runtime acceptance 또는 regeneration-verified 상태를 뜻하지 않는다. 모듈의 보수적인 `drafted` 상태와 검증 범위는 [스펙 운영 문서](../architecture/spec-driven-development.md) 및 [기계 판독 색인](../architecture/spec-index.json)에서 확인한다.
 
-각 실행 slice는 별도 커밋으로 기록했다. 그 중 발견된 구현 후보는 별도 추적한다. 예를 들어 `workspaceStore`의 layout 저장 debounce가 모듈 전역 단일 timer를 공유해 workspace 간 연속 저장 요청이 서로 취소될 수 있다는 동작은 [layout spec](../../apps/workspace-app/docs/layout/README.md)에 기록했으며, 제품 수정은 이 문서 작업에 포함하지 않았다.
+각 실행 slice는 별도 커밋으로 기록했다. 그 중 발견된 구현 후보는 별도 추적한다. 예를 들어 `workspaceStore`의 layout 저장 debounce가 모듈 전역 단일 timer를 공유해 workspace 간 연속 저장 요청이 서로 취소될 수 있다는 동작은 [layout spec](../architecture/workspace/layout/README.md)에 기록했으며, 제품 수정은 이 문서 작업에 포함하지 않았다.
 
 S/M/L은 한 번의 파일 편집/모듈 조사/여러 런타임 경계 조사 규모를 표현하며 일수·담당자·마감일을 확정한 추정이 아니다. 실제 실행 시 WP-06/07/10 같은 큰 작업은 아래처럼 수락 가능한 slice로 쪼갠다.
 

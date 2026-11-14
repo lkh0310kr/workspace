@@ -12,11 +12,13 @@
 
 ## Scope 판정
 
-| Scope   | 책임                                                                                        | 위치                                                                     | 상세를 넣지 않는 것                                            |
-| ------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
-| global  | 제품 범위·사용자 여정, 시스템 context, 제품 간 의존·인증·데이터 경계, 문서 정책과 전체 계획 | `docs/product`, `docs/architecture`, `docs/planning`, `docs/guides` 색인 | 특정 앱 내부의 timer·storage key·component lifecycle·함수 목록 |
-| app     | 배포/실행 가능한 앱의 bootstrap·상태·adapter·protocol 처리·화면 흐름·운영/복구              | `apps/<app>/docs`, 진입점은 앱 README                                    | 공유 패키지의 UI·도메인 구현 계약 복사                         |
-| package | 소비 앱과 독립적인 공개 API·타입·불변식·extension point·오류·검증                           | `packages/<package>/docs`, 진입점은 패키지 README                        | 앱 자격 증명·실제 배포 origin·OS 권한·제품별 저장 정책         |
+| Scope   | 책임                                                                                        | 위치                                                               | 상세를 넣지 않는 것                                            |
+| ------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
+| global  | 제품 범위·사용자 여정, 시스템 context, 제품 간 의존·인증·데이터 경계, 문서 정책과 전체 계획 | `docs/product`, `docs/architecture`, `docs/planning`, `docs/guides` | 특정 앱 내부의 timer·storage key·component lifecycle·함수 목록 |
+| app     | 배포/실행 가능한 앱의 bootstrap·상태·adapter·protocol 처리·화면 흐름·운영/복구              | `docs/architecture/<기능 영역>`                                   | 공유 패키지의 UI·도메인 구현 계약 복사                         |
+| package | 소비 앱과 독립적인 공개 API·타입·불변식·extension point·오류·검증                           | `docs/architecture/<기능 영역>`                                   | 앱 자격 증명·실제 배포 origin·OS 권한·제품별 저장 정책         |
+
+문서의 책임 범위는 global/app/package로 구분하지만, 파일은 소스 모듈의 `docs/` 폴더로 분산하지 않고 저장소 루트 `docs/` 아래에 기능 단위로 모은다. 앱과 패키지 README는 실행 방법과 루트 문서 링크만 제공한다.
 
 예를 들어 text surface·tree selection은 editor package, Workspace 파일 쓰기는 Desktop app, PKMS Yjs 연결은 pkms-client package, PKMS server mutation은 server app, Web/Desktop/iOS의 제품 차이는 global에 속한다.
 
@@ -40,4 +42,4 @@
 
 ## 읽는 경로
 
-[제품과 여정](./product/프로젝트 정의.md) → [시스템 context](./architecture/01-overview.md) → 소유 앱 README/docs → 의존 패키지 docs 순서로 읽는다. 전역 색인은 [문서 안내](./README.md), 남은 작업은 [계획 색인](./planning/README.md)에서 찾는다.
+[제품과 여정](./product/프로젝트%20정의.md) → [시스템 context](./architecture/01-overview.md) → [기능별 문서 색인](./architecture/README.md) 순서로 읽는다. 전역 색인은 [문서 안내](./README.md), 남은 작업은 [계획 색인](./planning/README.md)에서 찾는다.

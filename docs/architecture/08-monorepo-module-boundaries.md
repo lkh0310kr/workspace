@@ -6,11 +6,11 @@ Global scope는 배포·코드 소유·의존 방향을 정의한다. 구체 함
 
 | 앱               | 현재 책임                                                               | 기준                                                           |
 | ---------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------- |
-| workspace-app    | Electron OS 권한·pane shell·PTY/files/browser/viewers·Home·PKMS adapter | [Desktop docs](../../apps/workspace-app/docs/README.md)        |
-| workspace-server | Home provider API·OAuth·전용 D1·grants                                  | [Home Server docs](../../apps/workspace-server/docs/README.md) |
-| pkms-web         | UI·SSR·assets·canonical origin proxy                                    | [Web docs](../../apps/pkms-web/docs/README.md)                 |
-| pkms-server      | PKMS auth·account/vault·API/MCP·Supabase/R2·GitHub export               | [Server docs](../../apps/pkms-server/docs/README.md)           |
-| pkms-ios         | native UI·Keychain·transport/cache·Realtime·C binding                   | [iOS docs](../../apps/pkms-ios/docs/README.md)                 |
+| workspace-app    | Electron OS 권한·pane shell·PTY/files/browser/viewers·Home·PKMS adapter | [Desktop docs](./workspace/README.md)        |
+| workspace-server | Home provider API·OAuth·전용 D1·grants                                  | [Home Server docs](./workspace-server/README.md) |
+| pkms-web         | UI·SSR·assets·canonical origin proxy                                    | [Web docs](./pkms/web/README.md)                 |
+| pkms-server      | PKMS auth·account/vault·API/MCP·Supabase/R2·GitHub export               | [Server docs](./pkms/server/README.md)           |
+| pkms-ios         | native UI·Keychain·transport/cache·Realtime·C binding                   | [iOS docs](./pkms/ios/README.md)                 |
 
 Web/UI Worker와 PKMS API Worker는 서로 다른 실행 단위다. 사용자 canonical origin과 기존 cookie/callback 보존을 위해 server가 page를 Web binding으로 전달한다. Home Server는 PKMS 공용 backend가 아니며 별도 저장·credential 경계다. Desktop·iOS는 같은 PKMS API를 사용해도 자격 증명과 로컬 수명은 공유하지 않는다.
 
@@ -18,10 +18,10 @@ Web/UI Worker와 PKMS API Worker는 서로 다른 실행 단위다. 사용자 ca
 
 | 패키지        | 현재 책임                                                | 소비자·기준                                                                          |
 | ------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| editor        | provider 계약·tree·CodeMirror·Markdown·공통 UI           | Desktop, pkms-client; [docs](../../packages/editor/docs/README.md)                   |
-| pkms-client   | Web/Desktop 공통 계정·workspace·파일·문서·Realtime/cache | Web, Desktop pane; [docs](../../packages/pkms-client/docs/README.md)                 |
-| pkms-protocol | 직접 유지하는 TS DTO·Realtime schema/검사                | client/server와 Swift 모델 대조; [docs](../../packages/pkms-protocol/docs/README.md) |
-| pkms-core     | Rust 도메인·Yrs CRDT·FFI/WASM crates                     | 현재 iOS C FFI, binding source; [docs](../../packages/pkms-core/docs/README.md)      |
+| editor        | provider 계약·tree·CodeMirror·Markdown·공통 UI           | Desktop, pkms-client; [docs](./editor/README.md)                   |
+| pkms-client   | Web/Desktop 공통 계정·workspace·파일·문서·Realtime/cache | Web, Desktop pane; [docs](./pkms/client/README.md)                 |
+| pkms-protocol | 직접 유지하는 TS DTO·Realtime schema/검사                | client/server와 Swift 모델 대조; [docs](./pkms/protocol/README.md) |
+| pkms-core     | Rust 도메인·Yrs CRDT·FFI/WASM crates                     | 현재 iOS C FFI, binding source; [docs](./pkms/core/README.md)      |
 
 앱은 package를 import할 수 있고 package는 앱 구현을 import하지 않는다. package의 문서가 소비 앱 source를 **근거로 링크**하는 것과 runtime import 의존 방향을 구분한다. npm workspaces 목록과 Rust workspace, 별도 Desktop native install은 다른 build 경계다.
 

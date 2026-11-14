@@ -6,7 +6,7 @@ The Home dashboard is part of the app. Its provider API is deployed independentl
 
 ## Architecture and specifications
 
-Read the [app documentation](./docs/README.md) for runtime, layout, interaction, IPC, persistence, browser, and local editor contracts. Shared UI contracts live in the owning packages.
+Read the [app documentation](../../docs/architecture/workspace/README.md) for runtime, layout, interaction, IPC, persistence, browser, and local editor contracts. Shared UI contracts live in the owning packages.
 
 ## Development
 

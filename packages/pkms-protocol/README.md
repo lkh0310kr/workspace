@@ -10,4 +10,4 @@ Treat changes to fields, CRDT encoding, path semantics, or conflict behavior as 
 
 Run `npm run check:realtime-models --workspace @pkms/protocol` after Realtime contract or model changes. The checker compares TypeScript Realtime envelope fields/discriminators and the iOS peer, hello, document-update, and operation-result payloads with `realtime.schema.json`. It does not validate HTTP routes or HTTP DTO compatibility.
 
-Read the [package contract](./docs/README.md) for model ownership, encoding, compatibility boundaries, and the exact scope of the checker.
+Read the [package contract](../../docs/architecture/pkms/protocol/README.md) for model ownership, encoding, compatibility boundaries, and the exact scope of the checker.

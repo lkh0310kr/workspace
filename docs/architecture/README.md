@@ -1,29 +1,29 @@
 # 시스템 및 제품 아키텍처
 
-이 영역은 전체 시스템 context와 앱/패키지 소유자 링크를 제공합니다. 현재 동작 계약은 app/package 문서를 기준으로 하고, 예정 구조는 planning에 둡니다.
+이 영역은 현재 시스템과 기능의 결과 계약을 한곳에 모읍니다. 문서는 앱·패키지 소스와 분리해 루트 `docs/` 아래에서 관리하고, 예정 구조는 planning에 둡니다.
 
 ## Global scope
 
-[문서 scope 규칙](../documentation-scopes.md)에 따라 전체 context·제품 경계·상태와 색인을 소유합니다. 앱 내부 계약은 app docs, 공유 동작은 package docs가 기준입니다.
+[문서 scope 규칙](../documentation-scopes.md)에 따라 전체 context·제품 경계·상태와 색인을 소유합니다. 앱과 패키지의 구현 소유권은 유지하되 문서 위치는 모두 루트 `docs/` 아래로 통일합니다.
 
 ## Global scope
 
 - [문서 scope와 소유 규칙](../documentation-scopes.md)
-- [제품 여정](../product/프로젝트 정의.md)
+- [제품 여정](../product/프로젝트%20정의.md)
 - [전체 시스템 context](./01-overview.md)
 - [모듈 경계](./08-monorepo-module-boundaries.md)
 - [SDD 상태·검사 규칙](./spec-driven-development.md)
 
-## App scope
+## 기능 문서 색인
 
-- [Workspace Desktop](../../apps/workspace-app/docs/README.md)
-- [PKMS Web](../../apps/pkms-web/docs/README.md) · [PKMS Server](../../apps/pkms-server/docs/README.md) · [PKMS iOS](../../apps/pkms-ios/docs/README.md)
-- [Workspace Home Server](../../apps/workspace-server/docs/README.md)
+- [Workspace Desktop](./workspace/README.md)
+- [PKMS Web](./pkms/web/README.md) · [PKMS Server](./pkms/server/README.md) · [PKMS iOS](./pkms/ios/README.md)
+- [Workspace Home Server](./workspace-server/README.md)
 
-## Package scope
-
-- [Editor](../../packages/editor/docs/README.md) · [PKMS client](../../packages/pkms-client/docs/README.md)
-- [PKMS protocol](../../packages/pkms-protocol/README.md) · [PKMS Core](../../packages/pkms-core/README.md)
+- [Editor](./editor/README.md)
+- [PKMS](./pkms/README.md)
+- [Workspace](./workspace/README.md)
+- [Workspace Home Server](./workspace-server/README.md)
 
 ## 이전 아키텍처 노트
 

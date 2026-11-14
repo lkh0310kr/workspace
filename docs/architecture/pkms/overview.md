@@ -6,15 +6,15 @@ Global scope는 Web/Desktop/iOS와 server·공유 package 사이의 경계만 �
 
 | 관심사                                           | 소유 문서                                                                      |
 | ------------------------------------------------ | ------------------------------------------------------------------------------ |
-| Web UI·canonical origin·SSR/proxy                | [PKMS Web app](../../../apps/pkms-web/docs/README.md)                          |
-| auth/device/MCP·workspace/vault·DB/GitHub export | [PKMS Server app](../../../apps/pkms-server/docs/README.md)                    |
-| 공통 계정·파일·cache·Realtime orchestration      | [pkms-client package](../../../packages/pkms-client/docs/README.md)            |
-| provider·local/Yjs/asset session                 | [client editor session](../../../packages/pkms-client/docs/editor-sessions.md) |
-| 공유 tree·text/Markdown UI                       | [editor package](../../../packages/editor/docs/README.md)                      |
-| Desktop pane·native proxy·로컬 folder sync       | [Desktop PKMS app adapter](../../../apps/workspace-app/docs/pkms/README.md)    |
-| SwiftUI·Keychain·native transport                | [iOS app](../../../apps/pkms-ios/docs/README.md)                               |
-| DTO·Realtime 메시지                              | [protocol package](../../../packages/pkms-protocol/docs/README.md)             |
-| UTF-16·CRDT·C ABI                                | [Rust package](../../../packages/pkms-core/docs/README.md)                     |
+| Web UI·canonical origin·SSR/proxy                | [PKMS Web app](./web/README.md)                          |
+| auth/device/MCP·workspace/vault·DB/GitHub export | [PKMS Server app](./server/README.md)                    |
+| 공통 계정·파일·cache·Realtime orchestration      | [pkms-client package](./client/README.md)            |
+| provider·local/Yjs/asset session                 | [client editor session](./client/editor-sessions.md) |
+| 공유 tree·text/Markdown UI                       | [editor package](../editor/README.md)                      |
+| Desktop pane·native proxy·로컬 folder sync       | [Desktop PKMS app adapter](../workspace/pkms/README.md)    |
+| SwiftUI·Keychain·native transport                | [iOS app](./ios/README.md)                               |
+| DTO·Realtime 메시지                              | [protocol package](./protocol/README.md)             |
+| UTF-16·CRDT·C ABI                                | [Rust package](./core/README.md)                     |
 
 ## 보존할 제품 경계
 

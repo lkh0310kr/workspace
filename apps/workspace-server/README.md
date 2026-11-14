@@ -1,6 +1,6 @@
 # Workspace Home Worker
 
-현재 앱의 경계·상태·계약은 [app scope 문서](./docs/README.md)를 기준으로 합니다.
+현재 앱의 경계·상태·계약은 [app scope 문서](../../docs/architecture/workspace-server/README.md)를 기준으로 합니다.
 
 This Cloudflare Worker serves the Workspace Home service dashboard API. It owns Cloudflare/Supabase OAuth credentials, the optional Supabase metrics token, and the Vercel read-only token. These values are encrypted with `HOME_DATA_ENCRYPTION_KEY` and stored in this Worker’s D1 database.
 

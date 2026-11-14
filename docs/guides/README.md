@@ -8,4 +8,4 @@
 | [수동 QA 체크리스트](./manual-qa-checklist.md) | 레이아웃, embed, 릴리스 흐름 확인 시      |
 | [Windows 빌드](./windows-build.md)             | Windows에서 Workspace 데스크톱 앱 빌드 시 |
 
-실제 앱별 운영 책임과 진단 경로는 [Workspace logging](../../apps/workspace-app/docs/operations/logging.md) 및 [Windows build](../../apps/workspace-app/docs/operations/windows-build.md)을 기준으로 합니다.
+실제 앱별 운영 책임과 진단 경로는 [Workspace logging](../architecture/workspace/operations/logging.md) 및 [Windows build](../architecture/workspace/operations/windows-build.md)을 기준으로 합니다.

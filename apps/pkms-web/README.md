@@ -1,6 +1,6 @@
 # PKMS Web
 
-현재 앱의 경계·상태·계약은 [app scope 문서](./docs/README.md)를 기준으로 합니다.
+현재 앱의 경계·상태·계약은 [app scope 문서](../../docs/architecture/pkms/web/README.md)를 기준으로 합니다.
 
 This app owns the browser UI and React Router SSR. Its Worker proxies `/api/*`, `/.well-known/*`, `/mcp`, and `/oauth/*` to the independent PKMS API Worker at `pkms-cloud`. This keeps browser requests same-origin while the PKMS server owns authentication, storage, collaboration, MCP, and GitHub backup.
 

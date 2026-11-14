@@ -15,4 +15,4 @@ wasm-pack build crates/pkms-wasm --target web --out-dir ../../apps/pkms-web/app/
 
 From the repository root, `bash apps/pkms-ios/scripts/build-rust-framework.sh` produces an XCFramework for device and Apple Silicon simulator targets.
 
-Read the [package contracts](./docs/README.md) for path rules, UTF-16 edits, CRDT encoding, buffer ownership, and binding-specific errors.
+Read the [package contracts](../../docs/architecture/pkms/core/README.md) for path rules, UTF-16 edits, CRDT encoding, buffer ownership, and binding-specific errors.

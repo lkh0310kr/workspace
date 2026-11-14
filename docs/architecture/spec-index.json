@@ -27,7 +27,7 @@
     "docs/planning/README.md",
     "docs/planning/backlog.md",
     "docs/planning/editor-unification.md",
-    "packages/editor/docs/markdown/product-completeness.md",
+    "docs/architecture/editor/markdown/product-completeness.md",
     "docs/planning/editor-navigation-review.md",
     "docs/planning/feature-status.md",
     "docs/planning/result-oriented-spec-review.md",
@@ -44,17 +44,17 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "packages/editor/README.md",
-        "packages/editor/docs/README.md",
-        "packages/editor/docs/assets.md",
-        "packages/editor/docs/breadcrumbs.md",
-        "packages/editor/docs/code/README.md",
-        "packages/editor/docs/code/ide-capabilities.md",
-        "packages/editor/docs/markdown/README.md",
-        "packages/editor/docs/markdown/product-completeness.md",
-        "packages/editor/docs/provider.md",
-        "packages/editor/docs/public-api.md",
-        "packages/editor/docs/search.md",
-        "packages/editor/docs/treeview/README.md"
+        "docs/architecture/editor/README.md",
+        "docs/architecture/editor/assets.md",
+        "docs/architecture/editor/breadcrumbs.md",
+        "docs/architecture/editor/code/README.md",
+        "docs/architecture/editor/code/ide-capabilities.md",
+        "docs/architecture/editor/markdown/README.md",
+        "docs/architecture/editor/markdown/product-completeness.md",
+        "docs/architecture/editor/provider.md",
+        "docs/architecture/editor/public-api.md",
+        "docs/architecture/editor/search.md",
+        "docs/architecture/editor/treeview/README.md"
       ],
       "sources": [
         {
@@ -330,7 +330,7 @@
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
-        "apps/workspace-app/docs/editor/providers.md"
+        "docs/architecture/workspace/editor/providers.md"
       ],
       "sources": [
         {
@@ -411,8 +411,8 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "packages/pkms-client/README.md",
-        "packages/pkms-client/docs/README.md",
-        "packages/pkms-client/docs/editor-sessions.md"
+        "docs/architecture/pkms/client/README.md",
+        "docs/architecture/pkms/client/editor-sessions.md"
       ],
       "sources": [
         {
@@ -476,9 +476,9 @@
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
-        "apps/workspace-app/docs/browser/README.md",
-        "apps/workspace-app/docs/browser/lifecycle.md",
-        "apps/workspace-app/docs/browser/navigation.md"
+        "docs/architecture/workspace/browser/README.md",
+        "docs/architecture/workspace/browser/lifecycle.md",
+        "docs/architecture/workspace/browser/navigation.md"
       ],
       "sources": [
         {
@@ -667,12 +667,12 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "apps/workspace-app/README.md",
-        "apps/workspace-app/docs/README.md",
-        "apps/workspace-app/docs/runtime/README.md",
-        "apps/workspace-app/docs/layout/README.md",
-        "apps/workspace-app/docs/interaction/README.md",
-        "apps/workspace-app/docs/ipc/README.md",
-        "apps/workspace-app/docs/persistence/README.md"
+        "docs/architecture/workspace/README.md",
+        "docs/architecture/workspace/runtime/README.md",
+        "docs/architecture/workspace/layout/README.md",
+        "docs/architecture/workspace/interaction/README.md",
+        "docs/architecture/workspace/ipc/README.md",
+        "docs/architecture/workspace/persistence/README.md"
       ],
       "sources": [
         {
@@ -800,8 +800,8 @@
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
-        "apps/workspace-app/docs/terminal/README.md",
-        "apps/workspace-app/docs/terminal/porting-history.md"
+        "docs/architecture/workspace/terminal/README.md",
+        "docs/architecture/workspace/terminal/porting-history.md"
       ],
       "sources": [
         {
@@ -837,16 +837,16 @@
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
-        "apps/workspace-app/docs/pkms/README.md",
-        "apps/workspace-app/docs/pkms/folder-sync.md",
-        "apps/workspace-app/docs/pkms/folder-sync/README.md",
-        "apps/workspace-app/docs/pkms/folder-sync/reconciliation.md",
-        "apps/workspace-app/docs/pkms/folder-sync/durability-recovery.md",
-        "apps/workspace-app/docs/pkms/folder-sync/server-protocol.md",
-        "apps/workspace-app/docs/pkms/folder-sync/ui-acceptance.md",
-        "apps/workspace-app/docs/pkms/folder-sync/deletion.md",
-        "apps/workspace-app/docs/pkms/folder-sync/implementation-status.md",
-        "apps/workspace-app/docs/pkms/local-deletion-sync.md"
+        "docs/architecture/workspace/pkms/README.md",
+        "docs/architecture/workspace/pkms/folder-sync.md",
+        "docs/architecture/workspace/pkms/folder-sync/README.md",
+        "docs/architecture/workspace/pkms/folder-sync/reconciliation.md",
+        "docs/architecture/workspace/pkms/folder-sync/durability-recovery.md",
+        "docs/architecture/workspace/pkms/folder-sync/server-protocol.md",
+        "docs/architecture/workspace/pkms/folder-sync/ui-acceptance.md",
+        "docs/architecture/workspace/pkms/folder-sync/deletion.md",
+        "docs/architecture/workspace/pkms/folder-sync/implementation-status.md",
+        "docs/architecture/workspace/pkms/local-deletion-sync.md"
       ],
       "sources": [
         {
@@ -902,12 +902,12 @@
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
-        "apps/workspace-app/docs/viewers/README.md",
-        "apps/workspace-app/docs/home/README.md",
-        "apps/workspace-app/docs/agents/README.md",
-        "apps/workspace-app/docs/settings/README.md",
-        "apps/workspace-app/docs/operations/logging.md",
-        "apps/workspace-app/docs/operations/windows-build.md"
+        "docs/architecture/workspace/viewers/README.md",
+        "docs/architecture/workspace/home/README.md",
+        "docs/architecture/workspace/agents/README.md",
+        "docs/architecture/workspace/settings/README.md",
+        "docs/architecture/workspace/operations/logging.md",
+        "docs/architecture/workspace/operations/windows-build.md"
       ],
       "sources": [
         {
@@ -996,7 +996,7 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "apps/pkms-web/README.md",
-        "apps/pkms-web/docs/README.md"
+        "docs/architecture/pkms/web/README.md"
       ],
       "sources": [
         {
@@ -1021,7 +1021,7 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "apps/pkms-server/README.md",
-        "apps/pkms-server/docs/README.md"
+        "docs/architecture/pkms/server/README.md"
       ],
       "sources": [
         {
@@ -1054,7 +1054,7 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "apps/workspace-server/README.md",
-        "apps/workspace-server/docs/README.md"
+        "docs/architecture/workspace-server/README.md"
       ],
       "sources": [
         {
@@ -1087,7 +1087,7 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "apps/pkms-ios/README.md",
-        "apps/pkms-ios/docs/README.md"
+        "docs/architecture/pkms/ios/README.md"
       ],
       "sources": [
         {
@@ -1128,7 +1128,7 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "packages/pkms-core/README.md",
-        "packages/pkms-core/docs/README.md"
+        "docs/architecture/pkms/core/README.md"
       ],
       "sources": [
         {
@@ -1157,7 +1157,7 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "packages/pkms-protocol/README.md",
-        "packages/pkms-protocol/docs/README.md"
+        "docs/architecture/pkms/protocol/README.md"
       ],
       "sources": [
         {

@@ -1,6 +1,6 @@
 # Editor navigation review
 
-This review compares TreeView and Editor behavior with the reported scroll cancellation and requested breadcrumbs. Source changes exist, but the user has re-reported that TreeView cannot be reopened and scroll still moves; therefore scroll and toggle behavior are **not accepted as fixed**. Markdown rendering, title/width, and reference parity are expanded in the [Editor completeness spec](../../packages/editor/docs/markdown/product-completeness.md). VS Code and Zed are reference points for outcomes, not full feature parity targets.
+This review compares TreeView and Editor behavior with the reported scroll cancellation and requested breadcrumbs. Source changes exist, but the user has re-reported that TreeView cannot be reopened and scroll still moves; therefore scroll and toggle behavior are **not accepted as fixed**. Markdown rendering, title/width, and reference parity are expanded in the [Editor completeness spec](../architecture/editor/markdown/product-completeness.md). VS Code and Zed are reference points for outcomes, not full feature parity targets.
 
 ## Findings
 
