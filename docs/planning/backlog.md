@@ -29,13 +29,6 @@
 - **검증:** 실행 중인 `npm run dev` 앱에서 PKMS tree toolbar 항목이 사라지고 New note/New folder가 남는지, `.md` suffix가 숨겨지는지 확인했다. Workspace label 규칙과 Markdown rename extension 보존 테스트도 통과했다.
 - **근거:** [Editor 통합·provider 계약](./editor-unification.md), [PKMS Editor parity](../../apps/workspace-app/docs/pkms/editor-parity.md)
 
-
-### Stable 승격에서 이전 앱 사본을 만들지 않음 — 완료
-
-- **결과:** `promote-stable.mjs`는 기존 Workspace.app을 제거한 뒤 서명 검증된 빌드를 설치 경로에 직접 복사한다. `.previous-*` 백업 사본은 생성하지 않는다.
-- **검증:** `/Applications`에 남은 `Workspace.app.previous-*`는 발견되지 않았다. `node --check apps/workspace-app/scripts/promote-stable.mjs` 통과.
-- **운영 특성:** 이전 설치본의 자동 롤백 사본은 없다. 재설치가 필요하면 보존된 빌드 산출물로 다시 승격한다.
-
 ## 다음
 
 ### 영향 기반 Editor 검증 경로 고정 (SDD WP-04)
@@ -58,4 +51,4 @@
 - **완료 조건:** 표시할 값, 갱신/오류/권한 상태와 플랫폼별 제공 범위를 Home 결과 스펙에 정의하고, 지원되는 플랫폼에서 실제 값을 검증한다. 수집할 수 없는 정보는 빈 값이나 오해를 부르는 0으로 표시하지 않는다.
 - **근거:** [Home UI 스펙](../../apps/workspace-app/docs/home/README.md), [감사 AUD-17](./top-down-documentation-audit.md)
 
-Workspace.app.previous-2026-11-13T03-17-42-866Z.app 이런식으로 잔상을 남기는데 이런짓하지마. 용량 존나 차지함..
+서버 로그 홈에서 확인하기
