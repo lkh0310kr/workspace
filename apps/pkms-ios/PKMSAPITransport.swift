@@ -3,14 +3,20 @@ import OSLog
 
 struct PKMSAPITransport {
     private let logger = Logger(subsystem: "com.pkms.client", category: "network")
-    private let session: URLSession = {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.waitsForConnectivity = true
-        configuration.timeoutIntervalForRequest = 30
-        configuration.timeoutIntervalForResource = 60
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        return URLSession(configuration: configuration)
-    }()
+    private let session: URLSession
+
+    init(session: URLSession? = nil) {
+        if let session {
+            self.session = session
+        } else {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.waitsForConnectivity = true
+            configuration.timeoutIntervalForRequest = 30
+            configuration.timeoutIntervalForResource = 60
+            configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+            self.session = URLSession(configuration: configuration)
+        }
+    }
 
     func endpoint(serverAddress: String, path: String) -> URL {
         let base = URL(string: serverAddress) ?? URL(string: "https://pkms-cloud.lkh0310kr.workers.dev")!

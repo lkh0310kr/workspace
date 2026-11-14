@@ -11,8 +11,14 @@ struct PKMSWorkspaceTreeCache: Codable, Sendable {
 }
 
 actor PKMSWorkspaceTreeCacheStore {
+    private let directory: URL
+
+    init(directory: URL = URL.applicationSupportDirectory.appending(path: "PKMS/TreeCache")) {
+        self.directory = directory
+    }
+
     private func url(workspaceID: String) -> URL {
-        URL.applicationSupportDirectory.appending(path: "PKMS/TreeCache/\(workspaceID).json")
+        directory.appending(path: "\(workspaceID).json")
     }
 
     func read(workspaceID: String) -> PKMSWorkspaceTreeCache? {
@@ -81,8 +87,8 @@ final class PKMSModel {
     var clientID = "ios-\(UUID().uuidString.lowercased())"
     internal(set) var expandedFolders: Set<String> = [""]
     internal(set) var loadedDirectories: Set<String> = [] { didSet { persistTreeCache() } }
-    private let transport = PKMSAPITransport()
-    let treeCache = PKMSWorkspaceTreeCacheStore()
+    private let transport: PKMSAPITransport
+    let treeCache: PKMSWorkspaceTreeCacheStore
 
     private func persistTreeCache() {
         guard let workspaceID = activeWorkspace?.id else { return }
@@ -105,7 +111,9 @@ final class PKMSModel {
         Task { await treeCache.write(cache, workspaceID: workspaceID) }
     }
 
-    init() {
+    init(transport: PKMSAPITransport = PKMSAPITransport(), treeCache: PKMSWorkspaceTreeCacheStore = PKMSWorkspaceTreeCacheStore()) {
+        self.transport = transport
+        self.treeCache = treeCache
         cacheRequiresFullState = Set(UserDefaults.standard.stringArray(forKey: "pkms.pending.files") ?? [])
         let savedAddress = UserDefaults.standard.string(forKey: "pkms.serverAddress")
         if let savedAddress, !savedAddress.contains("localhost"), !savedAddress.contains("127.0.0.1") {
