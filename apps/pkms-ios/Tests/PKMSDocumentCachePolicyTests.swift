@@ -172,6 +172,45 @@ final class PKMSWorkspaceCacheFirstTests: XCTestCase {
         XCTAssertEqual(model.activeWorkspace?.revision, 8, "The active workspace must advance to the snapshot revision before later operations")
         XCTAssertEqual(model.workspaces.first?.revision, 8, "The workspace list must share the refreshed operation base revision")
     }
+
+    func testRealtimeResubscribeReloadsMissedTreeChangesAndRevision() async throws {
+        let workspaceID = "reconnect-\(UUID().uuidString)"
+        let oldFile = PKMSFile(id: "old", path: "old.md", kind: "markdown", revision: 4, content: nil, contentType: "text/markdown", size: 3, sha256: nil)
+        let newFile: [String: Any] = [
+            "id": "new", "path": "new.md", "kind": "markdown", "revision": 12,
+            "content": NSNull(), "contentType": "text/markdown", "size": 4, "sha256": NSNull(),
+        ]
+        let snapshot = try JSONSerialization.data(withJSONObject: [
+            "workspaceId": workspaceID, "revision": 12, "files": [newFile],
+            "hasMore": false, "nextRevision": NSNull(), "afterRevision": NSNull(),
+        ])
+        let rootListing = try JSONSerialization.data(withJSONObject: ["path": "", "files": [newFile]])
+        let gate = PKMSURLProtocolGate(
+            replies: [
+                "/api/workspaces/\(workspaceID)/snapshot": .init(statusCode: 200, body: snapshot),
+                "/api/workspaces/\(workspaceID)/directory": .init(statusCode: 200, body: rootListing),
+            ],
+            fallback: .init(statusCode: 404, body: Data(#"{"error":"not_found"}"#.utf8))
+        )
+        PKMSStubURLProtocol.install(gate)
+        defer { PKMSStubURLProtocol.install(nil) }
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [PKMSStubURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        let model = PKMSModel(transport: PKMSAPITransport(session: session))
+        model.serverAddress = "https://pkms.test"
+        let workspace = PKMSWorkspace(id: workspaceID, repository: "owner/repo", branch: "main", revision: 4, githubStatus: "synced", message: nil, lastGitHubCommitAt: nil)
+        model.activeWorkspace = workspace
+        model.workspaces = [workspace]
+        model.files = [oldFile]
+
+        await model.reconcileWorkspaceAfterRealtimeSubscribe(workspaceID: workspaceID)
+
+        XCTAssertEqual(model.files.map(\.id), ["new"], "Rejoining must replace missed tree state from the authoritative listing")
+        XCTAssertEqual(model.activeWorkspace?.revision, 12)
+        XCTAssertEqual(model.workspaces.first?.revision, 12)
+    }
 }
 
 private final class PKMSURLProtocolGate: @unchecked Sendable {

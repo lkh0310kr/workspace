@@ -47,13 +47,8 @@ extension PKMSModel {
         }
         do {
             let snapshot = try await get("/api/workspaces/\(workspace.id)/snapshot", as: PKMSSnapshot.self)
-            if var selectedWorkspace = activeWorkspace, selectedWorkspace.id == workspace.id {
-                selectedWorkspace.revision = max(selectedWorkspace.revision, snapshot.revision)
-                activeWorkspace = selectedWorkspace
-                if let index = workspaces.firstIndex(where: { $0.id == workspace.id }) {
-                    workspaces[index] = selectedWorkspace
-                }
-            }
+            guard activeWorkspace?.id == workspace.id else { return }
+            updateWorkspaceRevision(snapshot.revision)
             var byID = Dictionary(uniqueKeysWithValues: files.map { ($0.id, $0) })
             for file in snapshot.files { byID[file.id] = file }
             files = Array(byID.values)
@@ -63,7 +58,7 @@ extension PKMSModel {
         } catch { errorMessage = error.localizedDescription }
     }
 
-    func open(_ file: PKMSFile) async {
+    func open(_ file: PKMSFile, sendStateOnOpen: Bool = true) async {
         dismissPreview()
         activeFolderPath = nil
         activeFile = file
@@ -88,7 +83,7 @@ extension PKMSModel {
             if let bytes = Data(base64Encoded: update.update) { _ = doc.apply(bytes) }
             markdown = doc.text
             saveCache(doc, workspaceID: workspace.id, fileID: file.id)
-            if realtimeChannel != nil { sendFullState(doc, fileID: file.id) }
+            if sendStateOnOpen, realtimeChannel != nil { sendFullState(doc, fileID: file.id) }
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -341,10 +336,22 @@ extension PKMSModel {
 
     func dismissError() { errorMessage = nil }
 
+    func reconcileWorkspaceAfterRealtimeSubscribe(workspaceID: String) async {
+        guard activeWorkspace?.id == workspaceID else { return }
+        await reloadFiles()
+        guard activeWorkspace?.id == workspaceID else { return }
+        if let activeFile, let refreshedFile = files.first(where: { $0.id == activeFile.id }) {
+            await open(refreshedFile, sendStateOnOpen: false)
+        }
+    }
+
     func reloadFiles() async {
         guard let workspace = activeWorkspace else { return }
         do {
-            files = try await get("/api/workspaces/\(workspace.id)/snapshot", as: PKMSSnapshot.self).files
+            let snapshot = try await get("/api/workspaces/\(workspace.id)/snapshot", as: PKMSSnapshot.self)
+            guard activeWorkspace?.id == workspace.id else { return }
+            updateWorkspaceRevision(snapshot.revision)
+            files = snapshot.files
             let folders = expandedFolders.sorted { $0.count < $1.count }
             for folder in folders { await loadDirectory(folder) }
         }

@@ -23,6 +23,8 @@ extension PKMSModel {
                     let workspaceID = workspace.id
                     Task { @MainActor [weak self] in
                         guard let self, activeWorkspace?.id == workspaceID else { return }
+                        await reconcileWorkspaceAfterRealtimeSubscribe(workspaceID: workspaceID)
+                        guard activeWorkspace?.id == workspaceID else { return }
                         resendPendingDocumentCaches(workspaceID: workspaceID)
                     }
                 })
@@ -111,6 +113,9 @@ extension PKMSModel {
         guard var workspace = activeWorkspace else { return }
         workspace.revision = max(workspace.revision, revision)
         activeWorkspace = workspace
+        if let index = workspaces.firstIndex(where: { $0.id == workspace.id }) {
+            workspaces[index] = workspace
+        }
     }
 
     func sendFullState(_ doc: NativeMarkdownDocument, fileID: String) {
