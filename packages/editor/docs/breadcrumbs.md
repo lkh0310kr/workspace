@@ -6,7 +6,7 @@
 
 - A `Workspace` root label and one segment for every non-empty path component are shown for a file-backed editor.
 - Untitled documents (`path === null`) show no breadcrumb.
-- Long segments truncate visually and retain their complete path in the accessible title.
+- Long segments truncate visually and retain their complete path in the accessible title. When the full path exceeds the available width, the breadcrumb row scrolls horizontally while keeping the menu overlay visible.
 - Activating a segment opens a menu of siblings in that segment's parent directory. Selecting a file calls the existing host file router with its code, Markdown, or viewer kind.
 - Selecting a directory browses that directory's children in the same menu. Escape dismisses the menu; changing active path also closes it.
 - Breadcrumbs are path-only. The editor does not render a document outline/structure control; symbol breadcrumbs require a symbol provider and are not part of this contract.
@@ -19,13 +19,14 @@ The Desktop host resolves the parent directory through `EditorProvider`, lists i
 
 ## Regeneration scenarios
 
-| ID | Input/action | Required result |
-|---|---|---|
-| BREADCRUMB-01 | Open a file at `notes/ideas/today.md` | Workspace, notes, ideas, today.md appear in order |
-| BREADCRUMB-02 | Open an untitled Markdown document | No path breadcrumb is rendered |
-| BREADCRUMB-03 | Activate `ideas` | A sibling menu for `notes` appears; current item is identifiable |
-| BREADCRUMB-04 | Choose another file from a segment menu | Host opens it with its file kind; active path updates and menu closes |
-| BREADCRUMB-05 | Choose a directory from the menu, then Escape | Its children appear in the same menu; Escape closes it |
-| BREADCRUMB-06 | Activate a path segment with keyboard | Menu receives focus; Up/Down/Home/End move among items, Escape closes and returns focus to the segment, outside click dismisses |
+| ID            | Input/action                                      | Required result                                                                                                                 |
+| ------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| BREADCRUMB-01 | Open a file at `notes/ideas/today.md`             | Workspace, notes, ideas, today.md appear in order                                                                               |
+| BREADCRUMB-02 | Open an untitled Markdown document                | No path breadcrumb is rendered                                                                                                  |
+| BREADCRUMB-03 | Activate `ideas`                                  | A sibling menu for `notes` appears; current item is identifiable                                                                |
+| BREADCRUMB-04 | Choose another file from a segment menu           | Host opens it with its file kind; active path updates and menu closes                                                           |
+| BREADCRUMB-05 | Choose a directory from the menu, then Escape     | Its children appear in the same menu; Escape closes it                                                                          |
+| BREADCRUMB-06 | Activate a path segment with keyboard             | Menu receives focus; Up/Down/Home/End move among items, Escape closes and returns focus to the segment, outside click dismisses |
+| BREADCRUMB-07 | Open a deeply nested file in a narrow editor pane | Breadcrumb stays on one line and can be horizontally scrolled; segment menus remain visible above the editor                    |
 
 Current presentation styles are in `packages/editor/src/tree.css`; Desktop placement is in `apps/workspace-app/src/renderer/src/panes/EditorContent.tsx`.

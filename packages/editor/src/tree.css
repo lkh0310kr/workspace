@@ -78,6 +78,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.editor-tree-item.is-git-ignored .editor-tree-name {
+  color: var(--editor-tree-ignored, var(--text-faint, var(--muted)));
+}
 .editor-tree-trailing-status {
   display: inline-flex;
   flex: 0 0 auto;
@@ -198,7 +201,6 @@
   display: flex;
   flex: 0 0 30px;
   align-items: center;
-  gap: 2px;
   min-width: 0;
   height: 30px;
   padding: 0 12px;
@@ -206,15 +208,25 @@
   font-size: 12px;
   white-space: nowrap;
 }
+.editor-breadcrumbs-scroll {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
 .editor-breadcrumb-root {
   flex: 0 0 auto;
 }
 .editor-breadcrumb-slot {
   position: relative;
   display: inline-flex;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   align-items: center;
-  min-width: 0;
 }
 .editor-breadcrumb-separator {
   padding: 0 4px;
@@ -246,7 +258,6 @@
   position: absolute;
   z-index: 20;
   top: calc(100% + 3px);
-  left: 0;
   display: flex;
   flex-direction: column;
   min-width: 180px;
@@ -288,8 +299,4 @@
   padding: 6px 8px;
   color: var(--muted, var(--text-muted));
   font-size: 12px;
-}
-
-.editor-tree-item.is-git-ignored .editor-tree-name {
-  color: var(--editor-tree-ignored, var(--text-faint, var(--muted)));
 }
