@@ -86,6 +86,7 @@ Desktop과 Web PKMS는 같은 `PkmsClientApp`을 사용한다. 따라서 `packag
 - Markdown wrapper class와 CodeMirror selection paint 규칙을 `packages/editor` stylesheet로 옮겼다. PKMS Shadow DOM에서도 선택 강조가 같은 공용 CSS로 적용된다.
 - PKMS 내부 document tab bar와 open-document tab state/close/select 흐름을 제거했다. 한 파일에서 다른 파일로 이동할 때 dirty session을 저장한 뒤 닫고, PKMS 저장소 선택 UI는 sidebar에 남겼다.
 - PKMS 편집 화면의 전용 topbar를 제거했다. `Cmd + \\`는 PKMS pane에 자체 Explorer가 있으므로 PKMS sidebar를 토글하도록 다시 연결했으며, `event.key`와 `event.code`를 모두 확인한다.
+- PKMS tree 상단의 upload·rename·delete 도구를 제거했다. 파일 생성, rename, delete capability는 tree context menu/키보드 명령과 Markdown 제목 편집으로 유지한다. Workspace tree는 `.md`/`.markdown` suffix를 표시하고 PKMS tree만 숨기며, provider item ID 기준의 rename 경로는 열린 문서 session을 재개방하지 않고 metadata를 갱신한다.
 - 다음 우선 순위는 Markdown host render 검증 및 code editing 범위 결정이다. 이번 변경은 전체 PKMS shell 통합이나 코드 파일 편집 지원을 완료한 것으로 간주하지 않는다.
 
 ## 작업 목록

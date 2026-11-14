@@ -493,7 +493,7 @@ export function TreeView({
       return {
         id: entry.editorItemId,
         path: entry.path,
-        name: editorTreeItemLabel(entry.name, detected),
+        name: editorTreeItemLabel(entry.name, detected, { showMarkdownExtension: true }),
         kind: detected,
         depth,
         expandable: entry.is_dir,

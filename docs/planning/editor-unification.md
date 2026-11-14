@@ -10,7 +10,7 @@ PKMS와 Workspace가 `packages/editor`의 공통 편집기를 사용한다. 파�
 
 | 영역        | 공통 동작                                                                 | Workspace provider                                                   | PKMS provider                                                            |
 | ----------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 파일 트리   | 확장/선택/키보드 탐색, 선택한 문서 열기, 선택 상태 표시                   | 로컬 디렉터리 지연 로드, 파일 변경 감시, 다중 선택과 파일시스템 작업 | 저장소 디렉터리와 파일 조회, 원격 변경 및 캐시 반영                      |
+| 파일 트리   | 확장/선택/키보드 탐색, 선택한 문서 열기, 선택 상태 표시                   | 로컬 디렉터리 지연 로드, 파일 변경 감시, 다중 선택과 파일시스템 작업. Markdown 파일명에 `.md` suffix 표시 | 저장소 디렉터리와 파일 조회, 원격 변경 및 캐시 반영. Markdown tree label에서 `.md`/`.markdown` suffix 숨김 |
 | 문서 탭     | 문서 식별, 활성화, 닫기 전 dirty 확인, dirty 표시, 문서별 편집 상태 유지  | pane group 안에서 code, Markdown, 지원하는 파일 viewer 열기          | PKMS 문서를 여러 탭으로 열기. 기존 뒤로/앞으로는 문서 탐색 이력으로 유지 |
 | 텍스트 편집 | 공통 키 입력, 선택/undo, 저장 명령, 문서 내 Find/Replace, 테마 토큰       | Markdown과 일반 코드 편집, 언어 감지, 자동 저장, 로컬 파일 충돌 표시 | Markdown 편집, 협업 상태, 로컬 캐시와 서버 저장 상태 표시                |
 | Markdown    | 공통 Markdown 문법, 실시간 미리보기, task/table, 링크                     | 로컬 이미지와 Workspace 위키 링크 해석, callout 포함 Workspace 확장  | PKMS 자산 링크 해석, PKMS 링크 규칙과 task/table 지원                    |
@@ -18,6 +18,8 @@ PKMS와 Workspace가 `packages/editor`의 공통 편집기를 사용한다. 파�
 | 저장 상태   | `clean`, `dirty`, `saving`, `conflict`, `error`의 공통 상태와 메시지 표시 | clean은 디스크에 기록됨을 뜻함                                       | clean은 PKMS 서버에 기록됨을 뜻함. GitHub 반영은 별도 동기화 상태로 표시 |
 
 PKMS는 일반 코드 파일 편집과 파일 내용 검색/치환을 현재 제공하지 않는다. 현재 PKMS quick open은 이미 로드한 저장소 파일 목록에서 이름을 찾는다. Workspace의 다중 파일 검색·치환은 PKMS가 같은 검색 capability를 제공하기 전까지 Workspace provider 전용으로 유지한다. PKMS의 협업/오프라인 상태와 Workspace의 파일 watcher/외부 수정 충돌은 공통 UI 상태 모델에 매핑하되 각각의 원인과 복구 동작은 provider가 소유한다.
+
+Markdown tree label의 suffix 표시는 제품별 탐색 규칙이다. Workspace Editor는 실제 파일명(`note.md`)을 그대로 표시하고 PKMS Editor는 확장자를 숨겨(`note`) 표시한다. 공통 `editorTreeItemLabel`은 기본적으로 suffix를 숨기며, Workspace tree는 `showMarkdownExtension` 옵션으로 실제 이름을 요청한다. PKMS의 create/rename/delete capability는 toolbar 노출과 별개로 유지되며 tree context menu·키보드 명령과 문서 제목 rename에서 제공한다.
 
 ## 패키지와 소유권
 

@@ -19,6 +19,17 @@
 - **수락:** 기존 remote tree를 둔 채 empty/populated root로 재연결하고, 앱 재시작·partial scan·동시 원격 변경·재시도를 수행한다. 의도하지 않은 tombstone이 없는지 확인한다. macOS에서 파일/폴더 삭제와 충돌 복구를 실행하고, attachment 및 재시작 뒤 sync 표시를 검증한다. deployed migration은 실제 적용 버전과 결과를 별도 기록한다.
 - **근거:** [Folder sync 결과·durability 계약](../../apps/workspace-app/docs/pkms/folder-sync/README.md), [삭제 계약](../../apps/workspace-app/docs/pkms/folder-sync/deletion.md), [UI acceptance](../../apps/workspace-app/docs/pkms/folder-sync/ui-acceptance.md), [기능 상태](./feature-status.md)
 
+## 완료
+
+### PKMS Editor tree와 파일명 표시 정리 — 완료
+
+- **결과:** PKMS tree 상단에서 upload·rename·delete 도구를 제거했다. create는 기존 New note/New folder 동작으로, rename/delete는 tree context menu·키보드 명령과 Markdown 제목 rename으로 제공한다.
+- **파일명 규칙:** Workspace Editor tree는 `.md`/`.markdown` suffix를 표시하고 PKMS Editor tree만 숨긴다. 공통 label helper는 제품별 표시 옵션을 받는다.
+- **rename identity:** 제목 rename은 기존 확장자를 보존하며 provider item ID로 rename한다. PKMS provider는 열린 session의 item metadata를 갱신하고, 로컬 sync rename은 session을 새 경로로 rekey한다. Workspace는 기존 파일 path remap 흐름을 사용한다.
+- **검증:** 실행 중인 `npm run dev` 앱에서 PKMS tree toolbar 항목이 사라지고 New note/New folder가 남는지, `.md` suffix가 숨겨지는지 확인했다. Workspace label 규칙과 Markdown rename extension 보존 테스트도 통과했다.
+- **근거:** [Editor 통합·provider 계약](./editor-unification.md), [PKMS Editor parity](../../apps/workspace-app/docs/pkms/editor-parity.md)
+
+
 ## 다음
 
 ### 영향 기반 Editor 검증 경로 고정 (SDD WP-04)
@@ -34,13 +45,6 @@
 - **목표 결과:** 사용자는 외부 서비스 연결 상태, 실패, 재인증 필요 상태를 구분해 볼 수 있고, 유효한 연결은 Home에서 정상적으로 조회된다. Home API와 PKMS server의 책임 경계가 유지된다.
 - **완료 조건:** 운영 환경의 client 설정·callback·재연결 결과를 확인하고 Web/Desktop의 성공·만료·취소·provider 오류 결과를 검증한다. 코드 구현, 외부 설정, 배포 검증을 따로 기록한다.
 - **근거:** [Home UI 스펙](../../apps/workspace-app/docs/home/README.md), [Home server](../../apps/workspace-server/docs/README.md), [기능 상태](./feature-status.md)
-
-### PKMS Editor tree와 파일명 표시 정리
-
-- **현재 요청:** PKMS Editor tree 상단의 upload·rename·delete 도구 모음을 제거한다. `.md` 확장자는 Workspace Editor에서 표시하고 PKMS Editor에서만 숨긴다.
-- **목표 결과:** 두 제품은 공유 편집기의 공통 편집 동작을 유지하면서 요청된 제품별 표시만 갖는다. PKMS 파일 생성·rename·delete capability 자체는 트리 상단 도구 모음 제거와 혼동되지 않는다.
-- **완료 조건:** PKMS tree 상단에 해당 도구 모음이 없고 기존 지원 작업은 명시된 다른 진입점에서 계속 동작한다. 같은 Markdown 파일을 Workspace와 PKMS에서 열어 suffix 표시가 각각 요구대로 다르며, rename 결과의 실제 경로와 열린 문서 identity가 보존된다.
-- **근거:** [Editor 통합·provider 계약](./editor-unification.md), [PKMS Editor parity](../../apps/workspace-app/docs/pkms/editor-parity.md)
 
 ### Home 상세 시스템 정보 범위 결정 및 구현
 

@@ -1324,7 +1324,7 @@ export default function Home() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not connect repository"); }
   };
 
-  const { createNote, createFolder, uploadFile } = useWorkspaceFileCreation({ workspace: activeWorkspace, files, currentFolder, request: api, setFiles, setLoadedFolders, setError, openFile });
+  const { createNote, createFolder } = useWorkspaceFileCreation({ workspace: activeWorkspace, files, currentFolder, request: api, setFiles, setLoadedFolders, setError, openFile });
   const createTreeNote = async (parentPath: string) => {
     const provider = editorProvider;
     if (!provider) { setError("PKMS editor is not ready"); return; }
@@ -1505,23 +1505,9 @@ export default function Home() {
     if (!editorSupportsOperation(editorProvider, "delete") || !editorProvider?.delete) throw new EditorProviderError("unsupported", "Deletion is not supported by this provider");
     return editorProvider.delete(items.map((file) => ({ providerId: editorProvider.id, itemId: file.id })));
   };
-  const deleteActiveFileThroughEditorProvider = () => {
-    if (activeFile) void deleteThroughEditorProvider([activeFile]);
-  };
-  const deleteCurrentFolderThroughEditorProvider = () => {
-    const folder = files.find((file) => file.kind === "folder" && file.path === currentFolder);
-    if (folder) void deleteThroughEditorProvider([folder]);
-  };
   const renameThroughEditorProvider = async (file: FileRecord, name: string) => {
     if (!editorSupportsOperation(editorProvider, "rename") || !editorProvider?.rename) throw new EditorProviderError("unsupported", "Renaming is not supported by this provider");
     await editorProvider.rename({ providerId: editorProvider.id, itemId: file.id }, name);
-  };
-  const renameActiveFileThroughEditorProvider = async () => {
-    if (!activeFile) return;
-    const currentName = entryName(activeFile.path);
-    const name = await requestName("Rename", currentName);
-    if (!name?.trim() || name.trim() === currentName) return;
-    await renameThroughEditorProvider(activeFile, name.trim());
   };
   const enterTitleEdit = (caretPosition: number) => {
     if (!activeFile || activeFile.kind !== "markdown") return;
@@ -1568,14 +1554,6 @@ export default function Home() {
       titleInputRef.current?.focus();
     }
   };
-  const renameCurrentFolderThroughEditorProvider = async () => {
-    const folder = files.find((file) => file.kind === "folder" && file.path === currentFolder);
-    if (!folder) return;
-    const currentName = entryName(folder.path);
-    const name = await requestName("Rename folder", currentName);
-    if (!name?.trim() || name.trim() === currentName) return;
-    await renameThroughEditorProvider(folder, name.trim());
-  };
 
   if (loading) return <main className="loading-screen"><div className="brand-mark">P</div><span>Opening your workspace…</span></main>;
   if (!user) return (
@@ -1612,11 +1590,6 @@ export default function Home() {
             <button className={`mini-button visibility-button${showFileFilters ? " active" : ""}`} title="File filter settings" aria-label="File filter settings" aria-expanded={showFileFilters} onClick={() => setShowFileFilters((open) => !open)}><AppIcon name="filter" /></button>
             {canCreateFile && <button className="mini-button" title="New note" onClick={() => beginTreeCreation("file", toolbarCreationFolder)}><AppIcon name="filePlus" /></button>}
             {canCreateDirectory && <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}><AppIcon name="folderPlus" /></button>}
-            <label className="mini-button upload-button" title="Upload file"><AppIcon name="upload" /><input type="file" onChange={(event) => { void uploadFile(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
-            {canRename && activeFile && <button className="mini-button" title="Rename" onClick={() => void renameActiveFileThroughEditorProvider()}><AppIcon name="pencil" /></button>}
-            {canDelete && (selectedTreePaths.size > 0 || activeFile) && <button className="mini-button" title={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} aria-label={selectedTreePaths.size > 0 ? "Delete selected items" : "Delete open file"} onClick={() => selectedTreePaths.size > 0 ? void deleteThroughEditorProvider(treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file)) : deleteActiveFileThroughEditorProvider()}><AppIcon name="trash" /></button>}
-            {canRename && !activeFile && currentFolder && <button className="mini-button" title="Rename folder" onClick={() => void renameCurrentFolderThroughEditorProvider()}><AppIcon name="pencil" /></button>}
-            {canDelete && !activeFile && currentFolder && <button className="mini-button" title="Delete folder" onClick={deleteCurrentFolderThroughEditorProvider}><AppIcon name="trash" /></button>}
           </div></div>
           {showFileFilters && <div className="file-filter-panel"><div className="file-filter-heading"><span>Ignored files</span><span className="filter-state">{showIgnoredFiles ? "Shown" : "Hidden"} · ⌘⇧.</span></div><label htmlFor="excluded-files">Exclude paths</label><textarea id="excluded-files" value={excludedPatterns} placeholder={"*.tmp\n**/drafts/**"} spellCheck={false} onChange={(event) => { const next = event.target.value; setExcludedPatterns(next); localStorage.setItem(`pkms:excluded-files:${activeWorkspace.id}`, next); }} /><p>Press ⌘⇧. to show ignored files</p></div>}
           <FileTreeList
