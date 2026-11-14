@@ -67,7 +67,11 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 
 ## 현재 UI 연결
 
-`PkmsSyncBridgeStatus`의 top-level state는 `disconnected | syncing | synced | offline | error`, stage는 `scanning | loading-remote-list | downloading-remote-files | reconciling`이다. item map은 현재 `pending | syncing | attention`만 표현한다. status/pending path는 부분적으로 memory/durable 혼합이며 persistent per-item final state가 아니다.
+각 tree file row는 `synced | pending | syncing | attention | excluded` 중 하나의 sync 상태를 나타내거나, 연결 해제 전용인 경우 상태를 표시하지 않는다. `synced`는 마지막 byte-hash reconciliation 성공이 durable baseline과 함께 저장된 상태다. `pending`은 로컬/원격 변경이 발견됐으나 아직 처리 전, `syncing`은 처리 중, `attention`은 충돌/권한/IO/서버 오류로 완료하지 못한 상태다. 오류가 해결되기 전까지 `synced`로 바꾸지 않는다. `excluded`는 현재 exclusion 규칙으로 명시 제외된 경로다.
+
+폴더 상태는 하위 항목을 집계한다. 우선순위는 `attention > syncing > pending > excluded > synced`이며, 모든 하위 항목이 제외면 폴더도 excluded다. 아직 scan되지 않았거나 불완전한 tree의 폴더는 `synced`로 보이지 않는다. 빈 폴더는 folder marker 존재를 확인하고 해당 directory listing scan이 끝난 경우 synced다. 표시 기호와 접근 가능한 label은 동일 상태를 뜻해야 한다.
+
+파일별 상태, content hash, fingerprint, remote file identity/revision은 Desktop durable state에 저장한다. 상태 변경은 atomic save로 묶는다. 재시작 후 마지막 결과를 먼저 표시하고, startup audit에서 fingerprint와 remote revision을 확인한다. 이동/삭제는 이전 경로 상태를 제거하고 새 경로 또는 tombstone 완료 결과를 반영한다. 데이터 손상으로 상태 cache를 읽지 못하면 전체 audit 전까지 상태를 미확인으로 표시한다.
 
 `SyncBridgePanel`은 bridge status를 5초마다 다시 읽는다. 화면에서 state label, last sync time, pending count, folder path, excludes와 GitHub backup action이 별도 표현된다. 가변 aggregate percent는 제거했다. 표시되는 conflict path는 editor 열기로 연결된다. 5초는 현 구현값이지 제품의 freshness 요구가 아니다. UI가 보여주는 `Up to date`는 local pass 상태이지 모든 remote replica·GitHub가 일치함을 증명하지 않는다.
 
@@ -75,7 +79,7 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 
 1. 첫 연결에서 offline→online 전환, remote folder metadata가 늦게 도착해도 local tree가 비지 않음.
 2. 같은 Markdown의 local/remote concurrent edit, 삭제 직전 remote edit, folder subtree concurrent change.
-3. row-level waiting/attention, 재시도 후 badge clear, conflict copy open, excluded path.
+3. file/folder row별 synced/pending/syncing/attention/excluded 표시, 폴더 상태 집계, 재시도 결과, conflict copy open, excluded path.
 4. server GitHub backup pending/failed와 folder sync `synced`의 동시 표시.
 5. settings close/reopen, workspace 전환, 오래된 HTTP response 지연 도착.
 6. 대량 초기 sync 중 새 파일 생성/삭제와 퍼센트 표시.
@@ -83,6 +87,11 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 8. 동일 경로·동일 본문 create를 응답 유실로 두 번 전송하고 앱/서버를 재시작한다. Cloud active identity가 1개, conflict duplicate가 0개인지 확인하고 최종 pass 뒤 queue가 0인지 확인한다.
 9. Local `pendingPaths`/`pendingDeletes`가 남은 상태에서 Cloud revision을 앞당기고 앱을 재시작한다. 확인된 Cloud tombstone은 로컬에서 제거하되 원본과 다른 파일은 보존하고 cursor가 마지막 captured revision까지 전진하는지 확인한다.
 10. Cloud create ACK 이후 GitHub push가 실패한 상태에서 재시도한다. Cloud row를 중복 생성하지 않고 GitHub는 Cloud SHA와 동일한 child commit으로 수렴하며 `github_head=mirrored_head`, dirty=0인지 확인한다.
+11. 하위 폴더를 포함한 로컬 root 전체에서 확장자별 일반 파일을 만들고, bytes/hash와 Cloud manifest를 재귀 비교한다. 모든 일반 파일은 Cloud에 같은 bytes로 나타나고 folder metadata 및 Web tree에도 보이며, 변경하지 않은 재실행에서는 upload가 발생하지 않는다.
+12. synced 파일을 수정·rename·삭제하고 네트워크/권한 오류를 주입한다. 각 상태가 실제 hash/operation acknowledgement와 일치하고, 실패 item만 attention에 남으며 sibling item은 계속 진행한다. 성공 재시도 후 synced가 된다.
+13. 여러 child 상태가 다른 폴더를 열고 상태 집계를 확인한다. 우선순위가 정의와 일치하고 child가 전부 synced가 되면 폴더도 synced가 된다.
+14. pending/syncing/attention 상태 중 앱을 강제 종료 후 재시작한다. 마지막 durable item 상태가 먼저 복원되고 startup audit 이후 실제 파일/Cloud 결과와 일치한다. scan 전 미확인 항목을 synced라고 표시하지 않는다.
+15. 동일 크기·mtime을 유지하고 내용을 바꾼 file fixture와 fingerprint 변경 fixture를 사용해 SHA-256 비교가 metadata-only false positive를 만들지 않는다. 변경 없는 5초 poll은 대용량 file을 재해시하지 않는다.
 
 실행 결과는 OS·server migration·fixture 버전을 기록한다. 코드 존재만으로 UI acceptance를 통과 처리하지 않는다.
 

@@ -12,12 +12,14 @@
 
 ## Snapshot / metadata feed
 
-| Request                                                      | 응답·의미                                                                                                                                     | 제한/오류                                                                                                                                                                           |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /sync/tree?atRevision=&afterPath=`                      | `{workspaceId, revision, files, hasMore, nextPath}`. markdown+folder metadata를 `path` 오름차순으로 한 revision snapshot에서 반환. 본문 없음. | `atRevision`은 safe integer, 0 이상 현재 server revision 이하. page는 최대 1000 rows. 잘못된 cursor는 400 `invalid_snapshot_cursor`.                                                |
-| `GET /snapshot?atRevision=&afterPath=`                       | legacy markdown-only metadata snapshot. legacy client 호환용.                                                                                 | 1000 rows/page. Desktop은 `/sync/tree` 404일 때만 legacy fallback을 사용하며 empty folders는 path에서 추론할 수 없음.                                                               |
-| `GET /sync/changes?afterRevision=&lastRevision=&lastFileId=` | `{changes, hasMore, nextRevision, lastRevision, lastFileId}`. item metadata와 `previousPath`, tombstone `deleted` 포함.                       | page 최대 500. 안정 순서는 `(revision,file_id)`. 다음 page는 `afterRevision`을 유지하고 `lastRevision/lastFileId`를 이어 cursor로 보낸다. 잘못된 tuple은 400 `invalid_sync_cursor`. |
-| `POST /sync/download` `{fileIds: string[]}`                  | `{documents:[{id,path,revision,text? ,error?}]}`. Markdown bodies를 batch로 반환.                                                             | Desktop은 batch당 32개. 누락 row도 stale manifest로 취급. file 크기 제한 초과는 item error `file_too_large`; MAX_MARKDOWN_BYTES=512 KiB.                                            |
+| Request                                                      | 응답·의미                                                                                                                                           | 제한/오류                                                                                                                                                                           |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /sync/tree?atRevision=&afterPath=`                      | `{workspaceId, revision, files, hasMore, nextPath}`. markdown+asset+folder metadata를 `path` 오름차순으로 한 revision snapshot에서 반환. 본문 없음. | `atRevision`은 safe integer, 0 이상 현재 server revision 이하. page는 최대 1000 rows. 잘못된 cursor는 400 `invalid_snapshot_cursor`.                                                |
+| `GET /snapshot?atRevision=&afterPath=`                       | legacy markdown-only metadata snapshot. legacy client 호환용.                                                                                       | 1000 rows/page. Desktop은 `/sync/tree` 404일 때만 legacy fallback을 사용하며 empty folders는 path에서 추론할 수 없음.                                                               |
+| `GET /sync/changes?afterRevision=&lastRevision=&lastFileId=` | `{changes, hasMore, nextRevision, lastRevision, lastFileId}`. item metadata와 `previousPath`, tombstone `deleted` 포함.                             | page 최대 500. 안정 순서는 `(revision,file_id)`. 다음 page는 `afterRevision`을 유지하고 `lastRevision/lastFileId`를 이어 cursor로 보낸다. 잘못된 tuple은 400 `invalid_sync_cursor`. |
+| `POST /sync/download` `{fileIds: string[]}`                  | `{documents:[{id,path,revision,text? ,error?}]}`. Markdown bodies를 batch로 반환.                                                                   | Desktop은 batch당 32개. 누락 row도 stale manifest로 취급. file 크기 제한 초과는 item error `file_too_large`; MAX_MARKDOWN_BYTES=512 KiB.                                            |
+| `GET /assets/{fileId}`                                       | Asset bytes와 content type을 반환. local materialization과 hash 비교에 사용한다.                                                                    | 존재하지 않거나 접근 권한이 없으면 404/401.                                                                                                                                         |
+| `POST /upload` multipart                                     | `file,path,clientId,operationId[,fileId,expectedRevision]`. raw bytes Git blob SHA, size와 함께 R2에 stage한 뒤 DB mutation을 commit한다.           | create 충돌은 conflict path로 보존. update는 같은 asset `fileId/path`와 expected revision이 일치해야 하며 실패 시 409 `asset_changed_since_base`. 최대 50 MiB.                      |
 
 `sync/changes.nextRevision`은 완전히 소진된 page에서만 server의 captured current revision으로 전진한다. 중간 page는 `afterRevision`을 유지하고 tuple cursor로 같은 revision의 나머지를 이어 읽는다. 소비자는 마지막 page 이후만 durable cursor로 커밋한다.
 
@@ -46,6 +48,8 @@ Web Files tree는 `/directory?path=`를 사용해 현재 열려 있거나 확장
 
 성공 결과는 `operationId`, `acceptedRevision`, `duplicate`; 선택적으로 `conflictCopyPath`, `rebasedFrom`을 포함한다. 기존 operation key의 payload까지 비교해 다르면 거부하는지 등 operation ledger의 전체 오용 조건은 DB migration/RPC와 함께 유지해야 한다. 클라이언트는 같은 key에는 같은 payload를 재사용한다.
 
+Asset upload는 `pkms_apply_asset_sync`를 사용한다. R2 object는 workspace/file/operation identity별 immutable key로 stage한다. DB가 expected revision을 확인하고 새 key와 SHA를 수락한 뒤 이전 object를 제거한다. DB rejection이면 staged key를 제거한다. lost response retry는 operation ledger 또는 remote Git blob SHA로 같은 bytes인지 확인한다. Remote `sha`는 Git blob SHA-1이고 Desktop의 local equality baseline은 raw bytes SHA-256이다.
+
 ## Yjs document read/write
 
 - `GET /files/{fileId}/updates`는 Yjs state update와 document revision을 반환한다. `stateVector` query는 지원되지만 Desktop sync의 markdown download 경로는 full state를 요청한다.
@@ -61,15 +65,15 @@ Workspace API는 authenticated account의 membership을 먼저 확인한다. Des
 
 ## 오류 매핑
 
-| 응답                                        | Desktop 동작                                                             |
-| ------------------------------------------- | ------------------------------------------------------------------------ |
-| `400 invalid_path` / invalid cursor         | 경로/요청 계약 오류로 중단, 자동 성공 처리 금지                          |
-| `404 not_found` / missing item              | manifest race 가능성으로 authoritative feed/snapshot 재조정              |
-| `409 file_changed_since_base`               | local deletion을 확정하지 않고 remote 최신본을 보존·복구, attention 표시 |
+| 응답                                        | Desktop 동작                                                                                          |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `400 invalid_path` / invalid cursor         | 경로/요청 계약 오류로 중단, 자동 성공 처리 금지                                                       |
+| `404 not_found` / missing item              | manifest race 가능성으로 authoritative feed/snapshot 재조정                                           |
+| `409 file_changed_since_base`               | local deletion을 확정하지 않고 remote 최신본을 보존·복구, attention 표시                              |
 | `409 folder_changed_since_base`             | base 이후 대상 subtree가 변경됨. subtree delete를 확정하지 않고 remote subtree를 복구, attention 표시 |
-| network/5xx/timeout                         | durable operation identity·payload 보존 후 retry                         |
-| `413 file_too_large` / `markdown_too_large` | 같은 payload를 무한 재시도하지 않음; 사용자에게 제한/조치 표시가 필요    |
-| unauthorized/session expired                | offline/synced로 위장하지 않고 재인증 요구                               |
+| network/5xx/timeout                         | durable operation identity·payload 보존 후 retry                                                      |
+| `413 file_too_large` / `markdown_too_large` | 같은 payload를 무한 재시도하지 않음; 사용자에게 제한/조치 표시가 필요                                 |
+| unauthorized/session expired                | offline/synced로 위장하지 않고 재인증 요구                                                            |
 
 ## 배포 호환성
 

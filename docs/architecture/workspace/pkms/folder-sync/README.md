@@ -5,10 +5,10 @@
 ## 목표 결과
 
 - 사용자는 연결 폴더의 로컬 파일을 즉시 탐색하고 편집할 수 있다. 초기·재연결 sync 완료를 기다리지 않는다.
-- 로컬 Markdown 생성·수정·이동·삭제와 원격 변경은 수렴하며, 동시 수정은 어느 쪽도 조용히 덮어쓰지 않는다.
+- 로컬 파일 생성·수정·이동·삭제와 원격 변경은 수렴하며, 동시 수정은 어느 쪽도 조용히 덮어쓰지 않는다.
 - 실패·offline·앱 재시작 후 대기 작업은 중복 mutation이나 stale 항목 부활 없이 재개된다.
 - 삭제는 확인된 부재와 해당 cloud baseline이 있을 때만 전파한다. 불완전 scan, 제외 경로, 초기 materialization은 삭제 근거가 아니다.
-- 사용자는 대기·진행·충돌·주의 필요 상태와 조치할 위치를 알 수 있다. 충돌 복사본을 열어 두 버전을 검토할 수 있다.
+- 사용자는 파일과 폴더별 동기화 완료·대기·진행·오류 상태 및 조치할 위치를 알 수 있다. 충돌 복사본을 열어 두 버전을 검토할 수 있다.
 - 한 item의 실패는 무관한 경로의 진행을 막지 않는다. 안전한 경로 복구가 불가능하면 데이터 보존 쪽으로 실패한다.
 - `synced`는 현재로서는 해당 reconciliation pass가 완료됐다는 뜻이다. 모든 기기 동시 확인이나 GitHub mirror 완료를 뜻하지 않는다.
 - Disconnect 또는 root 변경만으로 cloud content를 삭제하지 않는다. 새 root는 이전 root와 동일하다고 증명되기 전에는 별도 local identity로 다룬다.
@@ -31,7 +31,9 @@
 - PKMS Server + Supabase: workspace 권한 확인, revisioned file/folder metadata, operation identity, Yjs update, conditional mutation.
 - `pkms-client`: sync 설정 UI와 bridge API 소비. local filesystem과 Main bearer token은 소유하지 않는다.
 - GitHub export: 서버의 별도 backup state. 이 sync가 GitHub에 반영됐음을 보장하지 않는다.
-- 현재 bridge가 동기화하는 content는 Markdown과 folder metadata다. binary attachment의 local mirror는 이 계약 범위에 포함되지 않는다.
+- 연결된 root 안의 일반 파일은 확장자에 관계없이 동기화한다. `.git`, `.obsidian`, `node_modules`, symlink 및 사용자 제외 경로는 대상에서 제외한다. 폴더 상태는 하위 항목의 상태를 집계한다.
+- 파일 동등성은 SHA-256 content hash로 판정한다. 크기와 mtime은 재해시가 필요한지 판정하는 로컬 cache hint일 뿐, 동등성 증거가 아니다. 초기 scan·fingerprint 변경·복구 scan에서만 실제 bytes를 읽어 hash를 확인한다.
+- 파일별 상태는 Desktop의 durable sync state에 저장한다. 재시작 후에도 마지막으로 확인된 상태를 표시하고, 검증이 끝나지 않은 파일을 `synced`로 추정하지 않는다.
 - Files tree와 quick open은 이름이 `.`으로 시작한다는 이유만으로 Cloud 항목을 숨기지 않는다. Local folder sync는 `.git`, `.obsidian`, `node_modules`와 사용자가 설정한 제외 경로를 scan/materialization에서 제외한다. `.pkms`는 별도 예약 경로가 아니며 다른 dot-folder와 동일하게 취급한다. 기존 Cloud 항목이 보이는 것과 local mirror 대상인지는 다를 수 있다.
 
 ## 신뢰 순서

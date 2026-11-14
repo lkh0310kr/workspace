@@ -19,6 +19,8 @@ Main의 `pkms-sync-bridge.json`은 Electron `userData` 아래 저장되며 tempo
 | `pendingUpdates`               | file ID별 operation ID/target hash/Yjs update                                   |
 | `localDirectories`             | 마지막 complete scan의 relative directory→device/inode 또는 null                |
 | `pendingDeletes`               | file/folder deletion target, ID, operation ID, guard revision, attempts/time    |
+| `itemStates`                   | path별 마지막 sync 상태. restart 후 tree와 panel에 복원                         |
+| `assetFingerprints`            | path별 OS fingerprint 및 확인된 SHA-256. 같은 fingerprint의 asset 재해시 생략   |
 
 Persisted JSON load 중 parse/read 실패는 현재 코드에서 empty state로 fallback한다. 이는 복구된 baseline/queue임을 증명하지 않으므로 손상 파일 복구 여부는 명시적인 test gap이다. save failure는 pass를 성공으로 간주하지 않는다. durability 요구는 storage-full·truncated JSON·power loss에서 별도 검증한다.
 
@@ -29,6 +31,7 @@ Persisted JSON load 중 parse/read 실패는 현재 코드에서 empty state로 
 - Initial inventory 없는 기존 설치는 첫 complete scan을 seed-only로 커밋한다. 첫 scan은 cloud-only folder를 삭제하지 않는다.
 - directory identity `(dev, ino)`가 이전 누락 path 하나와 새 경로 하나에만 대응하면 move 후보로 처리한다. 누락/중복 identity면 이동을 추측하지 않는다.
 - `.git`, `.obsidian`, `node_modules`, configured exclusions와 symlink는 scan 기준에서 제외한다. `.pkms`는 특별 제외하지 않는다.
+- 일반 파일 scan은 모든 파일 path와 stat fingerprint를 확인한다. fingerprint가 바뀐 파일만 bytes를 SHA-256으로 읽고, 변경 없는 5초 revision poll은 대용량 asset을 다시 읽지 않는다.
 - 수동 scan은 full scan과 directory inventory를 요청한다. 수동 scan 성공은 서버 배포·다른 기기 반영을 의미하지 않는다.
 
 ## Queue·작업 순서
@@ -36,12 +39,12 @@ Persisted JSON load 중 parse/read 실패는 현재 코드에서 empty state로 
 1. 변경 경로를 pending path로 저장하고 UI에는 pending을 표시한다.
 2. workspace별 sync pass를 직렬화하고 같은 root에는 process 간 lock을 확보한다. lock owner가 살아 있으면 다른 instance는 진행하지 않는다.
 3. directory inventory가 필요하면 cloud folder materialization 이전에 complete scan을 한다. scan 불완전이면 삭제 관련 단계를 중단한다.
-4. 새 remote metadata/cursor를 가져오고 durable file create/update/delete operation을 network call 전에 저장한다.
+4. 새 remote metadata/cursor를 가져오고 Markdown/asset baseline을 hash로 대조한다. Asset upload는 operation ID와 expected file revision을 사용한다.
 5. unrelated path들은 제한된 병렬 작업으로 처리하되 path/parent dependency가 있는 operation은 안전하게 순서화한다.
 6. remote mutation acknowledgement와 새로운 baseline/tree/cursor를 저장한다. ack 전에 작업을 완료/삭제로 표시하지 않는다.
 7. pending create/update/delete는 server가 operation ID 중복을 확인하거나 authoritative snapshot으로 이미 반영됨을 확인한 다음에만 제거한다.
 
-핵심 규칙은 **network timeout이 성공 여부를 모호하게 해도 재시도 identity와 payload를 바꾸지 않는 것**이다. 정합성이 서버 idempotency에 의존하는 mutation에서 새 operation ID로 무작정 재시도하지 않는다.
+핵심 규칙은 **network timeout이 성공 여부를 모호하게 해도 재시도 결과가 중복 item이나 유실로 이어지지 않는 것**이다. Asset update는 content Git blob SHA가 remote metadata와 같으면 ACK 유실 후에도 같은 바이트로 수렴한다. 다른 바이트는 expected revision guard로 거부한다.
 
 ### Same-path create retry
 

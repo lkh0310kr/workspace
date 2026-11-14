@@ -4,24 +4,26 @@
 
 ## 동기화 identity와 baseline
 
-각 연결은 `workspaceId`와 canonical local root를 가진다. 서버 item identity는 `fileId`, 위치는 slash-separated relative `path`다. 파일이 이동해도 같은 `fileId`가 유지될 수 있으며 path는 변경된다. 로컬 baseline은 path별 `{ fileId, hash, revision }`이며 마지막으로 양쪽이 합의한 Markdown 내용과 remote revision을 나타낸다.
+각 연결은 `workspaceId`와 canonical local root를 가진다. 서버 item identity는 `fileId`, 위치는 slash-separated relative `path`다. 파일이 이동해도 같은 `fileId`가 유지될 수 있으며 path는 변경된다. 로컬 baseline은 path별 `{ fileId, hash, revision }`이며 마지막으로 양쪽이 합의한 파일 bytes와 remote revision을 나타낸다.
 
-Hash 비교는 UTF-8 Markdown text의 SHA-256이다. 서버 Git import의 revision-0 SHA는 Git blob hash이므로 local content와 Git SHA를 비교하는 bootstrap 경로에서만 쓴다. 같은 해시라고 추정할 수 없으면 본문을 읽어 비교한다. CRDT의 Yjs update는 transport/저장 단위이고 로컬 file baseline은 Markdown text 단위다.
+일반 파일 동등성은 raw bytes의 SHA-256이다. Markdown은 UTF-8 text hash가 raw-byte hash와 같도록 BOM/줄바꿈을 임의 변환하지 않는다. 서버 Git import의 revision-0 SHA는 Git blob hash이므로 파일 bytes와 Git SHA를 비교하는 bootstrap 경로에서만 쓴다. 같은 해시라고 추정할 수 없으면 bytes를 가져와 비교한다. CRDT의 Yjs update는 Markdown transport/저장 단위이고, asset baseline은 raw file bytes 단위다.
+
+로컬 scanner는 매 audit에서 경로·종류·크기·mtime·ctime·device/inode를 읽는다. fingerprint가 이전 값과 같으면 저장된 content hash를 재사용할 수 있다. fingerprint가 달라졌거나 cache가 없으면 파일을 열어 SHA-256을 계산한다. metadata만으로 remote와 동등하다고 판단하지 않는다. symlink와 제외 경로는 열거나 따라가지 않는다.
 
 Baseline은 “해당 path를 다음에 무엇과 비교할지”를 정한다. 단순 path 같음이나 UI의 `synced` 표시는 baseline이 있다는 증거가 아니다. remote file ID 변경도 원격 변화로 취급한다.
 
 ## 결과 행렬
 
-아래에서 `L`은 local Markdown, `R`은 remote Markdown, `B`는 마지막 공통 baseline이다.
+아래에서 `L`은 local file bytes, `R`은 remote item, `B`는 마지막 공통 baseline이다. Markdown은 Yjs document API, 일반 파일은 asset API로 전송한다.
 
 | local 상태                                               | remote 상태                       | 결과                                                                                                                                                                              |
 | -------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 신규 L, 대응 B/R 없음                                    | 없음                              | remote create를 수행하고 서버가 수락한 path/id/revision을 baseline으로 기록한다. 동명 remote가 경쟁 생성된 경우 서버 conflict path를 반영한다.                                    |
+| 신규 L, 대응 B/R 없음                                    | 없음                              | remote create/upload를 수행하고 서버가 수락한 path/id/revision/hash를 baseline으로 기록한다. 동명 remote가 경쟁 생성된 경우 서버 conflict path를 반영한다.                        |
 | L과 R 내용이 B와 동일                                    | unchanged                         | 변경 없음. ID/revision/hash 관계를 재확인한 baseline을 유지한다.                                                                                                                  |
-| L만 B 이후 변경                                          | R은 B revision                    | local 내용을 remote에 반영하고 acknowledge된 revision을 baseline으로 기록한다.                                                                                                    |
+| L만 B 이후 변경                                          | R은 B revision                    | local bytes를 remote에 반영하고 acknowledge된 revision을 baseline으로 기록한다.                                                                                                   |
 | R만 B 이후 변경                                          | L은 B hash                        | 최신 R을 local에 원자 적용하고 새 hash/revision을 baseline으로 기록한다. 적용 직전 local 파일이 B와 달라졌으면 덮어쓰지 않고 다시 reconcile한다.                                  |
-| L과 R 모두 B 이후 변경                                   | both changed                      | 두 내용 보존. local 내용을 고유 `.local-conflict-<timestamp>-<suffix>.md` 경로에 보존하고 remote 최신 내용을 원래 경로에 둔다. 두 경로가 각각 remote baseline을 얻는다.           |
-| L 없음, B 없음, R 있음                                   | unmaterialized remote item        | 삭제로 해석하지 않는다. 안전 경로에 remote 본문을 materialize한다.                                                                                                                |
+| L과 R 모두 B 이후 변경                                   | both changed                      | 두 내용 보존. local bytes를 고유 `.local-conflict-<timestamp>-<suffix><ext>` 경로에 보존하고 remote 최신 bytes를 원래 경로에 둔다. 두 경로가 각각 remote baseline을 얻는다.       |
+| L 없음, B 없음, R 있음                                   | unmaterialized remote item        | 삭제로 해석하지 않는다. 안전 경로에 remote bytes를 materialize한다.                                                                                                               |
 | L 없음, B 있음, R unchanged                              | local deletion                    | durable conditional delete intent를 만들고, 서버가 expected revision을 확인한 뒤 삭제한다.                                                                                        |
 | L 없음, B 있음, R changed                                | local deletion과 remote edit 경합 | remote 최신 내용을 보존/복구하고 삭제를 거부한다. UI는 attention/conflict를 표시한다.                                                                                             |
 | 두 create 요청이 같은 path와 같은 Markdown 본문으로 경합 | retry/동시 생성                   | 기존 remote file identity를 반환하고 추가 item을 만들지 않는다.                                                                                                                   |
