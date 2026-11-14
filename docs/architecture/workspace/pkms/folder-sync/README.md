@@ -23,7 +23,7 @@
 | [UI 결과와 acceptance](./ui-acceptance.md)             | tree·설정의 사용자 상태, 결과 기반 시나리오, 검증 evidence                                      |
 | [삭제·폴더 이동](./deletion.md)                        | inventory 기반 안전 삭제, recursive guard, 이동과 삭제 충돌                                     |
 | [현재 구현과 rollout 상태](./implementation-status.md) | 코드상 값/한계, migration 및 미검증 구분                                                        |
-| [종단 간 acceptance checklist](./acceptance-checklist.md) | platform-agnostic 사용자 결과와 현재 검증 evidence, release 미충족 조건                         |
+| [종단 간 acceptance checklist](../../../pkms/acceptance-checklist.md) | PKMS 전체에서 공통인 사용자 결과와 현재 검증 evidence, release 미충족 조건                   |
 | [동기화 기술 연구와 개선 설계](./research/README.md)   | Apple File Provider/iCloud, Google Drive change feed, CRDT/Yjs의 공개 contract와 PKMS 개선 요구 |
 
 ## 범위·소유 경계
@@ -41,7 +41,7 @@
 
 제품 결과와 필수 불변식은 reconciliation/삭제 문서가 규범 기준이다. wire/API 의미는 server protocol이 기준이다. 구현의 timer, 동시성 수치, storage layout은 [현재 구현](./implementation-status.md)에 적고 목표 계약과 섞지 않는다. 배포 완료는 migration/runtime acceptance 기록이 있어야 한다.
 
-현재 통합 acceptance 상태는 [종단 간 checklist](./acceptance-checklist.md)에 기록한다. 각 결과를 모든 지원 client 조합에서 평가하고, client별 구현 설명으로 쪼개지 않는다.
+현재 통합 acceptance 상태는 PKMS global scope의 [종단 간 checklist](../../../pkms/acceptance-checklist.md)에 기록한다. 각 결과를 모든 지원 client 조합에서 평가하고, client별 구현 설명으로 쪼개지 않는다.
 
 ## 우선 안전 이슈
 

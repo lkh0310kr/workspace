@@ -3,6 +3,7 @@
 Global scope에서는 [제품 간 통합](./overview.md)을 관리한다. 구체 구현은 app/package가 소유한다.
 
 - [Desktop folder sync](../workspace/pkms/folder-sync.md)
+- [PKMS 공통 동기화 acceptance](./acceptance-checklist.md)
 - [로컬 삭제와 동시성 guard](../workspace/pkms/local-deletion-sync.md)
 - [Web](./web/README.md) · [Server auth/routes/vault](./server/README.md)
 - [공통 client](./client/README.md) · [iOS](./ios/README.md)

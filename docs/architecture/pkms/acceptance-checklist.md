@@ -81,4 +81,4 @@ DB SQL acceptance는 linked production DB에 대한 이전 transaction rollback 
 
 현재 증거는 cloud file sync의 핵심 성공 경로와 몇 가지 복구 경로가 실제 데이터에서 작동했음을 보인다. 현재 stable runtime에는 10개 pending local item이 있으며 Cloudflare 429로 전송을 확인할 수 없다. 따라서 **모든 동기화 로직 검증 완료 또는 무조건 정상** 판정은 내리지 않는다. Worker 회복 후 이 pending 항목들이 원격에 수렴하는지와 다음에는 offline/restart, three-client collaboration, auth/rate limit failure injection, root 전환 E2E, move/delete의 충돌 순서, scale 성능을 격리 환경에서 검증한다.
 
-세부 contract는 [folder sync](./README.md), [reconciliation](./reconciliation.md), [durability and recovery](./durability-recovery.md), [server protocol](./server-protocol.md), [UI acceptance](./ui-acceptance.md), [구현·배포 상태](./implementation-status.md)를 따른다.
+세부 contract는 [folder sync](../workspace/pkms/folder-sync/README.md), [reconciliation](../workspace/pkms/folder-sync/reconciliation.md), [durability and recovery](../workspace/pkms/folder-sync/durability-recovery.md), [server protocol](../workspace/pkms/folder-sync/server-protocol.md), [UI acceptance](../workspace/pkms/folder-sync/ui-acceptance.md), [구현·배포 상태](../workspace/pkms/folder-sync/implementation-status.md)를 따른다.
