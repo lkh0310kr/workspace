@@ -67,6 +67,26 @@ begin
      (result->>'searchableFiles')::integer <> 0 then
     raise exception 'deleted content remained searchable: %', result;
   end if;
+
+  insert into public.pkms_files(
+    workspace_id,file_id,path,parent_path,kind,revision,deleted,dirty,size,content,content_revision
+  )
+  select wid,'search-page-' || i,'pages/item-' || lpad(i::text,3,'0') || '.md','pages',
+    'markdown',1,false,true,char_length('pagination-marker'),'pagination-marker',1
+  from generate_series(1,101) as series(i);
+
+  result := public.pkms_search_content(wid,'pagination-marker',false,null);
+  if jsonb_array_length(result->'results') <> 100 or
+     result->>'hasMore' is distinct from 'true' or
+     result->>'nextPath' is distinct from 'pages/item-100.md' then
+    raise exception 'search pagination did not return its first bounded page: %', result;
+  end if;
+  result := public.pkms_search_content(wid,'pagination-marker',false,'pages/item-100.md');
+  if jsonb_array_length(result->'results') <> 1 or
+     result->'results'->0->>'path' is distinct from 'pages/item-101.md' or
+     result->>'hasMore' is distinct from 'false' then
+    raise exception 'search pagination cursor did not return the final result: %', result;
+  end if;
 end;
 $$;
 rollback;
