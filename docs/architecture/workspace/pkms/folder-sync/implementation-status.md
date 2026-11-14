@@ -1,6 +1,6 @@
 # Folder sync 현재 구현·배포 상태
 
-이 문서는 `2026-11-13` source 및 원격 상태 review snapshot이다. 목표 동작은 [contract](./README.md)와 하위 계약을 본다. 이 페이지의 수치와 helper 구조는 구현 관찰이며 미래 구현의 요구가 아니다.
+이 문서는 `2026-11-14` source 및 원격 상태 review snapshot이다. 목표 동작은 [contract](./README.md)와 하위 계약을 본다. 이 페이지의 수치와 helper 구조는 구현 관찰이며 미래 구현의 요구가 아니다.
 
 ## 현재 Desktop 구현 관찰
 
@@ -12,6 +12,7 @@
 | local change                             | recursive `fs.watch`, event hint; 25ms debounce, 불완전 event는 full scan                                                           | watcher가 durable journal은 아님                                                                                                        |
 | remote change                            | private Realtime `pkms:{workspaceId}` wakeup + HTTP revision cursor; 30초 poll                                                      | Realtime은 authority가 아니며 poll fallback 유지                                                                                        |
 | local audit                              | startup/reconfigure와 15분 주기 complete walk                                                                                       | scan 실패 시 이전 inventory 유지하고 delete 금지                                                                                        |
+| folder metadata reconcile                | complete inventory에서 로컬 디렉터리 경로를 얕은 순서로 열거하고 Cloud directory marker가 없는 경로를 생성                           | watcher event 유실 또는 초기 inventory 누락으로 자식만 Cloud에 존재하던 폴더도 full scan에서 복구                                      |
 | content scan                             | full scan 또는 dirty/remote path scan; Markdown `.md`만, reserved/excluded/symlink 제외                                             | 다른 binary attachment는 bridge 대상 아님                                                                                               |
 | snapshot                                 | `/sync/tree`, 1000 row/path page, captured revision pin; route 404면 legacy `/snapshot` fallback                                    | legacy는 empty folder metadata를 완전히 제공하지 않음                                                                                   |
 | body transfer                            | `/sync/download` batch 32, 4 workers; per-path reconcile 최대 6                                                                     | 이 숫자는 최적 성능 요구가 아니라 현재 설정. 제한·측정 증거 필요                                                                        |
@@ -50,6 +51,11 @@ Source는 새 설정을 저장하기 전에 root에서 파생된 상태를 초�
 
 ## 배포·검증
 
+- 2026-11-14 folder marker 누락을 production에서 복구했다. Cloud root directory query에서 `02 physics` (Markdown descendant 32개), `03 electric` (24개)가 각각 `directory_loaded=true`인 folder row로 확인된다. `engineering/02 physics`와 `engineering/03 electric`은 별도 빈 폴더로 유지된다.
+- 동기화 수정은 `940f53e` (`fix(pkms-sync): reconcile missing folder metadata`)에 커밋했다. 로컬 검증: `npm run pkms:server:typecheck`, `npm --prefix apps/workspace-app run test:sync` (9 tests), `npm --prefix apps/workspace-app run typecheck`, `npm run pkms:web:typecheck`, `npm run pkms:web:build`, `git diff --check` 통과.
+- 원격 migration `20261114120000_content_search.sql`, `20261114150000_reconcile_missing_folder_metadata.sql` 적용 및 migration list 확인 완료. 새 reconciliation SQL 회귀 시나리오를 linked production DB에서 transaction rollback 방식으로 실행해 통과시켰다. 로컬 Supabase 검증은 Docker executable이 없어 수행할 수 없었다.
+- `pkms-cloud` 배포 완료: `https://pkms-cloud.lkh0310kr.workers.dev`, version `0ef90099-497d-448e-8e0c-a3560cb7a068`; `/api/health`는 HTTP 200. `pkms-web` 배포 완료: `https://pkms-web.lkh0310kr.workers.dev`, version `d997490c-69ef-4de5-8118-ccb8c725e1b6`; 이 주소는 설정된 canonical origin인 `pkms-cloud`로 HTTP 302 redirect한다.
+- 현재 Web editor에서 열린 문서를 방해하지 않도록 브라우저 페이지를 강제로 reload하지 않았다. production DB의 root directory row와 API health, Worker 배포 버전을 확인했다. 실제 브라우저에서 새로고침 후 화면 표시 확인은 아직 수행하지 않았다.
 - [local deletion](./deletion.md)의 inventory/pending delete/guarded delete는 source에 있다.
 - migration 적용은 `supabase migration list --linked`로 확인했다. 중복 create 회귀 SQL, 현재 7개 sync policy unit test, `npm run check:app`은 통과했다. 전체 `npm test`는 626 passed, 2 skipped, 8 failed로 끝났으며 실패는 shortcut 2, `global.gc`가 없는 queue-retention 3, CodeMirror extension 1, TreeView display-name 1, closeTab 1이다. 이들은 이번 sync 변경과 무관한 기존 실패로 분류하되 전체 suite는 green이 아니다.
 - 원격 Cloud/Git tree reconciliation, local complete pass 및 데이터 hash 검증은 완료했다. `syncBridge` end-to-end behavioral test와 앱 재시작 후 상태 유지 검증은 여전히 없다. 현재 local↔Cloud 일치 상태와 code-level failure recovery 검증은 구분해서 보고한다.
