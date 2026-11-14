@@ -247,7 +247,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "6da0895cf3f2631c9304ef7a93859c6482ee5898a161070f34760f36c27ddb0a"
+          "sha256": "21c251247960abea3dba8f6849d14e24be337d47349a0af4beb8cae8248f8943"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",
@@ -310,8 +310,8 @@
           "sha256": "bf5e743a0ccd132729844c11012d6f6b618ee49bb8af29643b36437d3a2731ad"
         },
         {
-          "path": "apps/workspace-app/src/renderer/src/markdownTableEditing.test.ts",
-          "sha256": "018c913559c20db14952921a8f367619d7ba29ccd0ae8101b3d3e310d8b48a89"
+          "path": "apps/workspace-app/src/renderer/src/markdownLivePreview.test.ts",
+          "sha256": "e69970011988d000480e72827d8699bdbcd3c4732f907ff0a0732159b36570ac"
         }
       ]
     },

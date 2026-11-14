@@ -839,6 +839,23 @@ let mermaidId = 0
 let mermaidInitialized = false
 const mermaidWidgetStates = new WeakMap<HTMLElement, { disposed: boolean }>()
 
+/**
+ * Mermaid requires quotes around flowchart labels containing a colon. Many
+ * Markdown authors write the common `A[Title: detail]` form, so normalize
+ * that label only for rendering while leaving the stored source untouched.
+ */
+function normalizeMermaidFlowchartLabels(source: string): string {
+  return source.replace(
+    /(^|[^\w])([A-Za-z_][\w-]*)\[([^\]\n]*)\]/gm,
+    (match, prefix: string, id: string, label: string) => {
+      const trimmed = label.trim()
+      if (!label.includes(':') || /^["'`]/.test(trimmed)) return match
+      const escaped = label.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      return `${prefix}${id}["${escaped}"]`
+    }
+  )
+}
+
 function renderMermaid(source: string, id: string) {
   const render = mermaidRenderQueue.then(async () => {
     mermaidModulePromise ??= import('mermaid')
@@ -864,7 +881,7 @@ function renderMermaid(source: string, id: string) {
       })
       mermaidInitialized = true
     }
-    return mermaid.render(id, source)
+    return mermaid.render(id, normalizeMermaidFlowchartLabels(source))
   })
   mermaidRenderQueue = render.then(
     () => undefined,
