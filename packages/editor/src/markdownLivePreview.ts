@@ -361,6 +361,20 @@ interface TableCellSourceRange {
   to: number
 }
 
+function tableBoundsAt(state: EditorState, position: number): { from: number; to: number } | null {
+  let bounds: { from: number; to: number } | null = null
+  syntaxTree(state).iterate({
+    enter: (node) => {
+      if (node.type.name === 'Table' && node.from <= position && position <= node.to) {
+        bounds = { from: node.from, to: node.to }
+        return false
+      }
+      return true
+    }
+  })
+  return bounds
+}
+
 class TableWidget extends WidgetType {
   constructor(
     readonly header: string[],
@@ -495,12 +509,26 @@ class TableWidget extends WidgetType {
         }
         if (keyEvent.key === 'Tab') {
           keyEvent.preventDefault()
-          const nextOrdinal = Math.max(
-            0,
-            Math.min(allRanges.length - 1, ordinal + (keyEvent.shiftKey ? -1 : 1))
-          )
+          const backward = keyEvent.shiftKey
+          const nextOrdinal = ordinal + (backward ? -1 : 1)
+          const leaveTable = nextOrdinal < 0 || nextOrdinal >= allRanges.length
           cell.blur()
           requestAnimationFrame(() => {
+            if (leaveTable) {
+              const table = tableBoundsAt(view.state, this.sourceFrom + 1)
+              if (!table) return
+              const appendLineBreak = !backward && table.to === view.state.doc.length
+              const target = backward
+                ? Math.max(0, table.from - 1)
+                : Math.min(table.to + 1, view.state.doc.length)
+              view.dispatch({
+                ...(appendLineBreak ? { changes: { from: table.to, insert: '\n' } } : {}),
+                selection: { anchor: target + (appendLineBreak ? 1 : 0) },
+                scrollIntoView: true
+              })
+              view.focus()
+              return
+            }
             const freshWrapper =
               view.dom.querySelector<HTMLElement>(
                 `.cm-md-table-wrap[data-table-from="${this.sourceFrom}"]`

@@ -247,7 +247,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "21c251247960abea3dba8f6849d14e24be337d47349a0af4beb8cae8248f8943"
+          "sha256": "6c8a134ecaa4a26584fd87a2fd76ffa0a9fb181fec3b8f54d2e4d02d406cde59"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",
@@ -311,7 +311,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/markdownLivePreview.test.ts",
-          "sha256": "e69970011988d000480e72827d8699bdbcd3c4732f907ff0a0732159b36570ac"
+          "sha256": "7581c8f48a606ba29b864fab26cf9d01c206116ce267de41884984e2a026797f"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.shortcut.test.ts",

@@ -35,6 +35,78 @@ describe('Markdown table live preview editing', () => {
       parent.remove()
     }
   })
+
+  it('moves through cells and exits the last cell with Tab after preserving the edit', async () => {
+    const parent = document.createElement('div')
+    document.body.append(parent)
+    Object.defineProperty(Range.prototype, 'getClientRects', {
+      configurable: true,
+      value: () => []
+    })
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: 'Table test\n\n| Name | Value |\n| --- | --- |\n| Alpha | 1 |',
+        extensions: createMarkdownEditorExtensions()
+      })
+    })
+
+    try {
+      const firstCell = parent.querySelector<HTMLElement>('.cm-md-table-wrap tbody td')!
+      firstCell.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      firstCell.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
+
+      await vi.waitFor(() => {
+        expect(
+          parent.querySelector<HTMLElement>('.cm-md-table-wrap tbody td:nth-child(2)')
+            ?.contentEditable
+        ).toBe('true')
+      })
+      const lastCell = parent.querySelector<HTMLElement>(
+        '.cm-md-table-wrap tbody tr:last-child td:last-child'
+      )!
+      lastCell.textContent = '2'
+      lastCell.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
+
+      await vi.waitFor(() => {
+        expect(view.state.doc.toString()).toContain('| Alpha | 2 |')
+        expect(view.state.doc.toString().endsWith('\n')).toBe(true)
+        expect(view.state.selection.main.head).toBe(view.state.doc.length)
+      })
+    } finally {
+      view.destroy()
+      parent.remove()
+    }
+  })
+
+  it('exits before the table when Shift-Tab leaves the first cell', async () => {
+    const parent = document.createElement('div')
+    document.body.append(parent)
+    Object.defineProperty(Range.prototype, 'getClientRects', {
+      configurable: true,
+      value: () => []
+    })
+    const source = 'Table test\n\n| Name | Value |\n| --- | --- |\n| Alpha | 1 |'
+    const tableFrom = source.indexOf('| Name')
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({ doc: source, extensions: createMarkdownEditorExtensions() })
+    })
+
+    try {
+      const firstCell = parent.querySelector<HTMLElement>('.cm-md-table-wrap thead th')!
+      firstCell.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      firstCell.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true })
+      )
+
+      await vi.waitFor(() => expect(view.state.selection.main.head).toBe(tableFrom - 1))
+      expect(view.state.doc.toString()).toBe(source)
+    } finally {
+      view.destroy()
+      parent.remove()
+    }
+  })
 })
 
 describe('Markdown Mermaid live preview', () => {
