@@ -31,4 +31,10 @@ describe('PKMS folder sync state aggregation', () => {
     ).toBeUndefined()
     expect(aggregateFolderSyncItemState('docs', {})).toBeUndefined()
   })
+
+  it('does not let clean descendants erase the folder’s own unresolved state', () => {
+    const descendants = { 'docs/a.md': 'synced' as const, 'docs/nested/b.md': 'synced' as const }
+    expect(aggregateFolderSyncItemState('docs', descendants, 'attention')).toBe('attention')
+    expect(aggregateFolderSyncItemState('docs', descendants, 'pending')).toBe('pending')
+  })
 })

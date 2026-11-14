@@ -74,8 +74,10 @@ export function FileTreeList(props: FileTreeListProps) {
         syncItemStates[file.path] ??
         (/\.local-conflict-[^/]+\.md$/i.test(file.path) ? 'attention' : undefined)
       const descendantState =
-        file.kind === 'folder' ? aggregateFolderSyncItemState(file.path, syncItemStates) : undefined
-      const state = file.kind === 'folder' ? (descendantState ?? ownState) : ownState
+        file.kind === 'folder'
+          ? aggregateFolderSyncItemState(file.path, syncItemStates, ownState)
+          : undefined
+      const state = file.kind === 'folder' ? descendantState : ownState
       const stateLabel =
         state === 'synced'
           ? 'Synced'

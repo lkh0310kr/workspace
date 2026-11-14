@@ -4,17 +4,19 @@ export type PkmsSyncItemState = PkmsSyncBridgeStatus['itemStates'][string]
 
 export function aggregateFolderSyncItemState(
   folderPath: string,
-  itemStates: Record<string, PkmsSyncItemState>
+  itemStates: Record<string, PkmsSyncItemState>,
+  ownState?: PkmsSyncItemState
 ): PkmsSyncItemState | undefined {
   const descendants = Object.entries(itemStates)
     .filter(([itemPath]) => itemPath.startsWith(`${folderPath}/`))
     .map(([, state]) => state)
+  const states = ownState ? [ownState, ...descendants] : descendants
 
-  if (descendants.includes('attention')) return 'attention'
-  if (descendants.includes('syncing')) return 'syncing'
-  if (descendants.includes('pending')) return 'pending'
-  if (descendants.length > 0 && descendants.every((state) => state === 'excluded'))
+  if (states.includes('attention')) return 'attention'
+  if (states.includes('syncing')) return 'syncing'
+  if (states.includes('pending')) return 'pending'
+  if (states.length > 0 && states.every((state) => state === 'excluded'))
     return 'excluded'
-  if (descendants.length > 0 && descendants.every((state) => state === 'synced')) return 'synced'
+  if (states.length > 0 && states.every((state) => state === 'synced')) return 'synced'
   return undefined
 }
