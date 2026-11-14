@@ -21,11 +21,21 @@
 
 ### 1. 서버 검색: 권장
 
+**결정:** PKMS 전체 본문 검색은 PostgreSQL `pkms_files.content`의 기존 trigram GIN index를 통해 서버에서 수행한다. Web, Desktop PKMS, iOS는 같은 workspace-scoped API를 사용한다. 각 클라이언트가 전체 workspace 본문을 내려받아 검색하지 않는다. Elasticsearch 등 별도 검색 시스템과 workspace 전체의 기기별 index는 현재 규모에 도입하지 않는다.
+
+검색은 사용자가 입력한 문자열 그대로 찾는 literal substring 검색이다. 기본은 대소문자 비구분이며 Match Case를 선택하면 대소문자를 구분한다. 정규식, whole-word, replace-in-files는 이번 결과 계약에 포함하지 않는다. 이는 검색어 입력·결과 탐색을 빠르고 예측 가능하게 제공하고, PostgreSQL POSIX regex와 클라이언트 regex의 의미 차이를 피하기 위함이다.
+
+검색어는 1–256 Unicode code point까지 허용한다. 3자 미만 검색은 trigram index를 충분히 활용하지 못해 DB가 작은 workspace corpus를 직접 확인할 수 있으므로, DB statement timeout과 결과 제한을 적용한다. 3자 이상 literal 검색은 기존 trigram GIN index가 후보 문서를 좁힌다. 결과는 파일당 최대 10개 일치 줄, 요청당 최대 100개 파일로 제한하며 각 미리보기 줄은 최대 240 code point다. 클라이언트는 250ms debounce 후 이전 요청을 abort하고 최신 쿼리 결과만 표시한다.
+
+검색 API는 매치 결과와 함께 `indexedFiles`, `searchableFiles`, `pendingFiles`를 반환한다. 활성 Markdown 중 indexable 크기(최대 512 KiB)인 파일 가운데 `content_revision = revision`인 파일만 검색 가능하다. `pendingFiles > 0`이면 검색 UI는 현재 결과가 부분적임을 표시한다. 기존 1분 주기의 mirror 작업이 콘텐츠를 채우며, 다음 검색 요청에서 진행 상태가 갱신된다. 매치가 0개일 때도 index가 진행 중이면 “결과 없음”으로 단정하지 않는다.
+
+매치는 line 단위이며 결과 선택 시 그 파일을 열고 해당 line으로 이동한다. 문서가 rename/delete된 경우 stale result를 열 수 없음을 처리하고 결과를 새로 검색한다. 서버는 현재 로그인 사용자의 workspace를 먼저 확인하고 DB 함수에도 workspace ID를 전달한다. DB 함수는 활성 Markdown, revision-matched content만 대상으로 하며 전체 본문을 반환하지 않는다.
+
 Worker route가 로그인 사용자와 workspace 접근 권한을 먼저 확인한 뒤 제한된 검색 RPC를 호출한다. DB는 활성 Markdown의 `content`에 trigram 조건을 적용하고, 제한된 결과에 대해서만 본문에서 일치 줄·column·preview를 만든다. Client는 `{path, fileId, line, column, preview, ranges}`를 받고 결과를 표시한다. 본문 전체는 기기에 보내지 않는다.
 
 현재 GIN index를 재사용하면 새 index의 저장 공간과 write amplification은 발생하지 않는다. 비용은 query에 따른 DB CPU/IO와 결과 egress다. index 후보가 작고 반환 행 수를 제한하면 요청 비용은 query와 결과 크기에 따라 증가하며 전체 corpus 크기만큼 응답하지 않는다. 실제 latency/CPU는 운영 workspace에서 `EXPLAIN (ANALYZE, BUFFERS)`를 실행하거나 비식별 fixture로 측정하기 전에는 확정하지 않는다.
 
-첫 범위는 literal substring 검색으로 고정한다. Case sensitive는 `LIKE`, insensitive는 `ILIKE` 후보로 비교한다. Whole word는 indexed 후보에 후조건을 적용하되 Unicode 경계 의미를 Desktop의 JavaScript 구현과 맞추는 테스트가 필요하다. PostgreSQL POSIX regex와 JavaScript regex는 같은 문법이 아니며, 임의 regex는 pathological pattern으로 DB 시간·메모리를 소모할 수 있다. Regex는 별도 동작 계약과 statement timeout을 정하기 전까지 cloud search에서 제공하지 않는다. 검색 결과를 `Replace in files`로 바로 치환하는 기능도 이 스펙 범위 밖이다.
+Case sensitive는 `LIKE`, insensitive는 `ILIKE`를 사용한다. PostgreSQL POSIX regex와 JavaScript regex는 같은 문법이 아니며, 임의 regex는 pathological pattern으로 DB 시간·메모리를 소모할 수 있어 cloud search에서 제공하지 않는다. 검색 결과를 `Replace in files`로 바로 치환하는 기능도 이 스펙 범위 밖이다.
 
 ### 2. 기기 전체 index: 초기 구현에서 제외
 
@@ -58,7 +68,7 @@ Desktop local folder가 연결된 경우에는 이 복제 경로 대신 이미 �
 ## 운영 안전 조건과 측정 항목
 
 - Server가 검색 가능한 corpus 범위를 보장한다. `content_revision = revision`인 active Markdown만 결과에 포함하고, stale/null mirror를 조용히 빠뜨리지 않도록 배포 전 completeness를 집계한다. 누락이 있으면 문서를 재구성하거나 해당 결과를 검색 미완료 상태로 반환한다.
-- `query` 길이, option, result count, preview bytes를 검증하고 workspace filter를 SQL 함수 내부에서 적용한다. Query 제한/취소, DB statement timeout, per-user rate limit, 결과 cap을 둔다.
+- `query` 길이, option, result count, preview bytes를 검증하고 workspace filter를 SQL 함수 내부에서 적용한다. Query 제한/취소, DB statement timeout, per-user rate limit, 결과 cap을 둔다. Cloudflare 요청 취소가 이미 실행 중인 DB statement를 항상 중단한다고 가정하지 않는다.
 - 각 입력 변경은 이전 AbortSignal/request ID를 취소하고 짧은 debounce를 적용한다. 첫 query는 입력 후 focus/typing을 막지 않고 결과를 점진적으로 표시한다. Search UI는 provider가 contents search를 지원하는지 보고만 활성화한다.
 - Cloud response는 문서 본문 전체를 반환하지 않고 매치 줄의 제한된 excerpt만 반환한다. 결과 선택 시 기존 PKMS open-document route로 해당 문서를 연다.
 - Load test는 실제 문서 내용을 사용하지 않는 비식별 fixture로 수행한다. 최소한 3,706개 행, 작은/중간/큰 body 분포, 빈 결과·다수 결과, 한국어/영어, 빠른 query 취소, stale content, 권한 분리, short query reject, regex reject를 포함한다.
