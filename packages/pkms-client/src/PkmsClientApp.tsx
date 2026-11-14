@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent as ReactChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
@@ -93,9 +93,6 @@ export default function Home() {
   const [quickQuery, setQuickQuery] = useState("");
   const [contentSearchOpen, setContentSearchOpen] = useState(false);
   const [contentSearchCoverage, setContentSearchCoverage] = useState<{ indexedFiles: number; searchableFiles: number; pendingFiles: number } | null>(null);
-  const [titleEditing, setTitleEditing] = useState(false);
-  const [titleDraft, setTitleDraft] = useState("");
-  const [titleError, setTitleError] = useState<string | null>(null);
   const [sync, setSync] = useState<SyncStatus>({
     serverRevision: 0,
     githubStatus: "pending",
@@ -330,8 +327,8 @@ export default function Home() {
   }, [activeWorkspace?.id]);
   const treeContextMenuRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const titleCaretPositionRef = useRef<number | null>(null);
-  const titleEditFileIdRef = useRef<string | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const uploadDirectoryRef = useRef("");
   const editorNavigate = useRef<((position: number) => void) | null>(null);
   const routedPath = useRef<string | null>(null);
   const openFileSequence = useRef(0);
@@ -394,23 +391,6 @@ export default function Home() {
   const registerEditorNavigator = useCallback((navigate: ((position: number) => void) | null) => {
     editorNavigate.current = navigate;
   }, []);
-  useEffect(() => {
-    titleEditFileIdRef.current = null;
-    setTitleEditing(false);
-    setTitleError(null);
-  }, [activeWorkspace?.id, activeFile?.id]);
-  useEffect(() => {
-    if (!titleEditing) return;
-    const input = titleInputRef.current;
-    if (!input) return;
-    input.focus();
-    const caretPosition = titleCaretPositionRef.current;
-    if (caretPosition !== null) {
-      const position = Math.max(0, Math.min(caretPosition, input.value.length));
-      input.setSelectionRange(position, position);
-      titleCaretPositionRef.current = null;
-    }
-  }, [titleEditing]);
   const { scheduleAutoSave, saveActiveFileNow, saveDocument } = useDocumentSync({
     workspaceId: activeWorkspace?.id,
     activeDocument: activeRef,
@@ -1637,7 +1617,7 @@ export default function Home() {
     }
   };
 
-  const { createNote, createFolder } = useWorkspaceFileCreation({
+  const { createNote, createFolder, uploadFile } = useWorkspaceFileCreation({
     workspace: activeWorkspace,
     files,
     currentFolder,
@@ -1702,6 +1682,16 @@ export default function Home() {
       setError(cause instanceof Error ? cause.message : "Could not rename PKMS item");
     }
   };
+  const beginTreeUpload = (file: FileRecord) => {
+    uploadDirectoryRef.current = file.kind === "folder" ? file.path : parentPath(file.path);
+    setTreeContextMenu(null);
+    uploadInputRef.current?.click();
+  };
+  const handleTreeUpload = async (event: ReactChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (file) await uploadFile(file, uploadDirectoryRef.current);
+  };
   const toolbarCreationFolder = selectedTreePaths.size === 1 ? (files.find((file) => file.path === [...selectedTreePaths][0] && file.kind === "folder")?.path ?? currentFolder) : currentFolder;
 
   const persistTreeScroll = (scrollTop: number) => {
@@ -1759,18 +1749,8 @@ export default function Home() {
       depth
     }));
     const keyAction = resolveEditorTreeKeyboardAction(event.key, navigationRows, row?.file.path ?? null, expandedFolders);
-    if (keyAction?.type === "delete") {
-      if (canDelete && commandFiles.length) {
-        event.preventDefault();
-        void deleteThroughEditorProvider(commandFiles);
-      }
-      return;
-    }
-    if (keyAction?.type === "rename" && row && selectedTreePaths.size === 1) {
-      if (!canRename) return;
+    if (keyAction?.type === "delete" || keyAction?.type === "rename") {
       event.preventDefault();
-      const selected = files.find((file) => selectedTreePaths.has(file.path));
-      if (selected) beginTreeRename(selected);
       return;
     }
     if (keyAction?.type === "navigate") {
@@ -1902,51 +1882,6 @@ export default function Home() {
     if (!editorSupportsOperation(editorProvider, "rename") || !editorProvider?.rename) throw new EditorProviderError("unsupported", "Renaming is not supported by this provider");
     await editorProvider.rename({ providerId: editorProvider.id, itemId: file.id }, name);
   };
-  const enterTitleEdit = (caretPosition: number) => {
-    if (!activeFile || activeFile.kind !== "markdown") return;
-    titleCaretPositionRef.current = caretPosition;
-    titleEditFileIdRef.current = activeFile.id;
-    setTitleDraft(markdownTitleFor(activeFile.path));
-    setTitleError(null);
-    setTitleEditing(true);
-  };
-  const commitTitleRename = async () => {
-    const file = activeFile;
-    if (!file || titleEditFileIdRef.current !== file.id || !editorSupportsOperation(editorProvider, "rename") || !editorProvider?.rename) return;
-    const validation = validateTitleInput(titleDraft);
-    if ("error" in validation) {
-      if (validation.error === "empty") {
-        titleEditFileIdRef.current = null;
-        setTitleEditing(false);
-        setTitleError(null);
-        return;
-      }
-      setTitleError('Title can’t contain "/" or "\\".');
-      titleInputRef.current?.focus();
-      return;
-    }
-
-    const title = validation.title;
-    if (title === markdownTitleFor(file.path)) {
-      titleEditFileIdRef.current = null;
-      setTitleEditing(false);
-      setTitleError(null);
-      return;
-    }
-    try {
-      const target = await resolveMarkdownTitleRenameTarget(editorProvider, file.path, title);
-      if (!editorSupportsOperation(editorProvider, "rename") || !editorProvider.rename || !target.currentItem) throw new Error("Renaming is not supported by this provider");
-      await editorProvider.rename(target.currentItem, target.name);
-      if (activeFileStateRef.current?.id !== file.id) return;
-      titleEditFileIdRef.current = null;
-      setTitleEditing(false);
-      setTitleError(null);
-    } catch (cause) {
-      if (activeFileStateRef.current?.id !== file.id) return;
-      setTitleError(cause instanceof Error ? cause.message : "Could not rename PKMS note");
-      titleInputRef.current?.focus();
-    }
-  };
   if (loading)
     return (
       <main className="loading-screen">
@@ -2012,6 +1947,13 @@ export default function Home() {
         </div>
         {activeWorkspace && (
           <>
+            <input
+              ref={uploadInputRef}
+              className="sr-only"
+              type="file"
+              tabIndex={-1}
+              onChange={(event) => void handleTreeUpload(event)}
+            />
             <div className="file-toolbar">
               <div className="file-toolbar-heading">
                   <span className="eyebrow">{contentSearchOpen ? "Search" : "Files"}</span>
@@ -2114,7 +2056,7 @@ export default function Home() {
                   setSelectedTreePaths(new Set([file.path]));
                   setSelectionAnchorPath(file.path);
                 }
-                const menuHeight = file.kind === "folder" ? 240 : 136;
+                const menuHeight = file.kind === "folder" ? 320 : 220;
                 setTreeContextMenu({
                   file,
                   x: Math.max(8, Math.min(event.clientX, window.innerWidth - 196)),
@@ -2194,6 +2136,12 @@ export default function Home() {
                         }
                       ]
                     : []),
+                  {
+                    type: "item",
+                    id: "upload",
+                    label: "Upload file…",
+                    onSelect: () => beginTreeUpload(file)
+                  },
                   ...(canRename
                     ? [
                         {
@@ -2288,7 +2236,13 @@ export default function Home() {
           </div>
         )}
         {error && (
-          <button className="notice error dismissible" onClick={() => setError("")}>
+          <button
+            type="button"
+            className="notice error dismissible"
+            role="alert"
+            aria-label="Dismiss error"
+            onClick={() => setError("")}
+          >
             {error}
             <AppIcon name="close" />
           </button>
@@ -2371,21 +2325,13 @@ export default function Home() {
               <EditorMarkdownTitle
                 path={activeFile.path}
                 title={markdownTitleFor(activeFile.path)}
-                editing={titleEditing}
-                draft={titleDraft}
-                error={titleError}
+                editing={false}
+                draft=""
+                error={null}
                 inputRef={titleInputRef}
-                onStartEditing={canRename ? enterTitleEdit : undefined}
-                onChange={(value) => {
-                  setTitleDraft(value);
-                  setTitleError(null);
-                }}
-                onCommit={() => void commitTitleRename()}
-                onCancel={() => {
-                  titleEditFileIdRef.current = null;
-                  setTitleEditing(false);
-                  setTitleError(null);
-                }}
+                onChange={() => {}}
+                onCommit={() => {}}
+                onCancel={() => {}}
               />
             }
             onBackgroundClick={() => {

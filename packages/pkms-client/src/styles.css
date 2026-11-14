@@ -1228,16 +1228,21 @@ button {
   background: color-mix(in srgb, var(--danger) 8%, var(--bg));
 }
 .dismissible {
-  position: absolute;
-  z-index: 4;
-  top: 56px;
-  left: 50%;
+  position: fixed;
+  z-index: 100;
+  right: 16px;
+  bottom: 16px;
+  top: auto;
+  left: auto;
   display: flex;
   gap: 16px;
   align-items: center;
-  transform: translateX(-50%);
+  max-width: min(420px, calc(100vw - 32px));
+  margin: 0;
+  transform: none;
   box-shadow: 0 4px 14px #0002;
   cursor: pointer;
+  text-align: left;
 }
 .dismissible .app-icon {
   width: 14px;

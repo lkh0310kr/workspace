@@ -5,9 +5,6 @@ type AppIconName =
   | 'filter'
   | 'filePlus'
   | 'folderPlus'
-  | 'upload'
-  | 'pencil'
-  | 'trash'
   | 'folder'
   | 'fileText'
   | 'file'
@@ -33,23 +30,6 @@ export function AppIcon({ name, className = '' }: { name: AppIconName; className
       <>
         <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v3M3 7v11a2 2 0 0 0 2 2h8" />
         <path d="M18 14v7m-3.5-3.5h7" />
-      </>
-    ),
-    upload: (
-      <>
-        <path d="M12 16V4m-4 4 4-4 4 4" />
-        <path d="M5 14v5h14v-5" />
-      </>
-    ),
-    pencil: (
-      <>
-        <path d="m4 16.5-.8 4.3 4.3-.8L19 8.5 15.5 5 4 16.5Z" />
-        <path d="m13.8 6.7 3.5 3.5" />
-      </>
-    ),
-    trash: (
-      <>
-        <path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" />
       </>
     ),
     folder: (

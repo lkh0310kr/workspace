@@ -134,17 +134,17 @@ export function useWorkspaceFileCreation({
   )
 
   const uploadFile = useCallback(
-    async (file?: File) => {
+    async (file?: File, directory = currentFolder) => {
       if (!file || !workspace) return
       const fileId = createOperationId()
-      const basePath = `${currentFolder ? `${currentFolder}/` : ''}${file.name}`
+      const basePath = `${directory ? `${directory}/` : ''}${file.name}`
       let path = basePath
       let suffix = 2
       while (files.some((entry) => entry.path === path)) {
         const dot = file.name.lastIndexOf('.')
         path =
           dot > 0
-            ? `${currentFolder ? `${currentFolder}/` : ''}${file.name.slice(0, dot)} (${suffix++})${file.name.slice(dot)}`
+            ? `${directory ? `${directory}/` : ''}${file.name.slice(0, dot)} (${suffix++})${file.name.slice(dot)}`
             : `${basePath} (${suffix++})`
       }
       const clientId = `web-${createOperationId()}`
