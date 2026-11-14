@@ -1,5 +1,10 @@
 # Agent instructions
 
+## Task commits
+
+- Commit each completed task separately after verifying its changes.
+- Keep unrelated existing work out of a task commit.
+
 ## CAD / CAE workflows
 
 Skills live under `.agents/skills/`; read the relevant `SKILL.md` before CAD, DXF, URDF, G-code, or viewer work. CAD model projects and the old verification scripts are archived under `archive/models/` and `archive/scripts/`; do not treat them as active product scope.
