@@ -363,6 +363,8 @@ export async function handleVaultRequest(
     return listSyncChanges(env, workspace, url.searchParams)
   if (p === '/sync/download' && request.method === 'POST')
     return downloadDocuments(env, workspace, await request.json().catch(() => null))
+  if (p === '/search' && request.method === 'POST')
+    return searchContent(env, workspace, await request.json().catch(() => null))
   if (p === '/directory' && request.method === 'GET')
     return directory(env, login, workspace, url.searchParams.get('path') ?? '', requestId)
   if (p === '/sync-status' && request.method === 'GET') return syncStatus(env, workspace)
@@ -430,6 +432,65 @@ export async function handleVaultRequest(
       { status: 503, headers: { 'Retry-After': '10' } }
     )
   return json({ error: 'not_found' }, { status: 404 })
+}
+
+async function searchContent(env: Env, workspace: WorkspaceRow, body: unknown): Promise<Response> {
+  const query =
+    body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as { query?: unknown }).query
+      : undefined
+  const caseSensitive =
+    body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as { caseSensitive?: unknown }).caseSensitive
+      : undefined
+  const afterPath =
+    body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as { afterPath?: unknown }).afterPath
+      : undefined
+  if (
+    typeof query !== 'string' ||
+    [...query].length < 1 ||
+    [...query].length > 200 ||
+    query.includes('\u0000') ||
+    (caseSensitive !== undefined && typeof caseSensitive !== 'boolean') ||
+    (afterPath !== undefined && afterPath !== null && (typeof afterPath !== 'string' || !validPath(afterPath)))
+  )
+    return json({ error: 'invalid_search_query', maxLength: 200 }, { status: 400 })
+
+  try {
+    const result = await supabaseRpc<{
+      results: Array<{
+        fileId: string
+        path: string
+        matches: Array<{ line: number; column: number; preview: string }>
+      }>
+      indexedFiles: number
+      searchableFiles: number
+      pendingFiles: number
+      hasMore: boolean
+      nextPath: string | null
+    }>(env, 'pkms_search_content', {
+      p_workspace_id: workspace.workspace_id,
+      p_query: query,
+      p_case_sensitive: caseSensitive === true,
+      p_after_path: afterPath ?? null
+    })
+    return json(result)
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        event: 'search.content.failed',
+        workspaceId: workspace.workspace_id,
+        errorType: error instanceof Error ? error.name : 'UnknownError',
+        ...(error instanceof SupabaseError ? { upstreamStatus: error.status, upstreamCode: error.code } : {})
+      })
+    )
+    return json(
+      { error: 'search_unavailable', message: 'Search is temporarily unavailable. Try again shortly.' },
+      { status: 503 }
+    )
+  }
 }
 
 async function initialize(
