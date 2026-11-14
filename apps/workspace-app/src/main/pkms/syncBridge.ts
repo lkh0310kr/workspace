@@ -619,9 +619,26 @@ function setItemState(
   relative: string,
   itemState: PkmsSyncItemState | null
 ): void {
+  setItemStates(workspaceId, [relative], itemState)
+}
+function setItemStates(
+  workspaceId: string,
+  relatives: Iterable<string>,
+  itemState: PkmsSyncItemState | null
+): void {
   const itemStates = { ...status(workspaceId).itemStates }
-  if (itemState) itemStates[relative] = itemState
-  else delete itemStates[relative]
+  let changed = false
+  for (const relative of relatives) {
+    if (itemState) {
+      if (itemStates[relative] === itemState) continue
+      itemStates[relative] = itemState
+    } else {
+      if (!Object.hasOwn(itemStates, relative)) continue
+      delete itemStates[relative]
+    }
+    changed = true
+  }
+  if (!changed) return
   if (persisted) persisted.itemStates[workspaceId] = itemStates
   const persist = () => {
     const prior = itemStateSaveTimers.get(workspaceId)
@@ -1952,12 +1969,37 @@ async function syncOnce(workspaceId: string): Promise<void> {
               ...remoteByPath.keys().filter((relative) => relative.startsWith(`${changedPath}/`))
             ])
           ]
+      const changedAssetPaths = fullScan
+        ? [
+            ...localAssets.keys(),
+            ...remoteAssetsByPath.keys(),
+            ...Object.keys(baselines).filter((relative) => !relative.toLowerCase().endsWith('.md'))
+          ]
+        : [
+            ...localAssets.keys(),
+            ...[...remoteChangedPaths].filter((relative) => remoteAssetsByPath.has(relative)),
+            ...scannedLocalPaths.flatMap((changed) => [
+              ...Object.keys(baselines).filter(
+                (relative) => relative === changed || relative.startsWith(`${changed}/`)
+              ),
+              ...remoteAssetsByPath
+                .keys()
+                .filter((relative) => relative === changed || relative.startsWith(`${changed}/`))
+            ])
+          ]
+      const assetPaths = [...new Set(changedAssetPaths)].filter(
+        (relative) =>
+          !relative.toLowerCase().endsWith('.md') &&
+          !isReservedSyncPath(relative) &&
+          !matchesExclusion(relative, config.excludedPaths ?? [])
+      )
       const paths = [...new Set(changedPaths)].filter(
         (relative) =>
           relative.toLowerCase().endsWith('.md') &&
           !isReservedSyncPath(relative) &&
           !matchesExclusion(relative, config.excludedPaths ?? [])
       )
+      setItemStates(workspaceId, [...paths, ...assetPaths], 'pending')
       let completed = 0
       const total = paths.length
       const filesToRead = paths.flatMap((relative) => {
@@ -2316,30 +2358,6 @@ async function syncOnce(workspaceId: string): Promise<void> {
         }
       }
       await Promise.all(Array.from({ length: Math.min(6, total) }, () => worker()))
-      const changedAssetPaths = fullScan
-        ? [
-            ...localAssets.keys(),
-            ...remoteAssetsByPath.keys(),
-            ...Object.keys(baselines).filter((relative) => !relative.toLowerCase().endsWith('.md'))
-          ]
-        : [
-            ...localAssets.keys(),
-            ...[...remoteChangedPaths].filter((relative) => remoteAssetsByPath.has(relative)),
-            ...scannedLocalPaths.flatMap((changed) => [
-              ...Object.keys(baselines).filter(
-                (relative) => relative === changed || relative.startsWith(`${changed}/`)
-              ),
-              ...remoteAssetsByPath
-                .keys()
-                .filter((relative) => relative === changed || relative.startsWith(`${changed}/`))
-            ])
-          ]
-      const assetPaths = [...new Set(changedAssetPaths)].filter(
-        (relative) =>
-          !relative.toLowerCase().endsWith('.md') &&
-          !isReservedSyncPath(relative) &&
-          !matchesExclusion(relative, config.excludedPaths ?? [])
-      )
       let assetIndex = 0
       const reconcileAsset = async (relative: string): Promise<void> => {
         setItemState(workspaceId, relative, 'syncing')
@@ -2610,11 +2628,12 @@ async function syncOnce(workspaceId: string): Promise<void> {
         for (const relative of Object.keys(status(workspaceId).itemStates))
           if (!activePaths.has(relative)) setItemState(workspaceId, relative, null)
       }
-      if (!firstError) {
-        for (const folder of knownRemoteTree ?? [])
-          if (folder.kind === 'folder' && !status(workspaceId).itemStates[folder.path])
-            setItemState(workspaceId, folder.path, 'synced')
-      }
+      if (!firstError)
+        setItemStates(
+          workspaceId,
+          (knownRemoteTree ?? []).filter((file) => file.kind === 'folder').map((file) => file.path),
+          'synced'
+        )
       await save()
       if (firstError) throw firstError
       for (const relative of [...remoteDeletedFolderPaths].sort(
