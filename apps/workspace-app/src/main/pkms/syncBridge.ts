@@ -42,7 +42,7 @@ type BridgeSnapshotPage = {
 }
 type BridgeChange = BridgeFile & { deleted: boolean }
 type Baseline = { fileId: string; hash: string; revision: number }
-type AssetFingerprint = { fingerprint: string; hash: string }
+type AssetFingerprint = { fingerprint: string; hash: string; gitBlobSha?: string }
 type PendingDelete = {
   kind: 'markdown' | 'folder'
   path: string
@@ -268,6 +268,15 @@ function gitBlobHash(content: string): string {
 }
 function gitBlobHashBytes(bytes: Uint8Array): string {
   return createHash('sha1').update(`blob ${bytes.byteLength}\0`).update(bytes).digest('hex')
+}
+function localAssetFingerprint(stat: {
+  dev: bigint
+  ino: bigint
+  size: bigint
+  mtimeNs: bigint
+  ctimeNs: bigint
+}): string {
+  return [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':')
 }
 async function writeAtomicBytes(
   root: string,
@@ -887,7 +896,7 @@ async function markdownFilesAt(
   }
   return found
 }
-type LocalAsset = { hash: string; fingerprint: string }
+type LocalAsset = { hash: string; fingerprint: string; gitBlobSha?: string }
 async function localAssetInventory(
   workspaceId: string,
   root: string,
@@ -909,14 +918,17 @@ async function localAssetInventory(
       } else if (entry.isFile() && !entry.name.toLowerCase().endsWith('.md')) {
         const stat = await fs.lstat(absolute, { bigint: true })
         if (stat.isSymbolicLink() || !stat.isFile()) continue
-        const fingerprint = [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':')
+        const fingerprint = localAssetFingerprint(stat)
         let digest = cached[relative]?.fingerprint === fingerprint ? cached[relative].hash : ''
-        if (!digest) {
+        let gitBlobSha =
+          cached[relative]?.fingerprint === fingerprint ? cached[relative].gitBlobSha ?? '' : ''
+        if (!digest || !gitBlobSha) {
           const bytes = await fs.readFile(absolute)
-          digest = hash(bytes)
-          cached[relative] = { fingerprint, hash: digest }
+          digest ||= hash(bytes)
+          gitBlobSha = gitBlobHashBytes(bytes)
+          cached[relative] = { fingerprint, hash: digest, gitBlobSha }
         }
-        found.set(relative, { hash: digest, fingerprint })
+        found.set(relative, { hash: digest, fingerprint, gitBlobSha })
       }
     }
   }
@@ -944,13 +956,17 @@ async function localAssetInventory(
             await visit(target, relative)
           }
         } else if (stat.isFile() && !relative.toLowerCase().endsWith('.md')) {
-          const fingerprint = [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':')
+          const fingerprint = localAssetFingerprint(stat)
           let digest = cached[relative]?.fingerprint === fingerprint ? cached[relative].hash : ''
-          if (!digest) {
-            digest = hash(await fs.readFile(target))
-            cached[relative] = { fingerprint, hash: digest }
+          let gitBlobSha =
+            cached[relative]?.fingerprint === fingerprint ? cached[relative].gitBlobSha ?? '' : ''
+          if (!digest || !gitBlobSha) {
+            const bytes = await fs.readFile(target)
+            digest ||= hash(bytes)
+            gitBlobSha = gitBlobHashBytes(bytes)
+            cached[relative] = { fingerprint, hash: digest, gitBlobSha }
           }
-          found.set(relative, { hash: digest, fingerprint })
+          found.set(relative, { hash: digest, fingerprint, gitBlobSha })
         }
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
@@ -2023,13 +2039,30 @@ async function syncOnce(workspaceId: string): Promise<void> {
           !isReservedSyncPath(relative) &&
           !matchesExclusion(relative, config.excludedPaths ?? [])
       )
+      const unchangedAssetPaths = assetPaths.filter((relative) => {
+        const local = localAssets.get(relative)
+        const remote = remoteAssetsByPath.get(relative)
+        const baseline = baselines[relative]
+        return (
+          !!local &&
+          !!remote &&
+          !!baseline &&
+          baseline.fileId === remote.id &&
+          baseline.revision === remote.revision &&
+          local.hash === baseline.hash &&
+          (!remote.sha || local.gitBlobSha === remote.sha)
+        )
+      })
+      const unchangedAssetPathSet = new Set(unchangedAssetPaths)
+      const assetsToReconcile = assetPaths.filter((relative) => !unchangedAssetPathSet.has(relative))
       const paths = [...new Set(changedPaths)].filter(
         (relative) =>
           relative.toLowerCase().endsWith('.md') &&
           !isReservedSyncPath(relative) &&
           !matchesExclusion(relative, config.excludedPaths ?? [])
       )
-      setItemStates(workspaceId, [...paths, ...assetPaths], 'pending')
+      setItemStates(workspaceId, [...paths, ...assetsToReconcile], 'pending')
+      setItemStates(workspaceId, unchangedAssetPaths, 'synced')
       let completed = 0
       const total = paths.length
       const filesToRead = paths.flatMap((relative) => {
@@ -2407,20 +2440,21 @@ async function syncOnce(workspaceId: string): Promise<void> {
           const remote = remoteAssetsByPath.get(relative)
           let baseline = baselines[relative]
           const localPath = safePath(root, relative)
+          let localBytes: Uint8Array | null = null
           const readLocal = async () => {
             await assertSafeParentDirectories(root, relative)
             const stat = await fs.lstat(localPath)
             if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
-            return new Uint8Array(await fs.readFile(localPath))
+            localBytes ??= new Uint8Array(await fs.readFile(localPath))
+            return localBytes
           }
-          const writeFingerprint = async (bytesHash: string) => {
+          const writeFingerprint = async (bytesHash: string, gitBlobSha: string) => {
             const stat = await fs.lstat(localPath, { bigint: true })
-            const fingerprint = [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(
-              ':'
-            )
+            const fingerprint = localAssetFingerprint(stat)
             ;(state.assetFingerprints[workspaceId] ??= {})[relative] = {
               fingerprint,
-              hash: bytesHash
+              hash: bytesHash,
+              gitBlobSha
             }
           }
           const readRemote = async (file: BridgeFile) =>
@@ -2458,13 +2492,38 @@ async function syncOnce(workspaceId: string): Promise<void> {
             await fs.rm(localPath)
             delete (state.assetFingerprints[workspaceId] ?? {})[relative]
           }
+          if (localAsset) {
+            try {
+              const stat = await fs.lstat(localPath, { bigint: true })
+              if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
+              const fingerprint = localAssetFingerprint(stat)
+              if (fingerprint !== localAsset.fingerprint || !localAsset.gitBlobSha) {
+                const bytes = await readLocal()
+                localAsset = {
+                  fingerprint,
+                  hash: hash(bytes),
+                  gitBlobSha: gitBlobHashBytes(bytes)
+                }
+                ;(state.assetFingerprints[workspaceId] ??= {})[relative] = localAsset
+              }
+            } catch (error) {
+              if ((error as NodeJS.ErrnoException).code === 'ENOENT') localAsset = undefined
+              else throw error
+            }
+          }
           if (!localAsset) {
             try {
               await assertSafeParentDirectories(root, relative)
-              const stat = await fs.lstat(localPath)
+              const stat = await fs.lstat(localPath, { bigint: true })
               if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
               const bytes = await readLocal()
-              localAsset = { hash: hash(bytes), fingerprint: '' }
+              const fingerprint = localAssetFingerprint(stat)
+              localAsset = {
+                hash: hash(bytes),
+                fingerprint,
+                gitBlobSha: gitBlobHashBytes(bytes)
+              }
+              ;(state.assetFingerprints[workspaceId] ??= {})[relative] = localAsset
             } catch (error) {
               if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
             }
@@ -2500,7 +2559,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
               await writeAtomicBytes(root, relative, bytes, null)
               const bytesHash = hash(bytes)
               remember(remote, bytesHash)
-              await writeFingerprint(bytesHash)
+              await writeFingerprint(bytesHash, gitBlobHashBytes(bytes))
               notifyLocalTreeChanged(workspaceId, relative)
               return
             }
@@ -2511,7 +2570,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
               await writeAtomicBytes(root, relative, bytes, null)
               const bytesHash = hash(bytes)
               remember(remote, bytesHash)
-              await writeFingerprint(bytesHash)
+              await writeFingerprint(bytesHash, gitBlobHashBytes(bytes))
               notifyLocalTreeChanged(workspaceId, relative)
               return
             }
@@ -2533,21 +2592,22 @@ async function syncOnce(workspaceId: string): Promise<void> {
             return
           }
           if (!remote || !localAsset) return
-          const localBytes = await readLocal()
-          const localHash = hash(localBytes)
+          const localHash = localAsset.hash
           baseline = baselines[relative]
-          if (!baseline && remote.sha && gitBlobHashBytes(localBytes) === remote.sha) {
+          if (!baseline && remote.sha && localAsset.gitBlobSha === remote.sha) {
             remember(remote, localHash)
             return
           }
           const remoteChanged =
             !baseline || remote.id !== baseline.fileId || remote.revision !== baseline.revision
           const localChanged = !baseline || localHash !== baseline.hash
-          if (remote.sha && gitBlobHashBytes(localBytes) === remote.sha) {
+          if (remote.sha && localAsset.gitBlobSha === remote.sha) {
             remember(remote, localHash)
             return
           }
           if (!baseline) {
+            const localBytes = await readLocal()
+            if (hash(localBytes) !== localHash) throw new Error('local_file_changed_retry')
             const remoteBytes = await readRemote(remote)
             const remoteHash = hash(remoteBytes)
             if (remoteHash === localHash) {
@@ -2566,12 +2626,14 @@ async function syncOnce(workspaceId: string): Promise<void> {
             }
             await writeAtomicBytes(root, relative, remoteBytes, localHash)
             remember(remote, remoteHash)
-            await writeFingerprint(remoteHash)
+            await writeFingerprint(remoteHash, gitBlobHashBytes(remoteBytes))
             setItemState(workspaceId, relative, 'attention')
             notifyLocalTreeChanged(workspaceId, relative)
             return
           }
           if (localChanged && remoteChanged && baseline) {
+            const localBytes = await readLocal()
+            if (hash(localBytes) !== localHash) throw new Error('local_file_changed_retry')
             const ext = path.posix.extname(relative)
             const base = ext ? relative.slice(0, -ext.length) : relative
             const conflictPath = `${base}.local-conflict-${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
@@ -2586,10 +2648,12 @@ async function syncOnce(workspaceId: string): Promise<void> {
             await writeAtomicBytes(root, relative, remoteBytes, localHash)
             const remoteHash = hash(remoteBytes)
             remember(remote, remoteHash)
-            await writeFingerprint(remoteHash)
+            await writeFingerprint(remoteHash, gitBlobHashBytes(remoteBytes))
             setItemState(workspaceId, relative, 'attention')
             notifyLocalTreeChanged(workspaceId, relative)
           } else if (localChanged) {
+            const localBytes = await readLocal()
+            if (hash(localBytes) !== localHash) throw new Error('local_file_changed_retry')
             const result = await uploadAsset(
               workspaceId,
               relative,
@@ -2605,13 +2669,13 @@ async function syncOnce(workspaceId: string): Promise<void> {
               localHash
             }
             remember(updated, localHash)
-            await writeFingerprint(localHash)
+            await writeFingerprint(localHash, gitBlobHashBytes(localBytes))
           } else if (remoteChanged) {
             const remoteBytes = await readRemote(remote)
             const remoteHash = hash(remoteBytes)
             await writeAtomicBytes(root, relative, remoteBytes, localHash)
             remember(remote, remoteHash)
-            await writeFingerprint(remoteHash)
+            await writeFingerprint(remoteHash, gitBlobHashBytes(remoteBytes))
             notifyLocalTreeChanged(workspaceId, relative)
           } else {
             remember(remote, localHash)
@@ -2624,9 +2688,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
       const assetWorker = async () => {
         while (true) {
           const index = assetIndex++
-          if (index >= assetPaths.length) return
+          if (index >= assetsToReconcile.length) return
           try {
-            await reconcileAsset(assetPaths[index])
+            await reconcileAsset(assetsToReconcile[index])
           } catch (error) {
             if (
               error instanceof PkmsBridgeRequestError &&
@@ -2653,7 +2717,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
                 error = retryError
               }
             }
-            setItemState(workspaceId, assetPaths[index], 'attention')
+            setItemState(workspaceId, assetsToReconcile[index], 'attention')
             firstError ??= error
           }
         }
