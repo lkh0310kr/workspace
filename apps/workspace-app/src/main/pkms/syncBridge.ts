@@ -80,7 +80,7 @@ const EMPTY: Persisted = {
 // The revision feed is metadata-only; poll it frequently so edits from web/iOS
 // reach the local source of truth promptly. Full disk walks remain a recovery
 // path because native watcher events cover normal local edits.
-const REMOTE_CHANGE_POLL_INTERVAL_MS = 30_000
+const REMOTE_CHANGE_POLL_INTERVAL_MS = 5_000
 const FULL_LOCAL_SCAN_INTERVAL_MS = 15 * 60_000
 const timers = new Map<string, ReturnType<typeof setTimeout>>()
 const retryTimers = new Map<string, ReturnType<typeof setTimeout>>()

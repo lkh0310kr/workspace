@@ -9,6 +9,8 @@ export interface PkmsSaveResult {
   message?: string
 }
 
+const AUTO_SAVE_DELAY_MS = 400
+
 interface ActiveDocument {
   file: FileRecord | null
   documentKey: string | null
@@ -113,7 +115,7 @@ export function useDocumentSync({
             setError(cause instanceof Error ? cause.message : 'Could not autosave PKMS document')
           }
         )
-      }, 5_000)
+      }, AUTO_SAVE_DELAY_MS)
       autoSaveTimers.current.set(key, timer)
     },
     [saveMarkdownToGitHub, setNotice, workspaceId]

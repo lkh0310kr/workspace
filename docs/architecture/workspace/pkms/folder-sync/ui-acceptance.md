@@ -30,6 +30,8 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 - workspace를 열 때 저장된 tree cache를 먼저 렌더링한다. 이후 root와 이미 펼친 directory를 서버에서 재검증하며, cache miss라도 root directory 요청을 queue flush 완료까지 지연시키지 않는다.
 - folder를 펼치면 해당 directory의 직접 자식을 표시하고, 응답에 포함된 하위 folder의 listing도 background prefetch한다. prefetch는 한 단계만 진행하며 최대 8개 동시 요청으로 제한한다. prefetch 완료를 기다리지 않고 tree를 계속 조작할 수 있다.
 - directory 응답은 해당 parent의 직접 자식에 대한 authoritative listing이다. 누락된 직접 child와 그 하위의 cached descendant를 제거하고, 다른 parent의 tree rows는 보존한다. Markdown-only `/snapshot` 응답은 Files tree 상태를 대체하는 데 사용할 수 없다.
+- Web editor의 Markdown update는 Yjs 로컬 persistence를 유지하고 짧은 idle debounce 뒤 Cloud ACK를 요청한다. 연결된 Desktop replica는 private Realtime wakeup으로 pull pass를 시작하고, wakeup을 못 받은 경우 revision feed poll로 회복한다. Web 브라우저 자체는 OS local path에 직접 쓸 수 없으므로 local file 반영은 연결된 Desktop sync bridge의 책임이다.
+- sync/error notice는 tree action, breadcrumb, editor 상단 조작 영역의 hit target을 덮지 않는다. 닫기 버튼은 notice 내부에만 hit area를 둔다.
 
 전체 percent는 대상 집합이 달라지면 감소/증가할 수 있어 안정된 결과를 뜻하지 않는다. 고정 revision에 묶인 initial materialization만 필요하면 그 snapshot 기준임을 표시한다. Settings panel은 가변 `completed/total` percent를 사용자에게 진행률처럼 보여주지 않는다. Main의 내부 progress 값은 diagnostics/future fixed-snapshot progress에만 쓸 수 있다.
 
@@ -58,6 +60,8 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 | FS-UI-19 | 이전에 방문한 workspace를 다시 열고 server 응답이 지연됨                         | cache의 root와 이전에 열었던 tree가 즉시 보이고, 최신 directory 응답은 도착 후 반영된다                                                               | Web cache 경로 source 확인; 실제 브라우저 지연 네트워크 acceptance 미확인                                                                                               |
 | FS-UI-20 | folder를 펼치고 직접 child folder가 여러 개 존재                                  | 직접 child가 먼저 표시되고, 각 child의 한 단계 listing은 background에서 가져온다. 요청 지연 때문에 expand/input이 막히지 않는다                         | Web/iOS source 구현; 대량 folder 실측 미확인                                                                                                                            |
 | FS-UI-21 | folder delete가 다른 workspace path 변경 뒤 전송되고 target subtree는 그대로임   | 삭제가 불필요한 `folder_changed_since_base` 없이 승인된다. target subtree 안에 base 이후 변경이 있으면 삭제를 거부하고 원격 tree를 보존한다              | 2026-11-14 scoped-revision SQL rollback regression이 linked production DB에서 통과; 실제 사용자 UI delete 수동 확인은 미완료                                              |
+| FS-UI-22 | Web에서 Markdown을 수정하고 Desktop local folder가 연결되어 있음                 | Web 변경이 Cloud revision에 저장되고 Desktop local Markdown byte/hash와 editor가 같은 내용으로 수렴한다. Realtime 단절 때도 revision poll로 회복한다      | autosave/poll latency 개선 source 반영; live cross-device file hash acceptance 미확인                                                                                   |
+| FS-UI-23 | sync error가 표시된 상태에서 tree row·breadcrumb·editor control을 누름              | 알림이 각 control의 hit target을 가리지 않고, 알림 닫기는 전용 dismiss 버튼으로 동작한다                                                             | error toast를 viewport 오른쪽 아래로 이동; 실제 Web/desktop hit-test 미확인                                                                                              |
 
 ## 현재 UI 연결
 
