@@ -128,7 +128,7 @@ export default function Home() {
     []
   );
   const closeDialog = useCallback(() => setDialogRequest(null), []);
-  const { currentFolder, setCurrentFolder, files, setFiles, loadingFolder, setLoadingFolder, loadingFolderPaths, setLoadingFolderPaths, expandedFolders, setExpandedFolders, loadedFolders, setLoadedFolders, toggleDirectory, restoreWorkspaceTree, refreshDirectory, getFiles } = useWorkspaceDirectory(activeWorkspace, api, setError);
+  const { currentFolder, setCurrentFolder, files, setFiles, loadingFolder, setLoadingFolder, loadingFolderPaths, setLoadingFolderPaths, expandedFolders, setExpandedFolders, loadedFolders, setLoadedFolders, toggleDirectory, restoreWorkspaceTree, refreshDirectory, refreshLoadedDirectories, getFiles } = useWorkspaceDirectory(activeWorkspace, api, setError);
   const [localFolderEnabled, setLocalFolderEnabled] = useState(false);
   const [localCloudSyncing, setLocalCloudSyncing] = useState(false);
   const [localSyncState, setLocalSyncState] = useState<PkmsSyncBridgeStatus["state"]>("disconnected");
@@ -1152,7 +1152,7 @@ export default function Home() {
     setPeers,
     setSaving,
     setError,
-    setFiles,
+    refreshDirectories: refreshLoadedDirectories,
     localFolderEnabled
   });
 

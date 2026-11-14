@@ -125,6 +125,11 @@ export function useWorkspaceDirectory(
     [activeWorkspace, api, replaceDirectory]
   )
 
+  const refreshLoadedDirectories = useCallback(async () => {
+    const directories = [...loadedFoldersRef.current]
+    await Promise.allSettled(directories.map((directory) => refreshDirectory(directory, false)))
+  }, [refreshDirectory])
+
   const toggleDirectory = useCallback(
     async (file: FileRecord, loadChildren?: () => Promise<unknown>) => {
       if (!activeWorkspace) return
@@ -264,6 +269,7 @@ export function useWorkspaceDirectory(
     toggleDirectory,
     restoreWorkspaceTree,
     refreshDirectory,
+    refreshLoadedDirectories,
     getFiles
   }
 }

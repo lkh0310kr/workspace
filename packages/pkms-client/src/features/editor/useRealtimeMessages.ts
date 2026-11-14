@@ -23,7 +23,7 @@ interface Options {
   setPeers: Dispatch<SetStateAction<Peer[]>>
   setSaving: Dispatch<SetStateAction<boolean>>
   setError: Dispatch<SetStateAction<string>>
-  setFiles: Dispatch<SetStateAction<FileRecord[]>>
+  refreshDirectories: () => Promise<void>
   localFolderEnabled: boolean
 }
 
@@ -37,7 +37,7 @@ export function useRealtimeMessages({
   setPeers,
   setSaving,
   setError,
-  setFiles,
+  refreshDirectories,
   localFolderEnabled
 }: Options) {
   return useCallback(
@@ -81,34 +81,32 @@ export function useRealtimeMessages({
       } else if (message.type === 'ack' && message.operationId) {
         pending.current.delete(message.operationId)
         setSaving(pending.current.size > 0)
-        if (message.conflictCopyPath) void refreshSnapshot(message.conflictCopyPath)
+        if (message.conflictCopyPath) void refreshWorkspaceTree(message.conflictCopyPath)
       } else if (message.type === 'error') {
         setError(message.message ?? 'Collaboration sync failed')
       } else if (
         typeof message.acceptedRevision === 'number' &&
         (!localFolderEnabled || message.conflictCopyPath)
       ) {
-        void refreshSnapshot(message.conflictCopyPath)
+        void refreshWorkspaceTree(message.conflictCopyPath)
       }
 
-      async function refreshSnapshot(conflictCopyPath?: string) {
+      async function refreshWorkspaceTree(conflictCopyPath?: string) {
         try {
+          // Directory listings are the authoritative tree representation. The
+          // Markdown snapshot intentionally omits folders and attachments.
+          if (!localFolderEnabled) await refreshDirectories()
+          if (!conflictCopyPath) return
           const snapshot = await request<{ files: FileRecord[] }>(
             `/api/workspaces/${workspaceId}/snapshot`
           )
-          // When a desktop folder is connected, it owns the tree. Replacing it
-          // with a cloud snapshot races the filesystem refresh and drops files
-          // that have not reached the cloud yet, producing repeated empty rows.
-          if (!localFolderEnabled) setFiles(snapshot.files)
-          if (conflictCopyPath) {
-            const conflict = snapshot.files.find((file) => file.path === conflictCopyPath)
-            const localConflict =
-              conflict && localFolderEnabled
-                ? { ...conflict, id: localItemIdForPath(conflict.path) }
-                : conflict
-            if (localConflict && activeDocument.current.file?.path !== localConflict.path)
-              await openFileRef.current?.(localConflict)
-          }
+          const conflict = snapshot.files.find((file) => file.path === conflictCopyPath)
+          const localConflict =
+            conflict && localFolderEnabled
+              ? { ...conflict, id: localItemIdForPath(conflict.path) }
+              : conflict
+          if (localConflict && activeDocument.current.file?.path !== localConflict.path)
+            await openFileRef.current?.(localConflict)
         } catch {
           /* A later snapshot refresh will reconcile transient failures. */
         }
@@ -122,7 +120,7 @@ export function useRealtimeMessages({
       pending,
       request,
       setError,
-      setFiles,
+      refreshDirectories,
       setPeers,
       setSaving,
       workspaceId
