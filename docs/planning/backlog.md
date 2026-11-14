@@ -4,25 +4,16 @@
 
 ## 진행 중
 
-### PKMS 즉시 반응, Web→local 반영, context-menu 전용 파일 작업
+### PKMS 즉시 반응과 sync runtime acceptance
 
-- **목표 결과:** TreeView와 Editor의 모든 사용자 입력은 현재 보이는 상태를 즉시 갱신한다. Cache가 있으면 바로 렌더하고, 서버·파일시스템 작업은 background에서 완료한다. 실패 시 영향받은 item/directory만 authoritative source에서 재조정한다. Web에서 저장한 Markdown은 Cloud revision을 거쳐 연결된 Desktop local folder에 반영되며, sync 경고는 조작 가능한 UI를 가리지 않는다.
-- **파일 조작 정책:** PKMS tree toolbar에는 Files filter와 New note/New folder만 둔다. Upload, Rename, Delete는 toolbar, keyboard shortcut, editor title click에서 시작할 수 없고 tree right-click menu에서만 시작한다. Move는 drag-and-drop 및 cut/paste를 유지한다. Context menu는 선택된 항목 기준으로 Upload/Rename/Delete를 한 번씩 제공한다.
-- **즉시 동작 목록 / acceptance:**
-  1. Workspace 재열기: cached tree·확장 상태·scroll을 먼저 표시하고 최신 `/directory` 결과로 background refresh한다.
-  2. 파일 열기/전환: route, 선택, editor frame을 즉시 바꾸고 cached Yjs/document body를 먼저 보여준다. 이전 문서 저장이나 local mirror sync 완료가 다음 문서 표시를 막지 않는다. 미전송 데이터는 durable queue/session에 남고 이후 ACK/error가 분명해야 한다.
-  3. 폴더 펼치기/접기: 펼침을 즉시 표시하고 cache miss만 해당 row에 loading 표시한다. 직계 목록을 fetch하고 그 하위 폴더를 한 단계 prefetch한다. stale response가 이후 상태를 되돌리지 않는다.
-  4. Selection, multi-select, keyboard focus, tree scroll, breadcrumb, back/forward: 입력 frame에서 반영하고 editor·tree scroll 위치를 보존한다.
-  5. Create note/folder: optimistic row를 즉시 추가한다. ACK가 오면 canonical ID/path로 바꾸고, 실패하면 해당 row만 제거한다.
-  6. Rename/move: path와 열린 문서·selection·expanded/current folder를 즉시 remap한다. 서버 충돌/링크 수정은 background로 처리하고 실패 시 최신 경로로 rollback/reconcile한다. 여러 항목은 독립 요청을 제한된 동시성으로 처리한다.
-  7. Delete: context menu에서만 시작한다. 확인 후 즉시 숨기고 서버 ACK 후 확정한다. subtree conflict이면 삭제를 복원하고 보존된 path와 이유를 표시한다.
-  8. Upload: context menu에서만 시작한다. target directory에 optimistic row와 byte progress를 표시하고 성공/실패를 해당 항목에 귀속한다.
-  9. Autosave/Cloud→local: 입력 후 짧은 debounce로 Yjs update를 ACK 받는다. Desktop Realtime wakeup을 우선 쓰고, realtime이 끊긴 동안 revision poll이 bounded interval로 회복한다. 저장된 Cloud revision이 local file의 bytes/hash와 수렴한다.
-  10. Search/Quick Open: 키 입력과 focus는 즉시, 요청은 debounce/abort, cache hit는 먼저 노출한다. 검색 결과 열기는 현재 문서 저장 대기로 막히지 않는다.
-  11. Error/sync status/toast: red error와 dismiss target이 tree toolbar, breadcrumb, editor control을 가리지 않는다. 경고는 내용·대상·retry/dismiss 행동을 제공한다.
-- **현재 발견 / 구현 진행:** Web autosave debounce 400ms, Desktop revision fallback poll 5초를 적용했다. PKMS toolbar는 filter/create만 유지하며 Upload/Rename/Delete는 context menu에 하나씩 있다. keyboard Delete/F2와 title-click rename은 비활성화했다. 오류 알림 본문은 pointer event를 통과시키고 닫기 버튼만 hit target으로 남겼다. Web Worker를 배포·reload했고 실제 화면을 확인했다. Desktop app을 `promote:stable`로 교체했고 우클릭 메뉴와 toolbar를 확인했다. `invalid_sync_cursor`는 authoritative snapshot + durable full-scan으로 회복했다. per-item `pending/syncing/synced/attention`을 durable state에 저장해 TreeView와 Sync settings에 노출한다. stable 앱 full scan이 `5,733 synced`, pending/syncing/attention 0으로 수렴했고, 세 사용자 폴더의 파일 34개를 Cloud와 hash 대조해 누락·불일치 0을 확인했다. 이 작업은 즉시성 전체 acceptance 및 모든 error/retry 경로의 검증이 남아 있어 진행 중으로 유지한다.
-- **수락 테스트:** 저장한 표본 Markdown 한 개를 Web에서 편집하고 Cloud Yjs revision/내용, Desktop local file bytes/hash, local editor 표시를 같은 변경으로 비교한다. Realtime 정상·차단 두 경우를 확인한다. UI에서는 toolbar에 Upload/Rename/Delete가 0개, 우클릭 menu에 각각 하나, keyboard/title click 경로에서는 시작 불가를 확인한다. 오류 알림이 떠 있는 상태에서도 tree row·breadcrumb·editor control을 클릭할 수 있어야 한다. 모두 production Web과 실행 중인 Desktop에서 재현 확인한다.
-- **근거:** [Folder sync UI acceptance](../architecture/workspace/pkms/folder-sync/ui-acceptance.md), [Folder sync protocol](../architecture/workspace/pkms/folder-sync/server-protocol.md), [PKMS Editor parity](../architecture/workspace/pkms/editor-parity.md)
+- **목표 결과:** TreeView와 Editor 입력은 즉시 반응한다. Cache가 있으면 tree를 먼저 표시하고 서버·파일시스템 작업은 background에서 끝난다. Web에서 저장한 Markdown은 연결된 Desktop local file과 수렴하고, 중단·충돌·재시작에도 변경 내용과 sync 상태가 보존된다.
+- **남은 acceptance:**
+  1. FS-UI-01~05: 첫 연결·offline/reconnect·동시 수정·단일 item 오류에서 tree를 계속 조작할 수 있고, 오류 item만 attention에 남는지 실제 UI에서 확인한다.
+  2. FS-UI-19~20: 느린 `/directory` 응답에서 cache가 먼저 보이는지, 대량 하위 폴더 prefetch가 확장·선택 입력을 막지 않는지 실제 Web에서 측정한다.
+  3. FS-UI-21: folder revision conflict를 사용자 UI에서 재현해 삭제가 거부되고 remote subtree가 보존되는지 확인한다. SQL rollback regression은 통과했지만 사용자 UI acceptance는 남아 있다.
+  4. FS-UI-22~24: realtime 차단 중 revision poll 복구, 겹치는 오류 알림 위의 실제 클릭, cursor 복구 중 앱 재시작을 검증한다. 정상 Web→local hash 수렴과 cursor 만료 후 full scan은 이미 확인했다.
+  5. Desktop 재시작 시 마지막 per-item 상태가 먼저 복원되고 startup audit 후 실제 hash와 일치하는지 확인한다. 현재 UI 스펙에서 durable visual item-state 복원은 미완료로 기록돼 있다.
+- **근거:** [Folder sync UI acceptance](../architecture/workspace/pkms/folder-sync/ui-acceptance.md), [Folder sync 결과·durability 계약](../architecture/workspace/pkms/folder-sync/README.md), [PKMS 상태](../architecture/workspace/pkms/README.md)
 
 ### Editor 탐색·Markdown 회귀와 제품 acceptance
 
