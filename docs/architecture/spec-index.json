@@ -316,6 +316,10 @@
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.shortcut.test.ts",
           "sha256": "63287badef6f43735c6352d6c02b6d78eb8079f8ddf8d6c00c92d14cb3056895"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/components/TreeView.scroll.test.ts",
+          "sha256": "57692c74bb615e808f4f61c71b28b9626776e4dcc00e2be40672449b3192b6a0"
         }
       ]
     },
