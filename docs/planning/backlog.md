@@ -33,6 +33,7 @@
 ### PKMS 종단 간 동기화 acceptance
 
 - **현재 상태:** 지원 client 조합을 나누지 않는 23개 결과 checklist를 만들었다. 이번 실행에서 Desktop sync policy/move 12개 unit, Web/Server/Desktop typecheck와 build, iOS arm64 Simulator build, production DB rollback SQL 4개를 통과했다. 이전 runtime evidence에는 Web↔Desktop hash 수렴, 5,733개 local item, 12,472개 Cloud↔GitHub tree parity와 cursor 복구가 기록돼 있다.
+- **현재 운영 blocker:** 2026-11-15 live check에서 `pkms-cloud` `/api/health`가 Cloudflare HTTP 429/error 1027을 반환했다. stable Desktop durable state에는 5,732 synced, 10 pending이 남아 있다(변경 file 1, baseline 없는 local item 8, directory 1; create/update/delete operation queue 0). 로컬 변경은 건드리지 않았고 이번 검증에서 sync/write 재시도를 발생시키지 않았다. Worker가 정상 응답한 뒤 10개 pending의 Cloud 수렴을 가장 먼저 재검증한다.
 - **목표 결과:** 어떤 client에서 생성·수정·이동·삭제해도 PKMS cloud와 연결된 client가 같은 identity/bytes로 수렴한다. 장애·재시작·충돌에서 자료가 보존되고 sync 상태가 실제 결과와 맞는다.
 - **남은 수락:** checklist의 미검증 경계(세 client 교대 편집, ACK 유실 뒤 재시작, offline/auth/429, partial scan/watch drop, root 전환 E2E, binary size 경계, conflict 순서, 재시작 중 item-state UI, 성능 측정)를 격리 workspace 및 temporary local root에서 실행한다. 통과/실패 근거를 각 ID에 추가하기 전까지 전체 동기화 완료로 표시하지 않는다.
 - **근거:** [PKMS 종단 간 sync checklist](../architecture/workspace/pkms/folder-sync/acceptance-checklist.md), [Folder sync 계약](../architecture/workspace/pkms/folder-sync/README.md), [삭제 계약](../architecture/workspace/pkms/folder-sync/deletion.md), [기능 상태](./feature-status.md)
