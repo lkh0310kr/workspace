@@ -8,6 +8,7 @@ const testRuntime = vi.hoisted(() => ({
   userData: `/tmp/workspace-pkms-concurrent-edit-${process.pid}`,
   request: vi.fn(),
   createOperations: [] as Array<{ path: string; content: string; fileId: string }>,
+  acceptedConflict: null as null | { id: string; path: string; kind: string; revision: number },
   documentDownloads: 0
 }))
 
@@ -65,20 +66,45 @@ describe('PKMS concurrent Markdown edits', () => {
           return {
             status: 200,
             body: {
-              changes: [{ ...latestRemoteFile, deleted: false }],
+              changes: [
+                { ...latestRemoteFile, deleted: false },
+                ...(testRuntime.acceptedConflict
+                  ? [{ ...testRuntime.acceptedConflict, deleted: false }]
+                  : [])
+              ],
               hasMore: false,
-              nextRevision: 2,
-              lastRevision: 2,
-              lastFileId: fileId
+              nextRevision: testRuntime.acceptedConflict ? 3 : 2,
+              lastRevision: testRuntime.acceptedConflict ? 3 : 2,
+              lastFileId: testRuntime.acceptedConflict?.id ?? fileId
             }
           }
         if (url.includes('/sync/tree'))
-          return { status: 200, body: { revision: 2, files: [latestRemoteFile], hasMore: false, nextPath: '' } }
+          return {
+            status: 200,
+            body: {
+              revision: testRuntime.acceptedConflict ? 3 : 2,
+              files: [latestRemoteFile, ...(testRuntime.acceptedConflict ? [testRuntime.acceptedConflict] : [])],
+              hasMore: false,
+              nextPath: ''
+            }
+          }
         if (url.includes('/sync/download') && options.method === 'POST') {
           testRuntime.documentDownloads++
           return {
             status: 200,
-            body: { documents: [{ id: fileId, path: 'note.md', revision: 2, text: remoteText }] }
+            body: {
+              documents: [
+                { id: fileId, path: 'note.md', revision: 2, text: remoteText },
+                ...(testRuntime.acceptedConflict
+                  ? [
+                      {
+                        ...testRuntime.acceptedConflict,
+                        text: localText
+                      }
+                    ]
+                  : [])
+              ]
+            }
           }
         }
         if (url.endsWith('/operations') && options.method === 'POST') {
@@ -92,18 +118,14 @@ describe('PKMS concurrent Markdown edits', () => {
             content: payload.operation.content,
             fileId: payload.operation.fileId
           })
-          return {
-            status: 200,
-            body: {
-              file: {
-                id: `conflict-${payload.operation.fileId}`,
-                path: payload.operation.path,
-                kind: 'markdown',
-                revision: 3
-              },
-              acceptedRevision: 3
-            }
+          testRuntime.acceptedConflict = {
+            id: payload.operation.fileId,
+            path: payload.operation.path,
+            kind: 'markdown',
+            revision: 3
           }
+          // The server committed the conflict copy, but the response was lost.
+          throw new TypeError('fetch failed')
         }
         return { status: 500, body: { error: 'unexpected_mock_request', url } }
       }
@@ -117,16 +139,28 @@ describe('PKMS concurrent Markdown edits', () => {
   })
 
   it('preserves both divergent edits and keeps the latest remote revision at the original path', async () => {
+    const firstAttempt = await scanPkmsSyncBridge(workspaceId)
+    expect(firstAttempt.state).toBe('offline')
+    expect(testRuntime.createOperations).toHaveLength(1)
+    expect(await readFile(path.join(root, 'note.md'), 'utf8')).toBe(localText)
+
+    const afterLostAck = JSON.parse(await readFile(stateFile, 'utf8')) as {
+      pendingCreates: Record<string, Record<string, { fileId: string; operationId: string }>>
+    }
+    const conflictPath = testRuntime.acceptedConflict!.path
+    expect(afterLostAck.pendingCreates[workspaceId][conflictPath]).toMatchObject({
+      fileId: testRuntime.createOperations[0].fileId,
+      operationId: expect.any(String)
+    })
+
     const result = await scanPkmsSyncBridge(workspaceId)
 
     expect(result.state).toBe('synced')
-    expect(testRuntime.documentDownloads).toBe(1)
+    expect(testRuntime.documentDownloads).toBeGreaterThanOrEqual(2)
     expect(await readFile(path.join(root, 'note.md'), 'utf8')).toBe(remoteText)
 
-    const entries = await readdir(root)
-    const conflictPath = entries.find((entry) => entry.startsWith('note.local-conflict-'))
-    expect(conflictPath).toBeDefined()
-    expect(await readFile(path.join(root, conflictPath!), 'utf8')).toBe(localText)
+    expect(await readdir(root)).toContain(path.basename(conflictPath))
+    expect(await readFile(path.join(root, conflictPath), 'utf8')).toBe(localText)
     expect(testRuntime.createOperations).toHaveLength(1)
     expect(testRuntime.createOperations[0]).toMatchObject({
       path: conflictPath,
@@ -142,9 +176,13 @@ describe('PKMS concurrent Markdown edits', () => {
       hash: hash(remoteText),
       revision: 2
     })
-    expect(persisted.baselines[workspaceId][conflictPath!]).toMatchObject({
+    expect(persisted.baselines[workspaceId][conflictPath]).toMatchObject({
       hash: hash(localText),
       revision: 3
     })
+    const finalState = JSON.parse(await readFile(stateFile, 'utf8')) as {
+      pendingCreates: Record<string, Record<string, unknown>>
+    }
+    expect(finalState.pendingCreates[workspaceId][conflictPath]).toBeUndefined()
   })
 })
