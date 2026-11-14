@@ -5,6 +5,8 @@
   "main": "./out/main/index.js",
   "scripts": {
     "format": "prettier --write .",
+    "format:repo": "prettier --write ../..",
+    "format:check:repo": "prettier --check ../..",
     "lint": "eslint --cache .",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
