@@ -29,14 +29,27 @@ describe('PKMS durable state restart recovery', () => {
       stateFile,
       JSON.stringify({
         configs: { [workspaceId]: { folderPath: root, excludedPaths: [] } },
+        remoteFiles: { [workspaceId]: {} },
+        remoteTrees: { [workspaceId]: [] },
         syncCursors: { [workspaceId]: 42 },
         pendingPaths: { [workspaceId]: ['pending.md'] },
         itemStates: { [workspaceId]: { 'pending.md': 'pending' } }
       })
     )
-    testRuntime.request.mockImplementation(async () => {
+    testRuntime.request.mockImplementation(async (url: string) => {
+      if (url.includes('/sync/changes'))
+        return {
+          status: 200,
+          body: { changes: [], hasMore: false, nextRevision: 42, lastRevision: 42, lastFileId: '' }
+        }
       throw new Error('network must not be reached before the restored state is inspected')
     })
+    await writeFile(path.join(root, 'pending.md'), '# pending local note\n')
+    const seeded = JSON.parse(await readFile(stateFile, 'utf8')) as {
+      configs: Record<string, { folderPath: string; excludedPaths: string[] }>
+    }
+    seeded.configs[workspaceId].excludedPaths = ['pending.md']
+    await writeFile(stateFile, JSON.stringify(seeded))
   })
 
   afterAll(async () => {
@@ -56,22 +69,37 @@ describe('PKMS durable state restart recovery', () => {
     expect(restoredStatus.enabled).toBe(true)
     expect(restoredStatus.folderPath).toBe(root)
     expect(restoredStatus.itemStates['pending.md']).toBe('pending')
-    expect(testRuntime.request.mock.calls.length).toBeGreaterThan(0)
-    expect(testRuntime.request.mock.calls.every(([url]) => url === '/api/realtime/config')).toBe(
-      true
-    )
+    expect(testRuntime.request.mock.calls.every(([url]) => url === '/api/realtime/config')).toBe(true)
+    const restored = JSON.parse(await readFile(stateFile, 'utf8')) as {
+      syncCursors: Record<string, number>
+      pendingPaths: Record<string, string[]>
+      itemStates: Record<string, Record<string, string>>
+    }
+    expect(restored.syncCursors[workspaceId]).toBe(42)
+    expect(restored.pendingPaths[workspaceId]).toEqual(['pending.md'])
+    expect(restored.itemStates[workspaceId]['pending.md']).toBe('pending')
 
     const callsBeforeStop = testRuntime.request.mock.calls.length
     await restartedRun.stopPkmsSyncBridges()
     await new Promise((resolve) => setTimeout(resolve, 60))
     expect(testRuntime.request).toHaveBeenCalledTimes(callsBeforeStop)
+
+    const scanResult = await restartedRun.scanPkmsSyncBridge(workspaceId)
+    expect(scanResult.state).toBe('synced')
+    const changeFeedRequest = testRuntime.request.mock.calls.find(([url]) =>
+      String(url).includes('/sync/changes')
+    )
+    expect(changeFeedRequest?.[0]).toContain('afterRevision=42')
+    expect(
+      testRuntime.request.mock.calls.some(
+        ([url, options]) =>
+          !String(url).includes('/sync/changes') &&
+          (options as { method?: string } | undefined)?.method === 'POST'
+      )
+    ).toBe(false)
     const persisted = JSON.parse(await readFile(stateFile, 'utf8')) as {
       syncCursors: Record<string, number>
-      pendingPaths: Record<string, string[]>
-      itemStates: Record<string, Record<string, string>>
     }
     expect(persisted.syncCursors[workspaceId]).toBe(42)
-    expect(persisted.pendingPaths[workspaceId]).toEqual(['pending.md'])
-    expect(persisted.itemStates[workspaceId]['pending.md']).toBe('pending')
   })
 })
