@@ -20,9 +20,10 @@
   background: transparent;
   text-align: start;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
   cursor: pointer;
+  font-weight: 500;
 }
 .editor-tree-item:hover {
   background: var(--editor-tree-hover, var(--bg-hover, var(--hover)));
