@@ -9,15 +9,25 @@ begin
     values(wid,'lkh0310kr','lkh0310kr/pkms-search-sync-regression','test');
   insert into public.pkms_files(
     workspace_id,file_id,path,parent_path,kind,revision,deleted,dirty,size,content,content_revision
-  ) values (
-    wid,'search-note','old/name.md','old','markdown',1,false,true,
-    char_length('Original signal'), 'Original signal', 1
-  );
+  ) values
+    (wid,'search-note','old/name.md','old','markdown',1,false,true,
+      char_length('Original signal'), 'Original signal', 1),
+    (wid,'oversized-note','large.md','','markdown',1,false,true,
+      524289, 'Oversized needle', 1);
 
   result := public.pkms_search_content(wid,'Original',false,null);
   if jsonb_array_length(result->'results') <> 1 or
      result->'results'->0->>'fileId' is distinct from 'search-note' then
     raise exception 'initial indexed content was not searchable: %', result;
+  end if;
+  if (result->>'searchableFiles')::integer <> 1 or
+     (result->>'indexedFiles')::integer <> 1 or
+     (result->>'pendingFiles')::integer <> 0 then
+    raise exception 'oversized Markdown was counted as searchable/indexed: %', result;
+  end if;
+  result := public.pkms_search_content(wid,'Oversized',false,null);
+  if jsonb_array_length(result->'results') <> 0 then
+    raise exception 'oversized Markdown unexpectedly appeared in results: %', result;
   end if;
 
   -- A newer Yjs revision whose content cache is stale must not return old text.
