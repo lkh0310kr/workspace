@@ -111,6 +111,48 @@ extension PKMSModel {
         } catch { errorMessage = error.localizedDescription }
     }
 
+    func searchContent(_ query: String, caseSensitive: Bool = false, afterPath: String? = nil) async {
+        guard let workspace = activeWorkspace, !query.isEmpty else {
+            searchResults = []
+            searchResponse = nil
+            return
+        }
+        isSearching = true
+        if afterPath == nil { searchResults = []; searchResponse = nil }
+        defer { isSearching = false }
+        do {
+            let response = try await post(
+                "/api/workspaces/\(workspace.id)/search",
+                body: PKMSSearchBody(query: query, caseSensitive: caseSensitive, afterPath: afterPath),
+                as: PKMSSearchResponse.self
+            )
+            guard activeWorkspace?.id == workspace.id else { return }
+            if afterPath == nil { searchResults = response.results }
+            else { searchResults.append(contentsOf: response.results) }
+            searchResponse = response
+        } catch is CancellationError {
+            return
+        } catch let error as URLError where error.code == .cancelled {
+            return
+        } catch {
+            if afterPath == nil { searchResults = []; searchResponse = nil }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func openSearchResult(_ result: PKMSSearchResult) async {
+        guard let workspace = activeWorkspace else { return }
+        do {
+            let file: PKMSFile
+            if let cached = files.first(where: { $0.id == result.fileId }) { file = cached }
+            else { file = try await get("/api/workspaces/\(workspace.id)/files/\(result.fileId)?metadata=1", as: PKMSFile.self) }
+            guard file.isMarkdown else { return }
+            await open(file)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func editMarkdown(_ value: String) {
         guard let doc = document else { markdown = value; return }
         let previous = doc.text as NSString

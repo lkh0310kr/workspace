@@ -15,6 +15,7 @@ struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var showingRepositories = false
     @State private var showingSettings = false
+    @State private var showingSearch = false
     @State private var showingFileImporter = false
     @State private var showingVerificationBrowser = false
     @State private var compactPath: [String] = []
@@ -57,6 +58,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingRepositories) { repositoryPicker }
         .sheet(isPresented: $showingSettings) { settingsForm }
+        .sheet(isPresented: $showingSearch) { PKMSSearchView() }
         .sheet(isPresented: $showingVerificationBrowser) {
             if let url = model.verificationURL { SafariVerificationSheet(url: url) }
         }
@@ -134,6 +136,7 @@ struct ContentView: View {
                     Button("Upload file", systemImage: "arrow.up.doc") { showingFileImporter = true }
                     Button("Connect repository", systemImage: "plus") { openRepositories() }
                 } label: { Image(systemName: "plus").accessibilityLabel("Create or connect") }
+                Button { showingSearch = true } label: { Image(systemName: "magnifyingglass").accessibilityLabel("Search workspace") }
                 Button { showingSettings = true } label: { Image(systemName: "gearshape").accessibilityLabel("Settings") }
             }
         }
@@ -257,6 +260,9 @@ struct ContentView: View {
                         Button("Connect repository", systemImage: "plus") { openRepositories() }
                     } label: {
                         Image(systemName: "plus").accessibilityLabel("Create or connect")
+                    }
+                    Button { showingSearch = true } label: {
+                        Image(systemName: "magnifyingglass").accessibilityLabel("Search workspace")
                     }
                 }
                 Button { showingSettings = true } label: {
@@ -446,6 +452,13 @@ struct ContentView: View {
             .background(.bar)
         }
         .navigationTitle(model.activeFile.map { entryName($0.path) } ?? "Note")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingSearch = true } label: {
+                    Image(systemName: "magnifyingglass").accessibilityLabel("Search workspace")
+                }
+            }
+        }
     }
 
     private var backupStatusColor: Color {
@@ -594,6 +607,99 @@ struct ContentView: View {
 
     private func entryName(_ path: String) -> String {
         String(path.split(separator: "/").last ?? Substring(path))
+    }
+}
+
+private struct PKMSSearchView: View {
+    @Environment(PKMSModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var caseSensitive = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    TextField("Search all Markdown notes", text: $query)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .accessibilityLabel("Search workspace contents")
+                    Toggle("Match case", isOn: $caseSensitive)
+                }
+                if let response = model.searchResponse, response.pendingFiles > 0 {
+                    Section {
+                        Label(
+                            "Indexing \(response.indexedFiles) of \(response.searchableFiles) notes. Results may be incomplete.",
+                            systemImage: "clock"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                if model.isSearching {
+                    Section { ProgressView("Searching…") }
+                } else if !query.isEmpty && model.searchResults.isEmpty {
+                    Section {
+                        ContentUnavailableView(
+                            "No results found",
+                            systemImage: "magnifyingglass",
+                            description: Text(model.searchResponse?.pendingFiles ?? 0 > 0
+                                ? "No matches in indexed notes yet."
+                                : "Try a different search term.")
+                        )
+                    }
+                }
+                ForEach(model.searchResults) { result in
+                    Section(result.path) {
+                        ForEach(result.matches) { match in
+                            Button {
+                                Task {
+                                    await model.openSearchResult(result)
+                                    dismiss()
+                                }
+                            } label: {
+                                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                    Text("\(match.line)")
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                    Text(match.preview)
+                                        .font(.system(.callout, design: .monospaced))
+                                        .lineLimit(2)
+                                        .foregroundStyle(.primary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                if model.searchResponse?.hasMore == true,
+                   let nextPath = model.searchResponse?.nextPath {
+                    Section {
+                        Button("Load more results") {
+                            Task { await model.searchContent(query, caseSensitive: caseSensitive, afterPath: nextPath) }
+                        }
+                        .disabled(model.isSearching)
+                    }
+                }
+            }
+            .navigationTitle("Search")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
+            }
+            .task(id: "\(query)|\(caseSensitive)") {
+                guard !query.isEmpty else {
+                    model.searchResults = []
+                    model.searchResponse = nil
+                    return
+                }
+                do { try await Task.sleep(for: .milliseconds(250)) }
+                catch { return }
+                guard !Task.isCancelled else { return }
+                await model.searchContent(query, caseSensitive: caseSensitive)
+            }
+        }
     }
 }
 

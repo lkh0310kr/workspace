@@ -15,6 +15,9 @@ final class PKMSModel {
     internal(set) var workspaces: [PKMSWorkspace] = []
     internal(set) var repositories: [PKMSRepository] = []
     internal(set) var files: [PKMSFile] = []
+    internal(set) var searchResults: [PKMSSearchResult] = []
+    internal(set) var searchResponse: PKMSSearchResponse?
+    internal(set) var isSearching = false
     internal(set) var activeWorkspace: PKMSWorkspace?
     internal(set) var activeFile: PKMSFile?
     internal(set) var activeFolderPath: String?

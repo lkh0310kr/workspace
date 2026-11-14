@@ -65,6 +65,35 @@ struct PKMSSnapshot: Decodable {
 
 struct PKMSDirectory: Decodable { let path: String; let files: [PKMSFile] }
 
+struct PKMSSearchResponse: Decodable {
+    let results: [PKMSSearchResult]
+    let indexedFiles: Int
+    let searchableFiles: Int
+    let pendingFiles: Int
+    let hasMore: Bool
+    let nextPath: String?
+}
+
+struct PKMSSearchResult: Decodable, Identifiable {
+    let fileId: String
+    let path: String
+    let matches: [PKMSSearchMatch]
+    var id: String { fileId }
+}
+
+struct PKMSSearchMatch: Decodable, Identifiable {
+    let line: Int
+    let column: Int
+    let preview: String
+    var id: String { "\(line):\(column)" }
+}
+
+struct PKMSSearchBody: Encodable {
+    let query: String
+    let caseSensitive: Bool
+    let afterPath: String?
+}
+
 struct PKMSSyncStatus: Decodable {
     let serverRevision: Int
     let githubStatus: String
