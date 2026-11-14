@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx",
-          "sha256": "2c710b6d5d33783dfd415c5cac0c32613e9c37c768826d2ef7ffdee2c5524e27"
+          "sha256": "d3abc1ccaf907b599ecd5d66a6196290d5bb5d5a3a6387533aeddbead355c6d9"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/assets/styles.css",
@@ -76,6 +76,14 @@
         {
           "path": "apps/workspace-app/src/renderer/src/editor/quickOpenSearch.worker.ts",
           "sha256": "e4f6b15de490c0430af53e7fe25cf16b9ebf63d1788f95d262bbee46509c884e"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/explorer/explorerShortcuts.test.ts",
+          "sha256": "cb1991ae95495f455a9e4e10ed8e659af8c6705d110303837a1ff75b16815165"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/explorer/explorerShortcuts.ts",
+          "sha256": "fec4bd836d487cfaf2a07fa6e84236e9099493f9bdc1205a404fa642b1452e02"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/explorer/treeReload.ts",
@@ -531,7 +539,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx",
-          "sha256": "2c710b6d5d33783dfd415c5cac0c32613e9c37c768826d2ef7ffdee2c5524e27"
+          "sha256": "d3abc1ccaf907b599ecd5d66a6196290d5bb5d5a3a6387533aeddbead355c6d9"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/browser/browserPageGuestRecovery.ts",

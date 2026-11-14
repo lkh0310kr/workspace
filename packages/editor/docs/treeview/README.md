@@ -64,26 +64,26 @@ host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용�
 
 ## 검증 시나리오
 
-| ID      | 데이터/행동                                                                          | 기대 결과                                                                                                 |
-| ------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| TREE-01 | 파일 z, directory b, 파일 A                                                          | b→A→z 순서                                                                                                |
-| TREE-02 | 100행, scroll=270, height=270                                                        | start=6, 최대 18행, top=162, total=2700                                                                   |
-| TREE-03 | A 선택 후 Shift-C                                                                    | visible 순서 A~C 선택, 활성 파일은 modifier click으로 바뀌지 않음                                         |
-| TREE-04 | 폴더와 그 후손 함께 삭제                                                             | provider에는 조상 작업만, dirty 취소 시 삭제 없음                                                         |
-| TREE-05 | 잘못된 drag JSON                                                                     | 예외 없이 [] 전달                                                                                         |
-| TREE-06 | Right/Left 반복                                                                      | expand→첫 자식→부모→collapse                                                                              |
-| TREE-07 | pane hide                                                                            | 열린 context menu와 이름 prompt 제거                                                                      |
-| TREE-08 | viewport 첫 행 위에 sibling 행을 삽입하거나 제거                                     | 같은 path가 살아 있으면 첫 가시 행과 행 내 위치 보존; 행이 삭제되면 이전 index의 가장 가까운 생존 행 사용 |
-| TREE-09 | 다른 editor tab/Quick Open에서 접힌 폴더의 파일 활성화                               | 조상 폴더를 펼치고 활성 행을 viewport에 reveal                                                            |
-| TREE-10 | 동일 branch refresh 두 건을 시작하고 첫 요청을 늦게 완료                             | 마지막 요청 응답만 branch에 반영                                                                          |
-| TREE-11 | root A의 branch 로드 중 root B로 전환, 두 root에 같은 상대 경로 존재                 | root A의 늦은 응답이 root B의 tree를 바꾸지 않음                                                          |
-| TREE-12 | `Cmd+\` 또는 `Ctrl+\`를 focused file pane에서 입력                                   | 해당 pane의 docked Explorer만 열리고 닫힘; editor focus 상태에서도 동작                                   |
-| TREE-13 | Explorer resize handle을 120px 미만으로 줄임                                         | Explorer가 닫히고 다음 열기에서 마지막 유효 폭으로 나타남                                                 |
-| TREE-14 | pane 본문 폭을 560px 이하로 축소                                                     | Explorer는 보이지 않고 본문이 pane 전체를 사용함; 폭을 넓히면 open state일 때 다시 표시                   |
-| TREE-15 | Desktop local repo의 `.gitignore`가 새 파일/폴더를 무시하고 항목이 TreeView에 표시됨 | 이름만 muted 색으로 보이며 열기·선택·이동 동작과 행 배경은 일반 항목과 같음                               |
-| TREE-16 | `.gitignore` 패턴에서 `!` negation으로 다시 포함된 파일                              | ignored 표시가 없고 일반 색으로 보임                                                                      |
-| TREE-17 | 무시 패턴과 일치하지만 Git이 이미 추적 중인 파일                                     | ignored 표시가 없음                                                                                       |
-| TREE-18 | Git 저장소가 아닌 workspace 또는 Git 판정 실패                                       | 디렉터리 목록은 정상 표시되고 모든 항목은 일반 색으로 보임                                                |
-| TREE-19 | ignored 항목에 hover, keyboard focus, active/selection 적용                          | muted 파일명은 유지되고 hover/selection/focus 배경과 동작은 보존                                          |
+| ID      | 데이터/행동                                                                          | 기대 결과                                                                                                                                      |
+| ------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| TREE-01 | 파일 z, directory b, 파일 A                                                          | b→A→z 순서                                                                                                                                     |
+| TREE-02 | 100행, scroll=270, height=270                                                        | start=6, 최대 18행, top=162, total=2700                                                                                                        |
+| TREE-03 | A 선택 후 Shift-C                                                                    | visible 순서 A~C 선택, 활성 파일은 modifier click으로 바뀌지 않음                                                                              |
+| TREE-04 | 폴더와 그 후손 함께 삭제                                                             | provider에는 조상 작업만, dirty 취소 시 삭제 없음                                                                                              |
+| TREE-05 | 잘못된 drag JSON                                                                     | 예외 없이 [] 전달                                                                                                                              |
+| TREE-06 | Right/Left 반복                                                                      | expand→첫 자식→부모→collapse                                                                                                                   |
+| TREE-07 | pane hide                                                                            | 열린 context menu와 이름 prompt 제거                                                                                                           |
+| TREE-08 | viewport 첫 행 위에 sibling 행을 삽입하거나 제거                                     | 같은 path가 살아 있으면 첫 가시 행과 행 내 위치 보존; 행이 삭제되면 이전 index의 가장 가까운 생존 행 사용                                      |
+| TREE-09 | 다른 editor tab/Quick Open에서 접힌 폴더의 파일 활성화                               | 조상 폴더를 펼치고 활성 행을 viewport에 reveal                                                                                                 |
+| TREE-10 | 동일 branch refresh 두 건을 시작하고 첫 요청을 늦게 완료                             | 마지막 요청 응답만 branch에 반영                                                                                                               |
+| TREE-11 | root A의 branch 로드 중 root B로 전환, 두 root에 같은 상대 경로 존재                 | root A의 늦은 응답이 root B의 tree를 바꾸지 않음                                                                                               |
+| TREE-12 | `Cmd+\` 또는 `Ctrl+\`를 focused file pane에서 입력                                   | 논리 키 값 또는 물리 `Backslash` 키 코드로 판별해 해당 pane의 docked Explorer만 열고 닫음; 키 문자가 달라지는 layout과 editor focus에서도 동작 |
+| TREE-13 | Explorer resize handle을 120px 미만으로 줄임                                         | Explorer가 닫히고 다음 열기에서 마지막 유효 폭으로 나타남                                                                                      |
+| TREE-14 | pane 본문 폭을 560px 이하로 축소                                                     | Explorer는 보이지 않고 본문이 pane 전체를 사용함; 폭을 넓히면 open state일 때 다시 표시                                                        |
+| TREE-15 | Desktop local repo의 `.gitignore`가 새 파일/폴더를 무시하고 항목이 TreeView에 표시됨 | 이름만 muted 색으로 보이며 열기·선택·이동 동작과 행 배경은 일반 항목과 같음                                                                    |
+| TREE-16 | `.gitignore` 패턴에서 `!` negation으로 다시 포함된 파일                              | ignored 표시가 없고 일반 색으로 보임                                                                                                           |
+| TREE-17 | 무시 패턴과 일치하지만 Git이 이미 추적 중인 파일                                     | ignored 표시가 없음                                                                                                                            |
+| TREE-18 | Git 저장소가 아닌 workspace 또는 Git 판정 실패                                       | 디렉터리 목록은 정상 표시되고 모든 항목은 일반 색으로 보임                                                                                     |
+| TREE-19 | ignored 항목에 hover, keyboard focus, active/selection 적용                          | muted 파일명은 유지되고 hover/selection/focus 배경과 동작은 보존                                                                               |
 
 기존 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test다. Git ignore 판정은 files.test에서 별도 검증한다. provider I/O 실패·dirty 확인·실제 DnD도 추가 통합 검증이 필요하다.

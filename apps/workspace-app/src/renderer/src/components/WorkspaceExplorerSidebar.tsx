@@ -6,6 +6,7 @@ import { onFindInFilesShortcut } from '../electron'
 import { deletePathInAllPanes, renamePathInAllPanes } from '../explorer/workspaceExplorerBridge'
 import { paneTabStoreKey } from '../store/paneTabKey'
 import type { PaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
+import { isExplorerToggleShortcut } from '../explorer/explorerShortcuts'
 
 const TREE_MIN_WIDTH = 120
 const TREE_MAX_WIDTH = 480
@@ -69,7 +70,7 @@ export function WorkspaceExplorerSidebar({
       openSearch()
     })
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === '\\') {
+      if (isExplorerToggleShortcut(e)) {
         if (!paneVisible || !isGroupFocused || !explorerCapable) return
         e.preventDefault()
         e.stopImmediatePropagation()
