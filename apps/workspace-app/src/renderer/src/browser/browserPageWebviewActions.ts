@@ -1,48 +1,48 @@
 /** Ported from ref-proj/orca browser-reload-action.ts */
 
-export type BrowserPageWebviewActionResult = "ok" | "guest-missing" | "not-ready";
+export type BrowserPageWebviewActionResult = 'ok' | 'guest-missing' | 'not-ready'
 
 function probeWebviewGuest(webview: Electron.WebviewTag): boolean {
   try {
-    webview.getWebContentsId();
-    return true;
+    webview.getWebContentsId()
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
 export function reloadBrowserPageWebview(
   webview: Electron.WebviewTag,
-  { ignoreCache }: { ignoreCache: boolean },
+  { ignoreCache }: { ignoreCache: boolean }
 ): BrowserPageWebviewActionResult {
   if (!probeWebviewGuest(webview)) {
-    return "guest-missing";
+    return 'guest-missing'
   }
   try {
     if (ignoreCache) {
-      webview.reloadIgnoringCache();
+      webview.reloadIgnoringCache()
     } else {
-      webview.reload();
+      webview.reload()
     }
   } catch {
-    return probeWebviewGuest(webview) ? "not-ready" : "guest-missing";
+    return probeWebviewGuest(webview) ? 'not-ready' : 'guest-missing'
   }
-  return "ok";
+  return 'ok'
 }
 
 export function loadBrowserPageWebviewUrl(
   webview: Electron.WebviewTag,
-  url: string,
+  url: string
 ): BrowserPageWebviewActionResult {
   if (!probeWebviewGuest(webview)) {
-    return "guest-missing";
+    return 'guest-missing'
   }
   try {
     void webview.loadURL(url).catch(() => {
       /* did-fail-load owns navigation errors */
-    });
+    })
   } catch {
-    return probeWebviewGuest(webview) ? "not-ready" : "guest-missing";
+    return probeWebviewGuest(webview) ? 'not-ready' : 'guest-missing'
   }
-  return "ok";
+  return 'ok'
 }

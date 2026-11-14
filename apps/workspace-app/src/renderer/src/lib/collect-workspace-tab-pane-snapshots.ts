@@ -5,7 +5,7 @@ import { useAgentStatusStore } from '../store/agentStatusStore'
 
 export function collectWorkspaceTabPaneSnapshots(
   model: Model,
-  liveTerminalIds: ReadonlySet<number>,
+  liveTerminalIds: ReadonlySet<number>
 ): { terminals: WorkspaceTerminalPaneSnapshot[]; browserPaneCount: number } {
   const terminals: WorkspaceTerminalPaneSnapshot[] = []
   let browserPaneCount = 0
@@ -22,7 +22,7 @@ export function collectWorkspaceTabPaneSnapshots(
         title: tab.title,
         terminalAgent: tab.terminalAgent,
         terminalId: tab.terminalId,
-        live: typeof tab.terminalId === 'number' && liveTerminalIds.has(tab.terminalId),
+        live: typeof tab.terminalId === 'number' && liveTerminalIds.has(tab.terminalId)
       })
     }
   })

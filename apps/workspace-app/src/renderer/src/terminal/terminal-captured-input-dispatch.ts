@@ -1,13 +1,13 @@
-import type { PtyTransport } from "./ptyTransport";
+import type { PtyTransport } from './ptyTransport'
 
 export function sendCapturedTerminalInput(args: {
-  transport: PtyTransport | undefined;
-  data: string;
+  transport: PtyTransport | undefined
+  data: string
 }): boolean {
-  const { transport, data } = args;
+  const { transport, data } = args
   if (!transport) {
-    return false;
+    return false
   }
-  transport.write(data);
-  return true;
+  transport.write(data)
+  return true
 }

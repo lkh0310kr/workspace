@@ -1,46 +1,43 @@
 import {
   getActiveBrowserWebview,
   installBrowserFocusTracking,
-  installBrowserGuestFocusRelay,
-} from "../layout/activeBrowserWebview";
-import { onBrowserZoomShortcut } from "../electron";
-import {
-  addBrowserZoomEventListener,
-  zoomBrowserWebview,
-} from "./browserZoom";
-import { getBrowserFocusLogRing } from "./browserFocusDebugLog";
-import { reloadBrowserPageWebview } from "./browserPageWebviewActions";
-import { isDevInstrumentation } from "../debug/devTools";
+  installBrowserGuestFocusRelay
+} from '../layout/activeBrowserWebview'
+import { onBrowserZoomShortcut } from '../electron'
+import { addBrowserZoomEventListener, zoomBrowserWebview } from './browserZoom'
+import { getBrowserFocusLogRing } from './browserFocusDebugLog'
+import { reloadBrowserPageWebview } from './browserPageWebviewActions'
+import { isDevInstrumentation } from '../debug/devTools'
 
 /** One-shot setup for browser guest focus tracking (Cmd+R target, etc.). */
 export function installBrowserEmbedSupport(): () => void {
-  const unlistenFocus = installBrowserFocusTracking();
-  const unlistenGuest = installBrowserGuestFocusRelay();
+  const unlistenFocus = installBrowserFocusTracking()
+  const unlistenGuest = installBrowserGuestFocusRelay()
   const unlistenZoom = onBrowserZoomShortcut(({ direction, webContentsId }) => {
-    zoomBrowserWebview(direction, webContentsId);
-  });
+    zoomBrowserWebview(direction, webContentsId)
+  })
   const removeLocalZoom = addBrowserZoomEventListener(({ direction }) => {
-    zoomBrowserWebview(direction);
-  });
-  if (isDevInstrumentation && typeof window !== "undefined") {
+    zoomBrowserWebview(direction)
+  })
+  if (isDevInstrumentation && typeof window !== 'undefined') {
     const win = window as Window & {
-      __browserFocusLog?: () => readonly unknown[];
-      __browserFocusLogPath?: string;
-    };
-    win.__browserFocusLog = () => getBrowserFocusLogRing();
+      __browserFocusLog?: () => readonly unknown[]
+      __browserFocusLogPath?: string
+    }
+    win.__browserFocusLog = () => getBrowserFocusLogRing()
     win.__browserFocusLogPath =
-      "~/Library/Application Support/workspace-app/logs/interaction.ndjson (macOS userData/logs)";
+      '~/Library/Application Support/workspace-app/logs/interaction.ndjson (macOS userData/logs)'
   }
   return () => {
-    unlistenFocus();
-    unlistenGuest();
-    unlistenZoom();
-    removeLocalZoom();
-  };
+    unlistenFocus()
+    unlistenGuest()
+    unlistenZoom()
+    removeLocalZoom()
+  }
 }
 
 export function reloadFocusedBrowser(hard: boolean): void {
-  const webview = getActiveBrowserWebview();
-  if (!webview) return;
-  reloadBrowserPageWebview(webview, { ignoreCache: hard });
+  const webview = getActiveBrowserWebview()
+  if (!webview) return
+  reloadBrowserPageWebview(webview, { ignoreCache: hard })
 }

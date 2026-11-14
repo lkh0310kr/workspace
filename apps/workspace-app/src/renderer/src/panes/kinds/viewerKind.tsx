@@ -1,12 +1,12 @@
-import { FileViewerContent } from "../FileViewerContent";
-import type { PaneKindDefinition } from "../paneKindRegistry";
+import { FileViewerContent } from '../FileViewerContent'
+import type { PaneKindDefinition } from '../paneKindRegistry'
 
 export const viewerPaneKind: PaneKindDefinition = {
-  kind: "viewer",
+  kind: 'viewer',
   // Kept as an internal renderer kind for files opened from the explorer.
   // Users create the single Editor entry; this kind is selected by extension.
-  label: "Editor",
-  icon: "viewer",
+  label: 'Editor',
+  icon: 'viewer',
   hasFileExplorer: true,
   // FileViewerContent remains the format-specific renderer for media,
   // EPUB, images, PDF, and 3D/CAD assets. Files reach it by extension
@@ -14,21 +14,21 @@ export const viewerPaneKind: PaneKindDefinition = {
   createItem(id, source) {
     return {
       id,
-      kind: "viewer",
+      kind: 'viewer',
       filePath: source?.filePath ?? null,
       absolutePath: source?.absolutePath,
-      viewerHint: source?.viewerHint,
-    };
+      viewerHint: source?.viewerHint
+    }
   },
   tabLabel(item) {
-    const path = item.filePath ?? item.absolutePath;
+    const path = item.filePath ?? item.absolutePath
     if (!path) {
-      if (item.viewerHint === "video") return "Video";
-      if (item.viewerHint === "audio") return "Audio";
-      if (item.viewerHint === "ebook") return "Ebook";
-      return "New tab";
+      if (item.viewerHint === 'video') return 'Video'
+      if (item.viewerHint === 'audio') return 'Audio'
+      if (item.viewerHint === 'ebook') return 'Ebook'
+      return 'New tab'
     }
-    return path.split("/").pop() || path;
+    return path.split('/').pop() || path
   },
   render(ctx) {
     return (
@@ -40,6 +40,6 @@ export const viewerPaneKind: PaneKindDefinition = {
         onAssignAbsolutePath={(path) => ctx.updateItem({ absolutePath: path })}
         paneActive={ctx.chipShown}
       />
-    );
-  },
-};
+    )
+  }
+}

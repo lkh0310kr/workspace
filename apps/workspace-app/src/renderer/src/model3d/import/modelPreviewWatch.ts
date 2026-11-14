@@ -6,39 +6,39 @@
  * we only decide whether a change should refresh the open preview.
  */
 
-const TEXTURE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".ktx2", ".basis"]);
+const TEXTURE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.ktx2', '.basis'])
 
 function normalizeRel(p: string): string {
-  return p.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
+  return p.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '')
 }
 
 function dirname(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i <= 0 ? "" : p.slice(0, i);
+  const i = p.lastIndexOf('/')
+  return i <= 0 ? '' : p.slice(0, i)
 }
 
 function basename(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i < 0 ? p : p.slice(i + 1);
+  const i = p.lastIndexOf('/')
+  return i < 0 ? p : p.slice(i + 1)
 }
 
 function stemAndExt(p: string): { stem: string; ext: string } {
-  const name = basename(p);
-  const dot = name.lastIndexOf(".");
-  if (dot <= 0) return { stem: name, ext: "" };
-  return { stem: name.slice(0, dot), ext: name.slice(dot).toLowerCase() };
+  const name = basename(p)
+  const dot = name.lastIndexOf('.')
+  if (dot <= 0) return { stem: name, ext: '' }
+  return { stem: name.slice(0, dot), ext: name.slice(dot).toLowerCase() }
 }
 
 /** Append/replace a cache-bust query so Three.js FileLoader cannot reuse a stale fetch. */
 export function withModelCacheBust(url: string, revision: number): string {
   try {
-    const parsed = new URL(url);
-    parsed.searchParams.set("v", String(revision));
-    return parsed.toString();
+    const parsed = new URL(url)
+    parsed.searchParams.set('v', String(revision))
+    return parsed.toString()
   } catch {
-    const cleaned = url.replace(/([?&])v=\d+(&|$)/, (_m, sep, end) => (end === "&" ? sep : ""));
-    const sep = cleaned.includes("?") ? "&" : "?";
-    return `${cleaned}${sep}v=${revision}`;
+    const cleaned = url.replace(/([?&])v=\d+(&|$)/, (_m, sep, end) => (end === '&' ? sep : ''))
+    const sep = cleaned.includes('?') ? '&' : '?'
+    return `${cleaned}${sep}v=${revision}`
   }
 }
 
@@ -47,31 +47,31 @@ export function withModelCacheBust(url: string, revision: number): string {
  * Empty/blank paths mean "unknown churn" → reload (same as TreeView full refresh).
  */
 export function shouldReloadModelPreview(openPath: string, changedPaths: string[]): boolean {
-  const open = normalizeRel(openPath);
-  if (!open) return false;
+  const open = normalizeRel(openPath)
+  if (!open) return false
 
-  if (changedPaths.length === 0 || changedPaths.every((p) => !p)) return true;
+  if (changedPaths.length === 0 || changedPaths.every((p) => !p)) return true
 
-  const openParts = stemAndExt(open);
-  const openDir = dirname(open);
-  const openIsGltfPackage = openParts.ext === ".gltf";
+  const openParts = stemAndExt(open)
+  const openDir = dirname(open)
+  const openIsGltfPackage = openParts.ext === '.gltf'
 
   for (const raw of changedPaths) {
-    if (!raw) return true;
-    const changed = normalizeRel(raw);
-    if (changed === open) return true;
+    if (!raw) return true
+    const changed = normalizeRel(raw)
+    if (changed === open) return true
 
-    const changedParts = stemAndExt(changed);
-    if (dirname(changed) !== openDir) continue;
+    const changedParts = stemAndExt(changed)
+    if (dirname(changed) !== openDir) continue
 
     // Same stem siblings: part.obj ↔ part.mtl, model.gltf ↔ model.bin
-    if (changedParts.stem === openParts.stem) return true;
+    if (changedParts.stem === openParts.stem) return true
 
     // glTF JSON packages often reference differently-named .bin / textures in the same folder.
     if (openIsGltfPackage) {
-      if (changedParts.ext === ".bin" || TEXTURE_EXTS.has(changedParts.ext)) return true;
+      if (changedParts.ext === '.bin' || TEXTURE_EXTS.has(changedParts.ext)) return true
     }
   }
 
-  return false;
+  return false
 }

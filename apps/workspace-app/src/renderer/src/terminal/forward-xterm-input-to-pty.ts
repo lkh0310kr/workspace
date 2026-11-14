@@ -1,26 +1,26 @@
 import {
   extractOnlyTerminalQueryReplies,
-  isTerminalQueryReply,
-} from "../../../shared/terminal-query-reply";
+  isTerminalQueryReply
+} from '../../../shared/terminal-query-reply'
 
 export function forwardXtermInputToPty(
   data: string,
   write: (data: string) => void,
-  writeQueryReply: (data: string) => void,
+  writeQueryReply: (data: string) => void
 ): void {
   if (!data) {
-    return;
+    return
   }
   if (isTerminalQueryReply(data)) {
-    writeQueryReply(data);
-    return;
+    writeQueryReply(data)
+    return
   }
-  const onlyReplies = extractOnlyTerminalQueryReplies(data);
+  const onlyReplies = extractOnlyTerminalQueryReplies(data)
   if (onlyReplies) {
     for (const reply of onlyReplies) {
-      writeQueryReply(reply);
+      writeQueryReply(reply)
     }
-    return;
+    return
   }
-  write(data);
+  write(data)
 }

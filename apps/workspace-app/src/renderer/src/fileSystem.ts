@@ -16,114 +16,119 @@
 // function here answers about an already-open workspace root).
 
 export interface DirEntry {
-  name: string;
-  path: string;
-  is_dir: boolean;
+  name: string
+  path: string
+  is_dir: boolean
 }
 
 function toDirEntry(e: { name: string; path: string; isDir: boolean }): DirEntry {
-  return { name: e.name, path: e.path, is_dir: e.isDir };
+  return { name: e.name, path: e.path, is_dir: e.isDir }
 }
 
 export async function listDir(tabId: number, path: string): Promise<DirEntry[]> {
-  const entries = await window.api.fs.listDir(tabId, path);
-  return entries.map(toDirEntry);
+  const entries = await window.api.fs.listDir(tabId, path)
+  return entries.map(toDirEntry)
 }
 
 /** null when the file no longer exists — see main/files.ts readFileIfExists. */
 export async function readFile(tabId: number, path: string): Promise<string | null> {
-  return window.api.fs.readFile(tabId, path);
+  return window.api.fs.readFile(tabId, path)
 }
 
 export async function readFileBinaryPreview(
   tabId: number,
-  path: string,
+  path: string
 ): Promise<{ content: string; mimeType: string } | null> {
-  return window.api.fs.readFileBinaryPreview(tabId, path);
+  return window.api.fs.readFileBinaryPreview(tabId, path)
 }
 
 export async function writeFile(tabId: number, path: string, content: string): Promise<void> {
-  return window.api.fs.writeFile(tabId, path, content);
+  return window.api.fs.writeFile(tabId, path, content)
 }
 
-export async function writeFileIfUnchanged(tabId: number, path: string, expected: string, content: string): Promise<boolean> {
-  return window.api.fs.writeFileIfUnchanged(tabId, path, expected, content);
+export async function writeFileIfUnchanged(
+  tabId: number,
+  path: string,
+  expected: string,
+  content: string
+): Promise<boolean> {
+  return window.api.fs.writeFileIfUnchanged(tabId, path, expected, content)
 }
 
 export async function createDir(tabId: number, path: string): Promise<void> {
-  return window.api.fs.createDir(tabId, path);
+  return window.api.fs.createDir(tabId, path)
 }
 
 export async function deletePath(tabId: number, path: string): Promise<void> {
-  return window.api.fs.deletePath(tabId, path);
+  return window.api.fs.deletePath(tabId, path)
 }
 
 export async function renamePath(tabId: number, from: string, to: string): Promise<void> {
-  return window.api.fs.renamePath(tabId, from, to);
+  return window.api.fs.renamePath(tabId, from, to)
 }
 
 // No legacy Tauri precedent for search — plain camelCase, not the
 // snake_case porting convention electron.ts otherwise follows for
 // anything that existed on the Tauri side.
 export interface SearchOptions {
-  caseSensitive?: boolean;
-  regex?: boolean;
-  wholeWord?: boolean;
-  includeHidden?: boolean;
+  caseSensitive?: boolean
+  regex?: boolean
+  wholeWord?: boolean
+  includeHidden?: boolean
 }
 
 export interface SearchMatch {
-  lineNumber: number;
-  lineText: string;
-  ranges: { start: number; end: number }[];
+  lineNumber: number
+  lineText: string
+  ranges: { start: number; end: number }[]
 }
 
 export interface SearchFileResult {
-  path: string;
-  matches: SearchMatch[];
+  path: string
+  matches: SearchMatch[]
 }
 
 export function searchInFiles(
   requestId: string,
   tabId: number,
   query: string,
-  opts: SearchOptions,
+  opts: SearchOptions
 ): void {
-  window.api.fs.searchInFiles(requestId, tabId, query, opts);
+  window.api.fs.searchInFiles(requestId, tabId, query, opts)
 }
 
 export function cancelSearch(requestId: string): void {
-  window.api.fs.searchCancel(requestId);
+  window.api.fs.searchCancel(requestId)
 }
 
 export function onSearchResult(
-  handler: (requestId: string, result: SearchFileResult) => void,
+  handler: (requestId: string, result: SearchFileResult) => void
 ): () => void {
-  return window.api.fs.onSearchResult(handler);
+  return window.api.fs.onSearchResult(handler)
 }
 
 export function onSearchDone(handler: (requestId: string, error?: string) => void): () => void {
-  return window.api.fs.onSearchDone(handler);
+  return window.api.fs.onSearchDone(handler)
 }
 
 export async function listAllFiles(tabId: number): Promise<string[]> {
-  return window.api.fs.listAllFiles(tabId);
+  return window.api.fs.listAllFiles(tabId)
 }
 
 export function onFileChanged(handler: (paths: string[]) => void): () => void {
-  return window.api.fs.onChanged(handler);
+  return window.api.fs.onChanged(handler)
 }
 
 export async function revealItemInDir(path: string): Promise<void> {
-  return window.api.shell.revealItemInDir(path);
+  return window.api.shell.revealItemInDir(path)
 }
 
 // Tauri's @tauri-apps/plugin-dialog open({ directory: true }) equivalent —
 // a native directory picker, routed through the main process since
 // Electron's dialog module only exists there.
 export async function openDirectoryDialog(defaultPath?: string): Promise<string | null> {
-  const result = await window.api.dialog.openDirectory(defaultPath);
-  if (result.ok) return result.path;
-  if (!result.canceled && result.error) throw new Error(result.error);
-  return null;
+  const result = await window.api.dialog.openDirectory(defaultPath)
+  if (result.ok) return result.path
+  if (!result.canceled && result.error) throw new Error(result.error)
+  return null
 }

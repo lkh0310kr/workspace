@@ -13,8 +13,12 @@ describe('paneGroupFocus', () => {
   })
 
   it('does not dim a lone pane group', () => {
-    expect(paneGroupHostClassNames({ hasSplitGroups: false, isFocused: false })).toBe('pane-group-host')
-    expect(paneGroupHostClassNames({ hasSplitGroups: false, isFocused: true })).toBe('pane-group-host')
+    expect(paneGroupHostClassNames({ hasSplitGroups: false, isFocused: false })).toBe(
+      'pane-group-host'
+    )
+    expect(paneGroupHostClassNames({ hasSplitGroups: false, isFocused: true })).toBe(
+      'pane-group-host'
+    )
   })
 
   it('dims unfocused splits and highlights the focused one', () => {

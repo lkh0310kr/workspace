@@ -81,7 +81,12 @@ export function startWorkspaceAgentHookServer(): Promise<number> {
             return
           }
           const state = body.state
-          if (state !== 'working' && state !== 'blocked' && state !== 'waiting' && state !== 'done') {
+          if (
+            state !== 'working' &&
+            state !== 'blocked' &&
+            state !== 'waiting' &&
+            state !== 'done'
+          ) {
             res.writeHead(400, { 'Content-Type': 'text/plain' })
             res.end('invalid state')
             return
@@ -97,7 +102,7 @@ export function startWorkspaceAgentHookServer(): Promise<number> {
             receivedAt: now,
             evidenceObservedAt: now,
             stateStartedAt: typeof body.stateStartedAt === 'number' ? body.stateStartedAt : now,
-            workspaceTabId: identity?.workspaceTabId,
+            workspaceTabId: identity?.workspaceTabId
           }
           sendStatus(payload)
           res.writeHead(204)

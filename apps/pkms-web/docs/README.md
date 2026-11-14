@@ -6,12 +6,12 @@ App scope는 React Router UI/SSR·assets·canonical origin·Worker service proxy
 
 근거: [workers/web.ts](../workers/web.ts), [route tree](../app/routes.ts), [home route](../app/routes/home.tsx).
 
-| 조건 | 동작 |
-|---|---|
-| X-PKMS-Web-Internal 값이 1이 아님 | path/query를 보존해 PKMS_CANONICAL_ORIGIN으로 302 redirect |
-| internal + /api/, /.well-known/, /mcp, /oauth/ prefix | PKMS_SERVER service binding으로 forward |
-| internal + 그 외 path, asset 응답이 404 아님 | ASSET_FILES 응답 그대로 반환 |
-| internal + asset 404 | React Router createRequestHandler로 SSR |
+| 조건                                                  | 동작                                                       |
+| ----------------------------------------------------- | ---------------------------------------------------------- |
+| X-PKMS-Web-Internal 값이 1이 아님                     | path/query를 보존해 PKMS_CANONICAL_ORIGIN으로 302 redirect |
+| internal + /api/, /.well-known/, /mcp, /oauth/ prefix | PKMS_SERVER service binding으로 forward                    |
+| internal + 그 외 path, asset 응답이 404 아님          | ASSET_FILES 응답 그대로 반환                               |
+| internal + asset 404                                  | React Router createRequestHandler로 SSR                    |
 
 forward는 PKMS_SERVER_ORIGIN으로 path/query를 옮기고 Origin/Host header를 제거한다. GET/HEAD는 body 없이, 다른 method는 기존 body를 사용하며 redirect=manual이다. 이 internal header는 구현 routing marker이며 자체로 end-to-end authorization을 대체한다고 설명하지 않는다.
 

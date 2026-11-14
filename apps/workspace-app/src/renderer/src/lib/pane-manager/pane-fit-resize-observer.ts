@@ -1,169 +1,169 @@
-import type { ManagedPane, ManagedPaneInternal } from "./pane-manager-types";
-import { cancelPendingSafeFitContinuations, safeFitAndThen } from "./pane-fit";
-import { applyTerminalWebglAfterFit } from "./pane-terminal-refit";
+import type { ManagedPane, ManagedPaneInternal } from './pane-manager-types'
+import { cancelPendingSafeFitContinuations, safeFitAndThen } from './pane-fit'
+import { applyTerminalWebglAfterFit } from './pane-terminal-refit'
 
 type ProposedDimensions = {
-  cols: number;
-  rows: number;
-};
+  cols: number
+  rows: number
+}
 
-type StableFitPane = ManagedPane & Partial<Pick<ManagedPaneInternal, "xtermContainer">>;
+type StableFitPane = ManagedPane & Partial<Pick<ManagedPaneInternal, 'xtermContainer'>>
 
-const MAX_STABILITY_FRAMES = 8;
-const pendingStableFitRafIds = new WeakMap<StableFitPane, number>();
-const stableFitCallbacks = new WeakMap<StableFitPane, Set<() => void>>();
+const MAX_STABILITY_FRAMES = 8
+const pendingStableFitRafIds = new WeakMap<StableFitPane, number>()
+const stableFitCallbacks = new WeakMap<StableFitPane, Set<() => void>>()
 
-type FitListener = (pane: ManagedPaneInternal) => void;
-const fitListeners = new WeakMap<ManagedPaneInternal, FitListener>();
+type FitListener = (pane: ManagedPaneInternal) => void
+const fitListeners = new WeakMap<ManagedPaneInternal, FitListener>()
 
 export function setPaneFitListener(pane: ManagedPaneInternal, listener: FitListener | null): void {
-  if (listener) fitListeners.set(pane, listener);
-  else fitListeners.delete(pane);
+  if (listener) fitListeners.set(pane, listener)
+  else fitListeners.delete(pane)
 }
 
 function getPendingObservedFitRafId(pane: StableFitPane): number | null {
-  return pendingStableFitRafIds.get(pane) ?? null;
+  return pendingStableFitRafIds.get(pane) ?? null
 }
 
 function setPendingObservedFitRafId(pane: StableFitPane, id: number | null): void {
   if (id === null) {
-    pendingStableFitRafIds.delete(pane);
+    pendingStableFitRafIds.delete(pane)
   } else {
-    pendingStableFitRafIds.set(pane, id);
+    pendingStableFitRafIds.set(pane, id)
   }
 }
 
 function getFitElement(pane: StableFitPane): HTMLElement {
-  return pane.xtermContainer ?? pane.container;
+  return pane.xtermContainer ?? pane.container
 }
 
 function getProposedDimensions(pane: StableFitPane): ProposedDimensions | null {
   try {
-    return pane.fitAddon.proposeDimensions() ?? null;
+    return pane.fitAddon.proposeDimensions() ?? null
   } catch {
-    return null;
+    return null
   }
 }
 
 function dimensionsEqual(a: ProposedDimensions | null, b: ProposedDimensions | null): boolean {
-  return a?.cols === b?.cols && a?.rows === b?.rows;
+  return a?.cols === b?.cols && a?.rows === b?.rows
 }
 
 function terminalDimensionsEqual(pane: StableFitPane, dims: ProposedDimensions): boolean {
-  return pane.terminal.cols === dims.cols && pane.terminal.rows === dims.rows;
+  return pane.terminal.cols === dims.cols && pane.terminal.rows === dims.rows
 }
 
 function hasVisibleFitGeometry(pane: StableFitPane): boolean {
-  const rect = getFitElement(pane).getBoundingClientRect?.();
-  return !rect || (rect.width > 0 && rect.height > 0);
+  const rect = getFitElement(pane).getBoundingClientRect?.()
+  return !rect || (rect.width > 0 && rect.height > 0)
 }
 
 function addStableFitCallback(pane: StableFitPane, callback: (() => void) | undefined): void {
   if (!callback) {
-    return;
+    return
   }
-  const callbacks = stableFitCallbacks.get(pane) ?? new Set();
-  callbacks.add(callback);
-  stableFitCallbacks.set(pane, callbacks);
+  const callbacks = stableFitCallbacks.get(pane) ?? new Set()
+  callbacks.add(callback)
+  stableFitCallbacks.set(pane, callbacks)
 }
 
 function flushStableFitCallbacks(pane: StableFitPane): void {
-  const callbacks = stableFitCallbacks.get(pane);
+  const callbacks = stableFitCallbacks.get(pane)
   if (!callbacks) {
-    return;
+    return
   }
-  stableFitCallbacks.delete(pane);
+  stableFitCallbacks.delete(pane)
   for (const callback of callbacks) {
-    callback();
+    callback()
   }
 }
 
 function finishStableFit(pane: StableFitPane): void {
-  setPendingObservedFitRafId(pane, null);
-  safeFitAndThen(pane, "stable-pane-fit", () => {
-    applyTerminalWebglAfterFit(pane);
-    fitListeners.get(pane as ManagedPaneInternal)?.(pane as ManagedPaneInternal);
-    flushStableFitCallbacks(pane);
-  });
+  setPendingObservedFitRafId(pane, null)
+  safeFitAndThen(pane, 'stable-pane-fit', () => {
+    applyTerminalWebglAfterFit(pane)
+    fitListeners.get(pane as ManagedPaneInternal)?.(pane as ManagedPaneInternal)
+    flushStableFitCallbacks(pane)
+  })
 }
 
 /** Coalesce drag/resize noise before fitting — avoids SIGWINCH loops that jitter agent TUIs. */
 export function requestStablePaneFit(pane: StableFitPane, onSettled?: () => void): void {
-  addStableFitCallback(pane, onSettled);
+  addStableFitCallback(pane, onSettled)
   if (getPendingObservedFitRafId(pane) !== null) {
-    return;
+    return
   }
   if (!hasVisibleFitGeometry(pane)) {
-    stableFitCallbacks.delete(pane);
-    return;
+    stableFitCallbacks.delete(pane)
+    return
   }
-  let previous = getProposedDimensions(pane);
-  let frameCount = 0;
+  let previous = getProposedDimensions(pane)
+  let frameCount = 0
   const waitForStableGrid = (): void => {
     setPendingObservedFitRafId(
       pane,
       requestAnimationFrame(() => {
         if (!hasVisibleFitGeometry(pane)) {
-          setPendingObservedFitRafId(pane, null);
-          stableFitCallbacks.delete(pane);
-          return;
+          setPendingObservedFitRafId(pane, null)
+          stableFitCallbacks.delete(pane)
+          return
         }
-        const next = getProposedDimensions(pane);
-        frameCount += 1;
+        const next = getProposedDimensions(pane)
+        frameCount += 1
 
         if (!next) {
-          finishStableFit(pane);
-          return;
+          finishStableFit(pane)
+          return
         }
 
         if (terminalDimensionsEqual(pane, next)) {
-          finishStableFit(pane);
-          return;
+          finishStableFit(pane)
+          return
         }
 
         if (dimensionsEqual(previous, next)) {
-          finishStableFit(pane);
-          return;
+          finishStableFit(pane)
+          return
         }
 
-        previous = next;
+        previous = next
         if (frameCount >= MAX_STABILITY_FRAMES) {
-          finishStableFit(pane);
-          return;
+          finishStableFit(pane)
+          return
         }
 
-        waitForStableGrid();
-      }),
-    );
-  };
-  waitForStableGrid();
+        waitForStableGrid()
+      })
+    )
+  }
+  waitForStableGrid()
 }
 
 export function attachPaneFitResizeObserver(pane: ManagedPaneInternal): void {
-  detachPaneFitResizeObserver(pane);
+  detachPaneFitResizeObserver(pane)
 
-  if (typeof ResizeObserver === "undefined") {
-    return;
+  if (typeof ResizeObserver === 'undefined') {
+    return
   }
 
   const observer = new ResizeObserver(() => {
-    requestStablePaneFit(pane);
-  });
+    requestStablePaneFit(pane)
+  })
 
-  observer.observe(pane.xtermContainer ?? pane.container);
-  pane.fitResizeObserver = observer;
+  observer.observe(pane.xtermContainer ?? pane.container)
+  pane.fitResizeObserver = observer
 }
 
 export function detachPaneFitResizeObserver(pane: ManagedPaneInternal): void {
-  pane.fitResizeObserver?.disconnect();
-  pane.fitResizeObserver = null;
+  pane.fitResizeObserver?.disconnect()
+  pane.fitResizeObserver = null
 
-  const pendingObservedFitRafId = getPendingObservedFitRafId(pane);
+  const pendingObservedFitRafId = getPendingObservedFitRafId(pane)
   if (pendingObservedFitRafId !== null) {
-    cancelAnimationFrame(pendingObservedFitRafId);
-    setPendingObservedFitRafId(pane, null);
+    cancelAnimationFrame(pendingObservedFitRafId)
+    setPendingObservedFitRafId(pane, null)
   }
-  stableFitCallbacks.delete(pane);
-  fitListeners.delete(pane);
-  cancelPendingSafeFitContinuations(pane);
+  stableFitCallbacks.delete(pane)
+  fitListeners.delete(pane)
+  cancelPendingSafeFitContinuations(pane)
 }

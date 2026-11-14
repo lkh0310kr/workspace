@@ -4,7 +4,7 @@ export const AGENT_TURN_OUTCOMES = [
   'cancellation',
   'superseded',
   'interruption',
-  'unconfirmed',
+  'unconfirmed'
 ] as const
 export type AgentTurnOutcome = (typeof AGENT_TURN_OUTCOMES)[number]
 

@@ -9,7 +9,7 @@ import {
   rmSync,
   statSync,
   unlinkSync,
-  writeFileSync,
+  writeFileSync
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
@@ -21,12 +21,15 @@ const MiB = 1024 * 1024
 const MIN_COMPRESS_BYTES = MiB
 const mode = process.argv[2] ?? 'compress'
 const appData = process.env.APPDATA ?? join(homedir(), '.config')
-const supportRoot = process.platform === 'darwin'
-  ? join(homedir(), 'Library', 'Application Support')
-  : process.platform === 'win32'
-    ? appData
-    : join(homedir(), '.config')
-const logDirs = ['workspace-app', 'workspace-app-dev'].map((name) => join(supportRoot, name, 'logs'))
+const supportRoot =
+  process.platform === 'darwin'
+    ? join(homedir(), 'Library', 'Application Support')
+    : process.platform === 'win32'
+      ? appData
+      : join(homedir(), '.config')
+const logDirs = ['workspace-app', 'workspace-app-dev'].map((name) =>
+  join(supportRoot, name, 'logs')
+)
 
 if (!['compress', 'restore'].includes(mode)) {
   console.error('Usage: node scripts/manage-workspace-logs.mjs [compress|restore] [--app-closed]')
@@ -34,7 +37,9 @@ if (!['compress', 'restore'].includes(mode)) {
 }
 
 if (mode === 'compress' && !process.argv.includes('--app-closed')) {
-  console.error('Quit all Workspace instances, then pass --app-closed to confirm the log files are idle.')
+  console.error(
+    'Quit all Workspace instances, then pass --app-closed to confirm the log files are idle.'
+  )
   process.exit(2)
 }
 
@@ -57,13 +62,14 @@ async function compressExistingLogs() {
       const inputBytes = statSync(filePath).size
       const gzipPath = `${filePath}.gz`
       const temporaryPath = `${gzipPath}.tmp`
-      if (existsSync(gzipPath)) throw new Error(`Refusing to overwrite existing archive: ${gzipPath}`)
+      if (existsSync(gzipPath))
+        throw new Error(`Refusing to overwrite existing archive: ${gzipPath}`)
 
       rmSync(temporaryPath, { force: true })
       await pipeline(
         createReadStream(filePath),
         createGzip({ level: zlibConstants.Z_DEFAULT_COMPRESSION }),
-        createWriteStream(temporaryPath, { flags: 'wx' }),
+        createWriteStream(temporaryPath, { flags: 'wx' })
       )
       await verifyGzipRoundTrip(filePath, temporaryPath)
       renameSync(temporaryPath, gzipPath)
@@ -75,11 +81,15 @@ async function compressExistingLogs() {
       compressed++
       originalBytes += inputBytes
       compressedBytes += outputBytes
-      console.log(`${basename(filePath)}: ${formatBytes(inputBytes)} -> ${formatBytes(outputBytes)} (verified)`)
+      console.log(
+        `${basename(filePath)}: ${formatBytes(inputBytes)} -> ${formatBytes(outputBytes)} (verified)`
+      )
     }
   }
 
-  console.log(`Compressed ${compressed} files: ${formatBytes(originalBytes)} -> ${formatBytes(compressedBytes)}; all source records retained losslessly.`)
+  console.log(
+    `Compressed ${compressed} files: ${formatBytes(originalBytes)} -> ${formatBytes(compressedBytes)}; all source records retained losslessly.`
+  )
 }
 
 async function restoreCompressedLogs() {
@@ -93,9 +103,14 @@ async function restoreCompressedLogs() {
       const archivePath = join(directory, name)
       const outputPath = join(outputDirectory, name.slice(0, -'.gz'.length))
       const temporaryPath = `${outputPath}.tmp`
-      if (existsSync(outputPath)) throw new Error(`Refusing to overwrite restored log: ${outputPath}`)
+      if (existsSync(outputPath))
+        throw new Error(`Refusing to overwrite restored log: ${outputPath}`)
       rmSync(temporaryPath, { force: true })
-      await pipeline(createReadStream(archivePath), createGunzip(), createWriteStream(temporaryPath, { flags: 'wx' }))
+      await pipeline(
+        createReadStream(archivePath),
+        createGunzip(),
+        createWriteStream(temporaryPath, { flags: 'wx' })
+      )
       renameSync(temporaryPath, outputPath)
       restored++
       console.log(`Restored ${join('restored-logs', name.slice(0, -'.gz'.length))}`)
@@ -111,13 +126,17 @@ async function verifyGzipRoundTrip(sourcePath, gzipPath) {
     transform(chunk, _encoding, callback) {
       restoredHash.update(chunk)
       callback(null, chunk)
-    },
+    }
   })
   await pipeline(
     createReadStream(gzipPath),
     createGunzip(),
     hashTransform,
-    new Writable({ write(_chunk, _encoding, callback) { callback() } }),
+    new Writable({
+      write(_chunk, _encoding, callback) {
+        callback()
+      }
+    })
   )
   if (sourceHash !== restoredHash.digest('hex')) {
     throw new Error(`Gzip verification failed; original retained at ${sourcePath}`)
@@ -132,9 +151,13 @@ async function hashFile(filePath) {
       transform(chunk, _encoding, callback) {
         hash.update(chunk)
         callback(null, chunk)
-      },
+      }
     }),
-    new Writable({ write(_chunk, _encoding, callback) { callback() } }),
+    new Writable({
+      write(_chunk, _encoding, callback) {
+        callback()
+      }
+    })
   )
   return hash.digest('hex')
 }

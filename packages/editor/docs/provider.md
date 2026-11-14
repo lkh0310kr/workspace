@@ -4,16 +4,16 @@ Provider는 저장소 탐색·작업을, session은 열린 문서의 본문·rev
 
 ## 데이터 모델
 
-| 타입 | 필드와 의미 |
-|---|---|
-| `EditorItemRef` | `providerId: string`, `itemId: string`; provider 내 rename/move에도 유지하는 식별자 |
-| `EditorTreeItem` | ref + `parentId: string \| null`, `name`, `path`, `kind`, `readOnly: boolean` |
-| `EditorItemKind` | `directory \| markdown \| code \| asset` |
-| `EditorDocumentSnapshot` | `content`, opaque `revision: string`, `savePhase`, 선택적 `message`, `syncPhase` |
-| text content | `{ type: 'text', text: string }` |
-| asset content | `{ type: 'asset', previewUrl: string, mediaType: string }` |
-| save phase | `clean \| dirty \| saving \| conflict \| error` |
-| sync phase | `idle \| pending \| synced \| blocked`; 본문 durable save와 독립 |
+| 타입                     | 필드와 의미                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| `EditorItemRef`          | `providerId: string`, `itemId: string`; provider 내 rename/move에도 유지하는 식별자 |
+| `EditorTreeItem`         | ref + `parentId: string \| null`, `name`, `path`, `kind`, `readOnly: boolean`       |
+| `EditorItemKind`         | `directory \| markdown \| code \| asset`                                            |
+| `EditorDocumentSnapshot` | `content`, opaque `revision: string`, `savePhase`, 선택적 `message`, `syncPhase`    |
+| text content             | `{ type: 'text', text: string }`                                                    |
+| asset content            | `{ type: 'asset', previewUrl: string, mediaType: string }`                          |
+| save phase               | `clean \| dirty \| saving \| conflict \| error`                                     |
+| sync phase               | `idle \| pending \| synced \| blocked`; 본문 durable save와 독립                    |
 
 UI label은 clean=`Saved`, dirty=`Unsaved`, saving=`Saving`, conflict=`Conflict`, error=`Save failed`다. clean이어도 원격 mirror가 pending일 수 있다. revision은 공통 UI가 비교·전달할 뿐 생성하거나 숫자로 증가시키지 않는다.
 
@@ -21,17 +21,17 @@ UI label은 clean=`Saved`, dirty=`Unsaved`, saving=`Saving`, conflict=`Conflict`
 
 다음 표에서 `signal?`은 선택적 AbortSignal이다. async 메서드는 Promise를 반환한다.
 
-| 메서드 | 입력 | 반환/부수 효과 |
-|---|---|---|
-| `listChildren` | `parentId: string \| null, signal?` | `EditorTreeItem[]`; null은 root |
-| `subscribeTree` | `(changedParentIds: readonly (string \| null)[]) => void` | 해제 함수; synchronous 등록; 영향받은 부모를 무효화 |
-| `openDocument` | `EditorItemRef, signal?` | `EditorDocumentSession`; provider가 본문 로드 |
-| `search` | `query, EditorSearchOptions, signal?, onResult?` | 최종 `EditorSearchResult[]`; 선택적으로 중간 결과 전달 |
-| `replaceContents?` | `ref, query, replacement, options, expectedMatchCount` | boolean; 검색 시점 일치 개수 검증 실패는 false |
-| `create?` | `parentId, 'file' \| 'directory', name` | 생성된 item |
-| `rename?` | `ref, name` | 변경된 item; 기존 item ID 유지 |
-| `move?` | `readonly EditorItemRef[], parentId` | void |
-| `delete?` | `readonly EditorItemRef[]` | void |
+| 메서드             | 입력                                                      | 반환/부수 효과                                         |
+| ------------------ | --------------------------------------------------------- | ------------------------------------------------------ |
+| `listChildren`     | `parentId: string \| null, signal?`                       | `EditorTreeItem[]`; null은 root                        |
+| `subscribeTree`    | `(changedParentIds: readonly (string \| null)[]) => void` | 해제 함수; synchronous 등록; 영향받은 부모를 무효화    |
+| `openDocument`     | `EditorItemRef, signal?`                                  | `EditorDocumentSession`; provider가 본문 로드          |
+| `search`           | `query, EditorSearchOptions, signal?, onResult?`          | 최종 `EditorSearchResult[]`; 선택적으로 중간 결과 전달 |
+| `replaceContents?` | `ref, query, replacement, options, expectedMatchCount`    | boolean; 검색 시점 일치 개수 검증 실패는 false         |
+| `create?`          | `parentId, 'file' \| 'directory', name`                   | 생성된 item                                            |
+| `rename?`          | `ref, name`                                               | 변경된 item; 기존 item ID 유지                         |
+| `move?`            | `readonly EditorItemRef[], parentId`                      | void                                                   |
+| `delete?`          | `readonly EditorItemRef[]`                                | void                                                   |
 
 이 메서드 외 `readonly id: string`, `readonly capabilities`가 필수다. 원격 부모 무효화와 문서 snapshot 알림은 서로 다른 구독이다.
 
@@ -43,15 +43,15 @@ UI label은 clean=`Saved`, dirty=`Unsaved`, saving=`Saving`, conflict=`Conflict`
 
 ## Session 메서드
 
-| 메서드/속성 | 계약 |
-|---|---|
-| `readonly item`, `readonly readOnly` | 열린 문서의 메타데이터와 수정 가능 여부 |
-| `updateItem?(item)` | rename/move 이후 본문 재로드 없이 메타데이터 갱신 |
-| `snapshot()` | 현재 snapshot을 synchronous 반환 |
-| `subscribe(listener)` | snapshot 변경 알림, 반환값으로 해제; 현재 구현들은 등록 시 현재 snapshot도 알림 |
-| `replaceText(text, baseRevision)` | 전체 text를 전달하되 provider가 stale revision 판정; Promise<void> |
-| `save(options?: { flushSync?: boolean })` | durable 쓰기를 flush하고 snapshot 반환; false면 보조 mirror는 pending 가능 |
-| `close()` | 구독과 session 자원 해제, Promise<void>; 자동 저장을 뜻하지 않음 |
+| 메서드/속성                               | 계약                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------- |
+| `readonly item`, `readonly readOnly`      | 열린 문서의 메타데이터와 수정 가능 여부                                         |
+| `updateItem?(item)`                       | rename/move 이후 본문 재로드 없이 메타데이터 갱신                               |
+| `snapshot()`                              | 현재 snapshot을 synchronous 반환                                                |
+| `subscribe(listener)`                     | snapshot 변경 알림, 반환값으로 해제; 현재 구현들은 등록 시 현재 snapshot도 알림 |
+| `replaceText(text, baseRevision)`         | 전체 text를 전달하되 provider가 stale revision 판정; Promise<void>              |
+| `save(options?: { flushSync?: boolean })` | durable 쓰기를 flush하고 snapshot 반환; false면 보조 mirror는 pending 가능      |
+| `close()`                                 | 구독과 session 자원 해제, Promise<void>; 자동 저장을 뜻하지 않음                |
 
 `useEditorDocumentSnapshot`은 session이 바뀐 첫 render부터 새 session.snapshot을 사용한다. effect가 실행될 때까지 이전 문서 snapshot을 노출하지 않는다. effect에서 즉시 snapshot을 publish하고 subscribe하며 교체 시 unsubscribe한다.
 
@@ -61,13 +61,13 @@ UI label은 clean=`Saved`, dirty=`Unsaved`, saving=`Saving`, conflict=`Conflict`
 
 ## 검증 계약
 
-| ID | 조건 | 기대 결과 |
-|---|---|---|
-| PROV-01 | rename capability만 있고 rename 메서드 없음 | 지원=false |
-| PROV-02 | openDocument가 일반 Error throw | unknown과 원본 cause, `Could not open this document.` |
-| PROV-03 | AbortError 발생 | 취소로 유지, 일반 provider 오류로 바꾸지 않음 |
-| PROV-04 | session A→B 교체 | 첫 render부터 B 본문; A 구독 해제 |
-| PROV-05 | clean/pending snapshot | 저장 성공과 동기화 대기를 별도 표시 가능 |
+| ID      | 조건                                        | 기대 결과                                             |
+| ------- | ------------------------------------------- | ----------------------------------------------------- |
+| PROV-01 | rename capability만 있고 rename 메서드 없음 | 지원=false                                            |
+| PROV-02 | openDocument가 일반 Error throw             | unknown과 원본 cause, `Could not open this document.` |
+| PROV-03 | AbortError 발생                             | 취소로 유지, 일반 provider 오류로 바꾸지 않음         |
+| PROV-04 | session A→B 교체                            | 첫 render부터 B 본문; A 구독 해제                     |
+| PROV-05 | clean/pending snapshot                      | 저장 성공과 동기화 대기를 별도 표시 가능              |
 
 ## 재구현 순서와 제약
 

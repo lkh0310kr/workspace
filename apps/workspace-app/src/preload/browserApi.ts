@@ -1,28 +1,42 @@
-interface BrowserDownloadEventPayload { id:string; hostWebContentsId:number; phase:'started'|'updated'|'done'; filename?:string; url?:string; path?:string; receivedBytes?:number; totalBytes?:number; state?:'progressing'|'interrupted'|'completed'|'cancelled' }
+interface BrowserDownloadEventPayload {
+  id: string
+  hostWebContentsId: number
+  phase: 'started' | 'updated' | 'done'
+  filename?: string
+  url?: string
+  path?: string
+  receivedBytes?: number
+  totalBytes?: number
+  state?: 'progressing' | 'interrupted' | 'completed' | 'cancelled'
+}
 
 import { ipcRenderer } from 'electron'
 
 export const browserApi = {
   browser: {
-    onOpenNewTab: (cb: (payload: { hostWebContentsId: number; url: string }) => void): (() => void) => {
-      const listener = (_e: Electron.IpcRendererEvent, payload: { hostWebContentsId: number; url: string }): void =>
-        cb(payload)
+    onOpenNewTab: (
+      cb: (payload: { hostWebContentsId: number; url: string }) => void
+    ): (() => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        payload: { hostWebContentsId: number; url: string }
+      ): void => cb(payload)
       ipcRenderer.on('browser:open-new-tab', listener)
       return () => ipcRenderer.removeListener('browser:open-new-tab', listener)
     },
-    onGuestFocus: (cb: (payload: { webContentsId: number; focused: boolean }) => void): (() => void) => {
+    onGuestFocus: (
+      cb: (payload: { webContentsId: number; focused: boolean }) => void
+    ): (() => void) => {
       const listener = (
         _e: Electron.IpcRendererEvent,
-        payload: { webContentsId: number; focused: boolean },
+        payload: { webContentsId: number; focused: boolean }
       ): void => cb(payload)
       ipcRenderer.on('browser:guest-focus', listener)
       return () => ipcRenderer.removeListener('browser:guest-focus', listener)
     },
     onGuestPointerDown: (cb: (payload: { webContentsId: number }) => void): (() => void) => {
-      const listener = (
-        _e: Electron.IpcRendererEvent,
-        payload: { webContentsId: number },
-      ): void => cb(payload)
+      const listener = (_e: Electron.IpcRendererEvent, payload: { webContentsId: number }): void =>
+        cb(payload)
       ipcRenderer.on('browser:guest-pointer-down', listener)
       return () => ipcRenderer.removeListener('browser:guest-pointer-down', listener)
     },
@@ -32,12 +46,16 @@ export const browserApi = {
       return () => ipcRenderer.removeListener('browser:html-fullscreen-changed', listener)
     },
     onDownloadEvent: (cb: (payload: BrowserDownloadEventPayload) => void): (() => void) => {
-      const listener = (_e: Electron.IpcRendererEvent, payload: BrowserDownloadEventPayload): void =>
-        cb(payload)
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        payload: BrowserDownloadEventPayload
+      ): void => cb(payload)
       ipcRenderer.on('browser:download-event', listener)
       return () => ipcRenderer.removeListener('browser:download-event', listener)
     },
-    getNavHistory: (webContentsId: number): Promise<{
+    getNavHistory: (
+      webContentsId: number
+    ): Promise<{
       entries: { url: string; title: string }[]
       activeIndex: number
     } | null> => ipcRenderer.invoke('browser:get-nav-history', webContentsId),
@@ -74,16 +92,17 @@ export const browserApi = {
       return () => ipcRenderer.removeListener('shortcut:find-in-editor', listener)
     },
     onBrowserReload: (cb: (payload: { hard: boolean }) => void): (() => void) => {
-      const listener = (_e: Electron.IpcRendererEvent, payload: { hard: boolean }): void => cb(payload)
+      const listener = (_e: Electron.IpcRendererEvent, payload: { hard: boolean }): void =>
+        cb(payload)
       ipcRenderer.on('shortcut:browser-reload', listener)
       return () => ipcRenderer.removeListener('shortcut:browser-reload', listener)
     },
     onBrowserZoom: (
-      cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void,
+      cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void
     ): (() => void) => {
       const listener = (
         _e: Electron.IpcRendererEvent,
-        payload: { direction: 'in' | 'out'; webContentsId: number },
+        payload: { direction: 'in' | 'out'; webContentsId: number }
       ): void => cb(payload)
       ipcRenderer.on('shortcut:browser-zoom', listener)
       return () => ipcRenderer.removeListener('shortcut:browser-zoom', listener)
@@ -114,10 +133,8 @@ export const browserApi = {
       return () => ipcRenderer.removeListener('shortcut:modifier-pressed', listener)
     },
     onSwitchWorkspaceTabIndex: (cb: (payload: { index: number }) => void): (() => void) => {
-      const listener = (
-        _event: Electron.IpcRendererEvent,
-        payload: { index: number },
-      ): void => cb(payload)
+      const listener = (_event: Electron.IpcRendererEvent, payload: { index: number }): void =>
+        cb(payload)
       ipcRenderer.on('shortcut:switch-workspace-tab-index', listener)
       return () => ipcRenderer.removeListener('shortcut:switch-workspace-tab-index', listener)
     },
@@ -127,10 +144,8 @@ export const browserApi = {
       return () => ipcRenderer.removeListener('shortcut:paste-plain-text', listener)
     },
     onTerminalPaste: (cb: (payload: { terminalId: number }) => void): (() => void) => {
-      const listener = (
-        _event: Electron.IpcRendererEvent,
-        payload: { terminalId: number },
-      ): void => cb(payload)
+      const listener = (_event: Electron.IpcRendererEvent, payload: { terminalId: number }): void =>
+        cb(payload)
       ipcRenderer.on('shortcut:terminal-paste', listener)
       return () => ipcRenderer.removeListener('shortcut:terminal-paste', listener)
     }

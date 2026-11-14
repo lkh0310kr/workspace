@@ -15,20 +15,12 @@
 // hand-rolled rather than using node:path.
 
 export type AssetType =
-  | "image"
-  | "video"
-  | "audio"
-  | "pdf"
-  | "ebook"
-  | "markdown"
-  | "model3d"
-  | "cad"
-  | "unknown";
+  'image' | 'video' | 'audio' | 'pdf' | 'ebook' | 'markdown' | 'model3d' | 'cad' | 'unknown'
 
 function extname(pathOrName: string): string {
-  const base = pathOrName.slice(pathOrName.lastIndexOf("/") + 1);
-  const dot = base.lastIndexOf(".");
-  return dot <= 0 ? "" : base.slice(dot).toLowerCase();
+  const base = pathOrName.slice(pathOrName.lastIndexOf('/') + 1)
+  const dot = base.lastIndexOf('.')
+  return dot <= 0 ? '' : base.slice(dot).toLowerCase()
 }
 
 // Deliberately the *exact* extension set TreeView.tsx's VIEWER_EXTENSIONS
@@ -38,46 +30,46 @@ function extname(pathOrName: string): string {
 // too — adding them is a real, separate follow-up, not an incidental
 // side effect of extracting existing behavior).
 const EXTENSION_TYPES: Record<string, AssetType> = {
-  ".png": "image",
-  ".jpg": "image",
-  ".jpeg": "image",
-  ".gif": "image",
-  ".webp": "image",
-  ".svg": "image",
-  ".bmp": "image",
-  ".pdf": "pdf",
-  ".mp4": "video",
-  ".webm": "video",
-  ".mov": "video",
-  ".mkv": "video",
-  ".mp3": "audio",
-  ".wav": "audio",
-  ".m4a": "audio",
-  ".ogg": "audio",
-  ".epub": "ebook",
-  ".flac": "audio",
-  ".md": "markdown",
-  ".markdown": "markdown",
-  ".glb": "model3d",
-  ".gltf": "model3d",
-  ".fbx": "model3d",
-  ".obj": "model3d",
-  ".stl": "model3d",
-  ".ply": "model3d",
-  ".dae": "model3d",
-  ".step": "model3d",
-  ".stp": "model3d",
-  ".urdf": "cad",
-  ".srdf": "cad",
-  ".sdf": "cad",
-  ".dxf": "cad",
-};
+  '.png': 'image',
+  '.jpg': 'image',
+  '.jpeg': 'image',
+  '.gif': 'image',
+  '.webp': 'image',
+  '.svg': 'image',
+  '.bmp': 'image',
+  '.pdf': 'pdf',
+  '.mp4': 'video',
+  '.webm': 'video',
+  '.mov': 'video',
+  '.mkv': 'video',
+  '.mp3': 'audio',
+  '.wav': 'audio',
+  '.m4a': 'audio',
+  '.ogg': 'audio',
+  '.epub': 'ebook',
+  '.flac': 'audio',
+  '.md': 'markdown',
+  '.markdown': 'markdown',
+  '.glb': 'model3d',
+  '.gltf': 'model3d',
+  '.fbx': 'model3d',
+  '.obj': 'model3d',
+  '.stl': 'model3d',
+  '.ply': 'model3d',
+  '.dae': 'model3d',
+  '.step': 'model3d',
+  '.stp': 'model3d',
+  '.urdf': 'cad',
+  '.srdf': 'cad',
+  '.sdf': 'cad',
+  '.dxf': 'cad'
+}
 
 export function classifyAssetType(pathOrName: string): AssetType {
-  return EXTENSION_TYPES[extname(pathOrName)] ?? "unknown";
+  return EXTENSION_TYPES[extname(pathOrName)] ?? 'unknown'
 }
 
 export function assetBaseName(pathOrName: string): string {
-  const idx = pathOrName.lastIndexOf("/");
-  return idx === -1 ? pathOrName : pathOrName.slice(idx + 1);
+  const idx = pathOrName.lastIndexOf('/')
+  return idx === -1 ? pathOrName : pathOrName.slice(idx + 1)
 }

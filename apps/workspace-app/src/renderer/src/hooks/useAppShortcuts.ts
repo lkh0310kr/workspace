@@ -106,7 +106,7 @@ export function useAppShortcuts({
         const grow = e.key === '=' || e.key === '+'
         zoomActivePane(model, focusedTabSetId, grow ? ZOOM_STEP : -ZOOM_STEP)
         return true
-      },
+      }
     })
   }, [activeTabId, getModel, focusedTabSetId])
 }

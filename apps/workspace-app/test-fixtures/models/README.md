@@ -2,15 +2,15 @@
 
 Sample assets for the in-app model viewer and import pipeline tests.
 
-| File | Format | Source / license |
-|------|--------|------------------|
-| `box.glb` | GLB | Khronos glTF Sample Assets "Box" (CC0), retained as a generic 3D viewer fixture |
-| `duck.glb` | GLB | Khronos glTF Sample Assets "Duck" (CC0) — fetched by script |
-| `gltf-box/Box.gltf` + `Box0.bin` | GLTF package | Khronos "Box" glTF with external `.bin` (CC0) |
-| `gltf-draco/Box.gltf` + `Box0.bin` | Draco glTF | Khronos "Box" Draco variant (CC0) |
-| `cube.obj` + `cube.mtl` | OBJ package | Generated minimal cube with MTL (repo) |
-| `cube.stl` | STL | Generated minimal cube (repo) |
-| `box.fbx` | FBX | three.js `vCube.fbx` example (CC0) |
+| File                               | Format       | Source / license                                                                |
+| ---------------------------------- | ------------ | ------------------------------------------------------------------------------- |
+| `box.glb`                          | GLB          | Khronos glTF Sample Assets "Box" (CC0), retained as a generic 3D viewer fixture |
+| `duck.glb`                         | GLB          | Khronos glTF Sample Assets "Duck" (CC0) — fetched by script                     |
+| `gltf-box/Box.gltf` + `Box0.bin`   | GLTF package | Khronos "Box" glTF with external `.bin` (CC0)                                   |
+| `gltf-draco/Box.gltf` + `Box0.bin` | Draco glTF   | Khronos "Box" Draco variant (CC0)                                               |
+| `cube.obj` + `cube.mtl`            | OBJ package  | Generated minimal cube with MTL (repo)                                          |
+| `cube.stl`                         | STL          | Generated minimal cube (repo)                                                   |
+| `box.fbx`                          | FBX          | three.js `vCube.fbx` example (CC0)                                              |
 
 ## Refresh
 

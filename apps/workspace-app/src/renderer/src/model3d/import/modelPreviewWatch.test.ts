@@ -1,65 +1,65 @@
-import { describe, expect, it } from "vitest";
-import { shouldReloadModelPreview, withModelCacheBust } from "./modelPreviewWatch";
+import { describe, expect, it } from 'vitest'
+import { shouldReloadModelPreview, withModelCacheBust } from './modelPreviewWatch'
 
-describe("shouldReloadModelPreview", () => {
-  it("reloads on exact path match", () => {
-    expect(shouldReloadModelPreview("models/box.stl", ["models/box.stl"])).toBe(true);
-  });
+describe('shouldReloadModelPreview', () => {
+  it('reloads on exact path match', () => {
+    expect(shouldReloadModelPreview('models/box.stl', ['models/box.stl'])).toBe(true)
+  })
 
-  it("ignores unrelated files", () => {
-    expect(shouldReloadModelPreview("models/box.stl", ["models/other.stl"])).toBe(false);
-    expect(shouldReloadModelPreview("models/box.stl", ["README.md"])).toBe(false);
-  });
+  it('ignores unrelated files', () => {
+    expect(shouldReloadModelPreview('models/box.stl', ['models/other.stl'])).toBe(false)
+    expect(shouldReloadModelPreview('models/box.stl', ['README.md'])).toBe(false)
+  })
 
-  it("reloads same-stem siblings (obj/mtl)", () => {
-    expect(shouldReloadModelPreview("parts/bracket.obj", ["parts/bracket.mtl"])).toBe(true);
-  });
+  it('reloads same-stem siblings (obj/mtl)', () => {
+    expect(shouldReloadModelPreview('parts/bracket.obj', ['parts/bracket.mtl'])).toBe(true)
+  })
 
-  it("reloads gltf package sidecars in the same folder", () => {
-    expect(shouldReloadModelPreview("ship/hull.gltf", ["ship/geometry.bin"])).toBe(true);
-    expect(shouldReloadModelPreview("ship/hull.gltf", ["ship/albedo.png"])).toBe(true);
-  });
+  it('reloads gltf package sidecars in the same folder', () => {
+    expect(shouldReloadModelPreview('ship/hull.gltf', ['ship/geometry.bin'])).toBe(true)
+    expect(shouldReloadModelPreview('ship/hull.gltf', ['ship/albedo.png'])).toBe(true)
+  })
 
-  it("does not treat sibling glb folders as packages", () => {
-    expect(shouldReloadModelPreview("models/a.glb", ["models/b.glb"])).toBe(false);
-  });
+  it('does not treat sibling glb folders as packages', () => {
+    expect(shouldReloadModelPreview('models/a.glb', ['models/b.glb'])).toBe(false)
+  })
 
-  it("reloads STEP assembly when the open preview file changes", () => {
+  it('reloads STEP assembly when the open preview file changes', () => {
     expect(
-      shouldReloadModelPreview("models/bench-pottery-wheel/STEP/assembly.step", [
-        "models/bench-pottery-wheel/STEP/assembly.step",
-      ]),
-    ).toBe(true);
-  });
+      shouldReloadModelPreview('models/bench-pottery-wheel/STEP/assembly.step', [
+        'models/bench-pottery-wheel/STEP/assembly.step'
+      ])
+    ).toBe(true)
+  })
 
-  it("ignores unrelated STEP files in another folder", () => {
+  it('ignores unrelated STEP files in another folder', () => {
     expect(
-      shouldReloadModelPreview("models/bench-pottery-wheel/STEP/assembly.step", [
-        "models/m3-bracket/bracket.step",
-      ]),
-    ).toBe(false);
-  });
+      shouldReloadModelPreview('models/bench-pottery-wheel/STEP/assembly.step', [
+        'models/m3-bracket/bracket.step'
+      ])
+    ).toBe(false)
+  })
 
-  it("reloads on blank/unknown churn", () => {
-    expect(shouldReloadModelPreview("models/box.stl", [])).toBe(true);
-    expect(shouldReloadModelPreview("models/box.stl", [""])).toBe(true);
-  });
+  it('reloads on blank/unknown churn', () => {
+    expect(shouldReloadModelPreview('models/box.stl', [])).toBe(true)
+    expect(shouldReloadModelPreview('models/box.stl', [''])).toBe(true)
+  })
 
-  it("normalizes separators", () => {
-    expect(shouldReloadModelPreview("models/box.stl", ["models\\box.stl"])).toBe(true);
-  });
-});
+  it('normalizes separators', () => {
+    expect(shouldReloadModelPreview('models/box.stl', ['models\\box.stl'])).toBe(true)
+  })
+})
 
-describe("withModelCacheBust", () => {
-  it("sets v query on custom-scheme urls", () => {
-    const url = withModelCacheBust("workspace-model://local/tmp/box.glb", 7);
-    expect(url).toContain("v=7");
-    expect(url.startsWith("workspace-model://")).toBe(true);
-  });
+describe('withModelCacheBust', () => {
+  it('sets v query on custom-scheme urls', () => {
+    const url = withModelCacheBust('workspace-model://local/tmp/box.glb', 7)
+    expect(url).toContain('v=7')
+    expect(url.startsWith('workspace-model://')).toBe(true)
+  })
 
-  it("replaces an existing v param", () => {
-    const once = withModelCacheBust("workspace-model://local/a.glb?v=1", 2);
-    expect(once).toContain("v=2");
-    expect(once).not.toContain("v=1");
-  });
-});
+  it('replaces an existing v param', () => {
+    const once = withModelCacheBust('workspace-model://local/a.glb?v=1', 2)
+    expect(once).toContain('v=2')
+    expect(once).not.toContain('v=1')
+  })
+})

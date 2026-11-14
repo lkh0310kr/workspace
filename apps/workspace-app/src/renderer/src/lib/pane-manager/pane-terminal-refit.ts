@@ -1,24 +1,24 @@
-import type { ManagedPane, ManagedPaneInternal } from "./pane-manager-types";
-import { safeFit } from "./pane-fit";
-import { attachWebgl, shouldUseTerminalWebgl } from "./pane-webgl-renderer";
-import { rebuildAttachedWebgl } from "./pane-webgl-reattach";
+import type { ManagedPane, ManagedPaneInternal } from './pane-manager-types'
+import { safeFit } from './pane-fit'
+import { attachWebgl, shouldUseTerminalWebgl } from './pane-webgl-renderer'
+import { rebuildAttachedWebgl } from './pane-webgl-reattach'
 
 /** WebGL rebuild + repaint after cols/rows change — without a second scroll-restoring fit. */
 export function applyTerminalWebglAfterFit(pane: ManagedPane): void {
-  const internal = pane as ManagedPaneInternal;
-  const cols = pane.terminal.cols;
-  const rows = pane.terminal.rows;
-  const dimsChanged = cols !== internal.lastFitCols || rows !== internal.lastFitRows;
-  internal.lastFitCols = cols;
-  internal.lastFitRows = rows;
+  const internal = pane as ManagedPaneInternal
+  const cols = pane.terminal.cols
+  const rows = pane.terminal.rows
+  const dimsChanged = cols !== internal.lastFitCols || rows !== internal.lastFitRows
+  internal.lastFitCols = cols
+  internal.lastFitRows = rows
 
   const needsWebglRebuild =
     internal.webglNeedsRebuildOnResume ||
-    (internal.webglAddon && dimsChanged && !internal.webglDisabledAfterContextLoss);
+    (internal.webglAddon && dimsChanged && !internal.webglDisabledAfterContextLoss)
 
   if (needsWebglRebuild && internal.webglAddon && !internal.webglDisabledAfterContextLoss) {
-    rebuildAttachedWebgl(internal);
-    internal.webglNeedsRebuildOnResume = false;
+    rebuildAttachedWebgl(internal)
+    internal.webglNeedsRebuildOnResume = false
   } else if (
     internal.gpuRenderingEnabled &&
     !internal.webglAttachmentDeferred &&
@@ -27,13 +27,13 @@ export function applyTerminalWebglAfterFit(pane: ManagedPane): void {
     cols > 0 &&
     rows > 0
   ) {
-    attachWebgl(internal);
-    internal.webglNeedsRebuildOnResume = false;
+    attachWebgl(internal)
+    internal.webglNeedsRebuildOnResume = false
   }
 
   if (rows > 0) {
     try {
-      pane.terminal.refresh(0, rows - 1);
+      pane.terminal.refresh(0, rows - 1)
     } catch {
       /* pane may be mid-teardown */
     }
@@ -42,7 +42,7 @@ export function applyTerminalWebglAfterFit(pane: ManagedPane): void {
 
 /** Fit the pane, rebuild WebGL when attached, and repaint — required after resize. */
 export function refitPaneTerminal(pane: ManagedPane): boolean {
-  const internal = pane as ManagedPaneInternal;
+  const internal = pane as ManagedPaneInternal
   if (!safeFit(pane)) {
     if (
       !internal.renderingSuspended &&
@@ -50,13 +50,13 @@ export function refitPaneTerminal(pane: ManagedPane): boolean {
       (internal.xtermContainer?.isConnected ?? pane.container.isConnected)
     ) {
       internal.pendingRefitRetryRafId = requestAnimationFrame(() => {
-        internal.pendingRefitRetryRafId = null;
-        if (!internal.renderingSuspended) refitPaneTerminal(pane);
-      });
+        internal.pendingRefitRetryRafId = null
+        if (!internal.renderingSuspended) refitPaneTerminal(pane)
+      })
     }
-    return false;
+    return false
   }
 
-  applyTerminalWebglAfterFit(pane);
-  return true;
+  applyTerminalWebglAfterFit(pane)
+  return true
 }

@@ -1,54 +1,49 @@
-import type { Terminal } from "@xterm/xterm";
+import type { Terminal } from '@xterm/xterm'
 import {
   clearSharedOptionKeyTracker,
-  getSharedOptionKeyTracker,
-} from "../lib/keyboard-layout/shared-option-key-tracker";
-import { releaseTerminalImeTextareaAnchor } from "../lib/pane-manager/terminal-ime-candidate-anchor";
-import { sendCapturedTerminalInput } from "./terminal-captured-input-dispatch";
-import { pasteClipboardIntoTerminal } from "./terminal-clipboard-paste";
-import { readTerminalClipboardSelection } from "./terminal-clipboard-selection-text";
-import { copyTerminalSelection } from "./terminal-selection-copy";
-import { shouldBypassXtermClipboardKeyboardEvent } from "./xterm-clipboard-bypass-policy";
-import {
-  notifyTerminalKeyboardPasteHandled,
-} from "./installTerminalPasteHandler";
+  getSharedOptionKeyTracker
+} from '../lib/keyboard-layout/shared-option-key-tracker'
+import { releaseTerminalImeTextareaAnchor } from '../lib/pane-manager/terminal-ime-candidate-anchor'
+import { sendCapturedTerminalInput } from './terminal-captured-input-dispatch'
+import { pasteClipboardIntoTerminal } from './terminal-clipboard-paste'
+import { readTerminalClipboardSelection } from './terminal-clipboard-selection-text'
+import { copyTerminalSelection } from './terminal-selection-copy'
+import { shouldBypassXtermClipboardKeyboardEvent } from './xterm-clipboard-bypass-policy'
+import { notifyTerminalKeyboardPasteHandled } from './installTerminalPasteHandler'
 import {
   resolveTerminalShortcutAction,
-  type TerminalShortcutAction,
-} from "./terminal-shortcut-policy";
-import {
-  reprTerminalBytes,
-  serializeKeyboardEvent,
-  termLog,
-} from "./terminalDebugLog";
-import type { PtyTransport } from "./ptyTransport";
+  type TerminalShortcutAction
+} from './terminal-shortcut-policy'
+import { reprTerminalBytes, serializeKeyboardEvent, termLog } from './terminalDebugLog'
+import type { PtyTransport } from './ptyTransport'
 
-let optionModifierSyncInstalled = false;
+let optionModifierSyncInstalled = false
 
 function ensureOptionModifierSync(): void {
   if (optionModifierSyncInstalled) {
-    return;
+    return
   }
-  optionModifierSyncInstalled = true;
+  optionModifierSyncInstalled = true
   window.api.terminal.onClearOptionModifiers(() => {
-    clearSharedOptionKeyTracker();
-  });
+    clearSharedOptionKeyTracker()
+  })
 }
 
 function getKittyKeyboardFlags(terminal: Terminal): number {
-  const core = (terminal as unknown as { _core?: { coreService?: { kittyKeyboard?: { flags?: number } } } })
-    ._core;
-  return core?.coreService?.kittyKeyboard?.flags ?? 0;
+  const core = (
+    terminal as unknown as { _core?: { coreService?: { kittyKeyboard?: { flags?: number } } } }
+  )._core
+  return core?.coreService?.kittyKeyboard?.flags ?? 0
 }
 
 function actionLabel(action: TerminalShortcutAction): string {
-  if (action.type === "sendInput") {
-    return reprTerminalBytes(action.data);
+  if (action.type === 'sendInput') {
+    return reprTerminalBytes(action.data)
   }
-  if (action.type === "paste") {
-    return "paste";
+  if (action.type === 'paste') {
+    return 'paste'
   }
-  return action.type;
+  return action.type
 }
 
 /**
@@ -56,32 +51,32 @@ function actionLabel(action: TerminalShortcutAction): string {
  * encoders run. attachCustomKeyEventHandler alone is not enough for Option chords.
  */
 export function installTerminalKeyHandler(args: {
-  terminal: Terminal;
-  transport: PtyTransport;
-  terminalId: number;
-  writeClipboardText: (text: string) => void | Promise<void>;
-  getTerminalAgent?: () => import("../../../shared/agent/tui-agent").TuiAgent | null | undefined;
-  isFocused?: () => boolean;
+  terminal: Terminal
+  transport: PtyTransport
+  terminalId: number
+  writeClipboardText: (text: string) => void | Promise<void>
+  getTerminalAgent?: () => import('../../../shared/agent/tui-agent').TuiAgent | null | undefined
+  isFocused?: () => boolean
 }): () => void {
-  const { terminal, transport, terminalId, writeClipboardText } = args;
-  ensureOptionModifierSync();
-  const optionKeyLocations = getSharedOptionKeyTracker();
-  const isMac = navigator.userAgent.includes("Mac");
+  const { terminal, transport, terminalId, writeClipboardText } = args
+  ensureOptionModifierSync()
+  const optionKeyLocations = getSharedOptionKeyTracker()
+  const isMac = navigator.userAgent.includes('Mac')
 
   const isForTerminal = (): boolean => {
     if (args.isFocused) {
-      return args.isFocused();
+      return args.isFocused()
     }
-    const root = terminal.element;
+    const root = terminal.element
     if (!root) {
-      return false;
+      return false
     }
-    const active = document.activeElement;
+    const active = document.activeElement
     if (active instanceof Node && root.contains(active)) {
-      return true;
+      return true
     }
-    return active === terminal.textarea;
-  };
+    return active === terminal.textarea
+  }
 
   const resolveAction = (event: KeyboardEvent) =>
     resolveTerminalShortcutAction(
@@ -94,212 +89,212 @@ export function installTerminalKeyHandler(args: {
         shiftKey: event.shiftKey,
         repeat: event.repeat,
         isComposing: event.isComposing,
-        altModifierActive: event.getModifierState("Alt"),
+        altModifierActive: event.getModifierState('Alt')
       },
       isMac,
       optionKeyLocations.get(),
-      () => getKittyKeyboardFlags(terminal),
-    );
+      () => getKittyKeyboardFlags(terminal)
+    )
 
   const onModifierDown = (event: KeyboardEvent): void => {
-    optionKeyLocations.keyDown(event);
-    if (event.key === "Alt") {
+    optionKeyLocations.keyDown(event)
+    if (event.key === 'Alt') {
       termLog(
-        "keyboard:modifier",
-        "option-down",
+        'keyboard:modifier',
+        'option-down',
         { location: event.location, held: optionKeyLocations.get() },
-        terminalId,
-      );
+        terminalId
+      )
     }
-  };
+  }
 
   const onModifierUp = (event: KeyboardEvent): void => {
-    optionKeyLocations.keyUp(event);
-    if (event.key === "Alt") {
+    optionKeyLocations.keyUp(event)
+    if (event.key === 'Alt') {
       termLog(
-        "keyboard:modifier",
-        "option-up",
+        'keyboard:modifier',
+        'option-up',
         { location: event.location, held: optionKeyLocations.get() },
-        terminalId,
-      );
+        terminalId
+      )
     }
-  };
+  }
 
   const onWindowBlur = (): void => {
-    optionKeyLocations.clear();
-  };
+    optionKeyLocations.clear()
+  }
 
   const dispatchAction = (event: KeyboardEvent, action: TerminalShortcutAction): void => {
     switch (action.type) {
-      case "sendInput": {
-        releaseTerminalImeTextareaAnchor(terminal);
-        const sent = sendCapturedTerminalInput({ transport, data: action.data });
+      case 'sendInput': {
+        releaseTerminalImeTextareaAnchor(terminal)
+        const sent = sendCapturedTerminalInput({ transport, data: action.data })
         termLog(
-          "keyboard:capture",
-          "sendInput",
+          'keyboard:capture',
+          'sendInput',
           {
             event: serializeKeyboardEvent(event),
             bytes: reprTerminalBytes(action.data),
             sent,
-            kittyFlags: getKittyKeyboardFlags(terminal),
+            kittyFlags: getKittyKeyboardFlags(terminal)
           },
-          terminalId,
-        );
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
+          terminalId
+        )
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
       }
-      case "scrollViewport":
-        if (action.position === "top") {
-          terminal.scrollToTop();
+      case 'scrollViewport':
+        if (action.position === 'top') {
+          terminal.scrollToTop()
         } else {
-          terminal.scrollToBottom();
+          terminal.scrollToBottom()
         }
         termLog(
-          "keyboard:capture",
-          "scrollViewport",
+          'keyboard:capture',
+          'scrollViewport',
           { position: action.position, event: serializeKeyboardEvent(event) },
-          terminalId,
-        );
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
-      case "selectAll":
+          terminalId
+        )
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
+      case 'selectAll':
         if (!event.repeat) {
-          terminal.selectAll();
+          terminal.selectAll()
         }
         termLog(
-          "keyboard:capture",
-          "selectAll",
+          'keyboard:capture',
+          'selectAll',
           { event: serializeKeyboardEvent(event) },
-          terminalId,
-        );
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
-      case "copySelection":
+          terminalId
+        )
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
+      case 'copySelection':
         if (!readTerminalClipboardSelection(terminal)) {
-          return;
+          return
         }
-        event.preventDefault();
-        event.stopImmediatePropagation();
+        event.preventDefault()
+        event.stopImmediatePropagation()
         if (!event.repeat) {
-          void copyTerminalSelection({ terminal, writeClipboardText }).catch(() => undefined);
+          void copyTerminalSelection({ terminal, writeClipboardText }).catch(() => undefined)
         }
         termLog(
-          "keyboard:capture",
-          "copySelection",
+          'keyboard:capture',
+          'copySelection',
           { event: serializeKeyboardEvent(event) },
-          terminalId,
-        );
-        return;
-      case "paste":
-        notifyTerminalKeyboardPasteHandled();
+          terminalId
+        )
+        return
+      case 'paste':
+        notifyTerminalKeyboardPasteHandled()
         void pasteClipboardIntoTerminal({
           terminal,
-          terminalAgent: args.getTerminalAgent?.() ?? null,
+          terminalAgent: args.getTerminalAgent?.() ?? null
         }).then((pasted) => {
           termLog(
-            "keyboard:capture",
-            "paste",
+            'keyboard:capture',
+            'paste',
             { event: serializeKeyboardEvent(event), pasted },
-            terminalId,
-          );
-        });
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
+            terminalId
+          )
+        })
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
     }
-  };
+  }
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (!isForTerminal()) {
-      return;
+      return
     }
 
-    const altActive = event.altKey || event.getModifierState("Alt");
+    const altActive = event.altKey || event.getModifierState('Alt')
     const isNavigationKey =
-      event.code === "ArrowLeft" ||
-      event.code === "ArrowRight" ||
-      event.code === "Backspace" ||
-      event.code === "Delete";
+      event.code === 'ArrowLeft' ||
+      event.code === 'ArrowRight' ||
+      event.code === 'Backspace' ||
+      event.code === 'Delete'
     if (
       !altActive &&
       optionKeyLocations.get() > 0 &&
       !isNavigationKey &&
-      event.code !== "AltLeft" &&
-      event.code !== "AltRight"
+      event.code !== 'AltLeft' &&
+      event.code !== 'AltRight'
     ) {
-      optionKeyLocations.clear();
+      optionKeyLocations.clear()
     }
 
-    const action = resolveAction(event);
+    const action = resolveAction(event)
     termLog(
-      "keyboard:capture",
-      "keydown",
+      'keyboard:capture',
+      'keydown',
       {
         event: serializeKeyboardEvent(event),
         optionHeld: optionKeyLocations.get(),
-        altModifierActive: event.getModifierState("Alt"),
+        altModifierActive: event.getModifierState('Alt'),
         action: action ? actionLabel(action) : null,
-        focused: isForTerminal(),
+        focused: isForTerminal()
       },
-      terminalId,
-    );
+      terminalId
+    )
 
     if (!action) {
-      return;
+      return
     }
 
-    dispatchAction(event, action);
-  };
+    dispatchAction(event, action)
+  }
 
-  window.addEventListener("keydown", onModifierDown, true);
-  window.addEventListener("keyup", onModifierUp, true);
-  window.addEventListener("keydown", onKeyDown, true);
-  window.addEventListener("blur", onWindowBlur);
+  window.addEventListener('keydown', onModifierDown, true)
+  window.addEventListener('keyup', onModifierUp, true)
+  window.addEventListener('keydown', onKeyDown, true)
+  window.addEventListener('blur', onWindowBlur)
 
   terminal.attachCustomKeyEventHandler((event) => {
     if (!isForTerminal()) {
-      return true;
+      return true
     }
     const clipboardBypass = shouldBypassXtermClipboardKeyboardEvent(event, {
       isMac,
       hasSelection: terminal.hasSelection(),
-      kittyKeyboardFlags: getKittyKeyboardFlags(terminal),
-    });
+      kittyKeyboardFlags: getKittyKeyboardFlags(terminal)
+    })
     if (clipboardBypass) {
       termLog(
-        "keyboard:xterm-bypass",
-        "clipboard-pass",
+        'keyboard:xterm-bypass',
+        'clipboard-pass',
         { event: serializeKeyboardEvent(event) },
-        terminalId,
-      );
-      return false;
+        terminalId
+      )
+      return false
     }
-    if (event.type !== "keydown") {
-      return true;
+    if (event.type !== 'keydown') {
+      return true
     }
-    const action = resolveAction(event);
-    const bypass = action !== null;
+    const action = resolveAction(event)
+    const bypass = action !== null
     termLog(
-      "keyboard:xterm-bypass",
-      bypass ? "block" : "pass",
+      'keyboard:xterm-bypass',
+      bypass ? 'block' : 'pass',
       {
         event: serializeKeyboardEvent(event),
-        action: action ? actionLabel(action) : null,
+        action: action ? actionLabel(action) : null
       },
-      terminalId,
-    );
-    return !bypass;
-  });
+      terminalId
+    )
+    return !bypass
+  })
 
   return () => {
-    window.removeEventListener("keydown", onModifierDown, true);
-    window.removeEventListener("keyup", onModifierUp, true);
-    window.removeEventListener("keydown", onKeyDown, true);
-    window.removeEventListener("blur", onWindowBlur);
-    optionKeyLocations.clear();
-    terminal.attachCustomKeyEventHandler(() => true);
-  };
+    window.removeEventListener('keydown', onModifierDown, true)
+    window.removeEventListener('keyup', onModifierUp, true)
+    window.removeEventListener('keydown', onKeyDown, true)
+    window.removeEventListener('blur', onWindowBlur)
+    optionKeyLocations.clear()
+    terminal.attachCustomKeyEventHandler(() => true)
+  }
 }

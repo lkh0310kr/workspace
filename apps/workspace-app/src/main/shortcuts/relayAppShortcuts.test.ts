@@ -3,26 +3,23 @@ import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './relayAppSho
 
 function keyDown(
   code: string,
-  modifiers: { meta?: boolean; control?: boolean; shift?: boolean } = {},
+  modifiers: { meta?: boolean; control?: boolean; shift?: boolean } = {}
 ) {
   return {
     type: 'keyDown' as const,
     code,
     meta: modifiers.meta ?? false,
     control: modifiers.control ?? false,
-    shift: modifiers.shift ?? false,
+    shift: modifiers.shift ?? false
   }
 }
 
-function keyUp(
-  code: string,
-  modifiers: { meta?: boolean; control?: boolean } = {},
-) {
+function keyUp(code: string, modifiers: { meta?: boolean; control?: boolean } = {}) {
   return {
     type: 'keyUp' as const,
     code,
     meta: modifiers.meta ?? false,
-    control: modifiers.control ?? false,
+    control: modifiers.control ?? false
   }
 }
 
@@ -36,7 +33,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(mockEvent() as never, keyDown('MetaLeft') as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null,
+      focusedTerminalId: null
     })
     expect(send).toHaveBeenCalledWith('shortcut:modifier-pressed')
   })
@@ -46,7 +43,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(mockEvent() as never, keyUp('MetaLeft', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null,
+      focusedTerminalId: null
     })
     expect(send).toHaveBeenCalledWith('shortcut:modifier-released')
   })
@@ -56,7 +53,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(mockEvent() as never, keyUp('Digit2') as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null,
+      focusedTerminalId: null
     })
     expect(send).not.toHaveBeenCalledWith('shortcut:modifier-released')
   })
@@ -67,7 +64,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('KeyR', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null,
+      focusedTerminalId: null
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:browser-reload', { hard: false })
@@ -79,7 +76,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('KeyR', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: true,
-      focusedTerminalId: 3,
+      focusedTerminalId: 3
     })
     expect(event.preventDefault).not.toHaveBeenCalled()
     expect(send).not.toHaveBeenCalled()
@@ -91,7 +88,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('KeyW', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: true,
-      focusedTerminalId: 3,
+      focusedTerminalId: 3
     })
     expect(send).toHaveBeenCalledWith('shortcut:close-pane-tab')
   })
@@ -102,7 +99,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('KeyV', { meta: true, shift: true }) as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null,
+      focusedTerminalId: null
     })
     expect(send).toHaveBeenCalledWith('shortcut:paste-plain-text')
   })
@@ -110,12 +107,11 @@ describe('relayHostAppShortcuts', () => {
   it('relays terminal paste when a terminal owns focus', () => {
     const event = mockEvent()
     const send = vi.fn()
-    const modifiers =
-      process.platform === 'darwin' ? { meta: true } : { control: true }
+    const modifiers = process.platform === 'darwin' ? { meta: true } : { control: true }
     relayHostAppShortcuts(event as never, keyDown('KeyV', modifiers) as never, {
       send,
       terminalOwnsAppShortcuts: true,
-      focusedTerminalId: 7,
+      focusedTerminalId: 7
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:terminal-paste', { terminalId: 7 })
@@ -127,7 +123,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('KeyN', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: true,
-      focusedTerminalId: 3,
+      focusedTerminalId: 3
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:new-workspace-tab')
@@ -139,7 +135,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('KeyP', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null,
+      focusedTerminalId: null
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:quick-open')
@@ -151,7 +147,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('KeyF', { meta: true, shift: true }) as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null,
+      focusedTerminalId: null
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:find-in-files')
@@ -163,7 +159,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('KeyF', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null,
+      focusedTerminalId: null
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:find-in-editor')
@@ -175,7 +171,7 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('Digit2', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: true,
-      focusedTerminalId: 3,
+      focusedTerminalId: 3
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:switch-workspace-tab-index', { index: 2 })
@@ -191,7 +187,7 @@ describe('relayGuestWebviewShortcuts', () => {
       keyDown('MetaRight') as never,
       send,
       vi.fn(),
-      42,
+      42
     )
     expect(send).toHaveBeenCalledWith('shortcut:modifier-pressed')
   })
@@ -203,7 +199,7 @@ describe('relayGuestWebviewShortcuts', () => {
       keyUp('MetaRight', { meta: true }) as never,
       send,
       vi.fn(),
-      42,
+      42
     )
     expect(send).toHaveBeenCalledWith('shortcut:modifier-released')
   })
@@ -217,7 +213,7 @@ describe('relayGuestWebviewShortcuts', () => {
       keyDown('KeyV', { meta: true, shift: true }) as never,
       send,
       onPastePlainText,
-      42,
+      42
     )
     expect(onPastePlainText).toHaveBeenCalled()
     expect(send).not.toHaveBeenCalledWith('shortcut:paste-plain-text')
@@ -231,9 +227,12 @@ describe('relayGuestWebviewShortcuts', () => {
       keyDown('Equal', { meta: true }) as never,
       send,
       vi.fn(),
-      42,
+      42
     )
     expect(event.preventDefault).toHaveBeenCalled()
-    expect(send).toHaveBeenCalledWith('shortcut:browser-zoom', { direction: 'in', webContentsId: 42 })
+    expect(send).toHaveBeenCalledWith('shortcut:browser-zoom', {
+      direction: 'in',
+      webContentsId: 42
+    })
   })
 })

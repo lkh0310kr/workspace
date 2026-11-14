@@ -1,5 +1,3 @@
-
-
 type QueueDebugEntry = { queuedChars: number }
 
 // Why the cap is lossy: a backgrounded Chromium document throttles timers while PTYs keep writing, so unbounded hidden scrollback would grow renderer memory until the app crashes.

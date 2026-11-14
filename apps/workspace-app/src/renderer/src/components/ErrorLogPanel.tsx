@@ -1,17 +1,23 @@
-import { useEffect, useState } from "react";
-import { clearErrors, dismissError, getErrorLog, subscribeErrorLog, type LoggedError } from "../errorLog";
+import { useEffect, useState } from 'react'
+import {
+  clearErrors,
+  dismissError,
+  getErrorLog,
+  subscribeErrorLog,
+  type LoggedError
+} from '../errorLog'
 
 // Small badge in the corner that appears only once something's actually
 // gone wrong (uncaught error, unhandled promise rejection, or a pane's
 // own PaneErrorBoundary catching a render crash) — click it to see the
 // real message/stack instead of digging through devtools every time.
 export function ErrorLogPanel() {
-  const [entries, setEntries] = useState<LoggedError[]>(getErrorLog);
-  const [expanded, setExpanded] = useState(false);
+  const [entries, setEntries] = useState<LoggedError[]>(getErrorLog)
+  const [expanded, setExpanded] = useState(false)
 
-  useEffect(() => subscribeErrorLog(setEntries), []);
+  useEffect(() => subscribeErrorLog(setEntries), [])
 
-  if (entries.length === 0) return null;
+  if (entries.length === 0) return null
 
   return (
     <div className="error-log-panel">
@@ -41,5 +47,5 @@ export function ErrorLogPanel() {
         ⚠ {entries.length}
       </button>
     </div>
-  );
+  )
 }

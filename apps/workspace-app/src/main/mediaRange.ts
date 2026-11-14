@@ -5,8 +5,8 @@
 // from byte 0.
 
 export interface RangeSlice {
-  start: number;
-  end: number; // inclusive
+  start: number
+  end: number // inclusive
 }
 
 /** Parses a `Range: bytes=...` header value against a known file size.
@@ -15,30 +15,30 @@ export interface RangeSlice {
  * browser's own media element, not an adversary, so malformed input is
  * treated leniently as "no range" rather than an error). */
 export function parseRangeHeader(header: string | null, fileSize: number): RangeSlice | null {
-  if (!header || fileSize <= 0) return null;
-  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
-  if (!match) return null;
+  if (!header || fileSize <= 0) return null
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim())
+  if (!match) return null
 
-  const [, startText, endText] = match;
-  if (startText === "" && endText === "") return null;
+  const [, startText, endText] = match
+  if (startText === '' && endText === '') return null
 
-  let start: number;
-  let end: number;
+  let start: number
+  let end: number
 
-  if (startText === "") {
+  if (startText === '') {
     // Suffix range: last N bytes.
-    const suffixLength = Number(endText);
-    if (!Number.isFinite(suffixLength) || suffixLength <= 0) return null;
-    start = Math.max(0, fileSize - suffixLength);
-    end = fileSize - 1;
+    const suffixLength = Number(endText)
+    if (!Number.isFinite(suffixLength) || suffixLength <= 0) return null
+    start = Math.max(0, fileSize - suffixLength)
+    end = fileSize - 1
   } else {
-    start = Number(startText);
-    end = endText === "" ? fileSize - 1 : Number(endText);
+    start = Number(startText)
+    end = endText === '' ? fileSize - 1 : Number(endText)
   }
 
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
-  end = Math.min(end, fileSize - 1);
-  if (start < 0 || end < start || start >= fileSize) return null;
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null
+  end = Math.min(end, fileSize - 1)
+  if (start < 0 || end < start || start >= fileSize) return null
 
-  return { start, end };
+  return { start, end }
 }

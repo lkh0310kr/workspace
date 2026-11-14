@@ -22,16 +22,16 @@ Mod-b는 `**`, Mod-i는 `*`로 모든 selection을 감싼다. 선택 양쪽에 �
 
 선택 범위가 노드 경계에 닿아도 overlap으로 판단한다(`range.from <= node.to && range.to >= node.from`). 선택이 해당 요소에 들어오면 원문 marker를 드러내 편집할 수 있게 한다. marker 숨김 replace와 내용 스타일 mark를 인접한 비중첩 range로 만든다. block line decoration과 inline range decoration을 분리한다. HTML/table처럼 높이를 바꾸는 block replacement는 별도 StateField로 관리한다.
 
-| 요소 | 현재 렌더 책임 |
-|---|---|
-| ATX heading 1~6 | marker와 level별 스타일 |
-| 강조·code·link·WikiLink | 원문 marker 숨김과 내용 class; 링크 클릭은 별도 resolver |
-| 목록·task | bullet/checkbox widget; checkbox 조작은 해당 원문 task marker 변경 |
-| blockquote/callout | line 스타일과 `[!type]` label; note/info/tip/success/question/warning/danger/failure/bug/example/quote label |
-| fenced code | CodeMirror language-data의 language/alias/extension 매칭 및 syntax colors; preview header의 오른쪽 language label click은 fence body copy 후 host global toast를 요청; 원문 편집 상태에서도 같은 background/frame |
-| table | header/rows를 table DOM의 th/td textContent로 표시; rich HTML cell renderer가 아님 |
-| image | host resolver 또는 rootPath 기반 URL, 자원 cleanup |
-| HTML block | sandbox iframe srcdoc 미리보기; 원문 보존 |
+| 요소                    | 현재 렌더 책임                                                                                                                                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ATX heading 1~6         | marker와 level별 스타일                                                                                                                                                                                           |
+| 강조·code·link·WikiLink | 원문 marker 숨김과 내용 class; 링크 클릭은 별도 resolver                                                                                                                                                          |
+| 목록·task               | bullet/checkbox widget; checkbox 조작은 해당 원문 task marker 변경                                                                                                                                                |
+| blockquote/callout      | line 스타일과 `[!type]` label; note/info/tip/success/question/warning/danger/failure/bug/example/quote label                                                                                                      |
+| fenced code             | CodeMirror language-data의 language/alias/extension 매칭 및 syntax colors; preview header의 오른쪽 language label click은 fence body copy 후 host global toast를 요청; 원문 편집 상태에서도 같은 background/frame |
+| table                   | header/rows를 table DOM의 th/td textContent로 표시; rich HTML cell renderer가 아님                                                                                                                                |
+| image                   | host resolver 또는 rootPath 기반 URL, 자원 cleanup                                                                                                                                                                |
+| HTML block              | sandbox iframe srcdoc 미리보기; 원문 보존                                                                                                                                                                         |
 
 HTML iframe의 sandbox는 `allow-same-origin`이며 script 허용 flag는 없다. title=`Embedded HTML preview`, scrolling=no, 기본 높이 120px. document 크기를 ResizeObserver로 측정하고 32~2400px로 제한한다. destroy 시 observer를 disconnect한다. 일반 browser webview와 다른 renderer다.
 
@@ -60,14 +60,14 @@ HTML iframe의 sandbox는 `allow-same-origin`이며 script 허용 flag는 없다
 
 ## 검증 시나리오
 
-| ID | 입력/행동 | 결과 |
-|---|---|---|
-| MD-01 | `**hello**` 밖/안으로 cursor 이동 | 스타일/marker 전환, 저장 text 불변 |
-| MD-02 | 다중 selection에서 Mod-b 두 번 | 각 선택 감싸기/해제, 범위 유지 |
-| MD-03 | `a.markdown` 제목을 b로 수정 | 같은 directory의 b.markdown, item ID 유지 |
-| MD-04 | sibling `B.md` 존재, 제목 b | collision 오류; 원본 파일 유지 |
-| MD-05 | `notes/a.md`에서 `../b.md?q=1#h` | b.md. `../../b.md`는 null |
-| MD-06 | image load 중 document 전환 | 늦은 resource와 release 정리 |
-| MD-07 | HTML preview unmount | ResizeObserver 해제; script 실행 허용하지 않음 |
+| ID    | 입력/행동                         | 결과                                           |
+| ----- | --------------------------------- | ---------------------------------------------- |
+| MD-01 | `**hello**` 밖/안으로 cursor 이동 | 스타일/marker 전환, 저장 text 불변             |
+| MD-02 | 다중 selection에서 Mod-b 두 번    | 각 선택 감싸기/해제, 범위 유지                 |
+| MD-03 | `a.markdown` 제목을 b로 수정      | 같은 directory의 b.markdown, item ID 유지      |
+| MD-04 | sibling `B.md` 존재, 제목 b       | collision 오류; 원본 파일 유지                 |
+| MD-05 | `notes/a.md`에서 `../b.md?q=1#h`  | b.md. `../../b.md`는 null                      |
+| MD-06 | image load 중 document 전환       | 늦은 resource와 release 정리                   |
+| MD-07 | HTML preview unmount              | ResizeObserver 해제; script 실행 허용하지 않음 |
 
 기존 자동 검증은 markdownTitleRename.test에 연결된다. decoration/이미지/HTML의 실제 브라우저 렌더는 별도 수동 검증 대상이며 스냅샷 검증 완료를 뜻하지 않는다.

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from "../interaction/dragSession";
+import { useEffect } from 'react'
+import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from '../interaction/dragSession'
 
 /**
  * Block/hide webviews while resizing flexlayout splitters.
@@ -9,53 +9,53 @@ import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from "../interaction/d
  */
 export function useSplitterDragOverlay(): void {
   useEffect(() => {
-    let dragging = false;
-    let activePointerId: number | null = null;
-    let activePointerType: string | null = null;
+    let dragging = false
+    let activePointerId: number | null = null
+    let activePointerType: string | null = null
 
     const isActivePointer = (e: PointerEvent): boolean =>
       e.pointerId === activePointerId ||
-      (e.isPrimary && e.pointerType !== "touch" && activePointerType !== "touch");
+      (e.isPrimary && e.pointerType !== 'touch' && activePointerType !== 'touch')
 
     const finishDrag = (): void => {
-      if (!dragging) return;
-      dragging = false;
-      activePointerId = null;
-      activePointerType = null;
-      endDragOverlay(DRAG_OVERLAY.SPLITTER);
-    };
+      if (!dragging) return
+      dragging = false
+      activePointerId = null
+      activePointerType = null
+      endDragOverlay(DRAG_OVERLAY.SPLITTER)
+    }
 
     const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (!target?.closest(".flexlayout__splitter")) return;
-      dragging = true;
-      activePointerId = e.pointerId;
-      activePointerType = e.pointerType;
-      beginDragOverlay(DRAG_OVERLAY.SPLITTER);
-    };
+      const target = e.target as HTMLElement | null
+      if (!target?.closest('.flexlayout__splitter')) return
+      dragging = true
+      activePointerId = e.pointerId
+      activePointerType = e.pointerType
+      beginDragOverlay(DRAG_OVERLAY.SPLITTER)
+    }
 
     const onPointerUp = (e: PointerEvent) => {
-      if (!dragging || !isActivePointer(e)) return;
-      finishDrag();
-    };
+      if (!dragging || !isActivePointer(e)) return
+      finishDrag()
+    }
 
     const onPointerCancel = (e: PointerEvent) => {
-      if (!dragging || !isActivePointer(e)) return;
-      finishDrag();
-    };
+      if (!dragging || !isActivePointer(e)) return
+      finishDrag()
+    }
 
-    const onBlur = () => finishDrag();
+    const onBlur = () => finishDrag()
 
-    document.addEventListener("pointerdown", onPointerDown, true);
-    window.addEventListener("pointerup", onPointerUp, true);
-    window.addEventListener("pointercancel", onPointerCancel, true);
-    window.addEventListener("blur", onBlur, true);
+    document.addEventListener('pointerdown', onPointerDown, true)
+    window.addEventListener('pointerup', onPointerUp, true)
+    window.addEventListener('pointercancel', onPointerCancel, true)
+    window.addEventListener('blur', onBlur, true)
     return () => {
-      document.removeEventListener("pointerdown", onPointerDown, true);
-      window.removeEventListener("pointerup", onPointerUp, true);
-      window.removeEventListener("pointercancel", onPointerCancel, true);
-      window.removeEventListener("blur", onBlur, true);
-      finishDrag();
-    };
-  }, []);
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      window.removeEventListener('pointerup', onPointerUp, true)
+      window.removeEventListener('pointercancel', onPointerCancel, true)
+      window.removeEventListener('blur', onBlur, true)
+      finishDrag()
+    }
+  }, [])
 }

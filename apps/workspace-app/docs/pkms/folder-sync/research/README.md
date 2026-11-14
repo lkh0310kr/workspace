@@ -2,11 +2,11 @@
 
 ## 조사 문서
 
-| 기술 | 공개한 contract에서 확인한 패턴 | PKMS 적용 경계 |
-|---|---|---|
-| [Apple iCloud/File Provider](./apple-icloud-file-provider.md) | sync anchor, metadata/materialized item, 파일 coordination, conflict 시 local change 보존 | OS 제공 기능을 기대할 수 없으므로 Desktop이 직접 filesystem race와 durable intent를 처리 |
-| [Google Drive changes API](./google-drive-changes-api.md) | 순차 페이지 토큰, 최종 페이지에서 cursor 전진, 알림은 wake-up, 만료되는 watch 채널 | revision cursor 및 snapshot 기반으로 재해석. Google token/wire format은 복사하지 않음 |
-| [CRDT/Yjs](./crdt-and-yjs.md) | 본문 update의 중복·순서 변경 허용, state vector 기반 차이 전달 | 본문 convergence에 한정. path/tree/delete/filesystem conflict는 PKMS operation contract가 소유 |
+| 기술                                                          | 공개한 contract에서 확인한 패턴                                                           | PKMS 적용 경계                                                                                 |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [Apple iCloud/File Provider](./apple-icloud-file-provider.md) | sync anchor, metadata/materialized item, 파일 coordination, conflict 시 local change 보존 | OS 제공 기능을 기대할 수 없으므로 Desktop이 직접 filesystem race와 durable intent를 처리       |
+| [Google Drive changes API](./google-drive-changes-api.md)     | 순차 페이지 토큰, 최종 페이지에서 cursor 전진, 알림은 wake-up, 만료되는 watch 채널        | revision cursor 및 snapshot 기반으로 재해석. Google token/wire format은 복사하지 않음          |
+| [CRDT/Yjs](./crdt-and-yjs.md)                                 | 본문 update의 중복·순서 변경 허용, state vector 기반 차이 전달                            | 본문 convergence에 한정. path/tree/delete/filesystem conflict는 PKMS operation contract가 소유 |
 
 ## 공통 결론
 
@@ -24,15 +24,15 @@ PKMS가 보장해야 하는 결과:
 
 ## 사용자 경험 계약 제안
 
-| 사용자가 보는 상태 | 필요한 의미 | 행동 |
-|---|---|---|
-| 확인 중 | 로컬/원격 변경을 발견하고 현재 revision까지 검사 중 | Files tree 계속 탐색 가능. 빈 tree나 완료 문구를 보여주지 않음 |
-| 기기에 저장됨 · 업로드 대기 | 로컬 변경은 안전하게 저장됐지만 Cloud ACK 전 | 앱 종료/오프라인에도 유지됨을 표시; 재시도 시점/상태 확인 |
-| 최신 확인 · revision N | N까지의 Cloud feed를 적용했고 현재 durable queue는 0 | 마지막 확인 시각과 GitHub backup 별도 상태 |
-| 다운로드/변경 적용 중 | Cloud 변경을 로컬 파일에 반영하는 중 | 현재 파일이 편집 중이면 안전하게 대기하거나 conflict-preserve |
-| 충돌 검토 | 둘 이상의 내용/경로 변경이 보존됨 | 원본·보존본 열기, path/revision/발생 시각을 표시 |
-| 연결 문제 | 인증·권한·오프라인·서버 오류로 progress 불가 | 대기 변경 유지, 원인과 재시도/재인증 행동 제공 |
-| 로컬 폴더 변경 확인 | 새 root는 별도 replica identity | Cloud 내용을 먼저 materialize하고 local-only 변경은 별도 import; 연결만으로 Cloud 삭제 금지 |
+| 사용자가 보는 상태          | 필요한 의미                                          | 행동                                                                                        |
+| --------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 확인 중                     | 로컬/원격 변경을 발견하고 현재 revision까지 검사 중  | Files tree 계속 탐색 가능. 빈 tree나 완료 문구를 보여주지 않음                              |
+| 기기에 저장됨 · 업로드 대기 | 로컬 변경은 안전하게 저장됐지만 Cloud ACK 전         | 앱 종료/오프라인에도 유지됨을 표시; 재시도 시점/상태 확인                                   |
+| 최신 확인 · revision N      | N까지의 Cloud feed를 적용했고 현재 durable queue는 0 | 마지막 확인 시각과 GitHub backup 별도 상태                                                  |
+| 다운로드/변경 적용 중       | Cloud 변경을 로컬 파일에 반영하는 중                 | 현재 파일이 편집 중이면 안전하게 대기하거나 conflict-preserve                               |
+| 충돌 검토                   | 둘 이상의 내용/경로 변경이 보존됨                    | 원본·보존본 열기, path/revision/발생 시각을 표시                                            |
+| 연결 문제                   | 인증·권한·오프라인·서버 오류로 progress 불가         | 대기 변경 유지, 원인과 재시도/재인증 행동 제공                                              |
+| 로컬 폴더 변경 확인         | 새 root는 별도 replica identity                      | Cloud 내용을 먼저 materialize하고 local-only 변경은 별도 import; 연결만으로 Cloud 삭제 금지 |
 
 완료 상태를 spinner 종료나 단순 100%로 결정하지 않는다. 정확성 관점에서 `confirmed cloud revision`, `durable local intent count`, `blocked/conflict count`, `last successful pass`를 추적한다. 화면은 파일 개수 기반 퍼센트가 가변이면 완료율로 과장하지 않고 단계/상태를 보여준다.
 
@@ -56,14 +56,14 @@ PKMS가 보장해야 하는 결과:
 
 ## 단계적 구현 우선순위
 
-| 순서 | 결과 | 성공 기준 |
-|---|---|---|
-| P0 | root 변경이 이전 baseline으로 cloud delete를 만들지 않음 | source guard와 policy unit test 통과; empty/new root fake-server fixture에서 Cloud tree/hash 불변, 새 root local content 보존 |
-| P0 | deterministic fake-server sync integration suite | local/cloud/file identity/revision/pending queue parity 자동 판정 |
-| P1 | cursor + idempotent mutation crash recovery matrix | 모든 crash point 뒤 재시도 결과가 단일 item/revision으로 수렴 |
-| P1 | sync UI 의미/문구 개선 | persisted pending, last confirmed revision, per-item conflict/retry를 UI에서 확인 |
-| P2 | CI 지속 실행과 scheduled packaged smoke | PR gate + nightly 결과/artifact 보존 |
-| P2 | 성능 계측/최적화 | tree 규모별 scan/download/write latency 기준과 회귀 경보 |
+| 순서 | 결과                                                     | 성공 기준                                                                                                                     |
+| ---- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| P0   | root 변경이 이전 baseline으로 cloud delete를 만들지 않음 | source guard와 policy unit test 통과; empty/new root fake-server fixture에서 Cloud tree/hash 불변, 새 root local content 보존 |
+| P0   | deterministic fake-server sync integration suite         | local/cloud/file identity/revision/pending queue parity 자동 판정                                                             |
+| P1   | cursor + idempotent mutation crash recovery matrix       | 모든 crash point 뒤 재시도 결과가 단일 item/revision으로 수렴                                                                 |
+| P1   | sync UI 의미/문구 개선                                   | persisted pending, last confirmed revision, per-item conflict/retry를 UI에서 확인                                             |
+| P2   | CI 지속 실행과 scheduled packaged smoke                  | PR gate + nightly 결과/artifact 보존                                                                                          |
+| P2   | 성능 계측/최적화                                         | tree 규모별 scan/download/write latency 기준과 회귀 경보                                                                      |
 
 ## 결정 전 조사/설계 이슈
 

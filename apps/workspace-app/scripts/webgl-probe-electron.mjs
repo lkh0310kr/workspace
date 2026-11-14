@@ -19,14 +19,14 @@ function probeProfile(profile) {
   const env = applyWslGpuEnv({
     ...process.env,
     WORKSPACE_GL: profile,
-    ELECTRON_RUN_AS_NODE: undefined,
+    ELECTRON_RUN_AS_NODE: undefined
   })
   delete env.ELECTRON_RUN_AS_NODE
   const result = spawnSync(ELECTRON, [RUNNER], {
     cwd: ROOT,
     env,
     encoding: 'utf8',
-    timeout: 30_000,
+    timeout: 30_000
   })
   const combined = `${result.stdout}\n${result.stderr}`
   const match = combined.match(/WEBGL_PROBE_RESULT:(\{.*\})/)
@@ -36,7 +36,7 @@ function probeProfile(profile) {
     ok: result.status === 0 && parsed?.ok === true,
     parsed,
     status: result.status,
-    tail: combined.trim().split('\n').slice(-8).join('\n'),
+    tail: combined.trim().split('\n').slice(-8).join('\n')
   }
 }
 

@@ -8,7 +8,7 @@ import { resolveWorkspaceTabStatus, type WorkspaceTabStatus } from '../lib/works
 
 export function computeWorkspaceTabActivityStatus(
   workspaceTabId: number,
-  getModel: (tabId: number) => Model | undefined,
+  getModel: (tabId: number) => Model | undefined
 ): WorkspaceTabStatus | null {
   const model = getModel(workspaceTabId)
   if (!model) return null
@@ -17,7 +17,7 @@ export function computeWorkspaceTabActivityStatus(
     useRuntimeTerminalTitlesStore.getState().titlesByWorkspaceTab[workspaceTabId] ?? {}
   const { terminals, browserPaneCount } = collectWorkspaceTabPaneSnapshots(
     model,
-    agentState.liveTerminalIds,
+    agentState.liveTerminalIds
   )
   const hasAgentSignal =
     terminals.some((t) => t.terminalAgent || t.title) ||
@@ -29,9 +29,9 @@ export function computeWorkspaceTabActivityStatus(
     {
       agentStatusEpoch: agentState.agentStatusEpoch,
       agentStatusByPaneKey: agentState.agentStatusByPaneKey,
-      retainedAgentsByPaneKey: agentState.retainedAgentsByPaneKey,
+      retainedAgentsByPaneKey: agentState.retainedAgentsByPaneKey
     },
-    workspaceTabId,
+    workspaceTabId
   )
   const status = resolveWorkspaceTabStatus({
     terminalPanes: terminals,
@@ -47,7 +47,7 @@ export function computeWorkspaceTabActivityStatus(
     hasUnconfirmed: summary.hasUnconfirmed,
     hasLiveDone: summary.hasLiveDone,
     hasRetainedDone: summary.hasRetainedDone,
-    hasRetainedFailed: summary.hasRetainedFailed,
+    hasRetainedFailed: summary.hasRetainedFailed
   })
   if (status === 'inactive' || status === 'active') {
     return null
@@ -58,13 +58,13 @@ export function computeWorkspaceTabActivityStatus(
 export function useWorkspaceTabActivityStatus(
   workspaceTabId: number,
   getModel: (tabId: number) => Model | undefined,
-  layoutRevision: number,
+  layoutRevision: number
 ): WorkspaceTabStatus | null {
   const agentEpoch = useAgentStatusStore((s) => s.agentStatusEpoch)
   const titlesRevision = useRuntimeTerminalTitlesStore((s) => s.revision)
 
   return useMemo(
     () => computeWorkspaceTabActivityStatus(workspaceTabId, getModel),
-    [workspaceTabId, getModel, layoutRevision, agentEpoch, titlesRevision],
+    [workspaceTabId, getModel, layoutRevision, agentEpoch, titlesRevision]
   )
 }

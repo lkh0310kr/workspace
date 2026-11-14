@@ -10,56 +10,56 @@
 // a list of heterogeneous PaneTabItems plus which one is active — instead
 // of a single component+config pair.
 
-import type { AgentStatus } from "../../../shared/agent/agent-title-core";
-import type { TuiAgent } from "../../../shared/agent/tui-agent";
+import type { AgentStatus } from '../../../shared/agent/agent-title-core'
+import type { TuiAgent } from '../../../shared/agent/tui-agent'
 
-export type TabKind = "terminal" | "browser" | "code" | "markdown" | "viewer" | "pkms";
+export type TabKind = 'terminal' | 'browser' | 'code' | 'markdown' | 'viewer' | 'pkms'
 
 export interface PaneTabItem {
-  id: string;
-  kind: TabKind;
+  id: string
+  kind: TabKind
   /** kind === "terminal" */
-  terminalId?: number;
+  terminalId?: number
   /** kind === "code" | "markdown" | "viewer" */
-  filePath?: string | null;
+  filePath?: string | null
   /** kind === "viewer" — set instead of filePath when the file was picked
    * via the native Browse dialog rather than opened from within the
    * workspace root (TreeView/Quick Open/Find in Files). Deliberately not
    * confined to any workspace root — the user picked it explicitly
    * through an OS-level file dialog. */
-  absolutePath?: string;
+  absolutePath?: string
   /** kind === "viewer" — legacy hint on blank viewer tabs created before
    * media-specific picker entries were removed. Decides Browse filters;
    * ignored once filePath/absolutePath is set. */
-  viewerHint?: "video" | "audio" | "ebook";
+  viewerHint?: 'video' | 'audio' | 'ebook'
   /** kind === "browser" */
-  url?: string;
+  url?: string
   /** kind === "browser" — page favicon URL from page-favicon-updated */
-  favicon?: string;
+  favicon?: string
   /** kind === "browser" — guest page zoom (1 = 100%) */
-  zoomFactor?: number;
+  zoomFactor?: number
   /** Live display title (browser page title, editor filename, terminal OSC title). */
-  title?: string;
+  title?: string
   /** kind === "terminal" — detected AI agent (Cursor CLI, Claude Code, etc.). */
-  terminalAgent?: TuiAgent;
+  terminalAgent?: TuiAgent
   /** kind === "terminal" — last title-derived agent state for workspace chip rollup. */
-  terminalAgentStatus?: AgentStatus;
+  terminalAgentStatus?: AgentStatus
   /** VSCode-style "preview" tab (TreeView single-click) — at most one per
    * pane. Reused/replaced by the next preview-click instead of piling up
    * a new tab, unless it has unsaved edits (see PaneGroup's
    * openOrSwitchToFile) or gets explicitly pinned (double-click, or
    * Cmd/Ctrl+click opens a new pinned tab directly). */
-  isPreview?: boolean;
+  isPreview?: boolean
 }
 
 export interface PaneGroupConfig {
   /** Written by layoutSalvage on load; omitted in older persisted layouts. */
-  schemaVersion?: number;
-  tabs: PaneTabItem[];
-  activeTabId: string;
+  schemaVersion?: number
+  tabs: PaneTabItem[]
+  activeTabId: string
   /** Cmd+'+'/Cmd+'-' per-pane text zoom (App.tsx's zoomActivePane), shared
    * across every tab in the group — 1 = 100%. */
-  zoom?: number;
+  zoom?: number
 }
 
 // Per-kind behavior (label/icon/render/picker entries/factory) lives in

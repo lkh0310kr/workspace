@@ -24,7 +24,7 @@ export function resolveTerminalTabAgentStatus(tab: TerminalTabAgentSnapshot): Ag
 }
 
 export function rollupWorkspaceTabAgentIndicator(
-  terminalTabs: readonly TerminalTabAgentSnapshot[],
+  terminalTabs: readonly TerminalTabAgentSnapshot[]
 ): WorkspaceTabAgentIndicator | null {
   let best: AgentStatus | null = null
   for (const tab of terminalTabs) {

@@ -4,23 +4,23 @@
 
 ## 현재 Desktop 구현 관찰
 
-| 영역 | source에서 확인한 현재 방식 | 결과상 제한 / 검증 필요 |
-|---|---|---|
-| 구성 저장 | `userData/pkms-sync-bridge.json`, temp sibling write 후 rename, mode 0600 | load/JSON 손상은 현재 empty state fallback. 이전 데이터가 안전하게 salvage된다는 보장 없음 |
-| root 전환 | 새 root 연결 전 기존 root 기반 baselines/cache/cursor/local inventory/delete intents 초기화; 새 pass가 Cloud snapshot부터 다시 구성 | policy unit test 통과. 임시 폴더 + fake API로 기존 Cloud file이 삭제되지 않고 새 root가 materialize/import되는 통합 acceptance는 미구현 |
-| 동시 실행 | workspace당 in-process running pass, 같은 root에 process간 PID/token lock | lock filesystem·process 종료 경로를 OS별 테스트해야 함 |
-| local change | recursive `fs.watch`, event hint; 25ms debounce, 불완전 event는 full scan | watcher가 durable journal은 아님 |
-| remote change | private Realtime `pkms:{workspaceId}` wakeup + HTTP revision cursor; 30초 poll | Realtime은 authority가 아니며 poll fallback 유지 |
-| local audit | startup/reconfigure와 15분 주기 complete walk | scan 실패 시 이전 inventory 유지하고 delete 금지 |
-| content scan | full scan 또는 dirty/remote path scan; Markdown `.md`만, reserved/excluded/symlink 제외 | 다른 binary attachment는 bridge 대상 아님 |
-| snapshot | `/sync/tree`, 1000 row/path page, captured revision pin; route 404면 legacy `/snapshot` fallback | legacy는 empty folder metadata를 완전히 제공하지 않음 |
-| body transfer | `/sync/download` batch 32, 4 workers; per-path reconcile 최대 6 | 이 숫자는 최적 성능 요구가 아니라 현재 설정. 제한·측정 증거 필요 |
-| retry | retryable status/lock/local-race/network 오류에 1s부터 증가, 최대 60s | 네트워크/인증 분류가 message pattern에 의존하는 경계가 있어 fixture 필요 |
-| local write | UTF-8 temp sibling, baseline/current hash 확인, rename | power loss/disk full의 모든 OS guarantee는 미검증 |
-| status | top-level state/stage, pass progress, transient item state | per-item state durable 복구가 아님; aggregate percent는 denominator가 변할 수 있음 |
-| local delete + cloud edit 경합 | 삭제 intent 대신 최신 cloud 본문을 원래 경로로 복구하고 `attention`을 남김 | 2026-11-13 source fix; 실행 중 packaged app 반영은 새 빌드 필요 |
-| 동일 경로·동일 본문 create 재시도 | 기존 identity로 no-op 수렴; 다른 본문은 conflict path 유지 | 2026-11-13 migration 적용, linked DB regression SQL 통과 |
-| 한 pass의 sibling folder guarded deletes | 매 delete 직전 최신 pass revision 사용 | 2026-11-13 source fix 및 policy unit scenario 추가; full sync acceptance 필요 |
+| 영역                                     | source에서 확인한 현재 방식                                                                                                         | 결과상 제한 / 검증 필요                                                                                                                 |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 구성 저장                                | `userData/pkms-sync-bridge.json`, temp sibling write 후 rename, mode 0600                                                           | load/JSON 손상은 현재 empty state fallback. 이전 데이터가 안전하게 salvage된다는 보장 없음                                              |
+| root 전환                                | 새 root 연결 전 기존 root 기반 baselines/cache/cursor/local inventory/delete intents 초기화; 새 pass가 Cloud snapshot부터 다시 구성 | policy unit test 통과. 임시 폴더 + fake API로 기존 Cloud file이 삭제되지 않고 새 root가 materialize/import되는 통합 acceptance는 미구현 |
+| 동시 실행                                | workspace당 in-process running pass, 같은 root에 process간 PID/token lock                                                           | lock filesystem·process 종료 경로를 OS별 테스트해야 함                                                                                  |
+| local change                             | recursive `fs.watch`, event hint; 25ms debounce, 불완전 event는 full scan                                                           | watcher가 durable journal은 아님                                                                                                        |
+| remote change                            | private Realtime `pkms:{workspaceId}` wakeup + HTTP revision cursor; 30초 poll                                                      | Realtime은 authority가 아니며 poll fallback 유지                                                                                        |
+| local audit                              | startup/reconfigure와 15분 주기 complete walk                                                                                       | scan 실패 시 이전 inventory 유지하고 delete 금지                                                                                        |
+| content scan                             | full scan 또는 dirty/remote path scan; Markdown `.md`만, reserved/excluded/symlink 제외                                             | 다른 binary attachment는 bridge 대상 아님                                                                                               |
+| snapshot                                 | `/sync/tree`, 1000 row/path page, captured revision pin; route 404면 legacy `/snapshot` fallback                                    | legacy는 empty folder metadata를 완전히 제공하지 않음                                                                                   |
+| body transfer                            | `/sync/download` batch 32, 4 workers; per-path reconcile 최대 6                                                                     | 이 숫자는 최적 성능 요구가 아니라 현재 설정. 제한·측정 증거 필요                                                                        |
+| retry                                    | retryable status/lock/local-race/network 오류에 1s부터 증가, 최대 60s                                                               | 네트워크/인증 분류가 message pattern에 의존하는 경계가 있어 fixture 필요                                                                |
+| local write                              | UTF-8 temp sibling, baseline/current hash 확인, rename                                                                              | power loss/disk full의 모든 OS guarantee는 미검증                                                                                       |
+| status                                   | top-level state/stage, pass progress, transient item state                                                                          | per-item state durable 복구가 아님; aggregate percent는 denominator가 변할 수 있음                                                      |
+| local delete + cloud edit 경합           | 삭제 intent 대신 최신 cloud 본문을 원래 경로로 복구하고 `attention`을 남김                                                          | 2026-11-13 source fix; 실행 중 packaged app 반영은 새 빌드 필요                                                                         |
+| 동일 경로·동일 본문 create 재시도        | 기존 identity로 no-op 수렴; 다른 본문은 conflict path 유지                                                                          | 2026-11-13 migration 적용, linked DB regression SQL 통과                                                                                |
+| 한 pass의 sibling folder guarded deletes | 매 delete 직전 최신 pass revision 사용                                                                                              | 2026-11-13 source fix 및 policy unit scenario 추가; full sync acceptance 필요                                                           |
 
 ## Persisted schema source shape
 

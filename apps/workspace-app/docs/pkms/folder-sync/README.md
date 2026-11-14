@@ -15,15 +15,15 @@
 
 ## 문서 지도
 
-| 문서 | 계약 |
-|---|---|
-| [Reconciliation과 충돌](./reconciliation.md) | baseline 기반 파일 비교, tree/cursor, 동시 수정과 파일 적용 |
-| [Durability와 복구](./durability-recovery.md) | 저장 상태, watcher/scan, queue, retry, offline/restart/disconnect |
-| [Server protocol](./server-protocol.md) | route, pagination/cursor, operation idempotency, 오류/revision guard |
-| [UI 결과와 acceptance](./ui-acceptance.md) | tree·설정의 사용자 상태, 결과 기반 시나리오, 검증 evidence |
-| [삭제·폴더 이동](./deletion.md) | inventory 기반 안전 삭제, recursive guard, 이동과 삭제 충돌 |
-| [현재 구현과 rollout 상태](./implementation-status.md) | 코드상 값/한계, migration 및 미검증 구분 |
-| [동기화 기술 연구와 개선 설계](./research/README.md) | Apple File Provider/iCloud, Google Drive change feed, CRDT/Yjs의 공개 contract와 PKMS 개선 요구 |
+| 문서                                                   | 계약                                                                                            |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| [Reconciliation과 충돌](./reconciliation.md)           | baseline 기반 파일 비교, tree/cursor, 동시 수정과 파일 적용                                     |
+| [Durability와 복구](./durability-recovery.md)          | 저장 상태, watcher/scan, queue, retry, offline/restart/disconnect                               |
+| [Server protocol](./server-protocol.md)                | route, pagination/cursor, operation idempotency, 오류/revision guard                            |
+| [UI 결과와 acceptance](./ui-acceptance.md)             | tree·설정의 사용자 상태, 결과 기반 시나리오, 검증 evidence                                      |
+| [삭제·폴더 이동](./deletion.md)                        | inventory 기반 안전 삭제, recursive guard, 이동과 삭제 충돌                                     |
+| [현재 구현과 rollout 상태](./implementation-status.md) | 코드상 값/한계, migration 및 미검증 구분                                                        |
+| [동기화 기술 연구와 개선 설계](./research/README.md)   | Apple File Provider/iCloud, Google Drive change feed, CRDT/Yjs의 공개 contract와 PKMS 개선 요구 |
 
 ## 범위·소유 경계
 

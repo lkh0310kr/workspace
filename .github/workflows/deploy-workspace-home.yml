@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      - "apps/workspace-server/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/deploy-workspace-home.yml"
+      - 'apps/workspace-server/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-workspace-home.yml'
   workflow_dispatch:
 
 permissions:

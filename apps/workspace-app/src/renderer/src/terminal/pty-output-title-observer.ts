@@ -5,7 +5,7 @@ import {
   extractAllOscTitles,
   isCursorNativeAgentTitle,
   normalizeTerminalTitle,
-  shouldSuppressCursorNativeTitle,
+  shouldSuppressCursorNativeTitle
 } from '../../../shared/agent/agent-detection'
 
 const STALE_TITLE_TIMEOUT = 3_000
@@ -24,7 +24,9 @@ export function createPtyOutputTitleObserver(options: {
   initialAgentTitle?: string
 }): PtyOutputTitleObserver {
   let lastEmittedTitle: string | null =
-    options.initialAgentTitle !== undefined ? normalizeTerminalTitle(options.initialAgentTitle) : null
+    options.initialAgentTitle !== undefined
+      ? normalizeTerminalTitle(options.initialAgentTitle)
+      : null
   let staleTitleTimer: ReturnType<typeof setTimeout> | null = null
   const initialTrackerTitle =
     options.initialAgentTitle !== undefined && !isCursorNativeAgentTitle(options.initialAgentTitle)
@@ -36,7 +38,7 @@ export function createPtyOutputTitleObserver(options: {
           (title) => options.onAgentBecameIdle?.(title),
           options.onAgentBecameWorking,
           options.onAgentExited,
-          initialTrackerTitle,
+          initialTrackerTitle
         )
       : null
 
@@ -94,6 +96,6 @@ export function createPtyOutputTitleObserver(options: {
     reset: () => {
       clearStaleTitleTimer()
       agentTracker?.reset()
-    },
+    }
   }
 }

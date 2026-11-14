@@ -1,28 +1,31 @@
-import { session } from "electron";
-import { setupBrowserSessionUA } from "./browserSessionUA";
-import { installBrowserWebAuthnAccessHandlers, allowsBrowserWebAuthnPermission } from "./browserWebauthn";
+import { session } from 'electron'
+import { setupBrowserSessionUA } from './browserSessionUA'
+import {
+  installBrowserWebAuthnAccessHandlers,
+  allowsBrowserWebAuthnPermission
+} from './browserWebauthn'
 
-export const BROWSER_SESSION_PARTITION = "persist:browser";
+export const BROWSER_SESSION_PARTITION = 'persist:browser'
 
 // Web features that are safe to auto-grant without a per-site prompt UI
 // (which this app has no way to show) — ported from Orca's
 // AUTO_GRANTED_BROWSER_PERMISSIONS, minus Orca-only agent/CDP extras.
 const AUTO_GRANTED_PERMISSIONS = new Set([
-  "fullscreen",
+  'fullscreen',
   // chatgpt.com and similar sites copy via navigator.clipboard in the guest
   // renderer; without these grants the API rejects and surfaces a misleading
   // "try again while focused" toast even when the webview is focused.
-  "clipboard-read",
-  "clipboard-sanitized-write",
-  "notifications",
+  'clipboard-read',
+  'clipboard-sanitized-write',
+  'notifications',
   // Chromium can request this even though Electron's TS union omits it;
   // some sites use it to keep browser storage from eviction.
-  "persistent-storage",
-  "pointerLock",
-]);
+  'persistent-storage',
+  'pointerLock'
+])
 
 export function isAutoGrantedBrowserSessionPermission(permission: string): boolean {
-  return AUTO_GRANTED_PERMISSIONS.has(permission);
+  return AUTO_GRANTED_PERMISSIONS.has(permission)
 }
 
 // Sets up the shared browser-pane session partition once at startup:
@@ -35,15 +38,15 @@ export function isAutoGrantedBrowserSessionPermission(permission: string): boole
 // <webview> so it actually uses this session rather than the app's
 // unconfigured default one.
 export function setupBrowserSession(): void {
-  const sess = session.fromPartition(BROWSER_SESSION_PARTITION);
-  setupBrowserSessionUA(sess);
-  installBrowserWebAuthnAccessHandlers(sess);
+  const sess = session.fromPartition(BROWSER_SESSION_PARTITION)
+  setupBrowserSessionUA(sess)
+  installBrowserWebAuthnAccessHandlers(sess)
 
   sess.setPermissionRequestHandler((_webContents, permission, callback) => {
-    callback(isAutoGrantedBrowserSessionPermission(permission));
-  });
+    callback(isAutoGrantedBrowserSessionPermission(permission))
+  })
   sess.setPermissionCheckHandler((_webContents, permission, _origin, details) => {
-    if (allowsBrowserWebAuthnPermission(permission, details)) return true;
-    return isAutoGrantedBrowserSessionPermission(permission);
-  });
+    if (allowsBrowserWebAuthnPermission(permission, details)) return true
+    return isAutoGrantedBrowserSessionPermission(permission)
+  })
 }

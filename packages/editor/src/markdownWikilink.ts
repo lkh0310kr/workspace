@@ -1,4 +1,4 @@
-import type { InlineParser, MarkdownConfig } from "@lezer/markdown";
+import type { InlineParser, MarkdownConfig } from '@lezer/markdown'
 
 // Obsidian's `[[Note]]` / `[[Note|Alias]]` syntax has no CommonMark/GFM
 // equivalent, so there's no existing @lezer/markdown extension for it —
@@ -6,22 +6,22 @@ import type { InlineParser, MarkdownConfig } from "@lezer/markdown";
 // gets first look at a `[` — otherwise the built-in Link parser would try
 // (and fail) to parse the outer `[` as a normal link bracket first.
 const wikiLinkParser: InlineParser = {
-  name: "WikiLink",
-  before: "Link",
+  name: 'WikiLink',
+  before: 'Link',
   parse(cx, next, pos) {
-    if (next !== 91 /* '[' */ || cx.char(pos + 1) !== 91) return -1;
-    const rest = cx.slice(pos, cx.end);
-    const close = rest.indexOf("]]", 2);
-    if (close < 0) return -1;
-    const end = pos + close + 2;
-    return cx.addElement(cx.elt("WikiLink", pos, end));
-  },
-};
+    if (next !== 91 /* '[' */ || cx.char(pos + 1) !== 91) return -1
+    const rest = cx.slice(pos, cx.end)
+    const close = rest.indexOf(']]', 2)
+    if (close < 0) return -1
+    const end = pos + close + 2
+    return cx.addElement(cx.elt('WikiLink', pos, end))
+  }
+}
 
 export const wikiLinkExtension: MarkdownConfig = {
-  defineNodes: ["WikiLink"],
-  parseInline: [wikiLinkParser],
-};
+  defineNodes: ['WikiLink'],
+  parseInline: [wikiLinkParser]
+}
 
 /** Markdown syntax extensions enabled by default across first-party editors. */
-export const editorMarkdownParserExtensions: readonly MarkdownConfig[] = [wikiLinkExtension];
+export const editorMarkdownParserExtensions: readonly MarkdownConfig[] = [wikiLinkExtension]

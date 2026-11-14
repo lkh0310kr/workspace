@@ -4,18 +4,18 @@ Package scope에서 [index.ts](../src/index.ts)의 export를 역할별로 연결
 
 ## API owner 지도
 
-| export family | 계약 문서 | host extension point |
-|---|---|---|
-| Provider/Session/Snapshot/Error·capability helpers | [provider](./provider.md) | 저장소·revision·save 정책 |
-| createEditorView/documentReplacement/TextSurface | [text surface](./code/README.md) | extensions·session·storage·onViewReady |
-| MarkdownEditor/Document/Surface/Title·commands | [Markdown](./markdown/README.md) | parser·image/link resolver·title commit |
-| EditorBreadcrumbs | [Breadcrumb](./breadcrumbs.md) | provider-relative path·sibling listing·open-file routing |
-| tree rows/virtual list/selection/navigation | [treeview](./treeview/README.md) | branch data·provider commands·focus·drop |
-| QuickOpen/SearchButton/editorSearch/fuzzy | [search](./search.md) | query/provider·결과 선택·dialog close |
-| documentIdentity/dirtyRegistry/viewStateCache | [text surface](./code/README.md) | shell close confirmation·stable key migration |
-| relativeLink/tree path/title/name helpers | [Markdown](./markdown/README.md), [treeview](./treeview/README.md) | 제품별 파일 분류·링크 열기 |
-| TabChip/DocumentTabBar/MenuList/NameForm | 아래 UI 계약 | selection/close/명령 실행·표시 위치 |
-| CSS·themes | package CSS와 themes.ts | host className·토큰·container style |
+| export family                                      | 계약 문서                                                          | host extension point                                     |
+| -------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------- |
+| Provider/Session/Snapshot/Error·capability helpers | [provider](./provider.md)                                          | 저장소·revision·save 정책                                |
+| createEditorView/documentReplacement/TextSurface   | [text surface](./code/README.md)                                   | extensions·session·storage·onViewReady                   |
+| MarkdownEditor/Document/Surface/Title·commands     | [Markdown](./markdown/README.md)                                   | parser·image/link resolver·title commit                  |
+| EditorBreadcrumbs                                  | [Breadcrumb](./breadcrumbs.md)                                     | provider-relative path·sibling listing·open-file routing |
+| tree rows/virtual list/selection/navigation        | [treeview](./treeview/README.md)                                   | branch data·provider commands·focus·drop                 |
+| QuickOpen/SearchButton/editorSearch/fuzzy          | [search](./search.md)                                              | query/provider·결과 선택·dialog close                    |
+| documentIdentity/dirtyRegistry/viewStateCache      | [text surface](./code/README.md)                                   | shell close confirmation·stable key migration            |
+| relativeLink/tree path/title/name helpers          | [Markdown](./markdown/README.md), [treeview](./treeview/README.md) | 제품별 파일 분류·링크 열기                               |
+| TabChip/DocumentTabBar/MenuList/NameForm           | 아래 UI 계약                                                       | selection/close/명령 실행·표시 위치                      |
+| CSS·themes                                         | package CSS와 themes.ts                                            | host className·토큰·container style                      |
 
 ## Tab와 close
 

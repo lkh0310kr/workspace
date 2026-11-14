@@ -84,13 +84,20 @@ function spawnSession(request: Request): Session {
     session.seq += 1
     const encoded = chunk.toString('base64')
     for (const [socket, ids] of clients) {
-      if (ids.has(request.terminalId)) send(socket, { event: 'data', terminalId: request.terminalId, seq: session.seq, data: encoded })
+      if (ids.has(request.terminalId))
+        send(socket, {
+          event: 'data',
+          terminalId: request.terminalId,
+          seq: session.seq,
+          data: encoded
+        })
     }
   })
   child.onExit(() => {
     sessions.delete(request.terminalId)
     for (const [socket, ids] of clients) {
-      if (ids.delete(request.terminalId)) send(socket, { event: 'exit', terminalId: request.terminalId })
+      if (ids.delete(request.terminalId))
+        send(socket, { event: 'exit', terminalId: request.terminalId })
     }
   })
   return session
@@ -128,7 +135,8 @@ function handle(socket: net.Socket, request: Request): void {
       send(socket, { id: request.id, error: 'terminal session not found' })
       return
     }
-    if (request.op === 'write' && request.data) session.child.write(Buffer.from(request.data, 'base64'))
+    if (request.op === 'write' && request.data)
+      session.child.write(Buffer.from(request.data, 'base64'))
     else if (request.op === 'resize') session.child.resize(request.cols ?? 120, request.rows ?? 40)
     else if (request.op === 'pause') session.child.pause()
     else if (request.op === 'resume') session.child.resume()
@@ -182,7 +190,11 @@ if (process.platform !== 'win32' && fs.existsSync(socketPath)) {
     process.exit(0)
   })
   probe.once('error', () => {
-    try { fs.unlinkSync(socketPath) } catch { /* another starter may have removed it */ }
+    try {
+      fs.unlinkSync(socketPath)
+    } catch {
+      /* another starter may have removed it */
+    }
     listen()
   })
 } else {

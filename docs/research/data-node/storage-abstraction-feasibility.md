@@ -53,11 +53,11 @@ DB contract가 너무 낮은 수준이면 Worker가 SQLite/Postgres 차이를 �
 
 ```ts
 interface MetadataStore {
-  applyWorkspaceOperation(input: OperationCommand): Promise<OperationResult>;
-  appendDocumentUpdate(input: DocumentUpdateCommand): Promise<AcceptedUpdate>;
-  readDocument(fileId: string): Promise<DocumentSnapshot>;
-  claimBackupBatch(input: ClaimRequest): Promise<BackupBatch | null>;
-  acknowledgeBackupBatch(input: BackupAck): Promise<void>;
+  applyWorkspaceOperation(input: OperationCommand): Promise<OperationResult>
+  appendDocumentUpdate(input: DocumentUpdateCommand): Promise<AcceptedUpdate>
+  readDocument(fileId: string): Promise<DocumentSnapshot>
+  claimBackupBatch(input: ClaimRequest): Promise<BackupBatch | null>
+  acknowledgeBackupBatch(input: BackupAck): Promise<void>
 }
 ```
 
@@ -97,12 +97,12 @@ Cloudflare Workers VPC는 Worker가 Tunnel/Mesh로 연결된 private service에 
 
 “Android와 Supabase를 갈아 끼운다”를 첫 목표로 삼기보다, 필요한 구성요소별로 선택 가능하게 하는 것이 현실적이다.
 
-| Profile | Metadata DB | Object Storage | Realtime | 의미 |
-|---|---|---|---|---|
-| Current Cloud | Supabase/Postgres | Cloudflare R2 staging | Supabase Realtime | 현재 기능/availability 유지 |
-| Hybrid Object Node | Supabase/Postgres | Android Data Node | Supabase Realtime | raw objects만 S21로 이동, Supabase dependency는 남음 |
-| Android Primary | Android SQLite | Android filesystem | 별도 relay 또는 polling | Supabase 제거, Worker→node network 및 availability 필수 |
-| Supabase DB + Android Replica | Supabase/Postgres | Android primary + A Quantum replica | Supabase Realtime | blob ownership를 바꾸되 transaction store는 유지 |
+| Profile                       | Metadata DB       | Object Storage                      | Realtime                | 의미                                                    |
+| ----------------------------- | ----------------- | ----------------------------------- | ----------------------- | ------------------------------------------------------- |
+| Current Cloud                 | Supabase/Postgres | Cloudflare R2 staging               | Supabase Realtime       | 현재 기능/availability 유지                             |
+| Hybrid Object Node            | Supabase/Postgres | Android Data Node                   | Supabase Realtime       | raw objects만 S21로 이동, Supabase dependency는 남음    |
+| Android Primary               | Android SQLite    | Android filesystem                  | 별도 relay 또는 polling | Supabase 제거, Worker→node network 및 availability 필수 |
+| Supabase DB + Android Replica | Supabase/Postgres | Android primary + A Quantum replica | Supabase Realtime       | blob ownership를 바꾸되 transaction store는 유지        |
 
 같은 환경 설정으로 네 component를 독립 선택하도록 하면 migration/shadow tests를 할 수 있다. 모든 component를 한꺼번에 바꾸는 config는 위험하다. MetadataStore, ObjectStore, RealtimeBus, BackupPublisher 각각의 conformance tests를 분리해야 한다.
 

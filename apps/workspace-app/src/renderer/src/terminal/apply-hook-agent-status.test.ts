@@ -8,7 +8,7 @@ describe('applyHookAgentStatus', () => {
       agentStatusByPaneKey: {},
       retainedAgentsByPaneKey: {},
       agentStatusEpoch: 0,
-      liveTerminalIds: new Set(),
+      liveTerminalIds: new Set()
     })
   })
 
@@ -17,7 +17,7 @@ describe('applyHookAgentStatus', () => {
       paneKey: '3:tab-terminal-1',
       state: 'blocked',
       prompt: 'approve?',
-      agentType: 'claude',
+      agentType: 'claude'
     })
     const entry = useAgentStatusStore.getState().agentStatusByPaneKey['3:tab-terminal-1']
     expect(entry?.state).toBe('blocked')

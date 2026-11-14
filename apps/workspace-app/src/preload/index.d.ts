@@ -68,9 +68,17 @@ export interface WorkspaceApi {
   hostname: () => Promise<string>
   system: {
     summary: () => Promise<{
-      hostname: string; platform: string; release: string; arch: string
-      cpuPercent: number | null; cpuCores: number; memoryTotal: number; memoryAvailable: number
-      diskTotal: number | null; diskAvailable: number | null; uptimeSeconds: number
+      hostname: string
+      platform: string
+      release: string
+      arch: string
+      cpuPercent: number | null
+      cpuCores: number
+      memoryTotal: number
+      memoryAvailable: number
+      diskTotal: number | null
+      diskAvailable: number | null
+      uptimeSeconds: number
     }>
   }
   platform: NodeJS.Platform
@@ -128,7 +136,7 @@ export interface WorkspaceApi {
       source: string,
       level: 'log' | 'info' | 'warn' | 'error' | 'debug',
       event: string,
-      data?: Record<string, unknown>,
+      data?: Record<string, unknown>
     ) => void
     errorLog: (message: string, stack?: string, extra?: Record<string, unknown>) => void
     consoleLog: (level: 'log' | 'info' | 'warn' | 'error' | 'debug', args: unknown[]) => void
@@ -141,7 +149,7 @@ export interface WorkspaceApi {
     onHtmlFullscreenChanged: (cb: (active: boolean) => void) => () => void
     onDownloadEvent: (cb: (payload: BrowserDownloadEventPayload) => void) => () => void
     getNavHistory: (
-      webContentsId: number,
+      webContentsId: number
     ) => Promise<{ entries: { url: string; title: string }[]; activeIndex: number } | null>
     goBack: (webContentsId: number) => Promise<boolean>
     goForward: (webContentsId: number) => Promise<boolean>
@@ -156,7 +164,7 @@ export interface WorkspaceApi {
     onFindInEditor: (cb: () => void) => () => void
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
     onBrowserZoom: (
-      cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void,
+      cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void
     ) => () => void
     onClosePaneTab: (cb: () => void) => () => void
     onOpenSettings: (cb: () => void) => () => void
@@ -171,17 +179,19 @@ export interface WorkspaceApi {
     setFocused: (id: number | null) => void
     onClearOptionModifiers: (cb: () => void) => () => void
     onCaptureSessionBuffers: (cb: (terminalIds: number[]) => void) => () => void
-    sendSessionBuffers: (payload: {
-      buffersByTerminalId: Record<string, string>
-    }) => void
+    sendSessionBuffers: (payload: { buffersByTerminalId: Record<string, string> }) => void
     onOscTitle: (
-      cb: (payload: { terminalId: number; rawTitle: string; normalizedTitle: string }) => void,
+      cb: (payload: { terminalId: number; rawTitle: string; normalizedTitle: string }) => void
     ) => () => void
     onPtySpawned: (cb: (payload: { terminalId: number }) => void) => () => void
   }
   agentStatus: {
-    onSet: (cb: (data: import('../shared/agent-status-ipc').AgentStatusIpcPayload) => void) => () => void
-    onClear: (cb: (data: import('../shared/agent-status-ipc').AgentStatusClearIpcPayload) => void) => () => void
+    onSet: (
+      cb: (data: import('../shared/agent-status-ipc').AgentStatusIpcPayload) => void
+    ) => () => void
+    onClear: (
+      cb: (data: import('../shared/agent-status-ipc').AgentStatusClearIpcPayload) => void
+    ) => () => void
     registerTerminalPane: (terminalId: number, paneKey: string) => void
     unregisterTerminalPane: (terminalId: number) => void
   }
@@ -221,7 +231,12 @@ export interface WorkspaceApi {
       rel: string
     ) => Promise<{ content: string; mimeType: string } | null>
     writeFile: (tabId: number, rel: string, content: string) => Promise<void>
-    writeFileIfUnchanged: (tabId: number, rel: string, expected: string, content: string) => Promise<boolean>
+    writeFileIfUnchanged: (
+      tabId: number,
+      rel: string,
+      expected: string,
+      content: string
+    ) => Promise<boolean>
     createDir: (tabId: number, rel: string) => Promise<void>
     deletePath: (tabId: number, rel: string) => Promise<void>
     renamePath: (tabId: number, fromRel: string, toRel: string) => Promise<void>
@@ -237,10 +252,17 @@ export interface WorkspaceApi {
     getUrlAbsolute: (absolutePath: string) => Promise<string>
   }
   model3d: {
-    openPreview: (tabId: number, rel: string) => Promise<import('../shared/model3d/types').SceneManifest>
-    openAsset: (request: import('../shared/model3d/types').AssetOpenRequest) => Promise<import('../shared/model3d/types').ImportJob>
+    openPreview: (
+      tabId: number,
+      rel: string
+    ) => Promise<import('../shared/model3d/types').SceneManifest>
+    openAsset: (
+      request: import('../shared/model3d/types').AssetOpenRequest
+    ) => Promise<import('../shared/model3d/types').ImportJob>
     getImportJob: (jobId: string) => Promise<import('../shared/model3d/types').ImportJob | null>
-    onImportStatus: (handler: (job: import('../shared/model3d/types').ImportJob) => void) => () => void
+    onImportStatus: (
+      handler: (job: import('../shared/model3d/types').ImportJob) => void
+    ) => () => void
     getUrl: (tabId: number, rel: string) => Promise<string | null>
     log: (event: string, data?: Record<string, unknown>) => Promise<void>
     logs: (limit?: number) => Promise<Record<string, unknown>[]>
@@ -248,7 +270,7 @@ export interface WorkspaceApi {
   cad: {
     openFile: (
       tabId: number,
-      rel: string,
+      rel: string
     ) => Promise<import('../shared/cadViewer').CadViewerOpenResult>
   }
   epub: {
@@ -257,16 +279,15 @@ export interface WorkspaceApi {
     getState: (
       tabId: number | null,
       rel: string | null,
-      absolutePath?: string,
+      absolutePath?: string
     ) => Promise<import('../shared/ebookState').EbookBookState>
     saveState: (
       tabId: number | null,
       rel: string | null,
       absolutePath: string | undefined,
-      patch: Partial<import('../shared/ebookState').EbookBookState>,
+      patch: Partial<import('../shared/ebookState').EbookBookState>
     ) => Promise<import('../shared/ebookState').EbookBookState>
   }
-
 }
 
 declare global {
@@ -281,26 +302,80 @@ declare global {
 export interface PkmsDesktopApi {
   openVerification: (url: string) => Promise<void>
   openServiceOAuth: (url: string) => Promise<void>
-  request: <T = unknown>(path: string, options: import('../shared/pkmsClient').PkmsRequestOptions) => Promise<import('../shared/pkmsClient').PkmsResponse<T>>
+  request: <T = unknown>(
+    path: string,
+    options: import('../shared/pkmsClient').PkmsRequestOptions
+  ) => Promise<import('../shared/pkmsClient').PkmsResponse<T>>
   fetchAsset: (path: string) => Promise<import('../shared/pkmsClient').PkmsAssetResponse>
-  syncBridgeStatus: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
-  syncBridgeTree: (workspaceId: string, knownRevision?: number) => Promise<{ revision: number; files?: Array<import('../shared/pkmsClient').PkmsFile & { sha?: string | null; upToDate?: boolean }> }>
-  onLocalTreeChanged: (listener: (change: { workspaceId: string; path: string | null }) => void) => () => void
-  connectSyncBridge: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeConnectResult>
-  disconnectSyncBridge: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
-  scanSyncBridge: (workspaceId: string) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
-  updateSyncBridgeExclusions: (workspaceId: string, paths: string[]) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
-  readLocalMarkdown: (workspaceId: string, relativePath: string) => Promise<{ text: string; revision: string }>
-  writeLocalMarkdown: (workspaceId: string, relativePath: string, text: string, revision: string) => Promise<{ revision: string }>
-  listLocalDirectory: (workspaceId: string, relativePath: string) => Promise<import('../shared/pkmsClient').PkmsFile[]>
-  getLocalFile: (workspaceId: string, id: string) => Promise<import('../shared/pkmsClient').PkmsFile | null>
+  syncBridgeStatus: (
+    workspaceId: string
+  ) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
+  syncBridgeTree: (
+    workspaceId: string,
+    knownRevision?: number
+  ) => Promise<{
+    revision: number
+    files?: Array<
+      import('../shared/pkmsClient').PkmsFile & { sha?: string | null; upToDate?: boolean }
+    >
+  }>
+  onLocalTreeChanged: (
+    listener: (change: { workspaceId: string; path: string | null }) => void
+  ) => () => void
+  connectSyncBridge: (
+    workspaceId: string
+  ) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeConnectResult>
+  disconnectSyncBridge: (
+    workspaceId: string
+  ) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
+  scanSyncBridge: (
+    workspaceId: string
+  ) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
+  updateSyncBridgeExclusions: (
+    workspaceId: string,
+    paths: string[]
+  ) => Promise<import('../shared/pkmsSyncBridge').PkmsSyncBridgeStatus>
+  readLocalMarkdown: (
+    workspaceId: string,
+    relativePath: string
+  ) => Promise<{ text: string; revision: string }>
+  writeLocalMarkdown: (
+    workspaceId: string,
+    relativePath: string,
+    text: string,
+    revision: string
+  ) => Promise<{ revision: string }>
+  listLocalDirectory: (
+    workspaceId: string,
+    relativePath: string
+  ) => Promise<import('../shared/pkmsClient').PkmsFile[]>
+  getLocalFile: (
+    workspaceId: string,
+    id: string
+  ) => Promise<import('../shared/pkmsClient').PkmsFile | null>
   revealLocalItem: (workspaceId: string, relativePath: string) => Promise<void>
-  createLocalItem: (workspaceId: string, parent: string, kind: 'markdown' | 'folder', name: string) => Promise<import('../shared/pkmsClient').PkmsFile>
-  renameLocalItem: (workspaceId: string, id: string, name: string) => Promise<import('../shared/pkmsClient').PkmsFile>
-  moveLocalItems: (workspaceId: string, ids: string[], parent: string) => Promise<Array<{ oldId: string; file: import('../shared/pkmsClient').PkmsFile }>>
+  createLocalItem: (
+    workspaceId: string,
+    parent: string,
+    kind: 'markdown' | 'folder',
+    name: string
+  ) => Promise<import('../shared/pkmsClient').PkmsFile>
+  renameLocalItem: (
+    workspaceId: string,
+    id: string,
+    name: string
+  ) => Promise<import('../shared/pkmsClient').PkmsFile>
+  moveLocalItems: (
+    workspaceId: string,
+    ids: string[],
+    parent: string
+  ) => Promise<Array<{ oldId: string; file: import('../shared/pkmsClient').PkmsFile }>>
   deleteLocalItems: (workspaceId: string, ids: string[]) => Promise<void>
 }
 
 export interface WorkspaceHomeApi {
-  request: <T = unknown>(path: string, options: import('../shared/pkmsClient').PkmsRequestOptions) => Promise<import('../shared/pkmsClient').PkmsResponse<T>>
+  request: <T = unknown>(
+    path: string,
+    options: import('../shared/pkmsClient').PkmsRequestOptions
+  ) => Promise<import('../shared/pkmsClient').PkmsResponse<T>>
 }

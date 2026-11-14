@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import type { AgentStatusEntry, AgentStatusPayload } from '../../../shared/agent-status-types'
-import { isExplicitAgentStatusFresh, AGENT_STATUS_STALE_AFTER_MS } from '../../../shared/agent-status-freshness'
+import {
+  isExplicitAgentStatusFresh,
+  AGENT_STATUS_STALE_AFTER_MS
+} from '../../../shared/agent-status-freshness'
 import { buildAgentStatusPaneKey } from '../../../shared/agent-status-pane-key'
 
 type Retained = { workspaceTabId: number; entry: AgentStatusEntry }
@@ -22,7 +25,7 @@ type Actions = {
       titleDerived?: boolean
       evidenceObservedAt?: number
       stateStartedAt?: number
-    },
+    }
   ) => void
   dropAgentStatus: (paneKey: string) => void
   retainAgentDone: (paneKey: string, workspaceTabId: number) => void
@@ -40,7 +43,7 @@ function bumpEntry(
     stateStartedAt?: number
     evidenceObservedAt?: number
   },
-  previous: AgentStatusEntry | undefined,
+  previous: AgentStatusEntry | undefined
 ): AgentStatusEntry {
   const now = Date.now()
   const stateStartedAt =
@@ -60,7 +63,7 @@ function bumpEntry(
     interrupted: payload.interrupted,
     mainAgent: payload.mainAgent,
     titleDerived: meta.titleDerived ?? false,
-    stateHistory: previous?.stateHistory ?? [],
+    stateHistory: previous?.stateHistory ?? []
   }
 }
 
@@ -76,7 +79,7 @@ export const useAgentStatusStore = create<State & Actions>((set, get) => ({
       const entry = bumpEntry(paneKey, payload, meta, previous)
       return {
         agentStatusByPaneKey: { ...state.agentStatusByPaneKey, [paneKey]: entry },
-        agentStatusEpoch: state.agentStatusEpoch + 1,
+        agentStatusEpoch: state.agentStatusEpoch + 1
       }
     })
   },
@@ -96,14 +99,14 @@ export const useAgentStatusStore = create<State & Actions>((set, get) => ({
     set((state) => ({
       retainedAgentsByPaneKey: {
         ...state.retainedAgentsByPaneKey,
-        [paneKey]: { workspaceTabId, entry },
+        [paneKey]: { workspaceTabId, entry }
       },
       agentStatusByPaneKey: (() => {
         const next = { ...state.agentStatusByPaneKey }
         delete next[paneKey]
         return next
       })(),
-      agentStatusEpoch: state.agentStatusEpoch + 1,
+      agentStatusEpoch: state.agentStatusEpoch + 1
     }))
   },
 
@@ -123,7 +126,7 @@ export const useAgentStatusStore = create<State & Actions>((set, get) => ({
       next.delete(terminalId)
       return { liveTerminalIds: next }
     })
-  },
+  }
 }))
 
 export function getFreshHookAgentStatus(paneKey: string): AgentStatusEntry | null {

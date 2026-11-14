@@ -25,16 +25,16 @@ PKMS Data Node는 S21 Ultra를 PKMS 전용 독립 데이터 저장 서버로 사
 
 ### 시스템 역할
 
-| 구성 | 역할 |
-|---|---|
-| S21 Ultra | 영구 데이터 저장 노드 |
-| Backend | 비즈니스 로직 |
-| Crawler | 웹 데이터 수집 |
-| Parser | 데이터 구조화 |
-| Collector | 수집 데이터 전달 |
-| Worker | 비동기 작업 및 처리 |
-| PC | 개발 및 테스트 환경 |
-| NAS / PC / 외장 HDD | 독립 백업 |
+| 구성                | 역할                  |
+| ------------------- | --------------------- |
+| S21 Ultra           | 영구 데이터 저장 노드 |
+| Backend             | 비즈니스 로직         |
+| Crawler             | 웹 데이터 수집        |
+| Parser              | 데이터 구조화         |
+| Collector           | 수집 데이터 전달      |
+| Worker              | 비동기 작업 및 처리   |
+| PC                  | 개발 및 테스트 환경   |
+| NAS / PC / 외장 HDD | 독립 백업             |
 
 Backend와 Worker는 클라우드, PC, 다른 서버 어디서든 실행할 수 있다. S21 Ultra는 데이터 저장을 책임지는 독립 노드다.
 
@@ -56,10 +56,12 @@ Backend와 Worker는 클라우드, PC, 다른 서버 어디서든 실행할 수 
 - Linux 터미널 및 개발 도구 제공
 
 장점:
+
 - Android에서 실제 PostgreSQL을 실행하는 기술 검증에 유용하다.
 - PostgreSQL 자체를 직접 포팅할 필요가 없다.
 
 미확인 또는 제한:
+
 - 외부 Worker가 접속하는 상시 네트워크 DB 서버로 운영 가능한지 확인 필요
 - Android 백그라운드에서 프로세스가 종료될 가능성
 - PKMS Object Storage, Deduplication, Zstd, Recovery, 통합 Storage API는 별도 구현 필요
@@ -79,10 +81,12 @@ Backend와 Worker는 클라우드, PC, 다른 서버 어디서든 실행할 수 
 - Foreground Service 지원
 
 장점:
+
 - Android에서 DB와 파일 서버를 함께 운영할 가능성이 있다.
 - 프로토타입을 빠르게 시험할 수 있다.
 
 미확인 또는 제한:
+
 - PKMS 전용 API 및 데이터 정합성 기능은 별도 검증 필요
 - SHA-256 Deduplication, Zstd, 복구 엔진이 기본 제공된다고 확인되지 않음
 - 장시간 외부 서버 운영 안정성 확인 필요
@@ -124,12 +128,12 @@ DB 기능보다는 Object Storage의 파일 전송 부분을 참고하기 적합
 
 ### 기존 제품 비교
 
-| 제품 | DB | 파일 서버 | 통합 API | PKMS 적합성 |
-|---|---|---|---|---|
-| PocketCode | PostgreSQL | 별도 구현 | 제한적 | 부분 활용 |
-| HostPilot | SQLite | 가능성 있음 | 별도 확인 | 부분 활용 |
-| ADBA | SQLite | 미흡 | REST | PoC |
-| Pocket Server | 없음 | HTTP | 파일 API | 부분 활용 |
+| 제품          | DB         | 파일 서버   | 통합 API  | PKMS 적합성 |
+| ------------- | ---------- | ----------- | --------- | ----------- |
+| PocketCode    | PostgreSQL | 별도 구현   | 제한적    | 부분 활용   |
+| HostPilot     | SQLite     | 가능성 있음 | 별도 확인 | 부분 활용   |
+| ADBA          | SQLite     | 미흡        | REST      | PoC         |
+| Pocket Server | 없음       | HTTP        | 파일 API  | 부분 활용   |
 
 **조사 결론:** 기존 제품을 설치하는 것만으로 다음 기능을 하나의 운영 가능한 시스템에서 모두 제공하는 후보는 아직 검증하지 못했다.
 
@@ -153,19 +157,19 @@ DB 기능보다는 Object Storage의 파일 전송 부분을 참고하기 적합
 
 ### 구성
 
-| 영역 | 기술 | 상태 |
-|---|---|---|
-| Android 앱 | Kotlin | 권장 |
-| Android UI | Jetpack Compose | 권장 |
-| Server API | Ktor | 권장 |
-| Metadata DB | SQLite | 초기 선택 |
-| Object Storage | Filesystem | 초기 선택 |
-| Compression | Zstandard | 권장 |
-| Hash | SHA-256 | 채택 |
-| Network | Tailscale | 채택 방향 |
-| Development | Docker Compose | 채택 |
-| Testing | Integration Tests | 채택 |
-| Deployment | APK | 목표 |
+| 영역           | 기술              | 상태      |
+| -------------- | ----------------- | --------- |
+| Android 앱     | Kotlin            | 권장      |
+| Android UI     | Jetpack Compose   | 권장      |
+| Server API     | Ktor              | 권장      |
+| Metadata DB    | SQLite            | 초기 선택 |
+| Object Storage | Filesystem        | 초기 선택 |
+| Compression    | Zstandard         | 권장      |
+| Hash           | SHA-256           | 채택      |
+| Network        | Tailscale         | 채택 방향 |
+| Development    | Docker Compose    | 채택      |
+| Testing        | Integration Tests | 채택      |
+| Deployment     | APK               | 목표      |
 
 PostgreSQL은 초기 필수 구성에서 제외한다. 필요하면 Linux/NAS 환경에서 별도 구현으로 도입하되 외부 API 계약은 유지한다.
 
@@ -257,16 +261,16 @@ DB에는 다음 정보를 보관한다.
 
 ### 초기 DB 테이블
 
-| 테이블 | 용도 |
-|---|---|
-| objects | 원본 객체 정보 |
-| documents | 문서 Metadata |
-| ingestion_jobs | 수집 작업 상태 |
-| object_references | 객체 참조 관계 |
+| 테이블               | 용도                     |
+| -------------------- | ------------------------ |
+| objects              | 원본 객체 정보           |
+| documents            | 문서 Metadata            |
+| ingestion_jobs       | 수집 작업 상태           |
+| object_references    | 객체 참조 관계           |
 | storage_transactions | 파일과 DB 상태 전이 관리 |
-| schema_migrations | DB 스키마 버전 관리 |
-| backup_records | 백업 이력 |
-| integrity_checks | 무결성 검사 결과 |
+| schema_migrations    | DB 스키마 버전 관리      |
+| backup_records       | 백업 이력                |
+| integrity_checks     | 무결성 검사 결과         |
 
 ### 파일과 DB 정합성
 
@@ -317,20 +321,20 @@ SUCCESS RESPONSE
 
 Worker가 호출하는 API 계약은 처음부터 고정한다.
 
-| Method | Endpoint | 기능 |
-|---|---|---|
-| POST | `/v1/objects` | 객체 업로드 |
-| GET | `/v1/objects/{id}` | 객체 다운로드 |
-| HEAD | `/v1/objects/{id}` | 존재 여부 및 크기 |
-| GET | `/v1/documents/{id}` | 문서 조회 |
-| POST | `/v1/documents/search` | 문서 검색 |
-| GET | `/v1/health` | 상태 확인 |
-| POST | `/v1/admin/verify` | 무결성 검사 |
-| POST | `/v1/admin/recovery` | 복구 작업 |
-| GET | `/v1/stats` | 저장 통계 |
-| GET | `/v1/objects/{id}/metadata` | 객체 Metadata |
-| POST | `/v1/admin/backup` | 백업 실행 |
-| GET | `/v1/admin/jobs` | 작업 상태 |
+| Method | Endpoint                    | 기능              |
+| ------ | --------------------------- | ----------------- |
+| POST   | `/v1/objects`               | 객체 업로드       |
+| GET    | `/v1/objects/{id}`          | 객체 다운로드     |
+| HEAD   | `/v1/objects/{id}`          | 존재 여부 및 크기 |
+| GET    | `/v1/documents/{id}`        | 문서 조회         |
+| POST   | `/v1/documents/search`      | 문서 검색         |
+| GET    | `/v1/health`                | 상태 확인         |
+| POST   | `/v1/admin/verify`          | 무결성 검사       |
+| POST   | `/v1/admin/recovery`        | 복구 작업         |
+| GET    | `/v1/stats`                 | 저장 통계         |
+| GET    | `/v1/objects/{id}/metadata` | 객체 Metadata     |
+| POST   | `/v1/admin/backup`          | 백업 실행         |
+| GET    | `/v1/admin/jobs`            | 작업 상태         |
 
 저장 구현과 API 계층은 분리한다.
 
@@ -393,18 +397,18 @@ PC와 Android가 동일한 Storage Core 코드를 공유한다. 차이는 저장
 
 ### 필수 시뮬레이션
 
-| 테스트 | 검증 내용 |
-|---|---|
-| 일반 업로드 | 파일 저장 및 DB 기록 |
-| 중복 업로드 | 객체 중복 제거 |
-| 동시 업로드 | 1~20 Worker |
-| 대용량 업로드 | 메모리 안정성 |
-| 강제 종료 | 미완료 업로드 복구 |
-| DB 오류 | 파일 고아 탐지 |
-| 파일 손상 | SHA-256 불일치 검출 |
-| 백업 | 전체 데이터 복원 |
-| API 재시도 | Idempotency |
-| 장시간 운영 | 메모리 및 안정성 |
+| 테스트        | 검증 내용            |
+| ------------- | -------------------- |
+| 일반 업로드   | 파일 저장 및 DB 기록 |
+| 중복 업로드   | 객체 중복 제거       |
+| 동시 업로드   | 1~20 Worker          |
+| 대용량 업로드 | 메모리 안정성        |
+| 강제 종료     | 미완료 업로드 복구   |
+| DB 오류       | 파일 고아 탐지       |
+| 파일 손상     | SHA-256 불일치 검출  |
+| 백업          | 전체 데이터 복원     |
+| API 재시도    | Idempotency          |
+| 장시간 운영   | 메모리 및 안정성     |
 
 Docker는 개발용 시뮬레이터다. Android의 배터리 관리, 앱 생명주기, 저장소 동작을 완전히 재현하지 못하므로 최종적으로 S21 Ultra 실기기 테스트가 필요하다.
 
@@ -496,40 +500,40 @@ Worker는 저장 노드의 내부 DB나 파일 경로를 알 필요가 없어야
 
 ### 미결정 사항
 
-| 항목 | 현재 상태 |
-|---|---|
-| DB | SQLite 우선 제안 |
-| API | Ktor 우선 제안 |
-| Android UI | Jetpack Compose 제안 |
-| Object 최대 크기 | 미정 |
-| 동시 업로드 | 2~5개 임시 기준 |
-| 보관 기간 | 영구 보관 임시 기준 |
-| S21 저장 용량 | 미확인 |
-| 백업 장치 | 미정 |
-| 인증 방식 | API Token 제안 |
-| 저장 데이터 암호화 | 미정 |
-| Tailscale 연동 방식 | 미정 |
-| 자동 시작 정책 | Android 제약 검토 필요 |
+| 항목                | 현재 상태              |
+| ------------------- | ---------------------- |
+| DB                  | SQLite 우선 제안       |
+| API                 | Ktor 우선 제안         |
+| Android UI          | Jetpack Compose 제안   |
+| Object 최대 크기    | 미정                   |
+| 동시 업로드         | 2~5개 임시 기준        |
+| 보관 기간           | 영구 보관 임시 기준    |
+| S21 저장 용량       | 미확인                 |
+| 백업 장치           | 미정                   |
+| 인증 방식           | API Token 제안         |
+| 저장 데이터 암호화  | 미정                   |
+| Tailscale 연동 방식 | 미정                   |
+| 자동 시작 정책      | Android 제약 검토 필요 |
 
 ---
 
 ## 10. 개발 로드맵
 
-| 순서 | 작업 | 결과물 |
-|---|---|---|
-| 1 | 프로젝트 초기화 | Git Repository |
-| 2 | Storage Core | 공통 저장 엔진 |
-| 3 | SQLite Schema | Metadata DB |
-| 4 | Filesystem Object Storage | 파일 저장 |
-| 5 | SHA-256 / Zstd | 중복 제거 및 압축 |
-| 6 | Ktor API | REST API |
-| 7 | Docker Compose Simulator | 개발 시뮬레이터 |
-| 8 | Automated Tests | 검증 시스템 |
-| 9 | Android Integration | APK |
-| 10 | S21 Ultra Testing | 실기기 검증 |
-| 11 | Tailscale | 외부 연결 |
-| 12 | Backup / Recovery | 데이터 보호 |
-| 13 | Stress Test | 장기 운영 검증 |
+| 순서 | 작업                      | 결과물            |
+| ---- | ------------------------- | ----------------- |
+| 1    | 프로젝트 초기화           | Git Repository    |
+| 2    | Storage Core              | 공통 저장 엔진    |
+| 3    | SQLite Schema             | Metadata DB       |
+| 4    | Filesystem Object Storage | 파일 저장         |
+| 5    | SHA-256 / Zstd            | 중복 제거 및 압축 |
+| 6    | Ktor API                  | REST API          |
+| 7    | Docker Compose Simulator  | 개발 시뮬레이터   |
+| 8    | Automated Tests           | 검증 시스템       |
+| 9    | Android Integration       | APK               |
+| 10   | S21 Ultra Testing         | 실기기 검증       |
+| 11   | Tailscale                 | 외부 연결         |
+| 12   | Backup / Recovery         | 데이터 보호       |
+| 13   | Stress Test               | 장기 운영 검증    |
 
 ---
 

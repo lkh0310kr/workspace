@@ -10,15 +10,15 @@ FileViewerContent의 입력은 tabId, filePath, absolutePath, viewerHint, treeOp
 
 [mediaKind.ts](../../../apps/workspace-app/src/renderer/src/panes/mediaKind.ts)의 case-insensitive 확장자 분류:
 
-| kind | 확장자 |
-|---|---|
-| image | png,jpg,jpeg,gif,webp,svg,bmp |
-| pdf / epub | pdf / epub |
-| video | mp4,webm,mov,mkv |
-| audio | mp3,wav,m4a,ogg,flac |
-| model3d | glb,gltf,fbx,obj,stl,ply,dae,step,stp |
-| cad | urdf,srdf,sdf,dxf |
-| other | 그 외 |
+| kind       | 확장자                                |
+| ---------- | ------------------------------------- |
+| image      | png,jpg,jpeg,gif,webp,svg,bmp         |
+| pdf / epub | pdf / epub                            |
+| video      | mp4,webm,mov,mkv                      |
+| audio      | mp3,wav,m4a,ogg,flac                  |
+| model3d    | glb,gltf,fbx,obj,stl,ply,dae,step,stp |
+| cad        | urdf,srdf,sdf,dxf                     |
+| other      | 그 외                                 |
 
 ## 로딩과 자원 수명
 
@@ -26,7 +26,7 @@ image/PDF는 workspace-relative readFileBinaryPreview의 base64 bytes를 Blob UR
 
 EPUB는 EpubReaderContent, model3d/CAD는 lazy import한 별도 renderer가 로딩을 소유하므로 binary preview를 호출하지 않는다. 경로 변경 때 error/zoom/naturalSize/mediaUrl/subtitle 상태를 초기화한다. 비동기 응답은 cancelled flag로 폐기하며 URL이 없거나 읽기 실패면 오류 상태다. SRT 자막은 parse→VTT Blob URL로 만들고 교체/해제 시 revoke한다.
 
-이미지 zoom은 null=fit, 숫자=배율이다. 범위 0.1~20, 버튼 단계는 0.1~1의 0.1 간격 후 1.5,2,3,5,7,10,15,20이고 3배 초과에서 pixelated 표시다. pinch factor는 0.075다.
+이미지 zoom은 null=fit, 숫자=배율이다. 범위 0.1~~20, 버튼 단계는 0.1~~1의 0.1 간격 후 1.5,2,3,5,7,10,15,20이고 3배 초과에서 pixelated 표시다. pinch factor는 0.075다.
 
 ## 수락 기준과 범위
 

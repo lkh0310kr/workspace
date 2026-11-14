@@ -4,22 +4,22 @@ App scope 기준이다. [전역 제품 여정](../../../docs/product/README.md)�
 
 ## 읽는 순서
 
-| 영역 | 기준 문서 | 소유 책임 |
-|---|---|---|
-| layout | [Workspace·pane 상태](./layout/README.md) | model·activation·preview·mutation·저장 |
-| interaction | [표시·focus·overlay](./interaction/README.md) | guest 입력/표시·portal·drag 정책 |
-| runtime | [시작·종료](./runtime/README.md) | Main/renderer 초기화·restore·quit |
-| IPC | [Bridge 계약 지도](./ipc/README.md) | invoke/send/event·family·권한·수명 |
-| persistence | [저장과 복구 inventory](./persistence/README.md) | layout·terminal·cache·credentials 저장 경계 |
-| terminal | [출력·replay·입력](./terminal/README.md) | detached host·sequence·ACK·xterm 수명 |
-| PKMS adapter | [폴더 sync](./pkms/README.md) | token proxy·durable queue·삭제 guard |
-| editor adapter | [로컬 provider](./editor/providers.md) | filesystem identity·조건부 쓰기·충돌 |
-| viewers | [포맷별 pipeline](./viewers/README.md) | media·EPUB·3D·CAD routing와 자원 |
-| Home | [기기·서비스 상태](./home/README.md) | local summary·provider 상태 UI |
-| agents | [evidence와 freshness](./agents/README.md) | hook/title·pane identity·rollup |
-| settings/usage | [설정과 usage](./settings/README.md) | defaults·theme·zoom·실제 adapter |
-| operations | [로그](./operations/logging.md) · [Windows build](./operations/windows-build.md) | 진단·보관·native build 절차 |
-| browser | [Browser](./browser/README.md) | guest·viewport·navigation·session·IPC |
+| 영역           | 기준 문서                                                                        | 소유 책임                                   |
+| -------------- | -------------------------------------------------------------------------------- | ------------------------------------------- |
+| layout         | [Workspace·pane 상태](./layout/README.md)                                        | model·activation·preview·mutation·저장      |
+| interaction    | [표시·focus·overlay](./interaction/README.md)                                    | guest 입력/표시·portal·drag 정책            |
+| runtime        | [시작·종료](./runtime/README.md)                                                 | Main/renderer 초기화·restore·quit           |
+| IPC            | [Bridge 계약 지도](./ipc/README.md)                                              | invoke/send/event·family·권한·수명          |
+| persistence    | [저장과 복구 inventory](./persistence/README.md)                                 | layout·terminal·cache·credentials 저장 경계 |
+| terminal       | [출력·replay·입력](./terminal/README.md)                                         | detached host·sequence·ACK·xterm 수명       |
+| PKMS adapter   | [폴더 sync](./pkms/README.md)                                                    | token proxy·durable queue·삭제 guard        |
+| editor adapter | [로컬 provider](./editor/providers.md)                                           | filesystem identity·조건부 쓰기·충돌        |
+| viewers        | [포맷별 pipeline](./viewers/README.md)                                           | media·EPUB·3D·CAD routing와 자원            |
+| Home           | [기기·서비스 상태](./home/README.md)                                             | local summary·provider 상태 UI              |
+| agents         | [evidence와 freshness](./agents/README.md)                                       | hook/title·pane identity·rollup             |
+| settings/usage | [설정과 usage](./settings/README.md)                                             | defaults·theme·zoom·실제 adapter            |
+| operations     | [로그](./operations/logging.md) · [Windows build](./operations/windows-build.md) | 진단·보관·native build 절차                 |
+| browser        | [Browser](./browser/README.md)                                                   | guest·viewport·navigation·session·IPC       |
 
 공유 [Editor](../../../packages/editor/docs/README.md), [PKMS client session](../../../packages/pkms-client/docs/editor-sessions.md), [PKMS 통합 경계](../../../docs/architecture/pkms/overview.md)를 함께 읽는다. 아직 모든 분기·native 수락까지 상세화하지 않은 영역은 [감사](../../../docs/planning/top-down-documentation-audit.md)와 [계획](../../../docs/planning/spec-driven-development-roadmap.md)에서 추적한다.
 

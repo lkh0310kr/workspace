@@ -305,9 +305,7 @@
       "owner": "apps/workspace-app",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/workspace-app/docs/editor/providers.md"
-      ],
+      "documents": ["apps/workspace-app/docs/editor/providers.md"],
       "sources": [
         {
           "path": "apps/workspace-app/src/renderer/src/activeEditorView.ts",
@@ -938,10 +936,7 @@
       "owner": "apps/pkms-web",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/pkms-web/README.md",
-        "apps/pkms-web/docs/README.md"
-      ],
+      "documents": ["apps/pkms-web/README.md", "apps/pkms-web/docs/README.md"],
       "sources": [
         {
           "path": "apps/pkms-web/app/routes.ts",
@@ -963,10 +958,7 @@
       "owner": "apps/pkms-server",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/pkms-server/README.md",
-        "apps/pkms-server/docs/README.md"
-      ],
+      "documents": ["apps/pkms-server/README.md", "apps/pkms-server/docs/README.md"],
       "sources": [
         {
           "path": "apps/pkms-server/src/app.ts",
@@ -996,10 +988,7 @@
       "owner": "apps/workspace-server",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/workspace-server/README.md",
-        "apps/workspace-server/docs/README.md"
-      ],
+      "documents": ["apps/workspace-server/README.md", "apps/workspace-server/docs/README.md"],
       "sources": [
         {
           "path": "apps/workspace-server/src/auth.ts",
@@ -1029,10 +1018,7 @@
       "owner": "apps/pkms-ios",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/pkms-ios/README.md",
-        "apps/pkms-ios/docs/README.md"
-      ],
+      "documents": ["apps/pkms-ios/README.md", "apps/pkms-ios/docs/README.md"],
       "sources": [
         {
           "path": "apps/pkms-ios/NativeMarkdownDocument.swift",
@@ -1070,10 +1056,7 @@
       "owner": "packages/pkms-core",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "packages/pkms-core/README.md",
-        "packages/pkms-core/docs/README.md"
-      ],
+      "documents": ["packages/pkms-core/README.md", "packages/pkms-core/docs/README.md"],
       "sources": [
         {
           "path": "apps/pkms-ios/NativeMarkdownDocument.swift",
@@ -1099,10 +1082,7 @@
       "owner": "packages/pkms-protocol",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "packages/pkms-protocol/README.md",
-        "packages/pkms-protocol/docs/README.md"
-      ],
+      "documents": ["packages/pkms-protocol/README.md", "packages/pkms-protocol/docs/README.md"],
       "sources": [
         {
           "path": "apps/pkms-ios/PKMSProtocolModels.swift",

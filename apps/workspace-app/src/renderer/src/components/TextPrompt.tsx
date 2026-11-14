@@ -1,5 +1,5 @@
-import { Popover, type AnchorRect } from "./Popover";
-import { EditorNameForm } from "@workspace/editor";
+import { Popover, type AnchorRect } from './Popover'
+import { EditorNameForm } from '@workspace/editor'
 
 // Electron doesn't implement window.prompt() at all — it throws
 // "prompt() is not supported" unconditionally (a long-standing, never-
@@ -9,15 +9,22 @@ import { EditorNameForm } from "@workspace/editor";
 // a small popover with a text input, anchored wherever the caller says
 // (the context-menu click position, for TreeView's case).
 interface Props {
-  anchorRect: AnchorRect;
-  title: string;
-  defaultValue?: string;
-  submitLabel?: string;
-  onSubmit: (value: string) => void;
-  onClose: () => void;
+  anchorRect: AnchorRect
+  title: string
+  defaultValue?: string
+  submitLabel?: string
+  onSubmit: (value: string) => void
+  onClose: () => void
 }
 
-export function TextPrompt({ anchorRect, title, defaultValue = "", submitLabel = "OK", onSubmit, onClose }: Props) {
+export function TextPrompt({
+  anchorRect,
+  title,
+  defaultValue = '',
+  submitLabel = 'OK',
+  onSubmit,
+  onClose
+}: Props) {
   return (
     <Popover anchorRect={anchorRect} onClose={onClose} className="text-prompt">
       <EditorNameForm
@@ -26,9 +33,12 @@ export function TextPrompt({ anchorRect, title, defaultValue = "", submitLabel =
         submitLabel={submitLabel}
         titleClassName="text-prompt-title"
         actionsClassName="text-prompt-actions"
-        onSubmit={(value) => { onSubmit(value); onClose(); }}
+        onSubmit={(value) => {
+          onSubmit(value)
+          onClose()
+        }}
         onCancel={onClose}
       />
     </Popover>
-  );
+  )
 }

@@ -9,15 +9,15 @@
 
 따라서 S21 Ultra는 우선 **재생성 가능한 수집물의 캐시/edge replica 또는 실험 노드**로 한정하고, 유일한 원본은 PC/NAS에 둔 뒤 검증 결과를 보고 역할을 올리는 것이 맞다. 꼭 폰을 primary로 써야 한다면 독립 백업이 성공하기 전에는 업로드를 영구 저장으로 승인하지 않는 설계가 필요하다.
 
-| 항목 | 현실성 | 판단 |
-|---|---:|---|
-| Kotlin 앱 안에서 Ktor API와 SQLite 실행 | 높음 | 일반적인 앱 개발 범위 |
-| 스트리밍 파일 저장, SHA-256, Zstd | 높음 | 라이브러리와 단계적 파일 처리로 구현 가능 |
-| 파일/DB 정합성 복구 | 중간 | 상태 머신과 재시도는 가능하나 모든 전원 차단 경계를 시험해야 함 |
-| 외부 Worker가 지속 접속 | 중간 이하 | 네트워크 변경, 절전, 제조사 정책, 앱 종료가 가용성에 영향 |
-| 24/7 무인 운용 | 낮음~중간 | Android foreground service도 범용 무중단 서버 보장이 아님 |
-| 폰 내부 저장소를 유일한 영구 보관소로 사용 | 낮음 | 기기 단일 장애점, 앱 제거/초기화 위험, 백업 없는 내구성 없음 |
-| NAS/Linux로 이식 | 중간~높음 | API 계약은 재사용 가능하지만 Android 파일/서비스 구현은 그대로 이식되지 않음 |
+| 항목                                       |    현실성 | 판단                                                                         |
+| ------------------------------------------ | --------: | ---------------------------------------------------------------------------- |
+| Kotlin 앱 안에서 Ktor API와 SQLite 실행    |      높음 | 일반적인 앱 개발 범위                                                        |
+| 스트리밍 파일 저장, SHA-256, Zstd          |      높음 | 라이브러리와 단계적 파일 처리로 구현 가능                                    |
+| 파일/DB 정합성 복구                        |      중간 | 상태 머신과 재시도는 가능하나 모든 전원 차단 경계를 시험해야 함              |
+| 외부 Worker가 지속 접속                    | 중간 이하 | 네트워크 변경, 절전, 제조사 정책, 앱 종료가 가용성에 영향                    |
+| 24/7 무인 운용                             | 낮음~중간 | Android foreground service도 범용 무중단 서버 보장이 아님                    |
+| 폰 내부 저장소를 유일한 영구 보관소로 사용 |      낮음 | 기기 단일 장애점, 앱 제거/초기화 위험, 백업 없는 내구성 없음                 |
+| NAS/Linux로 이식                           | 중간~높음 | API 계약은 재사용 가능하지만 Android 파일/서비스 구현은 그대로 이식되지 않음 |
 
 ## 조사에서 확인한 제약
 
@@ -43,23 +43,23 @@ SHA-256은 비트 손상·중복 식별에 도움을 주지만, 같은 기기 �
 
 아래는 Android/mobile storage와 직접 맞닿은 문헌이다. 최근 연구가 있다고 해서 S21을 NAS 대체품으로 입증한 것은 아니다.
 
-| 연구 | 확인된 내용 | PKMS에 주는 의미와 한계 |
-|---|---|---|
-| **INTACT: Compact Storage of Data Streams in Mobile Devices to Unlock User Privacy at the Edge** (arXiv, 2025 제출본) | Android와 iOS에 모바일 시계열 압축/프라이버시 프레임워크를 구현한다. 손실 허용 오차 기반의 선형 근사 저장을 평가한다. [논문](https://arxiv.org/abs/2506.21998) | 모바일에서 로컬 저장·처리가 가능함을 보여주는 연구 사례. 단, 근사 손실이 허용되는 센서/GPS 시계열 대상이므로 PKMS의 원본 문서 무손실 보관에 제안된 기법을 적용하면 안 된다. Zstd/원본 보존의 근거도 아니다. |
-| **R-Drive: Resilient Data Storage and Sharing for Mobile Edge Computing Systems** (MASS 2022) | Android 구현을 재난·전술형 mobile edge computing 앱과 통합하고, erasure coding과 암호화를 이용한 복원성을 다룬다. [논문](https://arxiv.org/abs/2204.10823) | 모바일 저장을 현실 환경에서 활용하는 직접 관련 사례. 단일 전화기가 아니라 엣지 분산 환경의 복제/협력에 의존한다. PKMS에서도 내구성을 목표로 한다면 별도 노드 복제가 중요하다는 근거이지, 한 대의 폰만으로 내구성이 확보된다는 근거가 아니다. |
-| **DistressNet-NG: A Resilient Data Storage and Sharing Framework for Mobile Edge Computing in Cyber-Physical Systems** (ACM, 2024) | R-Drive/R-Share, resilient coordination와 통신을 묶은 모바일 엣지 프레임워크 및 Android 앱들을 설명한다. [논문 DOI](https://doi.org/10.1145/3639057) | 적용 영역은 재난 대응·CPS에 가깝고 장치 간 분산 및 통신 복원성이 중심이다. 제품 문서의 단일 S21 지속 가용성·영구보관 요구를 직접 검증하지 않는다. |
-| **EdgeKeeper: Resilient and Lightweight Coordination for Mobile Edge Computing Systems** (2022) | Android와 Linux에서 실행하는 분산 edge coordination 구현을 제시하며, 노드 이탈을 고려해 여러 노드에 데이터를 둔다. [논문](https://arxiv.org/abs/2204.11095) | PKMS의 미래 다중 노드 확장에는 참고가 되지만 초기 단일 노드 APK의 최소 기능으로 가져오면 과도하다. 먼저 단일 노드 복구와 외부 백업을 완성해야 한다. |
+| 연구                                                                                                                               | 확인된 내용                                                                                                                                                    | PKMS에 주는 의미와 한계                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **INTACT: Compact Storage of Data Streams in Mobile Devices to Unlock User Privacy at the Edge** (arXiv, 2025 제출본)              | Android와 iOS에 모바일 시계열 압축/프라이버시 프레임워크를 구현한다. 손실 허용 오차 기반의 선형 근사 저장을 평가한다. [논문](https://arxiv.org/abs/2506.21998) | 모바일에서 로컬 저장·처리가 가능함을 보여주는 연구 사례. 단, 근사 손실이 허용되는 센서/GPS 시계열 대상이므로 PKMS의 원본 문서 무손실 보관에 제안된 기법을 적용하면 안 된다. Zstd/원본 보존의 근거도 아니다.                                  |
+| **R-Drive: Resilient Data Storage and Sharing for Mobile Edge Computing Systems** (MASS 2022)                                      | Android 구현을 재난·전술형 mobile edge computing 앱과 통합하고, erasure coding과 암호화를 이용한 복원성을 다룬다. [논문](https://arxiv.org/abs/2204.10823)     | 모바일 저장을 현실 환경에서 활용하는 직접 관련 사례. 단일 전화기가 아니라 엣지 분산 환경의 복제/협력에 의존한다. PKMS에서도 내구성을 목표로 한다면 별도 노드 복제가 중요하다는 근거이지, 한 대의 폰만으로 내구성이 확보된다는 근거가 아니다. |
+| **DistressNet-NG: A Resilient Data Storage and Sharing Framework for Mobile Edge Computing in Cyber-Physical Systems** (ACM, 2024) | R-Drive/R-Share, resilient coordination와 통신을 묶은 모바일 엣지 프레임워크 및 Android 앱들을 설명한다. [논문 DOI](https://doi.org/10.1145/3639057)           | 적용 영역은 재난 대응·CPS에 가깝고 장치 간 분산 및 통신 복원성이 중심이다. 제품 문서의 단일 S21 지속 가용성·영구보관 요구를 직접 검증하지 않는다.                                                                                            |
+| **EdgeKeeper: Resilient and Lightweight Coordination for Mobile Edge Computing Systems** (2022)                                    | Android와 Linux에서 실행하는 분산 edge coordination 구현을 제시하며, 노드 이탈을 고려해 여러 노드에 데이터를 둔다. [논문](https://arxiv.org/abs/2204.11095)    | PKMS의 미래 다중 노드 확장에는 참고가 되지만 초기 단일 노드 APK의 최소 기능으로 가져오면 과도하다. 먼저 단일 노드 복구와 외부 백업을 완성해야 한다.                                                                                          |
 
 INTACT는 현재 확인 가능한 최근 연구 중 모바일 저장 측면의 자료지만, 일반 파일 서버 내구성 논문은 아니다. 검색된 2025–26년 모바일 edge-storage 결과 중 일부는 preprint/초기 공개 자료여서 peer review와 재현성 근거로 과대평가하지 않았다. 이 조사에서 PKMS와 동일한 조건(상용 Android 폰 1대, 24/7 LAN API, 장기 무손실 객체 저장)을 검증한 연구는 확인하지 못했다.
 
 ## 실제 적용 사례
 
-| 사례 | 실제 제공 기능 | 현실성 평가 |
-|---|---|---|
-| **DogNAS** | Android 폰/태블릿을 SFTP 저장 노드로 쓰고, PC·Linux·자동화가 SFTP로 파일을 올리고 받도록 제품화했다. 앱 닫힘 중 전송, 재부팅 후 자동 시작은 제품 등급과 Android가 허용하는 조건에 연결한다. [제품/기능 설명](https://dognas.app/) | 사용자가 Android를 파일 저장 노드처럼 쓸 수 있다는 가장 직접적인 상용 사례. 제품 설명은 자체 제품 주장이며 장기 데이터 보존 SLA나 독립 검증된 NAS급 내구성 증거는 아니다. 부팅 후 시작도 조건부라는 점이 중요하다. |
-| **Pocket Server** | Android에서 LAN HTTP 파일 서버, 파일 브라우징, streaming upload/download, Range 요청을 제공한다. [프로젝트 README](https://github.com/saketkhundia/Pocket-Server) | APK로 파일 서버를 구현하는 범위는 현실적임을 보여준다. README에 명시된 LAN 개인용 파일 서버 기능은 metadata transaction, 객체 복구, 장기 무인 운영을 입증하지 않는다. |
-| **Transfer (matan-h)** | Wi-Fi를 통한 Android 로컬 파일 서버로 특정 폴더를 공유한다. [프로젝트](https://github.com/matan-h/Transfer) | 단순 교환/전송은 흔한 활용 패턴이다. PKMS의 장기 저장 레이어로 쓰기에는 별도 상태 관리가 필요하다. |
-| **Tailscale Android** | Android 클라이언트로 tailnet에 기기를 연결하고 앱별 라우팅 설정을 제공한다. [설치 문서](https://tailscale.com/docs/install/android), [앱별 터널 문서](https://tailscale.com/docs/features/client/android-app-split-tunneling) | 원격 연결은 Android용 Tailscale 앱을 별도 설치·로그인하는 방식으로 먼저 검증하는 것이 낮은 위험이다. VPN 권한을 쓰는 Tailscale을 APK에 자체 내장하는 것은 별도 통합/배포 부담을 낳으므로 MVP 범위에 넣지 않는다. |
+| 사례                   | 실제 제공 기능                                                                                                                                                                                                                    | 현실성 평가                                                                                                                                                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **DogNAS**             | Android 폰/태블릿을 SFTP 저장 노드로 쓰고, PC·Linux·자동화가 SFTP로 파일을 올리고 받도록 제품화했다. 앱 닫힘 중 전송, 재부팅 후 자동 시작은 제품 등급과 Android가 허용하는 조건에 연결한다. [제품/기능 설명](https://dognas.app/) | 사용자가 Android를 파일 저장 노드처럼 쓸 수 있다는 가장 직접적인 상용 사례. 제품 설명은 자체 제품 주장이며 장기 데이터 보존 SLA나 독립 검증된 NAS급 내구성 증거는 아니다. 부팅 후 시작도 조건부라는 점이 중요하다. |
+| **Pocket Server**      | Android에서 LAN HTTP 파일 서버, 파일 브라우징, streaming upload/download, Range 요청을 제공한다. [프로젝트 README](https://github.com/saketkhundia/Pocket-Server)                                                                 | APK로 파일 서버를 구현하는 범위는 현실적임을 보여준다. README에 명시된 LAN 개인용 파일 서버 기능은 metadata transaction, 객체 복구, 장기 무인 운영을 입증하지 않는다.                                              |
+| **Transfer (matan-h)** | Wi-Fi를 통한 Android 로컬 파일 서버로 특정 폴더를 공유한다. [프로젝트](https://github.com/matan-h/Transfer)                                                                                                                       | 단순 교환/전송은 흔한 활용 패턴이다. PKMS의 장기 저장 레이어로 쓰기에는 별도 상태 관리가 필요하다.                                                                                                                 |
+| **Tailscale Android**  | Android 클라이언트로 tailnet에 기기를 연결하고 앱별 라우팅 설정을 제공한다. [설치 문서](https://tailscale.com/docs/install/android), [앱별 터널 문서](https://tailscale.com/docs/features/client/android-app-split-tunneling)     | 원격 연결은 Android용 Tailscale 앱을 별도 설치·로그인하는 방식으로 먼저 검증하는 것이 낮은 위험이다. VPN 권한을 쓰는 Tailscale을 APK에 자체 내장하는 것은 별도 통합/배포 부담을 낳으므로 MVP 범위에 넣지 않는다.   |
 
 제품·프로젝트 사례는 “기술적으로 가능”의 근거이지 가동률·내구성의 보증은 아니다. 공개된 사용자 수, 독립 장기 가동률, 데이터 손실률을 확인할 수 없는 경우가 대부분이다.
 

@@ -1,12 +1,12 @@
-import { EditorContent } from "../EditorContent";
-import type { PaneKindDefinition, PaneRenderContext } from "../paneKindRegistry";
+import { EditorContent } from '../EditorContent'
+import type { PaneKindDefinition, PaneRenderContext } from '../paneKindRegistry'
 
 function fileTabLabel(item: { filePath?: string | null }): string {
-  const path = item.filePath;
-  return path ? path.split("/").pop() || path : "New tab";
+  const path = item.filePath
+  return path ? path.split('/').pop() || path : 'New tab'
 }
 
-function renderEditor(kind: "code" | "markdown") {
+function renderEditor(kind: 'code' | 'markdown') {
   return function render(ctx: PaneRenderContext) {
     return (
       <EditorContent
@@ -21,8 +21,8 @@ function renderEditor(kind: "code" | "markdown") {
         jumpToLine={ctx.jumpToLine}
         onJumpConsumed={ctx.onJumpConsumed}
       />
-    );
-  };
+    )
+  }
 }
 
 // "code" has no picker entries — deliberately not directly pickable (a
@@ -30,26 +30,26 @@ function renderEditor(kind: "code" | "markdown") {
 // only ever creates .md files). It's still a real, renderable kind: a
 // TreeView/Quick Open click on an existing non-markdown file produces one.
 export const codePaneKind: PaneKindDefinition = {
-  kind: "code",
-  label: "Code",
-  icon: "code",
+  kind: 'code',
+  label: 'Code',
+  icon: 'code',
   hasFileExplorer: true,
   createItem(id, source) {
-    return { id, kind: "code", filePath: source?.filePath ?? null };
+    return { id, kind: 'code', filePath: source?.filePath ?? null }
   },
   tabLabel: fileTabLabel,
-  render: renderEditor("code"),
-};
+  render: renderEditor('code')
+}
 
 export const markdownPaneKind: PaneKindDefinition = {
-  kind: "markdown",
-  label: "Editor",
-  icon: "code",
+  kind: 'markdown',
+  label: 'Editor',
+  icon: 'code',
   hasFileExplorer: true,
-  pickerEntries: [{ label: "Editor", icon: "code" }],
+  pickerEntries: [{ label: 'Editor', icon: 'code' }],
   createItem(id, source) {
-    return { id, kind: "markdown", filePath: source?.filePath ?? null };
+    return { id, kind: 'markdown', filePath: source?.filePath ?? null }
   },
   tabLabel: fileTabLabel,
-  render: renderEditor("markdown"),
-};
+  render: renderEditor('markdown')
+}

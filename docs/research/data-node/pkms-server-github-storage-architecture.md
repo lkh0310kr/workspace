@@ -50,15 +50,15 @@ GitHub Git Database API는 blob → tree → commit → branch reference 갱신 
 
 현재 Supabase를 없애려 할 때 대체해야 할 capability를 분리하면:
 
-| 현재 역할 | 코드/데이터 | 없앨 때 대체할 것 |
-|---|---|---|
-| Transactional metadata | `pkms_workspaces`, `pkms_files`, `pkms_operations`, RPC | ACID transaction, idempotency, revision conflict 처리 |
-| Collaborative document log | `pkms_documents`, `pkms_document_updates`, Yjs | durable update append, compaction/snapshot, state-vector sync |
-| Realtime | Supabase Realtime broadcast/JWT | WebSocket pub/sub relay 또는 실시간 협업 축소 |
-| Flush queue/coordination | dirty flag, due time, lease, retry count, cron claim RPC | durable outbox, single-writer lease, 재시도 scheduler |
-| Object staging | Cloudflare R2 (`ASSET_BUCKET`) | node filesystem/object backend 및 staging/recovery |
-| Repository mirror/cache | tree, directory, note content mirror | 로컬 DB/cache, lazy GitHub reads 또는 별도 indexing |
-| Hosting/API/auth | Cloudflare Worker/GitHub OAuth | 기기 접근 경로, OAuth token 보호, 공개/사설 네트워크 연결 |
+| 현재 역할                  | 코드/데이터                                              | 없앨 때 대체할 것                                             |
+| -------------------------- | -------------------------------------------------------- | ------------------------------------------------------------- |
+| Transactional metadata     | `pkms_workspaces`, `pkms_files`, `pkms_operations`, RPC  | ACID transaction, idempotency, revision conflict 처리         |
+| Collaborative document log | `pkms_documents`, `pkms_document_updates`, Yjs           | durable update append, compaction/snapshot, state-vector sync |
+| Realtime                   | Supabase Realtime broadcast/JWT                          | WebSocket pub/sub relay 또는 실시간 협업 축소                 |
+| Flush queue/coordination   | dirty flag, due time, lease, retry count, cron claim RPC | durable outbox, single-writer lease, 재시도 scheduler         |
+| Object staging             | Cloudflare R2 (`ASSET_BUCKET`)                           | node filesystem/object backend 및 staging/recovery            |
+| Repository mirror/cache    | tree, directory, note content mirror                     | 로컬 DB/cache, lazy GitHub reads 또는 별도 indexing           |
+| Hosting/API/auth           | Cloudflare Worker/GitHub OAuth                           | 기기 접근 경로, OAuth token 보호, 공개/사설 네트워크 연결     |
 
 따라서 “Supabase 의존성을 하나 줄이자”는 변경은 한 서비스 URL을 지우는 일 이상이다. 다만 단일 S21 primary와 A Quantum replica를 전제로 제품 요구를 단순화하면 PostgreSQL RPC와 Realtime을 기기 내부 SQLite + node API/단순 sync로 합칠 수 있다. 그 경우 공동 편집/항상 접속 가능한 공개 API는 별도 요구사항이 된다.
 
@@ -125,14 +125,14 @@ Data Node는 `pkms_files`, `pkms_documents` 같은 PKMS domain API를 직접 제
 
 의도한 형태는 **app → Worker → Data Node**이며, 앱이 Data Node를 직접 호출하는 방식은 기본안이 아니다. Worker는 기존 일반 API와 PKMS 기능을 유지하고 Data Node는 범용 low-level persistence만 제공한다.
 
-| 책임 | Worker | Android Data Node | GitHub |
-|---|---|---|---|
-| PKMS authentication/authorization | 소유 | service credential 검증 | repo identity/history |
-| PKMS document/file API | 소유 | PKMS 도메인을 모름 | repo file layout |
-| Transaction/idempotency/revision | Supabase 유지 시 RPC 위임; 제거 시 generic DB contract 사용 | Supabase 제거 시 transaction primitive | Git commit 단위 |
-| Object byte stream | policy/validation/routing | durable generic put/get/head/delete | scheduled snapshot object |
-| Realtime/CRDT semantics | Yjs protocol과 broadcast | generic update bytes 저장 가능 | 해당 없음 |
-| Backup scheduling/batching | policy/scheduler | 복제 대상 제공 | versioned batch commit |
+| 책임                              | Worker                                                      | Android Data Node                      | GitHub                    |
+| --------------------------------- | ----------------------------------------------------------- | -------------------------------------- | ------------------------- |
+| PKMS authentication/authorization | 소유                                                        | service credential 검증                | repo identity/history     |
+| PKMS document/file API            | 소유                                                        | PKMS 도메인을 모름                     | repo file layout          |
+| Transaction/idempotency/revision  | Supabase 유지 시 RPC 위임; 제거 시 generic DB contract 사용 | Supabase 제거 시 transaction primitive | Git commit 단위           |
+| Object byte stream                | policy/validation/routing                                   | durable generic put/get/head/delete    | scheduled snapshot object |
+| Realtime/CRDT semantics           | Yjs protocol과 broadcast                                    | generic update bytes 저장 가능         | 해당 없음                 |
+| Backup scheduling/batching        | policy/scheduler                                            | 복제 대상 제공                         | versioned batch commit    |
 
 따라서 결정할 것은 Data Node가 PKMS 기능을 가질지 여부가 아니다. Data Node는 PKMS-aware가 아니어도 된다. 핵심은 **metadata DB를 Supabase에 남길지, Data Node의 generic transactional DB로 옮길지**다. Object Storage만 옮기면 Supabase 의존성은 남는다.
 
@@ -178,25 +178,29 @@ PKMS app → Worker (PKMS API / auth / domain rules)
 ```ts
 interface MetadataStore {
   applyOperation(input: {
-    operationId: string;
-    expectedRevision?: number;
-    mutation: WorkspaceMutation;
-  }): Promise<{ revision: number; duplicate: boolean }>;
+    operationId: string
+    expectedRevision?: number
+    mutation: WorkspaceMutation
+  }): Promise<{ revision: number; duplicate: boolean }>
   appendDocumentUpdate(input: {
-    operationId: string;
-    fileId: string;
-    update: Uint8Array;
-  }): Promise<{ revision: number; duplicate: boolean }>;
+    operationId: string
+    fileId: string
+    update: Uint8Array
+  }): Promise<{ revision: number; duplicate: boolean }>
 }
 
 interface ObjectStore {
-  put(key: string, source: ReadableStream<Uint8Array>, expectedSha256?: string): Promise<StoredObject>;
-  get(key: string): Promise<ReadableStream<Uint8Array> | null>;
-  delete(key: string): Promise<void>;
+  put(
+    key: string,
+    source: ReadableStream<Uint8Array>,
+    expectedSha256?: string
+  ): Promise<StoredObject>
+  get(key: string): Promise<ReadableStream<Uint8Array> | null>
+  delete(key: string): Promise<void>
 }
 
 interface SnapshotPublisher {
-  publish(batch: ChangeBatch): Promise<{ commitId: string }>;
+  publish(batch: ChangeBatch): Promise<{ commitId: string }>
 }
 ```
 

@@ -1,11 +1,11 @@
-import { app } from "electron";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-import type { WorkspaceState } from "./workspace";
-import type { TerminalSessionBuffersFile } from "../shared/terminal-session-buffers";
-import type { UsageMeterSettings } from "../shared/usage-meter-settings";
-import { isPackagedApp } from "./startupLog";
+import { app } from 'electron'
+import * as fs from 'node:fs'
+import * as os from 'node:os'
+import * as path from 'node:path'
+import type { WorkspaceState } from './workspace'
+import type { TerminalSessionBuffersFile } from '../shared/terminal-session-buffers'
+import type { UsageMeterSettings } from '../shared/usage-meter-settings'
+import { isPackagedApp } from './startupLog'
 
 // Port of src/lib.rs's config_path()/workspace_snapshot_path() and their
 // load/save helpers.
@@ -14,64 +14,66 @@ import { isPackagedApp } from "./startupLog";
 // `workspace-app`, so dev and packaged installs do not fight over the same
 // state files.
 export function appSupportDir(): string {
-  const suffix = isPackagedApp() ? "" : "-dev";
-  const name = `workspace-app${suffix}`;
+  const suffix = isPackagedApp() ? '' : '-dev'
+  const name = `workspace-app${suffix}`
   // macOS: keep the Tauri-compatible Library path so existing Mac installs
   // and dual-running during migration stay untouched.
-  if (process.platform === "darwin") {
-    return path.join(os.homedir(), "Library", "Application Support", name);
+  if (process.platform === 'darwin') {
+    return path.join(os.homedir(), 'Library', 'Application Support', name)
   }
   // Windows → %APPDATA%\workspace-app(-dev)
   // Linux/WSL → ~/.config/workspace-app(-dev)
   // (Avoid inventing a fake ~/Library tree on non-Mac hosts.)
-  return path.join(app.getPath("appData"), name);
+  return path.join(app.getPath('appData'), name)
 }
 
 function configPath(): string {
-  return path.join(appSupportDir(), "config.electron.json");
+  return path.join(appSupportDir(), 'config.electron.json')
 }
 
 function workspaceSnapshotPath(): string {
-  return path.join(appSupportDir(), "workspace.electron.json");
+  return path.join(appSupportDir(), 'workspace.electron.json')
 }
 
 function terminalSessionBuffersPath(): string {
-  return path.join(appSupportDir(), "terminal-sessions.electron.json");
+  return path.join(appSupportDir(), 'terminal-sessions.electron.json')
 }
 
 export interface AppConfig {
-  rootPath?: string;
-  usageMeters?: UsageMeterSettings;
+  rootPath?: string
+  usageMeters?: UsageMeterSettings
 }
 
 export function loadConfig(): AppConfig {
   try {
-    const { japaneseStudy: _legacyJapaneseStudy, ...config } = JSON.parse(fs.readFileSync(configPath(), "utf8"));
-    return config;
+    const { japaneseStudy: _legacyJapaneseStudy, ...config } = JSON.parse(
+      fs.readFileSync(configPath(), 'utf8')
+    )
+    return config
   } catch {
-    return {};
+    return {}
   }
 }
 
 export function saveConfig(config: AppConfig): void {
-  const p = configPath();
-  fs.mkdirSync(path.dirname(p), { recursive: true });
-  fs.writeFileSync(p, JSON.stringify(config, null, 2));
+  const p = configPath()
+  fs.mkdirSync(path.dirname(p), { recursive: true })
+  fs.writeFileSync(p, JSON.stringify(config, null, 2))
 }
 
 export function loadWorkspaceSnapshot(): WorkspaceState | null {
   try {
-    return JSON.parse(fs.readFileSync(workspaceSnapshotPath(), "utf8"));
+    return JSON.parse(fs.readFileSync(workspaceSnapshotPath(), 'utf8'))
   } catch {
-    return null;
+    return null
   }
 }
 
 export function saveWorkspaceSnapshot(snapshot: WorkspaceState): void {
   try {
-    const p = workspaceSnapshotPath();
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, JSON.stringify(snapshot, null, 2));
+    const p = workspaceSnapshotPath()
+    fs.mkdirSync(path.dirname(p), { recursive: true })
+    fs.writeFileSync(p, JSON.stringify(snapshot, null, 2))
   } catch {
     // Best-effort, same as the Rust version (logs and moves on rather
     // than failing the action that triggered the save).
@@ -80,21 +82,23 @@ export function saveWorkspaceSnapshot(snapshot: WorkspaceState): void {
 
 export function loadTerminalSessionBuffers(): TerminalSessionBuffersFile {
   try {
-    const parsed = JSON.parse(fs.readFileSync(terminalSessionBuffersPath(), "utf8")) as TerminalSessionBuffersFile;
-    if (parsed && typeof parsed === "object" && parsed.buffersByTerminalId) {
-      return parsed;
+    const parsed = JSON.parse(
+      fs.readFileSync(terminalSessionBuffersPath(), 'utf8')
+    ) as TerminalSessionBuffersFile
+    if (parsed && typeof parsed === 'object' && parsed.buffersByTerminalId) {
+      return parsed
     }
   } catch {
     /* missing or corrupt */
   }
-  return { buffersByTerminalId: {} };
+  return { buffersByTerminalId: {} }
 }
 
 export function saveTerminalSessionBuffers(file: TerminalSessionBuffersFile): void {
   try {
-    const p = terminalSessionBuffersPath();
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, JSON.stringify(file, null, 2));
+    const p = terminalSessionBuffersPath()
+    fs.mkdirSync(path.dirname(p), { recursive: true })
+    fs.writeFileSync(p, JSON.stringify(file, null, 2))
   } catch {
     /* best-effort */
   }
@@ -102,7 +106,7 @@ export function saveTerminalSessionBuffers(file: TerminalSessionBuffersFile): vo
 
 export function clearTerminalSessionBuffers(): void {
   try {
-    fs.unlinkSync(terminalSessionBuffersPath());
+    fs.unlinkSync(terminalSessionBuffersPath())
   } catch {
     /* already absent */
   }

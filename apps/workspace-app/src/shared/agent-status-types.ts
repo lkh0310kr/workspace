@@ -48,7 +48,13 @@ export type RetainedAgentEntry = {
 }
 
 export function isFreshNonDoneAgentStatus(
-  entry: Pick<AgentStatusEntry, 'state' | 'updatedAt' | 'evidenceObservedAt' | 'restoredUnconfirmed' | 'structuredHostOwned'> | null | undefined,
+  entry:
+    | Pick<
+        AgentStatusEntry,
+        'state' | 'updatedAt' | 'evidenceObservedAt' | 'restoredUnconfirmed' | 'structuredHostOwned'
+      >
+    | null
+    | undefined
 ): boolean {
   if (!entry || entry.state === 'done') {
     return false

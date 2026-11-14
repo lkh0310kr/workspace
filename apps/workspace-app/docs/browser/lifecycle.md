@@ -8,15 +8,15 @@ BrowserPaneOverlaySlot 안에는 slot root와 BrowserContent chrome이 형제로
 
 ensure는 claimParkedBrowserWebview(item.id,container) 또는 persistent registry 조회를 먼저 수행한다. 기존 connected guest는 새 container로 이동시킨다. disconnected guest를 교체해야 하는 경로에서는 destroy 후 새로 생성한다. 새 guest 설정은 다음과 같다.
 
-| 설정 | 값 |
-|---|---|
-| partition | persist:browser |
-| src | normalize(initialUrl,false), 실패 시 about:blank |
-| allowpopups | 빈 attribute |
-| webpreferences | contextIsolation=yes,webgl=yes |
-| dataset.tabItemId | item.id |
-| 스타일 | display:flex, flex:1, width/height:100%, border:none, background:#ffffff |
-| zoom | initialZoom 적용 시도; guest 미준비 예외는 무시 |
+| 설정              | 값                                                                       |
+| ----------------- | ------------------------------------------------------------------------ |
+| partition         | persist:browser                                                          |
+| src               | normalize(initialUrl,false), 실패 시 about:blank                         |
+| allowpopups       | 빈 attribute                                                             |
+| webpreferences    | contextIsolation=yes,webgl=yes                                           |
+| dataset.tabItemId | item.id                                                                  |
+| 스타일            | display:flex, flex:1, width/height:100%, border:none, background:#ffffff |
+| zoom              | initialZoom 적용 시도; guest 미준비 예외는 무시                          |
 
 ## 연결과 해제 순서
 
@@ -28,11 +28,11 @@ registry에는 별도 parkBrowserWebview helper도 있다. hidden park host로 g
 
 ## 표시 상태표
 
-| viewport 입력 | shell |
-|---|---|
-| paintable=false | display:none, inert=true, aria-hidden=true |
-| paintable=true, active=false | display:flex, opacity:0, pointer-events:none, z-index:0, inert=true, aria-hidden=true |
-| paintable=true, active=true | display:flex, opacity:1, pointer-events:auto, z-index:1, inert=false, aria-hidden 제거 |
+| viewport 입력                | shell                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| paintable=false              | display:none, inert=true, aria-hidden=true                                             |
+| paintable=true, active=false | display:flex, opacity:0, pointer-events:none, z-index:0, inert=true, aria-hidden=true  |
+| paintable=true, active=true  | display:flex, opacity:1, pointer-events:auto, z-index:1, inert=false, aria-hidden 제거 |
 
 BrowserPaneOverlaySlot 자체도 paneVisible=false면 display:none이다. 예전 문서의 ‘모든 ancestor에서 display:none 금지’를 현재 불변식으로 적용하지 않는다. viewport/coordinator/drag surface가 각각 맡은 DOM 계층에서 표시를 조정한다.
 
@@ -50,14 +50,14 @@ render-process-gone은 item recovery-pending flag를 켜고 dom-ready는 끈다.
 
 ## 검증 시나리오
 
-| ID | 행동 | 결과 |
-|---|---|---|
-| B-LIFE-01 | 같은 item을 다른 pane으로 이동 | connected guest 재사용, 새 container와 coordinator pane 갱신 |
-| B-LIFE-02 | React cleanup 후 즉시 remount | persistent guest 재사용; mount마다 강제 새 guest 생성하지 않음 |
-| B-LIFE-03 | browser 탭 삭제 | guest·viewport·listeners·recovery flag 정리 |
-| B-LIFE-04 | drag 중 새 guest 생성, drag 종료 | pointer lock 적용 후 이전 스타일 복원 |
-| B-LIFE-05 | 주소 입력→terminal 클릭 | guest가 keyboard focus를 되가져가지 않음 |
-| B-LIFE-06 | viewport shell 재생성, ref stale | attach 감지, toolbar는 현재 connected guest 사용 |
-| B-LIFE-07 | renderer gone→dom-ready | recovery-pending true→false |
+| ID        | 행동                             | 결과                                                           |
+| --------- | -------------------------------- | -------------------------------------------------------------- |
+| B-LIFE-01 | 같은 item을 다른 pane으로 이동   | connected guest 재사용, 새 container와 coordinator pane 갱신   |
+| B-LIFE-02 | React cleanup 후 즉시 remount    | persistent guest 재사용; mount마다 강제 새 guest 생성하지 않음 |
+| B-LIFE-03 | browser 탭 삭제                  | guest·viewport·listeners·recovery flag 정리                    |
+| B-LIFE-04 | drag 중 새 guest 생성, drag 종료 | pointer lock 적용 후 이전 스타일 복원                          |
+| B-LIFE-05 | 주소 입력→terminal 클릭          | guest가 keyboard focus를 되가져가지 않음                       |
+| B-LIFE-06 | viewport shell 재생성, ref stale | attach 감지, toolbar는 현재 connected guest 사용               |
+| B-LIFE-07 | renderer gone→dom-ready          | recovery-pending true→false                                    |
 
 registry/park/viewport/recovery/action/focus/activation 관련 기존 test가 순수 규칙을 검증한다. macOS native focus와 실제 Chromium guest compositing은 Electron 실행으로 별도 확인한다.

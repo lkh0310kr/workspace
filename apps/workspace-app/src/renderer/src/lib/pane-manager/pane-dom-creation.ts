@@ -1,56 +1,56 @@
-import { SearchAddon } from "@xterm/addon-search";
-import { SerializeAddon } from "@xterm/addon-serialize";
-import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebLinksAddon } from "@xterm/addon-web-links";
-import { Terminal } from "@xterm/xterm";
-import type { ITerminalOptions } from "@xterm/xterm";
-import type { ManagedPaneInternal, PaneManagerOptions } from "./pane-manager-types";
-import { buildDefaultTerminalOptions } from "./pane-terminal-options";
-import { ENABLE_WEBGL_RENDERER } from "./pane-webgl-renderer";
-import { StableCellFitAddon } from "./terminal-stable-cell-fit-addon";
+import { SearchAddon } from '@xterm/addon-search'
+import { SerializeAddon } from '@xterm/addon-serialize'
+import { Unicode11Addon } from '@xterm/addon-unicode11'
+import { WebLinksAddon } from '@xterm/addon-web-links'
+import { Terminal } from '@xterm/xterm'
+import type { ITerminalOptions } from '@xterm/xterm'
+import type { ManagedPaneInternal, PaneManagerOptions } from './pane-manager-types'
+import { buildDefaultTerminalOptions } from './pane-terminal-options'
+import { ENABLE_WEBGL_RENDERER } from './pane-webgl-renderer'
+import { StableCellFitAddon } from './terminal-stable-cell-fit-addon'
 
 export function createPaneDOM(
   id: number,
   leafId: string,
-  options: PaneManagerOptions,
+  options: PaneManagerOptions
 ): ManagedPaneInternal {
-  const container = document.createElement("div");
-  container.className = "pane pane-manager-root";
-  container.dataset.paneId = String(id);
-  container.dataset.leafId = leafId;
+  const container = document.createElement('div')
+  container.className = 'pane pane-manager-root'
+  container.dataset.paneId = String(id)
+  container.dataset.leafId = leafId
 
-  const xtermContainer = document.createElement("div");
-  xtermContainer.className = "xterm-container";
-  container.appendChild(xtermContainer);
+  const xtermContainer = document.createElement('div')
+  xtermContainer.className = 'xterm-container'
+  container.appendChild(xtermContainer)
 
-  const userOpts = options.terminalOptions?.(id) ?? {};
+  const userOpts = options.terminalOptions?.(id) ?? {}
   const terminalOpts: ITerminalOptions = {
     ...buildDefaultTerminalOptions(),
-    ...userOpts,
-  };
+    ...userOpts
+  }
 
-  const terminal = new Terminal(terminalOpts);
-  const fitAddon = new StableCellFitAddon();
-  const searchAddon = new SearchAddon();
-  const unicode11Addon = new Unicode11Addon();
-  const linkTooltip = document.createElement("div");
-  linkTooltip.className = "pane-link-tooltip xterm-hover";
-  linkTooltip.style.display = "none";
+  const terminal = new Terminal(terminalOpts)
+  const fitAddon = new StableCellFitAddon()
+  const searchAddon = new SearchAddon()
+  const unicode11Addon = new Unicode11Addon()
+  const linkTooltip = document.createElement('div')
+  linkTooltip.className = 'pane-link-tooltip xterm-hover'
+  linkTooltip.style.display = 'none'
 
   const webLinksAddon = new WebLinksAddon(
     options.onLinkClick ? (event, uri) => options.onLinkClick!(id, event, uri) : undefined,
     {
       hover: (_event, uri) => {
         if (uri) {
-          linkTooltip.textContent = `${uri} (${options.linkOpenHint(id)})`;
-          linkTooltip.style.display = "";
+          linkTooltip.textContent = `${uri} (${options.linkOpenHint(id)})`
+          linkTooltip.style.display = ''
         }
       },
       leave: () => {
-        linkTooltip.style.display = "none";
-      },
-    },
-  );
+        linkTooltip.style.display = 'none'
+      }
+    }
+  )
 
   const pane: ManagedPaneInternal = {
     id,
@@ -64,9 +64,9 @@ export function createPaneDOM(
     serializeAddon: new SerializeAddon(),
     unicode11Addon,
     webLinksAddon,
-    terminalGpuAcceleration: options.terminalGpuAcceleration ?? "auto",
+    terminalGpuAcceleration: options.terminalGpuAcceleration ?? 'auto',
     gpuRenderingEnabled:
-      ENABLE_WEBGL_RENDERER && (options.terminalGpuAcceleration ?? "auto") !== "off",
+      ENABLE_WEBGL_RENDERER && (options.terminalGpuAcceleration ?? 'auto') !== 'off',
     webglAttachmentDeferred: options.initialRenderingSuspended === true,
     webglDisabledAfterContextLoss: false,
     webglAddon: null,
@@ -91,8 +91,8 @@ export function createPaneDOM(
     pendingSplitScrollState: null,
     pendingSplitScrollRafIds: [],
     pendingSplitScrollTimerId: null,
-    pendingSplitScrollBufferDisposable: null,
-  };
+    pendingSplitScrollBufferDisposable: null
+  }
 
-  return pane;
+  return pane
 }

@@ -1,5 +1,5 @@
-import type { Route } from "./+types/health";
+import type { Route } from './+types/health'
 
 export function loader(_: Route.LoaderArgs) {
-  return Response.json({ ok: true, service: "pkms", protocolVersion: 1 });
+  return Response.json({ ok: true, service: 'pkms', protocolVersion: 1 })
 }

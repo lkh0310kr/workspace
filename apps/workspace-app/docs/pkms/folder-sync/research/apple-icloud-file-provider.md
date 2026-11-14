@@ -14,13 +14,13 @@
 
 ## PKMS에 적용할 수 있는 결과 원칙
 
-| 원칙 | PKMS에서 요구할 결과 | 현재 확인된 간극 |
-|---|---|---|
-| metadata와 본문 수명 분리 | tree는 본문 download 전에도 표시되고, 파일 open/필요 시 본문을 materialize한다. 로컬 변경 대기 파일은 eviction/덮어쓰기 대상이 아니다. | Tree metadata와 local Markdown 본문을 나눠 다루지만 local pending 변경 보호와 단일 file sync lifecycle 테스트가 약하다. |
-| 변경 anchor를 기준으로 열거 | cursor는 “어디까지 remote change를 적용했는가”를 가리키고, 페이지를 완전히 반영한 뒤에만 확정한다. 오래되거나 잘못된 anchor는 안전한 full re-enumeration으로 복구한다. | revision cursor와 snapshot revision은 존재한다. cursor 저장/페이지 처리의 crash boundary와 stale cursor 재시작 검증이 부족하다. |
-| 파일 접근을 조정하고 버전 비교 | 다운로드 직전과 atomic replace 직전에 local file이 예상 버전인지 확인한다. 로컬 편집이 경합하면 cloud body로 덮어쓰지 않고 retry/conflict 경로로 보낸다. | hash 확인·atomic rename은 있으나 편집기/외부 프로세스/전원 오류를 포함한 OS 동작 검증이 없다. |
-| conflict를 명시적으로 보존 | 충돌한 양쪽 내용을 보존하고 사용자가 원본과 보존본을 열어 비교한다. 가장 최신 timestamp라는 이유만으로 삭제하지 않는다. | conflict 파일은 생성되지만 panel에서 바로 열고 정리하는 UX와 durable review 상태가 미완료다. |
-| 알림은 힌트, 열거가 진실 | realtime notification 누락·중복·순서 뒤섞임 후에도 cursor feed/scan으로 수렴한다. | 현재 Realtime wakeup + revision poll + local full scan으로 비슷한 구조. wakeup을 잃거나 중복 수신하는 테스트가 없다. |
+| 원칙                           | PKMS에서 요구할 결과                                                                                                                                                   | 현재 확인된 간극                                                                                                                |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| metadata와 본문 수명 분리      | tree는 본문 download 전에도 표시되고, 파일 open/필요 시 본문을 materialize한다. 로컬 변경 대기 파일은 eviction/덮어쓰기 대상이 아니다.                                 | Tree metadata와 local Markdown 본문을 나눠 다루지만 local pending 변경 보호와 단일 file sync lifecycle 테스트가 약하다.         |
+| 변경 anchor를 기준으로 열거    | cursor는 “어디까지 remote change를 적용했는가”를 가리키고, 페이지를 완전히 반영한 뒤에만 확정한다. 오래되거나 잘못된 anchor는 안전한 full re-enumeration으로 복구한다. | revision cursor와 snapshot revision은 존재한다. cursor 저장/페이지 처리의 crash boundary와 stale cursor 재시작 검증이 부족하다. |
+| 파일 접근을 조정하고 버전 비교 | 다운로드 직전과 atomic replace 직전에 local file이 예상 버전인지 확인한다. 로컬 편집이 경합하면 cloud body로 덮어쓰지 않고 retry/conflict 경로로 보낸다.               | hash 확인·atomic rename은 있으나 편집기/외부 프로세스/전원 오류를 포함한 OS 동작 검증이 없다.                                   |
+| conflict를 명시적으로 보존     | 충돌한 양쪽 내용을 보존하고 사용자가 원본과 보존본을 열어 비교한다. 가장 최신 timestamp라는 이유만으로 삭제하지 않는다.                                                | conflict 파일은 생성되지만 panel에서 바로 열고 정리하는 UX와 durable review 상태가 미완료다.                                    |
+| 알림은 힌트, 열거가 진실       | realtime notification 누락·중복·순서 뒤섞임 후에도 cursor feed/scan으로 수렴한다.                                                                                      | 현재 Realtime wakeup + revision poll + local full scan으로 비슷한 구조. wakeup을 잃거나 중복 수신하는 테스트가 없다.            |
 
 ## 제품에 그대로 복사할 수 없는 점
 

@@ -20,17 +20,17 @@
 
 ## 모듈별 커버리지
 
-| 영역 | 현재 문서 | 재생성 상세 범위/남은 범위 |
-|---|---|---|
-| Shared Editor | [packages/editor/docs](../../packages/editor/docs/README.md) | 공개 API·provider·tree·Markdown·code·검색·asset 연결. 전체 decoration/CSS·시각 fixture는 잔여 |
-| Desktop editor/provider | [workspace-app editor docs](../../apps/workspace-app/docs/editor/providers.md) | identity·저장·충돌·파일 작업; 수동 host acceptance 일부 잔여 |
-| PKMS client/editor | [pkms-client docs](../../packages/pkms-client/docs/README.md) | account·cache·document session·Realtime·platform bridge; 서버/배포 acceptance 별도 |
-| Browser | [workspace-app browser docs](../../apps/workspace-app/docs/browser/README.md) | lifecycle·navigation·focus·session·IPC·history·zoom; native focus/로그인 검증 잔여 |
-| Desktop shell/layout/interaction/IPC/persistence | [Desktop 앱 문서 색인](../../apps/workspace-app/docs/README.md) | 주요 소유자·전이·데이터 흐름 초안; 전체 action/route fixture·CI 검증 잔여 |
-| Desktop terminal | [Terminal 문서](../../apps/workspace-app/docs/terminal/README.md) | daemon→renderer/replay/ACK·buffer 경로; IME/OS별 실기 수락 잔여 |
-| Desktop viewer/Home/agents/settings/usage/operations | [모듈별 문서 색인](../../apps/workspace-app/docs/README.md) | 라우팅·상태·운영 책임 초안; 포맷별 완전 상세와 native/provider acceptance 잔여 |
-| PKMS Web/server, Workspace server, iOS | [앱 scope 색인](../../docs/README.md) | app별 route·auth·session·ownership 초안; 배포 DB·OAuth·iOS 실기 acceptance 잔여 |
-| PKMS protocol/core | [package scope 색인](../../docs/README.md) | DTO·Realtime·CRDT·UTF-16·FFI 경계; HTTP 전체 자동 계약 및 clean-room 재생성 잔여 |
+| 영역                                                 | 현재 문서                                                                      | 재생성 상세 범위/남은 범위                                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Shared Editor                                        | [packages/editor/docs](../../packages/editor/docs/README.md)                   | 공개 API·provider·tree·Markdown·code·검색·asset 연결. 전체 decoration/CSS·시각 fixture는 잔여 |
+| Desktop editor/provider                              | [workspace-app editor docs](../../apps/workspace-app/docs/editor/providers.md) | identity·저장·충돌·파일 작업; 수동 host acceptance 일부 잔여                                  |
+| PKMS client/editor                                   | [pkms-client docs](../../packages/pkms-client/docs/README.md)                  | account·cache·document session·Realtime·platform bridge; 서버/배포 acceptance 별도            |
+| Browser                                              | [workspace-app browser docs](../../apps/workspace-app/docs/browser/README.md)  | lifecycle·navigation·focus·session·IPC·history·zoom; native focus/로그인 검증 잔여            |
+| Desktop shell/layout/interaction/IPC/persistence     | [Desktop 앱 문서 색인](../../apps/workspace-app/docs/README.md)                | 주요 소유자·전이·데이터 흐름 초안; 전체 action/route fixture·CI 검증 잔여                     |
+| Desktop terminal                                     | [Terminal 문서](../../apps/workspace-app/docs/terminal/README.md)              | daemon→renderer/replay/ACK·buffer 경로; IME/OS별 실기 수락 잔여                               |
+| Desktop viewer/Home/agents/settings/usage/operations | [모듈별 문서 색인](../../apps/workspace-app/docs/README.md)                    | 라우팅·상태·운영 책임 초안; 포맷별 완전 상세와 native/provider acceptance 잔여                |
+| PKMS Web/server, Workspace server, iOS               | [앱 scope 색인](../../docs/README.md)                                          | app별 route·auth·session·ownership 초안; 배포 DB·OAuth·iOS 실기 acceptance 잔여               |
+| PKMS protocol/core                                   | [package scope 색인](../../docs/README.md)                                     | DTO·Realtime·CRDT·UTF-16·FFI 경계; HTTP 전체 자동 계약 및 clean-room 재생성 잔여              |
 
 현재 문서와 소스의 대응은 spec-index의 modules에 기록한다. 문서 범위가 늘면 이 표와 index를 함께 갱신한다. archive/models와 archive/scripts는 활성 제품 범위가 아니다.
 

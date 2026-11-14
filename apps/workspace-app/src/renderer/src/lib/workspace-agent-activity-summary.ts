@@ -1,7 +1,10 @@
 // Port of ref-proj/orca worktree-agent-activity-summary.ts (workspace tab scope).
 
 import type { AgentStatusEntry } from '../../../shared/agent-status-types'
-import { AGENT_STATUS_STALE_AFTER_MS, isExplicitAgentStatusFresh } from '../../../shared/agent-status-freshness'
+import {
+  AGENT_STATUS_STALE_AFTER_MS,
+  isExplicitAgentStatusFresh
+} from '../../../shared/agent-status-freshness'
 import { parseAgentStatusPaneIdentity } from '../../../shared/agent-status-pane-key'
 import { agentVerdictDisplayMark } from '../../../shared/agent-main-agent-verdict'
 import { applyAgentPaneActivityFlags } from './agent-pane-activity-flags'
@@ -33,7 +36,7 @@ const EMPTY_SUMMARY: WorkspaceAgentActivitySummary = {
   hasRetainedDone: false,
   hasRetainedFailed: false,
   agentStatusCoveredPaneTabIds: EMPTY_SET,
-  stalePaneTabIds: EMPTY_SET,
+  stalePaneTabIds: EMPTY_SET
 }
 
 export type WorkspaceAgentActivityInput = {
@@ -51,12 +54,14 @@ let cache: {
 
 export function selectWorkspaceAgentActivitySummary(
   state: WorkspaceAgentActivityInput,
-  workspaceTabId: number,
+  workspaceTabId: number
 ): WorkspaceAgentActivitySummary {
   return getSummaries(state).get(workspaceTabId) ?? EMPTY_SUMMARY
 }
 
-function getSummaries(state: WorkspaceAgentActivityInput): Map<number, WorkspaceAgentActivitySummary> {
+function getSummaries(
+  state: WorkspaceAgentActivityInput
+): Map<number, WorkspaceAgentActivitySummary> {
   if (
     cache &&
     cache.epoch === state.agentStatusEpoch &&
@@ -73,7 +78,7 @@ function getSummaries(state: WorkspaceAgentActivityInput): Map<number, Workspace
       s = {
         ...EMPTY_SUMMARY,
         agentStatusCoveredPaneTabIds: new Set(),
-        stalePaneTabIds: new Set(),
+        stalePaneTabIds: new Set()
       }
       summaries.set(id, s)
     }
@@ -116,7 +121,7 @@ function getSummaries(state: WorkspaceAgentActivityInput): Map<number, Workspace
     epoch: state.agentStatusEpoch,
     agentStatusByPaneKey: state.agentStatusByPaneKey,
     retainedAgentsByPaneKey: state.retainedAgentsByPaneKey,
-    summaries,
+    summaries
   }
   return summaries
 }

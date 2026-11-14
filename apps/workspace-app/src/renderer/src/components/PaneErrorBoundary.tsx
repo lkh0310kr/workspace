@@ -1,5 +1,5 @@
-import { Component, type ErrorInfo, type ReactNode } from "react";
-import { logError } from "../errorLog";
+import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { logError } from '../errorLog'
 
 // Ported from the Tauri app's ui/src/components/ErrorBoundary.tsx (which
 // replaced the *entire* app with a full-screen red error screen), adapted
@@ -10,26 +10,29 @@ import { logError } from "../errorLog";
 // boundary would otherwise still swallow it behind "Error rendering
 // component" for this pane's slot.
 interface Props {
-  children: ReactNode;
+  children: ReactNode
 }
 
 interface State {
-  error: Error | null;
+  error: Error | null
 }
 
 export class PaneErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return { error };
+    return { error }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    logError(`${error.name}: ${error.message}`, `${error.stack}\n\n--- component stack ---\n${info.componentStack}`);
+    logError(
+      `${error.name}: ${error.message}`,
+      `${error.stack}\n\n--- component stack ---\n${info.componentStack}`
+    )
   }
 
   render() {
-    const { error } = this.state;
+    const { error } = this.state
     if (error) {
       return (
         <div className="pane-error-fallback">
@@ -40,8 +43,8 @@ export class PaneErrorBoundary extends Component<Props, State> {
             Retry
           </button>
         </div>
-      );
+      )
     }
-    return this.props.children;
+    return this.props.children
   }
 }

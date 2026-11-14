@@ -3,11 +3,11 @@
  * pane. Double-rAF avoids focusing before `.xterm-helper-textarea` exists.
  */
 export function focusTerminalTextarea(container: HTMLElement | null): void {
-  if (!container) return;
+  if (!container) return
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      const helper = container.querySelector(".xterm-helper-textarea") as HTMLElement | null;
-      helper?.focus();
-    });
-  });
+      const helper = container.querySelector('.xterm-helper-textarea') as HTMLElement | null
+      helper?.focus()
+    })
+  })
 }

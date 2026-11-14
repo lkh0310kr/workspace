@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { onHtmlFullscreenChanged } from "../electron";
+import { useEffect, useState } from 'react'
+import { onHtmlFullscreenChanged } from '../electron'
 
 /** True while a <webview> guest's own content is in the Fullscreen API's
  * fullscreen state (web content can request an in-canvas fullscreen
@@ -9,7 +9,7 @@ import { onHtmlFullscreenChanged } from "../electron";
  * nav-bar staying visible around it. Ported from itch.io's desktop
  * client (ref-proj/itch) — see main/index.ts's matching comment. */
 export function useHtmlFullscreen(): boolean {
-  const [active, setActive] = useState(false);
-  useEffect(() => onHtmlFullscreenChanged(setActive), []);
-  return active;
+  const [active, setActive] = useState(false)
+  useEffect(() => onHtmlFullscreenChanged(setActive), [])
+  return active
 }

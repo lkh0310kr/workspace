@@ -1,158 +1,170 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest'
 import {
   applyTerminalWheelScroll,
   isTerminalViewportAtBottom,
   shouldForwardTerminalWheelEvent,
   terminalHasViewportScrollback,
-  wheelDeltaToLines,
-} from "./terminal-wheel-scroll";
+  wheelDeltaToLines
+} from './terminal-wheel-scroll'
 
 function terminalStub(overrides: Record<string, unknown> = {}) {
   return {
     rows: 24,
     element: {
-      querySelector: () => ({ clientHeight: 24 * 17 }),
+      querySelector: () => ({ clientHeight: 24 * 17 })
     },
-    buffer: { active: { type: "normal" as const, length: 100, viewportY: 10, baseY: 10 } },
-    modes: { mouseTrackingMode: "none" as const },
+    buffer: { active: { type: 'normal' as const, length: 100, viewportY: 10, baseY: 10 } },
+    modes: { mouseTrackingMode: 'none' as const },
     options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
     scrollLines: vi.fn(),
-    ...overrides,
-  };
+    ...overrides
+  }
 }
 
-describe("terminal-wheel-scroll", () => {
-  it("isTerminalViewportAtBottom when viewportY >= baseY", () => {
+describe('terminal-wheel-scroll', () => {
+  it('isTerminalViewportAtBottom when viewportY >= baseY', () => {
     const terminal = {
-      buffer: { active: { viewportY: 10, baseY: 10 } },
-    } as Parameters<typeof isTerminalViewportAtBottom>[0];
-    expect(isTerminalViewportAtBottom(terminal)).toBe(true);
+      buffer: { active: { viewportY: 10, baseY: 10 } }
+    } as Parameters<typeof isTerminalViewportAtBottom>[0]
+    expect(isTerminalViewportAtBottom(terminal)).toBe(true)
 
     const scrolled = {
-      buffer: { active: { viewportY: 5, baseY: 10 } },
-    } as Parameters<typeof isTerminalViewportAtBottom>[0];
-    expect(isTerminalViewportAtBottom(scrolled)).toBe(false);
-  });
+      buffer: { active: { viewportY: 5, baseY: 10 } }
+    } as Parameters<typeof isTerminalViewportAtBottom>[0]
+    expect(isTerminalViewportAtBottom(scrolled)).toBe(false)
+  })
 
-  it("detects scrollback on normal buffer with history", () => {
+  it('detects scrollback on normal buffer with history', () => {
     const terminal = {
       rows: 24,
-      buffer: { active: { type: "normal" as const, length: 100 } },
-    } as Parameters<typeof terminalHasViewportScrollback>[0];
-    expect(terminalHasViewportScrollback(terminal)).toBe(true);
-  });
+      buffer: { active: { type: 'normal' as const, length: 100 } }
+    } as Parameters<typeof terminalHasViewportScrollback>[0]
+    expect(terminalHasViewportScrollback(terminal)).toBe(true)
+  })
 
-  it("accumulates fractional wheel deltas across events", () => {
+  it('accumulates fractional wheel deltas across events', () => {
     const terminal = {
       rows: 24,
       element: {
-        querySelector: () => ({ clientHeight: 24 * 17 }),
+        querySelector: () => ({ clientHeight: 24 * 17 })
       },
-      options: { scrollSensitivity: 1, fastScrollSensitivity: 5 },
-    } as unknown as Parameters<typeof wheelDeltaToLines>[0];
+      options: { scrollSensitivity: 1, fastScrollSensitivity: 5 }
+    } as unknown as Parameters<typeof wheelDeltaToLines>[0]
     expect(
       wheelDeltaToLines(terminal, {
         deltaY: 5,
         deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(0);
+        shiftKey: false
+      } as WheelEvent)
+    ).toBe(0)
     expect(
       wheelDeltaToLines(terminal, {
         deltaY: 5,
         deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(0);
+        shiftKey: false
+      } as WheelEvent)
+    ).toBe(0)
     expect(
       wheelDeltaToLines(terminal, {
         deltaY: 7,
         deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(1);
-  });
+        shiftKey: false
+      } as WheelEvent)
+    ).toBe(1)
+  })
 
-  it("forwards wheel to mouse-reporting apps in either terminal buffer", () => {
-    const normal = terminalStub();
-    expect(
-      shouldForwardTerminalWheelEvent(normal as never, { deltaY: 17 } as WheelEvent),
-    ).toBe(false);
+  it('forwards wheel to mouse-reporting apps in either terminal buffer', () => {
+    const normal = terminalStub()
+    expect(shouldForwardTerminalWheelEvent(normal as never, { deltaY: 17 } as WheelEvent)).toBe(
+      false
+    )
 
     const normalTui = terminalStub({
-      modes: { mouseTrackingMode: "active" as const },
-    });
-    expect(
-      shouldForwardTerminalWheelEvent(normalTui as never, { deltaY: 17 } as WheelEvent),
-    ).toBe(true);
+      modes: { mouseTrackingMode: 'active' as const }
+    })
+    expect(shouldForwardTerminalWheelEvent(normalTui as never, { deltaY: 17 } as WheelEvent)).toBe(
+      true
+    )
 
     const alternateTui = terminalStub({
-      buffer: { active: { type: "alternate" as const, length: 24 } },
-      modes: { mouseTrackingMode: "active" as const },
-    });
+      buffer: { active: { type: 'alternate' as const, length: 24 } },
+      modes: { mouseTrackingMode: 'active' as const }
+    })
     expect(
-      shouldForwardTerminalWheelEvent(alternateTui as never, { deltaY: 17 } as WheelEvent),
-    ).toBe(true);
-  });
+      shouldForwardTerminalWheelEvent(alternateTui as never, { deltaY: 17 } as WheelEvent)
+    ).toBe(true)
+  })
 
-  it("never forwards wheel at the shell prompt on the normal buffer", () => {
-    const scrollLines = vi.fn();
+  it('never forwards wheel at the shell prompt on the normal buffer', () => {
+    const scrollLines = vi.fn()
     const terminal = terminalStub({
-      buffer: { active: { type: "normal" as const, length: 24, viewportY: 0, baseY: 0 } },
-      scrollLines,
-    });
+      buffer: { active: { type: 'normal' as const, length: 24, viewportY: 0, baseY: 0 } },
+      scrollLines
+    })
     expect(
-      applyTerminalWheelScroll(terminal as never, {
-        deltaY: 17,
-        deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(false);
-  });
+      applyTerminalWheelScroll(
+        terminal as never,
+        {
+          deltaY: 17,
+          deltaMode: 0,
+          shiftKey: false
+        } as WheelEvent
+      )
+    ).toBe(false)
+  })
 
-  it("scrolls viewport without forwarding when scrollback exists", () => {
-    const scrollLines = vi.fn();
-    const terminal = terminalStub({ scrollLines });
+  it('scrolls viewport without forwarding when scrollback exists', () => {
+    const scrollLines = vi.fn()
+    const terminal = terminalStub({ scrollLines })
     expect(
-      applyTerminalWheelScroll(terminal as never, {
-        deltaY: 17,
-        deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(false);
-    expect(scrollLines).toHaveBeenCalledWith(1);
-  });
+      applyTerminalWheelScroll(
+        terminal as never,
+        {
+          deltaY: 17,
+          deltaMode: 0,
+          shiftKey: false
+        } as WheelEvent
+      )
+    ).toBe(false)
+    expect(scrollLines).toHaveBeenCalledWith(1)
+  })
 
-  it("forwards wheel when alternate buffer has mouse reporting", () => {
-    const scrollLines = vi.fn();
+  it('forwards wheel when alternate buffer has mouse reporting', () => {
+    const scrollLines = vi.fn()
     const terminal = terminalStub({
-      buffer: { active: { type: "alternate" as const, length: 24 } },
-      modes: { mouseTrackingMode: "active" as const },
-      scrollLines,
-    });
+      buffer: { active: { type: 'alternate' as const, length: 24 } },
+      modes: { mouseTrackingMode: 'active' as const },
+      scrollLines
+    })
     expect(
-      applyTerminalWheelScroll(terminal as never, {
-        deltaY: 17,
-        deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(true);
-    expect(scrollLines).not.toHaveBeenCalled();
-  });
+      applyTerminalWheelScroll(
+        terminal as never,
+        {
+          deltaY: 17,
+          deltaMode: 0,
+          shiftKey: false
+        } as WheelEvent
+      )
+    ).toBe(true)
+    expect(scrollLines).not.toHaveBeenCalled()
+  })
 
-  it("forwards wheel to a normal-buffer TUI instead of consuming it as scrollback", () => {
-    const scrollLines = vi.fn();
+  it('forwards wheel to a normal-buffer TUI instead of consuming it as scrollback', () => {
+    const scrollLines = vi.fn()
     const terminal = terminalStub({
-      modes: { mouseTrackingMode: "active" as const },
-      scrollLines,
-    });
+      modes: { mouseTrackingMode: 'active' as const },
+      scrollLines
+    })
     expect(
-      applyTerminalWheelScroll(terminal as never, {
-        deltaY: 17,
-        deltaMode: 0,
-        shiftKey: false,
-      } as WheelEvent),
-    ).toBe(true);
-    expect(scrollLines).not.toHaveBeenCalled();
-  });
-});
+      applyTerminalWheelScroll(
+        terminal as never,
+        {
+          deltaY: 17,
+          deltaMode: 0,
+          shiftKey: false
+        } as WheelEvent
+      )
+    ).toBe(true)
+    expect(scrollLines).not.toHaveBeenCalled()
+  })
+})

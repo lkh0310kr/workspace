@@ -35,7 +35,7 @@ const STATUS_LABELS: Record<WorkspaceTabStatus, string> = {
   interrupted: 'Interrupted',
   unconfirmed: "Couldn't confirm",
   done: 'Done',
-  inactive: 'Inactive',
+  inactive: 'Inactive'
 }
 
 type HeuristicOptions = {
@@ -50,7 +50,7 @@ type HeuristicOptions = {
 export function getWorkspaceTabStatus(
   terminalPanes: readonly WorkspaceTerminalPaneSnapshot[],
   browserPaneCount: number,
-  options: HeuristicOptions = {},
+  options: HeuristicOptions = {}
 ): WorkspaceTabStatus {
   const livePanes = terminalPanes.filter((p) => p.live)
 
@@ -75,7 +75,7 @@ export function getWorkspaceTabStatus(
 function paneHasStatus(
   pane: WorkspaceTerminalPaneSnapshot,
   status: 'permission' | 'working',
-  options: HeuristicOptions,
+  options: HeuristicOptions
 ): boolean {
   const covered = options.agentStatusCoveredPaneTabIds
   const runtimeTitle = options.runtimePaneTitlesByPaneTabId?.[pane.paneTabId]
@@ -83,7 +83,7 @@ function paneHasStatus(
   const suppressTitle =
     status === 'permission'
       ? suppressingPaneForPermission(pane.paneTabId, title, options)
-      : covered?.has(pane.paneTabId) ?? false
+      : (covered?.has(pane.paneTabId) ?? false)
   if (title) {
     if (suppressTitle) {
       return false
@@ -113,7 +113,7 @@ function paneHasStatus(
 function suppressingPaneForPermission(
   paneTabId: string,
   title: string,
-  options: HeuristicOptions,
+  options: HeuristicOptions
 ): boolean {
   const covered = options.agentStatusCoveredPaneTabIds?.has(paneTabId) ?? false
   const stale = options.stalePaneTabIds?.has(paneTabId) ?? false
@@ -153,7 +153,7 @@ export function resolveWorkspaceTabStatus(args: {
   const heuristic = getWorkspaceTabStatus(args.terminalPanes, args.browserPaneCount, {
     agentStatusCoveredPaneTabIds: args.agentStatusCoveredPaneTabIds,
     stalePaneTabIds: args.stalePaneTabIds,
-    runtimePaneTitlesByPaneTabId: args.runtimePaneTitlesByPaneTabId,
+    runtimePaneTitlesByPaneTabId: args.runtimePaneTitlesByPaneTabId
   })
   if (args.hasPermission) return 'permission'
   if (heuristic === 'permission') return 'permission'

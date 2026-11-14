@@ -1,39 +1,39 @@
-import type { IBuffer, IDisposable } from "@xterm/xterm";
-import type { ManagedPaneInternal, ScrollState } from "./pane-manager-types";
-import { releaseScrollStateMarker, restoreScrollState } from "./pane-scroll";
+import type { IBuffer, IDisposable } from '@xterm/xterm'
+import type { ManagedPaneInternal, ScrollState } from './pane-manager-types'
+import { releaseScrollStateMarker, restoreScrollState } from './pane-scroll'
 
 function refreshAfterReparent(pane: ManagedPaneInternal): void {
   try {
-    pane.terminal.refresh(0, pane.terminal.rows - 1);
+    pane.terminal.refresh(0, pane.terminal.rows - 1)
   } catch {
     /* ignore — pane may have been disposed */
   }
 }
 
 function clearPendingSplitScrollBufferDisposable(pane: ManagedPaneInternal): void {
-  pane.pendingSplitScrollBufferDisposable?.dispose();
-  pane.pendingSplitScrollBufferDisposable = null;
+  pane.pendingSplitScrollBufferDisposable?.dispose()
+  pane.pendingSplitScrollBufferDisposable = null
 }
 
 function cancelPendingSplitScrollHandles(pane: ManagedPaneInternal): void {
-  clearPendingSplitScrollBufferDisposable(pane);
-  if (typeof cancelAnimationFrame === "function") {
+  clearPendingSplitScrollBufferDisposable(pane)
+  if (typeof cancelAnimationFrame === 'function') {
     for (const rafId of pane.pendingSplitScrollRafIds ?? []) {
-      cancelAnimationFrame(rafId);
+      cancelAnimationFrame(rafId)
     }
   }
-  pane.pendingSplitScrollRafIds = [];
+  pane.pendingSplitScrollRafIds = []
   if (pane.pendingSplitScrollTimerId != null) {
-    clearTimeout(pane.pendingSplitScrollTimerId);
-    pane.pendingSplitScrollTimerId = null;
+    clearTimeout(pane.pendingSplitScrollTimerId)
+    pane.pendingSplitScrollTimerId = null
   }
 }
 
 export function clearPendingSplitScrollRestore(pane: ManagedPaneInternal): void {
-  cancelPendingSplitScrollHandles(pane);
+  cancelPendingSplitScrollHandles(pane)
   if (pane.pendingSplitScrollState) {
-    releaseScrollStateMarker(pane.pendingSplitScrollState);
-    pane.pendingSplitScrollState = null;
+    releaseScrollStateMarker(pane.pendingSplitScrollState)
+    pane.pendingSplitScrollState = null
   }
 }
 
@@ -42,42 +42,42 @@ function runAfterNormalBuffer(
   getPaneById: (id: number) => ManagedPaneInternal | undefined,
   paneId: number,
   isDestroyed: () => boolean,
-  callback: (pane: ManagedPaneInternal) => void,
+  callback: (pane: ManagedPaneInternal) => void
 ): void {
-  clearPendingSplitScrollBufferDisposable(pane);
-  let disposable: IDisposable | null = null;
+  clearPendingSplitScrollBufferDisposable(pane)
+  let disposable: IDisposable | null = null
   disposable = pane.terminal.buffer.onBufferChange((buffer: IBuffer) => {
-    if (buffer.type === "alternate") {
-      return;
+    if (buffer.type === 'alternate') {
+      return
     }
     if (pane.pendingSplitScrollBufferDisposable === disposable) {
-      pane.pendingSplitScrollBufferDisposable = null;
+      pane.pendingSplitScrollBufferDisposable = null
     }
-    disposable?.dispose();
-    disposable = null;
+    disposable?.dispose()
+    disposable = null
     if (isDestroyed()) {
-      return;
+      return
     }
-    const live = getPaneById(paneId);
+    const live = getPaneById(paneId)
     if (live) {
-      callback(live);
+      callback(live)
     }
-  });
-  pane.pendingSplitScrollBufferDisposable = disposable;
+  })
+  pane.pendingSplitScrollBufferDisposable = disposable
 }
 
 function restoreCapturedScrollState(
   pane: ManagedPaneInternal,
   scrollState: ScrollState,
-  reattachWebgl?: (pane: ManagedPaneInternal) => void,
+  reattachWebgl?: (pane: ManagedPaneInternal) => void
 ): void {
-  clearPendingSplitScrollBufferDisposable(pane);
-  pane.pendingSplitScrollState = null;
+  clearPendingSplitScrollBufferDisposable(pane)
+  pane.pendingSplitScrollState = null
   if (reattachWebgl) {
-    reattachWebgl(pane);
+    reattachWebgl(pane)
   }
-  restoreScrollState(pane.terminal, scrollState);
-  refreshAfterReparent(pane);
+  restoreScrollState(pane.terminal, scrollState)
+  refreshAfterReparent(pane)
 }
 
 // Why: reparenting a terminal container during a flexlayout split/move
@@ -93,86 +93,86 @@ export function scheduleSplitScrollRestore(
   paneId: number,
   scrollState: ScrollState,
   isDestroyed: () => boolean,
-  reattachWebgl?: (pane: ManagedPaneInternal) => void,
+  reattachWebgl?: (pane: ManagedPaneInternal) => void
 ): void {
-  const scheduledPane = getPaneById(paneId);
+  const scheduledPane = getPaneById(paneId)
   if (scheduledPane) {
-    cancelPendingSplitScrollHandles(scheduledPane);
+    cancelPendingSplitScrollHandles(scheduledPane)
   }
 
   const firstRafId = requestAnimationFrame(() => {
-    const liveAfterFirstFrame = getPaneById(paneId);
+    const liveAfterFirstFrame = getPaneById(paneId)
     const secondRafId = requestAnimationFrame(() => {
-      const live = getPaneById(paneId);
+      const live = getPaneById(paneId)
       if (live) {
-        live.pendingSplitScrollRafIds = [];
+        live.pendingSplitScrollRafIds = []
       }
       if (isDestroyed()) {
-        return;
+        return
       }
       if (!live?.pendingSplitScrollState) {
-        return;
+        return
       }
       // Why: see the 200ms timer below — the alt-screen buffer belongs to a
       // TUI and restore-during-draw knocks its cursor one row off.
       if (
-        scrollState.bufferType === "alternate" ||
-        live.terminal.buffer.active.type === "alternate"
+        scrollState.bufferType === 'alternate' ||
+        live.terminal.buffer.active.type === 'alternate'
       ) {
-        return;
+        return
       }
-      restoreScrollState(live.terminal, scrollState);
-      refreshAfterReparent(live);
-    });
+      restoreScrollState(live.terminal, scrollState)
+      refreshAfterReparent(live)
+    })
     if (liveAfterFirstFrame) {
       liveAfterFirstFrame.pendingSplitScrollRafIds = [
         ...(liveAfterFirstFrame.pendingSplitScrollRafIds ?? []),
-        secondRafId,
-      ];
+        secondRafId
+      ]
     }
-  });
+  })
   if (scheduledPane) {
-    scheduledPane.pendingSplitScrollRafIds = [firstRafId];
+    scheduledPane.pendingSplitScrollRafIds = [firstRafId]
   }
 
   const settleTimerId = setTimeout(() => {
-    const live = getPaneById(paneId);
+    const live = getPaneById(paneId)
     if (live?.pendingSplitScrollTimerId === settleTimerId) {
-      live.pendingSplitScrollTimerId = null;
-      live.pendingSplitScrollRafIds = [];
+      live.pendingSplitScrollTimerId = null
+      live.pendingSplitScrollRafIds = []
     }
     if (isDestroyed()) {
-      return;
+      return
     }
     if (!live) {
-      return;
+      return
     }
     // Why: the alt-screen buffer belongs to a full-screen TUI (Claude Code,
     // vim, less) that owns its cursor position. Re-running scroll restore
     // and a full refresh here clobbers an in-progress draw. WebGL reattach
     // also refreshes, so defer it until the TUI exits the alternate buffer.
     // Alt-screen has no scrollback, so scroll restore has nothing to do.
-    if (scrollState.bufferType === "alternate") {
-      clearPendingSplitScrollBufferDisposable(live);
-      live.pendingSplitScrollState = null;
-      if (live.terminal.buffer.active.type === "alternate" && reattachWebgl) {
-        runAfterNormalBuffer(live, getPaneById, paneId, isDestroyed, reattachWebgl);
-        return;
+    if (scrollState.bufferType === 'alternate') {
+      clearPendingSplitScrollBufferDisposable(live)
+      live.pendingSplitScrollState = null
+      if (live.terminal.buffer.active.type === 'alternate' && reattachWebgl) {
+        runAfterNormalBuffer(live, getPaneById, paneId, isDestroyed, reattachWebgl)
+        return
       }
       if (reattachWebgl) {
-        reattachWebgl(live);
+        reattachWebgl(live)
       }
-      return;
+      return
     }
-    if (live.terminal.buffer.active.type === "alternate") {
+    if (live.terminal.buffer.active.type === 'alternate') {
       runAfterNormalBuffer(live, getPaneById, paneId, isDestroyed, (normalPane) => {
-        restoreCapturedScrollState(normalPane, scrollState, reattachWebgl);
-      });
-      return;
+        restoreCapturedScrollState(normalPane, scrollState, reattachWebgl)
+      })
+      return
     }
-    restoreCapturedScrollState(live, scrollState, reattachWebgl);
-  }, 200);
+    restoreCapturedScrollState(live, scrollState, reattachWebgl)
+  }, 200)
   if (scheduledPane) {
-    scheduledPane.pendingSplitScrollTimerId = settleTimerId;
+    scheduledPane.pendingSplitScrollTimerId = settleTimerId
   }
 }

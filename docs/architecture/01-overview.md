@@ -4,13 +4,13 @@ Global scope 문서다. [제품과 여정](../product/README.md)을 실행 앱·
 
 ## 실행 가능한 앱
 
-| 앱 | 역할 | 호출/의존 경계 |
-|---|---|---|
-| [Workspace Desktop](../../apps/workspace-app/README.md) | Electron shell, 로컬 PTY·파일·browser·viewer, Home, PKMS pane | Main이 OS 권한과 native token을 보유. UI는 editor/pkms-client 소비 |
-| [PKMS Web](../../apps/pkms-web/README.md) | React Router UI·SSR·assets·service proxy | PKMS API Worker의 내부 요청으로 UI 제공, 직접 origin은 canonical로 redirect |
-| [PKMS Server](../../apps/pkms-server/README.md) | 로그인·workspace/vault·협업·첨부 파일·MCP·GitHub export | Web/Desktop/iOS 공통 API, Supabase/R2/GitHub 연결 |
-| [PKMS iOS](../../apps/pkms-ios/README.md) | SwiftUI 앱·native document·Keychain session | PKMS API/Realtime, Rust Core의 C FFI |
-| [Workspace Home Server](../../apps/workspace-server/README.md) | Home provider API·OAuth·grants 저장 | PKMS JWKS 검증, 전용 D1과 provider 자격 증명 |
+| 앱                                                             | 역할                                                          | 호출/의존 경계                                                              |
+| -------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [Workspace Desktop](../../apps/workspace-app/README.md)        | Electron shell, 로컬 PTY·파일·browser·viewer, Home, PKMS pane | Main이 OS 권한과 native token을 보유. UI는 editor/pkms-client 소비          |
+| [PKMS Web](../../apps/pkms-web/README.md)                      | React Router UI·SSR·assets·service proxy                      | PKMS API Worker의 내부 요청으로 UI 제공, 직접 origin은 canonical로 redirect |
+| [PKMS Server](../../apps/pkms-server/README.md)                | 로그인·workspace/vault·협업·첨부 파일·MCP·GitHub export       | Web/Desktop/iOS 공통 API, Supabase/R2/GitHub 연결                           |
+| [PKMS iOS](../../apps/pkms-ios/README.md)                      | SwiftUI 앱·native document·Keychain session                   | PKMS API/Realtime, Rust Core의 C FFI                                        |
+| [Workspace Home Server](../../apps/workspace-server/README.md) | Home provider API·OAuth·grants 저장                           | PKMS JWKS 검증, 전용 D1과 provider 자격 증명                                |
 
 ## 의존 방향
 
@@ -39,15 +39,15 @@ flowchart TB
 
 ## 인증·데이터 경계
 
-| 경계 | 자격 증명/데이터 책임 |
-|---|---|
-| Web→PKMS | canonical origin의 browser cookie, server가 session·GitHub grants 검증 |
-| Desktop→PKMS | Main의 device-flow session. renderer에는 bearer token 전달하지 않음 |
-| iOS→PKMS | origin별 Keychain session과 native transport |
-| Desktop→Home | PKMS 발급 Home audience 제한 token을 Main이 전달 |
-| Home→provider | Home 전용 저장소에 암호화한 grants. PKMS session secret과 DB를 공유하지 않음 |
-| 로컬 파일↔PKMS | Desktop의 선택된 folder와 server revision/CRDT. durable save·cloud sync·GitHub mirror는 별도 상태 |
-| viewer→로컬 파일 | Desktop content adapter/protocol. 이미지 bytes와 media streaming·변환 pipeline은 구분 |
+| 경계             | 자격 증명/데이터 책임                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| Web→PKMS         | canonical origin의 browser cookie, server가 session·GitHub grants 검증                            |
+| Desktop→PKMS     | Main의 device-flow session. renderer에는 bearer token 전달하지 않음                               |
+| iOS→PKMS         | origin별 Keychain session과 native transport                                                      |
+| Desktop→Home     | PKMS 발급 Home audience 제한 token을 Main이 전달                                                  |
+| Home→provider    | Home 전용 저장소에 암호화한 grants. PKMS session secret과 DB를 공유하지 않음                      |
+| 로컬 파일↔PKMS   | Desktop의 선택된 folder와 server revision/CRDT. durable save·cloud sync·GitHub mirror는 별도 상태 |
+| viewer→로컬 파일 | Desktop content adapter/protocol. 이미지 bytes와 media streaming·변환 pipeline은 구분             |
 
 GitHub는 PKMS 로그인·저장소 연결·export/mirror의 경계다. Desktop 로컬 파일 저장 완료 또는 PKMS cloud 동기화 완료를 GitHub export 완료와 동일시하지 않는다.
 

@@ -4,17 +4,17 @@ Package scope는 현재 직접 유지하는 [TypeScript DTO](../src/types.ts)와
 
 ## HTTP 모델 family
 
-| 모델 | 의미·주의 |
-|---|---|
-| User/SessionResponse | login/avatar, user 또는 null. Web cookie와 native bearer의 저장 책임은 앱 |
-| Repository/Workspace | repo/branch/revision·GitHub status. githubStatus는 synced/pending/failed/external-change |
-| File/WorkspaceSnapshot | stable id/path/kind(markdown/asset/folder)/revision와 선택적 본문/size/hash. tree metadata와 문서 content를 구분 |
-| SyncStatus | serverRevision·githubStatus·pendingFiles·선택적 flush 시각/오류 |
-| WorkspaceOperation/OperationRequest | create-folder/create-file/move/delete, operationId/baseRevision/clientId |
-| OperationResponse | acceptedRevision/duplicate, 선택적 conflictCopyPath/rebasedFrom |
-| DocumentUpdateRequest | operationId/fileId/base64 update |
-| DeviceStart/PollResponse | GitHub snake_case 시작 응답, pending·interval·native token·user |
-| ApiError | error/code/message/requestId/currentRevision/conflictCopyPath/limit/scope 등 optional fields |
+| 모델                                | 의미·주의                                                                                                        |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| User/SessionResponse                | login/avatar, user 또는 null. Web cookie와 native bearer의 저장 책임은 앱                                        |
+| Repository/Workspace                | repo/branch/revision·GitHub status. githubStatus는 synced/pending/failed/external-change                         |
+| File/WorkspaceSnapshot              | stable id/path/kind(markdown/asset/folder)/revision와 선택적 본문/size/hash. tree metadata와 문서 content를 구분 |
+| SyncStatus                          | serverRevision·githubStatus·pendingFiles·선택적 flush 시각/오류                                                  |
+| WorkspaceOperation/OperationRequest | create-folder/create-file/move/delete, operationId/baseRevision/clientId                                         |
+| OperationResponse                   | acceptedRevision/duplicate, 선택적 conflictCopyPath/rebasedFrom                                                  |
+| DocumentUpdateRequest               | operationId/fileId/base64 update                                                                                 |
+| DeviceStart/PollResponse            | GitHub snake_case 시작 응답, pending·interval·native token·user                                                  |
+| ApiError                            | error/code/message/requestId/currentRevision/conflictCopyPath/limit/scope 등 optional fields                     |
 
 새 sync tree pagination·delete guard·Home payload가 이 모델 family에 모두 포함된 것은 아니다. 앱 handler가 실제로 수락하는 extra fields와 TS/Swift representation 차이는 app 계약으로 확인하고 호환 변경 때 함께 검토한다. core Rust OperationEnvelope의 snake_case 구조를 이 HTTP DTO와 이름만 보고 동일 포맷으로 간주하지 않는다.
 

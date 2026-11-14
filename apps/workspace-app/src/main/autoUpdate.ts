@@ -40,16 +40,18 @@ export function initializeAutoUpdates(): void {
     appendStartupLog('updater_downloaded', { version: info.version })
     manualCheck = false
     checkInProgress = false
-    void dialog.showMessageBox({
-      type: 'info',
-      title: 'Workspace 업데이트 준비 완료',
-      message: `Workspace ${info.version} 업데이트를 다운로드했습니다. 지금 재시작해 설치할까요?`,
-      buttons: ['지금 재시작', '나중에'],
-      defaultId: 0,
-      cancelId: 1
-    }).then(({ response }) => {
-      if (response === 0) autoUpdater.quitAndInstall()
-    })
+    void dialog
+      .showMessageBox({
+        type: 'info',
+        title: 'Workspace 업데이트 준비 완료',
+        message: `Workspace ${info.version} 업데이트를 다운로드했습니다. 지금 재시작해 설치할까요?`,
+        buttons: ['지금 재시작', '나중에'],
+        defaultId: 0,
+        cancelId: 1
+      })
+      .then(({ response }) => {
+        if (response === 0) autoUpdater.quitAndInstall()
+      })
   })
   autoUpdater.on('error', (error) => {
     appendStartupLog('updater_error', { message: error.message })
@@ -88,7 +90,9 @@ async function checkForUpdates(fromUser: boolean): Promise<void> {
   try {
     await autoUpdater.checkForUpdates()
   } catch (error) {
-    appendStartupLog('updater_check_failed', { message: error instanceof Error ? error.message : String(error) })
+    appendStartupLog('updater_check_failed', {
+      message: error instanceof Error ? error.message : String(error)
+    })
     checkInProgress = false
     if (manualCheck) {
       manualCheck = false
@@ -101,4 +105,3 @@ async function checkForUpdates(fromUser: boolean): Promise<void> {
     }
   }
 }
-

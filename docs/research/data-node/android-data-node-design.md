@@ -84,18 +84,18 @@ v1 명령은 아래 개념을 지원한다.
 
 초기 논리 테이블/컬렉션:
 
-| 저장 집합 | 역할 |
-|---|---|
-| `records` | namespace, key, JSON value, version, updated time |
-| `record_indexes` | Worker가 선언한 제한된 index key/value와 record key |
-| `operations` | operation ID, request hash, response/result, revision, 완료 시각 |
-| `change_log` | 순서가 있는 변경 이벤트와 revision cursor |
-| `object_metadata` | object ID, SHA-256, bytes, content type, state, key version |
-| `object_references` | object를 참조하는 opaque namespace/key 쌍 |
-| `outbox` | 복제 및 GitHub export 대상, 상태, 재시도 횟수 |
-| `backup_batches` | batch ID, manifest hash, 대상 GitHub head, status, 완료 시각 |
-| `schema_migrations` | storage schema 버전과 migration history |
-| `diagnostic_runs` / `error_events` | 진단과 오류 요약. 사용자 데이터/토큰은 저장하지 않음 |
+| 저장 집합                          | 역할                                                             |
+| ---------------------------------- | ---------------------------------------------------------------- |
+| `records`                          | namespace, key, JSON value, version, updated time                |
+| `record_indexes`                   | Worker가 선언한 제한된 index key/value와 record key              |
+| `operations`                       | operation ID, request hash, response/result, revision, 완료 시각 |
+| `change_log`                       | 순서가 있는 변경 이벤트와 revision cursor                        |
+| `object_metadata`                  | object ID, SHA-256, bytes, content type, state, key version      |
+| `object_references`                | object를 참조하는 opaque namespace/key 쌍                        |
+| `outbox`                           | 복제 및 GitHub export 대상, 상태, 재시도 횟수                    |
+| `backup_batches`                   | batch ID, manifest hash, 대상 GitHub head, status, 완료 시각     |
+| `schema_migrations`                | storage schema 버전과 migration history                          |
+| `diagnostic_runs` / `error_events` | 진단과 오류 요약. 사용자 데이터/토큰은 저장하지 않음             |
 
 위 스키마는 물리 구현 제안이다. Worker가 PKMS-specific metadata record를 generic `records`에 직렬화할 수 있어야 하며, Node는 그 JSON의 도메인 필드 의미를 추론하지 않는다. 검색이 필요하면 Worker가 선언한 제한된 index API를 사용한다. SQLite FTS 같은 provider-only 기능은 공통 contract로 노출하지 않는다.
 
@@ -107,8 +107,19 @@ v1 명령은 아래 개념을 지원한다.
   "requestHash": "sha256-of-canonical-request",
   "expectedRevision": 42,
   "mutations": [
-    {"type": "put", "namespace": "workspace-records", "key": "opaque-key", "value": {"example": true}, "expectedVersion": 3},
-    {"type": "appendEvent", "namespace": "document-updates", "key": "opaque-doc", "value": {"encoding": "base64url", "data": "..."}}
+    {
+      "type": "put",
+      "namespace": "workspace-records",
+      "key": "opaque-key",
+      "value": { "example": true },
+      "expectedVersion": 3
+    },
+    {
+      "type": "appendEvent",
+      "namespace": "document-updates",
+      "key": "opaque-doc",
+      "value": { "encoding": "base64url", "data": "..." }
+    }
   ]
 }
 ```
@@ -119,15 +130,15 @@ Node는 batch 전체를 하나의 SQLite transaction으로 처리한다. 이는 
 
 object API는 metadata DB의 record API와 분리한다.
 
-| 동작 | 계약 |
-|---|---|
-| `beginPut` | object ID, 예상 크기(optional), operation ID, content type 수신 후 staging upload handle 발급 |
-| `writeChunk` | 고정 상한 chunk, chunk sequence/offset, chunk checksum 검증, 재시도 가능 |
-| `completePut` | 전체 SHA-256/크기 검증 후 immutable object를 최종 경로로 publish하고 metadata/outbox 기록 |
-| `get` | 검증 가능한 metadata와 streaming body 반환. range read는 필요성과 구현 검증 후 추가 |
-| `head` | object 존재, 크기, content hash, durability status 반환 |
-| `delete` | reference/retention policy 확인 후 tombstone 처리; 즉시 물리 삭제 금지 |
-| `list` | 일반 listing은 보조 진단 전용. app object reference 질의의 기준은 MetadataStore |
+| 동작          | 계약                                                                                          |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| `beginPut`    | object ID, 예상 크기(optional), operation ID, content type 수신 후 staging upload handle 발급 |
+| `writeChunk`  | 고정 상한 chunk, chunk sequence/offset, chunk checksum 검증, 재시도 가능                      |
+| `completePut` | 전체 SHA-256/크기 검증 후 immutable object를 최종 경로로 publish하고 metadata/outbox 기록     |
+| `get`         | 검증 가능한 metadata와 streaming body 반환. range read는 필요성과 구현 검증 후 추가           |
+| `head`        | object 존재, 크기, content hash, durability status 반환                                       |
+| `delete`      | reference/retention policy 확인 후 tombstone 처리; 즉시 물리 삭제 금지                        |
+| `list`        | 일반 listing은 보조 진단 전용. app object reference 질의의 기준은 MetadataStore               |
 
 권장 object key는 content-addressed SHA-256을 기반으로 하되, 원본 민감정보가 key에서 노출되지 않도록 내부 opaque ID와 해시 저장 정책을 분리한다. 동일 content가 올라오면 existing object를 검증하고 참조만 추가한다. 원본 hash와 압축/encryption payload hash는 서로 다른 필드다.
 
@@ -193,11 +204,11 @@ ALLOCATED → STAGING → HASH_VERIFIED → FILE_PUBLISHED
 
 S21이 primary, A Quantum이 replica로 동작할 경우 status는 아래로 분리한다.
 
-| 상태 | 의미 |
-|---|---|
+| 상태              | 의미                                              |
+| ----------------- | ------------------------------------------------- |
 | `local_committed` | S21 DB transaction 및 object durable publish 완료 |
-| `replicated` | A Quantum이 동일 hash/object를 확인하고 ACK |
-| `github_exported` | GitHub commit과 manifest를 read-back 확인 |
+| `replicated`      | A Quantum이 동일 hash/object를 확인하고 ACK       |
+| `github_exported` | GitHub commit과 manifest를 read-back 확인         |
 
 API는 사용 사례에 따라 `local_committed`까지 기다리거나 `replicated`를 요청할 수 있다. 응답은 실제 확인된 단계만 보고한다. GitHub 주기 백업이 늦어도 local data를 지우지 않는다.
 
@@ -240,11 +251,11 @@ Cloudflare Workers VPC는 Tunnel/Mesh를 통해 private service에 접근하는 
 
 가능한 network profile:
 
-| Profile | 경로 | 장단점 | 결정 기준 |
-|---|---|---|---|
-| Cloudflare private tunnel/VPC | Worker → private route → S21 connector | Worker가 요청 주도, 현재 Worker 구조와 유사. Android connector 상시 운영이 미검증 | S21 connector, background, cost, security spike 통과 |
-| Public HTTPS endpoint | Worker → S21 public/tunneled HTTPS | 단순한 요청 흐름. public attack surface와 tunnel availability 관리 필요 | strong auth/rate limits/transport security 준비 |
-| Outbound node relay | S21 → Worker/relay persistent channel; Worker command/data 전달 | NAT 친화적. reconnect, chunk flow control, relay state 복잡도 증가 | direct inbound가 안 되고 Android outbound service가 더 안정적일 때 |
+| Profile                       | 경로                                                            | 장단점                                                                            | 결정 기준                                                          |
+| ----------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Cloudflare private tunnel/VPC | Worker → private route → S21 connector                          | Worker가 요청 주도, 현재 Worker 구조와 유사. Android connector 상시 운영이 미검증 | S21 connector, background, cost, security spike 통과               |
+| Public HTTPS endpoint         | Worker → S21 public/tunneled HTTPS                              | 단순한 요청 흐름. public attack surface와 tunnel availability 관리 필요           | strong auth/rate limits/transport security 준비                    |
+| Outbound node relay           | S21 → Worker/relay persistent channel; Worker command/data 전달 | NAT 친화적. reconnect, chunk flow control, relay state 복잡도 증가                | direct inbound가 안 되고 Android outbound service가 더 안정적일 때 |
 
 어떤 profile도 요구조건을 통과하지 못하면 Android-only node는 아직 backend 교체 가능한 후보가 아니다. 이 경우 Supabase backend를 유지하면서 app/Worker에 adapter 경계를 먼저 넣고, Android는 local replica/test target으로 시작한다.
 
@@ -278,13 +289,13 @@ USB debugging 활성화와 최초 컴퓨터 RSA key 승인은 사용자 조작�
 
 ### 일반 사용자용 USB와 다른 transport
 
-| 방법 | 적합한 역할 | 제한 |
-|---|---|---|
-| USB + ADB forward | 개인용 첫 구현, 개발/검증, 노트북↔Android API | Developer options/USB debugging/신뢰할 host 필요 |
-| USB Android Open Accessory | USB debugging 없이 앱 전용 통신을 제공할 제품 후보 | Android app와 laptop USB host implementation, framing/flow control, 기기 지원 검증 필요 |
-| USB tethering | USB link를 IP network로 제공할 후보 | OS/기기 호환성 검증 필요. Google 안내상 Mac은 Android USB tethering 미지원이므로 Mac 기본 경로로 삼지 않음 |
-| Offline Wi-Fi LAN / hotspot | 여러 기기의 HTTP API 통신 | 인터넷 없이 LAN을 구성할 수 있으나 phone hotspot의 무회선 동작/격리 정책은 실기기에서 확인 |
-| MTP / export file | 파일 형태의 backup 운반 | live DB/API access나 DB transaction 대체 경로로 사용하지 않음 |
+| 방법                        | 적합한 역할                                        | 제한                                                                                                       |
+| --------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| USB + ADB forward           | 개인용 첫 구현, 개발/검증, 노트북↔Android API      | Developer options/USB debugging/신뢰할 host 필요                                                           |
+| USB Android Open Accessory  | USB debugging 없이 앱 전용 통신을 제공할 제품 후보 | Android app와 laptop USB host implementation, framing/flow control, 기기 지원 검증 필요                    |
+| USB tethering               | USB link를 IP network로 제공할 후보                | OS/기기 호환성 검증 필요. Google 안내상 Mac은 Android USB tethering 미지원이므로 Mac 기본 경로로 삼지 않음 |
+| Offline Wi-Fi LAN / hotspot | 여러 기기의 HTTP API 통신                          | 인터넷 없이 LAN을 구성할 수 있으나 phone hotspot의 무회선 동작/격리 정책은 실기기에서 확인                 |
+| MTP / export file           | 파일 형태의 backup 운반                            | live DB/API access나 DB transaction 대체 경로로 사용하지 않음                                              |
 
 AOA는 laptop이 USB host가 되고 Android app이 accessory connection을 통해 데이터를 주고받는 방식이다. USB debugging 없이 사용할 수 있지만, 기기 지원과 host-side 구현이 필요하므로 ADB profile의 후속 후보로 둔다. [AOA protocol](https://source.android.com/docs/core/interaction/accessories/protocol), [AOA 1.0 및 debug requirements](https://source.android.com/docs/core/interaction/accessories/aoa), [Android USB tethering 제한](https://support.google.com/android/answer/9059108?hl=en-GB)
 
@@ -330,18 +341,18 @@ AOA는 laptop이 USB host가 되고 Android app이 accessory connection을 통�
 
 `Run Full Validation` 결과는 단계별 PASS/WARN/FAIL과 관측값을 남긴다.
 
-| Check | 검증 |
-|---|---|
-| Node runtime | service state, uptime, app/build/API version, last start/stop reason |
-| Database | schema version, migration status, `PRAGMA integrity_check`, `foreign_key_check`, WAL state/checkpoint result |
-| Filesystem | writable, free bytes, staging/final path access, atomic publish behavior |
-| Metadata transaction | record create/read/update, conditional version conflict, rollback, duplicate operation idempotency |
-| Object store | streamed test object put/head/get/delete, SHA-256 exact match, duplicate object behavior |
-| Crash recovery | controlled test staging object + uncommitted metadata fixture 이후 restart reconciliation |
-| Outbox/backup | pending count/oldest age, GitHub auth, test export/commit readback, manifest integrity |
-| A Quantum replica | pairing, authenticated health, encrypted transfer, hash compare, replica lag |
-| Worker route | Worker→Node authenticated request latency/reachability, timeout/retry path |
-| Resource limits | free storage threshold, memory peak, CPU/thermal state, active request count |
+| Check                | 검증                                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Node runtime         | service state, uptime, app/build/API version, last start/stop reason                                         |
+| Database             | schema version, migration status, `PRAGMA integrity_check`, `foreign_key_check`, WAL state/checkpoint result |
+| Filesystem           | writable, free bytes, staging/final path access, atomic publish behavior                                     |
+| Metadata transaction | record create/read/update, conditional version conflict, rollback, duplicate operation idempotency           |
+| Object store         | streamed test object put/head/get/delete, SHA-256 exact match, duplicate object behavior                     |
+| Crash recovery       | controlled test staging object + uncommitted metadata fixture 이후 restart reconciliation                    |
+| Outbox/backup        | pending count/oldest age, GitHub auth, test export/commit readback, manifest integrity                       |
+| A Quantum replica    | pairing, authenticated health, encrypted transfer, hash compare, replica lag                                 |
+| Worker route         | Worker→Node authenticated request latency/reachability, timeout/retry path                                   |
+| Resource limits      | free storage threshold, memory peak, CPU/thermal state, active request count                                 |
 
 Diagnostic bundle에는 기밀 데이터가 없어야 한다. bundle manifest에 포함 파일 목록/size/hash를 표시하고, 내보내기 전에 preview를 제공한다. 자동 외부 업로드는 v1에서 하지 않는다.
 
@@ -351,13 +362,13 @@ Diagnostic bundle에는 기밀 데이터가 없어야 한다. bundle manifest에
 
 기존 repo에 제안할 entrypoints (설계 대상 이름이며 아직 구현된 command가 아님):
 
-| 명령 | 동작 |
-|---|---|
-| `npm run data-node:doctor` | Java/JDK, Android SDK, Gradle, adb/device authorization, disk space 확인 후 빠진 조건을 고침 안내 |
-| `npm run data-node:one-click` | doctor → debug APK build → 연결된 대상 기기에 install/launch → on-device smoke diagnostics → 결과와 Logcat 저장 |
-| `npm run data-node:verify` | unit + adapter contract + SQLite instrumentation + device diagnostics 수행 |
-| `npm run data-node:logs` | 최근 worker/device correlation ID 기준 redacted log bundle 수집 |
-| `npm run data-node:reset-test-node` | test namespace만 초기화. 실제 사용자 DB나 object data는 절대 삭제하지 않음 |
+| 명령                                | 동작                                                                                                            |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `npm run data-node:doctor`          | Java/JDK, Android SDK, Gradle, adb/device authorization, disk space 확인 후 빠진 조건을 고침 안내               |
+| `npm run data-node:one-click`       | doctor → debug APK build → 연결된 대상 기기에 install/launch → on-device smoke diagnostics → 결과와 Logcat 저장 |
+| `npm run data-node:verify`          | unit + adapter contract + SQLite instrumentation + device diagnostics 수행                                      |
+| `npm run data-node:logs`            | 최근 worker/device correlation ID 기준 redacted log bundle 수집                                                 |
+| `npm run data-node:reset-test-node` | test namespace만 초기화. 실제 사용자 DB나 object data는 절대 삭제하지 않음                                      |
 
 Mac 환경에서 Android SDK/ADB 도구가 확인된 상태지만, 현재 이 repository에는 Data Node Gradle app 또는 위 명령이 없다. 설계 승인과 implementation 이후 실제 명령으로 제공하며, 그 전에는 실행 가능하다고 표현하지 않는다.
 
@@ -424,15 +435,15 @@ APK 설치만으로 Node를 자동 시작하지 않는다. 사용자는 `Start N
 
 초기에는 가용성 숫자를 임의로 약속하지 않는다. 검증 화면에서 실제 측정값을 제공하고, 파일럿 뒤 목표를 정한다.
 
-| 지표 | 초기 기준 |
-|---|---|
-| local metadata commit result | 요청별 committed/rejected, revision, latency 표시 |
-| object checksum | 모든 completed upload에서 requested/actual SHA-256 일치 |
-| recovery | synthetic crash fixtures 모두 startup 후 resolved/quarantined 상태로 설명 가능 |
-| replica lag | 마지막 node ACK 시각, pending bytes/count 표시 |
-| GitHub backup lag | 마지막 verified commit과 pending oldest age 표시 |
-| observability | 모든 failed operation을 request/operation ID로 log에서 찾기 가능 |
-| data loss | ACK한 `local_committed` 요청은 SQLite/file crash recovery 후 결과가 확인 가능; 물리 기기 고장에는 replica/export가 필요 |
+| 지표                         | 초기 기준                                                                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| local metadata commit result | 요청별 committed/rejected, revision, latency 표시                                                                       |
+| object checksum              | 모든 completed upload에서 requested/actual SHA-256 일치                                                                 |
+| recovery                     | synthetic crash fixtures 모두 startup 후 resolved/quarantined 상태로 설명 가능                                          |
+| replica lag                  | 마지막 node ACK 시각, pending bytes/count 표시                                                                          |
+| GitHub backup lag            | 마지막 verified commit과 pending oldest age 표시                                                                        |
+| observability                | 모든 failed operation을 request/operation ID로 log에서 찾기 가능                                                        |
+| data loss                    | ACK한 `local_committed` 요청은 SQLite/file crash recovery 후 결과가 확인 가능; 물리 기기 고장에는 replica/export가 필요 |
 
 RPO는 GitHub export 주기만큼이 아니라 **마지막 확인된 independent replica/export 단계**로 설명한다. A Quantum 없이 S21만 켜져 있고 GitHub export가 하루 주기라면, 그 사이 노드 고장 시 해당 변경은 복구되지 않을 수 있다고 UI에 표현한다.
 
@@ -477,17 +488,17 @@ RPO는 GitHub export 주기만큼이 아니라 **마지막 확인된 independent
 
 ## 핵심 리스크와 완화
 
-| 위험 | 영향 | 완화/검증 |
-|---|---|---|
-| Worker가 S21에 접근 못 함 | 전체 API 저장 불가 | Gate 0에서 tunnel/VPC/relay 실증; 이 gate 실패 시 진행 범위 재정의 |
-| Android가 service 종료 | node offline, 요청 지연 | user-started FGS, visible notification, restart/resume, status & retry, soak tests |
-| 앱 제거/초기화로 private storage 삭제 | 전체 로컬 복사 손실 | replica/export 확인과 uninstall guard, restore drill |
-| SQLite/file cross-store 실패 | dangling record/object | explicit state machine, outbox, scrub/reconcile, quarantine |
-| Supabase/SQLite semantic 차이 | migration 이후 데이터 오류 | provider contract test와 shadow compare |
-| Realtime 유실/순서 차이 | UI stale state | revision cursor, durable replay, realtime advisory-only |
-| GitHub quota/branch conflict | backup delay | batch commit, backoff, export status, no local data deletion |
-| credential 탈취 | 저장소 노출/변조 | scoped worker credential, pairing, TLS, rotation, redacted logs |
-| 배터리 열/기기 고장 | uptime/수명 저하 | measured power/thermal pilot, A Quantum replica, clear durability status |
+| 위험                                  | 영향                       | 완화/검증                                                                          |
+| ------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------- |
+| Worker가 S21에 접근 못 함             | 전체 API 저장 불가         | Gate 0에서 tunnel/VPC/relay 실증; 이 gate 실패 시 진행 범위 재정의                 |
+| Android가 service 종료                | node offline, 요청 지연    | user-started FGS, visible notification, restart/resume, status & retry, soak tests |
+| 앱 제거/초기화로 private storage 삭제 | 전체 로컬 복사 손실        | replica/export 확인과 uninstall guard, restore drill                               |
+| SQLite/file cross-store 실패          | dangling record/object     | explicit state machine, outbox, scrub/reconcile, quarantine                        |
+| Supabase/SQLite semantic 차이         | migration 이후 데이터 오류 | provider contract test와 shadow compare                                            |
+| Realtime 유실/순서 차이               | UI stale state             | revision cursor, durable replay, realtime advisory-only                            |
+| GitHub quota/branch conflict          | backup delay               | batch commit, backoff, export status, no local data deletion                       |
+| credential 탈취                       | 저장소 노출/변조           | scoped worker credential, pairing, TLS, rotation, redacted logs                    |
+| 배터리 열/기기 고장                   | uptime/수명 저하           | measured power/thermal pilot, A Quantum replica, clear durability status           |
 
 ## 관련 근거
 

@@ -54,16 +54,16 @@ Persist a complete local inventory per connected workspace in `pkms-sync-bridge.
 
 ```ts
 type LocalDirectoryEntry = {
-  path: string;
-  identity: string | null; // device + inode when the platform supplies a stable identity
-};
+  path: string
+  identity: string | null // device + inode when the platform supplies a stable identity
+}
 
 type LocalDirectoryInventory = {
-  version: 1;
-  generation: number;
-  completedAt: number;
-  directories: Record<string, LocalDirectoryEntry>;
-};
+  version: 1
+  generation: number
+  completedAt: number
+  directories: Record<string, LocalDirectoryEntry>
+}
 ```
 
 Store relative paths only. Exclude `.git`, `.obsidian`, `node_modules`, configured exclusions, and symlinks under the same policy as content scans. A scan is complete only if the root and every traversed directory were readable. Any traversal error makes the pass incomplete and forbids delete inference.
@@ -76,15 +76,15 @@ Persist a candidate before network I/O:
 
 ```ts
 type PendingDelete = {
-  kind: "markdown" | "folder";
-  path: string;
-  fileId: string;
-  operationId: string;
-  baseRevision: number;
-  expectedItemRevision?: number;
-  firstObservedAt: number;
-  attempts: number;
-};
+  kind: 'markdown' | 'folder'
+  path: string
+  fileId: string
+  operationId: string
+  baseRevision: number
+  expectedItemRevision?: number
+  firstObservedAt: number
+  attempts: number
+}
 ```
 
 Retry the same operation ID and payload. Exclude pending paths and descendants from the merged cloud tree. After acknowledgement, remove the file or folder subtree from `remoteTrees`, `remoteFiles`, baselines, and the local directory inventory before advancing the durable cursor.
@@ -111,18 +111,18 @@ On a stale-revision conflict, cancel the pending delete and catch up the remote 
 10. **Resolve stale-delete conflicts.** Apply remote changes, preserve or restore the latest cloud version, clear the pending delete, and show `attention`.
 11. **Recover missed events.** Startup and periodic complete scans use the same inventory diff. A watcher drop or error forces a full directory scan.
 
-| Condition | Result |
-|---|---|
-| First complete scan; no prior inventory | Seed inventory; hydrate cloud-only folders; no deletion |
-| Baseline Markdown file absent from a complete scan | Queue conditional file delete |
-| Previously observed folder absent from a complete scan | Queue conditional folder delete |
-| Root missing, traversal failed, or scan incomplete | Keep prior inventory; retry; no deletion |
-| Candidate is excluded or reserved | Do not infer deletion |
-| Remote file revision still matches its baseline | Tombstone the file atomically |
-| Remote folder subtree unchanged since the client cursor | Tombstone the folder and descendants atomically |
-| Remote file/subtree changed after the cursor | Reject atomically; preserve/restore the current cloud version and show attention |
-| Same directory identity appears at a new path | Issue one move operation |
-| Identity unavailable or ambiguous | Do not guess a move |
+| Condition                                               | Result                                                                           |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| First complete scan; no prior inventory                 | Seed inventory; hydrate cloud-only folders; no deletion                          |
+| Baseline Markdown file absent from a complete scan      | Queue conditional file delete                                                    |
+| Previously observed folder absent from a complete scan  | Queue conditional folder delete                                                  |
+| Root missing, traversal failed, or scan incomplete      | Keep prior inventory; retry; no deletion                                         |
+| Candidate is excluded or reserved                       | Do not infer deletion                                                            |
+| Remote file revision still matches its baseline         | Tombstone the file atomically                                                    |
+| Remote folder subtree unchanged since the client cursor | Tombstone the folder and descendants atomically                                  |
+| Remote file/subtree changed after the cursor            | Reject atomically; preserve/restore the current cloud version and show attention |
+| Same directory identity appears at a new path           | Issue one move operation                                                         |
+| Identity unavailable or ambiguous                       | Do not guess a move                                                              |
 
 ## Tree and diagnostics
 
@@ -133,14 +133,14 @@ On a stale-revision conflict, cancel the pending delete and catch up the remote 
 
 ## Source, deployment, acceptance status
 
-| Slice | Source status | Operational status |
-|---|---|---|
-| Complete directory inventory + seed-only migration | present in `syncBridge.ts` | macOS watcher/drop/permission acceptance pending |
-| Durable file/folder delete intent + pending tree suppression | present in `syncBridge.ts` | restart/offline response-loss test pending |
-| Atomic file revision and conservative folder subtree guards | present in Worker SQL migration and handler | target database migration application unverified |
-| Scan → remote cursor → conditional delete → remaining folder materialization order | present in current `syncOnce` | end-to-end concurrent-delete test pending |
-| Stable directory identity move | present when `(dev,ino)` uniquely identifies destination | cross-volume/identity unavailable fallback acceptance pending |
-| Structured lifecycle logs | source emits queued/ack/conflict/retry/move/incomplete events | log delivery/retention and privacy review pending |
+| Slice                                                                              | Source status                                                 | Operational status                                            |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
+| Complete directory inventory + seed-only migration                                 | present in `syncBridge.ts`                                    | macOS watcher/drop/permission acceptance pending              |
+| Durable file/folder delete intent + pending tree suppression                       | present in `syncBridge.ts`                                    | restart/offline response-loss test pending                    |
+| Atomic file revision and conservative folder subtree guards                        | present in Worker SQL migration and handler                   | target database migration application unverified              |
+| Scan → remote cursor → conditional delete → remaining folder materialization order | present in current `syncOnce`                                 | end-to-end concurrent-delete test pending                     |
+| Stable directory identity move                                                     | present when `(dev,ino)` uniquely identifies destination      | cross-volume/identity unavailable fallback acceptance pending |
+| Structured lifecycle logs                                                          | source emits queued/ack/conflict/retry/move/incomplete events | log delivery/retention and privacy review pending             |
 
 The migration and source implementation do not prove the deployed target is protected. Require DB migration version and runtime evidence before declaring destructive deletion accepted.
 

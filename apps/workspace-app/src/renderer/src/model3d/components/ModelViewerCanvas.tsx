@@ -1,52 +1,52 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { DetectedModelFormat } from "../../../../shared/model3d/types";
-import type { ViewerSession } from "../../../../shared/model3d/viewer";
-import type { OrbitCameraHandle } from "../backends/camera/orbitCamera";
-import { WebGlThreeViewer } from "../backends/webglThree";
-import { probeWebGL } from "../backends/webglProbe";
-import { defaultRenderPipeline } from "../backends/pipeline/defaultPipeline";
-import { logModel3d } from "../model3dLog";
-import { ModelViewerToolbar } from "./ModelViewerToolbar";
-import { ModelViewerUnsupported } from "./ModelViewerUnsupported";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import type { DetectedModelFormat } from '../../../../shared/model3d/types'
+import type { ViewerSession } from '../../../../shared/model3d/viewer'
+import type { OrbitCameraHandle } from '../backends/camera/orbitCamera'
+import { WebGlThreeViewer } from '../backends/webglThree'
+import { probeWebGL } from '../backends/webglProbe'
+import { defaultRenderPipeline } from '../backends/pipeline/defaultPipeline'
+import { logModel3d } from '../model3dLog'
+import { ModelViewerToolbar } from './ModelViewerToolbar'
+import { ModelViewerUnsupported } from './ModelViewerUnsupported'
 
 function isElectronModelHost(): boolean {
-  return typeof window.api?.model3d?.openPreview === "function";
+  return typeof window.api?.model3d?.openPreview === 'function'
 }
 
 /** Defer WebGL canvas mount so React Strict Mode does not exhaust contexts. */
 function useDeferredCanvasMount(enabled: boolean, sessionKey: string): boolean {
-  const [show, setShow] = useState(false);
-  const generationRef = useRef(0);
+  const [show, setShow] = useState(false)
+  const generationRef = useRef(0)
 
   useEffect(() => {
     if (!enabled) {
-      setShow(false);
-      return;
+      setShow(false)
+      return
     }
-    const generation = ++generationRef.current;
+    const generation = ++generationRef.current
     const start = window.setTimeout(() => {
-      if (generationRef.current === generation) setShow(true);
-    }, 32);
+      if (generationRef.current === generation) setShow(true)
+    }, 32)
     return () => {
-      clearTimeout(start);
+      clearTimeout(start)
       window.setTimeout(() => {
-        if (generationRef.current === generation) setShow(false);
-      }, 120);
-    };
-  }, [enabled, sessionKey]);
+        if (generationRef.current === generation) setShow(false)
+      }, 120)
+    }
+  }, [enabled, sessionKey])
 
-  return show;
+  return show
 }
 
 interface Props {
-  modelData?: ArrayBuffer;
-  modelUrl?: string;
-  format: DetectedModelFormat;
-  active: boolean;
-  live?: boolean;
-  refreshing?: boolean;
-  refreshError?: string | null;
-  onReady?: () => void;
+  modelData?: ArrayBuffer
+  modelUrl?: string
+  format: DetectedModelFormat
+  active: boolean
+  live?: boolean
+  refreshing?: boolean
+  refreshError?: string | null
+  onReady?: () => void
 }
 
 export function ModelViewerCanvas({
@@ -57,33 +57,33 @@ export function ModelViewerCanvas({
   live = false,
   refreshing = false,
   refreshError = null,
-  onReady,
+  onReady
 }: Props) {
-  const cameraRef = useRef<OrbitCameraHandle | null>(null);
-  const hostRef = useRef<HTMLDivElement>(null);
-  const [wireframe, setWireframe] = useState(false);
-  const [showGrid, setShowGrid] = useState(true);
-  const [hostSized, setHostSized] = useState(false);
-  const inElectron = useMemo(() => isElectronModelHost(), []);
-  const webglProbe = useMemo(() => probeWebGL(), []);
-  const sessionKey = `${modelUrl ?? "buf"}:${modelData?.byteLength ?? 0}:${format}`;
+  const cameraRef = useRef<OrbitCameraHandle | null>(null)
+  const hostRef = useRef<HTMLDivElement>(null)
+  const [wireframe, setWireframe] = useState(false)
+  const [showGrid, setShowGrid] = useState(true)
+  const [hostSized, setHostSized] = useState(false)
+  const inElectron = useMemo(() => isElectronModelHost(), [])
+  const webglProbe = useMemo(() => probeWebGL(), [])
+  const sessionKey = `${modelUrl ?? 'buf'}:${modelData?.byteLength ?? 0}:${format}`
   const showCanvas = useDeferredCanvasMount(
     active && hostSized && inElectron && webglProbe.ok,
-    sessionKey,
-  );
+    sessionKey
+  )
 
   useEffect(() => {
-    const el = hostRef.current;
-    if (!el) return;
+    const el = hostRef.current
+    if (!el) return
     const measure = () => {
-      const rect = el.getBoundingClientRect();
-      setHostSized(rect.width > 8 && rect.height > 8);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+      const rect = el.getBoundingClientRect()
+      setHostSized(rect.width > 8 && rect.height > 8)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const session = useMemo<ViewerSession>(
     () => ({
@@ -94,21 +94,21 @@ export function ModelViewerCanvas({
           reset: () => {},
           setMode: () => {},
           getState: () => ({
-            mode: "orbit",
+            mode: 'orbit',
             target: [0, 0, 0],
-            distance: 4,
-          }),
+            distance: 4
+          })
         },
       screenshot: async () => {
-        throw new Error("screenshot not implemented");
+        throw new Error('screenshot not implemented')
       },
-      dispose: () => {},
+      dispose: () => {}
     }),
-    [],
-  );
+    []
+  )
 
   useEffect(() => {
-    void logModel3d("viewer_mount", {
+    void logModel3d('viewer_mount', {
       byteLength: modelData?.byteLength ?? null,
       modelUrl: modelUrl ?? null,
       active,
@@ -116,32 +116,32 @@ export function ModelViewerCanvas({
       refreshing,
       inElectron,
       webglOk: webglProbe.ok,
-      showCanvas,
-    });
+      showCanvas
+    })
     return () => {
-      void logModel3d("viewer_dispose", {
+      void logModel3d('viewer_dispose', {
         byteLength: modelData?.byteLength ?? null,
-        modelUrl: modelUrl ?? null,
-      });
-    };
-  }, [modelData, modelUrl, active, live, refreshing, inElectron, webglProbe.ok, showCanvas]);
+        modelUrl: modelUrl ?? null
+      })
+    }
+  }, [modelData, modelUrl, active, live, refreshing, inElectron, webglProbe.ok, showCanvas])
 
-  let body: ReactNode;
+  let body: ReactNode
   if (!inElectron) {
     body = (
       <ModelViewerUnsupported
         variant="error"
         message="3D model preview requires the Workspace Electron app. Do not open localhost:5173 in an external browser."
       />
-    );
+    )
   } else if (!active) {
-    body = <div className="model-viewer-canvas-hint">Select this pane to view the model.</div>;
+    body = <div className="model-viewer-canvas-hint">Select this pane to view the model.</div>
   } else if (!webglProbe.ok) {
-    body = <ModelViewerUnsupported variant="error" message={webglProbe.reason} />;
+    body = <ModelViewerUnsupported variant="error" message={webglProbe.reason} />
   } else if (!hostSized) {
-    body = <div className="model-viewer-canvas-hint">Preparing canvas…</div>;
+    body = <div className="model-viewer-canvas-hint">Preparing canvas…</div>
   } else if (!showCanvas) {
-    body = <div className="model-viewer-canvas-hint">Starting WebGL…</div>;
+    body = <div className="model-viewer-canvas-hint">Starting WebGL…</div>
   } else {
     body = (
       <WebGlThreeViewer
@@ -153,20 +153,20 @@ export function ModelViewerCanvas({
         showGrid={showGrid}
         pipeline={defaultRenderPipeline}
         onReady={() => {
-          void logModel3d("viewer_canvas_ready", {
+          void logModel3d('viewer_canvas_ready', {
             byteLength: modelData?.byteLength ?? null,
-            modelUrl: modelUrl ?? null,
-          });
-          onReady?.();
+            modelUrl: modelUrl ?? null
+          })
+          onReady?.()
         }}
         onError={(error) => {
-          void logModel3d("viewer_error", { error: error.message, stack: error.stack });
+          void logModel3d('viewer_error', { error: error.message, stack: error.stack })
         }}
         onCameraReady={(handle) => {
-          cameraRef.current = handle;
+          cameraRef.current = handle
         }}
       />
-    );
+    )
   }
 
   return (
@@ -189,5 +189,5 @@ export function ModelViewerCanvas({
         ) : null}
       </div>
     </div>
-  );
+  )
 }

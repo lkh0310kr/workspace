@@ -12,7 +12,9 @@ export function paneGroupHostClassNames(options: {
   return classes.join(' ')
 }
 
-export function resolvePaneGroupTabSetId(parent: { getType(): string; getId(): string } | undefined): string | undefined {
+export function resolvePaneGroupTabSetId(
+  parent: { getType(): string; getId(): string } | undefined
+): string | undefined {
   if (!parent || parent.getType() !== 'tabset') return undefined
   return parent.getId()
 }

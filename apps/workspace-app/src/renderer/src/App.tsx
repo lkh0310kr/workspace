@@ -1,47 +1,55 @@
-import { useWorkspace } from "./components/useWorkspace";
-import { AppSettingsDialog } from "./components/AppSettingsDialog";
-import { AppTitlebar } from "./components/AppTitlebar";
-import { AgentUsageStatusBar } from "./components/AgentUsageStatusBar";
-import { loadUsageMeterSettings, onHomeShortcut, onQuickOpenShortcut, saveUsageMeterSettings } from "./electron";
-import { DEFAULT_USAGE_METER_SETTINGS, type UsageMeterSettings } from "../../shared/usage-meter-settings";
-import { ErrorLogPanel } from "./components/ErrorLogPanel";
-import { GlobalToastViewport } from "./components/GlobalToastViewport";
-import { InteractionDebugPanel } from "./components/InteractionDebugPanel";
-import { LayoutTabDropOverlay } from "./components/LayoutTabDropOverlay";
-import { LoadingWorkspace } from "./components/LoadingWorkspace";
-import { QuickOpen } from "./components/QuickOpen";
-import { SettingsDialog } from "./components/SettingsDialog";
-import { WorkspaceLayoutHost } from "./components/WorkspaceLayoutHost";
-import { DashboardView } from "./dashboard/DashboardView";
-import { useAppBootstrap } from "./hooks/useAppBootstrap";
-import { useAppShellState } from "./hooks/useAppShellState";
-import { useAppShortcuts, useDismissPortalsOnWorkspaceSwitch } from "./hooks/useAppShortcuts";
-import { useShortcutDispatcher } from "./shortcuts/useShortcutDispatcher";
-import { useLayoutHostCallbacks } from "./hooks/useLayoutHostCallbacks";
-import { useLayoutRevisions } from "./hooks/useLayoutRevision";
-import { useEnsureDefaultTerminals, useLayoutHostLifecycle } from "./hooks/useLayoutHostLifecycle";
-import { useSplitterDragOverlay } from "./hooks/useSplitterDragOverlay";
-import { useTabChipWindowDrop } from "./hooks/useTabChipWindowDrop";
-import { useWorkspaceTabHotkeys } from "./hooks/useWorkspaceTabHotkeys";
-import { useVisibleWorkspaceTab } from "./hooks/useVisibleWorkspaceTab";
-import { useWorkspaceScope } from "./interaction/useWorkspaceScope";
-import { switchToHome } from "./workspaceNavigation";
-import { useHtmlFullscreen } from "./hooks/useHtmlFullscreen";
-import { applyThemePreference, setStoredThemePreference } from "./theme";
-import { useWorkspaceStore } from "./store/workspaceStore";
-import { PKMS_QUICK_OPEN_EVENT } from "@pkms/client/hostEvents";
-import type { Model, TabNode, TabSetNode } from "flexlayout-react";
-import { readPaneGroupConfig, resolveActivePaneTab } from "./layout/layoutSession";
-import { openFileInPaneGroup, setActiveTabInGroup } from "./layout/layoutActions";
-import { useEffect, useCallback, useState } from "react";
-import { syncAgentPaneRegistryFromLayouts } from "./terminal/syncAgentPaneRegistryFromLayouts";
-import "flexlayout-react/style/combined.css";
-import "./assets/styles.css";
-import "@workspace/editor/tree.css";
+import { useWorkspace } from './components/useWorkspace'
+import { AppSettingsDialog } from './components/AppSettingsDialog'
+import { AppTitlebar } from './components/AppTitlebar'
+import { AgentUsageStatusBar } from './components/AgentUsageStatusBar'
+import {
+  loadUsageMeterSettings,
+  onHomeShortcut,
+  onQuickOpenShortcut,
+  saveUsageMeterSettings
+} from './electron'
+import {
+  DEFAULT_USAGE_METER_SETTINGS,
+  type UsageMeterSettings
+} from '../../shared/usage-meter-settings'
+import { ErrorLogPanel } from './components/ErrorLogPanel'
+import { GlobalToastViewport } from './components/GlobalToastViewport'
+import { InteractionDebugPanel } from './components/InteractionDebugPanel'
+import { LayoutTabDropOverlay } from './components/LayoutTabDropOverlay'
+import { LoadingWorkspace } from './components/LoadingWorkspace'
+import { QuickOpen } from './components/QuickOpen'
+import { SettingsDialog } from './components/SettingsDialog'
+import { WorkspaceLayoutHost } from './components/WorkspaceLayoutHost'
+import { DashboardView } from './dashboard/DashboardView'
+import { useAppBootstrap } from './hooks/useAppBootstrap'
+import { useAppShellState } from './hooks/useAppShellState'
+import { useAppShortcuts, useDismissPortalsOnWorkspaceSwitch } from './hooks/useAppShortcuts'
+import { useShortcutDispatcher } from './shortcuts/useShortcutDispatcher'
+import { useLayoutHostCallbacks } from './hooks/useLayoutHostCallbacks'
+import { useLayoutRevisions } from './hooks/useLayoutRevision'
+import { useEnsureDefaultTerminals, useLayoutHostLifecycle } from './hooks/useLayoutHostLifecycle'
+import { useSplitterDragOverlay } from './hooks/useSplitterDragOverlay'
+import { useTabChipWindowDrop } from './hooks/useTabChipWindowDrop'
+import { useWorkspaceTabHotkeys } from './hooks/useWorkspaceTabHotkeys'
+import { useVisibleWorkspaceTab } from './hooks/useVisibleWorkspaceTab'
+import { useWorkspaceScope } from './interaction/useWorkspaceScope'
+import { switchToHome } from './workspaceNavigation'
+import { useHtmlFullscreen } from './hooks/useHtmlFullscreen'
+import { applyThemePreference, setStoredThemePreference } from './theme'
+import { useWorkspaceStore } from './store/workspaceStore'
+import { PKMS_QUICK_OPEN_EVENT } from '@pkms/client/hostEvents'
+import type { Model, TabNode, TabSetNode } from 'flexlayout-react'
+import { readPaneGroupConfig, resolveActivePaneTab } from './layout/layoutSession'
+import { openFileInPaneGroup, setActiveTabInGroup } from './layout/layoutActions'
+import { useEffect, useCallback, useState } from 'react'
+import { syncAgentPaneRegistryFromLayouts } from './terminal/syncAgentPaneRegistryFromLayouts'
+import 'flexlayout-react/style/combined.css'
+import './assets/styles.css'
+import '@workspace/editor/tree.css'
 
-if (typeof document !== "undefined" && window.api?.platform) {
-  document.documentElement.dataset.platform = window.api.platform;
-  if (window.api.isWsl) document.documentElement.dataset.wsl = "1";
+if (typeof document !== 'undefined' && window.api?.platform) {
+  document.documentElement.dataset.platform = window.api.platform
+  if (window.api.isWsl) document.documentElement.dataset.wsl = '1'
 }
 
 // Cmd+P's "open in the active pane" — mirrors PaneGroup's openOrSwitchToFile,
@@ -50,36 +58,37 @@ async function openFileInActivePane(
   model: Model,
   workspaceTabId: number,
   path: string,
-  kind: "code" | "markdown" | "viewer",
+  kind: 'code' | 'markdown' | 'viewer',
   bumpLayout: (tabId: number) => void,
-  focusedTabSetId?: string,
+  focusedTabSetId?: string
 ): Promise<void> {
-  const focusedNode = focusedTabSetId ? model.getNodeById(focusedTabSetId) : undefined;
-  const tabset = focusedNode?.getType() === "tabset" ? focusedNode as TabSetNode : model.getActiveTabset();
-  const tabNode = tabset?.getSelectedNode();
-  if (!tabNode || tabNode.getType() !== "tab") return;
-  const nodeId = tabNode.getId();
-  const config = readPaneGroupConfig(tabNode as TabNode);
-  const existing = config.tabs.find((t) => t.filePath === path);
+  const focusedNode = focusedTabSetId ? model.getNodeById(focusedTabSetId) : undefined
+  const tabset =
+    focusedNode?.getType() === 'tabset' ? (focusedNode as TabSetNode) : model.getActiveTabset()
+  const tabNode = tabset?.getSelectedNode()
+  if (!tabNode || tabNode.getType() !== 'tab') return
+  const nodeId = tabNode.getId()
+  const config = readPaneGroupConfig(tabNode as TabNode)
+  const existing = config.tabs.find((t) => t.filePath === path)
   if (existing) {
-    setActiveTabInGroup(model, nodeId, existing.id);
-    bumpLayout(workspaceTabId);
-    return;
+    setActiveTabInGroup(model, nodeId, existing.id)
+    bumpLayout(workspaceTabId)
+    return
   }
-  const id = await openFileInPaneGroup(model, nodeId, path, kind);
-  if (!id) return;
-  setActiveTabInGroup(model, nodeId, id);
-  bumpLayout(workspaceTabId);
+  const id = await openFileInPaneGroup(model, nodeId, path, kind)
+  if (!id) return
+  setActiveTabInGroup(model, nodeId, id)
+  bumpLayout(workspaceTabId)
 }
 
 export default function App() {
-  const workspace = useWorkspace();
-  const layoutRevisions = useLayoutRevisions();
-  const storeGetModel = useWorkspaceStore((s) => s.getModel);
-  const layoutCallbacks = useLayoutHostCallbacks();
-  const { bumpLayout, ensureTerminal } = layoutCallbacks;
+  const workspace = useWorkspace()
+  const layoutRevisions = useLayoutRevisions()
+  const storeGetModel = useWorkspaceStore((s) => s.getModel)
+  const layoutCallbacks = useLayoutHostCallbacks()
+  const { bumpLayout, ensureTerminal } = layoutCallbacks
 
-  const shell = useAppShellState();
+  const shell = useAppShellState()
   const {
     settingsTarget,
     setSettingsTarget,
@@ -89,105 +98,111 @@ export default function App() {
     themePreference,
     setThemePreference,
     toggleAppSettings,
-    dismissPortals,
-  } = shell;
+    dismissPortals
+  } = shell
 
-  const activeTabId = workspace?.active_tab_id ?? 0;
-  const { homeActive } = useWorkspaceScope();
-  const visibleWorkspaceTabId = useVisibleWorkspaceTab();
-  const activeModel = storeGetModel(activeTabId);
-  const visibleModel = storeGetModel(visibleWorkspaceTabId);
-  const focusedPaneGroupId = useWorkspaceStore((s) => s.focusedPaneGroupTabSetByWorkspaceTab[visibleWorkspaceTabId]);
-  const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+  const activeTabId = workspace?.active_tab_id ?? 0
+  const { homeActive } = useWorkspaceScope()
+  const visibleWorkspaceTabId = useVisibleWorkspaceTab()
+  const activeModel = storeGetModel(activeTabId)
+  const visibleModel = storeGetModel(visibleWorkspaceTabId)
+  const focusedPaneGroupId = useWorkspaceStore(
+    (s) => s.focusedPaneGroupTabSetByWorkspaceTab[visibleWorkspaceTabId]
+  )
+  const [quickOpenOpen, setQuickOpenOpen] = useState(false)
   const openQuickOpenForFocusedPane = useCallback(() => {
-    if (homeActive) return;
-    const focusedNode = focusedPaneGroupId ? visibleModel?.getNodeById(focusedPaneGroupId) : undefined;
-    const tabSet = focusedNode?.getType() === "tabset"
-      ? focusedNode as TabSetNode
-      : visibleModel?.getActiveTabset();
-    const selectedNode = tabSet?.getSelectedNode();
-    const activePaneItem = selectedNode?.getType() === "tab"
-      ? resolveActivePaneTab(readPaneGroupConfig(selectedNode as TabNode))
-      : undefined;
-    if (activePaneItem?.kind === "pkms") {
-      window.dispatchEvent(new Event(PKMS_QUICK_OPEN_EVENT));
-      return;
+    if (homeActive) return
+    const focusedNode = focusedPaneGroupId
+      ? visibleModel?.getNodeById(focusedPaneGroupId)
+      : undefined
+    const tabSet =
+      focusedNode?.getType() === 'tabset'
+        ? (focusedNode as TabSetNode)
+        : visibleModel?.getActiveTabset()
+    const selectedNode = tabSet?.getSelectedNode()
+    const activePaneItem =
+      selectedNode?.getType() === 'tab'
+        ? resolveActivePaneTab(readPaneGroupConfig(selectedNode as TabNode))
+        : undefined
+    if (activePaneItem?.kind === 'pkms') {
+      window.dispatchEvent(new Event(PKMS_QUICK_OPEN_EVENT))
+      return
     }
-    setQuickOpenOpen(true);
-  }, [focusedPaneGroupId, homeActive, visibleModel]);
+    setQuickOpenOpen(true)
+  }, [focusedPaneGroupId, homeActive, visibleModel])
   const [usageMeterSettings, setUsageMeterSettings] = useState<UsageMeterSettings>(
-    DEFAULT_USAGE_METER_SETTINGS,
-  );
+    DEFAULT_USAGE_METER_SETTINGS
+  )
 
   useEffect(() => {
     loadUsageMeterSettings()
       .then(setUsageMeterSettings)
-      .catch(() => {});
-  }, []);
+      .catch(() => {})
+  }, [])
 
   const handleUsageMeterSettingsChange = useCallback((next: UsageMeterSettings) => {
-    setUsageMeterSettings(next);
-    void saveUsageMeterSettings(next);
-  }, []);
-  const htmlFullscreen = useHtmlFullscreen();
+    setUsageMeterSettings(next)
+    void saveUsageMeterSettings(next)
+  }, [])
+  const htmlFullscreen = useHtmlFullscreen()
 
-  useAppBootstrap();
-  useShortcutDispatcher();
-  useSplitterDragOverlay();
-  useTabChipWindowDrop(activeTabId);
-  useLayoutHostLifecycle(activeTabId);
-  useEnsureDefaultTerminals(workspace?.tabs, layoutRevisions, ensureTerminal);
-  useWorkspaceTabHotkeys(workspace?.tabs ?? []);
-  useDismissPortalsOnWorkspaceSwitch(activeTabId, dismissPortals);
+  useAppBootstrap()
+  useShortcutDispatcher()
+  useSplitterDragOverlay()
+  useTabChipWindowDrop(activeTabId)
+  useLayoutHostLifecycle(activeTabId)
+  useEnsureDefaultTerminals(workspace?.tabs, layoutRevisions, ensureTerminal)
+  useWorkspaceTabHotkeys(workspace?.tabs ?? [])
+  useDismissPortalsOnWorkspaceSwitch(activeTabId, dismissPortals)
   useAppShortcuts({
     activeTabId,
     getModel: storeGetModel,
     bumpLayout,
     appSettingsOpen: appSettingsAnchor !== null,
     settingsTarget,
-    dismissShellPortals: dismissPortals,
-  });
+    dismissShellPortals: dismissPortals
+  })
 
-  useEffect(() => applyThemePreference(themePreference), [themePreference]);
-
-  useEffect(() => {
-    if (!workspace?.tabs) return;
-    syncAgentPaneRegistryFromLayouts(workspace.tabs, storeGetModel);
-  }, [workspace?.tabs, layoutRevisions, storeGetModel]);
+  useEffect(() => applyThemePreference(themePreference), [themePreference])
 
   useEffect(() => {
-    const offHome = onHomeShortcut(() => switchToHome());
-    const offQuickOpen = onQuickOpenShortcut(openQuickOpenForFocusedPane);
+    if (!workspace?.tabs) return
+    syncAgentPaneRegistryFromLayouts(workspace.tabs, storeGetModel)
+  }, [workspace?.tabs, layoutRevisions, storeGetModel])
+
+  useEffect(() => {
+    const offHome = onHomeShortcut(() => switchToHome())
+    const offQuickOpen = onQuickOpenShortcut(openQuickOpenForFocusedPane)
     function onKeyDown(e: KeyboardEvent) {
-      if (e.defaultPrevented || !(e.metaKey || e.ctrlKey) || e.shiftKey) return;
-      if (e.key.toLowerCase() !== "p") return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      openQuickOpenForFocusedPane();
+      if (e.defaultPrevented || !(e.metaKey || e.ctrlKey) || e.shiftKey) return
+      if (e.key.toLowerCase() !== 'p') return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      openQuickOpenForFocusedPane()
     }
     // Run before editor keymaps and embedded surfaces can consume the event.
-    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener('keydown', onKeyDown, true)
     return () => {
-      offHome();
-      offQuickOpen();
-      window.removeEventListener("keydown", onKeyDown, true);
-    };
-  }, [openQuickOpenForFocusedPane]);
+      offHome()
+      offQuickOpen()
+      window.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [openQuickOpenForFocusedPane])
 
   const handleThemeChange = useCallback(
     (preference: typeof themePreference) => {
-      setStoredThemePreference(preference);
-      setThemePreference(preference);
+      setStoredThemePreference(preference)
+      setThemePreference(preference)
     },
-    [setThemePreference],
-  );
+    [setThemePreference]
+  )
 
   if (!workspace || !activeModel) {
-    return <LoadingWorkspace />;
+    return <LoadingWorkspace />
   }
 
   return (
-    <div className={`app-root${htmlFullscreen ? " html-fullscreen" : ""}`}>
+    <div className={`app-root${htmlFullscreen ? ' html-fullscreen' : ''}`}>
       <AppTitlebar
         appSettingsOpen={appSettingsAnchor !== null}
         appSettingsButtonRef={appSettingsButtonRef}
@@ -213,8 +228,8 @@ export default function App() {
             anchorRect={settingsTarget.anchorRect}
             onClose={() => setSettingsTarget(null)}
             tabId={settingsTarget.tabId}
-            tabTitle={workspace.tabs.find((t) => t.id === settingsTarget.tabId)?.title ?? ""}
-            rootPath={workspace.tabs.find((t) => t.id === settingsTarget.tabId)?.root_path ?? ""}
+            tabTitle={workspace.tabs.find((t) => t.id === settingsTarget.tabId)?.title ?? ''}
+            rootPath={workspace.tabs.find((t) => t.id === settingsTarget.tabId)?.root_path ?? ''}
           />
         )}
         {appSettingsAnchor && (
@@ -232,8 +247,16 @@ export default function App() {
         <QuickOpen
           tabId={visibleWorkspaceTabId}
           onOpenFile={(path, kind) => {
-            const model = storeGetModel(visibleWorkspaceTabId);
-            if (model) void openFileInActivePane(model, visibleWorkspaceTabId, path, kind, bumpLayout, focusedPaneGroupId);
+            const model = storeGetModel(visibleWorkspaceTabId)
+            if (model)
+              void openFileInActivePane(
+                model,
+                visibleWorkspaceTabId,
+                path,
+                kind,
+                bumpLayout,
+                focusedPaneGroupId
+              )
           }}
           onClose={() => setQuickOpenOpen(false)}
         />
@@ -248,5 +271,5 @@ export default function App() {
       <InteractionDebugPanel />
       <GlobalToastViewport />
     </div>
-  );
+  )
 }

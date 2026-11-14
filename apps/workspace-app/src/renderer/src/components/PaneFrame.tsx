@@ -1,4 +1,4 @@
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, type ReactNode } from 'react'
 
 // Outer chrome shared by every pane now that PaneTabStrip (not this
 // component) owns the header — every pane kind gets the same two rows:
@@ -13,15 +13,18 @@ import { forwardRef, type ReactNode } from "react";
 // internally); both are gone now that every pane's header is the same
 // shared tab strip.
 interface Props {
-  header: ReactNode;
-  children?: ReactNode;
+  header: ReactNode
+  children?: ReactNode
 }
 
-export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame({ header, children }, ref) {
+export const PaneFrame = forwardRef<HTMLDivElement, Props>(function PaneFrame(
+  { header, children },
+  ref
+) {
   return (
     <div className="pane-shell" ref={ref}>
       {header}
       <div className="pane-body pane-body-fill">{children}</div>
     </div>
-  );
-});
+  )
+})

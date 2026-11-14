@@ -1,27 +1,27 @@
-import { useEffect, useState } from "react";
-import { editorSupportsSearch, type EditorProvider, type EditorTreeItem } from "./provider";
+import { useEffect, useState } from 'react'
+import { editorSupportsSearch, type EditorProvider, type EditorTreeItem } from './provider'
 
 interface Options {
-  provider: EditorProvider | null | undefined;
-  query: string;
-  enabled?: boolean;
-  limit?: number;
-  errorMessage?: string;
+  provider: EditorProvider | null | undefined
+  query: string
+  enabled?: boolean
+  limit?: number
+  errorMessage?: string
 }
 
 interface SearchState {
-  provider: EditorProvider;
-  query: string;
-  limit: number | undefined;
-  status: "loading" | "ready" | "error";
-  items: EditorTreeItem[];
-  error: string | null;
+  provider: EditorProvider
+  query: string
+  limit: number | undefined
+  status: 'loading' | 'ready' | 'error'
+  items: EditorTreeItem[]
+  error: string | null
 }
 
 interface Result {
-  items: EditorTreeItem[];
-  loading: boolean;
-  error: string | null;
+  items: EditorTreeItem[]
+  loading: boolean
+  error: string | null
 }
 
 /** Shared provider-backed fuzzy name search for the Quick Open dialog. */
@@ -30,50 +30,65 @@ export function useEditorQuickOpenSearch({
   query,
   enabled = true,
   limit,
-  errorMessage = "Could not search files.",
+  errorMessage = 'Could not search files.'
 }: Options): Result {
-  const [state, setState] = useState<SearchState | null>(null);
-  const supported = editorSupportsSearch(provider, "names");
+  const [state, setState] = useState<SearchState | null>(null)
+  const supported = editorSupportsSearch(provider, 'names')
 
   useEffect(() => {
     if (!provider || !enabled || !supported) {
-      setState(null);
-      return;
+      setState(null)
+      return
     }
 
-    const controller = new AbortController();
-    setState({ provider, query, limit, status: "loading", items: [], error: null });
-    void provider.search(query, {
-      target: "names",
-      caseSensitive: false,
-      regex: false,
-      wholeWord: false,
-      fuzzy: true,
-      limit,
-    }, controller.signal).then((results) => {
-      if (controller.signal.aborted) return;
-      setState({ provider, query, limit, status: "ready", items: results.map(({ item }) => item), error: null });
-    }).catch((cause: unknown) => {
-      if (controller.signal.aborted) return;
-      setState({
-        provider,
+    const controller = new AbortController()
+    setState({ provider, query, limit, status: 'loading', items: [], error: null })
+    void provider
+      .search(
         query,
-        limit,
-        status: "error",
-        items: [],
-        error: cause instanceof Error ? cause.message : errorMessage,
-      });
-    });
-    return () => controller.abort();
-  }, [provider, query, enabled, supported, limit, errorMessage]);
+        {
+          target: 'names',
+          caseSensitive: false,
+          regex: false,
+          wholeWord: false,
+          fuzzy: true,
+          limit
+        },
+        controller.signal
+      )
+      .then((results) => {
+        if (controller.signal.aborted) return
+        setState({
+          provider,
+          query,
+          limit,
+          status: 'ready',
+          items: results.map(({ item }) => item),
+          error: null
+        })
+      })
+      .catch((cause: unknown) => {
+        if (controller.signal.aborted) return
+        setState({
+          provider,
+          query,
+          limit,
+          status: 'error',
+          items: [],
+          error: cause instanceof Error ? cause.message : errorMessage
+        })
+      })
+    return () => controller.abort()
+  }, [provider, query, enabled, supported, limit, errorMessage])
 
-  if (!provider || !enabled || !supported) return { items: [], loading: false, error: null };
+  if (!provider || !enabled || !supported) return { items: [], loading: false, error: null }
 
-  const matchesCurrentSearch = state?.provider === provider && state.query === query && state.limit === limit;
-  if (!matchesCurrentSearch) return { items: [], loading: true, error: null };
+  const matchesCurrentSearch =
+    state?.provider === provider && state.query === query && state.limit === limit
+  if (!matchesCurrentSearch) return { items: [], loading: true, error: null }
   return {
-    items: state.status === "ready" ? state.items : [],
-    loading: state.status === "loading",
-    error: state.status === "error" ? state.error : null,
-  };
+    items: state.status === 'ready' ? state.items : [],
+    loading: state.status === 'loading',
+    error: state.status === 'error' ? state.error : null
+  }
 }

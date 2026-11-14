@@ -20,15 +20,15 @@ useWorkspace adapter는 Main state와 updated 이벤트를 받아 store를 hydra
 
 ## 창 닫기와 앱 종료
 
-| 사건 | 현재 동작 |
-|---|---|
-| macOS의 마지막 window 닫기 | 앱을 즉시 quit하지 않음; activate에서 window가 없으면 create/bind |
-| 다른 OS의 모든 window 닫기 | app.quit 요청 |
-| before-quit 첫 진입 | preventDefault 후 async prepareApplicationQuit |
-| prepare | renderer buffer capture 요청 → Main replay와 merge/save → workspace persist → Main terminal handles dispose → file watcher close → PKMS bridges stop → CAD viewer 자원 dispose |
-| prepare 실패 | 오류 기록 후 terminal handles dispose 시도 |
-| prepare 종료 | applicationQuitPrepared=true 후 app.quit; 두 번째 before-quit은 통과 |
-| 주기적 backup | 45초마다 Main의 terminal buffer autosave; will-quit에서 timer 해제 |
+| 사건                       | 현재 동작                                                                                                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| macOS의 마지막 window 닫기 | 앱을 즉시 quit하지 않음; activate에서 window가 없으면 create/bind                                                                                                              |
+| 다른 OS의 모든 window 닫기 | app.quit 요청                                                                                                                                                                  |
+| before-quit 첫 진입        | preventDefault 후 async prepareApplicationQuit                                                                                                                                 |
+| prepare                    | renderer buffer capture 요청 → Main replay와 merge/save → workspace persist → Main terminal handles dispose → file watcher close → PKMS bridges stop → CAD viewer 자원 dispose |
+| prepare 실패               | 오류 기록 후 terminal handles dispose 시도                                                                                                                                     |
+| prepare 종료               | applicationQuitPrepared=true 후 app.quit; 두 번째 before-quit은 통과                                                                                                           |
+| 주기적 backup              | 45초마다 Main의 terminal buffer autosave; will-quit에서 timer 해제                                                                                                             |
 
 Main handle dispose와 detached host의 process destroy를 구분한다. 정상 app quit은 terminal daemon이 유지할 수 있지만 마지막 layout 참조 제거는 해당 terminal 세션을 destroy한다. OS 재부팅·daemon exit·강제 종료에서는 살아 있는 명령 재개를 보장하지 않는다. xterm buffer 복구는 명령 프로세스 복구가 아니다.
 

@@ -12,11 +12,11 @@
 
 ## Scope 판정
 
-| Scope | 책임 | 위치 | 상세를 넣지 않는 것 |
-|---|---|---|---|
-| global | 제품 범위·사용자 여정, 시스템 context, 제품 간 의존·인증·데이터 경계, 문서 정책과 전체 계획 | `docs/product`, `docs/architecture`, `docs/planning`, `docs/guides` 색인 | 특정 앱 내부의 timer·storage key·component lifecycle·함수 목록 |
-| app | 배포/실행 가능한 앱의 bootstrap·상태·adapter·protocol 처리·화면 흐름·운영/복구 | `apps/<app>/docs`, 진입점은 앱 README | 공유 패키지의 UI·도메인 구현 계약 복사 |
-| package | 소비 앱과 독립적인 공개 API·타입·불변식·extension point·오류·검증 | `packages/<package>/docs`, 진입점은 패키지 README | 앱 자격 증명·실제 배포 origin·OS 권한·제품별 저장 정책 |
+| Scope   | 책임                                                                                        | 위치                                                                     | 상세를 넣지 않는 것                                            |
+| ------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| global  | 제품 범위·사용자 여정, 시스템 context, 제품 간 의존·인증·데이터 경계, 문서 정책과 전체 계획 | `docs/product`, `docs/architecture`, `docs/planning`, `docs/guides` 색인 | 특정 앱 내부의 timer·storage key·component lifecycle·함수 목록 |
+| app     | 배포/실행 가능한 앱의 bootstrap·상태·adapter·protocol 처리·화면 흐름·운영/복구              | `apps/<app>/docs`, 진입점은 앱 README                                    | 공유 패키지의 UI·도메인 구현 계약 복사                         |
+| package | 소비 앱과 독립적인 공개 API·타입·불변식·extension point·오류·검증                           | `packages/<package>/docs`, 진입점은 패키지 README                        | 앱 자격 증명·실제 배포 origin·OS 권한·제품별 저장 정책         |
 
 예를 들어 text surface·tree selection은 editor package, Workspace 파일 쓰기는 Desktop app, PKMS Yjs 연결은 pkms-client package, PKMS server mutation은 server app, Web/Desktop/iOS의 제품 차이는 global에 속한다.
 

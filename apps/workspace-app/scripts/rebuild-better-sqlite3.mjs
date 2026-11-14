@@ -7,71 +7,70 @@
  *   --electron    force electron-rebuild (app / import scripts)
  *   --ensure-electron  rebuild only when Electron cannot load better-sqlite3 (predev)
  */
-import { spawnSync } from "node:child_process";
-import { createRequire } from "node:module";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const forElectron = process.argv.includes("--electron");
-const ensureElectron = process.argv.includes("--ensure-electron");
-const electronDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const require = createRequire(import.meta.url);
+const forElectron = process.argv.includes('--electron')
+const ensureElectron = process.argv.includes('--ensure-electron')
+const electronDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const require = createRequire(import.meta.url)
 const electronBin = path.join(
   electronDir,
-  "node_modules",
-  ".bin",
-  process.platform === "win32" ? "electron.cmd" : "electron",
-);
+  'node_modules',
+  '.bin',
+  process.platform === 'win32' ? 'electron.cmd' : 'electron'
+)
 
 function run(command, args) {
   const result = spawnSync(command, args, {
-    stdio: "inherit",
+    stdio: 'inherit',
     cwd: electronDir,
-    shell: process.platform === "win32",
-  });
-  if (result.status !== 0) process.exit(result.status ?? 1);
+    shell: process.platform === 'win32'
+  })
+  if (result.status !== 0) process.exit(result.status ?? 1)
 }
 
 function systemNodeSqliteWorks() {
   const result = spawnSync(
     process.execPath,
-    ["-e", "const Database = require('better-sqlite3'); const db = new Database(':memory:'); db.close();"],
-    { cwd: electronDir, stdio: "pipe" },
-  );
-  return result.status === 0 && result.signal == null;
+    [
+      '-e',
+      "const Database = require('better-sqlite3'); const db = new Database(':memory:'); db.close();"
+    ],
+    { cwd: electronDir, stdio: 'pipe' }
+  )
+  return result.status === 0 && result.signal == null
 }
 
 function electronSqliteWorks() {
-  const result = spawnSync(
-    electronBin,
-    ["-e", "require('better-sqlite3')(':memory:').close()"],
-    {
-      cwd: electronDir,
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
-      stdio: "pipe",
-    },
-  );
-  return result.status === 0;
+  const result = spawnSync(electronBin, ['-e', "require('better-sqlite3')(':memory:').close()"], {
+    cwd: electronDir,
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    stdio: 'pipe'
+  })
+  return result.status === 0
 }
 
 function signNativeAddonsIfNeeded() {
-  if (process.platform !== "darwin") return;
-  run("node", ["scripts/sign-native-addons.mjs"]);
+  if (process.platform !== 'darwin') return
+  run('node', ['scripts/sign-native-addons.mjs'])
 }
 
 function rebuildForElectron() {
-  run("npx", ["electron-rebuild", "-f", "-w", "better-sqlite3"]);
-  signNativeAddonsIfNeeded();
+  run('npx', ['electron-rebuild', '-f', '-w', 'better-sqlite3'])
+  signNativeAddonsIfNeeded()
 }
 
 if (forElectron) {
-  rebuildForElectron();
+  rebuildForElectron()
 } else if (ensureElectron) {
   if (!electronSqliteWorks()) {
-    rebuildForElectron();
+    rebuildForElectron()
   } else {
-    signNativeAddonsIfNeeded();
+    signNativeAddonsIfNeeded()
   }
 } else if (!systemNodeSqliteWorks()) {
-  run("npm", ["rebuild", "better-sqlite3"]);
+  run('npm', ['rebuild', 'better-sqlite3'])
 }

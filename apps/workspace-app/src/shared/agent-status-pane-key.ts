@@ -4,7 +4,9 @@ export function buildAgentStatusPaneKey(workspaceTabId: number, paneTabId: strin
   return `${workspaceTabId}:${paneTabId}`
 }
 
-export function parseAgentStatusPaneIdentity(paneKey: string | undefined): AgentStatusPaneIdentity | null {
+export function parseAgentStatusPaneIdentity(
+  paneKey: string | undefined
+): AgentStatusPaneIdentity | null {
   if (!paneKey) return null
   const colon = paneKey.indexOf(':')
   if (colon <= 0) return null

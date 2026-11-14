@@ -10,14 +10,14 @@ export function applyHookAgentStatus(event: AgentStatusIpcPayload): void {
       state: event.state,
       prompt: event.prompt,
       agentType: event.agentType,
-      workingMode: event.workingMode,
+      workingMode: event.workingMode
     },
     {
       workspaceTabId: identity?.workspaceTabId ?? event.workspaceTabId,
       titleDerived: false,
       evidenceObservedAt: event.evidenceObservedAt ?? event.receivedAt,
-      stateStartedAt: event.stateStartedAt,
-    },
+      stateStartedAt: event.stateStartedAt
+    }
   )
 }
 

@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-declare module "*foliate-js/epub.js" {
+declare module '*foliate-js/epub.js' {
   export class EPUB {
     constructor(loader: {
       loadText: (name: string) => Promise<string | null>
@@ -11,7 +11,7 @@ declare module "*foliate-js/epub.js" {
   }
 }
 
-declare module "*foliate-js/view.js" {
+declare module '*foliate-js/view.js' {
   export class View extends HTMLElement {
     book: {
       dir?: string
@@ -46,9 +46,9 @@ declare module "*foliate-js/view.js" {
   export function makeBook(file: File | Blob | string): Promise<unknown>
 }
 
-declare module "*foliate-js/ui/tree.js" {
+declare module '*foliate-js/ui/tree.js' {
   export function createTOCView(
     toc: unknown,
-    onclick: (href: string) => void,
+    onclick: (href: string) => void
   ): { element: HTMLElement; setCurrentHref?: (href: string) => void }
 }

@@ -78,7 +78,7 @@ applySwitches()
 app.whenReady().then(async () => {
   const win = new BrowserWindow({
     show: false,
-    webPreferences: { offscreen: true, contextIsolation: true },
+    webPreferences: { offscreen: true, contextIsolation: true }
   })
   await win.loadURL('data:text/html,<body></body>')
   const result = await win.webContents.executeJavaScript(`(() => {

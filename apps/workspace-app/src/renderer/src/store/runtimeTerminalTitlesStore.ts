@@ -21,9 +21,9 @@ export const useRuntimeTerminalTitlesStore = create<State & Actions>((set) => ({
       return {
         titlesByWorkspaceTab: {
           ...state.titlesByWorkspaceTab,
-          [workspaceTabId]: { ...tabMap, [paneTabId]: title },
+          [workspaceTabId]: { ...tabMap, [paneTabId]: title }
         },
-        revision: state.revision + 1,
+        revision: state.revision + 1
       }
     })
   },
@@ -35,5 +35,5 @@ export const useRuntimeTerminalTitlesStore = create<State & Actions>((set) => ({
       delete next[workspaceTabId]
       return { titlesByWorkspaceTab: next, revision: state.revision + 1 }
     })
-  },
+  }
 }))

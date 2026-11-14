@@ -1,13 +1,13 @@
-import type { ViewerSession } from "../../../../shared/model3d/viewer";
+import type { ViewerSession } from '../../../../shared/model3d/viewer'
 
 interface Props {
-  session: ViewerSession | null;
-  wireframe: boolean;
-  showGrid: boolean;
-  live?: boolean;
-  refreshing?: boolean;
-  onWireframeChange: (value: boolean) => void;
-  onGridChange: (value: boolean) => void;
+  session: ViewerSession | null
+  wireframe: boolean
+  showGrid: boolean
+  live?: boolean
+  refreshing?: boolean
+  onWireframeChange: (value: boolean) => void
+  onGridChange: (value: boolean) => void
 }
 
 export function ModelViewerToolbar({
@@ -17,16 +17,16 @@ export function ModelViewerToolbar({
   live = false,
   refreshing = false,
   onWireframeChange,
-  onGridChange,
+  onGridChange
 }: Props) {
   return (
     <div className="model-viewer-toolbar">
       {live ? (
         <span
-          className={`model-viewer-live-badge${refreshing ? " is-refreshing" : ""}`}
+          className={`model-viewer-live-badge${refreshing ? ' is-refreshing' : ''}`}
           title="Watches this file and reloads when the terminal / agent saves a new mesh"
         >
-          {refreshing ? "Updating…" : "Live"}
+          {refreshing ? 'Updating…' : 'Live'}
         </span>
       ) : null}
       <button
@@ -39,11 +39,11 @@ export function ModelViewerToolbar({
       </button>
       <button
         type="button"
-        className={`model-viewer-toolbar-btn${wireframe ? " active" : ""}`}
+        className={`model-viewer-toolbar-btn${wireframe ? ' active' : ''}`}
         onClick={() => {
-          const next = !wireframe;
-          onWireframeChange(next);
-          session?.setWireframe(next);
+          const next = !wireframe
+          onWireframeChange(next)
+          session?.setWireframe(next)
         }}
         title="Toggle wireframe"
       >
@@ -51,16 +51,16 @@ export function ModelViewerToolbar({
       </button>
       <button
         type="button"
-        className={`model-viewer-toolbar-btn${showGrid ? " active" : ""}`}
+        className={`model-viewer-toolbar-btn${showGrid ? ' active' : ''}`}
         onClick={() => {
-          const next = !showGrid;
-          onGridChange(next);
-          session?.setGridVisible(next);
+          const next = !showGrid
+          onGridChange(next)
+          session?.setGridVisible(next)
         }}
         title="Toggle grid"
       >
         Grid
       </button>
     </div>
-  );
+  )
 }

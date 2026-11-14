@@ -1,5 +1,5 @@
-import { ServiceStatusWidget } from "./widgets/ServiceStatusWidget";
-import { SystemInformationWidget } from "./widgets/SystemInformationWidget";
+import { ServiceStatusWidget } from './widgets/ServiceStatusWidget'
+import { SystemInformationWidget } from './widgets/SystemInformationWidget'
 
 export function DashboardView(): React.JSX.Element {
   return (
@@ -9,5 +9,5 @@ export function DashboardView(): React.JSX.Element {
         <ServiceStatusWidget />
       </div>
     </div>
-  );
+  )
 }

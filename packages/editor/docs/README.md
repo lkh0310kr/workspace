@@ -4,19 +4,19 @@
 
 ## 구성과 읽는 순서
 
-| 스펙 | 재구현 책임 |
-|---|---|
-| [공개 API와 UI](./public-api.md) | export owner·tab·menu·이름 form |
-| [Breadcrumb](./breadcrumbs.md) | workspace-relative path와 sibling menu |
-| [Provider 계약](provider.md) | 타입, capability, 오류, snapshot, session 수명 |
-| [Desktop provider 구현](../../../apps/workspace-app/docs/editor/providers.md) | Workspace 파일시스템·ID·충돌·lease |
-| [PKMS provider 구현](../../pkms-client/docs/editor-sessions.md) | PKMS local/Yjs/asset session |
-| [텍스트 surface](./code/README.md) | CodeMirror, 외부 변경, undo, cache, Desktop 저장 |
-| [Treeview](./treeview/README.md) | docked Explorer·pane shortcut·폭 임계값·스크롤 복원·로딩·정렬·가상화·선택·파일 작업 |
-| [Markdown](./markdown/README.md) | [현재 동작](./markdown/README.md) · [완성도 목표 스펙](./markdown/product-completeness.md): live preview, 제목 rename, 링크·이미지, 표·수식·다이어그램 계획 |
-| [검색](./search.md) | 문서 검색, Quick Open, 파일 내용 검색·치환 |
-| [Asset viewer 경계](./assets.md) | Editor에서 포맷별 viewer로 연결하는 계약 |
-| [Editor 탐색 비교 검토](../../../docs/planning/editor-navigation-review.md) | TreeView 스크롤·active-file reveal·breadcrumb 구현 배경과 외부 비교 |
+| 스펙                                                                          | 재구현 책임                                                                                                                                                 |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [공개 API와 UI](./public-api.md)                                              | export owner·tab·menu·이름 form                                                                                                                             |
+| [Breadcrumb](./breadcrumbs.md)                                                | workspace-relative path와 sibling menu                                                                                                                      |
+| [Provider 계약](provider.md)                                                  | 타입, capability, 오류, snapshot, session 수명                                                                                                              |
+| [Desktop provider 구현](../../../apps/workspace-app/docs/editor/providers.md) | Workspace 파일시스템·ID·충돌·lease                                                                                                                          |
+| [PKMS provider 구현](../../pkms-client/docs/editor-sessions.md)               | PKMS local/Yjs/asset session                                                                                                                                |
+| [텍스트 surface](./code/README.md)                                            | CodeMirror, 외부 변경, undo, cache, Desktop 저장                                                                                                            |
+| [Treeview](./treeview/README.md)                                              | docked Explorer·pane shortcut·폭 임계값·스크롤 복원·로딩·정렬·가상화·선택·파일 작업                                                                         |
+| [Markdown](./markdown/README.md)                                              | [현재 동작](./markdown/README.md) · [완성도 목표 스펙](./markdown/product-completeness.md): live preview, 제목 rename, 링크·이미지, 표·수식·다이어그램 계획 |
+| [검색](./search.md)                                                           | 문서 검색, Quick Open, 파일 내용 검색·치환                                                                                                                  |
+| [Asset viewer 경계](./assets.md)                                              | Editor에서 포맷별 viewer로 연결하는 계약                                                                                                                    |
+| [Editor 탐색 비교 검토](../../../docs/planning/editor-navigation-review.md)   | TreeView 스크롤·active-file reveal·breadcrumb 구현 배경과 외부 비교                                                                                         |
 
 ## 소유권
 
@@ -40,13 +40,13 @@
 
 ## 최소 통합 시나리오
 
-| ID | 입력/행동 | 관찰 결과 |
-|---|---|---|
+| ID    | 입력/행동                                 | 관찰 결과                                                                  |
+| ----- | ----------------------------------------- | -------------------------------------------------------------------------- |
 | ED-01 | Explorer와 Editor가 같은 workspace를 사용 | provider 객체와 안정 item ID를 공유; 한 소비자 해제만으로 dispose하지 않음 |
-| ED-02 | 열린 Markdown 파일 rename | 실제 파일명·탭 path 변경, 같은 문서의 선택/undo 유지 |
-| ED-03 | A 로딩 중 B 선택, A가 늦게 완료 | B의 identity에 A 본문이 나타나지 않음; 폐기된 session close |
-| ED-04 | dirty 문서를 shell에서 닫기 취소 | 탭과 편집 내용 유지 |
-| ED-05 | dirty 문서 닫기 승인 후 재열기 | 폐기한 메모리 cache가 미저장 내용을 되살리지 않음 |
+| ED-02 | 열린 Markdown 파일 rename                 | 실제 파일명·탭 path 변경, 같은 문서의 선택/undo 유지                       |
+| ED-03 | A 로딩 중 B 선택, A가 늦게 완료           | B의 identity에 A 본문이 나타나지 않음; 폐기된 session close                |
+| ED-04 | dirty 문서를 shell에서 닫기 취소          | 탭과 편집 내용 유지                                                        |
+| ED-05 | dirty 문서 닫기 승인 후 재열기            | 폐기한 메모리 cache가 미저장 내용을 되살리지 않음                          |
 
 ## 근거
 

@@ -1,8 +1,5 @@
 import type { WebContents } from 'electron'
-import {
-  extractAllOscTitles,
-  normalizeTerminalTitle,
-} from '../shared/agent/agent-detection'
+import { extractAllOscTitles, normalizeTerminalTitle } from '../shared/agent/agent-detection'
 
 let getTargetWebContents: (() => WebContents | null) | null = null
 const lastNormalizedTitleByTerminalId = new Map<number, string>()

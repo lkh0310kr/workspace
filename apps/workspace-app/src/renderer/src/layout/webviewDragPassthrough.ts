@@ -7,30 +7,30 @@
  */
 
 /** Called with the passthrough state whenever it changes. */
-export type WebviewDragPassthroughSurface = (passthrough: boolean) => void;
+export type WebviewDragPassthroughSurface = (passthrough: boolean) => void
 
-const passthroughTokens = new Set<symbol>();
-const passthroughSurfaces = new Set<WebviewDragPassthroughSurface>();
+const passthroughTokens = new Set<symbol>()
+const passthroughSurfaces = new Set<WebviewDragPassthroughSurface>()
 
 export function isWebviewDragPassthroughActive(): boolean {
-  return passthroughTokens.size > 0;
+  return passthroughTokens.size > 0
 }
 
 export function registerWebviewDragPassthroughSurface(
-  surface: WebviewDragPassthroughSurface,
+  surface: WebviewDragPassthroughSurface
 ): () => void {
-  passthroughSurfaces.add(surface);
+  passthroughSurfaces.add(surface)
   return () => {
-    passthroughSurfaces.delete(surface);
-  };
+    passthroughSurfaces.delete(surface)
+  }
 }
 
 function notifyWebviewDragPassthroughSurfaces(): void {
-  const passthrough = isWebviewDragPassthroughActive();
+  const passthrough = isWebviewDragPassthroughActive()
   // Copied: a surface may enrol or drop out while being notified.
-  const notified = Array.from(passthroughSurfaces);
+  const notified = Array.from(passthroughSurfaces)
   for (const surface of notified) {
-    surface(passthrough);
+    surface(passthrough)
   }
 }
 
@@ -38,17 +38,17 @@ export function acquireWebviewsDragPassthrough(): () => void {
   // Why: a native HTML5 drag (flexlayout tab-node move, PaneTabStrip chip
   // drag) can still let an Electron guest steal the pointer stream mid-drag
   // unless it is temporarily made non-interactive.
-  const token = Symbol("webview-drag-passthrough");
-  let released = false;
-  passthroughTokens.add(token);
-  notifyWebviewDragPassthroughSurfaces();
+  const token = Symbol('webview-drag-passthrough')
+  let released = false
+  passthroughTokens.add(token)
+  notifyWebviewDragPassthroughSurfaces()
 
   return () => {
     if (released) {
-      return;
+      return
     }
-    released = true;
-    passthroughTokens.delete(token);
-    notifyWebviewDragPassthroughSurfaces();
-  };
+    released = true
+    passthroughTokens.delete(token)
+    notifyWebviewDragPassthroughSurfaces()
+  }
 }

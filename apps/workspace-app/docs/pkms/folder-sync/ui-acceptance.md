@@ -4,15 +4,15 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 
 ## User-observable states
 
-| 결과 상태 | 의미 | 필요한 사용자 정보/행동 |
-|---|---|---|
-| 연결 안 됨 | local root와 remote workspace를 sync하지 않음 | 연결 가능한 workspace 선택, local directory 결정 |
-| 확인 중 | watcher/poll/scan 또는 remote metadata 확인 중 | tree를 계속 사용할 수 있어야 함. 빈 목록으로 깜박이거나 완료라고 말하지 않음 |
-| 변경 대기/전송 중 | local/remote mutation이 미승인 | 영향 item과 방향을 설명할 수 있어야 함 |
-| 최신 확인 | 마지막 pass에서 처리할 변경이 없어 완료 | “현재 확인 시점 기준”임을 표시. 다른 기기 전체 동시 확인이나 GitHub backup 완료를 뜻하지 않음 |
-| 오프라인/권한 실패 | server에 접근할 수 없거나 로그인/권한이 거부됨 | pending local 변경을 보존하고 재인증/연결 복구 경로를 제공 |
-| 충돌/주의 필요 | 자동 결정 시 한쪽 변경이 사라질 수 있음 또는 실패 item이 있음 | 보존된 버전, 대상 path, 가능한 검토/재시도 행동을 제공 |
-| 제외 | 사용자가 특정 path를 sync에서 제외함 | exclusion에 해당하는 local 변경을 cloud deletion으로 오인하지 않음 |
+| 결과 상태          | 의미                                                          | 필요한 사용자 정보/행동                                                                       |
+| ------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 연결 안 됨         | local root와 remote workspace를 sync하지 않음                 | 연결 가능한 workspace 선택, local directory 결정                                              |
+| 확인 중            | watcher/poll/scan 또는 remote metadata 확인 중                | tree를 계속 사용할 수 있어야 함. 빈 목록으로 깜박이거나 완료라고 말하지 않음                  |
+| 변경 대기/전송 중  | local/remote mutation이 미승인                                | 영향 item과 방향을 설명할 수 있어야 함                                                        |
+| 최신 확인          | 마지막 pass에서 처리할 변경이 없어 완료                       | “현재 확인 시점 기준”임을 표시. 다른 기기 전체 동시 확인이나 GitHub backup 완료를 뜻하지 않음 |
+| 오프라인/권한 실패 | server에 접근할 수 없거나 로그인/권한이 거부됨                | pending local 변경을 보존하고 재인증/연결 복구 경로를 제공                                    |
+| 충돌/주의 필요     | 자동 결정 시 한쪽 변경이 사라질 수 있음 또는 실패 item이 있음 | 보존된 버전, 대상 path, 가능한 검토/재시도 행동을 제공                                        |
+| 제외               | 사용자가 특정 path를 sync에서 제외함                          | exclusion에 해당하는 local 변경을 cloud deletion으로 오인하지 않음                            |
 
 `pending`, `syncing`, `attention` 같은 source enum을 사용자 용어에 그대로 노출할 필요는 없다. 단 `error/offline`을 `synced`와 합치거나 실제 0 pending으로 바꾸면 안 된다.
 
@@ -32,26 +32,26 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 
 ## Acceptance matrix
 
-| ID | Given / when | 사용자가 확인해야 할 결과 | 상태 |
-|---|---|---|---|
-| FS-UI-01 | 첫 연결 중 local files와 cloud metadata가 존재 | tree는 사용 가능하고 빈 상태/완료로 오해되지 않는다 | source review, 통합 미확인 |
-| FS-UI-02 | local file 생성/수정/삭제 | 해당 item에 필요한 상태가 보이고 acknowledgement 전 premature synced가 아니다 | item state 일부 transient, full acceptance 미확인 |
-| FS-UI-03 | offline 중 변경 후 reconnect | 변경은 사라지지 않고 재시도 결과가 보인다 | 구현 경로, restart/offline test 미확인 |
-| FS-UI-04 | 양쪽에서 동시 수정 | conflict copy와 원본 모두 검토 가능하고 어느 쪽도 조용히 유실되지 않는다 | conflict path button → editor open wired; cross-device behavior and UI interaction acceptance 미확인 |
-| FS-UI-05 | 파일 한 개가 permission/format/error에 걸림 | 다른 file/tree는 계속 사용할 수 있고 문제 item만 attention에 남는다 | source-level 일부, UI fixture 미확인 |
-| FS-UI-06 | GitHub mirror 지연, cloud sync 완료 | 두 상태를 구분해 표시한다 | current panel source 확인, 수동 fixture 미확인 |
-| FS-UI-07 | path가 excluded/reserved | local tree 보존과 cloud deletion 여부가 명확하고 의도하지 않은 delete가 없다 | algorithm/source, edge fixtures 미확인 |
-| FS-UI-08 | 연결 해제 또는 root 변경 | 다음 pass에 어떤 local/cloud 자료가 보존되는지 사전/사후 알 수 있다 | root-derived state reset + unit test 통과; preflight UX와 fake-server end-to-end acceptance 미완료 |
-| FS-UI-09 | sync panel 닫고 재열기 | stale response가 최신 상태를 덮지 않고 진행 상태가 다시 읽힌다 | UI lifecycle fixture 미확인 |
-| FS-UI-10 | initial full sync와 새 작업이 동시에 진행 | 진행 숫자/문구가 고정되지 않은 전체 퍼센트를 안정적 의미처럼 표현하지 않는다 | changing aggregate percent removed from panel; dynamic work-set interaction acceptance 미확인 |
-| FS-UI-11 | 같은 path·같은 본문 create가 lost acknowledgement 뒤 재시도 | 같은 기존 item에 수렴하며 conflict copy가 추가되지 않는다 | linked DB SQL regression 통과 |
-| FS-UI-12 | 두 sibling empty folder가 한 pass에서 삭제 | 두 삭제가 모두 승인되고 stale revision으로 무한 retry되지 않는다 | source policy unit test 통과; live sync 미확인 |
-| FS-UI-13 | 현재 GitHub branch와 PKMS `github_head` history가 다름 | backup은 멈추고 branch reset/force push 없이 양쪽 tree가 보존된다 | 2026-11-13 복구 완료: Cloud tree 12,472개와 GitHub tree hash/mode 차이 0; 일반 commit parent는 기존 main head |
-| FS-UI-14 | 같은 본문의 local create가 acknowledgement 유실로 재시도되고 이후 앱이 재시작됨 | 원래 path의 Cloud identity 한 개만 남고 duplicate/conflict copy가 늘지 않으며 queue가 사라진다 | 서버 SQL retry/idempotency 통과; 앱 restart E2E 미확인 |
-| FS-UI-15 | 복구된 local Markdown 3,706개와 Cloud 본문, Git backup을 한 시점으로 대조 | 모든 활성 Markdown은 Cloud Yjs 본문 또는 Git blob SHA와 byte/hash가 일치하고 Git tree active path set과 hash/mode 차이가 0이다 | local↔Cloud 3,706/3,706, Git↔Cloud 12,472/12,472 확인. cursor 2,638, local pending 0, Git dirty 0 |
-| FS-UI-16 | conflict duplicate 복구 직후 앱이 다시 complete pass를 수행 | 삭제된 conflict path가 재생성되지 않고 bridge cursor가 Cloud revision까지 전진하며 pending paths/deletes가 0이 된다. 원본 contents/IDs는 변하지 않는다 | 2026-11-13 Desktop에서 실제 실행 통과: cursor 1,794→2,638, baseline/remote 3,706, pending path/create/update/delete 0, active conflict 0. 앱 재시작 후 유지까지는 미검증 |
-| FS-UI-17 | 이름이 `.`으로 시작하는 Cloud Markdown/폴더 row가 존재 | Files tree에서 나타나고 Markdown은 quick open에서 찾고 열 수 있다. local reserved path scan exclusion은 그대로 유지된다 | 2026-11-13 안정 앱에서 `.claude`, `.cursor`, `.obsidian`, `.scripts`, `.workspace` 표시 확인; dot Markdown quick open 미확인 |
-| FS-UI-18 | 연결한 local root에 `.pkms/notes.md`가 존재 | `.pkms` 경로를 특별 취급하지 않고 Cloud에 반영하며, remote 수정도 같은 local path에 수렴한다 | source 반영; 수동 sync 미확인 |
+| ID       | Given / when                                                                    | 사용자가 확인해야 할 결과                                                                                                                              | 상태                                                                                                                                                                     |
+| -------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FS-UI-01 | 첫 연결 중 local files와 cloud metadata가 존재                                  | tree는 사용 가능하고 빈 상태/완료로 오해되지 않는다                                                                                                    | source review, 통합 미확인                                                                                                                                               |
+| FS-UI-02 | local file 생성/수정/삭제                                                       | 해당 item에 필요한 상태가 보이고 acknowledgement 전 premature synced가 아니다                                                                          | item state 일부 transient, full acceptance 미확인                                                                                                                        |
+| FS-UI-03 | offline 중 변경 후 reconnect                                                    | 변경은 사라지지 않고 재시도 결과가 보인다                                                                                                              | 구현 경로, restart/offline test 미확인                                                                                                                                   |
+| FS-UI-04 | 양쪽에서 동시 수정                                                              | conflict copy와 원본 모두 검토 가능하고 어느 쪽도 조용히 유실되지 않는다                                                                               | conflict path button → editor open wired; cross-device behavior and UI interaction acceptance 미확인                                                                     |
+| FS-UI-05 | 파일 한 개가 permission/format/error에 걸림                                     | 다른 file/tree는 계속 사용할 수 있고 문제 item만 attention에 남는다                                                                                    | source-level 일부, UI fixture 미확인                                                                                                                                     |
+| FS-UI-06 | GitHub mirror 지연, cloud sync 완료                                             | 두 상태를 구분해 표시한다                                                                                                                              | current panel source 확인, 수동 fixture 미확인                                                                                                                           |
+| FS-UI-07 | path가 excluded/reserved                                                        | local tree 보존과 cloud deletion 여부가 명확하고 의도하지 않은 delete가 없다                                                                           | algorithm/source, edge fixtures 미확인                                                                                                                                   |
+| FS-UI-08 | 연결 해제 또는 root 변경                                                        | 다음 pass에 어떤 local/cloud 자료가 보존되는지 사전/사후 알 수 있다                                                                                    | root-derived state reset + unit test 통과; preflight UX와 fake-server end-to-end acceptance 미완료                                                                       |
+| FS-UI-09 | sync panel 닫고 재열기                                                          | stale response가 최신 상태를 덮지 않고 진행 상태가 다시 읽힌다                                                                                         | UI lifecycle fixture 미확인                                                                                                                                              |
+| FS-UI-10 | initial full sync와 새 작업이 동시에 진행                                       | 진행 숫자/문구가 고정되지 않은 전체 퍼센트를 안정적 의미처럼 표현하지 않는다                                                                           | changing aggregate percent removed from panel; dynamic work-set interaction acceptance 미확인                                                                            |
+| FS-UI-11 | 같은 path·같은 본문 create가 lost acknowledgement 뒤 재시도                     | 같은 기존 item에 수렴하며 conflict copy가 추가되지 않는다                                                                                              | linked DB SQL regression 통과                                                                                                                                            |
+| FS-UI-12 | 두 sibling empty folder가 한 pass에서 삭제                                      | 두 삭제가 모두 승인되고 stale revision으로 무한 retry되지 않는다                                                                                       | source policy unit test 통과; live sync 미확인                                                                                                                           |
+| FS-UI-13 | 현재 GitHub branch와 PKMS `github_head` history가 다름                          | backup은 멈추고 branch reset/force push 없이 양쪽 tree가 보존된다                                                                                      | 2026-11-13 복구 완료: Cloud tree 12,472개와 GitHub tree hash/mode 차이 0; 일반 commit parent는 기존 main head                                                            |
+| FS-UI-14 | 같은 본문의 local create가 acknowledgement 유실로 재시도되고 이후 앱이 재시작됨 | 원래 path의 Cloud identity 한 개만 남고 duplicate/conflict copy가 늘지 않으며 queue가 사라진다                                                         | 서버 SQL retry/idempotency 통과; 앱 restart E2E 미확인                                                                                                                   |
+| FS-UI-15 | 복구된 local Markdown 3,706개와 Cloud 본문, Git backup을 한 시점으로 대조       | 모든 활성 Markdown은 Cloud Yjs 본문 또는 Git blob SHA와 byte/hash가 일치하고 Git tree active path set과 hash/mode 차이가 0이다                         | local↔Cloud 3,706/3,706, Git↔Cloud 12,472/12,472 확인. cursor 2,638, local pending 0, Git dirty 0                                                                        |
+| FS-UI-16 | conflict duplicate 복구 직후 앱이 다시 complete pass를 수행                     | 삭제된 conflict path가 재생성되지 않고 bridge cursor가 Cloud revision까지 전진하며 pending paths/deletes가 0이 된다. 원본 contents/IDs는 변하지 않는다 | 2026-11-13 Desktop에서 실제 실행 통과: cursor 1,794→2,638, baseline/remote 3,706, pending path/create/update/delete 0, active conflict 0. 앱 재시작 후 유지까지는 미검증 |
+| FS-UI-17 | 이름이 `.`으로 시작하는 Cloud Markdown/폴더 row가 존재                          | Files tree에서 나타나고 Markdown은 quick open에서 찾고 열 수 있다. local reserved path scan exclusion은 그대로 유지된다                                | 2026-11-13 안정 앱에서 `.claude`, `.cursor`, `.obsidian`, `.scripts`, `.workspace` 표시 확인; dot Markdown quick open 미확인                                             |
+| FS-UI-18 | 연결한 local root에 `.pkms/notes.md`가 존재                                     | `.pkms` 경로를 특별 취급하지 않고 Cloud에 반영하며, remote 수정도 같은 local path에 수렴한다                                                           | source 반영; 수동 sync 미확인                                                                                                                                            |
 
 ## Current UI mapping
 

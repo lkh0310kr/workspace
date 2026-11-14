@@ -6,13 +6,13 @@
 
 [webviewPolicy](../../src/renderer/src/interaction/webviewPolicy.ts)의 입력은 workspaceTabId, activeWorkspaceTabId, paneVisible, chipActive, overlayBlocked, portalsOpen이다. `paneLive = workspace ID 일치 && paneVisible`이다.
 
-| 조건 | guest visible | guest interactive |
-|---|---|---|
-| 비활성 workspace/pane 또는 inactive chip | false | false |
-| 활성 + overlay block | false | false |
-| 활성 + portal open + overlay 없음 | true | false |
-| 활성 + overlay/portal 없음 | true | true |
-| 미등록 orphan guest | false | false |
+| 조건                                     | guest visible | guest interactive |
+| ---------------------------------------- | ------------- | ----------------- |
+| 비활성 workspace/pane 또는 inactive chip | false         | false             |
+| 활성 + overlay block                     | false         | false             |
+| 활성 + portal open + overlay 없음        | true          | false             |
+| 활성 + overlay/portal 없음               | true          | true              |
+| 미등록 orphan guest                      | false         | false             |
 
 reconcile은 등록 guest에 display:flex/none, pointerEvents:auto/none, inert를 적용한다. orphan은 teardown 중 남은 DOM이어도 숨긴다. viewport shell의 paintable/active 스타일과 guest 정책은 별도 계층이다. 일반 content 스타일은 [embedPolicy](../../src/renderer/src/interaction/embedPolicy.ts)가 visibility와 pointerEvents를 `paneVisible && chipActive`로 결정한다.
 

@@ -14,24 +14,24 @@ PKMS Editor의 Finder Reveal은 실제 로컬 파일 경로가 필요하지만 s
 
 설계 기준: app profile은 분리하고, 환경 간 동일성이 필요한 데이터는 소유권·쓰기 경계를 보존하는 명시적 인터페이스로 공유한다. PKMS folder root의 동시 writer는 허용하지 않는다.
 
-| 데이터 | 위치/owner | writer·손상/실패·복구 |
-|---|---|---|
-| app config·default root·usageMeters | appSupportDir/config.electron.json; Main persistence | direct writeFileSync. load 오류는 {}. save는 오류를 호출자에 전달. usage 변경은 기존 config를 merge |
-| Workspace 탭·root·layout | appSupportDir/workspace.electron.json; Main Workspace | direct write, save 실패는 best-effort 무시. load parse 실패 null→새 workspace. layout 내용은 salvage |
-| terminal serialized buffers | appSupportDir/terminal-sessions.electron.json | 45초 autosave와 quit capture merge. 손상/없음은 빈 buffers. byte limit·cold restore는 shared helper |
-| PTY host access token/세션 | userData/pty-host-token + userData hash 기반 local socket/pipe | 생성 token은 mode 0600, host가 process·raw replay 소유. app JSON backup과 별개 |
-| PKMS native session | appSupportDir/pkms-session.safe; Main safeStorage | 암호화 가능할 때 disk, 아니면 volatile memory만. decrypt/load 오류 null. logout은 메모리 clear와 파일 제거 |
-| PKMS folder queue/baseline/cursor | userData/pkms-sync-bridge.json | temp 파일 mode 0600 후 rename. folder lock은 별도 tmp lock. sync 알고리즘은 PKMS bridge 문서 |
-| ebook 읽기 상태 | appSupportDir/ebook-state.json | book location key로 merge, updatedAt. temp→rename, 실패 fallback에서 대상 제거 후 rename. 손상은 {} |
-| model import cache | workspaceRoot/.workspace/model3d-cache | importer source metadata와 manifest/변환물. 앱 userData에만 있는 자료가 아님 |
-| runtime logs | log sink의 앱별 logs directory | 회전·gzip·보관 정책은 logging guide. cache 정리와 동일 retention으로 처리하지 않음 |
-| browser cookies/storage | persist:browser Electron partition | session owner는 Chromium. renderer 방문 history JSON과 별개 |
-| browser 방문 기록 | localStorage workspace.browserHistory | HTTP(s)만, 최대 500, 저장 실패 시 best-effort memory |
-| editor item identity | localStorage workspace:editor-item-ids:<tabId> | path→stable item ID. rename/move remap, storage 불가 시 memory |
-| editor view 상태 | localStorage editor:view-state:<encoded identity> + memory cache | clean일 때만 durable cache, 용량 제한·legacy key migration. dirty close는 memory discard |
-| explorer 확장/scroll/root | workspace.explorerExpanded/Scroll/Root.<stateKey> | stateKey는 workspace+pane. root 불일치면 초기 상태. 일부 read 경로의 storage 예외 처리 범위는 helper별로 다름 |
-| explorer sidebar | pane별 open/width/mode storage | explorerSidebarChrome와 host hook 소유 |
-| theme·autosave | renderer localStorage | theme preference와 OS resolved theme, autosave 선택은 separate key. 적용/구독 해제는 각 모듈 |
+| 데이터                              | 위치/owner                                                       | writer·손상/실패·복구                                                                                         |
+| ----------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| app config·default root·usageMeters | appSupportDir/config.electron.json; Main persistence             | direct writeFileSync. load 오류는 {}. save는 오류를 호출자에 전달. usage 변경은 기존 config를 merge           |
+| Workspace 탭·root·layout            | appSupportDir/workspace.electron.json; Main Workspace            | direct write, save 실패는 best-effort 무시. load parse 실패 null→새 workspace. layout 내용은 salvage          |
+| terminal serialized buffers         | appSupportDir/terminal-sessions.electron.json                    | 45초 autosave와 quit capture merge. 손상/없음은 빈 buffers. byte limit·cold restore는 shared helper           |
+| PTY host access token/세션          | userData/pty-host-token + userData hash 기반 local socket/pipe   | 생성 token은 mode 0600, host가 process·raw replay 소유. app JSON backup과 별개                                |
+| PKMS native session                 | appSupportDir/pkms-session.safe; Main safeStorage                | 암호화 가능할 때 disk, 아니면 volatile memory만. decrypt/load 오류 null. logout은 메모리 clear와 파일 제거    |
+| PKMS folder queue/baseline/cursor   | userData/pkms-sync-bridge.json                                   | temp 파일 mode 0600 후 rename. folder lock은 별도 tmp lock. sync 알고리즘은 PKMS bridge 문서                  |
+| ebook 읽기 상태                     | appSupportDir/ebook-state.json                                   | book location key로 merge, updatedAt. temp→rename, 실패 fallback에서 대상 제거 후 rename. 손상은 {}           |
+| model import cache                  | workspaceRoot/.workspace/model3d-cache                           | importer source metadata와 manifest/변환물. 앱 userData에만 있는 자료가 아님                                  |
+| runtime logs                        | log sink의 앱별 logs directory                                   | 회전·gzip·보관 정책은 logging guide. cache 정리와 동일 retention으로 처리하지 않음                            |
+| browser cookies/storage             | persist:browser Electron partition                               | session owner는 Chromium. renderer 방문 history JSON과 별개                                                   |
+| browser 방문 기록                   | localStorage workspace.browserHistory                            | HTTP(s)만, 최대 500, 저장 실패 시 best-effort memory                                                          |
+| editor item identity                | localStorage workspace:editor-item-ids:<tabId>                   | path→stable item ID. rename/move remap, storage 불가 시 memory                                                |
+| editor view 상태                    | localStorage editor:view-state:<encoded identity> + memory cache | clean일 때만 durable cache, 용량 제한·legacy key migration. dirty close는 memory discard                      |
+| explorer 확장/scroll/root           | workspace.explorerExpanded/Scroll/Root.<stateKey>                | stateKey는 workspace+pane. root 불일치면 초기 상태. 일부 read 경로의 storage 예외 처리 범위는 helper별로 다름 |
+| explorer sidebar                    | pane별 open/width/mode storage                                   | explorerSidebarChrome와 host hook 소유                                                                        |
+| theme·autosave                      | renderer localStorage                                            | theme preference와 OS resolved theme, autosave 선택은 separate key. 적용/구독 해제는 각 모듈                  |
 
 JSON 이름·storage prefix는 schema version을 대신하지 않는다. 각 writer의 실제 형태와 migration 유무를 읽어야 한다. config/workspace/terminal 파일은 temp+rename 방식이 아니므로 power loss에서도 항상 atomic하다고 설명하지 않는다.
 

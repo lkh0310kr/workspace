@@ -20,13 +20,13 @@ window.addEventListener('error', (event) => {
     message: event.message,
     filename: event.filename,
     lineno: event.lineno,
-    colno: event.colno,
+    colno: event.colno
   })
 })
 
 window.addEventListener('unhandledrejection', (event) => {
   logRendererBootstrap('unhandled_rejection', {
-    reason: event.reason instanceof Error ? event.reason.message : String(event.reason),
+    reason: event.reason instanceof Error ? event.reason.message : String(event.reason)
   })
 })
 

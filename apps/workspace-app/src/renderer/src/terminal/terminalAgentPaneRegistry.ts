@@ -10,7 +10,7 @@ const bindingsByTerminalId = new Map<number, TerminalAgentPaneBinding>()
 
 export function registerTerminalAgentPane(
   terminalId: number,
-  binding: TerminalAgentPaneBinding,
+  binding: TerminalAgentPaneBinding
 ): void {
   bindingsByTerminalId.set(terminalId, binding)
 }
@@ -20,7 +20,7 @@ export function unregisterTerminalAgentPane(terminalId: number): void {
 }
 
 export function getTerminalAgentPaneBinding(
-  terminalId: number,
+  terminalId: number
 ): TerminalAgentPaneBinding | undefined {
   return bindingsByTerminalId.get(terminalId)
 }

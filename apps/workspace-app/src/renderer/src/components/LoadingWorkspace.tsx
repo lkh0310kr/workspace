@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react'
 
 // App.tsx renders this whenever workspace:get-state hasn't resolved yet
 // (or the active pane's flexlayout model isn't hydrated). Normally that's
@@ -11,18 +11,18 @@ import { useEffect, useState } from "react";
 // re-runs the whole bootstrap (initWorkspaceStore's cached promise reset
 // included, since a full page reload clears all module state) without
 // needing to touch the terminal.
-const STUCK_AFTER_MS = 6000;
+const STUCK_AFTER_MS = 6000
 
 export function LoadingWorkspace() {
-  const [stuck, setStuck] = useState(false);
+  const [stuck, setStuck] = useState(false)
 
   useEffect(() => {
-    const timer = setTimeout(() => setStuck(true), STUCK_AFTER_MS);
-    return () => clearTimeout(timer);
-  }, []);
+    const timer = setTimeout(() => setStuck(true), STUCK_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [])
 
   if (!stuck) {
-    return <div className="loading">Loading workspace…</div>;
+    return <div className="loading">Loading workspace…</div>
   }
 
   return (
@@ -32,5 +32,5 @@ export function LoadingWorkspace() {
         Reload
       </button>
     </div>
-  );
+  )
 }

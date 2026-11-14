@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
   type DragEvent,
-  type MouseEvent,
+  type MouseEvent
 } from 'react'
 import type { Model } from 'flexlayout-react'
 import {
@@ -15,7 +15,7 @@ import {
   onShortcutModifierPressed,
   onShortcutModifierReleased,
   renameTab,
-  reorderTabs,
+  reorderTabs
 } from '../electron'
 import { dismissWorkspacePortals } from '../workspacePortalDismiss'
 import { switchToHome, switchToWorkspaceTab } from '../workspaceNavigation'
@@ -44,7 +44,7 @@ export function WorkspaceTabRail({
   homeActive,
   onOpenSettings,
   getModel,
-  layoutRevisions,
+  layoutRevisions
 }: Props) {
   const [renamingId, setRenamingId] = useState<number | null>(null)
   const [renamingWidth, setRenamingWidth] = useState<number | null>(null)
@@ -190,7 +190,12 @@ export function WorkspaceTabRail({
 
   return (
     <div className="workspace-tab-rail">
-      <button type="button" className={`workspace-tab-rail-home${homeActive ? ' active' : ''}`} title="Home (⌘ + `)" onClick={() => switchToHome()}>
+      <button
+        type="button"
+        className={`workspace-tab-rail-home${homeActive ? ' active' : ''}`}
+        title="Home (⌘ + `)"
+        onClick={() => switchToHome()}
+      >
         <WorkbenchIcon name="home" size={14} />
       </button>
       <div className="workspace-tab-rail-divider" aria-hidden="true" />
@@ -198,103 +203,107 @@ export function WorkspaceTabRail({
         {tabs.map((tab, index) => {
           const tabStatus = tabStatusById.get(tab.id)
           return (
-          <div key={tab.id} className="workspace-tab-rail-slot">
-            {dropIndex === index && <div className="workspace-tab-rail-drop-indicator" />}
-            <div
-              ref={(el) => {
-                if (el) rowRefs.current.set(tab.id, el)
-                else rowRefs.current.delete(tab.id)
-              }}
-              className={`workspace-tab-rail-row ${!homeActive && tab.id === activeTabId ? 'active' : ''}`}
-              style={renamingId === tab.id && renamingWidth !== null ? { width: renamingWidth } : undefined}
-              draggable={renamingId !== tab.id}
-              onPointerDown={(e) => {
-                if (e.button !== 0 || renamingId === tab.id) return
-                if ((e.target as HTMLElement).closest('.workspace-tab-rail-close')) return
-                void switchToWorkspaceTab(tab.id)
-              }}
-              onClick={(e) => {
-                if (e.detail !== 0 || renamingId === tab.id) return
-                void switchToWorkspaceTab(tab.id)
-              }}
-              onDragStart={(e: DragEvent) => {
-                draggedIdRef.current = tab.id
-                e.dataTransfer.effectAllowed = 'move'
-                e.dataTransfer.setData('text/plain', String(tab.id))
-              }}
-              onDragOver={(e: DragEvent) => {
-                if (draggedIdRef.current === null) return
-                e.preventDefault()
-                e.dataTransfer.dropEffect = 'move'
-                setDropIndex(computeDropIndex(e.clientX, draggedIdRef.current))
-              }}
-              onDragEnd={() => {
-                draggedIdRef.current = null
-                setDropIndex(null)
-              }}
-              onDrop={(e: DragEvent) => {
-                e.preventDefault()
-                handleDrop()
-              }}
-              onContextMenu={(e: MouseEvent) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setContextMenu({ tabId: tab.id, x: e.clientX, y: e.clientY })
-              }}
-            >
-              {renamingId === tab.id ? (
-                <input
-                  ref={inputRef}
-                  className="workspace-tab-rail-title-input"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onBlur={commitRename}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      inputRef.current?.blur()
-                    } else if (e.key === 'Escape') {
-                      e.preventDefault()
-                      setRenamingId(null)
-                      setRenamingWidth(null)
-                    }
-                  }}
-                />
-              ) : (
-                <button
-                  type="button"
-                  className="workspace-tab-rail-title"
-                  onDoubleClick={(e) => {
-                    e.stopPropagation()
-                    startRename(tab)
-                  }}
-                  title={tab.root_path}
-                >
-                  {tabStatus ? <WorkspaceTabStatusIndicator status={tabStatus} /> : null}
-                  <span className="workspace-tab-rail-title-text">{tab.title}</span>
-                </button>
-              )}
-              {showTabNumbers ? (
-                <span className="workspace-tab-rail-shortcut-number" aria-hidden="true">
-                  {index + 1}
-                </span>
-              ) : tabs.length > 1 ? (
-                <button
-                  type="button"
-                  className="workspace-tab-rail-close"
-                  title="Close tab"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    dismissWorkspacePortals()
-                    closeTab(tab.id).catch(console.error)
-                  }}
-                >
-                  <WorkbenchIcon name="close" size={13} />
-                </button>
-              ) : null}
+            <div key={tab.id} className="workspace-tab-rail-slot">
+              {dropIndex === index && <div className="workspace-tab-rail-drop-indicator" />}
+              <div
+                ref={(el) => {
+                  if (el) rowRefs.current.set(tab.id, el)
+                  else rowRefs.current.delete(tab.id)
+                }}
+                className={`workspace-tab-rail-row ${!homeActive && tab.id === activeTabId ? 'active' : ''}`}
+                style={
+                  renamingId === tab.id && renamingWidth !== null
+                    ? { width: renamingWidth }
+                    : undefined
+                }
+                draggable={renamingId !== tab.id}
+                onPointerDown={(e) => {
+                  if (e.button !== 0 || renamingId === tab.id) return
+                  if ((e.target as HTMLElement).closest('.workspace-tab-rail-close')) return
+                  void switchToWorkspaceTab(tab.id)
+                }}
+                onClick={(e) => {
+                  if (e.detail !== 0 || renamingId === tab.id) return
+                  void switchToWorkspaceTab(tab.id)
+                }}
+                onDragStart={(e: DragEvent) => {
+                  draggedIdRef.current = tab.id
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('text/plain', String(tab.id))
+                }}
+                onDragOver={(e: DragEvent) => {
+                  if (draggedIdRef.current === null) return
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  setDropIndex(computeDropIndex(e.clientX, draggedIdRef.current))
+                }}
+                onDragEnd={() => {
+                  draggedIdRef.current = null
+                  setDropIndex(null)
+                }}
+                onDrop={(e: DragEvent) => {
+                  e.preventDefault()
+                  handleDrop()
+                }}
+                onContextMenu={(e: MouseEvent) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setContextMenu({ tabId: tab.id, x: e.clientX, y: e.clientY })
+                }}
+              >
+                {renamingId === tab.id ? (
+                  <input
+                    ref={inputRef}
+                    className="workspace-tab-rail-title-input"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        inputRef.current?.blur()
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault()
+                        setRenamingId(null)
+                        setRenamingWidth(null)
+                      }
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="workspace-tab-rail-title"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation()
+                      startRename(tab)
+                    }}
+                    title={tab.root_path}
+                  >
+                    {tabStatus ? <WorkspaceTabStatusIndicator status={tabStatus} /> : null}
+                    <span className="workspace-tab-rail-title-text">{tab.title}</span>
+                  </button>
+                )}
+                {showTabNumbers ? (
+                  <span className="workspace-tab-rail-shortcut-number" aria-hidden="true">
+                    {index + 1}
+                  </span>
+                ) : tabs.length > 1 ? (
+                  <button
+                    type="button"
+                    className="workspace-tab-rail-close"
+                    title="Close tab"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      dismissWorkspacePortals()
+                      closeTab(tab.id).catch(console.error)
+                    }}
+                  >
+                    <WorkbenchIcon name="close" size={13} />
+                  </button>
+                ) : null}
+              </div>
             </div>
-          </div>
           )
         })}
         {dropIndex === tabs.length && <div className="workspace-tab-rail-drop-indicator" />}

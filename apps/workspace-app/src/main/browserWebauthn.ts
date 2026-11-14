@@ -1,4 +1,4 @@
-import type { Session } from "electron";
+import type { Session } from 'electron'
 
 // Port of ref-proj/orca's browser-webauthn-access.ts (the hardware-security-
 // key half only — see the note above installBrowserWebAuthnAccessHandlers
@@ -11,31 +11,31 @@ import type { Session } from "electron";
 // platform-authenticator/Touch ID passkey assertion never even gets a
 // chance to run if the sign-in page itself is blocked first).
 
-const FIDO_HID_USAGE_PAGE = 0xf1d0;
-const LOCALHOST_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+const FIDO_HID_USAGE_PAGE = 0xf1d0
+const LOCALHOST_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
 
 function isSecureBrowserOrigin(rawOrigin: string | undefined): boolean {
-  if (!rawOrigin) return false;
+  if (!rawOrigin) return false
   try {
-    const origin = new URL(rawOrigin);
-    return origin.protocol === "https:" || LOCALHOST_HOSTNAMES.has(origin.hostname);
+    const origin = new URL(rawOrigin)
+    return origin.protocol === 'https:' || LOCALHOST_HOSTNAMES.has(origin.hostname)
   } catch {
-    return false;
+    return false
   }
 }
 
 function isFidoHidDevice(device: unknown): device is Electron.HIDDevice {
-  if (!device || typeof device !== "object") return false;
-  const collections = (device as { collections?: unknown }).collections;
+  if (!device || typeof device !== 'object') return false
+  const collections = (device as { collections?: unknown }).collections
   return (
     Array.isArray(collections) &&
     collections.some(
       (collection) =>
         collection &&
-        typeof collection === "object" &&
-        (collection as { usagePage?: unknown }).usagePage === FIDO_HID_USAGE_PAGE,
+        typeof collection === 'object' &&
+        (collection as { usagePage?: unknown }).usagePage === FIDO_HID_USAGE_PAGE
     )
-  );
+  )
 }
 
 // 'hid' here is for *hardware* security keys (USB FIDO2 tokens), a
@@ -44,23 +44,23 @@ function isFidoHidDevice(device: unknown): device is Electron.HIDDevice {
 // without an explicit permission grant.
 export function allowsBrowserWebAuthnPermission(
   permission: string,
-  details?: { securityOrigin?: string },
+  details?: { securityOrigin?: string }
 ): boolean {
-  return permission === "hid" && isSecureBrowserOrigin(details?.securityOrigin);
+  return permission === 'hid' && isSecureBrowserOrigin(details?.securityOrigin)
 }
 
 function handleSelectHidDevice(
   event: Electron.Event,
   details: Electron.SelectHidDeviceDetails,
-  callback: (deviceId?: string) => void,
+  callback: (deviceId?: string) => void
 ): void {
-  event.preventDefault();
+  event.preventDefault()
   if (!isSecureBrowserOrigin(details.frame?.url)) {
-    callback(undefined);
-    return;
+    callback(undefined)
+    return
   }
-  const selectedDevice = details.deviceList.find(isFidoHidDevice);
-  callback(selectedDevice?.deviceId);
+  const selectedDevice = details.deviceList.find(isFidoHidDevice)
+  callback(selectedDevice?.deviceId)
 }
 
 // Orca (Electron ^43) also handles 'select-webauthn-account' — fired when
@@ -76,11 +76,11 @@ function handleSelectHidDevice(
 export function installBrowserWebAuthnAccessHandlers(sess: Session): void {
   sess.setDevicePermissionHandler((details) => {
     return (
-      details.deviceType === "hid" &&
+      details.deviceType === 'hid' &&
       isSecureBrowserOrigin(details.origin) &&
       isFidoHidDevice(details.device)
-    );
-  });
-  sess.removeListener("select-hid-device", handleSelectHidDevice);
-  sess.on("select-hid-device", handleSelectHidDevice);
+    )
+  })
+  sess.removeListener('select-hid-device', handleSelectHidDevice)
+  sess.on('select-hid-device', handleSelectHidDevice)
 }

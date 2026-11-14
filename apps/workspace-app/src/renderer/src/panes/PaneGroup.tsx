@@ -12,7 +12,11 @@ import {
   setActiveTabInGroup,
   updateTabInGroup
 } from '../layout/layoutActions'
-import { activatePaneTab, readPaneGroupConfig, resolveActivePaneTabId } from '../layout/layoutSession'
+import {
+  activatePaneTab,
+  readPaneGroupConfig,
+  resolveActivePaneTabId
+} from '../layout/layoutSession'
 import type { TabDragPayload } from '../layout/tabDrag'
 import { PaneTabItem, TabKind } from '../layout/paneTypes'
 import { getPaneKind, type PaneRenderContext } from './paneKindRegistry'
@@ -28,10 +32,7 @@ import { WorkspaceExplorerSidebar } from '../components/WorkspaceExplorerSidebar
 import { BrowserPaneOverlaySlot } from './BrowserPaneOverlaySlot'
 import { BrowserContent } from './BrowserContent'
 import { paneGroupBodyAnchorName } from './paneGroupBodyAnchor'
-import {
-  paneGroupHostClassNames,
-  resolvePaneGroupTabSetId
-} from './paneGroupFocus'
+import { paneGroupHostClassNames, resolvePaneGroupTabSetId } from './paneGroupFocus'
 
 interface Props {
   tabNode: TabNode
@@ -108,7 +109,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
         dirtyByTabId[item.id] ?? false,
         item.title ?? item.filePath ?? 'This document',
         item.filePath ?? undefined,
-        viewStateKeyByTabId[item.id],
+        viewStateKeyByTabId[item.id]
       )
     }
   }, [tabs, dirtyByTabId, viewStateKeyByTabId])
@@ -185,14 +186,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
         })
         .catch(console.error)
     },
-    [
-      tabs,
-      model,
-      nodeId,
-      selectTab,
-      onNotifyChanged,
-      dirtyByTabId
-    ]
+    [tabs, model, nodeId, selectTab, onNotifyChanged, dirtyByTabId]
   )
 
   const dropTab = useCallback(
@@ -251,7 +245,11 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
           />
         }
       >
-        <div ref={paneGroupBodyRef} className={`pane-group-body${showExplorer ? ' pane-group-body-with-explorer' : ''}`} data-explorer-compact-hidden={!explorerFits || undefined}>
+        <div
+          ref={paneGroupBodyRef}
+          className={`pane-group-body${showExplorer ? ' pane-group-body-with-explorer' : ''}`}
+          data-explorer-compact-hidden={!explorerFits || undefined}
+        >
           <div
             className="workspace-explorer-slot"
             style={{ display: showExplorer ? undefined : 'none' }}
@@ -303,48 +301,55 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
             {tabs
               .filter((item) => item.kind !== 'browser')
               .map((item) => {
-              const active = item.id === activeItem.id
-              const chipShown = paneChipContentShown(visible, active)
-              const ctx: PaneRenderContext = {
-                workspaceTabId,
-                nodeId,
-                rootPath,
-                model,
-                item,
-                active,
-                paneVisible: visible,
-                chipShown,
-                zoom,
-                dirty: dirtyByTabId[item.id] ?? false,
-                setDirty: (dirty, viewStateKey) => {
-                  if (viewStateKey) setViewStateKeyByTabId((prev) => ({ ...prev, [item.id]: viewStateKey }))
-                  setEditorDocumentDirty(item.id, dirty, item.title ?? item.filePath ?? 'This document', item.filePath ?? undefined, viewStateKey ?? viewStateKeyByTabId[item.id])
-                  setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))
-                },
-                jumpToLine: pendingJumpByTabId[item.id],
-                onJumpConsumed: () =>
-                  setPendingJumpByTabId((prev) => {
-                    if (!(item.id in prev)) return prev
-                    const next = { ...prev }
-                    delete next[item.id]
-                    return next
-                  }),
-                updateItem: (patch) => updateItem(item.id, patch),
-                openOrSwitchToFile,
-                openNewTab: newTab,
-                focusPaneGroup: focusGroup,
-                selectPaneTab: selectTab
-              }
-              return (
-                <div
-                  key={item.id}
-                  className="pane-group-content-item"
-                  style={paneChipContentStyle(visible, active)}
-                >
-                  {getPaneKind(item.kind).render(ctx)}
-                </div>
-              )
-            })}
+                const active = item.id === activeItem.id
+                const chipShown = paneChipContentShown(visible, active)
+                const ctx: PaneRenderContext = {
+                  workspaceTabId,
+                  nodeId,
+                  rootPath,
+                  model,
+                  item,
+                  active,
+                  paneVisible: visible,
+                  chipShown,
+                  zoom,
+                  dirty: dirtyByTabId[item.id] ?? false,
+                  setDirty: (dirty, viewStateKey) => {
+                    if (viewStateKey)
+                      setViewStateKeyByTabId((prev) => ({ ...prev, [item.id]: viewStateKey }))
+                    setEditorDocumentDirty(
+                      item.id,
+                      dirty,
+                      item.title ?? item.filePath ?? 'This document',
+                      item.filePath ?? undefined,
+                      viewStateKey ?? viewStateKeyByTabId[item.id]
+                    )
+                    setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))
+                  },
+                  jumpToLine: pendingJumpByTabId[item.id],
+                  onJumpConsumed: () =>
+                    setPendingJumpByTabId((prev) => {
+                      if (!(item.id in prev)) return prev
+                      const next = { ...prev }
+                      delete next[item.id]
+                      return next
+                    }),
+                  updateItem: (patch) => updateItem(item.id, patch),
+                  openOrSwitchToFile,
+                  openNewTab: newTab,
+                  focusPaneGroup: focusGroup,
+                  selectPaneTab: selectTab
+                }
+                return (
+                  <div
+                    key={item.id}
+                    className="pane-group-content-item"
+                    style={paneChipContentStyle(visible, active)}
+                  >
+                    {getPaneKind(item.kind).render(ctx)}
+                  </div>
+                )
+              })}
           </div>
         </div>
       </PaneFrame>

@@ -13,7 +13,12 @@ function firstText(node: unknown): string | undefined {
 export async function inspectEpubZip(
   zip: AdmZip,
   titleFallback: string
-): Promise<{ title: string; spine: EpubSpineItem[]; sizes: Record<string, number>; opfDir: string }> {
+): Promise<{
+  title: string
+  spine: EpubSpineItem[]
+  sizes: Record<string, number>
+  opfDir: string
+}> {
   const containerEntry = zip.getEntry('META-INF/container.xml')
   if (!containerEntry) throw new Error('not a valid EPUB (missing container.xml)')
   const containerXml = await parseStringPromise(zip.readAsText(containerEntry))

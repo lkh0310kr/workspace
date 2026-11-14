@@ -1,15 +1,30 @@
-import { useCallback, useEffect, useRef, useState, lazy, Suspense, type CSSProperties, type MouseEvent, type WheelEvent } from "react";
-import { getMediaUrl, getMediaUrlAbsolute, pickMediaFileDialog, readFileBinaryPreview } from "../electron";
-import { classifyMediaExtension } from "./mediaKind";
-import { cuesToVtt, parseSrt, shiftCues, type SubtitleCue } from "./srtToVtt";
-import { EpubReaderContent } from "./EpubReaderContent";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  lazy,
+  Suspense,
+  type CSSProperties,
+  type MouseEvent,
+  type WheelEvent
+} from 'react'
+import {
+  getMediaUrl,
+  getMediaUrlAbsolute,
+  pickMediaFileDialog,
+  readFileBinaryPreview
+} from '../electron'
+import { classifyMediaExtension } from './mediaKind'
+import { cuesToVtt, parseSrt, shiftCues, type SubtitleCue } from './srtToVtt'
+import { EpubReaderContent } from './EpubReaderContent'
 
 const ModelViewerContent = lazy(() =>
-  import("./ModelViewerContent").then((module) => ({ default: module.ModelViewerContent })),
-);
+  import('./ModelViewerContent').then((module) => ({ default: module.ModelViewerContent }))
+)
 const CadViewerContent = lazy(() =>
-  import("./CadViewerContent").then((module) => ({ default: module.CadViewerContent })),
-);
+  import('./CadViewerContent').then((module) => ({ default: module.CadViewerContent }))
+)
 
 // File Viewer pane — images, PDF, video, audio, EPUB (foliate-js paginator
 // over workspace-epub:// — see EpubReaderContent.tsx).
@@ -27,18 +42,18 @@ const CadViewerContent = lazy(() =>
 // workspace-media:// protocol (mediaProtocol.ts), which the <video>/
 // <audio> element fetches (and Range-requests, for seeking) itself.
 interface Props {
-  tabId: number;
-  filePath: string | null;
+  tabId: number
+  filePath: string | null
   /** Set instead of filePath when the file was picked via the native
    * Browse dialog rather than opened from within the workspace root — see
    * PaneTabItem.absolutePath's doc comment. */
-  absolutePath: string | null;
+  absolutePath: string | null
   /** Legacy hint for blank viewer tabs persisted from before
    * media-specific picker entries were removed. Decides Browse filters;
    * ignored once filePath or absolutePath is set. */
-  viewerHint?: "video" | "audio" | "ebook";
-  onAssignAbsolutePath: (path: string) => void;
-  paneActive?: boolean;
+  viewerHint?: 'video' | 'audio' | 'ebook'
+  onAssignAbsolutePath: (path: string) => void
+  paneActive?: boolean
 }
 
 // Zoom behavior ported from VSCode's own image preview
@@ -48,47 +63,47 @@ interface Props {
 // different magnitudes), and pixelation past 3x. Not ported: VSCode's
 // scroll-position-centered re-zoom and copy-as-PNG — real complexity this
 // pane's scope doesn't need yet.
-const ZOOM_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2, 3, 5, 7, 10, 15, 20];
-const ZOOM_MIN = 0.1;
-const ZOOM_MAX = 20;
-const PINCH_FACTOR = 0.075;
-const PIXELATION_THRESHOLD = 3;
+const ZOOM_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2, 3, 5, 7, 10, 15, 20]
+const ZOOM_MIN = 0.1
+const ZOOM_MAX = 20
+const PINCH_FACTOR = 0.075
+const PIXELATION_THRESHOLD = 3
 
 function clampZoom(value: number): number {
-  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value))
 }
 
 function nextZoomIn(current: number): number {
-  const next = ZOOM_LEVELS.find((level) => level > current);
-  return next ?? ZOOM_MAX;
+  const next = ZOOM_LEVELS.find((level) => level > current)
+  return next ?? ZOOM_MAX
 }
 
 function nextZoomOut(current: number): number {
-  const next = [...ZOOM_LEVELS].reverse().find((level) => level < current);
-  return next ?? ZOOM_MIN;
+  const next = [...ZOOM_LEVELS].reverse().find((level) => level < current)
+  return next ?? ZOOM_MIN
 }
 
 // Byte formatting matches VSCode's binarySizeStatusBarEntry.ts exactly
 // (no space before the unit, always 2 decimals for KB and up).
 function formatBytes(size: number): string {
-  const KB = 1024;
-  const MB = KB * KB;
-  const GB = MB * KB;
-  const TB = GB * KB;
-  if (size < KB) return `${size}B`;
-  if (size < MB) return `${(size / KB).toFixed(2)}KB`;
-  if (size < GB) return `${(size / MB).toFixed(2)}MB`;
-  if (size < TB) return `${(size / GB).toFixed(2)}GB`;
-  return `${(size / TB).toFixed(2)}TB`;
+  const KB = 1024
+  const MB = KB * KB
+  const GB = MB * KB
+  const TB = GB * KB
+  if (size < KB) return `${size}B`
+  if (size < MB) return `${(size / KB).toFixed(2)}KB`
+  if (size < GB) return `${(size / MB).toFixed(2)}MB`
+  if (size < TB) return `${(size / GB).toFixed(2)}GB`
+  return `${(size / TB).toFixed(2)}TB`
 }
 
 function base64ToBlob(base64: string, mimeType: string): Blob {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
+    bytes[i] = binary.charCodeAt(i)
   }
-  return new Blob([bytes], { type: mimeType });
+  return new Blob([bytes], { type: mimeType })
 }
 
 export function FileViewerContent({
@@ -97,165 +112,167 @@ export function FileViewerContent({
   absolutePath,
   viewerHint,
   onAssignAbsolutePath,
-  paneActive = true,
+  paneActive = true
 }: Props) {
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [fileSize, setFileSize] = useState(0);
-  const [error, setError] = useState(false);
-  const [browsing, setBrowsing] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null)
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null)
+  const [fileSize, setFileSize] = useState(0)
+  const [error, setError] = useState(false)
+  const [browsing, setBrowsing] = useState(false)
   // null = "fit" (VSCode's default scale-to-fit); a number is an explicit
   // zoom factor (1 = 100%) the user opted into via click/wheel/buttons.
-  const [zoom, setZoom] = useState<number | null>(null);
-  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
-  const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[] | null>(null);
-  const [subtitleOffset, setSubtitleOffset] = useState(0);
-  const [subtitleVttUrl, setSubtitleVttUrl] = useState<string | null>(null);
+  const [zoom, setZoom] = useState<number | null>(null)
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null)
+  const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[] | null>(null)
+  const [subtitleOffset, setSubtitleOffset] = useState(0)
+  const [subtitleVttUrl, setSubtitleVttUrl] = useState<string | null>(null)
 
   // Images/PDF never come from the Browse-anywhere flow (no picker entry
   // for them) — only video/audio/ebook do, so absolutePath only ever
   // matters alongside those three kinds.
-  const activePath = filePath ?? absolutePath;
-  const kind = activePath ? classifyMediaExtension(activePath) : "other";
-  const isVideo = kind === "video";
-  const isAudio = kind === "audio";
-  const isPdf = kind === "pdf";
-  const isEpub = kind === "epub";
-  const isModel3d = kind === "model3d";
-  const isCad = kind === "cad";
-  const isMedia = isVideo || isAudio;
+  const activePath = filePath ?? absolutePath
+  const kind = activePath ? classifyMediaExtension(activePath) : 'other'
+  const isVideo = kind === 'video'
+  const isAudio = kind === 'audio'
+  const isPdf = kind === 'pdf'
+  const isEpub = kind === 'epub'
+  const isModel3d = kind === 'model3d'
+  const isCad = kind === 'cad'
+  const isMedia = isVideo || isAudio
 
   const onBrowse = useCallback(() => {
-    if (!viewerHint) return;
-    setBrowsing(true);
+    if (!viewerHint) return
+    setBrowsing(true)
     pickMediaFileDialog(viewerHint)
       .then((path) => {
-        if (path) onAssignAbsolutePath(path);
+        if (path) onAssignAbsolutePath(path)
       })
-      .catch((err) => console.error("[FileViewer] pick media failed:", err))
-      .finally(() => setBrowsing(false));
-  }, [viewerHint, onAssignAbsolutePath]);
+      .catch((err) => console.error('[FileViewer] pick media failed:', err))
+      .finally(() => setBrowsing(false))
+  }, [viewerHint, onAssignAbsolutePath])
 
   useEffect(() => {
-    setError(false);
-    setZoom(null);
-    setNaturalSize(null);
-    setMediaUrl(null);
-    setSubtitleCues(null);
-    setSubtitleOffset(0);
-    setSubtitleVttUrl(null);
-    if (!filePath && !absolutePath) return;
+    setError(false)
+    setZoom(null)
+    setNaturalSize(null)
+    setMediaUrl(null)
+    setSubtitleCues(null)
+    setSubtitleOffset(0)
+    setSubtitleVttUrl(null)
+    if (!filePath && !absolutePath) return
     // EPUB owns its own load path entirely (EpubReaderContent's openEpub
     // call) — neither the base64-preview path nor the media protocol
     // applies to a zip archive. Model3D uses the import pipeline instead.
-    if (isEpub || isModel3d || isCad) return;
+    if (isEpub || isModel3d || isCad) return
 
     if (isMedia) {
-      let cancelled = false;
-      const request = absolutePath ? getMediaUrlAbsolute(absolutePath) : getMediaUrl(tabId, filePath!);
+      let cancelled = false
+      const request = absolutePath
+        ? getMediaUrlAbsolute(absolutePath)
+        : getMediaUrl(tabId, filePath!)
       request
         .then((url) => {
-          if (cancelled) return;
+          if (cancelled) return
           if (!url) {
-            setError(true);
-            return;
+            setError(true)
+            return
           }
-          setMediaUrl(url);
+          setMediaUrl(url)
         })
         .catch(() => {
-          if (!cancelled) setError(true);
-        });
+          if (!cancelled) setError(true)
+        })
       return () => {
-        cancelled = true;
-      };
+        cancelled = true
+      }
     }
 
     // Only reachable for filePath (workspace-relative) — image/PDF never
     // arrive via absolutePath (see the comment above activePath).
-    if (!filePath) return;
-    let cancelled = false;
-    let createdUrl: string | null = null;
+    if (!filePath) return
+    let cancelled = false
+    let createdUrl: string | null = null
     readFileBinaryPreview(tabId, filePath)
       .then((preview) => {
-        if (cancelled) return;
+        if (cancelled) return
         if (!preview) {
-          setError(true);
-          return;
+          setError(true)
+          return
         }
-        const blob = base64ToBlob(preview.content, preview.mimeType);
-        createdUrl = URL.createObjectURL(blob);
-        setBlobUrl(createdUrl);
-        setFileSize(blob.size);
+        const blob = base64ToBlob(preview.content, preview.mimeType)
+        createdUrl = URL.createObjectURL(blob)
+        setBlobUrl(createdUrl)
+        setFileSize(blob.size)
       })
       .catch(() => {
-        if (!cancelled) setError(true);
-      });
+        if (!cancelled) setError(true)
+      })
     return () => {
-      cancelled = true;
-      if (createdUrl) URL.revokeObjectURL(createdUrl);
-    };
+      cancelled = true
+      if (createdUrl) URL.revokeObjectURL(createdUrl)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, filePath, absolutePath, isMedia, isEpub, isModel3d, isCad]);
+  }, [tabId, filePath, absolutePath, isMedia, isEpub, isModel3d, isCad])
 
   // Revoke the subtitle blob URL whenever it's replaced or the pane
   // unmounts — same cleanup shape as the image blob above.
   useEffect(() => {
     return () => {
-      if (subtitleVttUrl) URL.revokeObjectURL(subtitleVttUrl);
-    };
-  }, [subtitleVttUrl]);
+      if (subtitleVttUrl) URL.revokeObjectURL(subtitleVttUrl)
+    }
+  }, [subtitleVttUrl])
 
   const onSubtitleFilePicked = useCallback((file: File) => {
     file
       .text()
       .then((text) => {
-        const cues = parseSrt(text);
-        setSubtitleCues(cues);
-        setSubtitleOffset(0);
+        const cues = parseSrt(text)
+        setSubtitleCues(cues)
+        setSubtitleOffset(0)
         setSubtitleVttUrl((prev) => {
-          if (prev) URL.revokeObjectURL(prev);
-          return URL.createObjectURL(new Blob([cuesToVtt(cues)], { type: "text/vtt" }));
-        });
+          if (prev) URL.revokeObjectURL(prev)
+          return URL.createObjectURL(new Blob([cuesToVtt(cues)], { type: 'text/vtt' }))
+        })
       })
-      .catch(() => setError(true));
-  }, []);
+      .catch(() => setError(true))
+  }, [])
 
   const onSubtitleOffsetChange = useCallback(
     (offsetSeconds: number) => {
-      setSubtitleOffset(offsetSeconds);
-      if (!subtitleCues) return;
+      setSubtitleOffset(offsetSeconds)
+      if (!subtitleCues) return
       setSubtitleVttUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
+        if (prev) URL.revokeObjectURL(prev)
         return URL.createObjectURL(
-          new Blob([cuesToVtt(shiftCues(subtitleCues, offsetSeconds))], { type: "text/vtt" }),
-        );
-      });
+          new Blob([cuesToVtt(shiftCues(subtitleCues, offsetSeconds))], { type: 'text/vtt' })
+        )
+      })
     },
-    [subtitleCues],
-  );
+    [subtitleCues]
+  )
 
   // The scale-to-fit ratio actually on screen right now, used as the
   // starting point the first time the user zooms in/out from "fit" —
   // matches VSCode's firstZoom(): image.clientWidth / naturalWidth, or 1
   // for an SVG with only a viewBox (no intrinsic natural size).
   const currentEffectiveZoom = useCallback((): number => {
-    if (zoom !== null) return zoom;
-    const img = imgRef.current;
+    if (zoom !== null) return zoom
+    const img = imgRef.current
     if (img && naturalSize && naturalSize.width > 0) {
-      return img.clientWidth / naturalSize.width;
+      return img.clientWidth / naturalSize.width
     }
-    return 1;
-  }, [zoom, naturalSize]);
+    return 1
+  }, [zoom, naturalSize])
 
   const onImageClick = useCallback(
     (e: MouseEvent) => {
-      const base = currentEffectiveZoom();
-      const zoomOut = e.altKey || e.ctrlKey || e.metaKey;
-      setZoom(clampZoom(zoomOut ? nextZoomOut(base) : nextZoomIn(base)));
+      const base = currentEffectiveZoom()
+      const zoomOut = e.altKey || e.ctrlKey || e.metaKey
+      setZoom(clampZoom(zoomOut ? nextZoomOut(base) : nextZoomIn(base)))
     },
-    [currentEffectiveZoom],
-  );
+    [currentEffectiveZoom]
+  )
 
   // Ctrl/Cmd+wheel is how a trackpad pinch reaches the DOM (Chromium
   // synthesizes it as a wheel event with ctrlKey set — there is no separate
@@ -264,16 +281,16 @@ export function FileViewerContent({
   // across OSes/devices.
   const onWheel = useCallback(
     (e: WheelEvent) => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      const base = currentEffectiveZoom();
-      const direction = e.deltaY > 0 ? 1 : -1;
-      setZoom(clampZoom(base * (1 - direction * PINCH_FACTOR)));
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      const base = currentEffectiveZoom()
+      const direction = e.deltaY > 0 ? 1 : -1
+      setZoom(clampZoom(base * (1 - direction * PINCH_FACTOR)))
     },
-    [currentEffectiveZoom],
-  );
+    [currentEffectiveZoom]
+  )
 
-  const zoomLabel = zoom === null ? "Whole Image" : `${Math.round(zoom * 100)}%`;
+  const zoomLabel = zoom === null ? 'Whole Image' : `${Math.round(zoom * 100)}%`
 
   return (
     <div className="file-viewer">
@@ -316,9 +333,9 @@ export function FileViewerContent({
                 type="file"
                 accept=".srt,.vtt"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onSubtitleFilePicked(file);
-                  e.target.value = "";
+                  const file = e.target.files?.[0]
+                  if (file) onSubtitleFilePicked(file)
+                  e.target.value = ''
                 }}
               />
             </label>
@@ -339,8 +356,13 @@ export function FileViewerContent({
       {!activePath ? (
         viewerHint ? (
           <div className="file-viewer-empty file-viewer-browse-prompt">
-            <button type="button" className="file-viewer-browse-button" onClick={onBrowse} disabled={browsing}>
-              {browsing ? "Choosing…" : `Browse for ${viewerHint}…`}
+            <button
+              type="button"
+              className="file-viewer-browse-button"
+              onClick={onBrowse}
+              disabled={browsing}
+            >
+              {browsing ? 'Choosing…' : `Browse for ${viewerHint}…`}
             </button>
           </div>
         ) : (
@@ -351,11 +373,7 @@ export function FileViewerContent({
       ) : isCad ? (
         filePath ? (
           <Suspense fallback={<div className="file-viewer-empty">Loading CAD Viewer…</div>}>
-            <CadViewerContent
-              tabId={tabId}
-              filePath={filePath}
-              paneActive={paneActive}
-            />
+            <CadViewerContent tabId={tabId} filePath={filePath} paneActive={paneActive} />
           </Suspense>
         ) : (
           <div className="file-viewer-empty">CAD files must be opened from the workspace tree.</div>
@@ -363,33 +381,27 @@ export function FileViewerContent({
       ) : isModel3d ? (
         filePath ? (
           <Suspense fallback={<div className="file-viewer-empty">Loading 3D viewer…</div>}>
-            <ModelViewerContent
-              tabId={tabId}
-              filePath={filePath}
-              paneActive={paneActive}
-            />
+            <ModelViewerContent tabId={tabId} filePath={filePath} paneActive={paneActive} />
           </Suspense>
         ) : (
           <div className="file-viewer-empty">3D models must be opened from the workspace tree.</div>
         )
       ) : isEpub ? (
         absolutePath ? (
-          <EpubReaderContent
-            absolutePath={absolutePath}
-            paneActive={paneActive}
-          />
+          <EpubReaderContent absolutePath={absolutePath} paneActive={paneActive} />
         ) : (
-          <EpubReaderContent
-            tabId={tabId}
-            filePath={filePath!}
-            paneActive={paneActive}
-          />
+          <EpubReaderContent tabId={tabId} filePath={filePath!} paneActive={paneActive} />
         )
       ) : isVideo ? (
         !mediaUrl ? (
           <div className="file-viewer-empty">Loading…</div>
         ) : (
-          <video className="file-viewer-video" src={mediaUrl} controls onError={() => setError(true)}>
+          <video
+            className="file-viewer-video"
+            src={mediaUrl}
+            controls
+            onError={() => setError(true)}
+          >
             {subtitleVttUrl && <track kind="subtitles" src={subtitleVttUrl} default />}
           </video>
         )
@@ -410,16 +422,16 @@ export function FileViewerContent({
           <div className="file-viewer-image-frame" onWheel={onWheel}>
             <img
               ref={imgRef}
-              className={`file-viewer-image${zoom === null ? " file-viewer-image-fit" : ""}${
-                zoom !== null && zoom >= PIXELATION_THRESHOLD ? " file-viewer-image-pixelated" : ""
+              className={`file-viewer-image${zoom === null ? ' file-viewer-image-fit' : ''}${
+                zoom !== null && zoom >= PIXELATION_THRESHOLD ? ' file-viewer-image-pixelated' : ''
               }`}
               src={blobUrl}
-              alt={activePath.split("/").pop() ?? activePath}
+              alt={activePath.split('/').pop() ?? activePath}
               draggable={false}
               style={zoom !== null ? ({ zoom } as CSSProperties) : undefined}
               onLoad={(e) => {
-                const img = e.currentTarget;
-                setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
+                const img = e.currentTarget
+                setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight })
               }}
               onError={() => setError(true)}
               onClick={onImageClick}
@@ -437,5 +449,5 @@ export function FileViewerContent({
         </>
       )}
     </div>
-  );
+  )
 }

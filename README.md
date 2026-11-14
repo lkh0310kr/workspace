@@ -33,12 +33,12 @@ ref-proj/               Reference implementations; not shipped
 
 ## Stack
 
-| Layer | Tech |
-|---|---|
-| Shell | Electron + electron-vite |
-| UI | React + flexlayout-react |
-| Terminal | xterm.js + node-pty |
-| Editor | CodeMirror 6 |
-| Browser | Electron `<webview>` |
+| Layer    | Tech                     |
+| -------- | ------------------------ |
+| Shell    | Electron + electron-vite |
+| UI       | React + flexlayout-react |
+| Terminal | xterm.js + node-pty      |
+| Editor   | CodeMirror 6             |
+| Browser  | Electron `<webview>`     |
 
 Reference implementation (not shipped): `ref-proj/orca/`.

@@ -8,7 +8,7 @@ import { applyTitleDerivedAgentStatus } from './title-derived-agent-status'
 
 export function syncAgentPaneRegistryFromLayouts(
   tabs: { id: number }[],
-  getModel: (tabId: number) => Model | undefined,
+  getModel: (tabId: number) => Model | undefined
 ): void {
   const seenTerminalIds = new Set<number>()
   for (const tab of tabs) {
@@ -21,11 +21,11 @@ export function syncAgentPaneRegistryFromLayouts(
       registerTerminalAgentPane(terminalId, {
         workspaceTabId: tab.id,
         paneTabId: pane.id,
-        terminalAgent: pane.terminalAgent,
+        terminalAgent: pane.terminalAgent
       })
       window.api.agentStatus.registerTerminalPane(
         terminalId,
-        buildAgentStatusPaneKey(tab.id, pane.id),
+        buildAgentStatusPaneKey(tab.id, pane.id)
       )
       useAgentStatusStore.getState().registerLiveTerminal(terminalId)
       const title = pane.title?.trim()
@@ -35,7 +35,7 @@ export function syncAgentPaneRegistryFromLayouts(
           workspaceTabId: tab.id,
           paneTabId: pane.id,
           rawTitle: title,
-          terminalAgent: pane.terminalAgent,
+          terminalAgent: pane.terminalAgent
         })
       }
     }

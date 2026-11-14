@@ -18,7 +18,7 @@ export function agentMainAgentVerdict(row: AgentMainAgentVerdictSource): AgentTu
 }
 
 export function agentVerdictDisplayMark(
-  row: AgentMainAgentVerdictSource,
+  row: AgentMainAgentVerdictSource
 ): 'failed' | 'interrupted' | 'unconfirmed' | null {
   switch (agentMainAgentVerdict(row)) {
     case 'failure':

@@ -1,59 +1,59 @@
-import { useState } from "react";
-import { Popover } from "./Popover";
-import { openDirectoryDialog, setTabRootPath } from "../electron";
+import { useState } from 'react'
+import { Popover } from './Popover'
+import { openDirectoryDialog, setTabRootPath } from '../electron'
 
 interface Props {
-  anchorRect: DOMRect;
-  onClose: () => void;
-  tabId: number;
-  tabTitle: string;
-  rootPath: string;
+  anchorRect: DOMRect
+  onClose: () => void
+  tabId: number
+  tabTitle: string
+  rootPath: string
 }
 
 export function SettingsDialog({ anchorRect, onClose, tabId, tabTitle, rootPath }: Props) {
-  const [pathInput, setPathInput] = useState(rootPath);
-  const [error, setError] = useState<string | null>(null);
-  const [browsing, setBrowsing] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [pathInput, setPathInput] = useState(rootPath)
+  const [error, setError] = useState<string | null>(null)
+  const [browsing, setBrowsing] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const savePath = async (path: string) => {
-    const trimmed = path.trim();
+    const trimmed = path.trim()
     if (!trimmed) {
-      setError("path cannot be empty");
-      return;
+      setError('path cannot be empty')
+      return
     }
-    if (trimmed === rootPath) return;
+    if (trimmed === rootPath) return
 
-    setSaving(true);
-    setError(null);
+    setSaving(true)
+    setError(null)
     try {
-      const ws = await setTabRootPath(tabId, trimmed);
-      const saved = ws.tabs.find((t) => t.id === tabId)?.root_path ?? trimmed;
-      setPathInput(saved);
+      const ws = await setTabRootPath(tabId, trimmed)
+      const saved = ws.tabs.find((t) => t.id === tabId)?.root_path ?? trimmed
+      setPathInput(saved)
     } catch (err) {
-      setError(String(err));
+      setError(String(err))
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const browse = async () => {
-    setBrowsing(true);
-    setError(null);
+    setBrowsing(true)
+    setError(null)
     try {
-      const selected = await openDirectoryDialog(pathInput.trim() || rootPath);
-      if (!selected) return;
-      setPathInput(selected);
-      await savePath(selected);
+      const selected = await openDirectoryDialog(pathInput.trim() || rootPath)
+      if (!selected) return
+      setPathInput(selected)
+      await savePath(selected)
     } catch (err) {
-      setError(String(err));
+      setError(String(err))
     } finally {
-      setBrowsing(false);
+      setBrowsing(false)
     }
-  };
+  }
 
-  const busy = browsing || saving;
-  const canSave = pathInput.trim() !== rootPath && !busy;
+  const busy = browsing || saving
+  const canSave = pathInput.trim() !== rootPath && !busy
 
   return (
     <Popover anchorRect={anchorRect} onClose={onClose} className="settings-dialog">
@@ -75,22 +75,25 @@ export function SettingsDialog({ anchorRect, onClose, tabId, tabTitle, rootPath 
             disabled={busy}
             onChange={(e) => setPathInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && canSave) void savePath(pathInput);
+              if (e.key === 'Enter' && canSave) void savePath(pathInput)
             }}
           />
           <button type="button" onClick={() => void browse()} disabled={busy}>
-            {browsing ? "Choosing…" : "Browse…"}
+            {browsing ? 'Choosing…' : 'Browse…'}
           </button>
           <button type="button" onClick={() => void savePath(pathInput)} disabled={!canSave}>
-            {saving ? "Saving…" : "Save"}
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
         {error && (
-          <span className="settings-error" title={`Log: ~/.config/workspace-app-dev/folder-picker.log`}>
+          <span
+            className="settings-error"
+            title={`Log: ~/.config/workspace-app-dev/folder-picker.log`}
+          >
             {error}
           </span>
         )}
       </div>
     </Popover>
-  );
+  )
 }

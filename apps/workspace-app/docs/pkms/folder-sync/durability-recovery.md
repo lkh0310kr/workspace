@@ -6,19 +6,19 @@
 
 Main의 `pkms-sync-bridge.json`은 Electron `userData` 아래 저장되며 temporary sibling file 작성 후 rename한다. Top-level `Persisted`의 의미는 다음과 같다.
 
-| 필드 | 의미 / 소유 결과 |
-|---|---|
-| `configs[workspaceId]` | realpath로 확인한 root와 상대 exclusion pattern |
-| `baselines[workspaceId][path]` | 마지막 공통 file id/content hash/revision |
-| `remoteFiles`, `remoteTrees` | 서버에서 읽은 remote metadata cache; authoritative server 데이터가 아님 |
-| `syncCursors[workspaceId]` | 마지막으로 반영한 server workspace revision |
-| `remoteTreeVersions` | renderer tree cache invalidation version; server revision과 다름 |
-| `pendingPaths` | watcher에서 받아 아직 scan/reconcile하지 못한 local path hint |
-| `pendingCreates` | create operation ID/file ID/content/hash. lost response 후 같은 mutation 재시도 |
-| `pendingFolderCreates` | path별 folder create operation ID |
-| `pendingUpdates` | file ID별 operation ID/target hash/Yjs update |
-| `localDirectories` | 마지막 complete scan의 relative directory→device/inode 또는 null |
-| `pendingDeletes` | file/folder deletion target, ID, operation ID, guard revision, attempts/time |
+| 필드                           | 의미 / 소유 결과                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `configs[workspaceId]`         | realpath로 확인한 root와 상대 exclusion pattern                                 |
+| `baselines[workspaceId][path]` | 마지막 공통 file id/content hash/revision                                       |
+| `remoteFiles`, `remoteTrees`   | 서버에서 읽은 remote metadata cache; authoritative server 데이터가 아님         |
+| `syncCursors[workspaceId]`     | 마지막으로 반영한 server workspace revision                                     |
+| `remoteTreeVersions`           | renderer tree cache invalidation version; server revision과 다름                |
+| `pendingPaths`                 | watcher에서 받아 아직 scan/reconcile하지 못한 local path hint                   |
+| `pendingCreates`               | create operation ID/file ID/content/hash. lost response 후 같은 mutation 재시도 |
+| `pendingFolderCreates`         | path별 folder create operation ID                                               |
+| `pendingUpdates`               | file ID별 operation ID/target hash/Yjs update                                   |
+| `localDirectories`             | 마지막 complete scan의 relative directory→device/inode 또는 null                |
+| `pendingDeletes`               | file/folder deletion target, ID, operation ID, guard revision, attempts/time    |
 
 Persisted JSON load 중 parse/read 실패는 현재 코드에서 empty state로 fallback한다. 이는 복구된 baseline/queue임을 증명하지 않으므로 손상 파일 복구 여부는 명시적인 test gap이다. save failure는 pass를 성공으로 간주하지 않는다. durability 요구는 storage-full·truncated JSON·power loss에서 별도 검증한다.
 

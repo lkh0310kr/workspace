@@ -29,18 +29,18 @@ Desktop TreeView는 pane 본문 위에 떠 있는 왼쪽 sidebar다. visible tog
 
 근거: [treeSelection.ts](../../src/treeSelection.ts), [treeNavigation.ts](../../src/treeNavigation.ts).
 
-| 입력 | 전이 |
-|---|---|
-| 일반 click | focused=anchor=path, 선택은 해당 한 항목; onActivate 실행 |
-| Ctrl/Meta click | multiSelect일 때 선택 toggle, focused/anchor=path; activate하지 않음 |
-| Shift click | anchor 또는 focus 또는 자기 자신을 기준으로 visiblePaths의 inclusive range 선택; additive면 기존 선택과 합침 |
-| 빈 공간 click | onClearSelection |
-| Down/Up | 표시 행 한 칸 이동, 양 끝 clamp; focus 없으면 첫/마지막 행 |
-| Right | directory가 접혔으면 expand, 펼쳤으면 다음 행이 자식일 때 focus |
-| Left | expanded directory면 collapse, 아니면 표시된 부모로 focus |
-| Enter | activate |
-| F2 | rename |
-| Delete/Backspace | delete |
+| 입력             | 전이                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| 일반 click       | focused=anchor=path, 선택은 해당 한 항목; onActivate 실행                                                    |
+| Ctrl/Meta click  | multiSelect일 때 선택 toggle, focused/anchor=path; activate하지 않음                                         |
+| Shift click      | anchor 또는 focus 또는 자기 자신을 기준으로 visiblePaths의 inclusive range 선택; additive면 기존 선택과 합침 |
+| 빈 공간 click    | onClearSelection                                                                                             |
+| Down/Up          | 표시 행 한 칸 이동, 양 끝 clamp; focus 없으면 첫/마지막 행                                                   |
+| Right            | directory가 접혔으면 expand, 펼쳤으면 다음 행이 자식일 때 focus                                              |
+| Left             | expanded directory면 collapse, 아니면 표시된 부모로 focus                                                    |
+| Enter            | activate                                                                                                     |
+| F2               | rename                                                                                                       |
+| Delete/Backspace | delete                                                                                                       |
 
 보이지 않는 path에 대한 selection 요청은 현재 상태를 그대로 반환한다. range anchor가 visiblePaths에 없으면 클릭한 위치만 범위로 사용한다. 파일 작업 전 selected directory의 후손을 제거해 작업 root를 만든다. 공유 resolver는 의미 action만 반환하고 host가 capability와 실제 작업을 판단한다. row는 button role=treeitem, aria-level=depth+1, aria-selected=selected||multiSelected, expandable일 때 aria-expanded를 설정한다. 들여쓰기는 8+depth*14 px다. root `role=tree`, aria-label, aria-multiselectable, aria-busy를 제공하고 row의 tabindex 기본값은 -1이다.
 
@@ -62,21 +62,21 @@ host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용�
 
 ## 검증 시나리오
 
-| ID | 데이터/행동 | 기대 결과 |
-|---|---|---|
-| TREE-01 | 파일 z, directory b, 파일 A | b→A→z 순서 |
-| TREE-02 | 100행, scroll=270, height=270 | start=6, 최대 18행, top=162, total=2700 |
-| TREE-03 | A 선택 후 Shift-C | visible 순서 A~C 선택, 활성 파일은 modifier click으로 바뀌지 않음 |
-| TREE-04 | 폴더와 그 후손 함께 삭제 | provider에는 조상 작업만, dirty 취소 시 삭제 없음 |
-| TREE-05 | 잘못된 drag JSON | 예외 없이 [] 전달 |
-| TREE-06 | Right/Left 반복 | expand→첫 자식→부모→collapse |
-| TREE-07 | pane hide | 열린 context menu와 이름 prompt 제거 |
-| TREE-08 | viewport 첫 행 위에 sibling 행을 삽입하거나 제거 | 같은 path가 살아 있으면 첫 가시 행과 행 내 위치 보존; 행이 삭제되면 이전 index의 가장 가까운 생존 행 사용 |
-| TREE-09 | 다른 editor tab/Quick Open에서 접힌 폴더의 파일 활성화 | 조상 폴더를 펼치고 활성 행을 viewport에 reveal |
-| TREE-10 | 동일 branch refresh 두 건을 시작하고 첫 요청을 늦게 완료 | 마지막 요청 응답만 branch에 반영 |
-| TREE-11 | root A의 branch 로드 중 root B로 전환, 두 root에 같은 상대 경로 존재 | root A의 늦은 응답이 root B의 tree를 바꾸지 않음 |
-| TREE-12 | `Cmd+\` 또는 `Ctrl+\`를 focused file pane에서 입력 | 해당 pane의 docked Explorer만 열리고 닫힘; editor focus 상태에서도 동작 |
-| TREE-13 | Explorer resize handle을 120px 미만으로 줄임 | Explorer가 닫히고 다음 열기에서 마지막 유효 폭으로 나타남 |
-| TREE-14 | pane 본문 폭을 560px 이하로 축소 | Explorer는 보이지 않고 본문이 pane 전체를 사용함; 폭을 넓히면 open state일 때 다시 표시 |
+| ID      | 데이터/행동                                                          | 기대 결과                                                                                                 |
+| ------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| TREE-01 | 파일 z, directory b, 파일 A                                          | b→A→z 순서                                                                                                |
+| TREE-02 | 100행, scroll=270, height=270                                        | start=6, 최대 18행, top=162, total=2700                                                                   |
+| TREE-03 | A 선택 후 Shift-C                                                    | visible 순서 A~C 선택, 활성 파일은 modifier click으로 바뀌지 않음                                         |
+| TREE-04 | 폴더와 그 후손 함께 삭제                                             | provider에는 조상 작업만, dirty 취소 시 삭제 없음                                                         |
+| TREE-05 | 잘못된 drag JSON                                                     | 예외 없이 [] 전달                                                                                         |
+| TREE-06 | Right/Left 반복                                                      | expand→첫 자식→부모→collapse                                                                              |
+| TREE-07 | pane hide                                                            | 열린 context menu와 이름 prompt 제거                                                                      |
+| TREE-08 | viewport 첫 행 위에 sibling 행을 삽입하거나 제거                     | 같은 path가 살아 있으면 첫 가시 행과 행 내 위치 보존; 행이 삭제되면 이전 index의 가장 가까운 생존 행 사용 |
+| TREE-09 | 다른 editor tab/Quick Open에서 접힌 폴더의 파일 활성화               | 조상 폴더를 펼치고 활성 행을 viewport에 reveal                                                            |
+| TREE-10 | 동일 branch refresh 두 건을 시작하고 첫 요청을 늦게 완료             | 마지막 요청 응답만 branch에 반영                                                                          |
+| TREE-11 | root A의 branch 로드 중 root B로 전환, 두 root에 같은 상대 경로 존재 | root A의 늦은 응답이 root B의 tree를 바꾸지 않음                                                          |
+| TREE-12 | `Cmd+\` 또는 `Ctrl+\`를 focused file pane에서 입력                   | 해당 pane의 docked Explorer만 열리고 닫힘; editor focus 상태에서도 동작                                   |
+| TREE-13 | Explorer resize handle을 120px 미만으로 줄임                         | Explorer가 닫히고 다음 열기에서 마지막 유효 폭으로 나타남                                                 |
+| TREE-14 | pane 본문 폭을 560px 이하로 축소                                     | Explorer는 보이지 않고 본문이 pane 전체를 사용함; 폭을 넓히면 open state일 때 다시 표시                   |
 
 기존 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test다. 위 신규 결과 시나리오는 구현 후 자동화 회귀 검증을 추가해야 한다. provider I/O 실패·dirty 확인·실제 DnD도 추가 통합 검증이 필요하다.

@@ -1,14 +1,14 @@
-import { Fragment, type ReactNode } from "react";
-import type { EditorTreeProjection } from "./treeModel";
+import { Fragment, type ReactNode } from 'react'
+import type { EditorTreeProjection } from './treeModel'
 
 export interface EditorTreeVirtualListProps<T> {
-  projection: EditorTreeProjection<T>;
-  itemKey: (item: T) => string;
-  renderItem: (item: T, index: number) => ReactNode;
-  beforeItems?: ReactNode;
-  afterItems?: ReactNode;
-  emptyContent?: ReactNode;
-  className?: string;
+  projection: EditorTreeProjection<T>
+  itemKey: (item: T) => string
+  renderItem: (item: T, index: number) => ReactNode
+  beforeItems?: ReactNode
+  afterItems?: ReactNode
+  emptyContent?: ReactNode
+  className?: string
 }
 
 /** Shared virtual window/spacer renderer for both product file trees. */
@@ -19,13 +19,11 @@ export function EditorTreeVirtualList<T>({
   beforeItems,
   afterItems,
   emptyContent,
-  className,
+  className
 }: EditorTreeVirtualListProps<T>) {
   return (
     <div
-      className={["editor-tree-virtual-list", className]
-        .filter(Boolean)
-        .join(" ")}
+      className={['editor-tree-virtual-list', className].filter(Boolean).join(' ')}
       role="group"
       style={{ minHeight: projection.totalHeight }}
     >
@@ -38,9 +36,7 @@ export function EditorTreeVirtualList<T>({
       )}
       {beforeItems}
       {projection.rows.map((item, index) => (
-        <Fragment key={itemKey(item)}>
-          {renderItem(item, projection.startIndex + index)}
-        </Fragment>
+        <Fragment key={itemKey(item)}>{renderItem(item, projection.startIndex + index)}</Fragment>
       ))}
       {afterItems}
       {projection.paddingBottom > 0 && (
@@ -52,5 +48,5 @@ export function EditorTreeVirtualList<T>({
       )}
       {projection.rows.length === 0 && emptyContent}
     </div>
-  );
+  )
 }

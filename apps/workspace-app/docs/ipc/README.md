@@ -4,19 +4,19 @@ App scope의 bridge 경계다. [preload index](../../src/preload/index.ts)가 co
 
 ## IPC family와 owner
 
-| family | preload/API | Main 처리·반환·수명 |
-|---|---|---|
-| workspace:* | contentApi.workspace | ipc/workspace → Workspace mutation/persist/broadcast. getState/setRoot 반환과 renderer snake_case 변환 구분 |
-| fs:* | contentApi.fs | ipc/workspace → root-scoped file/search. read/list/write/조건부 쓰기/create/rename/delete/binary preview. search는 requestId result/done/cancel 이벤트 |
-| pty:* / terminal:* | terminalApi | ipc/terminal와 terminalSessionBuffers. spawn/connect invoke, input/resize/ACK send, data/capture events. disconnect는 process destroy 아님 |
-| browser:* | browserApi | browserNav/session/downloads와 guest relay. webContentsId 핸들, history null/boolean, subscription 해제 |
-| shortcut:* | browserApi.shortcuts 등 | main shortcut relay → renderer dispatch. guest/native terminal·focused editor 대상 구분 |
-| media:* / model:* / cad:* / epub:* | contentApi | contentCapabilities와 protocol adapters. model job update는 subscribe/unsubscribe, asset payload는 shared 모델 |
-| pkms:* / home 경로 | window.pkmsDesktop | pkms/ipc의 sender·허용 path 처리, session은 Main 저장. public renderer API와 server auth 분리 |
-| agentStatus:* | terminal/system bridge | ipc/agentStatus + Main hook/evidence → store. pane identity/freshness는 shared 규칙 |
-| system:* / usage:* | systemApi | systemCapabilities: local summary, usage 수집·settings. summary first CPU sample은 null 가능 |
-| clipboard:* / dialog:* / shell:* | systemApi | clipboard image limit·temp 저장, native pickers, reveal-in-dir. picker 취소는 path 미할당 |
-| window:* / debug:* | systemApi | owning window 조작·logs. debug 전송이 durable 제품 상태를 바꾸는 API는 아님 |
+| family                             | preload/API             | Main 처리·반환·수명                                                                                                                                    |
+| ---------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| workspace:*                        | contentApi.workspace    | ipc/workspace → Workspace mutation/persist/broadcast. getState/setRoot 반환과 renderer snake_case 변환 구분                                            |
+| fs:*                               | contentApi.fs           | ipc/workspace → root-scoped file/search. read/list/write/조건부 쓰기/create/rename/delete/binary preview. search는 requestId result/done/cancel 이벤트 |
+| pty:* / terminal:*                 | terminalApi             | ipc/terminal와 terminalSessionBuffers. spawn/connect invoke, input/resize/ACK send, data/capture events. disconnect는 process destroy 아님             |
+| browser:*                          | browserApi              | browserNav/session/downloads와 guest relay. webContentsId 핸들, history null/boolean, subscription 해제                                                |
+| shortcut:*                         | browserApi.shortcuts 등 | main shortcut relay → renderer dispatch. guest/native terminal·focused editor 대상 구분                                                                |
+| media:* / model:* / cad:* / epub:* | contentApi              | contentCapabilities와 protocol adapters. model job update는 subscribe/unsubscribe, asset payload는 shared 모델                                         |
+| pkms:* / home 경로                 | window.pkmsDesktop      | pkms/ipc의 sender·허용 path 처리, session은 Main 저장. public renderer API와 server auth 분리                                                          |
+| agentStatus:*                      | terminal/system bridge  | ipc/agentStatus + Main hook/evidence → store. pane identity/freshness는 shared 규칙                                                                    |
+| system:* / usage:*                 | systemApi               | systemCapabilities: local summary, usage 수집·settings. summary first CPU sample은 null 가능                                                           |
+| clipboard:* / dialog:* / shell:*   | systemApi               | clipboard image limit·temp 저장, native pickers, reveal-in-dir. picker 취소는 path 미할당                                                              |
+| window:* / debug:*                 | systemApi               | owning window 조작·logs. debug 전송이 durable 제품 상태를 바꾸는 API는 아님                                                                            |
 
 Main handler 등록은 [main/index](../../src/main/index.ts)의 register* 호출이 기준이다. [preload/api](../../src/preload/api.ts)는 system/browser/terminal/content API를 합친다. [contentApi](../../src/preload/contentApi.ts)의 unknown 반환을 모든 DTO가 완전히 static 검증됐다는 뜻으로 해석하지 않는다.
 

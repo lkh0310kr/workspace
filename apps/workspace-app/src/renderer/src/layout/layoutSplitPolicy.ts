@@ -1,9 +1,6 @@
 /** Order of flexlayout mutations when splitting a tab into a new pane. */
 export type SplitPaneMutationStrategy =
-  | "add-then-delete"
-  | "add-then-update"
-  | "delete-then-add"
-  | "update-then-add";
+  'add-then-delete' | 'add-then-update' | 'delete-then-add' | 'update-then-add'
 
 /**
  * Same-pane splits must add the new tabset before mutating/deleting the
@@ -11,8 +8,8 @@ export type SplitPaneMutationStrategy =
  */
 export function resolveSplitPaneMutationStrategy(
   samePane: boolean,
-  emptySource: boolean,
+  emptySource: boolean
 ): SplitPaneMutationStrategy {
-  if (samePane) return emptySource ? "add-then-delete" : "add-then-update";
-  return emptySource ? "delete-then-add" : "update-then-add";
+  if (samePane) return emptySource ? 'add-then-delete' : 'add-then-update'
+  return emptySource ? 'delete-then-add' : 'update-then-add'
 }

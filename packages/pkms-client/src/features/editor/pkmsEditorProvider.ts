@@ -5,26 +5,26 @@ import type {
   EditorProviderCapabilities,
   EditorSearchOptions,
   EditorSearchResult,
-  EditorTreeItem,
-} from "@workspace/editor";
-import { EditorProviderError, withEditorProviderErrors } from "@workspace/editor";
-import { fuzzyEditorSearch } from "@workspace/editor";
-import type { FileRecord } from "../../domain/types";
-import { entryName } from "../../domain/fileTree";
+  EditorTreeItem
+} from '@workspace/editor'
+import { EditorProviderError, withEditorProviderErrors } from '@workspace/editor'
+import { fuzzyEditorSearch } from '@workspace/editor'
+import type { FileRecord } from '../../domain/types'
+import { entryName } from '../../domain/fileTree'
 
 export interface PkmsEditorProviderOptions {
-  workspaceId: string;
+  workspaceId: string
   /** Loads one repository directory, including its folders and files. */
-  listDirectory: (path: string, signal?: AbortSignal) => Promise<FileRecord[]>;
+  listDirectory: (path: string, signal?: AbortSignal) => Promise<FileRecord[]>
   /** Looks up a stable PKMS file ID, including files outside loaded branches. */
-  getFile: (fileId: string, signal?: AbortSignal) => Promise<FileRecord | null>;
+  getFile: (fileId: string, signal?: AbortSignal) => Promise<FileRecord | null>
   /** Keeps login, Yjs, cache and server synchronization in pkms-client. */
-  openSession: (file: FileRecord, signal?: AbortSignal) => Promise<EditorDocumentSession>;
+  openSession: (file: FileRecord, signal?: AbortSignal) => Promise<EditorDocumentSession>
   /** Emits affected parent paths after repository mutations or remote refreshes. */
-  subscribeTree: (listener: (parentPaths: readonly string[]) => void) => () => void;
-  listLoadedFiles: () => readonly FileRecord[];
-  capabilities?: Partial<EditorProviderCapabilities>;
-  operations?: Pick<EditorProvider, "create" | "rename" | "move" | "delete">;
+  subscribeTree: (listener: (parentPaths: readonly string[]) => void) => () => void
+  listLoadedFiles: () => readonly FileRecord[]
+  capabilities?: Partial<EditorProviderCapabilities>
+  operations?: Pick<EditorProvider, 'create' | 'rename' | 'move' | 'delete'>
 }
 
 const defaultCapabilities: EditorProviderCapabilities = {
@@ -35,11 +35,12 @@ const defaultCapabilities: EditorProviderCapabilities = {
   multiSelect: true,
   dragMove: true,
   codeLanguages: new Set(),
-  collaborativeDocuments: true,
-};
+  collaborativeDocuments: true
+}
 
 function treeItem(workspaceId: string, file: FileRecord): EditorTreeItem {
-  const kind: EditorTreeItem["kind"] = file.kind === "folder" ? "directory" : file.kind === "markdown" ? "markdown" : "asset";
+  const kind: EditorTreeItem['kind'] =
+    file.kind === 'folder' ? 'directory' : file.kind === 'markdown' ? 'markdown' : 'asset'
   return {
     providerId: `pkms:${workspaceId}`,
     itemId: file.id,
@@ -47,102 +48,106 @@ function treeItem(workspaceId: string, file: FileRecord): EditorTreeItem {
     name: entryName(file.path),
     path: file.path,
     kind,
-    readOnly: file.kind === "asset",
-  };
+    readOnly: file.kind === 'asset'
+  }
 }
 
 function abortIfNeeded(signal?: AbortSignal): void {
-  if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+  if (signal?.aborted) throw new DOMException('The operation was aborted', 'AbortError')
 }
 function localItemId(path: string): string {
-  const bytes = new TextEncoder().encode(path);
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return `local-${btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "")}`;
+  const bytes = new TextEncoder().encode(path)
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return `local-${btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')}`
 }
 
 /** PKMS adapter: the shared Editor sees stable file IDs, never API/Yjs details. */
 export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): EditorProvider {
-  const { workspaceId } = options;
-  const id = `pkms:${workspaceId}`;
+  const { workspaceId } = options
+  const id = `pkms:${workspaceId}`
   const capabilities: EditorProviderCapabilities = {
     ...defaultCapabilities,
     ...options.capabilities,
-    operations: options.capabilities?.operations ?? defaultCapabilities.operations,
-  };
+    operations: options.capabilities?.operations ?? defaultCapabilities.operations
+  }
 
   return withEditorProviderErrors({
     id,
     capabilities,
     async listChildren(parentId, signal) {
-      abortIfNeeded(signal);
-      const parent = parentId ? await options.getFile(parentId, signal) : null;
-      if (parentId && (!parent || parent.kind !== "folder")) return [];
-      const parentPathValue = parent?.path ?? "";
-      const files = await options.listDirectory(parentPathValue, signal);
-      abortIfNeeded(signal);
-      return files.map((file) => ({ ...treeItem(workspaceId, file), parentId: parent?.id ?? null }));
+      abortIfNeeded(signal)
+      const parent = parentId ? await options.getFile(parentId, signal) : null
+      if (parentId && (!parent || parent.kind !== 'folder')) return []
+      const parentPathValue = parent?.path ?? ''
+      const files = await options.listDirectory(parentPathValue, signal)
+      abortIfNeeded(signal)
+      return files.map((file) => ({ ...treeItem(workspaceId, file), parentId: parent?.id ?? null }))
     },
     subscribeTree(listener) {
       return options.subscribeTree((paths) => {
         const parentIds = paths.map((path) => {
-          if (!path) return null;
-          const folder = options.listLoadedFiles().find((file) => file.kind === "folder" && file.path === path);
-          return folder?.id ?? localItemId(path);
-        });
-        listener([...new Set(parentIds)]);
-      });
+          if (!path) return null
+          const folder = options
+            .listLoadedFiles()
+            .find((file) => file.kind === 'folder' && file.path === path)
+          return folder?.id ?? localItemId(path)
+        })
+        listener([...new Set(parentIds)])
+      })
     },
     async openDocument(ref: EditorItemRef, signal) {
-      abortIfNeeded(signal);
-      if (ref.providerId !== id) throw new EditorProviderError("notFound", "Document belongs to a different PKMS workspace");
-      const file = await options.getFile(ref.itemId, signal);
-      abortIfNeeded(signal);
-      if (!file || file.kind === "folder") throw new EditorProviderError("notFound", "PKMS document no longer exists");
-      const session = await options.openSession(file, signal);
+      abortIfNeeded(signal)
+      if (ref.providerId !== id)
+        throw new EditorProviderError('notFound', 'Document belongs to a different PKMS workspace')
+      const file = await options.getFile(ref.itemId, signal)
+      abortIfNeeded(signal)
+      if (!file || file.kind === 'folder')
+        throw new EditorProviderError('notFound', 'PKMS document no longer exists')
+      const session = await options.openSession(file, signal)
       try {
-        abortIfNeeded(signal);
-        return session;
+        abortIfNeeded(signal)
+        return session
       } catch (error) {
-        await session.close().catch(() => {});
-        throw error;
+        await session.close().catch(() => {})
+        throw error
       }
     },
     async search(query: string, searchOptions: EditorSearchOptions, signal) {
-      if (searchOptions.target !== "names") return [];
+      if (searchOptions.target !== 'names') return []
       if (searchOptions.fuzzy) {
         const matches = fuzzyEditorSearch(
-          options.listLoadedFiles().filter((file) => file.kind !== "folder"),
+          options.listLoadedFiles().filter((file) => file.kind !== 'folder'),
           query,
           (file) => file.path,
-          searchOptions.limit ?? Number.MAX_SAFE_INTEGER,
-        );
-        abortIfNeeded(signal);
-        return matches.map((file) => ({ item: treeItem(workspaceId, file) }));
+          searchOptions.limit ?? Number.MAX_SAFE_INTEGER
+        )
+        abortIfNeeded(signal)
+        return matches.map((file) => ({ item: treeItem(workspaceId, file) }))
       }
-      const needle = searchOptions.caseSensitive ? query : query.toLocaleLowerCase();
-      const results: EditorSearchResult[] = [];
+      const needle = searchOptions.caseSensitive ? query : query.toLocaleLowerCase()
+      const results: EditorSearchResult[] = []
       for (const file of options.listLoadedFiles()) {
-        abortIfNeeded(signal);
-        if (file.kind === "folder") continue;
-        const candidate = searchOptions.caseSensitive ? file.path : file.path.toLocaleLowerCase();
-        let match = candidate.indexOf(needle);
-        let matchLength = query.length;
+        abortIfNeeded(signal)
+        if (file.kind === 'folder') continue
+        const candidate = searchOptions.caseSensitive ? file.path : file.path.toLocaleLowerCase()
+        let match = candidate.indexOf(needle)
+        let matchLength = query.length
         if (searchOptions.regex) {
-          const regex = new RegExp(query, searchOptions.caseSensitive ? "" : "i");
-          const found = regex.exec(file.path);
-          match = found?.index ?? -1;
-          matchLength = found?.[0].length ?? 0;
+          const regex = new RegExp(query, searchOptions.caseSensitive ? '' : 'i')
+          const found = regex.exec(file.path)
+          match = found?.index ?? -1
+          matchLength = found?.[0].length ?? 0
         }
         if (match >= 0 && searchOptions.wholeWord) {
-          const before = file.path[match - 1] ?? "";
-          const after = file.path[match + matchLength] ?? "";
-          if (/[\p{L}\p{N}_]/u.test(before) || /[\p{L}\p{N}_]/u.test(after)) match = -1;
+          const before = file.path[match - 1] ?? ''
+          const after = file.path[match + matchLength] ?? ''
+          if (/[\p{L}\p{N}_]/u.test(before) || /[\p{L}\p{N}_]/u.test(after)) match = -1
         }
-        if (match >= 0) results.push({ item: treeItem(workspaceId, file) });
+        if (match >= 0) results.push({ item: treeItem(workspaceId, file) })
       }
-      return results;
+      return results
     },
-    ...options.operations,
-  });
+    ...options.operations
+  })
 }

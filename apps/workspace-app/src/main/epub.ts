@@ -61,7 +61,8 @@ export function registerEpubProtocol(): void {
     if (!entry) return new Response('not found', { status: 404 })
 
     const bytes = new Uint8Array(entry.getData())
-    const contentType = RESOURCE_MIME_TYPES[path.extname(entryPath).toLowerCase()] ?? 'application/octet-stream'
+    const contentType =
+      RESOURCE_MIME_TYPES[path.extname(entryPath).toLowerCase()] ?? 'application/octet-stream'
     return new Response(bytes, {
       headers: {
         'content-type': contentType,

@@ -21,7 +21,8 @@ export const contentApi = {
     }
   },
   fs: {
-    listDir: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('fs:list-dir', tabId, rel),
+    listDir: (tabId: number, rel: string): Promise<unknown> =>
+      ipcRenderer.invoke('fs:list-dir', tabId, rel),
     readFile: (tabId: number, rel: string): Promise<string> =>
       ipcRenderer.invoke('fs:read-file', tabId, rel),
     readFileBinaryPreview: (
@@ -31,7 +32,12 @@ export const contentApi = {
       ipcRenderer.invoke('fs:read-file-binary-preview', tabId, rel),
     writeFile: (tabId: number, rel: string, content: string): Promise<void> =>
       ipcRenderer.invoke('fs:write-file', tabId, rel, content),
-    writeFileIfUnchanged: (tabId: number, rel: string, expected: string, content: string): Promise<boolean> =>
+    writeFileIfUnchanged: (
+      tabId: number,
+      rel: string,
+      expected: string,
+      content: string
+    ): Promise<boolean> =>
       ipcRenderer.invoke('fs:write-file-if-unchanged', tabId, rel, expected, content),
     createDir: (tabId: number, rel: string): Promise<void> =>
       ipcRenderer.invoke('fs:create-dir', tabId, rel),
@@ -48,18 +54,25 @@ export const contentApi = {
       ipcRenderer.send('fs:search-in-files', requestId, tabId, query, opts),
     searchCancel: (requestId: string): void => ipcRenderer.send('fs:search-cancel', requestId),
     onSearchResult: (cb: (requestId: string, result: unknown) => void): (() => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, requestId: string, result: unknown): void =>
-        cb(requestId, result)
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        requestId: string,
+        result: unknown
+      ): void => cb(requestId, result)
       ipcRenderer.on('fs:search-result', listener)
       return () => ipcRenderer.removeListener('fs:search-result', listener)
     },
     onSearchDone: (cb: (requestId: string, error?: string) => void): (() => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, requestId: string, error?: string): void =>
-        cb(requestId, error)
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        requestId: string,
+        error?: string
+      ): void => cb(requestId, error)
       ipcRenderer.on('fs:search-done', listener)
       return () => ipcRenderer.removeListener('fs:search-done', listener)
     },
-    listAllFiles: (tabId: number): Promise<string[]> => ipcRenderer.invoke('fs:list-all-files', tabId)
+    listAllFiles: (tabId: number): Promise<string[]> =>
+      ipcRenderer.invoke('fs:list-all-files', tabId)
   },
   media: {
     getUrl: (tabId: number, rel: string): Promise<string | null> =>
@@ -83,14 +96,15 @@ export const contentApi = {
       ipcRenderer.invoke('model:get-url', tabId, rel),
     log: (event: string, data?: Record<string, unknown>): Promise<void> =>
       ipcRenderer.invoke('model:log', event, data),
-    logs: (limit?: number): Promise<unknown> => ipcRenderer.invoke('model:logs', limit),
+    logs: (limit?: number): Promise<unknown> => ipcRenderer.invoke('model:logs', limit)
   },
   cad: {
     openFile: (tabId: number, rel: string): Promise<unknown> =>
-      ipcRenderer.invoke('cad:open-file', tabId, rel),
+      ipcRenderer.invoke('cad:open-file', tabId, rel)
   },
   epub: {
-    open: (tabId: number, rel: string): Promise<unknown> => ipcRenderer.invoke('epub:open', tabId, rel),
+    open: (tabId: number, rel: string): Promise<unknown> =>
+      ipcRenderer.invoke('epub:open', tabId, rel),
     openAbsolute: (absolutePath: string): Promise<unknown> =>
       ipcRenderer.invoke('epub:open-absolute', absolutePath),
     getState: (tabId: number | null, rel: string | null, absolutePath?: string): Promise<unknown> =>
@@ -99,8 +113,7 @@ export const contentApi = {
       tabId: number | null,
       rel: string | null,
       absolutePath: string | undefined,
-      patch: unknown,
+      patch: unknown
     ): Promise<unknown> => ipcRenderer.invoke('epub:state-save', tabId, rel, absolutePath, patch)
-  },
-
+  }
 }

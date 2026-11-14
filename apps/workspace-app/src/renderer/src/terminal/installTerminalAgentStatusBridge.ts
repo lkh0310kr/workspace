@@ -19,27 +19,27 @@ export function installTerminalAgentStatusBridge(): () => void {
         workspaceTabId: binding.workspaceTabId,
         paneTabId: binding.paneTabId,
         rawTitle,
-        terminalAgent: binding.terminalAgent,
+        terminalAgent: binding.terminalAgent
       })
-    }),
+    })
   )
 
   disposers.push(
     window.api.terminal.onPtySpawned(({ terminalId }) => {
       useAgentStatusStore.getState().registerLiveTerminal(terminalId)
-    }),
+    })
   )
 
   disposers.push(
     window.api.agentStatus.onSet((payload) => {
       applyHookAgentStatus(payload)
-    }),
+    })
   )
 
   disposers.push(
     window.api.agentStatus.onClear(({ paneKey }) => {
       clearHookAgentStatus(paneKey)
-    }),
+    })
   )
 
   return () => {

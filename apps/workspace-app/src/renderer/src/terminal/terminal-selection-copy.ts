@@ -1,25 +1,25 @@
-import type { Terminal } from "@xterm/xterm";
-import { readTerminalClipboardSelection } from "./terminal-clipboard-selection-text";
+import type { Terminal } from '@xterm/xterm'
+import { readTerminalClipboardSelection } from './terminal-clipboard-selection-text'
 
 type TerminalSelectionCopyOptions = {
-  terminal: Pick<Terminal, "getSelection" | "clearSelection">;
-  writeClipboardText: (text: string) => void | Promise<void>;
-  clearSelectionOnSuccess?: boolean;
-};
+  terminal: Pick<Terminal, 'getSelection' | 'clearSelection'>
+  writeClipboardText: (text: string) => void | Promise<void>
+  clearSelectionOnSuccess?: boolean
+}
 
 export async function copyTerminalSelection({
   terminal,
   writeClipboardText,
-  clearSelectionOnSuccess = false,
+  clearSelectionOnSuccess = false
 }: TerminalSelectionCopyOptions): Promise<boolean> {
-  const selection = readTerminalClipboardSelection(terminal);
+  const selection = readTerminalClipboardSelection(terminal)
   if (!selection) {
-    return false;
+    return false
   }
 
-  await writeClipboardText(selection);
+  await writeClipboardText(selection)
   if (clearSelectionOnSuccess) {
-    terminal.clearSelection();
+    terminal.clearSelection()
   }
-  return true;
+  return true
 }

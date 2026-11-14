@@ -2,31 +2,35 @@ import type { AgentStatus } from '../../../shared/agent/agent-title-core'
 import { detectAgentStatusFromTitle } from '../../../shared/agent/agent-title-status'
 import type { TuiAgent } from '../../../shared/agent/tui-agent'
 import type { AgentStatusPayload } from '../../../shared/agent-status-types'
-import { agentPaneKey, getFreshHookAgentStatus, useAgentStatusStore } from '../store/agentStatusStore'
+import {
+  agentPaneKey,
+  getFreshHookAgentStatus,
+  useAgentStatusStore
+} from '../store/agentStatusStore'
 
 function mapTitleStatusToPayload(
   titleStatus: AgentStatus,
   title: string,
-  terminalAgent?: TuiAgent | null,
+  terminalAgent?: TuiAgent | null
 ): AgentStatusPayload {
   switch (titleStatus) {
     case 'permission':
       return {
         state: 'waiting',
         prompt: title.trim(),
-        agentType: terminalAgent ?? undefined,
+        agentType: terminalAgent ?? undefined
       }
     case 'working':
       return {
         state: 'working',
         prompt: title.trim(),
-        agentType: terminalAgent ?? undefined,
+        agentType: terminalAgent ?? undefined
       }
     case 'idle':
       return {
         state: 'done',
         prompt: title.trim(),
-        agentType: terminalAgent ?? undefined,
+        agentType: terminalAgent ?? undefined
       }
   }
 }
@@ -50,7 +54,7 @@ export function applyTitleDerivedAgentStatus(args: {
   useAgentStatusStore.getState().setAgentStatus(paneKey, payload, {
     workspaceTabId: args.workspaceTabId,
     terminalTitle: args.rawTitle,
-    titleDerived: true,
+    titleDerived: true
   })
 }
 
@@ -68,7 +72,7 @@ export function applyTitleIdleTransition(args: {
   useAgentStatusStore.getState().setAgentStatus(paneKey, payload, {
     workspaceTabId: args.workspaceTabId,
     terminalTitle: args.title,
-    titleDerived: true,
+    titleDerived: true
   })
   useAgentStatusStore.getState().retainAgentDone(paneKey, args.workspaceTabId)
 }

@@ -7,7 +7,7 @@ import {
   readdirSync,
   renameSync,
   rmSync,
-  statSync,
+  statSync
 } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { createGzip, constants as zlibConstants } from 'node:zlib'
@@ -54,7 +54,7 @@ function rotateLogFile(filePath: string, size: number): boolean {
   const timestamp = new Date().toISOString().replace(/[-:.]/g, '')
   const archivePath = join(
     dirname(filePath),
-    `${stem}.archive.${timestamp}.${process.pid}.${++archiveSequence}${extension}`,
+    `${stem}.archive.${timestamp}.${process.pid}.${++archiveSequence}${extension}`
   )
   try {
     renameSync(filePath, archivePath)
@@ -91,7 +91,7 @@ function enqueueCompression(sourcePath: string): void {
         await pipeline(
           createReadStream(sourcePath),
           createGzip({ level: zlibConstants.Z_DEFAULT_COMPRESSION }),
-          createWriteStream(temporaryPath, { flags: 'wx' }),
+          createWriteStream(temporaryPath, { flags: 'wx' })
         )
         renameSync(temporaryPath, destinationPath)
         rmSync(sourcePath)

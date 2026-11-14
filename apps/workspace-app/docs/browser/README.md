@@ -6,17 +6,17 @@ Electron webview guest, pane overlay viewport, renderer/main IPC로 구성한다
 
 경로는 `apps/workspace-app/src` 기준이다.
 
-| 모듈 | 소유 상태/책임 |
-|---|---|
-| renderer/src/panes/BrowserContent.tsx | 주소 입력, URL/loading/error/rendererGone, webContentsId, pending navigation, listener 연결 |
-| renderer/src/panes/BrowserPaneOverlaySlot.tsx | paneNodeId→overlay slot root 등록 |
-| renderer/src/browser/browserPageViewport.ts | item ID→shell/chromeInset/container, slot root listeners, chrome 높이 |
-| renderer/src/browser/ensureBrowserPageWebview.ts | guest 생성 또는 기존 guest 재부착 |
-| renderer/src/layout/browserWebviewRegistry.ts | item ID→persistent guest, renderer recovery flag, drag passthrough |
-| renderer/src/layout/activeBrowserWebview.ts | 현재 활성 guest와 webContentsId 조회 |
-| renderer/src/interaction/InteractionCoordinator.ts | workspace·pane·chip·overlay에 따른 표시/입력/focus 조정 |
-| main/browserSession.ts | persist:browser session, 권한, UA와 WebAuthn 초기화 |
-| main/browserNav.ts, preload/browserApi.ts | history/focus 명령, guest/new-tab/download 이벤트 계약 |
+| 모듈                                               | 소유 상태/책임                                                                              |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| renderer/src/panes/BrowserContent.tsx              | 주소 입력, URL/loading/error/rendererGone, webContentsId, pending navigation, listener 연결 |
+| renderer/src/panes/BrowserPaneOverlaySlot.tsx      | paneNodeId→overlay slot root 등록                                                           |
+| renderer/src/browser/browserPageViewport.ts        | item ID→shell/chromeInset/container, slot root listeners, chrome 높이                       |
+| renderer/src/browser/ensureBrowserPageWebview.ts   | guest 생성 또는 기존 guest 재부착                                                           |
+| renderer/src/layout/browserWebviewRegistry.ts      | item ID→persistent guest, renderer recovery flag, drag passthrough                          |
+| renderer/src/layout/activeBrowserWebview.ts        | 현재 활성 guest와 webContentsId 조회                                                        |
+| renderer/src/interaction/InteractionCoordinator.ts | workspace·pane·chip·overlay에 따른 표시/입력/focus 조정                                     |
+| main/browserSession.ts                             | persist:browser session, 권한, UA와 WebAuthn 초기화                                         |
+| main/browserNav.ts, preload/browserApi.ts          | history/focus 명령, guest/new-tab/download 이벤트 계약                                      |
 
 ## Identity와 host 계약
 

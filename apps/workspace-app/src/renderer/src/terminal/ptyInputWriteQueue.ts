@@ -1,63 +1,63 @@
 type PtyInputWriteQueueDeps = {
-  isWritable: (id: string) => boolean;
-  write: (id: string, data: string) => void;
-  onDrainFailure?: (id: string) => void;
-};
+  isWritable: (id: string) => boolean
+  write: (id: string, data: string) => void
+  onDrainFailure?: (id: string) => void
+}
 
 export function createPtyInputWriteQueue(deps: PtyInputWriteQueueDeps) {
-  let pending: { id: string; text: string }[] = [];
-  let draining = false;
+  let pending: { id: string; text: string }[] = []
+  let draining = false
 
   function drain(): void {
-    if (draining) return;
-    draining = true;
+    if (draining) return
+    draining = true
     const step = () => {
       if (pending.length === 0) {
-        draining = false;
-        return;
+        draining = false
+        return
       }
-      const item = pending.shift()!;
+      const item = pending.shift()!
       if (!deps.isWritable(item.id)) {
-        requestAnimationFrame(step);
-        return;
+        requestAnimationFrame(step)
+        return
       }
       try {
-        deps.write(item.id, item.text);
+        deps.write(item.id, item.text)
       } catch {
-        deps.onDrainFailure?.(item.id);
-        pending = [];
-        draining = false;
-        return;
+        deps.onDrainFailure?.(item.id)
+        pending = []
+        draining = false
+        return
       }
-      if (pending.length > 0) requestAnimationFrame(step);
-      else draining = false;
-    };
-    step();
+      if (pending.length > 0) requestAnimationFrame(step)
+      else draining = false
+    }
+    step()
   }
 
   return {
     enqueue(id: string, data: string): boolean {
-      if (!data) return true;
-      pending.push({ id, text: data });
-      drain();
-      return true;
+      if (!data) return true
+      pending.push({ id, text: data })
+      drain()
+      return true
     },
     /** xterm query replies must not wait behind rAF-coalesced keystrokes (Orca #7329). */
     enqueueQueryReply(id: string, data: string): boolean {
-      if (!data) return true;
+      if (!data) return true
       if (!deps.isWritable(id)) {
-        return false;
+        return false
       }
       try {
-        deps.write(id, data);
-        return true;
+        deps.write(id, data)
+        return true
       } catch {
-        deps.onDrainFailure?.(id);
-        return false;
+        deps.onDrainFailure?.(id)
+        return false
       }
     },
     clear(): void {
-      pending = [];
-    },
-  };
+      pending = []
+    }
+  }
 }

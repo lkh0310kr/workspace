@@ -1,18 +1,18 @@
 /** @vitest-environment jsdom */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { useBrowserGuestActivationFocus } from "./useBrowserGuestActivationFocus";
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { useBrowserGuestActivationFocus } from './useBrowserGuestActivationFocus'
 
-vi.mock("./useWebviewDragPassthroughActive", () => ({
-  useWebviewDragPassthroughActive: () => false,
-}));
+vi.mock('./useWebviewDragPassthroughActive', () => ({
+  useWebviewDragPassthroughActive: () => false
+}))
 
-describe("useBrowserGuestActivationFocus", () => {
+describe('useBrowserGuestActivationFocus', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
-  });
+    vi.restoreAllMocks()
+  })
 
-  it("exports the activation focus hook", () => {
-    expect(typeof useBrowserGuestActivationFocus).toBe("function");
-  });
-});
+  it('exports the activation focus hook', () => {
+    expect(typeof useBrowserGuestActivationFocus).toBe('function')
+  })
+})

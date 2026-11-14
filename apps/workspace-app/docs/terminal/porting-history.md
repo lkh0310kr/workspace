@@ -58,20 +58,20 @@ Treat the terminal as one vertical slice with these invariants:
 ### Progress
 
 - [x] Output scheduler dependency closure ported (queueing, fair drain, parse barrier,
-  backlog bounds, ACK release, and stalled-write health/recovery). Adapted to Workspace's
-  PTY ACK API and pane disposal. The focused Orca scheduler suite passes: 104 tests.
+      backlog bounds, ACK release, and stalled-write health/recovery). Adapted to Workspace's
+      PTY ACK API and pane disposal. The focused Orca scheduler suite passes: 104 tests.
 - [x] Reveal fit decision ported; it preserves matching PTY grids and defers mismatched
-  stable fits. Focused reveal-fit tests pass: 6 tests.
+      stable fits. Focused reveal-fit tests pass: 6 tests.
 - [x] Split UTF-8 delivery test added for Hangul and emoji; 5 multiplexer tests pass.
 - [x] Installed build retains long scrollback; asynchronous output does not move a pinned
-  viewport; live Hangul and ANSI color rendering verified.
+      viewport; live Hangul and ANSI color rendering verified.
 - [x] Installed-build hide/show check preserves both terminal viewports across a tab switch.
 - [x] Codex TUI color suppression traced to stale `NO_COLOR=1` inherited by the detached PTY
-  host; promotion now removes that launcher flag and the host uses the app's current environment.
+      host; promotion now removes that launcher flag and the host uses the app's current environment.
 - [ ] Fresh Workspace Codex session matches iTerm status-line and syntax colors after PTY-host
-  restart.
+      restart.
 - [ ] Reconnect scroll restoration in installed build (not yet exercised independently of
-  app restart and output replay).
+      app restart and output replay).
 
 ### Implementation order
 
@@ -93,4 +93,3 @@ The app is complete only when these invariants pass in the installed build. Port
 or matching Orca's visual layout alone is not acceptance evidence.
 
 Terminal rendering follows an Orca-inspired **session vs mount** split: the shell PTY lives in main; xterm.js is a mount that can suspend without killing the session.
-

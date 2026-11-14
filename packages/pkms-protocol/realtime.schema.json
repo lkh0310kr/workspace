@@ -36,7 +36,13 @@
         "protocolVersion": { "const": 1 },
         "clientId": { "type": "string" },
         "afterRevision": { "type": "integer", "minimum": 0 },
-        "user": { "type": "object", "properties": { "login": { "type": "string" }, "avatarUrl": { "type": "string", "format": "uri" } } },
+        "user": {
+          "type": "object",
+          "properties": {
+            "login": { "type": "string" },
+            "avatarUrl": { "type": "string", "format": "uri" }
+          }
+        },
         "fileId": { "type": "string" }
       },
       "additionalProperties": false
@@ -78,7 +84,10 @@
     "ready": {
       "type": "object",
       "required": ["type", "revision"],
-      "properties": { "type": { "const": "ready" }, "revision": { "type": "integer", "minimum": 0 } },
+      "properties": {
+        "type": { "const": "ready" },
+        "revision": { "type": "integer", "minimum": 0 }
+      },
       "additionalProperties": false
     },
     "presence": {
@@ -90,7 +99,10 @@
     "presenceState": {
       "type": "object",
       "required": ["type", "peers"],
-      "properties": { "type": { "const": "presence-state" }, "peers": { "type": "array", "items": { "$ref": "#/$defs/peer" } } },
+      "properties": {
+        "type": { "const": "presence-state" },
+        "peers": { "type": "array", "items": { "$ref": "#/$defs/peer" } }
+      },
       "additionalProperties": false
     },
     "presenceEvent": {

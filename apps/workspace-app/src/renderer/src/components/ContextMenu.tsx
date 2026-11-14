@@ -1,113 +1,123 @@
-import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
-import { interactionCoordinator } from "../interaction/InteractionCoordinator";
-import { isWorkbenchIconName, WorkbenchIcon } from "./WorkbenchIcon";
-import { EditorMenuList, type EditorMenuItem } from "@workspace/editor";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
+import { interactionCoordinator } from '../interaction/InteractionCoordinator'
+import { isWorkbenchIconName, WorkbenchIcon } from './WorkbenchIcon'
+import { EditorMenuList, type EditorMenuItem } from '@workspace/editor'
 
 export type ContextMenuItem =
-  | { type: "separator" }
+  | { type: 'separator' }
   | {
-      type: "button";
-      label: string;
-      icon?: string;
-      active?: boolean;
-      disabled?: boolean;
-      onClick: () => void;
+      type: 'button'
+      label: string
+      icon?: string
+      active?: boolean
+      disabled?: boolean
+      onClick: () => void
     }
   | {
-      type: "submenu";
-      label: string;
-      items: ContextMenuItem[];
-    };
+      type: 'submenu'
+      label: string
+      items: ContextMenuItem[]
+    }
 
 interface Props {
-  x: number;
-  y: number;
-  items: ContextMenuItem[];
-  onClose: () => void;
+  x: number
+  y: number
+  items: ContextMenuItem[]
+  onClose: () => void
 }
 
 function clampPosition(x: number, y: number, width: number, height: number) {
-  const margin = 4;
+  const margin = 4
   return {
     left: Math.min(Math.max(x, margin), window.innerWidth - width - margin),
-    top: Math.min(Math.max(y, margin), window.innerHeight - height - margin),
-  };
+    top: Math.min(Math.max(y, margin), window.innerHeight - height - margin)
+  }
 }
 
 function ContextMenuPanel({
   items,
   style,
   onClose,
-  flyout = false,
+  flyout = false
 }: {
-  items: ContextMenuItem[];
-  style?: CSSProperties;
-  onClose: () => void;
-  flyout?: boolean;
+  items: ContextMenuItem[]
+  style?: CSSProperties
+  onClose: () => void
+  flyout?: boolean
 }) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [openSubmenu, setOpenSubmenu] = useState<number | null>(null);
-  const [flipLeft, setFlipLeft] = useState(false);
-  const [position, setPosition] = useState(style ?? {});
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [openSubmenu, setOpenSubmenu] = useState<number | null>(null)
+  const [flipLeft, setFlipLeft] = useState(false)
+  const [position, setPosition] = useState(style ?? {})
 
   useLayoutEffect(() => {
-    if (flyout || !panelRef.current || style?.left === undefined || style?.top === undefined) return;
-    const rect = panelRef.current.getBoundingClientRect();
-    setPosition(clampPosition(style.left as number, style.top as number, rect.width, rect.height));
-  }, [flyout, style?.left, style?.top]);
+    if (flyout || !panelRef.current || style?.left === undefined || style?.top === undefined) return
+    const rect = panelRef.current.getBoundingClientRect()
+    setPosition(clampPosition(style.left as number, style.top as number, rect.width, rect.height))
+  }, [flyout, style?.left, style?.top])
 
   useLayoutEffect(() => {
-    if (!flyout || !panelRef.current) return;
-    const rect = panelRef.current.getBoundingClientRect();
-    setFlipLeft(rect.right > window.innerWidth - 4);
-  }, [flyout, items, openSubmenu]);
+    if (!flyout || !panelRef.current) return
+    const rect = panelRef.current.getBoundingClientRect()
+    setFlipLeft(rect.right > window.innerWidth - 4)
+  }, [flyout, items, openSubmenu])
 
-  const runButton = (item: Extract<ContextMenuItem, { type: "button" }>) => {
-    if (item.disabled) return;
-    item.onClick();
-    onClose();
-  };
+  const runButton = (item: Extract<ContextMenuItem, { type: 'button' }>) => {
+    if (item.disabled) return
+    item.onClick()
+    onClose()
+  }
 
-  if (!items.some((item) => item.type === "submenu")) {
+  if (!items.some((item) => item.type === 'submenu')) {
     const sharedItems: EditorMenuItem[] = items.map((item, index) => {
-      if (item.type === "separator") return { type: "separator" };
-      const button = item as Extract<ContextMenuItem, { type: "button" }>;
-      return { type: "item", id: `${index}:${button.label}`, label: button.label, disabled: button.disabled, active: button.active, icon: button.icon, onSelect: () => runButton(button) };
-    });
-    return <EditorMenuList
-      ref={panelRef}
-      items={sharedItems}
-      className={`context-menu${flyout ? " context-menu-flyout" : ""}${flipLeft ? " context-menu-flyout-left" : ""}`}
-      itemClassName="context-menu-item"
-      activeClassName="active"
-      separatorClassName="context-menu-sep"
-      iconClassName="context-menu-icon"
-      labelClassName="context-menu-label"
-      renderIcon={(icon) => isWorkbenchIconName(icon) ? <WorkbenchIcon name={icon} /> : icon}
-      style={flyout ? style : position}
-      onClick={(event) => event.stopPropagation()}
-    />;
+      if (item.type === 'separator') return { type: 'separator' }
+      const button = item as Extract<ContextMenuItem, { type: 'button' }>
+      return {
+        type: 'item',
+        id: `${index}:${button.label}`,
+        label: button.label,
+        disabled: button.disabled,
+        active: button.active,
+        icon: button.icon,
+        onSelect: () => runButton(button)
+      }
+    })
+    return (
+      <EditorMenuList
+        ref={panelRef}
+        items={sharedItems}
+        className={`context-menu${flyout ? ' context-menu-flyout' : ''}${flipLeft ? ' context-menu-flyout-left' : ''}`}
+        itemClassName="context-menu-item"
+        activeClassName="active"
+        separatorClassName="context-menu-sep"
+        iconClassName="context-menu-icon"
+        labelClassName="context-menu-label"
+        renderIcon={(icon) => (isWorkbenchIconName(icon) ? <WorkbenchIcon name={icon} /> : icon)}
+        style={flyout ? style : position}
+        onClick={(event) => event.stopPropagation()}
+      />
+    )
   }
 
   return (
     <div
       ref={panelRef}
-      className={`context-menu${flyout ? " context-menu-flyout" : ""}${flipLeft ? " context-menu-flyout-left" : ""}`}
+      className={`context-menu${flyout ? ' context-menu-flyout' : ''}${flipLeft ? ' context-menu-flyout-left' : ''}`}
       style={flyout ? style : position}
       onClick={(e) => e.stopPropagation()}
     >
       {items.map((item, index) => {
-        if (item.type === "separator") {
-          return <div key={index} className="context-menu-sep" />;
+        if (item.type === 'separator') {
+          return <div key={index} className="context-menu-sep" />
         }
 
-        if (item.type === "button") {
+        if (item.type === 'button') {
           return (
             <button
               key={index}
               type="button"
-              className={`context-menu-item${item.active ? " active" : ""}`}
+              className={`context-menu-item${item.active ? ' active' : ''}`}
               disabled={item.disabled}
               onClick={() => runButton(item)}
             >
@@ -118,10 +128,10 @@ function ContextMenuPanel({
               ) : null}
               <span className="context-menu-label">{item.label}</span>
             </button>
-          );
+          )
         }
 
-        const open = openSubmenu === index;
+        const open = openSubmenu === index
         return (
           <div
             key={index}
@@ -129,11 +139,11 @@ function ContextMenuPanel({
             className="context-menu-submenu-row"
             onMouseEnter={() => setOpenSubmenu(index)}
             onMouseLeave={(e) => {
-              const related = e.relatedTarget as Node | null;
-              if (!e.currentTarget.contains(related)) setOpenSubmenu(null);
+              const related = e.relatedTarget as Node | null
+              if (!e.currentTarget.contains(related)) setOpenSubmenu(null)
             }}
           >
-            <div className={`context-menu-item context-menu-submenu-trigger${open ? " open" : ""}`}>
+            <div className={`context-menu-item context-menu-submenu-trigger${open ? ' open' : ''}`}>
               <span className="context-menu-label">{item.label}</span>
               <span className="context-menu-chevron">›</span>
             </div>
@@ -142,19 +152,19 @@ function ContextMenuPanel({
                 items={item.items}
                 onClose={onClose}
                 flyout
-                style={{ left: "100%", top: 0 }}
+                style={{ left: '100%', top: 0 }}
               />
             ) : null}
           </div>
-        );
+        )
       })}
     </div>
-  );
+  )
 }
 
 export function ContextMenu({ x, y, items, onClose }: Props) {
-  const portalId = useId();
-  const rootRef = useRef<HTMLDivElement>(null);
+  const portalId = useId()
+  const rootRef = useRef<HTMLDivElement>(null)
   // Why: callers routinely pass an inline `() => setX(null)` onClose, a new
   // identity every render. registerPortal's cleanup+re-register on identity
   // change calls interactionCoordinator.reconcile(), which notifies every
@@ -162,39 +172,39 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
   // right back into a new onClose identity. A ref keeps every effect below
   // mount-stable regardless of the caller's callback stability (STA "Maximum
   // update depth exceeded" on TreeView right-click).
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useLayoutEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, []);
+      if (e.key === 'Escape') onCloseRef.current()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [])
 
   useLayoutEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
-      if (rootRef.current?.contains(e.target as Node)) return;
-      onCloseRef.current();
-    };
+      if (rootRef.current?.contains(e.target as Node)) return
+      onCloseRef.current()
+    }
     const timer = window.setTimeout(() => {
-      document.addEventListener("pointerdown", onPointerDown, true);
-    }, 0);
+      document.addEventListener('pointerdown', onPointerDown, true)
+    }, 0)
     return () => {
-      clearTimeout(timer);
-      document.removeEventListener("pointerdown", onPointerDown, true);
-    };
-  }, []);
+      clearTimeout(timer)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+    }
+  }, [])
 
   useLayoutEffect(() => {
-    return interactionCoordinator.registerPortal(portalId, () => onCloseRef.current());
-  }, [portalId]);
+    return interactionCoordinator.registerPortal(portalId, () => onCloseRef.current())
+  }, [portalId])
 
   return createPortal(
     <div ref={rootRef}>
       <ContextMenuPanel items={items} style={{ left: x, top: y }} onClose={onClose} />
     </div>,
-    document.body,
-  );
+    document.body
+  )
 }

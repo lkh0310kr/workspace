@@ -4,15 +4,15 @@
 
 근거: [browserUrl.ts](../../src/renderer/src/browserUrl.ts). normalizeBrowserNavigationUrl(raw,searchFallback)는 string|null을 반환한다. 순서는 trim→blank→local dev→Unix absolute path→명시 URL→https prefix→선택적 검색 fallback이다.
 
-| 입력 | 결과 |
-|---|---|
-| 공백 또는 about:blank | about:blank |
-| localhost:3000, 127.0.0.1, 0.0.0.0, [::1]:8080 | http:// prefix 후 URL 정규화 |
-| /Users/me/a b.txt | segment별 encode한 file:///Users/me/a%20b.txt |
-| 명시 http/https/file URL | URL.toString() |
-| javascript:, data:, 그 외 명시 scheme | null |
-| example.com | https://example.com/ |
-| 주소창 `react hooks` | https://www.google.com/search?q=react%20hooks |
+| 입력                                           | 결과                                          |
+| ---------------------------------------------- | --------------------------------------------- |
+| 공백 또는 about:blank                          | about:blank                                   |
+| localhost:3000, 127.0.0.1, 0.0.0.0, [::1]:8080 | http:// prefix 후 URL 정규화                  |
+| /Users/me/a b.txt                              | segment별 encode한 file:///Users/me/a%20b.txt |
+| 명시 http/https/file URL                       | URL.toString()                                |
+| javascript:, data:, 그 외 명시 scheme          | null                                          |
+| example.com                                    | https://example.com/                          |
+| 주소창 `react hooks`                           | https://www.google.com/search?q=react%20hooks |
 
 공백 포함은 검색어로, 도메인 패턴은 URL로, `.` 또는 `:`가 있는 입력은 URL 시도로 분류한다. searchFallback=false는 https prefix가 파싱되면 단일 단어도 URL로 허용한다. 즉 초기/programmatic URL 검증과 주소창 검색 분기를 같게 만들지 않는다.
 
@@ -20,16 +20,16 @@ BrowserContent.navigate는 정규화 실패면 무시한다. guest 미준비면 
 
 ## Guest 이벤트 전이
 
-| 이벤트 | 상태/출력 |
-|---|---|
-| did-start-loading | loading=true |
-| did-stop-loading | loading=false, history 동기화 |
-| did-navigate / did-navigate-in-page | addressInput/currentUrl/item.url 갱신, history 동기화 |
-| page-title-updated | item.title 갱신, getURL/title로 방문 기록 |
-| page-favicon-updated | 첫 favicon이 있으면 item.favicon 갱신 |
-| render-process-gone | rendererGone=true |
-| dom-ready | ready=true, rendererGone=false, loadError 제거, webContentsId 획득, history 동기화, pending URL 처리, chipShown이면 focus 요청 |
-| did-fail-load | `Could not load this page. Check the address and try again.` 표시 |
+| 이벤트                              | 상태/출력                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| did-start-loading                   | loading=true                                                                                                                   |
+| did-stop-loading                    | loading=false, history 동기화                                                                                                  |
+| did-navigate / did-navigate-in-page | addressInput/currentUrl/item.url 갱신, history 동기화                                                                          |
+| page-title-updated                  | item.title 갱신, getURL/title로 방문 기록                                                                                      |
+| page-favicon-updated                | 첫 favicon이 있으면 item.favicon 갱신                                                                                          |
+| render-process-gone                 | rendererGone=true                                                                                                              |
+| dom-ready                           | ready=true, rendererGone=false, loadError 제거, webContentsId 획득, history 동기화, pending URL 처리, chipShown이면 focus 요청 |
+| did-fail-load                       | `Could not load this page. Check the address and try again.` 표시                                                              |
 
 현재 did-fail-load handler는 error code별 예외 처리를 하지 않는다. abort 오류를 항상 숨긴다고 재구현하지 않는다.
 
@@ -58,17 +58,17 @@ main startup에서 guest 탐색 전 `session.fromPartition('persist:browser')`�
 
 근거: [preload/browserApi.ts](../../src/preload/browserApi.ts), [main/browserNav.ts](../../src/main/browserNav.ts), [main/index.ts](../../src/main/index.ts).
 
-| 채널 | payload / 반환 |
-|---|---|
-| browser:open-new-tab | event `{hostWebContentsId,url}`; 해당 guest ID의 BrowserContent만 onOpenNewTab 호출 |
-| browser:guest-focus | event `{webContentsId,focused}` |
-| browser:guest-pointer-down | event `{webContentsId}` |
-| browser:html-fullscreen-changed | event boolean |
-| browser:download-event | event `{id,hostWebContentsId,phase,filename?,url?,path?,receivedBytes?,totalBytes?,state?}` |
-| browser:get-nav-history | invoke webContentsId → `{entries:[{url,title}],activeIndex}` 또는 null |
-| browser:go-back / go-forward | invoke webContentsId → boolean |
-| browser:go-to-index | invoke webContentsId,index → boolean |
-| browser:focus-guest / blur-guest | invoke webContentsId → boolean |
+| 채널                             | payload / 반환                                                                              |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| browser:open-new-tab             | event `{hostWebContentsId,url}`; 해당 guest ID의 BrowserContent만 onOpenNewTab 호출         |
+| browser:guest-focus              | event `{webContentsId,focused}`                                                             |
+| browser:guest-pointer-down       | event `{webContentsId}`                                                                     |
+| browser:html-fullscreen-changed  | event boolean                                                                               |
+| browser:download-event           | event `{id,hostWebContentsId,phase,filename?,url?,path?,receivedBytes?,totalBytes?,state?}` |
+| browser:get-nav-history          | invoke webContentsId → `{entries:[{url,title}],activeIndex}` 또는 null                      |
+| browser:go-back / go-forward     | invoke webContentsId → boolean                                                              |
+| browser:go-to-index              | invoke webContentsId,index → boolean                                                        |
+| browser:focus-guest / blur-guest | invoke webContentsId → boolean                                                              |
 
 download phase는 started/updated/done, state는 progressing/interrupted/completed/cancelled다. main은 새 window 요청을 deny하고 host guest ID와 URL을 new-tab 이벤트로 전달한다. download bar는 해당 guest ID의 이벤트를 표시한다. preload event subscription은 각각 해제 함수를 반환한다.
 
@@ -82,15 +82,15 @@ main shortcut relay의 browser-reload는 `{hard:boolean}`, browser-zoom은 `{dir
 
 ## 검증 시나리오
 
-| ID | 행동 | 결과 |
-|---|---|---|
-| B-NAV-01 | 주소 표의 입력을 각각 normalize | 표의 URL/null과 일치 |
-| B-NAV-02 | dom-ready 전 두 URL 입력 | 최신 pending URL을 준비 후 탐색 |
-| B-NAV-03 | guest A가 새 창 요청 | A의 owning pane만 새 탭 생성 |
-| B-NAV-04 | 제안 입력 2049 UTF-8 bytes | [] |
-| B-NAV-05 | 새 URL 501개 기록 | 가장 오래된 항목 제거, 500개 유지 |
-| B-NAV-06 | 3배에서 zoom in | 3 유지 |
-| B-NAV-07 | 닫힌 guest ID history 조회 | null/false |
-| B-NAV-08 | 파일 URL 방문 | 주소 이동 가능, HTTP 방문 기록에는 추가되지 않음 |
+| ID       | 행동                            | 결과                                             |
+| -------- | ------------------------------- | ------------------------------------------------ |
+| B-NAV-01 | 주소 표의 입력을 각각 normalize | 표의 URL/null과 일치                             |
+| B-NAV-02 | dom-ready 전 두 URL 입력        | 최신 pending URL을 준비 후 탐색                  |
+| B-NAV-03 | guest A가 새 창 요청            | A의 owning pane만 새 탭 생성                     |
+| B-NAV-04 | 제안 입력 2049 UTF-8 bytes      | []                                               |
+| B-NAV-05 | 새 URL 501개 기록               | 가장 오래된 항목 제거, 500개 유지                |
+| B-NAV-06 | 3배에서 zoom in                 | 3 유지                                           |
+| B-NAV-07 | 닫힌 guest ID history 조회      | null/false                                       |
+| B-NAV-08 | 파일 URL 방문                   | 주소 이동 가능, HTTP 방문 기록에는 추가되지 않음 |
 
 browserUrl, browserAddressBarSuggestions, browserSession, browserZoom의 기존 테스트를 실행한다. 로그인·passkey·download의 실제 사이트 동작은 native 통합 확인 범위다.

@@ -1,76 +1,76 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import type { WebContents } from "electron";
-import { Pty } from "./pty";
-import { PtySession } from "./ptySession";
-import { defaultLayout, extractTerminalIds } from "./layout";
-import { salvageLayoutJson } from "../shared/layoutSalvage";
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import type { WebContents } from 'electron'
+import { Pty } from './pty'
+import { PtySession } from './ptySession'
+import { defaultLayout, extractTerminalIds } from './layout'
+import { salvageLayoutJson } from '../shared/layoutSalvage'
 import {
   trimTerminalSessionBufferToByteLimit,
-  type TerminalSessionBuffersFile,
-} from "../shared/terminal-session-buffers";
-import { prepareTerminalColdRestoreSnapshot } from "../shared/terminal-cold-restore";
-import { loadTerminalSessionBuffers } from "./persistence";
-import * as files from "./files";
-import type { DirEntry } from "./files";
-import * as search from "./search";
-import { MEDIA_MIME_TYPES, toMediaUrl } from "./mediaProtocol";
-import { MODEL_MIME_TYPES, toModelUrl } from "./model3d/modelProtocolUrl";
-import { openEpub, type EpubBook } from "./epub";
-import type { AssetOpenRequest, ImportJob, SceneManifest } from "../shared/model3d/types";
-import { routeAssetOpen } from "./model3d/assetRouter";
-import { importJobQueue } from "./model3d/importJobQueue";
-import { openCadViewerFile as openCadViewerFile_ } from "./cadViewer";
+  type TerminalSessionBuffersFile
+} from '../shared/terminal-session-buffers'
+import { prepareTerminalColdRestoreSnapshot } from '../shared/terminal-cold-restore'
+import { loadTerminalSessionBuffers } from './persistence'
+import * as files from './files'
+import type { DirEntry } from './files'
+import * as search from './search'
+import { MEDIA_MIME_TYPES, toMediaUrl } from './mediaProtocol'
+import { MODEL_MIME_TYPES, toModelUrl } from './model3d/modelProtocolUrl'
+import { openEpub, type EpubBook } from './epub'
+import type { AssetOpenRequest, ImportJob, SceneManifest } from '../shared/model3d/types'
+import { routeAssetOpen } from './model3d/assetRouter'
+import { importJobQueue } from './model3d/importJobQueue'
+import { openCadViewerFile as openCadViewerFile_ } from './cadViewer'
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
 export interface TabInfo {
-  id: number;
-  title: string;
-  layoutJson: string;
-  rootPath: string;
+  id: number
+  title: string
+  layoutJson: string
+  rootPath: string
 }
 
 export interface WorkspaceState {
-  tabs: TabInfo[];
-  activeTabId: number;
+  tabs: TabInfo[]
+  activeTabId: number
 }
 
 interface Tab {
-  id: number;
-  title: string;
-  layoutJson: string;
-  rootPath: string;
+  id: number
+  title: string
+  layoutJson: string
+  rootPath: string
 }
 
 interface TerminalEntry {
-  session: PtySession;
+  session: PtySession
 }
 
 export class Workspace {
   /** Root new tabs are seeded with. Each tab can then repoint its own
    * rootPath independently via setTabRootPath — this is only the
    * starting point for tabs created after that point. */
-  defaultRootPath: string;
-  private tabs: Tab[] = [];
-  private activeTabId = 0;
-  private terminals = new Map<number, TerminalEntry>();
-  private restoredTerminalBuffers = new Map<number, string>();
-  private nextTerminalId = 0;
-  private nextTabId = 0;
+  defaultRootPath: string
+  private tabs: Tab[] = []
+  private activeTabId = 0
+  private terminals = new Map<number, TerminalEntry>()
+  private restoredTerminalBuffers = new Map<number, string>()
+  private nextTerminalId = 0
+  private nextTabId = 0
   /** Main → renderer: PTY output for agent status (independent of renderer attach). */
-  onTerminalPtyOutput: ((terminalId: number, chunkUtf8: string) => void) | null = null;
-  onTerminalSpawned: ((terminalId: number) => void) | null = null;
+  onTerminalPtyOutput: ((terminalId: number, chunkUtf8: string) => void) | null = null
+  onTerminalSpawned: ((terminalId: number) => void) | null = null
   /** Returns loopback hook POST URL for agent CLIs, if the hook server is up. */
-  agentHookStatusUrl: (() => string | null) | null = null;
+  agentHookStatusUrl: (() => string | null) | null = null
   private constructor(rootPath: string) {
-    this.defaultRootPath = rootPath;
+    this.defaultRootPath = rootPath
   }
 
   static withRoot(rootPath: string): Workspace {
-    const ws = new Workspace(rootPath);
-    ws.addTab();
-    return ws;
+    const ws = new Workspace(rootPath)
+    ws.addTab()
+    return ws
   }
 
   /** Rebuilds a Workspace from a previously-persisted WorkspaceState
@@ -81,75 +81,75 @@ export class Workspace {
    * On full app restart, scrollback is restored from serialized xterm
    * buffers saved at quit (see terminal-sessions.electron.json). */
   static fromSnapshot(rootPath: string, snapshot: WorkspaceState): Workspace {
-    if (snapshot.tabs.length === 0) return Workspace.withRoot(rootPath);
+    if (snapshot.tabs.length === 0) return Workspace.withRoot(rootPath)
 
-    const ws = new Workspace(rootPath);
-    let nextTabId = 0;
-    let nextTerminalId = 0;
+    const ws = new Workspace(rootPath)
+    let nextTabId = 0
+    let nextTerminalId = 0
 
     for (const tab of snapshot.tabs) {
-      nextTabId = Math.max(nextTabId, tab.id + 1);
-      const tabRoot = isDir(tab.rootPath) ? tab.rootPath : rootPath;
-      const { json: layoutJson } = salvageLayoutJson(tab.layoutJson);
+      nextTabId = Math.max(nextTabId, tab.id + 1)
+      const tabRoot = isDir(tab.rootPath) ? tab.rootPath : rootPath
+      const { json: layoutJson } = salvageLayoutJson(tab.layoutJson)
 
       for (const terminalId of extractTerminalIds(layoutJson)) {
-        nextTerminalId = Math.max(nextTerminalId, terminalId + 1);
-        ws.spawnTerminalWithId(terminalId, 120, 40, tabRoot);
+        nextTerminalId = Math.max(nextTerminalId, terminalId + 1)
+        ws.spawnTerminalWithId(terminalId, 120, 40, tabRoot)
       }
 
-      ws.tabs.push({ id: tab.id, title: tab.title, layoutJson, rootPath: tabRoot });
+      ws.tabs.push({ id: tab.id, title: tab.title, layoutJson, rootPath: tabRoot })
     }
 
-    ws.nextTabId = nextTabId;
-    ws.nextTerminalId = nextTerminalId;
+    ws.nextTabId = nextTabId
+    ws.nextTerminalId = nextTerminalId
     ws.activeTabId = ws.tabs.some((t) => t.id === snapshot.activeTabId)
       ? snapshot.activeTabId
-      : ws.tabs[0].id;
+      : ws.tabs[0].id
 
-    const persisted = loadTerminalSessionBuffers();
+    const persisted = loadTerminalSessionBuffers()
     for (const [key, buffer] of Object.entries(persisted.buffersByTerminalId)) {
-      const id = Number(key);
+      const id = Number(key)
       if (Number.isInteger(id) && buffer) {
-        ws.restoredTerminalBuffers.set(id, buffer);
+        ws.restoredTerminalBuffers.set(id, buffer)
       }
     }
 
-    return ws;
+    return ws
   }
 
   addTab(): number {
-    const id = this.nextTabId++;
-    const rootPath = this.defaultRootPath;
-    const terminalId = this.spawnTerminalIn(rootPath, 120, 40);
-    this.tabs.push({ id, title: `Tab ${id + 1}`, layoutJson: defaultLayout(terminalId), rootPath });
-    this.activeTabId = id;
-    return id;
+    const id = this.nextTabId++
+    const rootPath = this.defaultRootPath
+    const terminalId = this.spawnTerminalIn(rootPath, 120, 40)
+    this.tabs.push({ id, title: `Tab ${id + 1}`, layoutJson: defaultLayout(terminalId), rootPath })
+    this.activeTabId = id
+    return id
   }
 
   closeTab(tabId: number): void {
-    if (this.tabs.length <= 1) throw new Error("cannot close the last tab");
-    const idx = this.tabs.findIndex((t) => t.id === tabId);
-    if (idx === -1) throw new Error("tab not found");
+    if (this.tabs.length <= 1) throw new Error('cannot close the last tab')
+    const idx = this.tabs.findIndex((t) => t.id === tabId)
+    if (idx === -1) throw new Error('tab not found')
 
-    const [tab] = this.tabs.splice(idx, 1);
-    this.releaseTerminalsOnlyInTab(tab.layoutJson);
+    const [tab] = this.tabs.splice(idx, 1)
+    this.releaseTerminalsOnlyInTab(tab.layoutJson)
 
     if (this.activeTabId === tabId) {
-      const next = Math.min(idx, this.tabs.length - 1);
-      this.activeTabId = this.tabs[next].id;
+      const next = Math.min(idx, this.tabs.length - 1)
+      this.activeTabId = this.tabs[next].id
     }
   }
 
   selectTab(tabId: number): void {
-    if (this.tabs.some((t) => t.id === tabId)) this.activeTabId = tabId;
+    if (this.tabs.some((t) => t.id === tabId)) this.activeTabId = tabId
   }
 
   renameTab(tabId: number, title: string): void {
-    const tab = this.tabs.find((t) => t.id === tabId);
-    if (!tab) throw new Error("tab not found");
-    const trimmed = title.trim();
-    if (!trimmed) throw new Error("title cannot be empty");
-    tab.title = trimmed;
+    const tab = this.tabs.find((t) => t.id === tabId)
+    if (!tab) throw new Error('tab not found')
+    const trimmed = title.trim()
+    if (!trimmed) throw new Error('title cannot be empty')
+    tab.title = trimmed
   }
 
   /** Reorders tabs to match `orderedIds` — must be exactly the current
@@ -157,25 +157,25 @@ export class Workspace {
    * tab). Silently ignored if it isn't, rather than partially applying a
    * stale drag payload from before a tab closed mid-drag. */
   reorderTabs(orderedIds: number[]): void {
-    if (orderedIds.length !== this.tabs.length) return;
-    const byId = new Map(this.tabs.map((t) => [t.id, t]));
-    const reordered = orderedIds.map((id) => byId.get(id));
-    if (reordered.some((t) => !t)) return;
-    this.tabs = reordered as Tab[];
+    if (orderedIds.length !== this.tabs.length) return
+    const byId = new Map(this.tabs.map((t) => [t.id, t]))
+    const reordered = orderedIds.map((id) => byId.get(id))
+    if (reordered.some((t) => !t)) return
+    this.tabs = reordered as Tab[]
   }
 
   setTabLayout(tabId: number, layoutJson: string): void {
-    const tab = this.tabs.find((t) => t.id === tabId);
-    if (!tab) return;
+    const tab = this.tabs.find((t) => t.id === tabId)
+    if (!tab) return
 
-    const oldIds = new Set(extractTerminalIds(tab.layoutJson));
-    tab.layoutJson = layoutJson;
-    const newIds = new Set(extractTerminalIds(layoutJson));
+    const oldIds = new Set(extractTerminalIds(tab.layoutJson))
+    tab.layoutJson = layoutJson
+    const newIds = new Set(extractTerminalIds(layoutJson))
 
     for (const id of oldIds) {
       if (!newIds.has(id) && !this.isTerminalReferenced(id)) {
-        this.terminals.get(id)?.session.disposeAndDestroySession();
-        this.terminals.delete(id);
+        this.terminals.get(id)?.session.disposeAndDestroySession()
+        this.terminals.delete(id)
       }
     }
   }
@@ -184,18 +184,18 @@ export class Workspace {
     const root =
       tabId != null
         ? (this.tabs.find((t) => t.id === tabId)?.rootPath ?? this.defaultRootPath)
-        : (this.tabs.find((t) => t.id === this.activeTabId)?.rootPath ?? this.defaultRootPath);
-    return this.spawnTerminalIn(root, cols, rows);
+        : (this.tabs.find((t) => t.id === this.activeTabId)?.rootPath ?? this.defaultRootPath)
+    return this.spawnTerminalIn(root, cols, rows)
   }
 
   private spawnTerminalIn(root: string, cols: number, rows: number): number {
-    const id = this.nextTerminalId++;
-    this.spawnTerminalWithId(id, cols, rows, root);
-    return id;
+    const id = this.nextTerminalId++
+    this.spawnTerminalWithId(id, cols, rows, root)
+    return id
   }
 
   private spawnTerminalWithId(id: number, cols: number, rows: number, root: string): void {
-    const hookUrl = this.agentHookStatusUrl?.() ?? null;
+    const hookUrl = this.agentHookStatusUrl?.() ?? null
     const pty = new Pty({
       id,
       cols,
@@ -203,130 +203,137 @@ export class Workspace {
       cwd: root,
       ...(hookUrl
         ? { extraEnv: { WORKSPACE_AGENT_HOOK_URL: hookUrl, WORKSPACE_TERMINAL_ID: String(id) } }
-        : {}),
-    });
-    const session = new PtySession(id, pty, cols, rows);
+        : {})
+    })
+    const session = new PtySession(id, pty, cols, rows)
     session.setOnOutputUtf8((terminalId, chunk) => {
       this.onTerminalPtyOutput?.(terminalId, chunk)
     })
-    this.terminals.set(id, { session });
+    this.terminals.set(id, { session })
     this.onTerminalSpawned?.(id)
   }
 
   async connectTerminal(id: number, webContents: WebContents) {
-    const entry = this.terminals.get(id);
-    if (!entry) throw new Error("terminal not found");
-    const result = await entry.session.connect(webContents);
-    const restored = this.restoredTerminalBuffers.get(id);
+    const entry = this.terminals.get(id)
+    if (!entry) throw new Error('terminal not found')
+    const result = await entry.session.connect(webContents)
+    const restored = this.restoredTerminalBuffers.get(id)
     if (restored) {
-      this.restoredTerminalBuffers.delete(id);
+      this.restoredTerminalBuffers.delete(id)
       if (!result.isReattach) {
-        result.snapshot = prepareTerminalColdRestoreSnapshot(restored + result.snapshot);
-        result.isReattach = true;
+        result.snapshot = prepareTerminalColdRestoreSnapshot(restored + result.snapshot)
+        result.isReattach = true
       }
     }
-    return result;
+    return result
   }
 
   /** Every terminal id referenced by any tab layout (for quit-time capture). */
   allReferencedTerminalIds(): number[] {
-    const ids = new Set<number>();
+    const ids = new Set<number>()
     for (const tab of this.tabs) {
       for (const terminalId of extractTerminalIds(tab.layoutJson)) {
-        ids.add(terminalId);
+        ids.add(terminalId)
       }
     }
-    return Array.from(ids).sort((a, b) => a - b);
+    return Array.from(ids).sort((a, b) => a - b)
   }
 
   /** Merge renderer xterm snapshots with main replay for unmounted panes. */
-  buildTerminalSessionBuffersForQuit(captured: TerminalSessionBuffersFile): TerminalSessionBuffersFile {
-    const merged: Record<string, string> = { ...captured.buffersByTerminalId };
+  buildTerminalSessionBuffersForQuit(
+    captured: TerminalSessionBuffersFile
+  ): TerminalSessionBuffersFile {
+    const merged: Record<string, string> = { ...captured.buffersByTerminalId }
     for (const terminalId of this.allReferencedTerminalIds()) {
-      const key = String(terminalId);
-      const entry = this.terminals.get(terminalId);
-      const replay = entry?.session.getReplaySnapshot() ?? "";
-      const persisted = this.restoredTerminalBuffers.get(terminalId) ?? "";
-      const best = merged[key] ?? (replay.length > 0 ? replay : persisted);
+      const key = String(terminalId)
+      const entry = this.terminals.get(terminalId)
+      const replay = entry?.session.getReplaySnapshot() ?? ''
+      const persisted = this.restoredTerminalBuffers.get(terminalId) ?? ''
+      const best = merged[key] ?? (replay.length > 0 ? replay : persisted)
       if (best) {
-        merged[key] = trimTerminalSessionBufferToByteLimit(best);
+        merged[key] = trimTerminalSessionBufferToByteLimit(best)
       }
     }
-    return { buffersByTerminalId: merged };
+    return { buffersByTerminalId: merged }
   }
 
   /** Best-effort scrollback persistence while the app is running (crash-safe subset of quit capture). */
   buildTerminalSessionBuffersForAutosave(): TerminalSessionBuffersFile {
-    return this.buildTerminalSessionBuffersForQuit({ buffersByTerminalId: {} });
+    return this.buildTerminalSessionBuffersForQuit({ buffersByTerminalId: {} })
   }
 
   disconnectTerminal(id: number, webContents: WebContents): void {
-    const entry = this.terminals.get(id);
-    if (!entry) return;
-    entry.session.disconnect(webContents);
+    const entry = this.terminals.get(id)
+    if (!entry) return
+    entry.session.disconnect(webContents)
   }
 
   acknowledgeTerminalOutput(id: number, seq: number): void {
-    this.terminals.get(id)?.session.acknowledgeOutput(seq);
+    this.terminals.get(id)?.session.acknowledgeOutput(seq)
   }
 
   getTerminalSession(id: number): PtySession | undefined {
-    return this.terminals.get(id)?.session;
+    return this.terminals.get(id)?.session
   }
 
   /** Existing terminals keep their own cwd — only ones spawned after this
    * takes effect. Rejects anything that isn't an existing directory. */
   setTabRootPath(tabId: number, rootPath: string): void {
-    if (!isDir(rootPath)) throw new Error(`not a directory: ${rootPath}`);
-    const tab = this.tabs.find((t) => t.id === tabId);
-    if (!tab) throw new Error("tab not found");
-    tab.rootPath = rootPath;
+    if (!isDir(rootPath)) throw new Error(`not a directory: ${rootPath}`)
+    const tab = this.tabs.find((t) => t.id === tabId)
+    if (!tab) throw new Error('tab not found')
+    tab.rootPath = rootPath
   }
 
   tabRootPath(tabId: number): string | undefined {
-    return this.tabs.find((t) => t.id === tabId)?.rootPath;
+    return this.tabs.find((t) => t.id === tabId)?.rootPath
   }
 
   terminalWrite(id: number, data: Buffer): void {
-    this.terminals.get(id)?.session.write(data);
+    this.terminals.get(id)?.session.write(data)
   }
 
   terminalResize(id: number, cols: number, rows: number): void {
-    const entry = this.terminals.get(id);
-    if (!entry) return;
-    entry.session.resize(cols, rows);
+    const entry = this.terminals.get(id)
+    if (!entry) return
+    entry.session.resize(cols, rows)
   }
 
   state(): WorkspaceState {
     return {
-      tabs: this.tabs.map((t) => ({ id: t.id, title: t.title, layoutJson: t.layoutJson, rootPath: t.rootPath })),
-      activeTabId: this.activeTabId,
-    };
+      tabs: this.tabs.map((t) => ({
+        id: t.id,
+        title: t.title,
+        layoutJson: t.layoutJson,
+        rootPath: t.rootPath
+      })),
+      activeTabId: this.activeTabId
+    }
   }
 
   listDir(tabId: number, rel: string): DirEntry[] {
-    return files.listDir(this.tabRoot(tabId), rel);
+    return files.listDir(this.tabRoot(tabId), rel)
   }
   readFile(tabId: number, rel: string): string | null {
-    return files.readFileIfExists(this.tabRoot(tabId), rel);
+    return files.readFileIfExists(this.tabRoot(tabId), rel)
   }
   readFileBinaryPreview(tabId: number, rel: string): files.BinaryFilePreview | null {
-    return files.readFileBinaryPreview(this.tabRoot(tabId), rel);
+    return files.readFileBinaryPreview(this.tabRoot(tabId), rel)
   }
   writeFile(tabId: number, rel: string, content: string): void {
-    files.writeFile(this.tabRoot(tabId), rel, content);
+    files.writeFile(this.tabRoot(tabId), rel, content)
   }
   writeFileIfUnchanged(tabId: number, rel: string, expected: string, content: string): boolean {
-    return files.writeFileIfUnchanged(this.tabRoot(tabId), rel, expected, content);
+    return files.writeFileIfUnchanged(this.tabRoot(tabId), rel, expected, content)
   }
   createDir(tabId: number, rel: string): void {
-    files.createDir(this.tabRoot(tabId), rel);
+    files.createDir(this.tabRoot(tabId), rel)
   }
   deletePath(tabId: number, rel: string): void {
-    files.deletePath(this.tabRoot(tabId), rel);
+    files.deletePath(this.tabRoot(tabId), rel)
   }
   renamePath(tabId: number, fromRel: string, toRel: string): void {
-    files.renamePath(this.tabRoot(tabId), fromRel, toRel);
+    files.renamePath(this.tabRoot(tabId), fromRel, toRel)
   }
 
   searchInFiles(
@@ -334,92 +341,92 @@ export class Workspace {
     query: string,
     opts: search.SearchOptions,
     onFile: (result: search.SearchFileResult) => void,
-    onDone: (error?: string) => void,
+    onDone: (error?: string) => void
   ): search.ActiveSearch {
-    return search.searchInFiles(this.tabRoot(tabId), query, opts, onFile, onDone);
+    return search.searchInFiles(this.tabRoot(tabId), query, opts, onFile, onDone)
   }
   listAllFiles(tabId: number): Promise<string[]> {
-    return search.listAllFiles(this.tabRoot(tabId));
+    return search.listAllFiles(this.tabRoot(tabId))
   }
 
   /** Every currently-open tab's root — the media protocol handler confines
    * requests against all of them, not just the tab active when playback
    * started (a media file's owning tab may not be the visible one). */
   allTabRootPaths(): string[] {
-    return [this.defaultRootPath, ...this.tabs.map((t) => t.rootPath)];
+    return [this.defaultRootPath, ...this.tabs.map((t) => t.rootPath)]
   }
 
   mediaUrl(tabId: number, rel: string): string | null {
-    const ext = path.extname(rel).toLowerCase();
-    if (!(ext in MEDIA_MIME_TYPES)) return null;
-    const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel);
-    return toMediaUrl(resolved);
+    const ext = path.extname(rel).toLowerCase()
+    if (!(ext in MEDIA_MIME_TYPES)) return null
+    const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel)
+    return toMediaUrl(resolved)
   }
 
   modelUrl(tabId: number, rel: string): string | null {
-    const ext = path.extname(rel).toLowerCase();
-    if (!(ext in MODEL_MIME_TYPES)) return null;
-    const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel);
-    return toModelUrl(resolved);
+    const ext = path.extname(rel).toLowerCase()
+    if (!(ext in MODEL_MIME_TYPES)) return null
+    const resolved = files.resolveUnderRoot(this.tabRoot(tabId), rel)
+    return toModelUrl(resolved)
   }
 
   resolveWorkspaceFile(tabId: number, rel: string): string {
-    return files.resolveUnderRoot(this.tabRoot(tabId), rel);
+    return files.resolveUnderRoot(this.tabRoot(tabId), rel)
   }
 
   openEpub(tabId: number, rel: string): Promise<EpubBook> {
-    return openEpub(this.tabRoot(tabId), rel);
+    return openEpub(this.tabRoot(tabId), rel)
   }
 
   openCadViewerFile(tabId: number, rel: string) {
-    return openCadViewerFile_(this.tabRoot(tabId), rel);
+    return openCadViewerFile_(this.tabRoot(tabId), rel)
   }
 
   openModelPreview(tabId: number, rel: string): Promise<SceneManifest> {
     return this.openModelAsset({
       tabId,
       relativePath: rel,
-      intent: "preview",
-      source: "tree",
+      intent: 'preview',
+      source: 'tree'
     }).then((job) => {
-      if (job.phase === "failed") {
-        throw new Error(job.error ?? "Import failed");
+      if (job.phase === 'failed') {
+        throw new Error(job.error ?? 'Import failed')
       }
       if (!job.manifest) {
-        throw new Error("Import finished without manifest");
+        throw new Error('Import finished without manifest')
       }
-      return job.manifest;
-    });
+      return job.manifest
+    })
   }
 
   openModelAsset(request: AssetOpenRequest): Promise<ImportJob> {
-    return routeAssetOpen(request, this.tabRoot(request.tabId));
+    return routeAssetOpen(request, this.tabRoot(request.tabId))
   }
 
   getImportJob(jobId: string): ImportJob | undefined {
-    return importJobQueue.getJob(jobId);
+    return importJobQueue.getJob(jobId)
   }
 
   disposeAllTerminals(): void {
-    for (const entry of this.terminals.values()) entry.session.dispose();
-    this.terminals.clear();
+    for (const entry of this.terminals.values()) entry.session.dispose()
+    this.terminals.clear()
   }
 
   private tabRoot(tabId: number): string {
-    const root = this.tabs.find((t) => t.id === tabId)?.rootPath;
-    if (!root) throw new Error("tab not found");
-    return root;
+    const root = this.tabs.find((t) => t.id === tabId)?.rootPath
+    if (!root) throw new Error('tab not found')
+    return root
   }
 
   private isTerminalReferenced(terminalId: number): boolean {
-    return this.tabs.some((t) => extractTerminalIds(t.layoutJson).includes(terminalId));
+    return this.tabs.some((t) => extractTerminalIds(t.layoutJson).includes(terminalId))
   }
 
   private releaseTerminalsOnlyInTab(layoutJson: string): void {
     for (const id of extractTerminalIds(layoutJson)) {
       if (!this.isTerminalReferenced(id)) {
-        this.terminals.get(id)?.session.disposeAndDestroySession();
-        this.terminals.delete(id);
+        this.terminals.get(id)?.session.disposeAndDestroySession()
+        this.terminals.delete(id)
       }
     }
   }
@@ -427,8 +434,8 @@ export class Workspace {
 
 function isDir(p: string): boolean {
   try {
-    return fs.statSync(p).isDirectory();
+    return fs.statSync(p).isDirectory()
   } catch {
-    return false;
+    return false
   }
 }

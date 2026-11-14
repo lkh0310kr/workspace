@@ -10,32 +10,32 @@ App scope는 Cloudflare Worker의 HTTP/MCP/auth·account/vault·Supabase/R2·Git
 
 ## 실제 route 책임 지도
 
-| prefix/route | owner | 계약 |
-|---|---|---|
-| /api/health | app.ts | 공개 health와 protocolVersion |
-| /api/auth/github, callback | authRoutes.ts, MCP callback | browser redirect·state·grant exchange·cookie |
-| /api/auth/device/start, poll | authRoutes.ts | native device flow, pending/interval/token·user |
-| /api/session, /api/logout | authRoutes.ts | session 조회/해제 |
-| /api/home/access-token | app.ts/realtimeAuth.ts | authenticated native session→Home audience token, 미준비 503 |
-| /api/realtime/config, token | workspaceApi.ts/realtimeAuth.ts | Supabase public config·짧은 signed auth |
-| /api/repositories, /api/workspaces | workspaceApi.ts | GitHub repo 권한과 연결, account별 목록 |
-| /api/workspaces/:id/* | workspaceApi.ts→SupabaseVault.ts | account membership 확인 후 내부 vault path 전달 |
-| /mcp, /oauth/*, 관련 well-known | mcp.ts | client registration·consent·PKCE·scope·revocation·MCP dispatch |
+| prefix/route                       | owner                            | 계약                                                           |
+| ---------------------------------- | -------------------------------- | -------------------------------------------------------------- |
+| /api/health                        | app.ts                           | 공개 health와 protocolVersion                                  |
+| /api/auth/github, callback         | authRoutes.ts, MCP callback      | browser redirect·state·grant exchange·cookie                   |
+| /api/auth/device/start, poll       | authRoutes.ts                    | native device flow, pending/interval/token·user                |
+| /api/session, /api/logout          | authRoutes.ts                    | session 조회/해제                                              |
+| /api/home/access-token             | app.ts/realtimeAuth.ts           | authenticated native session→Home audience token, 미준비 503   |
+| /api/realtime/config, token        | workspaceApi.ts/realtimeAuth.ts  | Supabase public config·짧은 signed auth                        |
+| /api/repositories, /api/workspaces | workspaceApi.ts                  | GitHub repo 권한과 연결, account별 목록                        |
+| /api/workspaces/:id/*              | workspaceApi.ts→SupabaseVault.ts | account membership 확인 후 내부 vault path 전달                |
+| /mcp, /oauth/*, 관련 well-known    | mcp.ts                           | client registration·consent·PKCE·scope·revocation·MCP dispatch |
 
 vault 내부 route는 아래와 같다. 외부 path에는 `/api/workspaces/:id` prefix가 붙는다.
 
-| 내부 path | 동작/동시성 |
-|---|---|
-| GET /snapshot | legacy Markdown 목록, revision-pinned pagination |
-| GET /sync/tree | Markdown+folder metadata, atRevision 검증·path 순서·1,000개 page |
-| GET /sync/changes | cursor 기반 변경/tombstone |
-| POST /sync/download | Markdown batch bodies; 상세 limit/오류는 vault 구현 |
-| GET /directory | GitHub tree lazy loading와 directory listing |
-| GET /sync-status | server revision·GitHub export 상태 |
-| POST /operations | create/move/delete·operation identity·revision guard |
-| GET/POST /files/:id/updates | Yjs state vector/full state·incremental update |
-| POST /flush, /mirror | GitHub export/import 조정. flush lease 충돌은 409/Retry-After |
-| POST /diagnostics/realtime | 허용된 진단 필드만 기록; token/raw message logging 아님 |
+| 내부 path                   | 동작/동시성                                                      |
+| --------------------------- | ---------------------------------------------------------------- |
+| GET /snapshot               | legacy Markdown 목록, revision-pinned pagination                 |
+| GET /sync/tree              | Markdown+folder metadata, atRevision 검증·path 순서·1,000개 page |
+| GET /sync/changes           | cursor 기반 변경/tombstone                                       |
+| POST /sync/download         | Markdown batch bodies; 상세 limit/오류는 vault 구현              |
+| GET /directory              | GitHub tree lazy loading와 directory listing                     |
+| GET /sync-status            | server revision·GitHub export 상태                               |
+| POST /operations            | create/move/delete·operation identity·revision guard             |
+| GET/POST /files/:id/updates | Yjs state vector/full state·incremental update                   |
+| POST /flush, /mirror        | GitHub export/import 조정. flush lease 충돌은 409/Retry-After    |
+| POST /diagnostics/realtime  | 허용된 진단 필드만 기록; token/raw message logging 아님          |
 
 file metadata/content/attachment/upload의 나머지 분기는 [SupabaseVault](../src/SupabaseVault.ts)에서 확인한다. 이 지도는 모든 HTTP response field를 정식 검증한 endpoint schema가 아니다. 실제 client DTO·handler와 세부 오류 fixture를 연결하는 작업이 남아 있다.
 

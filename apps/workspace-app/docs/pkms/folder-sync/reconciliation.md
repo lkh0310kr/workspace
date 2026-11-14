@@ -14,21 +14,21 @@ Baseline은 “해당 path를 다음에 무엇과 비교할지”를 정한다. 
 
 아래에서 `L`은 local Markdown, `R`은 remote Markdown, `B`는 마지막 공통 baseline이다.
 
-| local 상태 | remote 상태 | 결과 |
-|---|---|---|
-| 신규 L, 대응 B/R 없음 | 없음 | remote create를 수행하고 서버가 수락한 path/id/revision을 baseline으로 기록한다. 동명 remote가 경쟁 생성된 경우 서버 conflict path를 반영한다. |
-| L과 R 내용이 B와 동일 | unchanged | 변경 없음. ID/revision/hash 관계를 재확인한 baseline을 유지한다. |
-| L만 B 이후 변경 | R은 B revision | local 내용을 remote에 반영하고 acknowledge된 revision을 baseline으로 기록한다. |
-| R만 B 이후 변경 | L은 B hash | 최신 R을 local에 원자 적용하고 새 hash/revision을 baseline으로 기록한다. 적용 직전 local 파일이 B와 달라졌으면 덮어쓰지 않고 다시 reconcile한다. |
-| L과 R 모두 B 이후 변경 | both changed | 두 내용 보존. local 내용을 고유 `.local-conflict-<timestamp>-<suffix>.md` 경로에 보존하고 remote 최신 내용을 원래 경로에 둔다. 두 경로가 각각 remote baseline을 얻는다. |
-| L 없음, B 없음, R 있음 | unmaterialized remote item | 삭제로 해석하지 않는다. 안전 경로에 remote 본문을 materialize한다. |
-| L 없음, B 있음, R unchanged | local deletion | durable conditional delete intent를 만들고, 서버가 expected revision을 확인한 뒤 삭제한다. |
-| L 없음, B 있음, R changed | local deletion과 remote edit 경합 | remote 최신 내용을 보존/복구하고 삭제를 거부한다. UI는 attention/conflict를 표시한다. |
-| 두 create 요청이 같은 path와 같은 Markdown 본문으로 경합 | retry/동시 생성 | 기존 remote file identity를 반환하고 추가 item을 만들지 않는다. |
-| 두 create 요청이 같은 path에서 본문이 다름 | 실제 내용 충돌 | 양쪽 내용을 보존하고 생성 요청은 고유 conflict path를 받는다. |
-| 두 create-folder 요청이 같은 path | retry/동시 생성 | 이미 존재하는 folder identity에 수렴한다. 빈 conflict folder를 만들지 않는다. |
-| local path가 파일 대신 directory/symlink/비정상 항목 | R Markdown | local에 remote 본문을 덮어쓰지 않는다. 경로 안전 오류로 멈추고 attention을 남긴다. |
-| R tombstone/missing | local/B 상태에 따라 다름 | remote deletion을 local에 반영할 때 local이 B보다 바뀌었으면 local copy를 잃지 않도록 conflict-preserve 후 제거/재조정한다. 실제 경로별 분기는 source 대조가 필요한 acceptance다. |
+| local 상태                                               | remote 상태                       | 결과                                                                                                                                                                              |
+| -------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 신규 L, 대응 B/R 없음                                    | 없음                              | remote create를 수행하고 서버가 수락한 path/id/revision을 baseline으로 기록한다. 동명 remote가 경쟁 생성된 경우 서버 conflict path를 반영한다.                                    |
+| L과 R 내용이 B와 동일                                    | unchanged                         | 변경 없음. ID/revision/hash 관계를 재확인한 baseline을 유지한다.                                                                                                                  |
+| L만 B 이후 변경                                          | R은 B revision                    | local 내용을 remote에 반영하고 acknowledge된 revision을 baseline으로 기록한다.                                                                                                    |
+| R만 B 이후 변경                                          | L은 B hash                        | 최신 R을 local에 원자 적용하고 새 hash/revision을 baseline으로 기록한다. 적용 직전 local 파일이 B와 달라졌으면 덮어쓰지 않고 다시 reconcile한다.                                  |
+| L과 R 모두 B 이후 변경                                   | both changed                      | 두 내용 보존. local 내용을 고유 `.local-conflict-<timestamp>-<suffix>.md` 경로에 보존하고 remote 최신 내용을 원래 경로에 둔다. 두 경로가 각각 remote baseline을 얻는다.           |
+| L 없음, B 없음, R 있음                                   | unmaterialized remote item        | 삭제로 해석하지 않는다. 안전 경로에 remote 본문을 materialize한다.                                                                                                                |
+| L 없음, B 있음, R unchanged                              | local deletion                    | durable conditional delete intent를 만들고, 서버가 expected revision을 확인한 뒤 삭제한다.                                                                                        |
+| L 없음, B 있음, R changed                                | local deletion과 remote edit 경합 | remote 최신 내용을 보존/복구하고 삭제를 거부한다. UI는 attention/conflict를 표시한다.                                                                                             |
+| 두 create 요청이 같은 path와 같은 Markdown 본문으로 경합 | retry/동시 생성                   | 기존 remote file identity를 반환하고 추가 item을 만들지 않는다.                                                                                                                   |
+| 두 create 요청이 같은 path에서 본문이 다름               | 실제 내용 충돌                    | 양쪽 내용을 보존하고 생성 요청은 고유 conflict path를 받는다.                                                                                                                     |
+| 두 create-folder 요청이 같은 path                        | retry/동시 생성                   | 이미 존재하는 folder identity에 수렴한다. 빈 conflict folder를 만들지 않는다.                                                                                                     |
+| local path가 파일 대신 directory/symlink/비정상 항목     | R Markdown                        | local에 remote 본문을 덮어쓰지 않는다. 경로 안전 오류로 멈추고 attention을 남긴다.                                                                                                |
+| R tombstone/missing                                      | local/B 상태에 따라 다름          | remote deletion을 local에 반영할 때 local이 B보다 바뀌었으면 local copy를 잃지 않도록 conflict-preserve 후 제거/재조정한다. 실제 경로별 분기는 source 대조가 필요한 acceptance다. |
 
 결과 행렬이 보장하는 것은 변경 손실 방지와 결정적 보존 정책이다. 자동 text merge는 하지 않는다. 사용자가 두 문서를 직접 비교·병합한다.
 
@@ -55,12 +55,12 @@ Baseline은 “해당 path를 다음에 무엇과 비교할지”를 정한다. 
 
 GitHub backup은 별도 replica다. 원격 branch head가 PKMS가 마지막으로 기록한 `github_head`와 다르면 서버는 자동 push를 멈춘다. Common ancestor가 없거나 tree가 서로 다른 경우에도 branch reset/force push로 해결하지 않는다.
 
-| GitHub branch와 PKMS 상태 | 요구 결과 |
-|---|---|
-| GitHub head가 마지막 PKMS commit의 직접 후손이고 변경 경로가 pending PKMS 경로와 겹치지 않음 | branch tree를 보존하고 fast-forward 가능한 경우에만 PKMS backup을 이어간다. |
-| GitHub direct commit이 pending PKMS 경로와 겹침 | 자동 덮어쓰기 금지. 두 내용을 보존하는 reconciliation 대상으로 표시한다. |
-| branch history가 unrelated 또는 commit 범위/내용을 확인할 수 없음 | `external-change`를 유지하고 자동 push를 중지한다. 사용자 데이터에는 어떠한 자동 삭제/재기준화도 하지 않는다. |
-| path별 tree/content 대조가 끝나고 양쪽 변경이 안전하게 import됨 | 일반 parent를 가진 새 commit으로 통합 branch를 만든다. force update는 허용하지 않는다. |
+| GitHub branch와 PKMS 상태                                                                    | 요구 결과                                                                                                     |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| GitHub head가 마지막 PKMS commit의 직접 후손이고 변경 경로가 pending PKMS 경로와 겹치지 않음 | branch tree를 보존하고 fast-forward 가능한 경우에만 PKMS backup을 이어간다.                                   |
+| GitHub direct commit이 pending PKMS 경로와 겹침                                              | 자동 덮어쓰기 금지. 두 내용을 보존하는 reconciliation 대상으로 표시한다.                                      |
+| branch history가 unrelated 또는 commit 범위/내용을 확인할 수 없음                            | `external-change`를 유지하고 자동 push를 중지한다. 사용자 데이터에는 어떠한 자동 삭제/재기준화도 하지 않는다. |
+| path별 tree/content 대조가 끝나고 양쪽 변경이 안전하게 import됨                              | 일반 parent를 가진 새 commit으로 통합 branch를 만든다. force update는 허용하지 않는다.                        |
 
 GitHub import acceptance는 commit graph만 확인하지 않는다. base tree, 현재 GitHub tree, PKMS 현재 tree를 path/content hash로 비교해 GitHub-only 변경, PKMS-only 변경, 동일 변경, 같은 path의 양쪽 변경을 구분해야 한다. 양쪽이 같은 path를 서로 다르게 수정했으면 두 content를 conflict-preserving 경로에 보존한 뒤 review 완료 전까지 원본을 덮어쓰지 않는다.
 

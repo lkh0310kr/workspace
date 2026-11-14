@@ -13,13 +13,13 @@ PKMS는 Markdown 본문을 Yjs document로 보관한다. 이 문서는 CRDT의 �
 
 ## PKMS 적용 경계
 
-| 데이터 종류 | 일관성 도구 | 반드시 별도로 보장할 것 |
-|---|---|---|
-| Markdown 본문 변경 | Yjs update/state vector, server revision guard | operation ID 영속화, ACK 유실 후 멱등 재전송, 본문 hash·revision 확인, conflict UX |
-| 이름/path/move | PKMS operation API와 stable file ID | 두 path 변경의 원자성, 기존·신규 부모 metadata 갱신, concurrent move/delete 처리 |
-| 폴더/빈 폴더 | PKMS tree metadata 및 revision | subtree delete guard, empty folder 표현, inventory 누락을 delete로 오인하지 않는 처리 |
-| 로컬 filesystem materialization | baseline/hash, atomic replace, OS watcher + full scan | 외부 편집기와 경합 검사, 앱 재시작 복구, 손상/권한/용량 부족 처리 |
-| Cloud ↔ GitHub export | 별도 export transaction과 Git SHA | folder sync 완료와 backup 완료를 다른 상태로 표시 |
+| 데이터 종류                     | 일관성 도구                                           | 반드시 별도로 보장할 것                                                               |
+| ------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Markdown 본문 변경              | Yjs update/state vector, server revision guard        | operation ID 영속화, ACK 유실 후 멱등 재전송, 본문 hash·revision 확인, conflict UX    |
+| 이름/path/move                  | PKMS operation API와 stable file ID                   | 두 path 변경의 원자성, 기존·신규 부모 metadata 갱신, concurrent move/delete 처리      |
+| 폴더/빈 폴더                    | PKMS tree metadata 및 revision                        | subtree delete guard, empty folder 표현, inventory 누락을 delete로 오인하지 않는 처리 |
+| 로컬 filesystem materialization | baseline/hash, atomic replace, OS watcher + full scan | 외부 편집기와 경합 검사, 앱 재시작 복구, 손상/권한/용량 부족 처리                     |
+| Cloud ↔ GitHub export           | 별도 export transaction과 Git SHA                     | folder sync 완료와 backup 완료를 다른 상태로 표시                                     |
 
 ## 동기화 원칙
 

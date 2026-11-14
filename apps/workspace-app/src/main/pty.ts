@@ -18,10 +18,15 @@ export interface PtyOptions {
 type AttachResult = { snapshot: Buffer; existed: boolean }
 type PendingRequest = { resolve: (value: any) => void; reject: (error: Error) => void }
 
-const HOST_ID = crypto.createHash('sha256').update(app.getPath('userData')).digest('hex').slice(0, 20)
-const SOCKET_PATH = process.platform === 'win32'
-  ? `\\\\.\\pipe\\workspace-pty-${HOST_ID}`
-  : path.join(os.tmpdir(), `workspace-pty-${HOST_ID}.sock`)
+const HOST_ID = crypto
+  .createHash('sha256')
+  .update(app.getPath('userData'))
+  .digest('hex')
+  .slice(0, 20)
+const SOCKET_PATH =
+  process.platform === 'win32'
+    ? `\\\\.\\pipe\\workspace-pty-${HOST_ID}`
+    : path.join(os.tmpdir(), `workspace-pty-${HOST_ID}.sock`)
 let requestId = 1
 let hostLaunch: Promise<void> | null = null
 
@@ -58,7 +63,9 @@ function launchHost(): void {
       env: {
         ...process.env,
         ELECTRON_RUN_AS_NODE: '1',
-        NODE_PATH: [path.join(app.getAppPath(), 'node_modules'), process.env.NODE_PATH].filter(Boolean).join(path.delimiter),
+        NODE_PATH: [path.join(app.getAppPath(), 'node_modules'), process.env.NODE_PATH]
+          .filter(Boolean)
+          .join(path.delimiter),
         WORKSPACE_PTY_SOCKET: SOCKET_PATH,
         WORKSPACE_PTY_TOKEN: hostToken()
       }
@@ -147,7 +154,11 @@ export class Pty {
         const line = this.receivedText.slice(0, newline)
         this.receivedText = this.receivedText.slice(newline + 1)
         let message: any
-        try { message = JSON.parse(line) } catch { continue }
+        try {
+          message = JSON.parse(line)
+        } catch {
+          continue
+        }
         if (message.event === 'data' && message.terminalId === this.options.id) {
           const data = Buffer.from(message.data, 'base64')
           if (this.activated) this.dataCallback?.(data)
@@ -163,7 +174,8 @@ export class Pty {
     })
     socket.on('close', () => {
       if (this.socket === socket) this.socket = null
-      for (const pending of this.pendingRequests.values()) pending.reject(new Error('PTY host disconnected'))
+      for (const pending of this.pendingRequests.values())
+        pending.reject(new Error('PTY host disconnected'))
       this.pendingRequests.clear()
     })
   }
@@ -171,8 +183,12 @@ export class Pty {
   private async request(op: string, fields: Record<string, unknown> = {}): Promise<any> {
     const socket = await this.ensureSocket()
     const id = requestId++
-    const result = new Promise((resolve, reject) => this.pendingRequests.set(id, { resolve, reject }))
-    socket.write(`${JSON.stringify({ id, token: this.token, op, terminalId: this.options.id, ...fields })}\n`)
+    const result = new Promise((resolve, reject) =>
+      this.pendingRequests.set(id, { resolve, reject })
+    )
+    socket.write(
+      `${JSON.stringify({ id, token: this.token, op, terminalId: this.options.id, ...fields })}\n`
+    )
     return result
   }
 
@@ -184,7 +200,10 @@ export class Pty {
         cols: this.cols,
         rows: this.rows,
         env
-      }).then((result) => ({ snapshot: Buffer.from(result.snapshot, 'base64'), existed: result.existed }))
+      }).then((result) => ({
+        snapshot: Buffer.from(result.snapshot, 'base64'),
+        existed: result.existed
+      }))
     }
     return this.attachPromise
   }
@@ -219,11 +238,13 @@ export class Pty {
   }
 
   pauseOutput(): void {
-    if (!this.disposed) void this.request('pause').catch((error) => console.error('[pty] pause failed:', error))
+    if (!this.disposed)
+      void this.request('pause').catch((error) => console.error('[pty] pause failed:', error))
   }
 
   resumeOutput(): void {
-    if (!this.disposed) void this.request('resume').catch((error) => console.error('[pty] resume failed:', error))
+    if (!this.disposed)
+      void this.request('resume').catch((error) => console.error('[pty] resume failed:', error))
   }
 
   dispose(): void {
@@ -241,6 +262,8 @@ export class Pty {
 
   disposeAndDestroySession(): void {
     if (this.disposed) return
-    void this.request('kill').finally(() => this.dispose()).catch(() => this.dispose())
+    void this.request('kill')
+      .finally(() => this.dispose())
+      .catch(() => this.dispose())
   }
 }

@@ -1,50 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react'
 import {
   getBrowserDownloadsForWebview,
   subscribeBrowserDownloads,
-  type BrowserDownloadItem,
-} from "../browserDownloads";
-import { revealItemInDir } from "../electron";
+  type BrowserDownloadItem
+} from '../browserDownloads'
+import { revealItemInDir } from '../electron'
 
 interface Props {
-  webContentsId: number | null;
+  webContentsId: number | null
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / 1024 ** i;
-  return `${value < 10 && i > 0 ? value.toFixed(1) : Math.round(value)} ${units[i]}`;
+  if (bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
+  const value = bytes / 1024 ** i
+  return `${value < 10 && i > 0 ? value.toFixed(1) : Math.round(value)} ${units[i]}`
 }
 
 function statusLabel(item: BrowserDownloadItem): string {
-  if (item.state === "completed") return "Done";
-  if (item.state === "cancelled") return "Cancelled";
-  if (item.state === "interrupted") return "Failed";
+  if (item.state === 'completed') return 'Done'
+  if (item.state === 'cancelled') return 'Cancelled'
+  if (item.state === 'interrupted') return 'Failed'
   if (item.totalBytes > 0) {
-    const pct = Math.round((item.receivedBytes / item.totalBytes) * 100);
-    return `${pct}%`;
+    const pct = Math.round((item.receivedBytes / item.totalBytes) * 100)
+    return `${pct}%`
   }
-  return formatBytes(item.receivedBytes);
+  return formatBytes(item.receivedBytes)
 }
 
 export function BrowserDownloadsBar({ webContentsId }: Props) {
-  const [items, setItems] = useState<BrowserDownloadItem[]>([]);
+  const [items, setItems] = useState<BrowserDownloadItem[]>([])
 
   useEffect(() => {
     const refresh = () => {
       if (webContentsId === null) {
-        setItems([]);
-        return;
+        setItems([])
+        return
       }
-      setItems(getBrowserDownloadsForWebview(webContentsId));
-    };
-    refresh();
-    return subscribeBrowserDownloads(refresh);
-  }, [webContentsId]);
+      setItems(getBrowserDownloadsForWebview(webContentsId))
+    }
+    refresh()
+    return subscribeBrowserDownloads(refresh)
+  }, [webContentsId])
 
-  if (items.length === 0) return null;
+  if (items.length === 0) return null
 
   return (
     <div className="browser-downloads-bar" aria-live="polite">
@@ -54,7 +54,7 @@ export function BrowserDownloadsBar({ webContentsId }: Props) {
             <span className="browser-download-filename">{item.filename}</span>
             <span className="browser-download-status">{statusLabel(item)}</span>
           </div>
-          {item.state === "progressing" && item.totalBytes > 0 ? (
+          {item.state === 'progressing' && item.totalBytes > 0 ? (
             <div className="browser-download-progress">
               <div
                 className="browser-download-progress-fill"
@@ -62,7 +62,7 @@ export function BrowserDownloadsBar({ webContentsId }: Props) {
               />
             </div>
           ) : null}
-          {item.state === "completed" && item.path ? (
+          {item.state === 'completed' && item.path ? (
             <button
               type="button"
               className="browser-download-reveal"
@@ -74,5 +74,5 @@ export function BrowserDownloadsBar({ webContentsId }: Props) {
         </div>
       ))}
     </div>
-  );
+  )
 }

@@ -59,6 +59,10 @@ export function WorkspaceTabStatusIndicator({ status }: Props) {
       ? 'workspace-tab-rail-agent-indicator--idle'
       : 'workspace-tab-rail-agent-indicator--inactive'
   return (
-    <span className={`workspace-tab-rail-agent-indicator ${dotClass}`} title={label} aria-label={label} />
+    <span
+      className={`workspace-tab-rail-agent-indicator ${dotClass}`}
+      title={label}
+      aria-label={label}
+    />
   )
 }

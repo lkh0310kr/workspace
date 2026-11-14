@@ -2,45 +2,45 @@
 // (clipboard / kitty-keyboard subset)
 
 export type XtermClipboardBypassEvent = {
-  type: string;
-  key: string;
-  metaKey: boolean;
-  ctrlKey: boolean;
-  altKey: boolean;
-  shiftKey: boolean;
-  defaultPrevented?: boolean;
-};
+  type: string
+  key: string
+  metaKey: boolean
+  ctrlKey: boolean
+  altKey: boolean
+  shiftKey: boolean
+  defaultPrevented?: boolean
+}
 
 export type XtermClipboardBypassOptions = {
-  isMac: boolean;
-  kittyKeyboardFlags?: number;
-  hasSelection: boolean;
-};
+  isMac: boolean
+  kittyKeyboardFlags?: number
+  hasSelection: boolean
+}
 
 function isKeyEvent(type: string): boolean {
-  return type === "keydown" || type === "keyup";
+  return type === 'keydown' || type === 'keyup'
 }
 
 function isCopyChord(event: XtermClipboardBypassEvent, isMac: boolean): boolean {
   if (event.altKey || event.shiftKey) {
-    return false;
+    return false
   }
-  if (event.key.toLowerCase() !== "c") {
-    return false;
+  if (event.key.toLowerCase() !== 'c') {
+    return false
   }
-  return isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+  return isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
 }
 
 function isPasteChord(event: XtermClipboardBypassEvent, isMac: boolean): boolean {
   if (event.altKey) {
-    return false;
+    return false
   }
-  if (event.key.toLowerCase() !== "v") {
-    return false;
+  if (event.key.toLowerCase() !== 'v') {
+    return false
   }
   return isMac
     ? event.metaKey && !event.ctrlKey && !event.shiftKey
-    : event.ctrlKey && !event.metaKey;
+    : event.ctrlKey && !event.metaKey
 }
 
 /**
@@ -48,14 +48,14 @@ function isPasteChord(event: XtermClipboardBypassEvent, isMac: boolean): boolean
  */
 export function isAppOwnedCopyChord(
   event: XtermClipboardBypassEvent,
-  options: Pick<XtermClipboardBypassOptions, "isMac" | "hasSelection" | "kittyKeyboardFlags">,
+  options: Pick<XtermClipboardBypassOptions, 'isMac' | 'hasSelection' | 'kittyKeyboardFlags'>
 ): boolean {
   return (
     options.isMac &&
     !options.hasSelection &&
     (options.kittyKeyboardFlags ?? 0) !== 0 &&
     isCopyChord(event, true)
-  );
+  )
 }
 
 /**
@@ -64,27 +64,27 @@ export function isAppOwnedCopyChord(
  */
 export function shouldBypassXtermClipboardKeyboardEvent(
   event: XtermClipboardBypassEvent,
-  options: XtermClipboardBypassOptions,
+  options: XtermClipboardBypassOptions
 ): boolean {
   if (!isKeyEvent(event.type)) {
-    return false;
+    return false
   }
 
-  const { isMac, hasSelection } = options;
+  const { isMac, hasSelection } = options
   const platformModifierHeld = isMac
     ? event.metaKey && !event.ctrlKey
-    : event.ctrlKey && !event.metaKey;
+    : event.ctrlKey && !event.metaKey
 
   if (event.defaultPrevented && platformModifierHeld) {
-    return true;
+    return true
   }
 
   if (isAppOwnedCopyChord(event, options)) {
-    return false;
+    return false
   }
 
   if (isMac) {
-    return isCopyChord(event, true) || isPasteChord(event, true);
+    return isCopyChord(event, true) || isPasteChord(event, true)
   }
 
   if (
@@ -92,16 +92,16 @@ export function shouldBypassXtermClipboardKeyboardEvent(
     event.shiftKey &&
     !event.metaKey &&
     !event.altKey &&
-    event.key.toLowerCase() === "c"
+    event.key.toLowerCase() === 'c'
   ) {
-    return true;
+    return true
   }
   if (isCopyChord(event, false) && hasSelection) {
-    return true;
+    return true
   }
-  if (isPasteChord(event, false) || (event.shiftKey && event.key === "Insert" && !event.ctrlKey)) {
-    return true;
+  if (isPasteChord(event, false) || (event.shiftKey && event.key === 'Insert' && !event.ctrlKey)) {
+    return true
   }
 
-  return false;
+  return false
 }

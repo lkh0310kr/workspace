@@ -4,15 +4,15 @@ App scope의 J-03 계약이다. [TerminalPane](../../src/renderer/src/panes/Term
 
 ## 계층과 데이터 형식
 
-| 경계 | owner·형식 |
-|---|---|
-| shell→host | node-pty raw bytes, host의 terminalId별 chunks/seq |
-| host↔Main | token 검증된 local socket/pipe의 JSON-lines; binary는 base64, attach/write/resize/pause/resume/detach/kill |
-| Main replay | StringDecoder('utf8')로 chunk 경계 decode, query-reply echo filter, local seq와 text chunks |
-| Main→renderer | pty:data `{id,seq,data:Uint8Array}`; pty:connect의 snapshot/lastSeq |
-| renderer mux | terminal별 streaming TextDecoder·seen sequence·pending 출력 |
-| transport→xterm | snapshot을 먼저 쓰고 activate 후 live output 전달, scheduler가 parse/ACK/recovery 조정 |
-| 입력→shell | xterm/IME/paste handler→write queue→UTF-8 bytes IPC→host write |
+| 경계            | owner·형식                                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| shell→host      | node-pty raw bytes, host의 terminalId별 chunks/seq                                                         |
+| host↔Main       | token 검증된 local socket/pipe의 JSON-lines; binary는 base64, attach/write/resize/pause/resume/detach/kill |
+| Main replay     | StringDecoder('utf8')로 chunk 경계 decode, query-reply echo filter, local seq와 text chunks                |
+| Main→renderer   | pty:data `{id,seq,data:Uint8Array}`; pty:connect의 snapshot/lastSeq                                        |
+| renderer mux    | terminal별 streaming TextDecoder·seen sequence·pending 출력                                                |
+| transport→xterm | snapshot을 먼저 쓰고 activate 후 live output 전달, scheduler가 parse/ACK/recovery 조정                     |
+| 입력→shell      | xterm/IME/paste handler→write queue→UTF-8 bytes IPC→host write                                             |
 
 host replay는 약 2MiB byte cap, Main replay는 5000*120 character cap이다. 두 구현 모두 chunks가 여러 개일 때 오래된 chunk를 제거하므로 단일 초대형 chunk의 엄격한 byte 상한으로 서술하지 않는다. Main은 decode한 text를 다시 bytes로 전달하므로 경계 전체에 decoder가 하나뿐이라고 가정하지 않는다. 각 streaming decoder의 split 문자와 snapshot/live sequence 일치가 필요하다.
 

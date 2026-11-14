@@ -12,15 +12,15 @@ FileOperation은 serde tagged `type`, kebab-case(create-folder/create-file/move/
 
 PROTOCOL_VERSION=1, TEXT_ROOT=markdown, Doc Options OffsetKind=Utf16이다. client ID로 생성하고 from_updates는 Yjs v1 update들을 순서대로 적용한다. malformed update 또는 apply 실패는 InvalidDocumentUpdate다.
 
-| API | 입력·출력 |
-|---|---|
-| text | Y.Text markdown의 plain text |
-| insert(index_utf16,value) | index<=text length 확인 후 insert, transaction의 v1 incremental update bytes |
-| delete(index,length_utf16) | saturating_add로 범위 확인 후 remove, incremental update bytes |
-| apply_update(bytes) | v1 decode/apply 후 전체 현재 text |
-| state_vector | v1 encoded state vector |
-| encode_state(vector) | 주어진 v1 state vector 이후의 state update |
-| snapshot | empty vector 기준 full state update |
+| API                        | 입력·출력                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| text                       | Y.Text markdown의 plain text                                                 |
+| insert(index_utf16,value)  | index<=text length 확인 후 insert, transaction의 v1 incremental update bytes |
+| delete(index,length_utf16) | saturating_add로 범위 확인 후 remove, incremental update bytes               |
+| apply_update(bytes)        | v1 decode/apply 후 전체 현재 text                                            |
+| state_vector               | v1 encoded state vector                                                      |
+| encode_state(vector)       | 주어진 v1 state vector 이후의 state update                                   |
+| snapshot                   | empty vector 기준 full state update                                          |
 
 String UTF-8 byte length와 UTF-16 offset을 구분한다. surrogate 경계·invalid update·동시 merge의 전체 재현 fixture는 별도 검증해야 한다. current API가 app-level revision/dirty/save를 소유하지는 않는다.
 

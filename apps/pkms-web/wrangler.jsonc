@@ -10,7 +10,5 @@
     "PKMS_SERVER_ORIGIN": "https://pkms-cloud.lkh0310kr.workers.dev",
     "PKMS_CANONICAL_ORIGIN": "https://pkms-cloud.lkh0310kr.workers.dev"
   },
-  "services": [
-    { "binding": "PKMS_SERVER", "service": "pkms-cloud" }
-  ]
+  "services": [{ "binding": "PKMS_SERVER", "service": "pkms-cloud" }]
 }

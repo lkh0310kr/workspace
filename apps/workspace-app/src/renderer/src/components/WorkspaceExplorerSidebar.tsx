@@ -97,8 +97,6 @@ export function WorkspaceExplorerSidebar({
     }
   }, [paneVisible, isGroupFocused, explorerCapable, setSidebarMode, setTreeOpen])
 
-
-
   const onPathRenamed = useCallback(
     (from: string, to: string) => {
       renamePathInAllPanes(model, from, to, onNotifyChanged)

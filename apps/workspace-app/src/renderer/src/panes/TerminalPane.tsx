@@ -1,52 +1,61 @@
-import { memo, useEffect, useRef, useState } from "react";
-import type { SearchAddon } from "@xterm/addon-search";
-import "@xterm/xterm/css/xterm.css";
-import "../assets/terminal-xterm-overrides.css";
-import { getCurrentResolvedTheme, subscribeThemeChange } from "../theme";
-import { XTERM_THEMES } from "../terminalThemes";
-import { TerminalSearch, useTerminalSearchThemeKey } from "../components/TerminalSearch";
-import { createPaneDOM } from "../lib/pane-manager/pane-dom-creation";
-import { buildTerminalPaneOptions } from "../lib/pane-manager/build-terminal-pane-options";
-import { disposePane, openTerminal } from "../lib/pane-manager/pane-lifecycle";
-import type { ManagedPaneInternal } from "../lib/pane-manager/pane-manager-types";
+import { memo, useEffect, useRef, useState } from 'react'
+import type { SearchAddon } from '@xterm/addon-search'
+import '@xterm/xterm/css/xterm.css'
+import '../assets/terminal-xterm-overrides.css'
+import { getCurrentResolvedTheme, subscribeThemeChange } from '../theme'
+import { XTERM_THEMES } from '../terminalThemes'
+import { TerminalSearch, useTerminalSearchThemeKey } from '../components/TerminalSearch'
+import { createPaneDOM } from '../lib/pane-manager/pane-dom-creation'
+import { buildTerminalPaneOptions } from '../lib/pane-manager/build-terminal-pane-options'
+import { disposePane, openTerminal } from '../lib/pane-manager/pane-lifecycle'
+import type { ManagedPaneInternal } from '../lib/pane-manager/pane-manager-types'
 import {
   registerTerminalPane,
-  unregisterTerminalPane,
-} from "../lib/pane-manager/pane-terminal-registry";
-import { applyTerminalWebglAfterFit, refitPaneTerminal } from "../lib/pane-manager/pane-terminal-refit";
-import { fitRevealedPane } from "../lib/pane-manager/pane-reveal-fit";
-import { resumePaneRendering, suspendPaneRendering } from "../lib/pane-manager/pane-rendering-control";
-import { resolveExplicitTerminalTitleAgentType } from "../../../shared/agent/terminal-title-agent-type";
-import { agentPaneKey, useAgentStatusStore } from "../store/agentStatusStore";
-import { registerTerminalAgentPane } from "../terminal/terminalAgentPaneRegistry";
-import type { TuiAgent } from "../../../shared/agent/tui-agent";
-import { shouldFocusTerminalFromPanePointerDown } from "../lib/pane-manager/pane-pointer-focus";
-import { focusTerminalTextarea } from "../lib/focus-terminal-textarea";
-import { interactionCoordinator } from "../interaction/InteractionCoordinator";
-import { connectPanePty } from "../terminal/connectPanePty";
-import { installTerminalKeyHandler } from "../terminal/installTerminalKeyHandler";
-import { installTerminalPasteHandler } from "../terminal/installTerminalPasteHandler";
-import { installTerminalFileDropHandler } from "../terminal/terminal-file-drop";
-import { termLog } from "../terminal/terminalDebugLog";
-import { writeClipboardText } from "../electron";
+  unregisterTerminalPane
+} from '../lib/pane-manager/pane-terminal-registry'
+import {
+  applyTerminalWebglAfterFit,
+  refitPaneTerminal
+} from '../lib/pane-manager/pane-terminal-refit'
+import { fitRevealedPane } from '../lib/pane-manager/pane-reveal-fit'
+import {
+  resumePaneRendering,
+  suspendPaneRendering
+} from '../lib/pane-manager/pane-rendering-control'
+import { resolveExplicitTerminalTitleAgentType } from '../../../shared/agent/terminal-title-agent-type'
+import { agentPaneKey, useAgentStatusStore } from '../store/agentStatusStore'
+import { registerTerminalAgentPane } from '../terminal/terminalAgentPaneRegistry'
+import type { TuiAgent } from '../../../shared/agent/tui-agent'
+import { shouldFocusTerminalFromPanePointerDown } from '../lib/pane-manager/pane-pointer-focus'
+import { focusTerminalTextarea } from '../lib/focus-terminal-textarea'
+import { interactionCoordinator } from '../interaction/InteractionCoordinator'
+import { connectPanePty } from '../terminal/connectPanePty'
+import { installTerminalKeyHandler } from '../terminal/installTerminalKeyHandler'
+import { installTerminalPasteHandler } from '../terminal/installTerminalPasteHandler'
+import { installTerminalFileDropHandler } from '../terminal/terminal-file-drop'
+import { termLog } from '../terminal/terminalDebugLog'
+import { writeClipboardText } from '../electron'
 
 interface Props {
-  terminalId: number;
-  workspaceTabId: number;
-  paneTabId: string;
-  rootPath?: string | null;
-  visible: boolean;
-  active: boolean;
-  zoom?: number;
-  terminalAgent?: TuiAgent;
-  onTerminalTabUpdate?: (patch: { title?: string; terminalAgent?: TuiAgent | null }) => void;
+  terminalId: number
+  workspaceTabId: number
+  paneTabId: string
+  rootPath?: string | null
+  visible: boolean
+  active: boolean
+  zoom?: number
+  terminalAgent?: TuiAgent
+  onTerminalTabUpdate?: (patch: { title?: string; terminalAgent?: TuiAgent | null }) => void
 }
 
-const TERMINAL_BASE_FONT_SIZE = 14;
+const TERMINAL_BASE_FONT_SIZE = 14
 
-function applyTerminalSurfaceBackground(el: HTMLElement, resolved: ReturnType<typeof getCurrentResolvedTheme>) {
-  const bg = XTERM_THEMES[resolved].background ?? "";
-  el.style.setProperty("--terminal-surface-bg", bg);
+function applyTerminalSurfaceBackground(
+  el: HTMLElement,
+  resolved: ReturnType<typeof getCurrentResolvedTheme>
+) {
+  const bg = XTERM_THEMES[resolved].background ?? ''
+  el.style.setProperty('--terminal-surface-bg', bg)
 }
 
 function TerminalPaneInner({
@@ -58,77 +67,77 @@ function TerminalPaneInner({
   active,
   zoom = 1,
   terminalAgent,
-  onTerminalTabUpdate,
+  onTerminalTabUpdate
 }: Props) {
-  const shellRef = useRef<HTMLDivElement>(null);
-  const hostRef = useRef<HTMLDivElement>(null);
-  const paneRef = useRef<ManagedPaneInternal | null>(null);
-  const ptyDisposeRef = useRef<(() => void) | null>(null);
-  const onTerminalTabUpdateRef = useRef(onTerminalTabUpdate);
-  onTerminalTabUpdateRef.current = onTerminalTabUpdate;
-  const terminalAgentRef = useRef(terminalAgent);
-  terminalAgentRef.current = terminalAgent;
-  const searchRef = useRef<SearchAddon | null>(null);
-  const hasFocusRef = useRef(false);
-  const wasShownRef = useRef(false);
-  const searchThemeKey = useTerminalSearchThemeKey();
-  const [searchOpen, setSearchOpen] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null)
+  const hostRef = useRef<HTMLDivElement>(null)
+  const paneRef = useRef<ManagedPaneInternal | null>(null)
+  const ptyDisposeRef = useRef<(() => void) | null>(null)
+  const onTerminalTabUpdateRef = useRef(onTerminalTabUpdate)
+  onTerminalTabUpdateRef.current = onTerminalTabUpdate
+  const terminalAgentRef = useRef(terminalAgent)
+  terminalAgentRef.current = terminalAgent
+  const searchRef = useRef<SearchAddon | null>(null)
+  const hasFocusRef = useRef(false)
+  const wasShownRef = useRef(false)
+  const searchThemeKey = useTerminalSearchThemeKey()
+  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
+    const host = hostRef.current
+    if (!host) return
 
-    const platformInfo = window.api.platformInfo.get();
+    const platformInfo = window.api.platformInfo.get()
 
     const pane = createPaneDOM(terminalId, `terminal-${terminalId}`, {
-      terminalGpuAcceleration: "auto",
-      linkOpenHint: () => "open in browser",
+      terminalGpuAcceleration: 'auto',
+      linkOpenHint: () => 'open in browser',
       onLinkClick: (_paneId, _event, uri) => {
-        window.open(uri, "_blank");
+        window.open(uri, '_blank')
       },
       terminalOptions: () => ({
         ...buildTerminalPaneOptions({
           rootPath,
           terminalAgent,
           zoom,
-          osRelease: platformInfo.osRelease,
+          osRelease: platformInfo.osRelease
         }),
-        theme: XTERM_THEMES[getCurrentResolvedTheme()],
-      }),
-    });
+        theme: XTERM_THEMES[getCurrentResolvedTheme()]
+      })
+    })
 
-    host.appendChild(pane.container);
-    openTerminal(pane);
-    paneRef.current = pane;
-    searchRef.current = pane.searchAddon;
-    registerTerminalPane(terminalId, pane);
+    host.appendChild(pane.container)
+    openTerminal(pane)
+    paneRef.current = pane
+    searchRef.current = pane.searchAddon
+    registerTerminalPane(terminalId, pane)
 
-    const resolved = getCurrentResolvedTheme();
-    if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved);
-    applyTerminalSurfaceBackground(host, resolved);
+    const resolved = getCurrentResolvedTheme()
+    if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved)
+    applyTerminalSurfaceBackground(host, resolved)
 
-    const paneKey = agentPaneKey(workspaceTabId, paneTabId);
+    const paneKey = agentPaneKey(workspaceTabId, paneTabId)
     registerTerminalAgentPane(terminalId, {
       workspaceTabId,
       paneTabId,
-      terminalAgent,
-    });
-    window.api.agentStatus.registerTerminalPane(terminalId, paneKey);
-    useAgentStatusStore.getState().registerLiveTerminal(terminalId);
+      terminalAgent
+    })
+    window.api.agentStatus.registerTerminalPane(terminalId, paneKey)
+    useAgentStatusStore.getState().registerLiveTerminal(terminalId)
 
     const { dispose, transport } = connectPanePty(pane, terminalId, {
       workspaceTabId,
       paneTabId,
       terminalAgent,
       onTitleChange: (title) => {
-        const terminalAgent = resolveExplicitTerminalTitleAgentType(title);
+        const terminalAgent = resolveExplicitTerminalTitleAgentType(title)
         onTerminalTabUpdateRef.current?.({
           title,
-          terminalAgent: terminalAgent ?? null,
-        });
-      },
-    });
-    ptyDisposeRef.current = dispose;
+          terminalAgent: terminalAgent ?? null
+        })
+      }
+    })
+    ptyDisposeRef.current = dispose
 
     const keyHandlerDispose = installTerminalKeyHandler({
       terminal: pane.terminal,
@@ -137,207 +146,208 @@ function TerminalPaneInner({
       writeClipboardText,
       getTerminalAgent: () => terminalAgentRef.current,
       isFocused: () => {
-        const active = document.activeElement;
-        const root = pane.terminal.element;
+        const active = document.activeElement
+        const root = pane.terminal.element
         return (
           active === pane.terminal.textarea ||
           (!!root && active instanceof Node && root.contains(active))
-        );
-      },
-    });
+        )
+      }
+    })
 
     const pasteHandlerDispose = installTerminalPasteHandler({
       terminal: pane.terminal,
       container: pane.container,
       getTerminalAgent: () => terminalAgentRef.current,
       isFocused: () => {
-        const active = document.activeElement;
-        const root = pane.terminal.element;
+        const active = document.activeElement
+        const root = pane.terminal.element
         return (
           active === pane.terminal.textarea ||
           (!!root && active instanceof Node && root.contains(active))
-        );
-      },
-    });
+        )
+      }
+    })
     const fileDropHandlerDispose = installTerminalFileDropHandler({
       container: pane.container,
       focus: () => pane.terminal.focus(),
       write: (text) => transport.write(text),
-      getTerminalAgent: () => terminalAgentRef.current,
-    });
+      getTerminalAgent: () => terminalAgentRef.current
+    })
 
     const onFocusIn = () => {
-      hasFocusRef.current = true;
-      if (platformInfo.platform === "win32") {
-        interactionCoordinator.releaseKeyboardFromBrowserGuests("terminal-focusin");
+      hasFocusRef.current = true
+      if (platformInfo.platform === 'win32') {
+        interactionCoordinator.releaseKeyboardFromBrowserGuests('terminal-focusin')
       }
-      window.api.terminal.setFocused(terminalId);
+      window.api.terminal.setFocused(terminalId)
       termLog(
-        "terminal:focus",
-        "focusin",
+        'terminal:focus',
+        'focusin',
         {
-          activeElement:
-            document.activeElement === pane.terminal.textarea ? "textarea" : "child",
+          activeElement: document.activeElement === pane.terminal.textarea ? 'textarea' : 'child'
         },
-        terminalId,
-      );
-    };
+        terminalId
+      )
+    }
     const onFocusOut = (event: FocusEvent) => {
-      const root = pane.terminal.element;
-      const next = event.relatedTarget;
+      const root = pane.terminal.element
+      const next = event.relatedTarget
       if (next instanceof Node && root?.contains(next)) {
-        return;
+        return
       }
-      hasFocusRef.current = false;
-      window.api.terminal.setFocused(null);
-      termLog("terminal:focus", "focusout", {}, terminalId);
-    };
+      hasFocusRef.current = false
+      window.api.terminal.setFocused(null)
+      termLog('terminal:focus', 'focusout', {}, terminalId)
+    }
 
-    pane.container.addEventListener("focusin", onFocusIn);
-    pane.container.addEventListener("focusout", onFocusOut);
+    pane.container.addEventListener('focusin', onFocusIn)
+    pane.container.addEventListener('focusout', onFocusOut)
     const onPointerDown = (event: PointerEvent) => {
       if (!shouldFocusTerminalFromPanePointerDown(event.target)) {
-        return;
+        return
       }
-      if (platformInfo.platform === "win32") {
-        interactionCoordinator.releaseKeyboardFromBrowserGuests("terminal-pointerdown");
+      if (platformInfo.platform === 'win32') {
+        interactionCoordinator.releaseKeyboardFromBrowserGuests('terminal-pointerdown')
       }
-      pane.terminal.focus();
-    };
-    pane.container.addEventListener("pointerdown", onPointerDown);
+      pane.terminal.focus()
+    }
+    pane.container.addEventListener('pointerdown', onPointerDown)
 
     const unsubscribeTheme = subscribeThemeChange((resolved) => {
-      pane.terminal.options.theme = XTERM_THEMES[resolved];
-      if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved);
-      const hostEl = hostRef.current;
-      if (hostEl) applyTerminalSurfaceBackground(hostEl, resolved);
-    });
+      pane.terminal.options.theme = XTERM_THEMES[resolved]
+      if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved)
+      const hostEl = hostRef.current
+      if (hostEl) applyTerminalSurfaceBackground(hostEl, resolved)
+    })
 
     return () => {
-      unsubscribeTheme();
-      keyHandlerDispose();
-      pasteHandlerDispose();
-      fileDropHandlerDispose();
-      window.api.terminal.setFocused(null);
-      pane.container.removeEventListener("focusin", onFocusIn);
-      pane.container.removeEventListener("focusout", onFocusOut);
-      pane.container.removeEventListener("pointerdown", onPointerDown);
-      window.api.agentStatus.unregisterTerminalPane(terminalId);
-      ptyDisposeRef.current?.();
-      ptyDisposeRef.current = null;
-      unregisterTerminalPane(terminalId, pane);
-      disposePane(pane);
-      pane.container.remove();
-      paneRef.current = null;
-      searchRef.current = null;
-    };
-  }, [terminalId, rootPath, workspaceTabId, paneTabId, terminalAgent]);
-
-  useEffect(() => {
-    if (!terminalAgent) return;
-    const paneKey = agentPaneKey(workspaceTabId, paneTabId);
-    const existing = useAgentStatusStore.getState().agentStatusByPaneKey[paneKey];
-    if (existing?.state === "working") return;
-    useAgentStatusStore.getState().setAgentStatus(
-      paneKey,
-      { state: "working", prompt: "", agentType: terminalAgent },
-      { workspaceTabId, titleDerived: true },
-    );
-  }, [workspaceTabId, paneTabId, terminalAgent]);
-
-  useEffect(() => {
-    const pane = paneRef.current;
-    if (!pane) return;
-    pane.terminal.options.fontSize = Math.round(TERMINAL_BASE_FONT_SIZE * zoom);
-    refitPaneTerminal(pane);
-  }, [zoom]);
-
-  useEffect(() => {
-    const shown = visible && active;
-    const pane = paneRef.current;
-    const host = hostRef.current;
-    if (host) {
-      host.style.pointerEvents = shown ? "auto" : "none";
+      unsubscribeTheme()
+      keyHandlerDispose()
+      pasteHandlerDispose()
+      fileDropHandlerDispose()
+      window.api.terminal.setFocused(null)
+      pane.container.removeEventListener('focusin', onFocusIn)
+      pane.container.removeEventListener('focusout', onFocusOut)
+      pane.container.removeEventListener('pointerdown', onPointerDown)
+      window.api.agentStatus.unregisterTerminalPane(terminalId)
+      ptyDisposeRef.current?.()
+      ptyDisposeRef.current = null
+      unregisterTerminalPane(terminalId, pane)
+      disposePane(pane)
+      pane.container.remove()
+      paneRef.current = null
+      searchRef.current = null
     }
-    if (!pane) return;
+  }, [terminalId, rootPath, workspaceTabId, paneTabId, terminalAgent])
+
+  useEffect(() => {
+    if (!terminalAgent) return
+    const paneKey = agentPaneKey(workspaceTabId, paneTabId)
+    const existing = useAgentStatusStore.getState().agentStatusByPaneKey[paneKey]
+    if (existing?.state === 'working') return
+    useAgentStatusStore
+      .getState()
+      .setAgentStatus(
+        paneKey,
+        { state: 'working', prompt: '', agentType: terminalAgent },
+        { workspaceTabId, titleDerived: true }
+      )
+  }, [workspaceTabId, paneTabId, terminalAgent])
+
+  useEffect(() => {
+    const pane = paneRef.current
+    if (!pane) return
+    pane.terminal.options.fontSize = Math.round(TERMINAL_BASE_FONT_SIZE * zoom)
+    refitPaneTerminal(pane)
+  }, [zoom])
+
+  useEffect(() => {
+    const shown = visible && active
+    const pane = paneRef.current
+    const host = hostRef.current
+    if (host) {
+      host.style.pointerEvents = shown ? 'auto' : 'none'
+    }
+    if (!pane) return
 
     if (!shown) {
-      suspendPaneRendering(pane);
-      return;
+      suspendPaneRendering(pane)
+      return
     }
 
-    resumePaneRendering(pane);
+    resumePaneRendering(pane)
 
-    const becameShown = shown && !wasShownRef.current;
-    wasShownRef.current = shown;
+    const becameShown = shown && !wasShownRef.current
+    wasShownRef.current = shown
 
     const refit = (): void => {
       if (becameShown) {
         // Reveal uses Orca's stable-grid fit. A raw fit after `display:none`
         // can observe transient cell metrics and reflow pinned scrollback.
-        fitRevealedPane(pane);
-        applyTerminalWebglAfterFit(pane);
-        return;
+        fitRevealedPane(pane)
+        applyTerminalWebglAfterFit(pane)
+        return
       }
-      refitPaneTerminal(pane);
-    };
+      refitPaneTerminal(pane)
+    }
 
     requestAnimationFrame(() => {
-      refit();
+      refit()
       if (becameShown) {
-        focusTerminalTextarea(pane.container);
-        pane.terminal.focus();
+        focusTerminalTextarea(pane.container)
+        pane.terminal.focus()
       }
-    });
+    })
     const timer = window.setTimeout(() => {
-      refit();
+      refit()
       if (becameShown) {
-        focusTerminalTextarea(pane.container);
-        pane.terminal.focus();
+        focusTerminalTextarea(pane.container)
+        pane.terminal.focus()
       }
-    }, 50);
+    }, 50)
 
     return () => {
-      clearTimeout(timer);
-    };
-  }, [visible, active, terminalId]);
+      clearTimeout(timer)
+    }
+  }, [visible, active, terminalId])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const pane = paneRef.current;
-      const term = pane?.terminal;
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
-        if (!hasFocusRef.current && !searchOpen) return;
-        e.preventDefault();
+      const pane = paneRef.current
+      const term = pane?.terminal
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
+        if (!hasFocusRef.current && !searchOpen) return
+        e.preventDefault()
         if (searchOpen) {
-          setSearchOpen(false);
-          term?.focus();
+          setSearchOpen(false)
+          term?.focus()
         } else {
-          setSearchOpen(true);
+          setSearchOpen(true)
         }
-      } else if (e.key === "Escape" && searchOpen) {
-        setSearchOpen(false);
-        term?.focus();
+      } else if (e.key === 'Escape' && searchOpen) {
+        setSearchOpen(false)
+        term?.focus()
       }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [searchOpen]);
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [searchOpen])
 
   return (
     <div className="terminal-pane-shell" ref={shellRef}>
       <TerminalSearch
         isOpen={searchOpen}
         onClose={() => {
-          setSearchOpen(false);
-          paneRef.current?.terminal.focus();
+          setSearchOpen(false)
+          paneRef.current?.terminal.focus()
         }}
         searchAddonRef={searchRef}
         themeKey={searchThemeKey}
       />
       <div className="terminal-pane-host pane-manager-root" ref={hostRef} />
     </div>
-  );
+  )
 }
 
-export const TerminalPane = memo(TerminalPaneInner);
+export const TerminalPane = memo(TerminalPaneInner)

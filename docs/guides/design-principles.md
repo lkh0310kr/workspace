@@ -24,11 +24,11 @@ Workspace는 코드, 터미널, 브라우저, 프로젝트 파일을 오래 다�
 
 배경, 테두리, 글꼴, 간격을 조합해 위계를 만듭니다. 편집 영역은 하나의 작업 표면처럼 보이게 하고, 대화상자·메뉴·대시보드 모듈은 필요한 만큼만 표면을 띄웁니다.
 
-| 토큰 | 기본값 | 주 용도 |
-| --- | ---: | --- |
-| `--radius-sm` | 4px | 입력, 작은 버튼, 소형 컨트롤 |
-| `--radius-md` | 6px | 카드, 탭 묶음, 도구 패널 |
-| `--radius-lg` | 8px | 대화상자, 명령 표면, 큰 오버레이 |
+| 토큰          | 기본값 | 주 용도                          |
+| ------------- | -----: | -------------------------------- |
+| `--radius-sm` |    4px | 입력, 작은 버튼, 소형 컨트롤     |
+| `--radius-md` |    6px | 카드, 탭 묶음, 도구 패널         |
+| `--radius-lg` |    8px | 대화상자, 명령 표면, 큰 오버레이 |
 
 모서리 둥글림은 표면을 알아보기 쉽게 할 때 사용합니다. 알약 형태는 작은 상태 라벨과 칩에 한정합니다. 구분선은 소유 관계나 그룹을 분명히 할 때만 씁니다.
 
@@ -70,17 +70,17 @@ SVG 아이콘은 선 굵기와 시각적 크기를 통일합니다. 이모지를
 
 현재 renderer 토큰은 `apps/workspace-app/src/renderer/src/assets/styles.css`에 있습니다.
 
-| 토큰 | 역할 |
-| --- | --- |
-| `--bg-base`, `--bg-surface`, `--bg-raised`, `--bg-hover`, `--bg-active` | Workspace와 컴포넌트 표면 |
-| `--border`, `--border-subtle`, `--border-strong` | 구조 구분선 |
-| `--text`, `--text-muted`, `--text-faint` | 텍스트 위계 |
-| `--accent` | 브랜드와 상호작용 기본 색 |
-| `--radius-sm`, `--radius-md`, `--radius-lg` | 공통 모서리 형태 |
-| `--shadow-overlay` | 메뉴와 대화상자 그림자 |
-| `--motion-fast`, `--motion-hover-delay` | 공통 상호작용 시간 |
-| `--scroll-size`, `--scroll-thumb`, `--scroll-thumb-hover` | 스크롤바 스타일 |
-| `--font-ui`, `--font-mono` | 인터페이스와 기술 텍스트 글꼴 |
+| 토큰                                                                    | 역할                          |
+| ----------------------------------------------------------------------- | ----------------------------- |
+| `--bg-base`, `--bg-surface`, `--bg-raised`, `--bg-hover`, `--bg-active` | Workspace와 컴포넌트 표면     |
+| `--border`, `--border-subtle`, `--border-strong`                        | 구조 구분선                   |
+| `--text`, `--text-muted`, `--text-faint`                                | 텍스트 위계                   |
+| `--accent`                                                              | 브랜드와 상호작용 기본 색     |
+| `--radius-sm`, `--radius-md`, `--radius-lg`                             | 공통 모서리 형태              |
+| `--shadow-overlay`                                                      | 메뉴와 대화상자 그림자        |
+| `--motion-fast`, `--motion-hover-delay`                                 | 공통 상호작용 시간            |
+| `--scroll-size`, `--scroll-thumb`, `--scroll-thumb-hover`               | 스크롤바 스타일               |
+| `--font-ui`, `--font-mono`                                              | 인터페이스와 기술 텍스트 글꼴 |
 
 이 가이드는 기본 원칙이지 금지 목록이 아닙니다. 명확성, 피드백, 정체성을 높이고 데스크톱 작업대와 일관된다면 다른 시각 표현도 사용할 수 있습니다.
 

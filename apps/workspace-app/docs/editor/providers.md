@@ -19,17 +19,17 @@
 
 내부 상태는 `value`, disk 기준 `baseValue`, 쓰기 중 `savingValue`, UUID revision, phase, message, closed다. load에서 readFile null이면 notFound; 성공하면 value=baseValue, 새 revision, clean이다.
 
-| 트리거 | 판정과 결과 |
-|---|---|
-| replaceText | closed/readOnly/conflict 거부; baseRevision 불일치면 conflict 알림 후 throw; 정상은 value 변경, dirty 알림. revision은 이 시점에 바꾸지 않음 |
-| save | conflict면 throw. dirty 외 phase는 현재 snapshot 반환. savedValue와 expected base를 고정하고 saving 알림 |
-| 조건부 쓰기 성공 | `writeFileIfUnchanged(tabId,path,expectedValue,savedValue)`; base와 revision 갱신. 추가 편집이 없으면 clean, value가 달라졌으면 dirty |
-| 조건부 쓰기 false | conflict로 전이하고 throw; disk 덮어쓰지 않음 |
-| 쓰기 예외 | 이미 conflict가 아니면 error, message 설정·알림 후 throw |
-| 외부 disk 변경, clean | disk가 base와 다르면 value/base/revision 갱신, clean 알림 |
-| 외부 disk 변경, dirty/saving | 저장 중 disk=savingValue면 자기 쓰기로 무시. 그 외 disk≠base면 conflict; 같으면 무시 |
-| 파일 삭제 | dirty/saving이면 conflict; 그 외 error (`Document no longer exists`) |
-| close | closed=true, listener clear, provider session Set에서 제거; save하지 않음 |
+| 트리거                       | 판정과 결과                                                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| replaceText                  | closed/readOnly/conflict 거부; baseRevision 불일치면 conflict 알림 후 throw; 정상은 value 변경, dirty 알림. revision은 이 시점에 바꾸지 않음 |
+| save                         | conflict면 throw. dirty 외 phase는 현재 snapshot 반환. savedValue와 expected base를 고정하고 saving 알림                                     |
+| 조건부 쓰기 성공             | `writeFileIfUnchanged(tabId,path,expectedValue,savedValue)`; base와 revision 갱신. 추가 편집이 없으면 clean, value가 달라졌으면 dirty        |
+| 조건부 쓰기 false            | conflict로 전이하고 throw; disk 덮어쓰지 않음                                                                                                |
+| 쓰기 예외                    | 이미 conflict가 아니면 error, message 설정·알림 후 throw                                                                                     |
+| 외부 disk 변경, clean        | disk가 base와 다르면 value/base/revision 갱신, clean 알림                                                                                    |
+| 외부 disk 변경, dirty/saving | 저장 중 disk=savingValue면 자기 쓰기로 무시. 그 외 disk≠base면 conflict; 같으면 무시                                                         |
+| 파일 삭제                    | dirty/saving이면 conflict; 그 외 error (`Document no longer exists`)                                                                         |
+| close                        | closed=true, listener clear, provider session Set에서 제거; save하지 않음                                                                    |
 
 watcher가 빈 changedPaths 또는 모두 빈 경로를 주면 모든 session을 재조회하고 root를 invalidate한다. 나머지는 변경 경로의 부모 ID를 dedupe해 tree에 알리고 각 session에는 원래 변경 경로를 전달한다. conflict에 들어간 session은 외부 재조회로 자동 해제되지 않는다.
 
@@ -51,12 +51,12 @@ PKMS adapter는 [소유 패키지의 스펙](../../../../packages/pkms-client/do
 
 ## 검증 시나리오
 
-| ID | 행동 | 결과 |
-|---|---|---|
-| ADAPT-01 | directory rename 후 열린 후손 저장 | 새 경로에 저장하고 item ID 유지 |
-| ADAPT-02 | base=A, 사용자=B, disk=C 후 save | C 유지, conflict; B를 자동 폐기하지 않음 |
-| ADAPT-03 | B 저장 요청 중 C 편집 | B durable 저장 후 C가 dirty로 남음 |
-| ADAPT-04 | move refs 중 하나가 stale | 첫 filesystem mutation 전에 notFound |
-| ADAPT-07 | 마지막 provider lease 해제 | watcher와 sessions 정리; release 재호출 무해 |
+| ID       | 행동                               | 결과                                         |
+| -------- | ---------------------------------- | -------------------------------------------- |
+| ADAPT-01 | directory rename 후 열린 후손 저장 | 새 경로에 저장하고 item ID 유지              |
+| ADAPT-02 | base=A, 사용자=B, disk=C 후 save   | C 유지, conflict; B를 자동 폐기하지 않음     |
+| ADAPT-03 | B 저장 요청 중 C 편집              | B durable 저장 후 C가 dirty로 남음           |
+| ADAPT-04 | move refs 중 하나가 stale          | 첫 filesystem mutation 전에 notFound         |
+| ADAPT-07 | 마지막 provider lease 해제         | watcher와 sessions 정리; release 재호출 무해 |
 
 PKMS bridge의 서버·폴더 동기화 자체는 [PKMS 아키텍처](../../../../docs/architecture/pkms/README.md)를 함께 따른다.

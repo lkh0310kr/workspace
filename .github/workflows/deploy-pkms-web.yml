@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - "apps/pkms-web/**"
-      - "packages/pkms-client/**"
-      - "packages/pkms-protocol/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/deploy-pkms-web.yml"
+      - 'apps/pkms-web/**'
+      - 'packages/pkms-client/**'
+      - 'packages/pkms-protocol/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-pkms-web.yml'
   workflow_dispatch:
 
 permissions:

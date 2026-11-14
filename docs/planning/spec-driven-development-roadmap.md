@@ -6,18 +6,18 @@
 
 기준 사용자는 한 작업 공간에서 terminal/browser/editor를 함께 쓰는 Desktop 사용자와, 같은 PKMS 저장소를 Web/Desktop/iOS에서 사용하는 사용자다. Home은 기기 상태와 외부 서비스 연결을 보여주는 별도 제품 책임으로 취급한다. 목표 경험은 다음과 같다.
 
-| 핵심 여정 | 성공 기준 | 반드시 규정할 실패·복구 |
-|---|---|---|
-| workspace를 열고 pane을 배치해 다시 시작 | 탭·선택·파일·허용된 terminal 상태 복원 | 손상 layout, 닫기 취소, crash, 프로세스/기기 재시작의 차이 |
-| Markdown/code를 찾고 수정하고 저장 | 안정 identity, dirty/저장/원격 sync 표시 일관성 | 로드 경쟁, disk 충돌, readOnly, 저장 실패, 취소/폐기 |
-| terminal에서 장시간 명령/TUI 사용 | bytes·Unicode·색상·scroll·입력·focus 보존 | parser 정체, reconnect/replay, daemon 종료, IME와 OS 차이 |
-| browser 탐색과 다른 pane 전환 | URL/history/download·native focus·drag 일관성 | guest 종료, 주소창/overlay 충돌, 재부착, 로그인 권한 |
-| 로컬 파일·attachment·책·모델 열기 | 포맷별 올바른 pipeline, 상태와 자원 정리 | 잘못된 포맷/대용량/변환 실패/취소/임시 URL·프로세스 해제 |
-| PKMS 저장소 연결과 문서 협업 | 계정·workspace·CRDT·presence·캐시 동작 일치 | 만료 세션, offline, 동시 변경, 재접속·mirror 지연 |
-| 로컬 PKMS 폴더에서 편집/이동/삭제 | durable intent와 cursor, 손실 없는 충돌 처리 | scan 실패·누락 root·stale delete·timeout·중복 retry |
-| Home 서비스 연결과 기기 상태 확인 | 로그인/OAuth/상태/설정 대기 구분 | provider 장애, token 만료, grant 해제, 기기 metrics unavailable |
-| agent 상태·usage·설정 확인 | 실제 근거와 freshness, 표시 가능한 범위 명확 | stale evidence, 알 수 없는 provider, 인증/측정 실패 |
-| 앱 업데이트와 장애 진단 | 활성 플랫폼에서 native package·update 경로 검증 | 다운로드/서명/설치 실패, 보류와 정상 종료, 진단·복구 |
+| 핵심 여정                                | 성공 기준                                       | 반드시 규정할 실패·복구                                         |
+| ---------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------- |
+| workspace를 열고 pane을 배치해 다시 시작 | 탭·선택·파일·허용된 terminal 상태 복원          | 손상 layout, 닫기 취소, crash, 프로세스/기기 재시작의 차이      |
+| Markdown/code를 찾고 수정하고 저장       | 안정 identity, dirty/저장/원격 sync 표시 일관성 | 로드 경쟁, disk 충돌, readOnly, 저장 실패, 취소/폐기            |
+| terminal에서 장시간 명령/TUI 사용        | bytes·Unicode·색상·scroll·입력·focus 보존       | parser 정체, reconnect/replay, daemon 종료, IME와 OS 차이       |
+| browser 탐색과 다른 pane 전환            | URL/history/download·native focus·drag 일관성   | guest 종료, 주소창/overlay 충돌, 재부착, 로그인 권한            |
+| 로컬 파일·attachment·책·모델 열기        | 포맷별 올바른 pipeline, 상태와 자원 정리        | 잘못된 포맷/대용량/변환 실패/취소/임시 URL·프로세스 해제        |
+| PKMS 저장소 연결과 문서 협업             | 계정·workspace·CRDT·presence·캐시 동작 일치     | 만료 세션, offline, 동시 변경, 재접속·mirror 지연               |
+| 로컬 PKMS 폴더에서 편집/이동/삭제        | durable intent와 cursor, 손실 없는 충돌 처리    | scan 실패·누락 root·stale delete·timeout·중복 retry             |
+| Home 서비스 연결과 기기 상태 확인        | 로그인/OAuth/상태/설정 대기 구분                | provider 장애, token 만료, grant 해제, 기기 metrics unavailable |
+| agent 상태·usage·설정 확인               | 실제 근거와 freshness, 표시 가능한 범위 명확    | stale evidence, 알 수 없는 provider, 인증/측정 실패             |
+| 앱 업데이트와 장애 진단                  | 활성 플랫폼에서 native package·update 경로 검증 | 다운로드/서명/설치 실패, 보류와 정상 종료, 진단·복구            |
 
 새 기능 추가와 전 플랫폼 동시 출시는 이 문서화 계획의 완료 조건이 아니다. 현재 구현과 남은 acceptance를 정확하게 기록한다. cancelled Android Data Node, archive CAD 모델·실험의 구현 재개도 포함하지 않는다.
 
@@ -50,37 +50,37 @@ packages/pkms-core/docs/            # 도메인/UTF-16/CRDT/FFI/WASM
 
 ## 단계별 실행과 완료 조건
 
-| 작업 | 우선순위·규모 | 선행 | 산출물·완료 기준 | 감사 연결 |
-|---|---|---|---|---|
-| WP-01 제품·기능 inventory | P0·M | 없음 | 기능별 제품/플랫폼/owner/구현·배포·acceptance 상태/문서/검증을 한 행으로 관리. 10개 핵심 여정을 각 모듈과 연결. 연구·취소·목표 패키지를 구분 | AUD-06/17/24 |
-| WP-02 기존 기준 충돌 정리 | P0·M | WP-01과 병행 | layout·sync·terminal·release·QA의 확인된 충돌 제거. 현재 계약과 과거 문제·목표·작업 기록 분리. 최상위는 owner spec에 연결. Editor 잔여 acceptance를 별도 작업으로 명시 | AUD-01/02/04/05/06/07 |
-| WP-03 시스템·상태·계약 지도 | P0·L | WP-01 | 전체 context와 Desktop 프로세스/서비스 경계, IPC/HTTP/Realtime/FFI route inventory, 영속 데이터 inventory. 각 계약은 실제 구현 위치와 타입에 대응 | AUD-03/11/15/19/24 |
-| WP-04 영향 기반 검증 정비 | P0·M | WP-01, WP-03 일부 | 공유 Editor 변경이 Web CI trigger에 포함. targeted test 인자·full test/native ABI·GC 환경 정리. 알려진 실패와 새 회귀 분리. docs/protocol/영역 검사를 영향 단위로 실행 | AUD-08/09/10 |
-| WP-05 Shell·layout·interaction 스펙 | P1·L | WP-02/03 | bootstrap/hydrate/close/move/split/preview/pin/focus/overlay/drag 결정표와 persistence schema. 정책 helper·integration fixture와 연결 | AUD-01/03/15 |
-| WP-06 Terminal 전 경로 스펙 | P1·L | WP-03/04/05 | daemon→main→renderer→scheduler→xterm와 역방향 input/ACK/recovery를 한 계약으로 설명. UTF-8/credit/replay/fit/scroll/IME/clipboard/OS 시나리오별 검증 기록 | AUD-04/09/10 |
-| WP-07 PKMS 데이터·동기화 스펙 | P1·L | WP-02/03/04 | 서버 auth/account/vault/route/DB RPC와 client/local folder queue·delete/conflict/Realtime·GitHub mirror를 연결. source/배포/실기 acceptance를 독립 표기 | AUD-02/11/16/18 |
-| WP-08 Editor·Browser 스펙 완성 | P1·M~L | WP-03/04/05 | 공개 API 전체 대응, Markdown decoration fixture, 문서 탭/메뉴/이름 UI, host 차이, browser download/session/focus. 수락 ID마다 test 또는 manual evidence와 unverified 상태 | AUD-12/13/14 |
-| WP-09 Home·agents·usage·settings | P1·L | WP-01/03/05 | UI 상태와 API/설정/수명 연결. OAuth 운영 대기, system summary 의미, agent evidence priority/freshness, usage 실제 지원 범위·theme/zoom/defaults 구분 | AUD-16/17/20/21 |
-| WP-10 Viewer 전 경로 스펙 | P1·L | WP-03/04/05 | image/PDF/media/EPUB/model3d/CAD별 입력·상태·오류·protocol·queue/cache/cleanup. native dependency와 Python adapter 실행 경계 명시 | AUD-22 |
-| WP-11 Web/iOS/Core·운영 스펙 | P1·L | WP-03/07 | Web canonical/proxy/SSR, iOS session/cache/Keychain/native FFI, Core invariants·바인딩. release/update/log/diagnostic·복구 runbook | AUD-05/19/23/24 |
-| WP-12 재생성 검증·운영 고정 | P1·M~L | WP-04, 대상 WP별 상세 완료 | 독립 모듈부터 clean-room 복원 실험. 요구 ID↔source↔test/evidence 추적. 신규 source/미소유 기능·anchor·dependency 문서 검사 보강 | AUD-10/12/13/14 |
+| 작업                                | 우선순위·규모 | 선행                       | 산출물·완료 기준                                                                                                                                                          | 감사 연결             |
+| ----------------------------------- | ------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| WP-01 제품·기능 inventory           | P0·M          | 없음                       | 기능별 제품/플랫폼/owner/구현·배포·acceptance 상태/문서/검증을 한 행으로 관리. 10개 핵심 여정을 각 모듈과 연결. 연구·취소·목표 패키지를 구분                              | AUD-06/17/24          |
+| WP-02 기존 기준 충돌 정리           | P0·M          | WP-01과 병행               | layout·sync·terminal·release·QA의 확인된 충돌 제거. 현재 계약과 과거 문제·목표·작업 기록 분리. 최상위는 owner spec에 연결. Editor 잔여 acceptance를 별도 작업으로 명시    | AUD-01/02/04/05/06/07 |
+| WP-03 시스템·상태·계약 지도         | P0·L          | WP-01                      | 전체 context와 Desktop 프로세스/서비스 경계, IPC/HTTP/Realtime/FFI route inventory, 영속 데이터 inventory. 각 계약은 실제 구현 위치와 타입에 대응                         | AUD-03/11/15/19/24    |
+| WP-04 영향 기반 검증 정비           | P0·M          | WP-01, WP-03 일부          | 공유 Editor 변경이 Web CI trigger에 포함. targeted test 인자·full test/native ABI·GC 환경 정리. 알려진 실패와 새 회귀 분리. docs/protocol/영역 검사를 영향 단위로 실행    | AUD-08/09/10          |
+| WP-05 Shell·layout·interaction 스펙 | P1·L          | WP-02/03                   | bootstrap/hydrate/close/move/split/preview/pin/focus/overlay/drag 결정표와 persistence schema. 정책 helper·integration fixture와 연결                                     | AUD-01/03/15          |
+| WP-06 Terminal 전 경로 스펙         | P1·L          | WP-03/04/05                | daemon→main→renderer→scheduler→xterm와 역방향 input/ACK/recovery를 한 계약으로 설명. UTF-8/credit/replay/fit/scroll/IME/clipboard/OS 시나리오별 검증 기록                 | AUD-04/09/10          |
+| WP-07 PKMS 데이터·동기화 스펙       | P1·L          | WP-02/03/04                | 서버 auth/account/vault/route/DB RPC와 client/local folder queue·delete/conflict/Realtime·GitHub mirror를 연결. source/배포/실기 acceptance를 독립 표기                   | AUD-02/11/16/18       |
+| WP-08 Editor·Browser 스펙 완성      | P1·M~L        | WP-03/04/05                | 공개 API 전체 대응, Markdown decoration fixture, 문서 탭/메뉴/이름 UI, host 차이, browser download/session/focus. 수락 ID마다 test 또는 manual evidence와 unverified 상태 | AUD-12/13/14          |
+| WP-09 Home·agents·usage·settings    | P1·L          | WP-01/03/05                | UI 상태와 API/설정/수명 연결. OAuth 운영 대기, system summary 의미, agent evidence priority/freshness, usage 실제 지원 범위·theme/zoom/defaults 구분                      | AUD-16/17/20/21       |
+| WP-10 Viewer 전 경로 스펙           | P1·L          | WP-03/04/05                | image/PDF/media/EPUB/model3d/CAD별 입력·상태·오류·protocol·queue/cache/cleanup. native dependency와 Python adapter 실행 경계 명시                                         | AUD-22                |
+| WP-11 Web/iOS/Core·운영 스펙        | P1·L          | WP-03/07                   | Web canonical/proxy/SSR, iOS session/cache/Keychain/native FFI, Core invariants·바인딩. release/update/log/diagnostic·복구 runbook                                        | AUD-05/19/23/24       |
+| WP-12 재생성 검증·운영 고정         | P1·M~L        | WP-04, 대상 WP별 상세 완료 | 독립 모듈부터 clean-room 복원 실험. 요구 ID↔source↔test/evidence 추적. 신규 source/미소유 기능·anchor·dependency 문서 검사 보강                                           | AUD-10/12/13/14       |
 
 ## 실행 진행 상태
 
-| 작업 | 상태 | 이번 slice 결과 | 남은 종료 조건 |
-|---|---|---|---|
-| WP-01 제품·기능 inventory | 부분 완료 | Global 제품 여정·기능 상태와 app/package owner 색인 작성 | 모든 capability를 구현/배포/acceptance와 검증 근거까지 행 단위로 추적 |
-| WP-02 기존 기준 충돌 정리 | 부분 완료 | layout·sync·terminal·release의 현재 기준을 owner docs로 이동하고 top-level 링크화 | manual QA shortcut/Browser focus 표와 나머지 기존 기준 충돌 대조 |
-| WP-03 시스템·상태·계약 지도 | 부분 완료 | global→app→package scope, IPC·persistence·PKMS·Home·protocol/core 소유 문서 초안 | 모든 IPC/HTTP handler의 field/error/side effect와 저장물 복구 matrix |
-| WP-04 영향 기반 검증 정비 | 미착수 | 누락된 Editor CI path와 Vitest wrapper 제한을 감사에서 재현해 기록 | workflow/wrapper/GC·native ABI 경로 수정, 영향 기반 검증 gate 실행 |
-| WP-05 Shell·layout·interaction | 부분 완료 | runtime·layout·interaction·IPC·persistence 계약과 현재 timer 한계 기록 | 전체 action 분기·복구/충돌 fixture 및 저장 수명 검증 |
-| WP-06 Terminal | 부분 완료 | daemon/client/decoder/replay/ACK/버퍼 계약과 porting history 분리 | IME·clipboard·OS별 focus/scroll/긴 TUI 수락 evidence |
-| WP-07 PKMS 데이터·동기화 | 부분 완료 | client·server·Web·iOS·sync queue/delete/current source 경계 문서화 | DB/RPC field-level·migration, OAuth/배포와 cross-client 실기 sync |
-| WP-08 Editor·Browser | 부분 완료 | 공개 API·메뉴 variant·keyboard·provider·Markdown/tree/browser 주요 동작 작성 | decoration 전체 fixture·시각/host 차이·수락 ID별 evidence 연결 |
-| WP-09 Home·agents·usage·settings | 부분 완료 | OAuth/service, agent evidence/freshness, system summary, settings/usage 지원 범위 문서화 | 전체 provider grammar/fixture, 외부 credentials 및 운영 acceptance |
-| WP-10 Viewer | 부분 완료 | image/media/EPUB/3D/CAD 소유 경로·import queue·cleanup 초안 | 각 포맷 parser/renderer/fallback/error/성능 기준과 native acceptance |
-| WP-11 Web/iOS/Core·운영 | 부분 완료 | app/package 경계·binding 차이·운영 logging/Windows 링크 작성 | iOS/native build·Web deploy·외부 OAuth 및 운영 runbook 검증 |
-| WP-12 재생성 검증·운영 고정 | 부분 완료 | index 14 modules/74 docs/209 source digests; focused 9 files/37 tests 통과 | 원본 없는 clean-room 재생성, semantic drift/acceptance 자동 추적 및 CI gate |
+| 작업                             | 상태      | 이번 slice 결과                                                                          | 남은 종료 조건                                                              |
+| -------------------------------- | --------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| WP-01 제품·기능 inventory        | 부분 완료 | Global 제품 여정·기능 상태와 app/package owner 색인 작성                                 | 모든 capability를 구현/배포/acceptance와 검증 근거까지 행 단위로 추적       |
+| WP-02 기존 기준 충돌 정리        | 부분 완료 | layout·sync·terminal·release의 현재 기준을 owner docs로 이동하고 top-level 링크화        | manual QA shortcut/Browser focus 표와 나머지 기존 기준 충돌 대조            |
+| WP-03 시스템·상태·계약 지도      | 부분 완료 | global→app→package scope, IPC·persistence·PKMS·Home·protocol/core 소유 문서 초안         | 모든 IPC/HTTP handler의 field/error/side effect와 저장물 복구 matrix        |
+| WP-04 영향 기반 검증 정비        | 미착수    | 누락된 Editor CI path와 Vitest wrapper 제한을 감사에서 재현해 기록                       | workflow/wrapper/GC·native ABI 경로 수정, 영향 기반 검증 gate 실행          |
+| WP-05 Shell·layout·interaction   | 부분 완료 | runtime·layout·interaction·IPC·persistence 계약과 현재 timer 한계 기록                   | 전체 action 분기·복구/충돌 fixture 및 저장 수명 검증                        |
+| WP-06 Terminal                   | 부분 완료 | daemon/client/decoder/replay/ACK/버퍼 계약과 porting history 분리                        | IME·clipboard·OS별 focus/scroll/긴 TUI 수락 evidence                        |
+| WP-07 PKMS 데이터·동기화         | 부분 완료 | client·server·Web·iOS·sync queue/delete/current source 경계 문서화                       | DB/RPC field-level·migration, OAuth/배포와 cross-client 실기 sync           |
+| WP-08 Editor·Browser             | 부분 완료 | 공개 API·메뉴 variant·keyboard·provider·Markdown/tree/browser 주요 동작 작성             | decoration 전체 fixture·시각/host 차이·수락 ID별 evidence 연결              |
+| WP-09 Home·agents·usage·settings | 부분 완료 | OAuth/service, agent evidence/freshness, system summary, settings/usage 지원 범위 문서화 | 전체 provider grammar/fixture, 외부 credentials 및 운영 acceptance          |
+| WP-10 Viewer                     | 부분 완료 | image/media/EPUB/3D/CAD 소유 경로·import queue·cleanup 초안                              | 각 포맷 parser/renderer/fallback/error/성능 기준과 native acceptance        |
+| WP-11 Web/iOS/Core·운영          | 부분 완료 | app/package 경계·binding 차이·운영 logging/Windows 링크 작성                             | iOS/native build·Web deploy·외부 OAuth 및 운영 runbook 검증                 |
+| WP-12 재생성 검증·운영 고정      | 부분 완료 | index 14 modules/74 docs/209 source digests; focused 9 files/37 tests 통과               | 원본 없는 clean-room 재생성, semantic drift/acceptance 자동 추적 및 CI gate |
 
 이 표의 `부분 완료`는 문서 slice가 존재한다는 뜻이다. 각 종료 조건 전체, 배포, runtime acceptance 또는 regeneration-verified 상태를 뜻하지 않는다. 모듈의 보수적인 `drafted` 상태와 검증 범위는 [스펙 운영 문서](../architecture/spec-driven-development.md) 및 [기계 판독 색인](../architecture/spec-index.json)에서 확인한다.
 
@@ -92,12 +92,12 @@ S/M/L은 한 번의 파일 편집/모듈 조사/여러 런타임 경계 조사 �
 
 첫 묶음은 WP-01·02·03의 최소 inventory와 WP-04다. 현재 코드의 기준을 틀리지 않게 만들고, 이후 스펙 변경을 검증할 수 있는 실행 경로를 확보한다. 두 번째 묶음은 Shell/interaction을 고정한 뒤 Terminal과 PKMS처럼 상태 보존·데이터 손실 영향이 큰 흐름이다. 세 번째 묶음은 기존 Editor/Browser 스펙을 완성하고 Home/agents/viewer/platform을 채운다. 각 영역이 준비되면 마지막까지 기다리지 않고 WP-12의 작은 재생성 실험을 수행한다.
 
-| 첫 실행 slice | 구체 행동 | 종료 조건 |
-|---|---|---|
-| A 기준 정렬 | layout 소유권 문서 연결, sync 현재 상태 모순 제거, release 단일 기준, Editor acceptance 잔여 작업 분리 | 상위 문서를 따라도 실제 구현/검증 대기 상태를 잘못 이해하지 않음 |
-| B CI·test 경로 | Editor→Web paths 반영, test wrapper 인자/ABI/GC 처리, 명령 문서 갱신 | Editor-only 변경 영향이 선택되고 지정한 test만 실행됨; 실패 exit 유지 |
-| C 최소 상태 inventory | Workspace/layout/terminal/editor/PKMS/ebook/credentials/settings/logs의 저장·소유·손상/복구 표 | 표의 각 저장물이 실제 파일/DB/storage API와 연결 |
-| D 첫 재생성 실험 | tree selection/navigation/projection 또는 URL normalization 중 한 독립 단위 선택 | 문서만으로 구현한 결과가 고정 fixture·기존 테스트를 통과하고 미명시 분기를 스펙에 환류 |
+| 첫 실행 slice         | 구체 행동                                                                                              | 종료 조건                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| A 기준 정렬           | layout 소유권 문서 연결, sync 현재 상태 모순 제거, release 단일 기준, Editor acceptance 잔여 작업 분리 | 상위 문서를 따라도 실제 구현/검증 대기 상태를 잘못 이해하지 않음                       |
+| B CI·test 경로        | Editor→Web paths 반영, test wrapper 인자/ABI/GC 처리, 명령 문서 갱신                                   | Editor-only 변경 영향이 선택되고 지정한 test만 실행됨; 실패 exit 유지                  |
+| C 최소 상태 inventory | Workspace/layout/terminal/editor/PKMS/ebook/credentials/settings/logs의 저장·소유·손상/복구 표         | 표의 각 저장물이 실제 파일/DB/storage API와 연결                                       |
+| D 첫 재생성 실험      | tree selection/navigation/projection 또는 URL normalization 중 한 독립 단위 선택                       | 문서만으로 구현한 결과가 고정 fixture·기존 테스트를 통과하고 미명시 분기를 스펙에 환류 |
 
 ## 문서별 필수 계약
 
@@ -121,13 +121,13 @@ WP-03은 새 미사용 schema 체계를 도입하지 않고 실제 사용 중인
 
 ## 스펙 상태와 완료 판정
 
-| 상태 | 의미 | 진입 근거 |
-|---|---|---|
-| inventory | 코드 책임/기준 위치만 조사 | 실제 owner와 source 확인 |
-| drafted | 현재 동작 계약을 추출 | 상태/입출력/오류/수명·미검증 범위 명시 |
-| reviewed | source와 계약 전이 대조 | 주요 분기와 경합을 검토한 기록 |
-| validated | 수락 시나리오 검증 | 자동/수동/플랫폼별 결과와 실패·skip 포함 |
-| regeneration-verified | 문서에서 독립 복원 검증 | 원본 구현 참조 없이 만든 산출물과 대조 결과 |
+| 상태                  | 의미                       | 진입 근거                                   |
+| --------------------- | -------------------------- | ------------------------------------------- |
+| inventory             | 코드 책임/기준 위치만 조사 | 실제 owner와 source 확인                    |
+| drafted               | 현재 동작 계약을 추출      | 상태/입출력/오류/수명·미검증 범위 명시      |
+| reviewed              | source와 계약 전이 대조    | 주요 분기와 경합을 검토한 기록              |
+| validated             | 수락 시나리오 검증         | 자동/수동/플랫폼별 결과와 실패·skip 포함    |
+| regeneration-verified | 문서에서 독립 복원 검증    | 원본 구현 참조 없이 만든 산출물과 대조 결과 |
 
 기존 기능 상태 implemented/in_progress와 별개로 관리한다. 기능이 구현돼도 스펙은 inventory일 수 있고, 상세 설계가 있어도 런타임 acceptance는 대기일 수 있다. 기존 문서와 초기 Editor/Browser 스펙을 일괄 validated나 regeneration-verified로 올리지 않는다.
 

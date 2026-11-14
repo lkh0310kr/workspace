@@ -1,20 +1,20 @@
 type Props = {
-  children: React.ReactNode;
-  className?: string;
-  onRefresh?: () => void;
+  children: React.ReactNode
+  className?: string
+  onRefresh?: () => void
   /** Screen-reader label — no visible section title. */
-  ariaLabel?: string;
-};
+  ariaLabel?: string
+}
 
 export function DashboardWidget({
   children,
   className,
   onRefresh,
-  ariaLabel,
+  ariaLabel
 }: Props): React.JSX.Element {
   return (
     <section
-      className={`dashboard-widget${className ? ` ${className}` : ""}`}
+      className={`dashboard-widget${className ? ` ${className}` : ''}`}
       aria-label={ariaLabel}
     >
       {onRefresh ? (
@@ -29,5 +29,5 @@ export function DashboardWidget({
       ) : null}
       <div className="dashboard-widget-body">{children}</div>
     </section>
-  );
+  )
 }

@@ -44,19 +44,29 @@ export function registerWorkspaceIpc(getWorkspace: () => Workspace, persist: () 
     return workspace.state()
   })
 
-  ipcMain.handle('fs:list-dir', (_event, tabId: number, rel: string) => getWorkspace().listDir(tabId, rel))
-  ipcMain.handle('fs:read-file', (_event, tabId: number, rel: string) => getWorkspace().readFile(tabId, rel))
+  ipcMain.handle('fs:list-dir', (_event, tabId: number, rel: string) =>
+    getWorkspace().listDir(tabId, rel)
+  )
+  ipcMain.handle('fs:read-file', (_event, tabId: number, rel: string) =>
+    getWorkspace().readFile(tabId, rel)
+  )
   ipcMain.handle('fs:read-file-binary-preview', (_event, tabId: number, rel: string) =>
     getWorkspace().readFileBinaryPreview(tabId, rel)
   )
   ipcMain.handle('fs:write-file', (_event, tabId: number, rel: string, content: string) =>
     getWorkspace().writeFile(tabId, rel, content)
   )
-  ipcMain.handle('fs:write-file-if-unchanged', (_event, tabId: number, rel: string, expected: string, content: string) =>
-    getWorkspace().writeFileIfUnchanged(tabId, rel, expected, content)
+  ipcMain.handle(
+    'fs:write-file-if-unchanged',
+    (_event, tabId: number, rel: string, expected: string, content: string) =>
+      getWorkspace().writeFileIfUnchanged(tabId, rel, expected, content)
   )
-  ipcMain.handle('fs:create-dir', (_event, tabId: number, rel: string) => getWorkspace().createDir(tabId, rel))
-  ipcMain.handle('fs:delete-path', (_event, tabId: number, rel: string) => getWorkspace().deletePath(tabId, rel))
+  ipcMain.handle('fs:create-dir', (_event, tabId: number, rel: string) =>
+    getWorkspace().createDir(tabId, rel)
+  )
+  ipcMain.handle('fs:delete-path', (_event, tabId: number, rel: string) =>
+    getWorkspace().deletePath(tabId, rel)
+  )
   ipcMain.handle('fs:rename-path', (_event, tabId: number, fromRel: string, toRel: string) =>
     getWorkspace().renamePath(tabId, fromRel, toRel)
   )
@@ -64,32 +74,38 @@ export function registerWorkspaceIpc(getWorkspace: () => Workspace, persist: () 
   // Search streams multiple results and supports cancellation, so it uses
   // event channels instead of a one-shot ipcMain.handle request.
   const activeSearches = new Map<string, { cancel: () => void }>()
-  ipcMain.on('fs:search-in-files', (event, requestId: string, tabId: number, query: string, options: SearchOptions) => {
-    activeSearches.get(requestId)?.cancel()
-    try {
-      const handle = getWorkspace().searchInFiles(
-        tabId,
-        query,
-        options,
-        (result) => {
-          if (!event.sender.isDestroyed()) event.sender.send('fs:search-result', requestId, result)
-        },
-        (error) => {
-          activeSearches.delete(requestId)
-          if (!event.sender.isDestroyed()) event.sender.send('fs:search-done', requestId, error)
-        },
-      )
-      activeSearches.set(requestId, handle)
-    } catch (error) {
-      activeSearches.delete(requestId)
-      const message = error instanceof Error ? error.message : String(error)
-      if (!event.sender.isDestroyed()) event.sender.send('fs:search-done', requestId, message)
+  ipcMain.on(
+    'fs:search-in-files',
+    (event, requestId: string, tabId: number, query: string, options: SearchOptions) => {
+      activeSearches.get(requestId)?.cancel()
+      try {
+        const handle = getWorkspace().searchInFiles(
+          tabId,
+          query,
+          options,
+          (result) => {
+            if (!event.sender.isDestroyed())
+              event.sender.send('fs:search-result', requestId, result)
+          },
+          (error) => {
+            activeSearches.delete(requestId)
+            if (!event.sender.isDestroyed()) event.sender.send('fs:search-done', requestId, error)
+          }
+        )
+        activeSearches.set(requestId, handle)
+      } catch (error) {
+        activeSearches.delete(requestId)
+        const message = error instanceof Error ? error.message : String(error)
+        if (!event.sender.isDestroyed()) event.sender.send('fs:search-done', requestId, message)
+      }
     }
-  })
+  )
   ipcMain.on('fs:search-cancel', (_event, requestId: string) => {
     activeSearches.get(requestId)?.cancel()
     activeSearches.delete(requestId)
   })
   ipcMain.handle('fs:list-all-files', (_event, tabId: number) => getWorkspace().listAllFiles(tabId))
-  ipcMain.handle('media:get-url', (_event, tabId: number, rel: string) => getWorkspace().mediaUrl(tabId, rel))
+  ipcMain.handle('media:get-url', (_event, tabId: number, rel: string) =>
+    getWorkspace().mediaUrl(tabId, rel)
+  )
 }

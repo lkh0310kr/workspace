@@ -1,7 +1,9 @@
 {
   "name": "@pkms/server",
   "private": true,
-  "engines": { "node": ">=22.22.0" },
+  "engines": {
+    "node": ">=22.22.0"
+  },
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

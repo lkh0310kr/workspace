@@ -1,16 +1,16 @@
-import { useWorkspaceStore } from "../store/workspaceStore";
+import { useWorkspaceStore } from '../store/workspaceStore'
 
 /** Subscribe to layout model changes for one workspace tab. */
 export function useLayoutRevision(tabId: number): number {
-  return useWorkspaceStore((s) => s.layoutRevisions[tabId] ?? 0);
+  return useWorkspaceStore((s) => s.layoutRevisions[tabId] ?? 0)
 }
 
 /** Subscribe to active chip changes for one pane without invalidating sibling panes. */
 export function usePaneTabSelectionRevision(workspaceTabId: number, nodeId: string): number {
-  return useWorkspaceStore((s) => s.paneTabSelectionRevisions[`${workspaceTabId}:${nodeId}`] ?? 0);
+  return useWorkspaceStore((s) => s.paneTabSelectionRevisions[`${workspaceTabId}:${nodeId}`] ?? 0)
 }
 
 /** Subscribe to any workspace tab's layout model revision changes. */
 export function useLayoutRevisions(): Record<number, number> {
-  return useWorkspaceStore((s) => s.layoutRevisions);
+  return useWorkspaceStore((s) => s.layoutRevisions)
 }

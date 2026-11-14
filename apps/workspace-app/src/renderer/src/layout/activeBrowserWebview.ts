@@ -15,89 +15,93 @@
 import {
   browserFocusLog,
   getBrowserGuestFocusWebContentsId,
-  setBrowserGuestFocusDebugState,
-} from "../browser/browserFocusDebugLog";
-import { focusPaneGroupForGuestWebContents } from "../panes/focusPaneGroupForBrowser";
+  setBrowserGuestFocusDebugState
+} from '../browser/browserFocusDebugLog'
+import { focusPaneGroupForGuestWebContents } from '../panes/focusPaneGroupForBrowser'
 
-const registry = new Map<number, Electron.WebviewTag>();
-let current: Electron.WebviewTag | null = null;
+const registry = new Map<number, Electron.WebviewTag>()
+let current: Electron.WebviewTag | null = null
 
 export function registerBrowserWebview(webview: Electron.WebviewTag): () => void {
-  let id: number;
+  let id: number
   try {
-    id = webview.getWebContentsId();
+    id = webview.getWebContentsId()
   } catch {
-    return () => {};
+    return () => {}
   }
-  registry.set(id, webview);
+  registry.set(id, webview)
   return () => {
-    registry.delete(id);
-    if (current === webview) current = null;
-  };
+    registry.delete(id)
+    if (current === webview) current = null
+  }
 }
 
 export function setGuestWebContentsFocus(webContentsId: number, focused: boolean): void {
-  setBrowserGuestFocusDebugState(webContentsId, focused);
-  const webview = registry.get(webContentsId);
-  browserFocusLog("activeBrowserWebview.setGuestWebContentsFocus", focused ? "guest focused" : "guest blurred", {
-    webContentsId,
-    hasWebview: Boolean(webview),
-    tabItemId: webview?.dataset.tabItemId,
-  });
-  if (!webview) return;
-  if (focused) current = webview;
-  else if (current === webview) current = null;
+  setBrowserGuestFocusDebugState(webContentsId, focused)
+  const webview = registry.get(webContentsId)
+  browserFocusLog(
+    'activeBrowserWebview.setGuestWebContentsFocus',
+    focused ? 'guest focused' : 'guest blurred',
+    {
+      webContentsId,
+      hasWebview: Boolean(webview),
+      tabItemId: webview?.dataset.tabItemId
+    }
+  )
+  if (!webview) return
+  if (focused) current = webview
+  else if (current === webview) current = null
 }
 
 export function setActiveBrowserWebview(webview: Electron.WebviewTag | null): void {
-  current = webview;
+  current = webview
 }
 
 export function getActiveBrowserWebview(): Electron.WebviewTag | null {
-  return current;
+  return current
 }
 
 export function getBrowserWebviewByWebContentsId(
-  webContentsId: number,
+  webContentsId: number
 ): Electron.WebviewTag | null {
-  return registry.get(webContentsId) ?? null;
+  return registry.get(webContentsId) ?? null
 }
 
 export function isBrowserGuestWebContentsFocused(webContentsId: number): boolean {
-  return getBrowserGuestFocusWebContentsId() === webContentsId;
+  return getBrowserGuestFocusWebContentsId() === webContentsId
 }
 
 export function installBrowserFocusTracking(): () => void {
   const onFocusIn = (e: FocusEvent): void => {
-    const target = e.target as HTMLElement | null;
-    if (target?.closest(".browser-pane-chrome, .browser-page-chrome-header")) return;
-    if (target?.tagName.toLowerCase() === "webview") return;
-    current = null;
-  };
-  document.addEventListener("focusin", onFocusIn);
-  return () => document.removeEventListener("focusin", onFocusIn);
+    const target = e.target as HTMLElement | null
+    if (target?.closest('.browser-pane-chrome, .browser-page-chrome-header')) return
+    if (target?.tagName.toLowerCase() === 'webview') return
+    current = null
+  }
+  document.addEventListener('focusin', onFocusIn)
+  return () => document.removeEventListener('focusin', onFocusIn)
 }
 
 export function installBrowserGuestFocusRelay(): () => void {
   const onGuestActivated = (webContentsId: number, source: string): void => {
-    browserFocusLog("activeBrowserWebview.guestActivated", source, { webContentsId });
-    focusPaneGroupForGuestWebContents(webContentsId);
-  };
+    browserFocusLog('activeBrowserWebview.guestActivated', source, { webContentsId })
+    focusPaneGroupForGuestWebContents(webContentsId)
+  }
 
   const unlistenFocus = window.api.browser.onGuestFocus(({ webContentsId, focused }) => {
-    setGuestWebContentsFocus(webContentsId, focused);
+    setGuestWebContentsFocus(webContentsId, focused)
     if (focused) {
-      onGuestActivated(webContentsId, "guest-focus-ipc");
+      onGuestActivated(webContentsId, 'guest-focus-ipc')
     }
-  });
+  })
 
   const unlistenPointerDown = window.api.browser.onGuestPointerDown(({ webContentsId }) => {
-    setGuestWebContentsFocus(webContentsId, true);
-    onGuestActivated(webContentsId, "guest-pointerdown-ipc");
-  });
+    setGuestWebContentsFocus(webContentsId, true)
+    onGuestActivated(webContentsId, 'guest-pointerdown-ipc')
+  })
 
   return () => {
-    unlistenFocus();
-    unlistenPointerDown();
-  };
+    unlistenFocus()
+    unlistenPointerDown()
+  }
 }

@@ -13,7 +13,7 @@ export type AgentPaneActivityFlags = {
 
 export function applyAgentPaneActivityFlags(
   flags: AgentPaneActivityFlags,
-  entry: Pick<AgentStatusEntry, 'state' | 'workingMode' | 'interrupted' | 'mainAgent'>,
+  entry: Pick<AgentStatusEntry, 'state' | 'workingMode' | 'interrupted' | 'mainAgent'>
 ): void {
   const mark = agentVerdictDisplayMark(entry)
   if (entry.state === 'blocked' || entry.state === 'waiting') {

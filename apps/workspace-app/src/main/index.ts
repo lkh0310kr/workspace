@@ -19,13 +19,13 @@ import {
   saveConfig,
   loadWorkspaceSnapshot,
   saveWorkspaceSnapshot,
-  saveTerminalSessionBuffers,
+  saveTerminalSessionBuffers
 } from './persistence'
 import {
   preferNativeWorkspacePath,
   isWsl,
   isWslWindowsMountPath,
-  applyWslDpiScaleFix,
+  applyWslDpiScaleFix
 } from './wslPaths'
 import { applyBrowserGpuSwitches } from './browserGpuEnv'
 import { shouldIgnoreWatcherPath } from './filesystemWatcherIgnore'
@@ -47,13 +47,13 @@ import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
 import {
   observeTerminalPtyOutput,
   notifyTerminalPtySpawned,
-  setTerminalOscTitleBroadcastTarget,
+  setTerminalOscTitleBroadcastTarget
 } from './terminalOscTitleBroadcast'
 import { installAgentStatusHooks } from './agentHooks'
 import {
   getWorkspaceAgentHookPort,
   setWorkspaceAgentHookBroadcastTarget,
-  startWorkspaceAgentHookServer,
+  startWorkspaceAgentHookServer
 } from './workspaceAgentHookServer'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { disposeCadViewers } from './cadViewer'
@@ -91,7 +91,10 @@ if (!isPackagedApp()) {
 }
 
 const gotSingleInstanceLock = isPackagedApp() ? app.requestSingleInstanceLock() : true
-appendStartupLog('single_instance_lock', { acquired: gotSingleInstanceLock, packaged: isPackagedApp() })
+appendStartupLog('single_instance_lock', {
+  acquired: gotSingleInstanceLock,
+  packaged: isPackagedApp()
+})
 if (!gotSingleInstanceLock) {
   console.error('[workspace-app] Another instance is already running — quitting.')
   appendStartupLog('single_instance_quit', { reason: 'lock_not_acquired' })
@@ -101,7 +104,7 @@ if (!gotSingleInstanceLock) {
     appendStartupLog('second_instance', {
       hasMainWindow: !!mainWindowRef,
       mainWindowDestroyed: mainWindowRef?.isDestroyed() ?? null,
-      mainWindowVisible: mainWindowRef?.isVisible() ?? null,
+      mainWindowVisible: mainWindowRef?.isVisible() ?? null
     })
     if (mainWindowRef && !mainWindowRef.isDestroyed()) {
       reinforceExistingWindowFocus(mainWindowRef, app)
@@ -117,7 +120,7 @@ let focusedTerminalId: number | null = null
 function handleMacTerminalOptionShortcut(
   event: Electron.Event,
   input: Electron.Input,
-  terminalId: number,
+  terminalId: number
 ): boolean {
   if (process.platform !== 'darwin' || input.type !== 'keyDown') {
     return false
@@ -138,14 +141,18 @@ function handleMacTerminalOptionShortcut(
     location: 'main:before-input',
     message: 'mac-option-shortcut',
     terminalId,
-    data: { code: input.code, bytes: reprTerminalBytesMain(bytes) },
+    data: { code: input.code, bytes: reprTerminalBytesMain(bytes) }
   })
   return true
 }
 
 import { appendAppLog, getLogsDir, installMainConsoleFileLogging } from './debugLogSink'
 
-function logWindowLifecycle(event: string, window: BrowserWindow, extra?: Record<string, unknown>): void {
+function logWindowLifecycle(
+  event: string,
+  window: BrowserWindow,
+  extra?: Record<string, unknown>
+): void {
   appendStartupLog(event, {
     windowId: window.id,
     destroyed: window.isDestroyed(),
@@ -153,7 +160,7 @@ function logWindowLifecycle(event: string, window: BrowserWindow, extra?: Record
     minimized: window.isMinimized(),
     maximized: window.isMaximized(),
     bounds: window.isDestroyed() ? null : window.getBounds(),
-    ...(extra ?? {}),
+    ...(extra ?? {})
   })
 }
 
@@ -217,19 +224,22 @@ function createWindow(): BrowserWindow {
   mainWindow.webContents.on('did-finish-load', () => {
     logWindowLifecycle('webcontents_did_finish_load', mainWindow)
   })
-  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-    appendStartupLog('webcontents_did_fail_load', {
-      windowId: mainWindow.id,
-      errorCode,
-      errorDescription,
-      validatedURL,
-    })
-  })
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (_event, errorCode, errorDescription, validatedURL) => {
+      appendStartupLog('webcontents_did_fail_load', {
+        windowId: mainWindow.id,
+        errorCode,
+        errorDescription,
+        validatedURL
+      })
+    }
+  )
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     appendStartupLog('webcontents_render_process_gone', {
       windowId: mainWindow.id,
       reason: details.reason,
-      exitCode: details.exitCode,
+      exitCode: details.exitCode
     })
   })
   mainWindow.on('unresponsive', () => {
@@ -275,7 +285,7 @@ function createWindow(): BrowserWindow {
       send: (channel, ...args) => mainWindow.webContents.send(channel, ...args),
       terminalOwnsAppShortcuts: focusedTerminalId !== null,
       focusedTerminalId,
-      onTerminalOptionShortcut: handleMacTerminalOptionShortcut,
+      onTerminalOptionShortcut: handleMacTerminalOptionShortcut
     })
   })
 
@@ -361,10 +371,8 @@ function syncFileWatcher(): void {
     // Recursive inotify on WSL /mnt/<drive> (drvfs) can block the main
     // thread for a long time — watch the root directory only there.
     const recursive = !isWslWindowsMountPath(root)
-    fileWatcher = fs.watch(
-      root,
-      recursive ? { recursive: true } : {},
-      (_event, filename) => broadcastFileChanged(filename ? String(filename) : undefined),
+    fileWatcher = fs.watch(root, recursive ? { recursive: true } : {}, (_event, filename) =>
+      broadcastFileChanged(filename ? String(filename) : undefined)
     )
     // A non-recursive watcher cannot see edits inside existing subdirectories.
     // Reconcile periodically so CLI-created/removed files still converge in UI
@@ -516,8 +524,7 @@ function buildAppMenu(): Menu {
           }
         }
       ]
-    },
-
+    }
   ]
   return Menu.buildFromTemplate(template)
 }
@@ -529,7 +536,10 @@ app.whenReady().then(() => {
   if (!gotSingleInstanceLock) return
   appendStartupLog('app_when_ready_begin')
   installMainConsoleFileLogging()
-  appendAppLog('main', 'info', 'app_ready', { packaged: isPackagedApp(), platform: process.platform })
+  appendAppLog('main', 'info', 'app_ready', {
+    packaged: isPackagedApp(),
+    platform: process.platform
+  })
   appendStartupLog('app_when_ready_logging_installed', { logsDir: getLogsDir() })
   if (process.platform === 'darwin') {
     Menu.setApplicationMenu(buildAppMenu())
@@ -589,9 +599,15 @@ app.whenReady().then(() => {
     // before-input-event (createWindow) won't see Cmd+W/Cmd+R while the
     // user is typing in a page, so relay the same shortcuts here too.
     contents.on('before-input-event', (event, input) => {
-      relayGuestWebviewShortcuts(event, input, sendToMainWindow, () => {
-        contents.insertText(clipboard.readText())
-      }, contents.id)
+      relayGuestWebviewShortcuts(
+        event,
+        input,
+        sendToMainWindow,
+        () => {
+          contents.insertText(clipboard.readText())
+        },
+        contents.id
+      )
     })
     // Electron may consume Cmd/Ctrl +/- as native zoom before before-input-event.
     contents.on('zoom-changed', (event, zoomDirection) => {
@@ -631,10 +647,12 @@ app.whenReady().then(() => {
   initializeAutoUpdates()
   appendStartupLog('create_window_end', {
     hasMainWindow: !!mainWindowRef,
-    visible: mainWindowRef?.isVisible() ?? null,
+    visible: mainWindowRef?.isVisible() ?? null
   })
 
-  workspace = snapshot ? Workspace.fromSnapshot(defaultRoot, snapshot) : Workspace.withRoot(defaultRoot)
+  workspace = snapshot
+    ? Workspace.fromSnapshot(defaultRoot, snapshot)
+    : Workspace.withRoot(defaultRoot)
   workspace.onTerminalPtyOutput = observeTerminalPtyOutput
   workspace.onTerminalSpawned = notifyTerminalPtySpawned
   setTerminalOscTitleBroadcastTarget(() => mainWindowRef?.webContents ?? null)
@@ -673,7 +691,12 @@ app.whenReady().then(() => {
   app.on('will-quit', () => clearInterval(terminalBufferAutosaveTimer))
 
   registerSystemCapabilityIpc(() => mainWindowRef)
-  registerTerminalIpc(() => workspace!, (id) => { focusedTerminalId = id })
+  registerTerminalIpc(
+    () => workspace!,
+    (id) => {
+      focusedTerminalId = id
+    }
+  )
   registerWorkspaceIpc(() => workspace!, persist)
   registerContentCapabilityIpc(() => workspace!)
 

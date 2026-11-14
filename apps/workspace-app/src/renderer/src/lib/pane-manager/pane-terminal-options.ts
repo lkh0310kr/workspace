@@ -1,33 +1,33 @@
-import type { ITerminalOptions } from "@xterm/xterm";
-import { buildTerminalFontFamily } from "../monospace-font-family";
-import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from "../shared/terminal-scrollback-policy";
+import type { ITerminalOptions } from '@xterm/xterm'
+import { buildTerminalFontFamily } from '../monospace-font-family'
+import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from '../shared/terminal-scrollback-policy'
 
-type TerminalCursorStyle = NonNullable<ITerminalOptions["cursorStyle"]>;
-type TerminalCursorInactiveStyle = NonNullable<ITerminalOptions["cursorInactiveStyle"]>;
+type TerminalCursorStyle = NonNullable<ITerminalOptions['cursorStyle']>
+type TerminalCursorInactiveStyle = NonNullable<ITerminalOptions['cursorInactiveStyle']>
 
-export const DEFAULT_TERMINAL_SCROLL_SENSITIVITY = 1.15;
-export const DEFAULT_TERMINAL_FAST_SCROLL_SENSITIVITY = 5;
+export const DEFAULT_TERMINAL_SCROLL_SENSITIVITY = 1.15
+export const DEFAULT_TERMINAL_FAST_SCROLL_SENSITIVITY = 5
 
 export function normalizeTerminalScrollSensitivity(value: number | undefined): number {
-  return typeof value === "number" && Number.isFinite(value)
+  return typeof value === 'number' && Number.isFinite(value)
     ? Math.min(10, Math.max(0.1, value))
-    : DEFAULT_TERMINAL_SCROLL_SENSITIVITY;
+    : DEFAULT_TERMINAL_SCROLL_SENSITIVITY
 }
 
 export function normalizeTerminalFastScrollSensitivity(value: number | undefined): number {
-  return typeof value === "number" && Number.isFinite(value)
+  return typeof value === 'number' && Number.isFinite(value)
     ? Math.min(20, Math.max(1, value))
-    : DEFAULT_TERMINAL_FAST_SCROLL_SENSITIVITY;
+    : DEFAULT_TERMINAL_FAST_SCROLL_SENSITIVITY
 }
 
 export function resolveTerminalCursorInactiveStyle(
-  cursorStyle: TerminalCursorStyle | undefined,
+  cursorStyle: TerminalCursorStyle | undefined
 ): TerminalCursorInactiveStyle {
-  return (cursorStyle ?? "block") === "block" ? "outline" : (cursorStyle ?? "block");
+  return (cursorStyle ?? 'block') === 'block' ? 'outline' : (cursorStyle ?? 'block')
 }
 
 export function buildDefaultTerminalOptions(): ITerminalOptions {
-  const cursorStyle: TerminalCursorStyle = "block";
+  const cursorStyle: TerminalCursorStyle = 'block'
 
   return {
     allowProposedApi: true,
@@ -39,8 +39,8 @@ export function buildDefaultTerminalOptions(): ITerminalOptions {
     // without these, Korean IME preedit/commit renders as missing glyphs
     // on Windows/WSL (DejaVu has no Hangul coverage).
     fontFamily: buildTerminalFontFamily(),
-    fontWeight: "400",
-    fontWeightBold: "700",
+    fontWeight: '400',
+    fontWeightBold: '700',
     scrollback: DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT,
     scrollSensitivity: DEFAULT_TERMINAL_SCROLL_SENSITIVITY,
     fastScrollSensitivity: DEFAULT_TERMINAL_FAST_SCROLL_SENSITIVITY,
@@ -49,6 +49,6 @@ export function buildDefaultTerminalOptions(): ITerminalOptions {
     macOptionClickForcesSelection: true,
     drawBoldTextInBrightColors: true,
     scrollbar: { width: 7 },
-    vtExtensions: { kittyKeyboard: true },
-  };
+    vtExtensions: { kittyKeyboard: true }
+  }
 }

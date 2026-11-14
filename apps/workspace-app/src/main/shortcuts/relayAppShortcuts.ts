@@ -74,7 +74,7 @@ function relaySharedRendererShortcuts(
   event: Event,
   input: Input,
   send: ShortcutSend,
-  options: SharedRelayOptions,
+  options: SharedRelayOptions
 ): void {
   if (!options.gateBrowserReload && input.code === 'KeyR' && (input.control || input.meta)) {
     event.preventDefault()
@@ -109,7 +109,7 @@ export type HostShortcutRelayOptions = {
 export function relayHostAppShortcuts(
   event: Event,
   input: Input,
-  options: HostShortcutRelayOptions,
+  options: HostShortcutRelayOptions
 ): void {
   if (isImeToggleKey(input)) return
   if (input.type === 'keyUp') {
@@ -123,7 +123,7 @@ export function relayHostAppShortcuts(
   }
 
   relaySharedRendererShortcuts(event, input, options.send, {
-    gateBrowserReload: options.terminalOwnsAppShortcuts,
+    gateBrowserReload: options.terminalOwnsAppShortcuts
   })
 
   // Chromium consumes Cmd/Ctrl+P for print before a renderer keydown handler
@@ -150,10 +150,7 @@ export function relayHostAppShortcuts(
     return
   }
 
-  if (
-    options.focusedTerminalId !== null &&
-    isTerminalPasteInput(input)
-  ) {
+  if (options.focusedTerminalId !== null && isTerminalPasteInput(input)) {
     event.preventDefault()
     options.send('shortcut:terminal-paste', { terminalId: options.focusedTerminalId })
     return
@@ -180,7 +177,7 @@ export function relayGuestWebviewShortcuts(
   input: Input,
   send: ShortcutSend,
   onPastePlainText: () => void,
-  webContentsId: number,
+  webContentsId: number
 ): void {
   if (isImeToggleKey(input)) return
   if (input.type === 'keyUp') {

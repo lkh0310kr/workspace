@@ -1,57 +1,57 @@
-import type { ImportContext, ImportResult, Importer } from "../../../shared/model3d/importer";
-import type { DetectedModelFormat } from "../../../shared/model3d/types";
-import { mimeTypeForModelFormat } from "../formatSniffer";
-import { model3dLog } from "../model3dLog";
-import { toModelUrl } from "../modelProtocolUrl";
-import { objHasExternalResources } from "../packageResolver";
+import type { ImportContext, ImportResult, Importer } from '../../../shared/model3d/importer'
+import type { DetectedModelFormat } from '../../../shared/model3d/types'
+import { mimeTypeForModelFormat } from '../formatSniffer'
+import { model3dLog } from '../model3dLog'
+import { toModelUrl } from '../modelProtocolUrl'
+import { objHasExternalResources } from '../packageResolver'
 
-const MESH_FORMATS: DetectedModelFormat[] = ["obj", "stl", "ply", "dae"];
+const MESH_FORMATS: DetectedModelFormat[] = ['obj', 'stl', 'ply', 'dae']
 
 /** Tier-1 mesh formats rendered directly in the Three.js viewer (docs/planning/3d-model-viewer-architecture.md §4.3). */
 export const meshNativeImporter: Importer = {
-  id: "mesh-native",
+  id: 'mesh-native',
   formats: MESH_FORMATS,
   capabilities: {
-    preserves: ["mesh"],
-    tier: "native",
+    preserves: ['mesh'],
+    tier: 'native',
     packageAware: false,
-    maxBytesInProcess: 32 * 1024 * 1024,
+    maxBytesInProcess: 32 * 1024 * 1024
   },
   async canImport(ctx: ImportContext): Promise<boolean> {
-    return MESH_FORMATS.includes(ctx.format);
+    return MESH_FORMATS.includes(ctx.format)
   },
   async import(ctx: ImportContext): Promise<ImportResult> {
-    model3dLog("importer_mesh_native", {
-      source: "main",
+    model3dLog('importer_mesh_native', {
+      source: 'main',
       relativePath: ctx.relativePath,
-      format: ctx.format,
-    });
+      format: ctx.format
+    })
 
-    if (ctx.format === "obj" && objHasExternalResources(ctx.workspaceRoot, ctx.relativePath)) {
+    if (ctx.format === 'obj' && objHasExternalResources(ctx.workspaceRoot, ctx.relativePath)) {
       return {
         manifest: {
           version: 1,
-          status: "ready",
+          status: 'ready',
           source: { path: ctx.relativePath, format: ctx.format },
-          readStrategy: "workspace-model",
+          readStrategy: 'workspace-model',
           modelUrl: toModelUrl(ctx.absolutePath),
           mimeType: mimeTypeForModelFormat(ctx.format),
-          warnings: [],
+          warnings: []
         },
-        warnings: [],
-      };
+        warnings: []
+      }
     }
 
     return {
       manifest: {
         version: 1,
-        status: "ready",
+        status: 'ready',
         source: { path: ctx.relativePath, format: ctx.format },
-        readStrategy: "blob-preview",
+        readStrategy: 'blob-preview',
         mimeType: mimeTypeForModelFormat(ctx.format),
-        warnings: [],
+        warnings: []
       },
-      warnings: [],
-    };
-  },
-};
+      warnings: []
+    }
+  }
+}

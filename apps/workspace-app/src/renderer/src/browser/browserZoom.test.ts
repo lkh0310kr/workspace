@@ -3,7 +3,7 @@ import {
   applyBrowserZoomToWebview,
   registerBrowserZoomPersist,
   BROWSER_ZOOM_MAX,
-  BROWSER_ZOOM_MIN,
+  BROWSER_ZOOM_MIN
 } from './browserZoom'
 
 function mockWebview(factor: number, tabItemId = 'tab-1') {
@@ -13,7 +13,7 @@ function mockWebview(factor: number, tabItemId = 'tab-1') {
     setZoomFactor: (next: number) => {
       zoom = next
     },
-    dataset: { tabItemId },
+    dataset: { tabItemId }
   } as unknown as Electron.WebviewTag
   return { webview, getZoom: () => zoom }
 }

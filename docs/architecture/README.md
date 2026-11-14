@@ -37,7 +37,6 @@
 8. [모듈 경계](./08-monorepo-module-boundaries.md) — 현재 앱과 패키지 책임
 9. [Desktop 릴리스 원칙](./desktop-release.md) — 활성 플랫폼 우선 검증, 네이티브 패키지 기준, 업데이트 배포
 
-
 ## 범위
 
 - 이 폴더에는 **현재 구현된 시스템**만 둡니다.

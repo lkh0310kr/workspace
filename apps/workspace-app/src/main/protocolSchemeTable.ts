@@ -13,7 +13,13 @@ export const EPUB_SCHEME = 'workspace-epub'
 export const PRIVILEGED_SCHEMES: CustomScheme[] = [
   {
     scheme: MEDIA_SCHEME,
-    privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true }
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true
+    }
   },
   {
     scheme: MODEL_SCHEME,
@@ -28,6 +34,12 @@ export const PRIVILEGED_SCHEMES: CustomScheme[] = [
   },
   {
     scheme: EPUB_SCHEME,
-    privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true }
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true
+    }
   }
 ]

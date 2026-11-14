@@ -4,15 +4,15 @@ App scope는 설정 저장·적용 범위와 Main usage adapter다. 공통 edito
 
 ## 설정과 표시 범위
 
-| 설정 | owner·default/적용 |
-|---|---|
-| theme preference | renderer workspace.theme, light/dark/system; 미설정/잘못된 값은 system |
-| resolved theme | DOM data-theme와 flexlayout class, system media-query subscription; cleanup에서 listener 해제 |
-| autosave | renderer workspace.autoSave 값 1만 true; setter가 subscriber에 알림 |
-| pane zoom | PaneGroupConfig.zoom, pane의 text 크기와 kind별 host 적용 |
-| browser guest zoom | item.zoomFactor, browserZoom helper의 guest factor; pane zoom과 별도 |
-| usage 선택 | Main config usageMeters.enabled, 기본 claude/cursor; normalizer가 허용 ID와 고정 순서로 정리 |
-| explorer layout | pane별 open/width/mode, root별 tree 확장/scroll |
+| 설정               | owner·default/적용                                                                            |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| theme preference   | renderer workspace.theme, light/dark/system; 미설정/잘못된 값은 system                        |
+| resolved theme     | DOM data-theme와 flexlayout class, system media-query subscription; cleanup에서 listener 해제 |
+| autosave           | renderer workspace.autoSave 값 1만 true; setter가 subscriber에 알림                           |
+| pane zoom          | PaneGroupConfig.zoom, pane의 text 크기와 kind별 host 적용                                     |
+| browser guest zoom | item.zoomFactor, browserZoom helper의 guest factor; pane zoom과 별도                          |
+| usage 선택         | Main config usageMeters.enabled, 기본 claude/cursor; normalizer가 허용 ID와 고정 순서로 정리  |
+| explorer layout    | pane별 open/width/mode, root별 tree 확장/scroll                                               |
 
 [theme](../../src/renderer/src/theme.ts)는 system preference일 때만 OS 변경을 구독하고 xterm처럼 CSS로 바뀌지 않는 소비자에게 resolved theme를 알린다. autosave 선택과 실제 debounce는 별도다. Desktop editor 자동 저장 시간과 PKMS local/Yjs session의 저장 정책을 한 상수로 합치지 않는다.
 

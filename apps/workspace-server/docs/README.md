@@ -10,16 +10,16 @@ App scope는 Home provider API·OAuth·D1 저장·token 검증이다. Desktop �
 
 ## Routes
 
-| method/path | 입력/결과 |
-|---|---|
-| GET /api/services/status | services/cloudflare·supabase·vercel, public platforms, updatedAt |
-| POST /api/services/cloudflare/connect | PKCE OAuth URL 또는 oauth_not_configured 503 |
-| POST /api/services/supabase/connect | 동일 provider 연결 |
-| DELETE 해당 connect | grant 제거, provider revoke 시도 |
-| /api/services/oauth/callback | stored state 소비 후 성공/실패 callback HTML |
-| PUT /api/services/vercel/token | trim한 token, 비문자/빈 값/8192 초과 거부 |
-| DELETE /api/services/vercel/token | 저장 token 제거 |
-| PUT/DELETE /api/services/supabase/metrics-token | 별도 supplemental token 관리 |
+| method/path                                     | 입력/결과                                                        |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| GET /api/services/status                        | services/cloudflare·supabase·vercel, public platforms, updatedAt |
+| POST /api/services/cloudflare/connect           | PKCE OAuth URL 또는 oauth_not_configured 503                     |
+| POST /api/services/supabase/connect             | 동일 provider 연결                                               |
+| DELETE 해당 connect                             | grant 제거, provider revoke 시도                                 |
+| /api/services/oauth/callback                    | stored state 소비 후 성공/실패 callback HTML                     |
+| PUT /api/services/vercel/token                  | trim한 token, 비문자/빈 값/8192 초과 거부                        |
+| DELETE /api/services/vercel/token               | 저장 token 제거                                                  |
+| PUT/DELETE /api/services/supabase/metrics-token | 별도 supplemental token 관리                                     |
 
 [serviceIntegrations](../src/serviceIntegrations.ts)가 실제 payload와 provider별 summary를 소유한다. 전체 status는 병렬 수집하며 한 provider 오류는 connected=true/error=metrics_unavailable 형태로 격리한다. not configured·permission required·provider error·inactive·no data와 actual zero usage를 구분한다.
 

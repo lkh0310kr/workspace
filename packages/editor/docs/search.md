@@ -36,14 +36,14 @@ replaceContents는 provider ID/path를 검증하고 해당 파일의 열린 sess
 
 ## 검증 시나리오
 
-| ID | 행동 | 결과 |
-|---|---|---|
-| SEARCH-01 | Mod-f 두 번 | panel 열림→닫힘 |
-| SEARCH-02 | 999 match | count=999+ |
-| SEARCH-03 | query A→B, A가 늦게 완료 | A 결과 표시하지 않음 |
-| SEARCH-04 | search 중 취소 | IPC 취소와 result/done listener 정리 |
-| SEARCH-05 | 검색 후 disk match 개수 변경 | replace=false, 쓰기 없음 |
-| SEARCH-06 | 검색 후 열린 session dirty | replace=false |
-| SEARCH-07 | 이름 검색 미지원 provider | Quick Open 요청하지 않고 빈 상태 |
+| ID        | 행동                         | 결과                                 |
+| --------- | ---------------------------- | ------------------------------------ |
+| SEARCH-01 | Mod-f 두 번                  | panel 열림→닫힘                      |
+| SEARCH-02 | 999 match                    | count=999+                           |
+| SEARCH-03 | query A→B, A가 늦게 완료     | A 결과 표시하지 않음                 |
+| SEARCH-04 | search 중 취소               | IPC 취소와 result/done listener 정리 |
+| SEARCH-05 | 검색 후 disk match 개수 변경 | replace=false, 쓰기 없음             |
+| SEARCH-06 | 검색 후 열린 session dirty   | replace=false                        |
+| SEARCH-07 | 이름 검색 미지원 provider    | Quick Open 요청하지 않고 빈 상태     |
 
 문서 search panel과 Quick Open의 DOM 키보드 동작은 현재 자동 테스트로 전부 검증되지 않았다. 재구현 시 위 시나리오를 수락 기준으로 사용한다.

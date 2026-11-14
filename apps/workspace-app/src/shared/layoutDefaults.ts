@@ -1,8 +1,8 @@
-import { PANE_GROUP_SCHEMA_VERSION } from "./layoutSchema";
+import { PANE_GROUP_SCHEMA_VERSION } from './layoutSchema'
 
 /** Default flexlayout JSON for a fresh workspace tab with one terminal pane. */
 export function defaultLayoutJson(terminalId: number): string {
-  const itemId = `terminal-${terminalId}`;
+  const itemId = `terminal-${terminalId}`
   return JSON.stringify({
     global: {
       tabEnableClose: true,
@@ -14,30 +14,30 @@ export function defaultLayoutJson(terminalId: number): string {
       tabEnableRename: false,
       splitterSize: 1,
       splitterExtra: 8,
-      tabDragSpeed: 0,
+      tabDragSpeed: 0
     },
     borders: [],
     layout: {
-      type: "row",
+      type: 'row',
       children: [
         {
-          type: "tabset",
+          type: 'tabset',
           weight: 100,
           children: [
             {
-              type: "tab",
+              type: 'tab',
               id: `tabgroup-${itemId}`,
-              name: "Terminal",
-              component: "tabgroup",
+              name: 'Terminal',
+              component: 'tabgroup',
               config: {
                 schemaVersion: PANE_GROUP_SCHEMA_VERSION,
-                tabs: [{ id: itemId, kind: "terminal", terminalId }],
-                activeTabId: itemId,
-              },
-            },
-          ],
-        },
-      ],
-    },
-  });
+                tabs: [{ id: itemId, kind: 'terminal', terminalId }],
+                activeTabId: itemId
+              }
+            }
+          ]
+        }
+      ]
+    }
+  })
 }

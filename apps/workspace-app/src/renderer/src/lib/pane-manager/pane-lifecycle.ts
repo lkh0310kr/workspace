@@ -1,25 +1,28 @@
-import type { ManagedPaneInternal } from "./pane-manager-types";
-import { activateOrcaTerminalUnicodeProvider } from "../shared/terminal-unicode-provider";
-import { attachPaneFitResizeObserver, detachPaneFitResizeObserver } from "./pane-fit-resize-observer";
-import { attachDomRendererFocusClassSync } from "./pane-dom-focus-class-sync";
-import { safeFit } from "./pane-fit";
-import { cancelDeferredScrollRestore } from "./pane-scroll";
-import { cancelPendingWebglRefresh, disposeWebgl, attachWebgl } from "./pane-webgl-renderer";
-import { clearTerminalOutputQueue } from "./pane-terminal-output-scheduler";
-import { clearPendingSplitScrollRestore } from "./pane-split-scroll";
-import { installTerminalImeCandidateAnchor } from "./terminal-ime-candidate-anchor";
-import { installWindowsCtrlAltChordRepair } from "./terminal-windows-ctrl-alt-chord-classification";
-import { attachTerminalMouseWheelMultiplier } from "./pane-terminal-mouse-wheel";
-import { installTerminalWheelScroll } from "../../terminal/terminal-wheel-scroll";
-import { attachTerminalScrollIntentTracking } from "./terminal-scroll-intent-dom-tracking";
+import type { ManagedPaneInternal } from './pane-manager-types'
+import { activateOrcaTerminalUnicodeProvider } from '../shared/terminal-unicode-provider'
+import {
+  attachPaneFitResizeObserver,
+  detachPaneFitResizeObserver
+} from './pane-fit-resize-observer'
+import { attachDomRendererFocusClassSync } from './pane-dom-focus-class-sync'
+import { safeFit } from './pane-fit'
+import { cancelDeferredScrollRestore } from './pane-scroll'
+import { cancelPendingWebglRefresh, disposeWebgl, attachWebgl } from './pane-webgl-renderer'
+import { clearTerminalOutputQueue } from './pane-terminal-output-scheduler'
+import { clearPendingSplitScrollRestore } from './pane-split-scroll'
+import { installTerminalImeCandidateAnchor } from './terminal-ime-candidate-anchor'
+import { installWindowsCtrlAltChordRepair } from './terminal-windows-ctrl-alt-chord-classification'
+import { attachTerminalMouseWheelMultiplier } from './pane-terminal-mouse-wheel'
+import { installTerminalWheelScroll } from '../../terminal/terminal-wheel-scroll'
+import { attachTerminalScrollIntentTracking } from './terminal-scroll-intent-dom-tracking'
 import {
   installTerminalLinkifierHoverResetOnMouseLeave,
-  installTerminalLinkifierHoverResetOnWindowBlur,
-} from "./terminal-linkifier-hover-reset-on-mouseleave";
-import { installTerminalLinkifierHoverResetOnWrite } from "./terminal-linkifier-hover-reset-on-write";
-import { installTerminalNativeCopyGutterTrim } from "../../terminal/terminal-native-copy-gutter";
+  installTerminalLinkifierHoverResetOnWindowBlur
+} from './terminal-linkifier-hover-reset-on-mouseleave'
+import { installTerminalLinkifierHoverResetOnWrite } from './terminal-linkifier-hover-reset-on-write'
+import { installTerminalNativeCopyGutterTrim } from '../../terminal/terminal-native-copy-gutter'
 
-export { createPaneDOM } from "./pane-dom-creation";
+export { createPaneDOM } from './pane-dom-creation'
 
 export function openTerminal(pane: ManagedPaneInternal): void {
   const {
@@ -31,96 +34,96 @@ export function openTerminal(pane: ManagedPaneInternal): void {
     searchAddon,
     serializeAddon,
     unicode11Addon,
-    webLinksAddon,
-  } = pane;
+    webLinksAddon
+  } = pane
 
-  terminal.open(xtermContainer);
-  installWindowsCtrlAltChordRepair(terminal);
-  container.appendChild(linkTooltip);
+  terminal.open(xtermContainer)
+  installWindowsCtrlAltChordRepair(terminal)
+  container.appendChild(linkTooltip)
 
-  terminal.loadAddon(fitAddon);
-  terminal.loadAddon(searchAddon);
-  terminal.loadAddon(serializeAddon);
-  terminal.loadAddon(unicode11Addon);
-  terminal.unicode.activeVersion = "11";
-  terminal.loadAddon(webLinksAddon);
+  terminal.loadAddon(fitAddon)
+  terminal.loadAddon(searchAddon)
+  terminal.loadAddon(serializeAddon)
+  terminal.loadAddon(unicode11Addon)
+  terminal.unicode.activeVersion = '11'
+  terminal.loadAddon(webLinksAddon)
 
-  attachTerminalMouseWheelMultiplier(terminal);
-  pane.wheelScrollCleanup = installTerminalWheelScroll(terminal);
+  attachTerminalMouseWheelMultiplier(terminal)
+  pane.wheelScrollCleanup = installTerminalWheelScroll(terminal)
   pane.terminalScrollIntentDisposable = attachTerminalScrollIntentTracking(
     terminal,
     xtermContainer,
-    pane.leafId,
-  );
-  pane.linkifierHoverResetDisposable = installTerminalLinkifierHoverResetOnWrite(terminal);
+    pane.leafId
+  )
+  pane.linkifierHoverResetDisposable = installTerminalLinkifierHoverResetOnWrite(terminal)
   pane.linkifierMouseLeaveResetDisposable = installTerminalLinkifierHoverResetOnMouseLeave(
     terminal,
-    linkTooltip,
-  );
+    linkTooltip
+  )
   pane.linkifierWindowBlurResetDisposable = installTerminalLinkifierHoverResetOnWindowBlur(
     terminal,
-    linkTooltip,
-  );
-  pane.nativeCopyGutterDisposable = installTerminalNativeCopyGutterTrim(terminal);
+    linkTooltip
+  )
+  pane.nativeCopyGutterDisposable = installTerminalNativeCopyGutterTrim(terminal)
 
-  activateOrcaTerminalUnicodeProvider(terminal);
+  activateOrcaTerminalUnicodeProvider(terminal)
 
-  pane.compositionHandler = installTerminalImeCandidateAnchor(terminal);
-  pane.focusClassSyncCleanup = attachDomRendererFocusClassSync(terminal.element);
+  pane.compositionHandler = installTerminalImeCandidateAnchor(terminal)
+  pane.focusClassSyncCleanup = attachDomRendererFocusClassSync(terminal.element)
 
   if (pane.gpuRenderingEnabled) {
-    attachWebgl(pane);
+    attachWebgl(pane)
   }
 
-  attachPaneFitResizeObserver(pane);
+  attachPaneFitResizeObserver(pane)
 
   if (pane.pendingInitialFitRafId != null) {
-    cancelAnimationFrame(pane.pendingInitialFitRafId);
+    cancelAnimationFrame(pane.pendingInitialFitRafId)
   }
   pane.pendingInitialFitRafId = requestAnimationFrame(() => {
-    pane.pendingInitialFitRafId = null;
-    safeFit(pane);
-  });
+    pane.pendingInitialFitRafId = null
+    safeFit(pane)
+  })
 }
 
 export function disposePane(pane: ManagedPaneInternal): void {
   if (pane.pendingInitialFitRafId != null) {
-    cancelAnimationFrame(pane.pendingInitialFitRafId);
-    pane.pendingInitialFitRafId = null;
+    cancelAnimationFrame(pane.pendingInitialFitRafId)
+    pane.pendingInitialFitRafId = null
   }
   if (pane.pendingRefitRetryRafId != null) {
-    cancelAnimationFrame(pane.pendingRefitRetryRafId);
-    pane.pendingRefitRetryRafId = null;
+    cancelAnimationFrame(pane.pendingRefitRetryRafId)
+    pane.pendingRefitRetryRafId = null
   }
-  pane.focusClassSyncCleanup?.();
-  pane.focusClassSyncCleanup = null;
-  pane.terminalScrollIntentDisposable?.dispose();
-  pane.terminalScrollIntentDisposable = null;
-  pane.wheelScrollCleanup?.();
-  pane.wheelScrollCleanup = null;
-  pane.linkifierHoverResetDisposable?.dispose();
-  pane.linkifierHoverResetDisposable = null;
-  pane.linkifierMouseLeaveResetDisposable?.dispose();
-  pane.linkifierMouseLeaveResetDisposable = null;
-  pane.linkifierWindowBlurResetDisposable?.dispose();
-  pane.linkifierWindowBlurResetDisposable = null;
-  pane.nativeCopyGutterDisposable?.dispose();
-  pane.nativeCopyGutterDisposable = null;
-  pane.compositionHandler?.();
-  pane.compositionHandler = null;
-  detachPaneFitResizeObserver(pane);
-  clearPendingSplitScrollRestore(pane);
-  cancelDeferredScrollRestore(pane.terminal);
-  cancelPendingWebglRefresh(pane);
-  disposeWebgl(pane);
-  clearTerminalOutputQueue(pane.terminal);
+  pane.focusClassSyncCleanup?.()
+  pane.focusClassSyncCleanup = null
+  pane.terminalScrollIntentDisposable?.dispose()
+  pane.terminalScrollIntentDisposable = null
+  pane.wheelScrollCleanup?.()
+  pane.wheelScrollCleanup = null
+  pane.linkifierHoverResetDisposable?.dispose()
+  pane.linkifierHoverResetDisposable = null
+  pane.linkifierMouseLeaveResetDisposable?.dispose()
+  pane.linkifierMouseLeaveResetDisposable = null
+  pane.linkifierWindowBlurResetDisposable?.dispose()
+  pane.linkifierWindowBlurResetDisposable = null
+  pane.nativeCopyGutterDisposable?.dispose()
+  pane.nativeCopyGutterDisposable = null
+  pane.compositionHandler?.()
+  pane.compositionHandler = null
+  detachPaneFitResizeObserver(pane)
+  clearPendingSplitScrollRestore(pane)
+  cancelDeferredScrollRestore(pane.terminal)
+  cancelPendingWebglRefresh(pane)
+  disposeWebgl(pane)
+  clearTerminalOutputQueue(pane.terminal)
   try {
-    pane.terminal.clearSelection();
+    pane.terminal.clearSelection()
   } catch {
     /* ignore */
   }
   try {
-    pane.terminal.dispose();
+    pane.terminal.dispose()
   } catch {
     /* ignore */
   }

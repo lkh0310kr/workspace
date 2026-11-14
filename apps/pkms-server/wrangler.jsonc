@@ -21,10 +21,6 @@
     { "tag": "v1", "new_sqlite_classes": ["AccountStore", "VaultRoom"] },
     { "tag": "v2", "deleted_classes": ["AccountStore", "VaultRoom"] }
   ],
-  "r2_buckets": [
-    { "binding": "ASSET_BUCKET", "bucket_name": "pkms-attachments" }
-  ],
-  "services": [
-    { "binding": "PKMS_WEB", "service": "pkms-web" }
-  ]
+  "r2_buckets": [{ "binding": "ASSET_BUCKET", "bucket_name": "pkms-attachments" }],
+  "services": [{ "binding": "PKMS_WEB", "service": "pkms-web" }]
 }

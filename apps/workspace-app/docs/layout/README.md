@@ -4,17 +4,17 @@
 
 ## 상태 owner
 
-| 상태 | owner·읽기 | mutation |
-|---|---|---|
-| Main workspace 탭·root·saved JSON | Main Workspace | workspace IPC → persist/broadcast |
-| live flexlayout Model | workspaceLayoutModels의 tabId→Model Map | hydration의 setLayoutModel, layoutActions |
-| 마지막 저장 요청 JSON | 같은 module의 savedLayoutJson Map | persistLayout 시 즉시 기록 |
-| renderer workspace 목록·active ID | workspaceStore | hydrateFromWorkspace |
-| 구조 render revision | layoutRevisions[workspaceTabId] | model 교체/구조 mutation 때 bump |
-| pane 활성 chip render revision | paneTabSelectionRevisions[workspaceTabId:nodeId] | setActiveTabInGroup에서 즉시 bump |
-| chip tabs와 activeTabId | flexlayout의 PaneGroupConfig | layoutSession.activatePaneTab / layoutActions |
-| focused split | focusedPaneGroupTabSetByWorkspaceTab | pane pointer/focus의 focusPaneGroupTabSet |
-| explorer 폭·모드·확장·scroll | pane별 explorer state | PaneGroup의 sidebar와 explorer adapter |
+| 상태                              | owner·읽기                                       | mutation                                      |
+| --------------------------------- | ------------------------------------------------ | --------------------------------------------- |
+| Main workspace 탭·root·saved JSON | Main Workspace                                   | workspace IPC → persist/broadcast             |
+| live flexlayout Model             | workspaceLayoutModels의 tabId→Model Map          | hydration의 setLayoutModel, layoutActions     |
+| 마지막 저장 요청 JSON             | 같은 module의 savedLayoutJson Map                | persistLayout 시 즉시 기록                    |
+| renderer workspace 목록·active ID | workspaceStore                                   | hydrateFromWorkspace                          |
+| 구조 render revision              | layoutRevisions[workspaceTabId]                  | model 교체/구조 mutation 때 bump              |
+| pane 활성 chip render revision    | paneTabSelectionRevisions[workspaceTabId:nodeId] | setActiveTabInGroup에서 즉시 bump             |
+| chip tabs와 activeTabId           | flexlayout의 PaneGroupConfig                     | layoutSession.activatePaneTab / layoutActions |
+| focused split                     | focusedPaneGroupTabSetByWorkspaceTab             | pane pointer/focus의 focusPaneGroupTabSet     |
+| explorer 폭·모드·확장·scroll      | pane별 explorer state                            | PaneGroup의 sidebar와 explorer adapter        |
 
 App component의 modelsRef나 PaneGroup의 별도 localActiveId는 현재 owner가 아니다. UI는 layout mutation을 임의 zustand 복사본에 쓰지 않는다. workspaceLayoutModels는 model·saved JSON·ensure-inflight·pending rebalance를 각각 보관하며 workspace 제거 시 모두 정리한다.
 
@@ -46,13 +46,13 @@ PaneGroup은 dirtyByTabId와 jump 요청을 UI 임시 상태로 소유하고, ex
 
 ## 수락 근거
 
-| ID | 시나리오 | 확인 경로 |
-|---|---|---|
-| LAY-01 | stale active ID/빈 tabs fallback | layoutSession.test.ts |
-| LAY-02 | 이동·split 후 item/terminal ID 보존 | layoutActions.mutations/split, layoutTabDrop 테스트 |
-| LAY-03 | preview 파일을 다시 열거나 pin | PaneGroup source 대조, 실제 editor 통합 검증 필요 |
-| LAY-04 | dirty close 취소 | layoutActions.closeTab와 editor registry; 이전 전체 suite에 실패가 있어 native 완료 주장 안 함 |
-| LAY-05 | 다른 workspace에 연속 persist | 단일 timer 제한 확인; workspace별 flush 검증은 후속 |
-| LAY-06 | root 변경 후 explorer 이전 확장 복원 안 함 | explorerState.test.ts |
+| ID     | 시나리오                                   | 확인 경로                                                                                      |
+| ------ | ------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| LAY-01 | stale active ID/빈 tabs fallback           | layoutSession.test.ts                                                                          |
+| LAY-02 | 이동·split 후 item/terminal ID 보존        | layoutActions.mutations/split, layoutTabDrop 테스트                                            |
+| LAY-03 | preview 파일을 다시 열거나 pin             | PaneGroup source 대조, 실제 editor 통합 검증 필요                                              |
+| LAY-04 | dirty close 취소                           | layoutActions.closeTab와 editor registry; 이전 전체 suite에 실패가 있어 native 완료 주장 안 함 |
+| LAY-05 | 다른 workspace에 연속 persist              | 단일 timer 제한 확인; workspace별 flush 검증은 후속                                            |
+| LAY-06 | root 변경 후 explorer 이전 확장 복원 안 함 | explorerState.test.ts                                                                          |
 
 테스트 이름은 `src/renderer/src/layout` 및 `explorer` 아래다. source 대조와 자동 test 결과·installed app acceptance는 별도로 기록한다.

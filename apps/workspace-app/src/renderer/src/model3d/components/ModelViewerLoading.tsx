@@ -1,5 +1,5 @@
 interface Props {
-  label: string;
+  label: string
 }
 
 export function ModelViewerLoading({ label }: Props) {
@@ -8,5 +8,5 @@ export function ModelViewerLoading({ label }: Props) {
       <div className="model-viewer-spinner" aria-hidden="true" />
       <p>{label}</p>
     </div>
-  );
+  )
 }

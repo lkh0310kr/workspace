@@ -1,211 +1,220 @@
-import type { WebContents } from "electron";
-import { StringDecoder } from "node:string_decoder";
-import { Pty } from "./pty";
-import { trimTerminalSessionBufferToByteLimit } from "../shared/terminal-session-buffers";
-import { appendTerminalLog, reprTerminalBytesMain } from "./terminalDebugLog";
-import { extractOnlyTerminalQueryReplies } from "../shared/terminal-query-reply";
-import { TerminalQueryReplyEchoFilter } from "../shared/terminal-query-reply-echo";
+import type { WebContents } from 'electron'
+import { StringDecoder } from 'node:string_decoder'
+import { Pty } from './pty'
+import { trimTerminalSessionBufferToByteLimit } from '../shared/terminal-session-buffers'
+import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
+import { extractOnlyTerminalQueryReplies } from '../shared/terminal-query-reply'
+import { TerminalQueryReplyEchoFilter } from '../shared/terminal-query-reply-echo'
 
-const REPLAY_MAX_CHARS = 5000 * 120;
-const OUTPUT_PAUSE_HIGH_WATER_BYTES = 512 * 1024;
-const OUTPUT_PAUSE_LOW_WATER_BYTES = 128 * 1024;
+const REPLAY_MAX_CHARS = 5000 * 120
+const OUTPUT_PAUSE_HIGH_WATER_BYTES = 512 * 1024
+const OUTPUT_PAUSE_LOW_WATER_BYTES = 128 * 1024
 
 export interface PtyConnectResult {
-  id: number;
-  snapshot: string;
-  snapshotCols: number;
-  snapshotRows: number;
-  lastSeq: number;
-  isReattach: boolean;
+  id: number
+  snapshot: string
+  snapshotCols: number
+  snapshotRows: number
+  lastSeq: number
+  isReattach: boolean
 }
 
 export class PtyReplayBuffer {
-  private chunks: string[] = [];
-  private totalChars = 0;
-  private seq = 0;
-  private decoder = new StringDecoder("utf8");
+  private chunks: string[] = []
+  private totalChars = 0
+  private seq = 0
+  private decoder = new StringDecoder('utf8')
 
-  appendUtf8(data: Buffer, transform: (text: string) => string = (text) => text): { seq: number; text: string } {
-    const str = transform(this.decoder.write(data));
-    this.seq++;
+  appendUtf8(
+    data: Buffer,
+    transform: (text: string) => string = (text) => text
+  ): { seq: number; text: string } {
+    const str = transform(this.decoder.write(data))
+    this.seq++
     if (str.length > 0) {
-      this.chunks.push(str);
-      this.totalChars += str.length;
+      this.chunks.push(str)
+      this.totalChars += str.length
       while (this.totalChars > REPLAY_MAX_CHARS && this.chunks.length > 1) {
-        const removed = this.chunks.shift()!;
-        this.totalChars -= removed.length;
+        const removed = this.chunks.shift()!
+        this.totalChars -= removed.length
       }
     }
-    return { seq: this.seq, text: str };
+    return { seq: this.seq, text: str }
   }
 
   snapshot(): { replay: string; lastSeq: number } {
-    return { replay: this.chunks.join(""), lastSeq: this.seq };
+    return { replay: this.chunks.join(''), lastSeq: this.seq }
   }
 }
 
 export class PtySession {
-  readonly id: number;
-  private pty: Pty;
-  private cols: number;
-  private rows: number;
-  private replay = new PtyReplayBuffer();
-  private queryReplyEchoFilter = new TerminalQueryReplyEchoFilter();
-  private attachedWebContents: WebContents | null = null;
-  private wasEverAttached = false;
-  private onOutputUtf8: ((terminalId: number, chunk: string) => void) | null = null;
-  private pendingOutputAcks = new Map<number, number>();
-  private pendingOutputAckBytes = 0;
-  private outputPaused = false;
+  readonly id: number
+  private pty: Pty
+  private cols: number
+  private rows: number
+  private replay = new PtyReplayBuffer()
+  private queryReplyEchoFilter = new TerminalQueryReplyEchoFilter()
+  private attachedWebContents: WebContents | null = null
+  private wasEverAttached = false
+  private onOutputUtf8: ((terminalId: number, chunk: string) => void) | null = null
+  private pendingOutputAcks = new Map<number, number>()
+  private pendingOutputAckBytes = 0
+  private outputPaused = false
 
   constructor(id: number, pty: Pty, cols: number, rows: number) {
-    this.id = id;
-    this.pty = pty;
-    this.cols = cols;
-    this.rows = rows;
+    this.id = id
+    this.pty = pty
+    this.cols = cols
+    this.rows = rows
     pty.onData((data) => {
-      const { seq, text } = this.replay.appendUtf8(data, (decoded) => this.queryReplyEchoFilter.filter(decoded));
+      const { seq, text } = this.replay.appendUtf8(data, (decoded) =>
+        this.queryReplyEchoFilter.filter(decoded)
+      )
       if (text.length > 0) {
         this.onOutputUtf8?.(this.id, text)
       }
       appendTerminalLog({
-        sessionId: "terminal",
+        sessionId: 'terminal',
         timestamp: Date.now(),
-        location: "main:pty:read",
-        message: "from-shell",
+        location: 'main:pty:read',
+        message: 'from-shell',
         terminalId: this.id,
-        data: { bytes: reprTerminalBytesMain(data), length: data.length, seq },
-      });
-      this.pushLiveOutput(seq, Buffer.from(text, "utf8"));
-    });
+        data: { bytes: reprTerminalBytesMain(data), length: data.length, seq }
+      })
+      this.pushLiveOutput(seq, Buffer.from(text, 'utf8'))
+    })
   }
 
   private pushLiveOutput(seq: number, data: Buffer): void {
-    const webContents = this.attachedWebContents;
-    if (!webContents || webContents.isDestroyed() || data.length === 0) return;
-    this.pendingOutputAcks.set(seq, data.length);
-    this.pendingOutputAckBytes += data.length;
+    const webContents = this.attachedWebContents
+    if (!webContents || webContents.isDestroyed() || data.length === 0) return
+    this.pendingOutputAcks.set(seq, data.length)
+    this.pendingOutputAckBytes += data.length
     if (!this.outputPaused && this.pendingOutputAckBytes >= OUTPUT_PAUSE_HIGH_WATER_BYTES) {
-      this.outputPaused = true;
-      this.pty.pauseOutput();
+      this.outputPaused = true
+      this.pty.pauseOutput()
     }
     try {
-      webContents.send("pty:data", {
+      webContents.send('pty:data', {
         id: this.id,
         seq,
-        data: Uint8Array.from(data),
-      });
+        data: Uint8Array.from(data)
+      })
       appendTerminalLog({
-        sessionId: "terminal",
+        sessionId: 'terminal',
         timestamp: Date.now(),
-        location: "main:pty:send",
-        message: "to-renderer",
+        location: 'main:pty:send',
+        message: 'to-renderer',
         terminalId: this.id,
-        data: { bytes: reprTerminalBytesMain(data), length: data.length, seq },
-      });
+        data: { bytes: reprTerminalBytesMain(data), length: data.length, seq }
+      })
     } catch (err) {
-      this.pendingOutputAckBytes -= this.pendingOutputAcks.get(seq) ?? 0;
-      this.pendingOutputAcks.delete(seq);
+      this.pendingOutputAckBytes -= this.pendingOutputAcks.get(seq) ?? 0
+      this.pendingOutputAcks.delete(seq)
       if (this.outputPaused && this.pendingOutputAckBytes <= OUTPUT_PAUSE_LOW_WATER_BYTES) {
-        this.outputPaused = false;
-        this.pty.resumeOutput();
+        this.outputPaused = false
+        this.pty.resumeOutput()
       }
-      console.error(`[pty] pty:data send failed for terminal ${this.id}:`, err);
+      console.error(`[pty] pty:data send failed for terminal ${this.id}:`, err)
     }
   }
 
   acknowledgeOutput(seq: number): void {
-    const bytes = this.pendingOutputAcks.get(seq);
-    if (bytes === undefined) return;
-    this.pendingOutputAcks.delete(seq);
-    this.pendingOutputAckBytes = Math.max(0, this.pendingOutputAckBytes - bytes);
+    const bytes = this.pendingOutputAcks.get(seq)
+    if (bytes === undefined) return
+    this.pendingOutputAcks.delete(seq)
+    this.pendingOutputAckBytes = Math.max(0, this.pendingOutputAckBytes - bytes)
     if (this.outputPaused && this.pendingOutputAckBytes <= OUTPUT_PAUSE_LOW_WATER_BYTES) {
-      this.outputPaused = false;
-      this.pty.resumeOutput();
+      this.outputPaused = false
+      this.pty.resumeOutput()
     }
   }
 
   private resetOutputBackpressure(): void {
-    this.pendingOutputAcks.clear();
-    this.pendingOutputAckBytes = 0;
+    this.pendingOutputAcks.clear()
+    this.pendingOutputAckBytes = 0
     if (this.outputPaused) {
-      this.outputPaused = false;
-      this.pty.resumeOutput();
+      this.outputPaused = false
+      this.pty.resumeOutput()
     }
   }
 
   async connect(webContents: WebContents): Promise<PtyConnectResult> {
     if (this.attachedWebContents) {
-      this.attachedWebContents = null;
-      this.resetOutputBackpressure();
+      this.attachedWebContents = null
+      this.resetOutputBackpressure()
     }
-    const attachment = await this.pty.attach();
-    if (attachment.existed && this.replay.snapshot().replay.length === 0 && attachment.snapshot.length > 0) {
-      this.replay.appendUtf8(attachment.snapshot);
+    const attachment = await this.pty.attach()
+    if (
+      attachment.existed &&
+      this.replay.snapshot().replay.length === 0 &&
+      attachment.snapshot.length > 0
+    ) {
+      this.replay.appendUtf8(attachment.snapshot)
     }
-    this.attachedWebContents = webContents;
-    const isReattach = this.wasEverAttached || attachment.existed;
-    this.wasEverAttached = true;
-    const { replay, lastSeq } = this.replay.snapshot();
-    this.pty.activate();
+    this.attachedWebContents = webContents
+    const isReattach = this.wasEverAttached || attachment.existed
+    this.wasEverAttached = true
+    const { replay, lastSeq } = this.replay.snapshot()
+    this.pty.activate()
     return {
       id: this.id,
-      snapshot: replay || attachment.snapshot.toString("utf8"),
+      snapshot: replay || attachment.snapshot.toString('utf8'),
       snapshotCols: this.cols,
       snapshotRows: this.rows,
       lastSeq,
-      isReattach,
-    };
+      isReattach
+    }
   }
 
   disconnect(webContents: WebContents): void {
     if (this.attachedWebContents === webContents) {
-      this.attachedWebContents = null;
-      this.resetOutputBackpressure();
+      this.attachedWebContents = null
+      this.resetOutputBackpressure()
     }
   }
 
   isAttached(): boolean {
-    return this.attachedWebContents != null && !this.attachedWebContents.isDestroyed();
+    return this.attachedWebContents != null && !this.attachedWebContents.isDestroyed()
   }
 
   write(data: Buffer): void {
-    const text = data.toString("utf8");
-    const replies = extractOnlyTerminalQueryReplies(text);
+    const text = data.toString('utf8')
+    const replies = extractOnlyTerminalQueryReplies(text)
     if (replies) {
-      for (const reply of replies) this.queryReplyEchoFilter.expect(reply);
+      for (const reply of replies) this.queryReplyEchoFilter.expect(reply)
     }
     appendTerminalLog({
-      sessionId: "terminal",
+      sessionId: 'terminal',
       timestamp: Date.now(),
-      location: "main:pty:write",
-      message: "to-shell",
+      location: 'main:pty:write',
+      message: 'to-shell',
       terminalId: this.id,
-      data: { bytes: reprTerminalBytesMain(data), length: data.length },
-    });
-    this.pty.write(data);
+      data: { bytes: reprTerminalBytesMain(data), length: data.length }
+    })
+    this.pty.write(data)
   }
 
   resize(cols: number, rows: number): void {
-    this.cols = cols;
-    this.rows = rows;
-    this.pty.resize(cols, rows);
+    this.cols = cols
+    this.rows = rows
+    this.pty.resize(cols, rows)
     // Wait for xterm's first real FitAddon measurement. Starting the login
     // shell at the persisted 120x40 placeholder briefly renders a bogus
     // prompt, then redraws it after SIGWINCH (visible as a stray `%` line
     // and destructive to full-screen TUI apps).
     try {
-      this.pty.start();
+      this.pty.start()
     } catch (err) {
       appendTerminalLog({
-        sessionId: "terminal",
+        sessionId: 'terminal',
         timestamp: Date.now(),
-        location: "main:pty:spawn",
-        message: "failed",
+        location: 'main:pty:spawn',
+        message: 'failed',
         terminalId: this.id,
-        data: { error: err instanceof Error ? err.message : String(err) },
-      });
-      console.error(`[pty] failed to start terminal ${this.id}:`, err);
+        data: { error: err instanceof Error ? err.message : String(err) }
+      })
+      console.error(`[pty] failed to start terminal ${this.id}:`, err)
     }
   }
 
@@ -214,31 +223,31 @@ export class PtySession {
   }
 
   dispose(): void {
-    this.attachedWebContents = null;
-    this.resetOutputBackpressure();
+    this.attachedWebContents = null
+    this.resetOutputBackpressure()
     this.onOutputUtf8 = null
-    this.pty.dispose();
+    this.pty.dispose()
   }
 
   /** See Pty.disposeAndDestroySession — for when the terminal is actually
    * being deleted, not just detached (app quit, dev restart, reload). */
   disposeAndDestroySession(): void {
-    this.attachedWebContents = null;
-    this.resetOutputBackpressure();
-    this.onOutputUtf8 = null;
-    this.pty.disposeAndDestroySession();
+    this.attachedWebContents = null
+    this.resetOutputBackpressure()
+    this.onOutputUtf8 = null
+    this.pty.disposeAndDestroySession()
   }
 
   getCols(): number {
-    return this.cols;
+    return this.cols
   }
 
   getRows(): number {
-    return this.rows;
+    return this.rows
   }
 
   /** Main-process replay fallback when the renderer pane is not mounted at quit. */
   getReplaySnapshot(): string {
-    return trimTerminalSessionBufferToByteLimit(this.replay.snapshot().replay);
+    return trimTerminalSessionBufferToByteLimit(this.replay.snapshot().replay)
   }
 }

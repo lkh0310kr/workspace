@@ -28,7 +28,7 @@ export function resolveGlBackend(isWslOverride?: boolean): GlBackend {
 /** Chromium GPU/WebGL switches — main process + browser webviews. */
 export function applyBrowserGpuSwitches(
   appendSwitch: (name: string, value?: string) => void,
-  environment: BrowserGpuEnvironment = {},
+  environment: BrowserGpuEnvironment = {}
 ): void {
   const platform = environment.platform ?? process.platform
   const wsl = environment.isWsl ?? isWsl()

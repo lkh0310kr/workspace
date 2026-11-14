@@ -9,5 +9,5 @@ export {
   type TabDragPayload,
   endTabChipDrag as endTabDrag,
   getTabChipDrag as getTabDrag,
-  startTabChipDrag as startTabDrag,
-} from "../interaction/dragSession";
+  startTabChipDrag as startTabDrag
+} from '../interaction/dragSession'
