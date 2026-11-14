@@ -1637,6 +1637,19 @@ async function syncOnce(workspaceId: string): Promise<void> {
         }
       }
       const pendingDeletes = (state.pendingDeletes[workspaceId] ??= {})
+      for (const relative of Object.keys(pendingDeletes))
+        if (matchesExclusion(relative, config.excludedPaths ?? [])) {
+          delete pendingDeletes[relative]
+          state.remoteTreeVersions[workspaceId] = (state.remoteTreeVersions[workspaceId] ?? 0) + 1
+          setItemState(workspaceId, relative, 'excluded')
+        }
+      setItemStates(
+        workspaceId,
+        (knownRemoteTree ?? [])
+          .filter((file) => matchesExclusion(file.path, config.excludedPaths ?? []))
+          .map((file) => file.path),
+        'excluded'
+      )
       const deletedFolderRoots = Object.values(pendingDeletes).filter(
         (item) => item.kind === 'folder'
       )
@@ -2663,6 +2676,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             .filter(
               (file) =>
                 file.kind === 'folder' &&
+                !matchesExclusion(file.path, config.excludedPaths ?? []) &&
                 !attentionPaths.has(file.path) &&
                 !pathIsProtectedByInventory(file.path, scannedDirectories?.protectedPaths ?? [])
             )
