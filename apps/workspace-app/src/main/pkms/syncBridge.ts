@@ -2831,7 +2831,7 @@ function schedule(workspaceId: string, fullScan = false, localPath?: string): vo
       .catch(() => {})
     if (!isReservedSyncPath(localPath)) setItemState(workspaceId, localPath, 'pending')
   }
-  if (running.has(workspaceId)) return
+  if (running.has(workspaceId) || retryTimers.has(workspaceId)) return
   if (status(workspaceId).state === 'error') return
   const previous = timers.get(workspaceId)
   if (previous) clearTimeout(previous)

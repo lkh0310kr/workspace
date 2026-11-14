@@ -16,7 +16,7 @@ vi.mock('electron', () => ({
 vi.mock('./api', () => ({ requestPkmsApi: testRuntime.request, fetchPkmsAsset: vi.fn() }))
 vi.mock('../startupLog', () => ({ appendStartupLog: vi.fn(), isPackagedApp: () => false }))
 
-import { disconnectPkmsSyncBridge, scanPkmsSyncBridge, stopPkmsSyncBridges } from './syncBridge'
+import { configurePkmsSyncBridge, disconnectPkmsSyncBridge, scanPkmsSyncBridge, stopPkmsSyncBridges } from './syncBridge'
 
 describe('PKMS retryable HTTP failures', () => {
   const workspaceId = 'retry-status-test'
@@ -25,12 +25,14 @@ describe('PKMS retryable HTTP failures', () => {
   const timeoutWorkspaceId = 'timeout-retry-test'
   const unauthorizedWorkspaceId = 'unauthorized-no-retry-test'
   const forbiddenWorkspaceId = 'forbidden-no-retry-test'
+  const watcherWorkspaceId = 'watcher-during-backoff-test'
   let root: string
   let offlineRoot: string
   let serverErrorRoot: string
   let timeoutRoot: string
   let unauthorizedRoot: string
   let forbiddenRoot: string
+  let watcherRoot: string
   const stateFile = path.join(testRuntime.userData, 'pkms-sync-bridge.json')
 
   beforeAll(async () => {
@@ -40,6 +42,7 @@ describe('PKMS retryable HTTP failures', () => {
     timeoutRoot = await mkdtemp(path.join(os.tmpdir(), 'pkms-timeout-root-'))
     unauthorizedRoot = await mkdtemp(path.join(os.tmpdir(), 'pkms-unauthorized-root-'))
     forbiddenRoot = await mkdtemp(path.join(os.tmpdir(), 'pkms-forbidden-root-'))
+    watcherRoot = await mkdtemp(path.join(os.tmpdir(), 'pkms-watcher-backoff-root-'))
     await mkdir(testRuntime.userData, { recursive: true })
     await writeFile(path.join(root, 'pending.md'), '# pending\n')
     await writeFile(path.join(offlineRoot, 'offline.md'), '# offline\n')
@@ -68,6 +71,7 @@ describe('PKMS retryable HTTP failures', () => {
     await writeFile(path.join(timeoutRoot, 'timeout.md'), '# timeout\n')
     await writeFile(path.join(unauthorizedRoot, 'unauthorized.md'), '# unauthorized\n')
     await writeFile(path.join(forbiddenRoot, 'forbidden.md'), '# forbidden\n')
+    await writeFile(path.join(watcherRoot, 'pending.md'), '# pending\n')
     testRuntime.request.mockImplementation(async (url: string) => {
       if (url.includes(offlineWorkspaceId)) throw new TypeError('fetch failed')
       if (url.includes(serverErrorWorkspaceId)) return { status: 503, body: { error: 'db_busy' } }
@@ -85,6 +89,7 @@ describe('PKMS retryable HTTP failures', () => {
     await disconnectPkmsSyncBridge(timeoutWorkspaceId)
     await disconnectPkmsSyncBridge(unauthorizedWorkspaceId)
     await disconnectPkmsSyncBridge(forbiddenWorkspaceId)
+    await disconnectPkmsSyncBridge(watcherWorkspaceId)
     await stopPkmsSyncBridges()
     await rm(root, { recursive: true, force: true })
     await rm(offlineRoot, { recursive: true, force: true })
@@ -92,6 +97,7 @@ describe('PKMS retryable HTTP failures', () => {
     await rm(timeoutRoot, { recursive: true, force: true })
     await rm(unauthorizedRoot, { recursive: true, force: true })
     await rm(forbiddenRoot, { recursive: true, force: true })
+    await rm(watcherRoot, { recursive: true, force: true })
     await rm(testRuntime.userData, { recursive: true, force: true })
   })
 
@@ -114,6 +120,37 @@ describe('PKMS retryable HTTP failures', () => {
 
     await disconnectPkmsSyncBridge(workspaceId)
   })
+
+  it('does not let watcher or remote-poll wakeups bypass an active retry backoff', async () => {
+    await configurePkmsSyncBridge(watcherWorkspaceId, watcherRoot)
+    await vi.waitFor(
+      () =>
+        expect(
+          testRuntime.request.mock.calls.filter(([url]) => String(url).includes(watcherWorkspaceId))
+        ).toHaveLength(1),
+      { timeout: 2_000, interval: 20 }
+    )
+
+    await writeFile(path.join(watcherRoot, 'pending.md'), '# edited during backoff\n')
+    await new Promise((resolve) => setTimeout(resolve, 150))
+    expect(
+      testRuntime.request.mock.calls.filter(([url]) => String(url).includes(watcherWorkspaceId))
+    ).toHaveLength(1)
+
+    await vi.waitFor(
+      () =>
+        expect(
+          testRuntime.request.mock.calls.filter(([url]) => String(url).includes(watcherWorkspaceId))
+        ).toHaveLength(2),
+      { timeout: 2_000, interval: 20 }
+    )
+
+    // The 5-second remote poll fires during the next exponential retry window.
+    await new Promise((resolve) => setTimeout(resolve, 4_400))
+    expect(
+      testRuntime.request.mock.calls.filter(([url]) => String(url).includes(watcherWorkspaceId))
+    ).toHaveLength(3)
+  }, 10_000)
 
   it('does not immediately reschedule a generic offline scan failure', async () => {
     const offline = await scanPkmsSyncBridge(offlineWorkspaceId)
