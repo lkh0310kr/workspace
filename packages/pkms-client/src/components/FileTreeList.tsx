@@ -1,6 +1,7 @@
 import type { DragEvent, KeyboardEvent, MouseEvent, RefObject } from 'react'
 import { entryName } from '../domain/fileTree'
 import type { FileRecord, TreeRow } from '../domain/types'
+import { aggregateFolderSyncItemState } from '../domain/syncItemState'
 import type { PkmsSyncBridgeStatus } from '../platform/desktopApi'
 import {
   EditorTreeView,
@@ -72,23 +73,8 @@ export function FileTreeList(props: FileTreeListProps) {
       const ownState =
         syncItemStates[file.path] ??
         (/\.local-conflict-[^/]+\.md$/i.test(file.path) ? 'attention' : undefined)
-      const descendantStates =
-        file.kind === 'folder'
-          ? Object.entries(syncItemStates)
-              .filter(([path]) => path.startsWith(`${file.path}/`))
-              .map(([, state]) => state)
-          : []
-      const descendantState = descendantStates.includes('attention')
-        ? 'attention'
-        : descendantStates.includes('syncing')
-          ? 'syncing'
-          : descendantStates.includes('pending')
-            ? 'pending'
-            : descendantStates.length > 0 && descendantStates.every((value) => value === 'excluded')
-              ? 'excluded'
-              : descendantStates.length > 0 && descendantStates.every((value) => value === 'synced')
-                ? 'synced'
-                : undefined
+      const descendantState =
+        file.kind === 'folder' ? aggregateFolderSyncItemState(file.path, syncItemStates) : undefined
       const state = file.kind === 'folder' ? (descendantState ?? ownState) : ownState
       const stateLabel =
         state === 'synced'
