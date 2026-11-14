@@ -22,7 +22,7 @@ PROTOCOL_VERSION=1, TEXT_ROOT=markdown, Doc Options OffsetKind=Utf16이다. clie
 | encode_state(vector)       | 주어진 v1 state vector 이후의 state update                                   |
 | snapshot                   | empty vector 기준 full state update                                          |
 
-String UTF-8 byte length와 UTF-16 offset을 구분한다. surrogate 경계·invalid update·동시 merge의 전체 재현 fixture는 별도 검증해야 한다. current API가 app-level revision/dirty/save를 소유하지는 않는다.
+String UTF-8 byte length와 UTF-16 offset을 구분한다. `node packages/pkms-core/scripts/test-yjs-interop.mjs`는 실제 Yjs/Yrs v1 update bytes를 양방향 교환하고 emoji가 있는 문서에서 UTF-16 index 3 동시 삽입이 양쪽에서 같은 본문으로 수렴하는지 검증한다. 이 fixture는 일반적인 surrogate-pair 경계 전체나 malformed update fuzzing을 포괄하지 않는다. Current API가 app-level revision/dirty/save를 소유하지는 않는다.
 
 ## C ABI와 UniFFI
 
