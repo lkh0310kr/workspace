@@ -45,6 +45,6 @@
 
 ## 우선 안전 이슈
 
-`configurePkmsSyncBridge`는 새 root의 전체 pass를 시작하기 전에 이전 root의 baseline, remote cache, cursor, local directory inventory와 pending deletion intent를 초기화한다. 이로써 `local absent + remote present + old baseline` 조건이 cloud delete를 보내는 문제를 막는다. 새 root는 authoritative snapshot을 가져오고 원격 Markdown을 materialize한 뒤 로컬 전용 content를 반입해야 한다. 이 source 변경은 policy unit coverage가 있지만 root 변경 수락을 완료하려면 temporary directory와 fake server를 이용한 reconciliation test가 더 필요하다. 상세 계약은 [sync 연구](./research/README.md)를 참고한다.
+`configurePkmsSyncBridge`는 새 root의 전체 pass를 시작하기 전에 이전 root의 baseline, remote cache, cursor, local directory inventory와 pending deletion intent를 초기화한다. 이로써 `local absent + remote present + old baseline` 조건이 cloud delete를 보내는 문제를 막는다. 새 root는 authoritative snapshot을 가져오고 원격 Markdown을 materialize한 뒤 로컬 전용 content를 반입해야 한다. Temporary old/new roots와 fake API를 이용한 reconciliation integration은 cloud-only/local-only 자료 보존, stale baseline reset, pending mutation 보존 및 delete 0건을 확인한다. Production API root-switch acceptance는 [공통 sync checklist](../../../pkms/acceptance-checklist.md)에 남아 있다. 상세 계약은 [sync 연구](./research/README.md)를 참고한다.
 
 진입 근거: [Main bridge](../../../../../apps/workspace-app/src/main/pkms/syncBridge.ts), [PKMS vault handler](../../../../../apps/pkms-server/src/SupabaseVault.ts), [sync migrations](../../../../../apps/pkms-server/supabase/migrations), [Desktop bridge status type](../../../../../apps/workspace-app/src/shared/pkmsSyncBridge.ts), [설정 패널](../../../../../packages/pkms-client/src/components/SyncBridgePanel.tsx).

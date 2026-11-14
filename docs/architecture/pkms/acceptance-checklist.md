@@ -32,7 +32,7 @@
 
 | ID | 시나리오와 기대 결과 | 상태 | 확인 근거 / 남은 실행 |
 |---|---|---|---|
-| PKMS-SYNC-01 | 연결 전후 workspace identity와 local root가 명확하다. root 변경이나 disconnect만으로 cloud 자료를 삭제하지 않는다. | 부분 통과 | root-scoped state reset unit 2개 포함 sync policy suite 통과. 다른 root에 cloud-only와 local-only 내용을 둔 fake server/runtime acceptance는 미검증. |
+| PKMS-SYNC-01 | 연결 전후 workspace identity와 local root가 명확하다. root 변경이나 disconnect만으로 cloud 자료를 삭제하지 않는다. | 부분 통과 | root-scoped state reset unit 2개 및 fake API syncBridge integration 통과. 별도 old/new root fixture에서 기존 baseline reset, cloud-only note materialize, local-only note create, delete operation 0건, 미전송 pending create 보존을 확인했다. Production API를 쓰는 실제 root switch acceptance는 미검증. |
 | PKMS-SYNC-02 | 초기 연결·재연결 중 cache/tree가 먼저 보이고, 빈 목록이나 synced로 오해되지 않으며 cloud listing 도착 후 수렴한다. | 부분 통과 | Web/iOS cache-first 구현 문서와 이전 실제 사용 기록이 있음. 느린 서버·cache miss·초기 materialization을 같은 acceptance fixture에서 재검증하지 않음. |
 | PKMS-SYNC-03 | 파일/폴더 생성, 빈 폴더 포함 계층, dot-prefix 이름이 새로고침 후 유지된다. | 부분 통과 | 운영 root folder 누락 복구, 세 사용자 폴더의 34개 파일 및 folder metadata 일치 기록. 격리 workspace에서 빈 폴더·dotfile 전부를 다시 검증하지 않음. |
 | PKMS-SYNC-04 | Markdown create/edit가 durable cloud revision으로 저장되고 다시 읽었을 때 bytes/text가 보존된다. | 통과 | 이전 full reconciliation에서 활성 Markdown 3,706개 local↔Cloud byte/hash 일치. Web 저장 후 reload, Desktop local hash 일치도 기록됨. 세 client가 연속 교대 편집하는 검증은 미검증. |
@@ -72,6 +72,7 @@
 - `bash apps/pkms-ios/scripts/test-document-cache-policy.sh`: **10 assertions passed**. Dirty cache 보존, index에 없는 pending 복구, ACK 후 cache 상한, 최신 generation ACK, stale ACK, full-state 요구 상태, 중간 update ACK를 확인했다.
 - `xcodebuild -project apps/pkms-ios/PKMS.xcodeproj -scheme PKMS -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/workspace-pkms-ios-arm64-derived ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build`: **BUILD SUCCEEDED**. 실제 종료·offline/reconnect는 미실행이다.
 - `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms/directoryInventory.test.ts src/main/pkms/syncPolicy.test.ts src/main/pkms/syncBridge.move.test.ts src/main/pkms/syncBridge.symlink.test.ts`: **16 tests passed**. inventory fixtures와 fake API 기반 syncOnce 시나리오가 중첩 scan failure, symlink 대체, delete cancellation을 확인한다. exclusion `private/**`가 folder marker 자체도 제외하도록 matcher bug를 수정했다.
+- `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms/directoryInventory.test.ts src/main/pkms/syncPolicy.test.ts src/main/pkms/syncBridge.move.test.ts src/main/pkms/syncBridge.symlink.test.ts src/main/pkms/syncBridge.state.test.ts src/main/pkms/syncBridge.root-switch.test.ts`: **18 tests passed**. Fake API root switch는 cloud-only/local-only content, stale baseline 제거, pending mutation 보존 및 delete 0건을 확인한다.
 - `npm --prefix apps/workspace-app run typecheck`: inventory extraction, exclusion fix, symlink-protected subtree changes 이후 통과.
 - `npm --prefix apps/workspace-app run build`: production Electron main/preload/renderer build 성공. 기존 EPUB dynamic-import 및 큰 bundle 경고는 표시됐으나 build를 막지 않았다.
 - `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms/syncBridge.state.test.ts`: **1 test passed**. Malformed/truncated 및 structurally invalid state에서 sync가 fail-closed하고 persisted state file을 byte-for-byte 그대로 남긴다.
@@ -80,6 +81,6 @@ DB SQL acceptance는 linked production DB에 대한 이전 transaction rollback 
 
 ## 릴리스 판단
 
-현재 증거는 cloud file sync의 핵심 성공 경로와 몇 가지 복구 경로가 실제 데이터에서 작동했음을 보인다. 현재 stable runtime에는 10개 pending local item이 있으며 Cloudflare 429로 전송을 확인할 수 없다. 따라서 **모든 동기화 로직 검증 완료 또는 무조건 정상** 판정은 내리지 않는다. Worker 회복 후 이 pending 항목들이 원격에 수렴하는지와 다음에는 offline/restart, three-client collaboration, auth/rate limit failure injection, root 전환 E2E, move/delete의 충돌 순서, scale 성능을 격리 환경에서 검증한다.
+현재 증거는 cloud file sync의 핵심 성공 경로와 몇 가지 복구 경로가 실제 데이터에서 작동했음을 보인다. 현재 stable runtime에는 10개 pending local item이 있으며 Cloudflare 429로 전송을 확인할 수 없다. 따라서 **모든 동기화 로직 검증 완료 또는 무조건 정상** 판정은 내리지 않는다. Worker 회복 후 이 pending 항목들이 원격에 수렴하는지와 다음에는 offline/restart, three-client collaboration, auth/rate limit failure injection, Production API root-switch E2E, move/delete의 충돌 순서, scale 성능을 격리 환경에서 검증한다.
 
 세부 contract는 [folder sync](../workspace/pkms/folder-sync/README.md), [reconciliation](../workspace/pkms/folder-sync/reconciliation.md), [durability and recovery](../workspace/pkms/folder-sync/durability-recovery.md), [server protocol](../workspace/pkms/folder-sync/server-protocol.md), [UI acceptance](../workspace/pkms/folder-sync/ui-acceptance.md), [구현·배포 상태](../workspace/pkms/folder-sync/implementation-status.md)를 따른다.
