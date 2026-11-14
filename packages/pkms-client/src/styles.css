@@ -1241,10 +1241,22 @@ button {
   margin: 0;
   transform: none;
   box-shadow: 0 4px 14px #0002;
-  cursor: pointer;
   text-align: left;
+  pointer-events: none;
 }
-.dismissible .app-icon {
+.dismissible-dismiss {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.dismissible-dismiss .app-icon {
   width: 14px;
   height: 14px;
 }

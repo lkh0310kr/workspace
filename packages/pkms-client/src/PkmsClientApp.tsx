@@ -2236,16 +2236,20 @@ export default function Home() {
           </div>
         )}
         {error && (
-          <button
-            type="button"
+          <div
             className="notice error dismissible"
             role="alert"
-            aria-label="Dismiss error"
-            onClick={() => setError("")}
           >
-            {error}
-            <AppIcon name="close" />
-          </button>
+            <span>{error}</span>
+            <button
+              type="button"
+              className="dismissible-dismiss"
+              aria-label="Dismiss error"
+              onClick={() => setError("")}
+            >
+              <AppIcon name="close" />
+            </button>
+          </div>
         )}
         {showRepositories && (
           <div
