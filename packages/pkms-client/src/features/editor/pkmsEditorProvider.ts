@@ -3,6 +3,7 @@ import type {
   EditorItemRef,
   EditorProvider,
   EditorProviderCapabilities,
+  EditorSearchPage,
   EditorSearchOptions,
   EditorSearchResult,
   EditorTreeItem
@@ -23,6 +24,28 @@ export interface PkmsEditorProviderOptions {
   /** Emits affected parent paths after repository mutations or remote refreshes. */
   subscribeTree: (listener: (parentPaths: readonly string[]) => void) => () => void
   listLoadedFiles: () => readonly FileRecord[]
+  searchContent: (
+    query: string,
+    caseSensitive: boolean,
+    signal?: AbortSignal,
+    afterPath?: string | null
+  ) => Promise<{
+    results: Array<{
+      fileId: string
+      path: string
+      matches: Array<{ line: number; column: number; preview: string }>
+    }>
+    indexedFiles: number
+    searchableFiles: number
+    pendingFiles: number
+    hasMore: boolean
+    nextPath: string | null
+  }>
+  onSearchCoverage?: (coverage: {
+    indexedFiles: number
+    searchableFiles: number
+    pendingFiles: number
+  }) => void
   capabilities?: Partial<EditorProviderCapabilities>
   operations?: Pick<EditorProvider, 'create' | 'rename' | 'move' | 'delete'>
 }
@@ -30,7 +53,7 @@ export interface PkmsEditorProviderOptions {
 const defaultCapabilities: EditorProviderCapabilities = {
   operations: new Set(),
   searchNames: true,
-  searchContents: false,
+  searchContents: true,
   replaceContents: false,
   multiSelect: true,
   dragMove: true,
@@ -70,6 +93,60 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
     ...defaultCapabilities,
     ...options.capabilities,
     operations: options.capabilities?.operations ?? defaultCapabilities.operations
+  }
+
+  const searchContentPage = async (
+    query: string,
+    searchOptions: EditorSearchOptions,
+    signal?: AbortSignal,
+    cursor?: string | null
+  ): Promise<EditorSearchPage> => {
+    if (searchOptions.target !== 'contents')
+      return { results: [], nextCursor: null, hasMore: false }
+    abortIfNeeded(signal)
+    const response = await options.searchContent(
+      query,
+      searchOptions.caseSensitive,
+      signal,
+      cursor
+    )
+    abortIfNeeded(signal)
+    options.onSearchCoverage?.({
+      indexedFiles: response.indexedFiles,
+      searchableFiles: response.searchableFiles,
+      pendingFiles: response.pendingFiles
+    })
+    const results = response.results.map((result): EditorSearchResult => ({
+      item: {
+        providerId: id,
+        itemId: result.fileId,
+        parentId: null,
+        name: entryName(result.path),
+        path: result.path,
+        kind: 'markdown',
+        readOnly: false
+      },
+      matches: result.matches.map((match) => {
+        const needle = searchOptions.caseSensitive ? query : query.toLocaleLowerCase()
+        const line = searchOptions.caseSensitive
+          ? match.preview
+          : match.preview.toLocaleLowerCase()
+        const ranges: Array<{ start: number; end: number }> = []
+        let from = 0
+        while (needle && ranges.length < 50) {
+          const start = line.indexOf(needle, from)
+          if (start < 0) break
+          ranges.push({ start, end: start + needle.length })
+          from = start + Math.max(needle.length, 1)
+        }
+        return { ...match, ranges }
+      })
+    }))
+    return {
+      results,
+      nextCursor: response.nextPath,
+      hasMore: response.hasMore
+    }
   }
 
   return withEditorProviderErrors({
@@ -113,8 +190,13 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
         throw error
       }
     },
-    async search(query: string, searchOptions: EditorSearchOptions, signal) {
-      if (searchOptions.target !== 'names') return []
+    searchPage: searchContentPage,
+    async search(query: string, searchOptions: EditorSearchOptions, signal, onResult) {
+      if (searchOptions.target === 'contents') {
+        const page = await searchContentPage(query, searchOptions, signal)
+        page.results.forEach((result) => onResult?.(result))
+        return page.results
+      }
       if (searchOptions.fuzzy) {
         const matches = fuzzyEditorSearch(
           options.listLoadedFiles().filter((file) => file.kind !== 'folder'),

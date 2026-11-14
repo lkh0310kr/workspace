@@ -163,6 +163,12 @@ export interface EditorSearchResult {
   matches?: readonly EditorSearchMatch[]
 }
 
+export interface EditorSearchPage {
+  results: EditorSearchResult[]
+  nextCursor: string | null
+  hasMore: boolean
+}
+
 export interface EditorSearchMatch {
   line: number
   column: number
@@ -192,6 +198,13 @@ export interface EditorProvider {
     signal?: AbortSignal,
     onResult?: (result: EditorSearchResult) => void
   ): Promise<EditorSearchResult[]>
+  /** Optional cursor paging for providers whose content search has a bounded response size. */
+  searchPage?(
+    query: string,
+    options: EditorSearchOptions,
+    signal?: AbortSignal,
+    cursor?: string | null
+  ): Promise<EditorSearchPage>
   /** Replace matches only if the provider can confirm the searched occurrence count is unchanged. */
   replaceContents?(
     item: EditorItemRef,

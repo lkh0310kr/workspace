@@ -10,6 +10,7 @@ export type {
   EditorSavePhase,
   EditorSearchOptions,
   EditorSearchMatch,
+  EditorSearchPage,
   EditorReplaceOptions,
   EditorSearchResult,
   EditorSyncPhase,

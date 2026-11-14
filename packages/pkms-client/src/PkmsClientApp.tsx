@@ -19,6 +19,7 @@ import { PKMS_QUICK_OPEN_EVENT } from "./hostEvents";
 import { AppIcon, GitHubIcon } from "./components/Icons";
 import { PkmsDialog, type PkmsDialogRequest } from "./components/PkmsDialog";
 import { FileTreeList } from "./components/FileTreeList";
+import { PkmsContentSearchPanel } from "./components/PkmsContentSearchPanel";
 import { SyncBridgePanel } from "./components/SyncBridgePanel";
 import { useWorkspaceDirectory } from "./features/files/useWorkspaceDirectory";
 import { useDocumentSync } from "./features/editor/useDocumentSync";
@@ -90,6 +91,8 @@ export default function Home() {
   const [openingFileId, setOpeningFileId] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickQuery, setQuickQuery] = useState("");
+  const [contentSearchOpen, setContentSearchOpen] = useState(false);
+  const [contentSearchCoverage, setContentSearchCoverage] = useState<{ indexedFiles: number; searchableFiles: number; pendingFiles: number } | null>(null);
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
@@ -577,6 +580,21 @@ export default function Home() {
               };
             },
             listLoadedFiles: getFiles,
+            searchContent: (query, caseSensitive, signal, afterPath) =>
+              api<{
+                results: Array<{ fileId: string; path: string; matches: Array<{ line: number; column: number; preview: string }> }>;
+                indexedFiles: number;
+                searchableFiles: number;
+                pendingFiles: number;
+                hasMore: boolean;
+                nextPath: string | null;
+              }>(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/search`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query, caseSensitive, afterPath }),
+                signal
+              }),
+            onSearchCoverage: setContentSearchCoverage,
             capabilities: {
               operations: new Set(["createFile", "createDirectory", "rename", "move", "delete"])
             },
@@ -1005,6 +1023,34 @@ export default function Home() {
     };
   }, [activeFile, activeWorkspace?.id, closePkmsEditorSession, files, localFolderEnabled, openFile]);
   openFileRef.current = openFile;
+  const openSearchResult = useCallback(
+    async (result: import('@workspace/editor').EditorSearchResult, lineNumber: number) => {
+      const file = await getPkmsFileById(result.item.itemId);
+      if (!file || file.kind !== "markdown") {
+        setError("This search result is no longer available. Search again.");
+        return;
+      }
+      setContentSearchOpen(false);
+      setContentSearchCoverage(null);
+      await openFile(file);
+      const session = [...pkmsEditorSessions.current.values()].find((entry) => entry.item.path === file.path);
+      const content = session?.snapshot().content;
+      if (content?.type !== "text") return;
+      const lines = content.text.split("\n");
+      const targetLine = Math.max(0, Math.min(lineNumber - 1, lines.length - 1));
+      let position = 0;
+      for (let index = 0; index < targetLine; index++) position += lines[index].length + 1;
+      for (let attempt = 0; attempt < 10 && !editorNavigate.current; attempt++) {
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+      }
+      editorNavigate.current?.(position);
+    },
+    [getPkmsFileById, openFile, setError]
+  );
+  const closeContentSearch = useCallback(() => {
+    setContentSearchOpen(false);
+    setContentSearchCoverage(null);
+  }, []);
   const loadEditorBreadcrumbChildren = useCallback(
     async (directoryPath: string): Promise<EditorBreadcrumbEntry[]> => {
       if (!editorProvider) return [];
@@ -1265,6 +1311,12 @@ export default function Home() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "f" && activeWorkspace) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setContentSearchOpen(true);
+        return;
+      }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "p" && activeWorkspace && editorSupportsSearch(editorProvider, "names")) {
         event.preventDefault();
         setQuickQuery("");
@@ -1968,22 +2020,27 @@ export default function Home() {
           <>
             <div className="file-toolbar">
               <div className="file-toolbar-heading">
-                <span className="eyebrow">Files</span>
+                  <span className="eyebrow">{contentSearchOpen ? "Search" : "Files"}</span>
                 <button type="button" className="sync-compact-state" onClick={() => setShowSyncSettings(true)} aria-label="Open sync settings" title="Open sync settings">
                   <span className={`sync-bridge-indicator sync-bridge-indicator--${localSyncState}`} />
                   {!desktopBridge() ? "GitHub backup" : !localFolderEnabled ? "Connect folder" : localSyncState === "syncing" ? "Syncing" : localSyncState === "offline" ? "Offline" : localSyncState === "error" ? "Needs attention" : "Up to date"}
                 </button>
               </div>
               <div className="toolbar-actions">
+                {contentSearchOpen && (
+                  <button className="mini-button" title="Close search" aria-label="Close search" onClick={closeContentSearch}>
+                    <AppIcon name="close" />
+                  </button>
+                )}
                 <button className={`mini-button visibility-button${showFileFilters ? " active" : ""}`} title="File filter settings" aria-label="File filter settings" aria-expanded={showFileFilters} onClick={() => setShowFileFilters((open) => !open)}>
                   <AppIcon name="filter" />
                 </button>
-                {canCreateFile && (
+                {!contentSearchOpen && canCreateFile && (
                   <button className="mini-button" title="New note" onClick={() => beginTreeCreation("file", toolbarCreationFolder)}>
                     <AppIcon name="filePlus" />
                   </button>
                 )}
-                {canCreateDirectory && (
+                {!contentSearchOpen && canCreateDirectory && (
                   <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}>
                     <AppIcon name="folderPlus" />
                   </button>
@@ -2011,6 +2068,15 @@ export default function Home() {
                 <p>Press ⌘⇧. to show ignored files</p>
               </div>
             )}
+            {contentSearchOpen ? (
+              <PkmsContentSearchPanel
+                provider={editorProvider}
+                coverage={contentSearchCoverage}
+                onCoverageChange={setContentSearchCoverage}
+                onClose={closeContentSearch}
+                onSelect={(result, line) => void openSearchResult(result, line)}
+              />
+            ) : (
             <FileTreeList
               treeRef={treeRef}
               projection={treeProjection}
@@ -2068,6 +2134,7 @@ export default function Home() {
                 else void openFile(file);
               }}
             />
+            )}
             {treeContextMenu &&
               (() => {
                 const file = treeContextMenu.file;
