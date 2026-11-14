@@ -18,17 +18,17 @@ query/본문/selection이 바뀌면 count를 다시 계산한다. 비어 있는 
 
 근거: [useEditorQuickOpenSearch.ts](../src/useEditorQuickOpenSearch.ts), [fuzzySearch.ts](../src/fuzzySearch.ts), [EditorQuickOpenDialog.tsx](../src/EditorQuickOpenDialog.tsx).
 
-provider/enabled/names capability가 있어야 검색한다. query·provider·limit이 바뀔 때 AbortController를 새로 만들고 이전 요청을 취소한다. 옵션은 target=names, caseSensitive=false, regex=false, wholeWord=false, fuzzy=true다. 결과 item 목록을 dialog에 공급한다. 응답이 아직 현재 query와 일치하지 않으면 이전 결과 대신 items=[], loading=true다. 비활성·미지원은 [], false, null. 취소 오류는 표시하지 않고 다른 오류는 message를 표시한다. hook 자체에는 debounce가 없다.
+provider/enabled/names capability가 있어야 검색한다. query·provider·limit이 바뀔 때 AbortController를 새로 만들고 이전 요청을 취소한다. 옵션은 target=names, caseSensitive=false, regex=false, wholeWord=false, fuzzy=true다. 결과 item 목록을 dialog에 공급한다. 응답이 아직 현재 query와 일치하지 않으면 이전 결과 대신 items=[], loading=true다. 비활성·미지원은 [], false, null. 취소 오류는 표시하지 않고 다른 오류는 message를 표시한다. 이름 검색은 입력 중 renderer의 긴 동기 작업으로 UI 입력을 막지 않아야 한다.
 
-local provider는 fs.listAllFiles의 전체 path로 fuzzy 검색, 기본 limit=100이다. PKMS는 loadedFiles의 folder 제외 목록으로 검색하며 기본 limit=MAX_SAFE_INTEGER다. 공통 fuzzy 구현은 소문자 text/query에서 연속 포함의 시작 index를 score로 사용한다. 연속 포함이 없으면 query 글자를 순서대로 탐색해 subsequence가 존재할 때 `1000 + (lastIndex - firstIndex) + firstIndex`, 없으면 제외한다. score 오름차순, 동점은 입력 순서, limit만큼 반환한다. query.trim()이 비면 입력 앞 limit개를 반환한다.
+local provider는 fs.listAllFiles의 전체 path로 fuzzy 검색, 기본 limit=100이다. 파일 목록은 query마다 디스크를 다시 훑지 않으며 파일 변경 이후 새 목록을 반영한다. fuzzy 후보 평가/정렬은 입력 중 renderer의 긴 동기 작업으로 UI 입력을 막지 않아야 한다. PKMS는 loadedFiles의 folder 제외 목록으로 검색하며 기본 limit=MAX_SAFE_INTEGER다. 공통 fuzzy 구현은 소문자 text/query에서 연속 포함의 시작 index를 score로 사용한다. 연속 포함이 없으면 query 글자를 순서대로 탐색해 subsequence가 존재할 때 `1000 + (lastIndex - firstIndex) + firstIndex`, 없으면 제외한다. score 오름차순, 동점은 입력 순서, limit만큼 반환한다. query.trim()이 비면 입력 앞 limit개를 반환한다.
 
-Quick Open dialog는 document.body portal이며 mount 시 input focus, query 또는 결과 ID 배열 변경 시 선택 index=0이다. Up/Down은 양끝 clamp, Enter는 loading이 아니고 선택 item이 있을 때 onSelect(id), Escape와 backdrop click은 onClose다. hover는 선택 index를 바꾸고 선택 행을 nearest scrollIntoView한다. error→loading→empty→결과 순으로 UI 우선순위를 적용한다.
+Quick Open dialog는 document.body portal이며 열릴 때 input에 focus하고, query 또는 결과 ID 배열 변경 시 선택 index=0이다. Up/Down은 양끝 clamp, Enter는 loading이 아니고 선택 item이 있을 때 onSelect(id), Escape와 backdrop click은 onClose다. hover는 선택 index를 바꾸고 선택 행을 nearest scrollIntoView한다. error→loading→empty→결과 순으로 UI 우선순위를 적용한다. 이전 query 결과는 새 query 결과처럼 보이지 않는다.
 
 ## Desktop 파일 내용 검색과 치환
 
 근거: [localEditorProvider.ts](../../../apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts).
 
-내용 검색은 UUID requestId를 만들고 onSearchResult/onSearchDone을 등록한 뒤 searchInFiles를 요청한다. 자신의 requestId만 받아 path별 마지막 결과를 Map에 축적하고 onResult로 stream한다. 완료 시 최종 배열 반환, 오류 시 reject한다. abort는 cancelSearch(requestId)를 보내며 모든 listener를 해제하고 AbortError로 종료한다. 빈 contents query는 []다.
+내용 검색은 UUID requestId를 만들고 onSearchResult/onSearchDone을 등록한 뒤 searchInFiles를 요청한다. 자신의 requestId만 받아 path별 마지막 결과를 Map에 축적하고 onResult로 stream한다. 결과는 파일 단위로 갱신하며 같은 파일의 match마다 누적 전체 결과를 반복 전송하지 않는다. 완료 시 최종 배열 반환, 오류 시 reject한다. abort는 cancelSearch(requestId)를 보내며 모든 listener를 해제하고 AbortError로 종료한다. 빈 contents query는 []다. 입력 변경은 이전 작업을 취소하고 debounce 후 최신 query만 실행한다. 결과 반영은 화면 갱신에 맞춰 묶어 검색 결과가 입력 focus/typing을 막지 않아야 한다.
 
 replaceContents는 provider ID/path를 검증하고 해당 파일의 열린 session이 clean이 아니면 false다. disk를 재읽고 현재 match 개수가 expectedMatchCount와 다르면 false. 일치하면 JS replace를 수행하고 실제 변경이 있을 때만 writeFileIfUnchanged(current,next)로 기록한다. 비교 실패는 false, 변경이 없으면 true다. 검색 결과가 최신 본문이라는 보장은 match count 재검사와 조건부 쓰기의 조합으로 제공한다.
 
@@ -36,14 +36,19 @@ replaceContents는 provider ID/path를 검증하고 해당 파일의 열린 sess
 
 ## 검증 시나리오
 
-| ID        | 행동                         | 결과                                 |
-| --------- | ---------------------------- | ------------------------------------ |
-| SEARCH-01 | Mod-f 두 번                  | panel 열림→닫힘                      |
-| SEARCH-02 | 999 match                    | count=999+                           |
-| SEARCH-03 | query A→B, A가 늦게 완료     | A 결과 표시하지 않음                 |
-| SEARCH-04 | search 중 취소               | IPC 취소와 result/done listener 정리 |
-| SEARCH-05 | 검색 후 disk match 개수 변경 | replace=false, 쓰기 없음             |
-| SEARCH-06 | 검색 후 열린 session dirty   | replace=false                        |
-| SEARCH-07 | 이름 검색 미지원 provider    | Quick Open 요청하지 않고 빈 상태     |
+| ID        | 행동                               | 결과                                                                        |
+| --------- | ---------------------------------- | --------------------------------------------------------------------------- |
+| SEARCH-01 | Mod-f 두 번                        | panel 열림→닫힘                                                             |
+| SEARCH-02 | 999 match                          | count=999+                                                                  |
+| SEARCH-03 | query A→B, A가 늦게 완료           | A 결과 표시하지 않음                                                        |
+| SEARCH-04 | search 중 취소                     | IPC 취소와 result/done listener 정리                                        |
+| SEARCH-05 | 검색 후 disk match 개수 변경       | replace=false, 쓰기 없음                                                    |
+| SEARCH-06 | 검색 후 열린 session dirty         | replace=false                                                               |
+| SEARCH-07 | 이름 검색 미지원 provider          | Quick Open 요청하지 않고 빈 상태                                            |
+| SEARCH-08 | Quick Open을 열고 바로 입력        | input이 focus되어 첫 글자부터 query로 입력됨                                |
+| SEARCH-09 | Quick Open에서 빠르게 query 변경   | 이전 query 결과는 보이지 않고 최신 결과가 입력 반응성을 막지 않고 표시됨    |
+| SEARCH-10 | 로컬 Quick Open에서 파일 목록 검색 | 목록 조회는 캐시되며 파일 생성/삭제/이름 변경 뒤 갱신됨                     |
+| SEARCH-11 | 한 파일에 여러 내용 match 발생     | 파일별 결과 갱신으로 반영되고 match마다 누적 전체 결과를 반복 전송하지 않음 |
+| SEARCH-12 | 열린 Find in Files에 단축키 재입력 | query input으로 focus가 이동하고 기존 query는 유지됨                        |
 
 문서 search panel과 Quick Open의 DOM 키보드 동작은 현재 자동 테스트로 전부 검증되지 않았다. 재구현 시 위 시나리오를 수락 기준으로 사용한다.

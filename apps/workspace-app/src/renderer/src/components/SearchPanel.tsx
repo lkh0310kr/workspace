@@ -21,6 +21,7 @@ import { acquireLocalEditorProvider } from '../editor/localEditorProvider'
 // sidebar region in place of TreeView (Cmd+Shift+F), not a separate window.
 interface Props {
   tabId: number
+  focusRequest: number
   onJumpToResult: (path: string, kind: 'code' | 'markdown' | 'viewer', line: number) => void
   onClose: () => void
 }
@@ -40,7 +41,25 @@ function highlightLine(lineText: string, ranges: EditorSearchMatch['ranges']): R
   return parts
 }
 
-export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
+function mergeSearchResults(
+  current: EditorSearchResult[],
+  updates: EditorSearchResult[]
+): EditorSearchResult[] {
+  const next = [...current]
+  const indexById = new Map(next.map((entry, index) => [entry.item.itemId, index]))
+  for (const update of updates) {
+    const index = indexById.get(update.item.itemId)
+    if (index === undefined) {
+      indexById.set(update.item.itemId, next.length)
+      next.push(update)
+    } else {
+      next[index] = update
+    }
+  }
+  return next
+}
+
+export function SearchPanel({ tabId, focusRequest, onJumpToResult, onClose }: Props) {
   const providerLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId])
   const provider: EditorProvider = providerLease.provider
   const supportsContentSearch = editorSupportsSearch(provider, 'contents')
@@ -58,6 +77,8 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
   const searchAbortRef = useRef<AbortController | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const queryInputRef = useRef<HTMLInputElement>(null)
+  const streamFrameRef = useRef<number | null>(null)
+  const streamedResultsRef = useRef(new Map<string, EditorSearchResult>())
 
   const opts = useMemo<EditorReplaceOptions>(
     () => ({ caseSensitive, regex, wholeWord }),
@@ -65,12 +86,26 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
   )
 
   useLayoutEffect(() => {
-    queryInputRef.current?.focus()
-  }, [])
+    queryInputRef.current?.focus({ preventScroll: true })
+  }, [focusRequest])
+
+  useLayoutEffect(() => {
+    searchAbortRef.current?.abort()
+    searchAbortRef.current = null
+    if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
+    streamFrameRef.current = null
+    streamedResultsRef.current.clear()
+    setResults([])
+    setError(null)
+    setSearching(Boolean(query))
+  }, [query, caseSensitive, regex, wholeWord])
 
   const runSearch = useCallback(
     (q: string, searchOpts: EditorReplaceOptions) => {
       searchAbortRef.current?.abort()
+      if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
+      streamFrameRef.current = null
+      streamedResultsRef.current.clear()
       setResults([])
       setError(null)
       setReplaceSummary(null)
@@ -89,23 +124,32 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
       void provider
         .search(q, { ...searchOpts, target: 'contents' }, controller.signal, (result) => {
           if (searchAbortRef.current !== controller) return
-          setResults((current) => {
-            const index = current.findIndex((entry) => entry.item.itemId === result.item.itemId)
-            if (index < 0) return [...current, result]
-            const next = [...current]
-            next[index] = result
-            return next
+          streamedResultsRef.current.set(result.item.itemId, result)
+          if (streamFrameRef.current !== null) return
+          streamFrameRef.current = requestAnimationFrame(() => {
+            streamFrameRef.current = null
+            const updates = [...streamedResultsRef.current.values()]
+            streamedResultsRef.current.clear()
+            setResults((current) => mergeSearchResults(current, updates))
           })
         })
         .then((next) => {
           if (searchAbortRef.current !== controller) return
+          if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
+          streamFrameRef.current = null
+          streamedResultsRef.current.clear()
           setResults(next)
           setSearching(false)
         })
         .catch((cause) => {
           if (searchAbortRef.current !== controller) return
+          if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
+          streamFrameRef.current = null
           if (!controller.signal.aborted)
             setError(cause instanceof Error ? cause.message : String(cause))
+          const updates = [...streamedResultsRef.current.values()]
+          streamedResultsRef.current.clear()
+          if (updates.length) setResults((current) => mergeSearchResults(current, updates))
           setSearching(false)
         })
     },
@@ -124,6 +168,7 @@ export function SearchPanel({ tabId, onJumpToResult, onClose }: Props) {
   useEffect(() => {
     return () => {
       searchAbortRef.current?.abort()
+      if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
       providerLease.release()
     }
   }, [providerLease])

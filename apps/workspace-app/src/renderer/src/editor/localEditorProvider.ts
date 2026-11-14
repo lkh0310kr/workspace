@@ -9,7 +9,6 @@ import type {
   EditorTreeItem
 } from '@workspace/editor'
 import { EditorProviderError, withEditorProviderErrors } from '@workspace/editor'
-import { fuzzyEditorSearch } from '@workspace/editor'
 import {
   cancelSearch,
   createDir,
@@ -26,6 +25,97 @@ import {
   writeFileIfUnchanged,
   type SearchFileResult
 } from '../electron'
+
+type QuickOpenWorkerResponse = { requestId: number; paths: string[] }
+type PendingQuickOpenSearch = {
+  resolve: (paths: string[]) => void
+  reject: (error: Error) => void
+  signal?: AbortSignal
+  abort?: () => void
+}
+
+const filePathsCache = new Map<number, Promise<string[]>>()
+const filePathRevisions = new Map<number, number>()
+const workerIndexedTabs = new Set<number>()
+const pendingQuickOpenSearches = new Map<number, PendingQuickOpenSearch>()
+let quickOpenWorker: Worker | null = null
+let nextQuickOpenRequestId = 0
+
+function getQuickOpenWorker(): Worker {
+  if (quickOpenWorker) return quickOpenWorker
+  const worker = new Worker(new URL('./quickOpenSearch.worker.ts', import.meta.url), {
+    type: 'module'
+  })
+  worker.addEventListener('message', (event: MessageEvent<QuickOpenWorkerResponse>) => {
+    const pending = pendingQuickOpenSearches.get(event.data.requestId)
+    if (!pending) return
+    pendingQuickOpenSearches.delete(event.data.requestId)
+    if (pending.abort) pending.signal?.removeEventListener('abort', pending.abort)
+    pending.resolve(event.data.paths)
+  })
+  worker.addEventListener('error', (event) => {
+    for (const [requestId, pending] of pendingQuickOpenSearches) {
+      if (pending.abort) pending.signal?.removeEventListener('abort', pending.abort)
+      pending.reject(new Error(event.message || 'Quick Open search worker failed'))
+      pendingQuickOpenSearches.delete(requestId)
+    }
+    quickOpenWorker = null
+    workerIndexedTabs.clear()
+  })
+  quickOpenWorker = worker
+  return worker
+}
+
+function invalidateQuickOpenFileList(tabId: number): void {
+  filePathsCache.delete(tabId)
+  filePathRevisions.set(tabId, (filePathRevisions.get(tabId) ?? 0) + 1)
+  workerIndexedTabs.delete(tabId)
+  quickOpenWorker?.postMessage({ type: 'remove-files', tabId })
+}
+
+async function searchQuickOpenPaths(
+  tabId: number,
+  query: string,
+  limit: number,
+  signal?: AbortSignal
+): Promise<string[]> {
+  abortIfNeeded(signal)
+  const filePathRevision = filePathRevisions.get(tabId) ?? 0
+  let pathsPromise = filePathsCache.get(tabId)
+  if (!pathsPromise) {
+    pathsPromise = window.api.fs.listAllFiles(tabId)
+    filePathsCache.set(tabId, pathsPromise)
+    void pathsPromise.catch(() => {
+      if (filePathsCache.get(tabId) === pathsPromise) filePathsCache.delete(tabId)
+    })
+  }
+  const paths = await pathsPromise
+  abortIfNeeded(signal)
+  if (filePathRevision !== (filePathRevisions.get(tabId) ?? 0)) {
+    return searchQuickOpenPaths(tabId, query, limit, signal)
+  }
+  const worker = getQuickOpenWorker()
+  if (!workerIndexedTabs.has(tabId)) {
+    worker.postMessage({ type: 'set-files', tabId, paths })
+    workerIndexedTabs.add(tabId)
+  }
+
+  const requestId = ++nextQuickOpenRequestId
+  return new Promise<string[]>((resolve, reject) => {
+    const pending: PendingQuickOpenSearch = { resolve, reject, signal }
+    pending.abort = () => {
+      pendingQuickOpenSearches.delete(requestId)
+      reject(new DOMException('The operation was aborted', 'AbortError'))
+    }
+    pendingQuickOpenSearches.set(requestId, pending)
+    if (signal?.aborted) {
+      pending.abort()
+      return
+    }
+    signal?.addEventListener('abort', pending.abort, { once: true })
+    worker.postMessage({ type: 'search', requestId, tabId, query, limit })
+  })
+}
 
 const capabilities: EditorProviderCapabilities = {
   operations: new Set(['createFile', 'createDirectory', 'rename', 'move', 'delete']),
@@ -169,6 +259,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
   }
 
   const unsubscribeFiles = onFileChanged((changedPaths) => {
+    invalidateQuickOpenFileList(tabId)
     if (changedPaths.length === 0 || changedPaths.every((path) => !path)) {
       for (const session of sessions) session.externalChange([session.item.path])
       for (const listener of listeners) listener([null])
@@ -225,13 +316,13 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
     },
     async search(query, options, signal, onResult) {
       if (options.target === 'names') {
-        const paths = await window.api.fs.listAllFiles(tabId)
+        const paths = options.fuzzy
+          ? await searchQuickOpenPaths(tabId, query, options.limit ?? 100, signal)
+          : (await window.api.fs.listAllFiles(tabId)).filter(
+              (path) => findMatch(path.split('/').at(-1) ?? '', query, options) >= 0
+            )
         abortIfNeeded(signal)
-        const candidates = paths.map((path) => itemFor(path, false))
-        const matches = options.fuzzy
-          ? fuzzyEditorSearch(candidates, query, (item) => item.path, options.limit ?? 100)
-          : candidates.filter((item) => findMatch(item.name, query, options) >= 0)
-        const results = matches.map((item) => ({ item }))
+        const results = paths.map((path) => ({ item: itemFor(path, false) }))
         for (const result of results) {
           abortIfNeeded(signal)
           onResult?.(result)
@@ -324,6 +415,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       const path = [parentPath, name].filter(Boolean).join('/')
       if (kind === 'directory') await createDir(tabId, path)
       else await writeFile(tabId, path, '')
+      invalidateQuickOpenFileList(tabId)
       const item = itemFor(path, kind === 'directory', name)
       persistItemIds()
       return item
@@ -337,6 +429,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       const isDirectory = oldEntries.find((entry) => entry.path === from)?.is_dir ?? false
       const to = [parentOf(from) ?? '', name].filter(Boolean).join('/')
       await renamePath(tabId, from, to)
+      invalidateQuickOpenFileList(tabId)
       const affected = [...pathByItemId.entries()].filter(
         ([, path]) => path === from || (isDirectory && path.startsWith(`${from}/`))
       )
@@ -387,6 +480,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
           itemIdByPath.delete(candidate)
         }
       }
+      invalidateQuickOpenFileList(tabId)
       persistItemIds()
     },
     async move(refs, parentId) {
@@ -422,6 +516,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         const oldEntries = await listDir(tabId, parentOf(from) ?? '')
         const isDirectory = oldEntries.find((entry) => entry.path === from)?.is_dir ?? false
         await renamePath(tabId, from, to)
+        invalidateQuickOpenFileList(tabId)
         const affected = [...pathByItemId.entries()].filter(
           ([, path]) => path === from || path.startsWith(`${from}/`)
         )
@@ -446,6 +541,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       }
     },
     dispose() {
+      invalidateQuickOpenFileList(tabId)
       unsubscribeFiles()
       listeners.clear()
       for (const session of [...sessions]) void session.close()

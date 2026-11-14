@@ -72,7 +72,20 @@ type RipgrepJsonEvent =
         submatches: { start: number; end: number }[]
       }
     }
-  | { type: 'begin' | 'end' | 'summary' | 'context'; data: unknown }
+  | { type: 'begin' | 'end'; data: { path: { text: string } } }
+  | { type: 'summary' | 'context'; data: unknown }
+
+function parseRipgrepFileEventPath(line: string, root: string): string | null {
+  if (!line) return null
+  try {
+    const event = JSON.parse(line) as RipgrepJsonEvent
+    if (event.type !== 'begin' && event.type !== 'end') return null
+    const absolutePath = path.resolve(root, event.data.path.text)
+    return path.relative(root, absolutePath)
+  } catch {
+    return null
+  }
+}
 
 /** Parses one line of `rg --json` output into a file-relative match, or
  * null for event types this feature doesn't need (begin/end/summary) or a
@@ -132,10 +145,8 @@ export function resolveSearchBinaryPath(
 }
 
 /**
- * Streams matches grouped by file as ripgrep finds them (`onFile` fires
- * once per file, with that file's full match list at end-of-stream for that
- * file) — VSCode's own Search view populates live the same way rather than
- * waiting for the whole search to finish before showing anything.
+ * Streams completed files as ripgrep finds them. A file is sent once with its
+ * complete match list, avoiding repeated IPC serialization of cumulative data.
  */
 export function searchInFiles(
   root: string,
@@ -155,20 +166,30 @@ export function searchInFiles(
   const byFile = new Map<string, SearchFileResult>()
   let stderr = ''
 
+  const flushFile = (filePath: string) => {
+    const entry = byFile.get(filePath)
+    if (!entry) return
+    byFile.delete(filePath)
+    onFile(entry)
+  }
+
   proc.stdout.on('data', (chunk: Buffer) => {
     buffer += chunk.toString('utf8')
     const lines = buffer.split('\n')
     buffer = lines.pop() ?? ''
     for (const line of lines) {
       const parsed = parseRipgrepMatchLine(line, root)
-      if (!parsed) continue
-      let entry = byFile.get(parsed.path)
-      if (!entry) {
-        entry = { path: parsed.path, matches: [] }
-        byFile.set(parsed.path, entry)
+      if (parsed) {
+        let entry = byFile.get(parsed.path)
+        if (!entry) {
+          entry = { path: parsed.path, matches: [] }
+          byFile.set(parsed.path, entry)
+        }
+        entry.matches.push(parsed.match)
+        continue
       }
-      entry.matches.push(parsed.match)
-      onFile(entry)
+      const filePath = parseRipgrepFileEventPath(line, root)
+      if (filePath !== null) flushFile(filePath)
     }
   })
   proc.stderr.on('data', (chunk: Buffer) => {
@@ -176,6 +197,7 @@ export function searchInFiles(
   })
   proc.on('error', (err) => onDone(String(err)))
   proc.on('close', (code) => {
+    for (const filePath of byFile.keys()) flushFile(filePath)
     // Why: rg exits 1 for "no matches" (not an error — an empty result set)
     // and 2 for a real failure (bad regex, unreadable root, etc).
     if (code === 2) onDone(stderr.trim() || `ripgrep exited with code ${code}`)

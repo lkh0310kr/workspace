@@ -30,6 +30,14 @@ setBrowserPaneChipState는 같은 paneNodeId의 다른 browser chip 활성값을
 
 focus schedule은 guest별 epoch로 이전 요청을 무효화하고 animation frame에서 interactive 조건을 재확인한다. detach/unregister·상태 변경으로 불가능해진 guest에 무조건 focus하지 않는다. 실제 webview host/native guest/terminal focus relay는 [browserGuestFocus](../../src/renderer/src/browser/browserGuestFocus.ts)가 조정한다. Terminal 입력 전 releaseKeyboardFromBrowserGuests는 native blur IPC·active guest 해제·renderer focus 복귀를 수행한다.
 
+## 검색 단축키와 입력 focus
+
+`Cmd/Ctrl+P`는 workspace Quick Open, `Cmd/Ctrl+Shift+F`는 활성 pane group의 파일 내용 검색을 연다. Electron host renderer와 browser webview guest 모두에서 단축키가 동작해야 한다. Chromium의 인쇄/찾기 기본 동작이 가로채지 않도록 main process `before-input-event` 경계에서 shortcut IPC로 전달한다. Home 화면에서는 Quick Open을 열지 않는다. PKMS pane은 PKMS 자체 Quick Open으로 위임한다.
+
+Find in Files를 이미 열어 둔 상태에서 단축키를 다시 누르면 검색 input이 다시 focus된다. 입력 focus는 기존 query를 보존한다. Quick Open은 열리는 즉시 query input으로 focus를 이동해 첫 입력을 받는다. 키 입력·focus·표시 결과는 renderer의 긴 동기 검색/정렬 작업 때문에 멈추지 않아야 한다. Quick Open 이름 검색과 Desktop 파일 내용 검색의 provider/result 규칙은 [Editor 검색 스펙](../../../../packages/editor/docs/search.md)을 따른다.
+
+단축키 acceptance: INT-07 `Cmd/Ctrl+P`를 host renderer 또는 webview guest에 focus한 채 누르면 Quick Open이 열린다. INT-08 같은 두 입력 경계에서 `Cmd/Ctrl+Shift+F`를 누르면 Search panel이 열리고 query input이 focus된다. INT-09 이미 열린 Search panel에서 다시 실행하면 query 유지 상태로 input이 재-focus된다. INT-10 검색어를 연속 입력할 때 화면 입력이 멈추지 않고 최신 검색 결과만 보인다. shortcut relay의 단위 테스트와 실제 packaged Electron/webview 확인을 구분해 기록한다.
+
 ## 관찰과 재구현 시나리오
 
 snapshot은 active workspace·overlay count/sources·guest·portal·최근 reconcile을 제공하고 subscribe는 해제 함수를 반환한다. debug panel은 진단 수단이며 durable 상태 저장소가 아니다.

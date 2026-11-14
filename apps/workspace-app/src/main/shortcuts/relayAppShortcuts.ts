@@ -198,6 +198,24 @@ export function relayGuestWebviewShortcuts(
 
   relaySharedRendererShortcuts(event, input, send, { gateBrowserReload: false })
 
+  // A focused webview guest is a separate WebContents; its host renderer never
+  // receives these keydowns. Keep the workbench commands available there too.
+  if ((input.meta || input.control) && !input.alt && input.code === 'KeyP' && !input.shift) {
+    event.preventDefault()
+    send('shortcut:quick-open')
+    return
+  }
+  if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && input.shift) {
+    event.preventDefault()
+    send('shortcut:find-in-files')
+    return
+  }
+  if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && !input.shift) {
+    event.preventDefault()
+    send('shortcut:find-in-editor')
+    return
+  }
+
   if (isWorkspaceTabIndexInput(input)) {
     send('shortcut:switch-workspace-tab-index', { index: Number(input.code.at(-1) ?? input.key) })
     return

@@ -24,6 +24,8 @@ interface Result {
   error: string | null
 }
 
+const QUICK_OPEN_DEBOUNCE_MS = 80
+
 /** Shared provider-backed fuzzy name search for the Quick Open dialog. */
 export function useEditorQuickOpenSearch({
   provider,
@@ -41,44 +43,50 @@ export function useEditorQuickOpenSearch({
       return
     }
 
-    const controller = new AbortController()
-    setState({ provider, query, limit, status: 'loading', items: [], error: null })
-    void provider
-      .search(
-        query,
-        {
-          target: 'names',
-          caseSensitive: false,
-          regex: false,
-          wholeWord: false,
-          fuzzy: true,
-          limit
-        },
-        controller.signal
-      )
-      .then((results) => {
-        if (controller.signal.aborted) return
-        setState({
-          provider,
+    let controller: AbortController | undefined
+    const timer = setTimeout(() => {
+      controller = new AbortController()
+      setState({ provider, query, limit, status: 'loading', items: [], error: null })
+      void provider
+        .search(
           query,
-          limit,
-          status: 'ready',
-          items: results.map(({ item }) => item),
-          error: null
+          {
+            target: 'names',
+            caseSensitive: false,
+            regex: false,
+            wholeWord: false,
+            fuzzy: true,
+            limit
+          },
+          controller.signal
+        )
+        .then((results) => {
+          if (controller?.signal.aborted) return
+          setState({
+            provider,
+            query,
+            limit,
+            status: 'ready',
+            items: results.map(({ item }) => item),
+            error: null
+          })
         })
-      })
-      .catch((cause: unknown) => {
-        if (controller.signal.aborted) return
-        setState({
-          provider,
-          query,
-          limit,
-          status: 'error',
-          items: [],
-          error: cause instanceof Error ? cause.message : errorMessage
+        .catch((cause: unknown) => {
+          if (controller?.signal.aborted) return
+          setState({
+            provider,
+            query,
+            limit,
+            status: 'error',
+            items: [],
+            error: cause instanceof Error ? cause.message : errorMessage
+          })
         })
-      })
-    return () => controller.abort()
+    }, QUICK_OPEN_DEBOUNCE_MS)
+    return () => {
+      clearTimeout(timer)
+      controller?.abort()
+    }
   }, [provider, query, enabled, supported, limit, errorMessage])
 
   if (!provider || !enabled || !supported) return { items: [], loading: false, error: null }

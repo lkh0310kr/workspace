@@ -180,6 +180,32 @@ describe('relayHostAppShortcuts', () => {
 })
 
 describe('relayGuestWebviewShortcuts', () => {
+  it('routes Quick Open and Find in Files before a browser guest consumes the shortcuts', () => {
+    const quickOpenEvent = mockEvent()
+    const quickOpenSend = vi.fn()
+    relayGuestWebviewShortcuts(
+      quickOpenEvent as never,
+      keyDown('KeyP', { meta: true }) as never,
+      quickOpenSend,
+      vi.fn(),
+      42
+    )
+    expect(quickOpenEvent.preventDefault).toHaveBeenCalled()
+    expect(quickOpenSend).toHaveBeenCalledWith('shortcut:quick-open')
+
+    const searchEvent = mockEvent()
+    const searchSend = vi.fn()
+    relayGuestWebviewShortcuts(
+      searchEvent as never,
+      keyDown('KeyF', { meta: true, shift: true }) as never,
+      searchSend,
+      vi.fn(),
+      42
+    )
+    expect(searchEvent.preventDefault).toHaveBeenCalled()
+    expect(searchSend).toHaveBeenCalledWith('shortcut:find-in-files')
+  })
+
   it('shows tab numbers while Meta is held in a browser guest', () => {
     const send = vi.fn()
     relayGuestWebviewShortcuts(

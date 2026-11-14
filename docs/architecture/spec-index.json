@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx",
-          "sha256": "77de7d00d7d9f174756d7b88028180637566ef4bf025fbd5f2864647fa0e4a5a"
+          "sha256": "2c710b6d5d33783dfd415c5cac0c32613e9c37c768826d2ef7ffdee2c5524e27"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/assets/styles.css",
@@ -71,7 +71,11 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts",
-          "sha256": "f7238d1c61fd2b3529755c5620ccee0bd280c5b0c484b4cab9eb7912835bb1a6"
+          "sha256": "de44ed482c66bd4c708bdfe084aa55333839d55d934994afbf11525e891f941d"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/editor/quickOpenSearch.worker.ts",
+          "sha256": "e4f6b15de490c0430af53e7fe25cf16b9ebf63d1788f95d262bbee46509c884e"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/explorer/treeReload.ts",
@@ -263,7 +267,7 @@
         },
         {
           "path": "packages/editor/src/tree.css",
-          "sha256": "ed49c76e1de3cdb8baacde5b0586ec484f1ff4bc7a2d5930bd6d4c54e0bb7707"
+          "sha256": "db499ed7aaaeb31e3b420eef17cd2ef041e00f472fcc911eb030fe4952c8eae8"
         },
         {
           "path": "packages/editor/src/treeModel.ts",
@@ -287,7 +291,7 @@
         },
         {
           "path": "packages/editor/src/useEditorQuickOpenSearch.ts",
-          "sha256": "c540c1a22498a6ae982b047fd1e853fd444dd8c65900378b596c9cfcbe301805"
+          "sha256": "72970ff713e0d3d879c8dc3e65c3f03efd724784531e3a16d7e11a9b48dc29bb"
         },
         {
           "path": "packages/editor/src/useEditorTreeSelection.ts",
@@ -323,7 +327,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts",
-          "sha256": "f7238d1c61fd2b3529755c5620ccee0bd280c5b0c484b4cab9eb7912835bb1a6"
+          "sha256": "de44ed482c66bd4c708bdfe084aa55333839d55d934994afbf11525e891f941d"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/editorPlainPaste.ts",
@@ -482,6 +486,22 @@
           "sha256": "4ffda91eefa270bb7127acd885ac4f16f4e039da26eab3e2264252ae078054aa"
         },
         {
+          "path": "apps/workspace-app/src/main/search.ts",
+          "sha256": "455b5215ab647eded2c9939ec9309723f57fbe7e3870c9917bdf62bd9041f059"
+        },
+        {
+          "path": "apps/workspace-app/src/main/search.test.ts",
+          "sha256": "1c2dcaeee68a293ea0284e0c4e38c431159eec713fb6a373326b292ad8fdb377"
+        },
+        {
+          "path": "apps/workspace-app/src/main/shortcuts/relayAppShortcuts.ts",
+          "sha256": "4f1ed91c1354ea5c478b321bef84bd112a8dc18b20afb2fc311dbe46d310e740"
+        },
+        {
+          "path": "apps/workspace-app/src/main/shortcuts/relayAppShortcuts.test.ts",
+          "sha256": "f809bc10dd6ea760b46b5202e72f4456bd835950f78be979ce45065319f8d3d1"
+        },
+        {
           "path": "apps/workspace-app/src/preload/browserApi.ts",
           "sha256": "c67bc2dc3f654a272b0fa3fe60978f192731d068d529697e52e0c173ada2fab7"
         },
@@ -500,6 +520,18 @@
         {
           "path": "apps/workspace-app/src/renderer/src/browser/browserGuestFocus.ts",
           "sha256": "5bbbb78fcf53f05b766e465ae2d06be54f57ef9b79772881a14800b67aaf9961"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/components/SearchPanel.tsx",
+          "sha256": "d6c56ba07f0e8f38d99fa9a71c532f447c3f932fad7d4b6a6f43179fdef84b4d"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/components/SearchPanel.focus.test.ts",
+          "sha256": "deb89e17ce9a4e3f14df43bc7457cc1d23454328588325b06fda5c6b4d26361d"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx",
+          "sha256": "2c710b6d5d33783dfd415c5cac0c32613e9c37c768826d2ef7ffdee2c5524e27"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/browser/browserPageGuestRecovery.ts",

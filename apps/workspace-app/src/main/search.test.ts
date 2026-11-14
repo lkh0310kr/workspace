@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { parseRipgrepMatchLine, resolveSearchBinaryPath } from './search'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import * as path from 'node:path'
+import { parseRipgrepMatchLine, resolveSearchBinaryPath, searchInFiles } from './search'
 
 const ROOT = '/root/workspace'
 
@@ -74,5 +77,32 @@ describe('resolveSearchBinaryPath', () => {
       '/Applications/Workspace.app/Contents/Resources/app.asar.unpacked/node_modules/rg'
     expect(resolveSearchBinaryPath(normalPath, () => true)).toBe(normalPath)
     expect(resolveSearchBinaryPath(unpackedPath, () => true)).toBe(unpackedPath)
+  })
+})
+
+describe('searchInFiles', () => {
+  it('emits one complete result per file instead of a cumulative result per match', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'workspace-search-'))
+    try {
+      writeFileSync(path.join(root, 'many.md'), 'needle one\nneedle two\nneedle three\n')
+      writeFileSync(path.join(root, 'one.md'), 'needle once\n')
+      const results: { path: string; matches: { lineNumber: number }[] }[] = []
+
+      await new Promise<void>((resolve, reject) => {
+        searchInFiles(
+          root,
+          'needle',
+          {},
+          (result) => results.push(result),
+          (error) => (error ? reject(new Error(error)) : resolve())
+        )
+      })
+
+      expect(results).toHaveLength(2)
+      expect(results.find((result) => result.path === 'many.md')?.matches).toHaveLength(3)
+      expect(results.find((result) => result.path === 'one.md')?.matches).toHaveLength(1)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 })

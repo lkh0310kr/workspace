@@ -53,14 +53,20 @@ export function WorkspaceExplorerSidebar({
   const explorerScrollRef = useRef<HTMLDivElement>(null)
   const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const [revealRevision, setRevealRevision] = useState(0)
+  const [searchFocusRequest, setSearchFocusRequest] = useState(0)
+
+  const openSearch = useCallback(() => {
+    if (!paneVisible || !isGroupFocused || !explorerCapable) return
+    setSidebarMode('search')
+    setTreeOpen(true)
+    setSearchFocusRequest((request) => request + 1)
+  }, [paneVisible, isGroupFocused, explorerCapable, setSidebarMode, setTreeOpen])
 
   // Pane shortcuts target the focused, visible group even when an embedded
   // editor surface owns DOM focus.
   useEffect(() => {
     const offMainShortcut = onFindInFilesShortcut(() => {
-      if (!paneVisible || !isGroupFocused || !explorerCapable) return
-      setSidebarMode('search')
-      setTreeOpen(true)
+      openSearch()
     })
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === '\\') {
@@ -85,8 +91,7 @@ export function WorkspaceExplorerSidebar({
       if (!paneVisible) return
       if (!isGroupFocused || !explorerCapable) return
       e.preventDefault()
-      setSidebarMode('search')
-      setTreeOpen(true)
+      openSearch()
     }
     // Match the app-wide shortcut routing: the pane shortcut must run before
     // CodeMirror or an embedded surface handles the focused key event.
@@ -95,7 +100,7 @@ export function WorkspaceExplorerSidebar({
       offMainShortcut()
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [paneVisible, isGroupFocused, explorerCapable, setSidebarMode, setTreeOpen])
+  }, [paneVisible, isGroupFocused, explorerCapable, openSearch, setSidebarMode, setTreeOpen])
 
   const onPathRenamed = useCallback(
     (from: string, to: string) => {
@@ -155,6 +160,7 @@ export function WorkspaceExplorerSidebar({
             {sidebarMode === 'search' && (
               <SearchPanel
                 tabId={workspaceTabId}
+                focusRequest={searchFocusRequest}
                 onJumpToResult={(path, kind, line) => onOpenFile(path, kind, line)}
                 onClose={() => setSidebarMode('explorer')}
               />
