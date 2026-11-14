@@ -77,6 +77,12 @@ Google OAuth client 설정은 [Google Cloud OAuth clients](https://console.cloud
 
 Client ID는 public identifier이므로 prototype 화면에 입력할 수 있고, client secret은 사용하지 않는다. prototype이 실제 Drive에 만드는 item은 `Workspace Drive Prototype` 폴더 아래에만 둔다. 기존 PKMS root는 선택하거나 수정하지 않는다.
 
+### Prototype live OAuth 확인
+
+2026-11-15 로컬 Chrome과 Google Cloud Console project `workspace-514715`에서 실제 GIS popup 및 설정을 확인했다. OAuth client `workspace-web`에는 `http://localhost:4173` Authorized JavaScript origin이 등록되어 있고 redirect URI는 비어 있다. GIS가 같은 origin을 포함한 계정 선택 화면까지 도달해 origin 설정이 통과함을 확인했다. 계정 선택 뒤 Google은 `403 access_denied`와 테스트 사용자가 앱을 사용할 수 없다는 메시지를 표시했다. Audience는 External / Testing이며 test user가 0명이다. Data Access의 선언된 scope 목록도 비어 있고, API Library에서 Google Drive API가 아직 사용 설정되지 않았다. token은 발급되지 않았고 Drive API를 호출하지 않았다.
+
+실제 왕복 acceptance 전에 같은 Cloud project에서 아래 설정을 완료한다: (1) Google Drive API 사용 설정, (2) Data Access에 `https://www.googleapis.com/auth/drive.file` 추가, (3) 로그인할 Google 계정을 Audience → Test users에 추가. OAuth Client에 등록한 origin은 이미 맞으며 redirect URI는 GIS token model에 필요하지 않다. 설정 적용 뒤 재시도에서 실제 `expires_in`, `drive.file` CRUD, change feed와 conflict probe를 검증한다.
+
 ## 권장 목표 구조
 
 ```mermaid
