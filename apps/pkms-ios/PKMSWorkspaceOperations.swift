@@ -32,6 +32,7 @@ extension PKMSModel {
     }
 
     func selectWorkspace(_ workspace: PKMSWorkspace) async {
+        let cachedTree = await treeCache.read(workspaceID: workspace.id)
         isLoading = true
         defer { isLoading = false }
         disconnectRealtime()
@@ -39,9 +40,16 @@ extension PKMSModel {
         activeFile = nil; activeFolderPath = nil; document = nil; markdown = ""; files = []
         expandedFolders = [""]
         collaborators = []
+        loadedDirectories = []
+        if let cached = cachedTree {
+            files = cached.files
+            loadedDirectories = Set(cached.loadedDirectories)
+        }
         do {
             let snapshot = try await get("/api/workspaces/\(workspace.id)/snapshot", as: PKMSSnapshot.self)
-            files = snapshot.files
+            var byID = Dictionary(uniqueKeysWithValues: files.map { ($0.id, $0) })
+            for file in snapshot.files { byID[file.id] = file }
+            files = Array(byID.values)
             await loadDirectory("")
             await refreshSyncStatus()
             connectSocket(workspace)
@@ -84,7 +92,11 @@ extension PKMSModel {
         activeFolderPath = file.path
         document = nil
         markdown = ""
-        await loadDirectory(file.path)
+        if loadedDirectories.contains(file.path) {
+            Task { await loadDirectory(file.path) }
+        } else {
+            await loadDirectory(file.path)
+        }
     }
 
     func toggleFolder(_ file: PKMSFile) async {
@@ -93,11 +105,20 @@ extension PKMSModel {
             expandedFolders.remove(file.path)
         } else {
             expandedFolders.insert(file.path)
-            await loadDirectory(file.path)
+            if loadedDirectories.contains(file.path) {
+                Task { await loadDirectory(file.path) }
+            } else {
+                await loadDirectory(file.path)
+            }
         }
     }
 
-    func loadDirectory(_ path: String) async {
+    private func parentPath(_ path: String) -> String {
+        guard let separator = path.lastIndex(of: "/") else { return "" }
+        return String(path[..<separator])
+    }
+
+    func loadDirectory(_ path: String, prefetchChildren: Bool = true) async {
         guard let workspace = activeWorkspace,
               var components = URLComponents(url: endpoint("/api/workspaces/\(workspace.id)/directory").absoluteURL, resolvingAgainstBaseURL: true) else { return }
         components.queryItems = [URLQueryItem(name: "path", value: path)]
@@ -105,10 +126,36 @@ extension PKMSModel {
         do {
             let result = try await get(url, as: PKMSDirectory.self)
             guard activeWorkspace?.id == workspace.id else { return }
-            var byID = Dictionary(uniqueKeysWithValues: files.map { ($0.id, $0) })
+            let incomingPaths = Set(result.files.map(\.path))
+            let removedFolders = files
+                .filter { $0.kind == "folder" && parentPath($0.path) == path && !incomingPaths.contains($0.path) }
+                .map(\.path)
+            var byID = Dictionary(uniqueKeysWithValues: files.filter { file in
+                parentPath(file.path) != path && !removedFolders.contains(where: { file.path.hasPrefix($0 + "/") })
+            }.map { ($0.id, $0) })
             for file in result.files { byID[file.id] = file }
             files = Array(byID.values)
+            loadedDirectories.insert(path)
+            if prefetchChildren {
+                let childPaths = result.files.filter { $0.kind == "folder" }.map(\.path)
+                if !childPaths.isEmpty {
+                    Task { await prefetchDirectories(childPaths, workspaceID: workspace.id) }
+                }
+            }
         } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func prefetchDirectories(_ paths: [String], workspaceID: String) async {
+        for start in stride(from: 0, to: paths.count, by: 8) {
+            let batch = Array(paths[start..<min(start + 8, paths.count)])
+            let tasks = batch.map { path in
+                Task { @MainActor [weak self] in
+                    guard let self, self.activeWorkspace?.id == workspaceID else { return }
+                    await self.loadDirectory(path, prefetchChildren: false)
+                }
+            }
+            for task in tasks { await task.value }
+        }
     }
 
     func searchContent(_ query: String, caseSensitive: Bool = false, afterPath: String? = nil) async {

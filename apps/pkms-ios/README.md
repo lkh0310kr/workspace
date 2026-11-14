@@ -15,4 +15,4 @@ open apps/pkms-ios/PKMS.xcodeproj
 
 Rust build script가 rustup으로 iOS device와 Apple Silicon simulator target을 설치한다. `PKMS` scheme을 열어 iOS 17 이상 simulator 또는 device에서 실행한다. GitHub Device Flow로 로그인한다. Settings에서 server URL을 지정하며 배포 server에는 HTTPS를 사용한다.
 
-앱은 session token을 Keychain에 저장하고 최근에 연 Markdown 파일 20개의 CRDT state를 cache한다. Worker에 설정한 GitHub OAuth App은 Device Flow가 활성화돼 있어야 한다.
+앱은 session token을 Keychain에 저장하고 최근에 연 Markdown 파일 20개의 CRDT state와 workspace별 Files tree metadata·loaded directory 목록을 Application Support에 cache한다. Workspace를 열면 cache를 먼저 표시하고 서버 listing으로 갱신한다. 한 directory를 열면 그 immediate child folders의 listing도 background-prefetch한다. Worker에 설정한 GitHub OAuth App은 Device Flow가 활성화돼 있어야 한다.

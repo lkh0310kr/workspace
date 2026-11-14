@@ -27,6 +27,9 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 - 폴더 aggregate 상태를 제공하는 경우 가장 중요한 descendant state를 표시한다. child 수만큼 중복 경고를 띄우지 않는다.
 - GitHub backup 상태는 cloud folder sync 상태와 별도 표시한다.
 - Dot-prefix만으로 Cloud 항목을 숨기지 않는다. `.name.md` 파일과 `.folder` 같은 Cloud row는 Files tree에서 보인다. quick open은 Markdown 파일을 대상으로 한다. Local folder sync에서는 `.git`, `.obsidian`, `node_modules`를 계속 scan/materialization에서 제외하므로 Cloud row 표시와 local mirror 대상 여부가 다를 수 있다. `.pkms`는 일반 dot-folder로 처리하며 사용자 exclusion은 기존 정책을 따른다.
+- workspace를 열 때 저장된 tree cache를 먼저 렌더링한다. 이후 root와 이미 펼친 directory를 서버에서 재검증하며, cache miss라도 root directory 요청을 queue flush 완료까지 지연시키지 않는다.
+- folder를 펼치면 해당 directory의 직접 자식을 표시하고, 응답에 포함된 하위 folder의 listing도 background prefetch한다. prefetch는 한 단계만 진행하며 최대 8개 동시 요청으로 제한한다. prefetch 완료를 기다리지 않고 tree를 계속 조작할 수 있다.
+- directory 응답은 해당 parent의 직접 자식에 대한 authoritative listing이다. 누락된 직접 child와 그 하위의 cached descendant를 제거하고, 다른 parent의 tree rows는 보존한다. Markdown-only `/snapshot` 응답은 Files tree 상태를 대체하는 데 사용할 수 없다.
 
 전체 percent는 대상 집합이 달라지면 감소/증가할 수 있어 안정된 결과를 뜻하지 않는다. 고정 revision에 묶인 initial materialization만 필요하면 그 snapshot 기준임을 표시한다. Settings panel은 가변 `completed/total` percent를 사용자에게 진행률처럼 보여주지 않는다. Main의 내부 progress 값은 diagnostics/future fixed-snapshot progress에만 쓸 수 있다.
 
@@ -52,6 +55,9 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 | FS-UI-16 | conflict duplicate 복구 직후 앱이 다시 complete pass를 수행                     | 삭제된 conflict path가 재생성되지 않고 bridge cursor가 Cloud revision까지 전진하며 pending paths/deletes가 0이 된다. 원본 contents/IDs는 변하지 않는다 | 2026-11-13 Desktop에서 실제 실행 통과: cursor 1,794→2,638, baseline/remote 3,706, pending path/create/update/delete 0, active conflict 0. 앱 재시작 후 유지까지는 미검증 |
 | FS-UI-17 | 이름이 `.`으로 시작하는 Cloud Markdown/폴더 row가 존재                          | Files tree에서 나타나고 Markdown은 quick open에서 찾고 열 수 있다. local reserved path scan exclusion은 그대로 유지된다                                | 2026-11-13 안정 앱에서 `.claude`, `.cursor`, `.obsidian`, `.scripts`, `.workspace` 표시 확인; dot Markdown quick open 미확인                                             |
 | FS-UI-18 | 연결한 local root에 `.pkms/notes.md`가 존재                                     | `.pkms` 경로를 특별 취급하지 않고 Cloud에 반영하며, remote 수정도 같은 local path에 수렴한다                                                           | source 반영; 수동 sync 미확인                                                                                                                                            |
+| FS-UI-19 | 이전에 방문한 workspace를 다시 열고 server 응답이 지연됨                         | cache의 root와 이전에 열었던 tree가 즉시 보이고, 최신 directory 응답은 도착 후 반영된다                                                               | Web cache 경로 source 확인; 실제 브라우저 지연 네트워크 acceptance 미확인                                                                                               |
+| FS-UI-20 | folder를 펼치고 직접 child folder가 여러 개 존재                                  | 직접 child가 먼저 표시되고, 각 child의 한 단계 listing은 background에서 가져온다. 요청 지연 때문에 expand/input이 막히지 않는다                         | Web/iOS source 구현; 대량 folder 실측 미확인                                                                                                                            |
+| FS-UI-21 | folder delete가 다른 workspace path 변경 뒤 전송되고 target subtree는 그대로임   | 삭제가 불필요한 `folder_changed_since_base` 없이 승인된다. target subtree 안에 base 이후 변경이 있으면 삭제를 거부하고 원격 tree를 보존한다              | 2026-11-14 scoped-revision SQL rollback regression이 linked production DB에서 통과; 실제 사용자 UI delete 수동 확인은 미완료                                              |
 
 ## 현재 UI 연결
 

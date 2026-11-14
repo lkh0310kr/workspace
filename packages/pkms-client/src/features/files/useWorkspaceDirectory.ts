@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { FileRecord, Workspace } from '../../domain/types'
+import { parentPath } from '../../domain/fileTree'
 import {
   readWorkspaceTree,
   replaceDirectoryEntries,
@@ -7,20 +8,9 @@ import {
   writeWorkspaceTree,
   type WorkspaceTreeCache
 } from '../../client/workspaceTreeCache'
-import {
-  flushQueuedWorkspaceAssets,
-  flushQueuedWorkspaceOperations
-} from '../../client/workspaceOperations'
 
 type Api = <T = unknown>(path: string, init?: RequestInit) => Promise<T>
 type DirectoryResponse = { files: FileRecord[] }
-
-async function flushLocalQueue(workspaceId: string, api: Api): Promise<boolean> {
-  const operationsDrained = await flushQueuedWorkspaceOperations(workspaceId, api).catch(
-    () => false
-  )
-  return operationsDrained ? flushQueuedWorkspaceAssets(workspaceId, api).catch(() => false) : false
-}
 
 export function useWorkspaceDirectory(
   activeWorkspace: Workspace | null,
@@ -101,12 +91,9 @@ export function useWorkspaceDirectory(
       if (existing) return existing
       if (showLoading) setLoadingFolderPaths((current) => new Set(current).add(directory))
       const workspaceId = activeWorkspace.id
-      const request = flushLocalQueue(workspaceId, api)
-        .then(() =>
-          api<DirectoryResponse>(
-            `/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(directory)}`
-          )
-        )
+      const request = api<DirectoryResponse>(
+        `/api/workspaces/${workspaceId}/directory?path=${encodeURIComponent(directory)}`
+      )
         .then((result) => {
           if (workspaceIdRef.current === workspaceId) replaceDirectory(directory, result.files)
         })
@@ -123,6 +110,23 @@ export function useWorkspaceDirectory(
       return request
     },
     [activeWorkspace, api, replaceDirectory]
+  )
+
+  const prefetchChildFolders = useCallback(
+    async (directory: string) => {
+      const paths = filesRef.current
+        .filter((file) => file.kind === 'folder' && parentPath(file.path) === directory)
+        .map((file) => file.path)
+      let cursor = 0
+      const workers = Array.from({ length: Math.min(8, paths.length) }, async () => {
+        while (cursor < paths.length) {
+          const path = paths[cursor++]
+          await refreshDirectory(path, false).catch(() => {})
+        }
+      })
+      await Promise.all(workers)
+    },
+    [refreshDirectory]
   )
 
   const refreshLoadedDirectories = useCallback(async () => {
@@ -144,17 +148,20 @@ export function useWorkspaceDirectory(
       setExpandedFolders((current) => new Set(current).add(file.path))
       const cached = loadedFoldersRef.current.has(file.path)
       if (cached) {
-        void (loadChildren ? loadChildren() : refreshDirectory(file.path, false)).catch(() => {})
+        void (loadChildren ? loadChildren() : refreshDirectory(file.path, false))
+          .then(() => prefetchChildFolders(file.path))
+          .catch(() => {})
         return
       }
       try {
         if (loadChildren) await loadChildren()
         else await refreshDirectory(file.path, true)
+        void prefetchChildFolders(file.path)
       } catch (cause) {
         reportError(cause instanceof Error ? cause.message : 'Could not open folder')
       }
     },
-    [activeWorkspace, expandedFolders, refreshDirectory, reportError]
+    [activeWorkspace, expandedFolders, prefetchChildFolders, refreshDirectory, reportError]
   )
 
   const restoreWorkspaceTree = useCallback(
@@ -189,7 +196,6 @@ export function useWorkspaceDirectory(
         setExpandedFolders(new Set(expanded))
         setLoadingFolder(false)
         const refresh = async () => {
-          await flushLocalQueue(workspaceId, api)
           const paths = [...new Set(['', ...expanded.filter(Boolean)])]
           const results = await Promise.allSettled(
             paths.map((path) =>
@@ -202,13 +208,13 @@ export function useWorkspaceDirectory(
           results.forEach((result, index) => {
             if (result.status === 'fulfilled') replaceDirectory(paths[index], result.value.files)
           })
+          for (const path of paths) void prefetchChildFolders(path)
         }
         void refresh().catch(() => {})
         return saved.scrollTop ?? 0
       }
 
       try {
-        await flushLocalQueue(workspaceId, api)
         const root = await api<DirectoryResponse>(`/api/workspaces/${workspaceId}/directory`)
         if (!isActive() || workspaceIdRef.current !== workspaceId) return null
         replaceDirectory('', root.files)
@@ -218,6 +224,7 @@ export function useWorkspaceDirectory(
         setExpandedFolders(new Set(expanded))
         setLoadingFolder(false)
         persist(filesRef.current, loaded)
+        void prefetchChildFolders('')
         const paths = expanded.filter(Boolean)
         if (paths.length) {
           setLoadingFolderPaths(new Set(paths))
@@ -234,6 +241,7 @@ export function useWorkspaceDirectory(
                 if (result.status === 'fulfilled')
                   replaceDirectory(paths[index], result.value.files)
               })
+              for (const path of paths) void prefetchChildFolders(path)
             })
             .finally(() => {
               if (workspaceIdRef.current === workspaceId) setLoadingFolderPaths(new Set())
@@ -248,7 +256,7 @@ export function useWorkspaceDirectory(
         return null
       }
     },
-    [activeWorkspace, api, persist, replaceDirectory, reportError, setLoadedFolders]
+    [activeWorkspace, api, persist, prefetchChildFolders, replaceDirectory, reportError, setLoadedFolders]
   )
 
   const getFiles = useCallback(() => filesRef.current, [])

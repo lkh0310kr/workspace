@@ -4,6 +4,37 @@ import OSLog
 import Supabase
 import UniformTypeIdentifiers
 
+struct PKMSWorkspaceTreeCache: Codable, Sendable {
+    let files: [PKMSFile]
+    let loadedDirectories: [String]
+    let savedAt: Date
+}
+
+actor PKMSWorkspaceTreeCacheStore {
+    private func url(workspaceID: String) -> URL {
+        URL.applicationSupportDirectory.appending(path: "PKMS/TreeCache/\(workspaceID).json")
+    }
+
+    func read(workspaceID: String) -> PKMSWorkspaceTreeCache? {
+        guard let data = try? Data(contentsOf: url(workspaceID: workspaceID)) else { return nil }
+        return try? JSONDecoder().decode(PKMSWorkspaceTreeCache.self, from: data)
+    }
+
+    func write(_ cache: PKMSWorkspaceTreeCache, workspaceID: String) {
+        let destination = url(workspaceID: workspaceID)
+        do {
+            try FileManager.default.createDirectory(
+                at: destination.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            let data = try JSONEncoder().encode(cache)
+            try data.write(to: destination, options: .atomic)
+        } catch {
+            // Cache failure must not prevent opening or editing cloud documents.
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class PKMSModel {
@@ -14,7 +45,7 @@ final class PKMSModel {
     internal(set) var user: PKMSUser?
     internal(set) var workspaces: [PKMSWorkspace] = []
     internal(set) var repositories: [PKMSRepository] = []
-    internal(set) var files: [PKMSFile] = []
+    internal(set) var files: [PKMSFile] = [] { didSet { persistTreeCache() } }
     internal(set) var searchResults: [PKMSSearchResult] = []
     internal(set) var searchResponse: PKMSSearchResponse?
     internal(set) var isSearching = false
@@ -46,7 +77,30 @@ final class PKMSModel {
     var flushTask: Task<Void, Never>?
     var clientID = "ios-\(UUID().uuidString.lowercased())"
     internal(set) var expandedFolders: Set<String> = [""]
+    internal(set) var loadedDirectories: Set<String> = [] { didSet { persistTreeCache() } }
     private let transport = PKMSAPITransport()
+    let treeCache = PKMSWorkspaceTreeCacheStore()
+
+    private func persistTreeCache() {
+        guard let workspaceID = activeWorkspace?.id else { return }
+        let cache = PKMSWorkspaceTreeCache(
+            files: files.map { file in
+                PKMSFile(
+                    id: file.id,
+                    path: file.path,
+                    kind: file.kind,
+                    revision: file.revision,
+                    content: nil,
+                    contentType: file.contentType,
+                    size: file.size,
+                    sha256: file.sha256
+                )
+            },
+            loadedDirectories: Array(loadedDirectories),
+            savedAt: Date()
+        )
+        Task { await treeCache.write(cache, workspaceID: workspaceID) }
+    }
 
     init() {
         let savedAddress = UserDefaults.standard.string(forKey: "pkms.serverAddress")

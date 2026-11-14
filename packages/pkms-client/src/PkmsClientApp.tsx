@@ -733,20 +733,16 @@ export default function Home() {
                 await refreshOpenEditorItemMetadata(moving.filter((file): file is FileRecord => file !== null));
               },
               async delete(refs) {
-                const deleting = await Promise.all(refs.map((ref) => getPkmsFileById(ref.itemId)));
+                const loadedById = new Map(getFiles().map((file) => [file.id, file]));
+                const cachedTargets = refs.map((ref) => loadedById.get(ref.itemId) ?? null);
+                const deleting = await Promise.all(refs.map((ref, index) => cachedTargets[index] ?? getPkmsFileById(ref.itemId)));
                 if (deleting.some((file) => !file)) throw new EditorProviderError("notFound", "A PKMS delete target no longer exists");
                 const targets = deleting.filter((file): file is FileRecord => file !== null);
                 const desktop = desktopBridge();
                 if (desktop && targets.every((file) => file.id.startsWith("local-")) && (await desktop.syncBridgeStatus(activeWorkspace.id)).enabled) {
                   const roots = editorTreeSelectionRoots(targets, new Set(targets.map((file) => file.path)), (file) => file.kind === "folder");
                   const message = roots.length === 1 ? `Delete ${entryName(roots[0].path)}?` : `Delete ${roots.length} selected items?`;
-                  if (!(await confirm(message))) {
-                    console.info("[pkms-delete] cancelled", {
-                      workspaceId: activeWorkspace.id,
-                      paths: roots.map((file) => file.path)
-                    });
-                    return;
-                  }
+                  if (!(await confirm(message))) return;
                   if (
                     !confirmDirtyEditorDocumentsInPaths(
                       roots.map((root) => root.path),
@@ -1215,11 +1211,7 @@ export default function Home() {
       if (detail.state === "rejected") {
         setError(detail.message ?? "A local change could not be synced.");
         if (!detail.hasPending && !localFolderEnabled) {
-          void api<{ files: FileRecord[] }>(`/api/workspaces/${workspaceId}/snapshot`)
-            .then((snapshot) => {
-              if (activeWorkspace?.id === workspaceId) setFiles(snapshot.files);
-            })
-            .catch(() => {});
+          void refreshLoadedDirectories();
         }
         return;
       }
@@ -1268,7 +1260,7 @@ export default function Home() {
       window.removeEventListener("online", flush);
       window.removeEventListener(WORKSPACE_OPERATION_QUEUE_EVENT, onQueueEvent);
     };
-  }, [activeWorkspace?.id, api, navigate, setActiveFile, setCurrentFolder, setError, setExpandedFolders, setFiles, setLoadedFolders, setNotice]);
+  }, [activeWorkspace?.id, api, navigate, refreshLoadedDirectories, setActiveFile, setCurrentFolder, setError, setExpandedFolders, setFiles, setLoadedFolders, setNotice]);
 
   useEffect(() => {
     if (!activeWorkspace || !activeFile || activeFile.kind !== "asset") {
@@ -1866,6 +1858,8 @@ export default function Home() {
     setCutTreePaths,
     setFocusedTreePath,
     setTreeContextMenu,
+    refreshDirectories: refreshLoadedDirectories,
+    getFiles,
     setError,
     setNotice,
     confirm,

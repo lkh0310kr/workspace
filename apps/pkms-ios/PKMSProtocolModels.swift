@@ -42,7 +42,7 @@ struct PKMSWorkspace: Codable, Identifiable, Hashable {
     var lastGitHubCommitAt: Date?
 }
 
-struct PKMSFile: Decodable, Identifiable, Hashable {
+struct PKMSFile: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let path: String
     let kind: String

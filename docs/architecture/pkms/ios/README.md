@@ -16,7 +16,7 @@ restore는 token이 있을 때 /api/session을 읽고 user가 있으면 workspac
 
 [NativeMarkdownDocument](../../../../apps/pkms-ios/NativeMarkdownDocument.swift)는 C handle을 소유하고 deinit에서 pkms_doc_free한다. 반환 PkmsByteBuffer는 Data로 복사한 뒤 pkms_buffer_free한다. insert/delete offset은 UTF-16, byte buffer는 UTF-8 또는 Yjs v1 encoding이며 같은 단위가 아니다.
 
-문서 cache는 400ms 예약 후 snapshot을 저장한다. 최근 workspace/file key를 UserDefaults에 보관하고 최근 20개 밖의 cache 파일을 제거한다. cache와 실제 server save/Realtime acknowledgement를 구분한다. 파일 선택/operation은 [PKMSWorkspaceOperations](../../../../apps/pkms-ios/PKMSWorkspaceOperations.swift)가 구현한다.
+문서 cache는 400ms 예약 후 snapshot을 저장한다. 최근 workspace/file key를 UserDefaults에 보관하고 최근 20개 밖의 cache 파일을 제거한다. tree metadata는 workspace별 `Application Support/PKMS/TreeCache/{workspaceID}.json`에 atomic write하며 body는 제외한다. Workspace 재선택 시 cache를 먼저 표시한 뒤 root/expanded directory를 갱신한다. 열린 directory의 직접 child folder listing은 background에서 한 단계만 prefetch한다. cache와 실제 server save/Realtime acknowledgement를 구분한다. 파일 선택/operation은 [PKMSWorkspaceOperations](../../../../apps/pkms-ios/PKMSWorkspaceOperations.swift)가 구현한다.
 
 ## Realtime·cleanup
 

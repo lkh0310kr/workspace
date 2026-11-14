@@ -40,6 +40,8 @@ interface Options {
   setCutTreePaths: Dispatch<SetStateAction<Set<string>>>
   setFocusedTreePath: Dispatch<SetStateAction<string | null>>
   setTreeContextMenu: Dispatch<SetStateAction<TreeContextMenu | null>>
+  refreshDirectories: () => Promise<void>
+  getFiles: () => FileRecord[]
   setError: Dispatch<SetStateAction<string>>
   setNotice: Dispatch<SetStateAction<string>>
   confirm: (message: string) => Promise<boolean>
@@ -69,6 +71,8 @@ export function useWorkspaceFileActions(options: Options) {
     setCutTreePaths,
     setFocusedTreePath,
     setTreeContextMenu,
+    refreshDirectories,
+    getFiles,
     setError,
     setNotice,
     confirm,
@@ -221,21 +225,19 @@ export function useWorkspaceFileActions(options: Options) {
       return true
     } catch (cause) {
       try {
-        const snapshot = await api<{ files: FileRecord[] }>(
-          `/api/workspaces/${activeWorkspace.id}/snapshot`
-        )
-        setFiles(snapshot.files)
+        await refreshDirectories()
+        const refreshedFiles = getFiles()
         setSelectedTreePaths(new Set())
         setCurrentFolder((path) => {
           let next = path
           while (
             next &&
-            !snapshot.files.some((file) => file.kind === 'folder' && file.path === next)
+            !refreshedFiles.some((file) => file.kind === 'folder' && file.path === next)
           )
             next = parentPath(next)
           return next
         })
-        const current = activeFile ? snapshot.files.find((file) => file.id === activeFile.id) : null
+        const current = activeFile ? refreshedFiles.find((file) => file.id === activeFile.id) : null
         if (current && current.path !== activeFile?.path) {
           setActiveFile(current)
           const target = fileLocationPath(activeWorkspace.id, current.path)
@@ -309,20 +311,18 @@ export function useWorkspaceFileActions(options: Options) {
       return true
     } catch (cause) {
       try {
-        const snapshot = await api<{ files: FileRecord[] }>(
-          `/api/workspaces/${activeWorkspace.id}/snapshot`
-        )
+        await refreshDirectories()
+        const refreshedFiles = getFiles()
         const removedRoots = roots.filter(
-          (root) => !snapshot.files.some((file) => file.id === root.id)
+          (root) => !refreshedFiles.some((file) => file.id === root.id)
         )
-        setFiles(snapshot.files)
         if (removedRoots.length) afterDelete?.(removedRoots)
         setSelectedTreePaths(new Set())
         setExpandedFolders(
           (current) =>
             new Set(
               [...current].filter((path) =>
-                snapshot.files.some((file) => file.kind === 'folder' && file.path === path)
+                refreshedFiles.some((file) => file.kind === 'folder' && file.path === path)
               )
             )
         )
@@ -330,12 +330,12 @@ export function useWorkspaceFileActions(options: Options) {
           (current) =>
             new Set(
               [...current].filter((path) =>
-                snapshot.files.some((file) => file.kind === 'folder' && file.path === path)
+                refreshedFiles.some((file) => file.kind === 'folder' && file.path === path)
               )
             )
         )
         if (activeFile && isInsideDeleted(activeFile.path)) {
-          const restored = snapshot.files.find((file) => file.id === activeFile.id)
+          const restored = refreshedFiles.find((file) => file.id === activeFile.id)
           if (restored) void openFile(restored, 'none')
           else {
             clearActiveFile()
@@ -347,7 +347,7 @@ export function useWorkspaceFileActions(options: Options) {
           let next = path
           while (
             next &&
-            !snapshot.files.some((file) => file.kind === 'folder' && file.path === next)
+            !refreshedFiles.some((file) => file.kind === 'folder' && file.path === next)
           )
             next = parentPath(next)
           return next
