@@ -49,6 +49,7 @@ type Persisted = {
   syncCursors: Record<string, number>
   remoteTrees: Record<string, BridgeFile[]>
   remoteTreeVersions: Record<string, number>
+  pendingFullScans: Record<string, boolean>
   pendingPaths: Record<string, string[]>
   pendingUpdates: Record<
     string,
@@ -69,6 +70,7 @@ const EMPTY: Persisted = {
   syncCursors: {},
   remoteTrees: {},
   remoteTreeVersions: {},
+  pendingFullScans: {},
   pendingPaths: {},
   pendingUpdates: {},
   pendingCreates: {},
@@ -192,6 +194,7 @@ async function load(): Promise<Persisted> {
       syncCursors: saved.syncCursors ?? {},
       remoteTrees: saved.remoteTrees ?? {},
       remoteTreeVersions: saved.remoteTreeVersions ?? {},
+      pendingFullScans: saved.pendingFullScans ?? {},
       pendingPaths: saved.pendingPaths ?? {},
       pendingUpdates: saved.pendingUpdates ?? {},
       pendingCreates: saved.pendingCreates ?? {},
@@ -1116,7 +1119,8 @@ async function syncOnce(workspaceId: string): Promise<void> {
     try {
       if (!folderLocks.has(workspaceId))
         folderLocks.set(workspaceId, await acquireFolderSyncLock(root, workspaceId))
-      fullScan = fullScanRequests.delete(workspaceId)
+      const state = await load()
+      fullScan = fullScanRequests.delete(workspaceId) || state.pendingFullScans[workspaceId] === true
       scanDirectories = directoryScanRequests.delete(workspaceId)
       scannedLocalPaths = [
         ...new Set([
@@ -1125,7 +1129,6 @@ async function syncOnce(workspaceId: string): Promise<void> {
         ])
       ]
       dirtyLocalPaths.delete(workspaceId)
-      const state = await load()
       state.pendingPaths[workspaceId] = [
         ...new Set([...(state.pendingPaths[workspaceId] ?? []), ...scannedLocalPaths])
       ]
@@ -1342,6 +1345,8 @@ async function syncOnce(workspaceId: string): Promise<void> {
             workspaceId,
             cursor: nextSyncRevision
           })
+          state.pendingFullScans[workspaceId] = true
+          await save()
           const snapshot = await readRemoteSnapshot(workspaceId)
           knownRemoteTree = snapshot.files
           state.remoteTrees[workspaceId] = snapshot.files
@@ -2020,6 +2025,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
         nextSyncRevision
       )
       state.syncCursors[workspaceId] = nextSyncRevision
+      delete state.pendingFullScans[workspaceId]
       for (const [relative, create] of Object.entries(state.pendingCreates[workspaceId] ?? {})) {
         if (Object.values(baselines).some((baseline) => baseline.fileId === create.fileId))
           delete state.pendingCreates[workspaceId][relative]

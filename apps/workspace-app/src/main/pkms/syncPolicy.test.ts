@@ -67,6 +67,7 @@ describe('PKMS local root transition', () => {
       syncCursors: { workspace: 4 },
       remoteTrees: { workspace: [{ path: 'old.md' }] },
       remoteTreeVersions: { workspace: 4 },
+      pendingFullScans: { workspace: true },
       pendingPaths: { workspace: ['old.md'] },
       pendingFolderCreates: { workspace: { 'old-folder': 'op-folder' } },
       localDirectories: { workspace: { 'old-folder': 'dev:ino' } },
@@ -82,6 +83,7 @@ describe('PKMS local root transition', () => {
     expect(state.syncCursors.workspace).toBeUndefined()
     expect(state.remoteTrees.workspace).toBeUndefined()
     expect(state.remoteTreeVersions.workspace).toBeUndefined()
+    expect(state.pendingFullScans.workspace).toBeUndefined()
     expect(state.pendingPaths.workspace).toBeUndefined()
     expect(state.pendingFolderCreates.workspace).toBeUndefined()
     expect(state.localDirectories.workspace).toBeUndefined()
@@ -97,6 +99,7 @@ describe('PKMS local root transition', () => {
       syncCursors: { other: 9 },
       remoteTrees: {},
       remoteTreeVersions: {},
+      pendingFullScans: {},
       pendingPaths: {},
       pendingFolderCreates: {},
       localDirectories: {},

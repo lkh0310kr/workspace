@@ -6,6 +6,7 @@ type RootScopedState = {
   syncCursors: Record<string, unknown>
   remoteTrees: Record<string, unknown>
   remoteTreeVersions: Record<string, unknown>
+  pendingFullScans: Record<string, unknown>
   pendingPaths: Record<string, unknown>
   pendingFolderCreates: Record<string, unknown>
   localDirectories: Record<string, unknown>
@@ -22,6 +23,7 @@ export function resetRootScopedState<T extends RootScopedState>(
   delete state.syncCursors[workspaceId]
   delete state.remoteTrees[workspaceId]
   delete state.remoteTreeVersions[workspaceId]
+  delete state.pendingFullScans[workspaceId]
   delete state.pendingPaths[workspaceId]
   delete state.pendingFolderCreates[workspaceId]
   delete state.localDirectories[workspaceId]
