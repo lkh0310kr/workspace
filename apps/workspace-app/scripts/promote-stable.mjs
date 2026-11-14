@@ -260,11 +260,20 @@ async function promoteMac() {
       const failedApp = `${installedApp}.failed-${Date.now()}.app`
       renameSync(installedApp, failedApp)
       renameSync(backupApp, installedApp)
-      console.error(
-        `[promote-stable] restored previous app after relaunch failure; failed build kept at ${failedApp}`
-      )
+      try {
+        rmSync(failedApp, { recursive: true, force: true })
+        console.error('[promote-stable] restored previous app and removed the failed build')
+      } catch (cleanupError) {
+        console.error(
+          `[promote-stable] restored previous app, but could not remove ${failedApp}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
+        )
+      }
     }
     throw error
+  }
+  if (existsSync(backupApp)) {
+    rmSync(backupApp, { recursive: true, force: true })
+    console.log('[promote-stable] removed the previous app backup')
   }
   console.log(`[promote-stable] launched (${executable})`)
 }
