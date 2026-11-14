@@ -19,6 +19,8 @@
 		A1000000000000000000000A /* PKMSRealtimeSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000E /* PKMSRealtimeSession.swift */; };
 		A1000000000000000000000B /* PKMSWorkspaceOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000F /* PKMSWorkspaceOperations.swift */; };
 		A1000000000000000000000C /* PKMSDocumentCachePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000010 /* PKMSDocumentCachePolicy.swift */; };
+		A1000000000000000000000D /* PKMSDocumentCachePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* PKMSDocumentCachePolicyTests.swift */; };
+		A1000000000000000000000E /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* XCTest.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +38,9 @@
 		A2000000000000000000000E /* PKMSRealtimeSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKMSRealtimeSession.swift; sourceTree = "<group>"; };
 		A2000000000000000000000F /* PKMSWorkspaceOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKMSWorkspaceOperations.swift; sourceTree = "<group>"; };
 		A20000000000000000000010 /* PKMSDocumentCachePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKMSDocumentCachePolicy.swift; sourceTree = "<group>"; };
+		A20000000000000000000011 /* PKMSDocumentCachePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKMSDocumentCachePolicyTests.swift; sourceTree = "<group>"; };
+		A20000000000000000000012 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Developer/Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		A20000000000000000000013 /* PKMSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PKMSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,6 +50,14 @@
 			files = (
 				A10000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework in Frameworks */,
 				A10000000000000000000007 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A30000000000000000000002 /* PKMSTests Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000E /* XCTest.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,6 +88,7 @@
 				A20000000000000000000006 /* Frameworks/PKMSRustFFI.xcframework */,
 				A20000000000000000000007 /* Info.plist */,
 				A20000000000000000000009 /* Native/include */,
+				A40000000000000000000004 /* PKMSTests */,
 			);
 			path = .;
 			sourceTree = "<group>";
@@ -83,8 +97,17 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000008 /* PKMS.app */,
+				A20000000000000000000013 /* PKMSTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000004 /* PKMSTests */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000011 /* PKMSDocumentCachePolicyTests.swift */,
+			);
+			path = Tests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -110,7 +133,43 @@
 			);
 			productType = "com.apple.product-type.application";
 		};
+		A50000000000000000000002 /* PKMSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A60000000000000000000003 /* Build configuration list for PBXNativeTarget "PKMSTests" */;
+			buildPhases = (
+				A30000000000000000000002 /* PKMSTests Frameworks */,
+				A70000000000000000000004 /* PKMSTests Sources */,
+				A70000000000000000000005 /* PKMSTests Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A70000000000000000000006 /* PBXTargetDependency */,
+			);
+			name = PKMSTests;
+			productName = PKMSTests;
+			productReference = A20000000000000000000013 /* PKMSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXContainerItemProxy section */
+		A70000000000000000000007 /* PKMSTests to PKMS Proxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A80000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000001;
+			remoteInfo = PKMS;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		A70000000000000000000006 /* PKMS Target Dependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000001 /* PKMS */;
+			targetProxy = A70000000000000000000007 /* PKMSTests to PKMS Proxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXProject section */
 		A80000000000000000000001 /* Project object */ = {
@@ -121,6 +180,10 @@
 				TargetAttributes = {
 					A50000000000000000000001 = {
 						CreatedOnToolsVersion = 26.1;
+					};
+					A50000000000000000000002 = {
+						CreatedOnToolsVersion = 26.1;
+						TestTargetID = A50000000000000000000001;
 					};
 				};
 			};
@@ -141,12 +204,20 @@
 			projectRoot = "";
 			targets = (
 				A50000000000000000000001 /* PKMS */,
+				A50000000000000000000002 /* PKMSTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A70000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A70000000000000000000005 /* PKMSTests Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -170,6 +241,14 @@
 				A1000000000000000000000A /* PKMSRealtimeSession.swift in Sources */,
 				A1000000000000000000000B /* PKMSWorkspaceOperations.swift in Sources */,
 				A1000000000000000000000C /* PKMSDocumentCachePolicy.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A70000000000000000000004 /* PKMSTests Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000D /* PKMSDocumentCachePolicyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -201,6 +280,7 @@
 		A90000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_TESTABILITY = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -264,6 +344,36 @@
 			};
 			name = Release;
 		};
+		A90000000000000000000005 /* PKMSTests Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lkh0310kr.pkms.tests;
+				PRODUCT_NAME = PKMSTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PKMS.app/PKMS";
+			};
+			name = Debug;
+		};
+		A90000000000000000000006 /* PKMSTests Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lkh0310kr.pkms.tests;
+				PRODUCT_NAME = PKMSTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PKMS.app/PKMS";
+			};
+			name = Release;
+		};
 /* Begin XCRemoteSwiftPackageReference section */
 		A2000000000000000000000B /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -297,6 +407,15 @@
 			buildConfigurations = (
 				A90000000000000000000003 /* Debug */,
 				A90000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A60000000000000000000003 /* Build configuration list for PBXNativeTarget "PKMSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A90000000000000000000005 /* Debug */,
+				A90000000000000000000006 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
