@@ -1,4 +1,10 @@
+/** @vitest-environment jsdom */
 import { describe, expect, it } from 'vitest'
+import {
+  EditorView,
+  highlightActiveLineGutter,
+  lineNumbers
+} from '../../../../../node_modules/@codemirror/view'
 import { CompletionContext } from '@codemirror/autocomplete'
 import type { Completion } from '@codemirror/autocomplete'
 import {
@@ -13,8 +19,36 @@ import {
   collectDocumentWords,
   createCodeEditorExtensions,
   createCodeSnippetExtension,
-  documentWordCompletion
+  documentWordCompletion,
+  editorCodeMirrorHostExtensions
 } from '@workspace/editor'
+
+describe('code editor active-line gutter theme', () => {
+  it('uses semantic theme tokens instead of fixed active-line colors', () => {
+    const parent = document.createElement('div')
+    document.body.append(parent)
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: 'first\nsecond',
+        extensions: [lineNumbers(), highlightActiveLineGutter(), ...editorCodeMirrorHostExtensions]
+      })
+    })
+
+    try {
+      expect(parent.querySelector('.cm-activeLineGutter')).not.toBeNull()
+      const generatedTheme = Array.from(document.head.querySelectorAll('style'))
+        .map((style) => style.textContent ?? '')
+        .join('\n')
+      expect(generatedTheme).toContain('.cm-activeLineGutter')
+      expect(generatedTheme).toContain('var(--bg-hover)')
+      expect(generatedTheme).toContain('var(--text)')
+    } finally {
+      view.destroy()
+      parent.remove()
+    }
+  })
+})
 
 describe('code editor document completion', () => {
   it('offers unique identifier words matching the current prefix', () => {

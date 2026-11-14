@@ -42,7 +42,7 @@ mount 시 history, 공통 검색, host extensions, default/history keymap, Tab i
 
 ## Desktop code 모드
 
-공유 [codeEditor.ts](../../src/codeEditor.ts)가 코드 본문 syntax highlighting, 줄 번호/gutter, 접기, bracket matching/자동 닫기, 입력 indent, 자동완성, 검색 일치 표시, 주석 전환, 줄 이동·복제·삭제, 다음 단어 선택 및 completion keymap을 제공한다. 자동완성은 문서 단어와 기본 CodeMirror 언어 제안을 포함하며, 언어별 스니펫은 활성 파일의 language description에 따라 compartment로 교체한다. `Mod-Shift-v`는 host의 plain paste를 사용한다. 기존 코드 파일의 indent는 파일 내용으로 공백/탭과 너비를 감지하고, 판별할 수 없는 경우 4칸 공백을 쓴다. 사용자 설정 UI는 없다. 공통으로 다중 selection, drawSelection, indent guides, Alt-click selection을 사용한다. font size CSS 변수는 `13 * zoom` px다.
+공유 [codeEditor.ts](../../src/codeEditor.ts)가 코드 본문 syntax highlighting, 줄 번호/gutter, 접기, bracket matching/자동 닫기, 입력 indent, 자동완성, 검색 일치 표시, 주석 전환, 줄 이동·복제·삭제, 다음 단어 선택 및 completion keymap을 제공한다. 활성 줄 번호는 active line 배경과 동일한 `--bg-hover`를 쓰고 `--text`로 표시하며, 일반 줄 번호는 `--text-muted`로 표시한다. 앱의 dark/light theme token이 active gutter에도 적용되어 CodeMirror 기본 고정색이 노출되지 않는다. 자동완성은 문서 단어와 기본 CodeMirror 언어 제안을 포함하며, 언어별 스니펫은 활성 파일의 language description에 따라 compartment로 교체한다. `Mod-Shift-v`는 host의 plain paste를 사용한다. 기존 코드 파일의 indent는 파일 내용으로 공백/탭과 너비를 감지하고, 판별할 수 없는 경우 4칸 공백을 쓴다. 사용자 설정 UI는 없다. 공통으로 다중 selection, drawSelection, indent guides, Alt-click selection을 사용한다. font size CSS 변수는 `13 * zoom` px다.
 
 현재 LSP 기반 semantic tokens·diagnostics·go to definition·references·format·code actions·symbol rename/refactor는 연결되어 있지 않다. 전체 지원 결과와 완료 순서는 [IDE 편집 기능 스펙](./ide-capabilities.md)에 명시한다.
 

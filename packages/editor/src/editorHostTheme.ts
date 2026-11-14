@@ -17,6 +17,10 @@ export const workspaceEditorTheme = EditorView.theme({
     color: 'var(--text-muted)',
     border: 'none'
   },
+  '.cm-activeLineGutter': {
+    backgroundColor: 'var(--bg-hover)',
+    color: 'var(--text)'
+  },
   '.cm-activeLine': { background: 'var(--bg-hover)' },
   '.cm-cursor': { borderLeftColor: 'var(--text)' }
 })
