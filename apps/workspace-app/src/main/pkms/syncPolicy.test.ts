@@ -2,11 +2,35 @@ import { describe, expect, it } from 'vitest'
 import {
   folderPathsToReconcile,
   nextGuardedFolderDeleteRevision,
+  pathIsWithinFolder,
+  remoteDeletedFolders,
   remoteChangedSinceBaseline,
   resetRootScopedState
 } from './syncPolicy'
 
 describe('PKMS sync race policy', () => {
+  it('detects deleted folders from an authoritative snapshot by identity, not path alone', () => {
+    expect(
+      remoteDeletedFolders(
+        [
+          { id: 'old-folder', path: 'engineering/01 math', kind: 'folder' },
+          { id: 'moved-folder', path: 'old-name', kind: 'folder' }
+        ],
+        [
+          { id: 'new-folder', path: 'engineering/01 math', kind: 'folder' },
+          { id: 'moved-folder', path: 'new-name', kind: 'folder' }
+        ]
+      )
+    ).toEqual(['engineering/01 math'])
+  })
+
+  it('matches deleted folder descendants without matching similarly prefixed siblings', () => {
+    expect(pathIsWithinFolder('engineering/01 math/chapter.md', 'engineering/01 math')).toBe(true)
+    expect(pathIsWithinFolder('engineering/01 mathematics/note.md', 'engineering/01 math')).toBe(
+      false
+    )
+  })
+
   it('reconciles missing folder metadata from a directory scan, parent first', () => {
     expect(
       folderPathsToReconcile(
@@ -72,6 +96,7 @@ describe('PKMS local root transition', () => {
       pendingFolderCreates: { workspace: { 'old-folder': 'op-folder' } },
       localDirectories: { workspace: { 'old-folder': 'dev:ino' } },
       pendingDeletes: { workspace: { 'old.md': { operationId: 'op-delete' } } },
+      pendingRemoteFolderDeletes: { workspace: ['old-folder'] },
       pendingCreates: { workspace: { 'new.md': { operationId: 'op-create' } } },
       pendingUpdates: { workspace: { 'cloud-2': { operationId: 'op-update' } } }
     }
@@ -88,6 +113,7 @@ describe('PKMS local root transition', () => {
     expect(state.pendingFolderCreates.workspace).toBeUndefined()
     expect(state.localDirectories.workspace).toBeUndefined()
     expect(state.pendingDeletes.workspace).toBeUndefined()
+    expect(state.pendingRemoteFolderDeletes.workspace).toBeUndefined()
     expect(state.pendingCreates.workspace['new.md'].operationId).toBe('op-create')
     expect(state.pendingUpdates.workspace['cloud-2'].operationId).toBe('op-update')
   })
@@ -103,7 +129,8 @@ describe('PKMS local root transition', () => {
       pendingPaths: {},
       pendingFolderCreates: {},
       localDirectories: {},
-      pendingDeletes: {}
+      pendingDeletes: {},
+      pendingRemoteFolderDeletes: {}
     }
 
     resetRootScopedState(state, 'workspace')

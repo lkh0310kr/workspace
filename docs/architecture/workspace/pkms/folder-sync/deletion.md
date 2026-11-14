@@ -31,6 +31,19 @@
 - Server는 file의 `expectedRevision`을 확인한다. `protectSubtree`가 있는 folder delete는 현재 보수적인 workspace revision 일치 guard를 사용한다. 대상 subtree 밖에서 일어난 변경도 삭제를 거부할 수 있다. 이는 설계의 대상 전용 guard보다 엄격하며 원격 데이터 보존을 우선한다. 이후 operation path index를 기록하면 guard 범위를 좁힐 수 있다.
 - Folder bridge는 현재 Markdown 문서와 folder metadata를 동기화한다. 다른 로컬 파일과 binary attachment는 manifest와 transfer protocol에 추가되기 전까지 이 삭제 계약의 대상이 아니다.
 
+## Cloud에서 시작된 folder 삭제
+
+Web/Cloud에서 사용자가 folder subtree를 삭제하면 활성 manifest에서 folder marker와 하위 item이 사라진다. Desktop은 revision feed tombstone의 이전 folder path 또는 기존 manifest와 authoritative snapshot의 ID 차이로 삭제를 인식한다. 서버 change feed가 폴더 marker만 tombstone으로 보내더라도 이전 manifest에서 해당 경로 아래 Markdown을 dirty path에 넣어 파일 baseline reconciliation을 수행한다.
+
+- Remote-deleted path는 같은 sync pass의 local directory reconciliation에서 재등록하지 않는다.
+- 삭제된 경로에 local 변경 Markdown이 있으면 기존 reconciliation 규칙대로 conflict copy를 보존한다. 해당 경로에 새 active remote item이 남으면 폴더를 유지한다.
+- 삭제된 폴더가 여전히 로컬에 있고 active remote descendant가 없으면 Electron OS Trash로 이동한다. `fs.rm`로 영구 삭제하지 않는다. 사용자는 Finder/운영체제 휴지통에서 local-only 파일과 binary asset을 복구할 수 있다.
+- 폴더를 옮긴 뒤 `localDirectories`에서 해당 subtree inventory를 제거하고 `pkms:local-tree:changed`를 발행한다. 따라서 Desktop Files tree가 즉시 새 로컬 filesystem 상태를 읽는다.
+- Change feed tombstone이 아니라 단순 snapshot 부재만으로 첫 연결/초기 seed에서 local folder를 삭제하지 않는다. 기존 remote manifest를 가진 snapshot recovery에서만 기존 folder ID가 snapshot에 없어진 경우를 tombstone으로 본다.
+- Trash 이동 실패는 sync pass를 실패시키고 retry/log 대상으로 둔다. 경로 밖 이동, symlink 추적, 영구 삭제는 허용하지 않는다.
+
+이 동작은 사용자가 Cloud에서 명시적으로 수행한 subtree 삭제를 replica에 반영하면서 Desktop 전용 binary content를 복구 가능하게 보존한다. Local folder에서 시작된 삭제는 기존 conditional delete 흐름을 유지한다.
+
 Watcher event만으로는 삭제를 확정할 수 없다. 그렇다고 삭제 감지를 포기해서는 안 된다. Event는 확인을 시작하는 신호이며 완전한 로컬 directory inventory가 판단 근거다.
 
 ## 목표와 불변 조건
@@ -111,18 +124,18 @@ Stale revision conflict가 발생하면 pending delete를 취소하고 remote cu
 10. **Stale-delete conflict를 해결한다.** 원격 변경을 반영하고 최신 cloud version을 보존 또는 복원한다. Pending delete를 정리하고 `attention`을 표시한다.
 11. **놓친 event를 복구한다.** 시작 시와 주기적인 완전 scan에서 같은 inventory diff를 사용한다. Watcher drop이나 오류는 전체 directory scan을 발생시킨다.
 
-| Condition                                               | Result                                                                           |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 이전 inventory 없는 첫 완전 scan | Inventory를 초기화하고 cloud 전용 folder를 materialize하며 삭제하지 않는다. |
-| 완전 scan에서 baseline Markdown file 누락 | 조건부 file delete를 queue에 넣는다. |
-| 이전에 확인한 folder가 완전 scan에서 누락 | 조건부 folder delete를 queue에 넣는다. |
-| Root 누락, 탐색 실패 또는 scan 미완료 | 이전 inventory를 유지하고 재시도하며 삭제하지 않는다. |
-| 후보가 제외 또는 reserved 경로임 | 삭제를 추론하지 않는다. |
-| Remote file revision이 baseline과 일치 | File을 원자적으로 tombstone한다. |
-| Client cursor 이후 remote folder subtree 변경 없음 | Folder와 하위 항목을 원자적으로 tombstone한다. |
-| Cursor 이후 remote file/subtree가 변경됨 | 원자적으로 거부하고 최신 cloud version을 보존/복원해 attention을 표시한다. |
-| 같은 directory identity가 새 경로에 나타남 | Move operation 한 번을 보낸다. |
-| Identity가 없거나 모호함 | Move를 추측하지 않는다. |
+| Condition                                          | Result                                                                      |
+| -------------------------------------------------- | --------------------------------------------------------------------------- |
+| 이전 inventory 없는 첫 완전 scan                   | Inventory를 초기화하고 cloud 전용 folder를 materialize하며 삭제하지 않는다. |
+| 완전 scan에서 baseline Markdown file 누락          | 조건부 file delete를 queue에 넣는다.                                        |
+| 이전에 확인한 folder가 완전 scan에서 누락          | 조건부 folder delete를 queue에 넣는다.                                      |
+| Root 누락, 탐색 실패 또는 scan 미완료              | 이전 inventory를 유지하고 재시도하며 삭제하지 않는다.                       |
+| 후보가 제외 또는 reserved 경로임                   | 삭제를 추론하지 않는다.                                                     |
+| Remote file revision이 baseline과 일치             | File을 원자적으로 tombstone한다.                                            |
+| Client cursor 이후 remote folder subtree 변경 없음 | Folder와 하위 항목을 원자적으로 tombstone한다.                              |
+| Cursor 이후 remote file/subtree가 변경됨           | 원자적으로 거부하고 최신 cloud version을 보존/복원해 attention을 표시한다.  |
+| 같은 directory identity가 새 경로에 나타남         | Move operation 한 번을 보낸다.                                              |
+| Identity가 없거나 모호함                           | Move를 추측하지 않는다.                                                     |
 
 ## Tree 표시와 진단 기록
 
@@ -130,17 +143,18 @@ Stale revision conflict가 발생하면 pending delete를 취소하고 remote cu
 - Operation 성공 후 기존 revision feed를 통해 모든 client에서 빈 folder 행을 제거한다.
 - 원격 변경 conflict에서는 folder를 복원하고 attention 표시와 설명을 제공한다.
 - Main-process log에는 note 내용을 넣지 않고 lifecycle event를 기록한다. 이벤트 이름은 `pkms_local_delete_queued`, `pkms_local_delete_ack`, `pkms_local_delete_conflict`, `pkms_local_delete_retry`, `pkms_local_folder_move`, `pkms_local_scan_incomplete`다. 가능한 경우 workspace ID, 상대 경로, item 종류, operation ID와 오류 메시지를 포함한다.
+- Cloud folder deletion은 활성 remote tree에서 제거하고 local OS Trash로 옮긴 뒤 `pkms:local-tree:changed` event를 보내야 한다. 진단 event는 `pkms_remote_folder_delete_applied`이며 note 본문을 기록하지 않는다.
 
 ## Source·배포·수락 상태
 
-| Slice                                                                              | Source status                                                 | Operational status                                            |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
-| 완전한 directory inventory와 초기화 전용 migration | `syncBridge.ts`에 구현됨 | macOS watcher/drop/권한 수락 대기 |
-| Durable file/folder delete intent와 tree 숨김 | `syncBridge.ts`에 구현됨 | 재시작/offline 응답 유실 확인 대기 |
-| File revision 원자 검사와 보수적인 folder subtree guard | Worker SQL migration과 handler에 구현됨 | 대상 DB에 migration 적용 여부 미확인 |
-| Scan → remote cursor → 조건부 삭제 → 남은 folder materialization 순서 | 현재 `syncOnce`에 구현됨 | 동시 삭제 end-to-end 확인 대기 |
-| 안정적 directory identity 이동 | `(dev,ino)`로 목적지를 유일하게 찾을 때 구현됨 | 다른 volume/identity 부재 fallback 수락 대기 |
-| 구조화된 lifecycle log | queued/ack/conflict/retry/move/incomplete event를 기록 | log 전달·보존·개인정보 검토 대기 |
+| Slice                                                                 | Source status                                          | Operational status                           |
+| --------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------- |
+| 완전한 directory inventory와 초기화 전용 migration                    | `syncBridge.ts`에 구현됨                               | macOS watcher/drop/권한 수락 대기            |
+| Durable file/folder delete intent와 tree 숨김                         | `syncBridge.ts`에 구현됨                               | 재시작/offline 응답 유실 확인 대기           |
+| File revision 원자 검사와 보수적인 folder subtree guard               | Worker SQL migration과 handler에 구현됨                | 대상 DB에 migration 적용 여부 미확인         |
+| Scan → remote cursor → 조건부 삭제 → 남은 folder materialization 순서 | 현재 `syncOnce`에 구현됨                               | 동시 삭제 end-to-end 확인 대기               |
+| 안정적 directory identity 이동                                        | `(dev,ino)`로 목적지를 유일하게 찾을 때 구현됨         | 다른 volume/identity 부재 fallback 수락 대기 |
+| 구조화된 lifecycle log                                                | queued/ack/conflict/retry/move/incomplete event를 기록 | log 전달·보존·개인정보 검토 대기             |
 
 Migration 파일과 source 구현만으로 운영 DB가 보호됐다고 볼 수 없다. 삭제 동작을 수락 처리하기 전에 DB migration version과 runtime evidence를 확인한다.
 

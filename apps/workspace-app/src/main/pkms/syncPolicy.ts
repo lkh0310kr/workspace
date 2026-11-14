@@ -1,4 +1,5 @@
 export type SyncBaselineIdentity = { fileId: string; revision: number }
+export type SyncTreeEntry = { id: string; path: string; kind: string }
 
 type RootScopedState = {
   baselines: Record<string, unknown>
@@ -11,6 +12,7 @@ type RootScopedState = {
   pendingFolderCreates: Record<string, unknown>
   localDirectories: Record<string, unknown>
   pendingDeletes: Record<string, unknown>
+  pendingRemoteFolderDeletes: Record<string, unknown>
 }
 
 /** Clear facts derived from a local root when that root changes. */
@@ -28,6 +30,7 @@ export function resetRootScopedState<T extends RootScopedState>(
   delete state.pendingFolderCreates[workspaceId]
   delete state.localDirectories[workspaceId]
   delete state.pendingDeletes[workspaceId]
+  delete state.pendingRemoteFolderDeletes[workspaceId]
 }
 
 export function remoteChangedSinceBaseline(
@@ -42,6 +45,21 @@ export function nextGuardedFolderDeleteRevision(
   queuedRevision: number
 ): number {
   return Math.max(currentPassRevision ?? queuedRevision, queuedRevision)
+}
+
+/** Identify folder tombstones when an authoritative snapshot replaces a known manifest. */
+export function remoteDeletedFolders(
+  previousTree: readonly SyncTreeEntry[],
+  currentTree: readonly SyncTreeEntry[]
+): string[] {
+  const currentIds = new Set(currentTree.map((item) => item.id))
+  return previousTree
+    .filter((item) => item.kind === 'folder' && !currentIds.has(item.id))
+    .map((item) => item.path)
+}
+
+export function pathIsWithinFolder(candidate: string, folder: string): boolean {
+  return candidate === folder || candidate.startsWith(`${folder}/`)
 }
 
 /** Choose local directory paths that need a cloud folder marker, shallowest first. */

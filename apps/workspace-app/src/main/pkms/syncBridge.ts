@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import { randomUUID, createHash } from 'node:crypto'
 import { promises as fs, watch, type FSWatcher } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -11,6 +11,8 @@ import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from '../../shared/pkmsS
 import {
   folderPathsToReconcile,
   nextGuardedFolderDeleteRevision,
+  pathIsWithinFolder,
+  remoteDeletedFolders,
   remoteChangedSinceBaseline,
   resetRootScopedState
 } from './syncPolicy'
@@ -62,6 +64,7 @@ type Persisted = {
   pendingFolderCreates: Record<string, Record<string, string>>
   localDirectories: Record<string, Record<string, string | null>>
   pendingDeletes: Record<string, Record<string, PendingDelete>>
+  pendingRemoteFolderDeletes: Record<string, string[]>
 }
 const EMPTY: Persisted = {
   configs: {},
@@ -76,7 +79,8 @@ const EMPTY: Persisted = {
   pendingCreates: {},
   pendingFolderCreates: {},
   localDirectories: {},
-  pendingDeletes: {}
+  pendingDeletes: {},
+  pendingRemoteFolderDeletes: {}
 }
 // Poll the cloud's revision feed frequently; full disk walks are a recovery path.
 // The revision feed is metadata-only; poll it frequently so edits from web/iOS
@@ -200,7 +204,8 @@ async function load(): Promise<Persisted> {
       pendingCreates: saved.pendingCreates ?? {},
       pendingFolderCreates: saved.pendingFolderCreates ?? {},
       localDirectories: saved.localDirectories ?? {},
-      pendingDeletes: saved.pendingDeletes ?? {}
+      pendingDeletes: saved.pendingDeletes ?? {},
+      pendingRemoteFolderDeletes: saved.pendingRemoteFolderDeletes ?? {}
     }
   } catch {
     persisted = structuredClone(EMPTY)
@@ -1120,7 +1125,8 @@ async function syncOnce(workspaceId: string): Promise<void> {
       if (!folderLocks.has(workspaceId))
         folderLocks.set(workspaceId, await acquireFolderSyncLock(root, workspaceId))
       const state = await load()
-      fullScan = fullScanRequests.delete(workspaceId) || state.pendingFullScans[workspaceId] === true
+      fullScan =
+        fullScanRequests.delete(workspaceId) || state.pendingFullScans[workspaceId] === true
       scanDirectories = directoryScanRequests.delete(workspaceId)
       scannedLocalPaths = [
         ...new Set([
@@ -1137,6 +1143,8 @@ async function syncOnce(workspaceId: string): Promise<void> {
       let knownRemoteTree = state.remoteTrees[workspaceId]
       let nextSyncRevision = state.syncCursors[workspaceId]
       const remoteChangedPaths = new Set<string>()
+      const remoteDeletedFolderPaths = new Set(state.pendingRemoteFolderDeletes[workspaceId] ?? [])
+      let remoteTreeChanged = false
       const baselines = (state.baselines[workspaceId] ??= {})
       if (scanDirectories || fullScan) {
         try {
@@ -1297,6 +1305,15 @@ async function syncOnce(workspaceId: string): Promise<void> {
         !knownRemoteTree
       ) {
         const snapshot = await readRemoteSnapshot(workspaceId)
+        if (knownRemoteTree) {
+          for (const relative of remoteDeletedFolders(knownRemoteTree, snapshot.files))
+            if (
+              !isReservedSyncPath(relative) &&
+              !matchesExclusion(relative, config.excludedPaths ?? [])
+            )
+              remoteDeletedFolderPaths.add(relative)
+        }
+        remoteTreeChanged = remoteDeletedFolderPaths.size > 0
         knownRemoteTree = snapshot.files
         state.remoteTrees[workspaceId] = snapshot.files
         state.remoteTreeVersions[workspaceId] = Math.max(
@@ -1315,7 +1332,26 @@ async function syncOnce(workspaceId: string): Promise<void> {
           const treeById = new Map(
             (knownRemoteTree ?? Object.values(knownRemoteFiles)).map((file) => [file.id, file])
           )
+          const previousTree = [...treeById.values()]
           for (const change of page.changes) {
+            const previousTreeItem = treeById.get(change.id)
+            if (change.deleted && previousTreeItem?.kind === 'folder') {
+              if (
+                !isReservedSyncPath(previousTreeItem.path) &&
+                !matchesExclusion(previousTreeItem.path, config.excludedPaths ?? [])
+              )
+                remoteDeletedFolderPaths.add(previousTreeItem.path)
+              const underDeletedFolder = (candidate: string): boolean =>
+                pathIsWithinFolder(candidate, previousTreeItem.path)
+              for (const previous of previousTree) {
+                if (!underDeletedFolder(previous.path)) continue
+                treeById.delete(previous.id)
+                if (previous.kind === 'markdown') {
+                  remoteChangedPaths.add(previous.path)
+                  delete knownRemoteFiles[previous.id]
+                }
+              }
+            }
             treeById.delete(change.id)
             if (!change.deleted && (change.kind === 'markdown' || change.kind === 'folder'))
               treeById.set(change.id, change)
@@ -1328,6 +1364,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             }
           }
           knownRemoteTree = [...treeById.values()]
+          remoteTreeChanged = page.changes.length > 0
           state.remoteTrees[workspaceId] = knownRemoteTree
           state.remoteTreeVersions[workspaceId] = Math.max(
             (state.remoteTreeVersions[workspaceId] ?? -1) + 1,
@@ -1348,6 +1385,14 @@ async function syncOnce(workspaceId: string): Promise<void> {
           state.pendingFullScans[workspaceId] = true
           await save()
           const snapshot = await readRemoteSnapshot(workspaceId)
+          const previousTree = knownRemoteTree ?? []
+          for (const relative of remoteDeletedFolders(previousTree, snapshot.files))
+            if (
+              !isReservedSyncPath(relative) &&
+              !matchesExclusion(relative, config.excludedPaths ?? [])
+            )
+              remoteDeletedFolderPaths.add(relative)
+          remoteTreeChanged = remoteDeletedFolderPaths.size > 0
           knownRemoteTree = snapshot.files
           state.remoteTrees[workspaceId] = snapshot.files
           state.remoteTreeVersions[workspaceId] = Math.max(
@@ -1355,9 +1400,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
             snapshot.revision
           )
           knownRemoteFiles = Object.fromEntries(
-            snapshot.files
-              .filter((file) => file.kind === 'markdown')
-              .map((file) => [file.id, file])
+            snapshot.files.filter((file) => file.kind === 'markdown').map((file) => [file.id, file])
           )
           nextSyncRevision = snapshot.revision
           fullScan = true
@@ -1480,6 +1523,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
       }
       state.remoteTrees[workspaceId] = knownRemoteTree ?? []
       state.remoteFiles[workspaceId] = knownRemoteFiles ?? {}
+      state.pendingRemoteFolderDeletes[workspaceId] = [...remoteDeletedFolderPaths]
       state.syncCursors[workspaceId] = nextSyncRevision ?? 0
       await save()
       // Folder metadata is cheap and the manifest is already cached. Materialize
@@ -1525,6 +1569,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
       for (const relative of foldersToReconcile) {
         if (
           !relative ||
+          [...remoteDeletedFolderPaths].some((deletedPath) =>
+            pathIsWithinFolder(relative, deletedPath)
+          ) ||
           isReservedSyncPath(relative) ||
           matchesExclusion(relative, config.excludedPaths ?? [])
         )
@@ -1569,7 +1616,12 @@ async function syncOnce(workspaceId: string): Promise<void> {
         nextSyncRevision = Math.max(nextSyncRevision ?? 0, result.acceptedRevision ?? 0)
         await save()
       }
-      if (!fullScan && scannedLocalPaths.length === 0 && remoteChangedPaths.size === 0) {
+      if (
+        !fullScan &&
+        scannedLocalPaths.length === 0 &&
+        remoteChangedPaths.size === 0 &&
+        remoteDeletedFolderPaths.size === 0
+      ) {
         // The fast revision poll is intentionally frequent. Avoid rescanning
         // the vault and rewriting the multi-megabyte baseline JSON when nothing
         // relevant changed; persist only cursor movement from non-Markdown rows.
@@ -1583,6 +1635,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
           state.syncCursors[workspaceId] = nextSyncRevision
           await save()
         }
+        if (remoteTreeChanged) notifyLocalTreeChanged(workspaceId, null)
         setStatus(workspaceId, {
           state: 'synced',
           stage: null,
@@ -2018,6 +2071,42 @@ async function syncOnce(workspaceId: string): Promise<void> {
       await Promise.all(Array.from({ length: Math.min(6, total) }, () => worker()))
       await save()
       if (firstError) throw firstError
+      for (const relative of [...remoteDeletedFolderPaths].sort(
+        (a, b) => a.split('/').length - b.split('/').length
+      )) {
+        if (
+          [...remoteDeletedFolderPaths].some(
+            (parent) => parent !== relative && pathIsWithinFolder(relative, parent)
+          ) ||
+          (knownRemoteTree ?? []).some((file) => pathIsWithinFolder(file.path, relative))
+        ) {
+          remoteDeletedFolderPaths.delete(relative)
+          continue
+        }
+        const target = safePath(root, relative)
+        try {
+          const stat = await fs.lstat(target)
+          if (stat.isSymbolicLink() || !stat.isDirectory()) {
+            remoteDeletedFolderPaths.delete(relative)
+            continue
+          }
+          await shell.trashItem(target)
+          state.localDirectories[workspaceId] = Object.fromEntries(
+            Object.entries(state.localDirectories[workspaceId] ?? {}).filter(
+              ([candidate]) => candidate !== relative && !candidate.startsWith(`${relative}/`)
+            )
+          )
+          notifyLocalTreeChanged(workspaceId, relative)
+          appendStartupLog('pkms_remote_folder_delete_applied', { workspaceId, path: relative })
+          remoteDeletedFolderPaths.delete(relative)
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+            remoteDeletedFolderPaths.delete(relative)
+          else throw error
+        }
+      }
+      state.pendingRemoteFolderDeletes[workspaceId] = [...remoteDeletedFolderPaths]
+      await save()
       state.remoteFiles[workspaceId] = knownRemoteFiles
       if (knownRemoteTree) state.remoteTrees[workspaceId] = knownRemoteTree
       state.remoteTreeVersions[workspaceId] = Math.max(
@@ -2032,6 +2121,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
       }
       await save()
       retryAttempts.delete(workspaceId)
+      if (remoteTreeChanged) notifyLocalTreeChanged(workspaceId, null)
       const conflictFiles = [...new Set([...local.keys(), ...Object.keys(baselines)])].filter(
         (relative) => /\.local-conflict-[^/]+\.md$/i.test(relative)
       )
