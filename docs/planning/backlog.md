@@ -6,9 +6,9 @@
 
 ### Google Drive 직접 연결 prototype acceptance
 
-- **목표 결과:** 별도 동기화 서버 없이 Web browser가 Google Drive API를 직접 사용해 prototype 전용 파일·폴더를 읽고 쓰며, token 만료·변경 feed·충돌 보존을 관찰할 수 있다. 기존 PKMS 저장소는 이 prototype에서 접근하거나 변경하지 않는다.
-- **현재 상태:** 격리된 static prototype 구현 및 로컬 TypeScript 검사, production build, HTTP route 확인 완료. 로컬 Google Web client ID 설정은 `.env.local`에만 저장한다. Cloud Console을 읽기 전용으로 확인했다: `http://localhost:4173` origin 등록은 정상이고 redirect URI는 비어 있어도 된다. 현재 External/Testing audience의 test user가 0명이고, Data Access scope가 비어 있으며, Google Drive API도 비활성 상태라 OAuth에서 403 `access_denied`를 받았다. token 발급이나 Drive 접근은 발생하지 않았다.
-- **완료 조건:** 같은 Cloud project에서 Drive API를 활성화하고, Data Access에 `drive.file`을 선언하고, 로그인 계정을 Test users에 추가한다. 이후 연결 응답의 실제 `expires_in`과 만료 후 재인증, `drive.file` 범위의 전용 폴더 생성·Markdown round-trip·folder CRUD, multi-page changes cursor commit, 외부 수정 중 conflict copy 보존을 실제 브라우저에서 검증한다. 이후 direct Drive의 공개 가능 범위와 sync 전환 결정을 owner spec에 기록한다.
+- **목표 결과:** 별도 동기화 서버 없이 Web browser가 Google Drive API를 직접 사용해 prototype 전용 파일·폴더를 읽고 쓰며, 변경 feed와 동시 수정 보존을 관찰한다. 기존 PKMS 저장소는 이 prototype에서 접근하거나 변경하지 않는다.
+- **확인 완료:** Cloud project `workspace-514715`에서 Drive API를 활성화하고, External/Testing test user와 `drive.file` scope를 설정했다. 실제 동의 후 `expires_in=3599s` token을 받았다. 격리 root/subfolder, Markdown create/read/update, rename, changes cursor와 change poll을 확인했다. 별도 browser tab 두 개로 충돌을 만들어 원본의 원격 버전과 conflict copy의 로컬 편집본이 모두 Drive에 보존되는 것을 각각 열어 확인했다. reload 후 다시 연결하는 경로도 확인했다. prototype의 rename 후 baseline 갱신 누락을 고치고 rename 직후 저장이 false conflict 없이 성공하는 것까지 검증했다.
+- **남은 결정/수락:** 이 prototype은 기존 PKMS 앱과 연동되지 않는다. token 만료 후 재인증, offline/restart queue, Desktop PKCE/Keychain, move/trash, 대규모 전체 tree import/hash, upload race를 차단하는 원자적 conflict contract는 남아 있다. 이 게이트를 통과하기 전에는 production sync를 교체하지 않는다.
 - **근거:** [Google Drive direct sync 조사·결과 스펙](../architecture/workspace/pkms/folder-sync/research/google-drive-direct-sync.md), [격리 prototype 실행 안내](../../apps/pkms-web/prototypes/google-drive-direct/README.md)
 
 ### PKMS 즉시 반응과 sync runtime acceptance

@@ -79,9 +79,25 @@ Client ID는 public identifier이므로 prototype 화면에 입력할 수 있고
 
 ### Prototype live OAuth 확인
 
-2026-11-15 로컬 Chrome과 Google Cloud Console project `workspace-514715`에서 실제 GIS popup 및 설정을 확인했다. OAuth client `workspace-web`에는 `http://localhost:4173` Authorized JavaScript origin이 등록되어 있고 redirect URI는 비어 있다. GIS가 같은 origin을 포함한 계정 선택 화면까지 도달해 origin 설정이 통과함을 확인했다. 계정 선택 뒤 Google은 `403 access_denied`와 테스트 사용자가 앱을 사용할 수 없다는 메시지를 표시했다. Audience는 External / Testing이며 test user가 0명이다. Data Access의 선언된 scope 목록도 비어 있고, API Library에서 Google Drive API가 아직 사용 설정되지 않았다. token은 발급되지 않았고 Drive API를 호출하지 않았다.
+2026-11-15 로컬 Chrome과 Google Cloud Console project `workspace-514715`에서 설정과 실제 왕복을 검증했다. OAuth client `workspace-web`의 `http://localhost:4173` Authorized JavaScript origin으로 GIS popup과 동의 절차가 완료됐고, GIS token model에 필요한 redirect URI는 설정하지 않았다. Audience는 External / Testing이며 현재 로그인 계정을 Test users에 등록했다. Data Access에는 `https://www.googleapis.com/auth/drive.file`만 선언했다. Google Drive API는 `사용 설정됨`이다. Google 경고 화면을 통과하고 사용자가 동의를 승인한 뒤 scope가 포함된 access token을 받았다.
 
-실제 왕복 acceptance 전에 같은 Cloud project에서 아래 설정을 완료한다: (1) Google Drive API 사용 설정, (2) Data Access에 `https://www.googleapis.com/auth/drive.file` 추가, (3) 로그인할 Google 계정을 Audience → Test users에 추가. OAuth Client에 등록한 origin은 이미 맞으며 redirect URI는 GIS token model에 필요하지 않다. 설정 적용 뒤 재시도에서 실제 `expires_in`, `drive.file` CRUD, change feed와 conflict probe를 검증한다.
+GIS 응답의 실제 `expires_in`은 **3599초**였다. prototype 화면의 countdown은 해당 응답으로부터 감소했고, token은 탭 메모리에만 유지됐다. 만료 뒤 사용자 재인증은 만료를 기다려 확인하지 않았다. 두 번째 같은-origin 브라우저 탭에서 별도 OAuth token을 발급해 두 client의 동시 편집을 재현했다.
+
+실제 Google Drive에서 다음을 확인했다.
+
+- 격리된 `Workspace Drive Prototype` 폴더와 `integration-check` 하위 폴더 생성
+- Markdown 생성, 다운로드/읽기, 수정 저장 후 Drive metadata 및 checksum 재조회
+- 하위 폴더 진입, `changes.getStartPageToken` 초기화, 이후 변경 한 건을 `changes.list`로 조회하고 최종 cursor 반영
+- 하위 파일 rename 후 목록에서 새 이름 확인, rename된 파일의 baseline으로 바로 저장해 새 checksum 재조회. 이 실제 흐름에서 발견한 rename 후 baseline 누락을 수정하고 재검증했다.
+- 두 client 중 한쪽이 원본을 수정한 뒤 다른 쪽이 오래된 base로 저장을 시도할 때 원본 overwrite를 막고 conflict copy 생성
+- 원본 파일을 다시 Drive API로 열어 두 번째 client의 `Second client edit: remote version.` 본문과 checksum `0c30ebf7133d055ab86ffbbef7608e0d` 확인. conflict copy도 별도로 열어 첫 client의 `First client stale edit: preserve both versions.` 내용 확인
+- 생성한 원본 Markdown을 Drive 웹 UI에서 직접 열어 내용 확인
+
+이 검증은 `drive.file`로 prototype가 만든 격리 파일에 대한 접근과 저장을 입증한다. 사용자가 임의로 기존 Drive 폴더를 선택하거나 앱 밖에서 추가된 항목까지 발견할 수 있다는 뜻은 아니다. 페이지 reload 뒤 사용자가 다시 연결해 새 token을 받고 기존 테스트 root를 이어서 열 수 있었지만, 실제 token 만료 시점까지 기다리는 검증은 하지 않았다. Drive `files.update` 사전 metadata 확인과 media upload는 하나의 원자적 compare-and-swap으로 확인되지 않았으므로 두 동시 쓰기 사이의 race는 별도 해결 대상이다. offline queue, Desktop PKCE/Keychain, move/trash, 기존 tree import는 이번 live acceptance 범위에서 검증하지 않았다.
+
+### 프로젝트 적용 판정
+
+판정은 **Drive API 직접 연결을 구현 후보로 채택하되, production sync 교체는 보류**다. Browser OAuth와 app-created file CRUD/change feed/conflict-copy path가 실제 Drive에서 동작해 기술적 적용 가능성은 확인했다. 그러나 prototype은 기존 PKMS editor와 전혀 연결하지 않았다. 공용 `EditorProvider`는 UI 경계를 재사용할 여지를 주지만, 현재 provider는 document session을 Yjs와 server route에 연결하고 Desktop sync는 별도 bridge가 durable queue, revision/cursor와 realtime을 관리한다. 실제 전환에는 Drive provider와 local durable cache/queue, desktop OAuth, migration/recovery 기능이 필요하다. 특히 Drive API의 preflight와 upload 사이 race를 막는 조건부 쓰기 계약은 이 실험으로 입증되지 않았다. 전체 폴더 import 및 hash 비교, offline/restart, token lifecycle, quota retry와 동시 쓰기 acceptance 이후에만 production 전환을 결정한다.
 
 ## 권장 목표 구조
 
