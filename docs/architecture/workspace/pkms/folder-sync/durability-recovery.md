@@ -70,7 +70,7 @@ Persisted JSON load 중 parse/read 실패는 현재 코드에서 empty state로 
 - retry 가능한 실패는 exponential backoff를 적용하고 pending path/operation을 보존한다. 한 path 오류가 unrelated path 작업을 모두 지우지 않는다.
 - 인증 만료/권한 거부는 offline과 같은 성공 상태로 표시하지 않는다. 사용자가 재인증/권한 복구를 해야 하는 attention/error 상태여야 한다.
 - disconnect/reconfigure는 watcher·poll·Realtime·timer를 정리하고 실행 중 pass를 기다린다. 저장된 configs/queue/remote cache 삭제 정책은 사용자가 연결 해제 또는 root 교체를 선택한 범위에 따른다.
-- Root 변경은 삭제 의미를 갖지 않는다. 새 root의 첫 complete inventory를 별도 seed로 삼고 기존 root의 baseline 부재로 cloud delete를 만들지 않아야 한다. **현재 source gap:** configure 시 `localDirectories`/`pendingDeletes`는 제거하지만 `baselines`는 유지한다. 이 경로에서 새 root가 old baseline의 파일을 포함하지 않으면 unintended remote delete 가능성이 있으므로 root replacement를 safe/unverified로 표시하고 변경 전 확인 또는 source fix가 필요하다.
+- Root 변경은 삭제 의미를 갖지 않는다. 새 root의 첫 complete inventory를 별도 seed로 삼고 기존 root의 baseline 부재로 cloud delete를 만들지 않아야 한다. 현재 `configurePkmsSyncBridge`는 root가 달라지면 `resetRootScopedState`로 이전 baseline, remote cache, cursor, local inventory와 pending deletion intent를 제거하며, `syncPolicy.test.ts`가 해당 초기화를 검증한다. 이것은 policy unit evidence이지 실제 두 root 간 sync acceptance는 아니다. cloud-only 파일 materialization 중 삭제가 생기지 않는지와 새 root의 local-only/상이 본문 import가 양쪽 자료를 보존하는지는 격리 fake-server scenario에서 추가 검증한다.
 - 앱 graceful shutdown은 실행 중 pass를 다룬 후 handle을 종료한다. force kill/crash는 마지막 성공적으로 rename된 JSON까지만 보장 가능하며 shell sync를 백그라운드에서 계속한다고 가정하지 않는다.
 
 ## Folder lock과 path security

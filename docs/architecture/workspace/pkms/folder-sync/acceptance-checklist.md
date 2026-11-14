@@ -1,0 +1,77 @@
+# PKMS 동기화 종단 간 검증 체크리스트
+
+이 체크리스트는 **Web, iOS, Desktop을 나눠 설명하지 않고**, 사용자의 자료가 어떤 진입점에서 바뀌더라도 PKMS의 저장소와 다른 연결 지점에 안전하게 수렴하는 결과를 기준으로 한다. 한 client에서 성공한 동작은 다른 client나 전원/네트워크 경계까지 자동으로 증명하지 않는다.
+
+## 목표 결과
+
+어떤 지원 client에서든 사용자가 만든 파일·폴더·본문 변경은 명확한 상태와 함께 저장된다. 연결된 client는 같은 내용을 다시 읽을 수 있고, 실패·재시작 뒤에도 변경이 복구된다. 동시 변경, 삭제, 이동, 권한 오류가 발생하면 어느 쪽 자료도 조용히 유실되지 않는다. GitHub backup은 PKMS cloud sync와 별도 결과로 표시된다.
+
+## PKMS sync 경계
+
+- 현재 운영 경로에서 PKMS cloud workspace가 문서 및 파일 tree의 공통 저장 기준이다. Web과 iOS는 cloud API/Yjs를 사용한다. Desktop은 같은 cloud에 연결하고 사용자가 지정한 local folder를 mirror한다.
+- Realtime은 변경을 빨리 알리는 수단이다. 변경의 진실과 복구 기준은 durable cloud revision/change feed 및 authoritative snapshot이다.
+- Yjs는 Markdown 본문의 concurrent update를 합친다. 파일 identity, path, 폴더 계층, delete, binary asset conflict는 별도의 sync operation이 소유한다.
+- GitHub는 별도 선택 backup이다. PKMS cloud에서 `synced`라고 해서 GitHub backup도 완료된 것은 아니다. 외부 GitHub 변경은 자동 overwrite하지 않고 divergence 상태로 멈춘다.
+- Google Drive direct prototype은 격리 실험이며 현재 PKMS sync backend가 아니다. 결과는 본 checklist의 별도 후보 결과로만 기록한다.
+
+## 상태 정의
+
+| 상태 | 의미 |
+|---|---|
+| **통과** | 기대 결과를 자동 회귀 또는 실제 runtime에서 관찰했고 근거가 아래에 남아 있음 |
+| **부분 통과** | 코드나 단일 client/runtime에서 확인했지만 전체 경계/장애 조건이 확인되지 않음 |
+| **미검증** | 현재 acceptance evidence가 없거나 재현 실행을 하지 않음 |
+| **실패** | 실행 결과가 기대 결과와 다르거나 검사 명령이 실패함 |
+| **차단** | 현재 환경에서 필요한 실제 client, 계정, fixture 또는 안전한 test 환경이 없음 |
+
+“코드가 있음”은 통과 근거가 아니다. 운영 자료를 대상으로 위험한 삭제·대량 이동을 재현하지 않는다. destructiveness가 있는 scenario는 격리 workspace, 별도 temporary root 또는 transaction rollback fixture를 사용한다.
+
+## 공통 결과 checklist
+
+현재 증거 합계: **23개 중 통과 1, 부분 통과 19, 미검증 3**. Partial에는 기존 production runtime에서 핵심 경로를 통과했지만 모든 장애/순서/다중 client 조합이 빠진 경우가 포함된다. 이 수치는 전체 동기화 검증 완료를 뜻하지 않는다.
+
+| ID | 시나리오와 기대 결과 | 상태 | 확인 근거 / 남은 실행 |
+|---|---|---|---|
+| PKMS-SYNC-01 | 연결 전후 workspace identity와 local root가 명확하다. root 변경이나 disconnect만으로 cloud 자료를 삭제하지 않는다. | 부분 통과 | root-scoped state reset unit 2개 포함 sync policy suite 통과. 다른 root에 cloud-only와 local-only 내용을 둔 fake server/runtime acceptance는 미검증. |
+| PKMS-SYNC-02 | 초기 연결·재연결 중 cache/tree가 먼저 보이고, 빈 목록이나 synced로 오해되지 않으며 cloud listing 도착 후 수렴한다. | 부분 통과 | Web/iOS cache-first 구현 문서와 이전 실제 사용 기록이 있음. 느린 서버·cache miss·초기 materialization을 같은 acceptance fixture에서 재검증하지 않음. |
+| PKMS-SYNC-03 | 파일/폴더 생성, 빈 폴더 포함 계층, dot-prefix 이름이 새로고침 후 유지된다. | 부분 통과 | 운영 root folder 누락 복구, 세 사용자 폴더의 34개 파일 및 folder metadata 일치 기록. 격리 workspace에서 빈 폴더·dotfile 전부를 다시 검증하지 않음. |
+| PKMS-SYNC-04 | Markdown create/edit가 durable cloud revision으로 저장되고 다시 읽었을 때 bytes/text가 보존된다. | 통과 | 이전 full reconciliation에서 활성 Markdown 3,706개 local↔Cloud byte/hash 일치. Web 저장 후 reload, Desktop local hash 일치도 기록됨. 세 client가 연속 교대 편집하는 검증은 미검증. |
+| PKMS-SYNC-05 | Realtime 연결 상태와 무관하게 revision poll/cursor 재개가 놓친 cloud 변경을 가져온다. | 부분 통과 | Desktop invalid cursor fallback을 실제 실행해 authoritative snapshot 후 cursor `2697` 오류에서 복구, final cursor `3096`, pending 0을 확인. 실제 Realtime 차단 중 Web·iOS·Desktop 각각의 수렴은 미검증. |
+| PKMS-SYNC-06 | 연결 local folder에서 파일 바이트 변경이 hash 기준으로 cloud에 올라가고, cloud 변경은 로컬에 안전하게 materialize된다. 같은 size/mtime이어도 bytes가 다르면 다르게 감지한다. | 부분 통과 | 5,733개 상태와 새 34개 파일의 Cloud manifest/hash 일치 기록. 동일 size/mtime 변형 및 metadata-only false-positive fixture는 미검증. |
+| PKMS-SYNC-07 | 일반 binary/asset 생성·수정·다운로드·재시도가 원래 bytes와 identity로 수렴한다. | 부분 통과 | `sync_asset_bytes` rollback regression을 이번에 linked `pkms-cloud`에서 재실행 통과, 34개 사용자 파일 manifest/hash 일치 기록. 다수 동시 대용량 파일·50 MiB 경계·중단 upload/runtime 재시도는 미검증. |
+| PKMS-SYNC-08 | File/folder rename 및 move가 identity·상위 폴더·tree·링크 rewrite에 일관되게 반영되고 destination collision에서는 양쪽 보존 또는 명시적 확인을 요구한다. | 부분 통과 | Desktop move collision unit 1개 통과. Cloud 간 move, child가 많은 폴더 이동, link rewrite 및 Web/iOS 결과는 미검증. |
+| PKMS-SYNC-09 | 파일 삭제는 마지막 공통 baseline이 있고 상대편에서 바뀌지 않은 경우에만 반영한다. 더 새 cloud edit가 있으면 본문을 복구하고 attention을 남긴다. | 부분 통과 | Delete identity/revision policy unit 통과. 이전 Web folder subtree delete→Desktop local 제거 및 Trash 복구 기록 있음. file delete 경합과 전체 순서 조합은 미검증. |
+| PKMS-SYNC-10 | Folder subtree delete는 무관한 workspace 변경 때문에 거부되지 않고, 대상 하위 항목이 base 이후 바뀌었으면 거부한다. | 부분 통과 | scoped folder guard rollback regression을 이번에 linked `pkms-cloud`에서 재실행 통과. 별도 runtime UI에서 두 조건과 보존된 subtree를 재검증하지 않음. |
+| PKMS-SYNC-11 | 같은 Markdown을 양쪽에서 다르게 수정하면 두 본문을 재검토할 수 있고 stale writer가 새 원본을 덮어쓰지 않는다. | 부분 통과 | 이전 conflict recovery 및 독립 Google Drive prototype에서 원본/복사본 둘 다 실제 Drive에서 확인. PKMS Web/Desktop/iOS 세 client의 동시 edit와 conflict UX는 미검증. |
+| PKMS-SYNC-12 | Request가 반영된 뒤 ACK가 유실되어 재시도해도 중복 file/folder/conflict copy가 생기지 않는다. 다른 내용의 path collision은 양쪽을 보존한다. | 부분 통과 | 동일 내용 create idempotency와 folder marker repair rollback regression을 이번에 linked `pkms-cloud`에서 재실행 통과. create ACK 유실 후 client 재시작, asset ACK 유실 E2E는 미검증. |
+| PKMS-SYNC-13 | Cursor가 만료·잘못되거나 pagination 도중 중단돼도 cursor를 앞당기지 않고 authoritative snapshot + full inventory로 복구한다. | 부분 통과 | invalid cursor 복구는 실제 Desktop run에서 확인. 중간 page 실패, process kill, migration mismatch 주입은 미검증. |
+| PKMS-SYNC-14 | Offline, 인증 만료, 권한 거부, 429/5xx, 시간 초과는 성공 상태로 바뀌지 않고 pending intent를 보존하며 제한된 backoff 뒤 재개한다. 한 item 오류는 다른 경로 작업을 멈추지 않는다. | 미검증 | 구현 경로는 있으나 오류 종류별 failure injection과 retry ceiling/사용자 상태를 실행한 증거가 없음. |
+| PKMS-SYNC-15 | 종료/재시작 시 마지막 durable cursor, queue, item state를 복원한다. 미확인 item을 synced로 추정하지 않는다. | 부분 통과 | 실제 앱 재시작 후 5,733 synced/0 pending와 invalid cursor 복구 기록. create/update/delete 각각 ACK 전/후 강제 종료, 손상 JSON/disk full은 미검증. |
+| PKMS-SYNC-16 | Incomplete scan, watcher event 유실, excluded path, symlink, root offline은 deletion evidence로 취급되지 않는다. 다음 complete scan에서만 안전하게 정리한다. | 미검증 | source와 문서 계약은 확인했지만 watcher drop, permission-denied 하위 폴더, symlink substitution fixture 실행 증거 없음. |
+| PKMS-SYNC-17 | 파일별 상태는 실제 hash/ACK와 맞고 재시작 후에도 유지된다. 폴더 상태는 자식 중 가장 주의가 필요한 상태를 집계한다. | 부분 통과 | 이전 stable runtime에서 5,733 `synced`, 0 pending/syncing/attention 및 item state 재시작 복원 확인. mixed-state folder aggregate와 상태 전이 중 강제 종료는 미검증. |
+| PKMS-SYNC-18 | Conflict/error 조치 위치를 열 수 있고 toast, panel, overlay가 tree/editor 조작을 막지 않는다. GitHub 상태는 cloud sync 상태와 분리된다. | 부분 통과 | conflict path 연결과 상태 표시 source 확인. error overlay 실제 겹침 클릭 미확인 기록이 있으며 conflict resolution lifecycle도 미구현/미검증. |
+| PKMS-SYNC-19 | GitHub backup은 Cloud 변경을 누락 없이 반영하되 branch divergence나 같은 path 상이 변경에서 force-push/reset/overwrite하지 않는다. | 부분 통과 | 12,472개 tree path/hash/mode parity, 정상 parent commit, dirty 0까지 확인. 이후 외부 Git divergence 자동 탐지·복구 E2E는 별도 수락이 필요. |
+| PKMS-SYNC-20 | Search/index가 새 본문·rename·move·delete 뒤 stale result를 내지 않거나 일관된 최신 revision으로 갱신된다. | 부분 통과 | server content search 적용 및 index migration 기록. 변경·삭제 직후 pagination/cache 교차 search acceptance 미검증. |
+| PKMS-SYNC-21 | Web/iOS/Desktop 편집을 교대로 수행해 같은 workspace file ID와 본문이 수렴하고 presence/realtime 장애가 저장 성공으로 오인되지 않는다. | 미검증 | 각 client의 source/build 및 Web↔Desktop 개별 확인은 존재. 같은 note에 세 client를 순서대로 연결하는 end-to-end run 없음. |
+| PKMS-SYNC-22 | 5,733개 이상 파일 및 깊은 폴더에서 initial sync, incremental sync, 검색, cache 복원 지연과 요청량이 허용 가능한 수준이며 변화 없는 scan은 대용량 재해시를 피한다. | 부분 통과 | 실제 5,733 local item, 12,472 cloud/GitHub path parity가 있음. 시간·byte·요청량을 기준으로 고정한 성능 acceptance 없음. |
+| PKMS-SYNC-23 | Google Drive direct prototype이 현재 PKMS 동기화 경로와 분리되어 있고, Drive API 후보의 제한을 정확히 드러낸다. | 부분 통과 | `drive.file` OAuth, isolated file CRUD, change cursor, 두 탭 conflict-copy를 별도 실험에서 확인. production PKMS provider integration, move/trash, token expiry, offline/restart 및 atomic conflict safety는 미검증. |
+
+## 이번 검증에서 실제 실행한 검사
+
+2026-11-15:
+
+- `npm --prefix apps/workspace-app exec vitest -- run src/main/pkms/syncPolicy.test.ts src/main/pkms/syncBridge.move.test.ts`: **12 tests passed** (root reset, guarded delete, folder reconciliation policy, move collision 포함).
+- `npm run pkms:server:typecheck`: 통과.
+- `npm --prefix apps/workspace-app run typecheck`: 통과.
+- `npm run pkms:web:typecheck`: 통과. 처음에는 격리된 Google Drive prototype의 browser DOM 타입이 Cloudflare Worker type과 섞여 실패했다. Web tsconfig에서 prototype을 제외하고 prototype 전용 config와 `drive:prototype:typecheck` 명령으로 분리했다.
+- `npm run drive:prototype:typecheck --workspace @pkms/web` 및 prototype Vite production build: 통과.
+- PKMS iOS `xcodebuild` arm64 Simulator build: 통과. generic build가 함께 시도한 x86_64 Simulator slice는 `PKMSRustFFI.xcframework`가 제공하지 않아 해당 architecture 링크에 실패했다. 실제 제공되는 `ios-arm64-simulator` slice로 성공을 확인했다. iOS runtime interaction은 별도 미검증.
+- Linked production `pkms-cloud` project `wmhqmblcxvxnsifmuviz`에서 `20261113100000_dedupe_identical_sync_creates.sql`, `20261114150000_reconcile_missing_folder_metadata.sql`, `20261114160000_scoped_folder_delete_guard.sql`, `20261114170000_sync_asset_bytes.sql`를 각각 실행했다. 모두 SQL exception 없이 끝났고 script의 explicit `ROLLBACK`을 확인했다. 이어 네 fixture workspace ID에 대한 read-only query가 0 rows를 반환해 test data가 남지 않았음을 확인했다. 이 검증은 DB function/transaction 정책만 다루며 API/실제 editor의 전송 경계는 대체하지 않는다.
+
+DB SQL acceptance는 linked production DB에 대한 이전 transaction rollback 검증 근거를 사용한다. 이번 검증에서는 production DB 데이터를 변경하지 않는다. 전체 수동 시나리오를 재현하지 않은 상태에서 sync 전체를 “정상”으로 판정하지 않는다.
+
+## 릴리스 판단
+
+현재 증거는 cloud file sync의 핵심 성공 경로와 몇 가지 복구 경로가 실제 데이터에서 작동했음을 보인다. 다만 offline/restart 경계, three-client collaboration, auth/rate limit failure injection, root 전환 E2E, move/delete의 모든 충돌 순서, 대용량 성능 acceptance가 남아 있어 **모든 동기화 로직 검증 완료 또는 무조건 정상** 판정은 내리지 않는다. 남은 항목을 안전한 격리 workspace와 temporary local root에서 실행하고 각 ID에 실행 시각·fixture·결과를 추가한다.
+
+세부 contract는 [folder sync](./README.md), [reconciliation](./reconciliation.md), [durability and recovery](./durability-recovery.md), [server protocol](./server-protocol.md), [UI acceptance](./ui-acceptance.md), [구현·배포 상태](./implementation-status.md)를 따른다.

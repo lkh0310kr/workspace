@@ -30,12 +30,12 @@
 - **경계:** 이 항목은 모든 Markdown 기능을 한 번에 구현한다는 뜻이 아니다. 우선 Explorer 복원과 재현 가능한 시각/렌더링 실패를 닫고, 표·수식·HTML 등은 각 수락 ID 단위로 진행한다.
 - **근거:** [TreeView 목표](../architecture/editor/treeview/README.md), [Markdown 구현 현황](../architecture/editor/markdown/README.md), [탐색 검토](./editor-navigation-review.md)
 
-### PKMS folder sync 안전성 acceptance
+### PKMS 종단 간 동기화 acceptance
 
-- **현재 상태:** root 전환 때 해당 workspace의 local replica baseline/cache를 정리하는 정책과 단위 테스트가 있다. 삭제·충돌 정책도 구현돼 있으나 실제 macOS 및 배포 migration acceptance는 완료 근거가 없다.
-- **목표 결과:** 다른 로컬 root를 연결하거나 scan이 불완전하다는 이유만으로 Cloud 파일·폴더가 삭제되지 않는다. 원격 변경과 로컬 삭제가 경합하면 최신 원격 데이터를 보존하고 충돌·복구 결과를 사용자에게 보여준다. attachment와 durable sync 상태도 저장 파일 결과와 일치한다.
-- **수락:** 기존 remote tree를 둔 채 empty/populated root로 재연결하고, 앱 재시작·partial scan·동시 원격 변경·재시도를 수행한다. 의도하지 않은 tombstone이 없는지 확인한다. macOS에서 파일/폴더 삭제와 충돌 복구를 실행하고, attachment 및 재시작 뒤 sync 표시를 검증한다. deployed migration은 실제 적용 버전과 결과를 별도 기록한다.
-- **근거:** [Folder sync 결과·durability 계약](../architecture/workspace/pkms/folder-sync/README.md), [삭제 계약](../architecture/workspace/pkms/folder-sync/deletion.md), [UI acceptance](../architecture/workspace/pkms/folder-sync/ui-acceptance.md), [기능 상태](./feature-status.md)
+- **현재 상태:** 지원 client 조합을 나누지 않는 23개 결과 checklist를 만들었다. 이번 실행에서 Desktop sync policy/move 12개 unit, Web/Server/Desktop typecheck와 build, iOS arm64 Simulator build, production DB rollback SQL 4개를 통과했다. 이전 runtime evidence에는 Web↔Desktop hash 수렴, 5,733개 local item, 12,472개 Cloud↔GitHub tree parity와 cursor 복구가 기록돼 있다.
+- **목표 결과:** 어떤 client에서 생성·수정·이동·삭제해도 PKMS cloud와 연결된 client가 같은 identity/bytes로 수렴한다. 장애·재시작·충돌에서 자료가 보존되고 sync 상태가 실제 결과와 맞는다.
+- **남은 수락:** checklist의 미검증 경계(세 client 교대 편집, ACK 유실 뒤 재시작, offline/auth/429, partial scan/watch drop, root 전환 E2E, binary size 경계, conflict 순서, 재시작 중 item-state UI, 성능 측정)를 격리 workspace 및 temporary local root에서 실행한다. 통과/실패 근거를 각 ID에 추가하기 전까지 전체 동기화 완료로 표시하지 않는다.
+- **근거:** [PKMS 종단 간 sync checklist](../architecture/workspace/pkms/folder-sync/acceptance-checklist.md), [Folder sync 계약](../architecture/workspace/pkms/folder-sync/README.md), [삭제 계약](../architecture/workspace/pkms/folder-sync/deletion.md), [기능 상태](./feature-status.md)
 
 ## 다음
 
