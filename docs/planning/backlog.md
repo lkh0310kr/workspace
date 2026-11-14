@@ -30,6 +30,12 @@
 - **근거:** [Editor 통합·provider 계약](./editor-unification.md), [PKMS Editor parity](../../apps/workspace-app/docs/pkms/editor-parity.md)
 
 
+### Stable 승격에서 이전 앱 사본을 만들지 않음 — 완료
+
+- **결과:** `promote-stable.mjs`는 기존 Workspace.app을 제거한 뒤 서명 검증된 빌드를 설치 경로에 직접 복사한다. `.previous-*` 백업 사본은 생성하지 않는다.
+- **검증:** `/Applications`에 남은 `Workspace.app.previous-*`는 발견되지 않았다. `node --check apps/workspace-app/scripts/promote-stable.mjs` 통과.
+- **운영 특성:** 이전 설치본의 자동 롤백 사본은 없다. 재설치가 필요하면 보존된 빌드 산출물로 다시 승격한다.
+
 ## 다음
 
 ### 영향 기반 Editor 검증 경로 고정 (SDD WP-04)

@@ -15,7 +15,6 @@ import {
   cpSync,
   writeFileSync,
   unlinkSync,
-  renameSync,
   readFileSync
 } from 'node:fs'
 import { tmpdir, homedir } from 'node:os'
@@ -211,19 +210,9 @@ async function promoteMac() {
   if (process.env.PROMOTE_STABLE_RESTART_PTY_HOST === '1') {
     await stopWorkspacePtyHostMacProcesses()
   }
-
-  console.log(`[promote-stable] installing to ${installedApp}…`)
-  const incomingApp = `${installedApp}.incoming-${Date.now()}`
-  const backupApp = `${installedApp}.previous-${new Date().toISOString().replace(/[:.]/g, '-')}.app`
-  rmSync(incomingApp, { recursive: true, force: true })
-  cpSync(builtApp, incomingApp, { recursive: true, dereference: false, verbatimSymlinks: true })
-  if (existsSync(installedApp)) renameSync(installedApp, backupApp)
-  try {
-    renameSync(incomingApp, installedApp)
-  } catch (error) {
-    if (existsSync(backupApp) && !existsSync(installedApp)) renameSync(backupApp, installedApp)
-    throw error
-  }
+  console.log(`[promote-stable] replacing ${installedApp} without retaining an app backup…`)
+  rmSync(installedApp, { recursive: true, force: true })
+  cpSync(builtApp, installedApp, { recursive: true, dereference: false, verbatimSymlinks: true })
 
   console.log('[promote-stable] relaunching…')
   const executable = path.join(installedApp, 'Contents', 'MacOS', 'Workspace')
@@ -234,47 +223,26 @@ async function promoteMac() {
     env: getPromotedAppEnvironment()
   })
   child.unref()
-  try {
-    if (!child.pid) throw new Error('Workspace did not start')
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => resolve(), 8_000)
-      child.once('error', (error) => {
-        clearTimeout(timeout)
-        reject(error)
-      })
+  if (!child.pid) throw new Error('Workspace did not start')
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => resolve(), 8_000)
+    child.once('error', (error) => {
+      clearTimeout(timeout)
+      reject(error)
     })
-    const startupEvents = readStartupEvents().filter(
-      (event) =>
-        event.pid === child.pid &&
-        event.execPath === executable &&
-        Date.parse(event.ts) >= launchStartedAt
-    )
-    const windowShown = startupEvents.some((event) => event.event === 'window_revealed')
-    const rendererCrashed = startupEvents.some(
-      (event) => event.event === 'webcontents_render_process_gone' && event.reason === 'crashed'
-    )
-    if (!windowShown || rendererCrashed)
-      throw new Error('new Workspace process did not show a healthy window')
-  } catch (error) {
-    if (existsSync(backupApp)) {
-      const failedApp = `${installedApp}.failed-${Date.now()}.app`
-      renameSync(installedApp, failedApp)
-      renameSync(backupApp, installedApp)
-      try {
-        rmSync(failedApp, { recursive: true, force: true })
-        console.error('[promote-stable] restored previous app and removed the failed build')
-      } catch (cleanupError) {
-        console.error(
-          `[promote-stable] restored previous app, but could not remove ${failedApp}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
-        )
-      }
-    }
-    throw error
-  }
-  if (existsSync(backupApp)) {
-    rmSync(backupApp, { recursive: true, force: true })
-    console.log('[promote-stable] removed the previous app backup')
-  }
+  })
+  const startupEvents = readStartupEvents().filter(
+    (event) =>
+      event.pid === child.pid &&
+      event.execPath === executable &&
+      Date.parse(event.ts) >= launchStartedAt
+  )
+  const windowShown = startupEvents.some((event) => event.event === 'window_revealed')
+  const rendererCrashed = startupEvents.some(
+    (event) => event.event === 'webcontents_render_process_gone' && event.reason === 'crashed'
+  )
+  if (!windowShown || rendererCrashed)
+    throw new Error('new Workspace process did not show a healthy window')
   console.log(`[promote-stable] launched (${executable})`)
 }
 
