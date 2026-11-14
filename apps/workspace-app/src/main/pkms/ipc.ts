@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import type { PkmsRequestOptions } from "../../shared/pkmsClient";
 import { fetchPkmsAsset, parsePkmsVerificationUrl, parseServiceOAuthUrl, requestPkmsApi, requestWorkspaceHomeApi } from "./api";
-import { configurePkmsSyncBridge, createPkmsLocalItem, deletePkmsLocalItems, disconnectPkmsSyncBridge, getPkmsSyncBridgeStatus, getPkmsSyncBridgeTree, getPkmsLocalFile, listPkmsLocalDirectory, movePkmsLocalItems, readPkmsLocalMarkdown, renamePkmsLocalItem, scanPkmsSyncBridge, startConfiguredPkmsSyncBridges, updatePkmsSyncBridgeExclusions, writePkmsLocalMarkdown } from "./syncBridge";
+import { configurePkmsSyncBridge, createPkmsLocalItem, deletePkmsLocalItems, disconnectPkmsSyncBridge, getPkmsSyncBridgeStatus, getPkmsSyncBridgeTree, getPkmsLocalFile, listPkmsLocalDirectory, movePkmsLocalItems, readPkmsLocalMarkdown, renamePkmsLocalItem, resolvePkmsLocalItemAbsolutePath, scanPkmsSyncBridge, startConfiguredPkmsSyncBridges, updatePkmsSyncBridgeExclusions, writePkmsLocalMarkdown } from "./syncBridge";
 import { appendStartupLog } from "../startupLog";
 
 function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
@@ -64,6 +64,17 @@ export function registerPkmsIpc(): void {
   ipcMain.handle("pkms:local-file:get", async (event, workspaceId: string, id: string) => {
     assertTrustedSender(event);
     return getPkmsLocalFile(workspaceId, id);
+  });
+  ipcMain.handle("pkms:local-item:reveal", async (event, workspaceId: string, relativePath: string) => {
+    assertTrustedSender(event);
+    if (!/^[A-Za-z0-9_-]{1,100}$/.test(workspaceId) || typeof relativePath !== "string") throw new Error("invalid_local_item");
+    const item = await resolvePkmsLocalItemAbsolutePath(workspaceId, relativePath);
+    if (item.kind === "folder") {
+      const error = await shell.openPath(item.path);
+      if (error) throw new Error(error);
+    } else {
+      shell.showItemInFolder(item.path);
+    }
   });
   ipcMain.handle("pkms:local-item:create", async (event, workspaceId: string, parent: string, kind: "markdown" | "folder", name: string) => {
     assertTrustedSender(event);

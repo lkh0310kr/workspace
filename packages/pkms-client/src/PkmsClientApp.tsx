@@ -1670,6 +1670,9 @@ export default function Home() {
               ] : []),
               ...(canMove ? [{ type: "item" as const, id: "cut", label: "Cut", onSelect: () => setCutTreePaths(new Set(contextMoveRoots.map((item) => item.path))) }] : []),
               ...(canRename ? [{ type: "item" as const, id: "rename", label: "Rename", onSelect: () => beginTreeRename(file) }] : []),
+              ...(desktopBridge() && activeWorkspace ? [{ type: "item" as const, id: "reveal", label: "Reveal in Finder", onSelect: () => {
+                void desktopBridge()?.revealLocalItem(activeWorkspace.id, file.path).catch((error) => setError(error instanceof Error ? error.message : "Could not reveal this item in Finder."));
+              } }] : []),
               ...(canDelete ? [{ type: "item" as const, id: "delete", label: "Delete", danger: true, onSelect: () => void deleteThroughEditorProvider(selectedTreePaths.has(file.path) ? treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file) : [file]) }] : []),
             ];
             return <EditorMenuList

@@ -25,6 +25,7 @@ interface DesktopBridge {
   writeLocalMarkdown(workspaceId: string, relativePath: string, text: string, expectedRevision: string): Promise<{ revision: string }>;
   listLocalDirectory(workspaceId: string, relativePath: string): Promise<Array<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }>>;
   getLocalFile(workspaceId: string, id: string): Promise<{ id: string; path: string; kind: "markdown" | "folder"; revision: number } | null>;
+  revealLocalItem(workspaceId: string, relativePath: string): Promise<void>;
   createLocalItem(workspaceId: string, parent: string, kind: "markdown" | "folder", name: string): Promise<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }>;
   renameLocalItem(workspaceId: string, id: string, name: string): Promise<{ id: string; path: string; kind: "markdown" | "folder"; revision: number }>;
   moveLocalItems(workspaceId: string, ids: string[], parent: string): Promise<Array<{ oldId: string; file: { id: string; path: string; kind: "markdown" | "folder"; revision: number } }>>;

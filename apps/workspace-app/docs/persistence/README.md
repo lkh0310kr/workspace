@@ -6,6 +6,14 @@
 
 [persistence.ts](../../src/main/persistence.ts)의 appSupportDir는 macOS에서 `~/Library/Application Support/workspace-app[-dev]`, 다른 OS는 `app.getPath('appData')/workspace-app[-dev]`다. 반면 일부 기능은 Electron `userData`를 직접 쓴다. 두 경로를 같은 상수로 간주하지 않는다. dev/packaged의 분리 여부도 실제 startup 설정을 함께 확인한다.
 
+## Dev와 packaged profile 정책
+
+Dev(`workspace-app-dev`)와 packaged(`workspace-app`)는 workspace/layout snapshot, Electron `userData`, IndexedDB·Chromium storage, PKMS sync queue와 cursor를 분리한다. 이 경계는 개발 UI가 실사용 workspace state를 덮거나 두 앱이 같은 sync cursor를 갱신하지 않게 한다. PKMS folder sync는 동일한 절대 경로에 process-wide lock을 사용하므로 같은 편집 폴더를 두 앱이 동시에 sync owner로 열 수 없다.
+
+PKMS Editor의 Finder Reveal은 실제 로컬 파일 경로가 필요하지만 sync state 공유가 필요하지 않다. Dev profile에 로컬 폴더 설정이 없으면 Main process가 packaged profile의 `pkms-sync-bridge.json`에서 해당 workspace의 `folderPath`만 읽어 경로를 찾을 수 있다. 파일·폴더 존재 여부와 symlink·상위 경로를 검증하고 Finder reveal/open만 수행한다. Queue, baseline, cursor, sync worker는 가져오거나 시작하지 않는다.
+
+설계 기준: app profile은 분리하고, 환경 간 동일성이 필요한 데이터는 소유권·쓰기 경계를 보존하는 명시적 인터페이스로 공유한다. PKMS folder root의 동시 writer는 허용하지 않는다.
+
 | 데이터 | 위치/owner | writer·손상/실패·복구 |
 |---|---|---|
 | app config·default root·usageMeters | appSupportDir/config.electron.json; Main persistence | direct writeFileSync. load 오류는 {}. save는 오류를 호출자에 전달. usage 변경은 기존 config를 merge |
@@ -39,6 +47,6 @@ JSON 이름·storage prefix는 schema version을 대신하지 않는다. 각 wri
 
 [persistence](../../src/main/persistence.ts), [PKMS session](../../src/main/pkms/session.ts), [sync bridge](../../src/main/pkms/syncBridge.ts), [ebookState](../../src/main/ebookState.ts), [model cache](../../src/main/model3d/cacheStore.ts), [explorer state](../../src/renderer/src/explorer/explorerState.ts), [usage config](../../src/main/usageMeterConfig.ts)가 writer다.
 
-DATA-01 dev와 packaged의 설정 위치를 구분한다. DATA-02 JSON parse 실패가 새/default 상태로 전환되는 범위를 확인한다. DATA-03 ebook merge가 기존 필드를 보존한다. DATA-04 dirty view cache가 provider 저장을 대체하지 않는다. DATA-05 safeStorage 불가 시 session을 disk에 평문으로 남기지 않는다. DATA-06 PKMS queue 저장과 remote mutation 순서를 확인한다.
+DATA-01 dev와 packaged의 설정 위치와 격리 경계를 확인한다. DATA-02 JSON parse 실패가 새/default 상태로 전환되는 범위를 확인한다. DATA-03 ebook merge가 기존 필드를 보존한다. DATA-04 dirty view cache가 provider 저장을 대체하지 않는다. DATA-05 safeStorage 불가 시 session을 disk에 평문으로 남기지 않는다. DATA-06 PKMS queue 저장과 remote mutation 순서를 확인한다. DATA-07 dev Finder Reveal은 packaged 설정에서 folderPath만 읽고 sync worker/state를 공유하지 않는다.
 
 ebookState·terminal-session-buffers·terminal-cold-restore·explorerState·model cache 테스트가 일부 계약을 검증한다. storage-full·power-loss·OS별 credential 복구 전체는 별도 acceptance 대상이다.

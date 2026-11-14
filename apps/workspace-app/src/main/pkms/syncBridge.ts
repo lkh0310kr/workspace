@@ -6,7 +6,7 @@ import path from "node:path";
 import * as Y from "yjs";
 import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
 import { requestPkmsApi } from "./api";
-import { appendStartupLog } from "../startupLog";
+import { appendStartupLog, isPackagedApp } from "../startupLog";
 import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from "../../shared/pkmsSyncBridge";
 import { nextGuardedFolderDeleteRevision, remoteChangedSinceBaseline, resetRootScopedState } from "./syncPolicy";
 
@@ -198,6 +198,34 @@ export async function getPkmsLocalFile(workspaceId: string, id: string): Promise
     if (stat.isSymbolicLink() || (!stat.isDirectory() && !(stat.isFile() && relative.toLowerCase().endsWith(".md")))) return null;
     return { id, path: relative, kind: stat.isDirectory() ? "folder" : "markdown", revision: 0 };
   } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
+}
+export async function resolvePkmsLocalItemAbsolutePath(workspaceId: string, relativePath: string): Promise<{ path: string; kind: "file" | "folder" }> {
+  let root = await getPkmsLocalFolder(workspaceId);
+  if (!root && !isPackagedApp()) {
+    const userData = app.getPath("userData");
+    const profileName = path.basename(userData);
+    const stableProfileName = profileName.endsWith("-dev") ? profileName.slice(0, -4) : "workspace-app";
+    try {
+      const stableState = JSON.parse(await fs.readFile(path.join(path.dirname(userData), stableProfileName, "pkms-sync-bridge.json"), "utf8")) as Partial<Persisted>;
+      root = stableState.configs?.[workspaceId]?.folderPath ?? null;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
+    }
+  }
+  if (!root) throw new Error("local_folder_not_connected");
+  if (!relativePath || relativePath.startsWith("/") || relativePath.split("/").some((part) => !part || part === "." || part === "..") || isReservedSyncPath(relativePath)) throw new Error("invalid_sync_path");
+  const rootStat = await fs.lstat(root);
+  if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) throw new Error("unsafe_local_path");
+  await assertSafeParentDirectories(root, relativePath);
+  const itemPath = safePath(root, relativePath);
+  try {
+    const itemStat = await fs.lstat(itemPath);
+    if (itemStat.isSymbolicLink() || (!itemStat.isDirectory() && !itemStat.isFile())) throw new Error("unsafe_local_path");
+    return { path: itemPath, kind: itemStat.isDirectory() ? "folder" : "file" };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") throw new Error("local_item_not_found");
+    throw error;
+  }
 }
 function validateLocalName(name: string): void {
   if (!name.trim() || name === "." || name === ".." || /[\\/:\0]/.test(name) || name.startsWith(".")) throw new Error("invalid_local_name");

@@ -294,6 +294,7 @@ export interface PkmsDesktopApi {
   writeLocalMarkdown: (workspaceId: string, relativePath: string, text: string, revision: string) => Promise<{ revision: string }>
   listLocalDirectory: (workspaceId: string, relativePath: string) => Promise<import('../shared/pkmsClient').PkmsFile[]>
   getLocalFile: (workspaceId: string, id: string) => Promise<import('../shared/pkmsClient').PkmsFile | null>
+  revealLocalItem: (workspaceId: string, relativePath: string) => Promise<void>
   createLocalItem: (workspaceId: string, parent: string, kind: 'markdown' | 'folder', name: string) => Promise<import('../shared/pkmsClient').PkmsFile>
   renameLocalItem: (workspaceId: string, id: string, name: string) => Promise<import('../shared/pkmsClient').PkmsFile>
   moveLocalItems: (workspaceId: string, ids: string[], parent: string) => Promise<Array<{ oldId: string; file: import('../shared/pkmsClient').PkmsFile }>>

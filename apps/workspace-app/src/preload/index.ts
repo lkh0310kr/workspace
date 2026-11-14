@@ -51,6 +51,7 @@ const pkmsDesktop = {
   writeLocalMarkdown: (workspaceId: string, relativePath: string, text: string, revision: string) => ipcRenderer.invoke('pkms:local-file:write', workspaceId, relativePath, text, revision),
   listLocalDirectory: (workspaceId: string, relativePath: string) => ipcRenderer.invoke('pkms:local-file:list', workspaceId, relativePath),
   getLocalFile: (workspaceId: string, id: string) => ipcRenderer.invoke('pkms:local-file:get', workspaceId, id),
+  revealLocalItem: (workspaceId: string, relativePath: string) => ipcRenderer.invoke('pkms:local-item:reveal', workspaceId, relativePath),
   createLocalItem: (workspaceId: string, parent: string, kind: 'markdown' | 'folder', name: string) => ipcRenderer.invoke('pkms:local-item:create', workspaceId, parent, kind, name),
   renameLocalItem: (workspaceId: string, id: string, name: string) => ipcRenderer.invoke('pkms:local-item:rename', workspaceId, id, name),
   moveLocalItems: (workspaceId: string, ids: string[], parent: string) => ipcRenderer.invoke('pkms:local-item:move', workspaceId, ids, parent),
