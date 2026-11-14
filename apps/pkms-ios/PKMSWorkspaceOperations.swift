@@ -47,6 +47,13 @@ extension PKMSModel {
         }
         do {
             let snapshot = try await get("/api/workspaces/\(workspace.id)/snapshot", as: PKMSSnapshot.self)
+            if var selectedWorkspace = activeWorkspace, selectedWorkspace.id == workspace.id {
+                selectedWorkspace.revision = max(selectedWorkspace.revision, snapshot.revision)
+                activeWorkspace = selectedWorkspace
+                if let index = workspaces.firstIndex(where: { $0.id == workspace.id }) {
+                    workspaces[index] = selectedWorkspace
+                }
+            }
             var byID = Dictionary(uniqueKeysWithValues: files.map { ($0.id, $0) })
             for file in snapshot.files { byID[file.id] = file }
             files = Array(byID.values)

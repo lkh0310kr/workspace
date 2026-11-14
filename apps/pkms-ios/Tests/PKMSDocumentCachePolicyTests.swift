@@ -84,7 +84,11 @@ final class PKMSWorkspaceCacheFirstTests: XCTestCase {
         )
 
         let requestStarted = expectation(description: "snapshot request started")
-        let gate = PKMSURLProtocolGate(requestStarted: requestStarted)
+        let gate = PKMSURLProtocolGate(
+            requestStarted: requestStarted,
+            gatedPath: "/api/workspaces/\(workspaceID)/snapshot",
+            fallback: .init(statusCode: 429, body: Data(#"{"error":"rate_limited"}"#.utf8))
+        )
         PKMSStubURLProtocol.install(gate)
         defer { PKMSStubURLProtocol.install(nil) }
 
@@ -118,14 +122,83 @@ final class PKMSWorkspaceCacheFirstTests: XCTestCase {
         XCTAssertEqual(model.files.map(\.id), ["cached-file"], "Rate limit must not clear the last cached tree")
         XCTAssertNotNil(model.errorMessage, "A stale cached tree must not hide the failed cloud refresh")
     }
+
+    func testSuccessfulSnapshotAndDirectoryListingMergeIntoCachedTree() async throws {
+        let workspaceID = "cache-merge-\(UUID().uuidString)"
+        let directory = FileManager.default.temporaryDirectory.appending(path: "PKMS-TreeCache-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let cache = PKMSWorkspaceTreeCacheStore(directory: directory)
+        let cachedFile = PKMSFile(id: "cached", path: "cached.md", kind: "markdown", revision: 7, content: nil, contentType: "text/markdown", size: 12, sha256: nil)
+        await cache.write(PKMSWorkspaceTreeCache(files: [cachedFile], loadedDirectories: [""], savedAt: .now), workspaceID: workspaceID)
+
+        let cloudFile: [String: Any] = [
+            "id": "cloud", "path": "cloud.md", "kind": "markdown", "revision": 8,
+            "content": NSNull(), "contentType": "text/markdown", "size": 14, "sha256": NSNull(),
+        ]
+        let snapshot = try JSONSerialization.data(withJSONObject: [
+            "workspaceId": workspaceID, "revision": 8, "files": [cloudFile],
+            "hasMore": false, "nextRevision": NSNull(), "afterRevision": NSNull(),
+        ])
+        let rootListing = try JSONSerialization.data(withJSONObject: ["path": "", "files": [cloudFile]])
+        let syncStatus = try JSONSerialization.data(withJSONObject: [
+            "serverRevision": 8, "githubStatus": "synced", "githubHead": NSNull(),
+            "lastGitHubCommitAt": NSNull(), "nextGitHubFlushAt": NSNull(), "pendingFiles": 0, "message": NSNull(),
+        ])
+        let gate = PKMSURLProtocolGate(
+            replies: [
+                "/api/workspaces/\(workspaceID)/snapshot": .init(statusCode: 200, body: snapshot),
+                "/api/workspaces/\(workspaceID)/directory": .init(statusCode: 200, body: rootListing),
+                "/api/workspaces/\(workspaceID)/sync-status": .init(statusCode: 200, body: syncStatus),
+            ],
+            fallback: .init(statusCode: 404, body: Data(#"{"error":"not_found"}"#.utf8))
+        )
+        PKMSStubURLProtocol.install(gate)
+        defer { PKMSStubURLProtocol.install(nil) }
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [PKMSStubURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        let model = PKMSModel(transport: PKMSAPITransport(session: session), treeCache: cache)
+        model.serverAddress = "https://pkms.test"
+        let workspace = PKMSWorkspace(id: workspaceID, repository: "owner/repo", branch: "main", revision: 7, githubStatus: "synced", message: nil, lastGitHubCommitAt: nil)
+        model.workspaces = [workspace]
+
+        await model.selectWorkspace(workspace)
+        model.disconnectRealtime()
+
+        XCTAssertEqual(model.files.map(\.id), ["cloud"], "The authoritative root listing should remove stale cached entries")
+        XCTAssertTrue(model.loadedDirectories.contains(""))
+        XCTAssertEqual(model.activeWorkspace?.revision, 8, "The active workspace must advance to the snapshot revision before later operations")
+        XCTAssertEqual(model.workspaces.first?.revision, 8, "The workspace list must share the refreshed operation base revision")
+    }
 }
 
 private final class PKMSURLProtocolGate: @unchecked Sendable {
-    let requestStarted: XCTestExpectation
+    struct Reply: Sendable {
+        let statusCode: Int
+        let body: Data
+    }
+
+    let requestStarted: XCTestExpectation?
+    let gatedPath: String?
+    let replies: [String: Reply]
+    let fallback: Reply
     let releaseResponse = DispatchSemaphore(value: 0)
 
-    init(requestStarted: XCTestExpectation) {
+    init(requestStarted: XCTestExpectation? = nil, gatedPath: String? = nil, replies: [String: Reply] = [:], fallback: Reply) {
         self.requestStarted = requestStarted
+        self.gatedPath = gatedPath
+        self.replies = replies
+        self.fallback = fallback
+    }
+
+    func reply(for request: URLRequest) -> Reply {
+        if request.url?.path == gatedPath {
+            requestStarted?.fulfill()
+            _ = releaseResponse.wait(timeout: .now() + 5)
+        }
+        return replies[request.url?.path ?? ""] ?? fallback
     }
 }
 
@@ -150,16 +223,15 @@ private final class PKMSStubURLProtocol: URLProtocol {
 
     override func startLoading() {
         guard let gate = Self.currentGate() else { return }
-        gate.requestStarted.fulfill()
-        _ = gate.releaseResponse.wait(timeout: .now() + 5)
+        let reply = gate.reply(for: request)
         let response = HTTPURLResponse(
             url: request.url!,
-            statusCode: 429,
+            statusCode: reply.statusCode,
             httpVersion: "HTTP/1.1",
             headerFields: ["Content-Type": "application/json"]
         )!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Data(#"{"error":"rate_limited"}"#.utf8))
+        client?.urlProtocol(self, didLoad: reply.body)
         client?.urlProtocolDidFinishLoading(self)
     }
 
