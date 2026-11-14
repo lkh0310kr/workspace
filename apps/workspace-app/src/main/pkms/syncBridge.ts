@@ -2722,6 +2722,8 @@ async function syncOnce(workspaceId: string): Promise<void> {
       const folderBusy = message === 'editing_folder_in_use'
       const retryable =
         folderBusy ||
+        (error instanceof PkmsBridgeRequestError &&
+          (error.status === 429 || error.status >= 500)) ||
         message === 'local_file_changed_retry' ||
         message === 'remote_changed_retry' ||
         /\b(?:429|5\d\d)\b|rate.?limit|temporar|timed? ?out/i.test(message)
