@@ -28,11 +28,11 @@
 
 `pendingCreates`/`pendingUpdates`/`pendingDeletes`에는 operation identity와 재시도에 필요한 payload/guard 일부가 있다. `pendingPaths`는 dirty path hint이며 모든 파일 변경 payload를 담은 operation journal은 아니다. directory inventory와 pending delete는 durable, item UI state는 현재 status memory다.
 
-## Remaining critical root-switch acceptance
+## 남은 root 전환 수락 항목
 
-Source now resets root-derived state before saving the new configuration. This removes the identified stale-baseline delete path. The behavior still needs a fake-server integration scenario that starts with existing cloud files, switches to an empty temporary root, and asserts that cloud IDs/revisions/body hashes are unchanged while the new root receives the files. A second scenario must seed the new root with local-only and divergent same-path content and verify import/conflict preservation. Until those scenarios pass, do not treat root-switch end-to-end acceptance as complete.
+Source는 새 설정을 저장하기 전에 root에서 파생된 상태를 초기화한다. 이로써 확인된 stale-baseline 삭제 경로를 막는다. 기존 cloud file이 있는 상태에서 빈 임시 root로 전환하고, 새 root에 file이 materialize되는 동안 cloud ID/revision/body hash가 유지되는지 확인하는 fake-server integration scenario가 필요하다. 두 번째 scenario에서는 새 root에 로컬 전용 파일과 같은 path의 다른 내용을 넣어 import와 conflict 보존을 확인한다. 두 scenario를 통과하기 전에는 root 전환 end-to-end 수락을 완료로 보지 않는다.
 
-## Current user-visible implementation
+## 현재 사용자에게 보이는 동작
 
 `SyncBridgePanel`은 5초 poll로 status를 읽는다. Main status는 `disconnected/syncing/synced/offline/error`, item state는 `pending/syncing/attention`이다. 가변 aggregate `completed/total` 퍼센트는 제품 UI에서 제거했고 conflict path button은 editor 열기로 연결했다. durable conflict review/resolve queue는 제공하지 않는다. UI는 GitHub backup 상태도 함께 보여주지만 distinct channel로 표시한다.
 

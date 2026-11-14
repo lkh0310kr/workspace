@@ -1,15 +1,15 @@
-# Desktop release policy
+# Desktop 릴리스 정책
 
-Release scope follows actual platform use. A platform that is not currently used must not block shipping a verified build for an active platform. Build and validate inactive platforms when their use resumes or when a user explicitly requests a release for them.
+릴리스 범위는 실제 플랫폼 사용에 맞춘다. 현재 사용하지 않는 플랫폼 때문에 사용 중인 플랫폼의 검증된 빌드 배포를 막지 않는다. 사용하지 않는 플랫폼은 사용이 재개되거나 사용자가 해당 플랫폼용 릴리스를 명시적으로 요청할 때 빌드하고 검증한다.
 
-## Release checklist
+## 릴리스 점검 항목
 
-- Bump the desktop app version and keep the Git tag aligned as `v<version>`.
-- Build from a clean, pushed commit and sign the native package for the active platform.
-- Verify the installer/archive, embedded updater configuration, update metadata, and a clean app launch.
-- Publish updater metadata and install assets together so `electron-updater` can find the correct package.
-- Record signing, notarization, and platform coverage in the release notes. Do not imply a platform is supported by a release when its native package has not been built and checked.
-- Keep platform builds separate. Native dependencies must match the target OS and architecture; cross-built installers are not accepted without checking their native modules.
-- Treat Windows/macOS/other platform build pipelines as on-demand for platforms outside current use. Do not spend release time on unused targets by default.
+- Desktop 앱 버전을 올리고 Git tag를 `v<version>`으로 맞춘다.
+- 작업 트리가 깨끗하고 원격에 push된 커밋으로 빌드한 뒤, 사용 중인 플랫폼의 네이티브 패키지에 서명한다.
+- 설치 파일/압축 파일, 포함된 updater 설정, 업데이트 metadata와 앱의 정상 실행을 확인한다.
+- `electron-updater`가 올바른 패키지를 찾도록 updater metadata와 설치 파일을 함께 게시한다.
+- 릴리스 노트에 서명, 공증, 검증한 플랫폼을 기록한다. 네이티브 패키지를 빌드하고 확인하지 않은 플랫폼을 지원한다고 표시하지 않는다.
+- 플랫폼별 빌드를 분리한다. 네이티브 의존성은 대상 OS와 아키텍처에 맞아야 한다. 네이티브 모듈을 확인하지 않은 교차 빌드 설치 파일은 승인하지 않는다.
+- 현재 사용하지 않는 Windows/macOS/기타 플랫폼의 빌드 pipeline은 필요할 때만 실행한다. 기본적으로 사용하지 않는 대상을 위해 릴리스 시간을 쓰지 않는다.
 
-The current Workspace release focus is macOS Apple Silicon. Windows builds are deferred while Windows is not in active use. This is a prioritization rule, not a claim that the Windows package is currently validated.
+현재 Workspace 릴리스는 macOS Apple Silicon에 집중한다. Windows를 사용하지 않는 동안 Windows 빌드는 보류한다. 이는 우선순위 결정이며 Windows 패키지가 검증되었다는 뜻은 아니다.

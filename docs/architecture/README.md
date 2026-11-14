@@ -2,17 +2,9 @@
 
 이 영역은 현재 시스템과 기능의 결과 계약을 한곳에 모읍니다. 문서는 앱·패키지 소스와 분리해 루트 `docs/` 아래에서 관리하고, 예정 구조는 planning에 둡니다.
 
-## Global scope
+## 전체 문서 범위
 
 [문서 scope 규칙](../documentation-scopes.md)에 따라 전체 context·제품 경계·상태와 색인을 소유합니다. 앱과 패키지의 구현 소유권은 유지하되 문서 위치는 모두 루트 `docs/` 아래로 통일합니다.
-
-## Global scope
-
-- [문서 scope와 소유 규칙](../documentation-scopes.md)
-- [제품 여정](../product/프로젝트%20정의.md)
-- [전체 시스템 context](./01-overview.md)
-- [모듈 경계](./08-monorepo-module-boundaries.md)
-- [SDD 상태·검사 규칙](./spec-driven-development.md)
 
 ## 기능 문서 색인
 

@@ -1,32 +1,32 @@
 # Android Data Node prototype
 
-> **Status: Cancelled** — implementation work stopped at the user's request on 2026-11-08. See the [cancellation record](../../docs/research/data-node/CANCELLATION.md) for verified scope and unfinished work.
+> **상태: 취소됨** — 사용자의 요청으로 2026-11-08에 구현을 중단했다. 확인된 범위와 미완료 항목은 [취소 기록](../../docs/research/data-node/CANCELLATION.md)을 참고한다.
 
-This is a local storage-engine prototype. It does not use the network, Supabase, Cloudflare, GitHub, or USB port forwarding. The app stores records in SQLite and immutable objects in its private app files directory. During local development, a protected Android ContentProvider lets the ADB shell send storage commands directly to the app; ordinary apps do not receive its `android.permission.DUMP` permission.
+이 prototype은 로컬 storage engine이다. Network, Supabase, Cloudflare, GitHub 또는 USB port forwarding을 사용하지 않는다. Record는 SQLite에, immutable object는 앱 전용 files directory에 저장한다. 로컬 개발에서는 보호된 Android ContentProvider를 통해 ADB shell이 앱에 storage 명령을 직접 보낸다. 일반 앱에는 `android.permission.DUMP` 권한을 주지 않는다.
 
-## One-click device verification
+## 한 번에 실행하는 device 검증
 
-Requirements: JDK 17, Android SDK Platform 35, platform tools, and one Android device with USB debugging enabled and this computer authorized.
+JDK 17, Android SDK Platform 35, platform tools, USB debugging이 켜져 있고 현재 컴퓨터가 인증된 Android device 한 대가 필요하다.
 
-From the workspace root:
+Workspace root에서 실행한다.
 
 ```bash
 npm run data-node:one-click
 ```
 
-The command builds and installs the debug APK, runs local storage checks, sends record and object operations from the laptop through `adb shell content call`, creates synthetic crash fixtures for pending uploads, missing/corrupt metadata-backed objects, and orphan files, force-stops and relaunches the app, then verifies reconciliation and persisted error codes. It keeps the app's private data so repeated runs also exercise an existing database. If multiple Android devices are connected, select one explicitly:
+명령은 debug APK를 build/install하고 로컬 storage 검사를 수행한다. Laptop에서 `adb shell content call`로 record/object 작업을 보내고 pending upload, 누락·손상된 metadata 연결 object, orphan file의 crash fixture를 만든다. 앱을 강제 종료하고 다시 실행한 뒤 reconciliation과 저장된 오류 코드를 확인한다. 앱 private data는 유지하므로 반복 실행에서 기존 database도 검사한다. Android device가 여러 대 연결돼 있으면 하나를 지정한다.
 
 ```bash
 npm run data-node:one-click -- --serial=DEVICE_SERIAL
 ```
 
-Reports and filtered Android logs are written under `apps/android-data-node/.artifacts/`. The app also has a **Run local verification** button. To inspect its latest report directly, use:
+Report와 필터링된 Android log는 `apps/android-data-node/.artifacts/` 아래에 기록된다. 앱 안의 **Run local verification** 버튼으로도 검사를 실행할 수 있다. 최신 report를 직접 확인하려면 다음 명령을 사용한다.
 
 ```bash
 adb shell run-as dev.pkms.datanode cat files/data-node/latest-diagnostics.json
 ```
 
-## What this prototype verifies
+## Prototype이 확인하는 항목
 
 - SQLite integrity before and after writes
 - A multi-record transaction and monotonically increasing revision
@@ -39,11 +39,11 @@ adb shell run-as dev.pkms.datanode cat files/data-node/latest-diagnostics.json
 - ADB shell batch transaction, retry/conflict behavior, rollback, and object round-trip
 - ADB-written records and objects after the app process is stopped and restarted
 - v1→v3 SQLite migration preserving existing records and objects
-- Startup recovery of pending uploads, missing objects, checksum-corrupt objects, and orphan files; orphan data is retained as a candidate, not deleted
+- 시작할 때 pending upload, 누락 object, checksum이 손상된 object와 orphan file을 복구한다. Orphan data는 후보로 남기고 삭제하지 않는다.
 
-## ADB local command bridge
+## ADB 로컬 command bridge
 
-The debug app exposes `content://dev.pkms.datanode.provider/node` through these methods: `health`, `record.put`, `record.batch`, `record.get`, `object.put`, `object.get`, and `diagnostics.errors`. The `--arg` is a base64-encoded UTF-8 JSON object. For example, the empty JSON object is `e30=`:
+Debug app은 `content://dev.pkms.datanode.provider/node`를 통해 `health`, `record.put`, `record.batch`, `record.get`, `object.put`, `object.get`, `diagnostics.errors` method를 제공한다. `--arg`는 base64로 인코딩한 UTF-8 JSON object다. 예를 들어 빈 JSON object는 `e30=`이다.
 
 ```bash
 adb shell content call \
@@ -52,6 +52,6 @@ adb shell content call \
   --arg e30=
 ```
 
-The response is returned as base64 JSON in the `result` Bundle field. The one-click runner performs encoding, decoding, and response checks automatically. The current shell bridge transports bytes inline in a Binder call and is only for small local validation payloads; it is not the streaming object API needed for larger files.
+응답은 `result` Bundle field에 base64 JSON으로 반환된다. One-click runner가 encoding, decoding, 응답 확인을 자동으로 수행한다. 현재 shell bridge는 Binder call 안에 byte를 직접 담아 보내므로 작은 로컬 검증 payload에만 사용한다. 큰 파일에 필요한 streaming object API는 아니다.
 
-This prototype is not yet a production database service: it has no remote API, streaming object uploads/downloads, encryption/key management, deletion/reference/GC semantics, replication, backup export, foreground service, or long-running background operation. The next gates are the streamed object API, power-loss and storage-full testing, backup/restore, and repeating the same one-click run on the A Quantum.
+이 prototype은 production database service가 아니다. Remote API, streaming object upload/download, encryption/key management, 삭제/reference/GC 규칙, replication, backup export, foreground service, 장시간 background operation을 제공하지 않는다. 다음 검증 단계는 streaming object API, 전원 차단·storage 부족 테스트, backup/restore, A Quantum에서 같은 one-click 검증을 반복하는 것이다.

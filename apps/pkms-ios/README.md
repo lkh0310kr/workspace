@@ -2,17 +2,17 @@
 
 현재 앱의 경계·상태·계약은 [app scope 문서](../../docs/architecture/pkms/ios/README.md)를 기준으로 합니다.
 
-The native SwiftUI client uses the Rust/Yrs document implementation through a C FFI. The generated XCFramework stays local and is ignored by Git.
+Native SwiftUI client는 C FFI를 통해 Rust/Yrs 문서 구현을 사용한다. 생성된 XCFramework는 로컬에만 두며 Git에서 무시한다.
 
 ## Build
 
-From the repository root:
+저장소 root에서 실행한다.
 
 ```sh
 bash apps/pkms-ios/scripts/build-rust-framework.sh
 open apps/pkms-ios/PKMS.xcodeproj
 ```
 
-The Rust build script installs the iOS device and Apple Silicon simulator targets with rustup. Open the `PKMS` scheme and run it on an iOS 17 or newer simulator or device. Sign in using GitHub Device Flow. Set the server URL in Settings; use HTTPS for a deployed server.
+Rust build script가 rustup으로 iOS device와 Apple Silicon simulator target을 설치한다. `PKMS` scheme을 열어 iOS 17 이상 simulator 또는 device에서 실행한다. GitHub Device Flow로 로그인한다. Settings에서 server URL을 지정하며 배포 server에는 HTTPS를 사용한다.
 
-The app stores the session token in Keychain and caches CRDT state for the 20 most recently opened Markdown files. The GitHub OAuth App configured for the Worker must have Device Flow enabled.
+앱은 session token을 Keychain에 저장하고 최근에 연 Markdown 파일 20개의 CRDT state를 cache한다. Worker에 설정한 GitHub OAuth App은 Device Flow가 활성화돼 있어야 한다.

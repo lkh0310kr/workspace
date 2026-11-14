@@ -410,7 +410,7 @@ APK 설치만으로 Node를 자동 시작하지 않는다. 사용자는 `Start N
 ### Backup/restore
 
 - 여러 개 metadata change와 objects를 batch로 export하고 단일 GitHub commit에서 확인
-- GitHub timeout, HTTP 403/429, network offline, branch external edit, commit created but response lost
+- GitHub timeout, HTTP 403/429, network offline, branch 외부 편집, commit 생성 후 응답 유실
 - retry가 중복 commit/잘못된 ACK를 만들지 않는지 확인
 - manifest tamper, missing object, object hash mismatch를 탐지하고 activate를 차단
 - A Quantum에서 전체 복원하고 원본 hash/reference counts 비교
@@ -502,7 +502,7 @@ RPO는 GitHub export 주기만큼이 아니라 **마지막 확인된 independent
 
 ## 관련 근거
 
-- Current implementation: [SupabaseVault.ts](../../../apps/pkms-server/src/SupabaseVault.ts), [Supabase request adapters](../../../apps/pkms-server/src/supabase.ts), [SQLite/Postgres atomic write migration](../../../apps/pkms-server/supabase/migrations/20261101130000_atomic_document_write.sql), [R2 binding](../../../apps/pkms-server/wrangler.jsonc), [PKMS integration](../../architecture/pkms/overview.md).
+- 현재 구현: [SupabaseVault.ts](../../../apps/pkms-server/src/SupabaseVault.ts), [Supabase request adapter](../../../apps/pkms-server/src/supabase.ts), [SQLite/Postgres 원자적 write migration](../../../apps/pkms-server/supabase/migrations/20261101130000_atomic_document_write.sql), [R2 binding](../../../apps/pkms-server/wrangler.jsonc), [PKMS 통합](../../architecture/pkms/overview.md).
 - Android foreground service timeouts/type requirements: [Android Developers — FGS timeouts](https://developer.android.com/develop/background-work/services/fgs/timeout), [service types](https://developer.android.com/develop/background-work/services/fgs/service-types).
 - Android transaction/WAL and storage lifecycle: [SQLiteDatabase API](https://developer.android.com/reference/android/database/sqlite/SQLiteDatabase), [SQLite best practices](https://developer.android.com/topic/performance/sqlite-performance-best-practices), [app-specific storage](https://developer.android.com/training/data-storage/app-specific).
 - Realtime message model: [Supabase Broadcast](https://supabase.com/docs/guides/realtime/broadcast).

@@ -39,7 +39,7 @@ vault 내부 route는 아래와 같다. 외부 path에는 `/api/workspaces/:id` 
 
 file metadata/content/attachment/upload의 나머지 분기는 [SupabaseVault](../../../../apps/pkms-server/src/SupabaseVault.ts)에서 확인한다. 이 지도는 모든 HTTP response field를 정식 검증한 endpoint schema가 아니다. 실제 client DTO·handler와 세부 오류 fixture를 연결하는 작업이 남아 있다.
 
-전체 note 본문 검색은 현재 route에 없다. client 전체 다운로드의 egress와 기존 `pg_trgm` index 재사용 가능성을 조사한 [Cloud 본문 검색 검토](./content-search.md)를 따른다. 이 문서는 비용 검토·방향 제안이며 구현 또는 운영 DB 성능 검증 기록은 아니다.
+전체 note 본문 검색은 `POST /api/workspaces/:workspaceId/search`에서 제공한다. API는 기존 `pg_trgm` index를 재사용하고 제한된 일치 줄만 반환한다. 요청·페이지 결과·미완료 index 상태와 운영 수락 경계는 [본문 검색 스펙](./content-search.md)을 따른다. 구현이 있다고 해서 운영 DB 성능을 검증했거나 migration을 배포했다는 뜻은 아니다.
 
 ## 저장과 background 작업
 

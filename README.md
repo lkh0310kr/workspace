@@ -1,6 +1,6 @@
 # Workspace
 
-Native desktop workspace for **code, Markdown, terminal and browser work**, with a Home service dashboard and PKMS available as a pane.
+**Code, Markdown, terminal, browser 작업을 위한 native desktop workspace**이며 Home service dashboard와 PKMS를 pane으로 제공한다.
 
 ## Run
 
@@ -9,11 +9,11 @@ npm install
 npm run dev
 ```
 
-`npm run dev` at the repository root starts the Workspace desktop app. The app-local equivalent is `cd apps/workspace-app && npm run dev`. PKMS Web and the Workers keep their product-specific dev commands below.
+저장소 root에서 `npm run dev`를 실행하면 Workspace desktop app이 시작된다. 앱 디렉터리에서 실행하려면 `cd apps/workspace-app && npm run dev`를 사용한다. PKMS Web과 Worker의 개발 명령은 아래와 같다.
 
-The PKMS browser app and API server are separate apps: `apps/pkms-web` owns the UI and same-origin API proxy; `apps/pkms-server` owns PKMS authentication and data APIs. Workspace Home has its own API Worker in `apps/workspace-server`. Install root npm workspaces once, then use `npm run pkms:web:dev`, `npm run pkms:web:deploy`, `npm run pkms:server:deploy`, or `npm run workspace:server:deploy` from the repository root.
+PKMS browser app과 API server는 별도 app이다. `apps/pkms-web`은 UI와 same-origin API proxy를, `apps/pkms-server`는 PKMS 인증과 data API를 소유한다. Workspace Home API Worker는 `apps/workspace-server`에 있다. Root npm workspace를 한 번 설치한 뒤 저장소 root에서 `npm run pkms:web:dev`, `npm run pkms:web:deploy`, `npm run pkms:server:deploy`, `npm run workspace:server:deploy`를 사용할 수 있다.
 
-Production builds: run `npm run build`, then the platform target (`build:mac`, `build:win` or `build:linux`) from `apps/workspace-app`.
+Production build는 `apps/workspace-app`에서 `npm run build`를 실행한 뒤 플랫폼 target(`build:mac`, `build:win`, `build:linux`)을 실행한다.
 
 ## Layout
 
@@ -35,10 +35,12 @@ ref-proj/               Reference implementations; not shipped
 
 | Layer    | Tech                     |
 | -------- | ------------------------ |
-| Shell    | Electron + electron-vite |
-| UI       | React + flexlayout-react |
-| Terminal | xterm.js + node-pty      |
-| Editor   | CodeMirror 6             |
-| Browser  | Electron `<webview>`     |
+| 영역 | 기술 |
+| --- | --- |
+| Shell | Electron + electron-vite |
+| UI | React + flexlayout-react |
+| Terminal | xterm.js + node-pty |
+| Editor | CodeMirror 6 |
+| Browser | Electron `<webview>` |
 
 Reference implementation (not shipped): `ref-proj/orca/`.

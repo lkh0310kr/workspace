@@ -2,7 +2,7 @@
 
 UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동과 자료 보존 상태를 알려야 한다. UI contract와 현재 UI 차이를 구분한다.
 
-## User-observable states
+## 사용자에게 보이는 상태
 
 | 결과 상태          | 의미                                                          | 필요한 사용자 정보/행동                                                                       |
 | ------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -30,7 +30,7 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 
 전체 percent는 대상 집합이 달라지면 감소/증가할 수 있어 안정된 결과를 뜻하지 않는다. 고정 revision에 묶인 initial materialization만 필요하면 그 snapshot 기준임을 표시한다. Settings panel은 가변 `completed/total` percent를 사용자에게 진행률처럼 보여주지 않는다. Main의 내부 progress 값은 diagnostics/future fixed-snapshot progress에만 쓸 수 있다.
 
-## Acceptance matrix
+## 수락 시나리오
 
 | ID       | Given / when                                                                    | 사용자가 확인해야 할 결과                                                                                                                              | 상태                                                                                                                                                                     |
 | -------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -53,7 +53,7 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 | FS-UI-17 | 이름이 `.`으로 시작하는 Cloud Markdown/폴더 row가 존재                          | Files tree에서 나타나고 Markdown은 quick open에서 찾고 열 수 있다. local reserved path scan exclusion은 그대로 유지된다                                | 2026-11-13 안정 앱에서 `.claude`, `.cursor`, `.obsidian`, `.scripts`, `.workspace` 표시 확인; dot Markdown quick open 미확인                                             |
 | FS-UI-18 | 연결한 local root에 `.pkms/notes.md`가 존재                                     | `.pkms` 경로를 특별 취급하지 않고 Cloud에 반영하며, remote 수정도 같은 local path에 수렴한다                                                           | source 반영; 수동 sync 미확인                                                                                                                                            |
 
-## Current UI mapping
+## 현재 UI 연결
 
 `PkmsSyncBridgeStatus`의 top-level state는 `disconnected | syncing | synced | offline | error`, stage는 `scanning | loading-remote-list | downloading-remote-files | reconciling`이다. item map은 현재 `pending | syncing | attention`만 표현한다. status/pending path는 부분적으로 memory/durable 혼합이며 persistent per-item final state가 아니다.
 
@@ -74,10 +74,10 @@ UI는 내부 queue 구조를 노출하는 대신 사용자가 선택할 행동�
 
 실행 결과는 OS·server migration·fixture 버전을 기록한다. 코드 존재만으로 UI acceptance를 통과 처리하지 않는다.
 
-## Move destination collisions
+## Move 대상 경로 충돌
 
-- PKMS local move uses the VS Code Explorer drag-and-drop collision contract: if the destination already contains the same name, ask whether to replace it or cancel. The dialog identifies the colliding name and warns that replacement is irreversible.
-- A single-item collision names that item. A multi-item move lists the collision count. Only explicitly confirmed destination paths may be replaced; other existing paths abort the operation without being removed.
-- Cancel/Escape leaves source and destination bytes and tree identities unchanged. Replace removes the existing destination item, then moves the source item into its original destination name. A failed preflight must not remove any destination.
-- This applies to both files and directories in Desktop Local Folder mode. Server/cloud conflict copies created by sync reconciliation remain a separate mechanism documented in [reconciliation](./reconciliation.md).
-- Reference: [VS Code Explorer overwrite prompt](https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/files/browser/fileImportExport.ts) and [current Explorer move/copy collision report](https://github.com/microsoft/vscode/issues/208400).
+- PKMS local move는 VS Code Explorer의 drag-and-drop 충돌 동작을 따른다. 대상에 같은 이름이 있으면 교체 또는 취소를 묻는다. Dialog는 충돌 이름을 표시하고 교체를 되돌릴 수 없음을 알린다.
+- 한 항목을 이동할 때는 이름을 표시하고 여러 항목은 충돌 개수를 보여준다. 명시적으로 확인한 대상 경로만 교체한다. 그 밖에 기존 경로가 있으면 삭제하지 않고 작업을 중단한다.
+- Cancel/Escape는 source와 destination의 byte와 tree identity를 바꾸지 않는다. Replace는 기존 destination을 제거한 뒤 source 항목을 원래 destination 이름으로 옮긴다. 사전 검사(preflight)가 실패하면 destination을 제거하지 않는다.
+- 이 규칙은 Desktop Local Folder mode에서 file과 directory 모두에 적용한다. Sync reconciliation이 만드는 server/cloud conflict copy는 별도 동작이며 [reconciliation](./reconciliation.md)에 정의한다.
+- 참고: [VS Code Explorer 덮어쓰기 확인](https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/files/browser/fileImportExport.ts), [Explorer move/copy 충돌 보고](https://github.com/microsoft/vscode/issues/208400).

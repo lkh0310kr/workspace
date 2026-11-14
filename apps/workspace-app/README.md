@@ -1,28 +1,28 @@
 # Workspace App
 
-Workspace is the Electron desktop app for terminal, browser, editor, files, and the Home service dashboard.
+Workspace는 terminal, browser, editor, file 관리, Home service dashboard를 제공하는 Electron desktop app이다.
 
-The Home dashboard is part of the app. Its provider API is deployed independently as [`apps/workspace-server`](../workspace-server/README.md). Electron Main obtains a five-minute Home-scoped token from PKMS and proxies Home requests, so the bearer token and PKMS session stay out of renderer storage.
+Home dashboard는 app 기능이다. Provider API는 [`apps/workspace-server`](../workspace-server/README.md)로 독립 배포한다. Electron Main은 PKMS에서 5분 유효한 Home-scoped token을 받아 Home 요청을 proxy하므로 bearer token과 PKMS session이 renderer storage에 들어가지 않는다.
 
 ## Architecture and specifications
 
-Read the [app documentation](../../docs/architecture/workspace/README.md) for runtime, layout, interaction, IPC, persistence, browser, and local editor contracts. Shared UI contracts live in the owning packages.
+Runtime, layout, interaction, IPC, persistence, browser, 로컬 editor 계약은 [앱 문서](../../docs/architecture/workspace/README.md)를 읽는다. 공유 UI 계약은 해당 package 문서에서 관리한다.
 
 ## Development
 
-Run the desktop app from this directory:
+이 디렉터리에서 desktop app을 실행한다.
 
 ```sh
 npm run dev
 ```
 
-The Home server origin defaults to `https://workspace-home.lkh0310kr.workers.dev`. Set `WORKSPACE_HOME_API_ORIGIN=http://localhost:8787` for a local Worker. The PKMS API origin can be overridden with `PKMS_API_ORIGIN`.
+Home server origin 기본값은 `https://workspace-home.lkh0310kr.workers.dev`다. 로컬 Worker를 사용하려면 `WORKSPACE_HOME_API_ORIGIN=http://localhost:8787`을 설정한다. PKMS API origin은 `PKMS_API_ORIGIN`으로 바꿀 수 있다.
 
-Home service account linking remains unavailable until the Cloudflare and Supabase OAuth client secrets are registered on the Workspace Home Worker and both provider callback URLs point to its `/api/services/oauth/callback` endpoint. Previously linked providers must be authorized again; provider credentials are intentionally not copied out of PKMS storage.
+Cloudflare와 Supabase OAuth client secret을 Workspace Home Worker에 등록하고 두 provider callback URL을 `/api/services/oauth/callback`에 설정할 때까지 Home service 계정 연결은 사용할 수 없다. 기존에 연결했던 provider도 다시 승인해야 한다. Provider credential은 PKMS storage에서 의도적으로 복사하지 않는다.
 
 ## Build
 
-Run the development app from the repository root with `npm run dev`, or from this directory with `npm run dev`.
+저장소 root 또는 이 디렉터리에서 `npm run dev`로 개발 app을 실행한다.
 
 ```sh
 npm run build:mac
@@ -32,6 +32,6 @@ npm run build:linux
 
 ## Updates and releases
 
-Packaged macOS and Windows builds check the public `lkh0310kr/workspace` GitHub Releases feed after launch and download a newer stable release in the background. When it is ready, Workspace asks before restarting to install it. On macOS, use **Workspace → Check for Updates…** to check manually.
+패키징된 macOS/Windows build는 실행 뒤 공개 `lkh0310kr/workspace` GitHub Releases feed를 확인하고 새 stable release를 background에서 다운로드한다. 준비되면 설치를 위해 재시작할지 사용자에게 확인한다. macOS에서는 **Workspace → Check for Updates…**로 직접 확인할 수 있다.
 
-Create each release from a signed native build (`npm run release:mac` on macOS or `npm run release:win` on Windows), then upload that build's installer and generated update metadata to a GitHub Draft Release. Follow the [active-platform release policy](../../docs/architecture/desktop-release.md); a platform outside current use does not block a verified active-platform release. Keep the app version in `package.json` and the Git tag aligned (electron-builder expects `v<version>`). macOS updates require a Developer ID signed app; public distribution should also be notarized. Windows updates require the NSIS installer target. Never mix update metadata from different platform builds.
+각 릴리스는 서명된 native build에서 만든다(macOS는 `npm run release:mac`, Windows는 `npm run release:win`). 생성된 installer와 update metadata를 GitHub Draft Release에 함께 올린다. [활성 플랫폼 릴리스 정책](../../docs/architecture/desktop-release.md)을 따른다. 현재 사용하지 않는 플랫폼 때문에 검증된 활성 플랫폼 릴리스를 막지 않는다. `package.json`의 앱 버전과 Git tag를 일치시킨다(electron-builder는 `v<version>`을 요구한다). macOS update에는 Developer ID 서명이 필요하며 공개 배포는 notarize해야 한다. Windows update는 NSIS installer target이 필요하다. 서로 다른 플랫폼 build의 update metadata를 섞지 않는다.

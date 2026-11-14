@@ -138,13 +138,13 @@ interface EditorDocumentSession {
 
 계약 규칙은 다음과 같다.
 
-- `itemId` stays stable across rename and move. `parentId: null` identifies the provider root; all other parent IDs are provider item IDs. A provider emits tree invalidations and updated metadata; the shared editor updates labels and tree position without reopening or discarding the editor session.
-- `revision` is opaque to the shared editor. The provider checks or reconciles it when accepting edits; it reports an external-edit conflict rather than silently overwriting newer content.
-- `replaceText` reports local editor edits to the provider. Provider snapshots report remote or external changes back to the shared editor. Implementations suppress echo updates and preserve selection/undo state when applying snapshots.
-- `save()` flushes pending durable writes. `flushSync: false` permits secondary mirrors to remain pending. For PKMS, server persistence and GitHub mirroring are distinct: `savePhase: clean` confirms server persistence, while `syncPhase` reports mirror progress. For Workspace, `clean` confirms the local file write.
-- Save or operation failures use `EditorProviderError` with a user-safe message and stable `EditorProviderErrorCode`. The provider owns recovery and retry rules; shared UI may branch on the code without parsing product-specific text.
-- Optional operations are callable only when declared in `capabilities`; the UI hides unsupported commands and does not infer support from product name.
-- `close()` releases subscriptions, realtime resources, and pending provider work. The shared editor asks before closing a dirty session unless the provider reports that all edits are durable.
+- `itemId`는 rename과 move 뒤에도 유지한다. `parentId: null`은 provider root를 뜻하고, 다른 parent ID는 provider item ID다. Provider가 tree invalidation과 변경 metadata를 내보내면 shared editor는 session을 다시 열거나 버리지 않고 label과 tree 위치를 갱신한다.
+- Shared editor는 `revision`의 내부 형식을 해석하지 않는다. Provider가 편집을 적용할 때 revision을 확인하거나 조정하고, 더 최신 내용을 조용히 덮어쓰는 대신 외부 편집 conflict를 보고한다.
+- `replaceText`는 로컬 편집 내용을 provider에 전달한다. Provider snapshot은 원격·외부 변경을 shared editor에 알린다. 구현은 echo update를 억제하고 snapshot을 적용할 때 selection/undo 상태를 보존한다.
+- `save()`는 대기 중인 durable write를 반영한다. `flushSync: false`이면 부가 mirror가 계속 대기할 수 있다. PKMS에서 server 저장과 GitHub mirror는 별개다. `savePhase: clean`은 server 저장 완료를 뜻하고 `syncPhase`는 mirror 진행을 나타낸다. Workspace의 `clean`은 로컬 파일 기록 완료를 뜻한다.
+- 저장 또는 작업 실패는 사용자에게 안전한 메시지와 안정적인 `EditorProviderErrorCode`를 가진 `EditorProviderError`로 전달한다. 복구와 재시도 규칙은 provider가 소유한다. Shared UI는 제품별 문구를 분석하지 않고 오류 코드에 따라 분기할 수 있다.
+- 선택 기능은 `capabilities`에 선언되고 실제 구현된 경우에만 호출할 수 있다. UI는 지원하지 않는 명령을 숨기며 제품 이름만 보고 지원 여부를 추정하지 않는다.
+- `close()`는 subscription, realtime 자원, 대기 중인 provider 작업을 해제한다. 모든 편집이 durable하다고 provider가 확인하지 않는 한 shared editor는 dirty session 종료 전에 사용자 확인을 받는다.
 
 `previewUrl`은 provider가 수명을 관리하는 임시 URL일 수 있다. 공통 편집기는 문서 세션이 닫힐 때 asset preview도 해제한다. `asset` 문서는 읽기 전용 세션이며 `replaceText`를 제공하지 않는다.
 
@@ -156,13 +156,13 @@ interface EditorDocumentSession {
 
 통합 완료 조건은 PKMS Web/Desktop과 Workspace가 같은 공통 편집기와 provider 계약을 사용하고, 표에 적힌 제품별 동작을 유지하는 것이다. 문서를 전환해도 각 문서의 커서·스크롤·선택·undo 이력이 보존되어야 한다. 원격 또는 로컬 변경이 저장하지 않은 편집 내용을 조용히 덮어쓰면 안 된다.
 
-Migrate in this order:
+다음 순서로 통합한다.
 
-1. Extract the common CodeMirror surface, Markdown extensions, and command definitions into `packages/editor`. Match the current Workspace and PKMS feature sets before consolidating duplicate behavior.
-2. Move the Workspace local tree and document I/O behind `EditorProvider`. Keep Electron IPC and filesystem permission checks in `apps/workspace-app`.
-3. Move PKMS document/tree operations behind the same provider contract. Keep login, repository selection, API transport, Yjs, cache, and GitHub status in `packages/pkms-client`.
-4. Replace duplicated editor surfaces and interactions with shared Editor components. Each host composes them into its existing navigation model: retain the current Workspace pane layout and PKMS web navigation shell/document tabs.
-5. Verify each acceptance item against both providers before removing old UI implementations.
+1. 공통 CodeMirror surface, Markdown extension, command 정의를 `packages/editor`로 옮긴다. 중복 동작을 합치기 전에 현재 Workspace와 PKMS 기능을 맞춘다.
+2. Workspace의 로컬 tree와 문서 I/O를 `EditorProvider` 뒤로 이동한다. Electron IPC와 filesystem 권한 확인은 `apps/workspace-app`에 둔다.
+3. PKMS 문서/tree 작업도 같은 provider 계약 뒤로 이동한다. 로그인, repository 선택, API transport, Yjs, cache와 GitHub 상태는 `packages/pkms-client`가 유지한다.
+4. 중복된 편집 surface와 상호작용을 공유 Editor component로 교체한다. 각 host는 기존 navigation 모델을 유지하면서 조립한다. Workspace pane layout과 PKMS Web navigation shell/document tab을 보존한다.
+5. 기존 UI 구현을 제거하기 전에 두 provider에서 각 수락 항목을 확인한다.
 
 PKMS와 Workspace의 인증, 저장소, 배포, 파일시스템 권한, 백엔드 서비스, iOS 네이티브 편집기는 통합 범위에 넣지 않는다. 사용자가 조작하는 Editor 환경을 통일하면서 데이터와 보안 경계는 유지한다.
 
