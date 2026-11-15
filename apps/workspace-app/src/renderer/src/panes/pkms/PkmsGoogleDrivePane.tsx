@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   EditorMarkdownEditor,
+  EditorTreeView,
+  flattenEditorTree,
   markdownTitleFor,
+  projectEditorTreeRows,
   type EditorDocumentSession,
   type EditorSyncPhase,
-  type EditorTreeItem
+  type EditorTreeItem,
+  type EditorTreeViewItem
 } from '@workspace/editor'
 import type { GoogleDriveWorkspaceEntry } from '@pkms/google-drive'
 import '@pkms/google-drive/workspace.css'
@@ -138,11 +142,25 @@ function createSession(
   }
 }
 
-export function PkmsGoogleDrivePane(): React.JSX.Element {
+export function PkmsGoogleDrivePane({
+  treeOpen = true,
+  searchRequest = 0
+}: {
+  treeOpen?: boolean
+  searchRequest?: number
+}): React.JSX.Element {
   const [connection, setConnection] = useState({ credentialStored: false, clientConfigured: false })
   const [roots, setRoots] = useState<RootOption[]>([])
   const [root, setRoot] = useState<RootOption | null>(null)
-  const [entries, setEntries] = useState<GoogleDriveWorkspaceEntry[]>([])
+  const [treeBranches, setTreeBranches] = useState<Map<string, GoogleDriveWorkspaceEntry[]>>(
+    () => new Map()
+  )
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
+  const [loadingFolders, setLoadingFolders] = useState<Set<string>>(() => new Set())
+  const [treeScrollTop, setTreeScrollTop] = useState(0)
+  const [treeViewportHeight, setTreeViewportHeight] = useState(600)
+  const treeRootRef = useRef<HTMLElement>(null)
+  const treeScrollRef = useRef<HTMLDivElement>(null)
   const [directory, setDirectory] = useState({
     id: null as string | null,
     path: '',
@@ -172,7 +190,9 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
         setActiveFile(null)
         setDirectory({ id: null, path: '', ancestors: [] })
         setRoot(nextRoot)
-        setEntries(result.entries)
+        setTreeBranches(new Map([['', result.entries]]))
+        setExpandedFolders(new Set())
+        setLoadingFolders(new Set())
         setRoots([])
         setStatus(`Connected to ${nextRoot.name}`)
       } catch (cause) {
@@ -231,8 +251,101 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
 
   const refreshDirectory = useCallback(async () => {
     if (!root) return
-    setEntries(await window.pkmsDesktop.listGoogleDriveDirectory(root.id, directory.id))
-  }, [directory.id, root])
+    const nextEntries = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, directory.id)
+    setTreeBranches((current) => new Map(current).set(directory.path, nextEntries))
+  }, [directory.id, directory.path, root])
+
+  useEffect(() => {
+    const element = treeScrollRef.current
+    if (!element) return
+    const updateSize = () => setTreeViewportHeight(element.clientHeight)
+    updateSize()
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [root, treeOpen, searchOpen])
+
+  useEffect(() => {
+    if (!searchRequest) return
+    setSearchOpen(true)
+    window.setTimeout(
+      () => document.querySelector<HTMLInputElement>('[data-drive-search]')?.focus(),
+      0
+    )
+  }, [searchRequest])
+
+  const toggleFolder = useCallback(
+    async (entry: GoogleDriveWorkspaceEntry) => {
+      if (!root || entry.kind !== 'folder') return
+      setDirectory({ id: entry.id, path: entry.path, ancestors: [] })
+      setExpandedFolders((current) => {
+        const next = new Set(current)
+        if (next.has(entry.path)) next.delete(entry.path)
+        else next.add(entry.path)
+        return next
+      })
+      if (treeBranches.has(entry.path)) return
+      setLoadingFolders((current) => new Set(current).add(entry.path))
+      try {
+        const children = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, entry.id)
+        setTreeBranches((current) => new Map(current).set(entry.path, children))
+        // Warm one level beneath the opened folder so the next expansion is immediate.
+        const childFolders = children.filter((child) => child.kind === 'folder')
+        const warmed = await Promise.all(
+          childFolders.map(async (child) => ({
+            path: child.path,
+            entries: await window.pkmsDesktop.listGoogleDriveDirectory(root.id, child.id)
+          }))
+        )
+        setTreeBranches((current) => {
+          const next = new Map(current)
+          warmed.forEach(({ path, entries: childEntries }) => next.set(path, childEntries))
+          return next
+        })
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not load this folder.')
+      } finally {
+        setLoadingFolders((current) => {
+          const next = new Set(current)
+          next.delete(entry.path)
+          return next
+        })
+      }
+    },
+    [root, treeBranches]
+  )
+
+  const treeProjection = useMemo(() => {
+    const branches = new Map(
+      [...treeBranches].map(([path, children]) => [
+        path,
+        children.map((entry) => ({ ...entry, directory: entry.kind === 'folder' }))
+      ])
+    )
+    const visible = flattenEditorTree(branches, expandedFolders, '').map(({ item, depth }) => ({
+      id: item.id,
+      path: item.path,
+      name: item.name.replace(/\.(?:md|markdown)$/i, ''),
+      kind: item.kind === 'folder' ? 'directory' : item.kind,
+      depth,
+      expandable: item.kind === 'folder',
+      expanded: expandedFolders.has(item.path),
+      loading: loadingFolders.has(item.path),
+      active: activeFile?.id === item.id || directory.id === item.id,
+      selected: activeFile?.id === item.id,
+      tabIndex: 0,
+      source: item
+    })) as EditorTreeViewItem[]
+    return projectEditorTreeRows(visible, treeScrollTop, treeViewportHeight)
+  }, [
+    treeBranches,
+    expandedFolders,
+    loadingFolders,
+    activeFile,
+    directory.id,
+    treeScrollTop,
+    treeViewportHeight
+  ])
 
   useEffect(() => {
     const generation = ++searchGeneration.current
@@ -344,15 +457,7 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
     async (entry: GoogleDriveWorkspaceEntry) => {
       if (!root) return
       if (entry.kind === 'folder') {
-        setDirectory((current) => ({
-          id: entry.id,
-          path: entry.path,
-          ancestors: [
-            ...current.ancestors,
-            { id: current.id, path: current.path, name: current.path.split('/').at(-1) || 'PKMS' }
-          ]
-        }))
-        setEntries(await window.pkmsDesktop.listGoogleDriveDirectory(root.id, entry.id))
+        await toggleFolder(entry)
         return
       }
       if (entry.kind !== 'markdown') {
@@ -375,7 +480,7 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
         setBusy(false)
       }
     },
-    [root, session]
+    [root, session, toggleFolder]
   )
 
   const createItem = useCallback(
@@ -390,9 +495,13 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
       setBusy(true)
       try {
         const path = directory.path ? `${directory.path}/${name.trim()}` : name.trim()
-        setEntries(
-          await window.pkmsDesktop.createGoogleDriveItem(root.id, directory.path, kind, name.trim())
+        const updatedEntries = await window.pkmsDesktop.createGoogleDriveItem(
+          root.id,
+          directory.path,
+          kind,
+          name.trim()
         )
+        setTreeBranches((current) => new Map(current).set(directory.path, updatedEntries))
         setStatus(`Created ${path}`)
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Could not create the item.')
@@ -448,17 +557,6 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
       setBusy(false)
     }
   }, [activeFile, refreshDirectory, root, session])
-
-  const breadcrumbs = useMemo(
-    () => [
-      { id: null, path: '', name: 'PKMS' },
-      ...directory.ancestors.filter((crumb) => crumb.path),
-      ...(directory.path
-        ? [{ id: directory.id, path: directory.path, name: directory.path.split('/').at(-1)! }]
-        : [])
-    ],
-    [directory.ancestors, directory.id, directory.path]
-  )
 
   return (
     <main
@@ -564,164 +662,121 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
             borderTop: '1px solid var(--border-color, #8884)'
           }}
         >
-          <aside
-            className="pkms-google-drive-tree"
-            aria-label="Google Drive files"
-            style={{
-              width: 260,
-              minWidth: 180,
-              overflow: 'auto',
-              borderRight: '1px solid var(--border-color, #8884)',
-              padding: 8
-            }}
-          >
-            <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
-              {searchOpen ? (
-                <>
-                  <input
-                    data-drive-search
-                    aria-label="Search PKMS Google Drive workspace"
-                    placeholder="Search workspace"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Escape') {
+          {treeOpen && (
+            <aside
+              className="pkms-google-drive-tree"
+              aria-label="Google Drive files"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: '0 0 260px',
+                width: 260,
+                minWidth: 180,
+                borderRight: '1px solid var(--border-color, #8884)',
+                minHeight: 0
+              }}
+            >
+              <div style={{ display: 'flex', gap: 4, padding: 8, flex: '0 0 auto' }}>
+                {searchOpen ? (
+                  <>
+                    <input
+                      data-drive-search
+                      aria-label="Search PKMS Google Drive workspace"
+                      placeholder="Search workspace"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                          setSearchOpen(false)
+                          setSearchQuery('')
+                        }
+                      }}
+                      style={{ minWidth: 0, flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
                         setSearchOpen(false)
                         setSearchQuery('')
-                      }
-                    }}
-                    style={{ minWidth: 0, flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchOpen(false)
-                      setSearchQuery('')
-                    }}
-                    aria-label="Close search"
-                  >
-                    ×
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setSearchOpen(true)}
-                  title="Search (⌘⇧F / Ctrl+Shift+F)"
-                >
-                  Search
-                </button>
-              )}
-            </div>
-            {searchOpen ? (
-              <div aria-live="polite" style={{ display: 'grid', gap: 2 }}>
-                {searchQuery.trim().length < 2 ? (
-                  <span style={{ padding: 8, opacity: 0.65 }}>Type at least 2 characters.</span>
-                ) : searching && !searchResults.length ? (
-                  <span style={{ padding: 8, opacity: 0.65 }}>Searching Drive…</span>
-                ) : searchResults.length ? (
-                  <>
-                    {searchResults.map((entry) => (
-                      <button
-                        key={entry.id}
-                        type="button"
-                        onClick={() => void openEntry(entry)}
-                        style={{ display: 'grid', textAlign: 'left', padding: '7px 8px' }}
-                      >
-                        <span>{entry.name}</span>
-                        <small style={{ opacity: 0.65 }}>{entry.path}</small>
-                      </button>
-                    ))}
-                    {searchPageToken && (
-                      <button
-                        type="button"
-                        disabled={searching}
-                        onClick={() => void loadMoreSearchResults()}
-                      >
-                        {searching ? 'Loading…' : 'Load more results'}
-                      </button>
-                    )}
-                  </>
-                ) : searchPageToken ? (
-                  <button
-                    type="button"
-                    disabled={searching}
-                    onClick={() => void loadMoreSearchResults()}
-                  >
-                    {searching ? 'Searching Drive…' : 'Continue searching Drive…'}
-                  </button>
-                ) : searching ? (
-                  <span style={{ padding: 8, opacity: 0.65 }}>Searching Drive…</span>
-                ) : (
-                  <span style={{ padding: 8, opacity: 0.65 }}>No matches in the workspace.</span>
-                )}
-              </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
-                  {breadcrumbs.map((crumb, index) => {
-                    const ancestors = directory.ancestors.slice(0, index)
-                    return (
-                      <button
-                        key={`${index}:${crumb.path}`}
-                        type="button"
-                        onClick={() => {
-                          setDirectory({ id: crumb.id, path: crumb.path, ancestors })
-                          void window.pkmsDesktop
-                            .listGoogleDriveDirectory(root.id, crumb.id)
-                            .then(setEntries)
-                        }}
-                      >
-                        {crumb.name}
-                      </button>
-                    )
-                  })}
-                </div>
-                {directory.path && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const parent = directory.ancestors.at(-1) ?? {
-                        id: null,
-                        path: '',
-                        name: 'PKMS'
-                      }
-                      setDirectory({
-                        id: parent.id,
-                        path: parent.path,
-                        ancestors: directory.ancestors.slice(0, -1)
-                      })
-                      void window.pkmsDesktop
-                        .listGoogleDriveDirectory(root.id, parent.id)
-                        .then(setEntries)
-                    }}
-                  >
-                    ← Parent folder
-                  </button>
-                )}
-                <div style={{ display: 'grid', gap: 2, marginTop: 8 }}>
-                  {entries.map((entry) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      aria-current={activeFile?.id === entry.id ? 'page' : undefined}
-                      onClick={() => void openEntry(entry)}
-                      style={{ display: 'flex', gap: 8, textAlign: 'left', padding: '7px 8px' }}
+                      }}
+                      aria-label="Close search"
                     >
-                      <span aria-hidden="true">
-                        {entry.kind === 'folder' ? '▸' : entry.kind === 'markdown' ? 'M' : '·'}
-                      </span>
-                      <span>{entry.name}</span>
+                      ×
                     </button>
-                  ))}
-                  {!entries.length && (
-                    <span style={{ padding: 8, opacity: 0.65 }}>This folder is empty.</span>
+                  </>
+                ) : null}
+              </div>
+              {searchOpen ? (
+                <div aria-live="polite" style={{ display: 'grid', gap: 2 }}>
+                  {searchQuery.trim().length < 2 ? (
+                    <span style={{ padding: 8, opacity: 0.65 }}>Type at least 2 characters.</span>
+                  ) : searching && !searchResults.length ? (
+                    <span style={{ padding: 8, opacity: 0.65 }}>Searching Drive…</span>
+                  ) : searchResults.length ? (
+                    <>
+                      {searchResults.map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => void openEntry(entry)}
+                          style={{ display: 'grid', textAlign: 'left', padding: '7px 8px' }}
+                        >
+                          <span>{entry.name}</span>
+                          <small style={{ opacity: 0.65 }}>{entry.path}</small>
+                        </button>
+                      ))}
+                      {searchPageToken && (
+                        <button
+                          type="button"
+                          disabled={searching}
+                          onClick={() => void loadMoreSearchResults()}
+                        >
+                          {searching ? 'Loading…' : 'Load more results'}
+                        </button>
+                      )}
+                    </>
+                  ) : searchPageToken ? (
+                    <button
+                      type="button"
+                      disabled={searching}
+                      onClick={() => void loadMoreSearchResults()}
+                    >
+                      {searching ? 'Searching Drive…' : 'Continue searching Drive…'}
+                    </button>
+                  ) : searching ? (
+                    <span style={{ padding: 8, opacity: 0.65 }}>Searching Drive…</span>
+                  ) : (
+                    <span style={{ padding: 8, opacity: 0.65 }}>No matches in the workspace.</span>
                   )}
                 </div>
-              </>
-            )}
-          </aside>
-          <div className="pkms-google-drive-editor" style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+              ) : (
+                <div
+                  ref={treeScrollRef}
+                  style={{ flex: 1, minHeight: 0, overflow: 'auto' }}
+                  onScroll={(event) => setTreeScrollTop(event.currentTarget.scrollTop)}
+                >
+                  <EditorTreeView
+                    rootRef={treeRootRef}
+                    projection={treeProjection}
+                    className="file-list file-tree"
+                    ariaLabel="PKMS Google Drive files"
+                    emptyContent={
+                      <span style={{ padding: 8, opacity: 0.65 }}>This folder is empty.</span>
+                    }
+                    onActivate={(item) => {
+                      const entry = item.source as GoogleDriveWorkspaceEntry
+                      if (entry.kind === 'folder') void toggleFolder(entry)
+                      else void openEntry(entry)
+                    }}
+                  />
+                </div>
+              )}
+            </aside>
+          )}
+          <div
+            className="pkms-google-drive-editor"
+            style={{ flex: 1, minWidth: 0, overflow: 'auto' }}
+          >
             {session && activeFile ? (
               <EditorMarkdownEditor
                 className="pkms-google-drive-markdown"

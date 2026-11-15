@@ -12,7 +12,9 @@ export const pkmsPaneKind: PaneKindDefinition = {
   tabLabel() {
     return 'PKMS'
   },
-  render() {
-    return <PkmsPane />
+  render(ctx) {
+    return (
+      <PkmsPane paneVisible={ctx.paneVisible} active={ctx.active} groupFocused={ctx.groupFocused} />
+    )
   }
 }

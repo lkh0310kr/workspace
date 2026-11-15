@@ -26,6 +26,8 @@ export interface PaneRenderContext {
   item: PaneTabItem
   /** This is the pane group's currently-selected tab. */
   active: boolean
+  /** Pane group owns keyboard focus, even when an embedded surface is active. */
+  groupFocused: boolean
   /** The whole workspace tab (and thus this pane) is the one currently on
    * screen — false while switched away to a different workspace tab. */
   paneVisible: boolean

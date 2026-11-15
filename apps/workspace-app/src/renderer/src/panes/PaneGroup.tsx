@@ -269,7 +269,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
               explorerVisible={showExplorer}
               isGroupFocused={isGroupFocused}
               explorerCapable={activeChipHasExplorer(activeItem.kind)}
-              workspaceShortcutsEnabled={activeItem.kind !== 'terminal'}
+              workspaceShortcutsEnabled={
+                activeItem.kind !== 'terminal' && activeItem.kind !== 'pkms'
+              }
               setShortcutExplorerVisible={setShortcutExplorerVisible}
               focusHostRef={paneHostRef}
               selectedPath={activeItem.filePath ?? null}
@@ -318,6 +320,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                   model,
                   item,
                   active,
+                  groupFocused: isGroupFocused,
                   paneVisible: visible,
                   chipShown,
                   zoom,
