@@ -12,6 +12,13 @@
 - **완료 조건:** 제품의 sync data path가 Drive API로만 연결되고, 모든 Drive acceptance scenario가 격리 workspace에서 자동 또는 실제 runtime으로 통과하며, 기존 cloud/GitHub source를 건드리지 않는 parity migration이 확인된다.
 - **근거:** [Google Drive 직접 동기화 결과 스펙](../architecture/pkms/google-drive-direct-sync.md), [package README](../../packages/pkms-google-drive/README.md), [격리 browser prototype](../../apps/pkms-web/prototypes/google-drive-direct/README.md), [Web route](../../apps/pkms-web/app/routes/pkms-google-drive.tsx)
 
+### PKMS Google Drive API 호출량 절감
+
+- **문제 확인:** Editor typing은 즉시 Drive API를 호출하지 않지만, Yjs transaction마다 outbox operation을 만들고 operation log는 operation마다 Drive 파일을 쓴다. Web/Desktop은 pending change가 없어도 visible 상태에서 15초마다 sync한다. 편집량과 idle reconciliation이 모두 원격 호출량을 불필요하게 늘릴 수 있다.
+- **목표 결과:** 로컬 durability는 즉시 유지하면서 같은 문서의 짧은 입력 burst를 하나의 Yjs operation으로 병합한다. pending이 없을 때 polling sync를 줄이고 reconnect/focus/explicit sync에서 catch-up한다.
+- **Acceptance:** DRIVE-SYNC-13. 1,000회 synthetic typing에서 API request, operation count, local persistence latency를 비교 측정한다. Crash/restart/offline/ACK-loss에도 update가 보존되어야 한다.
+- **다음 구현:** Durable outbox 내부에서 문서별 pending `document-update`를 `Y.mergeUpdates`로 안전하게 합치고, sync scheduler의 idle full polling을 제거/완화한다. 이미 발행한 immutable Drive operations는 수정하지 않는다.
+
 ### PKMS 즉시 반응과 sync runtime acceptance
 
 - **목표 결과:** TreeView와 Editor 입력은 즉시 반응한다. Cache가 있으면 tree를 먼저 표시하고 서버·파일시스템 작업은 background에서 끝난다. Web에서 저장한 Markdown은 연결된 Desktop local file과 수렴하고, 중단·충돌·재시작에도 변경 내용과 sync 상태가 보존된다.
