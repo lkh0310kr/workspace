@@ -9,6 +9,42 @@ const FOLDER_MIME = 'application/vnd.google-apps.folder'
 const INTERNAL_DIRECTORY = '.pkms-sync'
 const WORKSPACE_ROOT_MARKER = { pkmsWorkspace: 'pkms-google-drive-v1' }
 
+/** Discovers marked roots and safely recovers roots created by early builds without markers. */
+export async function listGoogleDriveWorkspaceRoots(
+  client: GoogleDriveClient
+): Promise<DriveFile[]> {
+  const markedRoots = await client.listFiles({
+    query: `mimeType = '${FOLDER_MIME}' and trashed = false and appProperties has { key='pkmsWorkspace' and value='${WORKSPACE_ROOT_MARKER.pkmsWorkspace}' }`,
+    pageSize: 100,
+    fields: 'id,name,mimeType,parents,trashed,appProperties,webViewLink'
+  })
+  const roots = new Map(markedRoots.map((root) => [root.id, root]))
+  if (markedRoots.length) return [...roots.values()]
+
+  // A few prototype builds created the root before persisting its marker. Only
+  // recover an app-owned Drive root with PKMS protocol artifacts beneath it.
+  const candidates = await client.listFiles({
+    query: `name = 'PKMS' and mimeType = '${FOLDER_MIME}' and trashed = false and 'root' in parents`,
+    pageSize: 100,
+    fields: 'id,name,mimeType,parents,trashed,appProperties,webViewLink'
+  })
+  for (const root of candidates) {
+    const children = await client.listChildren(root.id)
+    if (
+      children.some(
+        (child) =>
+          child.name === INTERNAL_DIRECTORY || child.appProperties?.pkmsWorkspaceRootId === root.id
+      )
+    ) {
+      const repaired = await client.updateFileMetadata(root.id, {
+        appProperties: WORKSPACE_ROOT_MARKER
+      })
+      roots.set(root.id, repaired)
+    }
+  }
+  return [...roots.values()]
+}
+
 /** Finds the unique app-owned root across devices, or creates it if none exists. */
 export async function resolveGoogleDriveWorkspaceRoot(
   client: GoogleDriveClient,
@@ -18,14 +54,16 @@ export async function resolveGoogleDriveWorkspaceRoot(
     const pinned = await client.getFile(pinnedRootId)
     if (pinned.trashed || pinned.mimeType !== FOLDER_MIME)
       throw new Error('The pinned Google Drive workspace root is unavailable.')
-    return pinned
+    if (pinned.appProperties?.pkmsWorkspace === WORKSPACE_ROOT_MARKER.pkmsWorkspace) return pinned
+    if (pinned.appProperties?.pkmsWorkspace)
+      throw new Error('The pinned Google Drive folder belongs to a different application.')
+    const roots = await listGoogleDriveWorkspaceRoots(client)
+    const recovered = roots.find((root) => root.id === pinned.id)
+    if (!recovered) throw new Error('The pinned folder is not a PKMS Google Drive workspace.')
+    return recovered
   }
 
-  const roots = await client.listFiles({
-    query: `mimeType = '${FOLDER_MIME}' and trashed = false and appProperties has { key='pkmsWorkspace' and value='${WORKSPACE_ROOT_MARKER.pkmsWorkspace}' }`,
-    pageSize: 100,
-    fields: 'id,name,mimeType,parents,trashed,appProperties,webViewLink'
-  })
+  const roots = await listGoogleDriveWorkspaceRoots(client)
   if (roots.length > 1)
     throw new Error(
       'More than one PKMS Google Drive workspace root exists; choose a root explicitly before syncing.'

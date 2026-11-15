@@ -8,6 +8,8 @@ import {
   GoogleDriveOperationLog,
   GoogleDriveWebOAuth,
   GoogleDriveWorkspaceRepository,
+  listGoogleDriveWorkspaceRoots,
+  resolveGoogleDriveWorkspaceRoot,
   GoogleDriveYjsDocumentStore,
   IndexedDbDriveOutbox,
   IndexedDbGoogleDriveYjsDocumentStorage,
@@ -338,23 +340,14 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
       const pinned = localStorage.getItem(ROOT_STORAGE_KEY)
       if (pinned) {
         try {
-          const root = await client.getFile(pinned)
-          if (
-            root.mimeType === 'application/vnd.google-apps.folder' &&
-            root.appProperties?.pkmsWorkspace === WORKSPACE_MARKER
-          ) {
-            await openWorkspace({ id: root.id, name: root.name }, { oauth, client })
-            return
-          }
+          const root = await resolveGoogleDriveWorkspaceRoot(client, pinned)
+          await openWorkspace({ id: root.id, name: root.name }, { oauth, client })
+          return
         } catch {
           localStorage.removeItem(ROOT_STORAGE_KEY)
         }
       }
-      const found = await client.listFiles({
-        query: `mimeType = 'application/vnd.google-apps.folder' and trashed = false and appProperties has { key='pkmsWorkspace' and value='${WORKSPACE_MARKER}' }`,
-        pageSize: 100,
-        fields: 'id,name,mimeType,appProperties'
-      })
+      const found = await listGoogleDriveWorkspaceRoots(client)
       setRoots(found.map(({ id, name }) => ({ id, name })))
       setStatus(
         found.length ? 'Choose a Google Drive workspace' : 'Create a Google Drive workspace'

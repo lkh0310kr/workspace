@@ -16,7 +16,10 @@ const folder = (id: string, name: string, parents: string[] = []): DriveFile => 
 
 describe('GoogleDriveWorkspaceRepository', () => {
   it('rediscovers the same app-owned root on another client and refuses ambiguous roots', async () => {
-    const root = folder('shared-root', 'PKMS')
+    const root = {
+      ...folder('shared-root', 'PKMS'),
+      appProperties: { pkmsWorkspace: 'pkms-google-drive-v1' }
+    }
     const client = {
       listFiles: vi.fn(async () => [root]),
       createFolder: vi.fn(),
@@ -29,7 +32,13 @@ describe('GoogleDriveWorkspaceRepository', () => {
       expect.objectContaining({ query: expect.stringContaining("key='pkmsWorkspace'") })
     )
 
-    vi.mocked(client.listFiles).mockResolvedValue([root, folder('duplicate-root', 'PKMS')])
+    vi.mocked(client.listFiles).mockResolvedValue([
+      root,
+      {
+        ...folder('duplicate-root', 'PKMS'),
+        appProperties: { pkmsWorkspace: 'pkms-google-drive-v1' }
+      }
+    ])
     await expect(resolveGoogleDriveWorkspaceRoot(client)).rejects.toThrow(/More than one/)
     expect(client.createFolder).not.toHaveBeenCalled()
   })
@@ -100,6 +109,33 @@ describe('GoogleDriveWorkspaceRepository', () => {
     expect(createFolder).toHaveBeenCalledWith('PKMS', null, {
       pkmsWorkspace: 'pkms-google-drive-v1'
     })
+  })
+
+  it('recovers and marks a PKMS root created by an early build', async () => {
+    const root = folder('legacy-root', 'PKMS')
+    const protocolFolder = folder('protocol', '.pkms-sync', ['legacy-root'])
+    const listFiles = vi.fn(async ({ query }: { query?: string }) =>
+      query?.includes("key='pkmsWorkspace'") ? [] : [root]
+    )
+    const updateFileMetadata = vi.fn(async (_id: string, metadata: Record<string, unknown>) => ({
+      ...root,
+      appProperties: metadata.appProperties as Record<string, string>
+    }))
+    const client = {
+      listFiles,
+      listChildren: vi.fn(async () => [protocolFolder]),
+      updateFileMetadata,
+      createFolder: vi.fn()
+    } as unknown as GoogleDriveClient
+
+    await expect(resolveGoogleDriveWorkspaceRoot(client)).resolves.toMatchObject({
+      id: 'legacy-root',
+      appProperties: { pkmsWorkspace: 'pkms-google-drive-v1' }
+    })
+    expect(updateFileMetadata).toHaveBeenCalledWith('legacy-root', {
+      appProperties: { pkmsWorkspace: 'pkms-google-drive-v1' }
+    })
+    expect(client.createFolder).not.toHaveBeenCalled()
   })
 
   it('recovers a folder create after the Drive request succeeds but its response is lost', async () => {
