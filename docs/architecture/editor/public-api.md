@@ -10,12 +10,16 @@ Package scope에서 [index.ts](../../../packages/editor/src/index.ts)의 export�
 | createEditorView/documentReplacement/TextSurface   | [text surface](./code/README.md)                                   | extensions·session·storage·onViewReady                   |
 | MarkdownEditor/Document/Surface/Title·commands     | [Markdown](./markdown/README.md)                                   | parser·image/link resolver·title commit                  |
 | EditorBreadcrumbs                                  | [Breadcrumb](./breadcrumbs.md)                                     | provider-relative path·sibling listing·open-file routing |
-| tree rows/virtual list/selection/navigation        | [treeview](./treeview/README.md)                                   | branch data·provider commands·focus·drop                 |
+| Tree pane/frame/rows/virtual list/selection        | [treeview](./treeview/README.md)                                   | header/footer chrome·branch data·provider commands·focus·drop |
 | QuickOpen/SearchButton/editorSearch/fuzzy          | [search](./search.md)                                              | query/provider·결과 선택·dialog close                    |
 | documentIdentity/dirtyRegistry/viewStateCache      | [text surface](./code/README.md)                                   | shell close confirmation·stable key migration            |
 | relativeLink/tree path/title/name helpers          | [Markdown](./markdown/README.md), [treeview](./treeview/README.md) | 제품별 파일 분류·링크 열기                               |
 | TabChip/DocumentTabBar/MenuList/NameForm           | 아래 UI 계약                                                       | selection/close/명령 실행·표시 위치                      |
 | CSS·themes                                         | package CSS와 themes.ts                                            | host className·토큰·container style                      |
+
+## Tree composition
+
+`EditorTreePane`은 공유 virtual tree의 public 조립 component다. 공통 pane frame과 host `header`/`footer` slot을 제공하고 typed `tree` props로 provider-specific callback을 연결한다. 저수준 `EditorTreeView`는 package public entry에서 감춰 소비 앱이 독립 tree shell을 만들지 않게 한다. 검색 결과처럼 row tree가 아닌 본문을 조립해야 할 때는 `EditorTreeFrame`을 사용한다.
 
 ## Tab와 close
 
@@ -34,3 +38,7 @@ TabChip의 focus/drag/context event props와 class hooks는 [source](../../../pa
 PUB-01 모든 export가 계약 owner를 갖는다. PUB-02 close click이 provider mutation을 직접 하지 않는다. PUB-03 NameForm 초기값 변경·빈 값·trim·cleanup을 보존한다. PUB-04 capability 없는 action을 host가 노출하지 않는다. PUB-05 CSS entrypoint를 소비한 앱에서 같은 기본 구조를 렌더링한다.
 
 현재 source/주요 동작을 대조한 문서다. 모든 public component의 prop 조합·keyboard·pixel fixture를 검증한 상태는 아니며, source 링크만으로 그 차이를 감추지 않는다.
+
+# Tree composition
+
+`EditorTreePane` is the public component for rendering the shared virtualized tree. It owns the standard pane frame and accepts host-owned `header` and `footer` slots plus typed `tree` callbacks. The lower-level `EditorTreeView` is package-private so consumer apps cannot silently fork the tree shell. `EditorTreeFrame` is available for composed host surfaces such as search results that need the same header/content/footer geometry without rendering tree rows.
