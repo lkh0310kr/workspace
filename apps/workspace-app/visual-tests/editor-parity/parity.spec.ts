@@ -394,6 +394,51 @@ test('all host surfaces align common tree rows and readable document columns', a
   }
 })
 
+test('heading hover arrows share markup and visual baselines across editor hosts', async ({
+  page
+}) => {
+  let reference:
+    | {
+        markup: string
+        viewBox: string | null
+        stroke: string
+        strokeWidth: string
+        width: string
+        height: string
+      }
+    | undefined
+  for (const host of hosts) {
+    await page.goto(`/?host=${host}`)
+    if (host !== 'desktop-editor') {
+      await page.locator('.editor-tree-item').first().click()
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    }
+    await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
+    const foldControl = page.locator('.cm-md-fold-control').first()
+    await foldControl.hover()
+    await expect(foldControl).toHaveCSS('opacity', '0.8')
+    const arrow = await foldControl.locator('svg').evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        markup: element.innerHTML,
+        viewBox: element.getAttribute('viewBox'),
+        stroke: style.stroke,
+        strokeWidth: style.strokeWidth,
+        width: style.width,
+        height: style.height
+      }
+    })
+    if (reference) expect(arrow).toEqual(reference)
+    else reference = arrow
+    await expect(foldControl).toHaveScreenshot(`heading-fold-hover-${host}.png`, {
+      animations: 'disabled',
+      caret: 'hide',
+      scale: 'css',
+      maxDiffPixelRatio: 0.001
+    })
+  }
+})
+
 test('all host surfaces share document Find behavior', async ({ page }) => {
   for (const host of hosts) {
     await page.goto(`/?host=${host}`)
