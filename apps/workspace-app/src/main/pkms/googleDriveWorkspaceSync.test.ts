@@ -32,9 +32,11 @@ describe('createGoogleDriveWorkspaceSync', () => {
       append: vi.fn(async (next: DriveLogicalOperation) => {
         operations.push(next)
       }),
-      listUnapplied: vi.fn(async (applied: ReadonlySet<string>) =>
-        operations.filter((item) => !applied.has(item.operationId))
-      )
+      initializeCursor: vi.fn(async () => 'cursor-initial'),
+      listChanges: vi.fn(async (_cursor: string, applied: ReadonlySet<string>) => ({
+        operations: operations.filter((item) => !applied.has(item.operationId)),
+        cursor: 'cursor-next'
+      }))
     } as unknown as GoogleDriveOperationLog
     const documents = {
       applyDocumentSeed: vi.fn(async () => {}),
