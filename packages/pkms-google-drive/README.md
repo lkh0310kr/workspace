@@ -6,6 +6,7 @@ Shared Google Drive API and workspace repository used by PKMS platform adapters.
 - `GoogleDriveWorkspaceRepository` maps one explicitly selected Drive folder to a recursive PKMS tree and exposes file, folder, move, rename, and trash operations. `resolveGoogleDriveWorkspaceRoot` discovers roots by an app-owned `appProperties` marker across devices, creates one only when none exists, and stops when roots are ambiguous.
 - `IndexedDbDriveOutbox` stores stable, ordered operations and content bytes locally; an operation remains pending until its caller confirms durable Drive acknowledgement.
 - `IndexedDbGoogleDriveReplica` stores per-root metadata, on-demand cached bytes, and the Drive changes cursor. It applies change pages before advancing the cursor and preserves cached descendants with pending edits when a remote folder is removed.
+- `GoogleDriveOperationLog` writes immutable, checksummed operation records under the hidden `.pkms-sync/operations` folder and validates identity, schema version, and payload digest when reading them.
 - `GoogleDriveWebOAuth` performs foreground-only Web authorization and keeps access tokens in memory. It requests reauthentication after expiry and does not save tokens to browser storage.
 - OAuth consent, token persistence, durable local outbox, Yjs operation orchestration, and platform UI belong to the Web, Desktop, and iOS adapters. This package does not use a PKMS server or Worker.
 

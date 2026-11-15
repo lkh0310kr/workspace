@@ -30,6 +30,12 @@ export {
   type GoogleIdentityTokenClient,
   type GoogleIdentityTokenResponse
 } from './webOAuth'
+export {
+  GoogleDriveOperationLog,
+  decodeDriveLogicalOperation,
+  encodeDriveLogicalOperation,
+  type DriveLogicalOperation
+} from './operationLog'
 export type {
   DriveAccessTokenProvider,
   DriveChange,
