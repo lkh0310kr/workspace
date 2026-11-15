@@ -163,6 +163,13 @@ export class GoogleDriveYjsDocumentStore {
     await document.handle.flush()
   }
 
+  async flushOpenDocuments(): Promise<void> {
+    for (const pendingDocument of this.documents.values()) {
+      const document = await pendingDocument
+      await this.flushLocal(document)
+    }
+  }
+
   async close(): Promise<void> {
     const documents = await Promise.allSettled([...this.documents.values()])
     this.documents.clear()

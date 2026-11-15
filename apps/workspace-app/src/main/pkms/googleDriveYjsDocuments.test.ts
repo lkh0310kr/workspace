@@ -145,7 +145,7 @@ describe('GoogleDriveYjsDocumentStore', () => {
 
     for (let index = 0; index < 1_000; index++)
       opened.text.insert(opened.text.length, String(index % 10))
-    await store.flushLocalDocument('note')
+    await store.flushOpenDocuments()
 
     const updates = (await outbox.list('root')).filter(
       (operation) =>

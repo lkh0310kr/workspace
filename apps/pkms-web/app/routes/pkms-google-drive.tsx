@@ -443,6 +443,7 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
     if (!runtime) return
     setBusy(true)
     try {
+      await runtime.documents.flushOpenDocuments()
       const result = await runtime.sync.sync()
       await refresh()
       setStatus(

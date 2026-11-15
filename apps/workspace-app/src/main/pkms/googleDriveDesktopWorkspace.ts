@@ -122,7 +122,9 @@ export class GoogleDriveDesktopWorkspaceService {
   }
 
   async sync(rootId: string) {
-    return this.requireWorkspace(rootId).engine.sync()
+    const runtime = this.requireWorkspace(rootId)
+    await runtime.documents.flushOpenDocuments()
+    return runtime.engine.sync()
   }
 
   async createItem(rootId: string, parentPath: string, kind: 'markdown' | 'folder', name: string) {
