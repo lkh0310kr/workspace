@@ -8,6 +8,7 @@ import editorHostStyles from '@workspace/editor/editorHost.css?inline'
 import editorMarkdownStyles from '@workspace/editor/markdown.css?inline'
 import editorMarkdownDocumentStyles from '@workspace/editor/markdownDocument.css?inline'
 import editorSearchStyles from '@workspace/editor/editorSearch.css?inline'
+import googleDriveStyles from '@pkms/google-drive/workspace.css?inline'
 import { PkmsGoogleDrivePane } from './PkmsGoogleDrivePane'
 
 export function PkmsPane(): React.JSX.Element {
@@ -35,6 +36,7 @@ ${editorHostStyles}
 ${editorMarkdownStyles}
 ${editorMarkdownDocumentStyles}
 ${editorSearchStyles}
+${googleDriveStyles}
 :host { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
 .pkms-root { width: 100%; height: 100%; min-width: 0; min-height: 0; }
 /* The client sizes itself to the window (100dvh); inside a pane it must fill the pane so the tree can scroll. */

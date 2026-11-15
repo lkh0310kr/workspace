@@ -18,7 +18,7 @@ import {
   replaceGoogleDriveYText,
   type GoogleDriveWorkspaceEntry
 } from '@pkms/google-drive'
-import './pkms-google-drive.css'
+import '@pkms/google-drive/workspace.css'
 
 const WORKSPACE_MARKER = 'pkms-google-drive-v1'
 const ROOT_STORAGE_KEY = 'pkms-google-drive-root'

@@ -9,6 +9,7 @@
     "yjs": "^13.6.27"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./workspace.css": "./src/workspace.css"
   }
 }

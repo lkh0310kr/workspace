@@ -1,10 +1,11 @@
 .pkms-google-drive-root {
   --drive-border: color-mix(in srgb, currentColor 14%, transparent);
   --drive-muted: color-mix(in srgb, currentColor 58%, transparent);
+  box-sizing: border-box;
   min-height: 100vh;
   padding: 28px 32px;
   color: var(--text, #262626);
-  background: var(--background, #fff);
+  background: var(--background, var(--bg-base, var(--bg, #fff)));
   font:
     14px/1.45 Inter,
     -apple-system,
@@ -14,12 +15,13 @@
 }
 
 .pkms-google-drive-root button {
+  appearance: none;
   min-height: 32px;
   padding: 6px 10px;
   border: 1px solid var(--drive-border);
   border-radius: 6px;
   color: inherit;
-  background: transparent;
+  background: transparent !important;
   font: inherit;
   cursor: pointer;
 }
@@ -215,6 +217,62 @@
   min-height: 28px;
   padding: 4px 8px;
   font-size: 12px;
+}
+
+.pkms-google-drive-root.is-desktop {
+  min-height: 0;
+  padding: 0;
+  color: var(--text, #e2e4e7);
+}
+
+.pkms-google-drive-root.is-desktop .pkms-google-drive-header {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+}
+
+.pkms-google-drive-root.is-desktop .pkms-google-drive-workspace {
+  grid-template-columns: 260px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.pkms-google-drive-root.is-desktop .pkms-google-drive-tree {
+  padding: 8px;
+  border-right: 1px solid var(--drive-border);
+}
+
+.pkms-google-drive-root.is-desktop .pkms-google-drive-editor {
+  min-height: 0;
+  overflow: auto;
+}
+
+.pkms-google-drive-root.is-desktop .editor-title-block {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.editor-markdown-document.pkms-google-drive-markdown .editor-markdown-title {
+  width: max(0px, calc(100% - 220px));
+  max-width: 540px;
+  margin: 0;
+  padding-right: 0;
+}
+
+.pkms-pane-host > nav[aria-label='PKMS storage source'] button {
+  appearance: none;
+  min-height: 26px;
+  padding: 3px 9px;
+  border: 1px solid var(--border, #ffffff24);
+  border-radius: 5px;
+  color: var(--text, #e2e4e7);
+  background: transparent;
+  font: 12px/1.3 var(--font-ui, sans-serif);
+  cursor: pointer;
+}
+
+.pkms-pane-host > nav[aria-label='PKMS storage source'] button[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--accent, #8b7cf6) 50%, transparent);
+  background: color-mix(in srgb, var(--accent, #8b7cf6) 16%, transparent);
 }
 
 @media (max-width: 720px) {

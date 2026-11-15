@@ -7,6 +7,7 @@ import {
   type EditorTreeItem
 } from '@workspace/editor'
 import type { GoogleDriveWorkspaceEntry } from '@pkms/google-drive'
+import '@pkms/google-drive/workspace.css'
 
 interface RootOption {
   id: string
@@ -461,7 +462,7 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
 
   return (
     <main
-      className="pkms-google-drive-root"
+      className="pkms-google-drive-root is-desktop"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -555,6 +556,7 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
         )}
       {root && (
         <section
+          className="pkms-google-drive-workspace"
           style={{
             display: 'flex',
             flex: 1,
@@ -563,6 +565,7 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
           }}
         >
           <aside
+            className="pkms-google-drive-tree"
             aria-label="Google Drive files"
             style={{
               width: 260,
@@ -718,16 +721,17 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
               </>
             )}
           </aside>
-          <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+          <div className="pkms-google-drive-editor" style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
             {session && activeFile ? (
               <EditorMarkdownEditor
+                className="pkms-google-drive-markdown"
                 title={
                   <div className="editor-title-block">
                     <div className="editor-markdown-title">{markdownTitleFor(activeFile.path)}</div>
                   </div>
                 }
                 actions={
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div className="pkms-google-drive-file-actions">
                     <button type="button" onClick={() => void session.save()} disabled={busy}>
                       Save
                     </button>
