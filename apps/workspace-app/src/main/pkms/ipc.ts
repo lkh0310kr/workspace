@@ -112,12 +112,14 @@ export function registerPkmsIpc(): void {
   )
   ipcMain.handle(
     'pkms-google-drive:workspace:save-markdown',
-    (event, rootId: string, fileId: string, text: string) => {
+    (event, rootId: string, fileId: string, text: string, flushSync?: boolean) => {
       assertTrustedSender(event)
       assertDriveId(rootId)
       assertDriveId(fileId)
       if (typeof text !== 'string') throw new Error('invalid_markdown_content')
-      return driveWorkspaceService().saveMarkdown(rootId, fileId, text)
+      if (flushSync !== undefined && typeof flushSync !== 'boolean')
+        throw new Error('invalid_sync_option')
+      return driveWorkspaceService().saveMarkdown(rootId, fileId, text, flushSync)
     }
   )
   ipcMain.handle('pkms-google-drive:workspace:sync', (event, rootId: string) => {

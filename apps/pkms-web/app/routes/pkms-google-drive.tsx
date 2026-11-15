@@ -12,6 +12,7 @@ import {
   IndexedDbDriveOutbox,
   IndexedDbGoogleDriveYjsDocumentStorage,
   createGoogleDriveWorkspaceSync,
+  replaceGoogleDriveYText,
   type GoogleDriveWorkspaceEntry
 } from '@pkms/google-drive'
 import './pkms-google-drive.css'
@@ -34,6 +35,7 @@ function createDocumentSession(
   doc: import('yjs').Doc,
   text: import('yjs').Text
 ): EditorDocumentSession {
+  let deferredSyncTimer: number | undefined
   const providerId = `pkms-google-drive:${runtime.rootId}`
   let item: EditorTreeItem = {
     providerId,
@@ -100,15 +102,12 @@ function createDocumentSession(
       if (text.toString() === value) return
       localTransaction = true
       try {
-        doc.transact(() => {
-          if (text.length) text.delete(0, text.length)
-          if (value) text.insert(0, value)
-        }, 'pkms-google-drive-editor')
+        doc.transact(() => replaceGoogleDriveYText(text, value), 'pkms-google-drive-editor')
       } finally {
         localTransaction = false
       }
     },
-    async save() {
+    async save(options = {}) {
       if (closed) throw new Error('Document session is closed')
       const requestedLocalRevision = localRevision
       phase = 'saving'
@@ -116,6 +115,34 @@ function createDocumentSession(
       message = undefined
       emit()
       try {
+        if (options.flushSync === false) {
+          await runtime.documents.persistLocalDocument(file.id)
+          phase = localRevision === requestedLocalRevision ? 'clean' : 'dirty'
+          syncPhase = 'pending'
+          if (deferredSyncTimer) window.clearTimeout(deferredSyncTimer)
+          deferredSyncTimer = window.setTimeout(() => {
+            deferredSyncTimer = undefined
+            void (async () => {
+              try {
+                await runtime.documents.flushLocalDocument(file.id)
+                await runtime.sync.sync()
+                syncPhase = localRevision === requestedLocalRevision ? 'synced' : 'pending'
+                if (syncPhase === 'synced') phase = 'clean'
+                message = undefined
+              } catch (cause) {
+                syncPhase = 'blocked'
+                message = cause instanceof Error ? cause.message : 'Google Drive sync failed.'
+              }
+              emit()
+            })()
+          }, 1_250)
+          emit()
+          return snapshot()
+        }
+        if (deferredSyncTimer) {
+          window.clearTimeout(deferredSyncTimer)
+          deferredSyncTimer = undefined
+        }
         await runtime.documents.flushLocalDocument(file.id)
         await runtime.sync.sync()
         phase = localRevision === requestedLocalRevision ? 'clean' : 'dirty'
@@ -131,6 +158,7 @@ function createDocumentSession(
     },
     async close() {
       closed = true
+      if (deferredSyncTimer) window.clearTimeout(deferredSyncTimer)
       text.unobserve(observe)
       listeners.clear()
       await runtime.documents.flushLocalDocument(file.id).catch(() => {})
@@ -433,10 +461,19 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
 
   useEffect(() => {
     if (!runtime) return
+    const catchUp = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) void syncNow()
+    }
     const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void syncNow()
-    }, 15_000)
-    return () => window.clearInterval(timer)
+      catchUp()
+    }, 60_000)
+    document.addEventListener('visibilitychange', catchUp)
+    window.addEventListener('online', catchUp)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', catchUp)
+      window.removeEventListener('online', catchUp)
+    }
   }, [runtime, syncNow])
 
   const openEntry = useCallback(

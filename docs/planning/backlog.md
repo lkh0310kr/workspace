@@ -16,8 +16,9 @@
 
 - **문제 확인:** Editor typing은 즉시 Drive API를 호출하지 않지만, Yjs transaction마다 outbox operation을 만들고 operation log는 operation마다 Drive 파일을 쓴다. Web/Desktop은 pending change가 없어도 visible 상태에서 15초마다 sync한다. 편집량과 idle reconciliation이 모두 원격 호출량을 불필요하게 늘릴 수 있다.
 - **목표 결과:** 로컬 durability는 즉시 유지하면서 같은 문서의 짧은 입력 burst를 하나의 Yjs operation으로 병합한다. pending이 없을 때 polling sync를 줄이고 reconnect/focus/explicit sync에서 catch-up한다.
-- **Acceptance:** DRIVE-SYNC-13. 1,000회 synthetic typing에서 API request, operation count, local persistence latency를 비교 측정한다. Crash/restart/offline/ACK-loss에도 update가 보존되어야 한다.
-- **다음 구현:** Durable outbox 내부에서 문서별 pending `document-update`를 `Y.mergeUpdates`로 안전하게 합치고, sync scheduler의 idle full polling을 제거/완화한다. 이미 발행한 immutable Drive operations는 수정하지 않는다.
+- **구현:** 문서별 1초 quiet window에서 미발행 Yjs updates를 `Y.mergeUpdates`로 합치며, 각 입력의 로컬 persistence는 유지한다. Editor의 600ms autosave는 로컬 persistence만 수행하고, remote sync를 1.25초 trailing debounce한다. explicit save는 즉시 sync한다. full-document replacement는 최소 Y.Text splice를 적용한다. Web/Desktop idle reconciliation은 15초에서 60초로 낮추고 visible 복귀·online 전환에서 catch-up한다.
+- **현재 검증:** 1,000회 synthetic typing이 1개의 document-update outbox operation으로 병합되고, 1,000회 이상 로컬 flush가 유지되는 단위 테스트를 추가했다. UTF-16 surrogate pair가 있는 text replacement 테스트를 추가했다. Drive operation 파일 수 기준 편집 burst 1,000→1(99.9% 감소). PKMS 관련 테스트 43 files/119 tests, Desktop/Web typecheck, Desktop/Web production build 통과. 이 테스트는 실제 Google HTTP 요청 수/지연을 측정하지 않으며, 해당 런타임 계측과 crash/restart/offline/ACK-loss acceptance는 미완료다.
+- **남은 acceptance:** DRIVE-SYNC-13. 격리 Google Drive workspace에서 요청별 HTTP 계측, API operation count, 로컬 persistence p50/p95를 기준선과 비교하고, crash/restart/offline/ACK-loss 복구를 확인한다.
 
 ### PKMS 즉시 반응과 sync runtime acceptance
 

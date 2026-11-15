@@ -326,7 +326,7 @@ export function EditorContent({
   useEffect(() => subscribeAutoSave(setAutoSave), [])
 
   const saveNow = useCallback(
-    (view: EditorView, path: string) => {
+    (view: EditorView, path: string, options?: { flushSync?: boolean }) => {
       const content = view.state.doc.toString()
       const revision = editRevisionRef.current
       setSaveError(null)
@@ -335,7 +335,7 @@ export function EditorContent({
         .catch(() => {})
         .then(async () => {
           if (session && session.item.path === path) {
-            await session.save()
+            await session.save(options)
           } else {
             let targetSession = session
             if (!targetSession || targetSession.item.path !== path) {
@@ -361,7 +361,7 @@ export function EditorContent({
               throw new Error('This file cannot be edited as text')
             if (snapshot.content.text !== content)
               await targetSession.replaceText(content, snapshot.revision)
-            await targetSession.save()
+            await targetSession.save(options)
           }
         })
       saveQueueRef.current = write.then(
@@ -406,7 +406,7 @@ export function EditorContent({
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
       autoSaveTimerRef.current = setTimeout(() => {
         const path = pathRef.current
-        if (path) saveNow(view, path).catch(console.error)
+        if (path) saveNow(view, path, { flushSync: false }).catch(console.error)
       }, 600)
     },
     [saveNow]

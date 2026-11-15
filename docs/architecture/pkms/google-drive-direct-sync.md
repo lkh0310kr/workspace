@@ -61,9 +61,12 @@ Markdown 입력은 매 입력 즉시 Drive API를 호출하지 않는다. Editor
 수락 시 최소 요건:
 
 - 연속 입력은 local replica/outbox에 즉시 보호되며 입력 중 Drive API를 호출하지 않는다.
-- 1초간 입력이 멈추면 해당 문서의 pending Yjs updates를 하나의 operation으로 병합해 sync한다.
+- Editor autosave(`flushSync: false`)는 Drive network sync를 시작하지 않는다. 로컬 durability만 확인한 뒤 1.25초 trailing debounce를 예약한다. 이 동안 같은 문서의 Yjs updates는 `Y.mergeUpdates`로 하나의 outbox operation에 병합하고, Web/Desktop foreground autosave가 반복되어도 remote sync timer를 다시 예약한다. 수동 저장/동기화는 quiet window를 기다리지 않고 pending updates를 drain한 뒤 즉시 sync한다.
+- 전체 문서 문자열 저장은 Y.Text를 매번 비우고 재삽입하지 않는다. 공통 prefix/suffix를 찾아 변경 구간만 UTF-16 안전 splice로 적용해 삭제 tombstone과 operation 크기를 줄인다.
+- Web/Desktop foreground reconciliation은 60초 heartbeat로 제한하고, 앱이 다시 visible 되거나 online으로 전환되면 즉시 catch-up한다. 사용자가 명시적으로 Sync를 실행한 경우에도 즉시 수행한다.
+- 이미 발행한 immutable Drive operations는 수정하거나 제거하지 않는다. 실패한 로컬 enqueue는 다음 flush에서 문서 state 전체를 복구 operation으로 기록한다.
 - 같은 quiet window에서 서로 다른 문서 update도 전송 전에 별도 operation으로 durable하게 남지만, Drive API batch가 지원되면 하나의 HTTP batch 요청으로 묶을 수 있다. batch 미지원 시 문서당 operation 1개를 상한으로 둔다.
-- pending mutation이 없으면 timer가 full sync를 반복하지 않는다. foreground resume, explicit sync, network restoration 및 bounded heartbeat만 remote changes를 확인한다.
+- pending mutation이 없어도 remote changes를 감지하기 위한 foreground heartbeat는 분당 최대 1회 수행한다. visible 복귀, network restoration, explicit sync는 즉시 catch-up을 수행한다.
 - update ACK·timeout·crash/restart에서 operation ID, outbox 순서, Yjs state가 손실·중복 적용되지 않는다. retry는 같은 operation ID를 사용한다.
 - 1,000회 연속 입력 fixture에서 request count, uploaded operation count, local durable latency를 측정하고 원시 수치와 upper bound를 acceptance report에 남긴다.
 
@@ -92,21 +95,21 @@ Markdown 입력은 매 입력 즉시 Drive API를 호출하지 않는다. Editor
 
 ## 수락 시나리오
 
-| ID            | 입력·조건                                                       | 기대 결과                                                                                                                                                                                        |
-| ------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| DRIVE-SYNC-01 | root 연결, 앱 재실행, 다른 기기에서 동일 계정 연결              | 같은 Drive root ID와 file identity를 복구한다. root 불일치 시 쓰기 전에 멈춘다.                                                                                                                  |
-| DRIVE-SYNC-02 | 깊은 tree, 빈 folder, dot-prefix path 및 binary asset           | 새로고침 뒤 tree와 bytes가 보존되고 reserved metadata만 Files tree에서 숨긴다.                                                                                                                   |
-| DRIVE-SYNC-03 | Drive offline/429/5xx/401/403, client 종료, 응답 유실           | durable outbox/cursor를 보존하고 bounded retry 또는 재인증 후 중복 없이 이어간다.                                                                                                                |
-| DRIVE-SYNC-04 | change-feed 여러 페이지 중간 fetch 또는 적용 실패               | 일부 변경을 재적용해도 idempotent하며 cursor는 마지막 완료 지점에 남는다.                                                                                                                        |
-| DRIVE-SYNC-05 | 같은 Markdown을 두 기기가 같은 base에서 동시 수정               | 양쪽 Yjs update가 merge되어 두 replica와 Drive projection에서 모두 보존된다.                                                                                                                     |
-| DRIVE-SYNC-06 | 같은 asset 동시 수정                                            | 양쪽 bytes가 보존되고 conflict로 표시된다.                                                                                                                                                       |
-| DRIVE-SYNC-07 | rename/move/delete와 편집이 겹치거나 destination collision 발생 | 변경 history와 내용이 유지되고 결과를 모호하지 않게 표시한다.                                                                                                                                    |
-| DRIVE-SYNC-08 | 검색어와 Markdown contents가 local cache에 반영                 | 전체 text search가 cache/index에서 작동하며 Drive metadata search만으로 내용을 찾는다고 오해시키지 않는다.                                                                                       |
-| DRIVE-SYNC-09 | 기존 PKMS snapshot을 격리 root로 이관                           | recursive path/folder/size/hash 비교가 100% 일치할 때만 parity를 통과시킨다.                                                                                                                     |
-| DRIVE-SYNC-10 | browser token 만료, native refresh token 만료/revoke            | 변경을 잃지 않고 재인증 요청을 보여주며 실패 상태를 synced로 표시하지 않는다.                                                                                                                    |
-| DRIVE-SYNC-11 | Web 탭 종료/백그라운드 또는 Desktop 종료                        | 각 OS가 약속하는 foreground 경계를 지키고, 재개 시 missed changes를 따라잡는다. iOS는 후속 provider 수락에서 검증한다.                                                                           |
-| DRIVE-SYNC-12 | Web OAuth 및 Desktop OAuth client 설정, 최초 승인, 앱 재실행    | Web은 memory-only token을 gesture 재인증으로 복구하고, Desktop은 등록된 native client와 secure storage로 token 복구·재인증·revoke를 처리한다.                                                    |
-| DRIVE-SYNC-13 | 짧은 시간 연속 문서 편집, idle, 재시작, offline/재연결          | 편집은 local durable 상태로 즉시 보존되고 같은 문서의 pending Yjs updates는 1초 quiet window 후 병합 전송된다. pending이 없는 동안 불필요한 full sync가 없고 retry/restart 후 update를 보존한다. |
+| ID            | 입력·조건                                                       | 기대 결과                                                                                                                                                                                                                                                      |
+| ------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DRIVE-SYNC-01 | root 연결, 앱 재실행, 다른 기기에서 동일 계정 연결              | 같은 Drive root ID와 file identity를 복구한다. root 불일치 시 쓰기 전에 멈춘다.                                                                                                                                                                                |
+| DRIVE-SYNC-02 | 깊은 tree, 빈 folder, dot-prefix path 및 binary asset           | 새로고침 뒤 tree와 bytes가 보존되고 reserved metadata만 Files tree에서 숨긴다.                                                                                                                                                                                 |
+| DRIVE-SYNC-03 | Drive offline/429/5xx/401/403, client 종료, 응답 유실           | durable outbox/cursor를 보존하고 bounded retry 또는 재인증 후 중복 없이 이어간다.                                                                                                                                                                              |
+| DRIVE-SYNC-04 | change-feed 여러 페이지 중간 fetch 또는 적용 실패               | 일부 변경을 재적용해도 idempotent하며 cursor는 마지막 완료 지점에 남는다.                                                                                                                                                                                      |
+| DRIVE-SYNC-05 | 같은 Markdown을 두 기기가 같은 base에서 동시 수정               | 양쪽 Yjs update가 merge되어 두 replica와 Drive projection에서 모두 보존된다.                                                                                                                                                                                   |
+| DRIVE-SYNC-06 | 같은 asset 동시 수정                                            | 양쪽 bytes가 보존되고 conflict로 표시된다.                                                                                                                                                                                                                     |
+| DRIVE-SYNC-07 | rename/move/delete와 편집이 겹치거나 destination collision 발생 | 변경 history와 내용이 유지되고 결과를 모호하지 않게 표시한다.                                                                                                                                                                                                  |
+| DRIVE-SYNC-08 | 검색어와 Markdown contents가 local cache에 반영                 | 전체 text search가 cache/index에서 작동하며 Drive metadata search만으로 내용을 찾는다고 오해시키지 않는다.                                                                                                                                                     |
+| DRIVE-SYNC-09 | 기존 PKMS snapshot을 격리 root로 이관                           | recursive path/folder/size/hash 비교가 100% 일치할 때만 parity를 통과시킨다.                                                                                                                                                                                   |
+| DRIVE-SYNC-10 | browser token 만료, native refresh token 만료/revoke            | 변경을 잃지 않고 재인증 요청을 보여주며 실패 상태를 synced로 표시하지 않는다.                                                                                                                                                                                  |
+| DRIVE-SYNC-11 | Web 탭 종료/백그라운드 또는 Desktop 종료                        | 각 OS가 약속하는 foreground 경계를 지키고, 재개 시 missed changes를 따라잡는다. iOS는 후속 provider 수락에서 검증한다.                                                                                                                                         |
+| DRIVE-SYNC-12 | Web OAuth 및 Desktop OAuth client 설정, 최초 승인, 앱 재실행    | Web은 memory-only token을 gesture 재인증으로 복구하고, Desktop은 등록된 native client와 secure storage로 token 복구·재인증·revoke를 처리한다.                                                                                                                  |
+| DRIVE-SYNC-13 | 짧은 시간 연속 문서 편집, idle, 재시작, offline/재연결          | 편집은 local durable 상태로 즉시 보존되고 같은 문서의 pending Yjs updates는 1초 quiet window 후 병합 전송된다. pending이 없는 동안 heartbeat는 최대 분당 1회이며, foreground 재진입·online·explicit sync에서 catch-up한다. retry/restart 후 update를 보존한다. |
 
 ## 릴리스 차단 조건
 

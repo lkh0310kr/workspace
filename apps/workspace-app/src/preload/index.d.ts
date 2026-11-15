@@ -334,7 +334,8 @@ export interface PkmsDesktopApi {
   saveGoogleDriveMarkdown: (
     rootId: string,
     fileId: string,
-    text: string
+    text: string,
+    flushSync?: boolean
   ) => Promise<{ revision: string; sync: import('@pkms/google-drive').DriveSyncResult }>
   syncGoogleDriveWorkspace: (
     rootId: string

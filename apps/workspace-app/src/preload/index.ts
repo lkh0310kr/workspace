@@ -70,12 +70,13 @@ const pkmsDesktop = {
       text: string
       revision: string
     }>,
-  saveGoogleDriveMarkdown: (rootId: string, fileId: string, text: string) =>
+  saveGoogleDriveMarkdown: (rootId: string, fileId: string, text: string, flushSync?: boolean) =>
     ipcRenderer.invoke(
       'pkms-google-drive:workspace:save-markdown',
       rootId,
       fileId,
-      text
+      text,
+      flushSync
     ) as Promise<{
       revision: string
       sync: import('@pkms/google-drive').DriveSyncResult

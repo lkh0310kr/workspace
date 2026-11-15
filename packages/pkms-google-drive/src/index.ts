@@ -37,6 +37,7 @@ export {
   GoogleDriveYjsDocumentStore,
   encodeGoogleDriveDocumentSeed,
   googleDriveDocumentSeedOperationId,
+  replaceGoogleDriveYText,
   type GoogleDriveYjsDocumentHandle,
   type GoogleDriveYjsDocumentStorage
 } from './yjsDocuments'

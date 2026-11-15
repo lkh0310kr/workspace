@@ -37,6 +37,7 @@ function createSession(
   let localRevision = 0
   let closed = false
   let message: string | undefined
+  let deferredSyncTimer: number | undefined
   const snapshot = () => ({
     content: { type: 'text' as const, text: content },
     revision,
@@ -81,7 +82,7 @@ function createSession(
       message = undefined
       emit()
     },
-    async save() {
+    async save(options = {}) {
       if (closed) throw new Error('Document session is closed')
       const requestedRevision = localRevision
       phase = 'saving'
@@ -89,10 +90,38 @@ function createSession(
       message = undefined
       emit()
       try {
-        const result = await window.pkmsDesktop.saveGoogleDriveMarkdown(rootId, file.id, content)
+        const flushSync = options.flushSync !== false
+        if (flushSync && deferredSyncTimer) {
+          window.clearTimeout(deferredSyncTimer)
+          deferredSyncTimer = undefined
+        }
+        const result = await window.pkmsDesktop.saveGoogleDriveMarkdown(
+          rootId,
+          file.id,
+          content,
+          flushSync
+        )
         revision = result.revision
         phase = localRevision === requestedRevision ? 'clean' : 'dirty'
         syncPhase = result.sync.pendingOperations ? 'pending' : 'synced'
+        if (!flushSync) {
+          if (deferredSyncTimer) window.clearTimeout(deferredSyncTimer)
+          deferredSyncTimer = window.setTimeout(() => {
+            deferredSyncTimer = undefined
+            void window.pkmsDesktop
+              .syncGoogleDriveWorkspace(rootId)
+              .then((sync) => {
+                syncPhase = sync.pendingOperations ? 'pending' : 'synced'
+                if (syncPhase === 'synced' && localRevision === requestedRevision) phase = 'clean'
+                message = undefined
+              })
+              .catch((cause) => {
+                syncPhase = 'blocked'
+                message = cause instanceof Error ? cause.message : 'Google Drive sync failed.'
+              })
+              .finally(emit)
+          }, 1_250)
+        }
       } catch (cause) {
         phase = 'error'
         syncPhase = 'blocked'
@@ -295,10 +324,19 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
 
   useEffect(() => {
     if (!root) return
+    const catchUp = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) void syncNow()
+    }
     const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void syncNow()
-    }, 15_000)
-    return () => window.clearInterval(timer)
+      catchUp()
+    }, 60_000)
+    document.addEventListener('visibilitychange', catchUp)
+    window.addEventListener('online', catchUp)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', catchUp)
+      window.removeEventListener('online', catchUp)
+    }
   }, [root, syncNow])
 
   const openEntry = useCallback(

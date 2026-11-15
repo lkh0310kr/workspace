@@ -4,6 +4,7 @@ import { enqueueDriveMutation, type DriveOutbox, type DriveOutboxOperation } fro
 import type { GoogleDriveWorkspaceRepository } from './workspaceRepository'
 
 const REMOTE_UPDATE_ORIGIN = Symbol('pkms-google-drive-remote-update')
+const DRIVE_UPDATE_QUIET_MS = 1_000
 
 export interface GoogleDriveYjsDocumentHandle {
   doc: Y.Doc
@@ -20,6 +21,8 @@ interface OpenDocument {
   handle: GoogleDriveYjsDocumentHandle
   text: Y.Text
   pending: Promise<void>
+  pendingUpdates: Uint8Array[]
+  flushTimer?: ReturnType<typeof setTimeout>
   queueFailed: boolean
   onUpdate: (update: Uint8Array, origin: unknown) => void
 }
@@ -45,6 +48,54 @@ export function encodeGoogleDriveDocumentSeed(fileId: string, text: string): Uin
   const update = Y.encodeStateAsUpdate(seed)
   seed.destroy()
   return update
+}
+
+/** Apply the smallest UTF-16-safe splice needed to replace a Y.Text value. */
+export function replaceGoogleDriveYText(text: Y.Text, nextValue: string): void {
+  const currentValue = text.toString()
+  if (currentValue === nextValue) return
+  let start = 0
+  while (
+    start < currentValue.length &&
+    start < nextValue.length &&
+    currentValue.charCodeAt(start) === nextValue.charCodeAt(start)
+  )
+    start += 1
+  if (
+    start > 0 &&
+    ((currentValue.charCodeAt(start - 1) >= 0xd800 &&
+      currentValue.charCodeAt(start - 1) <= 0xdbff) ||
+      (nextValue.charCodeAt(start - 1) >= 0xd800 && nextValue.charCodeAt(start - 1) <= 0xdbff))
+  )
+    start -= 1
+
+  let currentEnd = currentValue.length
+  let nextEnd = nextValue.length
+  while (
+    currentEnd > start &&
+    nextEnd > start &&
+    currentValue.charCodeAt(currentEnd - 1) === nextValue.charCodeAt(nextEnd - 1)
+  ) {
+    currentEnd -= 1
+    nextEnd -= 1
+  }
+  if (
+    currentEnd < currentValue.length &&
+    currentEnd > start &&
+    currentValue.charCodeAt(currentEnd - 1) >= 0xd800 &&
+    currentValue.charCodeAt(currentEnd - 1) <= 0xdbff
+  )
+    currentEnd += 1
+  if (
+    nextEnd < nextValue.length &&
+    nextEnd > start &&
+    nextValue.charCodeAt(nextEnd - 1) >= 0xd800 &&
+    nextValue.charCodeAt(nextEnd - 1) <= 0xdbff
+  )
+    nextEnd += 1
+  if (currentEnd > start) text.delete(start, currentEnd - start)
+  const insertion = nextValue.slice(start, nextEnd)
+  if (insertion) text.insert(start, insertion)
 }
 
 function documentHasState(doc: Y.Doc): boolean {
@@ -105,6 +156,13 @@ export class GoogleDriveYjsDocumentStore {
     return this.outbox.list(this.workspaceRootId)
   }
 
+  /** Wait for local IndexedDB/native persistence without publishing a Drive operation. */
+  async persistLocalDocument(fileId: string): Promise<void> {
+    const document = await this.getDocument(fileId)
+    await document.pending
+    await document.handle.flush()
+  }
+
   async close(): Promise<void> {
     const documents = await Promise.allSettled([...this.documents.values()])
     this.documents.clear()
@@ -141,29 +199,21 @@ export class GoogleDriveYjsDocumentStore {
       handle,
       text,
       pending: Promise.resolve(),
+      pendingUpdates: [],
       queueFailed: false,
       onUpdate: () => {}
     }
     document.onUpdate = (update, origin) => {
       if (origin === REMOTE_UPDATE_ORIGIN) return
-      const delta = update.slice()
-      const persist = async () => {
-        const mutationUpdate = document.queueFailed ? Y.encodeStateAsUpdate(handle.doc) : delta
-        await enqueueDriveMutation(this.outbox, this.workspaceRootId, {
-          type: 'document-update',
-          fileId,
-          update: mutationUpdate
-        })
-        await handle.flush()
-        document.queueFailed = false
-      }
-      document.pending = document.pending
-        .catch(() => {})
-        .then(persist)
-        .catch((cause) => {
-          document.queueFailed = true
-          throw cause
-        })
+      document.pendingUpdates.push(update.slice())
+      // Yjs persistence is local and immediate; only the Drive operation waits for
+      // a short quiet window so each keystroke does not become a remote file.
+      document.pending = document.pending.catch(() => {}).then(() => handle.flush())
+      if (document.flushTimer) clearTimeout(document.flushTimer)
+      document.flushTimer = setTimeout(() => {
+        document.flushTimer = undefined
+        void this.queueBufferedUpdates(document).catch(() => {})
+      }, DRIVE_UPDATE_QUIET_MS)
     }
     handle.doc.on('update', document.onUpdate)
     return document
@@ -239,7 +289,13 @@ export class GoogleDriveYjsDocumentStore {
   }
 
   private async flushLocal(document: OpenDocument): Promise<void> {
+    if (document.flushTimer) {
+      clearTimeout(document.flushTimer)
+      document.flushTimer = undefined
+    }
     try {
+      await document.pending
+      await this.queueBufferedUpdates(document)
       await document.pending
     } catch {
       document.queueFailed = true
@@ -250,10 +306,38 @@ export class GoogleDriveYjsDocumentStore {
         fileId: document.fileId,
         update: Y.encodeStateAsUpdate(document.handle.doc)
       })
+      document.pendingUpdates = []
       await document.handle.flush()
       document.queueFailed = false
       document.pending = Promise.resolve()
     }
     await document.handle.flush()
+  }
+
+  private queueBufferedUpdates(document: OpenDocument): Promise<void> {
+    const flush = async () => {
+      while (document.pendingUpdates.length) {
+        const updates = document.pendingUpdates.splice(0)
+        const update = document.queueFailed
+          ? Y.encodeStateAsUpdate(document.handle.doc)
+          : updates.length === 1
+            ? updates[0]
+            : Y.mergeUpdates(updates)
+        try {
+          await enqueueDriveMutation(this.outbox, this.workspaceRootId, {
+            type: 'document-update',
+            fileId: document.fileId,
+            update
+          })
+          document.queueFailed = false
+        } catch (cause) {
+          document.pendingUpdates.unshift(...updates)
+          document.queueFailed = true
+          throw cause
+        }
+      }
+    }
+    document.pending = document.pending.catch(() => {}).then(flush)
+    return document.pending
   }
 }

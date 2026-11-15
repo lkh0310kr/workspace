@@ -5,7 +5,8 @@ import {
   GoogleDriveOperationLog,
   GoogleDriveWorkspaceRepository,
   GoogleDriveYjsDocumentStore,
-  createGoogleDriveWorkspaceSync
+  createGoogleDriveWorkspaceSync,
+  replaceGoogleDriveYText
 } from '@pkms/google-drive'
 import { googleDriveDesktopOAuth } from './googleDriveDesktopOAuthRuntime'
 import { GoogleDriveDesktopStorage } from './googleDriveDesktopStorage'
@@ -101,17 +102,22 @@ export class GoogleDriveDesktopWorkspaceService {
     return { entry, text: text.toString(), revision: documentRevision(doc, text) }
   }
 
-  async saveMarkdown(rootId: string, fileId: string, text: string) {
+  async saveMarkdown(rootId: string, fileId: string, text: string, flushSync = true) {
     const runtime = this.requireWorkspace(rootId)
     const { doc, text: sharedText } = await runtime.documents.open(fileId)
     if (sharedText.toString() !== text) {
       doc.transact(() => {
-        if (sharedText.length) sharedText.delete(0, sharedText.length)
-        if (text) sharedText.insert(0, text)
+        replaceGoogleDriveYText(sharedText, text)
       }, 'pkms-google-drive-desktop-editor')
     }
-    await runtime.documents.flushLocalDocument(fileId)
-    const sync = await runtime.engine.sync()
+    let sync
+    if (flushSync) {
+      await runtime.documents.flushLocalDocument(fileId)
+      sync = await runtime.engine.sync()
+    } else {
+      await runtime.documents.persistLocalDocument(fileId)
+      sync = { uploadedOperations: 0, appliedOperations: 0, pendingOperations: 1 }
+    }
     return { revision: documentRevision(doc, sharedText), sync }
   }
 

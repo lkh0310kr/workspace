@@ -282,7 +282,7 @@ export interface EditorDocumentSession {
   subscribe(listener: (snapshot: EditorDocumentSnapshot) => void): () => void
   replaceText(text: string, baseRevision: string): Promise<void>
   /** Flushes pending durable writes. */
-  /** Flush durable provider writes. `flushSync: false` may leave a secondary mirror pending. */
+  /** Flush durable local writes. `flushSync: false` may leave remote sync pending. */
   save(options?: { flushSync?: boolean }): Promise<EditorDocumentSnapshot>
   /** Releases provider subscriptions and session resources. */
   close(): Promise<void>
