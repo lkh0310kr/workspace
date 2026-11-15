@@ -32,6 +32,6 @@ asset session은 고정 asset snapshot, clean/idle, readOnly=true이며 replaceT
 
 ## 수락 기준
 
-PKMS-01: names 검색은 로드된 파일만 대상으로 한다. PKMS-02: local poll 응답보다 편집 generation이 앞서면 응답을 폐기한다. PKMS-03: Yjs save 중 sequence가 증가하면 dirty/pending을 유지한다. PKMS-04: asset close의 dispose는 한 번만 실행한다. PKMS-05: abort 후 완료된 open session은 close한다.
+PKMS-01: names 검색은 lazy directory BFS로 전체 workspace를 대상으로 하며 이름 인덱스는 tree mutation 시 무효화한다. Quick Open에서 선택하면 조상 directory를 펼치고 활성 행을 reveal한다. PKMS-02: local poll 응답보다 편집 generation이 앞서면 응답을 폐기한다. PKMS-03: Yjs save 중 sequence가 증가하면 dirty/pending을 유지한다. PKMS-04: asset close의 dispose는 한 번만 실행한다. PKMS-05: abort 후 완료된 open session은 close한다.
 
 서버·폴더 동기화는 [기존 PKMS 아키텍처](../README.md)를 따른다.

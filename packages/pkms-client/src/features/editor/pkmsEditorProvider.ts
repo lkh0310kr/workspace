@@ -89,10 +89,48 @@ function localItemId(path: string): string {
 export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): EditorProvider {
   const { workspaceId } = options
   const id = `pkms:${workspaceId}`
+  let nameIndexEpoch = 0
+  let nameIndexCache: { epoch: number; promise: Promise<FileRecord[]> } | null = null
   const capabilities: EditorProviderCapabilities = {
     ...defaultCapabilities,
     ...options.capabilities,
     operations: options.capabilities?.operations ?? defaultCapabilities.operations
+  }
+
+  const listAllWorkspaceFiles = async (signal?: AbortSignal): Promise<FileRecord[]> => {
+    abortIfNeeded(signal)
+    const epoch = nameIndexEpoch
+    if (!nameIndexCache || nameIndexCache.epoch !== epoch) {
+      const promise = (async () => {
+        const files: FileRecord[] = []
+        const pendingDirectories = ['']
+        const visitedDirectories = new Set(pendingDirectories)
+        while (pendingDirectories.length > 0) {
+          abortIfNeeded(signal)
+          const batch = pendingDirectories.splice(0, 8)
+          const directories = await Promise.all(
+            batch.map((directory) => options.listDirectory(directory, signal))
+          )
+          for (const entries of directories) {
+            files.push(...entries)
+            for (const entry of entries) {
+              if (entry.kind !== 'folder' || visitedDirectories.has(entry.path)) continue
+              visitedDirectories.add(entry.path)
+              pendingDirectories.push(entry.path)
+            }
+          }
+        }
+        return files
+      })()
+      nameIndexCache = { epoch, promise }
+      void promise.catch(() => {
+        if (nameIndexCache?.promise === promise) nameIndexCache = null
+      })
+    }
+    const files = await nameIndexCache.promise
+    abortIfNeeded(signal)
+    if (epoch !== nameIndexEpoch) return listAllWorkspaceFiles(signal)
+    return files
   }
 
   const searchContentPage = async (
@@ -163,6 +201,8 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
     },
     subscribeTree(listener) {
       return options.subscribeTree((paths) => {
+        nameIndexEpoch++
+        nameIndexCache = null
         const parentIds = paths.map((path) => {
           if (!path) return null
           const folder = options
@@ -199,7 +239,7 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
       }
       if (searchOptions.fuzzy) {
         const matches = fuzzyEditorSearch(
-          options.listLoadedFiles().filter((file) => file.kind !== 'folder'),
+          (await listAllWorkspaceFiles(signal)).filter((file) => file.kind !== 'folder'),
           query,
           (file) => file.path,
           searchOptions.limit ?? Number.MAX_SAFE_INTEGER
@@ -209,7 +249,7 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
       }
       const needle = searchOptions.caseSensitive ? query : query.toLocaleLowerCase()
       const results: EditorSearchResult[] = []
-      for (const file of options.listLoadedFiles()) {
+      for (const file of await listAllWorkspaceFiles(signal)) {
         abortIfNeeded(signal)
         if (file.kind === 'folder') continue
         const candidate = searchOptions.caseSensitive ? file.path : file.path.toLocaleLowerCase()

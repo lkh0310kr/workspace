@@ -98,7 +98,7 @@ Web PKMS는 `PkmsClientApp`/`FileTreeList`, Desktop 기본 경로는 Google Driv
 - Desktop Drive 실제 `PkmsPane`에서 폴더 context menu가 여섯 action을 표시하는지, `ArrowDown`으로 New note를 선택해 생성 dialog를 열고 취소할 수 있는지 Playwright로 확인한다. 처음엔 `EditorMenuList`가 `document.activeElement`만 조회해 Shadow DOM 내부 포커스를 감지하지 못했고, ArrowDown이 다음 항목으로 이동하지 않았다. 공용 `EditorMenuList`와 `EditorBreadcrumbs`가 각 DOM root의 `activeElement`를 읽도록 고쳤다. 세 host breadcrumb 메뉴의 ArrowDown/Enter 이동과 Shadow DOM Drive 메뉴의 New note dialog 이동을 runtime으로 확인한다. 실제 Google Drive 쓰기는 mock이다.
 - Desktop 기본 Editor의 `[[target|alias]]`는 중첩 provider tree에서 Markdown target을 찾아 열고 없으면 root note를 만든다. Web PKMS는 wikilink callback에서 target 종류를 markdown-only 조건에 함께 묶어 항상 거부했고, Google Drive surface에는 callback이 없었다. BFS 검색 및 missing-note naming 규칙을 `packages/editor`의 `resolveEditorWikiLink`로 옮기고 기본 Editor, Web PKMS, Desktop Drive가 각 provider의 lazy tree와 create capability를 연결하도록 수정했다. Browser runtime에서 Web/Drive alias가 기존 Readme를 여는 것과 누락 target이 root note로 생성된 뒤 열리는 것을 확인한다. 모든 서버/Drive API는 fixture mock이고 일반 Desktop Editor provider runtime acceptance는 추가 확인한다.
 - `scripts/check-editor-tree-contract.mjs`를 확장해 `EditorTreePane`의 PKMS header/footer slots와 세 host의 shared Markdown frame, parser/CodeMirror preset, wikilink resolver 연결을 검증한다. 이 검사는 `scripts/check.sh`에서 필수 gate로 실행된다.
-- Quick Open은 이미 `packages/editor`의 공용 dialog와 fuzzy-search hook을 사용했지만, Desktop shell이 보내는 `pkms:quick-open` event를 Google Drive pane이 받지 않아 Drive PKMS에서는 열리지 않았다. Drive pane이 event를 받아 공용 dialog를 열고 Drive workspace 검색 결과 중 파일명 fuzzy match를 표시하며 선택 시 provider path로 문서를 연다. Playwright에서 Drive shell event와 Web `Ctrl+P` 모두 같은 공용 dialog 및 Readme open을 확인했다. Web PKMS는 현재 loaded-file 검색, Drive는 Google Drive 색인 검색을 사용하므로 검색 coverage/ranking의 완전한 동일성은 남아 있다.
+- Quick Open은 `packages/editor` 공용 dialog/fuzzy hook을 사용한다. Desktop shell event와 Web `Ctrl+P`가 dialog를 열고 두 host 모두 Quick Open으로 문서를 연다. Web PKMS provider는 lazy BFS로 workspace 전체 이름 인덱스를 만들고 tree mutation event에서 캐시를 무효화한다. 결과를 선택하면 필요한 조상 폴더를 펼쳐 활성 행을 TreeView viewport에 reveal한다. Desktop Drive도 선택한 경로의 branch를 lazy load하고 같은 동작을 한다. 접힌 nested folder 속 문서 검색·open·TreeView reveal은 Playwright 실제 컴포넌트 fixture에서 검증한다.
 - 다음 우선 순위는 Markdown host render 검증 및 code editing 범위 결정이다. 이번 변경은 전체 PKMS shell 통합이나 코드 파일 편집 지원을 완료한 것으로 간주하지 않는다.
 
 ## 작업 목록
@@ -114,7 +114,7 @@ Web PKMS는 `PkmsClientApp`/`FileTreeList`, Desktop 기본 경로는 Google Driv
 ### P1 — 기능 parity 및 provider 연결
 
 1. Wikilink open/alias와 missing-note target resolution을 `packages/editor` 공용 resolver로 통합했다. Web/Drive browser runtime에서 기존 target open, 누락 root note 생성 및 새 문서 open을 모두 통과했다(API는 fixture mock). 일반 Desktop Editor provider runtime acceptance는 남아 있다.
-2. Quick Open dialog·fuzzy hook을 공유하고 Web/Drive 진입과 open 동작을 Playwright로 검증했다. Web의 loaded-file search와 Drive 전체 workspace 색인 검색 coverage/ranking을 통일하고, 문서 내 검색·파일 전체 검색 및 나머지 shell shortcut ownership을 정렬한다.
+2. Quick Open dialog·fuzzy hook, 전체 workspace 파일명 검색, 접힌 폴더 결과의 TreeView reveal을 Web/Drive에서 공유·검증했다. 문서 내 검색·파일 전체 검색 및 나머지 shell shortcut ownership을 정렬한다.
 3. 문서 tab visual/dirty/close interaction을 Editor 공용 기준으로 정렬하면서 PKMS multi-document session을 유지한다.
 4. View-state identity migration 및 scroll/caret restore를 PKMS id/path rename·workspace switch·session reopen에서 검증한다.
 5. 코드 파일 편집을 PKMS 범위에 포함할지 결정한다. 포함이면 shared CodeMirror surface/language support 사용. 제외면 PKMS tree에서 read-only/unsupported 결과를 분명히 표시한다.

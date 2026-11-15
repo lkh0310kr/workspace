@@ -161,6 +161,34 @@ for (const host of ['desktop-pkms-editor', 'web-pkms-editor'] as const) {
       )
     }
   })
+
+  test(`${host} Quick Open finds a file inside a collapsed nested folder`, async ({ page }) => {
+    await page.goto(`/?host=${host}&scenario=quick-open-nested`)
+    await page.getByRole('treeitem', { name: 'Verification' }).click()
+    await expect(page.getByRole('treeitem', { name: 'Hidden' })).toBeVisible()
+    await expect(page.getByRole('treeitem', { name: 'Deep Note', exact: true })).toHaveCount(0)
+
+    if (host === 'desktop-pkms-editor') {
+      await page.evaluate(() => window.dispatchEvent(new Event('pkms:quick-open')))
+    } else {
+      await page.keyboard.press('Control+p')
+    }
+    const dialog = page.getByRole('dialog', { name: 'Quick open' })
+    await expect(dialog).toBeVisible()
+    await dialog.getByPlaceholder('Search files…').fill('Deep Note')
+    await dialog.getByRole('button', { name: /Deep Note\.md/ }).click()
+
+    await expect(page.getByRole('navigation', { name: 'File location' })).toContainText(
+      'Deep Note.md'
+    )
+    await expect(page.getByRole('treeitem', { name: 'Deep Note', exact: true })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+    if (host === 'desktop-pkms-editor')
+      await expect(page.getByText('Deep Note preview', { exact: true })).toBeVisible()
+    else await expect(page.getByText('Deep Note preview', { exact: true })).toBeVisible()
+  })
 }
 
 test('narrow view keeps the active breadcrumb reachable and its menu on screen', async ({

@@ -26,7 +26,9 @@ query/본문/selection이 바뀌면 count를 다시 계산한다. 비어 있는 
 
 provider/enabled/names capability가 있어야 검색한다. query·provider·limit이 바뀔 때 AbortController를 새로 만들고 이전 요청을 취소한다. 옵션은 target=names, caseSensitive=false, regex=false, wholeWord=false, fuzzy=true다. 결과 item 목록을 dialog에 공급한다. 응답이 아직 현재 query와 일치하지 않으면 이전 결과 대신 items=[], loading=true다. 비활성·미지원은 [], false, null. 취소 오류는 표시하지 않고 다른 오류는 message를 표시한다. 이름 검색은 입력 중 renderer의 긴 동기 작업으로 UI 입력을 막지 않아야 한다.
 
-local provider는 fs.listAllFiles의 전체 path로 fuzzy 검색, 기본 limit=100이다. 파일 목록은 query마다 디스크를 다시 훑지 않으며 파일 변경 이후 새 목록을 반영한다. fuzzy 후보 평가/정렬은 입력 중 renderer의 긴 동기 작업으로 UI 입력을 막지 않아야 한다. PKMS는 loadedFiles의 folder 제외 목록으로 검색하며 기본 limit=MAX_SAFE_INTEGER다. 공통 fuzzy 구현은 소문자 text/query에서 연속 포함의 시작 index를 score로 사용한다. 연속 포함이 없으면 query 글자를 순서대로 탐색해 subsequence가 존재할 때 `1000 + (lastIndex - firstIndex) + firstIndex`, 없으면 제외한다. score 오름차순, 동점은 입력 순서, limit만큼 반환한다. query.trim()이 비면 입력 앞 limit개를 반환한다.
+local provider는 fs.listAllFiles의 전체 path로 fuzzy 검색, 기본 limit=100이다. 파일 목록은 query마다 디스크를 다시 훑지 않으며 파일 변경 이후 새 목록을 반영한다. fuzzy 후보 평가/정렬은 입력 중 renderer의 긴 동기 작업으로 UI 입력을 막지 않아야 한다. PKMS Web은 첫 검색 때 workspace directory를 lazy BFS로 순회해 로드 여부와 무관하게 파일명을 검색한다. 이름 인덱스는 provider 수명 동안 캐시하고 tree mutation event에서 무효화하며, 검색 중에는 AbortSignal을 확인한다. 기본 limit은 MAX_SAFE_INTEGER다. 공통 fuzzy 구현은 소문자 text/query에서 연속 포함의 시작 index를 score로 사용한다. 연속 포함이 없으면 query 글자를 순서대로 탐색해 subsequence가 존재할 때 `1000 + (lastIndex - firstIndex) + firstIndex`, 없으면 제외한다. score 오름차순, 동점은 입력 순서, limit만큼 반환한다. query.trim()이 비면 입력 앞 limit개를 반환한다.
+
+PKMS Quick Open 결과를 선택하면 provider의 권위 있는 file record를 읽고 필요한 조상 directory를 펼친 뒤 TreeView에서 활성 행을 reveal한다. Drive는 필요한 branch를 lazy load하고 Web PKMS는 root-to-leaf 경로를 load한다. 검색된 파일이 처음부터 tree에 표시되고 선택될 수 있어야 한다.
 
 Quick Open dialog는 document.body portal이며 열릴 때 input에 focus하고, query 또는 결과 ID 배열 변경 시 선택 index=0이다. Up/Down은 양끝 clamp, Enter는 loading이 아니고 선택 item이 있을 때 onSelect(id), Escape와 backdrop click은 onClose다. hover는 선택 index를 바꾸고 선택 행을 nearest scrollIntoView한다. error→loading→empty→결과 순으로 UI 우선순위를 적용한다. 이전 query 결과는 새 query 결과처럼 보이지 않는다.
 
@@ -54,6 +56,7 @@ replaceContents는 provider ID/path를 검증하고 해당 파일의 열린 sess
 | SEARCH-08 | Quick Open을 열고 바로 입력        | input이 focus되어 첫 글자부터 query로 입력됨                                |
 | SEARCH-09 | Quick Open에서 빠르게 query 변경   | 이전 query 결과는 보이지 않고 최신 결과가 입력 반응성을 막지 않고 표시됨    |
 | SEARCH-10 | 로컬 Quick Open에서 파일 목록 검색 | 목록 조회는 캐시되며 파일 생성/삭제/이름 변경 뒤 갱신됨                     |
+| SEARCH-15 | 접힌 하위 폴더 안의 PKMS 문서 Quick Open | Web/Drive에서 문서가 검색되고 선택 시 조상 폴더가 펼쳐지며 활성 행을 viewport에 reveal |
 | SEARCH-11 | 한 파일에 여러 내용 match 발생     | 파일별 결과 갱신으로 반영되고 match마다 누적 전체 결과를 반복 전송하지 않음 |
 | SEARCH-12 | 열린 Find in Files에 단축키 재입력 | query input으로 focus가 이동하고 기존 query는 유지됨                        |
 | SEARCH-13 | embedded browser에 focus한 채 `Cmd+Shift+F` / `Ctrl+Shift+F` 입력 | 현재 focused pane group에 Find in Files가 열리고 query input에 focus됨 |

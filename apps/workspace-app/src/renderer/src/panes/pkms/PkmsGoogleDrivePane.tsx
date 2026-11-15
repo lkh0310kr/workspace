@@ -695,6 +695,41 @@ export function PkmsGoogleDrivePane({
     [root]
   )
 
+  const revealDriveEntry = useCallback(
+    async (entry: GoogleDriveWorkspaceEntry) => {
+      if (!root) return
+      let parentId: string | null = null
+      let directoryPath = ''
+      const folderPaths: string[] = []
+      const branches: Array<[string, GoogleDriveWorkspaceEntry[]]> = []
+      for (const name of entry.path.split('/').slice(0, -1)) {
+        const entries = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, parentId)
+        branches.push([directoryPath, entries])
+        const folder = entries.find((candidate) => candidate.name === name && candidate.kind === 'folder')
+        if (!folder) return
+        parentId = folder.id
+        directoryPath = folder.path
+        folderPaths.push(folder.path)
+      }
+      const siblings = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, parentId)
+      branches.push([directoryPath, siblings])
+      setTreeBranches((current) => {
+        const next = new Map(current)
+        branches.forEach(([path, entries]) => next.set(path, entries))
+        return next
+      })
+      setExpandedFolders((current) => new Set([...current, ...folderPaths]))
+      setFocusedTreePath(entry.path)
+      window.requestAnimationFrame(() => {
+        const row = [...(treeRootRef.current?.querySelectorAll<HTMLElement>('[data-tree-path]') ?? [])]
+          .find((candidate) => candidate.dataset.treePath === entry.path)
+        row?.scrollIntoView({ block: 'nearest' })
+        row?.focus({ preventScroll: true })
+      })
+    },
+    [root]
+  )
+
   const activateDriveLink = useCallback(
     (link: { kind: 'markdown' | 'wikilink'; target: string }): boolean => {
       if (!root || !activeFile) return false
@@ -1500,16 +1535,17 @@ export function PkmsGoogleDrivePane({
           error={quickOpenError}
           onQueryChange={setQuickQuery}
           onClose={() => setQuickOpen(false)}
-          onSelect={(itemId) => {
+          onSelect={async (itemId) => {
             const item = quickOpenMatches.find((match) => match.itemId === itemId)
             setQuickOpen(false)
             if (!item) return
             void resolveDrivePath(item.path)
-              .then((entry) => {
+              .then(async (entry) => {
                 if (!entry || entry.kind !== 'markdown') {
                   setError(`Could not find Markdown file: ${item.path}`)
                   return
                 }
+                await revealDriveEntry(entry)
                 void openEntry(entry)
               })
               .catch((cause) =>

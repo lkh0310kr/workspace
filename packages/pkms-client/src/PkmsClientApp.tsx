@@ -1810,21 +1810,14 @@ export default function Home() {
     enabled: quickOpen,
     errorMessage: "Could not search PKMS files"
   });
-  const quickOpenResults = useMemo(() => {
-    const byId = new Map(visibleFiles.map((file) => [file.id, file]));
-    return quickOpenMatches
-      .map((item) => byId.get(item.itemId))
-      .filter((file): file is FileRecord => Boolean(file))
-      .slice(0, 30);
-  }, [quickOpenMatches, visibleFiles]);
   const quickOpenItems = useMemo(
     () =>
-      quickOpenResults.map((file) => ({
-        id: file.id,
-        label: entryName(file.path),
-        description: file.path
+      quickOpenMatches.slice(0, 30).map((item) => ({
+        id: item.itemId,
+        label: item.name,
+        description: item.path
       })),
-    [quickOpenResults]
+    [quickOpenMatches]
   );
   const contextMoveSources = treeRows.filter((row) => selectedTreePaths.has(row.file.path)).map((row) => row.file);
   const contextMoveRoots = editorTreeSelectionRoots(contextMoveSources, new Set(contextMoveSources.map((file) => file.path)), (file) => file.kind === "folder");
@@ -2334,9 +2327,37 @@ export default function Home() {
             onQueryChange={setQuickQuery}
             onClose={() => setQuickOpen(false)}
             onSelect={(id) => {
-              const file = quickOpenResults.find((result) => result.id === id);
-              if (file) void openFile(file);
               setQuickOpen(false);
+              const item = quickOpenMatches.find((match) => match.itemId === id);
+              if (!item) return;
+              void getPkmsFileById(item.itemId)
+                .then(async (file) => {
+                  if (!file || file.kind === "folder") {
+                    setError(`Could not find linked file: ${item.path}`);
+                    return;
+                  }
+                  const directories: string[] = [];
+                  let directory = parentPath(file.path);
+                  while (directory) {
+                    directories.unshift(directory);
+                    directory = parentPath(directory);
+                  }
+                  await refreshDirectory("", false);
+                  for (const path of directories) await refreshDirectory(path, false);
+                  setExpandedFolders((current) => new Set([...current, "", ...directories]));
+                  setCurrentFolder(parentPath(file.path));
+                  setSelectedTreePaths(new Set([file.path]));
+                  setFocusedTreePath(file.path);
+                  void openFileRef.current?.(file);
+                  requestAnimationFrame(() => {
+                    const row = treeRef.current?.querySelector<HTMLElement>(
+                      `[data-tree-path="${CSS.escape(file.path)}"]`
+                    );
+                    row?.scrollIntoView({ block: "nearest" });
+                    row?.focus({ preventScroll: true });
+                  });
+                })
+                .catch((cause) => setError(cause instanceof Error ? cause.message : "Could not open file"));
             }}
           />
         )}

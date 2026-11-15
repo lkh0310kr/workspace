@@ -78,6 +78,22 @@ const driveExtraNote: GoogleDriveWorkspaceEntry = {
   path: 'Verification/Readme.md',
   kind: 'markdown'
 }
+const driveHiddenFolder: GoogleDriveWorkspaceEntry = {
+  id: 'mock-hidden-folder',
+  name: 'Hidden',
+  mimeType: 'application/vnd.google-apps.folder',
+  parents: [driveFolder.id],
+  path: 'Verification/Hidden',
+  kind: 'folder'
+}
+const driveDeepNote: GoogleDriveWorkspaceEntry = {
+  id: 'mock-deep-note',
+  name: 'Deep Note.md',
+  mimeType: 'text/markdown',
+  parents: [driveHiddenFolder.id],
+  path: 'Verification/Hidden/Deep Note.md',
+  kind: 'markdown'
+}
 const driveTreeStressEntries: GoogleDriveWorkspaceEntry[] = Array.from(
   { length: 64 },
   (_, index) => {
@@ -98,6 +114,8 @@ const isTreeStressScenario =
   new URLSearchParams(window.location.search).get('scenario') === 'tree-overflow'
 const isMissingWikiScenario =
   new URLSearchParams(window.location.search).get('scenario') === 'missing-wikilink'
+const isQuickOpenNestedScenario =
+  new URLSearchParams(window.location.search).get('scenario') === 'quick-open-nested'
 const editorMarkdownFixture = isMissingWikiScenario ? `${markdown}\n[[Fresh Note]]\n` : markdown
 
 function installMocks() {
@@ -153,11 +171,18 @@ function installMocks() {
         : parentId === driveFolder.id
           ? isTreeStressScenario
             ? [driveNote, driveExtraNote, ...driveTreeStressEntries]
-            : [driveNote, driveExtraNote, ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveFolder.id)]
+            : [
+                driveNote,
+                driveExtraNote,
+                ...(isQuickOpenNestedScenario ? [driveHiddenFolder] : []),
+                ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveFolder.id)
+              ]
+          : parentId === driveHiddenFolder.id && isQuickOpenNestedScenario
+            ? [driveDeepNote]
           : [],
     openGoogleDriveMarkdown: async (_rootId: string, entryId: string) => {
       w.__openedDriveMarkdownEntries.push(entryId)
-      const entry = [driveNote, driveExtraNote, ...driveCreatedNotes].find(
+      const entry = [driveNote, driveExtraNote, driveDeepNote, ...driveCreatedNotes].find(
         (candidate) => candidate.id === entryId
       )
       if (!entry) throw new Error(`Unknown mock Drive entry: ${entryId}`)
@@ -166,6 +191,8 @@ function installMocks() {
         text:
           entry.id === driveExtraNote.id
             ? readmeMarkdown
+            : entry.id === driveDeepNote.id
+              ? '# Deep Note preview\n'
             : driveCreatedNotes.some((candidate) => candidate.id === entry.id)
               ? '# Untitled\n\n'
               : editorMarkdownFixture,
@@ -175,7 +202,7 @@ function installMocks() {
     saveGoogleDriveMarkdown: async () => ({ revision: 'mock-r2', sync: { pendingOperations: 0 } }),
     syncGoogleDriveWorkspace: async () => ({ pendingOperations: 0 }),
     searchGoogleDriveWorkspace: async (_rootId: string, query: string) => ({
-      entries: [driveNote, driveExtraNote].filter((entry) =>
+      entries: [driveNote, driveExtraNote, ...(isQuickOpenNestedScenario ? [driveDeepNote] : [])].filter((entry) =>
         entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())
       )
     }),
@@ -218,7 +245,24 @@ function installMocks() {
       kind: 'markdown',
       content: readmeMarkdown,
       revision: 1
-    }
+    },
+    ...(isQuickOpenNestedScenario
+      ? [
+          {
+            id: 'web-hidden-folder',
+            path: 'Verification/Hidden',
+            kind: 'folder',
+            revision: 1
+          },
+          {
+            id: 'web-deep-note',
+            path: 'Verification/Hidden/Deep Note.md',
+            kind: 'markdown',
+            content: '# Deep Note preview\n',
+            revision: 1
+          }
+        ]
+      : [])
   ]
   const originalFetch = window.fetch.bind(window)
   window.fetch = async (input, init) => {
