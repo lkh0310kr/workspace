@@ -302,6 +302,9 @@ declare global {
 }
 
 export interface PkmsDesktopApi {
+  googleDriveOAuthStatus: () => Promise<{ credentialStored: boolean; clientConfigured: boolean }>
+  connectGoogleDrive: () => Promise<{ credentialStored: boolean; clientConfigured: boolean }>
+  disconnectGoogleDrive: () => Promise<void>
   openVerification: (url: string) => Promise<void>
   openServiceOAuth: (url: string) => Promise<void>
   request: <T = unknown>(

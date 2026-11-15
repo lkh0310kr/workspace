@@ -31,6 +31,17 @@ window.addEventListener(
 
 // Custom APIs for renderer
 const pkmsDesktop = {
+  googleDriveOAuthStatus: () =>
+    ipcRenderer.invoke('pkms-google-drive:oauth:status') as Promise<{
+      credentialStored: boolean
+      clientConfigured: boolean
+    }>,
+  connectGoogleDrive: () =>
+    ipcRenderer.invoke('pkms-google-drive:oauth:connect') as Promise<{
+      credentialStored: boolean
+      clientConfigured: boolean
+    }>,
+  disconnectGoogleDrive: () => ipcRenderer.invoke('pkms-google-drive:oauth:disconnect'),
   openVerification: (url: string): Promise<void> =>
     ipcRenderer.invoke('pkms:open-verification', url),
   request: <T = unknown>(

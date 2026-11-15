@@ -26,6 +26,10 @@ import {
   writePkmsLocalMarkdown
 } from './syncBridge'
 import { appendStartupLog } from '../startupLog'
+import {
+  googleDriveDesktopOAuth,
+  googleDriveDesktopOAuthConfiguration
+} from './googleDriveDesktopOAuthRuntime'
 
 function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
   const rawUrl = event.senderFrame?.url
@@ -39,6 +43,19 @@ function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
 
 export function registerPkmsIpc(): void {
   void startConfiguredPkmsSyncBridges()
+  ipcMain.handle('pkms-google-drive:oauth:status', (event) => {
+    assertTrustedSender(event)
+    return googleDriveDesktopOAuthConfiguration()
+  })
+  ipcMain.handle('pkms-google-drive:oauth:connect', async (event) => {
+    assertTrustedSender(event)
+    await googleDriveDesktopOAuth.connect()
+    return googleDriveDesktopOAuthConfiguration()
+  })
+  ipcMain.handle('pkms-google-drive:oauth:disconnect', (event) => {
+    assertTrustedSender(event)
+    googleDriveDesktopOAuth.disconnect()
+  })
   ipcMain.handle('pkms:request', (event, pathName: string, options: PkmsRequestOptions) => {
     assertTrustedSender(event)
     return requestPkmsApi(pathName, options)
