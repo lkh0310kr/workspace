@@ -1,21 +1,21 @@
-# World Engine — 장면 오브젝트 모델 (Phase 34 + 41)
+# World Engine — Scene Object Model (Phase 34 + 41)
 
 **Status:** 2026-09-01  
 **See also:** [프로젝트 구조](./project.md), [Rhai API](./rhai-api.md)
 
 ---
 
-## 용어
+## Terminology
 
-| 용어 | 의미 |
+| Term | Meaning |
 |------|---------|
 | `hecs::Entity` | Internal ECS handle (Rust only) |
-| **장면 오브젝트** | `entities[]`의 한 항목으로, 월드 안에서 조합 가능한 오브젝트 |
-| `EntitySpec` | 기존 Rust 단일 구조체. 계속 지원하며 attach API를 통해 구현함 |
+| **Scene object** | One entry in `entities[]` — a composable object in the world |
+| `EntitySpec` | Legacy Rust monolith; still supported, implemented via attach APIs |
 
 ---
 
-## 세 계층 (동형 구조)
+## Three layers (isomorphic)
 
 ```
 world-engine.json  ──lower──▶  EntityBlueprint  ──spawn──▶  hecs components
@@ -23,24 +23,24 @@ Rust SDK attach_*  ────────────────────�
 Rhai scripts       ◀── WorldSnapshot (positions, properties, tags)
 ```
 
-### ECS 구성 요소 (내부)
+### ECS components (internal)
 
-| 구성 요소 | 선택 사항 | 역할 |
+| Component | Optional | Role |
 |-----------|----------|------|
-| `Transform` | 아니요 | 위치 및 회전 |
-| `PhysicsBody` + `PhysicsCollider` | 예 | Rapier 시뮬레이션 |
-| `Tint` + `RenderMesh` + `RenderScale` | 예 | Qt-shell draw list |
-| `Properties` | 예 | 일반 JSON 메타데이터 (Phase 34) |
-| `PickBounds` | 예 | mesh 없이 AABB로 선택 (Phase 41) |
-| `EntityTags` | 예 | `entity_with_tag` |
-| `Motion` | 예 | 사인파 형태의 운동학적 구동 |
-| Rhai `EntityScript` | 예 | ECS가 아니라 `World`에 저장 |
+| `Transform` | no | Position / rotation |
+| `PhysicsBody` + `PhysicsCollider` | yes | Rapier simulation |
+| `Tint` + `RenderMesh` + `RenderScale` | yes | Qt-shell draw list |
+| `Properties` | yes | Generic JSON metadata (Phase 34) |
+| `PickBounds` | yes | AABB pick without mesh (Phase 41) |
+| `EntityTags` | yes | `entity_with_tag` |
+| `Motion` | yes | Sinusoidal kinematic drive |
+| Rhai `EntityScript` | yes | Stored on `World`, not in ECS |
 
 ---
 
-## JSON 형식
+## JSON formats
 
-### 평면 형식 (기존 형식, 기본값)
+### Flat (legacy, default)
 
 ```json
 {
@@ -57,9 +57,9 @@ Rhai scripts       ◀── WorldSnapshot (positions, properties, tags)
 
 Transform + optional `properties` + `pick_half_extents` — no physics, no render mesh.
 
-### 명시적 `components[]`
+### Explicit `components[]`
 
-이 형식이 있으면 같은 오브젝트의 **평면 필드는 무시합니다**.
+When present, **flat fields on the same object are ignored**.
 
 ```json
 {
@@ -72,7 +72,7 @@ Transform + optional `properties` + `pick_half_extents` — no physics, no rende
 }
 ```
 
-구성 요소 유형: `transform`, `properties`, `physics`, `render`, `script`, `tags`, `motion`, `pick_bounds`.
+Component types: `transform`, `properties`, `physics`, `render`, `script`, `tags`, `motion`, `pick_bounds`.
 
 ---
 
@@ -89,16 +89,16 @@ let blueprint = lower_entity_def(&def, mesh_half_extents);
 spawn_from_blueprint(&mut world, &blueprint, origin, project_dir);
 ```
 
-`World::spawn_named(EntitySpec, …)`은 예제와 테스트용으로 계속 제공하며, 내부적으로 같은 attach 경로를 호출합니다.
+`World::spawn_named(EntitySpec, …)` remains for examples/tests; it calls the same attach path internally.
 
 ---
 
-## Rhai (v3 추가 API)
+## Rhai (v3 additive)
 
-| API | 범위 |
+| API | Scope |
 |-----|-------|
-| `properties` keys | 로드 시 **해당 엔티티** 스크립트 범위에 주입 (`script_args`와 충돌하면 `script_args` 우선) |
-| `entity_property(name, key) -> f64` | snapshot에서 다른 엔티티의 숫자 값을 읽음 |
-| `entity_property_str(name, key) -> String` | 다른 엔티티의 문자열 값을 읽음 |
+| `properties` keys | Injected into **own** entity script scope at load (`script_args` wins on conflict) |
+| `entity_property(name, key) -> f64` | Cross-entity numeric read (snapshot) |
+| `entity_property_str(name, key) -> String` | Cross-entity string read |
 
-도메인 의미(`breed`, `capacity` 등)는 엔진 스키마가 아니라 프로젝트 문서와 fixture에 둡니다.
+Domain meaning (`breed`, `capacity`, …) lives in project docs/fixtures, not the engine schema.

@@ -2,28 +2,93 @@
 
 **상태:** 참고 방향만 기록합니다. 이 문서 자체는 일정에 포함되지 않았고, 상세 설계나 구현도 시작하지 않았습니다. 검토한 방향을 다음 작업에서도 이어 볼 수 있도록 보관합니다.
 
-## 배경
+## Origin
 
-처음에는 Vector Editor pane을 계획하면서 논의했습니다. 해당 pane은 M1-M6 단계로 직접 SVG-DOM을 구현했지만 이후 의도적으로 삭제했습니다. 2D/그래픽이 잘못된 방향이어서가 아니라, 목표로 하는 규모에서 2D 편집기를 처음부터 직접 만드는 것이 잘못된 *전략*이었기 때문입니다.
-이 메모를 작성할 당시 제안한 방향은 네 범주의 전문가용 도구였습니다. **2D** (Figma/Illustrator/Photoshop급), **3D** (Blender급), **Video** (실제 영상 편집기), **Engineering** (CAD, Nvidia Omniverse 스타일의 USD pipeline, game engine)입니다. 이를 다시 구현하는 대신 실제 오픈소스 엔진을 포크하거나 임베드합니다. 이 문서의 아키텍처는 네 범주 모두에 대해 "Electron shell 안이나 옆에서 어떻게 호스팅할까"라는 질문을 다룹니다. 이 방향은 외부 논의에서 비롯되어 이 코드베이스에 대한 지식 없이 작성되었으므로, 그대로 구현할 사양이 아니라 방향성 참고 자료로 읽어야 합니다.
+Originally discussed while planning a Vector Editor pane, which was built
+(M1-M6, hand-rolled SVG-DOM) and then deliberately deleted — not because
+2D/graphics was the wrong direction, but because hand-rolling a 2D editor
+from scratch was the wrong *strategy* at the scale now being targeted.
+At the time this note was written, the proposed direction was professional-grade
+tooling in four categories — **2D** (Figma/Illustrator/Photoshop-class),
+**3D** (Blender-class), **Video** (a real video editor), and
+**Engineering** (CAD, Nvidia Omniverse-style USD pipelines, game
+engines) — built by forking/embedding real open-source engines, not
+reimplementing them. This doc's architecture direction is exactly the
+"how do you host that inside/alongside an Electron shell" question for
+all four. It came from an external discussion (not written with
+knowledge of this codebase) and should be read as directional
+inspiration, not a spec to implement literally.
 
-## 방향
+## The direction
 
-Electron은 window/pane 관리, tabs/splits, command palette, file dialogs, app lifecycle, IPC를 담당하는 **얇은 Workspace Shell**로 유지합니다. 모든 pane을 영원히 Electron으로 구현하려고 *하지 않습니다*. pane의 요구사항이 커질수록 무거운 graphics/compute 작업을 분리합니다.
+Electron stays as a **thin Workspace Shell** — window/pane management,
+tabs/splits, command palette, file dialogs, app lifecycle, IPC. It does
+*not* try to be the implementation technology for every pane forever.
+Heavy graphics/compute work moves out as panes get more demanding:
 
-- **In-process, 여전히 Electron**: binary/hex parser, packet decoder, physics/simulation engine처럼 계산량이 많지만 UI가 필요한 pane은 핵심 계산을 **Rust core**(native module / WASM)로 옮길 수 있습니다. TypeScript UI는 IPC 또는 FFI로 호출하고, 필요한 경우 GPU 렌더링에 **wgpu**를 사용합니다. Electron renderer는 toolbar, panel, inspector, dialog 같은 UI chrome을 유지하고 Rust가 비용이 큰 처리를 맡습니다. Electron 자체를 다시 작성하는 것이 아니며 Workspace shell은 계속 TypeScript/React로 유지합니다.
-- **Out-of-process, Blender급 앱**: Blender 같은 앱은 Electron renderer 내부가 아니라 **별도 native process**로 실행합니다. 처음에는 "pane이 해당 프로세스의 렌더링 surface/window를 호스팅"한다고 표현했지만, 아래의 2026-08-28 조사에서 구체화했습니다. 실제로 "surface 호스팅"은 Browser tab으로 *pixel streaming*하는 것을 뜻하며, 조사 결과 깔끔한 cross-platform 구현 경로가 없었던 진짜 native window 임베딩을 뜻하지 않습니다.
+- **In-process, still Electron**: a compute-heavy-but-still-UI pane (a
+  binary/hex parser, a packet decoder, a physics/simulation engine) can
+  move its core compute work into a **Rust core** (via native module /
+  WASM), reached from the TypeScript UI over IPC or FFI, using **wgpu**
+  for GPU rendering where relevant. The Electron renderer keeps the UI
+  chrome (toolbar, panels, inspector, dialogs); Rust does the expensive
+  part. This is *not* a rewrite of Electron itself — the Workspace shell
+  stays TypeScript/React.
+- **Out-of-process, Blender-class apps**: something like Blender is not
+  meant to run inside an Electron renderer at all. It runs as a **separate
+  native process**. Originally framed as "the pane hosts that process's
+  rendering surface/window" — refined below (2026-08-28 research pass):
+  "hosts a surface" turns out to mean *pixel-streamed into a Browser tab*
+  in practice, not a true embedded native window (which research found no
+  clean cross-platform path for at all).
 
-## 통합 호스팅 설계 (2026-08-28 조사) — 현재까지 native window 임베딩 불필요
+## Unified hosting design (research pass, 2026-08-28) — no native window embedding needed so far
 
-"Game Engine"과 "engineering simulation"을 별도의 World Engine 범주로 유지해야 할지, 그리고 native window를 Electron에 실제로 임베드해 어느 쪽이든 호스팅할 수 있을지에서 조사를 시작했습니다. 추측 대신 Bevy, MonoGame, NVIDIA Omniverse, FreeCAD/OpenCASCADE 후보를 조사했습니다. 각 내용은 websearch와 실제 repository를 `ref-proj/`에 clone해 검증했습니다.
+Prompted by: should "Game Engine" and "engineering simulation" stay separate
+World Engine categories, and can *any* of them realistically be hosted by
+truly embedding a native window inside Electron? Researched real
+candidates (Bevy, MonoGame, NVIDIA Omniverse, FreeCAD/OpenCASCADE) instead
+of guessing. Findings, each verified (websearch + cloning real repos into
+`ref-proj/`, not assumed):
 
-- **진짜 native-window 임베딩은 막다른 길입니다.** Electron 자체 issue tracker에는 이를 요청하는 미해결 issue가 세 개 있습니다 (`apps/workspace/electron#5083`, `#2326`, `#10547`). 깔끔한 cross-platform 경로는 없습니다. 알려진 유일한 우회책은 OS 수준 native module에서 window reparenting을 수행하는 것입니다. 이마저도 Windows에서만 실제 선례가 있습니다(MonoGame의 `MonoGame.Framework.WpfInterop`/`MonoGame.Forms`는 MonoGame `Game`이 top-level window를 소유하는 대신 WPF/WinForms child surface를 사용하게 함). 실제 개발 플랫폼인 macOS에는 비슷하게 검증된 방식이 없습니다.
-- **Bevy는 native 임베드 대상이 아닙니다.** Godot처럼 일급 WASM/WebGL 및 WebGPU export를 지원하므로, 현재 `workspace-engine://` pipeline을 그대로 재사용하는 **web-bundle** 후보입니다.
-- **FreeCAD/OpenCASCADE에도 실제 WASM 포트가 있습니다** (`magik.net/freecad`는 타사 구현이지만 kernel을 포함한 전체 parametric-CAD desktop을 WASM으로 컴파일하며, `OpenCascade.js`는 더 가벼운 사용자 정의 viewer를 만들 때 사용). CAD 역시 native 임베드보다 web-bundle 경로에 적합할 수 있습니다.
-- **NVIDIA Omniverse 자체가 제시하는 방식은 임베드가 아니라 pixel streaming**이며, 이는 Omniverse 외에도 적용할 수 있습니다. `ref-proj/ovstream` (NVIDIA streaming SDK) 및 `ref-proj/omniverse-web-viewer-sample`을 clone해 확인했습니다. native/Kit app은 일반적으로 렌더링한 뒤 frame을 `ovstream`으로 보내고, 여기서 GPU(NVENC) 인코딩 후 WebRTC(또는 RTSP/native/SHM)로 제공합니다. 브라우저 측(`examples/webrtc_client/index.html`을 직접 확인)은 **일반 WebRTC API를 사용하는 평범한 HTML/JS 페이지**라 client에 특별한 native 통합이 필요하지 않습니다. README는 "no Kit, no Carbonite, no Omniverse app required"라고 명시합니다. 즉 Omniverse 전용 도구가 아니라 일반 GPU pixel-streaming SDK입니다. **주의: ovstream 자체는 CUDA 전용(NVIDIA GPU 필요)이며 MIT가 아닌 NVIDIA license**이므로 이 앱의 macOS 개발 장비에서 실행할 수 없고 그대로 배포할 수도 없습니다. 다만 *패턴*은 재사용할 수 있습니다. GStreamer's `webrtcbin`/`webrtcsink` (LGPL, cross-platform, macOS에서 빌드 가능)는 CUDA에 종속되지 않고 같은 capture-encode-WebRTC pipeline을 구현합니다.
+- **True native-window embedding is a dead end.** Electron's own tracker
+  has three open, unresolved issues asking for this
+  (`apps/workspace/electron#5083`, `#2326`, `#10547`) — no clean cross-platform
+  path exists. The only known workaround is a raw OS-level native module
+  doing window reparenting, and even that has real precedent only on
+  Windows (MonoGame's `MonoGame.Framework.WpfInterop`/`MonoGame.Forms`
+  hand a MonoGame `Game` a WPF/WinForms child surface instead of letting
+  it own a top-level window) — nothing comparably proven exists for
+  macOS, which is this app's actual dev platform.
+- **Bevy isn't a native-embed case at all.** It has first-class WASM/WebGL
+  (and WebGPU) export, same as Godot. It's a **web-bundle** candidate,
+  reusing today's `workspace-engine://` pipeline unchanged.
+- **FreeCAD/OpenCASCADE has real WASM ports too** (`magik.net/freecad` —
+  third-party but functional: the full parametric-CAD desktop, kernel
+  included, compiled to WASM; `OpenCascade.js` for building a lighter
+  custom viewer). CAD may also fit the web-bundle track, not native-embed.
+- **NVIDIA Omniverse's own answer is pixel-streaming, not embedding** — and
+  it's genuinely relevant beyond Omniverse. Cloned and read
+  `ref-proj/ovstream` (NVIDIA's streaming SDK) and
+  `ref-proj/omniverse-web-viewer-sample`: a native/Kit app renders
+  normally and pushes frames to `ovstream`, which encodes on-GPU (NVENC)
+  and serves WebRTC (or RTSP/native/SHM); the browser side
+  (`examples/webrtc_client/index.html`, read directly) is a **plain HTML/
+  JS page using standard WebRTC APIs** — no special native integration on
+  the client at all. The README states it plainly: "no Kit, no Carbonite,
+  no Omniverse app required" — it's a general GPU-pixel-streaming SDK, not
+  an Omniverse-only tool. **Caveat: ovstream itself is CUDA-only (NVIDIA
+  GPU required) and NVIDIA-licensed, not MIT** — can't run on this app's
+  own macOS dev machine and can't be shipped as-is. The *pattern* is
+  reusable regardless: GStreamer's `webrtcbin`/`webrtcsink` (LGPL,
+  cross-platform, builds on macOS) implements the same
+  capture-encode-WebRTC pipeline without CUDA lock-in.
 
-**따라서 통합 설계는 다음과 같습니다.** 어떤 track을 사용하는지와 관계없이 모든 World Engine pane은 동일한 지점, 즉 **기존 Browser pane에서 여는 URL**로 연결됩니다. 세 번째 pane 종류나 새 webview lifecycle code를 추가할 필요가 없습니다. 이 통합 지점은 이미 구현되어 안정적입니다.
+**The unifying design, then:** every World Engine pane, regardless of
+which of the two tracks below backs it, ends at the exact same place —
+**a URL opened in the existing Browser pane.** No third pane kind, no new
+webview lifecycle code, ever — that integration point is already built
+and stable.
 
 ```
 Engine picked
@@ -34,7 +99,12 @@ Engine picked
                                            captures/encodes/serves WebRTC → Browser tab
 ```
 
-**Track A를 항상 기본값으로 사용하고, Track B를 고려하기 전에 Track A를 충분히 검토합니다.** Track A는 이미 구현되어 end-to-end 검증을 마쳤고 새 native dependency가 없습니다. 지금까지 조사한 후보(Godot, Bevy, FreeCAD)도 모두 이 경로에 맞습니다. Track B는 실제 엔진 선택에 웹 export 경로가 없다는 점이 확인되는 경우에만 구현하며, 미리 추측해서 만들지 않습니다.
+**Track A is always the default — exhaust it before ever reaching for
+Track B.** It's already built, already verified end-to-end, has zero new
+native dependencies, and every researched candidate so far (Godot, Bevy,
+FreeCAD) fit it. Track B only gets built the first time a real, concrete
+engine choice genuinely has no web-export path — not speculatively ahead
+of that.
 
 ### Track B revision (2026-08-28) — stability/performance first, Rust sidecar instead of GStreamer-in-main
 

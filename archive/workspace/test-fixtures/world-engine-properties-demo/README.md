@@ -1,6 +1,6 @@
 # world-engine-properties-demo
 
-Phase 34: `entities[].properties`를 script scope에 주입하고, `entity_property` / `entity_property_str`로 다른 entity의 값을 읽습니다.
+Phase 34: `entities[].properties` injected into script scope; `entity_property` / `entity_property_str` for cross-entity reads.
 
 ```bash
 cd world-engine/qt-shell

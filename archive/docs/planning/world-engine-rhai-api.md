@@ -1,13 +1,13 @@
 # World Engine — Rhai API v3
 
 **Version constant:** `world_engine_core::script::RHAI_API_VERSION` = `"3"`  
-**상태:** Phase 31–34, 41 (2026-09-01) — 시뮬레이션 및 설계 트랙
+**Status:** Phase 31–34, 41 (2026-09-01) — simulation & design track
 
-v2 함수는 유지됩니다. v4 전까지는 기존 기능을 깨뜨리지 않고 추가만 합니다.
+v2 functions remain. Additive only until v4.
 
 ---
 
-## 엔티티 스크립트
+## Entity script
 
 ```rhai
 fn on_update(dt, time, x, y, z) {
@@ -17,11 +17,11 @@ fn on_update(dt, time, x, y, z) {
 }
 ```
 
-선택 함수: `fn on_collision(other_name, started, x, y, z) { }`
+Optional: `fn on_collision(other_name, started, x, y, z) { }`
 
-## 월드 스크립트 (`entry_script`)
+## World script (`entry_script`)
 
-모듈 수준 `let` 상태는 프레임이 바뀌어도 **유지됩니다** (Godot autoload 패턴).
+Module-level `let` state **persists across frames** (Godot autoload pattern).
 
 ```rhai
 let stock = 1.0;
@@ -34,62 +34,62 @@ fn on_world_update(dt, time) {
 
 ---
 
-## 내장 함수
+## Built-in functions
 
 ### v2 (unchanged)
 
-| 함수 | 설명 |
+| Function | Description |
 |----------|-------------|
-| `entity_pos(name)` | `[x,y,z]` 위치 |
-| `entity_rot(name)` | `[rx,ry,rz]` 오일러 라디안 회전 |
-| `entity_x/y/z(name)` | 스칼라 위치 |
-| `entity_with_tag(tag)` | 해당 tag가 붙은 첫 엔티티 이름 |
-| `dist3(...)`, `lerp3(...)` | 수학 함수 |
-| `yaw_from_delta(dx, dz)` | yaw를 구하는 atan2 함수 |
-| `input_axis/pressed/down` | input map 조회 |
-| `set_time_scale(s)` | `entry_script` 전용 |
-| `set_camera_target(name)` | `entry_script` 전용 |
-| `spawn_prefab(name, x, y, z)` | `entry_script` 전용 |
-| `spawn_projectile(x,y,z,vx,vy,vz,lifetime)` | 엔티티 또는 entry 스크립트에서 사용 |
+| `entity_pos(name)` | `[x,y,z]` |
+| `entity_rot(name)` | `[rx,ry,rz]` euler radians |
+| `entity_x/y/z(name)` | scalar position |
+| `entity_with_tag(tag)` | first entity name with tag |
+| `dist3(...)`, `lerp3(...)` | math |
+| `yaw_from_delta(dx, dz)` | atan2 for yaw |
+| `input_axis/pressed/down` | input map |
+| `set_time_scale(s)` | entry_script |
+| `set_camera_target(name)` | entry_script |
+| `spawn_prefab(name, x, y, z)` | entry_script |
+| `spawn_projectile(x,y,z,vx,vy,vz,lifetime)` | entity or entry |
 
 ### v3 — shared simulation state (Phase 31)
 
-| 함수 | 설명 |
+| Function | Description |
 |----------|-------------|
-| `sim_var(name)` | 월드 저장소의 f64를 읽음 (없으면 `0.0`) |
-| `set_sim_var(name, value)` | f64를 기록하며 다음 step부터 모든 스크립트에서 읽을 수 있음 |
+| `sim_var(name)` | Read f64 from world store (missing → `0.0`) |
+| `set_sim_var(name, value)` | Write f64; visible to all scripts next step |
 
 Rust: `World::sim_var`, `World::set_sim_var`, `World::sim_vars()`.
 
-`world-engine.json`에는 저장하지 않고 런타임에만 유지합니다.
+Not stored in `world-engine.json` — runtime only.
 
 ### v3 — metrics export (Phase 32)
 
-| 함수 | 설명 |
+| Function | Description |
 |----------|-------------|
-| `publish_metric(name, value)` | `set_sim_var`와 같은 저장소를 사용하며 관찰 및 CI용으로 노출 |
+| `publish_metric(name, value)` | Same store as `set_sim_var`; for observation / CI |
 
 Rust: `World::sim_metrics()` → `HashMap<String, f64>` snapshot after `step`.
 
-shell은 metric을 읽고, 도메인별 key 이름은 엔진 스키마가 아니라 프로젝트 문서에 둡니다.
+Shells read metrics; domain key names live in project docs, not the engine schema.
 
 ### v3 — deterministic RNG (Phase 33)
 
-| 함수 | 설명 |
+| Function | Description |
 |----------|-------------|
-| `rand()` | `[0, 1)` 범위의 균등 분포 f64 |
-| `rand_range(lo, hi)` | `[lo, hi)` 범위의 균등 분포 f64 |
+| `rand()` | Uniform f64 in `[0, 1)` |
+| `rand_range(lo, hi)` | Uniform f64 in `[lo, hi)` |
 
 JSON: optional `sim_seed: u64` (default `1`). Rust: `World::sim_seed()`, `World::set_sim_seed(seed)` resets RNG state.
 
-난수 추출 순서는 각 `step` 안의 스크립트 실행 순서(entry_script 먼저, 그다음 entity script)를 따릅니다. seed와 `step_n`이 같으면 metric과 움직임을 재현할 수 있습니다.
+Draw order follows script execution order within each `step` (entry_script first, then entity scripts). Same seed + same `step_n` → reproducible metrics and motion.
 
 ### v3 — entity properties (Phase 34)
 
-| 함수 | 설명 |
+| Function | Description |
 |----------|-------------|
-| `entity_property(name, key)` | 다른 엔티티의 `properties`에서 f64를 읽음 (없으면 `0.0`) |
-| `entity_property_str(name, key)` | 문자열을 읽음 (없으면 `""`) |
+| `entity_property(name, key)` | Read f64 from another entity's `properties` (missing → `0.0`) |
+| `entity_property_str(name, key)` | Read string (missing → `""`) |
 
 JSON: `entities[].properties: { ... }` merged into the entity script scope at load (`script_args` overrides).
 
@@ -97,7 +97,7 @@ Rust: `World::set_properties`, `World::named_properties()`.
 
 ### v3 — composition (Phase 41)
 
-장면 오브젝트는 physics를 생략(`body_type: "none"`)하거나 `components[]`를 선언할 수 있습니다. [world-engine-object-model.md](./world-engine-object-model.md)을 참고하세요.
+Scene objects may omit physics (`body_type: "none"`) or declare `components[]`. See [world-engine-object-model.md](./world-engine-object-model.md).
 
 ---
 
@@ -111,6 +111,6 @@ Rust: `World::set_properties`, `World::named_properties()`.
 
 ---
 
-## v2 → v3 마이그레이션
+## Migration v2 → v3
 
-호환성을 깨뜨리는 변경은 없습니다. 스크립트 간 상태 공유나 headless metric이 필요하면 프로젝트에서 `sim_var` / `publish_metric`을 사용할 수 있습니다. 시나리오를 동일하게 재생해야 한다면 `sim_seed`를 설정하세요.
+No breaking changes. Projects may adopt `sim_var` / `publish_metric` when cross-script state or headless metrics are needed. Set `sim_seed` when scenarios must replay identically.

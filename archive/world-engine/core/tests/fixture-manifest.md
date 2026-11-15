@@ -1,14 +1,14 @@
-# World Engine fixture 목록 (Phase 25 CI smoke)
+# World Engine fixture manifest (Phase 25 CI smoke)
 
-저장소 root에서 실행:
+Run from repo root:
 
 ```bash
 cd world-engine/core && cargo test
 ```
 
-## 계약 테스트
+## Contract tests
 
-| 테스트 파일 | Phase |
+| Test file | Phase |
 |-----------|-------|
 | simulation_contract | 13 |
 | input_contract | 14 |
@@ -20,6 +20,6 @@ cd world-engine/core && cargo test
 | game_contract | 23–24 |
 | benchmark_smoke | 29 |
 
-## Fixture 프로젝트
+## Fixture projects
 
-모두 `apps/workspace/test-fixtures/world-engine-*` 아래에 있습니다.
+All under `apps/workspace/test-fixtures/world-engine-*`.

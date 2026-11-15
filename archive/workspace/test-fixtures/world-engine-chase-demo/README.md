@@ -1,8 +1,8 @@
 # world-engine-chase-demo
 
-**프로젝트별 Rhai script**를 사용하는 headless **추적(chase)** 시뮬레이션입니다. 로직은 `world-engine/core/examples/chase.rs`와 같지만, script가 엔진 바이너리가 아니라 이 폴더에 있어 Godot 방식으로 격리됩니다.
+Headless **chase** simulation using a **project-local Rhai script** — the same logic as `world-engine/core/examples/chase.rs`, but scripts live in this folder (Godot-style isolation), not in the engine binary.
 
-## 구조
+## Layout
 
 ```
 world-engine-chase-demo/
@@ -11,26 +11,26 @@ world-engine-chase-demo/
     chase.rhai           # per-entity logic (chaser only)
 ```
 
-## 실행 (화면 표시)
+## Run (visual)
 
-`world-engine-qt-shell`을 빌드한 뒤 저장소 root에서 실행:
+From repo root, with `world-engine-qt-shell` built:
 
 ```sh
 ./world-engine/qt-shell/target/debug/world-engine-qt-shell \
   apps/workspace/test-fixtures/world-engine-chase-demo
 ```
 
-또는 Workspace에서 TreeView → `world-engine.json`이 있는 폴더 → **Open in World Engine**을 선택합니다.
+Or in Workspace: TreeView → folder with `world-engine.json` → **Open in World Engine**.
 
-## 실행 (headless 테스트)
+## Run (headless test)
 
 ```sh
 cd world-engine/core
 cargo test entity_script_moves_kinematic_body
 ```
 
-## 확인 항목
+## QA
 
-- 녹색 구체(chaser)가 빨간 target 쪽으로 이동해 근처에서 멈춥니다.
-- `entity_pos("target")`을 사용하며 `script_args`에 좌표를 고정하지 않습니다.
-- `script_args.speed`를 조정하거나 `scripts/chase.rhai`만 편집해 속도를 변경합니다.
+- Green sphere (chaser) moves toward red target and stops near it.
+- Uses `entity_pos("target")` — no hardcoded coordinates in `script_args`.
+- Tweak speed via `script_args.speed` or edit `scripts/chase.rhai` only.
