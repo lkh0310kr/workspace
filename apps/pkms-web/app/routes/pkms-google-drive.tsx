@@ -215,7 +215,8 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
         fail('Google sign-in loaded without its required API. Retry loading it.')
       }
     }
-    const handleError = () => fail('Google sign-in could not load. Check your connection and retry.')
+    const handleError = () =>
+      fail('Google sign-in could not load. Check your connection and retry.')
     const timeout = window.setTimeout(
       () => fail('Google sign-in is taking too long to load. Check your connection and retry.'),
       15_000
@@ -253,7 +254,8 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
     const generation = ++searchGeneration.current
     setSearchLoading(true)
     const timer = window.setTimeout(() => {
-      void runtime.repository.searchFullTextPage(query, { pageSize: 40, signal: controller.signal })
+      void runtime.repository
+        .searchFullTextPage(query, { pageSize: 40, signal: controller.signal })
         .then((page) => {
           if (controller.signal.aborted || generation !== searchGeneration.current) return
           setSearchResults(page.entries)
@@ -264,7 +266,8 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
             setSearchError(cause instanceof Error ? cause.message : 'Search failed.')
         })
         .finally(() => {
-          if (!controller.signal.aborted && generation === searchGeneration.current) setSearchLoading(false)
+          if (!controller.signal.aborted && generation === searchGeneration.current)
+            setSearchLoading(false)
         })
     }, 250)
     return () => {
@@ -635,11 +638,22 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
 
       {runtime ? (
         <section className="pkms-google-drive-workspace">
-          <aside className="pkms-google-drive-tree" aria-label={searchOpen ? 'Search workspace' : 'Google Drive files'}>
+          <aside
+            className="pkms-google-drive-tree"
+            aria-label={searchOpen ? 'Search workspace' : 'Google Drive files'}
+          >
             {searchOpen ? (
               <section className="pkms-google-drive-search" aria-label="Search workspace contents">
                 <div className="pkms-google-drive-search-heading">
-                  <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery('') }}>Files</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchOpen(false)
+                      setSearchQuery('')
+                    }}
+                  >
+                    Files
+                  </button>
                   <strong>Search workspace</strong>
                 </div>
                 <input
@@ -650,13 +664,26 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                   maxLength={200}
                   onChange={(event) => setSearchQuery(event.target.value)}
                 />
-                <p className="pkms-google-drive-search-note">Drive searches whole words and quoted phrases. Partial-word matches are not available.</p>
+                <p className="pkms-google-drive-search-note">
+                  Drive searches whole words and quoted phrases. Partial-word matches are not
+                  available.
+                </p>
                 <div className="pkms-google-drive-search-status" role="status" aria-live="polite">
-                  {searchLoading ? 'Searching…' : searchError || (searchQuery.trim() ? `${searchResults.length} matching Markdown files` : 'Search all Markdown files')}
+                  {searchLoading
+                    ? 'Searching…'
+                    : searchError ||
+                      (searchQuery.trim()
+                        ? `${searchResults.length} matching Markdown files`
+                        : 'Search all Markdown files')}
                 </div>
                 <div className="pkms-google-drive-search-results">
                   {searchResults.map((result) => (
-                    <button key={result.id} type="button" onClick={() => void openEntry(result)} title={result.path}>
+                    <button
+                      key={result.id}
+                      type="button"
+                      onClick={() => void openEntry(result)}
+                      title={result.path}
+                    >
                       <span>{result.path}</span>
                     </button>
                   ))}
@@ -671,15 +698,31 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                         const controller = new AbortController()
                         searchMoreController.current = controller
                         setSearchLoadingMore(true)
-                        void runtime.repository.searchFullTextPage(requestedQuery, { pageToken: searchNextPage, pageSize: 40, signal: controller.signal })
+                        void runtime.repository
+                          .searchFullTextPage(requestedQuery, {
+                            pageToken: searchNextPage,
+                            pageSize: 40,
+                            signal: controller.signal
+                          })
                           .then((page) => {
-                            if (controller.signal.aborted || generation !== searchGeneration.current) return
+                            if (
+                              controller.signal.aborted ||
+                              generation !== searchGeneration.current
+                            )
+                              return
                             setSearchResults((current) => [...current, ...page.entries])
                             setSearchNextPage(page.nextPageToken)
                           })
                           .catch((cause) => {
-                            if (!controller.signal.aborted && generation === searchGeneration.current)
-                              setSearchError(cause instanceof Error ? cause.message : 'Could not load more results.')
+                            if (
+                              !controller.signal.aborted &&
+                              generation === searchGeneration.current
+                            )
+                              setSearchError(
+                                cause instanceof Error
+                                  ? cause.message
+                                  : 'Could not load more results.'
+                              )
                           })
                           .finally(() => {
                             if (searchMoreController.current === controller) {

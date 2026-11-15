@@ -40,7 +40,12 @@ describe('GoogleDriveWorkspaceRepository', () => {
       searchFullTextPage: vi.fn(async () => ({
         files: [
           { id: 'inside', name: 'note.md', mimeType: 'text/markdown', parents: ['notes-folder'] },
-          { id: 'outside', name: 'outside.md', mimeType: 'text/markdown', parents: ['external-folder'] },
+          {
+            id: 'outside',
+            name: 'outside.md',
+            mimeType: 'text/markdown',
+            parents: ['external-folder']
+          },
           { id: 'asset', name: 'image.png', mimeType: 'image/png', parents: ['root'] }
         ],
         nextPageToken: 'next'
@@ -54,7 +59,10 @@ describe('GoogleDriveWorkspaceRepository', () => {
     } as unknown as GoogleDriveClient
     const repository = new GoogleDriveWorkspaceRepository(client, 'root')
 
-    const page = await repository.searchFullTextPage('guitar', { pageToken: 'cursor', pageSize: 20 })
+    const page = await repository.searchFullTextPage('guitar', {
+      pageToken: 'cursor',
+      pageSize: 20
+    })
 
     expect(page).toEqual({
       entries: [

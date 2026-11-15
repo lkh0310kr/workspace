@@ -1,4 +1,9 @@
-import { DriveApiError, GoogleDriveClient, type DriveFile, type DriveFilePage } from './googleDriveClient'
+import {
+  DriveApiError,
+  GoogleDriveClient,
+  type DriveFile,
+  type DriveFilePage
+} from './googleDriveClient'
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
 const INTERNAL_DIRECTORY = '.pkms-sync'
@@ -129,7 +134,6 @@ export class GoogleDriveWorkspaceRepository {
     if (path === null) throw new Error('The requested folder is outside this PKMS workspace.')
     return this.listDirectoryContents(parent.id, path)
   }
-
 
   /**
    * Searches Drive's indexed text, then restricts results to Markdown descendants
