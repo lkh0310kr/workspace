@@ -104,7 +104,8 @@ function documentHasState(doc: Y.Doc): boolean {
 
 /**
  * Owns durable Yjs replicas for Drive Markdown files. Initial Markdown is recorded once as a
- * deterministic seed operation; local updates are durably queued before callers can save.
+ * deterministic seed operation; local updates are persisted immediately and queued to Drive
+ * after a short per-document quiet window.
  */
 export class GoogleDriveYjsDocumentStore {
   private readonly documents = new Map<string, Promise<OpenDocument>>()
