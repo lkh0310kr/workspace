@@ -361,7 +361,7 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "b45b7488072e4a7d37c79051a03fd21fc31f37dd03b0f8b9e939a5cde5afe1d3"
+          "sha256": "d178d3bfed106ecd0d2e7f847fc6013ad6d89f6f5728085a40f6d23219540803"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",

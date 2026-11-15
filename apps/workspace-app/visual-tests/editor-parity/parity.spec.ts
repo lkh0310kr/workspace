@@ -424,6 +424,23 @@ test('all host surfaces share document Find behavior', async ({ page }) => {
   }
 })
 
+test('all host code fences copy their source', async ({ page }) => {
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  for (const host of hosts) {
+    await page.goto(`/?host=${host}`)
+    if (host !== 'desktop-editor') {
+      await page.getByRole('treeitem', { name: 'Verification' }).click()
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    }
+    const copyButton = page.getByRole('button', { name: 'Copy typescript code' })
+    await expect(copyButton).toBeVisible()
+    await copyButton.click()
+    await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toBe('const sharedEditor = true\n')
+  }
+})
+
 test('Markdown scroll and caret state restore across reopen in all hosts', async ({ page }) => {
   for (const host of hosts) {
     await page.goto(`/?host=${host}&scenario=view-state`)
