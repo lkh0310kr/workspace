@@ -545,7 +545,7 @@ test('both PKMS host surfaces rename Markdown documents from the shared title', 
   page
 }) => {
   for (const host of hosts.filter((host) => host !== 'desktop-editor')) {
-    await page.goto(`/?host=${host}`)
+    await page.goto(`/?host=${host}&scenario=view-state`)
     if (host !== 'desktop-editor') {
       await expect(page.locator('.editor-tree-item').first()).toBeVisible()
       await page.locator('.editor-tree-item').first().click()
@@ -563,6 +563,29 @@ test('both PKMS host surfaces rename Markdown documents from the shared title', 
     await expect(
       page.getByRole('treeitem', { name: 'Renamed parity note', exact: true })
     ).toBeVisible()
+
+    const scroll = page.locator('.editor-markdown-scroll').first()
+    const editor = page.locator('.cm-content').first()
+    await editor.click()
+    await page.keyboard.press('Control+End')
+    await scroll.evaluate((element) => {
+      element.scrollTop = Math.min(300, element.scrollHeight - element.clientHeight)
+    })
+    const savedScroll = await scroll.evaluate((element) => element.scrollTop)
+    expect(savedScroll).toBeGreaterThan(0)
+
+    await page.getByRole('treeitem', { name: 'Readme', exact: true }).click()
+    await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
+    await page.getByRole('treeitem', { name: 'Renamed parity note', exact: true }).click()
+    await expect(page.locator('.editor-markdown-title').first()).toHaveText('Renamed parity note')
+    await expect
+      .poll(() => scroll.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0, `renamed document view state was lost for ${host}`)
+    const restoredScroll = await scroll.evaluate((element) => element.scrollTop)
+    expect(Math.abs(restoredScroll - savedScroll)).toBeLessThanOrEqual(16)
+    await editor.focus()
+    await page.keyboard.type('X')
+    await expect(editor).toContainText('View state paragraph 90.X')
 
     await page.locator('.editor-markdown-title').first().click()
     await input.fill('Readme')

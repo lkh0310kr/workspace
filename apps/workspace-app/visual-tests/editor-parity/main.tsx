@@ -249,7 +249,7 @@ function installMocks() {
       )
       if (!entry) throw new Error(`Unknown mock Drive entry: ${entryId}`)
       return {
-        entry,
+        entry: currentDriveEntry(entry),
         text:
           entry.id === driveExtraNote.id
             ? readmeMarkdown

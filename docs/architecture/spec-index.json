@@ -357,11 +357,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "9f2ab5441c2e800fad42b6d7765605eeb786e65bc43b45537db8bc64e2cb94e9"
+          "sha256": "f23e274cb53889cb9cd3868193c8476f40822954c63a36994d1d0c4f98a93f86"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "5cc2889d3f34b83cabacb543566f4e1c99cba8791460e083b3cdf57564141ac7"
+          "sha256": "9ed11b42716804661c97982a9df539e7e2223e40c07cddcc3c4160a29a631b20"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
