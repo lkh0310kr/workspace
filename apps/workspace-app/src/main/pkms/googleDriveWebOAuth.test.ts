@@ -11,11 +11,13 @@ describe('GoogleDriveWebOAuth', () => {
     let callback: ((response: GoogleIdentityTokenResponse) => void) | undefined
     const requestAccessToken = vi.fn()
     const identity: GoogleIdentityAccounts = {
-      oauth2: {
-        initTokenClient: vi.fn((options) => {
-          callback = options.callback
-          return { requestAccessToken }
-        })
+      accounts: {
+        oauth2: {
+          initTokenClient: vi.fn((options) => {
+            callback = options.callback
+            return { requestAccessToken }
+          })
+        }
       }
     }
     const oauth = new GoogleDriveWebOAuth('public.apps.googleusercontent.com', () => identity)
@@ -31,8 +33,10 @@ describe('GoogleDriveWebOAuth', () => {
 
   it('requires a new foreground user action when the token is unavailable or rejected', async () => {
     const oauth = new GoogleDriveWebOAuth('public.apps.googleusercontent.com', () => ({
-      oauth2: {
-        initTokenClient: () => ({ requestAccessToken: () => {} })
+      accounts: {
+        oauth2: {
+          initTokenClient: () => ({ requestAccessToken: () => {} })
+        }
       }
     }))
 
@@ -44,10 +48,12 @@ describe('GoogleDriveWebOAuth', () => {
 
   it('surfaces provider errors and refuses malformed OAuth configuration', async () => {
     const oauth = new GoogleDriveWebOAuth('public.apps.googleusercontent.com', () => ({
-      oauth2: {
-        initTokenClient: ({ callback }) => ({
-          requestAccessToken: () => callback({ error: 'access_denied' })
-        })
+      accounts: {
+        oauth2: {
+          initTokenClient: ({ callback }) => ({
+            requestAccessToken: () => callback({ error: 'access_denied' })
+          })
+        }
       }
     }))
 

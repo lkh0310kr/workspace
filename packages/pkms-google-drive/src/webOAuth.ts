@@ -19,13 +19,15 @@ export interface GoogleIdentityTokenClient {
 }
 
 export interface GoogleIdentityAccounts {
-  oauth2: {
-    initTokenClient(options: {
-      client_id: string
-      scope: string
-      callback: (response: GoogleIdentityTokenResponse) => void
-      error_callback?: (error: { message?: string; type?: string }) => void
-    }): GoogleIdentityTokenClient
+  accounts: {
+    oauth2: {
+      initTokenClient(options: {
+        client_id: string
+        scope: string
+        callback: (response: GoogleIdentityTokenResponse) => void
+        error_callback?: (error: { message?: string; type?: string }) => void
+      }): GoogleIdentityTokenClient
+    }
   }
 }
 
@@ -49,7 +51,7 @@ export class GoogleDriveWebOAuth implements DriveAccessTokenProvider {
   connect(): Promise<void> {
     if (this.connection) return this.connection
     const identity = this.identity()
-    if (!identity?.oauth2)
+    if (!identity?.accounts?.oauth2)
       return Promise.reject(new Error('Google Identity Services is not loaded.'))
 
     this.connection = new Promise<void>((resolve, reject) => {
@@ -61,7 +63,7 @@ export class GoogleDriveWebOAuth implements DriveAccessTokenProvider {
         if (cause) reject(cause)
         else resolve()
       }
-      const client = identity.oauth2.initTokenClient({
+      const client = identity.accounts.oauth2.initTokenClient({
         client_id: this.clientId,
         scope: DRIVE_FILE_SCOPE,
         callback: (response) => {

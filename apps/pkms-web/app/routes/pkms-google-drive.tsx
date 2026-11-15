@@ -176,7 +176,9 @@ function childPath(parent: string, name: string): string {
 }
 
 function hasGoogleIdentityServices(): boolean {
-  return Boolean((window as Window & { google?: { oauth2?: unknown } }).google?.oauth2)
+  return Boolean(
+    (window as Window & { google?: { accounts?: { oauth2?: unknown } } }).google?.accounts?.oauth2
+  )
 }
 
 export function meta() {
