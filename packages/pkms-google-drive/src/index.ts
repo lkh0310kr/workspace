@@ -26,6 +26,10 @@ export {
   GoogleDriveOperationApplier,
   type GoogleDriveOperationApplierHooks
 } from './operationApplier'
+export {
+  createGoogleDriveWorkspaceSync,
+  type GoogleDriveWorkspaceSyncOptions
+} from './workspaceSync'
 export { IndexedDbGoogleDriveYjsDocumentStorage } from './indexedDbYjsStorage'
 export {
   GoogleDriveYjsDocumentStore,
