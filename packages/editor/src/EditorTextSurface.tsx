@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useContext, useEffect, useLayoutEffect, useRef } from 'react'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { historyField } from '@codemirror/commands'
 import { Annotation, EditorState, type Extension } from '@codemirror/state'
@@ -13,12 +13,14 @@ import {
 } from './viewStateCache'
 import { useEditorDocumentSnapshot } from './useEditorDocumentSnapshot'
 import { editorSearch } from './editorSearch'
+import { editorViewScrollElement } from './editorViewScrollContext'
 import type { EditorDocumentSession } from './provider'
 import 'katex/dist/katex.min.css'
 import './editorHost.css'
 import './markdown.css'
 
 export const externalEditorChange = Annotation.define<boolean>()
+const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
 export interface EditorTextSurfaceProps {
   /** Omit value for hosts that load documents through an EditorDocumentSession. */
@@ -61,8 +63,10 @@ export function EditorTextSurface({
   onDocumentKeyChange,
   viewStateStorage
 }: EditorTextSurfaceProps) {
+  const hostScrollRef = useContext(editorViewScrollElement)
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
+  const scrollOwnerRef = useRef<HTMLElement | null>(null)
   const persistViewStateRef = useRef<(() => void) | null>(null)
   const documentKeyRef = useRef(documentKey)
   const onDocumentKeyChangeRef = useRef(onDocumentKeyChange)
@@ -87,7 +91,7 @@ export function EditorTextSurface({
   onSearchPanelChangeRef.current = onSearchPanelChange
   viewStateStorageRef.current = viewStateStorage
 
-  useEffect(() => {
+  useClientLayoutEffect(() => {
     if (!hostRef.current) return
     let persistenceTimer: ReturnType<typeof setTimeout> | null = null
     const persistNow = () => {
@@ -97,12 +101,14 @@ export function EditorTextSurface({
       const key = documentKeyRef.current
       const snapshot = sessionSnapshotRef.current
       const persist = snapshot == null || snapshot.savePhase === 'clean'
-      if (view && key)
+      const scrollOwner =
+        view && (scrollOwnerRef.current ?? hostScrollRef?.current ?? view.scrollDOM)
+      if (view && key && scrollOwner)
         writeEditorViewState(
           key,
           view.state,
-          view.scrollDOM.scrollTop,
-          view.scrollDOM.scrollLeft,
+          scrollOwner.scrollTop,
+          scrollOwner.scrollLeft,
           persist,
           viewStateStorageRef.current
         )
@@ -184,20 +190,23 @@ export function EditorTextSurface({
       extensions: viewExtensions
     })
     viewRef.current = view
-    view.scrollDOM.addEventListener('scroll', schedulePersist, { passive: true })
+    const scrollOwner = hostScrollRef?.current ?? view.scrollDOM
+    scrollOwnerRef.current = scrollOwner
+    scrollOwner.addEventListener('scroll', schedulePersist, { passive: true })
     if (cached) {
       requestAnimationFrame(() => {
         if (viewRef.current === view) {
-          view.scrollDOM.scrollTop = cached.scrollTop
-          view.scrollDOM.scrollLeft = cached.scrollLeft
+          scrollOwner.scrollTop = cached.scrollTop
+          scrollOwner.scrollLeft = cached.scrollLeft
         }
       })
     }
     onViewReadyRef.current?.(view)
     onSearchPanelChangeRef.current?.(searchPanelOpen(view.state))
     return () => {
-      view.scrollDOM.removeEventListener('scroll', schedulePersist)
+      scrollOwner.removeEventListener('scroll', schedulePersist)
       persistNow()
+      scrollOwnerRef.current = null
       persistViewStateRef.current = null
       onViewReadyRef.current?.(null)
       viewRef.current = null
@@ -246,8 +255,9 @@ export function EditorTextSurface({
         EditorState.create({ doc: targetDocument, extensions: viewExtensionsRef.current })
     )
     onSearchPanelChangeRef.current?.(searchPanelOpen(view.state))
-    view.scrollDOM.scrollTop = cached?.scrollTop ?? 0
-    view.scrollDOM.scrollLeft = cached?.scrollLeft ?? 0
+    const scrollOwner = hostScrollRef?.current ?? view.scrollDOM
+    scrollOwner.scrollTop = cached?.scrollTop ?? 0
+    scrollOwner.scrollLeft = cached?.scrollLeft ?? 0
   }, [documentKey, effectiveValue])
 
   useEffect(() => {

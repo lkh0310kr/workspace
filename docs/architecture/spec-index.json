@@ -153,7 +153,7 @@
         },
         {
           "path": "packages/editor/src/EditorMarkdownDocument.tsx",
-          "sha256": "9b7e2f99b87e3caa94640e9630a6e715831aa91e20f1ae776c1235485a0524ff"
+          "sha256": "d3506e0a73594ea2cf2a9c9d0f31223a793a1973aabddb9336022ebe511f0b40"
         },
         {
           "path": "packages/editor/src/EditorMarkdownEditor.tsx",
@@ -205,7 +205,7 @@
         },
         {
           "path": "packages/editor/src/EditorTextSurface.tsx",
-          "sha256": "b86edd377de47d7abf9e0c7ef4909e8918204c8afc876966682cb9f684129a30"
+          "sha256": "b2fdea917805ccea02eab58a2134f1ff04688d2d72cd777d8e174c86a0d33f1c"
         },
         {
           "path": "packages/editor/src/EditorTreeRow.tsx",
@@ -312,6 +312,10 @@
           "sha256": "56130cd77efc255f999b9a822fbede36f72df4411b1a7f0ad064ddfe6b6f5e68"
         },
         {
+          "path": "packages/editor/src/editorViewScrollContext.ts",
+          "sha256": "10d6bff47f8e786430aa73a17e4a85da315f757cbd2546c0ca85f19012a20903"
+        },
+        {
           "path": "packages/editor/src/viewStateCache.ts",
           "sha256": "bf5e743a0ccd132729844c11012d6f6b618ee49bb8af29643b36437d3a2731ad"
         },
@@ -353,11 +357,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "fe0f3a69df8790b89e392391e5df6c9c9608cca958440771c64db70a3e0a289c"
+          "sha256": "4e1c7902c9756ec53383c7748b30bca19a431e4380ad7f46642b245fafe38d2e"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "80b4345d12e6dd5e2a61be09b7cd46ad8574c8d19d46ee2f25bf142e3bfb77af"
+          "sha256": "b45b7488072e4a7d37c79051a03fd21fc31f37dd03b0f8b9e939a5cde5afe1d3"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",

@@ -424,7 +424,47 @@ test('all host surfaces share document Find behavior', async ({ page }) => {
   }
 })
 
-test('both PKMS host surfaces rename Markdown documents from the shared title', async ({ page }) => {
+test('Markdown scroll and caret state restore across reopen in all hosts', async ({ page }) => {
+  for (const host of hosts) {
+    await page.goto(`/?host=${host}&scenario=view-state`)
+    if (host !== 'desktop-editor') {
+      await page.getByRole('treeitem', { name: 'Verification' }).click()
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    }
+    const scroll = page.locator('.editor-markdown-scroll')
+    const editor = page.locator('.cm-content').first()
+    await editor.click()
+    await page.keyboard.press('Control+End')
+    await scroll.evaluate((element) => {
+      element.scrollTop = Math.min(300, element.scrollHeight - element.clientHeight)
+    })
+    const savedScroll = await scroll.evaluate((element) => element.scrollTop)
+    await expect(editor).toBeFocused()
+    expect(savedScroll).toBeGreaterThan(0)
+
+    if (host === 'desktop-editor') {
+      await page.waitForTimeout(800)
+      await page.reload()
+    } else {
+      await page.getByRole('treeitem', { name: 'Readme', exact: true }).click()
+      await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    }
+
+    await expect
+      .poll(() => scroll.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0, `scroll restoration failed for ${host}`)
+    const restoredScroll = await scroll.evaluate((element) => element.scrollTop)
+    expect(Math.abs(restoredScroll - savedScroll)).toBeLessThanOrEqual(16)
+    await page.locator('.cm-content').first().focus()
+    await page.keyboard.type('X')
+    await expect(page.locator('.cm-content').first()).toContainText('View state paragraph 90.X')
+  }
+})
+
+test('both PKMS host surfaces rename Markdown documents from the shared title', async ({
+  page
+}) => {
   for (const host of hosts.filter((host) => host !== 'desktop-editor')) {
     await page.goto(`/?host=${host}`)
     if (host !== 'desktop-editor') {
@@ -478,7 +518,11 @@ test('all host tree toolbars create folders and Markdown notes', async ({ page }
       await page.getByRole('button', { name: 'OK', exact: true }).click()
     else if (host === 'desktop-pkms-editor')
       await folderDialog!.getByRole('button', { name: 'Create folder' }).click()
-    else await page.getByRole('dialog', { name: 'Folder name' }).getByRole('button', { name: 'Create' }).click()
+    else
+      await page
+        .getByRole('dialog', { name: 'Folder name' })
+        .getByRole('button', { name: 'Create' })
+        .click()
 
     const createdPathsKey =
       host === 'desktop-editor'
@@ -488,9 +532,7 @@ test('all host tree toolbars create folders and Markdown notes', async ({ page }
           : '__createdPkmsPaths'
     await expect
       .poll(() => page.evaluate((key) => (window as any)[key], createdPathsKey))
-      .toContain(
-        host === 'web-pkms-editor' ? 'Verification/Parity Folder' : 'Parity Folder'
-    )
+      .toContain(host === 'web-pkms-editor' ? 'Verification/Parity Folder' : 'Parity Folder')
     await expect(page.getByRole('treeitem', { name: 'Parity Folder', exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'New Markdown file' }).click()

@@ -119,14 +119,27 @@ const isMissingWikiScenario =
   new URLSearchParams(window.location.search).get('scenario') === 'missing-wikilink'
 const isQuickOpenNestedScenario =
   new URLSearchParams(window.location.search).get('scenario') === 'quick-open-nested'
-const editorMarkdownFixture = isMissingWikiScenario ? `${markdown}\n[[Fresh Note]]\n` : markdown
+const isViewStateScenario =
+  new URLSearchParams(window.location.search).get('scenario') === 'view-state'
+const longMarkdown = `${markdown}\n${Array.from(
+  { length: 90 },
+  (_, index) => `View state paragraph ${String(index + 1).padStart(2, '0')}.`
+).join('\n\n')}\n`
+const editorMarkdownFixture = isMissingWikiScenario
+  ? `${markdown}\n[[Fresh Note]]\n`
+  : isViewStateScenario
+    ? longMarkdown
+    : markdown
 
 function installMocks() {
   const w = window as any
   const createdLocalItems: Array<{ name: string; path: string; isDir: boolean }> = []
   const localChildren = (parent: string) =>
     createdLocalItems
-      .filter((item) => (item.path.includes('/') ? item.path.slice(0, item.path.lastIndexOf('/')) : '') === parent)
+      .filter(
+        (item) =>
+          (item.path.includes('/') ? item.path.slice(0, item.path.lastIndexOf('/')) : '') === parent
+      )
       .map((item) => ({ ...item, isIgnored: false }))
   w.__openedDriveMarkdownEntries = []
   w.__savedDriveMarkdown = []
@@ -196,7 +209,11 @@ function installMocks() {
           ]
         : parentId === driveFolder.id
           ? isTreeStressScenario
-            ? [currentDriveEntry(driveNote), currentDriveEntry(driveExtraNote), ...driveTreeStressEntries]
+            ? [
+                currentDriveEntry(driveNote),
+                currentDriveEntry(driveExtraNote),
+                ...driveTreeStressEntries
+              ]
             : [
                 currentDriveEntry(driveNote),
                 currentDriveEntry(driveExtraNote),
@@ -450,7 +467,9 @@ function Document() {
           />
         }
         surfaceProps={{
-          value: markdown,
+          value: editorMarkdownFixture,
+          documentKey: `visual:desktop-editor:verification-note:${isViewStateScenario ? 'view-state' : 'parity'}`,
+          viewStateStorage: window.localStorage,
           parserExtensions: editorMarkdownParserExtensions,
           extensions: editorCodeMirrorHostExtensions,
           ariaLabel: 'Markdown editor'

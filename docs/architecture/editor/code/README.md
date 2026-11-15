@@ -38,7 +38,7 @@ mount 시 history, 공통 검색, host extensions, default/history keymap, Tab i
 | 미저장 내용 | 메모리에는 기록, session이 clean일 때만 storage 기록. session이 없으면 기록 가능    |
 | 장애        | JSON 손상/fromJSON 실패는 복원 포기, storage quota/비활성은 메모리로 계속 동작      |
 
-읽기 시 메모리를 우선하고 touchedAt을 갱신한다. discard는 메모리 key를 즉시 삭제한 뒤 setTimeout(0)에서도 지워 unmount의 마지막 dirty 기록을 제거한다. 영속 cache 전체를 삭제하는 명령은 아니다.
+읽기 시 메모리를 우선하고 touchedAt을 갱신한다. Markdown frame은 제목과 본문이 함께 움직이는 `.editor-markdown-scroll`을 공용 surface에 scroll owner로 전달하므로 본문 안쪽 CodeMirror의 `scrollDOM`이 아니라 문서 전체의 세로·가로 위치를 저장하고 복원한다. Code 문서는 기본적으로 CodeMirror `scrollDOM`을 쓴다. discard는 메모리 key를 즉시 삭제한 뒤 setTimeout(0)에서도 지워 unmount의 마지막 dirty 기록을 제거한다. 영속 cache 전체를 삭제하는 명령은 아니다.
 
 ## Desktop code 모드
 
@@ -62,14 +62,15 @@ mount 시 history, 공통 검색, host extensions, default/history keymap, Tab i
 
 ## 검증 시나리오
 
-| ID      | 입력/행동                         | 결과                                                  |
-| ------- | --------------------------------- | ----------------------------------------------------- |
-| TEXT-01 | 외부 snapshot 교체 후 undo        | 외부 교체 transaction 자체가 undo 항목이 아님         |
-| TEXT-02 | A/B key를 교대로 선택             | 각 선택·scroll·undo 복원, 본문은 provider와 reconcile |
-| TEXT-03 | dirty snapshot 후 재시작          | 미저장 text를 storage에서 새 문서로 부활시키지 않음   |
-| TEXT-04 | 언어 A load가 B 전환 후 완료      | A extension 적용하지 않음                             |
-| TEXT-05 | 저장 대기 중 입력                 | 완료가 최신 입력의 dirty를 지우지 않음                |
-| TEXT-06 | storage 차단 또는 손상            | Editor 정상 생성, 메모리 cache 사용                   |
-| TEXT-07 | 두 editor 중 하나 focus하고 Mod-s | focused view만 저장                                   |
+| ID      | 입력/행동                                          | 결과                                                   |
+| ------- | -------------------------------------------------- | ------------------------------------------------------ |
+| TEXT-01 | 외부 snapshot 교체 후 undo                         | 외부 교체 transaction 자체가 undo 항목이 아님          |
+| TEXT-02 | A/B key를 교대로 선택                              | 각 선택·scroll·undo 복원, 본문은 provider와 reconcile  |
+| TEXT-03 | dirty snapshot 후 재시작                           | 미저장 text를 storage에서 새 문서로 부활시키지 않음    |
+| TEXT-04 | 언어 A load가 B 전환 후 완료                       | A extension 적용하지 않음                              |
+| TEXT-05 | 저장 대기 중 입력                                  | 완료가 최신 입력의 dirty를 지우지 않음                 |
+| TEXT-06 | storage 차단 또는 손상                             | Editor 정상 생성, 메모리 cache 사용                    |
+| TEXT-07 | 두 editor 중 하나 focus하고 Mod-s                  | focused view만 저장                                    |
+| TEXT-08 | Markdown 문서 스크롤·커서를 바꾸고 host별로 재열기 | 문서 전체 scroll owner와 serialized selection이 복원됨 |
 
 자동 검증 연결은 [스펙 검증 목록](../../../../docs/architecture/spec-driven-development.md)을 따른다. 표의 모든 항목에 현재 자동 테스트가 있다는 의미는 아니다.

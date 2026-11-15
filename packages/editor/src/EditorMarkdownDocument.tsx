@@ -1,6 +1,7 @@
-import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import type { EditorView } from '@codemirror/view'
 import { EditorMarkdownProperties } from './EditorMarkdownProperties'
+import { editorViewScrollElement } from './editorViewScrollContext'
 import './markdownDocument.css'
 
 const MARKDOWN_WIDTH_MODE_KEY = 'workspace.markdownWidthMode'
@@ -37,6 +38,7 @@ export function EditorMarkdownDocument({
   propertiesRevision = 0
 }: EditorMarkdownDocumentProps) {
   const [wide, setWide] = useState(readWideMode)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     try {
@@ -75,11 +77,13 @@ export function EditorMarkdownDocument({
         </button>
         {actions}
       </div>
-      <div className="editor-markdown-scroll" onClick={handleBackgroundClick}>
-        {title}
-        <EditorMarkdownProperties view={propertiesView} revision={propertiesRevision} />
-        <div className="editor-markdown-content">{children}</div>
-      </div>
+      <editorViewScrollElement.Provider value={scrollRef}>
+        <div ref={scrollRef} className="editor-markdown-scroll" onClick={handleBackgroundClick}>
+          {title}
+          <EditorMarkdownProperties view={propertiesView} revision={propertiesRevision} />
+          <div className="editor-markdown-content">{children}</div>
+        </div>
+      </editorViewScrollElement.Provider>
     </div>
   )
 }
