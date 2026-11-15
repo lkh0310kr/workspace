@@ -110,6 +110,9 @@ const driveTreeStressEntries: GoogleDriveWorkspaceEntry[] = Array.from(
 )
 const driveEntries: GoogleDriveWorkspaceEntry[] = [driveFolder]
 const driveCreatedNotes: GoogleDriveWorkspaceEntry[] = []
+const driveRenamedEntries = new Map<string, GoogleDriveWorkspaceEntry>()
+const currentDriveEntry = (entry: GoogleDriveWorkspaceEntry) =>
+  driveRenamedEntries.get(entry.id) ?? entry
 const isTreeStressScenario =
   new URLSearchParams(window.location.search).get('scenario') === 'tree-overflow'
 const isMissingWikiScenario =
@@ -123,6 +126,8 @@ function installMocks() {
   w.__openedDriveMarkdownEntries = []
   w.__savedDriveMarkdown = []
   w.__createdPkmsPaths = []
+  w.__renamedPkmsPaths = []
+  w.__renamedDriveItems = []
   w.api = {
     fs: {
       listDir: async (_tabId: number, path: string) =>
@@ -169,15 +174,15 @@ function installMocks() {
     listGoogleDriveDirectory: async (_rootId: string, parentId: string | null) =>
       parentId === null || parentId === driveRoot.id
         ? [
-            ...driveEntries,
+            ...driveEntries.map(currentDriveEntry),
             ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveRoot.id)
           ]
         : parentId === driveFolder.id
           ? isTreeStressScenario
-            ? [driveNote, driveExtraNote, ...driveTreeStressEntries]
+            ? [currentDriveEntry(driveNote), currentDriveEntry(driveExtraNote), ...driveTreeStressEntries]
             : [
-                driveNote,
-                driveExtraNote,
+                currentDriveEntry(driveNote),
+                currentDriveEntry(driveExtraNote),
                 ...(isQuickOpenNestedScenario ? [driveHiddenFolder] : []),
                 ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveFolder.id)
               ]
@@ -233,7 +238,21 @@ function installMocks() {
       driveCreatedNotes.push(entry)
       return parent ? [driveNote, driveExtraNote, entry] : [...driveEntries, entry]
     },
-    renameGoogleDriveItem: async () => driveNote,
+    renameGoogleDriveItem: async (_rootId: string, entryId: string, name: string) => {
+      const entry = [driveFolder, driveNote, driveExtraNote, ...driveCreatedNotes].find(
+        (candidate) => candidate.id === entryId
+      )
+      if (!entry) throw new Error(`Unknown mock Drive entry: ${entryId}`)
+      const parent = [driveFolder].find((candidate) => candidate.id === entry.parents?.[0])
+      const renamed = {
+        ...entry,
+        name,
+        path: [parent?.path, name].filter(Boolean).join('/')
+      }
+      driveRenamedEntries.set(entryId, renamed)
+      w.__renamedDriveItems.push(renamed)
+      return renamed
+    },
     trashGoogleDriveItem: async () => undefined,
     disconnectGoogleDriveWorkspace: async () => undefined
   }
@@ -305,7 +324,13 @@ function installMocks() {
     }
     if (path === `/api/workspaces/${workspace.id}/operations` && init?.method === 'POST') {
       const body = JSON.parse(String(init.body ?? '{}')) as {
-        operation?: { type?: string; path?: string; fileId?: string; content?: string }
+        operation?: {
+          type?: string
+          path?: string
+          toPath?: string
+          fileId?: string
+          content?: string
+        }
       }
       const operation = body.operation
       if (operation?.type === 'create-file' && operation.path && operation.fileId) {
@@ -318,9 +343,22 @@ function installMocks() {
           revision: 0
         })
       }
+      if (operation?.type === 'move' && operation.toPath && operation.fileId) {
+        const source = pkmsFiles.find((file) => file.id === operation.fileId)
+        if (source) {
+          const previousPath = source.path
+          for (const file of pkmsFiles) {
+            if (file.path === previousPath || file.path.startsWith(`${previousPath}/`))
+              file.path = `${operation.toPath}${file.path.slice(previousPath.length)}`
+          }
+          w.__renamedPkmsPaths.push(operation.toPath)
+        }
+      }
       return json({ acceptedRevision: workspace.revision + 1 })
     }
     if (path === `/api/workspaces/${workspace.id}/sync-status`)
+      return json({ serverRevision: 1, githubStatus: 'synced', pendingFiles: 0 })
+    if (path === `/api/workspaces/${workspace.id}/flush`)
       return json({ serverRevision: 1, githubStatus: 'synced', pendingFiles: 0 })
     const fileMatch = path.match(new RegExp(`^/api/workspaces/${workspace.id}/files/([^/]+)$`))
     if (fileMatch) {

@@ -8,6 +8,7 @@ import {
 } from 'react'
 import {
   EditorMarkdownEditor,
+  EditorMarkdownTitle,
   EditorBreadcrumbs,
   EditorMenuList,
   editorCodeMirrorHostExtensions,
@@ -18,10 +19,12 @@ import {
   EditorNameForm,
   EditorQuickOpenDialog,
   EDITOR_TREE_ROW_HEIGHT,
+  buildRenamedPath,
   fuzzyEditorSearch,
   editorMarkdownParserExtensions,
   flattenEditorTree,
   markdownTitleFor,
+  validateTitleInput,
   projectEditorTreeRows,
   resolveEditorRelativeLink,
   resolveEditorWikiLink,
@@ -265,6 +268,11 @@ export function PkmsGoogleDrivePane({
     ancestors: [] as Array<{ id: string | null; path: string; name: string }>
   })
   const [activeFile, setActiveFile] = useState<GoogleDriveWorkspaceEntry | null>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
+  const titleCaretPositionRef = useRef<number | null>(null)
+  const [titleEditing, setTitleEditing] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
+  const [titleError, setTitleError] = useState<string | null>(null)
   const [treeContextMenu, setTreeContextMenu] = useState<{
     entry: GoogleDriveWorkspaceEntry | null
     x: number
@@ -287,6 +295,24 @@ export function PkmsGoogleDrivePane({
   const [error, setError] = useState('')
   const [quickOpen, setQuickOpen] = useState(false)
   const [quickQuery, setQuickQuery] = useState('')
+
+  useEffect(() => {
+    if (!titleEditing) return
+    const input = titleInputRef.current
+    if (!input) return
+    input.focus()
+    const caretPosition = titleCaretPositionRef.current
+    if (caretPosition !== null) {
+      const position = Math.max(0, Math.min(caretPosition, input.value.length))
+      input.setSelectionRange(position, position)
+      titleCaretPositionRef.current = null
+    }
+  }, [titleEditing])
+
+  useEffect(() => {
+    setTitleEditing(false)
+    setTitleError(null)
+  }, [activeFile?.id])
 
   const quickOpenProvider = useMemo<EditorProvider | null>(() => {
     if (!root) return null
@@ -918,7 +944,7 @@ export function PkmsGoogleDrivePane({
 
   const commitRenameEntry = useCallback(
     async (entry: GoogleDriveWorkspaceEntry, name: string) => {
-      if (!root) return
+      if (!root) throw new Error('No connected Google Drive workspace.')
       if (name === entry.name) return
       setBusy(true)
       try {
@@ -937,7 +963,9 @@ export function PkmsGoogleDrivePane({
         }
         await refreshEntryParent(entry)
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not rename the item.')
+        const message = cause instanceof Error ? cause.message : 'Could not rename the item.'
+        setError(message)
+        throw new Error(message)
       } finally {
         setBusy(false)
       }
@@ -954,11 +982,64 @@ export function PkmsGoogleDrivePane({
         initialValue: entry.name,
         submitLabel: 'Rename',
         selectInitialValue: true,
-        onSubmit: (name) => void commitRenameEntry(entry, name)
+        onSubmit: (name) => void commitRenameEntry(entry, name).catch(() => undefined)
       })
     },
     [commitRenameEntry]
   )
+
+  const beginTitleEdit = (caretPosition: number) => {
+    if (!activeFile || activeFile.kind !== 'markdown') return
+    titleCaretPositionRef.current = caretPosition
+    setTitleDraft(markdownTitleFor(activeFile.path))
+    setTitleError(null)
+    setTitleEditing(true)
+  }
+
+  const commitTitleRename = async () => {
+    const current = activeFile
+    if (!current || current.kind !== 'markdown' || !root) return
+    const validation = validateTitleInput(titleDraft)
+    if ('error' in validation) {
+      if (validation.error === 'empty') {
+        setTitleEditing(false)
+        setTitleError(null)
+        return
+      }
+      setTitleError('Title can’t contain "/" or "\\".')
+      titleInputRef.current?.focus()
+      return
+    }
+    if (validation.title === markdownTitleFor(current.path)) {
+      setTitleEditing(false)
+      setTitleError(null)
+      return
+    }
+
+    try {
+      const nextPath = buildRenamedPath(current.path, validation.title)
+      const nextName = nextPath.split('/').at(-1) ?? nextPath
+      const siblings = await window.pkmsDesktop.listGoogleDriveDirectory(
+        root.id,
+        current.parents?.[0] ?? null
+      )
+      const collision = siblings.some(
+        (item) => item.id !== current.id && item.name.toLocaleLowerCase() === nextName.toLocaleLowerCase()
+      )
+      if (collision) throw new Error(`"${validation.title}" already exists.`)
+      if (session?.snapshot().savePhase !== 'clean') {
+        const saved = await session?.save({ flushSync: true })
+        if (saved?.savePhase !== 'clean')
+          throw new Error(saved?.message ?? 'Could not save the document before renaming it.')
+      }
+      await commitRenameEntry(current, nextName)
+      setTitleEditing(false)
+      setTitleError(null)
+    } catch (cause) {
+      setTitleError(cause instanceof Error ? cause.message : String(cause))
+      titleInputRef.current?.focus()
+    }
+  }
 
   const confirmTrashEntry = useCallback(
     async (entry: GoogleDriveWorkspaceEntry) => {
@@ -1467,11 +1548,24 @@ export function PkmsGoogleDrivePane({
                 <EditorMarkdownEditor
                   className="pkms-google-drive-markdown"
                   title={
-                    <div className="editor-title-block">
-                      <div className="editor-markdown-title">
-                        {markdownTitleFor(activeFile.path)}
-                      </div>
-                    </div>
+                    <EditorMarkdownTitle
+                      path={activeFile.path}
+                      title={markdownTitleFor(activeFile.path)}
+                      editing={titleEditing}
+                      draft={titleDraft}
+                      error={titleError}
+                      inputRef={titleInputRef}
+                      onStartEditing={busy ? undefined : beginTitleEdit}
+                      onChange={(value) => {
+                        setTitleDraft(value)
+                        setTitleError(null)
+                      }}
+                      onCommit={() => void commitTitleRename()}
+                      onCancel={() => {
+                        setTitleEditing(false)
+                        setTitleError(null)
+                      }}
+                    />
                   }
                   surfaceKey={activeFile.id}
                   surfaceProps={{

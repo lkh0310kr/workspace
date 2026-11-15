@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent as 
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorTreeCreateActions, EditorTreeFrame, EditorTreeToolbar, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, resolveEditorWikiLink, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
+import { buildRenamedPath, clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorTreeCreateActions, EditorTreeFrame, EditorTreeToolbar, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, resolveEditorWikiLink, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
@@ -327,6 +327,26 @@ export default function Home() {
   }, [activeWorkspace?.id]);
   const treeContextMenuRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleCaretPositionRef = useRef<number | null>(null);
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [titleError, setTitleError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!titleEditing) return;
+    const input = titleInputRef.current;
+    if (!input) return;
+    input.focus();
+    const caretPosition = titleCaretPositionRef.current;
+    if (caretPosition !== null) {
+      const position = Math.max(0, Math.min(caretPosition, input.value.length));
+      input.setSelectionRange(position, position);
+      titleCaretPositionRef.current = null;
+    }
+  }, [titleEditing]);
+  useEffect(() => {
+    setTitleEditing(false);
+    setTitleError(null);
+  }, [activeFile?.id]);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const uploadDirectoryRef = useRef("");
   const editorNavigate = useRef<((position: number) => void) | null>(null);
@@ -1708,6 +1728,55 @@ export default function Home() {
       setError(cause instanceof Error ? cause.message : "Could not rename PKMS item");
     }
   };
+  const beginTitleEdit = (caretPosition: number) => {
+    if (!activeFile || activeFile.kind !== "markdown") return;
+    titleCaretPositionRef.current = caretPosition;
+    setTitleDraft(markdownTitleFor(activeFile.path));
+    setTitleError(null);
+    setTitleEditing(true);
+  };
+  const commitTitleRename = async () => {
+    const current = activeFile;
+    const provider = editorProvider;
+    if (!current || current.kind !== "markdown" || !activeWorkspace || !provider) return;
+    const validation = validateTitleInput(titleDraft);
+    if ("error" in validation) {
+      if (validation.error === "empty") {
+        setTitleEditing(false);
+        setTitleError(null);
+        return;
+      }
+      setTitleError('Title can’t contain "/" or "\\".');
+      titleInputRef.current?.focus();
+      return;
+    }
+    if (validation.title === markdownTitleFor(current.path)) {
+      setTitleEditing(false);
+      setTitleError(null);
+      return;
+    }
+    try {
+      const target = await resolveMarkdownTitleRenameTarget(
+        provider,
+        current.path,
+        validation.title,
+        pkmsItemForFile(activeWorkspace.id, current)
+      );
+      if (!target.currentItem || !editorSupportsOperation(provider, "rename"))
+        throw new EditorProviderError("unsupported", "Renaming is not supported by this provider");
+      if (activeEditorSession?.item.itemId === current.id) {
+        const saved = await activeEditorSession.save({ flushSync: true });
+        if (saved.savePhase !== "clean")
+          throw new Error(saved.message ?? "Could not save the document before renaming it.");
+      }
+      await provider.rename!(target.currentItem, target.name);
+      setTitleEditing(false);
+      setTitleError(null);
+    } catch (cause) {
+      setTitleError(cause instanceof Error ? cause.message : String(cause));
+      titleInputRef.current?.focus();
+    }
+  };
   const beginTreeUpload = (file: FileRecord) => {
     uploadDirectoryRef.current = file.kind === "folder" ? file.path : parentPath(file.path);
     setTreeContextMenu(null);
@@ -2385,13 +2454,22 @@ export default function Home() {
               <EditorMarkdownTitle
                 path={activeFile.path}
                 title={markdownTitleFor(activeFile.path)}
-                editing={false}
-                draft=""
-                error={null}
+                editing={titleEditing}
+                draft={titleDraft}
+                error={titleError}
                 inputRef={titleInputRef}
-                onChange={() => {}}
-                onCommit={() => {}}
-                onCancel={() => {}}
+                onStartEditing={
+                  editorSupportsOperation(editorProvider, "rename") ? beginTitleEdit : undefined
+                }
+                onChange={(value) => {
+                  setTitleDraft(value);
+                  setTitleError(null);
+                }}
+                onCommit={() => void commitTitleRename()}
+                onCancel={() => {
+                  setTitleEditing(false);
+                  setTitleError(null);
+                }}
               />
             }
             onBackgroundClick={() => {

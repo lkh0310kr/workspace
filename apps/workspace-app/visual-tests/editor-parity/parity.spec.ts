@@ -424,6 +424,39 @@ test('all host surfaces share document Find behavior', async ({ page }) => {
   }
 })
 
+test('both PKMS host surfaces rename Markdown documents from the shared title', async ({ page }) => {
+  for (const host of hosts.filter((host) => host !== 'desktop-editor')) {
+    await page.goto(`/?host=${host}`)
+    if (host !== 'desktop-editor') {
+      await expect(page.locator('.editor-tree-item').first()).toBeVisible()
+      await page.locator('.editor-tree-item').first().click()
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    }
+
+    await page.locator('.editor-markdown-title').first().click()
+    const input = page.getByRole('textbox', { name: 'Markdown document title' })
+    await expect(input).toBeFocused()
+    await input.fill('Renamed parity note')
+    await input.press('Enter')
+    await expect(page.locator('.editor-markdown-title:not(input)').first()).toHaveText(
+      'Renamed parity note'
+    )
+    await expect(
+      page.getByRole('treeitem', { name: 'Renamed parity note', exact: true })
+    ).toBeVisible()
+
+    await page.locator('.editor-markdown-title').first().click()
+    await input.fill('Readme')
+    await input.press('Enter')
+    await expect(page.getByRole('alert')).toContainText('already exists')
+    await expect(input).toHaveValue('Readme')
+    await input.press('Escape')
+    await expect(page.locator('.editor-markdown-title:not(input)').first()).toHaveText(
+      'Renamed parity note'
+    )
+  }
+})
+
 test('Desktop Drive tree keyboard navigation and overflow survive hide and reopen', async ({
   page
 }) => {
