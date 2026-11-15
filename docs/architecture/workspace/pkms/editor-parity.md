@@ -25,7 +25,7 @@ Desktop Editor는 순수 편집기 기능을 유지한다. GitHub, 계정, PKMS 
 - 공유 편집기 API: [packages/editor README](../../../../packages/editor/README.md)
 - 공유 PKMS client 경계: [packages/pkms-client README](../../../../packages/pkms-client/README.md)
 
-Desktop과 Web PKMS는 같은 `PkmsClientApp`을 사용한다. 따라서 `packages/pkms-client` 또는 `packages/editor` 수정은 원칙상 양쪽에 같이 반영된다. Desktop host는 PKMS client를 별도 React root·MemoryRouter·Shadow DOM에 마운트하므로 스타일을 명시적으로 넣어야 한다. Web host는 React Router document shell에서 client를 직접 렌더한다.
+Web PKMS와 기존 API-backed PKMS route는 `PkmsClientApp`/`FileTreeList`를 사용한다. 현재 Desktop 기본 경로는 Google Drive 직접 provider인 `PkmsGoogleDrivePane`이며, `EditorTreeView` row renderer 일부만 공유하고 tree controller·toolbar·상태를 별도로 소유한다. 그러므로 `packages/pkms-client` 수정이 Desktop Drive pane에도 반영된다고 가정하면 안 된다. Desktop host는 pane을 별도 React root와 Shadow DOM에 마운트하므로 공용 editor/tree stylesheet도 명시적으로 주입해야 한다. 이 차이를 해소하려면 두 host가 공유 renderer 외의 실제 shell·상호작용 acceptance를 통과해야 한다.
 
 ## 현행 코드 비교
 
@@ -52,7 +52,7 @@ Desktop과 Web PKMS는 같은 `PkmsClientApp`을 사용한다. 따라서 `packag
 | 저장 표시 및 오류                | Desktop Editor는 clean/saving 상태 라벨을 노출하지 않고 실패 시에만 오류 표시                   | 정상 `Saved`/`Saving` label 제거. 로컬 sync notice는 status message로 유지                                          | 1차 반영 / 추가 정리 필요 | 정상 문서 저장 label은 없다. sync notice는 PKMS 동기화 결과를 안내한다. 실패·충돌은 actionable error/sync UI로 유지한다.                                                                                                                          |
 | 키보드 단축키                    | Editor surface와 Workspace shell이 책임을 나눔                                                  | PKMS 자체 sidebar `Cmd+\\`, Quick Open `Cmd+P`, save 및 검색 처리 포함. Desktop shell도 `Cmd+\\`를 Explorer에 사용  | 부분 정렬                 | Desktop PKMS의 `Cmd+\\` key handler를 비활성화해 shell과의 중복을 막았다. Web standalone은 sidebar shortcut을 유지한다. 그 외 shortcut ownership은 후속 정렬 항목이다.                                                                            |
 | Scroll/view state                | Editor 문서 key로 CodeMirror selection/scroll state 저장 및 restore                             | PKMS도 document key 및 view-state cache 사용                                                                        | 공유됨 / 검증 필요        | 동일 문서의 재열기·workspace 전환·저장 rename 후 scroll/caret 복원과 서로 다른 문서 간 상태 격리를 확인한다. PKMS session key를 바꿀 때 view state를 유실하지 않는다.                                                                             |
-| TreeView                         | Workspace Explorer가 tree scroll/selection/expand와 pane navigation을 소유                      | PKMS FileTreeList는 shared EditorTreeView를 사용하지만 PKMS가 별도 sidebar·selection/state/chrome를 소유            | 부분 정렬                 | 공통 row visual/keyboard/context interaction을 따르고 PKMS provider capability만 주입한다. Desktop Explorer 상태와 PKMS 전용 파일 tree 상태의 소유권을 혼동하지 않는다.                                                                           |
+| TreeView                         | Workspace Explorer가 tree scroll/selection/expand와 pane navigation을 소유                      | API-backed PKMS는 `FileTreeList` controller를, Desktop Drive pane은 별도 host state를 사용한다. 공용 `EditorTreeView`만으로 parity가 보장되지 않는다. | 부분 정렬                 | Workspace와 같은 row/virtualization을 사용하되, PKMS tree는 Files toolbar, Drive sync 상태, provider별 작업을 갖는다. 선택·focus·scroll·expand는 PKMS tree가 소유하고, Drive 제약에 맞는 keyboard/context interaction을 제공한다. 실제 화면에서 row density와 shell을 비교해 acceptance한다. |
 | Reveal local item                | Native Explorer context menu reveals provider-backed filesystem paths                           | Desktop PKMS tree context menu가 폴더는 Finder에서 열고 파일은 Finder에서 선택해 표시한다. Web에는 표시하지 않는다. | 추가                      | Renderer는 workspace-relative path만 전달하고 Desktop main process가 configured sync root 아래의 실제 항목을 검증한 뒤 reveal한다. Dev profile은 sync state를 공유하지 않고 stable profile의 configured root path만 읽기 전용으로 참조할 수 있다. |
 | 파일 생성/rename/move/delete     | Desktop Editor provider capability와 공용 tree actions                                          | PKMS client provider/API가 PKMS mutation, collaboration dirty guard 및 sync 보호를 소유                             | 부분 정렬                 | UI 동작은 공용 editor/tree action, 권한·충돌·revision·folder-sync 안전성은 PKMS provider에서 처리한다. destructive mutation guard를 약화하지 않는다.                                                                                              |
 | 첨부 및 이미지                   | Workspace viewer pane 및 editor image resolver                                                  | PKMS는 provider image resolver와 자체 inline asset preview/download를 제공                                          | 부분 정렬                 | Markdown inline image는 같은 document renderer를 사용하고 PKMS resolver만 인증 asset URL을 만든다. standalone attachment는 PKMS 저장/다운로드 기능을 유지하며 preview 시 공용 viewer 결과를 목표로 한다.                                          |
@@ -86,7 +86,7 @@ Desktop과 Web PKMS는 같은 `PkmsClientApp`을 사용한다. 따라서 `packag
 - Markdown wrapper class와 CodeMirror selection paint 규칙을 `packages/editor` stylesheet로 옮겼다. PKMS Shadow DOM에서도 선택 강조가 같은 공용 CSS로 적용된다.
 - PKMS 내부 document tab bar와 open-document tab state/close/select 흐름을 제거했다. 한 파일에서 다른 파일로 이동할 때 dirty session을 저장한 뒤 닫고, PKMS 저장소 선택 UI는 sidebar에 남겼다.
 - PKMS 편집 화면의 전용 topbar를 제거했다. `Cmd + \\`는 PKMS pane에 자체 Explorer가 있으므로 PKMS sidebar를 토글하도록 다시 연결했으며, `event.key`와 `event.code`를 모두 확인한다.
-- PKMS tree 상단의 upload·rename·delete 도구를 제거했다. 파일 생성, rename, delete capability는 tree context menu/키보드 명령과 Markdown 제목 편집으로 유지한다. Workspace tree는 `.md`/`.markdown` suffix를 표시하고 PKMS tree만 숨기며, provider item ID 기준의 rename 경로는 열린 문서 session을 재개방하지 않고 metadata를 갱신한다.
+- API-backed PKMS tree 상단의 upload·rename·delete 도구를 제거했다. 파일 생성, rename, delete capability는 tree context menu/키보드 명령과 Markdown 제목 편집으로 유지한다. Workspace tree는 `.md`/`.markdown` suffix를 표시하고 PKMS tree만 숨기며, provider item ID 기준의 rename 경로는 열린 문서 session을 재개방하지 않고 metadata를 갱신한다. Google Drive pane은 별도 구현이었고, Files toolbar 및 상호작용 parity를 누락한 회귀가 있었다. 현재 Drive pane에는 compact Files toolbar와 create/sync actions, keyboard focus 이동을 복구했으며, tree 조작 acceptance는 미완료다.
 - 다음 우선 순위는 Markdown host render 검증 및 code editing 범위 결정이다. 이번 변경은 전체 PKMS shell 통합이나 코드 파일 편집 지원을 완료한 것으로 간주하지 않는다.
 
 ## 작업 목록
@@ -97,6 +97,7 @@ Desktop과 Web PKMS는 같은 `PkmsClientApp`을 사용한다. 따라서 `packag
 2. Shared breadcrumb의 Web/Desktop menu interaction과 좁은 화면 결과를 검증한다.
 3. Web/Desktop PKMS에서 heading, link, table, Mermaid, TeX, HTML, code fence의 theme/style 결과가 shared Editor와 같은지 확인한다.
 4. PKMS pane에서 Explorer shortcut이 sidebar를 닫고 다시 여는지 Desktop/Web에서 확인한다.
+5. Desktop Google Drive tree를 Workspace Explorer와 나란히 확인한다. Files toolbar, row density/labels/selection, expand·scroll 복원, keyboard focus, context menu와 Drive sync 상태를 검증한다.
 
 ### P1 — 기능 parity 및 provider 연결
 

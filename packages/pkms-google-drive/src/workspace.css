@@ -237,8 +237,154 @@
 }
 
 .pkms-google-drive-root.is-desktop .pkms-google-drive-tree {
-  padding: 8px;
+  padding: 0;
   border-right: 1px solid var(--drive-border);
+}
+
+.pkms-google-drive-root.is-desktop .pkms-google-drive-header {
+  border-bottom: 0;
+}
+
+.pkms-google-drive-root.is-desktop .pkms-google-drive-workspace {
+  border-top: 0 !important;
+}
+
+.pkms-google-drive-file-toolbar {
+  display: flex;
+  flex: 0 0 38px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 8px 4px 12px;
+  border-bottom: 1px solid var(--drive-border);
+}
+
+.pkms-google-drive-file-toolbar-heading,
+.pkms-google-drive-toolbar-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.pkms-google-drive-file-toolbar-heading > span:first-child {
+  color: var(--drive-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pkms-google-drive-root .pkms-google-drive-sync-state {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 24px;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  padding: 2px 4px;
+  border-color: transparent;
+  color: var(--drive-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pkms-google-drive-sync-indicator {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #36a269;
+}
+
+.pkms-google-drive-sync-indicator.is-busy {
+  background: var(--accent, #8b7cf6);
+  animation: pkms-drive-sync-pulse 0.8s ease-in-out infinite alternate;
+}
+
+.pkms-google-drive-sync-indicator.is-error {
+  background: var(--danger, #d04b4b);
+}
+
+@keyframes pkms-drive-sync-pulse {
+  to {
+    opacity: 0.35;
+  }
+}
+
+.pkms-google-drive-root .pkms-google-drive-toolbar-actions button {
+  display: inline-grid;
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  min-height: 26px;
+  place-items: center;
+  padding: 0;
+  border-color: transparent;
+  border-radius: 5px;
+  color: var(--drive-muted);
+  font-size: 16px;
+}
+
+.pkms-google-drive-root .pkms-google-drive-toolbar-actions button:hover:not(:disabled) {
+  color: var(--text, #262626);
+  background: color-mix(in srgb, currentColor 8%, transparent) !important;
+}
+
+.pkms-google-drive-search-row {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+.pkms-google-drive-search-row input {
+  width: 100%;
+}
+
+.pkms-google-drive-tree-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.pkms-google-drive-root .tree-context-menu {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  width: 188px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid var(--border, var(--drive-border));
+  border-radius: 8px;
+  background: var(--bg-surface, var(--bg-base, #fff));
+  box-shadow: 0 8px 28px #0003;
+}
+
+.pkms-google-drive-root .tree-context-menu button {
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--text, #262626);
+  background: transparent !important;
+  text-align: left;
+  font-size: 12px;
+}
+
+.pkms-google-drive-root .tree-context-menu button:hover,
+.pkms-google-drive-root .tree-context-menu button:focus-visible {
+  outline: 0;
+  background: var(--bg-hover, color-mix(in srgb, currentColor 8%, transparent)) !important;
+}
+
+.pkms-google-drive-root .tree-context-menu button.danger {
+  color: var(--status-danger, var(--danger, #c33));
 }
 
 .pkms-google-drive-root.is-desktop .pkms-google-drive-editor {

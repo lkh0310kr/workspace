@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent
+} from 'react'
 import {
   EditorMarkdownEditor,
   EditorMenuList,
   EditorTreeView,
+  EDITOR_TREE_ROW_HEIGHT,
   flattenEditorTree,
   markdownTitleFor,
   projectEditorTreeRows,
@@ -161,8 +169,8 @@ export function PkmsGoogleDrivePane({
   const [loadingFolders, setLoadingFolders] = useState<Set<string>>(() => new Set())
   const [treeScrollTop, setTreeScrollTop] = useState(0)
   const [treeViewportHeight, setTreeViewportHeight] = useState(600)
-  const treeRootRef = useRef<HTMLElement>(null)
-  const treeScrollRef = useRef<HTMLDivElement>(null)
+  const [focusedTreePath, setFocusedTreePath] = useState<string | null>(null)
+  const treeRootRef = useRef<HTMLDivElement>(null)
   const driveSearchInputRef = useRef<HTMLInputElement>(null)
   const treeContextMenuRef = useRef<HTMLDivElement>(null)
   const [directory, setDirectory] = useState({
@@ -184,6 +192,7 @@ export function PkmsGoogleDrivePane({
   const searchGeneration = useRef(0)
   const [session, setSession] = useState<EditorDocumentSession | null>(null)
   const [busy, setBusy] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [status, setStatus] = useState('Connecting to Google Drive…')
   const [error, setError] = useState('')
 
@@ -202,6 +211,7 @@ export function PkmsGoogleDrivePane({
         setTreeBranches(new Map([['', result.entries]]))
         setExpandedFolders(new Set())
         setLoadingFolders(new Set())
+        setFocusedTreePath(null)
         setRoots([])
         setStatus(`Connected to ${nextRoot.name}`)
       } catch (cause) {
@@ -276,7 +286,7 @@ export function PkmsGoogleDrivePane({
   )
 
   useEffect(() => {
-    const element = treeScrollRef.current
+    const element = treeRootRef.current
     if (!element) return
     const updateSize = () => setTreeViewportHeight(element.clientHeight)
     updateSize()
@@ -299,7 +309,7 @@ export function PkmsGoogleDrivePane({
   }, [searchOpen])
 
   useEffect(() => {
-    if (treeOpen && treeScrollRef.current) treeScrollRef.current.scrollTop = treeScrollTop
+    if (treeOpen && treeRootRef.current) treeRootRef.current.scrollTop = treeScrollTop
   }, [treeOpen, treeScrollTop])
 
   const toggleFolder = useCallback(
@@ -343,37 +353,81 @@ export function PkmsGoogleDrivePane({
     [root, treeBranches]
   )
 
-  const treeProjection = useMemo(() => {
+  const treeRows = useMemo(() => {
     const branches = new Map(
       [...treeBranches].map(([path, children]) => [
         path,
         children.map((entry) => ({ ...entry, directory: entry.kind === 'folder' }))
       ])
     )
-    const visible = flattenEditorTree(branches, expandedFolders, '').map(({ item, depth }) => ({
-      id: item.id,
-      path: item.path,
-      name: item.name.replace(/\.(?:md|markdown)$/i, ''),
-      kind: item.kind === 'folder' ? 'directory' : item.kind,
-      depth,
-      expandable: item.kind === 'folder',
-      expanded: expandedFolders.has(item.path),
-      loading: loadingFolders.has(item.path),
-      active: activeFile?.id === item.id || directory.id === item.id,
-      selected: activeFile?.id === item.id,
-      tabIndex: 0,
-      source: item
-    })) as EditorTreeViewItem[]
-    return projectEditorTreeRows(visible, treeScrollTop, treeViewportHeight)
-  }, [
-    treeBranches,
-    expandedFolders,
-    loadingFolders,
-    activeFile,
-    directory.id,
-    treeScrollTop,
-    treeViewportHeight
-  ])
+    const visible = flattenEditorTree(branches, expandedFolders, '').map(
+      ({ item, depth }, rowIndex) => ({
+        id: item.id,
+        path: item.path,
+        name: item.name.replace(/\.(?:md|markdown)$/i, ''),
+        kind: item.kind === 'folder' ? 'directory' : item.kind,
+        depth,
+        expandable: item.kind === 'folder',
+        expanded: expandedFolders.has(item.path),
+        loading: loadingFolders.has(item.path),
+        active: activeFile?.id === item.id || directory.id === item.id,
+        selected: activeFile?.id === item.id,
+        tabIndex: focusedTreePath === item.path || (!focusedTreePath && rowIndex === 0) ? 0 : -1,
+        source: item
+      })
+    ) as EditorTreeViewItem[]
+    return visible
+  }, [treeBranches, expandedFolders, loadingFolders, activeFile, directory.id, focusedTreePath])
+  const treeProjection = useMemo(
+    () => projectEditorTreeRows(treeRows, treeScrollTop, treeViewportHeight),
+    [treeRows, treeScrollTop, treeViewportHeight]
+  )
+
+  const focusTreeRow = useCallback(
+    (path: string) => {
+      setFocusedTreePath(path)
+      const index = treeRows.findIndex((row) => row.path === path)
+      if (index >= 0 && treeRootRef.current) {
+        const rowTop = index * EDITOR_TREE_ROW_HEIGHT
+        const rowBottom = rowTop + EDITOR_TREE_ROW_HEIGHT
+        if (rowTop < treeRootRef.current.scrollTop) treeRootRef.current.scrollTop = rowTop
+        else if (rowBottom > treeRootRef.current.scrollTop + treeRootRef.current.clientHeight) {
+          treeRootRef.current.scrollTop = rowBottom - treeRootRef.current.clientHeight
+        }
+      }
+      window.requestAnimationFrame(() => {
+        const rows = [
+          ...(treeRootRef.current?.querySelectorAll<HTMLButtonElement>('[role="treeitem"]') ?? [])
+        ]
+        rows.find((row) => row.dataset.treePath === path)?.focus({ preventScroll: true })
+      })
+    },
+    [treeRows]
+  )
+
+  const handleTreeKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLElement>) => {
+      const rows = treeRows
+      const target = (event.target as HTMLElement).closest<HTMLButtonElement>('[role="treeitem"]')
+      const path = target?.dataset.treePath ?? focusedTreePath
+      const index = rows.findIndex((row) => row.path === path)
+      if (index < 0) return
+      const current = rows[index]
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        const next =
+          rows[Math.max(0, Math.min(rows.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)))]
+        if (next) focusTreeRow(next.path)
+      } else if (event.key === 'ArrowRight' && current.expandable && !current.expanded) {
+        event.preventDefault()
+        void toggleFolder(current.source as GoogleDriveWorkspaceEntry)
+      } else if (event.key === 'ArrowLeft' && current.expandable && current.expanded) {
+        event.preventDefault()
+        void toggleFolder(current.source as GoogleDriveWorkspaceEntry)
+      }
+    },
+    [focusedTreePath, focusTreeRow, toggleFolder, treeRows]
+  )
 
   useEffect(() => {
     const generation = ++searchGeneration.current
@@ -443,6 +497,7 @@ export function PkmsGoogleDrivePane({
   const syncNow = useCallback(async () => {
     if (!root) return
     setBusy(true)
+    setSyncing(true)
     try {
       const result = await window.pkmsDesktop.syncGoogleDriveWorkspace(root.id)
       await refreshDirectory()
@@ -457,6 +512,7 @@ export function PkmsGoogleDrivePane({
       setStatus('Google Drive sync is waiting')
     } finally {
       setBusy(false)
+      setSyncing(false)
     }
   }, [refreshDirectory, root])
 
@@ -697,24 +753,26 @@ export function PkmsGoogleDrivePane({
         minHeight: 0
       }}
     >
-      <header
-        className="pkms-google-drive-header"
-        style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 12 }}
-      >
-        <div>
-          <div className="pkms-google-drive-eyebrow">PKMS</div>
-          <p style={{ margin: '4px 0' }}>{status}</p>
-        </div>
-        {!root && (
-          <button
-            type="button"
-            onClick={() => void connect()}
-            disabled={busy || !connection.clientConfigured}
-          >
-            Connect Google Drive
-          </button>
-        )}
-      </header>
+      {!root && (
+        <header
+          className="pkms-google-drive-header"
+          style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 12 }}
+        >
+          <div>
+            <div className="pkms-google-drive-eyebrow">PKMS</div>
+            <p style={{ margin: '4px 0' }}>{status}</p>
+          </div>
+          {!root && (
+            <button
+              type="button"
+              onClick={() => void connect()}
+              disabled={busy || !connection.clientConfigured}
+            >
+              Connect Google Drive
+            </button>
+          )}
+        </header>
+      )}
       {!connection.clientConfigured && (
         <p role="status" style={{ padding: 16 }}>
           Set GOOGLE_DRIVE_DESKTOP_CLIENT_ID to a Google OAuth Desktop app client ID to connect.
@@ -786,37 +844,99 @@ export function PkmsGoogleDrivePane({
                 minHeight: 0
               }}
             >
-              <div style={{ display: 'flex', gap: 4, padding: 8, flex: '0 0 auto' }}>
-                {searchOpen ? (
-                  <>
-                    <input
-                      ref={driveSearchInputRef}
-                      data-drive-search
-                      aria-label="Search PKMS Google Drive workspace"
-                      placeholder="Search workspace"
-                      value={searchQuery}
-                      onChange={(event) => setSearchQuery(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Escape') {
+              <div className="pkms-google-drive-file-toolbar">
+                <div className="pkms-google-drive-file-toolbar-heading">
+                  <span>Files</span>
+                  <button
+                    type="button"
+                    className="pkms-google-drive-sync-state"
+                    onClick={() => void syncNow()}
+                    disabled={busy}
+                    title="Sync now"
+                  >
+                    <span
+                      className={`pkms-google-drive-sync-indicator${syncing ? ' is-busy' : error ? ' is-error' : ''}`}
+                    />
+                    <span>
+                      {syncing
+                        ? 'Syncing'
+                        : error
+                          ? 'Needs attention'
+                          : status.toLowerCase().includes('waiting')
+                            ? 'Waiting'
+                            : 'Up to date'}
+                    </span>
+                  </button>
+                </div>
+                <div className="pkms-google-drive-toolbar-actions">
+                  <button
+                    type="button"
+                    title="New note"
+                    aria-label="New note"
+                    onClick={() => void createItem('markdown')}
+                    disabled={busy}
+                  >
+                    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                      <path
+                        d="M3 1.75h6l4 4v8.5H3zM9 1.75v4h4M8 8v5M5.5 10.5h5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    title="New folder"
+                    aria-label="New folder"
+                    onClick={() => void createItem('folder')}
+                    disabled={busy}
+                  >
+                    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                      <path
+                        d="M1.75 4.5h5l1.25 1.25h6.25v7.5H1.75zM10.75 8v4M8.75 10h4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {searchOpen && (
+                <div className="pkms-google-drive-search-row">
+                  {searchOpen ? (
+                    <>
+                      <input
+                        ref={driveSearchInputRef}
+                        data-drive-search
+                        aria-label="Search PKMS Google Drive workspace"
+                        placeholder="Search workspace"
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') {
+                            setSearchOpen(false)
+                            setSearchQuery('')
+                          }
+                        }}
+                        style={{ minWidth: 0, flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
                           setSearchOpen(false)
                           setSearchQuery('')
-                        }
-                      }}
-                      style={{ minWidth: 0, flex: 1 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchOpen(false)
-                        setSearchQuery('')
-                      }}
-                      aria-label="Close search"
-                    >
-                      ×
-                    </button>
-                  </>
-                ) : null}
-              </div>
+                        }}
+                        aria-label="Close search"
+                      >
+                        ×
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              )}
               {searchOpen ? (
                 <div aria-live="polite" style={{ display: 'grid', gap: 2 }}>
                   {searchQuery.trim().length < 2 ? (
@@ -862,9 +982,7 @@ export function PkmsGoogleDrivePane({
                 </div>
               ) : (
                 <div
-                  ref={treeScrollRef}
-                  style={{ flex: 1, minHeight: 0, overflow: 'auto' }}
-                  onScroll={(event) => setTreeScrollTop(event.currentTarget.scrollTop)}
+                  className="pkms-google-drive-tree-scroll"
                   onContextMenu={(event) => {
                     if ((event.target as Element).closest('[role="treeitem"]')) return
                     event.preventDefault()
@@ -879,6 +997,9 @@ export function PkmsGoogleDrivePane({
                     emptyContent={
                       <span style={{ padding: 8, opacity: 0.65 }}>This folder is empty.</span>
                     }
+                    onKeyDown={handleTreeKeyDown}
+                    onScroll={setTreeScrollTop}
+                    onFocusPath={setFocusedTreePath}
                     onRootContextMenu={(event) =>
                       openTreeContextMenu(null, event.clientX, event.clientY)
                     }
@@ -891,6 +1012,7 @@ export function PkmsGoogleDrivePane({
                     }
                     onActivate={(item) => {
                       const entry = item.source as GoogleDriveWorkspaceEntry
+                      setFocusedTreePath(entry.path)
                       if (entry.kind === 'folder') void toggleFolder(entry)
                       else void openEntry(entry)
                     }}
