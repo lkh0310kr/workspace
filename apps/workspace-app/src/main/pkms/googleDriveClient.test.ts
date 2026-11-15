@@ -21,6 +21,22 @@ function jsonResponse(body: unknown, status = 200, headers?: HeadersInit): Respo
 }
 
 describe('Google Drive direct client', () => {
+  it('calls the platform fetch with its required global receiver when no fetcher is injected', async () => {
+    const fetcher = vi.fn(function (this: unknown) {
+      expect(this).toBe(globalThis)
+      return Promise.resolve(jsonResponse({ files: [] }))
+    })
+    vi.stubGlobal('fetch', fetcher as unknown as typeof fetch)
+    try {
+      const client = new GoogleDriveClient({ tokenProvider: tokenProvider() })
+
+      await expect(client.listChildren('workspace-root')).resolves.toEqual([])
+      expect(fetcher).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('paginates file listings and uses the direct Drive API with the injected token', async () => {
     const fetcher = vi
       .fn<typeof fetch>()

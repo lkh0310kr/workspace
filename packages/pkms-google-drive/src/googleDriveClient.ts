@@ -139,7 +139,7 @@ export class GoogleDriveClient {
   private readonly retry: Required<DriveRetryOptions>
 
   constructor(private readonly options: GoogleDriveClientOptions) {
-    this.fetcher = options.fetcher ?? fetch
+    this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis)
     this.sleep =
       options.sleep ??
       ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)))
