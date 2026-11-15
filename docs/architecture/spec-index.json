@@ -341,7 +341,7 @@
         },
         {
           "path": "scripts/check-editor-tree-contract.mjs",
-          "sha256": "5a41b2878b9eb308f6ceb00f2379c5d9dd14d8d9df0d20d066b1bf2de23c2087"
+          "sha256": "60678228bcd6cc40ed6723dc9b4d73160d17b917685458c90de33175ba34be7c"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/index.html",
@@ -535,7 +535,7 @@
         },
         {
           "path": "packages/pkms-client/src/PkmsClientApp.tsx",
-          "sha256": "0600782525100963fc3f4d7adf1d3f0b78c4345af591041d8e7ae3accb446753"
+          "sha256": "13cec5ba9f94f36d37ccf78143e1981c0a1180085d1ace1a9b813d5f71dae245"
         },
         {
           "path": "packages/pkms-client/src/realtime.ts",

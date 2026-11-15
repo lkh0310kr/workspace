@@ -23,8 +23,11 @@ const packageIndex = await readFile(packageIndexPath, 'utf8')
 const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
 const sharedTreeViewPath = path.join(root, 'packages/editor/src/EditorTreeView.tsx')
 const sharedTreeStylesPath = path.join(root, 'packages/editor/src/tree.css')
+const sharedTreePanePath = path.join(root, 'packages/editor/src/EditorTreePane.tsx')
+const sharedEditorMarkdownPath = path.join(root, 'packages/editor/src/EditorMarkdownEditor.tsx')
 const sharedTreeView = await readFile(sharedTreeViewPath, 'utf8')
 const sharedTreeStyles = await readFile(sharedTreeStylesPath, 'utf8')
+const sharedTreePane = await readFile(sharedTreePanePath, 'utf8')
 
 if (!/className=\{\['editor-tree-view',\s*className\]/.test(sharedTreeView)) {
   failures.push('EditorTreeView must apply the shared editor-tree-view root class.')
@@ -92,6 +95,19 @@ if (
 ) {
   failures.push('packages/editor/src/index.ts must publicly export EditorTreeToolbar.')
 }
+if (
+  !/export\s*\{[^}]*\bEditorMarkdownEditor\b[^}]*\}\s*from\s*['"]\.\/EditorMarkdownEditor['"]/.test(
+    packageIndex
+  )
+) {
+  failures.push('packages/editor/src/index.ts must publicly export EditorMarkdownEditor.')
+}
+for (const slot of ['header', 'footer']) {
+  if (!new RegExp(`\\b${slot}\\?: ReactNode`).test(sharedTreePane))
+    failures.push(`EditorTreePane must keep the host-owned ${slot} slot.`)
+  if (!sharedTreePane.includes(`editor-tree-pane-${slot}`))
+    failures.push(`EditorTreePane must render the shared ${slot} slot wrapper.`)
+}
 for (const component of ['EditorTreeView', 'EditorTreeRow', 'EditorTreeVirtualList']) {
   const exportPattern = new RegExp(`export\\s+\\{[^}]*\\b${component}\\b[^}]*\\}\\s+from`)
   if (exportPattern.test(packageIndex))
@@ -126,6 +142,25 @@ for (const relativePath of requiredToolbars) {
     failures.push(`${relativePath} must use the shared EditorTreeToolbar.`)
   }
 }
+
+const requiredEditorHosts = [
+  'apps/workspace-app/src/renderer/src/panes/EditorContent.tsx',
+  'apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx',
+  'packages/pkms-client/src/PkmsClientApp.tsx'
+]
+for (const relativePath of requiredEditorHosts) {
+  const source = await readFile(path.join(root, relativePath), 'utf8')
+  if (!source.includes('EditorMarkdownEditor'))
+    failures.push(`${relativePath} must compose the shared EditorMarkdownEditor.`)
+  if (!source.includes('editorMarkdownParserExtensions'))
+    failures.push(`${relativePath} must use the shared Markdown parser preset.`)
+  if (!source.includes('editorCodeMirrorHostExtensions'))
+    failures.push(`${relativePath} must use the shared CodeMirror host extensions.`)
+  if (!source.includes('resolveEditorWikiLink'))
+    failures.push(`${relativePath} must resolve PKMS wikilinks through @workspace/editor.`)
+}
+if (!/EditorMarkdownEditor/.test(await readFile(sharedEditorMarkdownPath, 'utf8')))
+  failures.push('packages/editor must own the shared Markdown frame implementation.')
 
 for (const directory of ['apps', 'packages/pkms-client/src']) {
   const files = await walk(path.join(root, directory))
