@@ -32,7 +32,7 @@ import {
   confirmDirtyEditorDocumentsInPaths,
   editorSupportsOperation,
   editorTreeItemLabel,
-  EditorTreeView,
+  EditorTreePane,
   EDITOR_TREE_DRAG_MIME_TYPE,
   EDITOR_TREE_ROW_HEIGHT,
   editorTreeSelectionRoots,
@@ -91,7 +91,10 @@ export function classifyFile(name: string): 'code' | 'markdown' | 'viewer' {
 
 /** Obsidian-style tree label: hide the `.md` suffix for markdown files. */
 export function treeEntryDisplayName(name: string): string {
-  return editorTreeItemLabel(name, classifyFile(name) === 'markdown' ? 'markdown' : 'code')
+  return editorTreeItemLabel(
+    name,
+    classifyFile(name) === 'markdown' && /\.md$/i.test(name) ? 'markdown' : 'code'
+  )
 }
 
 function dirOf(path: string): string {
@@ -897,60 +900,116 @@ export function TreeView({
 
   return (
     <>
-      <EditorTreeView
-        rootRef={treeRef}
-        scrollRef={scrollContainerRef}
-        projection={treeViewProjection}
-        className={`tree-view${dragOverPath === '' ? ' drag-over-root' : ''}`}
-        listClassName="tree-view-rows"
-        ariaLabel="Files"
-        canMove={canMove}
-        canMultiSelect={canMultiSelect}
-        dragMimeType={TREE_DRAG_MIME}
-        onClearSelection={treeSelection.clear}
-        onSetDropTarget={setDragOverPath}
-        onDropItems={(paths, destination) => void moveEntries(paths, destination)}
-        onFocusPath={treeSelection.setFocusedPath}
-        onKeyDown={(event) => {
-          if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return
-          event.preventDefault()
-          const entry = focusedEntry()
-          const rect = entry ? rowAnchor(entry, treeRef.current) : null
-          setMenu({
-            x: rect?.left ?? 0,
-            y: rect?.bottom ?? 0,
-            dir: entry ? (entry.is_dir ? entry.path : dirOf(entry.path)) : '',
-            entry
-          })
-        }}
-        onRootContextMenu={(event) =>
-          setMenu({ x: event.clientX, y: event.clientY, dir: '', entry: null })
+      <EditorTreePane
+        ariaLabel="Workspace files"
+        className="workspace-editor-tree-pane"
+        contentRef={scrollContainerRef as RefObject<HTMLDivElement | null> | undefined}
+        header={
+          <div className="workspace-editor-tree-toolbar">
+            <span>Files</span>
+            <div className="workspace-editor-tree-actions">
+              {canCreateFile && (
+                <button
+                  type="button"
+                  aria-label="New Markdown file"
+                  title="New Markdown file"
+                  onClick={() => void newFile('')}
+                >
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <path
+                      d="M3 1.75h6l4 4v8.5H3zM9 1.75v4h4M8 8v5M5.5 10.5h5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                    />
+                  </svg>
+                </button>
+              )}
+              {canCreateDirectory && (
+                <button
+                  type="button"
+                  aria-label="New folder"
+                  title="New folder"
+                  onClick={(event) => {
+                    const rect = event.currentTarget.getBoundingClientRect()
+                    newFolder('', {
+                      left: rect.left,
+                      right: rect.right,
+                      top: rect.top,
+                      bottom: rect.bottom,
+                      width: rect.width,
+                      height: rect.height
+                    })
+                  }}
+                >
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <path
+                      d="M1.75 4.5h5l1.25 1.25h6.25v7.5H1.75zM10.75 8v4M8.75 10h4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
         }
-        onSelectRow={(path, _index, additive, range) => {
-          treeRef.current?.focus()
-          treeSelection.select(path, focusedEntry()?.path ?? null, { additive, range })
-        }}
-        onActivate={(item) => {
-          const entry = item.source as DirEntry
-          if (entry.is_dir) toggle(entry.path)
-          else openFileFromTree(entry.path, classifyFile(entry.name), false)
-        }}
-        onDoubleActivate={(item) => {
-          const entry = item.source as DirEntry
-          if (!entry.is_dir) openFileFromTree(entry.path, classifyFile(entry.name), true)
-        }}
-        onDragStart={(item, _index, event) => onEntryDragStart(event, item.source as DirEntry)}
-        onContextMenu={(item, event) => {
-          const entry = item.source as DirEntry
-          if (!selected.has(entry.path))
-            treeSelection.select(entry.path, focusedEntry()?.path ?? null)
-          setMenu({
-            x: event.clientX,
-            y: event.clientY,
-            dir: entry.is_dir ? entry.path : dirOf(entry.path),
-            entry
-          })
-          if (entry.is_dir && !dirs.get(entry.path)?.loaded) loadDir(entry.path)
+        tree={{
+          rootRef: treeRef,
+          scrollRef: scrollContainerRef,
+          projection: treeViewProjection,
+          className: `tree-view${dragOverPath === '' ? ' drag-over-root' : ''}`,
+          listClassName: 'tree-view-rows',
+          ariaLabel: 'Files',
+          canMove,
+          canMultiSelect,
+          dragMimeType: TREE_DRAG_MIME,
+          onClearSelection: treeSelection.clear,
+          onSetDropTarget: setDragOverPath,
+          onDropItems: (paths, destination) => void moveEntries(paths, destination),
+          onFocusPath: treeSelection.setFocusedPath,
+          onKeyDown: (event) => {
+            if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return
+            event.preventDefault()
+            const entry = focusedEntry()
+            const rect = entry ? rowAnchor(entry, treeRef.current) : null
+            setMenu({
+              x: rect?.left ?? 0,
+              y: rect?.bottom ?? 0,
+              dir: entry ? (entry.is_dir ? entry.path : dirOf(entry.path)) : '',
+              entry
+            })
+          },
+          onRootContextMenu: (event) =>
+            setMenu({ x: event.clientX, y: event.clientY, dir: '', entry: null }),
+          onSelectRow: (path, _index, additive, range) => {
+            treeRef.current?.focus()
+            treeSelection.select(path, focusedEntry()?.path ?? null, { additive, range })
+          },
+          onActivate: (item) => {
+            const entry = item.source as DirEntry
+            if (entry.is_dir) toggle(entry.path)
+            else openFileFromTree(entry.path, classifyFile(entry.name), false)
+          },
+          onDoubleActivate: (item) => {
+            const entry = item.source as DirEntry
+            if (!entry.is_dir) openFileFromTree(entry.path, classifyFile(entry.name), true)
+          },
+          onDragStart: (item, _index, event) => onEntryDragStart(event, item.source as DirEntry),
+          onContextMenu: (item, event) => {
+            const entry = item.source as DirEntry
+            if (!selected.has(entry.path))
+              treeSelection.select(entry.path, focusedEntry()?.path ?? null)
+            setMenu({
+              x: event.clientX,
+              y: event.clientY,
+              dir: entry.is_dir ? entry.path : dirOf(entry.path),
+              entry
+            })
+            if (entry.is_dir && !dirs.get(entry.path)?.loaded) loadDir(entry.path)
+          }
         }}
       />
       {menu ? (

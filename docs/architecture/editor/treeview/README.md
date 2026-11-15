@@ -1,6 +1,6 @@
 # Treeview 스펙
 
-공유 [EditorTreeView](../../../../packages/editor/src/EditorTreeView.tsx)는 렌더·입력 라우팅을, [Desktop TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx)는 provider 로딩·영속 상태·실제 파일 작업을 소유한다.
+공유 [EditorTreePane](../../../../packages/editor/src/EditorTreePane.tsx)는 위·아래 chrome slot과 실제 tree를 하나의 pane으로 조립한다. 복합 host 전용 chrome은 같은 모듈의 `EditorTreeFrame`에 둔다. 공유 `EditorTreeView` 구현은 package 내부에 숨기고 소비자는 `EditorTreePane`을 통해서만 렌더한다. host는 provider 로딩·영속 상태·실제 파일 작업 및 제품별 slot content를 소유한다. 기본 Editor도 capability가 허용되면 pane 상단의 New Markdown file/New folder action을 노출한다.
 
 ## 상태와 데이터 흐름
 
@@ -25,7 +25,7 @@ Desktop TreeView는 pane 본문 위에 떠 있는 왼쪽 sidebar다. visible tog
 - 기본 row height=27px, overscan=4. start=max(0,floor(scrollTop/27)-4), count=ceil(height/27)+8, end=min(total,start+count).
 - top=start*27, bottom=max(0,(total-end)*27), totalHeight=total*27이다. height<=0 또는 빈 목록이면 원래 rows를 모두 반환하고 spacer=0이다.
 - VirtualList는 item.id key, `role=group`, minHeight=totalHeight, aria-hidden spacer와 빈 목록 표시를 사용한다.
-- Markdown row label은 `.md`만 대소문자 무관 제거한다. `.markdown`까지 제거하는 본문 제목 규칙과 다르다.
+- `editorTreeItemLabel`은 기본값에서 `.md`/`.markdown` suffix를 대소문자 무관 제거하지만 host는 표시 정책을 지정할 수 있다. 기본 Desktop Editor는 suffix를 표시하고 PKMS tree는 감춘다. 본문 title도 `.markdown` suffix를 제거하지만 row와는 별도 helper다.
 
 ## 선택과 키보드
 

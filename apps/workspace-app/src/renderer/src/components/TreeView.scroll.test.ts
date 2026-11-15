@@ -41,18 +41,23 @@ vi.mock('@workspace/editor', async () => {
   return {
     EDITOR_TREE_DRAG_MIME_TYPE: 'application/x-workspace-editor-tree-paths',
     EDITOR_TREE_ROW_HEIGHT: 27,
-    EditorTreeView: ({
-      rootRef,
-      projection
+    EditorTreePane: ({
+      tree
     }: {
-      rootRef: { current: HTMLElement | null }
-      projection: { rows: Array<{ path: string }> }
+      tree: {
+        rootRef: { current: HTMLElement | null }
+        projection: { rows: Array<{ path: string }> }
+      }
     }) =>
       React.createElement(
         'div',
-        { ref: rootRef },
-        ...projection.rows.map((row) =>
-          React.createElement('div', { key: row.path, 'data-tree-path': row.path })
+        null,
+        React.createElement(
+          'div',
+          { ref: tree.rootRef },
+          ...tree.projection.rows.map((row) =>
+            React.createElement('div', { key: row.path, 'data-tree-path': row.path })
+          )
         )
       ),
     confirmDirtyEditorDocumentsInPaths: vi.fn(async () => true),

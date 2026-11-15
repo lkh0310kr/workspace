@@ -180,8 +180,7 @@ export function WorkspaceExplorerSidebar({
     <>
       <div className="workspace-explorer-host">
         <div
-          ref={explorerScrollRef}
-          className="scroll-region obsidian-explorer"
+          className="obsidian-explorer"
           style={{
             width: treeWidth,
             display: showExplorerPanel ? undefined : 'none'
