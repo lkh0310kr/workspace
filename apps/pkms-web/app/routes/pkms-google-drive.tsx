@@ -160,6 +160,8 @@ export function meta() {
 
 export default function PkmsGoogleDriveRoute(): React.JSX.Element {
   const [googleIdentityReady, setGoogleIdentityReady] = useState(false)
+  const [googleIdentityError, setGoogleIdentityError] = useState('')
+  const [identityRetryKey, setIdentityRetryKey] = useState(0)
   const [connection, setConnection] = useState<Connection | null>(null)
   const [roots, setRoots] = useState<Array<{ id: string; name: string }>>([])
   const [runtime, setRuntime] = useState<WorkspaceRuntime | null>(null)
@@ -180,11 +182,34 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
     )
     if (hasGoogleIdentityServices()) {
       setGoogleIdentityReady(true)
+      setGoogleIdentityError('')
       return
     }
     const script = existingScript ?? document.createElement('script')
-    const handleLoad = () => setGoogleIdentityReady(hasGoogleIdentityServices())
-    const handleError = () => setError('Google Identity Services could not be loaded.')
+    let settled = false
+    const fail = (message: string) => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeout)
+      setGoogleIdentityReady(false)
+      setGoogleIdentityError(message)
+      script.remove()
+    }
+    const handleLoad = () => {
+      if (hasGoogleIdentityServices()) {
+        settled = true
+        window.clearTimeout(timeout)
+        setGoogleIdentityReady(true)
+        setGoogleIdentityError('')
+      } else {
+        fail('Google sign-in loaded without its required API. Retry loading it.')
+      }
+    }
+    const handleError = () => fail('Google sign-in could not load. Check your connection and retry.')
+    const timeout = window.setTimeout(
+      () => fail('Google sign-in is taking too long to load. Check your connection and retry.'),
+      15_000
+    )
     script.addEventListener('load', handleLoad)
     script.addEventListener('error', handleError)
     if (!existingScript) {
@@ -194,10 +219,11 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
       document.head.appendChild(script)
     }
     return () => {
+      window.clearTimeout(timeout)
       script.removeEventListener('load', handleLoad)
       script.removeEventListener('error', handleError)
     }
-  }, [])
+  }, [identityRetryKey])
 
   const connect = useCallback(async () => {
     setBusy(true)
@@ -449,11 +475,27 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
             disabled={busy || !googleIdentityReady}
           >
             {!googleIdentityReady
-              ? 'Loading Google sign-in…'
+              ? googleIdentityError
+                ? 'Google sign-in unavailable'
+                : 'Loading Google sign-in…'
               : connection
                 ? 'Reconnect Google Drive'
                 : 'Connect Google Drive'}
           </button>
+          {googleIdentityError ? (
+            <div className="pkms-google-drive-error" role="alert">
+              <span>{googleIdentityError}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setGoogleIdentityError('')
+                  setIdentityRetryKey((key) => key + 1)
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
           {runtime ? (
             <>
               <button type="button" onClick={() => void createItem('markdown')} disabled={busy}>
