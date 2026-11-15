@@ -3,11 +3,7 @@ import type { GoogleDriveWorkspaceRepository } from './workspaceRepository'
 
 export interface GoogleDriveOperationApplierHooks {
   /** Applies the common initial document state before any document updates. */
-  applyDocumentSeed(
-    fileId: string,
-    text: string,
-    operation: DriveLogicalOperation
-  ): Promise<void>
+  applyDocumentSeed(fileId: string, text: string, operation: DriveLogicalOperation): Promise<void>
   /** Must durably merge the Yjs update before resolving; retries must be idempotent. */
   applyDocumentUpdate(
     fileId: string,
@@ -85,7 +81,7 @@ export class GoogleDriveOperationApplier {
           await this.repository.move(mutation.fileId, mutation.targetDirectoryPath)
           break
         case 'trash':
-          await this.repository.trash(mutation.fileId)
+          await this.repository.trashIfPresent(mutation.fileId)
           break
       }
     }

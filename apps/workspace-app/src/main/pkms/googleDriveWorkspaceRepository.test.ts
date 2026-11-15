@@ -430,6 +430,38 @@ describe('GoogleDriveWorkspaceRepository', () => {
     )
   })
 
+  it('treats replayed trash of a missing workspace item as satisfied but preserves API errors', async () => {
+    const missingItemClient = {
+      getFile: vi.fn(async () => {
+        throw new DriveApiError(404, 'notFound', 'missing')
+      }),
+      listFiles: vi.fn(async () => []),
+      trashFile: vi.fn()
+    } as unknown as GoogleDriveClient
+    const missingItemRepository = new GoogleDriveWorkspaceRepository(missingItemClient, 'root')
+
+    await expect(
+      missingItemRepository.trashIfPresent('missing-stable-item')
+    ).resolves.toBeUndefined()
+    expect(missingItemClient.trashFile).not.toHaveBeenCalled()
+
+    const forbiddenLookup = new DriveApiError(403, 'forbidden', 'permission denied')
+    const deniedItemClient = {
+      getFile: vi.fn(async () => {
+        throw new DriveApiError(404, 'notFound', 'missing')
+      }),
+      listFiles: vi.fn(async () => {
+        throw forbiddenLookup
+      }),
+      trashFile: vi.fn()
+    } as unknown as GoogleDriveClient
+    const deniedItemRepository = new GoogleDriveWorkspaceRepository(deniedItemClient, 'root')
+
+    await expect(deniedItemRepository.trashIfPresent('unknown-stable-item')).rejects.toBe(
+      forbiddenLookup
+    )
+  })
+
   it('rejects stable-ID branch requests outside the selected workspace', async () => {
     const client = {
       getFile: vi.fn(async (id: string) => {

@@ -6,6 +6,13 @@ import {
 } from './googleDriveClient'
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
+
+export class GoogleDriveWorkspaceItemNotFoundError extends Error {
+  constructor(itemId: string) {
+    super(`PKMS item does not exist in this Google Drive workspace: ${itemId}`)
+    this.name = 'GoogleDriveWorkspaceItemNotFoundError'
+  }
+}
 const INTERNAL_DIRECTORY = '.pkms-sync'
 const WORKSPACE_ROOT_MARKER = { pkmsWorkspace: 'pkms-google-drive-v1' }
 
@@ -406,6 +413,16 @@ export class GoogleDriveWorkspaceRepository {
     return this.client.trashFile(current.id)
   }
 
+  /** Replayed delete intent is satisfied when the item has already left this workspace. */
+  async trashIfPresent(fileId: string): Promise<void> {
+    try {
+      await this.trash(fileId)
+    } catch (cause) {
+      if (cause instanceof GoogleDriveWorkspaceItemNotFoundError) return
+      throw cause
+    }
+  }
+
   async ensureProtocolFolder(name: string): Promise<DriveFile> {
     if (!name.startsWith('.'))
       throw new Error('Protocol folders must use a reserved dot-prefix name.')
@@ -490,12 +507,8 @@ export class GoogleDriveWorkspaceRepository {
             !path.startsWith(`${INTERNAL_DIRECTORY}/`)
         )
         .map(({ match }) => match)
-      if (visibleMatches.length !== 1)
-        throw new Error(
-          visibleMatches.length
-            ? `PKMS item identity is ambiguous: ${itemId}`
-            : `PKMS item does not exist in this Google Drive workspace: ${itemId}`
-        )
+      if (visibleMatches.length === 0) throw new GoogleDriveWorkspaceItemNotFoundError(itemId)
+      if (visibleMatches.length > 1) throw new Error(`PKMS item identity is ambiguous: ${itemId}`)
       return visibleMatches[0]
     }
     if (file.id === this.rootId) return file

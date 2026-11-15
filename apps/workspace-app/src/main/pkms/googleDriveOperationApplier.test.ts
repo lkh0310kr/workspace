@@ -44,9 +44,8 @@ describe('GoogleDriveOperationApplier', () => {
         events.push(`move:${fileId}:${path}`)
         return {} as never
       }),
-      trash: vi.fn(async (fileId) => {
+      trashIfPresent: vi.fn(async (fileId) => {
         events.push(`trash:${fileId}`)
-        return {} as never
       })
     } as unknown as GoogleDriveWorkspaceRepository
     const hooks = {
