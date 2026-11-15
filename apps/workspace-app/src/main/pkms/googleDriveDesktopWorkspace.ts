@@ -4,16 +4,14 @@ import {
   GoogleDriveClient,
   GoogleDriveOperationLog,
   GoogleDriveWorkspaceRepository,
+  listGoogleDriveWorkspaceRoots,
+  resolveGoogleDriveWorkspaceRoot,
   GoogleDriveYjsDocumentStore,
   createGoogleDriveWorkspaceSync,
   replaceGoogleDriveYText
 } from '@pkms/google-drive'
 import { googleDriveDesktopOAuth } from './googleDriveDesktopOAuthRuntime'
 import { GoogleDriveDesktopStorage } from './googleDriveDesktopStorage'
-
-const WORKSPACE_MARKER = 'pkms-google-drive-v1'
-const WORKSPACE_ROOT_QUERY =
-  "mimeType = 'application/vnd.google-apps.folder' and trashed = false and appProperties has { key='pkmsWorkspace' and value='pkms-google-drive-v1' }"
 
 interface DesktopWorkspaceRuntime {
   rootId: string
@@ -34,26 +32,15 @@ export class GoogleDriveDesktopWorkspaceService {
   private readonly workspaces = new Map<string, DesktopWorkspaceRuntime>()
 
   async listRoots() {
-    return this.client.listFiles({
-      query: WORKSPACE_ROOT_QUERY,
-      pageSize: 100,
-      fields: 'id,name,mimeType,appProperties,webViewLink'
-    })
+    return listGoogleDriveWorkspaceRoots(this.client)
   }
 
   async createWorkspace() {
-    const root = await this.client.createFolder('PKMS', null, { pkmsWorkspace: WORKSPACE_MARKER })
-    return this.connect(root.id)
+    return this.connect((await resolveGoogleDriveWorkspaceRoot(this.client)).id)
   }
 
   async connect(rootId: string) {
-    const root = await this.client.getFile(rootId)
-    if (
-      root.trashed ||
-      root.mimeType !== 'application/vnd.google-apps.folder' ||
-      root.appProperties?.pkmsWorkspace !== WORKSPACE_MARKER
-    )
-      throw new Error('The selected folder is not a PKMS Google Drive workspace.')
+    const root = await resolveGoogleDriveWorkspaceRoot(this.client, rootId)
 
     await this.disconnect(rootId)
     const repository = new GoogleDriveWorkspaceRepository(this.client, rootId)
