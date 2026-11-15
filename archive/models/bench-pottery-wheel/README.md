@@ -1,10 +1,10 @@
-# bench-pottery-wheel — viewer + text-to-cad benchmark
+# bench-pottery-wheel — viewer + text-to-cad 벤치마크
 
-Single assembly grown step-by-step to validate Workspace **STEP → glb viewer**, **cadgen**, and **live reload**.
+Workspace의 **STEP → glb viewer**, **cadgen**, **live reload**를 검증하기 위해 단계별로 확장하는 단일 assembly입니다.
 
 ## Phases
 
-| Phase | Model | What it tests |
+| Phase | 모델 | 검증 항목 |
 |-------|--------|----------------|
 | **B0** ✅ | `wheel_head` — solid disc | STEP build, preview, cache hit |
 | **B1** ✅ | `wheel_head` — rim, boss, bat pins, fillets | tessellation time, triangle count |
@@ -24,10 +24,10 @@ npm run agents:python -- models/bench-pottery-wheel/src/assembly.py
 npm run agents:bench:pottery-wheel   # B7: rebuild + timing JSON
 ```
 
-Open `STEP/assembly.step` in Workspace. For the live-reload loop see `bench/B7-live-reload.md`.
+Workspace에서 `STEP/assembly.step`을 여세요. live-reload 반복 작업은 `bench/B7-live-reload.md`를 참고하세요.
 
 ## Benchmark log (fill each phase)
 
-| Phase | build (s) | STEP KB | convert (s) | cache hit | viewer OK |
+| Phase | 빌드 (초) | STEP KB | 변환 (초) | cache hit | viewer 정상 |
 |-------|-----------|---------|-------------|-----------|-----------|
 | B0 | | | | | |
