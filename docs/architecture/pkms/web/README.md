@@ -8,6 +8,7 @@ App scope는 React Router UI/SSR·assets·canonical origin·기존 PKMS Worker s
 
 | 조건                                                  | 동작                                                       |
 | ----------------------------------------------------- | ---------------------------------------------------------- |
+| Vite DEV + localhost/127.0.0.1/::1 요청               | canonical redirect를 건너뛰어 local route와 asset 제공    |
 | X-PKMS-Web-Internal 값이 1이 아님                     | path/query를 보존해 PKMS_CANONICAL_ORIGIN으로 302 redirect |
 | internal + /api/, /.well-known/, /mcp, /oauth/ prefix | PKMS_SERVER service binding으로 forward                    |
 | internal + 그 외 path, asset 응답이 404 아님          | ASSET_FILES 응답 그대로 반환                               |
@@ -15,7 +16,7 @@ App scope는 React Router UI/SSR·assets·canonical origin·기존 PKMS Worker s
 
 forward는 PKMS_SERVER_ORIGIN으로 path/query를 옮기고 Origin/Host header를 제거한다. GET/HEAD는 body 없이, 다른 method는 기존 body를 사용하며 redirect=manual이다. 이 internal header는 구현 routing marker이며 자체로 end-to-end authorization을 대체한다고 설명하지 않는다.
 
-PKMS API Worker가 canonical origin의 페이지 요청에 internal header를 붙여 Web Worker로 전달한다. browser host-only session cookie와 GitHub callback은 canonical PKMS origin에 남는다. Web Worker 배포 origin으로 직접 방문하는 흐름과 일반 사용자의 canonical browser 요청을 구분한다.
+PKMS API Worker가 canonical origin의 페이지 요청에 internal header를 붙여 Web Worker로 전달한다. browser host-only session cookie와 GitHub callback은 canonical PKMS origin에 남는다. Web Worker 배포 origin으로 직접 방문하는 흐름과 일반 사용자의 canonical browser 요청을 구분한다. Vite development 환경의 loopback host만 redirect를 생략하며, 배포 Worker의 동작에는 영향을 주지 않는다.
 
 ## UI·상태 owner
 
