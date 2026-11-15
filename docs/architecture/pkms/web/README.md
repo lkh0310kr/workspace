@@ -1,10 +1,10 @@
 # PKMS Web app 계약
 
-App scope는 React Router UI/SSR·assets·canonical origin·Worker service proxy다. 공용 UI는 [pkms-client](../client/editor-sessions.md), 저장·인증은 [PKMS Server](../../../../apps/pkms-server/README.md)가 소유한다. Web 앱이 database나 native 폴더를 직접 관리하지 않는다.
+App scope는 React Router UI/SSR·assets·canonical origin·기존 PKMS Worker service proxy를 소유한다. 현재 `/`는 direct Google Drive route를 표시하고 browser가 Google Drive API를 직접 호출한다. 기존 API-backed PKMS UI는 `/existing-pkms`에서 migration fallback으로 남아 있으며 이 경로의 저장·인증은 [PKMS Server](../../../../apps/pkms-server/README.md)가 소유한다. Google Drive 경로는 Web 앱이 자체 backend를 거치지 않으며 browser IndexedDB만 durable local outbox/cache로 사용한다.
 
 ## Request routing
 
-근거: [workers/web.ts](../../../../apps/pkms-web/workers/web.ts), [route tree](../../../../apps/pkms-web/app/routes.ts), [home route](../../../../apps/pkms-web/app/routes/home.tsx).
+근거: [workers/web.ts](../../../../apps/pkms-web/workers/web.ts), [route tree](../../../../apps/pkms-web/app/routes.ts), [home route](../../../../apps/pkms-web/app/routes/home.tsx), [existing PKMS fallback](../../../../apps/pkms-web/app/routes/existing-pkms.tsx), [Google Drive route](../../../../apps/pkms-web/app/routes/pkms-google-drive.tsx).
 
 | 조건                                                  | 동작                                                       |
 | ----------------------------------------------------- | ---------------------------------------------------------- |
@@ -19,9 +19,9 @@ PKMS API Worker가 canonical origin의 페이지 요청에 internal header를 �
 
 ## UI·상태 owner
 
-root/entry/routes는 SSR와 hydration·route shell, PkmsClientApp은 로그인·workspace·파일·문서 UI를 소유한다. 파일 URL·React Router 전이는 package client의 fileLocation 규칙을 사용한다. Desktop MemoryRouter/Shadow DOM/IPC는 이 Web 앱의 책임이 아니다. shared Editor의 view/cache/preview 계약은 editor package를 따른다.
+root/entry/routes는 SSR와 hydration·route shell을 소유한다. `/`의 Google Drive route는 OAuth popup/token memory, Drive tree와 Markdown UI를 browser에서 직접 운영하며 folder branch만 조회하고 문서 본문은 열 때 내려받는다. `/existing-pkms`의 PkmsClientApp은 기존 로그인·workspace·파일·문서 흐름을 유지한다. Desktop MemoryRouter/Shadow DOM/IPC는 이 Web 앱의 책임이 아니다. shared Editor의 view/cache/preview 계약은 editor package를 따른다.
 
-환경의 ASSET_FILES, PKMS_SERVER, PKMS_SERVER_ORIGIN, PKMS_CANONICAL_ORIGIN이 필요하다. 실제 배포 값·명령은 [앱 README](../README.md)와 wrangler config를 기준으로 한다.
+기존 PKMS fallback 및 MCP/API routing에는 ASSET_FILES, PKMS_SERVER, PKMS_SERVER_ORIGIN, PKMS_CANONICAL_ORIGIN이 필요하다. `/`의 Drive data path에는 PKMS_SERVER binding이 관여하지 않으며 Google OAuth Web client의 authorized origin과 Drive API scope 설정이 필요하다. 실제 배포 값·명령은 [앱 README](../README.md)와 wrangler config를 기준으로 한다.
 
 ## 수락과 제한
 

@@ -1,9 +1,9 @@
-import PkmsClientApp from '@pkms/client/PkmsClientApp'
+import PkmsGoogleDriveRoute from './pkms-google-drive'
 
 export function meta() {
-  return [{ title: 'PKMS — Markdown workspace' }]
+  return [{ title: 'PKMS Google Drive' }]
 }
 
 export default function HomeRoute(): React.JSX.Element {
-  return <PkmsClientApp />
+  return <PkmsGoogleDriveRoute />
 }

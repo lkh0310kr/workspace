@@ -2,7 +2,9 @@
 
 현재 앱의 경계·상태·계약은 [app scope 문서](../../docs/architecture/pkms/web/README.md)를 기준으로 합니다.
 
-이 app은 browser UI와 React Router SSR을 소유한다. Worker는 `/api/*`, `/.well-known/*`, `/mcp`, `/oauth/*`를 독립 PKMS API Worker인 `pkms-cloud`로 proxy한다. Browser 요청은 same-origin을 유지하고 인증, 저장, 협업, MCP와 GitHub backup은 PKMS server가 소유한다.
+`/`의 기본 PKMS UI는 browser에서 Google Drive API로 직접 연결하며 중간 PKMS sync Worker/server를 data path에 사용하지 않는다. OAuth access token은 memory-only, outbox/document cache는 IndexedDB에 저장하고, tree는 branch별로 읽으며 Markdown 본문은 파일 open 시 lazy-load한다. 기존 API-backed 제품은 `/existing-pkms`에 migration fallback으로 남아 있다.
+
+Worker는 기존 fallback 및 `/api/*`, `/.well-known/*`, `/mcp`, `/oauth/*`를 위해 유지되며 해당 경로는 독립 PKMS API Worker인 `pkms-cloud`를 사용한다. Google Drive route는 이 service proxy를 통한 파일 CRUD/sync를 호출하지 않는다.
 
 ## Development
 
