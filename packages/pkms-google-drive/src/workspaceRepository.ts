@@ -23,9 +23,11 @@ export async function listGoogleDriveWorkspaceRoots(
 
   // A few prototype builds created the root before persisting its marker. Only
   // recover an app-owned Drive root with PKMS protocol artifacts beneath it.
-  const candidates = (await client.listChildren('root')).filter(
-    (file) => file.name === 'PKMS' && file.mimeType === FOLDER_MIME && !file.trashed
-  )
+  const candidates = await client.listFiles({
+    query: `name = 'PKMS' and mimeType = '${FOLDER_MIME}' and trashed = false`,
+    pageSize: 100,
+    fields: 'id,name,mimeType,parents,trashed,appProperties,webViewLink'
+  })
   for (const root of candidates) {
     const children = await client.listChildren(root.id)
     if (

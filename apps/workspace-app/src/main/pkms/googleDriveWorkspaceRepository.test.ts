@@ -115,14 +115,16 @@ describe('GoogleDriveWorkspaceRepository', () => {
   it('recovers and marks a PKMS root created by an early build', async () => {
     const root = folder('legacy-root', 'PKMS')
     const protocolFolder = folder('protocol', '.pkms-sync', ['legacy-root'])
-    const listFiles = vi.fn(async () => [])
+    const listFiles = vi.fn(async ({ query }: { query?: string }) =>
+      query?.includes("key='pkmsWorkspace'") ? [] : [root]
+    )
     const updateFileMetadata = vi.fn(async (_id: string, metadata: Record<string, unknown>) => ({
       ...root,
       appProperties: metadata.appProperties as Record<string, string>
     }))
     const client = {
       listFiles,
-      listChildren: vi.fn(async (id: string) => (id === 'root' ? [root] : [protocolFolder])),
+      listChildren: vi.fn(async () => [protocolFolder]),
       updateFileMetadata,
       createFolder: vi.fn()
     } as unknown as GoogleDriveClient
