@@ -36,6 +36,13 @@ if (
 ) {
   failures.push('packages/editor/src/tree.css must own common tree root geometry.')
 }
+if (
+  !/\.editor-tree-item\s*\{[^}]*height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*min-height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*padding-block:\s*3px[^}]*border:\s*0[^}]*border-radius:\s*4px/s.test(
+    sharedTreeStyles
+  )
+) {
+  failures.push('packages/editor/src/tree.css must own shared tree row geometry.')
+}
 
 for (const [relativePath, selector] of [
   ['apps/workspace-app/src/renderer/src/assets/styles.css', '.tree-view'],
@@ -50,6 +57,22 @@ for (const [relativePath, selector] of [
   if (/\b(?:display|flex|height|min-height|max-height|margin|padding|gap)\s*:/.test(rule[1])) {
     failures.push(`${relativePath} must leave ${selector} root geometry to @workspace/editor.`)
   }
+}
+
+const driveStylesPath = path.join(root, 'packages/pkms-google-drive/src/workspace.css')
+const driveStyles = await readFile(driveStylesPath, 'utf8')
+if (!driveStyles.includes('.pkms-google-drive-root button:not(.editor-tree-item)')) {
+  failures.push('Google Drive button styling must exclude the shared EditorTreeRow.')
+}
+if (
+  !driveStyles.includes(
+    '.pkms-google-drive-root button:not(.editor-tree-item):hover:not(:disabled)'
+  )
+) {
+  failures.push('Google Drive hover styling must exclude the shared EditorTreeRow.')
+}
+if (/\.editor-markdown-document\.pkms-google-drive-markdown\s+\.editor-markdown-title\s*\{/.test(driveStyles)) {
+  failures.push('Google Drive must use the shared Markdown filename title width.')
 }
 
 if (

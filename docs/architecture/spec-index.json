@@ -340,7 +340,7 @@
         },
         {
           "path": "scripts/check-editor-tree-contract.mjs",
-          "sha256": "11d8dff04d92a898f49c57fe3abce0b3bc14630c67034b7897e488cf6a99ea29"
+          "sha256": "cb6e4d9c6adf6ffa28da04d7d8014e1acc23176ad9a3fabd85d4b26d71d007d9"
         }
       ]
     },
@@ -1291,7 +1291,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/workspace.css",
-          "sha256": "c9399f2115bb41fdc09ba46abca5d6ac03c86207b87382c40b0c80fccd12f633"
+          "sha256": "40ba798fe630a272f7decaac2b953a99fa684b42613ed27a81064d099adf444a"
         }
       ]
     },

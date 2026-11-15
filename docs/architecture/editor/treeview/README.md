@@ -1,6 +1,6 @@
 # Treeview 스펙
 
-공유 [EditorTreePane](../../../../packages/editor/src/EditorTreePane.tsx)는 위·아래 chrome slot과 실제 tree를 하나의 pane으로 조립한다. 트리 제목·상태·action 배치는 `EditorTreeToolbar`를 사용한다. 복합 host 전용 chrome은 같은 모듈의 `EditorTreeFrame`에 둔다. 공유 `EditorTreeView`, row, virtual-list 구현은 package 내부에 숨기고 소비자는 `EditorTreePane`을 통해서만 렌더한다. host는 provider 로딩·영속 상태·실제 파일 작업 및 제품별 slot content를 소유한다. 기본 Editor도 capability가 허용되면 pane 상단의 New Markdown file/New folder action을 노출한다. `EditorTreeView`가 공통 root 배치와 세로 여백을 소유하고 host CSS는 스크롤 container만 선택한다. `npm run check:editor-tree-contract`는 제품별 공용 tree 진입점과 package-private 구현 경계를 검사한다.
+공유 [EditorTreePane](../../../../packages/editor/src/EditorTreePane.tsx)는 위·아래 chrome slot과 실제 tree를 하나의 pane으로 조립한다. 트리 제목·상태·action 배치는 `EditorTreeToolbar`를 사용한다. 복합 host 전용 chrome은 같은 모듈의 `EditorTreeFrame`에 둔다. 공유 `EditorTreeView`, row, virtual-list 구현은 package 내부에 숨기고 소비자는 `EditorTreePane`을 통해서만 렌더한다. host는 provider 로딩·영속 상태·실제 파일 작업 및 제품별 slot content를 소유한다. 기본 Editor도 capability가 허용되면 pane 상단의 New Markdown file/New folder action을 노출한다. `EditorTreeView`가 공통 root 배치와 세로 여백을, `.editor-tree-item`이 행 크기·테두리·padding을 소유한다. host CSS는 스크롤 container와 비행 action만 꾸미고 공용 row에 적용되는 광역 `button` 규칙을 두지 않는다. `npm run check:editor-tree-contract`는 제품별 공용 tree 진입점과 package-private 구현 경계를 검사한다.
 
 ## 상태와 데이터 흐름
 
@@ -90,5 +90,6 @@ host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용�
 | TREE-22 | tree row를 스크롤하고 pane을 탐색                                                | pane header/footer는 고정되고 가상 row content만 scroll되며 PKMS 고유 toolbar·workspace 선택 등은 각각 header/footer slot에 남음                 |
 | TREE-23 | Workspace Editor, Desktop PKMS, Web PKMS의 tree header를 렌더링                       | 모두 `EditorTreeToolbar` 구조를 쓰고 제목·sync status·action은 host/provider capability에 따라 달라지며 row shell은 `EditorTreePane` 하나를 공유 |
 | TREE-24 | Workspace Editor, Desktop PKMS, Web PKMS tree의 첫 행과 scroll viewport를 비교        | 공유 TreeView root의 세로 여백·row 높이가 같고 host별 차이는 pane 바깥 scroll owner와 header/footer slot에 한정됨                                 |
+| TREE-25 | 기본 Editor와 Desktop Drive에서 folder/file row를 각각 렌더링하고 hover·selection 적용 | 두 host의 row 높이·border·padding·disclosure·name alignment가 같고 PKMS sync status만 trailing slot에 추가됨                                      |
 
 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test, `TreeView.scroll.test.ts`, `scripts/check-editor-tree-contract.mjs`다. TreeView 통합 테스트는 저장 anchor 복원, active file 변경 후 scroll 유지, unmount/remount 뒤 재복원을 확인한다. 계약 검사는 세 제품의 pane/toolbar 진입점, package export/subpath, 내부 component 직접 import를 확인하며 `npm run check`에서 실행한다. `WorkspaceExplorerSidebar.shortcut.test.ts`는 물리 Backslash 입력으로 toggle handler가 닫기와 재열기를 수행하는지 검증한다. Git ignore 판정은 files.test에서 별도 검증한다. provider I/O 실패·dirty 확인·실제 DnD도 추가 통합 검증이 필요하다.

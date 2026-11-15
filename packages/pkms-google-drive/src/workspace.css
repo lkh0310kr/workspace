@@ -14,7 +14,7 @@
     sans-serif;
 }
 
-.pkms-google-drive-root button {
+.pkms-google-drive-root button:not(.editor-tree-item) {
   appearance: none;
   min-height: 32px;
   padding: 6px 10px;
@@ -26,7 +26,7 @@
   cursor: pointer;
 }
 
-.pkms-google-drive-root button:hover:not(:disabled) {
+.pkms-google-drive-root button:not(.editor-tree-item):hover:not(:disabled) {
   background: color-mix(in srgb, currentColor 6%, transparent);
 }
 
@@ -518,13 +518,6 @@
 .pkms-google-drive-root.is-desktop .editor-title-block {
   box-sizing: border-box;
   width: 100%;
-}
-
-.editor-markdown-document.pkms-google-drive-markdown .editor-markdown-title {
-  width: max(0px, calc(100% - 220px));
-  max-width: 540px;
-  margin: 0;
-  padding-right: 0;
 }
 
 .pkms-pane-host > nav[aria-label='PKMS storage source'] button {
