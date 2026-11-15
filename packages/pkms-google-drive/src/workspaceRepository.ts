@@ -164,7 +164,8 @@ export class GoogleDriveWorkspaceRepository {
 
   /** Lists one tree branch by stable item ID without scanning unrelated folders. */
   async listDirectoryById(parentItemId: string | null): Promise<GoogleDriveWorkspaceEntry[]> {
-    if (parentItemId === null) return this.listDirectoryContents(this.rootId, '')
+    if (parentItemId === null || parentItemId === this.rootId)
+      return this.listDirectoryContents(this.rootId, '')
     const parent = await this.resolveDriveFile(parentItemId)
     if (parent.trashed || parent.mimeType !== FOLDER_MIME)
       throw new Error('The requested Google Drive tree parent is not a folder.')

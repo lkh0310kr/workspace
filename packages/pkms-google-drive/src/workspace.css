@@ -387,6 +387,87 @@
   color: var(--status-danger, var(--danger, #c33));
 }
 
+.pkms-google-drive-dialog-backdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #0007;
+}
+
+.pkms-google-drive-dialog {
+  box-sizing: border-box;
+  width: min(400px, 100%);
+  padding: 22px;
+  border: 1px solid var(--border, var(--drive-border));
+  border-radius: 10px;
+  color: var(--text, #262626);
+  background: var(--bg-surface, var(--bg-base, #fff));
+  box-shadow: 0 14px 50px #0005;
+  text-align: left;
+}
+
+.pkms-google-drive-dialog h2 {
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.pkms-google-drive-dialog p {
+  margin: 0 0 20px;
+  color: var(--text-muted, var(--drive-muted));
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pkms-google-drive-root .pkms-google-drive-dialog-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border, var(--drive-border));
+  border-radius: 6px;
+  outline: 0;
+  color: var(--text, #262626);
+  background: var(--bg-base, #fff);
+  font: inherit;
+}
+
+.pkms-google-drive-root .pkms-google-drive-dialog-input:focus {
+  border-color: var(--accent, #7356a5);
+}
+
+.pkms-google-drive-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.pkms-google-drive-root .pkms-google-drive-dialog-actions button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+}
+
+.pkms-google-drive-root .pkms-google-drive-dialog-cancel {
+  border-color: var(--border, var(--drive-border));
+  color: var(--text, #262626);
+}
+
+.pkms-google-drive-root .pkms-google-drive-dialog-submit {
+  border-color: var(--accent, #7356a5);
+  color: #fff;
+  background: var(--accent, #7356a5) !important;
+}
+
+.pkms-google-drive-root .pkms-google-drive-dialog-submit.is-danger {
+  border-color: var(--status-danger, #c33);
+  background: var(--status-danger, #c33) !important;
+}
+
 .pkms-google-drive-root.is-desktop .pkms-google-drive-editor {
   min-height: 0;
   overflow: auto;

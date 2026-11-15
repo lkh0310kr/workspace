@@ -356,6 +356,27 @@ describe('GoogleDriveWorkspaceRepository', () => {
     expect(client.listChildren).toHaveBeenCalledWith('parent')
   })
 
+  it('lists root children when a caller supplies the workspace root ID', async () => {
+    const root = folder('root', 'PKMS')
+    const note: DriveFile = {
+      id: 'note',
+      name: 'draft.md',
+      mimeType: 'text/markdown',
+      parents: ['root']
+    }
+    const client = {
+      getFile: vi.fn(async (id: string) => (id === 'root' ? root : note)),
+      listChildren: vi.fn(async (id: string) => (id === 'root' ? [note] : []))
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(repository.listDirectoryById('root')).resolves.toMatchObject([
+      { id: 'note', path: 'draft.md', kind: 'markdown' }
+    ])
+    expect(client.listChildren).toHaveBeenCalledWith('root')
+    expect(client.getFile).not.toHaveBeenCalled()
+  })
+
   it('resolves a created item without confusing its operation log record for the item', async () => {
     const note: DriveFile = {
       id: 'drive-note',
