@@ -251,7 +251,14 @@ test('all host surfaces align common tree rows and readable document columns', a
   const measurements: Array<{
     folderStyle: Record<string, string>
     fileStyle: Record<string, string>
-    createActions: Array<{ width: number; height: number }>
+    createActions: Array<{
+      width: number
+      height: number
+      padding: string
+      borderWidth: string
+      borderStyle: string
+      borderRadius: string
+    }>
     headingFoldControl: Record<string, string>
     title: { x: number; width: number }
     body: { x: number; width: number }
@@ -312,8 +319,16 @@ test('all host surfaces align common tree rows and readable document columns', a
       createActions: await Promise.all(
         ['New Markdown file', 'New folder'].map((label) =>
           page.getByRole('button', { name: label }).evaluate((element) => {
+            const style = getComputedStyle(element)
             const { width, height } = element.getBoundingClientRect()
-            return { width: Math.round(width), height: Math.round(height) }
+            return {
+              width: Math.round(width),
+              height: Math.round(height),
+              padding: style.padding,
+              borderWidth: style.borderWidth,
+              borderStyle: style.borderStyle,
+              borderRadius: style.borderRadius
+            }
           })
         )
       ),
@@ -342,8 +357,22 @@ test('all host surfaces align common tree rows and readable document columns', a
     expect(measurement.folderStyle.height).toBe('27px')
     expect(measurement.fileStyle.height).toBe('27px')
     expect(measurement.createActions).toEqual([
-      { width: 26, height: 26 },
-      { width: 26, height: 26 }
+      {
+        width: 26,
+        height: 26,
+        padding: '0px',
+        borderWidth: '0px',
+        borderStyle: 'none',
+        borderRadius: '0px'
+      },
+      {
+        width: 26,
+        height: 26,
+        padding: '0px',
+        borderWidth: '0px',
+        borderStyle: 'none',
+        borderRadius: '0px'
+      }
     ])
     expect(Math.abs(measurement.title.x - measurement.body.x)).toBeLessThanOrEqual(1)
     expect(Math.abs(measurement.title.width - measurement.body.width)).toBeLessThanOrEqual(1)

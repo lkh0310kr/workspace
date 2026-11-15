@@ -52,12 +52,12 @@ if (!/\.editor-tree-item\s*\{[^}]*line-height:\s*1\.4/s.test(sharedTreeStyles)) 
   failures.push('packages/editor/src/tree.css must own shared tree row line height.')
 }
 if (
-  !/\.editor-tree-create-actions button\s*\{[^}]*width:\s*26px[^}]*height:\s*26px[^}]*padding:\s*0[^}]*border:\s*0[^}]*border-radius:\s*0/s.test(
+  !/\.editor-tree-create-actions button\s*\{[^}]*all:\s*unset[^}]*width:\s*26px[^}]*height:\s*26px/s.test(
     sharedTreeStyles
   )
 ) {
   failures.push(
-    'packages/editor/src/tree.css must own borderless 26px shared tree creation controls.'
+    'packages/editor/src/tree.css must normalize shared tree creation controls without adding box decoration.'
   )
 }
 if (

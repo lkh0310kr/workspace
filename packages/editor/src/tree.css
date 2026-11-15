@@ -83,16 +83,15 @@
   gap: 3px;
 }
 .editor-tree-create-actions button {
+  all: unset;
   display: inline-grid;
+  box-sizing: border-box;
   width: 26px;
   min-width: 26px;
   height: 26px;
   min-height: 26px;
   max-height: 26px;
   place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
   color: var(--editor-tree-action, var(--muted, currentColor));
   background: transparent;
   cursor: pointer;
