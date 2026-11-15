@@ -239,6 +239,58 @@ describe('GoogleDriveWorkspaceRepository', () => {
     ])
   })
 
+  it('lists one branch by stable ID and resolves individual workspace entries', async () => {
+    const root = folder('root', 'PKMS')
+    const parent = folder('parent', 'notes', ['root'])
+    const note: DriveFile = {
+      id: 'note',
+      name: 'draft.md',
+      mimeType: 'text/markdown',
+      parents: ['parent'],
+      appProperties: { pkmsItemId: 'stable-note' }
+    }
+    const client = {
+      getFile: vi.fn(async (id: string) => {
+        if (id === 'root') return root
+        if (id === 'parent') return parent
+        if (id === 'note') return note
+        throw new DriveApiError(404, 'notFound', 'missing')
+      }),
+      listFiles: vi.fn(async () => [note]),
+      listChildren: vi.fn(async (id: string) => (id === 'parent' ? [note] : []))
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(repository.listDirectoryById('parent')).resolves.toMatchObject([
+      { id: 'stable-note', path: 'notes/draft.md', kind: 'markdown' }
+    ])
+    await expect(repository.getEntry('stable-note')).resolves.toMatchObject({
+      id: 'stable-note',
+      path: 'notes/draft.md',
+      kind: 'markdown'
+    })
+    expect(client.listChildren).toHaveBeenCalledTimes(1)
+    expect(client.listChildren).toHaveBeenCalledWith('parent')
+  })
+
+  it('rejects stable-ID branch requests outside the selected workspace', async () => {
+    const client = {
+      getFile: vi.fn(async (id: string) => {
+        if (id === 'root') return folder('root', 'PKMS')
+        if (id === 'outside') return folder('outside', 'outside', ['other-root'])
+        if (id === 'other-root') return folder('other-root', 'Other')
+        throw new DriveApiError(404, 'notFound', 'missing')
+      }),
+      listChildren: vi.fn(async () => [])
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(repository.listDirectoryById('outside')).rejects.toThrow(
+      /outside this PKMS workspace/
+    )
+    expect(client.listChildren).not.toHaveBeenCalled()
+  })
+
   it('refuses ambiguous paths and moving a folder into itself', async () => {
     const client = {
       getFile: vi.fn(async (id: string) =>

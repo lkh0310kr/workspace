@@ -111,13 +111,40 @@ export class GoogleDriveWorkspaceRepository {
 
   async listDirectory(path: string): Promise<GoogleDriveWorkspaceEntry[]> {
     const parent = await this.resolveDirectory(path)
-    const children = await this.client.listChildren(parent.id)
+    return this.listDirectoryContents(parent.id, path)
+  }
+
+  /** Lists one tree branch by stable item ID without scanning unrelated folders. */
+  async listDirectoryById(parentItemId: string | null): Promise<GoogleDriveWorkspaceEntry[]> {
+    if (parentItemId === null) return this.listDirectoryContents(this.rootId, '')
+    const parent = await this.resolveDriveFile(parentItemId)
+    if (parent.trashed || parent.mimeType !== FOLDER_MIME)
+      throw new Error('The requested Google Drive tree parent is not a folder.')
+    const path = await this.pathWithinWorkspace(parent)
+    if (path === null) throw new Error('The requested folder is outside this PKMS workspace.')
+    return this.listDirectoryContents(parent.id, path)
+  }
+
+  async getEntry(itemId: string): Promise<GoogleDriveWorkspaceEntry> {
+    const file = await this.resolveDriveFile(itemId)
+    if (file.id === this.rootId)
+      return { ...file, id: workspaceItemId(file), path: '', kind: 'folder' }
+    const path = await this.pathWithinWorkspace(file)
+    if (path === null) throw new Error('The requested item is outside this PKMS workspace.')
+    return { ...file, id: workspaceItemId(file), path, kind: entryKind(file) }
+  }
+
+  private async listDirectoryContents(
+    parentDriveId: string,
+    parentPath: string
+  ): Promise<GoogleDriveWorkspaceEntry[]> {
+    const children = await this.client.listChildren(parentDriveId)
     return children
-      .filter((file) => !(path === '' && file.name === INTERNAL_DIRECTORY))
+      .filter((file) => !(parentPath === '' && file.name === INTERNAL_DIRECTORY))
       .map((file) => ({
         ...file,
         id: workspaceItemId(file),
-        path: joinPath(path, file.name),
+        path: joinPath(parentPath, file.name),
         kind: entryKind(file)
       }))
       .sort((left, right) => {
