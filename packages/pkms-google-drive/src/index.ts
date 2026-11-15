@@ -15,6 +15,13 @@ export {
   type DriveOutboxMutation,
   type DriveOutboxOperation
 } from './outbox'
+export {
+  IndexedDbGoogleDriveReplica,
+  MemoryGoogleDriveReplica,
+  syncDriveChanges,
+  type CachedDriveEntry,
+  type GoogleDriveReplicaStore
+} from './replica'
 export type {
   DriveAccessTokenProvider,
   DriveChange,
