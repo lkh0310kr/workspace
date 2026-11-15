@@ -1,10 +1,10 @@
-# SRDF disabled collisions
+# SRDF disabled collision
 
-Disabled collisions are planning-safety data. Treat them as derived evidence, not as decorative XML.
+Disabled collision은 계획 안전성 데이터입니다. 장식용 XML이 아니라 근거에서 도출된 정보로 다루세요.
 
-## Valid sources
+## 유효한 근거
 
-Use one of these sources:
+다음 근거 중 하나를 사용하세요:
 
 - adjacent-link policy from the URDF kinematic graph;
 - MoveIt Setup Assistant self-collision matrix generation;
@@ -12,15 +12,15 @@ Use one of these sources:
 - explicit user-provided collision matrix;
 - a manually reviewed pair with a specific rationale.
 
-Do not infer disabled collision pairs from visual theme or vague prose.
+시각적 테마나 모호한 설명을 근거로 disabled collision pair를 추론하지 마세요.
 
-## XML shape
+## XML 형식
 
 ```xml
 <disable_collisions link1="base_link" link2="shoulder_link" reason="Adjacent"/>
 ```
 
-The current runtime requires:
+현재 runtime은 다음을 요구합니다:
 
 - `link1` and `link2`;
 - both links to exist in the URDF;
@@ -28,9 +28,9 @@ The current runtime requires:
 - a non-empty `reason`;
 - no duplicate or reversed duplicate pairs.
 
-## Reason and provenance
+## 사유와 출처
 
-Use truthful reasons. Examples:
+사실에 부합하는 사유를 사용하세요. 예시:
 
 | Reason | Typical source |
 |---|---|
@@ -40,11 +40,11 @@ Use truthful reasons. Examples:
 | `Default` | Setup Assistant sampled matrix |
 | `Manual: tool fixture is outside workspace envelope` | Explicit human review |
 
-The current parser classifies reasons into broad provenance buckets such as adjacent, sampled, setup assistant, manual, or assumed. Avoid `assumed` unless the user explicitly requested a provisional SRDF and the risk is reported.
+현재 parser는 사유를 adjacent, sampled, setup assistant, manual, assumed 등의 넓은 출처 범주로 분류합니다. 사용자가 임시 SRDF를 명시적으로 요청하고 위험을 보고하는 경우가 아니라면 `assumed`를 피하세요.
 
-## Review checklist
+## 검토 목록
 
-Before committing a disabled collision pair:
+disabled collision pair를 commit하기 전에 확인하세요:
 
 - Is the pair adjacent or sampled-safe?
 - Does disabling the pair hide a possible real collision during the planned task?
@@ -52,4 +52,4 @@ Before committing a disabled collision pair:
 - Is the pair still valid after geometry, limits, or group membership changed?
 - Was manual rationale written down?
 
-If many manual pairs are present, prefer regenerating the self-collision matrix with MoveIt Setup Assistant.
+수동 pair가 많다면 MoveIt Setup Assistant로 self-collision matrix를 다시 생성하는 편이 좋습니다.
