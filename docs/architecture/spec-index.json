@@ -281,7 +281,7 @@
         },
         {
           "path": "packages/editor/src/tree.css",
-          "sha256": "1c9eb510599b340e9defeebd13aa05dd8b30bcd56fe9ec516148d5a2cb35edbf"
+          "sha256": "755ab333014649d3583de33ab6812423a1372ce08a4b54518abadf8896a511f4"
         },
         {
           "path": "packages/editor/src/treeModel.ts",
@@ -345,7 +345,7 @@
         },
         {
           "path": "scripts/check-editor-tree-contract.mjs",
-          "sha256": "dd273a405042c584be5a720ecea0a0bdc01ff24c0b080e8ffa642898bcc8f8c9"
+          "sha256": "83f4f81c7598a63034dd85f9fdf92ed964cfe750f2f19ebd532d3d626a4dd3e9"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/index.html",
@@ -357,7 +357,7 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "6ecf80e27574ec076dda3656fd6b37a113736e4e76f1e54dd523e03ab4b816a2"
+          "sha256": "69c8224d5889ac54ec3daed507be12db9e28a1e25cc96f886ce01f7206de8475"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",

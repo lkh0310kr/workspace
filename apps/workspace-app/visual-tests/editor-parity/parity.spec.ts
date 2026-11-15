@@ -394,6 +394,36 @@ test('all host surfaces align common tree rows and readable document columns', a
   }
 })
 
+test('all host surfaces share document Find behavior', async ({ page }) => {
+  for (const host of hosts) {
+    await page.goto(`/?host=${host}`)
+    if (host !== 'desktop-editor') {
+      await expect(page.locator('.editor-tree-item').first()).toBeVisible()
+      await page.locator('.editor-tree-item').first().click()
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    }
+
+    const editor = page.locator('.cm-content').first()
+    await expect(editor).toBeVisible()
+    await editor.click()
+    await editor.press('Control+f')
+
+    const findInput = page.getByPlaceholder('Find')
+    await expect(findInput).toBeFocused()
+    await findInput.fill('Live Drive verification')
+    await expect(page.locator('.cm-vs-count')).toHaveText('1')
+    await findInput.press('Escape')
+    await expect(page.locator('.cm-vs-search')).toHaveCount(0)
+
+    await editor.focus()
+    await editor.press('Control+f')
+    await expect(page.locator('.cm-vs-search')).toBeVisible()
+    await editor.focus()
+    await editor.press('Control+f')
+    await expect(page.locator('.cm-vs-search')).toHaveCount(0)
+  }
+})
+
 test('Desktop Drive tree keyboard navigation and overflow survive hide and reopen', async ({
   page
 }) => {

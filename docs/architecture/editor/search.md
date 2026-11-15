@@ -62,4 +62,4 @@ replaceContents는 provider ID/path를 검증하고 해당 파일의 열린 sess
 | SEARCH-13 | embedded browser에 focus한 채 `Cmd+Shift+F` / `Ctrl+Shift+F` 입력 | 현재 focused pane group에 Find in Files가 열리고 query input에 focus됨 |
 | SEARCH-14 | Terminal에 focus한 채 `Cmd/Ctrl+P`, `Cmd/Ctrl+Shift+F`, `Cmd/Ctrl+\` 입력 | 단축키를 Terminal 입력으로 보내지 않고 Quick Open/Find in Files/Explorer 상태도 바꾸지 않음 |
 
-문서 search panel과 Quick Open의 DOM 키보드 동작은 현재 자동 테스트로 전부 검증되지 않았다. 재구현 시 위 시나리오를 수락 기준으로 사용한다.
+Playwright는 Desktop Editor, Desktop PKMS, Web PKMS의 실제 Markdown surface에서 `Ctrl+F` 열기, query 입력·match count, Escape 닫기, `Ctrl+F` 두 번의 열기/닫기 toggle을 검증한다. Quick Open의 나머지 DOM 키보드 시나리오는 전부 자동 검증된 상태가 아니므로 위 표를 수락 기준으로 유지한다.
