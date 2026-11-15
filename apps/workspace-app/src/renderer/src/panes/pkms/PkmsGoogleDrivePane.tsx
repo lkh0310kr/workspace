@@ -15,13 +15,18 @@ import {
   EditorTreePane,
   EditorTreeToolbar,
   EditorNameForm,
+  EditorQuickOpenDialog,
   EDITOR_TREE_ROW_HEIGHT,
+  fuzzyEditorSearch,
   editorMarkdownParserExtensions,
   flattenEditorTree,
   markdownTitleFor,
   projectEditorTreeRows,
   resolveEditorRelativeLink,
   resolveEditorWikiLink,
+  useEditorQuickOpenSearch,
+  type EditorProvider,
+  type EditorSearchResult,
   type EditorDocumentSession,
   type EditorBreadcrumbEntry,
   type EditorMenuItem,
@@ -29,6 +34,7 @@ import {
   type EditorTreeItem,
   type EditorTreeViewItem
 } from '@workspace/editor'
+import { PKMS_QUICK_OPEN_EVENT } from '@pkms/client/hostEvents'
 import type { GoogleDriveWorkspaceEntry } from '@pkms/google-drive'
 import '@pkms/google-drive/workspace.css'
 
@@ -235,6 +241,65 @@ export function PkmsGoogleDrivePane({
   const [syncing, setSyncing] = useState(false)
   const [status, setStatus] = useState('Connecting to Google Drive…')
   const [error, setError] = useState('')
+  const [quickOpen, setQuickOpen] = useState(false)
+  const [quickQuery, setQuickQuery] = useState('')
+
+  const quickOpenProvider = useMemo<EditorProvider | null>(() => {
+    if (!root) return null
+    return {
+      id: `pkms-google-drive:${root.id}:quick-open`,
+      capabilities: {
+        operations: new Set(),
+        searchNames: true,
+        searchContents: false,
+        replaceContents: false,
+        multiSelect: false,
+        dragMove: false,
+        codeLanguages: new Set(),
+        collaborativeDocuments: false
+      },
+      async listChildren(parentId) {
+        return (await window.pkmsDesktop.listGoogleDriveDirectory(root.id, parentId)).map((entry) =>
+          driveEntryToEditorItem(root.id, entry)
+        )
+      },
+      subscribeTree: () => () => undefined,
+      async openDocument() {
+        throw new Error('Quick Open does not open documents directly.')
+      },
+      async search(query, options, signal) {
+        if (options.target !== 'names' || query.trim().length < 2) return []
+        const page = await window.pkmsDesktop.searchGoogleDriveWorkspace(root.id, query.trim())
+        if (signal?.aborted) throw new DOMException('The operation was aborted', 'AbortError')
+        const candidates = page.entries.map((entry) => driveEntryToEditorItem(root.id, entry))
+        const matches = options.fuzzy
+          ? fuzzyEditorSearch(candidates, query, (item) => item.name, options.limit)
+          : candidates.filter((item) =>
+              item.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+            )
+        return matches.map((item): EditorSearchResult => ({ item, matches: [] }))
+      }
+    }
+  }, [root])
+  const {
+    items: quickOpenMatches,
+    loading: quickOpenLoading,
+    error: quickOpenError
+  } = useEditorQuickOpenSearch({
+    provider: quickOpenProvider,
+    query: quickQuery,
+    enabled: quickOpen,
+    errorMessage: 'Could not search Google Drive files.'
+  })
+
+  useEffect(() => {
+    const openQuickOpen = () => {
+      setQuickQuery('')
+      setQuickOpen(true)
+    }
+    window.addEventListener(PKMS_QUICK_OPEN_EVENT, openQuickOpen)
+    return () => window.removeEventListener(PKMS_QUICK_OPEN_EVENT, openQuickOpen)
+  }, [])
 
   const setConnected = useCallback(
     async (nextRoot: RootOption, initialEntries?: GoogleDriveWorkspaceEntry[]) => {
@@ -1422,6 +1487,36 @@ export function PkmsGoogleDrivePane({
             )}
           </section>
         </div>
+      )}
+      {quickOpen && quickOpenProvider && (
+        <EditorQuickOpenDialog
+          query={quickQuery}
+          items={quickOpenMatches.map((item) => ({
+            id: item.itemId,
+            label: item.name,
+            description: item.path
+          }))}
+          loading={quickOpenLoading}
+          error={quickOpenError}
+          onQueryChange={setQuickQuery}
+          onClose={() => setQuickOpen(false)}
+          onSelect={(itemId) => {
+            const item = quickOpenMatches.find((match) => match.itemId === itemId)
+            setQuickOpen(false)
+            if (!item) return
+            void resolveDrivePath(item.path)
+              .then((entry) => {
+                if (!entry || entry.kind !== 'markdown') {
+                  setError(`Could not find Markdown file: ${item.path}`)
+                  return
+                }
+                void openEntry(entry)
+              })
+              .catch((cause) =>
+                setError(cause instanceof Error ? cause.message : 'Could not open file.')
+              )
+          }}
+        />
       )}
     </main>
   )

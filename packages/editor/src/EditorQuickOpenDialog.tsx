@@ -23,7 +23,7 @@ interface Props {
 export function EditorQuickOpenDialog({
   query,
   items,
-  placeholder = 'Go to file…',
+  placeholder = 'Search files…',
   loading = false,
   error,
   emptyMessage = 'No matching files',

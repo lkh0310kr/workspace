@@ -181,7 +181,7 @@
         },
         {
           "path": "packages/editor/src/EditorQuickOpenDialog.tsx",
-          "sha256": "79705ba6f25e68ab80dde5d8c23377d375385d7ed7480784ec5a2357d41d99c9"
+          "sha256": "a8d1199f4ebd6007dc281830570168eacb7c6c2319eaa467427b709c050995f5"
         },
         {
           "path": "packages/editor/src/editorSaveStatus.ts",
@@ -349,11 +349,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "9328a2403a16140d3e470a222351ab25a84c33b4a9be72bd175f6c400d38f3e8"
+          "sha256": "da530221c1351ef1faf3d38a41ededecaf5183d4dc9d74e41a49b88261988b2d"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "726ad9c3ea354c35c477d389a004cab9d9c4a2c1a6338cd53cabee2e4ef325c3"
+          "sha256": "727e24d13bd194efd48d2a7712c0b2f21c02e20ea8a30b2ff5ea68231e8c3012"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
@@ -381,7 +381,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "67fcbb0f68f3940095f43b6c116b1dea29e0829673879661504462e42858d18e"
+          "sha256": "85d4a54db9ff66185c4fdab2feec539f3bc000d32520c124ea5aba0984d56ac9"
         },
         {
           "path": "packages/pkms-client/src/components/FileTreeList.tsx",
@@ -535,7 +535,7 @@
         },
         {
           "path": "packages/pkms-client/src/PkmsClientApp.tsx",
-          "sha256": "13cec5ba9f94f36d37ccf78143e1981c0a1180085d1ace1a9b813d5f71dae245"
+          "sha256": "19829a44bd827b27c7f4624fd2553cc8340a8c7bcdc41ebf3be7c4a40e03ae5e"
         },
         {
           "path": "packages/pkms-client/src/realtime.ts",
@@ -1307,7 +1307,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "67fcbb0f68f3940095f43b6c116b1dea29e0829673879661504462e42858d18e"
+          "sha256": "85d4a54db9ff66185c4fdab2feec539f3bc000d32520c124ea5aba0984d56ac9"
         },
         {
           "path": "packages/pkms-google-drive/src/syncEngine.ts",

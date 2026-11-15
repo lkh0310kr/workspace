@@ -162,7 +162,11 @@ function installMocks() {
     },
     saveGoogleDriveMarkdown: async () => ({ revision: 'mock-r2', sync: { pendingOperations: 0 } }),
     syncGoogleDriveWorkspace: async () => ({ pendingOperations: 0 }),
-    searchGoogleDriveWorkspace: async () => ({ entries: [] }),
+    searchGoogleDriveWorkspace: async (_rootId: string, query: string) => ({
+      entries: [driveNote, driveExtraNote].filter((entry) =>
+        entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+      )
+    }),
     createGoogleDriveItem: async () => driveEntries,
     renameGoogleDriveItem: async () => driveNote,
     trashGoogleDriveItem: async () => undefined,

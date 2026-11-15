@@ -112,6 +112,33 @@ test('Web PKMS Explorer shortcut hides and restores the real Files tree', async 
   await expect(page.getByRole('treeitem', { name: 'Verification' })).toBeVisible()
 })
 
+for (const host of ['desktop-pkms-editor', 'web-pkms-editor'] as const) {
+  test(`${host} uses the shared provider-backed Quick Open dialog`, async ({ page }) => {
+    await page.goto(`/?host=${host}`)
+    await page.getByRole('treeitem', { name: 'Verification' }).click()
+    await expect(page.getByRole('treeitem', { name: /Readme/ })).toBeVisible()
+
+    if (host === 'desktop-pkms-editor') {
+      // Desktop's shell owns the shortcut and sends the PKMS host event.
+      await page.evaluate(() => window.dispatchEvent(new Event('pkms:quick-open')))
+    } else {
+      await page.keyboard.press('Control+p')
+    }
+    const dialog = page.getByRole('dialog', { name: 'Quick open' })
+    await expect(dialog).toBeVisible()
+    const input = dialog.getByPlaceholder('Search files…')
+    await input.fill('Readme')
+    const result = dialog.getByRole('button', { name: /Readme\.md/ })
+    await expect(result).toBeVisible()
+    await result.click()
+
+    await expect(page.getByRole('navigation', { name: 'File location' })).toContainText(
+      'Readme.md'
+    )
+    await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
+  })
+}
+
 test('narrow view keeps the active breadcrumb reachable and its menu on screen', async ({
   page
 }) => {

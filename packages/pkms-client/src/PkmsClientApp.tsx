@@ -2329,10 +2329,8 @@ export default function Home() {
           <EditorQuickOpenDialog
             query={quickQuery}
             items={quickOpenItems}
-            placeholder="Search open and loaded files…"
             loading={quickOpenLoading}
             error={quickOpenError}
-            emptyMessage="No loaded files found"
             onQueryChange={setQuickQuery}
             onClose={() => setQuickOpen(false)}
             onSelect={(id) => {
