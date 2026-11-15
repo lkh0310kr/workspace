@@ -14,6 +14,7 @@
     "docs/architecture/README.md",
     "docs/architecture/desktop-release.md",
     "docs/architecture/pkms/README.md",
+    "docs/architecture/pkms/google-drive-direct-sync.md",
     "docs/architecture/pkms/folder-sync.md",
     "docs/architecture/pkms/local-deletion-sync.md",
     "docs/architecture/pkms/overview.md",

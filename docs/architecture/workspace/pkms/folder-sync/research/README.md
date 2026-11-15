@@ -10,6 +10,7 @@
 | [CRDT/Yjs](./crdt-and-yjs.md)                                 | 본문 update의 중복·순서 변경 허용, state vector 기반 차이 전달                            | 본문 convergence에 한정. path/tree/delete/filesystem conflict는 PKMS operation contract가 소유 |
 
 직접 Drive 이전의 제품·auth·storage 결정은 [Google Drive 직접 동기화 설계 조사](./google-drive-direct-sync.md)를 참조한다.
+구현 계약과 수락 시나리오는 [PKMS Google Drive 직접 동기화 스펙](../../../../pkms/google-drive-direct-sync.md)을 기준으로 한다.
 
 ## 공통 결론
 

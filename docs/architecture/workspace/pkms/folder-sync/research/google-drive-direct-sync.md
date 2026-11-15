@@ -6,7 +6,9 @@
 
 Google Drive를 PKMS 파일의 canonical storage로 쓰는 것은 가능하다. 사용자 한 명과 몇 대의 기기라면 Cloudflare Worker의 파일 API, Supabase 문서 저장, GitHub repository mirror를 동기화 경로에서 제거할 수 있다. 다만 기존 backend를 Drive SDK로 바꾸는 정도의 작업은 아니다. 현재 sync의 revision guard, Yjs 실시간 세션, operation idempotency, durable local queue를 대체하거나 제품 요구에서 제외해야 한다.
 
-권장 방향은 **앱이 소유하는 사용자 표시 Drive 폴더를 만들고, Web과 Desktop이 OAuth로 Drive API에 직접 연결하는 단일 사용자용 sync provider를 먼저 격리된 폴더에서 검증하는 것**이다. 현재 PKMS 데이터는 검증을 끝낼 때까지 수정하지 않는다. Web에 항상 켜진 background sync나 동시 기기 편집이 필수라면 완전한 backend 제거는 요구와 맞지 않는다.
+이 조사는 이전 prototype 결정 이력이다. 현재 결정은 **모든 editing client가 Google Drive API에 직접 연결하고, PKMS Worker·PKMS Server·Supabase·GitHub를 file sync data path에서 제거**하는 것이다. 사용자가 선택했으며 목표와 acceptance contract는 [Google Drive 직접 동기화 스펙](../../../../pkms/google-drive-direct-sync.md)을 따른다. 격리 root와 migration parity가 확인될 때까지 기존 PKMS data는 변경하지 않는다. Backend 제거는 Web hosting/정적 파일 제공, MCP 등 sync 이외의 기능이 자동으로 제거된다는 뜻이 아니다.
+
+이 결정은 Web의 background guarantee를 낮춘다. Web은 열린 탭에서 Drive API를 polling하고 token 만료 후 사용자가 재인증해야 한다. Desktop/iOS는 OS credential store에 native refresh token을 두되, iOS background 실행은 OS가 허용하는 opportunistic work만 약속한다. 모든 플랫폼의 무인·상시 동기화가 필요하면 backend-free 조건과 양립하지 않는다.
 
 100 GB Google Drive 구독은 파일 저장 용량을 제공한다. Drive API quota, OAuth 권한, 앱 검증을 자동으로 해결하지는 않는다. API의 현재 문서화된 quota는 분당 quota unit 중심이며, 2026년 API 프로젝트 생성 시 적용되는 한도와 무료 사용 범위가 이전 Worker의 일일 요청 한도와 다르다. [Drive API usage limits](https://developers.google.com/workspace/drive/api/guides/limits)
 
