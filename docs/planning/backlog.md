@@ -7,10 +7,10 @@
 ### PKMS Google Drive 직접 저장·동기화 전환
 
 - **목표 결과:** Web, Desktop, iOS의 PKMS가 중간 sync Worker/server 없이 동일 Google Drive workspace를 직접 사용한다. 기존 저장 경로는 Drive 이관의 tree·본문·byte parity가 검증될 때까지 read-only rollback source로 보존한다.
-- **현재 구현:** [pkms-google-drive package](../../packages/pkms-google-drive/README.md)에 Drive API client, app marker 기반 공통 root 탐색, tree/file repository, IndexedDB outbox와 change cursor replica, foreground Web OAuth primitive가 있다. 별도 단위 테스트 23개와 Desktop/Web typecheck가 통과했다.
-- **남은 작업:** Desktop PKCE + OS credential storage와 iOS PKCE + Keychain, operation log/outbox replay, Yjs update 수렴, binary version/conflict 처리, shared PKMS app/provider 연결, 기존 자료의 read-only dry-run parity, 3개 client 재시작·offline·충돌·권한·429 acceptance.
+- **현재 구현:** [pkms-google-drive package](../../packages/pkms-google-drive/README.md)에 Drive API client, app marker 기반 root 탐색, tree/file repository, IndexedDB outbox와 incremental change cursor, immutable operation log, foreground Web OAuth, file-scoped Yjs loader가 있다. Web의 `/pkms-google-drive` route에서 folder 탐색과 Markdown 편집·저장, 기본 tree mutation이 shared Editor UI에 연결됐다. `npm run pkms:web:typecheck`와 production build가 통과했다.
+- **남은 작업:** 이 Web route는 기본 PKMS shell이 아니며 binary 편집·전체 text search·full feature parity가 없다. `PkmsClientApp`의 기본 경로를 Drive provider로 전환하고 기존 기능을 잇는다. Desktop PKCE + OS credential storage와 iOS PKCE + Keychain, Yjs update 수렴, binary version/conflict materialization, 기존 자료의 read-only dry-run parity, 3개 client 재시작·offline·충돌·권한·429 acceptance도 남아 있다.
 - **완료 조건:** 제품의 sync data path가 Drive API로만 연결되고, 모든 Drive acceptance scenario가 격리 workspace에서 자동 또는 실제 runtime으로 통과하며, 기존 cloud/GitHub source를 건드리지 않는 parity migration이 확인된다.
-- **근거:** [Google Drive 직접 동기화 결과 스펙](../architecture/pkms/google-drive-direct-sync.md), [package README](../../packages/pkms-google-drive/README.md), [현재 격리 browser prototype](../../apps/pkms-web/prototypes/google-drive-direct/README.md)
+- **근거:** [Google Drive 직접 동기화 결과 스펙](../architecture/pkms/google-drive-direct-sync.md), [package README](../../packages/pkms-google-drive/README.md), [격리 browser prototype](../../apps/pkms-web/prototypes/google-drive-direct/README.md), [Web route](../../apps/pkms-web/app/routes/pkms-google-drive.tsx)
 
 ### PKMS 즉시 반응과 sync runtime acceptance
 
