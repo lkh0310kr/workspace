@@ -55,6 +55,92 @@ describe('GoogleDriveWorkspaceRepository', () => {
     })
   })
 
+  it('recovers a folder create after the Drive request succeeds but its response is lost', async () => {
+    const root = folder('root', 'PKMS')
+    const created = folder('created', 'new-folder', ['root'])
+    const operations = new Map<string, DriveFile>()
+    let loseAck = true
+    const createFolder = vi.fn(
+      async (name: string, parentId: string | null, appProperties?: Record<string, string>) => {
+        const item = { ...folder('created', name, parentId ? [parentId] : []), appProperties }
+        operations.set(appProperties?.pkmsCreateOperationId ?? '', item)
+        if (loseAck) {
+          loseAck = false
+          throw new Error('connection closed after Drive created the folder')
+        }
+        return item
+      }
+    )
+    const client = {
+      getFile: vi.fn(async () => root),
+      listFiles: vi.fn(async () => [...operations.values()]),
+      createFolder,
+      listChildren: vi.fn(async (id: string) =>
+        id === 'root' ? [folder('notes', 'notes', ['root'])] : []
+      )
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(repository.createFolderOnce('stable-op', 'new-folder')).resolves.toMatchObject({
+      id: created.id,
+      path: 'new-folder',
+      kind: 'folder'
+    })
+    await expect(repository.createFolderOnce('stable-op', 'new-folder')).resolves.toMatchObject({
+      id: created.id,
+      path: 'new-folder'
+    })
+    expect(createFolder).toHaveBeenCalledTimes(1)
+    expect(client.listFiles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.stringContaining("key='pkmsCreateOperationId'")
+      })
+    )
+  })
+
+  it('recovers file creation idempotently and rejects reuse of its operation ID with different bytes', async () => {
+    const root = folder('root', 'PKMS')
+    const operations = new Map<string, DriveFile>()
+    let loseAck = true
+    const createFile = vi.fn(
+      async (
+        name: string,
+        parentId: string,
+        mimeType: string,
+        _bytes: Uint8Array,
+        appProperties?: Record<string, string>
+      ) => {
+        const item = { id: 'created-file', name, mimeType, parents: [parentId], appProperties }
+        operations.set(appProperties?.pkmsCreateOperationId ?? '', item)
+        if (loseAck) {
+          loseAck = false
+          throw new Error('connection closed after Drive created the file')
+        }
+        return item
+      }
+    )
+    const client = {
+      getFile: vi.fn(async () => root),
+      listFiles: vi.fn(async () => [...operations.values()]),
+      createFile,
+      listChildren: vi.fn(async (id: string) =>
+        id === 'root' ? [folder('notes', 'notes', ['root'])] : []
+      )
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(
+      repository.createFileOnce('stable-op', 'notes/new.md', 'text/markdown', new Uint8Array([1]))
+    ).resolves.toMatchObject({ id: 'created-file', path: 'notes/new.md', kind: 'markdown' })
+    await expect(
+      repository.createFileOnce('stable-op', 'notes/new.md', 'text/markdown', new Uint8Array([1]))
+    ).resolves.toMatchObject({ id: 'created-file' })
+    await expect(
+      repository.createFileOnce('stable-op', 'notes/new.md', 'text/markdown', new Uint8Array([2]))
+    ).rejects.toThrow(/operation ID collision or changed payload/)
+    expect(createFile).toHaveBeenCalledTimes(1)
+  })
+
   it('lists nested, empty, and dot-prefixed folders while hiding only the root protocol folder', async () => {
     const children: Record<string, DriveFile[]> = {
       root: [

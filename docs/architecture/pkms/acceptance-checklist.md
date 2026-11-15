@@ -18,7 +18,7 @@
 
 ## Google Drive 직접 전환 구현 진행
 
-이는 제품 sync acceptance pass 수에 포함하지 않는 package-level 근거다. `packages/pkms-google-drive`에는 Drive API client, workspace repository/root discovery, IndexedDB outbox, replica/cursor, Web OAuth, immutable operation log와 durable outbox replay coordinator가 있다. Drive 관련 테스트 31개와 Desktop/Web typecheck가 통과했다. 다만 replay coordinator의 reconcile 단계는 callback이며 실제 Drive file/folder mutation, Yjs merge와 user-visible projection을 구현한 provider는 아직 없다. `PkmsClientApp`, Desktop sync bridge, iOS 저장 경로도 여전히 기존 API/Worker를 사용한다. Desktop/iOS OAuth 및 OS token storage, 제품 UI/provider 연결, end-to-end operation materialization, Yjs/binary convergence, 실제 Drive restart/offline/migration parity는 미구현 또는 미검증이다. 세 플랫폼의 제품 데이터 경로가 바뀌기 전까지 현재 sync acceptance checklist를 통과로 처리하지 않는다.
+이는 제품 sync acceptance pass 수에 포함하지 않는 package-level 근거다. `packages/pkms-google-drive`에는 Drive API client, workspace repository/root discovery, IndexedDB outbox, replica/cursor, Web OAuth, immutable operation log와 durable outbox replay coordinator가 있다. Drive 관련 테스트 33개와 Desktop/Web typecheck가 통과했다. Repository는 create-folder/file 요청의 ACK가 유실돼도 operation marker로 기존 Drive 항목을 복구하고, parent/name/type/payload SHA-256 불일치를 충돌로 거부한다. 다만 replay coordinator의 reconcile 단계는 callback이며 실제 Drive operation applier, Yjs merge와 user-visible projection을 구현한 provider는 아직 없다. `PkmsClientApp`, Desktop sync bridge, iOS 저장 경로도 여전히 기존 API/Worker를 사용한다. Desktop/iOS OAuth 및 OS token storage, 제품 UI/provider 연결, end-to-end operation materialization, Yjs/binary convergence, 실제 Drive restart/offline/migration parity는 미구현 또는 미검증이다. 세 플랫폼의 제품 데이터 경로가 바뀌기 전까지 현재 sync acceptance checklist를 통과로 처리하지 않는다.
 
 ## 상태 정의
 

@@ -46,6 +46,37 @@ function joinPath(parent: string, name: string): string {
   return parent ? `${parent}/${name}` : name
 }
 
+function splitItemPath(path: string): { parentPath: string; name: string } {
+  const segments = path.split('/')
+  const name = segments.pop() ?? ''
+  if (!name || segments.some((segment) => !segment || segment === '.' || segment === '..'))
+    throw new Error(`Invalid Google Drive workspace item path: ${path}`)
+  if (name === '.' || name === '..' || name.includes('\0'))
+    throw new Error(`Invalid Google Drive workspace item name: ${name}`)
+  return { parentPath: segments.join('/'), name }
+}
+
+function queryLiteral(value: string): string {
+  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`
+}
+
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const result = new Uint8Array(parts.reduce((length, part) => length + part.byteLength, 0))
+  let offset = 0
+  for (const part of parts) {
+    result.set(part, offset)
+    offset += part.byteLength
+  }
+  return result
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const copy = new ArrayBuffer(bytes.byteLength)
+  new Uint8Array(copy).set(bytes)
+  const digest = await crypto.subtle.digest('SHA-256', copy)
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 /**
  * Maps one explicitly selected Drive folder to a PKMS workspace tree.
  * Drive IDs remain stable identities; paths are derived from parent IDs.
@@ -137,6 +168,31 @@ export class GoogleDriveWorkspaceRepository {
     return { ...folder, path: joinPath(parentPath, folder.name), kind: 'folder' }
   }
 
+  /** Creates a folder once per durable operation ID, including after a lost HTTP ACK. */
+  async createFolderOnce(operationId: string, path: string): Promise<GoogleDriveWorkspaceEntry> {
+    const { parentPath, name } = splitItemPath(path)
+    const parent = await this.resolveDirectory(parentPath)
+    const digest = await sha256Hex(
+      new TextEncoder().encode(
+        JSON.stringify({ kind: 'folder', rootId: this.rootId, parentId: parent.id, name })
+      )
+    )
+    const existing = await this.findCreatedItem(operationId)
+    if (existing)
+      return this.validateCreatedItem(existing, parent.id, name, FOLDER_MIME, digest, path)
+
+    const appProperties = this.createOperationProperties(operationId, digest)
+    try {
+      const folder = await this.client.createFolder(name, parent.id, appProperties)
+      return { ...folder, path, kind: 'folder' }
+    } catch (cause) {
+      const recovered = await this.findCreatedItem(operationId).catch(() => null)
+      if (recovered)
+        return this.validateCreatedItem(recovered, parent.id, name, FOLDER_MIME, digest, path)
+      throw cause
+    }
+  }
+
   async createFile(
     parentPath: string,
     name: string,
@@ -146,6 +202,39 @@ export class GoogleDriveWorkspaceRepository {
     const parent = await this.resolveDirectory(parentPath)
     const file = await this.client.createFile(name, parent.id, mimeType, bytes)
     return { ...file, path: joinPath(parentPath, file.name), kind: entryKind(file) }
+  }
+
+  /** Creates a file once per durable operation ID, including after a lost HTTP ACK. */
+  async createFileOnce(
+    operationId: string,
+    path: string,
+    mimeType: string,
+    bytes: Uint8Array
+  ): Promise<GoogleDriveWorkspaceEntry> {
+    const { parentPath, name } = splitItemPath(path)
+    const parent = await this.resolveDirectory(parentPath)
+    const digest = await sha256Hex(
+      concatBytes(
+        new TextEncoder().encode(
+          JSON.stringify({ kind: 'file', rootId: this.rootId, parentId: parent.id, name, mimeType })
+        ),
+        new Uint8Array([0]),
+        bytes
+      )
+    )
+    const existing = await this.findCreatedItem(operationId)
+    if (existing) return this.validateCreatedItem(existing, parent.id, name, mimeType, digest, path)
+
+    const appProperties = this.createOperationProperties(operationId, digest)
+    try {
+      const file = await this.client.createFile(name, parent.id, mimeType, bytes, appProperties)
+      return { ...file, path, kind: entryKind(file) }
+    } catch (cause) {
+      const recovered = await this.findCreatedItem(operationId).catch(() => null)
+      if (recovered)
+        return this.validateCreatedItem(recovered, parent.id, name, mimeType, digest, path)
+      throw cause
+    }
   }
 
   async writeFile(fileId: string, bytes: Uint8Array, mimeType: string): Promise<DriveFile> {
@@ -196,6 +285,49 @@ export class GoogleDriveWorkspaceRepository {
     if (!name.startsWith('.'))
       throw new Error('Protocol folders must use a reserved dot-prefix name.')
     return this.client.ensureFolder(name, this.rootId)
+  }
+
+  private createOperationProperties(operationId: string, digest: string): Record<string, string> {
+    if (!operationId.trim()) throw new Error('A Google Drive operation ID is required.')
+    return {
+      pkmsWorkspaceRootId: this.rootId,
+      pkmsCreateOperationId: operationId,
+      pkmsCreatePayloadSha256: digest
+    }
+  }
+
+  private async findCreatedItem(operationId: string): Promise<DriveFile | null> {
+    if (!operationId.trim()) throw new Error('A Google Drive operation ID is required.')
+    const matches = await this.client.listFiles({
+      query: `appProperties has { key='pkmsWorkspaceRootId' and value=${queryLiteral(this.rootId)} } and appProperties has { key='pkmsCreateOperationId' and value=${queryLiteral(operationId)} } and (trashed = true or trashed = false)`,
+      pageSize: 100,
+      fields:
+        'id,name,mimeType,parents,modifiedTime,md5Checksum,size,trashed,appProperties,webViewLink'
+    })
+    if (matches.length > 1)
+      throw new Error(
+        `Google Drive create operation ${operationId} has duplicate materializations.`
+      )
+    return matches[0] ?? null
+  }
+
+  private validateCreatedItem(
+    file: DriveFile,
+    parentId: string,
+    name: string,
+    mimeType: string,
+    digest: string,
+    path: string
+  ): GoogleDriveWorkspaceEntry {
+    if (
+      file.appProperties?.pkmsWorkspaceRootId !== this.rootId ||
+      !file.parents?.includes(parentId) ||
+      file.name !== name ||
+      file.mimeType !== mimeType ||
+      file.appProperties?.pkmsCreatePayloadSha256 !== digest
+    )
+      throw new Error('Google Drive create operation ID collision or changed payload.')
+    return { ...file, path, kind: entryKind(file) }
   }
 
   private async resolveDirectory(path: string): Promise<DriveFile> {

@@ -35,6 +35,8 @@ Google Drive의 `files.update`를 읽은 version에 대한 원자적 compare-and
 
 Operation ID는 retry에도 유지된다. Drive upload 응답이 유실되면 Drive에서 같은 operation ID를 확인하고 새 operation을 만들지 않는다. 서버 change feed cursor는 모든 페이지와 변경 적용 결과가 durable local store에 반영된 후에만 전진한다.
 
+Create-folder/file operation은 `appProperties`에 workspace root ID, stable operation ID, payload SHA-256을 기록한다. create 응답이 유실돼도 같은 marker를 조회해 기존 item을 복구하며, 같은 operation ID가 다른 parent/name/type/content로 재사용되면 충돌로 중단한다.
+
 동일 Markdown에 대한 operation은 Yjs update로 merge한다. iOS native Yrs와 JavaScript Yjs는 현재 PKMS protocol의 update bytes를 교환한다. 하나의 merged document는 각 replica에서 materialize한다. content projection의 단일 파일 업로드는 operation log에 이미 보존된 변경의 source of truth가 아니다.
 
 Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 immutable object로 보존하고, 같은 base를 수정한 서로 다른 version은 둘 다 유지하며 명시적 conflict item으로 표시한다. Rename·move·delete도 operation history를 보존한다. 동시 경로 충돌이나 delete-vs-edit는 한 항목을 조용히 제거하지 않고 복구 가능한 conflict로 나타낸다.
