@@ -1,10 +1,10 @@
-# Android Data Node prototype
+# Android Data Node 프로토타입
 
 > **상태: 취소됨** — 사용자의 요청으로 2026-11-08에 구현을 중단했다. 확인된 범위와 미완료 항목은 [취소 기록](../../docs/research/data-node/CANCELLATION.md)을 참고한다.
 
 이 prototype은 로컬 storage engine이다. Network, Supabase, Cloudflare, GitHub 또는 USB port forwarding을 사용하지 않는다. Record는 SQLite에, immutable object는 앱 전용 files directory에 저장한다. 로컬 개발에서는 보호된 Android ContentProvider를 통해 ADB shell이 앱에 storage 명령을 직접 보낸다. 일반 앱에는 `android.permission.DUMP` 권한을 주지 않는다.
 
-## 한 번에 실행하는 device 검증
+## 한 번에 실행하는 기기 검증
 
 JDK 17, Android SDK Platform 35, platform tools, USB debugging이 켜져 있고 현재 컴퓨터가 인증된 Android device 한 대가 필요하다.
 
@@ -28,17 +28,17 @@ adb shell run-as dev.pkms.datanode cat files/data-node/latest-diagnostics.json
 
 ## Prototype이 확인하는 항목
 
-- SQLite integrity before and after writes
-- A multi-record transaction and monotonically increasing revision
-- Idempotent retries and rejection of a reused operation ID with a different payload
-- Transaction rollback on a version conflict
-- SHA-256 content-addressed object write, read-back, and deduplication
-- Record and object persistence after the Android app process is stopped and restarted
-- Structured per-check result reports and Android log entries
-- Direct host-to-Android commands over ADB without an IP network
-- ADB shell batch transaction, retry/conflict behavior, rollback, and object round-trip
-- ADB-written records and objects after the app process is stopped and restarted
-- v1→v3 SQLite migration preserving existing records and objects
+- 쓰기 전후의 SQLite 무결성
+- 여러 record를 처리하는 transaction과 단조 증가 revision
+- 멱등 재시도와 다른 payload로 재사용된 operation ID의 거부
+- version conflict 발생 시 transaction rollback
+- SHA-256 content-addressed object 쓰기, 다시 읽기, 중복 제거
+- Android app 프로세스를 중지하고 다시 실행한 뒤에도 Record와 object가 유지되는지 확인
+- 각 검사 결과를 구조화한 report와 Android log 기록
+- IP network 없이 ADB로 host에서 Android에 직접 명령 전달
+- ADB shell batch transaction, 재시도/conflict 동작, rollback, object 왕복 확인
+- 앱 프로세스를 중지하고 다시 실행한 뒤에도 ADB로 쓴 record와 object가 유지되는지 확인
+- 기존 record와 object를 보존하는 v1→v3 SQLite migration
 - 시작할 때 pending upload, 누락 object, checksum이 손상된 object와 orphan file을 복구한다. Orphan data는 후보로 남기고 삭제하지 않는다.
 
 ## ADB 로컬 command bridge

@@ -6,7 +6,7 @@
 
 PKMS가 identity authority로 남는다. Electron main process는 PKMS에서 5분 유효한 `workspace-home` audience token을 요청해 Worker에 전달한다. Worker는 PKMS JWKS, issuer, audience, expiry, scope를 확인한다. PKMS의 session secret이나 database를 사용하지 않는다.
 
-## Deploy
+## 배포
 
 저장소 root에서 의존성을 설치하고 deploy 전에 D1 schema를 적용한다.
 
@@ -28,6 +28,6 @@ Provider 연결을 활성화하기 전에 다음 Worker secret을 설정한다.
 
 PKMS Worker는 `/api/home/access-token`과 `wrangler.jsonc`에 설정된 JWKS endpoint를 제공해야 한다. Electron app은 로컬 개발에서 `WORKSPACE_HOME_API_ORIGIN`으로 API origin을 바꿀 수 있고 production 기본값은 배포 Worker URL이다.
 
-## Local development
+## 로컬 개발
 
 `npx wrangler dev`를 실행한다. Worker 전용 값은 Git에서 무시되는 `.dev.vars`에 둔다. 로컬 D1 database도 같은 migration 파일을 사용한다. 로컬 요청을 확인하기 전에 `npx wrangler d1 migrations apply workspace-home --local`을 실행한다.

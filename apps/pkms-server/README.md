@@ -6,7 +6,7 @@
 
 기존 secret, R2 bucket, cron과 공개 API origin을 유지하기 위해 Worker는 `pkms-cloud`로 배포한다. Web app은 별도 Worker를 사용하고 같은 origin의 browser API 요청을 이곳으로 전달한다. Desktop 등 native client는 API origin을 직접 호출할 수 있다.
 
-## Development and deployment
+## 개발 및 배포
 
 저장소 root에서 npm workspace 의존성을 설치한다. 로컬 secret은 `.dev.vars.example`을 `.dev.vars`로 복사해 설정한 뒤 실행한다.
 

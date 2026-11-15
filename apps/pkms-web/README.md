@@ -6,7 +6,7 @@
 
 Worker는 기존 fallback 및 `/api/*`, `/.well-known/*`, `/mcp`, `/oauth/*`를 위해 유지되며 해당 경로는 독립 PKMS API Worker인 `pkms-cloud`를 사용한다. Google Drive route는 이 service proxy를 통한 파일 CRUD/sync를 호출하지 않는다.
 
-## Development
+## 개발
 
 저장소 root에서 workspace 의존성을 설치한 뒤 실행한다.
 
@@ -16,7 +16,7 @@ npm run pkms:web:dev
 
 로컬 Web 개발에서는 `wrangler.jsonc`의 `PKMS_SERVER_ORIGIN`을 로컬 PKMS Worker로 지정할 수 있다. Electron app은 PKMS API Worker를 직접 호출한다.
 
-## Deploy
+## 배포
 
 ```sh
 npm run pkms:web:typecheck
