@@ -8,6 +8,13 @@ export {
   GoogleDriveWorkspaceRepository,
   type GoogleDriveWorkspaceEntry
 } from './workspaceRepository'
+export {
+  IndexedDbDriveOutbox,
+  MemoryDriveOutbox,
+  type DriveOutbox,
+  type DriveOutboxMutation,
+  type DriveOutboxOperation
+} from './outbox'
 export type {
   DriveAccessTokenProvider,
   DriveChange,

@@ -40,7 +40,7 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 - 초기 연결은 root metadata와 모든 하위 folder/file을 페이지 단위로 읽는다. cache가 있으면 tree와 문서 본문을 먼저 보여주고 Drive listing 후 갱신한다.
 - Drive `changes.getStartPageToken`과 `changes.list`가 각 client의 durable cursor다. cursor는 마지막 페이지의 `newStartPageToken`이며, 페이지 fetch/application 중 하나라도 실패하면 이전 cursor와 pending operation을 유지한다.
 - push notification은 필수 경로가 아니다. 알림을 받으려면 public HTTPS webhook/server가 필요하므로 backend 제거 범위에서는 사용하지 않는다. foreground polling과 재연결 catch-up이 최종 복구 경로다.
-- Desktop은 local folder와 durable app state를 사용한다. Web은 IndexedDB에 tree, document cache, local search index, outbox, cursor를 저장한다. iOS는 Application Support와 Keychain을 사용한다. cache는 user-visible content를 잃지 않는 범위에서 replica별로 관리한다.
+- Desktop은 local folder와 durable app state를 사용한다. Web과 Electron renderer는 IndexedDB에 tree, document cache, local search index, outbox, cursor를 저장한다. iOS는 같은 outbox contract를 Application Support와 Keychain adapter로 구현한다. cache는 user-visible content를 잃지 않는 범위에서 replica별로 관리하며 token을 outbox에 저장하지 않는다.
 - `synced`는 local durable changes가 Drive에 기록되고 마지막으로 받아 적용한 change cursor까지 처리됐다는 뜻이다. GitHub backup, 다른 client의 현재 실행 상태, 즉시 push notification 수신을 의미하지 않는다.
 
 ## 권한과 token 수명
@@ -90,4 +90,4 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 
 ## 현 구현 경계
 
-공통 [Google Drive package](../../../packages/pkms-google-drive/README.md)는 직접 Drive API client와 Drive folder 기반 tree/file repository를 제공한다. 이는 아직 `PkmsClientApp`, Desktop sync bridge, iOS 저장 provider에 연결되지 않았으며, Drive OAuth, durable outbox, Yjs operation convergence 및 production cutover도 완료되지 않았다. 기존 [격리 browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 API 가능성 실험으로 유지한다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.
+공통 [Google Drive package](../../../packages/pkms-google-drive/README.md)는 직접 Drive API client, Drive folder 기반 tree/file repository, IndexedDB outbox primitive를 제공한다. 이는 아직 `PkmsClientApp`, Desktop sync bridge, iOS 저장 provider에 연결되지 않았으며, Google OAuth, outbox replay orchestration, Yjs operation convergence 및 production cutover도 완료되지 않았다. 기존 [격리 browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 API 가능성 실험으로 유지한다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.
