@@ -34,6 +34,7 @@ import {
   editorTreeItemLabel,
   EditorTreePane,
   EditorTreeToolbar,
+  EditorTreeCreateActions,
   EDITOR_TREE_DRAG_MIME_TYPE,
   EDITOR_TREE_ROW_HEIGHT,
   editorTreeSelectionRoots,
@@ -909,55 +910,23 @@ export function TreeView({
           <EditorTreeToolbar
             title="Files"
             className="workspace-editor-tree-toolbar"
-            actionsClassName="workspace-editor-tree-actions"
             actions={
-              <>
-                {canCreateFile && (
-                  <button
-                    type="button"
-                    aria-label="New Markdown file"
-                    title="New Markdown file"
-                    onClick={() => void newFile('')}
-                  >
-                    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                      <path
-                        d="M3 1.75h6l4 4v8.5H3zM9 1.75v4h4M8 8v5M5.5 10.5h5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                    </svg>
-                  </button>
-                )}
-                {canCreateDirectory && (
-                  <button
-                    type="button"
-                    aria-label="New folder"
-                    title="New folder"
-                    onClick={(event) => {
-                      const rect = event.currentTarget.getBoundingClientRect()
-                      newFolder('', {
-                        left: rect.left,
-                        right: rect.right,
-                        top: rect.top,
-                        bottom: rect.bottom,
-                        width: rect.width,
-                        height: rect.height
-                      })
-                    }}
-                  >
-                    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                      <path
-                        d="M1.75 4.5h5l1.25 1.25h6.25v7.5H1.75zM10.75 8v4M8.75 10h4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </>
+              <EditorTreeCreateActions
+                canCreateFile={canCreateFile}
+                canCreateDirectory={canCreateDirectory}
+                onCreateFile={() => void newFile('')}
+                onCreateDirectory={(button) => {
+                  const rect = button.getBoundingClientRect()
+                  newFolder('', {
+                    left: rect.left,
+                    right: rect.right,
+                    top: rect.top,
+                    bottom: rect.bottom,
+                    width: rect.width,
+                    height: rect.height
+                  })
+                }}
+              />
             }
           />
         }

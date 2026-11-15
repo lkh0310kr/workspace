@@ -3228,30 +3228,6 @@ input {
   text-transform: uppercase;
 }
 
-.workspace-editor-tree-actions {
-  display: flex;
-  gap: 3px;
-}
-
-.workspace-editor-tree-actions button {
-  display: inline-grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-  border: 0;
-  border-radius: 5px;
-  color: var(--text-muted);
-  background: transparent;
-  font: inherit;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.workspace-editor-tree-actions button:hover {
-  color: var(--text);
-  background: var(--bg-hover);
-}
-
 .explorer-sidebar-panel {
   flex: 1;
   min-height: 0;

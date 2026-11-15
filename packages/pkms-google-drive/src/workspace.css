@@ -14,7 +14,8 @@
     sans-serif;
 }
 
-.pkms-google-drive-root button:not(.editor-tree-item) {
+.pkms-google-drive-root
+  button:not(.editor-tree-item):not(.cm-md-fold-control):not(.editor-tree-create-action) {
   appearance: none;
   min-height: 32px;
   padding: 6px 10px;
@@ -26,11 +27,14 @@
   cursor: pointer;
 }
 
-.pkms-google-drive-root button:not(.editor-tree-item):hover:not(:disabled) {
+.pkms-google-drive-root
+  button:not(.editor-tree-item):not(.cm-md-fold-control):not(.editor-tree-create-action):hover:not(
+    :disabled
+  ) {
   background: color-mix(in srgb, currentColor 6%, transparent);
 }
 
-.pkms-google-drive-root button:disabled {
+.pkms-google-drive-root button:not(.editor-tree-create-action):disabled {
   cursor: default;
   opacity: 0.55;
 }
@@ -63,8 +67,7 @@
   color: var(--drive-muted);
 }
 
-.pkms-google-drive-controls,
-.pkms-google-drive-file-actions {
+.pkms-google-drive-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -213,12 +216,6 @@
   place-items: center;
 }
 
-.pkms-google-drive-file-actions button {
-  min-height: 28px;
-  padding: 4px 8px;
-  font-size: 12px;
-}
-
 .pkms-google-drive-root.is-desktop {
   min-height: 0;
   padding: 0;
@@ -272,20 +269,6 @@
   font-size: 10px;
 }
 
-.pkms-google-drive-tree-footer-label {
-  flex: 0 0 auto;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.pkms-google-drive-tree-footer-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .pkms-google-drive-root .pkms-google-drive-tree-footer select {
   min-width: 0;
   height: 22px;
@@ -298,8 +281,7 @@
   font: inherit;
 }
 
-.pkms-google-drive-file-toolbar-heading,
-.pkms-google-drive-toolbar-actions {
+.pkms-google-drive-file-toolbar-heading {
   display: flex;
   min-width: 0;
   align-items: center;
@@ -350,25 +332,6 @@
   to {
     opacity: 0.35;
   }
-}
-
-.pkms-google-drive-root .pkms-google-drive-toolbar-actions button {
-  display: inline-grid;
-  width: 26px;
-  min-width: 26px;
-  height: 26px;
-  min-height: 26px;
-  place-items: center;
-  padding: 0;
-  border-color: transparent;
-  border-radius: 5px;
-  color: var(--drive-muted);
-  font-size: 16px;
-}
-
-.pkms-google-drive-root .pkms-google-drive-toolbar-actions button:hover:not(:disabled) {
-  color: var(--text, #262626);
-  background: color-mix(in srgb, currentColor 8%, transparent) !important;
 }
 
 .pkms-google-drive-search-row {

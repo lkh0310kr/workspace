@@ -77,6 +77,41 @@
   flex: 0 0 auto;
   gap: 4px;
 }
+.editor-tree-create-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.editor-tree-create-actions button {
+  display: inline-grid;
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  min-height: 26px;
+  max-height: 26px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--editor-tree-action, var(--muted, currentColor));
+  background: transparent;
+  cursor: pointer;
+}
+.editor-tree-create-actions button:hover:not(:disabled) {
+  color: var(--text, currentColor);
+  background: var(--bg-hover, var(--hover, transparent));
+}
+.editor-tree-create-actions button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.editor-tree-create-action {
+  box-sizing: border-box;
+}
+.editor-tree-create-actions svg {
+  width: 16px;
+  height: 16px;
+}
 .editor-tree-item:hover {
   background: var(--editor-tree-hover, var(--bg-hover, var(--hover)));
   color: var(--text, var(--muted));

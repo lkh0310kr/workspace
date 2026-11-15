@@ -28,7 +28,7 @@ export const markdownEditorTheme = EditorView.theme({
   '.cm-md-fold-control': {
     display: 'inline-flex',
     width: '16px',
-    height: '1.5em',
+    height: '21px',
     marginLeft: '-22px',
     marginRight: '6px',
     padding: '0',
@@ -36,6 +36,7 @@ export const markdownEditorTheme = EditorView.theme({
     justifyContent: 'center',
     verticalAlign: 'middle',
     border: '0',
+    borderRadius: '0',
     background: 'transparent',
     color: 'var(--text-muted, var(--muted))',
     opacity: '0',

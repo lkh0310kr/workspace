@@ -41,4 +41,4 @@ PUB-01 모든 export가 계약 owner를 갖는다. PUB-02 close click이 provide
 
 # Tree 조립
 
-`EditorTreePane`은 공유 가상 트리를 표시하는 public component다. 공통 pane frame을 소유하며 host가 제공하는 `header`/`footer` slot과 타입이 지정된 `tree` callback을 받는다. `EditorTreeToolbar`는 제목·상태·action의 공통 배치를 제공한다. 하위 수준의 `EditorTreeView`, row, virtual-list component는 package 내부에 두어 소비 앱이 tree shell을 따로 만들지 않게 한다. `EditorTreeFrame`은 검색 결과처럼 tree row 없이도 같은 header/content/footer 구조가 필요한 host 화면에 사용한다.
+`EditorTreePane`은 공유 가상 트리를 표시하는 public component다. 공통 pane frame을 소유하며 host가 제공하는 `header`/`footer` slot과 타입이 지정된 `tree` callback을 받는다. `EditorTreeToolbar`는 제목·상태·action의 공통 배치를 제공하고 `EditorTreeCreateActions`는 파일·폴더 생성 버튼 UI를 세 host에 제공한다. 생성 권한과 실행은 host/provider가 소유한다. 하위 수준의 `EditorTreeView`, row, virtual-list component는 package 내부에 두어 소비 앱이 tree shell을 따로 만들지 않게 한다. `EditorTreeFrame`은 검색 결과처럼 tree row 없이도 같은 header/content/footer 구조가 필요한 host 화면에 사용한다.

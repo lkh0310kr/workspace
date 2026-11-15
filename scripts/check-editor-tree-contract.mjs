@@ -24,10 +24,12 @@ const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
 const sharedTreeViewPath = path.join(root, 'packages/editor/src/EditorTreeView.tsx')
 const sharedTreeStylesPath = path.join(root, 'packages/editor/src/tree.css')
 const sharedTreePanePath = path.join(root, 'packages/editor/src/EditorTreePane.tsx')
+const sharedEditorThemesPath = path.join(root, 'packages/editor/src/themes.ts')
 const sharedEditorMarkdownPath = path.join(root, 'packages/editor/src/EditorMarkdownEditor.tsx')
 const sharedTreeView = await readFile(sharedTreeViewPath, 'utf8')
 const sharedTreeStyles = await readFile(sharedTreeStylesPath, 'utf8')
 const sharedTreePane = await readFile(sharedTreePanePath, 'utf8')
+const sharedEditorThemes = await readFile(sharedEditorThemesPath, 'utf8')
 
 if (!/className=\{\['editor-tree-view',\s*className\]/.test(sharedTreeView)) {
   failures.push('EditorTreeView must apply the shared editor-tree-view root class.')
@@ -49,13 +51,31 @@ if (
 if (!/\.editor-tree-item\s*\{[^}]*line-height:\s*1\.4/s.test(sharedTreeStyles)) {
   failures.push('packages/editor/src/tree.css must own shared tree row line height.')
 }
+if (
+  !/\.editor-tree-create-actions button\s*\{[^}]*width:\s*26px[^}]*height:\s*26px[^}]*padding:\s*0[^}]*border:\s*0[^}]*border-radius:\s*0/s.test(
+    sharedTreeStyles
+  )
+) {
+  failures.push(
+    'packages/editor/src/tree.css must own borderless 26px shared tree creation controls.'
+  )
+}
+if (
+  !/\.cm-md-fold-control'\s*:\s*\{[^}]*width:\s*'16px'[^}]*height:\s*'21px'[^}]*padding:\s*'0'[^}]*border:\s*'0'[^}]*borderRadius:\s*'0'/s.test(
+    sharedEditorThemes
+  )
+) {
+  failures.push(
+    'packages/editor/src/themes.ts must own a borderless shared Markdown heading fold control.'
+  )
+}
 
 for (const [relativePath, selector] of [
   ['apps/workspace-app/src/renderer/src/assets/styles.css', '.tree-view'],
   ['packages/pkms-client/src/styles.css', '.file-list']
 ]) {
   const source = await readFile(path.join(root, relativePath), 'utf8')
-  const rule = source.match(new RegExp(`${selector.replace('.', '\\.') }\\s*\\{([^}]*)\\}`))
+  const rule = source.match(new RegExp(`${selector.replace('.', '\\.')}\\s*\\{([^}]*)\\}`))
   if (!rule) {
     failures.push(`${relativePath} must keep the ${selector} host rule.`)
     continue
@@ -67,17 +87,30 @@ for (const [relativePath, selector] of [
 
 const driveStylesPath = path.join(root, 'packages/pkms-google-drive/src/workspace.css')
 const driveStyles = await readFile(driveStylesPath, 'utf8')
-if (!driveStyles.includes('.pkms-google-drive-root button:not(.editor-tree-item)')) {
-  failures.push('Google Drive button styling must exclude the shared EditorTreeRow.')
-}
+const normalizedDriveStyles = driveStyles.replace(/\s+/g, ' ')
 if (
-  !driveStyles.includes(
-    '.pkms-google-drive-root button:not(.editor-tree-item):hover:not(:disabled)'
+  !normalizedDriveStyles.includes(
+    '.pkms-google-drive-root button:not(.editor-tree-item):not(.cm-md-fold-control):not(.editor-tree-create-action)'
   )
 ) {
-  failures.push('Google Drive hover styling must exclude the shared EditorTreeRow.')
+  failures.push(
+    'Google Drive button reset must exclude shared tree rows, Markdown fold, and tree create controls.'
+  )
 }
-if (/\.editor-markdown-document\.pkms-google-drive-markdown\s+\.editor-markdown-title\s*\{/.test(driveStyles)) {
+if (
+  !normalizedDriveStyles.includes(
+    '.pkms-google-drive-root button:not(.editor-tree-create-action):disabled'
+  )
+) {
+  failures.push(
+    'Google Drive disabled button styling must preserve shared tree create control state.'
+  )
+}
+if (
+  /\.editor-markdown-document\.pkms-google-drive-markdown\s+\.editor-markdown-title\s*\{/.test(
+    driveStyles
+  )
+) {
   failures.push('Google Drive must use the shared Markdown filename title width.')
 }
 
@@ -94,6 +127,13 @@ if (
   )
 ) {
   failures.push('packages/editor/src/index.ts must publicly export EditorTreeToolbar.')
+}
+if (
+  !/export\s*\{[^}]*\bEditorTreeCreateActions\b[^}]*\}\s*from\s*['"]\.\/EditorTreeCreateActions['"]/.test(
+    packageIndex
+  )
+) {
+  failures.push('packages/editor/src/index.ts must publicly export EditorTreeCreateActions.')
 }
 if (
   !/export\s*\{[^}]*\bEditorMarkdownEditor\b[^}]*\}\s*from\s*['"]\.\/EditorMarkdownEditor['"]/.test(
@@ -141,6 +181,13 @@ for (const relativePath of requiredToolbars) {
   if (!source.includes('<EditorTreeToolbar')) {
     failures.push(`${relativePath} must use the shared EditorTreeToolbar.`)
   }
+}
+for (const relativePath of requiredToolbars) {
+  const source = await readFile(path.join(root, relativePath), 'utf8')
+  if (!source.includes('<EditorTreeCreateActions'))
+    failures.push(
+      `${relativePath} must use shared EditorTreeCreateActions for file/folder creation.`
+    )
 }
 
 const requiredEditorHosts = [

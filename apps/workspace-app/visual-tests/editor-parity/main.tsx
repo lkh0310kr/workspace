@@ -121,6 +121,7 @@ const editorMarkdownFixture = isMissingWikiScenario ? `${markdown}\n[[Fresh Note
 function installMocks() {
   const w = window as any
   w.__openedDriveMarkdownEntries = []
+  w.__savedDriveMarkdown = []
   w.__createdPkmsPaths = []
   w.api = {
     fs: {
@@ -167,7 +168,10 @@ function installMocks() {
     connectGoogleDriveWorkspace: async () => ({ root: driveRoot, entries: driveEntries }),
     listGoogleDriveDirectory: async (_rootId: string, parentId: string | null) =>
       parentId === null || parentId === driveRoot.id
-        ? [...driveEntries, ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveRoot.id)]
+        ? [
+            ...driveEntries,
+            ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveRoot.id)
+          ]
         : parentId === driveFolder.id
           ? isTreeStressScenario
             ? [driveNote, driveExtraNote, ...driveTreeStressEntries]
@@ -179,7 +183,7 @@ function installMocks() {
               ]
           : parentId === driveHiddenFolder.id && isQuickOpenNestedScenario
             ? [driveDeepNote]
-          : [],
+            : [],
     openGoogleDriveMarkdown: async (_rootId: string, entryId: string) => {
       w.__openedDriveMarkdownEntries.push(entryId)
       const entry = [driveNote, driveExtraNote, driveDeepNote, ...driveCreatedNotes].find(
@@ -193,20 +197,30 @@ function installMocks() {
             ? readmeMarkdown
             : entry.id === driveDeepNote.id
               ? '# Deep Note preview\n'
-            : driveCreatedNotes.some((candidate) => candidate.id === entry.id)
-              ? '# Untitled\n\n'
-              : editorMarkdownFixture,
+              : driveCreatedNotes.some((candidate) => candidate.id === entry.id)
+                ? '# Untitled\n\n'
+                : editorMarkdownFixture,
         revision: 'mock-r1'
       }
     },
-    saveGoogleDriveMarkdown: async () => ({ revision: 'mock-r2', sync: { pendingOperations: 0 } }),
+    saveGoogleDriveMarkdown: async (_rootId: string, entryId: string, text: string) => {
+      w.__savedDriveMarkdown.push({ entryId, text })
+      return { revision: 'mock-r2', sync: { pendingOperations: 0 } }
+    },
     syncGoogleDriveWorkspace: async () => ({ pendingOperations: 0 }),
     searchGoogleDriveWorkspace: async (_rootId: string, query: string) => ({
-      entries: [driveNote, driveExtraNote, ...(isQuickOpenNestedScenario ? [driveDeepNote] : [])].filter((entry) =>
-        entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())
-      )
+      entries: [
+        driveNote,
+        driveExtraNote,
+        ...(isQuickOpenNestedScenario ? [driveDeepNote] : [])
+      ].filter((entry) => entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
     }),
-    createGoogleDriveItem: async (_rootId: string, parentId: string, kind: string, name: string) => {
+    createGoogleDriveItem: async (
+      _rootId: string,
+      parentId: string,
+      kind: string,
+      name: string
+    ) => {
       const parent = parentId ? [driveFolder].find((entry) => entry.id === parentId) : null
       const entry: GoogleDriveWorkspaceEntry = {
         id: `mock-drive-created-${driveCreatedNotes.length + 1}`,

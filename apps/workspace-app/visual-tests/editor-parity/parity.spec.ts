@@ -132,9 +132,7 @@ for (const host of ['desktop-pkms-editor', 'web-pkms-editor'] as const) {
     await expect(result).toBeVisible()
     await result.click()
 
-    await expect(page.getByRole('navigation', { name: 'File location' })).toContainText(
-      'Readme.md'
-    )
+    await expect(page.getByRole('navigation', { name: 'File location' })).toContainText('Readme.md')
     await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
   })
 
@@ -156,9 +154,9 @@ for (const host of ['desktop-pkms-editor', 'web-pkms-editor'] as const) {
         .poll(() => page.evaluate(() => (window as any).__openedDriveMarkdownEntries))
         .toContain('mock-drive-created-1')
     } else {
-      await expect.poll(() => page.evaluate(() => (window as any).__createdPkmsPaths)).toContain(
-        'Fresh Note.md'
-      )
+      await expect
+        .poll(() => page.evaluate(() => (window as any).__createdPkmsPaths))
+        .toContain('Fresh Note.md')
     }
   })
 
@@ -191,6 +189,40 @@ for (const host of ['desktop-pkms-editor', 'web-pkms-editor'] as const) {
   })
 }
 
+test('Desktop Drive Markdown saves edits automatically without a Save button', async ({ page }) => {
+  await page.goto('/?host=desktop-pkms-editor')
+  await page.getByRole('treeitem', { name: 'Verification' }).click()
+  await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+  await expect(page.locator('.cm-content')).toContainText('Live Drive verification')
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0)
+
+  const savedText = '# Saved automatically from the shared editor'
+  await page.locator('.cm-content').fill(savedText)
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as any).__savedDriveMarkdown.some((save: { text: string }) =>
+          save.text.includes('Saved automatically from the shared editor')
+        )
+      )
+    )
+    .toBe(true)
+
+  const flushText = '# Saved before switching documents'
+  await page.locator('.cm-content').fill(flushText)
+  await page.getByRole('treeitem', { name: 'Readme', exact: true }).click()
+  await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as any).__savedDriveMarkdown.some((save: { text: string }) =>
+          save.text.includes('Saved before switching documents')
+        )
+      )
+    )
+    .toBe(true)
+})
+
 test('narrow view keeps the active breadcrumb reachable and its menu on screen', async ({
   page
 }) => {
@@ -219,6 +251,8 @@ test('all host surfaces align common tree rows and readable document columns', a
   const measurements: Array<{
     folderStyle: Record<string, string>
     fileStyle: Record<string, string>
+    createActions: Array<{ width: number; height: number }>
+    headingFoldControl: Record<string, string>
     title: { x: number; width: number }
     body: { x: number; width: number }
     document: { x: number; width: number }
@@ -265,9 +299,39 @@ test('all host surfaces align common tree rows and readable document columns', a
           ? '.main-panel'
           : '.visual-document'
     const documentRect = await rect(documentSelector)
+    const foldControl = page.locator('.cm-md-fold-control').first()
+    await foldControl.hover()
+    await expect
+      .poll(() =>
+        foldControl.evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity))
+      )
+      .toBeGreaterThanOrEqual(0.8)
     measurements.push({
       folderStyle: await rowStyle(0),
       fileStyle: await rowStyle(1),
+      createActions: await Promise.all(
+        ['New Markdown file', 'New folder'].map((label) =>
+          page.getByRole('button', { name: label }).evaluate((element) => {
+            const { width, height } = element.getBoundingClientRect()
+            return { width: Math.round(width), height: Math.round(height) }
+          })
+        )
+      ),
+      headingFoldControl: await foldControl.evaluate((element) => {
+        const style = getComputedStyle(element)
+        return {
+          width: style.width,
+          height: style.height,
+          minHeight: style.minHeight,
+          marginLeft: style.marginLeft,
+          marginRight: style.marginRight,
+          padding: style.padding,
+          color: style.color,
+          borderWidth: style.borderWidth,
+          borderStyle: style.borderStyle,
+          borderRadius: style.borderRadius
+        }
+      }),
       title: await rect('.editor-markdown-title'),
       body: await rect('.cm-content'),
       document: documentRect
@@ -277,6 +341,10 @@ test('all host surfaces align common tree rows and readable document columns', a
   for (const measurement of measurements) {
     expect(measurement.folderStyle.height).toBe('27px')
     expect(measurement.fileStyle.height).toBe('27px')
+    expect(measurement.createActions).toEqual([
+      { width: 26, height: 26 },
+      { width: 26, height: 26 }
+    ])
     expect(Math.abs(measurement.title.x - measurement.body.x)).toBeLessThanOrEqual(1)
     expect(Math.abs(measurement.title.width - measurement.body.width)).toBeLessThanOrEqual(1)
   }
@@ -284,6 +352,10 @@ test('all host surfaces align common tree rows and readable document columns', a
   expect(webPkms.folderStyle).toEqual(workspace.folderStyle)
   expect(desktopDrive.fileStyle).toEqual(workspace.fileStyle)
   expect(webPkms.fileStyle).toEqual(workspace.fileStyle)
+  expect(desktopDrive.createActions).toEqual(workspace.createActions)
+  expect(webPkms.createActions).toEqual(workspace.createActions)
+  expect(desktopDrive.headingFoldControl).toEqual(workspace.headingFoldControl)
+  expect(webPkms.headingFoldControl).toEqual(workspace.headingFoldControl)
   expect(desktopDrive.title.width).toBe(workspace.title.width)
   expect(webPkms.title.width).toBe(workspace.title.width)
   for (const measurement of measurements) {
@@ -302,6 +374,7 @@ test('Desktop Drive tree keyboard navigation and overflow survive hide and reope
   const viewport = page.locator('.pkms-google-drive-tree-scroll > .editor-tree-pane-content')
   const header = page.locator('.pkms-google-drive-file-toolbar')
   const footer = page.locator('.pkms-google-drive-tree-footer')
+  await expect(footer).toHaveCount(0)
   const folder = page.getByRole('treeitem', { name: 'Verification' })
   await folder.click()
   await expect(page.getByRole('treeitem', { name: 'Row 000', exact: true })).toBeVisible()
@@ -323,7 +396,6 @@ test('Desktop Drive tree keyboard navigation and overflow survive hide and reope
   const scrollTop = await viewport.evaluate((element) => element.scrollTop)
   expect(scrollTop).toBeGreaterThan(0)
   const headerTop = await header.evaluate((element) => element.getBoundingClientRect().top)
-  const footerTop = await footer.evaluate((element) => element.getBoundingClientRect().top)
 
   await page.keyboard.press('Control+\\')
   await expect(tree).not.toBeVisible()
@@ -333,7 +405,6 @@ test('Desktop Drive tree keyboard navigation and overflow survive hide and reope
   await expect.poll(() => viewport.evaluate((element) => element.scrollTop)).toBe(scrollTop)
   await expect(page.getByRole('treeitem', { name: 'Row 030', exact: true })).toBeVisible()
   expect(await header.evaluate((element) => element.getBoundingClientRect().top)).toBe(headerTop)
-  expect(await footer.evaluate((element) => element.getBoundingClientRect().top)).toBe(footerTop)
 })
 
 test('Desktop Drive folder context menu exposes and opens shared file actions', async ({

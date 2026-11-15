@@ -54,7 +54,7 @@ HTML iframe의 sandbox는 `allow-same-origin`이며 script 허용 flag는 없다
 
 ## 접기
 
-헤딩은 `#` 수가 나타내는 level을 기준으로 접는다. 헤딩을 접으면 그 다음 같은 level 또는 상위 level 헤딩 전까지의 모든 block을 숨긴다. 접기 컨트롤은 가운데 정렬된 본문 폭을 기준으로 각 접을 수 있는 헤딩 바로 왼쪽에 놓는다. 목록은 여러 줄을 포함하는 `ListItem`에서 첫 줄 뒤의 하위/이어지는 내용을 접고, 형제 항목은 남긴다. CodeMirror `foldKeymap`의 키 조작도 제공한다. 접힌 상태는 문서 내용에 저장하지 않으며 editor state가 재생성되면 초기화된다.
+헤딩은 `#` 수가 나타내는 level을 기준으로 접는다. 헤딩을 접으면 그 다음 같은 level 또는 상위 level 헤딩 전까지의 모든 block을 숨긴다. 접기 컨트롤은 가운데 정렬된 본문 폭을 기준으로 각 접을 수 있는 헤딩 바로 왼쪽에 놓고, 해당 줄 hover/focus 때 표시한다. 16×21px hit area를 사용한다. Host의 전역 button reset은 `.cm-md-fold-control`을 제외해 padding/border/radius가 접기 화살표를 바꾸지 않게 한다. 목록은 여러 줄을 포함하는 `ListItem`에서 첫 줄 뒤의 하위/이어지는 내용을 접고, 형제 항목은 남긴다. CodeMirror `foldKeymap`의 키 조작도 제공한다. 접힌 상태는 문서 내용에 저장하지 않으며 editor state가 재생성되면 초기화된다.
 
 [relativeLink.ts](../../../../packages/editor/src/relativeLink.ts)는 query/hash를 제거하고 segment별 decode한다. scheme/`//`/빈 path/잘못된 percent encoding을 거부한다. `/`는 provider root, 그 외 현재 파일 directory 기준이다. `..`가 root 밖으로 나가면 null. hash-only 이동은 이 함수로 해결되지 않는다. Desktop WikiLink는 target의 마지막 path segment를 trim하고 `.md`를 붙인 이름을 case-insensitive 비교한다. root부터 directory를 BFS하며 최대 500 directory를 조회하고 첫 markdown 일치를 연다. 없으면 root에 해당 이름의 빈 .md 파일을 생성한다. target이 이미 확장자를 가졌다고 확장자를 생략하는 규칙은 없다. 이 resolver로 대상 문서를 열며 일반 상대 링크는 확장자로 pane kind를 선택한다.
 

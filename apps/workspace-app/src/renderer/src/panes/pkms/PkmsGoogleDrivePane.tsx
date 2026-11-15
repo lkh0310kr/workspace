@@ -14,6 +14,7 @@ import {
   EditorTreeFrame,
   EditorTreePane,
   EditorTreeToolbar,
+  EditorTreeCreateActions,
   EditorNameForm,
   EditorQuickOpenDialog,
   EDITOR_TREE_ROW_HEIGHT,
@@ -25,6 +26,7 @@ import {
   resolveEditorRelativeLink,
   resolveEditorWikiLink,
   useEditorQuickOpenSearch,
+  useEditorDocumentSnapshot,
   type EditorProvider,
   type EditorSearchResult,
   type EditorDocumentSession,
@@ -97,6 +99,8 @@ function createSession(
   let closed = false
   let message: string | undefined
   let deferredSyncTimer: number | undefined
+  let autoSaveTimer: number | undefined
+  let saveTail: Promise<void> = Promise.resolve()
   const snapshot = () => ({
     content: { type: 'text' as const, text: content },
     revision,
@@ -109,39 +113,12 @@ function createSession(
     listeners.forEach((listener) => listener(current))
   }
 
-  return {
-    get item() {
-      return item
-    },
-    readOnly: false,
-    updateItem(next) {
-      if (next.providerId === item.providerId && next.itemId === item.itemId) item = next
-    },
-    snapshot,
-    subscribe(listener) {
-      listeners.add(listener)
-      listener(snapshot())
-      return () => listeners.delete(listener)
-    },
-    async replaceText(nextText, baseRevision) {
-      if (closed) throw new Error('Document session is closed')
-      if (baseRevision !== revision) {
-        phase = 'conflict'
-        syncPhase = 'blocked'
-        message = 'The document changed while this edit was being applied.'
-        emit()
-        throw new Error(message)
-      }
-      if (nextText === content) return
-      content = nextText
-      localRevision += 1
-      revision = `${revision}:${localRevision}`
-      phase = 'dirty'
-      syncPhase = 'pending'
-      message = undefined
-      emit()
-    },
-    async save(options = {}) {
+  const save = (options: { flushSync?: boolean } = {}) => {
+    if (autoSaveTimer !== undefined) {
+      window.clearTimeout(autoSaveTimer)
+      autoSaveTimer = undefined
+    }
+    const operation = saveTail.then(async () => {
       if (closed) throw new Error('Document session is closed')
       const requestedRevision = localRevision
       phase = 'saving'
@@ -188,8 +165,72 @@ function createSession(
       }
       emit()
       return snapshot()
+    })
+    saveTail = operation.then(
+      () => undefined,
+      () => undefined
+    )
+    return operation
+  }
+
+  return {
+    get item() {
+      return item
     },
+    readOnly: false,
+    updateItem(next) {
+      if (next.providerId === item.providerId && next.itemId === item.itemId) item = next
+    },
+    snapshot,
+    subscribe(listener) {
+      listeners.add(listener)
+      listener(snapshot())
+      return () => listeners.delete(listener)
+    },
+    async replaceText(nextText, baseRevision) {
+      if (closed) throw new Error('Document session is closed')
+      if (baseRevision !== revision) {
+        phase = 'conflict'
+        syncPhase = 'blocked'
+        message = 'The document changed while this edit was being applied.'
+        emit()
+        throw new Error(message)
+      }
+      if (nextText === content) return
+      content = nextText
+      localRevision += 1
+      revision = `${revision}:${localRevision}`
+      phase = 'dirty'
+      syncPhase = 'pending'
+      message = undefined
+      emit()
+      // Persist edits automatically while batching Drive sync away from each keystroke.
+      if (autoSaveTimer !== undefined) window.clearTimeout(autoSaveTimer)
+      autoSaveTimer = window.setTimeout(() => {
+        autoSaveTimer = undefined
+        void save({ flushSync: false })
+      }, 500)
+    },
+    save,
     async close() {
+      if (autoSaveTimer !== undefined) {
+        window.clearTimeout(autoSaveTimer)
+        autoSaveTimer = undefined
+      }
+      if (phase === 'conflict')
+        throw new Error(
+          message ?? 'The document changed elsewhere. Resolve the conflict before closing it.'
+        )
+      if (
+        phase === 'dirty' ||
+        phase === 'saving' ||
+        phase === 'error' ||
+        deferredSyncTimer !== undefined
+      ) {
+        const saved = await save({ flushSync: true })
+        if (saved.savePhase !== 'clean')
+          throw new Error(saved.message ?? 'Could not save the document before closing it.')
+      }
       closed = true
       listeners.clear()
     }
@@ -237,6 +278,9 @@ export function PkmsGoogleDrivePane({
   const [searching, setSearching] = useState(false)
   const searchGeneration = useRef(0)
   const [session, setSession] = useState<EditorDocumentSession | null>(null)
+  const sessionRef = useRef(session)
+  sessionRef.current = session
+  const sessionSnapshot = useEditorDocumentSnapshot(session)
   const [busy, setBusy] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [status, setStatus] = useState('Connecting to Google Drive…')
@@ -309,7 +353,9 @@ export function PkmsGoogleDrivePane({
         const result = initialEntries
           ? { entries: initialEntries }
           : await window.pkmsDesktop.connectGoogleDriveWorkspace(nextRoot.id)
+        await sessionRef.current?.close()
         setSession(null)
+        sessionRef.current = null
         setActiveFile(null)
         setDirectory({ id: null, path: '', ancestors: [] })
         setRoot(nextRoot)
@@ -492,6 +538,13 @@ export function PkmsGoogleDrivePane({
     () => projectEditorTreeRows(treeRows, treeScrollTop, treeViewportHeight),
     [treeRows, treeScrollTop, treeViewportHeight]
   )
+  const documentSaving =
+    sessionSnapshot?.savePhase === 'saving' || sessionSnapshot?.savePhase === 'dirty'
+  const documentNeedsAttention =
+    sessionSnapshot?.savePhase === 'error' ||
+    sessionSnapshot?.savePhase === 'conflict' ||
+    sessionSnapshot?.syncPhase === 'blocked'
+  const documentSyncing = syncing || sessionSnapshot?.syncPhase === 'pending'
 
   const focusTreeRow = useCallback(
     (path: string) => {
@@ -705,7 +758,9 @@ export function PkmsGoogleDrivePane({
       for (const name of entry.path.split('/').slice(0, -1)) {
         const entries = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, parentId)
         branches.push([directoryPath, entries])
-        const folder = entries.find((candidate) => candidate.name === name && candidate.kind === 'folder')
+        const folder = entries.find(
+          (candidate) => candidate.name === name && candidate.kind === 'folder'
+        )
         if (!folder) return
         parentId = folder.id
         directoryPath = folder.path
@@ -721,8 +776,9 @@ export function PkmsGoogleDrivePane({
       setExpandedFolders((current) => new Set([...current, ...folderPaths]))
       setFocusedTreePath(entry.path)
       window.requestAnimationFrame(() => {
-        const row = [...(treeRootRef.current?.querySelectorAll<HTMLElement>('[data-tree-path]') ?? [])]
-          .find((candidate) => candidate.dataset.treePath === entry.path)
+        const row = [
+          ...(treeRootRef.current?.querySelectorAll<HTMLElement>('[data-tree-path]') ?? [])
+        ].find((candidate) => candidate.dataset.treePath === entry.path)
         row?.scrollIntoView({ block: 'nearest' })
         row?.focus({ preventScroll: true })
       })
@@ -1184,72 +1240,58 @@ export function PkmsGoogleDrivePane({
                   title="Files"
                   className="pkms-google-drive-file-toolbar"
                   headingClassName="pkms-google-drive-file-toolbar-heading"
-                  actionsClassName="pkms-google-drive-toolbar-actions"
                   status={
                     <button
                       type="button"
                       className="pkms-google-drive-sync-state"
-                      onClick={() => void syncNow()}
-                      disabled={busy}
+                      onClick={() => {
+                        if (
+                          sessionSnapshot?.savePhase === 'dirty' ||
+                          sessionSnapshot?.savePhase === 'error'
+                        )
+                          void session?.save({ flushSync: true })
+                        else if (sessionSnapshot?.savePhase !== 'conflict') void syncNow()
+                      }}
+                      disabled={
+                        busy ||
+                        syncing ||
+                        sessionSnapshot?.savePhase === 'saving' ||
+                        sessionSnapshot?.savePhase === 'conflict'
+                      }
                       title="Sync now"
                     >
                       <span
-                        className={`pkms-google-drive-sync-indicator${syncing ? ' is-busy' : error ? ' is-error' : ''}`}
+                        className={`pkms-google-drive-sync-indicator${documentSaving || documentSyncing ? ' is-busy' : error || documentNeedsAttention ? ' is-error' : ''}`}
                       />
                       <span>
-                        {syncing
-                          ? 'Syncing'
-                          : error
+                        {documentSaving
+                          ? 'Saving'
+                          : documentNeedsAttention
                             ? 'Needs attention'
-                            : status.toLowerCase().includes('waiting')
-                              ? 'Waiting'
-                              : 'Up to date'}
+                            : documentSyncing
+                              ? 'Syncing'
+                              : error
+                                ? 'Needs attention'
+                                : status.toLowerCase().includes('waiting')
+                                  ? 'Waiting'
+                                  : 'Up to date'}
                       </span>
                     </button>
                   }
                   actions={
-                    <>
-                      <button
-                        type="button"
-                        title="New note"
-                        aria-label="New note"
-                        onClick={() => requestCreateItem('markdown')}
-                        disabled={busy}
-                      >
-                        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                          <path
-                            d="M3 1.75h6l4 4v8.5H3zM9 1.75v4h4M8 8v5M5.5 10.5h5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.2"
-                          />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        title="New folder"
-                        aria-label="New folder"
-                        onClick={() => requestCreateItem('folder')}
-                        disabled={busy}
-                      >
-                        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                          <path
-                            d="M1.75 4.5h5l1.25 1.25h6.25v7.5H1.75zM10.75 8v4M8.75 10h4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.2"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-                    </>
+                    <EditorTreeCreateActions
+                      canCreateFile
+                      canCreateDirectory
+                      disabled={busy}
+                      onCreateFile={() => requestCreateItem('markdown')}
+                      onCreateDirectory={() => requestCreateItem('folder')}
+                    />
                   }
                 />
               }
               footer={
-                <div className="pkms-google-drive-tree-footer">
-                  <span className="pkms-google-drive-tree-footer-label">PKMS workspace</span>
-                  {roots.length > 1 ? (
+                roots.length > 1 ? (
+                  <div className="pkms-google-drive-tree-footer">
                     <select
                       aria-label="PKMS Google Drive workspace"
                       value={root.id}
@@ -1265,12 +1307,8 @@ export function PkmsGoogleDrivePane({
                         </option>
                       ))}
                     </select>
-                  ) : (
-                    <span className="pkms-google-drive-tree-footer-name" title={root.name}>
-                      {root.name}
-                    </span>
-                  )}
-                </div>
+                  </div>
+                ) : undefined
               }
               style={{
                 display: 'flex',
@@ -1433,13 +1471,6 @@ export function PkmsGoogleDrivePane({
                       <div className="editor-markdown-title">
                         {markdownTitleFor(activeFile.path)}
                       </div>
-                    </div>
-                  }
-                  actions={
-                    <div className="pkms-google-drive-file-actions">
-                      <button type="button" onClick={() => void session.save()} disabled={busy}>
-                        Save
-                      </button>
                     </div>
                   }
                   surfaceKey={activeFile.id}
