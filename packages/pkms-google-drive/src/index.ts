@@ -6,6 +6,7 @@ export {
   applyDriveChanges
 } from './googleDriveClient'
 export {
+  GoogleDriveWorkspaceItemNotFoundError,
   GoogleDriveWorkspaceRepository,
   listGoogleDriveWorkspaceRoots,
   resolveGoogleDriveWorkspaceRoot,

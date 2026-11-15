@@ -3,6 +3,7 @@ import {
   DriveApiError,
   GoogleDriveOperationApplier,
   GoogleDriveWorkspaceRepository,
+  GoogleDriveWorkspaceItemNotFoundError,
   type DriveLogicalOperation,
   type DriveFile
 } from '../../../../../packages/pkms-google-drive/src'
@@ -28,6 +29,7 @@ describe('GoogleDriveOperationApplier', () => {
     const events: string[] = []
     const repository = {
       rootId: 'root',
+      getEntry: vi.fn(async (id: string) => ({ id }) as DriveFile),
       createFolderOnce: vi.fn(async (opId, path, itemId) => {
         events.push(`folder:${opId}:${path}:${itemId}`)
         return {} as never
@@ -115,6 +117,69 @@ describe('GoogleDriveOperationApplier', () => {
         }
       ])
     ).rejects.toThrow(/different Google Drive workspace/)
+  })
+
+  it('skips replay operations whose item was removed from this workspace', async () => {
+    const missing = new GoogleDriveWorkspaceItemNotFoundError('removed-item')
+    const repository = {
+      rootId: 'root',
+      getEntry: vi.fn(async () => {
+        throw missing
+      }),
+      rename: vi.fn(),
+      trashIfPresent: vi.fn(async () => {})
+    } as unknown as GoogleDriveWorkspaceRepository
+    const hooks = {
+      applyDocumentSeed: vi.fn(),
+      applyDocumentUpdate: vi.fn(async () => {
+        throw missing
+      }),
+      projectDocument: vi.fn(),
+      applyAssetReplacement: vi.fn(async () => {
+        throw missing
+      })
+    }
+    const applier = new GoogleDriveOperationApplier(repository, hooks)
+
+    await expect(
+      applier.apply([
+        operation(1, 'rename', { type: 'rename', fileId: 'removed-item', name: 'old.md' }),
+        operation(2, 'update', {
+          type: 'document-update',
+          fileId: 'removed-item',
+          update: new Uint8Array([1])
+        }),
+        operation(3, 'asset', {
+          type: 'replace-content',
+          fileId: 'removed-item',
+          mimeType: 'image/png',
+          bytes: new Uint8Array([1])
+        })
+      ])
+    ).resolves.toBeUndefined()
+    expect(hooks.applyDocumentUpdate).not.toHaveBeenCalled()
+    expect(hooks.applyAssetReplacement).not.toHaveBeenCalled()
+    expect(hooks.projectDocument).not.toHaveBeenCalled()
+  })
+
+  it('still fails replay when an item lookup has a network or permission error', async () => {
+    const denied = new DriveApiError(403, 'forbidden', 'permission denied')
+    const repository = {
+      rootId: 'root',
+      getEntry: vi.fn(async () => {
+        throw denied
+      })
+    } as unknown as GoogleDriveWorkspaceRepository
+    const applier = new GoogleDriveOperationApplier(repository, {
+      applyDocumentSeed: vi.fn(),
+      applyDocumentUpdate: vi.fn(),
+      projectDocument: vi.fn(),
+      applyAssetReplacement: vi.fn()
+    })
+
+    await expect(
+      applier.apply([operation(1, 'rename', { type: 'rename', fileId: 'item', name: 'next.md' })])
+    ).rejects.toBe(denied)
   })
 
   it('replays create, rename, and move operations without duplicating or undoing later state', async () => {

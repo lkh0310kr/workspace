@@ -1239,7 +1239,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/index.ts",
-          "sha256": "271c37f84a13f3ddf0259e415bf6f358857955264f3ca5bed3ba400775589737"
+          "sha256": "8bea3fd2746211f7ec773d0f84efd80f9de3404030a279be776caf2ca6f295c9"
         },
         {
           "path": "packages/pkms-google-drive/src/googleDriveClient.ts",
@@ -1327,11 +1327,11 @@
         },
         {
           "path": "packages/pkms-google-drive/src/operationApplier.ts",
-          "sha256": "12be73e94d5e149e442ada570e026e2fb768a199e17dfabf65ea1338b1d48292"
+          "sha256": "d1afb84c6f787a44c293ab42a4b0345391961482418d1d20e1742722ed9d5c0a"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveOperationApplier.test.ts",
-          "sha256": "10070e8a26ac4ba855a9559cecc0a7fe713fbeab749a203de3c05bf03a651bb4"
+          "sha256": "621f224bfce488dfad3b566e1ba01772c7db6cfbe59a82fb9f739fe157fbd849"
         },
         {
           "path": "packages/pkms-google-drive/src/yjsDocuments.ts",
@@ -1351,7 +1351,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveWorkspaceSync.test.ts",
-          "sha256": "d8cc08603e299b46d20f827f08c3b61cfc98d870e5bd9d5861051b3b3c8957dc"
+          "sha256": "6510b72df82e6d61a729ad0e3b19912a5d9dd7a87fa9feaac0aa61cb365ed236"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveSyncEngine.test.ts",

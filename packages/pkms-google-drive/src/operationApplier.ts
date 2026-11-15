@@ -1,5 +1,8 @@
 import type { DriveLogicalOperation } from './operationLog'
-import type { GoogleDriveWorkspaceRepository } from './workspaceRepository'
+import {
+  GoogleDriveWorkspaceItemNotFoundError,
+  type GoogleDriveWorkspaceRepository
+} from './workspaceRepository'
 
 export interface GoogleDriveOperationApplierHooks {
   /** Applies the common initial document state before any document updates. */
@@ -41,6 +44,18 @@ export class GoogleDriveOperationApplier {
       if (operation.workspaceRootId !== this.repository.rootId)
         throw new Error('The operation belongs to a different Google Drive workspace.')
       const mutation = operation.mutation
+      const applyToExistingItem = async (fileId: string, apply: () => Promise<void>) => {
+        try {
+          await this.repository.getEntry(fileId)
+          await apply()
+          return true
+        } catch (cause) {
+          // A Drive deletion can leave older edits in the immutable operation log.
+          // Skip only a confirmed missing item so it cannot block workspace connect.
+          if (cause instanceof GoogleDriveWorkspaceItemNotFoundError) return false
+          throw cause
+        }
+      }
       switch (mutation.type) {
         case 'create-folder':
           await this.repository.createFolderOnce(
@@ -59,26 +74,40 @@ export class GoogleDriveOperationApplier {
           )
           break
         case 'document-update':
-          await this.hooks.applyDocumentUpdate(mutation.fileId, mutation.update, operation)
-          changedDocuments.add(mutation.fileId)
+          if (
+            await applyToExistingItem(mutation.fileId, () =>
+              this.hooks.applyDocumentUpdate(mutation.fileId, mutation.update, operation)
+            )
+          )
+            changedDocuments.add(mutation.fileId)
           break
         case 'document-seed':
-          await this.hooks.applyDocumentSeed(mutation.fileId, mutation.text, operation)
-          changedDocuments.add(mutation.fileId)
+          if (
+            await applyToExistingItem(mutation.fileId, () =>
+              this.hooks.applyDocumentSeed(mutation.fileId, mutation.text, operation)
+            )
+          )
+            changedDocuments.add(mutation.fileId)
           break
         case 'replace-content':
-          await this.hooks.applyAssetReplacement(
-            mutation.fileId,
-            mutation.mimeType,
-            mutation.bytes,
-            operation
+          await applyToExistingItem(mutation.fileId, () =>
+            this.hooks.applyAssetReplacement(
+              mutation.fileId,
+              mutation.mimeType,
+              mutation.bytes,
+              operation
+            )
           )
           break
         case 'rename':
-          await this.repository.rename(mutation.fileId, mutation.name)
+          await applyToExistingItem(mutation.fileId, async () => {
+            await this.repository.rename(mutation.fileId, mutation.name)
+          })
           break
         case 'move':
-          await this.repository.move(mutation.fileId, mutation.targetDirectoryPath)
+          await applyToExistingItem(mutation.fileId, async () => {
+            await this.repository.move(mutation.fileId, mutation.targetDirectoryPath)
+          })
           break
         case 'trash':
           await this.repository.trashIfPresent(mutation.fileId)
