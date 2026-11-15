@@ -2,7 +2,7 @@
 
 이하 내용은 이전 문제·포팅 결정·당시 검증 기록이다. 원문의 current/missing/progress는 작성 당시를 가리킨다. 현재 구현 기준은 [Terminal 계약](./README.md), 현재 검증 결과는 [SDD 기록](../../../../docs/architecture/spec-driven-development.md)이다. 오래된 파일 경로·상태 설명을 현재 API로 사용하지 않는다.
 
-## Reference port 결정: 화면 모양이 아니라 동작을 포팅한다
+## 참조 구현을 옮기는 기준: 화면 모양이 아니라 동작을 포팅한다
 
 **당시 상태: 구현 진행 중.** Orca를 동작 기준으로 삼았다. Workspace의 Electron IPC, pane마다 terminal 하나를 두는 UI, local PTY host는 유지하되 adapter 전체가 Orca의 terminal 계약을 보존해야 한다.
 

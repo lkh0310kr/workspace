@@ -1,4 +1,4 @@
-# 설정·theme·zoom·usage 계약
+# 설정·theme·확대/축소·usage 계약
 
 App scope는 설정 저장·적용 범위와 Main usage adapter다. 공통 editor theme API는 [editor package](../../editor/README.md), provider OAuth는 [Home](../home/README.md)와 다르다.
 

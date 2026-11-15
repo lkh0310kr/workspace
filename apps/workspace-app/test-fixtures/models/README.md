@@ -1,8 +1,8 @@
-# 3D model test fixtures
+# 3D model 테스트 fixture
 
-Sample assets for the in-app model viewer and import pipeline tests.
+앱 내 model viewer와 import pipeline을 시험하기 위한 샘플 asset이다.
 
-| File                               | Format       | Source / license                                                                |
+| File                               | Format       | 출처 / license                                                                  |
 | ---------------------------------- | ------------ | ------------------------------------------------------------------------------- |
 | `box.glb`                          | GLB          | Khronos glTF Sample Assets "Box" (CC0), retained as a generic 3D viewer fixture |
 | `duck.glb`                         | GLB          | Khronos glTF Sample Assets "Duck" (CC0) — fetched by script                     |
@@ -12,20 +12,20 @@ Sample assets for the in-app model viewer and import pipeline tests.
 | `cube.stl`                         | STL          | Generated minimal cube (repo)                                                   |
 | `box.fbx`                          | FBX          | three.js `vCube.fbx` example (CC0)                                              |
 
-## Refresh
+## 갱신
 
 ```bash
 npm run models:fixtures
 ```
 
-Remote downloads require network. `box.glb`, `cube.obj`, `cube.mtl`, and `cube.stl` work offline after the first run.
+원격 다운로드에는 network가 필요하다. 첫 실행 뒤에는 `box.glb`, `cube.obj`, `cube.mtl`, `cube.stl`을 offline 상태에서 사용할 수 있다.
 
-## Manual QA
+## 수동 QA
 
-1. Open a workspace rooted at `apps/workspace-app/test-fixtures/`.
-2. Click `models/box.glb` or `models/duck.glb` in TreeView — orbit viewer should appear.
-3. Click `models/gltf-box/Box.gltf` — textured box with external `.bin` should load.
-4. Click `models/gltf-draco/Box.gltf` — Draco-compressed box should load (network required for decoder WASM on first load).
-5. Click `models/cube.obj` — cube with MTL colors should render.
-6. Click `models/cube.stl` — STL mesh should render.
-7. Click `models/box.fbx` — FBX cube preview should appear.
+1. `apps/workspace-app/test-fixtures/`를 root로 하는 workspace를 연다.
+2. TreeView에서 `models/box.glb` 또는 `models/duck.glb`를 누르면 orbit viewer가 표시되어야 한다.
+3. `models/gltf-box/Box.gltf`를 누르면 외부 `.bin`을 사용하는 texture 적용 상자가 로드되어야 한다.
+4. `models/gltf-draco/Box.gltf`를 누르면 Draco 압축 상자가 로드되어야 한다. decoder WASM을 처음 불러올 때 network가 필요하다.
+5. `models/cube.obj`를 누르면 MTL 색상을 적용한 상자가 렌더링되어야 한다.
+6. `models/cube.stl`을 누르면 STL mesh가 렌더링되어야 한다.
+7. `models/box.fbx`를 누르면 FBX 상자 preview가 표시되어야 한다.

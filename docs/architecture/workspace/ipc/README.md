@@ -2,7 +2,7 @@
 
 App scope의 bridge 경계다. [preload index](../../../../apps/workspace-app/src/preload/index.ts)가 contextBridge로 노출하고 renderer는 [electron shim](../../../../apps/workspace-app/src/renderer/src/electron.ts)과 플랫폼 adapter를 사용한다. 타입 선언이 runtime payload 검증이나 sender 소유권 확인을 자동 보장하지 않는다.
 
-## IPC family와 owner
+## IPC family와 소유 책임
 
 | family                             | preload/API             | Main 처리·반환·수명                                                                                                                                    |
 | ---------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |

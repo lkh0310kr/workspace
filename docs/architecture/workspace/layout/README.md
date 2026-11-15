@@ -2,7 +2,7 @@
 
 범위는 제품 여정 J-01과 J-02의 shell 부분이다. source는 [workspaceStore](../../../../apps/workspace-app/src/renderer/src/store/workspaceStore.ts), [model registry](../../../../apps/workspace-app/src/renderer/src/store/workspaceLayoutModels.ts), [layoutSession](../../../../apps/workspace-app/src/renderer/src/layout/layoutSession.ts), [PaneGroup](../../../../apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx), [layoutActions](../../../../apps/workspace-app/src/renderer/src/layout/layoutActions.ts)다.
 
-## 상태 owner
+## 상태 소유 책임
 
 | 상태                              | owner·읽기                                       | mutation                                      |
 | --------------------------------- | ------------------------------------------------ | --------------------------------------------- |
@@ -18,13 +18,13 @@
 
 App component의 modelsRef나 PaneGroup의 별도 localActiveId는 현재 owner가 아니다. UI는 layout mutation을 임의 zustand 복사본에 쓰지 않는다. workspaceLayoutModels는 model·saved JSON·ensure-inflight·pending rebalance를 각각 보관하며 workspace 제거 시 모두 정리한다.
 
-## Identity와 config
+## 식별자와 설정
 
 workspace tab ID(number), flexlayout node ID, pane item ID(string), terminal ID(number)는 서로 다른 식별자다. pane node ID를 item ID에서 만들지 않는다. PaneGroupConfig는 선택적 schemaVersion, `tabs: PaneTabItem[]`, `activeTabId: string`, 선택적 zoom이다. kind는 terminal/browser/code/markdown/viewer/pkms다. 전체 field는 [paneTypes](../../../../apps/workspace-app/src/renderer/src/layout/paneTypes.ts)가 기준이다.
 
 readPaneGroupConfig는 config가 없으면 빈 tabs/active ID를 사용한다. active ID가 목록에 없으면 첫 item, 목록도 없으면 빈 문자열이다. activatePaneTab은 node가 TabNode이고 item이 존재할 때만 성공한다. 새 terminal 기본 pane은 빈 layout guard가 중복 ensure-inflight를 막아 생성한다.
 
-## Hydration과 저장
+## 복원과 저장
 
 hydrate는 tabs의 순서·ID·title·root·JSON 동등성을 비교한다. 같은 상태면 기존 tabs reference와 live model을 보존한다. JSON 문자열이 달라도 JSON parse/serialize 결과가 같으면 동등하다. 다른 saved layout, 없는 model, 비어 있는 model은 modelFromLayoutJson으로 재생성하고 layout revision을 올린다. 사라진 workspace의 model·focus를 제거한다.
 
@@ -38,7 +38,7 @@ persistLayout은 model.toJson을 serialize하고 saved JSON cache를 즉시 갱�
 
 close/move/split의 mutation은 layoutActions를 통해 수행한다. 마지막 item/마지막 pane은 default terminal 복구 또는 pane 제거 정책을 따른다. terminal process는 모든 workspace layout의 참조가 사라질 때 Main이 정리하고 browser item 제거는 persistent guest를 destroy한다. chip reorder, pane split drag, strip 밖 drop은 다른 입력 경로이며 layoutMovePolicy/layoutSplitPolicy와 tab drag state를 사용한다.
 
-## 표시와 focus 경계
+## 표시와 포커스 경계
 
 workspace host와 일반 chip은 mount를 유지하고 visibility/pointer-events로 숨긴다. chip 표시는 workspace+pane visible AND chipActive여야 한다. browser guest는 별도 overlay viewport와 coordinator 정책을 사용하므로 일반 host 스타일을 guest ancestor 전체에 강제하지 않는다. [interaction](../interaction/README.md)을 따른다.
 

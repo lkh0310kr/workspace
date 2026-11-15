@@ -2,7 +2,7 @@
 
 App scope의 J-09다. 터미널 안 agent의 실제 실행과 UI에 관측된 working/blocked/waiting/done 상태를 구분한다. 자동 감지·title·hook·retained entry의 증거와 freshness를 평가해 pane/workspace UI에 전달한다.
 
-## Identity와 owner
+## 식별자와 소유 책임
 
 | owner                                       | 책임                                                                              |
 | ------------------------------------------- | --------------------------------------------------------------------------------- |

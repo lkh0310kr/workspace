@@ -18,7 +18,7 @@ Electron webview guest, pane overlay viewport, renderer/main IPC로 구성한다
 | main/browserSession.ts                             | persist:browser session, 권한, UA와 WebAuthn 초기화                                         |
 | main/browserNav.ts, preload/browserApi.ts          | history/focus 명령, guest/new-tab/download 이벤트 계약                                      |
 
-## Identity와 host 계약
+## 식별자와 host 계약
 
 workspaceTabId는 workspace, paneNodeId는 layout group, item.id는 browser 탭 identity다. webContentsId는 Electron이 발급하는 guest 핸들이며 재생성 때 바뀔 수 있다. 이들을 서로 교체해서 key로 쓰지 않는다.
 

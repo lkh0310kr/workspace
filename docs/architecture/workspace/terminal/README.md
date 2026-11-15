@@ -16,7 +16,7 @@ App scope의 J-03 계약이다. [TerminalPane](../../../../apps/workspace-app/sr
 
 host replay는 약 2MiB byte cap, Main replay는 5000*120 character cap이다. 두 구현 모두 chunks가 여러 개일 때 오래된 chunk를 제거하므로 단일 초대형 chunk의 엄격한 byte 상한으로 서술하지 않는다. Main은 decode한 text를 다시 bytes로 전달하므로 경계 전체에 decoder가 하나뿐이라고 가정하지 않는다. 각 streaming decoder의 split 문자와 snapshot/live sequence 일치가 필요하다.
 
-## Connect·activate·disconnect
+## 연결·활성화·연결 해제
 
 [ptyTransport](../../../../apps/workspace-app/src/renderer/src/terminal/ptyTransport.ts)는 connect 전에 input queue를 만들고 Main attach 결과를 기다린다. global [multiplexer](../../../../apps/workspace-app/src/renderer/src/terminal/ptyDataMultiplexer.ts)는 대기 중 출력을 보관한다. snapshot lastSeq 이하의 중복을 버리고 이후 live를 transport 내부에 보류한다. connectPanePty가 snapshot을 xterm에 적용한 다음 activate하면 보류 출력을 순서대로 전달한다.
 
@@ -28,7 +28,7 @@ Main은 renderer에 전송한 seq별 byte 수를 추적한다. 미해제 credit�
 
 [output scheduler](../../../../apps/workspace-app/src/renderer/src/lib/pane-manager/pane-terminal-output-scheduler.ts)와 dependency modules는 foreground/background queue·parse barrier·fair drain·backlog cap·stalled-write recovery를 구현한다. renderer는 parse 또는 의도된 discard 시 output credit를 해제해야 한다. **과부하에서 무조건 lossless라는 계약은 아니다.** backlog cap 테스트에는 warning으로 backlog를 대체하고 recovery를 요청하는 경로가 있다. transport byte 순서 보존과 UI backlog 정책을 구분한다.
 
-## Rendering·입력·환경
+## 렌더링·입력·환경
 
 pane-manager는 xterm와 addons/fit/WebGL/selection/scroll을 소유한다. visible/active 전환은 rendering suspend/resume와 reveal-fit 정책을 사용한다. 같은 grid의 reveal을 무조건 refit하면 pinned scroll이 변할 수 있으므로 stable fit과 viewport restoration helper를 따른다. replay/parse/fit이 정착하기 전 scroll을 최종 복구했다고 보지 않는다.
 

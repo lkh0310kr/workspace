@@ -2,7 +2,7 @@
 
 App scope의 J-05다. 공유 editor의 asset snapshot과 실제 renderer를 구분한다. 파일 분류·picker/legacy absolute path 입력·image/media 기본 계약은 [asset 연결 문서](../../editor/assets.md), 이 문서는 앱 내부 pipeline을 연결한다.
 
-## Format과 owner
+## 형식과 소유 책임
 
 | 경로            | Main                                              | Renderer·상태                                                                   |
 | --------------- | ------------------------------------------------- | ------------------------------------------------------------------------------- |

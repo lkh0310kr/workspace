@@ -2,7 +2,7 @@
 
 근거는 [BrowserContent](../../../../apps/workspace-app/src/renderer/src/panes/BrowserContent.tsx), [viewport](../../../../apps/workspace-app/src/renderer/src/browser/browserPageViewport.ts), [registry](../../../../apps/workspace-app/src/renderer/src/layout/browserWebviewRegistry.ts), [ensure](../../../../apps/workspace-app/src/renderer/src/browser/ensureBrowserPageWebview.ts)다.
 
-## DOM과 부착
+## DOM과 연결
 
 BrowserPaneOverlaySlot 안에는 slot root와 BrowserContent chrome이 형제로 존재한다. item별 viewport는 `shell > chromeInset + container > webview`다. chromeInset은 toolbar 높이를 반영한다. paneNodeId로 등록된 root가 없고 기존 connected shell도 없으면 viewport를 만들지 않는다. 기존 shell이 올바른 root에 있으면 재사용하고 root가 바뀌면 shell을 교체한다.
 
@@ -42,7 +42,7 @@ DOM-ready, chip-shown, navigate, address-bar-dismiss 같은 명시 이벤트는 
 
 activation hook은 활성화당 한 번 focus 성공을 기록한다. 비활성 전환 또는 guest 준비 false→true에서 기록을 초기화한다. drag passthrough나 주소창 focus 유지 중에는 시도하지 않는다. requestAnimationFrame에서 guest 존재와 coordinator interactive를 확인하며 최대 24회 시도한다. guest native focus 또는 host webview focus를 확인하면 완료하고 effect cleanup에서 예약 frame을 취소한다.
 
-## Drag와 recovery
+## 끌어서 놓기와 복구
 
 첫 persistent guest 등록 때 window capture dragstart/dragend/drop listener를 붙이고 registry가 비면 제거한다. passthrough 진입에서 각 guest의 기존 pointerEvents를 저장하고 none으로 만든다. release 시 이전 값을 복원한다. drag 중 생성된 guest에도 현재 passthrough를 적용한다. 여러 소유자의 drag lock은 acquire/release로 조정한다.
 

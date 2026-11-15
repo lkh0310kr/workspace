@@ -7,7 +7,7 @@
 
 Wire 계약은 `../pkms-protocol`에 있다. `pkms-core`에 transport, GitHub API, Cloudflare, React, SwiftUI 의존성을 추가하지 않는다.
 
-Platform binding을 생성하려면 다음 명령을 실행한다.
+Platform binding을 만들려면 다음 명령을 실행한다.
 
 ```sh
 wasm-pack build crates/pkms-wasm --target web --out-dir ../../apps/pkms-web/app/generated/pkms-wasm
@@ -15,6 +15,6 @@ wasm-pack build crates/pkms-wasm --target web --out-dir ../../apps/pkms-web/app/
 
 저장소 root에서 `bash apps/pkms-ios/scripts/build-rust-framework.sh`를 실행하면 device와 Apple Silicon simulator용 XCFramework를 만든다.
 
-JavaScript Yjs와 Rust Yrs 간 update 호환성, UTF-16 offset, concurrent insert 수렴은 저장소 root에서 `node packages/pkms-core/scripts/test-yjs-interop.mjs`로 검증한다. 이 검사는 편집 CRDT/wire 경계만 검증하며 cloud transport와 저장 ACK를 대신하지 않는다.
+JavaScript Yjs와 Rust Yrs 간 update 호환성, UTF-16 offset, concurrent insert 수렴은 저장소 root에서 `node packages/pkms-core/scripts/test-yjs-interop.mjs`로 검증한다. 이 검사는 편집 CRDT/wire 경계만 확인하며 cloud transport와 저장 ACK까지 검증하지는 않는다.
 
 Path 규칙, UTF-16 편집, CRDT encoding, buffer 소유권, binding별 오류는 [구현 계약](../../docs/architecture/pkms/core/README.md)을 읽는다.

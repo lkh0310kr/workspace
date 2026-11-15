@@ -74,7 +74,7 @@ download phase는 started/updated/done, state는 progressing/interrupted/complet
 
 history 명령은 webContents가 없으면 false/null, 있으면 Electron navigationHistory에 위임한다. goToIndex 범위 검사를 이 API에서 추가 제공하지 않는다. focus는 host window를 focus한 뒤 guest wc.focus하며 renderer sender를 다시 focus하지 않는다. blur는 renderer event.sender.focus를 호출한다. 현재 handler의 ID 조회를 sender 소유권 검증까지 구현된 것으로 해석하지 않는다.
 
-## Zoom과 shortcut
+## 확대/축소와 단축키
 
 근거: [browserZoom.ts](../../../../apps/workspace-app/src/renderer/src/browser/browserZoom.ts). zoom factor 범위=0.5~3, step=0.1이다. guest 조회는 전달된 webContentsId 우선, 없거나 미조회면 active guest fallback이다. factor 읽기 실패는 1, 적용 실패는 null. 변경 시 dataset.tabItemId에 등록된 persist handler가 item.zoomFactor를 갱신한다. 최소/최대에서 값이 같으면 재적용하지 않는다.
 

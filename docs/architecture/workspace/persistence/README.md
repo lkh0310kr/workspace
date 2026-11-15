@@ -1,4 +1,4 @@
-# Desktop 영속 상태와 복구 inventory
+# Desktop 영속 상태와 복구 항목
 
 이 문서는 Main 파일·renderer storage·외부 프로세스의 저장 책임을 구분한다. 모든 저장을 transaction·암호화·자동 복구로 일반화하지 않는다. 공통 UI cache는 [Editor package](../../editor/code/README.md)가 owner다.
 
@@ -6,7 +6,7 @@
 
 [persistence.ts](../../../../apps/workspace-app/src/main/persistence.ts)의 appSupportDir는 macOS에서 `~/Library/Application Support/workspace-app[-dev]`, 다른 OS는 `app.getPath('appData')/workspace-app[-dev]`다. 반면 일부 기능은 Electron `userData`를 직접 쓴다. 두 경로를 같은 상수로 간주하지 않는다. dev/packaged의 분리 여부도 실제 startup 설정을 함께 확인한다.
 
-## Dev와 packaged profile 정책
+## 개발 및 패키지 profile 정책
 
 Dev(`workspace-app-dev`)와 packaged(`workspace-app`)는 workspace/layout snapshot, Electron `userData`, IndexedDB·Chromium storage, PKMS sync queue와 cursor를 분리한다. 이 경계는 개발 UI가 실사용 workspace state를 덮거나 두 앱이 같은 sync cursor를 갱신하지 않게 한다. PKMS folder sync는 동일한 절대 경로에 process-wide lock을 사용하므로 같은 편집 폴더를 두 앱이 동시에 sync owner로 열 수 없다.
 

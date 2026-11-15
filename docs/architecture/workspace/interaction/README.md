@@ -1,4 +1,4 @@
-# Interaction·focus·overlay 계약
+# 상호작용·포커스·overlay 계약
 
 [InteractionCoordinator](../../../../apps/workspace-app/src/renderer/src/interaction/InteractionCoordinator.ts)는 renderer singleton이다. global 규칙을 구현하는 앱 내부 owner이며 active workspace, guest 등록, pane/chip 상태, overlay stack, portal Map, pending guest focus를 관리한다. Browser guest DOM 수명은 [Browser](../browser/lifecycle.md)가 소유한다.
 
