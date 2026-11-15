@@ -601,6 +601,14 @@ export function PkmsGoogleDrivePane(): React.JSX.Element {
                       </button>
                     )}
                   </>
+                ) : searchPageToken ? (
+                  <button
+                    type="button"
+                    disabled={searching}
+                    onClick={() => void loadMoreSearchResults()}
+                  >
+                    {searching ? 'Searching Drive…' : 'Continue searching Drive…'}
+                  </button>
                 ) : searching ? (
                   <span style={{ padding: 8, opacity: 0.65 }}>Searching Drive…</span>
                 ) : (
