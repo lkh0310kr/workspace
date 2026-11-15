@@ -142,8 +142,6 @@ export class GoogleDriveOperationLog {
       pkmsSequence: String(operation.sequence)
     }
     if ('fileId' in mutation) operationProperties.pkmsFileId = mutation.fileId
-    if (mutation.type === 'create-file' || mutation.type === 'create-folder')
-      operationProperties.pkmsItemId = mutation.itemId ?? operation.operationId
     return this.client.createImmutableOperation(
       folder.id,
       operation.operationId,

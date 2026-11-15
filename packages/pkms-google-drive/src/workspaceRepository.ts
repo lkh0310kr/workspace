@@ -428,12 +428,14 @@ export class GoogleDriveWorkspaceRepository {
       file = await this.client.getFile(itemId)
     } catch (cause) {
       if (!(cause instanceof DriveApiError) || cause.status !== 404) throw cause
-      const matches = await this.client.listFiles({
-        query: `appProperties has { key='pkmsWorkspaceRootId' and value=${queryLiteral(this.rootId)} } and appProperties has { key='pkmsItemId' and value=${queryLiteral(itemId)} } and (trashed = true or trashed = false)`,
-        pageSize: 100,
-        fields:
-          'id,name,mimeType,parents,modifiedTime,md5Checksum,size,trashed,appProperties,webViewLink'
-      })
+      const matches = (
+        await this.client.listFiles({
+          query: `appProperties has { key='pkmsWorkspaceRootId' and value=${queryLiteral(this.rootId)} } and appProperties has { key='pkmsItemId' and value=${queryLiteral(itemId)} } and (trashed = true or trashed = false)`,
+          pageSize: 100,
+          fields:
+            'id,name,mimeType,parents,modifiedTime,md5Checksum,size,trashed,appProperties,webViewLink'
+        })
+      ).filter((match) => !match.appProperties?.pkmsOperationId)
       if (matches.length !== 1)
         throw new Error(
           matches.length

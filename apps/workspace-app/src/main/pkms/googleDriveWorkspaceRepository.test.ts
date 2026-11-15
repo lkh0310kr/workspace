@@ -319,6 +319,41 @@ describe('GoogleDriveWorkspaceRepository', () => {
     expect(client.listChildren).toHaveBeenCalledWith('parent')
   })
 
+  it('resolves a created item without confusing its operation log record for the item', async () => {
+    const note: DriveFile = {
+      id: 'drive-note',
+      name: 'draft.md',
+      mimeType: 'text/markdown',
+      parents: ['root'],
+      appProperties: { pkmsWorkspaceRootId: 'root', pkmsItemId: 'stable-note' }
+    }
+    const operationRecord: DriveFile = {
+      id: 'drive-operation',
+      name: 'op-create-note.json',
+      mimeType: 'application/json',
+      parents: ['operations'],
+      appProperties: {
+        pkmsWorkspaceRootId: 'root',
+        pkmsItemId: 'stable-note',
+        pkmsOperationId: 'create-note'
+      }
+    }
+    const client = {
+      getFile: vi.fn(async (id: string) => {
+        if (id === 'root') return folder('root', 'PKMS')
+        throw new DriveApiError(404, 'notFound', 'missing')
+      }),
+      listFiles: vi.fn(async () => [note, operationRecord])
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(repository.getEntry('stable-note')).resolves.toMatchObject({
+      id: 'stable-note',
+      path: 'draft.md',
+      kind: 'markdown'
+    })
+  })
+
   it('rejects stable-ID branch requests outside the selected workspace', async () => {
     const client = {
       getFile: vi.fn(async (id: string) => {
