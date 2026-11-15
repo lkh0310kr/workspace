@@ -1,22 +1,22 @@
-# Official SendCutSend Source Map
+# SendCutSend 공식 자료 안내
 
-Use these sources as live evidence, not as a stable API. Field coverage, value types, and `N/A` usage can vary. Before making pass/fail claims, cite the exact source URL and, for JSON facts, the field path used.
+이 자료들은 안정적인 API가 아니라 최신 근거 자료로 사용하세요. 필드 범위, 값 형식, `N/A` 사용 방식은 달라질 수 있습니다. 통과/실패를 판단할 때는 정확한 출처 URL을 인용하고, JSON 정보라면 사용한 필드 경로도 표시하세요.
 
-## Core Entry Points
+## 주요 진입점
 
 - Ordering guide: https://cdn.sendcutsend.com/specs/sendcutsend-ordering-guide.md
 - Catalog JSON: https://cdn.sendcutsend.com/specs/sendcutsend-catalog.json
 - Engineering specs JSON: https://cdn.sendcutsend.com/specs/sendcutsend-specs.json
 
-Fetch these URLs directly before each review. Use the current response bodies as the evidence for material/service checks, and cite the URL plus the access date in the report.
+검토할 때마다 이 URL에서 자료를 직접 가져오세요. 재료/서비스 확인에는 최신 응답 본문을 근거로 사용하고, 보고서에 URL과 조회 날짜를 적으세요.
 
-## Source Roles
+## 자료별 역할
 
 - Ordering guide: use for ordering flow, accepted file formats, plain-language design rules, and general service explanations.
 - Catalog JSON: use for orderability facts such as material SKUs, material names, thicknesses, stock status, cutting process, min/max part size, available services, hardware items, and finish options.
 - Engineering specs JSON: use for SKU-keyed design validation facts such as tolerances, minimum hole/bridge/edge values, bending parameters, tapping, countersinking, hardware insertion, dimple forming, finishing constraints, and material properties.
 
-## Provenance To Capture
+## 기록할 출처 정보
 
 - Source URL
 - Access date
@@ -25,11 +25,11 @@ Fetch these URLs directly before each review. Use the current response bodies as
 - JSON `_meta.source_data_generated_at` when present
 - Field path for row-level citations, such as `sendcutsend-specs.json materials[sku=ALU-063].cutting_specs.min_hole_size`
 
-## Conflict Handling
+## 충돌 처리
 
-Prefer exact SKU joins across catalog and specs. If source facts conflict or a field is missing, unparsable, or `N/A`, report the uncertainty and mark the dependent row `❓ need more info` unless another more specific, cited source resolves it.
+카탈로그와 사양 자료는 정확한 SKU를 기준으로 연결하세요. 출처 간 내용이 충돌하거나 필드가 누락되거나 파싱할 수 없거나 `N/A`이면, 더 구체적인 출처를 인용해 해결할 수 없는 한 불확실성을 보고하고 관련 행을 `❓ need more info`로 표시하세요.
 
-Use this precedence for source facts:
+자료 정보는 다음 우선순위로 사용하세요.
 
 1. material/thickness/service-specific configurator or current quote/upload result
 2. exact SKU entry in engineering specs JSON
@@ -37,4 +37,4 @@ Use this precedence for source facts:
 4. ordering guide
 5. broader official SendCutSend human-readable page, only when the three source files are insufficient
 
-Record the conflict and the page you relied on.
+충돌 내용과 판단에 사용한 페이지를 기록하세요.

@@ -8,13 +8,13 @@ description: >-
   port, 베끼기, or match reference architecture.
 ---
 
-# Workspace reference porting (베끼기)
+# Workspace 참조 기능 이식 (베끼기)
 
-**Goal:** Workspace는 이미 검증된 앱의 해결책을 **재발명하지 않고** `apps/workspace/`에 이식한다. 도메인 무관 — 터미널이든, 벡터 에디터 interaction이든, 게임 호스팅 UX든 똑같은 워크플로.
+**목표:** Workspace는 이미 검증된 앱의 해결책을 **재발명하지 않고** `apps/workspace/`에 이식한다. 도메인과 무관하게 터미널, 벡터 에디터 상호작용, 게임 호스팅 UX 등에 같은 워크플로를 적용한다.
 
 **원칙:** 참고 레포 전체를 읽지 않는다. **해당 문제를 이미 푼 파일/모듈만** 찾아서 가져온다. 필요하면 그 자리에서 새로 `git clone`해서 쓴다 — 아래 표는 이미 클론된 것들의 기록이지, "이 목록에 있는 것만 참고 가능"이라는 뜻이 아니다.
 
-## 레포 구조
+## 저장소 구조
 
 | 경로                 | 역할                                    |
 | -------------------- | --------------------------------------- |
@@ -22,7 +22,7 @@ description: >-
 | `apps/workspace/`          | **실제 제품** — 여기만 수정             |
 | `docs/architecture/` | 현재 Workspace 아키텍처 (이식 전 필독)  |
 
-### ref-proj에 이미 클론된 것 (기록용 — 필요하면 새로 더 clone하면 됨)
+### ref-proj에 이미 복제된 프로젝트 (기록용 — 필요하면 더 복제 가능)
 
 | 참고               | 주로 베낀 영역                                                      |
 | ------------------ | ------------------------------------------------------------------- |
@@ -76,7 +76,7 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 
 ## 이식 규칙
 
-### DO
+### 해야 할 일
 
 - Orca 모듈을 **파일 단위**로 복사 후 Workspace 타입/IPC에 맞게 최소 수정
 - 기존 `apps/workspace/src/renderer/src/lib/pane-manager/` 패턴·네이밍 유지
@@ -84,7 +84,7 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 - 포팅 후 **vitest** 추가/복사 (Orca에 `.test.ts` 있으면 같이 가져오기)
 - 큰 변경은 **작업별 커밋** (`refactor(pty):`, `feat(terminal):`, `fix(interaction):` 스타일)
 
-### DON'T
+### 하지 말아야 할 일
 
 - ref-proj 수정, 커밋, 서브모듈 업데이트
 - 참고 앱 전체 아키텍처를 Workspace에 그대로 옮기기 (flexlayout 유지)
@@ -93,7 +93,7 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 - webview에 `display:flex` + `pointer-events:none` — IC 정책: 비활성 시 **display:none**
 - `TODO.md`, `.cursor/`, `.workspace/`, `test/` 루트 커밋
 
-## Workspace 핵심 아키텍처 (이식 시 맞출 지점)
+## Workspace 핵심 구조 (이식 시 맞출 지점)
 
 | 영역           | Workspace 위치                                                 | Orca 참고                     |
 | -------------- | -------------------------------------------------------------- | ----------------------------- |
@@ -106,7 +106,7 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 
 **Session vs mount:** main의 `PtySession` + replay buffer = 세션; renderer xterm/WebGL = 마운트. 세션은 탭 전환해도 유지, 마운트만 suspend/resume.
 
-## 이미 이식됨 (2026-08-28 기준)
+## 이미 이식한 항목 (2026-08-28 기준)
 
 - itch.io 데스크톱 클라이언트 → HTML fullscreen chrome 숨김 (`enter/leave-html-full-screen`, `src/main/reactors/winds.ts` 참고, `7d76fb9`)
 - tldraw → Vector Editor interaction 버그 수정(rotation delta, resize anchor) — 이후 Vector Editor pane 자체는 삭제됐지만 포팅 방식 자체는 선례로 유효
@@ -125,9 +125,9 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 
 | 우선    | Orca 모듈                                                          | Workspace 갭                                                            |
 | ------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Medium  | `embeds/TerminalMountRegistry`, cold-park                          | Phase 3 — hidden terminal park                                          |
-| Lower   | `terminal-ligatures-addon.ts`, `terminal-arabic-shaping-joiner.ts` | ligatures / complex script                                              |
-| Product | —                                                                  | `TODO.md`: markdown 제목, Editor TreeView 무한루프, Pane Add wrapper UI |
+| 중간    | `embeds/TerminalMountRegistry`, cold-park                          | Phase 3 — 숨겨진 터미널 보관                                          |
+| 낮음    | `terminal-ligatures-addon.ts`, `terminal-arabic-shaping-joiner.ts` | 합자 / 복합 문자 처리                                                  |
+| 제품    | —                                                                  | `TODO.md`: Markdown 제목, Editor TreeView 무한 루프, Pane Add wrapper UI |
 
 상세 로드맵: `docs/ROADMAP.md`, `docs/architecture/07-future-phases.md`
 
