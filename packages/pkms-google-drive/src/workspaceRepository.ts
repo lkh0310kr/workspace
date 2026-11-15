@@ -2,6 +2,33 @@ import { GoogleDriveClient, type DriveFile } from './googleDriveClient'
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
 const INTERNAL_DIRECTORY = '.pkms-sync'
+const WORKSPACE_ROOT_MARKER = { pkmsWorkspace: 'pkms-google-drive-v1' }
+
+/** Finds the unique app-owned root across devices, or creates it if none exists. */
+export async function resolveGoogleDriveWorkspaceRoot(
+  client: GoogleDriveClient,
+  pinnedRootId?: string
+): Promise<DriveFile> {
+  if (pinnedRootId) {
+    const pinned = await client.getFile(pinnedRootId)
+    if (pinned.trashed || pinned.mimeType !== FOLDER_MIME)
+      throw new Error('The pinned Google Drive workspace root is unavailable.')
+    return pinned
+  }
+
+  const roots = await client.listFiles({
+    query: `mimeType = '${FOLDER_MIME}' and trashed = false and appProperties has { key='pkmsWorkspace' and value='${WORKSPACE_ROOT_MARKER.pkmsWorkspace}' }`,
+    pageSize: 100,
+    fields: 'id,name,mimeType,parents,trashed,appProperties,webViewLink'
+  })
+  if (roots.length > 1)
+    throw new Error(
+      'More than one PKMS Google Drive workspace root exists; choose a root explicitly before syncing.'
+    )
+  if (roots.length === 1) return roots[0]
+
+  return client.createFolder('PKMS', null, WORKSPACE_ROOT_MARKER)
+}
 
 export type GoogleDriveWorkspaceEntry = DriveFile & {
   path: string
@@ -29,6 +56,14 @@ export class GoogleDriveWorkspaceRepository {
     readonly rootId: string
   ) {
     if (!rootId.trim()) throw new Error('A Google Drive workspace root ID is required.')
+  }
+
+  static async connect(
+    client: GoogleDriveClient,
+    pinnedRootId?: string
+  ): Promise<GoogleDriveWorkspaceRepository> {
+    const root = await resolveGoogleDriveWorkspaceRoot(client, pinnedRootId)
+    return new GoogleDriveWorkspaceRepository(client, root.id)
   }
 
   async getRoot(): Promise<DriveFile> {

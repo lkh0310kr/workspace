@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   GoogleDriveWorkspaceRepository,
+  resolveGoogleDriveWorkspaceRoot,
   type DriveFile,
   type GoogleDriveClient
 } from '../../../../../packages/pkms-google-drive/src'
@@ -13,6 +14,47 @@ const folder = (id: string, name: string, parents: string[] = []): DriveFile => 
 })
 
 describe('GoogleDriveWorkspaceRepository', () => {
+  it('rediscovers the same app-owned root on another client and refuses ambiguous roots', async () => {
+    const root = folder('shared-root', 'PKMS')
+    const client = {
+      listFiles: vi.fn(async () => [root]),
+      createFolder: vi.fn(),
+      getFile: vi.fn()
+    } as unknown as GoogleDriveClient
+
+    await expect(resolveGoogleDriveWorkspaceRoot(client)).resolves.toEqual(root)
+    expect(client.createFolder).not.toHaveBeenCalled()
+    expect(client.listFiles).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.stringContaining("key='pkmsWorkspace'") })
+    )
+
+    vi.mocked(client.listFiles).mockResolvedValue([root, folder('duplicate-root', 'PKMS')])
+    await expect(resolveGoogleDriveWorkspaceRoot(client)).rejects.toThrow(/More than one/)
+    expect(client.createFolder).not.toHaveBeenCalled()
+  })
+
+  it('creates a marked root only when there is no previously created PKMS root', async () => {
+    const createFolder = vi.fn(
+      async (name: string, _parentId: string | null, appProperties?: Record<string, string>) => ({
+        ...folder('new-root', name),
+        appProperties
+      })
+    )
+    const client = {
+      listFiles: vi.fn(async () => []),
+      createFolder,
+      getFile: vi.fn()
+    } as unknown as GoogleDriveClient
+
+    await expect(resolveGoogleDriveWorkspaceRoot(client)).resolves.toMatchObject({
+      id: 'new-root',
+      appProperties: { pkmsWorkspace: 'pkms-google-drive-v1' }
+    })
+    expect(createFolder).toHaveBeenCalledWith('PKMS', null, {
+      pkmsWorkspace: 'pkms-google-drive-v1'
+    })
+  })
+
   it('lists nested, empty, and dot-prefixed folders while hiding only the root protocol folder', async () => {
     const children: Record<string, DriveFile[]> = {
       root: [

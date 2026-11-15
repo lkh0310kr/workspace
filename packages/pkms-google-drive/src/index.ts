@@ -6,6 +6,7 @@ export {
 } from './googleDriveClient'
 export {
   GoogleDriveWorkspaceRepository,
+  resolveGoogleDriveWorkspaceRoot,
   type GoogleDriveWorkspaceEntry
 } from './workspaceRepository'
 export {

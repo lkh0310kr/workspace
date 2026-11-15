@@ -10,7 +10,7 @@ PKMS 자료의 durable source of truth를 Google Drive로 옮긴다. 각 client�
 
 ## 저장소 모델
 
-- 사용자 Drive의 `PKMS` root folder는 PKMS workspace의 durable 저장 영역이다. 앱은 첫 연결 때 root를 만들고 Drive file ID를 local configuration에 기록한다. 재연결은 저장된 ID로 확인하며, 이름 검색 결과만으로 기존 workspace를 자동 선택하거나 새 root를 덮어쓰지 않는다.
+- 사용자 Drive의 `PKMS` root folder는 PKMS workspace의 durable 저장 영역이다. 첫 연결 시 앱 전용 `appProperties` marker로 기존 root를 조회한다. 0개면 새 `PKMS` root를 만들고, 1개면 사용하며, 2개 이상이면 쓰기를 멈추고 명시적 root 선택을 요구한다. Drive file ID를 local configuration에도 고정하되, 이름 검색 결과만으로 기존 workspace를 자동 선택하거나 새 root를 덮어쓰지 않는다.
 - 일반 file과 folder는 Drive `files` resource로 표현한다. `fileId`가 identity이고 `name`과 parent ID가 경로를 결정한다. 빈 folder도 Drive folder entry로 보존한다.
 - 동기화 protocol의 append-only 기록은 root 아래 `.pkms-sync` namespace에 저장하고 정상 PKMS Files tree에서 숨긴다. 이 namespace와 그 형식은 프로토콜 소유이며 사용자가 편집하는 문서로 취급하지 않는다.
 - Markdown과 binary asset의 사용자가 보는 현재 내용은 root 안의 일반 파일로 제공한다. 검색은 각 client가 내려받은 Markdown과 local index를 사용한다.

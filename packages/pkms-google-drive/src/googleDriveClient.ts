@@ -243,7 +243,11 @@ export class GoogleDriveClient {
     return this.createFolder(name, parentId)
   }
 
-  async createFolder(name: string, parentId: string | null): Promise<DriveFile> {
+  async createFolder(
+    name: string,
+    parentId: string | null,
+    appProperties?: Record<string, string>
+  ): Promise<DriveFile> {
     return this.request<DriveFile>(
       `${DRIVE_API}/files?fields=id,name,mimeType,parents,webViewLink`,
       {
@@ -252,7 +256,8 @@ export class GoogleDriveClient {
         body: JSON.stringify({
           name,
           mimeType: DRIVE_FOLDER_MIME,
-          ...(parentId ? { parents: [parentId] } : {})
+          ...(parentId ? { parents: [parentId] } : {}),
+          ...(appProperties ? { appProperties } : {})
         }),
         retryable: false
       }
