@@ -32,7 +32,10 @@ export default {
   async fetch(request: Request, env: WebEnv, ctx: ExecutionContext): Promise<Response> {
     const incoming = new URL(request.url)
     const path = incoming.pathname
-    if (request.headers.get('X-PKMS-Web-Internal') !== '1') {
+    const isLocalDevelopment =
+      import.meta.env.DEV &&
+      ['localhost', '127.0.0.1', '[::1]'].includes(incoming.hostname)
+    if (!isLocalDevelopment && request.headers.get('X-PKMS-Web-Internal') !== '1') {
       return Response.redirect(
         new URL(`${path}${incoming.search}`, env.PKMS_CANONICAL_ORIGIN).toString(),
         302
