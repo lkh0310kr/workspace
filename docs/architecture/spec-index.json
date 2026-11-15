@@ -1122,6 +1122,30 @@
       ]
     },
     {
+      "id": "pkms-google-drive",
+      "scope": "package",
+      "owner": "packages/pkms-google-drive",
+      "specStatus": "drafted",
+      "coverage": "Direct Google Drive REST client behavior; application sync orchestration and platform auth remain separate integration work.",
+      "documents": [
+        "docs/architecture/pkms/google-drive-direct-sync.md"
+      ],
+      "sources": [
+        {
+          "path": "packages/pkms-google-drive/package.json",
+          "sha256": "980a2dd2c968f8f2f491d7e20621451c87157d519e4c80d31c3ea2d4ecb48d9e"
+        },
+        {
+          "path": "packages/pkms-google-drive/src/index.ts",
+          "sha256": "6d31b7fb50004e381014fd509a281e852d280fb3f31fb24b75dcae9406826338"
+        },
+        {
+          "path": "packages/pkms-google-drive/src/googleDriveClient.ts",
+          "sha256": "9dc471260752d23396915d56080b029c671aac8185325e9030f7f339c610d60c"
+        }
+      ]
+    },
+    {
       "id": "pkms-core",
       "scope": "package",
       "owner": "packages/pkms-core",

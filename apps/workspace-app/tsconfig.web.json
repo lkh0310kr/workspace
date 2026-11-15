@@ -18,6 +18,12 @@
       "@pkms/client/*": [
         "../../packages/pkms-client/src/*"
       ],
+      "@pkms/google-drive": [
+        "../../packages/pkms-google-drive/src/index.ts"
+      ],
+      "@pkms/google-drive/*": [
+        "../../packages/pkms-google-drive/src/*"
+      ],
       "@workspace/editor": [
         "../../packages/editor/src/index.ts"
       ],

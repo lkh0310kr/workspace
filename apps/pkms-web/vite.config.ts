@@ -6,7 +6,8 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   resolve: {
     alias: {
-      '@pkms/client': resolve('../../packages/pkms-client/src')
+      '@pkms/client': resolve('../../packages/pkms-client/src'),
+      '@pkms/google-drive': resolve('../../packages/pkms-google-drive/src')
     }
   },
   plugins: [cloudflare({ viteEnvironment: { name: 'ssr' } }), reactRouter()]

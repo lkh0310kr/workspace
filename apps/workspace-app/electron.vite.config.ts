@@ -51,6 +51,7 @@ export default defineConfig({
       alias: {
         '@renderer': resolve('src/renderer/src'),
         '@pkms/client': resolve('../../packages/pkms-client/src'),
+        '@pkms/google-drive': resolve('../../packages/pkms-google-drive/src'),
         '@workspace/editor': resolve('../../packages/editor/src')
       }
     },
