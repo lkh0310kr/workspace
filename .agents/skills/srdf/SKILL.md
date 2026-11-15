@@ -1,65 +1,66 @@
 ---
 name: srdf
-description: MoveIt2 SRDF 작성, 검증 및 계획 의미론 워크플로. `.srdf` 파일, MoveIt planning group, virtual joint, passive joint, end effector, group state, disabled collision, URDF와 연결된 계획 의미론을 만들거나 편집·검사·검증하고 SRDF를 실시간 검토에 전달할 때 사용합니다. 로봇 구조에는 URDF skill을, 시뮬레이터 설명에는 SDF skill을, 렌더링과 실시간 검토 링크에는 cad-viewer skill을 사용합니다.
+description: MoveIt2 SRDF authoring, validation, and planning-semantics workflow. Use when creating, editing, inspecting, or validating `.srdf` files, MoveIt planning groups, virtual joints, passive joints, end effectors, group states, disabled collisions, URDF-paired planning semantics, or SRDF handoff for live review. Use the URDF skill for robot structure, the SDF skill for simulator descriptions, and the cad-viewer skill for rendering and live review links.
 ---
 
 # SRDF
 
-출처: [earthtojake/text-to-cad](https://github.com/earthtojake/text-to-cad)에서 관리됩니다.
-실행 시 기준은 설치된 로컬 skill 파일입니다. 저장소 링크는 출처 및 릴리스 검토용입니다.
+Provenance: maintained in [earthtojake/text-to-cad](https://github.com/earthtojake/text-to-cad).
+Use the installed local skill files as the runtime source of truth; the
+repository link is only for provenance and release review.
 
-유효한 URDF를 바탕으로 MoveIt 의미론적 로봇 설명을 작성할 때 이 skill을 사용합니다. SRDF는 계획 의미론을 정의하며 물리적 로봇 구조는 정의하지 않습니다. 기준 파일은 `.srdf`입니다. XML을 직접 작성하고 편집하세요. `gen_srdf()` 계약은 없습니다.
+Use this skill for MoveIt semantic robot descriptions on top of an existing valid URDF. SRDF defines planning semantics; it does not define physical robot structure. The `.srdf` file is the source of truth: author and edit the XML directly. There is no `gen_srdf()` contract.
 
-SRDF의 정확성은 **계획 의미론**의 문제입니다. 흔한 실패는 XML 오류가 아니라 MoveIt에 잘못된 planning group, tool link, 기본 상태, 안전하지 않은 disabled-collision matrix 또는 joint 단위를 지정하는 그럴듯한 SRDF입니다. 언어 모델은 공간 및 기구학적 추론이 취약하므로 planning group, end effector, group state 및 disabled collision은 URDF 토폴로지, MoveIt Setup Assistant 출력, 샘플링한 충돌 분석 또는 사용자가 명시한 데이터에서 도출하세요. 시각적 테마만으로 추론하지 말고 link나 joint 이름을 기억에 의존해 입력하지 마세요. 먼저 URDF의 link/joint 표를 추출한 다음 거기서 이름을 복사하세요.
+SRDF correctness is a **planning semantics** problem. The common failure is not invalid XML; it is a plausible SRDF that gives MoveIt the wrong planning group, wrong tool link, wrong default state, unsafe disabled-collision matrix, or wrong joint units. Because language models are weak at spatial and kinematic reasoning, derive planning groups, end effectors, group states, and disabled collisions from the URDF topology, MoveIt Setup Assistant output, sampled collision analysis, or explicit user data. Do not infer them from visual theme alone — and do not type any link or joint name from memory: extract the URDF's link/joint table first and copy names from it.
 
 ## Setup
 
-이 skill의 명령은 Python 빌드 런타임과 실행할 JavaScript를 포함하는 `cadgen` 배포판의 얇은 진입점입니다.
-한 번 설치하세요:
+This skill's commands are thin entrypoints over the `cadgen` distribution, which
+carries the Python build runtime and the JavaScript it executes. Install it once:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-렌더링에는 브라우저도 필요하며 pip로 설치할 수 없습니다:
+Rendering additionally needs a browser, which pip cannot supply:
 
 ```bash
 python -m playwright install chromium
 ```
 
-## 포맷 경계
+## Format boundary
 
-- **URDF**는 link, joint, geometry, inertial, limit, mimic joint, transmission, robot-state publishing 등 물리적 로봇 구조를 담당합니다.
-- **SRDF**는 virtual joint, passive joint, planning group, group state, end effector, disabled collision pair 등 MoveIt 의미론을 담당합니다.
-- **SDF**는 physics, sensor, light, plugin, world 및 시뮬레이션 전용 metadata 등 시뮬레이터/월드 의미론을 담당합니다.
+- **URDF** owns physical robot structure: links, joints, geometry, inertials, limits, mimic joints, transmissions, and robot-state publishing.
+- **SRDF** owns MoveIt semantics: virtual joints, passive joints, planning groups, group states, end effectors, and disabled collision pairs.
+- **SDF** owns simulator/world semantics: physics, sensors, lights, plugins, worlds, and simulation-specific metadata.
 
-SRDF에 geometry, inertial, joint origin, link pose, mesh reference, 물리 joint limit, transmission 또는 `ros2_control` interface를 넣지 마세요.
+Do not place geometry, inertials, joint origins, link poses, mesh references, physical joint limits, transmissions, or `ros2_control` interfaces in SRDF.
 
 ## CAD Viewer Handoff
 
-`.srdf`를 만들거나 수정하는 SRDF 작업을 마치면 해당 skill이 설치된 경우 명시적인 파일 경로를 반드시 `$cad-viewer`에 전달해야 합니다. `$cad-viewer`는 CAD Viewer가 실행 중이 아니면 시작하고 해당 파일의 링크를 반환해야 합니다. `$cad-viewer`를 사용할 수 없거나 시작에 실패하면 전달을 조용히 생략하지 말고 그 사실을 보고하세요.
+After completing SRDF work that creates or modifies a `.srdf`, you must ALWAYS hand the explicit file path to `$cad-viewer` when that skill is installed. `$cad-viewer` must start CAD Viewer if it is not already running and return link(s) to the relevant created or updated file(s). If `$cad-viewer` is unavailable or startup fails, report that instead of silently omitting the handoff.
 
 ## Required workflow
 
-1. **유효한 URDF에서 시작합니다.** 먼저 `$urdf`로 URDF를 작성하거나 수정하고 검증하세요. SRDF는 같은 폴더에 있고 robot name이 일치하는 URDF와 연결되며, SRDF의 모든 이름은 URDF에 있어야 합니다.
-2. **URDF 표를 추출합니다.** SRDF XML을 쓰기 전에 URDF의 robot name, link, joint(유형, parent, child, limit, mimic 여부)를 나열하세요. 이름은 이 표에서만 복사하고 기억에 의존해 입력하지 마세요. `references/srdf-workflow.md`를 참고하세요.
-3. **계획 작업을 식별합니다.** 목표가 arm IK, gripper 제어, mobile base 계획, dual-arm 계획, tool 사용 또는 로컬 smoke test인지 기록하세요.
-4. **planning ledger를 작성하거나 갱신합니다.** XML을 작성하기 전에 `references/planning-ledger.md`를 사용하고 요약본을 `.srdf`의 주석 블록으로 보관하세요.
-5. **같은 폴더의 URDF와 연결합니다.** `.srdf`를 같은 `<robot name>`을 가진 `.urdf`와 같은 폴더에 저장하세요. 이것이 유일한 연결 방식입니다. validator와 viewer는 폴더를 검색해 이름이 일치하는 URDF를 찾으며 폴더마다 robot name당 URDF가 정확히 하나여야 합니다. 파일을 연결하는 metadata element는 없습니다. `references/authoring-contract.md`를 참고하세요.
-6. **virtual joint와 passive joint를 의도적으로 정의합니다.** 로봇 모델에 필요한 경우 사용하세요.
-7. **URDF 토폴로지에 따라 planning group을 정의합니다.** 직렬 manipulator의 base/tip이 URDF tree에서 실제 parent-to-child 경로를 이룰 때 chain group을 우선하세요(validator가 이를 확인합니다). joint/link/subgroup 정의는 의도적으로 필요한 경우에만 사용하세요.
-8. **group 구성원을 파악한 뒤 end effector를 정의합니다.** end-effector group과 parent group이 겹치지 않게 하세요. 실제 target/TCP link를 기록하세요.
-9. **URDF 기본 단위로 group state를 정의합니다.** Revolute 및 continuous 값은 radian, prismatic 값은 meter입니다. SRDF에 degree를 저장하지 마세요. 값은 URDF limit 이내여야 하며 fixed 또는 mimic joint를 설정하면 안 됩니다.
-10. **근거를 바탕으로 disabled collision을 생성합니다.** URDF joint 표에서 도출한 인접 관계, MoveIt Setup Assistant 샘플링 또는 사용자가 명시한 collision matrix를 사용하세요. 광범위한 disable 목록을 임의로 만들지 마세요. `references/disabled-collisions.md`를 참고하세요.
-11. 생성하거나 수정한 모든 `.srdf`를 `cadgen srdf validate`로 검증하세요. 연결된 URDF를 기준으로 이름, chain, state 및 pair를 교차 검증합니다. 모든 finding을 수정하고 깨끗한 결과가 나올 때까지 다시 검증하세요.
-12. **가능한 경우 MoveIt smoke test를 실행합니다.** MoveIt Setup Assistant 또는 프로젝트의 MoveIt launch를 직접 사용하세요.
-13. **가정과 생략한 검사를 보고합니다.** 미완료 검증, MoveIt 환경 부재, 수동으로 판단한 collision disable 및 추론한 target link를 포함하세요.
+1. **Start from a valid URDF.** Author or fix the URDF first with `$urdf` and validate it. The SRDF pairs with that URDF by colocation and robot name, and every name in the SRDF must exist in it.
+2. **Extract the URDF table.** Before writing any SRDF XML, list the URDF's robot name, links, joints (with type, parent, child, limits, mimic flags). Copy names from this table only; never type them from memory. See `references/srdf-workflow.md`.
+3. **Identify the planning task.** Record whether the goal is arm IK, gripper control, mobile base planning, dual-arm planning, tool use, or local smoke testing.
+4. **Create or update the planning ledger.** Use `references/planning-ledger.md` before writing XML; keep a compact copy as a comment block in the `.srdf`.
+5. **Pair with the URDF by colocation.** Save the `.srdf` in the same folder as its `.urdf`, with the same `<robot name>` — that is the only linking mechanism. The validator and the viewer both resolve the pairing by scanning the folder for the URDF whose robot name matches; exactly one URDF per robot name per folder. No metadata element links the files. See `references/authoring-contract.md`.
+6. **Define virtual and passive joints deliberately.** Use them when needed by the robot model.
+7. **Define planning groups from URDF topology.** Prefer chain groups for serial manipulators when base/tip form a real parent-to-child path in the URDF tree (the validator verifies this). Use joint/link/subgroup definitions only when they are deliberate.
+8. **Define end effectors after group membership is known.** Avoid overlap between an end-effector group and its parent group. Record the actual target/TCP link.
+9. **Define group states in URDF-native units.** Revolute and continuous values are radians; prismatic values are meters. Do not store degrees in SRDF. Values must lie within URDF limits and must not set fixed or mimic joints.
+10. **Generate disabled collisions from evidence.** Use adjacency derived from the URDF joint table, MoveIt Setup Assistant sampling, or explicit user-provided collision matrices. Do not invent broad disable lists. See `references/disabled-collisions.md`.
+11. **Validate every created or modified `.srdf`** with `cadgen srdf validate`; it cross-validates all names, chains, states, and pairs against the paired URDF. Fix findings and re-validate until clean.
+12. **Run MoveIt smoke tests when available.** Use MoveIt Setup Assistant or a project MoveIt launch directly.
+13. **Report assumptions and skipped checks.** Include incomplete validation, missing MoveIt environment, manually reasoned collision disables, and inferred target links.
 
 ## Commands
 
-프로젝트 또는 workspace의 Python 환경에서 실행하세요. 예시의 `python`은 interpreter placeholder입니다. `python` 명령을 사용할 수 없으면 `python3`, 프로젝트 virtualenv interpreter 또는 설정된 interpreter 경로로 대체하세요. validator는 Python standard library만 사용합니다.
+Run with the Python environment for the project or workspace. Treat `python` in examples as an interpreter placeholder; if bare `python` is unavailable, substitute `python3`, a project virtualenv interpreter, or the configured interpreter path. The validator uses only the Python standard library.
 
-validator 명령 형식은 다음과 같습니다:
+The validator shape is:
 
 ```bash
 cadgen srdf validate path/to/robot.srdf
@@ -67,7 +68,7 @@ cadgen srdf validate path/to/robot.srdf --strict
 cadgen srdf validate path/to/robot.srdf --json
 ```
 
-validator는 한 번에 모든 finding(severity, code, XML path)을 수집합니다. SRDF를 파싱하고 연결된 URDF(robot name이 일치하는 같은 폴더의 `.urdf`; 없거나 여러 개면 오류)를 찾은 뒤 group/joint/link/subgroup 이름 존재 여부, chain 경로 확인, subgroup cycle, virtual/passive joint, end-effector 토폴로지, group-state 구성원·limit·완전성, disabled-collision pair(`Adjacent` 사유의 진실성 포함), 오타 난 element를 교차 검증합니다. 한 번에 파일 하나를 검증합니다. `--strict`는 warning을 실패로 처리하고 `--json`은 기계가 읽을 수 있는 finding 문서를 출력합니다. 대상 검증이 실패하면 0이 아닌 코드를 반환합니다. 상대 경로 대상은 현재 작업 디렉터리를 기준으로 해석합니다.
+The validator collects all findings in one pass (severity, code, XML path). It parses the SRDF, resolves the paired URDF (the same-folder `.urdf` whose robot name matches; none or several is an error), and cross-validates: group/joint/link/subgroup name existence, chain path resolvability, subgroup cycles, virtual/passive joints, end-effector topology, group-state membership/limits/completeness, disabled-collision pairs (including Adjacent-reason truthfulness), and misspelled elements. One run validates ONE file: `--strict` treats warnings as failures and `--json` emits the machine-readable findings document. It exits nonzero if the target fails. Relative targets resolve from the current working directory.
 
 ## Hard rules
 

@@ -1,8 +1,8 @@
-# SRDF 계획 ledger
+# SRDF planning ledger
 
-SRDF XML을 작성하기 전에 이 ledger를 만들거나 갱신하세요. ledger에 계획 가정을 명시하면 그럴듯하지만 잘못된 MoveIt 구성을 예방할 수 있습니다.
+Create or update this ledger before writing SRDF XML. The ledger makes planning assumptions explicit and helps prevent plausible but incorrect MoveIt configurations.
 
-## URDF 의존성
+## URDF dependency
 
 | Field | Value |
 |---|---|
@@ -18,7 +18,7 @@ SRDF XML을 작성하기 전에 이 ledger를 만들거나 갱신하세요. ledg
 | Links used for collision checking | |
 | Known URDF limitations | |
 
-## 계획 작업
+## Planning task
 
 | Field | Value |
 |---|---|
@@ -29,55 +29,55 @@ SRDF XML을 작성하기 전에 이 ledger를 만들거나 갱신하세요. ledg
 | Position-only IK? | yes/no; reason |
 | Orientation constraints? | yes/no; representation |
 
-## Virtual joint
+## Virtual joints
 
 | Name | Type | Parent frame | Child link | Required? | Rationale |
 |---|---|---|---|---|---|
 | | fixed / planar / floating | | | | |
 
-Virtual joint는 외부 frame을 기준으로 한 로봇 root pose를 설명합니다. 계획 설정에 world 연결이 필요한 고정형 manipulator에는 fixed를 사용하고, 로봇 모델에 해당 계획 자유도가 필요한 경우에만 planar/floating을 사용하세요.
+Virtual joints describe the robot root pose relative to an external frame. Use fixed for fixed-base manipulators when the planning setup needs a world attachment; use planar/floating only when the robot model requires that planning freedom.
 
-## Passive joint
+## Passive joints
 
 | Joint | URDF type | Reason passive | Affected groups | Notes |
 |---|---|---|---|---|
 | | | | | |
 
-Passive joint는 구동되지 않습니다. 제어 가능한 계획 변수로 취급하면 안 됩니다.
+Passive joints are unactuated. They should not be treated as controllable planning variables.
 
-## Planning group
+## Planning groups
 
 | Group | Representation | Members | Base link | Tip link | Active joints | Excluded joints | Purpose | Solver expectation |
 |---|---|---|---|---|---|---|---|---|
 | | joints / links / chain / subgroups | | | | | | | |
 
-직렬 arm에서는 URDF graph에서 base link부터 tip link까지 실제 경로가 있을 때만 chain을 우선하세요. subgroup group은 cycle과 중복 의미론이 없는지 확인하세요.
+For serial arms, prefer a chain only when the URDF graph has a real path from base link to tip link. For subgroup groups, check for cycles and duplicate semantics.
 
-## End effector
+## End effectors
 
 | Name | End-effector group | Parent group | Parent link | Target/TCP link | Overlap checked? | Adjacent? | Notes |
 |---|---|---|---|---|---|---|---|
 | | | | | | | | |
 
-End-effector group은 일반적으로 parent group과 link를 공유하지 않아야 합니다. target/TCP link가 추론한 group tip과 다르면 명시해야 합니다.
+The end-effector group should normally not share links with its parent group. The target/TCP link should be explicit when it differs from the inferred group tip.
 
-## Group state
+## Group states
 
 | State | Group | Joint values | Unit check | Limit check | Purpose |
 |---|---|---|---|---|---|
 | | | revolute/continuous rad; prismatic m | | | |
 
-SRDF group state에 degree를 저장하지 마세요. group state에서 fixed 또는 mimic joint를 설정하지 마세요.
+Do not store degrees in SRDF group states. Do not set fixed or mimic joints in group states.
 
-## Disabled collision
+## Disabled collisions
 
 | Link 1 | Link 2 | Reason | Source | Evidence | Risk note |
 |---|---|---|---|---|---|
 | | | Adjacent / Never / Always / Default / Manual | Setup Assistant / sampled / adjacency / user | | |
 
-시각적 인상으로 disabled collision을 추론하지 마세요. 각 pair에는 사유와 출처가 필요합니다.
+Do not infer disabled collisions from visual impression. Each pair needs a reason and provenance.
 
-## MoveIt smoke test
+## MoveIt smoke tests
 
 | Test | Group | Target link | Target pose/state | Expected result | Actual result | Notes |
 |---|---|---|---|---|---|---|
@@ -86,9 +86,9 @@ SRDF group state에 degree를 저장하지 마세요. group state에서 fixed �
 | Named state | | | | | | |
 | Collision check | | | | | | |
 
-## 보고할 가정
+## Assumptions to report
 
-추측하거나 추론한 값을 모두 나열하세요:
+List every guessed or inferred value:
 
 - planning group membership;
 - chain base/tip;

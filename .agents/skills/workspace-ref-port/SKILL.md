@@ -8,13 +8,13 @@ description: >-
   port, 베끼기, or match reference architecture.
 ---
 
-# Workspace 참조 기능 이식 (베끼기)
+# Workspace reference porting (베끼기)
 
-**목표:** Workspace는 이미 검증된 앱의 해결책을 **재발명하지 않고** `apps/workspace/`에 이식한다. 도메인과 무관하게 터미널, 벡터 에디터 상호작용, 게임 호스팅 UX 등에 같은 워크플로를 적용한다.
+**Goal:** Workspace는 이미 검증된 앱의 해결책을 **재발명하지 않고** `apps/workspace/`에 이식한다. 도메인 무관 — 터미널이든, 벡터 에디터 interaction이든, 게임 호스팅 UX든 똑같은 워크플로.
 
 **원칙:** 목표가 검증된 기능을 가져오는 것이라면 파일을 최소 복사하는 데서 끝내지 않는다. 먼저 참조 기능의 **동작 계약과 필요한 dependency closure**를 파악하고, Workspace에서 같은 계약이 성립하도록 포팅한다. UI가 비슷하거나 이름이 같은 모듈을 옮긴 것만으로 기능 포팅이 완료된 것으로 보지 않는다. 참고 레포 전체를 읽지는 않되, 해당 기능이 의존하는 경로와 복구/오류 처리를 함께 추적한다.
 
-## 저장소 구조
+## 레포 구조
 
 | 경로                 | 역할                                    |
 | -------------------- | --------------------------------------- |
@@ -22,7 +22,7 @@ description: >-
 | `apps/workspace/`          | **실제 제품** — 여기만 수정             |
 | `docs/architecture/` | 현재 Workspace 아키텍처 (이식 전 필독)  |
 
-### ref-proj에 이미 복제된 프로젝트 (기록용 — 필요하면 더 복제 가능)
+### ref-proj에 이미 클론된 것 (기록용 — 필요하면 새로 더 clone하면 됨)
 
 | 참고               | 주로 베낀 영역                                                      |
 | ------------------ | ------------------------------------------------------------------- |
@@ -36,7 +36,7 @@ description: >-
 
 목록에 없는 프로젝트(VS Code, tldraw, Penpot 등 — tldraw/Penpot은 Vector Editor 작업 때 실제로 클론해서 쓰고 그 pane 자체는 나중에 삭제됨, 워크플로 자체의 선례로 기록만 남김)는 **문제 정의 후 그때 clone**하면 된다 — 사전 승인 필요 없음, `/ref-proj`가 이미 전역 gitignore되어 있어서 뭘 추가로 클론해도 안전.
 
-## 이식 워크플로 (매 작업 동일)
+## 베끼기 워크플로 (매 작업 동일)
 
 ```
 1. 문제 정의     → Workspace에서 뭐가 안 되는지 / 뭘 만들어야 하는지
@@ -49,7 +49,7 @@ description: >-
 5. dependency closure → 계약을 성립시키는 모듈·테스트·lifecycle hook·설정까지 확인.
                     기존 코드가 참조 구현보다 축소돼 있으면 그 차이를 명시하고,
                     동작 동등성 근거가 없는 생략은 포팅 대상에 포함
-6. 이식          → 관련 모듈과 계약 검증을 같이 가져오고 Workspace IPC/레이아웃에
+6. 포팅          → 관련 모듈과 계약 검증을 같이 가져오고 Workspace IPC/레이아웃에
                     필요한 어댑터만 둔다. 포팅 경계는 파일이 아니라 기능 계약으로 설정
 7. 검증          → typecheck와 관련 테스트, 실제 실행 환경의 증상별 확인. scroll,
                     encoding, color 등 사용자 관찰 결과를 직접 확인하며,
@@ -81,7 +81,7 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 
 ## 이식 규칙
 
-### 해야 할 일
+### DO
 
 - Orca 모듈은 파일 단위로 추적하되 포팅 경계는 **기능 계약 단위**로 잡는다
 - 기능을 분리해 옮길 때는 생략한 Orca 책임(예: parser progress, stalled write 복구,
@@ -93,7 +93,7 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 - 포팅 후 **vitest** 추가/복사 (Orca에 `.test.ts` 있으면 같이 가져오기)
 - 큰 변경은 **작업별 커밋** (`refactor(pty):`, `feat(terminal):`, `fix(interaction):` 스타일)
 
-### 하지 말아야 할 일
+### DON'T
 
 - ref-proj 수정, 커밋, 서브모듈 업데이트
 - 참고 앱 전체 아키텍처를 Workspace에 그대로 옮기기 (flexlayout 유지)
@@ -102,7 +102,7 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 - webview에 `display:flex` + `pointer-events:none` — IC 정책: 비활성 시 **display:none**
 - `TODO.md`, `.cursor/`, `.workspace/`, `test/` 루트 커밋
 
-## Workspace 핵심 구조 (이식 시 맞출 지점)
+## Workspace 핵심 아키텍처 (이식 시 맞출 지점)
 
 | 영역           | Workspace 위치                                                 | Orca 참고                     |
 | -------------- | -------------------------------------------------------------- | ----------------------------- |
@@ -137,9 +137,9 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 
 | 우선    | Orca 모듈                                                          | Workspace 갭                                                            |
 | ------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| 중간    | `embeds/TerminalMountRegistry`, cold-park                          | Phase 3 — 숨겨진 터미널 보관                                          |
-| 낮음    | `terminal-ligatures-addon.ts`, `terminal-arabic-shaping-joiner.ts` | 합자 / 복합 문자 처리                                                  |
-| 제품    | —                                                                  | `TODO.md`: Markdown 제목, Editor TreeView 무한 루프, Pane Add wrapper UI |
+| Medium  | `embeds/TerminalMountRegistry`, cold-park                          | Phase 3 — hidden terminal park                                          |
+| Lower   | `terminal-ligatures-addon.ts`, `terminal-arabic-shaping-joiner.ts` | ligatures / complex script                                              |
+| Product | —                                                                  | `TODO.md`: markdown 제목, Editor TreeView 무한루프, Pane Add wrapper UI |
 
 상세 로드맵: `docs/ROADMAP.md`, `docs/architecture/07-future-phases.md`
 

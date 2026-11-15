@@ -1,33 +1,33 @@
-# SRDF 작성 계약
+# SRDF Authoring Contract
 
-SRDF XML을 직접 작성하거나 편집할 때 이 문서를 참고하세요. 기준 파일인 `.srdf` 자체를 감사할 수 있어야 합니다. 계획 의도와 출처를 파일에 기록하며, 연결할 URDF는 정해진 규칙으로 찾습니다.
+Use this reference when writing or editing SRDF XML directly. The `.srdf` file is the source of truth and must be auditable on its own: planning intent and provenance live in the file, and the paired URDF is found by convention.
 
-## 파일 구조
+## File Shape
 
-작성하는 모든 `.srdf`는 다음 순서를 따릅니다:
+Every authored `.srdf` follows this shape, in this order:
 
 1. XML declaration: `<?xml version="1.0"?>`.
 2. Planning-ledger comment block (compact form of `references/planning-ledger.md`).
 3. One `<robot>` root with the **same `name` as the paired URDF**: `<robot name="...">`.
 4. `<virtual_joint>` elements, then `<group>`, `<group_state>`, `<end_effector>`, `<passive_joint>`, `<disable_collisions>` — grouped by element type, in that order.
 
-들여쓰기는 공백 두 칸을 사용하세요. chain tip을 선택한 이유나 pair를 비활성화한 이유처럼 중요한 결정은 해당 위치에 주석으로 남기세요.
+Keep two-space indentation. Comment nontrivial decisions inline (why a chain tip, why a pair is disabled).
 
-## URDF 연결 (필수)
+## URDF Pairing (non-negotiable)
 
-SRDF는 **같은 폴더에 두고 robot name을 일치시키는 방식**으로만 URDF와 연결됩니다:
+An SRDF pairs with its URDF by **colocation and robot name** — nothing else:
 
-- `.srdf`를 설명 대상 `.urdf`와 **같은 폴더**에 저장하세요.
-- 두 파일의 `<robot name="...">` 값이 같아야 합니다.
-- 해당 폴더에는 그 robot name을 선언하는 `.urdf`가 정확히 하나만 있어야 합니다. validator와 CAD Viewer는 폴더를 검색해 연결 파일을 찾으며 일치하는 URDF가 없거나 여러 개면 오류를 냅니다.
-- 기본 파일명(`so101.srdf`와 `so101.urdf`)을 맞추는 방식은 관례이며 가독성을 위해 권장하지만 파일 연결 기준은 robot name입니다. 한 로봇의 여러 SRDF 계획 변형(`so101_dual.srdf`, `so101_precise.srdf`)도 이름을 통해 같은 URDF와 연결됩니다.
-- 별도의 link element는 없습니다. SRDF는 같은 폴더에서 robot name이 일치하는 URDF와 연결됩니다.
+- Save the `.srdf` in the **same folder** as the `.urdf` it describes.
+- Both files declare the identical `<robot name="...">`.
+- Exactly one `.urdf` in that folder may declare that robot name; the validator and the CAD Viewer resolve the pairing by scanning the folder, and they error when zero or several URDFs match.
+- Matching basenames (`so101.srdf` next to `so101.urdf`) are conventional and recommended for readability, but the robot name is what pairs the files. Multiple SRDF planning variants for one robot (`so101_dual.srdf`, `so101_precise.srdf`) all pair with the same URDF through its name.
+- There is no link element: an SRDF pairs with the same-folder URDF whose robot name matches.
 
-## 이름은 URDF 표에서 가져오기
+## Names Come From the URDF Table
 
-모든 `link`, `joint`, `base_link`, `tip_link`, `parent_link` 및 group-state joint 이름은 추출한 URDF 표에서 복사해야 합니다(`references/srdf-workflow.md` 참고). 기억이나 비슷한 로봇을 바탕으로 이름을 입력하지 마세요. 비슷하지만 다른 이름(`wrist_roll`과 `wrist_roll_joint`)은 가장 흔한 SRDF 결함이며 검증에서 거부됩니다.
+Every `link`, `joint`, `base_link`, `tip_link`, `parent_link`, and group-state joint name must be copied from the extracted URDF table (see `references/srdf-workflow.md`). Never type a name from memory or from a similar robot; near-miss names (`wrist_roll` vs `wrist_roll_joint`) are the most common SRDF defect and validation will reject them.
 
-## Element 계약
+## Element Contract
 
 - `<group>`: prefer exactly one `<chain base_link tip_link>` for a serial manipulator — base to tip must be a real parent→child path in the URDF tree. Use explicit `<joint>`/`<link>` members for non-chain groups (grippers, heads), and `<group>` subgroups for unions (dual-arm, whole-body). Do not mix representations in one group without reason.
 - `<group_state name group>`: one `<joint name value>` per **movable, non-mimic** joint in the group. Radians for revolute/continuous, meters for prismatic, values within URDF limits.
@@ -36,7 +36,7 @@ SRDF는 **같은 폴더에 두고 robot name을 일치시키는 방식**으로�
 - `<passive_joint name>`: unactuated joints that planners must not command.
 - `<disable_collisions link1 link2 reason>`: evidence-backed only; see `references/disabled-collisions.md`. No duplicate or reversed-duplicate pairs.
 
-## 기준 골격 예시
+## Golden Skeleton
 
 ```xml
 <?xml version="1.0"?>
@@ -65,6 +65,6 @@ SRDF는 **같은 폴더에 두고 robot name을 일치시키는 방식**으로�
 </robot>
 ```
 
-## 보조 스크립트
+## Helper Scripts
 
-인접 pair 목록, 관절이 많은 로봇의 subgroup union, degree-to-radian 표는 계산으로 얻을 수 있습니다. joint가 몇 개를 넘는 로봇이라면 손으로 처리하는 대신 URDF에 짧은 임시 스크립트를 실행해 도출하세요. 스크립트는 보조 수단이며 저장소에 포함된 `.srdf`가 기준입니다.
+Adjacent-pair lists, subgroup unions for many-jointed robots, and degree-to-radian tables are computations: derive them with a short throwaway script over the URDF rather than by hand when the robot has more than a handful of joints. The script is scaffolding; the checked-in `.srdf` remains canonical.
