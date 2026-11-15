@@ -239,9 +239,6 @@
 .pkms-google-drive-root.is-desktop .pkms-google-drive-tree {
   padding: 0;
   border-right: 1px solid var(--drive-border);
-}
-
-.pkms-google-drive-root.is-desktop .pkms-google-drive-tree .editor-tree-pane-content {
   overflow: hidden;
 }
 

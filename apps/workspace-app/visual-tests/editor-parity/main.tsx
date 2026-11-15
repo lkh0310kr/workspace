@@ -82,7 +82,23 @@ const driveExtraNote: GoogleDriveWorkspaceEntry = {
   path: 'Verification/Readme.md',
   kind: 'markdown'
 }
+const driveTreeStressEntries: GoogleDriveWorkspaceEntry[] = Array.from(
+  { length: 64 },
+  (_, index) => {
+    const name = `Row ${String(index).padStart(3, '0')}.md`
+    return {
+      id: `mock-tree-row-${index}`,
+      name,
+      mimeType: 'text/markdown',
+      parents: [driveFolder.id],
+      path: `Verification/${name}`,
+      kind: 'markdown'
+    }
+  }
+)
 const driveEntries: GoogleDriveWorkspaceEntry[] = [driveFolder]
+const isTreeStressScenario =
+  new URLSearchParams(window.location.search).get('scenario') === 'tree-overflow'
 
 function installMocks() {
   const w = window as any
@@ -134,7 +150,9 @@ function installMocks() {
       parentId === null || parentId === driveRoot.id
         ? driveEntries
         : parentId === driveFolder.id
-          ? [driveNote, driveExtraNote]
+          ? isTreeStressScenario
+            ? [driveNote, driveExtraNote, ...driveTreeStressEntries]
+            : [driveNote, driveExtraNote]
           : [],
     openGoogleDriveMarkdown: async (_rootId: string, entryId: string) => {
       w.__openedDriveMarkdownEntries.push(entryId)

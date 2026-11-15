@@ -132,3 +132,46 @@ test('all host surfaces align common tree rows and readable document columns', a
     expect(Math.abs(titleCenter - paneCenter)).toBeLessThanOrEqual(1)
   }
 })
+
+test('Desktop Drive tree keyboard navigation and overflow survive hide and reopen', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1440, height: 600 })
+  await page.goto('/?host=desktop-pkms-editor&scenario=tree-overflow')
+  const tree = page.getByRole('tree', { name: 'PKMS Google Drive files' })
+  const viewport = page.locator('.pkms-google-drive-tree-scroll > .editor-tree-pane-content')
+  const header = page.locator('.pkms-google-drive-file-toolbar')
+  const footer = page.locator('.pkms-google-drive-tree-footer')
+  const folder = page.getByRole('treeitem', { name: 'Verification' })
+  await folder.click()
+  await expect(page.getByRole('treeitem', { name: 'Row 000', exact: true })).toBeVisible()
+
+  await folder.focus()
+  await page.keyboard.press('ArrowLeft')
+  await expect(page.getByRole('treeitem', { name: 'Row 000', exact: true })).toHaveCount(0)
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByRole('treeitem', { name: 'Row 000', exact: true })).toBeVisible()
+
+  const firstRow = page.getByRole('treeitem', { name: 'Row 000', exact: true })
+  await firstRow.focus()
+  for (let index = 1; index <= 30; index += 1) {
+    await page.keyboard.press('ArrowDown')
+    await expect(
+      page.getByRole('treeitem', { name: `Row ${String(index).padStart(3, '0')}`, exact: true })
+    ).toBeFocused()
+  }
+  const scrollTop = await viewport.evaluate((element) => element.scrollTop)
+  expect(scrollTop).toBeGreaterThan(0)
+  const headerTop = await header.evaluate((element) => element.getBoundingClientRect().top)
+  const footerTop = await footer.evaluate((element) => element.getBoundingClientRect().top)
+
+  await page.keyboard.press('Control+\\')
+  await expect(tree).not.toBeVisible()
+  await page.waitForTimeout(200)
+  await page.keyboard.press('Control+\\')
+  await expect(tree).toBeVisible()
+  await expect.poll(() => viewport.evaluate((element) => element.scrollTop)).toBe(scrollTop)
+  await expect(page.getByRole('treeitem', { name: 'Row 030', exact: true })).toBeVisible()
+  expect(await header.evaluate((element) => element.getBoundingClientRect().top)).toBe(headerTop)
+  expect(await footer.evaluate((element) => element.getBoundingClientRect().top)).toBe(footerTop)
+})

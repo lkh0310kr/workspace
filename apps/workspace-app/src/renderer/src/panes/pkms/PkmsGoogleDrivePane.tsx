@@ -195,6 +195,7 @@ export function PkmsGoogleDrivePane({
   const [treeViewportHeight, setTreeViewportHeight] = useState(600)
   const [focusedTreePath, setFocusedTreePath] = useState<string | null>(null)
   const treeRootRef = useRef<HTMLDivElement>(null)
+  const treeScrollContainerRef = useRef<HTMLDivElement>(null)
   const driveSearchInputRef = useRef<HTMLInputElement>(null)
   const treeContextMenuRef = useRef<HTMLDivElement>(null)
   const [directory, setDirectory] = useState({
@@ -310,13 +311,18 @@ export function PkmsGoogleDrivePane({
   )
 
   useEffect(() => {
-    const element = treeRootRef.current
+    const element = treeScrollContainerRef.current
     if (!element) return
     const updateSize = () => setTreeViewportHeight(element.clientHeight)
+    const updateScroll = () => setTreeScrollTop(element.scrollTop)
     updateSize()
     const observer = new ResizeObserver(updateSize)
     observer.observe(element)
-    return () => observer.disconnect()
+    element.addEventListener('scroll', updateScroll, { passive: true })
+    return () => {
+      observer.disconnect()
+      element.removeEventListener('scroll', updateScroll)
+    }
   }, [root, treeOpen, searchOpen])
 
   useEffect(() => {
@@ -333,7 +339,8 @@ export function PkmsGoogleDrivePane({
   }, [searchOpen])
 
   useEffect(() => {
-    if (treeOpen && treeRootRef.current) treeRootRef.current.scrollTop = treeScrollTop
+    if (treeOpen && treeScrollContainerRef.current)
+      treeScrollContainerRef.current.scrollTop = treeScrollTop
   }, [treeOpen, treeScrollTop])
 
   const toggleFolder = useCallback(
@@ -411,12 +418,13 @@ export function PkmsGoogleDrivePane({
     (path: string) => {
       setFocusedTreePath(path)
       const index = treeRows.findIndex((row) => row.path === path)
-      if (index >= 0 && treeRootRef.current) {
+      const viewport = treeScrollContainerRef.current
+      if (index >= 0 && viewport) {
         const rowTop = index * EDITOR_TREE_ROW_HEIGHT
         const rowBottom = rowTop + EDITOR_TREE_ROW_HEIGHT
-        if (rowTop < treeRootRef.current.scrollTop) treeRootRef.current.scrollTop = rowTop
-        else if (rowBottom > treeRootRef.current.scrollTop + treeRootRef.current.clientHeight) {
-          treeRootRef.current.scrollTop = rowBottom - treeRootRef.current.clientHeight
+        if (rowTop < viewport.scrollTop) viewport.scrollTop = rowTop
+        else if (rowBottom > viewport.scrollTop + viewport.clientHeight) {
+          viewport.scrollTop = rowBottom - viewport.clientHeight
         }
       }
       window.requestAnimationFrame(() => {
@@ -1191,6 +1199,7 @@ export function PkmsGoogleDrivePane({
                 <EditorTreePane
                   ariaLabel="PKMS Google Drive tree viewport"
                   className="pkms-google-drive-tree-scroll"
+                  contentRef={treeScrollContainerRef}
                   style={{ flex: '1 1 auto', minHeight: 0 }}
                   tree={{
                     rootRef: treeRootRef,
@@ -1201,7 +1210,6 @@ export function PkmsGoogleDrivePane({
                       <span style={{ padding: 8, opacity: 0.65 }}>This folder is empty.</span>
                     ),
                     onKeyDown: handleTreeKeyDown,
-                    onScroll: setTreeScrollTop,
                     onFocusPath: setFocusedTreePath,
                     onRootContextMenu: (event) =>
                       openTreeContextMenu(null, event.clientX, event.clientY),

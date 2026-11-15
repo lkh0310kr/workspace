@@ -349,11 +349,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "c1d51fb971dc3d92a29c177fc59d76066e49c39cb4f068f398b70e02e9a372d0"
+          "sha256": "40ac7e0f0c58edbb8b7ccb5930f850a621d7b131b045424266ff9f8abd51305a"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "bafe59c61afefbe6e75a77805cbee15a3860f404e599635f218b90321cf4c506"
+          "sha256": "a06246d471d0c713e44538cc5c7c34a2ee0f3d3ba06e7c3a323f0d778afe63e3"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
@@ -381,7 +381,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "c5363a93a3b0deb87c02cab35b4a5134b937714915aaecc0c967f9f8e42124a0"
+          "sha256": "d823d5f0d7000f323fa0e6dc48f513d8636402feb0b6d817789b6fe4c2e5c7b2"
         },
         {
           "path": "packages/pkms-client/src/components/FileTreeList.tsx",
@@ -393,7 +393,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/workspace.css",
-          "sha256": "5d3a8c16ccd7a46f34e0c030d8fcf2e00730e88bcef7dd33dce9c237eb1db1b6"
+          "sha256": "2442af9e44a274da62943969c1c94a93ed2d5c5fd98f427c76c8d882715f3c1f"
         }
       ]
     },
@@ -1307,7 +1307,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "c5363a93a3b0deb87c02cab35b4a5134b937714915aaecc0c967f9f8e42124a0"
+          "sha256": "d823d5f0d7000f323fa0e6dc48f513d8636402feb0b6d817789b6fe4c2e5c7b2"
         },
         {
           "path": "packages/pkms-google-drive/src/syncEngine.ts",
@@ -1355,7 +1355,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/workspace.css",
-          "sha256": "5d3a8c16ccd7a46f34e0c030d8fcf2e00730e88bcef7dd33dce9c237eb1db1b6"
+          "sha256": "2442af9e44a274da62943969c1c94a93ed2d5c5fd98f427c76c8d882715f3c1f"
         }
       ]
     },
