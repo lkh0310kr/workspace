@@ -23,6 +23,13 @@ export {
   type CachedDriveEntry,
   type GoogleDriveReplicaStore
 } from './replica'
+export {
+  GoogleDriveWebOAuth,
+  type GoogleIdentityAccounts,
+  type GoogleIdentityProvider,
+  type GoogleIdentityTokenClient,
+  type GoogleIdentityTokenResponse
+} from './webOAuth'
 export type {
   DriveAccessTokenProvider,
   DriveChange,
