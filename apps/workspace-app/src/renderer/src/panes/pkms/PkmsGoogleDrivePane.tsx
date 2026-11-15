@@ -288,8 +288,15 @@ export function PkmsGoogleDrivePane({
   useEffect(() => {
     if (!searchRequest) return
     setSearchOpen(true)
-    window.setTimeout(() => driveSearchInputRef.current?.focus(), 0)
   }, [searchRequest])
+
+  useEffect(() => {
+    if (!searchOpen) return
+    const frame = window.requestAnimationFrame(() => {
+      driveSearchInputRef.current?.focus({ preventScroll: true })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [searchOpen])
 
   useEffect(() => {
     if (treeOpen && treeScrollRef.current) treeScrollRef.current.scrollTop = treeScrollTop
@@ -408,7 +415,6 @@ export function PkmsGoogleDrivePane({
         return
       event.preventDefault()
       setSearchOpen(true)
-      window.setTimeout(() => driveSearchInputRef.current?.focus(), 0)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -587,7 +593,7 @@ export function PkmsGoogleDrivePane({
 
   const openTreeContextMenu = useCallback(
     (entry: GoogleDriveWorkspaceEntry | null, x: number, y: number) => {
-      const height = entry?.kind === 'folder' ? 168 : entry ? 116 : 112
+      const height = entry?.kind === 'folder' ? 210 : entry ? 150 : 112
       setTreeContextMenu({
         entry,
         x: Math.max(8, Math.min(x, window.innerWidth - 200)),
@@ -600,7 +606,12 @@ export function PkmsGoogleDrivePane({
   useEffect(() => {
     if (!treeContextMenu) return
     const dismiss = (event: Event) => {
-      if (!treeContextMenuRef.current?.contains(event.target as Node)) setTreeContextMenu(null)
+      if (
+        !treeContextMenuRef.current ||
+        !event.composedPath().includes(treeContextMenuRef.current)
+      ) {
+        setTreeContextMenu(null)
+      }
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setTreeContextMenu(null)
@@ -611,6 +622,13 @@ export function PkmsGoogleDrivePane({
       window.removeEventListener('pointerdown', dismiss, true)
       window.removeEventListener('keydown', onKeyDown, true)
     }
+  }, [treeContextMenu])
+
+  useEffect(() => {
+    if (!treeContextMenu) return
+    window.requestAnimationFrame(() => {
+      treeContextMenuRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    })
   }, [treeContextMenu])
 
   const contextMenuItems: EditorMenuItem[] = treeContextMenu
@@ -847,6 +865,11 @@ export function PkmsGoogleDrivePane({
                   ref={treeScrollRef}
                   style={{ flex: 1, minHeight: 0, overflow: 'auto' }}
                   onScroll={(event) => setTreeScrollTop(event.currentTarget.scrollTop)}
+                  onContextMenu={(event) => {
+                    if ((event.target as Element).closest('[role="treeitem"]')) return
+                    event.preventDefault()
+                    openTreeContextMenu(null, event.clientX, event.clientY)
+                  }}
                 >
                   <EditorTreeView
                     rootRef={treeRootRef}
