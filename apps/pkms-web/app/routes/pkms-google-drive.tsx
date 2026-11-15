@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { EditorDocumentSession, EditorSyncPhase, EditorTreeItem } from '@workspace/editor'
 import { EditorMarkdownEditor, markdownTitleFor } from '@workspace/editor'
 import {
@@ -168,6 +168,16 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
   const [entries, setEntries] = useState<GoogleDriveWorkspaceEntry[]>([])
   const [directory, setDirectory] = useState('')
   const [activeFile, setActiveFile] = useState<GoogleDriveWorkspaceEntry | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<GoogleDriveWorkspaceEntry[]>([])
+  const [searchNextPage, setSearchNextPage] = useState<string | undefined>()
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchLoadingMore, setSearchLoadingMore] = useState(false)
+  const [searchError, setSearchError] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchGeneration = useRef(0)
+  const searchMoreController = useRef<AbortController | null>(null)
   const [session, setSession] = useState<EditorDocumentSession | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -224,6 +234,65 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
       script.removeEventListener('error', handleError)
     }
   }, [identityRetryKey])
+
+  useEffect(() => {
+    if (!searchOpen || !runtime) return
+    searchInputRef.current?.focus({ preventScroll: true })
+    const query = searchQuery.trim()
+    searchMoreController.current?.abort()
+    searchMoreController.current = null
+    setSearchLoadingMore(false)
+    setSearchResults([])
+    setSearchNextPage(undefined)
+    setSearchError('')
+    if (!query) {
+      setSearchLoading(false)
+      return
+    }
+    const controller = new AbortController()
+    const generation = ++searchGeneration.current
+    setSearchLoading(true)
+    const timer = window.setTimeout(() => {
+      void runtime.repository.searchFullTextPage(query, { pageSize: 40, signal: controller.signal })
+        .then((page) => {
+          if (controller.signal.aborted || generation !== searchGeneration.current) return
+          setSearchResults(page.entries)
+          setSearchNextPage(page.nextPageToken)
+        })
+        .catch((cause) => {
+          if (!controller.signal.aborted && generation === searchGeneration.current)
+            setSearchError(cause instanceof Error ? cause.message : 'Search failed.')
+        })
+        .finally(() => {
+          if (!controller.signal.aborted && generation === searchGeneration.current) setSearchLoading(false)
+        })
+    }, 250)
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+      searchMoreController.current?.abort()
+      if (generation === searchGeneration.current) searchGeneration.current += 1
+    }
+  }, [runtime, searchOpen, searchQuery])
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'f') {
+        event.preventDefault()
+        event.stopPropagation()
+        setSearchOpen(true)
+        setSearchQuery('')
+        return
+      }
+      if (event.key === 'Escape' && searchOpen) {
+        event.preventDefault()
+        setSearchOpen(false)
+        setSearchQuery('')
+      }
+    }
+    window.addEventListener('keydown', handleShortcut, true)
+    return () => window.removeEventListener('keydown', handleShortcut, true)
+  }, [searchOpen])
 
   const connect = useCallback(async () => {
     setBusy(true)
@@ -566,64 +635,126 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
 
       {runtime ? (
         <section className="pkms-google-drive-workspace">
-          <aside className="pkms-google-drive-tree" aria-label="Google Drive files">
-            <div className="pkms-google-drive-breadcrumb">
-              <button
-                type="button"
-                onClick={() => {
-                  setDirectory('')
-                  void runtime.repository.listDirectory('').then(setEntries)
-                }}
-              >
-                PKMS
-              </button>
-              {breadcrumb.map((segment, index) => {
-                const path = breadcrumb.slice(0, index + 1).join('/')
-                return (
+          <aside className="pkms-google-drive-tree" aria-label={searchOpen ? 'Search workspace' : 'Google Drive files'}>
+            {searchOpen ? (
+              <section className="pkms-google-drive-search" aria-label="Search workspace contents">
+                <div className="pkms-google-drive-search-heading">
+                  <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery('') }}>Files</button>
+                  <strong>Search workspace</strong>
+                </div>
+                <input
+                  ref={searchInputRef}
+                  aria-label="Search workspace contents"
+                  placeholder="Search Markdown contents"
+                  value={searchQuery}
+                  maxLength={200}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
+                <p className="pkms-google-drive-search-note">Drive searches whole words and quoted phrases. Partial-word matches are not available.</p>
+                <div className="pkms-google-drive-search-status" role="status" aria-live="polite">
+                  {searchLoading ? 'Searching…' : searchError || (searchQuery.trim() ? `${searchResults.length} matching Markdown files` : 'Search all Markdown files')}
+                </div>
+                <div className="pkms-google-drive-search-results">
+                  {searchResults.map((result) => (
+                    <button key={result.id} type="button" onClick={() => void openEntry(result)} title={result.path}>
+                      <span>{result.path}</span>
+                    </button>
+                  ))}
+                  {searchNextPage ? (
+                    <button
+                      type="button"
+                      disabled={searchLoadingMore}
+                      onClick={() => {
+                        if (!runtime || !searchNextPage || searchLoadingMore) return
+                        const generation = searchGeneration.current
+                        const requestedQuery = searchQuery.trim()
+                        const controller = new AbortController()
+                        searchMoreController.current = controller
+                        setSearchLoadingMore(true)
+                        void runtime.repository.searchFullTextPage(requestedQuery, { pageToken: searchNextPage, pageSize: 40, signal: controller.signal })
+                          .then((page) => {
+                            if (controller.signal.aborted || generation !== searchGeneration.current) return
+                            setSearchResults((current) => [...current, ...page.entries])
+                            setSearchNextPage(page.nextPageToken)
+                          })
+                          .catch((cause) => {
+                            if (!controller.signal.aborted && generation === searchGeneration.current)
+                              setSearchError(cause instanceof Error ? cause.message : 'Could not load more results.')
+                          })
+                          .finally(() => {
+                            if (searchMoreController.current === controller) {
+                              searchMoreController.current = null
+                              setSearchLoadingMore(false)
+                            }
+                          })
+                      }}
+                    >
+                      {searchLoadingMore ? 'Loading…' : 'Load more results'}
+                    </button>
+                  ) : null}
+                </div>
+              </section>
+            ) : (
+              <>
+                <div className="pkms-google-drive-breadcrumb">
                   <button
-                    key={path}
                     type="button"
                     onClick={() => {
-                      setDirectory(path)
-                      void runtime.repository.listDirectory(path).then(setEntries)
+                      setDirectory('')
+                      void runtime.repository.listDirectory('').then(setEntries)
                     }}
                   >
-                    {segment}
+                    PKMS
                   </button>
-                )
-              })}
-            </div>
-            {directory ? (
-              <button
-                className="pkms-google-drive-back"
-                type="button"
-                onClick={() => {
-                  const parent = parentPath(directory)
-                  setDirectory(parent)
-                  void runtime.repository.listDirectory(parent).then(setEntries)
-                }}
-              >
-                ← Parent folder
-              </button>
-            ) : null}
-            <div className="pkms-google-drive-entry-list">
-              {entries.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  className={activeFile?.id === entry.id ? 'active' : ''}
-                  onClick={() => void openEntry(entry)}
-                >
-                  <span aria-hidden="true">
-                    {entry.kind === 'folder' ? '▸' : entry.kind === 'markdown' ? 'M' : '·'}
-                  </span>
-                  <span>{entry.name}</span>
-                </button>
-              ))}
-              {!entries.length ? (
-                <div className="pkms-google-drive-empty">This folder is empty.</div>
-              ) : null}
-            </div>
+                  {breadcrumb.map((segment, index) => {
+                    const path = breadcrumb.slice(0, index + 1).join('/')
+                    return (
+                      <button
+                        key={path}
+                        type="button"
+                        onClick={() => {
+                          setDirectory(path)
+                          void runtime.repository.listDirectory(path).then(setEntries)
+                        }}
+                      >
+                        {segment}
+                      </button>
+                    )
+                  })}
+                </div>
+                {directory ? (
+                  <button
+                    className="pkms-google-drive-back"
+                    type="button"
+                    onClick={() => {
+                      const parent = parentPath(directory)
+                      setDirectory(parent)
+                      void runtime.repository.listDirectory(parent).then(setEntries)
+                    }}
+                  >
+                    ← Parent folder
+                  </button>
+                ) : null}
+                <div className="pkms-google-drive-entry-list">
+                  {entries.map((entry) => (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      className={activeFile?.id === entry.id ? 'active' : ''}
+                      onClick={() => void openEntry(entry)}
+                    >
+                      <span aria-hidden="true">
+                        {entry.kind === 'folder' ? '▸' : entry.kind === 'markdown' ? 'M' : '·'}
+                      </span>
+                      <span>{entry.name}</span>
+                    </button>
+                  ))}
+                  {!entries.length ? (
+                    <div className="pkms-google-drive-empty">This folder is empty.</div>
+                  ) : null}
+                </div>
+              </>
+            )}
           </aside>
           <div className="pkms-google-drive-editor">
             {session && activeFile ? (

@@ -143,7 +143,7 @@ export class GoogleDriveWorkspaceRepository {
     const resolved = await Promise.all(
       page.files.map(async (file) => {
         if (file.trashed || entryKind(file) !== 'markdown') return null
-        const path = await this.pathWithinWorkspace(file)
+        const path = await this.pathWithinWorkspace(file, options.signal)
         if (path === null) return null
         return { ...file, id: workspaceItemId(file), path, kind: 'markdown' as const }
       })
@@ -448,7 +448,7 @@ export class GoogleDriveWorkspaceRepository {
     throw new Error('The requested Drive item is outside this PKMS workspace.')
   }
 
-  private async pathWithinWorkspace(file: DriveFile): Promise<string | null> {
+  private async pathWithinWorkspace(file: DriveFile, signal?: AbortSignal): Promise<string | null> {
     const segments = [file.name]
     let parentId = file.parents?.[0]
     const visited = new Set<string>()
@@ -457,7 +457,7 @@ export class GoogleDriveWorkspaceRepository {
       visited.add(parentId)
       let parent: DriveFile
       try {
-        parent = await this.client.getFile(parentId)
+        parent = await this.client.getFile(parentId, signal)
       } catch (cause) {
         if (cause instanceof DriveApiError && cause.status === 404) return null
         throw cause

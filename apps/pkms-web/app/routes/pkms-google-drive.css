@@ -151,6 +151,54 @@
   color: var(--drive-muted);
 }
 
+.pkms-google-drive-search {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pkms-google-drive-search-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pkms-google-drive-search-heading strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pkms-google-drive-search input {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid var(--drive-border);
+  border-radius: 6px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+}
+
+.pkms-google-drive-search-note,
+.pkms-google-drive-search-status {
+  margin: 0;
+  color: var(--drive-muted);
+  font-size: 12px;
+}
+
+.pkms-google-drive-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pkms-google-drive-search-results button {
+  min-width: 0;
+  border-color: transparent;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
 .pkms-google-drive-editor {
   min-width: 0;
   min-height: calc(100vh - 132px);
