@@ -67,3 +67,4 @@ apps/workspace/.tools/
 
 # Per-tab layout export written by the Electron app during dev.
 apps/workspace/.workspace/
+apps/workspace-app/test-results/

@@ -43,6 +43,9 @@ if (
 ) {
   failures.push('packages/editor/src/tree.css must own shared tree row geometry.')
 }
+if (!/\.editor-tree-item\s*\{[^}]*line-height:\s*1\.4/s.test(sharedTreeStyles)) {
+  failures.push('packages/editor/src/tree.css must own shared tree row line height.')
+}
 
 for (const [relativePath, selector] of [
   ['apps/workspace-app/src/renderer/src/assets/styles.css', '.tree-view'],
