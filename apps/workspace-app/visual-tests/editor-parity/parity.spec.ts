@@ -35,9 +35,14 @@ for (const host of hosts) {
       .getByRole('navigation', { name: 'File location' })
       .getByRole('button', { name: 'Codex Drive smoke test.md' })
       .click()
-    await expect(page.getByRole('menuitem', { name: 'Readme.md' })).toBeVisible()
+    const breadcrumbMenu = page.getByRole('menu', { name: 'Items in Verification' })
+    const readmeMenuItem = breadcrumbMenu.getByRole('menuitem', { name: 'Readme.md' })
+    await expect(readmeMenuItem).toBeVisible()
+    await expect(breadcrumbMenu.getByRole('menuitem').first()).toBeFocused()
+    await page.keyboard.press('ArrowDown')
+    await expect(readmeMenuItem).toBeFocused()
+    await page.keyboard.press('Enter')
     if (host === 'desktop-pkms-editor') {
-      await page.getByRole('menuitem', { name: 'Readme.md' }).click()
       await expect
         .poll(() => page.evaluate(() => (window as any).__openedDriveMarkdownEntries))
         .toContain('mock-readme-file')
@@ -52,7 +57,6 @@ for (const host of hosts) {
       await page.locator('.editor-tree-item').nth(1).click()
     }
     if (host === 'web-pkms-editor') {
-      await page.getByRole('menuitem', { name: 'Readme.md' }).click()
       await expect(page.getByRole('navigation', { name: 'File location' })).toContainText(
         'Readme.md'
       )
@@ -242,4 +246,33 @@ test('Desktop Drive tree keyboard navigation and overflow survive hide and reope
   await expect(page.getByRole('treeitem', { name: 'Row 030', exact: true })).toBeVisible()
   expect(await header.evaluate((element) => element.getBoundingClientRect().top)).toBe(headerTop)
   expect(await footer.evaluate((element) => element.getBoundingClientRect().top)).toBe(footerTop)
+})
+
+test('Desktop Drive folder context menu exposes and opens shared file actions', async ({
+  page
+}) => {
+  await page.goto('/?host=desktop-pkms-editor')
+  const folder = page.getByRole('treeitem', { name: 'Verification' })
+  await folder.click({ button: 'right' })
+  const menu = page.getByRole('menu', { name: 'Verification actions' })
+  await expect(menu).toBeVisible()
+  for (const label of [
+    'Open folder',
+    'New note',
+    'New folder',
+    'Rename',
+    'Move to trash',
+    'Sync now'
+  ])
+    await expect(menu.getByRole('menuitem', { name: label })).toBeVisible()
+
+  await expect(menu.getByRole('menuitem', { name: 'Open folder' })).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(menu.getByRole('menuitem', { name: 'New note' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  const dialog = page.getByRole('dialog', { name: 'New Markdown file' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('textbox')).toHaveValue('Untitled.md')
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toHaveCount(0)
 })

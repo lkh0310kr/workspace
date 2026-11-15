@@ -68,7 +68,9 @@ export const EditorMenuList = forwardRef<HTMLDivElement, EditorMenuListProps>(
       ]
       if (!buttons.length) return
       event.preventDefault()
-      const current = buttons.indexOf(document.activeElement as HTMLButtonElement)
+      const root = event.currentTarget.getRootNode()
+      const activeElement = root instanceof ShadowRoot ? root.activeElement : document.activeElement
+      const current = buttons.indexOf(activeElement as HTMLButtonElement)
       const next =
         event.key === 'Home'
           ? 0

@@ -93,7 +93,9 @@ export function EditorBreadcrumbs({ path, onLoadChildren, onOpenFile }: EditorBr
     const items = [...(rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])]
     if (items.length === 0) return
     event.preventDefault()
-    const currentIndex = items.indexOf(document.activeElement as HTMLElement)
+    const root = event.currentTarget.getRootNode()
+    const activeElement = root instanceof ShadowRoot ? root.activeElement : document.activeElement
+    const currentIndex = items.indexOf(activeElement as HTMLElement)
     const nextIndex =
       event.key === 'Home'
         ? 0

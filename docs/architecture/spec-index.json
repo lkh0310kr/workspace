@@ -149,7 +149,7 @@
         },
         {
           "path": "packages/editor/src/EditorBreadcrumbs.tsx",
-          "sha256": "d344beb88ca41e13e7cd3bc0a7ba9327e94e1a2a830dbdbd858da33d3433b172"
+          "sha256": "b1934e4af4a4390069fd0cf0f84766cf688f7a6dbaa34c3655eb705fea620e0b"
         },
         {
           "path": "packages/editor/src/EditorMarkdownDocument.tsx",
@@ -173,7 +173,7 @@
         },
         {
           "path": "packages/editor/src/EditorMenuList.tsx",
-          "sha256": "6e2a4a8553e4135108a5003b8ac784a275c6a505bebe96fd855e0a10bc76aead"
+          "sha256": "6630bccfb89bae9123fb36f5dfc111372f4cdab2c9a0627005c0550f88c5ea66"
         },
         {
           "path": "packages/editor/src/EditorNameForm.tsx",
@@ -353,7 +353,7 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "1d65af8d60dd6948034e8f21853044f1a3cfe1ea1bb5d1e18f7f0e68873a99cf"
+          "sha256": "a892605dfce9498adbfbc9aadf7bfadc7b1a741eca30b880728ac70abfe90a8d"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
