@@ -6,6 +6,11 @@ import {
 
 const clientId = 'desktop-client.apps.googleusercontent.com'
 const driveScope = 'https://www.googleapis.com/auth/drive.file'
+const allowedEmails = ['lkh0310kr@gmail.com']
+const allowedProfile = () =>
+  new Response(JSON.stringify({ email: 'lkh0310kr@gmail.com', email_verified: true }), {
+    status: 200
+  })
 
 function credentialStore(): GoogleDriveDesktopCredentialStore & {
   token: string | null
@@ -47,7 +52,8 @@ async function respondToAuthorization(url: string, wrongStateFirst = false): Pro
 describe('GoogleDriveDesktopOAuth', () => {
   it('uses a system-browser PKCE loopback flow and stores only the refresh token', async () => {
     const store = credentialStore()
-    const fetcher = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+    const fetcher = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      if (String(input).includes('/userinfo')) return allowedProfile()
       const body = new URLSearchParams(init?.body as URLSearchParams)
       expect(body.get('grant_type')).toBe('authorization_code')
       expect(body.get('client_id')).toBe(clientId)
@@ -67,6 +73,7 @@ describe('GoogleDriveDesktopOAuth', () => {
     const openExternal = vi.fn((url: string) => respondToAuthorization(url, true))
     const oauth = new GoogleDriveDesktopOAuth({
       clientId,
+      allowedEmails,
       credentialStore: store,
       openExternal,
       fetch: fetcher,
@@ -77,13 +84,55 @@ describe('GoogleDriveDesktopOAuth', () => {
 
     const authorization = new URL(openExternal.mock.calls[0][0])
     expect(authorization.origin).toBe('https://accounts.google.com')
-    expect(authorization.searchParams.get('scope')).toBe(driveScope)
+    expect(authorization.searchParams.get('scope')).toBe(`openid email ${driveScope}`)
     expect(authorization.searchParams.get('code_challenge_method')).toBe('S256')
     expect(authorization.searchParams.get('code_challenge')).toMatch(/^[A-Za-z0-9_-]+$/)
     expect(authorization.searchParams.get('state')).toMatch(/^[A-Za-z0-9_-]+$/)
     await expect(oauth.getAccessToken()).resolves.toBe('memory-access-token')
     expect(store.token).toBe('secure-refresh-token')
     expect(store.writeRefreshToken).toHaveBeenCalledTimes(1)
+  })
+
+  it('includes the configured public desktop client secret in code exchange and refresh requests', async () => {
+    const store = credentialStore()
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: 'short-lived-access-token',
+            refresh_token: 'secure-refresh-token',
+            expires_in: 30,
+            scope: driveScope
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(allowedProfile())
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ access_token: 'refreshed-access-token', expires_in: 3600 }), {
+          status: 200
+        })
+      )
+      .mockResolvedValueOnce(allowedProfile())
+    const oauth = new GoogleDriveDesktopOAuth({
+      clientId,
+      clientSecret: 'desktop-public-secret',
+      allowedEmails,
+      credentialStore: store,
+      openExternal: async (url) => respondToAuthorization(url),
+      fetch: fetcher
+    })
+
+    await oauth.connect()
+    await oauth.getAccessToken()
+
+    expect(
+      new URLSearchParams(fetcher.mock.calls[0][1]?.body as URLSearchParams).get('client_secret')
+    ).toBe('desktop-public-secret')
+    expect(
+      new URLSearchParams(fetcher.mock.calls[2][1]?.body as URLSearchParams).get('client_secret')
+    ).toBe('desktop-public-secret')
   })
 
   it('refreshes expiring access tokens through the desktop client without prompting', async () => {
@@ -101,6 +150,7 @@ describe('GoogleDriveDesktopOAuth', () => {
           { status: 200 }
         )
       )
+      .mockResolvedValueOnce(allowedProfile())
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
@@ -110,8 +160,10 @@ describe('GoogleDriveDesktopOAuth', () => {
           { status: 200 }
         )
       )
+      .mockResolvedValueOnce(allowedProfile())
     const oauth = new GoogleDriveDesktopOAuth({
       clientId,
+      allowedEmails,
       credentialStore: store,
       openExternal: async (url) => respondToAuthorization(url),
       fetch: fetcher
@@ -119,9 +171,9 @@ describe('GoogleDriveDesktopOAuth', () => {
 
     await oauth.connect()
     await expect(oauth.getAccessToken()).resolves.toBe('refreshed-access-token')
-    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(fetcher).toHaveBeenCalledTimes(4)
     expect(
-      new URLSearchParams(fetcher.mock.calls[1][1]?.body as URLSearchParams).get('grant_type')
+      new URLSearchParams(fetcher.mock.calls[2][1]?.body as URLSearchParams).get('grant_type')
     ).toBe('refresh_token')
   })
 
@@ -140,13 +192,16 @@ describe('GoogleDriveDesktopOAuth', () => {
           { status: 200 }
         )
       )
+      .mockResolvedValueOnce(allowedProfile())
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ access_token: 'forced-refresh-token', expires_in: 3600 }), {
           status: 200
         })
       )
+      .mockResolvedValueOnce(allowedProfile())
     const oauth = new GoogleDriveDesktopOAuth({
       clientId,
+      allowedEmails,
       credentialStore: store,
       openExternal: async (url) => respondToAuthorization(url),
       fetch: fetcher
@@ -155,7 +210,7 @@ describe('GoogleDriveDesktopOAuth', () => {
     await oauth.connect()
     await expect(oauth.getAccessToken()).resolves.toBe('first-access-token')
     await expect(oauth.getAccessToken({ forceRefresh: true })).resolves.toBe('forced-refresh-token')
-    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(fetcher).toHaveBeenCalledTimes(4)
   })
 
   it('requires a configured native client and encrypted credential storage', async () => {
@@ -170,6 +225,7 @@ describe('GoogleDriveDesktopOAuth', () => {
 
     const unavailableStore = new GoogleDriveDesktopOAuth({
       clientId,
+      allowedEmails,
       credentialStore: { ...store, isAvailable: () => false },
       openExternal
     })

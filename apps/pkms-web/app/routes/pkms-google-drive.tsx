@@ -3,6 +3,7 @@ import type { EditorDocumentSession, EditorSyncPhase, EditorTreeItem } from '@wo
 import { EditorMarkdownEditor, markdownTitleFor } from '@workspace/editor'
 import {
   DriveAuthenticationRequiredError,
+  parseGoogleAccountAllowlist,
   GoogleDriveAssetConflictMaterializer,
   GoogleDriveClient,
   GoogleDriveOperationLog,
@@ -22,6 +23,9 @@ import './pkms-google-drive.css'
 const WORKSPACE_MARKER = 'pkms-google-drive-v1'
 const ROOT_STORAGE_KEY = 'pkms-google-drive-root'
 const DEFAULT_CLIENT_ID = '130397210046-intlp507spke9u1b659ef1ccp85s270v.apps.googleusercontent.com'
+const allowedGoogleEmails = parseGoogleAccountAllowlist(
+  import.meta.env.VITE_GOOGLE_DRIVE_ALLOWED_EMAILS as string | undefined
+)
 
 type Connection = { oauth: GoogleDriveWebOAuth; client: GoogleDriveClient }
 type WorkspaceRuntime = {
@@ -333,7 +337,9 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
     setBusy(true)
     setError('')
     try {
-      const oauth = connection?.oauth ?? new GoogleDriveWebOAuth(oauthClientId)
+      const oauth =
+        connection?.oauth ??
+        new GoogleDriveWebOAuth(oauthClientId, undefined, { allowedEmails: allowedGoogleEmails })
       await oauth.connect()
       const client = connection?.client ?? new GoogleDriveClient({ tokenProvider: oauth })
       setConnection({ oauth, client })

@@ -56,6 +56,7 @@ export {
   type GoogleIdentityTokenClient,
   type GoogleIdentityTokenResponse
 } from './webOAuth'
+export { parseGoogleAccountAllowlist, requireAllowedGoogleAccount } from './googleAccountAllowlist'
 export {
   GoogleDriveOperationLog,
   decodeDriveLogicalOperation,

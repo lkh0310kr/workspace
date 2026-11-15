@@ -2,8 +2,9 @@ import {
   DriveAuthenticationRequiredError,
   type DriveAccessTokenProvider
 } from './googleDriveClient'
+import { requireAllowedGoogleAccount } from './googleAccountAllowlist'
 
-const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+const DRIVE_FILE_SCOPE = 'openid email https://www.googleapis.com/auth/drive.file'
 const MIN_VALIDITY_MS = 30_000
 
 export interface GoogleIdentityTokenResponse {
@@ -41,7 +42,10 @@ export class GoogleDriveWebOAuth implements DriveAccessTokenProvider {
   constructor(
     private readonly clientId: string,
     private readonly identity: GoogleIdentityProvider = () =>
-      (window as Window & { google?: GoogleIdentityAccounts }).google
+      (window as Window & { google?: GoogleIdentityAccounts }).google,
+    private readonly options: { allowedEmails: readonly string[]; fetch?: typeof fetch } = {
+      allowedEmails: []
+    }
   ) {
     if (!clientId.endsWith('.apps.googleusercontent.com'))
       throw new Error('A Google OAuth Web client ID is required.')
@@ -50,6 +54,8 @@ export class GoogleDriveWebOAuth implements DriveAccessTokenProvider {
   /** Call from an explicit user gesture. */
   connect(): Promise<void> {
     if (this.connection) return this.connection
+    if (this.options.allowedEmails.length === 0)
+      return Promise.reject(new Error('Google Drive account allowlist is not configured.'))
     const identity = this.identity()
     if (!identity?.accounts?.oauth2)
       return Promise.reject(new Error('Google Identity Services is not loaded.'))
@@ -82,11 +88,21 @@ export class GoogleDriveWebOAuth implements DriveAccessTokenProvider {
             finish(new Error('Google returned an invalid access-token lifetime.'))
             return
           }
-          this.token = {
-            accessToken: response.access_token,
-            expiresAt: Date.now() + lifetimeSeconds * 1000
-          }
-          finish()
+          void requireAllowedGoogleAccount(
+            response.access_token,
+            this.options.allowedEmails,
+            this.options.fetch
+          ).then(
+            () => {
+              this.token = {
+                accessToken: response.access_token!,
+                expiresAt: Date.now() + lifetimeSeconds * 1000
+              }
+              finish()
+            },
+            (cause) =>
+              finish(cause instanceof Error ? cause : new Error('Google account is not allowed.'))
+          )
         },
         error_callback: (error) =>
           finish(new Error(error.message ?? error.type ?? 'Google OAuth popup failed.'))

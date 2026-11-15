@@ -1,6 +1,13 @@
 import { resolve } from 'path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import { loadEnv } from 'vite'
+
+const env = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), '')
+const desktopOAuthSecret =
+  process.env.GOOGLE_DRIVE_DESKTOP_CLIENT_SECRET || env.GOOGLE_DRIVE_DESKTOP_CLIENT_SECRET
+const driveAllowedEmails =
+  process.env.GOOGLE_DRIVE_ALLOWED_EMAILS || env.GOOGLE_DRIVE_ALLOWED_EMAILS
 
 /** Must run before `require('electron')` — Vite reorders imeEnv side effects. */
 const linuxImeEnvBanner = `
@@ -14,6 +21,10 @@ if (process.platform === "linux") {
 
 export default defineConfig({
   main: {
+    define: {
+      'process.env.GOOGLE_DRIVE_DESKTOP_CLIENT_SECRET': JSON.stringify(desktopOAuthSecret),
+      'process.env.GOOGLE_DRIVE_ALLOWED_EMAILS': JSON.stringify(driveAllowedEmails)
+    },
     build: {
       rollupOptions: {
         input: {

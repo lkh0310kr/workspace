@@ -1,9 +1,11 @@
 import { createServer, type Server } from 'node:http'
 import { createHash, randomBytes } from 'node:crypto'
+import { requireAllowedGoogleAccount } from '@pkms/google-drive'
 
 const AUTHORIZATION_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth'
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'
 const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+const GOOGLE_ACCOUNT_SCOPES = `openid email ${DRIVE_FILE_SCOPE}`
 const TOKEN_MIN_VALIDITY_MS = 60_000
 const CALLBACK_TIMEOUT_MS = 5 * 60_000
 
@@ -16,6 +18,9 @@ export interface GoogleDriveDesktopCredentialStore {
 
 export interface GoogleDriveDesktopOAuthOptions {
   clientId?: string
+  /** A Desktop OAuth client secret is public in a distributed app, but Google’s token endpoint may require it. */
+  clientSecret?: string
+  allowedEmails?: readonly string[]
   credentialStore: GoogleDriveDesktopCredentialStore
   openExternal(url: string): Promise<void>
   fetch?: typeof fetch
@@ -105,6 +110,8 @@ export class GoogleDriveDesktopOAuth {
 
   private async authorize(): Promise<void> {
     const clientId = this.requireClientId()
+    if (!this.options.allowedEmails?.some((email) => email.trim()))
+      throw new Error('Google Drive account allowlist is not configured.')
     this.assertCredentialStorage()
     const oldRefreshToken = this.refreshToken ?? this.options.credentialStore.readRefreshToken()
     const state = randomUrlSafe()
@@ -115,7 +122,7 @@ export class GoogleDriveDesktopOAuth {
       client_id: clientId,
       redirect_uri: callback.redirectUri,
       response_type: 'code',
-      scope: DRIVE_FILE_SCOPE,
+      scope: GOOGLE_ACCOUNT_SCOPES,
       state,
       code_challenge: makeCodeChallenge(verifier),
       code_challenge_method: 'S256',
@@ -131,6 +138,7 @@ export class GoogleDriveDesktopOAuth {
         headers: { 'content-type': 'application/x-www-form-urlencoded' },
         body: formBody({
           client_id: clientId,
+          ...(this.options.clientSecret ? { client_secret: this.options.clientSecret } : {}),
           code,
           code_verifier: verifier,
           grant_type: 'authorization_code',
@@ -140,6 +148,7 @@ export class GoogleDriveDesktopOAuth {
       const token = (await response.json()) as OAuthTokenResponse
       if (!response.ok) throw this.tokenError(token, 'Google authorization-code exchange failed.')
       const accessToken = validateTokenResponse(token)
+      await requireAllowedGoogleAccount(accessToken, this.options.allowedEmails ?? [], this.fetcher)
       const refreshToken = token.refresh_token ?? oldRefreshToken
       if (!refreshToken)
         throw new Error(
@@ -156,11 +165,14 @@ export class GoogleDriveDesktopOAuth {
   private async refreshAccessToken(): Promise<string> {
     const refreshToken = this.refreshToken ?? this.options.credentialStore.readRefreshToken()
     if (!refreshToken) throw new Error('Google Drive connection requires sign-in.')
+    if (!this.options.allowedEmails?.some((email) => email.trim()))
+      throw new Error('Google Drive account allowlist is not configured.')
     const response = await this.fetcher(TOKEN_ENDPOINT, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: formBody({
         client_id: this.requireClientId(),
+        ...(this.options.clientSecret ? { client_secret: this.options.clientSecret } : {}),
         refresh_token: refreshToken,
         grant_type: 'refresh_token'
       })
@@ -171,6 +183,12 @@ export class GoogleDriveDesktopOAuth {
       throw this.tokenError(token, 'Google Drive token refresh failed.')
     }
     const accessToken = validateTokenResponse(token, false)
+    try {
+      await requireAllowedGoogleAccount(accessToken, this.options.allowedEmails ?? [], this.fetcher)
+    } catch (cause) {
+      this.disconnect()
+      throw cause
+    }
     this.refreshToken = token.refresh_token ?? refreshToken
     if (token.refresh_token) this.options.credentialStore.writeRefreshToken(token.refresh_token)
     this.accessToken = { value: accessToken, expiresAt: Date.now() + tokenLifetime(token) }

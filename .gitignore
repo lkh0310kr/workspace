@@ -2,6 +2,7 @@
 !/ref-proj/README.md
 .DS_Store
 **/node_modules/
+**/.env*.local
 
 # PKMS Web / Cloudflare local state
 apps/pkms-web/.wrangler/
