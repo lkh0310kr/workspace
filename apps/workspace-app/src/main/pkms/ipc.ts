@@ -30,6 +30,19 @@ import {
   googleDriveDesktopOAuth,
   googleDriveDesktopOAuthConfiguration
 } from './googleDriveDesktopOAuthRuntime'
+import { GoogleDriveDesktopWorkspaceService } from './googleDriveDesktopWorkspace'
+
+let googleDriveWorkspaceService: GoogleDriveDesktopWorkspaceService | undefined
+
+function driveWorkspaceService(): GoogleDriveDesktopWorkspaceService {
+  googleDriveWorkspaceService ??= new GoogleDriveDesktopWorkspaceService()
+  return googleDriveWorkspaceService
+}
+
+function assertDriveId(value: string): void {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,200}$/.test(value))
+    throw new Error('invalid_google_drive_id')
+}
 
 function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
   const rawUrl = event.senderFrame?.url
@@ -55,6 +68,88 @@ export function registerPkmsIpc(): void {
   ipcMain.handle('pkms-google-drive:oauth:disconnect', (event) => {
     assertTrustedSender(event)
     googleDriveDesktopOAuth.disconnect()
+  })
+  ipcMain.handle('pkms-google-drive:workspace:roots', (event) => {
+    assertTrustedSender(event)
+    return driveWorkspaceService().listRoots()
+  })
+  ipcMain.handle('pkms-google-drive:workspace:create-root', (event) => {
+    assertTrustedSender(event)
+    return driveWorkspaceService().createWorkspace()
+  })
+  ipcMain.handle('pkms-google-drive:workspace:connect', (event, rootId: string) => {
+    assertTrustedSender(event)
+    assertDriveId(rootId)
+    return driveWorkspaceService().connect(rootId)
+  })
+  ipcMain.handle(
+    'pkms-google-drive:workspace:directory',
+    (event, rootId: string, parentItemId: string | null) => {
+      assertTrustedSender(event)
+      assertDriveId(rootId)
+      if (parentItemId !== null) assertDriveId(parentItemId)
+      return driveWorkspaceService().listDirectory(rootId, parentItemId)
+    }
+  )
+  ipcMain.handle(
+    'pkms-google-drive:workspace:open-markdown',
+    (event, rootId: string, fileId: string) => {
+      assertTrustedSender(event)
+      assertDriveId(rootId)
+      assertDriveId(fileId)
+      return driveWorkspaceService().openMarkdown(rootId, fileId)
+    }
+  )
+  ipcMain.handle(
+    'pkms-google-drive:workspace:save-markdown',
+    (event, rootId: string, fileId: string, text: string) => {
+      assertTrustedSender(event)
+      assertDriveId(rootId)
+      assertDriveId(fileId)
+      if (typeof text !== 'string') throw new Error('invalid_markdown_content')
+      return driveWorkspaceService().saveMarkdown(rootId, fileId, text)
+    }
+  )
+  ipcMain.handle('pkms-google-drive:workspace:sync', (event, rootId: string) => {
+    assertTrustedSender(event)
+    assertDriveId(rootId)
+    return driveWorkspaceService().sync(rootId)
+  })
+  ipcMain.handle(
+    'pkms-google-drive:workspace:create',
+    (event, rootId: string, parentPath: string, kind: 'markdown' | 'folder', name: string) => {
+      assertTrustedSender(event)
+      assertDriveId(rootId)
+      if (
+        typeof parentPath !== 'string' ||
+        !['markdown', 'folder'].includes(kind) ||
+        typeof name !== 'string' ||
+        !name.trim()
+      )
+        throw new Error('invalid_google_drive_item')
+      return driveWorkspaceService().createItem(rootId, parentPath, kind, name.trim())
+    }
+  )
+  ipcMain.handle(
+    'pkms-google-drive:workspace:rename',
+    (event, rootId: string, fileId: string, name: string) => {
+      assertTrustedSender(event)
+      assertDriveId(rootId)
+      assertDriveId(fileId)
+      if (typeof name !== 'string' || !name.trim()) throw new Error('invalid_google_drive_name')
+      return driveWorkspaceService().rename(rootId, fileId, name.trim())
+    }
+  )
+  ipcMain.handle('pkms-google-drive:workspace:trash', (event, rootId: string, fileId: string) => {
+    assertTrustedSender(event)
+    assertDriveId(rootId)
+    assertDriveId(fileId)
+    return driveWorkspaceService().trash(rootId, fileId)
+  })
+  ipcMain.handle('pkms-google-drive:workspace:disconnect', (event, rootId: string) => {
+    assertTrustedSender(event)
+    assertDriveId(rootId)
+    return driveWorkspaceService().disconnect(rootId)
   })
   ipcMain.handle('pkms:request', (event, pathName: string, options: PkmsRequestOptions) => {
     assertTrustedSender(event)

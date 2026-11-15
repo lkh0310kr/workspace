@@ -125,6 +125,39 @@ describe('GoogleDriveDesktopOAuth', () => {
     ).toBe('refresh_token')
   })
 
+  it('honors a Drive client forced refresh after an unauthorized API response', async () => {
+    const store = credentialStore()
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: 'first-access-token',
+            refresh_token: 'secure-refresh-token',
+            expires_in: 3600,
+            scope: driveScope
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ access_token: 'forced-refresh-token', expires_in: 3600 }), {
+          status: 200
+        })
+      )
+    const oauth = new GoogleDriveDesktopOAuth({
+      clientId,
+      credentialStore: store,
+      openExternal: async (url) => respondToAuthorization(url),
+      fetch: fetcher
+    })
+
+    await oauth.connect()
+    await expect(oauth.getAccessToken()).resolves.toBe('first-access-token')
+    await expect(oauth.getAccessToken({ forceRefresh: true })).resolves.toBe('forced-refresh-token')
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
   it('requires a configured native client and encrypted credential storage', async () => {
     const store = credentialStore()
     const openExternal = vi.fn(async () => {})

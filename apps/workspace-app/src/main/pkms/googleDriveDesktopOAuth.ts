@@ -86,7 +86,8 @@ export class GoogleDriveDesktopOAuth {
     return this.connecting
   }
 
-  async getAccessToken(): Promise<string> {
+  async getAccessToken(options?: { forceRefresh?: boolean }): Promise<string> {
+    if (options?.forceRefresh) this.accessToken = undefined
     if (this.accessToken && this.accessToken.expiresAt - Date.now() > TOKEN_MIN_VALIDITY_MS)
       return this.accessToken.value
     if (this.refreshing) return this.refreshing

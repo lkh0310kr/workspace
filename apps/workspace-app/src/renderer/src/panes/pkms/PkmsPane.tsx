@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter } from 'react-router'
 import PkmsClientApp from '@pkms/client/PkmsClientApp'
@@ -8,9 +8,11 @@ import editorHostStyles from '@workspace/editor/editorHost.css?inline'
 import editorMarkdownStyles from '@workspace/editor/markdown.css?inline'
 import editorMarkdownDocumentStyles from '@workspace/editor/markdownDocument.css?inline'
 import editorSearchStyles from '@workspace/editor/editorSearch.css?inline'
+import { PkmsGoogleDrivePane } from './PkmsGoogleDrivePane'
 
 export function PkmsPane(): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
+  const [mode, setMode] = useState<'google-drive' | 'existing-pkms'>('google-drive')
 
   useEffect(() => {
     const container = hostRef.current
@@ -44,29 +46,60 @@ ${editorSearchStyles}
 
     const root: Root = createRoot(mount)
     root.render(
-      <MemoryRouter initialEntries={['/']}>
-        <PkmsClientApp />
-      </MemoryRouter>
+      mode === 'google-drive' ? (
+        <PkmsGoogleDrivePane />
+      ) : (
+        <MemoryRouter initialEntries={['/']}>
+          <PkmsClientApp />
+        </MemoryRouter>
+      )
     )
 
     return () => {
       root.unmount()
       host.remove()
     }
-  }, [])
+  }, [mode])
 
   return (
     <div
-      ref={hostRef}
       className="pkms-pane-host"
       style={{
-        display: 'block',
+        display: 'flex',
+        flexDirection: 'column',
         width: '100%',
         height: '100%',
         minWidth: 0,
         minHeight: 0,
         overflow: 'hidden'
       }}
-    />
+    >
+      <nav
+        aria-label="PKMS storage source"
+        style={{
+          display: 'flex',
+          flex: '0 0 34px',
+          gap: 4,
+          padding: '3px 8px',
+          borderBottom: '1px solid var(--border-color, #8884)'
+        }}
+      >
+        <button
+          type="button"
+          aria-pressed={mode === 'google-drive'}
+          onClick={() => setMode('google-drive')}
+        >
+          Google Drive
+        </button>
+        <button
+          type="button"
+          aria-pressed={mode === 'existing-pkms'}
+          onClick={() => setMode('existing-pkms')}
+        >
+          Existing PKMS
+        </button>
+      </nav>
+      <div ref={hostRef} style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }} />
+    </div>
   )
 }

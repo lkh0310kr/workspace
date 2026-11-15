@@ -305,6 +305,48 @@ export interface PkmsDesktopApi {
   googleDriveOAuthStatus: () => Promise<{ credentialStored: boolean; clientConfigured: boolean }>
   connectGoogleDrive: () => Promise<{ credentialStored: boolean; clientConfigured: boolean }>
   disconnectGoogleDrive: () => Promise<void>
+  listGoogleDriveWorkspaces: () => Promise<import('@pkms/google-drive').DriveFile[]>
+  createGoogleDriveWorkspace: () => Promise<{
+    root: import('@pkms/google-drive').DriveFile
+    entries: import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]
+  }>
+  connectGoogleDriveWorkspace: (rootId: string) => Promise<{
+    root: import('@pkms/google-drive').DriveFile
+    entries: import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]
+  }>
+  listGoogleDriveDirectory: (
+    rootId: string,
+    parentItemId: string | null
+  ) => Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]>
+  openGoogleDriveMarkdown: (
+    rootId: string,
+    fileId: string
+  ) => Promise<{
+    entry: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
+    text: string
+    revision: string
+  }>
+  saveGoogleDriveMarkdown: (
+    rootId: string,
+    fileId: string,
+    text: string
+  ) => Promise<{ revision: string; sync: import('@pkms/google-drive').DriveSyncResult }>
+  syncGoogleDriveWorkspace: (
+    rootId: string
+  ) => Promise<import('@pkms/google-drive').DriveSyncResult>
+  createGoogleDriveItem: (
+    rootId: string,
+    parentPath: string,
+    kind: 'markdown' | 'folder',
+    name: string
+  ) => Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]>
+  renameGoogleDriveItem: (
+    rootId: string,
+    fileId: string,
+    name: string
+  ) => Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry>
+  trashGoogleDriveItem: (rootId: string, fileId: string) => Promise<void>
+  disconnectGoogleDriveWorkspace: (rootId: string) => Promise<void>
   openVerification: (url: string) => Promise<void>
   openServiceOAuth: (url: string) => Promise<void>
   request: <T = unknown>(

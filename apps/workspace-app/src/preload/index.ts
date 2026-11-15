@@ -42,6 +42,65 @@ const pkmsDesktop = {
       clientConfigured: boolean
     }>,
   disconnectGoogleDrive: () => ipcRenderer.invoke('pkms-google-drive:oauth:disconnect'),
+  listGoogleDriveWorkspaces: () =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:roots') as Promise<
+      import('@pkms/google-drive').DriveFile[]
+    >,
+  createGoogleDriveWorkspace: () =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:create-root') as Promise<{
+      root: import('@pkms/google-drive').DriveFile
+      entries: import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]
+    }>,
+  connectGoogleDriveWorkspace: (rootId: string) =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:connect', rootId) as Promise<{
+      root: import('@pkms/google-drive').DriveFile
+      entries: import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]
+    }>,
+  listGoogleDriveDirectory: (rootId: string, parentItemId: string | null) =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:directory', rootId, parentItemId) as Promise<
+      import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]
+    >,
+  openGoogleDriveMarkdown: (rootId: string, fileId: string) =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:open-markdown', rootId, fileId) as Promise<{
+      entry: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
+      text: string
+      revision: string
+    }>,
+  saveGoogleDriveMarkdown: (rootId: string, fileId: string, text: string) =>
+    ipcRenderer.invoke(
+      'pkms-google-drive:workspace:save-markdown',
+      rootId,
+      fileId,
+      text
+    ) as Promise<{
+      revision: string
+      sync: import('@pkms/google-drive').DriveSyncResult
+    }>,
+  syncGoogleDriveWorkspace: (rootId: string) =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:sync', rootId) as Promise<
+      import('@pkms/google-drive').DriveSyncResult
+    >,
+  createGoogleDriveItem: (
+    rootId: string,
+    parentPath: string,
+    kind: 'markdown' | 'folder',
+    name: string
+  ) =>
+    ipcRenderer.invoke(
+      'pkms-google-drive:workspace:create',
+      rootId,
+      parentPath,
+      kind,
+      name
+    ) as Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]>,
+  renameGoogleDriveItem: (rootId: string, fileId: string, name: string) =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:rename', rootId, fileId, name) as Promise<
+      import('@pkms/google-drive').GoogleDriveWorkspaceEntry
+    >,
+  trashGoogleDriveItem: (rootId: string, fileId: string) =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:trash', rootId, fileId) as Promise<void>,
+  disconnectGoogleDriveWorkspace: (rootId: string) =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:disconnect', rootId) as Promise<void>,
   openVerification: (url: string): Promise<void> =>
     ipcRenderer.invoke('pkms:open-verification', url),
   request: <T = unknown>(
