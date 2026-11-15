@@ -12,6 +12,27 @@ for (const host of hosts) {
     if (host === 'desktop-pkms-editor') await page.locator('.editor-tree-item').nth(1).click()
     await expect(page.getByText('Codex Drive smoke test', { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
+    await page
+      .getByRole('navigation', { name: 'File location' })
+      .getByRole('button', { name: 'Codex Drive smoke test.md' })
+      .click()
+    await expect(page.getByRole('menuitem', { name: 'Readme.md' })).toBeVisible()
+    if (host === 'desktop-pkms-editor') {
+      await page.getByRole('menuitem', { name: 'Readme.md' }).click()
+      await expect
+        .poll(() => page.evaluate(() => (window as any).__openedDriveMarkdownEntries))
+        .toContain('mock-readme-file')
+      await expect(page.getByRole('navigation', { name: 'File location' })).toContainText(
+        'Readme.md'
+      )
+      await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
+      await expect(page.getByRole('treeitem', { name: 'Readme', exact: true })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+      await page.locator('.editor-tree-item').nth(1).click()
+    }
+    await page.keyboard.press('Escape')
     await expect(page.locator('.editor-tree-item').first()).toHaveCSS('height', '27px')
 
     const hoverRow = page.locator('.editor-tree-item').nth(2)

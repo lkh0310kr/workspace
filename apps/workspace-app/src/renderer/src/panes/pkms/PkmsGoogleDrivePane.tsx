@@ -8,6 +8,7 @@ import {
 } from 'react'
 import {
   EditorMarkdownEditor,
+  EditorBreadcrumbs,
   EditorMenuList,
   EditorTreeFrame,
   EditorTreePane,
@@ -18,6 +19,7 @@ import {
   markdownTitleFor,
   projectEditorTreeRows,
   type EditorDocumentSession,
+  type EditorBreadcrumbEntry,
   type EditorMenuItem,
   type EditorSyncPhase,
   type EditorTreeItem,
@@ -581,6 +583,60 @@ export function PkmsGoogleDrivePane({
       }
     },
     [root, session, toggleFolder]
+  )
+
+  const resolveDrivePath = useCallback(
+    async (path: string): Promise<GoogleDriveWorkspaceEntry | null> => {
+      if (!root) return null
+      const segments = path.split('/').filter(Boolean)
+      if (!segments.length) return null
+      let parentId: string | null = null
+      let resolved: GoogleDriveWorkspaceEntry | null = null
+      let currentPath = ''
+      for (const [index, name] of segments.entries()) {
+        currentPath = currentPath ? `${currentPath}/${name}` : name
+        const entries = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, parentId)
+        resolved = entries.find((entry) => entry.path === currentPath) ?? null
+        if (!resolved) return null
+        if (index < segments.length - 1 && resolved.kind !== 'folder') return null
+        parentId = resolved.id
+      }
+      return resolved
+    },
+    [root]
+  )
+
+  const loadBreadcrumbChildren = useCallback(
+    async (directoryPath: string): Promise<EditorBreadcrumbEntry[]> => {
+      if (!root) return []
+      const parent = directoryPath ? await resolveDrivePath(directoryPath) : null
+      if (directoryPath && parent?.kind !== 'folder') return []
+      const entries = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, parent?.id ?? null)
+      return entries.map((entry) => ({
+        name: entry.name,
+        path: entry.path,
+        kind:
+          entry.kind === 'folder' ? 'directory' : entry.kind === 'markdown' ? 'markdown' : 'viewer'
+      }))
+    },
+    [resolveDrivePath, root]
+  )
+
+  const openBreadcrumbFile = useCallback(
+    (path: string) => {
+      void resolveDrivePath(path)
+        .then((entry) => {
+          if (!entry) {
+            setError(`Could not find file: ${path}`)
+            return
+          }
+          void openEntry(entry)
+        })
+        .catch((cause) =>
+          setError(cause instanceof Error ? cause.message : 'Could not open the file.')
+        )
+    },
+    [openEntry, resolveDrivePath]
   )
 
   const createItem = useCallback(
@@ -1182,28 +1238,37 @@ export function PkmsGoogleDrivePane({
             style={{ flex: 1, minWidth: 0, overflow: 'auto' }}
           >
             {session && activeFile ? (
-              <EditorMarkdownEditor
-                className="pkms-google-drive-markdown"
-                title={
-                  <div className="editor-title-block">
-                    <div className="editor-markdown-title">{markdownTitleFor(activeFile.path)}</div>
-                  </div>
-                }
-                actions={
-                  <div className="pkms-google-drive-file-actions">
-                    <button type="button" onClick={() => void session.save()} disabled={busy}>
-                      Save
-                    </button>
-                  </div>
-                }
-                surfaceKey={activeFile.id}
-                surfaceProps={{
-                  session,
-                  documentPath: activeFile.path,
-                  documentKey: `pkms-google-drive:${root.id}:${activeFile.id}`,
-                  ariaLabel: 'Markdown editor'
-                }}
-              />
+              <>
+                <EditorBreadcrumbs
+                  path={activeFile.path}
+                  onLoadChildren={loadBreadcrumbChildren}
+                  onOpenFile={openBreadcrumbFile}
+                />
+                <EditorMarkdownEditor
+                  className="pkms-google-drive-markdown"
+                  title={
+                    <div className="editor-title-block">
+                      <div className="editor-markdown-title">
+                        {markdownTitleFor(activeFile.path)}
+                      </div>
+                    </div>
+                  }
+                  actions={
+                    <div className="pkms-google-drive-file-actions">
+                      <button type="button" onClick={() => void session.save()} disabled={busy}>
+                        Save
+                      </button>
+                    </div>
+                  }
+                  surfaceKey={activeFile.id}
+                  surfaceProps={{
+                    session,
+                    documentPath: activeFile.path,
+                    documentKey: `pkms-google-drive:${root.id}:${activeFile.id}`,
+                    ariaLabel: 'Markdown editor'
+                  }}
+                />
+              </>
             ) : (
               <div style={{ display: 'grid', placeItems: 'center', height: '100%', opacity: 0.65 }}>
                 Select a Markdown file to open it.

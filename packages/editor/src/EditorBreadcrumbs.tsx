@@ -34,7 +34,8 @@ export function EditorBreadcrumbs({ path, onLoadChildren, onOpenFile }: EditorBr
   useEffect(() => setMenu(null), [path])
   useEffect(() => {
     const closeOutside = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setMenu(null)
+      const root = rootRef.current
+      if (!root || !event.composedPath().includes(root)) setMenu(null)
     }
     document.addEventListener('pointerdown', closeOutside)
     return () => document.removeEventListener('pointerdown', closeOutside)

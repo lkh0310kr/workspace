@@ -511,6 +511,8 @@
 }
 
 .pkms-google-drive-root.is-desktop .pkms-google-drive-editor {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   overflow: auto;
 }

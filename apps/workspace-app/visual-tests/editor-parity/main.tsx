@@ -3,9 +3,11 @@ import { createRoot } from 'react-dom/client'
 import {
   EditorMarkdownEditor,
   EditorMarkdownTitle,
+  EditorBreadcrumbs,
   EditorTreeToolbar,
   projectEditorTreeRows,
-  type EditorTreeProjection
+  type EditorTreeProjection,
+  type EditorBreadcrumbEntry
 } from '@workspace/editor'
 import { TreeView } from '../../src/renderer/src/components/TreeView'
 import { PkmsPane } from '../../src/renderer/src/panes/pkms/PkmsPane'
@@ -29,6 +31,7 @@ This shared fixture checks the document column against the filename title.
 - Folder rows keep the common density.
 - File rows keep the common selection treatment.
 `
+const readmeMarkdown = '# Readme preview\n\nOpened from the shared breadcrumb menu.\n'
 
 const driveRoot = {
   id: 'mock-drive-root',
@@ -63,6 +66,7 @@ const driveEntries: GoogleDriveWorkspaceEntry[] = [driveFolder]
 
 function installMocks() {
   const w = window as any
+  w.__openedDriveMarkdownEntries = []
   w.api = {
     fs: {
       listDir: async (_tabId: number, path: string) =>
@@ -107,16 +111,21 @@ function installMocks() {
     listGoogleDriveWorkspaces: async () => [driveRoot],
     connectGoogleDriveWorkspace: async () => ({ root: driveRoot, entries: driveEntries }),
     listGoogleDriveDirectory: async (_rootId: string, parentId: string | null) =>
-      parentId === driveRoot.id
+      parentId === null || parentId === driveRoot.id
         ? driveEntries
         : parentId === driveFolder.id
           ? [driveNote, driveExtraNote]
           : [],
-    openGoogleDriveMarkdown: async () => ({
-      entry: driveNote,
-      text: markdown,
-      revision: 'mock-r1'
-    }),
+    openGoogleDriveMarkdown: async (_rootId: string, entryId: string) => {
+      w.__openedDriveMarkdownEntries.push(entryId)
+      const entry = [driveNote, driveExtraNote].find((candidate) => candidate.id === entryId)
+      if (!entry) throw new Error(`Unknown mock Drive entry: ${entryId}`)
+      return {
+        entry,
+        text: entry.id === driveExtraNote.id ? readmeMarkdown : markdown,
+        revision: 'mock-r1'
+      }
+    },
     saveGoogleDriveMarkdown: async () => ({ revision: 'mock-r2', sync: { pendingOperations: 0 } }),
     syncGoogleDriveWorkspace: async () => ({ pendingOperations: 0 }),
     searchGoogleDriveWorkspace: async () => ({ entries: [] }),
@@ -132,22 +141,41 @@ function installMocks() {
 function Document() {
   const inputRef = useRef<HTMLInputElement | null>(null)
   return (
-    <EditorMarkdownEditor
-      title={
-        <EditorMarkdownTitle
-          path="Verification/Codex Drive smoke test.md"
-          title="Codex Drive smoke test"
-          editing={false}
-          draft="Codex Drive smoke test"
-          error={null}
-          inputRef={inputRef}
-          onChange={() => undefined}
-          onCommit={() => undefined}
-          onCancel={() => undefined}
-        />
-      }
-      surfaceProps={{ value: markdown, extensions: [], ariaLabel: 'Markdown editor' }}
-    />
+    <div className="visual-markdown-host">
+      <EditorBreadcrumbs
+        path="Verification/Codex Drive smoke test.md"
+        onLoadChildren={async (directoryPath): Promise<EditorBreadcrumbEntry[]> => {
+          if (directoryPath === '')
+            return [{ name: 'Verification', path: 'Verification', kind: 'directory' }]
+          if (directoryPath !== 'Verification') return []
+          return [
+            {
+              name: 'Codex Drive smoke test.md',
+              path: 'Verification/Codex Drive smoke test.md',
+              kind: 'markdown'
+            },
+            { name: 'Readme.md', path: 'Verification/Readme.md', kind: 'markdown' }
+          ]
+        }}
+        onOpenFile={() => undefined}
+      />
+      <EditorMarkdownEditor
+        title={
+          <EditorMarkdownTitle
+            path="Verification/Codex Drive smoke test.md"
+            title="Codex Drive smoke test"
+            editing={false}
+            draft="Codex Drive smoke test"
+            error={null}
+            inputRef={inputRef}
+            onChange={() => undefined}
+            onCommit={() => undefined}
+            onCancel={() => undefined}
+          />
+        }
+        surfaceProps={{ value: markdown, extensions: [], ariaLabel: 'Markdown editor' }}
+      />
+    </div>
   )
 }
 

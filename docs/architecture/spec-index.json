@@ -149,7 +149,7 @@
         },
         {
           "path": "packages/editor/src/EditorBreadcrumbs.tsx",
-          "sha256": "81ba6ae3175106cb88bad86b4a090aab5f622eadc376d415590995dd86dc0dbc"
+          "sha256": "f164fbfc1bdaa9d4dd1016b67ddcc32c33294bb3c9be3b40d78010776a4eb736"
         },
         {
           "path": "packages/editor/src/EditorMarkdownDocument.tsx",
@@ -349,11 +349,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "6b2b2824d593631d4f6da514f941890a2296e70b0b6639403ef9a564ccf5c13a"
+          "sha256": "74c27284459e9ad3d4ee3060ecc7a88bdc3688241ff0a6159fa77a517f740f4b"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "2834e4ae70c877e02eff449f7b0fb4a1c1e0e7bccb9326451ccf2ce8e4c98dd4"
+          "sha256": "9c4b2288dbf0713c551796f6328ec0d0b51e31ad14004698a81dae0c1a4750ee"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
@@ -365,7 +365,7 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/visual-fixture.css",
-          "sha256": "e77ef5e6b321afeab3e276ba3f96548913d04e802ac0c2d09c2e83e02915c543"
+          "sha256": "8754265bb87f3d4975f76b2dbdf3c6a0906de6901b991d7b53439a4efd0b5fd0"
         },
         {
           "path": "apps/workspace-app/scripts/run-editor-visual.mjs",
@@ -381,7 +381,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "bf2356da758bf108c455c375ee4cdec45331cccbf06579253061e4a7adfb4e27"
+          "sha256": "9c7f8e1b64d1eba6f6085fdb0833a45fbf3cc4673250dcb553de3069046995a0"
         },
         {
           "path": "packages/pkms-client/src/components/FileTreeList.tsx",
@@ -393,7 +393,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/workspace.css",
-          "sha256": "40ba798fe630a272f7decaac2b953a99fa684b42613ed27a81064d099adf444a"
+          "sha256": "5d3a8c16ccd7a46f34e0c030d8fcf2e00730e88bcef7dd33dce9c237eb1db1b6"
         }
       ]
     },
@@ -1307,7 +1307,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "bf2356da758bf108c455c375ee4cdec45331cccbf06579253061e4a7adfb4e27"
+          "sha256": "9c7f8e1b64d1eba6f6085fdb0833a45fbf3cc4673250dcb553de3069046995a0"
         },
         {
           "path": "packages/pkms-google-drive/src/syncEngine.ts",
@@ -1355,7 +1355,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/workspace.css",
-          "sha256": "40ba798fe630a272f7decaac2b953a99fa684b42613ed27a81064d099adf444a"
+          "sha256": "5d3a8c16ccd7a46f34e0c030d8fcf2e00730e88bcef7dd33dce9c237eb1db1b6"
         }
       ]
     },
