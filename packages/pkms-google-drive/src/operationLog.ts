@@ -228,6 +228,25 @@ export class GoogleDriveOperationLog {
     return operations
   }
 
+  /** Reads immutable binary replacement versions for one asset only. */
+  async listAssetReplacementOperations(fileId: string): Promise<DriveLogicalOperation[]> {
+    const folder = await this.getOperationsFolder()
+    const files = await this.client.listFiles({
+      query: `${queryLiteral(folder.id)} in parents and appProperties has { key='pkmsFileId' and value=${queryLiteral(fileId)} } and trashed = false`,
+      pageSize: 1000,
+      fields: 'id,name,mimeType,parents,modifiedTime,appProperties'
+    })
+    const operations: DriveLogicalOperation[] = []
+    for (const file of files) {
+      if (file.appProperties?.pkmsOperationType !== 'replace-content') continue
+      const operation = await this.readOperationFile(file)
+      if (operation.mutation.type === 'replace-content' && operation.mutation.fileId === fileId)
+        operations.push(operation)
+    }
+    operations.sort(compareOperations)
+    return operations
+  }
+
   /** Reads one operation by its stable ID without downloading the workspace log. */
   async get(operationId: string): Promise<DriveLogicalOperation | null> {
     const folder = await this.getOperationsFolder()

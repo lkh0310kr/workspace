@@ -1,5 +1,6 @@
 import * as Y from 'yjs'
 import {
+  GoogleDriveAssetConflictMaterializer,
   GoogleDriveClient,
   GoogleDriveOperationLog,
   GoogleDriveWorkspaceRepository,
@@ -56,6 +57,7 @@ export class GoogleDriveDesktopWorkspaceService {
     await this.disconnect(rootId)
     const repository = new GoogleDriveWorkspaceRepository(this.client, rootId)
     const operationLog = new GoogleDriveOperationLog(this.client, rootId)
+    const assetMaterializer = new GoogleDriveAssetConflictMaterializer(repository, operationLog)
     const documents = new GoogleDriveYjsDocumentStore(
       rootId,
       repository,
@@ -68,11 +70,8 @@ export class GoogleDriveDesktopWorkspaceService {
       operationLog,
       outbox: this.storage,
       documents,
-      applyAssetReplacement: async () => {
-        throw new Error(
-          'A binary asset changed in Google Drive. Desktop conflict-preserving asset projection is not connected yet.'
-        )
-      }
+      applyAssetReplacement: (fileId, mimeType, bytes, operation) =>
+        assetMaterializer.apply(fileId, mimeType, bytes, operation)
     })
     const runtime = { rootId, repository, documents, engine }
     await engine.sync()

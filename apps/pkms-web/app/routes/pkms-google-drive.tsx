@@ -3,6 +3,7 @@ import type { EditorDocumentSession, EditorSyncPhase, EditorTreeItem } from '@wo
 import { EditorMarkdownEditor, markdownTitleFor } from '@workspace/editor'
 import {
   DriveAuthenticationRequiredError,
+  GoogleDriveAssetConflictMaterializer,
   GoogleDriveClient,
   GoogleDriveOperationLog,
   GoogleDriveWebOAuth,
@@ -253,6 +254,7 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
         const repository = new GoogleDriveWorkspaceRepository(connected.client, root.id)
         const outbox = new IndexedDbDriveOutbox()
         const operationLog = new GoogleDriveOperationLog(connected.client, root.id)
+        const assetMaterializer = new GoogleDriveAssetConflictMaterializer(repository, operationLog)
         const documents = new GoogleDriveYjsDocumentStore(
           root.id,
           repository,
@@ -265,11 +267,8 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
           operationLog,
           outbox,
           documents,
-          applyAssetReplacement: async () => {
-            throw new Error(
-              'A binary asset change is pending. This Web integration currently syncs folders and Markdown documents only.'
-            )
-          }
+          applyAssetReplacement: (fileId, mimeType, bytes, operation) =>
+            assetMaterializer.apply(fileId, mimeType, bytes, operation)
         })
         const nextRuntime = { rootId: root.id, repository, documents, sync: engine }
         await engine.sync()

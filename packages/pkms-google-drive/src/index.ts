@@ -1,3 +1,4 @@
+export { GoogleDriveAssetConflictMaterializer } from './assetConflictMaterializer'
 export {
   DriveApiError,
   DriveAuthenticationRequiredError,
