@@ -35,7 +35,7 @@ Google Drive의 `files.update`를 읽은 version에 대한 원자적 compare-and
 
 Operation ID는 retry에도 유지된다. Drive upload 응답이 유실되면 Drive에서 같은 operation ID를 확인하고 새 operation을 만들지 않는다. 서버 change feed cursor는 모든 페이지와 변경 적용 결과가 durable local store에 반영된 후에만 전진한다.
 
-Create-folder/file operation은 `appProperties`에 workspace root ID, stable operation ID, payload SHA-256을 기록한다. create 응답이 유실돼도 같은 marker를 조회해 기존 item을 복구하며, 같은 operation ID가 다른 parent/name/type/content로 재사용되면 충돌로 중단한다.
+Create-folder/file operation은 `appProperties`에 workspace root ID, stable operation ID, stable PKMS item ID, payload SHA-256을 기록한다. create 응답이 유실돼도 같은 marker를 조회해 기존 item을 복구하며, 같은 operation ID가 다른 parent/name/type/content로 재사용되면 충돌로 중단한다. Stable item ID는 생성 직후 Drive가 할당하는 file ID에 종속되지 않으므로, offline에서 이어진 rename/move operation이 여러 기기에서도 같은 item을 가리킨다.
 
 동일 Markdown에 대한 operation은 Yjs update로 merge한다. iOS native Yrs와 JavaScript Yjs는 현재 PKMS protocol의 update bytes를 교환한다. 하나의 merged document는 각 replica에서 materialize한다. content projection의 단일 파일 업로드는 operation log에 이미 보존된 변경의 source of truth가 아니다.
 
@@ -98,4 +98,4 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 
 ## 현 구현 경계
 
-공통 [PKMS Google Drive package](../../../packages/pkms-google-drive/README.md)는 직접 Drive API client, Drive folder 기반 tree/file repository, IndexedDB outbox, immutable checksummed operation log, metadata/content replica와 cursor ordering primitive, foreground-only Web OAuth adapter 및 durable outbox replay coordinator를 제공한다. Replay coordinator는 idempotent `reconcile` callback만 호출하며 실제 Drive file/folder mutation, Yjs merge와 user-visible projection을 수행하는 provider는 아직 없다. `PkmsClientApp`, Desktop sync bridge, iOS 저장 provider에는 연결되지 않았고, Desktop/iOS OAuth, Yjs update convergence 및 production cutover도 완료되지 않았다. 기존 [격리 browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 API 가능성 실험으로 유지한다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.
+공통 [PKMS Google Drive package](../../../packages/pkms-google-drive/README.md)는 직접 Drive API client, Drive folder 기반 tree/file repository, IndexedDB outbox, immutable checksummed operation log, metadata/content replica와 cursor ordering primitive, foreground-only Web OAuth adapter, durable outbox replay coordinator 및 create/rename/move/trash용 concrete tree-operation applier를 제공한다. Applier는 Yjs merge와 binary conflict-preserving materialization을 idempotent hooks에 위임한다. 이 hooks와 applier는 아직 `PkmsClientApp`, Desktop sync bridge, iOS 저장 provider에 연결되지 않았고, Desktop/iOS OAuth, Yjs update convergence 및 production cutover도 완료되지 않았다. 기존 [격리 browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 API 가능성 실험으로 유지한다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.

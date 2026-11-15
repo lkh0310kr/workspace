@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  enqueueDriveMutation,
   MemoryDriveOutbox,
   type DriveOutboxOperation
 } from '../../../../../packages/pkms-google-drive/src'
@@ -25,6 +26,22 @@ function operation(
 }
 
 describe('Drive outbox contract', () => {
+  it('assigns a stable item identity before a new Drive file has a Drive ID', async () => {
+    const outbox = new MemoryDriveOutbox()
+    const operation = await enqueueDriveMutation(outbox, 'root', {
+      type: 'create-file',
+      path: 'offline-note.md',
+      mimeType: 'text/markdown',
+      bytes: new TextEncoder().encode('offline')
+    })
+
+    expect(operation.mutation).toMatchObject({
+      type: 'create-file',
+      itemId: operation.operationId
+    })
+    await expect(outbox.list('root')).resolves.toEqual([operation])
+  })
+
   it('keeps stable operation IDs, orders by local sequence, and isolates workspace roots', async () => {
     const outbox = new MemoryDriveOutbox()
     await outbox.enqueue(operation('second', 2))

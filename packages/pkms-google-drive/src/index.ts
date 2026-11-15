@@ -23,6 +23,10 @@ export {
   type GoogleDriveOperationLogPort
 } from './syncEngine'
 export {
+  GoogleDriveOperationApplier,
+  type GoogleDriveOperationApplierHooks
+} from './operationApplier'
+export {
   IndexedDbGoogleDriveReplica,
   MemoryGoogleDriveReplica,
   syncDriveChanges,

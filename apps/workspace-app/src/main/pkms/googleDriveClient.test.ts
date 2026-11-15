@@ -72,6 +72,39 @@ describe('Google Drive direct client', () => {
     expect(provider.getAccessToken).toHaveBeenNthCalledWith(2, { forceRefresh: true })
   })
 
+  it('sends stable PKMS item identity markers in direct Drive create requests', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        jsonResponse({ id: 'drive-file-id', name: 'note.md', mimeType: 'text/markdown' })
+      )
+    const client = new GoogleDriveClient({ tokenProvider: tokenProvider(), fetcher })
+    const appProperties = {
+      pkmsWorkspaceRootId: 'workspace-root',
+      pkmsCreateOperationId: 'operation-id',
+      pkmsItemId: 'stable-item-id',
+      pkmsCreatePayloadSha256: 'payload-hash'
+    }
+
+    await client.createFile(
+      'note.md',
+      'parent-id',
+      'text/markdown',
+      new TextEncoder().encode('hello'),
+      appProperties
+    )
+
+    const body = await (fetcher.mock.calls[0][1]?.body as Blob).text()
+    expect(body).toContain(
+      JSON.stringify({
+        name: 'note.md',
+        mimeType: 'text/markdown',
+        parents: ['parent-id'],
+        appProperties
+      })
+    )
+  })
+
   it('backs off on Drive 429 and then retries an idempotent read', async () => {
     const sleep = vi.fn(async () => {})
     const fetcher = vi

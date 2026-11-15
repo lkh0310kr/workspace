@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  DriveApiError,
   GoogleDriveWorkspaceRepository,
   resolveGoogleDriveWorkspaceRoot,
   type DriveFile,
@@ -57,7 +58,6 @@ describe('GoogleDriveWorkspaceRepository', () => {
 
   it('recovers a folder create after the Drive request succeeds but its response is lost', async () => {
     const root = folder('root', 'PKMS')
-    const created = folder('created', 'new-folder', ['root'])
     const operations = new Map<string, DriveFile>()
     let loseAck = true
     const createFolder = vi.fn(
@@ -72,7 +72,11 @@ describe('GoogleDriveWorkspaceRepository', () => {
       }
     )
     const client = {
-      getFile: vi.fn(async () => root),
+      getFile: vi.fn(async (id: string) => {
+        if (id === 'root') return root
+        if (id === 'notes') return folder('notes', 'notes', ['root'])
+        throw new DriveApiError(404, 'notFound', 'missing')
+      }),
       listFiles: vi.fn(async () => [...operations.values()]),
       createFolder,
       listChildren: vi.fn(async (id: string) =>
@@ -82,12 +86,12 @@ describe('GoogleDriveWorkspaceRepository', () => {
     const repository = new GoogleDriveWorkspaceRepository(client, 'root')
 
     await expect(repository.createFolderOnce('stable-op', 'new-folder')).resolves.toMatchObject({
-      id: created.id,
+      id: 'stable-op',
       path: 'new-folder',
       kind: 'folder'
     })
     await expect(repository.createFolderOnce('stable-op', 'new-folder')).resolves.toMatchObject({
-      id: created.id,
+      id: 'stable-op',
       path: 'new-folder'
     })
     expect(createFolder).toHaveBeenCalledTimes(1)
@@ -120,7 +124,11 @@ describe('GoogleDriveWorkspaceRepository', () => {
       }
     )
     const client = {
-      getFile: vi.fn(async () => root),
+      getFile: vi.fn(async (id: string) => {
+        if (id === 'root') return root
+        if (id === 'notes') return folder('notes', 'notes', ['root'])
+        throw new DriveApiError(404, 'notFound', 'missing')
+      }),
       listFiles: vi.fn(async () => [...operations.values()]),
       createFile,
       listChildren: vi.fn(async (id: string) =>
@@ -131,14 +139,54 @@ describe('GoogleDriveWorkspaceRepository', () => {
 
     await expect(
       repository.createFileOnce('stable-op', 'notes/new.md', 'text/markdown', new Uint8Array([1]))
-    ).resolves.toMatchObject({ id: 'created-file', path: 'notes/new.md', kind: 'markdown' })
+    ).resolves.toMatchObject({ id: 'stable-op', path: 'notes/new.md', kind: 'markdown' })
     await expect(
       repository.createFileOnce('stable-op', 'notes/new.md', 'text/markdown', new Uint8Array([1]))
-    ).resolves.toMatchObject({ id: 'created-file' })
+    ).resolves.toMatchObject({ id: 'stable-op' })
     await expect(
       repository.createFileOnce('stable-op', 'notes/new.md', 'text/markdown', new Uint8Array([2]))
     ).rejects.toThrow(/operation ID collision or changed payload/)
     expect(createFile).toHaveBeenCalledTimes(1)
+  })
+
+  it('maps app-stable item IDs to Drive IDs and refuses mutation outside the selected root', async () => {
+    const root = folder('root', 'PKMS')
+    const file: DriveFile = {
+      id: 'drive-file-id',
+      name: 'note.md',
+      mimeType: 'text/markdown',
+      parents: ['root'],
+      appProperties: { pkmsWorkspaceRootId: 'root', pkmsItemId: 'stable-item-id' }
+    }
+    const outside: DriveFile = {
+      id: 'outside-file',
+      name: 'other.md',
+      mimeType: 'text/markdown',
+      parents: ['other-root'],
+      appProperties: { pkmsWorkspaceRootId: 'root', pkmsItemId: 'outside-file' }
+    }
+    const client = {
+      getFile: vi.fn(async (id: string) => {
+        if (id === 'root') return root
+        if (id === 'drive-file-id') return file
+        if (id === 'outside-file') return outside
+        throw new DriveApiError(404, 'notFound', 'missing')
+      }),
+      listFiles: vi.fn(async () => [file]),
+      listChildren: vi.fn(async () => [file]),
+      updateFileMetadata: vi.fn(async () => file)
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(repository.listDirectory('')).resolves.toMatchObject([
+      { id: 'stable-item-id', name: 'note.md' }
+    ])
+    await repository.rename('stable-item-id', 'renamed.md')
+    expect(client.updateFileMetadata).toHaveBeenCalledWith('drive-file-id', { name: 'renamed.md' })
+    await expect(repository.rename('outside-file', 'renamed.md')).rejects.toThrow(
+      /outside this PKMS workspace/
+    )
+    expect(client.updateFileMetadata).toHaveBeenCalledTimes(1)
   })
 
   it('lists nested, empty, and dot-prefixed folders while hiding only the root protocol folder', async () => {

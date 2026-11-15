@@ -58,14 +58,18 @@ export function decodeDriveLogicalOperation(bytes: Uint8Array): DriveLogicalOper
   const mutationType = (value.mutation as { type?: unknown }).type
   switch (value.mutation.type) {
     case 'create-folder':
-      if (typeof value.mutation.path !== 'string')
+      if (
+        typeof value.mutation.path !== 'string' ||
+        (value.mutation.itemId !== undefined && typeof value.mutation.itemId !== 'string')
+      )
         throw new Error('The Google Drive folder creation operation is malformed.')
       break
     case 'create-file':
       if (
         typeof value.mutation.path !== 'string' ||
         typeof value.mutation.mimeType !== 'string' ||
-        typeof value.mutation.bytes !== 'string'
+        typeof value.mutation.bytes !== 'string' ||
+        (value.mutation.itemId !== undefined && typeof value.mutation.itemId !== 'string')
       )
         throw new Error('The Google Drive file creation operation is malformed.')
       value.mutation.bytes = base64ToBytes(value.mutation.bytes)
