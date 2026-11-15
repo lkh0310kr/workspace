@@ -1,6 +1,7 @@
 export type DriveOutboxMutation =
   | { type: 'create-folder'; path: string; itemId?: string }
   | { type: 'create-file'; path: string; mimeType: string; bytes: Uint8Array; itemId?: string }
+  | { type: 'document-seed'; fileId: string; text: string }
   | { type: 'document-update'; fileId: string; update: Uint8Array }
   | { type: 'replace-content'; fileId: string; mimeType: string; bytes: Uint8Array }
   | { type: 'rename'; fileId: string; name: string }

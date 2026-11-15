@@ -1123,15 +1123,15 @@
       "sources": [
         {
           "path": "packages/pkms-google-drive/README.md",
-          "sha256": "1e0ec132578d59812d45991de94209e9ef29d4d43de92050f780965dd179f144"
+          "sha256": "372b7d10a2097b5efc12d3d045bfb58cb6ca795189738c00450202cf31278d8b"
         },
         {
           "path": "packages/pkms-google-drive/package.json",
-          "sha256": "074dd3979931360501bb3758164214056e8d36f8bf0adc88cc61ba54183fff47"
+          "sha256": "3cfd704b695885f530600b11ac87c31c7b41f124cb9c64c6ecc08fa4a8785c9a"
         },
         {
           "path": "packages/pkms-google-drive/src/index.ts",
-          "sha256": "c5a6a0762483042cd4b5ea0f9831c9b1655df4cd481e015b7c6d561ffdfed519"
+          "sha256": "01c9e463d0487b8624981bd0edec60ab076d4c851ff414293d9eec9de777d94e"
         },
         {
           "path": "packages/pkms-google-drive/src/googleDriveClient.ts",
@@ -1143,7 +1143,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/outbox.ts",
-          "sha256": "2ba453aa84232130189b2e6c999bbfc25bc3093d4da019c51477b7d14f2e378c"
+          "sha256": "ed7ba52622889c0ded10f7a5f50617b0c9e7a8f0572c447224815a6fe5c2946b"
         },
         {
           "path": "packages/pkms-google-drive/src/replica.ts",
@@ -1155,7 +1155,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/operationLog.ts",
-          "sha256": "717657a571083bea3dc12f163e461c86d9277df87c58ab600749715d89081113"
+          "sha256": "b04b81f35b6b3b772c5ada6c942f12cb13c590e9170cc3fad06e24c2163fa4ec"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveClient.test.ts",
@@ -1179,7 +1179,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveOperationLog.test.ts",
-          "sha256": "280e71460776d9ce1e9cd28c124e7d61ee7fd3afec5fc51caff502d516a43286"
+          "sha256": "40dcb7749a5d813a73a4439a674b5d8b11cf901ed84d48e352fd793b324a9095"
         },
         {
           "path": "packages/pkms-google-drive/src/syncEngine.ts",
@@ -1191,11 +1191,23 @@
         },
         {
           "path": "packages/pkms-google-drive/src/operationApplier.ts",
-          "sha256": "7bf5882234f8eba8bf5af4de206019d060e94028e0fee03e1428140ce2f46702"
+          "sha256": "7de76d916d2c65217ed681eaf5fb188f4752ebb5aa5ae4088323e34777af4a5a"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveOperationApplier.test.ts",
-          "sha256": "d633aa18381de13efb5cf850664b793a3ff1b744f229cace8b310d94712a6030"
+          "sha256": "52b514f6f664d4df3011dd785c43942659b751edacede9ae76abaf1f9d1374b6"
+        },
+        {
+          "path": "packages/pkms-google-drive/src/yjsDocuments.ts",
+          "sha256": "1576d146102134ceeaf61bcb65273adf7a20e2e9a0ad2b65d62b7a2790c52b72"
+        },
+        {
+          "path": "packages/pkms-google-drive/src/indexedDbYjsStorage.ts",
+          "sha256": "85c95225e2138a669369708b0c73ce0335d9d7cec7283da4177e869c53d94d5b"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/googleDriveYjsDocuments.test.ts",
+          "sha256": "5f3dfd51c50c714a0762a13ee12f14536651fcb89b94e2815a7dc59a12881fc7"
         }
       ]
     },

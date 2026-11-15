@@ -4,6 +4,10 @@
   "private": true,
   "description": "Shared direct Google Drive storage adapter for PKMS clients",
   "type": "module",
+  "dependencies": {
+    "y-indexeddb": "^9.0.12",
+    "yjs": "^13.6.27"
+  },
   "exports": {
     ".": "./src/index.ts"
   }

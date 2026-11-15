@@ -50,11 +50,17 @@ describe('GoogleDriveOperationApplier', () => {
       })
     } as unknown as GoogleDriveWorkspaceRepository
     const hooks = {
+      applyDocumentSeed: vi.fn(async (fileId, text) => {
+        events.push(`seed:${fileId}:${text}`)
+      }),
       applyDocumentUpdate: vi.fn(async (fileId, update) => {
         events.push(`document:${fileId}:${update[0]}`)
       }),
       applyAssetReplacement: vi.fn(async (fileId, mimeType, bytes) => {
         events.push(`asset:${fileId}:${mimeType}:${bytes.length}`)
+      }),
+      projectDocument: vi.fn(async (fileId) => {
+        events.push(`project:${fileId}`)
       })
     }
     const applier = new GoogleDriveOperationApplier(repository, hooks)
@@ -84,7 +90,8 @@ describe('GoogleDriveOperationApplier', () => {
       'rename:item:renamed.md',
       'trash:item',
       'document:item:2',
-      'asset:asset:image/png:2'
+      'asset:asset:image/png:2',
+      'project:item'
     ])
     expect(repository.createFolderOnce).toHaveBeenCalledTimes(1)
     expect(hooks.applyDocumentUpdate).toHaveBeenCalledTimes(1)
@@ -94,8 +101,10 @@ describe('GoogleDriveOperationApplier', () => {
   it('refuses to apply an operation from another workspace', async () => {
     const repository = { rootId: 'root' } as GoogleDriveWorkspaceRepository
     const hooks = {
+      applyDocumentSeed: vi.fn(),
       applyDocumentUpdate: vi.fn(),
-      applyAssetReplacement: vi.fn()
+      applyAssetReplacement: vi.fn(),
+      projectDocument: vi.fn()
     }
     const applier = new GoogleDriveOperationApplier(repository, hooks)
 
@@ -195,8 +204,10 @@ describe('GoogleDriveOperationApplier', () => {
     }
     const repository = new GoogleDriveWorkspaceRepository(client as never, root.id)
     const applier = new GoogleDriveOperationApplier(repository, {
+      applyDocumentSeed: vi.fn(async () => {}),
       applyDocumentUpdate: vi.fn(async () => {}),
-      applyAssetReplacement: vi.fn(async () => {})
+      applyAssetReplacement: vi.fn(async () => {}),
+      projectDocument: vi.fn(async () => {})
     })
     const operations = [
       operation(1, 'folder-op', {

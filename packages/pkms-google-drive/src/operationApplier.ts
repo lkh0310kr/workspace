@@ -2,12 +2,20 @@ import type { DriveLogicalOperation } from './operationLog'
 import type { GoogleDriveWorkspaceRepository } from './workspaceRepository'
 
 export interface GoogleDriveOperationApplierHooks {
+  /** Applies the common initial document state before any document updates. */
+  applyDocumentSeed(
+    fileId: string,
+    text: string,
+    operation: DriveLogicalOperation
+  ): Promise<void>
   /** Must durably merge the Yjs update before resolving; retries must be idempotent. */
   applyDocumentUpdate(
     fileId: string,
     update: Uint8Array,
     operation: DriveLogicalOperation
   ): Promise<void>
+  /** Materializes the merged document text into its ordinary Drive Markdown file. */
+  projectDocument(fileId: string): Promise<void>
   /** Must preserve concurrent asset versions and make retries idempotent. */
   applyAssetReplacement(
     fileId: string,
@@ -32,6 +40,7 @@ export class GoogleDriveOperationApplier {
         left.operationId.localeCompare(right.operationId)
     )
 
+    const changedDocuments = new Set<string>()
     for (const operation of ordered) {
       if (operation.workspaceRootId !== this.repository.rootId)
         throw new Error('The operation belongs to a different Google Drive workspace.')
@@ -55,6 +64,11 @@ export class GoogleDriveOperationApplier {
           break
         case 'document-update':
           await this.hooks.applyDocumentUpdate(mutation.fileId, mutation.update, operation)
+          changedDocuments.add(mutation.fileId)
+          break
+        case 'document-seed':
+          await this.hooks.applyDocumentSeed(mutation.fileId, mutation.text, operation)
+          changedDocuments.add(mutation.fileId)
           break
         case 'replace-content':
           await this.hooks.applyAssetReplacement(
@@ -75,5 +89,6 @@ export class GoogleDriveOperationApplier {
           break
       }
     }
+    for (const fileId of changedDocuments) await this.hooks.projectDocument(fileId)
   }
 }

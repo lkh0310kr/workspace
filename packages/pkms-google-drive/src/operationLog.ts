@@ -79,6 +79,13 @@ export function decodeDriveLogicalOperation(bytes: Uint8Array): DriveLogicalOper
         throw new Error('The Google Drive document update operation is malformed.')
       value.mutation.update = base64ToBytes(value.mutation.update)
       break
+    case 'document-seed':
+      if (
+        typeof value.mutation.fileId !== 'string' ||
+        typeof value.mutation.text !== 'string'
+      )
+        throw new Error('The Google Drive document seed operation is malformed.')
+      break
     case 'replace-content':
       if (
         typeof value.mutation.fileId !== 'string' ||
@@ -126,6 +133,30 @@ export class GoogleDriveOperationLog {
     const digest = await sha256(bytes)
     const folder = await this.getOperationsFolder()
     return this.client.createImmutableOperation(folder.id, operation.operationId, bytes, digest)
+  }
+
+  /** Reads one operation by its stable ID without downloading the workspace log. */
+  async get(operationId: string): Promise<DriveLogicalOperation | null> {
+    const folder = await this.getOperationsFolder()
+    const files = await this.client.findOperation(folder.id, operationId)
+    if (files.length > 1)
+      throw new Error(`Multiple Google Drive records use operation ID ${operationId}.`)
+    const file = files[0]
+    if (!file) return null
+    if (file.mimeType === 'application/vnd.google-apps.folder')
+      throw new Error('Unexpected folder found in the Google Drive operation log.')
+
+    const bytes = await this.client.download(file.id)
+    const operation = decodeDriveLogicalOperation(bytes)
+    if (operation.workspaceRootId !== this.workspaceRootId)
+      throw new Error(`Operation ${operation.operationId} belongs to another workspace.`)
+    if (file.appProperties?.pkmsOperationId !== operation.operationId)
+      throw new Error(`Operation identity mismatch for Drive file ${file.id}.`)
+    if (operation.operationId !== operationId)
+      throw new Error(`Operation identity mismatch for Drive file ${file.id}.`)
+    if (file.appProperties?.pkmsPayloadSha256 !== (await sha256(bytes)))
+      throw new Error(`Operation payload checksum mismatch for Drive file ${file.id}.`)
+    return operation
   }
 
   async list(): Promise<DriveLogicalOperation[]> {

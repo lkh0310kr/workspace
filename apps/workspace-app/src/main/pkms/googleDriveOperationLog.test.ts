@@ -103,6 +103,25 @@ describe('GoogleDriveOperationLog', () => {
           }
         })
       ),
+      findOperation: vi.fn(async (_parentId: string, operationId: string) =>
+        [...payloads.keys()]
+          .filter(
+            (id) => decodeDriveLogicalOperation(payloads.get(id)!).operationId === operationId
+          )
+          .map((id) => {
+            const operation = decodeDriveLogicalOperation(payloads.get(id)!)
+            return {
+              id,
+              name: `op-${operation.operationId}.json`,
+              mimeType: 'application/json',
+              parents: ['operations'],
+              appProperties: {
+                pkmsOperationId: operation.operationId,
+                pkmsPayloadSha256: digests.get(id)
+              }
+            }
+          })
+      ),
       download: vi.fn(async (id: string) => payloads.get(id)!)
     } as unknown as GoogleDriveClient
     const log = new GoogleDriveOperationLog(client, 'root')
@@ -117,6 +136,36 @@ describe('GoogleDriveOperationLog', () => {
     expect(client.createImmutableOperation).toHaveBeenCalledTimes(2)
   })
 
+  it('loads a single operation by ID without listing or downloading the whole log', async () => {
+    const payload = encodeDriveLogicalOperation(documentUpdate(1, 'target'))
+    const client = {
+      ensureFolder: vi.fn(async (name: string) => ({
+        id: name === '.pkms-sync' ? 'protocol' : 'operations',
+        name,
+        mimeType: 'application/vnd.google-apps.folder'
+      })),
+      findOperation: vi.fn(async () => [
+        {
+          id: 'target-file',
+          name: 'op-target.json',
+          mimeType: 'application/json',
+          appProperties: {
+            pkmsOperationId: 'target',
+            pkmsPayloadSha256: await digest(payload)
+          }
+        }
+      ]),
+      listChildren: vi.fn(),
+      download: vi.fn(async () => payload)
+    } as unknown as GoogleDriveClient
+    const log = new GoogleDriveOperationLog(client, 'root')
+
+    await expect(log.get('target')).resolves.toEqual(documentUpdate(1, 'target'))
+    expect(client.findOperation).toHaveBeenCalledWith('operations', 'target')
+    expect(client.listChildren).not.toHaveBeenCalled()
+    expect(client.download).toHaveBeenCalledTimes(1)
+  })
+
   it('rejects operations targeted at a different workspace', async () => {
     const client = {} as GoogleDriveClient
     const log = new GoogleDriveOperationLog(client, 'root')
@@ -125,3 +174,10 @@ describe('GoogleDriveOperationLog', () => {
     ).rejects.toThrow(/different Google Drive workspace/)
   })
 })
+
+async function digest(bytes: Uint8Array): Promise<string> {
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  const hash = await crypto.subtle.digest('SHA-256', copy.buffer)
+  return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}

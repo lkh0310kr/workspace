@@ -26,6 +26,14 @@ export {
   GoogleDriveOperationApplier,
   type GoogleDriveOperationApplierHooks
 } from './operationApplier'
+export { IndexedDbGoogleDriveYjsDocumentStorage } from './indexedDbYjsStorage'
+export {
+  GoogleDriveYjsDocumentStore,
+  encodeGoogleDriveDocumentSeed,
+  googleDriveDocumentSeedOperationId,
+  type GoogleDriveYjsDocumentHandle,
+  type GoogleDriveYjsDocumentStorage
+} from './yjsDocuments'
 export {
   IndexedDbGoogleDriveReplica,
   MemoryGoogleDriveReplica,
