@@ -1123,7 +1123,7 @@
       "sources": [
         {
           "path": "packages/pkms-google-drive/README.md",
-          "sha256": "777c1116b6f29c584e1eb8b0688cbb11fcbd2a35557a54b1a176a9d011d9fd8f"
+          "sha256": "a4e763a3fa4069c3658688727c092dd6f603559472535a3d63243475974bdca3"
         },
         {
           "path": "packages/pkms-google-drive/package.json",
@@ -1131,11 +1131,11 @@
         },
         {
           "path": "packages/pkms-google-drive/src/index.ts",
-          "sha256": "ed3c5f5e42b0c06d683c5de54ffa310634205ba8e3b0c56e0b61acf7ba4a66f1"
+          "sha256": "1e453df3ae2392ae476a67b7360a18d8dc6ea563ca4bb262c03d71aba8f66266"
         },
         {
           "path": "packages/pkms-google-drive/src/googleDriveClient.ts",
-          "sha256": "0e0eaf5feda52a02e4f4fd0bf97d1c8be5e1fd345c502a452acc74683702e4bf"
+          "sha256": "df02f8efdbdacfdd5d3c91f690bdb3632ed69cff7276d84f6fa93a86ce161326"
         },
         {
           "path": "packages/pkms-google-drive/src/workspaceRepository.ts",
@@ -1143,7 +1143,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/outbox.ts",
-          "sha256": "ed7ba52622889c0ded10f7a5f50617b0c9e7a8f0572c447224815a6fe5c2946b"
+          "sha256": "41dbe073d6114d5ac77116dcf4dbbb5415314eed573870c639cc10baf0ad9aac"
         },
         {
           "path": "packages/pkms-google-drive/src/replica.ts",
@@ -1155,7 +1155,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/operationLog.ts",
-          "sha256": "b04b81f35b6b3b772c5ada6c942f12cb13c590e9170cc3fad06e24c2163fa4ec"
+          "sha256": "4548189b6b5180d23570d4d97146e4b64ebd3b164d9b2f6eee3cd2ba909ee94b"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveClient.test.ts",
@@ -1167,7 +1167,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveOutbox.test.ts",
-          "sha256": "c299554a45e27386badc1ae03e9d0b19977e05e164de800fd99108347b6ca3b1"
+          "sha256": "de678e358f414f814fbc418547829c3cc24d8c53200d28f90caf46fc52071bd3"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveReplica.test.ts",
@@ -1179,15 +1179,15 @@
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveOperationLog.test.ts",
-          "sha256": "40dcb7749a5d813a73a4439a674b5d8b11cf901ed84d48e352fd793b324a9095"
+          "sha256": "bcd3dd4b50c297a0f3f55154d966bef10fee853564f86d268e7c4f69f2da61b2"
         },
         {
           "path": "packages/pkms-google-drive/src/syncEngine.ts",
-          "sha256": "8713780a3032dfff156af4c43ebc48da01e0edcd980ecf5d92c5fa2ac5cec05f"
+          "sha256": "12cd6386e7ddcea79f3b378197343fd2a87936643eac18210ec3030b810c38ac"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveSyncEngine.test.ts",
-          "sha256": "20ce71d4eee26b9ba7f32440353a23aa14e415fd446787126673ad5adbffe239"
+          "sha256": "1cb92078e760607b3f4d3850ceb033144aa86f5987bab940cb16f2bfd9f5921f"
         },
         {
           "path": "packages/pkms-google-drive/src/operationApplier.ts",
@@ -1199,7 +1199,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/yjsDocuments.ts",
-          "sha256": "1576d146102134ceeaf61bcb65273adf7a20e2e9a0ad2b65d62b7a2790c52b72"
+          "sha256": "fcd9dedcfd7b1a6c7bf9006436ffd98a1c1cb3048ee70a0a713aa9a0f142e29d"
         },
         {
           "path": "packages/pkms-google-drive/src/indexedDbYjsStorage.ts",
@@ -1207,15 +1207,23 @@
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveYjsDocuments.test.ts",
-          "sha256": "5f3dfd51c50c714a0762a13ee12f14536651fcb89b94e2815a7dc59a12881fc7"
+          "sha256": "f7568ba97e057714c6c933a9c5280358bc532e4e20bd27930474bb34cd3c512b"
         },
         {
           "path": "packages/pkms-google-drive/src/workspaceSync.ts",
-          "sha256": "4a17f16310eeb8fc5f85cb8cf1e4c1a8703da2b60007b14e5c92e991c38e0203"
+          "sha256": "15efe9caa675bddd662cc1d30ae0d6e77607cbde22f3541d232541a5911f98fe"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveWorkspaceSync.test.ts",
-          "sha256": "ef181cc4a2fbd2d18489511acae2ad9d6a0eff28b6bd5a9db77db0d68a6019bd"
+          "sha256": "d8cc08603e299b46d20f827f08c3b61cfc98d870e5bd9d5861051b3b3c8957dc"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/googleDriveSyncEngine.test.ts",
+          "sha256": "1cb92078e760607b3f4d3850ceb033144aa86f5987bab940cb16f2bfd9f5921f"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/googleDriveOutbox.test.ts",
+          "sha256": "de678e358f414f814fbc418547829c3cc24d8c53200d28f90caf46fc52071bd3"
         }
       ]
     },

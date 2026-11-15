@@ -9,7 +9,11 @@ export interface DriveSyncResult {
 
 export interface GoogleDriveOperationLogPort {
   append(operation: DriveLogicalOperation): Promise<unknown>
-  listUnapplied(appliedOperationIds: ReadonlySet<string>): Promise<DriveLogicalOperation[]>
+  initializeCursor(): Promise<string>
+  listChanges(
+    cursor: string,
+    appliedOperationIds: ReadonlySet<string>
+  ): Promise<{ operations: DriveLogicalOperation[]; cursor: string }>
 }
 
 const activeSyncs = new Map<string, Promise<DriveSyncResult>>()
@@ -42,6 +46,12 @@ export class GoogleDriveSyncEngine {
   }
 
   private async synchronize(): Promise<DriveSyncResult> {
+    let cursor = await this.outbox.getRemoteCursor(this.workspaceRootId)
+    if (!cursor) {
+      cursor = await this.operationLog.initializeCursor()
+      await this.outbox.saveRemoteCursor(this.workspaceRootId, cursor)
+    }
+
     const pending = await this.outbox.list(this.workspaceRootId)
     for (const item of pending) {
       await this.operationLog.append({
@@ -55,20 +65,25 @@ export class GoogleDriveSyncEngine {
       })
     }
 
-    const applied = await this.outbox.listAppliedOperationIds(this.workspaceRootId)
-    const operations = await this.operationLog.listUnapplied(applied)
+    const changes = await this.operationLog.listChanges(cursor, new Set())
+    const operations = changes.operations
+    const pendingIds = new Set(pending.map((operation) => operation.operationId))
     if (operations.length) {
       await this.outbox.observeSequence(
         this.workspaceRootId,
         operations.reduce((maximum, operation) => Math.max(maximum, operation.sequence), 0)
       )
       await this.reconcile(operations)
-      for (const operation of operations)
-        await this.outbox.markAppliedOperation(this.workspaceRootId, operation.operationId)
+      for (const operation of operations) {
+        if (pendingIds.has(operation.operationId))
+          await this.outbox.markAppliedOperation(this.workspaceRootId, operation.operationId)
+      }
     }
+    await this.outbox.saveRemoteCursor(this.workspaceRootId, changes.cursor)
 
-    const pendingIds = pending.map((operation) => operation.operationId)
-    const acknowledged = await this.outbox.getAppliedOperationIds(this.workspaceRootId, pendingIds)
+    const acknowledged = await this.outbox.getAppliedOperationIds(this.workspaceRootId, [
+      ...pendingIds
+    ])
     for (const operationId of acknowledged)
       await this.outbox.acknowledge(this.workspaceRootId, operationId)
 

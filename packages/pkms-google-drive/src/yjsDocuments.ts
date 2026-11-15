@@ -1,10 +1,6 @@
 import * as Y from 'yjs'
-import type { DriveLogicalOperation, GoogleDriveOperationLog } from './operationLog'
-import {
-  enqueueDriveMutation,
-  type DriveOutbox,
-  type DriveOutboxOperation
-} from './outbox'
+import type { GoogleDriveOperationLog } from './operationLog'
+import { enqueueDriveMutation, type DriveOutbox, type DriveOutboxOperation } from './outbox'
 import type { GoogleDriveWorkspaceRepository } from './workspaceRepository'
 
 const REMOTE_UPDATE_ORIGIN = Symbol('pkms-google-drive-remote-update')
@@ -38,7 +34,7 @@ export function googleDriveDocumentSeedOperationId(fileId: string): string {
 function seedClientId(fileId: string): number {
   let hash = 2166136261
   for (const byte of new TextEncoder().encode(fileId)) hash = Math.imul(hash ^ byte, 16777619)
-  return (hash >>> 0) || 1
+  return hash >>> 0 || 1
 }
 
 /** Identical file ID + seed text produce identical Yjs structs on every replica. */
@@ -65,7 +61,7 @@ export class GoogleDriveYjsDocumentStore {
   constructor(
     readonly workspaceRootId: string,
     private readonly repository: GoogleDriveWorkspaceRepository,
-    private readonly operationLog: Pick<GoogleDriveOperationLog, 'get'>,
+    private readonly operationLog: Pick<GoogleDriveOperationLog, 'listDocumentOperations'>,
     private readonly outbox: DriveOutbox,
     private readonly storage: GoogleDriveYjsDocumentStorage
   ) {
@@ -152,9 +148,7 @@ export class GoogleDriveYjsDocumentStore {
       if (origin === REMOTE_UPDATE_ORIGIN) return
       const delta = update.slice()
       const persist = async () => {
-        const mutationUpdate = document.queueFailed
-          ? Y.encodeStateAsUpdate(handle.doc)
-          : delta
+        const mutationUpdate = document.queueFailed ? Y.encodeStateAsUpdate(handle.doc) : delta
         await enqueueDriveMutation(this.outbox, this.workspaceRootId, {
           type: 'document-update',
           fileId,
@@ -163,10 +157,13 @@ export class GoogleDriveYjsDocumentStore {
         await handle.flush()
         document.queueFailed = false
       }
-      document.pending = document.pending.catch(() => {}).then(persist).catch((cause) => {
-        document.queueFailed = true
-        throw cause
-      })
+      document.pending = document.pending
+        .catch(() => {})
+        .then(persist)
+        .catch((cause) => {
+          document.queueFailed = true
+          throw cause
+        })
     }
     handle.doc.on('update', document.onUpdate)
     return document
@@ -178,26 +175,46 @@ export class GoogleDriveYjsDocumentStore {
     const queued = await this.outbox.list(this.workspaceRootId)
     const queuedSeed = queued.find(
       (operation) =>
-        operation.mutation.type === 'document-seed' &&
-        operation.mutation.fileId === document.fileId
+        operation.mutation.type === 'document-seed' && operation.mutation.fileId === document.fileId
     )
-    if (queuedSeed?.mutation.type === 'document-seed') {
-      await this.applyDocumentSeed(document.fileId, queuedSeed.mutation.text)
+    const remoteOperations = await this.operationLog.listDocumentOperations(document.fileId)
+    const seed =
+      remoteOperations.find(
+        (operation) =>
+          operation.mutation.type === 'document-seed' &&
+          operation.operationId === googleDriveDocumentSeedOperationId(document.fileId)
+      ) ?? queuedSeed
+    if (seed?.mutation.type === 'document-seed') {
+      Y.applyUpdate(
+        document.handle.doc,
+        encodeGoogleDriveDocumentSeed(document.fileId, seed.mutation.text),
+        REMOTE_UPDATE_ORIGIN
+      )
+      const documentUpdates = [
+        ...remoteOperations.filter(
+          (operation) =>
+            operation.mutation.type === 'document-update' &&
+            operation.mutation.fileId === document.fileId
+        ),
+        ...queued.filter(
+          (operation) =>
+            operation.mutation.type === 'document-update' &&
+            operation.mutation.fileId === document.fileId
+        )
+      ].sort(
+        (left, right) =>
+          left.sequence - right.sequence || left.deviceId.localeCompare(right.deviceId)
+      )
+      for (const operation of documentUpdates) {
+        if (operation.mutation.type === 'document-update')
+          Y.applyUpdate(document.handle.doc, operation.mutation.update, REMOTE_UPDATE_ORIGIN)
+      }
+      await document.handle.flush()
       return
     }
 
-    let remoteSeed: DriveLogicalOperation | null = null
-    try {
-      remoteSeed = await this.operationLog.get(
-        googleDriveDocumentSeedOperationId(document.fileId)
-      )
-    } catch {
-      // A new offline file can be seeded from its durable create operation below.
-    }
-    if (remoteSeed?.mutation.type === 'document-seed') {
-      await this.applyDocumentSeed(document.fileId, remoteSeed.mutation.text)
-      return
-    }
+    if (remoteOperations.length)
+      throw new Error(`Google Drive document ${document.fileId} has updates without a seed.`)
 
     const createOperation = queued.find(
       (operation) =>

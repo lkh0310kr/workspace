@@ -56,6 +56,16 @@ describe('Drive outbox contract', () => {
     await expect(outbox.count('other-root')).resolves.toBe(1)
   })
 
+  it('persists an independent remote change cursor for each workspace', async () => {
+    const outbox = new MemoryDriveOutbox()
+    await expect(outbox.getRemoteCursor('root')).resolves.toBeNull()
+    await outbox.saveRemoteCursor('root', 'token-a')
+    await outbox.saveRemoteCursor('other-root', 'token-b')
+
+    await expect(outbox.getRemoteCursor('root')).resolves.toBe('token-a')
+    await expect(outbox.getRemoteCursor('other-root')).resolves.toBe('token-b')
+  })
+
   it('rejects operation ID reuse with a different payload and deletes only after explicit acknowledgement', async () => {
     const outbox = new MemoryDriveOutbox()
     await outbox.enqueue(operation('stable', 1))

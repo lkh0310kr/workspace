@@ -56,7 +56,8 @@ export {
   GoogleDriveOperationLog,
   decodeDriveLogicalOperation,
   encodeDriveLogicalOperation,
-  type DriveLogicalOperation
+  type DriveLogicalOperation,
+  type DriveOperationChangeBatch
 } from './operationLog'
 export type {
   DriveAccessTokenProvider,

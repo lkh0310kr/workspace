@@ -7,7 +7,7 @@ import type { GoogleDriveWorkspaceRepository } from './workspaceRepository'
 
 export interface GoogleDriveWorkspaceSyncOptions {
   repository: GoogleDriveWorkspaceRepository
-  operationLog: Pick<GoogleDriveOperationLog, 'append' | 'listUnapplied'>
+  operationLog: Pick<GoogleDriveOperationLog, 'append' | 'initializeCursor' | 'listChanges'>
   outbox: DriveOutbox
   documents: Pick<
     GoogleDriveYjsDocumentStore,

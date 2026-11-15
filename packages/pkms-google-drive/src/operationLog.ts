@@ -11,6 +11,11 @@ export interface DriveLogicalOperation {
   mutation: DriveOutboxOperation['mutation']
 }
 
+export interface DriveOperationChangeBatch {
+  operations: DriveLogicalOperation[]
+  cursor: string
+}
+
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = ''
   const chunkSize = 0x8000
@@ -80,10 +85,7 @@ export function decodeDriveLogicalOperation(bytes: Uint8Array): DriveLogicalOper
       value.mutation.update = base64ToBytes(value.mutation.update)
       break
     case 'document-seed':
-      if (
-        typeof value.mutation.fileId !== 'string' ||
-        typeof value.mutation.text !== 'string'
-      )
+      if (typeof value.mutation.fileId !== 'string' || typeof value.mutation.text !== 'string')
         throw new Error('The Google Drive document seed operation is malformed.')
       break
     case 'replace-content':
@@ -132,7 +134,98 @@ export class GoogleDriveOperationLog {
     const bytes = encodeDriveLogicalOperation(operation)
     const digest = await sha256(bytes)
     const folder = await this.getOperationsFolder()
-    return this.client.createImmutableOperation(folder.id, operation.operationId, bytes, digest)
+    const mutation = operation.mutation
+    const operationProperties: Record<string, string> = {
+      pkmsWorkspaceRootId: this.workspaceRootId,
+      pkmsOperationType: mutation.type,
+      pkmsDeviceId: operation.deviceId,
+      pkmsSequence: String(operation.sequence)
+    }
+    if ('fileId' in mutation) operationProperties.pkmsFileId = mutation.fileId
+    if (mutation.type === 'create-file' || mutation.type === 'create-folder')
+      operationProperties.pkmsItemId = mutation.itemId ?? operation.operationId
+    return this.client.createImmutableOperation(
+      folder.id,
+      operation.operationId,
+      bytes,
+      digest,
+      operationProperties
+    )
+  }
+
+  /** Captures the current Drive boundary without replaying the workspace's old operation history. */
+  initializeCursor(): Promise<string> {
+    return this.client.startChanges()
+  }
+
+  /** Reads only operation records created since this replica's durable Drive changes cursor. */
+  async listChanges(
+    cursor: string,
+    appliedOperationIds: ReadonlySet<string>
+  ): Promise<DriveOperationChangeBatch> {
+    const folder = await this.getOperationsFolder()
+    const changedFiles = new Map<string, DriveFile>()
+    let requestToken = cursor
+    let nextCursor: string | undefined
+    let pages = 0
+    while (pages < 10_000) {
+      const page = await this.client.listChangesPage(requestToken)
+      pages += 1
+      for (const change of page.changes ?? []) {
+        const file = change.file
+        if (
+          change.removed ||
+          !file ||
+          file.trashed ||
+          !file.parents?.includes(folder.id) ||
+          !file.appProperties?.pkmsOperationId ||
+          appliedOperationIds.has(file.appProperties.pkmsOperationId)
+        )
+          continue
+        changedFiles.set(file.id, file)
+      }
+      if (page.nextPageToken) {
+        requestToken = page.nextPageToken
+        continue
+      }
+      nextCursor = page.newStartPageToken
+      break
+    }
+    if (!nextCursor) throw new Error('Google Drive operation changes did not reach a final page.')
+
+    const operations: DriveLogicalOperation[] = []
+    for (const file of changedFiles.values()) {
+      const operation = await this.readOperationFile(file)
+      operations.push(operation)
+    }
+    operations.sort(compareOperations)
+    return { operations, cursor: nextCursor }
+  }
+
+  /** Reads the CRDT history for one document when that document is opened. */
+  async listDocumentOperations(fileId: string): Promise<DriveLogicalOperation[]> {
+    const folder = await this.getOperationsFolder()
+    const files = await this.client.listFiles({
+      query: `${queryLiteral(folder.id)} in parents and appProperties has { key='pkmsFileId' and value=${queryLiteral(fileId)} } and trashed = false`,
+      pageSize: 1000,
+      fields: 'id,name,mimeType,parents,modifiedTime,appProperties'
+    })
+    const operations: DriveLogicalOperation[] = []
+    for (const file of files) {
+      if (
+        !['document-seed', 'document-update'].includes(file.appProperties?.pkmsOperationType ?? '')
+      )
+        continue
+      const operation = await this.readOperationFile(file)
+      if (
+        (operation.mutation.type === 'document-seed' ||
+          operation.mutation.type === 'document-update') &&
+        operation.mutation.fileId === fileId
+      )
+        operations.push(operation)
+    }
+    operations.sort(compareOperations)
+    return operations
   }
 
   /** Reads one operation by its stable ID without downloading the workspace log. */
@@ -146,70 +239,10 @@ export class GoogleDriveOperationLog {
     if (file.mimeType === 'application/vnd.google-apps.folder')
       throw new Error('Unexpected folder found in the Google Drive operation log.')
 
-    const bytes = await this.client.download(file.id)
-    const operation = decodeDriveLogicalOperation(bytes)
-    if (operation.workspaceRootId !== this.workspaceRootId)
-      throw new Error(`Operation ${operation.operationId} belongs to another workspace.`)
-    if (file.appProperties?.pkmsOperationId !== operation.operationId)
-      throw new Error(`Operation identity mismatch for Drive file ${file.id}.`)
+    const operation = await this.readOperationFile(file)
     if (operation.operationId !== operationId)
       throw new Error(`Operation identity mismatch for Drive file ${file.id}.`)
-    if (file.appProperties?.pkmsPayloadSha256 !== (await sha256(bytes)))
-      throw new Error(`Operation payload checksum mismatch for Drive file ${file.id}.`)
     return operation
-  }
-
-  async list(): Promise<DriveLogicalOperation[]> {
-    const folder = await this.getOperationsFolder()
-    const files = await this.client.listChildren(folder.id)
-    const operations: DriveLogicalOperation[] = []
-    for (const file of files) {
-      if (file.mimeType === 'application/vnd.google-apps.folder')
-        throw new Error('Unexpected folder found in the Google Drive operation log.')
-      const bytes = await this.client.download(file.id)
-      const operation = decodeDriveLogicalOperation(bytes)
-      if (operation.workspaceRootId !== this.workspaceRootId)
-        throw new Error(`Operation ${operation.operationId} belongs to another workspace.`)
-      if (file.appProperties?.pkmsOperationId !== operation.operationId)
-        throw new Error(`Operation identity mismatch for Drive file ${file.id}.`)
-      if (file.appProperties?.pkmsPayloadSha256 !== (await sha256(bytes)))
-        throw new Error(`Operation payload checksum mismatch for Drive file ${file.id}.`)
-      operations.push(operation)
-    }
-    return operations.sort(
-      (left, right) =>
-        left.sequence - right.sequence ||
-        left.deviceId.localeCompare(right.deviceId) ||
-        left.operationId.localeCompare(right.operationId)
-    )
-  }
-
-  async listUnapplied(appliedOperationIds: ReadonlySet<string>): Promise<DriveLogicalOperation[]> {
-    const folder = await this.getOperationsFolder()
-    const files = await this.client.listChildren(folder.id)
-    const operations: DriveLogicalOperation[] = []
-    for (const file of files) {
-      if (file.mimeType === 'application/vnd.google-apps.folder')
-        throw new Error('Unexpected folder found in the Google Drive operation log.')
-      const operationId = file.appProperties?.pkmsOperationId
-      if (!operationId) throw new Error(`Drive operation ${file.id} has no stable operation ID.`)
-      if (appliedOperationIds.has(operationId)) continue
-      const bytes = await this.client.download(file.id)
-      const operation = decodeDriveLogicalOperation(bytes)
-      if (operation.workspaceRootId !== this.workspaceRootId)
-        throw new Error(`Operation ${operation.operationId} belongs to another workspace.`)
-      if (operationId !== operation.operationId)
-        throw new Error(`Operation identity mismatch for Drive file ${file.id}.`)
-      if (file.appProperties?.pkmsPayloadSha256 !== (await sha256(bytes)))
-        throw new Error(`Operation payload checksum mismatch for Drive file ${file.id}.`)
-      operations.push(operation)
-    }
-    return operations.sort(
-      (left, right) =>
-        left.sequence - right.sequence ||
-        left.deviceId.localeCompare(right.deviceId) ||
-        left.operationId.localeCompare(right.operationId)
-    )
   }
 
   private getProtocolFolder(): Promise<DriveFile> {
@@ -223,6 +256,25 @@ export class GoogleDriveOperationLog {
     return this.protocolFolder
   }
 
+  private async readOperationFile(file: DriveFile): Promise<DriveLogicalOperation> {
+    if (file.mimeType === 'application/vnd.google-apps.folder')
+      throw new Error('Unexpected folder found in the Google Drive operation log.')
+    const bytes = await this.client.download(file.id)
+    const operation = decodeDriveLogicalOperation(bytes)
+    if (operation.workspaceRootId !== this.workspaceRootId)
+      throw new Error(`Operation ${operation.operationId} belongs to another workspace.`)
+    if (file.appProperties?.pkmsOperationId !== operation.operationId)
+      throw new Error(`Operation identity mismatch for Drive file ${file.id}.`)
+    if (file.appProperties?.pkmsPayloadSha256 !== (await sha256(bytes)))
+      throw new Error(`Operation payload checksum mismatch for Drive file ${file.id}.`)
+    if (
+      file.appProperties?.pkmsWorkspaceRootId &&
+      file.appProperties.pkmsWorkspaceRootId !== this.workspaceRootId
+    )
+      throw new Error(`Operation ${operation.operationId} belongs to another workspace.`)
+    return operation
+  }
+
   private getOperationsFolder(): Promise<DriveFile> {
     if (!this.operationsFolder)
       this.operationsFolder = this.getProtocolFolder()
@@ -233,6 +285,18 @@ export class GoogleDriveOperationLog {
         })
     return this.operationsFolder
   }
+}
+
+function compareOperations(left: DriveLogicalOperation, right: DriveLogicalOperation): number {
+  return (
+    left.sequence - right.sequence ||
+    left.deviceId.localeCompare(right.deviceId) ||
+    left.operationId.localeCompare(right.operationId)
+  )
+}
+
+function queryLiteral(value: string): string {
+  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`
 }
 
 async function sha256(bytes: Uint8Array): Promise<string> {

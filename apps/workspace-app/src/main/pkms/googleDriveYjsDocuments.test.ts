@@ -3,9 +3,11 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   GoogleDriveYjsDocumentStore,
   MemoryDriveOutbox,
+  encodeGoogleDriveDocumentSeed,
   googleDriveDocumentSeedOperationId,
   type GoogleDriveYjsDocumentStorage,
-  type GoogleDriveWorkspaceRepository
+  type GoogleDriveWorkspaceRepository,
+  type DriveLogicalOperation
 } from '../../../../../packages/pkms-google-drive/src'
 
 function createMemoryStorage(): GoogleDriveYjsDocumentStorage {
@@ -32,11 +34,11 @@ describe('GoogleDriveYjsDocumentStore', () => {
       listTree,
       writeFile: vi.fn(async () => {})
     } as unknown as GoogleDriveWorkspaceRepository
-    const getOperation = vi.fn(async () => null)
+    const listDocumentOperations = vi.fn(async () => [])
     const store = new GoogleDriveYjsDocumentStore(
       'root',
       repository,
-      { get: getOperation },
+      { listDocumentOperations },
       new MemoryDriveOutbox(),
       createMemoryStorage()
     )
@@ -47,7 +49,60 @@ describe('GoogleDriveYjsDocumentStore', () => {
     expect(readFile).toHaveBeenCalledTimes(1)
     expect(readFile).toHaveBeenCalledWith('selected-note')
     expect(listTree).not.toHaveBeenCalled()
-    expect(getOperation).toHaveBeenCalledWith(googleDriveDocumentSeedOperationId('selected-note'))
+    expect(listDocumentOperations).toHaveBeenCalledWith('selected-note')
+    await store.close()
+  })
+
+  it('reconstructs only an opened document from its indexed seed and Yjs updates', async () => {
+    const seed: DriveLogicalOperation = {
+      version: 1,
+      workspaceRootId: 'root',
+      operationId: googleDriveDocumentSeedOperationId('note'),
+      deviceId: 'seed-device',
+      sequence: 0,
+      createdAt: 0,
+      mutation: { type: 'document-seed', fileId: 'note', text: '# Note\n' }
+    }
+    const remote = new Y.Doc()
+    Y.applyUpdate(remote, encodeGoogleDriveDocumentSeed('note', '# Note\n'))
+    remote.getText('content').insert(remote.getText('content').length, 'from another device')
+    const update: DriveLogicalOperation = {
+      version: 1,
+      workspaceRootId: 'root',
+      operationId: 'update-note',
+      deviceId: 'device-b',
+      sequence: 1,
+      createdAt: 1,
+      mutation: {
+        type: 'document-update',
+        fileId: 'note',
+        update: Y.encodeStateAsUpdate(remote)
+      }
+    }
+    remote.destroy()
+    const readFile = vi.fn(async () => {
+      throw new Error('Opened file should come from its Yjs history')
+    })
+    const repository = {
+      rootId: 'root',
+      readFile,
+      listTree: vi.fn(),
+      writeFile: vi.fn(async () => {})
+    } as unknown as GoogleDriveWorkspaceRepository
+    const listDocumentOperations = vi.fn(async () => [seed, update])
+    const store = new GoogleDriveYjsDocumentStore(
+      'root',
+      repository,
+      { listDocumentOperations },
+      new MemoryDriveOutbox(),
+      createMemoryStorage()
+    )
+
+    const opened = await store.open('note')
+
+    expect(opened.text.toString()).toBe('# Note\nfrom another device')
+    expect(listDocumentOperations).toHaveBeenCalledWith('note')
+    expect(readFile).not.toHaveBeenCalled()
     await store.close()
   })
 })

@@ -399,7 +399,8 @@ export class GoogleDriveClient {
     parentId: string,
     operationId: string,
     content: Uint8Array,
-    sha256: string
+    sha256: string,
+    operationProperties: Record<string, string> = {}
   ): Promise<DriveFile> {
     const existing = await this.findOperation(parentId, operationId)
     const matching = existing.find((file) => file.appProperties?.pkmsPayloadSha256 === sha256)
@@ -417,7 +418,11 @@ export class GoogleDriveClient {
         parentId,
         'application/json',
         content,
-        { pkmsOperationId: operationId, pkmsPayloadSha256: sha256 }
+        {
+          ...operationProperties,
+          pkmsOperationId: operationId,
+          pkmsPayloadSha256: sha256
+        }
       )
     } catch (error) {
       // POST may have reached Drive even when its response was lost. Search by

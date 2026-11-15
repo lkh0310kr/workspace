@@ -19,6 +19,7 @@ PKMS 자료의 durable source of truth를 Google Drive로 옮긴다. 각 client�
 - 사용자 Drive의 `PKMS` root folder는 PKMS workspace의 durable 저장 영역이다. 첫 연결 시 앱 전용 `appProperties` marker로 기존 root를 조회한다. 0개면 새 `PKMS` root를 만들고, 1개면 사용하며, 2개 이상이면 쓰기를 멈추고 명시적 root 선택을 요구한다. Drive file ID를 local configuration에도 고정하되, 이름 검색 결과만으로 기존 workspace를 자동 선택하거나 새 root를 덮어쓰지 않는다.
 - 일반 file과 folder는 Drive `files` resource로 표현한다. `fileId`가 identity이고 `name`과 parent ID가 경로를 결정한다. 빈 folder도 Drive folder entry로 보존한다.
 - 동기화 protocol의 append-only 기록은 root 아래 `.pkms-sync` namespace에 저장하고 정상 PKMS Files tree에서 숨긴다. 이 namespace와 그 형식은 프로토콜 소유이며 사용자가 편집하는 문서로 취급하지 않는다.
+- 각 operation file의 Drive `appProperties`에는 workspace root, operation ID/type, 영향을 받는 stable item ID, checksum을 둔다. 일반 sync는 IndexedDB에 보존한 Drive change cursor 이후의 operation만 읽는다. 첫 연결은 현재 cursor를 기준점으로 잡고 과거 operation 본문 전체를 재생하지 않는다. Markdown을 열 때는 그 stable file ID로 검색한 seed와 Yjs update만 읽어 해당 문서의 CRDT state를 복원한다.
 - Markdown과 binary asset의 사용자가 보는 현재 내용은 root 안의 일반 파일로 제공한다. 검색은 각 client가 내려받은 Markdown과 local index를 사용한다.
 - GitHub는 PKMS 저장소/backup 경로에서 제거한다. 기존 GitHub data는 Drive migration을 비교하기 위한 read-only source로만 쓴다. MCP나 제품과 무관한 GitHub 연동은 별도 제품 결정이다.
 
@@ -45,7 +46,7 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 
 ## 증분 수렴과 캐시
 
-- 초기 연결은 root metadata와 모든 하위 folder/file을 페이지 단위로 읽는다. cache가 있으면 tree와 문서 본문을 먼저 보여주고 Drive listing 후 갱신한다.
+- 초기 연결은 root metadata와 모든 하위 folder/file metadata를 페이지 단위로 읽는다. 본문 bytes와 과거 operation 내용은 전체 workspace에 대해 선제 다운로드하지 않는다. cache가 있으면 tree와 이미 연 문서 본문을 먼저 보여주고 Drive listing 후 갱신한다.
 - Drive `changes.getStartPageToken`과 `changes.list`가 각 client의 durable cursor다. cursor는 마지막 페이지의 `newStartPageToken`이며, 페이지 fetch/application 중 하나라도 실패하면 이전 cursor와 pending operation을 유지한다.
 - push notification은 필수 경로가 아니다. 알림을 받으려면 public HTTPS webhook/server가 필요하므로 backend 제거 범위에서는 사용하지 않는다. foreground polling과 재연결 catch-up이 최종 복구 경로다.
 - Desktop은 local folder와 durable app state를 사용한다. Web과 Electron renderer는 IndexedDB에 tree, document cache, local search index, outbox, cursor를 저장한다. iOS는 같은 outbox contract를 Application Support와 Keychain adapter로 구현한다. cache는 user-visible content를 잃지 않는 범위에서 replica별로 관리하며 token을 outbox에 저장하지 않는다.
@@ -98,4 +99,4 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 
 ## 현 구현 경계
 
-공통 [PKMS Google Drive package](../../../packages/pkms-google-drive/README.md)는 직접 Drive API client, Drive folder 기반 tree/file repository, IndexedDB outbox, immutable checksummed operation log, metadata/content replica와 cursor ordering primitive, foreground-only Web OAuth adapter, durable outbox replay coordinator 및 create/rename/move/trash용 concrete tree-operation applier를 제공한다. 문서를 열 때는 해당 문서의 본문과 deterministic seed operation만 지연 조회하며, 전체 파일 본문을 일괄 다운로드하거나 인덱싱하지 않는다. Tree 목록은 파일 본문과 별도로 metadata를 조회한다. Applier는 Yjs merge와 binary conflict-preserving materialization을 idempotent hooks에 위임한다. 이 hooks와 applier는 아직 `PkmsClientApp`, Desktop sync bridge, iOS 저장 provider 및 검색 인덱스에 연결되지 않았고, Desktop/iOS OAuth, Yjs update convergence 및 production cutover도 완료되지 않았다. 기존 [격리 browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 API 가능성 실험으로 유지한다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.
+공통 [PKMS Google Drive package](../../../packages/pkms-google-drive/README.md)는 직접 Drive API client, Drive folder 기반 tree/file repository, IndexedDB outbox/cursor, immutable checksummed operation log, foreground-only Web OAuth adapter, durable incremental change-feed coordinator, file-scoped Yjs history loader 및 create/rename/move/trash용 concrete tree-operation applier를 제공한다. Tree 목록은 metadata를 조회하고 본문은 지연 로드한다. 문서를 열 때는 해당 file ID의 seed와 Yjs updates를 읽어 해당 문서의 CRDT state를 복원하며, 신규 기기 sync는 전체 operation history를 내려받지 않는다. 전체 workspace 본문을 시작 시 일괄 다운로드하거나 인덱싱하지 않는다. Applier는 binary conflict-preserving materialization을 idempotent hooks에 위임한다. 이 package와 coordinator는 아직 `PkmsClientApp`, Desktop sync bridge, iOS 저장 provider 및 검색 인덱스에 연결되지 않았고, Desktop/iOS OAuth, 실제 Yjs multi-device convergence 및 production cutover도 완료되지 않았다. 기존 [격리 browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 API 가능성 실험으로 유지한다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.

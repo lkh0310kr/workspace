@@ -25,7 +25,8 @@ export interface DriveOutbox {
     workspaceRootId: string,
     candidates: readonly string[]
   ): Promise<Set<string>>
-  listAppliedOperationIds(workspaceRootId: string): Promise<Set<string>>
+  getRemoteCursor(workspaceRootId: string): Promise<string | null>
+  saveRemoteCursor(workspaceRootId: string, cursor: string): Promise<void>
   markAppliedOperation(workspaceRootId: string, operationId: string): Promise<void>
   enqueue(operation: DriveOutboxOperation): Promise<void>
   list(workspaceRootId: string): Promise<DriveOutboxOperation[]>
@@ -162,22 +163,32 @@ export class IndexedDbDriveOutbox implements DriveOutbox {
     })
   }
 
-  async listAppliedOperationIds(workspaceRootId: string): Promise<Set<string>> {
+  async getRemoteCursor(workspaceRootId: string): Promise<string | null> {
     const database = await this.open()
     return new Promise((resolve, reject) => {
       const request = database
-        .transaction('applied', 'readonly')
-        .objectStore('applied')
-        .index('workspaceRootId')
-        .getAll(workspaceRootId)
+        .transaction('metadata', 'readonly')
+        .objectStore('metadata')
+        .get(`remoteCursor:${workspaceRootId}`)
       request.onsuccess = () =>
-        resolve(
-          new Set(
-            (request.result as Array<{ operationId: string }>).map((item) => item.operationId)
-          )
-        )
-      request.onerror = () =>
-        reject(request.error ?? new Error('Could not read Drive operation checkpoints.'))
+        resolve((request.result as { value?: string } | undefined)?.value ?? null)
+      request.onerror = () => reject(request.error ?? new Error('Could not read Drive cursor.'))
+    })
+  }
+
+  async saveRemoteCursor(workspaceRootId: string, cursor: string): Promise<void> {
+    const database = await this.open()
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction('metadata', 'readwrite')
+      transaction.objectStore('metadata').put({
+        key: `remoteCursor:${workspaceRootId}`,
+        value: cursor
+      })
+      transaction.oncomplete = () => resolve()
+      transaction.onabort = () =>
+        reject(transaction.error ?? new Error('Could not save Drive cursor.'))
+      transaction.onerror = () =>
+        reject(transaction.error ?? new Error('Could not save Drive cursor.'))
     })
   }
 
@@ -238,7 +249,16 @@ export class IndexedDbDriveOutbox implements DriveOutbox {
 
   async acknowledge(workspaceRootId: string, operationId: string): Promise<void> {
     const database = await this.open()
-    await this.deleteKey(database, keyFor(workspaceRootId, operationId))
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(['operations', 'applied'], 'readwrite')
+      transaction.objectStore('operations').delete(keyFor(workspaceRootId, operationId))
+      transaction.objectStore('applied').delete(keyFor(workspaceRootId, operationId))
+      transaction.oncomplete = () => resolve()
+      transaction.onabort = () =>
+        reject(transaction.error ?? new Error('Could not acknowledge Drive outbox operation.'))
+      transaction.onerror = () =>
+        reject(transaction.error ?? new Error('Could not acknowledge Drive outbox operation.'))
+    })
   }
 
   async count(workspaceRootId: string): Promise<number> {
@@ -295,18 +315,6 @@ export class IndexedDbDriveOutbox implements DriveOutbox {
       request.onerror = () => reject(request.error ?? new Error('Could not read Drive outbox.'))
     })
   }
-
-  private deleteKey(database: IDBDatabase, key: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction('operations', 'readwrite')
-      transaction.objectStore('operations').delete(key)
-      transaction.oncomplete = () => resolve()
-      transaction.onabort = () =>
-        reject(transaction.error ?? new Error('Could not acknowledge Drive outbox operation.'))
-      transaction.onerror = () =>
-        reject(transaction.error ?? new Error('Could not acknowledge Drive outbox operation.'))
-    })
-  }
 }
 
 /** Small deterministic adapter for platform tests and native storage bridges. */
@@ -314,6 +322,7 @@ export class MemoryDriveOutbox implements DriveOutbox {
   private readonly operations = new Map<string, DriveOutboxOperation>()
   private readonly clocks = new Map<string, number>()
   private readonly applied = new Set<string>()
+  private readonly remoteCursors = new Map<string, string>()
   private readonly deviceId = crypto.randomUUID()
 
   async getDeviceId(): Promise<string> {
@@ -339,13 +348,12 @@ export class MemoryDriveOutbox implements DriveOutbox {
     )
   }
 
-  async listAppliedOperationIds(workspaceRootId: string): Promise<Set<string>> {
-    const prefix = `${workspaceRootId}:`
-    return new Set(
-      [...this.applied]
-        .filter((key) => key.startsWith(prefix))
-        .map((key) => key.slice(prefix.length))
-    )
+  async getRemoteCursor(workspaceRootId: string): Promise<string | null> {
+    return this.remoteCursors.get(workspaceRootId) ?? null
+  }
+
+  async saveRemoteCursor(workspaceRootId: string, cursor: string): Promise<void> {
+    this.remoteCursors.set(workspaceRootId, cursor)
   }
 
   async markAppliedOperation(workspaceRootId: string, operationId: string): Promise<void> {
@@ -369,6 +377,7 @@ export class MemoryDriveOutbox implements DriveOutbox {
 
   async acknowledge(workspaceRootId: string, operationId: string): Promise<void> {
     this.operations.delete(keyFor(workspaceRootId, operationId))
+    this.applied.delete(keyFor(workspaceRootId, operationId))
   }
 
   async count(workspaceRootId: string): Promise<number> {
