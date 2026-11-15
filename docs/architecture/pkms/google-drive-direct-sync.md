@@ -55,7 +55,10 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 ## 권한과 token 수명
 
 - 첫 전환은 앱이 소유하는 root 및 그 하위 파일만 사용하는 `drive.file` scope를 사용한다. 기존 임의 폴더 전체가 이 scope로 보인다고 가정하지 않는다. 기존 PKMS data migration은 API/Picker 범위가 실제로 허용되는지 확인하며 별도 처리한다.
-- Desktop과 iOS는 system browser authorization code + PKCE를 사용한다. refresh token은 OS credential store에 두고 renderer/UI layer에 노출하지 않는다.
+- 각 플랫폼은 해당 앱 종류에 맞는 public OAuth client ID를 사용한다. Web client ID를 Desktop/iOS에서 재사용하지 않는다.
+- Desktop은 Cloud Console에서 `Desktop app` client를 만든다. system browser authorization-code flow에서 PKCE S256, 임의 `state`, loopback listener의 임의 port(`127.0.0.1`)를 사용하고 응답 state·redirect origin·port를 검증한다. Desktop client secret을 비밀로 취급하지 않고 앱에 고정 secret을 넣지 않는다. [Google OAuth 2.0 for Desktop Apps](https://developers.google.com/identity/protocols/oauth2/native-app)를 따른다.
+- iOS는 bundle ID `com.lkh0310kr.pkms.cloud`에 등록된 `iOS` OAuth client를 사용하고 reversed client-ID URL scheme를 Info.plist에 등록한다. system authentication session을 사용하는 Google Sign-In iOS SDK 또는 AppAuth를 사용하며 WKWebView 안에서 Google consent를 열지 않는다. [Google API access from iOS](https://developers.google.com/identity/sign-in/ios/api-access)와 [Google Sign-In for iOS](https://developers.google.com/identity/sign-in/ios/start-integrating)를 따른다.
+- Native refresh credential은 OS credential store에 두고 renderer/UI layer에 노출하지 않는다. 앱 재시작 후 credential 복구와 revoke/만료 동작은 플랫폼별 acceptance에서 확인한다.
 - Web은 Google Identity Services access token을 메모리에서 사용한다. token 만료 후에는 사용자 gesture로 재인증한다. 브라우저가 닫힌 동안 동기화를 보장하지 않고, refresh token을 localStorage/IndexedDB에 저장하지 않는다.
 - OAuth client IDs는 플랫폼별 public client 설정이며 secret을 앱에 넣지 않는다. production consent publishing/verification 전에 Test 상태 refresh-token 만료를 production 수명으로 취급하지 않는다.
 - 401은 자격 증명 갱신 또는 사용자 재인증 경로다. 403은 권한/정책 오류로 표기한다. 429와 transient 5xx는 jitter를 포함한 capped exponential backoff를 적용하며, permanent 오류를 무한 재요청하지 않는다.
@@ -87,6 +90,7 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 | DRIVE-SYNC-09 | 기존 PKMS snapshot을 격리 root로 이관                           | recursive path/folder/size/hash 비교가 100% 일치할 때만 parity를 통과시킨다.                               |
 | DRIVE-SYNC-10 | browser token 만료, native refresh token 만료/revoke            | 변경을 잃지 않고 재인증 요청을 보여주며 실패 상태를 synced로 표시하지 않는다.                              |
 | DRIVE-SYNC-11 | Web 탭 종료/백그라운드, iOS suspension, Desktop 종료            | 각 OS가 약속할 수 있는 foreground/background 경계를 지키고, 재개 시 missed changes를 따라잡는다.           |
+| DRIVE-SYNC-12 | Desktop 및 iOS OAuth client 설정, 최초 승인, 앱 재실행           | 각 플랫폼에 등록된 client ID·redirect/bundle ID를 사용하고, token 복구·재인증·revoke가 해당 OS의 secure storage 정책을 지킨다. |
 
 ## 릴리스 차단 조건
 
