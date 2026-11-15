@@ -1051,10 +1051,12 @@ export default function Home() {
           setError(`Could not find file: ${path}`);
           return;
         }
+        setSelectedTreePaths(new Set([file.path]));
+        setFocusedTreePath(file.path);
         void openFileRef.current?.(file);
       })().catch((cause) => setError(cause instanceof Error ? cause.message : "Could not open PKMS file"));
     },
-    [editorProvider, getPkmsFileById, setError]
+    [editorProvider, getPkmsFileById, setError, setFocusedTreePath, setSelectedTreePaths]
   );
   const activateMarkdownLink = useCallback(
     (link: { kind: "markdown" | "wikilink"; target: string }) => {

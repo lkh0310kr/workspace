@@ -349,11 +349,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "40ac7e0f0c58edbb8b7ccb5930f850a621d7b131b045424266ff9f8abd51305a"
+          "sha256": "f39cdffc3cfc392054d64c3c53683fbee714cc5ad6191597258bb5c3ba44a326"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "a06246d471d0c713e44538cc5c7c34a2ee0f3d3ba06e7c3a323f0d778afe63e3"
+          "sha256": "96c9c3c802cb26ccf9ee3887a8f6da9a40a986e4bb615cbeec00dc14e9011925"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
@@ -365,7 +365,7 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/visual-fixture.css",
-          "sha256": "8754265bb87f3d4975f76b2dbdf3c6a0906de6901b991d7b53439a4efd0b5fd0"
+          "sha256": "a7d12346684f731f6ac0cc855e37338201269a63c12a327c193a42ca6b85e226"
         },
         {
           "path": "apps/workspace-app/scripts/run-editor-visual.mjs",
@@ -535,7 +535,7 @@
         },
         {
           "path": "packages/pkms-client/src/PkmsClientApp.tsx",
-          "sha256": "d60c641a621d1fca3aa9840aed0c989c2cbba0a7a608c0ec8ed9ad2651779e97"
+          "sha256": "654d00be576902487e75ba662c2e2e93a4c266bde1833adfb8872ffd2bc4111c"
         },
         {
           "path": "packages/pkms-client/src/realtime.ts",

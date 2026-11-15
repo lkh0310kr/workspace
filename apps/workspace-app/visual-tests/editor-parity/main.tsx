@@ -1,21 +1,17 @@
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 import { createRoot } from 'react-dom/client'
+import { MemoryRouter } from 'react-router'
 import {
   EditorMarkdownEditor,
   EditorMarkdownTitle,
   EditorBreadcrumbs,
-  EditorTreeToolbar,
   editorCodeMirrorHostExtensions,
   editorMarkdownParserExtensions,
-  projectEditorTreeRows,
-  type EditorTreeProjection,
   type EditorBreadcrumbEntry
 } from '@workspace/editor'
 import { TreeView } from '../../src/renderer/src/components/TreeView'
 import { PkmsPane } from '../../src/renderer/src/panes/pkms/PkmsPane'
-import { FileTreeList } from '../../../../packages/pkms-client/src/components/FileTreeList'
-import { flattenTree } from '../../../../packages/pkms-client/src/domain/fileTree'
-import type { FileRecord, TreeRow } from '../../../../packages/pkms-client/src/domain/types'
+import PkmsClientApp from '../../../../packages/pkms-client/src/PkmsClientApp'
 import type { GoogleDriveWorkspaceEntry } from '../../../../packages/pkms-google-drive/src/workspaceRepository'
 import '@workspace/editor/tree.css'
 import '../../../../packages/editor/src/editorHost.css'
@@ -172,6 +168,80 @@ function installMocks() {
     trashGoogleDriveItem: async () => undefined,
     disconnectGoogleDriveWorkspace: async () => undefined
   }
+  const workspace = {
+    id: 'visual-workspace',
+    repository: 'codex / drive-smoke-test',
+    branch: 'main',
+    revision: 1,
+    githubStatus: 'synced'
+  }
+  const pkmsFiles = [
+    { id: 'web-folder', path: 'Verification', kind: 'folder', revision: 1 },
+    {
+      id: 'web-note',
+      path: 'Verification/Codex Drive smoke test.md',
+      kind: 'markdown',
+      content: markdown,
+      revision: 1
+    },
+    {
+      id: 'web-readme',
+      path: 'Verification/Readme.md',
+      kind: 'markdown',
+      content: readmeMarkdown,
+      revision: 1
+    }
+  ]
+  const originalFetch = window.fetch.bind(window)
+  window.fetch = async (input, init) => {
+    const url = new URL(
+      typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+      window.location.href
+    )
+    const path = url.pathname
+    const json = (value: unknown, status = 200) =>
+      new Response(JSON.stringify(value), {
+        status,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    if (path === '/api/session') return json({ user: { login: 'codex' } })
+    if (path === '/api/workspaces') return json({ workspaces: [workspace] })
+    if (path === `/api/workspaces/${workspace.id}/directory`) {
+      const directory = url.searchParams.get('path') ?? ''
+      return json({
+        files: pkmsFiles.filter((file) => {
+          const parent = file.path.includes('/')
+            ? file.path.slice(0, file.path.lastIndexOf('/'))
+            : ''
+          return parent === directory
+        })
+      })
+    }
+    if (path === `/api/workspaces/${workspace.id}/sync-status`)
+      return json({ serverRevision: 1, githubStatus: 'synced', pendingFiles: 0 })
+    const fileMatch = path.match(new RegExp(`^/api/workspaces/${workspace.id}/files/([^/]+)$`))
+    if (fileMatch) {
+      const file = pkmsFiles.find((candidate) => candidate.id === decodeURIComponent(fileMatch[1]))
+      return file ? json(file) : json({ error: 'not_found' }, 404)
+    }
+    if (path === '/api/realtime/config')
+      return json({
+        url: 'ws://127.0.0.1:4179/visual-realtime',
+        anonKey: 'visual-test',
+        issuer: 'visual-test'
+      })
+    if (path === '/api/realtime/token')
+      return json({
+        token:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ2aXN1YWwtdGVzdCIsInN1YiI6InZpc3VhbCIsInJvbGUiOiJhbm9uIiwiYXBwX21ldGFkYXRhIjp7ImdpdGh1Yl9sb2dpbiI6ImNvZGV4In19.signature'
+      })
+    if (path.endsWith('/diagnostics/realtime')) return new Response(null, { status: 204 })
+    if (path.endsWith('/updates')) return json({ update: '' })
+    if (init?.method === 'POST' || init?.method === 'PUT' || init?.method === 'DELETE')
+      return new Response(null, { status: 204 })
+    if (path.startsWith('/api/')) return json({ error: `Unmocked visual API: ${path}` }, 404)
+    return originalFetch(input, init)
+  }
   localStorage.setItem('workspace.explorerRoot.editor-visual', rootPath)
   localStorage.setItem('workspace.explorerExpanded.editor-visual', JSON.stringify(['Verification']))
 }
@@ -248,85 +318,13 @@ function DesktopPkms() {
 }
 
 function WebPkms() {
-  const treeRef = useRef<HTMLElement | null>(null)
-  const files: FileRecord[] = useMemo(
-    () => [
-      { id: 'web-folder', path: 'Verification', kind: 'folder', revision: 1 },
-      {
-        id: 'web-note',
-        path: 'Verification/Codex Drive smoke test.md',
-        kind: 'markdown',
-        revision: 1
-      },
-      { id: 'web-readme', path: 'Verification/Readme.md', kind: 'markdown', revision: 1 }
-    ],
-    []
-  )
-  const rows: TreeRow[] = useMemo(() => flattenTree(files, new Set(['Verification'])), [files])
-  const projection: EditorTreeProjection<TreeRow> = useMemo(
-    () => projectEditorTreeRows(rows, 0, 800),
-    [rows]
-  )
-  const treeHeader = (
-    <EditorTreeToolbar
-      title={<span className="eyebrow">Files</span>}
-      className="file-toolbar"
-      headingClassName="file-toolbar-heading"
-      actionsClassName="toolbar-actions"
-      status={<button className="sync-compact-state">● GitHub backup</button>}
-      actions={
-        <>
-          <button className="mini-button" title="New note">
-            ＋
-          </button>
-          <button className="mini-button" title="New folder">
-            ▰
-          </button>
-        </>
-      }
-    />
-  )
+  // Desktop and Drive hosts share this fixture, but the real Web client must
+  // exercise its fetch transport instead of the desktop preload bridge.
+  delete (window as Window & { pkmsDesktop?: unknown }).pkmsDesktop
   return (
-    <main className="app-shell visual-web-shell">
-      <aside className="sidebar">
-        <div className="workspace-select">
-          <div className="workspace-heading">
-            <span className="eyebrow">Workspace</span>
-            <button className="icon-button">＋</button>
-          </div>
-          <button className="connect-link">codex / drive-smoke-test</button>
-        </div>
-        <FileTreeList
-          header={treeHeader}
-          treeRef={treeRef}
-          projection={projection}
-          selectedPaths={new Set(['Verification/Codex Drive smoke test.md'])}
-          expandedFolders={new Set(['Verification'])}
-          focusedPath="Verification/Codex Drive smoke test.md"
-          currentFolder=""
-          activeFileId="web-note"
-          cutPaths={new Set()}
-          dropTarget={null}
-          loadingFolders={new Set()}
-          busy={false}
-          loading={false}
-          canMove={false}
-          canMultiSelect={false}
-          onKeyDown={() => undefined}
-          onScroll={() => undefined}
-          onSetDropTarget={() => undefined}
-          onDropItems={() => undefined}
-          onFocusPath={() => undefined}
-          onContextMenu={() => undefined}
-          onSelectRow={() => undefined}
-          onClearSelection={() => undefined}
-          onActivate={() => undefined}
-        />
-      </aside>
-      <section className="main-panel visual-document">
-        <Document />
-      </section>
-    </main>
+    <MemoryRouter>
+      <PkmsClientApp />
+    </MemoryRouter>
   )
 }
 

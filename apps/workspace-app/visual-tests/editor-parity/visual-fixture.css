@@ -98,3 +98,11 @@ body {
 .visual-web-shell .visual-document {
   min-width: 0;
 }
+
+/* Desktop renderer styles are also loaded for the other visual hosts. Keep
+   their generic .app-shell rule from shrinking the real Web PKMS route. */
+html[data-visual-host='web-pkms-editor'] .app-shell {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  flex: none;
+}

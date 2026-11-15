@@ -5,11 +5,21 @@ const hosts = ['desktop-editor', 'desktop-pkms-editor', 'web-pkms-editor'] as co
 for (const host of hosts) {
   test(`${host} matches its editor parity screenshot`, async ({ page }) => {
     await page.goto(`/?host=${host}`)
-    await expect(page.getByRole('tree', { name: 'Files' })).toBeVisible()
-    if (host === 'desktop-pkms-editor') await page.locator('.editor-tree-item').first().click()
+    await expect(
+      page.getByRole('tree', {
+        name:
+          host === 'web-pkms-editor'
+            ? 'Repository files'
+            : host === 'desktop-pkms-editor'
+              ? 'PKMS Google Drive files'
+              : 'Files'
+      })
+    ).toBeVisible()
+    if (host !== 'desktop-editor') await page.locator('.editor-tree-item').first().click()
     await expect(page.locator('.editor-tree-item')).toHaveCount(3)
     await expect(page.getByRole('treeitem', { name: /Readme/ })).toBeVisible()
-    if (host === 'desktop-pkms-editor') await page.locator('.editor-tree-item').nth(1).click()
+    if (host !== 'desktop-editor')
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
     await expect(page.getByText('Codex Drive smoke test', { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
     await expect(page.locator('.cm-md-wikilink')).toHaveText('sibling note')
@@ -40,6 +50,19 @@ for (const host of hosts) {
       )
       await page.locator('.editor-tree-item').nth(1).click()
     }
+    if (host === 'web-pkms-editor') {
+      await page.getByRole('menuitem', { name: 'Readme.md' }).click()
+      await expect(page.getByRole('navigation', { name: 'File location' })).toContainText(
+        'Readme.md'
+      )
+      await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
+      await expect(page.getByRole('treeitem', { name: 'Readme', exact: true })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+      await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
+    }
     await page.keyboard.press('Escape')
     await expect(page.locator('.editor-tree-item').first()).toHaveCSS('height', '27px')
 
@@ -49,6 +72,11 @@ for (const host of hosts) {
     await page.mouse.move(bounds.x + 4, bounds.y + bounds.height / 2)
     await expect.poll(() => hoverRow.evaluate((element) => element.matches(':hover'))).toBe(true)
     await expect(hoverRow).toHaveCSS('background-color', 'rgb(37, 39, 43)')
+    if (host === 'web-pkms-editor') {
+      const syncError = page.getByRole('alert')
+      if (await syncError.isVisible())
+        await syncError.getByRole('button', { name: 'Dismiss error' }).click()
+    }
     await page.evaluate(() => document.fonts.ready)
     await expect(page).toHaveScreenshot(`editor-parity-${host}.png`, {
       animations: 'disabled',
@@ -58,6 +86,17 @@ for (const host of hosts) {
     })
   })
 }
+
+test('Web PKMS Explorer shortcut hides and restores the real Files tree', async ({ page }) => {
+  await page.goto('/?host=web-pkms-editor')
+  const tree = page.getByRole('tree', { name: 'Repository files' })
+  await expect(tree).toBeVisible()
+  await page.keyboard.press('Control+\\')
+  await expect(tree).not.toBeVisible()
+  await page.keyboard.press('Control+\\')
+  await expect(tree).toBeVisible()
+  await expect(page.getByRole('treeitem', { name: 'Verification' })).toBeVisible()
+})
 
 test('all host surfaces align common tree rows and readable document columns', async ({ page }) => {
   const measurements: Array<{
@@ -69,10 +108,14 @@ test('all host surfaces align common tree rows and readable document columns', a
   }> = []
   for (const host of hosts) {
     await page.goto(`/?host=${host}`)
-    if (host === 'desktop-pkms-editor') await page.locator('.editor-tree-item').first().click()
+    if (host !== 'desktop-editor') {
+      await expect(page.locator('.editor-tree-item').first()).toBeVisible()
+      await page.locator('.editor-tree-item').first().click()
+    }
     await expect(page.locator('.editor-tree-item')).toHaveCount(3)
     await expect(page.getByRole('treeitem', { name: /Readme/ })).toBeVisible()
-    if (host === 'desktop-pkms-editor') await page.locator('.editor-tree-item').nth(1).click()
+    if (host !== 'desktop-editor')
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
     await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
     await page.locator('.editor-tree-item').nth(2).hover()
     const rowStyle = async (index: number) =>
