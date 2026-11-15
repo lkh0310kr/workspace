@@ -1123,7 +1123,7 @@
       "sources": [
         {
           "path": "packages/pkms-google-drive/README.md",
-          "sha256": "a4e763a3fa4069c3658688727c092dd6f603559472535a3d63243475974bdca3"
+          "sha256": "b0bcf96efe8e2dc8565a19032ecc3362131dd8614c740b06b4b6a8eaa45a105d"
         },
         {
           "path": "packages/pkms-google-drive/package.json",
@@ -1139,7 +1139,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/workspaceRepository.ts",
-          "sha256": "4920f5f789996847f334b818d8e4bc052d4cc617ec4d0d7a183c0e6f35dbc06d"
+          "sha256": "267b5781760bf3005c50b6b9e14ed216255343d2985ce2654dc2f506b367a357"
         },
         {
           "path": "packages/pkms-google-drive/src/outbox.ts",
@@ -1163,7 +1163,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveWorkspaceRepository.test.ts",
-          "sha256": "7299c66c76060fb64385e35ac02729f41ad536840f934f78c30a46bef82e2839"
+          "sha256": "eb85f887927632071a2fc9858672b5412958589f631feed29ec5ffd879ba377b"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveOutbox.test.ts",

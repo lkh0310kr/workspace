@@ -309,4 +309,34 @@ describe('GoogleDriveWorkspaceRepository', () => {
     await expect(repository.listDirectory('missing')).rejects.toThrow(/Folder does not exist/)
     expect(client.updateFileMetadata).not.toHaveBeenCalled()
   })
+
+  it('rejects moving a folder into its descendant without recursively listing the workspace', async () => {
+    const root = folder('root', 'PKMS')
+    const parent = folder('parent', 'parent', ['root'])
+    const source = folder('source', 'source', ['parent'])
+    const child = folder('child', 'child', ['source'])
+    const folders: Record<string, DriveFile> = { root, parent, source, child }
+    const listChildren = vi.fn(async (id: string) => {
+      if (id === 'root') return [parent]
+      if (id === 'parent') return [source]
+      if (id === 'source') return [child]
+      return []
+    })
+    const client = {
+      getFile: vi.fn(async (id: string) => {
+        const found = folders[id]
+        if (!found) throw new DriveApiError(404, 'notFound', 'missing')
+        return found
+      }),
+      listChildren,
+      updateFileMetadata: vi.fn()
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(repository.move('source', 'parent/source/child')).rejects.toThrow(
+      /itself or one of its descendants/
+    )
+    expect(listChildren).toHaveBeenCalledTimes(3)
+    expect(client.updateFileMetadata).not.toHaveBeenCalled()
+  })
 })

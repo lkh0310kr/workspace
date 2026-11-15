@@ -306,11 +306,14 @@ export class GoogleDriveWorkspaceRepository {
     if (current.trashed || current.id === this.rootId)
       throw new Error('The workspace root cannot be moved.')
     if (current.mimeType === FOLDER_MIME) {
-      const tree = await this.listTree()
-      const currentPath = tree.find((entry) => entry.id === workspaceItemId(current))?.path
+      const [currentPath, targetPath] = await Promise.all([
+        this.pathWithinWorkspace(current),
+        this.pathWithinWorkspace(target)
+      ])
       if (
         currentPath &&
-        (targetDirectoryPath === currentPath || targetDirectoryPath.startsWith(`${currentPath}/`))
+        targetPath &&
+        (targetPath === currentPath || targetPath.startsWith(`${currentPath}/`))
       )
         throw new Error('A folder cannot be moved into itself or one of its descendants.')
     }
