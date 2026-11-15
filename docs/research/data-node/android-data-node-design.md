@@ -360,74 +360,74 @@ Diagnostic bundle에는 기밀 데이터가 없어야 한다. bundle manifest에
 
 ### PC 개발자 흐름
 
-기존 repo에 제안할 entrypoints (설계 대상 이름이며 아직 구현된 command가 아님):
+기존 저장소에 제안할 진입 명령(설계 대상 이름이며 아직 구현되지 않음):
 
 | 명령                                | 동작                                                                                                            |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `npm run data-node:doctor`          | Java/JDK, Android SDK, Gradle, adb/device authorization, disk space 확인 후 빠진 조건을 고침 안내               |
 | `npm run data-node:one-click`       | doctor → debug APK build → 연결된 대상 기기에 install/launch → on-device smoke diagnostics → 결과와 Logcat 저장 |
-| `npm run data-node:verify`          | unit + adapter contract + SQLite instrumentation + device diagnostics 수행                                      |
-| `npm run data-node:logs`            | 최근 worker/device correlation ID 기준 redacted log bundle 수집                                                 |
+| `npm run data-node:verify`          | 단위 테스트 + adapter 계약 + SQLite instrumentation + 기기 진단 수행                                            |
+| `npm run data-node:logs`            | 최근 worker/device correlation ID를 기준으로 민감 정보를 제거한 log bundle 수집                               |
 | `npm run data-node:reset-test-node` | test namespace만 초기화. 실제 사용자 DB나 object data는 절대 삭제하지 않음                                      |
 
 Mac 환경에서 Android SDK/ADB 도구가 확인된 상태지만, 현재 이 repository에는 Data Node Gradle app 또는 위 명령이 없다. 설계 승인과 implementation 이후 실제 명령으로 제공하며, 그 전에는 실행 가능하다고 표현하지 않는다.
 
-One-click script는 아무 Android device가 연결돼 있다고 가정하지 않는다. 여러 대가 보이면 serial을 보여주고 선택하게 하며 `S21 Ultra`/`A Quantum` label을 등록할 수 있다. debug app install이 사용자 데이터에 영향을 주지 않는 업데이트인지 검사한다. release APK는 따로 build/sign/verify하고 debug credential을 포함하지 않는다.
+One-click script는 Android 기기가 연결돼 있다고 가정하지 않는다. 여러 대가 보이면 serial을 표시해 사용자가 선택하도록 하고, `S21 Ultra`/`A Quantum` label을 등록할 수 있다. debug app install이 사용자 데이터를 바꾸지 않는 업데이트인지 확인한다. release APK는 별도로 build/sign/verify하며 debug credential을 포함하지 않는다.
 
 ### 기기 사용자 흐름
 
-APK 설치만으로 Node를 자동 시작하지 않는다. 사용자는 `Start Node`를 눌러야 하며, 첫 실행 wizard에서 저장 공간, Worker pairing, GitHub export 주기, backup destination, 로그 보존을 정한다. 홈 화면은 다음 값을 항상 보여 준다.
+APK 설치만으로 Node를 자동 시작하지 않는다. 사용자는 `Start Node`를 눌러야 하며, 첫 실행 마법사에서 저장 공간, Worker 연결(pairing), GitHub export 주기, 백업 위치, 로그 보존 기간을 정한다. 홈 화면은 다음 값을 항상 보여 준다.
 
 - Node 상태/최근 재시작 사유
-- DB transaction success/error counters
-- objects/count/bytes/free storage
-- replication 상태와 A Quantum last ACK
-- GitHub last export commit/time/pending age
-- 최근 전체 진단 결과 및 exportable diagnostics
-- Stop/Start, Run Full Validation, Backup Now, Restore Verification controls
+- DB transaction 성공/실패 횟수
+- 객체 수/count/bytes/사용 가능 저장 공간
+- replication 상태와 A Quantum의 마지막 ACK
+- GitHub에 마지막으로 export한 commit/시각 및 대기 변경의 경과 시간
+- 최근 전체 진단 결과와 내보낼 수 있는 진단 자료
+- Stop/Start, Run Full Validation, Backup Now, Restore Verification 버튼
 
 ## 테스트·검증 계획
 
 실제 구현 단계에서 아래 테스트를 추가·실행한다. 지금 문서는 계획만 정의한다.
 
-### Adapter contract
+### Adapter 계약
 
-- Supabase와 SQLite가 동일 transaction command를 같은 결과로 처리
-- idempotency request replay 및 request hash mismatch
-- expected revision/version conflict
-- atomic batch의 일부 mutation invalid일 때 전체 rollback
-- operation 결과/query cursor ordering
-- concurrent writer에서 revision 유실 없음
+- Supabase와 SQLite adapter가 동일한 transaction 명령을 같은 결과로 처리
+- idempotency 요청 재실행 및 request hash 불일치
+- 기대 revision/version 불일치 충돌
+- atomic batch의 mutation 일부가 유효하지 않을 때 전체 rollback
+- operation 결과/query cursor 순서
+- concurrent writer가 revision을 유실하지 않음
 
-### Object/recovery fault injection
+### 객체/복구 장애 주입
 
-- upload 중 process kill, DB commit 직전/직후 kill, final rename 직전/직후 kill
-- same content parallel upload, same object ID conflicting bytes, hash mismatch
-- storage full, permissions error, read-only filesystem, corrupt/truncated temp file
+- upload 중 process kill, DB commit 직전/직후 kill, 최종 rename 직전/직후 kill
+- 동일 content 병렬 upload, 동일 object ID에 서로 다른 bytes, hash 불일치
+- 저장 공간 부족, 권한 오류, 읽기 전용 filesystem, 손상되거나 잘린 임시 파일
 - object 없고 metadata만 존재 / metadata 없고 final object만 존재 / reference count 불일치
-- database quick/integrity check, WAL restart, schema migration 중 stop/restart
+- database quick/integrity check, WAL 재시작, schema migration 중 stop/restart
 
-### Backup/restore
+### 백업/복원
 
-- 여러 개 metadata change와 objects를 batch로 export하고 단일 GitHub commit에서 확인
-- GitHub timeout, HTTP 403/429, network offline, branch 외부 편집, commit 생성 후 응답 유실
-- retry가 중복 commit/잘못된 ACK를 만들지 않는지 확인
-- manifest tamper, missing object, object hash mismatch를 탐지하고 activate를 차단
-- A Quantum에서 전체 복원하고 원본 hash/reference counts 비교
+- 여러 metadata 변경과 objects를 batch로 export하고 단일 GitHub commit에서 확인
+- GitHub timeout, HTTP 403/429, network 단절, branch 외부 편집, commit 생성 후 응답 유실
+- retry가 중복 commit이나 잘못된 ACK를 만들지 않는지 확인
+- manifest 변조, object 누락, object hash 불일치를 탐지하고 활성화를 차단
+- A Quantum에서 전체 복원 후 원본 hash/reference counts와 비교
 
-### Device operation
+### 기기 동작
 
-- 화면 off, 앱 background, Doze, process kill, force stop, reboot, user unlock 전후
+- 화면 꺼짐, 앱 background, Doze, process kill, force stop, reboot, 사용자 잠금 해제 전후
 - Samsung battery optimization/default policy 및 power saver
-- Wi-Fi↔LTE, router restart, Worker tunnel/relay interruption
-- 24h soak test, 이후 수 주간 pilot에서 uptime/reconnect/thermal stats 기록
-- charging heat와 battery state를 기록. 장기 24/7 판단은 이 테스트를 통과한 뒤에만 한다.
+- Wi-Fi↔LTE 전환, router 재시작, Worker tunnel/relay 단절
+- 24시간 soak test 후 수 주간 pilot에서 uptime/reconnect/thermal stats 기록
+- 충전 중 발열과 battery state를 기록한다. 장기 24/7 운영 여부는 이 테스트를 통과한 뒤에 판단한다.
 
-### Usability
+### 사용성
 
-- 깨끗한 macOS 개발 환경에서 one-click build/install/verify 성공
+- 새 macOS 개발 환경에서 one-click build/install/verify 성공
 - APK 설치 후 서버 시작부터 worker health check까지 단계별 도움 없이 완료
-- diagnostic failure가 코드·해결 방법·exportable trace를 제공
+- 진단 실패가 오류 코드·해결 방법·내보낼 수 있는 trace를 제공
 - 백업이 없는 상태에서 uninstall/reset 경고가 실제로 보임
 - 데이터 손상/backup lag 상태를 Healthy로 잘못 표시하지 않음
 

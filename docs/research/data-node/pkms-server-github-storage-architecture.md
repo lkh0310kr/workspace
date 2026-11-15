@@ -1,4 +1,4 @@
-# `pkms-server`의 GitHub 저장 흐름과 범용 Storage Node 방향
+# `pkms-server`의 GitHub 저장 흐름과 범용 저장 노드 방향
 
 조사일: 2026-11-08  
 조사 대상: `apps/pkms-server/`, `apps/pkms-server/supabase/`, 관련 architecture/planning 문서
@@ -166,12 +166,12 @@ PKMS app → Worker (PKMS API / auth / domain rules)
 
 권장 계층:
 
-1. **MetadataStore**: 트랜잭션 경계, idempotency, revisions, reference metadata.
-2. **ObjectStore**: streaming bytes, content hash, upload staging, immutable object identity.
-3. **ChangeJournal/Outbox**: durable pending batch와 retry. 이 부분이 DB transaction과 GitHub commit 사이를 연결한다.
-4. **Snapshot/Sync adapter**: GitHub는 경로/commit history와 external change detection에 특화된 adapter. 일반 S3-like object backend와 동일한 보장이라고 취급하지 않는다.
-5. **Realtime adapter**: Worker가 Yjs/WebSocket updates를 전달한다. Data Node는 Yjs 규칙을 몰라도 durable update bytes를 저장할 수 있다.
-6. **PKMS domain module**: Worker가 문서 schema, ingestion/normalization, backlinks/link rewrite, search indexing, retention 정책을 담당한다.
+1. **MetadataStore**: 트랜잭션 경계, 중복 요청 방지(idempotency), revision, 참조 메타데이터를 관리한다.
+2. **ObjectStore**: 스트리밍 바이트, 콘텐츠 해시, 업로드 임시 보관, 불변 객체 식별자를 관리한다.
+3. **ChangeJournal/Outbox**: 내구성 있는 대기 batch와 재시도를 관리한다. DB transaction과 GitHub commit 사이를 연결한다.
+4. **Snapshot/Sync adapter**: GitHub 경로와 commit history, 외부 변경 감지에 특화된 adapter다. 일반 S3형 객체 backend와 동일한 보장을 제공한다고 보지 않는다.
+5. **Realtime adapter**: Worker가 Yjs/WebSocket 업데이트를 전달한다. Data Node는 Yjs 규칙을 몰라도 변경 바이트를 내구성 있게 저장할 수 있다.
+6. **PKMS domain module**: Worker가 문서 schema, 수집/정규화, backlink 및 link 재작성, 검색 색인, 보존 정책을 담당한다.
 
 최소 계약의 예:
 
@@ -211,7 +211,7 @@ interface SnapshotPublisher {
 ### 바로 유지할 점
 
 - GitHub의 “바뀔 때마다 즉시 commit” 대신 현재처럼 change batch를 하나의 commit으로 묶는 방식은 맞다. GitHub는 중요한 사용자 편집 가능한 snapshot, portable repository format, history로 계속 활용한다.
-- GitHub branch head를 check하고 외부 변경/409를 보호하는 흐름은 유지한다.
+- GitHub branch head를 확인하고 외부 변경/409 충돌을 막는 흐름은 유지한다.
 - `server persistence`와 `GitHub snapshot synced` 상태를 분리해서 사용자에게 표시한다.
 
 ### 다음 실험

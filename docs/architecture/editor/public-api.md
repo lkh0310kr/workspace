@@ -39,6 +39,6 @@ PUB-01 모든 export가 계약 owner를 갖는다. PUB-02 close click이 provide
 
 현재 source/주요 동작을 대조한 문서다. 모든 public component의 prop 조합·keyboard·pixel fixture를 검증한 상태는 아니며, source 링크만으로 그 차이를 감추지 않는다.
 
-# Tree composition
+# Tree 조립
 
-`EditorTreePane` is the public component for rendering the shared virtualized tree. It owns the standard pane frame and accepts host-owned `header` and `footer` slots plus typed `tree` callbacks. `EditorTreeToolbar` supplies the shared title/status/actions layout. The lower-level `EditorTreeView`, row, and virtual-list components are private to the package so consumer apps cannot silently fork the tree shell. `EditorTreeFrame` is available for composed host surfaces such as search results that need the same header/content/footer geometry without rendering tree rows.
+`EditorTreePane`은 공유 가상 트리를 표시하는 public component다. 공통 pane frame을 소유하며 host가 제공하는 `header`/`footer` slot과 타입이 지정된 `tree` callback을 받는다. `EditorTreeToolbar`는 제목·상태·action의 공통 배치를 제공한다. 하위 수준의 `EditorTreeView`, row, virtual-list component는 package 내부에 두어 소비 앱이 tree shell을 따로 만들지 않게 한다. `EditorTreeFrame`은 검색 결과처럼 tree row 없이도 같은 header/content/footer 구조가 필요한 host 화면에 사용한다.
