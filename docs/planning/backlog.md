@@ -4,12 +4,13 @@
 
 ## 진행 중
 
-### Google Drive 직접 연결 prototype acceptance
+### PKMS Google Drive 직접 저장·동기화 전환
 
-- **목표 결과:** 별도 동기화 서버 없이 Web browser가 Google Drive API를 직접 사용해 prototype 전용 파일·폴더를 읽고 쓰며, 변경 feed와 동시 수정 보존을 관찰한다. 기존 PKMS 저장소는 이 prototype에서 접근하거나 변경하지 않는다.
-- **확인 완료:** Cloud project `workspace-514715`에서 Drive API를 활성화하고, External/Testing test user와 `drive.file` scope를 설정했다. 실제 동의 후 `expires_in=3599s` token을 받았다. 격리 root/subfolder, Markdown create/read/update, rename, changes cursor와 change poll을 확인했다. 별도 browser tab 두 개로 충돌을 만들어 원본의 원격 버전과 conflict copy의 로컬 편집본이 모두 Drive에 보존되는 것을 각각 열어 확인했다. reload 후 다시 연결하는 경로도 확인했다. prototype의 rename 후 baseline 갱신 누락을 고치고 rename 직후 저장이 false conflict 없이 성공하는 것까지 검증했다.
-- **남은 결정/수락:** 이 prototype은 기존 PKMS 앱과 연동되지 않는다. token 만료 후 재인증, offline/restart queue, Desktop PKCE/Keychain, move/trash, 대규모 전체 tree import/hash, upload race를 차단하는 원자적 conflict contract는 남아 있다. 이 게이트를 통과하기 전에는 production sync를 교체하지 않는다.
-- **근거:** [Google Drive direct sync 조사·결과 스펙](../architecture/workspace/pkms/folder-sync/research/google-drive-direct-sync.md), [격리 prototype 실행 안내](../../apps/pkms-web/prototypes/google-drive-direct/README.md)
+- **목표 결과:** Web, Desktop, iOS의 PKMS가 중간 sync Worker/server 없이 동일 Google Drive workspace를 직접 사용한다. 기존 저장 경로는 Drive 이관의 tree·본문·byte parity가 검증될 때까지 read-only rollback source로 보존한다.
+- **현재 구현:** [pkms-google-drive package](../../packages/pkms-google-drive/README.md)에 Drive API client, app marker 기반 공통 root 탐색, tree/file repository, IndexedDB outbox와 change cursor replica, foreground Web OAuth primitive가 있다. 별도 단위 테스트 23개와 Desktop/Web typecheck가 통과했다.
+- **남은 작업:** Desktop PKCE + OS credential storage와 iOS PKCE + Keychain, operation log/outbox replay, Yjs update 수렴, binary version/conflict 처리, shared PKMS app/provider 연결, 기존 자료의 read-only dry-run parity, 3개 client 재시작·offline·충돌·권한·429 acceptance.
+- **완료 조건:** 제품의 sync data path가 Drive API로만 연결되고, 모든 Drive acceptance scenario가 격리 workspace에서 자동 또는 실제 runtime으로 통과하며, 기존 cloud/GitHub source를 건드리지 않는 parity migration이 확인된다.
+- **근거:** [Google Drive 직접 동기화 결과 스펙](../architecture/pkms/google-drive-direct-sync.md), [package README](../../packages/pkms-google-drive/README.md), [현재 격리 browser prototype](../../apps/pkms-web/prototypes/google-drive-direct/README.md)
 
 ### PKMS 즉시 반응과 sync runtime acceptance
 
