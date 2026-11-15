@@ -622,14 +622,8 @@ button {
   cursor: pointer;
 }
 .file-list {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 1px;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 2px 0;
 }
 .pkms-client-tree-pane {
   width: 100%;

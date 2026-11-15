@@ -146,7 +146,7 @@ export function EditorTreeView({
   return (
     <div
       ref={rootRef as RefObject<HTMLDivElement | null>}
-      className={className}
+      className={['editor-tree-view', className].filter(Boolean).join(' ')}
       tabIndex={tabIndex}
       role="tree"
       aria-label={ariaLabel}

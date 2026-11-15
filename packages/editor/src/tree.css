@@ -45,6 +45,13 @@
   overflow: auto;
   overscroll-behavior: contain;
 }
+.editor-tree-view {
+  display: flex;
+  min-height: 100%;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding-block: 4px;
+}
 .editor-tree-toolbar {
   display: flex;
   align-items: center;

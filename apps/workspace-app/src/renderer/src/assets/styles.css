@@ -3404,12 +3404,6 @@ input {
 .tree-view {
   font-family: var(--font-ui);
   font-size: 13px;
-  padding: 4px 0;
-  flex: 1;
-  min-height: 0;
-  height: 100%;
-  /* min-height keeps the root context-menu hit target when the folder is empty */
-  min-height: 100%;
 }
 
 /* Find/Replace in Files (SearchPanel.tsx) — reuses .obsidian-explorer's

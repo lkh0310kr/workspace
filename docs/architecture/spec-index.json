@@ -68,7 +68,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/assets/styles.css",
-          "sha256": "cc658882be931b644d42a11d38fe63c1008bb04a784ec4540c6787c5f5611d2c"
+          "sha256": "037eb2a78a1cbf4517ba19c22b6ae63f6f11412290099ecde515849db2674bfa"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts",
@@ -212,7 +212,7 @@
         },
         {
           "path": "packages/editor/src/EditorTreeView.tsx",
-          "sha256": "714f8f819d03763917e59d2cd2cdcc2333526e82e8fa98b45101124ff0eba7e4"
+          "sha256": "21ff541ebe240971cb2805acd736dd920689cf87d754b3198af7543eb499f0d5"
         },
         {
           "path": "packages/editor/src/EditorTreeVirtualList.tsx",
@@ -276,7 +276,7 @@
         },
         {
           "path": "packages/editor/src/tree.css",
-          "sha256": "c49d2a5b041bd93fd11dbfbd14243c3f8878ae99ea9c8080658cf71c5c76b2c5"
+          "sha256": "caa6afffacdc70ea7891244560f5f8e90822817db2aff3a159362f3d4a76555d"
         },
         {
           "path": "packages/editor/src/treeModel.ts",
@@ -340,7 +340,7 @@
         },
         {
           "path": "scripts/check-editor-tree-contract.mjs",
-          "sha256": "18752069cb177b3504085d4b165ea8f5593a05ae372abab0b8ee372c2e0a99e3"
+          "sha256": "11d8dff04d92a898f49c57fe3abce0b3bc14630c67034b7897e488cf6a99ea29"
         }
       ]
     },
@@ -492,7 +492,7 @@
         },
         {
           "path": "packages/pkms-client/src/styles.css",
-          "sha256": "5350ab681f4d8ab12795941217f347ff9fb142c477153f8703e94fa9af717132"
+          "sha256": "c40f0e822c7b405812717070a5b12b735ed238ba12f25759b97355fb132dd439"
         }
       ]
     },

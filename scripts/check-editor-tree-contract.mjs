@@ -21,6 +21,36 @@ const packageIndexPath = path.join(root, 'packages/editor/src/index.ts')
 const packageJsonPath = path.join(root, 'packages/editor/package.json')
 const packageIndex = await readFile(packageIndexPath, 'utf8')
 const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
+const sharedTreeViewPath = path.join(root, 'packages/editor/src/EditorTreeView.tsx')
+const sharedTreeStylesPath = path.join(root, 'packages/editor/src/tree.css')
+const sharedTreeView = await readFile(sharedTreeViewPath, 'utf8')
+const sharedTreeStyles = await readFile(sharedTreeStylesPath, 'utf8')
+
+if (!/className=\{\['editor-tree-view',\s*className\]/.test(sharedTreeView)) {
+  failures.push('EditorTreeView must apply the shared editor-tree-view root class.')
+}
+if (
+  !/\.editor-tree-view\s*\{[^}]*min-height:\s*100%[^}]*flex:\s*1 1 auto[^}]*flex-direction:\s*column[^}]*padding-block:\s*4px/s.test(
+    sharedTreeStyles
+  )
+) {
+  failures.push('packages/editor/src/tree.css must own common tree root geometry.')
+}
+
+for (const [relativePath, selector] of [
+  ['apps/workspace-app/src/renderer/src/assets/styles.css', '.tree-view'],
+  ['packages/pkms-client/src/styles.css', '.file-list']
+]) {
+  const source = await readFile(path.join(root, relativePath), 'utf8')
+  const rule = source.match(new RegExp(`${selector.replace('.', '\\.') }\\s*\\{([^}]*)\\}`))
+  if (!rule) {
+    failures.push(`${relativePath} must keep the ${selector} host rule.`)
+    continue
+  }
+  if (/\b(?:display|flex|height|min-height|max-height|margin|padding|gap)\s*:/.test(rule[1])) {
+    failures.push(`${relativePath} must leave ${selector} root geometry to @workspace/editor.`)
+  }
+}
 
 if (
   !/export\s*\{[^}]*\bEditorTreePane\b[^}]*\}\s*from\s*['"]\.\/EditorTreePane['"]/.test(
