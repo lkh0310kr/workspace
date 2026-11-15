@@ -11,6 +11,7 @@ import {
   EditorMenuList,
   EditorTreeFrame,
   EditorTreePane,
+  EditorTreeToolbar,
   EditorNameForm,
   EDITOR_TREE_ROW_HEIGHT,
   flattenEditorTree,
@@ -940,6 +941,73 @@ export function PkmsGoogleDrivePane({
             <EditorTreeFrame
               className="pkms-google-drive-tree"
               ariaLabel="Google Drive files"
+              header={
+                <EditorTreeToolbar
+                  title="Files"
+                  className="pkms-google-drive-file-toolbar"
+                  headingClassName="pkms-google-drive-file-toolbar-heading"
+                  actionsClassName="pkms-google-drive-toolbar-actions"
+                  status={
+                    <button
+                      type="button"
+                      className="pkms-google-drive-sync-state"
+                      onClick={() => void syncNow()}
+                      disabled={busy}
+                      title="Sync now"
+                    >
+                      <span
+                        className={`pkms-google-drive-sync-indicator${syncing ? ' is-busy' : error ? ' is-error' : ''}`}
+                      />
+                      <span>
+                        {syncing
+                          ? 'Syncing'
+                          : error
+                            ? 'Needs attention'
+                            : status.toLowerCase().includes('waiting')
+                              ? 'Waiting'
+                              : 'Up to date'}
+                      </span>
+                    </button>
+                  }
+                  actions={
+                    <>
+                      <button
+                        type="button"
+                        title="New note"
+                        aria-label="New note"
+                        onClick={() => requestCreateItem('markdown')}
+                        disabled={busy}
+                      >
+                        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                          <path
+                            d="M3 1.75h6l4 4v8.5H3zM9 1.75v4h4M8 8v5M5.5 10.5h5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.2"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        title="New folder"
+                        aria-label="New folder"
+                        onClick={() => requestCreateItem('folder')}
+                        disabled={busy}
+                      >
+                        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                          <path
+                            d="M1.75 4.5h5l1.25 1.25h6.25v7.5H1.75zM10.75 8v4M8.75 10h4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.2"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                    </>
+                  }
+                />
+              }
               footer={
                 <div className="pkms-google-drive-tree-footer">
                   <span className="pkms-google-drive-tree-footer-label">PKMS workspace</span>
@@ -976,66 +1044,6 @@ export function PkmsGoogleDrivePane({
                 minHeight: 0
               }}
             >
-              <div className="pkms-google-drive-file-toolbar">
-                <div className="pkms-google-drive-file-toolbar-heading">
-                  <span>Files</span>
-                  <button
-                    type="button"
-                    className="pkms-google-drive-sync-state"
-                    onClick={() => void syncNow()}
-                    disabled={busy}
-                    title="Sync now"
-                  >
-                    <span
-                      className={`pkms-google-drive-sync-indicator${syncing ? ' is-busy' : error ? ' is-error' : ''}`}
-                    />
-                    <span>
-                      {syncing
-                        ? 'Syncing'
-                        : error
-                          ? 'Needs attention'
-                          : status.toLowerCase().includes('waiting')
-                            ? 'Waiting'
-                            : 'Up to date'}
-                    </span>
-                  </button>
-                </div>
-                <div className="pkms-google-drive-toolbar-actions">
-                  <button
-                    type="button"
-                    title="New note"
-                    aria-label="New note"
-                    onClick={() => requestCreateItem('markdown')}
-                    disabled={busy}
-                  >
-                    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                      <path
-                        d="M3 1.75h6l4 4v8.5H3zM9 1.75v4h4M8 8v5M5.5 10.5h5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    title="New folder"
-                    aria-label="New folder"
-                    onClick={() => requestCreateItem('folder')}
-                    disabled={busy}
-                  >
-                    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                      <path
-                        d="M1.75 4.5h5l1.25 1.25h6.25v7.5H1.75zM10.75 8v4M8.75 10h4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
               {searchOpen && (
                 <div className="pkms-google-drive-search-row">
                   {searchOpen ? (

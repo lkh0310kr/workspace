@@ -1,5 +1,7 @@
-import type { CSSProperties, ReactNode, RefObject } from 'react'
+import React, { type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { EditorTreeView, type EditorTreeViewProps } from './EditorTreeView'
+
+void React
 
 export interface EditorTreeFrameProps {
   ariaLabel: string

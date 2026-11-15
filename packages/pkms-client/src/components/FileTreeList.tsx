@@ -1,4 +1,4 @@
-import type { DragEvent, KeyboardEvent, MouseEvent, RefObject } from 'react'
+import type { DragEvent, KeyboardEvent, MouseEvent, ReactNode, RefObject } from 'react'
 import { entryName } from '../domain/fileTree'
 import type { FileRecord, TreeRow } from '../domain/types'
 import { aggregateFolderSyncItemState } from '../domain/syncItemState'
@@ -12,6 +12,7 @@ import {
 } from '@workspace/editor'
 
 interface FileTreeListProps {
+  header?: ReactNode
   treeRef: RefObject<HTMLElement | null>
   projection: EditorTreeProjection<TreeRow>
   selectedPaths: Set<string>
@@ -41,6 +42,7 @@ interface FileTreeListProps {
 
 export function FileTreeList(props: FileTreeListProps) {
   const {
+    header,
     treeRef,
     projection,
     selectedPaths,
@@ -136,6 +138,7 @@ export function FileTreeList(props: FileTreeListProps) {
     <EditorTreePane
       ariaLabel="Repository files"
       className="pkms-client-tree-pane"
+      header={header}
       tree={{
         rootRef: treeRef,
         projection: viewProjection,

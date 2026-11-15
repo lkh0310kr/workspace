@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent as 
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorTreeFrame, EditorTreeToolbar, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
@@ -1915,6 +1915,66 @@ export default function Home() {
       </main>
     );
 
+  const treeHeader = (
+    <>
+      <EditorTreeToolbar
+        title={<span className="eyebrow">{contentSearchOpen ? "Search" : "Files"}</span>}
+        className="file-toolbar"
+        headingClassName="file-toolbar-heading"
+        actionsClassName="toolbar-actions"
+        status={
+          <button type="button" className="sync-compact-state" onClick={() => setShowSyncSettings(true)} aria-label="Open sync settings" title="Open sync settings">
+            <span className={`sync-bridge-indicator sync-bridge-indicator--${localSyncState}`} />
+            {!desktopBridge() ? "GitHub backup" : !localFolderEnabled ? "Connect folder" : localSyncState === "syncing" ? "Syncing" : localSyncState === "offline" ? "Offline" : localSyncState === "error" ? "Needs attention" : "Up to date"}
+          </button>
+        }
+        actions={
+          <>
+            {contentSearchOpen && (
+              <button className="mini-button" title="Close search" aria-label="Close search" onClick={closeContentSearch}>
+                <AppIcon name="close" />
+              </button>
+            )}
+            <button className={`mini-button visibility-button${showFileFilters ? " active" : ""}`} title="File filter settings" aria-label="File filter settings" aria-expanded={showFileFilters} onClick={() => setShowFileFilters((open) => !open)}>
+              <AppIcon name="filter" />
+            </button>
+            {!contentSearchOpen && canCreateFile && (
+              <button className="mini-button" title="New note" onClick={() => beginTreeCreation("file", toolbarCreationFolder)}>
+                <AppIcon name="filePlus" />
+              </button>
+            )}
+            {!contentSearchOpen && canCreateDirectory && (
+              <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}>
+                <AppIcon name="folderPlus" />
+              </button>
+            )}
+          </>
+        }
+      />
+      {showFileFilters && (
+        <div className="file-filter-panel">
+          <div className="file-filter-heading">
+            <span>Ignored files</span>
+            <span className="filter-state">{showIgnoredFiles ? "Shown" : "Hidden"} · ⌘⇧.</span>
+          </div>
+          <label htmlFor="excluded-files">Exclude paths</label>
+          <textarea
+            id="excluded-files"
+            value={excludedPatterns}
+            placeholder={"*.tmp\n**/drafts/**"}
+            spellCheck={false}
+            onChange={(event) => {
+              const next = event.target.value;
+              setExcludedPatterns(next);
+              if (activeWorkspace) localStorage.setItem(`pkms:excluded-files:${activeWorkspace.id}`, next);
+            }}
+          />
+          <p>Press ⌘⇧. to show ignored files</p>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <main className={`app-shell${sidebarOpen ? "" : " sidebar-collapsed"}`}>
       <aside className="sidebar">
@@ -1954,66 +2014,19 @@ export default function Home() {
               tabIndex={-1}
               onChange={(event) => void handleTreeUpload(event)}
             />
-            <div className="file-toolbar">
-              <div className="file-toolbar-heading">
-                  <span className="eyebrow">{contentSearchOpen ? "Search" : "Files"}</span>
-                <button type="button" className="sync-compact-state" onClick={() => setShowSyncSettings(true)} aria-label="Open sync settings" title="Open sync settings">
-                  <span className={`sync-bridge-indicator sync-bridge-indicator--${localSyncState}`} />
-                  {!desktopBridge() ? "GitHub backup" : !localFolderEnabled ? "Connect folder" : localSyncState === "syncing" ? "Syncing" : localSyncState === "offline" ? "Offline" : localSyncState === "error" ? "Needs attention" : "Up to date"}
-                </button>
-              </div>
-              <div className="toolbar-actions">
-                {contentSearchOpen && (
-                  <button className="mini-button" title="Close search" aria-label="Close search" onClick={closeContentSearch}>
-                    <AppIcon name="close" />
-                  </button>
-                )}
-                <button className={`mini-button visibility-button${showFileFilters ? " active" : ""}`} title="File filter settings" aria-label="File filter settings" aria-expanded={showFileFilters} onClick={() => setShowFileFilters((open) => !open)}>
-                  <AppIcon name="filter" />
-                </button>
-                {!contentSearchOpen && canCreateFile && (
-                  <button className="mini-button" title="New note" onClick={() => beginTreeCreation("file", toolbarCreationFolder)}>
-                    <AppIcon name="filePlus" />
-                  </button>
-                )}
-                {!contentSearchOpen && canCreateDirectory && (
-                  <button className="mini-button" title="New folder" onClick={() => beginTreeCreation("folder", toolbarCreationFolder)}>
-                    <AppIcon name="folderPlus" />
-                  </button>
-                )}
-              </div>
-            </div>
-            {showFileFilters && (
-              <div className="file-filter-panel">
-                <div className="file-filter-heading">
-                  <span>Ignored files</span>
-                  <span className="filter-state">{showIgnoredFiles ? "Shown" : "Hidden"} · ⌘⇧.</span>
-                </div>
-                <label htmlFor="excluded-files">Exclude paths</label>
-                <textarea
-                  id="excluded-files"
-                  value={excludedPatterns}
-                  placeholder={"*.tmp\n**/drafts/**"}
-                  spellCheck={false}
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    setExcludedPatterns(next);
-                    localStorage.setItem(`pkms:excluded-files:${activeWorkspace.id}`, next);
-                  }}
-                />
-                <p>Press ⌘⇧. to show ignored files</p>
-              </div>
-            )}
             {contentSearchOpen ? (
-              <PkmsContentSearchPanel
-                provider={editorProvider}
-                coverage={contentSearchCoverage}
-                onCoverageChange={setContentSearchCoverage}
-                onClose={closeContentSearch}
-                onSelect={(result, line) => void openSearchResult(result, line)}
-              />
+              <EditorTreeFrame ariaLabel="Repository search results" className="pkms-client-tree-pane" header={treeHeader}>
+                <PkmsContentSearchPanel
+                  provider={editorProvider}
+                  coverage={contentSearchCoverage}
+                  onCoverageChange={setContentSearchCoverage}
+                  onClose={closeContentSearch}
+                  onSelect={(result, line) => void openSearchResult(result, line)}
+                />
+              </EditorTreeFrame>
             ) : (
             <FileTreeList
+              header={treeHeader}
               treeRef={treeRef}
               projection={treeProjection}
               selectedPaths={selectedTreePaths}

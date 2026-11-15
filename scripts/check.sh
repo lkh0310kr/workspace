@@ -7,6 +7,9 @@ cd "$ROOT"
 echo "=== apps/workspace-app typecheck ==="
 (cd apps/workspace-app && npm run typecheck)
 
+echo "=== shared editor tree architecture contract ==="
+node scripts/check-editor-tree-contract.mjs
+
 echo "=== apps/workspace-app vitest (foundation modules) ==="
 (cd apps/workspace-app && npx vitest run \
   src/shared/layoutSalvage.test.ts \

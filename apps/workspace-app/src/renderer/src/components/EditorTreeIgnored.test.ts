@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { editorTreeRowClassName } from '@workspace/editor/tree-row'
+import { editorTreeRowClassName } from '@workspace/editor'
 
 describe('EditorTreeRow Git ignore state', () => {
   it('adds a dedicated class to ignored rows without changing row semantics', () => {

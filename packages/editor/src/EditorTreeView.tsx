@@ -1,4 +1,4 @@
-import {
+import React, {
   useEffect,
   type DragEvent,
   type KeyboardEvent,
@@ -10,6 +10,8 @@ import type { EditorItemKind } from './provider'
 import type { EditorTreeProjection } from './treeModel'
 import { EditorTreeRow } from './EditorTreeRow'
 import { EditorTreeVirtualList } from './EditorTreeVirtualList'
+
+void React
 
 export const EDITOR_TREE_DRAG_MIME_TYPE = 'application/x-workspace-editor-tree-paths'
 

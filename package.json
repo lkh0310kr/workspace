@@ -29,6 +29,7 @@
     "logs:restore": "node apps/workspace-app/scripts/manage-workspace-logs.mjs restore",
     "check": "bash scripts/check.sh",
     "check:app": "cd apps/workspace-app && npm run typecheck",
+    "check:editor-tree-contract": "node scripts/check-editor-tree-contract.mjs",
     "agents:python:setup": "node scripts/agents-python-setup.mjs",
     "agents:python": "node scripts/agents-python.mjs"
   }

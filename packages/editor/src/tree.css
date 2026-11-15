@@ -45,6 +45,30 @@
   overflow: auto;
   overscroll-behavior: contain;
 }
+.editor-tree-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.editor-tree-toolbar-heading,
+.editor-tree-toolbar-actions {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.editor-tree-toolbar-heading {
+  flex: 1 1 auto;
+  gap: 8px;
+}
+.editor-tree-toolbar-title {
+  min-width: 0;
+}
+.editor-tree-toolbar-actions {
+  flex: 0 0 auto;
+  gap: 4px;
+}
 .editor-tree-item:hover {
   background: var(--editor-tree-hover, var(--bg-hover, var(--hover)));
   color: var(--text, var(--muted));

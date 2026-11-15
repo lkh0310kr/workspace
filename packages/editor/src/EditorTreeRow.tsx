@@ -1,5 +1,13 @@
-import type { DragEventHandler, KeyboardEventHandler, MouseEventHandler, ReactNode } from 'react'
+import React, {
+  type DragEventHandler,
+  type KeyboardEventHandler,
+  type MouseEventHandler,
+  type ReactNode
+} from 'react'
 import type { EditorItemKind } from './provider'
+import { editorTreeRowClassName } from './treeRowModel'
+
+void React
 
 export interface EditorTreeRowProps {
   id: string
@@ -30,44 +38,6 @@ export interface EditorTreeRowProps {
   onDragOver?: DragEventHandler<HTMLButtonElement>
   onDragLeave?: DragEventHandler<HTMLButtonElement>
   onDrop?: DragEventHandler<HTMLButtonElement>
-}
-
-export function editorTreeRowClassName({
-  className,
-  active,
-  selected,
-  multiSelected,
-  cut,
-  isIgnored,
-  dropTarget,
-  expanded,
-  kind
-}: Pick<
-  EditorTreeRowProps,
-  | 'className'
-  | 'active'
-  | 'selected'
-  | 'multiSelected'
-  | 'cut'
-  | 'isIgnored'
-  | 'dropTarget'
-  | 'expanded'
-  | 'kind'
->): string {
-  return [
-    'editor-tree-item',
-    className,
-    active && 'is-active',
-    selected && 'is-selected',
-    multiSelected && 'is-multi-selected',
-    cut && 'is-cut',
-    isIgnored && 'is-git-ignored',
-    dropTarget && 'is-drop-target',
-    expanded && 'is-expanded',
-    `editor-tree-item--${kind}`
-  ]
-    .filter(Boolean)
-    .join(' ')
 }
 
 /** Shared tree-row structure and interaction semantics for local and PKMS trees. */
