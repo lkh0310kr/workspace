@@ -6,47 +6,47 @@ UI 조립, 기능 상태, IPC adapter, service route, wire 계약을 분리해 P
 
 5개 단계가 모두 종료 기준을 만족하면 범위가 완료됩니다. 새 제품 기능이나 무관한 정리는 범위를 늘리지 않습니다.
 
-## Scope
+## 범위
 
 ### 범위에 포함
 
-- PKMS shared client: `packages/pkms-client/src/PkmsClientApp.tsx` and its account, repository, file browser, editor, and sync modules.
-- Workspace PKMS integration and desktop shell boundaries: `apps/workspace/src/main/index.ts`, `apps/workspace/src/main/ipc/`, and `apps/workspace/src/preload/index.ts`.
-- PKMS Cloudflare service: `apps/web/workers/app.ts`, `apps/web/workers/SupabaseVault.ts`, and related auth, MCP, persistence, and scheduled-sync modules.
-- iOS PKMS coordination: `apps/ios/PKMSModel.swift`, `apps/ios/PKMSProtocolModels.swift`, and native FFI use.
-- Shared PKMS contracts and Rust core boundaries: `packages/pkms-protocol/` and `packages/pkms-core/`.
-- Architecture documentation for these boundaries.
+- PKMS shared client: `packages/pkms-client/src/PkmsClientApp.tsx`와 account, repository, file browser, editor, sync 모듈.
+- Workspace PKMS 통합 및 desktop shell 경계: `apps/workspace/src/main/index.ts`, `apps/workspace/src/main/ipc/`, `apps/workspace/src/preload/index.ts`.
+- PKMS Cloudflare service: `apps/web/workers/app.ts`, `apps/web/workers/SupabaseVault.ts` 및 관련 auth, MCP, persistence, scheduled-sync 모듈.
+- iOS PKMS 조정: `apps/ios/PKMSModel.swift`, `apps/ios/PKMSProtocolModels.swift`, native FFI 사용.
+- 공유 PKMS 계약 및 Rust core 경계: `packages/pkms-protocol/` 및 `packages/pkms-core/`.
+- 이 경계에 관한 아키텍처 문서.
 
 ### 범위에서 제외
 
-- Reorganizing every Workspace renderer pane or unrelated systems such as browser, terminal internals, CAD, World Engine, and hardware simulation.
-- Rewriting `apps/ios/legacy/v1/` or vendored dependencies.
-- UI redesign, new product behavior, API or Realtime wire changes, database migrations, backend replacement, deployment changes, and expanding the Rust core into networking or UI responsibilities.
-- Mechanical file splitting done only to meet a line-count target.
+- 모든 Workspace renderer pane을 재구성하거나 browser, terminal 내부, CAD, World Engine, hardware simulation 같은 무관한 시스템을 변경하는 작업.
+- `apps/ios/legacy/v1/` 또는 vendored dependency를 다시 작성하는 작업.
+- UI redesign, 새 제품 동작, API 또는 Realtime wire 변경, database migration, backend 교체, 배포 변경, Rust core의 networking 또는 UI 책임 확장.
+- 줄 수 목표만 채우기 위한 기계적 파일 분리.
 
 ## 단계 계획
 
 | 단계 | 작업 | 종료 기준 | 상태 |
 |---|---|---|---|
-| 0. Boundaries | Record app/package ownership and dependency direction. | Architecture map and explicit in/out-of-scope list are checked in. | Complete |
-| 1. Shared PKMS client | Separate account/session, file browser, editor/document, and sync features. Keep Web and Desktop mounting the same public client entry. | `PkmsClientApp` composes feature hooks and views; file browse, mutations, editor lifecycle, offline cache, realtime messages, and sync feedback live in named modules. Web/Desktop typecheck and Web build pass. | Complete |
-| 2. Workspace shell | Move Main IPC handlers into capability registrars; split preload API definitions by namespace and retain a small composition entry. | `main/index.ts` owns lifecycle and composition; IPC capabilities are registered in named modules; preload exposes the same namespaces and channel names. Workspace typecheck passes. | Complete |
-| 3. Cloud service | Split Worker request dispatch from auth, workspace API, MCP, and scheduled flush behavior. Keep vault persistence and GitHub flush semantics in their existing service boundary where they share helpers. | `app.ts` dispatches and composes route modules; service modules own auth, workspace routes, MCP, persistence, and scheduled flush behavior. Status codes, auth scopes, Supabase calls, GitHub flush semantics, and scheduled trigger remain unchanged. Web typecheck/build pass. | Complete |
-| 4. iOS client | Split `PKMSModel` coordination into API/session, workspace/file operations, and document/Realtime modules. Keep SwiftUI state names and Rust FFI contract stable. | `PKMSModel` coordinates the extracted transport and feature extensions; simulator build passes. | Complete |
-| 5. Contract closeout | Make OpenAPI and Realtime JSON Schema the contract authority; mechanically validate TypeScript and Swift wire models. Reconcile docs and verify all in-scope apps. | All 13 OpenAPI component schemas and the shared Realtime envelope fields/discriminators are checked against their TypeScript/iOS models; Workspace typecheck, Web typecheck/build, and iOS simulator build pass. | Complete |
+| 0. 경계 | 앱/패키지 소유권과 의존성 방향을 기록합니다. | 아키텍처 지도와 명시적인 범위 포함/제외 목록을 저장소에 반영합니다. | 완료 |
+| 1. 공유 PKMS client | account/session, file browser, editor/document, sync 기능을 분리합니다. Web과 Desktop은 같은 공개 client 진입점을 사용합니다. | `PkmsClientApp`이 기능 hook과 view를 조합합니다. 파일 탐색, 변경, editor lifecycle, offline cache, realtime message, sync 피드백은 이름 있는 모듈에 둡니다. Web/Desktop typecheck와 Web build를 통과합니다. | 완료 |
+| 2. Workspace shell | Main IPC handler를 capability registrar로 옮기고 preload API 정의를 namespace별로 분리하되 작은 조립 진입점을 유지합니다. | `main/index.ts`가 lifecycle과 조립을 담당합니다. IPC capability는 이름 있는 모듈에 등록하고 preload는 동일한 namespace와 channel 이름을 노출합니다. Workspace typecheck를 통과합니다. | 완료 |
+| 3. Cloud service | Worker 요청 dispatch를 auth, workspace API, MCP, scheduled flush 동작에서 분리합니다. 공통 helper를 사용하는 vault persistence와 GitHub flush 의미는 기존 service 경계에 둡니다. | `app.ts`가 route module을 dispatch하고 조립합니다. service module이 auth, workspace route, MCP, persistence, scheduled flush를 담당합니다. Status code, auth scope, Supabase 호출, GitHub flush 의미, scheduled trigger를 유지합니다. Web typecheck/build를 통과합니다. | 완료 |
+| 4. iOS client | `PKMSModel` 조정을 API/session, workspace/file 작업, document/Realtime 모듈로 분리합니다. SwiftUI state 이름과 Rust FFI 계약을 유지합니다. | `PKMSModel`이 추출한 transport와 feature extension을 조정합니다. simulator build를 통과합니다. | 완료 |
+| 5. 계약 마무리 | OpenAPI와 Realtime JSON Schema를 계약의 기준으로 삼고 TypeScript와 Swift wire model을 기계적으로 검증합니다. 문서를 정리하고 범위에 든 모든 앱을 확인합니다. | OpenAPI component schema 13개와 공유 Realtime envelope의 field/discriminator를 TypeScript/iOS model과 대조합니다. Workspace typecheck, Web typecheck/build, iOS simulator build를 통과합니다. | 완료 |
 
 ## 완료한 작업
 
-- `packages/pkms-client/src/domain/` contains file tree, path, filter, encoding, and Yjs text helpers; `client/` contains API and revisioned operation transport.
-- `components/FileTreeList.tsx` renders and delegates tree interactions; `features/files/useFileTreeSelection.ts` owns focus and selection state.
-- `features/files/useWorkspaceDirectory.ts` owns folder loading, directory restoration, and directory tree state.
-- `apps/workspace/src/main/ipc/` has terminal and workspace/filesystem/search registrars.
-- Workspace Main capabilities for system, content, agent status, and terminal quit buffers are also registered in named IPC modules; preload definitions are grouped into system, browser, terminal, and content API files.
-- `packages/pkms-protocol/src/types.ts` is shared by the Worker and React client; Realtime presence data is checked against that contract.
-- `packages/pkms-client/src/features/` owns account session, file creation/mutations, document lifecycle, realtime message handling, directory state, tree selection, and document sync.
-- Cloudflare auth and workspace routes are separate from the Worker request dispatcher; MCP and scheduled vault flush remain named service boundaries.
-- iOS API transport, workspace operations, and Realtime session coordination are separated from the SwiftUI-facing model.
-- `apps/ios/PKMSProtocolModels.swift` contains iOS HTTP and Realtime DTOs; `packages/pkms-protocol/scripts/check-wire-models.mjs` checks contract field and required-field parity.
+- `packages/pkms-client/src/domain/`에는 file tree, path, filter, encoding, Yjs text helper가 있고 `client/`에는 API와 revisioned operation transport가 있습니다.
+- `components/FileTreeList.tsx`는 tree interaction을 렌더링하고 위임합니다. `features/files/useFileTreeSelection.ts`는 focus와 selection state를 소유합니다.
+- `features/files/useWorkspaceDirectory.ts`는 폴더 로딩, directory 복원, directory tree state를 소유합니다.
+- `apps/workspace/src/main/ipc/`에는 terminal 및 workspace/filesystem/search registrar가 있습니다.
+- system, content, agent status, terminal quit buffer에 대한 Workspace Main capability도 이름 있는 IPC module에 등록했습니다. preload 정의는 system, browser, terminal, content API 파일로 묶었습니다.
+- `packages/pkms-protocol/src/types.ts`를 Worker와 React client가 공유합니다. Realtime presence data가 이 계약에 맞는지 확인합니다.
+- `packages/pkms-client/src/features/`는 account session, file 생성/변경, document lifecycle, realtime message 처리, directory state, tree selection, document sync를 소유합니다.
+- Cloudflare auth와 workspace route를 Worker request dispatcher에서 분리했습니다. MCP와 scheduled vault flush는 이름 있는 service 경계로 유지합니다.
+- iOS API transport, workspace 작업, Realtime session 조정을 SwiftUI-facing model에서 분리했습니다.
+- `apps/ios/PKMSProtocolModels.swift`에는 iOS HTTP 및 Realtime DTO가 있습니다. `packages/pkms-protocol/scripts/check-wire-models.mjs`는 계약 field와 required field가 일치하는지 확인합니다.
 
 ## 호환성 규칙
 
