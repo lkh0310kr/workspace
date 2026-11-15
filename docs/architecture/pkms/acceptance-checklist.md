@@ -24,6 +24,8 @@
 
 **환경변수 allowlist와 Stable 실계정 검증 (2026-11-15):** Web allowlist `VITE_GOOGLE_DRIVE_ALLOWED_EMAILS`와 Desktop allowlist `GOOGLE_DRIVE_ALLOWED_EMAILS`에 `lkh0310kr@gmail.com`만 설정했다. 빈 allowlist, 잘못된 형식/미검증 이메일, 비허용 이메일이 fail-closed하는 테스트를 포함해 OAuth 테스트 13개와 Web/Desktop typecheck가 통과했다. Web Worker `pkms-web`을 version `e123f9a0-fdd8-4865-996b-bece592b21ee`로 배포한 뒤 실제 allowlisted Google 계정으로 재인증해 PKMS root 및 문서 목록 표시를 확인했다. 다른 계정은 앱의 allowlist 검증 전 Google OAuth `Testing` 대상 제한에서 403으로 거부됐다. `npm run promote:stable`로 `/Applications/Workspace.app`을 교체한 뒤 Desktop에서도 동일 계정으로 PKCE OAuth 동의, Drive 연결, PKMS root 및 문서 목록 표시를 확인했다. Desktop secret은 로컬 `.env.production.local`에서만 읽어 빌드에 전달하며 git에 포함하지 않았다.
 
+**OAuth 게시 및 재검증 (2026-11-15):** 앱 consent branding의 홈페이지, 개인정보처리방침, 서비스 약관을 채우기 위해 Web route `/privacy`와 `/terms`를 추가했다. 공개 canonical URL 두 개 모두 HTTP 200과 올바른 페이지 제목을 반환한다. Google Console에서 External consent screen을 `Production`으로 게시했고 Audience 화면에 `프로덕션 단계`가 표시된다. Production Web에서 재인증 후 Google consent chooser에 등록한 개인정보처리방침·약관 링크가 실제 표시되고, allowlisted 계정으로 기존 PKMS root 및 문서 목록에 연결됐다. 게시 뒤 Google `Testing` test-user 제한은 더 이상 미적용이므로, 이메일 allowlist는 Web/Desktop client-side gate이며 강제 서버 authorization이 아니다. 비허용 이메일 거부는 자동 테스트에서 검증했고, 별도 Google 계정으로의 browser acceptance는 해당 계정 자격 증명 없이 실행하지 않았다. 최신 Web Worker 배포 ID: `e73f2d4a-bafe-4166-90b8-5c43f72f5d33`.
+
 **아직 미검증:** Desktop에서 note 수정·저장·재시작 후 복구하는 CRUD 왕복, Web↔Desktop 동시 수렴, offline/restart/ACK-loss 복구, binary conflict materialization, 기존 PKMS 자료의 parity migration, API request 수 및 latency 기준선. 이러한 수락이 끝날 때까지 PKMS sync 전체를 완료로 판정하지 않는다. iOS 구현은 현재 범위 밖이며 공통 provider 경계만 유지한다.
 
 ## 상태 정의
