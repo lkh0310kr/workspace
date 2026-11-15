@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 
 export interface EditorBreadcrumbEntry {
   name: string
@@ -27,11 +27,17 @@ export function EditorBreadcrumbs({ path, onLoadChildren, onOpenFile }: EditorBr
   } | null>(null)
   const rootRef = useRef<HTMLElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const [menuLeft, setMenuLeft] = useState(0)
+  const [menuTop, setMenuTop] = useState(0)
   const segments = path?.split('/').filter(Boolean) ?? []
 
   useEffect(() => setMenu(null), [path])
+  useLayoutEffect(() => {
+    const scroll = scrollRef.current
+    if (scroll) scroll.scrollLeft = scroll.scrollWidth
+  }, [path])
   useEffect(() => {
     const closeOutside = (event: PointerEvent) => {
       const root = rootRef.current
@@ -44,6 +50,20 @@ export function EditorBreadcrumbs({ path, onLoadChildren, onOpenFile }: EditorBr
     if (!menu || menu.loading) return
     rootRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
   }, [menu])
+  useLayoutEffect(() => {
+    if (!menu || menu.loading) return
+    const repositionMenu = () => {
+      if (!rootRef.current || !menuRef.current) return
+      const menuBounds = menuRef.current.getBoundingClientRect()
+      const left = Math.max(0, Math.min(menuLeft, window.innerWidth - menuBounds.width))
+      const top = Math.max(0, Math.min(menuTop, window.innerHeight - menuBounds.height))
+      if (left !== menuLeft) setMenuLeft(left)
+      if (top !== menuTop) setMenuTop(top)
+    }
+    repositionMenu()
+    window.addEventListener('resize', repositionMenu)
+    return () => window.removeEventListener('resize', repositionMenu)
+  }, [menu, menuLeft, menuTop])
 
   const openMenu = async (anchorPath: string, directoryPath: string) => {
     setMenu({ anchorPath, directoryPath, entries: [], loading: true })
@@ -131,9 +151,8 @@ export function EditorBreadcrumbs({ path, onLoadChildren, onOpenFile }: EditorBr
                 }
                 triggerRef.current = event.currentTarget
                 const navBounds = rootRef.current?.getBoundingClientRect()
-                setMenuLeft(
-                  navBounds ? event.currentTarget.getBoundingClientRect().left - navBounds.left : 0
-                )
+                setMenuLeft(event.currentTarget.getBoundingClientRect().left)
+                setMenuTop(navBounds ? navBounds.bottom + 3 : 0)
                 void openMenu(crumb.path, crumb.directoryPath)
               }}
             >
@@ -148,8 +167,9 @@ export function EditorBreadcrumbs({ path, onLoadChildren, onOpenFile }: EditorBr
           if (!crumb) return null
           return (
             <div
+              ref={menuRef}
               className="editor-breadcrumb-menu"
-              style={{ left: menuLeft }}
+              style={{ left: menuLeft, top: menuTop }}
               role="menu"
               aria-label={`Items in ${menu.directoryPath || 'workspace'}`}
             >

@@ -149,7 +149,7 @@
         },
         {
           "path": "packages/editor/src/EditorBreadcrumbs.tsx",
-          "sha256": "f164fbfc1bdaa9d4dd1016b67ddcc32c33294bb3c9be3b40d78010776a4eb736"
+          "sha256": "d344beb88ca41e13e7cd3bc0a7ba9327e94e1a2a830dbdbd858da33d3433b172"
         },
         {
           "path": "packages/editor/src/EditorMarkdownDocument.tsx",
@@ -277,7 +277,7 @@
         },
         {
           "path": "packages/editor/src/tree.css",
-          "sha256": "343d972c0e21151881455c7b2e83bf26b898987a96955b70cda0c05599599213"
+          "sha256": "43af10f57e834464586a5e2af04398c2abef13c0b57d7325cff9e90353115fcc"
         },
         {
           "path": "packages/editor/src/treeModel.ts",
@@ -349,11 +349,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "f39cdffc3cfc392054d64c3c53683fbee714cc5ad6191597258bb5c3ba44a326"
+          "sha256": "9328a2403a16140d3e470a222351ab25a84c33b4a9be72bd175f6c400d38f3e8"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "96c9c3c802cb26ccf9ee3887a8f6da9a40a986e4bb615cbeec00dc14e9011925"
+          "sha256": "1d65af8d60dd6948034e8f21853044f1a3cfe1ea1bb5d1e18f7f0e68873a99cf"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
@@ -365,7 +365,7 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/visual-fixture.css",
-          "sha256": "a7d12346684f731f6ac0cc855e37338201269a63c12a327c193a42ca6b85e226"
+          "sha256": "23073c28800b4ceb0f30dd3d1b7530cf9c8c9d1d389f0ead60c6a5852ca11447"
         },
         {
           "path": "apps/workspace-app/scripts/run-editor-visual.mjs",

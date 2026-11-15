@@ -20,6 +20,7 @@ for (const host of hosts) {
     await expect(page.getByRole('treeitem', { name: /Readme/ })).toBeVisible()
     if (host !== 'desktop-editor')
       await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
     await expect(page.getByText('Codex Drive smoke test', { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
     await expect(page.locator('.cm-md-wikilink')).toHaveText('sibling note')
@@ -96,6 +97,30 @@ test('Web PKMS Explorer shortcut hides and restores the real Files tree', async 
   await page.keyboard.press('Control+\\')
   await expect(tree).toBeVisible()
   await expect(page.getByRole('treeitem', { name: 'Verification' })).toBeVisible()
+})
+
+test('narrow view keeps the active breadcrumb reachable and its menu on screen', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/?host=web-pkms-editor')
+  await page.getByRole('treeitem', { name: 'Verification' }).click()
+  await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+  await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
+  const navigation = page.getByRole('navigation', { name: 'File location' })
+  const current = navigation.getByRole('button', { name: 'Codex Drive smoke test.md' })
+  const bounds = await current.boundingBox()
+  const viewport = await page.locator('.editor-breadcrumbs-scroll').boundingBox()
+  if (!bounds || !viewport) throw new Error('Missing Web PKMS breadcrumb geometry')
+  expect(bounds.x).toBeGreaterThanOrEqual(viewport.x - 1)
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.x + viewport.width + 1)
+  await current.click()
+  const menu = page.getByRole('menu', { name: 'Items in Verification' })
+  await expect(menu).toBeVisible()
+  const menuBounds = await menu.boundingBox()
+  if (!menuBounds) throw new Error('Missing Web PKMS breadcrumb menu')
+  expect(menuBounds.x).toBeGreaterThanOrEqual(0)
+  expect(menuBounds.x + menuBounds.width).toBeLessThanOrEqual(390)
 })
 
 test('all host surfaces align common tree rows and readable document columns', async ({ page }) => {

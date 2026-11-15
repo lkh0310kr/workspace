@@ -106,3 +106,10 @@ html[data-visual-host='web-pkms-editor'] .app-shell {
   grid-template-columns: 250px minmax(0, 1fr);
   flex: none;
 }
+
+@media (max-width: 580px) {
+  html[data-visual-host='web-pkms-editor'] .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: 34dvh minmax(0, 1fr);
+  }
+}
