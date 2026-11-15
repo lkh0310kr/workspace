@@ -474,15 +474,28 @@ export class GoogleDriveWorkspaceRepository {
             'id,name,mimeType,parents,modifiedTime,md5Checksum,size,trashed,appProperties,webViewLink'
         })
       ).filter((match) => !match.trashed && !match.appProperties?.pkmsOperationId)
-      if (matches.length !== 1)
+      const visibleMatches = (
+        await Promise.all(
+          matches.map(async (match) => ({
+            match,
+            path: await this.pathWithinWorkspace(match)
+          }))
+        )
+      )
+        .filter(
+          ({ path }) =>
+            path !== null &&
+            path !== INTERNAL_DIRECTORY &&
+            !path.startsWith(`${INTERNAL_DIRECTORY}/`)
+        )
+        .map(({ match }) => match)
+      if (visibleMatches.length !== 1)
         throw new Error(
-          matches.length
+          visibleMatches.length
             ? `PKMS item identity is ambiguous: ${itemId}`
             : `PKMS item does not exist in this Google Drive workspace: ${itemId}`
         )
-      if ((await this.pathWithinWorkspace(matches[0])) === null)
-        throw new Error('The requested Drive item is outside this PKMS workspace.')
-      return matches[0]
+      return visibleMatches[0]
     }
     if (file.id === this.rootId) return file
     if (file.appProperties?.pkmsWorkspaceRootId)

@@ -381,12 +381,21 @@ describe('GoogleDriveWorkspaceRepository', () => {
       name: 'old-draft.md',
       trashed: true
     }
+    const operationsFolder = folder('operations', '.pkms-sync', ['root'])
+    const legacyOperationRecord: DriveFile = {
+      id: 'legacy-drive-operation',
+      name: 'op-create-note.json',
+      mimeType: 'application/json',
+      parents: ['operations'],
+      appProperties: { pkmsWorkspaceRootId: 'root', pkmsItemId: 'stable-note' }
+    }
     const client = {
       getFile: vi.fn(async (id: string) => {
         if (id === 'root') return folder('root', 'PKMS')
+        if (id === 'operations') return operationsFolder
         throw new DriveApiError(404, 'notFound', 'missing')
       }),
-      listFiles: vi.fn(async () => [note, operationRecord, trashedDuplicate])
+      listFiles: vi.fn(async () => [note, operationRecord, legacyOperationRecord, trashedDuplicate])
     } as unknown as GoogleDriveClient
     const repository = new GoogleDriveWorkspaceRepository(client, 'root')
 
