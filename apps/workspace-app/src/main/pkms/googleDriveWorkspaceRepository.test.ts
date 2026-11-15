@@ -34,6 +34,44 @@ describe('GoogleDriveWorkspaceRepository', () => {
     expect(client.createFolder).not.toHaveBeenCalled()
   })
 
+  it('scopes indexed full-text search pages to Markdown files inside the selected workspace', async () => {
+    const directory = folder('notes-folder', 'notes', ['root'])
+    const client = {
+      searchFullTextPage: vi.fn(async () => ({
+        files: [
+          { id: 'inside', name: 'note.md', mimeType: 'text/markdown', parents: ['notes-folder'] },
+          { id: 'outside', name: 'outside.md', mimeType: 'text/markdown', parents: ['external-folder'] },
+          { id: 'asset', name: 'image.png', mimeType: 'image/png', parents: ['root'] }
+        ],
+        nextPageToken: 'next'
+      })),
+      getFile: vi.fn(async (id: string) => {
+        if (id === 'notes-folder') return directory
+        if (id === 'external-folder') return folder('external-folder', 'outside', ['other-root'])
+        if (id === 'other-root') return folder('other-root', 'Other')
+        throw new Error(`unexpected file lookup: ${id}`)
+      })
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    const page = await repository.searchFullTextPage('guitar', { pageToken: 'cursor', pageSize: 20 })
+
+    expect(page).toEqual({
+      entries: [
+        expect.objectContaining({
+          id: 'inside',
+          path: 'notes/note.md',
+          kind: 'markdown'
+        })
+      ],
+      nextPageToken: 'next'
+    })
+    expect(client.searchFullTextPage).toHaveBeenCalledWith('guitar', {
+      pageToken: 'cursor',
+      pageSize: 20
+    })
+  })
+
   it('creates a marked root only when there is no previously created PKMS root', async () => {
     const createFolder = vi.fn(
       async (name: string, _parentId: string | null, appProperties?: Record<string, string>) => ({

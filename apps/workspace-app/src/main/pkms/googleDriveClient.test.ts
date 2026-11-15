@@ -49,6 +49,40 @@ describe('Google Drive direct client', () => {
     expect(fetcher.mock.calls[1][0]).toContain('pageToken=next')
   })
 
+  it('queries Drive full text as a paged, quoted phrase without downloading file content', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({
+        files: [{ id: 'note', name: 'note.md', mimeType: 'text/markdown', parents: ['folder'] }],
+        nextPageToken: 'next-page'
+      })
+    )
+    const client = new GoogleDriveClient({ tokenProvider: tokenProvider(), fetcher })
+
+    const page = await client.searchFullTextPage('  guitar "riff"  ', {
+      pageToken: 'previous-page',
+      pageSize: 25
+    })
+
+    expect(page).toMatchObject({ files: [{ id: 'note' }], nextPageToken: 'next-page' })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    const requestUrl = new URL(String(fetcher.mock.calls[0][0]))
+    const query = requestUrl.searchParams.get('q') ?? ''
+    expect(query).toContain('fullText contains')
+    expect(query).toContain('guitar')
+    expect(query).toContain('riff')
+    expect(query).toContain("mimeType != 'application/vnd.google-apps.folder'")
+    expect(requestUrl.searchParams.get('pageToken')).toBe('previous-page')
+    expect(requestUrl.searchParams.get('pageSize')).toBe('25')
+  })
+
+  it('returns an empty full-text page without making a Drive request for blank input', async () => {
+    const fetcher = vi.fn<typeof fetch>()
+    const client = new GoogleDriveClient({ tokenProvider: tokenProvider(), fetcher })
+
+    await expect(client.searchFullTextPage('  ')).resolves.toEqual({ files: [] })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
   it('renews a rejected access token once, including for a non-retryable mutation', async () => {
     const provider = tokenProvider(['expired', 'renewed'])
     const fetcher = vi

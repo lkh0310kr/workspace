@@ -1,4 +1,4 @@
-import { DriveApiError, GoogleDriveClient, type DriveFile } from './googleDriveClient'
+import { DriveApiError, GoogleDriveClient, type DriveFile, type DriveFilePage } from './googleDriveClient'
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
 const INTERNAL_DIRECTORY = '.pkms-sync'
@@ -33,6 +33,11 @@ export async function resolveGoogleDriveWorkspaceRoot(
 export type GoogleDriveWorkspaceEntry = DriveFile & {
   path: string
   kind: 'folder' | 'markdown' | 'asset'
+}
+
+export interface GoogleDriveWorkspaceSearchPage {
+  entries: GoogleDriveWorkspaceEntry[]
+  nextPageToken?: string
 }
 
 function entryKind(file: DriveFile): GoogleDriveWorkspaceEntry['kind'] {
@@ -123,6 +128,30 @@ export class GoogleDriveWorkspaceRepository {
     const path = await this.pathWithinWorkspace(parent)
     if (path === null) throw new Error('The requested folder is outside this PKMS workspace.')
     return this.listDirectoryContents(parent.id, path)
+  }
+
+
+  /**
+   * Searches Drive's indexed text, then restricts results to Markdown descendants
+   * of this workspace root. Drive fullText matching is token/phrase based.
+   */
+  async searchFullTextPage(
+    query: string,
+    options: { pageToken?: string; pageSize?: number; signal?: AbortSignal } = {}
+  ): Promise<GoogleDriveWorkspaceSearchPage> {
+    const page: DriveFilePage = await this.client.searchFullTextPage(query, options)
+    const resolved = await Promise.all(
+      page.files.map(async (file) => {
+        if (file.trashed || entryKind(file) !== 'markdown') return null
+        const path = await this.pathWithinWorkspace(file)
+        if (path === null) return null
+        return { ...file, id: workspaceItemId(file), path, kind: 'markdown' as const }
+      })
+    )
+    return {
+      entries: resolved.flatMap((entry) => (entry ? [entry] : [])),
+      ...(page.nextPageToken ? { nextPageToken: page.nextPageToken } : {})
+    }
   }
 
   async getEntry(itemId: string): Promise<GoogleDriveWorkspaceEntry> {

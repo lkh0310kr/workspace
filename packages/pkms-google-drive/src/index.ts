@@ -8,7 +8,8 @@ export {
 export {
   GoogleDriveWorkspaceRepository,
   resolveGoogleDriveWorkspaceRoot,
-  type GoogleDriveWorkspaceEntry
+  type GoogleDriveWorkspaceEntry,
+  type GoogleDriveWorkspaceSearchPage
 } from './workspaceRepository'
 export {
   IndexedDbDriveOutbox,
@@ -65,6 +66,7 @@ export type {
   DriveChange,
   DriveChangePage,
   DriveFile,
+  DriveFilePage,
   DriveListOptions,
   DriveRequestOptions,
   DriveRetryOptions

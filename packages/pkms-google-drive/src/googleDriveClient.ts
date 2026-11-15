@@ -27,6 +27,11 @@ export interface DriveChangePage {
   newStartPageToken?: string
 }
 
+export interface DriveFilePage {
+  files: DriveFile[]
+  nextPageToken?: string
+}
+
 export interface DriveListOptions {
   query?: string
   pageSize?: number
@@ -216,6 +221,31 @@ export class GoogleDriveClient {
       pageToken = page.nextPageToken
     } while (pageToken)
     return files
+  }
+
+
+  /**
+   * Queries Drive's server-side full-text index without downloading document bodies.
+   * Drive matches whole tokens or quoted phrases, not arbitrary substrings; callers
+   * must scope results to the active PKMS workspace before showing them.
+   */
+  async searchFullTextPage(
+    queryText: string,
+    options: { pageToken?: string; pageSize?: number; signal?: AbortSignal } = {}
+  ): Promise<DriveFilePage> {
+    const normalized = queryText.trim()
+    if (!normalized) return { files: [] }
+    const phrase = `"${normalized.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
+    const query = new URLSearchParams({
+      q: `fullText contains ${queryLiteral(phrase)} and trashed = false and mimeType != ${queryLiteral(DRIVE_FOLDER_MIME)}`,
+      pageSize: String(Math.max(1, Math.min(options.pageSize ?? 100, 1000))),
+      fields: 'nextPageToken,files(id,name,mimeType,parents,modifiedTime,md5Checksum,size,trashed,appProperties,webViewLink)'
+    })
+    if (options.pageToken) query.set('pageToken', options.pageToken)
+    const page = await this.request<DriveFilePage>(`${DRIVE_API}/files?${query}`, {
+      signal: options.signal
+    })
+    return { files: page.files ?? [], ...(page.nextPageToken ? { nextPageToken: page.nextPageToken } : {}) }
   }
 
   async listChildren(parentId: string, signal?: AbortSignal): Promise<DriveFile[]> {
