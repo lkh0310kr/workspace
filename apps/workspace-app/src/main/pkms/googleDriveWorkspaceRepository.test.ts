@@ -338,12 +338,18 @@ describe('GoogleDriveWorkspaceRepository', () => {
         pkmsOperationId: 'create-note'
       }
     }
+    const trashedDuplicate: DriveFile = {
+      ...note,
+      id: 'drive-note-trashed',
+      name: 'old-draft.md',
+      trashed: true
+    }
     const client = {
       getFile: vi.fn(async (id: string) => {
         if (id === 'root') return folder('root', 'PKMS')
         throw new DriveApiError(404, 'notFound', 'missing')
       }),
-      listFiles: vi.fn(async () => [note, operationRecord])
+      listFiles: vi.fn(async () => [note, operationRecord, trashedDuplicate])
     } as unknown as GoogleDriveClient
     const repository = new GoogleDriveWorkspaceRepository(client, 'root')
 
@@ -352,6 +358,9 @@ describe('GoogleDriveWorkspaceRepository', () => {
       path: 'draft.md',
       kind: 'markdown'
     })
+    expect(client.listFiles).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.stringContaining('trashed = false') })
+    )
   })
 
   it('rejects stable-ID branch requests outside the selected workspace', async () => {
