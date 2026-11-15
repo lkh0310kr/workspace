@@ -137,6 +137,30 @@ for (const host of ['desktop-pkms-editor', 'web-pkms-editor'] as const) {
     )
     await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
   })
+
+  test(`${host} creates and opens a missing wikilink target`, async ({ page }) => {
+    await page.goto(`/?host=${host}&scenario=missing-wikilink`)
+    await page.getByRole('treeitem', { name: 'Verification' }).click()
+    await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    const editor = page.locator('.cm-content')
+    await expect(editor).toContainText('Live Drive verification')
+    const link = page.locator('.cm-md-wikilink').filter({ hasText: 'Fresh Note' })
+    await expect(link).toBeVisible()
+    await link.click()
+
+    await expect(page.getByRole('navigation', { name: 'File location' })).toContainText(
+      'Fresh Note.md'
+    )
+    if (host === 'desktop-pkms-editor') {
+      await expect
+        .poll(() => page.evaluate(() => (window as any).__openedDriveMarkdownEntries))
+        .toContain('mock-drive-created-1')
+    } else {
+      await expect.poll(() => page.evaluate(() => (window as any).__createdPkmsPaths)).toContain(
+        'Fresh Note.md'
+      )
+    }
+  })
 }
 
 test('narrow view keeps the active breadcrumb reachable and its menu on screen', async ({

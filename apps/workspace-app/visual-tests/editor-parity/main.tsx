@@ -93,12 +93,17 @@ const driveTreeStressEntries: GoogleDriveWorkspaceEntry[] = Array.from(
   }
 )
 const driveEntries: GoogleDriveWorkspaceEntry[] = [driveFolder]
+const driveCreatedNotes: GoogleDriveWorkspaceEntry[] = []
 const isTreeStressScenario =
   new URLSearchParams(window.location.search).get('scenario') === 'tree-overflow'
+const isMissingWikiScenario =
+  new URLSearchParams(window.location.search).get('scenario') === 'missing-wikilink'
+const editorMarkdownFixture = isMissingWikiScenario ? `${markdown}\n[[Fresh Note]]\n` : markdown
 
 function installMocks() {
   const w = window as any
   w.__openedDriveMarkdownEntries = []
+  w.__createdPkmsPaths = []
   w.api = {
     fs: {
       listDir: async (_tabId: number, path: string) =>
@@ -144,19 +149,26 @@ function installMocks() {
     connectGoogleDriveWorkspace: async () => ({ root: driveRoot, entries: driveEntries }),
     listGoogleDriveDirectory: async (_rootId: string, parentId: string | null) =>
       parentId === null || parentId === driveRoot.id
-        ? driveEntries
+        ? [...driveEntries, ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveRoot.id)]
         : parentId === driveFolder.id
           ? isTreeStressScenario
             ? [driveNote, driveExtraNote, ...driveTreeStressEntries]
-            : [driveNote, driveExtraNote]
+            : [driveNote, driveExtraNote, ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveFolder.id)]
           : [],
     openGoogleDriveMarkdown: async (_rootId: string, entryId: string) => {
       w.__openedDriveMarkdownEntries.push(entryId)
-      const entry = [driveNote, driveExtraNote].find((candidate) => candidate.id === entryId)
+      const entry = [driveNote, driveExtraNote, ...driveCreatedNotes].find(
+        (candidate) => candidate.id === entryId
+      )
       if (!entry) throw new Error(`Unknown mock Drive entry: ${entryId}`)
       return {
         entry,
-        text: entry.id === driveExtraNote.id ? readmeMarkdown : markdown,
+        text:
+          entry.id === driveExtraNote.id
+            ? readmeMarkdown
+            : driveCreatedNotes.some((candidate) => candidate.id === entry.id)
+              ? '# Untitled\n\n'
+              : editorMarkdownFixture,
         revision: 'mock-r1'
       }
     },
@@ -167,7 +179,19 @@ function installMocks() {
         entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())
       )
     }),
-    createGoogleDriveItem: async () => driveEntries,
+    createGoogleDriveItem: async (_rootId: string, parentId: string, kind: string, name: string) => {
+      const parent = parentId ? [driveFolder].find((entry) => entry.id === parentId) : null
+      const entry: GoogleDriveWorkspaceEntry = {
+        id: `mock-drive-created-${driveCreatedNotes.length + 1}`,
+        name,
+        mimeType: kind === 'folder' ? 'application/vnd.google-apps.folder' : 'text/markdown',
+        parents: [parent?.id ?? driveRoot.id],
+        path: [parent?.path, name].filter(Boolean).join('/'),
+        kind: kind === 'folder' ? 'folder' : 'markdown'
+      }
+      driveCreatedNotes.push(entry)
+      return parent ? [driveNote, driveExtraNote, entry] : [...driveEntries, entry]
+    },
     renameGoogleDriveItem: async () => driveNote,
     trashGoogleDriveItem: async () => undefined,
     disconnectGoogleDriveWorkspace: async () => undefined
@@ -185,7 +209,7 @@ function installMocks() {
       id: 'web-note',
       path: 'Verification/Codex Drive smoke test.md',
       kind: 'markdown',
-      content: markdown,
+      content: editorMarkdownFixture,
       revision: 1
     },
     {
@@ -220,6 +244,23 @@ function installMocks() {
           return parent === directory
         })
       })
+    }
+    if (path === `/api/workspaces/${workspace.id}/operations` && init?.method === 'POST') {
+      const body = JSON.parse(String(init.body ?? '{}')) as {
+        operation?: { type?: string; path?: string; fileId?: string; content?: string }
+      }
+      const operation = body.operation
+      if (operation?.type === 'create-file' && operation.path && operation.fileId) {
+        w.__createdPkmsPaths.push(operation.path)
+        pkmsFiles.push({
+          id: operation.fileId,
+          path: operation.path,
+          kind: 'markdown',
+          content: operation.content ?? '',
+          revision: 0
+        })
+      }
+      return json({ acceptedRevision: workspace.revision + 1 })
     }
     if (path === `/api/workspaces/${workspace.id}/sync-status`)
       return json({ serverRevision: 1, githubStatus: 'synced', pendingFiles: 0 })
