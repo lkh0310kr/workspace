@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   EditorMarkdownEditor,
+  EditorMenuList,
   EditorTreeView,
   flattenEditorTree,
   markdownTitleFor,
   projectEditorTreeRows,
   type EditorDocumentSession,
+  type EditorMenuItem,
   type EditorSyncPhase,
   type EditorTreeItem,
   type EditorTreeViewItem
@@ -161,12 +163,19 @@ export function PkmsGoogleDrivePane({
   const [treeViewportHeight, setTreeViewportHeight] = useState(600)
   const treeRootRef = useRef<HTMLElement>(null)
   const treeScrollRef = useRef<HTMLDivElement>(null)
+  const driveSearchInputRef = useRef<HTMLInputElement>(null)
+  const treeContextMenuRef = useRef<HTMLDivElement>(null)
   const [directory, setDirectory] = useState({
     id: null as string | null,
     path: '',
     ancestors: [] as Array<{ id: string | null; path: string; name: string }>
   })
   const [activeFile, setActiveFile] = useState<GoogleDriveWorkspaceEntry | null>(null)
+  const [treeContextMenu, setTreeContextMenu] = useState<{
+    entry: GoogleDriveWorkspaceEntry | null
+    x: number
+    y: number
+  } | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<GoogleDriveWorkspaceEntry[]>([])
@@ -255,6 +264,17 @@ export function PkmsGoogleDrivePane({
     setTreeBranches((current) => new Map(current).set(directory.path, nextEntries))
   }, [directory.id, directory.path, root])
 
+  const refreshEntryParent = useCallback(
+    async (entry: GoogleDriveWorkspaceEntry) => {
+      if (!root) return
+      const parentPath = entry.path.split('/').slice(0, -1).join('/')
+      const parentId = entry.parents?.[0] ?? null
+      const nextEntries = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, parentId)
+      setTreeBranches((current) => new Map(current).set(parentPath, nextEntries))
+    },
+    [root]
+  )
+
   useEffect(() => {
     const element = treeScrollRef.current
     if (!element) return
@@ -268,11 +288,12 @@ export function PkmsGoogleDrivePane({
   useEffect(() => {
     if (!searchRequest) return
     setSearchOpen(true)
-    window.setTimeout(
-      () => document.querySelector<HTMLInputElement>('[data-drive-search]')?.focus(),
-      0
-    )
+    window.setTimeout(() => driveSearchInputRef.current?.focus(), 0)
   }, [searchRequest])
+
+  useEffect(() => {
+    if (treeOpen && treeScrollRef.current) treeScrollRef.current.scrollTop = treeScrollTop
+  }, [treeOpen, treeScrollTop])
 
   const toggleFolder = useCallback(
     async (entry: GoogleDriveWorkspaceEntry) => {
@@ -387,10 +408,7 @@ export function PkmsGoogleDrivePane({
         return
       event.preventDefault()
       setSearchOpen(true)
-      window.setTimeout(
-        () => document.querySelector<HTMLInputElement>('[data-drive-search]')?.focus(),
-        0
-      )
+      window.setTimeout(() => driveSearchInputRef.current?.focus(), 0)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -484,7 +502,7 @@ export function PkmsGoogleDrivePane({
   )
 
   const createItem = useCallback(
-    async (kind: 'markdown' | 'folder') => {
+    async (kind: 'markdown' | 'folder', parentPath = directory.path) => {
       if (!root) return
       const initialName = kind === 'markdown' ? 'Untitled.md' : 'New Folder'
       const name = window.prompt(
@@ -494,14 +512,14 @@ export function PkmsGoogleDrivePane({
       if (!name?.trim()) return
       setBusy(true)
       try {
-        const path = directory.path ? `${directory.path}/${name.trim()}` : name.trim()
+        const path = parentPath ? `${parentPath}/${name.trim()}` : name.trim()
         const updatedEntries = await window.pkmsDesktop.createGoogleDriveItem(
           root.id,
-          directory.path,
+          parentPath,
           kind,
           name.trim()
         )
-        setTreeBranches((current) => new Map(current).set(directory.path, updatedEntries))
+        setTreeBranches((current) => new Map(current).set(parentPath, updatedEntries))
         setStatus(`Created ${path}`)
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Could not create the item.')
@@ -512,51 +530,143 @@ export function PkmsGoogleDrivePane({
     [directory.path, root]
   )
 
-  const renameActive = useCallback(async () => {
-    if (!root || !activeFile) return
-    const name = window.prompt('Rename item', activeFile.name)
-    if (!name?.trim() || name.trim() === activeFile.name) return
-    setBusy(true)
-    try {
-      const renamed = await window.pkmsDesktop.renameGoogleDriveItem(
-        root.id,
-        activeFile.id,
-        name.trim()
-      )
-      setActiveFile(renamed)
-      session?.updateItem?.({
-        providerId: `pkms-google-drive:${root.id}`,
-        itemId: renamed.id,
-        parentId: renamed.parents?.[0] ?? null,
-        name: renamed.name,
-        path: renamed.path,
-        kind: 'markdown',
-        readOnly: false
-      })
-      await refreshDirectory()
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not rename the item.')
-    } finally {
-      setBusy(false)
-    }
-  }, [activeFile, refreshDirectory, root, session])
+  const renameEntry = useCallback(
+    async (entry: GoogleDriveWorkspaceEntry) => {
+      if (!root) return
+      const name = window.prompt('Rename item', entry.name)
+      if (!name?.trim() || name.trim() === entry.name) return
+      setBusy(true)
+      try {
+        const renamed = await window.pkmsDesktop.renameGoogleDriveItem(
+          root.id,
+          entry.id,
+          name.trim()
+        )
+        if (activeFile?.id === entry.id) {
+          setActiveFile(renamed)
+          session?.updateItem?.({
+            providerId: `pkms-google-drive:${root.id}`,
+            itemId: renamed.id,
+            parentId: renamed.parents?.[0] ?? null,
+            name: renamed.name,
+            path: renamed.path,
+            kind: 'markdown',
+            readOnly: false
+          })
+        }
+        await refreshEntryParent(entry)
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not rename the item.')
+      } finally {
+        setBusy(false)
+      }
+    },
+    [activeFile, refreshEntryParent, root, session]
+  )
 
-  const trashActive = useCallback(async () => {
-    if (!root || !activeFile || !window.confirm(`Move “${activeFile.name}” to Google Drive trash?`))
-      return
-    setBusy(true)
-    try {
-      await window.pkmsDesktop.trashGoogleDriveItem(root.id, activeFile.id)
-      await session?.close()
-      setSession(null)
-      setActiveFile(null)
-      await refreshDirectory()
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not trash the item.')
-    } finally {
-      setBusy(false)
+  const trashEntry = useCallback(
+    async (entry: GoogleDriveWorkspaceEntry) => {
+      if (!root || !window.confirm(`Move “${entry.name}” to Google Drive trash?`)) return
+      setBusy(true)
+      try {
+        await window.pkmsDesktop.trashGoogleDriveItem(root.id, entry.id)
+        if (activeFile?.id === entry.id) {
+          await session?.close()
+          setSession(null)
+          setActiveFile(null)
+        }
+        await refreshEntryParent(entry)
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not trash the item.')
+      } finally {
+        setBusy(false)
+      }
+    },
+    [activeFile, refreshEntryParent, root, session]
+  )
+
+  const openTreeContextMenu = useCallback(
+    (entry: GoogleDriveWorkspaceEntry | null, x: number, y: number) => {
+      const height = entry?.kind === 'folder' ? 168 : entry ? 116 : 112
+      setTreeContextMenu({
+        entry,
+        x: Math.max(8, Math.min(x, window.innerWidth - 200)),
+        y: Math.max(8, Math.min(y, window.innerHeight - height - 8))
+      })
+    },
+    []
+  )
+
+  useEffect(() => {
+    if (!treeContextMenu) return
+    const dismiss = (event: Event) => {
+      if (!treeContextMenuRef.current?.contains(event.target as Node)) setTreeContextMenu(null)
     }
-  }, [activeFile, refreshDirectory, root, session])
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setTreeContextMenu(null)
+    }
+    window.addEventListener('pointerdown', dismiss, true)
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      window.removeEventListener('pointerdown', dismiss, true)
+      window.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [treeContextMenu])
+
+  const contextMenuItems: EditorMenuItem[] = treeContextMenu
+    ? [
+        ...(treeContextMenu.entry
+          ? [
+              {
+                type: 'item' as const,
+                id: 'open',
+                label: treeContextMenu.entry.kind === 'folder' ? 'Open folder' : 'Open',
+                onSelect: () => void openEntry(treeContextMenu.entry!)
+              }
+            ]
+          : []),
+        ...(treeContextMenu.entry?.kind === 'folder' || !treeContextMenu.entry
+          ? [
+              {
+                type: 'item' as const,
+                id: 'new-note',
+                label: 'New note',
+                onSelect: () => void createItem('markdown', treeContextMenu.entry?.path ?? '')
+              },
+              {
+                type: 'item' as const,
+                id: 'new-folder',
+                label: 'New folder',
+                onSelect: () => void createItem('folder', treeContextMenu.entry?.path ?? '')
+              }
+            ]
+          : []),
+        ...(treeContextMenu.entry
+          ? [
+              {
+                type: 'item' as const,
+                id: 'rename',
+                label: 'Rename',
+                onSelect: () => void renameEntry(treeContextMenu.entry!)
+              },
+              {
+                type: 'item' as const,
+                id: 'delete',
+                label: 'Move to trash',
+                danger: true,
+                onSelect: () => void trashEntry(treeContextMenu.entry!)
+              }
+            ]
+          : []),
+        {
+          type: 'item',
+          id: 'sync',
+          label: 'Sync now',
+          disabled: busy,
+          onSelect: () => void syncNow()
+        }
+      ]
+    : []
 
   return (
     <main
@@ -574,36 +684,18 @@ export function PkmsGoogleDrivePane({
         style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 12 }}
       >
         <div>
-          <div className="pkms-google-drive-eyebrow">PKMS Google Drive</div>
+          <div className="pkms-google-drive-eyebrow">PKMS</div>
           <p style={{ margin: '4px 0' }}>{status}</p>
         </div>
-        <div
-          className="pkms-google-drive-controls"
-          style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}
-        >
-          {!root && (
-            <button
-              type="button"
-              onClick={() => void connect()}
-              disabled={busy || !connection.clientConfigured}
-            >
-              Connect Google Drive
-            </button>
-          )}
-          {root && (
-            <>
-              <button type="button" onClick={() => void createItem('markdown')} disabled={busy}>
-                New note
-              </button>
-              <button type="button" onClick={() => void createItem('folder')} disabled={busy}>
-                New folder
-              </button>
-              <button type="button" onClick={() => void syncNow()} disabled={busy}>
-                Sync now
-              </button>
-            </>
-          )}
-        </div>
+        {!root && (
+          <button
+            type="button"
+            onClick={() => void connect()}
+            disabled={busy || !connection.clientConfigured}
+          >
+            Connect Google Drive
+          </button>
+        )}
       </header>
       {!connection.clientConfigured && (
         <p role="status" style={{ padding: 16 }}>
@@ -680,6 +772,7 @@ export function PkmsGoogleDrivePane({
                 {searchOpen ? (
                   <>
                     <input
+                      ref={driveSearchInputRef}
                       data-drive-search
                       aria-label="Search PKMS Google Drive workspace"
                       placeholder="Search workspace"
@@ -763,6 +856,16 @@ export function PkmsGoogleDrivePane({
                     emptyContent={
                       <span style={{ padding: 8, opacity: 0.65 }}>This folder is empty.</span>
                     }
+                    onRootContextMenu={(event) =>
+                      openTreeContextMenu(null, event.clientX, event.clientY)
+                    }
+                    onContextMenu={(item, event) =>
+                      openTreeContextMenu(
+                        item.source as GoogleDriveWorkspaceEntry,
+                        event.clientX,
+                        event.clientY
+                      )
+                    }
                     onActivate={(item) => {
                       const entry = item.source as GoogleDriveWorkspaceEntry
                       if (entry.kind === 'folder') void toggleFolder(entry)
@@ -770,6 +873,19 @@ export function PkmsGoogleDrivePane({
                     }}
                   />
                 </div>
+              )}
+              {treeContextMenu && (
+                <EditorMenuList
+                  ref={treeContextMenuRef}
+                  className="tree-context-menu"
+                  ariaLabel={
+                    treeContextMenu.entry ? `${treeContextMenu.entry.name} actions` : 'PKMS actions'
+                  }
+                  dangerClassName="danger"
+                  items={contextMenuItems}
+                  style={{ left: treeContextMenu.x, top: treeContextMenu.y }}
+                  onClose={() => setTreeContextMenu(null)}
+                />
               )}
             </aside>
           )}
@@ -789,12 +905,6 @@ export function PkmsGoogleDrivePane({
                   <div className="pkms-google-drive-file-actions">
                     <button type="button" onClick={() => void session.save()} disabled={busy}>
                       Save
-                    </button>
-                    <button type="button" onClick={() => void renameActive()} disabled={busy}>
-                      Rename
-                    </button>
-                    <button type="button" onClick={() => void trashActive()} disabled={busy}>
-                      Delete
                     </button>
                   </div>
                 }

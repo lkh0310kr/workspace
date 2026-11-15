@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { MemoryRouter } from 'react-router'
-import PkmsClientApp from '@pkms/client/PkmsClientApp'
-import pkmsStyles from '@pkms/client/styles.css?inline'
 import editorTreeStyles from '@workspace/editor/tree.css?inline'
 import editorHostStyles from '@workspace/editor/editorHost.css?inline'
 import editorMarkdownStyles from '@workspace/editor/markdown.css?inline'
@@ -25,7 +22,7 @@ export function PkmsPane({
   groupFocused = true
 }: PkmsPaneProps): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
-  const [mode, setMode] = useState<'google-drive' | 'existing-pkms'>('google-drive')
+  const innerRootRef = useRef<Root | null>(null)
   const [treeOpen, setTreeOpen] = useState(true)
   const [searchRequest, setSearchRequest] = useState(0)
   const lastTreeToggleAt = useRef(0)
@@ -39,29 +36,30 @@ export function PkmsPane({
 
   useEffect(() => {
     return onToggleExplorerShortcut(() => {
-      if (mode !== 'google-drive' || !paneVisible || !active || !groupFocused) return
+      if (!paneVisible || !active || !groupFocused) return
       toggleDriveTree()
     })
-  }, [mode, paneVisible, active, groupFocused, toggleDriveTree])
+  }, [paneVisible, active, groupFocused, toggleDriveTree])
 
   useEffect(() => {
     return onFindInFilesShortcut(() => {
-      if (mode !== 'google-drive' || !paneVisible || !active || !groupFocused) return
+      if (!paneVisible || !active || !groupFocused) return
+      setTreeOpen(true)
       setSearchRequest((request) => request + 1)
     })
-  }, [mode, paneVisible, active, groupFocused])
+  }, [paneVisible, active, groupFocused])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isExplorerToggleShortcut(event)) return
-      if (mode !== 'google-drive' || !paneVisible || !active || !groupFocused) return
+      if (!paneVisible || !active || !groupFocused) return
       event.preventDefault()
       event.stopImmediatePropagation()
       toggleDriveTree()
     }
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [mode, paneVisible, active, groupFocused, toggleDriveTree])
+  }, [paneVisible, active, groupFocused, toggleDriveTree])
 
   useEffect(() => {
     const container = hostRef.current
@@ -75,11 +73,7 @@ export function PkmsPane({
     mountContainer.replaceChildren(host)
     const shadow = host.attachShadow({ mode: 'open' })
     const style = document.createElement('style')
-    const scopedPkmsStyles = pkmsStyles
-      .replaceAll(':root', ':host')
-      .replace(/(^|,)\s*body(?=\s*[, {])/gm, '$1:host')
-    style.textContent = `${scopedPkmsStyles}
-${editorTreeStyles.replaceAll(':root', ':host').replace(/(^|,)\s*body(?=\s*[, {])/gm, '$1:host')}
+    style.textContent = `${editorTreeStyles.replaceAll(':root', ':host').replace(/(^|,)\s*body(?=\s*[, {])/gm, '$1:host')}
 ${editorHostStyles}
 ${editorMarkdownStyles}
 ${editorMarkdownDocumentStyles}
@@ -95,21 +89,20 @@ ${googleDriveStyles}
     shadow.append(style, mount)
 
     const root: Root = createRoot(mount)
-    root.render(
-      mode === 'google-drive' ? (
-        <PkmsGoogleDrivePane treeOpen={treeOpen} searchRequest={searchRequest} />
-      ) : (
-        <MemoryRouter initialEntries={['/']}>
-          <PkmsClientApp />
-        </MemoryRouter>
-      )
-    )
+    innerRootRef.current = root
 
     return () => {
+      innerRootRef.current = null
       root.unmount()
       host.remove()
     }
-  }, [mode])
+  }, [])
+
+  useEffect(() => {
+    innerRootRef.current?.render(
+      <PkmsGoogleDrivePane treeOpen={treeOpen} searchRequest={searchRequest} />
+    )
+  }, [treeOpen, searchRequest])
 
   return (
     <div
@@ -124,31 +117,6 @@ ${googleDriveStyles}
         overflow: 'hidden'
       }}
     >
-      <nav
-        aria-label="PKMS storage source"
-        style={{
-          display: 'flex',
-          flex: '0 0 34px',
-          gap: 4,
-          padding: '3px 8px',
-          borderBottom: '1px solid var(--border-color, #8884)'
-        }}
-      >
-        <button
-          type="button"
-          aria-pressed={mode === 'google-drive'}
-          onClick={() => setMode('google-drive')}
-        >
-          Google Drive
-        </button>
-        <button
-          type="button"
-          aria-pressed={mode === 'existing-pkms'}
-          onClick={() => setMode('existing-pkms')}
-        >
-          Existing PKMS
-        </button>
-      </nav>
       <div ref={hostRef} style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }} />
     </div>
   )
