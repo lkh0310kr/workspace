@@ -1,5 +1,11 @@
 # PKMS Google Drive 직접 동기화
 
+## 명칭
+
+- 기능·저장소 adapter의 표준 명칭은 **PKMS Google Drive**다.
+- 구현 디렉터리는 `packages/pkms-google-drive`, npm workspace import는 `@pkms/google-drive`다. 두 이름은 같은 shared package를 가리킨다.
+- 모든 신규 코드·문서·설정에서는 **PKMS Google Drive**라는 표준 명칭을 사용한다.
+
 ## 목표
 
 PKMS 자료의 durable source of truth를 Google Drive로 옮긴다. 각 client가 OAuth로 사용자의 Drive API를 직접 호출하고, 동기화 요청을 전달하는 PKMS Worker·PKMS Server·Supabase·GitHub 경로를 데이터 경로에서 제거한다. 앱의 정적 파일을 제공하는 hosting은 저장·인증·동기화 요청을 중계하지 않는 한 이 데이터 경로에 포함하지 않는다.
@@ -90,4 +96,4 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 
 ## 현 구현 경계
 
-공통 [Google Drive package](../../../packages/pkms-google-drive/README.md)는 직접 Drive API client, Drive folder 기반 tree/file repository, IndexedDB outbox, immutable checksummed operation log, metadata/content replica와 cursor ordering primitive, foreground-only Web OAuth adapter를 제공한다. 이는 아직 `PkmsClientApp`, Desktop sync bridge, iOS 저장 provider에 연결되지 않았으며, Desktop/iOS OAuth, outbox replay/projection orchestration, Yjs update convergence 및 production cutover도 완료되지 않았다. 기존 [격리 browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 API 가능성 실험으로 유지한다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.
+공통 [PKMS Google Drive package](../../../packages/pkms-google-drive/README.md)는 직접 Drive API client, Drive folder 기반 tree/file repository, IndexedDB outbox, immutable checksummed operation log, metadata/content replica와 cursor ordering primitive, foreground-only Web OAuth adapter를 제공한다. 이는 아직 `PkmsClientApp`, Desktop sync bridge, iOS 저장 provider에 연결되지 않았으며, Desktop/iOS OAuth, outbox replay/projection orchestration, Yjs update convergence 및 production cutover도 완료되지 않았다. 기존 [격리 browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 API 가능성 실험으로 유지한다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.

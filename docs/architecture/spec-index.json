@@ -1123,7 +1123,7 @@
       "sources": [
         {
           "path": "packages/pkms-google-drive/README.md",
-          "sha256": "c23ffc5e11b2735830be056378a18392c0fe3b891beb7fc1f09394a08389e3f2"
+          "sha256": "d6db58f37f6e286f772df3e002f57b1b8e1a76d3938462dd397b53f66869e82f"
         },
         {
           "path": "packages/pkms-google-drive/package.json",
@@ -1131,7 +1131,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/index.ts",
-          "sha256": "cecab00ae3d06c015bb572acd6541652f217d98806599187191791ace42cf7ee"
+          "sha256": "5a745406b16a263ace0c1c03625fd718dc6efdb829a269755310cb605fe2de2b"
         },
         {
           "path": "packages/pkms-google-drive/src/googleDriveClient.ts",
@@ -1143,7 +1143,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/outbox.ts",
-          "sha256": "b169449ee62612eeb443df8b2b39158bb34e8bd30927e11b3a3d442b5fec978a"
+          "sha256": "8512591c139f1414424faca7cafdc1638909f877ffdb1c792861b5ff9be8cb08"
         },
         {
           "path": "packages/pkms-google-drive/src/replica.ts",
@@ -1155,7 +1155,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/operationLog.ts",
-          "sha256": "e25d4df95646c1f8af4b98462555886ad0bd68494cbc9c9ff375c3be021d11d8"
+          "sha256": "9107c5e8f238a441aac1ee2e7680be83a597039a4f61ef387cd1ebd61979f992"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveClient.test.ts",
@@ -1180,6 +1180,14 @@
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveOperationLog.test.ts",
           "sha256": "280e71460776d9ce1e9cd28c124e7d61ee7fd3afec5fc51caff502d516a43286"
+        },
+        {
+          "path": "packages/pkms-google-drive/src/syncEngine.ts",
+          "sha256": "8713780a3032dfff156af4c43ebc48da01e0edcd980ecf5d92c5fa2ac5cec05f"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/googleDriveSyncEngine.test.ts",
+          "sha256": "20ce71d4eee26b9ba7f32440353a23aa14e415fd446787126673ad5adbffe239"
         }
       ]
     },

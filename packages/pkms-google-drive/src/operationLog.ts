@@ -144,7 +144,34 @@ export class GoogleDriveOperationLog {
     return operations.sort(
       (left, right) =>
         left.sequence - right.sequence ||
-        left.createdAt - right.createdAt ||
+        left.deviceId.localeCompare(right.deviceId) ||
+        left.operationId.localeCompare(right.operationId)
+    )
+  }
+
+  async listUnapplied(appliedOperationIds: ReadonlySet<string>): Promise<DriveLogicalOperation[]> {
+    const folder = await this.getOperationsFolder()
+    const files = await this.client.listChildren(folder.id)
+    const operations: DriveLogicalOperation[] = []
+    for (const file of files) {
+      if (file.mimeType === 'application/vnd.google-apps.folder')
+        throw new Error('Unexpected folder found in the Google Drive operation log.')
+      const operationId = file.appProperties?.pkmsOperationId
+      if (!operationId) throw new Error(`Drive operation ${file.id} has no stable operation ID.`)
+      if (appliedOperationIds.has(operationId)) continue
+      const bytes = await this.client.download(file.id)
+      const operation = decodeDriveLogicalOperation(bytes)
+      if (operation.workspaceRootId !== this.workspaceRootId)
+        throw new Error(`Operation ${operation.operationId} belongs to another workspace.`)
+      if (operationId !== operation.operationId)
+        throw new Error(`Operation identity mismatch for Drive file ${file.id}.`)
+      if (file.appProperties?.pkmsPayloadSha256 !== (await sha256(bytes)))
+        throw new Error(`Operation payload checksum mismatch for Drive file ${file.id}.`)
+      operations.push(operation)
+    }
+    return operations.sort(
+      (left, right) =>
+        left.sequence - right.sequence ||
         left.deviceId.localeCompare(right.deviceId) ||
         left.operationId.localeCompare(right.operationId)
     )

@@ -12,10 +12,16 @@ export {
 export {
   IndexedDbDriveOutbox,
   MemoryDriveOutbox,
+  enqueueDriveMutation,
   type DriveOutbox,
   type DriveOutboxMutation,
   type DriveOutboxOperation
 } from './outbox'
+export {
+  GoogleDriveSyncEngine,
+  type DriveSyncResult,
+  type GoogleDriveOperationLogPort
+} from './syncEngine'
 export {
   IndexedDbGoogleDriveReplica,
   MemoryGoogleDriveReplica,

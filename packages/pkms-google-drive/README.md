@@ -1,4 +1,4 @@
-# `@pkms/google-drive`
+# PKMS Google Drive (`@pkms/google-drive`)
 
 Shared Google Drive API and workspace repository used by PKMS platform adapters.
 
