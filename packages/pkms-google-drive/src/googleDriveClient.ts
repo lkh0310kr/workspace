@@ -313,6 +313,29 @@ export class GoogleDriveClient {
     )
   }
 
+  async updateFileMetadata(
+    fileId: string,
+    metadata: Record<string, unknown>,
+    options: { addParents?: string; removeParents?: string } = {}
+  ): Promise<DriveFile> {
+    const query = new URLSearchParams({
+      fields:
+        'id,name,mimeType,parents,modifiedTime,md5Checksum,size,trashed,appProperties,webViewLink'
+    })
+    if (options.addParents) query.set('addParents', options.addParents)
+    if (options.removeParents) query.set('removeParents', options.removeParents)
+    return this.request<DriveFile>(`${DRIVE_API}/files/${encodeURIComponent(fileId)}?${query}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(metadata),
+      retryable: false
+    })
+  }
+
+  async trashFile(fileId: string): Promise<DriveFile> {
+    return this.updateFileMetadata(fileId, { trashed: true })
+  }
+
   async download(fileId: string, signal?: AbortSignal): Promise<Uint8Array> {
     const url = `${DRIVE_API}/files/${encodeURIComponent(fileId)}?alt=media`
     let refreshedAfter401 = false

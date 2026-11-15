@@ -330,9 +330,7 @@
       "owner": "apps/workspace-app",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "docs/architecture/workspace/editor/providers.md"
-      ],
+      "documents": ["docs/architecture/workspace/editor/providers.md"],
       "sources": [
         {
           "path": "apps/workspace-app/src/renderer/src/activeEditorView.ts",
@@ -995,10 +993,7 @@
       "owner": "apps/pkms-web",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/pkms-web/README.md",
-        "docs/architecture/pkms/web/README.md"
-      ],
+      "documents": ["apps/pkms-web/README.md", "docs/architecture/pkms/web/README.md"],
       "sources": [
         {
           "path": "apps/pkms-web/app/routes.ts",
@@ -1020,10 +1015,7 @@
       "owner": "apps/pkms-server",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/pkms-server/README.md",
-        "docs/architecture/pkms/server/README.md"
-      ],
+      "documents": ["apps/pkms-server/README.md", "docs/architecture/pkms/server/README.md"],
       "sources": [
         {
           "path": "apps/pkms-server/src/app.ts",
@@ -1086,10 +1078,7 @@
       "owner": "apps/pkms-ios",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/pkms-ios/README.md",
-        "docs/architecture/pkms/ios/README.md"
-      ],
+      "documents": ["apps/pkms-ios/README.md", "docs/architecture/pkms/ios/README.md"],
       "sources": [
         {
           "path": "apps/pkms-ios/NativeMarkdownDocument.swift",
@@ -1128,20 +1117,37 @@
       "specStatus": "drafted",
       "coverage": "Direct Google Drive REST client behavior; application sync orchestration and platform auth remain separate integration work.",
       "documents": [
+        "packages/pkms-google-drive/README.md",
         "docs/architecture/pkms/google-drive-direct-sync.md"
       ],
       "sources": [
         {
+          "path": "packages/pkms-google-drive/README.md",
+          "sha256": "9f064d78ca9b832a0ca2772402b5d0a71552d9c282e31e9856225d435b9ca2de"
+        },
+        {
           "path": "packages/pkms-google-drive/package.json",
-          "sha256": "980a2dd2c968f8f2f491d7e20621451c87157d519e4c80d31c3ea2d4ecb48d9e"
+          "sha256": "074dd3979931360501bb3758164214056e8d36f8bf0adc88cc61ba54183fff47"
         },
         {
           "path": "packages/pkms-google-drive/src/index.ts",
-          "sha256": "6d31b7fb50004e381014fd509a281e852d280fb3f31fb24b75dcae9406826338"
+          "sha256": "be8d57c672602cda8b669985691fe2a924eadd598c96ebbba7bb2d71c47b9269"
         },
         {
           "path": "packages/pkms-google-drive/src/googleDriveClient.ts",
-          "sha256": "9dc471260752d23396915d56080b029c671aac8185325e9030f7f339c610d60c"
+          "sha256": "61ff1bdabcf811f0b1f948c012ebded89d87fdec43197d5e552a690b9fcc641d"
+        },
+        {
+          "path": "packages/pkms-google-drive/src/workspaceRepository.ts",
+          "sha256": "fbfdf9b0167ccf19ae64662719aee5f66cbaedbee32981dfb7f7e67e7e5c058f"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/googleDriveClient.test.ts",
+          "sha256": "ba8d3eb79861865cc1ceb7b9946fa5df469d0c42b8ae2657b223b06351bc2e48"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/googleDriveWorkspaceRepository.test.ts",
+          "sha256": "bf799351e358d73b4435a33ba65e48e5b972a032be45216ee3797d107e6e62cf"
         }
       ]
     },
@@ -1151,10 +1157,7 @@
       "owner": "packages/pkms-core",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "packages/pkms-core/README.md",
-        "docs/architecture/pkms/core/README.md"
-      ],
+      "documents": ["packages/pkms-core/README.md", "docs/architecture/pkms/core/README.md"],
       "sources": [
         {
           "path": "apps/pkms-ios/NativeMarkdownDocument.swift",

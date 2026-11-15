@@ -65,19 +65,19 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 
 ## 수락 시나리오
 
-| ID | 입력·조건 | 기대 결과 |
-|---|---|---|
-| DRIVE-SYNC-01 | root 연결, 앱 재실행, 다른 기기에서 동일 계정 연결 | 같은 Drive root ID와 file identity를 복구한다. root 불일치 시 쓰기 전에 멈춘다. |
-| DRIVE-SYNC-02 | 깊은 tree, 빈 folder, dot-prefix path 및 binary asset | 새로고침 뒤 tree와 bytes가 보존되고 reserved metadata만 Files tree에서 숨긴다. |
-| DRIVE-SYNC-03 | Drive offline/429/5xx/401/403, client 종료, 응답 유실 | durable outbox/cursor를 보존하고 bounded retry 또는 재인증 후 중복 없이 이어간다. |
-| DRIVE-SYNC-04 | change-feed 여러 페이지 중간 fetch 또는 적용 실패 | 일부 변경을 재적용해도 idempotent하며 cursor는 마지막 완료 지점에 남는다. |
-| DRIVE-SYNC-05 | 같은 Markdown을 두 기기가 같은 base에서 동시 수정 | 양쪽 Yjs update가 merge되어 두 replica와 Drive projection에서 모두 보존된다. |
-| DRIVE-SYNC-06 | 같은 asset 동시 수정 | 양쪽 bytes가 보존되고 conflict로 표시된다. |
-| DRIVE-SYNC-07 | rename/move/delete와 편집이 겹치거나 destination collision 발생 | 변경 history와 내용이 유지되고 결과를 모호하지 않게 표시한다. |
-| DRIVE-SYNC-08 | 검색어와 Markdown contents가 local cache에 반영 | 전체 text search가 cache/index에서 작동하며 Drive metadata search만으로 내용을 찾는다고 오해시키지 않는다. |
-| DRIVE-SYNC-09 | 기존 PKMS snapshot을 격리 root로 이관 | recursive path/folder/size/hash 비교가 100% 일치할 때만 parity를 통과시킨다. |
-| DRIVE-SYNC-10 | browser token 만료, native refresh token 만료/revoke | 변경을 잃지 않고 재인증 요청을 보여주며 실패 상태를 synced로 표시하지 않는다. |
-| DRIVE-SYNC-11 | Web 탭 종료/백그라운드, iOS suspension, Desktop 종료 | 각 OS가 약속할 수 있는 foreground/background 경계를 지키고, 재개 시 missed changes를 따라잡는다. |
+| ID            | 입력·조건                                                       | 기대 결과                                                                                                  |
+| ------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| DRIVE-SYNC-01 | root 연결, 앱 재실행, 다른 기기에서 동일 계정 연결              | 같은 Drive root ID와 file identity를 복구한다. root 불일치 시 쓰기 전에 멈춘다.                            |
+| DRIVE-SYNC-02 | 깊은 tree, 빈 folder, dot-prefix path 및 binary asset           | 새로고침 뒤 tree와 bytes가 보존되고 reserved metadata만 Files tree에서 숨긴다.                             |
+| DRIVE-SYNC-03 | Drive offline/429/5xx/401/403, client 종료, 응답 유실           | durable outbox/cursor를 보존하고 bounded retry 또는 재인증 후 중복 없이 이어간다.                          |
+| DRIVE-SYNC-04 | change-feed 여러 페이지 중간 fetch 또는 적용 실패               | 일부 변경을 재적용해도 idempotent하며 cursor는 마지막 완료 지점에 남는다.                                  |
+| DRIVE-SYNC-05 | 같은 Markdown을 두 기기가 같은 base에서 동시 수정               | 양쪽 Yjs update가 merge되어 두 replica와 Drive projection에서 모두 보존된다.                               |
+| DRIVE-SYNC-06 | 같은 asset 동시 수정                                            | 양쪽 bytes가 보존되고 conflict로 표시된다.                                                                 |
+| DRIVE-SYNC-07 | rename/move/delete와 편집이 겹치거나 destination collision 발생 | 변경 history와 내용이 유지되고 결과를 모호하지 않게 표시한다.                                              |
+| DRIVE-SYNC-08 | 검색어와 Markdown contents가 local cache에 반영                 | 전체 text search가 cache/index에서 작동하며 Drive metadata search만으로 내용을 찾는다고 오해시키지 않는다. |
+| DRIVE-SYNC-09 | 기존 PKMS snapshot을 격리 root로 이관                           | recursive path/folder/size/hash 비교가 100% 일치할 때만 parity를 통과시킨다.                               |
+| DRIVE-SYNC-10 | browser token 만료, native refresh token 만료/revoke            | 변경을 잃지 않고 재인증 요청을 보여주며 실패 상태를 synced로 표시하지 않는다.                              |
+| DRIVE-SYNC-11 | Web 탭 종료/백그라운드, iOS suspension, Desktop 종료            | 각 OS가 약속할 수 있는 foreground/background 경계를 지키고, 재개 시 missed changes를 따라잡는다.           |
 
 ## 릴리스 차단 조건
 
@@ -90,4 +90,4 @@ Binary asset은 변경 내용 자체를 merge하지 않는다. 각 version을 im
 
 ## 현 구현 경계
 
-현재 [Google Drive browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 격리된 app-created folder에서 CRUD와 change-feed 일부를 증명했을 뿐, PKMS provider나 Desktop/iOS와 연결되지 않았다. 이 설계가 production 전환을 뜻하지 않는다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.
+공통 [Google Drive package](../../../packages/pkms-google-drive/README.md)는 직접 Drive API client와 Drive folder 기반 tree/file repository를 제공한다. 이는 아직 `PkmsClientApp`, Desktop sync bridge, iOS 저장 provider에 연결되지 않았으며, Drive OAuth, durable outbox, Yjs operation convergence 및 production cutover도 완료되지 않았다. 기존 [격리 browser prototype](../workspace/pkms/folder-sync/research/google-drive-direct-sync.md)은 API 가능성 실험으로 유지한다. 진행 상태와 각 단계의 증거는 [PKMS acceptance checklist](./acceptance-checklist.md)에 기록한다.

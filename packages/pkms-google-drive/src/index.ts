@@ -4,6 +4,10 @@ export {
   GoogleDriveClient,
   applyDriveChanges
 } from './googleDriveClient'
+export {
+  GoogleDriveWorkspaceRepository,
+  type GoogleDriveWorkspaceEntry
+} from './workspaceRepository'
 export type {
   DriveAccessTokenProvider,
   DriveChange,
