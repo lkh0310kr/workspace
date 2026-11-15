@@ -1123,7 +1123,7 @@
       "sources": [
         {
           "path": "packages/pkms-google-drive/README.md",
-          "sha256": "d6db58f37f6e286f772df3e002f57b1b8e1a76d3938462dd397b53f66869e82f"
+          "sha256": "7c8604f781a5751f8f2c998488b6150189665ac219c1c659967e5806bc487884"
         },
         {
           "path": "packages/pkms-google-drive/package.json",
