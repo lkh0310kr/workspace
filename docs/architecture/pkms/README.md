@@ -2,7 +2,7 @@
 
 Global scope에서는 [제품 간 통합](./overview.md)을 관리한다. 구체 구현은 app/package가 소유한다.
 
-- [Desktop folder sync](../workspace/pkms/folder-sync.md)
+- [Desktop 폴더 동기화](../workspace/pkms/folder-sync.md)
 - [PKMS 공통 동기화 acceptance](./acceptance-checklist.md)
 - [Google Drive 직접 동기화 목표 스펙](./google-drive-direct-sync.md)
 - [로컬 삭제와 동시성 guard](../workspace/pkms/local-deletion-sync.md)

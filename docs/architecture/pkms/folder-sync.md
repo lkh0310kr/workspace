@@ -1,3 +1,3 @@
-# PKMS folder sync
+# PKMS 폴더 동기화
 
 현재 app scope 기준은 [Desktop sync 계약](../workspace/pkms/folder-sync.md)이다. 알고리즘·현재 구현·목표·acceptance를 소유 앱에서 관리한다.

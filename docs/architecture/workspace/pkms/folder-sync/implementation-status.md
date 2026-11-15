@@ -1,4 +1,4 @@
-# Folder sync 현재 구현·배포 상태
+# 폴더 동기화 현재 구현·배포 상태
 
 이 문서는 `2026-11-14` source 및 원격 상태 review snapshot이다. 목표 동작은 [contract](./README.md)와 하위 계약을 본다. 이 페이지의 수치와 helper 구조는 구현 관찰이며 미래 구현의 요구가 아니다.
 
@@ -23,7 +23,7 @@
 | 동일 경로·동일 본문 create 재시도        | 기존 identity로 no-op 수렴; 다른 본문은 conflict path 유지                                                                          | 2026-11-13 migration 적용, linked DB regression SQL 통과                                                                                |
 | 한 pass의 sibling folder guarded deletes | 매 delete 직전 최신 pass revision 사용                                                                                              | 2026-11-13 source fix 및 policy unit scenario 추가; full sync acceptance 필요                                                           |
 
-## Persisted schema source shape
+## 영속 스키마 소스 형태
 
 현재 `Persisted` top-level field에는 `itemStates`와 `assetFingerprints`를 추가했다. 전체 field 의미는 [durability contract](./durability-recovery.md)에서 정규 정의한다. JSON 파일에는 명시적 schema version/migration registry가 아직 없다.
 

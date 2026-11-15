@@ -21,7 +21,7 @@
 
 `engineering` 정리에서는 `로봇/연구/TM 협동로봇 소프트웨어/` 아래의 내용이 있는 robotics note 3개를 보존하고 placeholder note와 완전히 중복된 conflict copy를 제거했다. 로컬 Git 변경은 `976631f`로 commit했다. Cloud에는 빈 `engineering` folder metadata가 남아 있고 로컬에도 빈 디렉터리가 다시 만들어졌다. 원격 folder tombstone이 승인될 때까지 이 정리를 완료로 보지 않는다.
 
-## 현재 source 구현
+## 현재 소스 구현
 
 구현은 `apps/workspace-app/src/main/pkms/syncBridge.ts`에 있다.
 
@@ -31,7 +31,7 @@
 - Server는 file의 `expectedRevision`을 확인한다. `protectSubtree`가 있는 folder delete는 현재 보수적인 workspace revision 일치 guard를 사용한다. 대상 subtree 밖에서 일어난 변경도 삭제를 거부할 수 있다. 이는 설계의 대상 전용 guard보다 엄격하며 원격 데이터 보존을 우선한다. 이후 operation path index를 기록하면 guard 범위를 좁힐 수 있다.
 - Folder bridge는 현재 Markdown 문서와 folder metadata를 동기화한다. 다른 로컬 파일과 binary attachment는 manifest와 transfer protocol에 추가되기 전까지 이 삭제 계약의 대상이 아니다.
 
-## Cloud에서 시작된 folder 삭제
+## Cloud에서 시작된 폴더 삭제
 
 Web/Cloud에서 사용자가 folder subtree를 삭제하면 활성 manifest에서 folder marker와 하위 item이 사라진다. Desktop은 revision feed tombstone의 이전 folder path 또는 기존 manifest와 authoritative snapshot의 ID 차이로 삭제를 인식한다. 서버 change feed가 폴더 marker만 tombstone으로 보내더라도 이전 manifest에서 해당 경로 아래 Markdown을 dirty path에 넣어 파일 baseline reconciliation을 수행한다.
 
@@ -85,7 +85,7 @@ Symlink가 이전에 확인한 file/folder path를 대체하면 해당 path와 �
 
 기존 설치에 inventory가 없으면 첫 번째 완전한 로컬 scan으로 초기화한다. 초기 migration scan에서는 삭제를 추론하지 않아 첫 materialization 때 cloud 전용 폴더가 지워지지 않게 한다.
 
-### Pending delete intent
+### 대기 중인 삭제 의도
 
 Network I/O 전에 삭제 후보를 저장한다.
 
@@ -112,7 +112,7 @@ File 삭제는 대상 revision을 확인한다. 기존 operation row에는 변�
 
 Stale revision conflict가 발생하면 pending delete를 취소하고 remote cursor를 따라잡는다. File은 최신 cloud version을 conflict copy로 보존한 뒤 재시도하거나 복원하고 `attention`으로 표시한다. Folder는 최신 cloud subtree를 로컬에 복원하고 폴더를 `attention`으로 표시한다. 복원된 항목에 최신 baseline이 생긴 뒤 사용자가 다시 삭제할 수 있다. 드문 경로지만 원격 편집 내용을 조용히 삭제하지 않도록 보존한다.
 
-## Reconciliation 순서
+## 조정 순서
 
 1. **Watcher event는 신호로만 사용한다.** 변경 경로를 저장한다. `rename`, null filename, watcher 오류 또는 경로 누락은 directory 확인을 예약한다. callback 하나로 삭제 의도를 확정하지 않는다.
 2. **Cloud hydration 전에 scan한다.** 원격 폴더를 만드는 loop 전에 로컬 directory scan을 완료한다. 같은 pass에서 로컬 Markdown 목록과 저장된 baseline을 대조한다. 어느 scan이든 실패하면 마지막 commit inventory를 유지하고 안전하게 중단한다.
@@ -126,7 +126,7 @@ Stale revision conflict가 발생하면 pending delete를 취소하고 remote cu
 10. **Stale-delete conflict를 해결한다.** 원격 변경을 반영하고 최신 cloud version을 보존 또는 복원한다. Pending delete를 정리하고 `attention`을 표시한다.
 11. **놓친 event를 복구한다.** 시작 시와 주기적인 완전 scan에서 같은 inventory diff를 사용한다. Watcher drop이나 오류는 전체 directory scan을 발생시킨다.
 
-| Condition                                          | Result                                                                      |
+| 조건                                               | 결과                                                                        |
 | -------------------------------------------------- | --------------------------------------------------------------------------- |
 | 이전 inventory 없는 첫 완전 scan                   | Inventory를 초기화하고 cloud 전용 folder를 materialize하며 삭제하지 않는다. |
 | 완전 scan에서 baseline Markdown file 누락          | 조건부 file delete를 queue에 넣는다.                                        |
@@ -140,7 +140,7 @@ Stale revision conflict가 발생하면 pending delete를 취소하고 remote cu
 | 같은 directory identity가 새 경로에 나타남         | Move operation 한 번을 보낸다.                                              |
 | Identity가 없거나 모호함                           | Move를 추측하지 않는다.                                                     |
 
-## Tree 표시와 진단 기록
+## 트리 표시와 진단 기록
 
 - Pending deletion은 Files tree에서 즉시 숨기고 stale cloud metadata가 다시 추가하지 못하게 한다.
 - Operation 성공 후 기존 revision feed를 통해 모든 client에서 빈 folder 행을 제거한다.
@@ -150,7 +150,7 @@ Stale revision conflict가 발생하면 pending delete를 취소하고 remote cu
 
 ## Source·배포·수락 상태
 
-| Slice                                                                 | Source status                                          | Operational status                           |
+| 범위                                                                  | 소스 상태                                                | 운영 상태                                      |
 | --------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------- |
 | 완전한 directory inventory와 초기화 전용 migration                    | `syncBridge.ts`에 구현됨                               | macOS watcher/drop/권한 수락 대기            |
 | Durable file/folder delete intent와 tree 숨김                         | `syncBridge.ts`에 구현됨                               | 재시작/offline 응답 유실 확인 대기           |

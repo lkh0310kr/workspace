@@ -2,7 +2,7 @@
 
 Package scope로 제품 여정 J-06과 J-07의 UI·client orchestration을 소유한다. [PkmsClientApp](../../../../packages/pkms-client/src/PkmsClientApp.tsx)은 조립, features/account·files·editor는 계정/작업/문서 수명, client는 HTTP/cache/operation queue, platform은 Desktop bridge 변환, domain은 순수 file/path/encoding 규칙이다. 공통 UI는 [editor package](../../editor/README.md)를 소비한다.
 
-## Host와 transport
+## 호스트와 전송
 
 Web host는 React Router와 same-origin fetch 환경을 제공한다. Desktop host는 MemoryRouter·Shadow DOM·별도 React root와 window.pkmsDesktop을 제공한다. [requestPkmsApi](../../../../packages/pkms-client/src/client/api.ts)는 bridge가 있으면 requestDesktopApi, 없으면 fetch(credentials:same-origin)를 사용한다.
 
@@ -14,7 +14,7 @@ Web non-ok는 JSON message/error·X-Request-ID를 Error에 연결하고 body.err
 
 Desktop sign-in은 device start, verification page open, 최소 5초 polling과 expiresAt를 사용한다. mounted=false면 뒤 응답으로 상태를 갱신하지 않는다. pending이면 provider interval을 반영한다. 오류는 error state, 만료는 retry 안내다. Web auth_error/request_id query는 사용자 메시지로 바꾸고 URL에서 replace로 제거한다. clearAccount는 user/workspaces/active selection을 비운다. 실제 token 저장은 이 패키지가 아닌 host/server가 소유한다.
 
-## Tree·queue·document 수명
+## 트리·대기열·문서 수명
 
 [workspaceTreeCache](../../../../packages/pkms-client/src/client/workspaceTreeCache.ts)의 IndexedDB는 pkms-workspace-cache v3이며 workspace-trees(workspaceId), workspace-operations(key), workspace-assets(key) store다. open 실패 시 promise를 reset해 이후 재시도가 가능하다. tree 쓰기는 workspace별 promise tail로 직렬화하고 이전 실패 때문에 이후 저장을 막지 않는다. queue entry는 workspace/operation ID·base revision·client ID·payload·queuedAt를 보존하며 read는 workspace filter와 queuedAt 정렬을 수행한다. attachment queue는 Blob을 보관한다.
 
@@ -24,7 +24,7 @@ directory refresh는 해당 direct child 목록을 대체하고 사라진 folder
 
 세부 local/Yjs/asset provider의 dirty/save/sync 전이는 [editor sessions](./editor-sessions.md)가 owner다. useDocumentSync와 file operation helper는 durable cloud save·GitHub mirror·operation retry를 조정한다. folder sync는 Desktop bridge가 소유하며 같은 package session 정책으로 합치지 않는다.
 
-## Realtime와 host events
+## Realtime과 호스트 이벤트
 
 [PKMSRealtimeSocket](../../../../packages/pkms-client/src/realtime.ts)은 WebSocket 형태의 readyState/onopen/onmessage/onclose 인터페이스를 Supabase private channel 위에 제공한다. config/token을 API로 받고 **각 socket 인스턴스가 자체 Supabase client, auth token provider, WebSocket 진단 콜백을 소유한다.** 같은 workspace topic에 여러 PKMS 화면이나 host가 동시에 연결되어도 채널·진단 callback을 공유하지 않는다. protocol broadcast와 presence를 shared DTO로 전달한다. close는 token timer·channel 수명과 이후 callback을 정리한다. 원격 event를 authoritative sync cursor 대신 사용하지 않는다.
 

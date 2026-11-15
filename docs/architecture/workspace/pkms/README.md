@@ -1,4 +1,4 @@
-# Desktop PKMS adapter와 folder sync
+# Desktop PKMS 어댑터와 폴더 동기화
 
 App scope다. UI·계정/문서 session은 [pkms-client](../../pkms/client/editor-sessions.md), 서버 mutation은 PKMS Server가 소유한다. Desktop은 token/HTTP proxy, asset fetch, 로컬 folder·watcher·durable queue·IPC·pane mount를 맡는다.
 

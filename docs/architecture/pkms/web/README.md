@@ -2,7 +2,7 @@
 
 App scope는 React Router UI/SSR·assets·canonical origin·기존 PKMS Worker service proxy를 소유한다. 현재 `/`는 direct Google Drive route를 표시하고 browser가 Google Drive API를 직접 호출한다. 기존 API-backed PKMS UI는 `/existing-pkms`에서 migration fallback으로 남아 있으며 이 경로의 저장·인증은 [PKMS Server](../../../../apps/pkms-server/README.md)가 소유한다. Google Drive 경로는 Web 앱이 자체 backend를 거치지 않으며 browser IndexedDB만 durable local outbox/cache로 사용한다.
 
-## Request routing
+## 요청 라우팅
 
 근거: [workers/web.ts](../../../../apps/pkms-web/workers/web.ts), [route tree](../../../../apps/pkms-web/app/routes.ts), [home route](../../../../apps/pkms-web/app/routes/home.tsx), [existing PKMS fallback](../../../../apps/pkms-web/app/routes/existing-pkms.tsx), [Google Drive route](../../../../apps/pkms-web/app/routes/pkms-google-drive.tsx).
 

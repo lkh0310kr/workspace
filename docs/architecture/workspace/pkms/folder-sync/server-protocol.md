@@ -1,4 +1,4 @@
-# PKMS folder sync server protocol
+# PKMS 폴더 동기화 서버 프로토콜
 
 이 문서는 Desktop bridge와 workspace API 사이의 상호운용 계약이다. path, revision, operation identity가 다르면 sync 결과가 달라지므로 구현 독립적인 상세 계약으로 취급한다. Worker route는 workspace membership/auth를 확인한 뒤 `SupabaseVault`에 전달한다.
 
@@ -10,7 +10,7 @@
 - `operationId`는 UUID idempotency key다. 성공 결과가 `pkms_operations`에 남으며 같은 workspace/key의 재요청은 저장된 결과에 `duplicate: true`를 더해 돌려준다.
 - 같은 경로 create/move 충돌은 server가 conflict path를 발급할 수 있다. client는 요청 path를 성공 path라고 가정하지 않고 response path를 사용한다.
 
-## Snapshot / metadata feed
+## 스냅샷 / 메타데이터 피드
 
 | Request                                                      | 응답·의미                                                                                                                                           | 제한/오류                                                                                                                                                                           |
 | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,9 +25,9 @@
 
 Web Files tree는 `/directory?path=`를 사용해 현재 열려 있거나 확장된 directory listing을 갱신한다. 이 응답은 즉시 자식인 Markdown, asset, folder를 포함한다. `/snapshot`은 Markdown-only 문서 metadata 용도이므로 그 응답으로 Files tree 전체를 교체하면 안 된다. realtime mutation 뒤에는 loaded directory listing을 다시 가져와야 folder marker와 asset row가 유지된다.
 
-## Mutation contract
+## 변경 계약
 
-`POST /operations` outer body:
+`POST /operations` 요청 본문 외부 구조:
 
 ```json
 {
@@ -50,14 +50,14 @@ Web Files tree는 `/directory?path=`를 사용해 현재 열려 있거나 확장
 
 Asset upload는 `pkms_apply_asset_sync`를 사용한다. R2 object는 workspace/file/operation identity별 immutable key로 stage한다. DB가 expected revision을 확인하고 새 key와 SHA를 수락한 뒤 이전 object를 제거한다. DB rejection이면 staged key를 제거한다. lost response retry는 operation ledger 또는 remote Git blob SHA로 같은 bytes인지 확인한다. Remote `sha`는 Git blob SHA-1이고 Desktop의 local equality baseline은 raw bytes SHA-256이다.
 
-## Yjs document read/write
+## Yjs 문서 읽기/쓰기
 
 - `GET /files/{fileId}/updates`는 Yjs state update와 document revision을 반환한다. `stateVector` query는 지원되지만 Desktop sync의 markdown download 경로는 full state를 요청한다.
 - `POST /files/{fileId}/updates` body는 `{operationId, update}`이며 update는 base64 Yjs v1 update다. 성공 `ack`에는 `fileId`, `operationId`, `acceptedRevision`; 중복 update는 no-op/duplicate 의미를 유지한다.
 - Yjs update 적용 경로는 UTF-8 Markdown materialized size를 512 KiB로 제한하고 초과 시 413 `markdown_too_large`를 반환한다. `/sync/download`도 cached current body의 512 KiB 초과를 `file_too_large` item error로 표현한다. **create-file operation에서 동일 제한이 적용되는지**는 RPC/DB validation 전체를 확인하고 통합 테스트로 고정해야 한다. 한 경로의 limit을 전체 mutation에 일반화하지 않는다.
 - update는 CRDT operation이다. Desktop은 text-level baseline conflict 판단을 위해 server update를 Y.Doc에 적용해 `markdown` text를 얻는다. Yjs update ACK와 GitHub mirror flush는 별개 상태다.
 
-## Realtime와 권한
+## Realtime과 권한
 
 Realtime `pkms:{workspaceId}` private channel의 protocol broadcast는 pull sync를 깨우는 신호다. 성공·cursor 이동의 authority는 HTTP revision feed다. Reconnect/subscribe 뒤 cursor catch-up을 수행하므로 broadcast 유실은 데이터 정합성 유실로 이어지지 않아야 한다.
 

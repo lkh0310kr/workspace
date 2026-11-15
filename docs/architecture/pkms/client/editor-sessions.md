@@ -1,8 +1,8 @@
-# PKMS editor provider와 session 스펙
+# PKMS 편집기 provider와 session 스펙
 
 [공통 계약](../../editor/provider.md)을 구현하는 PKMS adapter다. Workspace 파일시스템 provider와 저장 정책을 구분한다.
 
-## PKMS provider
+## PKMS provider 계약
 
 근거: [pkmsEditorProvider.ts](../../../../packages/pkms-client/src/features/editor/pkmsEditorProvider.ts).
 
@@ -10,7 +10,7 @@ ID=`pkms:${workspaceId}`, itemId=file.id. 기본 operations는 비어 있고 nam
 
 listChildren은 parentId로 getFile을 조회하고 folder가 아니면 []를 반환한다. listDirectory의 path를 shared item으로 변환한다. subscribeTree는 부모 path를 loaded folder ID로 바꾸며 없으면 UTF-8 path의 base64url `local-...` ID를 만든다. names 검색은 **로드된 파일만** 대상으로 한다. 전체 저장소 검색을 보장하지 않는다. contents target은 []다. openDocument는 다른 provider/folder/삭제 파일을 거부하고 openSession에 위임한다. open 완료 후 abort됐으면 session을 close한다.
 
-## PKMS local session
+## PKMS 로컬 session
 
 근거: [pkmsLocalEditorSession.ts](../../../../packages/pkms-client/src/features/editor/pkmsLocalEditorSession.ts).
 
@@ -20,7 +20,7 @@ Desktop bridge의 readLocalMarkdown/writeLocalMarkdown을 사용한다. 초기 s
 
 save는 dirty에서만 쓰고 revision을 전달한다. 쓰기 중 generation 변경 시 dirty 유지 후 자동 저장 재예약, 같으면 clean. 쓰기 실패는 conflict로 반환한다. close는 poll·timer·listeners를 해제하며 저장하지 않는다.
 
-## PKMS Yjs와 asset session
+## PKMS Yjs와 자산 session
 
 근거: [pkmsYjsEditorSession.ts](../../../../packages/pkms-client/src/features/editor/pkmsYjsEditorSession.ts).
 

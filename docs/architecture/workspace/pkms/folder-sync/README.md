@@ -1,4 +1,4 @@
-# PKMS Desktop folder sync 스펙
+# PKMS Desktop 폴더 동기화 스펙
 
 이 문서는 현재 운영 중인 PKMS cloud/로컬 folder sync의 기존 구현 계약이다. 새 목표는 [Google Drive 직접 동기화](../../../pkms/google-drive-direct-sync.md)이며, 현재 구현과 Drive 전환 간의 차이는 [global acceptance checklist](../../../pkms/acceptance-checklist.md) 및 [이관 설계 조사](./research/google-drive-direct-sync.md)에 기록한다. Drive parity와 안전한 cutover 확인 전에는 이 기존 동기화 경로를 rollback source로 보존한다.
 

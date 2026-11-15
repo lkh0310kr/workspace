@@ -1,4 +1,4 @@
-# PKMS protocol package 계약
+# PKMS 프로토콜 패키지 계약
 
 Package scope는 현재 직접 유지하는 [TypeScript DTO](../../../../packages/pkms-protocol/src/types.ts)와 [Realtime JSON schema](../../../../packages/pkms-protocol/realtime.schema.json)다. runtime route/auth/DB mutation은 [서버 app](../server/README.md), HTTP transport는 소비 client가 소유한다. 타입은 runtime validator나 모든 endpoint field의 자동 생성 원본이 아니다.
 
@@ -18,7 +18,7 @@ Package scope는 현재 직접 유지하는 [TypeScript DTO](../../../../package
 
 새 sync tree pagination·delete guard·Home payload가 이 모델 family에 모두 포함된 것은 아니다. 앱 handler가 실제로 수락하는 extra fields와 TS/Swift representation 차이는 app 계약으로 확인하고 호환 변경 때 함께 검토한다. core Rust OperationEnvelope의 snake_case 구조를 이 HTTP DTO와 이름만 보고 동일 포맷으로 간주하지 않는다.
 
-## Realtime envelope
+## Realtime 메시지 봉투
 
 CRDT는 Yjs/Yrs v1 bytes를 base64로 운반한다. schema는 hello/document-update(document 요청/이벤트)/document-state/ready/presence(요청/이벤트)/presence-state/ack/operationResult/error의 shape를 정의한다. 같은 type 문자열이어도 요청과 server broadcast의 required fields가 다를 수 있다. peer는 clientId/login 필수, avatarUrl/fileId 선택이다.
 

@@ -1,4 +1,4 @@
-# Reconciliation·baseline·충돌 계약
+# 조정·기준선·충돌 계약
 
 이 문서는 양쪽 변경을 비교해 사용자가 보게 될 최종 파일 상태를 정의한다. 내부 scheduler 구현보다 아래 행렬의 결과를 우선한다.
 
@@ -35,7 +35,7 @@ Baseline은 “해당 path를 다음에 무엇과 비교할지”를 정한다. 
 
 결과 행렬이 보장하는 것은 변경 손실 방지와 결정적 보존 정책이다. 자동 text merge는 하지 않는다. 사용자가 두 문서를 직접 비교·병합한다.
 
-## Folder metadata consistency
+## 폴더 메타데이터 일관성
 
 Active Markdown/asset path 아래에 child가 있으면 각 ancestor는 active `folder` row로 표현되어야 한다. 각 folder row에는 `/directory` 조회가 가능한 directory metadata가 있어야 한다. 이 조건이 없으면 문서 row가 Cloud에 있어도 Web TreeView에서 parent 폴더에 접근할 수 없다.
 
@@ -62,7 +62,7 @@ Active Markdown/asset path 아래에 child가 있으면 각 ancestor는 active `
 5. local write는 temporary file에 쓰고 기존 경로가 예상 hash와 일치하는지 확인한 뒤 rename한다. 쓰기 경쟁이면 현재 파일을 보존하고 다시 비교한다.
 6. 필요한 파일 mutation이 성공하고 새 baseline·tree·cursor를 저장한 뒤에만 해당 pass를 완료로 표시한다.
 
-## GitHub backup branch divergence
+## GitHub 백업 브랜치 분기
 
 GitHub backup은 별도 replica다. 원격 branch head가 PKMS가 마지막으로 기록한 `github_head`와 다르면 서버는 자동 push를 멈춘다. Common ancestor가 없거나 tree가 서로 다른 경우에도 branch reset/force push로 해결하지 않는다.
 
@@ -79,7 +79,7 @@ GitHub import acceptance는 commit graph만 확인하지 않는다. base tree, �
 
 Snapshot은 `atRevision`에 pin된 metadata tree를 페이지 단위로 읽는다. cursor와 path별 revision은 같은 의미가 아니다. tree metadata snapshot이 cursor 이후의 변경을 포함했다고 간주하지 않는다.
 
-## Path safety
+## 경로 안전성
 
 - 모든 remote path는 workspace root 기준 상대 경로다. absolute path, `..`, 빈 segment, slash escape를 허용하지 않는다.
 - `.git`, `.obsidian`, `node_modules` 및 사용자 exclusion은 content scan과 directory inventory 양쪽에서 제외한다. `.pkms`는 ordinary path다.

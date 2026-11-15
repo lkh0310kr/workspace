@@ -1,8 +1,8 @@
-# Durability·queue·재시작·복구
+# 내구성·대기열·재시작·복구
 
 이 계약은 작업이 process/network interruption을 넘어 살아남는 범위와 안전하게 멈추는 조건을 정의한다. UI status만으로 durable 상태를 추정하지 않는다.
 
-## Durable record
+## 영속 레코드
 
 Main의 `pkms-sync-bridge.json`은 Electron `userData` 아래 저장되며 temporary sibling file 작성 후 rename한다. Top-level `Persisted`의 의미는 다음과 같다.
 
@@ -24,7 +24,7 @@ Main의 `pkms-sync-bridge.json`은 Electron `userData` 아래 저장되며 tempo
 
 Persisted JSON이 없을 때만 empty state로 초기화한다. 파일 read 오류나 malformed/structurally invalid JSON은 `pkms_sync_state_unreadable` 또는 `pkms_sync_state_corrupt`로 fail-closed한다. 원본을 덮어쓰거나 빈 baseline/queue로 진행하지 않는다. 사용자는 원본 파일을 보존한 상태에서 유효한 backup을 복원하거나 손상 state를 복구한 뒤 sync를 재개해야 한다. 회귀 fixture는 malformed/truncated와 invalid top-level field를 넣고 오류 및 원본 byte 보존을 확인한다. Disk full, power loss, 유효한 backup 자동 복구는 별도 검증한다.
 
-## Event와 scan 의미
+## 이벤트와 검사 의미
 
 - `fs.watch` event는 dirty hint이지 변경의 완전한 기록이 아니다. null filename, rename, watcher error는 전체 directory scan을 요청한다.
 - 15분 complete scan은 watcher에서 놓친 변경과 directory identity 변화를 복구한다. root 또는 하위 directory 열거가 실패하면 inventory를 교체하지 않고 deletion을 추론하지 않는다.
@@ -34,7 +34,7 @@ Persisted JSON이 없을 때만 empty state로 초기화한다. 파일 read 오�
 - 일반 파일 scan은 모든 파일 path와 stat fingerprint를 확인한다. fingerprint가 바뀐 파일만 bytes를 SHA-256으로 읽고, 변경 없는 5초 revision poll은 대용량 asset을 다시 읽지 않는다.
 - 수동 scan은 full scan과 directory inventory를 요청한다. 수동 scan 성공은 서버 배포·다른 기기 반영을 의미하지 않는다.
 
-## Queue·작업 순서
+## 대기열·작업 순서
 
 1. 변경 경로를 pending path로 저장하고 UI에는 pending을 표시한다.
 2. workspace별 sync pass를 직렬화하고 같은 root에는 process 간 lock을 확보한다. lock owner가 살아 있으면 다른 instance는 진행하지 않는다.
@@ -46,17 +46,17 @@ Persisted JSON이 없을 때만 empty state로 초기화한다. 파일 read 오�
 
 핵심 규칙은 **network timeout이 성공 여부를 모호하게 해도 재시도 결과가 중복 item이나 유실로 이어지지 않는 것**이다. Asset update는 content Git blob SHA가 remote metadata와 같으면 ACK 유실 후에도 같은 바이트로 수렴한다. 다른 바이트는 expected revision guard로 거부한다.
 
-### Same-path create retry
+### 같은 경로 생성 재시도
 
 첫 요청이 반영된 뒤 acknowledgement가 유실되면, 새 operation ID로 재시도해도 kind와 content가 같은 기존 item에 수렴한다. Markdown 본문이 다르면 양쪽을 보존하는 conflict path를 만든다. 같은 경로의 folder create 재시도는 기존 folder를 반환한다. SQL regression은 `apps/pkms-server/supabase/tests/20261113100000_dedupe_identical_sync_creates.sql`에 있다.
 
-### Concurrent deletion guards
+### 동시 삭제 보호
 
 - Local file delete는 remote identity와 item revision이 저장 baseline과 일치할 때만 cloud에 반영한다. 더 새 cloud edit가 있으면 원래 path에 복구하고 delete intent를 취소한다.
 - Folder subtree delete는 pass에서 마지막으로 확인한 revision을 사용한다. 같은 pass에서 sibling folder 삭제가 하나 승인되면 다음 guarded delete도 그 revision으로 전진한다.
 - 실제 remote edit로 guard가 거부되면 manifest를 다시 읽고 새 상태를 반영한다. 오래된 operation을 같은 revision으로 영구 재시도하지 않는다.
 
-### GitHub branch rewrite or unrelated history
+### GitHub 브랜치 재작성 또는 무관한 이력
 
 1. 마지막 기록 head와 원격 head가 다른 상황을 검출한다.
 2. 원격 commit graph가 direct/bounded recovery 규칙에 맞지 않으면 backup을 pause하고 status에 `external-change`와 사용자 조치 위치를 남긴다.
@@ -64,7 +64,7 @@ Persisted JSON이 없을 때만 empty state로 초기화한다. 파일 read 오�
 4. 정상 parent를 가진 통합 commit을 만든 뒤 branch ref를 fast-forward update한다. 기존 branch history를 강제 교체하지 않는다.
 5. 재시작/retry 이후 같은 import가 중복되거나 conflict copy가 계속 생성되지 않는지 검증한다.
 
-## Retry·offline·cancel
+## 재시도·오프라인·취소
 
 - 연결 실패 시 cursor/baseline을 실제로 반영된 지점보다 앞으로 진행하지 않는다.
 - retry 가능한 실패는 exponential backoff를 적용하고 pending path/operation을 보존한다. 한 path 오류가 unrelated path 작업을 모두 지우지 않는다.
@@ -73,7 +73,7 @@ Persisted JSON이 없을 때만 empty state로 초기화한다. 파일 read 오�
 - Root 변경은 삭제 의미를 갖지 않는다. 새 root의 첫 complete inventory를 별도 seed로 삼고 기존 root의 baseline 부재로 cloud delete를 만들지 않아야 한다. 현재 `configurePkmsSyncBridge`는 root가 달라지면 `resetRootScopedState`로 이전 baseline, remote cache, cursor, local inventory와 pending deletion intent를 제거하며, `syncPolicy.test.ts`가 해당 초기화를 검증한다. 이것은 policy unit evidence이지 실제 두 root 간 sync acceptance는 아니다. cloud-only 파일 materialization 중 삭제가 생기지 않는지와 새 root의 local-only/상이 본문 import가 양쪽 자료를 보존하는지는 격리 fake-server scenario에서 추가 검증한다.
 - 앱 graceful shutdown은 실행 중 pass를 다룬 후 handle을 종료한다. force kill/crash는 마지막 성공적으로 rename된 JSON까지만 보장 가능하며 shell sync를 백그라운드에서 계속한다고 가정하지 않는다.
 
-## Folder lock과 path security
+## 폴더 잠금과 경로 보안
 
 Root realpath 하나에는 동시에 하나의 Workspace process만 sync한다. lock 파일은 temp lock directory 아래에 exclusive create되고 PID/token이 기록된다. 살아 있는 process lock은 제거하지 않는다. stale lock cleanup failure는 sync 중단으로 귀결되어야 하며 동시 writer 허용으로 회복하지 않는다.
 

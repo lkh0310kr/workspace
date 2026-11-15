@@ -32,7 +32,7 @@ C pkms_doc_new는 raw owned handle, pkms_doc_free는 한 번만 해제한다. te
 
 UniFFI API는 Arc object와 FfiError(InvalidUpdate/InvalidRange)를 사용한다. C 수동 ownership과 같은 방식으로 해제하지 않는다. poisoned mutex의 expect 경로를 모든 호출에서 recoverable Result로 바꿔 설명하지 않는다.
 
-## WASM·build·수락
+## WASM·빌드·수락
 
 WasmMarkdownDoc는 core를 감싸고 오류를 JsError로 변환한다. Web 앱이 현재 사용하는 TypeScript/Yjs와 이 binding source는 구분한다. binding 생성 가능 여부와 Web 런타임 채택은 별도다.
 

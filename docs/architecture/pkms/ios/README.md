@@ -18,11 +18,11 @@ restore는 token이 있을 때 /api/session을 읽고 user가 있으면 workspac
 
 문서 snapshot은 변경마다 atomic write한다. clean snapshot은 최근 20개를 유지하고, cloud ACK를 기다리는 dirty snapshot은 수량 제한에 의해 제거하지 않는다. 각 문서의 incremental updates는 순차 전송하며 최신 generation의 마지막 update가 ACK된 경우에만 dirty 표시를 해제한다. 실패/offline 후에는 full-state ACK로 복구한다. tree metadata는 workspace별 `Application Support/PKMS/TreeCache/{workspaceID}.json`에 atomic write하며 body는 제외한다. Workspace 재선택 시 cache를 먼저 표시한 뒤 root/expanded directory를 갱신한다. 열린 directory의 직접 child folder listing은 background에서 한 단계만 prefetch한다. 파일 선택/operation은 [PKMSWorkspaceOperations](../../../../apps/pkms-ios/PKMSWorkspaceOperations.swift)가 구현한다.
 
-## Realtime·cleanup
+## Realtime·정리
 
 [PKMSRealtimeSession](../../../../apps/pkms-ios/PKMSRealtimeSession.swift)은 Supabase private channel·presence·document messages와 token refresh task를 소유한다. connect task·channel subscription·refresh task는 disconnect에서 취소/해제하며 다시 연결한 document/workspace identity를 확인해야 한다. native editor가 문서 bytes를 수정하는 것과 Realtime 상태·HTTP durable save는 별개 흐름이다.
 
-## Build·수락
+## 빌드·수락
 
 [build script](../../../../apps/pkms-ios/scripts/build-rust-framework.sh)는 pkms-ffi를 iOS device/Apple Silicon simulator 대상으로 빌드하고 Native/include의 C headers로 XCFramework를 만든다. 실제 Swift 경로는 generated UniFFI Swift API 대신 이 C header를 사용한다. 앱 실행·설정은 [README](../README.md)를 따른다.
 
