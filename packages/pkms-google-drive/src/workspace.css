@@ -241,6 +241,10 @@
   border-right: 1px solid var(--drive-border);
 }
 
+.pkms-google-drive-root.is-desktop .pkms-google-drive-tree .editor-tree-pane-content {
+  overflow: hidden;
+}
+
 .pkms-google-drive-root.is-desktop .pkms-google-drive-header {
   border-bottom: 0;
 }
@@ -257,6 +261,44 @@
   gap: 6px;
   padding: 4px 8px 4px 12px;
   border-bottom: 1px solid var(--drive-border);
+}
+
+.pkms-google-drive-tree-footer {
+  display: flex;
+  min-width: 0;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-top: 1px solid var(--drive-border);
+  color: var(--drive-muted);
+  font-size: 10px;
+}
+
+.pkms-google-drive-tree-footer-label {
+  flex: 0 0 auto;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pkms-google-drive-tree-footer-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pkms-google-drive-root .pkms-google-drive-tree-footer select {
+  min-width: 0;
+  height: 22px;
+  flex: 1 1 auto;
+  padding: 1px 5px;
+  border: 1px solid var(--drive-border);
+  border-radius: 4px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
 }
 
 .pkms-google-drive-file-toolbar-heading,

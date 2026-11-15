@@ -9,8 +9,9 @@ import {
 import {
   EditorMarkdownEditor,
   EditorMenuList,
+  EditorTreeFrame,
+  EditorTreePane,
   EditorNameForm,
-  EditorTreeView,
   EDITOR_TREE_ROW_HEIGHT,
   flattenEditorTree,
   markdownTitleFor,
@@ -231,7 +232,6 @@ export function PkmsGoogleDrivePane({
         setExpandedFolders(new Set())
         setLoadingFolders(new Set())
         setFocusedTreePath(null)
-        setRoots([])
         setStatus(`Connected to ${nextRoot.name}`)
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Could not connect to Google Drive.')
@@ -937,9 +937,35 @@ export function PkmsGoogleDrivePane({
           }}
         >
           {treeOpen && (
-            <aside
+            <EditorTreeFrame
               className="pkms-google-drive-tree"
-              aria-label="Google Drive files"
+              ariaLabel="Google Drive files"
+              footer={
+                <div className="pkms-google-drive-tree-footer">
+                  <span className="pkms-google-drive-tree-footer-label">PKMS workspace</span>
+                  {roots.length > 1 ? (
+                    <select
+                      aria-label="PKMS Google Drive workspace"
+                      value={root.id}
+                      disabled={busy}
+                      onChange={(event) => {
+                        const nextRoot = roots.find((item) => item.id === event.target.value)
+                        if (nextRoot) void setConnected(nextRoot)
+                      }}
+                    >
+                      {roots.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="pkms-google-drive-tree-footer-name" title={root.name}>
+                      {root.name}
+                    </span>
+                  )}
+                </div>
+              }
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -1044,7 +1070,16 @@ export function PkmsGoogleDrivePane({
                 </div>
               )}
               {searchOpen ? (
-                <div aria-live="polite" style={{ display: 'grid', gap: 2 }}>
+                <div
+                  aria-live="polite"
+                  style={{
+                    display: 'grid',
+                    flex: '1 1 auto',
+                    minHeight: 0,
+                    gap: 2,
+                    overflow: 'auto'
+                  }}
+                >
                   {searchQuery.trim().length < 2 ? (
                     <span style={{ padding: 8, opacity: 0.65 }}>Type at least 2 characters.</span>
                   ) : searching && !searchResults.length ? (
@@ -1087,43 +1122,37 @@ export function PkmsGoogleDrivePane({
                   )}
                 </div>
               ) : (
-                <div
+                <EditorTreePane
+                  ariaLabel="PKMS Google Drive tree viewport"
                   className="pkms-google-drive-tree-scroll"
-                  onContextMenu={(event) => {
-                    if ((event.target as Element).closest('[role="treeitem"]')) return
-                    event.preventDefault()
-                    openTreeContextMenu(null, event.clientX, event.clientY)
-                  }}
-                >
-                  <EditorTreeView
-                    rootRef={treeRootRef}
-                    projection={treeProjection}
-                    className="file-list file-tree"
-                    ariaLabel="PKMS Google Drive files"
-                    emptyContent={
+                  style={{ flex: '1 1 auto', minHeight: 0 }}
+                  tree={{
+                    rootRef: treeRootRef,
+                    projection: treeProjection,
+                    className: 'file-list file-tree',
+                    ariaLabel: 'PKMS Google Drive files',
+                    emptyContent: (
                       <span style={{ padding: 8, opacity: 0.65 }}>This folder is empty.</span>
-                    }
-                    onKeyDown={handleTreeKeyDown}
-                    onScroll={setTreeScrollTop}
-                    onFocusPath={setFocusedTreePath}
-                    onRootContextMenu={(event) =>
-                      openTreeContextMenu(null, event.clientX, event.clientY)
-                    }
-                    onContextMenu={(item, event) =>
+                    ),
+                    onKeyDown: handleTreeKeyDown,
+                    onScroll: setTreeScrollTop,
+                    onFocusPath: setFocusedTreePath,
+                    onRootContextMenu: (event) =>
+                      openTreeContextMenu(null, event.clientX, event.clientY),
+                    onContextMenu: (item, event) =>
                       openTreeContextMenu(
                         item.source as GoogleDriveWorkspaceEntry,
                         event.clientX,
                         event.clientY
-                      )
-                    }
-                    onActivate={(item) => {
+                      ),
+                    onActivate: (item) => {
                       const entry = item.source as GoogleDriveWorkspaceEntry
                       setFocusedTreePath(entry.path)
                       if (entry.kind === 'folder') void toggleFolder(entry)
                       else void openEntry(entry)
-                    }}
-                  />
-                </div>
+                    }
+                  }}
+                />
               )}
               {treeContextMenu && (
                 <EditorMenuList
@@ -1138,7 +1167,7 @@ export function PkmsGoogleDrivePane({
                   onClose={() => setTreeContextMenu(null)}
                 />
               )}
-            </aside>
+            </EditorTreeFrame>
           )}
           <div
             className="pkms-google-drive-editor"

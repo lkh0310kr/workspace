@@ -4,7 +4,7 @@ import type { FileRecord, TreeRow } from '../domain/types'
 import { aggregateFolderSyncItemState } from '../domain/syncItemState'
 import type { PkmsSyncBridgeStatus } from '../platform/desktopApi'
 import {
-  EditorTreeView,
+  EditorTreePane,
   EDITOR_TREE_DRAG_MIME_TYPE,
   editorTreeItemLabel,
   type EditorTreeProjection,
@@ -133,30 +133,32 @@ export function FileTreeList(props: FileTreeListProps) {
   }
 
   return (
-    <EditorTreeView
-      rootRef={treeRef}
-      projection={viewProjection}
-      className={`file-list file-tree${dropTarget === '' ? ' tree-root-drop' : ''}`}
+    <EditorTreePane
       ariaLabel="Repository files"
-      ariaBusy={busy}
-      canMove={canMove}
-      canMultiSelect={canMultiSelect}
-      dragMimeType={EDITOR_TREE_DRAG_MIME_TYPE}
-      emptyContent={<p className="empty-hint">{loading ? 'Loading…' : 'Empty folder'}</p>}
-      onKeyDown={onKeyDown}
-      onScroll={onScroll}
-      onSetDropTarget={onSetDropTarget}
-      onDropItems={onDropItems}
-      onFocusPath={onFocusPath}
-      onClearSelection={onClearSelection}
-      onSelectRow={onSelectRow}
-      onDragStart={
-        onDragStart
+      className="pkms-client-tree-pane"
+      tree={{
+        rootRef: treeRef,
+        projection: viewProjection,
+        className: `file-list file-tree${dropTarget === '' ? ' tree-root-drop' : ''}`,
+        ariaLabel: 'Repository files',
+        ariaBusy: busy,
+        canMove,
+        canMultiSelect,
+        dragMimeType: EDITOR_TREE_DRAG_MIME_TYPE,
+        emptyContent: <p className="empty-hint">{loading ? 'Loading…' : 'Empty folder'}</p>,
+        onKeyDown,
+        onScroll,
+        onSetDropTarget,
+        onDropItems,
+        onFocusPath,
+        onClearSelection,
+        onSelectRow,
+        onDragStart: onDragStart
           ? (item, index, event) => onDragStart(item.source as FileRecord, index, event)
-          : undefined
-      }
-      onContextMenu={(item, event) => onContextMenu(item.source as FileRecord, event)}
-      onActivate={(item) => onActivate(item.source as FileRecord)}
+          : undefined,
+        onContextMenu: (item, event) => onContextMenu(item.source as FileRecord, event),
+        onActivate: (item) => onActivate(item.source as FileRecord)
+      }}
     />
   )
 }

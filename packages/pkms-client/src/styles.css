@@ -631,6 +631,14 @@ button {
   overscroll-behavior: contain;
   padding: 2px 0;
 }
+.pkms-client-tree-pane {
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.pkms-client-tree-pane .editor-tree-pane-content {
+  overflow: hidden;
+}
 .file-tree {
   outline: 0;
 }
