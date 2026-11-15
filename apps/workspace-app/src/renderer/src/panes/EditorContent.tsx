@@ -647,24 +647,14 @@ export function EditorContent({
       return
     }
     contentLoadedRef.current = false
-    let cancelled = false
-    let frameId = 0
-    let attempts = 0
-    const run = (): void => {
-      if (cancelled) return
-      attempts += 1
-      if (loadFileContent(filePath, jumpToLine)) return
-      if (attempts < 12) frameId = window.requestAnimationFrame(run)
-    }
-    run()
-    return () => {
-      cancelled = true
-      window.cancelAnimationFrame(frameId)
-    }
+    if (!readyEditorView) return
+    // The Markdown surface reports its EditorView asynchronously. Load from
+    // that readiness signal instead of racing a fixed number of animation frames.
+    loadFileContent(filePath, jumpToLine)
     // jumpToLine handled inside the initial load when present; the effect
     // below covers jumps on an already-loaded file only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, filePath, loadFileContent])
+  }, [tabId, filePath, loadFileContent, readyEditorView])
 
   useEffect(() => {
     if (jumpToLine == null) return

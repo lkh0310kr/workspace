@@ -135,11 +135,22 @@ for (const host of ['desktop-pkms-editor', 'web-pkms-editor'] as const) {
     await expect(page.getByRole('navigation', { name: 'File location' })).toContainText('Readme.md')
     await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
   })
+}
 
+for (const host of hosts) {
   test(`${host} creates and opens a missing wikilink target`, async ({ page }) => {
     await page.goto(`/?host=${host}&scenario=missing-wikilink`)
-    await page.getByRole('treeitem', { name: 'Verification' }).click()
-    await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    if (host !== 'desktop-editor') {
+      await page.getByRole('treeitem', { name: 'Verification' }).click()
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    } else {
+      await expect(page.getByRole('treeitem', { name: /Codex Drive smoke test/ })).toBeVisible()
+    }
+    if (host === 'desktop-editor') {
+      await expect
+        .poll(() => page.evaluate(() => (window as any).__readLocalPaths))
+        .toContain('Verification/Codex Drive smoke test.md')
+    }
     const editor = page.locator('.cm-content')
     await expect(editor).toContainText('Live Drive verification')
     const link = page.locator('.cm-md-wikilink').filter({ hasText: 'Fresh Note' })
@@ -153,13 +164,19 @@ for (const host of ['desktop-pkms-editor', 'web-pkms-editor'] as const) {
       await expect
         .poll(() => page.evaluate(() => (window as any).__openedDriveMarkdownEntries))
         .toContain('mock-drive-created-1')
-    } else {
+    } else if (host === 'web-pkms-editor') {
       await expect
         .poll(() => page.evaluate(() => (window as any).__createdPkmsPaths))
         .toContain('Fresh Note.md')
+    } else {
+      await expect
+        .poll(() => page.evaluate(() => (window as any).__createdLocalPaths))
+        .toContain('Fresh Note.md')
     }
   })
+}
 
+for (const host of ['desktop-pkms-editor', 'web-pkms-editor'] as const) {
   test(`${host} Quick Open finds a file inside a collapsed nested folder`, async ({ page }) => {
     await page.goto(`/?host=${host}&scenario=quick-open-nested`)
     await page.getByRole('treeitem', { name: 'Verification' }).click()

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router'
 import {
@@ -10,6 +10,7 @@ import {
   type EditorBreadcrumbEntry
 } from '@workspace/editor'
 import { TreeView } from '../../src/renderer/src/components/TreeView'
+import { EditorContent } from '../../src/renderer/src/panes/EditorContent'
 import { PkmsPane } from '../../src/renderer/src/panes/pkms/PkmsPane'
 import PkmsClientApp from '../../../../packages/pkms-client/src/PkmsClientApp'
 import type { GoogleDriveWorkspaceEntry } from '../../../../packages/pkms-google-drive/src/workspaceRepository'
@@ -134,6 +135,10 @@ const editorMarkdownFixture = isMissingWikiScenario
 function installMocks() {
   const w = window as any
   const createdLocalItems: Array<{ name: string; path: string; isDir: boolean }> = []
+  const localFileContents = new Map([
+    ['Verification/Codex Drive smoke test.md', editorMarkdownFixture],
+    ['Verification/Readme.md', readmeMarkdown]
+  ])
   const localChildren = (parent: string) =>
     createdLocalItems
       .filter(
@@ -146,6 +151,7 @@ function installMocks() {
   w.__createdPkmsPaths = []
   w.__createdDrivePaths = []
   w.__createdLocalPaths = []
+  w.__readLocalPaths = []
   w.__renamedPkmsPaths = []
   w.__renamedDriveItems = []
   w.api = {
@@ -173,12 +179,24 @@ function installMocks() {
                 ...localChildren('Verification')
               ]
             : [],
-      readFile: async () => markdown,
-      writeFile: async (_tabId: number, path: string) => {
+      readFile: async (_tabId: number, path: string) => {
+        w.__readLocalPaths.push(path)
+        return localFileContents.get(path) ?? ''
+      },
+      writeFile: async (_tabId: number, path: string, contents: string) => {
         createdLocalItems.push({ name: path.split('/').at(-1) ?? path, path, isDir: false })
+        localFileContents.set(path, contents)
         w.__createdLocalPaths.push(path)
       },
-      writeFileIfUnchanged: async () => true,
+      writeFileIfUnchanged: async (
+        _tabId: number,
+        path: string,
+        _expected: string,
+        contents: string
+      ) => {
+        localFileContents.set(path, contents)
+        return true
+      },
       createDir: async (_tabId: number, path: string) => {
         createdLocalItems.push({ name: path.split('/').at(-1) ?? path, path, isDir: true })
         w.__createdLocalPaths.push(path)
@@ -193,6 +211,7 @@ function installMocks() {
       onSearchDone: () => () => undefined
     },
     shortcuts: {
+      onFindInEditor: () => () => undefined,
       onToggleExplorer: () => () => undefined,
       onFindInFiles: () => () => undefined
     }
@@ -480,6 +499,8 @@ function Document() {
 }
 
 function DesktopEditor() {
+  const providerBacked = isMissingWikiScenario
+  const [filePath, setFilePath] = useState<string | null>('Verification/Codex Drive smoke test.md')
   return (
     <main className="md-pane visual-desktop-shell">
       <aside className="obsidian-explorer visual-tree">
@@ -487,14 +508,27 @@ function DesktopEditor() {
           tabId={9001}
           rootPath={rootPath}
           explorerStateKey="editor-visual"
-          selectedPath="Verification/Codex Drive smoke test.md"
+          selectedPath={filePath}
           paneVisible
           explorerModeActive
-          onOpenFile={() => undefined}
+          onOpenFile={(path) => setFilePath(path)}
         />
       </aside>
       <section className="obsidian-editor-shell visual-document">
-        <Document />
+        {providerBacked ? (
+          <EditorContent
+            tabId={9001}
+            rootPath={rootPath}
+            filePath={filePath}
+            kind="markdown"
+            zoom={1}
+            onOpenFile={(path) => setFilePath(path)}
+            onAssignPath={setFilePath}
+            onDirtyChange={() => undefined}
+          />
+        ) : (
+          <Document />
+        )}
       </section>
     </main>
   )

@@ -93,7 +93,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/EditorContent.tsx",
-          "sha256": "8d16f195b91079c9739d08f7ade37f489b189baa5d4b26ac8e6e9dcf4d699f2c"
+          "sha256": "d945fe6b73d653b92ed23aa34509d421c300fc3e0c99db15df5a70418744edfb"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
@@ -357,11 +357,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "4e1c7902c9756ec53383c7748b30bca19a431e4380ad7f46642b245fafe38d2e"
+          "sha256": "9f2ab5441c2e800fad42b6d7765605eeb786e65bc43b45537db8bc64e2cb94e9"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "4e0cbe7d854050e6d5e62302c65753ae6b226585d44c4140aad4cd5212148096"
+          "sha256": "5cc2889d3f34b83cabacb543566f4e1c99cba8791460e083b3cdf57564141ac7"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
@@ -461,7 +461,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/EditorContent.tsx",
-          "sha256": "8d16f195b91079c9739d08f7ade37f489b189baa5d4b26ac8e6e9dcf4d699f2c"
+          "sha256": "d945fe6b73d653b92ed23aa34509d421c300fc3e0c99db15df5a70418744edfb"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
