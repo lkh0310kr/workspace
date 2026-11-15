@@ -5,6 +5,8 @@ import {
   EditorMarkdownTitle,
   EditorBreadcrumbs,
   EditorTreeToolbar,
+  editorCodeMirrorHostExtensions,
+  editorMarkdownParserExtensions,
   projectEditorTreeRows,
   type EditorTreeProjection,
   type EditorBreadcrumbEntry
@@ -28,8 +30,26 @@ const markdown = `# Live Drive verification
 
 This shared fixture checks the document column against the filename title.
 
-- Folder rows keep the common density.
-- File rows keep the common selection treatment.
+[[Readme|sibling note]] and [external link](https://example.test).
+
+| Host | Tree |
+| --- | --- |
+| Desktop | Shared |
+| Web | Shared |
+
+$$x^2 + y^2 = z^2$$
+
+\`\`\`typescript
+const sharedEditor = true
+\`\`\`
+
+\`\`\`mermaid
+flowchart LR
+  Desktop --> Shared
+  Web --> Shared
+\`\`\`
+
+<div><strong>HTML preview</strong></div>
 `
 const readmeMarkdown = '# Readme preview\n\nOpened from the shared breadcrumb menu.\n'
 
@@ -173,7 +193,12 @@ function Document() {
             onCancel={() => undefined}
           />
         }
-        surfaceProps={{ value: markdown, extensions: [], ariaLabel: 'Markdown editor' }}
+        surfaceProps={{
+          value: markdown,
+          parserExtensions: editorMarkdownParserExtensions,
+          extensions: editorCodeMirrorHostExtensions,
+          ariaLabel: 'Markdown editor'
+        }}
       />
     </div>
   )

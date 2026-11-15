@@ -10,11 +10,13 @@ import {
   EditorMarkdownEditor,
   EditorBreadcrumbs,
   EditorMenuList,
+  editorCodeMirrorHostExtensions,
   EditorTreeFrame,
   EditorTreePane,
   EditorTreeToolbar,
   EditorNameForm,
   EDITOR_TREE_ROW_HEIGHT,
+  editorMarkdownParserExtensions,
   flattenEditorTree,
   markdownTitleFor,
   projectEditorTreeRows,
@@ -1265,6 +1267,8 @@ export function PkmsGoogleDrivePane({
                     session,
                     documentPath: activeFile.path,
                     documentKey: `pkms-google-drive:${root.id}:${activeFile.id}`,
+                    parserExtensions: editorMarkdownParserExtensions,
+                    extensions: editorCodeMirrorHostExtensions,
                     ariaLabel: 'Markdown editor'
                   }}
                 />

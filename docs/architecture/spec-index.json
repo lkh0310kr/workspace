@@ -349,11 +349,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "74c27284459e9ad3d4ee3060ecc7a88bdc3688241ff0a6159fa77a517f740f4b"
+          "sha256": "c1d51fb971dc3d92a29c177fc59d76066e49c39cb4f068f398b70e02e9a372d0"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "9c4b2288dbf0713c551796f6328ec0d0b51e31ad14004698a81dae0c1a4750ee"
+          "sha256": "bafe59c61afefbe6e75a77805cbee15a3860f404e599635f218b90321cf4c506"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
@@ -381,7 +381,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "9c7f8e1b64d1eba6f6085fdb0833a45fbf3cc4673250dcb553de3069046995a0"
+          "sha256": "c5363a93a3b0deb87c02cab35b4a5134b937714915aaecc0c967f9f8e42124a0"
         },
         {
           "path": "packages/pkms-client/src/components/FileTreeList.tsx",
@@ -1307,7 +1307,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "9c7f8e1b64d1eba6f6085fdb0833a45fbf3cc4673250dcb553de3069046995a0"
+          "sha256": "c5363a93a3b0deb87c02cab35b4a5134b937714915aaecc0c967f9f8e42124a0"
         },
         {
           "path": "packages/pkms-google-drive/src/syncEngine.ts",

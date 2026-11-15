@@ -12,6 +12,14 @@ for (const host of hosts) {
     if (host === 'desktop-pkms-editor') await page.locator('.editor-tree-item').nth(1).click()
     await expect(page.getByText('Codex Drive smoke test', { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
+    await expect(page.locator('.cm-md-wikilink')).toHaveText('sibling note')
+    await expect(page.locator('.cm-md-table-wrap')).toBeVisible()
+    await expect(page.locator('.cm-md-math-block .katex')).toBeVisible()
+    await expect(page.locator('.cm-md-codeblock-header')).toContainText('typescript')
+    await expect(page.locator('.cm-md-mermaid svg')).toBeVisible()
+    await expect(
+      page.frameLocator('iframe[title="Embedded HTML preview"]').locator('strong')
+    ).toHaveText('HTML preview')
     await page
       .getByRole('navigation', { name: 'File location' })
       .getByRole('button', { name: 'Codex Drive smoke test.md' })
