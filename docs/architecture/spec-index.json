@@ -1182,6 +1182,14 @@
           "sha256": "bcd3dd4b50c297a0f3f55154d966bef10fee853564f86d268e7c4f69f2da61b2"
         },
         {
+          "path": "apps/workspace-app/src/main/pkms/googleDriveDesktopStorage.ts",
+          "sha256": "365f45659f5c0d9baef9bd407d3b9f82e441beb08d38e49fcdecdad0a1de89eb"
+        },
+        {
+          "path": "apps/workspace-app/src/main/pkms/googleDriveDesktopStorage.test.ts",
+          "sha256": "09694d66980e72d5802ecb6131d07d0368872f836b7799232d8a8f1dd5d493c4"
+        },
+        {
           "path": "packages/pkms-google-drive/src/syncEngine.ts",
           "sha256": "12cd6386e7ddcea79f3b378197343fd2a87936643eac18210ec3030b810c38ac"
         },
