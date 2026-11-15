@@ -123,16 +123,26 @@ const editorMarkdownFixture = isMissingWikiScenario ? `${markdown}\n[[Fresh Note
 
 function installMocks() {
   const w = window as any
+  const createdLocalItems: Array<{ name: string; path: string; isDir: boolean }> = []
+  const localChildren = (parent: string) =>
+    createdLocalItems
+      .filter((item) => (item.path.includes('/') ? item.path.slice(0, item.path.lastIndexOf('/')) : '') === parent)
+      .map((item) => ({ ...item, isIgnored: false }))
   w.__openedDriveMarkdownEntries = []
   w.__savedDriveMarkdown = []
   w.__createdPkmsPaths = []
+  w.__createdDrivePaths = []
+  w.__createdLocalPaths = []
   w.__renamedPkmsPaths = []
   w.__renamedDriveItems = []
   w.api = {
     fs: {
       listDir: async (_tabId: number, path: string) =>
         path === ''
-          ? [{ name: 'Verification', path: 'Verification', isDir: true, isIgnored: false }]
+          ? [
+              { name: 'Verification', path: 'Verification', isDir: true, isIgnored: false },
+              ...localChildren('')
+            ]
           : path === 'Verification'
             ? [
                 {
@@ -146,13 +156,20 @@ function installMocks() {
                   path: 'Verification/Readme.md',
                   isDir: false,
                   isIgnored: false
-                }
+                },
+                ...localChildren('Verification')
               ]
             : [],
       readFile: async () => markdown,
-      writeFile: async () => undefined,
+      writeFile: async (_tabId: number, path: string) => {
+        createdLocalItems.push({ name: path.split('/').at(-1) ?? path, path, isDir: false })
+        w.__createdLocalPaths.push(path)
+      },
       writeFileIfUnchanged: async () => true,
-      createDir: async () => undefined,
+      createDir: async (_tabId: number, path: string) => {
+        createdLocalItems.push({ name: path.split('/').at(-1) ?? path, path, isDir: true })
+        w.__createdLocalPaths.push(path)
+      },
       deletePath: async () => undefined,
       renamePath: async () => undefined,
       onChanged: () => () => undefined,
@@ -236,6 +253,7 @@ function installMocks() {
         kind: kind === 'folder' ? 'folder' : 'markdown'
       }
       driveCreatedNotes.push(entry)
+      w.__createdDrivePaths.push(entry.path)
       return parent ? [driveNote, driveExtraNote, entry] : [...driveEntries, entry]
     },
     renameGoogleDriveItem: async (_rootId: string, entryId: string, name: string) => {
@@ -340,6 +358,15 @@ function installMocks() {
           path: operation.path,
           kind: 'markdown',
           content: operation.content ?? '',
+          revision: 0
+        })
+      }
+      if (operation?.type === 'create-folder' && operation.path) {
+        w.__createdPkmsPaths.push(operation.path)
+        pkmsFiles.push({
+          id: `web-created-folder-${pkmsFiles.length}`,
+          path: operation.path,
+          kind: 'folder',
           revision: 0
         })
       }

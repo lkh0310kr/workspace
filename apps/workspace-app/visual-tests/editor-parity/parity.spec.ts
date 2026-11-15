@@ -457,6 +457,61 @@ test('both PKMS host surfaces rename Markdown documents from the shared title', 
   }
 })
 
+test('all host tree toolbars create folders and Markdown notes', async ({ page }) => {
+  for (const host of hosts) {
+    await page.goto(`/?host=${host}`)
+    if (host !== 'desktop-editor') {
+      await expect(page.locator('.editor-tree-item').first()).toBeVisible()
+      await page.locator('.editor-tree-item').first().click()
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+    }
+
+    await page.getByRole('button', { name: 'New folder' }).click()
+    const folderDialog =
+      host === 'desktop-pkms-editor' ? page.getByRole('dialog', { name: 'New folder' }) : null
+    const folderInput =
+      host === 'desktop-pkms-editor'
+        ? folderDialog!.getByRole('textbox')
+        : page.getByRole('textbox', { name: 'Folder name' })
+    await folderInput.fill('Parity Folder')
+    if (host === 'desktop-editor')
+      await page.getByRole('button', { name: 'OK', exact: true }).click()
+    else if (host === 'desktop-pkms-editor')
+      await folderDialog!.getByRole('button', { name: 'Create folder' }).click()
+    else await page.getByRole('dialog', { name: 'Folder name' }).getByRole('button', { name: 'Create' }).click()
+
+    const createdPathsKey =
+      host === 'desktop-editor'
+        ? '__createdLocalPaths'
+        : host === 'desktop-pkms-editor'
+          ? '__createdDrivePaths'
+          : '__createdPkmsPaths'
+    await expect
+      .poll(() => page.evaluate((key) => (window as any)[key], createdPathsKey))
+      .toContain(
+        host === 'web-pkms-editor' ? 'Verification/Parity Folder' : 'Parity Folder'
+    )
+    await expect(page.getByRole('treeitem', { name: 'Parity Folder', exact: true })).toBeVisible()
+
+    await page.getByRole('button', { name: 'New Markdown file' }).click()
+    if (host === 'desktop-pkms-editor') {
+      const dialog = page.getByRole('dialog', { name: 'New Markdown file' })
+      await expect(dialog.getByRole('textbox')).toHaveValue('Untitled.md')
+      await dialog.getByRole('button', { name: 'Create note' }).click()
+    }
+    await expect
+      .poll(() => page.evaluate((key) => (window as any)[key], createdPathsKey))
+      .toContain(
+        host === 'desktop-editor'
+          ? 'untitled.md'
+          : host === 'desktop-pkms-editor'
+            ? 'Untitled.md'
+            : 'Verification/untitled.md'
+      )
+    await expect(page.getByRole('treeitem', { name: /untitled/i })).toBeVisible()
+  }
+})
+
 test('Desktop Drive tree keyboard navigation and overflow survive hide and reopen', async ({
   page
 }) => {
