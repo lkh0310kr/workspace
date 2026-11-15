@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent as 
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorTreeFrame, EditorTreeToolbar, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
+import { clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorTreeFrame, EditorTreeToolbar, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, resolveEditorWikiLink, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
@@ -1060,7 +1060,31 @@ export default function Home() {
   );
   const activateMarkdownLink = useCallback(
     (link: { kind: "markdown" | "wikilink"; target: string }) => {
-      if (link.kind !== "markdown" || link.target.startsWith("#") || !activeWorkspace || !activeFile) return false;
+      if (link.kind === "wikilink") {
+        const provider = editorProvider;
+        if (!provider) return false;
+        void resolveEditorWikiLink(
+          {
+            listChildren: (parentId) => provider.listChildren(parentId),
+            createFileAtRoot: async (name) => {
+              if (!editorSupportsOperation(provider, "createFile")) {
+                throw new EditorProviderError("unsupported", "Creating a note from a wikilink is unavailable");
+              }
+              return provider.create!(null, "file", name);
+            }
+          },
+          link.target
+        ).then(async (item) => {
+          const file = await getPkmsFileById(item.itemId);
+          if (!file || file.kind === "folder") {
+            setError(`Could not find linked file: ${item.path}`);
+            return;
+          }
+          void openFileRef.current?.(file);
+        }).catch((cause) => setError(cause instanceof Error ? cause.message : "Could not resolve wikilink"));
+        return true;
+      }
+      if (link.target.startsWith("#") || !activeWorkspace || !activeFile) return false;
       const targetPath = resolveEditorRelativeLink(activeFile.path, link.target);
       if (!targetPath) return false;
       const openTarget = (file: FileRecord | undefined) => {
@@ -1080,7 +1104,7 @@ export default function Home() {
       }
       return true;
     },
-    [activeWorkspace, activeFile, getFiles, refreshDirectory, setError]
+    [activeWorkspace, activeFile, editorProvider, getPkmsFileById, getFiles, refreshDirectory, setError]
   );
   const resolveMarkdownImage = useCallback(
     async (source: string) => {

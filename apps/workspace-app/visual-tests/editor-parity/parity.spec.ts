@@ -31,6 +31,15 @@ for (const host of hosts) {
     await expect(
       page.frameLocator('iframe[title="Embedded HTML preview"]').locator('strong')
     ).toHaveText('HTML preview')
+    if (host !== 'desktop-editor') {
+      await page.locator('.cm-md-wikilink').click()
+      await expect(page.getByRole('navigation', { name: 'File location' })).toContainText(
+        'Readme.md'
+      )
+      await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
+      await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+      await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
+    }
     await page
       .getByRole('navigation', { name: 'File location' })
       .getByRole('button', { name: 'Codex Drive smoke test.md' })

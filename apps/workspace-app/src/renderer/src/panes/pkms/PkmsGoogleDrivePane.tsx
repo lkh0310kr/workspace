@@ -20,6 +20,8 @@ import {
   flattenEditorTree,
   markdownTitleFor,
   projectEditorTreeRows,
+  resolveEditorRelativeLink,
+  resolveEditorWikiLink,
   type EditorDocumentSession,
   type EditorBreadcrumbEntry,
   type EditorMenuItem,
@@ -51,6 +53,18 @@ type GoogleDriveDialogRequest =
       confirmLabel: string
       onConfirm: () => void
     }
+
+function driveEntryToEditorItem(rootId: string, entry: GoogleDriveWorkspaceEntry): EditorTreeItem {
+  return {
+    providerId: `pkms-google-drive:${rootId}`,
+    itemId: entry.id,
+    parentId: entry.parents?.[0] ?? null,
+    name: entry.name,
+    path: entry.path,
+    kind: entry.kind === 'folder' ? 'directory' : entry.kind === 'markdown' ? 'markdown' : 'asset',
+    readOnly: entry.kind === 'asset'
+  }
+}
 
 function createSession(
   rootId: string,
@@ -614,6 +628,64 @@ export function PkmsGoogleDrivePane({
       return resolved
     },
     [root]
+  )
+
+  const activateDriveLink = useCallback(
+    (link: { kind: 'markdown' | 'wikilink'; target: string }): boolean => {
+      if (!root || !activeFile) return false
+      if (link.kind === 'wikilink') {
+        void resolveEditorWikiLink(
+          {
+            listChildren: async (parentId) => {
+              const entries = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, parentId)
+              return entries.map((entry) => driveEntryToEditorItem(root.id, entry))
+            },
+            createFileAtRoot: async (name) => {
+              const updatedEntries = await window.pkmsDesktop.createGoogleDriveItem(
+                root.id,
+                '',
+                'markdown',
+                name
+              )
+              setTreeBranches((current) => new Map(current).set('', updatedEntries))
+              const created = updatedEntries.find(
+                (entry) => entry.name.toLocaleLowerCase() === name.toLocaleLowerCase()
+              )
+              if (!created) throw new Error(`Could not create linked note: ${name}`)
+              return driveEntryToEditorItem(root.id, created)
+            }
+          },
+          link.target
+        )
+          .then(async (item) => {
+            const entry = await resolveDrivePath(item.path)
+            if (!entry || entry.kind !== 'markdown') {
+              setError(`Could not find linked file: ${item.path}`)
+              return
+            }
+            await openEntry(entry)
+          })
+          .catch((cause) =>
+            setError(cause instanceof Error ? cause.message : 'Could not resolve wikilink.')
+          )
+        return true
+      }
+      const path = resolveEditorRelativeLink(activeFile.path, link.target)
+      if (!path) return false
+      void resolveDrivePath(path)
+        .then(async (entry) => {
+          if (!entry || entry.kind !== 'markdown') {
+            setError(`Could not find linked file: ${path}`)
+            return
+          }
+          await openEntry(entry)
+        })
+        .catch((cause) =>
+          setError(cause instanceof Error ? cause.message : 'Could not open linked file.')
+        )
+      return true
+    },
+    [activeFile, openEntry, resolveDrivePath, root, setError]
   )
 
   const loadBreadcrumbChildren = useCallback(
@@ -1277,6 +1349,7 @@ export function PkmsGoogleDrivePane({
                     documentKey: `pkms-google-drive:${root.id}:${activeFile.id}`,
                     parserExtensions: editorMarkdownParserExtensions,
                     extensions: editorCodeMirrorHostExtensions,
+                    onActivateLink: activateDriveLink,
                     ariaLabel: 'Markdown editor'
                   }}
                 />

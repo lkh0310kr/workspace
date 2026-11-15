@@ -91,6 +91,8 @@ export type { TitleValidationError } from './markdownTitle'
 export { nextEditorItemName, nextEditorItemNameInDirectory } from './uniqueItemName'
 export { resolveEditorRelativeLink } from './relativeLink'
 export { resolveEditorTreeDirectory, resolveEditorTreePath } from './resolveEditorTreePath'
+export { resolveEditorWikiLink } from './resolveEditorWikiLink'
+export type { EditorWikiLinkSource } from './resolveEditorWikiLink'
 export {
   HEADING_TYPES,
   markdownDocumentPath,

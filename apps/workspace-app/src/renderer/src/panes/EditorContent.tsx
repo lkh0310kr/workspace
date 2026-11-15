@@ -24,6 +24,7 @@ import {
   resolveEditorRelativeLink,
   resolveEditorTreeDirectory,
   resolveEditorTreePath,
+  resolveEditorWikiLink,
   resolveMarkdownTitleRenameTarget,
   toggleEditorSearch,
   useEditorDocumentSnapshot,
@@ -82,30 +83,6 @@ async function findAvailableUntitledName(provider: LocalProvider): Promise<strin
   let i = 1
   while (names.has(`untitled ${i}.md`)) i++
   return `untitled ${i}.md`
-}
-
-async function resolveWikiLinkTarget(provider: LocalProvider, target: string): Promise<string> {
-  const base = target.split('/').pop()?.trim() || target
-  const wanted = `${base.toLowerCase()}.md`
-  const queue: Array<{ parentId: string | null }> = [{ parentId: null }]
-  let visited = 0
-  while (queue.length > 0 && visited < 500) {
-    const dir = queue.shift()!
-    visited++
-    const entries = await provider.listChildren(dir.parentId)
-    for (const entry of entries) {
-      if (entry.kind === 'directory') {
-        queue.push({ parentId: entry.itemId })
-      } else if (entry.kind === 'markdown' && entry.name.toLowerCase() === wanted) {
-        return entry.path
-      }
-    }
-  }
-  const created = `${base}.md`
-  if (!editorSupportsOperation(provider, 'createFile'))
-    throw new Error('File creation is not supported by this provider')
-  const item = await provider.create!(null, 'file', created)
-  return item.path
 }
 
 function jumpToPos(view: EditorView, pos: number): void {
@@ -775,8 +752,18 @@ export function EditorContent({
                 onViewReady,
                 onActivateLink: (link) => {
                   if (link.kind === 'wikilink') {
-                    void resolveWikiLinkTarget(editorProvider, link.target)
-                      .then((path) => onOpenFileRef.current(path, 'markdown'))
+                    void resolveEditorWikiLink(
+                      {
+                        listChildren: (parentId) => editorProvider.listChildren(parentId),
+                        createFileAtRoot: async (name) => {
+                          if (!editorSupportsOperation(editorProvider, 'createFile'))
+                            throw new Error('File creation is not supported by this provider')
+                          return editorProvider.create!(null, 'file', name)
+                        }
+                      },
+                      link.target
+                    )
+                      .then((item) => onOpenFileRef.current(item.path, 'markdown'))
                       .catch(console.error)
                     return true
                   }
