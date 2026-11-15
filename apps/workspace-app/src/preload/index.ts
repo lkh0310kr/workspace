@@ -60,6 +60,10 @@ const pkmsDesktop = {
     ipcRenderer.invoke('pkms-google-drive:workspace:directory', rootId, parentItemId) as Promise<
       import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]
     >,
+  searchGoogleDriveWorkspace: (rootId: string, query: string, pageToken?: string) =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:search', rootId, query, pageToken) as Promise<
+      import('@pkms/google-drive').GoogleDriveWorkspaceSearchPage
+    >,
   openGoogleDriveMarkdown: (rootId: string, fileId: string) =>
     ipcRenderer.invoke('pkms-google-drive:workspace:open-markdown', rootId, fileId) as Promise<{
       entry: import('@pkms/google-drive').GoogleDriveWorkspaceEntry

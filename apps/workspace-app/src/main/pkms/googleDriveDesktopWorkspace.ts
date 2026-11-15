@@ -83,6 +83,15 @@ export class GoogleDriveDesktopWorkspaceService {
     return this.requireWorkspace(rootId).repository.listDirectoryById(parentItemId)
   }
 
+  async search(rootId: string, query: string, pageToken?: string) {
+    if (typeof query !== 'string' || query.trim().length < 2 || query.length > 256)
+      throw new Error('invalid_google_drive_search_query')
+    return this.requireWorkspace(rootId).repository.searchFullTextPage(query, {
+      pageToken,
+      pageSize: 40
+    })
+  }
+
   async openMarkdown(rootId: string, fileId: string) {
     const runtime = this.requireWorkspace(rootId)
     const entry = await runtime.repository.getEntry(fileId)

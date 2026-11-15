@@ -92,6 +92,16 @@ export function registerPkmsIpc(): void {
     }
   )
   ipcMain.handle(
+    'pkms-google-drive:workspace:search',
+    (event, rootId: string, query: string, pageToken?: string) => {
+      assertTrustedSender(event)
+      assertDriveId(rootId)
+      if (pageToken !== undefined && (typeof pageToken !== 'string' || pageToken.length > 4096))
+        throw new Error('invalid_google_drive_page_token')
+      return driveWorkspaceService().search(rootId, query, pageToken)
+    }
+  )
+  ipcMain.handle(
     'pkms-google-drive:workspace:open-markdown',
     (event, rootId: string, fileId: string) => {
       assertTrustedSender(event)

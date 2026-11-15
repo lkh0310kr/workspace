@@ -318,6 +318,11 @@ export interface PkmsDesktopApi {
     rootId: string,
     parentItemId: string | null
   ) => Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]>
+  searchGoogleDriveWorkspace: (
+    rootId: string,
+    query: string,
+    pageToken?: string
+  ) => Promise<import('@pkms/google-drive').GoogleDriveWorkspaceSearchPage>
   openGoogleDriveMarkdown: (
     rootId: string,
     fileId: string
