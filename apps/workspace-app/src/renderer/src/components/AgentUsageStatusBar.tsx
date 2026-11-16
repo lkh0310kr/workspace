@@ -13,6 +13,7 @@ import {
   type UsageProviderId,
   type UsageMeterSettings
 } from '../../../shared/usage-meter-settings'
+import { formatResetCountdown, usageBarColor } from './usageStatusFormatting'
 
 const POLL_MS = 60_000
 
@@ -32,30 +33,13 @@ function formatPlanTypeLabel(planType: string | null | undefined): string {
   return safe ? ` · ${safe}` : ''
 }
 
-function formatResetCountdown(resetsAtMs: number, now: number): string | null {
-  const diffMs = resetsAtMs - now
-  if (diffMs <= 0) return null
-  const totalMinutes = Math.round(diffMs / 60_000)
-  const days = Math.floor(totalMinutes / (60 * 24))
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60)
-  const minutes = totalMinutes % 60
-  if (days > 0) return `${days}d ${hours}h`
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
-}
-
-function barColor(usedPercent: number): string {
-  if (usedPercent >= 90) return '#cc0000'
-  if (usedPercent >= 70) return '#c79100'
-  return '#4e9a06'
-}
-
 function RateLimitBar({ usedPercent }: { usedPercent: number }) {
   const clamped = Math.max(0, Math.min(100, usedPercent))
   return (
     <span className="usage-meter-bar">
       <span
         className="usage-meter-bar-fill"
-        style={{ width: `${clamped}%`, background: barColor(clamped) }}
+        style={{ width: `${clamped}%`, background: usageBarColor(clamped) }}
       />
     </span>
   )
