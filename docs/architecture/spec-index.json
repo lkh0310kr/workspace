@@ -951,7 +951,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/store/workspaceStore.ts",
-          "sha256": "40bb45ce45f476399a81ce0b28b28cf0ca9c0a82bea061301c0fc49af0553e29"
+          "sha256": "b5154aac79c2a3e3509f84f90903898ac027273d0c2dbe8d6af9541fdc96e194"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/layout/layoutActions.closeTab.test.ts",
@@ -972,6 +972,10 @@
         {
           "path": "apps/workspace-app/src/preload/pkmsDesktopApi.ts",
           "sha256": "b4b2dfa0ac3ca9ce6254d21c98953b49f88d74e7efa9883d1665d3ec0610a061"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/store/workspaceStore.persist.test.ts",
+          "sha256": "b68829918ff0e6fb5744daef67f3ffc1553918c0d7b00fa9c67860bbdb8990fb"
         }
       ]
     },

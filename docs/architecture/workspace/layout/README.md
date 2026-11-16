@@ -28,7 +28,7 @@ readPaneGroupConfig는 config가 없으면 빈 tabs/active ID를 사용한다. a
 
 hydrate는 tabs의 순서·ID·title·root·JSON 동등성을 비교한다. 같은 상태면 기존 tabs reference와 live model을 보존한다. JSON 문자열이 달라도 JSON parse/serialize 결과가 같으면 동등하다. 다른 saved layout, 없는 model, 비어 있는 model은 modelFromLayoutJson으로 재생성하고 layout revision을 올린다. 사라진 workspace의 model·focus를 제거한다.
 
-persistLayout은 model.toJson을 serialize하고 saved JSON cache를 즉시 갱신한 뒤 250ms 후 setTabLayout IPC를 요청한다. **현재 timer는 workspace별 Map이 아니라 module 단일 persistTimer다.** 서로 다른 workspace의 연속 예약도 마지막 예약으로 대체될 수 있으므로 workspace별 durable flush를 보장하는 계약으로 설명하지 않는다. 이 제한은 제품 코드 수정이 필요한 후속 항목이다.
+persistLayout은 model.toJson을 serialize하고 saved JSON cache를 즉시 갱신한 뒤 workspace tab별 250ms timer로 setTabLayout IPC를 요청한다. 같은 workspace의 연속 예약은 최신 layout 하나로 합치며, 다른 workspace의 timer는 서로 취소하지 않는다. hydration에서 workspace가 사라지면 해당 workspace의 대기 timer를 취소한다. 앱 종료 전에 IPC가 완료되지 않는 경우까지 durable flush를 보장하지는 않는다.
 
 [host callbacks](../../../../apps/workspace-app/src/renderer/src/hooks/useLayoutHostCallbacks.tsx)는 구조 action에서 revision을 올리고 move policy·pending rebalance·split scroll 복원을 적용한 뒤 persistLayout을 요청한다. SELECT_TAB/SET_ACTIVE_TABSET도 render revision에 반영한다. 임의 model.doAction 뒤 revision 갱신을 누락하지 않는다.
 
@@ -52,7 +52,7 @@ PaneGroup은 dirtyByTabId와 jump 요청을 UI 임시 상태로 소유하고, ex
 | LAY-02 | 이동·split 후 item/terminal ID 보존        | layoutActions.mutations/split, layoutTabDrop 테스트                                            |
 | LAY-03 | preview 파일을 다시 열거나 pin             | PaneGroup source 대조, 실제 editor 통합 검증 필요                                              |
 | LAY-04 | dirty close 취소                           | layoutActions.closeTab와 editor registry; 이전 전체 suite에 실패가 있어 native 완료 주장 안 함 |
-| LAY-05 | 다른 workspace에 연속 persist              | 단일 timer 제한 확인; workspace별 flush 검증은 후속                                            |
+| LAY-05 | 다른 workspace에 연속 persist              | `workspaceStore.persist.test.ts`: workspace별 timer 유지 및 같은 workspace 요청 coalescing     |
 | LAY-06 | root 변경 후 explorer 이전 확장 복원 안 함 | explorerState.test.ts                                                                          |
 
 테스트 이름은 `src/renderer/src/layout` 및 `explorer` 아래다. source 대조와 자동 test 결과·installed app acceptance는 별도로 기록한다.

@@ -37,11 +37,12 @@
 | T-026 | R-001a | OBJ MTL 상대경로 탐색에서 workspace 밖 파일과 root 밖 symlink의 내용을 읽지 않도록 경계 검사 | `apps/workspace-app/src/main/model3d/packageResolver.ts`, 관련 테스트, viewer spec | traversal·symlink 반례 재현 및 OBJ 외부 resource 판정의 기존 반환값 비교 | 중간 | packageResolver 5 tests, Node typecheck, app/root check, spec-index 검사 | validated |
 | T-027 | R-001b | FileViewer의 이미지/PDF 미리보기를 현재 탭·경로 source에 묶어 경로 전환 뒤 이전 Blob 표시를 차단 | `FileViewerContent.tsx`, path-change lifecycle test, asset viewer spec | 지연된 preview 응답 중 동일 component 경로 변경 동작 재현 | 낮음~중간 | deferred preview lifecycle test, app typecheck, root check, changed-file lint/format | validated |
 | T-028 | R-004 | PKMS Web workspace 전환 전에 열린 Drive 문서 sync를 기다리고 sync 실패 시 현재 workspace를 유지 | `apps/pkms-web/app/routes/pkms-google-drive.tsx`, `flushDocumentBeforeWorkspaceSync.ts` 및 Node lifecycle test, editor parity spec | workspace 전환 계약과 기존 route의 새-runtime-first / old-session-local-close 순서 대조 | 중간~높음 | Node built-in lifecycle tests (4 cases), PKMS Web typecheck, root check, Prettier, spec-index 검사 | validated |
+| T-029 | R-001b | workspace layout persist debounce를 workspace별 timer로 분리해 다른 탭 저장 요청이 취소되지 않게 함 | `workspaceStore.ts`, persist contract test, layout spec | 탭 1→탭 1 최신값 coalescing과 탭 2 병렬 예약 반례 | 낮음~중간 | `workspaceStore.persist.test.ts`, app typecheck, root check, 변경 경로 lint/format, spec-index | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 32개; 검증 완료 32, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 33개; 검증 완료 33, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -73,7 +74,7 @@
 
 ## 조사 후보·보류 사유
 
-- R-001b `workspaceStore.persistLayout`의 모듈 단일 debounce timer는 workspace 간 저장 요청을 취소할 수 있다는 기존 제한이 문서화돼 있다. 동작 계약 변경이므로 이번 보존 중심 배치에서는 수정하지 않았다.
+- R-001b `workspaceStore.persistLayout`의 모듈 단일 debounce timer가 workspace 간 IPC 저장 요청을 취소하는 것을 T-029 회귀 테스트로 재현하고, per-workspace timer와 workspace 제거 시 정리를 구현했다. IPC 예약 coalescing은 검증했지만 앱 종료 직전 IPC durability는 이 작업 범위에서 보장하지 않는다.
 - R-003 `SupabaseVault.ts`의 GitHub flush/recovery와 `mcp.ts`의 OAuth/JSON-RPC 분리는 명확한 책임 경계이나 전용 계약 테스트가 없다. flush lease·recovery, OAuth state/PKCE·code consume·revoke 테스트가 먼저 필요하다.
 - R-003에서 확인한 `%`/`_` path wildcard 오분류는 T-025에서 literal slash-boundary helper로 수정했다. 예: `a_b`의 subtree가 `axb/child`를 매칭하던 false positive를 기존 SQL test에 추가해 수정 전 실패와 수정 후 통과를 로컬 Postgres에서 확인했다. 최종 operation/conflict/asset function 정의의 prefix query를 모두 교체했다.
 - R-004 `pkms-google-drive.tsx`는 기존 Drive session을 로컬 close만 하고 새 workspace sync를 먼저 하던 경로를 T-028에서 고쳤다. route 전체 runtime acceptance는 아직 없지만 저장 결과 검사·workspace sync 순서를 작은 Node 테스트 가능한 경계로 분리해 고정했다.
