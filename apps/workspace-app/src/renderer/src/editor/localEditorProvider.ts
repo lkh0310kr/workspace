@@ -722,7 +722,11 @@ class LocalDocumentSession implements EditorDocumentSession {
           }
           return
         }
-        if (this.phase === 'saving' && diskValue === this.savingValue) return
+        // The editor can accept another change while the IPC-backed save is
+        // pending, which changes `phase` back to dirty before the watcher echo
+        // for this save arrives. Match the durable write independently of the
+        // phase so that echo cannot turn the newer edit into a conflict.
+        if (this.savingValue !== null && diskValue === this.savingValue) return
         if (this.phase === 'dirty' || this.phase === 'saving') {
           if (diskValue !== this.baseValue)
             this.markConflict('The file changed on disk while you had unsaved edits.')
