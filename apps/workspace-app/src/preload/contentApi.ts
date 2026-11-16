@@ -1,8 +1,12 @@
 import { ipcRenderer } from 'electron'
+import type { WorkspaceApi } from './index.d'
 
-export const contentApi = {
+export const contentApi: Pick<
+  WorkspaceApi,
+  'workspace' | 'fs' | 'media' | 'model3d' | 'cad' | 'epub'
+> = {
   workspace: {
-    getState: (): Promise<unknown> => ipcRenderer.invoke('workspace:get-state'),
+    getState: () => ipcRenderer.invoke('workspace:get-state'),
     addTab: (): Promise<number> => ipcRenderer.invoke('workspace:add-tab'),
     closeTab: (tabId: number): Promise<void> => ipcRenderer.invoke('workspace:close-tab', tabId),
     selectTab: (tabId: number): Promise<void> => ipcRenderer.invoke('workspace:select-tab', tabId),
@@ -12,17 +16,17 @@ export const contentApi = {
       ipcRenderer.invoke('workspace:reorder-tabs', orderedIds),
     setTabLayout: (tabId: number, layoutJson: string): Promise<void> =>
       ipcRenderer.invoke('workspace:set-tab-layout', tabId, layoutJson),
-    setTabRootPath: (tabId: number, rootPath: string): Promise<unknown> =>
+    setTabRootPath: (tabId: number, rootPath: string) =>
       ipcRenderer.invoke('workspace:set-tab-root-path', tabId, rootPath),
-    onUpdated: (cb: (state: unknown) => void): (() => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, state: unknown): void => cb(state)
+    onUpdated: (cb) => {
+      const listener = (_event: Electron.IpcRendererEvent, state: Parameters<typeof cb>[0]): void =>
+        cb(state)
       ipcRenderer.on('workspace:updated', listener)
       return () => ipcRenderer.removeListener('workspace:updated', listener)
     }
   },
   fs: {
-    listDir: (tabId: number, rel: string): Promise<unknown> =>
-      ipcRenderer.invoke('fs:list-dir', tabId, rel),
+    listDir: (tabId: number, rel: string) => ipcRenderer.invoke('fs:list-dir', tabId, rel),
     readFile: (tabId: number, rel: string): Promise<string> =>
       ipcRenderer.invoke('fs:read-file', tabId, rel),
     readFileBinaryPreview: (
@@ -50,14 +54,14 @@ export const contentApi = {
       ipcRenderer.on('fs:changed', listener)
       return () => ipcRenderer.removeListener('fs:changed', listener)
     },
-    searchInFiles: (requestId: string, tabId: number, query: string, opts: unknown): void =>
+    searchInFiles: (requestId, tabId, query, opts): void =>
       ipcRenderer.send('fs:search-in-files', requestId, tabId, query, opts),
     searchCancel: (requestId: string): void => ipcRenderer.send('fs:search-cancel', requestId),
-    onSearchResult: (cb: (requestId: string, result: unknown) => void): (() => void) => {
+    onSearchResult: (cb) => {
       const listener = (
         _event: Electron.IpcRendererEvent,
         requestId: string,
-        result: unknown
+        result: Parameters<typeof cb>[1]
       ): void => cb(requestId, result)
       ipcRenderer.on('fs:search-result', listener)
       return () => ipcRenderer.removeListener('fs:search-result', listener)
@@ -81,14 +85,15 @@ export const contentApi = {
       ipcRenderer.invoke('media:get-url-absolute', absolutePath)
   },
   model3d: {
-    openPreview: (tabId: number, rel: string): Promise<unknown> =>
+    openPreview: (tabId: number, rel: string) =>
       ipcRenderer.invoke('model:open-preview', tabId, rel),
-    openAsset: (request: unknown): Promise<unknown> =>
-      ipcRenderer.invoke('model:open-asset', request),
-    getImportJob: (jobId: string): Promise<unknown> =>
-      ipcRenderer.invoke('model:import-job', jobId),
-    onImportStatus: (handler: (job: unknown) => void): (() => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, job: unknown) => handler(job)
+    openAsset: (request) => ipcRenderer.invoke('model:open-asset', request),
+    getImportJob: (jobId: string) => ipcRenderer.invoke('model:import-job', jobId),
+    onImportStatus: (handler) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        job: Parameters<typeof handler>[0]
+      ): void => handler(job)
       ipcRenderer.on('model:import-status', listener)
       return () => ipcRenderer.removeListener('model:import-status', listener)
     },
@@ -96,24 +101,17 @@ export const contentApi = {
       ipcRenderer.invoke('model:get-url', tabId, rel),
     log: (event: string, data?: Record<string, unknown>): Promise<void> =>
       ipcRenderer.invoke('model:log', event, data),
-    logs: (limit?: number): Promise<unknown> => ipcRenderer.invoke('model:logs', limit)
+    logs: (limit) => ipcRenderer.invoke('model:logs', limit)
   },
   cad: {
-    openFile: (tabId: number, rel: string): Promise<unknown> =>
-      ipcRenderer.invoke('cad:open-file', tabId, rel)
+    openFile: (tabId, rel) => ipcRenderer.invoke('cad:open-file', tabId, rel)
   },
   epub: {
-    open: (tabId: number, rel: string): Promise<unknown> =>
-      ipcRenderer.invoke('epub:open', tabId, rel),
-    openAbsolute: (absolutePath: string): Promise<unknown> =>
-      ipcRenderer.invoke('epub:open-absolute', absolutePath),
-    getState: (tabId: number | null, rel: string | null, absolutePath?: string): Promise<unknown> =>
+    open: (tabId, rel) => ipcRenderer.invoke('epub:open', tabId, rel),
+    openAbsolute: (absolutePath) => ipcRenderer.invoke('epub:open-absolute', absolutePath),
+    getState: (tabId, rel, absolutePath) =>
       ipcRenderer.invoke('epub:state-get', tabId, rel, absolutePath),
-    saveState: (
-      tabId: number | null,
-      rel: string | null,
-      absolutePath: string | undefined,
-      patch: unknown
-    ): Promise<unknown> => ipcRenderer.invoke('epub:state-save', tabId, rel, absolutePath, patch)
+    saveState: (tabId, rel, absolutePath, patch) =>
+      ipcRenderer.invoke('epub:state-save', tabId, rel, absolutePath, patch)
   }
 }

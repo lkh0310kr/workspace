@@ -1,6 +1,20 @@
 import { ipcRenderer } from 'electron'
+import type { WorkspaceApi } from './index.d'
 
-export const systemApi = {
+export const systemApi: Pick<
+  WorkspaceApi,
+  | 'hostname'
+  | 'system'
+  | 'platform'
+  | 'platformInfo'
+  | 'isWsl'
+  | 'windowControls'
+  | 'shell'
+  | 'usage'
+  | 'dialog'
+  | 'clipboard'
+  | 'debug'
+> = {
   hostname: (): Promise<string> => ipcRenderer.invoke('hostname'),
   system: {
     summary: (): Promise<{
@@ -51,14 +65,11 @@ export const systemApi = {
       ipcRenderer.invoke('shell:reveal-item-in-dir', path)
   },
   usage: {
-    claudeRateLimitStatus: (): Promise<unknown> =>
-      ipcRenderer.invoke('usage:claude-rate-limit-status'),
-    cursorUsageStatus: (): Promise<unknown> => ipcRenderer.invoke('usage:cursor-usage-status'),
-    codexRateLimitStatus: (): Promise<unknown> =>
-      ipcRenderer.invoke('usage:codex-rate-limit-status'),
-    meterSettingsGet: (): Promise<unknown> => ipcRenderer.invoke('usage:meter-settings-get'),
-    meterSettingsSave: (settings: unknown): Promise<void> =>
-      ipcRenderer.invoke('usage:meter-settings-save', settings)
+    claudeRateLimitStatus: () => ipcRenderer.invoke('usage:claude-rate-limit-status'),
+    cursorUsageStatus: () => ipcRenderer.invoke('usage:cursor-usage-status'),
+    codexRateLimitStatus: () => ipcRenderer.invoke('usage:codex-rate-limit-status'),
+    meterSettingsGet: () => ipcRenderer.invoke('usage:meter-settings-get'),
+    meterSettingsSave: (settings) => ipcRenderer.invoke('usage:meter-settings-save', settings)
   },
   dialog: {
     openDirectory: (defaultPath?: string) =>
