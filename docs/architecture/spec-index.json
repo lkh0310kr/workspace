@@ -974,7 +974,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/runtime/ptyDataMultiplexer.ts",
-          "sha256": "3e57e6dde94d272746bfe993d9b9ca6e71b3920d94fb88f362e3e911c4b38bd3"
+          "sha256": "0d3729518bb9560d7e23bd64a15e370302ae39bd7004997ce92e83a89efbd442"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/runtime/ptyTransport.ts",
@@ -1894,6 +1894,10 @@
         {
           "path": "packages/terminal/src/transport/ptyInputWriteQueue.ts",
           "sha256": "e9514b7c64bcfeb9c94fc88eed7ac344f80dfb20f6dcac4cd7fd0b353a440e28"
+        },
+        {
+          "path": "packages/terminal/src/transport/ptyDataMultiplexer.ts",
+          "sha256": "97eae9c24252807f247ac49ec9bc399c40375fb76af805c8d6fe5259fc02926a"
         },
         {
           "path": "packages/terminal/src/types/tuiAgent.ts",

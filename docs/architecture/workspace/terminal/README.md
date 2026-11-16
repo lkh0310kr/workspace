@@ -18,7 +18,7 @@ host replay는 약 2MiB byte cap, Main replay는 5000*120 character cap이다. �
 
 ## 연결·활성화·연결 해제
 
-Desktop runtime adapter의 [ptyTransport](../../../../apps/desktop/src/renderer/src/features/terminal/runtime/ptyTransport.ts)는 connect 전에 input queue를 만들고 Main attach 결과를 기다린다. 전역 [multiplexer](../../../../apps/desktop/src/renderer/src/features/terminal/runtime/ptyDataMultiplexer.ts)는 대기 중 출력을 보관한다. snapshot lastSeq 이하의 중복을 버리고 이후 live를 transport 내부에 보류한다. connectPanePty가 snapshot을 xterm에 적용한 다음 activate하면 보류 출력을 순서대로 전달한다.
+Desktop runtime adapter의 [ptyTransport](../../../../apps/desktop/src/renderer/src/features/terminal/runtime/ptyTransport.ts)는 connect 전에 input queue를 만들고 Main attach 결과를 기다린다. 출력 순서·디코딩·대기 큐를 관리하는 [multiplexer package](../../../../packages/terminal/src/transport/ptyDataMultiplexer.ts)에 Desktop이 IPC 구독과 진단 로그 capability를 주입한다. snapshot lastSeq 이하의 중복을 버리고 이후 live를 transport 내부에 보류한다. connectPanePty가 snapshot을 xterm에 적용한 다음 activate하면 보류 출력을 순서대로 전달한다.
 
 connect 반환은 id/snapshot/snapshotCols/snapshotRows/lastSeq/isReattach다. Main은 기존 daemon session의 snapshot 또는 local replay를 사용하고 native dimensions를 보존한다. disconnect는 subscription/input queue·live buffer를 비우고 Main attach를 해제한다. renderer 숨김/해제만으로 shell process를 kill하지 않는다. layout에서 마지막 terminal 참조가 사라지는 경로가 destroy한다.
 
