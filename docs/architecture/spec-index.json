@@ -1197,7 +1197,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "d1e907af49d42aea57fd7fdc41399f2382f4ea82acceb94853e9987725258dfe"
+          "sha256": "534c698af8bbb54467d84d772a275b80ac8adc5e7b7262ef2c46263a63c4fd1f"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/host/WorkspaceLayoutHost.tsx",
@@ -1206,6 +1206,10 @@
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/paneSystem.css",
           "sha256": "29e9b41e6553107890849eb184bea844955373234f5dae04b1ef3e4dbc107a7b"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/app-shell/appShell.css",
+          "sha256": "4ee4c3ba216ec80f09c286be01b78c038fd185aeb80ce6ae8cca7f8b83d0fa30"
         }
       ]
     },
@@ -1387,7 +1391,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "28222ddaa05565f3ad4132046060139dfff59dbd7259f01366f1bdee63ea3ef2"
+          "sha256": "c591878df5807e6df956735fa1076079b1bdedc946085ad45baa448002baf5f2"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/AppSettingsDialog.tsx",
@@ -1395,7 +1399,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx",
-          "sha256": "f396f311ddc82e7a7538bc9cb9f1b494675ddbdf49c67e2071cb62b28e411dcd"
+          "sha256": "414d31c91cb8d858dd14bd85bb4e8049e9c510d37ed8fd479f3ff372ea20e9ea"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/settings/UsageMeterSettingsSection.tsx",
@@ -1496,6 +1500,18 @@
         {
           "path": "apps/desktop/src/renderer/src/features/diagnostics/diagnostics.css",
           "sha256": "f454ea2691d7833b4e15a5f2a54cf56cc97e270825ac391771c34c063a0748f0"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/agent-usage/agentUsage.css",
+          "sha256": "a77bc4b8395afbf50c838367646ccb40d0229bd8c41e6ea3049f91d7895c5675"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/notifications/editorToast.css",
+          "sha256": "d13d0cb295b49a7f0a5fad6e1033bdd967ea1e82ef60418a8a142c4b85b9fcbd"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/notifications/EditorToastViewport.tsx",
+          "sha256": "f06721a33fbc73b2c78053dc881b3def6c809d7af79fd8826b1e18209410f911"
         }
       ]
     },

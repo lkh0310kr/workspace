@@ -43,6 +43,7 @@ import { useEffect, useCallback, useState } from 'react'
 import { syncAgentPaneRegistryFromLayouts } from './features/terminal/host'
 import 'flexlayout-react/style/combined.css'
 import './assets/styles.css'
+import './features/app-shell/appShell.css'
 import '@workspace/editor/tree.css'
 
 if (typeof document !== 'undefined' && window.api?.platform) {

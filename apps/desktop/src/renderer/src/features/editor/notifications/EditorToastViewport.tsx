@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { EDITOR_NOTIFICATION_EVENT, type EditorNotificationDetail } from '@workspace/editor'
+import './editorToast.css'
 
 interface ToastItem extends EditorNotificationDetail {
   id: number

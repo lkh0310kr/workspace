@@ -14,6 +14,7 @@ import {
   type UsageMeterSettings
 } from '../../../../shared/usage-meter-settings'
 import { formatResetCountdown, usageBarColor } from './usageStatusFormatting'
+import './agentUsage.css'
 
 const POLL_MS = 60_000
 

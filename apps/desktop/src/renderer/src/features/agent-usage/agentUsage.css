@@ -1,0 +1,133 @@
+/* Agent usage status bar and details popover. */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-base);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  position: relative;
+  z-index: 100002;
+}
+
+.status-bar-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-bar-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.status-bar-clickable:hover {
+  background: var(--bg-hover);
+}
+
+.usage-meter-bar {
+  display: inline-block;
+  width: 28px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+  overflow: hidden;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.usage-meter-bar-fill {
+  display: block;
+  height: 100%;
+}
+
+.usage-details-popover {
+  width: min(320px, calc(100vw - 24px));
+  padding: 0;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  z-index: 100003;
+}
+
+.usage-details-header {
+  padding: 10px 12px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.usage-details-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.usage-details-provider {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.usage-details-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+.usage-details-label {
+  flex-shrink: 0;
+}
+
+.usage-details-value {
+  text-align: right;
+}
+
+.usage-details-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.usage-details-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.usage-details-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.usage-details-toggle input[type='checkbox'],
+.usage-settings-toggles input[type='checkbox'] {
+  accent-color: var(--text-muted);
+}
+
+.usage-settings-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.usage-details-footer {
+  padding: 8px 12px;
+}
+
+.usage-details-settings-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+}
