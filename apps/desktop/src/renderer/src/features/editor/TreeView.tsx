@@ -17,16 +17,16 @@ import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
 import type { AnchorRect } from '../../components/Popover'
 import { onWorkspaceDismissPortals } from '../../workspacePortalDismiss'
 import {
-  ancestorDirPaths,
-  loadExplorerTreeState,
-  resetExplorerTreeState,
-  resolveExplorerScrollTop,
-  saveExplorerExpanded,
-  saveExplorerScrollAnchor,
-  saveExplorerScrollTop
-} from '../../explorer/explorerState'
-import { dirsToReloadForChange } from '../../explorer/treeReload'
-import { useExplorerKeyboard } from '../../explorer/useExplorerKeyboard'
+  editorTreeAncestorDirPaths,
+  loadEditorTreeState,
+  resetEditorTreeState,
+  resolveEditorTreeScrollTop,
+  saveEditorTreeExpanded,
+  saveEditorTreeScrollAnchor,
+  saveEditorTreeScrollTop
+} from '@workspace/editor'
+import { editorTreeDirsToReloadForChange } from '@workspace/editor'
+import { useEditorTreeKeyboard } from '@workspace/editor'
 import {
   confirmDirtyEditorDocumentsInPaths,
   editorSupportsOperation,
@@ -54,13 +54,13 @@ import { acquireLocalEditorProvider } from '../../editor/localEditorProvider'
 interface Props {
   tabId: number
   rootPath: string
-  explorerStateKey: string
+  editorTreeStateKey: string
   scrollContainerRef?: RefObject<HTMLElement | null>
   paneHostRef?: RefObject<HTMLElement | null>
   selectedPath?: string | null
   revealRevision?: number
   paneVisible?: boolean
-  explorerModeActive?: boolean
+  editorTreeActive?: boolean
   onOpenFile: (path: string, kind: 'code' | 'markdown' | 'viewer', pin?: boolean) => void
   onPathRenamed?: (from: string, to: string) => void
   onPathDeleted?: (path: string) => void
@@ -134,13 +134,13 @@ const TREE_DRAG_MIME = EDITOR_TREE_DRAG_MIME_TYPE
 export function TreeView({
   tabId,
   rootPath,
-  explorerStateKey,
+  editorTreeStateKey,
   scrollContainerRef,
   paneHostRef,
   selectedPath,
   revealRevision = 0,
   paneVisible = true,
-  explorerModeActive = true,
+  editorTreeActive = true,
   onOpenFile,
   onPathRenamed,
   onPathDeleted
@@ -160,7 +160,7 @@ export function TreeView({
   const treeRef = useRef<HTMLDivElement>(null)
   const [dirs, setDirs] = useState<Map<string, DirState>>(new Map())
   const [expanded, setExpanded] = useState<Set<string>>(
-    () => new Set(loadExplorerTreeState(explorerStateKey, rootPath).expanded)
+    () => new Set(loadEditorTreeState(editorTreeStateKey, rootPath).expanded)
   )
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [inlineEdit, setInlineEdit] = useState<
@@ -185,7 +185,7 @@ export function TreeView({
   const lastRevealRevisionRef = useRef(revealRevision)
   const scrollAnchorRef = useRef<{ path: string; index: number; offset: number } | null>(null)
   const previousFlatListRef = useRef<Array<{ entry: DirEntry; depth: number }> | null>(null)
-  const previousAnchorScopeRef = useRef(`${explorerStateKey}:${tabId}:${rootPath}`)
+  const previousAnchorScopeRef = useRef(`${editorTreeStateKey}:${tabId}:${rootPath}`)
 
   useLayoutEffect(() => {
     rootPathRef.current = rootPath
@@ -240,21 +240,21 @@ export function TreeView({
     (updater: (prev: Set<string>) => Set<string>) => {
       setExpanded((prev) => {
         const next = updater(prev)
-        saveExplorerExpanded(explorerStateKey, rootPath, next)
+        saveEditorTreeExpanded(editorTreeStateKey, rootPath, next)
         return next
       })
     },
-    [explorerStateKey, rootPath]
+    [editorTreeStateKey, rootPath]
   )
 
   const prevRootRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (prevRootRef.current !== null && prevRootRef.current !== rootPath) {
-      resetExplorerTreeState(explorerStateKey, rootPath)
+      resetEditorTreeState(editorTreeStateKey, rootPath)
     }
     prevRootRef.current = rootPath
-    const restored = loadExplorerTreeState(explorerStateKey, rootPath)
+    const restored = loadEditorTreeState(editorTreeStateKey, rootPath)
     setDirs(new Map())
     setExpanded(new Set(restored.expanded))
     setSelected(new Set())
@@ -263,14 +263,14 @@ export function TreeView({
     for (const path of restored.expanded) {
       loadDir(path)
     }
-  }, [tabId, rootPath, explorerStateKey, loadDir])
+  }, [tabId, rootPath, editorTreeStateKey, loadDir])
 
   useEffect(() => {
     const el = scrollContainerRef?.current
     if (!el) return
-    const restored = loadExplorerTreeState(explorerStateKey, rootPath)
+    const restored = loadEditorTreeState(editorTreeStateKey, rootPath)
     pendingScrollRestoreRef.current = {
-      scope: `${explorerStateKey}:${tabId}:${rootPath}`,
+      scope: `${editorTreeStateKey}:${tabId}:${rootPath}`,
       scrollTop: restored.scrollTop,
       anchorPath: restored.scrollAnchorPath,
       anchorOffset: restored.scrollAnchorOffset
@@ -284,9 +284,9 @@ export function TreeView({
       scrollAnchorRef.current = row
         ? { path: row.entry.path, index, offset: el.scrollTop - index * EDITOR_TREE_ROW_HEIGHT }
         : null
-      saveExplorerScrollTop(explorerStateKey, rootPath, el.scrollTop)
-      saveExplorerScrollAnchor(
-        explorerStateKey,
+      saveEditorTreeScrollTop(editorTreeStateKey, rootPath, el.scrollTop)
+      saveEditorTreeScrollAnchor(
+        editorTreeStateKey,
         rootPath,
         row?.entry.path,
         el.scrollTop - index * EDITOR_TREE_ROW_HEIGHT
@@ -301,7 +301,7 @@ export function TreeView({
       el.removeEventListener('scroll', onScroll)
       ro.disconnect()
     }
-  }, [scrollContainerRef, explorerStateKey, rootPath, tabId])
+  }, [scrollContainerRef, editorTreeStateKey, rootPath, tabId])
 
   useEffect(() => {
     return editorProvider.subscribeTree((parentIds) => {
@@ -316,7 +316,7 @@ export function TreeView({
       }
       const toReload = new Set<string>()
       for (const p of parentPaths) {
-        for (const d of dirsToReloadForChange(p, expanded)) toReload.add(d)
+        for (const d of editorTreeDirsToReloadForChange(p, expanded)) toReload.add(d)
       }
       for (const d of toReload) loadDir(d)
     })
@@ -330,7 +330,7 @@ export function TreeView({
 
   const revealAncestors = useCallback(
     (path: string) => {
-      const ancestors = ancestorDirPaths(path)
+      const ancestors = editorTreeAncestorDirPaths(path)
       if (ancestors.length === 0) return
       setExpandedPersisted((prev) => {
         const next = new Set(prev)
@@ -386,15 +386,15 @@ export function TreeView({
     const pending = pendingScrollRestoreRef.current
     if (
       !pending ||
-      pending.scope !== `${explorerStateKey}:${tabId}:${rootPath}` ||
-      !explorerModeActive ||
+      pending.scope !== `${editorTreeStateKey}:${tabId}:${rootPath}` ||
+      !editorTreeActive ||
       !dirs.get('')?.loaded
     )
       return
     if ([...expanded].some((path) => !dirs.get(path)?.loaded)) return
     const el = scrollContainerRef?.current
     if (!el || el.clientHeight <= 0) return
-    const restoredTop = resolveExplorerScrollTop(
+    const restoredTop = resolveEditorTreeScrollTop(
       pending,
       flatList.map(({ entry }) => entry.path),
       el.scrollHeight - el.clientHeight,
@@ -411,8 +411,8 @@ export function TreeView({
   }, [
     dirs,
     expanded,
-    explorerModeActive,
-    explorerStateKey,
+    editorTreeActive,
+    editorTreeStateKey,
     flatList,
     rootPath,
     scrollContainerRef,
@@ -421,7 +421,7 @@ export function TreeView({
 
   useLayoutEffect(() => {
     const previous = previousFlatListRef.current
-    const anchorScope = `${explorerStateKey}:${tabId}:${rootPath}`
+    const anchorScope = `${editorTreeStateKey}:${tabId}:${rootPath}`
     if (previousAnchorScopeRef.current !== anchorScope) {
       previousAnchorScopeRef.current = anchorScope
       scrollAnchorRef.current = null
@@ -449,12 +449,12 @@ export function TreeView({
       if (Math.abs(el.scrollTop - nextTop) > 1) el.scrollTop = nextTop
       const row = flatList[index]
       scrollAnchorRef.current = row ? { path: row.entry.path, index, offset } : null
-      saveExplorerScrollTop(explorerStateKey, rootPath, nextTop)
-      saveExplorerScrollAnchor(explorerStateKey, rootPath, row?.entry.path, offset)
+      saveEditorTreeScrollTop(editorTreeStateKey, rootPath, nextTop)
+      saveEditorTreeScrollAnchor(editorTreeStateKey, rootPath, row?.entry.path, offset)
       setScrollTop(nextTop)
     }
     previousFlatListRef.current = flatList
-  }, [flatList, rootPath, tabId, scrollContainerRef, explorerStateKey])
+  }, [flatList, rootPath, tabId, scrollContainerRef, editorTreeStateKey])
 
   const treePaths = useMemo(() => flatList.map(({ entry }) => entry.path), [flatList])
   const treeSelection = useEditorTreeSelection(treePaths)
@@ -468,19 +468,19 @@ export function TreeView({
       : null
 
   useEffect(() => {
-    if (!selectedPath || !explorerModeActive) return
+    if (!selectedPath || !editorTreeActive) return
     setSelected(new Set([selectedPath]))
     setSelectionAnchor(selectedPath)
     treeSelection.setFocusedPath(selectedPath)
-  }, [selectedPath, explorerModeActive, treeSelection.setFocusedPath])
+  }, [selectedPath, editorTreeActive, treeSelection.setFocusedPath])
 
   useEffect(() => {
     if (revealRevision === lastRevealRevisionRef.current) return
-    if (!selectedPath || !explorerModeActive) return
+    if (!selectedPath || !editorTreeActive) return
     lastRevealRevisionRef.current = revealRevision
     pendingRevealPathRef.current = selectedPath
     revealAncestors(selectedPath)
-  }, [explorerModeActive, revealAncestors, revealRevision, selectedPath])
+  }, [editorTreeActive, revealAncestors, revealRevision, selectedPath])
 
   const projection = useMemo(
     () => projectEditorTreeRows(flatList, scrollTop, viewportHeight),
@@ -605,7 +605,7 @@ export function TreeView({
 
   useEffect(() => {
     const path = pendingRevealPathRef.current
-    if (!path || !explorerModeActive) return
+    if (!path || !editorTreeActive) return
     const index = treePaths.indexOf(path)
     const el = scrollContainerRef?.current
     if (index < 0 || !el || el.clientHeight <= 0) return
@@ -616,7 +616,7 @@ export function TreeView({
     )
     el.scrollTop = nextTop
     setScrollTop(nextTop)
-  }, [explorerModeActive, scrollContainerRef, treePaths])
+  }, [editorTreeActive, scrollContainerRef, treePaths])
 
   const beginInlineCreate = (kind: 'file' | 'folder', dir = '') => {
     setMenu(null)
@@ -879,10 +879,10 @@ export function TreeView({
     ]
   )
 
-  useExplorerKeyboard(
+  useEditorTreeKeyboard(
     paneHostRef ?? { current: null },
     treeRef,
-    paneVisible && explorerModeActive,
+    paneVisible && editorTreeActive,
     keyboardHandlers
   )
 

@@ -8,25 +8,25 @@
 
 파일을 열면 제목과 본문이 같은 문서 폭에 정렬되고, 제목은 파일 이름을 정확히 나타낸다. 사용자는 Markdown 원문을 보존하면서 읽기 쉬운 미리보기로 작성하고, 표·수식·다이어그램·HTML을 예측 가능하고 안전하게 다룬다. Explorer와 문서는 각각의 위치·선택·편집 상태를 유지하며, 한 영역의 상태 변경이 다른 영역의 viewport를 임의로 이동시키지 않는다.
 
-## P0 — Explorer 탐색 상태를 안정화한다
+## P0 — Editor tree 상태를 안정화한다
 
-현재 [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx)은 `treeOpen`과 active pane kind로 Explorer를 노출하고, [WorkspaceExplorerSidebar](../../../../apps/desktop/src/renderer/src/features/editor/WorkspaceExplorerSidebar.tsx)는 `Cmd/Ctrl+\`를 처리한다. CSS는 pane 폭 560px 이하에서 slot을 강제로 숨긴다. 이 CSS 조건은 저장된 `treeOpen=true`와 별개라 단축키로 열려 있어도 보이지 않을 수 있다. 폭 임계값에서 닫힘/복귀 규칙을 단일 상태 전이로 정의해야 한다.
+현재 [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx)은 `treeOpen`과 active pane kind로 Editor tree sidebar를 표시하고, [EditorSidebar](../../../../apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx)는 `Cmd/Ctrl+\`를 처리한다. CSS는 pane 폭 560px 이하에서 slot을 강제로 숨긴다. 이 CSS 조건은 저장된 `treeOpen=true`와 별개라 단축키로 열려 있어도 보이지 않을 수 있다. 폭 임계값에서 닫힘/복귀 규칙을 단일 상태 전이로 정의해야 한다.
 
 [TreeView](../../../../apps/desktop/src/renderer/src/features/editor/TreeView.tsx)는 활성 파일 경로 변경 때 ancestor를 펼치고 해당 행을 `scrollIntoView`한다. 트리 내용 변경 때 anchor를 유지하는 동작과 이 자동 reveal은 현재 하나의 active-path 효과에서 섞여 있다. 따라서 “스크롤을 유지하라”는 결과와 “활성 파일을 보여라”는 결과가 서로 덮어쓸 수 있다.
 
 | ID     | 사용자 결과                                                                     | 수용 기준                                                                                                                                                                                                                                                                                                                     |
 | ------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EXP-01 | `Cmd+\` / `Ctrl+\`로 focused file pane의 Explorer를 열고 닫는다.                | editor focus 여부와 관계없이 동작한다. 논리 키 값 `\\` 또는 물리 키 코드 `Backslash`로 판별하므로 키 문자가 달라지는 layout에서도 토글된다. React sidebar 회귀 테스트는 한국어 키 문자로 닫기와 재열기를 확인한다. 검색 pane 전환, pane split, 창 크기 변경 후 실제 표시·상태 일치는 Electron 수동 acceptance가 남아 있다.    |
-| EXP-02 | 좁은 pane에서 Explorer가 editor 위를 덮지 않고 사라진다.                        | 가용 너비가 임계값 아래면 dock 폭을 해제하고 editor가 남은 폭을 쓴다. 임계값 위로 돌아오면 명시된 open 상태에 따라 재표시된다. “숨겨진 상태”와 “열렸지만 CSS로 가려진 상태”가 동시에 존재하지 않는다.                                                                                                                         |
-| EXP-03 | 일반 선택·열기·refresh·folder expand/collapse 뒤 현재 보던 첫 행을 유지한다.    | 이전 첫 가시 행의 path가 남아 있으면 같은 viewport y 위치에 둔다. 행이 삭제되면 가장 가까운 생존 행을 사용한다. TreeView 통합 테스트는 active file 변경 뒤 `scrollTop` 불변을 확인한다. refresh/expand/collapse 조합의 실제 acceptance는 남아 있다.                                                                           |
-| EXP-04 | 탭 전환·Explorer 닫기/열기·pane 폭 조정·TreeView 재마운트 후 scroll이 유지된다. | 저장한 row path + row 내부 offset을 우선 복원한다. 데이터가 준비되기 전에 0으로 점프하는 화면을 보이지 않는다. path 복원이 불가능한 경우에만 pixel offset을 fallback으로 쓴다. anchor 우선순위·fallback·clamp, TreeView remount 복원은 자동 테스트하며 실제 pane 토글/탭 전환/폭 변경은 Electron 수동 acceptance가 남아 있다. |
-| EXP-05 | 별도 탐색 의도가 있을 때 활성 파일을 찾아갈 수 있다.                            | `Cmd/Ctrl+Shift+E`는 Explorer를 열고 현재 활성 파일의 ancestor를 펼쳐 그 파일을 reveal한다. 이 명시 동작만 자동 보존 규칙보다 우선한다.                                                                                                                                                                                       |
+| TREE-01 | `Cmd+\` / `Ctrl+\`로 focused file pane의 Editor tree를 열고 닫는다.                | editor focus 여부와 관계없이 동작한다. 논리 키 값 `\\` 또는 물리 키 코드 `Backslash`로 판별하므로 키 문자가 달라지는 layout에서도 토글된다. React sidebar 회귀 테스트는 한국어 키 문자로 닫기와 재열기를 확인한다. 검색 pane 전환, pane split, 창 크기 변경 후 실제 표시·상태 일치는 Electron 수동 acceptance가 남아 있다.    |
+| TREE-02 | 좁은 pane에서 Editor tree가 문서 위를 덮지 않고 접힌다.                        | 가용 너비가 임계값 아래면 dock 폭을 해제하고 editor가 남은 폭을 쓴다. 임계값 위로 돌아오면 명시된 open 상태에 따라 재표시된다. “숨겨진 상태”와 “열렸지만 CSS로 가려진 상태”가 동시에 존재하지 않는다.                                                                                                                         |
+| TREE-03 | 일반 선택·열기·refresh·folder expand/collapse 뒤 현재 보던 첫 행을 유지한다.    | 이전 첫 가시 행의 path가 남아 있으면 같은 viewport y 위치에 둔다. 행이 삭제되면 가장 가까운 생존 행을 사용한다. TreeView 통합 테스트는 active file 변경 뒤 `scrollTop` 불변을 확인한다. refresh/expand/collapse 조합의 실제 acceptance는 남아 있다.                                                                           |
+| TREE-04 | 탭 전환·Editor tree 닫기/열기·pane 폭 조정·TreeView 재마운트 후 scroll이 유지된다. | 저장한 row path + row 내부 offset을 우선 복원한다. 데이터가 준비되기 전에 0으로 점프하는 화면을 보이지 않는다. path 복원이 불가능한 경우에만 pixel offset을 fallback으로 쓴다. anchor 우선순위·fallback·clamp, TreeView remount 복원은 자동 테스트하며 실제 pane 토글/탭 전환/폭 변경은 Electron 수동 acceptance가 남아 있다. |
+| TREE-05 | 별도 탐색 의도가 있을 때 활성 파일을 찾아갈 수 있다.                            | `Cmd/Ctrl+Shift+E`는 Editor tree를 열고 현재 활성 파일의 ancestor를 펼쳐 그 파일을 reveal한다. 이 명시 동작만 자동 보존 규칙보다 우선한다.                                                                                                                                                                                       |
 
-Markdown formatting의 `Mod-b`는 bold 동작에 사용한다. Explorer toggle은 겹치지 않는 `Cmd/Ctrl+\`로 제공하며, keyboard capture 단계에서 editor focus를 포함해 현재 focused pane group을 토글한다.
+Markdown formatting의 `Mod-b`는 bold 동작에 사용한다. Editor tree toggle은 겹치지 않는 `Cmd/Ctrl+\`로 제공하며, keyboard capture 단계에서 editor focus를 포함해 현재 focused pane group을 토글한다.
 
 | ID     | 사용자 결과                                                   | 수용 기준                                                                                                                                                            |
 | ------ | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| KEY-01 | Markdown 본문에서 `Cmd/Ctrl+B`는 선택 텍스트를 bold 처리한다. | Explorer가 열려 있거나 닫혀 있어도 bold 명령이 동작한다. `Cmd/Ctrl+\`는 editor focus 여부와 관계없이 Explorer를 토글한다. `Cmd/Ctrl+Shift+E`는 활성 파일 reveal이다. |
+| KEY-01 | Markdown 본문에서 `Cmd/Ctrl+B`는 선택 텍스트를 bold 처리한다. | Editor tree가 열려 있거나 닫혀 있어도 bold 명령이 동작한다. `Cmd/Ctrl+\`는 editor focus 여부와 관계없이 Editor tree를 토글한다. `Cmd/Ctrl+Shift+E`는 활성 파일 reveal이다. |
 
 ## P0 — 문서 제목과 본문 폭을 하나의 레이아웃으로 만든다
 
@@ -237,7 +237,7 @@ Notion 데이터베이스 block, 협업 presence, access control, page discussio
 
 | 순서 | Slice                         | 선행 조건 | 완료 결과                                                                                                |
 | ---- | ----------------------------- | --------- | -------------------------------------------------------------------------------------------------------- |
-| 0    | Explorer state & viewport     | 별도      | 재열기/선택/refresh/resize 수용 시나리오에서 open 상태와 scroll 상태가 유지된다.                         |
+| 0    | Editor tree state & viewport     | 별도      | 재열기/선택/refresh/resize 수용 시나리오에서 open 상태와 scroll 상태가 유지된다.                         |
 | 1    | Document frame/title/width    | 별도      | title filename, breadcrumb, 본문 column의 정렬·폭 규칙이 한 spec에 일치한다.                             |
 | 2    | Markdown compatibility ledger | 0–1       | CommonMark/GFM/Obsidian syntax별 지원·미지원·fallback이 명시되고 미지원 표시는 원문을 보존한다.          |
 | 3    | Table data/render/edit        | 2         | inline Markdown, alignment, direct edit, row/column action, pipe escaping, source round-trip을 만족한다. |
@@ -246,7 +246,7 @@ Notion 데이터베이스 block, 협업 presence, access control, page discussio
 | 6    | HTML safety/rendering         | 2         | 허용 문법, source mapping, CSP/sandbox/resource, failure recovery를 만족한다.                            |
 | 7    | Obsidian/Notion extensions    | 2–6       | 채택한 기능만 링크·embed·metadata·block 조작 계약과 함께 들어간다.                                       |
 
-각 slice는 실제 파일 예제에서 저장 전/후 원문이 의도치 않게 바뀌지 않는지, preview와 source selection이 맞물리는지, pane 분할과 크기 조정 중 문서/Explorer 위치가 유지되는지 확인해야 완료다. typecheck, source digest, 스크린샷만으로 렌더링 acceptance를 완료 처리하지 않는다.
+각 slice는 실제 파일 예제에서 저장 전/후 원문이 의도치 않게 바뀌지 않는지, preview와 source selection이 맞물리는지, pane 분할과 크기 조정 중 문서/Editor tree 위치가 유지되는지 확인해야 완료다. typecheck, source digest, 스크린샷만으로 렌더링 acceptance를 완료 처리하지 않는다.
 
 ## 현재 코드에서 확인한 핵심 근거
 
@@ -255,7 +255,7 @@ Notion 데이터베이스 block, 협업 presence, access control, page discussio
 - 표는 [markdownLivePreview.ts](../../../../packages/editor/src/markdownLivePreview.ts)의 `TableWidget`이 alignment·column sizing·escaped pipe·inline math·기본 inline formatting을 렌더하고 source cell click/Tab navigation을 제공한다. link/image/wikilink와 행·열 조작은 구현하지 않았다.
 - Mermaid fenced block과 inline/display TeX는 각각 strict Mermaid renderer와 KaTeX로 preview한다. 각 renderer의 제한과 미완료 acceptance는 위 ID별 표를 따른다.
 - HTML block은 iframe widget으로 렌더되며 script 실행은 허용하지 않는다. allowlist/CSP/resource origin 계약은 이 spec에서 정해야 한다.
-- Explorer는 [WorkspaceExplorerSidebar](../../../../apps/desktop/src/renderer/src/features/editor/WorkspaceExplorerSidebar.tsx), [TreeView](../../../../apps/desktop/src/renderer/src/features/editor/TreeView.tsx), [explorer state](../../../../apps/desktop/src/renderer/src/explorer/explorerState.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx)이 협력한다. open state는 pane group에, tree selection/scroll anchor는 tree state에 둔다. active file 선택은 viewport를 움직이지 않고 `Cmd/Ctrl+Shift+E`만 명시 reveal한다. scroll 복원은 준비가 끝나고 tree가 실제 표시된 뒤 저장 상태를 적용하며, 복원 전 임시 scroll event는 저장하지 않는다. 실제 UI 수용 확인은 남아 있다.
+- Editor tree는 [EditorSidebar](../../../../apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx), [TreeView](../../../../apps/desktop/src/renderer/src/features/editor/TreeView.tsx), [Editor tree state](../../../../packages/editor/src/editorTreeState.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx)이 협력한다. open state는 pane group에, tree selection/scroll anchor는 tree state에 둔다. active file 선택은 viewport를 움직이지 않고 `Cmd/Ctrl+Shift+E`만 명시 reveal한다. scroll 복원은 준비가 끝나고 tree가 실제 표시된 뒤 저장 상태를 적용하며, 복원 전 임시 scroll event는 저장하지 않는다. 실제 UI 수용 확인은 남아 있다.
 
 ## 기준 자료
 

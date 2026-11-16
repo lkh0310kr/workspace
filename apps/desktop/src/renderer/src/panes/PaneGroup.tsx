@@ -27,8 +27,8 @@ import { focusPaneGroupTabSet } from '../layout/layoutRef'
 import { layoutLog } from '../layout/layoutDebugLog'
 import { paneChipContentShown, paneChipContentStyle } from '../interaction/embedPolicy'
 import { usePaneVisibility } from './usePaneVisibility'
-import { usePaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
-import { WorkspaceExplorerSidebar } from '../features/editor/WorkspaceExplorerSidebar'
+import { usePaneGroupEditorSidebarState } from '../hooks/usePaneGroupEditorSidebarState'
+import { EditorSidebar } from '../features/editor/EditorSidebar'
 import { paneGroupBodyAnchorName } from './paneGroupBodyAnchor'
 import { paneGroupHostClassNames, resolvePaneGroupTabSetId } from './paneGroupFocus'
 
@@ -39,8 +39,8 @@ interface Props {
   onNotifyChanged: () => void
 }
 
-function activeChipHasExplorer(kind: TabKind): boolean {
-  return getPaneKind(kind).hasFileExplorer === true
+function activeChipSupportsEditorTree(kind: TabKind): boolean {
+  return getPaneKind(kind).supportsEditorTree === true
 }
 
 export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }: Props) {
@@ -48,7 +48,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   const layoutRevision = useLayoutRevision(workspaceTabId)
   const nodeId = tabNode.getId()
   const paneGroupBodyRef = useRef<HTMLDivElement>(null)
-  const [explorerFits, setExplorerFits] = useState(true)
+  const [editorTreeFits, setEditorTreeFits] = useState(true)
   const selectionRevision = usePaneTabSelectionRevision(workspaceTabId, nodeId)
   const config = readPaneGroupConfig(tabNode)
   const tabs = config.tabs
@@ -87,7 +87,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   useEffect(() => {
     const body = paneGroupBodyRef.current
     if (!body) return
-    const update = () => setExplorerFits(body.clientWidth > 560)
+    const update = () => setEditorTreeFits(body.clientWidth > 560)
     update()
     const observer = new ResizeObserver(update)
     observer.observe(body)
@@ -95,8 +95,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   }, [])
 
   const paneHostRef = useRef<HTMLDivElement>(null)
-  const explorerChrome = usePaneGroupExplorerChrome(workspaceTabId, nodeId)
-  const [shortcutExplorerVisible, setShortcutExplorerVisible] = useState(false)
+  const editorSidebarState = usePaneGroupEditorSidebarState(workspaceTabId, nodeId)
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({})
   const [viewStateKeyByTabId, setViewStateKeyByTabId] = useState<Record<string, string>>({})
   const [pendingJumpByTabId, setPendingJumpByTabId] = useState<Record<string, number>>({})
@@ -210,13 +209,11 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   if (!activeItem) return null
 
-  const treeOpen = explorerChrome.treeOpen
-  const showExplorer =
+  const treeOpen = editorSidebarState.treeOpen
+  const showEditorSidebar =
+    (activeChipSupportsEditorTree(activeItem.kind) || editorSidebarState.sidebarMode === 'search') &&
     treeOpen &&
-    explorerFits &&
-    (activeChipHasExplorer(activeItem.kind) ||
-      explorerChrome.sidebarMode === 'search' ||
-      shortcutExplorerVisible)
+    editorTreeFits
   const overlayLayers = allPaneKinds().flatMap((definition) => {
     if (!definition.renderOverlay) return []
     const items = tabs.filter((item) => item.kind === definition.kind)
@@ -306,27 +303,25 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
       >
         <div
           ref={paneGroupBodyRef}
-          className={`pane-group-body${showExplorer ? ' pane-group-body-with-explorer' : ''}`}
-          data-explorer-compact-hidden={!explorerFits || undefined}
+          className={`pane-group-body${showEditorSidebar ? ' pane-group-body-with-editor-sidebar' : ''}`}
+          data-editor-tree-compact-hidden={!editorTreeFits || undefined}
         >
           <div
-            className="workspace-explorer-slot"
-            style={{ display: showExplorer ? undefined : 'none' }}
+            className="editor-sidebar-slot"
+            style={{ display: showEditorSidebar ? undefined : 'none' }}
           >
-            <WorkspaceExplorerSidebar
+            <EditorSidebar
               workspaceTabId={workspaceTabId}
               nodeId={nodeId}
               rootPath={rootPath}
               model={model}
               paneVisible={visible}
-              explorerVisible={showExplorer}
+              editorSidebarVisible={showEditorSidebar}
               isGroupFocused={isGroupFocused}
-              explorerCapable={activeChipHasExplorer(activeItem.kind)}
-              workspaceShortcutsEnabled={activeChipHasExplorer(activeItem.kind)}
-              setShortcutExplorerVisible={setShortcutExplorerVisible}
+              supportsEditorTree={activeChipSupportsEditorTree(activeItem.kind)}
               focusHostRef={paneHostRef}
               selectedPath={activeItem.filePath ?? null}
-              chrome={explorerChrome}
+              chrome={editorSidebarState}
               onOpenFile={openOrSwitchToFile}
               onNotifyChanged={onNotifyChanged}
             />

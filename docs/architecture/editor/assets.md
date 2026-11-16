@@ -4,7 +4,7 @@
 
 ## 입력과 라우팅
 
-viewer pane item은 id/kind=viewer, 상대 filePath 또는 absolutePath, 선택적 legacy viewerHint(video/audio/ebook)를 보관한다. 파일 label은 basename, 경로가 없으면 hint에 따라 Video/Audio/Ebook 또는 New tab이다. UI label은 Editor이며 별도 viewer picker는 없다. hasFileExplorer=true다.
+viewer pane item은 id/kind=viewer, 상대 filePath 또는 absolutePath, 선택적 legacy viewerHint(video/audio/ebook)를 보관한다. 파일 label은 basename, 경로가 없으면 hint에 따라 Video/Audio/Ebook 또는 New tab이다. UI label은 Editor이며 별도 viewer picker는 없다. supportsEditorTree=true다.
 
 FileViewerContent의 입력은 tabId, filePath, absolutePath, viewerHint, treeOpen/onToggleTree, paneActive와 onAssignAbsolutePath다. 표시 분류는 filePath 우선, 없으면 absolutePath다. viewerHint는 경로 없는 이전 탭의 Browse filter에만 사용한다.
 

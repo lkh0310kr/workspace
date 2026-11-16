@@ -4,10 +4,9 @@ import {
   getSharedOptionKeyTracker
 } from '../lib/keyboard-layout/shared-option-key-tracker'
 import { releaseTerminalImeTextareaAnchor } from '@workspace/terminal/pane-manager/terminal-ime-candidate-anchor'
-import { sendCapturedTerminalInput } from './terminal-captured-input-dispatch'
+import { sendCapturedTerminalInput, copyTerminalSelection } from '@workspace/terminal'
 import { pasteClipboardIntoTerminal } from './terminal-clipboard-paste'
 import { readTerminalClipboardSelection } from '@workspace/terminal/terminal/terminal-clipboard-selection-text'
-import { copyTerminalSelection } from './terminal-selection-copy'
 import { shouldBypassXtermClipboardKeyboardEvent } from '@workspace/terminal'
 import { notifyTerminalKeyboardPasteHandled } from './installTerminalPasteHandler'
 import { resolveTerminalShortcutAction, type TerminalShortcutAction } from '@workspace/terminal'

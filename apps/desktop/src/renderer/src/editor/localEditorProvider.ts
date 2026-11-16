@@ -233,7 +233,7 @@ function buildLocalEditorProvider(tabId: number, rootPath: string): LocalEditorP
       pathByItemId.set(itemId, path)
     }
   } catch {
-    // A corrupt or unavailable identity cache must not prevent the Explorer from opening.
+    // A corrupt or unavailable identity cache must not prevent the Editor tree from opening.
   }
   const persistItemIds = () => {
     try {
@@ -583,7 +583,7 @@ function buildLocalEditorProvider(tabId: number, rootPath: string): LocalEditorP
 
 const providerPool = new Map<string, { provider: LocalEditorProvider; references: number }>()
 
-/** Share one provider identity across the explorer and editor panes for a workspace tab. */
+/** Share one provider identity across the Editor tree and document panes for a workspace tab. */
 export function acquireLocalEditorProvider(
   tabId: number,
   rootPath: string

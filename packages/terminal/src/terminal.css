@@ -35,6 +35,42 @@
   background: var(--terminal-surface-bg, var(--bg-base));
 }
 
+.xterm .xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: 14px;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border: 3px solid transparent;
+  border-radius: 7px;
+  background-clip: padding-box;
+  min-height: 28px;
+  transition: background-color 140ms ease;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb:hover,
+.xterm .xterm-viewport::-webkit-scrollbar-thumb:active {
+  background: var(--scroll-thumb-hover);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xterm .xterm-viewport::-webkit-scrollbar-thumb {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
 .pane-manager-root *,
 .pane-manager-root *::before,
 .pane-manager-root *::after {

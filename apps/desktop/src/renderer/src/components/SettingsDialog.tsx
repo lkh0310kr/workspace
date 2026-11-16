@@ -66,7 +66,7 @@ export function SettingsDialog({ anchorRect, onClose, tabId, tabTitle, rootPath 
       <div className="settings-section-title">Tab</div>
       <div className="settings-row settings-row-column">
         <span className="settings-row-label">
-          Base path — root for this tab's terminals and file explorer
+          Base path — root for this tab's terminals and Editor files
         </span>
         <div className="settings-path-row">
           <input

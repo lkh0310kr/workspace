@@ -3,8 +3,8 @@ type KeyboardShortcutInput = Pick<
   'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey' | 'key' | 'code'
 >
 
-/** Match the Explorer toggle by its physical key as well as its layout value. */
-export function isExplorerToggleShortcut(event: KeyboardShortcutInput): boolean {
+/** Match the Editor tree toggle by its physical key as well as its layout value. */
+export function isEditorSidebarToggleShortcut(event: KeyboardShortcutInput): boolean {
   return (
     (event.metaKey || event.ctrlKey) &&
     !event.shiftKey &&

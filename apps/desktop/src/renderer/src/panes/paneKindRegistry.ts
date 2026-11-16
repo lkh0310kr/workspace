@@ -103,9 +103,9 @@ export interface PaneKindDefinition {
     source?: Partial<PaneTabItem>,
     workspaceTabId?: number
   ) => PaneTabItem | Promise<PaneTabItem>
-  /** Shows the file-explorer/search sidebar while a tab of this kind is
+  /** Shows the Editor tree/search sidebar while a tab of this kind is
    * active. */
-  hasFileExplorer?: boolean
+  supportsEditorTree?: boolean
   /** Zero or more "+ New Tab" / pane-picker entries this kind offers — a
    * kind can have none (not directly pickable — "code" and the internal
    * extension-routed viewer aren't; untitled files are always created as

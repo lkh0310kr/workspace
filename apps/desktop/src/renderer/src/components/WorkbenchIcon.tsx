@@ -2,7 +2,6 @@ import type { SVGProps } from 'react'
 
 export type WorkbenchIconName =
   | 'home'
-  | 'explorer'
   | 'search'
   | 'settings'
   | 'terminal'
@@ -38,14 +37,6 @@ export function WorkbenchIcon({ name, size = 16, ...props }: Props): React.JSX.E
       art = (
         <>
           <path d="m2 7 6-5 6 5v7H9v-4H7v4H2z" />
-        </>
-      )
-      break
-    case 'explorer':
-      art = (
-        <>
-          <path d="M2 3.5h4l1.4 1.7H14v7.3H2z" />
-          <path d="M2 5.2h12l-1.5 8H2z" />
         </>
       )
       break
@@ -198,7 +189,6 @@ export function WorkbenchIcon({ name, size = 16, ...props }: Props): React.JSX.E
 export function isWorkbenchIconName(value: string): value is WorkbenchIconName {
   return [
     'home',
-    'explorer',
     'search',
     'settings',
     'terminal',

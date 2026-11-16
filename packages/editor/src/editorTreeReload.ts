@@ -1,5 +1,5 @@
 /** Parent directories to re-list after an external file change. */
-export function dirsToReloadForChange(changedRel: string, expanded: Set<string>): string[] {
+export function editorTreeDirsToReloadForChange(changedRel: string, expanded: Set<string>): string[] {
   const out = new Set<string>([''])
   if (!changedRel) return [...out]
   let dir = changedRel.includes('/') ? changedRel.slice(0, changedRel.lastIndexOf('/')) : ''

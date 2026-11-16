@@ -3,11 +3,11 @@ import type { PaneKindDefinition } from '../paneKindRegistry'
 
 export const viewerPaneKind: PaneKindDefinition = {
   kind: 'viewer',
-  // Kept as an internal renderer kind for files opened from the explorer.
+  // Kept as an internal renderer kind for files opened from the Editor tree.
   // Users create the single Editor entry; this kind is selected by extension.
   label: 'Editor',
   icon: 'viewer',
-  hasFileExplorer: true,
+  supportsEditorTree: true,
   // FileViewerContent remains the format-specific renderer for media,
   // EPUB, images, PDF, and 3D/CAD assets. Files reach it by extension
   // through TreeView/Quick Open; it is not a separate picker destination.

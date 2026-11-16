@@ -21,7 +21,7 @@ Dev profile과 packaged profile은 Workspace snapshot, Chromium storage와 userD
 | browser 방문 기록 | Renderer localStorage | HTTP(S)만 기록, 최대 500개 |
 | Editor item identity | localStorage `workspace:editor-item-ids:<tabId>` | path→stable item ID; rename/move 때 remap |
 | Editor view 상태 | localStorage `editor:view-state:<identity>`와 memory cache | clean 문서만 저장 cache로 유지 |
-| Explorer 확장·scroll·root | workspace/pane scoped localStorage keys | root 불일치 시 초기 상태 |
+| Editor tree 확장·scroll·root | workspace/pane scoped localStorage keys | root 불일치 시 초기 상태 |
 | theme·autosave | Renderer localStorage | preference와 실제 적용 수명은 각 module 소유 |
 
 JSON 이름과 storage prefix는 schema version을 대신하지 않는다. Main persistence 파일은 temp+rename을 모두 사용하지 않으므로 power loss에서도 항상 atomic하다고 가정하지 않는다.
@@ -35,6 +35,6 @@ JSON 이름과 storage prefix는 schema version을 대신하지 않는다. Main 
 
 ## 근거와 검증
 
-[persistence](../../../../apps/desktop/src/main/persistence.ts), [ebookState](../../../../apps/desktop/src/main/ebookState.ts), [model cache](../../../../apps/desktop/src/main/model3d/cacheStore.ts), [Explorer state](../../../../apps/desktop/src/renderer/src/explorer/explorerState.ts), [usage config](../../../../apps/desktop/src/main/usageMeterConfig.ts)가 writer다.
+[persistence](../../../../apps/desktop/src/main/persistence.ts), [ebookState](../../../../apps/desktop/src/main/ebookState.ts), [model cache](../../../../apps/desktop/src/main/model3d/cacheStore.ts), [Editor tree state](../../../../packages/editor/src/editorTreeState.ts), [usage config](../../../../apps/desktop/src/main/usageMeterConfig.ts)가 writer다.
 
-복구 scenario는 profile 분리, JSON parse 실패, ebook merge, dirty view cache, Explorer state, cache 재생성을 확인한다. Storage-full·power-loss·OS별 credential 복구 전체는 별도 acceptance다.
+복구 scenario는 profile 분리, JSON parse 실패, ebook merge, dirty view cache, Editor tree state, cache 재생성을 확인한다. Storage-full·power-loss·OS별 credential 복구 전체는 별도 acceptance다.

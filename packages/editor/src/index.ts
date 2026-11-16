@@ -156,3 +156,22 @@ export type {
 export { editorTreeSelectionRoots, resolveEditorTreeSelection } from './treeSelection'
 export type { EditorTreeSelectionModifiers, EditorTreeSelectionState } from './treeSelection'
 export { useEditorTreeSelection } from './useEditorTreeSelection'
+
+export {
+  ancestorDirPaths as editorTreeAncestorDirPaths,
+  loadEditorTreeState,
+  resetEditorTreeState,
+  resolveEditorTreeScrollTop,
+  saveEditorTreeExpanded,
+  saveEditorTreeScrollAnchor,
+  saveEditorTreeScrollTop
+} from './editorTreeState'
+export type { EditorTreeState } from './editorTreeState'
+export { editorTreeDirsToReloadForChange } from './editorTreeReload'
+export { isEditorSidebarToggleShortcut } from './editorSidebarShortcuts'
+export { projectVisibleEditorTreeRows } from './editorTreeProjection'
+export { useEditorTreeKeyboard } from './useEditorTreeKeyboard'
+export type { EditorTreeKeyboardHandlers } from './useEditorTreeKeyboard'
+export { useEditorSidebarState } from './useEditorSidebarState'
+export type { EditorSidebarState } from './useEditorSidebarState'
+export type { EditorSidebarMode } from './editorSidebarState'

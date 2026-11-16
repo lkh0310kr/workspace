@@ -2,7 +2,9 @@ import { Fragment } from 'react'
 import {
   BrowserContent,
   BrowserPaneOverlaySlot,
-  desktopBrowserPaneHost
+  browserTabUrlForNewTab,
+  desktopBrowserPaneHost,
+  getBrowserTabLabel
 } from '../../features/browser'
 import type { PaneKindDefinition } from '../paneKindRegistry'
 
@@ -12,15 +14,10 @@ export const browserPaneKind: PaneKindDefinition = {
   icon: 'browser',
   pickerEntries: [{ label: 'Browser', icon: 'browser' }],
   createItem(id, source) {
-    return { id, kind: 'browser', url: source?.url ?? 'https://www.google.com' }
+    return { id, kind: 'browser', url: browserTabUrlForNewTab(source?.url) }
   },
   tabLabel(item) {
-    if (item.title?.trim()) return item.title.trim()
-    try {
-      return item.url ? new URL(item.url).hostname : 'New Tab'
-    } catch {
-      return item.url || 'New Tab'
-    }
+    return getBrowserTabLabel(item)
   },
   render(ctx) {
     return (

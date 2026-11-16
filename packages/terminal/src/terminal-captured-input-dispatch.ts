@@ -1,7 +1,9 @@
-import type { PtyTransport } from './ptyTransport'
+export type TerminalInputTransport = {
+  write(data: string): void
+}
 
 export function sendCapturedTerminalInput(args: {
-  transport: PtyTransport | undefined
+  transport: TerminalInputTransport | undefined
   data: string
 }): boolean {
   const { transport, data } = args

@@ -347,10 +347,10 @@ export function EpubReaderContent({
 
   return (
     <div className={`epub-reader theme-${readerTheme}`}>
-      <div className="obsidian-float-actions">
+      <div className="pane-float-actions">
         <button
           type="button"
-          className={`obsidian-topbar-icon${settingsAnchor ? ' active' : ''}`}
+          className={`pane-topbar-icon${settingsAnchor ? ' active' : ''}`}
           title="Reader settings"
           onClick={(event) => {
             const rect = event.currentTarget.getBoundingClientRect()
@@ -368,7 +368,7 @@ export function EpubReaderContent({
       <div className="epub-reader-toolbar">
         <button
           type="button"
-          className="obsidian-topbar-icon"
+          className="pane-topbar-icon"
           title="Previous page"
           onClick={() => void viewRef.current?.goLeft()}
         >
@@ -376,7 +376,7 @@ export function EpubReaderContent({
         </button>
         <button
           type="button"
-          className={`obsidian-topbar-icon${sidebar === 'toc' ? ' active' : ''}`}
+          className={`pane-topbar-icon${sidebar === 'toc' ? ' active' : ''}`}
           title="Contents"
           onClick={() => setSidebar((value) => (value === 'toc' ? null : 'toc'))}
         >
@@ -384,7 +384,7 @@ export function EpubReaderContent({
         </button>
         <button
           type="button"
-          className={`obsidian-topbar-icon${sidebar === 'search' ? ' active' : ''}`}
+          className={`pane-topbar-icon${sidebar === 'search' ? ' active' : ''}`}
           title="Search in book"
           onClick={() => setSidebar((value) => (value === 'search' ? null : 'search'))}
         >
@@ -392,7 +392,7 @@ export function EpubReaderContent({
         </button>
         <button
           type="button"
-          className={`obsidian-topbar-icon${sidebar === 'marks' ? ' active' : ''}`}
+          className={`pane-topbar-icon${sidebar === 'marks' ? ' active' : ''}`}
           title={`Bookmarks (${prefs.bookmarks.length})`}
           onClick={() => setSidebar((value) => (value === 'marks' ? null : 'marks'))}
         >
@@ -405,7 +405,7 @@ export function EpubReaderContent({
         <span className="epub-reader-progress">{locationLabel}</span>
         <button
           type="button"
-          className="obsidian-topbar-icon"
+          className="pane-topbar-icon"
           title="Next page"
           onClick={() => void viewRef.current?.goRight()}
         >

@@ -3,7 +3,7 @@ import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Model } from 'flexlayout-react'
-import type { PaneGroupExplorerChrome } from '../../hooks/usePaneGroupExplorerChrome'
+import type { EditorSidebarState } from '@workspace/editor'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
@@ -24,10 +24,10 @@ vi.mock('../../electron', () => ({
       shortcutCallbacks.find = shortcutCallbacks.find.filter((current) => current !== callback)
     }
   },
-  onToggleExplorerShortcut: () => () => {}
+  onToggleEditorTreeShortcut: () => () => {}
 }))
 
-import { WorkspaceExplorerSidebar } from './WorkspaceExplorerSidebar'
+import { EditorSidebar } from './EditorSidebar'
 
 let root: Root | null = null
 let container: HTMLDivElement | null = null
@@ -40,17 +40,17 @@ afterEach(async () => {
   shortcutCallbacks.find = []
 })
 
-describe('Workspace Explorer toggle shortcut', () => {
+describe('Editor tree toggle shortcut', () => {
   it('toggles the pane when the physical Backslash key has a different layout character', async () => {
     let open = true
-    const setTreeOpen: PaneGroupExplorerChrome['setTreeOpen'] = (next) => {
+    const setTreeOpen: EditorSidebarState['setTreeOpen'] = (next) => {
       open = typeof next === 'function' ? next(open) : next
     }
     const setSidebarMode = vi.fn()
-    const chrome: PaneGroupExplorerChrome = {
+    const chrome: EditorSidebarState = {
       treeOpen: open,
       treeWidth: 240,
-      sidebarMode: 'explorer',
+      sidebarMode: 'tree',
       setTreeOpen,
       setTreeWidth: vi.fn(),
       setSidebarMode
@@ -61,17 +61,15 @@ describe('Workspace Explorer toggle shortcut', () => {
 
     await act(async () => {
       root?.render(
-        createElement(WorkspaceExplorerSidebar, {
+        createElement(EditorSidebar, {
           workspaceTabId: 1,
           nodeId: 'pane-1',
           rootPath: '/workspace',
           model: {} as Model,
           paneVisible: true,
-          explorerVisible: true,
+          editorSidebarVisible: true,
           isGroupFocused: true,
-          explorerCapable: true,
-          workspaceShortcutsEnabled: true,
-          setShortcutExplorerVisible: vi.fn(),
+          supportsEditorTree: true,
           focusHostRef: { current: null },
           selectedPath: null,
           chrome,
@@ -93,7 +91,7 @@ describe('Workspace Explorer toggle shortcut', () => {
       )
     })
     expect(open).toBe(false)
-    expect(setSidebarMode).toHaveBeenCalledWith('explorer')
+    expect(setSidebarMode).toHaveBeenCalledWith('tree')
 
     await act(async () => {
       window.dispatchEvent(
@@ -111,14 +109,14 @@ describe('Workspace Explorer toggle shortcut', () => {
 
   it('ignores editor workspace shortcuts when a non-editor pane is focused', async () => {
     let open = false
-    const setTreeOpen: PaneGroupExplorerChrome['setTreeOpen'] = (next) => {
+    const setTreeOpen: EditorSidebarState['setTreeOpen'] = (next) => {
       open = typeof next === 'function' ? next(open) : next
     }
     const setSidebarMode = vi.fn()
-    const chrome: PaneGroupExplorerChrome = {
+    const chrome: EditorSidebarState = {
       treeOpen: open,
       treeWidth: 240,
-      sidebarMode: 'explorer',
+      sidebarMode: 'tree',
       setTreeOpen,
       setTreeWidth: vi.fn(),
       setSidebarMode
@@ -129,17 +127,15 @@ describe('Workspace Explorer toggle shortcut', () => {
 
     await act(async () => {
       root?.render(
-        createElement(WorkspaceExplorerSidebar, {
+        createElement(EditorSidebar, {
           workspaceTabId: 1,
           nodeId: 'pane-browser',
           rootPath: '/workspace',
           model: {} as Model,
           paneVisible: true,
-          explorerVisible: false,
+          editorSidebarVisible: false,
           isGroupFocused: true,
-          explorerCapable: false,
-          workspaceShortcutsEnabled: false,
-          setShortcutExplorerVisible: vi.fn(),
+          supportsEditorTree: false,
           focusHostRef: { current: null },
           selectedPath: null,
           chrome,

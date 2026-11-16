@@ -4,6 +4,12 @@ export { getBrowserHistory, recordBrowserVisit } from './browserHistory'
 export type { AddressBarSuggestion } from './browserAddressBarSuggestions'
 export { buildAddressBarSuggestions } from './browserAddressBarSuggestions'
 export { BLANK_URL, normalizeBrowserNavigationUrl } from './browserUrl'
+export {
+  browserTabUrlForNewTab,
+  DEFAULT_BROWSER_TAB_URL,
+  getBrowserTabLabel
+} from './browserTabPolicy'
+export type { BrowserTabLabelInput } from './browserTabPolicy'
 
 export {
   applyBrowserPageViewportLayout,

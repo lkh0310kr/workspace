@@ -1,6 +1,6 @@
-/** Per-pane explorer tree UI state (expand + scroll), keyed by workspaceTabId:flexlayoutNodeId. */
+/** Per-pane Editor tree UI state (expand + scroll), keyed by workspaceTabId:flexlayoutNodeId. */
 
-export interface ExplorerTreeState {
+export interface EditorTreeState {
   rootPath: string
   expanded: string[]
   scrollTop: number
@@ -9,8 +9,8 @@ export interface ExplorerTreeState {
 }
 
 /** Resolve a saved row anchor after tree data is ready, falling back to its pixel offset. */
-export function resolveExplorerScrollTop(
-  state: Pick<ExplorerTreeState, 'scrollTop' | 'scrollAnchorPath' | 'scrollAnchorOffset'>,
+export function resolveEditorTreeScrollTop(
+  state: Pick<EditorTreeState, 'scrollTop' | 'scrollAnchorPath' | 'scrollAnchorOffset'>,
   visiblePaths: readonly string[],
   maxScrollTop: number,
   rowHeight: number
@@ -21,7 +21,8 @@ export function resolveExplorerScrollTop(
   return Math.max(0, Math.min(target, Math.max(0, maxScrollTop)))
 }
 
-const session = new Map<string, ExplorerTreeState>()
+const session = new Map<string, EditorTreeState>()
+// Keep the existing storage names so users retain their saved tree state.
 const EXPANDED_KEY = 'workspace.explorerExpanded'
 const SCROLL_KEY = 'workspace.explorerScroll'
 const ROOT_KEY = 'workspace.explorerRoot'
@@ -56,10 +57,10 @@ function readScroll(stateKey: string, rootPath: string): number {
   return Number.isFinite(raw) && raw >= 0 ? raw : 0
 }
 
-export function loadExplorerTreeState(stateKey: string, rootPath: string): ExplorerTreeState {
+export function loadEditorTreeState(stateKey: string, rootPath: string): EditorTreeState {
   const cached = session.get(stateKey)
   if (cached && cached.rootPath === rootPath) return cached
-  const next: ExplorerTreeState = {
+  const next: EditorTreeState = {
     rootPath,
     expanded: readExpanded(stateKey, rootPath),
     scrollTop: readScroll(stateKey, rootPath),
@@ -70,13 +71,13 @@ export function loadExplorerTreeState(stateKey: string, rootPath: string): Explo
   return next
 }
 
-export function saveExplorerExpanded(
+export function saveEditorTreeExpanded(
   stateKey: string,
   rootPath: string,
   expanded: Iterable<string>
 ): void {
   const list = [...expanded]
-  const next: ExplorerTreeState = {
+  const next: EditorTreeState = {
     rootPath,
     expanded: list,
     scrollTop: session.get(stateKey)?.scrollTop ?? readScroll(stateKey, rootPath),
@@ -92,9 +93,9 @@ export function saveExplorerExpanded(
   }
 }
 
-export function saveExplorerScrollTop(stateKey: string, rootPath: string, scrollTop: number): void {
+export function saveEditorTreeScrollTop(stateKey: string, rootPath: string, scrollTop: number): void {
   const prev = session.get(stateKey)
-  const next: ExplorerTreeState = {
+  const next: EditorTreeState = {
     rootPath,
     expanded: prev?.expanded ?? readExpanded(stateKey, rootPath),
     scrollTop,
@@ -131,7 +132,7 @@ function readScrollAnchor(
   }
 }
 
-export function saveExplorerScrollAnchor(
+export function saveEditorTreeScrollAnchor(
   stateKey: string,
   rootPath: string,
   path: string | undefined,
@@ -147,7 +148,7 @@ export function saveExplorerScrollAnchor(
   } catch {
     // ignore quota errors
   }
-  const current = session.get(stateKey) ?? loadExplorerTreeState(stateKey, rootPath)
+  const current = session.get(stateKey) ?? loadEditorTreeState(stateKey, rootPath)
   session.set(stateKey, {
     ...current,
     rootPath,
@@ -156,8 +157,8 @@ export function saveExplorerScrollAnchor(
   })
 }
 
-export function resetExplorerTreeState(stateKey: string, rootPath: string): ExplorerTreeState {
-  const next: ExplorerTreeState = { rootPath, expanded: [], scrollTop: 0 }
+export function resetEditorTreeState(stateKey: string, rootPath: string): EditorTreeState {
+  const next: EditorTreeState = { rootPath, expanded: [], scrollTop: 0 }
   session.set(stateKey, next)
   try {
     localStorage.removeItem(expandedStorageKey(stateKey))

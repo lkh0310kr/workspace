@@ -1,12 +1,12 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import {
   ancestorDirPaths,
-  loadExplorerTreeState,
-  resetExplorerTreeState,
-  resolveExplorerScrollTop,
-  saveExplorerExpanded,
-  saveExplorerScrollTop
-} from './explorerState'
+  loadEditorTreeState,
+  resetEditorTreeState,
+  resolveEditorTreeScrollTop,
+  saveEditorTreeExpanded,
+  saveEditorTreeScrollTop
+} from './editorTreeState'
 
 function createStorage(): Storage {
   const map = new Map<string, string>()
@@ -36,35 +36,35 @@ describe('ancestorDirPaths', () => {
   })
 })
 
-describe('explorer tree state', () => {
+describe('Editor tree state', () => {
   const key = 'test-pane-key'
   const root = '/home/me/workspace'
 
   beforeEach(() => {
     vi.stubGlobal('localStorage', createStorage())
-    resetExplorerTreeState(key, root)
+    resetEditorTreeState(key, root)
   })
 
   it('persists expanded paths and scroll across loads', () => {
-    saveExplorerExpanded(key, root, ['src', 'src/lib'])
-    saveExplorerScrollTop(key, root, 120)
-    const loaded = loadExplorerTreeState(key, root)
+    saveEditorTreeExpanded(key, root, ['src', 'src/lib'])
+    saveEditorTreeScrollTop(key, root, 120)
+    const loaded = loadEditorTreeState(key, root)
     expect(loaded.expanded).toEqual(['src', 'src/lib'])
     expect(loaded.scrollTop).toBe(120)
   })
 
   it('resets when rootPath changes', () => {
-    saveExplorerExpanded(key, root, ['src'])
-    const other = loadExplorerTreeState(key, '/other/root')
+    saveEditorTreeExpanded(key, root, ['src'])
+    const other = loadEditorTreeState(key, '/other/root')
     expect(other.expanded).toEqual([])
     expect(other.rootPath).toBe('/other/root')
-    const back = loadExplorerTreeState(key, root)
+    const back = loadEditorTreeState(key, root)
     expect(back.expanded).toEqual(['src'])
   })
 
   it('restores the saved row at its prior offset after rows are inserted above it', () => {
     expect(
-      resolveExplorerScrollTop(
+      resolveEditorTreeScrollTop(
         { scrollTop: 240, scrollAnchorPath: 'src/target.ts', scrollAnchorOffset: 7 },
         ['new.md', 'src/target.ts', 'tail.md'],
         500,
@@ -75,7 +75,7 @@ describe('explorer tree state', () => {
 
   it('falls back to saved pixels when the anchor row disappeared and clamps to the viewport', () => {
     expect(
-      resolveExplorerScrollTop(
+      resolveEditorTreeScrollTop(
         { scrollTop: 240, scrollAnchorPath: 'removed.ts', scrollAnchorOffset: 7 },
         ['first.md', 'last.md'],
         90,

@@ -14,7 +14,7 @@
 | pane 활성 chip render revision    | paneTabSelectionRevisions[workspaceTabId:nodeId] | setActiveTabInGroup에서 즉시 bump             |
 | chip tabs와 activeTabId           | flexlayout의 PaneGroupConfig                     | layoutSession.activatePaneTab / layoutActions |
 | focused split                     | focusedPaneGroupTabSetByWorkspaceTab             | pane pointer/focus의 focusPaneGroupTabSet     |
-| explorer 폭·모드·확장·scroll      | pane별 explorer state                            | PaneGroup의 sidebar와 explorer adapter        |
+| Editor tree 폭·모드·확장·scroll | pane별 Editor tree 상태                          | PaneGroup의 Editor sidebar        |
 
 App component의 modelsRef나 PaneGroup의 별도 localActiveId는 현재 owner가 아니다. UI는 layout mutation을 임의 zustand 복사본에 쓰지 않는다. workspaceLayoutModels는 model·saved JSON·ensure-inflight·pending rebalance를 각각 보관하며 workspace 제거 시 모두 정리한다.
 
@@ -42,7 +42,7 @@ close/move/split의 mutation은 layoutActions를 통해 수행한다. 마지막 
 
 workspace host와 일반 chip은 mount를 유지하고 visibility/pointer-events로 숨긴다. chip 표시는 workspace+pane visible AND chipActive여야 한다. browser guest는 별도 overlay viewport와 coordinator 정책을 사용하므로 일반 host 스타일을 guest ancestor 전체에 강제하지 않는다. [interaction](../interaction/README.md)을 따른다.
 
-PaneGroup은 dirtyByTabId와 jump 요청을 UI 임시 상태로 소유하고, explorer는 pane당 하나다. browser visibility/focus 등록은 BrowserContent가 소유하며 PaneGroup이 같은 coordinator 호출을 복제하지 않는다.
+PaneGroup은 dirtyByTabId와 jump 요청을 UI 임시 상태로 소유하고, Editor sidebar는 pane group마다 하나다. browser visibility/focus 등록은 BrowserContent가 소유하며 PaneGroup이 같은 coordinator 호출을 복제하지 않는다.
 
 ## 수락 근거
 
@@ -53,6 +53,6 @@ PaneGroup은 dirtyByTabId와 jump 요청을 UI 임시 상태로 소유하고, ex
 | LAY-03 | preview 파일을 다시 열거나 pin             | PaneGroup source 대조, 실제 editor 통합 검증 필요                                              |
 | LAY-04 | dirty close 취소                           | layoutActions.closeTab와 editor registry; 이전 전체 suite에 실패가 있어 native 완료 주장 안 함 |
 | LAY-05 | 다른 workspace에 연속 persist              | `workspaceStore.persist.test.ts`: workspace별 timer 유지 및 같은 workspace 요청 coalescing     |
-| LAY-06 | root 변경 후 explorer 이전 확장 복원 안 함 | explorerState.test.ts                                                                          |
+| LAY-06 | root 변경 후 이전 Editor tree 확장 복원 안 함 | editorTreeState.test.ts                                                                          |
 
-테스트 이름은 `src/renderer/src/layout` 및 `explorer` 아래다. source 대조와 자동 test 결과·installed app acceptance는 별도로 기록한다.
+관련 구현은 `packages/editor/src/editorTree*` 및 Desktop layout adapter에 있다. source 대조와 자동 test 결과·installed app acceptance는 별도로 기록한다.

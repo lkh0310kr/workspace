@@ -43,7 +43,7 @@ import { onFindInEditorShortcut } from '../electron'
 import type { TabKind } from '../layout/paneTypes'
 
 // The per-file content half of what used to be ui/EditorPane.tsx — tab strip,
-// multi-file routing, and the docked Explorer sidebar live in PaneGroup.
+// multi-file routing, and the docked Editor sidebar live in PaneGroup.
 
 interface Props {
   tabId: number
@@ -691,16 +691,16 @@ export function EditorContent({
   ) : null
 
   return (
-    <div className="obsidian-editor-shell">
-      <div className="obsidian-body">
-        <div className="obsidian-editor-column">
+    <div className="editor-shell">
+      <div className="editor-body">
+        <div className="editor-column">
           <EditorBreadcrumbs
             path={filePath}
             onLoadChildren={loadBreadcrumbChildren}
             onOpenFile={(path, nextKind) => onOpenFileRef.current(path, nextKind)}
           />
           {!isMarkdown && editorActions && (
-            <div className="obsidian-float-actions">{editorActions}</div>
+            <div className="pane-float-actions">{editorActions}</div>
           )}
           {isMarkdown ? (
             // The shared Markdown frame keeps the title in the document

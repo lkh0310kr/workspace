@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Model } from 'flexlayout-react'
 import { TreeView } from './TreeView'
 import { SearchPanel } from './SearchPanel'
-import { onFindInFilesShortcut, onToggleExplorerShortcut } from '../../electron'
-import { deletePathInAllPanes, renamePathInAllPanes } from '../../explorer/workspaceExplorerBridge'
+import { onFindInFilesShortcut, onToggleEditorTreeShortcut } from '../../electron'
+import { deletePathInAllPanes, renamePathInAllPanes } from '../../layout/editorFilePaneBridge'
 import { paneTabStoreKey } from '../../store/paneTabKey'
-import type { PaneGroupExplorerChrome } from '../../hooks/usePaneGroupExplorerChrome'
-import { isExplorerToggleShortcut } from '../../explorer/explorerShortcuts'
+import type { EditorSidebarState } from '@workspace/editor'
+import { isEditorSidebarToggleShortcut } from '@workspace/editor'
 import { EditorTreeResizeHandle } from '@workspace/editor'
 
 const TREE_MIN_WIDTH = 120
@@ -18,14 +18,12 @@ interface Props {
   rootPath: string
   model: Model
   paneVisible: boolean
-  explorerVisible: boolean
+  editorSidebarVisible: boolean
   isGroupFocused: boolean
-  explorerCapable: boolean
-  workspaceShortcutsEnabled: boolean
-  setShortcutExplorerVisible: React.Dispatch<React.SetStateAction<boolean>>
+  supportsEditorTree: boolean
   focusHostRef: React.RefObject<HTMLElement | null>
   selectedPath: string | null
-  chrome: PaneGroupExplorerChrome
+  chrome: EditorSidebarState
   onOpenFile: (
     path: string,
     kind: 'code' | 'markdown' | 'viewer',
@@ -36,19 +34,17 @@ interface Props {
 }
 
 /** One per pane group — below the tab strip, floating over editor/viewer content.
- * Expand/collapse state is keyed by pane group (`explorerStateKey`), not by
+ * Expand/collapse state is keyed by pane group (`editorTreeStateKey`), not by
  * the active file tab. */
-export function WorkspaceExplorerSidebar({
+export function EditorSidebar({
   workspaceTabId,
   nodeId,
   rootPath,
   model,
   paneVisible,
-  explorerVisible,
+  editorSidebarVisible,
   isGroupFocused,
-  explorerCapable,
-  workspaceShortcutsEnabled,
-  setShortcutExplorerVisible,
+  supportsEditorTree,
   focusHostRef,
   selectedPath,
   chrome,
@@ -56,33 +52,25 @@ export function WorkspaceExplorerSidebar({
   onNotifyChanged
 }: Props) {
   const { treeOpen, treeWidth, sidebarMode, setTreeOpen, setTreeWidth, setSidebarMode } = chrome
-  const explorerScrollRef = useRef<HTMLDivElement>(null)
+  const editorTreeScrollRef = useRef<HTMLDivElement>(null)
   const [revealRevision, setRevealRevision] = useState(0)
   const [searchFocusRequest, setSearchFocusRequest] = useState(0)
 
   const openSearch = useCallback(() => {
-    if (!workspaceShortcutsEnabled || !paneVisible || !isGroupFocused) return
+    if (!supportsEditorTree || !paneVisible || !isGroupFocused) return
     setSidebarMode('search')
     setTreeOpen(true)
     setSearchFocusRequest((request) => request + 1)
-  }, [workspaceShortcutsEnabled, paneVisible, isGroupFocused, setSidebarMode, setTreeOpen])
+  }, [supportsEditorTree, paneVisible, isGroupFocused, setSidebarMode, setTreeOpen])
 
-  const toggleExplorer = useCallback(() => {
-    if (!workspaceShortcutsEnabled || !paneVisible || !isGroupFocused) return
-    setSidebarMode('explorer')
-    if (explorerCapable) {
-      setShortcutExplorerVisible(false)
-      setTreeOpen((open) => !open)
-      return
-    }
-    setShortcutExplorerVisible((visible) => !visible)
-    setTreeOpen(true)
+  const toggleEditorTree = useCallback(() => {
+    if (!supportsEditorTree || !paneVisible || !isGroupFocused) return
+    setSidebarMode('tree')
+    setTreeOpen((open) => !open)
   }, [
     paneVisible,
     isGroupFocused,
-    workspaceShortcutsEnabled,
-    explorerCapable,
-    setShortcutExplorerVisible,
+    supportsEditorTree,
     setSidebarMode,
     setTreeOpen
   ])
@@ -93,29 +81,29 @@ export function WorkspaceExplorerSidebar({
     const offMainShortcut = onFindInFilesShortcut(() => {
       openSearch()
     })
-    const offExplorerToggle = onToggleExplorerShortcut(() => {
-      toggleExplorer()
+    const offEditorTreeToggle = onToggleEditorTreeShortcut(() => {
+      toggleEditorTree()
     })
     function onKeyDown(e: KeyboardEvent) {
-      if (isExplorerToggleShortcut(e)) {
-        if (!workspaceShortcutsEnabled || !paneVisible || !isGroupFocused) return
+      if (isEditorSidebarToggleShortcut(e)) {
+        if (!supportsEditorTree || !paneVisible || !isGroupFocused) return
         e.preventDefault()
         e.stopImmediatePropagation()
-        toggleExplorer()
+        toggleEditorTree()
         return
       }
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return
       if (e.key.toLowerCase() === 'e' && !e.altKey) {
-        if (!paneVisible || !isGroupFocused || !explorerCapable) return
+        if (!paneVisible || !isGroupFocused || !supportsEditorTree) return
         e.preventDefault()
         e.stopImmediatePropagation()
-        setSidebarMode('explorer')
+        setSidebarMode('tree')
         setTreeOpen(true)
         setRevealRevision((revision) => revision + 1)
         return
       }
       if (e.key.toLowerCase() !== 'f') return
-      if (!workspaceShortcutsEnabled || !paneVisible) return
+      if (!supportsEditorTree || !paneVisible) return
       if (!isGroupFocused) return
       e.preventDefault()
       openSearch()
@@ -125,16 +113,15 @@ export function WorkspaceExplorerSidebar({
     window.addEventListener('keydown', onKeyDown, true)
     return () => {
       offMainShortcut()
-      offExplorerToggle()
+      offEditorTreeToggle()
       window.removeEventListener('keydown', onKeyDown, true)
     }
   }, [
     paneVisible,
     isGroupFocused,
-    explorerCapable,
-    workspaceShortcutsEnabled,
+    supportsEditorTree,
     openSearch,
-    toggleExplorer
+    toggleEditorTree
   ])
 
   const onPathRenamed = useCallback(
@@ -151,21 +138,21 @@ export function WorkspaceExplorerSidebar({
     [model, onNotifyChanged]
   )
 
-  const showExplorerPanel = treeOpen || sidebarMode === 'search'
+  const showEditorSidebarPanel = treeOpen || sidebarMode === 'search'
 
   return (
     <>
-      <div className="workspace-explorer-host">
+      <div className="editor-sidebar-host">
         <div
-          className="obsidian-explorer"
+          className="editor-file-tree"
           style={{
             width: treeWidth,
-            display: showExplorerPanel ? undefined : 'none'
+            display: showEditorSidebarPanel ? undefined : 'none'
           }}
         >
           <div
             className={
-              sidebarMode === 'search' ? 'explorer-sidebar-panel' : 'explorer-sidebar-panel hidden'
+              sidebarMode === 'search' ? 'editor-sidebar-panel' : 'editor-sidebar-panel hidden'
             }
           >
             {sidebarMode === 'search' && (
@@ -174,27 +161,27 @@ export function WorkspaceExplorerSidebar({
                 rootPath={rootPath}
                 focusRequest={searchFocusRequest}
                 onJumpToResult={(path, kind, line) => onOpenFile(path, kind, line)}
-                onClose={() => setSidebarMode('explorer')}
+                onClose={() => setSidebarMode('tree')}
               />
             )}
           </div>
           <div
             className={
-              sidebarMode === 'explorer'
-                ? 'explorer-sidebar-panel'
-                : 'explorer-sidebar-panel hidden'
+              sidebarMode === 'tree'
+                ? 'editor-sidebar-panel'
+                : 'editor-sidebar-panel hidden'
             }
           >
             <TreeView
               tabId={workspaceTabId}
               rootPath={rootPath}
-              explorerStateKey={paneTabStoreKey(workspaceTabId, nodeId)}
-              scrollContainerRef={explorerScrollRef}
+              editorTreeStateKey={paneTabStoreKey(workspaceTabId, nodeId)}
+              scrollContainerRef={editorTreeScrollRef}
               paneHostRef={focusHostRef}
               selectedPath={selectedPath}
               revealRevision={revealRevision}
               paneVisible={paneVisible}
-              explorerModeActive={explorerVisible && paneVisible && sidebarMode === 'explorer'}
+              editorTreeActive={editorSidebarVisible && paneVisible && sidebarMode === 'tree'}
               onOpenFile={(path, kind, pin) => onOpenFile(path, kind, undefined, pin)}
               onPathRenamed={onPathRenamed}
               onPathDeleted={onPathDeleted}
@@ -202,7 +189,7 @@ export function WorkspaceExplorerSidebar({
           </div>
         </div>
       </div>
-      {showExplorerPanel && (
+      {showEditorSidebarPanel && (
         <EditorTreeResizeHandle
           width={treeWidth}
           minWidth={TREE_MIN_WIDTH}
@@ -210,7 +197,7 @@ export function WorkspaceExplorerSidebar({
           collapseBelow={TREE_MIN_WIDTH}
           onWidthChange={setTreeWidth}
           onCollapse={() => {
-            setSidebarMode('explorer')
+            setSidebarMode('tree')
             setTreeOpen(false)
           }}
         />

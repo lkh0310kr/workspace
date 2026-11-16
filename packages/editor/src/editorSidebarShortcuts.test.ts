@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { isExplorerToggleShortcut } from './explorerShortcuts'
+import { isEditorSidebarToggleShortcut } from './editorSidebarShortcuts'
 
-describe('isExplorerToggleShortcut', () => {
+describe('isEditorSidebarToggleShortcut', () => {
   it('matches the physical backslash key when a keyboard layout reports a different character', () => {
     expect(
-      isExplorerToggleShortcut({
+      isEditorSidebarToggleShortcut({
         metaKey: true,
         ctrlKey: false,
         shiftKey: false,
@@ -17,7 +17,7 @@ describe('isExplorerToggleShortcut', () => {
 
   it('matches the logical key when a platform does not provide a physical code', () => {
     expect(
-      isExplorerToggleShortcut({
+      isEditorSidebarToggleShortcut({
         metaKey: false,
         ctrlKey: true,
         shiftKey: false,
@@ -34,7 +34,7 @@ describe('isExplorerToggleShortcut', () => {
       { shiftKey: false, altKey: true }
     ]) {
       expect(
-        isExplorerToggleShortcut({
+        isEditorSidebarToggleShortcut({
           metaKey: true,
           ctrlKey: false,
           ...modifiers,

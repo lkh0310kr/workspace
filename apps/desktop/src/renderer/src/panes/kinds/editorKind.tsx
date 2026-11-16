@@ -33,7 +33,7 @@ export const codePaneKind: PaneKindDefinition = {
   kind: 'code',
   label: 'Code',
   icon: 'code',
-  hasFileExplorer: true,
+  supportsEditorTree: true,
   createItem(id, source) {
     return { id, kind: 'code', filePath: source?.filePath ?? null }
   },
@@ -45,7 +45,7 @@ export const markdownPaneKind: PaneKindDefinition = {
   kind: 'markdown',
   label: 'Editor',
   icon: 'code',
-  hasFileExplorer: true,
+  supportsEditorTree: true,
   pickerEntries: [{ label: 'Editor', icon: 'code' }],
   createItem(id, source) {
     return { id, kind: 'markdown', filePath: source?.filePath ?? null }

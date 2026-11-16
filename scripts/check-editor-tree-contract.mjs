@@ -191,9 +191,9 @@ for (const entry of Object.keys(packageJson.exports ?? {})) {
   }
 }
 
-const requiredConsumers = ['apps/desktop/src/renderer/src/components/TreeView.tsx']
-const requiredToolbars = ['apps/desktop/src/renderer/src/components/TreeView.tsx']
-const requiredResizeHosts = ['apps/desktop/src/renderer/src/components/WorkspaceExplorerSidebar.tsx']
+const requiredConsumers = ['apps/desktop/src/renderer/src/features/editor/TreeView.tsx']
+const requiredToolbars = ['apps/desktop/src/renderer/src/features/editor/TreeView.tsx']
+const requiredResizeHosts = ['apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx']
 
 for (const relativePath of requiredConsumers) {
   const source = await readFile(path.join(root, relativePath), 'utf8')

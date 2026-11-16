@@ -81,7 +81,7 @@
 .workspace-tab-rail-tabs,
 .browser-nav-history-list,
 .browser-address-suggestions,
-.obsidian-explorer,
+.editor-file-tree,
 [data-editor-markdown-scroll],
 .md-editor,
 .md-pane-sidebar,
@@ -101,7 +101,7 @@
 .workspace-tab-rail-tabs::-webkit-scrollbar,
 .browser-nav-history-list::-webkit-scrollbar,
 .browser-address-suggestions::-webkit-scrollbar,
-.obsidian-explorer::-webkit-scrollbar,
+.editor-file-tree::-webkit-scrollbar,
 [data-editor-markdown-scroll]::-webkit-scrollbar,
 .md-editor::-webkit-scrollbar,
 .md-pane-sidebar::-webkit-scrollbar,
@@ -119,7 +119,7 @@
 .workspace-tab-rail-tabs::-webkit-scrollbar-track,
 .browser-nav-history-list::-webkit-scrollbar-track,
 .browser-address-suggestions::-webkit-scrollbar-track,
-.obsidian-explorer::-webkit-scrollbar-track,
+.editor-file-tree::-webkit-scrollbar-track,
 [data-editor-markdown-scroll]::-webkit-scrollbar-track,
 .md-editor::-webkit-scrollbar-track,
 .md-pane-sidebar::-webkit-scrollbar-track,
@@ -136,7 +136,7 @@
 .workspace-tab-rail-tabs::-webkit-scrollbar-thumb,
 .browser-nav-history-list::-webkit-scrollbar-thumb,
 .browser-address-suggestions::-webkit-scrollbar-thumb,
-.obsidian-explorer::-webkit-scrollbar-thumb,
+.editor-file-tree::-webkit-scrollbar-thumb,
 [data-editor-markdown-scroll]::-webkit-scrollbar-thumb,
 .md-editor::-webkit-scrollbar-thumb,
 .md-pane-sidebar::-webkit-scrollbar-thumb,
@@ -154,7 +154,7 @@
 .workspace-tab-rail-tabs::-webkit-scrollbar-thumb:hover,
 .browser-nav-history-list::-webkit-scrollbar-thumb:hover,
 .browser-address-suggestions::-webkit-scrollbar-thumb:hover,
-.obsidian-explorer::-webkit-scrollbar-thumb:hover,
+.editor-file-tree::-webkit-scrollbar-thumb:hover,
 [data-editor-markdown-scroll]::-webkit-scrollbar-thumb:hover,
 .md-editor::-webkit-scrollbar-thumb:hover,
 .md-pane-sidebar::-webkit-scrollbar-thumb:hover,
@@ -607,7 +607,7 @@ input {
   position: relative;
 }
 
-.workspace-explorer-host {
+.editor-sidebar-host {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -907,20 +907,6 @@ input {
   background: var(--bg-base);
 }
 
-.browser-viewport-anchor {
-  display: none;
-}
-
-.browser-content-slot-wrap {
-  flex: 1 1 0;
-  min-height: 0;
-  height: 0;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
 .pane-header {
   display: flex;
   align-items: center;
@@ -952,21 +938,6 @@ input {
   border-bottom: 1px solid var(--border);
   position: relative;
   z-index: 199;
-}
-
-.pane-toolbar.browser-toolbar {
-  gap: 4px;
-  width: 100%;
-  min-width: 0;
-}
-
-/* Browser pane: nav buttons, URL input, and pane actions share one row —
-   there's no separate title to justify a second header row. */
-.pane-header-browser {
-  height: var(--browser-chrome-total);
-  min-height: var(--browser-chrome-total);
-  gap: 4px;
-  padding: 0 4px 0 6px;
 }
 
 .pane-actions {
@@ -1272,7 +1243,7 @@ input {
 
 /* —— Pane group body (PaneGroup.tsx) —— stack of every open tab's content,
    all mounted at once and toggled via display so switching tabs never loses
-   state. File explorer lives inside editor/viewer chips, not here. */
+   state. Editor tree lives inside editor/viewer chips, not here. */
 .pane-group-host {
   display: flex;
   flex-direction: column;
@@ -1306,11 +1277,11 @@ input {
   container-name: pane-group-body;
 }
 
-.pane-group-body-with-explorer {
+.pane-group-body-with-editor-sidebar {
   flex-direction: row;
 }
 
-.pane-group-body-with-explorer > .workspace-explorer-slot {
+.pane-group-body-with-editor-sidebar > .editor-sidebar-slot {
   display: flex;
   flex: 0 0 auto;
   align-self: stretch;
@@ -1321,7 +1292,7 @@ input {
   z-index: 1;
 }
 
-.pane-group-body-with-explorer > .pane-group-content {
+.pane-group-body-with-editor-sidebar > .pane-group-content {
   flex: 1;
   min-width: 0;
   width: auto;
@@ -1578,7 +1549,7 @@ input {
   display: flex;
   align-items: center;
   gap: 8px;
-  /* Right padding clears the floating settings/explorer cluster. */
+  /* Right padding clears the floating settings/Editor tree cluster. */
   padding: 4px 80px 4px 8px;
   border-bottom: 1px solid var(--border);
 }
@@ -1905,24 +1876,6 @@ input {
   cursor: default;
 }
 
-/* Browser tab content's own chrome (nav+address row) — previously this was
-   PaneFrame's job for the whole pane (contentSlot mode); now it's scoped
-   inside BrowserContent.tsx since a pane can mix browser tabs with other
-   kinds. Guest webviews render in the pane overlay slot beneath this layer. */
-.browser-pane-chrome {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.xterm .xterm-screen {
-  background-color: var(--terminal-surface-bg, var(--bg-base));
-}
-
-.xterm canvas {
-  background-color: transparent;
-}
-
 .pane-link-tooltip {
   position: absolute;
   bottom: 0;
@@ -1941,40 +1894,6 @@ input {
   border-bottom: none;
   border-left: none;
   border-radius: 0 4px 0 0;
-}
-
-.xterm .xterm-viewport {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scroll-thumb) transparent;
-}
-
-.xterm .xterm-viewport::-webkit-scrollbar {
-  width: 14px;
-}
-
-.xterm .xterm-viewport::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.xterm .xterm-viewport::-webkit-scrollbar-thumb {
-  background: var(--scroll-thumb);
-  border: 3px solid transparent;
-  border-radius: 7px;
-  background-clip: padding-box;
-  min-height: 28px;
-  transition: background-color 140ms ease;
-}
-
-.xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background: var(--scroll-thumb-hover);
-  border: 3px solid transparent;
-  background-clip: padding-box;
-}
-
-.xterm .xterm-viewport::-webkit-scrollbar-thumb:active {
-  background: var(--scroll-thumb-hover);
-  border: 3px solid transparent;
-  background-clip: padding-box;
 }
 
 .md-editor-host {
@@ -2130,7 +2049,7 @@ input {
 }
 
 /* —— Obsidian-style editor shell —— */
-.obsidian-editor-shell {
+.editor-shell {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -2140,7 +2059,7 @@ input {
 }
 
 /* Legacy floating action cluster used by non-editor panes. */
-.obsidian-float-actions {
+.pane-float-actions {
   position: absolute;
   top: 6px;
   right: 8px;
@@ -2155,7 +2074,7 @@ input {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
-.obsidian-topbar-icon {
+.pane-topbar-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2169,29 +2088,29 @@ input {
   opacity: 0.82;
 }
 
-.obsidian-topbar-icon:hover:not(:disabled):not(.active) {
+.pane-topbar-icon:hover:not(:disabled):not(.active) {
   opacity: 0.62;
 }
 
-.obsidian-topbar-icon.active,
-.obsidian-topbar-icon.active:hover:not(:disabled) {
+.pane-topbar-icon.active,
+.pane-topbar-icon.active:hover:not(:disabled) {
   color: #fff;
   opacity: 1;
 }
 
-.obsidian-topbar-icon:disabled {
+.pane-topbar-icon:disabled {
   opacity: 0.35;
   cursor: default;
 }
 
-.obsidian-body {
+.editor-body {
   display: flex;
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-.obsidian-explorer {
+.editor-file-tree {
   width: 200px;
   flex: 1;
   flex-shrink: 0;
@@ -2210,7 +2129,7 @@ input {
   background: var(--bg-surface);
 }
 
-.explorer-sidebar-panel {
+.editor-sidebar-panel {
   flex: 1;
   min-height: 0;
   height: 100%;
@@ -2218,7 +2137,7 @@ input {
   flex-direction: column;
 }
 
-.explorer-sidebar-panel.hidden {
+.editor-sidebar-panel.hidden {
   display: none;
 }
 
@@ -2239,18 +2158,18 @@ input {
   background: #a82626 !important;
 }
 
-.obsidian-explorer.collapsed {
+.editor-file-tree.collapsed {
   width: 0;
   overflow: hidden;
   border-right: none;
 }
 
-.pane-group-body-with-explorer .obsidian-explorer {
+.pane-group-body-with-editor-sidebar .editor-file-tree {
   background: var(--bg-surface);
   border-right: 1px solid var(--border);
 }
 
-.obsidian-editor-column {
+.editor-column {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -2259,12 +2178,12 @@ input {
   position: relative;
 }
 
-.obsidian-editor-column .md-editor {
+.editor-column .md-editor {
   flex: 1;
   min-height: 0;
 }
 
-.obsidian-editor-column .md-empty-state {
+.editor-column .md-empty-state {
   flex: 1;
   min-height: 0;
 }
@@ -2326,7 +2245,7 @@ input {
   cursor: default;
 }
 
-/* Find/Replace in Files (SearchPanel.tsx) — reuses .obsidian-explorer's
+/* Find/Replace in Files (SearchPanel.tsx) — reuses .editor-file-tree's
    sidebar slot in place of TreeView, same flat/no-shadow language as
    .tree-view* above. */
 .search-panel {
@@ -3010,7 +2929,7 @@ textarea,
 .popover,
 .quick-open-modal,
 .browser-address-input,
-.workspace-explorer-sidebar {
+.editor-sidebar {
   border-radius: var(--radius-sm);
 }
 
@@ -3111,8 +3030,7 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
   button,
   input,
   select,
-  textarea,
-  .xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  textarea {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }

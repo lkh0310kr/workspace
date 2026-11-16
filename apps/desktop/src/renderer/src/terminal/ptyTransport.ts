@@ -1,4 +1,4 @@
-import { createPtyInputWriteQueue } from './ptyInputWriteQueue'
+import { createPtyInputWriteQueue } from '@workspace/terminal/transport/ptyInputWriteQueue'
 import { subscribePtyData } from './ptyDataMultiplexer'
 import { reprTerminalBytes, termLog } from './terminalDebugLog'
 

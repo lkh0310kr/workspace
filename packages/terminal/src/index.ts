@@ -10,6 +10,8 @@ export {
 export type { ResolvedTheme } from './terminalThemes'
 export { focusTerminalTextarea } from './focusTerminalTextarea'
 export { TerminalPane } from './TerminalPane'
+export { sendCapturedTerminalInput } from './terminal-captured-input-dispatch'
+export { copyTerminalSelection } from './terminal-selection-copy'
 
 export {
   BRACKETED_PASTE_START,

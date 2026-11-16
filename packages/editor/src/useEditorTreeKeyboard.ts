@@ -1,16 +1,15 @@
 import { useEffect, type RefObject } from 'react'
-import type { DirEntry } from '../fileSystem'
 import {
   resolveEditorTreeKeyboardAction,
   type EditorTreeArrowAction,
   type EditorTreeNavigationRow
-} from '@workspace/editor'
+} from './treeNavigation'
 
-export interface ExplorerKeyboardHandlers {
+export interface EditorTreeKeyboardHandlers<TEntry extends { path: string }> {
   onDelete: () => void
   onRename: () => void
-  onEnter: (entry: DirEntry) => void
-  getFocusedEntry: () => DirEntry | null
+  onEnter: (entry: TEntry) => void
+  getFocusedEntry: () => TEntry | null
   getVisibleRows: () => readonly EditorTreeNavigationRow[]
   getExpandedPaths: () => ReadonlySet<string>
   onArrowAction: (action: EditorTreeArrowAction, extendSelection: boolean) => void
@@ -31,12 +30,12 @@ function isOutsideTreeShadowRoot(event: KeyboardEvent, tree: HTMLElement | null)
   return root instanceof ShadowRoot && !tree?.contains(origin)
 }
 
-/** VS Code-style explorer keys when the tree (or its pane host) has focus. */
-export function useExplorerKeyboard(
+/** Editor tree keys when the tree (or its pane host) has focus. */
+export function useEditorTreeKeyboard<TEntry extends { path: string }>(
   hostRef: RefObject<HTMLElement | null>,
   treeRef: RefObject<HTMLElement | null>,
   enabled: boolean,
-  handlers: ExplorerKeyboardHandlers
+  handlers: EditorTreeKeyboardHandlers<TEntry>
 ): void {
   useEffect(() => {
     if (!enabled) return
@@ -44,7 +43,7 @@ export function useExplorerKeyboard(
     function onKeyDown(e: KeyboardEvent): void {
       const host = hostRef.current
       const tree = treeRef.current
-      // Events retargeted outside an embedded Shadow DOM are not explorer
+      // Events retargeted outside an embedded Shadow DOM are not tree
       // navigation keys.
       if (isTypingTarget(e) || isOutsideTreeShadowRoot(e, tree)) return
       if (!host?.contains(document.activeElement) && document.activeElement !== tree) return

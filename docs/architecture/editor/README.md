@@ -11,7 +11,7 @@
 | [Provider 계약](./provider.md)                                                  | 타입, capability, 오류, snapshot, session 수명                                                                                                              |
 | [Desktop provider 구현](../workspace/editor/providers.md) | Workspace 파일시스템·ID·충돌·lease                                                                                                                          |
 | [텍스트 surface](./code/README.md)                                            | CodeMirror, 외부 변경, undo, cache, Desktop 저장                                                                                                            |
-| [Treeview](./treeview/README.md)                                              | 공용 Tree pane slots·docked Explorer·pane shortcut·폭 임계값·스크롤 복원·로딩·정렬·가상화·선택·파일 작업                                                                         |
+| [Treeview](./treeview/README.md)                                              | 공용 Editor tree pane slots·Editor sidebar·pane shortcut·폭 임계값·스크롤 복원·로딩·정렬·가상화·선택·파일 작업                                                                         |
 | [Markdown](./markdown/README.md)                                              | [현재 동작](./markdown/README.md) · [완성도 목표 스펙](./markdown/product-completeness.md): live preview, 제목 rename, 링크·이미지, 표·수식·다이어그램 계획 |
 | [검색](./search.md)                                                           | 문서 검색, Quick Open, 파일 내용 검색·치환                                                                                                                  |
 | [Asset viewer 경계](./assets.md)                                              | Editor에서 포맷별 viewer로 연결하는 계약                                                                                                                    |
@@ -25,7 +25,7 @@
 
 ## Pane 입출력
 
-`panes/kinds/editorKind.tsx`의 `markdown`과 `code`는 모두 `EditorContent`를 렌더링한다. 공통 입력은 workspace `tabId`, `rootPath`, 상대 `filePath | null`, `kind`, `zoom`, 선택적 `jumpToLine`이다. 출력은 `onOpenFile(path, kind)`, `onAssignPath(path)`, `onDirtyChange`, `onJumpConsumed`다. Explorer는 PaneGroup이 editor beside dock 형태로 배치하며 editor content가 소유하지 않는다.
+`panes/kinds/editorKind.tsx`의 `markdown`과 `code`는 모두 `EditorContent`를 렌더링한다. 공통 입력은 workspace `tabId`, `rootPath`, 상대 `filePath | null`, `kind`, `zoom`, 선택적 `jumpToLine`이다. 출력은 `onOpenFile(path, kind)`, `onAssignPath(path)`, `onDirtyChange`, `onJumpConsumed`다. Editor file tree sidebar는 PaneGroup이 editor 옆에 배치하며 editor content가 소유하지 않는다.
 
 - 새 Editor picker는 `markdown`, `filePath: null`을 만든다. `code`는 기존 파일을 여는 내부 kind이며 picker 항목이 없다.
 - 파일 탭 라벨은 basename, 경로가 없으면 `New tab`이다. Markdown 본문 제목의 기본값 `Untitled`와 다르다.
@@ -41,7 +41,7 @@
 
 | ID    | 입력/행동                                 | 관찰 결과                                                                  |
 | ----- | ----------------------------------------- | -------------------------------------------------------------------------- |
-| ED-01 | Explorer와 Editor가 같은 workspace를 사용 | provider 객체와 안정 item ID를 공유; 한 소비자 해제만으로 dispose하지 않음 |
+| ED-01 | Editor tree와 문서가 같은 workspace를 사용 | provider 객체와 안정 item ID를 공유; 한 소비자 해제만으로 dispose하지 않음 |
 | ED-02 | 열린 Markdown 파일 rename                 | 실제 파일명·탭 path 변경, 같은 문서의 선택/undo 유지                       |
 | ED-03 | A 로딩 중 B 선택, A가 늦게 완료           | B의 identity에 A 본문이 나타나지 않음; 폐기된 session close                |
 | ED-04 | dirty 문서를 shell에서 닫기 취소          | 탭과 편집 내용 유지                                                        |

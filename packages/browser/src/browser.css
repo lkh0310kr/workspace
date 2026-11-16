@@ -63,6 +63,30 @@
   overflow: hidden;
 }
 
+.browser-viewport-anchor {
+  display: none;
+}
+
+.pane-toolbar.browser-toolbar {
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.pane-header-browser {
+  height: var(--browser-chrome-total);
+  min-height: var(--browser-chrome-total);
+  gap: 4px;
+  padding: 0 4px 0 6px;
+}
+
+/* Browser tabs own their navigation/address chrome inside the mixed pane body. */
+.browser-pane-chrome {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
 .browser-content-slot-host {
   position: relative;
   width: 100%;

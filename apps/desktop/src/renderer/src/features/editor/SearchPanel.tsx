@@ -18,7 +18,7 @@ import { acquireLocalEditorProvider } from '../../editor/localEditorProvider'
 import { useFileContentSearch } from './useFileContentSearch'
 
 // VSCode-parity Find/Replace in Files, backed by the ripgrep IPC in
-// src/main/search.ts. Swapped into PaneGroup.tsx's .obsidian-explorer
+// src/main/search.ts. Swapped into PaneGroup.tsx's .editor-file-tree
 // sidebar region in place of TreeView (Cmd+Shift+F), not a separate window.
 interface Props {
   tabId: number
@@ -135,7 +135,7 @@ export function SearchPanel({
         <span className="search-panel-title">Search</span>
         <button
           type="button"
-          className="obsidian-topbar-icon"
+          className="pane-topbar-icon"
           title="Close search"
           onClick={onClose}
         >

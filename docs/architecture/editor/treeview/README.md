@@ -1,13 +1,13 @@
 # Editor TreeView
 
-Desktop Editor는 공유 `packages/editor`의 TreeView와 tree pane을 사용한다. Desktop Explorer는 로컬 provider를 연결하고 filesystem mutation, workspace selection과 pane 상태를 소유한다.
+Desktop Editor는 공유 `packages/editor`의 TreeView와 tree pane을 사용한다. Desktop Editor adapter는 로컬 provider를 연결하고 filesystem mutation, workspace selection과 pane 상태를 소유한다.
 
 ## 책임 경계
 
 - `EditorTreePane`은 header/footer slot, pane layout, scroll owner를 제공한다.
 - `EditorTreeView`는 visible rows, keyboard focus, selection, virtualized rendering을 담당한다.
 - `EditorTreeRow`는 disclosure, filename, inline create/rename과 row-level actions를 표시한다.
-- `WorkspaceExplorerSidebar`는 local provider, width preference, root selection과 Explorer 상태를 연결한다.
+- `EditorSidebar`는 local provider, width preference, root selection과 Editor tree 상태를 연결한다.
 
 공통 구현은 [Editor package](../../README.md), provider 동작은 [Desktop local provider](../../workspace/editor/providers.md), pane 동작은 [Workspace layout](../../workspace/layout/README.md)이 기준이다.
 
@@ -17,7 +17,7 @@ Desktop Editor는 공유 `packages/editor`의 TreeView와 tree pane을 사용한
 - 가상 목록의 focus 이동은 행을 viewport에 표시하고 scroll 위치를 복원한다.
 - 파일 이름 변경·생성은 row 안에서 입력하며 Enter로 완료하고 Escape로 취소한다.
 - 파일 이동과 폴더 생성은 local provider의 검증된 경로를 사용한다.
-- 숨김 파일과 `.gitignore` 판정은 서로 다른 상태로 표시한다. 무시 파일도 탐색과 열기가 가능하다.
+- 숨김 파일과 `.gitignore` 판정은 서로 다른 상태로 표시한다. 무시 파일도 Editor tree에서 탐색하고 열 수 있다.
 - Markdown suffix 표시 정책은 host가 명시하고 본문 제목 규칙과 분리한다.
 
 ## 수락 시나리오
@@ -31,4 +31,4 @@ Desktop Editor는 공유 `packages/editor`의 TreeView와 tree pane을 사용한
 | TREE-05 | 파일 rename 또는 move | 실제 filesystem 변경 뒤 tree path와 열린 문서 identity가 갱신된다. |
 | TREE-06 | `.gitignore` 대상과 무시되지 않는 항목 표시 | 무시 여부만 muted style로 구분하고 탐색 기능은 유지한다. |
 
-근거는 `TreeView.test.ts`, `useTreeProjection.test.ts`, `treeReload.test.ts`, `TreeView.scroll.test.ts`, `WorkspaceExplorerSidebar.shortcut.test.ts`와 `scripts/check-editor-tree-contract.mjs`다. 실제 Electron drag/drop과 OS별 focus 동작은 별도 수동 확인 대상이다.
+근거는 `TreeView.test.ts`, `editorTreeProjection.test.ts`, `editorTreeReload.test.ts`, `TreeView.scroll.test.ts`, `EditorSidebar.shortcut.test.ts`와 `scripts/check-editor-tree-contract.mjs`다. 실제 Electron drag/drop과 OS별 focus 동작은 별도 수동 확인 대상이다.

@@ -4,10 +4,10 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EditorTreeItem } from '@workspace/editor'
 import {
-  resetExplorerTreeState,
-  saveExplorerScrollAnchor,
-  saveExplorerScrollTop
-} from '../../explorer/explorerState'
+  resetEditorTreeState,
+  saveEditorTreeScrollAnchor,
+  saveEditorTreeScrollTop
+} from '@workspace/editor'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
@@ -144,18 +144,18 @@ describe('TreeView scroll restoration', () => {
     createElement(TreeView, {
       tabId: 1,
       rootPath,
-      explorerStateKey: stateKey,
+      editorTreeStateKey: stateKey,
       scrollContainerRef: { current: scroller },
       paneVisible: true,
-      explorerModeActive: true,
+      editorTreeActive: true,
       selectedPath,
       onOpenFile: vi.fn()
     })
 
   it('restores scroll after reopen and keeps it when the active file changes', async () => {
-    resetExplorerTreeState(stateKey, rootPath)
-    saveExplorerScrollTop(stateKey, rootPath, 543)
-    saveExplorerScrollAnchor(stateKey, rootPath, 'file-020.md', 3)
+    resetEditorTreeState(stateKey, rootPath)
+    saveEditorTreeScrollTop(stateKey, rootPath, 543)
+    saveEditorTreeScrollAnchor(stateKey, rootPath, 'file-020.md', 3)
     root = createRoot(host!)
 
     await act(async () => root?.render(renderTree(null)))

@@ -312,13 +312,13 @@ export function FileViewerContent({
   return (
     <div className="file-viewer">
       {/* The EPUB reader renders this cluster itself so its own settings
-          button sits next to the explorer toggle. */}
-      <div className="obsidian-float-actions" hidden={isEpub}>
+          button sits next to the Editor tree toggle. */}
+      <div className="pane-float-actions" hidden={isEpub}>
         {!isPdf && !isMedia && blobUrl && (
           <>
             <button
               type="button"
-              className="obsidian-topbar-icon"
+              className="pane-topbar-icon"
               title="Zoom out (or Alt/Ctrl+click the image)"
               onClick={() => setZoom(clampZoom(nextZoomOut(currentEffectiveZoom())))}
             >
@@ -334,7 +334,7 @@ export function FileViewerContent({
             </button>
             <button
               type="button"
-              className="obsidian-topbar-icon"
+              className="pane-topbar-icon"
               title="Zoom in (or click the image)"
               onClick={() => setZoom(clampZoom(nextZoomIn(currentEffectiveZoom())))}
             >
