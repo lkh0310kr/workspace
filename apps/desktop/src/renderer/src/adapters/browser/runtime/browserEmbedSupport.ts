@@ -8,7 +8,7 @@ import { onBrowserZoomShortcut } from './browserIpc'
 import { addBrowserZoomEventListener, zoomBrowserWebview } from '@workspace/browser'
 import { getBrowserFocusLogRing } from '@renderer/adapters/browser/runtime/browserFocusDebugLog'
 import { reloadBrowserPageWebview } from '@workspace/browser'
-import { isDevInstrumentation } from '../../../debug/devTools'
+import { isDevInstrumentation } from '../../diagnostics/devTools'
 
 /** One-shot setup for browser guest focus tracking (Cmd+R target, etc.). */
 export function installBrowserEmbedSupport(): () => void {

@@ -4,7 +4,7 @@ import {
   installBrowserEmbedSupport,
   reloadFocusedBrowser
 } from '../../adapters/browser'
-import { installRendererConsoleFileLogging } from '../../debug/consoleFileLog'
+import { installRendererConsoleFileLogging } from '../../adapters/diagnostics/consoleFileLog'
 import { onPastePlainTextShortcut } from '../editor/runtime/editorShortcuts'
 import { onTerminalPasteShortcut } from '../../adapters/terminal/runtime/terminalIpc'
 import { onBrowserReloadShortcut } from '../../adapters/browser/runtime/browserIpc'

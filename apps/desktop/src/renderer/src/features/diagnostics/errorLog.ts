@@ -4,7 +4,7 @@
 // errors behind a generic "Error rendering component" message with no way
 // to see the real one short of digging through the console — exactly what
 // made the PaneTabStrip currentTarget-null crash hard to diagnose.
-import { fileLogError } from '../../debug/consoleFileLog'
+import { fileLogError } from '../../adapters/diagnostics/consoleFileLog'
 export interface LoggedError {
   id: number
   message: string

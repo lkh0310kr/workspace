@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { isDevInstrumentation } from '../../debug/devTools'
+import { isDevInstrumentation } from '../../adapters/diagnostics/devTools'
 import {
   interactionCoordinator,
   type InteractionSnapshot

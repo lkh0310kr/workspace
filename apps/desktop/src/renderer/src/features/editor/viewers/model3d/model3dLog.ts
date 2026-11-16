@@ -1,4 +1,4 @@
-import { fileLogEvent } from '../../../../debug/consoleFileLog'
+import { fileLogEvent } from '../../../../adapters/diagnostics/consoleFileLog'
 
 export async function logModel3d(event: string, data?: Record<string, unknown>): Promise<void> {
   if (window.api.model3d?.log) {
