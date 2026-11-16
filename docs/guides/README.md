@@ -4,7 +4,7 @@
 
 | 문서                                           | 언제 보는가                               |
 | ---------------------------------------------- | ----------------------------------------- |
-| [리팩터링 원칙](./REFACTOR.md)                 | 구조·공용 모듈·스타일 소유권 변경 시      |
+| [스펙 기반 개발 규칙](../architecture/spec-driven-development.md) | 제품 코드의 구조·계약을 변경할 때      |
 | [디자인 원칙](./design-principles.md)          | UI·상호작용·색상 변경 시                  |
 | [수동 QA 체크리스트](./manual-qa-checklist.md) | 레이아웃, embed, 릴리스 흐름 확인 시      |
 | [Windows 빌드](./windows-build.md)             | Windows에서 Workspace 데스크톱 앱 빌드 시 |

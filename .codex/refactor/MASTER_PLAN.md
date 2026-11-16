@@ -15,7 +15,7 @@
 
 | 영역 ID | 실제 경로 | 추적 파일 | 조사 담당 | 검토 상태 | 보류·제외 사유 |
 | --- | --- | ---: | --- | --- | --- |
-| R-001 | `apps/workspace-app/**` | 766 | coordinator + 읽기 전용 조사 담당 | reviewed; T-026/T-027/T-029/T-030/T-031/T-032/T-033/T-034 validated | 하위 5개 영역 정적 검토 완료; 실행·통합 검증 한계와 위험은 별도 기록 |
+| R-001 | `apps/workspace-app/**` | 766 | coordinator + 읽기 전용 조사 담당 | reviewed; T-026/T-027/T-029/T-030/T-031/T-032/T-033/T-034/T-035 validated | 하위 5개 영역 정적 검토 완료; 실행·통합 검증 한계와 위험은 별도 기록 |
 | X-002 | `apps/pkms-ios/**` | 141 | — | 제외 | 사용자가 요청한 범위 제외 |
 | R-003 | `apps/pkms-server/**` | 51 | coordinator + read-only agent | reviewed; T-025 validated | literal subtree path 일치 수정; Vault flush/recovery는 revision·lease 보호를 확인했으나 recovery 특성화 테스트 부재, MCP OAuth는 계약 테스트 부재로 보류
 | R-004 | `apps/pkms-web/**` | 30 | read-only agent + coordinator | reviewed; T-028 validated | workspace 전환 전 기존 문서 sync 및 실패 시 현재 workspace 보존을 helper acceptance로 검증; 실제 OAuth/browser runtime은 미실행
@@ -42,7 +42,7 @@
 | 하위 영역 | 경로 | 추적 파일 | 상태 | 현재 조사 근거 |
 | --- | --- | ---: | --- | --- |
 | R-001a | `apps/workspace-app/src/main/**` | 172 | 검토 완료; T-026/T-031/T-033/T-034 validated | 코드 경로·설정·테스트 assertion의 정적 검토 완료; OBJ root escape·agent-hook startup race 수정, binary preview와 directory enumeration을 async 처리. Base64/IPC 메모리 비용·동기 path confinement 확인·Linux IME 준비 지연은 별도 검증 위험 |
-| R-001b | `apps/workspace-app/src/renderer/**` | 421 | 검토·분류 완료; TreeView CRUD root-switch race deferred | 399개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0. branch-load race guard 확인; CRUD provider 내부 await 중 root 전환은 재현/정책 테스트가 없어 수정 보류 |
+| R-001b | `apps/workspace-app/src/renderer/**` | 421 | 검토·분류 완료; T-035 root-pinned CRUD/session guard validated | 399개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0. branch-load race guard 및 CRUD/session root-switch race 수정 검증; root-bound provider identity와 Main IPC guard 적용 |
 | R-001c | `apps/workspace-app/src/preload/**` | 8 | 검토 완료; T-032 validated | runtime `contentApi`·`systemApi`를 기존 공개 `WorkspaceApi`의 부분 타입으로 검사; IPC payload runtime validation은 범위 밖 위험으로 별도 기록 |
 | R-001d | `apps/workspace-app/src/shared/**` | 89 | 검토 완료; 계약 위험 기록 | agent/usage/layout/media/terminal·PKMS shared 책임 확인; terminal capture timeout listener 정리·correlation 위험 기록 |
 | R-001e | 앱 루트·scripts·resources 등 나머지 | 76 | 검토·분류 완료; 후속 위험 기록 | 텍스트 설정/build/release/workflow 스크립트 검토; notarization·Windows secret workflow·Vitest 인자 전달 차이 기록; vendor patch/바이너리·visual assertion의 일부 상세 내용은 제외/부분 검토로 명시 |
@@ -98,9 +98,9 @@
 
 - 마지막 완료 배치: workspace-app에서 Main/renderer/preload/shared의 저위험·경계형 리팩터링 및 ADAPT-03 저장 경합 수정
 - 검토 영역 / 현재 범위: 9 / 9 (정적 검토 완료; runtime·통합 검증 한계와 후속 위험 별도 기록)
-- 채택 작업 검증 완료 / 채택 작업 전체: 38 / 38 (T-001~T-034 완료)
-- 기존 검증 실패: architecture-spec 링크 검사에서 사용자가 삭제한 `docs/guides/REFACTOR.md` 참조 발견
-- 상태: 전체 범위 정적 검토 완료; 38개 작업 검증 완료; 고위험 경계 변경은 계약 테스트·정책 확인 전 보류
+- 채택 작업 검증 완료 / 채택 작업 전체: 39 / 39 (T-001~T-035 완료)
+- 문서 인덱스: 삭제된 `docs/guides/REFACTOR.md`는 복구하지 않고 guides README를 스펙 기반 개발 규칙으로 연결; architecture digest/link 검사 통과
+- 상태: 전체 범위 정적 검토 완료; 39개 작업 검증 완료; T-035 독립 리뷰와 TREE-25 계약 검증 완료
 - 추가 검증: T-002c syncBridge 25파일/31테스트 통과; T-003 editor session 4파일/11테스트·typecheck 통과; usage helper 3테스트 통과; OSC reply 6테스트 통과; preload ESLint/typecheck 및 루트 `npm run check` 통과
 - T-018 Google Drive SHA-256 helper 단일화 커밋 `f7cfaf46`; focused 28 tests, `npm run pkms:web:typecheck`, `npm run check` 통과. ESLint의 `workspaceRepository.ts` 반환형 위반 1개는 기준선에도 존재함을 확인했다. T-019 parentPath 중복을 domain helper로 단일화하고 삭제 자손·이웃 보존 및 동일 목록 참조 테스트를 추가, 커밋 `327cc25c`; focused 2 tests, 앱 typecheck 및 root check 통과. T-020 workspace tab hotkey hook을 canonical navigation owner에 직접 연결하고 mapping·범위 밖 index·listener cleanup 테스트를 추가, 커밋 `8b186ac0`; focused 2 tests, app typecheck, root check, changed-file ESLint/Prettier 통과. notarization 및 Linux build gate 불일치는 정책/릴리스 경계라 동작 변경을 보류한다. 사용자의 제외 범위와 기존 사용자 파일은 보존한다.
 - T-021 agent activity summary selector cache의 freshness 만료 재계산을 보장하고 집중 테스트 3개와 앱 typecheck를 통과했다. Selector 재호출 시 신선도를 복구하며, 시간 경과만으로 UI를 자동 갱신하는 동작은 문서 계약에 없어 추가하지 않았다.
@@ -117,3 +117,5 @@
 - T-032 preload의 `contentApi`·`systemApi`에 기존 `WorkspaceApi` 중 해당하는 부분 타입을 적용했다. `unknown` 구현 반환·인자를 제거해 Workspace/fs/search/model/CAD/EPUB/usage 계약이 declaration과 어긋나면 typecheck에서 검출된다. IPC payload runtime validation은 추가하지 않았다. app typecheck, root check, 변경 경로 ESLint/Prettier 통과.
 - T-033 Main `readFileBinaryPreview`가 workspace root confinement와 MIME/로그/`null` 동작을 유지하면서 파일 bytes를 `fs.promises.readFile`로 읽도록 변경했다. 7개 focused tests에서 async payload와 pending read 중 `setImmediate` 진행을 확인했다. app typecheck, root check 통과. `files.ts` ESLint의 함수 반환형 오류 1개와 `workspace.ts`의 반환형 오류 2개는 변경 전 HEAD에도 동일하게 있어 유지했다. Base64 변환/IPC copy 및 Electron runtime latency는 측정하지 않았다.
 - T-034 `listDir`가 `fs.promises.readdir`를 사용하도록 바꿨다. 정렬, Git ignore decoration, root confinement와 반환 의미를 유지했고 deferred readdir 동안 event loop가 진행되는 회귀를 포함해 `files.test.ts` 8 tests, app typecheck, root check, changed test ESLint/Prettier가 통과했다. `files.ts`의 반환형 ESLint baseline 오류는 그대로다.
+
+- T-035 완료: Desktop local provider·문서 session의 root를 생성 시 고정하고 optional `expectedRootPath`를 preload/Main FS IPC에 전달한다. Main은 상대경로 작업 전에 현재 root를 대조해 오래된 요청을 거부한다. provider/item ID/Quick Open cache도 `(tabId, rootPath)`로 분리했다. 독립 리뷰에서 확인한 watcher 재조회 누락을 보완하고 TREE-25 IPC rejection, stale watcher, provider identity 회귀를 추가했다. focused 4 files/26 tests, app typecheck, root `npm run check`, Prettier, 변경 경로 HEAD 대비 ESLint 신규 진단 없음, architecture digest/link 검사 통과.

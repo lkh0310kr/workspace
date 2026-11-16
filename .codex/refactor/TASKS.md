@@ -1,6 +1,6 @@
 # 저장소 전체 리팩터링 작업 큐
 
-작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 38개다.
+작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 39개다.
 
 | 작업 ID | 영역 | 변경 목표 | 전용 수정 경로 | 선행 작업 | 위험도 | 검증 | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -43,17 +43,18 @@
 | T-032 | R-001c | `contentApi`·`systemApi` runtime 객체를 기존 `WorkspaceApi` 선언의 세부 API 타입에 연결해 선언/구현의 `unknown` 차이를 제거 | `preload/contentApi.ts`, `preload/systemApi.ts`, 공개 `index.d.ts` 타입 사용 | runtime payload와 Main handler가 기존 선언에 맞는지 대조 | 낮음~중간 | preload/API app typecheck, changed-file ESLint/Prettier, root check, runtime channel shape diff | validated |
 | T-033 | R-001a | binary preview 전체 파일 읽기를 Main event loop를 막지 않는 async fs read로 전환 | `main/files.ts`, `workspace.ts`, `files.test.ts` | 모든 consumer가 `Promise` 기반 IPC 결과를 이미 기다리는지 확인 | 중간 | preview 7 tests (async result, MIME, unsupported, pending-read event-loop progress), app typecheck, root check, changed-file format/lint baseline 비교 | validated |
 | T-034 | R-001a | workspace directory enumeration의 동기 `readdirSync`를 async fs read로 전환 | `main/files.ts`, `files.test.ts` | `listDir` 호출부가 이미 Promise contract를 사용하는지 확인 | 낮음~중간 | listDir 3 tests, deferred readdir 중 event-loop progress, app typecheck, root check, changed-file ESLint/Prettier | validated |
+| T-035 | R-001b/R-001a/R-001c | Desktop local editor provider의 root를 고정하고 root 전환 후 오래된 CRUD·세션 요청을 Main IPC 경계에서 거부 | provider, local document session, FS preload/renderer shim, workspace IPC, root guard 및 계약 테스트, TreeView 스펙 | TREE-25 root-switch CRUD 재현 및 기존 provider identity/session 경계 확인 | 중간~높음 | IPC root-switch rejection, provider/session/root identity 계약 테스트, SearchPanel focus tests, app typecheck, root check, Prettier/ESLint baseline 비교 | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 38개; 검증 완료 38, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 39개; 검증 완료 39, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
 
 - 완료: 추적 파일 인벤토리, 적용되는 루트 지침, 스펙 기반 개발 규칙·인덱스, 루트 검사 스크립트, architecture-spec 링크 검사
-- 기준선 실패: `node scripts/check-architecture-specs.mjs`에서 `docs/guides/README.md -> ./REFACTOR.md` 링크 오류 발견. 대상 파일은 사용자가 삭제한 상태다.
+- 문서 인덱스: 사용자가 삭제한 `docs/guides/REFACTOR.md`는 복구하지 않고 `docs/guides/README.md`를 현재 스펙 기반 개발 규칙으로 연결했다. architecture source digest를 갱신한 뒤 링크·digest 검사 통과.
 - 이번 배치 T-001: `terminal-title-agent-type.ts`의 중복 `getAgentLabel`·`isClaudeAgent`·보조 판별 함수를 canonical agent-title 모듈의 재수출로 대체. 현재 함수 객체 동일성 테스트를 추가했다. `npx vitest run src/shared/agent/terminal-title-agent-type.test.ts` 14개 통과, `npm run typecheck` 통과, 루트 `npm run check` 통과(타입 검사·구조 검사·foundation Vitest 5파일/20테스트).
 - 이번 배치 T-002a: 폴더 단위 교차 프로세스 잠금 경로·PID 판정·token 기반 해제를 `folderSyncLock.ts`로 추출하고 잠금 독점·이전 token의 잘못된 해제 방지·정상 해제 후 재획득 테스트를 추가했다. 기준선 syncBridge 25파일/31테스트 통과; 변경 후 잠금 포함 26파일/32테스트 통과, typecheck와 루트 check 통과. 변경 파일 lint는 통과; `syncBridge.ts`는 기준선에서도 동일한 explicit return type·exception reassignment 17개 오류가 있어 그대로 남겨뒀다. 커밋 `cbed6fa0`.
 - 이번 배치 T-002b: `request`/PKMS 오류 변환, asset 업로드, base64/Yjs 원격 markdown 읽기, revision feed·snapshot page adapter와 관련 DTO를 `syncBridgeRemote.ts`로 이동했다. durable create/update queue와 syncOnce 오케스트레이션은 `syncBridge.ts`에 남겼다. `npx vitest run src/main/pkms/syncBridge src/main/pkms/folderSyncLock.test.ts src/shared/agent/terminal-title-agent-type.test.ts`: 27파일/46테스트 통과; 타입 검사·루트 check·Prettier·변경 모듈 ESLint 통과. `syncBridge.ts` lint 오류는 기준선 17개에서 16개로 줄었다. 남은 16개는 기존 helper 함수 반환 타입과 exception parameter 재할당 오류다.
@@ -91,7 +92,7 @@
 - R-001a Main은 추적 경로 172개를 정적으로 검토했다. OBJ `mtllib` 경로 root 경계를 T-026에서 보완하고, 최초/restored terminal hook URL startup 순서를 T-031에서 고쳤다. binary preview 파일 읽기는 T-033, directory enumeration은 T-034에서 async fs API로 전환해 해당 I/O 대기 중 Main event loop가 진행하도록 했다. Base64/IPC 메모리 복제 비용과 `resolveUnderRoot`의 동기 path 확인은 남는다. Linux IME 준비의 동기 대기는 입력 준비 보장이 확인되지 않아 보류한다.
 - Main 전체 테스트 assertion을 정적으로 분류했다. PKMS 테스트 47개는 durable ACK-loss, root 전환·offline, watcher 복구, OAuth allowlist/credential, Drive retry·cursor 계약을 다룬다. 비-PKMS 테스트 19개와 설정/shortcuts 2개는 GPU mode, file/media, search IPC, protocol, PTY/shortcuts, Windows/WSL 동작을 다룬다. 실제 process crash, watcher/timer 경쟁, 모든 IPC handler end-to-end, 외부 quota 및 플랫폼 통합은 검증되지 않았다.
 - R-001b renderer 후속 후보: `workspace-agent-activity-summary.ts`의 time-based cache 경계와 Home 두 위젯의 HOME-UI-05 refresh ordering/unmount 경합은 T-021/T-023에서 selector 만료와 직렬화·최신 응답 수용 테스트로 검증했다. `SystemInformationWidget` Main IPC 요청 자체는 현재 API에 취소 기능이 없어 unmount 후 완료만 기다리고 결과 적용을 무효화한다.
-- R-001b hooks/components 추가 후보: 미참조로 보이는 `ClaudeUsageStatusBar.tsx`는 release/build consumer를 확인하기 전 삭제하지 않는다. `useWorkspaceTabHotkeys.ts`의 layering 결합은 T-020에서 정리했다. 약 1,030줄 `TreeView.tsx`의 branch load root-generation guard는 TREE-10/11과 일치한다. 별도 read-only 재조사에서 create/rename/delete/move는 provider 내부 await 뒤 현재 tab root에 상대경로 IPC를 보낼 수 있어 root A→B 전환 중 작업 경합 위험이 보이지만, 재현 테스트와 CRUD root-change 정책이 없다. TreeView만의 stale-result guard로는 provider 내부 mutation을 막을 수 없으므로 기존 root 고정 또는 stale operation 거부 계약을 확정하고 provider IPC acceptance를 추가하기 전에는 분할/수정하지 않는다. SearchPanel은 reject 시 대기 중인 stream frame을 flush한 뒤 부분 결과에 합치므로 stream 결과 보존 결함은 확인되지 않았다. reject 이후 provider가 callback을 호출하는지는 별도 contract가 없어 변경하지 않는다.
+- R-001b hooks/components 추가 후보: 미참조로 보이는 `ClaudeUsageStatusBar.tsx`는 release/build consumer를 확인하기 전 삭제하지 않는다. `useWorkspaceTabHotkeys.ts`의 layering 결합은 T-020에서 정리했다. 약 1,030줄 `TreeView.tsx`의 branch load root-generation guard는 TREE-10/11과 일치한다. 별도 read-only 재조사에서 create/rename/delete/move는 provider 내부 await 뒤 현재 tab root에 상대경로 IPC를 보낼 수 있는 경합을 T-035에서 해결했다. provider 생성 root를 고정하고 Main이 각 IPC 직전에 기대 root를 대조하며, root별 provider/item/cache identity와 TREE-25 acceptance를 추가했다. SearchPanel은 reject 시 대기 중인 stream frame을 flush한 뒤 부분 결과에 합치므로 stream 결과 보존 결함은 확인되지 않았다. reject 이후 provider가 callback을 호출하는지는 별도 contract가 없어 변경하지 않는다.
 - T-020 채택: `useWorkspaceTabHotkeys.ts`는 tab switching을 `WorkspaceTabRail`에서 재수출한 함수로 호출한다. 실제 구현은 `workspaceNavigation.ts`의 `switchToWorkspaceTab`이며 component는 동일 함수의 alias만 재수출한다. hook이 canonical owner를 직접 import하도록 바꾸고 index lookup·out-of-range·listener cleanup을 최소 테스트로 고정한다. 기존 component re-export와 IPC/단축키 동작은 유지한다.
 - T-020 완료: hook이 `WorkspaceTabRail` 대신 `workspaceNavigation.switchToWorkspaceTab`을 직접 사용한다. 기존 component export/IPC 계약은 유지하고 전용 테스트로 1-based index, missing tab, tabs 변경 시 listener 교체 및 unmount cleanup을 고정했다. 기존 경로 기준 테스트 2개 통과 후 변경 적용, 변경 후에도 2개 통과; `npm run typecheck`, root `npm run check`, 앱 로컬 ESLint/Prettier 통과. 커밋 `8b186ac0`.
 - T-021 완료: selector cache에 time-based `validUntil`을 기록해 freshness 경계를 지난 동일 입력을 재집계한다. `agentStatusEvidenceObservedAt`을 재사용해 mirrored evidence 우선순위를 유지하고, title-derived 및 일반 explicit만 만료 대상으로 삼아 restored/structured-host 규칙을 보존했다. fake-time 동일 refs·mirrored title·restored/structured 예외 테스트 3개, app typecheck 통과. selector 재호출 시 결과를 갱신하며 시간 경과만으로 React UI를 깨우는 timer는 AGENT spec의 계약이 아니므로 추가하지 않는다.
@@ -103,3 +104,5 @@
 - R-001e build/release 조사: `electron-builder.yml`의 `notarize: false`는 공개 macOS 배포 notarization 요구 문서와 어긋난다. Windows release workflow는 Google Drive desktop secret/allowlist를 build env에 주입하지 않는 것으로 보여 workflow 실행 시 구성 검증이 필요하다. `build:linux`는 공통 build의 typecheck/helper/decoder 준비를 생략하지만 Linux는 현재 비활성 플랫폼이라 재활성화 때 확인한다. `npm test` wrapper의 경로 인자 미전달은 T-030에서 수정했다. WebGL probe script와 app 환경 helper의 switch 로직은 유사해 drift 위험이 있으나 CLI 경계가 달라 추출은 보류했다. 설정/스크립트 검토에서 배포를 실행하지 않았다.
 - R-001e T-030: `run-vitest.mjs`가 CLI 인자를 버려 `npm test -- <필터>`도 전체 suite로 실행하던 결함을 고치고 Vitest 호출 인자에 `process.argv.slice(2)`를 전달했다. `npm test -- --help`에서 Vitest 옵션 화면이 출력되어 인자 전달을 확인했다. 파일 필터 focused 검증도 수행했다.
 - R-001a T-031: app ready 뒤 agent-hook server listen을 기다리고 성공한 경우 status URL callback을 주입한 뒤 fresh/restored Workspace를 생성하도록 startup을 재정렬했다. listen 실패는 startup log에 남기고 hook env 없이 앱을 계속 시작한다. 지연 listen·실패 ordering 2 tests와 fresh/restored PTY env 2 tests, app typecheck, root `npm run check`, 변경 경로 ESLint 및 Prettier 통과. `workspace.ts` 전체 ESLint에는 변경 전에도 있던 `connectTerminal`/다른 메서드의 explicit return type 오류 2개가 남아 있다. Electron 앱 실제 startup runtime은 실행하지 않았다.
+
+- T-035 완료: Desktop local provider pool·item ID·Quick Open cache를 `(tabId, rootPath)`로 분리했다. provider-owned filesystem IPC와 `LocalDocumentSession`의 load/save/watcher 재조회가 생성 당시 `expectedRootPath`를 전달하며 Main은 요청 직전 현재 tab root를 검사해 오래된 요청을 거부한다. root 전환 뒤 mutation IPC 거부, root별 provider identity, watcher stale rejection을 추가했다. focused Vitest 4파일/26테스트, app typecheck, root `npm run check`, Prettier, 변경된 경로의 HEAD 대비 ESLint 신규 진단 0건, architecture digest/link 검사가 통과했다.
