@@ -1630,9 +1630,19 @@ export async function flushWorkspace(
   const branch = w.branch.split('/').map(encodeURIComponent).join('/')
   const refPath = `/repos/${owner}/${repo}/git/ref/heads/${branch}`
   const ref = (await (await github(token, refPath)).json()) as { object: { sha: string } }
+  let recoveredCommit: PreviousPkmsCommitRecovery | null = null
   if (ref.object.sha !== w.github_head) {
+    recoveredCommit = await recoverPreviousPkmsCommit(
+      token,
+      owner,
+      repo,
+      login,
+      w,
+      changed,
+      ref.object.sha
+    )
     if (
-      !(await recoverPreviousPkmsCommit(token, owner, repo, login, w, changed, ref.object.sha)) &&
+      !recoveredCommit &&
       !(await recoverExcludedGitHubCommit(token, owner, repo, login, w, changed, ref.object.sha))
     ) {
       await supabaseRpc(env, 'pkms_finish_flush', {
@@ -1668,7 +1678,7 @@ export async function flushWorkspace(
     if (f.kind === 'folder') continue
     /* Where the file lives on GitHub: only a file that already has a blob sha is there, at its original path. Deleting anything else makes the trees API fail (BadObjectState). */ const origin =
       f.sha ? (f.previous_path ?? f.path) : null
-    if (origin && (f.deleted || origin !== f.path))
+    if (origin && (f.deleted || origin !== f.path) && !recoveredCommit?.deletedPaths.has(origin))
       tree.push({ path: origin, mode: '100644', type: 'blob', sha: null })
     if (f.deleted) continue
     /* Never-loaded files (moved before opening) have no local body: re-point the existing blob instead of uploading an empty one. */ if (
@@ -1740,6 +1750,8 @@ export async function flushWorkspace(
   })
   for (const f of changed) if (f.object_key) await env.ASSET_BUCKET.delete(f.object_key)
 }
+type PreviousPkmsCommitRecovery = { deletedPaths: Set<string> }
+
 async function recoverPreviousPkmsCommit(
   token: string,
   owner: string,
@@ -1748,8 +1760,8 @@ async function recoverPreviousPkmsCommit(
   w: WorkspaceRow,
   changed: FileRow[],
   remoteHead: string
-): Promise<boolean> {
-  if (!w.github_head || !changed.length) return false
+): Promise<PreviousPkmsCommitRecovery | null> {
+  if (!w.github_head || !changed.length) return null
   const response = await github(token, `/repos/${owner}/${repo}/commits/${remoteHead}`)
   const commit = (await response.json()) as {
     commit?: { message?: string }
@@ -1776,7 +1788,7 @@ async function recoverPreviousPkmsCommit(
       changedFileCount: changed.length,
       remoteFileCount: committed?.length ?? -1
     })
-    return false
+    return null
   }
   const paths = new Set<string>()
   for (const item of committed) {
@@ -1795,9 +1807,14 @@ async function recoverPreviousPkmsCommit(
       changedFileCount: changed.length,
       remoteFileCount: committed.length
     })
-    return false
+    return null
   }
-  return true
+  const deletedPaths = new Set<string>()
+  for (const item of committed) {
+    if (item.status === 'removed') deletedPaths.add(item.filename)
+    if (item.previous_filename) deletedPaths.add(item.previous_filename)
+  }
+  return { deletedPaths }
 }
 /**
  * Rebase pending PKMS backups onto a direct GitHub commit when it only changed

@@ -1061,7 +1061,7 @@
         },
         {
           "path": "apps/pkms-server/src/SupabaseVault.ts",
-          "sha256": "242232f81db8602ecca1a55cafcb2912de6bb0fd5515ffc58c0b7b8fbff60fa3"
+          "sha256": "0a84f5e84031b8bd7d403f658b6b8c0d1bd710647b804a4fa4496e2d2310b686"
         },
         {
           "path": "apps/pkms-server/src/workspaceApi.ts",
@@ -1292,7 +1292,7 @@
         },
         {
           "path": "apps/pkms-server/src/SupabaseVault.ts",
-          "sha256": "242232f81db8602ecca1a55cafcb2912de6bb0fd5515ffc58c0b7b8fbff60fa3"
+          "sha256": "0a84f5e84031b8bd7d403f658b6b8c0d1bd710647b804a4fa4496e2d2310b686"
         },
         {
           "path": "packages/pkms-protocol/realtime.schema.json",

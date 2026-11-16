@@ -45,7 +45,7 @@ file metadata/content/attachment/upload의 나머지 분기는 [SupabaseVault](.
 
 [SupabaseAccountStore](../../../../apps/pkms-server/src/SupabaseAccountStore.ts)는 login별 credentials/workspace/MCP 자료, SupabaseVault는 document·metadata·operation/revision·GitHub 상태를 조정한다. binary object는 R2, 관계/guard/idempotency는 Supabase RPC와 [migrations](../../../../apps/pkms-server/supabase/migrations)가 함께 소유한다. JS source 변경만으로 DB migration 적용을 완료했다고 판단하지 않는다.
 
-scheduled handler는 flushDueWorkspaces와 mirrorDueWorkspaces를 waitUntil로 실행한다. local save, cloud revision, GitHub flush/mirror는 독립 상태다. write concurrency와 folder guard는 [Desktop sync](../../workspace/pkms/README.md)를 소비하지만 서버의 실제 검증은 vault/RPC가 결정한다.
+scheduled handler는 flushDueWorkspaces와 mirrorDueWorkspaces를 waitUntil로 실행한다. local save, cloud revision, GitHub flush/mirror는 독립 상태다. GitHub commit 반영 뒤 완료 RPC가 실패해 재시도할 때 이전 PKMS commit을 검증해 복구하고, 이미 제거·이동된 경로는 다시 삭제하지 않으면서 최신 pending revision을 반영한다. write concurrency와 folder guard는 [Desktop sync](../../workspace/pkms/README.md)를 소비하지만 서버의 실제 검증은 vault/RPC가 결정한다.
 
 ## 오류·검증
 
