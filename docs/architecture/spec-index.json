@@ -97,7 +97,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
-          "sha256": "30549843e372d99ea11d59d4395e45f50a130e822ed562a80246f491e32763e9"
+          "sha256": "c72336ad028cf16a60011bebff05a94f4c62b8f35ccf183ac3c5ff86a6b340e2"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/CadViewerContent.tsx",
@@ -426,6 +426,10 @@
         {
           "path": "packages/editor/src/assetPreview.module.css",
           "sha256": "1b2e4849a6fd8ba7f772c072bbd0942d97f4bf92514dc7ebf18f8e51a591e164"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.path-change.test.ts",
+          "sha256": "b5943209687261e2ee471c950bf6996fbdf57fbe9d1ae7cff5decdef36517972"
         }
       ]
     },
@@ -489,7 +493,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
-          "sha256": "30549843e372d99ea11d59d4395e45f50a130e822ed562a80246f491e32763e9"
+          "sha256": "c72336ad028cf16a60011bebff05a94f4c62b8f35ccf183ac3c5ff86a6b340e2"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/kinds/editorKind.tsx",
@@ -1166,7 +1170,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.tsx",
-          "sha256": "30549843e372d99ea11d59d4395e45f50a130e822ed562a80246f491e32763e9"
+          "sha256": "c72336ad028cf16a60011bebff05a94f4c62b8f35ccf183ac3c5ff86a6b340e2"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/mediaKind.ts",
@@ -1203,6 +1207,10 @@
         {
           "path": "apps/workspace-app/src/main/model3d/packageResolver.test.ts",
           "sha256": "81770f2c34983276a6a175dc806c2f8909604a5e1d922ecbc72d6e8087c83063"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.path-change.test.ts",
+          "sha256": "b5943209687261e2ee471c950bf6996fbdf57fbe9d1ae7cff5decdef36517972"
         }
       ]
     },

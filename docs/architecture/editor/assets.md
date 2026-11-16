@@ -22,7 +22,7 @@ FileViewerContent의 입력은 tabId, filePath, absolutePath, viewerHint, treeOp
 
 ## 로딩과 자원 수명
 
-image/PDF는 workspace-relative readFileBinaryPreview의 base64 bytes를 Blob URL로 바꾼다. 변경/해제 시 revoke한다. video/audio는 getMediaUrl 또는 getMediaUrlAbsolute로 streaming protocol URL을 받아 native media element가 Range 요청을 하도록 한다. 전체 영상 bytes를 base64로 읽지 않는다.
+image/PDF는 workspace-relative readFileBinaryPreview의 base64 bytes를 Blob URL로 바꾼다. 변경/해제 시 revoke한다. 미리보기 상태는 tabId와 filePath source에 묶으며, 경로 전환 즉시 이전 파일을 숨기고 새 미리보기 응답 전에는 표시하지 않는다. video/audio는 getMediaUrl 또는 getMediaUrlAbsolute로 streaming protocol URL을 받아 native media element가 Range 요청을 하도록 한다. 전체 영상 bytes를 base64로 읽지 않는다.
 
 EPUB는 EpubReaderContent, model3d/CAD는 lazy import한 별도 renderer가 로딩을 소유하므로 binary preview를 호출하지 않는다. 경로 변경 때 error/zoom/naturalSize/mediaUrl/subtitle 상태를 초기화한다. 비동기 응답은 cancelled flag로 폐기하며 URL이 없거나 읽기 실패면 오류 상태다. SRT 자막은 parse→VTT Blob URL로 만들고 교체/해제 시 revoke한다.
 
@@ -30,6 +30,6 @@ EPUB는 EpubReaderContent, model3d/CAD는 lazy import한 별도 renderer가 로�
 
 ## 수락 기준과 범위
 
-ASSET-01: video를 열 때 binary preview IPC가 없어야 한다. ASSET-02: 이미지 전환/해제 때 Blob URL을 revoke한다. ASSET-03: lazy viewer 파일은 해당 renderer만 로드한다. ASSET-04: 경로 없는 legacy media 탭의 Browse 취소는 path를 변경하지 않는다.
+ASSET-01: video를 열 때 binary preview IPC가 없어야 한다. ASSET-02: 이미지 전환/해제 때 Blob URL을 revoke하고 새 경로의 미리보기가 준비되기 전까지 이전 이미지를 표시하지 않는다. ASSET-03: lazy viewer 파일은 해당 renderer만 로드한다. ASSET-04: 경로 없는 legacy media 탭의 Browse 취소는 path를 변경하지 않는다.
 
 mediaKind.test와 srtToVtt.test는 분류·자막 순수 규칙의 기존 근거다. 포맷별 렌더 전체를 문서화 완료한 것으로 해석하지 않는다. 세부 viewer는 [전체 커버리지 목록](../../../docs/architecture/spec-driven-development.md)에서 남은 범위를 확인한다.

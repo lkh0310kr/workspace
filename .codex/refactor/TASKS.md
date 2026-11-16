@@ -35,11 +35,12 @@
 | T-024 | R-001b | EPUB open 오류를 source identity에 묶어 다른 경로 재사용 때 reader host 재생성과 이전 오류 차단을 보장 | `EpubReaderContent.tsx`, path-change lifecycle test, viewer spec | error branch의 hostRef 제거 동작 및 FileViewer의 key 없는 재사용 확인 | 낮음~중간 | reject→같은 instance 새 path 성공, 이전 지연 reject 무시, typecheck·root check | validated |
 | T-025 | R-003 | `%`·`_`가 들어간 path를 SQL subtree wildcard로 해석하지 않도록 literal path helper로 통일 | `apps/pkms-server/supabase/migrations/20261116190000_literal_path_subtree_matching.sql`, SQL regression test | `pkms_path_is_valid`가 `%`·`_`를 허용하고 최종 functions가 LIKE prefix를 사용하는 반례 재현 | 높음 | local DB reset + six SQL scripts (delete guard/scope, move, create conflict, asset conflict), server typecheck, root check | validated |
 | T-026 | R-001a | OBJ MTL 상대경로 탐색에서 workspace 밖 파일과 root 밖 symlink의 내용을 읽지 않도록 경계 검사 | `apps/workspace-app/src/main/model3d/packageResolver.ts`, 관련 테스트, viewer spec | traversal·symlink 반례 재현 및 OBJ 외부 resource 판정의 기존 반환값 비교 | 중간 | packageResolver 5 tests, Node typecheck, app/root check, spec-index 검사 | validated |
+| T-027 | R-001b | FileViewer의 이미지/PDF 미리보기를 현재 탭·경로 source에 묶어 경로 전환 뒤 이전 Blob 표시를 차단 | `FileViewerContent.tsx`, path-change lifecycle test, asset viewer spec | 지연된 preview 응답 중 동일 component 경로 변경 동작 재현 | 낮음~중간 | deferred preview lifecycle test, app typecheck, root check, changed-file lint/format | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 30개; 검증 완료 30, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 31개; 검증 완료 31, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -91,5 +92,5 @@
 - T-023 완료: HOME-UI-05에 맞춰 두 위젯의 refresh를 `useLatestRefresh`로 직렬화했다. 진행 중 여러 호출은 하나의 후속 요청으로 합치며 이전 결과는 반영하지 않는다. unmount가 queued refresh/응답을 무효화하고 위젯 interval을 정리한다. deferred API 응답·interval/manual coalescing·최신 결과·unmount를 통합 테스트하고, hook의 awaited completion도 테스트했다. focused 2 tests, app typecheck, root check 통과. 기존 ServiceStatusWidget ESLint의 명시 반환형/React compiler memoization 오류는 refresh 변경과 무관한 기존 위치에 남아 있다.
 - T-024 완료: EPUB open error를 `{tabId, filePath, absolutePath, message}`로 저장하고 현재 source에 해당하는 오류만 표시한다. 새 source에는 기존 error branch가 reader host를 제거하지 않으므로 같은 component instance가 다시 로드한다. effect cleanup의 cancelled guard가 이전 async open failure의 stale 적용을 막는다. reject→새 path 성공과 늦은 이전 reject 2 tests, app typecheck 통과.
 - T-025 완료: SQL `LIKE path||'/%'` prefix matching을 slash-boundary literal helper로 교체하고 object key prefix도 literal string prefix로 확인한다. migration 적용 후 `_` false conflict, `%` sibling delete, wildcard-shaped move/create/asset cases를 포함한 6개 local Postgres SQL scripts가 모두 통과했다. 수정 전 underscore false-positive를 재현했고, `npm run pkms:server:typecheck` 및 root `npm run check`도 통과했다. local database test는 `docker exec -i supabase_db_pkms-client psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/<file>.sql`로 실행했다.
-- R-001b pane/viewer 후보: `EpubReaderContent.tsx`의 error branch가 hostRef를 제거해 실패한 책 다음 path 로드를 막는 결함은 T-024에서 source-bound error·stale async 결과 테스트로 수정했다. `CadViewerContent.tsx`는 `paneActive` 변화 때 webview를 재생성하지만 pane state 보존 계약은 없어 보류한다. FileViewer의 Blob URL은 cleanup에서 revoke되지만 path 전환 첫 render에 이전 URL state가 남을 수 있어 후속 source-change acceptance 후보로 남긴다. 실제 WebGL/CAD/EPUB runtime acceptance는 별도 한계다.
+- R-001b pane/viewer 후보: `EpubReaderContent.tsx`의 error branch가 hostRef를 제거해 실패한 책 다음 path 로드를 막는 결함은 T-024에서 source-bound error·stale async 결과 테스트로 수정했다. FileViewer는 T-027에서 Blob preview를 tabId/path에 묶고 다음 경로 응답 전에 이전 파일이 보이지 않는지 검증했다. `CadViewerContent.tsx`는 `paneActive` 변화 때 webview를 재생성하지만 pane state 보존 계약은 없어 보류한다. 실제 WebGL/CAD/EPUB runtime acceptance는 별도 한계다.
 - R-001e build/release 조사: `electron-builder.yml`의 `notarize: false`는 공개 macOS 배포 notarization 요구 문서와 어긋난다. Windows release workflow는 Google Drive desktop secret/allowlist를 build env에 주입하지 않는 것으로 보여 workflow 실행 시 구성 검증이 필요하다. `build:linux`는 공통 build의 typecheck/helper/decoder 준비를 생략하지만 Linux는 현재 비활성 플랫폼이라 재활성화 때 확인한다. `npm test`의 Vitest wrapper는 경로 인자를 넘기지 못하고 직접 Vitest 실행이 권장된다. WebGL probe script와 app 환경 helper의 switch 로직은 유사해 drift 위험이 있으나 CLI 경계가 달라 추출은 보류했다. 설정/스크립트 검토에서 배포를 실행하지 않았다.
