@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
-import { executeTabChipWindowDrop } from '../layout/layoutChipWindowDrop'
-import { endTabDrag, getTabDrag } from '../layout/tabDrag'
-import { useWorkspaceStore } from '../store/workspaceStore'
+import { executeTabChipWindowDrop } from '../../layout/layoutChipWindowDrop'
+import { endTabDrag, getTabDrag } from '../../layout/tabDrag'
+import { useWorkspaceStore } from '../../store/workspaceStore'
 
 export function useTabChipWindowDrop(activeTabId: number): void {
   const bumpLayout = useWorkspaceStore((s) => s.persistLayout)

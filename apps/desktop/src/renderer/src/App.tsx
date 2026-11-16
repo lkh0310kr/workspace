@@ -1,4 +1,3 @@
-import { useWorkspace } from './hooks/useWorkspace'
 import { AppSettingsDialog, AppTitlebar, LoadingWorkspace } from './features/app-shell'
 import { AgentUsageStatusBar } from './features/agent-usage'
 import {
@@ -17,20 +16,26 @@ import { LayoutTabDropOverlay, WorkspaceLayoutHost } from './features/pane-syste
 import { SettingsDialog } from './features/workspace'
 import { HomeView } from '@workspace/home'
 import type { ReadSystemSummary } from '@workspace/home'
-import { useAppBootstrap } from './hooks/useAppBootstrap'
-import { useAppShellState } from './hooks/useAppShellState'
-import { useAppShortcuts, useDismissPortalsOnWorkspaceSwitch } from './hooks/useAppShortcuts'
+import {
+  useAppBootstrap,
+  useAppShellState,
+  useAppShortcuts,
+  useDismissPortalsOnWorkspaceSwitch,
+  useHtmlFullscreen
+} from './features/app-shell'
 import { useShortcutDispatcher } from './shortcuts/useShortcutDispatcher'
-import { useLayoutHostCallbacks } from './hooks/useLayoutHostCallbacks'
-import { useLayoutRevisions } from './hooks/useLayoutRevision'
-import { useEnsureDefaultTerminals, useLayoutHostLifecycle } from './hooks/useLayoutHostLifecycle'
-import { useSplitterDragOverlay } from './hooks/useSplitterDragOverlay'
-import { useTabChipWindowDrop } from './hooks/useTabChipWindowDrop'
-import { useWorkspaceTabHotkeys } from './hooks/useWorkspaceTabHotkeys'
-import { useVisibleWorkspaceTab } from './hooks/useVisibleWorkspaceTab'
+import {
+  useLayoutHostCallbacks,
+  useLayoutRevisions,
+  useEnsureDefaultTerminals,
+  useLayoutHostLifecycle,
+  useSplitterDragOverlay,
+  useTabChipWindowDrop,
+  useVisibleWorkspaceTab
+} from './features/pane-system'
+import { useWorkspace, useWorkspaceTabHotkeys } from './features/workspace'
 import { useWorkspaceScope } from './interaction/useWorkspaceScope'
 import { switchToHome } from './workspaceNavigation'
-import { useHtmlFullscreen } from './hooks/useHtmlFullscreen'
 import { applyThemePreference, setStoredThemePreference } from './theme'
 import { useWorkspaceStore } from './store/workspaceStore'
 import type { Model, TabNode, TabSetNode } from 'flexlayout-react'

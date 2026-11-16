@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { initWorkspaceStore } from '../store/installWorkspaceStore'
-import { useWorkspaceStore } from '../store/workspaceStore'
-import type { WorkspaceState } from '../electron'
+import { initWorkspaceStore } from '../../store/installWorkspaceStore'
+import { useWorkspaceStore } from '../../store/workspaceStore'
+import type { WorkspaceState } from '../../electron'
 
 export function useWorkspace(): WorkspaceState | null {
   const workspace = useWorkspaceStore(

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { TabNode } from 'flexlayout-react'
 import { interactionCoordinator } from '../interaction/InteractionCoordinator'
-import { useLayoutRevision } from '../hooks/useLayoutRevision'
+import { useLayoutRevision } from '../features/pane-system/useLayoutRevision'
 import { useWorkspaceScope } from '../interaction/useWorkspaceScope'
 
 /**

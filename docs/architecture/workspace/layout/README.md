@@ -30,7 +30,7 @@ hydrate는 tabs의 순서·ID·title·root·JSON 동등성을 비교한다. 같�
 
 persistLayout은 model.toJson을 serialize하고 saved JSON cache를 즉시 갱신한 뒤 workspace tab별 250ms timer로 setTabLayout IPC를 요청한다. 같은 workspace의 연속 예약은 최신 layout 하나로 합치며, 다른 workspace의 timer는 서로 취소하지 않는다. hydration에서 workspace가 사라지면 해당 workspace의 대기 timer를 취소한다. 앱 종료 전에 IPC가 완료되지 않는 경우까지 durable flush를 보장하지는 않는다.
 
-[host callbacks](../../../../apps/desktop/src/renderer/src/hooks/useLayoutHostCallbacks.tsx)는 구조 action에서 revision을 올리고 move policy·pending rebalance·split scroll 복원을 적용한 뒤 persistLayout을 요청한다. SELECT_TAB/SET_ACTIVE_TABSET도 render revision에 반영한다. 임의 model.doAction 뒤 revision 갱신을 누락하지 않는다.
+[host callbacks](../../../../apps/desktop/src/renderer/src/features/pane-system/useLayoutHostCallbacks.tsx)는 구조 action에서 revision을 올리고 move policy·pending rebalance·split scroll 복원을 적용한 뒤 persistLayout을 요청한다. SELECT_TAB/SET_ACTIVE_TABSET도 render revision에 반영한다. 임의 model.doAction 뒤 revision 갱신을 누락하지 않는다.
 
 ## 파일 preview·닫기·탭 이동
 

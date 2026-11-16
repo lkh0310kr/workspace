@@ -4,22 +4,22 @@ import {
   installBrowserDownloadRelay,
   installBrowserEmbedSupport,
   reloadFocusedBrowser
-} from '../features/browser/runtime'
-import { installRendererConsoleFileLogging } from '../debug/consoleFileLog'
+} from '../../features/browser/runtime'
+import { installRendererConsoleFileLogging } from '../../debug/consoleFileLog'
 import {
   onBrowserReloadShortcut,
   onPastePlainTextShortcut,
   onTerminalPasteShortcut
-} from '../electron'
-import { pastePlainTextInFocusedEditor } from '../activeEditorView'
+} from '../../electron'
+import { pastePlainTextInFocusedEditor } from '../../activeEditorView'
 import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager/pane-terminal-registry'
 import {
   captureTerminalSessionBuffers,
   notifyTerminalKeyboardPasteHandled,
   pasteClipboardIntoTerminal
-} from '../features/terminal/runtime'
-import { installGlobalErrorLogging } from '../errorLog'
-import { installTerminalAgentStatusBridge } from '../features/terminal/runtime'
+} from '../../features/terminal/runtime'
+import { installGlobalErrorLogging } from '../../errorLog'
+import { installTerminalAgentStatusBridge } from '../../features/terminal/runtime'
 
 /** One-time app-wide side effects (logging, browser embed, downloads). */
 export function useAppBootstrap(): void {

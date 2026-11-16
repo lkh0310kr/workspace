@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import type { Model } from 'flexlayout-react'
-import { useAgentStatusStore } from '../store/agentStatusStore'
-import { useRuntimeTerminalTitlesStore } from '../store/runtimeTerminalTitlesStore'
-import { collectWorkspaceTabPaneSnapshots } from '../lib/collect-workspace-tab-pane-snapshots'
-import { selectWorkspaceAgentActivitySummary } from '../lib/workspace-agent-activity-summary'
-import { resolveWorkspaceTabStatus, type WorkspaceTabStatus } from '../lib/workspace-tab-status'
+import { useAgentStatusStore } from '../../store/agentStatusStore'
+import { useRuntimeTerminalTitlesStore } from '../../store/runtimeTerminalTitlesStore'
+import { collectWorkspaceTabPaneSnapshots } from '../../lib/collect-workspace-tab-pane-snapshots'
+import { selectWorkspaceAgentActivitySummary } from '../../lib/workspace-agent-activity-summary'
+import { resolveWorkspaceTabStatus, type WorkspaceTabStatus } from '../../lib/workspace-tab-status'
 
 export function computeWorkspaceTabActivityStatus(
   workspaceTabId: number,

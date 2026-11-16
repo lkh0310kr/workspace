@@ -1,3 +1,7 @@
 export { AppSettingsDialog } from './AppSettingsDialog'
 export { AppTitlebar } from './AppTitlebar'
 export { LoadingWorkspace } from './LoadingWorkspace'
+export { useAppBootstrap } from './useAppBootstrap'
+export { useAppShellState } from './useAppShellState'
+export { useAppShortcuts, useDismissPortalsOnWorkspaceSwitch } from './useAppShortcuts'
+export { useHtmlFullscreen } from './useHtmlFullscreen'

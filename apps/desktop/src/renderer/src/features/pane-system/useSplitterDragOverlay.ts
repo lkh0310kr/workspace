@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from '../interaction/dragSession'
+import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from '../../interaction/dragSession'
 
 /**
  * Block/hide webviews while resizing flexlayout splitters.

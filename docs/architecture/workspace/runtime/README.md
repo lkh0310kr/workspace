@@ -1,6 +1,6 @@
 # Desktop 시작·종료·restore 계약
 
-App scope에서 Main·preload·renderer의 수명을 정의한다. 근거는 [main entry](../../../../apps/desktop/src/main/index.ts), [Workspace](../../../../apps/desktop/src/main/workspace.ts), [renderer bootstrap](../../../../apps/desktop/src/renderer/src/hooks/useAppBootstrap.ts), [workspaceStore](../../../../apps/desktop/src/renderer/src/store/workspaceStore.ts)다.
+App scope에서 Main·preload·renderer의 수명을 정의한다. 근거는 [main entry](../../../../apps/desktop/src/main/index.ts), [Workspace](../../../../apps/desktop/src/main/workspace.ts), [renderer bootstrap](../../../../apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts), [workspaceStore](../../../../apps/desktop/src/renderer/src/store/workspaceStore.ts)다.
 
 ## 시작 순서
 
@@ -16,7 +16,7 @@ fromSnapshot에서 terminal ID/tab ID의 다음 값을 복원해 기존 ID와 �
 
 useAppBootstrap은 전역 error/console logging, browser embed/download relay, terminal agent bridge, reload/plain paste/terminal paste shortcut, quit-time session buffer capture를 설치한다. 해제 함수를 반환하는 hook subscription은 effect cleanup으로 제거한다. console logging 등 모든 installer가 동일 cleanup API를 가진다고 가정하지 않는다.
 
-[`useWorkspace`](../../../../apps/desktop/src/renderer/src/hooks/useWorkspace.ts) adapter는 Main state와 updated 이벤트를 받아 store를 hydrate한다. live model/activation은 [layout](../layout/README.md), 화면에 보이는 workspace projection과 native guest focus는 [interaction](../interaction/README.md)이 소유한다. pane 오류는 PaneErrorBoundary, 전역 renderer 오류는 error logging 경로로 간다.
+[`useWorkspace`](../../../../apps/desktop/src/renderer/src/features/workspace/useWorkspace.ts) adapter는 Main state와 updated 이벤트를 받아 store를 hydrate한다. live model/activation은 [layout](../layout/README.md), 화면에 보이는 workspace projection과 native guest focus는 [interaction](../interaction/README.md)이 소유한다. pane 오류는 PaneErrorBoundary, 전역 renderer 오류는 error logging 경로로 간다.
 
 ## 창 닫기와 앱 종료
 

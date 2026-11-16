@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
 import { Actions, type Model, type TabNode, type TabSetNode } from 'flexlayout-react'
-import { closeActivePaneTab } from '../layout/layoutActions'
-import { dismissWorkspacePortals } from '../workspacePortalDismiss'
-import { onClosePaneTabShortcut } from '../electron'
+import { closeActivePaneTab } from '../../layout/layoutActions'
+import { dismissWorkspacePortals } from '../../workspacePortalDismiss'
+import { onClosePaneTabShortcut } from '../../electron'
 import { dispatchLocalBrowserZoom } from '@workspace/browser'
 import type { WorkspaceSettingsTarget } from './useAppShellState'
-import { readPaneGroupConfig, resolveActivePaneTab } from '../layout/layoutSession'
-import { useWorkspaceStore } from '../store/workspaceStore'
-import { registerShortcut } from '../shortcuts/shortcutRegistry'
+import { readPaneGroupConfig, resolveActivePaneTab } from '../../layout/layoutSession'
+import { useWorkspaceStore } from '../../store/workspaceStore'
+import { registerShortcut } from '../../shortcuts/shortcutRegistry'
 
 const ZOOM_MIN = 0.5
 const ZOOM_MAX = 2.5

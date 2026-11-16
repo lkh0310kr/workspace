@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { type TabNode } from 'flexlayout-react'
-import { PaneFrame, PaneTabStrip } from '../features/pane-system'
+import { PaneFrame } from '../features/pane-system/PaneFrame'
+import { PaneTabStrip } from '../features/pane-system/PaneTabStrip'
 import { setEditorDocumentDirty } from '@workspace/editor'
 import {
   addTabToGroup,
@@ -19,14 +20,17 @@ import {
 import type { TabDragPayload } from '../layout/tabDrag'
 import { PaneTabItem, TabKind } from '../layout/paneTypes'
 import { allPaneKinds, getPaneKind, type PaneRenderContext } from './paneKindRegistry'
-import { useLayoutRevision, usePaneTabSelectionRevision } from '../hooks/useLayoutRevision'
+import {
+  useLayoutRevision,
+  usePaneTabSelectionRevision
+} from '../features/pane-system/useLayoutRevision'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { countLayoutTabSets } from '../layout/layoutModelParse'
 import { focusPaneGroupTabSet } from '../layout/layoutRef'
 import { layoutLog } from '../layout/layoutDebugLog'
 import { paneChipContentShown, paneChipContentStyle } from '../interaction/embedPolicy'
 import { usePaneVisibility } from './usePaneVisibility'
-import { usePaneGroupEditorSidebarState } from '../hooks/usePaneGroupEditorSidebarState'
+import { usePaneGroupEditorSidebarState } from '../features/editor'
 import { EditorSidebar } from '../features/editor'
 import { paneGroupBodyAnchorName } from './paneGroupBodyAnchor'
 import { paneGroupHostClassNames, resolvePaneGroupTabSetId } from './paneGroupFocus'

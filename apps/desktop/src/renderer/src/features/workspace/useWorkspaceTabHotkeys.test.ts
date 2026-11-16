@@ -2,7 +2,7 @@
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { TabInfo } from '../electron'
+import type { TabInfo } from '../../electron'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
@@ -14,7 +14,7 @@ const hotkeyState = vi.hoisted(() => ({
   unsubscribe: vi.fn()
 }))
 
-vi.mock('../electron', () => ({
+vi.mock('../../electron', () => ({
   onSwitchWorkspaceTabIndexShortcut: (handler: (payload: { index: number }) => void) => {
     hotkeyState.handlers.push(handler)
     return () => {
@@ -24,7 +24,7 @@ vi.mock('../electron', () => ({
   }
 }))
 
-vi.mock('../workspaceNavigation', () => ({
+vi.mock('../../workspaceNavigation', () => ({
   switchToWorkspaceTab: hotkeyState.switchToWorkspaceTab
 }))
 

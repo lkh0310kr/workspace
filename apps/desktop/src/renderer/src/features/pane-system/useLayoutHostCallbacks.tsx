@@ -7,19 +7,19 @@ import {
   type TabNode,
   type TabSetNode
 } from 'flexlayout-react'
-import { PaneErrorBoundary } from '../features/diagnostics/PaneErrorBoundary'
-import { addPaneToTabSet } from '../layout/layoutActions'
-import { layoutLogModel } from '../layout/layoutDebugLog'
-import { countLayoutTabs } from '../layout/layoutModelParse'
+import { PaneErrorBoundary } from '../../features/diagnostics/PaneErrorBoundary'
+import { addPaneToTabSet } from '../../layout/layoutActions'
+import { layoutLogModel } from '../../layout/layoutDebugLog'
+import { countLayoutTabs } from '../../layout/layoutModelParse'
 import {
   interceptMoveNodeAction,
   rebalanceAfterPaneDrag,
   summarizeBeforeModelChange
-} from '../layout/layoutMovePolicy'
-import { registerLayoutController, getLayoutRefCallback } from '../layout/layoutRef'
-import { restorePendingSplitScrollStates } from '../layout/layoutSplitScrollRestore'
-import { PaneGroup } from '../panes/PaneGroup'
-import { useWorkspaceStore } from '../store/workspaceStore'
+} from '../../layout/layoutMovePolicy'
+import { registerLayoutController, getLayoutRefCallback } from '../../layout/layoutRef'
+import { restorePendingSplitScrollStates } from '../../layout/layoutSplitScrollRestore'
+import { PaneGroup } from '../../panes/PaneGroup'
+import { useWorkspaceStore } from '../../store/workspaceStore'
 
 const LAYOUT_STRUCTURE_ACTIONS = new Set<string>([
   Actions.ADD_TAB,

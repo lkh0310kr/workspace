@@ -1,2 +1,5 @@
 export { SettingsDialog } from './SettingsDialog'
 export { WorkspaceTabRail } from './WorkspaceTabRail'
+export { useWorkspace } from './useWorkspace'
+export { computeWorkspaceTabActivityStatus } from './useWorkspaceTabActivityStatus'
+export { useWorkspaceTabHotkeys } from './useWorkspaceTabHotkeys'

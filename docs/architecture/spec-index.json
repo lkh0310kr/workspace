@@ -466,8 +466,8 @@
           "sha256": "e3ab83bc3dfd944e52866bbf1c5c83c868590e2fbb38e2523c061a12c2c764b0"
         },
         {
-          "path": "apps/desktop/src/renderer/src/hooks/usePaneGroupEditorSidebarState.ts",
-          "sha256": "330063cff7f8e23c6c4e7f05459968519e888134db73f940cd14f764ae6922c0"
+          "path": "apps/desktop/src/renderer/src/features/editor/usePaneGroupEditorSidebarState.ts",
+          "sha256": "6d978ad556066891778e5eb5c68f7a8879dce5d06c51aca8d869908a18e335f3"
         }
       ]
     },
@@ -704,12 +704,12 @@
           "sha256": "ae1528f25f73f947cbc576ad494c084e226b5ce59d625619fb022c3c160bff9e"
         },
         {
-          "path": "apps/desktop/src/renderer/src/hooks/useAppBootstrap.ts",
-          "sha256": "992d5f5f6554b15c5e5b635a723b1473f41255987eddbe680a19dff6ad7d3f76"
+          "path": "apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts",
+          "sha256": "7266549e3160f5a6d16669fc307f0ea94ad6eff17143fbf101dde47bba6d7877"
         },
         {
-          "path": "apps/desktop/src/renderer/src/hooks/useLayoutHostCallbacks.tsx",
-          "sha256": "8c292b0de3d390a8cbf696b9f542c56bf918c38ac3865e1898261aacf10cbe0e"
+          "path": "apps/desktop/src/renderer/src/features/pane-system/useLayoutHostCallbacks.tsx",
+          "sha256": "74a045e004f7b652b65c2fe6cb437286f14c1cbaad932187d8ea0fc109655d65"
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.test.ts",
@@ -749,7 +749,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/PaneGroup.tsx",
-          "sha256": "0cce25f9aac6dc3b2e67ba1d645184f480d51d02ffbd7d7f4437d0bbaa6fb49a"
+          "sha256": "71768e5181089fdd5e953532cd4a0b92d87baabc9c087611fceb671bd427a118"
         },
         {
           "path": "apps/desktop/src/renderer/src/store/workspaceLayoutModels.ts",
@@ -923,7 +923,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "73f4ed7ee43687ddfbb5a9d03892c2104a34167be7f5f28d2a33567b18abbe25"
+          "sha256": "bc2a550da5703c265dcda9bb3e46628e9feada2734342afe717406a83c5092e3"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx",
