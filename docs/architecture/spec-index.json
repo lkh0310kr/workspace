@@ -554,7 +554,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "8c9c3336c6b9ba786f89d5baac183ce7ed74163abac1cf9735e0f0e441f32e66"
+          "sha256": "a702d5e750e92cdeed96de27dc97cab678d2d7196bd3b2b2d20c75d0eec75980"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -721,7 +721,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "8c9c3336c6b9ba786f89d5baac183ce7ed74163abac1cf9735e0f0e441f32e66"
+          "sha256": "a702d5e750e92cdeed96de27dc97cab678d2d7196bd3b2b2d20c75d0eec75980"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
@@ -1032,6 +1032,10 @@
         "docs/architecture/workspace/terminal/porting-history.md"
       ],
       "sources": [
+        {
+          "path": "apps/desktop/src/main/terminal/windows-path-registry-change.ts",
+          "sha256": "873f05670afa549e8be6f4ef256304ff2b72885e334a8f8cfd2d66323cf4ba80"
+        },
         {
           "path": "apps/desktop/src/main/terminal/ptyHostDaemon.ts",
           "sha256": "dedf70bf80d65484b09f04a2c88bee567bade28585630868fc68825f18ca1a00"

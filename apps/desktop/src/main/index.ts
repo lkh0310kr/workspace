@@ -56,7 +56,7 @@ import { createWorkspaceAfterAgentHookServer } from './agent/workspaceAgentHookS
 import { resolveMacOptionTerminalBytes } from './terminal/terminalMacOptionShortcuts'
 import { disposeCadViewers } from './content/cadViewer'
 import { reinforceExistingWindowFocus } from './platform/window/focusExistingWindow'
-import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
+import { installWindowsPathRegistryChangeListener } from './terminal/windows-path-registry-change'
 import { checkForUpdatesByUser, initializeAutoUpdates } from './platform/update/autoUpdate'
 
 // WSLg + Windows DPI: must run before ready / BrowserWindow (see wslPaths).

@@ -1,6 +1,6 @@
 # Terminal 실행·출력·재연결 계약
 
-App scope의 J-03 계약이다. package [TerminalPane](../../../../packages/terminal/src/pane/TerminalPane.tsx)가 xterm mount를 소유하고 Main [PtySession](../../../../apps/desktop/src/main/terminal/ptySession.ts)은 detached [PTY host](../../../../apps/desktop/src/main/terminal/ptyHostDaemon.ts)의 client다. PTY query reply, session buffer와 cold restore 정책도 Terminal package가 소유하며 Main과 renderer가 같은 구현을 사용한다. pane mount·Main handle·shell process의 수명은 다르다.
+App scope의 J-03 계약이다. package [TerminalPane](../../../../packages/terminal/src/pane/TerminalPane.tsx)가 xterm mount를 소유하고 Main [PtySession](../../../../apps/desktop/src/main/terminal/ptySession.ts)은 detached [PTY host](../../../../apps/desktop/src/main/terminal/ptyHostDaemon.ts)의 client다. PTY query reply, session buffer와 cold restore 정책도 Terminal package가 소유하며 Main과 renderer가 같은 구현을 사용한다. pane mount·Main handle·shell process의 수명은 다르다. Windows PATH registry 변경 감지와 환경 캐시 무효화도 Main Terminal 경계의 [windows-path-registry-change](../../../../apps/desktop/src/main/terminal/windows-path-registry-change.ts)가 맡는다.
 
 ## 계층과 데이터 형식
 
