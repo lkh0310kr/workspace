@@ -19,6 +19,6 @@ function run(command, args) {
 
 run('node', ['scripts/rebuild-better-sqlite3.mjs'])
 const vitest = path.resolve(electronDir, 'node_modules/vitest/vitest.mjs')
-const code = run(process.execPath, ['--expose-gc', vitest, 'run'])
+const code = run(process.execPath, ['--expose-gc', vitest, 'run', ...process.argv.slice(2)])
 run('node', ['scripts/rebuild-better-sqlite3.mjs', '--electron'])
 process.exit(code)
