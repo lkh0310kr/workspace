@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'parity.spec.ts',
+  testMatch: ['parity.spec.ts', 'drive-tree-lifecycle.spec.ts'],
   fullyParallel: false,
   retries: 0,
   reporter: 'list',
