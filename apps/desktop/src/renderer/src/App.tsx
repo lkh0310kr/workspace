@@ -1,7 +1,6 @@
 import { useWorkspace } from './hooks/useWorkspace'
-import { AppSettingsDialog } from './components/AppSettingsDialog'
-import { AppTitlebar } from './components/AppTitlebar'
-import { AgentUsageStatusBar } from './components/AgentUsageStatusBar'
+import { AppSettingsDialog, AppTitlebar, LoadingWorkspace } from './features/app-shell'
+import { AgentUsageStatusBar } from './features/agent-usage'
 import {
   loadUsageMeterSettings,
   onHomeShortcut,
@@ -12,13 +11,11 @@ import {
   DEFAULT_USAGE_METER_SETTINGS,
   type UsageMeterSettings
 } from '../../shared/usage-meter-settings'
-import { ErrorLogPanel } from './components/ErrorLogPanel'
-import { GlobalToastViewport } from './components/GlobalToastViewport'
-import { InteractionDebugPanel } from './components/InteractionDebugPanel'
+import { ErrorLogPanel, InteractionDebugPanel } from './features/diagnostics'
+import { EditorToastViewport } from './features/editor/EditorToastViewport'
 import { LayoutTabDropOverlay, WorkspaceLayoutHost } from './features/pane-system'
-import { LoadingWorkspace } from './components/LoadingWorkspace'
 import { QuickOpen } from './features/editor/QuickOpen'
-import { SettingsDialog } from './components/SettingsDialog'
+import { SettingsDialog } from './features/workspace'
 import { HomeView } from '@workspace/home'
 import type { ReadSystemSummary } from '@workspace/home'
 import { useAppBootstrap } from './hooks/useAppBootstrap'
@@ -270,7 +267,7 @@ export default function App() {
       <LayoutTabDropOverlay />
       <ErrorLogPanel />
       <InteractionDebugPanel />
-      <GlobalToastViewport />
+      <EditorToastViewport />
     </div>
   )
 }

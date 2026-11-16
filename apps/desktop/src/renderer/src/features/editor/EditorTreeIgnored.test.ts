@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { editorTreeRowClassName } from '@workspace/editor'
-import styles from '../../../../../../packages/editor/src/treeView.module.css'
+import styles from '@workspace/editor/treeView.module.css'
 
 describe('EditorTreeRow Git ignore state', () => {
   it('adds a dedicated class to ignored rows without changing row semantics', () => {

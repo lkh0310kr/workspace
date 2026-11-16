@@ -20,6 +20,8 @@
 
 앱은 package를 import할 수 있고 package는 앱 구현을 import하지 않는다. Desktop의 Electron/native 의존성 설치는 root npm workspace와 별도다.
 
+Desktop renderer 안에서는 기능 화면과 앱 전용 어댑터를 `features/<기능>/` 아래 함께 둔다. `components/`는 실제 여러 기능에서 공유하는 UI primitive와 얇은 Desktop adapter만 소유한다. Workspace navigation, pane system, app shell, diagnostics, agent usage와 Editor는 각각 소유 경로에서 관리한다.
+
 ## 운영 기준
 
 Server 인증 issuer와 JWKS 주소는 배포 환경에서 명시적으로 설정한다. 외부 identity 제공자가 설정되지 않으면 인증된 API는 fail closed 해야 한다. 기존 데이터와 제공자 grant의 운영·배포 변경은 코드 보관 작업과 별도로 수행한다.

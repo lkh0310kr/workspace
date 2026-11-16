@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Popover } from './Popover'
-import { openDirectoryDialog, setTabRootPath } from '../electron'
+import { Popover } from '../../components/Popover'
+import { openDirectoryDialog, setTabRootPath } from '../../electron'
 
 interface Props {
   anchorRect: DOMRect

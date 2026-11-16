@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { isDevInstrumentation } from '../debug/devTools'
+import { isDevInstrumentation } from '../../debug/devTools'
 import {
   interactionCoordinator,
   type InteractionSnapshot
-} from '../interaction/InteractionCoordinator'
-import { fullInteractionDiagnostic, getDebugRing } from '../interaction/interactionDebugLog'
+} from '../../interaction/InteractionCoordinator'
+import { fullInteractionDiagnostic, getDebugRing } from '../../interaction/interactionDebugLog'
 
 function InteractionDebugPanelInner() {
   const [expanded, setExpanded] = useState(false)

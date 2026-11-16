@@ -1,7 +1,7 @@
 import type { RefObject } from 'react'
 import type { Model } from 'flexlayout-react'
-import type { TabInfo } from '../electron'
-import { WorkspaceTabRail } from './WorkspaceTabRail'
+import type { TabInfo } from '../../electron'
+import { WorkspaceTabRail } from '../workspace/WorkspaceTabRail'
 
 type Props = {
   appSettingsOpen: boolean

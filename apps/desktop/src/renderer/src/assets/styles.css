@@ -2557,57 +2557,6 @@ input {
   color: var(--text);
 }
 
-/* TextPrompt.tsx — Electron has no window.prompt(), this replaces it. */
-.text-prompt {
-  width: 240px;
-}
-
-.text-prompt-title {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.text-prompt input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 4px 6px;
-  background: var(--bg-base);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-size: 12px;
-}
-
-.text-prompt input:focus {
-  outline: none;
-  border-color: var(--border-strong);
-}
-
-.text-prompt-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.text-prompt-actions button {
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.text-prompt-actions button:hover:not(:disabled) {
-  background: var(--bg-hover);
-}
-
-.text-prompt-actions button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
 /* PaneErrorBoundary.tsx — inline fallback for one crashed pane, instead of
    flexlayout's own generic full-pane "Error rendering component" (which
    doesn't show the real message) or taking down the whole app. */

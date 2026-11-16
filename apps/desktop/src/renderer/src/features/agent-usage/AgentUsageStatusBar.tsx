@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Popover } from './Popover'
+import { Popover } from '../../components/Popover'
 import {
   claudeRateLimitStatus,
   codexRateLimitStatus,
@@ -7,12 +7,12 @@ import {
   type ClaudeRateLimitStatus,
   type CodexRateLimitStatus,
   type CursorUsageStatus
-} from '../electron'
+} from '../../electron'
 import {
   USAGE_PROVIDER_LABELS,
   type UsageProviderId,
   type UsageMeterSettings
-} from '../../../shared/usage-meter-settings'
+} from '../../../../shared/usage-meter-settings'
 import { formatResetCountdown, usageBarColor } from './usageStatusFormatting'
 
 const POLL_MS = 60_000

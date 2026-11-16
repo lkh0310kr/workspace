@@ -7,7 +7,7 @@ interface ToastItem extends EditorNotificationDetail {
 }
 
 /** App-wide toast host for notifications emitted by shared editor surfaces. */
-export function GlobalToastViewport() {
+export function EditorToastViewport() {
   const [items, setItems] = useState<ToastItem[]>([])
   const nextId = useRef(0)
 

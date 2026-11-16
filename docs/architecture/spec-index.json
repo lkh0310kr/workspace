@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "d691e9981a551079019ffacb1e3cc64796b393610260fa8f4acb2e8e2176b841"
+          "sha256": "ba3a25f5caab5e5c8a48ad27ce3a3bf0d087d36a3db14b55a5e41bac4cf8386e"
         },
         {
           "path": "apps/desktop/src/renderer/src/editor/localEditorProvider.ts",
@@ -330,8 +330,8 @@
           "sha256": "70c960f7d35c1bbdc15b842f2c312e7b44e9724c880bf7bc380f599e54186e40"
         },
         {
-          "path": "apps/desktop/src/renderer/src/components/EditorTreeIgnored.test.ts",
-          "sha256": "5281e57599bc6db58b6fa1f0c5e08d596d69581f44b32b3f28e81d3ad7e70bbd"
+          "path": "apps/desktop/src/renderer/src/features/editor/EditorTreeIgnored.test.ts",
+          "sha256": "a4610795f812863276cf4cd18347ee9ea7a77eef27265237e9458c3a24f8800b"
         },
         {
           "path": "packages/editor/src/EditorTreeToolbar.tsx",
@@ -709,7 +709,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/hooks/useLayoutHostCallbacks.tsx",
-          "sha256": "c39e70a0c653c56cc4f9b86484dd8aced2c7d8ef515e67a53bb88fabf0e4c0af"
+          "sha256": "8c292b0de3d390a8cbf696b9f542c56bf918c38ac3865e1898261aacf10cbe0e"
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.test.ts",
@@ -923,14 +923,14 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "321e25a27bd15c0ffb5e7a7ef1a3d56bc0344a4dd35dcd814cdecd6fdea0e1eb"
+          "sha256": "75173353958697dd12fdc44926adec03873ebc78d15c3c231e86902337dd4fb4"
         },
         {
-          "path": "apps/desktop/src/renderer/src/components/AgentUsageStatusBar.tsx",
-          "sha256": "e78634a9ea7a622e6db541159b2e5d388aaed2a4b3cd75984ca32824553d5c3b"
+          "path": "apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx",
+          "sha256": "6a5071a7506f8fb0e60407fbe3b56a677b4679bc61aec3a61baf7d5cb1eccb99"
         },
         {
-          "path": "apps/desktop/src/renderer/src/components/usageStatusFormatting.ts",
+          "path": "apps/desktop/src/renderer/src/features/agent-usage/usageStatusFormatting.ts",
           "sha256": "e77506415c5cdfb2accbf116256ff149e59d7f8de47e3662648328c28cb6f096"
         },
         {

@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { Popover } from './Popover'
-import { ThemePreference } from '../theme'
-import { getStoredAutoSave, setStoredAutoSave } from '../autosave'
+import { Popover } from '../../components/Popover'
+import { ThemePreference } from '../../theme'
+import { getStoredAutoSave, setStoredAutoSave } from '../../autosave'
 import {
   USAGE_PROVIDER_IDS,
   USAGE_PROVIDER_LABELS,
   type UsageMeterSettings,
   type UsageProviderId
-} from '../../../shared/usage-meter-settings'
+} from '../../../../shared/usage-meter-settings'
 
 interface Props {
   anchorRect: DOMRect

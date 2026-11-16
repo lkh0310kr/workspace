@@ -7,7 +7,7 @@ import {
   type TabNode,
   type TabSetNode
 } from 'flexlayout-react'
-import { PaneErrorBoundary } from '../components/PaneErrorBoundary'
+import { PaneErrorBoundary } from '../features/diagnostics/PaneErrorBoundary'
 import { addPaneToTabSet } from '../layout/layoutActions'
 import { layoutLogModel } from '../layout/layoutDebugLog'
 import { countLayoutTabs } from '../layout/layoutModelParse'

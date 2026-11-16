@@ -16,15 +16,15 @@ import {
   onShortcutModifierReleased,
   renameTab,
   reorderTabs
-} from '../electron'
-import { dismissWorkspacePortals } from '../workspacePortalDismiss'
-import { switchToHome, switchToWorkspaceTab } from '../workspaceNavigation'
-import { ContextMenu, type ContextMenuItem } from './ContextMenu'
+} from '../../electron'
+import { dismissWorkspacePortals } from '../../workspacePortalDismiss'
+import { switchToHome, switchToWorkspaceTab } from '../../workspaceNavigation'
+import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
 import { WorkspaceTabStatusIndicator } from './WorkspaceTabStatusIndicator'
-import { computeWorkspaceTabActivityStatus } from '../hooks/useWorkspaceTabActivityStatus'
-import { useAgentStatusStore } from '../store/agentStatusStore'
-import { useRuntimeTerminalTitlesStore } from '../store/runtimeTerminalTitlesStore'
-import { WorkbenchIcon } from './WorkbenchIcon'
+import { computeWorkspaceTabActivityStatus } from '../../hooks/useWorkspaceTabActivityStatus'
+import { useAgentStatusStore } from '../../store/agentStatusStore'
+import { useRuntimeTerminalTitlesStore } from '../../store/runtimeTerminalTitlesStore'
+import { WorkbenchIcon } from '../../components/WorkbenchIcon'
 
 interface Props {
   tabs: TabInfo[]
@@ -329,4 +329,4 @@ export function WorkspaceTabRail({
 }
 
 // Re-export for callers that already import switchToTab from this module.
-export { switchToWorkspaceTab as switchToTab } from '../workspaceNavigation'
+export { switchToWorkspaceTab as switchToTab } from '../../workspaceNavigation'
