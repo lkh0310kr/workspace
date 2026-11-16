@@ -6,14 +6,14 @@ App scope의 bridge 경계다. [preload index](../../../../apps/desktop/src/prel
 
 | family                             | preload/API             | Main 처리·반환·수명                                                                                                                                    |
 | ---------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| workspace:*                        | contentApi.workspace    | ipc/workspace → Workspace mutation/persist/broadcast. getState/setRoot 반환과 renderer snake_case 변환 구분                                            |
-| fs:*                               | contentApi.fs           | ipc/workspace → root-scoped file/search. read/list/write/조건부 쓰기/create/rename/delete/binary preview. search는 requestId result/done/cancel 이벤트 |
-| pty:* / terminal:*                 | terminalApi             | ipc/terminal와 terminalSessionBuffers. spawn/connect invoke, input/resize/ACK send, data/capture events. disconnect는 process destroy 아님             |
-| browser:*                          | browserApi              | browserNav/session/downloads와 guest relay. webContentsId 핸들, history null/boolean, subscription 해제                                                |
+| workspace:*                        | contentApi.workspace    | workspace/ipc/workspace → Workspace mutation/persist/broadcast. getState/setRoot 반환과 renderer snake_case 변환 구분                                            |
+| fs:*                               | contentApi.fs           | workspace/ipc/workspaceSearch → root-scoped file/search. read/list/write/조건부 쓰기/create/rename/delete/binary preview. search는 requestId result/done/cancel 이벤트 |
+| pty:* / terminal:*                 | terminalApi             | terminal/ipc/terminal·terminalSessionBuffers. spawn/connect invoke, input/resize/ACK send, data/capture events. disconnect는 process destroy 아님             |
+| browser:*                          | browserApi              | browser/browserNav·session·downloads와 guest relay. webContentsId 핸들, history null/boolean, subscription 해제                                                |
 | shortcut:*                         | browserApi.shortcuts 등 | main shortcut relay → renderer dispatch. guest/native terminal·focused editor 대상 구분                                                                |
-| media:* / model:* / cad:* / epub:* | contentApi              | contentCapabilities와 protocol adapters. model job update는 subscribe/unsubscribe, asset payload는 shared 모델                                         |
-| agentStatus:*                      | terminal/system bridge  | ipc/agentStatus + Main hook/evidence → store. pane identity/freshness는 shared 규칙                                                                    |
-| system:* / usage:*                 | systemApi               | systemCapabilities: local summary, usage 수집·settings. summary first CPU sample은 null 가능                                                           |
+| media:* / model:* / cad:* / epub:* | contentApi              | content/ipc/contentCapabilities와 protocol adapters. model job update는 subscribe/unsubscribe, asset payload는 shared 모델                                         |
+| agentStatus:*                      | terminal/system bridge  | agent/ipc/agentStatus + Main hook/evidence → store. pane identity/freshness는 shared 규칙                                                                    |
+| system:* / usage:*                 | systemApi               | platform/ipc/systemCapabilities: local summary, usage 수집·settings. summary first CPU sample은 null 가능                                                           |
 | clipboard:* / dialog:* / shell:*   | systemApi               | clipboard image limit·temp 저장, native pickers, reveal-in-dir. picker 취소는 path 미할당                                                              |
 | window:* / debug:*                 | systemApi               | owning window 조작·logs. debug 전송이 durable 제품 상태를 바꾸는 API는 아님                                                                            |
 

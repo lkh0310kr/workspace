@@ -2,7 +2,7 @@ import { ipcMain } from 'electron'
 import {
   registerTerminalAgentPaneKey,
   unregisterTerminalAgentPaneKey
-} from '../workspaceAgentHookServer'
+} from '../../workspaceAgentHookServer'
 
 export function registerAgentStatusIpc(): void {
   ipcMain.on(

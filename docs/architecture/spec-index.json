@@ -554,7 +554,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "e349743213b2a592f8071f68a481cc1c8911603f12324dcfb79a7f39ff5a6a0c"
+          "sha256": "423e3e224613f7973e7c13e44e34fa8342a0c4c8cdd462a10dfb75cc18aa0222"
         },
         {
           "path": "apps/desktop/src/main/search.test.ts",
@@ -721,15 +721,15 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "e349743213b2a592f8071f68a481cc1c8911603f12324dcfb79a7f39ff5a6a0c"
+          "sha256": "423e3e224613f7973e7c13e44e34fa8342a0c4c8cdd462a10dfb75cc18aa0222"
         },
         {
-          "path": "apps/desktop/src/main/ipc/terminalSessionBuffers.ts",
-          "sha256": "9b143cc8a494745c9afd05a33d8a4afdc210e8552c2481fe7cbec2a590713b97"
+          "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
+          "sha256": "07c771863c80fdf5e5207357a74539af060bd5375d117d8c9828a7ce5c3571e8"
         },
         {
-          "path": "apps/desktop/src/main/ipc/workspaceSearch.ts",
-          "sha256": "7cd93e4f846cf261e2ca65d804536193da85dfd60ed4ef71b9c933b91400e41a"
+          "path": "apps/desktop/src/main/workspace/ipc/workspaceSearch.ts",
+          "sha256": "cc56855a932aeb48253b1815d830e6b0b3993027edf54a7b86cb79c88a2c5efa"
         },
         {
           "path": "apps/desktop/src/main/model3d/cacheStore.ts",

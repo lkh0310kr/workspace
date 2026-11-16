@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
-import type { Workspace } from '../workspace'
-import type { SearchOptions } from '../search'
+import type { Workspace } from '../../workspace'
+import type { SearchOptions } from '../../search'
 
 /** Register streamed workspace file-search events and their cancellation lifecycle. */
 export function registerWorkspaceSearchIpc(getWorkspace: () => Workspace): void {

@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import type { Workspace } from '../workspace'
+import type { Workspace } from '../../workspace'
 
 /** Register the terminal and PTY IPC endpoints owned by the Workspace model. */
 export function registerTerminalIpc(

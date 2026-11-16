@@ -1,6 +1,6 @@
 import { ipcMain, type BrowserWindow } from 'electron'
 import type { TerminalSessionBuffersFile } from '@workspace/terminal/shared'
-import type { Workspace } from '../workspace'
+import type { Workspace } from '../../workspace'
 
 export function requestTerminalSessionBuffers(
   mainWindow: BrowserWindow | null,

@@ -18,10 +18,10 @@ vi.mock('electron', () => ({
   }
 }))
 
-vi.mock('../wslPaths', () => ({ resolveUserSelectedRootPath: vi.fn((value: string) => value) }))
-vi.mock('../persistence', () => ({ saveConfig: vi.fn() }))
+vi.mock('../../wslPaths', () => ({ resolveUserSelectedRootPath: vi.fn((value: string) => value) }))
+vi.mock('../../persistence', () => ({ saveConfig: vi.fn() }))
 
-import type { Workspace } from '../workspace'
+import type { Workspace } from '../../workspace'
 import { registerWorkspaceIpc } from './workspace'
 
 function handlerFor(channel: string): (...args: unknown[]) => unknown {

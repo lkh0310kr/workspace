@@ -1,10 +1,10 @@
 import { ipcMain } from 'electron'
-import { Workspace } from '../workspace'
-import { toMediaUrlBrowsed } from '../mediaProtocol'
-import { model3dLog, readModel3dLogs } from '../model3d/model3dLog'
-import { openEpubAbsolute } from '../epub'
-import { getEbookState, saveEbookState } from '../ebookState'
-import type { AssetOpenRequest } from '../../shared/model3d/types'
+import { Workspace } from '../../workspace'
+import { toMediaUrlBrowsed } from '../../mediaProtocol'
+import { model3dLog, readModel3dLogs } from '../../model3d/model3dLog'
+import { openEpubAbsolute } from '../../epub'
+import { getEbookState, saveEbookState } from '../../ebookState'
+import type { AssetOpenRequest } from '../../../shared/model3d/types'
 
 export function registerContentCapabilityIpc(getWorkspace: () => Workspace): void {
   ipcMain.handle('media:get-url-absolute', (_event, absolutePath: string) =>
@@ -48,7 +48,7 @@ export function registerContentCapabilityIpc(getWorkspace: () => Workspace): voi
       tabId: number | null,
       rel: string | null,
       absolutePath: string | undefined,
-      patch: import('../../shared/ebookState').EbookBookState
+      patch: import('../../../shared/ebookState').EbookBookState
     ) => saveEbookState(absolutePath || getWorkspace().resolveWorkspaceFile(tabId!, rel!), patch)
   )
 }
