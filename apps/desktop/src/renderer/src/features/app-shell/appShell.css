@@ -175,3 +175,7 @@ input {
 .loading-stuck button:hover {
   background: var(--bg-hover);
 }
+
+.titlebar-sidebar-toggle {
+  border-radius: var(--radius-sm);
+}

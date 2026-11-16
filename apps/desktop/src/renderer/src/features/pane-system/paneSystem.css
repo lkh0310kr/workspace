@@ -431,3 +431,42 @@
   border: 2px solid var(--text-muted);
   border-radius: 0;
 }
+
+/* Shared pane interaction polish. */
+.pane-tab,
+.pane-tab-close,
+.pane-tab-add {
+  border-radius: var(--radius-sm);
+}
+
+.pane-tab {
+  margin: 2px;
+  min-height: calc(var(--chrome-h) - 4px);
+  border-right-color: transparent;
+}
+
+.pane-tab.active {
+  background: var(--bg-active);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.pane-tab:hover:not(.active) {
+  background: var(--bg-hover);
+}
+
+.pane-tab-close:hover,
+.pane-tab-add:hover {
+  background: var(--bg-hover);
+}
+
+.pane-tab-strip {
+  --chrome-h: 34px;
+}
+
+@media (pointer: coarse) {
+  .pane-tab-close {
+    width: 32px;
+    height: 32px;
+  }
+}

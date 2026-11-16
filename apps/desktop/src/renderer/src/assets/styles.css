@@ -192,23 +192,7 @@ textarea {
   border-radius: var(--radius-sm);
 }
 
-/* —— Misc —— */
 /* —— Settings dialog —— */
-/* Shared by Popover.tsx (SettingsDialog/AppSettingsDialog/PanePicker) — a
-   transparent full-screen click-catcher (position fixed by the
-   component's own inline style) behind the positioned popover box itself.
-   No dimming — see Popover.tsx's comment for why the catcher still needs
-   to exist even though it isn't visible. */
-/* Legacy — Popover no longer mounts this, but strip any left from older
-   sessions so they can't block the app (pointer-events:none as belt-and-
-   suspenders). */
-.popover-catcher {
-  position: fixed;
-  inset: 0;
-  z-index: 100000;
-  pointer-events: none;
-}
-
 .settings-dialog {
   width: 360px;
   padding: 12px;
@@ -339,15 +323,6 @@ textarea {
   color: var(--text);
 }
 
-/* —— Workspace polish: consistent rounding, focus, and short feedback —— */
-button,
-input,
-select,
-textarea,
-.popover {
-  border-radius: var(--radius-sm);
-}
-
 .popover,
 .settings-dialog,
 .app-settings-dialog {
@@ -355,48 +330,9 @@ textarea,
   box-shadow: var(--shadow-overlay);
 }
 
-.pane-tab,
-.pane-tab-close,
-.pane-tab-add,
-.titlebar-sidebar-toggle,
-.settings-close,
-.ui-btn {
-  border-radius: var(--radius-sm);
-}
-
-.pane-tab {
-  margin: 2px;
-  min-height: calc(var(--chrome-h) - 4px);
-  border-right-color: transparent;
-}
-
-.pane-tab.active {
-  background: var(--bg-active);
-  color: var(--text);
-  box-shadow: none;
-}
-
-.pane-tab:hover:not(.active) {
-  background: var(--bg-hover);
-}
-
-.pane-tab-close:hover,
-.pane-tab-add:hover {
-  background: var(--bg-hover);
-}
-
-.pane-tab-strip {
-  --chrome-h: 34px;
-}
-
 .settings-dialog,
 .app-settings-dialog {
   border-color: var(--border-strong);
-}
-
-.settings-field input,
-.settings-field select {
-  border-radius: var(--radius-sm);
 }
 
 button:focus-visible,
@@ -421,13 +357,4 @@ textarea:focus-visible:not(.xterm-helper-textarea) {
   :root {
     --chrome-h: 44px;
   }
-
-  .pane-tab-close {
-    width: 32px;
-    height: 32px;
-  }
 }
-/* Operations Home: traffic, platform health, and connected resources. */
-/* Keep operational metadata readable at normal desktop scale. */
-
-/* Home should read as an operations work surface, not a stack of promo cards. */

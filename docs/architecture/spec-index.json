@@ -1197,7 +1197,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "534c698af8bbb54467d84d772a275b80ac8adc5e7b7262ef2c46263a63c4fd1f"
+          "sha256": "057424aa2492e965b495797cd287ea23ed4c5136787ecb16e015b2931eb35eab"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/host/WorkspaceLayoutHost.tsx",
@@ -1205,11 +1205,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/paneSystem.css",
-          "sha256": "29e9b41e6553107890849eb184bea844955373234f5dae04b1ef3e4dbc107a7b"
+          "sha256": "4b667f92c66991717721af4d26f517a15494578f6616679a4ffaf22171e801f2"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/appShell.css",
-          "sha256": "4ee4c3ba216ec80f09c286be01b78c038fd185aeb80ce6ae8cca7f8b83d0fa30"
+          "sha256": "98048607001da0690eddf37197ca91bdf37215dc865c4c352e76069c2ddfa10e"
         }
       ]
     },
