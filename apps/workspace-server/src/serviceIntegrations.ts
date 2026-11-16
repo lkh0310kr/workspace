@@ -1,6 +1,7 @@
 import type { Env, Session } from './env'
 import { decryptSecret, encryptSecret, json, randomToken } from './crypto'
 import { getAccountValue, putAccountValue, removeAccountValue } from './store'
+import { serviceProviderFromPath } from './serviceRoute'
 
 type Provider = 'cloudflare' | 'supabase'
 type SavedConnection = {
@@ -13,10 +14,6 @@ type SupplementStatus =
   'available' | 'not_configured' | 'permission_required' | 'provider_error' | 'inactive' | 'no_data'
 type OAuthState = { provider: Provider; login: string; verifier: string; createdAt: number }
 const redirectUri = (env: Env) => `${env.HOME_PUBLIC_ORIGIN}/api/services/oauth/callback`
-
-function providerFromPath(path: string): Provider | null {
-  return path.includes('cloudflare') ? 'cloudflare' : path.includes('supabase') ? 'supabase' : null
-}
 
 function clientId(env: Env, provider: Provider): string | undefined {
   return provider === 'cloudflare' ? env.CLOUDFLARE_OAUTH_CLIENT_ID : env.SUPABASE_OAUTH_CLIENT_ID
@@ -985,7 +982,7 @@ export async function handleServiceApi(
       return json({ ok: true })
     }
   }
-  const provider = providerFromPath(url.pathname)
+  const provider = serviceProviderFromPath(url.pathname)
   if (!provider) return json({ error: 'not_found' }, { status: 404 })
   if (provider === 'supabase' && url.pathname === '/api/services/supabase/metrics-token') {
     if (request.method === 'PUT') {

@@ -129,7 +129,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "97441ecd674d1c31e994335753d5798983f4c7e488d009de193191ad6b5d9a68"
+          "sha256": "a1d353af92e430720a79e530b6959219af3f710ff6b718b5ab9bb74f518b6564"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -1329,7 +1329,11 @@
         },
         {
           "path": "apps/workspace-server/src/serviceIntegrations.ts",
-          "sha256": "5b22eb4231aa24e65528b2375a98bfe967db453dfdf223792f943f20201cc1dd"
+          "sha256": "60dc962a61eb9942d031b9b57fb5315071cae16f831571fd71c573f93251e89c"
+        },
+        {
+          "path": "apps/workspace-server/src/serviceRoute.ts",
+          "sha256": "ba9fa41d24e5a39385ba423e446b0a318938fe774a6609ac0bd0919371cce173"
         },
         {
           "path": "apps/workspace-server/src/store.ts",
