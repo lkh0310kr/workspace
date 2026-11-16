@@ -1,6 +1,6 @@
 # 저장소 전체 리팩터링 작업 큐
 
-작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 27개다.
+작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 28개다.
 
 | 작업 ID | 영역 | 변경 목표 | 전용 수정 경로 | 선행 작업 | 위험도 | 검증 | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -32,11 +32,12 @@
 | T-021 | R-001b | agent activity summary cache가 time-based freshness 경계를 넘으면 동일 입력 참조에서도 다시 계산하도록 만료 시각을 추적 | `apps/workspace-app/src/renderer/src/lib/workspace-agent-activity-summary.ts`, 신규 selector contract test, AGENT spec | freshness helper 및 AGENT-03/05 집계 규칙 확인 | 낮음~중간 | 동일 refs + fake time 경계, mirrored title evidence, restored/structured 예외, typecheck | validated |
 | T-022 | R-008 | PKMS client의 path 기반 local item ID 인코딩을 domain helper 하나로 통일하고 기존 결정적 UTF-8 base64url 형식을 보존 | `packages/pkms-client/src/domain/localItemId.ts`, PkmsClientApp, editor provider/realtime 소비자 및 helper test | 세 소비 경로의 ID equality·ASCII/Unicode 기준선 확인 | 낮음~중간 | ASCII·Unicode·base64url 문자·padding·경로 비정규화 회귀, PKMS web typecheck, root check | validated |
 | T-023 | R-001b | Home 두 위젯의 interval·수동·변경 후 refresh를 직렬화하고 stale 응답 및 unmount 반영을 차단 | `useLatestRefresh.ts`, SystemInformationWidget, ServiceStatusWidget, DashboardView lifecycle test | HOME-UI-05 지연 응답/화면 이탈 계약 확인 | 중간 | coalescing·최신 결과·unmount timer·응답·await 의미 통합 검증, typecheck, root check | validated |
+| T-024 | R-001b | EPUB open 오류를 source identity에 묶어 다른 경로 재사용 때 reader host 재생성과 이전 오류 차단을 보장 | `EpubReaderContent.tsx`, path-change lifecycle test, viewer spec | error branch의 hostRef 제거 동작 및 FileViewer의 key 없는 재사용 확인 | 낮음~중간 | reject→같은 instance 새 path 성공, 이전 지연 reject 무시, typecheck·root check | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 27개; 검증 완료 27, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 28개; 검증 완료 28, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -86,5 +87,6 @@
 - T-021 완료: selector cache에 time-based `validUntil`을 기록해 freshness 경계를 지난 동일 입력을 재집계한다. `agentStatusEvidenceObservedAt`을 재사용해 mirrored evidence 우선순위를 유지하고, title-derived 및 일반 explicit만 만료 대상으로 삼아 restored/structured-host 규칙을 보존했다. fake-time 동일 refs·mirrored title·restored/structured 예외 테스트 3개, app typecheck 통과. selector 재호출 시 결과를 갱신하며 시간 경과만으로 React UI를 깨우는 timer는 AGENT spec의 계약이 아니므로 추가하지 않는다.
 - T-022 완료: PkmsClientApp·realtime conflict snapshot·editor provider의 중복 UTF-8/base64url local ID 구현을 domain helper로 합쳤다. ASCII·한글·`+`/`/` 대체·padding 제거·입력 경로 비정규화 4개 assertion을 새 테스트로 고정했다. 패키지 focused 5개 테스트, PKMS web typecheck, root `npm run check` 통과. 앱 ESLint는 package 경로를 base path 밖으로 무시했고, Prettier 검사에서는 `pkmsEditorProvider.ts`의 변경과 무관한 기존 2개 줄 형식만 실패해 유지했다.
 - T-023 완료: HOME-UI-05에 맞춰 두 위젯의 refresh를 `useLatestRefresh`로 직렬화했다. 진행 중 여러 호출은 하나의 후속 요청으로 합치며 이전 결과는 반영하지 않는다. unmount가 queued refresh/응답을 무효화하고 위젯 interval을 정리한다. deferred API 응답·interval/manual coalescing·최신 결과·unmount를 통합 테스트하고, hook의 awaited completion도 테스트했다. focused 2 tests, app typecheck, root check 통과. 기존 ServiceStatusWidget ESLint의 명시 반환형/React compiler memoization 오류는 refresh 변경과 무관한 기존 위치에 남아 있다.
-- R-001b pane/viewer 후보: `CadViewerContent.tsx`는 `paneActive` 변화에 따라 webview가 재생성될 수 있어 pane switch 후 CAD state 보존 acceptance가 필요하다. `EpubReaderContent.tsx`는 새 경로 로드 전에 이전 error가 reset되지 않는 흐름이 보여 path-change regression이 후보다. `FileViewerContent.tsx`는 이전 Blob URL revoke와 state 교체 사이 렌더 race 가능성이 있으나 실제 영향은 낮은 확신이라 먼저 재현해야 한다. 실제 WebGL/CAD/EPUB runtime 확인 없이 수정하지 않는다.
+- T-024 완료: EPUB open error를 `{tabId, filePath, absolutePath, message}`로 저장하고 현재 source에 해당하는 오류만 표시한다. 새 source에는 기존 error branch가 reader host를 제거하지 않으므로 같은 component instance가 다시 로드한다. effect cleanup의 cancelled guard가 이전 async open failure의 stale 적용을 막는다. reject→새 path 성공과 늦은 이전 reject 2 tests, app typecheck 통과.
+- R-001b pane/viewer 후보: `EpubReaderContent.tsx`의 error branch가 hostRef를 제거해 실패한 책 다음 path 로드를 막는 결함은 T-024에서 source-bound error·stale async 결과 테스트로 수정했다. `CadViewerContent.tsx`는 `paneActive` 변화 때 webview를 재생성하지만 pane state 보존 계약은 없어 보류한다. `FileViewerContent.tsx`의 Blob URL revoke와 state 교체 사이 렌더 race는 영향이 확인되지 않아 재현 전 보류한다. 실제 WebGL/CAD/EPUB runtime acceptance는 별도 한계다.
 - R-001e build/release 조사: `electron-builder.yml`의 `notarize: false`는 공개 macOS 배포 notarization 요구 문서와 어긋난다. Windows release workflow는 Google Drive desktop secret/allowlist를 build env에 주입하지 않는 것으로 보여 workflow 실행 시 구성 검증이 필요하다. `build:linux`는 공통 build의 typecheck/helper/decoder 준비를 생략하지만 Linux는 현재 비활성 플랫폼이라 재활성화 때 확인한다. `npm test`의 Vitest wrapper는 경로 인자를 넘기지 못하고 직접 Vitest 실행이 권장된다. WebGL probe script와 app 환경 helper의 switch 로직은 유사해 drift 위험이 있으나 CLI 경계가 달라 추출은 보류했다. 설정/스크립트 검토에서 배포를 실행하지 않았다.
