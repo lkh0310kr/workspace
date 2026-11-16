@@ -661,7 +661,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/index.ts",
-          "sha256": "4ffda91eefa270bb7127acd885ac4f16f4e039da26eab3e2264252ae078054aa"
+          "sha256": "6cb50bccf3983444191bed7346e1e6ee749199fd92f1fd65e87ae1cf7d65ca78"
         },
         {
           "path": "apps/workspace-app/src/main/search.ts",
@@ -843,7 +843,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/index.ts",
-          "sha256": "4ffda91eefa270bb7127acd885ac4f16f4e039da26eab3e2264252ae078054aa"
+          "sha256": "6cb50bccf3983444191bed7346e1e6ee749199fd92f1fd65e87ae1cf7d65ca78"
         },
         {
           "path": "apps/workspace-app/src/main/ipc/terminalSessionBuffers.ts",
@@ -871,7 +871,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/workspace.ts",
-          "sha256": "1d923ac7f047eb811bef386fccf989cba12bd8ef3167291461a33a8d346dd655"
+          "sha256": "14131c5466077090c24687f1336b48068a084be3d6a62ee3c501aa67776167bc"
         },
         {
           "path": "apps/workspace-app/src/preload/api.ts",
@@ -1215,6 +1215,18 @@
         {
           "path": "apps/workspace-app/src/renderer/src/panes/FileViewerContent.path-change.test.ts",
           "sha256": "b5943209687261e2ee471c950bf6996fbdf57fbe9d1ae7cff5decdef36517972"
+        },
+        {
+          "path": "apps/workspace-app/src/main/workspaceAgentHookStartup.ts",
+          "sha256": "5a198bb8982b5e41330e4d01ecf76cb391116eb2d156570f8f3bf701b987367f"
+        },
+        {
+          "path": "apps/workspace-app/src/main/workspaceAgentHookStartup.test.ts",
+          "sha256": "fc28e4ffc0917ff2e48822e5f3c464aba68b1edcebd73d11326477f6cb356b75"
+        },
+        {
+          "path": "apps/workspace-app/src/main/workspace.agent-hook.test.ts",
+          "sha256": "c176ff3ddabfb2d1f8017f8abff2eff3215108f02e106acb85de12fb59a454d5"
         }
       ]
     },

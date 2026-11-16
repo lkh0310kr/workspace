@@ -15,7 +15,7 @@
 
 | 영역 ID | 실제 경로 | 추적 파일 | 조사 담당 | 검토 상태 | 보류·제외 사유 |
 | --- | --- | ---: | --- | --- | --- |
-| R-001 | `apps/workspace-app/**` | 766 | coordinator + 읽기 전용 조사 담당 | reviewed; T-026/T-027/T-029/T-030 validated | 하위 5개 영역 정적 검토 완료; 실행·통합 검증 한계와 위험은 별도 기록 |
+| R-001 | `apps/workspace-app/**` | 766 | coordinator + 읽기 전용 조사 담당 | reviewed; T-026/T-027/T-029/T-030/T-031 validated | 하위 5개 영역 정적 검토 완료; 실행·통합 검증 한계와 위험은 별도 기록 |
 | X-002 | `apps/pkms-ios/**` | 141 | — | 제외 | 사용자가 요청한 범위 제외 |
 | R-003 | `apps/pkms-server/**` | 51 | coordinator + read-only agent | reviewed; T-025 validated | literal subtree path 일치 수정; Vault flush/recovery는 revision·lease 보호를 확인했으나 recovery 특성화 테스트 부재, MCP OAuth는 계약 테스트 부재로 보류
 | R-004 | `apps/pkms-web/**` | 30 | read-only agent + coordinator | reviewed; T-028 validated | workspace 전환 전 기존 문서 sync 및 실패 시 현재 workspace 보존을 helper acceptance로 검증; 실제 OAuth/browser runtime은 미실행
@@ -41,7 +41,7 @@
 
 | 하위 영역 | 경로 | 추적 파일 | 상태 | 현재 조사 근거 |
 | --- | --- | ---: | --- | --- |
-| R-001a | `apps/workspace-app/src/main/**` | 172 | 검토 완료; agent-hook startup ordering fix identified | 코드 경로·설정·테스트 assertion의 정적 검토 완료; OBJ 외부 경로 root 경계를 T-026에서 차단. `Workspace`가 PTY를 생성한 뒤 hook server가 listen되어 최초 PTY에 hook URL env가 누락될 수 있는 순서 결함을 확인; 동기 I/O·IME 지연은 runtime 검증 전까지 보류 |
+| R-001a | `apps/workspace-app/src/main/**` | 172 | 검토 완료; T-026/T-031 validated | 코드 경로·설정·테스트 assertion의 정적 검토 완료; OBJ 외부 경로 root 경계를 T-026에서 차단. hook server listen 후 Workspace/PTY를 생성하도록 순서를 수정하고 bind 실패 시 startup 지속을 테스트; 동기 I/O·IME 지연은 runtime 검증 전까지 보류 |
 | R-001b | `apps/workspace-app/src/renderer/**` | 421 | 검토·분류 완료 | 399개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0; 테스트 실행·runtime 검증은 별도 한계 |
 | R-001c | `apps/workspace-app/src/preload/**` | 8 | 검토 완료; 계약 위험 기록 | 공개 API·채널·cleanup 경계 확인; 구현 `unknown` 반환과 선언 DTO drift 후보 기록 |
 | R-001d | `apps/workspace-app/src/shared/**` | 89 | 검토 완료; 계약 위험 기록 | agent/usage/layout/media/terminal·PKMS shared 책임 확인; terminal capture timeout listener 정리·correlation 위험 기록 |
@@ -98,9 +98,9 @@
 
 - 마지막 완료 배치: workspace-app에서 Main/renderer/preload/shared의 저위험·경계형 리팩터링 및 ADAPT-03 저장 경합 수정
 - 검토 영역 / 현재 범위: 9 / 9 (정적 검토 완료; runtime·통합 검증 한계와 후속 위험 별도 기록)
-- 채택 작업 검증 완료 / 채택 작업 전체: 34 / 34 (T-001~T-030 완료)
+- 채택 작업 검증 완료 / 채택 작업 전체: 35 / 35 (T-001~T-031 완료)
 - 기존 검증 실패: architecture-spec 링크 검사에서 사용자가 삭제한 `docs/guides/REFACTOR.md` 참조 발견
-- 상태: 전체 범위 정적 검토 완료; 34개 작업 검증 완료; 고위험 경계 변경은 계약 테스트·정책 확인 전 보류
+- 상태: 전체 범위 정적 검토 완료; 35개 작업 검증 완료; 고위험 경계 변경은 계약 테스트·정책 확인 전 보류
 - 추가 검증: T-002c syncBridge 25파일/31테스트 통과; T-003 editor session 4파일/11테스트·typecheck 통과; usage helper 3테스트 통과; OSC reply 6테스트 통과; preload ESLint/typecheck 및 루트 `npm run check` 통과
 - T-018 Google Drive SHA-256 helper 단일화 커밋 `f7cfaf46`; focused 28 tests, `npm run pkms:web:typecheck`, `npm run check` 통과. ESLint의 `workspaceRepository.ts` 반환형 위반 1개는 기준선에도 존재함을 확인했다. T-019 parentPath 중복을 domain helper로 단일화하고 삭제 자손·이웃 보존 및 동일 목록 참조 테스트를 추가, 커밋 `327cc25c`; focused 2 tests, 앱 typecheck 및 root check 통과. T-020 workspace tab hotkey hook을 canonical navigation owner에 직접 연결하고 mapping·범위 밖 index·listener cleanup 테스트를 추가, 커밋 `8b186ac0`; focused 2 tests, app typecheck, root check, changed-file ESLint/Prettier 통과. notarization 및 Linux build gate 불일치는 정책/릴리스 경계라 동작 변경을 보류한다. 사용자의 제외 범위와 기존 사용자 파일은 보존한다.
 - T-021 agent activity summary selector cache의 freshness 만료 재계산을 보장하고 집중 테스트 3개와 앱 typecheck를 통과했다. Selector 재호출 시 신선도를 복구하며, 시간 경과만으로 UI를 자동 갱신하는 동작은 문서 계약에 없어 추가하지 않았다.
@@ -113,3 +113,4 @@
 - T-028 PKMS Web workspace 교체 전에 열린 문서 `save()`가 `synced`를 반환하는지 확인하고, 이어 새 runtime sync를 마친 뒤 기존 session을 닫도록 했다. 이전 sync가 pending/blocked이거나 새 sync가 실패하면 기존 runtime/session을 유지한다. Node lifecycle 4 tests와 PKMS Web typecheck 통과; 브라우저/OAuth runtime은 검사하지 않았다.
 - T-029 layout 저장 debounce를 workspace tab ID별 Map으로 바꿔 같은 workspace 요청만 coalesce하고 다른 workspace 요청은 각각 IPC에 전달한다. hydrate에서 사라진 workspace의 timer도 취소한다. 두 workspace 동시 예약 및 같은 workspace 최신값을 확인하는 focused test, app typecheck, root check, lint/Prettier 통과.
 - T-030 `run-vitest.mjs`가 `npm test -- <필터>` 인자를 Vitest까지 전달하도록 수정했다. `npm test -- --help`에서 Vitest CLI 도움말을 확인했고, `npm test -- src/shared/terminal-session-buffers.test.ts`는 지정한 파일만 실행해 3개 테스트가 통과했다. native dependency rebuild/restore 단계도 정상 종료했다.
+- T-031 agent-hook server를 기다린 뒤 status URL callback을 Workspace factory에 전달하도록 startup 순서를 바꿨다. server bind 실패는 로그를 남기고 hook env 없이 startup을 계속한다. 지연 listen/실패 helper 2 tests, fresh/restored PTY env 2 tests, app typecheck, root check, 변경 경로 ESLint/Prettier 통과. 앱 실제 Electron startup은 실행하지 않았다.
