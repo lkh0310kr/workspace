@@ -1,6 +1,12 @@
 import { EditorContent } from './EditorContent'
 import type { PaneKindDefinition, PaneRenderContext } from '../pane-system/paneKindRegistry'
-import { confirmEditorPaneItemClose, releaseEditorPaneItem } from './runtime/editorPaneLifecycle'
+import { EditorPaneSidebarSlot } from './EditorPaneSidebarSlot'
+import {
+  confirmEditorPaneItemClose,
+  releaseEditorPaneItem,
+  updateEditorPaneDirty
+} from './runtime/editorPaneLifecycle'
+import { openEditorFileInGroup } from './runtime/editorPaneActions'
 
 function fileTabLabel(item: { filePath?: string | null }): string {
   const path = item.filePath
@@ -34,7 +40,9 @@ export const codePaneKind: PaneKindDefinition = {
   kind: 'code',
   label: 'Code',
   icon: 'code',
-  supportsEditorTree: true,
+  renderSidebar: EditorPaneSidebarSlot,
+  openFileInGroup: openEditorFileInGroup,
+  onDirtyChange: updateEditorPaneDirty,
   beforeCloseItem: confirmEditorPaneItemClose,
   onItemRemoved: releaseEditorPaneItem,
   createItem(id, source) {
@@ -48,7 +56,9 @@ export const markdownPaneKind: PaneKindDefinition = {
   kind: 'markdown',
   label: 'Editor',
   icon: 'code',
-  supportsEditorTree: true,
+  renderSidebar: EditorPaneSidebarSlot,
+  openFileInGroup: openEditorFileInGroup,
+  onDirtyChange: updateEditorPaneDirty,
   beforeCloseItem: confirmEditorPaneItemClose,
   onItemRemoved: releaseEditorPaneItem,
   pickerEntries: [{ label: 'Editor', icon: 'code' }],

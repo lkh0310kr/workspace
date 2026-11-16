@@ -10,7 +10,7 @@
 
 ## P0 — Editor tree 상태를 안정화한다
 
-현재 [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx)은 `treeOpen`과 active pane kind로 Editor tree sidebar를 표시하고, [EditorSidebar](../../../../apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx)는 `Cmd/Ctrl+\`를 처리한다. CSS는 pane 폭 560px 이하에서 slot을 강제로 숨긴다. 이 CSS 조건은 저장된 `treeOpen=true`와 별개라 단축키로 열려 있어도 보이지 않을 수 있다. 폭 임계값에서 닫힘/복귀 규칙을 단일 상태 전이로 정의해야 한다.
+현재 [PaneGroup](../../../../apps/desktop/src/renderer/src/features/pane-system/PaneGroup.tsx)은 활성 pane kind가 제공하는 sidebar slot을 표시한다. [EditorPaneSidebarSlot](../../../../apps/desktop/src/renderer/src/features/editor/EditorPaneSidebarSlot.tsx)은 Editor pane이 활성일 때만 mount되어 [EditorSidebar](../../../../apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx)의 `Cmd/Ctrl+\` listener를 등록한다. CSS는 pane 폭 560px 이하에서 slot을 숨기며, treeOpen 상태는 유지되어 폭이 커지면 다시 표시한다.
 
 [TreeView](../../../../apps/desktop/src/renderer/src/features/editor/TreeView.tsx)는 활성 파일 경로 변경 때 ancestor를 펼치고 해당 행을 `scrollIntoView`한다. 트리 내용 변경 때 anchor를 유지하는 동작과 이 자동 reveal은 현재 하나의 active-path 효과에서 섞여 있다. 따라서 “스크롤을 유지하라”는 결과와 “활성 파일을 보여라”는 결과가 서로 덮어쓸 수 있다.
 
@@ -255,7 +255,7 @@ Notion 데이터베이스 block, 협업 presence, access control, page discussio
 - 표는 [markdownLivePreview.ts](../../../../packages/editor/src/markdownLivePreview.ts)의 `TableWidget`이 alignment·column sizing·escaped pipe·inline math·기본 inline formatting을 렌더하고 source cell click/Tab navigation을 제공한다. link/image/wikilink와 행·열 조작은 구현하지 않았다.
 - Mermaid fenced block과 inline/display TeX는 각각 strict Mermaid renderer와 KaTeX로 preview한다. 각 renderer의 제한과 미완료 acceptance는 위 ID별 표를 따른다.
 - HTML block은 iframe widget으로 렌더되며 script 실행은 허용하지 않는다. allowlist/CSP/resource origin 계약은 이 spec에서 정해야 한다.
-- Editor tree는 [EditorSidebar](../../../../apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx), [TreeView](../../../../apps/desktop/src/renderer/src/features/editor/TreeView.tsx), [Editor tree state](../../../../packages/editor/src/editorTreeState.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx)이 협력한다. open state는 pane group에, tree selection/scroll anchor는 tree state에 둔다. active file 선택은 viewport를 움직이지 않고 `Cmd/Ctrl+Shift+E`만 명시 reveal한다. scroll 복원은 준비가 끝나고 tree가 실제 표시된 뒤 저장 상태를 적용하며, 복원 전 임시 scroll event는 저장하지 않는다. 실제 UI 수용 확인은 남아 있다.
+- Editor tree는 [EditorPaneSidebarSlot](../../../../apps/desktop/src/renderer/src/features/editor/EditorPaneSidebarSlot.tsx), [EditorSidebar](../../../../apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx), [TreeView](../../../../apps/desktop/src/renderer/src/features/editor/TreeView.tsx), [Editor tree state](../../../../packages/editor/src/editorTreeState.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/features/pane-system/PaneGroup.tsx)이 협력한다. open state는 pane group에, tree selection/scroll anchor는 tree state에 둔다. active file 선택은 viewport를 움직이지 않고 `Cmd/Ctrl+Shift+E`만 명시 reveal한다. scroll 복원은 준비가 끝나고 tree가 실제 표시된 뒤 저장 상태를 적용하며, 복원 전 임시 scroll event는 저장하지 않는다. 실제 UI 수용 확인은 남아 있다.
 
 ## 기준 자료
 

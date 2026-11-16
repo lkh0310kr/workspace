@@ -40,7 +40,8 @@ import { applyThemePreference, setStoredThemePreference } from './theme'
 import { useWorkspaceStore } from './store/workspaceStore'
 import type { Model, TabNode, TabSetNode } from 'flexlayout-react'
 import { readPaneGroupConfig, resolveActivePaneTab } from './features/pane-system/layout/layoutSession'
-import { openFileInPaneGroup, setActiveTabInGroup } from './features/pane-system/layout/layoutActions'
+import { openEditorFileInPaneGroup } from './features/editor'
+import { setActiveTabInGroup } from './features/pane-system/layout/layoutActions'
 import { useEffect, useCallback, useState } from 'react'
 import { syncAgentPaneRegistryFromLayouts } from './features/terminal/runtime'
 import 'flexlayout-react/style/combined.css'
@@ -75,7 +76,7 @@ async function openFileInActivePane(
     bumpLayout(workspaceTabId)
     return
   }
-  const id = await openFileInPaneGroup(model, nodeId, path, kind)
+  const id = await openEditorFileInPaneGroup(model, nodeId, path, kind)
   if (!id) return
   setActiveTabInGroup(model, nodeId, id)
   bumpLayout(workspaceTabId)

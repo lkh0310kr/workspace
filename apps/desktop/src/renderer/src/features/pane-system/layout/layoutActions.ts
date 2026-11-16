@@ -6,7 +6,6 @@ import { useWorkspaceStore } from '../../../store/workspaceStore'
 import { findTabIdForModel } from '../../../store/workspaceLayoutModels'
 import { resolveSplitPaneMutationStrategy } from './layoutSplitPolicy'
 import { countLayoutTabs } from './layoutModelParse'
-import { findReplaceableEditorTab } from './paneTabSlots'
 
 /** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
  * structure changes, not on activeTabId-only persists (that remounted
@@ -139,44 +138,6 @@ export async function addTabToGroup(
   )
   bumpPaneGroupRender(model)
   return item.id
-}
-
-/** Open a workspace file in a pane group — reuses preview/empty "New tab"
- * slots instead of piling up tabs when possible. */
-export async function openFileInPaneGroup(
-  model: Model,
-  tabNodeId: string,
-  path: string,
-  kind: 'code' | 'markdown' | 'viewer',
-  opts?: {
-    jumpToLine?: number
-    pin?: boolean
-    isDirty?: (tabId: string) => boolean
-    onJumpToLine?: (tabId: string, line: number) => void
-  }
-): Promise<string | null> {
-  const config = getGroupConfig(model, tabNodeId)
-  if (!config) return null
-  const isDirty = opts?.isDirty ?? (() => false)
-  const existing = config.tabs.find((t) => t.filePath === path)
-  if (existing) {
-    if (opts?.pin && existing.isPreview) {
-      updateTabInGroup(model, tabNodeId, existing.id, { isPreview: false })
-    }
-    if (opts?.jumpToLine != null) opts.onJumpToLine?.(existing.id, opts.jumpToLine)
-    return existing.id
-  }
-  const replaceable = !opts?.pin
-    ? findReplaceableEditorTab(config.tabs, config.activeTabId, isDirty)
-    : undefined
-  const open = replaceable
-    ? replaceTabInGroup(model, tabNodeId, replaceable.id, kind, { filePath: path })
-    : addTabToGroup(model, tabNodeId, kind, { filePath: path })
-  const id = await open
-  if (!id) return null
-  if (!opts?.pin) updateTabInGroup(model, tabNodeId, id, { isPreview: true })
-  if (opts?.jumpToLine != null) opts.onJumpToLine?.(id, opts.jumpToLine)
-  return id
 }
 
 export function setActiveTabInGroup(model: Model, tabNodeId: string, tabId: string): void {

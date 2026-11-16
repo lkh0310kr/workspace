@@ -1,5 +1,5 @@
 import type { Model } from 'flexlayout-react'
-import type { ReactNode } from 'react'
+import type { ComponentType, ReactNode, RefObject } from 'react'
 import type { ContextMenuItem } from '../../components/ContextMenu'
 import type { PaneTabItem, TabKind } from './layout/paneTypes'
 
@@ -79,6 +79,40 @@ export interface PaneOverlayRenderContext {
   onFocusOwningGroup: () => void
 }
 
+export interface PaneSidebarRenderContext {
+  workspaceTabId: number
+  nodeId: string
+  rootPath: string
+  model: Model
+  paneVisible: boolean
+  isGroupFocused: boolean
+  bodyFits: boolean
+  focusHostRef: RefObject<HTMLElement | null>
+  selectedPath: string | null
+  onOpenFile: (
+    path: string,
+    kind: 'code' | 'markdown' | 'viewer',
+    jumpToLine?: number,
+    pin?: boolean
+  ) => void
+  onNotifyChanged: () => void
+  onVisibilityChange: (visible: boolean) => void
+}
+
+export interface PaneFileOpenContext {
+  model: Model
+  nodeId: string
+  tabs: PaneTabItem[]
+  path: string
+  kind: 'code' | 'markdown' | 'viewer'
+  jumpToLine?: number
+  pin?: boolean
+  isDirty: (tabId: string) => boolean
+  onJumpToLine: (tabId: string, line: number) => void
+  selectTab: (tabId: string) => void
+  onNotifyChanged: () => void
+}
+
 export interface PaneKindDefinition {
   kind: TabKind
   /** Pane-node title (flexlayout tab name) when this is the founding tab
@@ -93,6 +127,10 @@ export interface PaneKindDefinition {
    * with the pane group; item and visibility changes must not imply guest
    * destruction. */
   renderOverlay?: (ctx: PaneOverlayRenderContext) => ReactNode
+  /** Optional kind-owned sidebar, mounted only while this kind is active. */
+  renderSidebar?: ComponentType<PaneSidebarRenderContext>
+  /** Optional path-opening behavior supplied by Editor-like features. */
+  openFileInGroup?: (context: PaneFileOpenContext) => void | Promise<void>
   /** Base tab-chip label. The dirty "•" prefix is applied generically on
    * top of this by paneTabLabel, not per kind. */
   tabLabel: (item: PaneTabItem) => string
@@ -110,9 +148,8 @@ export interface PaneKindDefinition {
   ) => boolean | Promise<boolean>
   /** Releases resources owned by this kind after close was accepted. */
   onItemRemoved?: (item: PaneTabItem) => void | Promise<void>
-  /** Shows the Editor tree/search sidebar while a tab of this kind is
-   * active. */
-  supportsEditorTree?: boolean
+  /** Kind-owned dirty state bridge for editor-like documents. */
+  onDirtyChange?: (item: PaneTabItem, dirty: boolean, viewStateKey?: string) => void
   /** Zero or more "+ New Tab" / pane-picker entries this kind offers — a
    * kind can have none (not directly pickable — "code" and the internal
    * extension-routed viewer aren't; untitled files are always created as

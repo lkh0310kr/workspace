@@ -1,6 +1,6 @@
 # Workspace와 pane layout 계약
 
-범위는 제품 여정 J-01과 J-02의 shell 부분이다. source는 [workspaceStore](../../../../apps/desktop/src/renderer/src/store/workspaceStore.ts), [model registry](../../../../apps/desktop/src/renderer/src/store/workspaceLayoutModels.ts), [layoutSession](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutSession.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx), [pane system feature](../../../../apps/desktop/src/renderer/src/features/pane-system/index.ts), [layoutActions](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutActions.ts)다.
+범위는 제품 여정 J-01과 J-02의 shell 부분이다. source는 [workspaceStore](../../../../apps/desktop/src/renderer/src/store/workspaceStore.ts), [model registry](../../../../apps/desktop/src/renderer/src/store/workspaceLayoutModels.ts), [layoutSession](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutSession.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/features/pane-system/PaneGroup.tsx), [pane system feature](../../../../apps/desktop/src/renderer/src/features/pane-system/index.ts), [layoutActions](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutActions.ts)다.
 
 ## 상태 소유 책임
 
@@ -14,7 +14,7 @@
 | pane 활성 chip render revision    | paneTabSelectionRevisions[workspaceTabId:nodeId] | setActiveTabInGroup에서 즉시 bump             |
 | chip tabs와 activeTabId           | flexlayout의 PaneGroupConfig                     | layoutSession.activatePaneTab / layoutActions |
 | focused split                     | focusedPaneGroupTabSetByWorkspaceTab             | pane pointer/focus의 focusPaneGroupTabSet     |
-| Editor tree 폭·모드·확장·scroll | pane별 Editor tree 상태                          | PaneGroup의 Editor sidebar        |
+| Editor tree 폭·모드·확장·scroll | Editor feature의 pane별 상태                     | Editor sidebar slot                |
 
 App component의 modelsRef나 PaneGroup의 별도 localActiveId는 현재 owner가 아니다. UI는 layout mutation을 임의 zustand 복사본에 쓰지 않는다. workspaceLayoutModels는 model·saved JSON·ensure-inflight·pending rebalance를 각각 보관하며 workspace 제거 시 모두 정리한다.
 
@@ -34,7 +34,7 @@ persistLayout은 model.toJson을 serialize하고 saved JSON cache를 즉시 갱�
 
 ## 파일 preview·닫기·탭 이동
 
-같은 path의 파일 item이 있으면 활성화하고 pin 요청이면 isPreview=false로 바꾼다. 새 단일 click 파일은 preview이며 pane당 이전 preview를 재사용할 수 있다. dirty 파일은 폐기 전 확인, double activate 등 명시 pin은 고정 탭으로 유지한다. 구체 open 경로는 PaneGroup, dirty 판정과 cache 폐기는 editor package registry가 맡는다.
+같은 path의 파일 item이 있으면 활성화하고 pin 요청이면 isPreview=false로 바꾼다. 새 단일 click 파일은 preview이며 pane당 이전 preview를 재사용할 수 있다. dirty 파일은 폐기 전 확인, double activate 등 명시 pin은 고정 탭으로 유지한다. 구체 파일 열기와 preview slot 정책은 Editor Desktop feature가 소유하고 pane-system에 pane mutation capability를 호출한다.
 
 close/move/split의 mutation은 layoutActions를 통해 수행한다. 마지막 item/마지막 pane은 default terminal 복구 또는 pane 제거 정책을 따른다. terminal process는 모든 workspace layout의 참조가 사라질 때 Main이 정리하고 browser item 제거는 persistent guest를 destroy한다. chip reorder, pane split drag, strip 밖 drop은 다른 입력 경로이며 layoutMovePolicy/layoutSplitPolicy와 tab drag state를 사용한다.
 
@@ -42,7 +42,7 @@ close/move/split의 mutation은 layoutActions를 통해 수행한다. 마지막 
 
 workspace host와 일반 chip은 mount를 유지하고 visibility/pointer-events로 숨긴다. chip 표시는 workspace+pane visible AND chipActive여야 한다. browser guest는 별도 overlay viewport와 coordinator 정책을 사용하므로 일반 host 스타일을 guest ancestor 전체에 강제하지 않는다. [interaction](../interaction/README.md)을 따른다.
 
-PaneGroup은 dirtyByTabId와 jump 요청을 UI 임시 상태로 소유하고, Editor sidebar는 pane group마다 하나다. browser visibility/focus 등록은 BrowserContent가 소유하며 PaneGroup이 같은 coordinator 호출을 복제하지 않는다.
+PaneGroup은 dirtyByTabId와 jump 요청을 UI 임시 상태로 소유한다. 활성 pane kind가 제공하는 sidebar slot만 mount하므로 Editor 검색 단축키와 tree UI는 Editor pane이 활성일 때만 동작한다. Editor 상태는 pane item·node ID를 기준으로 보존한다. Browser visibility/focus 등록은 BrowserContent가 소유하며 PaneGroup이 같은 coordinator 호출을 복제하지 않는다.
 
 ## 수락 근거
 

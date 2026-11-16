@@ -1,37 +1,33 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { type TabNode } from 'flexlayout-react'
-import { PaneFrame } from '../features/pane-system/PaneFrame'
-import { PaneTabStrip } from '../features/pane-system/PaneTabStrip'
-import { setEditorDocumentDirty } from '@workspace/editor'
+import { PaneFrame } from './PaneFrame'
+import { PaneTabStrip } from './PaneTabStrip'
 import {
   addTabToGroup,
   changeTabKindInGroup,
   closeTabInGroup,
   moveTabToGroup,
-  openFileInPaneGroup,
   setActiveTabInGroup,
   updateTabInGroup
-} from '../features/pane-system/layout/layoutActions'
+} from './layout/layoutActions'
 import {
   activatePaneTab,
   readPaneGroupConfig,
   resolveActivePaneTabId
-} from '../features/pane-system/layout/layoutSession'
-import type { TabDragPayload } from '../features/pane-system/layout/tabDrag'
-import { PaneTabItem, TabKind } from '../features/pane-system/layout/paneTypes'
-import { allPaneKinds, getPaneKind, type PaneRenderContext } from '../features/pane-system/paneKindRegistry'
+} from './layout/layoutSession'
+import type { TabDragPayload } from './layout/tabDrag'
+import { PaneTabItem, TabKind } from './layout/paneTypes'
+import { allPaneKinds, getPaneKind, type PaneRenderContext } from './paneKindRegistry'
 import {
   useLayoutRevision,
   usePaneTabSelectionRevision
-} from '../features/pane-system/useLayoutRevision'
-import { useWorkspaceStore } from '../store/workspaceStore'
-import { countLayoutTabSets } from '../features/pane-system/layout/layoutModelParse'
-import { focusPaneGroupTabSet } from '../features/pane-system/layout/layoutRef'
-import { layoutLog } from '../features/pane-system/layout/layoutDebugLog'
-import { paneChipContentShown, paneChipContentStyle } from '../interaction/embedPolicy'
+} from './useLayoutRevision'
+import { useWorkspaceStore } from '../../store/workspaceStore'
+import { countLayoutTabSets } from './layout/layoutModelParse'
+import { focusPaneGroupTabSet } from './layout/layoutRef'
+import { layoutLog } from './layout/layoutDebugLog'
+import { paneChipContentShown, paneChipContentStyle } from '../../interaction/embedPolicy'
 import { usePaneVisibility } from './usePaneVisibility'
-import { usePaneGroupEditorSidebarState } from '../features/editor'
-import { EditorSidebar } from '../features/editor'
 import { paneGroupBodyAnchorName } from './paneGroupBodyAnchor'
 import { paneGroupHostClassNames, resolvePaneGroupTabSetId } from './paneGroupFocus'
 
@@ -42,16 +38,13 @@ interface Props {
   onNotifyChanged: () => void
 }
 
-function activeChipSupportsEditorTree(kind: TabKind): boolean {
-  return getPaneKind(kind).supportsEditorTree === true
-}
-
 export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }: Props) {
   const visible = usePaneVisibility(workspaceTabId, tabNode)
   const layoutRevision = useLayoutRevision(workspaceTabId)
   const nodeId = tabNode.getId()
   const paneGroupBodyRef = useRef<HTMLDivElement>(null)
   const [editorTreeFits, setEditorTreeFits] = useState(true)
+  const [sidebarVisible, setSidebarVisible] = useState(false)
   const selectionRevision = usePaneTabSelectionRevision(workspaceTabId, nodeId)
   const config = readPaneGroupConfig(tabNode)
   const tabs = config.tabs
@@ -98,18 +91,15 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
   }, [])
 
   const paneHostRef = useRef<HTMLDivElement>(null)
-  const editorSidebarState = usePaneGroupEditorSidebarState(workspaceTabId, nodeId)
   const [dirtyByTabId, setDirtyByTabId] = useState<Record<string, boolean>>({})
   const [viewStateKeyByTabId, setViewStateKeyByTabId] = useState<Record<string, string>>({})
   const [pendingJumpByTabId, setPendingJumpByTabId] = useState<Record<string, number>>({})
 
   useEffect(() => {
     for (const item of tabs) {
-      setEditorDocumentDirty(
-        item.id,
+      getPaneKind(item.kind).onDirtyChange?.(
+        item,
         dirtyByTabId[item.id] ?? false,
-        item.title ?? item.filePath ?? 'This document',
-        item.filePath ?? undefined,
         viewStateKeyByTabId[item.id]
       )
     }
@@ -162,32 +152,26 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const openOrSwitchToFile = useCallback(
     (path: string, kind: 'code' | 'markdown' | 'viewer', jumpToLine?: number, pin?: boolean) => {
-      const existing = tabs.find((t) => t.filePath === path)
-      if (existing) {
-        selectTab(existing.id)
-        if (pin && existing.isPreview) {
-          updateTabInGroup(model, nodeId, existing.id, { isPreview: false })
-          onNotifyChanged()
-        }
-        if (jumpToLine != null) {
-          setPendingJumpByTabId((prev) => ({ ...prev, [existing.id]: jumpToLine }))
-        }
-        return
-      }
-      void openFileInPaneGroup(model, nodeId, path, kind, {
-        pin,
-        jumpToLine,
-        isDirty: (id) => dirtyByTabId[id] ?? false,
-        onJumpToLine: (id, line) => setPendingJumpByTabId((prev) => ({ ...prev, [id]: line }))
-      })
-        .then((id) => {
-          if (!id) return
-          setActiveTabInGroup(model, nodeId, id)
-          onNotifyChanged()
+      const open = getPaneKind(activeItem.kind).openFileInGroup
+      if (!open) return
+      void Promise.resolve(
+        open({
+          model,
+          nodeId,
+          tabs,
+          path,
+          kind,
+          jumpToLine,
+          pin,
+          isDirty: (id) => dirtyByTabId[id] ?? false,
+          onJumpToLine: (id, line) =>
+            setPendingJumpByTabId((prev) => ({ ...prev, [id]: line })),
+          selectTab,
+          onNotifyChanged
         })
-        .catch(console.error)
+      ).catch(console.error)
     },
-    [tabs, model, nodeId, selectTab, onNotifyChanged, dirtyByTabId]
+    [activeItem.kind, tabs, model, nodeId, selectTab, onNotifyChanged, dirtyByTabId]
   )
 
   const dropTab = useCallback(
@@ -212,12 +196,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   if (!activeItem) return null
 
-  const treeOpen = editorSidebarState.treeOpen
-  const showEditorSidebar =
-    (activeChipSupportsEditorTree(activeItem.kind) ||
-      editorSidebarState.sidebarMode === 'search') &&
-    treeOpen &&
-    editorTreeFits
+  const Sidebar = getPaneKind(activeItem.kind).renderSidebar
   const overlayLayers = allPaneKinds().flatMap((definition) => {
     if (!definition.renderOverlay) return []
     const items = tabs.filter((item) => item.kind === definition.kind)
@@ -245,11 +224,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
               setDirty: (dirty, viewStateKey) => {
                 if (viewStateKey)
                   setViewStateKeyByTabId((prev) => ({ ...prev, [item.id]: viewStateKey }))
-                setEditorDocumentDirty(
-                  item.id,
+                getPaneKind(item.kind).onDirtyChange?.(
+                  item,
                   dirty,
-                  item.title ?? item.filePath ?? 'This document',
-                  item.filePath ?? undefined,
                   viewStateKey ?? viewStateKeyByTabId[item.id]
                 )
                 setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))
@@ -307,29 +284,25 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
       >
         <div
           ref={paneGroupBodyRef}
-          className={`pane-group-body${showEditorSidebar ? ' pane-group-body-with-editor-sidebar' : ''}`}
+          className={`pane-group-body${sidebarVisible ? ' pane-group-body-with-editor-sidebar' : ''}`}
           data-editor-tree-compact-hidden={!editorTreeFits || undefined}
         >
-          <div
-            className="editor-sidebar-slot"
-            style={{ display: showEditorSidebar ? undefined : 'none' }}
-          >
-            <EditorSidebar
+          {Sidebar ? (
+            <Sidebar
               workspaceTabId={workspaceTabId}
               nodeId={nodeId}
               rootPath={rootPath}
               model={model}
               paneVisible={visible}
-              editorSidebarVisible={showEditorSidebar}
               isGroupFocused={isGroupFocused}
-              supportsEditorTree={activeChipSupportsEditorTree(activeItem.kind)}
+              bodyFits={editorTreeFits}
               focusHostRef={paneHostRef}
               selectedPath={activeItem.filePath ?? null}
-              chrome={editorSidebarState}
               onOpenFile={openOrSwitchToFile}
               onNotifyChanged={onNotifyChanged}
+              onVisibilityChange={setSidebarVisible}
             />
-          </div>
+          ) : null}
           <div className="pane-group-content" style={bodyAnchorStyle}>
             {overlayLayers}
             {tabs
@@ -352,13 +325,11 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
                   setDirty: (dirty, viewStateKey) => {
                     if (viewStateKey)
                       setViewStateKeyByTabId((prev) => ({ ...prev, [item.id]: viewStateKey }))
-                    setEditorDocumentDirty(
-                      item.id,
-                      dirty,
-                      item.title ?? item.filePath ?? 'This document',
-                      item.filePath ?? undefined,
-                      viewStateKey ?? viewStateKeyByTabId[item.id]
-                    )
+                getPaneKind(item.kind).onDirtyChange?.(
+                  item,
+                  dirty,
+                  viewStateKey ?? viewStateKeyByTabId[item.id]
+                )
                     setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))
                   },
                   jumpToLine: pendingJumpByTabId[item.id],

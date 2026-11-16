@@ -107,11 +107,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
-          "sha256": "3131dd4a216c25eb10e2b77582f4241accc2d051eabbdbee6cc470b4a7e1b5e9"
+          "sha256": "12e5c12912b8b4cae7edc27236fa8366c9c289f109debe359b4e60ca7c7173d7"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",
-          "sha256": "df8b3a8f965eef4896947b57848c1249fd179827da8e77b28abc32ec9c93f095"
+          "sha256": "ba6b65c2ae921d0934c15c0b0a7a7833c911b9d949f1a8088d3f0f2dabe78d55"
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/mediaKind.ts",
@@ -447,11 +447,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
-          "sha256": "3131dd4a216c25eb10e2b77582f4241accc2d051eabbdbee6cc470b4a7e1b5e9"
+          "sha256": "12e5c12912b8b4cae7edc27236fa8366c9c289f109debe359b4e60ca7c7173d7"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",
-          "sha256": "df8b3a8f965eef4896947b57848c1249fd179827da8e77b28abc32ec9c93f095"
+          "sha256": "ba6b65c2ae921d0934c15c0b0a7a7833c911b9d949f1a8088d3f0f2dabe78d55"
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/mediaKind.ts",
@@ -471,7 +471,23 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorPaneLifecycle.ts",
-          "sha256": "110dcca62f6b439f2929d8d2e3218cff98f6f729a0fa878536d64669cf43985f"
+          "sha256": "d2f071012520a078dd3b7e77722fd7c8842557f9342f244b7b2827596ad6b75a"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneSidebarSlot.tsx",
+          "sha256": "b359a452431daa8e752adbfc0c9af30adc805b0f5a79250108715cc1e2965dac"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorPaneActions.ts",
+          "sha256": "be32f56d24121d33edb73095ed0269eabad6605caca79517ea670af29c99674d"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorPaneTabSlots.ts",
+          "sha256": "7aaaf42c08befd78c37b87bc033f767c5c931f0a896d18d402327ac11b08dfb6"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorPaneTabSlots.test.ts",
+          "sha256": "69110021ad6b8e265c0451865bd2cdcc26f95a4c277b564cc7452dacd25b8497"
         }
       ]
     },
@@ -606,7 +622,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/layoutActions.ts",
-          "sha256": "ed57bc28142d61be1dce4815851f0958edd417e4e189c0c8aaf56cc129d12bb8"
+          "sha256": "c67d36d8bf40b428b3135f0f176497f28ec880494c81054a64f82d1292ca9e9c"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/runtime/webviewDragPassthrough.ts",
@@ -725,7 +741,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/useLayoutHostCallbacks.tsx",
-          "sha256": "eb9ed9082502bde4e89b2958374df7ceca8d2dac7278f0e94119b9f8701b682e"
+          "sha256": "fd50eab644e13d21cad59ff37839bc0b3a8aa3b9370b9b9e21a1013a504fce19"
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.test.ts",
@@ -753,7 +769,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/layoutActions.ts",
-          "sha256": "ed57bc28142d61be1dce4815851f0958edd417e4e189c0c8aaf56cc129d12bb8"
+          "sha256": "c67d36d8bf40b428b3135f0f176497f28ec880494c81054a64f82d1292ca9e9c"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/layoutSession.ts",
@@ -764,8 +780,8 @@
           "sha256": "c3137ef0cdeb3eafe5fd8df8638e4feecede9cfdb59084c9f5d86180ac123a2b"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/PaneGroup.tsx",
-          "sha256": "5f63a3dd5cb986a0d7ed521f95683c28f29f0f8cfc4bde549f3359a89a49a49b"
+          "path": "apps/desktop/src/renderer/src/features/pane-system/PaneGroup.tsx",
+          "sha256": "c7c76cfd117e840e4c37e41fdad515a6fcfedb4a7cffa4c535784ef7b633343a"
         },
         {
           "path": "apps/desktop/src/renderer/src/store/workspaceLayoutModels.ts",
@@ -785,7 +801,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/layoutActions.mutations.test.ts",
-          "sha256": "b2a366a2133e7c8b502feb62633d53c3ef290c8f003129962f76617970fe39aa"
+          "sha256": "cfc78a17cd83867d162a91ae2a6222c57b9cdd36e554dc52d77639e77dff6765"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/layoutActions.split.test.ts",
@@ -844,20 +860,12 @@
           "sha256": "4fb5f8efc06be8698d571999197c0fff085e31e5f44509daa48421b6a23d8d30"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/pane-system/layout/paneTabSlots.test.ts",
-          "sha256": "0be387f9e084a693c3304516acf50c9baf928d71d82bbaf4b909de7379a1cbc1"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/pane-system/layout/paneTabSlots.ts",
-          "sha256": "8af24e65bb82129d2950058158bac57a13f299eb78aeb5c2a00962cf1b2cb71e"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/tabDrag.ts",
           "sha256": "c6e807d187d4a79722a1fb35da26aa822e67645b061ad438f67732a2b04f341f"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/paneKindRegistry.ts",
-          "sha256": "c7ee67f05e86b255efe4c44ddf56b94feeb485053a5f2264ad85845532c5e8f0"
+          "sha256": "7f6253bdce8068d06c9a99deb84f2c0da4e9447bc92ca456f37e9c7e384e4070"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/builtinPaneKinds.ts",
@@ -866,6 +874,22 @@
         {
           "path": "apps/desktop/src/renderer/src/interaction/embeddedSurfaceFocus.ts",
           "sha256": "d5c749183eeea33e8a239910d6f8b951dd282200aa4c6d7af3328dc2858bde65"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/pane-system/paneGroupBodyAnchor.ts",
+          "sha256": "c5cd30969ccea2b0213f20bddc72cf5c70d5a52df1a49cb63410538832db793c"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/pane-system/paneGroupFocus.ts",
+          "sha256": "9a6ff2b1b6aa3f2d6bee0f04649f7d12316468aee2a02c319fcc4f754ea3f960"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/pane-system/paneGroupFocus.test.ts",
+          "sha256": "6ab99a7e198d49d103e1d75aea16c3abca301bd9e629aa56efe9858f3c792730"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/pane-system/usePaneVisibility.ts",
+          "sha256": "fb632f7003b17dd9449166c795095ef038002a1b1ce97cf34faeb0d511f453a2"
         }
       ]
     },
@@ -1039,7 +1063,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "57358f962dd56584069ac2c13e10107e685df4121860ce585671974c0c83bb6c"
+          "sha256": "17b954a180f21a0b56bb8002406ac000339261f32adc66f4417a4670aef74000"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx",

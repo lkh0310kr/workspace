@@ -1,4 +1,4 @@
-import type { PaneTabItem } from './paneTypes'
+import type { PaneTabItem } from '../../pane-system/layout/paneTypes'
 
 /** Editor/viewer tab with no file bound yet — the strip shows "New tab". */
 export function isEmptyEditorTab(item: PaneTabItem): boolean {

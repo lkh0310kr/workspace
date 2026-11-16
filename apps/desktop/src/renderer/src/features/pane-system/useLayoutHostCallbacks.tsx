@@ -18,7 +18,7 @@ import {
 } from './layout/layoutMovePolicy'
 import { registerLayoutController, getLayoutRefCallback } from './layout/layoutRef'
 import { restorePendingSplitScrollStates } from './layout/layoutSplitScrollRestore'
-import { PaneGroup } from '../../panes/PaneGroup'
+import { PaneGroup } from './PaneGroup'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 
 const LAYOUT_STRUCTURE_ACTIONS = new Set<string>([

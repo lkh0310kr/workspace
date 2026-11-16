@@ -1,6 +1,12 @@
 import { FileViewerContent } from '../../panes/FileViewerContent'
 import type { PaneKindDefinition } from '../pane-system/paneKindRegistry'
-import { confirmEditorPaneItemClose, releaseEditorPaneItem } from './runtime/editorPaneLifecycle'
+import { EditorPaneSidebarSlot } from './EditorPaneSidebarSlot'
+import {
+  confirmEditorPaneItemClose,
+  releaseEditorPaneItem,
+  updateEditorPaneDirty
+} from './runtime/editorPaneLifecycle'
+import { openEditorFileInGroup } from './runtime/editorPaneActions'
 
 export const viewerPaneKind: PaneKindDefinition = {
   kind: 'viewer',
@@ -8,7 +14,9 @@ export const viewerPaneKind: PaneKindDefinition = {
   // Users create the single Editor entry; this kind is selected by extension.
   label: 'Editor',
   icon: 'viewer',
-  supportsEditorTree: true,
+  renderSidebar: EditorPaneSidebarSlot,
+  openFileInGroup: openEditorFileInGroup,
+  onDirtyChange: updateEditorPaneDirty,
   beforeCloseItem: confirmEditorPaneItemClose,
   onItemRemoved: releaseEditorPaneItem,
   // FileViewerContent remains the format-specific renderer for media,

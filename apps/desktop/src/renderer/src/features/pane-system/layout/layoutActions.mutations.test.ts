@@ -114,8 +114,8 @@ describe('layoutActions mutations', () => {
       const { model, actions } = makeActionModel([pane])
       const onJumpToLine = vi.fn()
 
-      const { openFileInPaneGroup } = await import('./layoutActions')
-      const id = await openFileInPaneGroup(model as never, 'pane-a', 'notes/a.md', 'markdown', {
+      const { openEditorFileInPaneGroup } = await import('../../editor/runtime/editorPaneActions')
+      const id = await openEditorFileInPaneGroup(model as never, 'pane-a', 'notes/a.md', 'markdown', {
         jumpToLine: 12,
         onJumpToLine
       })
@@ -135,8 +135,8 @@ describe('layoutActions mutations', () => {
       const pane = makePaneNode('pane-a', { tabs: [preview], activeTabId: preview.id })
       const { model, actions } = makeActionModel([pane])
 
-      const { openFileInPaneGroup } = await import('./layoutActions')
-      const id = await openFileInPaneGroup(model as never, 'pane-a', 'notes/new.md', 'markdown')
+      const { openEditorFileInPaneGroup } = await import('../../editor/runtime/editorPaneActions')
+      const id = await openEditorFileInPaneGroup(model as never, 'pane-a', 'notes/new.md', 'markdown')
 
       expect(id).toMatch(/^markdown-/)
       expect(actions).toHaveLength(2)
@@ -151,8 +151,8 @@ describe('layoutActions mutations', () => {
       const pane = makePaneNode('pane-a', { tabs: [pinned], activeTabId: pinned.id })
       const { model, actions } = makeActionModel([pane])
 
-      const { openFileInPaneGroup } = await import('./layoutActions')
-      const id = await openFileInPaneGroup(model as never, 'pane-a', 'b.md', 'markdown', {
+      const { openEditorFileInPaneGroup } = await import('../../editor/runtime/editorPaneActions')
+      const id = await openEditorFileInPaneGroup(model as never, 'pane-a', 'b.md', 'markdown', {
         pin: true
       })
 

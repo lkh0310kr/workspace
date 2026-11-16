@@ -4,8 +4,8 @@ import {
   findReplaceableEditorTab,
   isEmptyEditorTab,
   isReplaceableEditorSlot
-} from './paneTabSlots'
-import type { PaneTabItem } from './paneTypes'
+} from './editorPaneTabSlots'
+import type { PaneTabItem } from '../../pane-system/layout/paneTypes'
 
 describe('paneTabSlots', () => {
   const empty: PaneTabItem = { id: 'm1', kind: 'markdown', filePath: null }
