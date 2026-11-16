@@ -4,7 +4,7 @@ import {
   installBrowserFocusTracking,
   installBrowserGuestFocusRelay
 } from '@renderer/features/browser/runtime/activeBrowserWebview'
-import { onBrowserZoomShortcut } from '../../../electron'
+import { onBrowserZoomShortcut } from './browserIpc'
 import { addBrowserZoomEventListener, zoomBrowserWebview } from '@workspace/browser'
 import { getBrowserFocusLogRing } from '@renderer/features/browser/runtime/browserFocusDebugLog'
 import { reloadBrowserPageWebview } from '@workspace/browser'

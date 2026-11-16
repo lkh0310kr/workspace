@@ -6,11 +6,9 @@ import {
   reloadFocusedBrowser
 } from '../browser/runtime'
 import { installRendererConsoleFileLogging } from '../../debug/consoleFileLog'
-import {
-  onBrowserReloadShortcut,
-  onPastePlainTextShortcut,
-} from '../../electron'
+import { onPastePlainTextShortcut } from '../../electron'
 import { onTerminalPasteShortcut } from '../terminal/runtime/terminalIpc'
+import { onBrowserReloadShortcut } from '../browser/runtime/browserIpc'
 import { pastePlainTextInFocusedEditor } from '@renderer/features/editor/api'
 import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager/pane-terminal-registry'
 import {

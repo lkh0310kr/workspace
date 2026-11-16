@@ -12,7 +12,7 @@ import {
   focusBrowserGuestWebview,
   requestBrowserKeyboardSurface
 } from '@renderer/features/browser/runtime/browserGuestFocus'
-import { onBrowserOpenNewTab } from '../../../electron'
+import { onBrowserOpenNewTab } from './browserIpc'
 import { revealItemInDir } from '../../app-shell/nativeShell'
 import { fetchWebviewNavHistory, goToWebviewHistoryIndex } from './browserNavHistory'
 import { onWorkspaceDismissPortals } from '../../../workspacePortalDismiss'

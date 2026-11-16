@@ -27,29 +27,6 @@ export async function debugLog(line: string): Promise<void> {
   }
 }
 
-/** Fires when a <webview> guest tries to open a new window (target=_blank,
- * window.open()) — main/index.ts denies the native window and forwards it
- * here instead. `hostWebContentsId` identifies which webview guest it
- * came from (matches Electron.WebviewTag.getWebContentsId()). */
-export function onBrowserOpenNewTab(
-  handler: (payload: { hostWebContentsId: number; url: string }) => void
-): () => void {
-  return window.api.browser.onOpenNewTab(handler)
-}
-
-/** Fires when web content enters or exits fullscreen. */
-export function onHtmlFullscreenChanged(handler: (active: boolean) => void): () => void {
-  return window.api.browser.onHtmlFullscreenChanged(handler)
-}
-
-/** Cmd+R/Cmd+Shift+R, intercepted at the main-process input-event level
- * (see main/index.ts for why a renderer keydown listener wouldn't reliably
- * see this) and repurposed to reload the active browser tab instead of
- * the whole app. */
-export function onBrowserReloadShortcut(handler: (payload: { hard: boolean }) => void): () => void {
-  return window.api.shortcuts.onBrowserReload(handler)
-}
-
 /** Cmd/Ctrl+P, intercepted in Electron before Chromium treats it as Print. */
 export function onQuickOpenShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onQuickOpen(handler)
@@ -80,13 +57,6 @@ export function onToggleEditorTreeShortcut(handler: () => void): () => void {
 /** Cmd/Ctrl+F, routed through Electron so production shortcuts reach the focused editor. */
 export function onFindInEditorShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onFindInEditor(handler)
-}
-
-/** Cmd/Ctrl +/- — relayed from main when a browser guest holds focus (Orca pattern). */
-export function onBrowserZoomShortcut(
-  handler: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void
-): () => void {
-  return window.api.shortcuts.onBrowserZoom(handler)
 }
 
 /** Cmd+W — closes the active pane tab instead of the whole window. */
