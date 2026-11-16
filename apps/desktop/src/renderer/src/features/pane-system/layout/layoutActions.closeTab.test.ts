@@ -2,11 +2,11 @@ import { Actions, TabNode } from 'flexlayout-react'
 import { describe, expect, it, vi } from 'vitest'
 import type { PaneGroupConfig } from './paneTypes'
 
-vi.mock('../../../store/workspaceStore', () => ({
+vi.mock('@renderer/features/workspace/api', () => ({
   useWorkspaceStore: { getState: () => ({ bumpLayoutRevision: vi.fn() }) }
 }))
 
-vi.mock('../../../store/workspaceLayoutModels', () => ({
+vi.mock('./workspaceLayoutModels', () => ({
   findTabIdForModel: () => 1
 }))
 

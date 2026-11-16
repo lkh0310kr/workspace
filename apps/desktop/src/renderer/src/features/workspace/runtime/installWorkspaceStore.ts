@@ -1,7 +1,7 @@
-import { getWorkspaceState, onWorkspaceUpdated } from '../electron'
-import { subscribeOptimisticWorkspaceTab } from '../interaction/optimisticWorkspaceTab'
-import { syncInteractionCoordinatorWorkspaceTab } from '../interaction/syncInteractionCoordinatorWorkspaceTab'
-import { useWorkspaceStore } from './workspaceStore'
+import { getWorkspaceState, onWorkspaceUpdated } from '../../../electron'
+import { subscribeOptimisticWorkspaceTab } from '../../../interaction/optimisticWorkspaceTab'
+import { syncInteractionCoordinatorWorkspaceTab } from '../../../interaction/syncInteractionCoordinatorWorkspaceTab'
+import { useWorkspaceStore } from '../state/workspaceStore'
 
 let coordinatorBridgeInstalled = false
 

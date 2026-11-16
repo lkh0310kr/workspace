@@ -4,13 +4,13 @@ import type { PaneGroupConfig } from './paneTypes'
 
 const bumpLayoutRevision = vi.fn()
 
-vi.mock('../../../store/workspaceStore', () => ({
+vi.mock('@renderer/features/workspace/api', () => ({
   useWorkspaceStore: {
     getState: () => ({ bumpLayoutRevision })
   }
 }))
 
-vi.mock('../../../store/workspaceLayoutModels', () => ({
+vi.mock('./workspaceLayoutModels', () => ({
   findTabIdForModel: () => 1
 }))
 

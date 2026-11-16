@@ -9,7 +9,7 @@ import {
   projectVisibleWorkspaceTabId,
   type WorkspaceScope
 } from './workspaceScope'
-import { useWorkspaceStore } from '../store/workspaceStore'
+import { useWorkspaceStore } from '@renderer/features/workspace/api'
 import { isHomeViewActive, subscribeHomeView } from '@workspace/home'
 
 /** Reactive workspace tab visibility snapshot for React components. */

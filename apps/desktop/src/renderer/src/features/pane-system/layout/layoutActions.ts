@@ -2,8 +2,8 @@ import { Actions, DockLocation, Model, TabNode, TabSetNode } from 'flexlayout-re
 import { layoutLog, layoutLogMutation, summarizeLayoutModel } from './layoutDebugLog'
 import { PaneGroupConfig, PaneTabItem, TabKind } from './paneTypes'
 import { getPaneKind, paneKindLabel } from '../paneKindRegistry'
-import { useWorkspaceStore } from '../../../store/workspaceStore'
-import { findTabIdForModel } from '../../../store/workspaceLayoutModels'
+import { useWorkspaceStore } from '@renderer/features/workspace/api'
+import { findTabIdForModel } from './workspaceLayoutModels'
 import { resolveSplitPaneMutationStrategy } from './layoutSplitPolicy'
 import { countLayoutTabs } from './layoutModelParse'
 

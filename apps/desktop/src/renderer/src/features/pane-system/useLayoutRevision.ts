@@ -1,4 +1,4 @@
-import { useWorkspaceStore } from '../../store/workspaceStore'
+import { useWorkspaceStore } from '@renderer/features/workspace/api'
 
 /** Subscribe to layout model changes for one workspace tab. */
 export function useLayoutRevision(tabId: number): number {

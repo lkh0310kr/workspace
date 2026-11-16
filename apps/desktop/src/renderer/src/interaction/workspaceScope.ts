@@ -1,7 +1,7 @@
 import type { TabInfo } from '../electron'
 import { interactionCoordinator } from './InteractionCoordinator'
 import { getOptimisticWorkspaceTabId } from './optimisticWorkspaceTab'
-import { useWorkspaceStore } from '../store/workspaceStore'
+import { useWorkspaceStore } from '@renderer/features/workspace/api'
 import { isHomeViewActive } from '@workspace/home'
 
 export type WorkspaceScope = {

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { initWorkspaceStore } from '../../store/installWorkspaceStore'
-import { useWorkspaceStore } from '../../store/workspaceStore'
+import { initWorkspaceStore } from './runtime/installWorkspaceStore'
+import { useWorkspaceStore } from './state/workspaceStore'
 import type { WorkspaceState } from '../../electron'
 
 export function useWorkspace(): WorkspaceState | null {

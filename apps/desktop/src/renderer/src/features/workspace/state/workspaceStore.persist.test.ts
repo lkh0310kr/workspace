@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Model } from 'flexlayout-react'
 
 const electron = vi.hoisted(() => ({ setTabLayout: vi.fn() }))
-vi.mock('../electron', () => electron)
+vi.mock('../../../electron', () => electron)
 
 import { useWorkspaceStore } from './workspaceStore'
 

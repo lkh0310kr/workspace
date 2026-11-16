@@ -3,7 +3,7 @@ import type { Model } from 'flexlayout-react'
 import type { TabInfo } from '../../electron'
 import { countLayoutTabs } from './layout/layoutModelParse'
 import { setActiveLayoutTab, redrawAllLayouts } from './layout/layoutRef'
-import { useWorkspaceStore } from '../../store/workspaceStore'
+import { useWorkspaceStore } from '@renderer/features/workspace/api'
 
 export function useLayoutHostLifecycle(activeTabId: number): void {
   useEffect(() => {

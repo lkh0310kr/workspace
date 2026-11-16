@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { Model } from 'flexlayout-react'
-import type { TabInfo, WorkspaceState } from '../electron'
-import { setTabLayout } from '../electron'
-import { countLayoutTabs, modelFromLayoutJson } from '../features/pane-system/layout/layoutModelParse'
-import { layoutLog, layoutLogModel } from '../features/pane-system/layout/layoutDebugLog'
+import type { TabInfo, WorkspaceState } from '../../../electron'
+import { setTabLayout } from '../../../electron'
+import { countLayoutTabs, modelFromLayoutJson } from '../../pane-system/layout/layoutModelParse'
+import { layoutLog, layoutLogModel } from '../../pane-system/layout/layoutDebugLog'
 import {
   clearEnsureInflight as clearLayoutEnsureInflight,
   deleteLayoutModel,
@@ -16,7 +16,7 @@ import {
   setPendingRebalance as setLayoutPendingRebalance,
   setSavedLayoutJson,
   takePendingRebalance as takeLayoutPendingRebalance
-} from './workspaceLayoutModels'
+} from '../../pane-system/layout/workspaceLayoutModels'
 
 function tabsDataEqual(a: TabInfo[], b: TabInfo[]): boolean {
   if (a.length !== b.length) return false
