@@ -56,6 +56,11 @@ for (const feature of packages) {
         `${relativePath} accesses window.api directly; inject the capability through the feature host`
       )
     }
+    if (/\bElectron\./.test(source)) {
+      failures.push(
+        `${relativePath} depends on Electron ambient types; define the feature port and adapt it in Desktop`
+      )
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 import { useMemo, type RefObject } from 'react'
 import type { BrowserPaneHost } from './BrowserPaneHost'
+import type { BrowserWebviewPort } from './BrowserWebview'
 
 /** How browser chrome hands focus to the <webview> guest (Orca browser-page-guest-focus). */
 export type WebviewGuestFocus = {
@@ -9,7 +10,7 @@ export type WebviewGuestFocus = {
 }
 
 export function useWebviewGuestFocus(
-  webviewRef: RefObject<Electron.WebviewTag | null>,
+  webviewRef: RefObject<BrowserWebviewPort | null>,
   host: Pick<BrowserPaneHost, 'focusGuest' | 'isWebviewHostFocused' | 'logFocus'>
 ): WebviewGuestFocus {
   return useMemo(

@@ -7,12 +7,13 @@ import {
   resetBrowserPageViewportsForTests
 } from './browserPageViewport'
 import { browserPageGuestNeedsAttach, resolveBrowserPageWebview } from './browserPageGuestRecovery'
+import type { BrowserWebviewPort } from './BrowserWebview'
 
-function createWebview(): Electron.WebviewTag {
+function createWebview(): BrowserWebviewPort {
   return Object.assign(document.createElement('webview'), {
     getWebContentsId: vi.fn(() => 7),
     style: {} as CSSStyleDeclaration
-  }) as Electron.WebviewTag
+  }) as unknown as BrowserWebviewPort
 }
 
 describe('browserPageGuestRecovery', () => {
@@ -45,7 +46,7 @@ describe('browserPageGuestRecovery', () => {
     const webview = createWebview()
     viewport.container.appendChild(webview)
 
-    const ref = { current: null as Electron.WebviewTag | null }
+    const ref = { current: null as BrowserWebviewPort | null }
     expect(resolveBrowserPageWebview('page-1', ref, () => webview)).toBe(webview)
     expect(ref.current).toBe(webview)
   })

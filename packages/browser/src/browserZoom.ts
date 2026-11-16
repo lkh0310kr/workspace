@@ -1,4 +1,5 @@
 /** Ported from ref-proj/orca browser-page-zoom — adapted to setZoomFactor (not zoom level). */
+import type { BrowserWebviewPort } from './BrowserWebview'
 export const BROWSER_ZOOM_MIN = 0.5
 export const BROWSER_ZOOM_MAX = 3
 export const BROWSER_ZOOM_STEP = 0.1
@@ -23,11 +24,10 @@ export function registerBrowserZoomPersist(
   return () => persistHandlers.delete(tabItemId)
 }
 
-export interface BrowserZoomWebview {
-  dataset: DOMStringMap
-  getZoomFactor(): number
-  setZoomFactor(factor: number): void
-}
+export type BrowserZoomWebview = Pick<
+  BrowserWebviewPort,
+  'dataset' | 'getZoomFactor' | 'setZoomFactor'
+>
 
 function readZoomFactor(webview: BrowserZoomWebview): number {
   try {

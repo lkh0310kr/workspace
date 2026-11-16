@@ -1,13 +1,12 @@
 /** Ported from ref-proj/orca browser-reload-action.ts */
+import type { BrowserWebviewPort } from './BrowserWebview'
 
 export type BrowserPageWebviewActionResult = 'ok' | 'guest-missing' | 'not-ready'
 
-export interface BrowserPageWebviewActionsPort {
-  getWebContentsId(): number
-  reload(): void
-  reloadIgnoringCache(): void
-  loadURL(url: string): Promise<void>
-}
+export type BrowserPageWebviewActionsPort = Pick<
+  BrowserWebviewPort,
+  'getWebContentsId' | 'reload' | 'reloadIgnoringCache' | 'loadURL'
+>
 
 function probeWebviewGuest(webview: BrowserPageWebviewActionsPort): boolean {
   try {

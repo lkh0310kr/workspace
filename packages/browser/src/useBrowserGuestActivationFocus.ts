@@ -1,5 +1,6 @@
 import { useEffect, useRef, type MutableRefObject, type RefObject } from 'react'
 import type { BrowserPaneHost } from './BrowserPaneHost'
+import type { BrowserWebviewPort } from './BrowserWebview'
 
 const GUEST_FOCUS_FRAMES = 24
 
@@ -24,7 +25,7 @@ export function useBrowserGuestActivationFocus({
   isActive: boolean
   workspaceTabId: number
   paneTabItemId: string
-  webviewRef: RefObject<Electron.WebviewTag | null>
+  webviewRef: RefObject<BrowserWebviewPort | null>
   keepAddressBarFocusRef: MutableRefObject<boolean>
   dragPassthroughActive: boolean
   webviewReady?: boolean

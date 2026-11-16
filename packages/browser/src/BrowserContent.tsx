@@ -22,6 +22,7 @@ import { loadBrowserPageWebviewUrl, reloadBrowserPageWebview } from './browserPa
 import { BrowserNavButton } from './BrowserNavButton'
 import { BrowserDownloadsBar, type BrowserDownloadItem } from './BrowserDownloadsBar'
 import type { BrowserPaneHost, BrowserPaneItem } from './BrowserPaneHost'
+import type { BrowserWebviewEventMap, BrowserWebviewPort } from './BrowserWebview'
 import { browserPageGuestNeedsAttach, resolveBrowserPageWebview } from './browserPageGuestRecovery'
 import './browser.css'
 import { useBrowserChromeFocus } from './useBrowserChromeFocus'
@@ -83,7 +84,7 @@ export function BrowserContent({
   const guestRecoveryAttemptsRef = useRef(0)
 
   const chromeHeaderRef = useRef<HTMLDivElement>(null)
-  const webviewRef = useRef<Electron.WebviewTag | null>(null)
+  const webviewRef = useRef<BrowserWebviewPort | null>(null)
   const addressInputRef = useRef<HTMLInputElement | null>(null)
   const [addressInput, setAddressInput] = useState(item.url ?? DEFAULT_URL)
   const [currentUrl, setCurrentUrl] = useState(item.url ?? DEFAULT_URL)
@@ -230,21 +231,21 @@ export function BrowserContent({
       setLoading(false)
       syncNavState()
     }
-    const onNavigate = (e: Electron.DidNavigateEvent): void => {
+    const onNavigate = (e: BrowserWebviewEventMap['did-navigate']): void => {
       if (disposed) return
       setAddressInput(e.url)
       setCurrentUrl(e.url)
       onUpdateRef.current({ url: e.url })
       syncNavState()
     }
-    const onNavigateInPage = (e: Electron.DidNavigateInPageEvent): void => {
+    const onNavigateInPage = (e: BrowserWebviewEventMap['did-navigate-in-page']): void => {
       if (disposed || !domReadyRef.current || !guest.isConnected) return
       setAddressInput(e.url)
       setCurrentUrl(e.url)
       onUpdateRef.current({ url: e.url })
       syncNavState()
     }
-    const onPageTitleUpdated = (e: Electron.PageTitleUpdatedEvent): void => {
+    const onPageTitleUpdated = (e: BrowserWebviewEventMap['page-title-updated']): void => {
       if (disposed) return
       onUpdateRef.current({ title: e.title })
       try {
@@ -253,7 +254,7 @@ export function BrowserContent({
         /* guest mid-teardown */
       }
     }
-    const onFaviconUpdated = (e: Electron.PageFaviconUpdatedEvent): void => {
+    const onFaviconUpdated = (e: BrowserWebviewEventMap['page-favicon-updated']): void => {
       if (disposed) return
       const favicon = e.favicons[0]
       if (favicon) onUpdateRef.current({ favicon })
@@ -281,7 +282,7 @@ export function BrowserContent({
         paneHost.requestGuestFocus(tabId, item.id, 'dom-ready')
       }
     }
-    const onFailLoad = (_e: Electron.DidFailLoadEvent): void => {
+    const onFailLoad = (_e: BrowserWebviewEventMap['did-fail-load']): void => {
       if (disposed) return
       setLoadError('Could not load this page. Check the address and try again.')
     }

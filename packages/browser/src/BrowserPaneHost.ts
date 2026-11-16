@@ -1,5 +1,6 @@
 import type { BrowserNavHistoryEntry } from './BrowserNavButton'
 import type { BrowserDownloadItem } from './BrowserDownloadsBar'
+import type { BrowserWebviewPort } from './BrowserWebview'
 
 export interface BrowserPaneItem {
   id: string
@@ -15,7 +16,7 @@ export type BrowserOpenNewTabEvent = { hostWebContentsId: number; url: string }
 export interface BrowserPaneHost {
   registerPortal: (id: string, onDismiss: () => void) => () => void
   registerWebview: (
-    webview: Electron.WebviewTag,
+    webview: BrowserWebviewPort,
     context: {
       workspaceTabId: number
       paneNodeId: string
@@ -24,19 +25,19 @@ export interface BrowserPaneHost {
       initialChipActive: boolean
     }
   ) => void
-  detachWebview: (webview: Electron.WebviewTag) => void
-  updateWebviewPaneNode: (webview: Electron.WebviewTag, paneNodeId: string) => void
+  detachWebview: (webview: BrowserWebviewPort) => void
+  updateWebviewPaneNode: (webview: BrowserWebviewPort, paneNodeId: string) => void
   setPaneChipState: (
     workspaceTabId: number,
     paneTabItemId: string,
     state: { paneVisible: boolean; chipActive: boolean }
   ) => void
   requestGuestFocus: (workspaceTabId: number, paneTabItemId: string, reason: string) => void
-  registerWebviewReference: (webview: Electron.WebviewTag) => () => void
-  getActiveWebview: () => Electron.WebviewTag | null
-  setActiveWebview: (webview: Electron.WebviewTag | null) => void
+  registerWebviewReference: (webview: BrowserWebviewPort) => () => void
+  getActiveWebview: () => BrowserWebviewPort | null
+  setActiveWebview: (webview: BrowserWebviewPort | null) => void
   moveFocusToRendererBeforeHide: () => void
-  focusGuest: (webview: Electron.WebviewTag, reason: string) => void
+  focusGuest: (webview: BrowserWebviewPort, reason: string) => void
   requestKeyboardSurface: (reason: string) => void
   onOpenNewTab: (listener: (event: BrowserOpenNewTabEvent) => void) => () => void
   onDismissPortals: (handler: () => void) => () => void
@@ -49,17 +50,17 @@ export interface BrowserPaneHost {
     container: HTMLDivElement
     initialUrl: string
     initialZoom: number
-  }) => { webview: Electron.WebviewTag; created: boolean } | null
-  getPersistentWebview: (tabItemId: string) => Electron.WebviewTag | null
-  setWebviewInputLock: (webview: Electron.WebviewTag, inputLocked: boolean) => void
+  }) => { webview: BrowserWebviewPort; created: boolean } | null
+  getPersistentWebview: (tabItemId: string) => BrowserWebviewPort | null
+  setWebviewInputLock: (webview: BrowserWebviewPort, inputLocked: boolean) => void
   getDownloads: (webContentsId: number) => BrowserDownloadItem[]
   subscribeDownloads: (listener: () => void) => () => void
   revealDownload: (path: string) => void
-  isGuestInteractive: (webview: Electron.WebviewTag) => boolean
+  isGuestInteractive: (webview: BrowserWebviewPort) => boolean
   isGuestWebContentsFocused: (webContentsId: number) => boolean
-  isWebviewHostFocused: (webview: Electron.WebviewTag) => boolean
+  isWebviewHostFocused: (webview: BrowserWebviewPort) => boolean
   isDragPassthroughActive: () => boolean
   subscribeDragPassthrough: (listener: () => void) => () => void
   logFocus: (location: string, message: string, data?: Record<string, unknown>) => void
-  snapshotFocus: (webview?: Electron.WebviewTag | null) => Record<string, unknown>
+  snapshotFocus: (webview?: BrowserWebviewPort | null) => Record<string, unknown>
 }

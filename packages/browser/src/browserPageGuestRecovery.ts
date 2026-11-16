@@ -1,11 +1,12 @@
 import { getBrowserPageViewportContainer } from './browserPageViewport'
+import type { BrowserWebviewPort } from './BrowserWebview'
 
-export type GetPersistentBrowserWebview = (tabItemId: string) => Electron.WebviewTag | null
+export type GetPersistentBrowserWebview = (tabItemId: string) => BrowserWebviewPort | null
 
 /** True when a guest is missing or detached from its current page container. */
 export function browserPageGuestNeedsAttach(
   tabItemId: string,
-  webview: Electron.WebviewTag | null,
+  webview: BrowserWebviewPort | null,
   getPersistentWebview: GetPersistentBrowserWebview
 ): boolean {
   const container = getBrowserPageViewportContainer(tabItemId)
@@ -18,13 +19,13 @@ export function browserPageGuestNeedsAttach(
 /** Resolve a connected guest when React's ref lags the persistent registry. */
 export function resolveBrowserPageWebview(
   tabItemId: string,
-  webviewRef: { current: Electron.WebviewTag | null },
+  webviewRef: { current: BrowserWebviewPort | null },
   getPersistentWebview: GetPersistentBrowserWebview
-): Electron.WebviewTag | null {
+): BrowserWebviewPort | null {
   const container = getBrowserPageViewportContainer(tabItemId)
   const candidates = [webviewRef.current, getPersistentWebview(tabItemId)].filter(
     Boolean
-  ) as Electron.WebviewTag[]
+  ) as BrowserWebviewPort[]
   for (const webview of candidates) {
     if (!webview.isConnected) continue
     if (container && webview.parentElement !== container) continue

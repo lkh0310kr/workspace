@@ -1,14 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { BrowserPageWebviewActionsPort } from './browserPageWebviewActions'
 import { loadBrowserPageWebviewUrl, reloadBrowserPageWebview } from './browserPageWebviewActions'
 
-function createWebview(overrides: Partial<Electron.WebviewTag> = {}): Electron.WebviewTag {
+function createWebview(
+  overrides: Partial<BrowserPageWebviewActionsPort> = {}
+): BrowserPageWebviewActionsPort {
   return {
     getWebContentsId: vi.fn(() => 42),
     reload: vi.fn(),
     reloadIgnoringCache: vi.fn(),
     loadURL: vi.fn(async () => {}),
     ...overrides
-  } as unknown as Electron.WebviewTag
+  } as unknown as BrowserPageWebviewActionsPort
 }
 
 describe('reloadBrowserPageWebview', () => {
