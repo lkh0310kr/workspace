@@ -1,5 +1,5 @@
-import type { EbookTheme, ResolvedEbookTheme } from '../../../../shared/ebookState'
-import type { ResolvedTheme } from '../../theme'
+import type { EbookTheme, ResolvedEbookTheme } from '../../../../../../shared/ebookState'
+import type { ResolvedTheme } from '../../../../theme'
 
 const THEMES: Record<ResolvedEbookTheme, { bg: string; fg: string; link: string }> = {
   light: { bg: '#fff', fg: '#1a1a1a', link: '#0b57d0' },

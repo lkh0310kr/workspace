@@ -1,4 +1,4 @@
-import { FileViewerContent } from '../../panes/FileViewerContent'
+import { FileViewerContent } from './viewers/FileViewerContent'
 import type { PaneKindDefinition } from '../pane-system/paneKindRegistry'
 import { EditorPaneSidebarSlot } from './EditorPaneSidebarSlot'
 import {

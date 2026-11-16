@@ -2,7 +2,7 @@
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_EBOOK_STATE } from '../../../shared/ebookState'
+import { DEFAULT_EBOOK_STATE } from '../../../../../shared/ebookState'
 
 const electron = vi.hoisted(() => ({
   openEpub: vi.fn(),
@@ -11,16 +11,16 @@ const electron = vi.hoisted(() => ({
   saveEbookState: vi.fn()
 }))
 
-vi.mock('../electron', () => electron)
-vi.mock('../vendor/foliate-js/view.js', () => ({}))
-vi.mock('../vendor/foliate-js/epub.js', () => ({
+vi.mock('../../../electron', () => electron)
+vi.mock('../../../vendor/foliate-js/view.js', () => ({}))
+vi.mock('../../../vendor/foliate-js/epub.js', () => ({
   EPUB: class {
     init(): Promise<Record<string, never>> {
       return Promise.resolve({})
     }
   }
 }))
-vi.mock('../vendor/foliate-js/ui/tree.js', () => ({ createTOCView: vi.fn() }))
+vi.mock('../../../vendor/foliate-js/ui/tree.js', () => ({ createTOCView: vi.fn() }))
 
 import { EpubReaderContent } from './EpubReaderContent'
 

@@ -14,7 +14,8 @@ import {
   getMediaUrlAbsolute,
   pickMediaFileDialog,
   readFileBinaryPreview
-} from '../electron'
+} from '../../../electron'
+import './viewers.css'
 import { classifyMediaExtension } from './mediaKind'
 import { cuesToVtt, parseSrt, shiftCues, type SubtitleCue } from './srtToVtt'
 import { EpubReaderContent } from './EpubReaderContent'
@@ -436,7 +437,7 @@ export function FileViewerContent({
         <embed className="file-viewer-pdf" type="application/pdf" src={blobUrl} />
       ) : (
         <>
-          <div className="file-viewer-image-frame" onWheel={onWheel}>
+          <div className="file-viewer-image-frame scroll-region" onWheel={onWheel}>
             <img
               ref={imgRef}
               className={`file-viewer-image${zoom === null ? ' file-viewer-image-fit' : ''}${

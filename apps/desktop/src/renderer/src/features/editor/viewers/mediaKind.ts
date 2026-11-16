@@ -11,7 +11,7 @@ import {
   IMAGE_EXTENSIONS,
   MODEL3D_EXTENSIONS,
   VIDEO_EXTENSIONS
-} from '../../../shared/mediaExtensions'
+} from '../../../../../shared/mediaExtensions'
 
 export type MediaKind = 'image' | 'pdf' | 'video' | 'audio' | 'epub' | 'model3d' | 'cad' | 'other'
 

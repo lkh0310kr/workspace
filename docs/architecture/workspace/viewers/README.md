@@ -12,7 +12,7 @@ App scope의 J-05다. 공유 editor의 asset snapshot과 실제 renderer를 구�
 | model3d         | model3d assetRouter/importers/cacheStore/protocol | ModelViewerContent→renderer model3d modules, manifest·loading/error·3D controls |
 | CAD/robot files | cadViewer local process adapter                   | CadViewerContent의 viewer URL 연결. 서비스 launch/reuse·종료 책임은 Main        |
 
-직접 file URL, app custom protocol, Blob URL, local viewer service URL은 서로 다르다. format 분류 목록은 [mediaKind](../../../../apps/desktop/src/renderer/src/panes/mediaKind.ts), UI dispatch는 [FileViewerContent](../../../../apps/desktop/src/renderer/src/panes/FileViewerContent.tsx)가 기준이다.
+직접 file URL, app custom protocol, Blob URL, local viewer service URL은 서로 다르다. format 분류 목록은 [mediaKind](../../../../apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts), UI dispatch는 [FileViewerContent](../../../../apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx)가 기준이다.
 
 ## 3D import 계약
 
@@ -26,7 +26,7 @@ cache는 workspaceRoot/.workspace/model3d-cache 아래 manifest와 파생 GLB를
 
 ## EPUB와 CAD 수명
 
-EPUB는 [epubLoader](../../../../apps/desktop/src/renderer/src/panes/epub/epubLoader.ts)가 책 resource와 paginator를 연다. 읽기 위치·선호는 Main ebook-state와 shared merge 규칙을 거쳐 저장한다. page turn key는 focused control/selection 등을 고려한 [epubKeys](../../../../apps/desktop/src/renderer/src/panes/epub/epubKeys.ts), theme는 epubTheme가 owner다. 열기 오류는 tab/path source identity에 묶여 다른 path의 새 로드를 막지 않으며, 취소된 이전 source의 늦은 결과는 적용하지 않는다. image/PDF의 단일 binary Blob 로딩으로 EPUB zip을 대체하지 않는다.
+EPUB는 [epubLoader](../../../../apps/desktop/src/renderer/src/features/editor/viewers/epub/epubLoader.ts)가 책 resource와 paginator를 연다. 읽기 위치·선호는 Main ebook-state와 shared merge 규칙을 거쳐 저장한다. page turn key는 focused control/selection 등을 고려한 [epubKeys](../../../../apps/desktop/src/renderer/src/features/editor/viewers/epub/epubKeys.ts), theme는 epubTheme가 owner다. 열기 오류는 tab/path source identity에 묶여 다른 path의 새 로드를 막지 않으며, 취소된 이전 source의 늦은 결과는 적용하지 않는다. image/PDF의 단일 binary Blob 로딩으로 EPUB zip을 대체하지 않는다.
 
 CAD adapter는 serveRoot별 instances와 pendingLaunches로 동시 시작을 조정하고 실행 환경의 viewer binary 또는 project Python 후보를 탐색한다. 종료 시 disposeCadViewers가 child를 정리한다. Python이 필요한 경로는 프로젝트 `.agents/.venv` 환경과 agents:python setup 명령을 사용하며 system Python fallback을 문서 작업으로 도입하지 않는다. 활성 viewer adapter와 archive CAD 모델은 별개다.
 

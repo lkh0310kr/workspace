@@ -2,20 +2,20 @@
 // click halves, and Foliate/Thorium keys turn CSS-column pages; the last
 // page of a spine item loads the next linear section.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getEbookState, openEpub, openEpubAbsolute, saveEbookState } from '../electron'
+import { getEbookState, openEpub, openEpubAbsolute, saveEbookState } from '../../../electron'
 import {
   DEFAULT_EBOOK_STATE,
   type EbookBookState,
   type EbookTheme
-} from '../../../shared/ebookState'
-import { Popover, type AnchorRect } from '../components/Popover'
-import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } from '../theme'
+} from '../../../../../shared/ebookState'
+import { Popover, type AnchorRect } from '../../../components/Popover'
+import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } from '../../../theme'
 import { ebookTurnFromKey, ebookTurnFromPageClick, isTypingTarget } from './epub/epubKeys'
 import { ebookReaderCss, formatEbookTitle, resolveEbookTheme } from './epub/epubTheme'
 import { protocolLoader } from './epub/epubLoader'
-import '../vendor/foliate-js/view.js'
-import { EPUB } from '../vendor/foliate-js/epub.js'
-import { createTOCView } from '../vendor/foliate-js/ui/tree.js'
+import '../../../vendor/foliate-js/view.js'
+import { EPUB } from '../../../vendor/foliate-js/epub.js'
+import { createTOCView } from '../../../vendor/foliate-js/ui/tree.js'
 
 type FoliateView = HTMLElement & {
   book: { dir?: string; toc?: unknown; metadata?: { title?: unknown } }

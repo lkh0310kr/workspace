@@ -1,6 +1,8 @@
 # Asset viewer 연결 계약
 
-공유 provider의 asset은 읽기 전용 `{previewUrl,mediaType}` snapshot이다. Desktop의 실제 파일 viewer는 앱 소유이며 [FileViewerContent](../../../apps/desktop/src/renderer/src/panes/FileViewerContent.tsx), [viewerKind](../../../apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx)가 렌더링한다. 이 문서는 편집기와의 연결 계약이며 EPUB·3D·CAD 내부 알고리즘 전체의 재생성 스펙은 아니다.
+공유 provider의 asset은 읽기 전용 `{previewUrl,mediaType}` snapshot이다. Desktop의 실제 파일 viewer는 Editor 기능 소유이며 [FileViewerContent](../../../apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx), [viewerKind](../../../apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx)가 렌더링한다. 이 문서는 편집기와의 연결 계약이며 EPUB·3D·CAD 내부 알고리즘 전체의 재생성 스펙은 아니다.
+
+파일 preview, EPUB, CAD, 3D viewer 스타일은 Editor viewer의 [viewers.css](../../../apps/desktop/src/renderer/src/features/editor/viewers/viewers.css)에 둔다. 앱 전역에는 디자인 토큰과 `.scroll-region`처럼 여러 기능이 공유하는 표면 규칙만 남긴다.
 
 ## 입력과 라우팅
 
@@ -8,7 +10,7 @@ viewer pane item은 id/kind=viewer, 상대 filePath 또는 absolutePath, 선택�
 
 FileViewerContent의 입력은 tabId, filePath, absolutePath, viewerHint, treeOpen/onToggleTree, paneActive와 onAssignAbsolutePath다. 표시 분류는 filePath 우선, 없으면 absolutePath다. viewerHint는 경로 없는 이전 탭의 Browse filter에만 사용한다.
 
-[mediaKind.ts](../../../apps/desktop/src/renderer/src/panes/mediaKind.ts)의 case-insensitive 확장자 분류:
+[mediaKind.ts](../../../apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts)의 case-insensitive 확장자 분류:
 
 | kind       | 확장자                                |
 | ---------- | ------------------------------------- |

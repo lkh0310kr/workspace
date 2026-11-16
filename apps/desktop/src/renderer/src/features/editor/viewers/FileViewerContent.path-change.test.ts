@@ -10,7 +10,7 @@ const electron = vi.hoisted(() => ({
   readFileBinaryPreview: vi.fn()
 }))
 
-vi.mock('../electron', () => electron)
+vi.mock('../../../electron', () => electron)
 vi.mock('./EpubReaderContent', () => ({ EpubReaderContent: () => null }))
 
 import { FileViewerContent } from './FileViewerContent'

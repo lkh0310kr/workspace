@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "ba3a25f5caab5e5c8a48ad27ce3a3bf0d087d36a3db14b55a5e41bac4cf8386e"
+          "sha256": "a450c27ebf8585942ea96fa7deac941afcf2b3b81110d700a49063e06b42d276"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts",
@@ -90,20 +90,20 @@
           "sha256": "b42c0112a2a7c414f49d510a54b549a9a03b5f5eb6feab60d5c143b7f3a0c629"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/FileViewerContent.tsx",
-          "sha256": "2aeda245f780f66a3057dded775cb36cc878e65d0aeeb59f80c7770b7c797aa3"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
+          "sha256": "664241cb997e4a9b1a5946170cede4ab7ffab5638b910e5b9543141a05c9fd27"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/CadViewerContent.tsx",
-          "sha256": "039986cc9dbf91edcce47a91ab3732c6ca16a2efa1bc0cc40957a8343c9e2bb7"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/CadViewerContent.tsx",
+          "sha256": "d397b3380ab2bb83e385b6d31840c880633d91e7ba749fb387f2261bd0baa107"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/ModelViewerContent.tsx",
-          "sha256": "f1419b10ab7ff667099fc1a5cfa0cd6292f4ce12c8194eeb85dbb723cbc43451"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/ModelViewerContent.tsx",
+          "sha256": "54562d1bdd89dc5dce228ad2d07d6f50ee9aeebd564af1109edcc3f8e7729ec5"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/EpubReaderContent.tsx",
-          "sha256": "39e94e043ce718c7efde83ba7d5aaac8dcbfdb5bcf6b3837197f6603eab02bed"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/EpubReaderContent.tsx",
+          "sha256": "f1197a7006a36b353c06ddd66b274583ea3d494ca35dad8d85bcd5084519aeb8"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
@@ -111,11 +111,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",
-          "sha256": "ba6b65c2ae921d0934c15c0b0a7a7833c911b9d949f1a8088d3f0f2dabe78d55"
+          "sha256": "bd08b9e15c92c3cc43c7cf55ddc6b38d53dc01a5eab80084b8678bf2ac81e590"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/mediaKind.ts",
-          "sha256": "e07d47b66daa2bba48d9950a6d23c88ef9876f86ddc36dba1d482654ce04951e"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
+          "sha256": "b31f874114fdcf93daae9ae43b7f2325bb25c457710cddcf2fed2f53d39471b8"
         },
         {
           "path": "packages/editor/package.json",
@@ -366,8 +366,8 @@
           "sha256": "1b2e4849a6fd8ba7f772c072bbd0942d97f4bf92514dc7ebf18f8e51a591e164"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/FileViewerContent.path-change.test.ts",
-          "sha256": "b5943209687261e2ee471c950bf6996fbdf57fbe9d1ae7cff5decdef36517972"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.path-change.test.ts",
+          "sha256": "e340b549294a4f00a93504cfc5cba931e6e74ced04016d4820d23a78ad056d26"
         },
         {
           "path": "packages/editor/src/editorSidebarState.ts",
@@ -442,8 +442,8 @@
           "sha256": "b42c0112a2a7c414f49d510a54b549a9a03b5f5eb6feab60d5c143b7f3a0c629"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/FileViewerContent.tsx",
-          "sha256": "2aeda245f780f66a3057dded775cb36cc878e65d0aeeb59f80c7770b7c797aa3"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
+          "sha256": "664241cb997e4a9b1a5946170cede4ab7ffab5638b910e5b9543141a05c9fd27"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
@@ -451,11 +451,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",
-          "sha256": "ba6b65c2ae921d0934c15c0b0a7a7833c911b9d949f1a8088d3f0f2dabe78d55"
+          "sha256": "bd08b9e15c92c3cc43c7cf55ddc6b38d53dc01a5eab80084b8678bf2ac81e590"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/mediaKind.ts",
-          "sha256": "e07d47b66daa2bba48d9950a6d23c88ef9876f86ddc36dba1d482654ce04951e"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
+          "sha256": "b31f874114fdcf93daae9ae43b7f2325bb25c457710cddcf2fed2f53d39471b8"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localDocumentSession.ts",
@@ -1074,24 +1074,24 @@
           "sha256": "e77506415c5cdfb2accbf116256ff149e59d7f8de47e3662648328c28cb6f096"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/FileViewerContent.path-change.test.ts",
-          "sha256": "b5943209687261e2ee471c950bf6996fbdf57fbe9d1ae7cff5decdef36517972"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.path-change.test.ts",
+          "sha256": "e340b549294a4f00a93504cfc5cba931e6e74ced04016d4820d23a78ad056d26"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/FileViewerContent.tsx",
-          "sha256": "2aeda245f780f66a3057dded775cb36cc878e65d0aeeb59f80c7770b7c797aa3"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
+          "sha256": "664241cb997e4a9b1a5946170cede4ab7ffab5638b910e5b9543141a05c9fd27"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/epub/epubKeys.ts",
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/epub/epubKeys.ts",
           "sha256": "eb357591173e1d796f15d422306045d7cb05f244fc1155dcee75eb35830fea4c"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/epub/epubLoader.ts",
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/epub/epubLoader.ts",
           "sha256": "47a38b3a97de4c614a8b94b8b707cf4879909f7259cb35656add3ad1b90ab3d7"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/mediaKind.ts",
-          "sha256": "e07d47b66daa2bba48d9950a6d23c88ef9876f86ddc36dba1d482654ce04951e"
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
+          "sha256": "b31f874114fdcf93daae9ae43b7f2325bb25c457710cddcf2fed2f53d39471b8"
         },
         {
           "path": "apps/desktop/src/renderer/src/theme.ts",
