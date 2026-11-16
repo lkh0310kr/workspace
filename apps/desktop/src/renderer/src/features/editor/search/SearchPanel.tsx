@@ -14,7 +14,7 @@ import {
   type EditorSearchResult,
   type EditorReplaceOptions
 } from '@workspace/editor'
-import { acquireLocalEditorProvider } from './runtime/localEditorProvider'
+import { acquireLocalEditorProvider } from '../runtime/localEditorProvider'
 import { useFileContentSearch } from './useFileContentSearch'
 
 // VSCode-parity Find/Replace in Files, backed by the ripgrep IPC in

@@ -180,7 +180,7 @@
   cursor: default;
 }
 
-/* Find/Replace in Files (SearchPanel.tsx) — reuses .editor-file-tree's
+/* Find/Replace in Files (search/SearchPanel.tsx) — reuses .editor-file-tree's
    sidebar slot in place of TreeView, same flat/no-shadow language as
    .tree-view* above. */
 .search-panel {

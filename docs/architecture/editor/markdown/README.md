@@ -39,7 +39,7 @@ HTML iframe의 sandbox는 `allow-same-origin`이며 script 허용 flag는 없다
 
 ## 제목과 실제 파일 rename
 
-근거: [markdownTitle.ts](../../../../packages/editor/src/markdownTitle.ts), [Desktop EditorContent](../../../../apps/desktop/src/renderer/src/features/editor/EditorContent.tsx).
+근거: [markdownTitle.ts](../../../../packages/editor/src/markdownTitle.ts), [Desktop EditorContent](../../../../apps/desktop/src/renderer/src/features/editor/pane/EditorContent.tsx).
 
 - title은 path basename에서 `.md` 또는 `.markdown`을 제거한다. null은 `Untitled`. path의 backslash는 slash로 정규화한다.
 - 입력은 trim. 빈 값은 Desktop에서 편집 취소, slash/backslash 포함은 inline 오류와 focus 유지다. title 불변도 취소한다.

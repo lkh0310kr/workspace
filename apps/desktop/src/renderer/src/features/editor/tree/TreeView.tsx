@@ -8,15 +8,15 @@ import {
   type DragEvent,
   type RefObject
 } from 'react'
-import { revealItemInDir } from '../app-shell/nativeShell'
-import type { DirEntry } from './runtime/localFileSystem'
-import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
-import { returnRendererFocusBeforeSurfaceHidden } from '../../interaction/embeddedSurfaceFocus'
-import { finishPaneDrag } from '../pane-system/layout/layoutRef'
-import { classifyAssetType } from '../../../../shared/asset'
+import { revealItemInDir } from '../../app-shell/nativeShell'
+import type { DirEntry } from '../runtime/localFileSystem'
+import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
+import { returnRendererFocusBeforeSurfaceHidden } from '../../../interaction/embeddedSurfaceFocus'
+import { finishPaneDrag } from '../../pane-system/layout/layoutRef'
+import { classifyAssetType } from '../../../../../shared/asset'
 import { ContextMenu, type ContextMenuItem } from '@renderer/adapters/ui'
 import type { AnchorRect } from '@renderer/adapters/ui'
-import { onWorkspaceDismissPortals } from '../../interaction/workspacePortalDismiss'
+import { onWorkspaceDismissPortals } from '../../../interaction/workspacePortalDismiss'
 import {
   editorTreeAncestorDirPaths,
   loadEditorTreeState,
@@ -50,7 +50,7 @@ import {
   type EditorTreeProjection,
   type EditorTreeViewItem
 } from '@workspace/editor'
-import { acquireLocalEditorProvider } from './runtime/localEditorProvider'
+import { acquireLocalEditorProvider } from '../runtime/localEditorProvider'
 
 interface Props {
   tabId: number

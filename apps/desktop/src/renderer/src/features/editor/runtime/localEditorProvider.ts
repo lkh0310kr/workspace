@@ -44,7 +44,7 @@ let nextQuickOpenRequestId = 0
 
 function getQuickOpenWorker(): Worker {
   if (quickOpenWorker) return quickOpenWorker
-  const worker = new Worker(new URL('./quickOpenSearch.worker.ts', import.meta.url), {
+  const worker = new Worker(new URL('../search/runtime/quickOpenSearch.worker.ts', import.meta.url), {
     type: 'module'
   })
   worker.addEventListener('message', (event: MessageEvent<QuickOpenWorkerResponse>) => {

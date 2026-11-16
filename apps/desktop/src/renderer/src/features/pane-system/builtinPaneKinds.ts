@@ -1,8 +1,8 @@
 import { registerPaneKind } from './paneKindRegistry'
 import { terminalPaneKind } from '@renderer/adapters/terminal/paneKind'
 import { browserPaneKind } from '@renderer/adapters/browser/paneKind'
-import { codePaneKind, markdownPaneKind } from '../editor/EditorPaneKinds'
-import { viewerPaneKind } from '../editor/ViewerPaneKind'
+import { codePaneKind, markdownPaneKind } from '../editor/pane/EditorPaneKinds'
+import { viewerPaneKind } from '../editor/pane/ViewerPaneKind'
 
 let registered = false
 

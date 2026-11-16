@@ -54,12 +54,12 @@
       ],
       "sources": [
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/TreeView.tsx",
-          "sha256": "7ae3679c8e309da3462b6669f1fdecb5b567633e8cd6b36de44f715d2277c120"
+          "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
+          "sha256": "78a4588072a91e66d86c18adeeded668690fc0d58247778417acbb18f7f45b83"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx",
-          "sha256": "703830e37c9828d06a0962f9894c2a0ee78668ce4db515854dadbd4ed0e1239f"
+          "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.tsx",
+          "sha256": "747e883cb639a2a6a914f27a150a3666fe5a7efc1d17c39eda4968a79a46c57e"
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
@@ -67,10 +67,10 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts",
-          "sha256": "d5b2599f65f823519cf0460b5b138a8bd4cbf7f736050905d0e22ec1b182d2ca"
+          "sha256": "73f0ccff318b5f5ded5affe8a33b34c631a82e180d36b116b3c84d3413de01cc"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/runtime/quickOpenSearch.worker.ts",
+          "path": "apps/desktop/src/renderer/src/features/editor/search/runtime/quickOpenSearch.worker.ts",
           "sha256": "c8341a1eaca765704ab6413bba05099679dde00fa4b512b8ca41c71007c7464e"
         },
         {
@@ -86,8 +86,8 @@
           "sha256": "6e6508e0b01a7ad43bbbd970bb9b102605147cc41dc0f86d04b51aed260a9690"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/EditorContent.tsx",
-          "sha256": "339e6ad9dd51b98e019ba7ad3104e40e1e87fa2fd35e768d2472620099c1113e"
+          "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorContent.tsx",
+          "sha256": "5a650ac0540713441373f431178d5abf7c8901f55f8268df9f56dcdafed3f52f"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
@@ -106,12 +106,12 @@
           "sha256": "ad18a43e27659fdb5c8c169d7c0c1263dfc62521066172e8cda2904ad2f9af4d"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
-          "sha256": "9cc81336bc850c8ab743308cd4c990644ed2f701e504a5d41458b09a9b539bda"
+          "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorPaneKinds.tsx",
+          "sha256": "766ad2004e6063a32821ec62b98da71325e1bbfdc15b9e81e1cb6f28313b1138"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",
-          "sha256": "bd08b9e15c92c3cc43c7cf55ddc6b38d53dc01a5eab80084b8678bf2ac81e590"
+          "path": "apps/desktop/src/renderer/src/features/editor/pane/ViewerPaneKind.tsx",
+          "sha256": "655bb9edf1a110266057dd2a9e16410880c365ef5504f1d8242cd02a20cf21bd"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
@@ -314,19 +314,19 @@
           "sha256": "c6d45f49a0cc2395c8d3b90473da54087b74f3b51005125d8251d621c4f8728e"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/EditorSidebar.shortcut.test.ts",
+          "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.shortcut.test.ts",
           "sha256": "36cb0af9a745d4bbe4387b7394aefec817093a3c48e2a6e1ad44a51a8adcf8b6"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/TreeView.scroll.test.ts",
-          "sha256": "31dfea2682e24064255bdf0d4b5ff81e5e6c56694ce13296060703897f95511f"
+          "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.scroll.test.ts",
+          "sha256": "5e9a6071fce1cbc07e679733befcbec3abd3fda459735e76d2bfbaa6c3ed2ce9"
         },
         {
           "path": "packages/editor/src/tree/EditorTreePane.tsx",
           "sha256": "70c960f7d35c1bbdc15b842f2c312e7b44e9724c880bf7bc380f599e54186e40"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/EditorTreeIgnored.test.ts",
+          "path": "apps/desktop/src/renderer/src/features/editor/tree/EditorTreeIgnored.test.ts",
           "sha256": "a4610795f812863276cf4cd18347ee9ea7a77eef27265237e9458c3a24f8800b"
         },
         {
@@ -426,19 +426,19 @@
           "sha256": "4a881d90ffa96a0a87f2d3deb61b69b5c6c1a88eecbd79edbadb7593afed480f"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/EditorContent.tsx",
-          "sha256": "339e6ad9dd51b98e019ba7ad3104e40e1e87fa2fd35e768d2472620099c1113e"
+          "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorContent.tsx",
+          "sha256": "5a650ac0540713441373f431178d5abf7c8901f55f8268df9f56dcdafed3f52f"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
-          "sha256": "9cc81336bc850c8ab743308cd4c990644ed2f701e504a5d41458b09a9b539bda"
+          "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorPaneKinds.tsx",
+          "sha256": "766ad2004e6063a32821ec62b98da71325e1bbfdc15b9e81e1cb6f28313b1138"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneSidebarSlot.tsx",
-          "sha256": "b359a452431daa8e752adbfc0c9af30adc805b0f5a79250108715cc1e2965dac"
+          "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorPaneSidebarSlot.tsx",
+          "sha256": "f76ef0fe1a1057d3baba62e20a9f4f5b1ff87b08754f510ed177637701a2553e"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/paneTabKey.ts",
+          "path": "apps/desktop/src/renderer/src/features/editor/sidebar/paneTabKey.ts",
           "sha256": "c50a82d885f67a0dfc4d0928ff945385c73b73246ee34742b4b5e8c7db24b6a6"
         },
         {
@@ -483,7 +483,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts",
-          "sha256": "d5b2599f65f823519cf0460b5b138a8bd4cbf7f736050905d0e22ec1b182d2ca"
+          "sha256": "73f0ccff318b5f5ded5affe8a33b34c631a82e180d36b116b3c84d3413de01cc"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localFileSystem.ts",
@@ -494,16 +494,16 @@
           "sha256": "0e9b3425baa215880a321df5640b9ac6b419305e2e9b79f6c8aae03e0c8ecccc"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/TreeView.tsx",
-          "sha256": "7ae3679c8e309da3462b6669f1fdecb5b567633e8cd6b36de44f715d2277c120"
+          "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
+          "sha256": "78a4588072a91e66d86c18adeeded668690fc0d58247778417acbb18f7f45b83"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/usePaneGroupEditorSidebarState.ts",
+          "path": "apps/desktop/src/renderer/src/features/editor/sidebar/usePaneGroupEditorSidebarState.ts",
           "sha256": "f50bd755359c1444f7edcae70b67c5984388b0f891ec6486c9a777137250b622"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",
-          "sha256": "bd08b9e15c92c3cc43c7cf55ddc6b38d53dc01a5eab80084b8678bf2ac81e590"
+          "path": "apps/desktop/src/renderer/src/features/editor/pane/ViewerPaneKind.tsx",
+          "sha256": "655bb9edf1a110266057dd2a9e16410880c365ef5504f1d8242cd02a20cf21bd"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
@@ -605,15 +605,15 @@
           "sha256": "db6d7c8ad29df80ec574592eb0e879a057cd0fceed51c34c6ca69e81211ba090"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/SearchPanel.focus.test.ts",
-          "sha256": "0c7f644c3c2809f3bf79e10b507d34fc53e2b19aa6747a2652c5744b51cca405"
+          "path": "apps/desktop/src/renderer/src/features/editor/search/SearchPanel.focus.test.ts",
+          "sha256": "35a673c3179003274712db71afc406ce65f5ccd50dc99bc7a4dd08c4ad4b4570"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/SearchPanel.tsx",
-          "sha256": "05f7f4c0cfabb233853f08bedc927b2f68f90431d543a68ebfd175df9c08584c"
+          "path": "apps/desktop/src/renderer/src/features/editor/search/SearchPanel.tsx",
+          "sha256": "6a3eb5bfd170608713b41ef882e78f86ebddcfba4beb4b2b9ecb764fd25c7366"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/useFileContentSearch.ts",
+          "path": "apps/desktop/src/renderer/src/features/editor/search/useFileContentSearch.ts",
           "sha256": "b978050c141e09393400b29afb00ce9de6d3917ae1f8c085197271b75c3c6b81"
         },
         {
@@ -805,7 +805,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/builtinPaneKinds.ts",
-          "sha256": "97a6b5c665678f45daba70a2ddab9d538566637be46ca351fdde43bbf4b8aa07"
+          "sha256": "3a9b055bbc0dcacdf88538443cbb2dc2733c6e51cecb99ead1bec308522b9806"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/interaction/dragSession.test.ts",

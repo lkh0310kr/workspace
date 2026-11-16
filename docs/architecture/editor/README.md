@@ -21,11 +21,11 @@
 
 `packages/editor`는 React와 CodeMirror로 만든 UI/순수 규칙을 소유한다. 앱의 Electron API, 인증, Yjs, 파일 저장소를 직접 import하지 않는다. `packages/editor/package.json`의 export는 기본 API, `EditorMarkdownSurface`, `code-mirror`, `tree` 기능 진입점과 CSS 진입점을 제공한다. 실제 의존성 버전과 해석 결과는 package manifest와 lockfile을 사용한다.
 
-`apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts`가 Electron renderer shim을 통해 로컬 파일시스템을 연결한다. `features/editor/EditorContent.tsx`는 저장·자동 저장·제목 변경·활성 editor·pane 콜백을 조정한다. Provider별 저장 정책을 공통 surface에 포함하지 않는다.
+`apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts`가 Electron renderer shim을 통해 로컬 파일시스템을 연결한다. `features/editor/pane/EditorContent.tsx`는 저장·자동 저장·제목 변경·활성 editor·pane 콜백을 조정한다. Provider별 저장 정책을 공통 surface에 포함하지 않는다.
 
 ## Pane 입출력
 
-`features/editor/EditorPaneKinds.tsx`의 `markdown`과 `code`는 모두 `EditorContent`를 렌더링한다. 공통 입력은 workspace `tabId`, `rootPath`, 상대 `filePath | null`, `kind`, `zoom`, 선택적 `jumpToLine`이다. 출력은 `onOpenFile(path, kind)`, `onAssignPath(path)`, `onDirtyChange`, `onJumpConsumed`다. Editor file tree sidebar는 PaneGroup이 editor 옆에 배치하며 editor content가 소유하지 않는다.
+`features/editor/pane/EditorPaneKinds.tsx`의 `markdown`과 `code`는 모두 `EditorContent`를 렌더링한다. 공통 입력은 workspace `tabId`, `rootPath`, 상대 `filePath | null`, `kind`, `zoom`, 선택적 `jumpToLine`이다. 출력은 `onOpenFile(path, kind)`, `onAssignPath(path)`, `onDirtyChange`, `onJumpConsumed`다. Editor file tree sidebar는 PaneGroup이 editor 옆에 배치하며 editor content가 소유하지 않는다.
 
 - 새 Editor picker는 `markdown`, `filePath: null`을 만든다. `code`는 기존 파일을 여는 내부 kind이며 picker 항목이 없다.
 - 파일 탭 라벨은 basename, 경로가 없으면 `New tab`이다. Markdown 본문 제목의 기본값 `Untitled`와 다르다.
@@ -49,4 +49,4 @@
 
 ## 근거
 
-[공개 API](../../../packages/editor/src/index.ts), [pane 등록](../../../apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx), [Desktop host](../../../apps/desktop/src/renderer/src/features/editor/EditorContent.tsx), [dirty registry](../../../packages/editor/src/documentDirtyRegistry.ts). 규칙별 상세 근거와 검증 항목은 하위 스펙에 둔다.
+[공개 API](../../../packages/editor/src/index.ts), [pane 등록](../../../apps/desktop/src/renderer/src/features/editor/pane/EditorPaneKinds.tsx), [Desktop host](../../../apps/desktop/src/renderer/src/features/editor/pane/EditorContent.tsx), [dirty registry](../../../packages/editor/src/documentDirtyRegistry.ts). 규칙별 상세 근거와 검증 항목은 하위 스펙에 둔다.

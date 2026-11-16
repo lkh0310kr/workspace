@@ -1,5 +1,5 @@
 import { useLayoutEffect } from 'react'
-import type { PaneSidebarRenderContext } from '../pane-system/paneKindRegistry'
+import type { PaneSidebarRenderContext } from '../../pane-system/paneKindRegistry'
 import { EditorSidebar } from './EditorSidebar'
 import { usePaneGroupEditorSidebarState } from './usePaneGroupEditorSidebarState'
 

@@ -1,13 +1,13 @@
-import './editor.css'
+import '../editor.css'
 import { EditorContent } from './EditorContent'
-import type { PaneKindDefinition, PaneRenderContext } from '../pane-system/paneKindRegistry'
-import { EditorPaneSidebarSlot } from './EditorPaneSidebarSlot'
+import type { PaneKindDefinition, PaneRenderContext } from '../../pane-system/paneKindRegistry'
+import { EditorPaneSidebarSlot } from '../sidebar/EditorPaneSidebarSlot'
 import {
   confirmEditorPaneItemClose,
   releaseEditorPaneItem,
   updateEditorPaneDirty
-} from './runtime/editorPaneLifecycle'
-import { openEditorFileInGroup } from './runtime/editorPaneActions'
+} from '../runtime/editorPaneLifecycle'
+import { openEditorFileInGroup } from '../runtime/editorPaneActions'
 
 function fileTabLabel(item: { filePath?: string | null }): string {
   const path = item.filePath

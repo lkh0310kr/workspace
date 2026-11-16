@@ -58,7 +58,7 @@ const { provider, otherProvider, release } = vi.hoisted(() => {
   }
 })
 
-vi.mock('./runtime/localEditorProvider', () => ({
+vi.mock('../runtime/localEditorProvider', () => ({
   acquireLocalEditorProvider: (tabId: number) => ({
     provider: tabId === 1 ? provider : otherProvider,
     release

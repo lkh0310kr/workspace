@@ -32,17 +32,17 @@ import {
   type EditorBreadcrumbEntry,
   type EditorDocumentSession
 } from '@workspace/editor'
-import { acquireLocalEditorProvider } from './runtime/localEditorProvider'
+import { acquireLocalEditorProvider } from '../runtime/localEditorProvider'
 import { LanguageDescription, indentUnit } from '@codemirror/language'
 import { languages as languageData } from '@codemirror/language-data'
-import { getStoredAutoSave, subscribeAutoSave } from './state/autosave'
-import { pastePlainTextCommand } from './runtime/editorPlainPaste'
+import { getStoredAutoSave, subscribeAutoSave } from '../state/autosave'
+import { pastePlainTextCommand } from '../runtime/editorPlainPaste'
 import {
   clearFocusedEditorView,
   getFocusedEditorView,
   setFocusedEditorView
-} from './runtime/activeEditorView'
-import type { TabKind } from '../pane-system/layout/paneTypes'
+} from '../runtime/activeEditorView'
+import type { TabKind } from '../../pane-system/layout/paneTypes'
 
 // The per-file content half of what used to be ui/EditorPane.tsx — tab strip,
 // multi-file routing, and the docked Editor sidebar live in PaneGroup.

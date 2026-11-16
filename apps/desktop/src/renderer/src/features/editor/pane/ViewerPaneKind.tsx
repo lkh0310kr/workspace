@@ -1,12 +1,12 @@
-import { FileViewerContent } from './viewers/FileViewerContent'
-import type { PaneKindDefinition } from '../pane-system/paneKindRegistry'
-import { EditorPaneSidebarSlot } from './EditorPaneSidebarSlot'
+import { FileViewerContent } from '../viewers/FileViewerContent'
+import type { PaneKindDefinition } from '../../pane-system/paneKindRegistry'
+import { EditorPaneSidebarSlot } from '../sidebar/EditorPaneSidebarSlot'
 import {
   confirmEditorPaneItemClose,
   releaseEditorPaneItem,
   updateEditorPaneDirty
-} from './runtime/editorPaneLifecycle'
-import { openEditorFileInGroup } from './runtime/editorPaneActions'
+} from '../runtime/editorPaneLifecycle'
+import { openEditorFileInGroup } from '../runtime/editorPaneActions'
 
 export const viewerPaneKind: PaneKindDefinition = {
   kind: 'viewer',
