@@ -1,3 +1,0 @@
-# Layout 상태 소유권
-
-현재 기준은 app scope의 [Workspace와 pane layout 계약](../../../../../../docs/architecture/workspace/layout/README.md)이다. model registry, persisted config, activation revision, focus와 Editor tree 상태의 소유권을 해당 문서에서 관리한다.

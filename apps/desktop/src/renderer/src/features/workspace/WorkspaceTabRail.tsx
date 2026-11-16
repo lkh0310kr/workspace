@@ -22,8 +22,7 @@ import { switchToHome, switchToWorkspaceTab } from '../../workspaceNavigation'
 import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
 import { WorkspaceTabStatusIndicator } from './WorkspaceTabStatusIndicator'
 import { computeWorkspaceTabActivityStatus } from './useWorkspaceTabActivityStatus'
-import { useAgentStatusStore } from '../../store/agentStatusStore'
-import { useRuntimeTerminalTitlesStore } from '../../store/runtimeTerminalTitlesStore'
+import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '../terminal'
 import { WorkbenchIcon } from '../../components/WorkbenchIcon'
 
 interface Props {

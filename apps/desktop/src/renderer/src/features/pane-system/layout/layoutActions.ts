@@ -1,19 +1,12 @@
 import { Actions, DockLocation, Model, TabNode, TabSetNode } from 'flexlayout-react'
 import { layoutLog, layoutLogMutation, summarizeLayoutModel } from './layoutDebugLog'
 import { PaneGroupConfig, PaneTabItem, TabKind } from './paneTypes'
-import { getPaneKind, paneKindLabel } from '../panes/paneKindRegistry'
-import { useWorkspaceStore } from '../store/workspaceStore'
-import { findTabIdForModel } from '../store/workspaceLayoutModels'
+import { getPaneKind, paneKindLabel } from '../paneKindRegistry'
+import { useWorkspaceStore } from '../../../store/workspaceStore'
+import { findTabIdForModel } from '../../../store/workspaceLayoutModels'
 import { resolveSplitPaneMutationStrategy } from './layoutSplitPolicy'
 import { countLayoutTabs } from './layoutModelParse'
 import { findReplaceableEditorTab } from './paneTabSlots'
-import { destroyBrowserWebview, getPersistentBrowserWebview } from './browserWebviewRegistry'
-import { interactionCoordinator } from '../interaction/InteractionCoordinator'
-import {
-  clearEditorDocumentDirty,
-  confirmEditorDocumentCloseById,
-  discardEditorDocumentViewState
-} from '@workspace/editor'
 
 /** PaneGroup reads tabNode.getConfig() — bump revision only when the tab list
  * structure changes, not on activeTabId-only persists (that remounted
@@ -562,18 +555,11 @@ export async function closeTabInGroup(
   const idx = config.tabs.findIndex((t) => t.id === tabId)
   if (idx === -1) return config.activeTabId
   const closing = config.tabs[idx]
-  if (
-    !options.skipDirtyConfirm &&
-    !confirmEditorDocumentCloseById(tabId, (message) => window.confirm(message))
-  )
+  const paneKind = getPaneKind(closing.kind)
+  if (paneKind.beforeCloseItem && !(await paneKind.beforeCloseItem(closing, options))) {
     return config.activeTabId
-  discardEditorDocumentViewState(tabId)
-  clearEditorDocumentDirty(tabId)
-  if (closing?.kind === 'browser') {
-    const webview = getPersistentBrowserWebview(tabId)
-    if (webview) interactionCoordinator.unregisterWebview(webview)
-    destroyBrowserWebview(tabId)
   }
+  await paneKind.onItemRemoved?.(closing)
   const tabs = config.tabs.filter((t) => t.id !== tabId)
   if (tabs.length === 0) {
     if (countLayoutTabs(model) === 1) {

@@ -1,9 +1,10 @@
 import { removeBrowserPageViewport } from '@workspace/browser'
+import { registerRendererFocusReturnHandler } from '../../../interaction/embeddedSurfaceFocus'
 import {
   acquireWebviewsDragPassthrough,
   isWebviewDragPassthroughActive,
   registerWebviewDragPassthroughSurface
-} from './webviewDragPassthrough'
+} from '@renderer/features/browser/runtime/webviewDragPassthrough'
 
 // Why: shared coordination state for every live browser <webview>, kept
 // outside BrowserContent so a drag anywhere in the window (a flexlayout
@@ -287,6 +288,13 @@ export function moveFocusToRendererBeforeFocusedWebviewHidden(): void {
     }
   }
 }
+
+registerRendererFocusReturnHandler(() => {
+  for (const webview of webviewRegistry.values()) {
+    if (moveFocusToRendererIfWebviewOwnsFocus(webview)) return true
+  }
+  return false
+})
 
 export function moveFocusToRendererBeforeWebviewDetach(webview: Electron.WebviewTag): void {
   moveFocusToRendererIfWebviewOwnsFocus(webview)

@@ -1,5 +1,5 @@
 import { IJsonModel, Model } from 'flexlayout-react'
-import { salvageLayoutJson } from '../../../shared/layoutSalvage'
+import { salvageLayoutJson } from '../../../../../shared/layoutSalvage'
 
 function normalizeLayoutNode(node: unknown) {
   if (!node || typeof node !== 'object') return

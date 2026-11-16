@@ -1,6 +1,6 @@
 import { type Model, TabNode } from 'flexlayout-react'
-import { closeTabInGroup, updateTabInGroup } from '../layout/layoutActions'
-import type { PaneGroupConfig } from '../layout/paneTypes'
+import { closeTabInGroup, updateTabInGroup } from '../../pane-system/layout/layoutActions'
+import type { PaneGroupConfig } from '../../pane-system/layout/paneTypes'
 
 export function renamePathAcrossWorkspacePanes(
   model: Model,

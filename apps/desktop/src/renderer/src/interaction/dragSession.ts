@@ -1,5 +1,5 @@
 import { popOverlayBlock, pushOverlayBlock } from './overlayBarrier'
-import { layoutLog } from '../layout/layoutDebugLog'
+import { layoutLog } from '../features/pane-system/layout/layoutDebugLog'
 
 /** Overlay sources that hide native embeds during drag/resize. */
 export const DRAG_OVERLAY = {

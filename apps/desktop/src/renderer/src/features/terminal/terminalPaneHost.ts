@@ -1,5 +1,5 @@
 import type { TerminalPaneHost } from '@workspace/terminal'
-import { agentPaneKey, useAgentStatusStore } from '../../store/agentStatusStore'
+import { agentPaneKey, useAgentStatusStore } from '@renderer/features/terminal/state/agentStatusStore'
 import { registerTerminalAgentPane } from './runtime/terminalAgentPaneRegistry'
 import { writeClipboardText } from '../../electron'
 import { connectPanePty } from './runtime/connectPanePty'

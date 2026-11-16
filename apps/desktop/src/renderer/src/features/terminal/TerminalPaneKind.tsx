@@ -6,8 +6,8 @@ import {
 import { getAgentLabel } from '../../agent/agent-catalog'
 import { TerminalPane } from '@workspace/terminal'
 import { desktopTerminalPaneHost } from './terminalPaneHost'
-import type { PaneKindDefinition } from '../../panes/paneKindRegistry'
-import type { PaneTabItem } from '../../layout/paneTypes'
+import type { PaneKindDefinition } from '../pane-system/paneKindRegistry'
+import type { PaneTabItem } from '../pane-system/layout/paneTypes'
 
 function terminalTabLabel(item: PaneTabItem): string {
   const title = item.title?.trim()

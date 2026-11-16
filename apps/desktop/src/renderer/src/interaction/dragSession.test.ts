@@ -8,7 +8,7 @@ vi.mock('./overlayBarrier', () => ({
   popOverlayBlock
 }))
 
-vi.mock('../layout/layoutDebugLog', () => ({
+vi.mock('../features/pane-system/layout/layoutDebugLog', () => ({
   layoutLog: vi.fn()
 }))
 

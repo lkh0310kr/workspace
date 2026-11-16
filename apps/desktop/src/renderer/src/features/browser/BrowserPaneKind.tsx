@@ -5,8 +5,8 @@ import {
   browserTabUrlForNewTab,
   getBrowserTabLabel
 } from '@workspace/browser'
-import type { PaneKindDefinition } from '../../panes/paneKindRegistry'
-import { desktopBrowserPaneHost } from './runtime'
+import type { PaneKindDefinition } from '../pane-system/paneKindRegistry'
+import { closeBrowserTab, desktopBrowserPaneHost } from './runtime'
 
 export const browserPaneKind: PaneKindDefinition = {
   kind: 'browser',
@@ -18,6 +18,9 @@ export const browserPaneKind: PaneKindDefinition = {
   },
   tabLabel(item) {
     return getBrowserTabLabel(item)
+  },
+  onItemRemoved(item) {
+    closeBrowserTab(item.id)
   },
   render(ctx) {
     return (

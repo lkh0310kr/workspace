@@ -10,8 +10,8 @@ import {
 } from 'react'
 import { DirEntry, revealItemInDir } from '../../fileSystem'
 import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
-import { moveFocusToRendererBeforeFocusedWebviewHidden } from '../../layout/browserWebviewRegistry'
-import { finishPaneDrag } from '../../layout/layoutRef'
+import { returnRendererFocusBeforeSurfaceHidden } from '../../interaction/embeddedSurfaceFocus'
+import { finishPaneDrag } from '../pane-system/layout/layoutRef'
 import { classifyAssetType } from '../../../../shared/asset'
 import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
 import type { AnchorRect } from '../../components/Popover'
@@ -742,7 +742,7 @@ export function TreeView({
     if (treeSelection.focusedPath && deleted.includes(treeSelection.focusedPath)) {
       treeSelection.setFocusedPath(remaining[0] ?? null)
     }
-    moveFocusToRendererBeforeFocusedWebviewHidden()
+    returnRendererFocusBeforeSurfaceHidden()
     interactionCoordinator.reconcile('tree-delete-complete')
     finishPaneDrag()
     requestAnimationFrame(() => {

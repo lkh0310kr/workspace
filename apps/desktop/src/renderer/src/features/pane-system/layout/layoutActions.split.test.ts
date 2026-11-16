@@ -4,13 +4,13 @@ import type { PaneGroupConfig } from './paneTypes'
 
 const bumpLayoutRevision = vi.fn()
 
-vi.mock('../store/workspaceStore', () => ({
+vi.mock('../../../store/workspaceStore', () => ({
   useWorkspaceStore: {
     getState: () => ({ bumpLayoutRevision })
   }
 }))
 
-vi.mock('../store/workspaceLayoutModels', () => ({
+vi.mock('../../../store/workspaceLayoutModels', () => ({
   findTabIdForModel: () => 1
 }))
 
@@ -24,7 +24,7 @@ vi.mock('./layoutDebugLog', () => ({
 // pane content component — TerminalPane's xterm CSS import, CodeMirror,
 // etc.) just for layoutActions.ts's tabGroupNodeJson, which only needs a
 // display label.
-vi.mock('../panes/paneKindRegistry', () => ({
+vi.mock('../paneKindRegistry', () => ({
   getPaneKind: (kind: string) => ({
     kind,
     label: kind,

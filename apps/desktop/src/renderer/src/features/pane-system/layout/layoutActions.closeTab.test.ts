@@ -2,11 +2,11 @@ import { Actions, TabNode } from 'flexlayout-react'
 import { describe, expect, it, vi } from 'vitest'
 import type { PaneGroupConfig } from './paneTypes'
 
-vi.mock('../store/workspaceStore', () => ({
+vi.mock('../../../store/workspaceStore', () => ({
   useWorkspaceStore: { getState: () => ({ bumpLayoutRevision: vi.fn() }) }
 }))
 
-vi.mock('../store/workspaceLayoutModels', () => ({
+vi.mock('../../../store/workspaceLayoutModels', () => ({
   findTabIdForModel: () => 1
 }))
 
@@ -18,7 +18,7 @@ vi.mock('./layoutDebugLog', () => ({
 
 const terminalItem = { id: 'terminal-1', kind: 'terminal' as const, terminalId: 42 }
 
-vi.mock('../panes/paneKindRegistry', () => ({
+vi.mock('../paneKindRegistry', () => ({
   getPaneKind: (kind: string) => ({
     kind,
     label: kind,

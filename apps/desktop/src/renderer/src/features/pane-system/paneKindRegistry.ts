@@ -1,7 +1,7 @@
 import type { Model } from 'flexlayout-react'
 import type { ReactNode } from 'react'
-import type { ContextMenuItem } from '../components/ContextMenu'
-import type { PaneTabItem, TabKind } from '../layout/paneTypes'
+import type { ContextMenuItem } from '../../components/ContextMenu'
+import type { PaneTabItem, TabKind } from './layout/paneTypes'
 
 // The pane-kind plugin registry — collapses what used to be a hardcoded
 // `item.kind === "x"` switch repeated across PaneGroup.tsx (render),
@@ -103,6 +103,13 @@ export interface PaneKindDefinition {
     source?: Partial<PaneTabItem>,
     workspaceTabId?: number
   ) => PaneTabItem | Promise<PaneTabItem>
+  /** Kind-owned dirty confirmation before a tab is removed from layout. */
+  beforeCloseItem?: (
+    item: PaneTabItem,
+    options: { skipDirtyConfirm?: boolean }
+  ) => boolean | Promise<boolean>
+  /** Releases resources owned by this kind after close was accepted. */
+  onItemRemoved?: (item: PaneTabItem) => void | Promise<void>
   /** Shows the Editor tree/search sidebar while a tab of this kind is
    * active. */
   supportsEditorTree?: boolean

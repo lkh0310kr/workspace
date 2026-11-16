@@ -1,6 +1,6 @@
 # 상호작용·포커스·overlay 계약
 
-[InteractionCoordinator](../../../../apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts)는 renderer singleton이다. global 규칙을 구현하는 앱 내부 owner이며 active workspace, guest 등록, pane/chip 상태, overlay stack, portal Map, pending guest focus를 관리한다. Browser guest DOM 수명은 [Browser](../browser/lifecycle.md)가 소유한다.
+[InteractionCoordinator](../../../../apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts)는 renderer singleton이다. global 규칙을 구현하는 앱 내부 owner이며 active workspace, guest 등록, pane/chip 상태, overlay stack, portal Map, pending guest focus를 관리한다. Browser guest DOM 수명은 [Browser](../browser/lifecycle.md)가 소유한다. renderer를 공유하는 embedded surface의 focus 복귀는 [embeddedSurfaceFocus](../../../../apps/desktop/src/renderer/src/interaction/embeddedSurfaceFocus.ts)가 공통 hook으로 조정하고 Browser registry가 handler를 등록.
 
 ## 표시·입력 결정표
 
@@ -28,7 +28,7 @@ setActiveWorkspaceTab은 같은 ID면 기본 no-op, force 옵션이면 reconcile
 
 setBrowserPaneChipState는 같은 paneNodeId의 다른 browser chip 활성값을 내리고 대상 paneVisible/chipActive를 함께 반영한다. 보이거나 활성화되는 전이에서 pendingFocus를 설정하고 한 번 reconcile한다. 숨겨지면 해당 guest를 blur한다. explicit requestBrowserGuestFocus는 pending guest를 지정하고 reconcile한다.
 
-focus schedule은 guest별 epoch로 이전 요청을 무효화하고 animation frame에서 interactive 조건을 재확인한다. detach/unregister·상태 변경으로 불가능해진 guest에 무조건 focus하지 않는다. 실제 webview host/native guest/terminal focus relay는 [browserGuestFocus](../../../../apps/desktop/src/renderer/src/interaction/browserGuestFocus.ts)가 조정한다. Terminal 입력 전 releaseKeyboardFromBrowserGuests는 native blur IPC·active guest 해제·renderer focus 복귀를 수행한다.
+focus schedule은 guest별 epoch로 이전 요청을 무효화하고 animation frame에서 interactive 조건을 재확인한다. detach/unregister·상태 변경으로 불가능해진 guest에 무조건 focus하지 않는다. 실제 webview host/native guest/terminal focus relay는 [browserGuestFocus](../../../../apps/desktop/src/renderer/src/features/browser/runtime/browserGuestFocus.ts)가 조정한다. Terminal 입력 전 releaseKeyboardFromBrowserGuests는 native blur IPC·active guest 해제·renderer focus 복귀를 수행한다.
 
 ## 검색 단축키와 입력 focus
 

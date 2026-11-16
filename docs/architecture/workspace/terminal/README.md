@@ -45,3 +45,5 @@ host는 attach 요청의 현재 app environment를 신규 shell에 사용하고 
 TERM-01 snapshot/live 중복·순서, TERM-02 분할 한글/emoji bytes, TERM-03 parse/discard ACK와 watermark resume, TERM-04 pinned scroll hide/show/reconnect, TERM-05 paste/IME/mouse reporting, TERM-06 normal quit와 daemon exit의 차이를 수락 기준으로 둔다.
 
 자동 근거는 ptyDataMultiplexer, scheduler 계열, xterm-parse-barrier, reveal-fit/scroll, paste/shortcut 테스트다. test wrapper는 전체 suite를 실행하며 Vitest worker에 `--expose-gc`를 전달한다. GC 의존 queue-retention 검증은 일반 앱 테스트 runner에서도 동작하고 전체 terminal test suite에서 통과한다. 현재 문서는 전체 scheduler 분기·OS별 입력·실제 installed reconnect를 재생성/검증 완료한 상태가 아니다.
+
+Workspace가 읽는 Desktop Terminal 상태는 features/terminal/state/에 둔다. Workspace는 Terminal 기능의 공개 진입점에서 store API를 사용한다. layout 모델에서 Terminal pane 항목을 수집하는 helper는 features/terminal/runtime/collectTerminalPaneTabs.ts에 둔다.

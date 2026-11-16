@@ -1,6 +1,6 @@
 # Workspace와 pane layout 계약
 
-범위는 제품 여정 J-01과 J-02의 shell 부분이다. source는 [workspaceStore](../../../../apps/desktop/src/renderer/src/store/workspaceStore.ts), [model registry](../../../../apps/desktop/src/renderer/src/store/workspaceLayoutModels.ts), [layoutSession](../../../../apps/desktop/src/renderer/src/layout/layoutSession.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx), [pane system feature](../../../../apps/desktop/src/renderer/src/features/pane-system/index.ts), [layoutActions](../../../../apps/desktop/src/renderer/src/layout/layoutActions.ts)다.
+범위는 제품 여정 J-01과 J-02의 shell 부분이다. source는 [workspaceStore](../../../../apps/desktop/src/renderer/src/store/workspaceStore.ts), [model registry](../../../../apps/desktop/src/renderer/src/store/workspaceLayoutModels.ts), [layoutSession](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutSession.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx), [pane system feature](../../../../apps/desktop/src/renderer/src/features/pane-system/index.ts), [layoutActions](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutActions.ts)다.
 
 ## 상태 소유 책임
 
@@ -20,7 +20,7 @@ App component의 modelsRef나 PaneGroup의 별도 localActiveId는 현재 owner�
 
 ## 식별자와 설정
 
-workspace tab ID(number), flexlayout node ID, pane item ID(string), terminal ID(number)는 서로 다른 식별자다. pane node ID를 item ID에서 만들지 않는다. PaneGroupConfig는 선택적 schemaVersion, `tabs: PaneTabItem[]`, `activeTabId: string`, 선택적 zoom이다. kind는 terminal/browser/code/markdown/viewer다. 더 이상 지원하지 않는 이전 kind는 layout 복구 과정에서 제거된다. 전체 field는 [paneTypes](../../../../apps/desktop/src/renderer/src/layout/paneTypes.ts)가 기준이다.
+workspace tab ID(number), flexlayout node ID, pane item ID(string), terminal ID(number)는 서로 다른 식별자다. pane node ID를 item ID에서 만들지 않는다. PaneGroupConfig는 선택적 schemaVersion, `tabs: PaneTabItem[]`, `activeTabId: string`, 선택적 zoom이다. kind는 terminal/browser/code/markdown/viewer다. 더 이상 지원하지 않는 이전 kind는 layout 복구 과정에서 제거된다. 전체 field는 [paneTypes](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/paneTypes.ts)가 기준이다.
 
 readPaneGroupConfig는 config가 없으면 빈 tabs/active ID를 사용한다. active ID가 목록에 없으면 첫 item, 목록도 없으면 빈 문자열이다. activatePaneTab은 node가 TabNode이고 item이 존재할 때만 성공한다. 새 terminal 기본 pane은 빈 layout guard가 중복 ensure-inflight를 막아 생성한다.
 

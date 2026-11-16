@@ -3,8 +3,8 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import type { Model } from 'flexlayout-react'
 import type { TabInfo, WorkspaceState } from '../electron'
 import { setTabLayout } from '../electron'
-import { countLayoutTabs, modelFromLayoutJson } from '../layout/layoutModelParse'
-import { layoutLog, layoutLogModel } from '../layout/layoutDebugLog'
+import { countLayoutTabs, modelFromLayoutJson } from '../features/pane-system/layout/layoutModelParse'
+import { layoutLog, layoutLogModel } from '../features/pane-system/layout/layoutDebugLog'
 import {
   clearEnsureInflight as clearLayoutEnsureInflight,
   deleteLayoutModel,

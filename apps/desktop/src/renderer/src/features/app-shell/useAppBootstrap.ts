@@ -4,7 +4,7 @@ import {
   installBrowserDownloadRelay,
   installBrowserEmbedSupport,
   reloadFocusedBrowser
-} from '../../features/browser/runtime'
+} from '../browser/runtime'
 import { installRendererConsoleFileLogging } from '../../debug/consoleFileLog'
 import {
   onBrowserReloadShortcut,
@@ -17,9 +17,9 @@ import {
   captureTerminalSessionBuffers,
   notifyTerminalKeyboardPasteHandled,
   pasteClipboardIntoTerminal
-} from '../../features/terminal/runtime'
+} from '../terminal/runtime'
 import { installGlobalErrorLogging } from '../../errorLog'
-import { installTerminalAgentStatusBridge } from '../../features/terminal/runtime'
+import { installTerminalAgentStatusBridge } from '../terminal/runtime'
 
 /** One-time app-wide side effects (logging, browser embed, downloads). */
 export function useAppBootstrap(): void {

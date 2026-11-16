@@ -3,10 +3,10 @@ import {
   getBrowserWebviewByWebContentsId,
   installBrowserFocusTracking,
   installBrowserGuestFocusRelay
-} from '../../../layout/activeBrowserWebview'
+} from '@renderer/features/browser/runtime/activeBrowserWebview'
 import { onBrowserZoomShortcut } from '../../../electron'
 import { addBrowserZoomEventListener, zoomBrowserWebview } from '@workspace/browser'
-import { getBrowserFocusLogRing } from '../../../interaction/browserFocusDebugLog'
+import { getBrowserFocusLogRing } from '@renderer/features/browser/runtime/browserFocusDebugLog'
 import { reloadBrowserPageWebview } from '@workspace/browser'
 import { isDevInstrumentation } from '../../../debug/devTools'
 

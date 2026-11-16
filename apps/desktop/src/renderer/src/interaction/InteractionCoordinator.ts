@@ -3,14 +3,14 @@
  * Pane/tab visibility is owned by PaneGroup + BrowserContent — not duplicated here.
  */
 
-import { browserFocusLog, snapshotBrowserFocusState } from './browserFocusDebugLog'
+import { browserFocusLog, snapshotBrowserFocusState } from '@renderer/features/browser/runtime/browserFocusDebugLog'
 import { parkBrowserPageViewport } from '@workspace/browser'
-import { focusBrowserGuestWebview } from './browserGuestFocus'
+import { focusBrowserGuestWebview } from '@renderer/features/browser/runtime/browserGuestFocus'
 import {
   getActiveBrowserWebview,
   setActiveBrowserWebview,
   setGuestWebContentsFocus
-} from '../layout/activeBrowserWebview'
+} from '@renderer/features/browser/runtime/activeBrowserWebview'
 import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from './webviewPolicy'
 import { registerKeyboardSurfaceRelease } from './keyboardSurface'
 

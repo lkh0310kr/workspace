@@ -15,7 +15,7 @@ import {
   applyTitleIdleTransition,
   clearTitleDerivedOnAgentExit
 } from './title-derived-agent-status'
-import { useRuntimeTerminalTitlesStore } from '../../../store/runtimeTerminalTitlesStore'
+import { useRuntimeTerminalTitlesStore } from '@renderer/features/terminal/state/runtimeTerminalTitlesStore'
 import {
   markTerminalBracketedPasteInterrupted,
   observeTerminalBracketedPasteModeOutput

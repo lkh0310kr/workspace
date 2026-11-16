@@ -18,7 +18,7 @@ App scope의 J-09다. 터미널 안 agent의 실제 실행과 UI에 관측된 wo
 
 ## 시간과 상태
 
-[store](../../../../apps/desktop/src/renderer/src/store/agentStatusStore.ts)는 set 시 updatedAt을 갱신하되 payload state가 같으면 기존 stateStartedAt을 유지할 수 있다. prompt는 trim/기존값, agentType은 새값 또는 이전값이다. done retain은 실제 done entry가 있어야 한다. 단순 store 갱신 시간과 권위 있는 evidence 관찰 시각은 다르다.
+[store](../../../../apps/desktop/src/renderer/src/features/terminal/state/agentStatusStore.ts)는 set 시 updatedAt을 갱신하되 payload state가 같으면 기존 stateStartedAt을 유지할 수 있다. prompt는 trim/기존값, agentType은 새값 또는 이전값이다. done retain은 실제 done entry가 있어야 한다. 단순 store 갱신 시간과 권위 있는 evidence 관찰 시각은 다르다.
 
 [freshness](../../../../packages/terminal/src/agent/agent-status-freshness.ts)의 기본 stale 상수는 30분이다. authority 시각은 evidenceObservedAt 또는 updatedAt, mirrored evidence는 별도 시각을 우선할 수 있다. title-derived는 age 한도를 적용한다. explicit 상태는 restoredUnconfirmed면 거부하고 structuredHostOwned는 age와 다른 경로로 fresh가 될 수 있다. 모든 상태를 updatedAt 한 필드로 TTL 처리하지 않는다.
 

@@ -7,7 +7,7 @@ import {
   destroyBrowserWebview,
   getPersistentBrowserWebview,
   registerPersistentWebview
-} from '../../../layout/browserWebviewRegistry'
+} from '@renderer/features/browser/runtime/browserWebviewRegistry'
 
 export function setBrowserPageWebviewInputLock(
   webview: Electron.WebviewTag,

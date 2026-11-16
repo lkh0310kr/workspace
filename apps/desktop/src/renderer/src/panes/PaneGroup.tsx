@@ -11,23 +11,23 @@ import {
   openFileInPaneGroup,
   setActiveTabInGroup,
   updateTabInGroup
-} from '../layout/layoutActions'
+} from '../features/pane-system/layout/layoutActions'
 import {
   activatePaneTab,
   readPaneGroupConfig,
   resolveActivePaneTabId
-} from '../layout/layoutSession'
-import type { TabDragPayload } from '../layout/tabDrag'
-import { PaneTabItem, TabKind } from '../layout/paneTypes'
-import { allPaneKinds, getPaneKind, type PaneRenderContext } from './paneKindRegistry'
+} from '../features/pane-system/layout/layoutSession'
+import type { TabDragPayload } from '../features/pane-system/layout/tabDrag'
+import { PaneTabItem, TabKind } from '../features/pane-system/layout/paneTypes'
+import { allPaneKinds, getPaneKind, type PaneRenderContext } from '../features/pane-system/paneKindRegistry'
 import {
   useLayoutRevision,
   usePaneTabSelectionRevision
 } from '../features/pane-system/useLayoutRevision'
 import { useWorkspaceStore } from '../store/workspaceStore'
-import { countLayoutTabSets } from '../layout/layoutModelParse'
-import { focusPaneGroupTabSet } from '../layout/layoutRef'
-import { layoutLog } from '../layout/layoutDebugLog'
+import { countLayoutTabSets } from '../features/pane-system/layout/layoutModelParse'
+import { focusPaneGroupTabSet } from '../features/pane-system/layout/layoutRef'
+import { layoutLog } from '../features/pane-system/layout/layoutDebugLog'
 import { paneChipContentShown, paneChipContentStyle } from '../interaction/embedPolicy'
 import { usePaneVisibility } from './usePaneVisibility'
 import { usePaneGroupEditorSidebarState } from '../features/editor'

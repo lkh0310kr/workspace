@@ -11,13 +11,13 @@ import {
 const bumpLayoutRevision = vi.fn()
 const bumpPaneTabSelectionRevision = vi.fn()
 
-vi.mock('../store/workspaceStore', () => ({
+vi.mock('../../../store/workspaceStore', () => ({
   useWorkspaceStore: {
     getState: () => ({ bumpLayoutRevision, bumpPaneTabSelectionRevision })
   }
 }))
 
-vi.mock('../store/workspaceLayoutModels', () => ({
+vi.mock('../../../store/workspaceLayoutModels', () => ({
   findTabIdForModel: () => 1
 }))
 
@@ -29,7 +29,7 @@ vi.mock('./layoutDebugLog', () => ({
 
 let nextItemId = 0
 
-vi.mock('../panes/paneKindRegistry', () => ({
+vi.mock('../paneKindRegistry', () => ({
   getPaneKind: (kind: string) => ({
     kind,
     label: kind,

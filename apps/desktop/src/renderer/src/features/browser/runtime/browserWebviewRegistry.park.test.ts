@@ -22,7 +22,7 @@ describe('browser webview park/claim', () => {
       parkBrowserWebview,
       claimParkedBrowserWebview,
       getPersistentBrowserWebview
-    } = await import('./browserWebviewRegistry')
+    } = await import('@renderer/features/browser/runtime/browserWebviewRegistry')
 
     const webview = createWebview()
     const container = document.createElement('div')

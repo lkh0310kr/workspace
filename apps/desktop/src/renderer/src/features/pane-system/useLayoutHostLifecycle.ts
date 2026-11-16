@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import type { Model } from 'flexlayout-react'
 import type { TabInfo } from '../../electron'
-import { countLayoutTabs } from '../../layout/layoutModelParse'
-import { setActiveLayoutTab, redrawAllLayouts } from '../../layout/layoutRef'
+import { countLayoutTabs } from './layout/layoutModelParse'
+import { setActiveLayoutTab, redrawAllLayouts } from './layout/layoutRef'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 
 export function useLayoutHostLifecycle(activeTabId: number): void {

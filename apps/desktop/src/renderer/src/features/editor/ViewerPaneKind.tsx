@@ -1,5 +1,6 @@
 import { FileViewerContent } from '../../panes/FileViewerContent'
-import type { PaneKindDefinition } from '../../panes/paneKindRegistry'
+import type { PaneKindDefinition } from '../pane-system/paneKindRegistry'
+import { confirmEditorPaneItemClose, releaseEditorPaneItem } from './runtime/editorPaneLifecycle'
 
 export const viewerPaneKind: PaneKindDefinition = {
   kind: 'viewer',
@@ -8,6 +9,8 @@ export const viewerPaneKind: PaneKindDefinition = {
   label: 'Editor',
   icon: 'viewer',
   supportsEditorTree: true,
+  beforeCloseItem: confirmEditorPaneItemClose,
+  onItemRemoved: releaseEditorPaneItem,
   // FileViewerContent remains the format-specific renderer for media,
   // EPUB, images, PDF, and 3D/CAD assets. Files reach it by extension
   // through TreeView/Quick Open; it is not a separate picker destination.

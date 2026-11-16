@@ -1,6 +1,6 @@
 import type { Model, TabNode } from 'flexlayout-react'
-import type { PaneTabItem } from '../layout/paneTypes'
-import { readPaneGroupConfig } from '../layout/layoutSession'
+import type { PaneTabItem } from '../../pane-system/layout/paneTypes'
+import { readPaneGroupConfig } from '../../pane-system/layout/layoutSession'
 
 export function collectTerminalPaneTabs(model: Model): PaneTabItem[] {
   const terminals: PaneTabItem[] = []

@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { describe, expect, it, vi } from 'vitest'
-import { isWebviewHostFocused } from './browserGuestFocus'
+import { isWebviewHostFocused } from '@renderer/features/browser/runtime/browserGuestFocus'
 
 describe('browserGuestFocus', () => {
   it('detects when the webview host owns focus', () => {

@@ -3,15 +3,15 @@ import {
   getActiveBrowserWebview,
   registerBrowserWebview,
   setActiveBrowserWebview
-} from '../../../layout/activeBrowserWebview'
+} from '@renderer/features/browser/runtime/activeBrowserWebview'
 import {
   getPersistentBrowserWebview,
   moveFocusToRendererBeforeFocusedWebviewHidden
-} from '../../../layout/browserWebviewRegistry'
+} from '@renderer/features/browser/runtime/browserWebviewRegistry'
 import {
   focusBrowserGuestWebview,
   requestBrowserKeyboardSurface
-} from '../../../interaction/browserGuestFocus'
+} from '@renderer/features/browser/runtime/browserGuestFocus'
 import { onBrowserOpenNewTab } from '../../../electron'
 import { revealItemInDir } from '../../../electron'
 import { fetchWebviewNavHistory, goToWebviewHistoryIndex } from './browserNavHistory'
@@ -24,13 +24,13 @@ import { getBrowserDownloadsForWebview, subscribeBrowserDownloads } from './brow
 import {
   browserFocusLog,
   snapshotBrowserFocusState
-} from '../../../interaction/browserFocusDebugLog'
-import { isWebviewHostFocused } from '../../../interaction/browserGuestFocus'
-import { isBrowserGuestWebContentsFocused } from '../../../layout/activeBrowserWebview'
+} from '@renderer/features/browser/runtime/browserFocusDebugLog'
+import { isWebviewHostFocused } from '@renderer/features/browser/runtime/browserGuestFocus'
+import { isBrowserGuestWebContentsFocused } from '@renderer/features/browser/runtime/activeBrowserWebview'
 import {
   isWebviewDragPassthroughActive,
   registerWebviewDragPassthroughSurface
-} from '../../../layout/webviewDragPassthrough'
+} from '@renderer/features/browser/runtime/webviewDragPassthrough'
 import type { BrowserPaneHost, BrowserWebviewPort } from '@workspace/browser'
 export type { BrowserOpenNewTabEvent, BrowserPaneHost } from '@workspace/browser'
 

@@ -1,6 +1,6 @@
-import { browserFocusLog, snapshotBrowserFocusState } from './browserFocusDebugLog'
-import { setGuestWebContentsFocus } from '../layout/activeBrowserWebview'
-import { requestKeyboardSurface } from './keyboardSurface'
+import { browserFocusLog, snapshotBrowserFocusState } from '@renderer/features/browser/runtime/browserFocusDebugLog'
+import { setGuestWebContentsFocus } from '@renderer/features/browser/runtime/activeBrowserWebview'
+import { requestKeyboardSurface } from '../../../interaction/keyboardSurface'
 
 /** Request the shared keyboard handoff before Browser takes guest focus. */
 export function requestBrowserKeyboardSurface(reason: string): void {

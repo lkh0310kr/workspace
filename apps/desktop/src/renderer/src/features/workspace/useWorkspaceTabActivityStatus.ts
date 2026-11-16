@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import type { Model } from 'flexlayout-react'
-import { useAgentStatusStore } from '../../store/agentStatusStore'
-import { useRuntimeTerminalTitlesStore } from '../../store/runtimeTerminalTitlesStore'
+import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '../terminal'
 import { collectWorkspaceTabPaneSnapshots } from './status/collect-workspace-tab-pane-snapshots'
 import { selectWorkspaceAgentActivitySummary } from './status/workspace-agent-activity-summary'
 import { resolveWorkspaceTabStatus, type WorkspaceTabStatus } from './status/workspace-tab-status'
