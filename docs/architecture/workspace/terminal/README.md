@@ -40,4 +40,4 @@ host는 attach 요청의 현재 app environment를 신규 shell에 사용하고 
 
 TERM-01 snapshot/live 중복·순서, TERM-02 분할 한글/emoji bytes, TERM-03 parse/discard ACK와 watermark resume, TERM-04 pinned scroll hide/show/reconnect, TERM-05 paste/IME/mouse reporting, TERM-06 normal quit와 daemon exit의 차이를 수락 기준으로 둔다.
 
-자동 근거는 ptyDataMultiplexer, scheduler 계열, xterm-parse-barrier, reveal-fit/scroll, paste/shortcut 테스트다. test wrapper는 현재 인자를 전달하지 않으므로 targeted 실행은 app directory의 `npx vitest run <test paths>`를 사용한다. GC 의존 queue-retention과 기존 일부 close/shortcut 실패는 [검증 기록](../../../../docs/architecture/spec-driven-development.md)에 있다. 현재 문서는 전체 scheduler 분기·OS별 입력·실제 installed reconnect를 재생성/검증 완료한 상태가 아니다.
+자동 근거는 ptyDataMultiplexer, scheduler 계열, xterm-parse-barrier, reveal-fit/scroll, paste/shortcut 테스트다. test wrapper는 전체 suite를 실행하며 Vitest worker에 `--expose-gc`를 전달한다. GC 의존 queue-retention 검증은 일반 앱 테스트 runner에서도 동작하고 전체 terminal test suite에서 통과한다. 현재 문서는 전체 scheduler 분기·OS별 입력·실제 installed reconnect를 재생성/검증 완료한 상태가 아니다.

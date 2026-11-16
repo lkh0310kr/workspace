@@ -56,6 +56,7 @@ function isModifierRelease(input: Input): boolean {
   // Some focused web contents omit the physical key code for the modifier-up
   // event. Any key-up observed with the app shortcut modifier no longer held
   // is sufficient to clear the titlebar's temporary number hints.
+  if (input.code || input.key) return input.key === modifierName
   return modifierName === 'Meta' ? input.meta !== true : input.control !== true
 }
 
@@ -164,6 +165,7 @@ export function relayHostAppShortcuts(
   }
 
   if (isWorkspaceTabIndexInput(input)) {
+    event.preventDefault()
     options.send('shortcut:switch-workspace-tab-index', { index: Number(input.code.at(-1)) })
     return
   }
@@ -252,6 +254,7 @@ export function relayGuestWebviewShortcuts(
   }
 
   if (isWorkspaceTabIndexInput(input)) {
+    event.preventDefault()
     send('shortcut:switch-workspace-tab-index', { index: Number(input.code.at(-1) ?? input.key) })
     return
   }

@@ -36,6 +36,8 @@ focus schedule은 guest별 epoch로 이전 요청을 무효화하고 animation f
 
 Find in Files를 이미 열어 둔 상태에서 단축키를 다시 누르면 검색 input이 다시 focus된다. 입력 focus는 기존 query를 보존한다. Quick Open은 열리는 즉시 query input으로 focus를 이동해 첫 입력을 받는다. 키 입력·focus·표시 결과는 renderer의 긴 동기 검색/정렬 작업 때문에 멈추지 않아야 한다. Quick Open 이름 검색과 Desktop 파일 내용 검색의 provider/result 규칙은 [Editor 검색 스펙](../../editor/search.md)을 따른다.
 
+`Cmd/Ctrl+1..9`는 workspace tab index shortcut이며 Terminal이 focus를 소유해도 앱이 처리하고 native key event를 소비한다. Meta/Control release 표시는 해당 modifier key의 key-up에서만 지우며, modifier가 눌린 동안 다른 키를 놓는 것은 release로 취급하지 않는다. 이 입력 경계는 `relayAppShortcuts.test.ts`의 key-up 및 Terminal focus 시나리오로 검증한다.
+
 단축키 acceptance: INT-07 `Cmd/Ctrl+P`를 host renderer 또는 webview guest에 focus한 채 누르면 Quick Open이 열린다. 단 Terminal이 focus를 소유하면 이 단축키는 소비되고 Quick Open은 열리지 않는다. INT-08 같은 두 입력 경계에서 `Cmd/Ctrl+Shift+F`를 누르면 Search panel이 열리고 query input이 focus된다. Terminal focus에서는 검색 panel을 열지 않는다. INT-09 이미 열린 Search panel에서 다시 실행하면 query 유지 상태로 input이 재-focus된다. INT-10 검색어를 연속 입력할 때 화면 입력이 멈추지 않고 최신 검색 결과만 보인다. shortcut relay의 단위 테스트와 실제 packaged Electron/webview 확인을 구분해 기록한다.
 
 ## 관찰과 재구현 시나리오

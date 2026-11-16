@@ -325,7 +325,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/markdownLivePreview.test.ts",
-          "sha256": "370f0bf311799e7f55c141e4ead9715c0ce217b3f63a25d26b8dd63dfdb72c6a"
+          "sha256": "07b0c2a158a1b87dd800bc3afb75a41a649f4ff00e3c9626890f5656728a70ca"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.shortcut.test.ts",
@@ -333,7 +333,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/TreeView.scroll.test.ts",
-          "sha256": "576957feddf355198ac892444c3b36431b134b1d918f9b7429a1b7aea52753e0"
+          "sha256": "6e51841c689f64e7ecb2c2e89be5596b9572d958cabe73cbf615c8baab5077cd"
         },
         {
           "path": "packages/editor/src/EditorTreePane.tsx",
@@ -406,6 +406,10 @@
         {
           "path": "packages/pkms-google-drive/src/workspace.module.css",
           "sha256": "762ee89942ff5ca47fd9ab4a2e0af663d7717da87bb08f1e19bbd19785a0d8cb"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/codeEditor.test.ts",
+          "sha256": "da529a75e969630fe55d12b59f0b245ed39ca5ed793c21caad2b471f18119060"
         }
       ]
     },
@@ -611,7 +615,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/shortcuts/relayAppShortcuts.ts",
-          "sha256": "29feede6cb67403e1f2cf4a35b8fcd05f69832163e0de31cfe0741a87a26c8c7"
+          "sha256": "51e9e7dc0689d6363b382d6d105fe1560d88ec17f37cd46cec97323e0e98360b"
         },
         {
           "path": "apps/workspace-app/src/main/shortcuts/relayAppShortcuts.test.ts",
@@ -882,6 +886,18 @@
         {
           "path": "apps/workspace-app/src/renderer/src/store/workspaceStore.ts",
           "sha256": "40bb45ce45f476399a81ce0b28b28cf0ca9c0a82bea061301c0fc49af0553e29"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/layout/layoutActions.closeTab.test.ts",
+          "sha256": "0ea71e8d9e4141a641cad0b381b412e1b4e510b4249061bddc2eab8fffec8cd6"
+        },
+        {
+          "path": "apps/workspace-app/vitest.config.ts",
+          "sha256": "98ebece93be2661ae8016d33170e7bfff1cb197602c3765de12d0ed4ac9e42fd"
+        },
+        {
+          "path": "apps/workspace-app/scripts/run-vitest.mjs",
+          "sha256": "dd1e49997dff0b5d4a52bac8fa9f88a04b37f33c7447afd46e1fe9747b5a7bc3"
         }
       ]
     },
@@ -919,6 +935,10 @@
         {
           "path": "apps/workspace-app/src/renderer/src/terminal/ptyTransport.ts",
           "sha256": "34c0b0d530268983e492bfb1637582a1883ab022ae8fcfdbd524a9ce18313823"
+        },
+        {
+          "path": "apps/workspace-app/src/renderer/src/lib/pane-manager/pane-terminal-output-scheduler-queue-retention.test.ts",
+          "sha256": "152ca04ac1b69424842577c4d491a77ed29b63a7ecf15762acf12b45a6de042b"
         }
       ]
     },

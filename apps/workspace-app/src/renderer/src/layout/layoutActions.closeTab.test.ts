@@ -55,7 +55,7 @@ function makeModel(panes: ReturnType<typeof makePaneNode>[]) {
 
 describe('closeActivePaneTab', () => {
   it('closes the tab in the store-tracked focused tabset, not only flexlayout active tabset', async () => {
-    const tabItem = { id: 'md-1', kind: 'markdown' as const }
+    const tabItem = { id: 'focused-close-test-md', kind: 'markdown' as const }
     const config: PaneGroupConfig = { tabs: [tabItem], activeTabId: tabItem.id }
     const paneNode = makePaneNode('pane-b', config)
     const focusedTabset = {
@@ -77,6 +77,7 @@ describe('closeActivePaneTab', () => {
       getActiveTabset: () => staleTabset,
       doAction: (action: { type: string }) => {
         actions.push(action.type)
+        if (action.type === Actions.UPDATE_NODE_ATTRIBUTES) config.tabs = []
       }
     }
 

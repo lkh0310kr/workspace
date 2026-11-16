@@ -20,17 +20,17 @@
 
 ## 모듈별 커버리지
 
-| 영역                                                 | 현재 문서                                                                      | 재생성 상세 범위/남은 범위                                                                    |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Shared Editor                                        | [Editor 기능 문서](./editor/README.md)                   | 공개 API·provider·tree·Markdown·code·검색·asset 연결. 전체 decoration/CSS·시각 fixture는 잔여 |
+| 영역                                                 | 현재 문서                                                    | 재생성 상세 범위/남은 범위                                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Shared Editor                                        | [Editor 기능 문서](./editor/README.md)                       | 공개 API·provider·tree·Markdown·code·검색·asset 연결. 전체 decoration/CSS·시각 fixture는 잔여 |
 | Desktop editor/provider                              | [workspace-app editor docs](./workspace/editor/providers.md) | identity·저장·충돌·파일 작업; 수동 host acceptance 일부 잔여                                  |
 | PKMS client/editor                                   | [pkms-client docs](./pkms/client/README.md)                  | account·cache·document session·Realtime·platform bridge; 서버/배포 acceptance 별도            |
 | Browser                                              | [workspace-app browser docs](./workspace/browser/README.md)  | lifecycle·navigation·focus·session·IPC·history·zoom; native focus/로그인 검증 잔여            |
 | Desktop shell/layout/interaction/IPC/persistence     | [Desktop 앱 문서 색인](./workspace/README.md)                | 주요 소유자·전이·데이터 흐름 초안; 전체 action/route fixture·CI 검증 잔여                     |
 | Desktop terminal                                     | [Terminal 문서](./workspace/terminal/README.md)              | daemon→renderer/replay/ACK·buffer 경로; IME/OS별 실기 수락 잔여                               |
 | Desktop viewer/Home/agents/settings/usage/operations | [모듈별 문서 색인](./workspace/README.md)                    | 라우팅·상태·운영 책임 초안; 포맷별 완전 상세와 native/provider acceptance 잔여                |
-| PKMS Web/server, Workspace server, iOS               | [앱 scope 색인](../../docs/README.md)                                          | app별 route·auth·session·ownership 초안; 배포 DB·OAuth·iOS 실기 acceptance 잔여               |
-| PKMS protocol/core                                   | [package scope 색인](../../docs/README.md)                                     | DTO·Realtime·CRDT·UTF-16·FFI 경계; HTTP 전체 자동 계약 및 clean-room 재생성 잔여              |
+| PKMS Web/server, Workspace server, iOS               | [앱 scope 색인](../../docs/README.md)                        | app별 route·auth·session·ownership 초안; 배포 DB·OAuth·iOS 실기 acceptance 잔여               |
+| PKMS protocol/core                                   | [package scope 색인](../../docs/README.md)                   | DTO·Realtime·CRDT·UTF-16·FFI 경계; HTTP 전체 자동 계약 및 clean-room 재생성 잔여              |
 
 현재 문서와 소스의 대응은 spec-index의 modules에 기록한다. 문서 범위가 늘면 이 표와 index를 함께 갱신한다. archive/models와 archive/scripts는 활성 제품 범위가 아니다.
 
@@ -71,6 +71,6 @@ refresh는 소스를 생성하거나 스펙 본문을 고치지 않는다. basel
 
 2026-11-11 기준으로 등록된 4개 모듈, 문서 15개, 소스 digest 106개와 로컬 링크 검사가 통과했다. 검사 스크립트 자체도 임시 fixture에서 정상 baseline, source drift 실패, refresh 후 성공, 깨진 링크 실패를 확인했다.
 
-위 직접 Vitest 명령은 15개 test file, 61개 test가 통과했다. 앞서 npm test wrapper로 실행된 전체 suite는 108개 file 통과/3개 file 실패, 623개 test 통과/6개 실패/2개 skip이었다. 실패는 relayAppShortcuts 2개, layoutActions.closeTab 1개, global.gc 미노출에 따른 terminal queue-retention 3개다. 이 문서 변경에서는 해당 제품 코드나 테스트 환경을 수정하지 않았다.
+2026-11-16 전체 suite 실패 원인을 수정했다. Modifier release는 실제 modifier key-up에서만 처리하고, `Cmd/Ctrl+1..9`는 Terminal focus에서도 기본 동작을 막고 workspace tab 전환을 relay한다. `closeActivePaneTab` 테스트 mock은 FlexLayout action 후 모델 상태를 반영한다. Vitest worker에는 `--expose-gc`를 전달하고, test config에서 React/CodeMirror dependency 인스턴스를 일관되게 resolve한다. CodeMirror 테스트는 node_modules 경로를 직접 import하지 않고 package import를 사용한다. TreeView mock도 shared create-actions export를 제공한다. `npm test`: 169개 파일 통과, 812 tests passed, 2 skipped.
 
 문서 검사와 기존 테스트 통과는 현재 코드의 일부 근거다. 문서로부터 clean-room 재생성, UI pixel 비교, 실제 OS focus·로그인·download 검증을 완료했다는 의미는 아니다.

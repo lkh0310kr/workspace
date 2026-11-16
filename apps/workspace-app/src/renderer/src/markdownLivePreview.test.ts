@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
-import { EditorView } from '../../../../../node_modules/@codemirror/view'
-import { EditorState } from '../../../../../node_modules/@codemirror/state'
-import { syntaxTree } from '../../../../../node_modules/@codemirror/language'
+import { EditorView } from '@codemirror/view'
+import { EditorState } from '@codemirror/state'
+import { syntaxTree } from '@codemirror/language'
 import { describe, expect, it, vi } from 'vitest'
 import { createMarkdownEditorExtensions } from '../../../../../packages/editor/src/markdownEditor'
 

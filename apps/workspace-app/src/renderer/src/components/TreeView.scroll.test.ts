@@ -41,6 +41,7 @@ vi.mock('@workspace/editor', async () => {
   return {
     EDITOR_TREE_DRAG_MIME_TYPE: 'application/x-workspace-editor-tree-paths',
     EDITOR_TREE_ROW_HEIGHT: 27,
+    EditorTreeCreateActions: () => null,
     EditorTreeToolbar: ({ title, actions }: { title: ReactNode; actions?: ReactNode }) =>
       React.createElement('div', null, title, actions),
     EditorTreePane: ({

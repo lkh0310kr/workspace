@@ -1,20 +1,12 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from 'vitest'
-import {
-  EditorView,
-  highlightActiveLineGutter,
-  lineNumbers
-} from '../../../../../node_modules/@codemirror/view'
+import { EditorView, highlightActiveLineGutter, lineNumbers } from '@codemirror/view'
 import { CompletionContext } from '@codemirror/autocomplete'
 import type { Completion } from '@codemirror/autocomplete'
-import {
-  LanguageDescription,
-  highlightingFor,
-  syntaxTree
-} from '../../../../../node_modules/@codemirror/language'
-import { Compartment, EditorState } from '../../../../../node_modules/@codemirror/state'
-import { tags } from '../../../../../node_modules/@lezer/highlight'
-import { languages } from '../../../../../node_modules/@codemirror/language-data'
+import { LanguageDescription, highlightingFor, syntaxTree } from '@codemirror/language'
+import { Compartment, EditorState } from '@codemirror/state'
+import { tags } from '@lezer/highlight'
+import { languages } from '@codemirror/language-data'
 import {
   collectDocumentWords,
   createCodeEditorExtensions,
