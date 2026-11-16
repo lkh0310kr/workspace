@@ -4,7 +4,7 @@ import {
   interactionCoordinator,
   type InteractionSnapshot
 } from '../../interaction/InteractionCoordinator'
-import { fullInteractionDiagnostic, getDebugRing } from '../../interaction/interactionDebugLog'
+import { fullInteractionDiagnostic, getDebugRing } from './interactionDebugLog'
 import { collectBrowserWebviews } from '@renderer/adapters/browser/runtime/browserInteractionDiagnostics'
 
 function InteractionDebugPanelInner() {
