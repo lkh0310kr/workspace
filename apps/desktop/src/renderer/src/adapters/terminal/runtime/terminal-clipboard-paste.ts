@@ -8,7 +8,7 @@ import type { TuiAgent } from '@workspace/terminal/agent'
 import {
   readClipboardText,
   saveClipboardImageAsTempFile
-} from '../../../features/app-shell/nativeClipboard'
+} from '../../platform/nativeClipboard'
 
 export type { TerminalClipboardPasteResult } from '@workspace/terminal'
 

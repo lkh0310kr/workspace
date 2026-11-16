@@ -55,7 +55,7 @@
       "sources": [
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "78a4588072a91e66d86c18adeeded668690fc0d58247778417acbb18f7f45b83"
+          "sha256": "4be65c8024a4a8f43d0eae808f180399a67854908b7d61fe8605b0f6369c0512"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.tsx",
@@ -471,7 +471,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorPlainPaste.ts",
-          "sha256": "6a22ba6046d4d651f6314f185d052daf83faac8364ad365a564cb6097d6cde2b"
+          "sha256": "eb989788806bc212878c5d2a21bf5e6aa5eec2753509a1c34cdcf37c948405f3"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorShortcuts.ts",
@@ -495,7 +495,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "78a4588072a91e66d86c18adeeded668690fc0d58247778417acbb18f7f45b83"
+          "sha256": "4be65c8024a4a8f43d0eae808f180399a67854908b7d61fe8605b0f6369c0512"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/usePaneGroupEditorSidebarState.ts",
@@ -618,7 +618,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserPaneHost.ts",
-          "sha256": "8fd67b17abb58d360dc68f93c6b5e5d8ca63fe429f2b74528210bf81a81bd091"
+          "sha256": "fd21105e7a2a8416d4882d6542978c93107283c3abac985d34a9be1613c78691"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserTabLifecycle.ts",
@@ -784,11 +784,11 @@
           "sha256": "a55d1cccac44d6be554885390999697659fc20ae2780056de4e83626c0656538"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/app-shell/nativeClipboard.ts",
+          "path": "apps/desktop/src/renderer/src/adapters/platform/nativeClipboard.ts",
           "sha256": "cdfc8e38a3d63a16f7310155d416cf9d3d55d6a6cb7d82e047bd7bd777ed5d58"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/app-shell/nativeShell.ts",
+          "path": "apps/desktop/src/renderer/src/adapters/platform/nativeShell.ts",
           "sha256": "21173636f60869eac5501e258625edc6b8390cbfe987ac2d4a60ff1b1d07e7ba"
         },
         {
@@ -1050,7 +1050,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/terminalPaneHost.ts",
-          "sha256": "8d8b5c6e6c50f28ed1953f8061899b340840f3ad46062b2ca89e4a13ad458466"
+          "sha256": "3f74900ab40f3ba052f8bab8b80aaae7a994123b6cbdc5131944beb9adba50f5"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/runtime/ptyDataMultiplexer.ts",

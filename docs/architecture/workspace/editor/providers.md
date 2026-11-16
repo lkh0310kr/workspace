@@ -6,7 +6,7 @@
 
 근거: [localEditorProvider.ts](../../../../apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts), [localFileSystem.ts](../../../../apps/desktop/src/renderer/src/features/editor/runtime/localFileSystem.ts).
 
-로컬 filesystem IPC adapter는 Editor runtime 내부에 두고, `@workspace/editor`는 provider 계약만 소유한다. OS 파일 관리자에서 경로를 여는 동작은 Editor와 Browser가 함께 쓰는 [nativeShell](../../../../apps/desktop/src/renderer/src/features/app-shell/nativeShell.ts) capability를 사용한다.
+로컬 filesystem IPC adapter는 Editor runtime 내부에 두고, `@workspace/editor`는 provider 계약만 소유한다. OS 파일 관리자에서 경로를 여는 동작은 Editor와 Browser가 함께 쓰는 [nativeShell](../../../../apps/desktop/src/renderer/src/adapters/platform/nativeShell.ts) capability를 사용한다.
 
 - provider ID는 `workspace:${tabId}`. module Map에서 tabId별 provider와 참조 수를 보관한다. acquire마다 참조 증가, release는 한 번만 유효하며 0에서 watcher·listeners·sessions를 dispose한다.
 - 경로→itemId와 itemId→경로 Map을 유지한다. 신규 ID는 `${providerId}:item:${crypto.randomUUID()}`다. localStorage key `workspace:editor-item-ids:${tabId}`에 경로→ID를 보관한다. 이전 ID prefix를 보정하고 중복 ID를 건너뛴다. 손상/저장 불가는 메모리 동작을 막지 않는다.

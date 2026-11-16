@@ -8,7 +8,7 @@ import {
   type DragEvent,
   type RefObject
 } from 'react'
-import { revealItemInDir } from '../../app-shell/nativeShell'
+import { revealItemInDir } from '../../../adapters/platform/nativeShell'
 import type { DirEntry } from '../runtime/localFileSystem'
 import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
 import { returnRendererFocusBeforeSurfaceHidden } from '../../../interaction/embeddedSurfaceFocus'

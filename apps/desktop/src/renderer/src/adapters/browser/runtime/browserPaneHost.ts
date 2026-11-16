@@ -15,7 +15,7 @@ import {
   requestBrowserKeyboardSurface
 } from '@renderer/adapters/browser/runtime/browserGuestFocus'
 import { onBrowserOpenNewTab } from './browserIpc'
-import { revealItemInDir } from '../../../features/app-shell/nativeShell'
+import { revealItemInDir } from '../../platform/nativeShell'
 import { fetchWebviewNavHistory, goToWebviewHistoryIndex } from './browserNavHistory'
 import { onWorkspaceDismissPortals } from '../../../interaction/workspacePortalDismiss'
 import {

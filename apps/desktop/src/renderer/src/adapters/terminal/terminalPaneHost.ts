@@ -1,7 +1,7 @@
 import type { TerminalPaneHost } from '@workspace/terminal'
 import { agentPaneKey, useAgentStatusStore } from '@workspace/terminal'
 import { registerTerminalAgentPane } from '@workspace/terminal/agent'
-import { writeClipboardText } from '../../features/app-shell/nativeClipboard'
+import { writeClipboardText } from '../platform/nativeClipboard'
 import { connectPanePty } from './runtime/connectPanePty'
 import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
 import { getCurrentResolvedTheme, subscribeThemeChange } from '../../theme'
