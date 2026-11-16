@@ -1,4 +1,4 @@
-import { browserFocusLog } from '../browser/browserFocusDebugLog'
+import { browserFocusLog } from '../interaction/browserFocusDebugLog'
 import { interactionCoordinator } from '../interaction/InteractionCoordinator'
 import { getBrowserWebviewByWebContentsId } from '../layout/activeBrowserWebview'
 import { focusPaneGroupTabSet } from '../layout/layoutRef'

@@ -533,39 +533,39 @@
           "sha256": "053f9614320dc8e312f21496fcb6fb27e61395dd5d0de19efaf1d2fb4de9c4dd"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browser.ts",
-          "sha256": "1d4553e13f3147e37dc28d1a895905b74fb59ba8661b69d67ec10174e3175da8"
+          "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserLifecycle.ts",
+          "sha256": "0b89baa5fa6b95fe5859e161379e1f222f721edd143f5a19e72b970b79ca5884"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browser/browserEmbedSupport.ts",
-          "sha256": "e7a787a626141828b66ff55a88122250efa876f077850bbbe13a7e327905ef4c"
+          "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserEmbedSupport.ts",
+          "sha256": "c48c10e2f54019983aa38ecf9ca1910a9855c691331fbb072510ffb0c9dfc3f1"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browser/browserFocusDebugLog.ts",
-          "sha256": "b5983ae56ce12b1e5ffa383100e73bc6fee8cdede59c8d8d9f3c3ad9e302634e"
+          "path": "apps/desktop/src/renderer/src/interaction/browserFocusDebugLog.ts",
+          "sha256": "13559d06490a85398c40f21197215a0c27330a89b443ab9e5ee955c80a890ef2"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browser/browserGuestFocus.ts",
-          "sha256": "f4d4965e3810e3a8582a7f09b6a292a374e082d261c863f8651636e9e893de5a"
+          "path": "apps/desktop/src/renderer/src/interaction/browserGuestFocus.ts",
+          "sha256": "072b3d3bdcd195769ea2cda630244185b281897966f5b9772c502ab2b65a3502"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browser/ensureBrowserPageWebview.ts",
-          "sha256": "20bc4c4289def02eaacff75a05aff39e07479b82c92ac66c99e9989d7518e04a"
+          "path": "apps/desktop/src/renderer/src/features/browser/runtime/ensureBrowserPageWebview.ts",
+          "sha256": "a5b195d51a0c97dde9aeb7733dc27c984902b711c4c8373478451e072d10e490"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browser/overlayBarrier.ts",
-          "sha256": "be7554f8693dc733b88e350e446560c0608d0853444a9fc2acc0276b73fef00c"
+          "path": "apps/desktop/src/renderer/src/interaction/overlayBarrier.ts",
+          "sha256": "b94a80464ff4d1e57d7598b94a1c058c215a96739a3a4208c2e367dff7f1d120"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browserDownloads.ts",
+          "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserDownloads.ts",
           "sha256": "59f6b9fb4f3fc812fff50779b0878f4090549c37ab136a58b8b4be758ccd6baa"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browserNavHistory.ts",
+          "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserNavHistory.ts",
           "sha256": "0bde06b795c13b70cd626193e7f837b6a699fbf505955c5f9b2ff5bc039fd659"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browserSessionPartition.ts",
+          "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserSessionPartition.ts",
           "sha256": "c76e54179b7a868b70135825e45f677f3ace4a54a5509839c31ccefae254934e"
         },
         {
@@ -581,20 +581,20 @@
           "sha256": "b978050c141e09393400b29afb00ce9de6d3917ae1f8c085197271b75c3c6b81"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/browser/browserPaneHost.ts",
-          "sha256": "a58bb9d5a939313b997c67204a3b293911e987ee9454646e76f2eb1a62e1a7bd"
+          "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserPaneHost.ts",
+          "sha256": "8f2c6b9991e4d4cc4be67b2b9cc4e3764e7bab2b37d4c954adf8bd9829fd9d6b"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/index.ts",
-          "sha256": "d0e6765a5005487a5503f8b4c57ea42754d2052ba737a2e9e61d90e99bc87754"
+          "sha256": "60f562b9d2e2bdb1258be11e58188600eb83bb6d49192e85b8995e5a0e3ae1ee"
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts",
-          "sha256": "ede6b96ada0bd72056b03650a1cdbc1f59d2530d3ac33a464bb1b41804743b97"
+          "sha256": "3efc24db589b71fa742f2888014032e779c105d3b190924315e66efc2b1e9a2c"
         },
         {
           "path": "apps/desktop/src/renderer/src/layout/activeBrowserWebview.ts",
-          "sha256": "8c22f19de3cd6f7dbcbf8df075492e15c82e6f21e5512d71535cfa98233ec9d8"
+          "sha256": "6d55ffdbace77a38490f3baed2b9e1eef6eb1a9377cee24194327d8bb0b67721"
         },
         {
           "path": "apps/desktop/src/renderer/src/layout/browserWebviewRegistry.ts",
@@ -692,8 +692,8 @@
           "sha256": "61282ba348574ced1988a5919d9ebd392845d7c83d8f75fa170b32cab555990e"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browser/browserGuestFocus.ts",
-          "sha256": "f4d4965e3810e3a8582a7f09b6a292a374e082d261c863f8651636e9e893de5a"
+          "path": "apps/desktop/src/renderer/src/interaction/browserGuestFocus.ts",
+          "sha256": "072b3d3bdcd195769ea2cda630244185b281897966f5b9772c502ab2b65a3502"
         },
         {
           "path": "apps/desktop/src/renderer/src/components/ContextMenu.tsx",
@@ -705,7 +705,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/hooks/useAppBootstrap.ts",
-          "sha256": "8f2968d72e7a6279d0194abe9f21032f7ef62727dcbc082158b2612fdc984a62"
+          "sha256": "992d5f5f6554b15c5e5b635a723b1473f41255987eddbe680a19dff6ad7d3f76"
         },
         {
           "path": "apps/desktop/src/renderer/src/hooks/useLayoutHostCallbacks.tsx",
@@ -717,7 +717,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts",
-          "sha256": "ede6b96ada0bd72056b03650a1cdbc1f59d2530d3ac33a464bb1b41804743b97"
+          "sha256": "3efc24db589b71fa742f2888014032e779c105d3b190924315e66efc2b1e9a2c"
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/embedPolicy.ts",

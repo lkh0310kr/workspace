@@ -1,13 +1,13 @@
 // Orca parity — host-guest/browser-page-webview.ts
 
-import { BROWSER_SESSION_PARTITION } from '../browserSessionPartition'
+import { BROWSER_SESSION_PARTITION } from './browserSessionPartition'
 import { normalizeBrowserNavigationUrl, BLANK_URL } from '@workspace/browser'
 import {
   claimParkedBrowserWebview,
   destroyBrowserWebview,
   getPersistentBrowserWebview,
   registerPersistentWebview
-} from '../layout/browserWebviewRegistry'
+} from '../../../layout/browserWebviewRegistry'
 
 export function setBrowserPageWebviewInputLock(
   webview: Electron.WebviewTag,

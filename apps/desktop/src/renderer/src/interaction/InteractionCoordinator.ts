@@ -3,9 +3,9 @@
  * Pane/tab visibility is owned by PaneGroup + BrowserContent — not duplicated here.
  */
 
-import { browserFocusLog, snapshotBrowserFocusState } from '../browser/browserFocusDebugLog'
+import { browserFocusLog, snapshotBrowserFocusState } from './browserFocusDebugLog'
 import { parkBrowserPageViewport } from '@workspace/browser'
-import { focusBrowserGuestWebview } from '../browser/browserGuestFocus'
+import { focusBrowserGuestWebview } from './browserGuestFocus'
 import {
   getActiveBrowserWebview,
   setActiveBrowserWebview,

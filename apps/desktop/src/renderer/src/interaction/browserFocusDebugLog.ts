@@ -1,5 +1,5 @@
 import { isDevInstrumentation } from '../debug/devTools'
-import { collectWebviews } from '../interaction/interactionDebugLog'
+import { collectWebviews } from './interactionDebugLog'
 
 const MAX_RING = 200
 

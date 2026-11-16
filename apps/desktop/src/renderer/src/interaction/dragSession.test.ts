@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 const pushOverlayBlock = vi.fn()
 const popOverlayBlock = vi.fn()
 
-vi.mock('../browser/overlayBarrier', () => ({
+vi.mock('./overlayBarrier', () => ({
   pushOverlayBlock,
   popOverlayBlock
 }))

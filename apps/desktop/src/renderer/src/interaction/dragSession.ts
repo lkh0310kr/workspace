@@ -1,4 +1,4 @@
-import { popOverlayBlock, pushOverlayBlock } from '../browser/overlayBarrier'
+import { popOverlayBlock, pushOverlayBlock } from './overlayBarrier'
 import { layoutLog } from '../layout/layoutDebugLog'
 
 /** Overlay sources that hide native embeds during drag/resize. */

@@ -16,7 +16,7 @@ import {
   browserFocusLog,
   getBrowserGuestFocusWebContentsId,
   setBrowserGuestFocusDebugState
-} from '../browser/browserFocusDebugLog'
+} from '../interaction/browserFocusDebugLog'
 import { focusPaneGroupForGuestWebContents } from '../panes/focusPaneGroupForBrowser'
 
 const registry = new Map<number, Electron.WebviewTag>()

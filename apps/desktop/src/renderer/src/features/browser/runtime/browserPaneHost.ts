@@ -1,33 +1,36 @@
-import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
+import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
 import {
   getActiveBrowserWebview,
   registerBrowserWebview,
   setActiveBrowserWebview
-} from '../../layout/activeBrowserWebview'
+} from '../../../layout/activeBrowserWebview'
 import {
   getPersistentBrowserWebview,
   moveFocusToRendererBeforeFocusedWebviewHidden
-} from '../../layout/browserWebviewRegistry'
+} from '../../../layout/browserWebviewRegistry'
 import {
   focusBrowserGuestWebview,
   requestBrowserKeyboardSurface
-} from '../../browser/browserGuestFocus'
-import { onBrowserOpenNewTab } from '../../electron'
-import { revealItemInDir } from '../../electron'
-import { fetchWebviewNavHistory, goToWebviewHistoryIndex } from '../../browserNavHistory'
-import { onWorkspaceDismissPortals } from '../../workspacePortalDismiss'
+} from '../../../interaction/browserGuestFocus'
+import { onBrowserOpenNewTab } from '../../../electron'
+import { revealItemInDir } from '../../../electron'
+import { fetchWebviewNavHistory, goToWebviewHistoryIndex } from './browserNavHistory'
+import { onWorkspaceDismissPortals } from '../../../workspacePortalDismiss'
 import {
   ensureBrowserPageWebview,
   setBrowserPageWebviewInputLock
-} from '../../browser/ensureBrowserPageWebview'
-import { getBrowserDownloadsForWebview, subscribeBrowserDownloads } from '../../browserDownloads'
-import { browserFocusLog, snapshotBrowserFocusState } from '../../browser/browserFocusDebugLog'
-import { isWebviewHostFocused } from '../../browser/browserGuestFocus'
-import { isBrowserGuestWebContentsFocused } from '../../layout/activeBrowserWebview'
+} from './ensureBrowserPageWebview'
+import { getBrowserDownloadsForWebview, subscribeBrowserDownloads } from './browserDownloads'
+import {
+  browserFocusLog,
+  snapshotBrowserFocusState
+} from '../../../interaction/browserFocusDebugLog'
+import { isWebviewHostFocused } from '../../../interaction/browserGuestFocus'
+import { isBrowserGuestWebContentsFocused } from '../../../layout/activeBrowserWebview'
 import {
   isWebviewDragPassthroughActive,
   registerWebviewDragPassthroughSurface
-} from '../../layout/webviewDragPassthrough'
+} from '../../../layout/webviewDragPassthrough'
 import type { BrowserPaneHost, BrowserWebviewPort } from '@workspace/browser'
 export type { BrowserOpenNewTabEvent, BrowserPaneHost } from '@workspace/browser'
 

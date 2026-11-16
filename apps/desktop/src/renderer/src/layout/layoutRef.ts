@@ -16,7 +16,7 @@ type FlexLayoutController = {
  * (hidden app-wide — `PaneFrame`'s header is our own), so this module holds
  * a ref back to it that `PaneFrame`'s header, nested arbitrarily deep under
  * whichever pane component owns it, can reach without prop-drilling through
- * every pane component. Same pattern as `browser/overlayBarrier.ts`.
+ * every pane component. Same pattern as `interaction/overlayBarrier.ts`.
  *
  * Every workspace tab's <Layout> is mounted simultaneously now (App.tsx
  * keeps them all alive, visibility-toggled instead of remounting on

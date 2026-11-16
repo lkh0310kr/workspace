@@ -1,4 +1,4 @@
-import { syncInteractionCoordinatorWorkspaceTab } from './interaction/syncInteractionCoordinatorWorkspaceTab'
+import { syncInteractionCoordinatorWorkspaceTab } from '../../../interaction/syncInteractionCoordinatorWorkspaceTab'
 
 /** Sync webview pointer-events for the visible workspace tab. */
 export function browserSyncPointerEvents(_activeWorkspaceTabId: number): void {

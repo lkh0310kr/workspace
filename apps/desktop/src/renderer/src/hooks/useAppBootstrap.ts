@@ -1,7 +1,10 @@
 import { useEffect } from 'react'
-import { installBrowserDownloadRelay } from '../browserDownloads'
-import { browserCleanupAll } from '../browser'
-import { installBrowserEmbedSupport, reloadFocusedBrowser } from '../browser/browserEmbedSupport'
+import {
+  browserCleanupAll,
+  installBrowserDownloadRelay,
+  installBrowserEmbedSupport,
+  reloadFocusedBrowser
+} from '../features/browser/runtime'
 import { installRendererConsoleFileLogging } from '../debug/consoleFileLog'
 import {
   onBrowserReloadShortcut,
