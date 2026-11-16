@@ -1,14 +1,14 @@
 import { protocol } from 'electron'
 import * as path from 'node:path'
 import AdmZip from 'adm-zip'
-import { resolveUnderRoot } from './workspace/files'
+import { resolveUnderRoot } from '../../workspace/files'
 import { inspectEpubZip } from './epubInspect'
-import { EPUB_SCHEME } from './protocolSchemeTable'
+import { EPUB_SCHEME } from '../../platform/protocol/protocolSchemeTable'
 import type { EpubBook, EpubSpineItem } from './epubTypes'
 
 export type { EpubBook, EpubSpineItem }
 
-export { EPUB_SCHEME } from './protocolSchemeTable'
+export { EPUB_SCHEME } from '../../platform/protocol/protocolSchemeTable'
 
 interface EpubSession {
   zip: AdmZip

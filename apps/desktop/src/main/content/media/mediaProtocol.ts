@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { Readable } from 'node:stream'
 import { parseRangeHeader } from './mediaRange'
-import { MEDIA_SCHEME } from './protocolSchemeTable'
+import { MEDIA_SCHEME } from '../../platform/protocol/protocolSchemeTable'
 
 // Streaming video/audio protocol — NOT a general file-serving scheme like
 // the abandoned localFileProtocol.ts (removed in d71ce0c/dca0582/d71ce0c's
@@ -18,7 +18,7 @@ import { MEDIA_SCHEME } from './protocolSchemeTable'
 // swallow the path's first segment as hostname — must not come back) and
 // adds HTTP Range support, which <video>/<audio> issue automatically on
 // seek.
-export { MEDIA_SCHEME } from './protocolSchemeTable'
+export { MEDIA_SCHEME } from '../../platform/protocol/protocolSchemeTable'
 
 // Why a fixed dummy host instead of an empty authority
 // (workspace-media:///Users/...): file: is the one scheme the URL Standard

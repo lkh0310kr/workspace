@@ -554,7 +554,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "33409bc07846724d921d3bf94a8c83c9ebb328550808f6260e080495bad7c60a"
+          "sha256": "5fc4c5fb4475fee2906a6d8be941008a8898231ec898faa2288d49304a39666c"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -716,12 +716,12 @@
           "sha256": "5f6c3c6e9eaefbce9ba53e16012194488edbe356b2c0afdc572a8ee71cb56138"
         },
         {
-          "path": "apps/desktop/src/main/ebookState.ts",
-          "sha256": "bd1d0a4c9624f89315a27e1b207453f5fb99eda26cc4f54c379b1fd77357aad2"
+          "path": "apps/desktop/src/main/content/epub/ebookState.ts",
+          "sha256": "5d3f162a2cfdcfc53e667ba107e74c4cca29e2e6d01a62e1936ea71c42d92933"
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "33409bc07846724d921d3bf94a8c83c9ebb328550808f6260e080495bad7c60a"
+          "sha256": "5fc4c5fb4475fee2906a6d8be941008a8898231ec898faa2288d49304a39666c"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
@@ -745,7 +745,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspace/workspace.ts",
-          "sha256": "e1a351d73ccc7be64cc560bdb5f2ced0476bc4abb82b3ed3b242e73be78a67de"
+          "sha256": "8a51f23f820fbdddfb7371ce38014360d70ae59bfdc84c7e08a8d22f8e8ee1a4"
         },
         {
           "path": "apps/desktop/src/preload/api.ts",

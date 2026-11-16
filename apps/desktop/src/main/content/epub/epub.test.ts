@@ -6,7 +6,7 @@ import AdmZip from 'adm-zip'
 import { inspectEpubZip } from './epubInspect'
 import { getEbookState, saveEbookState } from './ebookState'
 import { buildMiniEpubBuffer } from './miniEpub'
-import { mergeEbookState } from '../shared/ebookState'
+import { mergeEbookState } from '../../../shared/ebookState'
 
 const roots: string[] = []
 

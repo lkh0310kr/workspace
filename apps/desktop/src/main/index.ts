@@ -1,4 +1,4 @@
-import './protocolSchemes'
+import './platform/protocol/protocolSchemes'
 import './imeEnv'
 import { installMainStartupLogging, appendStartupLog, isPackagedApp } from './startupLog'
 import { ensureLinuxImeDaemon } from './imeEnv'
@@ -10,10 +10,10 @@ import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace/workspace'
-import { registerMediaProtocol } from './mediaProtocol'
+import { registerMediaProtocol } from './content/media/mediaProtocol'
 import { registerModelProtocol } from './model3d/modelProtocol'
 import { importJobQueue } from './model3d/importJobQueue'
-import { registerEpubProtocol } from './epub'
+import { registerEpubProtocol } from './content/epub/epub'
 import {
   loadConfig,
   saveConfig,
@@ -54,7 +54,7 @@ import {
 } from './workspaceAgentHookServer'
 import { createWorkspaceAfterAgentHookServer } from './workspaceAgentHookStartup'
 import { resolveMacOptionTerminalBytes } from './terminal/terminalMacOptionShortcuts'
-import { disposeCadViewers } from './cadViewer'
+import { disposeCadViewers } from './content/cadViewer'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
 import { checkForUpdatesByUser, initializeAutoUpdates } from './autoUpdate'

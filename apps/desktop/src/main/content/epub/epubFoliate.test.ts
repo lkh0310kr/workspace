@@ -2,7 +2,7 @@ import { JSDOM } from 'jsdom'
 import AdmZip from 'adm-zip'
 import { describe, expect, it } from 'vitest'
 import { buildMiniEpubBuffer } from './miniEpub'
-import { EPUB } from '../renderer/src/vendor/foliate-js/epub.js'
+import { EPUB } from '../../../renderer/src/vendor/foliate-js/epub.js'
 
 const { window } = new JSDOM('<!DOCTYPE html><html></html>')
 globalThis.DOMParser = window.DOMParser

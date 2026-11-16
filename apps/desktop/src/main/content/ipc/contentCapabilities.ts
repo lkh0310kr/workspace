@@ -1,9 +1,9 @@
 import { ipcMain } from 'electron'
 import { Workspace } from '../../workspace/workspace'
-import { toMediaUrlBrowsed } from '../../mediaProtocol'
+import { toMediaUrlBrowsed } from '../media/mediaProtocol'
 import { model3dLog, readModel3dLogs } from '../../model3d/model3dLog'
-import { openEpubAbsolute } from '../../epub'
-import { getEbookState, saveEbookState } from '../../ebookState'
+import { openEpubAbsolute } from '../epub/epub'
+import { getEbookState, saveEbookState } from '../epub/ebookState'
 import type { AssetOpenRequest } from '../../../shared/model3d/types'
 
 export function registerContentCapabilityIpc(getWorkspace: () => Workspace): void {
