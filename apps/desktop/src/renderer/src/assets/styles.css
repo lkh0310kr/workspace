@@ -11,14 +11,6 @@
 }
 
 :root {
-  /* flexlayout-react 0.10.x: splitter width/hit-area moved from JSON model
-     attributes (splitterSize/splitterExtra, used by the ui/ Tauri app's
-     0.8.x pin) to these CSS custom properties. */
-  --flexlayout-splitter-size: 7px;
-  --flexlayout-splitter-active-size: 7px;
-  --flexlayout-color-splitter: color-mix(in srgb, var(--border) 55%, transparent);
-  --flexlayout-color-splitter-hover: var(--border-strong);
-  --flexlayout-color-splitter-drag: var(--text-muted);
   /* Human-touch tokens — restrained, not SaaS-heavy */
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -68,7 +60,6 @@
     ui-monospace, 'SF Mono', Menlo, Monaco, 'Cascadia Mono', Consolas, 'D2Coding',
     'NanumGothicCoding', 'Noto Sans Mono CJK KR', 'Apple SD Gothic Neo', 'Malgun Gothic', monospace;
   --chrome-h: 34px;
-  --pane-group-unfocused-opacity: 0.78;
   --browser-chrome-total: 36px;
   --scroll-size: 8px;
   --scroll-thumb: rgba(121, 121, 121, 0.4);
@@ -100,41 +91,6 @@
 
 .scroll-region::-webkit-scrollbar-thumb:hover {
   background: var(--scroll-thumb-hover);
-}
-
-/* —— Shared controls —— */
-.ui-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-raised);
-  color: var(--text);
-  font-family: var(--font-ui);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.ui-btn:hover:not(:disabled) {
-  background: var(--bg-hover);
-}
-
-.ui-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.ui-btn-ghost {
-  border-color: transparent;
-  background: transparent;
-  color: var(--text-muted);
-}
-
-.ui-btn-ghost:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--bg-hover);
 }
 
 :root[data-theme='light'] {
@@ -169,9 +125,6 @@
   --syntax-type: #267f99;
   --syntax-property: #001080;
   --syntax-invalid: #cd3131;
-  --flexlayout-color-splitter: color-mix(in srgb, var(--border) 70%, transparent);
-  --flexlayout-color-splitter-hover: var(--border-strong);
-  --flexlayout-color-splitter-drag: var(--text-muted);
   --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 

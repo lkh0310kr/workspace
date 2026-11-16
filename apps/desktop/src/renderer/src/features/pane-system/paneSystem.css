@@ -1,4 +1,20 @@
-/* Pane frame, tab strip, group layout, and flexlayout integration. */
+/* Pane system layout, splitters, and tab presentation. */
+
+:root {
+  /* flexlayout-react 0.10.x splitter hit areas are configured through CSS. */
+  --flexlayout-splitter-size: 7px;
+  --flexlayout-splitter-active-size: 7px;
+  --flexlayout-color-splitter: color-mix(in srgb, var(--border) 55%, transparent);
+  --flexlayout-color-splitter-hover: var(--border-strong);
+  --flexlayout-color-splitter-drag: var(--text-muted);
+  --pane-group-unfocused-opacity: 0.78;
+}
+
+:root[data-theme='light'] {
+  --flexlayout-color-splitter: color-mix(in srgb, var(--border) 70%, transparent);
+  --flexlayout-color-splitter-hover: var(--border-strong);
+  --flexlayout-color-splitter-drag: var(--text-muted);
+}
 
 /* —— Pane chrome —— */
 .pane-shell {
