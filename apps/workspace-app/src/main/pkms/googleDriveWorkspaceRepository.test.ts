@@ -561,4 +561,47 @@ describe('GoogleDriveWorkspaceRepository', () => {
     expect(listChildren).toHaveBeenCalledTimes(3)
     expect(client.updateFileMetadata).not.toHaveBeenCalled()
   })
+
+  it('reads an attachment with verified workspace path and Drive MIME metadata', async () => {
+    const image: DriveFile = {
+      id: 'camera-image',
+      name: 'Camera.png',
+      mimeType: 'image/png',
+      parents: ['root'],
+      size: '4'
+    }
+    const bytes = new Uint8Array([1, 2, 3, 4])
+    const client = {
+      getFile: vi.fn(async () => image),
+      download: vi.fn(async () => bytes)
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(repository.readAsset(image.id)).resolves.toEqual({
+      entry: { ...image, path: 'Camera.png', kind: 'asset' },
+      metadata: image,
+      bytes
+    })
+    expect(client.download).toHaveBeenCalledWith(image.id)
+  })
+
+  it('refuses to read an attachment outside the connected workspace', async () => {
+    const image: DriveFile = {
+      id: 'outside-image',
+      name: 'private.png',
+      mimeType: 'image/png',
+      parents: ['other-root']
+    }
+    const client = {
+      getFile: vi.fn(async (id: string) => {
+        if (id === image.id) return image
+        return folder(id, 'Other')
+      }),
+      download: vi.fn(async () => new Uint8Array([1]))
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(repository.readAsset(image.id)).rejects.toThrow(/outside this PKMS workspace/)
+    expect(client.download).not.toHaveBeenCalled()
+  })
 })

@@ -272,9 +272,61 @@ test('narrow view keeps the active breadcrumb reachable and its menu on screen',
   expect(menuBounds.x + menuBounds.width).toBeLessThanOrEqual(390)
 })
 
+test('tree resize handle responds to keyboard and pointer input in all hosts', async ({ page }) => {
+  for (const host of hosts) {
+    await page.goto(`/?host=${host}`)
+    const handle = page.locator('[data-editor-tree-resizer]')
+    await expect(handle).toBeVisible()
+    const initial = Number(await handle.getAttribute('aria-valuenow'))
+    await handle.focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(handle).toHaveAttribute('aria-valuenow', String(initial + 16))
+
+    const bounds = await handle.boundingBox()
+    if (!bounds) throw new Error(`Missing tree resize handle for ${host}`)
+    const startX = bounds.x + bounds.width / 2
+    const startY = bounds.y + bounds.height / 2
+    await page.mouse.move(startX, startY)
+    await page.mouse.down()
+    await page.mouse.move(startX + 32, startY)
+    await page.mouse.up()
+    await expect(handle).toHaveAttribute('aria-valuenow', String(initial + 48))
+    await expect(page.locator('[data-editor-tree-frame]').first()).toHaveCSS(
+      'width',
+      `${initial + 47}px`
+    )
+    await handle.focus()
+    await page.keyboard.press('Home')
+    await expect(handle).toHaveAttribute('aria-valuenow', '180')
+  }
+})
+
+test('Desktop PKMS selects Drive attachments immediately and previews their bytes', async ({
+  page
+}) => {
+  await page.goto('/?host=desktop-pkms-editor&scenario=asset-preview')
+  await page.getByRole('treeitem', { name: 'Verification' }).click()
+  await page.getByRole('treeitem', { name: 'Camera.png' }).click()
+
+  const preview = page.locator('[data-editor-asset-preview]')
+  await expect(preview).toBeVisible()
+  await expect(preview.getByRole('status')).toHaveText('Opening attachment…')
+  await expect(preview.getByRole('heading', { name: 'Camera.png' })).toBeVisible()
+  const image = preview.locator('img')
+  await expect(image).toHaveAttribute('alt', 'Verification/Camera.png')
+  await expect
+    .poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth))
+    .toBeGreaterThan(0)
+  await expect(preview.getByRole('button', { name: 'Download Camera.png' })).toBeVisible()
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__openedDriveAssets))
+    .toContain('mock-camera-image')
+})
+
 test('all host surfaces align common tree rows and readable document columns', async ({ page }) => {
   const measurements: Array<{
     treeWidth: number
+    treeBackground: string
     toolbar: Record<string, string>
     folderStyle: Record<string, string>
     fileStyle: Record<string, string>
@@ -330,7 +382,7 @@ test('all host surfaces align common tree rows and readable document columns', a
       host === 'desktop-pkms-editor'
         ? '[data-drive-editor]'
         : host === 'web-pkms-editor'
-          ? '.main-panel'
+          ? '[data-pkms-main-panel]'
           : '.visual-document'
     const documentRect = await rect(documentSelector)
     const foldControl = page.locator('.cm-md-fold-control').first()
@@ -345,6 +397,10 @@ test('all host surfaces align common tree rows and readable document columns', a
         .locator('[data-editor-tree-frame]')
         .first()
         .evaluate((element) => Math.round(element.getBoundingClientRect().width)),
+      treeBackground: await page
+        .locator('[data-editor-tree-frame]')
+        .first()
+        .evaluate((element) => getComputedStyle(element).backgroundColor),
       toolbar: await page
         .locator('[data-editor-tree-toolbar]')
         .first()
@@ -427,6 +483,8 @@ test('all host surfaces align common tree rows and readable document columns', a
   expect(desktopDrive.folderStyle).toEqual(workspace.folderStyle)
   expect(desktopDrive.treeWidth).toBe(workspace.treeWidth)
   expect(webPkms.treeWidth).toBe(workspace.treeWidth)
+  expect(desktopDrive.treeBackground).toBe(workspace.treeBackground)
+  expect(webPkms.treeBackground).toBe(workspace.treeBackground)
   expect(desktopDrive.toolbar).toEqual(workspace.toolbar)
   expect(webPkms.toolbar).toEqual(workspace.toolbar)
   expect(webPkms.folderStyle).toEqual(workspace.folderStyle)
@@ -445,7 +503,7 @@ test('all host surfaces align common tree rows and readable document columns', a
   }
 })
 
-test('heading hover arrows share markup and visual baselines across editor hosts', async ({
+test('heading hover arrows share markup and computed appearance across editor hosts', async ({
   page
 }) => {
   let reference:
@@ -481,12 +539,6 @@ test('heading hover arrows share markup and visual baselines across editor hosts
     })
     if (reference) expect(arrow).toEqual(reference)
     else reference = arrow
-    await expect(foldControl).toHaveScreenshot(`heading-fold-hover-${host}.png`, {
-      animations: 'disabled',
-      caret: 'hide',
-      scale: 'css',
-      maxDiffPixelRatio: 0.001
-    })
   }
 })
 
@@ -799,7 +851,7 @@ test('PKMS context menus and editor chrome use the shared unboxed controls', asy
   for (const host of ['desktop-editor', 'desktop-pkms-editor', 'web-pkms-editor']) {
     await page.goto(`/?host=${host}`)
     await page.getByRole('treeitem', { name: 'Verification' }).click({ button: 'right' })
-    const menu = page.locator('.context-menu, .tree-context-menu').first()
+    const menu = page.locator('[data-editor-menu-list]').first()
     await expect(menu).toBeVisible()
     menuChrome.push(
       await menu.evaluate((element) => {

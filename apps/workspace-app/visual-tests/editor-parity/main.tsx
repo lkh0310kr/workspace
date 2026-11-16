@@ -7,6 +7,7 @@ import {
   EditorBreadcrumbs,
   editorCodeMirrorHostExtensions,
   editorMarkdownParserExtensions,
+  EditorTreeResizeHandle,
   type EditorBreadcrumbEntry
 } from '@workspace/editor'
 import { TreeView } from '../../src/renderer/src/components/TreeView'
@@ -17,7 +18,7 @@ import type { GoogleDriveWorkspaceEntry } from '../../../../packages/pkms-google
 import '@workspace/editor/tree.css'
 import '../../../../packages/editor/src/editorHost.css'
 import '../../../../packages/editor/src/markdown.css'
-import '../../../../packages/pkms-client/src/styles.css'
+import '../../../../packages/pkms-client/src/theme.css'
 import '../../src/renderer/src/assets/styles.css'
 import './visual-fixture.css'
 
@@ -78,6 +79,15 @@ const driveExtraNote: GoogleDriveWorkspaceEntry = {
   path: 'Verification/Readme.md',
   kind: 'markdown'
 }
+const driveAsset: GoogleDriveWorkspaceEntry = {
+  id: 'mock-camera-image',
+  name: 'Camera.png',
+  mimeType: 'image/png',
+  parents: [driveFolder.id],
+  path: 'Verification/Camera.png',
+  kind: 'asset',
+  size: '68'
+}
 const driveHiddenFolder: GoogleDriveWorkspaceEntry = {
   id: 'mock-hidden-folder',
   name: 'Hidden',
@@ -121,6 +131,8 @@ const isQuickOpenNestedScenario =
   new URLSearchParams(window.location.search).get('scenario') === 'quick-open-nested'
 const isViewStateScenario =
   new URLSearchParams(window.location.search).get('scenario') === 'view-state'
+const isAssetScenario =
+  new URLSearchParams(window.location.search).get('scenario') === 'asset-preview'
 const longMarkdown = `${markdown}\n${Array.from(
   { length: 90 },
   (_, index) => `View state paragraph ${String(index + 1).padStart(2, '0')}.`
@@ -146,6 +158,7 @@ function installMocks() {
       )
       .map((item) => ({ ...item, isIgnored: false }))
   w.__openedDriveMarkdownEntries = []
+  w.__openedDriveAssets = []
   w.__driveDirectoryReads = []
   w.__savedDriveMarkdown = []
   w.__createdPkmsPaths = []
@@ -237,6 +250,7 @@ function installMocks() {
           : [
               currentDriveEntry(driveNote),
               currentDriveEntry(driveExtraNote),
+              ...(isAssetScenario ? [driveAsset] : []),
               ...(isQuickOpenNestedScenario ? [driveHiddenFolder] : []),
               ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveFolder.id)
             ]
@@ -260,6 +274,21 @@ function installMocks() {
                 ? '# Untitled\n\n'
                 : editorMarkdownFixture,
         revision: 'mock-r1'
+      }
+    },
+    readGoogleDriveAsset: async (_rootId: string, entryId: string) => {
+      if (entryId !== driveAsset.id) throw new Error(`Unknown mock Drive asset: ${entryId}`)
+      w.__openedDriveAssets.push(entryId)
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      return {
+        entry: driveAsset,
+        bytes: Uint8Array.from(
+          atob(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC'
+          ),
+          (character) => character.charCodeAt(0)
+        ),
+        contentType: 'image/png'
       }
     },
     saveGoogleDriveMarkdown: async (_rootId: string, entryId: string, text: string) => {
@@ -505,9 +534,13 @@ function Document() {
 function DesktopEditor() {
   const providerBacked = isMissingWikiScenario
   const [filePath, setFilePath] = useState<string | null>('Verification/Codex Drive smoke test.md')
+  const [treeWidth, setTreeWidth] = useState(262)
   return (
-    <main className="md-pane visual-desktop-shell">
-      <aside className="obsidian-explorer visual-tree">
+    <main
+      className="md-pane visual-desktop-shell"
+      style={{ gridTemplateColumns: `${treeWidth}px 6px minmax(0, 1fr)` }}
+    >
+      <aside className="obsidian-explorer visual-tree" style={{ width: treeWidth }}>
         <TreeView
           tabId={9001}
           rootPath={rootPath}
@@ -518,6 +551,7 @@ function DesktopEditor() {
           onOpenFile={(path) => setFilePath(path)}
         />
       </aside>
+      <EditorTreeResizeHandle width={treeWidth} onWidthChange={setTreeWidth} />
       <section className="obsidian-editor-shell visual-document">
         {providerBacked ? (
           <EditorContent

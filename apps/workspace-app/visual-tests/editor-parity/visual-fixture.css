@@ -91,7 +91,7 @@ body {
   min-width: 0;
 }
 
-.visual-web-shell .pkms-client-tree-pane {
+.visual-web-shell [data-editor-tree-frame] {
   display: flex;
   min-height: 0;
   flex: 1;
@@ -103,14 +103,14 @@ body {
 
 /* Desktop renderer styles are also loaded for the other visual hosts. Keep
    their generic .app-shell rule from shrinking the real Web PKMS route. */
-html[data-visual-host='web-pkms-editor'] .app-shell {
+html[data-visual-host='web-pkms-editor'] [data-pkms-app-shell] {
   display: grid;
-  grid-template-columns: 262px minmax(0, 1fr);
+  grid-template-columns: var(--pkms-tree-width, 262px) 0 minmax(0, 1fr);
   flex: none;
 }
 
 @media (max-width: 580px) {
-  html[data-visual-host='web-pkms-editor'] .app-shell {
+  html[data-visual-host='web-pkms-editor'] [data-pkms-app-shell] {
     grid-template-columns: 1fr;
     grid-template-rows: 34dvh minmax(0, 1fr);
   }

@@ -17,6 +17,40 @@ async function walk(directory) {
   return files
 }
 
+const pkmsStylesPath = path.join(root, 'packages/pkms-client/src')
+const pkmsStyleEntries = await readdir(pkmsStylesPath)
+if (pkmsStyleEntries.includes('styles.css')) {
+  failures.push(
+    'PKMS UI styles must be owned by component CSS Modules; keep only theme.css at package scope.'
+  )
+}
+for (const [componentPath, moduleName] of [
+  ['PkmsClientApp.tsx', 'PkmsClientApp.module.css'],
+  ['components/FileTreeList.tsx', 'components/FileTreeList.module.css'],
+  ['components/PkmsContentSearchPanel.tsx', 'components/PkmsContentSearchPanel.module.css'],
+  ['components/PkmsDialog.tsx', 'components/PkmsDialog.module.css'],
+  ['components/SyncBridgePanel.tsx', 'components/SyncBridgePanel.module.css']
+]) {
+  const source = await readFile(path.join(pkmsStylesPath, componentPath), 'utf8')
+  const cssPath = path.join(pkmsStylesPath, moduleName)
+  try {
+    await readFile(cssPath, 'utf8')
+  } catch {
+    failures.push(`${componentPath} must own ${moduleName}.`)
+  }
+  if (!source.includes('.module.css')) failures.push(`${componentPath} must import its CSS Module.`)
+}
+const pkmsTheme = await readFile(path.join(pkmsStylesPath, 'theme.css'), 'utf8')
+if (
+  /\.(?:app-shell|sidebar|main-panel|tree-context-menu|pkms-search|sync-bridge-panel)\b/.test(
+    pkmsTheme
+  )
+) {
+  failures.push(
+    'PKMS theme.css may own design tokens and browser reset only, not component UI selectors.'
+  )
+}
+
 const packageIndexPath = path.join(root, 'packages/editor/src/index.ts')
 const packageJsonPath = path.join(root, 'packages/editor/package.json')
 const packageIndex = await readFile(packageIndexPath, 'utf8')
@@ -24,11 +58,13 @@ const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
 const sharedTreeViewPath = path.join(root, 'packages/editor/src/EditorTreeView.tsx')
 const sharedTreeStylesPath = path.join(root, 'packages/editor/src/treeView.module.css')
 const sharedTreePanePath = path.join(root, 'packages/editor/src/EditorTreePane.tsx')
+const sharedTreeResizePath = path.join(root, 'packages/editor/src/EditorTreeResizeHandle.tsx')
 const sharedEditorThemesPath = path.join(root, 'packages/editor/src/themes.ts')
 const sharedEditorMarkdownPath = path.join(root, 'packages/editor/src/EditorMarkdownEditor.tsx')
 const sharedTreeView = await readFile(sharedTreeViewPath, 'utf8')
 const sharedTreeStyles = await readFile(sharedTreeStylesPath, 'utf8')
 const sharedTreePane = await readFile(sharedTreePanePath, 'utf8')
+const sharedTreeResize = await readFile(sharedTreeResizePath, 'utf8')
 const sharedEditorThemes = await readFile(sharedEditorThemesPath, 'utf8')
 
 if (!/className=\{\[styles\.view,[\s\S]{0,160}className\]/.test(sharedTreeView)) {
@@ -60,8 +96,21 @@ if (
 ) {
   failures.push('packages/editor/src/treeView.module.css must own common tree root geometry.')
 }
+if (!/\.pane\s*\{[^}]*background:\s*var\(--editor-tree-background,/s.test(sharedTreeStyles)) {
+  failures.push('The shared tree pane must own its background through the semantic host token.')
+}
 if (
-  !/\.item\s*\{[^}]*height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*min-height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*padding-block:\s*3px[^}]*border:\s*0[^}]*border-radius:\s*4px/s.test(
+  !/data-editor-tree-resizer/.test(sharedTreeResize) ||
+  !/role="separator"/.test(sharedTreeResize) ||
+  !/ArrowLeft/.test(sharedTreeResize) ||
+  !/ArrowRight/.test(sharedTreeResize)
+) {
+  failures.push(
+    'EditorTreeResizeHandle must expose an accessible shared pointer/keyboard contract.'
+  )
+}
+if (
+  !/button\.item\s*\{[^}]*height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*min-height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*padding-block:\s*3px[^}]*border:\s*0[^}]*border-radius:\s*4px/s.test(
     sharedTreeStyles
   )
 ) {
@@ -103,7 +152,7 @@ for (const [relativePath, forbidden] of [
     /\.workspace-editor-tree-toolbar|\.tree-view(?:-rows)?(?:[\s.:#[]|\s*\{)/
   ],
   [
-    'packages/pkms-client/src/styles.css',
+    'packages/pkms-client/src/PkmsClientApp.module.css',
     /\.file-(?:list|tree|toolbar)|\.toolbar-actions|\.file-toolbar-heading/
   ],
   [
@@ -158,6 +207,20 @@ if (
   failures.push('packages/editor/src/index.ts must publicly export EditorTreeCreateActions.')
 }
 if (
+  !/export\s*\{[^}]*\bEditorTreeResizeHandle\b[^}]*\}\s*from\s*['"]\.\/EditorTreeResizeHandle['"]/.test(
+    packageIndex
+  )
+) {
+  failures.push('packages/editor/src/index.ts must publicly export EditorTreeResizeHandle.')
+}
+if (
+  !/export\s*\{[^}]*\bEditorAssetPreview\b[^}]*\}\s*from\s*['"]\.\/EditorAssetPreview['"]/.test(
+    packageIndex
+  )
+) {
+  failures.push('packages/editor/src/index.ts must publicly export EditorAssetPreview.')
+}
+if (
   !/export\s*\{[^}]*\bEditorMarkdownEditor\b[^}]*\}\s*from\s*['"]\.\/EditorMarkdownEditor['"]/.test(
     packageIndex
   )
@@ -191,6 +254,11 @@ const requiredToolbars = [
   'apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx',
   'packages/pkms-client/src/PkmsClientApp.tsx'
 ]
+const requiredResizeHosts = [
+  'apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx',
+  'apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx',
+  'packages/pkms-client/src/PkmsClientApp.tsx'
+]
 
 for (const relativePath of requiredConsumers) {
   const source = await readFile(path.join(root, relativePath), 'utf8')
@@ -203,6 +271,19 @@ for (const relativePath of requiredToolbars) {
   if (!source.includes('<EditorTreeToolbar')) {
     failures.push(`${relativePath} must use the shared EditorTreeToolbar.`)
   }
+}
+for (const relativePath of requiredResizeHosts) {
+  const source = await readFile(path.join(root, relativePath), 'utf8')
+  if (!source.includes('<EditorTreeResizeHandle'))
+    failures.push(`${relativePath} must use the shared EditorTreeResizeHandle.`)
+}
+for (const relativePath of [
+  'apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx',
+  'packages/pkms-client/src/PkmsClientApp.tsx'
+]) {
+  const source = await readFile(path.join(root, relativePath), 'utf8')
+  if (!source.includes('<EditorAssetPreview'))
+    failures.push(`${relativePath} must use the shared EditorAssetPreview.`)
 }
 for (const relativePath of requiredToolbars) {
   const source = await readFile(path.join(root, relativePath), 'utf8')
