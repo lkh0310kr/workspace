@@ -21,7 +21,7 @@ const io = vi.hoisted(() => ({
   unsubscribe: vi.fn()
 }))
 
-vi.mock('../electron', () => ({
+vi.mock('../../../electron', () => ({
   listDir: io.listDir,
   readFile: io.readFile,
   getMediaUrl: io.getMediaUrl,

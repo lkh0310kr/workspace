@@ -4,7 +4,7 @@ import type {
   EditorDocumentSnapshot,
   EditorTreeItem
 } from '@workspace/editor'
-import { getMediaUrl, readFile, writeFileIfUnchanged } from '../electron'
+import { getMediaUrl, readFile, writeFileIfUnchanged } from '../../../electron'
 
 type ItemKindForPath = (path: string, directory: boolean) => EditorTreeItem['kind']
 

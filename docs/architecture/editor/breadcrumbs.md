@@ -29,4 +29,4 @@ Desktop 호스트는 `EditorProvider`로 부모 디렉터리를 조회하고 하
 | BREADCRUMB-06 | 키보드로 경로 요소를 선택한다 | 메뉴에 포커스를 옮기고 위/아래/Home/End로 항목을 이동한다. Escape는 메뉴를 닫고 경로 요소에 포커스를 돌려준다. 바깥 클릭도 메뉴를 닫는다. |
 | BREADCRUMB-07 | 좁은 편집 영역에서 깊게 중첩된 파일을 연다 | 한 줄을 유지하며 가로 스크롤할 수 있고, 경로 메뉴는 편집 영역 위에 표시된다. |
 
-현재 스타일은 `packages/editor/src/tree.css`, Desktop 배치는 `apps/desktop/src/renderer/src/panes/EditorContent.tsx`에 있다.
+현재 스타일은 `packages/editor/src/tree.css`, Desktop 배치는 `apps/desktop/src/renderer/src/features/editor/EditorContent.tsx`에 있다.

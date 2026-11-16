@@ -12,9 +12,8 @@ import {
   type UsageMeterSettings
 } from '../../shared/usage-meter-settings'
 import { ErrorLogPanel, InteractionDebugPanel } from './features/diagnostics'
-import { EditorToastViewport } from './features/editor/EditorToastViewport'
+import { EditorToastViewport, QuickOpen } from './features/editor'
 import { LayoutTabDropOverlay, WorkspaceLayoutHost } from './features/pane-system'
-import { QuickOpen } from './features/editor/QuickOpen'
 import { SettingsDialog } from './features/workspace'
 import { HomeView } from '@workspace/home'
 import type { ReadSystemSummary } from '@workspace/home'

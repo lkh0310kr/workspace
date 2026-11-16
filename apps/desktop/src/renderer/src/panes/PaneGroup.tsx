@@ -27,7 +27,7 @@ import { layoutLog } from '../layout/layoutDebugLog'
 import { paneChipContentShown, paneChipContentStyle } from '../interaction/embedPolicy'
 import { usePaneVisibility } from './usePaneVisibility'
 import { usePaneGroupEditorSidebarState } from '../hooks/usePaneGroupEditorSidebarState'
-import { EditorSidebar } from '../features/editor/EditorSidebar'
+import { EditorSidebar } from '../features/editor'
 import { paneGroupBodyAnchorName } from './paneGroupBodyAnchor'
 import { paneGroupHostClassNames, resolvePaneGroupTabSetId } from './paneGroupFocus'
 

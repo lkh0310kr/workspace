@@ -21,7 +21,7 @@ import {
   writeFile,
   writeFileIfUnchanged,
   type SearchFileResult
-} from '../electron'
+} from '../../../electron'
 import { LocalDocumentSession } from './localDocumentSession'
 
 type QuickOpenWorkerResponse = { requestId: number; paths: string[] }

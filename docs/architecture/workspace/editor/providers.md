@@ -4,7 +4,7 @@
 
 ## Workspace provider identity와 수명
 
-근거: [localEditorProvider.ts](../../../../apps/desktop/src/renderer/src/editor/localEditorProvider.ts).
+근거: [localEditorProvider.ts](../../../../apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts).
 
 - provider ID는 `workspace:${tabId}`. module Map에서 tabId별 provider와 참조 수를 보관한다. acquire마다 참조 증가, release는 한 번만 유효하며 0에서 watcher·listeners·sessions를 dispose한다.
 - 경로→itemId와 itemId→경로 Map을 유지한다. 신규 ID는 `${providerId}:item:${crypto.randomUUID()}`다. localStorage key `workspace:editor-item-ids:${tabId}`에 경로→ID를 보관한다. 이전 ID prefix를 보정하고 중복 ID를 건너뛴다. 손상/저장 불가는 메모리 동작을 막지 않는다.

@@ -34,7 +34,7 @@ Quick Open dialog는 document.body portal이며 열릴 때 input에 focus하고,
 
 ## Desktop 파일 내용 검색과 치환
 
-근거: [localEditorProvider.ts](../../../apps/desktop/src/renderer/src/editor/localEditorProvider.ts).
+근거: [localEditorProvider.ts](../../../apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts).
 
 내용 검색은 UUID requestId를 만들고 onSearchResult/onSearchDone을 등록한 뒤 searchInFiles를 요청한다. 자신의 requestId만 받아 path별 마지막 결과를 Map에 축적하고 onResult로 stream한다. 결과는 파일 단위로 갱신하며 같은 파일의 match마다 누적 전체 결과를 반복 전송하지 않는다. 완료 시 최종 배열 반환, 오류 시 reject한다. abort는 cancelSearch(requestId)를 보내며 모든 listener를 해제하고 AbortError로 종료한다. 빈 contents query는 []다. 입력 변경은 이전 작업을 취소하고 debounce 후 최신 query만 실행한다. 결과 반영은 화면 갱신에 맞춰 묶어 검색 결과가 입력 focus/typing을 막지 않아야 한다.
 

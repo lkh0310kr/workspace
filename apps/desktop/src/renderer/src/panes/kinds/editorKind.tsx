@@ -1,4 +1,4 @@
-import { EditorContent } from '../EditorContent'
+import { EditorContent } from '../../features/editor'
 import type { PaneKindDefinition, PaneRenderContext } from '../paneKindRegistry'
 
 function fileTabLabel(item: { filePath?: string | null }): string {

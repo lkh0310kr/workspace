@@ -49,7 +49,7 @@ import {
   type EditorTreeProjection,
   type EditorTreeViewItem
 } from '@workspace/editor'
-import { acquireLocalEditorProvider } from '../../editor/localEditorProvider'
+import { acquireLocalEditorProvider } from './runtime/localEditorProvider'
 
 interface Props {
   tabId: number

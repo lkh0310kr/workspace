@@ -32,7 +32,7 @@ const { provider, release } = vi.hoisted(() => ({
   release: vi.fn()
 }))
 
-vi.mock('../../editor/localEditorProvider', () => ({
+vi.mock('./runtime/localEditorProvider', () => ({
   acquireLocalEditorProvider: () => ({ provider, release })
 }))
 
