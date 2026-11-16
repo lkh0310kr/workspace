@@ -1,11 +1,9 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import type { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
-import '../../assets/terminal-xterm-overrides.css'
-import { getCurrentResolvedTheme, subscribeThemeChange } from '../../theme'
-import { getTerminalSearchDecorations, XTERM_THEMES } from '../../terminalThemes'
-import { useTerminalSearchThemeKey } from './useTerminalSearchThemeKey'
-import { TerminalSearch, type SearchAddonPort } from '@workspace/terminal'
+import './terminal.css'
+import './terminal-xterm-overrides.css'
+import { TerminalSearch, type SearchAddonPort } from './TerminalSearch'
 import type { RefObject } from 'react'
 import { createPaneDOM } from '@workspace/terminal/pane-manager/pane-dom-creation'
 import { buildTerminalPaneOptions } from '@workspace/terminal/pane-manager/build-terminal-pane-options'
@@ -24,17 +22,10 @@ import {
   resumePaneRendering,
   suspendPaneRendering
 } from '@workspace/terminal/pane-manager/pane-rendering-control'
-import { resolveExplicitTerminalTitleAgentType } from '../../../../shared/agent/terminal-title-agent-type'
 import type { TuiAgent } from '@workspace/terminal/types/tuiAgent'
 import { shouldFocusTerminalFromPanePointerDown } from '@workspace/terminal/pane-manager/pane-pointer-focus'
-import { focusTerminalTextarea } from '../../lib/focus-terminal-textarea'
-import { requestKeyboardSurface } from '../../interaction/keyboardSurface'
-import { registerTerminalKeyboardTarget } from '../../terminal/terminalKeyboardSurface'
-import { installTerminalKeyHandler } from '../../terminal/installTerminalKeyHandler'
-import { installTerminalPasteHandler } from '../../terminal/installTerminalPasteHandler'
-import { installTerminalFileDropHandler } from '../../terminal/terminal-file-drop'
-import { termLog } from '../../terminal/terminalDebugLog'
-import type { TerminalPaneHost } from './terminalPaneHost'
+import { XTERM_THEMES } from './terminalThemes'
+import type { TerminalPaneHost } from './TerminalPaneHost'
 
 interface Props {
   runtimeHost: TerminalPaneHost
@@ -51,10 +42,7 @@ interface Props {
 
 const TERMINAL_BASE_FONT_SIZE = 14
 
-function applyTerminalSurfaceBackground(
-  el: HTMLElement,
-  resolved: ReturnType<typeof getCurrentResolvedTheme>
-) {
+function applyTerminalSurfaceBackground(el: HTMLElement, resolved: 'dark' | 'light') {
   const bg = XTERM_THEMES[resolved].background ?? ''
   el.style.setProperty('--terminal-surface-bg', bg)
 }
@@ -86,8 +74,10 @@ function TerminalPaneInner({
   const searchRef = useRef<SearchAddon | null>(null)
   const hasFocusRef = useRef(false)
   const wasShownRef = useRef(false)
-  const searchThemeKey = useTerminalSearchThemeKey()
+  const [searchThemeKey, setSearchThemeKey] = useState(() => runtimeHost.getResolvedTheme())
   const [searchOpen, setSearchOpen] = useState(false)
+
+  useEffect(() => runtimeHost.subscribeThemeChange(setSearchThemeKey), [runtimeHost])
 
   useEffect(() => {
     const host = hostRef.current
@@ -99,9 +89,7 @@ function TerminalPaneInner({
     const pane = createPaneDOM(terminalId, `terminal-${terminalId}`, {
       terminalGpuAcceleration: 'auto',
       linkOpenHint: () => 'open in browser',
-      onLinkClick: (_paneId, _event, uri) => {
-        window.open(uri, '_blank')
-      },
+      onLinkClick: (_paneId, _event, uri) => paneRuntimeHost.openLink(uri),
       terminalOptions: () => ({
         ...buildTerminalPaneOptions({
           rootPath,
@@ -109,7 +97,7 @@ function TerminalPaneInner({
           zoom,
           osRelease: platformInfo.osRelease
         }),
-        theme: XTERM_THEMES[getCurrentResolvedTheme()]
+        theme: paneRuntimeHost.getXtermTheme(paneRuntimeHost.getResolvedTheme())
       })
     })
 
@@ -119,7 +107,7 @@ function TerminalPaneInner({
     searchRef.current = pane.searchAddon
     registerTerminalPane(terminalId, pane)
 
-    const resolved = getCurrentResolvedTheme()
+    const resolved = paneRuntimeHost.getResolvedTheme()
     if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved)
     applyTerminalSurfaceBackground(host, resolved)
 
@@ -131,7 +119,7 @@ function TerminalPaneInner({
       paneTabId,
       terminalAgent,
       onTitleChange: (title) => {
-        const terminalAgent = resolveExplicitTerminalTitleAgentType(title)
+        const terminalAgent = paneRuntimeHost.resolveTitleAgentType(title)
         onTerminalTabUpdateRef.current?.({
           title,
           terminalAgent: terminalAgent ?? null
@@ -140,53 +128,35 @@ function TerminalPaneInner({
     })
     ptyDisposeRef.current = dispose
 
-    const keyHandlerDispose = installTerminalKeyHandler({
+    const isFocused = (): boolean => {
+      const active = document.activeElement
+      const root = pane.terminal.element
+      return (
+        active === pane.terminal.textarea ||
+        (!!root && active instanceof Node && root.contains(active))
+      )
+    }
+    const inputHandlersDispose = paneRuntimeHost.installInputHandlers({
       terminal: pane.terminal,
-      transport,
+      container: pane.container,
       terminalId,
+      transport,
+      getTerminalAgent: () => terminalAgentRef.current,
       writeClipboardText: (text) => runtimeHostRef.current.writeClipboardText(text),
-      getTerminalAgent: () => terminalAgentRef.current,
-      isFocused: () => {
-        const active = document.activeElement
-        const root = pane.terminal.element
-        return (
-          active === pane.terminal.textarea ||
-          (!!root && active instanceof Node && root.contains(active))
-        )
-      }
+      isFocused
     })
 
-    const pasteHandlerDispose = installTerminalPasteHandler({
-      terminal: pane.terminal,
-      container: pane.container,
-      getTerminalAgent: () => terminalAgentRef.current,
-      isFocused: () => {
-        const active = document.activeElement
-        const root = pane.terminal.element
-        return (
-          active === pane.terminal.textarea ||
-          (!!root && active instanceof Node && root.contains(active))
-        )
-      }
-    })
-    const fileDropHandlerDispose = installTerminalFileDropHandler({
-      container: pane.container,
-      focus: () => pane.terminal.focus(),
-      write: (text) => transport.write(text),
-      getTerminalAgent: () => terminalAgentRef.current
-    })
-
-    const unregisterKeyboardTarget = registerTerminalKeyboardTarget(terminalId, () => {
+    const unregisterKeyboardTarget = paneRuntimeHost.registerKeyboardTarget(terminalId, () => {
       pane.terminal.blur()
     })
 
     const onFocusIn = () => {
       hasFocusRef.current = true
       if (platformInfo.platform === 'win32') {
-        requestKeyboardSurface('terminal', 'terminal-focusin')
+        runtimeHostRef.current.requestKeyboardSurface('terminal', 'terminal-focusin')
       }
       runtimeHostRef.current.setFocusedTerminal(terminalId)
-      termLog(
+      runtimeHostRef.current.log(
         'terminal:focus',
         'focusin',
         {
@@ -203,7 +173,7 @@ function TerminalPaneInner({
       }
       hasFocusRef.current = false
       runtimeHostRef.current.setFocusedTerminal(null)
-      termLog('terminal:focus', 'focusout', {}, terminalId)
+      runtimeHostRef.current.log('terminal:focus', 'focusout', {}, terminalId)
     }
 
     pane.container.addEventListener('focusin', onFocusIn)
@@ -213,14 +183,14 @@ function TerminalPaneInner({
         return
       }
       if (platformInfo.platform === 'win32') {
-        requestKeyboardSurface('terminal', 'terminal-pointerdown')
+        runtimeHostRef.current.requestKeyboardSurface('terminal', 'terminal-pointerdown')
       }
       pane.terminal.focus()
     }
     pane.container.addEventListener('pointerdown', onPointerDown)
 
-    const unsubscribeTheme = subscribeThemeChange((resolved) => {
-      pane.terminal.options.theme = XTERM_THEMES[resolved]
+    const unsubscribeTheme = paneRuntimeHost.subscribeThemeChange((resolved) => {
+      pane.terminal.options.theme = paneRuntimeHost.getXtermTheme(resolved)
       if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved)
       const hostEl = hostRef.current
       if (hostEl) applyTerminalSurfaceBackground(hostEl, resolved)
@@ -228,9 +198,7 @@ function TerminalPaneInner({
 
     return () => {
       unsubscribeTheme()
-      keyHandlerDispose()
-      pasteHandlerDispose()
-      fileDropHandlerDispose()
+      inputHandlersDispose()
       unregisterKeyboardTarget()
       runtimeHostRef.current.setFocusedTerminal(null)
       pane.container.removeEventListener('focusin', onFocusIn)
@@ -291,14 +259,14 @@ function TerminalPaneInner({
     requestAnimationFrame(() => {
       refit()
       if (becameShown) {
-        focusTerminalTextarea(pane.container)
+        runtimeHostRef.current.focusTextarea(pane.container)
         pane.terminal.focus()
       }
     })
     const timer = window.setTimeout(() => {
       refit()
       if (becameShown) {
-        focusTerminalTextarea(pane.container)
+        runtimeHostRef.current.focusTextarea(pane.container)
         pane.terminal.focus()
       }
     }, 50)
@@ -339,7 +307,7 @@ function TerminalPaneInner({
           paneRef.current?.terminal.focus()
         }}
         searchAddonRef={searchRef as RefObject<SearchAddonPort | null>}
-        decorations={getTerminalSearchDecorations(searchThemeKey)}
+        decorations={runtimeHost.getSearchDecorations(searchThemeKey)}
         registerPortal={runtimeHost.registerPortal}
       />
       <div className="terminal-pane-host pane-manager-root" ref={hostRef} />

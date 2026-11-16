@@ -37,7 +37,7 @@
       "scope": "package",
       "owner": "packages/editor",
       "specStatus": "drafted",
-      "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
+      "coverage": "Desktop PTY host/process lifecycle and integration adapter; package-owned terminal view and policies are indexed under terminal-package.",
       "documents": [
         "packages/editor/README.md",
         "docs/architecture/editor/README.md",
@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "b0d298e865f1149bb7077e07b00a9130d7bcff82c14ddb7f82489f003d914050"
+          "sha256": "4ab5d15abfacc3dfe4c57dd6f21e56c8ca4427cc3b22ae537b5e54ad62190d3a"
         },
         {
           "path": "apps/desktop/src/renderer/src/editor/localEditorProvider.ts",
@@ -809,16 +809,12 @@
           "sha256": "b4bb90a398c4e5c43befcee795de8d49aad661d13778cc7df29b03150679008b"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/terminal/TerminalPane.tsx",
-          "sha256": "a620e6b6131044c8578c4ed396dbb8e87c6f0acbfdf317a79098a7ac11e8ffe8"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/features/terminal/index.ts",
-          "sha256": "17f21fc4644e3c6286034b1561cb9489755249339e91e4afd973040b45d95195"
+          "sha256": "3cb54c1432ae4fb985d8776c73e82d85566549c9bcd08b2d6b0ab4585c022f5d"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "ed89bec429e5c91b0feb3c14fe8ec7087a369e6fdd49a260e6f9f5531058be9e"
+          "sha256": "2476e85b5356a9feac43194047ee23a6ccd9febee0f324f20abcde2f4d235d27"
         },
         {
           "path": "apps/desktop/src/renderer/src/terminal/ptyDataMultiplexer.ts",
@@ -1129,7 +1125,7 @@
       "scope": "package",
       "owner": "packages/terminal",
       "specStatus": "drafted",
-      "coverage": "Terminal renderer engine (pane manager, fit/scroll/WebGL/output scheduler), terminal input helpers, search UI, and terminal domain policies. Desktop retains PTY IPC/process ownership and supplies host adapters.",
+      "coverage": "Terminal pane view and host contract, renderer engine (pane manager, fit/scroll/WebGL/output scheduler), theme/style, search UI, and terminal domain policies. Desktop retains PTY IPC/process ownership and supplies app adapters.",
       "documents": [
         "packages/terminal/README.md",
         "docs/architecture/workspace/terminal/README.md"
@@ -1144,8 +1140,20 @@
           "sha256": "3affe3bc7373f566f4e882acc4527b2ed962db07218151f0aba5121d39dfb827"
         },
         {
+          "path": "packages/terminal/src/TerminalPane.tsx",
+          "sha256": "798f8b59aeec589e68e3d37b48a54b99efde990ddfb24f441749e3d916b8e657"
+        },
+        {
+          "path": "packages/terminal/src/TerminalPaneHost.ts",
+          "sha256": "793e54df4b0d1fcf4e0ad8fd9c44e02658219a5d0c35ea7cd316e06c50d62a28"
+        },
+        {
+          "path": "packages/terminal/src/focusTerminalTextarea.ts",
+          "sha256": "1696776d8e68bb7690653b5697b34b84793bd65717ab8db57ff3050d7576a2e5"
+        },
+        {
           "path": "packages/terminal/src/index.ts",
-          "sha256": "dd9d2c860c69b50babd0dbbb80a9857b7fce8c983616ab069f4fe387c5947429"
+          "sha256": "c19d1c9d4dc82626d45cb2c56d34a40ed5d023af325ff44d252500f997e87edb"
         },
         {
           "path": "packages/terminal/src/monospace-font-family.test.ts",
@@ -1154,6 +1162,18 @@
         {
           "path": "packages/terminal/src/monospace-font-family.ts",
           "sha256": "f5739bf418a405c2d1246672ec4e4a72fd9db2fd1d7f68d0cd495b8c2d5cfff3"
+        },
+        {
+          "path": "packages/terminal/src/terminalThemes.ts",
+          "sha256": "0e6cbbf328d6dcd26d48d411f3b975bd6fc10e13206c64b8450951fbf8814321"
+        },
+        {
+          "path": "packages/terminal/src/terminal-xterm-overrides.css",
+          "sha256": "376322fa6b959af2318592649cea360201899cc588f03a7822d24cd7a6257cfb"
+        },
+        {
+          "path": "packages/terminal/src/terminal.css",
+          "sha256": "1c8afe4d6c160a876e28d0b031fe3f248f38da1f10c724a2d1abd8847cd52a64"
         },
         {
           "path": "packages/terminal/src/pane-manager/build-terminal-pane-options.ts",

@@ -1,5 +1,5 @@
 # @workspace/terminal
 
-Terminal renderer package: pane manager, output scheduling, fit/scroll/WebGL, terminal input helpers, search UI, and terminal policies. Desktop retains Electron PTY IPC, process/session ownership, app stores, and the adapter that connects panes to them.
+Terminal feature package: pane view and host contract, pane manager, output scheduling, fit/scroll/WebGL, terminal theme, input policies, and search UI. Desktop retains Electron PTY IPC, process/session ownership, app stores, platform keyboard/input adapters, and the singleton host implementation.
 
-Pane visibility and selection only control rendering and focus. They do not own PTY attach/dispose lifetime. Detailed contracts and acceptance gaps: [Terminal architecture](../../docs/architecture/workspace/terminal/README.md).
+Pane visibility and selection only control rendering and focus. They do not own PTY attach/dispose lifetime. `TerminalPane` is package-owned and receives `TerminalPaneHost`; Desktop provides PTY, agent-store, clipboard, theme, and input-handler capabilities. Detailed contracts and acceptance gaps: [Terminal architecture](../../docs/architecture/workspace/terminal/README.md).

@@ -1,6 +1,6 @@
 # Terminal 실행·출력·재연결 계약
 
-App scope의 J-03 계약이다. [TerminalPane](../../../../apps/desktop/src/renderer/src/features/terminal/TerminalPane.tsx)가 xterm mount를 소유하고 Main [PtySession](../../../../apps/desktop/src/main/ptySession.ts)은 detached [PTY host](../../../../apps/desktop/src/main/ptyHostDaemon.ts)의 client다. pane mount·Main handle·shell process의 수명은 다르다.
+App scope의 J-03 계약이다. package [TerminalPane](../../../../packages/terminal/src/TerminalPane.tsx)가 xterm mount를 소유하고 Main [PtySession](../../../../apps/desktop/src/main/ptySession.ts)은 detached [PTY host](../../../../apps/desktop/src/main/ptyHostDaemon.ts)의 client다. pane mount·Main handle·shell process의 수명은 다르다.
 
 ## 계층과 데이터 형식
 
@@ -32,7 +32,7 @@ Main은 renderer에 전송한 seq별 byte 수를 추적한다. 미해제 credit�
 
 [@workspace/terminal](../../../../packages/terminal/README.md)의 pane-manager는 xterm와 addons/fit/WebGL/selection/scroll을 소유한다. `visible`/`active` 전환은 rendering suspend/resume와 reveal-fit 정책을 사용한다. TerminalPane의 PTY connect/dispose effect는 이 표시 props에 의존하지 않는다. Workspace/pane 전환은 xterm을 숨기거나 보일 뿐 process를 끊지 않는다. pane unmount·root/identity 변경에서 renderer attachment를 정리하며, Main process 종료는 모든 layout에서 마지막 Terminal 참조가 제거되는 shell 정책을 따른다. 같은 grid의 reveal을 무조건 refit하면 pinned scroll이 변할 수 있으므로 stable fit과 viewport restoration helper를 따른다. replay/parse/fit이 정착하기 전 scroll을 최종 복구했다고 보지 않는다.
 
-Terminal 검색 UI와 좁은 viewport 오류 정책은 [@workspace/terminal](../../../../packages/terminal/README.md)의 독립 slice다. Desktop host가 검색 addon, 테마 장식, portal 등록을 주입한다. PTY 수명과 pane orchestration은 계속 Desktop이 소유한다. Desktop 통합 진입점은 `features/terminal/index.ts`와 `TerminalPane.tsx`다. 렌더러 엔진과 pane-manager는 `packages/terminal`이 소유하고, Desktop host가 PTY IPC와 app store capability를 제공한다. `TerminalPaneHost` 계약은 package가 소유하며 platform, focus, agent status, clipboard, PTY attach port를 정의한다. Desktop singleton은 `terminalPaneHost.ts`에서 구현한다. Input handlers, theme와 pane-manager는 아직 view가 직접 import하므로 계약 이동만으로 독립 host capability가 완성되지는 않는다. 이들 runtime capability를 분리할 때 기존 PTY snapshot/replay/ACK/reconnect 결과를 유지한다.
+Terminal pane view, 검색 UI, theme policy와 pane-manager는 [@workspace/terminal](../../../../packages/terminal/README.md)이 소유한다. Desktop host가 검색 addon, theme subscription, portal 등록을 주입한다. PTY 수명과 pane orchestration은 계속 Desktop이 소유한다. Desktop 통합 진입점은 `features/terminal/index.ts`와 `terminalKind.tsx`다. `TerminalPaneHost` 계약은 package가 소유하며 platform, focus, agent status, clipboard, PTY attach 및 input handler port를 정의한다. Desktop singleton은 `terminalPaneHost.ts`에서 구현한다. 실제 key/paste/file-drop handler 구현과 Electron IPC는 Desktop에 남는다. 이 runtime 경계를 분리할 때 기존 PTY snapshot/replay/ACK/reconnect 결과를 유지한다.
 
 입력은 installTerminalKeyHandler/PasteHandler, bracketed paste, query reply와 일반 input batching을 구분한다. OSC52 clipboard, image temp file paste, local file drop, mouse-reporting wheel은 각각의 handler 경로다. IME·Alt/Option·PowerShell/WSL 정책을 일반 browser shortcut으로 대체하지 않는다.
 

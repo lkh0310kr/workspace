@@ -1,5 +1,5 @@
 import type { ITheme } from '@xterm/xterm'
-import type { ResolvedTheme } from './theme'
+export type ResolvedTheme = 'dark' | 'light'
 
 // Ported from ref-proj/orca/src/renderer/src/lib/terminal-themes/defaults.ts.
 // The dark palette is tuned for Workspace's Onyx-like graphite surfaces; light

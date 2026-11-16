@@ -1,3 +1,3 @@
-export { TerminalPane } from './TerminalPane'
-export type { TerminalPaneHost } from './terminalPaneHost'
+export { TerminalPane } from '@workspace/terminal'
+export type { TerminalPaneHost } from '@workspace/terminal'
 export { desktopTerminalPaneHost } from './terminalPaneHost'

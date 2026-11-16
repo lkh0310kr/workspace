@@ -1,5 +1,9 @@
 import type { TuiAgent } from './types/tuiAgent'
 import type { ManagedPane } from './pane-manager/pane-manager-types'
+import type { Terminal } from '@xterm/xterm'
+import type { ITheme } from '@xterm/xterm'
+import type { TerminalSearchDecorations } from './TerminalSearch'
+import type { ResolvedTheme } from './terminalThemes'
 
 export interface TerminalPtyTransport {
   connect: (callbacks: {
@@ -22,6 +26,30 @@ export interface TerminalPtyTransport {
 export interface TerminalPaneHost {
   registerPortal: (id: string, onDismiss: () => void) => () => void
   getPlatformInfo: () => { platform: string; osRelease: string }
+  getResolvedTheme: () => ResolvedTheme
+  getXtermTheme: (theme: ResolvedTheme) => ITheme
+  getSearchDecorations: (theme: ResolvedTheme) => TerminalSearchDecorations
+  subscribeThemeChange: (listener: (theme: ResolvedTheme) => void) => () => void
+  resolveTitleAgentType: (title: string) => TuiAgent | null
+  openLink: (url: string) => void
+  focusTextarea: (container: HTMLElement | null) => void
+  requestKeyboardSurface: (surface: 'terminal', reason: string) => void
+  registerKeyboardTarget: (terminalId: number, blur: () => void) => () => void
+  installInputHandlers: (args: {
+    terminal: Terminal
+    container: HTMLElement
+    terminalId: number
+    transport: TerminalPtyTransport
+    getTerminalAgent: () => TuiAgent | null | undefined
+    writeClipboardText: (text: string) => void
+    isFocused: () => boolean
+  }) => () => void
+  log: (
+    location: string,
+    message: string,
+    data?: Record<string, unknown>,
+    terminalId?: number
+  ) => void
   setFocusedTerminal: (terminalId: number | null) => void
   registerAgentPane: (
     terminalId: number,
