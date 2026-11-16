@@ -610,7 +610,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserPaneHost.ts",
-          "sha256": "e59a49b32d2b301628915af1c303ebedd7a4904f1675021198abd79cd94be724"
+          "sha256": "cbd44b8c56a603f404b4173d1e356ed8805626485a923385a3beb1665245c1ca"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserTabLifecycle.ts",
@@ -1030,7 +1030,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/terminalPaneHost.ts",
-          "sha256": "8070e340ee72f23484e5f175a7da51cb79c85f7310a4a1b98c330145eef5ba68"
+          "sha256": "b7199e1a5a8e440ea2b522e4c15841348d4138c115d081f6163ca2b019a767ce"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/runtime/ptyDataMultiplexer.ts",
@@ -1461,7 +1461,7 @@
       "sources": [
         {
           "path": "packages/terminal/package.json",
-          "sha256": "6b5194f3d9c4ab5495e5c16c9014173d8f8056e44dc82877f9a65851f60c24cd"
+          "sha256": "fece21813d3b2626f92fc8fc45a5fd12b50b0b5a1b74f567c0ff3ed019d09be9"
         },
         {
           "path": "packages/terminal/src/agent/agent-detection.ts",
