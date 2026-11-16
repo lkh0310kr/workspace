@@ -1,118 +1,34 @@
-# Treeview 스펙
+# Editor TreeView
 
-공유 [EditorTreePane](../../../../packages/editor/src/EditorTreePane.tsx)는 위·아래 chrome slot과 실제 tree를 하나의 pane으로 조립한다. 트리 제목·상태·action 배치는 `EditorTreeToolbar`를 사용한다. 파일·폴더 생성 control은 [EditorTreeCreateActions](../../../../packages/editor/src/EditorTreeCreateActions.tsx) 하나로 공유해 세 host에서 이름·아이콘·26px hit target을 같게 유지한다. 생성 버튼은 padding/border/radius를 추가하지 않으며 host의 광역 button reset에서 제외한다. 복합 host 전용 chrome은 같은 모듈의 `EditorTreeFrame`에 둔다. 공유 `EditorTreeView`, row, virtual-list 구현은 package 내부에 숨기고 소비자는 `EditorTreePane`을 통해서만 렌더한다. host는 provider 로딩·영속 상태·실제 파일 작업 및 제품별 slot content를 소유한다. 생성 action의 표시 여부는 host/provider capability가 결정한다. 공용 tree chrome과 row geometry는 [tree CSS Module](../../../../packages/editor/src/treeView.module.css)이 소유하며, React 컴포넌트는 module class map을 사용한다. host 연동과 UI 테스트는 스타일 클래스 대신 `data-editor-tree-*` 속성을 사용한다. `tree.css`는 breadcrumbs와 document tabs의 기존 전역 스타일을 유지한다. host CSS는 스크롤 container와 제품별 action만 꾸미고 공용 row에 적용되는 광역 `button` 규칙을 두지 않는다. `npm run check:editor-tree-contract`는 제품별 공용 tree 진입점, CSS Module 경계와 package-private 구현 경계를 검사한다.
+Desktop Editor는 공유 `packages/editor`의 TreeView와 tree pane을 사용한다. Desktop Explorer는 로컬 provider를 연결하고 filesystem mutation, workspace selection과 pane 상태를 소유한다.
 
-세 host의 toolbar 높이·padding·구분선·대문자 제목·상태 버튼 초기화, 본문 scroll surface, 기본 pane 배경은 `treeView.module.css`가 소유한다. 배경은 각 host가 `--editor-tree-background` 의미 토큰을 제공하고, 없으면 해당 테마의 sidebar/surface 토큰을 사용한다. host CSS에서 tree toolbar, tree row/list, pane content의 외형을 다시 정의하지 않는다. 공통 초기 폭은 262px이고 Desktop 사용자가 저장한 Explorer 폭은 유지한다. 세 host 모두 같은 공용 resize handle을 사용하며 폭 조절 후 host별 영속 상태에 저장한다. visual parity 테스트는 세 host의 실제 tree frame 폭, 배경색, toolbar computed style과 resize 동작을 비교한다.
+## 책임 경계
 
-## 상태와 데이터 흐름
+- `EditorTreePane`은 header/footer slot, pane layout, scroll owner를 제공한다.
+- `EditorTreeView`는 visible rows, keyboard focus, selection, virtualized rendering을 담당한다.
+- `EditorTreeRow`는 disclosure, filename, inline create/rename과 row-level actions를 표시한다.
+- `WorkspaceExplorerSidebar`는 local provider, width preference, root selection과 Explorer 상태를 연결한다.
 
-공유 row model은 `id,path,name,kind,depth`와 선택적 expandable/expanded/loading/active/selected/multiSelected/cut/dropTarget/tabIndex/trailingStatus/showGuides/source를 가진다. projection은 rows/startIndex/paddingTop/paddingBottom/totalHeight다. 공유 UI는 provider를 직접 호출하지 않고 callback으로 선택·activate·context·drop을 위임한다.
+공통 구현은 [Editor package](../../README.md), provider 동작은 [Desktop local provider](../../workspace/editor/providers.md), pane 동작은 [Workspace layout](../../workspace/layout/README.md)이 기준이다.
 
-row에는 file/folder type icon을 표시하지 않는다. folder expand/collapse disclosure와 depth guide만 유지하고, 아이콘 폭 없이 이름을 정렬한다.
+## 사용자 결과
 
-Provider 기반 tree의 생성과 이름 변경은 row 안에서 입력한다. Enter는 commit, Escape는 취소하며 생성 직후 이름을 입력할 row를 표시한다. `trailingStatus`는 동기화 pending/uploading/synced/attention 아이콘을 전달하고 접근성 설명은 row description으로 제공해 파일 이름 accessible name을 유지한다. Drag/drop 중 빈 tree 영역은 workspace root 대상이며, row drop은 전파를 막아 folder 대상이 우선한다.
+- 폴더를 확장·접고 키보드 focus와 선택 행을 일관되게 이동한다.
+- 가상 목록의 focus 이동은 행을 viewport에 표시하고 scroll 위치를 복원한다.
+- 파일 이름 변경·생성은 row 안에서 입력하며 Enter로 완료하고 Escape로 취소한다.
+- 파일 이동과 폴더 생성은 local provider의 검증된 경로를 사용한다.
+- 숨김 파일과 `.gitignore` 판정은 서로 다른 상태로 표시한다. 무시 파일도 탐색과 열기가 가능하다.
+- Markdown suffix 표시 정책은 host가 명시하고 본문 제목 규칙과 분리한다.
 
-Desktop local TreeView는 Git이 무시하는 파일/폴더를 계속 탐색·열기 가능하게 표시하되 이름만 muted foreground로 구분한다. 무시 여부는 renderer에서 `.gitignore` 문자열을 직접 해석하지 않고 workspace root 기준 `git check-ignore` 결과를 사용한다. 이는 중첩 `.gitignore`, negation, 저장소 설정과 이미 추적 중인 파일의 Git 판정을 따른다. foreground 변경은 행 배경·선택·hover·키보드 동작을 바꾸지 않는다. Git 저장소가 아니거나 Git 판정을 얻지 못해도 directory listing은 유지하고 항목을 일반 상태로 표시한다. 이 Git decoration은 Desktop local provider에만 적용한다. PKMS client의 sync exclusion pattern은 Git ignore가 아니므로 같은 상태로 표시하지 않는다.
+## 수락 시나리오
 
-Desktop은 path→`{entries,loaded}` branch Map, expanded Set, focusedPath/anchorPath/selectedPaths, menu/prompt, dropTarget, scrollTop, 첫 가시 행의 path와 행 내 offset, viewportHeight를 소유한다. provider lease는 Explorer와 Editor가 공유한다. loadDir는 path를 directory item으로 resolve하고 listChildren(parentId)를 수행한다. notFound는 로딩 중단, 기타 오류는 console.error다. 요청마다 branch sequence와 root path를 캡처하며, 늦게 완료된 오래된 branch/root 응답은 버린다.
+| ID | 입력/행동 | 기대 결과 |
+| --- | --- | --- |
+| TREE-01 | 폴더 확장과 접기를 반복 | visible rows와 disclosure state가 일치한다. |
+| TREE-02 | 키보드로 목록 밖 행으로 이동 | focus 행이 viewport 안으로 이동한다. |
+| TREE-03 | 선택 파일 변경 후 다른 pane을 갔다 돌아옴 | focus·선택·scroll 상태가 해당 workspace에 맞게 복원된다. |
+| TREE-04 | 새 파일/폴더 생성 후 Escape 또는 Enter | Escape는 입력을 취소하고 Enter는 filesystem에 반영한다. |
+| TREE-05 | 파일 rename 또는 move | 실제 filesystem 변경 뒤 tree path와 열린 문서 identity가 갱신된다. |
+| TREE-06 | `.gitignore` 대상과 무시되지 않는 항목 표시 | 무시 여부만 muted style로 구분하고 탐색 기능은 유지한다. |
 
-Desktop TreeView는 pane 본문 위에 떠 있는 왼쪽 sidebar다. visible toggle button은 두지 않는다. 열림은 pane group별 persistent chrome state이며 본문 폭을 줄이지 않는다. 사용자가 resize handle을 120px 아래로 줄이면 닫히고, pane 본문 폭이 560px 이하이면 sidebar를 숨긴다. `Cmd+\`(macOS) / `Ctrl+\`(Windows/Linux)는 현재 focused pane group의 Explorer를 토글한다. Electron host와 embedded browser의 키 입력을 main process에서 relay하므로 물리 `Backslash` 키 코드와 입력 layout의 `\` 문자를 함께 판별한다. Editor pane에서는 Explorer의 persistent open state를 바꾸고, embedded browser pane에서는 그 pane에 한해 임시로 Explorer를 표시한다. Terminal이 focus를 소유하면 단축키를 소비하고 TreeView 상태를 바꾸지 않는다. 닫았다 다시 열면 마지막 폭을 복원한다. 열린 상태에서는 panel surface/shadow가 editor 내용과 구분되며 빈 바깥 영역은 editor input을 가로채지 않는다.
-
-초기화/루트 변경 때 branch와 selection을 초기화하고 root와 복원된 expanded branch를 로드한다. root가 바뀌면 저장된 tree state를 reset한다. 저장된 anchor path/offset을 우선 복원하고, anchor가 없거나 목록에서 사라졌으면 pixel scrollTop을 사용한다. 복원은 root와 expanded branch 응답이 끝난 뒤 적용해 초기 빈 목록에 의해 clamp되지 않게 한다. 외부 scroll container는 passive scroll listener와 ResizeObserver로 가상화를 갱신한다. 행 목록이 바뀌면 직전 첫 가시 행의 path와 행 내 offset을 찾아 같은 viewport 위치를 유지하고, 해당 행이 삭제된 경우 이전 행 index에서 가장 가까운 생존 행으로 보정한다. workspace/tab 범위 변경은 이전 anchor를 폐기한다. expanded, pixel scrollTop, anchor는 host의 explorer state storage에서 관리하며 공통 UI가 localStorage를 직접 소유하지 않는다. 패널 숨김/표시와 너비 조정은 scroll 위치를 초기화하지 않는다.
-
-## 정렬과 가상화
-
-근거: [treeModel.ts](../../../../packages/editor/src/treeModel.ts).
-
-- root path는 `''`, depth=0. branch마다 directory 먼저, 이름은 localeCompare(undefined,{sensitivity:'base'})로 정렬한다.
-- expanded directory에 대해서만 깊이 우선으로 후손을 펼친다. ancestor path Set으로 순환을 막는다. 로드되지 않은 branch는 행이 없다.
-- 기본 row height=27px, overscan=4. start=max(0,floor(scrollTop/27)-4), count=ceil(height/27)+8, end=min(total,start+count).
-- top=start*27, bottom=max(0,(total-end)*27), totalHeight=total*27이다. height<=0 또는 빈 목록이면 원래 rows를 모두 반환하고 spacer=0이다.
-- VirtualList는 item.id key, `role=group`, minHeight=totalHeight, aria-hidden spacer와 빈 목록 표시를 사용한다.
-- `editorTreeItemLabel`은 기본값에서 `.md`/`.markdown` suffix를 대소문자 무관 제거하지만 host는 표시 정책을 지정할 수 있다. 기본 Desktop Editor는 suffix를 표시하고 PKMS tree는 감춘다. 본문 title도 `.markdown` suffix를 제거하지만 row와는 별도 helper다.
-
-## 선택과 키보드
-
-근거: [treeSelection.ts](../../../../packages/editor/src/treeSelection.ts), [treeNavigation.ts](../../../../packages/editor/src/treeNavigation.ts).
-
-| 입력             | 전이                                                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------------ |
-| 일반 click       | focused=anchor=path, 선택은 해당 한 항목; onActivate 실행                                                    |
-| Ctrl/Meta click  | multiSelect일 때 선택 toggle, focused/anchor=path; activate하지 않음                                         |
-| Shift click      | anchor 또는 focus 또는 자기 자신을 기준으로 visiblePaths의 inclusive range 선택; additive면 기존 선택과 합침 |
-| 빈 공간 click    | onClearSelection                                                                                             |
-| Down/Up          | 표시 행 한 칸 이동, 양 끝 clamp; focus 없으면 첫/마지막 행                                                   |
-| Right            | directory가 접혔으면 expand, 펼쳤으면 다음 행이 자식일 때 focus                                              |
-| Left             | expanded directory면 collapse, 아니면 표시된 부모로 focus                                                    |
-| Enter            | activate                                                                                                     |
-| F2               | rename                                                                                                       |
-| Delete/Backspace | delete                                                                                                       |
-
-보이지 않는 path에 대한 selection 요청은 현재 상태를 그대로 반환한다. range anchor가 visiblePaths에 없으면 클릭한 위치만 범위로 사용한다. 파일 작업 전 selected directory의 후손을 제거해 작업 root를 만든다. 공유 resolver는 의미 action만 반환하고 host가 capability와 실제 작업을 판단한다. row는 button role=treeitem, aria-level=depth+1, aria-selected=selected||multiSelected, expandable일 때 aria-expanded를 설정한다. 들여쓰기는 8+depth*14 px다. root `role=tree`, aria-label, aria-multiselectable, aria-busy를 제공하고 row의 tabindex 기본값은 -1이다.
-
-## 파일 열기와 변경
-
-Desktop에서 파일을 열기 전 조상 directory를 expand하고 미로드 branch를 읽는다. 활성 editor path가 외부에서 바뀌면 해당 파일의 조상을 expand하고 행이 projection에 나타난 뒤 scroll viewport로 reveal한다. 이는 목록 갱신 시 anchor 보존과 별개인 명시적 navigation이다. onOpenFile은 path와 code/markdown/viewer 및 선택적 pin을 받는다. 공유 shell은 단일 activate와 double activate callback을 구분한다.
-
-create/rename/menu는 capability와 메서드를 함께 확인한다. 파일 자동 이름은 unique-name helper가 case-insensitive sibling Set에서 `base+extension`을 먼저 시도하고 이미 있으면 `base 1+extension`, `base 2+extension` 순으로 첫 빈 이름을 찾는다. directory 생성 prompt는 입력 이름으로 createDirectory를 실행한다. rename은 provider rename, 성공 path 변경 통지는 host가 담당한다. 삭제는 root 선택으로 축약하고 삭제 확인 후 영향을 받는 열린 dirty 문서 확인을 추가로 수행한다. 확인 취소 시 provider delete를 호출하지 않는다. Desktop UI는 root path마다 delete([ref])를 순차 호출하고 첫 실패에서 중단한다. 성공 경로는 onPathDeleted를 통지하고 부모를 refresh한다. 실패/미처리 선택은 남기며 삭제된 anchor/focus는 남은 첫 항목으로 바꾼다. coordinator reconcile과 drag 정리 후 다음 frame에서 기존 scroll을 새 최대치로 clamp해 복원한다. provider가 여러 ref를 미리 검증하는 것과 UI가 여러 작업을 transaction으로 수행하는 것은 다르다.
-
-subscribeTree가 전달한 parentId는 host에서 path로 바꾼다. root가 포함되면 root와 모든 expanded branch를 재로드한다. 그 외에는 `dirsToReloadForChange`로 root와 expanded ancestor를 모아 재로드한다. 이 helper는 입력 경로의 부모부터 걷기 때문에 곧바로 해당 branch 하나만 새로 읽는 알고리즘과 다르다. 구체 동작은 [treeReload.ts](../../../../apps/workspace-app/src/renderer/src/explorer/treeReload.ts)를 따른다.
-
-pane이 숨겨지거나 workspace dismiss-portals 이벤트가 오면 menu/prompt를 닫는다. unmount에서 provider lease, scroll/resize/drag listeners를 해제한다.
-
-## Drag and drop
-
-기본 MIME은 `application/x-workspace-editor-tree-paths`, payload는 JSON string[]다. canMove이고 MIME이 일치할 때 dragover를 수락한다. directory/expandable 행은 자기 path, 파일 행은 부모 path, root는 `''`가 destination이다. drop은 propagation/default를 막고 target을 지운 뒤 parse된 paths를 callback에 넘긴다. 잘못된 JSON은 []이며 공유 shell은 실제 move를 하지 않는다.
-
-host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용한다. provider는 stale ref와 destination, 자기 후손 이동을 재확인한다. dragend에서 target 표시를 정리한다.
-
-## 검증 시나리오
-
-| ID      | 데이터/행동                                                                                                                                                  | 기대 결과                                                                                                                                                                                                                  |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TREE-01 | 파일 z, directory b, 파일 A                                                                                                                                  | b→A→z 순서                                                                                                                                                                                                                 |
-| TREE-02 | 100행, scroll=270, height=270                                                                                                                                | start=6, 최대 18행, top=162, total=2700                                                                                                                                                                                    |
-| TREE-03 | A 선택 후 Shift-C                                                                                                                                            | visible 순서 A~C 선택, 활성 파일은 modifier click으로 바뀌지 않음                                                                                                                                                          |
-| TREE-04 | 폴더와 그 후손 함께 삭제                                                                                                                                     | provider에는 조상 작업만, dirty 취소 시 삭제 없음                                                                                                                                                                          |
-| TREE-05 | 잘못된 drag JSON                                                                                                                                             | 예외 없이 [] 전달                                                                                                                                                                                                          |
-| TREE-06 | Right/Left 반복                                                                                                                                              | expand→첫 자식→부모→collapse                                                                                                                                                                                               |
-| TREE-07 | pane hide                                                                                                                                                    | 열린 context menu와 이름 prompt 제거                                                                                                                                                                                       |
-| TREE-08 | viewport 첫 행 위에 sibling 행을 삽입하거나 제거                                                                                                             | 같은 path가 살아 있으면 첫 가시 행과 행 내 위치 보존; 행이 삭제되면 이전 index의 가장 가까운 생존 행 사용                                                                                                                  |
-| TREE-09 | 다른 editor tab/Quick Open에서 접힌 폴더의 파일 활성화                                                                                                       | 조상 폴더를 펼치고 활성 행을 viewport에 reveal                                                                                                                                                                             |
-| TREE-10 | 동일 branch refresh 두 건을 시작하고 첫 요청을 늦게 완료                                                                                                     | 마지막 요청 응답만 branch에 반영                                                                                                                                                                                           |
-| TREE-11 | root A의 branch 로드 중 root B로 전환, 두 root에 같은 상대 경로 존재                                                                                         | root A의 늦은 응답이 root B의 tree를 바꾸지 않음                                                                                                                                                                           |
-| TREE-25 | root A provider의 CRUD 사전 조회 후 root B로 전환하고 mutation 요청                                                                                          | Main이 기대 root 불일치로 오래된 요청을 거부하고 root B의 같은 상대 경로는 변경되지 않으며 root별 provider/item identity가 분리됨                                                                                          |
-| TREE-12 | `Cmd+\` 또는 `Ctrl+\`를 focused pane에서 입력                                                                                                                | Editor pane에서는 persistent Explorer를 토글하고, embedded browser pane에서는 해당 pane의 임시 Explorer를 토글; Terminal focus에서는 상태를 바꾸지 않고 단축키 입력을 터미널로 보내지 않음; 키 입력 layout과 무관하게 동작 |
-| TREE-13 | Explorer resize handle을 120px 미만으로 줄임                                                                                                                 | Explorer가 닫히고 다음 열기에서 마지막 유효 폭으로 나타남                                                                                                                                                                  |
-| TREE-14 | pane 본문 폭을 560px 이하로 축소                                                                                                                             | Explorer는 보이지 않고 본문이 pane 전체를 사용함; 폭을 넓히면 open state일 때 다시 표시                                                                                                                                    |
-| TREE-15 | Desktop local repo의 `.gitignore`가 새 파일/폴더를 무시하고 항목이 TreeView에 표시됨                                                                         | 이름만 muted 색으로 보이며 열기·선택·이동 동작과 행 배경은 일반 항목과 같음                                                                                                                                                |
-| TREE-16 | `.gitignore` 패턴에서 `!` negation으로 다시 포함된 파일                                                                                                      | ignored 표시가 없고 일반 색으로 보임                                                                                                                                                                                       |
-| TREE-17 | 무시 패턴과 일치하지만 Git이 이미 추적 중인 파일                                                                                                             | ignored 표시가 없음                                                                                                                                                                                                        |
-| TREE-18 | Git 저장소가 아닌 workspace 또는 Git 판정 실패                                                                                                               | 디렉터리 목록은 정상 표시되고 모든 항목은 일반 색으로 보임                                                                                                                                                                 |
-| TREE-19 | ignored 항목에 hover, keyboard focus, active/selection 적용                                                                                                  | muted 파일명은 유지되고 hover/selection/focus 배경과 동작은 보존                                                                                                                                                           |
-| TREE-20 | Desktop Editor, Desktop PKMS, Web PKMS에서 트리 배경을 비교                                                                                                  | 같은 테마에서 계산된 pane 배경색이 같고 각 host의 sidebar 표면 토큰을 따른다                                                                                                                                               |
-| TREE-21 | 세 host의 tree resize handle을 포인터 및 키보드로 조절                                                                                                       | 폭이 즉시 바뀌고 host별 저장 상태로 복원되며 min/max 경계를 지킨다; Desktop Explorer는 기존 축소 임계값 동작을 유지한다                                                                                                    |
-| TREE-20 | TreeView remount 후 저장한 anchor path 앞에 행이 추가됨                                                                                                      | anchor row가 같은 row offset에 복원되며 pixel scrollTop보다 anchor가 우선                                                                                                                                                  |
-| TREE-21 | 저장된 anchor row가 삭제됐거나 scroll 범위를 벗어남                                                                                                          | anchor가 없으면 pixel scrollTop으로 대체하고 현재 viewport의 최대 scroll 범위로 clamp                                                                                                                                      |
-| TREE-22 | tree row를 스크롤하고 pane을 탐색                                                                                                                            | pane header/footer는 고정되고 가상 row content만 scroll되며 PKMS 고유 toolbar·workspace 선택 등은 각각 header/footer slot에 남음                                                                                           |
-| TREE-23 | Workspace Editor, Desktop PKMS, Web PKMS의 tree header를 렌더링                                                                                              | 모두 `EditorTreeToolbar` 구조를 쓰고 제목·sync status·action은 host/provider capability에 따라 달라지며 row shell은 `EditorTreePane` 하나를 공유                                                                           |
-| TREE-24 | Workspace Editor, Desktop PKMS, Web PKMS tree의 첫 행과 scroll viewport를 비교                                                                               | 공유 TreeView root의 세로 여백·row 높이가 같고 host별 차이는 pane 바깥 scroll owner와 header/footer slot에 한정됨                                                                                                          |
-| TREE-25 | 기본 Editor와 Desktop Drive에서 folder/file row를 각각 렌더링하고 hover·selection 적용                                                                       | 두 host의 row 높이·border·padding·disclosure·name alignment가 같고 PKMS sync status만 trailing slot에 추가됨                                                                                                               |
-| TREE-26 | 세 host의 실제 TreeView를 mock 경계에 연결해 같은 폴더·선택 파일·서식이 풍부한 Markdown 문서를 screenshot으로 비교하고 breadcrumb sibling menu에서 파일 선택 | hover/선택 스타일과 row geometry가 같고 filename title 및 본문이 같은 readable column에 정렬됨; Shadow DOM 내부 menu click이 유지되고 PKMS별 toolbar/footer는 보존됨                                                       |
-| TREE-27 | Desktop Drive tree에 64개 자식을 표시하고 Left/Right·ArrowDown으로 행 30까지 이동한 뒤 Explorer를 숨겼다가 다시 표시                                         | 실제 `[data-editor-tree-content]` scroll owner가 움직이고 행 30이 보이는 위치로 이동; toolbar/footer는 고정되고 재열림 후 scroll 위치와 행 표시가 복원됨                                                                   |
-| TREE-28 | 세 host에서 공용 tree toolbar의 New folder와 New Markdown file action을 실행                                                                                 | 모두 tree row 안에 이름 입력을 표시하고 Enter/blur로 생성, Escape로 취소; 생성된 폴더와 파일이 TreeView에 즉시 표시됨                                                                                                      |
-| TREE-29 | 세 host의 tree context menu에서 New File/New Folder/Rename을 실행                                                                                            | host별 action은 다를 수 있지만 menu panel·row CSS와 키보드 탐색·첫 항목 focus가 같고, 이름 변경/생성 입력은 TreeView row 안에 표시됨                                                                                       |
-| TREE-30 | PKMS 파일 생성·rename·move 후 Drive 응답 대기 중 TreeView 상태를 확인                                                                                        | 행이 즉시 표시/변경되고 pending 또는 uploading 상태를 표시하며 sync 완료 뒤 synced 상태로 전이함                                                                                                                           |
-| TREE-31 | Desktop Drive의 Sync now와 Markdown width toggle computed style을 확인                                                                                       | 두 control 모두 padding, border, border-radius가 0이며 workspace 전역 button reset이 component style을 덮지 않음                                                                                                           |
-
-자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test, `TreeView.scroll.test.ts`, `scripts/check-editor-tree-contract.mjs`, `apps/workspace-app/visual-tests/editor-parity`다. TreeView 통합 테스트는 저장 anchor 복원, active file 변경 후 scroll 유지, unmount/remount 뒤 재복원을 확인한다. Playwright fixture는 실제 Desktop `TreeView`, Shadow DOM을 포함한 `PkmsPane`, Web `FileTreeList`를 렌더하고, 공통 Markdown surface를 사용해 제품 CSS의 hover·selection·title/body width를 Linux Chromium golden screenshot과 computed geometry로 비교한다. 세 host toolbar에서 folder/note 생성 후 tree 표시, 공통 Find와 PKMS title rename, Desktop Drive keyboard scroll restoration도 확인한다. API/파일시스템 경계만 seed로 대체하며 전체 Electron main process와 Web 인증/API lifecycle은 별도 runtime acceptance다. 계약 검사는 세 제품의 pane/toolbar 진입점, package export/subpath, 내부 component 직접 import를 확인하며 `npm run check`에서 실행한다. `WorkspaceExplorerSidebar.shortcut.test.ts`는 물리 Backslash 입력으로 toggle handler가 닫기와 재열기를 수행하는지 검증한다. Git ignore 판정은 files.test에서 별도 검증한다. provider I/O 실패·dirty 확인·실제 DnD도 추가 통합 검증이 필요하다.
-
-시각 회귀 확인에서는 Desktop Drive shell의 `14px/1.45` 상속이 공통 row line-height를 `20.3px`로 만들고 Workspace/Web의 `19.6px`와 달랐다. Tree CSS Module의 `.item`이 공통 `1.4` line-height를 소유하며 Playwright geometry assertion과 `check-editor-tree-contract.mjs`가 이 규칙을 고정한다. filename title의 별도 540px 제한 및 Drive button reset의 tree row 침범은 이전 parity 변경으로 제거됐고, golden/geometry 검사는 각각 폭 일치와 row 스타일 일치를 계속 감시한다.
-
-시각 회귀 검증은 `cd apps/workspace-app && npm run test:visual:editor`로 실행하고 `npm run test:visual:editor:update`는 검토된 의도 변경의 golden 갱신에만 사용한다. CI는 `ubuntu-24.04`와 고정 Playwright container에서 동일 기준을 실행한다.
-
-## 공용 chrome parity
-
-Desktop Editor, Desktop PKMS, Web PKMS의 pane 배경, toolbar computed style, tree frame 폭은 visual parity 테스트에서 직접 비교한다. 공용 resize handle은 pointer drag와 Arrow/Home/End 키 입력을 세 host에서 검증한다. 높이·padding·border·typography가 같고, toolbar slot의 title/status/action content와 허용 폭 범위만 host capability에 따라 달라진다.
-
-Desktop local provider는 생성 시 tab ID와 root path를 고정한다. provider 소유 filesystem IPC는 기대 root를 전달하고 Main은 각 요청을 실행하기 직전에 현재 root와 비교한다. root가 달라졌으면 오래된 요청을 거부해 같은 상대 경로가 새 root에서 변경되지 않게 한다. 이전 root의 watcher 재조회도 같은 pin을 사용하며, root 전환으로 거부된 watcher 요청은 이전 session 내용을 바꾸지 않는다. 기존 비-provider 호출은 기대 root를 생략할 수 있다.
+근거는 `TreeView.test.ts`, `useTreeProjection.test.ts`, `treeReload.test.ts`, `TreeView.scroll.test.ts`, `WorkspaceExplorerSidebar.shortcut.test.ts`와 `scripts/check-editor-tree-contract.mjs`다. 실제 Electron drag/drop과 OS별 focus 동작은 별도 수동 확인 대상이다.

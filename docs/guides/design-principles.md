@@ -68,7 +68,7 @@ SVG 아이콘은 선 굵기와 시각적 크기를 통일합니다. 이모지를
 
 ## 디자인 토큰
 
-현재 renderer 토큰은 `apps/workspace-app/src/renderer/src/assets/styles.css`에 있습니다.
+현재 renderer 토큰은 `apps/desktop/src/renderer/src/assets/styles.css`에 있습니다.
 
 | 토큰                                                                    | 역할                          |
 | ----------------------------------------------------------------------- | ----------------------------- |

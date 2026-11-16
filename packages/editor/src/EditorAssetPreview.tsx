@@ -21,7 +21,7 @@ function formatSize(size?: number): string {
   return `${(size / 1024).toFixed(1)} KB`
 }
 
-/** Shared read-only preview frame for PKMS attachments. */
+/** Shared read-only preview frame for local attachments. */
 export function EditorAssetPreview({
   fileName,
   path,

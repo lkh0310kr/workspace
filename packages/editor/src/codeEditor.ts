@@ -132,7 +132,7 @@ export function createCodeSnippetExtension(languageName?: string): Extension {
   return EditorState.languageData.of(() => [{ autocomplete: codeSnippets(languageName) }])
 }
 
-/** Shared baseline for code editing in Desktop Editor and any PKMS code surface. */
+/** Shared baseline for code editing in the Desktop Editor. */
 export function createCodeEditorExtensions({
   pastePlainText
 }: CodeEditorExtensionOptions = {}): Extension[] {

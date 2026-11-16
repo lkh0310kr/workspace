@@ -4,14 +4,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "=== apps/workspace-app typecheck ==="
-(cd apps/workspace-app && npm run typecheck)
+echo "=== apps/desktop typecheck ==="
+(cd apps/desktop && npm run typecheck)
 
 echo "=== shared editor tree architecture contract ==="
 node scripts/check-editor-tree-contract.mjs
 
-echo "=== apps/workspace-app vitest (foundation modules) ==="
-(cd apps/workspace-app && npx vitest run \
+echo "=== apps/desktop vitest (foundation modules) ==="
+(cd apps/desktop && npx vitest run \
   src/shared/layoutSalvage.test.ts \
   src/shared/ebookState.test.ts \
   src/renderer/src/layout/layoutSession.test.ts \

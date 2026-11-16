@@ -39,7 +39,7 @@ HTML iframe의 sandbox는 `allow-same-origin`이며 script 허용 flag는 없다
 
 ## 제목과 실제 파일 rename
 
-근거: [markdownTitle.ts](../../../../packages/editor/src/markdownTitle.ts), [Desktop EditorContent](../../../../apps/workspace-app/src/renderer/src/panes/EditorContent.tsx), [Desktop Drive pane](../../../../apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx), [Web PKMS app](../../../../packages/pkms-client/src/PkmsClientApp.tsx).
+근거: [markdownTitle.ts](../../../../packages/editor/src/markdownTitle.ts), [Desktop EditorContent](../../../../apps/desktop/src/renderer/src/panes/EditorContent.tsx).
 
 - title은 path basename에서 `.md` 또는 `.markdown`을 제거한다. null은 `Untitled`. path의 backslash는 slash로 정규화한다.
 - 입력은 trim. 빈 값은 Desktop에서 편집 취소, slash/backslash 포함은 inline 오류와 focus 유지다. title 불변도 취소한다.
@@ -47,7 +47,6 @@ HTML iframe의 sandbox는 `allow-same-origin`이며 script 허용 flag는 없다
 - provider로 대상 directory, 현재 item, siblings를 조회한다. 같은 item ID를 제외하고 이름을 소문자로 비교해 collision을 거부한다. 제목 rename은 자동 suffix를 붙이지 않는다.
 - rename 시작 시 자동 저장 timer를 취소하고 pathRenameInFlight=true. untitled는 먼저 대상 path에 저장한 뒤 path를 부여한다. 기존 파일은 autoSave가 켜져 있고 dirty일 때 기존 path를 먼저 저장하고 provider.rename을 수행한다.
 - 성공 시 skipPathLoad를 지정해 rename된 파일을 다시 읽으며 현재 편집을 덮지 않게 한다. 실패 시 title draft와 편집 모드를 복원하고 오류를 표시한다. finally에서 rename flag를 해제하고 dirty면 자동 저장을 다시 예약한다.
-- Desktop Drive와 Web PKMS도 rename capability가 있는 Markdown 문서에서 같은 `EditorMarkdownTitle` 입력을 사용한다. 기존 확장자를 보존하고, siblings를 조회해 이름 충돌을 거부하며, 진행 중 문서를 flush한 뒤 각 provider의 rename 경계를 호출한다. 성공하면 title, breadcrumb, TreeView 경로를 갱신하고 열린 session을 유지한다.
 
 ## 링크
 

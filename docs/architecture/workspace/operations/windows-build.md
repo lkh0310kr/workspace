@@ -8,7 +8,7 @@
 
 ## 빌드
 
-`apps/workspace-app` 디렉터리에서 실행합니다.
+`apps/desktop` 디렉터리에서 실행합니다.
 
 ```powershell
 npm run build:win:dir
@@ -26,4 +26,4 @@ npm run build:win
 npm run promote:stable
 ```
 
-결과물은 `apps/workspace-app/dist/`에 생성됩니다.
+결과물은 `apps/desktop/dist/`에 생성됩니다.

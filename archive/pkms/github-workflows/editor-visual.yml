@@ -1,0 +1,49 @@
+name: Editor visual regression
+
+on:
+  pull_request:
+    paths:
+      - 'apps/desktop/package.json'
+      - 'apps/desktop/package-lock.json'
+      - 'apps/desktop/scripts/run-editor-visual*.mjs'
+      - 'apps/desktop/src/renderer/src/assets/styles.css'
+      - 'apps/desktop/src/renderer/src/components/TreeView*'
+      - 'packages/editor/src/**'
+      - 'scripts/check-editor-tree-contract.mjs'
+      - '.github/workflows/editor-visual.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/package.json'
+      - 'apps/desktop/package-lock.json'
+      - 'apps/desktop/scripts/run-editor-visual*.mjs'
+      - 'apps/desktop/src/renderer/src/assets/styles.css'
+      - 'apps/desktop/src/renderer/src/components/TreeView*'
+      - 'packages/editor/src/**'
+      - 'scripts/check-editor-tree-contract.mjs'
+      - '.github/workflows/editor-visual.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  editor-parity:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.1
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - name: Install desktop test dependencies
+        run: npm ci --ignore-scripts
+        working-directory: apps/desktop
+      - name: Check shared tree contract
+        run: node scripts/check-editor-tree-contract.mjs
+      - name: Compare editor shell screenshots
+        run: npm run test:visual:editor
+        working-directory: apps/desktop

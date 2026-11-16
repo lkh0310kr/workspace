@@ -13,13 +13,13 @@ App scope의 J-09다. 터미널 안 agent의 실제 실행과 UI에 관측된 wo
 | agentStatusStore                            | paneKey별 live entry·retained done·live terminal ID·epoch                         |
 | UI hooks/status bars                        | workspace summary와 아이콘·표시 projection                                        |
 
-[hook server](../../../../apps/workspace-app/src/main/workspaceAgentHookServer.ts)는 health와 POST 처리, paneKey 또는 terminalId를 요구한다. state는 working/blocked/waiting/done만 수락하며 clear는 별도 지시다. receivedAt/evidenceObservedAt/stateStartedAt와 workspace/pane identity를 분리해 보낸다. secret/표준 API 인증을 갖춘 외부 공개 서비스로 서술하지 않는다.
+[hook server](../../../../apps/desktop/src/main/workspaceAgentHookServer.ts)는 health와 POST 처리, paneKey 또는 terminalId를 요구한다. state는 working/blocked/waiting/done만 수락하며 clear는 별도 지시다. receivedAt/evidenceObservedAt/stateStartedAt와 workspace/pane identity를 분리해 보낸다. secret/표준 API 인증을 갖춘 외부 공개 서비스로 서술하지 않는다.
 
 ## 시간과 상태
 
-[store](../../../../apps/workspace-app/src/renderer/src/store/agentStatusStore.ts)는 set 시 updatedAt을 갱신하되 payload state가 같으면 기존 stateStartedAt을 유지할 수 있다. prompt는 trim/기존값, agentType은 새값 또는 이전값이다. done retain은 실제 done entry가 있어야 한다. 단순 store 갱신 시간과 권위 있는 evidence 관찰 시각은 다르다.
+[store](../../../../apps/desktop/src/renderer/src/store/agentStatusStore.ts)는 set 시 updatedAt을 갱신하되 payload state가 같으면 기존 stateStartedAt을 유지할 수 있다. prompt는 trim/기존값, agentType은 새값 또는 이전값이다. done retain은 실제 done entry가 있어야 한다. 단순 store 갱신 시간과 권위 있는 evidence 관찰 시각은 다르다.
 
-[freshness](../../../../apps/workspace-app/src/shared/agent-status-freshness.ts)의 기본 stale 상수는 30분이다. authority 시각은 evidenceObservedAt 또는 updatedAt, mirrored evidence는 별도 시각을 우선할 수 있다. title-derived는 age 한도를 적용한다. explicit 상태는 restoredUnconfirmed면 거부하고 structuredHostOwned는 age와 다른 경로로 fresh가 될 수 있다. 모든 상태를 updatedAt 한 필드로 TTL 처리하지 않는다.
+[freshness](../../../../apps/desktop/src/shared/agent-status-freshness.ts)의 기본 stale 상수는 30분이다. authority 시각은 evidenceObservedAt 또는 updatedAt, mirrored evidence는 별도 시각을 우선할 수 있다. title-derived는 age 한도를 적용한다. explicit 상태는 restoredUnconfirmed면 거부하고 structuredHostOwned는 age와 다른 경로로 fresh가 될 수 있다. 모든 상태를 updatedAt 한 필드로 TTL 처리하지 않는다.
 
 renderer workspace summary 선택자는 입력 객체 참조를 캐시 키로 사용하므로, freshness가 시간에 따라 바뀌는 항목이 있으면 다음 stale 전환 시각에 캐시를 만료한다. 같은 입력으로 선택자를 다시 호출하면 AGENT-03/05 freshness 규칙을 다시 적용한다. 이 캐시 계약은 시간 경과만으로 React UI를 재렌더링하거나 timer를 예약한다는 뜻은 아니다.
 

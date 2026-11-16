@@ -4,40 +4,15 @@
 **/node_modules/
 **/.env*.local
 
-# PKMS Web / Cloudflare local state
-apps/pkms-web/.wrangler/
-apps/pkms-web/.react-router/
-apps/pkms-web/build/
-apps/pkms-server/.wrangler/
-apps/pkms-server/.dev.vars
-apps/pkms-server/.dev.vars.*
-!apps/pkms-server/.dev.vars.example
-apps/pkms-web/.dev.vars
-apps/pkms-web/.dev.vars.*
-apps/workspace-server/.dev.vars
-apps/workspace-server/.dev.vars.*
-!apps/workspace-server/.dev.vars.example
-apps/workspace-server/.wrangler/
+apps/server/.dev.vars
+apps/server/.dev.vars.*
+!apps/server/.dev.vars.example
+apps/server/.wrangler/
 
-# PKMS iOS generated state
-apps/pkms-ios/DerivedData/
-apps/pkms-ios/build/
-apps/pkms-ios/build-sim/
-apps/pkms-ios/.build/
-apps/pkms-ios/Frameworks/*.xcframework
-apps/pkms-ios/**/xcuserdata/
-apps/pkms-ios/**/*.xcuserstate
 archive/apps/android-data-node/.gradle/
 archive/apps/android-data-node/.artifacts/
 archive/apps/android-data-node/app/build/
 archive/apps/android-data-node/build/
-apps/pkms-ios/legacy/v1/data/
-apps/pkms-ios/legacy/v1/AgentRuntime/Vendor/
-apps/pkms-ios/legacy/v1/AgentRuntime/RuntimeTemplate/vendor/
-apps/pkms-ios/legacy/v1/AgentRuntime/RuntimeTemplate/*.tgz
-
-# PKMS Rust build artifacts
-packages/pkms-core/target/
 
 # Rust/Cargo build artifacts (local only — .d dep files are misclassified as Makefile on GitHub)
 target/
@@ -66,4 +41,4 @@ apps/workspace/.tools/
 
 # Per-tab layout export written by the Electron app during dev.
 apps/workspace/.workspace/
-apps/workspace-app/test-results/
+apps/desktop/test-results/

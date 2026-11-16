@@ -1,10 +1,10 @@
 # Desktop 로컬 provider 구현
 
-공통 [계약](../../editor/provider.md)에 대한 adapter별 실행 규칙이다. 로컬 Workspace와 PKMS local session은 서로 다른 구현이다.
+공통 [계약](../../editor/provider.md)에 대한 Desktop 로컬 파일 adapter의 실행 규칙이다.
 
 ## Workspace provider identity와 수명
 
-근거: [localEditorProvider.ts](../../../../apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts).
+근거: [localEditorProvider.ts](../../../../apps/desktop/src/renderer/src/editor/localEditorProvider.ts).
 
 - provider ID는 `workspace:${tabId}`. module Map에서 tabId별 provider와 참조 수를 보관한다. acquire마다 참조 증가, release는 한 번만 유효하며 0에서 watcher·listeners·sessions를 dispose한다.
 - 경로→itemId와 itemId→경로 Map을 유지한다. 신규 ID는 `${providerId}:item:${crypto.randomUUID()}`다. localStorage key `workspace:editor-item-ids:${tabId}`에 경로→ID를 보관한다. 이전 ID prefix를 보정하고 중복 ID를 건너뛴다. 손상/저장 불가는 메모리 동작을 막지 않는다.
@@ -45,10 +45,6 @@ delete는 모든 ref의 provider와 경로, 부모 목록의 실제 존재 여�
 
 move는 대상 directory 존재/타입과 모든 source 존재를 먼저 검증한다. 후손 중복 제거 후 순차 rename한다. 자기 자신/자기 하위로 이동은 skip한다. 성공 항목마다 mapping·session·storage를 갱신하고 이전/새 부모를 invalidate한다. 삭제 dirty 확인은 provider가 아닌 host에서 수행한다.
 
-## PKMS 연결
-
-PKMS adapter는 [소유 패키지의 스펙](../../pkms/client/editor-sessions.md)을 따른다.
-
 ## 검증 시나리오
 
 | ID       | 행동                               | 결과                                         |
@@ -58,5 +54,3 @@ PKMS adapter는 [소유 패키지의 스펙](../../pkms/client/editor-sessions.m
 | ADAPT-03 | B 저장 요청 중 C 편집              | B durable 저장 후 C가 dirty로 남음           |
 | ADAPT-04 | move refs 중 하나가 stale          | 첫 filesystem mutation 전에 notFound         |
 | ADAPT-07 | 마지막 provider lease 해제         | watcher와 sessions 정리; release 재호출 무해 |
-
-PKMS bridge의 서버·폴더 동기화 자체는 [PKMS 아키텍처](../../../../docs/architecture/pkms/README.md)를 함께 따른다.

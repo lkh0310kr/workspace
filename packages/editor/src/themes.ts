@@ -1,6 +1,6 @@
 import { EditorView } from '@codemirror/view'
 
-/** Markdown reading typography shared by PKMS and Workspace. */
+/** Markdown reading typography shared by Desktop Editor surfaces. */
 export const markdownProseTheme = EditorView.theme({
   '.cm-content': { fontFamily: 'var(--font-ui, var(--editor-font, sans-serif))' }
 })

@@ -34,4 +34,4 @@ npm run logs:restore
 
 ## 구현 위치와 제한
 
-실행 중 writer는 `apps/workspace-app/src/main/logFileWriter.ts`에 있다. Streaming gzip을 사용하고 파일을 truncate하지 않고 순환한다. 자동 삭제 정책은 없다. 파일 상한과 영구 보존을 동시에 보장하려면 archive를 다른 저장소로 이동해야 하기 때문이다.
+실행 중 writer는 `apps/desktop/src/main/logFileWriter.ts`에 있다. Streaming gzip을 사용하고 파일을 truncate하지 않고 순환한다. 자동 삭제 정책은 없다. 파일 상한과 영구 보존을 동시에 보장하려면 archive를 다른 저장소로 이동해야 하기 때문이다.

@@ -51,7 +51,7 @@ export interface EditorTreeRowProps {
   onDrop?: DragEventHandler<HTMLButtonElement>
 }
 
-/** Shared tree-row structure and interaction semantics for local and PKMS trees. */
+/** Shared tree-row structure and interaction semantics for local workspace trees. */
 export function EditorTreeRow({
   id,
   path,

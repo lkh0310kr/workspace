@@ -15,11 +15,11 @@
 
 | 영역 ID | 실제 경로 | 추적 파일 | 조사 담당 | 검토 상태 | 보류·제외 사유 |
 | --- | --- | ---: | --- | --- | --- |
-| R-001 | `apps/workspace-app/**` | 766 | coordinator + 읽기 전용 조사 담당 | reviewed; T-026/T-027/T-029/T-030/T-031/T-032/T-033/T-034/T-035 validated | 하위 5개 영역 정적 검토 완료; 실행·통합 검증 한계와 위험은 별도 기록 |
+| R-001 | `apps/desktop/**` | 766 | coordinator + 읽기 전용 조사 담당 | reviewed; T-026/T-027/T-029/T-030/T-031/T-032/T-033/T-034/T-035 validated | 하위 5개 영역 정적 검토 완료; 실행·통합 검증 한계와 위험은 별도 기록 |
 | X-002 | `apps/pkms-ios/**` | 141 | — | 제외 | 사용자가 요청한 범위 제외 |
 | R-003 | `apps/pkms-server/**` | 51 | coordinator + read-only agent | reviewed; T-025/T-039 validated | literal subtree path 일치 수정; flush completion 실패 뒤 이미 적용된 delete/rename 재삭제 retry를 회귀 테스트로 고침; MCP OAuth 계약 테스트 보류
 | R-004 | `apps/pkms-web/**` | 30 | read-only agent + coordinator | reviewed; T-028 validated | workspace 전환 전 기존 문서 sync 및 실패 시 현재 workspace 보존을 helper acceptance로 검증; 실제 OAuth/browser runtime은 미실행
-| R-005 | `apps/workspace-server/**` | 12 | read-only agent | reviewed; T-036/T-038 validated | 닮은 provider 경로로 credential 삭제/OAuth 시작되는 route 오분류를 정확한 path allowlist로 수정; callback login 대소문자 비교를 auth와 일치시킴; 나머지 OAuth lifecycle contract tests 후속
+| R-005 | `apps/server/**` | 12 | read-only agent | reviewed; T-036/T-038 validated | 닮은 provider 경로로 credential 삭제/OAuth 시작되는 route 오분류를 정확한 path allowlist로 수정; callback login 대소문자 비교를 auth와 일치시킴; 나머지 OAuth lifecycle contract tests 후속
 | X-003 | `apps/android-data-node/**` | 15 | — | 제외 | 사용자가 요청한 범위 제외 |
 | R-007 | `packages/editor/**` | 68 | read-only agent | reviewed; T-037 validated | 실제 Workspace Desktop consumer 3개 subpath를 package exports에 명시; low-level tree components remain private
 | R-008 | `packages/pkms-client/**` | 42 | read-only agent | reviewed; T-019/T-022 validated |
@@ -41,10 +41,10 @@
 
 | 하위 영역 | 경로 | 추적 파일 | 상태 | 현재 조사 근거 |
 | --- | --- | ---: | --- | --- |
-| R-001a | `apps/workspace-app/src/main/**` | 172 | 검토 완료; T-026/T-031/T-033/T-034 validated | 코드 경로·설정·테스트 assertion의 정적 검토 완료; OBJ root escape·agent-hook startup race 수정, binary preview와 directory enumeration을 async 처리. Base64/IPC 메모리 비용·동기 path confinement 확인·Linux IME 준비 지연은 별도 검증 위험 |
-| R-001b | `apps/workspace-app/src/renderer/**` | 421 | 검토·분류 완료; T-035 root-pinned CRUD/session guard validated | 399개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0. branch-load race guard 및 CRUD/session root-switch race 수정 검증; root-bound provider identity와 Main IPC guard 적용 |
-| R-001c | `apps/workspace-app/src/preload/**` | 8 | 검토 완료; T-032 validated | runtime `contentApi`·`systemApi`를 기존 공개 `WorkspaceApi`의 부분 타입으로 검사; IPC payload runtime validation은 범위 밖 위험으로 별도 기록 |
-| R-001d | `apps/workspace-app/src/shared/**` | 89 | 검토 완료; 계약 위험 기록 | agent/usage/layout/media/terminal·PKMS shared 책임 확인; terminal capture timeout listener 정리·correlation 위험 기록 |
+| R-001a | `apps/desktop/src/main/**` | 172 | 검토 완료; T-026/T-031/T-033/T-034 validated | 코드 경로·설정·테스트 assertion의 정적 검토 완료; OBJ root escape·agent-hook startup race 수정, binary preview와 directory enumeration을 async 처리. Base64/IPC 메모리 비용·동기 path confinement 확인·Linux IME 준비 지연은 별도 검증 위험 |
+| R-001b | `apps/desktop/src/renderer/**` | 421 | 검토·분류 완료; T-035 root-pinned CRUD/session guard validated | 399개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0. branch-load race guard 및 CRUD/session root-switch race 수정 검증; root-bound provider identity와 Main IPC guard 적용 |
+| R-001c | `apps/desktop/src/preload/**` | 8 | 검토 완료; T-032 validated | runtime `contentApi`·`systemApi`를 기존 공개 `WorkspaceApi`의 부분 타입으로 검사; IPC payload runtime validation은 범위 밖 위험으로 별도 기록 |
+| R-001d | `apps/desktop/src/shared/**` | 89 | 검토 완료; 계약 위험 기록 | agent/usage/layout/media/terminal·PKMS shared 책임 확인; terminal capture timeout listener 정리·correlation 위험 기록 |
 | R-001e | 앱 루트·scripts·resources 등 나머지 | 76 | 검토·분류 완료; 후속 위험 기록 | 텍스트 설정/build/release/workflow 스크립트 검토; notarization·Windows secret workflow·Vitest 인자 전달 차이 기록; vendor patch/바이너리·visual assertion의 일부 상세 내용은 제외/부분 검토로 명시 |
 
 앱 내부 합계: 766개. (172 + 421 + 8 + 89 + 76) 하위 조사 분할은 서로 겹치지 않는다. 다섯 영역 모두 정적 검토 또는 vendor/asset 분류를 마쳤으며 테스트 실행·패키지/실제 OS 런타임 검증은 별도 한계로 남겼다.

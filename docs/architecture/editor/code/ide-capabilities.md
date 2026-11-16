@@ -87,7 +87,7 @@
 - 지원 언어별 실제 기능을 문법 색상과 semantic/LSP 기능으로 나눈 표가 유지된다. 미지원 기능은 UI가 허위 결과를 내지 않는다.
 - 들여쓰기·괄호·완성·진단·탐색·포맷·리팩터의 요청/취소/수락/undo 동작을 키보드와 포인터에서 확인할 수 있다.
 - 오래된 언어 응답이나 진단이 다른 파일/새 revision에 적용되지 않는다. 취소된 multi-file preview는 어떤 문서도 변경하지 않는다.
-- 동일 편집 기능이 Desktop Editor와 Desktop PKMS에서 공유 Editor surface를 통해 동일한 결과를 낸다.
+- Desktop code editor는 공유 Editor surface의 언어 지원·선택·편집 결과를 유지한다.
 
 ## VS Code 기준 자료
 

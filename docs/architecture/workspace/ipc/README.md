@@ -1,6 +1,6 @@
 # Main·preload·renderer 계약 지도
 
-App scope의 bridge 경계다. [preload index](../../../../apps/workspace-app/src/preload/index.ts)가 contextBridge로 노출하고 renderer는 [electron shim](../../../../apps/workspace-app/src/renderer/src/electron.ts)과 플랫폼 adapter를 사용한다. 타입 선언이 runtime payload 검증이나 sender 소유권 확인을 자동 보장하지 않는다.
+App scope의 bridge 경계다. [preload index](../../../../apps/desktop/src/preload/index.ts)가 contextBridge로 노출하고 renderer는 [electron shim](../../../../apps/desktop/src/renderer/src/electron.ts)과 플랫폼 adapter를 사용한다. 타입 선언이 runtime payload 검증이나 sender 소유권 확인을 자동 보장하지 않는다.
 
 ## IPC family와 소유 책임
 
@@ -12,13 +12,12 @@ App scope의 bridge 경계다. [preload index](../../../../apps/workspace-app/sr
 | browser:*                          | browserApi              | browserNav/session/downloads와 guest relay. webContentsId 핸들, history null/boolean, subscription 해제                                                |
 | shortcut:*                         | browserApi.shortcuts 등 | main shortcut relay → renderer dispatch. guest/native terminal·focused editor 대상 구분                                                                |
 | media:* / model:* / cad:* / epub:* | contentApi              | contentCapabilities와 protocol adapters. model job update는 subscribe/unsubscribe, asset payload는 shared 모델                                         |
-| pkms:* / home 경로                 | window.pkmsDesktop      | pkms/ipc의 sender·허용 path 처리, session은 Main 저장. public renderer API와 server auth 분리                                                          |
 | agentStatus:*                      | terminal/system bridge  | ipc/agentStatus + Main hook/evidence → store. pane identity/freshness는 shared 규칙                                                                    |
 | system:* / usage:*                 | systemApi               | systemCapabilities: local summary, usage 수집·settings. summary first CPU sample은 null 가능                                                           |
 | clipboard:* / dialog:* / shell:*   | systemApi               | clipboard image limit·temp 저장, native pickers, reveal-in-dir. picker 취소는 path 미할당                                                              |
 | window:* / debug:*                 | systemApi               | owning window 조작·logs. debug 전송이 durable 제품 상태를 바꾸는 API는 아님                                                                            |
 
-Main handler 등록은 [main/index](../../../../apps/workspace-app/src/main/index.ts)의 register* 호출이 기준이다. [preload/api](../../../../apps/workspace-app/src/preload/api.ts)는 system/browser/terminal/content API를 합친다. [contentApi](../../../../apps/workspace-app/src/preload/contentApi.ts)의 unknown 반환을 모든 DTO가 완전히 static 검증됐다는 뜻으로 해석하지 않는다.
+Main handler 등록은 [main/index](../../../../apps/desktop/src/main/index.ts)의 register* 호출이 기준이다. [preload/api](../../../../apps/desktop/src/preload/api.ts)는 system/browser/terminal/content API를 합친다. [contentApi](../../../../apps/desktop/src/preload/contentApi.ts)의 unknown 반환을 모든 DTO가 완전히 static 검증됐다는 뜻으로 해석하지 않는다.
 
 ## 호출 형식과 실패
 
@@ -30,4 +29,4 @@ Workspace file API는 tabId와 root 아래 상대 경로를 쓰지만 사용자�
 
 IPC-01 channel/method의 invoke/send/event 형태를 보존한다. IPC-02 on* cleanup 후 해당 component에 이벤트가 오지 않는다. IPC-03 검색 두 요청의 결과가 섞이지 않는다. IPC-04 browser/native handle 부재 반환을 처리한다. IPC-05 token을 renderer session payload에 포함하지 않는다. IPC-06 파일 쓰기는 조건부 compare 결과 false와 I/O rejection을 구분한다.
 
-세부 DTO는 [shared](../../../../apps/workspace-app/src/shared), [preload 타입](../../../../apps/workspace-app/src/preload/index.d.ts), 각 handler가 기준이다. 이 지도는 channel 전 분기의 payload 검증 테스트를 완료했다는 뜻은 아니다. family별 상세 상태는 [layout](../layout/README.md), [browser](../browser/README.md), [local editor](../editor/providers.md), [runtime](../runtime/README.md)로 내려간다.
+세부 DTO는 [shared](../../../../apps/desktop/src/shared), [preload 타입](../../../../apps/desktop/src/preload/index.d.ts), 각 handler가 기준이다. 이 지도는 channel 전 분기의 payload 검증 테스트를 완료했다는 뜻은 아니다. family별 상세 상태는 [layout](../layout/README.md), [browser](../browser/README.md), [local editor](../editor/providers.md), [runtime](../runtime/README.md)로 내려간다.

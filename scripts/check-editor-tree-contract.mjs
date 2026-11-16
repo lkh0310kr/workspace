@@ -17,40 +17,6 @@ async function walk(directory) {
   return files
 }
 
-const pkmsStylesPath = path.join(root, 'packages/pkms-client/src')
-const pkmsStyleEntries = await readdir(pkmsStylesPath)
-if (pkmsStyleEntries.includes('styles.css')) {
-  failures.push(
-    'PKMS UI styles must be owned by component CSS Modules; keep only theme.css at package scope.'
-  )
-}
-for (const [componentPath, moduleName] of [
-  ['PkmsClientApp.tsx', 'PkmsClientApp.module.css'],
-  ['components/FileTreeList.tsx', 'components/FileTreeList.module.css'],
-  ['components/PkmsContentSearchPanel.tsx', 'components/PkmsContentSearchPanel.module.css'],
-  ['components/PkmsDialog.tsx', 'components/PkmsDialog.module.css'],
-  ['components/SyncBridgePanel.tsx', 'components/SyncBridgePanel.module.css']
-]) {
-  const source = await readFile(path.join(pkmsStylesPath, componentPath), 'utf8')
-  const cssPath = path.join(pkmsStylesPath, moduleName)
-  try {
-    await readFile(cssPath, 'utf8')
-  } catch {
-    failures.push(`${componentPath} must own ${moduleName}.`)
-  }
-  if (!source.includes('.module.css')) failures.push(`${componentPath} must import its CSS Module.`)
-}
-const pkmsTheme = await readFile(path.join(pkmsStylesPath, 'theme.css'), 'utf8')
-if (
-  /\.(?:app-shell|sidebar|main-panel|tree-context-menu|pkms-search|sync-bridge-panel)\b/.test(
-    pkmsTheme
-  )
-) {
-  failures.push(
-    'PKMS theme.css may own design tokens and browser reset only, not component UI selectors.'
-  )
-}
-
 const packageIndexPath = path.join(root, 'packages/editor/src/index.ts')
 const packageJsonPath = path.join(root, 'packages/editor/package.json')
 const packageIndex = await readFile(packageIndexPath, 'utf8')
@@ -148,16 +114,8 @@ if (
 
 for (const [relativePath, forbidden] of [
   [
-    'apps/workspace-app/src/renderer/src/assets/styles.css',
+    'apps/desktop/src/renderer/src/assets/styles.css',
     /\.workspace-editor-tree-toolbar|\.tree-view(?:-rows)?(?:[\s.:#[]|\s*\{)/
-  ],
-  [
-    'packages/pkms-client/src/PkmsClientApp.module.css',
-    /\.file-(?:list|tree|toolbar)|\.toolbar-actions|\.file-toolbar-heading/
-  ],
-  [
-    'packages/pkms-google-drive/src/workspace.module.css',
-    /\.pkms-google-drive-file-toolbar(?:-heading)?/
   ]
 ]) {
   const source = await readFile(path.join(root, relativePath), 'utf8')
@@ -167,17 +125,6 @@ for (const [relativePath, forbidden] of [
     )
 }
 
-const driveStylesPath = path.join(root, 'packages/pkms-google-drive/src/workspace.module.css')
-const driveStyles = await readFile(driveStylesPath, 'utf8')
-const normalizedDriveStyles = driveStyles.replace(/\s+/g, ' ')
-if (/\.pkms-google-drive-root\s+:where\(button/.test(normalizedDriveStyles)) {
-  failures.push(
-    'Google Drive must not style every button under its root; use explicit data-drive-control hooks.'
-  )
-}
-if (!normalizedDriveStyles.includes('.pkms-google-drive-root [data-drive-control]')) {
-  failures.push('Google Drive standalone controls must opt in through data-drive-control.')
-}
 if (
   !sharedTreeStyles.includes('.toolbarStatus > button') ||
   !sharedTreeStyles.includes('padding: 0;') ||
@@ -244,21 +191,9 @@ for (const entry of Object.keys(packageJson.exports ?? {})) {
   }
 }
 
-const requiredConsumers = [
-  'apps/workspace-app/src/renderer/src/components/TreeView.tsx',
-  'apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx',
-  'packages/pkms-client/src/components/FileTreeList.tsx'
-]
-const requiredToolbars = [
-  'apps/workspace-app/src/renderer/src/components/TreeView.tsx',
-  'apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx',
-  'packages/pkms-client/src/PkmsClientApp.tsx'
-]
-const requiredResizeHosts = [
-  'apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx',
-  'apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx',
-  'packages/pkms-client/src/PkmsClientApp.tsx'
-]
+const requiredConsumers = ['apps/desktop/src/renderer/src/components/TreeView.tsx']
+const requiredToolbars = ['apps/desktop/src/renderer/src/components/TreeView.tsx']
+const requiredResizeHosts = ['apps/desktop/src/renderer/src/components/WorkspaceExplorerSidebar.tsx']
 
 for (const relativePath of requiredConsumers) {
   const source = await readFile(path.join(root, relativePath), 'utf8')
@@ -277,14 +212,6 @@ for (const relativePath of requiredResizeHosts) {
   if (!source.includes('<EditorTreeResizeHandle'))
     failures.push(`${relativePath} must use the shared EditorTreeResizeHandle.`)
 }
-for (const relativePath of [
-  'apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx',
-  'packages/pkms-client/src/PkmsClientApp.tsx'
-]) {
-  const source = await readFile(path.join(root, relativePath), 'utf8')
-  if (!source.includes('<EditorAssetPreview'))
-    failures.push(`${relativePath} must use the shared EditorAssetPreview.`)
-}
 for (const relativePath of requiredToolbars) {
   const source = await readFile(path.join(root, relativePath), 'utf8')
   if (!source.includes('<EditorTreeCreateActions'))
@@ -294,9 +221,7 @@ for (const relativePath of requiredToolbars) {
 }
 
 const requiredEditorHosts = [
-  'apps/workspace-app/src/renderer/src/panes/EditorContent.tsx',
-  'apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx',
-  'packages/pkms-client/src/PkmsClientApp.tsx'
+  'apps/desktop/src/renderer/src/panes/EditorContent.tsx'
 ]
 for (const relativePath of requiredEditorHosts) {
   const source = await readFile(path.join(root, relativePath), 'utf8')
@@ -307,12 +232,12 @@ for (const relativePath of requiredEditorHosts) {
   if (!source.includes('editorCodeMirrorHostExtensions'))
     failures.push(`${relativePath} must use the shared CodeMirror host extensions.`)
   if (!source.includes('resolveEditorWikiLink'))
-    failures.push(`${relativePath} must resolve PKMS wikilinks through @workspace/editor.`)
+    failures.push(`${relativePath} must resolve editor wikilinks through @workspace/editor.`)
 }
 if (!/EditorMarkdownEditor/.test(await readFile(sharedEditorMarkdownPath, 'utf8')))
   failures.push('packages/editor must own the shared Markdown frame implementation.')
 
-for (const directory of ['apps', 'packages/pkms-client/src']) {
+for (const directory of ['apps']) {
   const files = await walk(path.join(root, directory))
   for (const absolutePath of files) {
     const relativePath = path.relative(root, absolutePath)

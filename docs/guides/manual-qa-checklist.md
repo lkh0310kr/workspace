@@ -1,6 +1,6 @@
 # 수동 QA 체크리스트
 
-릴리스 전이나 레이아웃·embed를 크게 변경한 뒤 실행합니다. 개발 모드 실행: `cd apps/workspace-app && npm run dev`.
+릴리스 전이나 레이아웃·embed를 크게 변경한 뒤 실행합니다. 개발 모드 실행: `cd apps/desktop && npm run dev`.
 
 ## Workspace 탭
 

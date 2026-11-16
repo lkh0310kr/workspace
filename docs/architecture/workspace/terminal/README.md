@@ -1,6 +1,6 @@
 # Terminal 실행·출력·재연결 계약
 
-App scope의 J-03 계약이다. [TerminalPane](../../../../apps/workspace-app/src/renderer/src/panes/TerminalPane.tsx)가 xterm mount를 소유하고 Main [PtySession](../../../../apps/workspace-app/src/main/ptySession.ts)은 detached [PTY host](../../../../apps/workspace-app/src/main/ptyHostDaemon.ts)의 client다. pane mount·Main handle·shell process의 수명은 다르다.
+App scope의 J-03 계약이다. [TerminalPane](../../../../apps/desktop/src/renderer/src/panes/TerminalPane.tsx)가 xterm mount를 소유하고 Main [PtySession](../../../../apps/desktop/src/main/ptySession.ts)은 detached [PTY host](../../../../apps/desktop/src/main/ptyHostDaemon.ts)의 client다. pane mount·Main handle·shell process의 수명은 다르다.
 
 ## 계층과 데이터 형식
 
@@ -18,7 +18,7 @@ host replay는 약 2MiB byte cap, Main replay는 5000*120 character cap이다. �
 
 ## 연결·활성화·연결 해제
 
-[ptyTransport](../../../../apps/workspace-app/src/renderer/src/terminal/ptyTransport.ts)는 connect 전에 input queue를 만들고 Main attach 결과를 기다린다. global [multiplexer](../../../../apps/workspace-app/src/renderer/src/terminal/ptyDataMultiplexer.ts)는 대기 중 출력을 보관한다. snapshot lastSeq 이하의 중복을 버리고 이후 live를 transport 내부에 보류한다. connectPanePty가 snapshot을 xterm에 적용한 다음 activate하면 보류 출력을 순서대로 전달한다.
+[ptyTransport](../../../../apps/desktop/src/renderer/src/terminal/ptyTransport.ts)는 connect 전에 input queue를 만들고 Main attach 결과를 기다린다. global [multiplexer](../../../../apps/desktop/src/renderer/src/terminal/ptyDataMultiplexer.ts)는 대기 중 출력을 보관한다. snapshot lastSeq 이하의 중복을 버리고 이후 live를 transport 내부에 보류한다. connectPanePty가 snapshot을 xterm에 적용한 다음 activate하면 보류 출력을 순서대로 전달한다.
 
 connect 반환은 id/snapshot/snapshotCols/snapshotRows/lastSeq/isReattach다. Main은 기존 daemon session의 snapshot 또는 local replay를 사용하고 native dimensions를 보존한다. disconnect는 subscription/input queue·live buffer를 비우고 Main attach를 해제한다. renderer 숨김/해제만으로 shell process를 kill하지 않는다. layout에서 마지막 terminal 참조가 사라지는 경로가 destroy한다.
 
@@ -26,7 +26,7 @@ connect 반환은 id/snapshot/snapshotCols/snapshotRows/lastSeq/isReattach다. M
 
 Main은 renderer에 전송한 seq별 byte 수를 추적한다. 미해제 credit가 512KiB 이상이면 host output pause, ACK 처리 후 128KiB 이하이면 resume한다. 중복/알 수 없는 seq ACK는 무시하고 disconnect/reset 시 pending credit를 해제한다.
 
-[output scheduler](../../../../apps/workspace-app/src/renderer/src/lib/pane-manager/pane-terminal-output-scheduler.ts)와 dependency modules는 foreground/background queue·parse barrier·fair drain·backlog cap·stalled-write recovery를 구현한다. renderer는 parse 또는 의도된 discard 시 output credit를 해제해야 한다. **과부하에서 무조건 lossless라는 계약은 아니다.** backlog cap 테스트에는 warning으로 backlog를 대체하고 recovery를 요청하는 경로가 있다. transport byte 순서 보존과 UI backlog 정책을 구분한다.
+[output scheduler](../../../../apps/desktop/src/renderer/src/lib/pane-manager/pane-terminal-output-scheduler.ts)와 dependency modules는 foreground/background queue·parse barrier·fair drain·backlog cap·stalled-write recovery를 구현한다. renderer는 parse 또는 의도된 discard 시 output credit를 해제해야 한다. **과부하에서 무조건 lossless라는 계약은 아니다.** backlog cap 테스트에는 warning으로 backlog를 대체하고 recovery를 요청하는 경로가 있다. transport byte 순서 보존과 UI backlog 정책을 구분한다.
 
 ## 렌더링·입력·환경
 

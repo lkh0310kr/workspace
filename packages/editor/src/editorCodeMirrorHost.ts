@@ -4,7 +4,7 @@ import { drawSelection, EditorView } from '@codemirror/view'
 import { indentGuides } from './indentGuides'
 import { workspaceEditorTheme } from './editorHostTheme'
 
-/** CodeMirror host behavior shared by the Desktop Editor and PKMS surfaces. */
+/** Shared CodeMirror host behavior for the Desktop Editor. */
 export const editorCodeMirrorHostExtensions = [
   indentUnit.of('    '),
   workspaceEditorTheme,

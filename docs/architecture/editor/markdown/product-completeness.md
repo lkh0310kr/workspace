@@ -10,9 +10,9 @@
 
 ## P0 — Explorer 탐색 상태를 안정화한다
 
-현재 [PaneGroup](../../../../apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx)은 `treeOpen`과 active pane kind로 Explorer를 노출하고, [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx)는 `Cmd/Ctrl+\`를 처리한다. CSS는 pane 폭 560px 이하에서 slot을 강제로 숨긴다. 이 CSS 조건은 저장된 `treeOpen=true`와 별개라 단축키로 열려 있어도 보이지 않을 수 있다. 폭 임계값에서 닫힘/복귀 규칙을 단일 상태 전이로 정의해야 한다.
+현재 [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx)은 `treeOpen`과 active pane kind로 Explorer를 노출하고, [WorkspaceExplorerSidebar](../../../../apps/desktop/src/renderer/src/components/WorkspaceExplorerSidebar.tsx)는 `Cmd/Ctrl+\`를 처리한다. CSS는 pane 폭 560px 이하에서 slot을 강제로 숨긴다. 이 CSS 조건은 저장된 `treeOpen=true`와 별개라 단축키로 열려 있어도 보이지 않을 수 있다. 폭 임계값에서 닫힘/복귀 규칙을 단일 상태 전이로 정의해야 한다.
 
-[TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx)는 활성 파일 경로 변경 때 ancestor를 펼치고 해당 행을 `scrollIntoView`한다. 트리 내용 변경 때 anchor를 유지하는 동작과 이 자동 reveal은 현재 하나의 active-path 효과에서 섞여 있다. 따라서 “스크롤을 유지하라”는 결과와 “활성 파일을 보여라”는 결과가 서로 덮어쓸 수 있다.
+[TreeView](../../../../apps/desktop/src/renderer/src/components/TreeView.tsx)는 활성 파일 경로 변경 때 ancestor를 펼치고 해당 행을 `scrollIntoView`한다. 트리 내용 변경 때 anchor를 유지하는 동작과 이 자동 reveal은 현재 하나의 active-path 효과에서 섞여 있다. 따라서 “스크롤을 유지하라”는 결과와 “활성 파일을 보여라”는 결과가 서로 덮어쓸 수 있다.
 
 | ID     | 사용자 결과                                                                     | 수용 기준                                                                                                                                                                                                                                                                                                                     |
 | ------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -89,7 +89,7 @@ Internal Markdown link와 WikiLink는 목적지 해석만 다르고 label의 색
 
 ### Theme와 CSS 소유권
 
-`markdown.css`의 shared 규칙과 `apps/workspace-app/src/renderer/src/assets/styles.css`의 `.cm-md-*` 규칙은 현재 중복돼 있다. 어느 stylesheet가 마지막에 로드되느냐에 따라 결과가 달라지는 구조를 없애고, shared package가 semantic component token을 소유하며 host는 light/dark token 값만 제공한다.
+`markdown.css`의 shared 규칙과 `apps/desktop/src/renderer/src/assets/styles.css`의 `.cm-md-*` 규칙은 현재 중복돼 있다. 어느 stylesheet가 마지막에 로드되느냐에 따라 결과가 달라지는 구조를 없애고, shared package가 semantic component token을 소유하며 host는 light/dark token 값만 제공한다.
 
 | ID     | 사용자 결과                                                             | 수용 기준                                                                                                                                                                                                                                              |
 | ------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -98,12 +98,12 @@ Internal Markdown link와 WikiLink는 목적지 해석만 다르고 label의 색
 | VIS-03 | `#` marker가 제목 글자와 같은 heading을 구성한다.                       | marker가 보이는 editing/selection 상태에서 marker와 text의 color/font/line-height가 일치한다. dark/light theme 전환 뒤에도 회색 fixed meta color가 남지 않는다.                                                                                        |
 | VIS-04 | Markdown link와 WikiLink는 같은 link language를 사용한다.               | `--link` token이 body text와 구별되고 contrast 기준을 만족한다. 기본/hover/focus/broken/selected 상태를 모두 확인한다. http(s) Markdown link는 기본 browser에서 연다.                                                                                  |
 | VIS-05 | syntax token color와 product design token이 충돌하지 않는다.            | `defaultHighlightStyle`의 light-only color/heading underline을 Markdown surface에서 사용하지 않거나, 제품 전용 HighlightStyle이 해당 tag를 명시적으로 덮는다.                                                                                          |
-| VIS-06 | Markdown component 스타일은 package 전체에서 한 번만 정의된다.          | Workspace/PKMS에서 import 순서를 바꿔도 computed style이 같다. host global stylesheet가 shared `.cm-md-*` color/decoration을 다시 정의하지 않는다.                                                                                                     |
+| VIS-06 | Markdown component 스타일은 package 전체에서 한 번만 정의된다.          | Desktop host의 import 순서를 바꿔도 computed style이 같다. host global stylesheet가 shared `.cm-md-*` color/decoration을 다시 정의하지 않는다.                                                                                                     |
 | VIS-07 | title·heading·link은 dark/light 모두 읽기 쉽다.                         | normal, hover, selection, focus 및 disabled/error 상태의 text/background contrast를 검토한다. 테마 전환 시 inline style에 남은 고정 hex가 없다.                                                                                                        |
 
 ### 재생성용 visual fixture
 
-동일한 fixture를 Workspace와 PKMS host에서 열어 visual baseline을 비교한다.
+Desktop Editor에서 동일한 fixture를 열어 visual baseline을 비교한다.
 
 ```markdown
 # Heading title
@@ -177,7 +177,7 @@ Obsidian은 LaTeX 문법을 MathJax로 지원하고 inline/display delimiter를 
 | DIA-02 | diagram 편집은 plain source를 유지한다.                                                                                   | cursor/selection이 diagram source에 오면 원문 code와 language marker를 편집한다. focus가 벗어나면 preview로 돌아가며 document text는 그대로다.                                                    |
 | DIA-03 | 오류와 큰 diagram을 제어한다.                                                                                             | 해당 block만 오류와 Show source action을 표시하고 source 길이 20,000자·edge 300개 제한을 둔다. runtime/type별 visual acceptance는 남아 있다.                                                      |
 | DIA-04 | Mermaid 출력은 안전하고 테마에 맞는다.                                                                                    | Mermaid `strict` 보안 설정에서 HTML label/click을 차단하고 CSS token으로 dark/light 색 및 가로 overflow를 적용한다. zoom control과 실제 테마 비교는 미완료다.                                     |
-| DIA-05 | 콜론이 들어간 한국어 flowchart label을 포함한 문서를 웹 PKMS에서 연다.                                                    | 재현 문서의 graph가 SVG로 렌더된다. renderer는 unquoted square label을 렌더 전에 quote 처리하며 저장 source는 byte-for-byte 유지한다. 기존 오류 fixture에서는 “Show source” 복구 동작을 유지한다. |
+| DIA-05 | 콜론이 들어간 한국어 flowchart label을 포함한 문서를 Desktop Editor에서 연다.                                               | 재현 문서의 graph가 SVG로 렌더된다. renderer는 unquoted square label을 렌더 전에 quote 처리하며 저장 source는 byte-for-byte 유지한다. 기존 오류 fixture에서는 “Show source” 복구 동작을 유지한다. |
 
 Mermaid는 `mermaid` fence의 source code를 graph syntax로 렌더하는 형식을 공식 문서화한다. Mermaid 버전 변경 가능성을 감안해 Markdown 파일 호환 결과와 보안 설정을 versioned feature policy에 기록한다.
 
@@ -213,11 +213,11 @@ Obsidian Flavored Markdown은 CommonMark/GFM 위에 내부 링크, embed, block 
 
 | ID        | 코드 근거                                                                                                                                                                                | 관찰 결과/목표                                                                                                                                                                                                                                                                                                    |
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MD-GAP-01 | [image resolver](../../../../packages/editor/src/markdownLivePreview.ts)는 Workspace fallback에서 source document path와 root path를 함께 받는다.                                        | 완료: `./image.png`는 현재 문서 folder, `/image.png`는 workspace root, HTTP(S)는 remote resource로 해석한다. PKMS provider resolver는 인증된 asset lookup을 계속 소유한다.                                                                                                                                        |
+| MD-GAP-01 | [image resolver](../../../../packages/editor/src/markdownLivePreview.ts)는 local provider에서 source document path와 root path를 함께 받는다.                                           | 완료: `./image.png`는 현재 문서 folder, `/image.png`는 workspace root, HTTP(S)는 remote resource로 해석한다.                                                                                                                                        |
 | MD-GAP-02 | [Tree label helper](../../../../packages/editor/src/treeModel.ts)와 [title helper](../../../../packages/editor/src/markdownTitle.ts)는 지원 suffix를 일치시킨다.                         | 완료: `.md`와 `.markdown` 모두 TreeView/editor title에서 같은 확장자 제거 규칙을 쓴다.                                                                                                                                                                                                                            |
 | MD-GAP-03 | [Markdown surface](../../../../packages/editor/src/EditorMarkdownSurface.tsx)는 기본 Markdown parser와 fallback highlight를 사용하고 language-specific code extension을 선택하지 않는다. | 완료: fenced block은 CodeMirror language-data의 language/alias/extension 매칭과 shared syntax color token을 사용한다. 복사는 오른쪽 language label이 수행하며, body click은 source 편집으로 남는다. frame geometry는 두 상태에서 같은 line height·background·radius를 사용한다. 일반 코드 line number는 미완료다. |
 | MD-GAP-04 | [HTML block widget](../../../../packages/editor/src/markdownLivePreview.ts)은 iframe에 CSP를 넣고 active content와 navigation 속성을 제거한다.                                           | 부분 완료: 외부 resource는 data URL만 허용하고 script/form/frame/object, event handler, link navigation을 차단한다. 높이 자동 측정을 위해 `allow-same-origin`은 남아 있어 제거 가능성을 별도 검토한다.                                                                                                            |
-| MD-GAP-05 | [PKMS editor host](../../../../packages/pkms-client/src/PkmsClientApp.tsx)는 `EditorSearchButton`을 action으로 전달한다.                                                                 | Workspace는 toolbar search button을 숨기고 `Cmd/Ctrl+F`를 쓰지만 PKMS Markdown chrome에는 버튼이 남아 제품 간 조작이 다르다. 검색 UI 기준을 package-level로 결정한다.                                                                                                                                             |
+| MD-GAP-05 | Desktop Markdown editor는 `Cmd/Ctrl+F`로 문서 검색을 연다.                                                                 | 검색 focus와 toggle 동작은 Markdown surface가 활성 문서에 적용된다.                                                                                                                                             |
 | MD-GAP-06 | [EditorMarkdownSurface](../../../../packages/editor/src/EditorMarkdownSurface.tsx)는 Markdown parser와 일반 fallback highlight만 설치한다.                                               | 완료: 지원 language-data에 등록된 fence는 언어별 highlight와 color token을 사용하고, 미등록 language는 plain text로 남는다. heading 및 다중행 목록 항목은 접기 gutter와 CodeMirror fold keymap으로 접고 편다. 일반 코드 line number는 미완료다.                                                                   |
 
 ## P2 — Notion의 글쓰기 상호작용 결과
@@ -231,7 +231,7 @@ Notion 문서 편집의 시각 기준은 고정된 한 덩어리 textarea가 아
 | NUI-03 | 페이지 폭과 typography를 한 곳에서 바꾼다.                                                    | readable/wide, default/serif/mono, compact typography 중 채택한 항목은 title/body/table/diagram 전부에 같은 토큰을 적용한다. |
 | NUI-04 | 사용자가 별도 창/패널을 열지 않고 서식/블록 action을 발견한다.                                | hover toolbar가 문서 내용을 덮지 않고 keyboard focus에서도 같은 동작에 접근 가능하다.                                        |
 
-Notion 데이터베이스 block, 협업 presence, access control, page discussion은 PKMS domain과 별도다. 이 문서는 기존 파일 편집 흐름 안의 writing interaction 결과만 정의한다.
+Notion 데이터베이스 block, 협업 presence, access control, page discussion은 현재 Editor 범위가 아니다. 이 문서는 기존 파일 편집 흐름 안의 writing interaction 결과만 정의한다.
 
 ## 적용 순서와 완료 기준
 
@@ -255,7 +255,7 @@ Notion 데이터베이스 block, 협업 presence, access control, page discussio
 - 표는 [markdownLivePreview.ts](../../../../packages/editor/src/markdownLivePreview.ts)의 `TableWidget`이 alignment·column sizing·escaped pipe·inline math·기본 inline formatting을 렌더하고 source cell click/Tab navigation을 제공한다. link/image/wikilink와 행·열 조작은 구현하지 않았다.
 - Mermaid fenced block과 inline/display TeX는 각각 strict Mermaid renderer와 KaTeX로 preview한다. 각 renderer의 제한과 미완료 acceptance는 위 ID별 표를 따른다.
 - HTML block은 iframe widget으로 렌더되며 script 실행은 허용하지 않는다. allowlist/CSP/resource origin 계약은 이 spec에서 정해야 한다.
-- Explorer는 [WorkspaceExplorerSidebar](../../../../apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx), [TreeView](../../../../apps/workspace-app/src/renderer/src/components/TreeView.tsx), [explorer state](../../../../apps/workspace-app/src/renderer/src/explorer/explorerState.ts), [PaneGroup](../../../../apps/workspace-app/src/renderer/src/panes/PaneGroup.tsx)이 협력한다. open state는 pane group에, tree selection/scroll anchor는 tree state에 둔다. active file 선택은 viewport를 움직이지 않고 `Cmd/Ctrl+Shift+E`만 명시 reveal한다. scroll 복원은 준비가 끝나고 tree가 실제 표시된 뒤 저장 상태를 적용하며, 복원 전 임시 scroll event는 저장하지 않는다. 실제 UI 수용 확인은 남아 있다.
+- Explorer는 [WorkspaceExplorerSidebar](../../../../apps/desktop/src/renderer/src/components/WorkspaceExplorerSidebar.tsx), [TreeView](../../../../apps/desktop/src/renderer/src/components/TreeView.tsx), [explorer state](../../../../apps/desktop/src/renderer/src/explorer/explorerState.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx)이 협력한다. open state는 pane group에, tree selection/scroll anchor는 tree state에 둔다. active file 선택은 viewport를 움직이지 않고 `Cmd/Ctrl+Shift+E`만 명시 reveal한다. scroll 복원은 준비가 끝나고 tree가 실제 표시된 뒤 저장 상태를 적용하며, 복원 전 임시 scroll event는 저장하지 않는다. 실제 UI 수용 확인은 남아 있다.
 
 ## 기준 자료
 

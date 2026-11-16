@@ -1,6 +1,6 @@
 # Editor 구현 스펙
 
-공유 Editor와 Desktop 호스트의 현재 동작을 재구현하기 위한 계약이다. 기준, 재생성 순서, 검증 방식은 [스펙 운영 규칙](../../../docs/architecture/spec-driven-development.md)을 따른다. 미래 구조를 다루는 [통합 계획](../../../docs/planning/editor-unification.md)과 달리 여기서는 구현된 동작과 현재 제약을 구분한다.
+공유 Editor와 Desktop 호스트의 현재 동작을 재구현하기 위한 계약이다. 기준, 재생성 순서, 검증 방식은 [스펙 운영 규칙](../../../docs/architecture/spec-driven-development.md)을 따른다. 구현된 동작과 현재 제약을 구분한다.
 
 ## 구성과 읽는 순서
 
@@ -10,7 +10,6 @@
 | [Breadcrumb](./breadcrumbs.md)                                                | workspace-relative path와 sibling menu                                                                                                                      |
 | [Provider 계약](./provider.md)                                                  | 타입, capability, 오류, snapshot, session 수명                                                                                                              |
 | [Desktop provider 구현](../workspace/editor/providers.md) | Workspace 파일시스템·ID·충돌·lease                                                                                                                          |
-| [PKMS provider 구현](../pkms/client/editor-sessions.md)               | PKMS local/Yjs/asset session                                                                                                                                |
 | [텍스트 surface](./code/README.md)                                            | CodeMirror, 외부 변경, undo, cache, Desktop 저장                                                                                                            |
 | [Treeview](./treeview/README.md)                                              | 공용 Tree pane slots·docked Explorer·pane shortcut·폭 임계값·스크롤 복원·로딩·정렬·가상화·선택·파일 작업                                                                         |
 | [Markdown](./markdown/README.md)                                              | [현재 동작](./markdown/README.md) · [완성도 목표 스펙](./markdown/product-completeness.md): live preview, 제목 rename, 링크·이미지, 표·수식·다이어그램 계획 |
@@ -22,7 +21,7 @@
 
 `packages/editor`는 React와 CodeMirror로 만든 UI/순수 규칙을 소유한다. 앱의 Electron API, 인증, Yjs, 파일 저장소를 직접 import하지 않는다. `packages/editor/package.json`의 export는 기본 API, `EditorMarkdownSurface`, `code-mirror`, `tree-row`와 네 CSS 진입점을 제공한다. 실제 의존성 버전과 해석 결과는 package manifest와 lockfile을 사용한다.
 
-`apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts`가 Electron renderer shim을 통해 파일시스템을 연결한다. `panes/EditorContent.tsx`는 저장·자동 저장·제목 변경·활성 editor·pane 콜백을 조정한다. `packages/pkms-client/src/features/editor`는 PKMS 파일 레코드와 local/Yjs session을 연결한다. session 저장 정책을 공통 surface로 끌어올리지 않는다.
+`apps/desktop/src/renderer/src/editor/localEditorProvider.ts`가 Electron renderer shim을 통해 로컬 파일시스템을 연결한다. `panes/EditorContent.tsx`는 저장·자동 저장·제목 변경·활성 editor·pane 콜백을 조정한다. Provider별 저장 정책을 공통 surface에 포함하지 않는다.
 
 ## Pane 입출력
 
@@ -50,4 +49,4 @@
 
 ## 근거
 
-[공개 API](../../../packages/editor/src/index.ts), [pane 등록](../../../apps/workspace-app/src/renderer/src/panes/kinds/editorKind.tsx), [Desktop host](../../../apps/workspace-app/src/renderer/src/panes/EditorContent.tsx), [dirty registry](../../../packages/editor/src/documentDirtyRegistry.ts). 규칙별 상세 근거와 검증 항목은 하위 스펙에 둔다.
+[공개 API](../../../packages/editor/src/index.ts), [pane 등록](../../../apps/desktop/src/renderer/src/panes/kinds/editorKind.tsx), [Desktop host](../../../apps/desktop/src/renderer/src/panes/EditorContent.tsx), [dirty registry](../../../packages/editor/src/documentDirtyRegistry.ts). 규칙별 상세 근거와 검증 항목은 하위 스펙에 둔다.

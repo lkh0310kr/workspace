@@ -1,5 +1,5 @@
 /* Shared Workspace-baseline live preview decorations. Product colors fall back
-   to each host's token names so the same preview renders in Workspace and PKMS. */
+   to the host token names so the preview renders in the Desktop Editor. */
 .cm-md-strong {
   font-weight: 600;
 }

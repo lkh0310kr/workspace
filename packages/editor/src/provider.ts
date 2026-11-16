@@ -118,7 +118,7 @@ export function withEditorProviderErrors<T extends EditorProvider>(provider: T):
 }
 
 export interface EditorItemRef {
-  /** Stable ID of a provider instance, such as one local workspace or PKMS vault. */
+  /** Stable ID of a provider instance, such as one local workspace. */
   providerId: string
   /** Stable within the provider across rename and move operations. */
   itemId: string
@@ -269,7 +269,7 @@ export interface EditorDocumentSnapshot {
   revision: string
   savePhase: EditorSavePhase
   message?: string
-  /** Optional remote mirror status, e.g. PKMS GitHub synchronization. */
+  /** Optional remote mirror status when a host supports synchronization. */
   syncPhase?: EditorSyncPhase
 }
 

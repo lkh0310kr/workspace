@@ -2,7 +2,7 @@
 
 ## 주소 정규화
 
-근거: [browserUrl.ts](../../../../apps/workspace-app/src/renderer/src/browserUrl.ts). normalizeBrowserNavigationUrl(raw,searchFallback)는 string|null을 반환한다. 순서는 trim→blank→local dev→Unix absolute path→명시 URL→https prefix→선택적 검색 fallback이다.
+근거: [browserUrl.ts](../../../../apps/desktop/src/renderer/src/browserUrl.ts). normalizeBrowserNavigationUrl(raw,searchFallback)는 string|null을 반환한다. 순서는 trim→blank→local dev→Unix absolute path→명시 URL→https prefix→선택적 검색 fallback이다.
 
 | 입력                                           | 결과                                          |
 | ---------------------------------------------- | --------------------------------------------- |
@@ -35,7 +35,7 @@ BrowserContent.navigate는 정규화 실패면 무시한다. guest 미준비면 
 
 ## 방문 기록과 주소 제안
 
-근거: [history](../../../../apps/workspace-app/src/renderer/src/browserHistory.ts), [suggestions](../../../../apps/workspace-app/src/renderer/src/browserAddressBarSuggestions.ts).
+근거: [history](../../../../apps/desktop/src/renderer/src/browserHistory.ts), [suggestions](../../../../apps/desktop/src/renderer/src/browserAddressBarSuggestions.ts).
 
 방문 기록은 module cache와 localStorage `workspace.browserHistory`를 사용한다. entry는 url/title/lastVisitedAt/visitCount이며 http(s)만 기록한다. 같은 URL은 title/시간/count를 갱신한다. 최대 500개를 넘으면 가장 오래된 것을 제거한다. storage 실패는 탐색을 막지 않는다.
 
@@ -50,13 +50,13 @@ hostname stem이 ASCII 영숫자/하이픈과 선택적 마지막 점으로 구�
 
 ## Session과 권한
 
-근거: [browserSession](../../../../apps/workspace-app/src/main/browserSession.ts), [UA](../../../../apps/workspace-app/src/main/browserSessionUA.ts), [WebAuthn](../../../../apps/workspace-app/src/main/browserWebauthn.ts).
+근거: [browserSession](../../../../apps/desktop/src/main/browserSession.ts), [UA](../../../../apps/desktop/src/main/browserSessionUA.ts), [WebAuthn](../../../../apps/desktop/src/main/browserWebauthn.ts).
 
 main startup에서 guest 탐색 전 `session.fromPartition('persist:browser')`를 설정한다. 탭들은 cookie/session을 공유한다. UA와 Google 인증 호환, WebAuthn handler를 해당 session에 설치한다. 자동 허용 목록은 fullscreen, clipboard-read, clipboard-sanitized-write, notifications, persistent-storage, pointerLock이다. request handler는 이 목록을 사용하고 check handler는 WebAuthn 예외도 확인한다. 사이트별 permission prompt UI는 없다.
 
 ## IPC 계약
 
-근거: [preload/browserApi.ts](../../../../apps/workspace-app/src/preload/browserApi.ts), [main/browserNav.ts](../../../../apps/workspace-app/src/main/browserNav.ts), [main/index.ts](../../../../apps/workspace-app/src/main/index.ts).
+근거: [preload/browserApi.ts](../../../../apps/desktop/src/preload/browserApi.ts), [main/browserNav.ts](../../../../apps/desktop/src/main/browserNav.ts), [main/index.ts](../../../../apps/desktop/src/main/index.ts).
 
 | 채널                             | payload / 반환                                                                              |
 | -------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -76,7 +76,7 @@ history 명령은 webContents가 없으면 false/null, 있으면 Electron naviga
 
 ## 확대/축소와 단축키
 
-근거: [browserZoom.ts](../../../../apps/workspace-app/src/renderer/src/browser/browserZoom.ts). zoom factor 범위=0.5~3, step=0.1이다. guest 조회는 전달된 webContentsId 우선, 없거나 미조회면 active guest fallback이다. factor 읽기 실패는 1, 적용 실패는 null. 변경 시 dataset.tabItemId에 등록된 persist handler가 item.zoomFactor를 갱신한다. 최소/최대에서 값이 같으면 재적용하지 않는다.
+근거: [browserZoom.ts](../../../../apps/desktop/src/renderer/src/browser/browserZoom.ts). zoom factor 범위=0.5~3, step=0.1이다. guest 조회는 전달된 webContentsId 우선, 없거나 미조회면 active guest fallback이다. factor 읽기 실패는 1, 적용 실패는 null. 변경 시 dataset.tabItemId에 등록된 persist handler가 item.zoomFactor를 갱신한다. 최소/최대에서 값이 같으면 재적용하지 않는다.
 
 main shortcut relay의 browser-reload는 `{hard:boolean}`, browser-zoom은 `{direction:'in'|'out',webContentsId}`다. 주소창과 renderer keyboard hook에서 생성하는 local zoom 이벤트는 `workspace:browser-zoom`이다. guest별 factor와 앱 전체 UI zoom을 구분한다.
 

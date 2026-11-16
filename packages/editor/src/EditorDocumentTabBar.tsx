@@ -17,7 +17,7 @@ interface Props {
   ariaLabel?: string
 }
 
-/** Shared document-tab interaction used by PKMS and Workspace editor hosts. */
+/** Shared document-tab interaction for the Desktop Editor. */
 export function EditorDocumentTabBar({
   tabs,
   activeId,
