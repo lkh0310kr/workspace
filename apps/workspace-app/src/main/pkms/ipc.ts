@@ -54,8 +54,7 @@ function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
   if (!trusted) throw new Error('untrusted_renderer')
 }
 
-export function registerPkmsIpc(): void {
-  void startConfiguredPkmsSyncBridges()
+function registerGoogleDriveIpc(): void {
   ipcMain.handle('pkms-google-drive:oauth:status', (event) => {
     assertTrustedSender(event)
     return googleDriveDesktopOAuthConfiguration()
@@ -221,6 +220,9 @@ export function registerPkmsIpc(): void {
     assertDriveId(rootId)
     return driveWorkspaceService().disconnect(rootId)
   })
+}
+
+function registerLegacyPkmsIpc(): void {
   ipcMain.handle('pkms:request', (event, pathName: string, options: PkmsRequestOptions) => {
     assertTrustedSender(event)
     return requestPkmsApi(pathName, options)
@@ -385,4 +387,10 @@ export function registerPkmsIpc(): void {
     assertTrustedSender(event)
     return shell.openExternal(parseServiceOAuthUrl(rawUrl))
   })
+}
+
+export function registerPkmsIpc(): void {
+  void startConfiguredPkmsSyncBridges()
+  registerGoogleDriveIpc()
+  registerLegacyPkmsIpc()
 }
