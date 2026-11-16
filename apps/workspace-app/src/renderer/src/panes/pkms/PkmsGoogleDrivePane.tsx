@@ -10,7 +10,6 @@ import {
   EditorMarkdownEditor,
   EditorMarkdownTitle,
   EditorBreadcrumbs,
-  EditorMenuList,
   editorCodeMirrorHostExtensions,
   EditorTreeFrame,
   EditorTreePane,
@@ -34,12 +33,12 @@ import {
   type EditorSearchResult,
   type EditorDocumentSession,
   type EditorBreadcrumbEntry,
-  type EditorMenuItem,
   type EditorSyncPhase,
   type EditorTreeItem,
   type EditorTreeViewItem
 } from '@workspace/editor'
 import { PKMS_QUICK_OPEN_EVENT } from '@pkms/client/hostEvents'
+import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
 import type { GoogleDriveWorkspaceEntry } from '@pkms/google-drive'
 import '@pkms/google-drive/workspace.css'
 
@@ -274,7 +273,7 @@ export function PkmsGoogleDrivePane({
     | { mode: 'rename'; entry: GoogleDriveWorkspaceEntry; name: string; path: string }
     | null
   >(null)
-  const treeEditCommitRef = useRef<(() => void) | null>(null)
+  const treeEditCommitRef = useRef<(() => boolean) | null>(null)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
   const [loadingFolders, setLoadingFolders] = useState<Set<string>>(() => new Set())
   const [treeScrollTop, setTreeScrollTop] = useState(0)
@@ -284,7 +283,6 @@ export function PkmsGoogleDrivePane({
   const treeRootRef = useRef<HTMLDivElement>(null)
   const treeScrollContainerRef = useRef<HTMLDivElement>(null)
   const driveSearchInputRef = useRef<HTMLInputElement>(null)
-  const treeContextMenuRef = useRef<HTMLDivElement>(null)
   const openGeneration = useRef(0)
   const [directory, setDirectory] = useState({
     id: null as string | null,
@@ -701,7 +699,7 @@ export function PkmsGoogleDrivePane({
                 value: treeEdit.name,
                 ariaLabel: `Rename ${item.name}`,
                 onChange: (name: string) => setTreeEdit({ ...treeEdit, name }),
-                onCommit: () => treeEditCommitRef.current?.(),
+                onCommit: () => treeEditCommitRef.current?.() ?? false,
                 onCancel: () => setTreeEdit(null)
               }
             }
@@ -736,7 +734,7 @@ export function PkmsGoogleDrivePane({
                 name,
                 path: treeEdit.parentPath ? `${treeEdit.parentPath}/${name}` : name
               }),
-            onCommit: () => treeEditCommitRef.current?.(),
+            onCommit: () => treeEditCommitRef.current?.() ?? false,
             onCancel: () => setTreeEdit(null)
           }
         })
@@ -1249,15 +1247,16 @@ export function PkmsGoogleDrivePane({
 
   treeEditCommitRef.current = () => {
     const edit = treeEdit
-    if (!edit) return
+    if (!edit) return false
     const name = edit.name.trim()
     if (!name || name.includes('/') || name === '.' || name === '..') {
       setError('Enter a valid file or folder name.')
-      return
+      return false
     }
     setTreeEdit(null)
     if (edit.mode === 'create') void createItem(edit.kind, edit.parentPath, name)
     else void commitRenameEntry(edit.entry, name).catch(() => undefined)
+    return true
   }
 
   const beginTitleEdit = (caretPosition: number) => {
@@ -1426,34 +1425,6 @@ export function PkmsGoogleDrivePane({
     []
   )
 
-  useEffect(() => {
-    if (!treeContextMenu) return
-    const dismiss = (event: Event) => {
-      if (
-        !treeContextMenuRef.current ||
-        !event.composedPath().includes(treeContextMenuRef.current)
-      ) {
-        setTreeContextMenu(null)
-      }
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setTreeContextMenu(null)
-    }
-    window.addEventListener('pointerdown', dismiss, true)
-    window.addEventListener('keydown', onKeyDown, true)
-    return () => {
-      window.removeEventListener('pointerdown', dismiss, true)
-      window.removeEventListener('keydown', onKeyDown, true)
-    }
-  }, [treeContextMenu])
-
-  useEffect(() => {
-    if (!treeContextMenu) return
-    window.requestAnimationFrame(() => {
-      treeContextMenuRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
-    })
-  }, [treeContextMenu])
-
   const moveTreeItems = useCallback(
     async (paths: string[], destinationPath: string) => {
       if (!root) return
@@ -1572,57 +1543,50 @@ export function PkmsGoogleDrivePane({
     [activeFile, root, session, syncNow, treeBranches]
   )
 
-  const contextMenuItems: EditorMenuItem[] = treeContextMenu
+  const contextMenuItems: ContextMenuItem[] = treeContextMenu
     ? [
         ...(treeContextMenu.entry
           ? [
               {
-                type: 'item' as const,
-                id: 'open',
+                type: 'button' as const,
                 label: treeContextMenu.entry.kind === 'folder' ? 'Open folder' : 'Open',
-                onSelect: () => void openEntry(treeContextMenu.entry!)
+                onClick: () => void openEntry(treeContextMenu.entry!)
               }
             ]
           : []),
         ...(treeContextMenu.entry?.kind === 'folder' || !treeContextMenu.entry
           ? [
               {
-                type: 'item' as const,
-                id: 'new-note',
-                label: 'New note',
-                onSelect: () => requestCreateItem('markdown', treeContextMenu.entry?.path ?? '')
+                type: 'button' as const,
+                label: 'New File',
+                onClick: () => requestCreateItem('markdown', treeContextMenu.entry?.path ?? '')
               },
               {
-                type: 'item' as const,
-                id: 'new-folder',
-                label: 'New folder',
-                onSelect: () => requestCreateItem('folder', treeContextMenu.entry?.path ?? '')
+                type: 'button' as const,
+                label: 'New Folder',
+                onClick: () => requestCreateItem('folder', treeContextMenu.entry?.path ?? '')
               }
             ]
           : []),
         ...(treeContextMenu.entry
           ? [
               {
-                type: 'item' as const,
-                id: 'rename',
+                type: 'button' as const,
                 label: 'Rename',
-                onSelect: () => void renameEntry(treeContextMenu.entry!)
+                onClick: () => void renameEntry(treeContextMenu.entry!)
               },
               {
-                type: 'item' as const,
-                id: 'delete',
+                type: 'button' as const,
                 label: 'Move to trash',
-                danger: true,
-                onSelect: () => void trashEntry(treeContextMenu.entry!)
+                onClick: () => void trashEntry(treeContextMenu.entry!)
               }
             ]
           : []),
         {
-          type: 'item',
-          id: 'sync',
+          type: 'button',
           label: 'Sync now',
           disabled: busy,
-          onSelect: () => void syncNow()
+          onClick: () => void syncNow()
         }
       ]
     : []
@@ -1934,15 +1898,13 @@ export function PkmsGoogleDrivePane({
                 />
               )}
               {treeContextMenu && (
-                <EditorMenuList
-                  ref={treeContextMenuRef}
-                  className="tree-context-menu"
+                <ContextMenu
+                  x={treeContextMenu.x}
+                  y={treeContextMenu.y}
                   ariaLabel={
                     treeContextMenu.entry ? `${treeContextMenu.entry.name} actions` : 'PKMS actions'
                   }
-                  dangerClassName="danger"
                   items={contextMenuItems}
-                  style={{ left: treeContextMenu.x, top: treeContextMenu.y }}
                   onClose={() => setTreeContextMenu(null)}
                 />
               )}

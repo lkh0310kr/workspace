@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent as 
 import * as Y from "yjs";
 import type { IndexeddbPersistence } from "y-indexeddb";
 import { PKMSRealtimeSocket } from "./realtime";
-import { buildRenamedPath, clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorTreeCreateActions, EditorTreeFrame, EditorTreeToolbar, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, nextEditorItemNameInDirectory, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, resolveEditorWikiLink, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
+import { buildRenamedPath, clearEditorDocumentDirty, confirmDirtyEditorDocumentsInPaths, discardEditorViewState, EDITOR_TREE_DRAG_MIME_TYPE, EDITOR_TREE_ROW_HEIGHT, EditorBreadcrumbs, EditorMarkdownEditor, EditorMarkdownTitle, EditorMenuList, EditorProviderError, EditorQuickOpenDialog, EditorTreeCreateActions, EditorTreeFrame, EditorTreeToolbar, editorCodeMirrorHostExtensions, editorDocumentKey, editorMarkdownParserExtensions, editorSupportsOperation, editorSupportsSearch, editorTreeSelectionRoots, markdownTitleFor, projectEditorTreeRows, resolveEditorRelativeLink, resolveEditorTreeDirectory, resolveEditorTreePath, resolveEditorTreeKeyboardAction, resolveEditorWikiLink, resolveMarkdownTitleRenameTarget, setEditorDocumentDirty, useEditorQuickOpenSearch, useEditorTreeSelection, validateTitleInput, type EditorBreadcrumbEntry, type EditorDocumentSession, type EditorItemRef, type EditorMenuItem, type EditorTreeNavigationRow } from "@workspace/editor";
 import { createPkmsEditorProvider } from "./features/editor/pkmsEditorProvider";
 import { createPkmsLocalEditorSession } from "./features/editor/pkmsLocalEditorSession";
 import { createPkmsAssetEditorSession, createPkmsYjsEditorSession, pkmsItemForFile } from "./features/editor/pkmsYjsEditorSession";
@@ -77,10 +77,15 @@ interface PkmsTreeOperations {
   delete: (files: FileRecord[]) => Promise<boolean>;
 }
 
+type PkmsTreeInlineEdit =
+  | { mode: 'create'; kind: 'file' | 'folder'; parentPath: string; name: string }
+  | { mode: 'rename'; file: FileRecord; name: string }
+
 export default function Home() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [treeContextMenu, setTreeContextMenu] = useState<TreeContextMenu | null>(null);
+  const [treeInlineEdit, setTreeInlineEdit] = useState<PkmsTreeInlineEdit | null>(null);
   const [treeDropTarget, setTreeDropTarget] = useState<string | null>(null);
   const [showIgnoredFiles, setShowIgnoredFiles] = useState(false);
   const [excludedPatterns, setExcludedPatterns] = useState("");
@@ -110,13 +115,6 @@ export default function Home() {
   const [, setPeers] = useState<Peer[]>([]);
   const [assetPreviewUrl, setAssetPreviewUrl] = useState<string | null>(null);
   const [assetPreviewType, setAssetPreviewType] = useState("");
-  const requestName = useCallback(
-    (title: string, initialValue = "") =>
-      new Promise<string | null>((resolve) => {
-        setDialogRequest({ kind: "name", title, initialValue, resolve });
-      }),
-    []
-  );
   const confirm = useCallback(
     (message: string, options?: { title?: string; confirmLabel?: string; detail?: string }) =>
       new Promise<boolean>((resolve) => {
@@ -1673,14 +1671,14 @@ export default function Home() {
     setError,
     openFile
   });
-  const createTreeNote = async (parentPath: string) => {
+  const createTreeNote = async (parentPath: string, name: string) => {
     const provider = editorProvider;
     if (!provider) {
       setError("PKMS editor is not ready");
       return;
     }
     try {
-      const { parent, name } = await nextEditorItemNameInDirectory(provider, parentPath, "untitled", ".md");
+      const parent = await resolveEditorTreeDirectory(provider, parentPath, "Parent folder no longer exists");
       if (!editorSupportsOperation(provider, "createFile")) throw new EditorProviderError("unsupported", "PKMS note creation is unavailable");
       const item = await provider.create!(parent?.itemId ?? null, "file", name);
       const file: FileRecord = {
@@ -1695,9 +1693,7 @@ export default function Home() {
       setError(cause instanceof Error ? cause.message : "Could not create PKMS note");
     }
   };
-  const createTreeFolder = async (parentPath: string) => {
-    const name = await requestName("Folder name");
-    if (!name) return;
+  const createTreeFolder = async (parentPath: string, name: string) => {
     const provider = editorProvider;
     if (!provider) {
       setError("PKMS editor is not ready");
@@ -1715,18 +1711,15 @@ export default function Home() {
   const beginTreeCreation = (kind: "file" | "folder", parentPath = currentFolder) => {
     setTreeContextMenu(null);
     if (parentPath) setExpandedFolders((current) => new Set(current).add(parentPath));
-    if (kind === "file") void createTreeNote(parentPath);
-    else void createTreeFolder(parentPath);
-  };
-  const beginTreeRename = async (file: FileRecord) => {
-    setTreeContextMenu(null);
-    const name = await requestName("Rename to", entryName(file.path));
-    if (!name?.trim() || name.trim() === entryName(file.path)) return;
-    try {
-      await renameThroughEditorProvider(file, name.trim());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not rename PKMS item");
+    else {
+      setTreeScrollTop(0);
+      if (treeRef.current?.parentElement) treeRef.current.parentElement.scrollTop = 0;
     }
+    setTreeInlineEdit({ mode: "create", kind, parentPath, name: kind === "file" ? "Untitled.md" : "New Folder" });
+  };
+  const beginTreeRename = (file: FileRecord) => {
+    setTreeContextMenu(null);
+    setTreeInlineEdit({ mode: "rename", file, name: entryName(file.path) });
   };
   const beginTitleEdit = (caretPosition: number) => {
     if (!activeFile || activeFile.kind !== "markdown") return;
@@ -1970,6 +1963,22 @@ export default function Home() {
     if (!editorSupportsOperation(editorProvider, "rename") || !editorProvider?.rename) throw new EditorProviderError("unsupported", "Renaming is not supported by this provider");
     await editorProvider.rename({ providerId: editorProvider.id, itemId: file.id }, name);
   };
+  const commitTreeInlineEdit = (): boolean => {
+    const edit = treeInlineEdit;
+    if (!edit) return false;
+    const name = edit.name.trim();
+    if (!name || name === "." || name === ".." || name.includes("/") || name.includes("\\")) return false;
+    setTreeInlineEdit(null);
+    if (edit.mode === "create") {
+      if (edit.kind === "file") void createTreeNote(edit.parentPath, name);
+      else void createTreeFolder(edit.parentPath, name);
+    } else if (name !== entryName(edit.file.path)) {
+      void renameThroughEditorProvider(edit.file, name).catch((cause) => {
+        setError(cause instanceof Error ? cause.message : "Could not rename PKMS item");
+      });
+    }
+    return true;
+  };
   if (loading)
     return (
       <main className="loading-screen">
@@ -2120,6 +2129,30 @@ export default function Home() {
               focusedPath={focusedTreePath}
               currentFolder={currentFolder}
               activeFileId={activeFile?.id ?? null}
+              inlineEditRow={treeInlineEdit ? (() => {
+                const isRename = treeInlineEdit.mode === "rename";
+                const parent = isRename ? parentPath(treeInlineEdit.file.path) : treeInlineEdit.parentPath;
+                const depth = isRename
+                  ? treeRows.find((row) => row.file.path === treeInlineEdit.file.path)?.depth ?? 0
+                  : parent
+                    ? (treeRows.find((row) => row.file.path === parent)?.depth ?? -1) + 1
+                    : 0;
+                const name = treeInlineEdit.name;
+                const path = isRename ? treeInlineEdit.file.path : parent ? `${parent}/${name}` : name;
+                return {
+                  mode: treeInlineEdit.mode,
+                  id: isRename ? `inline-rename:${treeInlineEdit.file.id}` : `inline-create:${parent}`,
+                  path,
+                  parentPath: parent,
+                  name,
+                  kind: isRename ? (treeInlineEdit.file.kind === "folder" ? "directory" : "markdown") : treeInlineEdit.kind === "folder" ? "directory" : "markdown",
+                  depth,
+                  ariaLabel: isRename ? `Rename ${entryName(treeInlineEdit.file.path)}` : treeInlineEdit.kind === "folder" ? "New folder name" : "New file name",
+                  onChange: (value: string) => setTreeInlineEdit((current) => current ? { ...current, name: value } : current),
+                  onCommit: commitTreeInlineEdit,
+                  onCancel: () => setTreeInlineEdit(null)
+                };
+              })() : null}
               syncItemStates={treeSyncItemStates}
               cutPaths={cutTreePaths}
               dropTarget={treeDropTarget}

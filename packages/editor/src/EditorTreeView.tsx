@@ -37,7 +37,7 @@ export interface EditorTreeViewItem {
     value: string
     ariaLabel: string
     onChange: (value: string) => void
-    onCommit: () => void
+    onCommit: () => boolean | void
     onCancel: () => void
   }
   showGuides?: boolean

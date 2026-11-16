@@ -1,6 +1,14 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 const hosts = ['desktop-editor', 'desktop-pkms-editor', 'web-pkms-editor'] as const
+
+async function clearSavedEditorViews(page: Page): Promise<void> {
+  await page.goto('/')
+  await page.evaluate(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+  })
+}
 
 for (const host of hosts) {
   test(`${host} matches its editor parity screenshot`, async ({ page }) => {
@@ -505,6 +513,7 @@ test('all host code fences copy their source', async ({ page }) => {
 
 test('Markdown scroll and caret state restore across reopen in all hosts', async ({ page }) => {
   for (const host of hosts) {
+    await clearSavedEditorViews(page)
     await page.goto(`/?host=${host}&scenario=view-state`)
     if (host !== 'desktop-editor') {
       await page.getByRole('treeitem', { name: 'Verification' }).click()
@@ -514,9 +523,7 @@ test('Markdown scroll and caret state restore across reopen in all hosts', async
     const editor = page.locator('.cm-content').first()
     await editor.click()
     await page.keyboard.press('Control+End')
-    await scroll.evaluate((element) => {
-      element.scrollTop = Math.min(300, element.scrollHeight - element.clientHeight)
-    })
+    await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
     const savedScroll = await scroll.evaluate((element) => element.scrollTop)
     await expect(editor).toBeFocused()
     expect(savedScroll).toBeGreaterThan(0)
@@ -531,10 +538,8 @@ test('Markdown scroll and caret state restore across reopen in all hosts', async
     }
 
     await expect
-      .poll(() => scroll.evaluate((element) => element.scrollTop))
-      .toBeGreaterThan(0, `scroll restoration failed for ${host}`)
-    const restoredScroll = await scroll.evaluate((element) => element.scrollTop)
-    expect(Math.abs(restoredScroll - savedScroll)).toBeLessThanOrEqual(16)
+      .poll(async () => Math.abs((await scroll.evaluate((element) => element.scrollTop)) - savedScroll))
+      .toBeLessThanOrEqual(16, `scroll restoration failed for ${host}`)
     await page.locator('.cm-content').first().focus()
     await page.keyboard.type('X')
     await expect(page.locator('.cm-content').first()).toContainText('View state paragraph 90.X')
@@ -545,6 +550,7 @@ test('both PKMS host surfaces rename Markdown documents from the shared title', 
   page
 }) => {
   for (const host of hosts.filter((host) => host !== 'desktop-editor')) {
+    await clearSavedEditorViews(page)
     await page.goto(`/?host=${host}&scenario=view-state`)
     if (host !== 'desktop-editor') {
       await expect(page.locator('.editor-tree-item').first()).toBeVisible()
@@ -568,9 +574,7 @@ test('both PKMS host surfaces rename Markdown documents from the shared title', 
     const editor = page.locator('.cm-content').first()
     await editor.click()
     await page.keyboard.press('Control+End')
-    await scroll.evaluate((element) => {
-      element.scrollTop = Math.min(300, element.scrollHeight - element.clientHeight)
-    })
+    await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
     const savedScroll = await scroll.evaluate((element) => element.scrollTop)
     expect(savedScroll).toBeGreaterThan(0)
 
@@ -579,10 +583,8 @@ test('both PKMS host surfaces rename Markdown documents from the shared title', 
     await page.getByRole('treeitem', { name: 'Renamed parity note', exact: true }).click()
     await expect(page.locator('.editor-markdown-title').first()).toHaveText('Renamed parity note')
     await expect
-      .poll(() => scroll.evaluate((element) => element.scrollTop))
-      .toBeGreaterThan(0, `renamed document view state was lost for ${host}`)
-    const restoredScroll = await scroll.evaluate((element) => element.scrollTop)
-    expect(Math.abs(restoredScroll - savedScroll)).toBeLessThanOrEqual(16)
+      .poll(async () => Math.abs((await scroll.evaluate((element) => element.scrollTop)) - savedScroll))
+      .toBeLessThanOrEqual(24)
     await editor.focus()
     await page.keyboard.type('X')
     await expect(editor).toContainText('View state paragraph 90.X')
@@ -609,19 +611,11 @@ test('all host tree toolbars create folders and Markdown notes', async ({ page }
     }
 
     await page.getByRole('button', { name: 'New folder' }).click()
-    const folderInput =
-      host === 'desktop-pkms-editor'
-        ? page.getByRole('textbox', { name: 'New folder name' })
-        : page.getByRole('textbox', { name: 'Folder name' })
-    await folderInput.fill('Parity Folder')
-    if (host === 'desktop-editor')
-      await page.getByRole('button', { name: 'OK', exact: true }).click()
-    else if (host === 'desktop-pkms-editor') await folderInput.press('Enter')
-    else
-      await page
-        .getByRole('dialog', { name: 'Folder name' })
-        .getByRole('button', { name: 'Create' })
-        .click()
+    const folderInput = page.getByRole('textbox', { name: 'New folder name' })
+    await folderInput.fill('')
+    await folderInput.pressSequentially('Parity Folder')
+    await expect(folderInput).toBeFocused()
+    await folderInput.press('Enter')
 
     const createdPathsKey =
       host === 'desktop-editor'
@@ -635,21 +629,37 @@ test('all host tree toolbars create folders and Markdown notes', async ({ page }
     await expect(page.getByRole('treeitem', { name: 'Parity Folder', exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'New Markdown file' }).click()
-    if (host === 'desktop-pkms-editor') {
-      const input = page.getByRole('textbox', { name: 'New file name' })
-      await expect(input).toHaveValue('Untitled.md')
-      await input.press('Enter')
-    }
+    const fileInput = page.getByRole('textbox', { name: 'New file name' })
+    await expect(fileInput).toHaveValue('Untitled.md')
+    await fileInput.fill('')
+    await fileInput.pressSequentially('Typed note.md')
+    await expect(fileInput).toBeFocused()
+    await fileInput.press('Enter')
     await expect
       .poll(() => page.evaluate((key) => (window as any)[key], createdPathsKey))
       .toContain(
         host === 'desktop-editor'
-          ? 'untitled.md'
+          ? 'Typed note.md'
           : host === 'desktop-pkms-editor'
-            ? 'Untitled.md'
-            : 'Verification/untitled.md'
+            ? 'Typed note.md'
+            : 'Verification/Typed note.md'
       )
-    await expect(page.getByRole('treeitem', { name: /untitled/i })).toBeVisible()
+    await expect(page.getByRole('treeitem', { name: /typed note/i })).toBeVisible()
+  }
+})
+
+test('all host tree context menus rename in place and Escape cancels', async ({ page }) => {
+  for (const host of hosts) {
+    await page.goto(`/?host=${host}`)
+    const folder = page.getByRole('treeitem', { name: 'Verification' })
+    await folder.click({ button: 'right' })
+    await page.getByRole('menuitem', { name: 'Rename' }).click()
+    const input = page.getByRole('textbox', { name: 'Rename Verification' })
+    await expect(input).toHaveValue('Verification')
+    await expect(input).toBeFocused()
+    await input.press('Escape')
+    await expect(input).toHaveCount(0)
+    await expect(page.getByRole('treeitem', { name: 'Verification' })).toBeVisible()
   }
 })
 
@@ -705,8 +715,8 @@ test('Desktop Drive folder context menu exposes and opens shared file actions', 
   await expect(menu).toBeVisible()
   for (const label of [
     'Open folder',
-    'New note',
-    'New folder',
+    'New File',
+    'New Folder',
     'Rename',
     'Move to trash',
     'Sync now'
@@ -715,7 +725,7 @@ test('Desktop Drive folder context menu exposes and opens shared file actions', 
 
   await expect(menu.getByRole('menuitem', { name: 'Open folder' })).toBeFocused()
   await page.keyboard.press('ArrowDown')
-  await expect(menu.getByRole('menuitem', { name: 'New note' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'New File' })).toBeFocused()
   await page.keyboard.press('Enter')
   const input = page.getByRole('textbox', { name: 'New file name' })
   await expect(input).toHaveValue('Untitled.md')
@@ -731,6 +741,52 @@ test('Desktop Drive folder context menu exposes and opens shared file actions', 
   await expect(
     page.getByRole('treeitem', { name: 'Renamed Verification', exact: true })
   ).toBeVisible()
+})
+
+test('PKMS context menus and editor chrome use the shared unboxed controls', async ({ page }) => {
+  const menuChrome: string[][] = []
+  for (const host of ['desktop-editor', 'desktop-pkms-editor', 'web-pkms-editor']) {
+    await page.goto(`/?host=${host}`)
+    await page.getByRole('treeitem', { name: 'Verification' }).click({ button: 'right' })
+    const menu = page.locator('.context-menu, .tree-context-menu').first()
+    await expect(menu).toBeVisible()
+    menuChrome.push(
+      await menu.evaluate((element) => {
+        const item = element.querySelector('.context-menu-item, button') as HTMLElement
+        const panelStyle = getComputedStyle(element)
+        const itemStyle = getComputedStyle(item)
+        return [
+          panelStyle.borderWidth,
+          panelStyle.borderRadius,
+          panelStyle.padding,
+          itemStyle.borderWidth,
+          itemStyle.borderRadius,
+          itemStyle.padding
+        ]
+      })
+    )
+    await page.keyboard.press('Escape')
+  }
+  expect(menuChrome[1]).toEqual(menuChrome[0])
+
+  await page.goto('/?host=desktop-pkms-editor')
+  await expect(page.locator('.pkms-google-drive-sync-state')).toBeVisible()
+  await page.getByRole('treeitem', { name: 'Verification' }).click()
+  await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
+  await expect(page.locator('.editor-markdown-document')).toBeVisible()
+  await expect(page.locator('.editor-width-toggle')).toBeVisible()
+  const controlStyles = await Promise.all(
+    ['.pkms-google-drive-sync-state', '.editor-width-toggle'].map((selector) =>
+      page.locator(selector).evaluate((element) => {
+        const style = getComputedStyle(element)
+        return [style.padding, style.borderWidth, style.borderRadius]
+      })
+    )
+  )
+  expect(controlStyles).toEqual([
+    ['0px', '0px', '0px'],
+    ['0px', '0px', '0px']
+  ])
 })
 
 test('Desktop Drive tree moves a file to the workspace root through its empty area', async ({

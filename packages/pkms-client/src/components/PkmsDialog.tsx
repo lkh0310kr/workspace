@@ -1,7 +1,4 @@
-import { EditorNameForm } from '@workspace/editor'
-
 export type PkmsDialogRequest =
-  | { kind: 'name'; title: string; initialValue: string; resolve: (value: string | null) => void }
   | {
       kind: 'confirm'
       message: string
@@ -20,8 +17,7 @@ export function PkmsDialog({ request, onClose }: Props): React.JSX.Element | nul
   if (!request) return null
 
   const cancel = () => {
-    if (request.kind === 'name') request.resolve(null)
-    else request.resolve(false)
+    request.resolve(false)
     onClose()
   }
 
@@ -39,27 +35,9 @@ export function PkmsDialog({ request, onClose }: Props): React.JSX.Element | nul
         className="pkms-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label={request.kind === 'name' ? request.title : 'Confirm action'}
+        aria-label="Confirm action"
       >
-        {request.kind === 'name' ? (
-          <EditorNameForm
-            key={`${request.title}:${request.initialValue}`}
-            title={request.title}
-            initialValue={request.initialValue}
-            submitLabel={request.title.toLowerCase().includes('folder') ? 'Create' : 'Save'}
-            titleTag="h2"
-            actionsClassName="pkms-dialog-actions"
-            cancelButtonClassName="secondary-button"
-            submitButtonClassName="primary-button"
-            selectInitialValue={Boolean(request.initialValue)}
-            onSubmit={(value) => {
-              request.resolve(value)
-              onClose()
-            }}
-            onCancel={cancel}
-          />
-        ) : (
-          <>
+        <>
             <h2>{request.title ?? 'Confirm'}</h2>
             <p>{request.message}</p>
             {request.detail && <p>{request.detail}</p>}
@@ -77,8 +55,7 @@ export function PkmsDialog({ request, onClose }: Props): React.JSX.Element | nul
                 {request.confirmLabel ?? 'Delete'}
               </button>
             </div>
-          </>
-        )}
+        </>
       </section>
     </div>
   )

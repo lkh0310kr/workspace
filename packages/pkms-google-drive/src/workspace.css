@@ -15,7 +15,7 @@
 }
 
 .pkms-google-drive-root
-  button:not(.editor-tree-item):not(.cm-md-fold-control):not(.editor-tree-create-action) {
+  button:not(.editor-tree-item):not(.cm-md-fold-control):not(.editor-tree-create-action):not(.editor-action-button):not(.pkms-google-drive-sync-state) {
   appearance: none;
   min-height: 32px;
   padding: 6px 10px;
@@ -34,7 +34,7 @@
   background: color-mix(in srgb, currentColor 6%, transparent);
 }
 
-.pkms-google-drive-root button:not(.editor-tree-create-action):disabled {
+.pkms-google-drive-root button:not(.editor-tree-create-action):not(.pkms-google-drive-sync-state):disabled {
   cursor: default;
   opacity: 0.55;
 }
@@ -257,6 +257,32 @@
   border-bottom: 1px solid var(--drive-border);
 }
 
+.pkms-google-drive-root button.pkms-google-drive-sync-state {
+  all: unset;
+  display: inline-flex;
+  min-height: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--text-muted, var(--text-faint, var(--muted)));
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.pkms-google-drive-root button.pkms-google-drive-sync-state:hover:not(:disabled) {
+  color: var(--text, currentColor);
+  background: transparent !important;
+}
+
+.pkms-google-drive-root button.pkms-google-drive-sync-state:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
 .pkms-google-drive-tree-footer {
   display: flex;
   min-width: 0;
@@ -352,41 +378,6 @@
   min-height: 0;
   overflow: hidden;
   overscroll-behavior: contain;
-}
-
-.pkms-google-drive-root .tree-context-menu {
-  position: fixed;
-  z-index: 40;
-  display: flex;
-  width: 188px;
-  flex-direction: column;
-  gap: 2px;
-  padding: 5px;
-  border: 1px solid var(--border, var(--drive-border));
-  border-radius: 8px;
-  background: var(--bg-surface, var(--bg-base, #fff));
-  box-shadow: 0 8px 28px #0003;
-}
-
-.pkms-google-drive-root .tree-context-menu button {
-  min-height: 30px;
-  padding: 5px 9px;
-  border: 0;
-  border-radius: 5px;
-  color: var(--text, #262626);
-  background: transparent !important;
-  text-align: left;
-  font-size: 12px;
-}
-
-.pkms-google-drive-root .tree-context-menu button:hover,
-.pkms-google-drive-root .tree-context-menu button:focus-visible {
-  outline: 0;
-  background: var(--bg-hover, color-mix(in srgb, currentColor 8%, transparent)) !important;
-}
-
-.pkms-google-drive-root .tree-context-menu button.danger {
-  color: var(--status-danger, var(--danger, #c33));
 }
 
 .pkms-google-drive-dialog-backdrop {

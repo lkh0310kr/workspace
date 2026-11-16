@@ -19,7 +19,7 @@ export interface EditorTreeRowProps {
     value: string
     ariaLabel: string
     onChange: (value: string) => void
-    onCommit: () => void
+    onCommit: () => boolean | void
     onCancel: () => void
   }
   trailingStatus?: ReactNode
@@ -102,8 +102,9 @@ export function EditorTreeRow({
   if (inlineEdit) {
     const commit = () => {
       if (inlineEditFinished.current) return
+      const committed = inlineEdit.onCommit()
+      if (committed === false) return
       inlineEditFinished.current = true
-      inlineEdit.onCommit()
     }
     const cancel = () => {
       if (inlineEditFinished.current) return

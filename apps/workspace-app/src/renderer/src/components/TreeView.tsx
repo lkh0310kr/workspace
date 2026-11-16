@@ -13,7 +13,6 @@ import { interactionCoordinator } from '../interaction/InteractionCoordinator'
 import { moveFocusToRendererBeforeFocusedWebviewHidden } from '../layout/browserWebviewRegistry'
 import { finishPaneDrag } from '../layout/layoutRef'
 import { classifyAssetType } from '../../../shared/asset'
-import { TextPrompt } from './TextPrompt'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
 import type { AnchorRect } from './Popover'
 import { onWorkspaceDismissPortals } from '../workspacePortalDismiss'
@@ -40,7 +39,6 @@ import {
   editorTreeSelectionRoots,
   flattenEditorTree,
   isEditorProviderError,
-  nextEditorItemNameInDirectory,
   projectEditorTreeRows,
   resolveEditorTreeDirectory,
   resolveEditorTreePath,
@@ -162,12 +160,12 @@ export function TreeView({
     () => new Set(loadExplorerTreeState(explorerStateKey, rootPath).expanded)
   )
   const [menu, setMenu] = useState<MenuState | null>(null)
-  const [prompt, setPrompt] = useState<{
-    anchor: AnchorRect
-    title: string
-    defaultValue: string
-    onSubmit: (value: string) => void
-  } | null>(null)
+  const [inlineEdit, setInlineEdit] = useState<
+    | { mode: 'create'; kind: 'file' | 'folder'; dir: string; name: string }
+    | { mode: 'rename'; entry: DirEntry; name: string }
+    | null
+  >(null)
+  const inlineEditCommitRef = useRef<() => boolean>(() => false)
   const [dragOverPath, setDragOverPath] = useState<string | null>(null)
   const [scrollTop, setScrollTop] = useState(0)
   const [viewportHeight, setViewportHeight] = useState(0)
@@ -354,7 +352,7 @@ export function TreeView({
   useEffect(() => {
     const dismissOverlayUi = () => {
       setMenu(null)
-      setPrompt(null)
+      setInlineEdit(null)
     }
     return onWorkspaceDismissPortals(dismissOverlayUi)
   }, [])
@@ -362,7 +360,7 @@ export function TreeView({
   useEffect(() => {
     if (paneVisible) return
     setMenu(null)
-    setPrompt(null)
+    setInlineEdit(null)
   }, [paneVisible])
 
   const flatList = useMemo(() => {
@@ -487,7 +485,8 @@ export function TreeView({
   )
   const treeViewProjection: EditorTreeProjection<EditorTreeViewItem> = {
     ...projection,
-    rows: projection.rows.map(({ entry, depth }) => {
+    rows: (() => {
+      const rows: EditorTreeViewItem[] = projection.rows.map(({ entry, depth }) => {
       const detected: EditorItemKind = entry.is_dir
         ? 'directory'
         : classifyFile(entry.name) === 'markdown'
@@ -519,7 +518,56 @@ export function TreeView({
             : -1,
         source: entry
       }
-    })
+      })
+      if (inlineEdit) {
+        const fullIndex =
+          inlineEdit.mode === 'rename'
+            ? flatList.findIndex(({ entry }) => entry.path === inlineEdit.entry.path)
+            : inlineEdit.dir
+              ? flatList.findIndex(({ entry }) => entry.path === inlineEdit.dir) + 1
+              : 0
+        const insertAt = fullIndex - projection.startIndex
+        if (insertAt >= 0 && insertAt <= rows.length) {
+          const parent = inlineEdit.mode === 'create' ? inlineEdit.dir : ''
+          const depth = parent
+            ? (flatList.find(({ entry }) => entry.path === parent)?.depth ?? -1) + 1
+            : inlineEdit.mode === 'rename'
+              ? flatList.find(({ entry }) => entry.path === inlineEdit.entry.path)?.depth ?? 0
+              : 0
+          const name = inlineEdit.name
+          const path =
+            inlineEdit.mode === 'rename'
+              ? inlineEdit.entry.path
+              : parent
+                ? `${parent}/${name}`
+                : name
+          rows.splice(insertAt, 0, {
+            id:
+              inlineEdit.mode === 'rename'
+                ? `inline-rename:${inlineEdit.entry.path}`
+                : `inline-create:${inlineEdit.dir}`,
+            path,
+            name,
+            kind: inlineEdit.mode === 'create' && inlineEdit.kind === 'folder' ? 'directory' : 'markdown',
+            depth,
+            inlineEdit: {
+              value: name,
+              ariaLabel:
+                inlineEdit.mode === 'rename'
+                  ? `Rename ${inlineEdit.entry.name}`
+                  : inlineEdit.kind === 'folder'
+                    ? 'New folder name'
+                    : 'New file name',
+              onChange: (value) =>
+                setInlineEdit((current) => (current ? { ...current, name: value } : current)),
+              onCommit: () => inlineEditCommitRef.current(),
+              onCancel: () => setInlineEdit(null)
+            }
+          })
+        }
+      }
+      return rows
+    })()
   }
 
   const toggle = (path: string) => {
@@ -564,73 +612,67 @@ export function TreeView({
     setScrollTop(nextTop)
   }, [explorerModeActive, scrollContainerRef, treePaths])
 
-  const newFile = async (dir: string) => {
+  const beginInlineCreate = (kind: 'file' | 'folder', dir = '') => {
     setMenu(null)
-    let name: string
-    try {
-      const result = await nextEditorItemNameInDirectory(editorProvider, dir, 'untitled', '.md')
-      name = result.name
-      const parent = result.parent
-      if (!editorSupportsOperation(editorProvider, 'createFile'))
-        throw new Error('File creation is not supported by this provider')
-      await editorProvider.create!(parent?.itemId ?? null, 'file', name)
-    } catch (err) {
-      window.alert(String(err))
-      return
+    const name = kind === 'file' ? 'Untitled.md' : 'New Folder'
+    if (!dir) {
+      setScrollTop(0)
+      if (scrollContainerRef?.current) scrollContainerRef.current.scrollTop = 0
+    } else {
+      setExpandedPersisted((current) => new Set(current).add(dir))
+      if (!dirs.get(dir)?.loaded) loadDir(dir)
     }
-    const path = joinPath(dir, name)
-    openFileFromTree(path, 'markdown')
-    refresh(dir)
+    setInlineEdit({ mode: 'create', kind, dir, name })
   }
 
-  const newFolder = (dir: string, anchor: AnchorRect) => {
+  const beginInlineRename = (entry: DirEntry) => {
     setMenu(null)
-    setPrompt({
-      anchor,
-      title: 'Folder name',
-      defaultValue: '',
-      onSubmit: async (name) => {
+    setInlineEdit({ mode: 'rename', entry, name: entry.name })
+  }
+
+  inlineEditCommitRef.current = () => {
+    const edit = inlineEdit
+    if (!edit) return false
+    const name = edit.name.trim()
+    if (!name || name === '.' || name === '..' || name.includes('/') || name.includes('\\'))
+      return false
+    setInlineEdit(null)
+    if (edit.mode === 'create') {
+      void (async () => {
         try {
-          const parent = await resolveEditorTreeDirectory(
+          const directory = await resolveEditorTreeDirectory(
             editorProvider,
-            dir,
+            edit.dir,
             'Parent directory no longer exists'
           )
-          if (!editorSupportsOperation(editorProvider, 'createDirectory'))
-            throw new Error('Folder creation is not supported by this provider')
-          await editorProvider.create!(parent?.itemId ?? null, 'directory', name)
-          setExpandedPersisted((prev) => new Set(prev).add(dir))
-          refresh(dir)
+          const kind = edit.kind === 'folder' ? 'directory' : 'file'
+          const operation = kind === 'directory' ? 'createDirectory' : 'createFile'
+          if (!editorSupportsOperation(editorProvider, operation))
+            throw new Error(`${edit.kind === 'folder' ? 'Folder' : 'File'} creation is not supported`)
+          await editorProvider.create!(directory?.itemId ?? null, kind, name)
+          if (edit.kind === 'folder') setExpandedPersisted((current) => new Set(current).add(edit.dir))
+          else openFileFromTree(joinPath(edit.dir, name), 'markdown')
+          refresh(edit.dir)
         } catch (error) {
           window.alert(String(error))
         }
-      }
-    })
-  }
-
-  const rename = (entry: DirEntry, anchor: AnchorRect) => {
-    setMenu(null)
-    setPrompt({
-      anchor,
-      title: 'Rename to',
-      defaultValue: entry.name,
-      onSubmit: async (name) => {
-        if (name === entry.name) return
-        const to = joinPath(dirOf(entry.path), name)
+      })()
+    } else if (name !== edit.entry.name) {
+      void (async () => {
         try {
-          const ref = await resolveEditorTreePath(editorProvider, entry.path)
+          const ref = await resolveEditorTreePath(editorProvider, edit.entry.path)
           if (!ref) throw new Error('Item no longer exists')
           if (!editorSupportsOperation(editorProvider, 'rename'))
             throw new Error('Renaming is not supported by this provider')
           await editorProvider.rename!(ref, name)
-        } catch (err) {
-          window.alert(String(err))
-          return
+          onPathRenamed?.(edit.entry.path, joinPath(dirOf(edit.entry.path), name))
+          refresh(dirOf(edit.entry.path))
+        } catch (error) {
+          window.alert(String(error))
         }
-        onPathRenamed?.(entry.path, to)
-        refresh(dirOf(entry.path))
-      }
-    })
+      })()
+    }
+    return true
   }
 
   const selectionRootPaths = (paths: readonly string[]): string[] => {
@@ -767,7 +809,7 @@ export function TreeView({
       onRename: () => {
         if (!canRename) return
         const entry = focusedEntry()
-        if (entry) rename(entry, rowAnchor(entry, treeRef.current))
+        if (entry) beginInlineRename(entry)
       },
       onEnter: (entry: DirEntry) => {
         if (entry.is_dir) toggle(entry.path)
@@ -823,7 +865,8 @@ export function TreeView({
       selectionAnchor,
       selected,
       canDelete,
-      canRename
+      canRename,
+      beginInlineRename
     ]
   )
 
@@ -836,22 +879,14 @@ export function TreeView({
 
   const menuItems = useMemo((): ContextMenuItem[] => {
     if (!menu) return []
-    const clickAnchor: AnchorRect = {
-      left: menu.x,
-      right: menu.x,
-      top: menu.y,
-      bottom: menu.y,
-      width: 0,
-      height: 0
-    }
     const items: ContextMenuItem[] = []
     if (canCreateFile)
-      items.push({ type: 'button', label: 'New File', onClick: () => void newFile(menu.dir) })
+      items.push({ type: 'button', label: 'New File', onClick: () => beginInlineCreate('file', menu.dir) })
     if (canCreateDirectory)
       items.push({
         type: 'button',
         label: 'New Folder',
-        onClick: () => newFolder(menu.dir, clickAnchor)
+        onClick: () => beginInlineCreate('folder', menu.dir)
       })
     if (!menu.entry) return items
 
@@ -860,7 +895,7 @@ export function TreeView({
       items.push({
         type: 'button',
         label: 'Rename',
-        onClick: () => rename(menu.entry!, clickAnchor)
+        onClick: () => beginInlineRename(menu.entry!)
       })
     }
     if (canDelete)
@@ -897,7 +932,9 @@ export function TreeView({
     canCreateFile,
     canCreateDirectory,
     canRename,
-    canDelete
+    canDelete,
+    beginInlineCreate,
+    beginInlineRename
   ])
 
   return (
@@ -914,18 +951,8 @@ export function TreeView({
               <EditorTreeCreateActions
                 canCreateFile={canCreateFile}
                 canCreateDirectory={canCreateDirectory}
-                onCreateFile={() => void newFile('')}
-                onCreateDirectory={(button) => {
-                  const rect = button.getBoundingClientRect()
-                  newFolder('', {
-                    left: rect.left,
-                    right: rect.right,
-                    top: rect.top,
-                    bottom: rect.bottom,
-                    width: rect.width,
-                    height: rect.height
-                  })
-                }}
+            onCreateFile={() => beginInlineCreate('file', '')}
+            onCreateDirectory={() => beginInlineCreate('folder', '')}
               />
             }
           />
@@ -989,15 +1016,6 @@ export function TreeView({
       {menu ? (
         <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />
       ) : null}
-      {prompt && (
-        <TextPrompt
-          anchorRect={prompt.anchor}
-          title={prompt.title}
-          defaultValue={prompt.defaultValue}
-          onSubmit={prompt.onSubmit}
-          onClose={() => setPrompt(null)}
-        />
-      )}
     </>
   )
 }

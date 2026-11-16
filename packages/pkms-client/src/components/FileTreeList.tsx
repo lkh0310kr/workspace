@@ -20,6 +20,19 @@ interface FileTreeListProps {
   focusedPath: string | null
   currentFolder: string
   activeFileId: string | null
+  inlineEditRow?: {
+    mode: 'create' | 'rename'
+    id: string
+    path: string
+    parentPath: string
+    name: string
+    kind: 'directory' | 'markdown'
+    depth: number
+    ariaLabel: string
+    onChange: (value: string) => void
+    onCommit: () => boolean
+    onCancel: () => void
+  } | null
   syncItemStates?: PkmsSyncBridgeStatus['itemStates']
   cutPaths: Set<string>
   dropTarget: string | null
@@ -50,6 +63,7 @@ export function FileTreeList(props: FileTreeListProps) {
     focusedPath,
     currentFolder,
     activeFileId,
+    inlineEditRow = null,
     syncItemStates = {},
     cutPaths,
     dropTarget,
@@ -69,9 +83,7 @@ export function FileTreeList(props: FileTreeListProps) {
     onClearSelection,
     onActivate
   } = props
-  const viewProjection: EditorTreeProjection<EditorTreeViewItem> = {
-    ...projection,
-    rows: projection.rows.map(({ file, depth }) => {
+  const viewRows: EditorTreeViewItem[] = projection.rows.map(({ file, depth }) => {
       const ownState =
         syncItemStates[file.path] ??
         (/\.local-conflict-[^/]+\.md$/i.test(file.path) ? 'attention' : undefined)
@@ -132,6 +144,36 @@ export function FileTreeList(props: FileTreeListProps) {
         source: file
       }
     })
+  if (inlineEditRow) {
+    const parentIndex = inlineEditRow.parentPath
+      ? viewRows.findIndex((row) => row.path === inlineEditRow.parentPath)
+      : -1
+    const targetIndex =
+      inlineEditRow.mode === 'rename'
+        ? viewRows.findIndex((row) => row.path === inlineEditRow.path)
+        : parentIndex < 0
+          ? -1
+          : parentIndex + 1
+    if (targetIndex >= 0 || !inlineEditRow.parentPath) {
+      viewRows.splice(targetIndex < 0 ? 0 : targetIndex, 0, {
+        id: inlineEditRow.id,
+        path: inlineEditRow.path,
+        name: inlineEditRow.name,
+        kind: inlineEditRow.kind,
+        depth: inlineEditRow.depth,
+        inlineEdit: {
+          value: inlineEditRow.name,
+          ariaLabel: inlineEditRow.ariaLabel,
+          onChange: inlineEditRow.onChange,
+          onCommit: inlineEditRow.onCommit,
+          onCancel: inlineEditRow.onCancel
+        }
+      })
+    }
+  }
+  const viewProjection: EditorTreeProjection<EditorTreeViewItem> = {
+    ...projection,
+    rows: viewRows
   }
 
   return (

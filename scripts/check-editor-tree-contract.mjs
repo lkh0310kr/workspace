@@ -120,12 +120,22 @@ if (
 }
 if (
   !normalizedDriveStyles.includes(
-    '.pkms-google-drive-root button:not(.editor-tree-create-action):disabled'
+    '.pkms-google-drive-root button:not(.editor-tree-create-action):not(.pkms-google-drive-sync-state):disabled'
   )
 ) {
   failures.push(
     'Google Drive disabled button styling must preserve shared tree create control state.'
   )
+}
+if (
+  !/\.pkms-google-drive-root\s+button:not\(\.editor-tree-item\):not\(\.cm-md-fold-control\):not\(\.editor-tree-create-action\):not\(\.editor-action-button\):not\(\.pkms-google-drive-sync-state\)/.test(
+    normalizedDriveStyles
+  ) ||
+  !/\.pkms-google-drive-root\s+button\.pkms-google-drive-sync-state\s*\{\s*all:\s*unset;\s*display:\s*inline-flex;\s*min-height:\s*0;[^}]*padding:\s*0;\s*border:\s*0;\s*border-radius:\s*0;/.test(
+    normalizedDriveStyles
+  )
+) {
+  failures.push('Google Drive global button rules must not add chrome to sync or editor width controls.')
 }
 if (
   /\.editor-markdown-document\.pkms-google-drive-markdown\s+\.editor-markdown-title\s*\{/.test(

@@ -24,6 +24,7 @@ interface Props {
   x: number
   y: number
   items: ContextMenuItem[]
+  ariaLabel?: string
   onClose: () => void
 }
 
@@ -39,17 +40,23 @@ function ContextMenuPanel({
   items,
   style,
   onClose,
-  flyout = false
+  flyout = false,
+  ariaLabel
 }: {
   items: ContextMenuItem[]
   style?: CSSProperties
   onClose: () => void
   flyout?: boolean
+  ariaLabel?: string
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [openSubmenu, setOpenSubmenu] = useState<number | null>(null)
   const [flipLeft, setFlipLeft] = useState(false)
   const [position, setPosition] = useState(style ?? {})
+
+  useLayoutEffect(() => {
+    if (!flyout) panelRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
+  }, [flyout])
 
   useLayoutEffect(() => {
     if (flyout || !panelRef.current || style?.left === undefined || style?.top === undefined) return
@@ -88,6 +95,7 @@ function ContextMenuPanel({
         ref={panelRef}
         items={sharedItems}
         className={`context-menu${flyout ? ' context-menu-flyout' : ''}${flipLeft ? ' context-menu-flyout-left' : ''}`}
+        ariaLabel={ariaLabel}
         itemClassName="context-menu-item"
         activeClassName="active"
         separatorClassName="context-menu-sep"
@@ -104,6 +112,8 @@ function ContextMenuPanel({
     <div
       ref={panelRef}
       className={`context-menu${flyout ? ' context-menu-flyout' : ''}${flipLeft ? ' context-menu-flyout-left' : ''}`}
+      role="menu"
+      aria-label={ariaLabel}
       style={flyout ? style : position}
       onClick={(e) => e.stopPropagation()}
     >
@@ -162,7 +172,7 @@ function ContextMenuPanel({
   )
 }
 
-export function ContextMenu({ x, y, items, onClose }: Props) {
+export function ContextMenu({ x, y, items, ariaLabel, onClose }: Props) {
   const portalId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
   // Why: callers routinely pass an inline `() => setX(null)` onClose, a new
@@ -203,7 +213,12 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
 
   return createPortal(
     <div ref={rootRef}>
-      <ContextMenuPanel items={items} style={{ left: x, top: y }} onClose={onClose} />
+      <ContextMenuPanel
+        items={items}
+        ariaLabel={ariaLabel}
+        style={{ left: x, top: y }}
+        onClose={onClose}
+      />
     </div>,
     document.body
   )
