@@ -10,6 +10,9 @@ echo "=== apps/desktop typecheck ==="
 echo "=== shared editor tree architecture contract ==="
 node scripts/check-editor-tree-contract.mjs
 
+echo "=== feature package boundaries ==="
+node scripts/check-feature-package-boundaries.mjs
+
 echo "=== apps/desktop vitest (foundation modules) ==="
 (cd apps/desktop && npx vitest run \
   src/shared/layoutSalvage.test.ts \

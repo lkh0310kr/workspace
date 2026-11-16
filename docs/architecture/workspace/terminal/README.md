@@ -34,6 +34,8 @@ Main은 renderer에 전송한 seq별 byte 수를 추적한다. 미해제 credit�
 
 Terminal pane view, 검색 UI, theme policy와 pane-manager는 [@workspace/terminal](../../../../packages/terminal/README.md)이 소유한다. Desktop host가 검색 addon, theme subscription, portal 등록을 주입한다. PTY 수명과 pane orchestration은 계속 Desktop이 소유한다. Desktop 통합 진입점은 `features/terminal/index.ts`와 `terminalKind.tsx`다. `TerminalPaneHost` 계약은 package가 소유하며 platform, focus, agent status, clipboard, PTY attach 및 input handler port를 정의한다. Desktop singleton은 `terminalPaneHost.ts`에서 구현한다. 실제 key/paste/file-drop handler 구현과 Electron IPC는 Desktop에 남는다. 이 runtime 경계를 분리할 때 기존 PTY snapshot/replay/ACK/reconnect 결과를 유지한다.
 
+Terminal package의 WebGL auto policy는 renderer의 OS·WebGL 정보만 사용하고 Desktop `window.api`를 직접 읽지 않는다. OS display-server 정보가 필요한 정책은 실제 host capability가 제공될 때 계약으로 주입한다.
+
 입력은 installTerminalKeyHandler/PasteHandler, bracketed paste, query reply와 일반 input batching을 구분한다. OSC52 clipboard, image temp file paste, local file drop, mouse-reporting wheel은 각각의 handler 경로다. IME·Alt/Option·PowerShell/WSL 정책을 일반 browser shortcut으로 대체하지 않는다.
 
 host는 attach 요청의 현재 app environment를 신규 shell에 사용하고 TERM=xterm-256color, COLORTERM=truecolor와 UTF-8 locale을 설정한다. 살아 있는 기존 shell의 env를 새 attach마다 다시 쓰는 기능은 아니다. launcher NO_COLOR와 stale daemon 환경에 대한 이전 조사·제거 절차는 [포팅 기록](./porting-history.md)이다.

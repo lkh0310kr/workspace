@@ -25,7 +25,11 @@ export interface TerminalPtyTransport {
 
 export interface TerminalPaneHost {
   registerPortal: (id: string, onDismiss: () => void) => () => void
-  getPlatformInfo: () => { platform: string; osRelease: string }
+  getPlatformInfo: () => {
+    platform: string
+    osRelease: string
+    displayServer?: 'wayland' | 'x11' | null
+  }
   getResolvedTheme: () => ResolvedTheme
   getXtermTheme: (theme: ResolvedTheme) => ITheme
   getSearchDecorations: (theme: ResolvedTheme) => TerminalSearchDecorations

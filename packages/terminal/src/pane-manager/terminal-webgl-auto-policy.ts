@@ -1,3 +1,5 @@
+import type { TerminalDisplayServer } from './pane-manager-types'
+
 export type TerminalWebglAutoDecision = {
   allowWebgl: boolean
   reason:
@@ -11,13 +13,13 @@ export type TerminalWebglAutoDecision = {
   vendor: string | null
 }
 
-let cachedDecision: TerminalWebglAutoDecision | null = null
+const cachedDecisions = new Map<TerminalDisplayServer, TerminalWebglAutoDecision>()
 
 const LINUX_SOFTWARE_RENDERER_PATTERN =
   /\b(swiftshader|llvmpipe|softpipe|software rasterizer|software adapter|basic render|virgl|svga3d)\b/i
 
 export function resetTerminalWebglAutoDecision(): void {
-  cachedDecision = null
+  cachedDecisions.clear()
 }
 
 export function isLinuxRendererHost(
@@ -28,24 +30,6 @@ export function isLinuxRendererHost(
     return false
   }
   return platform.includes('Linux') || userAgent.includes('Linux')
-}
-
-function readRendererDisplayServer(): 'wayland' | 'x11' | null {
-  // Why: ported wholesale from Orca's Linux/Wayland WebGL-corruption
-  // workaround, but this app never wired up a platform:get IPC channel
-  // (macOS-only in practice — isLinuxRendererHost() gates every caller of
-  // this function, so it's unreachable on this app's actual target
-  // platform). Access defensively instead of typing window.api.platform
-  // as if it exists: the try/catch already made a missing API a no-op at
-  // runtime, this just satisfies that in the type system too.
-  try {
-    const api = window.api as unknown as {
-      platform?: { get?: () => { displayServer?: 'wayland' | 'x11' | null } }
-    }
-    return api.platform?.get?.()?.displayServer ?? null
-  } catch {
-    return null
-  }
 }
 
 function readWebglRendererInfo(): Pick<TerminalWebglAutoDecision, 'renderer' | 'vendor'> & {
@@ -81,72 +65,81 @@ function readWebglRendererInfo(): Pick<TerminalWebglAutoDecision, 'renderer' | '
   }
 }
 
-export function getTerminalWebglAutoDecision(): TerminalWebglAutoDecision {
+export function getTerminalWebglAutoDecision(
+  displayServer: TerminalDisplayServer = null
+): TerminalWebglAutoDecision {
+  const cachedDecision = cachedDecisions.get(displayServer)
   if (cachedDecision) {
     return cachedDecision
   }
 
   if (!isLinuxRendererHost()) {
-    cachedDecision = {
+    const decision: TerminalWebglAutoDecision = {
       allowWebgl: true,
       reason: 'non-linux',
       renderer: null,
       vendor: null
     }
-    return cachedDecision
+    cachedDecisions.set(displayServer, decision)
+    return decision
   }
 
-  if (readRendererDisplayServer() === 'wayland') {
-    // Why: #5319 can wedge terminal input during xterm WebGL context creation
-    // on Linux Wayland before xterm reports a recoverable context-loss event.
-    cachedDecision = {
+  if (displayServer === 'wayland') {
+    // Wayland WebGL context creation can wedge terminal input before xterm
+    // reports a recoverable context-loss event.
+    const decision: TerminalWebglAutoDecision = {
       allowWebgl: false,
       reason: 'linux-wayland',
       renderer: null,
       vendor: null
     }
-    return cachedDecision
+    cachedDecisions.set(displayServer, decision)
+    return decision
   }
 
   const rendererInfo = readWebglRendererInfo()
   if (!rendererInfo.hasWebgl2) {
-    cachedDecision = {
+    const decision: TerminalWebglAutoDecision = {
       allowWebgl: false,
       reason: 'linux-webgl2-unavailable',
       renderer: rendererInfo.renderer,
       vendor: rendererInfo.vendor
     }
-    return cachedDecision
+    cachedDecisions.set(displayServer, decision)
+    return decision
   }
 
   if (!rendererInfo.hasRendererInfo) {
     // Why: the Linux corruption path can leave WebGL alive while glyphs are bad;
     // without renderer identity we cannot distinguish hardware from software GL.
-    cachedDecision = {
+    const decision: TerminalWebglAutoDecision = {
       allowWebgl: false,
       reason: 'linux-renderer-unavailable',
       renderer: rendererInfo.renderer,
       vendor: rendererInfo.vendor
     }
-    return cachedDecision
+    cachedDecisions.set(displayServer, decision)
+    return decision
   }
 
   const identity = `${rendererInfo.vendor ?? ''} ${rendererInfo.renderer ?? ''}`
   if (LINUX_SOFTWARE_RENDERER_PATTERN.test(identity)) {
-    cachedDecision = {
+    const decision: TerminalWebglAutoDecision = {
       allowWebgl: false,
       reason: 'linux-software-renderer',
       renderer: rendererInfo.renderer,
       vendor: rendererInfo.vendor
     }
-    return cachedDecision
+    cachedDecisions.set(displayServer, decision)
+    return decision
   }
 
-  cachedDecision = {
+  const decision: TerminalWebglAutoDecision = {
     allowWebgl: true,
     reason: 'linux-hardware-renderer',
     renderer: rendererInfo.renderer,
     vendor: rendererInfo.vendor
   }
-  return cachedDecision
+  cachedDecisions.set(displayServer, decision)
+  return decision
 }

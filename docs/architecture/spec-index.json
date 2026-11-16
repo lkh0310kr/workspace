@@ -1153,11 +1153,11 @@
         },
         {
           "path": "packages/terminal/src/TerminalPane.tsx",
-          "sha256": "798f8b59aeec589e68e3d37b48a54b99efde990ddfb24f441749e3d916b8e657"
+          "sha256": "d15ad090e830216cbac2cf0d5b8693dde5e6f4b5cc267d1bec8140412ed8d0c3"
         },
         {
           "path": "packages/terminal/src/TerminalPaneHost.ts",
-          "sha256": "793e54df4b0d1fcf4e0ad8fd9c44e02658219a5d0c35ea7cd316e06c50d62a28"
+          "sha256": "725d9049d2c6a3b887564b82b4fedab38dadd21978bb8aaaae61984e392b20c7"
         },
         {
           "path": "packages/terminal/src/focusTerminalTextarea.ts",
@@ -1201,7 +1201,7 @@
         },
         {
           "path": "packages/terminal/src/pane-manager/pane-dom-creation.ts",
-          "sha256": "17be28de0663fd5317496a5e62efc0c1837aaea87cf98df716fdc2747d38ab0a"
+          "sha256": "6199cc7de74cc1a7c9c2ba3b988ff47b1333d618243609a6988ca81f66db8db0"
         },
         {
           "path": "packages/terminal/src/pane-manager/pane-dom-focus-class-sync.ts",
@@ -1249,7 +1249,7 @@
         },
         {
           "path": "packages/terminal/src/pane-manager/pane-manager-types.ts",
-          "sha256": "a278f996f04d2204b9b554f784cf69b856bc1a39e53e83c406ef477e6c97a028"
+          "sha256": "cd49b70f0b792bb94f0274548763baacf6cac94daecbbab7611c59c8b03a7e17"
         },
         {
           "path": "packages/terminal/src/pane-manager/pane-metric-options-deferral.ts",
@@ -1409,7 +1409,7 @@
         },
         {
           "path": "packages/terminal/src/pane-manager/pane-webgl-renderer.ts",
-          "sha256": "66c7b80f4c2439a620f09a7ce3236b4accca738ad4eab3ea7042d72449135c17"
+          "sha256": "0af9238952d67efedd13075cd6761adc51b98dae49b40903fbeaf679e479c4df"
         },
         {
           "path": "packages/terminal/src/pane-manager/terminal-canvas-dpr-repair.ts",
@@ -1517,7 +1517,7 @@
         },
         {
           "path": "packages/terminal/src/pane-manager/terminal-webgl-auto-policy.ts",
-          "sha256": "4719d12617df09888f919293545aa2524183bea566068bc80717fbe03dc9e492"
+          "sha256": "a21b445eb1539097f6015221c33bc7bb844dc0631886f5adacd4e8209a482323"
         },
         {
           "path": "packages/terminal/src/pane-manager/terminal-webgl-hidden-retention.ts",

@@ -1,29 +1,20 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import type { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
+import type { RefObject } from 'react'
 import './terminal.css'
 import './terminal-xterm-overrides.css'
 import { TerminalSearch, type SearchAddonPort } from './TerminalSearch'
-import type { RefObject } from 'react'
-import { createPaneDOM } from '@workspace/terminal/pane-manager/pane-dom-creation'
-import { buildTerminalPaneOptions } from '@workspace/terminal/pane-manager/build-terminal-pane-options'
-import { disposePane, openTerminal } from '@workspace/terminal/pane-manager/pane-lifecycle'
-import type { ManagedPaneInternal } from '@workspace/terminal/pane-manager/pane-manager-types'
-import {
-  registerTerminalPane,
-  unregisterTerminalPane
-} from '@workspace/terminal/pane-manager/pane-terminal-registry'
-import {
-  applyTerminalWebglAfterFit,
-  refitPaneTerminal
-} from '@workspace/terminal/pane-manager/pane-terminal-refit'
-import { fitRevealedPane } from '@workspace/terminal/pane-manager/pane-reveal-fit'
-import {
-  resumePaneRendering,
-  suspendPaneRendering
-} from '@workspace/terminal/pane-manager/pane-rendering-control'
-import type { TuiAgent } from '@workspace/terminal/types/tuiAgent'
-import { shouldFocusTerminalFromPanePointerDown } from '@workspace/terminal/pane-manager/pane-pointer-focus'
+import { createPaneDOM } from './pane-manager/pane-dom-creation'
+import { buildTerminalPaneOptions } from './pane-manager/build-terminal-pane-options'
+import { disposePane, openTerminal } from './pane-manager/pane-lifecycle'
+import type { ManagedPaneInternal } from './pane-manager/pane-manager-types'
+import { registerTerminalPane, unregisterTerminalPane } from './pane-manager/pane-terminal-registry'
+import { applyTerminalWebglAfterFit, refitPaneTerminal } from './pane-manager/pane-terminal-refit'
+import { fitRevealedPane } from './pane-manager/pane-reveal-fit'
+import { resumePaneRendering, suspendPaneRendering } from './pane-manager/pane-rendering-control'
+import type { TuiAgent } from './types/tuiAgent'
+import { shouldFocusTerminalFromPanePointerDown } from './pane-manager/pane-pointer-focus'
 import { XTERM_THEMES } from './terminalThemes'
 import type { TerminalPaneHost } from './TerminalPaneHost'
 
@@ -88,6 +79,7 @@ function TerminalPaneInner({
 
     const pane = createPaneDOM(terminalId, `terminal-${terminalId}`, {
       terminalGpuAcceleration: 'auto',
+      terminalDisplayServer: platformInfo.displayServer,
       linkOpenHint: () => 'open in browser',
       onLinkClick: (_paneId, _event, uri) => paneRuntimeHost.openLink(uri),
       terminalOptions: () => ({

@@ -65,6 +65,7 @@ export function createPaneDOM(
     unicode11Addon,
     webLinksAddon,
     terminalGpuAcceleration: options.terminalGpuAcceleration ?? 'auto',
+    terminalDisplayServer: options.terminalDisplayServer,
     gpuRenderingEnabled:
       ENABLE_WEBGL_RENDERER && (options.terminalGpuAcceleration ?? 'auto') !== 'off',
     webglAttachmentDeferred: options.initialRenderingSuspended === true,

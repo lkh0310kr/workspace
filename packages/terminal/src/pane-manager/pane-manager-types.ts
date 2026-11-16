@@ -8,6 +8,7 @@ import type { WebglAddon } from '@xterm/addon-webgl'
 import type { Terminal, ITerminalOptions, IMarker, IDisposable } from '@xterm/xterm'
 
 export type TerminalGpuAcceleration = 'auto' | 'on' | 'off'
+export type TerminalDisplayServer = 'wayland' | 'x11' | null
 
 export type ScrollState = {
   bufferType: 'normal' | 'alternate'
@@ -33,6 +34,7 @@ export type ManagedPane = {
 export type ManagedPaneInternal = ManagedPane & {
   xtermContainer: HTMLElement
   terminalGpuAcceleration: TerminalGpuAcceleration
+  terminalDisplayServer?: TerminalDisplayServer
   gpuRenderingEnabled: boolean
   webglAttachmentDeferred: boolean
   webglDisabledAfterContextLoss: boolean
@@ -74,5 +76,6 @@ export type PaneManagerOptions = {
   linkOpenHint: (paneId: number) => string
   initialRenderingSuspended?: boolean
   terminalGpuAcceleration?: TerminalGpuAcceleration
+  terminalDisplayServer?: TerminalDisplayServer
   debugLabel?: string
 }

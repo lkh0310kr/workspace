@@ -18,6 +18,7 @@
     "check": "bash scripts/check.sh",
     "check:app": "cd apps/desktop && npm run typecheck",
     "check:editor-tree-contract": "node scripts/check-editor-tree-contract.mjs",
+    "check:feature-package-boundaries": "node scripts/check-feature-package-boundaries.mjs",
     "agents:python:setup": "node scripts/agents-python-setup.mjs",
     "agents:python": "node scripts/agents-python.mjs",
     "server:deploy": "npm run deploy --workspace @workspace/server",

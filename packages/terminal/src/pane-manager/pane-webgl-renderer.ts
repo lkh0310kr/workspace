@@ -46,7 +46,7 @@ export function shouldUseTerminalWebgl(pane: ManagedPaneInternal): boolean {
   if (pane.terminalGpuAcceleration !== 'auto' || suggestedRendererType === 'dom') {
     return false
   }
-  return getTerminalWebglAutoDecision().allowWebgl
+  return getTerminalWebglAutoDecision(pane.terminalDisplayServer).allowWebgl
 }
 
 function refreshTerminalAfterWebglAttach(pane: ManagedPaneInternal): void {
