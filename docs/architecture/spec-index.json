@@ -590,7 +590,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserDownloads.ts",
-          "sha256": "59f6b9fb4f3fc812fff50779b0878f4090549c37ab136a58b8b4be758ccd6baa"
+          "sha256": "548895192c5ba0d581ffc7483d2136bedf20209bc32760050879a1b3b9ce1d28"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserNavHistory.ts",
@@ -665,7 +665,7 @@
           "sha256": "b043a0d47022e93799eb9b2d872ec80b4643421af68342e5dd0a1b157061e86d"
         },
         {
-          "path": "packages/browser/src/browserDownloads.ts",
+          "path": "packages/browser/src/downloads/browserDownloads.ts",
           "sha256": "e1dc740dcdbb0a4011eb93f508dc32d0b15acd8db4cb9c08f248e76e0d5845cb"
         },
         {
@@ -1316,11 +1316,11 @@
       "sources": [
         {
           "path": "packages/browser/package.json",
-          "sha256": "f9ab66785143716fe5c85156847cfbe6872d0ea0944b8d73bafc7d7cda464cd8"
+          "sha256": "9c5a110b7a81aecba8eaaea63f89b660146120c4300ffdaac4d306c09e2c18cd"
         },
         {
           "path": "packages/browser/src/browser.css",
-          "sha256": "6630a259c89647031483edf3130017bda6b85fababa55271200224884f978875"
+          "sha256": "5129476c1328cad2ec177fc04f23d1a6fe60c5a384df224c05dcc5c680a64679"
         },
         {
           "path": "packages/browser/src/browser.module.css",
@@ -1340,11 +1340,11 @@
         },
         {
           "path": "packages/browser/src/BrowserContent.tsx",
-          "sha256": "d00e4139a9659376902cd07378dba847efabb3c95a1dd0151f7e71b5376322cc"
+          "sha256": "86999c9e12c99625a2c62e192f4d543240c0e43e2eaea65fe515b6b523e9439b"
         },
         {
-          "path": "packages/browser/src/BrowserDownloadsBar.tsx",
-          "sha256": "2d28f6791b3123122476facb5824608488ca7a65a870c492b9b8d4bbcb8d402d"
+          "path": "packages/browser/src/downloads/BrowserDownloadsBar.tsx",
+          "sha256": "f3cd136c2d5dbef77c642a8a68eaa32c0b0babe97d7b73f18ec39f5fd7350f99"
         },
         {
           "path": "packages/browser/src/address-bar/browserHistory.ts",
@@ -1388,7 +1388,7 @@
         },
         {
           "path": "packages/browser/src/BrowserPaneHost.ts",
-          "sha256": "d18bc6338ed24b80aa5d396155405cdfd925d6b8fc29ac3ed506a2a4d8622fa3"
+          "sha256": "f2f8cec2a52ec61a5ffb6c606fae44350a3ffaa169d45ee3df59e493717ebbf5"
         },
         {
           "path": "packages/browser/src/browserPaneKind.tsx",
@@ -1436,7 +1436,7 @@
         },
         {
           "path": "packages/browser/src/index.ts",
-          "sha256": "1abcd4372e52e088c2d4b88c0a7b0fcfd4eb683cfebd59e80af1f2adfbc3dc00"
+          "sha256": "a095491284c19ac2b641d57301307f572099fabc59b7ad45db185a8bb8668e56"
         },
         {
           "path": "packages/browser/src/useBrowserChromeFocus.ts",
@@ -1461,6 +1461,18 @@
         {
           "path": "packages/browser/src/address-bar/index.ts",
           "sha256": "cd470da00aa02cec02339d391d46f9fafd9b125126abd7bea14534507647810f"
+        },
+        {
+          "path": "packages/browser/src/downloads/browserDownloads.ts",
+          "sha256": "e1dc740dcdbb0a4011eb93f508dc32d0b15acd8db4cb9c08f248e76e0d5845cb"
+        },
+        {
+          "path": "packages/browser/src/downloads/downloads.css",
+          "sha256": "a356ee1103f7c873ebf4b3577c1b1acf9abe2e043ea0af21415f8d31213026f7"
+        },
+        {
+          "path": "packages/browser/src/downloads/index.ts",
+          "sha256": "b8a0752f02ee8d76bb46e8920b51987a5e24f1f719a39223636ec077c16280f5"
         }
       ]
     },

@@ -1,10 +1,10 @@
-import { applyBrowserDownloadEvent } from '@workspace/browser/browserDownloads'
+import { applyBrowserDownloadEvent } from '@workspace/browser/downloads'
 
 export {
   getBrowserDownloads,
   getBrowserDownloadsForWebview,
   subscribeBrowserDownloads
-} from '@workspace/browser/browserDownloads'
+} from '@workspace/browser/downloads'
 
 /** Desktop IPC adapter for the Browser-owned download state store. */
 export function installBrowserDownloadRelay(): () => void {

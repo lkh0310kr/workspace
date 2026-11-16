@@ -1,3 +1,4 @@
+import './downloads.css'
 import type { BrowserDownloadItem } from './browserDownloads'
 export type { BrowserDownloadItem } from './browserDownloads'
 

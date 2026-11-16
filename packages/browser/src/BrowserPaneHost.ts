@@ -1,5 +1,5 @@
 import type { BrowserNavHistoryEntry } from './BrowserNavButton'
-import type { BrowserDownloadItem } from './browserDownloads'
+import type { BrowserDownloadItem } from './downloads'
 import type { BrowserWebviewPort } from './BrowserWebview'
 
 export interface BrowserPaneItem {

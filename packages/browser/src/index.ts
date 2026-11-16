@@ -49,7 +49,7 @@ export type { BrowserZoomDirection, BrowserZoomWebview } from './browserZoom'
 
 export { BrowserNavButton } from './BrowserNavButton'
 export type { BrowserNavHistoryEntry } from './BrowserNavButton'
-export { BrowserDownloadsBar } from './BrowserDownloadsBar'
+export { BrowserDownloadsBar } from './downloads'
 export type { BrowserOpenNewTabEvent, BrowserPaneHost } from './BrowserPaneHost'
 export type { BrowserWebviewEventMap, BrowserWebviewPort } from './BrowserWebview'
 export { BrowserContent } from './BrowserContent'
@@ -66,5 +66,5 @@ export {
   getBrowserDownloads,
   getBrowserDownloadsForWebview,
   subscribeBrowserDownloads
-} from './browserDownloads'
-export type { BrowserDownloadEvent, BrowserDownloadItem } from './browserDownloads'
+} from './downloads'
+export type { BrowserDownloadEvent, BrowserDownloadItem } from './downloads'
