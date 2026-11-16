@@ -1,6 +1,6 @@
 # 저장소 전체 리팩터링 작업 큐
 
-작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 23개다.
+작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 24개다.
 
 | 작업 ID | 영역 | 변경 목표 | 전용 수정 경로 | 선행 작업 | 위험도 | 검증 | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -28,11 +28,12 @@
 | T-017 | R-001a | workspace IPC의 streamed content search request/cancel 생명주기를 전용 등록 모듈로 추출하고 channel/event 의미를 보존 | `main/ipc/workspace.ts`, `main/ipc/workspaceSearch.ts`, IPC contract tests | 기존 Map/request/sender semantics characterization | 중간~높음 | 14 IPC/search tests, typecheck:node, root check, lint/format | validated |
 | T-018 | R-010 | Google Drive repository/operation log/asset conflict의 SHA-256 hex helper를 내부 공통 함수로 단일화하고 digest 형식을 보존 | `packages/pkms-google-drive/src/{workspaceRepository,operationLog,assetConflictMaterializer}.ts`, 신규 `sha256.ts` | 기존 repository/log/asset tests 확인 | 낮음 | 관련 Google Drive client 테스트, package typecheck 및 app/root check, lint/format | validated |
 | T-019 | R-008 | workspace tree cache의 parentPath 계산을 domain helper로 단일화하고 cache behavior 보존 | `packages/pkms-client/src/client/workspaceTreeCache.ts`, 관련 contract test | R-008 경로 의미·consumer 계약 조사 | 낮음~중간 | focused cache tests, typecheck, lint/format | validated |
+| T-020 | R-001b | `useWorkspaceTabHotkeys`가 `WorkspaceTabRail` facade 대신 canonical `workspaceNavigation`을 직접 참조하도록 layer dependency를 정리 | `apps/workspace-app/src/renderer/src/hooks/useWorkspaceTabHotkeys.ts`, 신규 hook contract test | 기존 index shortcut spec과 handler wiring 확인 | 낮음 | index→현재 tab ID·범위 밖 index 무시·effect cleanup focused tests, app typecheck, root check | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 23개; 검증 완료 23, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 24개; 검증 완료 24, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -77,5 +78,7 @@
 - Main 전체 테스트 assertion을 정적으로 분류했다. PKMS 테스트 47개는 durable ACK-loss, root 전환·offline, watcher 복구, OAuth allowlist/credential, Drive retry·cursor 계약을 다룬다. 비-PKMS 테스트 19개와 설정/shortcuts 2개는 GPU mode, file/media, search IPC, protocol, PTY/shortcuts, Windows/WSL 동작을 다룬다. 실제 process crash, watcher/timer 경쟁, 모든 IPC handler end-to-end, 외부 quota 및 플랫폼 통합은 검증되지 않았다.
 - R-001b renderer 후속 후보: `workspace-agent-activity-summary.ts`의 memo cache가 입력 객체 참조만으로 고정된다면 `Date.now()` 기반 freshness가 시간이 지나도 재계산되지 않을 수 있다. fake-time + 동일 참조 selector 테스트로 선행 확인한다. `SystemInformationWidget.refresh`/`ServiceStatusWidget.refresh`의 겹치는 수동·주기 요청은 이전 응답이 나중에 도착해 최신 상태를 덮을 수 있어 ordering/cancel 및 unmount characterization 후 판단한다. 현재 두 흐름 모두 renderer acceptance test가 없어 동작 수정은 보류한다.
 - R-001b hooks/components 추가 후보: 미참조로 보이는 `ClaudeUsageStatusBar.tsx`는 release/build consumer를 확인하기 전 삭제하지 않는다. `useWorkspaceTabHotkeys.ts`가 navigation을 component의 `WorkspaceTabRail`에서 가져오는 layering 결합은 독립 navigation owner로 옮길 가치가 있으나 shortcut acceptance가 먼저다. 약 1,030줄 `TreeView.tsx`는 provider/tree/CRUD/scroll/keyboard 책임이 넓지만 현재 테스트는 주로 scroll/classification이므로 CRUD·provider race 테스트 전에 추출하지 않는다. SearchPanel provider rejection 중 pending stream 보존도 명시 회귀 테스트가 없다.
+- T-020 채택: `useWorkspaceTabHotkeys.ts`는 tab switching을 `WorkspaceTabRail`에서 재수출한 함수로 호출한다. 실제 구현은 `workspaceNavigation.ts`의 `switchToWorkspaceTab`이며 component는 동일 함수의 alias만 재수출한다. hook이 canonical owner를 직접 import하도록 바꾸고 index lookup·out-of-range·listener cleanup을 최소 테스트로 고정한다. 기존 component re-export와 IPC/단축키 동작은 유지한다.
+- T-020 완료: hook이 `WorkspaceTabRail` 대신 `workspaceNavigation.switchToWorkspaceTab`을 직접 사용한다. 기존 component export/IPC 계약은 유지하고 전용 테스트로 1-based index, missing tab, tabs 변경 시 listener 교체 및 unmount cleanup을 고정했다. 기존 경로 기준 테스트 2개 통과 후 변경 적용, 변경 후에도 2개 통과; `npm run typecheck`, root `npm run check`, 앱 로컬 ESLint/Prettier 통과. 커밋 `8b186ac0`.
 - R-001b pane/viewer 후보: `CadViewerContent.tsx`는 `paneActive` 변화에 따라 webview가 재생성될 수 있어 pane switch 후 CAD state 보존 acceptance가 필요하다. `EpubReaderContent.tsx`는 새 경로 로드 전에 이전 error가 reset되지 않는 흐름이 보여 path-change regression이 후보다. `FileViewerContent.tsx`는 이전 Blob URL revoke와 state 교체 사이 렌더 race 가능성이 있으나 실제 영향은 낮은 확신이라 먼저 재현해야 한다. 실제 WebGL/CAD/EPUB runtime 확인 없이 수정하지 않는다.
 - R-001e build/release 조사: `electron-builder.yml`의 `notarize: false`는 공개 macOS 배포 notarization 요구 문서와 어긋난다. Windows release workflow는 Google Drive desktop secret/allowlist를 build env에 주입하지 않는 것으로 보여 workflow 실행 시 구성 검증이 필요하다. `build:linux`는 공통 build의 typecheck/helper/decoder 준비를 생략하지만 Linux는 현재 비활성 플랫폼이라 재활성화 때 확인한다. `npm test`의 Vitest wrapper는 경로 인자를 넘기지 못하고 직접 Vitest 실행이 권장된다. WebGL probe script와 app 환경 helper의 switch 로직은 유사해 drift 위험이 있으나 CLI 경계가 달라 추출은 보류했다. 설정/스크립트 검토에서 배포를 실행하지 않았다.
