@@ -4,7 +4,6 @@ import { promises as fs, watch, type FSWatcher } from 'node:fs'
 import path from 'node:path'
 import * as Y from 'yjs'
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
-import { fetchPkmsAsset } from './api'
 import {
   PkmsBridgeRequestError,
   b64,
@@ -13,10 +12,11 @@ import {
   readRemoteSnapshot,
   readRemoteText,
   readRemoteTexts,
-  request,
-  uploadAsset
+  request
 } from './syncBridgeRemote'
 import type { BridgeFile } from './syncBridgeRemote'
+import { reconcileSyncAsset } from './syncBridgeAssets'
+import type { AssetFingerprint, AssetSyncContext, Baseline, LocalAsset } from './syncBridgeAssets'
 import { appendStartupLog, isPackagedApp } from '../startupLog'
 import type { PkmsSyncBridgeStatus, PkmsSyncItemState } from '../../shared/pkmsSyncBridge'
 import {
@@ -37,8 +37,6 @@ import {
 } from './syncPolicy'
 import { acquireFolderSyncLock, releaseFolderSyncLock, type FolderSyncLock } from './folderSyncLock'
 
-type Baseline = { fileId: string; hash: string; revision: number }
-type AssetFingerprint = { fingerprint: string; hash: string; gitBlobSha?: string }
 type PendingDelete = {
   kind: 'markdown' | 'folder'
   path: string
@@ -738,7 +736,6 @@ async function markdownFilesAt(
   }
   return found
 }
-type LocalAsset = { hash: string; fingerprint: string; gitBlobSha?: string }
 async function localAssetInventory(
   workspaceId: string,
   root: string,
@@ -2145,258 +2142,38 @@ async function syncOnce(workspaceId: string): Promise<void> {
       }
       await Promise.all(Array.from({ length: Math.min(6, total) }, () => worker()))
       let assetIndex = 0
-      const reconcileAsset = async (relative: string): Promise<void> => {
-        setItemState(workspaceId, relative, 'syncing')
-        try {
-          let localAsset = localAssets.get(relative)
-          const remote = remoteAssetsByPath.get(relative)
-          let baseline = baselines[relative]
-          const localPath = safePath(root, relative)
-          let localBytes: Uint8Array | null = null
-          const readLocal = async () => {
-            await assertSafeParentDirectories(root, relative)
-            const stat = await fs.lstat(localPath)
-            if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
-            localBytes ??= new Uint8Array(await fs.readFile(localPath))
-            return localBytes
-          }
-          const writeFingerprint = async (bytesHash: string, gitBlobSha: string) => {
-            const stat = await fs.lstat(localPath, { bigint: true })
-            const fingerprint = localAssetFingerprint(stat)
-            ;(state.assetFingerprints[workspaceId] ??= {})[relative] = {
-              fingerprint,
-              hash: bytesHash,
-              gitBlobSha
-            }
-          }
-          const readRemote = async (file: BridgeFile) =>
-            fetchPkmsAsset(
-              `/api/workspaces/${encodeURIComponent(workspaceId)}/assets/${encodeURIComponent(file.id)}`
-            ).then((result) => result.bytes)
-          const remember = (file: BridgeFile, bytesHash: string) => {
-            knownRemoteFiles[file.id] = file
-            remoteAssetsByPath.set(file.path, file)
-            knownRemoteTree = [
-              ...(knownRemoteTree ?? []).filter(
-                (entry) => entry.id !== file.id && entry.path !== file.path
-              ),
-              file
-            ]
-            baselines[file.path] = { fileId: file.id, hash: bytesHash, revision: file.revision }
-            nextSyncRevision = Math.max(nextSyncRevision ?? 0, file.revision)
-          }
-          const uploadNew = async (uploadPath: string, bytes: Uint8Array) => {
-            const result = await uploadAsset(workspaceId, uploadPath, null, null, bytes)
-            const file: BridgeFile = {
-              id: result.fileId,
-              path: result.conflictCopyPath ?? result.path,
-              kind: 'asset',
-              revision: result.acceptedRevision,
-              size: bytes.byteLength,
-              localHash: hash(bytes)
-            }
-            remember(file, hash(bytes))
-            return file
-          }
-          const removeLocalBytes = async (expectedHash: string) => {
-            const current = await readLocal()
-            if (hash(current) !== expectedHash) throw new Error('local_file_changed_retry')
-            await fs.rm(localPath)
-            delete (state.assetFingerprints[workspaceId] ?? {})[relative]
-          }
-          if (localAsset) {
-            try {
-              const stat = await fs.lstat(localPath, { bigint: true })
-              if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
-              const fingerprint = localAssetFingerprint(stat)
-              if (fingerprint !== localAsset.fingerprint || !localAsset.gitBlobSha) {
-                const bytes = await readLocal()
-                localAsset = {
-                  fingerprint,
-                  hash: hash(bytes),
-                  gitBlobSha: gitBlobHashBytes(bytes)
-                }
-                ;(state.assetFingerprints[workspaceId] ??= {})[relative] = localAsset
-              }
-            } catch (error) {
-              if ((error as NodeJS.ErrnoException).code === 'ENOENT') localAsset = undefined
-              else throw error
-            }
-          }
-          if (!localAsset) {
-            try {
-              await assertSafeParentDirectories(root, relative)
-              const stat = await fs.lstat(localPath, { bigint: true })
-              if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('unsafe_sync_path')
-              const bytes = await readLocal()
-              const fingerprint = localAssetFingerprint(stat)
-              localAsset = {
-                hash: hash(bytes),
-                fingerprint,
-                gitBlobSha: gitBlobHashBytes(bytes)
-              }
-              ;(state.assetFingerprints[workspaceId] ??= {})[relative] = localAsset
-            } catch (error) {
-              if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-            }
-          }
-          if (!remote && !localAsset) {
-            delete baselines[relative]
-            return
-          }
-          if (!remote && localAsset) {
-            const bytes = await readLocal()
-            if (baseline) {
-              if (hash(bytes) !== baseline.hash) {
-                const ext = path.posix.extname(relative)
-                const conflictPath = `${relative.slice(0, -ext.length)}.local-conflict-${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
-                await writeAtomicBytes(root, conflictPath, bytes, null)
-                const created = await uploadNew(conflictPath, bytes)
-                baselines[created.path] = {
-                  fileId: created.id,
-                  hash: hash(bytes),
-                  revision: created.revision
-                }
-              }
-              await removeLocalBytes(hash(bytes))
-              delete baselines[relative]
-            } else {
-              await uploadNew(relative, bytes)
-            }
-            return
-          }
-          if (remote && !localAsset) {
-            if (!baseline) {
-              const bytes = await readRemote(remote)
-              await writeAtomicBytes(root, relative, bytes, null)
-              const bytesHash = hash(bytes)
-              remember(remote, bytesHash)
-              await writeFingerprint(bytesHash, gitBlobHashBytes(bytes))
-              notifyLocalTreeChanged(workspaceId, relative)
-              return
-            }
-            const remoteChanged =
-              remote.id !== baseline.fileId || remote.revision !== baseline.revision
-            if (remoteChanged) {
-              const bytes = await readRemote(remote)
-              await writeAtomicBytes(root, relative, bytes, null)
-              const bytesHash = hash(bytes)
-              remember(remote, bytesHash)
-              await writeFingerprint(bytesHash, gitBlobHashBytes(bytes))
-              notifyLocalTreeChanged(workspaceId, relative)
-              return
-            }
-            const result = await request<{ acceptedRevision?: number }>(
-              `/api/workspaces/${encodeURIComponent(workspaceId)}/operations`,
-              'POST',
-              {
-                operationId: randomUUID(),
-                baseRevision: nextSyncRevision ?? 0,
-                clientId: 'desktop-sync-bridge',
-                operation: { type: 'delete', fileId: remote.id, expectedRevision: remote.revision }
-              }
-            )
-            delete knownRemoteFiles[remote.id]
-            remoteAssetsByPath.delete(relative)
-            knownRemoteTree = (knownRemoteTree ?? []).filter((entry) => entry.id !== remote.id)
-            delete baselines[relative]
-            nextSyncRevision = Math.max(nextSyncRevision ?? 0, result.acceptedRevision ?? 0)
-            return
-          }
-          if (!remote || !localAsset) return
-          const localHash = localAsset.hash
-          baseline = baselines[relative]
-          if (!baseline && remote.sha && localAsset.gitBlobSha === remote.sha) {
-            remember(remote, localHash)
-            return
-          }
-          const remoteChanged =
-            !baseline || remote.id !== baseline.fileId || remote.revision !== baseline.revision
-          const localChanged = !baseline || localHash !== baseline.hash
-          if (remote.sha && localAsset.gitBlobSha === remote.sha) {
-            remember(remote, localHash)
-            return
-          }
-          if (!baseline) {
-            const localBytes = await readLocal()
-            if (hash(localBytes) !== localHash) throw new Error('local_file_changed_retry')
-            const remoteBytes = await readRemote(remote)
-            const remoteHash = hash(remoteBytes)
-            if (remoteHash === localHash) {
-              remember(remote, localHash)
-              return
-            }
-            const ext = path.posix.extname(relative)
-            const base = ext ? relative.slice(0, -ext.length) : relative
-            const conflictPath = `${base}.local-conflict-${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
-            await writeAtomicBytes(root, conflictPath, localBytes, null)
-            const created = await uploadNew(conflictPath, localBytes)
-            baselines[created.path] = {
-              fileId: created.id,
-              hash: localHash,
-              revision: created.revision
-            }
-            await writeAtomicBytes(root, relative, remoteBytes, localHash)
-            remember(remote, remoteHash)
-            await writeFingerprint(remoteHash, gitBlobHashBytes(remoteBytes))
-            setItemState(workspaceId, relative, 'attention')
-            notifyLocalTreeChanged(workspaceId, relative)
-            return
-          }
-          if (localChanged && remoteChanged && baseline) {
-            const localBytes = await readLocal()
-            if (hash(localBytes) !== localHash) throw new Error('local_file_changed_retry')
-            const ext = path.posix.extname(relative)
-            const base = ext ? relative.slice(0, -ext.length) : relative
-            const conflictPath = `${base}.local-conflict-${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
-            await writeAtomicBytes(root, conflictPath, localBytes, null)
-            const created = await uploadNew(conflictPath, localBytes)
-            baselines[created.path] = {
-              fileId: created.id,
-              hash: localHash,
-              revision: created.revision
-            }
-            const remoteBytes = await readRemote(remote)
-            await writeAtomicBytes(root, relative, remoteBytes, localHash)
-            const remoteHash = hash(remoteBytes)
-            remember(remote, remoteHash)
-            await writeFingerprint(remoteHash, gitBlobHashBytes(remoteBytes))
-            setItemState(workspaceId, relative, 'attention')
-            notifyLocalTreeChanged(workspaceId, relative)
-          } else if (localChanged) {
-            const localBytes = await readLocal()
-            if (hash(localBytes) !== localHash) throw new Error('local_file_changed_retry')
-            const result = await uploadAsset(
-              workspaceId,
-              relative,
-              remote.id,
-              remote.revision,
-              localBytes
-            )
-            const updated: BridgeFile = {
-              ...remote,
-              revision: result.acceptedRevision,
-              size: localBytes.byteLength,
-              sha: gitBlobHashBytes(localBytes),
-              localHash
-            }
-            remember(updated, localHash)
-            await writeFingerprint(localHash, gitBlobHashBytes(localBytes))
-          } else if (remoteChanged) {
-            const remoteBytes = await readRemote(remote)
-            const remoteHash = hash(remoteBytes)
-            await writeAtomicBytes(root, relative, remoteBytes, localHash)
-            remember(remote, remoteHash)
-            await writeFingerprint(remoteHash, gitBlobHashBytes(remoteBytes))
-            notifyLocalTreeChanged(workspaceId, relative)
-          } else {
-            remember(remote, localHash)
-          }
-        } finally {
-          if (status(workspaceId).itemStates[relative] === 'syncing')
-            setItemState(workspaceId, relative, 'synced')
-        }
+      const assetSyncContext: AssetSyncContext = {
+        workspaceId,
+        root,
+        localAssets,
+        remoteAssetsByPath,
+        baselines,
+        assetFingerprints: state.assetFingerprints,
+        knownRemoteFiles,
+        get knownRemoteTree() {
+          return knownRemoteTree
+        },
+        set knownRemoteTree(value) {
+          knownRemoteTree = value
+        },
+        get nextSyncRevision() {
+          return nextSyncRevision
+        },
+        set nextSyncRevision(value) {
+          nextSyncRevision = value
+        },
+        safePath,
+        assertSafeParentDirectories,
+        localAssetFingerprint,
+        hash,
+        gitBlobHashBytes,
+        writeAtomicBytes,
+        status,
+        setItemState,
+        notifyLocalTreeChanged
       }
+      const reconcileAsset = (relative: string): Promise<void> =>
+        reconcileSyncAsset(assetSyncContext, relative)
       const assetWorker = async () => {
         while (true) {
           const index = assetIndex++
