@@ -3,6 +3,7 @@
 import type { AgentStatusEntry } from '../../../shared/agent-status-types'
 import {
   AGENT_STATUS_STALE_AFTER_MS,
+  agentStatusEvidenceObservedAt,
   isExplicitAgentStatusFresh
 } from '../../../shared/agent-status-freshness'
 import { parseAgentStatusPaneIdentity } from '../../../shared/agent-status-pane-key'
@@ -49,6 +50,7 @@ let cache: {
   epoch: number
   agentStatusByPaneKey: Record<string, AgentStatusEntry>
   retainedAgentsByPaneKey: Record<string, { workspaceTabId: number; entry: AgentStatusEntry }>
+  validUntil: number
   summaries: Map<number, WorkspaceAgentActivitySummary>
 } | null = null
 
@@ -62,11 +64,13 @@ export function selectWorkspaceAgentActivitySummary(
 function getSummaries(
   state: WorkspaceAgentActivityInput
 ): Map<number, WorkspaceAgentActivitySummary> {
+  const now = Date.now()
   if (
     cache &&
     cache.epoch === state.agentStatusEpoch &&
     cache.agentStatusByPaneKey === state.agentStatusByPaneKey &&
-    cache.retainedAgentsByPaneKey === state.retainedAgentsByPaneKey
+    cache.retainedAgentsByPaneKey === state.retainedAgentsByPaneKey &&
+    now < cache.validUntil
   ) {
     return cache.summaries
   }
@@ -85,7 +89,7 @@ function getSummaries(
     return s
   }
 
-  const now = Date.now()
+  let validUntil = Number.POSITIVE_INFINITY
   for (const [, entry] of Object.entries(state.agentStatusByPaneKey)) {
     const identity = parseAgentStatusPaneIdentity(entry.paneKey)
     if (!identity || identity.workspaceTabId === undefined) continue
@@ -99,6 +103,12 @@ function getSummaries(
     if (!isExplicitAgentStatusFresh(entry, now, AGENT_STATUS_STALE_AFTER_MS)) {
       stale.add(identity.paneTabId)
       continue
+    }
+    if (entry.titleDerived || entry.structuredHostOwned !== true) {
+      validUntil = Math.min(
+        validUntil,
+        agentStatusEvidenceObservedAt(entry) + AGENT_STATUS_STALE_AFTER_MS + 1
+      )
     }
     covered.add(identity.paneTabId)
     applyAgentPaneActivityFlags(summary, entry)
@@ -121,6 +131,7 @@ function getSummaries(
     epoch: state.agentStatusEpoch,
     agentStatusByPaneKey: state.agentStatusByPaneKey,
     retainedAgentsByPaneKey: state.retainedAgentsByPaneKey,
+    validUntil,
     summaries
   }
   return summaries
