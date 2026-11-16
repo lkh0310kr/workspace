@@ -53,6 +53,34 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   return { promise, resolve }
 }
 
+type SearchFileUpdate = {
+  path: string
+  matches: Array<{
+    lineNumber: number
+    lineText: string
+    ranges: Array<{ start: number; end: number }>
+  }>
+}
+type SearchResultListener = (requestId: string, result: SearchFileUpdate) => void
+type SearchDoneListener = (requestId: string, error?: string) => void
+
+function mockContentSearchResult(matches: SearchFileUpdate['matches']): void {
+  let onResult: SearchResultListener | undefined
+  let onDone: SearchDoneListener | undefined
+  io.onSearchResult.mockImplementation((listener: SearchResultListener) => {
+    onResult = listener
+    return vi.fn()
+  })
+  io.onSearchDone.mockImplementation((listener: SearchDoneListener) => {
+    onDone = listener
+    return vi.fn()
+  })
+  io.searchInFiles.mockImplementation((requestId: string) => {
+    onResult?.(requestId, { path: 'notes/a.md', matches })
+    onDone?.(requestId)
+  })
+}
+
 describe('local editor document sessions', () => {
   const disk = new Map<string, string>()
   let release: (() => void) | undefined
@@ -255,5 +283,78 @@ describe('local editor document sessions', () => {
     await expect(session.replaceText('text', session.snapshot().revision)).rejects.toMatchObject({
       code: 'readOnly'
     })
+  })
+
+  it('cancels content search and removes both IPC listeners on abort', async () => {
+    const lease = acquireLocalEditorProvider(7)
+    release = lease.release
+    const offResult = vi.fn()
+    const offDone = vi.fn()
+    io.onSearchResult.mockImplementation(() => offResult)
+    io.onSearchDone.mockImplementation(() => offDone)
+    io.searchInFiles.mockImplementation(() => undefined)
+    const controller = new AbortController()
+
+    const search = lease.provider.search(
+      'needle',
+      { target: 'contents', caseSensitive: false, regex: false, wholeWord: false },
+      controller.signal
+    )
+    const requestId = io.searchInFiles.mock.calls[0][0]
+    controller.abort()
+
+    await expect(search).rejects.toBeDefined()
+    expect(io.cancelSearch).toHaveBeenCalledWith(requestId)
+    expect(offResult).toHaveBeenCalledOnce()
+    expect(offDone).toHaveBeenCalledOnce()
+  })
+
+  it('does not replace when the current disk match count differs from the search result', async () => {
+    const { lease, note } = await openMarkdown('needle')
+    mockContentSearchResult([{ lineNumber: 1, lineText: 'needle', ranges: [{ start: 0, end: 6 }] }])
+    const [searchResult] = await lease.provider.search('needle', {
+      target: 'contents',
+      caseSensitive: false,
+      regex: false,
+      wholeWord: false
+    })
+    expect(searchResult.item.itemId).toBe(note.itemId)
+
+    disk.set(fileKey(7, 'notes/a.md'), 'needle needle')
+    const replaced = await lease.provider.replaceContents?.(
+      { providerId: note.providerId, itemId: note.itemId },
+      'needle',
+      'replacement',
+      { caseSensitive: false, regex: false, wholeWord: false },
+      1
+    )
+
+    expect(replaced).toBe(false)
+    expect(disk.get(fileKey(7, 'notes/a.md'))).toBe('needle needle')
+    expect(io.writeFileIfUnchanged).not.toHaveBeenCalled()
+  })
+
+  it('does not replace a search result while its document session is dirty', async () => {
+    const { lease, note, session } = await openMarkdown('needle')
+    mockContentSearchResult([{ lineNumber: 1, lineText: 'needle', ranges: [{ start: 0, end: 6 }] }])
+    await lease.provider.search('needle', {
+      target: 'contents',
+      caseSensitive: false,
+      regex: false,
+      wholeWord: false
+    })
+    await session.replaceText('unsaved edit', session.snapshot().revision)
+
+    const replaced = await lease.provider.replaceContents?.(
+      { providerId: note.providerId, itemId: note.itemId },
+      'needle',
+      'replacement',
+      { caseSensitive: false, regex: false, wholeWord: false },
+      1
+    )
+
+    expect(replaced).toBe(false)
+    expect(disk.get(fileKey(7, 'notes/a.md'))).toBe('needle')
+    expect(io.writeFileIfUnchanged).not.toHaveBeenCalled()
   })
 })
