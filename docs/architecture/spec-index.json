@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "a450c27ebf8585942ea96fa7deac941afcf2b3b81110d700a49063e06b42d276"
+          "sha256": "afaaf86d8dc9e7b866ca5497c19e053af1322a6a29ae246b231aaacceb57271c"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts",
@@ -107,7 +107,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
-          "sha256": "12e5c12912b8b4cae7edc27236fa8366c9c289f109debe359b4e60ca7c7173d7"
+          "sha256": "9cc81336bc850c8ab743308cd4c990644ed2f701e504a5d41458b09a9b539bda"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",
@@ -451,7 +451,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
-          "sha256": "12e5c12912b8b4cae7edc27236fa8366c9c289f109debe359b4e60ca7c7173d7"
+          "sha256": "9cc81336bc850c8ab743308cd4c990644ed2f701e504a5d41458b09a9b539bda"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",

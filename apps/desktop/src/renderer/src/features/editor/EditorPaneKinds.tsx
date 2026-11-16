@@ -1,3 +1,4 @@
+import './editor.css'
 import { EditorContent } from './EditorContent'
 import type { PaneKindDefinition, PaneRenderContext } from '../pane-system/paneKindRegistry'
 import { EditorPaneSidebarSlot } from './EditorPaneSidebarSlot'
