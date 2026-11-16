@@ -1,51 +1,17 @@
-import { useEffect } from 'react'
+import { useBrowserReloadShortcutBootstrap, useBrowserRuntimeBootstrap } from '../../adapters/browser'
 import {
-  installBrowserDownloadRelay,
-  installBrowserEmbedSupport,
-  reloadFocusedBrowser
-} from '../../adapters/browser'
-import { installRendererConsoleFileLogging } from '../../adapters/diagnostics/consoleFileLog'
-import { onPastePlainTextShortcut } from '../editor/runtime/editorShortcuts'
-import { onTerminalPasteShortcut } from '../../adapters/terminal/runtime/terminalIpc'
-import { onBrowserReloadShortcut } from '../../adapters/browser/runtime/browserIpc'
-import { pastePlainTextInFocusedEditor } from '@renderer/features/editor/api'
-import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager'
-import {
-  captureTerminalSessionBuffers,
-  notifyTerminalKeyboardPasteHandled,
-  pasteClipboardIntoTerminal
+  useTerminalAgentStatusBootstrap,
+  useTerminalInputBootstrap
 } from '../../adapters/terminal'
-import { installGlobalErrorLogging } from '@renderer/features/diagnostics'
-import { installTerminalAgentStatusBridge } from '../../adapters/terminal'
+import { useEditorShortcutBootstrap } from '../editor'
+import { useDiagnosticsBootstrap } from '../diagnostics'
 
-/** One-time app-wide side effects (logging, browser embed, downloads). */
+/** Compose feature-owned runtime bootstrap hooks in their established order. */
 export function useAppBootstrap(): void {
-  useEffect(() => installGlobalErrorLogging(), [])
-  useEffect(() => {
-    installRendererConsoleFileLogging()
-  }, [])
-  useEffect(() => installBrowserEmbedSupport(), [])
-  useEffect(() => installBrowserDownloadRelay(), [])
-  useEffect(() => installTerminalAgentStatusBridge(), [])
-  useEffect(() => onBrowserReloadShortcut(({ hard }) => reloadFocusedBrowser(hard)), [])
-  useEffect(() => onPastePlainTextShortcut(() => pastePlainTextInFocusedEditor()), [])
-  useEffect(
-    () =>
-      onTerminalPasteShortcut(({ terminalId }) => {
-        const pane = getRegisteredTerminalPane(terminalId)
-        if (!pane) return
-        notifyTerminalKeyboardPasteHandled()
-        void pasteClipboardIntoTerminal({ terminal: pane.terminal })
-      }),
-    []
-  )
-
-  useEffect(
-    () =>
-      window.api.terminal.onCaptureSessionBuffers((terminalIds) => {
-        const file = captureTerminalSessionBuffers(terminalIds)
-        window.api.terminal.sendSessionBuffers(file)
-      }),
-    []
-  )
+  useDiagnosticsBootstrap()
+  useBrowserRuntimeBootstrap()
+  useTerminalAgentStatusBootstrap()
+  useBrowserReloadShortcutBootstrap()
+  useEditorShortcutBootstrap()
+  useTerminalInputBootstrap()
 }

@@ -1,12 +1,8 @@
-import type { AgentStatus } from '@workspace/terminal/agent'
-import { detectAgentStatusFromTitle } from '@workspace/terminal/agent'
-import type { TuiAgent } from '@workspace/terminal/agent'
-import type { AgentStatusPayload } from '@workspace/terminal/agent'
-import {
-  agentPaneKey,
-  getFreshHookAgentStatus,
-  useAgentStatusStore
-} from '@workspace/terminal'
+import { useAgentStatusStore, agentPaneKey, getFreshHookAgentStatus } from '../state/agentStatusStore'
+import type { AgentStatusPayload } from './agent-status-types'
+import type { AgentStatus } from './agent-title-core'
+import { detectAgentStatusFromTitle } from './agent-title-status'
+import type { TuiAgent } from './tui-agent'
 
 function mapTitleStatusToPayload(
   titleStatus: AgentStatus,
@@ -15,23 +11,11 @@ function mapTitleStatusToPayload(
 ): AgentStatusPayload {
   switch (titleStatus) {
     case 'permission':
-      return {
-        state: 'waiting',
-        prompt: title.trim(),
-        agentType: terminalAgent ?? undefined
-      }
+      return { state: 'waiting', prompt: title.trim(), agentType: terminalAgent ?? undefined }
     case 'working':
-      return {
-        state: 'working',
-        prompt: title.trim(),
-        agentType: terminalAgent ?? undefined
-      }
+      return { state: 'working', prompt: title.trim(), agentType: terminalAgent ?? undefined }
     case 'idle':
-      return {
-        state: 'done',
-        prompt: title.trim(),
-        agentType: terminalAgent ?? undefined
-      }
+      return { state: 'done', prompt: title.trim(), agentType: terminalAgent ?? undefined }
   }
 }
 
@@ -42,9 +26,7 @@ export function applyTitleDerivedAgentStatus(args: {
   terminalAgent?: TuiAgent | null
 }): void {
   const paneKey = agentPaneKey(args.workspaceTabId, args.paneTabId)
-  if (getFreshHookAgentStatus(paneKey)) {
-    return
-  }
+  if (getFreshHookAgentStatus(paneKey)) return
   const titleStatus = detectAgentStatusFromTitle(args.rawTitle)
   if (!titleStatus) {
     useAgentStatusStore.getState().dropAgentStatus(paneKey)
@@ -65,9 +47,7 @@ export function applyTitleIdleTransition(args: {
   terminalAgent?: TuiAgent | null
 }): void {
   const paneKey = agentPaneKey(args.workspaceTabId, args.paneTabId)
-  if (getFreshHookAgentStatus(paneKey)) {
-    return
-  }
+  if (getFreshHookAgentStatus(paneKey)) return
   const payload = mapTitleStatusToPayload('idle', args.title, args.terminalAgent)
   useAgentStatusStore.getState().setAgentStatus(paneKey, payload, {
     workspaceTabId: args.workspaceTabId,
@@ -82,8 +62,6 @@ export function clearTitleDerivedOnAgentExit(args: {
   paneTabId: string
 }): void {
   const paneKey = agentPaneKey(args.workspaceTabId, args.paneTabId)
-  if (getFreshHookAgentStatus(paneKey)) {
-    return
-  }
+  if (getFreshHookAgentStatus(paneKey)) return
   useAgentStatusStore.getState().dropAgentStatus(paneKey)
 }

@@ -6,3 +6,4 @@ export {
   reloadFocusedBrowser
 } from './runtime'
 export type { BrowserNavHistoryEntry, BrowserPaneHost } from './runtime'
+export { useBrowserReloadShortcutBootstrap, useBrowserRuntimeBootstrap } from './useBrowserBootstrap'

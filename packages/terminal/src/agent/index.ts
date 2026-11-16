@@ -8,6 +8,11 @@ export { type AgentStatus, containsAgentSpinnerGlyph } from './agent-title-core'
 export { detectAgentStatusFromTitle } from './agent-title-status'
 export { applyHookAgentStatus, clearHookAgentStatus } from './apply-hook-agent-status'
 export { createPtyOutputTitleObserver } from './pty-output-title-observer'
+export {
+  applyTitleDerivedAgentStatus,
+  applyTitleIdleTransition,
+  clearTitleDerivedOnAgentExit
+} from './title-derived-agent-status'
 export { isSyntheticAgentPermissionTitle } from './synthetic-agent-permission-title'
 export { getTerminalAgentPaneBinding, registerTerminalAgentPane } from './terminal-agent-pane-registry'
 export { resolveExplicitTerminalTitleAgentType } from './terminal-title-agent-type'

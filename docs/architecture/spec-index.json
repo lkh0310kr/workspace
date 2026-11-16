@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "afaaf86d8dc9e7b866ca5497c19e053af1322a6a29ae246b231aaacceb57271c"
+          "sha256": "d61cb7cbe73cf747e6fc84c902b9659aefcdf1ca52c70746b747fb8704ed832c"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts",
@@ -516,6 +516,10 @@
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
           "sha256": "b31f874114fdcf93daae9ae43b7f2325bb25c457710cddcf2fed2f53d39471b8"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/runtime/useEditorShortcutBootstrap.ts",
+          "sha256": "3060e2f65ac7209680e4ba183be621580efa3a4c40f6978ada23e11ac8864a72"
         }
       ]
     },
@@ -695,6 +699,10 @@
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/focusPaneGroupForBrowser.ts",
           "sha256": "741ff98a1b97a47fb540f8140c24492a1051123cd9863957b5e98f937fd04de4"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/adapters/browser/useBrowserBootstrap.ts",
+          "sha256": "06ebe20df12b891d77acb213715c858d71d35878963efd61eea37afe800350ba"
         }
       ]
     },
@@ -801,7 +809,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts",
-          "sha256": "1e0481ce38b28fe1d36f6aba1391d0981cbad13a70489f884b0139b751a6bff6"
+          "sha256": "a8dc0658c296f0cb41f71dccbb8715eef9d6d4720c5477a04d99f7419965740b"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/diagnostics/interactionDebugLog.ts",
@@ -1071,6 +1079,14 @@
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/runtime/terminalIpc.ts",
           "sha256": "e8fc087815bcbdc79cb1bf7974bdb6ebb82a1d12366c7d545d61423fc3c72749"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/adapters/terminal/useTerminalAgentStatusBootstrap.ts",
+          "sha256": "c5a84c75238d4ab052331ac26ca954ff6b33dbfa51f357cfc0ecaddb5cc11d5c"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/adapters/terminal/useTerminalInputBootstrap.ts",
+          "sha256": "10cec55f4683ab58978f5ce9ecaeab29dd65694e0970dd8321062119ffcd86ad"
         }
       ]
     },
@@ -1288,6 +1304,10 @@
         {
           "path": "apps/desktop/src/shared/usage-meter-settings.ts",
           "sha256": "101ac26364ccc452da051f627c794dbfa87814da3cbe942e2cda1a58cff06733"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/diagnostics/useDiagnosticsBootstrap.ts",
+          "sha256": "84ca61b9e6a92b2f3d2f04f9db63068be2d46e261f11000eaa31c965854c9ff9"
         }
       ]
     },
@@ -1589,7 +1609,7 @@
         },
         {
           "path": "packages/terminal/src/agent/index.ts",
-          "sha256": "c2e2f895481c3573c7ae9c280052e438354b79cce8afe34d4ce66b08952ffd97"
+          "sha256": "a7b26416b2df64670d2e3db0589957ea438d9cec1ecde37beb1beaa08c42ea61"
         },
         {
           "path": "packages/terminal/src/agent/main-agent-status.ts",
@@ -1677,7 +1697,7 @@
         },
         {
           "path": "packages/terminal/src/pane-manager/index.ts",
-          "sha256": "3359f3d7b900dcf10d47ae9ec6368192ee36394b520f761f4dd87e868755bb89"
+          "sha256": "f85c8aa3bfa0ef5a3ce05605320b3d077d75be4937164dade3724be5dd5ec344"
         },
         {
           "path": "packages/terminal/src/pane-manager/mobile-fit-overrides.ts",
@@ -2250,6 +2270,14 @@
         {
           "path": "packages/terminal/src/search/index.ts",
           "sha256": "9988c5efa9a9530a04dd7869b0036d2efb05e2ddb70fa847529bda9b1a033d5e"
+        },
+        {
+          "path": "packages/terminal/src/agent/title-derived-agent-status.ts",
+          "sha256": "0b93131a9b2e1bd3ed3b6a41e1d471b12c9152b1ec29ac553b0f474d67c9717b"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/capture-terminal-session-buffers.ts",
+          "sha256": "f4b14cbad220abf89de8f0a87574dccca01a28eb923c7977d5117861cc45877a"
         }
       ]
     },

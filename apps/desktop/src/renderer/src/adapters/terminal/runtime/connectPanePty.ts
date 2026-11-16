@@ -15,7 +15,7 @@ import {
   applyTitleDerivedAgentStatus,
   applyTitleIdleTransition,
   clearTitleDerivedOnAgentExit
-} from './title-derived-agent-status'
+} from '@workspace/terminal/agent'
 import { useRuntimeTerminalTitlesStore } from '@workspace/terminal'
 import {
   markTerminalBracketedPasteInterrupted,

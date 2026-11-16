@@ -1,4 +1,5 @@
 export { setPaneFitListener } from './pane-fit-resize-observer'
+export { captureTerminalSessionBuffers } from './capture-terminal-session-buffers'
 export { type ManagedPane, type ManagedPaneInternal, type ScrollState } from './pane-manager-types'
 export { captureScrollState } from './pane-scroll'
 export { scheduleSplitScrollRestore } from './pane-split-scroll'
