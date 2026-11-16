@@ -61,7 +61,8 @@ export default defineConfig({
       ],
       alias: {
         '@renderer': resolve('src/renderer/src'),
-        '@workspace/editor': resolve('../../packages/editor/src')
+        '@workspace/editor': resolve('../../packages/editor/src'),
+        '@workspace/home': resolve('../../packages/home/src')
       }
     },
     plugins: [react()]

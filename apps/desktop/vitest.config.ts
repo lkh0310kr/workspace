@@ -1,8 +1,18 @@
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
+const desktopRoot = fileURLToPath(new URL('.', import.meta.url))
+
 export default defineConfig({
+  esbuild: { jsx: 'automatic' },
   resolve: {
+    alias: [
+      { find: /^vitest$/, replacement: resolve(desktopRoot, 'node_modules/vitest/dist/index.js') }
+    ],
     dedupe: [
+      'react',
+      'react-dom',
       '@codemirror/state',
       '@codemirror/view',
       '@codemirror/commands',
@@ -18,7 +28,7 @@ export default defineConfig({
     ]
   },
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', '../../packages/**/*.test.ts'],
     poolOptions: {
       forks: { execArgv: ['--expose-gc'] },
       threads: { execArgv: ['--expose-gc'] }

@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron'
 import type { WorkspaceApi } from './index.d'
-import type { SystemSummary } from '../shared/systemSummary'
+import type { SystemSummary } from '@workspace/home'
 
 export const systemApi: Pick<
   WorkspaceApi,

@@ -724,7 +724,7 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "8607ef9b69b2e78b4c265c1eaad2b818ffaadeda11bf4df7b88b7167e4e1fcd0"
+          "sha256": "ea5b5a92420c19b65cc82bb26cf46acda758b93cbcde0d6bda5e61e1d914c56b"
         },
         {
           "path": "apps/desktop/src/preload/index.ts",
@@ -800,7 +800,7 @@
         },
         {
           "path": "apps/desktop/vitest.config.ts",
-          "sha256": "98ebece93be2661ae8016d33170e7bfff1cb197602c3765de12d0ed4ac9e42fd"
+          "sha256": "3f6875727f13ba400cc9a6744d4be2207a2e39d8db79a4123be502903f950bde"
         },
         {
           "path": "apps/desktop/scripts/run-vitest.mjs",
@@ -866,6 +866,59 @@
       ]
     },
     {
+      "id": "home-package",
+      "scope": "package",
+      "owner": "packages/home",
+      "specStatus": "drafted",
+      "coverage": "Home UI, refresh lifecycle, and summary contract; Desktop owns the OS and IPC adapter.",
+      "documents": [
+        "packages/home/README.md",
+        "docs/architecture/workspace/home/README.md"
+      ],
+      "sources": [
+        {
+          "path": "packages/home/package.json",
+          "sha256": "cf7d6df236f9cba714ce193b7577352dbe58b63c7d84403534eb299d9600e7b8"
+        },
+        {
+          "path": "packages/home/src/HomeView.refresh.test.ts",
+          "sha256": "ada6207f4c5754c67348cd48f31c506538a6a1bd34547c77d98794205d4c90d7"
+        },
+        {
+          "path": "packages/home/src/HomeView.tsx",
+          "sha256": "b810ac7332f5257dbb208b493f42674cbdabe4a389189834f6482bf1e5814fee"
+        },
+        {
+          "path": "packages/home/src/HomeWidget.tsx",
+          "sha256": "e44ef912730c740eb2bd85a9dfc6abc9a25acb2fb86220e47571cab49e271261"
+        },
+        {
+          "path": "packages/home/src/home.module.css",
+          "sha256": "ab6fba3caf9ebd180eae9e6593553a14d464a2166168f8726392f24ce6ec4086"
+        },
+        {
+          "path": "packages/home/src/index.ts",
+          "sha256": "011f384730c7356a41e3d9b8d700d096b9a9ff458eb33a0b4d31a0de96e4ee76"
+        },
+        {
+          "path": "packages/home/src/systemSummary.ts",
+          "sha256": "7e75bb1d7a6073db5cd064b9ad9e5d25c2f51c5b5c4cede2bf4cefa4ddc1e954"
+        },
+        {
+          "path": "packages/home/src/useLatestRefresh.test.ts",
+          "sha256": "381a3c03e373124f34dc58a2214f04a564095780970347a17d634318454e8984"
+        },
+        {
+          "path": "packages/home/src/useLatestRefresh.ts",
+          "sha256": "84b0a5236a392d0163f48babd09bd7bf83ea669ea6c8b21f38fba1f71fdcc618"
+        },
+        {
+          "path": "packages/home/src/widgets/SystemInformationWidget.tsx",
+          "sha256": "09ec3fc0df1a00ce212d5e4985292384b0455bcfa11feb9933a9eaec7397072a"
+        }
+      ]
+    },
+    {
       "id": "desktop-features",
       "scope": "app",
       "owner": "apps/desktop",
@@ -873,7 +926,6 @@
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "docs/architecture/workspace/agents/README.md",
-        "docs/architecture/workspace/home/README.md",
         "docs/architecture/workspace/operations/logging.md",
         "docs/architecture/workspace/operations/windows-build.md",
         "docs/architecture/workspace/settings/README.md",
@@ -922,15 +974,15 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "8607ef9b69b2e78b4c265c1eaad2b818ffaadeda11bf4df7b88b7167e4e1fcd0"
+          "sha256": "ea5b5a92420c19b65cc82bb26cf46acda758b93cbcde0d6bda5e61e1d914c56b"
         },
         {
           "path": "apps/desktop/src/preload/systemApi.ts",
-          "sha256": "1990fecdf9451f89bfffe302bb42c7eb8adca08d520b336838a4472fd0017a9d"
+          "sha256": "2e56bee91f6e2cb4012dbc21672fba436defcfef30e12d357b62eec155f970eb"
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "f52b32b62a870f35e8d809a5f3e88daf44f2c2fdc2b2a8a8148c35da381d85f1"
+          "sha256": "234df8d7689330caae069d86dcb9ec142a470ba2325e6214ab6c38101069736b"
         },
         {
           "path": "apps/desktop/src/renderer/src/components/AgentUsageStatusBar.tsx",
@@ -939,34 +991,6 @@
         {
           "path": "apps/desktop/src/renderer/src/components/usageStatusFormatting.ts",
           "sha256": "e77506415c5cdfb2accbf116256ff149e59d7f8de47e3662648328c28cb6f096"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/home/HomeView.refresh.test.ts",
-          "sha256": "ada6207f4c5754c67348cd48f31c506538a6a1bd34547c77d98794205d4c90d7"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/home/HomeView.tsx",
-          "sha256": "0336707a657f270a2f3a3564c27829bb18736223d680787140af73b5eada673a"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/home/HomeWidget.tsx",
-          "sha256": "da39c62a6741a0c504f0647929f8edbb4d442bcd60690296e34137faaa5807cb"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/home/home.module.css",
-          "sha256": "ab6fba3caf9ebd180eae9e6593553a14d464a2166168f8726392f24ce6ec4086"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/home/index.ts",
-          "sha256": "dcc75a9416c4d0ef4788b29b76982edbbfd437dd75d9f0abcb41fee999309b3d"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/home/widgets/SystemInformationWidget.tsx",
-          "sha256": "bab24c5803d3d1003bd276f5c74a3ce5615be7bb5226fc3e82f41476859b3ccc"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/hooks/useLatestRefresh.ts",
-          "sha256": "84b0a5236a392d0163f48babd09bd7bf83ea669ea6c8b21f38fba1f71fdcc618"
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/FileViewerContent.path-change.test.ts",
@@ -1003,10 +1027,6 @@
         {
           "path": "apps/desktop/src/shared/mediaExtensions.ts",
           "sha256": "786d1c8983376c6cac75aef0fadcf079be287b0a50c59c7911462fcc62b306cc"
-        },
-        {
-          "path": "apps/desktop/src/shared/systemSummary.ts",
-          "sha256": "7e75bb1d7a6073db5cd064b9ad9e5d25c2f51c5b5c4cede2bf4cefa4ddc1e954"
         },
         {
           "path": "apps/desktop/src/shared/usage-meter-settings.ts",

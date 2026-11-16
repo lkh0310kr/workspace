@@ -1,6 +1,6 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { BrowserDownloadEventPayload as SharedBrowserDownloadEventPayload } from '../shared/browserDownloadEvent'
-import type { SystemSummary } from '../shared/systemSummary'
+import type { SystemSummary } from '@workspace/home'
 export interface TabInfo {
   id: number
   title: string

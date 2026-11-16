@@ -4,6 +4,10 @@
   "compilerOptions": {
     "composite": true,
     "types": ["electron-vite/node"],
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@workspace/home": ["../../packages/home/src/index.ts"],
+      "@workspace/home/*": ["../../packages/home/src/*"]
+    }
   }
 }

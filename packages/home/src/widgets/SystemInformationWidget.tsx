@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type JSX } from 'react'
 import { HomeWidget } from '../HomeWidget'
-import type { ReadSystemSummary } from '../../../../../shared/systemSummary'
-import { useLatestRefresh } from '../../../hooks/useLatestRefresh'
+import type { ReadSystemSummary } from '../systemSummary'
+import { useLatestRefresh } from '../useLatestRefresh'
 import styles from '../home.module.css'
 
 function formatBytes(value: number): string {
@@ -19,7 +19,7 @@ function Metric({
   value: string
   detail: string
   percent: number | null
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <div className={styles.metric}>
       <div className={styles.metricHeading}>
@@ -38,7 +38,7 @@ export function SystemInformationWidget({
   readSystemSummary
 }: {
   readSystemSummary: ReadSystemSummary
-}): React.JSX.Element {
+}): JSX.Element {
   const [summary, setSummary] = useState<Awaited<ReturnType<ReadSystemSummary>> | null>(null)
   const refresh = useLatestRefresh(
     useCallback(

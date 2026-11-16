@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/server",
-    "packages/editor"
+    "packages/editor",
+    "packages/home"
   ],
   "scripts": {
     "postinstall": "npm install --prefix apps/desktop",

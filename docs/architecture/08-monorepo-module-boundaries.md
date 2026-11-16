@@ -1,19 +1,22 @@
 # 모노레포 모듈 경계
 
-활성 앱은 `apps/desktop`과 `apps/server`다. 공유 편집기 계약과 UI는 `packages/editor`에 둔다. 자세한 구현 문서는 각 모듈의 기준 문서와 `docs/` 아래 기능 문서가 소유한다.
+활성 앱은 `apps/desktop`과 `apps/server`다. 공유 편집기 계약과 UI는 `packages/editor`에 둔다. Home·Browser·Terminal은 각 기능의 UI와 순수 도메인을 `packages/home`, `packages/browser`, `packages/terminal`에 두고 Electron·IPC·pane 수명 adapter만 `apps/desktop`에 둔다. 자세한 구현 문서는 각 모듈의 기준 문서와 `docs/` 아래 기능 문서가 소유한다.
 
 ## 앱 경계
 
-| 앱 | 책임 | 기준 |
-| --- | --- | --- |
+| 앱      | 책임                                                          | 기준                                    |
+| ------- | ------------------------------------------------------------- | --------------------------------------- |
 | Desktop | Electron shell, 로컬 파일, 터미널, 브라우저, 뷰어와 기기 정보 | [Workspace 문서](./workspace/README.md) |
-| Server | 서비스 API, OAuth 연결, 암호화된 자격 증명과 D1 | [Server 문서](./server/README.md) |
+| Server  | 서비스 API, OAuth 연결, 암호화된 자격 증명과 D1               | [Server 문서](./server/README.md)       |
 
 ## 패키지 경계
 
-| 패키지 | 책임 | 소비자 |
-| --- | --- | --- |
-| `editor` | provider 계약, tree, CodeMirror, Markdown, 공통 UI | Desktop |
+| 패키지     | 책임                                                      | 소비자  |
+| ---------- | --------------------------------------------------------- | ------- |
+| `editor`   | provider 계약, tree, CodeMirror, Markdown, Editor 내부 UI | Desktop |
+| `home`     | Home UI, refresh lifecycle, 시스템 요약 공개 계약         | Desktop |
+| `browser`  | 주소 입력, 탐색·이력 상태, Browser UI와 순수 정책         | Desktop |
+| `terminal` | Terminal UI, 입력·출력 정책과 xterm 기능                  | Desktop |
 
 앱은 package를 import할 수 있고 package는 앱 구현을 import하지 않는다. Desktop의 Electron/native 의존성 설치는 root npm workspace와 별도다.
 

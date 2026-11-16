@@ -1,13 +1,14 @@
+import type { JSX, ReactNode } from 'react'
 import styles from './home.module.css'
 
 type Props = {
-  children: React.ReactNode
+  children?: ReactNode
   onRefresh?: () => void
   /** Screen-reader label — no visible section title. */
   ariaLabel?: string
 }
 
-export function HomeWidget({ children, onRefresh, ariaLabel }: Props): React.JSX.Element {
+export function HomeWidget({ children, onRefresh, ariaLabel }: Props): JSX.Element {
   return (
     <section
       className={`${styles.widget} ${styles.operationsWidget} ${styles.systemWidget}`}
