@@ -1515,7 +1515,7 @@
         },
         {
           "path": "apps/desktop/visual-tests/feature-sandbox/src/mockTerminalHost.ts",
-          "sha256": "b6d1c1680b90a007e87827b3573f0f37cffe6cea7030eb79377cf1aa3e197a14"
+          "sha256": "0c8df1dc456bab3521d59a892f746ad080ce9bf69f90bd87d2ab1836ddf8aa3e"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/diagnostics/errorLog.ts",

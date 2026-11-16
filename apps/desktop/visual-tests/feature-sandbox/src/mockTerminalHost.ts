@@ -3,6 +3,8 @@ import {
   XTERM_THEMES
 } from '@workspace/terminal'
 import type { TerminalPaneHost, TerminalPtyTransport } from '@workspace/terminal'
+import { writeTerminalOutput } from '@workspace/terminal/pane-manager'
+import type { ManagedPane } from '@workspace/terminal/pane-manager'
 
 export function createMemoryTerminalHost(): TerminalPaneHost {
   let nextTerminalId = 1
@@ -22,7 +24,10 @@ export function createMemoryTerminalHost(): TerminalPaneHost {
     focusTextarea: (container) => container?.querySelector('textarea')?.focus(),
     requestKeyboardSurface: () => undefined,
     registerKeyboardTarget: () => () => undefined,
-    installInputHandlers: () => () => undefined,
+    installInputHandlers: ({ terminal, transport }) => {
+      const input = terminal.onData((data) => transport.write(data))
+      return () => input.dispose()
+    },
     log: () => undefined,
     setFocusedTerminal: () => undefined,
     registerAgentPane: () => undefined,
@@ -30,10 +35,11 @@ export function createMemoryTerminalHost(): TerminalPaneHost {
     registerLiveTerminal: () => undefined,
     writeClipboardText: async () => undefined,
     ensureAgentWorking: () => undefined,
-    connectPty() {
+    connectPty(pane: ManagedPane) {
       let onData: ((data: string, seq: number) => void) | undefined
       let disposed = false
       let sequence = 0
+      let inputBuffer = ''
       const transport: TerminalPtyTransport = {
         async connect(callbacks) {
           onData = callbacks.onData
@@ -54,11 +60,32 @@ export function createMemoryTerminalHost(): TerminalPaneHost {
         disconnect: () => undefined,
         write(data) {
           if (disposed) return
-          const normalized = data.replace(/\r/g, '')
-          if (normalized) onData?.(`${normalized}\r\n$ `, ++sequence)
+          for (const character of data) {
+            if (character === '\r' || character === '\n') {
+              onData?.(`${inputBuffer}\r\n$ `, ++sequence)
+              inputBuffer = ''
+            } else if (character === '\x7f' || character === '\b') {
+              inputBuffer = inputBuffer.slice(0, -1)
+            } else {
+              inputBuffer += character
+            }
+          }
         },
         writeQueryReply: () => undefined
       }
+      void transport
+        .connect({
+          onData: (data) => {
+            if (!disposed) writeTerminalOutput(pane.terminal, data, { foreground: true })
+          }
+        })
+        .then((result) => {
+          if (disposed) return
+          if (result.snapshot) {
+            writeTerminalOutput(pane.terminal, result.snapshot, { foreground: true })
+          }
+          transport.activate()
+        })
       return { transport, dispose: () => { disposed = true; onData = undefined } }
     }
   }

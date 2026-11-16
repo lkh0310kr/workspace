@@ -14,6 +14,10 @@ export default defineConfig({
     alias: {
       '@workspace/home': resolve(workspaceRoot, 'packages/home/src/index.ts'),
       '@workspace/browser': resolve(workspaceRoot, 'packages/browser/src/index.ts'),
+      '@workspace/terminal/pane-manager': resolve(
+        workspaceRoot,
+        'packages/terminal/src/pane-manager/index.ts'
+      ),
       '@workspace/terminal': resolve(workspaceRoot, 'packages/terminal/src/index.ts'),
       '@workspace/ui': resolve(workspaceRoot, 'packages/ui/src/index.ts')
     }
