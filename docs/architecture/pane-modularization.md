@@ -37,6 +37,8 @@ Home은 현재 pane이 아니므로 Browser·Terminal과 같은 pane registry에
 
 Home·Browser·Terminal의 기능 경계는 `packages/home`, `packages/browser`, `packages/terminal`이고 Desktop runtime adapter는 `apps/desktop`에 둔다. Home 화면·위젯·갱신 상태와 스타일은 `packages/home` 소유이며 Desktop은 route, navigation chrome, system-summary IPC adapter를 연결한다. Editor의 tree, document surface, search·Quick Open primitives와 tree state·keyboard policy는 `packages/editor` 소유다. Desktop `features/editor`는 provider·workspace mutation·pane layout과 App 전역 Quick Open 단축키를 연결하며, `EditorSidebar`는 파일 tree/search 화면을 Editor-capable pane에 조립한다. Browser pane view·overlay slot·controls, 탭 URL/라벨 정책과 pane chrome CSS는 `packages/browser` 소유다. Terminal pane view·theme/style, 입력 정책·queue와 선택 복사 정책은 `packages/terminal` 소유다. 두 host capability 계약도 package가 소유하고 Desktop singleton adapter가 구현한다. Browser의 Electron guest creation·persistent registry·InteractionCoordinator와 Terminal의 실제 key/paste handler·keyboard surface·PTY attach는 Desktop adapter에서 제공한다. Browser download store와 Terminal 입력·붙여넣기·파일 드롭 정책은 각 package가 소유한다. 독립 mock mount와 runtime acceptance는 남아 있다.
 
+여러 기능에서 재사용하는 renderer primitive인 Popover, ContextMenu, MenuList는 `packages/ui` 소유다. Desktop adapter가 portal registration과 제품 아이콘을 주입하며, 각 기능의 메뉴 항목과 실행 권한은 기능 host가 결정한다.
+
 독립 실행 수준은 실제 Desktop 밖에서 각 feature를 mock host capability로 mount할 수 있고, feature 코드가 App·Workspace store·PaneGroup·형제 feature를 직접 import하지 않는 상태를 뜻한다. Electron webview와 PTY 구현은 Desktop adapter에 남으며 실제 실행 경계는 mock으로 대체할 수 있어야 한다. `npm run check:feature-package-boundaries`는 Home·Browser·Terminal package의 Desktop shell·형제 package import, 직접 `window.api` 접근과 Electron ambient type 의존을 검사한다. 이 검사는 정적 경계만 증명하며 독립 mount와 Electron guest/PTY 수명 검증을 대체하지 않는다.
 
 ## 단계와 수락 조건

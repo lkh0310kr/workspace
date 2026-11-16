@@ -1,2 +1,6 @@
 export { Popover, shouldDismissPopoverPointerDown } from './Popover'
 export type { AnchorRect, PopoverProps, RegisterPortal } from './Popover'
+export { ContextMenu } from './ContextMenu'
+export type { ContextMenuHost, ContextMenuItem, ContextMenuProps } from './ContextMenu'
+export { MenuList } from './MenuList'
+export type { MenuListItem } from './MenuList'

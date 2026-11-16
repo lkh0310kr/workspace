@@ -1133,114 +1133,6 @@ input {
   color: var(--text);
 }
 
-/* —— Context menu (ContextMenu.tsx) —— shared by TreeView, pane tab strip,
-   and PanePicker. Compact rows on a softly elevated surface. */
-/* Keep the context menu's row padding compact when it also uses popover chrome. */
-.popover.context-menu-popover {
-  padding: 0;
-  min-width: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-overlay);
-  overflow: hidden;
-}
-
-.context-menu {
-  position: fixed;
-  z-index: 100001;
-  min-width: 160px;
-  padding: 2px 0;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  display: flex;
-  flex-direction: column;
-}
-
-.context-menu-inline {
-  position: static;
-  z-index: auto;
-}
-
-.popover.context-menu-popover .context-menu {
-  border: 0;
-}
-
-.context-menu-submenu-row {
-  position: relative;
-}
-
-.context-menu-flyout {
-  position: absolute;
-  left: 100%;
-  top: -2px;
-  margin-left: -2px;
-}
-
-.context-menu-flyout-left {
-  left: auto;
-  right: 100%;
-  margin-left: 0;
-  margin-right: -2px;
-}
-
-.context-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 4px 10px;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--font-ui);
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.context-menu-submenu-trigger {
-  justify-content: space-between;
-}
-
-.context-menu-item:hover,
-.context-menu-item.open {
-  background: var(--bg-hover);
-}
-
-.context-menu-item.active {
-  background: var(--bg-active);
-}
-
-.context-menu-item:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.context-menu-icon {
-  width: 14px;
-  flex-shrink: 0;
-  text-align: center;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.context-menu-label {
-  flex: 1;
-  min-width: 0;
-}
-
-.context-menu-chevron {
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
-.context-menu-sep {
-  height: 1px;
-  margin: 2px 0;
-  background: var(--border);
-}
-
 /* —— Pane group body (PaneGroup.tsx) —— stack of every open tab's content,
    all mounted at once and toggled via display so switching tabs never loses
    state. Editor tree lives inside editor/viewer chips, not here. */
@@ -2925,7 +2817,6 @@ button,
 input,
 select,
 textarea,
-.context-menu,
 .popover,
 .quick-open-modal,
 .browser-address-input,
@@ -2933,7 +2824,6 @@ textarea,
   border-radius: var(--radius-sm);
 }
 
-.context-menu,
 .popover,
 .quick-open-modal,
 .settings-dialog,
@@ -2950,7 +2840,6 @@ textarea,
 .pane-tab-close,
 .pane-tab-add,
 .titlebar-sidebar-toggle,
-.context-menu-item,
 .quick-open-row,
 .settings-close,
 .ui-btn {
@@ -2990,7 +2879,6 @@ textarea,
   --chrome-h: 34px;
 }
 
-.context-menu,
 .quick-open-modal,
 .settings-dialog,
 .app-settings-dialog {
@@ -3005,8 +2893,7 @@ textarea,
     color 120ms ease;
 }
 
-.quick-open-row.active,
-.context-menu-item.active {
+.quick-open-row.active {
   background: var(--bg-active);
 }
 

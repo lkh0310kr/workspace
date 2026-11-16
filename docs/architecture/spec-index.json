@@ -37,7 +37,7 @@
       "scope": "package",
       "owner": "packages/editor",
       "specStatus": "drafted",
-      "coverage": "Desktop PTY host/process lifecycle and integration adapter; package-owned terminal view and policies are indexed under terminal-package.",
+      "coverage": "Editor package UI and policies, including document surfaces, tree, search, Quick Open, and provider contracts; Desktop owns local filesystem and workspace/pane integration.",
       "documents": [
         "packages/editor/README.md",
         "docs/architecture/editor/README.md",
@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "8499b186a69cbc47a83feee46ac71ee06fe851add6308dc073edb278a0e53b3f"
+          "sha256": "d691e9981a551079019ffacb1e3cc64796b393610260fa8f4acb2e8e2176b841"
         },
         {
           "path": "apps/desktop/src/renderer/src/editor/localEditorProvider.ts",
@@ -123,7 +123,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "a1d353af92e430720a79e530b6959219af3f710ff6b718b5ab9bb74f518b6564"
+          "sha256": "ab38e4fef09514b2d1a72df4c0222bdff0a7013caaf3f008c96c1acb7b93efc3"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -164,10 +164,6 @@
         {
           "path": "packages/editor/src/EditorMarkdownTitleInput.tsx",
           "sha256": "0cbf091145dae82c67f1a6c9ee64bed3887b1d656d33fdc26cdf99bb5c3809fa"
-        },
-        {
-          "path": "packages/editor/src/EditorMenuList.tsx",
-          "sha256": "5d3ffc385a2c3180d1a1f2801d58b06ec85ea29b473da921c0ac9edaa2b7802b"
         },
         {
           "path": "packages/editor/src/EditorNameForm.tsx",
@@ -223,7 +219,7 @@
         },
         {
           "path": "packages/editor/src/index.ts",
-          "sha256": "5b96d6e6e068d793671bddbb0de37785e7f7814f6aa6e966f819ee36f4160c97"
+          "sha256": "81e17f92ef22ffb8afbe8bd8ab9ca7306aba5f1a9e2dcf7db85315abadbf2c45"
         },
         {
           "path": "packages/editor/src/markdown.css",
@@ -644,6 +640,10 @@
       ],
       "sources": [
         {
+          "path": "apps/desktop/scripts/run-vitest.mjs",
+          "sha256": "5f6c3c6e9eaefbce9ba53e16012194488edbe356b2c0afdc572a8ee71cb56138"
+        },
+        {
           "path": "apps/desktop/src/main/ebookState.ts",
           "sha256": "59dbd04cf4824b6499b655549f55b7c59bec040e883e2bf52d29e553a448c305"
         },
@@ -654,6 +654,10 @@
         {
           "path": "apps/desktop/src/main/ipc/terminalSessionBuffers.ts",
           "sha256": "93117bdcf9a572a80675001802339722e35665249be88b4ae24546790647b183"
+        },
+        {
+          "path": "apps/desktop/src/main/ipc/workspaceSearch.ts",
+          "sha256": "7cd93e4f846cf261e2ca65d804536193da85dfd60ed4ef71b9c933b91400e41a"
         },
         {
           "path": "apps/desktop/src/main/model3d/cacheStore.ts",
@@ -692,6 +696,10 @@
           "sha256": "f4d4965e3810e3a8582a7f09b6a292a374e082d261c863f8651636e9e893de5a"
         },
         {
+          "path": "apps/desktop/src/renderer/src/components/ContextMenu.tsx",
+          "sha256": "add8e29a72f75ed6b64dc19643e81d53dc6ba0b8ee3aacbac912eb68c8adbfe3"
+        },
+        {
           "path": "apps/desktop/src/renderer/src/electron.ts",
           "sha256": "ae1528f25f73f947cbc576ad494c084e226b5ce59d625619fb022c3c160bff9e"
         },
@@ -704,10 +712,6 @@
           "sha256": "c39e70a0c653c56cc4f9b86484dd8aced2c7d8ef515e67a53bb88fabf0e4c0af"
         },
         {
-          "path": "apps/desktop/src/renderer/src/interaction/embedPolicy.ts",
-          "sha256": "decbc88640a02cc213f87e0e9bbdb33004beb73c7d3e632a02f96241219ca19c"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.test.ts",
           "sha256": "50d790fab12aee328977f2f406927f22e12a6963dd0e1b829307db8fa92ec63e"
         },
@@ -716,12 +720,20 @@
           "sha256": "ede6b96ada0bd72056b03650a1cdbc1f59d2530d3ac33a464bb1b41804743b97"
         },
         {
+          "path": "apps/desktop/src/renderer/src/interaction/embedPolicy.ts",
+          "sha256": "decbc88640a02cc213f87e0e9bbdb33004beb73c7d3e632a02f96241219ca19c"
+        },
+        {
           "path": "apps/desktop/src/renderer/src/interaction/webviewPolicy.test.ts",
           "sha256": "43d4400c9f4f5265eff09ef48978aef6d2b2388f86fe4b1ca3dcf6a8c769433f"
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/webviewPolicy.ts",
           "sha256": "6cbae5986a34ca0b8c9f75d010f520dfdf8a2c0389021fad45fe7001b7dfef4f"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/layout/layoutActions.closeTab.test.ts",
+          "sha256": "0ea71e8d9e4141a641cad0b381b412e1b4e510b4249061bddc2eab8fffec8cd6"
         },
         {
           "path": "apps/desktop/src/renderer/src/layout/layoutActions.ts",
@@ -744,28 +756,16 @@
           "sha256": "7074c2209e7619871da0faa8a56336c949087e162ac9f5706b4193c240d547de"
         },
         {
+          "path": "apps/desktop/src/renderer/src/store/workspaceStore.persist.test.ts",
+          "sha256": "b68829918ff0e6fb5744daef67f3ffc1553918c0d7b00fa9c67860bbdb8990fb"
+        },
+        {
           "path": "apps/desktop/src/renderer/src/store/workspaceStore.ts",
           "sha256": "b5154aac79c2a3e3509f84f90903898ac027273d0c2dbe8d6af9541fdc96e194"
         },
         {
-          "path": "apps/desktop/src/renderer/src/layout/layoutActions.closeTab.test.ts",
-          "sha256": "0ea71e8d9e4141a641cad0b381b412e1b4e510b4249061bddc2eab8fffec8cd6"
-        },
-        {
           "path": "apps/desktop/vitest.config.ts",
           "sha256": "a857c9b67c87e1b2f6071e17936e52db55b559f8e8f169d3327807418c3381ac"
-        },
-        {
-          "path": "apps/desktop/scripts/run-vitest.mjs",
-          "sha256": "5f6c3c6e9eaefbce9ba53e16012194488edbe356b2c0afdc572a8ee71cb56138"
-        },
-        {
-          "path": "apps/desktop/src/main/ipc/workspaceSearch.ts",
-          "sha256": "7cd93e4f846cf261e2ca65d804536193da85dfd60ed4ef71b9c933b91400e41a"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/store/workspaceStore.persist.test.ts",
-          "sha256": "b68829918ff0e6fb5744daef67f3ffc1553918c0d7b00fa9c67860bbdb8990fb"
         }
       ]
     },
@@ -1694,26 +1694,38 @@
       "scope": "package",
       "owner": "packages/ui",
       "specStatus": "drafted",
-      "coverage": "Shared renderer UI primitives with injected host capabilities; currently includes the Popover primitive and portal contract.",
+      "coverage": "Shared renderer UI primitives with injected host capabilities: Popover, ContextMenu, and accessible MenuList. Desktop supplies interaction coordination and product icons through adapters.",
       "documents": [
         "packages/ui/README.md"
       ],
       "sources": [
         {
           "path": "packages/ui/package.json",
-          "sha256": "0bcfffeb1f9e1ef2a171aa12663ca7cd2b8b98075ba04ce8a95b6bc9898277e3"
+          "sha256": "ffa3c74c83f95142374d672cc3a91002699e39b0e68fdfb316185ccd217fac82"
         },
         {
-          "path": "packages/ui/src/Popover.tsx",
-          "sha256": "05becea37c04ad83283ac918d195b42fd9d8d7b2f1955ec4ba39e5b3f05b3440"
+          "path": "packages/ui/src/ContextMenu.tsx",
+          "sha256": "f7cf18d18c56382cf8c81fa561f6fef5d4e12ce5cfd919867ff74507d8cc69c1"
+        },
+        {
+          "path": "packages/ui/src/MenuList.tsx",
+          "sha256": "4d373bb27ceba1d045a0ae7bbbe6dddea3e466f6473c76ed3b0ca7c0bc910474"
         },
         {
           "path": "packages/ui/src/Popover.test.ts",
           "sha256": "99c625c5c24c8db6d42fe3b5c8db46a3a57ee17b38fa847c30c73e7b20ce6352"
         },
         {
+          "path": "packages/ui/src/Popover.tsx",
+          "sha256": "05becea37c04ad83283ac918d195b42fd9d8d7b2f1955ec4ba39e5b3f05b3440"
+        },
+        {
+          "path": "packages/ui/src/context-menu.css",
+          "sha256": "0ae91c16f19f86c2501929ff94aebe84961ae49e0f0e9e0ffddc21f0fe15673a"
+        },
+        {
           "path": "packages/ui/src/index.ts",
-          "sha256": "b4a24cf769aa76825ac59980065c2e93ce3d952c69214b318ce15fc96515435d"
+          "sha256": "5c1e05fb22b8cfa8cb70cf44e8e84e78e27aaf669b0b202f49162bb66ae7e29c"
         },
         {
           "path": "packages/ui/src/popover.css",

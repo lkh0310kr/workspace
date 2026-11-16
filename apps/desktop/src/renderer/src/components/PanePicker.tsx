@@ -1,4 +1,5 @@
 import { Popover, type AnchorRect } from './Popover'
+import '@workspace/ui/context-menu.css'
 import { TabKind, type PaneTabItem } from '../layout/paneTypes'
 import { paneKindPickerOptions } from '../panes/paneKindRegistry'
 import { WorkbenchIcon, type WorkbenchIconName } from './WorkbenchIcon'

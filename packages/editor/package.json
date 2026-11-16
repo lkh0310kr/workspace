@@ -22,6 +22,7 @@
     "react-dom": "^19.2.1"
   },
   "dependencies": {
+    "@workspace/ui": "0.1.0",
     "@codemirror/commands": "^6.11.0",
     "@codemirror/lang-markdown": "^6.5.2",
     "@codemirror/language": "^6.12.4",
