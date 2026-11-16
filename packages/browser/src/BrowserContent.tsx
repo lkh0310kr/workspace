@@ -22,6 +22,7 @@ import { loadBrowserPageWebviewUrl, reloadBrowserPageWebview } from './browserPa
 import { BrowserNavButton } from './BrowserNavButton'
 import { BrowserDownloadsBar, type BrowserDownloadItem } from './BrowserDownloadsBar'
 import type { BrowserPaneHost, BrowserPaneItem } from './BrowserPaneHost'
+import { browserPageGuestNeedsAttach, resolveBrowserPageWebview } from './browserPageGuestRecovery'
 import './browser.css'
 import { useBrowserChromeFocus } from './useBrowserChromeFocus'
 import { useBrowserGuestActivationFocus } from './useBrowserGuestActivationFocus'
@@ -64,6 +65,10 @@ export function BrowserContent({
   useEffect(() => {
     hostRef.current = host
   }, [host])
+  const getPersistentWebview = useCallback(
+    (tabItemId: string) => hostRef.current.getPersistentWebview(tabItemId),
+    []
+  )
   const isActive = paneVisible && chipActive
   const isPaintable = paneVisible
   const chipShown = isActive
@@ -149,7 +154,7 @@ export function BrowserContent({
   // a stale ref — chrome still renders but reload/devtools silently no-op.
   useEffect(() => {
     if (!slotViewport || !paneVisible) return
-    if (!hostRef.current.guestNeedsAttach(item.id, webviewRef.current)) {
+    if (!browserPageGuestNeedsAttach(item.id, webviewRef.current, getPersistentWebview)) {
       guestRecoveryAttemptsRef.current = 0
       return
     }
@@ -448,7 +453,7 @@ export function BrowserContent({
     const normalized = normalizeBrowserNavigationUrl(url, true)
     if (!normalized) return
     addressInputRef.current?.blur()
-    const webview = hostRef.current.resolveWebview(item.id, webviewRef)
+    const webview = resolveBrowserPageWebview(item.id, webviewRef, getPersistentWebview)
     if (!webview) return
     const result = loadBrowserPageWebviewUrl(webview, normalized)
     if (result === 'not-ready') {
@@ -509,7 +514,7 @@ export function BrowserContent({
               className="browser-nav-btn"
               title={loading ? 'Stop' : 'Reload'}
               onClick={() => {
-                const wv = hostRef.current.resolveWebview(item.id, webviewRef)
+                const wv = resolveBrowserPageWebview(item.id, webviewRef, getPersistentWebview)
                 if (!wv) return
                 if (loading) {
                   try {
@@ -529,7 +534,7 @@ export function BrowserContent({
               className="browser-nav-btn browser-nav-btn-devtools"
               title="Toggle DevTools"
               onClick={() => {
-                const wv = hostRef.current.resolveWebview(item.id, webviewRef)
+                const wv = resolveBrowserPageWebview(item.id, webviewRef, getPersistentWebview)
                 if (!wv) return
                 if (wv.isDevToolsOpened()) wv.closeDevTools()
                 else wv.openDevTools()
@@ -563,7 +568,7 @@ export function BrowserContent({
             type="button"
             className="browser-crash-reload"
             onClick={() => {
-              const wv = hostRef.current.resolveWebview(item.id, webviewRef)
+              const wv = resolveBrowserPageWebview(item.id, webviewRef, getPersistentWebview)
               if (!wv) return
               reloadBrowserPageWebview(wv, { ignoreCache: false })
             }}

@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "9f6c2f66c095d1550392460d197db4699207e4309e053daa28e0a54d3b0256c7"
+          "sha256": "c41feec2a172f5df8aff867b9a990a6e03753b0e897d8f81190e427e2c0ee1a1"
         },
         {
           "path": "apps/desktop/src/renderer/src/editor/localEditorProvider.ts",
@@ -385,9 +385,7 @@
       "owner": "apps/desktop",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "docs/architecture/workspace/editor/providers.md"
-      ],
+      "documents": ["docs/architecture/workspace/editor/providers.md"],
       "sources": [
         {
           "path": "apps/desktop/src/renderer/src/activeEditorView.ts",
@@ -541,10 +539,6 @@
           "sha256": "f4d4965e3810e3a8582a7f09b6a292a374e082d261c863f8651636e9e893de5a"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browser/browserPageGuestRecovery.ts",
-          "sha256": "72fe5caedd18d12a4610990aafad463f5997315419d008637dd44c6649530254"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/browser/ensureBrowserPageWebview.ts",
           "sha256": "20bc4c4289def02eaacff75a05aff39e07479b82c92ac66c99e9989d7518e04a"
         },
@@ -582,7 +576,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/browserPaneHost.ts",
-          "sha256": "d9f096cc27b6b90ced45de49d1c76cae6048729ab7ed89de91ce3e49961135c7"
+          "sha256": "4cb7aa4c5294f61c7ba3561d538094bbd3732836b844cf7dff6382c7b5b4c910"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/index.ts",
@@ -808,10 +802,7 @@
       "owner": "packages/home",
       "specStatus": "drafted",
       "coverage": "Home UI, refresh lifecycle, and summary contract; Desktop owns the OS and IPC adapter.",
-      "documents": [
-        "packages/home/README.md",
-        "docs/architecture/workspace/home/README.md"
-      ],
+      "documents": ["packages/home/README.md", "docs/architecture/workspace/home/README.md"],
       "sources": [
         {
           "path": "packages/home/package.json",
@@ -977,10 +968,7 @@
       "owner": "apps/server",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/server/README.md",
-        "docs/architecture/server/README.md"
-      ],
+      "documents": ["apps/server/README.md", "docs/architecture/server/README.md"],
       "sources": [
         {
           "path": "apps/server/src/auth.ts",
@@ -1017,10 +1005,8 @@
       "scope": "package",
       "owner": "packages/browser",
       "specStatus": "drafted",
-      "coverage": "Browser pane view, overlay slot, controls, address input, navigation/history/zoom policies, guest focus, and viewport management. Electron guest creation/recovery, persistent registry, download state, and IPC are Desktop adapters.",
-      "documents": [
-        "packages/browser/README.md"
-      ],
+      "coverage": "Browser pane view, overlay slot, controls, address input, navigation/history/zoom policies, guest recovery policy, guest focus, and viewport management. Electron guest creation, persistent registry lookup, download state, and IPC are Desktop adapters.",
+      "documents": ["packages/browser/README.md"],
       "sources": [
         {
           "path": "packages/browser/package.json",
@@ -1032,7 +1018,7 @@
         },
         {
           "path": "packages/browser/src/BrowserContent.tsx",
-          "sha256": "0831899255a7bf1cd343276693f914c6fa806508beda3d861b1f459a383cd545"
+          "sha256": "2fe1a4e8df562de78dd1f86eabcb16258569ef1c34a7f5f787bcc8e59f8919c9"
         },
         {
           "path": "packages/browser/src/BrowserDownloadsBar.tsx",
@@ -1044,7 +1030,7 @@
         },
         {
           "path": "packages/browser/src/BrowserPaneHost.ts",
-          "sha256": "c4127ba6b53ea2a55d24318b915ec2f8d0bf78b680bca13a6c76c4ce7855d3a8"
+          "sha256": "e048ea5c7152b9aa8062421a5cdc4cf6513c7770ed53b910179aa3b436ab45ee"
         },
         {
           "path": "packages/browser/src/BrowserPaneOverlaySlot.tsx",
@@ -1056,7 +1042,7 @@
         },
         {
           "path": "packages/browser/src/browser.css",
-          "sha256": "9fbb0a5f52235a1f68173084f9558a63f4eed914ef5ce8cbff22ba0f9d2564c2"
+          "sha256": "0e48862cebfcada715ef1ac338b8a29b036cdb1ddd88d6c98bf71614282326e1"
         },
         {
           "path": "packages/browser/src/browserAddressBarSuggestions.test.ts",
@@ -1077,6 +1063,14 @@
         {
           "path": "packages/browser/src/browserNavigationState.ts",
           "sha256": "ade303c669b2d6895fef054c01abed81e67e655428638f0b055f8d18b85cc56e"
+        },
+        {
+          "path": "packages/browser/src/browserPageGuestRecovery.test.ts",
+          "sha256": "9604313347af25edcc17ee04d066f2001bc9390df66790b794e9afbb04416b5f"
+        },
+        {
+          "path": "packages/browser/src/browserPageGuestRecovery.ts",
+          "sha256": "f25ecf213de6a88d36975cedfad4b6264c418ab4c21ab77575a31aa69b104003"
         },
         {
           "path": "packages/browser/src/browserPageViewport.test.ts",
@@ -1112,7 +1106,7 @@
         },
         {
           "path": "packages/browser/src/index.ts",
-          "sha256": "ddac0b3541c8ca7a16156f9d3921132b005b32c81703ca1eb6aeef6c5677084d"
+          "sha256": "051d2e12a2fe515551b37235ac8b0dd59817af1913083f460589a6c97cba853c"
         },
         {
           "path": "packages/browser/src/useBrowserPageSlotViewport.ts",
@@ -1623,9 +1617,7 @@
       "owner": "packages/ui",
       "specStatus": "drafted",
       "coverage": "Shared renderer UI primitives with injected host capabilities; currently includes the Popover primitive and portal contract.",
-      "documents": [
-        "packages/ui/README.md"
-      ],
+      "documents": ["packages/ui/README.md"],
       "sources": [
         {
           "path": "packages/ui/package.json",

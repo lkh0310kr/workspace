@@ -50,11 +50,7 @@ export interface BrowserPaneHost {
     initialUrl: string
     initialZoom: number
   }) => { webview: Electron.WebviewTag; created: boolean } | null
-  guestNeedsAttach: (tabItemId: string, webview: Electron.WebviewTag | null) => boolean
-  resolveWebview: (
-    tabItemId: string,
-    webviewRef: { current: Electron.WebviewTag | null }
-  ) => Electron.WebviewTag | null
+  getPersistentWebview: (tabItemId: string) => Electron.WebviewTag | null
   setWebviewInputLock: (webview: Electron.WebviewTag, inputLocked: boolean) => void
   getDownloads: (webContentsId: number) => BrowserDownloadItem[]
   subscribeDownloads: (listener: () => void) => () => void

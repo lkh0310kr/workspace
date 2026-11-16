@@ -29,6 +29,21 @@ for (const feature of packages) {
       if (specifier.includes('apps/desktop') || specifier.startsWith('@renderer/')) {
         failures.push(`${relativePath} imports Desktop shell module ${specifier}`)
       }
+      if (specifier.startsWith('.')) {
+        const resolvedPath = path.resolve(path.dirname(file), specifier)
+        const desktopRoot = path.join(root, 'apps', 'desktop')
+        const resolvedFeature = packages.find((name) =>
+          resolvedPath.startsWith(path.join(root, 'packages', name) + path.sep)
+        )
+        if (resolvedPath.startsWith(desktopRoot + path.sep)) {
+          failures.push(`${relativePath} imports Desktop shell module ${specifier}`)
+        }
+        if (resolvedFeature && resolvedFeature !== feature) {
+          failures.push(
+            `${relativePath} imports sibling feature package ${resolvedFeature} via ${specifier}`
+          )
+        }
+      }
       if (/^@workspace\/(?:home|browser|terminal)(?:\/|$)/.test(specifier)) {
         failures.push(
           `${relativePath} imports a feature package through its workspace alias: ${specifier}`
@@ -36,7 +51,7 @@ for (const feature of packages) {
       }
     }
 
-    if (/\bwindow\s*\.\s*api\s*\./.test(source)) {
+    if (/\bwindow\s*(?:\?\s*\.\s*|\.\s*)api(?=\s*(?:\?\.|\.|\(|\[|;|,|\)|=))/.test(source)) {
       failures.push(
         `${relativePath} accesses window.api directly; inject the capability through the feature host`
       )

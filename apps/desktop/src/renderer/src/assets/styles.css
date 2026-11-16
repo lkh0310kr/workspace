@@ -332,11 +332,10 @@ input {
    their right (Xcode/Finder convention). */
 /* A <webview> guest's own content went fullscreen (web content
    button, or any browser game) — see useHtmlFullscreen.ts. Hides this
-   app's own chrome so the game gets full-bleed screen space; macOS's own
-   traffic lights are drawn by the OS itself (hiddenInset), not this div,
-   so they aren't affected either way. Ported from itch.io's desktop
-   client's same handling (ref-proj/itch). */
-.app-root.html-fullscreen .titlebar {
+   app's titlebar and Browser navigation so the game gets full-bleed screen
+   space; macOS's own traffic lights are drawn by the OS itself, not this div. */
+.app-root.html-fullscreen .titlebar,
+.app-root.html-fullscreen .browser-nav {
   display: none;
 }
 

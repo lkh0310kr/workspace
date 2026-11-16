@@ -4,7 +4,10 @@ import {
   registerBrowserWebview,
   setActiveBrowserWebview
 } from '../../layout/activeBrowserWebview'
-import { moveFocusToRendererBeforeFocusedWebviewHidden } from '../../layout/browserWebviewRegistry'
+import {
+  getPersistentBrowserWebview,
+  moveFocusToRendererBeforeFocusedWebviewHidden
+} from '../../layout/browserWebviewRegistry'
 import {
   focusBrowserGuestWebview,
   requestBrowserKeyboardSurface
@@ -17,10 +20,6 @@ import {
   ensureBrowserPageWebview,
   setBrowserPageWebviewInputLock
 } from '../../browser/ensureBrowserPageWebview'
-import {
-  browserPageGuestNeedsAttach,
-  resolveBrowserPageWebview
-} from '../../browser/browserPageGuestRecovery'
 import { getBrowserDownloadsForWebview, subscribeBrowserDownloads } from '../../browserDownloads'
 import { browserFocusLog, snapshotBrowserFocusState } from '../../browser/browserFocusDebugLog'
 import { isWebviewHostFocused } from '../../browser/browserGuestFocus'
@@ -55,8 +54,7 @@ export const desktopBrowserPaneHost: BrowserPaneHost = {
   fetchNavHistory: fetchWebviewNavHistory,
   goToNavHistoryIndex: goToWebviewHistoryIndex,
   ensureWebview: ensureBrowserPageWebview,
-  guestNeedsAttach: browserPageGuestNeedsAttach,
-  resolveWebview: resolveBrowserPageWebview,
+  getPersistentWebview: (tabItemId) => getPersistentBrowserWebview(tabItemId) ?? null,
   setWebviewInputLock: setBrowserPageWebviewInputLock,
   getDownloads: getBrowserDownloadsForWebview,
   subscribeDownloads: subscribeBrowserDownloads,

@@ -5,8 +5,7 @@ import {
   ensureBrowserPageViewport,
   registerBrowserOverlaySlotViewport,
   resetBrowserPageViewportsForTests
-} from '@workspace/browser'
-import { destroyBrowserWebview, registerPersistentWebview } from '../layout/browserWebviewRegistry'
+} from './browserPageViewport'
 import { browserPageGuestNeedsAttach, resolveBrowserPageWebview } from './browserPageGuestRecovery'
 
 function createWebview(): Electron.WebviewTag {
@@ -18,7 +17,6 @@ function createWebview(): Electron.WebviewTag {
 
 describe('browserPageGuestRecovery', () => {
   afterEach(() => {
-    destroyBrowserWebview('page-1')
     document.body.innerHTML = ''
     resetBrowserPageViewportsForTests()
   })
@@ -29,15 +27,14 @@ describe('browserPageGuestRecovery', () => {
     registerBrowserOverlaySlotViewport('pane-1', slot)
     const viewport = ensureBrowserPageViewport('page-1', 'pane-1')!
     const webview = createWebview()
-    registerPersistentWebview('page-1', webview)
     viewport.container.appendChild(webview)
 
-    expect(browserPageGuestNeedsAttach('page-1', webview)).toBe(false)
+    expect(browserPageGuestNeedsAttach('page-1', webview, () => webview)).toBe(false)
 
     const orphanHost = document.createElement('div')
     document.body.appendChild(orphanHost)
     orphanHost.appendChild(webview)
-    expect(browserPageGuestNeedsAttach('page-1', webview)).toBe(true)
+    expect(browserPageGuestNeedsAttach('page-1', webview, () => webview)).toBe(true)
   })
 
   it("resolves a connected registry guest when React's ref is stale", () => {
@@ -46,11 +43,10 @@ describe('browserPageGuestRecovery', () => {
     registerBrowserOverlaySlotViewport('pane-1', slot)
     const viewport = ensureBrowserPageViewport('page-1', 'pane-1')!
     const webview = createWebview()
-    registerPersistentWebview('page-1', webview)
     viewport.container.appendChild(webview)
 
     const ref = { current: null as Electron.WebviewTag | null }
-    expect(resolveBrowserPageWebview('page-1', ref)).toBe(webview)
+    expect(resolveBrowserPageWebview('page-1', ref, () => webview)).toBe(webview)
     expect(ref.current).toBe(webview)
   })
 })
