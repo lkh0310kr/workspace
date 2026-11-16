@@ -19,7 +19,7 @@
 | agent 상태·usage·설정 확인               | 실제 근거와 freshness, 표시 가능한 범위 명확    | stale evidence, 알 수 없는 provider, 인증/측정 실패             |
 | 앱 업데이트와 장애 진단                  | 활성 플랫폼에서 native package·update 경로 검증 | 다운로드/서명/설치 실패, 보류와 정상 종료, 진단·복구            |
 
-새 기능 추가와 전 플랫폼 동시 출시는 이 문서화 계획의 완료 조건이 아니다. 현재 구현과 남은 acceptance를 정확하게 기록한다. cancelled Android Data Node, archive CAD 모델·실험의 구현 재개도 포함하지 않는다.
+새 기능 추가와 전 플랫폼 동시 출시는 이 문서화 계획의 완료 조건이 아니다. 현재 구현과 남은 acceptance를 정확하게 기록한다. archive된 CAD 모델·실험의 구현 재개도 포함하지 않는다.
 
 ## 문서 소유 구조
 

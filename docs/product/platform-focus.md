@@ -12,10 +12,6 @@
 
 `apps/pkms-ios/legacy/`는 요청에 따라 [아카이브](../archive/pkms-ios-legacy.md)로 이동했다. `legacy/v1/`은 별도 Xcode 프로젝트로 남아 있던 이전 PKMS iOS 앱이며, 내부 동작 검토 없이 보존했다. 이동한 legacy를 포함해 PKMS iOS 전체는 사용자가 재개를 요청하기 전까지 일반적인 읽기·분석·수정 대상에서 계속 제외한다.
 
-## Android Data Node 아카이브
-
-Android Data Node는 현재 선택한 App/Web 우선순위에 포함하지 않는다. 관련 구현과 연구 자료는 현재 제품 경로에서 분리해 최상위 `archive/` 아래에 보존한다. 파일 목록과 이동 이유는 [Android Data Node 아카이브 기록](../archive/android-data-node.md)에 정리했다. 아카이브 이후 새 작업에서 사용자가 명시적으로 재개하지 않는 한 구현·조사 대상으로 다시 포함하지 않는다.
-
 ## 정책 변경
 
 이 우선순위 변경은 [제품 범위와 핵심 여정](./프로젝트%20정의.md)의 활성 작업 범위를 보충한다. PKMS iOS 재개는 별도 사용자 결정으로 기록한 뒤 이 문서와 해당 작업 범위를 갱신한다.

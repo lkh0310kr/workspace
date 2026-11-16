@@ -19,4 +19,4 @@ Global scope의 현재 제품 inventory다. `source 구현`은 코드 경로가 
 | usage·설정/theme/zoom J-09             | 구현 일부                                                    | enum provider 목록과 실제 adapter 지원 범위 구분                                                                                             | [Settings/usage](../architecture/workspace/settings/README.md)                                                                                               |
 | release/update/logging J-10            | 구현·정책 존재                                               | 활성 macOS native 패키지·서명/update/운영 수락을 릴리스별 기록                                                                               | [릴리스 정책](../architecture/desktop-release.md), [로그 운영](../architecture/workspace/operations/logging.md)                                              |
 
-cancelled Data Node와 archive 모델·실험은 활성 기능 목록에 추가하지 않는다. source 존재만으로 미검증을 숨기거나 과거 배포를 재확인한 것처럼 기록하지 않는다.
+archive 모델·실험은 활성 기능 목록에 추가하지 않는다. source 존재만으로 미검증을 숨기거나 과거 배포를 재확인한 것처럼 기록하지 않는다.

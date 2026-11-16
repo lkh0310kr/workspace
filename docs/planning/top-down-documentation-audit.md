@@ -14,7 +14,7 @@
 - `불일치`: 현재 코드 또는 더 구체적인 기준 문서와 다른 설명이 공존함.
 - `개선 후보`: 코드 구조·검증에서 확인한 부담. 제품 결함으로 단정하거나 이번 감사에서 자동 리팩터링하지 않음.
 
-활성 Markdown 46개를 대상으로 한 로컬 파일 링크 검사에서는 깨진 대상이 없었다. fenced code, 일반 backtick 경로, heading anchor, 외부 URL 내용은 이 검사에 포함하지 않았다. 따라서 없는 TerminalSurface 파일을 prose에서 가리키거나 예전 상태 소유자를 설명하는 문제는 링크 검사 통과와 양립한다. archive·legacy·research의 이전 제안, cancelled Android Data Node와 생성물·vendor·빌드 산출물은 활성 기능 누락으로 계산하지 않았다.
+활성 Markdown 46개를 대상으로 한 로컬 파일 링크 검사에서는 깨진 대상이 없었다. fenced code, 일반 backtick 경로, heading anchor, 외부 URL 내용은 이 검사에 포함하지 않았다. 따라서 없는 TerminalSurface 파일을 prose에서 가리키거나 예전 상태 소유자를 설명하는 문제는 링크 검사 통과와 양립한다. archive·legacy·research의 이전 제안과 생성물·vendor·빌드 산출물은 활성 기능 누락으로 계산하지 않았다.
 
 ## 제품에서 내려다본 커버리지
 
@@ -83,7 +83,7 @@ P0는 후속 작업자가 잘못된 구조/데이터 계약을 구현하거나 �
 | AUD-21 | P2·사용량/설정 누락      | [usage settings](../../apps/workspace-app/src/shared/usage-meter-settings.ts)에는 5개 provider ID가 있지만 [usage handler](../../apps/workspace-app/src/main/usage.ts)의 데이터 획득과 UI 지원 범위를 별도 문서로 확인해야 한다. [theme](../../apps/workspace-app/src/renderer/src/theme.ts), autosave·pane/guest/font zoom도 저장·적용 범위와 default를 명시한다.                                                                                                                                                       |
 | AUD-22 | P1·viewer 누락           | [Asset 연결 스펙](../architecture/editor/assets.md)은 내부 전체를 범위 밖으로 뒀다. [model3d router](../../apps/workspace-app/src/main/model3d/assetRouter.ts), [import queue](../../apps/workspace-app/src/main/model3d/importJobQueue.ts), [EPUB](../../apps/workspace-app/src/renderer/src/panes/EpubReaderContent.tsx), [CAD adapter](../../apps/workspace-app/src/main/cadViewer.ts)의 전체 파이프라인·포맷별 fallback·자원 정리가 필요하다. archive CAD 모델과 활성 viewer를 혼동하지 않는다.                  |
 | AUD-23 | P2·관측/복구 누락        | [logging guide](../guides/logging.md)는 회전·무손실 보관을 설명하지만 [startup](../../apps/workspace-app/src/main/startupLog.ts), [log sink](../../apps/workspace-app/src/main/debugLogSink.ts), 오류 UI를 연결한 장애별 진단/복구 표는 없다. 민감 terminal bytes·보관·opt-in 정책을 보존하며 index에 연결한다.                                                                                                                                                                                                          |
-| AUD-24 | P1·제품 범위와 문서 책임 | [기능 상태](./feature-status.md)는 agent/usage/settings/recovery를 독립 책임으로 보이지 않게 묶고 [앱 경계](../architecture/08-monorepo-module-boundaries.md)는 목표 패키지와 구현 패키지를 함께 보여준다. capability inventory에 제품·플랫폼·구현/운영/검증 상태와 문서 owner를 붙인다. cancelled Data Node를 자동 재개하거나 목표 패키지를 존재하는 API로 취급하지 않는다.                                                                                                                                             |
+| AUD-24 | P1·제품 범위와 문서 책임 | [기능 상태](./feature-status.md)는 agent/usage/settings/recovery를 독립 책임으로 보이지 않게 묶고 [앱 경계](../architecture/08-monorepo-module-boundaries.md)는 목표 패키지와 구현 패키지를 함께 보여준다. capability inventory에 제품·플랫폼·구현/운영/검증 상태와 문서 owner를 붙인다. 보관 자료를 현재 기능이나 존재하는 API로 취급하지 않는다.                                                                                                                                             |
 
 ## 아키텍처 개선 후보의 처리 원칙
 
