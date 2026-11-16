@@ -79,6 +79,12 @@ const pkmsDesktop = {
       text: string
       revision: string
     }>,
+  readGoogleDriveAsset: (rootId: string, fileId: string) =>
+    ipcRenderer.invoke('pkms-google-drive:workspace:read-asset', rootId, fileId) as Promise<{
+      entry: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
+      bytes: Uint8Array
+      contentType: string
+    }>,
   saveGoogleDriveMarkdown: (rootId: string, fileId: string, text: string, flushSync?: boolean) =>
     ipcRenderer.invoke(
       'pkms-google-drive:workspace:save-markdown',

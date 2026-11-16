@@ -122,6 +122,12 @@ export class GoogleDriveDesktopWorkspaceService {
     return { entry, text: text.toString(), revision: documentRevision(doc, text) }
   }
 
+  async readAsset(rootId: string, fileId: string) {
+    const { entry, metadata, bytes } =
+      await this.requireWorkspace(rootId).repository.readAsset(fileId)
+    return { entry, bytes, contentType: metadata.mimeType }
+  }
+
   async saveMarkdown(rootId: string, fileId: string, text: string, flushSync = true) {
     const runtime = this.requireWorkspace(rootId)
     const { doc, text: sharedText } = await runtime.documents.open(fileId)

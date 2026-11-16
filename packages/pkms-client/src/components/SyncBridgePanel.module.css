@@ -1,0 +1,219 @@
+.panel {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  font-size: 11px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.heading > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.close {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.state {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.indicator {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--subtle);
+}
+
+.indicator[data-state='synced'] {
+  background: #36a269;
+}
+
+.indicator[data-state='syncing'] {
+  background: var(--accent);
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+.indicator[data-state='offline'],
+.indicator[data-state='error'] {
+  background: var(--danger);
+}
+
+@keyframes pulse {
+  to {
+    opacity: 0.35;
+  }
+}
+
+.path {
+  overflow: hidden;
+  margin-top: 6px;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  margin-top: 5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.error {
+  margin-top: 5px;
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.conflicts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  color: var(--warning);
+  line-height: 1.35;
+}
+
+.conflicts span {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+
+.conflictList {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.conflictLink {
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.conflictLink:hover {
+  color: var(--accent);
+}
+
+.conflictLink:disabled {
+  color: var(--muted);
+  text-decoration: none;
+  cursor: default;
+}
+
+.github {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.githubState {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.githubStatefailed,
+.githubStateexternalchange {
+  color: var(--danger);
+}
+
+.exclusions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.exclusions textarea {
+  width: 100%;
+  min-height: 42px;
+  resize: vertical;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  background: var(--bg);
+  font:
+    10px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+
+.exclusions button {
+  align-self: flex-start;
+  min-height: 22px;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  background: transparent;
+  font-size: 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.actions button {
+  min-height: 23px;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  background: transparent;
+  font-size: 10px;
+}
+
+.actions button:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.actions button:disabled {
+  opacity: 0.5;
+}

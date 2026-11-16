@@ -214,6 +214,7 @@
 }
 
 .pkms-google-drive-root.is-desktop {
+  --editor-tree-background: var(--bg-surface, var(--sidebar, #17181b));
   min-height: 0;
   padding: 0;
   color: var(--text, #e2e4e7);
@@ -234,6 +235,10 @@
   padding: 0;
   border-right: 1px solid var(--drive-border);
   overflow: hidden;
+}
+
+.pkms-google-drive-root.is-desktop [data-editor-tree-resizer] {
+  margin-inline-start: -5px;
 }
 
 .pkms-google-drive-root.is-desktop .pkms-google-drive-header {

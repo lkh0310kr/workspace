@@ -8,6 +8,7 @@ import {
 } from 'react'
 import {
   EditorMarkdownEditor,
+  EditorAssetPreview,
   EditorMarkdownTitle,
   EditorBreadcrumbs,
   editorCodeMirrorHostExtensions,
@@ -15,9 +16,12 @@ import {
   EditorTreePane,
   EditorTreeToolbar,
   EditorTreeCreateActions,
+  EditorTreeResizeHandle,
+  editorAssetContentType,
   EDITOR_TREE_DRAG_MIME_TYPE,
   EditorQuickOpenDialog,
   EDITOR_TREE_ROW_HEIGHT,
+  EDITOR_TREE_DEFAULT_WIDTH,
   buildRenamedPath,
   fuzzyEditorSearch,
   editorMarkdownParserExtensions,
@@ -282,6 +286,16 @@ export function PkmsGoogleDrivePane({
   const [treeScrollTop, setTreeScrollTop] = useState(0)
   const [treeViewportHeight, setTreeViewportHeight] = useState(600)
   const [focusedTreePath, setFocusedTreePath] = useState<string | null>(null)
+  const [treeWidth, setTreeWidth] = useState(() => {
+    try {
+      const stored = Number(window.localStorage.getItem('pkms-google-drive-tree-width'))
+      return Number.isFinite(stored) && stored >= 180 && stored <= 480
+        ? stored
+        : EDITOR_TREE_DEFAULT_WIDTH
+    } catch {
+      return EDITOR_TREE_DEFAULT_WIDTH
+    }
+  })
   const [treeDropTarget, setTreeDropTarget] = useState<string | null>(null)
   const treeRootRef = useRef<HTMLDivElement>(null)
   const treeScrollContainerRef = useRef<HTMLDivElement>(null)
@@ -293,6 +307,9 @@ export function PkmsGoogleDrivePane({
     ancestors: [] as Array<{ id: string | null; path: string; name: string }>
   })
   const [activeFile, setActiveFile] = useState<GoogleDriveWorkspaceEntry | null>(null)
+  const [assetPreviewUrl, setAssetPreviewUrl] = useState<string | null>(null)
+  const [assetPreviewType, setAssetPreviewType] = useState('')
+  const [assetPreviewError, setAssetPreviewError] = useState<string | null>(null)
   const [openingFileId, setOpeningFileId] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const titleCaretPositionRef = useRef<number | null>(null)
@@ -311,10 +328,23 @@ export function PkmsGoogleDrivePane({
   const [searchPageToken, setSearchPageToken] = useState<string | undefined>()
   const [searching, setSearching] = useState(false)
   const searchGeneration = useRef(0)
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('pkms-google-drive-tree-width', String(treeWidth))
+    } catch {
+      // The tree remains resizable when storage is unavailable.
+    }
+  }, [treeWidth])
   const [session, setSession] = useState<EditorDocumentSession | null>(null)
   const sessionRef = useRef(session)
   sessionRef.current = session
   const sessionSnapshot = useEditorDocumentSnapshot(session)
+
+  useEffect(() => {
+    if (!assetPreviewUrl) return
+    return () => URL.revokeObjectURL(assetPreviewUrl)
+  }, [assetPreviewUrl])
   const [busy, setBusy] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [status, setStatus] = useState('Connecting to Google Drive…')
@@ -967,16 +997,46 @@ export function PkmsGoogleDrivePane({
         await toggleFolder(entry)
         return
       }
-      if (entry.kind !== 'markdown') {
-        setError(
-          'Attachments are visible in Google Drive but this editor currently opens Markdown only.'
-        )
-        return
-      }
       const generation = ++openGeneration.current
       setError('')
       setFocusedTreePath(entry.path)
       setOpeningFileId(entry.id)
+
+      if (entry.kind === 'asset') {
+        const previous = sessionRef.current
+        sessionRef.current = null
+        setSession(null)
+        setActiveFile(entry)
+        setAssetPreviewUrl(null)
+        setAssetPreviewType('')
+        setAssetPreviewError(null)
+        try {
+          await previous?.close()
+          if (generation !== openGeneration.current) return
+          const opened = await window.pkmsDesktop.readGoogleDriveAsset(root.id, entry.id)
+          if (generation !== openGeneration.current) return
+          const contentType = editorAssetContentType(opened.entry.path, opened.contentType)
+          const bytes = new Uint8Array(opened.bytes.byteLength)
+          bytes.set(opened.bytes)
+          const url = URL.createObjectURL(new Blob([bytes], { type: contentType }))
+          setActiveFile(opened.entry)
+          setAssetPreviewType(contentType)
+          setAssetPreviewUrl(url)
+          setOpeningFileId(null)
+        } catch (cause) {
+          if (generation === openGeneration.current) {
+            const message =
+              cause instanceof Error ? cause.message : 'Could not open the attachment.'
+            setOpeningFileId(null)
+            setAssetPreviewError(message)
+            setError(message)
+          }
+        }
+        return
+      }
+      setAssetPreviewUrl(null)
+      setAssetPreviewType('')
+      setAssetPreviewError(null)
       try {
         const opened = await window.pkmsDesktop.openGoogleDriveMarkdown(root.id, entry.id, entry)
         if (generation !== openGeneration.current) return
@@ -1797,10 +1857,11 @@ export function PkmsGoogleDrivePane({
                 ) : undefined
               }
               style={{
+                boxSizing: 'border-box',
                 display: 'flex',
                 flexDirection: 'column',
-                flex: '0 0 260px',
-                width: 260,
+                flex: `0 0 ${treeWidth - 1}px`,
+                width: treeWidth - 1,
                 minWidth: 180,
                 borderRight: '1px solid var(--border-color, #8884)',
                 minHeight: 0
@@ -1952,12 +2013,20 @@ export function PkmsGoogleDrivePane({
               )}
             </EditorTreeFrame>
           )}
+          {treeOpen && (
+            <EditorTreeResizeHandle
+              width={treeWidth}
+              minWidth={180}
+              maxWidth={480}
+              onWidthChange={setTreeWidth}
+            />
+          )}
           <div
             className={driveStyles['pkms-google-drive-editor']}
             data-drive-editor=""
             style={{ flex: 1, minWidth: 0, overflow: 'auto' }}
           >
-            {session && activeFile ? (
+            {session && activeFile?.kind === 'markdown' ? (
               <>
                 <EditorBreadcrumbs
                   path={activeFile.path}
@@ -1998,6 +2067,26 @@ export function PkmsGoogleDrivePane({
                   }}
                 />
               </>
+            ) : activeFile?.kind === 'asset' ? (
+              <EditorAssetPreview
+                fileName={activeFile.name}
+                path={activeFile.path}
+                size={activeFile.size === undefined ? undefined : Number(activeFile.size)}
+                contentType={assetPreviewType}
+                url={assetPreviewUrl}
+                loading={openingFileId === activeFile.id && !assetPreviewError}
+                error={assetPreviewError}
+                onDownload={
+                  assetPreviewUrl
+                    ? () => {
+                        const link = document.createElement('a')
+                        link.href = assetPreviewUrl
+                        link.download = activeFile.name
+                        link.click()
+                      }
+                    : undefined
+                }
+              />
             ) : (
               <div style={{ display: 'grid', placeItems: 'center', height: '100%', opacity: 0.65 }}>
                 Select a Markdown file to open it.

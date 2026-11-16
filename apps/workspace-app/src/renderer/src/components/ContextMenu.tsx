@@ -55,7 +55,8 @@ function ContextMenuPanel({
   const [position, setPosition] = useState(style ?? {})
 
   useLayoutEffect(() => {
-    if (!flyout) panelRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
+    if (!flyout)
+      panelRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
   }, [flyout])
 
   useLayoutEffect(() => {
@@ -113,6 +114,7 @@ function ContextMenuPanel({
       ref={panelRef}
       className={`context-menu${flyout ? ' context-menu-flyout' : ''}${flipLeft ? ' context-menu-flyout-left' : ''}`}
       role="menu"
+      data-editor-menu-list=""
       aria-label={ariaLabel}
       style={flyout ? style : position}
       onClick={(e) => e.stopPropagation()}

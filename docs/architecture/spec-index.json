@@ -65,11 +65,11 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx",
-          "sha256": "6e0ea8daaff4d776a5c8adffd25ef3a629b288d8d0ffeb592004b586a3eb06ba"
+          "sha256": "27409203e75ef4131673ae0ea31ca2144c59f7d4abf11452a2886b9df64f1375"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/assets/styles.css",
-          "sha256": "f3a529f0ec0f2489754f90ac8b1f1214b0e7bd513df8e8b922a06d02364a1f6c"
+          "sha256": "cc215e50cc5e3490d5eae16e5c8e35f624256592c751ed5cde5dbe0ed9794702"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts",
@@ -129,7 +129,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "21db7cbaf94041feed2262999d71c429d3cdbb13c4e1aaea343568491d067722"
+          "sha256": "97441ecd674d1c31e994335753d5798983f4c7e488d009de193191ad6b5d9a68"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -173,7 +173,7 @@
         },
         {
           "path": "packages/editor/src/EditorMenuList.tsx",
-          "sha256": "6630bccfb89bae9123fb36f5dfc111372f4cdab2c9a0627005c0550f88c5ea66"
+          "sha256": "5d3ffc385a2c3180d1a1f2801d58b06ec85ea29b473da921c0ac9edaa2b7802b"
         },
         {
           "path": "packages/editor/src/EditorNameForm.tsx",
@@ -181,7 +181,7 @@
         },
         {
           "path": "packages/editor/src/EditorQuickOpenDialog.tsx",
-          "sha256": "a8d1199f4ebd6007dc281830570168eacb7c6c2319eaa467427b709c050995f5"
+          "sha256": "71f7faba5ceffa726edfc431ea79eb20254fa7b19ccef7bc91997d46af2ef8af"
         },
         {
           "path": "packages/editor/src/editorSaveStatus.ts",
@@ -229,7 +229,7 @@
         },
         {
           "path": "packages/editor/src/index.ts",
-          "sha256": "76cb66eb0146345d3119d72367e535158abbe8e3255e87e692742fb0ee22e719"
+          "sha256": "f56ffd95ad7c3eda17feb2410f3c094afa4b196fb0416e3c4a278458968c6882"
         },
         {
           "path": "packages/editor/src/markdown.css",
@@ -241,7 +241,7 @@
         },
         {
           "path": "packages/editor/src/markdownDocument.module.css",
-          "sha256": "d93abd77c70ba04ec103bcd6f34f7766cc12c519b6bacbbcbef6a6eccb268e64"
+          "sha256": "949245a3eaab8d67fc083ebd9db53cd61cdbe27b551baf6613f188a2054fb102"
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",
@@ -281,7 +281,7 @@
         },
         {
           "path": "packages/editor/src/treeView.module.css",
-          "sha256": "d90012e82890a76f653bdfbcec8d0bcc8004bd3474fa9408f8beb24602ab59dc"
+          "sha256": "ac48fc67628ed63eb740ebcd9410e4bf35ae461855e9e578b47028ccf4f11d22"
         },
         {
           "path": "packages/editor/src/tree.css",
@@ -353,7 +353,7 @@
         },
         {
           "path": "scripts/check-editor-tree-contract.mjs",
-          "sha256": "334bef083f76994e785d676f8a0f9fd2c47046753c6c6f69d080d41da9d22d4d"
+          "sha256": "b48ae9bea68bdf8f2136ca51189063a532252e92761ebe11ab9e33f13c50f079"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/index.html",
@@ -361,11 +361,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "7fbaa2c14b5026127d4f451b85ecdb1b3cce6dd0a2990c52fd392d987c70c8af"
+          "sha256": "3d7e33991bbb0cc1404546e2085196399e19c2c16e44e180622be2a303ac1ffb"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "58dae8e52aafe700da65ab6732a235da2e9b7493627f04089b95df6f6261a14c"
+          "sha256": "6f50201b3aa8bff0c4769f870b7379dcc3fdb81917f5e226289180287a142ade"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
@@ -377,7 +377,7 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/visual-fixture.css",
-          "sha256": "f7b938123709ef93045848128e94c2d1202944e4b8a34c68e84ac7b0b4ca1240"
+          "sha256": "2e77b865de5eccb2664360ca30da2010f350d46a4a38bf344195c5052fc915fa"
         },
         {
           "path": "apps/workspace-app/scripts/run-editor-visual.mjs",
@@ -389,27 +389,43 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsPane.tsx",
-          "sha256": "1e10cd9479bcbef8ba6579653c82bd8a6661303e05a94dd893d77861cef9d5fe"
+          "sha256": "ac991aa69509a24554b4947e8229653fe389066edb34816a8028debe71327fa2"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "2dae65ff6f6569b67779ee74cf0d44f863333e6e5aee8bc9ff9c94b22be59858"
+          "sha256": "4c41c1dfbc1448701a97fdf718331cfc8fc862f0d37ae279b46c1d55c098f266"
         },
         {
           "path": "packages/pkms-client/src/components/FileTreeList.tsx",
-          "sha256": "22d86b81e8802a423e38fddcf8bb41f73375be9defbbc13d355bb898cbdb7308"
-        },
-        {
-          "path": "packages/pkms-client/src/styles.css",
-          "sha256": "a04b2020f1658db486f440f6a35cc01ced2dc8a6da17f352e6f3441fb2c04ac7"
+          "sha256": "f6e23b9f60e1a12d9d5c44ff792e1da4d8d64e413495c99e506f077fb05117e6"
         },
         {
           "path": "packages/pkms-google-drive/src/workspace.module.css",
-          "sha256": "762ee89942ff5ca47fd9ab4a2e0af663d7717da87bb08f1e19bbd19785a0d8cb"
+          "sha256": "0fb9be6287a2569bc67e0fa85e9836cb7a522618e57c3aca501dc8e587195007"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/codeEditor.test.ts",
           "sha256": "da529a75e969630fe55d12b59f0b245ed39ca5ed793c21caad2b471f18119060"
+        },
+        {
+          "path": "packages/editor/src/EditorQuickOpenDialog.module.css",
+          "sha256": "68324d37fcb21d57485706e628e195fc9c0cb763d205d031b94bac043b443530"
+        },
+        {
+          "path": "packages/editor/src/EditorTreeResizeHandle.tsx",
+          "sha256": "d17bdcaa02b801ab53022c0e9dbf1b074cd3feb4cd57905df4de4f856cd5abf4"
+        },
+        {
+          "path": "packages/editor/src/EditorAssetPreview.tsx",
+          "sha256": "d6f9289fde281267e7ac5b81599386bf324eb73eb02154f2c5a7318f5264b26c"
+        },
+        {
+          "path": "packages/editor/src/assetContentType.ts",
+          "sha256": "80f52231b8b2548fdf430c25b08f0b0318b7fa60a9a29c5995eca5af707303d0"
+        },
+        {
+          "path": "packages/editor/src/assetPreview.module.css",
+          "sha256": "1b2e4849a6fd8ba7f772c072bbd0942d97f4bf92514dc7ebf18f8e51a591e164"
         }
       ]
     },
@@ -505,7 +521,7 @@
       "sources": [
         {
           "path": "packages/pkms-client/package.json",
-          "sha256": "4ec36a87fcd6aa5d23d3aca8c51dec461fd339bbb9402cb17fa34683141e246e"
+          "sha256": "5da14724a151fcb99448bf398d73ebd61c4f083adc31082e1db7d0c39350d46f"
         },
         {
           "path": "packages/pkms-client/src/client/api.ts",
@@ -549,7 +565,7 @@
         },
         {
           "path": "packages/pkms-client/src/PkmsClientApp.tsx",
-          "sha256": "391be6afb7cfd6c15f87071ca9902cbcd947ad93143d98845df782447d2ffdeb"
+          "sha256": "1b6da946fa6fb8f0f17a04c7b66cb6570cee2089ac903c6749a7963d39d1daed"
         },
         {
           "path": "packages/pkms-client/src/realtime.ts",
@@ -557,11 +573,31 @@
         },
         {
           "path": "packages/pkms-client/src/components/FileTreeList.tsx",
-          "sha256": "22d86b81e8802a423e38fddcf8bb41f73375be9defbbc13d355bb898cbdb7308"
+          "sha256": "f6e23b9f60e1a12d9d5c44ff792e1da4d8d64e413495c99e506f077fb05117e6"
         },
         {
-          "path": "packages/pkms-client/src/styles.css",
-          "sha256": "a04b2020f1658db486f440f6a35cc01ced2dc8a6da17f352e6f3441fb2c04ac7"
+          "path": "packages/pkms-client/src/theme.css",
+          "sha256": "611860f7c3d4f1b31a6a0e4b3153edf9fdb1b92188dcb2ac08cc0ef246e3fba0"
+        },
+        {
+          "path": "packages/pkms-client/src/PkmsClientApp.module.css",
+          "sha256": "3f5f44930837c56b49a12b469fbc4a51cb31ae609d35ad35d1a4807af6505afc"
+        },
+        {
+          "path": "packages/pkms-client/src/components/FileTreeList.module.css",
+          "sha256": "cf49178109c8f76d37947753b0fdced78b5b4b0b284d8a5314c14c6f31835254"
+        },
+        {
+          "path": "packages/pkms-client/src/components/PkmsContentSearchPanel.module.css",
+          "sha256": "e14c7a9233c0e0e2ce628c3696ea5fd31cb1997a6e9051e3addf3c01c8e3edc4"
+        },
+        {
+          "path": "packages/pkms-client/src/components/PkmsDialog.module.css",
+          "sha256": "db51bbf0f8d61a76f77a266c26b1353d7446b6d6de9935c1b6a5ddbaca4a5a1c"
+        },
+        {
+          "path": "packages/pkms-client/src/components/SyncBridgePanel.module.css",
+          "sha256": "5fc625f74a59c54ccd211178c00c04d5c548f831d51c98933d7f410b691a8a39"
         }
       ]
     },
@@ -651,7 +687,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/WorkspaceExplorerSidebar.tsx",
-          "sha256": "6e0ea8daaff4d776a5c8adffd25ef3a629b288d8d0ffeb592004b586a3eb06ba"
+          "sha256": "27409203e75ef4131673ae0ea31ca2144c59f7d4abf11452a2886b9df64f1375"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/browser/browserPageGuestRecovery.ts",
@@ -817,11 +853,11 @@
         },
         {
           "path": "apps/workspace-app/src/preload/index.d.ts",
-          "sha256": "fa9084d0bccee24a98e21ea272ae0696ad9cb4154fa16bf74757f0735fb11370"
+          "sha256": "59780848977849aed463d48940d08fe51616c7a059b831d13236ce66a5580a40"
         },
         {
           "path": "apps/workspace-app/src/preload/index.ts",
-          "sha256": "5aa05bb12284fda2094a7ff901167a4d1d021c9890e442bb7a7a9ed1e137eb53"
+          "sha256": "034df83c3f70e627b620d1137bacad75fe5bd15ccd9a6878a7798a173a4a0aac"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/browser/browserGuestFocus.ts",
@@ -967,7 +1003,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/pkms/ipc.ts",
-          "sha256": "1d2f201e23b9b3a43ffffbb0431a601ab626dfc0502be63594baac5e09e7abc0"
+          "sha256": "3793be7881f70cfa9b2462c59d34377f16ec0a800baa5ee8694fde0d032c5bb6"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/session.ts",
@@ -999,11 +1035,11 @@
         },
         {
           "path": "packages/pkms-client/src/components/SyncBridgePanel.tsx",
-          "sha256": "7ab43ce812b4012d35ab8a89bf37976cd573f2e28d260a702b1f9a4c040aac0a"
+          "sha256": "b0fdc20b096fc0eaef81c38b404d2fb4e9fb6475a5557856225ddab81fc90972"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsPane.tsx",
-          "sha256": "1e10cd9479bcbef8ba6579653c82bd8a6661303e05a94dd893d77861cef9d5fe"
+          "sha256": "ac991aa69509a24554b4947e8229653fe389066edb34816a8028debe71327fa2"
         }
       ]
     },
@@ -1260,7 +1296,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/workspaceRepository.ts",
-          "sha256": "4b696c691c01443753e14c42902b6062bb9e499e791327687906f0ccf123ab1e"
+          "sha256": "cfbbf0ba83b617101826ab2f06c7e3588a29c7f07856afecd9442ea560949191"
         },
         {
           "path": "packages/pkms-google-drive/src/outbox.ts",
@@ -1284,7 +1320,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveWorkspaceRepository.test.ts",
-          "sha256": "16976603b5b27c09c44572fe519ef4bc1c08149e1c48b623095dc93cc41b9ac9"
+          "sha256": "07ea198704b5ff1fa8e34ba5d023907012ba35a231173ecf30ebca3b4b6a5f7d"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveOutbox.test.ts",
@@ -1312,7 +1348,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveDesktopWorkspace.ts",
-          "sha256": "767fc71c93901e879257812892af24eb8388330ef5bc19cfd81d9ba49ecef83d"
+          "sha256": "bd3c7da8dc1709c0b11d3db9e28bbb599583ff5289e54e9d35bea5f598e2ceb3"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveDesktopOAuth.ts",
@@ -1324,11 +1360,11 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsPane.tsx",
-          "sha256": "1e10cd9479bcbef8ba6579653c82bd8a6661303e05a94dd893d77861cef9d5fe"
+          "sha256": "ac991aa69509a24554b4947e8229653fe389066edb34816a8028debe71327fa2"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "2dae65ff6f6569b67779ee74cf0d44f863333e6e5aee8bc9ff9c94b22be59858"
+          "sha256": "4c41c1dfbc1448701a97fdf718331cfc8fc862f0d37ae279b46c1d55c098f266"
         },
         {
           "path": "packages/pkms-google-drive/src/syncEngine.ts",
@@ -1376,7 +1412,7 @@
         },
         {
           "path": "packages/pkms-google-drive/src/workspace.module.css",
-          "sha256": "762ee89942ff5ca47fd9ab4a2e0af663d7717da87bb08f1e19bbd19785a0d8cb"
+          "sha256": "0fb9be6287a2569bc67e0fa85e9836cb7a522618e57c3aca501dc8e587195007"
         },
         {
           "path": "apps/workspace-app/src/main/pkms/googleDriveWorkspaceDirectory.ts",

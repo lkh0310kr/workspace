@@ -2,6 +2,7 @@ import type { DragEvent, KeyboardEvent, MouseEvent, ReactNode, RefObject } from 
 import { entryName } from '../domain/fileTree'
 import type { FileRecord, TreeRow } from '../domain/types'
 import { aggregateFolderSyncItemState } from '../domain/syncItemState'
+import styles from './FileTreeList.module.css'
 import type { PkmsSyncBridgeStatus } from '../platform/desktopApi'
 import {
   EditorTreePane,
@@ -181,7 +182,7 @@ export function FileTreeList(props: FileTreeListProps) {
   return (
     <EditorTreePane
       ariaLabel="Repository files"
-      className="pkms-client-tree-pane"
+
       header={header}
       contentRef={scrollRef}
       tree={{
@@ -195,7 +196,7 @@ export function FileTreeList(props: FileTreeListProps) {
         canMove,
         canMultiSelect,
         dragMimeType: EDITOR_TREE_DRAG_MIME_TYPE,
-        emptyContent: <p className="empty-hint">{loading ? 'Loading…' : 'Empty folder'}</p>,
+        emptyContent: <p className={styles.emptyHint}>{loading ? 'Loading…' : 'Empty folder'}</p>,
         onKeyDown,
         onScroll,
         onSetDropTarget,

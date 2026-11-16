@@ -1,10 +1,10 @@
 import type { LinksFunction, MetaFunction } from 'react-router'
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router'
-import styles from '@pkms/client/styles.css?url'
+import theme from '@pkms/client/theme.css?url'
 import editorStyles from '@workspace/editor/tree.css?url'
 
 export const links: LinksFunction = () => [
-  { rel: 'stylesheet', href: styles },
+  { rel: 'stylesheet', href: theme },
   { rel: 'stylesheet', href: editorStyles },
   { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }
 ]

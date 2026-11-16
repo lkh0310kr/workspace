@@ -11,6 +11,7 @@
     "./editor-host.css": "./src/editorHost.css",
     "./markdown.css": "./src/markdown.css",
     "./markdown-document.module.css": "./src/markdownDocument.module.css",
+    "./EditorQuickOpenDialog.module.css": "./src/EditorQuickOpenDialog.module.css",
     "./editor-search.css": "./src/editorSearch.css"
   },
   "peerDependencies": {

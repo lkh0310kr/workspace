@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Model } from 'flexlayout-react'
 import { TreeView } from './TreeView'
 import { SearchPanel } from './SearchPanel'
@@ -7,6 +7,7 @@ import { deletePathInAllPanes, renamePathInAllPanes } from '../explorer/workspac
 import { paneTabStoreKey } from '../store/paneTabKey'
 import type { PaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
 import { isExplorerToggleShortcut } from '../explorer/explorerShortcuts'
+import { EditorTreeResizeHandle } from '@workspace/editor'
 
 const TREE_MIN_WIDTH = 120
 const TREE_MAX_WIDTH = 480
@@ -56,7 +57,6 @@ export function WorkspaceExplorerSidebar({
 }: Props) {
   const { treeOpen, treeWidth, sidebarMode, setTreeOpen, setTreeWidth, setSidebarMode } = chrome
   const explorerScrollRef = useRef<HTMLDivElement>(null)
-  const treeResizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const [revealRevision, setRevealRevision] = useState(0)
   const [searchFocusRequest, setSearchFocusRequest] = useState(0)
 
@@ -151,29 +151,6 @@ export function WorkspaceExplorerSidebar({
     [model, onNotifyChanged]
   )
 
-  const onTreeResizeMouseDown = (e: ReactMouseEvent) => {
-    e.preventDefault()
-    treeResizeRef.current = { startX: e.clientX, startWidth: treeWidth }
-    const onMouseMove = (ev: MouseEvent) => {
-      const drag = treeResizeRef.current
-      if (!drag) return
-      const next = drag.startWidth + (ev.clientX - drag.startX)
-      if (next < TREE_MIN_WIDTH) {
-        setSidebarMode('explorer')
-        setTreeOpen(false)
-        return
-      }
-      setTreeWidth(Math.min(TREE_MAX_WIDTH, next))
-    }
-    const onMouseUp = () => {
-      treeResizeRef.current = null
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-    }
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-  }
-
   const showExplorerPanel = treeOpen || sidebarMode === 'search'
 
   return (
@@ -225,7 +202,17 @@ export function WorkspaceExplorerSidebar({
         </div>
       </div>
       {showExplorerPanel && (
-        <div className="obsidian-explorer-resizer" onMouseDown={onTreeResizeMouseDown} />
+        <EditorTreeResizeHandle
+          width={treeWidth}
+          minWidth={TREE_MIN_WIDTH}
+          maxWidth={TREE_MAX_WIDTH}
+          collapseBelow={TREE_MIN_WIDTH}
+          onWidthChange={setTreeWidth}
+          onCollapse={() => {
+            setSidebarMode('explorer')
+            setTreeOpen(false)
+          }}
+        />
       )}
     </>
   )

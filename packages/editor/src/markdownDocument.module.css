@@ -368,3 +368,16 @@
 .editor-markdown-document.is-wide .editor-markdown-properties {
   width: 100%;
 }
+
+/* KaTeX's math source fallback is hidden by its base stylesheet. Keep that
+   accessibility-only rendering hidden when the editor runs in a Shadow DOM,
+   where the upstream stylesheet cannot cross the host boundary. */
+.editor-markdown-content :global(.katex-mathml) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
+}

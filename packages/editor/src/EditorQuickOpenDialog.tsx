@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import styles from './EditorQuickOpenDialog.module.css'
 
 export interface EditorQuickOpenItem {
   id: string
@@ -50,9 +51,9 @@ export function EditorQuickOpenDialog({
   const selectIndex = (index: number): void => setSelection({ query, resultKey, index })
 
   return createPortal(
-    <div className="quick-open-backdrop" onClick={onClose}>
+    <div className={styles.backdrop} onClick={onClose}>
       <div
-        className="quick-open-modal"
+        className={styles.dialog}
         role="dialog"
         aria-modal="true"
         aria-label="Quick open"
@@ -60,7 +61,7 @@ export function EditorQuickOpenDialog({
       >
         <input
           ref={inputRef}
-          className="quick-open-input"
+          className={styles.input}
           placeholder={placeholder}
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
@@ -81,20 +82,20 @@ export function EditorQuickOpenDialog({
             }
           }}
         />
-        <div className="quick-open-results" ref={listRef}>
+        <div className={styles.results} ref={listRef}>
           {error ? (
-            <div className="quick-open-empty">Could not load files: {error}</div>
+            <div className={styles.empty}>Could not load files: {error}</div>
           ) : loading ? (
-            <div className="quick-open-empty">Loading files…</div>
+            <div className={styles.empty}>Loading files…</div>
           ) : items.length === 0 ? (
-            <div className="quick-open-empty">{emptyMessage}</div>
+            <div className={styles.empty}>{emptyMessage}</div>
           ) : (
             items.map((item, index) => (
               <button
                 type="button"
                 key={item.id}
                 data-index={index}
-                className={`quick-open-row${index === selectedIndex ? ' active' : ''}`}
+                className={`${styles.row}${index === selectedIndex ? ` ${styles.active}` : ''}`}
                 onMouseEnter={() => selectIndex(index)}
                 onClick={() => onSelect(item.id)}
               >

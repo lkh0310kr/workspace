@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import katexStyles from 'katex/dist/katex.min.css?inline'
 import editorTreeStyles from '@workspace/editor/tree.css?inline'
+import pkmsThemeStyles from '../../../../../../../packages/pkms-client/src/theme.css?inline'
+import pkmsAppStyles from '../../../../../../../packages/pkms-client/src/PkmsClientApp.module.css?inline'
+import pkmsTreeListStyles from '../../../../../../../packages/pkms-client/src/components/FileTreeList.module.css?inline'
+import pkmsSearchStyles from '../../../../../../../packages/pkms-client/src/components/PkmsContentSearchPanel.module.css?inline'
+import pkmsDialogStyles from '../../../../../../../packages/pkms-client/src/components/PkmsDialog.module.css?inline'
+import pkmsSyncBridgeStyles from '../../../../../../../packages/pkms-client/src/components/SyncBridgePanel.module.css?inline'
+import editorQuickOpenStyles from '@workspace/editor/EditorQuickOpenDialog.module.css?inline'
 import editorTreeViewStyles from '@workspace/editor/treeView.module.css?inline'
+import editorAssetPreviewStyles from '@workspace/editor/assetPreview.module.css?inline'
 import editorHostStyles from '@workspace/editor/editorHost.css?inline'
 import editorMarkdownStyles from '@workspace/editor/markdown.css?inline'
 import editorMarkdownDocumentStyles from '@workspace/editor/markdownDocument.module.css?inline'
@@ -74,18 +83,24 @@ export function PkmsPane({
     mountContainer.replaceChildren(host)
     const shadow = host.attachShadow({ mode: 'open' })
     const style = document.createElement('style')
-    style.textContent = `${editorTreeStyles.replaceAll(':root', ':host').replace(/(^|,)\s*body(?=\s*[, {])/gm, '$1:host')}
+    style.textContent = `${pkmsThemeStyles.replaceAll(':root', ':host').replace(/(^|,)\s*body(?=\s*[, {])/gm, '$1:host')}
+${pkmsAppStyles}
+${pkmsTreeListStyles}
+${pkmsSearchStyles}
+${pkmsDialogStyles}
+${pkmsSyncBridgeStyles}
+${editorQuickOpenStyles}
+${editorTreeStyles.replaceAll(':root', ':host').replace(/(^|,)\s*body(?=\s*[, {])/gm, '$1:host')}
 ${editorTreeViewStyles.replaceAll(':root', ':host')}
+${editorAssetPreviewStyles.replaceAll(':root', ':host')}
 ${editorHostStyles}
 ${editorMarkdownStyles}
 ${editorMarkdownDocumentStyles}
+${katexStyles}
 ${editorSearchStyles}
 ${googleDriveStyles}
-:host { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
-.pkms-root { width: 100%; height: 100%; min-width: 0; min-height: 0; }
-/* The client sizes itself to the window (100dvh); inside a pane it must fill the pane so the tree can scroll. */
-.app-shell { height: 100%; }
-.welcome-screen, .loading-screen { min-height: 100%; }`
+:host { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; --pkms-app-height: 100%; }
+.pkms-root { width: 100%; height: 100%; min-width: 0; min-height: 0; }`
     const mount = document.createElement('div')
     mount.className = 'pkms-root'
     shadow.append(style, mount)

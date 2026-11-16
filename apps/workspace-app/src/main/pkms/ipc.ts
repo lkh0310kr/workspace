@@ -118,6 +118,15 @@ export function registerPkmsIpc(): void {
     }
   )
   ipcMain.handle(
+    'pkms-google-drive:workspace:read-asset',
+    (event, rootId: string, fileId: string) => {
+      assertTrustedSender(event)
+      assertDriveId(rootId)
+      assertDriveId(fileId)
+      return driveWorkspaceService().readAsset(rootId, fileId)
+    }
+  )
+  ipcMain.handle(
     'pkms-google-drive:workspace:save-markdown',
     (event, rootId: string, fileId: string, text: string, flushSync?: boolean) => {
       assertTrustedSender(event)

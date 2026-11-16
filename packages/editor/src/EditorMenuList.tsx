@@ -86,6 +86,7 @@ export const EditorMenuList = forwardRef<HTMLDivElement, EditorMenuListProps>(
       <div
         ref={ref}
         role="menu"
+        data-editor-menu-list=""
         aria-label={ariaLabel}
         className={className}
         style={style}

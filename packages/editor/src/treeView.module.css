@@ -1,8 +1,4 @@
-:global(:root) {
-  --editor-tree-row-height: 27px;
-}
-
-.item {
+button.item {
   position: relative;
   display: flex;
   align-items: center;
@@ -29,10 +25,40 @@
 
 .pane {
   display: flex;
+  width: 100%;
   min-width: 0;
+  flex: 1 1 auto;
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
+  background: var(--editor-tree-background, var(--bg-surface, var(--sidebar, #17181b)));
+}
+
+.resizeHandle {
+  position: relative;
+  z-index: 2;
+  width: 6px;
+  flex: 0 0 6px;
+  margin-inline-start: -6px;
+  cursor: col-resize;
+  touch-action: none;
+  outline: 0;
+}
+
+.resizeHandle::after {
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  width: 1px;
+  background: transparent;
+  content: '';
+  transform: translateX(-50%);
+}
+
+.resizeHandle:hover::after,
+.resizeHandle:active::after,
+.resizeHandle:focus-visible::after {
+  background: var(--border-strong, var(--border, currentColor));
 }
 
 .paneHeader,

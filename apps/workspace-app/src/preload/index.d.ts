@@ -332,6 +332,14 @@ export interface PkmsDesktopApi {
     text: string
     revision: string
   }>
+  readGoogleDriveAsset: (
+    rootId: string,
+    fileId: string
+  ) => Promise<{
+    entry: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
+    bytes: Uint8Array
+    contentType: string
+  }>
   saveGoogleDriveMarkdown: (
     rootId: string,
     fileId: string,

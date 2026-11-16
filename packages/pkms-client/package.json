@@ -6,7 +6,7 @@
   "exports": {
     "./PkmsClientApp": "./src/PkmsClientApp.tsx",
     "./hostEvents": "./src/hostEvents.ts",
-    "./styles.css": "./src/styles.css"
+    "./theme.css": "./src/theme.css"
   },
   "peerDependencies": {
     "react": "^19.2.1",

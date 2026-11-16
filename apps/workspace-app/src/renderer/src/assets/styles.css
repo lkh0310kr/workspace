@@ -3254,35 +3254,6 @@ input {
   border-right: 1px solid var(--border);
 }
 
-.obsidian-explorer-resizer {
-  flex-shrink: 0;
-  width: 6px;
-  margin-left: -4px;
-  cursor: col-resize;
-  z-index: 1;
-  position: relative;
-  background: transparent;
-}
-
-.obsidian-explorer-resizer::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 3px;
-  transform: translateX(-50%);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--border) 55%, transparent);
-  transition: background var(--motion-fast);
-  transition-delay: var(--motion-hover-delay);
-}
-
-.obsidian-explorer-resizer:hover::after,
-.obsidian-explorer-resizer:active::after {
-  background: var(--border-strong);
-}
-
 .obsidian-editor-column {
   flex: 1;
   min-width: 0;

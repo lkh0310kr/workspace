@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { SyncStatus } from '../domain/types'
 import { desktopBridge, type PkmsSyncBridgeStatus } from '../platform/desktopApi'
+import styles from './SyncBridgePanel.module.css'
 
 interface Props {
   workspaceId: string
@@ -43,6 +44,12 @@ export function SyncBridgePanel({
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [excludedDraft, setExcludedDraft] = useState('')
+  const githubStateClass = {
+    synced: styles.githubStatesynced,
+    pending: styles.githubStatepending,
+    failed: styles.githubStatefailed,
+    'external-change': styles.githubStateexternalchange
+  }[githubStatus]
   const refresh = useCallback(async () => {
     if (!bridge) return
     try {
@@ -109,22 +116,23 @@ export function SyncBridgePanel({
 
   return (
     <section
-      className="sync-bridge-panel"
+      className={styles.panel}
       aria-label={bridge ? 'Editing folder and cloud sync' : 'Cloud workspace and GitHub backup'}
     >
-      <div className="sync-bridge-heading">
+      <div className={styles.heading}>
         <div>
           <span
-            className={`sync-bridge-indicator sync-bridge-indicator--${bridge ? (status?.state ?? 'loading') : 'synced'}`}
+            className={styles.indicator}
+            data-state={bridge ? (status?.state ?? 'loading') : 'synced'}
           />{' '}
           <span className="eyebrow">Sync settings</span>
         </div>
         <div>
-          <span className="sync-bridge-state">{bridge ? stateLabel(status) : 'Active'}</span>
+          <span className={styles.state}>{bridge ? stateLabel(status) : 'Active'}</span>
           {onClose && (
             <button
               type="button"
-              className="sync-bridge-close"
+              className={styles.close}
               aria-label="Close sync settings"
               onClick={onClose}
             >
@@ -136,11 +144,11 @@ export function SyncBridgePanel({
       {bridge ? (
         <>
           {status?.folderPath && (
-            <div className="sync-bridge-path" title={status.folderPath}>
+            <div className={styles.path} title={status.folderPath}>
               {status.folderPath}
             </div>
           )}
-          <div className="sync-bridge-meta">
+          <div className={styles.meta}>
             {status?.state === 'syncing'
               ? !status.progress || status.progress.total === 0
                 ? 'Checking for local and cloud changes…'
@@ -167,7 +175,7 @@ export function SyncBridgePanel({
             {status?.pendingFiles ? ` · ${status.pendingFiles} pending` : ''}
           </div>
           {status?.enabled && Object.keys(itemStateCounts).length > 0 && (
-            <div className="sync-bridge-meta" aria-label="File sync status totals">
+            <div className={styles.meta} aria-label="File sync status totals">
               {itemStateCounts.synced ?? 0} synced
               {' · '}
               {itemStateCounts.pending ?? 0} pending
@@ -179,21 +187,21 @@ export function SyncBridgePanel({
             </div>
           )}
           {(status?.error || message) && (
-            <div className="sync-bridge-error">{status?.error ?? message}</div>
+            <div className={styles.error}>{status?.error ?? message}</div>
           )}
           {status?.conflictFiles.length ? (
-            <div className="sync-bridge-conflicts">
+            <div className={styles.conflicts}>
               <strong>
                 {status.conflictFiles.length} preserved conflict cop
                 {status.conflictFiles.length === 1 ? 'y' : 'ies'}
               </strong>
               <span>Both versions are kept. Open a copy to review it.</span>
-              <div className="sync-bridge-conflict-list">
+              <div className={styles.conflictList}>
                 {status.conflictFiles.slice(0, 5).map((path) => (
                   <button
                     key={path}
                     type="button"
-                    className="sync-bridge-conflict-link"
+                    className={styles.conflictLink}
                     onClick={() => onOpenConflict?.(path)}
                     disabled={!onOpenConflict}
                   >
@@ -207,7 +215,7 @@ export function SyncBridgePanel({
             </div>
           ) : null}
           {status?.enabled && (
-            <div className="sync-bridge-exclusions">
+            <div className={styles.exclusions}>
               <label htmlFor={`sync-bridge-exclusions-${workspaceId}`}>
                 Exclude paths (one pattern per line)
               </label>
@@ -233,7 +241,7 @@ export function SyncBridgePanel({
               )}
             </div>
           )}
-          <div className="sync-bridge-actions">
+          <div className={styles.actions}>
             {status?.enabled ? (
               <>
                 <button
@@ -259,14 +267,14 @@ export function SyncBridgePanel({
           </div>
         </>
       ) : (
-        <div className="sync-bridge-meta">
+        <div className={styles.meta}>
           Web and mobile edit this cloud workspace. Desktop sync keeps its editing folder up to
           date.
         </div>
       )}
-      <div className="sync-bridge-github">
+      <div className={styles.github}>
         <span>Optional GitHub backup</span>
-        <strong className={`sync-bridge-github-state is-${githubStatus}`}>
+        <strong className={`${styles.githubState} ${githubStateClass}`}>
           {githubStatus === 'external-change'
             ? 'External change'
             : githubStatus === 'failed'
@@ -276,7 +284,7 @@ export function SyncBridgePanel({
                 : 'Up to date'}
         </strong>
       </div>
-      <div className="sync-bridge-meta">
+      <div className={styles.meta}>
         {githubStatus === 'synced' && githubLastCommitAt
           ? `Last commit ${new Date(githubLastCommitAt).toLocaleString()}`
           : githubPendingFiles
@@ -284,7 +292,7 @@ export function SyncBridgePanel({
             : (githubMessage ?? 'This is an optional GitHub copy. It does not control cloud sync.')}
       </div>
       {githubStatus === 'external-change' && (
-        <div className="sync-bridge-actions">
+        <div className={styles.actions}>
           <button type="button" disabled={busy} onClick={() => void resumeGithubBackup()}>
             {busy ? 'Checking branch…' : 'Check and resume backup'}
           </button>

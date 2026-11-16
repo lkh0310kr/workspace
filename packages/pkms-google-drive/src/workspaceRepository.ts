@@ -280,6 +280,24 @@ export class GoogleDriveWorkspaceRepository {
     return { metadata, bytes: await this.client.download(metadata.id) }
   }
 
+  async readAsset(fileId: string): Promise<{
+    entry: GoogleDriveWorkspaceEntry
+    metadata: DriveFile
+    bytes: Uint8Array
+  }> {
+    const { metadata, bytes } = await this.readFile(fileId)
+    const path = await this.pathWithinWorkspace(metadata)
+    if (path === null) throw new Error('The requested item is outside this PKMS workspace.')
+    const entry = {
+      ...metadata,
+      id: workspaceItemId(metadata),
+      path,
+      kind: entryKind(metadata)
+    }
+    if (entry.kind !== 'asset') throw new Error('The requested Drive item is not an attachment.')
+    return { entry, metadata, bytes }
+  }
+
   async createFolder(parentPath: string, name: string): Promise<GoogleDriveWorkspaceEntry> {
     const parent = await this.resolveDirectory(parentPath)
     const folder = await this.client.createFolder(name, parent.id)

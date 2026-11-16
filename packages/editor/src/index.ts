@@ -44,6 +44,13 @@ export type { CodeEditorExtensionOptions } from './codeEditor'
 export { markdownEditorTheme, markdownProseTheme } from './themes'
 export { EditorTreeFrame, EditorTreePane } from './EditorTreePane'
 export type { EditorTreeFrameProps, EditorTreePaneProps } from './EditorTreePane'
+export {
+  EDITOR_TREE_DEFAULT_WIDTH,
+  EDITOR_TREE_MAX_WIDTH,
+  EDITOR_TREE_MIN_WIDTH,
+  EditorTreeResizeHandle
+} from './EditorTreeResizeHandle'
+export type { EditorTreeResizeHandleProps } from './EditorTreeResizeHandle'
 export { EditorTreeToolbar } from './EditorTreeToolbar'
 export type { EditorTreeToolbarProps } from './EditorTreeToolbar'
 export { EditorTreeCreateActions } from './EditorTreeCreateActions'
@@ -71,6 +78,9 @@ export { EditorMarkdownEditor } from './EditorMarkdownEditor'
 export type { EditorMarkdownEditorProps } from './EditorMarkdownEditor'
 export { EditorMarkdownTitleInput } from './EditorMarkdownTitleInput'
 export { EditorMarkdownTitle } from './EditorMarkdownTitle'
+export { EditorAssetPreview } from './EditorAssetPreview'
+export type { EditorAssetPreviewProps } from './EditorAssetPreview'
+export { editorAssetContentType } from './assetContentType'
 export {
   discardEditorViewState,
   moveEditorViewState,

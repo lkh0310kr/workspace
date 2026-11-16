@@ -28,7 +28,7 @@ directory refresh는 해당 direct child 목록을 대체하고 사라진 folder
 
 [PKMSRealtimeSocket](../../../../packages/pkms-client/src/realtime.ts)은 WebSocket 형태의 readyState/onopen/onmessage/onclose 인터페이스를 Supabase private channel 위에 제공한다. config/token을 API로 받고 **각 socket 인스턴스가 자체 Supabase client, auth token provider, WebSocket 진단 콜백을 소유한다.** 같은 workspace topic에 여러 PKMS 화면이나 host가 동시에 연결되어도 채널·진단 callback을 공유하지 않는다. protocol broadcast와 presence를 shared DTO로 전달한다. close는 token timer·channel 수명과 이후 callback을 정리한다. 원격 event를 authoritative sync cursor 대신 사용하지 않는다.
 
-공개 host event는 [hostEvents](../../../../packages/pkms-client/src/hostEvents.ts)의 pkms:quick-open이다. Desktop shell이 내부 component 상태를 임의 import해 조작하는 API로 만들지 않는다. 스타일은 package styles.css와 editor CSS를 소비하고 Desktop Shadow DOM 경계를 지킨다.
+공개 host event는 [hostEvents](../../../../packages/pkms-client/src/hostEvents.ts)의 pkms:quick-open이다. Desktop shell이 내부 component 상태를 임의 import해 조작하는 API로 만들지 않는다. 테마 토큰과 host reset만 package theme.css가 제공한다. 화면 규칙은 PkmsClientApp, FileTreeList, 검색, 다이얼로그, sync 패널의 CSS Module이 각각 소유한다. Desktop host는 각 CSS Module의 inline 빌드를 Shadow DOM에 주입하고, Editor 공통 TreePane과 Quick Open은 Editor package의 CSS Module을 사용한다.
 
 ## 수락·남은 범위
 

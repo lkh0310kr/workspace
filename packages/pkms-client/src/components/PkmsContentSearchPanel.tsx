@@ -5,6 +5,7 @@ import {
   type EditorSearchMatch,
   type EditorSearchResult
 } from '@workspace/editor'
+import styles from './PkmsContentSearchPanel.module.css'
 
 interface Props {
   provider: EditorProvider | null
@@ -45,6 +46,7 @@ export function PkmsContentSearchPanel({
   const [error, setError] = useState<string | null>(null)
   const [refreshIndex, setRefreshIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
   const controllerRef = useRef<AbortController | null>(null)
   const supportsSearch = editorSupportsSearch(provider, 'contents')
   const totalMatches = useMemo(
@@ -78,9 +80,13 @@ export function PkmsContentSearchPanel({
         regex: false,
         wholeWord: false
       }
-      void (provider.searchPage
-        ? provider.searchPage(query, searchOptions, controller.signal)
-        : provider.search(query, searchOptions, controller.signal).then((results) => ({ results, nextCursor: null, hasMore: false })))
+      void (
+        provider.searchPage
+          ? provider.searchPage(query, searchOptions, controller.signal)
+          : provider
+              .search(query, searchOptions, controller.signal)
+              .then((results) => ({ results, nextCursor: null, hasMore: false }))
+      )
         .then((page) => {
           if (controller.signal.aborted) return
           setResults(page.results)
@@ -130,8 +136,8 @@ export function PkmsContentSearchPanel({
   }, [coverage?.pendingFiles, query, searching])
 
   return (
-    <section className="pkms-search-panel" aria-label="Search in workspace">
-      <div className="pkms-search-input-row">
+    <section className={styles.panel} aria-label="Search in workspace">
+      <div className={styles.inputRow}>
         <input
           ref={inputRef}
           aria-label="Search workspace contents"
@@ -144,7 +150,7 @@ export function PkmsContentSearchPanel({
               event.preventDefault()
               onClose()
             } else if (event.key === 'ArrowDown') {
-              const first = document.querySelector<HTMLButtonElement>('.pkms-search-match')
+              const first = resultsRef.current?.querySelector<HTMLButtonElement>(`.${styles.match}`)
               if (first) {
                 event.preventDefault()
                 first.focus()
@@ -154,7 +160,7 @@ export function PkmsContentSearchPanel({
         />
         <button
           type="button"
-          className={`pkms-search-case${caseSensitive ? ' is-active' : ''}`}
+          className={`${styles.caseButton}${caseSensitive ? ` ${styles.active}` : ''}`}
           aria-label="Match case"
           aria-pressed={caseSensitive}
           title="Match case"
@@ -163,7 +169,7 @@ export function PkmsContentSearchPanel({
           Aa
         </button>
       </div>
-      <div className="pkms-search-status" role="status" aria-live="polite">
+      <div className={styles.status} role="status" aria-live="polite">
         {!supportsSearch
           ? 'Content search is unavailable.'
           : searching
@@ -176,22 +182,22 @@ export function PkmsContentSearchPanel({
                   ? `${totalMatches} matching lines in ${results.length} notes`
                   : 'Search all Markdown notes'}
       </div>
-      <div className="pkms-search-results">
+      <div className={styles.results} ref={resultsRef}>
         {results.map((result) => (
-          <section className="pkms-search-file" key={result.item.itemId}>
-            <div className="pkms-search-path" title={result.item.path}>
+          <section className={styles.file} key={result.item.itemId}>
+            <div className={styles.path} title={result.item.path}>
               {result.item.path}
             </div>
             {result.matches?.map((match, index) => (
               <button
-                className="pkms-search-match"
+                className={styles.match}
                 key={`${match.line}:${index}`}
                 type="button"
                 title={`${result.item.path}:${match.line}`}
                 onClick={() => onSelect(result, match.line)}
               >
-                <span className="pkms-search-line-number">{match.line}</span>
-                <span className="pkms-search-preview">
+                <span className={styles.lineNumber}>{match.line}</span>
+                <span className={styles.preview}>
                   {highlightedText(match.preview, match.ranges)}
                 </span>
               </button>
@@ -199,12 +205,17 @@ export function PkmsContentSearchPanel({
           </section>
         ))}
         {hasMore && (
-          <button className="pkms-search-load-more" type="button" disabled={loadingMore} onClick={() => void loadMore()}>
+          <button
+            className={styles.loadMore}
+            type="button"
+            disabled={loadingMore}
+            onClick={() => void loadMore()}
+          >
             {loadingMore ? 'Loading…' : 'Load more results'}
           </button>
         )}
         {!searching && !error && query && results.length === 0 && (
-          <div className="pkms-search-empty">
+          <div className={styles.empty}>
             {coverage?.pendingFiles ? 'No matches in indexed notes yet.' : 'No results found.'}
           </div>
         )}
