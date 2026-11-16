@@ -1,6 +1,6 @@
 # Android Data Node 프로토타입
 
-> **상태: 취소됨** — 사용자의 요청으로 2026-11-08에 구현을 중단했다. 확인된 범위와 미완료 항목은 [취소 기록](../../docs/research/data-node/CANCELLATION.md)을 참고한다.
+> **상태: 취소·아카이브됨** — 구현은 2026-11-08에 중단됐고, 추적 파일은 `archive/apps/android-data-node/`에 보존한다. 확인된 범위와 미완료 항목은 [취소 기록](../../research/data-node/CANCELLATION.md)을 참고한다. 재개 전까지 현재 제품 경로에서 사용하지 않는다.
 
 이 prototype은 로컬 storage engine이다. Network, Supabase, Cloudflare, GitHub 또는 USB port forwarding을 사용하지 않는다. Record는 SQLite에, immutable object는 앱 전용 files directory에 저장한다. 로컬 개발에서는 보호된 Android ContentProvider를 통해 ADB shell이 앱에 storage 명령을 직접 보낸다. 일반 앱에는 `android.permission.DUMP` 권한을 주지 않는다.
 

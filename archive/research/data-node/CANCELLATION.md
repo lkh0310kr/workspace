@@ -10,7 +10,7 @@
 ## 완료하고 확인한 범위
 
 - GitHub/Supabase 저장 구조, Android SQLite + app-private object storage 구조, 백업 역할에 대한 조사 자료를 `docs/research/data-node/`에 보관했다.
-- [Android Data Node 프로토타입](../../../apps/android-data-node/README.md)에 네트워크 없는 Android 저장소, SQLite 배치 record transaction, idempotency/CAS, content-addressed object storage를 구현했다.
+- [보존된 Android Data Node 프로토타입](../../apps/android-data-node/README.md)에 네트워크 없는 Android 저장소, SQLite 배치 record transaction, idempotency/CAS, content-addressed object storage를 구현했다.
 - USB debugging으로 APK를 설치하고 ADB shell에서 제한된 ContentProvider를 호출하는 one-click 검증을 추가했다. Worker, IP listener, Supabase, GitHub 연결은 이 검증 경로에 포함되지 않는다.
 - SQLite v1→v3 migration, 기존 record/object 보존, pending upload 복구, missing/corrupt object 분류, orphan 파일 후보 기록을 구현했다. orphan 파일은 자동 삭제하지 않는다.
 - 2026-11-08 S21 Ultra (SM-G998N, Android API 35)에서 마지막 실행이 통과했다. 초기 검사 9개, 앱 프로세스 재시작 검사 12개, ADB 호스트 검사 12개가 통과했고, 기존 v1 데이터가 v3로 이전됐다. 복구 fixture 결과는 pending publish 1건 복구, staging-only 업로드 1건 정리, missing 1건, corrupt 1건, orphan 후보 1건 탐지였다.
