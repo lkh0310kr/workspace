@@ -1185,7 +1185,7 @@
         },
         {
           "path": "packages/terminal/src/index.ts",
-          "sha256": "d74c722dd7b2d02bf9f932264336fb337f6e6670b58a5929a37e3b1a0c87e4ab"
+          "sha256": "1feeb0ce3e39137c2fac4148d232487a04fd6db03313a82183a7cfc864aaaf6e"
         },
         {
           "path": "packages/terminal/src/monospace-font-family.test.ts",

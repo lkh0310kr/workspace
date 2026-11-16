@@ -30,6 +30,11 @@ export type {
   WindowsInputRecordNewline
 } from './terminal-bracketed-paste'
 export { resolveTerminalMultilinePasteOptions } from './terminal-paste-options'
+export { pasteTerminalClipboard } from './terminal-clipboard-paste'
+export type {
+  PasteTerminalClipboardDeps,
+  TerminalClipboardPasteResult
+} from './terminal-clipboard-paste'
 export {
   formatDroppedPaths,
   installTerminalFileDropHandler,
