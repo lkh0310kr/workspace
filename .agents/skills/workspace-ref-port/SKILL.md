@@ -100,7 +100,7 @@ rg "pane-split-scroll|pendingSplitScroll" ref-proj/orca/src/renderer
 - tmux 래퍼 재도입 — PTY는 Orca처럼 **login shell 직접 spawn** (`apps/workspace/src/main/pty.ts`)
 - 휠 이벤트를 PTY arrow key로 포워딩 — `terminal-wheel-scroll.ts`가 viewport만 처리
 - webview에 `display:flex` + `pointer-events:none` — IC 정책: 비활성 시 **display:none**
-- `TODO.md`, `.cursor/`, `.workspace/`, `test/` 루트 커밋
+- `TODO.md`, `.workspace/`, `test/` 루트 커밋
 
 ## Workspace 핵심 아키텍처 (이식 시 맞출 지점)
 

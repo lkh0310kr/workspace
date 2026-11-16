@@ -1,7 +1,7 @@
 # 에이전트 스킬
 
-프로젝트에서 사용하는 에이전트 스킬을 여기에 둔다. Cursor, Claude Code, Codex는 모두
-`.agents/skills/`를 읽는다.
+공용 에이전트 스킬의 기준 위치는 `.agents/skills/`다. Codex는 이 경로를 직접 사용하고,
+Claude Code는 `.claude/skills/`의 심볼릭 링크를 통해 같은 스킬을 읽는다.
 
 | 경로 | 용도 |
 |------|---------|
@@ -14,8 +14,11 @@
 - **workspace-ref-port** — `ref-proj/`의 패턴을 `apps/workspace/`에 이식
 - **text-to-cad** (11개 스킬) — CAD, DXF, URDF, G-code, DfAM 등 ([원본](https://github.com/earthtojake/text-to-cad))
 
-`.claude/skills/`에는 Claude Code가 사용하는 `skills/` 내부 링크가 있다. 그 경로에서는 스킬을 편집하지 말고,
-대신 `skills/` 아래의 파일을 수정한다.
+`.claude/settings.json`은 Claude Code 전용 설정이라 별도로 둔다. `.claude/skills/`의 링크를 따라가면
+공용 원본에 도달하므로, 스킬은 `.agents/skills/` 아래에서만 편집한다.
+
+`.codex/refactor/`에는 저장소 리팩터링의 Codex 진행 계획과 작업 기록이 있다. 이는 재사용 스킬 정의가
+아니므로 공용 스킬 디렉터리와 분리해 유지한다.
 
 저장소 root에서 다음 명령으로 text-to-cad 스킬을 업데이트한다.
 

@@ -50,7 +50,6 @@ untitled*.md
 /.workspace/
 /.serena/
 /test/
-.cursor/debug-*.log
 
 # Agent skills Python virtualenv (see .agents/README.md, npm run agents:python:setup)
 .agents/.venv/
