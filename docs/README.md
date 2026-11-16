@@ -7,6 +7,7 @@
 - [제품 범위와 사용자 여정](./product/프로젝트%20정의.md)
 - [플랫폼 우선순위와 작업 범위](./product/platform-focus.md)
 - [Android Data Node 아카이브 기록](./archive/android-data-node.md)
+- [PKMS iOS legacy 아카이브 기록](./archive/pkms-ios-legacy.md)
 - [문서 scope·소유 규칙](./documentation-scopes.md)
 - [전체 시스템 context](./architecture/01-overview.md)
 

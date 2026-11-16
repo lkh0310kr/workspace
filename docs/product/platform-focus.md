@@ -10,7 +10,7 @@
 
 `apps/pkms-ios/`와 iOS 전용 구현·테스트·문서는 사용자가 별도 재개를 요청하기 전까지 에이전트의 일반적인 읽기, 분석, 수정 대상에서 제외한다. 다른 플랫폼 작업 중 해당 경로를 탐색하거나 계약 근거로 참조하지 않는다. 저장소의 전역 문서에 이미 있는 제품 범위 표기는 현재 작업 허가로 해석하지 않는다.
 
-`apps/pkms-ios/legacy/`도 같은 제외 범위에 속한다. 요청에 따라 디렉터리 구조만 제한적으로 확인한 결과, `legacy/v1/`은 별도 Xcode 프로젝트로 남아 있는 이전 PKMS iOS 앱 구현이다. SwiftUI 앱 소스와 Markdown 편집, Map, GitHub 기반 Vault sync, Agent runtime, 테스트와 SampleVault가 포함되어 있다. 함수 동작이나 구현 품질은 조사하지 않았다. 이 한 번의 식별 이후에는 `pkms-ios` 전체를 일반적인 읽기·분석·수정 대상에서 제외한다.
+`apps/pkms-ios/legacy/`는 요청에 따라 [아카이브](../archive/pkms-ios-legacy.md)로 이동했다. `legacy/v1/`은 별도 Xcode 프로젝트로 남아 있던 이전 PKMS iOS 앱이며, 내부 동작 검토 없이 보존했다. 이동한 legacy를 포함해 PKMS iOS 전체는 사용자가 재개를 요청하기 전까지 일반적인 읽기·분석·수정 대상에서 계속 제외한다.
 
 ## Android Data Node 아카이브
 
