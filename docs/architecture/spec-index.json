@@ -1239,11 +1239,19 @@
         },
         {
           "path": "apps/pkms-web/app/routes/pkms-google-drive.tsx",
-          "sha256": "bd03b3483b5769fc5830bf9deb89789e20a1fa152ddf2a8e87a218a173951627"
+          "sha256": "e15e46a95d476664207c4342edba3d7b9baa03fe67770946931f5f789d902262"
         },
         {
           "path": "apps/pkms-web/workers/web.ts",
           "sha256": "fb139fef5d34c0fc800dec868962b3998d3d534f964e33cc75a6575eab246759"
+        },
+        {
+          "path": "apps/pkms-web/app/routes/flushDocumentBeforeWorkspaceSync.ts",
+          "sha256": "ce654fa30ceb84c551aa872a7116808a13ae214ea736fb3253ad775cf0c73a5f"
+        },
+        {
+          "path": "apps/pkms-web/app/routes/flushDocumentBeforeWorkspaceSync.test.ts",
+          "sha256": "253278158120d60b7f9afbf88bb8afec0770a2478ec0a47b6c8b268d2c544060"
         }
       ]
     },
