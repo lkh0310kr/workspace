@@ -122,9 +122,7 @@ function FeatureSandbox(): JSX.Element {
         </nav>
       </header>
       <section className="sandbox-surface" aria-label={`${surface} feature`}>
-        <div hidden={surface !== 'home'}>
-          <HomeView readSystemSummary={hostSummary} />
-        </div>
+        {surface === 'home' ? <HomeView readSystemSummary={hostSummary} /> : null}
         <div className="sandbox-browser" hidden={surface !== 'browser'}>
           {browserOverlay}
         </div>

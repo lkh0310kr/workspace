@@ -1372,6 +1372,18 @@
         {
           "path": "apps/desktop/src/renderer/src/features/diagnostics/useDiagnosticsBootstrap.ts",
           "sha256": "84ca61b9e6a92b2f3d2f04f9db63068be2d46e261f11000eaa31c965854c9ff9"
+        },
+        {
+          "path": "apps/desktop/visual-tests/feature-sandbox/src/main.tsx",
+          "sha256": "ddae059c0a6f0c7be8b45bb355d7ba2bd43dfe6bd366077656d4964402d79e2c"
+        },
+        {
+          "path": "apps/desktop/visual-tests/feature-sandbox/src/mockBrowserHost.ts",
+          "sha256": "f033815b557469a675fd75ac7afc74875c51eb2a3e773a73de12f5d91209a25d"
+        },
+        {
+          "path": "apps/desktop/visual-tests/feature-sandbox/src/mockTerminalHost.ts",
+          "sha256": "b6d1c1680b90a007e87827b3573f0f37cffe6cea7030eb79377cf1aa3e197a14"
         }
       ]
     },
