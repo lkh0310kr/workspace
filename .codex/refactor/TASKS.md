@@ -1,0 +1,81 @@
+# 저장소 전체 리팩터링 작업 큐
+
+작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 23개다.
+
+| 작업 ID | 영역 | 변경 목표 | 전용 수정 경로 | 선행 작업 | 위험도 | 검증 | 상태 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| T-000 | R-001 | `workspace-app` 내부 하위 영역의 의미 검토와 근거 기반 후보 선정 | `.codex/refactor/**` | 없음 | 낮음 | 영역별 검증 기준선 조사·전체 인벤토리 상태 기록 | validated |
+| T-001 | R-001d | 공통 agent 제목 식별 함수를 단일 구현으로 유지하고 기존 terminal 모듈 경로에서 재수출 | `apps/workspace-app/src/shared/agent/terminal-title-agent-type.ts`, 같은 폴더 테스트 | 없음 | 낮음 | 집중 Vitest, `npm run typecheck`, `npm run check` | validated |
+| T-002a | R-001a | 폴더 sync bridge의 교차 프로세스 잠금 획득·해제 책임을 독립 모듈로 추출 | `apps/workspace-app/src/main/pkms/folderSyncLock.ts`, 테스트, `syncBridge.ts` | 없음 | 중간 | 잠금 단위 테스트, syncBridge 25개 테스트, typecheck, root check | validated |
+| T-002b | R-001a | HTTP 오류 변환·asset 업로드·원격 읽기/page adapter를 내부 remote 모듈로 추출하고 durable create/update는 Main에 유지 | `apps/workspace-app/src/main/pkms/syncBridgeRemote.ts`, `syncBridge.ts` | 없음 | 중간 | syncBridge 관련 25개 테스트, typecheck, root check, 변경 모듈 lint | validated |
+| T-002c | R-001a | 자산별 로컬·원격 조정 로직을 내부 모듈로 추출하고 worker 재시도·병렬도는 Main에 유지 | `apps/workspace-app/src/main/pkms/syncBridgeAssets.ts`, `syncBridge.ts` | T-002a·T-002b | 높음 | syncBridge 25파일/31테스트, typecheck, root check, 신규 모듈 lint·format | validated |
+| T-002d | R-001a | watcher/poller/realtime/timer/재시도 수명주기 소유를 `syncBridgeRuntime.ts`로 추출하고 `syncOnce`/tree API는 Main에 유지 | `syncBridge.ts`, `syncBridgeRuntime.ts` 및 연관 테스트 | T-002a·T-002b·T-002c | 높음 | watcher-recovery, retry, restart, root-offline, root-switch, folderSyncLock 테스트와 Node typecheck | validated |
+| T-002e | R-001a | 단일 Markdown `reconcilePath`를 분리하되 입력 준비·6 worker·pass 관리·cursor owner는 `syncOnce`에 유지 | `syncBridge.ts`, `syncBridgeMarkdown.ts` | T-002a~T-002d | 높음 | syncBridge 25파일/31테스트, typecheck, root check, 신규 모듈 lint·format | validated |
+| T-003 | R-001b | Google Drive pane의 Drive 전용 문서 session 함수를 테스트 후 내부 모듈로 추출 | `PkmsGoogleDrivePane.tsx` 및 인접 신규 모듈 | session 계약 테스트 | 중간~높음 | session 7개 테스트, 기존 visual autosave acceptance, typecheck | validated |
+| T-004 | R-001b | agent usage bar들의 카운트다운·색상 계산을 공유 helper로 단일화 | renderer usage status bar 2개 및 helper/test | 없음 | 낮음 | helper 경계 테스트, typecheck | validated |
+| T-005 | R-001a | Workspace 내부 중복 `Tab` 타입을 `TabInfo`로 통일 | `apps/workspace-app/src/main/workspace.ts` | 없음 | 낮음 | Node typecheck, 변경 경로 lint 및 baseline 비교 | validated |
+| T-006 | R-001c | PKMS desktop preload API object를 전용 모듈로 추출하고 contextBridge 표면 유지 | `apps/workspace-app/src/preload/index.ts`, `pkmsDesktopApi.ts` | 없음 | 낮음~중간 | app typecheck, 변경 경로 lint, 채널/인자 diff 검토 | validated |
+| T-007 | R-001b | ADAPT-03 저장 중 편집 경합에서 durable 저장본 watcher echo를 자기 변경으로 처리 | `localEditorProvider.ts` 및 계약 테스트 | provider session 계약 테스트 | 중간 | local editor 6개 계약 테스트 및 typecheck | validated |
+| T-008 | R-001b | 테스트 가능한 `LocalDocumentSession`을 provider orchestration에서 별도 모듈로 분리 | `localEditorProvider.ts`, `localDocumentSession.ts`, session 계약 테스트 | T-007 | 중간~높음 | editor 4파일/11테스트, typecheck, 신규 모듈 lint·format | validated |
+| T-009 | R-001d | cooked OSC echo parsing의 중복 응답 prefix 정규식을 공통 상수로 재사용 | `apps/workspace-app/src/shared/terminal-query-reply.ts` | 없음 | 낮음 | terminal query reply 6개 테스트, typecheck, lint baseline 비교 | validated |
+| T-010 | R-001d | scrollback default/normalize/backlog 정책을 shared 단일 owner로 통일 | shared policy, renderer import 2곳, 불필요한 renderer 복사본 | 정책/import 호출부 추적 완료 | 중간 | backlog cap, ack-credit, terminal buffer/cold-restore 4개 테스트와 typecheck | validated |
+| T-011 | R-001b | Drive pane의 branch cache/loading/generation/deferred expansion 수명주기를 전용 owner로 분리 | `PkmsGoogleDrivePane.tsx`, `useDriveTreeBranches.ts` | T-003, branch race acceptance | 높음 | lifecycle 6개 및 관련 parity 8개 visual tests, typecheck, root check | validated |
+| T-012 | R-001a | PKMS Google Drive와 legacy PKMS IPC 등록 책임을 내부 함수로 분리하고 public entrypoint/채널·검증·싱글톤·bridge 시작 의미를 보존 | `apps/workspace-app/src/main/pkms/ipc.ts`, 신규 registration 계약 테스트 | IPC 채널/등록 기준선 | 중간 | fake ipcMain 기반 채널·guard·sync bridge 호출 계약 테스트, typecheck, root check | validated |
+| T-013 | R-001b | SearchPanel/local provider의 취소·stale query·stream 완료·replace guard를 SEARCH 계약에 따라 테스트로 고정 | `SearchPanel.focus.test.ts`, `localEditorProvider.test.ts` | SEARCH-03/04/05/06/11 | 중간 | focused Vitest 13개, typecheck:web, ESLint, Prettier | validated |
+| T-014 | R-001b | SearchPanel query debounce/abort/stream state lifecycle을 작은 hook으로 분리하되 UI·provider 계약을 보존 | `SearchPanel.tsx`, `useFileContentSearch.ts`, acceptance test | T-013 | 중간~높음 | focused 15 tests, typecheck, root check, lint/format | validated |
+| T-015 | R-001c | `BrowserDownloadEventPayload` runtime/declaration 중복 정의를 공통 type owner로 단일화 | `preload/browserApi.ts`, `preload/index.d.ts`, 신규 shared DTO 모듈 | 현재 선언 필드·사용부 비교 | 낮음 | typecheck, 변경 경로 lint/format, 공개 타입 표면 비교 | validated |
+| T-016 | R-001d | image/video/audio/model3d/CAD extension 집합을 shared owner에 단일화하고 각 classifier 의미를 보존 | `shared/asset.ts`, `shared/cadViewer.ts`, `renderer/panes/mediaKind.ts`, `shared/mediaExtensions.ts`, tests | extension arrays 차이·분류 순서 기준선 확인 | 중간 | asset/mediaKind·CAD classifier 19 tests, typecheck, root check, lint/format | validated |
+| T-017 | R-001a | workspace IPC의 streamed content search request/cancel 생명주기를 전용 등록 모듈로 추출하고 channel/event 의미를 보존 | `main/ipc/workspace.ts`, `main/ipc/workspaceSearch.ts`, IPC contract tests | 기존 Map/request/sender semantics characterization | 중간~높음 | 14 IPC/search tests, typecheck:node, root check, lint/format | validated |
+| T-018 | R-010 | Google Drive repository/operation log/asset conflict의 SHA-256 hex helper를 내부 공통 함수로 단일화하고 digest 형식을 보존 | `packages/pkms-google-drive/src/{workspaceRepository,operationLog,assetConflictMaterializer}.ts`, 신규 `sha256.ts` | 기존 repository/log/asset tests 확인 | 낮음 | 관련 Google Drive client 테스트, package typecheck 및 app/root check, lint/format | validated |
+| T-019 | R-008 | workspace tree cache의 parentPath 계산을 domain helper로 단일화하고 cache behavior 보존 | `packages/pkms-client/src/client/workspaceTreeCache.ts`, 관련 contract test | R-008 경로 의미·consumer 계약 조사 | 낮음~중간 | focused cache tests, typecheck, lint/format | validated |
+
+## 검토 현황
+
+- 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
+- 채택한 리팩터링 작업: 23개; 검증 완료 23, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
+
+## 체크포인트
+
+- 완료: 추적 파일 인벤토리, 적용되는 루트 지침, 스펙 기반 개발 규칙·인덱스, 루트 검사 스크립트, architecture-spec 링크 검사
+- 기준선 실패: `node scripts/check-architecture-specs.mjs`에서 `docs/guides/README.md -> ./REFACTOR.md` 링크 오류 발견. 대상 파일은 사용자가 삭제한 상태다.
+- 이번 배치 T-001: `terminal-title-agent-type.ts`의 중복 `getAgentLabel`·`isClaudeAgent`·보조 판별 함수를 canonical agent-title 모듈의 재수출로 대체. 현재 함수 객체 동일성 테스트를 추가했다. `npx vitest run src/shared/agent/terminal-title-agent-type.test.ts` 14개 통과, `npm run typecheck` 통과, 루트 `npm run check` 통과(타입 검사·구조 검사·foundation Vitest 5파일/20테스트).
+- 이번 배치 T-002a: 폴더 단위 교차 프로세스 잠금 경로·PID 판정·token 기반 해제를 `folderSyncLock.ts`로 추출하고 잠금 독점·이전 token의 잘못된 해제 방지·정상 해제 후 재획득 테스트를 추가했다. 기준선 syncBridge 25파일/31테스트 통과; 변경 후 잠금 포함 26파일/32테스트 통과, typecheck와 루트 check 통과. 변경 파일 lint는 통과; `syncBridge.ts`는 기준선에서도 동일한 explicit return type·exception reassignment 17개 오류가 있어 그대로 남겨뒀다. 커밋 `cbed6fa0`.
+- 이번 배치 T-002b: `request`/PKMS 오류 변환, asset 업로드, base64/Yjs 원격 markdown 읽기, revision feed·snapshot page adapter와 관련 DTO를 `syncBridgeRemote.ts`로 이동했다. durable create/update queue와 syncOnce 오케스트레이션은 `syncBridge.ts`에 남겼다. `npx vitest run src/main/pkms/syncBridge src/main/pkms/folderSyncLock.test.ts src/shared/agent/terminal-title-agent-type.test.ts`: 27파일/46테스트 통과; 타입 검사·루트 check·Prettier·변경 모듈 ESLint 통과. `syncBridge.ts` lint 오류는 기준선 17개에서 16개로 줄었다. 남은 16개는 기존 helper 함수 반환 타입과 exception parameter 재할당 오류다.
+- T-002c: 자산별 fingerprint/업로드·다운로드·삭제·충돌 조정 함수를 `syncBridgeAssets.ts`로 추출했다. 병렬 worker, snapshot 재시도 및 최대 동시성 4는 기존 Main orchestration에 남겼다. syncBridge 25파일/31테스트, typecheck, root check, 신규 모듈 ESLint·Prettier 통과. 커밋 `8377f5c7`.
+- R-001b T-004: usage status bar의 countdown/color helper를 공유하고 경계 테스트를 추가했다. 3테스트와 typecheck 통과. 커밋 `c9f562a3`.
+- R-001a T-005: `workspace.ts`의 중복 `Tab` 타입을 없애고 `TabInfo`를 재사용했다. Node typecheck·diff check 통과. ESLint 2건은 baseline에도 있었다. 커밋 `e497bce0`.
+- R-001c T-006: PKMS preload API object를 `pkmsDesktopApi.ts`로 추출하고 contextBridge 등록·drop 이벤트 처리는 유지했다. typecheck·변경 경로 ESLint·diff check 통과. 커밋 `cd533dc6`.
+- R-001b T-007/T-008: `providers.md` ADAPT-03의 저장 중 후속 편집 계약을 위반하던 watcher echo 경합을 회귀 테스트 6개로 재현·수정하고, `LocalDocumentSession`만 별도 모듈로 추출했다. editor 4파일/11테스트, typecheck, 신규 모듈·테스트 ESLint/Prettier 통과. 기존 `localEditorProvider.ts` ESLint 4개 반환 타입 진단은 변경 전 HEAD에도 있었다. 커밋 `aee34f62`, `386f2e80`.
+- R-001d T-009: cooked echo에서 중복 OSC 응답 prefix 정규식을 제거하고 canonical regex를 재사용했다. 6테스트 및 typecheck 통과. ESLint 진단은 baseline 10개에서 9개로 감소. 커밋 `777fb687`.
+- R-001a T-002d: watcher·poller·Realtime·scan timer·retry와 folder-lock 수명주기 시작/정리를 `syncBridgeRuntime.ts`로 추출했다. reconcile, `syncOnce`, tree API는 Main에 유지했다. 지정 lifecycle 6파일/12테스트, Node typecheck, 신규 모듈 lint·format, diff check 통과; `syncBridge.ts` baseline 10 lint errors 동일. 커밋 `def237cf`.
+- R-001b T-003: Drive 전용 `createSession`을 `PkmsGoogleDriveDocumentSession.ts`로 이동하고 session 계약 테스트 7개를 추가했다. focused 7/7, 기존 autosave visual acceptance 1/1, typecheck 통과. 전체 Vitest는 171파일 중 2개 실패(830 passed, 2 skipped): `SyncBridgePanel.test.ts`와 `WorkspaceExplorerSidebar.shortcut.test.ts`. 두 실패를 기준 커밋 `e9e662eb^`와 현재 HEAD에서 비교 실행해 동일 오류를 확인했으므로 pre-existing baseline으로 기록한다. pane unmount 동작은 수정하지 않았다. 커밋 `56360492`.
+- T-002d: watcher·poller·Realtime·scan timer·retry와 folder-lock 수명주기 시작/정리를 `syncBridgeRuntime.ts`로 추출했다. reconcile, `syncOnce`, tree API는 Main에 유지했다. 지정 lifecycle 6파일/12테스트, Node typecheck, 신규 모듈 lint·format, diff check 통과; `syncBridge.ts` baseline 10 lint errors 동일. 커밋 `def237cf`.
+- R-001a T-002e: `reconcilePath`만 `syncBridgeMarkdown.ts`의 `reconcileMarkdownPath`로 추출했다. 입력 구성·remote prefetch·6 worker·progress/error·durable cursor commit은 Main에 유지했고 item completion/deletion conflict 결과를 coordinator로 반환한다. 전체 syncBridge 25파일/31테스트, Node typecheck, root check, 신규 모듈 ESLint·Prettier·diff check 통과. `syncBridge.ts` baseline 10 ESLint 오류 동일. 커밋 `eb037721`.
+- R-001d T-010: renderer terminal options와 session buffer serialization을 shared scrollback policy owner로 연결하고 미사용 renderer-local 사본을 제거했다. Backlog/default/clamp 수치는 유지했다. backlog/ack-credit/terminal-buffer/cold-restore 4파일/23테스트, typecheck, 변경 파일 ESLint·diff check 통과. 커밋 `216eba45`.
+- R-001b T-011: Drive tree branch cache/loading/workspace+path generation/deferred expansion을 `useDriveTreeBranches`로 이동하고 root/session/sync/CRUD owner는 Pane에 유지했다. rename-away-and-back stale load도 별도 black-box regression으로 추가했다. lifecycle 6개 및 관련 parity 8개 visual tests 통과; typecheck, root check, hook lint/format 통과. Pane lint baseline 오류는 동일. 테스트 커밋 `5daf1ce2`, 추출 커밋 `612d4b8f`.
+- 조사 후보: runtime 수명주기(T-002d)와 Drive 전용 session(T-003)을 분리·검증했다. 단일 Markdown `reconcilePath` 분리(T-002e)와 scrollback shared owner 통일(T-010)을 완료했으며 folder delete/materialization은 순서 위험으로 defer했다. Drive tree lifecycle(T-011)은 6개 black-box race acceptance 후 owner를 분리·검증했다. Pane unmount flush는 계약이 확정되지 않아 보류한다. R-001 정적 검토는 완료했으며, 제안 후보는 acceptance 부족으로 별도 보류했다.
+- 제외: 사용자가 지정한 R-002(iOS), R-006(Android data node), R-012~X-001.
+- 커밋: T-001 `e9e662eb`, T-002a `cbed6fa0`, T-002b `9054f6cd`, T-002c `8377f5c7`.
+- 커밋: T-002d `def237cf`, T-002e `eb037721`, T-003 `56360492`.
+- 커밋: T-004 `c9f562a3`, T-005 `e497bce0`, T-006 `cd533dc6`, T-007 `aee34f62`, T-008 `386f2e80`, T-009 `777fb687`, T-010 `216eba45`, T-011 tests `5daf1ce2` / implementation `612d4b8f`.
+- 최근 완료: T-012의 37개 IPC 등록·guard 검증 커밋 `20056e62`; T-013의 13개 계약 테스트 커밋 `07702563`. 전체 Vitest 실행은 기준선과 같은 2개 실패 및 watcher-recovery timeout으로 실패했으며, timeout 단독 재실행은 통과했다. R-001 전체를 포함한 9/9 범위 정적 조사가 완료됐다. 사용자 기존 변경과 제외 범위는 보존했다.
+
+
+## 조사 후보·보류 사유
+
+- R-001b `workspaceStore.persistLayout`의 모듈 단일 debounce timer는 workspace 간 저장 요청을 취소할 수 있다는 기존 제한이 문서화돼 있다. 동작 계약 변경이므로 이번 보존 중심 배치에서는 수정하지 않았다.
+- R-003 `SupabaseVault.ts`의 GitHub flush/recovery와 `mcp.ts`의 OAuth/JSON-RPC 분리는 명확한 책임 경계이나 전용 계약 테스트가 없다. flush lease·recovery, OAuth state/PKCE·code consume·revoke 테스트가 먼저 필요하다.
+- R-003 정적 검토에서 `%`/`_`를 허용하는 `pkms_path_is_valid`와 폴더 경로를 escape하지 않고 `LIKE f.path || '/%'`에 넣는 subtree query 사이의 정합성 위험이 발견됐다. 특히 `20261114160000_scoped_folder_delete_guard.sql`의 descendant 검사·삭제 조회에 해당한다. DB 재현이나 데이터 영향 확인은 아직 하지 않았으므로 이번 리팩터링에서 바꾸지 않고 별도 검증 후보로 기록한다.
+- R-004 `pkms-google-drive.tsx`의 Drive session/orchestration은 책임이 넓지만 route 자체 acceptance가 없다. save/close/flush/root-switch/open 경쟁 계약을 고정할 테스트 seam을 확인하기 전에는 분리하지 않는다.
+- R-005 `serviceIntegrations.ts`의 provider lifecycle 분리는 유효한 후보지만 인증·D1·OAuth·provider fallback을 포괄하는 테스트가 없어 고위험이다. migration/RPC 및 인증 동작을 구조 변경에 섞지 않는다.
+- R-007 package exports/deep import 불일치는 앱 bundler alias에 의해 작동 중이다. 세 CSS/helper subpath를 public API로 승격할 의도가 불명확해 resolver 경계 확인 전에는 선언을 바꾸지 않는다.
+- R-008 `workspaceTreeCache.ts`의 `parentPath` 계산은 `domain/fileTree.ts` helper와 동일해 테스트로 cache 삭제/보존 의미를 고정한 뒤 T-019에서 공유했다. `localItemIdForPath` 중복은 비ASCII 경로 및 ID 안정성 계약을 먼저 고정할 후보로 남겼다.
+- R-010 `workspaceRepository.ts`, `operationLog.ts`, `assetConflictMaterializer.ts`의 SHA-256 hex 계산을 private `sha256Hex` helper로 모았다. 입력 bytes 복사와 lowercase digest 형식을 보존했고 기존 28개 관련 테스트로 검증했다(T-018).
+- R-001c/d 추가 조사: preload `contentApi`/`systemApi` 일부 구현의 `unknown` 반환형과 `index.d.ts`의 구체 DTO 사이 drift 가능성은 확인했으나, 공개 renderer IPC contract와 Main 호출부를 더 대조해야 하므로 보류한다. `terminal-session-buffers`의 timeout은 5초 후 빈 결과로 진행하지만 IPC listener 자체는 제거되지 않고 request ID/sender correlation도 없다. 현재 단일 `before-quit` 요청 후 종료하는 경로라 실제 노출은 미확인; 경합 재현과 lifecycle 테스트 없이 바꾸지 않는다.
+- R-001a Main은 추적 경로 172개를 정적으로 검토했다. 테스트는 실행하지 않았다. OBJ `mtllib` 경로를 읽는 `packageResolver.ts`에 workspace-root 탈출 및 symlink 경계가 확인되지 않은 위험을 발견했다. 실제 production callsite에서 사용하는 경로라 별도 경계 테스트와 입력 의미 검증 전에는 동작을 수정하지 않는다.
+- Main 전체 테스트 assertion을 정적으로 분류했다. PKMS 테스트 47개는 durable ACK-loss, root 전환·offline, watcher 복구, OAuth allowlist/credential, Drive retry·cursor 계약을 다룬다. 비-PKMS 테스트 19개와 설정/shortcuts 2개는 GPU mode, file/media, search IPC, protocol, PTY/shortcuts, Windows/WSL 동작을 다룬다. 실제 process crash, watcher/timer 경쟁, 모든 IPC handler end-to-end, 외부 quota 및 플랫폼 통합은 검증되지 않았다.
+- R-001b renderer 후속 후보: `workspace-agent-activity-summary.ts`의 memo cache가 입력 객체 참조만으로 고정된다면 `Date.now()` 기반 freshness가 시간이 지나도 재계산되지 않을 수 있다. fake-time + 동일 참조 selector 테스트로 선행 확인한다. `SystemInformationWidget.refresh`/`ServiceStatusWidget.refresh`의 겹치는 수동·주기 요청은 이전 응답이 나중에 도착해 최신 상태를 덮을 수 있어 ordering/cancel 및 unmount characterization 후 판단한다. 현재 두 흐름 모두 renderer acceptance test가 없어 동작 수정은 보류한다.
+- R-001b hooks/components 추가 후보: 미참조로 보이는 `ClaudeUsageStatusBar.tsx`는 release/build consumer를 확인하기 전 삭제하지 않는다. `useWorkspaceTabHotkeys.ts`가 navigation을 component의 `WorkspaceTabRail`에서 가져오는 layering 결합은 독립 navigation owner로 옮길 가치가 있으나 shortcut acceptance가 먼저다. 약 1,030줄 `TreeView.tsx`는 provider/tree/CRUD/scroll/keyboard 책임이 넓지만 현재 테스트는 주로 scroll/classification이므로 CRUD·provider race 테스트 전에 추출하지 않는다. SearchPanel provider rejection 중 pending stream 보존도 명시 회귀 테스트가 없다.
+- R-001b pane/viewer 후보: `CadViewerContent.tsx`는 `paneActive` 변화에 따라 webview가 재생성될 수 있어 pane switch 후 CAD state 보존 acceptance가 필요하다. `EpubReaderContent.tsx`는 새 경로 로드 전에 이전 error가 reset되지 않는 흐름이 보여 path-change regression이 후보다. `FileViewerContent.tsx`는 이전 Blob URL revoke와 state 교체 사이 렌더 race 가능성이 있으나 실제 영향은 낮은 확신이라 먼저 재현해야 한다. 실제 WebGL/CAD/EPUB runtime 확인 없이 수정하지 않는다.
+- R-001e build/release 조사: `electron-builder.yml`의 `notarize: false`는 공개 macOS 배포 notarization 요구 문서와 어긋난다. Windows release workflow는 Google Drive desktop secret/allowlist를 build env에 주입하지 않는 것으로 보여 workflow 실행 시 구성 검증이 필요하다. `build:linux`는 공통 build의 typecheck/helper/decoder 준비를 생략하지만 Linux는 현재 비활성 플랫폼이라 재활성화 때 확인한다. `npm test`의 Vitest wrapper는 경로 인자를 넘기지 못하고 직접 Vitest 실행이 권장된다. WebGL probe script와 app 환경 helper의 switch 로직은 유사해 drift 위험이 있으나 CLI 경계가 달라 추출은 보류했다. 설정/스크립트 검토에서 배포를 실행하지 않았다.
