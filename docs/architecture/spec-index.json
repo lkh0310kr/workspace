@@ -610,7 +610,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserPaneHost.ts",
-          "sha256": "36dda63fdd29350ab3eea21a83008f63f50d0dc0a3b3bb89c5379bc5c4ef2582"
+          "sha256": "e59a49b32d2b301628915af1c303ebedd7a4904f1675021198abd79cd94be724"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserTabLifecycle.ts",
@@ -654,7 +654,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/paneKind.tsx",
-          "sha256": "732ca04b8abccee39b2df24bc3206707292989e7274e218112b29d3b519d252e"
+          "sha256": "7dac6dd6f57e21d705a3e517ac24439a7a1c6a39e6e43ebd62a2cf09b407310a"
         },
         {
           "path": "apps/desktop/src/shared/browserDownloadEvent.ts",
@@ -1026,11 +1026,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/paneKind.tsx",
-          "sha256": "2f9b172d93badbd94e0861cd983905185d969bb26776b5bc714dcd1eb218c485"
+          "sha256": "8af7e759d624026a4feda7aa9fb69eaf335e7977e45bdce7473933ef841aa9f7"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/terminalPaneHost.ts",
-          "sha256": "57aedb8b62ca5e264c50cb68fcea44ea9d4ddf811371371dcbb7c6cde4b5916c"
+          "sha256": "8070e340ee72f23484e5f175a7da51cb79c85f7310a4a1b98c330145eef5ba68"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/runtime/ptyDataMultiplexer.ts",
@@ -1311,52 +1311,16 @@
           "sha256": "f9ab66785143716fe5c85156847cfbe6872d0ea0944b8d73bafc7d7cda464cd8"
         },
         {
-          "path": "packages/browser/src/browserSessionPartition.ts",
-          "sha256": "32ee9db1fe28a075c3c98465a70a8cdf1bc143099ac4aaa614c3e387bacfdeff"
-        },
-        {
-          "path": "packages/browser/src/browserWebviewPolicy.ts",
-          "sha256": "6cbae5986a34ca0b8c9f75d010f520dfdf8a2c0389021fad45fe7001b7dfef4f"
-        },
-        {
-          "path": "packages/browser/src/browserWebviewPolicy.test.ts",
-          "sha256": "2350db8d60d2de34944e9510d034e3a9248c942afc9100b1b8894e235ce997c1"
-        },
-        {
-          "path": "packages/browser/src/BrowserAddressBar.tsx",
-          "sha256": "a54d30a9705a76f290ed458aaaf6e9b3349c9d36e21b105438bd6f541a3b40e6"
-        },
-        {
-          "path": "packages/browser/src/BrowserContent.tsx",
-          "sha256": "cfabe492cb9ee078356b3ac467fbc3532e39c53670bb7a90ffc758eb295e61ee"
-        },
-        {
-          "path": "packages/browser/src/BrowserDownloadsBar.tsx",
-          "sha256": "2d28f6791b3123122476facb5824608488ca7a65a870c492b9b8d4bbcb8d402d"
-        },
-        {
-          "path": "packages/browser/src/BrowserNavButton.tsx",
-          "sha256": "70148da49c8164bd4a7926c2dc5e1a57a0edf8643d4e25c73833441d5b49f933"
-        },
-        {
-          "path": "packages/browser/src/BrowserPaneHost.ts",
-          "sha256": "e742de68c6241efb21097c661500d60aa9a1ddb56a6e7fd0b2f7c4a7cd3ee3d4"
-        },
-        {
-          "path": "packages/browser/src/BrowserPaneOverlaySlot.tsx",
-          "sha256": "c95ebf570d361e7663c218f3f5443eecf1f452ebd13e317231d4b42efbe338ed"
-        },
-        {
-          "path": "packages/browser/src/BrowserWebview.ts",
-          "sha256": "05253d5e348cda5b73333407b4a99dafe0c19283d3e060d888d4566d4146bcb8"
-        },
-        {
           "path": "packages/browser/src/browser.css",
           "sha256": "6630a259c89647031483edf3130017bda6b85fababa55271200224884f978875"
         },
         {
           "path": "packages/browser/src/browser.module.css",
           "sha256": "f538ed2955f81862ab07c2855fae8fb8e5885c8b14eee15d70e53e096c9fe654"
+        },
+        {
+          "path": "packages/browser/src/BrowserAddressBar.tsx",
+          "sha256": "a54d30a9705a76f290ed458aaaf6e9b3349c9d36e21b105438bd6f541a3b40e6"
         },
         {
           "path": "packages/browser/src/browserAddressBarSuggestions.test.ts",
@@ -1367,8 +1331,20 @@
           "sha256": "3301b73c6e62b373e513021b5ff02213631316279141939840926fd7eac5b3cf"
         },
         {
+          "path": "packages/browser/src/BrowserContent.tsx",
+          "sha256": "cfabe492cb9ee078356b3ac467fbc3532e39c53670bb7a90ffc758eb295e61ee"
+        },
+        {
+          "path": "packages/browser/src/BrowserDownloadsBar.tsx",
+          "sha256": "2d28f6791b3123122476facb5824608488ca7a65a870c492b9b8d4bbcb8d402d"
+        },
+        {
           "path": "packages/browser/src/browserHistory.ts",
           "sha256": "8077249c3738fc67cb0f6166c309a981b0064129f4cef1fea69c9c30785537f2"
+        },
+        {
+          "path": "packages/browser/src/BrowserNavButton.tsx",
+          "sha256": "70148da49c8164bd4a7926c2dc5e1a57a0edf8643d4e25c73833441d5b49f933"
         },
         {
           "path": "packages/browser/src/browserNavigationState.test.ts",
@@ -1403,6 +1379,22 @@
           "sha256": "559ba807df4120afed69948a51d22fe4c748d9ae346620b29c68761a946f7396"
         },
         {
+          "path": "packages/browser/src/BrowserPaneHost.ts",
+          "sha256": "d18bc6338ed24b80aa5d396155405cdfd925d6b8fc29ac3ed506a2a4d8622fa3"
+        },
+        {
+          "path": "packages/browser/src/browserPaneKind.tsx",
+          "sha256": "4ccecb3aff7c0fcc93116bb8da5452cd7541aaebe29cc0a85c47f63537686380"
+        },
+        {
+          "path": "packages/browser/src/BrowserPaneOverlaySlot.tsx",
+          "sha256": "c95ebf570d361e7663c218f3f5443eecf1f452ebd13e317231d4b42efbe338ed"
+        },
+        {
+          "path": "packages/browser/src/browserSessionPartition.ts",
+          "sha256": "32ee9db1fe28a075c3c98465a70a8cdf1bc143099ac4aaa614c3e387bacfdeff"
+        },
+        {
           "path": "packages/browser/src/browserTabPolicy.ts",
           "sha256": "4b6281d31dfed71a6e93270a706d681c4d5c5af9b811f59b8df9a63b18c853c5"
         },
@@ -1415,6 +1407,18 @@
           "sha256": "0eb525360316e5eda1eeb6011821d41dd939b2368f6d26092a15feb38b78a65e"
         },
         {
+          "path": "packages/browser/src/BrowserWebview.ts",
+          "sha256": "05253d5e348cda5b73333407b4a99dafe0c19283d3e060d888d4566d4146bcb8"
+        },
+        {
+          "path": "packages/browser/src/browserWebviewPolicy.test.ts",
+          "sha256": "2350db8d60d2de34944e9510d034e3a9248c942afc9100b1b8894e235ce997c1"
+        },
+        {
+          "path": "packages/browser/src/browserWebviewPolicy.ts",
+          "sha256": "6cbae5986a34ca0b8c9f75d010f520dfdf8a2c0389021fad45fe7001b7dfef4f"
+        },
+        {
           "path": "packages/browser/src/browserZoom.test.ts",
           "sha256": "6d545a4e01bf2149b1c189a335748209526f4c534519112b03c785406a4abdf8"
         },
@@ -1424,7 +1428,7 @@
         },
         {
           "path": "packages/browser/src/index.ts",
-          "sha256": "7da5f079f5998ff65c4df34527d6034fb1cb7f8e6cc22beaf9c145dc117d9c7c"
+          "sha256": "e6f5618395119462ab437ddc0e35a72d06398a608c37e3b0ed0c664601165fa5"
         },
         {
           "path": "packages/browser/src/useBrowserChromeFocus.ts",
@@ -1460,16 +1464,116 @@
           "sha256": "6b5194f3d9c4ab5495e5c16c9014173d8f8056e44dc82877f9a65851f60c24cd"
         },
         {
-          "path": "packages/terminal/src/TerminalPane.tsx",
-          "sha256": "d15ad090e830216cbac2cf0d5b8693dde5e6f4b5cc267d1bec8140412ed8d0c3"
+          "path": "packages/terminal/src/agent/agent-detection.ts",
+          "sha256": "b1d519786b07515e6518f8ab9e8bf826fb6879ac4d8866fb54f59918d3098651"
         },
         {
-          "path": "packages/terminal/src/TerminalPaneHost.ts",
-          "sha256": "725d9049d2c6a3b887564b82b4fedab38dadd21978bb8aaaae61984e392b20c7"
+          "path": "packages/terminal/src/agent/agent-main-agent-verdict.ts",
+          "sha256": "c865a00abd7284d4256a2d974a43a9e85704c0fd3c70dcc00500de317337540f"
         },
         {
-          "path": "packages/terminal/src/TerminalSearch.tsx",
-          "sha256": "3affe3bc7373f566f4e882acc4527b2ed962db07218151f0aba5121d39dfb827"
+          "path": "packages/terminal/src/agent/agent-name-token-match.ts",
+          "sha256": "27062a92d08e38aa140496d026e3e355cf5ad19f6ccdc18f1c06f4bbb9fef6f8"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-status-freshness.ts",
+          "sha256": "7636d6c40856ffdb20b6462a56ec2003befbb49f086c4e5f5d918e103da45554"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-status-ipc.ts",
+          "sha256": "05201dc8899ef531d6d4e85584f9cbe24501f6437ee3cbd968fad178f057f547"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-status-pane-key.ts",
+          "sha256": "208a55fd3c9f6f96c60cc78ce0e79475cb2d55c0c3adced9cbb6198ba1989195"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-status-types.ts",
+          "sha256": "c5d9e1d2c2c457b1c9f1307bb50be0d05d4da6bc42ec62c72e5cf68b7652ea1b"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-title-core.ts",
+          "sha256": "f51f82d7d3ebfe6856e1ba5aad34bcfc9c01c2b199d9217ae1792eae47cfbcc9"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-title-decoration.ts",
+          "sha256": "85cbebb6ca78a7d0a93f247f85da1efbce5584d5ade9154acb4a2b168c782b41"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-title-identity.ts",
+          "sha256": "fa93c3fbb67e02b6b4ad3c6d8deb3ddac86b7c9f0ece27767b36fa19629598d2"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-title-status.ts",
+          "sha256": "4caa4e20f52186cd4c51af69f64b910c0af7983b79dca0951483e7c82abcc422"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-turn-outcome.ts",
+          "sha256": "309346e7aea65b57b4553a5eaed738d1c82dbed4f4deda10fc57e37337c58008"
+        },
+        {
+          "path": "packages/terminal/src/agent/apply-hook-agent-status.test.ts",
+          "sha256": "ad0705b7d9bddca0e5979f2b37acee04c3d7a27a62330b784f4e2225aecdf750"
+        },
+        {
+          "path": "packages/terminal/src/agent/apply-hook-agent-status.ts",
+          "sha256": "c26b004c9504ce562a6d8cecfbc8a8a5b0d602a45071038cbb770ba03586119f"
+        },
+        {
+          "path": "packages/terminal/src/agent/main-agent-status.ts",
+          "sha256": "b961ffd888174437cc3f10cd9ccfe01d59d1729a7df2d40554ab6a7da06fcaa6"
+        },
+        {
+          "path": "packages/terminal/src/agent/opencode-terminal-title.ts",
+          "sha256": "2af51932ca77ae4d4b6edcc1d25ab181b3fdf392056f75c9defb6a14a93cc5ec"
+        },
+        {
+          "path": "packages/terminal/src/agent/osc-title-extraction.ts",
+          "sha256": "862f2e9f5d05e3b588143e18752dbffe9b7635174abc31893ba0da4f04c9230a"
+        },
+        {
+          "path": "packages/terminal/src/agent/pi-compatible-synthetic-title.ts",
+          "sha256": "2c43b6aa0b26f328bc7d51bfc8b4f7a8937156f91b430ccedc945827808e188d"
+        },
+        {
+          "path": "packages/terminal/src/agent/pty-output-title-observer.ts",
+          "sha256": "a44df24860ca1db7268f456986f9f8fdb7eedcb657f110c96dea89c4bd2cd3b8"
+        },
+        {
+          "path": "packages/terminal/src/agent/shell-process-detection.ts",
+          "sha256": "d80a58eaba385d17ef3af37a8b7c516c86539c494aa38afaef1418b1a2f4f79f"
+        },
+        {
+          "path": "packages/terminal/src/agent/synthetic-agent-permission-title.ts",
+          "sha256": "65fce80baa14d3db40980033e5e2b3341c91fab7ff3d80b5f0f6552567b8b7ff"
+        },
+        {
+          "path": "packages/terminal/src/agent/terminal-agent-pane-registry.ts",
+          "sha256": "cdb1e3f56fa79c7d578223fc91f1136f7e9ca29cab78f9ecd7515d40c3adaec5"
+        },
+        {
+          "path": "packages/terminal/src/agent/terminal-title-agent-type.test.ts",
+          "sha256": "525c715c8f99eaedf62ad0f98ca797c0c7f0da9491fb714c58a53103b80bf5f5"
+        },
+        {
+          "path": "packages/terminal/src/agent/terminal-title-agent-type.ts",
+          "sha256": "acc8936265f7bf1e4f53c45f27a558269b342f588e5071c72f6a78ed823d575d"
+        },
+        {
+          "path": "packages/terminal/src/agent/terminal-title-wrapper-segments.ts",
+          "sha256": "f2eb6fc485e519263f3e9394a9f3dc7004aa70373e3e36d42eba3ec509e2cb78"
+        },
+        {
+          "path": "packages/terminal/src/agent/tui-agent.ts",
+          "sha256": "31d36649f63aa5308cf371e024981ec640ab2cb449853178c21a46e4c6839c67"
+        },
+        {
+          "path": "packages/terminal/src/agent/workspace-tab-agent-rollup.test.ts",
+          "sha256": "ee2fb73eb8e39738fff9eda3a64ad9a1af1cda54a285ef57718dda48d32f88a4"
+        },
+        {
+          "path": "packages/terminal/src/agent/workspace-tab-agent-rollup.ts",
+          "sha256": "b28a1786a511a184d03f4a5a162e1c1a51a622db5127ee3a562cd2a69434e015"
         },
         {
           "path": "packages/terminal/src/focusTerminalTextarea.ts",
@@ -1477,7 +1581,15 @@
         },
         {
           "path": "packages/terminal/src/index.ts",
-          "sha256": "ffe6035cbd674b0d500780e63debad57e2498288a9939d77d5f0ceae6292c3f2"
+          "sha256": "739909cf88097f4cf6394c8726f0db9158f023e900ac708fcab68a156826062c"
+        },
+        {
+          "path": "packages/terminal/src/keyboard/option-key-location-state.ts",
+          "sha256": "3f385a8abc6c21c4c87670353100b98667fcd8fadf4a760a3fddcea9e478b639"
+        },
+        {
+          "path": "packages/terminal/src/keyboard/shared-option-key-tracker.ts",
+          "sha256": "c066f94993be7cbf81c99ca8d71566f29215d033c334fd436fe15c063557d8e8"
         },
         {
           "path": "packages/terminal/src/monospace-font-family.test.ts",
@@ -1868,36 +1980,24 @@
           "sha256": "ac91afecc7f5e44b43b60162f41708b9551a45e01a9d17b13397244c29bb0ec3"
         },
         {
-          "path": "packages/terminal/src/shared/terminal-cold-restore.ts",
-          "sha256": "dc82d85f76605c5d67af30563d535ce2ebd02d7a7d2edbb5d337c8390f44da9c"
-        },
-        {
           "path": "packages/terminal/src/shared/terminal-cold-restore.test.ts",
           "sha256": "dda050286c9af354a39212679f47c5e7abcd30d3d4e819fe9d936be80b727179"
         },
         {
-          "path": "packages/terminal/src/shared/terminal-query-reply.ts",
-          "sha256": "a8bad0a14ce6fa8c73d55c385f7a1670fc8f4d8fd2815261e95db717dac5b0db"
-        },
-        {
-          "path": "packages/terminal/src/shared/terminal-query-reply.test.ts",
-          "sha256": "0695b5cbbf993067c86a2e118ef9c0aaf6a5dd5ca0ab377acff81c7c3280eea6"
+          "path": "packages/terminal/src/shared/terminal-cold-restore.ts",
+          "sha256": "dc82d85f76605c5d67af30563d535ce2ebd02d7a7d2edbb5d337c8390f44da9c"
         },
         {
           "path": "packages/terminal/src/shared/terminal-query-reply-echo.ts",
           "sha256": "bf7d8a18272aee7ed31c75fb70a9cfe7c0e1079595d061dae35d12d6fe90ca72"
         },
         {
-          "path": "packages/terminal/src/shared/terminal-serialize-absolute-cursor.ts",
-          "sha256": "8870e6632217e56dea51a385dd1a0de697f6a07900d77f1629e294a2e74acdf9"
+          "path": "packages/terminal/src/shared/terminal-query-reply.test.ts",
+          "sha256": "0695b5cbbf993067c86a2e118ef9c0aaf6a5dd5ca0ab377acff81c7c3280eea6"
         },
         {
-          "path": "packages/terminal/src/shared/terminal-session-buffers.ts",
-          "sha256": "e6dbdd56065fb661d0d9234425d1862b7a256abf37b879fd6f6bf12afc0da227"
-        },
-        {
-          "path": "packages/terminal/src/shared/terminal-session-buffers.test.ts",
-          "sha256": "c88d3331262c5b9e50c7ad0119171c0827a80b281f2ba5b91c1e4c7a144bb1dd"
+          "path": "packages/terminal/src/shared/terminal-query-reply.ts",
+          "sha256": "a8bad0a14ce6fa8c73d55c385f7a1670fc8f4d8fd2815261e95db717dac5b0db"
         },
         {
           "path": "packages/terminal/src/shared/terminal-scrollback-policy.ts",
@@ -1912,6 +2012,18 @@
           "sha256": "3453be55112ea012768b3997770469254e3189742cadb22661cc3437bf4b012b"
         },
         {
+          "path": "packages/terminal/src/shared/terminal-serialize-absolute-cursor.ts",
+          "sha256": "8870e6632217e56dea51a385dd1a0de697f6a07900d77f1629e294a2e74acdf9"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-session-buffers.test.ts",
+          "sha256": "c88d3331262c5b9e50c7ad0119171c0827a80b281f2ba5b91c1e4c7a144bb1dd"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-session-buffers.ts",
+          "sha256": "e6dbdd56065fb661d0d9234425d1862b7a256abf37b879fd6f6bf12afc0da227"
+        },
+        {
           "path": "packages/terminal/src/shared/terminal-synchronized-output-scan.ts",
           "sha256": "ef3d838a841c310087d564800ca78cc77adefdaed89da43e0cec5337418e2abf"
         },
@@ -1922,6 +2034,14 @@
         {
           "path": "packages/terminal/src/shared/terminal-webgl-diagnostics.ts",
           "sha256": "b506f8cdfc8386477cf1c4162044d9d9a2157bd6a0079850846ddc976b896422"
+        },
+        {
+          "path": "packages/terminal/src/state/agentStatusStore.ts",
+          "sha256": "f339cc3aee52f5f20a475d322154f7ceceddb22591d568fb8c522040436adbce"
+        },
+        {
+          "path": "packages/terminal/src/state/runtimeTerminalTitlesStore.ts",
+          "sha256": "2d7776b31b3c202d73fdd010df6ad82233f347823d84cb7d0e3e209c5ede7f0a"
         },
         {
           "path": "packages/terminal/src/terminal-bracketed-paste.test.ts",
@@ -1992,16 +2112,32 @@
           "sha256": "c40ca9e298360dac957c526dd3253ff983eeb64c56ffdc55ce293f8dc0c955d6"
         },
         {
+          "path": "packages/terminal/src/TerminalPane.tsx",
+          "sha256": "d15ad090e830216cbac2cf0d5b8693dde5e6f4b5cc267d1bec8140412ed8d0c3"
+        },
+        {
+          "path": "packages/terminal/src/TerminalPaneHost.ts",
+          "sha256": "8bf2beda8e9a59008f209d37bd8098ca0dd4e6bdc288adbf43a46f85722441b0"
+        },
+        {
+          "path": "packages/terminal/src/terminalPaneKind.tsx",
+          "sha256": "e104e77281dec0ea1724d9a296a9e10b6a7e0a2aa1f310ddc6e0506aac0bea28"
+        },
+        {
+          "path": "packages/terminal/src/TerminalSearch.tsx",
+          "sha256": "3affe3bc7373f566f4e882acc4527b2ed962db07218151f0aba5121d39dfb827"
+        },
+        {
           "path": "packages/terminal/src/terminalThemes.ts",
           "sha256": "0e6cbbf328d6dcd26d48d411f3b975bd6fc10e13206c64b8450951fbf8814321"
         },
         {
-          "path": "packages/terminal/src/transport/ptyInputWriteQueue.ts",
-          "sha256": "e9514b7c64bcfeb9c94fc88eed7ac344f80dfb20f6dcac4cd7fd0b353a440e28"
-        },
-        {
           "path": "packages/terminal/src/transport/ptyDataMultiplexer.ts",
           "sha256": "97eae9c24252807f247ac49ec9bc399c40375fb76af805c8d6fe5259fc02926a"
+        },
+        {
+          "path": "packages/terminal/src/transport/ptyInputWriteQueue.ts",
+          "sha256": "e9514b7c64bcfeb9c94fc88eed7ac344f80dfb20f6dcac4cd7fd0b353a440e28"
         },
         {
           "path": "packages/terminal/src/types/tuiAgent.ts",
@@ -2014,134 +2150,6 @@
         {
           "path": "packages/terminal/src/xterm-clipboard-bypass-policy.ts",
           "sha256": "d221ce4483a5cd6f7c7b5246501deeaf099eef1b976fd970dce738c8ea9fffc7"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-detection.ts",
-          "sha256": "b1d519786b07515e6518f8ab9e8bf826fb6879ac4d8866fb54f59918d3098651"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-status-ipc.ts",
-          "sha256": "05201dc8899ef531d6d4e85584f9cbe24501f6437ee3cbd968fad178f057f547"
-        },
-        {
-          "path": "packages/terminal/src/agent/apply-hook-agent-status.ts",
-          "sha256": "c26b004c9504ce562a6d8cecfbc8a8a5b0d602a45071038cbb770ba03586119f"
-        },
-        {
-          "path": "packages/terminal/src/agent/apply-hook-agent-status.test.ts",
-          "sha256": "ad0705b7d9bddca0e5979f2b37acee04c3d7a27a62330b784f4e2225aecdf750"
-        },
-        {
-          "path": "packages/terminal/src/agent/terminal-agent-pane-registry.ts",
-          "sha256": "cdb1e3f56fa79c7d578223fc91f1136f7e9ca29cab78f9ecd7515d40c3adaec5"
-        },
-        {
-          "path": "packages/terminal/src/agent/pty-output-title-observer.ts",
-          "sha256": "a44df24860ca1db7268f456986f9f8fdb7eedcb657f110c96dea89c4bd2cd3b8"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-name-token-match.ts",
-          "sha256": "27062a92d08e38aa140496d026e3e355cf5ad19f6ccdc18f1c06f4bbb9fef6f8"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-title-core.ts",
-          "sha256": "f51f82d7d3ebfe6856e1ba5aad34bcfc9c01c2b199d9217ae1792eae47cfbcc9"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-title-decoration.ts",
-          "sha256": "85cbebb6ca78a7d0a93f247f85da1efbce5584d5ade9154acb4a2b168c782b41"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-title-identity.ts",
-          "sha256": "fa93c3fbb67e02b6b4ad3c6d8deb3ddac86b7c9f0ece27767b36fa19629598d2"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-title-status.ts",
-          "sha256": "4caa4e20f52186cd4c51af69f64b910c0af7983b79dca0951483e7c82abcc422"
-        },
-        {
-          "path": "packages/terminal/src/agent/opencode-terminal-title.ts",
-          "sha256": "2af51932ca77ae4d4b6edcc1d25ab181b3fdf392056f75c9defb6a14a93cc5ec"
-        },
-        {
-          "path": "packages/terminal/src/agent/osc-title-extraction.ts",
-          "sha256": "862f2e9f5d05e3b588143e18752dbffe9b7635174abc31893ba0da4f04c9230a"
-        },
-        {
-          "path": "packages/terminal/src/agent/pi-compatible-synthetic-title.ts",
-          "sha256": "2c43b6aa0b26f328bc7d51bfc8b4f7a8937156f91b430ccedc945827808e188d"
-        },
-        {
-          "path": "packages/terminal/src/agent/shell-process-detection.ts",
-          "sha256": "d80a58eaba385d17ef3af37a8b7c516c86539c494aa38afaef1418b1a2f4f79f"
-        },
-        {
-          "path": "packages/terminal/src/agent/terminal-title-agent-type.test.ts",
-          "sha256": "525c715c8f99eaedf62ad0f98ca797c0c7f0da9491fb714c58a53103b80bf5f5"
-        },
-        {
-          "path": "packages/terminal/src/agent/terminal-title-agent-type.ts",
-          "sha256": "acc8936265f7bf1e4f53c45f27a558269b342f588e5071c72f6a78ed823d575d"
-        },
-        {
-          "path": "packages/terminal/src/agent/terminal-title-wrapper-segments.ts",
-          "sha256": "f2eb6fc485e519263f3e9394a9f3dc7004aa70373e3e36d42eba3ec509e2cb78"
-        },
-        {
-          "path": "packages/terminal/src/agent/tui-agent.ts",
-          "sha256": "31d36649f63aa5308cf371e024981ec640ab2cb449853178c21a46e4c6839c67"
-        },
-        {
-          "path": "packages/terminal/src/agent/workspace-tab-agent-rollup.test.ts",
-          "sha256": "ee2fb73eb8e39738fff9eda3a64ad9a1af1cda54a285ef57718dda48d32f88a4"
-        },
-        {
-          "path": "packages/terminal/src/agent/workspace-tab-agent-rollup.ts",
-          "sha256": "b28a1786a511a184d03f4a5a162e1c1a51a622db5127ee3a562cd2a69434e015"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-main-agent-verdict.ts",
-          "sha256": "c865a00abd7284d4256a2d974a43a9e85704c0fd3c70dcc00500de317337540f"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-status-freshness.ts",
-          "sha256": "7636d6c40856ffdb20b6462a56ec2003befbb49f086c4e5f5d918e103da45554"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-status-pane-key.ts",
-          "sha256": "208a55fd3c9f6f96c60cc78ce0e79475cb2d55c0c3adced9cbb6198ba1989195"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-status-types.ts",
-          "sha256": "c5d9e1d2c2c457b1c9f1307bb50be0d05d4da6bc42ec62c72e5cf68b7652ea1b"
-        },
-        {
-          "path": "packages/terminal/src/agent/agent-turn-outcome.ts",
-          "sha256": "309346e7aea65b57b4553a5eaed738d1c82dbed4f4deda10fc57e37337c58008"
-        },
-        {
-          "path": "packages/terminal/src/agent/main-agent-status.ts",
-          "sha256": "b961ffd888174437cc3f10cd9ccfe01d59d1729a7df2d40554ab6a7da06fcaa6"
-        },
-        {
-          "path": "packages/terminal/src/agent/synthetic-agent-permission-title.ts",
-          "sha256": "65fce80baa14d3db40980033e5e2b3341c91fab7ff3d80b5f0f6552567b8b7ff"
-        },
-        {
-          "path": "packages/terminal/src/state/agentStatusStore.ts",
-          "sha256": "f339cc3aee52f5f20a475d322154f7ceceddb22591d568fb8c522040436adbce"
-        },
-        {
-          "path": "packages/terminal/src/state/runtimeTerminalTitlesStore.ts",
-          "sha256": "2d7776b31b3c202d73fdd010df6ad82233f347823d84cb7d0e3e209c5ede7f0a"
-        },
-        {
-          "path": "packages/terminal/src/keyboard/option-key-location-state.ts",
-          "sha256": "3f385a8abc6c21c4c87670353100b98667fcd8fadf4a760a3fddcea9e478b639"
-        },
-        {
-          "path": "packages/terminal/src/keyboard/shared-option-key-tracker.ts",
-          "sha256": "c066f94993be7cbf81c99ca8d71566f29215d033c334fd436fe15c063557d8e8"
         }
       ]
     },

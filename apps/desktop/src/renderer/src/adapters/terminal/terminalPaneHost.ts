@@ -17,12 +17,14 @@ import { installTerminalKeyHandler } from './runtime/installTerminalKeyHandler'
 import { installTerminalPasteHandler } from './runtime/installTerminalPasteHandler'
 import { installTerminalFileDropHandler } from '@workspace/terminal'
 import { termLog } from './runtime/terminalDebugLog'
+import { spawnTerminal } from './runtime/terminalIpc'
 
 export type { TerminalPaneHost } from '@workspace/terminal'
 
-/** Desktop adapter for the process, agent and clipboard capabilities used by
- * the terminal pane view. The pane can receive an in-memory test host. */
+/** Desktop adapter for process creation, PTY, agent and clipboard capabilities
+ * used by the terminal pane feature. */
 export const desktopTerminalPaneHost: TerminalPaneHost = {
+  spawnTerminal: (cols, rows, workspaceTabId) => spawnTerminal(cols, rows, workspaceTabId),
   registerPortal: (id, onDismiss) => interactionCoordinator.registerPortal(id, onDismiss),
   getPlatformInfo: () => window.api.platformInfo.get(),
   getResolvedTheme: getCurrentResolvedTheme,

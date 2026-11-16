@@ -24,6 +24,8 @@ export interface TerminalPtyTransport {
 }
 
 export interface TerminalPaneHost {
+  /** Creates the process for a newly added Terminal pane item. */
+  spawnTerminal: (cols: number, rows: number, workspaceTabId?: number) => Promise<number>
   registerPortal: (id: string, onDismiss: () => void) => () => void
   getPlatformInfo: () => {
     platform: string

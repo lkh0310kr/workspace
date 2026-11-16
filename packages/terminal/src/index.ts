@@ -10,6 +10,7 @@ export {
 export type { ResolvedTheme } from './terminalThemes'
 export { focusTerminalTextarea } from './focusTerminalTextarea'
 export { TerminalPane } from './TerminalPane'
+export { createTerminalPaneKind } from './terminalPaneKind'
 export {
   clearSharedOptionKeyTracker,
   getSharedOptionKeyTracker

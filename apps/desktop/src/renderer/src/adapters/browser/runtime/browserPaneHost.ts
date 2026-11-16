@@ -1,5 +1,6 @@
 import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
 import { browserInteractionController } from './browserInteractionController'
+import { closeBrowserTab } from './browserTabLifecycle'
 import {
   getActiveBrowserWebview,
   registerBrowserWebview,
@@ -43,9 +44,9 @@ function asBrowserWebview(webview: Electron.WebviewTag): BrowserWebviewPort {
   return webview as unknown as BrowserWebviewPort
 }
 
-/** Desktop adapter for Browser pane capabilities. Tests and other hosts can
- * mount BrowserContent with an in-memory implementation of BrowserPaneHost. */
+/** Desktop adapter for Browser view and guest-lifecycle capabilities. */
 export const desktopBrowserPaneHost: BrowserPaneHost = {
+  closeTabItem: closeBrowserTab,
   registerPortal: (id, onDismiss) => interactionCoordinator.registerPortal(id, onDismiss),
   registerWebview: (webview, context) =>
     browserInteractionController.registerWebview(asElectronWebview(webview), context),

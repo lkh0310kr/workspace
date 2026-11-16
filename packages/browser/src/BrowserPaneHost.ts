@@ -14,6 +14,8 @@ export type BrowserOpenNewTabEvent = { hostWebContentsId: number; url: string }
 
 /** Desktop capabilities consumed by the browser pane slice. */
 export interface BrowserPaneHost {
+  /** Called only after the owning Browser item is explicitly removed. */
+  closeTabItem: (tabItemId: string) => void
   registerPortal: (id: string, onDismiss: () => void) => () => void
   registerWebview: (
     webview: BrowserWebviewPort,
