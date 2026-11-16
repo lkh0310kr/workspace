@@ -14,6 +14,7 @@ import {
 interface FileTreeListProps {
   header?: ReactNode
   treeRef: RefObject<HTMLElement | null>
+  scrollRef: RefObject<HTMLDivElement | null>
   projection: EditorTreeProjection<TreeRow>
   selectedPaths: Set<string>
   expandedFolders: Set<string>
@@ -57,6 +58,7 @@ export function FileTreeList(props: FileTreeListProps) {
   const {
     header,
     treeRef,
+    scrollRef,
     projection,
     selectedPaths,
     expandedFolders,
@@ -84,66 +86,66 @@ export function FileTreeList(props: FileTreeListProps) {
     onActivate
   } = props
   const viewRows: EditorTreeViewItem[] = projection.rows.map(({ file, depth }) => {
-      const ownState =
-        syncItemStates[file.path] ??
-        (/\.local-conflict-[^/]+\.md$/i.test(file.path) ? 'attention' : undefined)
-      const descendantState =
-        file.kind === 'folder'
-          ? aggregateFolderSyncItemState(file.path, syncItemStates, ownState)
-          : undefined
-      const state = file.kind === 'folder' ? descendantState : ownState
-      const stateLabel =
-        state === 'synced'
-          ? 'Synced'
-          : state === 'excluded'
-            ? 'Excluded from sync'
-            : state === 'attention'
-              ? 'Sync needs attention'
+    const ownState =
+      syncItemStates[file.path] ??
+      (/\.local-conflict-[^/]+\.md$/i.test(file.path) ? 'attention' : undefined)
+    const descendantState =
+      file.kind === 'folder'
+        ? aggregateFolderSyncItemState(file.path, syncItemStates, ownState)
+        : undefined
+    const state = file.kind === 'folder' ? descendantState : ownState
+    const stateLabel =
+      state === 'synced'
+        ? 'Synced'
+        : state === 'excluded'
+          ? 'Excluded from sync'
+          : state === 'attention'
+            ? 'Sync needs attention'
+            : state === 'syncing'
+              ? 'Syncing'
+              : 'Waiting to sync'
+    const trailingStatus = state ? (
+      <>
+        <span className={`editor-tree-trailing-status--${state}`} aria-hidden="true">
+          {state === 'synced'
+            ? '✓'
+            : state === 'excluded'
+              ? '−'
               : state === 'syncing'
-                ? 'Syncing'
-                : 'Waiting to sync'
-      const trailingStatus = state ? (
-        <>
-          <span className={`editor-tree-trailing-status--${state}`} aria-hidden="true">
-            {state === 'synced'
-              ? '✓'
-              : state === 'excluded'
-                ? '−'
-                : state === 'syncing'
-                  ? '↻'
-                  : state === 'attention'
-                    ? '!'
-                    : '•'}
-          </span>
-        </>
-      ) : undefined
-      return {
-        id: file.id,
-        path: file.path,
-        name: editorTreeItemLabel(
-          entryName(file.path),
-          file.kind === 'markdown' ? 'markdown' : 'asset'
-        ),
-        kind: file.kind === 'folder' ? 'directory' : file.kind,
-        depth,
-        expandable: file.kind === 'folder',
-        expanded: expandedFolders.has(file.path),
-        loading: file.kind === 'folder' && loadingFolders.has(file.path),
-        active: (file.path === currentFolder && file.kind === 'folder') || activeFileId === file.id,
-        selected: selectedPaths.has(file.path),
-        multiSelected: selectedPaths.size > 1 && selectedPaths.has(file.path),
-        cut: cutPaths.has(file.path),
-        dropTarget: dropTarget === file.path,
-        trailingStatus,
-        trailingStatusLabel: state ? stateLabel : undefined,
-        tabIndex:
-          focusedPath === file.path ||
-          (!focusedPath && projection.startIndex === 0 && file === projection.rows[0]?.file)
-            ? 0
-            : -1,
-        source: file
-      }
-    })
+                ? '↻'
+                : state === 'attention'
+                  ? '!'
+                  : '•'}
+        </span>
+      </>
+    ) : undefined
+    return {
+      id: file.id,
+      path: file.path,
+      name: editorTreeItemLabel(
+        entryName(file.path),
+        file.kind === 'markdown' ? 'markdown' : 'asset'
+      ),
+      kind: file.kind === 'folder' ? 'directory' : file.kind,
+      depth,
+      expandable: file.kind === 'folder',
+      expanded: expandedFolders.has(file.path),
+      loading: file.kind === 'folder' && loadingFolders.has(file.path),
+      active: (file.path === currentFolder && file.kind === 'folder') || activeFileId === file.id,
+      selected: selectedPaths.has(file.path),
+      multiSelected: selectedPaths.size > 1 && selectedPaths.has(file.path),
+      cut: cutPaths.has(file.path),
+      dropTarget: dropTarget === file.path,
+      trailingStatus,
+      trailingStatusLabel: state ? stateLabel : undefined,
+      tabIndex:
+        focusedPath === file.path ||
+        (!focusedPath && projection.startIndex === 0 && file === projection.rows[0]?.file)
+          ? 0
+          : -1,
+      source: file
+    }
+  })
   if (inlineEditRow) {
     const parentIndex = inlineEditRow.parentPath
       ? viewRows.findIndex((row) => row.path === inlineEditRow.parentPath)
@@ -181,10 +183,13 @@ export function FileTreeList(props: FileTreeListProps) {
       ariaLabel="Repository files"
       className="pkms-client-tree-pane"
       header={header}
+      contentRef={scrollRef}
       tree={{
         rootRef: treeRef,
+        scrollRef,
         projection: viewProjection,
-        className: `file-list file-tree${dropTarget === '' ? ' tree-root-drop' : ''}`,
+        className: '',
+        rootDropTarget: dropTarget === '',
         ariaLabel: 'Repository files',
         ariaBusy: busy,
         canMove,

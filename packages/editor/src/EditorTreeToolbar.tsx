@@ -28,7 +28,11 @@ export function EditorTreeToolbar({
     >
       <div className={[styles.toolbarHeading, headingClassName].filter(Boolean).join(' ')}>
         <span className={styles.toolbarTitle}>{title}</span>
-        {status}
+        {status != null && (
+          <span className={styles.toolbarStatus} data-editor-tree-status="">
+            {status}
+          </span>
+        )}
       </div>
       {actions != null && (
         <div className={[styles.toolbarActions, actionsClassName].filter(Boolean).join(' ')}>

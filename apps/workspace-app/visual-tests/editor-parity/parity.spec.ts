@@ -274,6 +274,8 @@ test('narrow view keeps the active breadcrumb reachable and its menu on screen',
 
 test('all host surfaces align common tree rows and readable document columns', async ({ page }) => {
   const measurements: Array<{
+    treeWidth: number
+    toolbar: Record<string, string>
     folderStyle: Record<string, string>
     fileStyle: Record<string, string>
     createActions: Array<{
@@ -339,6 +341,26 @@ test('all host surfaces align common tree rows and readable document columns', a
       )
       .toBeGreaterThanOrEqual(0.8)
     measurements.push({
+      treeWidth: await page
+        .locator('[data-editor-tree-frame]')
+        .first()
+        .evaluate((element) => Math.round(element.getBoundingClientRect().width)),
+      toolbar: await page
+        .locator('[data-editor-tree-toolbar]')
+        .first()
+        .evaluate((element) => {
+          const style = getComputedStyle(element)
+          return {
+            height: style.height,
+            minHeight: style.minHeight,
+            padding: style.padding,
+            borderBottomWidth: style.borderBottomWidth,
+            fontSize: style.fontSize,
+            fontWeight: style.fontWeight,
+            letterSpacing: style.letterSpacing,
+            textTransform: style.textTransform
+          }
+        }),
       folderStyle: await rowStyle(0),
       fileStyle: await rowStyle(1),
       createActions: await Promise.all(
@@ -403,6 +425,10 @@ test('all host surfaces align common tree rows and readable document columns', a
     expect(Math.abs(measurement.title.width - measurement.body.width)).toBeLessThanOrEqual(1)
   }
   expect(desktopDrive.folderStyle).toEqual(workspace.folderStyle)
+  expect(desktopDrive.treeWidth).toBe(workspace.treeWidth)
+  expect(webPkms.treeWidth).toBe(workspace.treeWidth)
+  expect(desktopDrive.toolbar).toEqual(workspace.toolbar)
+  expect(webPkms.toolbar).toEqual(workspace.toolbar)
   expect(webPkms.folderStyle).toEqual(workspace.folderStyle)
   expect(desktopDrive.fileStyle).toEqual(workspace.fileStyle)
   expect(webPkms.fileStyle).toEqual(workspace.fileStyle)
@@ -652,6 +678,25 @@ test('all host tree toolbars create folders and Markdown notes', async ({ page }
       )
     await expect(page.getByRole('treeitem', { name: /typed note/i })).toBeVisible()
   }
+})
+
+test('Desktop Drive folders open immediately while their create operation is uploading', async ({
+  page
+}) => {
+  await page.goto('/?host=desktop-pkms-editor')
+  await page.getByRole('button', { name: 'New folder' }).click()
+  const name = page.getByRole('textbox', { name: 'New folder name' })
+  await name.fill('Instant folder')
+  await name.press('Enter')
+  const folder = page.getByRole('treeitem', { name: 'Instant folder', exact: true })
+  await expect(folder).toBeVisible()
+  const itemId = await folder.getAttribute('data-editor-item-id')
+  await folder.click()
+  await expect(folder).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__driveDirectoryReads))
+    .toContain(itemId)
 })
 
 test('all host tree context menus rename in place and Escape cancels', async ({ page }) => {

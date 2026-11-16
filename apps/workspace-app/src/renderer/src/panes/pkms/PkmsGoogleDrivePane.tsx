@@ -244,6 +244,9 @@ export function PkmsGoogleDrivePane({
   const [treeBranches, setTreeBranches] = useState<Map<string, GoogleDriveWorkspaceEntry[]>>(
     () => new Map()
   )
+  const treeBranchesRef = useRef(treeBranches)
+  treeBranchesRef.current = treeBranches
+  const deferredFolderBranches = useRef(new Set<string>())
   const treeBranchGeneration = useRef(new Map<string, number>())
   const workspaceGeneration = useRef(0)
   const invalidateTreeBranch = (path: string) => {
@@ -566,7 +569,17 @@ export function PkmsGoogleDrivePane({
         else next.add(entry.path)
         return next
       })
-      if (treeBranches.has(entry.path)) return
+      const branchIsPending = ['pending', 'syncing'].includes(
+        treeSyncStatesRef.current.get(entry.path) ?? ''
+      )
+      if (branchIsPending) {
+        deferredFolderBranches.current.add(entry.path)
+        setTreeBranches((current) =>
+          current.has(entry.path) ? current : new Map(current).set(entry.path, [])
+        )
+        return
+      }
+      if (treeBranches.has(entry.path) && !deferredFolderBranches.current.has(entry.path)) return
       const generation = (treeBranchGeneration.current.get(entry.path) ?? 0) + 1
       treeBranchGeneration.current.set(entry.path, generation)
       const rootId = root.id
@@ -581,6 +594,7 @@ export function PkmsGoogleDrivePane({
         )
           return
         setTreeBranches((current) => new Map(current).set(entry.path, children))
+        deferredFolderBranches.current.delete(entry.path)
         updateTreeSyncStates((current) => {
           const next = new Map(current)
           children.forEach((child) => {
@@ -899,6 +913,24 @@ export function PkmsGoogleDrivePane({
             ])
           )
       )
+      if (result.pendingOperations === 0) {
+        for (const path of [...deferredFolderBranches.current]) {
+          const entry = [...treeBranchesRef.current.values()]
+            .flat()
+            .find((candidate) => candidate.path === path && candidate.kind === 'folder')
+          if (!entry) {
+            deferredFolderBranches.current.delete(path)
+            continue
+          }
+          try {
+            const children = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, entry.id)
+            setTreeBranches((current) => new Map(current).set(path, children))
+            deferredFolderBranches.current.delete(path)
+          } catch {
+            // Keep the branch deferred so the next successful sync can retry it.
+          }
+        }
+      }
       setError('')
     } catch (cause) {
       updateTreeSyncStates(
@@ -1693,8 +1725,6 @@ export function PkmsGoogleDrivePane({
               header={
                 <EditorTreeToolbar
                   title="Files"
-                  className={driveStyles['pkms-google-drive-file-toolbar']}
-                  headingClassName={driveStyles['pkms-google-drive-file-toolbar-heading']}
                   status={
                     <button
                       type="button"
@@ -1874,7 +1904,7 @@ export function PkmsGoogleDrivePane({
                   tree={{
                     rootRef: treeRootRef,
                     projection: treeProjection,
-                    className: 'file-list file-tree',
+                    className: '',
                     ariaLabel: 'PKMS Google Drive files',
                     canMove: true,
                     rootDropTarget: treeDropTarget === '',

@@ -3214,20 +3214,6 @@ input {
   background: var(--bg-surface);
 }
 
-.workspace-editor-tree-toolbar {
-  display: flex;
-  min-height: 34px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 3px 8px 3px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .explorer-sidebar-panel {
   flex: 1;
   min-height: 0;
@@ -3371,15 +3357,6 @@ input {
 .md-empty-state button:disabled {
   color: var(--text-muted);
   cursor: default;
-}
-
-.tree-view-rows {
-  min-height: 100%;
-}
-
-.tree-view {
-  font-family: var(--font-ui);
-  font-size: 13px;
 }
 
 /* Find/Replace in Files (SearchPanel.tsx) — reuses .obsidian-explorer's
@@ -3585,10 +3562,6 @@ input {
   background: color-mix(in srgb, var(--text-muted) 38%, var(--bg-surface));
   color: var(--text);
   border-radius: 2px;
-}
-
-.tree-view.drag-over-root {
-  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 /* —— Settings dialog —— */

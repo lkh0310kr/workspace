@@ -244,40 +244,9 @@
   border-top: 0 !important;
 }
 
-.pkms-google-drive-file-toolbar {
-  display: flex;
-  flex: 0 0 38px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 4px 8px 4px 12px;
-  border-bottom: 1px solid var(--drive-border);
-}
-
-.pkms-google-drive-root button.pkms-google-drive-sync-state {
-  all: unset;
-  display: inline-flex;
-  min-height: 0;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  color: var(--text-muted, var(--text-faint, var(--muted)));
-  background: transparent;
-  font: inherit;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.pkms-google-drive-root button.pkms-google-drive-sync-state:hover:not(:disabled) {
+.pkms-google-drive-root .pkms-google-drive-sync-state:hover:not(:disabled) {
   color: var(--text, currentColor);
   background: transparent !important;
-}
-
-.pkms-google-drive-root button.pkms-google-drive-sync-state:disabled {
-  cursor: default;
-  opacity: 0.65;
 }
 
 .pkms-google-drive-tree-footer {
@@ -304,31 +273,12 @@
   font: inherit;
 }
 
-.pkms-google-drive-file-toolbar-heading {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 5px;
-}
-
-.pkms-google-drive-file-toolbar-heading > span:first-child {
-  color: var(--drive-muted);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .pkms-google-drive-root .pkms-google-drive-sync-state {
   display: inline-flex;
   min-width: 0;
-  min-height: 24px;
   align-items: center;
   gap: 5px;
   overflow: hidden;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
   color: var(--drive-muted);
   font-size: 10px;
   text-overflow: ellipsis;

@@ -356,6 +356,39 @@ describe('GoogleDriveWorkspaceRepository', () => {
     expect(client.listChildren).toHaveBeenCalledWith('parent')
   })
 
+  it('opens a just-created folder through its native Drive ID before stable-ID search indexing', async () => {
+    const createdFolder: DriveFile = {
+      ...folder('native-drive-folder-id', 'New Folder', ['root']),
+      appProperties: {
+        pkmsWorkspaceRootId: 'root',
+        pkmsItemId: 'stable-folder-id',
+        pkmsCreateOperationId: 'create-folder-operation'
+      }
+    }
+    const listFiles = vi.fn(async () => [])
+    const client = {
+      listFiles,
+      createFolder: vi.fn(async () => createdFolder),
+      getFile: vi.fn(async (id: string) => {
+        if (id === 'root') return folder('root', 'PKMS')
+        if (id === 'native-drive-folder-id') return createdFolder
+        throw new DriveApiError(404, 'notFound', 'missing')
+      }),
+      listChildren: vi.fn(async () => [])
+    } as unknown as GoogleDriveClient
+    const repository = new GoogleDriveWorkspaceRepository(client, 'root')
+
+    await expect(
+      repository.createFolderOnce('create-folder-operation', 'New Folder', 'stable-folder-id')
+    ).resolves.toMatchObject({ id: 'stable-folder-id', path: 'New Folder' })
+    const searchesAfterCreate = listFiles.mock.calls.length
+
+    await expect(repository.listDirectoryById('stable-folder-id')).resolves.toEqual([])
+    expect(client.getFile).toHaveBeenCalledWith('native-drive-folder-id')
+    expect(client.listChildren).toHaveBeenCalledWith('native-drive-folder-id')
+    expect(listFiles).toHaveBeenCalledTimes(searchesAfterCreate)
+  })
+
   it('lists root children when a caller supplies the workspace root ID', async () => {
     const root = folder('root', 'PKMS')
     const note: DriveFile = {

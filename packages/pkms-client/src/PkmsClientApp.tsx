@@ -314,8 +314,9 @@ export default function Home() {
   const [cutTreePaths, setCutTreePaths] = useState<Set<string>>(() => new Set());
   const socket = useRef<PKMSRealtimeSocket | null>(null);
   const treeRef = useRef<HTMLElement>(null);
+  const treeScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const element = treeRef.current;
+    const element = treeScrollRef.current;
     if (!element) return;
     const updateHeight = () => setTreeViewportHeight(element.clientHeight);
     updateHeight();
@@ -1459,7 +1460,7 @@ export default function Home() {
       if (!alive || scrollTop === null) return;
       setFocusedTreePath(null);
       requestAnimationFrame(() => {
-        if (treeRef.current) treeRef.current.scrollTop = scrollTop;
+        if (treeScrollRef.current) treeScrollRef.current.scrollTop = scrollTop;
       });
       try {
         const state = await api<SyncStatus>(`/api/workspaces/${activeWorkspace.id}/sync-status`);
@@ -1713,7 +1714,7 @@ export default function Home() {
     if (parentPath) setExpandedFolders((current) => new Set(current).add(parentPath));
     else {
       setTreeScrollTop(0);
-      if (treeRef.current?.parentElement) treeRef.current.parentElement.scrollTop = 0;
+      if (treeScrollRef.current) treeScrollRef.current.scrollTop = 0;
     }
     setTreeInlineEdit({ mode: "create", kind, parentPath, name: kind === "file" ? "Untitled.md" : "New Folder" });
   };
@@ -1804,7 +1805,7 @@ export default function Home() {
       if (!next) return;
       setFocusedTreePath(next.file.path);
       const nextIndex = treeRows.findIndex((item) => item.file.id === next.file.id);
-      const element = treeRef.current;
+      const element = treeScrollRef.current;
       if (element && nextIndex >= 0) {
         const top = nextIndex * EDITOR_TREE_ROW_HEIGHT;
         if (top < element.scrollTop || top + EDITOR_TREE_ROW_HEIGHT > element.scrollTop + element.clientHeight) element.scrollTop = top;
@@ -2015,10 +2016,7 @@ export default function Home() {
   const treeHeader = (
     <>
       <EditorTreeToolbar
-        title={<span className="eyebrow">{contentSearchOpen ? "Search" : "Files"}</span>}
-        className="file-toolbar"
-        headingClassName="file-toolbar-heading"
-        actionsClassName="toolbar-actions"
+        title={contentSearchOpen ? "Search" : "Files"}
         status={
           <button type="button" className="sync-compact-state" onClick={() => setShowSyncSettings(true)} aria-label="Open sync settings" title="Open sync settings">
             <span className={`sync-bridge-indicator sync-bridge-indicator--${localSyncState}`} />
@@ -2123,6 +2121,7 @@ export default function Home() {
             <FileTreeList
               header={treeHeader}
               treeRef={treeRef}
+              scrollRef={treeScrollRef}
               projection={treeProjection}
               selectedPaths={selectedTreePaths}
               expandedFolders={expandedFolders}

@@ -487,37 +487,37 @@ export function TreeView({
     ...projection,
     rows: (() => {
       const rows: EditorTreeViewItem[] = projection.rows.map(({ entry, depth }) => {
-      const detected: EditorItemKind = entry.is_dir
-        ? 'directory'
-        : classifyFile(entry.name) === 'markdown'
-          ? 'markdown'
-          : classifyFile(entry.name) === 'code'
-            ? 'code'
-            : 'asset'
-      return {
-        id: entry.editorItemId,
-        path: entry.path,
-        name: editorTreeItemLabel(entry.name, detected, { showMarkdownExtension: true }),
-        kind: detected,
-        depth,
-        expandable: entry.is_dir,
-        expanded: expanded.has(entry.path),
-        active: entry.path === selectedPath,
-        selected: selected.has(entry.path),
-        multiSelected: selected.size > 1 && selected.has(entry.path),
-        isIgnored: entry.is_ignored ?? false,
-        dropTarget: dragOverPath === entry.path,
-        showGuides: true,
-        tabIndex:
-          (keyboardFocusPath ??
-            selectionAnchor ??
-            selectedPath ??
-            [...selected][0] ??
-            flatList[0]?.entry.path) === entry.path
-            ? 0
-            : -1,
-        source: entry
-      }
+        const detected: EditorItemKind = entry.is_dir
+          ? 'directory'
+          : classifyFile(entry.name) === 'markdown'
+            ? 'markdown'
+            : classifyFile(entry.name) === 'code'
+              ? 'code'
+              : 'asset'
+        return {
+          id: entry.editorItemId,
+          path: entry.path,
+          name: editorTreeItemLabel(entry.name, detected, { showMarkdownExtension: true }),
+          kind: detected,
+          depth,
+          expandable: entry.is_dir,
+          expanded: expanded.has(entry.path),
+          active: entry.path === selectedPath,
+          selected: selected.has(entry.path),
+          multiSelected: selected.size > 1 && selected.has(entry.path),
+          isIgnored: entry.is_ignored ?? false,
+          dropTarget: dragOverPath === entry.path,
+          showGuides: true,
+          tabIndex:
+            (keyboardFocusPath ??
+              selectionAnchor ??
+              selectedPath ??
+              [...selected][0] ??
+              flatList[0]?.entry.path) === entry.path
+              ? 0
+              : -1,
+          source: entry
+        }
       })
       if (inlineEdit) {
         const fullIndex =
@@ -532,7 +532,7 @@ export function TreeView({
           const depth = parent
             ? (flatList.find(({ entry }) => entry.path === parent)?.depth ?? -1) + 1
             : inlineEdit.mode === 'rename'
-              ? flatList.find(({ entry }) => entry.path === inlineEdit.entry.path)?.depth ?? 0
+              ? (flatList.find(({ entry }) => entry.path === inlineEdit.entry.path)?.depth ?? 0)
               : 0
           const name = inlineEdit.name
           const path =
@@ -548,7 +548,10 @@ export function TreeView({
                 : `inline-create:${inlineEdit.dir}`,
             path,
             name,
-            kind: inlineEdit.mode === 'create' && inlineEdit.kind === 'folder' ? 'directory' : 'markdown',
+            kind:
+              inlineEdit.mode === 'create' && inlineEdit.kind === 'folder'
+                ? 'directory'
+                : 'markdown',
             depth,
             inlineEdit: {
               value: name,
@@ -648,9 +651,12 @@ export function TreeView({
           const kind = edit.kind === 'folder' ? 'directory' : 'file'
           const operation = kind === 'directory' ? 'createDirectory' : 'createFile'
           if (!editorSupportsOperation(editorProvider, operation))
-            throw new Error(`${edit.kind === 'folder' ? 'Folder' : 'File'} creation is not supported`)
+            throw new Error(
+              `${edit.kind === 'folder' ? 'Folder' : 'File'} creation is not supported`
+            )
           await editorProvider.create!(directory?.itemId ?? null, kind, name)
-          if (edit.kind === 'folder') setExpandedPersisted((current) => new Set(current).add(edit.dir))
+          if (edit.kind === 'folder')
+            setExpandedPersisted((current) => new Set(current).add(edit.dir))
           else openFileFromTree(joinPath(edit.dir, name), 'markdown')
           refresh(edit.dir)
         } catch (error) {
@@ -881,7 +887,11 @@ export function TreeView({
     if (!menu) return []
     const items: ContextMenuItem[] = []
     if (canCreateFile)
-      items.push({ type: 'button', label: 'New File', onClick: () => beginInlineCreate('file', menu.dir) })
+      items.push({
+        type: 'button',
+        label: 'New File',
+        onClick: () => beginInlineCreate('file', menu.dir)
+      })
     if (canCreateDirectory)
       items.push({
         type: 'button',
@@ -946,13 +956,12 @@ export function TreeView({
         header={
           <EditorTreeToolbar
             title="Files"
-            className="workspace-editor-tree-toolbar"
             actions={
               <EditorTreeCreateActions
                 canCreateFile={canCreateFile}
                 canCreateDirectory={canCreateDirectory}
-            onCreateFile={() => beginInlineCreate('file', '')}
-            onCreateDirectory={() => beginInlineCreate('folder', '')}
+                onCreateFile={() => beginInlineCreate('file', '')}
+                onCreateDirectory={() => beginInlineCreate('folder', '')}
               />
             }
           />
@@ -961,8 +970,8 @@ export function TreeView({
           rootRef: treeRef,
           scrollRef: scrollContainerRef,
           projection: treeViewProjection,
-          className: `tree-view${dragOverPath === '' ? ' drag-over-root' : ''}`,
-          listClassName: 'tree-view-rows',
+          className: '',
+          rootDropTarget: dragOverPath === '',
           ariaLabel: 'Files',
           canMove,
           canMultiSelect,

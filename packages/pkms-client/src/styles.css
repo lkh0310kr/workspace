@@ -198,7 +198,7 @@ button {
   width: 100%;
   height: 100dvh;
   min-height: 0;
-  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-columns: 262px minmax(0, 1fr);
   overflow: hidden;
 }
 .app-shell.sidebar-collapsed {
@@ -217,11 +217,10 @@ button {
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  padding: 14px 10px 10px;
+  padding: 14px 0 10px;
   border-right: 1px solid var(--border);
   background: var(--sidebar);
 }
-.file-toolbar,
 .account-row {
   display: flex;
   align-items: center;
@@ -272,7 +271,7 @@ button {
   white-space: nowrap;
 }
 .workspace-select {
-  padding: 0 7px;
+  padding: 0 17px;
 }
 .workspace-heading {
   display: flex;
@@ -283,12 +282,6 @@ button {
   width: 24px;
   height: 24px;
   font-size: 15px;
-}
-.file-toolbar-heading {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 9px;
 }
 .sync-compact-state {
   display: inline-flex;
@@ -548,13 +541,6 @@ button {
 .sync-bridge-actions button:disabled {
   opacity: 0.5;
 }
-.file-toolbar {
-  padding: 9px 6px 5px;
-}
-.toolbar-actions {
-  display: flex;
-  gap: 2px;
-}
 .file-filter-panel {
   display: flex;
   flex: 0 0 auto;
@@ -621,20 +607,10 @@ button {
   opacity: 0;
   cursor: pointer;
 }
-.file-list {
-  overflow: auto;
-  overscroll-behavior: contain;
-}
 .pkms-client-tree-pane {
   width: 100%;
   min-height: 0;
   flex: 1 1 auto;
-}
-.pkms-client-tree-pane [data-editor-tree-content] {
-  overflow: hidden;
-}
-.file-tree {
-  outline: 0;
 }
 .tree-virtual-spacer {
   width: 100%;
@@ -665,9 +641,6 @@ button {
 }
 .tree-creation-row input::placeholder {
   color: var(--subtle);
-}
-.file-tree.tree-root-drop {
-  box-shadow: inset 0 0 0 1px var(--accent);
 }
 .tree-loading-indicator {
   display: block;
@@ -719,7 +692,7 @@ button {
 }
 .sidebar-bottom {
   margin-top: auto;
-  padding: 10px 5px 0;
+  padding: 10px 15px 0;
   border-top: 1px solid var(--border);
 }
 .status-dot {
@@ -791,17 +764,6 @@ button {
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: tree-loading-spin 700ms linear infinite;
-}
-.file-list::-webkit-scrollbar {
-  width: var(--scroll-size);
-  height: var(--scroll-size);
-}
-.file-list::-webkit-scrollbar-thumb {
-  border-radius: 8px;
-  background: var(--scroll-thumb);
-}
-.file-list::-webkit-scrollbar-thumb:hover {
-  filter: brightness(1.35);
 }
 .pkms-search-panel {
   display: flex;

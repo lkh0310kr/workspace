@@ -48,6 +48,26 @@
   flex-direction: column;
   overflow: auto;
   overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+.paneContent::-webkit-scrollbar {
+  width: var(--scroll-size);
+  height: var(--scroll-size);
+}
+
+.paneContent::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+
+.paneContent::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--scroll-thumb);
+}
+
+.paneContent::-webkit-scrollbar-thumb:hover {
+  filter: brightness(1.35);
 }
 
 .view {
@@ -56,6 +76,9 @@
   flex: 1 1 auto;
   flex-direction: column;
   padding-block: 4px;
+  outline: 0;
+  font-family: var(--font-ui, Inter, sans-serif);
+  font-size: 13px;
 }
 
 .rootDropTarget::after {
@@ -72,10 +95,20 @@
 
 .toolbar {
   display: flex;
+  box-sizing: border-box;
+  min-height: 34px;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   min-width: 0;
+  padding: 3px 8px 3px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted, var(--muted));
+  font-family: var(--font-ui, Inter, sans-serif);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .toolbarHeading,
@@ -88,6 +121,41 @@
 .toolbarHeading {
   flex: 1 1 auto;
   gap: 8px;
+}
+
+.toolbarHeading > :not(.toolbarTitle) {
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.toolbarStatus {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  color: var(--text-muted, var(--text-faint, var(--muted)));
+}
+
+.toolbarStatus > button {
+  all: unset;
+  display: inline-flex;
+  min-height: 0;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.toolbarStatus > button:disabled {
+  cursor: default;
+  opacity: 0.65;
 }
 
 .toolbarTitle {
@@ -266,6 +334,7 @@
   display: flex;
   width: 100%;
   min-width: 0;
+  min-height: 100%;
   flex: 0 0 auto;
   flex-direction: column;
 }

@@ -13,6 +13,7 @@ import {
 } from '@pkms/google-drive'
 import { googleDriveDesktopOAuth } from './googleDriveDesktopOAuthRuntime'
 import { GoogleDriveDesktopStorage } from './googleDriveDesktopStorage'
+import { listGoogleDriveDirectoryOrPendingFolder } from './googleDriveWorkspaceDirectory'
 
 interface DesktopWorkspaceRuntime {
   rootId: string
@@ -74,7 +75,13 @@ export class GoogleDriveDesktopWorkspaceService {
   }
 
   async listDirectory(rootId: string, parentItemId: string | null) {
-    return this.requireWorkspace(rootId).repository.listDirectoryById(parentItemId)
+    const runtime = this.requireWorkspace(rootId)
+    return listGoogleDriveDirectoryOrPendingFolder(
+      runtime.repository,
+      this.storage,
+      rootId,
+      parentItemId
+    )
   }
 
   async search(rootId: string, query: string, pageToken?: string) {

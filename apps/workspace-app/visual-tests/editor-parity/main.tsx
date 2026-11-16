@@ -146,6 +146,7 @@ function installMocks() {
       )
       .map((item) => ({ ...item, isIgnored: false }))
   w.__openedDriveMarkdownEntries = []
+  w.__driveDirectoryReads = []
   w.__savedDriveMarkdown = []
   w.__createdPkmsPaths = []
   w.__createdDrivePaths = []
@@ -219,28 +220,29 @@ function installMocks() {
     googleDriveOAuthStatus: async () => ({ credentialStored: true, clientConfigured: true }),
     listGoogleDriveWorkspaces: async () => [driveRoot],
     connectGoogleDriveWorkspace: async () => ({ root: driveRoot, entries: driveEntries }),
-    listGoogleDriveDirectory: async (_rootId: string, parentId: string | null) =>
-      parentId === null || parentId === driveRoot.id
-        ? [
-            ...driveEntries.map(currentDriveEntry),
-            ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveRoot.id)
-          ]
-        : parentId === driveFolder.id
-          ? isTreeStressScenario
-            ? [
-                currentDriveEntry(driveNote),
-                currentDriveEntry(driveExtraNote),
-                ...driveTreeStressEntries
-              ]
-            : [
-                currentDriveEntry(driveNote),
-                currentDriveEntry(driveExtraNote),
-                ...(isQuickOpenNestedScenario ? [driveHiddenFolder] : []),
-                ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveFolder.id)
-              ]
-          : parentId === driveHiddenFolder.id && isQuickOpenNestedScenario
-            ? [driveDeepNote]
-            : [],
+    listGoogleDriveDirectory: async (_rootId: string, parentId: string | null) => {
+      w.__driveDirectoryReads.push(parentId)
+      if (parentId === null || parentId === driveRoot.id)
+        return [
+          ...driveEntries.map(currentDriveEntry),
+          ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveRoot.id)
+        ]
+      if (parentId === driveFolder.id)
+        return isTreeStressScenario
+          ? [
+              currentDriveEntry(driveNote),
+              currentDriveEntry(driveExtraNote),
+              ...driveTreeStressEntries
+            ]
+          : [
+              currentDriveEntry(driveNote),
+              currentDriveEntry(driveExtraNote),
+              ...(isQuickOpenNestedScenario ? [driveHiddenFolder] : []),
+              ...driveCreatedNotes.filter((entry) => entry.parents?.[0] === driveFolder.id)
+            ]
+      if (parentId === driveHiddenFolder.id && isQuickOpenNestedScenario) return [driveDeepNote]
+      return []
+    },
     openGoogleDriveMarkdown: async (_rootId: string, entryId: string) => {
       w.__openedDriveMarkdownEntries.push(entryId)
       const entry = [driveNote, driveExtraNote, driveDeepNote, ...driveCreatedNotes].find(

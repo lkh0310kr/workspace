@@ -97,19 +97,25 @@ if (
   )
 }
 
-for (const [relativePath, selector] of [
-  ['apps/workspace-app/src/renderer/src/assets/styles.css', '.tree-view'],
-  ['packages/pkms-client/src/styles.css', '.file-list']
+for (const [relativePath, forbidden] of [
+  [
+    'apps/workspace-app/src/renderer/src/assets/styles.css',
+    /\.workspace-editor-tree-toolbar|\.tree-view(?:-rows)?(?:[\s.:#[]|\s*\{)/
+  ],
+  [
+    'packages/pkms-client/src/styles.css',
+    /\.file-(?:list|tree|toolbar)|\.toolbar-actions|\.file-toolbar-heading/
+  ],
+  [
+    'packages/pkms-google-drive/src/workspace.module.css',
+    /\.pkms-google-drive-file-toolbar(?:-heading)?/
+  ]
 ]) {
   const source = await readFile(path.join(root, relativePath), 'utf8')
-  const rule = source.match(new RegExp(`${selector.replace('.', '\\.')}\\s*\\{([^}]*)\\}`))
-  if (!rule) {
-    failures.push(`${relativePath} must keep the ${selector} host rule.`)
-    continue
-  }
-  if (/\b(?:display|flex|height|min-height|max-height|margin|padding|gap)\s*:/.test(rule[1])) {
-    failures.push(`${relativePath} must leave ${selector} root geometry to @workspace/editor.`)
-  }
+  if (forbidden.test(source))
+    failures.push(
+      `${relativePath} must leave shared tree row and toolbar styling to @workspace/editor.`
+    )
 }
 
 const driveStylesPath = path.join(root, 'packages/pkms-google-drive/src/workspace.module.css')
@@ -124,11 +130,11 @@ if (!normalizedDriveStyles.includes('.pkms-google-drive-root [data-drive-control
   failures.push('Google Drive standalone controls must opt in through data-drive-control.')
 }
 if (
-  !/\.pkms-google-drive-root button\.pkms-google-drive-sync-state\s*\{[^}]*padding:\s*0;[^}]*border:\s*0;[^}]*border-radius:\s*0;/.test(
-    normalizedDriveStyles
-  )
+  !sharedTreeStyles.includes('.toolbarStatus > button') ||
+  !sharedTreeStyles.includes('padding: 0;') ||
+  !sharedTreeStyles.includes('border-radius: 0;')
 ) {
-  failures.push('Google Drive sync status must remain unboxed.')
+  failures.push('The shared EditorTreeToolbar must own unboxed tree status controls.')
 }
 if (
   !/export\s*\{[^}]*\bEditorTreePane\b[^}]*\}\s*from\s*['"]\.\/EditorTreePane['"]/.test(

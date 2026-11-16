@@ -31,7 +31,7 @@ export function getStoredTreeOpen(paneKey: string): boolean {
 
 export function getStoredTreeWidth(paneKey: string): number {
   const stored = Number(localStorage.getItem(widthKey(paneKey)))
-  return Number.isFinite(stored) && stored > 0 ? stored : 200
+  return Number.isFinite(stored) && stored > 0 ? stored : 262
 }
 
 export function setStoredTreeOpen(paneKey: string, open: boolean): void {

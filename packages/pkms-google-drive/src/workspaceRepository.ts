@@ -142,6 +142,8 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
  * Paths are derived from Drive parent IDs and names.
  */
 export class GoogleDriveWorkspaceRepository {
+  private readonly resolvedDriveFiles = new Map<string, DriveFile>()
+
   constructor(
     readonly client: GoogleDriveClient,
     readonly rootId: string
@@ -303,6 +305,7 @@ export class GoogleDriveWorkspaceRepository {
     const appProperties = this.createOperationProperties(operationId, itemId, digest)
     try {
       const folder = await this.client.createFolder(name, parent.id, appProperties)
+      this.resolvedDriveFiles.set(itemId, folder)
       return { ...folder, id: itemId, path, kind: 'folder' }
     } catch (cause) {
       const recovered = await this.findCreatedItem(operationId).catch(() => null)
@@ -354,6 +357,7 @@ export class GoogleDriveWorkspaceRepository {
     const appProperties = this.createOperationProperties(operationId, itemId, digest)
     try {
       const file = await this.client.createFile(name, parent.id, mimeType, bytes, appProperties)
+      this.resolvedDriveFiles.set(itemId, file)
       return { ...file, id: itemId, path, kind: entryKind(file) }
     } catch (cause) {
       const recovered = await this.findCreatedItem(operationId).catch(() => null)
@@ -474,48 +478,66 @@ export class GoogleDriveWorkspaceRepository {
       throw new Error('Google Drive create operation ID collision or changed payload.')
     const path = await this.pathWithinWorkspace(file)
     if (path === null) throw new Error('The created Drive item is outside this PKMS workspace.')
+    this.resolvedDriveFiles.set(itemId, file)
     return { ...file, id: itemId, path, kind: entryKind(file) }
   }
 
   /** Resolves either a native Drive ID or an app-stable PKMS item ID. */
   async resolveDriveFile(itemId: string): Promise<DriveFile> {
     let file: DriveFile
-    try {
-      file = await this.client.getFile(itemId)
-    } catch (cause) {
-      if (!(cause instanceof DriveApiError) || cause.status !== 404) throw cause
-      const matches = (
-        await this.client.listFiles({
-          query: `appProperties has { key='pkmsWorkspaceRootId' and value=${queryLiteral(this.rootId)} } and appProperties has { key='pkmsItemId' and value=${queryLiteral(itemId)} } and trashed = false`,
-          pageSize: 100,
-          fields:
-            'id,name,mimeType,parents,modifiedTime,md5Checksum,size,trashed,appProperties,webViewLink'
-        })
-      ).filter((match) => !match.trashed && !match.appProperties?.pkmsOperationId)
-      const visibleMatches = (
-        await Promise.all(
-          matches.map(async (match) => ({
-            match,
-            path: await this.pathWithinWorkspace(match)
-          }))
+    const cached = this.resolvedDriveFiles.get(itemId)
+    if (cached) {
+      try {
+        file = await this.client.getFile(cached.id)
+      } catch (cause) {
+        // Drive has created this item, but its appProperties search index may
+        // not yet expose the stable PKMS ID. The native ID from create is
+        // authoritative for this repository session.
+        if (cause instanceof DriveApiError && cause.status === 404) file = cached
+        else throw cause
+      }
+    } else {
+      try {
+        file = await this.client.getFile(itemId)
+      } catch (cause) {
+        if (!(cause instanceof DriveApiError) || cause.status !== 404) throw cause
+        const matches = (
+          await this.client.listFiles({
+            query: `appProperties has { key='pkmsWorkspaceRootId' and value=${queryLiteral(this.rootId)} } and appProperties has { key='pkmsItemId' and value=${queryLiteral(itemId)} } and trashed = false`,
+            pageSize: 100,
+            fields:
+              'id,name,mimeType,parents,modifiedTime,md5Checksum,size,trashed,appProperties,webViewLink'
+          })
+        ).filter((match) => !match.trashed && !match.appProperties?.pkmsOperationId)
+        const visibleMatches = (
+          await Promise.all(
+            matches.map(async (match) => ({
+              match,
+              path: await this.pathWithinWorkspace(match)
+            }))
+          )
         )
-      )
-        .filter(
-          ({ path }) =>
-            path !== null &&
-            path !== INTERNAL_DIRECTORY &&
-            !path.startsWith(`${INTERNAL_DIRECTORY}/`)
-        )
-        .map(({ match }) => match)
-      if (visibleMatches.length === 0) throw new GoogleDriveWorkspaceItemNotFoundError(itemId)
-      if (visibleMatches.length > 1) throw new Error(`PKMS item identity is ambiguous: ${itemId}`)
-      return visibleMatches[0]
+          .filter(
+            ({ path }) =>
+              path !== null &&
+              path !== INTERNAL_DIRECTORY &&
+              !path.startsWith(`${INTERNAL_DIRECTORY}/`)
+          )
+          .map(({ match }) => match)
+        if (visibleMatches.length === 0) throw new GoogleDriveWorkspaceItemNotFoundError(itemId)
+        if (visibleMatches.length > 1) throw new Error(`PKMS item identity is ambiguous: ${itemId}`)
+        return visibleMatches[0]
+      }
     }
     if (file.id === this.rootId) return file
     if (file.appProperties?.pkmsWorkspaceRootId)
       if (file.appProperties.pkmsWorkspaceRootId !== this.rootId)
         throw new Error('The requested Drive item belongs to another PKMS workspace.')
-    if ((await this.pathWithinWorkspace(file)) !== null) return file
+    if ((await this.pathWithinWorkspace(file)) !== null) {
+      const stableId = file.appProperties?.pkmsItemId
+      if (stableId) this.resolvedDriveFiles.set(stableId, file)
+      return file
+    }
     throw new Error('The requested Drive item is outside this PKMS workspace.')
   }
 
