@@ -19,9 +19,9 @@
 | X-002 | `apps/pkms-ios/**` | 141 | — | 제외 | 사용자가 요청한 범위 제외 |
 | R-003 | `apps/pkms-server/**` | 51 | coordinator + read-only agent | reviewed; T-025 validated | literal subtree path 일치 수정; Vault flush/recovery는 revision·lease 보호를 확인했으나 recovery 특성화 테스트 부재, MCP OAuth는 계약 테스트 부재로 보류
 | R-004 | `apps/pkms-web/**` | 30 | read-only agent + coordinator | reviewed; T-028 validated | workspace 전환 전 기존 문서 sync 및 실패 시 현재 workspace 보존을 helper acceptance로 검증; 실제 OAuth/browser runtime은 미실행
-| R-005 | `apps/workspace-server/**` | 12 | read-only agent | reviewed; candidate deferred | 인증 state·D1·token lifecycle·provider 오류 격리 테스트 선행 필요; 확정된 결함 없음
+| R-005 | `apps/workspace-server/**` | 12 | read-only agent | reviewed; T-036 validated | 닮은 provider 경로로 credential 삭제/OAuth 시작되는 route 오분류를 정확한 path allowlist로 수정; 나머지 OAuth lifecycle contract tests 후속
 | X-003 | `apps/android-data-node/**` | 15 | — | 제외 | 사용자가 요청한 범위 제외 |
-| R-007 | `packages/editor/**` | 68 | read-only agent | reviewed; candidate deferred | package exports/deep import 경계는 resolver intent 확인 전 보류
+| R-007 | `packages/editor/**` | 68 | read-only agent | reviewed; T-037 validated | 실제 Workspace Desktop consumer 3개 subpath를 package exports에 명시; low-level tree components remain private
 | R-008 | `packages/pkms-client/**` | 42 | read-only agent | reviewed; T-019/T-022 validated |
 | R-009 | `packages/pkms-core/**` | 11 | read-only agent | reviewed/no-change |
 | R-010 | `packages/pkms-google-drive/**` | 18 | read-only agent | reviewed; T-018 validated |
@@ -35,7 +35,7 @@
 | M-001 | `.codex/refactor/**` | 2 | coordinator | 계획 메타데이터 | 리팩터링 계획·진행표이며 제품 코드 조사 범위에 포함하지 않음 |
 | X-001 | `ref-proj/**` | 1 | — | 제외 | 읽기 전용 참조 체크아웃; 리팩터링 편집 금지 |
 
-인벤토리 합계: 추적 경로 1,698개 = 현재 범위 1,003개 + 제품 코드 제외 693개 + 계획 메타데이터 2개. 현재 범위는 R-001~R-011 중 R-002와 R-006을 제외한 9개 영역이다. R-012~X-001은 모두 제외했다. 9개 범위 영역의 정적 검토와 경로 분류를 완료했다. R-001 renderer는 399개 의미 검토, 22개 vendor/정적 자산 분류로 미검토 경로가 없다. R-003은 51개 경로를 검토했고 subtree LIKE wildcard 위험을 literal prefix migration 및 local DB 재현 테스트로 해결했다. Vault/MCP 분리 후보는 계약 테스트 부족으로 보류했다. R-004는 workspace 전환 시 기존 문서 저장·sync 순서를 T-028에서 수정했다. R-001b는 workspace 간 persist timer 경쟁을 T-029에서 수정했다. R-008 parentPath 중복 단일화(T-019), local item ID 단일화(T-022), R-010 SHA-256 helper 단일화(T-018)를 검증했다. 나머지 영역도 위험·검증 공백이 있는 후보를 별도 기록했다. 2026-11-16 재집계(`git ls-files -z`) 결과 R-001은 766개, R-003은 51개, R-004는 30개, R-008은 42개다. 초기 계획의 737개는 기준 시점에서 14개 과소 집계였고, 이후 작업 중 추가된 경로를 재집계에 반영했다. 파일 수는 경로 분류 합계이며 모든 경로가 리팩터링 후보라는 뜻은 아니다.
+인벤토리 합계: 추적 경로 1,698개 = 현재 범위 1,003개 + 제품 코드 제외 693개 + 계획 메타데이터 2개. 현재 범위는 R-001~R-011 중 R-002와 R-006을 제외한 9개 영역이다. R-012~X-001은 모두 제외했다. 9개 범위 영역의 정적 검토와 경로 분류를 완료했다. R-001 renderer는 399개 의미 검토, 22개 vendor/정적 자산 분류로 미검토 경로가 없다. R-003은 51개 경로를 검토했고 subtree LIKE wildcard 위험을 literal prefix migration 및 local DB 재현 테스트로 해결했다. Vault/MCP 분리 후보는 계약 테스트 부족으로 보류했고, Home provider path 오분류는 T-036에서 수정했다. R-004는 workspace 전환 시 기존 문서 저장·sync 순서를 T-028에서 수정했다. R-001b는 workspace 간 persist timer 경쟁을 T-029에서 수정했다. R-008 parentPath 중복 단일화(T-019), local item ID 단일화(T-022), R-010 SHA-256 helper 단일화(T-018)를 검증했다. Shared Editor consumer/export 불일치는 T-037에서 수정했으며 나머지 영역의 위험·검증 공백은 별도 기록했다. 2026-11-16 재집계(`git ls-files -z`) 결과 R-001은 766개, R-003은 51개, R-004는 30개, R-008은 42개다. 초기 계획의 737개는 기준 시점에서 14개 과소 집계였고, 이후 작업 중 추가된 경로를 재집계에 반영했다. 파일 수는 경로 분류 합계이며 모든 경로가 리팩터링 후보라는 뜻은 아니다.
 
 ### R-001 앱 내부 분할과 조사 체크포인트
 
@@ -98,9 +98,9 @@
 
 - 마지막 완료 배치: workspace-app에서 Main/renderer/preload/shared의 저위험·경계형 리팩터링 및 ADAPT-03 저장 경합 수정
 - 검토 영역 / 현재 범위: 9 / 9 (정적 검토 완료; runtime·통합 검증 한계와 후속 위험 별도 기록)
-- 채택 작업 검증 완료 / 채택 작업 전체: 39 / 39 (T-001~T-035 완료)
+- 채택 작업 검증 완료 / 채택 작업 전체: 41 / 41 (T-001~T-037 완료)
 - 문서 인덱스: 삭제된 `docs/guides/REFACTOR.md`는 복구하지 않고 guides README를 스펙 기반 개발 규칙으로 연결; architecture digest/link 검사 통과
-- 상태: 전체 범위 정적 검토 완료; 39개 작업 검증 완료; T-035 독립 리뷰와 TREE-25 계약 검증 완료
+- 상태: 전체 범위 정적 검토 완료; 41개 작업 검증 완료; T-035 root-switch, T-036 Home route allowlist, T-037 Editor exports 계약 검증 완료
 - 추가 검증: T-002c syncBridge 25파일/31테스트 통과; T-003 editor session 4파일/11테스트·typecheck 통과; usage helper 3테스트 통과; OSC reply 6테스트 통과; preload ESLint/typecheck 및 루트 `npm run check` 통과
 - T-018 Google Drive SHA-256 helper 단일화 커밋 `f7cfaf46`; focused 28 tests, `npm run pkms:web:typecheck`, `npm run check` 통과. ESLint의 `workspaceRepository.ts` 반환형 위반 1개는 기준선에도 존재함을 확인했다. T-019 parentPath 중복을 domain helper로 단일화하고 삭제 자손·이웃 보존 및 동일 목록 참조 테스트를 추가, 커밋 `327cc25c`; focused 2 tests, 앱 typecheck 및 root check 통과. T-020 workspace tab hotkey hook을 canonical navigation owner에 직접 연결하고 mapping·범위 밖 index·listener cleanup 테스트를 추가, 커밋 `8b186ac0`; focused 2 tests, app typecheck, root check, changed-file ESLint/Prettier 통과. notarization 및 Linux build gate 불일치는 정책/릴리스 경계라 동작 변경을 보류한다. 사용자의 제외 범위와 기존 사용자 파일은 보존한다.
 - T-021 agent activity summary selector cache의 freshness 만료 재계산을 보장하고 집중 테스트 3개와 앱 typecheck를 통과했다. Selector 재호출 시 신선도를 복구하며, 시간 경과만으로 UI를 자동 갱신하는 동작은 문서 계약에 없어 추가하지 않았다.
@@ -119,3 +119,6 @@
 - T-034 `listDir`가 `fs.promises.readdir`를 사용하도록 바꿨다. 정렬, Git ignore decoration, root confinement와 반환 의미를 유지했고 deferred readdir 동안 event loop가 진행되는 회귀를 포함해 `files.test.ts` 8 tests, app typecheck, root check, changed test ESLint/Prettier가 통과했다. `files.ts`의 반환형 ESLint baseline 오류는 그대로다.
 
 - T-035 완료: Desktop local provider·문서 session의 root를 생성 시 고정하고 optional `expectedRootPath`를 preload/Main FS IPC에 전달한다. Main은 상대경로 작업 전에 현재 root를 대조해 오래된 요청을 거부한다. provider/item ID/Quick Open cache도 `(tabId, rootPath)`로 분리했다. 독립 리뷰에서 확인한 watcher 재조회 누락을 보완하고 TREE-25 IPC rejection, stale watcher, provider identity 회귀를 추가했다. focused 4 files/26 tests, app typecheck, root `npm run check`, Prettier, 변경 경로 HEAD 대비 ESLint 신규 진단 없음, architecture digest/link 검사 통과.
+
+- T-036 완료: `serviceIntegrations.ts`가 `serviceRoute.ts`의 exact path resolver를 사용하도록 분리했다. 등록되지 않은 provider-like route는 provider credential/D1/OAuth 처리로 진입하지 않는다. Node route tests 2개와 Workspace Server typecheck 통과.
+- T-037 완료: 실제 Workspace Desktop consumer인 `fuzzySearch`, `treeView.module.css`, `assetPreview.module.css` package subpath를 exports에 명시했다. package root와 기존 CSS subpath resolve, 누락 경로 resolve, low-level tree component 거부를 Node tests 3개로 검증했다.

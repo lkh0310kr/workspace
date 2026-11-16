@@ -1,6 +1,6 @@
 # 저장소 전체 리팩터링 작업 큐
 
-작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 39개다.
+작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 41개다.
 
 | 작업 ID | 영역 | 변경 목표 | 전용 수정 경로 | 선행 작업 | 위험도 | 검증 | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -44,11 +44,13 @@
 | T-033 | R-001a | binary preview 전체 파일 읽기를 Main event loop를 막지 않는 async fs read로 전환 | `main/files.ts`, `workspace.ts`, `files.test.ts` | 모든 consumer가 `Promise` 기반 IPC 결과를 이미 기다리는지 확인 | 중간 | preview 7 tests (async result, MIME, unsupported, pending-read event-loop progress), app typecheck, root check, changed-file format/lint baseline 비교 | validated |
 | T-034 | R-001a | workspace directory enumeration의 동기 `readdirSync`를 async fs read로 전환 | `main/files.ts`, `files.test.ts` | `listDir` 호출부가 이미 Promise contract를 사용하는지 확인 | 낮음~중간 | listDir 3 tests, deferred readdir 중 event-loop progress, app typecheck, root check, changed-file ESLint/Prettier | validated |
 | T-035 | R-001b/R-001a/R-001c | Desktop local editor provider의 root를 고정하고 root 전환 후 오래된 CRUD·세션 요청을 Main IPC 경계에서 거부 | provider, local document session, FS preload/renderer shim, workspace IPC, root guard 및 계약 테스트, TreeView 스펙 | TREE-25 root-switch CRUD 재현 및 기존 provider identity/session 경계 확인 | 중간~높음 | IPC root-switch rejection, provider/session/root identity 계약 테스트, SearchPanel focus tests, app typecheck, root check, Prettier/ESLint baseline 비교 | validated |
+| T-036 | R-005 | Home service integration에서 허용된 Cloudflare/Supabase 경로만 provider로 해석해 닮은 경로가 credential을 지우거나 OAuth를 시작하지 않도록 함 | `serviceIntegrations.ts`, `serviceRoute.ts`, route contract test | 실제 consumer route 문서와 includes/suffix 기반 provider routing 대조 | 중간 | Node route contract tests, workspace-server typecheck, formatting, root check | validated |
+| T-037 | R-007 | Workspace Desktop이 사용하는 fuzzy search와 두 CSS module subpath를 package exports에 명시하고 private tree component 경계를 유지 | `packages/editor/package.json`, package self-resolution contract test | actual consumer imports와 package exports/Node resolver 비교 | 낮음~중간 | Node `import.meta.resolve` contract tests, editor tree architecture contract, app typecheck, root check | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 39개; 검증 완료 39, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 41개; 검증 완료 41, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -84,8 +86,8 @@
 - R-003 `SupabaseVault.ts`의 GitHub flush/recovery와 `mcp.ts`의 OAuth/JSON-RPC 분리는 명확한 책임 경계이나 전용 계약 테스트가 없다. 추가 read-only 조사에서 flush가 시작 시점 revision 이하만 캡처하고 완료 RPC가 revision/token을 비교해 새 변경·stale worker를 보존하며, DB 완료 기록 전 중단된 GitHub commit을 다음 flush에서 복구하는 경로를 확인했다. 구체 데이터 유실 결함은 입증하지 못했다. 모듈 분리 전 fake GitHub fetch/Supabase RPC로 DB 완료 실패 후 recovery와 pending 경로 밖 commit 거부를 특성화해야 한다. MCP 쪽은 OAuth state/PKCE·code consume·revoke 테스트가 선행되어야 한다.
 - R-003에서 확인한 `%`/`_` path wildcard 오분류는 T-025에서 literal slash-boundary helper로 수정했다. 예: `a_b`의 subtree가 `axb/child`를 매칭하던 false positive를 기존 SQL test에 추가해 수정 전 실패와 수정 후 통과를 로컬 Postgres에서 확인했다. 최종 operation/conflict/asset function 정의의 prefix query를 모두 교체했다.
 - R-004 `pkms-google-drive.tsx`는 기존 Drive session을 로컬 close만 하고 새 workspace sync를 먼저 하던 경로를 T-028에서 고쳤다. route 전체 runtime acceptance는 아직 없지만 저장 결과 검사·workspace sync 순서를 작은 Node 테스트 가능한 경계로 분리해 고정했다.
-- R-005 `serviceIntegrations.ts`는 OAuth state/PKCE, token refresh/revoke, D1 저장, provider status 수집과 오류 격리를 한 파일에서 담당한다. read-only 조사에서 확정된 런타임 결함은 없었다. `/api/services/*` 세션 guard와 bearer auth 이전의 OAuth callback state 검증, Cloudflare/Supabase 실패 격리 동작이 확인됐으나 독립 동작 테스트가 없다. fake D1/fetch/clock으로 state 1회 소비·만료, refresh 저장, revoke 실패 후 로컬 삭제, provider 간 오류 격리를 고정하기 전에는 provider lifecycle을 분할하지 않는다.
-- R-007 `@workspace/editor/fuzzySearch`, `treeView.module.css`, `assetPreview.module.css`는 Node package resolver에서 `ERR_PACKAGE_PATH_NOT_EXPORTED`를 반환한다. Desktop app과 visual fixture는 Vite alias·TypeScript wildcard path로 이를 우회하며, PKMS Web의 사용 경로는 명시된 exports 안에 있다. package가 `private`이고 저수준 editor 구현은 내부에 둔다는 경계도 있어 현재 소비자 빌드 결함은 확인되지 않았다. 이 경로를 public exports로 승격하려는 의도가 불명확하므로 현 경계를 유지하고, package resolver로 직접 import할 소비자가 생길 때 결정한다.
+- R-005 `serviceIntegrations.ts`의 OAuth state/PKCE, token refresh/revoke, D1 저장과 provider status 수집은 유지한다. 추가 조사에서 provider 이름 `includes` 및 connect suffix 판정이 닮은 인증 경로를 허용해 Supabase credential/metrics token을 삭제하거나 Cloudflare OAuth state를 만들 수 있는 경로 오분류를 확인하고 T-036에서 정확한 allowlist와 parser contract test로 고쳤다. OAuth state 1회 소비·만료, refresh 저장, revoke 실패 시 로컬 삭제, provider 간 오류 격리 특성화는 별도 후속 후보로 남는다.
+- R-007 `@workspace/editor/fuzzySearch`, `treeView.module.css`, `assetPreview.module.css`에는 Workspace Desktop의 실제 consumer가 있지만 Node package resolver exports에서 누락되어 있었다. Vite alias/TypeScript wildcard가 이를 감춰 package 경계 검사를 우회했다. T-037에서 세 실제 subpath만 명시하고 resolver contract test를 추가했다. 저수준 tree component 경로는 계속 private로 유지한다.
 - R-008 `workspaceTreeCache.ts`의 `parentPath` 계산은 `domain/fileTree.ts` helper와 동일해 테스트로 cache 삭제/보존 의미를 고정한 뒤 T-019에서 공유했다. `localItemIdForPath` 세 구현은 비ASCII 경로 및 ID 안정성을 고정한 뒤 T-022에서 domain helper로 통일했다.
 - R-010 `workspaceRepository.ts`, `operationLog.ts`, `assetConflictMaterializer.ts`의 SHA-256 hex 계산을 private `sha256Hex` helper로 모았다. 입력 bytes 복사와 lowercase digest 형식을 보존했고 기존 28개 관련 테스트로 검증했다(T-018).
 - R-001c/d 추가 조사: preload `contentApi`/`systemApi`의 `unknown` 반환형은 실제 Main payload와 renderer 사용이 기존 `WorkspaceApi` 선언에 부합함을 확인하고 T-032에서 같은 선언을 runtime 객체의 type owner로 연결했다. IPC payload 자체는 runtime validation을 추가하지 않았으며 특히 `usage:meter-settings-save`의 Main 측 normalization은 기존 경계로 유지한다. `terminal-session-buffers` timeout 뒤 `ipcMain.once` listener가 제거되지 않는 것은 확인했지만, 요청은 종료 준비 경로 한 곳뿐이고 응답 제한 후 앱이 종료되므로 현재 수명주기에서 지속 누수는 확인되지 않았다. 반복 호출이 생기면 응답·timeout·send 실패 모두 listener/timer 정리를 검증한다.
@@ -106,3 +108,6 @@
 - R-001a T-031: app ready 뒤 agent-hook server listen을 기다리고 성공한 경우 status URL callback을 주입한 뒤 fresh/restored Workspace를 생성하도록 startup을 재정렬했다. listen 실패는 startup log에 남기고 hook env 없이 앱을 계속 시작한다. 지연 listen·실패 ordering 2 tests와 fresh/restored PTY env 2 tests, app typecheck, root `npm run check`, 변경 경로 ESLint 및 Prettier 통과. `workspace.ts` 전체 ESLint에는 변경 전에도 있던 `connectTerminal`/다른 메서드의 explicit return type 오류 2개가 남아 있다. Electron 앱 실제 startup runtime은 실행하지 않았다.
 
 - T-035 완료: Desktop local provider pool·item ID·Quick Open cache를 `(tabId, rootPath)`로 분리했다. provider-owned filesystem IPC와 `LocalDocumentSession`의 load/save/watcher 재조회가 생성 당시 `expectedRootPath`를 전달하며 Main은 요청 직전 현재 tab root를 검사해 오래된 요청을 거부한다. root 전환 뒤 mutation IPC 거부, root별 provider identity, watcher stale rejection을 추가했다. focused Vitest 4파일/26테스트, app typecheck, root `npm run check`, Prettier, 변경된 경로의 HEAD 대비 ESLint 신규 진단 0건, architecture digest/link 검사가 통과했다.
+
+- T-036 완료: Home server provider path 판정을 부분 문자열/접미사 규칙에서 명시적 route allowlist로 추출했다. `not-supabase`/`foo-cloudflare` 등 닮은 경로가 등록 provider로 분류되지 않음을 Node contract test 2개로 고정했다. `node --experimental-strip-types --test apps/workspace-server/src/serviceRoute.test.mjs` 2 tests, `npm run workspace:server:typecheck` 통과. 실제 D1/OAuth runtime은 실행하지 않았다.
+- T-037 완료: editor package exports에 세 실제 consumer subpath(`fuzzySearch`, `treeView.module.css`, `assetPreview.module.css`)를 추가하고, 공개 root/existing CSS resolve 및 저수준 tree component private 상태를 Node contract test 3개로 고정했다. `node --test packages/editor/packageExports.test.mjs` 통과.
