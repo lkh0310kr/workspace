@@ -277,20 +277,22 @@ function installMocks() {
       _rootId: string,
       parentId: string,
       kind: string,
-      name: string
+      name: string,
+      itemId?: string,
+      parentItemId?: string
     ) => {
       const parent = parentId ? [driveFolder].find((entry) => entry.id === parentId) : null
       const entry: GoogleDriveWorkspaceEntry = {
-        id: `mock-drive-created-${driveCreatedNotes.length + 1}`,
+        id: itemId ?? `mock-drive-created-${driveCreatedNotes.length + 1}`,
         name,
         mimeType: kind === 'folder' ? 'application/vnd.google-apps.folder' : 'text/markdown',
-        parents: [parent?.id ?? driveRoot.id],
+        parents: [parentItemId ?? parent?.id ?? driveRoot.id],
         path: [parent?.path, name].filter(Boolean).join('/'),
         kind: kind === 'folder' ? 'folder' : 'markdown'
       }
       driveCreatedNotes.push(entry)
       w.__createdDrivePaths.push(entry.path)
-      return parent ? [driveNote, driveExtraNote, entry] : [...driveEntries, entry]
+      return entry
     },
     renameGoogleDriveItem: async (_rootId: string, entryId: string, name: string) => {
       const entry = [driveFolder, driveNote, driveExtraNote, ...driveCreatedNotes].find(
@@ -308,6 +310,7 @@ function installMocks() {
       return renamed
     },
     trashGoogleDriveItem: async () => undefined,
+    moveGoogleDriveItems: async () => undefined,
     disconnectGoogleDriveWorkspace: async () => undefined
   }
   const workspace = {

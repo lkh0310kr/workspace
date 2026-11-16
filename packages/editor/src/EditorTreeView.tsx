@@ -32,6 +32,14 @@ export interface EditorTreeViewItem {
   dropTarget?: boolean
   tabIndex?: number
   trailingStatus?: ReactNode
+  trailingStatusLabel?: string
+  inlineEdit?: {
+    value: string
+    ariaLabel: string
+    onChange: (value: string) => void
+    onCommit: () => void
+    onCancel: () => void
+  }
   showGuides?: boolean
   source?: unknown
 }
@@ -45,6 +53,7 @@ export interface EditorTreeViewProps {
   ariaLabel: string
   ariaBusy?: boolean
   canMove?: boolean
+  rootDropTarget?: boolean
   canMultiSelect?: boolean
   dragMimeType?: string
   tabIndex?: number
@@ -109,6 +118,7 @@ export function EditorTreeView({
   ariaLabel,
   ariaBusy = false,
   canMove = false,
+  rootDropTarget = false,
   canMultiSelect = false,
   dragMimeType = EDITOR_TREE_DRAG_MIME_TYPE,
   tabIndex = 0,
@@ -146,7 +156,9 @@ export function EditorTreeView({
   return (
     <div
       ref={rootRef as RefObject<HTMLDivElement | null>}
-      className={['editor-tree-view', className].filter(Boolean).join(' ')}
+      className={['editor-tree-view', rootDropTarget && 'is-root-drop-target', className]
+        .filter(Boolean)
+        .join(' ')}
       tabIndex={tabIndex}
       role="tree"
       aria-label={ariaLabel}
@@ -178,7 +190,7 @@ export function EditorTreeView({
       onDrop={
         canMove
           ? (event) => {
-              if (event.target === event.currentTarget) drop(event, '')
+              if (!event.defaultPrevented && acceptsTreeDrag(event)) drop(event, '')
             }
           : undefined
       }
@@ -196,7 +208,9 @@ export function EditorTreeView({
             id={item.id}
             path={item.path}
             name={item.name}
+            inlineEdit={item.inlineEdit}
             trailingStatus={item.trailingStatus}
+            trailingStatusLabel={item.trailingStatusLabel}
             kind={item.kind}
             depth={item.depth}
             disclosure={<TreeDisclosure />}

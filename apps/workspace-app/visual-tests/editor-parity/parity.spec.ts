@@ -609,17 +609,14 @@ test('all host tree toolbars create folders and Markdown notes', async ({ page }
     }
 
     await page.getByRole('button', { name: 'New folder' }).click()
-    const folderDialog =
-      host === 'desktop-pkms-editor' ? page.getByRole('dialog', { name: 'New folder' }) : null
     const folderInput =
       host === 'desktop-pkms-editor'
-        ? folderDialog!.getByRole('textbox')
+        ? page.getByRole('textbox', { name: 'New folder name' })
         : page.getByRole('textbox', { name: 'Folder name' })
     await folderInput.fill('Parity Folder')
     if (host === 'desktop-editor')
       await page.getByRole('button', { name: 'OK', exact: true }).click()
-    else if (host === 'desktop-pkms-editor')
-      await folderDialog!.getByRole('button', { name: 'Create folder' }).click()
+    else if (host === 'desktop-pkms-editor') await folderInput.press('Enter')
     else
       await page
         .getByRole('dialog', { name: 'Folder name' })
@@ -639,9 +636,9 @@ test('all host tree toolbars create folders and Markdown notes', async ({ page }
 
     await page.getByRole('button', { name: 'New Markdown file' }).click()
     if (host === 'desktop-pkms-editor') {
-      const dialog = page.getByRole('dialog', { name: 'New Markdown file' })
-      await expect(dialog.getByRole('textbox')).toHaveValue('Untitled.md')
-      await dialog.getByRole('button', { name: 'Create note' }).click()
+      const input = page.getByRole('textbox', { name: 'New file name' })
+      await expect(input).toHaveValue('Untitled.md')
+      await input.press('Enter')
     }
     await expect
       .poll(() => page.evaluate((key) => (window as any)[key], createdPathsKey))
@@ -720,9 +717,36 @@ test('Desktop Drive folder context menu exposes and opens shared file actions', 
   await page.keyboard.press('ArrowDown')
   await expect(menu.getByRole('menuitem', { name: 'New note' })).toBeFocused()
   await page.keyboard.press('Enter')
-  const dialog = page.getByRole('dialog', { name: 'New Markdown file' })
-  await expect(dialog).toBeVisible()
-  await expect(dialog.getByRole('textbox')).toHaveValue('Untitled.md')
-  await dialog.getByRole('button', { name: 'Cancel' }).click()
-  await expect(dialog).toHaveCount(0)
+  const input = page.getByRole('textbox', { name: 'New file name' })
+  await expect(input).toHaveValue('Untitled.md')
+  await input.press('Escape')
+  await expect(input).toHaveCount(0)
+
+  await page.getByRole('treeitem', { name: 'Verification' }).click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Rename' }).click()
+  const renameInput = page.getByRole('textbox', { name: 'Rename Verification' })
+  await expect(renameInput).toHaveValue('Verification')
+  await renameInput.fill('Renamed Verification')
+  await renameInput.press('Enter')
+  await expect(
+    page.getByRole('treeitem', { name: 'Renamed Verification', exact: true })
+  ).toBeVisible()
+})
+
+test('Desktop Drive tree moves a file to the workspace root through its empty area', async ({
+  page
+}) => {
+  await page.goto('/?host=desktop-pkms-editor')
+  await page.getByRole('treeitem', { name: 'Verification' }).click()
+  const file = page.getByRole('treeitem', { name: 'Readme', exact: true })
+  const tree = page.getByRole('tree', { name: 'PKMS Google Drive files' })
+  const box = await tree.boundingBox()
+  if (!box) throw new Error('Drive tree has no visible drop area')
+  await file.dragTo(tree, {
+    targetPosition: { x: Math.max(20, box.width - 24), y: Math.max(24, box.height - 8) }
+  })
+  await expect(tree.getByRole('treeitem', { name: 'Readme', exact: true })).toHaveAttribute(
+    'aria-level',
+    '1'
+  )
 })

@@ -235,7 +235,14 @@ export class GoogleDriveYjsDocumentStore {
       (operation) =>
         operation.mutation.type === 'document-seed' && operation.mutation.fileId === document.fileId
     )
-    const remoteOperations = await this.operationLog.listDocumentOperations(document.fileId)
+    const createOperation = queued.find(
+      (operation) =>
+        operation.mutation.type === 'create-file' &&
+        (operation.mutation.itemId ?? operation.operationId) === document.fileId
+    )
+    const remoteOperations = createOperation
+      ? []
+      : await this.operationLog.listDocumentOperations(document.fileId)
     const seed =
       remoteOperations.find(
         (operation) =>
@@ -274,11 +281,6 @@ export class GoogleDriveYjsDocumentStore {
     if (remoteOperations.length)
       throw new Error(`Google Drive document ${document.fileId} has updates without a seed.`)
 
-    const createOperation = queued.find(
-      (operation) =>
-        operation.mutation.type === 'create-file' &&
-        (operation.mutation.itemId ?? operation.operationId) === document.fileId
-    )
     const initialBytes =
       createOperation?.mutation.type === 'create-file'
         ? createOperation.mutation.bytes

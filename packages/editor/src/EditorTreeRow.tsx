@@ -1,4 +1,6 @@
 import React, {
+  useRef,
+  useEffect,
   type DragEventHandler,
   type KeyboardEventHandler,
   type MouseEventHandler,
@@ -13,7 +15,15 @@ export interface EditorTreeRowProps {
   id: string
   path: string
   name: string
+  inlineEdit?: {
+    value: string
+    ariaLabel: string
+    onChange: (value: string) => void
+    onCommit: () => void
+    onCancel: () => void
+  }
   trailingStatus?: ReactNode
+  trailingStatusLabel?: string
   kind: EditorItemKind
   depth: number
   disclosure?: ReactNode
@@ -45,7 +55,9 @@ export function EditorTreeRow({
   id,
   path,
   name,
+  inlineEdit,
   trailingStatus,
+  trailingStatusLabel,
   kind,
   depth,
   disclosure,
@@ -71,6 +83,10 @@ export function EditorTreeRow({
   onDragLeave,
   onDrop
 }: EditorTreeRowProps) {
+  const inlineEditFinished = useRef(false)
+  useEffect(() => {
+    if (inlineEdit) inlineEditFinished.current = false
+  }, [Boolean(inlineEdit)])
   const classes = editorTreeRowClassName({
     className,
     active,
@@ -83,6 +99,54 @@ export function EditorTreeRow({
     kind
   })
 
+  if (inlineEdit) {
+    const commit = () => {
+      if (inlineEditFinished.current) return
+      inlineEditFinished.current = true
+      inlineEdit.onCommit()
+    }
+    const cancel = () => {
+      if (inlineEditFinished.current) return
+      inlineEditFinished.current = true
+      inlineEdit.onCancel()
+    }
+    return (
+      <div
+        role="treeitem"
+        data-tree-path={path}
+        data-editor-item-id={id}
+        aria-level={depth + 1}
+        aria-selected={selected || multiSelected}
+        aria-expanded={expandable ? expanded : undefined}
+        tabIndex={-1}
+        className={classes}
+        style={{ paddingInlineStart: 8 + depth * 14 }}
+      >
+        <input
+          autoFocus
+          type="text"
+          aria-label={inlineEdit.ariaLabel}
+          className="editor-tree-inline-edit"
+          value={inlineEdit.value}
+          onChange={(event) => inlineEdit.onChange(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              event.stopPropagation()
+              commit()
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault()
+              event.stopPropagation()
+              cancel()
+            }
+          }}
+          onBlur={commit}
+        />
+      </div>
+    )
+  }
+
   return (
     <button
       type="button"
@@ -90,6 +154,7 @@ export function EditorTreeRow({
       data-tree-path={path}
       data-editor-item-id={id}
       aria-selected={selected || multiSelected}
+      aria-description={trailingStatusLabel}
       aria-level={depth + 1}
       aria-expanded={expandable ? expanded : undefined}
       tabIndex={tabIndex}

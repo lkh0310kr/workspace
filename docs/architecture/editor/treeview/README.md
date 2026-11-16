@@ -8,6 +8,8 @@
 
 row에는 file/folder type icon을 표시하지 않는다. folder expand/collapse disclosure와 depth guide만 유지하고, 아이콘 폭 없이 이름을 정렬한다.
 
+Provider 기반 tree의 생성과 이름 변경은 row 안에서 입력한다. Enter는 commit, Escape는 취소하며 생성 직후 이름을 입력할 row를 표시한다. `trailingStatus`는 동기화 pending/uploading/synced/attention 아이콘을 전달하고 접근성 설명은 row description으로 제공해 파일 이름 accessible name을 유지한다. Drag/drop 중 빈 tree 영역은 workspace root 대상이며, row drop은 전파를 막아 folder 대상이 우선한다.
+
 Desktop local TreeView는 Git이 무시하는 파일/폴더를 계속 탐색·열기 가능하게 표시하되 이름만 muted foreground로 구분한다. 무시 여부는 renderer에서 `.gitignore` 문자열을 직접 해석하지 않고 workspace root 기준 `git check-ignore` 결과를 사용한다. 이는 중첩 `.gitignore`, negation, 저장소 설정과 이미 추적 중인 파일의 Git 판정을 따른다. foreground 변경은 행 배경·선택·hover·키보드 동작을 바꾸지 않는다. Git 저장소가 아니거나 Git 판정을 얻지 못해도 directory listing은 유지하고 항목을 일반 상태로 표시한다. 이 Git decoration은 Desktop local provider에만 적용한다. PKMS client의 sync exclusion pattern은 Git ignore가 아니므로 같은 상태로 표시하지 않는다.
 
 Desktop은 path→`{entries,loaded}` branch Map, expanded Set, focusedPath/anchorPath/selectedPaths, menu/prompt, dropTarget, scrollTop, 첫 가시 행의 path와 행 내 offset, viewportHeight를 소유한다. provider lease는 Explorer와 Editor가 공유한다. loadDir는 path를 directory item으로 resolve하고 listChildren(parentId)를 수행한다. notFound는 로딩 중단, 기타 오류는 console.error다. 요청마다 branch sequence와 root path를 캡처하며, 늦게 완료된 오래된 branch/root 응답은 버린다.
@@ -94,6 +96,8 @@ host는 canMove=`capabilities.dragMove && supportsOperation('move')`를 사용�
 | TREE-26 | 세 host의 실제 TreeView를 mock 경계에 연결해 같은 폴더·선택 파일·서식이 풍부한 Markdown 문서를 screenshot으로 비교하고 breadcrumb sibling menu에서 파일 선택 | hover/선택 스타일과 row geometry가 같고 filename title 및 본문이 같은 readable column에 정렬됨; Shadow DOM 내부 menu click이 유지되고 PKMS별 toolbar/footer는 보존됨 |
 | TREE-27 | Desktop Drive tree에 64개 자식을 표시하고 Left/Right·ArrowDown으로 행 30까지 이동한 뒤 Explorer를 숨겼다가 다시 표시 | 실제 `.editor-tree-pane-content` scroll owner가 움직이고 행 30이 보이는 위치로 이동; toolbar/footer는 고정되고 재열림 후 scroll 위치와 행 표시가 복원됨 |
 | TREE-28 | 세 host에서 공용 tree toolbar의 New folder와 New Markdown file action을 실행 | 각 host가 provider 경계로 생성을 전달하고, 생성된 folder와 note가 TreeView에 표시됨 |
+| TREE-29 | PKMS TreeView에서 생성·rename input에 이름을 입력하고 Enter/Escape/blur, 빈 tree 영역으로 파일 이동 | 생성·rename은 row 안에서 끝나고 Escape는 취소하며 빈 영역 drop은 workspace root에 이동함 |
+| TREE-30 | PKMS 파일 생성·rename·move 후 Drive 응답 대기 중 TreeView 상태를 확인 | 행이 즉시 표시/변경되고 pending 또는 uploading 상태를 표시하며 sync 완료 뒤 synced 상태로 전이함 |
 
 자동 근거는 TreeView.test, useTreeProjection.test, treeReload.test, `TreeView.scroll.test.ts`, `scripts/check-editor-tree-contract.mjs`, `apps/workspace-app/visual-tests/editor-parity`다. TreeView 통합 테스트는 저장 anchor 복원, active file 변경 후 scroll 유지, unmount/remount 뒤 재복원을 확인한다. Playwright fixture는 실제 Desktop `TreeView`, Shadow DOM을 포함한 `PkmsPane`, Web `FileTreeList`를 렌더하고, 공통 Markdown surface를 사용해 제품 CSS의 hover·selection·title/body width를 Linux Chromium golden screenshot과 computed geometry로 비교한다. 세 host toolbar에서 folder/note 생성 후 tree 표시, 공통 Find와 PKMS title rename, Desktop Drive keyboard scroll restoration도 확인한다. API/파일시스템 경계만 seed로 대체하며 전체 Electron main process와 Web 인증/API lifecycle은 별도 runtime acceptance다. 계약 검사는 세 제품의 pane/toolbar 진입점, package export/subpath, 내부 component 직접 import를 확인하며 `npm run check`에서 실행한다. `WorkspaceExplorerSidebar.shortcut.test.ts`는 물리 Backslash 입력으로 toggle handler가 닫기와 재열기를 수행하는지 검증한다. Git ignore 판정은 files.test에서 별도 검증한다. provider I/O 실패·dirty 확인·실제 DnD도 추가 통합 검증이 필요하다.
 

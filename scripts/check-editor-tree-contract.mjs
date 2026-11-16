@@ -31,8 +31,29 @@ const sharedTreeStyles = await readFile(sharedTreeStylesPath, 'utf8')
 const sharedTreePane = await readFile(sharedTreePanePath, 'utf8')
 const sharedEditorThemes = await readFile(sharedEditorThemesPath, 'utf8')
 
-if (!/className=\{\['editor-tree-view',\s*className\]/.test(sharedTreeView)) {
+if (!/className=\{\['editor-tree-view',[\s\S]{0,120}className\]/.test(sharedTreeView)) {
   failures.push('EditorTreeView must apply the shared editor-tree-view root class.')
+}
+if (!/rootDropTarget\s*&&\s*'is-root-drop-target'/.test(sharedTreeView)) {
+  failures.push(
+    'EditorTreeView must expose the root drop target state through its shared root class.'
+  )
+}
+if (
+  !/if\s*\(inlineEdit\)[\s\S]*?aria-label=\{inlineEdit\.ariaLabel\}[\s\S]*?event\.key === 'Enter'[\s\S]*?event\.key === 'Escape'/.test(
+    await readFile(path.join(root, 'packages/editor/src/EditorTreeRow.tsx'), 'utf8')
+  )
+) {
+  failures.push(
+    'EditorTreeRow must keep create and rename editing inline with Enter and Escape behavior.'
+  )
+}
+if (
+  !/if\s*\(!event\.defaultPrevented\s*&&\s*acceptsTreeDrag\(event\)\)\s*drop\(event,\s*''\)/.test(
+    sharedTreeView
+  )
+) {
+  failures.push('EditorTreeView must route blank-area drops to the workspace root.')
 }
 if (
   !/\.editor-tree-view\s*\{[^}]*min-height:\s*100%[^}]*flex:\s*1 1 auto[^}]*flex-direction:\s*column[^}]*padding-block:\s*4px/s.test(

@@ -103,11 +103,18 @@ export function registerPkmsIpc(): void {
   )
   ipcMain.handle(
     'pkms-google-drive:workspace:open-markdown',
-    (event, rootId: string, fileId: string) => {
+    (
+      event,
+      rootId: string,
+      fileId: string,
+      knownEntry?: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
+    ) => {
       assertTrustedSender(event)
       assertDriveId(rootId)
       assertDriveId(fileId)
-      return driveWorkspaceService().openMarkdown(rootId, fileId)
+      if (knownEntry && (knownEntry.id !== fileId || typeof knownEntry.path !== 'string'))
+        throw new Error('invalid_google_drive_item')
+      return driveWorkspaceService().openMarkdown(rootId, fileId, knownEntry)
     }
   )
   ipcMain.handle(
@@ -129,7 +136,15 @@ export function registerPkmsIpc(): void {
   })
   ipcMain.handle(
     'pkms-google-drive:workspace:create',
-    (event, rootId: string, parentPath: string, kind: 'markdown' | 'folder', name: string) => {
+    (
+      event,
+      rootId: string,
+      parentPath: string,
+      kind: 'markdown' | 'folder',
+      name: string,
+      itemId?: string,
+      parentItemId?: string
+    ) => {
       assertTrustedSender(event)
       assertDriveId(rootId)
       if (
@@ -139,17 +154,34 @@ export function registerPkmsIpc(): void {
         !name.trim()
       )
         throw new Error('invalid_google_drive_item')
-      return driveWorkspaceService().createItem(rootId, parentPath, kind, name.trim())
+      if (itemId !== undefined) assertDriveId(itemId)
+      if (parentItemId !== undefined) assertDriveId(parentItemId)
+      return driveWorkspaceService().createItem(
+        rootId,
+        parentPath,
+        kind,
+        name.trim(),
+        itemId,
+        parentItemId
+      )
     }
   )
   ipcMain.handle(
     'pkms-google-drive:workspace:rename',
-    (event, rootId: string, fileId: string, name: string) => {
+    (
+      event,
+      rootId: string,
+      fileId: string,
+      name: string,
+      currentEntry?: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
+    ) => {
       assertTrustedSender(event)
       assertDriveId(rootId)
       assertDriveId(fileId)
       if (typeof name !== 'string' || !name.trim()) throw new Error('invalid_google_drive_name')
-      return driveWorkspaceService().rename(rootId, fileId, name.trim())
+      if (currentEntry && (currentEntry.id !== fileId || typeof currentEntry.path !== 'string'))
+        throw new Error('invalid_google_drive_item')
+      return driveWorkspaceService().rename(rootId, fileId, name.trim(), currentEntry)
     }
   )
   ipcMain.handle('pkms-google-drive:workspace:trash', (event, rootId: string, fileId: string) => {
@@ -158,6 +190,23 @@ export function registerPkmsIpc(): void {
     assertDriveId(fileId)
     return driveWorkspaceService().trash(rootId, fileId)
   })
+  ipcMain.handle(
+    'pkms-google-drive:workspace:move',
+    (event, rootId: string, fileIds: string[], targetPath: string) => {
+      assertTrustedSender(event)
+      assertDriveId(rootId)
+      if (!Array.isArray(fileIds) || fileIds.length > 100)
+        throw new Error('invalid_google_drive_items')
+      fileIds.forEach(assertDriveId)
+      if (
+        typeof targetPath !== 'string' ||
+        (targetPath !== '' &&
+          targetPath.split('/').some((part) => !part || part === '.' || part === '..'))
+      )
+        throw new Error('invalid_google_drive_path')
+      return driveWorkspaceService().move(rootId, fileIds, targetPath)
+    }
+  )
   ipcMain.handle('pkms-google-drive:workspace:disconnect', (event, rootId: string) => {
     assertTrustedSender(event)
     assertDriveId(rootId)

@@ -16,7 +16,7 @@ import {
   EditorTreePane,
   EditorTreeToolbar,
   EditorTreeCreateActions,
-  EditorNameForm,
+  EDITOR_TREE_DRAG_MIME_TYPE,
   EditorQuickOpenDialog,
   EDITOR_TREE_ROW_HEIGHT,
   buildRenamedPath,
@@ -48,22 +48,13 @@ interface RootOption {
   name: string
 }
 
-type GoogleDriveDialogRequest =
-  | {
-      kind: 'name'
-      title: string
-      initialValue: string
-      submitLabel: string
-      selectInitialValue?: boolean
-      onSubmit: (value: string) => void
-    }
-  | {
-      kind: 'confirm'
-      title: string
-      message: string
-      confirmLabel: string
-      onConfirm: () => void
-    }
+type GoogleDriveDialogRequest = {
+  kind: 'confirm'
+  title: string
+  message: string
+  confirmLabel: string
+  onConfirm: () => void
+}
 
 function driveEntryToEditorItem(rootId: string, entry: GoogleDriveWorkspaceEntry): EditorTreeItem {
   return {
@@ -230,7 +221,8 @@ function createSession(
         phase === 'error' ||
         deferredSyncTimer !== undefined
       ) {
-        const saved = await save({ flushSync: true })
+        // The native outbox is durable before this resolves; Drive upload can continue after close.
+        const saved = await save({ flushSync: false })
         if (saved.savePhase !== 'clean')
           throw new Error(saved.message ?? 'Could not save the document before closing it.')
       }
@@ -253,21 +245,54 @@ export function PkmsGoogleDrivePane({
   const [treeBranches, setTreeBranches] = useState<Map<string, GoogleDriveWorkspaceEntry[]>>(
     () => new Map()
   )
+  const treeBranchGeneration = useRef(new Map<string, number>())
+  const workspaceGeneration = useRef(0)
+  const invalidateTreeBranch = (path: string) => {
+    treeBranchGeneration.current.set(path, (treeBranchGeneration.current.get(path) ?? 0) + 1)
+  }
+  const [treeSyncStates, setTreeSyncStates] = useState<
+    Map<string, 'pending' | 'syncing' | 'synced' | 'attention'>
+  >(() => new Map())
+  const treeSyncStatesRef = useRef(treeSyncStates)
+  const updateTreeSyncStates = (
+    update: (
+      current: Map<string, 'pending' | 'syncing' | 'synced' | 'attention'>
+    ) => Map<string, 'pending' | 'syncing' | 'synced' | 'attention'>
+  ) => {
+    const next = update(treeSyncStatesRef.current)
+    treeSyncStatesRef.current = next
+    setTreeSyncStates(next)
+  }
+  const [treeEdit, setTreeEdit] = useState<
+    | {
+        mode: 'create'
+        kind: 'markdown' | 'folder'
+        parentPath: string
+        name: string
+        path: string
+      }
+    | { mode: 'rename'; entry: GoogleDriveWorkspaceEntry; name: string; path: string }
+    | null
+  >(null)
+  const treeEditCommitRef = useRef<(() => void) | null>(null)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
   const [loadingFolders, setLoadingFolders] = useState<Set<string>>(() => new Set())
   const [treeScrollTop, setTreeScrollTop] = useState(0)
   const [treeViewportHeight, setTreeViewportHeight] = useState(600)
   const [focusedTreePath, setFocusedTreePath] = useState<string | null>(null)
+  const [treeDropTarget, setTreeDropTarget] = useState<string | null>(null)
   const treeRootRef = useRef<HTMLDivElement>(null)
   const treeScrollContainerRef = useRef<HTMLDivElement>(null)
   const driveSearchInputRef = useRef<HTMLInputElement>(null)
   const treeContextMenuRef = useRef<HTMLDivElement>(null)
+  const openGeneration = useRef(0)
   const [directory, setDirectory] = useState({
     id: null as string | null,
     path: '',
     ancestors: [] as Array<{ id: string | null; path: string; name: string }>
   })
   const [activeFile, setActiveFile] = useState<GoogleDriveWorkspaceEntry | null>(null)
+  const [openingFileId, setOpeningFileId] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const titleCaretPositionRef = useRef<number | null>(null)
   const [titleEditing, setTitleEditing] = useState(false)
@@ -373,28 +398,34 @@ export function PkmsGoogleDrivePane({
 
   const setConnected = useCallback(
     async (nextRoot: RootOption, initialEntries?: GoogleDriveWorkspaceEntry[]) => {
+      const generation = ++workspaceGeneration.current
       setBusy(true)
       setError('')
       try {
         const result = initialEntries
           ? { entries: initialEntries }
           : await window.pkmsDesktop.connectGoogleDriveWorkspace(nextRoot.id)
+        if (generation !== workspaceGeneration.current) return
         await sessionRef.current?.close()
+        if (generation !== workspaceGeneration.current) return
         setSession(null)
         sessionRef.current = null
         setActiveFile(null)
         setDirectory({ id: null, path: '', ancestors: [] })
         setRoot(nextRoot)
         setTreeBranches(new Map([['', result.entries]]))
+        updateTreeSyncStates(() => new Map(result.entries.map((entry) => [entry.path, 'synced'])))
         setExpandedFolders(new Set())
         setLoadingFolders(new Set())
         setFocusedTreePath(null)
         setStatus(`Connected to ${nextRoot.name}`)
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not connect to Google Drive.')
-        setStatus('Google Drive needs attention')
+        if (generation === workspaceGeneration.current) {
+          setError(cause instanceof Error ? cause.message : 'Could not connect to Google Drive.')
+          setStatus('Google Drive needs attention')
+        }
       } finally {
-        setBusy(false)
+        if (generation === workspaceGeneration.current) setBusy(false)
       }
     },
     []
@@ -446,8 +477,41 @@ export function PkmsGoogleDrivePane({
 
   const refreshDirectory = useCallback(async () => {
     if (!root) return
+    const generation = (treeBranchGeneration.current.get(directory.path) ?? 0) + 1
+    treeBranchGeneration.current.set(directory.path, generation)
+    const rootId = root.id
+    const workspaceVersion = workspaceGeneration.current
     const nextEntries = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, directory.id)
-    setTreeBranches((current) => new Map(current).set(directory.path, nextEntries))
+    if (
+      rootId !== root.id ||
+      workspaceVersion !== workspaceGeneration.current ||
+      treeBranchGeneration.current.get(directory.path) !== generation
+    )
+      return
+    setTreeBranches((current) => {
+      const refreshed = new Map(current)
+      const optimisticIds = new Set(
+        [...current.values()]
+          .flat()
+          .filter((entry) => treeSyncStatesRef.current.has(entry.path))
+          .map((entry) => entry.id)
+      )
+      const optimistic = (current.get(directory.path) ?? []).filter((entry) =>
+        treeSyncStatesRef.current.has(entry.path)
+      )
+      refreshed.set(directory.path, [
+        ...nextEntries.filter((entry) => !optimisticIds.has(entry.id)),
+        ...optimistic
+      ])
+      return refreshed
+    })
+    updateTreeSyncStates((current) => {
+      const next = new Map(current)
+      nextEntries.forEach((entry) => {
+        if (!next.has(entry.path)) next.set(entry.path, 'synced')
+      })
+      return next
+    })
   }, [directory.id, directory.path, root])
 
   const refreshEntryParent = useCallback(
@@ -505,10 +569,27 @@ export function PkmsGoogleDrivePane({
         return next
       })
       if (treeBranches.has(entry.path)) return
+      const generation = (treeBranchGeneration.current.get(entry.path) ?? 0) + 1
+      treeBranchGeneration.current.set(entry.path, generation)
+      const rootId = root.id
+      const workspaceVersion = workspaceGeneration.current
       setLoadingFolders((current) => new Set(current).add(entry.path))
       try {
         const children = await window.pkmsDesktop.listGoogleDriveDirectory(root.id, entry.id)
+        if (
+          rootId !== root.id ||
+          workspaceVersion !== workspaceGeneration.current ||
+          treeBranchGeneration.current.get(entry.path) !== generation
+        )
+          return
         setTreeBranches((current) => new Map(current).set(entry.path, children))
+        updateTreeSyncStates((current) => {
+          const next = new Map(current)
+          children.forEach((child) => {
+            if (!next.has(child.path)) next.set(child.path, 'synced')
+          })
+          return next
+        })
         // Warm one level beneath the opened folder so the next expansion is immediate.
         const childFolders = children.filter((child) => child.kind === 'folder')
         const warmed = await Promise.all(
@@ -542,6 +623,28 @@ export function PkmsGoogleDrivePane({
         children.map((entry) => ({ ...entry, directory: entry.kind === 'folder' }))
       ])
     )
+    const stateForEntry = (entry: GoogleDriveWorkspaceEntry) => {
+      const own = treeSyncStates.get(entry.path)
+      if (own) return own
+      if (entry.kind === 'folder') {
+        const descendants = [...treeSyncStates]
+          .filter(([path]) => path.startsWith(`${entry.path}/`))
+          .map(([, state]) => state)
+        if (descendants.includes('attention')) return 'attention'
+        if (descendants.includes('syncing')) return 'syncing'
+        if (descendants.includes('pending')) return 'pending'
+        if (descendants.includes('synced')) return 'synced'
+      }
+      return activeFile?.id === entry.id
+        ? sessionSnapshot?.syncPhase === 'blocked'
+          ? 'attention'
+          : sessionSnapshot?.syncPhase === 'pending'
+            ? 'pending'
+            : sessionSnapshot?.syncPhase === 'synced'
+              ? 'synced'
+              : undefined
+        : undefined
+    }
     const visible = flattenEditorTree(branches, expandedFolders, '').map(
       ({ item, depth }, rowIndex) => ({
         id: item.id,
@@ -552,14 +655,107 @@ export function PkmsGoogleDrivePane({
         expandable: item.kind === 'folder',
         expanded: expandedFolders.has(item.path),
         loading: loadingFolders.has(item.path),
-        active: activeFile?.id === item.id || directory.id === item.id,
-        selected: activeFile?.id === item.id,
+        active: activeFile?.id === item.id || openingFileId === item.id || directory.id === item.id,
+        selected: activeFile?.id === item.id || openingFileId === item.id,
+        dropTarget: treeDropTarget === item.path,
+        trailingStatus: (() => {
+          const state = stateForEntry(item)
+          if (!state) return undefined
+          const attention = state === 'attention'
+          const glyph = state === 'synced' ? '✓' : state === 'syncing' ? '↻' : attention ? '!' : '•'
+          const label =
+            state === 'synced'
+              ? 'Synced'
+              : state === 'syncing'
+                ? 'Uploading'
+                : attention
+                  ? 'Sync needs attention'
+                  : 'Waiting to upload'
+          return (
+            <span
+              title={label}
+              className={`editor-tree-trailing-status--${attention ? 'attention' : state}`}
+              aria-hidden="true"
+            >
+              {glyph}
+            </span>
+          )
+        })(),
+        trailingStatusLabel: (() => {
+          const state = stateForEntry(item)
+          return state === 'synced'
+            ? 'Synced'
+            : state === 'syncing'
+              ? 'Uploading'
+              : state === 'attention'
+                ? 'Sync needs attention'
+                : state
+                  ? 'Waiting to upload'
+                  : undefined
+        })(),
         tabIndex: focusedTreePath === item.path || (!focusedTreePath && rowIndex === 0) ? 0 : -1,
-        source: item
+        source: item,
+        ...(treeEdit?.mode === 'rename' && treeEdit.entry.id === item.id
+          ? {
+              inlineEdit: {
+                value: treeEdit.name,
+                ariaLabel: `Rename ${item.name}`,
+                onChange: (name: string) => setTreeEdit({ ...treeEdit, name }),
+                onCommit: () => treeEditCommitRef.current?.(),
+                onCancel: () => setTreeEdit(null)
+              }
+            }
+          : {})
       })
     ) as EditorTreeViewItem[]
+    if (treeEdit?.mode === 'create') {
+      const parentIndex = treeEdit.parentPath
+        ? visible.findIndex((row) => row.path === treeEdit.parentPath)
+        : -1
+      if (!treeEdit.parentPath || parentIndex >= 0) {
+        const depth = parentIndex < 0 ? 0 : visible[parentIndex].depth + 1
+        let insertAt = parentIndex < 0 ? 0 : parentIndex + 1
+        while (
+          parentIndex >= 0 &&
+          insertAt < visible.length &&
+          visible[insertAt].path.startsWith(`${treeEdit.parentPath}/`)
+        )
+          insertAt += 1
+        visible.splice(insertAt, 0, {
+          id: `inline-create:${treeEdit.parentPath}`,
+          path: treeEdit.path,
+          name: treeEdit.name,
+          kind: treeEdit.kind === 'folder' ? 'directory' : 'markdown',
+          depth,
+          inlineEdit: {
+            value: treeEdit.name,
+            ariaLabel: treeEdit.kind === 'folder' ? 'New folder name' : 'New file name',
+            onChange: (name) =>
+              setTreeEdit({
+                ...treeEdit,
+                name,
+                path: treeEdit.parentPath ? `${treeEdit.parentPath}/${name}` : name
+              }),
+            onCommit: () => treeEditCommitRef.current?.(),
+            onCancel: () => setTreeEdit(null)
+          }
+        })
+      }
+    }
     return visible
-  }, [treeBranches, expandedFolders, loadingFolders, activeFile, directory.id, focusedTreePath])
+  }, [
+    treeBranches,
+    expandedFolders,
+    loadingFolders,
+    activeFile,
+    openingFileId,
+    directory.id,
+    focusedTreePath,
+    treeSyncStates,
+    sessionSnapshot,
+    treeEdit,
+    treeDropTarget
+  ])
   const treeProjection = useMemo(
     () => projectEditorTreeRows(treeRows, treeScrollTop, treeViewportHeight),
     [treeRows, treeScrollTop, treeViewportHeight]
@@ -686,8 +882,8 @@ export function PkmsGoogleDrivePane({
 
   const syncNow = useCallback(async () => {
     if (!root) return
-    setBusy(true)
     setSyncing(true)
+    updateTreeSyncStates((current) => new Map([...current.keys()].map((path) => [path, 'syncing'])))
     try {
       const result = await window.pkmsDesktop.syncGoogleDriveWorkspace(root.id)
       await refreshDirectory()
@@ -696,12 +892,23 @@ export function PkmsGoogleDrivePane({
           ? `${result.pendingOperations} change(s) waiting for Drive`
           : 'Google Drive is up to date'
       )
+      updateTreeSyncStates(
+        (current) =>
+          new Map(
+            [...current.keys()].map((path) => [
+              path,
+              result.pendingOperations ? 'pending' : 'synced'
+            ])
+          )
+      )
       setError('')
     } catch (cause) {
+      updateTreeSyncStates(
+        (current) => new Map([...current.keys()].map((path) => [path, 'attention']))
+      )
       setError(cause instanceof Error ? cause.message : 'Google Drive sync failed.')
       setStatus('Google Drive sync is waiting')
     } finally {
-      setBusy(false)
       setSyncing(false)
     }
   }, [refreshDirectory, root])
@@ -736,21 +943,29 @@ export function PkmsGoogleDrivePane({
         )
         return
       }
-      setBusy(true)
+      const generation = ++openGeneration.current
       setError('')
+      setFocusedTreePath(entry.path)
+      setOpeningFileId(entry.id)
       try {
-        const opened = await window.pkmsDesktop.openGoogleDriveMarkdown(root.id, entry.id)
+        const opened = await window.pkmsDesktop.openGoogleDriveMarkdown(root.id, entry.id, entry)
+        if (generation !== openGeneration.current) return
         const next = createSession(root.id, opened.entry, opened.text, opened.revision)
-        await session?.close()
+        const previous = sessionRef.current
+        await previous?.close()
+        if (generation !== openGeneration.current) return
+        sessionRef.current = next
         setSession(next)
         setActiveFile(opened.entry)
+        setOpeningFileId(null)
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not open the Markdown file.')
-      } finally {
-        setBusy(false)
+        if (generation === openGeneration.current) {
+          setOpeningFileId(null)
+          setError(cause instanceof Error ? cause.message : 'Could not open the Markdown file.')
+        }
       }
     },
-    [root, session, toggleFolder]
+    [root, toggleFolder]
   )
 
   const resolveDrivePath = useCallback(
@@ -823,17 +1038,17 @@ export function PkmsGoogleDrivePane({
               return entries.map((entry) => driveEntryToEditorItem(root.id, entry))
             },
             createFileAtRoot: async (name) => {
-              const updatedEntries = await window.pkmsDesktop.createGoogleDriveItem(
+              const created = await window.pkmsDesktop.createGoogleDriveItem(
                 root.id,
                 '',
                 'markdown',
-                name
+                name,
+                undefined,
+                root.id
               )
-              setTreeBranches((current) => new Map(current).set('', updatedEntries))
-              const created = updatedEntries.find(
-                (entry) => entry.name.toLocaleLowerCase() === name.toLocaleLowerCase()
+              setTreeBranches((current) =>
+                new Map(current).set('', [...(current.get('') ?? []), created])
               )
-              if (!created) throw new Error(`Could not create linked note: ${name}`)
               return driveEntryToEditorItem(root.id, created)
             }
           },
@@ -906,87 +1121,144 @@ export function PkmsGoogleDrivePane({
   const createItem = useCallback(
     async (kind: 'markdown' | 'folder', parentPath: string, name: string) => {
       if (!root) return
-      setBusy(true)
       try {
         const path = parentPath ? `${parentPath}/${name}` : name
-        const updatedEntries = await window.pkmsDesktop.createGoogleDriveItem(
+        invalidateTreeBranch(parentPath)
+        const itemId = crypto.randomUUID()
+        const parentItemId = parentPath
+          ? ([...treeBranches.values()].flat().find((entry) => entry.path === parentPath)?.id ??
+            root.id)
+          : root.id
+        const optimistic: GoogleDriveWorkspaceEntry = {
+          id: itemId,
+          name,
+          mimeType: kind === 'folder' ? 'application/vnd.google-apps.folder' : 'text/markdown',
+          appProperties: { pkmsWorkspaceRootId: root.id, pkmsItemId: itemId },
+          parents: [parentItemId],
+          path,
+          kind
+        }
+        setTreeBranches((current) =>
+          new Map(current).set(parentPath, [
+            ...(current.get(parentPath) ?? []).filter((entry) => entry.name !== name),
+            optimistic
+          ])
+        )
+        updateTreeSyncStates((current) => new Map(current).set(path, 'pending'))
+        const created = await window.pkmsDesktop.createGoogleDriveItem(
           root.id,
           parentPath,
           kind,
-          name
+          name,
+          itemId,
+          parentItemId
         )
-        setTreeBranches((current) => new Map(current).set(parentPath, updatedEntries))
-        setStatus(`Created ${path}`)
+        setTreeBranches((current) => {
+          const next = new Map(current)
+          const siblings = next.get(parentPath) ?? []
+          if (!siblings.some((entry) => entry.id === created.id))
+            next.set(parentPath, [...siblings, created])
+          return next
+        })
+        setStatus(`Saving ${path} to Google Drive…`)
+        if (kind === 'markdown') void openEntry(created)
+        window.setTimeout(() => void syncNow(), 900)
       } catch (cause) {
+        updateTreeSyncStates((current) =>
+          new Map(current).set(parentPath ? `${parentPath}/${name}` : name, 'attention')
+        )
         setError(cause instanceof Error ? cause.message : 'Could not create the item.')
-      } finally {
-        setBusy(false)
       }
     },
-    [root]
+    [openEntry, root, syncNow]
   )
 
   const requestCreateItem = useCallback(
     (kind: 'markdown' | 'folder', parentPath = directory.path) => {
-      const isNote = kind === 'markdown'
       setTreeContextMenu(null)
-      setDialogRequest({
-        kind: 'name',
-        title: isNote ? 'New Markdown file' : 'New folder',
-        initialValue: isNote ? 'Untitled.md' : 'New Folder',
-        submitLabel: isNote ? 'Create note' : 'Create folder',
-        selectInitialValue: true,
-        onSubmit: (name) => void createItem(kind, parentPath, name)
+      if (parentPath) {
+        const folder = [...treeBranches.values()]
+          .flat()
+          .find((entry) => entry.path === parentPath && entry.kind === 'folder')
+        if (folder && !expandedFolders.has(parentPath)) void toggleFolder(folder)
+      }
+      const name = kind === 'markdown' ? 'Untitled.md' : 'New Folder'
+      setTreeEdit({
+        mode: 'create',
+        kind,
+        parentPath,
+        name,
+        path: parentPath ? `${parentPath}/${name}` : name
       })
     },
-    [createItem, directory.path]
+    [createItem, directory.path, expandedFolders, toggleFolder, treeBranches]
   )
 
   const commitRenameEntry = useCallback(
     async (entry: GoogleDriveWorkspaceEntry, name: string) => {
       if (!root) throw new Error('No connected Google Drive workspace.')
       if (name === entry.name) return
-      setBusy(true)
       try {
-        const renamed = await window.pkmsDesktop.renameGoogleDriveItem(root.id, entry.id, name)
+        const parentPath = entry.path.split('/').slice(0, -1).join('/')
+        const optimistic = { ...entry, name, path: parentPath ? `${parentPath}/${name}` : name }
+        invalidateTreeBranch(parentPath)
+        setTreeBranches((current) =>
+          new Map(current).set(
+            parentPath,
+            (current.get(parentPath) ?? []).map((item) =>
+              item.id === entry.id ? optimistic : item
+            )
+          )
+        )
+        updateTreeSyncStates((current) => {
+          const next = new Map(current)
+          next.delete(entry.path)
+          next.set(optimistic.path, 'pending')
+          return next
+        })
         if (activeFile?.id === entry.id) {
-          setActiveFile(renamed)
+          setActiveFile(optimistic)
           session?.updateItem?.({
             providerId: `pkms-google-drive:${root.id}`,
-            itemId: renamed.id,
-            parentId: renamed.parents?.[0] ?? null,
-            name: renamed.name,
-            path: renamed.path,
+            itemId: optimistic.id,
+            parentId: optimistic.parents?.[0] ?? null,
+            name: optimistic.name,
+            path: optimistic.path,
             kind: 'markdown',
             readOnly: false
           })
         }
-        await refreshEntryParent(entry)
+        await window.pkmsDesktop.renameGoogleDriveItem(root.id, entry.id, name, entry)
+        void syncNow()
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : 'Could not rename the item.'
         setError(message)
         throw new Error(message)
-      } finally {
-        setBusy(false)
       }
     },
-    [activeFile, refreshEntryParent, root, session]
+    [activeFile, root, session, syncNow]
   )
 
   const renameEntry = useCallback(
     (entry: GoogleDriveWorkspaceEntry) => {
       setTreeContextMenu(null)
-      setDialogRequest({
-        kind: 'name',
-        title: 'Rename item',
-        initialValue: entry.name,
-        submitLabel: 'Rename',
-        selectInitialValue: true,
-        onSubmit: (name) => void commitRenameEntry(entry, name).catch(() => undefined)
-      })
+      setTreeEdit({ mode: 'rename', entry, name: entry.name, path: entry.path })
     },
     [commitRenameEntry]
   )
+
+  treeEditCommitRef.current = () => {
+    const edit = treeEdit
+    if (!edit) return
+    const name = edit.name.trim()
+    if (!name || name.includes('/') || name === '.' || name === '..') {
+      setError('Enter a valid file or folder name.')
+      return
+    }
+    setTreeEdit(null)
+    if (edit.mode === 'create') void createItem(edit.kind, edit.parentPath, name)
+    else void commitRenameEntry(edit.entry, name).catch(() => undefined)
+  }
 
   const beginTitleEdit = (caretPosition: number) => {
     if (!activeFile || activeFile.kind !== 'markdown') return
@@ -1019,16 +1291,15 @@ export function PkmsGoogleDrivePane({
     try {
       const nextPath = buildRenamedPath(current.path, validation.title)
       const nextName = nextPath.split('/').at(-1) ?? nextPath
-      const siblings = await window.pkmsDesktop.listGoogleDriveDirectory(
-        root.id,
-        current.parents?.[0] ?? null
-      )
+      const parentPath = current.path.split('/').slice(0, -1).join('/')
+      const siblings = treeBranches.get(parentPath) ?? []
       const collision = siblings.some(
-        (item) => item.id !== current.id && item.name.toLocaleLowerCase() === nextName.toLocaleLowerCase()
+        (item) =>
+          item.id !== current.id && item.name.toLocaleLowerCase() === nextName.toLocaleLowerCase()
       )
       if (collision) throw new Error(`"${validation.title}" already exists.`)
       if (session?.snapshot().savePhase !== 'clean') {
-        const saved = await session?.save({ flushSync: true })
+        const saved = await session?.save({ flushSync: false })
         if (saved?.savePhase !== 'clean')
           throw new Error(saved?.message ?? 'Could not save the document before renaming it.')
       }
@@ -1046,7 +1317,15 @@ export function PkmsGoogleDrivePane({
       if (!root) return
       setBusy(true)
       try {
+        if (activeFile?.id === entry.id && session?.snapshot().savePhase !== 'clean') {
+          const saved = await session?.save({ flushSync: false })
+          if (saved?.savePhase !== 'clean')
+            throw new Error(
+              saved?.message ?? 'Could not preserve the document before moving it to trash.'
+            )
+        }
         await window.pkmsDesktop.trashGoogleDriveItem(root.id, entry.id)
+        invalidateTreeBranch(entry.path.split('/').slice(0, -1).join('/'))
         if (activeFile?.id === entry.id) {
           await session?.close()
           setSession(null)
@@ -1096,6 +1375,12 @@ export function PkmsGoogleDrivePane({
           return next
         }
         setTreeBranches(removeTrashedEntry)
+        updateTreeSyncStates((current) => {
+          const next = new Map(current)
+          for (const path of next.keys())
+            if (path === entry.path || path.startsWith(`${entry.path}/`)) next.delete(path)
+          return next
+        })
         let refreshed = true
         try {
           await refreshEntryParent(entry)
@@ -1168,6 +1453,124 @@ export function PkmsGoogleDrivePane({
       treeContextMenuRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
     })
   }, [treeContextMenu])
+
+  const moveTreeItems = useCallback(
+    async (paths: string[], destinationPath: string) => {
+      if (!root) return
+      const allEntries = [...treeBranches.values()].flat()
+      const sourceEntries = paths
+        .map((path) => allEntries.find((entry) => entry.path === path))
+        .filter((entry): entry is GoogleDriveWorkspaceEntry => Boolean(entry))
+        .filter(
+          (entry) =>
+            !paths.some((other) => other !== entry.path && entry.path.startsWith(`${other}/`))
+        )
+      const target = destinationPath
+        ? allEntries.find((entry) => entry.path === destinationPath)
+        : null
+      if (destinationPath && target?.kind !== 'folder') return
+      const destinationId = target?.id ?? root.id
+      if (
+        sourceEntries.some(
+          (entry) =>
+            entry.kind === 'folder' &&
+            (destinationPath === entry.path || destinationPath.startsWith(`${entry.path}/`))
+        )
+      )
+        return
+      const moved = sourceEntries.map((entry) => {
+        const nextPath = destinationPath ? `${destinationPath}/${entry.name}` : entry.name
+        return { ...entry, path: nextPath, parents: [destinationId] }
+      })
+      if (moved.some((entry, index) => entry.path === sourceEntries[index].path)) return
+      invalidateTreeBranch(destinationPath)
+      sourceEntries.forEach((entry) => {
+        invalidateTreeBranch(entry.path.split('/').slice(0, -1).join('/'))
+        invalidateTreeBranch(entry.path)
+        if (entry.kind === 'folder')
+          for (const path of treeBranches.keys())
+            if (path.startsWith(`${entry.path}/`)) invalidateTreeBranch(path)
+      })
+      setTreeBranches((current) => {
+        const next = new Map(current)
+        for (const entry of sourceEntries) {
+          const parent = entry.path.split('/').slice(0, -1).join('/')
+          next.set(
+            parent,
+            (next.get(parent) ?? []).filter((item) => item.id !== entry.id)
+          )
+          if (entry.kind === 'folder') {
+            for (const [branchPath, children] of current) {
+              if (branchPath !== entry.path && !branchPath.startsWith(`${entry.path}/`)) continue
+              const branchNextPath =
+                moved.find((item) => item.id === entry.id)!.path +
+                branchPath.slice(entry.path.length)
+              next.delete(branchPath)
+              next.set(
+                branchNextPath,
+                children.map((child) => ({
+                  ...child,
+                  path:
+                    moved.find((item) => item.id === entry.id)!.path +
+                    child.path.slice(entry.path.length)
+                }))
+              )
+            }
+          }
+        }
+        next.set(destinationPath, [...(next.get(destinationPath) ?? []), ...moved])
+        return next
+      })
+      setExpandedFolders((current) => {
+        const next = new Set(current)
+        sourceEntries.forEach((entry) => {
+          if (entry.kind !== 'folder') return
+          const newPath = moved.find((item) => item.id === entry.id)!.path
+          for (const path of current)
+            if (path === entry.path || path.startsWith(`${entry.path}/`)) {
+              next.delete(path)
+              next.add(newPath + path.slice(entry.path.length))
+            }
+        })
+        return next
+      })
+      moved.forEach((entry) =>
+        updateTreeSyncStates((current) => new Map(current).set(entry.path, 'pending'))
+      )
+      if (activeFile && sourceEntries.some((entry) => entry.id === activeFile.id)) {
+        const renamed = moved.find((entry) => entry.id === activeFile.id)
+        if (renamed) {
+          setActiveFile(renamed)
+          session?.updateItem?.({
+            providerId: `pkms-google-drive:${root.id}`,
+            itemId: renamed.id,
+            parentId: destinationId,
+            name: renamed.name,
+            path: renamed.path,
+            kind: 'markdown',
+            readOnly: false
+          })
+        }
+      }
+      try {
+        await window.pkmsDesktop.moveGoogleDriveItems(
+          root.id,
+          sourceEntries.map((entry) => entry.id),
+          destinationPath
+        )
+        setStatus('Saving moved items to Google Drive…')
+        void syncNow()
+      } catch (cause) {
+        updateTreeSyncStates((current) => {
+          const next = new Map(current)
+          moved.forEach((entry) => next.set(entry.path, 'attention'))
+          return next
+        })
+        setError(cause instanceof Error ? cause.message : 'Could not move the items.')
+      }
+    },
+    [activeFile, root, session, syncNow, treeBranches]
+  )
 
   const contextMenuItems: EditorMenuItem[] = treeContextMenu
     ? [
@@ -1497,6 +1900,17 @@ export function PkmsGoogleDrivePane({
                     projection: treeProjection,
                     className: 'file-list file-tree',
                     ariaLabel: 'PKMS Google Drive files',
+                    canMove: true,
+                    rootDropTarget: treeDropTarget === '',
+                    onSetDropTarget: setTreeDropTarget,
+                    onDropItems: (paths, destination) => void moveTreeItems(paths, destination),
+                    onDragStart: (item, _index, event) => {
+                      event.dataTransfer.effectAllowed = 'move'
+                      event.dataTransfer.setData(
+                        EDITOR_TREE_DRAG_MIME_TYPE,
+                        JSON.stringify([item.path])
+                      )
+                    },
                     emptyContent: (
                       <span style={{ padding: 8, opacity: 0.65 }}>This folder is empty.</span>
                     ),
@@ -1603,48 +2017,29 @@ export function PkmsGoogleDrivePane({
             aria-modal="true"
             aria-label={dialogRequest.title}
           >
-            {dialogRequest.kind === 'name' ? (
-              <EditorNameForm
-                title={dialogRequest.title}
-                titleTag="h2"
-                initialValue={dialogRequest.initialValue}
-                submitLabel={dialogRequest.submitLabel}
-                selectInitialValue={dialogRequest.selectInitialValue}
-                inputClassName="pkms-google-drive-dialog-input"
-                actionsClassName="pkms-google-drive-dialog-actions"
-                cancelButtonClassName="pkms-google-drive-dialog-cancel"
-                submitButtonClassName="pkms-google-drive-dialog-submit"
-                onSubmit={(value) => {
-                  dialogRequest.onSubmit(value)
-                  setDialogRequest(null)
-                }}
-                onCancel={() => setDialogRequest(null)}
-              />
-            ) : (
-              <>
-                <h2>{dialogRequest.title}</h2>
-                <p>{dialogRequest.message}</p>
-                <div className="pkms-google-drive-dialog-actions">
-                  <button
-                    type="button"
-                    className="pkms-google-drive-dialog-cancel"
-                    onClick={() => setDialogRequest(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="pkms-google-drive-dialog-submit is-danger"
-                    onClick={() => {
-                      dialogRequest.onConfirm()
-                      setDialogRequest(null)
-                    }}
-                  >
-                    {dialogRequest.confirmLabel}
-                  </button>
-                </div>
-              </>
-            )}
+            <>
+              <h2>{dialogRequest.title}</h2>
+              <p>{dialogRequest.message}</p>
+              <div className="pkms-google-drive-dialog-actions">
+                <button
+                  type="button"
+                  className="pkms-google-drive-dialog-cancel"
+                  onClick={() => setDialogRequest(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="pkms-google-drive-dialog-submit is-danger"
+                  onClick={() => {
+                    dialogRequest.onConfirm()
+                    setDialogRequest(null)
+                  }}
+                >
+                  {dialogRequest.confirmLabel}
+                </button>
+              </div>
+            </>
           </section>
         </div>
       )}

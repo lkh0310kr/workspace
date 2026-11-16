@@ -4,6 +4,7 @@ import {
   GoogleDriveClient,
   GoogleDriveOperationLog,
   GoogleDriveWorkspaceRepository,
+  type GoogleDriveWorkspaceEntry,
   listGoogleDriveWorkspaceRoots,
   resolveGoogleDriveWorkspaceRoot,
   GoogleDriveYjsDocumentStore,
@@ -30,6 +31,11 @@ export class GoogleDriveDesktopWorkspaceService {
   private readonly storage = new GoogleDriveDesktopStorage()
   private readonly client = new GoogleDriveClient({ tokenProvider: googleDriveDesktopOAuth })
   private readonly workspaces = new Map<string, DesktopWorkspaceRuntime>()
+  private readonly activeSyncs = new Map<
+    string,
+    Promise<Awaited<ReturnType<DesktopWorkspaceRuntime['engine']['sync']>>>
+  >()
+  private readonly syncRequestedAgain = new Set<string>()
 
   async listRoots() {
     return listGoogleDriveWorkspaceRoots(this.client)
@@ -80,9 +86,29 @@ export class GoogleDriveDesktopWorkspaceService {
     })
   }
 
-  async openMarkdown(rootId: string, fileId: string) {
+  async openMarkdown(rootId: string, fileId: string, knownEntry?: GoogleDriveWorkspaceEntry) {
     const runtime = this.requireWorkspace(rootId)
-    const entry = await runtime.repository.getEntry(fileId)
+    let entry = knownEntry?.id === fileId ? knownEntry : undefined
+    try {
+      entry ??= await runtime.repository.getEntry(fileId)
+    } catch (cause) {
+      const pending = (await this.storage.list(rootId)).find(
+        (operation) =>
+          operation.mutation.type === 'create-file' &&
+          (operation.mutation.itemId ?? operation.operationId) === fileId
+      )
+      if (!pending || pending.mutation.type !== 'create-file') throw cause
+      const path = pending.mutation.path
+      const name = path.split('/').at(-1) ?? path
+      entry = {
+        id: fileId,
+        name,
+        mimeType: pending.mutation.mimeType,
+        path,
+        kind: 'markdown' as const,
+        appProperties: { pkmsWorkspaceRootId: rootId, pkmsItemId: fileId }
+      }
+    }
     if (entry.kind !== 'markdown')
       throw new Error('Only Markdown files can be opened in this editor.')
     const { doc, text } = await runtime.documents.open(fileId)
@@ -109,37 +135,88 @@ export class GoogleDriveDesktopWorkspaceService {
   }
 
   async sync(rootId: string) {
+    const active = this.activeSyncs.get(rootId)
+    if (active) {
+      this.syncRequestedAgain.add(rootId)
+      return active
+    }
     const runtime = this.requireWorkspace(rootId)
-    await runtime.documents.flushOpenDocuments()
-    return runtime.engine.sync()
+    const task = (async () => {
+      let result: Awaited<ReturnType<DesktopWorkspaceRuntime['engine']['sync']>>
+      do {
+        this.syncRequestedAgain.delete(rootId)
+        await runtime.documents.flushOpenDocuments()
+        result = await runtime.engine.sync()
+      } while (this.syncRequestedAgain.has(rootId))
+      return result
+    })().finally(() => {
+      this.activeSyncs.delete(rootId)
+    })
+    this.activeSyncs.set(rootId, task)
+    return task
   }
 
-  async createItem(rootId: string, parentPath: string, kind: 'markdown' | 'folder', name: string) {
+  async createItem(
+    rootId: string,
+    parentPath: string,
+    kind: 'markdown' | 'folder',
+    name: string,
+    itemId?: string,
+    parentItemId?: string
+  ) {
     const runtime = this.requireWorkspace(rootId)
     const path = parentPath ? `${parentPath}/${name}` : name
-    if (kind === 'folder') await runtime.engine.enqueue({ type: 'create-folder', path })
-    else
-      await runtime.engine.enqueue({
-        type: 'create-file',
-        path,
-        mimeType: 'text/markdown',
-        bytes: new TextEncoder().encode('')
-      })
-    await runtime.engine.sync()
-    return runtime.repository.listDirectory(parentPath)
+    const operation =
+      kind === 'folder'
+        ? await runtime.engine.enqueue({ type: 'create-folder', path, itemId })
+        : await runtime.engine.enqueue({
+            type: 'create-file',
+            path,
+            mimeType: 'text/markdown',
+            bytes: new TextEncoder().encode(''),
+            itemId
+          })
+    this.syncInBackground(rootId)
+    const stableItemId =
+      operation.mutation.type === 'create-file' || operation.mutation.type === 'create-folder'
+        ? (operation.mutation.itemId ?? operation.operationId)
+        : operation.operationId
+    return {
+      id: stableItemId,
+      name,
+      mimeType: kind === 'folder' ? 'application/vnd.google-apps.folder' : 'text/markdown',
+      parents: [parentItemId ?? rootId],
+      appProperties: { pkmsWorkspaceRootId: rootId, pkmsItemId: stableItemId },
+      path,
+      kind
+    }
   }
 
-  async rename(rootId: string, fileId: string, name: string) {
+  async rename(
+    rootId: string,
+    fileId: string,
+    name: string,
+    currentEntry?: GoogleDriveWorkspaceEntry
+  ) {
     const runtime = this.requireWorkspace(rootId)
+    const current = currentEntry ?? (await runtime.repository.getEntry(fileId))
     await runtime.engine.enqueue({ type: 'rename', fileId, name })
-    await runtime.engine.sync()
-    return runtime.repository.getEntry(fileId)
+    this.syncInBackground(rootId)
+    const parentPath = current.path.split('/').slice(0, -1).join('/')
+    return { ...current, name, path: parentPath ? `${parentPath}/${name}` : name }
   }
 
   async trash(rootId: string, fileId: string) {
     const runtime = this.requireWorkspace(rootId)
     await runtime.engine.enqueue({ type: 'trash', fileId })
-    await runtime.engine.sync()
+    this.syncInBackground(rootId)
+  }
+
+  async move(rootId: string, fileIds: string[], targetDirectoryPath: string) {
+    const runtime = this.requireWorkspace(rootId)
+    for (const fileId of fileIds)
+      await runtime.engine.enqueue({ type: 'move', fileId, targetDirectoryPath })
+    this.syncInBackground(rootId)
   }
 
   async disconnect(rootId: string): Promise<void> {
@@ -158,5 +235,11 @@ export class GoogleDriveDesktopWorkspaceService {
     const runtime = this.workspaces.get(rootId)
     if (!runtime) throw new Error('Connect this PKMS Google Drive workspace first.')
     return runtime
+  }
+
+  private syncInBackground(rootId: string): void {
+    void this.sync(rootId).catch(() => {
+      // The durable outbox retains failed operations for the next online retry.
+    })
   }
 }

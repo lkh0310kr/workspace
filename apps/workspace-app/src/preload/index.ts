@@ -64,8 +64,17 @@ const pkmsDesktop = {
     ipcRenderer.invoke('pkms-google-drive:workspace:search', rootId, query, pageToken) as Promise<
       import('@pkms/google-drive').GoogleDriveWorkspaceSearchPage
     >,
-  openGoogleDriveMarkdown: (rootId: string, fileId: string) =>
-    ipcRenderer.invoke('pkms-google-drive:workspace:open-markdown', rootId, fileId) as Promise<{
+  openGoogleDriveMarkdown: (
+    rootId: string,
+    fileId: string,
+    knownEntry?: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
+  ) =>
+    ipcRenderer.invoke(
+      'pkms-google-drive:workspace:open-markdown',
+      rootId,
+      fileId,
+      knownEntry
+    ) as Promise<{
       entry: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
       text: string
       revision: string
@@ -89,21 +98,41 @@ const pkmsDesktop = {
     rootId: string,
     parentPath: string,
     kind: 'markdown' | 'folder',
-    name: string
+    name: string,
+    itemId?: string,
+    parentItemId?: string
   ) =>
     ipcRenderer.invoke(
       'pkms-google-drive:workspace:create',
       rootId,
       parentPath,
       kind,
-      name
-    ) as Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]>,
-  renameGoogleDriveItem: (rootId: string, fileId: string, name: string) =>
-    ipcRenderer.invoke('pkms-google-drive:workspace:rename', rootId, fileId, name) as Promise<
-      import('@pkms/google-drive').GoogleDriveWorkspaceEntry
-    >,
+      name,
+      itemId,
+      parentItemId
+    ) as Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry>,
+  renameGoogleDriveItem: (
+    rootId: string,
+    fileId: string,
+    name: string,
+    currentEntry?: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
+  ) =>
+    ipcRenderer.invoke(
+      'pkms-google-drive:workspace:rename',
+      rootId,
+      fileId,
+      name,
+      currentEntry
+    ) as Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry>,
   trashGoogleDriveItem: (rootId: string, fileId: string) =>
     ipcRenderer.invoke('pkms-google-drive:workspace:trash', rootId, fileId) as Promise<void>,
+  moveGoogleDriveItems: (rootId: string, fileIds: string[], targetPath: string) =>
+    ipcRenderer.invoke(
+      'pkms-google-drive:workspace:move',
+      rootId,
+      fileIds,
+      targetPath
+    ) as Promise<void>,
   disconnectGoogleDriveWorkspace: (rootId: string) =>
     ipcRenderer.invoke('pkms-google-drive:workspace:disconnect', rootId) as Promise<void>,
   openVerification: (url: string): Promise<void> =>

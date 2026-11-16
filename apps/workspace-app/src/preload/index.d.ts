@@ -325,7 +325,8 @@ export interface PkmsDesktopApi {
   ) => Promise<import('@pkms/google-drive').GoogleDriveWorkspaceSearchPage>
   openGoogleDriveMarkdown: (
     rootId: string,
-    fileId: string
+    fileId: string,
+    knownEntry?: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
   ) => Promise<{
     entry: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
     text: string
@@ -344,14 +345,18 @@ export interface PkmsDesktopApi {
     rootId: string,
     parentPath: string,
     kind: 'markdown' | 'folder',
-    name: string
-  ) => Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry[]>
+    name: string,
+    itemId?: string,
+    parentItemId?: string
+  ) => Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry>
   renameGoogleDriveItem: (
     rootId: string,
     fileId: string,
-    name: string
+    name: string,
+    currentEntry?: import('@pkms/google-drive').GoogleDriveWorkspaceEntry
   ) => Promise<import('@pkms/google-drive').GoogleDriveWorkspaceEntry>
   trashGoogleDriveItem: (rootId: string, fileId: string) => Promise<void>
+  moveGoogleDriveItems: (rootId: string, fileIds: string[], targetPath: string) => Promise<void>
   disconnectGoogleDriveWorkspace: (rootId: string) => Promise<void>
   openVerification: (url: string) => Promise<void>
   openServiceOAuth: (url: string) => Promise<void>

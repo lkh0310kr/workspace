@@ -103,7 +103,6 @@ export function FileTreeList(props: FileTreeListProps) {
                     ? '!'
                     : '•'}
           </span>
-          <span className="sr-only">{stateLabel}</span>
         </>
       ) : undefined
       return {
@@ -124,6 +123,7 @@ export function FileTreeList(props: FileTreeListProps) {
         cut: cutPaths.has(file.path),
         dropTarget: dropTarget === file.path,
         trailingStatus,
+        trailingStatusLabel: state ? stateLabel : undefined,
         tabIndex:
           focusedPath === file.path ||
           (!focusedPath && projection.startIndex === 0 && file === projection.rows[0]?.file)
