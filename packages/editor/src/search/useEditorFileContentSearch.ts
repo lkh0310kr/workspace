@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { EditorProvider, EditorReplaceOptions, EditorSearchResult } from '@workspace/editor'
+import type { EditorProvider, EditorReplaceOptions, EditorSearchResult } from '../provider'
 
 const DEBOUNCE_MS = 250
 
@@ -21,7 +21,7 @@ function mergeSearchResults(
   return next
 }
 
-interface UseFileContentSearchOptions {
+interface UseEditorFileContentSearchOptions {
   provider: EditorProvider
   supportsContentSearch: boolean
   query: string
@@ -29,7 +29,7 @@ interface UseFileContentSearchOptions {
   onSearchStart: () => void
 }
 
-interface UseFileContentSearchResult {
+interface UseEditorFileContentSearchResult {
   results: EditorSearchResult[]
   searching: boolean
   error: string | null
@@ -37,13 +37,13 @@ interface UseFileContentSearchResult {
   runSearch: (query: string, options: EditorReplaceOptions) => void
 }
 
-export function useFileContentSearch({
+export function useEditorFileContentSearch({
   provider,
   supportsContentSearch,
   query,
   searchOptions,
   onSearchStart
-}: UseFileContentSearchOptions): UseFileContentSearchResult {
+}: UseEditorFileContentSearchOptions): UseEditorFileContentSearchResult {
   const [results, setResults] = useState<EditorSearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)

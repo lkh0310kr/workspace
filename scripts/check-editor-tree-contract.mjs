@@ -18,13 +18,15 @@ async function walk(directory) {
 }
 
 const packageIndexPath = path.join(root, 'packages/editor/src/index.ts')
+const treeIndexPath = path.join(root, 'packages/editor/src/tree/index.ts')
 const packageJsonPath = path.join(root, 'packages/editor/package.json')
 const packageIndex = await readFile(packageIndexPath, 'utf8')
+const treeIndex = await readFile(treeIndexPath, 'utf8')
 const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
-const sharedTreeViewPath = path.join(root, 'packages/editor/src/EditorTreeView.tsx')
-const sharedTreeStylesPath = path.join(root, 'packages/editor/src/treeView.module.css')
-const sharedTreePanePath = path.join(root, 'packages/editor/src/EditorTreePane.tsx')
-const sharedTreeResizePath = path.join(root, 'packages/editor/src/EditorTreeResizeHandle.tsx')
+const sharedTreeViewPath = path.join(root, 'packages/editor/src/tree/EditorTreeView.tsx')
+const sharedTreeStylesPath = path.join(root, 'packages/editor/src/tree/treeView.module.css')
+const sharedTreePanePath = path.join(root, 'packages/editor/src/tree/EditorTreePane.tsx')
+const sharedTreeResizePath = path.join(root, 'packages/editor/src/tree/EditorTreeResizeHandle.tsx')
 const sharedEditorThemesPath = path.join(root, 'packages/editor/src/themes.ts')
 const sharedEditorMarkdownPath = path.join(root, 'packages/editor/src/EditorMarkdownEditor.tsx')
 const sharedTreeView = await readFile(sharedTreeViewPath, 'utf8')
@@ -41,7 +43,7 @@ if (!/rootDropTarget\s*&&\s*styles\.rootDropTarget/.test(sharedTreeView)) {
 }
 if (
   !/if\s*\(inlineEdit\)[\s\S]*?aria-label=\{inlineEdit\.ariaLabel\}[\s\S]*?event\.key === 'Enter'[\s\S]*?event\.key === 'Escape'/.test(
-    await readFile(path.join(root, 'packages/editor/src/EditorTreeRow.tsx'), 'utf8')
+    await readFile(path.join(root, 'packages/editor/src/tree/EditorTreeRow.tsx'), 'utf8')
   )
 ) {
   failures.push(
@@ -60,7 +62,7 @@ if (
     sharedTreeStyles
   )
 ) {
-  failures.push('packages/editor/src/treeView.module.css must own common tree root geometry.')
+  failures.push('packages/editor/src/tree/treeView.module.css must own common tree root geometry.')
 }
 if (!/\.pane\s*\{[^}]*background:\s*var\(--editor-tree-background,/s.test(sharedTreeStyles)) {
   failures.push('The shared tree pane must own its background through the semantic host token.')
@@ -80,10 +82,10 @@ if (
     sharedTreeStyles
   )
 ) {
-  failures.push('packages/editor/src/treeView.module.css must own shared tree row geometry.')
+  failures.push('packages/editor/src/tree/treeView.module.css must own shared tree row geometry.')
 }
 if (!/\.item\s*\{[^}]*line-height:\s*1\.4/s.test(sharedTreeStyles)) {
-  failures.push('packages/editor/src/treeView.module.css must own shared tree row line height.')
+  failures.push('packages/editor/src/tree/treeView.module.css must own shared tree row line height.')
 }
 if (
   !/\.createAction\s*\{[^}]*all:\s*unset[^}]*width:\s*26px[^}]*height:\s*26px/s.test(
@@ -94,7 +96,7 @@ if (
 }
 if (
   !/data-editor-tree-row/.test(
-    await readFile(path.join(root, 'packages/editor/src/EditorTreeRow.tsx'), 'utf8')
+    await readFile(path.join(root, 'packages/editor/src/tree/EditorTreeRow.tsx'), 'utf8')
   ) ||
   !/data-editor-tree-content/.test(sharedTreePane)
 ) {
@@ -134,31 +136,31 @@ if (
 }
 if (
   !/export\s*\{[^}]*\bEditorTreePane\b[^}]*\}\s*from\s*['"]\.\/EditorTreePane['"]/.test(
-    packageIndex
+    treeIndex
   )
 ) {
-  failures.push('packages/editor/src/index.ts must publicly export EditorTreePane.')
+  failures.push('packages/editor/src/tree/index.ts must publicly export EditorTreePane.')
 }
 if (
   !/export\s*\{[^}]*\bEditorTreeToolbar\b[^}]*\}\s*from\s*['"]\.\/EditorTreeToolbar['"]/.test(
-    packageIndex
+    treeIndex
   )
 ) {
-  failures.push('packages/editor/src/index.ts must publicly export EditorTreeToolbar.')
+  failures.push('packages/editor/src/tree/index.ts must publicly export EditorTreeToolbar.')
 }
 if (
   !/export\s*\{[^}]*\bEditorTreeCreateActions\b[^}]*\}\s*from\s*['"]\.\/EditorTreeCreateActions['"]/.test(
-    packageIndex
+    treeIndex
   )
 ) {
-  failures.push('packages/editor/src/index.ts must publicly export EditorTreeCreateActions.')
+  failures.push('packages/editor/src/tree/index.ts must publicly export EditorTreeCreateActions.')
 }
 if (
   !/export\s*\{[^}]*\bEditorTreeResizeHandle\b[^}]*\}\s*from\s*['"]\.\/EditorTreeResizeHandle['"]/.test(
-    packageIndex
+    treeIndex
   )
 ) {
-  failures.push('packages/editor/src/index.ts must publicly export EditorTreeResizeHandle.')
+  failures.push('packages/editor/src/tree/index.ts must publicly export EditorTreeResizeHandle.')
 }
 if (
   !/export\s*\{[^}]*\bEditorAssetPreview\b[^}]*\}\s*from\s*['"]\.\/EditorAssetPreview['"]/.test(
@@ -191,9 +193,9 @@ for (const entry of Object.keys(packageJson.exports ?? {})) {
   }
 }
 
-const requiredConsumers = ['apps/desktop/src/renderer/src/features/editor/TreeView.tsx']
-const requiredToolbars = ['apps/desktop/src/renderer/src/features/editor/TreeView.tsx']
-const requiredResizeHosts = ['apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx']
+const requiredConsumers = ['apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx']
+const requiredToolbars = ['apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx']
+const requiredResizeHosts = ['apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.tsx']
 
 for (const relativePath of requiredConsumers) {
   const source = await readFile(path.join(root, relativePath), 'utf8')
@@ -221,7 +223,7 @@ for (const relativePath of requiredToolbars) {
 }
 
 const requiredEditorHosts = [
-  'apps/desktop/src/renderer/src/panes/EditorContent.tsx'
+  'apps/desktop/src/renderer/src/features/editor/pane/EditorContent.tsx'
 ]
 for (const relativePath of requiredEditorHosts) {
   const source = await readFile(path.join(root, relativePath), 'utf8')

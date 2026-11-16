@@ -119,7 +119,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "9ce44e6ea9a56844510e6b51140c08402dc5ad8fb48c385cd575b23d965b3b4c"
+          "sha256": "da1de410d41e83e373c5678b1e7189df05d115b421fa6ee52ae566896c98839c"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -339,7 +339,7 @@
         },
         {
           "path": "scripts/check-editor-tree-contract.mjs",
-          "sha256": "b7845a8a6b5ca91774bf14965cbfd1c5f83c13c48e7925478d692933766e7ad6"
+          "sha256": "38247cc539c5a747786930b4803effc5817b84bab47da183cc67196c1573f4f9"
         },
         {
           "path": "packages/editor/src/codeEditor.test.ts",
@@ -408,6 +408,22 @@
         {
           "path": "packages/editor/src/tree/index.ts",
           "sha256": "f41b1a629ca5a5376d8f87e24eaf1fa252651ed2f5f5b8c690e7be9d5b5110df"
+        },
+        {
+          "path": "packages/editor/src/search/EditorSearchPanel.tsx",
+          "sha256": "f3f50de13b9d2dc8fc5ed2b8762ae562810ce9b38609d446ba3b69e4b645448b"
+        },
+        {
+          "path": "packages/editor/src/search/useEditorFileContentSearch.ts",
+          "sha256": "156267fa509a7bdde8564e91af7295278f0bf106bfc31915c2e25094558ad701"
+        },
+        {
+          "path": "packages/editor/src/search/editor-search-panel.css",
+          "sha256": "7cb544c1aa73f408ae8718d46a15cfca565e890e4df3ee927190eea150135a53"
+        },
+        {
+          "path": "packages/editor/src/search/index.ts",
+          "sha256": "8cdee4715ae0fdd58ba7cf213cd0ae72646737dc4e2e091a0b60ccde9a3211ab"
         }
       ]
     },
@@ -618,11 +634,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/search/SearchPanel.tsx",
-          "sha256": "6a3eb5bfd170608713b41ef882e78f86ebddcfba4beb4b2b9ecb764fd25c7366"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/editor/search/useFileContentSearch.ts",
-          "sha256": "b978050c141e09393400b29afb00ce9de6d3917ae1f8c085197271b75c3c6b81"
+          "sha256": "3c30879270886418839297f251f9fb102ba938192003fb702c7e7d966517b3a5"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserPaneHost.ts",

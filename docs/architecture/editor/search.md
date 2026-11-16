@@ -1,6 +1,6 @@
 # Editor 검색 스펙
 
-문서 안 Find/Replace, provider 이름 검색 Quick Open, Desktop 파일 내용 검색은 별도 경로다. 하나의 검색 상태나 결과 모델로 합치지 않는다.
+문서 안 Find/Replace, provider 이름 검색 Quick Open, provider 계약을 쓰는 Find in Files 패널은 별도 경로다. 하나의 검색 상태나 결과 모델로 합치지 않는다. Find in Files UI와 query lifecycle은 `packages/editor/src/search/`가 소유하고 Desktop은 로컬 provider lease, pane focus와 open-file callback을 연결한다.
 
 ## 문서 안 Find/Replace
 
@@ -32,11 +32,13 @@ Quick Open 결과를 선택하면 local provider의 file record를 읽고 필요
 
 Quick Open dialog는 document.body portal이며 열릴 때 input에 focus하고, query 또는 결과 ID 배열 변경 시 선택 index=0이다. Up/Down은 양끝 clamp, Enter는 loading이 아니고 선택 item이 있을 때 onSelect(id), Escape와 backdrop click은 onClose다. hover는 선택 index를 바꾸고 선택 행을 nearest scrollIntoView한다. error→loading→empty→결과 순으로 UI 우선순위를 적용한다. 이전 query 결과는 새 query 결과처럼 보이지 않는다.
 
-## Desktop 파일 내용 검색과 치환
+## Find in Files 패널과 Desktop provider
 
-근거: [localEditorProvider.ts](../../../apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts).
+패널과 query lifecycle 근거: [EditorSearchPanel.tsx](../../../packages/editor/src/search/EditorSearchPanel.tsx), [useEditorFileContentSearch.ts](../../../packages/editor/src/search/useEditorFileContentSearch.ts). Desktop provider 근거: [localEditorProvider.ts](../../../apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts).
 
-내용 검색은 UUID requestId를 만들고 onSearchResult/onSearchDone을 등록한 뒤 searchInFiles를 요청한다. 자신의 requestId만 받아 path별 마지막 결과를 Map에 축적하고 onResult로 stream한다. 결과는 파일 단위로 갱신하며 같은 파일의 match마다 누적 전체 결과를 반복 전송하지 않는다. 완료 시 최종 배열 반환, 오류 시 reject한다. abort는 cancelSearch(requestId)를 보내며 모든 listener를 해제하고 AbortError로 종료한다. 빈 contents query는 []다. 입력 변경은 이전 작업을 취소하고 debounce 후 최신 query만 실행한다. 결과 반영은 화면 갱신에 맞춰 묶어 검색 결과가 입력 focus/typing을 막지 않아야 한다.
+EditorSearchPanel은 `EditorProvider` capability를 받고 파일 검색 결과 표시·교체 UI를 소유한다. Desktop `SearchPanel` adapter는 workspace tab/root로 local provider lease를 얻어 주입하고, 결과 선택을 기존 Editor pane navigation으로 전달한다. 입력 변경은 이전 작업을 취소하고 250ms debounce 후 최신 query만 실행한다. 이전 query 결과는 새 query 표시 전에 비우며 stream 결과는 animation frame 단위로 합친다. 검색 오류가 나도 이미 전달된 stream 결과는 유지한다.
+
+Desktop local content search는 UUID requestId를 만들고 onSearchResult/onSearchDone을 등록한 뒤 searchInFiles를 요청한다. 자신의 requestId만 받아 path별 마지막 결과를 Map에 축적하고 onResult로 stream한다. 결과는 파일 단위로 갱신하며 같은 파일의 match마다 누적 전체 결과를 반복 전송하지 않는다. 완료 시 최종 배열 반환, 오류 시 reject한다. abort는 cancelSearch(requestId)를 보내며 모든 listener를 해제하고 AbortError로 종료한다. 빈 contents query는 []다. 결과 반영은 화면 갱신에 맞춰 묶어 검색 결과가 입력 focus/typing을 막지 않아야 한다.
 
 replaceContents는 provider ID/path를 검증하고 해당 파일의 열린 session이 clean이 아니면 false다. disk를 재읽고 현재 match 개수가 expectedMatchCount와 다르면 false. 일치하면 JS replace를 수행하고 실제 변경이 있을 때만 writeFileIfUnchanged(current,next)로 기록한다. 비교 실패는 false, 변경이 없으면 true다. 검색 결과가 최신 본문이라는 보장은 match count 재검사와 조건부 쓰기의 조합으로 제공한다.
 
