@@ -6,7 +6,7 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
-import type { DetectedModelFormat } from '../../../../shared/model3d/types'
+import type { DetectedModelFormat } from '../../../../../../../shared/model3d/types'
 import { logModel3d } from '../model3dLog'
 
 export interface MeshLoadStats {

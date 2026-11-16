@@ -26,7 +26,7 @@ FileViewerContent의 입력은 tabId, filePath, absolutePath, viewerHint, treeOp
 
 image/PDF는 workspace-relative readFileBinaryPreview의 base64 bytes를 Blob URL로 바꾼다. 변경/해제 시 revoke한다. 미리보기 상태는 tabId와 filePath source에 묶으며, 경로 전환 즉시 이전 파일을 숨기고 새 미리보기 응답 전에는 표시하지 않는다. video/audio는 getMediaUrl 또는 getMediaUrlAbsolute로 streaming protocol URL을 받아 native media element가 Range 요청을 하도록 한다. 전체 영상 bytes를 base64로 읽지 않는다.
 
-EPUB는 EpubReaderContent, model3d/CAD는 lazy import한 별도 renderer가 로딩을 소유하므로 binary preview를 호출하지 않는다. 경로 변경 때 error/zoom/naturalSize/mediaUrl/subtitle 상태를 초기화한다. 비동기 응답은 cancelled flag로 폐기하며 URL이 없거나 읽기 실패면 오류 상태다. SRT 자막은 parse→VTT Blob URL로 만들고 교체/해제 시 revoke한다.
+EPUB는 EpubReaderContent, model3d/CAD는 lazy import한 별도 renderer가 로딩을 소유하므로 binary preview를 호출하지 않는다. 3D 렌더러 구성은 [Editor viewer의 model3d slice](../../../apps/desktop/src/renderer/src/features/editor/viewers/model3d)에 둔다. 경로 변경 때 error/zoom/naturalSize/mediaUrl/subtitle 상태를 초기화한다. 비동기 응답은 cancelled flag로 폐기하며 URL이 없거나 읽기 실패면 오류 상태다. SRT 자막은 parse→VTT Blob URL로 만들고 교체/해제 시 revoke한다.
 
 이미지 zoom은 null=fit, 숫자=배율이다. 범위 0.1~~20, 버튼 단계는 0.1~~1의 0.1 간격 후 1.5,2,3,5,7,10,15,20이고 3배 초과에서 pixelated 표시다. pinch factor는 0.075다.
 

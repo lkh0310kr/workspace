@@ -1,9 +1,9 @@
 import type { DetectedModelFormat, SceneManifest } from '../../../../../shared/model3d/types'
 import type { ReactNode } from 'react'
-import { ModelViewerCanvas } from '../../../model3d/components/ModelViewerCanvas'
-import { ModelViewerLoading } from '../../../model3d/components/ModelViewerLoading'
-import { ModelViewerUnsupported } from '../../../model3d/components/ModelViewerUnsupported'
-import { useModelPreview } from '../../../model3d/import/useModelPreview'
+import { ModelViewerCanvas } from './model3d/components/ModelViewerCanvas'
+import { ModelViewerLoading } from './model3d/components/ModelViewerLoading'
+import { ModelViewerUnsupported } from './model3d/components/ModelViewerUnsupported'
+import { useModelPreview } from './model3d/import/useModelPreview'
 
 interface Props {
   tabId: number

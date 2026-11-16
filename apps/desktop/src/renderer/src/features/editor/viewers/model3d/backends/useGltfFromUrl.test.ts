@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-const FIXTURES = join(import.meta.dirname, '../../../../../test-fixtures/models')
+const FIXTURES = join(import.meta.dirname, '../../../../../../../../test-fixtures/models')
 
 describe('GLTFLoader buffer parse', () => {
   it('parses box.glb without a file extension hint', async () => {

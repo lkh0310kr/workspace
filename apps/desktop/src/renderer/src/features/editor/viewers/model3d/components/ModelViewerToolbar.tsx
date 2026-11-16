@@ -1,4 +1,4 @@
-import type { ViewerSession } from '../../../../shared/model3d/viewer'
+import type { ViewerSession } from '../../../../../../../shared/model3d/viewer'
 
 interface Props {
   session: ViewerSession | null

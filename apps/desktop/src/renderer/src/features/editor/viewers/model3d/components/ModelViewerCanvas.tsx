@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { DetectedModelFormat } from '../../../../shared/model3d/types'
-import type { ViewerSession } from '../../../../shared/model3d/viewer'
+import type { DetectedModelFormat } from '../../../../../../../shared/model3d/types'
+import type { ViewerSession } from '../../../../../../../shared/model3d/viewer'
 import type { OrbitCameraHandle } from '../backends/camera/orbitCamera'
 import { WebGlThreeViewer } from '../backends/webglThree'
 import { probeWebGL } from '../backends/webglProbe'

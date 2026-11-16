@@ -99,7 +99,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/ModelViewerContent.tsx",
-          "sha256": "54562d1bdd89dc5dce228ad2d07d6f50ee9aeebd564af1109edcc3f8e7729ec5"
+          "sha256": "005de55e18c7428154b420b4b556034e8b7f1733630bb94efa326e2e82853de9"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/EpubReaderContent.tsx",

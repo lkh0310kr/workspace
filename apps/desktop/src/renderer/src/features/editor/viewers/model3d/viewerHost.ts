@@ -1,4 +1,4 @@
-import type { ViewerBackend } from '../../../shared/model3d/viewer'
+import type { ViewerBackend } from '../../../../../../shared/model3d/viewer'
 import { webGlThreeBackend } from './backends/webglThreeBackend'
 
 const backends = new Map<string, ViewerBackend>([[webGlThreeBackend.id, webGlThreeBackend]])

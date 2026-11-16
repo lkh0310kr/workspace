@@ -4,8 +4,8 @@ import {
   openModelPreview,
   readFileBinaryPreview,
   type SceneManifest
-} from '../../electron'
-import type { SceneManifest as Manifest } from '../../../../shared/model3d/types'
+} from '../../../../../electron'
+import type { SceneManifest as Manifest } from '../../../../../../../shared/model3d/types'
 import { logModel3d } from '../model3dLog'
 import { shouldReloadModelPreview, withModelCacheBust } from './modelPreviewWatch'
 

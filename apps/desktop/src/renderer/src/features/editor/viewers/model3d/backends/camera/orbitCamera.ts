@@ -1,4 +1,4 @@
-import type { CameraMode, CameraState } from '../../../../../shared/model3d/viewer'
+import type { CameraMode, CameraState } from '../../../../../../../../shared/model3d/viewer'
 
 export function createOrbitCameraState(): CameraState {
   return {

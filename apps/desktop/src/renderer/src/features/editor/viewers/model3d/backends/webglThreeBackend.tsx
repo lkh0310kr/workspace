@@ -4,7 +4,7 @@ import type {
   ViewerBackend,
   ViewerMountOptions,
   ViewerSession
-} from '../../../../shared/model3d/viewer'
+} from '../../../../../../../shared/model3d/viewer'
 import type { OrbitCameraHandle } from './camera/orbitCamera'
 import { WebGlThreeViewer } from './webglThree'
 
