@@ -1283,32 +1283,32 @@
       ],
       "sources": [
         {
-          "path": "apps/server/src/auth.ts",
-          "sha256": "608bad7d76b8bb93d26d9513a04b3db81078fdbf61e87c1424018746cc77bdc4"
+          "path": "apps/server/src/auth/auth.ts",
+          "sha256": "4f4072b17cd258de213392da80e1a1c4f85ec6c894f858bd8e874cc535623b31"
         },
         {
-          "path": "apps/server/src/crypto.ts",
-          "sha256": "aba63d41e566d46bb2ca63749ea478b6bde123ac628c9177ccc9dd557699a593"
+          "path": "apps/server/src/security/crypto.ts",
+          "sha256": "b62e98c203ea96d6d5f1a212c5519a01dd14012cb2592fa53c229b72d80c63c6"
         },
         {
           "path": "apps/server/src/index.ts",
-          "sha256": "bb703451ebde7ef420ac4853f8ebccf9be60f9d36a00ecbf25d53808dd8b9184"
+          "sha256": "d79e742beaae90217149d5ee7167c87a8ee0fc4cc4ce512f70b28d128fc9ea40"
         },
         {
-          "path": "apps/server/src/oauthLogin.ts",
+          "path": "apps/server/src/auth/oauthLogin.ts",
           "sha256": "489c9ec5ccfb5e344346c2413b6cd2422be33ffa79eaa31450810e6f4268865a"
         },
         {
-          "path": "apps/server/src/serviceIntegrations.ts",
-          "sha256": "1a3084a347eef42926220afa16c44fcdaf46d1a2e542cfa056530f4c4264a685"
+          "path": "apps/server/src/services/serviceIntegrations.ts",
+          "sha256": "637d22c041ee5d4c15d10dd0e7e749813dcb6f2ef24537cb68349bb14d1a18f6"
         },
         {
-          "path": "apps/server/src/serviceRoute.ts",
+          "path": "apps/server/src/services/serviceRoute.ts",
           "sha256": "ba9fa41d24e5a39385ba423e446b0a318938fe774a6609ac0bd0919371cce173"
         },
         {
-          "path": "apps/server/src/store.ts",
-          "sha256": "b962092a77e1431f30e48bed8dbe2a2bc60ec0a2e0430221cff5127692a731ee"
+          "path": "apps/server/src/storage/store.ts",
+          "sha256": "28726db9b0b383b2354d23ba6cc2e48857adac67b9b4b4464675dec6a7c01aa0"
         }
       ]
     },

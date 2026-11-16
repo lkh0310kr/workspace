@@ -1,7 +1,7 @@
 import type { Env } from './env'
-import { authenticate } from './auth'
-import { handleServiceApi, handleServiceOAuthCallback } from './serviceIntegrations'
-import { json } from './crypto'
+import { authenticate } from './auth/auth'
+import { handleServiceApi, handleServiceOAuthCallback } from './services/serviceIntegrations'
+import { json } from './security/crypto'
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {

@@ -1,4 +1,4 @@
-import type { Env, Session } from './env'
+import type { Env, Session } from '../env'
 
 type Claims = {
   iss?: string
