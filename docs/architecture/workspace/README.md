@@ -23,3 +23,5 @@ Desktop 앱의 문서 색인이다. Electron Main/preload/renderer와 앱 adapte
 ## 재구현 경계
 
 `src/main`은 OS·process·파일·native session의 owner, `src/preload`는 제한된 typed bridge, `src/renderer`는 UI·상태 projection·상호작용의 owner다. `src/shared`는 앱 내부 양쪽 프로세스 계약이며 독립 배포 package와 같지 않다. Desktop의 native dependency 설치는 root npm workspace와 별도로 유지한다.
+
+Workspace layout host와 tab rail의 Desktop UI·스타일은 [`features/workspace/workspace.css`](../../../apps/desktop/src/renderer/src/features/workspace/workspace.css)에서 소유한다. 공용 토큰과 재사용 scrollbar surface는 app theme에 둔다.

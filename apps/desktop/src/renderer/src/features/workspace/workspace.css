@@ -1,0 +1,358 @@
+/* Workspace shell, mounted layouts, and Workspace tab rail. */
+
+.layout-host {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* One per workspace tab, all mounted at once — visibility-toggled by
+   App.tsx instead of remounting on switch (see its own comment). */
+.layout-host-item {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.workspace-tab-shell {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace-tab-layout {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.layout-host-item--active {
+  z-index: 1;
+}
+
+.workspace-tab-layout > .flexlayout__layout {
+  position: absolute !important;
+  inset: 0;
+}
+
+/* —— Workspace tab rail —— */
+/* Always-visible, inline in the native titlebar right after the Settings
+   button — same visual language as .pane-tab-strip (PaneTabStrip.tsx) so
+   switching workspaces looks and behaves like switching any other tab. No
+   toggle button, no popover, no separate row. */
+/* Hugs its content instead of filling the titlebar, so "+" stays against
+   the last tab and the leftover width goes to .titlebar-spacer (which is
+   the window's drag region). Shrinks — and scrolls its tab strip — only
+   once the tabs no longer fit. */
+.workspace-tab-rail {
+  display: flex;
+  align-items: stretch;
+  height: var(--chrome-h);
+  min-height: var(--chrome-h);
+  flex: 0 1 auto;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+}
+
+.workspace-tab-rail-tabs {
+  display: flex;
+  align-items: stretch;
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(121, 121, 121, 0.4) transparent;
+}
+
+.workspace-tab-rail-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.workspace-tab-rail-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workspace-tab-rail-tabs::-webkit-scrollbar-thumb {
+  background: rgba(121, 121, 121, 0.4);
+  border-radius: 3px;
+}
+
+.workspace-tab-rail-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(121, 121, 121, 0.7);
+}
+
+.workspace-tab-rail-slot {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.workspace-tab-rail-drop-indicator {
+  width: 2px;
+  flex-shrink: 0;
+  margin: 4px 0;
+  background: var(--text-muted);
+  border-radius: 1px;
+}
+
+.workspace-tab-rail-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 200px;
+  min-width: 112px;
+  padding: 0 4px 0 10px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.workspace-tab-rail-row:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.workspace-tab-rail-row.active {
+  background: var(--bg-base);
+  color: var(--text);
+  box-shadow: var(--shadow-inset-accent);
+}
+
+.workspace-tab-rail-title {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-ui);
+  touch-action: manipulation;
+}
+
+.workspace-tab-rail-agent-indicator {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.workspace-tab-rail-agent-indicator--idle {
+  background: var(--status-success);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--status-success) 35%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--permission {
+  background: var(--status-warning);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--status-warning) 40%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--monitoring {
+  background: var(--status-monitoring);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--status-monitoring) 35%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--failed {
+  background: var(--status-danger);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--status-danger) 35%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--muted {
+  background: var(--text-faint);
+}
+
+.workspace-tab-rail-agent-indicator--inactive {
+  background: color-mix(in srgb, var(--text-faint) 55%, transparent);
+}
+
+.workspace-tab-rail-agent-indicator--working {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--status-warning) 25%, transparent);
+  border-top-color: var(--status-warning);
+  background: transparent;
+  animation: workspace-tab-rail-agent-spin 0.75s linear infinite;
+}
+
+@keyframes workspace-tab-rail-agent-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.workspace-tab-rail-title-text {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Double-click a tab's title to rename (WorkspaceTabRail.tsx) — same
+   inline-input idiom as the markdown title rename. */
+.workspace-tab-rail-title-input {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+  padding: 3px 4px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  outline: none;
+}
+
+.workspace-tab-rail-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.workspace-tab-rail-close:hover {
+  color: var(--text);
+}
+
+.workspace-tab-rail-shortcut-number {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: var(--bg-active);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.workspace-tab-rail-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--chrome-h);
+  min-width: var(--chrome-h);
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.workspace-tab-rail-add:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.workspace-tab-rail-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+
+.workspace-tab-rail-home:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.workspace-tab-rail-home.active {
+  background: var(--bg-base);
+  color: var(--text);
+  box-shadow: var(--shadow-inset-accent);
+}
+
+.workspace-tab-rail-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 6px 0;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+
+/* Workspace tab polish kept with the Workspace rail. */
+.workspace-tab-rail-row,
+.workspace-tab-rail-home,
+.workspace-tab-rail-add,
+.workspace-tab-rail-close {
+  border-radius: var(--radius-sm);
+}
+
+.workspace-tab-rail-row {
+  margin: 2px;
+  min-height: calc(var(--chrome-h) - 4px);
+  border-right-color: transparent;
+}
+
+.workspace-tab-rail-row.active,
+.workspace-tab-rail-home.active {
+  background: var(--bg-active);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.workspace-tab-rail-row:hover:not(.active),
+.workspace-tab-rail-home:hover:not(.active),
+.workspace-tab-rail-add:hover {
+  background: var(--bg-hover);
+}
+
+.workspace-tab-rail-close:hover {
+  background: var(--bg-hover);
+}
+
+.workspace-tab-rail-title-input {
+  border-radius: var(--radius-sm);
+}
+
+.workspace-tab-rail {
+  --chrome-h: 34px;
+}
+
+@media (pointer: coarse) {
+  .workspace-tab-rail-close {
+    width: 32px;
+    height: 32px;
+  }
+}

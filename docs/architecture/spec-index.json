@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "d61cb7cbe73cf747e6fc84c902b9659aefcdf1ca52c70746b747fb8704ed832c"
+          "sha256": "6d6848eceb8f7ea6dc3edda8013f15dd5e9aabdaa5fdcf62c87aba0be6a391db"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts",
@@ -1194,6 +1194,10 @@
         {
           "path": "apps/desktop/vitest.config.ts",
           "sha256": "a857c9b67c87e1b2f6071e17936e52db55b559f8e8f169d3327807418c3381ac"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/workspace.css",
+          "sha256": "c7c8b9ff2652fff7420cf4e6cacbd5c504866096dc2d9846249e1f82b2a99df1"
         }
       ]
     },
