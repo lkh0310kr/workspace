@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { onHtmlFullscreenChanged } from '../../adapters/browser/runtime/browserIpc'
+import { onHtmlFullscreenChanged } from '../browser/host/runtime/browserIpc'
 
 /** True while a <webview> guest's own content is in the Fullscreen API's
  * fullscreen state (web content can request an in-canvas fullscreen

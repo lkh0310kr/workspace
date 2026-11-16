@@ -66,6 +66,9 @@ export default defineConfig({
       ],
       alias: {
         '@renderer': resolve('src/renderer/src'),
+        '@workspace/editor/editor-pane-chrome.css': resolve(
+          '../../packages/editor/src/editorPaneChrome.css'
+        ),
         '@workspace/editor/tree.css': resolve('../../packages/editor/src/tree/tree.css'),
         '@workspace/editor/treeView.module.css': resolve('../../packages/editor/src/tree/treeView.module.css'),
         '@workspace/editor': resolve('../../packages/editor/src'),

@@ -7,7 +7,7 @@ import {
   resetBrowserPageViewportsForTests
 } from '@workspace/browser'
 import { BrowserInteractionController } from './browserInteractionController'
-import { InteractionCoordinatorImpl } from '../../../interaction/portals/InteractionCoordinator'
+import { InteractionCoordinatorImpl } from '@renderer/interaction/portals/InteractionCoordinator'
 
 function mockWebview(): Electron.WebviewTag {
   const el = document.createElement('webview') as Electron.WebviewTag

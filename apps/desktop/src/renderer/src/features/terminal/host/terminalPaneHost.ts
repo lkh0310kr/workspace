@@ -1,17 +1,17 @@
 import type { TerminalPaneHost } from '@workspace/terminal'
 import { agentPaneKey, useAgentStatusStore } from '@workspace/terminal'
 import { registerTerminalAgentPane } from '@workspace/terminal/agent'
-import { writeClipboardText } from '../platform/nativeClipboard'
+import { writeClipboardText } from '@renderer/adapters/platform/nativeClipboard'
 import { connectPanePty } from './runtime/connectPanePty'
-import { interactionCoordinator } from '../../interaction/portals/InteractionCoordinator'
-import { getCurrentResolvedTheme, subscribeThemeChange } from '../../theme'
+import { interactionCoordinator } from '@renderer/interaction/portals/InteractionCoordinator'
+import { getCurrentResolvedTheme, subscribeThemeChange } from '@renderer/theme'
 import {
   getTerminalSearchDecorations,
   XTERM_THEMES,
   focusTerminalTextarea
 } from '@workspace/terminal'
 import { resolveExplicitTerminalTitleAgentType } from '@workspace/terminal/agent'
-import { requestKeyboardSurface } from '../../interaction/focus/keyboardSurface'
+import { requestKeyboardSurface } from '@renderer/interaction/focus/keyboardSurface'
 import { registerTerminalKeyboardTarget } from './runtime/terminalKeyboardSurface'
 import { installTerminalKeyHandler } from './runtime/installTerminalKeyHandler'
 import { installTerminalPasteHandler } from './runtime/installTerminalPasteHandler'

@@ -12,7 +12,7 @@ import { EditorToastViewport, QuickOpen } from './features/editor'
 import { LayoutTabDropOverlay, WorkspaceLayoutHost } from './features/pane-system'
 import { SettingsDialog } from './features/workspace'
 import { HomeView } from '@workspace/home'
-import { readSystemSummary } from './adapters/home/systemSummary'
+import { readSystemSummary } from './features/home/host/systemSummary'
 import {
   useAppBootstrap,
   useAppShellState,
@@ -40,7 +40,7 @@ import { readPaneGroupConfig, resolveActivePaneTab } from './features/pane-syste
 import { openEditorFileInPaneGroup } from './features/editor'
 import { setActiveTabInGroup } from './features/pane-system/layout/layoutActions'
 import { useEffect, useCallback, useState } from 'react'
-import { syncAgentPaneRegistryFromLayouts } from './adapters/terminal'
+import { syncAgentPaneRegistryFromLayouts } from './features/terminal/host'
 import 'flexlayout-react/style/combined.css'
 import './assets/styles.css'
 import '@workspace/editor/tree.css'

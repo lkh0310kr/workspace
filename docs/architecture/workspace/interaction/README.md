@@ -1,6 +1,6 @@
 # 상호작용·포커스·overlay 계약
 
-[InteractionCoordinator](../../../../apps/desktop/src/renderer/src/interaction/portals/InteractionCoordinator.ts)는 renderer singleton이다. overlay stack, portal Map, active workspace ID와 feature 변경 알림을 소유한다. Browser guest 등록·pane/chip 상태·표시·focus lifecycle은 [BrowserInteractionController](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/browserInteractionController.ts)가 소유하며 shell snapshot을 구독한다. renderer를 공유하는 embedded surface의 focus 복귀는 [embeddedSurfaceFocus](../../../../apps/desktop/src/renderer/src/interaction/focus/embeddedSurfaceFocus.ts)가 공통 hook으로 조정한다.
+[InteractionCoordinator](../../../../apps/desktop/src/renderer/src/interaction/portals/InteractionCoordinator.ts)는 renderer singleton이다. overlay stack, portal Map, active workspace ID와 feature 변경 알림을 소유한다. Browser guest 등록·pane/chip 상태·표시·focus lifecycle은 [BrowserInteractionController](../../../../apps/desktop/src/renderer/src/features/browser/host/runtime/browserInteractionController.ts)가 소유하며 shell snapshot을 구독한다. renderer를 공유하는 embedded surface의 focus 복귀는 [embeddedSurfaceFocus](../../../../apps/desktop/src/renderer/src/interaction/focus/embeddedSurfaceFocus.ts)가 공통 hook으로 조정한다.
 
 ## 표시·입력 결정표
 
@@ -28,7 +28,7 @@ setActiveWorkspaceTab은 같은 ID면 기본 no-op, force 옵션이면 reconcile
 
 setPaneChipState는 같은 paneNodeId의 다른 browser chip 활성값을 내리고 대상 paneVisible/chipActive를 함께 반영한다. 보이거나 활성화되는 전이에서 pendingFocus를 설정하고 한 번 shell reconcile을 발행한다. 숨겨지면 해당 guest를 blur한다. explicit requestGuestFocus는 pending guest를 지정하고 shell reconcile을 발행한다.
 
-focus schedule은 guest별 epoch로 이전 요청을 무효화하고 animation frame에서 interactive 조건을 재확인한다. detach/unregister·상태 변경으로 불가능해진 guest에 무조건 focus하지 않는다. 실제 webview host/native guest/terminal focus relay는 [browserGuestFocus](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/browserGuestFocus.ts)가 조정한다. Terminal 입력 전 BrowserInteractionController의 release는 native blur IPC·active guest 해제·renderer focus 복귀를 수행한다.
+focus schedule은 guest별 epoch로 이전 요청을 무효화하고 animation frame에서 interactive 조건을 재확인한다. detach/unregister·상태 변경으로 불가능해진 guest에 무조건 focus하지 않는다. 실제 webview host/native guest/terminal focus relay는 [browserGuestFocus](../../../../apps/desktop/src/renderer/src/features/browser/host/runtime/browserGuestFocus.ts)가 조정한다. Terminal 입력 전 BrowserInteractionController의 release는 native blur IPC·active guest 해제·renderer focus 복귀를 수행한다.
 
 ## 검색 단축키와 입력 focus
 
@@ -46,4 +46,4 @@ snapshot은 active workspace·overlay count/sources·portal·feature metric·최
 
 INT-01 활성 guest 위 portal을 열면 페이지는 보이되 클릭하지 못한다. INT-02 drag block 해제 직후 reconcile이 입력을 복구한다. INT-03 같은 pane browser chip은 하나만 활성이다. INT-04 orphan guest가 terminal 위에서 입력을 가로채지 않는다. INT-05 workspace 전환 중 renderer/guest focus가 stale ID를 대상으로 삼지 않는다. INT-06 중첩 block은 각 소유자가 같은 source로 해제한다.
 
-shell overlay·workspace snapshot과 Browser guest 상호작용의 자동 근거는 [Browser controller 테스트](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/browserInteractionController.test.ts), 표시 결정의 순수 정책은 [Browser policy 테스트](../../../../packages/browser/src/pane/browserWebviewPolicy.test.ts)다. PaneSystem의 embedPolicy·dragSession은 해당 interaction 폴더 테스트에서, Workspace scope는 Workspace runtime 테스트에서 다룬다. OS native focus의 전체 동작은 실제 Electron 환경에서 추가 검증한다.
+shell overlay·workspace snapshot과 Browser guest 상호작용의 자동 근거는 [Browser controller 테스트](../../../../apps/desktop/src/renderer/src/features/browser/host/runtime/browserInteractionController.test.ts), 표시 결정의 순수 정책은 [Browser policy 테스트](../../../../packages/browser/src/pane/browserWebviewPolicy.test.ts)다. PaneSystem의 embedPolicy·dragSession은 해당 interaction 폴더 테스트에서, Workspace scope는 Workspace runtime 테스트에서 다룬다. OS native focus의 전체 동작은 실제 Electron 환경에서 추가 검증한다.

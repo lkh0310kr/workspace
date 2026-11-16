@@ -13,8 +13,8 @@ import {
 import {
   interactionCoordinator,
   type InteractionCoordinatorImpl
-} from '../../../interaction/portals/InteractionCoordinator'
-import { registerKeyboardSurfaceRelease } from '../../../interaction/focus/keyboardSurface'
+} from '@renderer/interaction/portals/InteractionCoordinator'
+import { registerKeyboardSurfaceRelease } from '@renderer/interaction/focus/keyboardSurface'
 
 const WEBVIEW_FOCUS_MAX_FRAMES = 12
 

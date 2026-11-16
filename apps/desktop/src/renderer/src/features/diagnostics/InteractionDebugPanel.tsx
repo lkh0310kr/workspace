@@ -5,7 +5,7 @@ import {
   type InteractionSnapshot
 } from '../../interaction/portals/InteractionCoordinator'
 import { fullInteractionDiagnostic, getDebugRing } from './interactionDebugLog'
-import { collectBrowserWebviews } from '@renderer/adapters/browser/runtime/browserInteractionDiagnostics'
+import { collectBrowserWebviews } from '@renderer/features/browser/host/runtime/browserInteractionDiagnostics'
 
 function InteractionDebugPanelInner() {
   const [expanded, setExpanded] = useState(false)

@@ -1,8 +1,8 @@
-import { useBrowserReloadShortcutBootstrap, useBrowserRuntimeBootstrap } from '../../adapters/browser'
+import { useBrowserReloadShortcutBootstrap, useBrowserRuntimeBootstrap } from '../browser/host'
 import {
   useTerminalAgentStatusBootstrap,
   useTerminalInputBootstrap
-} from '../../adapters/terminal'
+} from '../terminal/host'
 import { useEditorShortcutBootstrap } from '../editor'
 import { useDiagnosticsBootstrap } from '../diagnostics'
 

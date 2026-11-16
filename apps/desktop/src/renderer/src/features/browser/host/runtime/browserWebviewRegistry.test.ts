@@ -54,7 +54,7 @@ describe('browser webview registry drag listeners', () => {
   })
 
   it('does not install global drag listeners until a webview is registered', async () => {
-    const { registerPersistentWebview } = await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+    const { registerPersistentWebview } = await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
 
     expect(addedListeners).toEqual([])
 
@@ -65,7 +65,7 @@ describe('browser webview registry drag listeners', () => {
 
   it('removes drag listeners after the last webview is unregistered', async () => {
     const { unregisterPersistentWebview, registerPersistentWebview } =
-      await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+      await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
 
     registerPersistentWebview('page-1', createWebview())
     registerPersistentWebview('page-2', createWebview())
@@ -83,7 +83,7 @@ describe('browser webview registry drag listeners', () => {
 
   it('releases native drag passthrough when the last webview is unregistered', async () => {
     const { unregisterPersistentWebview, registerPersistentWebview } =
-      await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+      await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const firstWebview = createWebview()
     firstWebview.style.pointerEvents = 'auto'
     registerPersistentWebview('page-1', firstWebview)
@@ -107,7 +107,7 @@ describe('browser webview registry drag listeners', () => {
   })
 
   it('keeps one listener set across repeated registrations', async () => {
-    const { registerPersistentWebview } = await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+    const { registerPersistentWebview } = await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
 
     registerPersistentWebview('page-1', createWebview())
     registerPersistentWebview('page-2', createWebview())
@@ -117,7 +117,7 @@ describe('browser webview registry drag listeners', () => {
 
   it('profiles live webviews for memory breadcrumbs', async () => {
     const { getBrowserWebviewMemoryProfile, registerPersistentWebview } =
-      await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+      await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
 
     registerPersistentWebview('page-1', createWebview())
     registerPersistentWebview('page-2', createWebview())
@@ -130,7 +130,7 @@ describe('browser webview registry drag listeners', () => {
       isBrowserPageRendererRecoveryPending,
       registerPersistentWebview,
       unregisterPersistentWebview
-    } = await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+    } = await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const webview = createWebview()
     registerPersistentWebview('page-1', webview)
 
@@ -147,7 +147,7 @@ describe('browser webview registry drag listeners', () => {
 
   it('flags renderer recovery when the guest is destroyed under a still-attached webview', async () => {
     const { isBrowserPageRendererRecoveryPending, registerPersistentWebview } =
-      await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+      await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const webview = createWebview({ isConnected: true })
     registerPersistentWebview('page-1', webview)
 
@@ -160,7 +160,7 @@ describe('browser webview registry drag listeners', () => {
 
   it('ignores guest destruction caused by intentional webview removal', async () => {
     const { isBrowserPageRendererRecoveryPending, registerPersistentWebview } =
-      await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+      await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const webview = createWebview({ isConnected: false })
     registerPersistentWebview('page-1', webview)
 
@@ -174,7 +174,7 @@ describe('browser webview registry drag listeners', () => {
       isBrowserPageRendererRecoveryPending,
       registerPersistentWebview,
       unregisterPersistentWebview
-    } = await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+    } = await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const webview = createWebview({ isConnected: true })
     registerPersistentWebview('page-1', webview)
     unregisterPersistentWebview('page-1')
@@ -185,8 +185,8 @@ describe('browser webview registry drag listeners', () => {
   })
 
   it('keeps webviews in passthrough until every renderer drag releases', async () => {
-    const { acquireWebviewsDragPassthrough } = await import('@renderer/adapters/browser/runtime/webviewDragPassthrough')
-    const { registerPersistentWebview } = await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+    const { acquireWebviewsDragPassthrough } = await import('@renderer/features/browser/host/runtime/webviewDragPassthrough')
+    const { registerPersistentWebview } = await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const activeWebview = createWebview()
     activeWebview.style.pointerEvents = 'auto'
     const lockedWebview = createWebview()
@@ -213,8 +213,8 @@ describe('browser webview registry drag listeners', () => {
   })
 
   it('applies active passthrough to webviews registered mid-drag', async () => {
-    const { acquireWebviewsDragPassthrough } = await import('@renderer/adapters/browser/runtime/webviewDragPassthrough')
-    const { registerPersistentWebview } = await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+    const { acquireWebviewsDragPassthrough } = await import('@renderer/features/browser/host/runtime/webviewDragPassthrough')
+    const { registerPersistentWebview } = await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const releaseDrag = acquireWebviewsDragPassthrough()
     const webview = createWebview()
     webview.style.pointerEvents = 'auto'
@@ -229,7 +229,7 @@ describe('browser webview registry drag listeners', () => {
   })
 
   it('moves focus back to the renderer before detaching the focused webview', async () => {
-    const { moveFocusToRendererBeforeWebviewDetach } = await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+    const { moveFocusToRendererBeforeWebviewDetach } = await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const webview = createWebview()
     vi.stubGlobal('document', { activeElement: webview })
 
@@ -240,7 +240,7 @@ describe('browser webview registry drag listeners', () => {
   })
 
   it('moves focus back to the renderer before detaching a webview that contains focus', async () => {
-    const { moveFocusToRendererBeforeWebviewDetach } = await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+    const { moveFocusToRendererBeforeWebviewDetach } = await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const activeElement = { blur: vi.fn() } as unknown as HTMLElement
     const webview = createWebview({ contains: vi.fn(() => true) })
     vi.stubGlobal('document', { activeElement })
@@ -253,7 +253,7 @@ describe('browser webview registry drag listeners', () => {
 
   it('moves focus back to the renderer before a focused registered webview is hidden', async () => {
     const { moveFocusToRendererBeforeFocusedWebviewHidden, registerPersistentWebview } =
-      await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+      await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const inactiveWebview = createWebview()
     const focusedWebview = createWebview()
     vi.stubGlobal('document', { activeElement: focusedWebview })
@@ -269,7 +269,7 @@ describe('browser webview registry drag listeners', () => {
   })
 
   it('leaves focus alone before detaching an unfocused webview', async () => {
-    const { moveFocusToRendererBeforeWebviewDetach } = await import('@renderer/adapters/browser/runtime/browserWebviewRegistry')
+    const { moveFocusToRendererBeforeWebviewDetach } = await import('@renderer/features/browser/host/runtime/browserWebviewRegistry')
     const activeElement = { blur: vi.fn() } as unknown as HTMLElement
     const webview = createWebview()
     vi.stubGlobal('document', { activeElement })

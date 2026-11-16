@@ -12,7 +12,7 @@ Home 화면은 현재 기기의 기본 시스템 정보를 보여준다. [HomeVi
 
 ## 현재 구현 근거
 
-[SystemInformationWidget](../../../../packages/home/src/widgets/SystemInformationWidget.tsx)은 주입된 `readSystemSummary` host 함수를 mount·수동 갱신·3초 interval에서 호출한다. Desktop [Home adapter](../../../../apps/desktop/src/renderer/src/adapters/home/systemSummary.ts)가 이를 `window.api.system.summary`에 연결한다. 화면 스타일은 package의 `home.module.css`에 두고 공용 design token과 scroll surface만 host와 공유한다. Home view 추출은 기존 navigation과 Workspace bootstrap gate를 변경하지 않는다. 실패 시 요약을 비우고 interval은 unmount 때 정리한다. Main은 CPU 표본 차이로 사용률을 계산하므로 첫 값은 측정 중일 수 있다. 메모리는 total−available, 저장 공간은 홈 디렉터리 volume의 `statfs`, 가동 시간은 OS uptime에서 계산한다.
+[SystemInformationWidget](../../../../packages/home/src/widgets/SystemInformationWidget.tsx)은 주입된 `readSystemSummary` host 함수를 mount·수동 갱신·3초 interval에서 호출한다. Desktop [Home adapter](../../../../apps/desktop/src/renderer/src/features/home/host/systemSummary.ts)가 이를 `window.api.system.summary`에 연결한다. 화면 스타일은 package의 `home.module.css`에 두고 공용 design token과 scroll surface만 host와 공유한다. Home view 추출은 기존 navigation과 Workspace bootstrap gate를 변경하지 않는다. 실패 시 요약을 비우고 interval은 unmount 때 정리한다. Main은 CPU 표본 차이로 사용률을 계산하므로 첫 값은 측정 중일 수 있다. 메모리는 total−available, 저장 공간은 홈 디렉터리 volume의 `statfs`, 가동 시간은 OS uptime에서 계산한다.
 
 `packages/home`이 소유한 `useLatestRefresh`는 중복 갱신을 직렬화하고 unmount 이후의 응답 적용을 막는다. 이미 Main IPC로 전달한 요청 자체는 취소하지 않는다.
 

@@ -1,7 +1,7 @@
-import { browserFocusLog } from '@renderer/adapters/browser/runtime/browserFocusDebugLog'
+import { browserFocusLog } from '@renderer/features/browser/host/runtime/browserFocusDebugLog'
 import { browserInteractionController } from './browserInteractionController'
-import { getBrowserWebviewByWebContentsId } from '@renderer/adapters/browser/runtime/activeBrowserWebview'
-import { focusPaneGroupTabSet } from '../../../features/pane-system/layout/layoutRef'
+import { getBrowserWebviewByWebContentsId } from '@renderer/features/browser/host/runtime/activeBrowserWebview'
+import { focusPaneGroupTabSet } from '@renderer/features/pane-system/layout/layoutRef'
 
 /** Orca focusGroup parity — dimming split follows the pane group that owns the clicked guest. */
 export function focusPaneGroupForPaneNode(workspaceTabId: number, paneNodeId: string): void {

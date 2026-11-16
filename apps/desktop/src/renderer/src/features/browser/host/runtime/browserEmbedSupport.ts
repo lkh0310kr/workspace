@@ -3,12 +3,12 @@ import {
   getBrowserWebviewByWebContentsId,
   installBrowserFocusTracking,
   installBrowserGuestFocusRelay
-} from '@renderer/adapters/browser/runtime/activeBrowserWebview'
+} from '@renderer/features/browser/host/runtime/activeBrowserWebview'
 import { onBrowserZoomShortcut } from './browserIpc'
 import { addBrowserZoomEventListener, zoomBrowserWebview } from '@workspace/browser'
-import { getBrowserFocusLogRing } from '@renderer/adapters/browser/runtime/browserFocusDebugLog'
+import { getBrowserFocusLogRing } from '@renderer/features/browser/host/runtime/browserFocusDebugLog'
 import { reloadBrowserPageWebview } from '@workspace/browser'
-import { isDevInstrumentation } from '../../diagnostics/devTools'
+import { isDevInstrumentation } from '@renderer/adapters/diagnostics/devTools'
 
 /** One-shot setup for browser guest focus tracking (Cmd+R target, etc.). */
 export function installBrowserEmbedSupport(): () => void {

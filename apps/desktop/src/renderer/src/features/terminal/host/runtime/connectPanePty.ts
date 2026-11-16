@@ -6,7 +6,7 @@ import type {
 import { setPaneFitListener } from '@workspace/terminal/pane-manager'
 import { refitPaneTerminal } from '@workspace/terminal/pane-manager'
 import { writeTerminalOutput } from '@workspace/terminal/pane-manager'
-import { writeClipboardText } from '../../platform/nativeClipboard'
+import { writeClipboardText } from '@renderer/adapters/platform/nativeClipboard'
 import { ptyResize } from './terminalIpc'
 import { createElectronPtyTransport, type PtyTransport } from './ptyTransport'
 import { createPtyOutputTitleObserver } from '@workspace/terminal/agent'

@@ -61,6 +61,9 @@
       "@workspace/editor": [
         "../../packages/editor/src/index.ts"
       ],
+      "@workspace/editor/editor-pane-chrome.css": [
+        "../../packages/editor/src/editorPaneChrome.css"
+      ],
       "@workspace/editor/tree.css": [
         "../../packages/editor/src/tree/tree.css"
       ],

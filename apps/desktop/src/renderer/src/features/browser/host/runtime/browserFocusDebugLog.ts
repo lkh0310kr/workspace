@@ -1,4 +1,4 @@
-import { isDevInstrumentation } from '../../diagnostics/devTools'
+import { isDevInstrumentation } from '@renderer/adapters/diagnostics/devTools'
 import { collectBrowserWebviews } from './browserInteractionDiagnostics'
 
 const MAX_RING = 200

@@ -1,23 +1,23 @@
-import { interactionCoordinator } from '../../../interaction/portals/InteractionCoordinator'
+import { interactionCoordinator } from '@renderer/interaction/portals/InteractionCoordinator'
 import { browserInteractionController } from './browserInteractionController'
 import { closeBrowserTab } from './browserTabLifecycle'
 import {
   getActiveBrowserWebview,
   registerBrowserWebview,
   setActiveBrowserWebview
-} from '@renderer/adapters/browser/runtime/activeBrowserWebview'
+} from '@renderer/features/browser/host/runtime/activeBrowserWebview'
 import {
   getPersistentBrowserWebview,
   moveFocusToRendererBeforeFocusedWebviewHidden
-} from '@renderer/adapters/browser/runtime/browserWebviewRegistry'
+} from '@renderer/features/browser/host/runtime/browserWebviewRegistry'
 import {
   focusBrowserGuestWebview,
   requestBrowserKeyboardSurface
-} from '@renderer/adapters/browser/runtime/browserGuestFocus'
+} from '@renderer/features/browser/host/runtime/browserGuestFocus'
 import { onBrowserOpenNewTab } from './browserIpc'
-import { revealItemInDir } from '../../platform/nativeShell'
+import { revealItemInDir } from '@renderer/adapters/platform/nativeShell'
 import { fetchWebviewNavHistory, goToWebviewHistoryIndex } from './browserNavHistory'
-import { onWorkspaceDismissPortals } from '../../../interaction/portals/workspacePortalDismiss'
+import { onWorkspaceDismissPortals } from '@renderer/interaction/portals/workspacePortalDismiss'
 import {
   ensureBrowserPageWebview,
   setBrowserPageWebviewInputLock
@@ -26,13 +26,13 @@ import { getBrowserDownloadsForWebview, subscribeBrowserDownloads } from './brow
 import {
   browserFocusLog,
   snapshotBrowserFocusState
-} from '@renderer/adapters/browser/runtime/browserFocusDebugLog'
-import { isWebviewHostFocused } from '@renderer/adapters/browser/runtime/browserGuestFocus'
-import { isBrowserGuestWebContentsFocused } from '@renderer/adapters/browser/runtime/activeBrowserWebview'
+} from '@renderer/features/browser/host/runtime/browserFocusDebugLog'
+import { isWebviewHostFocused } from '@renderer/features/browser/host/runtime/browserGuestFocus'
+import { isBrowserGuestWebContentsFocused } from '@renderer/features/browser/host/runtime/activeBrowserWebview'
 import {
   isWebviewDragPassthroughActive,
   registerWebviewDragPassthroughSurface
-} from '@renderer/adapters/browser/runtime/webviewDragPassthrough'
+} from '@renderer/features/browser/host/runtime/webviewDragPassthrough'
 import type { BrowserPaneHost, BrowserWebviewPort } from '@workspace/browser'
 export type { BrowserOpenNewTabEvent, BrowserPaneHost } from '@workspace/browser'
 

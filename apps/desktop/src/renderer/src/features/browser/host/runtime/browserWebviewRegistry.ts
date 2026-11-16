@@ -1,10 +1,10 @@
 import { removeBrowserPageViewport } from '@workspace/browser'
-import { registerRendererFocusReturnHandler } from '../../../interaction/focus/embeddedSurfaceFocus'
+import { registerRendererFocusReturnHandler } from '@renderer/interaction/focus/embeddedSurfaceFocus'
 import {
   acquireWebviewsDragPassthrough,
   isWebviewDragPassthroughActive,
   registerWebviewDragPassthroughSurface
-} from '@renderer/adapters/browser/runtime/webviewDragPassthrough'
+} from '@renderer/features/browser/host/runtime/webviewDragPassthrough'
 
 // Why: shared coordination state for every live browser <webview>, kept
 // outside BrowserContent so a drag anywhere in the window (a flexlayout
