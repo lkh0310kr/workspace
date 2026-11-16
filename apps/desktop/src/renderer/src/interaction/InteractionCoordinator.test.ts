@@ -5,7 +5,7 @@ import {
   ensureBrowserPageViewport,
   registerBrowserOverlaySlotViewport,
   resetBrowserPageViewportsForTests
-} from '../browser/browserPageViewport'
+} from '@workspace/browser'
 import { InteractionCoordinatorImpl } from './InteractionCoordinator'
 
 function mockWebview(): Electron.WebviewTag {

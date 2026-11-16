@@ -5,7 +5,7 @@ import {
   ensureBrowserPageViewport,
   registerBrowserOverlaySlotViewport,
   resetBrowserPageViewportsForTests
-} from './browserPageViewport'
+} from '@workspace/browser'
 import { destroyBrowserWebview, registerPersistentWebview } from '../layout/browserWebviewRegistry'
 import { browserPageGuestNeedsAttach, resolveBrowserPageWebview } from './browserPageGuestRecovery'
 

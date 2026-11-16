@@ -2,7 +2,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import {
   BrowserAddressBar,
   normalizeBrowserNavigationUrl,
-  recordBrowserVisit
+  recordBrowserVisit,
+  applyBrowserPageViewportLayout,
+  ensureBrowserPageViewport,
+  parkBrowserPageViewport,
+  syncBrowserPageChromeInset,
+  useBrowserPageSlotViewport,
+  readBrowserNavigationState
 } from '@workspace/browser'
 import { BrowserNavButton } from './BrowserNavButton'
 import { BrowserDownloadsBar } from './BrowserDownloadsBar'
@@ -12,21 +18,13 @@ import {
   loadBrowserPageWebviewUrl,
   reloadBrowserPageWebview
 } from '../../browser/browserPageWebviewActions'
-import {
-  applyBrowserPageViewportLayout,
-  ensureBrowserPageViewport,
-  parkBrowserPageViewport,
-  syncBrowserPageChromeInset
-} from '../../browser/browserPageViewport'
 import { ensureBrowserPageWebview } from '../../browser/ensureBrowserPageWebview'
 import {
   browserPageGuestNeedsAttach,
   resolveBrowserPageWebview
 } from '../../browser/browserPageGuestRecovery'
-import { useBrowserPageSlotViewport } from '../../browser/useBrowserPageSlotViewport'
 import { useBrowserChromeFocus } from '../../browser/useBrowserChromeFocus'
 import { useBrowserGuestActivationFocus } from '../../browser/useBrowserGuestActivationFocus'
-import { readBrowserNavigationState } from '../../browser/browserNavigationState'
 import { useWebviewGuestFocus } from '../../browser/useWebviewGuestFocus'
 import { setBrowserPageWebviewInputLock } from '../../browser/ensureBrowserPageWebview'
 import type { PaneTabItem } from '../../layout/paneTypes'

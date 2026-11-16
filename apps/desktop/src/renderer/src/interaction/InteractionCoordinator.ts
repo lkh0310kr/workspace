@@ -4,7 +4,7 @@
  */
 
 import { browserFocusLog, snapshotBrowserFocusState } from '../browser/browserFocusDebugLog'
-import { parkBrowserPageViewport } from '../browser/browserPageViewport'
+import { parkBrowserPageViewport } from '@workspace/browser'
 import { focusBrowserGuestWebview } from '../browser/browserGuestFocus'
 import {
   getActiveBrowserWebview,

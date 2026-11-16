@@ -1,3 +1,5 @@
+import styles from './browser.module.css'
+
 // Orca parity — host-guest/browser-page-viewport.ts (verbatim structure; paneNodeId = Orca workspaceId)
 
 const slotViewportRoots = new Map<string, HTMLDivElement>()
@@ -80,14 +82,14 @@ export function ensureBrowserPageViewport(
 
   const shell = document.createElement('div')
   shell.dataset.browserPageViewportId = tabItemId
-  shell.className = 'browser-page-viewport-shell'
+  shell.className = styles.viewportShell
   shell.style.display = 'none'
   shell.inert = true
   shell.setAttribute('aria-hidden', 'true')
 
   const chromeInset = document.createElement('div')
   chromeInset.dataset.browserPageChromeInset = ''
-  chromeInset.className = 'browser-page-chrome-inset'
+  chromeInset.className = styles.chromeInset
   const rememberedInsetHeight = browserPageChromeInsetHeights.get(tabItemId)
   if (rememberedInsetHeight !== undefined) {
     chromeInset.style.height = `${rememberedInsetHeight}px`
@@ -95,7 +97,7 @@ export function ensureBrowserPageViewport(
 
   const container = document.createElement('div')
   container.dataset.browserPageContainer = ''
-  container.className = 'browser-page-guest-container'
+  container.className = styles.guestContainer
 
   shell.append(chromeInset, container)
   root.appendChild(shell)

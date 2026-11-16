@@ -1,4 +1,4 @@
-import { getBrowserPageViewportContainer } from './browserPageViewport'
+import { getBrowserPageViewportContainer } from '@workspace/browser'
 import { getPersistentBrowserWebview } from '../layout/browserWebviewRegistry'
 
 /** True when the guest is missing or no longer in this page's container —

@@ -1,4 +1,4 @@
-import { removeBrowserPageViewport } from '../browser/browserPageViewport'
+import { removeBrowserPageViewport } from '@workspace/browser'
 import {
   acquireWebviewsDragPassthrough,
   isWebviewDragPassthroughActive,
