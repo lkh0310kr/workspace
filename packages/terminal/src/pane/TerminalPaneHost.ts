@@ -1,8 +1,8 @@
-import type { TuiAgent } from './types/tuiAgent'
-import type { ManagedPane } from './pane-manager/pane-manager-types'
+import type { TuiAgent } from '../types/tuiAgent'
+import type { ManagedPane } from '../pane-manager/pane-manager-types'
 import type { Terminal } from '@xterm/xterm'
 import type { ITheme } from '@xterm/xterm'
-import type { TerminalSearchDecorations } from './TerminalSearch'
+import type { TerminalSearchDecorations } from '../search/TerminalSearch'
 import type { ResolvedTheme } from './terminalThemes'
 
 export interface TerminalPtyTransport {

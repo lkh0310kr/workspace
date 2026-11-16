@@ -1,4 +1,4 @@
-import type { TuiAgent } from './types/tuiAgent'
+import type { TuiAgent } from '../types/tuiAgent'
 import type { PasteTerminalTextOptions } from './terminal-bracketed-paste'
 
 export function resolveTerminalMultilinePasteOptions(

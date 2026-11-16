@@ -1501,7 +1501,7 @@
       "sources": [
         {
           "path": "packages/terminal/package.json",
-          "sha256": "2e068328342579f5ba162bd3f15ae7359304f013ab092f2195c073eb58cf1b59"
+          "sha256": "b2d36f47eee68dc50dd623c926bba3ce8e4bc7c8638f7505b3a2ee65fef9e440"
         },
         {
           "path": "packages/terminal/src/agent/agent-detection.ts",
@@ -1620,12 +1620,12 @@
           "sha256": "b28a1786a511a184d03f4a5a162e1c1a51a622db5127ee3a562cd2a69434e015"
         },
         {
-          "path": "packages/terminal/src/focusTerminalTextarea.ts",
+          "path": "packages/terminal/src/pane/focusTerminalTextarea.ts",
           "sha256": "1696776d8e68bb7690653b5697b34b84793bd65717ab8db57ff3050d7576a2e5"
         },
         {
           "path": "packages/terminal/src/index.ts",
-          "sha256": "739909cf88097f4cf6394c8726f0db9158f023e900ac708fcab68a156826062c"
+          "sha256": "50c2d0df0796ffef910bccbe0d33b7215596ee9577d9f9a86547915ee187febc"
         },
         {
           "path": "packages/terminal/src/keyboard/option-key-location-state.ts",
@@ -1636,11 +1636,11 @@
           "sha256": "c066f94993be7cbf81c99ca8d71566f29215d033c334fd436fe15c063557d8e8"
         },
         {
-          "path": "packages/terminal/src/monospace-font-family.test.ts",
+          "path": "packages/terminal/src/pane/monospace-font-family.test.ts",
           "sha256": "48f95cdc4829653258073302bfbff893bce347b2b17d976c7dbbae3e8899d372"
         },
         {
-          "path": "packages/terminal/src/monospace-font-family.ts",
+          "path": "packages/terminal/src/pane/monospace-font-family.ts",
           "sha256": "f5739bf418a405c2d1246672ec4e4a72fd9db2fd1d7f68d0cd495b8c2d5cfff3"
         },
         {
@@ -1773,7 +1773,7 @@
         },
         {
           "path": "packages/terminal/src/pane-manager/pane-terminal-options.ts",
-          "sha256": "641582a552a3f83ea61068fe54f507a10827755e1147fb46606785918aa6b0ef"
+          "sha256": "f256832631befe2906f8e96c12a347f0e745780f544425ccdd0e4e8826c502f6"
         },
         {
           "path": "packages/terminal/src/pane-manager/pane-terminal-output-ack-credit.ts",
@@ -2020,7 +2020,7 @@
           "sha256": "d0ce34a6e192bc8521265f44833625f804d5ae2817b046f2be9c4944db060872"
         },
         {
-          "path": "packages/terminal/src/safeFind.ts",
+          "path": "packages/terminal/src/search/safeFind.ts",
           "sha256": "a13c4ce0b53ff7d12814a025d22ea51ab5a79b89d0e71c326e9fd2b51695d4ad"
         },
         {
@@ -2096,55 +2096,55 @@
           "sha256": "2d7776b31b3c202d73fdd010df6ad82233f347823d84cb7d0e3e209c5ede7f0a"
         },
         {
-          "path": "packages/terminal/src/terminal-bracketed-paste.test.ts",
+          "path": "packages/terminal/src/input/terminal-bracketed-paste.test.ts",
           "sha256": "c5a7cea4f57a23a250a55c9bb6c86daa39b6b10c735a734094d2d2c6dcf78308"
         },
         {
-          "path": "packages/terminal/src/terminal-bracketed-paste.ts",
+          "path": "packages/terminal/src/input/terminal-bracketed-paste.ts",
           "sha256": "39867a7d9e744228f32430fb6ffd90b70fc27440445f07dc4252d2da044919eb"
         },
         {
-          "path": "packages/terminal/src/terminal-captured-input-dispatch.ts",
+          "path": "packages/terminal/src/input/terminal-captured-input-dispatch.ts",
           "sha256": "d8e25a18c2844776c0be6b7790855d30f3104db8f5d3fccf5c635806bd66ef8f"
         },
         {
-          "path": "packages/terminal/src/terminal-file-drop.test.ts",
+          "path": "packages/terminal/src/input/terminal-file-drop.test.ts",
           "sha256": "a5e0913a130d92fd6fce95b5d0db2f186354ad6454d744642f836284965ebc29"
         },
         {
-          "path": "packages/terminal/src/terminal-file-drop.ts",
-          "sha256": "54fe217462278e5303d02f89eba2ed2c1772e87c7ca0c01331fdd337faedff0f"
+          "path": "packages/terminal/src/input/terminal-file-drop.ts",
+          "sha256": "0e19e960a4967f7714ddd07c2b3bbb873e43e9cfb50c7e517508ac8243c25cfd"
         },
         {
-          "path": "packages/terminal/src/terminal-paste-options.test.ts",
+          "path": "packages/terminal/src/input/terminal-paste-options.test.ts",
           "sha256": "b9d71c561f656d4eb17bbef4886685eb65671900b1bc1703325f50640bbf5e7e"
         },
         {
-          "path": "packages/terminal/src/terminal-paste-options.ts",
-          "sha256": "91a9becd5a3affedf3a6f97ed4849ebf97223d03a974f970e8941c4a7f14104e"
+          "path": "packages/terminal/src/input/terminal-paste-options.ts",
+          "sha256": "007ba0e7054af45b757c2505518fdc8b7035de111325b6c155ed7f70bad2cd1e"
         },
         {
-          "path": "packages/terminal/src/terminal-search.module.css",
+          "path": "packages/terminal/src/search/terminal-search.module.css",
           "sha256": "0681435798988aedf19ac19ffb7c975f529a7ef60812ef50af831c38653cd4af"
         },
         {
-          "path": "packages/terminal/src/terminal-selection-copy.ts",
-          "sha256": "ef868d689192632a326bff883b424aea8162daa4d4eec5103ba252d362906767"
+          "path": "packages/terminal/src/input/terminal-selection-copy.ts",
+          "sha256": "259d777242ec32c9661d7eeffc202cd5e78fb5eb3f327facf32acaa900a3acbb"
         },
         {
-          "path": "packages/terminal/src/terminal-shortcut-policy.test.ts",
+          "path": "packages/terminal/src/input/terminal-shortcut-policy.test.ts",
           "sha256": "44261c7249acfeada3afac2910014ab3dd0a51376b22709acd3ec44d3ce35d7e"
         },
         {
-          "path": "packages/terminal/src/terminal-shortcut-policy.ts",
+          "path": "packages/terminal/src/input/terminal-shortcut-policy.ts",
           "sha256": "10e16e1f3447f1edea75f47a8b1aeb1fa7859675d7ccc188f9b4600960a89406"
         },
         {
-          "path": "packages/terminal/src/terminal-xterm-overrides.css",
+          "path": "packages/terminal/src/pane/terminal-xterm-overrides.css",
           "sha256": "376322fa6b959af2318592649cea360201899cc588f03a7822d24cd7a6257cfb"
         },
         {
-          "path": "packages/terminal/src/terminal.css",
+          "path": "packages/terminal/src/pane/terminal.css",
           "sha256": "5dd69fe6d9465d11d884ee414a8ac65ae6a2588802d23df40231843c3607ef54"
         },
         {
@@ -2168,23 +2168,23 @@
           "sha256": "c40ca9e298360dac957c526dd3253ff983eeb64c56ffdc55ce293f8dc0c955d6"
         },
         {
-          "path": "packages/terminal/src/TerminalPane.tsx",
-          "sha256": "d15ad090e830216cbac2cf0d5b8693dde5e6f4b5cc267d1bec8140412ed8d0c3"
+          "path": "packages/terminal/src/pane/TerminalPane.tsx",
+          "sha256": "dc4fc855d5651e26f3c4f7d520f3b199c881070c7e72d2eb696a71d5f6566d11"
         },
         {
-          "path": "packages/terminal/src/TerminalPaneHost.ts",
-          "sha256": "8bf2beda8e9a59008f209d37bd8098ca0dd4e6bdc288adbf43a46f85722441b0"
+          "path": "packages/terminal/src/pane/TerminalPaneHost.ts",
+          "sha256": "241bc3fcb3c2e3e851c3c567aaacf566df5cc30200a6ca17f98bf9363dc3e5a5"
         },
         {
-          "path": "packages/terminal/src/terminalPaneKind.tsx",
-          "sha256": "e104e77281dec0ea1724d9a296a9e10b6a7e0a2aa1f310ddc6e0506aac0bea28"
+          "path": "packages/terminal/src/pane/terminalPaneKind.tsx",
+          "sha256": "799c85a69c4079308d6a841c3e69888fc192a19c4b358f780b379e8008f15fd7"
         },
         {
-          "path": "packages/terminal/src/TerminalSearch.tsx",
+          "path": "packages/terminal/src/search/TerminalSearch.tsx",
           "sha256": "3affe3bc7373f566f4e882acc4527b2ed962db07218151f0aba5121d39dfb827"
         },
         {
-          "path": "packages/terminal/src/terminalThemes.ts",
+          "path": "packages/terminal/src/pane/terminalThemes.ts",
           "sha256": "0e6cbbf328d6dcd26d48d411f3b975bd6fc10e13206c64b8450951fbf8814321"
         },
         {
@@ -2204,12 +2204,24 @@
           "sha256": "7c470c858ddc10988ea2b7e230d127a8d9bc70acf03e8dc8226d799749ce023b"
         },
         {
-          "path": "packages/terminal/src/xterm-clipboard-bypass-policy.test.ts",
+          "path": "packages/terminal/src/input/xterm-clipboard-bypass-policy.test.ts",
           "sha256": "68b5f32fb64dead329d7c6776f3b09b5f7d868c11aabc6599e2c75a83177f09f"
         },
         {
-          "path": "packages/terminal/src/xterm-clipboard-bypass-policy.ts",
+          "path": "packages/terminal/src/input/xterm-clipboard-bypass-policy.ts",
           "sha256": "d221ce4483a5cd6f7c7b5246501deeaf099eef1b976fd970dce738c8ea9fffc7"
+        },
+        {
+          "path": "packages/terminal/src/input/index.ts",
+          "sha256": "a1f78f29d2fd3628b2b9dba53ebae18f9c6b0e0f36fe302aa4e6f90a4d819fcb"
+        },
+        {
+          "path": "packages/terminal/src/pane/index.ts",
+          "sha256": "e66468d3565716062a65b1ddcf934f4ea4e45283d9afd591c663d0a064437a7a"
+        },
+        {
+          "path": "packages/terminal/src/search/index.ts",
+          "sha256": "9988c5efa9a9530a04dd7869b0036d2efb05e2ddb70fa847529bda9b1a033d5e"
         }
       ]
     },

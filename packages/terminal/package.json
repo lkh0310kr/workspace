@@ -9,7 +9,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./agent": "./src/agent/index.ts",
+    "./input": "./src/input/index.ts",
     "./pane-manager": "./src/pane-manager/index.ts",
+    "./pane": "./src/pane/index.ts",
+    "./search": "./src/search/index.ts",
     "./shared": "./src/shared/index.ts",
     "./terminal": "./src/terminal/index.ts",
     "./transport": "./src/transport/index.ts"

@@ -1,6 +1,6 @@
 @import '../../../../../packages/browser/src/pane/browser.css';
-@import '../../../../../packages/terminal/src/terminal.css';
-@import '../../../../../packages/terminal/src/terminal-xterm-overrides.css';
+@import '../../../../../packages/terminal/src/pane/terminal.css';
+@import '../../../../../packages/terminal/src/pane/terminal-xterm-overrides.css';
 
 :root {
   color-scheme: dark;

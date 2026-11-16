@@ -1,9 +1,9 @@
-import type { AgentStatus } from './agent/agent-title-core'
-import { detectAgentStatusFromTitle, normalizeTerminalTitle } from './agent/agent-title-status'
-import { AgentIcon, getAgentLabel } from './agent/ui/agent-catalog'
+import type { AgentStatus } from '../agent/agent-title-core'
+import { detectAgentStatusFromTitle, normalizeTerminalTitle } from '../agent/agent-title-status'
+import { AgentIcon, getAgentLabel } from '../agent/ui/agent-catalog'
 import { TerminalPane } from './TerminalPane'
 import type { TerminalPaneHost } from './TerminalPaneHost'
-import type { TuiAgent } from './types/tuiAgent'
+import type { TuiAgent } from '../types/tuiAgent'
 
 interface TerminalPaneItem {
   id: string

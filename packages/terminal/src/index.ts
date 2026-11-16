@@ -1,16 +1,14 @@
-export { TerminalSearch } from './TerminalSearch'
-export type { SearchAddonPort, TerminalSearchDecorations } from './TerminalSearch'
-export { safeFind } from './safeFind'
-export type { TerminalPaneHost, TerminalPtyTransport } from './TerminalPaneHost'
+export { TerminalSearch, safeFind } from './search'
+export type { SearchAddonPort, TerminalSearchDecorations } from './search'
+export type { TerminalPaneHost, TerminalPtyTransport, ResolvedTheme } from './pane'
 export {
   XTERM_THEMES,
   TERMINAL_SCROLLBACK_ROWS,
-  getTerminalSearchDecorations
-} from './terminalThemes'
-export type { ResolvedTheme } from './terminalThemes'
-export { focusTerminalTextarea } from './focusTerminalTextarea'
-export { TerminalPane } from './TerminalPane'
-export { createTerminalPaneKind } from './terminalPaneKind'
+  getTerminalSearchDecorations,
+  focusTerminalTextarea,
+  TerminalPane,
+  createTerminalPaneKind
+} from './pane'
 export {
   clearSharedOptionKeyTracker,
   getSharedOptionKeyTracker
@@ -21,12 +19,11 @@ export {
   useAgentStatusStore
 } from './state/agentStatusStore'
 export { useRuntimeTerminalTitlesStore } from './state/runtimeTerminalTitlesStore'
-export { sendCapturedTerminalInput } from './terminal-captured-input-dispatch'
-export { copyTerminalSelection } from './terminal-selection-copy'
 export { AgentIcon, AGENT_CATALOG, getAgentLabel } from './agent/ui/agent-catalog'
 export type { AgentCatalogEntry } from './agent/ui/agent-catalog'
-
 export {
+  sendCapturedTerminalInput,
+  copyTerminalSelection,
   BRACKETED_PASTE_START,
   BRACKETED_PASTE_END,
   encodeWindowsInputRecordPasteText,
@@ -36,30 +33,23 @@ export {
   pasteTerminalText,
   sanitizeBracketedPasteText,
   sanitizeTerminalPasteText,
-  wrapTerminalBracketedPasteText
-} from './terminal-bracketed-paste'
-export type {
-  PasteTerminalTextOptions,
-  WindowsInputRecordNewline
-} from './terminal-bracketed-paste'
-export { resolveTerminalMultilinePasteOptions } from './terminal-paste-options'
-export { pasteTerminalClipboard } from './terminal-clipboard-paste'
-export type {
-  PasteTerminalClipboardDeps,
-  TerminalClipboardPasteResult
-} from './terminal-clipboard-paste'
-export {
+  wrapTerminalBracketedPasteText,
+  resolveTerminalMultilinePasteOptions,
+  pasteTerminalClipboard,
   formatDroppedPaths,
   installTerminalFileDropHandler,
-  TERMINAL_FILE_DROP_EVENT
-} from './terminal-file-drop'
-export { resolveTerminalShortcutAction } from './terminal-shortcut-policy'
-export type { TerminalShortcutAction, TerminalShortcutEvent } from './terminal-shortcut-policy'
-export {
+  TERMINAL_FILE_DROP_EVENT,
+  resolveTerminalShortcutAction,
   isAppOwnedCopyChord,
   shouldBypassXtermClipboardKeyboardEvent
-} from './xterm-clipboard-bypass-policy'
+} from './input'
 export type {
+  PasteTerminalTextOptions,
+  WindowsInputRecordNewline,
+  PasteTerminalClipboardDeps,
+  TerminalClipboardPasteResult,
+  TerminalShortcutAction,
+  TerminalShortcutEvent,
   XtermClipboardBypassEvent,
   XtermClipboardBypassOptions
-} from './xterm-clipboard-bypass-policy'
+} from './input'
