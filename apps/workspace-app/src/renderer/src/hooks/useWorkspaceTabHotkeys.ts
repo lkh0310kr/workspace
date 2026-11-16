@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import type { TabInfo } from '../electron'
 import { onSwitchWorkspaceTabIndexShortcut } from '../electron'
-import { switchToTab } from '../components/WorkspaceTabRail'
+import { switchToWorkspaceTab as switchToTab } from '../workspaceNavigation'
 
 // StarCraft-style control-group switching: Cmd+1..Cmd+9 jumps straight to
 // the Nth workspace tab (1-indexed, left to right). Routed in the main
