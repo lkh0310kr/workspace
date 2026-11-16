@@ -2,18 +2,8 @@
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
-const electron = vi.hoisted(() => ({
-  getMediaUrl: vi.fn(),
-  getMediaUrlAbsolute: vi.fn(),
-  pickMediaFileDialog: vi.fn(),
-  readFileBinaryPreview: vi.fn()
-}))
-
-vi.mock('../../../electron', () => electron)
-vi.mock('./EpubReaderContent', () => ({ EpubReaderContent: () => null }))
-
-import { FileViewerContent } from './FileViewerContent'
+import { EditorFileViewer } from './EditorFileViewer'
+import type { EditorViewerHost } from './viewerHost'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
@@ -22,6 +12,20 @@ import { FileViewerContent } from './FileViewerContent'
 type Deferred<T> = {
   promise: Promise<T>
   resolve: (value: T) => void
+}
+
+const hostFunctions = {
+  readFileBinaryPreview: vi.fn(),
+  getMediaUrl: vi.fn(),
+  getMediaUrlAbsolute: vi.fn(),
+  pickMediaFileDialog: vi.fn()
+}
+
+const host: EditorViewerHost = {
+  ...hostFunctions,
+  EpubReaderContent: () => null,
+  ModelViewerContent: () => null,
+  CadViewerContent: () => null
 }
 
 function deferred<T>(): Deferred<T> {
@@ -36,17 +40,17 @@ async function flushPromises(): Promise<void> {
   for (let i = 0; i < 10; i += 1) await Promise.resolve()
 }
 
-describe('FileViewerContent path changes', () => {
+describe('EditorFileViewer path changes', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
   let createObjectURL: ReturnType<typeof vi.fn>
   let revokeObjectURL: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    electron.getMediaUrl.mockReset()
-    electron.getMediaUrlAbsolute.mockReset()
-    electron.pickMediaFileDialog.mockReset()
-    electron.readFileBinaryPreview.mockReset()
+    hostFunctions.getMediaUrl.mockReset()
+    hostFunctions.getMediaUrlAbsolute.mockReset()
+    hostFunctions.pickMediaFileDialog.mockReset()
+    hostFunctions.readFileBinaryPreview.mockReset()
     createObjectURL = vi.fn().mockReturnValueOnce('blob:first').mockReturnValueOnce('blob:second')
     revokeObjectURL = vi.fn()
     const NativeUrl = URL
@@ -71,13 +75,14 @@ describe('FileViewerContent path changes', () => {
   it('clears the previous image while the next path preview is pending', async () => {
     const firstPreview = deferred<{ content: string; mimeType: string }>()
     const secondPreview = deferred<{ content: string; mimeType: string }>()
-    electron.readFileBinaryPreview
+    hostFunctions.readFileBinaryPreview
       .mockImplementationOnce(() => firstPreview.promise)
       .mockImplementationOnce(() => secondPreview.promise)
 
     await act(async () => {
       root?.render(
-        createElement(FileViewerContent, {
+        createElement(EditorFileViewer, {
+          host,
           tabId: 7,
           filePath: 'first.png',
           absolutePath: null,
@@ -95,7 +100,8 @@ describe('FileViewerContent path changes', () => {
 
     await act(async () => {
       root?.render(
-        createElement(FileViewerContent, {
+        createElement(EditorFileViewer, {
+          host,
           tabId: 7,
           filePath: 'second.png',
           absolutePath: null,

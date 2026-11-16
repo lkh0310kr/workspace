@@ -10,3 +10,13 @@ export {
 export { ebookTurnAfterPage, nextLinearSectionIndex } from './epub/epubPageTurn'
 export { classifyMediaExtension } from './mediaKind'
 export type { MediaKind } from './mediaKind'
+export { EditorFileViewer } from './EditorFileViewer'
+export type {
+  EditorFileViewerProps,
+  EditorViewerHost,
+  EditorMediaPickerKind,
+  EditorBinaryPreview,
+  EditorEpubViewerProps,
+  EditorModelViewerProps,
+  EditorCadViewerProps
+} from './viewerHost'

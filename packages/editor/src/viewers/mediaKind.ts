@@ -1,5 +1,5 @@
 // Pure extension classification for the File Viewer pane, split out from
-// FileViewerContent.tsx so it's independently testable and so the
+// EditorFileViewer.tsx so it's independently testable and so the
 // component can decide *before* fetching whether to go through the small
 // binary-preview IPC (images/PDF — base64+blob, fine for whole small
 // files) or the streaming media protocol (video/audio — never loaded

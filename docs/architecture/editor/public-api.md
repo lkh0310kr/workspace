@@ -14,6 +14,7 @@
 | QuickOpen/Find in Files/SearchButton/editorSearch/fuzzy | [search](./search.md)                                           | provider capability·query lifecycle·결과 선택·focus·dialog close |
 | subtitle conversion/EPUB page-turn policies             | [asset viewer](./assets.md)                                     | file/ebook IPC·storage·resource lifecycle                        |
 | file kind/extension/viewer classification             | [asset viewer](./assets.md)                                     | Main media protocol/MIME negotiation and native viewer process   |
+| EditorFileViewer UI/state and Editor toolbar chrome    | [asset viewer](./assets.md)                                     | binary preview·media URL·picker·Desktop renderer slots           |
 | documentIdentity/dirtyRegistry/viewStateCache      | [text surface](./code/README.md)                                   | shell close confirmation·stable key migration                 |
 | relativeLink/tree path/title/name helpers          | [Markdown](./markdown/README.md), [treeview](./treeview/README.md) | 제품별 파일 분류·링크 열기                                    |
 | TabChip/DocumentTabBar/MenuList/NameForm           | 아래 UI 계약                                                       | selection/close/명령 실행·표시 위치                           |

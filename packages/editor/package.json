@@ -20,7 +20,8 @@
     "./EditorQuickOpenDialog.module.css": "./src/quick-open/EditorQuickOpenDialog.module.css",
     "./treeView.module.css": "./src/tree/treeView.module.css",
     "./assetPreview.module.css": "./src/assetPreview.module.css",
-    "./editor-search.css": "./src/editorSearch.css"
+    "./editor-search.css": "./src/editorSearch.css",
+    "./editor-pane-chrome.css": "./src/editorPaneChrome.css"
   },
   "peerDependencies": {
     "react": "^19.2.1",

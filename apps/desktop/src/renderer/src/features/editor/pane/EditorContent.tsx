@@ -32,6 +32,7 @@ import {
   type EditorBreadcrumbEntry,
   type EditorDocumentSession
 } from '@workspace/editor'
+import '@workspace/editor/editor-pane-chrome.css'
 import { acquireLocalEditorProvider } from '../runtime/localEditorProvider'
 import { LanguageDescription, indentUnit } from '@codemirror/language'
 import { languages as languageData } from '@codemirror/language-data'

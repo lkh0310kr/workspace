@@ -1,14 +1,14 @@
 # Asset viewer 연결 계약
 
-공유 provider의 asset은 읽기 전용 `{previewUrl,mediaType}` snapshot이다. Desktop의 실제 파일 viewer는 Editor 기능 소유이며 [FileViewerContent](../../../apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx), [viewerKind](../../../apps/desktop/src/renderer/src/features/editor/pane/ViewerPaneKind.tsx)가 렌더링한다. 순수 자막 변환과 EPUB 페이지 입력 정책은 [`@workspace/editor/viewers`](../../../packages/editor/src/viewers/index.ts)가 소유한다. IPC·파일 접근·테마 저장과 Foliate 연결은 Desktop에 남는다. 이 문서는 편집기와의 연결 계약이며 EPUB·3D·CAD 내부 알고리즘 전체의 재생성 스펙은 아니다.
+공유 provider의 asset은 읽기 전용 `{previewUrl,mediaType}` snapshot이다. 파일 형식 분류와 FileViewer의 UI·상태·자원 수명은 [`EditorFileViewer`](../../../packages/editor/src/viewers/EditorFileViewer.tsx)와 [`@workspace/editor/viewers`](../../../packages/editor/src/viewers/index.ts)가 소유한다. Desktop의 [FileViewerContent](../../../apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx)는 이 UI에 로컬 파일·media URL·native picker 기능과 EPUB·3D·CAD renderer를 연결하는 host adapter다. IPC·파일 접근·테마 저장과 Foliate 연결은 Desktop에 남는다. 이 문서는 편집기와의 연결 계약이며 EPUB·3D·CAD 내부 알고리즘 전체의 재생성 스펙은 아니다.
 
-Editor pane·sidebar·search UI 규칙은 [editor.css](../../../apps/desktop/src/renderer/src/features/editor/editor.css)에 둔다. 파일 preview, EPUB, CAD, 3D viewer 스타일은 Editor viewer의 [viewers.css](../../../apps/desktop/src/renderer/src/features/editor/viewers/viewers.css)에 둔다. 앱 전역에는 디자인 토큰과 `.scroll-region`처럼 여러 기능이 공유하는 표면 규칙만 남긴다.
+Editor pane·sidebar·search의 Desktop 조립 규칙은 [editor.css](../../../apps/desktop/src/renderer/src/features/editor/editor.css)에 둔다. Editor toolbar chrome은 [`editorPaneChrome.css`](../../../packages/editor/src/editorPaneChrome.css), 파일 preview·EPUB·CAD·3D viewer 스타일은 package의 [`viewers.css`](../../../packages/editor/src/viewers/viewers.css)에 둔다. 앱 전역에는 디자인 토큰과 `.scroll-region`처럼 여러 기능이 공유하는 표면 규칙만 남긴다.
 
 ## 입력과 라우팅
 
 viewer pane item은 id/kind=viewer, 상대 filePath 또는 absolutePath, 선택적 legacy viewerHint(video/audio/ebook)를 보관한다. 파일 label은 basename, 경로가 없으면 hint에 따라 Video/Audio/Ebook 또는 New tab이다. UI label은 Editor이며 별도 viewer picker는 없다. supportsEditorTree=true다.
 
-FileViewerContent의 입력은 tabId, filePath, absolutePath, viewerHint, treeOpen/onToggleTree, paneActive와 onAssignAbsolutePath다. 표시 분류는 filePath 우선, 없으면 absolutePath다. viewerHint는 경로 없는 이전 탭의 Browse filter에만 사용한다.
+EditorFileViewer의 입력은 host, tabId, filePath, absolutePath, viewerHint, paneActive와 onAssignAbsolutePath다. 표시 분류는 filePath 우선, 없으면 absolutePath다. viewerHint는 경로 없는 이전 탭의 Browse filter에만 사용한다. Desktop host는 binary preview, media URL, native picker와 Desktop 전용 EPUB·CAD·3D component를 주입한다.
 
 [`@workspace/editor/assets`](../../../packages/editor/src/assets/index.ts)의 확장자 분류와 [viewer kind adapter](../../../packages/editor/src/viewers/mediaKind.ts)는 기존 case-insensitive 분류 결과를 유지한다:
 
@@ -24,9 +24,9 @@ FileViewerContent의 입력은 tabId, filePath, absolutePath, viewerHint, treeOp
 
 ## 로딩과 자원 수명
 
-image/PDF는 workspace-relative readFileBinaryPreview의 base64 bytes를 Blob URL로 바꾼다. 변경/해제 시 revoke한다. 미리보기 상태는 tabId와 filePath source에 묶으며, 경로 전환 즉시 이전 파일을 숨기고 새 미리보기 응답 전에는 표시하지 않는다. video/audio는 getMediaUrl 또는 getMediaUrlAbsolute로 streaming protocol URL을 받아 native media element가 Range 요청을 하도록 한다. 전체 영상 bytes를 base64로 읽지 않는다.
+image/PDF는 host의 workspace-relative binary preview 결과를 Blob URL로 바꾼다. 변경/해제 시 revoke한다. 미리보기 상태는 tabId와 filePath source에 묶으며, 경로 전환 즉시 이전 파일을 숨기고 새 미리보기 응답 전에는 표시하지 않는다. video/audio는 host가 제공하는 media URL을 받아 native media element가 Range 요청을 하도록 한다. 전체 영상 bytes를 base64로 읽지 않는다.
 
-EPUB는 EpubReaderContent, model3d/CAD는 lazy import한 별도 renderer가 로딩을 소유하므로 binary preview를 호출하지 않는다. 3D 렌더러 구성은 [Editor viewer의 model3d slice](../../../apps/desktop/src/renderer/src/features/editor/viewers/model3d)에 둔다. 경로 변경 때 error/zoom/naturalSize/mediaUrl/subtitle 상태를 초기화한다. 비동기 응답은 cancelled flag로 폐기하며 URL이 없거나 읽기 실패면 오류 상태다. Desktop은 package의 SRT 정책으로 parse→VTT Blob URL을 만들고 교체/해제 시 revoke한다. EPUB의 순수 key/click/section turn 정책도 package에서 제공하며 책 protocol·상태 저장은 Desktop 책임이다.
+EPUB는 Desktop의 EpubReaderContent, model3d/CAD는 lazy-loaded Desktop renderer가 로딩을 소유하므로 binary preview를 호출하지 않는다. 3D 렌더러 구성은 [Editor viewer의 model3d slice](../../../apps/desktop/src/renderer/src/features/editor/viewers/model3d)에 둔다. 경로 변경 때 error/zoom/naturalSize/mediaUrl/subtitle 상태를 초기화한다. 비동기 응답은 cancelled flag로 폐기하며 URL이 없거나 읽기 실패면 오류 상태다. package UI는 SRT 정책으로 parse→VTT Blob URL을 만들고 교체/해제 시 revoke한다. EPUB의 순수 key/click/section turn 정책도 package에서 제공하며 책 protocol·상태 저장은 Desktop 책임이다.
 
 이미지 zoom은 null=fit, 숫자=배율이다. 범위 0.1~~20, 버튼 단계는 0.1~~1의 0.1 간격 후 1.5,2,3,5,7,10,15,20이고 3배 초과에서 pixelated 표시다. pinch factor는 0.075다.
 

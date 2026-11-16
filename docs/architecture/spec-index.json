@@ -37,7 +37,7 @@
       "scope": "package",
       "owner": "packages/editor",
       "specStatus": "drafted",
-      "coverage": "Editor package UI and policies, including document surfaces, tree, search, Quick Open, file-kind and viewer classification, subtitle conversion, EPUB page-turn policies, and provider contracts; Desktop owns local filesystem and workspace/pane integration.",
+      "coverage": "Editor package UI and policies, including document surfaces, tree, search, Quick Open, file-kind classification, the complete file viewer UI/state/resource lifecycle behind an injected Desktop host, subtitle conversion, EPUB page-turn policies, and provider contracts; Desktop owns local filesystem and workspace/pane integration.",
       "documents": [
         "packages/editor/README.md",
         "docs/architecture/editor/README.md",
@@ -87,11 +87,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorContent.tsx",
-          "sha256": "5a650ac0540713441373f431178d5abf7c8901f55f8268df9f56dcdafed3f52f"
+          "sha256": "48a74c7de598fc638b40b5d6f4aba8e52ff174eb0ee85476db813f5111d79bae"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "fe2087203db164aff4981e36076312aa83aebda388001d1f02ee9fecc860d142"
+          "path": "packages/editor/src/viewers/EditorFileViewer.tsx",
+          "sha256": "381d9747b309a83bf863a2cec455fbb4b14f35f70940abb09c38c606e68c7217"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/CadViewerContent.tsx",
@@ -111,15 +111,15 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/ViewerPaneKind.tsx",
-          "sha256": "e03676280dd417d8158820c1bf394c4d4eddfd64eb193c01786db058d4a44c8a"
+          "sha256": "c40b5ec775216b37c46c2b639b936b2c74503c4196a315d6faa92b458fb305ac"
         },
         {
           "path": "packages/editor/src/viewers/mediaKind.ts",
-          "sha256": "ac62f738806669dff7c85687bb67cca8922f1dbca3b22a728e4d3faf2b578130"
+          "sha256": "d9e2b1e8b59a9ca9c76a12c5cb364606b2c1b3441901d305729c26b7e72ee78a"
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "419e65f8b4af35ca4ebd4795f25928ded8d9f20e1aeec1f44557baf4df216111"
+          "sha256": "1bc3f2e324c8180791793cf133a665dbc3821acec06318c55b2314eec938b2b9"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -366,8 +366,8 @@
           "sha256": "1b2e4849a6fd8ba7f772c072bbd0942d97f4bf92514dc7ebf18f8e51a591e164"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.path-change.test.ts",
-          "sha256": "e340b549294a4f00a93504cfc5cba931e6e74ced04016d4820d23a78ad056d26"
+          "path": "packages/editor/src/viewers/EditorFileViewer.path-change.test.tsx",
+          "sha256": "e1b9e408361d6321ba1fefda73c0175630ebd922a9ca7c2424002cee3301becb"
         },
         {
           "path": "packages/editor/src/tree/editorSidebarState.ts",
@@ -427,7 +427,7 @@
         },
         {
           "path": "packages/editor/src/viewers/index.ts",
-          "sha256": "a10419258437a03f47315bcaba469a37abf22f1d51941d455fe32389feba8399"
+          "sha256": "4249df8b6b0b7fb50b2b12d0c7a403aaa2fdcd840c380ba95bf675cf3b8e53ad"
         },
         {
           "path": "packages/editor/src/viewers/srtToVtt.ts",
@@ -463,11 +463,23 @@
         },
         {
           "path": "packages/editor/src/viewers/mediaKind.ts",
-          "sha256": "ac62f738806669dff7c85687bb67cca8922f1dbca3b22a728e4d3faf2b578130"
+          "sha256": "d9e2b1e8b59a9ca9c76a12c5cb364606b2c1b3441901d305729c26b7e72ee78a"
         },
         {
           "path": "packages/editor/src/viewers/mediaKind.test.ts",
           "sha256": "3d69b64b3dc4a18eaa0134c980d98fc0aaaec7545adf2650040edc75d5cf9cd7"
+        },
+        {
+          "path": "packages/editor/src/viewers/viewerHost.ts",
+          "sha256": "c7d2eefab5cbe4a1b3c29a46ae07a58163c21d75df2b5aa96ad5602e5676e6fe"
+        },
+        {
+          "path": "packages/editor/src/viewers/viewers.css",
+          "sha256": "f520359ccfb55bceabd11b7e5ea858268016634ae109a6dafb2cdc8e0473a993"
+        },
+        {
+          "path": "packages/editor/src/editorPaneChrome.css",
+          "sha256": "e3099a22f89a46f69a68123ebfaeffcde1837e9c8cd3922ec7f7bf2dadc071f9"
         }
       ]
     },
@@ -487,7 +499,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorContent.tsx",
-          "sha256": "5a650ac0540713441373f431178d5abf7c8901f55f8268df9f56dcdafed3f52f"
+          "sha256": "48a74c7de598fc638b40b5d6f4aba8e52ff174eb0ee85476db813f5111d79bae"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorPaneKinds.tsx",
@@ -567,19 +579,23 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/ViewerPaneKind.tsx",
-          "sha256": "e03676280dd417d8158820c1bf394c4d4eddfd64eb193c01786db058d4a44c8a"
+          "sha256": "c40b5ec775216b37c46c2b639b936b2c74503c4196a315d6faa92b458fb305ac"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "fe2087203db164aff4981e36076312aa83aebda388001d1f02ee9fecc860d142"
+          "sha256": "3c1ab81a3354d61ee169b9636ce1df6190c48bd84c7b1cd6f50f159e99b325bb"
         },
         {
           "path": "packages/editor/src/viewers/mediaKind.ts",
-          "sha256": "ac62f738806669dff7c85687bb67cca8922f1dbca3b22a728e4d3faf2b578130"
+          "sha256": "d9e2b1e8b59a9ca9c76a12c5cb364606b2c1b3441901d305729c26b7e72ee78a"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/useEditorShortcutBootstrap.ts",
           "sha256": "3060e2f65ac7209680e4ba183be621580efa3a4c40f6978ada23e11ac8864a72"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/runtime/desktopEditorViewerHost.tsx",
+          "sha256": "3da9b33d9aa36899bfc143fcc344e3ab4ec6cf983827c139af108c45d30ae7c6"
         }
       ]
     },
@@ -1298,16 +1314,12 @@
           "sha256": "47a38b3a97de4c614a8b94b8b707cf4879909f7259cb35656add3ad1b90ab3d7"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.path-change.test.ts",
-          "sha256": "e340b549294a4f00a93504cfc5cba931e6e74ced04016d4820d23a78ad056d26"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "fe2087203db164aff4981e36076312aa83aebda388001d1f02ee9fecc860d142"
+          "sha256": "3c1ab81a3354d61ee169b9636ce1df6190c48bd84c7b1cd6f50f159e99b325bb"
         },
         {
           "path": "packages/editor/src/viewers/mediaKind.ts",
-          "sha256": "ac62f738806669dff7c85687bb67cca8922f1dbca3b22a728e4d3faf2b578130"
+          "sha256": "d9e2b1e8b59a9ca9c76a12c5cb364606b2c1b3441901d305729c26b7e72ee78a"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/runtime/workspaceRootPicker.ts",

@@ -19,9 +19,9 @@ export const viewerPaneKind: PaneKindDefinition = {
   onDirtyChange: updateEditorPaneDirty,
   beforeCloseItem: confirmEditorPaneItemClose,
   onItemRemoved: releaseEditorPaneItem,
-  // FileViewerContent remains the format-specific renderer for media,
-  // EPUB, images, PDF, and 3D/CAD assets. Files reach it by extension
-  // through TreeView/Quick Open; it is not a separate picker destination.
+  // The package-owned EditorFileViewer owns format dispatch and UI. This
+  // Desktop adapter injects local file APIs and EPUB/3D/CAD renderers. Files
+  // reach it by extension through TreeView/Quick Open; it is not a destination.
   createItem(id, source) {
     return {
       id,
