@@ -28,7 +28,7 @@ import { layoutLog } from '../layout/layoutDebugLog'
 import { paneChipContentShown, paneChipContentStyle } from '../interaction/embedPolicy'
 import { usePaneVisibility } from './usePaneVisibility'
 import { usePaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
-import { WorkspaceExplorerSidebar } from '../components/WorkspaceExplorerSidebar'
+import { WorkspaceExplorerSidebar } from '../features/editor/WorkspaceExplorerSidebar'
 import { paneGroupBodyAnchorName } from './paneGroupBodyAnchor'
 import { paneGroupHostClassNames, resolvePaneGroupTabSetId } from './paneGroupFocus'
 
@@ -322,7 +322,7 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
               explorerVisible={showExplorer}
               isGroupFocused={isGroupFocused}
               explorerCapable={activeChipHasExplorer(activeItem.kind)}
-              workspaceShortcutsEnabled={activeItem.kind !== 'terminal'}
+              workspaceShortcutsEnabled={activeChipHasExplorer(activeItem.kind)}
               setShortcutExplorerVisible={setShortcutExplorerVisible}
               focusHostRef={paneHostRef}
               selectedPath={activeItem.filePath ?? null}

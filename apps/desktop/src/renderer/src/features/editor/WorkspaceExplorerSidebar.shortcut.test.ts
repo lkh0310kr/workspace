@@ -3,7 +3,7 @@ import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Model } from 'flexlayout-react'
-import type { PaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
+import type { PaneGroupExplorerChrome } from '../../hooks/usePaneGroupExplorerChrome'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
@@ -13,7 +13,11 @@ const shortcutCallbacks = vi.hoisted(() => ({ find: [] as Array<() => void> }))
 
 vi.mock('./TreeView', () => ({ TreeView: () => null }))
 vi.mock('./SearchPanel', () => ({ SearchPanel: () => null }))
-vi.mock('../electron', () => ({
+vi.mock('@workspace/editor', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@workspace/editor')>()),
+  EditorTreeResizeHandle: () => null
+}))
+vi.mock('../../electron', () => ({
   onFindInFilesShortcut: (callback: () => void) => {
     shortcutCallbacks.find.push(callback)
     return () => {
@@ -105,7 +109,7 @@ describe('Workspace Explorer toggle shortcut', () => {
     expect(open).toBe(true)
   })
 
-  it('ignores editor workspace shortcuts when Terminal owns the focused pane', async () => {
+  it('ignores editor workspace shortcuts when a non-editor pane is focused', async () => {
     let open = false
     const setTreeOpen: PaneGroupExplorerChrome['setTreeOpen'] = (next) => {
       open = typeof next === 'function' ? next(open) : next
@@ -127,7 +131,7 @@ describe('Workspace Explorer toggle shortcut', () => {
       root?.render(
         createElement(WorkspaceExplorerSidebar, {
           workspaceTabId: 1,
-          nodeId: 'pane-terminal',
+          nodeId: 'pane-browser',
           rootPath: '/workspace',
           model: {} as Model,
           paneVisible: true,

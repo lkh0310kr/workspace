@@ -8,14 +8,14 @@ import {
   type DragEvent,
   type RefObject
 } from 'react'
-import { DirEntry, revealItemInDir } from '../fileSystem'
-import { interactionCoordinator } from '../interaction/InteractionCoordinator'
-import { moveFocusToRendererBeforeFocusedWebviewHidden } from '../layout/browserWebviewRegistry'
-import { finishPaneDrag } from '../layout/layoutRef'
-import { classifyAssetType } from '../../../shared/asset'
-import { ContextMenu, type ContextMenuItem } from './ContextMenu'
-import type { AnchorRect } from './Popover'
-import { onWorkspaceDismissPortals } from '../workspacePortalDismiss'
+import { DirEntry, revealItemInDir } from '../../fileSystem'
+import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
+import { moveFocusToRendererBeforeFocusedWebviewHidden } from '../../layout/browserWebviewRegistry'
+import { finishPaneDrag } from '../../layout/layoutRef'
+import { classifyAssetType } from '../../../../shared/asset'
+import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
+import type { AnchorRect } from '../../components/Popover'
+import { onWorkspaceDismissPortals } from '../../workspacePortalDismiss'
 import {
   ancestorDirPaths,
   loadExplorerTreeState,
@@ -24,9 +24,9 @@ import {
   saveExplorerExpanded,
   saveExplorerScrollAnchor,
   saveExplorerScrollTop
-} from '../explorer/explorerState'
-import { dirsToReloadForChange } from '../explorer/treeReload'
-import { useExplorerKeyboard } from '../explorer/useExplorerKeyboard'
+} from '../../explorer/explorerState'
+import { dirsToReloadForChange } from '../../explorer/treeReload'
+import { useExplorerKeyboard } from '../../explorer/useExplorerKeyboard'
 import {
   confirmDirtyEditorDocumentsInPaths,
   editorSupportsOperation,
@@ -49,7 +49,7 @@ import {
   type EditorTreeProjection,
   type EditorTreeViewItem
 } from '@workspace/editor'
-import { acquireLocalEditorProvider } from '../editor/localEditorProvider'
+import { acquireLocalEditorProvider } from '../../editor/localEditorProvider'
 
 interface Props {
   tabId: number

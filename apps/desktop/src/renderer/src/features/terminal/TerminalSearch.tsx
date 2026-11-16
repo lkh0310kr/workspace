@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import type { SearchAddon } from '@xterm/addon-search'
-import { interactionCoordinator } from '../interaction/InteractionCoordinator'
-import { getCurrentResolvedTheme, subscribeThemeChange } from '../theme'
-import { getTerminalSearchDecorations } from '../terminalThemes'
-import { safeFind } from '../terminalSearchSafeFind'
+import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
+import { getCurrentResolvedTheme, subscribeThemeChange } from '../../theme'
+import { getTerminalSearchDecorations } from '../../terminalThemes'
+import { safeFind } from '../../terminalSearchSafeFind'
 
 const FIND_QUERY_MAX_BYTES = 2 * 1024
 

@@ -1,6 +1,6 @@
 # Pane·기능 모듈 경계와 동작 보존 원칙
 
-이 문서는 Desktop의 Home 화면, Browser pane, Terminal pane을 shell과 분리 가능한 기능 단위로 모듈화할 때 지킬 경계와 기존 동작 계약을 정의한다. 목표는 독립 프로세스나 별도 제품으로 만드는 것이 아니라, 앱 shell이 명시적인 host capability를 주입하면 각 기능을 독립 mount·실행·검증할 수 있도록 만드는 것이다.
+이 문서는 Desktop의 Home, Browser, Terminal, Editor 기능을 shell과 분리 가능한 단위로 모듈화할 때 지킬 경계와 기존 동작 계약을 정의한다. 목표는 독립 프로세스나 별도 제품으로 만드는 것이 아니라, 앱 shell이 명시적인 host capability를 주입하면 각 기능을 독립 mount·실행·검증할 수 있도록 만드는 것이다.
 
 ## 이름과 현재 결합도
 
@@ -9,6 +9,9 @@
 | Home     | Workspace 화면을 대체하는 고정 view이며 pane kind가 아님 | 중간: App이 navigation/bootstrap을 소유하고 summary API를 adapter로 제공                   | 낮음                                                | `App` route/lifecycle 및 Workspace hydration과의 명시적 host 계약             |
 | Browser  | pane kind의 overlay render 계약으로 guest layer를 mount  | 높음: workspace/pane/item ID, layout, focus, InteractionCoordinator, guest registry에 연결 | 낮음: shared keyboard-surface broker 경유           | Electron webview 수명과 layout registry를 feature host capability로 좁힐 필요 |
 | Terminal | pane kind와 renderer/Main PTY 계층으로 구성              | 높음: cwd, workspace/pane ID, layout 참조 집계, agent 상태 및 detached PTY host에 연결     | 낮음~중간: focus·browser-open·scroll/selection 연결 | global `window.api`, xterm/pane-manager, shell-owned process lifecycle        |
+| Editor   | pane kind와 에디터·파일 트리·검색·Quick Open 기능으로 구성 | 높음: workspace 파일 API, pane/layout, 열기·선택 상태에 연결                              | 낮음: 일반 UI primitive만 공유                    | local editor provider와 shell navigation을 host capability로 좁힐 필요       |
+
+Editor는 파일 편집기, 파일 트리, 파일 검색, Quick Open을 소유한다. 이들은 공용 UI가 아니라 Editor 내부 기능이다. 브라우저 pane에서 Editor 단축키가 동작하지 않도록 editor-capable pane에만 등록한다.
 
 Home은 현재 pane이 아니므로 Browser·Terminal과 같은 pane registry에 억지로 넣지 않는다. Home 화면을 독립 feature로 다루되 기존 Workspace navigation 계약은 유지한다.
 
@@ -32,7 +35,7 @@ Home은 현재 pane이 아니므로 Browser·Terminal과 같은 pane registry에
 - Terminal host: PTY connect/write/resize/ack/detach, clipboard/drop, URL open, focus handoff, 선택적 agent-status capability.
 - 공통 Pane host: pane identity, 표시/focus 신호, title/update/close 요청. Workspace store, layout model, 형제 pane 구현을 직접 노출하지 않는다.
 
-각 기능의 public renderer entry는 `features/home`, `features/browser`, `features/terminal`이다. Browser의 overlay도 Browser kind의 `renderOverlay` 계약으로 feature 안에서 조립한다. Browser pane과 Terminal pane은 host capability interface를 받아 Desktop singleton adapter를 사용할 수 있다. 다만 Browser guest creation/navigation helper와 Terminal input handlers/theme/pane-manager가 아직 Desktop runtime 구현에 연결돼 있어 독립 mock mount 완료 상태는 아니다.
+각 기능의 renderer 경계는 `features/home`, `features/browser`, `features/terminal`, `features/editor`이다. Editor의 TreeView, WorkspaceExplorerSidebar, SearchPanel, QuickOpen은 Editor feature 소유이며 공유 UI로 취급하지 않는다. Browser의 overlay도 Browser kind의 `renderOverlay` 계약으로 feature 안에서 조립한다. Browser pane과 Terminal pane은 host capability interface를 받아 Desktop singleton adapter를 사용할 수 있다. 다만 Browser guest creation/navigation helper와 Terminal input handlers/theme/pane-manager가 아직 Desktop runtime 구현에 연결돼 있어 독립 mock mount 완료 상태는 아니다.
 
 독립 실행 수준은 실제 Desktop 밖에서 각 feature를 mock host capability로 mount할 수 있고, feature 코드가 App·Workspace store·PaneGroup·형제 feature를 직접 import하지 않는 상태를 뜻한다. Electron webview와 PTY 구현은 Desktop adapter에 남으며 실제 실행 경계는 mock으로 대체할 수 있어야 한다.
 

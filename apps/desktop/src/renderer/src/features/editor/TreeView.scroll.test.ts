@@ -7,7 +7,7 @@ import {
   resetExplorerTreeState,
   saveExplorerScrollAnchor,
   saveExplorerScrollTop
-} from '../explorer/explorerState'
+} from '../../explorer/explorerState'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
@@ -32,7 +32,7 @@ const { provider, release } = vi.hoisted(() => ({
   release: vi.fn()
 }))
 
-vi.mock('../editor/localEditorProvider', () => ({
+vi.mock('../../editor/localEditorProvider', () => ({
   acquireLocalEditorProvider: () => ({ provider, release })
 }))
 
