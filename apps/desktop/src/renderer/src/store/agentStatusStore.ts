@@ -1,10 +1,10 @@
 import { create } from 'zustand'
-import type { AgentStatusEntry, AgentStatusPayload } from '../../../shared/agent-status-types'
+import type { AgentStatusEntry, AgentStatusPayload } from '@workspace/terminal/agent/agent-status-types'
 import {
   isExplicitAgentStatusFresh,
   AGENT_STATUS_STALE_AFTER_MS
-} from '../../../shared/agent-status-freshness'
-import { buildAgentStatusPaneKey } from '../../../shared/agent-status-pane-key'
+} from '@workspace/terminal/agent/agent-status-freshness'
+import { buildAgentStatusPaneKey } from '@workspace/terminal/agent/agent-status-pane-key'
 
 type Retained = { workspaceTabId: number; entry: AgentStatusEntry }
 

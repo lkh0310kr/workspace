@@ -903,7 +903,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspaceAgentHookServer.ts",
-          "sha256": "d448e5c3e78146e6f9167f90e9fc4171a5382c7151669723a892bf176cef7a7b"
+          "sha256": "9d15ad160bdb916e94df8315da0d3aeaeca7589225e1abc035ed7a794d82fc91"
         },
         {
           "path": "apps/desktop/src/main/workspaceAgentHookStartup.test.ts",
@@ -955,15 +955,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/store/agentStatusStore.ts",
-          "sha256": "38cceb0d534e5e636a7750cb006b35c2bc63e17e9ef6473ae6a87e5cb6bce8cd"
+          "sha256": "2a8936ce106a4b67440cb75b4ea300a9d111c63a4bd014c16881cfc5e49e2fc6"
         },
         {
           "path": "apps/desktop/src/renderer/src/theme.ts",
           "sha256": "76274f84304e824f18626db9169d191775a0ae47349b27866c934c6a9ab55d02"
-        },
-        {
-          "path": "apps/desktop/src/shared/agent-status-freshness.ts",
-          "sha256": "7636d6c40856ffdb20b6462a56ec2003befbb49f086c4e5f5d918e103da45554"
         },
         {
           "path": "apps/desktop/src/shared/mediaExtensions.ts",
@@ -1750,6 +1746,34 @@
         {
           "path": "packages/terminal/src/agent/workspace-tab-agent-rollup.ts",
           "sha256": "b28a1786a511a184d03f4a5a162e1c1a51a622db5127ee3a562cd2a69434e015"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-main-agent-verdict.ts",
+          "sha256": "c865a00abd7284d4256a2d974a43a9e85704c0fd3c70dcc00500de317337540f"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-status-freshness.ts",
+          "sha256": "7636d6c40856ffdb20b6462a56ec2003befbb49f086c4e5f5d918e103da45554"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-status-pane-key.ts",
+          "sha256": "208a55fd3c9f6f96c60cc78ce0e79475cb2d55c0c3adced9cbb6198ba1989195"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-status-types.ts",
+          "sha256": "c5d9e1d2c2c457b1c9f1307bb50be0d05d4da6bc42ec62c72e5cf68b7652ea1b"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-turn-outcome.ts",
+          "sha256": "309346e7aea65b57b4553a5eaed738d1c82dbed4f4deda10fc57e37337c58008"
+        },
+        {
+          "path": "packages/terminal/src/agent/main-agent-status.ts",
+          "sha256": "b961ffd888174437cc3f10cd9ccfe01d59d1729a7df2d40554ab6a7da06fcaa6"
+        },
+        {
+          "path": "packages/terminal/src/agent/synthetic-agent-permission-title.ts",
+          "sha256": "65fce80baa14d3db40980033e5e2b3341c91fab7ff3d80b5f0f6552567b8b7ff"
         }
       ]
     },

@@ -3,7 +3,7 @@ import { collectTerminalPaneTabs } from '../../../lib/collect-terminal-pane-tabs
 import { useAgentStatusStore } from '../../../store/agentStatusStore'
 import { useRuntimeTerminalTitlesStore } from '../../../store/runtimeTerminalTitlesStore'
 import { registerTerminalAgentPane } from './terminalAgentPaneRegistry'
-import { buildAgentStatusPaneKey } from '../../../../../shared/agent-status-pane-key'
+import { buildAgentStatusPaneKey } from '@workspace/terminal/agent/agent-status-pane-key'
 import { applyTitleDerivedAgentStatus } from './title-derived-agent-status'
 
 export function syncAgentPaneRegistryFromLayouts(

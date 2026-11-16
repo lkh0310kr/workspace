@@ -1,5 +1,5 @@
 import type { AgentStatusIpcPayload } from '../../../../../shared/agent-status-ipc'
-import { parseAgentStatusPaneIdentity } from '../../../../../shared/agent-status-pane-key'
+import { parseAgentStatusPaneIdentity } from '@workspace/terminal/agent/agent-status-pane-key'
 import { useAgentStatusStore } from '../../../store/agentStatusStore'
 
 export function applyHookAgentStatus(event: AgentStatusIpcPayload): void {

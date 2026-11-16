@@ -1,13 +1,13 @@
 // Port of ref-proj/orca worktree-agent-activity-summary.ts (workspace tab scope).
 
-import type { AgentStatusEntry } from '../../../shared/agent-status-types'
+import type { AgentStatusEntry } from '@workspace/terminal/agent/agent-status-types'
 import {
   AGENT_STATUS_STALE_AFTER_MS,
   agentStatusEvidenceObservedAt,
   isExplicitAgentStatusFresh
-} from '../../../shared/agent-status-freshness'
-import { parseAgentStatusPaneIdentity } from '../../../shared/agent-status-pane-key'
-import { agentVerdictDisplayMark } from '../../../shared/agent-main-agent-verdict'
+} from '@workspace/terminal/agent/agent-status-freshness'
+import { parseAgentStatusPaneIdentity } from '@workspace/terminal/agent/agent-status-pane-key'
+import { agentVerdictDisplayMark } from '@workspace/terminal/agent/agent-main-agent-verdict'
 import { applyAgentPaneActivityFlags } from './agent-pane-activity-flags'
 
 export type WorkspaceAgentActivitySummary = {
