@@ -1,6 +1,6 @@
 # 저장소 전체 리팩터링 작업 큐
 
-작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 36개다.
+작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 37개다.
 
 | 작업 ID | 영역 | 변경 목표 | 전용 수정 경로 | 선행 작업 | 위험도 | 검증 | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -41,11 +41,12 @@
 | T-030 | R-001e | Vitest 실행 wrapper가 `npm test -- <경로/옵션>` 인자를 Vitest로 전달 | `apps/workspace-app/scripts/run-vitest.mjs`, 해당 source digest | 기존 wrapper 동작 및 npm 인자 전달 경로 확인 | 낮음 | `npm test -- --help`로 옵션 전달 확인, 단일 파일 필터로 focused Vitest 실행, source digest 검사 | validated |
 | T-031 | R-001a | hook server listen과 status URL 주입을 fresh/restored workspace terminal 생성보다 먼저 완료 | `workspaceAgentHookStartup.ts`, `Workspace.withRoot/fromSnapshot`, Main startup wiring, 계약 테스트 | `app.whenReady` startup order와 `spawnTerminalWithId` env 주입 경로 확인 | 중간 | 지연 listen·bind 실패 ordering tests, fresh/restored PTY env tests, app typecheck, root check, 변경 경로 lint/format | validated |
 | T-032 | R-001c | `contentApi`·`systemApi` runtime 객체를 기존 `WorkspaceApi` 선언의 세부 API 타입에 연결해 선언/구현의 `unknown` 차이를 제거 | `preload/contentApi.ts`, `preload/systemApi.ts`, 공개 `index.d.ts` 타입 사용 | runtime payload와 Main handler가 기존 선언에 맞는지 대조 | 낮음~중간 | preload/API app typecheck, changed-file ESLint/Prettier, root check, runtime channel shape diff | validated |
+| T-033 | R-001a | binary preview 전체 파일 읽기를 Main event loop를 막지 않는 async fs read로 전환 | `main/files.ts`, `workspace.ts`, `files.test.ts` | 모든 consumer가 `Promise` 기반 IPC 결과를 이미 기다리는지 확인 | 중간 | preview 7 tests (async result, MIME, unsupported, pending-read event-loop progress), app typecheck, root check, changed-file format/lint baseline 비교 | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 36개; 검증 완료 36, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 37개; 검증 완료 37, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -86,7 +87,7 @@
 - R-008 `workspaceTreeCache.ts`의 `parentPath` 계산은 `domain/fileTree.ts` helper와 동일해 테스트로 cache 삭제/보존 의미를 고정한 뒤 T-019에서 공유했다. `localItemIdForPath` 세 구현은 비ASCII 경로 및 ID 안정성을 고정한 뒤 T-022에서 domain helper로 통일했다.
 - R-010 `workspaceRepository.ts`, `operationLog.ts`, `assetConflictMaterializer.ts`의 SHA-256 hex 계산을 private `sha256Hex` helper로 모았다. 입력 bytes 복사와 lowercase digest 형식을 보존했고 기존 28개 관련 테스트로 검증했다(T-018).
 - R-001c/d 추가 조사: preload `contentApi`/`systemApi`의 `unknown` 반환형은 실제 Main payload와 renderer 사용이 기존 `WorkspaceApi` 선언에 부합함을 확인하고 T-032에서 같은 선언을 runtime 객체의 type owner로 연결했다. IPC payload 자체는 runtime validation을 추가하지 않았으며 특히 `usage:meter-settings-save`의 Main 측 normalization은 기존 경계로 유지한다. `terminal-session-buffers` timeout 뒤 `ipcMain.once` listener가 제거되지 않는 것은 확인했지만, 요청은 종료 준비 경로 한 곳뿐이고 응답 제한 후 앱이 종료되므로 현재 수명주기에서 지속 누수는 확인되지 않았다. 반복 호출이 생기면 응답·timeout·send 실패 모두 listener/timer 정리를 검증한다.
-- R-001a Main은 추적 경로 172개를 정적으로 검토했다. OBJ `mtllib` 경로를 읽는 `packageResolver.ts`의 workspace-root 탈출 및 symlink 경계를 T-026에서 차단했다. 최초/restored terminal 생성보다 비동기 hook-server listen이 늦는 startup 경합은 T-031에서 listen 완료 후 Workspace를 생성하고 URL을 PTY env에 주입하도록 수정했다. 동기 I/O·IME 위험은 runtime acceptance 전까지 보류한다.
+- R-001a Main은 추적 경로 172개를 정적으로 검토했다. OBJ `mtllib` 경로를 읽는 `packageResolver.ts`의 workspace-root 탈출 및 symlink 경계를 T-026에서 차단했다. 최초/restored terminal 생성보다 비동기 hook-server listen이 늦는 startup 경합은 T-031에서 수정했다. binary preview의 무제한 `readFileSync`는 T-033에서 async read로 바꿔 파일 I/O 대기 중 Main event loop가 진행하도록 했다. Base64/IPC 메모리 복제 비용은 남는다. Linux IME 준비의 동기 대기는 입력 준비 보장이 확인되지 않아 보류한다.
 - Main 전체 테스트 assertion을 정적으로 분류했다. PKMS 테스트 47개는 durable ACK-loss, root 전환·offline, watcher 복구, OAuth allowlist/credential, Drive retry·cursor 계약을 다룬다. 비-PKMS 테스트 19개와 설정/shortcuts 2개는 GPU mode, file/media, search IPC, protocol, PTY/shortcuts, Windows/WSL 동작을 다룬다. 실제 process crash, watcher/timer 경쟁, 모든 IPC handler end-to-end, 외부 quota 및 플랫폼 통합은 검증되지 않았다.
 - R-001b renderer 후속 후보: `workspace-agent-activity-summary.ts`의 time-based cache 경계와 Home 두 위젯의 HOME-UI-05 refresh ordering/unmount 경합은 T-021/T-023에서 selector 만료와 직렬화·최신 응답 수용 테스트로 검증했다. `SystemInformationWidget` Main IPC 요청 자체는 현재 API에 취소 기능이 없어 unmount 후 완료만 기다리고 결과 적용을 무효화한다.
 - R-001b hooks/components 추가 후보: 미참조로 보이는 `ClaudeUsageStatusBar.tsx`는 release/build consumer를 확인하기 전 삭제하지 않는다. `useWorkspaceTabHotkeys.ts`가 navigation을 component의 `WorkspaceTabRail`에서 가져오는 layering 결합은 T-020에서 정리했다. 약 1,030줄 `TreeView.tsx`는 provider/tree/CRUD/scroll/keyboard 책임이 넓지만 현재 테스트는 주로 scroll/classification이므로 CRUD·provider race 테스트 전에 추출하지 않는다. SearchPanel은 reject 시 대기 중인 stream frame을 flush한 뒤 부분 결과에 합치므로 stream 결과 보존 결함은 확인되지 않았다. reject 이후 provider가 callback을 호출하는지는 별도 contract가 없어 변경하지 않는다.

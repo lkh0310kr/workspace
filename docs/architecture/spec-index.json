@@ -871,7 +871,7 @@
         },
         {
           "path": "apps/workspace-app/src/main/workspace.ts",
-          "sha256": "14131c5466077090c24687f1336b48068a084be3d6a62ee3c501aa67776167bc"
+          "sha256": "56e89c9492f6da362fb7264878ba65063b00c1b17433f4b1f0293a7a43f25e5d"
         },
         {
           "path": "apps/workspace-app/src/preload/api.ts",
