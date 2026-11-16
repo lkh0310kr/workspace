@@ -1,6 +1,6 @@
 # 저장소 전체 리팩터링 작업 큐
 
-작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 41개다.
+작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 43개다.
 
 | 작업 ID | 영역 | 변경 목표 | 전용 수정 경로 | 선행 작업 | 위험도 | 검증 | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -46,11 +46,13 @@
 | T-035 | R-001b/R-001a/R-001c | Desktop local editor provider의 root를 고정하고 root 전환 후 오래된 CRUD·세션 요청을 Main IPC 경계에서 거부 | provider, local document session, FS preload/renderer shim, workspace IPC, root guard 및 계약 테스트, TreeView 스펙 | TREE-25 root-switch CRUD 재현 및 기존 provider identity/session 경계 확인 | 중간~높음 | IPC root-switch rejection, provider/session/root identity 계약 테스트, SearchPanel focus tests, app typecheck, root check, Prettier/ESLint baseline 비교 | validated |
 | T-036 | R-005 | Home service integration에서 허용된 Cloudflare/Supabase 경로만 provider로 해석해 닮은 경로가 credential을 지우거나 OAuth를 시작하지 않도록 함 | `serviceIntegrations.ts`, `serviceRoute.ts`, route contract test | 실제 consumer route 문서와 includes/suffix 기반 provider routing 대조 | 중간 | Node route contract tests, workspace-server typecheck, formatting, root check | validated |
 | T-037 | R-007 | Workspace Desktop이 사용하는 fuzzy search와 두 CSS module subpath를 package exports에 명시하고 private tree component 경계를 유지 | `packages/editor/package.json`, package self-resolution contract test | actual consumer imports와 package exports/Node resolver 비교 | 낮음~중간 | Node `import.meta.resolve` contract tests, editor tree architecture contract, app typecheck, root check | validated |
+| T-038 | R-005 | Home OAuth callback의 허용 로그인 비교를 인증과 동일하게 대소문자 비구분으로 맞춤 | `serviceIntegrations.ts`, `oauthLogin.ts`, login contract test, Home Server spec | 인증의 subject 비교와 callback state login 비교 대조 | 낮음 | OAuth login contract test, workspace-server typecheck, root check, architecture digest/link check | validated |
+| T-039 | R-003 | DB flush completion 실패 뒤 재시도에서 이미 적용된 delete/rename 경로를 반복 삭제하지 않고 pending 최신 revision을 보존 | `apps/pkms-server/src/SupabaseVault.ts`, focused flush recovery tests | GitHub tree API의 nonexistent delete 오류 계약과 recovery replay 경로 추적 | 중간~높음 | fake GitHub/RPC finish-failure retry, delete/rename replay, newer revision preservation, unrelated external-change rejection, PKMS server typecheck | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 41개; 검증 완료 41, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 43개; 검증 완료 43, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -83,7 +85,7 @@
 ## 조사 후보·보류 사유
 
 - R-001b `workspaceStore.persistLayout`의 모듈 단일 debounce timer가 workspace 간 IPC 저장 요청을 취소하는 것을 T-029 회귀 테스트로 재현하고, per-workspace timer와 workspace 제거 시 정리를 구현했다. IPC 예약 coalescing은 검증했지만 앱 종료 직전 IPC durability는 이 작업 범위에서 보장하지 않는다.
-- R-003 `SupabaseVault.ts`의 GitHub flush/recovery와 `mcp.ts`의 OAuth/JSON-RPC 분리는 명확한 책임 경계이나 전용 계약 테스트가 없다. 추가 read-only 조사에서 flush가 시작 시점 revision 이하만 캡처하고 완료 RPC가 revision/token을 비교해 새 변경·stale worker를 보존하며, DB 완료 기록 전 중단된 GitHub commit을 다음 flush에서 복구하는 경로를 확인했다. 구체 데이터 유실 결함은 입증하지 못했다. 모듈 분리 전 fake GitHub fetch/Supabase RPC로 DB 완료 실패 후 recovery와 pending 경로 밖 commit 거부를 특성화해야 한다. MCP 쪽은 OAuth state/PKCE·code consume·revoke 테스트가 선행되어야 한다.
+- R-003 `SupabaseVault.ts`의 GitHub flush/recovery와 `mcp.ts`의 OAuth/JSON-RPC 분리는 명확한 책임 경계이나 전용 계약 테스트가 부족하다. 추가 조사에서 `pkms_finish_flush` 실패 뒤 이전 PKMS delete/rename commit을 복구한 다음 동일한 이미 없어진 경로를 재삭제하는 반복 실패를 확인했고 T-039에서 검증된 commit의 삭제 경로만 replay에서 생략하도록 고쳤다. fake GitHub/RPC가 finish 실패 후 delete·rename retry, 최신 revision이 완료되지 않고 dirty로 남는 경우, 무관한 외부 변경 정지를 확인한다. MCP 쪽은 OAuth state/PKCE·code consume·revoke 테스트가 선행되어야 한다.
 - R-003에서 확인한 `%`/`_` path wildcard 오분류는 T-025에서 literal slash-boundary helper로 수정했다. 예: `a_b`의 subtree가 `axb/child`를 매칭하던 false positive를 기존 SQL test에 추가해 수정 전 실패와 수정 후 통과를 로컬 Postgres에서 확인했다. 최종 operation/conflict/asset function 정의의 prefix query를 모두 교체했다.
 - R-004 `pkms-google-drive.tsx`는 기존 Drive session을 로컬 close만 하고 새 workspace sync를 먼저 하던 경로를 T-028에서 고쳤다. route 전체 runtime acceptance는 아직 없지만 저장 결과 검사·workspace sync 순서를 작은 Node 테스트 가능한 경계로 분리해 고정했다.
 - R-005 `serviceIntegrations.ts`의 OAuth state/PKCE, token refresh/revoke, D1 저장과 provider status 수집은 유지한다. 추가 조사에서 provider 이름 `includes` 및 connect suffix 판정이 닮은 인증 경로를 허용해 Supabase credential/metrics token을 삭제하거나 Cloudflare OAuth state를 만들 수 있는 경로 오분류를 확인하고 T-036에서 정확한 allowlist와 parser contract test로 고쳤다. OAuth state 1회 소비·만료, refresh 저장, revoke 실패 시 로컬 삭제, provider 간 오류 격리 특성화는 별도 후속 후보로 남는다.
@@ -111,3 +113,5 @@
 
 - T-036 완료: Home server provider path 판정을 부분 문자열/접미사 규칙에서 명시적 route allowlist로 추출했다. `not-supabase`/`foo-cloudflare` 등 닮은 경로가 등록 provider로 분류되지 않음을 Node contract test 2개로 고정했다. `node --experimental-strip-types --test apps/workspace-server/src/serviceRoute.test.mjs` 2 tests, `npm run workspace:server:typecheck` 통과. 실제 D1/OAuth runtime은 실행하지 않았다.
 - T-037 완료: editor package exports에 세 실제 consumer subpath(`fuzzySearch`, `treeView.module.css`, `assetPreview.module.css`)를 추가하고, 공개 root/existing CSS resolve 및 저수준 tree component private 상태를 Node contract test 3개로 고정했다. `node --test packages/editor/packageExports.test.mjs` 통과.
+- T-038 완료: Home OAuth callback의 stored login 검증이 Home auth와 같은 대소문자 비구분 비교를 사용하도록 했다. casing 변형 허용과 다른 계정 거부를 Node contract test로 고정하고 Home Server 스펙을 갱신했다. OAuth provider 왕복은 실행하지 않았다.
+- T-039 완료: 이전 PKMS commit에서 이미 제거/이동한 경로는 재시도 때 tree에 다시 sha:null 삭제로 넣지 않고 rename 대상은 재업서트한다. fake GitHub/RPC 테스트 3개로 finish RPC 실패 후 delete·rename retry, retry 도중 생긴 더 높은 revision 보존, 무관한 외부 branch 변경 차단을 검증했다. `apps/pkms-server` Vitest 3/3, `npm run pkms:server:typecheck`, 테스트 Prettier, architecture digest/link 검사, `git diff --check` 통과. `SupabaseVault.ts`의 Prettier 경고 2곳은 기준 HEAD에도 동일해 기존 형식을 유지했다.
