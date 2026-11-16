@@ -21,8 +21,8 @@
 
 ## 현재 기능 문서
 
-- [Workspace Desktop](./architecture/workspace/README.md)
+- [Desktop](./architecture/workspace/README.md)
 - [Editor](./architecture/editor/README.md)
-- [Workspace Server](./architecture/workspace-server/README.md)
+- [Server](./architecture/server/README.md)
 
 상세 문서는 한국어로 작성합니다. 코드 식별자, 경로, 명령과 외부 API 이름은 원문을 유지합니다.

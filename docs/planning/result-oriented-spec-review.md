@@ -15,4 +15,4 @@
 2. Desktop과 Server의 runtime 경계별 실패·취소·복구 결과를 기록한다.
 3. 사용하지 않는 흐름이 유지보수 부담을 만들면 제품 범위를 기준으로 분리하거나 archive한다.
 
-세부 스펙은 [Editor](../architecture/editor/README.md), [Desktop](../architecture/workspace/README.md), [Server](../architecture/workspace-server/README.md) 문서가 소유한다.
+세부 스펙은 [Editor](../architecture/editor/README.md), [Desktop](../architecture/workspace/README.md), [Server](../architecture/server/README.md) 문서가 소유한다.

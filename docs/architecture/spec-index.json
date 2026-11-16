@@ -492,7 +492,7 @@
         },
         {
           "path": "apps/desktop/src/main/browserSessionUA.ts",
-          "sha256": "ca5860fc798bb43fa51722195e602f8259be8c26888f17151606b76d10905cdc"
+          "sha256": "e3c7e8f1a6780c80c000fd7052158731ddcf6bccaee41a34f0ad6c3ea6724bef"
         },
         {
           "path": "apps/desktop/src/main/browserWebauthn.ts",
@@ -500,7 +500,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "d731dbdb4d493890b32dc89511be6248728bd3cb2f74fe4e2bacce178d9fedd7"
+          "sha256": "355d8e3f791a8de8641cf0d70a129a2faf634e346adf29026a4b37ae9378f242"
         },
         {
           "path": "apps/desktop/src/main/search.ts",
@@ -528,7 +528,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/browser/browserEmbedSupport.ts",
-          "sha256": "205d511a5436ca56df0110804d29ec4d0a1a3c9c953fff59376474c8a7074a5d"
+          "sha256": "a6d2005b54bf98d7a5ab945bd3133911888adaa2119d23b1fa678bcae225a5c5"
         },
         {
           "path": "apps/desktop/src/renderer/src/browser/browserFocusDebugLog.ts",
@@ -616,7 +616,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/browserUrl.ts",
-          "sha256": "909955033df68de69bf7cdf445a72a6cc417d4c1217133aec336b76470aaeade"
+          "sha256": "0eb525360316e5eda1eeb6011821d41dd939b2368f6d26092a15feb38b78a65e"
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts",
@@ -682,7 +682,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "d731dbdb4d493890b32dc89511be6248728bd3cb2f74fe4e2bacce178d9fedd7"
+          "sha256": "355d8e3f791a8de8641cf0d70a129a2faf634e346adf29026a4b37ae9378f242"
         },
         {
           "path": "apps/desktop/src/main/ipc/terminalSessionBuffers.ts",
@@ -694,7 +694,7 @@
         },
         {
           "path": "apps/desktop/src/main/persistence.ts",
-          "sha256": "7dc48a7c8503037e46ba0ac2a693019c62e7605da4bafe420df92922aa973780"
+          "sha256": "b11dad40b62f4e55beffde96743d6f3bf6c4a98be62c2e28f6cf049e12b73f83"
         },
         {
           "path": "apps/desktop/src/main/usageMeterConfig.ts",
@@ -965,14 +965,14 @@
       ]
     },
     {
-      "id": "workspace-server",
+      "id": "server",
       "scope": "app",
       "owner": "apps/server",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
       "documents": [
         "apps/server/README.md",
-        "docs/architecture/workspace-server/README.md"
+        "docs/architecture/server/README.md"
       ],
       "sources": [
         {

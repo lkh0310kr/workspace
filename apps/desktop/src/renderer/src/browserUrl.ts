@@ -1,10 +1,9 @@
 // Port of ref-proj/orca's src/shared/browser-url.ts, trimmed for a
 // single-search-engine personal app: dropped the Kagi session-link search
 // (a Kagi-specific feature) and Windows UNC-path handling (this app only
-// targets macOS — see the user memory on workspace-app). Everything else
+// targets macOS). Everything else
 // (URL vs. search-query classification, local-dev-address shorthand,
-// absolute-path-to-file-URL) is real "does this look like a URL" logic
-// worth having, not something specific to Orca's own product.
+// absolute-path-to-file-URL) is general navigation behavior.
 
 const LOCAL_ADDRESS_PATTERN =
   /^(?:localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0|\[[0-9a-f:]+\])(?::\d+)?(?:[/?#].*)?$/i

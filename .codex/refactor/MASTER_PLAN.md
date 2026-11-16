@@ -6,8 +6,8 @@
 - 기준선: 2026-11-16, 브랜치 `main`. 기존 사용자 작업: `docs/guides/REFACTOR.md` 삭제, `.agents/skills/refactor/` 미추적 상태. 보존 대상이다.
 - 확인한 아키텍처 지침: `AGENTS.md`, `docs/architecture/spec-driven-development.md`, `docs/architecture/spec-index.json`.
 - 실행한 기준 검사: `node scripts/check-architecture-specs.mjs` 실패. 추적 파일 `docs/guides/README.md`가 사용자가 삭제한 `./REFACTOR.md`에 연결된다. 원본과 참조는 변경하지 않았다.
-- 확인한 루트 검증 명령: `npm run check`(workspace-app 타입 검사, editor-tree 계약 검사, 일부 Vitest), `npm run check:app`, `npm run check:editor-tree-contract`, web/server 타입 검사, `node scripts/check-architecture-specs.mjs`. 이번 계획 단계에서는 코드 테스트를 실행하지 않았다.
-- 사용자가 `workspace-app` 진행을 재개했다. 이번 배치는 R-001 내부를 조사한다. 외부 작업 영역은 기존 지정 범위대로 유지한다.
+- 확인한 루트 검증 명령: `npm run check`(Desktop 타입 검사, editor-tree 계약 검사, 일부 Vitest), `npm run check:app`, `npm run check:editor-tree-contract`, web/server 타입 검사, `node scripts/check-architecture-specs.mjs`. 이번 계획 단계에서는 코드 테스트를 실행하지 않았다.
+- 사용자가 Desktop 작업을 재개했다. 이번 배치는 R-001 내부를 조사한다. 외부 작업 영역은 기존 지정 범위대로 유지한다.
 
 ## 탐색 범위 인벤토리
 
@@ -96,7 +96,7 @@
 
 ## 진행 체크포인트
 
-- 마지막 완료 배치: workspace-app에서 Main/renderer/preload/shared의 저위험·경계형 리팩터링 및 ADAPT-03 저장 경합 수정
+- 마지막 완료 배치: Desktop에서 Main/renderer/preload/shared의 저위험·경계형 리팩터링 및 ADAPT-03 저장 경합 수정
 - 검토 영역 / 현재 범위: 9 / 9 (정적 검토 완료; runtime·통합 검증 한계와 후속 위험 별도 기록)
 - 채택 작업 검증 완료 / 채택 작업 전체: 43 / 43 (T-001~T-039 완료)
 - 문서 인덱스: 삭제된 `docs/guides/REFACTOR.md`는 복구하지 않고 guides README를 스펙 기반 개발 규칙으로 연결; architecture digest/link 검사 통과
@@ -120,7 +120,7 @@
 
 - T-035 완료: Desktop local provider·문서 session의 root를 생성 시 고정하고 optional `expectedRootPath`를 preload/Main FS IPC에 전달한다. Main은 상대경로 작업 전에 현재 root를 대조해 오래된 요청을 거부한다. provider/item ID/Quick Open cache도 `(tabId, rootPath)`로 분리했다. 독립 리뷰에서 확인한 watcher 재조회 누락을 보완하고 TREE-25 IPC rejection, stale watcher, provider identity 회귀를 추가했다. focused 4 files/26 tests, app typecheck, root `npm run check`, Prettier, 변경 경로 HEAD 대비 ESLint 신규 진단 없음, architecture digest/link 검사 통과.
 
-- T-036 완료: `serviceIntegrations.ts`가 `serviceRoute.ts`의 exact path resolver를 사용하도록 분리했다. 등록되지 않은 provider-like route는 provider credential/D1/OAuth 처리로 진입하지 않는다. Node route tests 2개와 Workspace Server typecheck 통과.
+- T-036 완료: `serviceIntegrations.ts`가 `serviceRoute.ts`의 exact path resolver를 사용하도록 분리했다. 등록되지 않은 provider-like route는 provider credential/D1/OAuth 처리로 진입하지 않는다. Node route tests 2개와 Server typecheck 통과.
 - T-037 완료: 실제 Workspace Desktop consumer인 `fuzzySearch`, `treeView.module.css`, `assetPreview.module.css` package subpath를 exports에 명시했다. package root와 기존 CSS subpath resolve, 누락 경로 resolve, low-level tree component 거부를 Node tests 3개로 검증했다.
 - T-038 완료: OAuth callback의 state login 대소문자 비교를 인증 경계와 동일하게 만들었다. casing 차이 수용·다른 계정 거부를 Node contract test 2개로 검증했다.
 - T-039 완료: 이전 PKMS commit에서 이미 제거/이동한 경로는 retry tree에 중복 삭제로 넣지 않고 rename 대상은 재업서트한다. fake GitHub/RPC 3 tests로 finish RPC 실패 뒤 delete·rename retry, retry 도중 신규 revision dirty 보존, 무관한 external-change 정지를 검증했다. PKMS server typecheck, 테스트 Prettier, architecture digest/link 검사, diff check 통과.

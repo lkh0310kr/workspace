@@ -10,19 +10,16 @@ import { isPackagedApp } from './startupLog'
 // Port of src/lib.rs's config_path()/workspace_snapshot_path() and their
 // load/save helpers.
 //
-// `npm run dev` uses `workspace-app-dev`, separate from a packaged build's
-// `workspace-app`, so dev and packaged installs do not fight over the same
-// state files.
+// Existing user data is stored in `workspace-app(-dev)` directories. Keep
+// these legacy paths so Desktop upgrades reuse existing settings and layouts.
 export function appSupportDir(): string {
   const suffix = isPackagedApp() ? '' : '-dev'
   const name = `workspace-app${suffix}`
-  // macOS: keep the Tauri-compatible Library path so existing Mac installs
-  // and dual-running during migration stay untouched.
+  // macOS: retain the existing support path for installed Desktop profiles.
   if (process.platform === 'darwin') {
     return path.join(os.homedir(), 'Library', 'Application Support', name)
   }
-  // Windows → %APPDATA%\workspace-app(-dev)
-  // Linux/WSL → ~/.config/workspace-app(-dev)
+  // Windows and Linux use the same legacy profile basename.
   // (Avoid inventing a fake ~/Library tree on non-Mac hosts.)
   return path.join(app.getPath('appData'), name)
 }

@@ -1,7 +1,7 @@
 {
-  "name": "workspace-app",
+  "name": "@workspace/desktop",
   "version": "0.1.2",
-  "description": "Personal terminal/editor/browser workspace app",
+  "description": "Workspace Desktop for local files, terminal, browser, and viewers",
   "main": "./out/main/index.js",
   "scripts": {
     "format": "prettier --write .",

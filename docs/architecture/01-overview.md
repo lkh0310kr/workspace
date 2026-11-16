@@ -17,7 +17,7 @@ flowchart TB
   D[Desktop] --> M[Electron Main]
   M --> FS[선택한 로컬 폴더]
   D --> E[Editor package]
-  D --> S[Workspace Server]
+  D --> S[Server]
   S --> DB[D1]
   S --> P[외부 서비스]
   G[운영체제 동기화 앱] -. 선택한 경로 동기화 .-> FS

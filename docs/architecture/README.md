@@ -8,7 +8,7 @@
 - [프로세스와 IPC](./02-process-and-ipc.md)
 - [Workspace](./workspace/README.md)
 - [Editor](./editor/README.md)
-- [Workspace Server](./workspace-server/README.md)
+- [Server](./server/README.md)
 - [모듈 경계](./08-monorepo-module-boundaries.md)
 - [Desktop 릴리스 원칙](./desktop-release.md)
 

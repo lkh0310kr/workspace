@@ -27,18 +27,19 @@ const supportRoot =
     : process.platform === 'win32'
       ? appData
       : join(homedir(), '.config')
+// These are the legacy profile directories used by existing Desktop installs.
 const logDirs = ['workspace-app', 'workspace-app-dev'].map((name) =>
   join(supportRoot, name, 'logs')
 )
 
 if (!['compress', 'restore'].includes(mode)) {
-  console.error('Usage: node scripts/manage-workspace-logs.mjs [compress|restore] [--app-closed]')
+  console.error('Usage: node scripts/manage-desktop-logs.mjs [compress|restore] [--app-closed]')
   process.exit(2)
 }
 
 if (mode === 'compress' && !process.argv.includes('--app-closed')) {
   console.error(
-    'Quit all Workspace instances, then pass --app-closed to confirm the log files are idle.'
+    'Quit Desktop before compressing its log files, then pass --app-closed to confirm the log files are idle.'
   )
   process.exit(2)
 }

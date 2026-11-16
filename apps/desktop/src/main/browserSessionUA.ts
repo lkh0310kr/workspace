@@ -50,9 +50,8 @@ function currentUserAgent(headers: Record<string, string>): string | undefined {
   return existing ? headers[existing] : undefined
 }
 
-// Electron's default UA includes "Electron/X.X.X" and the app name (e.g.
-// "workspace-app/0.1.0"), which bot detectors (Cloudflare Turnstile, etc.)
-// flag as non-human traffic.
+// Electron's default UA includes "Electron/X.X.X" and the package identity,
+// which bot detectors (Cloudflare Turnstile, etc.) may flag as non-human traffic.
 export function cleanElectronUserAgent(ua: string): string {
   return ua.replace(/\s+Electron\/\S+/, '').replace(/(\)\s+)\S+\s+(Chrome\/)/, '$1$2')
 }

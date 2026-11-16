@@ -200,7 +200,7 @@ export function useModelPreview(tabId: number, filePath: string | null): ModelPr
             modelData: null,
             modelUrl: null,
             error:
-              '파일을 읽을 수 없습니다. Application Support/workspace-app-dev/logs/model3d.ndjson 로그를 확인하세요.',
+              '파일을 읽을 수 없습니다. Desktop의 model3d 로그를 확인하세요.',
             refreshing: false,
             revision: revisionRef.current
           })

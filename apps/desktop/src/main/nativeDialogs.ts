@@ -14,6 +14,7 @@ const WACP_DLLS = [
   'Microsoft.WindowsAPICodePack.Shell.dll'
 ] as const
 
+// Keep writing to the existing development-profile log location for compatibility.
 const LOG_PATH = path.join(os.homedir(), '.config', 'workspace-app-dev', 'folder-picker.log')
 
 export type DirectoryPickResult =
@@ -66,7 +67,7 @@ function readWindowsUsername(): string {
   return '14ZB990'
 }
 
-/** Windows-native cache dir (`C:\\Users\\…\\AppData\\Local\\workspace-app\\picker`). */
+/** Windows-native cache kept under the legacy `workspace-app` profile path. */
 function windowsPickerCacheDir(): string {
   const user = readWindowsUsername()
   return path.join('/mnt/c/Users', user, 'AppData/Local/workspace-app/picker')

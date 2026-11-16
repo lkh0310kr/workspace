@@ -1,4 +1,4 @@
-# Workspace Desktop 문서
+# Desktop 작업 공간 문서
 
 Desktop 앱의 문서 색인이다. Electron Main/preload/renderer와 앱 adapter의 책임을 구분한다.
 

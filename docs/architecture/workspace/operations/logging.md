@@ -1,4 +1,4 @@
-# Workspace Desktop 로그 운영
+# Desktop 로그 운영
 
 ## 디스크를 차지하던 원인
 

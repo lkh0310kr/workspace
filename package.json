@@ -8,17 +8,17 @@
   "scripts": {
     "postinstall": "npm install --prefix apps/desktop",
     "dev": "npm run dev --prefix apps/desktop",
-    "workspace:server:deploy": "npm run deploy --workspace @workspace/server",
-    "workspace:server:typecheck": "npm run typecheck --workspace @workspace/server",
     "format": "node apps/desktop/node_modules/prettier/bin/prettier.cjs --write .",
     "format:check": "node apps/desktop/node_modules/prettier/bin/prettier.cjs --check .",
     "lint": "npm --prefix apps/desktop run lint",
-    "logs:compress": "node apps/desktop/scripts/manage-workspace-logs.mjs compress",
-    "logs:restore": "node apps/desktop/scripts/manage-workspace-logs.mjs restore",
     "check": "bash scripts/check.sh",
     "check:app": "cd apps/desktop && npm run typecheck",
     "check:editor-tree-contract": "node scripts/check-editor-tree-contract.mjs",
     "agents:python:setup": "node scripts/agents-python-setup.mjs",
-    "agents:python": "node scripts/agents-python.mjs"
+    "agents:python": "node scripts/agents-python.mjs",
+    "server:deploy": "npm run deploy --workspace @workspace/server",
+    "server:typecheck": "npm run typecheck --workspace @workspace/server",
+    "desktop:logs:compress": "node apps/desktop/scripts/manage-desktop-logs.mjs compress",
+    "desktop:logs:restore": "node apps/desktop/scripts/manage-desktop-logs.mjs restore"
   }
 }

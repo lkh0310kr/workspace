@@ -1,4 +1,4 @@
-# Workspace Server 계약
+# Server API 계약 (Cloudflare Worker)
 
 Server scope는 provider API·OAuth·D1 저장·identity token 검증이다. Desktop의 로컬 파일과 기기 정보는 소유하지 않는다. [앱 안내](../../../apps/server/README.md)는 실행·배포 절차, 이 문서는 request 및 데이터 동작을 정의한다.
 

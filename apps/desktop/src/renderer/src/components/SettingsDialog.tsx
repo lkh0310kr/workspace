@@ -88,7 +88,7 @@ export function SettingsDialog({ anchorRect, onClose, tabId, tabTitle, rootPath 
         {error && (
           <span
             className="settings-error"
-            title={`Log: ~/.config/workspace-app-dev/folder-picker.log`}
+            title={`Folder picker log (legacy Desktop development profile)`}
           >
             {error}
           </span>

@@ -33,6 +33,7 @@ export function isPackagedProcess(): boolean {
 /** App support dir without importing Electron `app` (safe before app.ready). */
 export function getBootstrapAppSupportDir(): string {
   const suffix = isPackagedProcess() ? '' : '-dev'
+  // Preserve the legacy profile directory so upgrades keep existing logs.
   const name = `workspace-app${suffix}`
   if (process.platform === 'win32') {
     const appData = process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming')

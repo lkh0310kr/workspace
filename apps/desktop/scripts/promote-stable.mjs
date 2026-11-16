@@ -87,7 +87,7 @@ async function stopWorkspaceMacProcesses() {
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
   if (listWorkspaceMainPids().length > 0)
-    throw new Error('could not stop all Workspace app instances')
+    throw new Error('could not stop all Desktop processes')
 }
 
 async function stopWorkspacePtyHostMacProcesses() {
@@ -129,6 +129,7 @@ async function stopWorkspacePtyHostMacProcesses() {
   }
 }
 
+// Startup telemetry remains in the legacy profile so stable upgrades keep history.
 function readStartupEvents() {
   const file = path.join(
     homedir(),
@@ -199,13 +200,13 @@ async function promoteMac() {
   }
   if (!existsSync(path.join(builtApp, 'Contents', 'Resources', 'app-update.yml'))) {
     throw new Error(
-      'The packaged Workspace app is missing its GitHub updater configuration (app-update.yml).'
+      'The packaged Desktop build is missing its GitHub updater configuration (app-update.yml).'
     )
   }
 
   execFileSync('codesign', ['--verify', '--deep', '--strict', builtApp], { stdio: 'inherit' })
 
-  console.log('[promote-stable] quitting every running Workspace app instance…')
+  console.log('[promote-stable] quitting every running Desktop instance…')
   await stopWorkspaceMacProcesses()
   if (process.env.PROMOTE_STABLE_RESTART_PTY_HOST === '1') {
     await stopWorkspacePtyHostMacProcesses()

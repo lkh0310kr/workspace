@@ -1,6 +1,6 @@
 # 스펙 기반 개발 로드맵
 
-현재 스펙은 구현된 Workspace Desktop, 공유 Editor, Workspace Server의 소유 경계와 사용자 결과를 기준으로 관리한다.
+현재 스펙은 구현된 Desktop, 공유 Editor, Server의 소유 경계와 사용자 결과를 기준으로 관리한다.
 
 ## 작업 순서
 
@@ -17,7 +17,7 @@
 - 제품 목표와 성공 기준은 [프로젝트 정의](../product/프로젝트%20정의.md)가 소유한다.
 - Desktop 구현 계약은 `docs/architecture/workspace/` 아래에 둔다.
 - 공유 Editor 계약은 `docs/architecture/editor/` 아래에 둔다.
-- Server 계약은 [Workspace Server 문서](../architecture/workspace-server/README.md)가 소유한다.
+- Server 계약은 [Server 문서](../architecture/server/README.md)가 소유한다.
 - Source traceability는 [spec-index](../architecture/spec-index.json)가 소유한다.
 
 ## 완료 판정

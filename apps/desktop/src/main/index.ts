@@ -81,7 +81,7 @@ installMainStartupLogging()
 // Packaged builds must be single-instance. Dev skips the lock so electron-vite
 // can restart Electron after main-process rebuilds; otherwise the new process
 // loses the lock, quits immediately, and electron-vite exits all of `npm run dev`.
-// The dev profile is redirected to workspace-app-dev by protocolSchemes.ts;
+// The dev profile uses the legacy workspace-app-dev data directory;
 // this label makes it obvious which window is running when both are open.
 // Must run before app.whenReady().
 if (!isPackagedApp()) {
@@ -94,7 +94,7 @@ appendStartupLog('single_instance_lock', {
   packaged: isPackagedApp()
 })
 if (!gotSingleInstanceLock) {
-  console.error('[workspace-app] Another instance is already running — quitting.')
+  console.error('[desktop] Another instance is already running — quitting.')
   appendStartupLog('single_instance_quit', { reason: 'lock_not_acquired' })
   app.quit()
 } else if (isPackagedApp()) {

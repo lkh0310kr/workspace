@@ -26,7 +26,7 @@ export function installBrowserEmbedSupport(): () => void {
     }
     win.__browserFocusLog = () => getBrowserFocusLogRing()
     win.__browserFocusLogPath =
-      '~/Library/Application Support/workspace-app/logs/interaction.ndjson (macOS userData/logs)'
+      'Desktop application data/logs/interaction.ndjson (legacy profile directory)'
   }
   return () => {
     unlistenFocus()
