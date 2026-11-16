@@ -5,8 +5,8 @@ import {
   browserTabUrlForNewTab,
   getBrowserTabLabel
 } from '@workspace/browser'
-import type { PaneKindDefinition } from '../paneKindRegistry'
-import { closeBrowserTab, desktopBrowserPaneHost } from '@renderer/adapters/browser'
+import type { PaneKindDefinition } from '../../features/pane-system/paneKindRegistry'
+import { closeBrowserTab, desktopBrowserPaneHost } from './index'
 
 export const browserPaneKind: PaneKindDefinition = {
   kind: 'browser',

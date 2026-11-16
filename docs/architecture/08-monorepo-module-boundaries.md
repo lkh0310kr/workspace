@@ -20,7 +20,7 @@
 
 앱은 package를 import할 수 있고 package는 앱 구현을 import하지 않는다. Desktop의 Electron/native 의존성 설치는 root npm workspace와 별도다.
 
-Desktop renderer의 제품 기능과 공통 조정 코드는 `features/`에 둔다. `packages/home`, `packages/browser`, `packages/terminal`이 기능 UI·정책·상태를 소유하고 Electron 및 shell 연결은 `adapters/home`, `adapters/browser`, `adapters/terminal`에 둔다. Pane System 전용 kind 등록부는 `features/pane-system/kinds/`에 둔다. `components/`는 실제 여러 기능에서 공유하는 UI primitive와 얇은 Desktop adapter만 소유한다. Workspace navigation, pane system, app shell, diagnostics, agent usage와 Editor는 각각 소유 경로에서 관리한다.
+Desktop renderer의 제품 기능과 공통 조정 코드는 `features/`에 둔다. `packages/home`, `packages/browser`, `packages/terminal`이 기능 UI·정책·상태를 소유하고 Electron 및 shell 연결은 `adapters/home`, `adapters/browser`, `adapters/terminal`에 둔다. Pane System 전용 kind 등록부는 `adapters/browser/paneKind.tsx`, `adapters/terminal/paneKind.tsx`에 둔다. `packages/ui`는 여러 기능에서 공유하는 UI primitive를 소유하고, Desktop의 portal·아이콘 주입 adapter는 `adapters/ui/`에 둔다. Workspace navigation, pane system, app shell, diagnostics, agent usage와 Editor는 각각 소유 경로에서 관리한다.
 
 ## 운영 기준
 

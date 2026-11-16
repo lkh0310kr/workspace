@@ -1,12 +1,12 @@
-import { spawnTerminal } from '@renderer/adapters/terminal/runtime/terminalIpc'
+import { spawnTerminal } from './runtime/terminalIpc'
 import {
   detectAgentStatusFromTitle,
   normalizeTerminalTitle
 } from '@workspace/terminal/agent/agent-title-status'
 import { AgentIcon, getAgentLabel, TerminalPane } from '@workspace/terminal'
-import { desktopTerminalPaneHost } from '@renderer/adapters/terminal/terminalPaneHost'
-import type { PaneKindDefinition } from '../paneKindRegistry'
-import type { PaneTabItem } from '../layout/paneTypes'
+import { desktopTerminalPaneHost } from './terminalPaneHost'
+import type { PaneKindDefinition } from '../../features/pane-system/paneKindRegistry'
+import type { PaneTabItem } from '../../features/pane-system/layout/paneTypes'
 
 function terminalTabLabel(item: PaneTabItem): string {
   const title = item.title?.trim()

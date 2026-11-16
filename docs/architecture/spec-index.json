@@ -649,8 +649,8 @@
           "sha256": "317d8227b97b8b5868424ba26fb9d13dab2ce24e6fbf0efaec807de08fd2b1ca"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/pane-system/kinds/browserPaneKind.tsx",
-          "sha256": "12d2394901c1bf3ecab698a1c8a7c9d75b1b58d87bf55c1e22a185be8298a4cc"
+          "path": "apps/desktop/src/renderer/src/adapters/browser/paneKind.tsx",
+          "sha256": "732ca04b8abccee39b2df24bc3206707292989e7274e218112b29d3b519d252e"
         },
         {
           "path": "apps/desktop/src/shared/browserDownloadEvent.ts",
@@ -917,7 +917,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/builtinPaneKinds.ts",
-          "sha256": "34a1927addef7a882b3107b23f853dc07e45e4f79300a18f0a0f5c06abb6dd25"
+          "sha256": "97a6b5c665678f45daba70a2ddab9d538566637be46ca351fdde43bbf4b8aa07"
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/embeddedSurfaceFocus.ts",
@@ -1021,8 +1021,8 @@
           "sha256": "21af7a17e25c40b6b83cdd9a2832ad1cd20bf72e2dc68f8bb2fb5bdd5ba79d22"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/pane-system/kinds/terminalPaneKind.tsx",
-          "sha256": "c5ad356ee4344266191ccca9ec35e2e31441ce371d1b7dc71a00592e9974bc21"
+          "path": "apps/desktop/src/renderer/src/adapters/terminal/paneKind.tsx",
+          "sha256": "2f9b172d93badbd94e0861cd983905185d969bb26776b5bc714dcd1eb218c485"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/terminalPaneHost.ts",

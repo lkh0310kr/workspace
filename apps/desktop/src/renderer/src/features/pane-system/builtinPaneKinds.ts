@@ -1,6 +1,6 @@
 import { registerPaneKind } from './paneKindRegistry'
-import { terminalPaneKind } from './kinds/terminalPaneKind'
-import { browserPaneKind } from './kinds/browserPaneKind'
+import { terminalPaneKind } from '@renderer/adapters/terminal/paneKind'
+import { browserPaneKind } from '@renderer/adapters/browser/paneKind'
 import { codePaneKind, markdownPaneKind } from '../editor/EditorPaneKinds'
 import { viewerPaneKind } from '../editor/ViewerPaneKind'
 
