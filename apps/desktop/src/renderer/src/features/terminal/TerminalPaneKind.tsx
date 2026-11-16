@@ -1,4 +1,4 @@
-import { spawnTerminal } from '../../electron'
+import { spawnTerminal } from './runtime/terminalIpc'
 import {
   detectAgentStatusFromTitle,
   normalizeTerminalTitle

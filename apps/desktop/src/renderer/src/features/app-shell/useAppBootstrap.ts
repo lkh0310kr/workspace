@@ -9,8 +9,8 @@ import { installRendererConsoleFileLogging } from '../../debug/consoleFileLog'
 import {
   onBrowserReloadShortcut,
   onPastePlainTextShortcut,
-  onTerminalPasteShortcut
 } from '../../electron'
+import { onTerminalPasteShortcut } from '../terminal/runtime/terminalIpc'
 import { pastePlainTextInFocusedEditor } from '@renderer/features/editor/api'
 import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager/pane-terminal-registry'
 import {

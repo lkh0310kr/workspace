@@ -435,7 +435,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorPlainPaste.ts",
-          "sha256": "83993fe46c7912a87d93537f859100a8120c8cf3ed01adff1c4a81ccf66d4477"
+          "sha256": "6a22ba6046d4d651f6314f185d052daf83faac8364ad365a564cb6097d6cde2b"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorFilePaneBridge.ts",
@@ -741,11 +741,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/electron.ts",
-          "sha256": "c937a53bd8a90471acf49c351f59bb66a4ff367a9b2b1b8c3c9a2601fa480a35"
+          "sha256": "2f05dc767758c2486efe85ab95c7225e40b1863a73e7e24faa071c617303797b"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts",
-          "sha256": "ecafdf05669f4b068228e075775678341775a0088baccddb844e70919234e378"
+          "sha256": "5320eeb3c2441e8ea20e8b2e601144018a8e6c5bfac9c3c7b764b95fbf487f7c"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/useLayoutHostCallbacks.tsx",
@@ -930,6 +930,10 @@
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/runtime/workspaceShortcuts.ts",
           "sha256": "920571388787cc0bee67068dddb175b2e29aac4681c1eb924ca2c62db0dadeeb"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/app-shell/nativeClipboard.ts",
+          "sha256": "cdfc8e38a3d63a16f7310155d416cf9d3d55d6a6cb7d82e047bd7bd777ed5d58"
         }
       ]
     },
@@ -958,7 +962,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "ade471440c7573188d7e2297270b2ccf31b56b54f0ee90610b77eb1977f1b906"
+          "sha256": "0d1dadf45e6964550b9878463302d54683b6a98e725b0495a8e6c6774b7531e0"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/runtime/ptyDataMultiplexer.ts",
@@ -970,11 +974,15 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/TerminalPaneKind.tsx",
-          "sha256": "2809f5da6149b08d29f6ab771069f3b7fbcc057d477ab31bfa8d77cce1c4796f"
+          "sha256": "8d68a441c6ec43c5e065be9f1a196839869193a3f3488acdad30a1c041a6350b"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/runtime/collectTerminalPaneTabs.ts",
           "sha256": "050b966e889a7f793e6e63bf6a91e2e4b98395fa578562528c9306307c699800"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/terminal/runtime/terminalIpc.ts",
+          "sha256": "e8fc087815bcbdc79cb1bf7974bdb6ebb82a1d12366c7d545d61423fc3c72749"
         }
       ]
     },

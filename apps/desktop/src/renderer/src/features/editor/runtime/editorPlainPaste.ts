@@ -1,6 +1,6 @@
 import { EditorSelection } from '@codemirror/state'
 import type { EditorView } from '@codemirror/view'
-import { readClipboardText } from '../../../electron'
+import { readClipboardText } from '../../app-shell/nativeClipboard'
 
 /** Paste clipboard plain text at every selection range (Cmd+Shift+V). */
 export async function pastePlainTextIntoView(view: EditorView): Promise<boolean> {

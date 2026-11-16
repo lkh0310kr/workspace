@@ -6,35 +6,6 @@ import {
   type UsageMeterSettings
 } from '../../shared/usage-meter-settings'
 
-export interface PtyOutput {
-  id: number
-  seq: number
-  data_b64: string
-}
-
-export interface PtyConnectResult {
-  id: number
-  snapshot: string
-  snapshotCols: number
-  snapshotRows: number
-  lastSeq: number
-  isReattach: boolean
-}
-
-export async function ptyConnect(id: number): Promise<PtyConnectResult> {
-  return window.api.pty.connect(id)
-}
-
-export function ptyDisconnect(id: number): void {
-  window.api.pty.disconnect(id)
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-  return btoa(binary)
-}
-
 export async function hostname(): Promise<string> {
   return window.api.hostname()
 }
@@ -54,18 +25,6 @@ export async function debugLog(line: string): Promise<void> {
   } catch {
     /* ignore */
   }
-}
-
-export async function ptyWrite(id: number, data: Uint8Array): Promise<void> {
-  window.api.pty.write(id, data)
-}
-
-export async function ptyResize(id: number, cols: number, rows: number): Promise<void> {
-  window.api.pty.resize(id, cols, rows)
-}
-
-export async function spawnTerminal(cols = 120, rows = 40, tabId?: number): Promise<number> {
-  return window.api.pty.spawn(cols, rows, tabId)
 }
 
 export async function getMediaUrl(
@@ -165,18 +124,6 @@ export function epubResourceUrl(bookId: string, href: string): string {
   return `workspace-epub://${bookId}/${href}`
 }
 
-// Tauri's onXxx helpers return a Promise<UnlistenFn> (listen() is async).
-// Kept as sync-returning here (window.api's ipcRenderer.on wiring is
-// synchronous), but callers that do `unlisten.then((fn) => fn())` still
-// work fine against a plain function since `Promise.resolve(fn).then(...)`
-// isn't required — callers are ported to call the returned function
-// directly instead.
-export function onPtyOutput(handler: (payload: PtyOutput) => void): () => void {
-  return window.api.pty.onData((id, seq, data) => {
-    handler({ id, seq, data_b64: bytesToBase64(data) })
-  })
-}
-
 export async function pickMediaFileDialog(
   kind: 'video' | 'audio' | 'ebook'
 ): Promise<string | null> {
@@ -184,18 +131,6 @@ export async function pickMediaFileDialog(
   if (result.ok) return result.path
   if (!result.canceled && result.error) throw new Error(result.error)
   return null
-}
-
-export function writeClipboardText(text: string): void {
-  window.api.clipboard.writeText(text)
-}
-
-export function readClipboardText(): Promise<string> {
-  return window.api.clipboard.readText()
-}
-
-export function saveClipboardImageAsTempFile(): Promise<string | null> {
-  return window.api.clipboard.saveImageAsTempFile()
 }
 
 /** Fires when a <webview> guest tries to open a new window (target=_blank,
@@ -277,13 +212,6 @@ export function onNewWorkspaceTabShortcut(handler: () => void): () => void {
 /** Cmd+Shift+V — paste clipboard as plain text in the focused editor. */
 export function onPastePlainTextShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onPastePlainText(handler)
-}
-
-/** Cmd/Ctrl+V relayed from main when a terminal pane owns focus. */
-export function onTerminalPasteShortcut(
-  handler: (payload: { terminalId: number }) => void
-): () => void {
-  return window.api.shortcuts.onTerminalPaste(handler)
 }
 
 export interface ClaudeRateLimitWindow {
