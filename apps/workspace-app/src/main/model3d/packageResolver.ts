@@ -93,6 +93,21 @@ function collectMtlTextureUris(mtlText: string): string[] {
   return [...new Set(uris)]
 }
 
+function resolveExistingPathUnderRoot(
+  workspaceRoot: string,
+  baseDir: string,
+  relativePath: string
+): string | null {
+  try {
+    const realRoot = fs.realpathSync(workspaceRoot)
+    const realPath = fs.realpathSync(path.resolve(baseDir, relativePath))
+    if (!(realPath === realRoot || realPath.startsWith(realRoot + path.sep))) return null
+    return realPath
+  } catch {
+    return null
+  }
+}
+
 export function gltfHasExternalResources(workspaceRoot: string, relativePath: string): boolean {
   const absolutePath = resolveUnderRoot(workspaceRoot, relativePath)
   try {
@@ -109,15 +124,6 @@ export function objHasExternalResources(workspaceRoot: string, relativePath: str
   try {
     const text = fs.readFileSync(absolutePath, 'utf8')
     const mtlRefs = collectObjExternalUris(text)
-    if (mtlRefs.length === 0) return false
-    const packageDir = path.dirname(absolutePath)
-    for (const mtlRef of mtlRefs) {
-      const mtlPath = path.resolve(packageDir, mtlRef)
-      if (!fs.existsSync(mtlPath)) continue
-      const mtlText = fs.readFileSync(mtlPath, 'utf8')
-      const textures = collectMtlTextureUris(mtlText)
-      if (textures.length > 0) return true
-    }
     return mtlRefs.length > 0
   } catch {
     return false
@@ -146,8 +152,8 @@ export function resolvePackage(workspaceRoot: string, relativePath: string): Res
       const text = fs.readFileSync(absolutePath, 'utf8')
       for (const mtlRef of collectObjExternalUris(text)) {
         siblings.add(mtlRef)
-        const mtlPath = path.resolve(packageDir, mtlRef)
-        if (fs.existsSync(mtlPath)) {
+        const mtlPath = resolveExistingPathUnderRoot(workspaceRoot, packageDir, mtlRef)
+        if (mtlPath) {
           const mtlText = fs.readFileSync(mtlPath, 'utf8')
           for (const tex of collectMtlTextureUris(mtlText)) {
             siblings.add(tex)

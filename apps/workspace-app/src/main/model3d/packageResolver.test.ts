@@ -62,4 +62,34 @@ describe('packageResolver', () => {
     expect(pkg.siblings).toContain('cube.mtl')
     expect(pkg.resolve('cube.mtl')).toBe('models/cube.mtl')
   })
+
+  it.each(['traversal', 'symlink'])(
+    'does not discover texture siblings from material files outside the workspace through %s',
+    (escape) => {
+      const root = makeTempWorkspace({
+        'models/cube.obj': ''
+      })
+      const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), `${path.basename(root)}-outside-`))
+      tempDirs.push(outsideDir)
+      const outsideMtlPath = path.join(outsideDir, 'external.mtl')
+      fs.writeFileSync(outsideMtlPath, 'newmtl external\nmap_Kd external-texture.png\n')
+
+      let mtlRef: string
+      if (escape === 'traversal') {
+        mtlRef = path.relative(path.join(root, 'models'), outsideMtlPath).split(path.sep).join('/')
+      } else {
+        fs.symlinkSync(outsideMtlPath, path.join(root, 'models', 'external.mtl'))
+        mtlRef = 'external.mtl'
+      }
+      fs.writeFileSync(path.join(root, 'models', 'cube.obj'), `mtllib ${mtlRef}\n`)
+
+      expect(objHasExternalResources(root, 'models/cube.obj')).toBe(true)
+
+      const pkg = resolvePackage(root, 'models/cube.obj')
+
+      expect(pkg.siblings).toContain(mtlRef)
+      expect(pkg.siblings).not.toContain('external-texture.png')
+      expect(pkg.resolve(mtlRef)).toBeNull()
+    }
+  )
 })
