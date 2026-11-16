@@ -9,6 +9,10 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: /^vitest$/, replacement: resolve(desktopRoot, 'node_modules/vitest/dist/index.js') },
+      {
+        find: /^@renderer\/(.*)$/,
+        replacement: resolve(desktopRoot, 'src/renderer/src/$1')
+      },
       { find: /^@xterm\/(.*)$/, replacement: resolve(desktopRoot, 'node_modules/@xterm/$1') }
     ],
     dedupe: [
@@ -29,7 +33,7 @@ export default defineConfig({
     ]
   },
   test: {
-    include: ['src/**/*.test.ts', '../../packages/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', '../../packages/**/*.test.{ts,tsx}'],
     poolOptions: {
       forks: { execArgv: ['--expose-gc'] },
       threads: { execArgv: ['--expose-gc'] }

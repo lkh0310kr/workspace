@@ -17,8 +17,8 @@ echo "=== apps/desktop vitest (foundation modules) ==="
 (cd apps/desktop && npx vitest run \
   src/shared/layoutSalvage.test.ts \
   src/shared/ebookState.test.ts \
-  src/renderer/src/layout/layoutSession.test.ts \
-  src/renderer/src/layout/layoutChipWindowDrop.test.ts \
-  src/renderer/src/shortcuts/shortcutRegistry.test.ts)
+  src/renderer/src/features/pane-system/layout/layoutSession.test.ts \
+  src/renderer/src/features/pane-system/layout/layoutChipWindowDrop.test.ts \
+  src/renderer/src/features/app-shell/shortcuts/shortcutRegistry.test.ts)
 
 echo "check: ok"

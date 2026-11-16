@@ -1201,7 +1201,7 @@
         },
         {
           "path": "apps/desktop/vitest.config.ts",
-          "sha256": "a857c9b67c87e1b2f6071e17936e52db55b559f8e8f169d3327807418c3381ac"
+          "sha256": "d01ecd0e44a23ae4417f5648d6d609d075454d9f02993a158bbebf412eeb9e7a"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/workspace.css",
