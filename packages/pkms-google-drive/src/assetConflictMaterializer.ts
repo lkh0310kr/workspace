@@ -1,5 +1,6 @@
 import type { GoogleDriveOperationLog, DriveLogicalOperation } from './operationLog'
 import type { GoogleDriveWorkspaceRepository } from './workspaceRepository'
+import { sha256Hex } from './sha256'
 
 type AssetReplacementOperation = DriveLogicalOperation & {
   mutation: Extract<DriveLogicalOperation['mutation'], { type: 'replace-content' }>
@@ -26,13 +27,6 @@ interface AssetConflictOperationLog {
   listAssetReplacementOperations(
     fileId: string
   ): ReturnType<GoogleDriveOperationLog['listAssetReplacementOperations']>
-}
-
-async function digest(bytes: Uint8Array): Promise<string> {
-  const copy = new Uint8Array(bytes.byteLength)
-  copy.set(bytes)
-  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', copy.buffer))
-  return Array.from(hash, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 function compareOperations(left: DriveLogicalOperation, right: DriveLogicalOperation): number {
@@ -80,7 +74,7 @@ export class GoogleDriveAssetConflictMaterializer {
     )
       throw new Error('The asset replacement does not match its Drive operation.')
 
-    if ((await digest(bytes)) !== (await digest(operation.mutation.bytes)))
+    if ((await sha256Hex(bytes)) !== (await sha256Hex(operation.mutation.bytes)))
       throw new Error('The asset bytes do not match the durable replacement operation.')
 
     const entry = await this.repository.getEntry(fileId)
@@ -95,7 +89,7 @@ export class GoogleDriveAssetConflictMaterializer {
     for (const version of versions) {
       if (version.mutation.type !== 'replace-content' || version.mutation.fileId !== fileId)
         continue
-      const hash = await digest(version.mutation.bytes)
+      const hash = await sha256Hex(version.mutation.bytes)
       distinct.set(`${version.mutation.mimeType}:${hash}`, version as AssetReplacementOperation)
     }
     const divergentVersions = [...distinct.values()].sort(compareOperations)
@@ -117,7 +111,7 @@ export class GoogleDriveAssetConflictMaterializer {
     const current = await this.repository.readFile(fileId)
     if (
       current.metadata.mimeType !== winner.mutation.mimeType ||
-      (await digest(current.bytes)) !== (await digest(winner.mutation.bytes))
+      (await sha256Hex(current.bytes)) !== (await sha256Hex(winner.mutation.bytes))
     )
       await this.repository.writeFile(fileId, winner.mutation.bytes, winner.mutation.mimeType)
   }

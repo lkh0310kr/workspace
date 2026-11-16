@@ -1,5 +1,6 @@
 import { GoogleDriveClient, type DriveFile } from './googleDriveClient'
 import type { DriveOutboxOperation } from './outbox'
+import { sha256Hex } from './sha256'
 
 export interface DriveLogicalOperation {
   version: 1
@@ -132,7 +133,7 @@ export class GoogleDriveOperationLog {
     if (operation.workspaceRootId !== this.workspaceRootId)
       throw new Error('The operation belongs to a different Google Drive workspace.')
     const bytes = encodeDriveLogicalOperation(operation)
-    const digest = await sha256(bytes)
+    const digest = await sha256Hex(bytes)
     const folder = await this.getOperationsFolder()
     const mutation = operation.mutation
     const operationProperties: Record<string, string> = {
@@ -282,7 +283,7 @@ export class GoogleDriveOperationLog {
       throw new Error(`Operation ${operation.operationId} belongs to another workspace.`)
     if (file.appProperties?.pkmsOperationId !== operation.operationId)
       throw new Error(`Operation identity mismatch for Drive file ${file.id}.`)
-    if (file.appProperties?.pkmsPayloadSha256 !== (await sha256(bytes)))
+    if (file.appProperties?.pkmsPayloadSha256 !== (await sha256Hex(bytes)))
       throw new Error(`Operation payload checksum mismatch for Drive file ${file.id}.`)
     if (
       file.appProperties?.pkmsWorkspaceRootId &&
@@ -314,11 +315,4 @@ function compareOperations(left: DriveLogicalOperation, right: DriveLogicalOpera
 
 function queryLiteral(value: string): string {
   return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`
-}
-
-async function sha256(bytes: Uint8Array): Promise<string> {
-  const copy = new Uint8Array(bytes.byteLength)
-  copy.set(bytes)
-  const digest = await crypto.subtle.digest('SHA-256', copy.buffer)
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }

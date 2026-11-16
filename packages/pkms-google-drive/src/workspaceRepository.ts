@@ -4,6 +4,7 @@ import {
   type DriveFile,
   type DriveFilePage
 } from './googleDriveClient'
+import { sha256Hex } from './sha256'
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
 
@@ -127,13 +128,6 @@ function concatBytes(...parts: Uint8Array[]): Uint8Array {
     offset += part.byteLength
   }
   return result
-}
-
-async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const copy = new ArrayBuffer(bytes.byteLength)
-  new Uint8Array(copy).set(bytes)
-  const digest = await crypto.subtle.digest('SHA-256', copy)
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 /**
