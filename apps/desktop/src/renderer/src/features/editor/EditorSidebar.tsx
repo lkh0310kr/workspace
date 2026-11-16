@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Model } from 'flexlayout-react'
 import { TreeView } from './TreeView'
 import { SearchPanel } from './SearchPanel'
-import { onFindInFilesShortcut, onToggleEditorTreeShortcut } from '../../electron'
 import { deletePathInAllPanes, renamePathInAllPanes } from './runtime/editorFilePaneBridge'
 import { paneTabStoreKey } from './paneTabKey'
 import type { EditorSidebarState } from '@workspace/editor'
@@ -78,12 +77,6 @@ export function EditorSidebar({
   // Pane shortcuts target the focused, visible group even when an embedded
   // editor surface owns DOM focus.
   useEffect(() => {
-    const offMainShortcut = onFindInFilesShortcut(() => {
-      openSearch()
-    })
-    const offEditorTreeToggle = onToggleEditorTreeShortcut(() => {
-      toggleEditorTree()
-    })
     function onKeyDown(e: KeyboardEvent) {
       if (isEditorSidebarToggleShortcut(e)) {
         if (!supportsEditorTree || !paneVisible || !isGroupFocused) return
@@ -112,8 +105,6 @@ export function EditorSidebar({
     // CodeMirror or an embedded surface handles the focused key event.
     window.addEventListener('keydown', onKeyDown, true)
     return () => {
-      offMainShortcut()
-      offEditorTreeToggle()
       window.removeEventListener('keydown', onKeyDown, true)
     }
   }, [

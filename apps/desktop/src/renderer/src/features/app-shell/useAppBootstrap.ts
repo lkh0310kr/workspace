@@ -5,7 +5,7 @@ import {
   reloadFocusedBrowser
 } from '../../adapters/browser'
 import { installRendererConsoleFileLogging } from '../../debug/consoleFileLog'
-import { onPastePlainTextShortcut } from '../../electron'
+import { onPastePlainTextShortcut } from '../editor/runtime/editorShortcuts'
 import { onTerminalPasteShortcut } from '../../adapters/terminal/runtime/terminalIpc'
 import { onBrowserReloadShortcut } from '../../adapters/browser/runtime/browserIpc'
 import { pastePlainTextInFocusedEditor } from '@renderer/features/editor/api'

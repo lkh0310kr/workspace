@@ -12,9 +12,9 @@ query/본문/selection이 바뀌면 count를 다시 계산한다. 비어 있는 
 
 ## Find in Files 단축키와 pane focus
 
-`Cmd+Shift+F`(macOS) / `Ctrl+Shift+F`(Windows/Linux)는 현재 focused pane group의 Find in Files를 연다. 검색 sidebar가 이미 열려 있으면 query input으로 focus를 이동하고 현재 query와 결과를 유지한다. 단축키는 CodeMirror 문서 검색과 별개다.
+`Cmd+Shift+F`(macOS) / `Ctrl+Shift+F`(Windows/Linux)는 현재 focused Editor pane group에서 Find in Files를 연다. 검색 sidebar가 이미 열려 있으면 query input으로 focus를 이동하고 현재 query와 결과를 유지한다. 단축키는 CodeMirror 문서 검색과 별개다.
 
-Quick Open, Find in Files, Editor tree 단축키는 Editor tree capability가 있는 pane에서만 동작한다. Browser guest에 focus가 있어도 해당 pane이 Editor capability를 제공하지 않으면 열리지 않는다. Terminal은 editor search 대상이 아니므로 Terminal이 focus된 동안 `Cmd/Ctrl+P`, `Cmd/Ctrl+Shift+F`, `Cmd/Ctrl+\`를 소비하고 Quick Open, Find in Files, Editor tree를 열거나 토글하지 않는다. Electron host는 Terminal focus를 아는 main process input boundary에서 이 세 shortcut을 relay하지 않고, renderer도 Terminal pane 명령을 무시한다. Browser guest 입력은 Electron 경계를 거쳐 renderer에 도달할 수 있지만 active pane이 Editor tree capability를 제공하지 않으면 Editor 명령을 실행하지 않는다. query input은 검색 패널 표시 후 focus되어 첫 입력 문자를 받는다.
+Quick Open, Find in Files, Editor tree, Editor document search는 Editor pane에서만 처리한다. Quick Open은 Main input relay가 현재 활성 pane이 code, markdown 또는 viewer일 때만 전달한다. Find in Files와 Editor tree는 EditorSidebar가 focused Editor group에서 직접 처리하고, Cmd/Ctrl+F는 focus된 Editor view가 처리한다. Browser webview guest에 입력한 Editor 단축키는 renderer로 전달하지 않아 Browser 페이지가 처리한다. Browser chrome에 focus가 있을 때도 Editor UI를 열지 않는다. Terminal focus에서는 `Cmd/Ctrl+P`, `Cmd/Ctrl+Shift+F`, `Cmd/Ctrl+\`를 기존대로 소비하며 Terminal input이나 Editor UI에 전달하지 않는다. query input은 검색 패널 표시 후 focus되어 첫 입력 문자를 받는다.
 
 ## Provider 검색 타입
 
@@ -58,7 +58,7 @@ replaceContents는 provider ID/path를 검증하고 해당 파일의 열린 sess
 | SEARCH-10 | 로컬 Quick Open에서 파일 목록 검색 | 목록 조회는 캐시되며 파일 생성/삭제/이름 변경 뒤 갱신됨                     |
 | SEARCH-11 | 한 파일에 여러 내용 match 발생     | 파일별 결과 갱신으로 반영되고 match마다 누적 전체 결과를 반복 전송하지 않음 |
 | SEARCH-12 | 열린 Find in Files에 단축키 재입력 | query input으로 focus가 이동하고 기존 query는 유지됨                        |
-| SEARCH-13 | embedded browser에 focus한 채 `Cmd+Shift+F` / `Ctrl+Shift+F` 입력 | 현재 focused pane group에 Find in Files가 열리고 query input에 focus됨 |
+| SEARCH-13 | embedded Browser guest에 focus한 채 Editor 단축키 입력 | Find in Files, Editor tree, Quick Open, Editor document search가 열리지 않고 입력을 Browser 페이지가 처리함 |
 | SEARCH-14 | Terminal에 focus한 채 `Cmd/Ctrl+P`, `Cmd/Ctrl+Shift+F`, `Cmd/Ctrl+\` 입력 | 단축키를 Terminal 입력으로 보내지 않고 Quick Open/Find in Files/Editor tree 상태도 바꾸지 않음 |
 
 Desktop Editor의 실제 Markdown surface에서 `Ctrl+F` 열기, query 입력·match count, Escape 닫기, `Ctrl+F` 두 번의 열기/닫기 toggle을 검증한다. Quick Open의 나머지 DOM 키보드 시나리오는 전부 자동 검증된 상태가 아니므로 위 표를 수락 기준으로 유지한다.

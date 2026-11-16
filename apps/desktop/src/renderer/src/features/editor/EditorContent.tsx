@@ -42,7 +42,6 @@ import {
   getFocusedEditorView,
   setFocusedEditorView
 } from './runtime/activeEditorView'
-import { onFindInEditorShortcut } from '../../electron'
 import type { TabKind } from '../pane-system/layout/paneTypes'
 
 // The per-file content half of what used to be ui/EditorPane.tsx — tab strip,
@@ -438,15 +437,19 @@ export function EditorContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMarkdown, scheduleAutoSave, setDirtyState, tabId])
 
-  useEffect(
-    () =>
-      onFindInEditorShortcut(() => {
-        const view = viewRef.current
-        if (!view || getFocusedEditorView() !== view) return
-        toggleEditorSearch(view)
-      }),
-    []
-  )
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return
+      if (event.key.toLowerCase() !== 'f') return
+      const view = viewRef.current
+      if (!view || getFocusedEditorView() !== view) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      toggleEditorSearch(view)
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [])
 
   const onViewReady = useCallback(
     (view: EditorView | null) => {

@@ -13,3 +13,8 @@ export function onSwitchWorkspaceTabIndexShortcut(
 ): () => void {
   return window.api.shortcuts.onSwitchWorkspaceTabIndex(handler)
 }
+
+/** Cmd/Ctrl+N creates a Workspace tab. */
+export function onNewWorkspaceTabShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onNewWorkspaceTab(handler)
+}

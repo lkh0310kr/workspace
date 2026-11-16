@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ThemePreference } from '../../theme'
 import { getStoredThemePreference } from '../../theme'
-import { onNewWorkspaceTabShortcut, onOpenSettingsShortcut } from '../../electron'
+import { onOpenSettingsShortcut } from './shellShortcuts'
+import { onNewWorkspaceTabShortcut } from '../workspace/runtime/workspaceShortcuts'
 import { addTab } from '../workspace'
 
 export type WorkspaceSettingsTarget = { tabId: number; anchorRect: DOMRect }

@@ -4,7 +4,7 @@ import { installMainStartupLogging, appendStartupLog, isPackagedApp } from './st
 import { ensureLinuxImeDaemon } from './imeEnv'
 import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './shortcuts/relayAppShortcuts'
 
-import { app, shell, BrowserWindow, Menu, clipboard } from 'electron'
+import { app, shell, BrowserWindow, Menu, clipboard, ipcMain } from 'electron'
 import { join } from 'path'
 import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -114,6 +114,7 @@ if (!gotSingleInstanceLock) {
 }
 
 let focusedTerminalId: number | null = null
+let editorPaneActive = false
 
 function handleMacTerminalOptionShortcut(
   event: Electron.Event,
@@ -247,6 +248,7 @@ function createWindow(): BrowserWindow {
     logWindowLifecycle('window_responsive', mainWindow)
   })
   mainWindow.on('closed', () => {
+    editorPaneActive = false
     appendStartupLog('window_closed', { windowId: mainWindow.id })
   })
 
@@ -283,6 +285,7 @@ function createWindow(): BrowserWindow {
       send: (channel, ...args) => mainWindow.webContents.send(channel, ...args),
       terminalOwnsAppShortcuts: focusedTerminalId !== null,
       focusedTerminalId,
+      editorPaneActive,
       onTerminalOptionShortcut: handleMacTerminalOptionShortcut
     })
   })
@@ -300,6 +303,12 @@ function createWindow(): BrowserWindow {
 
 let workspace: Workspace | null = null
 let mainWindowRef: BrowserWindow | null = null
+
+ipcMain.on('shortcut:editor-pane-active', (event, active: unknown) => {
+  if (typeof active !== 'boolean') return
+  if (!mainWindowRef || event.sender !== mainWindowRef.webContents) return
+  editorPaneActive = active
+})
 
 // Every push-to-renderer call in this file goes through here instead of
 // calling mainWindowRef?.webContents.send(...) directly — the window can

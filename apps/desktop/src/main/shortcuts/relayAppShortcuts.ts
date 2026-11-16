@@ -38,10 +38,6 @@ function isHomeKey(input: Input): boolean {
   return input.code === 'Backquote' || input.key === '`'
 }
 
-function isExplorerToggleKey(input: Input): boolean {
-  return input.code === 'Backslash' || input.key === '\\'
-}
-
 function workspaceModifierName(): 'Meta' | 'Control' {
   return process.platform === 'darwin' ? 'Meta' : 'Control'
 }
@@ -107,6 +103,7 @@ export type HostShortcutRelayOptions = {
   send: ShortcutSend
   terminalOwnsAppShortcuts: boolean
   focusedTerminalId: number | null
+  editorPaneActive?: boolean
   onTerminalOptionShortcut?: (event: Event, input: Input, terminalId: number) => void
 }
 
@@ -131,36 +128,20 @@ export function relayHostAppShortcuts(
     gateBrowserReload: options.terminalOwnsAppShortcuts
   })
 
-  // Chromium consumes Cmd/Ctrl+P for print before a renderer keydown handler
-  // can reliably see it. Route editor search shortcuts at Electron's input
-  // boundary, the same way the workspace's other app shortcuts are routed.
-  // A focused terminal owns its keyboard input. Consume these commands here
-  // without forwarding them to the pane or triggering workspace editor UI.
+  // A focused terminal owns editor shortcuts too. Suppress them here because
+  // embedded terminal input does not reach the renderer's Editor key handlers.
+  // Cmd/Ctrl+P is relayed only while an Editor pane is active because Chromium
+  // consumes it as Print before the renderer can handle it.
   if (
     options.focusedTerminalId !== null &&
-    (isQuickOpenInput(input) || isExplorerToggleInput(input) || isFindInFilesInput(input))
+    (isQuickOpenInput(input) || isEditorSidebarShortcutInput(input))
   ) {
     event.preventDefault()
     return
   }
-  if (isQuickOpenInput(input)) {
+  if (options.editorPaneActive && isQuickOpenInput(input)) {
     event.preventDefault()
     options.send('shortcut:quick-open')
-    return
-  }
-  if (isExplorerToggleInput(input)) {
-    event.preventDefault()
-    options.send('shortcut:toggle-explorer')
-    return
-  }
-  if (isFindInFilesInput(input)) {
-    event.preventDefault()
-    options.send('shortcut:find-in-files')
-    return
-  }
-  if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && !input.shift) {
-    event.preventDefault()
-    options.send('shortcut:find-in-editor')
     return
   }
 
@@ -195,15 +176,18 @@ function isQuickOpenInput(input: Input): boolean {
   return (input.meta || input.control) && !input.alt && input.code === 'KeyP' && !input.shift
 }
 
-function isExplorerToggleInput(input: Input): boolean {
-  return (input.meta || input.control) && !input.alt && !input.shift && isExplorerToggleKey(input)
+function isEditorSidebarShortcutInput(input: Input): boolean {
+  const isEditorTreeToggle =
+    !input.shift && (input.code === 'Backslash' || input.key === '\\')
+  const isFindInFiles = input.shift && input.code === 'KeyF'
+  return (
+    (input.meta || input.control) &&
+    !input.alt &&
+    (isEditorTreeToggle || isFindInFiles)
+  )
 }
 
-function isFindInFilesInput(input: Input): boolean {
-  return (input.meta || input.control) && !input.alt && input.code === 'KeyF' && input.shift
-}
-
-/** Browser <webview> guest — always relays app shortcuts; paste stays in-guest as plain text. */
+/** Browser guest keeps Editor shortcuts in its own page; app shell and Browser commands are relayed. */
 export function relayGuestWebviewShortcuts(
   event: Event,
   input: Input,
@@ -230,28 +214,6 @@ export function relayGuestWebviewShortcuts(
 
   relaySharedRendererShortcuts(event, input, send, { gateBrowserReload: false })
 
-  // A focused webview guest is a separate WebContents; its host renderer never
-  // receives these keydowns. Keep the workbench commands available there too.
-  if ((input.meta || input.control) && !input.alt && input.code === 'KeyP' && !input.shift) {
-    event.preventDefault()
-    send('shortcut:quick-open')
-    return
-  }
-  if ((input.meta || input.control) && !input.alt && !input.shift && isExplorerToggleKey(input)) {
-    event.preventDefault()
-    send('shortcut:toggle-explorer')
-    return
-  }
-  if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && input.shift) {
-    event.preventDefault()
-    send('shortcut:find-in-files')
-    return
-  }
-  if ((input.meta || input.control) && !input.alt && input.code === 'KeyF' && !input.shift) {
-    event.preventDefault()
-    send('shortcut:find-in-editor')
-    return
-  }
 
   if (isWorkspaceTabIndexInput(input)) {
     event.preventDefault()

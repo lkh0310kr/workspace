@@ -1,11 +1,8 @@
 import { AppSettingsDialog, AppTitlebar, LoadingWorkspace } from './features/app-shell'
 import { AgentUsageStatusBar } from './features/agent-usage'
-import {
-  loadUsageMeterSettings,
-  onHomeShortcut,
-  onQuickOpenShortcut,
-  saveUsageMeterSettings
-} from './electron'
+import { loadUsageMeterSettings, saveUsageMeterSettings } from './features/agent-usage/usageApi'
+import { onHomeShortcut } from './features/app-shell/shellShortcuts'
+import { onQuickOpenShortcut } from './features/editor/runtime/editorShortcuts'
 import {
   DEFAULT_USAGE_METER_SETTINGS,
   type UsageMeterSettings
@@ -111,24 +108,28 @@ export default function App() {
   const focusedPaneGroupId = useWorkspaceStore(
     (s) => s.focusedPaneGroupTabSetByWorkspaceTab[visibleWorkspaceTabId]
   )
+  const focusedPaneNode = focusedPaneGroupId
+    ? visibleModel?.getNodeById(focusedPaneGroupId)
+    : undefined
+  const focusedPaneTabSet =
+    focusedPaneNode?.getType() === 'tabset'
+      ? (focusedPaneNode as TabSetNode)
+      : visibleModel?.getActiveTabset()
+  const focusedPaneNodeTab = focusedPaneTabSet?.getSelectedNode()
+  const focusedPaneItem =
+    focusedPaneNodeTab?.getType() === 'tab'
+      ? resolveActivePaneTab(readPaneGroupConfig(focusedPaneNodeTab as TabNode))
+      : undefined
+  const editorPaneActive =
+    focusedPaneItem?.kind === 'code' ||
+    focusedPaneItem?.kind === 'markdown' ||
+    focusedPaneItem?.kind === 'viewer'
+  useEffect(() => window.api.shortcuts.setEditorPaneActive(editorPaneActive), [editorPaneActive])
   const [quickOpenOpen, setQuickOpenOpen] = useState(false)
   const openQuickOpenForFocusedPane = useCallback(() => {
-    if (homeActive) return
-    const focusedNode = focusedPaneGroupId
-      ? visibleModel?.getNodeById(focusedPaneGroupId)
-      : undefined
-    const tabSet =
-      focusedNode?.getType() === 'tabset'
-        ? (focusedNode as TabSetNode)
-        : visibleModel?.getActiveTabset()
-    const selectedNode = tabSet?.getSelectedNode()
-    const activePaneItem =
-      selectedNode?.getType() === 'tab'
-        ? resolveActivePaneTab(readPaneGroupConfig(selectedNode as TabNode))
-        : undefined
-    if (activePaneItem?.kind === 'terminal') return
+    if (homeActive || !editorPaneActive) return
     setQuickOpenOpen(true)
-  }, [focusedPaneGroupId, homeActive, visibleModel])
+  }, [editorPaneActive, homeActive])
   const [usageMeterSettings, setUsageMeterSettings] = useState<UsageMeterSettings>(
     DEFAULT_USAGE_METER_SETTINGS
   )

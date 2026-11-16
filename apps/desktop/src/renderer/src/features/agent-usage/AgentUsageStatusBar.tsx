@@ -7,7 +7,7 @@ import {
   type ClaudeRateLimitStatus,
   type CodexRateLimitStatus,
   type CursorUsageStatus
-} from '../../electron'
+} from './usageApi'
 import {
   USAGE_PROVIDER_LABELS,
   type UsageProviderId,

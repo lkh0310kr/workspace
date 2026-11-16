@@ -12,7 +12,7 @@ App scope는 설정 저장·적용 범위와 Main usage adapter다. 공통 edito
 | pane zoom          | PaneGroupConfig.zoom, pane의 text 크기와 kind별 host 적용                                     |
 | browser guest zoom | item.zoomFactor, browserZoom helper의 guest factor; pane zoom과 별도                          |
 | usage 선택         | Main config usageMeters.enabled, 기본 claude/cursor; normalizer가 허용 ID와 고정 순서로 정리  |
-| explorer layout    | pane별 open/width/mode, root별 tree 확장/scroll                                               |
+| Editor tree layout | pane별 open/width/mode, root별 tree 확장/scroll                                               |
 
 [theme](../../../../apps/desktop/src/renderer/src/theme.ts)는 system preference일 때만 OS 변경을 구독하고 xterm처럼 CSS로 바뀌지 않는 소비자에게 resolved theme를 알린다. autosave 선택과 실제 debounce는 별도 책임이다.
 

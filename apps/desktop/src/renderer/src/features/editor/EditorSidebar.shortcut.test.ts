@@ -9,7 +9,6 @@ import type { EditorSidebarState } from '@workspace/editor'
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true
 
-const shortcutCallbacks = vi.hoisted(() => ({ find: [] as Array<() => void> }))
 
 vi.mock('./TreeView', () => ({ TreeView: () => null }))
 vi.mock('./SearchPanel', () => ({ SearchPanel: () => null }))
@@ -17,16 +16,6 @@ vi.mock('@workspace/editor', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@workspace/editor')>()),
   EditorTreeResizeHandle: () => null
 }))
-vi.mock('../../electron', () => ({
-  onFindInFilesShortcut: (callback: () => void) => {
-    shortcutCallbacks.find.push(callback)
-    return () => {
-      shortcutCallbacks.find = shortcutCallbacks.find.filter((current) => current !== callback)
-    }
-  },
-  onToggleEditorTreeShortcut: () => () => {}
-}))
-
 import { EditorSidebar } from './EditorSidebar'
 
 let root: Root | null = null
@@ -37,7 +26,6 @@ afterEach(async () => {
   root = null
   container?.remove()
   container = null
-  shortcutCallbacks.find = []
 })
 
 describe('Editor tree toggle shortcut', () => {
@@ -145,7 +133,18 @@ describe('Editor tree toggle shortcut', () => {
       )
     })
 
-    await act(async () => shortcutCallbacks.find[0]?.())
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'f',
+          code: 'KeyF',
+          metaKey: true,
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true
+        })
+      )
+    })
     expect(setSidebarMode).not.toHaveBeenCalled()
     expect(open).toBe(false)
 

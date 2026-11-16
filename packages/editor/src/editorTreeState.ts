@@ -22,10 +22,12 @@ export function resolveEditorTreeScrollTop(
 }
 
 const session = new Map<string, EditorTreeState>()
-// Keep the existing storage names so users retain their saved tree state.
-const EXPANDED_KEY = 'workspace.explorerExpanded'
-const SCROLL_KEY = 'workspace.explorerScroll'
-const ROOT_KEY = 'workspace.explorerRoot'
+const EXPANDED_KEY = 'workspace.editorTreeExpanded'
+const SCROLL_KEY = 'workspace.editorTreeScroll'
+const ROOT_KEY = 'workspace.editorTreeRoot'
+const LEGACY_EXPANDED_KEY = 'workspace.explorerExpanded'
+const LEGACY_SCROLL_KEY = 'workspace.explorerScroll'
+const LEGACY_ROOT_KEY = 'workspace.explorerRoot'
 
 function expandedStorageKey(stateKey: string): string {
   return `${EXPANDED_KEY}.${stateKey}`
@@ -37,6 +39,30 @@ function scrollStorageKey(stateKey: string): string {
 
 function rootStorageKey(stateKey: string): string {
   return `${ROOT_KEY}.${stateKey}`
+}
+
+function migrateLegacyStorage(stateKey: string): void {
+  try {
+    if (localStorage.getItem(rootStorageKey(stateKey)) !== null) return
+    const legacyRootKey = `${LEGACY_ROOT_KEY}.${stateKey}`
+    const legacyRoot = localStorage.getItem(legacyRootKey)
+    if (legacyRoot === null) return
+
+    const keys = [
+      [`${EXPANDED_KEY}.${stateKey}`, `${LEGACY_EXPANDED_KEY}.${stateKey}`],
+      [`${SCROLL_KEY}.${stateKey}`, `${LEGACY_SCROLL_KEY}.${stateKey}`],
+      [`${SCROLL_KEY}.${stateKey}.anchor`, `${LEGACY_SCROLL_KEY}.${stateKey}.anchor`]
+    ] as const
+    for (const [nextKey, oldKey] of keys) {
+      const value = localStorage.getItem(oldKey)
+      if (value !== null) localStorage.setItem(nextKey, value)
+    }
+    localStorage.setItem(rootStorageKey(stateKey), legacyRoot)
+    for (const [, oldKey] of keys) localStorage.removeItem(oldKey)
+    localStorage.removeItem(legacyRootKey)
+  } catch {
+    // Keep legacy state intact if storage migration cannot complete.
+  }
 }
 
 function readExpanded(stateKey: string, rootPath: string): string[] {
@@ -58,6 +84,7 @@ function readScroll(stateKey: string, rootPath: string): number {
 }
 
 export function loadEditorTreeState(stateKey: string, rootPath: string): EditorTreeState {
+  migrateLegacyStorage(stateKey)
   const cached = session.get(stateKey)
   if (cached && cached.rootPath === rootPath) return cached
   const next: EditorTreeState = {

@@ -135,38 +135,27 @@ describe('relayHostAppShortcuts', () => {
     relayHostAppShortcuts(event as never, keyDown('KeyP', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null
+      focusedTerminalId: null,
+      editorPaneActive: true
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith('shortcut:quick-open')
   })
 
-  it('routes Cmd+Shift+F to Find in Files', () => {
+  it.each([
+    ['Cmd+Shift+F', keyDown('KeyF', { meta: true, shift: true })],
+    ['Cmd+Backslash', { ...keyDown('Backslash', { meta: true }), key: '₩' }]
+  ])('leaves %s for the active Editor pane', (_name, input) => {
     const event = mockEvent()
     const send = vi.fn()
-    relayHostAppShortcuts(event as never, keyDown('KeyF', { meta: true, shift: true }) as never, {
+    relayHostAppShortcuts(event as never, input as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null
+      focusedTerminalId: null,
+      editorPaneActive: true
     })
-    expect(event.preventDefault).toHaveBeenCalled()
-    expect(send).toHaveBeenCalledWith('shortcut:find-in-files')
-  })
-
-  it('routes Cmd+Backslash to Explorer when no terminal owns focus', () => {
-    const event = mockEvent()
-    const send = vi.fn()
-    relayHostAppShortcuts(
-      event as never,
-      { ...keyDown('Backslash', { meta: true }), key: '₩' } as never,
-      {
-        send,
-        terminalOwnsAppShortcuts: false,
-        focusedTerminalId: null
-      }
-    )
-    expect(event.preventDefault).toHaveBeenCalled()
-    expect(send).toHaveBeenCalledWith('shortcut:toggle-explorer')
+    expect(event.preventDefault).not.toHaveBeenCalled()
+    expect(send).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -183,20 +172,18 @@ describe('relayHostAppShortcuts', () => {
     })
     expect(event.preventDefault).toHaveBeenCalled()
     expect(send).not.toHaveBeenCalledWith('shortcut:quick-open')
-    expect(send).not.toHaveBeenCalledWith('shortcut:find-in-files')
-    expect(send).not.toHaveBeenCalledWith('shortcut:toggle-explorer')
   })
 
-  it('routes Cmd+F to the focused editor instead of Chromium Find', () => {
+  it('leaves Cmd+F for the focused Editor view to handle locally', () => {
     const event = mockEvent()
     const send = vi.fn()
     relayHostAppShortcuts(event as never, keyDown('KeyF', { meta: true }) as never, {
       send,
       terminalOwnsAppShortcuts: false,
-      focusedTerminalId: null
+      focusedTerminalId: null,
+      editorPaneActive: true
     })
-    expect(event.preventDefault).toHaveBeenCalled()
-    expect(send).toHaveBeenCalledWith('shortcut:find-in-editor')
+    expect(event.preventDefault).not.toHaveBeenCalled()
   })
 
   it('relays workspace tab index on Cmd+digit while terminal is focused', () => {
@@ -214,44 +201,17 @@ describe('relayHostAppShortcuts', () => {
 })
 
 describe('relayGuestWebviewShortcuts', () => {
-  it('routes Quick Open and Find in Files before a browser guest consumes the shortcuts', () => {
-    const quickOpenEvent = mockEvent()
-    const quickOpenSend = vi.fn()
-    relayGuestWebviewShortcuts(
-      quickOpenEvent as never,
-      keyDown('KeyP', { meta: true }) as never,
-      quickOpenSend,
-      vi.fn(),
-      42
-    )
-    expect(quickOpenEvent.preventDefault).toHaveBeenCalled()
-    expect(quickOpenSend).toHaveBeenCalledWith('shortcut:quick-open')
-
-    const searchEvent = mockEvent()
-    const searchSend = vi.fn()
-    relayGuestWebviewShortcuts(
-      searchEvent as never,
-      keyDown('KeyF', { meta: true, shift: true }) as never,
-      searchSend,
-      vi.fn(),
-      42
-    )
-    expect(searchEvent.preventDefault).toHaveBeenCalled()
-    expect(searchSend).toHaveBeenCalledWith('shortcut:find-in-files')
-  })
-
-  it('routes Cmd+Backslash to Explorer from a browser guest', () => {
+  it.each([
+    ['Cmd+P', keyDown('KeyP', { meta: true })],
+    ['Cmd+Shift+F', keyDown('KeyF', { meta: true, shift: true })],
+    ['Cmd+\\', { ...keyDown('Backslash', { meta: true }), key: '₩' }],
+    ['Cmd+F', keyDown('KeyF', { meta: true })]
+  ])('leaves Editor shortcut %s in the browser guest', (_name, input) => {
     const event = mockEvent()
     const send = vi.fn()
-    relayGuestWebviewShortcuts(
-      event as never,
-      { ...keyDown('Backslash', { meta: true }), key: '₩' } as never,
-      send,
-      vi.fn(),
-      42
-    )
-    expect(event.preventDefault).toHaveBeenCalled()
-    expect(send).toHaveBeenCalledWith('shortcut:toggle-explorer')
+    relayGuestWebviewShortcuts(event as never, input as never, send, vi.fn(), 42)
+    expect(event.preventDefault).not.toHaveBeenCalled()
+    expect(send).not.toHaveBeenCalled()
   })
 
   it('shows tab numbers while Meta is held in a browser guest', () => {

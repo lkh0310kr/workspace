@@ -141,9 +141,7 @@ export interface WorkspaceApi {
   shortcuts: {
     onHome: (cb: () => void) => () => void
     onQuickOpen: (cb: () => void) => () => void
-    onFindInFiles: (cb: () => void) => () => void
-    onToggleExplorer: (cb: () => void) => () => void
-    onFindInEditor: (cb: () => void) => () => void
+    setEditorPaneActive: (active: boolean) => void
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
     onBrowserZoom: (
       cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void
