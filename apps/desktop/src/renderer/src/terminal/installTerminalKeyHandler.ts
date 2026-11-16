@@ -3,10 +3,10 @@ import {
   clearSharedOptionKeyTracker,
   getSharedOptionKeyTracker
 } from '../lib/keyboard-layout/shared-option-key-tracker'
-import { releaseTerminalImeTextareaAnchor } from '../lib/pane-manager/terminal-ime-candidate-anchor'
+import { releaseTerminalImeTextareaAnchor } from '@workspace/terminal/pane-manager/terminal-ime-candidate-anchor'
 import { sendCapturedTerminalInput } from './terminal-captured-input-dispatch'
 import { pasteClipboardIntoTerminal } from './terminal-clipboard-paste'
-import { readTerminalClipboardSelection } from './terminal-clipboard-selection-text'
+import { readTerminalClipboardSelection } from '@workspace/terminal/terminal/terminal-clipboard-selection-text'
 import { copyTerminalSelection } from './terminal-selection-copy'
 import { shouldBypassXtermClipboardKeyboardEvent } from './xterm-clipboard-bypass-policy'
 import { notifyTerminalKeyboardPasteHandled } from './installTerminalPasteHandler'

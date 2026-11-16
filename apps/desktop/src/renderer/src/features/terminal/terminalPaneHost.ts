@@ -1,9 +1,9 @@
-import type { TuiAgent } from '../../../../shared/agent/tui-agent'
+import type { TuiAgent } from '@workspace/terminal/types/tuiAgent'
 import { agentPaneKey, useAgentStatusStore } from '../../store/agentStatusStore'
 import { registerTerminalAgentPane } from '../../terminal/terminalAgentPaneRegistry'
 import { writeClipboardText } from '../../electron'
 import { connectPanePty } from '../../terminal/connectPanePty'
-import type { ManagedPane } from '../../lib/pane-manager/pane-manager-types'
+import type { ManagedPane } from '@workspace/terminal/pane-manager/pane-manager-types'
 import type { PtyTransport } from '../../terminal/ptyTransport'
 import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
 

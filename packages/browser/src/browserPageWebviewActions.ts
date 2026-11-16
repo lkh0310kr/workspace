@@ -2,7 +2,14 @@
 
 export type BrowserPageWebviewActionResult = 'ok' | 'guest-missing' | 'not-ready'
 
-function probeWebviewGuest(webview: Electron.WebviewTag): boolean {
+export interface BrowserPageWebviewActionsPort {
+  getWebContentsId(): number
+  reload(): void
+  reloadIgnoringCache(): void
+  loadURL(url: string): Promise<void>
+}
+
+function probeWebviewGuest(webview: BrowserPageWebviewActionsPort): boolean {
   try {
     webview.getWebContentsId()
     return true
@@ -12,7 +19,7 @@ function probeWebviewGuest(webview: Electron.WebviewTag): boolean {
 }
 
 export function reloadBrowserPageWebview(
-  webview: Electron.WebviewTag,
+  webview: BrowserPageWebviewActionsPort,
   { ignoreCache }: { ignoreCache: boolean }
 ): BrowserPageWebviewActionResult {
   if (!probeWebviewGuest(webview)) {
@@ -31,7 +38,7 @@ export function reloadBrowserPageWebview(
 }
 
 export function loadBrowserPageWebviewUrl(
-  webview: Electron.WebviewTag,
+  webview: BrowserPageWebviewActionsPort,
   url: string
 ): BrowserPageWebviewActionResult {
   if (!probeWebviewGuest(webview)) {

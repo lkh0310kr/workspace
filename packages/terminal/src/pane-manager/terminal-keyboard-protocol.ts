@@ -1,5 +1,5 @@
 import type { ITerminalOptions } from '@xterm/xterm'
-import type { TuiAgent } from '../../../../shared/agent/tui-agent'
+import type { TuiAgent } from '../types/tuiAgent'
 import type { WindowsPtyCompatibilityContext } from './windows-pty-compatibility'
 
 export type TerminalKeyboardProtocolContext = WindowsPtyCompatibilityContext & {

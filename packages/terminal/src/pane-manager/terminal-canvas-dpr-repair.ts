@@ -1,5 +1,5 @@
 import type { ManagedPane } from './pane-manager-types'
-import { recordTerminalWebglDiagnostic } from '../../../../shared/terminal-webgl-diagnostics'
+import { recordTerminalWebglDiagnostic } from '../shared/terminal-webgl-diagnostics'
 
 /**
  * Why: when devicePixelRatio changes while a pane is hidden (window moved

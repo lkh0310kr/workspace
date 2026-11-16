@@ -1,5 +1,5 @@
 import type { ManagedPaneInternal } from './pane-manager-types'
-import { activateOrcaTerminalUnicodeProvider } from '../shared/terminal-unicode-provider'
+import { activateTerminalUnicodeProvider } from '../shared/terminal-unicode-provider'
 import {
   attachPaneFitResizeObserver,
   detachPaneFitResizeObserver
@@ -13,14 +13,14 @@ import { clearPendingSplitScrollRestore } from './pane-split-scroll'
 import { installTerminalImeCandidateAnchor } from './terminal-ime-candidate-anchor'
 import { installWindowsCtrlAltChordRepair } from './terminal-windows-ctrl-alt-chord-classification'
 import { attachTerminalMouseWheelMultiplier } from './pane-terminal-mouse-wheel'
-import { installTerminalWheelScroll } from '../../terminal/terminal-wheel-scroll'
+import { installTerminalWheelScroll } from '../terminal/terminal-wheel-scroll'
 import { attachTerminalScrollIntentTracking } from './terminal-scroll-intent-dom-tracking'
 import {
   installTerminalLinkifierHoverResetOnMouseLeave,
   installTerminalLinkifierHoverResetOnWindowBlur
 } from './terminal-linkifier-hover-reset-on-mouseleave'
 import { installTerminalLinkifierHoverResetOnWrite } from './terminal-linkifier-hover-reset-on-write'
-import { installTerminalNativeCopyGutterTrim } from '../../terminal/terminal-native-copy-gutter'
+import { installTerminalNativeCopyGutterTrim } from '../terminal/terminal-native-copy-gutter'
 
 export { createPaneDOM } from './pane-dom-creation'
 
@@ -66,7 +66,7 @@ export function openTerminal(pane: ManagedPaneInternal): void {
   )
   pane.nativeCopyGutterDisposable = installTerminalNativeCopyGutterTrim(terminal)
 
-  activateOrcaTerminalUnicodeProvider(terminal)
+  activateTerminalUnicodeProvider(terminal)
 
   pane.compositionHandler = installTerminalImeCandidateAnchor(terminal)
   pane.focusClassSyncCleanup = attachDomRendererFocusClassSync(terminal.element)

@@ -8,16 +8,15 @@ import {
   parkBrowserPageViewport,
   syncBrowserPageChromeInset,
   useBrowserPageSlotViewport,
-  readBrowserNavigationState
+  readBrowserNavigationState,
+  dispatchLocalBrowserZoom,
+  registerBrowserZoomPersist,
+  loadBrowserPageWebviewUrl,
+  reloadBrowserPageWebview
 } from '@workspace/browser'
 import { BrowserNavButton } from './BrowserNavButton'
 import { BrowserDownloadsBar } from './BrowserDownloadsBar'
-import { dispatchLocalBrowserZoom, registerBrowserZoomPersist } from '../../browser/browserZoom'
 import { browserFocusLog, snapshotBrowserFocusState } from '../../browser/browserFocusDebugLog'
-import {
-  loadBrowserPageWebviewUrl,
-  reloadBrowserPageWebview
-} from '../../browser/browserPageWebviewActions'
 import { ensureBrowserPageWebview } from '../../browser/ensureBrowserPageWebview'
 import {
   browserPageGuestNeedsAttach,

@@ -8,7 +8,8 @@ export default defineConfig({
   esbuild: { jsx: 'automatic' },
   resolve: {
     alias: [
-      { find: /^vitest$/, replacement: resolve(desktopRoot, 'node_modules/vitest/dist/index.js') }
+      { find: /^vitest$/, replacement: resolve(desktopRoot, 'node_modules/vitest/dist/index.js') },
+      { find: /^@xterm\/(.*)$/, replacement: resolve(desktopRoot, 'node_modules/@xterm/$1') }
     ],
     dedupe: [
       'react',

@@ -50,7 +50,7 @@ class OrcaUnicodeProvider implements IUnicodeVersionProvider {
   }
 }
 
-export function activateOrcaTerminalUnicodeProvider(terminal: XtermTerminalWithUnicodeCore): void {
+export function activateTerminalUnicodeProvider(terminal: XtermTerminalWithUnicodeCore): void {
   const { unicode } = terminal
   if (unicode.activeVersion === ORCA_UNICODE_VERSION) {
     return

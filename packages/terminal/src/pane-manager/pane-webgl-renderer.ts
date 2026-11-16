@@ -1,6 +1,6 @@
 import { WebglAddon } from '@xterm/addon-webgl'
 import type { ManagedPane, ManagedPaneInternal } from './pane-manager-types'
-import { recordTerminalWebglDiagnostic } from '../../../../shared/terminal-webgl-diagnostics'
+import { recordTerminalWebglDiagnostic } from '../shared/terminal-webgl-diagnostics'
 import { getLivePaneCensus } from './pane-manager-registry'
 import { isManagedPaneDisplayNone } from './pane-display-visibility'
 import {

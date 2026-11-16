@@ -9,7 +9,7 @@ import {
   onTerminalPasteShortcut
 } from '../electron'
 import { pastePlainTextInFocusedEditor } from '../activeEditorView'
-import { getRegisteredTerminalPane } from '../lib/pane-manager/pane-terminal-registry'
+import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager/pane-terminal-registry'
 import { pasteClipboardIntoTerminal } from '../terminal/terminal-clipboard-paste'
 import { notifyTerminalKeyboardPasteHandled } from '../terminal/installTerminalPasteHandler'
 import { captureTerminalSessionBuffers } from '../terminal/capture-terminal-session-buffers'

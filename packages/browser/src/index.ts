@@ -21,3 +21,21 @@ export type { BrowserPageViewportLayout } from './browserPageViewport'
 export { readBrowserNavigationState } from './browserNavigationState'
 export type { BrowserNavigationState, BrowserNavigationTarget } from './browserNavigationState'
 export { useBrowserPageSlotViewport } from './useBrowserPageSlotViewport'
+
+export { loadBrowserPageWebviewUrl, reloadBrowserPageWebview } from './browserPageWebviewActions'
+export type {
+  BrowserPageWebviewActionResult,
+  BrowserPageWebviewActionsPort
+} from './browserPageWebviewActions'
+export {
+  addBrowserZoomEventListener,
+  applyBrowserZoomToWebview,
+  dispatchLocalBrowserZoom,
+  registerBrowserZoomPersist,
+  zoomBrowserWebview,
+  BROWSER_ZOOM_MAX,
+  BROWSER_ZOOM_MIN,
+  BROWSER_ZOOM_STEP,
+  WORKSPACE_BROWSER_ZOOM_EVENT
+} from './browserZoom'
+export type { BrowserZoomDirection, BrowserZoomWebview } from './browserZoom'

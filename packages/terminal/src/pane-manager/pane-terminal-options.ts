@@ -1,6 +1,6 @@
 import type { ITerminalOptions } from '@xterm/xterm'
 import { buildTerminalFontFamily } from '../monospace-font-family'
-import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from '../../../../shared/terminal-scrollback-policy'
+import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from '../shared/terminal-scrollback-policy'
 
 type TerminalCursorStyle = NonNullable<ITerminalOptions['cursorStyle']>
 type TerminalCursorInactiveStyle = NonNullable<ITerminalOptions['cursorInactiveStyle']>

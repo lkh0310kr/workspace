@@ -1,5 +1,5 @@
 import type { ITerminalOptions } from '@xterm/xterm'
-import type { TuiAgent } from '../../../../shared/agent/tui-agent'
+import type { TuiAgent } from '../types/tuiAgent'
 import { isWslUncPath } from './wsl-unc-path'
 import { buildDefaultTerminalOptions } from './pane-terminal-options'
 import { buildWindowsPtyCompatibilityOptions } from './windows-pty-compatibility'

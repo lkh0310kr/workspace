@@ -3,7 +3,7 @@ import { Actions, type Model, type TabNode, type TabSetNode } from 'flexlayout-r
 import { closeActivePaneTab } from '../layout/layoutActions'
 import { dismissWorkspacePortals } from '../workspacePortalDismiss'
 import { onClosePaneTabShortcut } from '../electron'
-import { dispatchLocalBrowserZoom } from '../browser/browserZoom'
+import { dispatchLocalBrowserZoom } from '@workspace/browser'
 import type { WorkspaceSettingsTarget } from './useAppShellState'
 import { readPaneGroupConfig, resolveActivePaneTab } from '../layout/layoutSession'
 import { useWorkspaceStore } from '../store/workspaceStore'

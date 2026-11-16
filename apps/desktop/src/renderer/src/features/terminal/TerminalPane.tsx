@@ -7,26 +7,26 @@ import { getTerminalSearchDecorations, XTERM_THEMES } from '../../terminalThemes
 import { useTerminalSearchThemeKey } from './useTerminalSearchThemeKey'
 import { TerminalSearch, type SearchAddonPort } from '@workspace/terminal'
 import type { RefObject } from 'react'
-import { createPaneDOM } from '../../lib/pane-manager/pane-dom-creation'
-import { buildTerminalPaneOptions } from '../../lib/pane-manager/build-terminal-pane-options'
-import { disposePane, openTerminal } from '../../lib/pane-manager/pane-lifecycle'
-import type { ManagedPaneInternal } from '../../lib/pane-manager/pane-manager-types'
+import { createPaneDOM } from '@workspace/terminal/pane-manager/pane-dom-creation'
+import { buildTerminalPaneOptions } from '@workspace/terminal/pane-manager/build-terminal-pane-options'
+import { disposePane, openTerminal } from '@workspace/terminal/pane-manager/pane-lifecycle'
+import type { ManagedPaneInternal } from '@workspace/terminal/pane-manager/pane-manager-types'
 import {
   registerTerminalPane,
   unregisterTerminalPane
-} from '../../lib/pane-manager/pane-terminal-registry'
+} from '@workspace/terminal/pane-manager/pane-terminal-registry'
 import {
   applyTerminalWebglAfterFit,
   refitPaneTerminal
-} from '../../lib/pane-manager/pane-terminal-refit'
-import { fitRevealedPane } from '../../lib/pane-manager/pane-reveal-fit'
+} from '@workspace/terminal/pane-manager/pane-terminal-refit'
+import { fitRevealedPane } from '@workspace/terminal/pane-manager/pane-reveal-fit'
 import {
   resumePaneRendering,
   suspendPaneRendering
-} from '../../lib/pane-manager/pane-rendering-control'
+} from '@workspace/terminal/pane-manager/pane-rendering-control'
 import { resolveExplicitTerminalTitleAgentType } from '../../../../shared/agent/terminal-title-agent-type'
-import type { TuiAgent } from '../../../../shared/agent/tui-agent'
-import { shouldFocusTerminalFromPanePointerDown } from '../../lib/pane-manager/pane-pointer-focus'
+import type { TuiAgent } from '@workspace/terminal/types/tuiAgent'
+import { shouldFocusTerminalFromPanePointerDown } from '@workspace/terminal/pane-manager/pane-pointer-focus'
 import { focusTerminalTextarea } from '../../lib/focus-terminal-textarea'
 import { requestKeyboardSurface } from '../../interaction/keyboardSurface'
 import { registerTerminalKeyboardTarget } from '../../terminal/terminalKeyboardSurface'

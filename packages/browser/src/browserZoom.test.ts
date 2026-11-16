@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { BrowserZoomWebview } from './browserZoom'
 import {
   applyBrowserZoomToWebview,
   registerBrowserZoomPersist,
@@ -14,7 +15,7 @@ function mockWebview(factor: number, tabItemId = 'tab-1') {
       zoom = next
     },
     dataset: { tabItemId }
-  } as unknown as Electron.WebviewTag
+  } as BrowserZoomWebview
   return { webview, getZoom: () => zoom }
 }
 

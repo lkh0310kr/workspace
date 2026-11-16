@@ -1,5 +1,5 @@
 import type { Terminal } from '@xterm/xterm'
-import { readTerminalClipboardSelection } from './terminal-clipboard-selection-text'
+import { readTerminalClipboardSelection } from '@workspace/terminal/terminal/terminal-clipboard-selection-text'
 
 type TerminalSelectionCopyOptions = {
   terminal: Pick<Terminal, 'getSelection' | 'clearSelection'>

@@ -7,7 +7,9 @@
     "baseUrl": ".",
     "paths": {
       "@workspace/home": ["../../packages/home/src/index.ts"],
-      "@workspace/home/*": ["../../packages/home/src/*"]
+      "@workspace/home/*": ["../../packages/home/src/*"],
+      "@workspace/terminal/*": ["../../packages/terminal/src/*"],
+      "@xterm/*": ["node_modules/@xterm/*"]
     }
   }
 }

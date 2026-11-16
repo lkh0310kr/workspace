@@ -1,15 +1,15 @@
-import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from '../../../shared/terminal-scrollback-policy'
+import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from '@workspace/terminal/shared/terminal-scrollback-policy'
 import { serializeWithAbsoluteCursor } from '../../../shared/terminal-serialize-absolute-cursor'
 import {
   trimTerminalSessionBufferToByteLimit,
   type TerminalSessionBuffersFile
 } from '../../../shared/terminal-session-buffers'
-import { flushTerminalOutput } from '../lib/pane-manager/pane-terminal-output-scheduler'
+import { flushTerminalOutput } from '@workspace/terminal/pane-manager/pane-terminal-output-scheduler'
 import {
   forEachRegisteredTerminalPane,
   getRegisteredTerminalPane
-} from '../lib/pane-manager/pane-terminal-registry'
-import type { ManagedPaneInternal } from '../lib/pane-manager/pane-manager-types'
+} from '@workspace/terminal/pane-manager/pane-terminal-registry'
+import type { ManagedPaneInternal } from '@workspace/terminal/pane-manager/pane-manager-types'
 
 function capturePaneBuffer(pane: ManagedPaneInternal): string {
   flushTerminalOutput(pane.terminal)

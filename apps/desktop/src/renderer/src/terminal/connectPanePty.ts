@@ -1,8 +1,11 @@
 import type { IDisposable } from '@xterm/xterm'
-import type { ManagedPane, ManagedPaneInternal } from '../lib/pane-manager/pane-manager-types'
-import { setPaneFitListener } from '../lib/pane-manager/pane-fit-resize-observer'
-import { refitPaneTerminal } from '../lib/pane-manager/pane-terminal-refit'
-import { writeTerminalOutput } from '../lib/pane-manager/pane-terminal-output-scheduler'
+import type {
+  ManagedPane,
+  ManagedPaneInternal
+} from '@workspace/terminal/pane-manager/pane-manager-types'
+import { setPaneFitListener } from '@workspace/terminal/pane-manager/pane-fit-resize-observer'
+import { refitPaneTerminal } from '@workspace/terminal/pane-manager/pane-terminal-refit'
+import { writeTerminalOutput } from '@workspace/terminal/pane-manager/pane-terminal-output-scheduler'
 import { ptyResize, writeClipboardText } from '../electron'
 import { createElectronPtyTransport, type PtyTransport } from './ptyTransport'
 import { createPtyOutputTitleObserver } from './pty-output-title-observer'

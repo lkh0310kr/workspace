@@ -64,7 +64,8 @@ export default defineConfig({
         '@workspace/editor': resolve('../../packages/editor/src'),
         '@workspace/home': resolve('../../packages/home/src'),
         '@workspace/browser': resolve('../../packages/browser/src'),
-        '@workspace/terminal': resolve('../../packages/terminal/src')
+        '@workspace/terminal': resolve('../../packages/terminal/src'),
+        '@xterm': resolve('node_modules/@xterm')
       }
     },
     plugins: [react()]

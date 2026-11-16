@@ -530,7 +530,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/browser/browserEmbedSupport.ts",
-          "sha256": "a6d2005b54bf98d7a5ab945bd3133911888adaa2119d23b1fa678bcae225a5c5"
+          "sha256": "e7a787a626141828b66ff55a88122250efa876f077850bbbe13a7e327905ef4c"
         },
         {
           "path": "apps/desktop/src/renderer/src/browser/browserFocusDebugLog.ts",
@@ -543,14 +543,6 @@
         {
           "path": "apps/desktop/src/renderer/src/browser/browserPageGuestRecovery.ts",
           "sha256": "72fe5caedd18d12a4610990aafad463f5997315419d008637dd44c6649530254"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/browser/browserPageWebviewActions.ts",
-          "sha256": "0ae155d1ae2ba46c3754207e13a4062a30f1511f0801da0a103ddfe72d8b3dcc"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/browser/browserZoom.ts",
-          "sha256": "6aec21288556f1affe95e4290b4c729016dd3931863db84c048edab0f3150c63"
         },
         {
           "path": "apps/desktop/src/renderer/src/browser/ensureBrowserPageWebview.ts",
@@ -606,7 +598,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/BrowserContent.tsx",
-          "sha256": "ccbb88dd5c18244df977f8328a6497dd34736fbf572c52b445de640b06fb06c6"
+          "sha256": "34d3e604368e998dbbeb9ae6a9e6ed4209be90ce0f3f1f4920855efbd6de68e2"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/BrowserPaneOverlaySlot.tsx",
@@ -725,7 +717,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/hooks/useAppBootstrap.ts",
-          "sha256": "70386f06c43f5aa8a28fa409201f1f7e038d54034f9dcfc9362f438cdd15de3a"
+          "sha256": "fce78e009d942031fdc80f729862ba6bab753110e9e260644fac5c5b2868f651"
         },
         {
           "path": "apps/desktop/src/renderer/src/hooks/useLayoutHostCallbacks.tsx",
@@ -781,7 +773,7 @@
         },
         {
           "path": "apps/desktop/vitest.config.ts",
-          "sha256": "3f6875727f13ba400cc9a6744d4be2207a2e39d8db79a4123be502903f950bde"
+          "sha256": "a857c9b67c87e1b2f6071e17936e52db55b559f8e8f169d3327807418c3381ac"
         },
         {
           "path": "apps/desktop/scripts/run-vitest.mjs",
@@ -818,7 +810,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/TerminalPane.tsx",
-          "sha256": "9edcaed87d123588ecb2ca4be1d4e5b50dd5a49ba4f32c504a85779221411342"
+          "sha256": "a620e6b6131044c8578c4ed396dbb8e87c6f0acbfdf317a79098a7ac11e8ffe8"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/index.ts",
@@ -826,15 +818,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "b56adbb9dc2959857836413d2183da5835c68839d100d1939b89a946a6ce84c6"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/lib/pane-manager/pane-terminal-output-scheduler-queue-retention.test.ts",
-          "sha256": "152ca04ac1b69424842577c4d491a77ed29b63a7ecf15762acf12b45a6de042b"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/lib/pane-manager/pane-terminal-output-scheduler.ts",
-          "sha256": "8648c722b1e89aa9006510ea4f9192c4e32575a7ff9712f50eaf55d36c05778a"
+          "sha256": "f6a18575ce8657266c07120e84a5e7d3368f3dae1c7448bd57ab032c8832e3e4"
         },
         {
           "path": "apps/desktop/src/renderer/src/terminal/ptyDataMultiplexer.ts",
@@ -1061,7 +1045,7 @@
       "scope": "package",
       "owner": "packages/browser",
       "specStatus": "drafted",
-      "coverage": "Address input, navigation URL policy, visit history, and ranked suggestions. Electron guest lifecycle and IPC remain Desktop-owned.",
+      "coverage": "Browser address input, navigation/history/zoom policies, guest actions, overlay viewport management, and navigation-state policy. Electron guest lifecycle and IPC are Desktop adapters.",
       "documents": [
         "packages/browser/README.md"
       ],
@@ -1091,6 +1075,30 @@
           "sha256": "8077249c3738fc67cb0f6166c309a981b0064129f4cef1fea69c9c30785537f2"
         },
         {
+          "path": "packages/browser/src/browserNavigationState.test.ts",
+          "sha256": "38366d9d7e345563b35f63dfeffe753d8da976b08f026d0985bfc4fcbdae048a"
+        },
+        {
+          "path": "packages/browser/src/browserNavigationState.ts",
+          "sha256": "ade303c669b2d6895fef054c01abed81e67e655428638f0b055f8d18b85cc56e"
+        },
+        {
+          "path": "packages/browser/src/browserPageViewport.test.ts",
+          "sha256": "753b6d3236c63e65e9074bf6763e9b78816a49bf21a81d7a29a8d84da100574c"
+        },
+        {
+          "path": "packages/browser/src/browserPageViewport.ts",
+          "sha256": "697fefca01a9161d3b7ef2a2156d384cf5de29eb80bac8968537e03d4e1b1086"
+        },
+        {
+          "path": "packages/browser/src/browserPageWebviewActions.test.ts",
+          "sha256": "a430309b1d2e825f2d487b9082fb96db64dcc056b8ce8112b48b0e02183be8cc"
+        },
+        {
+          "path": "packages/browser/src/browserPageWebviewActions.ts",
+          "sha256": "4a49c9fcdc4baf31683d606d091047e58d82e939d3a42bf0c0d59c395c288817"
+        },
+        {
           "path": "packages/browser/src/browserUrl.test.ts",
           "sha256": "e94a10959defb9215b6768ba45837c5cee9a79cb820dc2ef29f28ba863fb8acf"
         },
@@ -1099,24 +1107,16 @@
           "sha256": "0eb525360316e5eda1eeb6011821d41dd939b2368f6d26092a15feb38b78a65e"
         },
         {
+          "path": "packages/browser/src/browserZoom.test.ts",
+          "sha256": "6d545a4e01bf2149b1c189a335748209526f4c534519112b03c785406a4abdf8"
+        },
+        {
+          "path": "packages/browser/src/browserZoom.ts",
+          "sha256": "ea78b4a160045bc365514b226de0a1f124fe65b227bdf64bedc6db4250638131"
+        },
+        {
           "path": "packages/browser/src/index.ts",
-          "sha256": "90fb85dfa82986219c3f22ff15450af097acb79310b3e5cec0fb92255c961dca"
-        },
-        {
-          "path": "packages/browser/src/browserPageViewport.ts",
-          "sha256": "697fefca01a9161d3b7ef2a2156d384cf5de29eb80bac8968537e03d4e1b1086"
-        },
-        {
-          "path": "packages/browser/src/browserPageViewport.test.ts",
-          "sha256": "753b6d3236c63e65e9074bf6763e9b78816a49bf21a81d7a29a8d84da100574c"
-        },
-        {
-          "path": "packages/browser/src/browserNavigationState.ts",
-          "sha256": "ade303c669b2d6895fef054c01abed81e67e655428638f0b055f8d18b85cc56e"
-        },
-        {
-          "path": "packages/browser/src/browserNavigationState.test.ts",
-          "sha256": "38366d9d7e345563b35f63dfeffe753d8da976b08f026d0985bfc4fcbdae048a"
+          "sha256": "e5899c7389ac4a5672db6f984f5f41391a14bfb074359a0c7e5e8244836f47c4"
         },
         {
           "path": "packages/browser/src/useBrowserPageSlotViewport.ts",
@@ -1129,7 +1129,7 @@
       "scope": "package",
       "owner": "packages/terminal",
       "specStatus": "drafted",
-      "coverage": "Terminal search UI and search failure policy. Desktop injects xterm search, theme decoration, and portal capabilities; PTY lifecycle stays Desktop-owned.",
+      "coverage": "Terminal renderer engine (pane manager, fit/scroll/WebGL/output scheduler), terminal input helpers, search UI, and terminal domain policies. Desktop retains PTY IPC/process ownership and supplies host adapters.",
       "documents": [
         "packages/terminal/README.md",
         "docs/architecture/workspace/terminal/README.md"
@@ -1137,27 +1137,451 @@
       "sources": [
         {
           "path": "packages/terminal/package.json",
-          "sha256": "a115621ab9789a73909c6aa48840404f440ecda1bc8e401d8a2fcd277f499a5d"
-        },
-        {
-          "path": "packages/terminal/README.md",
-          "sha256": "4b48990178cd386e51049e54a66d2ac88e2f1a2e1753ef689bc41bb6d08095c1"
-        },
-        {
-          "path": "packages/terminal/src/index.ts",
-          "sha256": "9988c5efa9a9530a04dd7869b0036d2efb05e2ddb70fa847529bda9b1a033d5e"
+          "sha256": "41b9f3eb1d7927be803851e630e551a565fe65a84d0a6b2414a8b78df690adaa"
         },
         {
           "path": "packages/terminal/src/TerminalSearch.tsx",
           "sha256": "3affe3bc7373f566f4e882acc4527b2ed962db07218151f0aba5121d39dfb827"
         },
         {
+          "path": "packages/terminal/src/index.ts",
+          "sha256": "9988c5efa9a9530a04dd7869b0036d2efb05e2ddb70fa847529bda9b1a033d5e"
+        },
+        {
+          "path": "packages/terminal/src/monospace-font-family.test.ts",
+          "sha256": "48f95cdc4829653258073302bfbff893bce347b2b17d976c7dbbae3e8899d372"
+        },
+        {
+          "path": "packages/terminal/src/monospace-font-family.ts",
+          "sha256": "f5739bf418a405c2d1246672ec4e4a72fd9db2fd1d7f68d0cd495b8c2d5cfff3"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/build-terminal-pane-options.ts",
+          "sha256": "8c811eb21a0bcc0578940ef32343c8c4ad817298b583955b3ee162dc1f648b76"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/mobile-fit-overrides.ts",
+          "sha256": "ff956ec9fd8183d14db3c5230221dd15f8c9e4a82b65fb7befa59fa532f52394"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-display-visibility.ts",
+          "sha256": "bd29f3c402033872c79259e262c80ee6c2a51a9c9896a3b95dcc364687f89cf4"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-dom-creation.ts",
+          "sha256": "17be28de0663fd5317496a5e62efc0c1837aaea87cf98df716fdc2747d38ab0a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-dom-focus-class-sync.ts",
+          "sha256": "4471e0bc35c2a4b085c57cdf6f058eb97744cb1b9e98ccff9d586b27260ec75d"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-fit-client-size.ts",
+          "sha256": "18438c30b44ee297172a0593178b239cb4cbf7d3534593e72a5549380bda2500"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-fit-continuation-registry.ts",
+          "sha256": "8d189c0ef805fc25e885f992bfb54fdd18746e770003a7f0ff81978e7ff3f46a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-fit-continuation-retry.ts",
+          "sha256": "4ba56a0b4a80270cceaa318271dc9624c6308095d129048108f97955ebeed74a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-fit-deferred-continuations.ts",
+          "sha256": "5af23782396604f83e1b13338f98cc9d182613b0404bb924ae346372f9325d4b"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-fit-measurability.ts",
+          "sha256": "e6952bb7e5ba019179ab3500a1de6a3cf3050aa85e6bea00e5ca30cd60c152ef"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-fit-resize-observer.ts",
+          "sha256": "01564e2bed182c491491ee154c1181ef08726d4d792a1b9906500fbbdd41c045"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-fit-webgl-attach-signal.ts",
+          "sha256": "a756c3b2125f94ef9a4e9b8ade3b8ee05ab67b6c12c5e95593849540126d85d0"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-fit.ts",
+          "sha256": "439806d6e32179565b20e9f5d272cd49cdef89d86112e6bcd22fc11d8a5c27dc"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-lifecycle.ts",
+          "sha256": "54b7d47807edd7d95fb35c50cc32eb8cede1b16cd1851c02666c5c457d7da656"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-manager-registry.ts",
+          "sha256": "da4d9c842452d520a3f17d06c03c1272c59694159d96f1b512695eb8ead986ef"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-manager-types.ts",
+          "sha256": "a278f996f04d2204b9b554f784cf69b856bc1a39e53e83c406ef477e6c97a028"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-metric-options-deferral.ts",
+          "sha256": "fc668cbb2eed0bb378338428629193339c2da64d304caf37d32b36ea44e04ed6"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-pointer-focus.ts",
+          "sha256": "bfebd9547a8b5afab8bc0277814efe6d8a559b1fd0d681044dbe4007e15a155a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-rendering-control.ts",
+          "sha256": "d5443ac3de03ace3971c04186c20b17a195b0164c57cce720649a6fad65b889c"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-reveal-fit.test.ts",
+          "sha256": "1e3ab55bc5f42957e08a3ecb307adae72f2448dfaa00bcb09b5047e7a9149f36"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-reveal-fit.ts",
+          "sha256": "0d788a1d72748eab3ab0eec9043b66baea640ab702cc9318a7be716240831deb"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-scroll.test.ts",
+          "sha256": "0ded1a94417f51aaa698cf0a561b2e5713d7818c440a4ba7b4d6b144fcbb6343"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-scroll.ts",
+          "sha256": "d3039a9e343cdccd9e768acd0eb4327d930191514e144feef497517806d40c0f"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-split-scroll.test.ts",
+          "sha256": "936fc5886553379e5c43c2c3d429bdf5464b50f9cdae4445f30d5ab57faebabb"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-split-scroll.ts",
+          "sha256": "e296254445b99acf16af5adf16304a36508bf5a8ddb5cc3bb25903b95c96e8ac"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-cursor-sequencing.ts",
+          "sha256": "c15476fdc9fc9a37557f82beb489a81d0b55212ffda690c91df8ead50cb71de5"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-foreground-queue-state.ts",
+          "sha256": "37b1371fdcf712b65a7b13d6d02593148138c6b5f60235cbf52fcea3a29bba55"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-foreground-render-settle.test.ts",
+          "sha256": "8fbb79cdd8e68b89dcef03bfce6d3a13235883792141132e57c8fa51df562e5b"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-foreground-render-settle.ts",
+          "sha256": "24aa28d6a4775f150c3c716d6f0fd5846f047eba48ae0d7e1384cd577f8063f3"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-mouse-wheel.test.ts",
+          "sha256": "26a500abf803b99b955262da543168325b33ca63f670e17974fa245ecaa00dee"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-mouse-wheel.ts",
+          "sha256": "3b92e6e3ff25ca993f3e27befca12e784035f4204007fe2baf0b11b32fdb1ea1"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-options.ts",
+          "sha256": "641582a552a3f83ea61068fe54f507a10827755e1147fb46606785918aa6b0ef"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-ack-credit.ts",
+          "sha256": "e60f822668fb1ede4d94a0cbe67232d1cacd36b1b034d3ac0f68c40f82123197"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-drain.ts",
+          "sha256": "72546a104ef206b6519cbe99dc1c8204a49ca0f285bebeda18e5402a1a9cdc1e"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-flusher.ts",
+          "sha256": "72b80b525dc3a70092374322a4fac61c1218dce9673ebd9cf802bf5e5d310043"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-pipeline.ts",
+          "sha256": "9788d3629b0d49df3e75014c1c07e885676da6780b20ce7797a473f786856056"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-queue-backlog.ts",
+          "sha256": "3b54db4063824437f4f73e676c80cb68cf10daedf319e40e13cfda797e03e4ad"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-queue-chunks.test.ts",
+          "sha256": "53cbc6b34fbc167567c2c0f9e7abd60e9fae17a0ad71c8ae2e7a70a2adecb8b6"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-queue-chunks.ts",
+          "sha256": "e99fcd6468cf0216e722ca7e3acd8e56fc599232981cf5d485d24e0c974570f5"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-queue-registry.ts",
+          "sha256": "6bab161402b3ec5175e51571dad0c97267329ec588eefde4e9eed47f108d9b14"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler-ack-credit.test.ts",
+          "sha256": "4b484bf3ad08365d296b84b3fbd130123291b1bc9dd3826e53c428c876ff4cf7"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler-backlog-cap.test.ts",
+          "sha256": "63afa885a96a54a1f5b2a3922b392f06f59c69df89a7d0709bcc374860ecee03"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler-debug.ts",
+          "sha256": "8d9cf3a23418b0305644e9554442486704452aa122b2e4b10d5aba4ec8ff4172"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler-disposed-writes.test.ts",
+          "sha256": "966d3c858e68ca0afa813c86d1dfff7b74cd62886202f652f6c05581150c5bf7"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler-foreground-refresh.test.ts",
+          "sha256": "361f746d89e46d31efb63036d4d5df37696ddb0d9865c8c2f534675cd2b6c07a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler-queue-retention.test.ts",
+          "sha256": "152ca04ac1b69424842577c4d491a77ed29b63a7ecf15762acf12b45a6de042b"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler-synchronized-frames.test.ts",
+          "sha256": "b330bf53bb0a3f7b1aafa63afc4a0ed0cc3ff83424884e0b806c48e95dde8899"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler-test-harness.ts",
+          "sha256": "c9d6c03ab348b36c54f1fd4aa5359bd65d25648dd85a0ffb49b9673d73257649"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler.test.ts",
+          "sha256": "5e409f8a024b2829a4aa203442a941b426111a4eba1597fdac8665cda46387b8"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-scheduler.ts",
+          "sha256": "8648c722b1e89aa9006510ea4f9192c4e32575a7ff9712f50eaf55d36c05778a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-output-writer.ts",
+          "sha256": "ecb6dc86a0f681ceec2d0fffcaee672610eadf2183ab914d3a102b963d644e53"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-refit.ts",
+          "sha256": "c79beef10e043cad879fe6ad970e2e5e71b4e999efd50259e93e0534abbc9bef"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-registry.ts",
+          "sha256": "9e5a19ea1dc948e8b4a89da68567400f29c0475e0f2d3d236c7e766c4e2847bf"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-terminal-tui-wheel-reports.ts",
+          "sha256": "33715a42a30a8b22e6ed65a852afa3145271f54781ac186b7b84ca2d5fee7c86"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-webgl-reattach.ts",
+          "sha256": "2c39d4d2e8bdf74cf8cc23aff4724c2a9de0c21319e95e6ede4177db18de41a8"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/pane-webgl-renderer.ts",
+          "sha256": "66c7b80f4c2439a620f09a7ce3236b4accca738ad4eab3ea7042d72449135c17"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-canvas-dpr-repair.ts",
+          "sha256": "969cbe70611b230f8ef8f0710a6faa3f09d0a6134e93f1cacc8365710b59736c"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-follow-output-waiters.ts",
+          "sha256": "c2e06b0fcce9017edecbc0c7813292eedfe13b9a8438127bffe78d96ffa5cfd3"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-grid-size-for-box.test.ts",
+          "sha256": "f8f9a9435373174c478fbba2684c93d00d293d4d7e420baddaa053a6de2e8583"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-grid-size-for-box.ts",
+          "sha256": "66e6e3862923a36e9b87af74f9f70a6255676ad6269453604c5912b163e85b50"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-ime-anchor.ts",
+          "sha256": "a249f8a35087318a681173f8fe099b749d60a2d4001f2119cc425b1a33375ff8"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-ime-candidate-anchor.ts",
+          "sha256": "bbcd23888e593fed900a137a54e94c124d4e18266fd2231bfa66056cdb885c62"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-keyboard-protocol.test.ts",
+          "sha256": "b946f53fce7c7cb339af95264770c85285788af2755c04ea7d444a2c63863ec5"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-keyboard-protocol.ts",
+          "sha256": "9fa8b602b28f691ac36b75eec8b4ea8b1d6a6fe2c5ca42e2255086fbe431bbc7"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-linkifier-hover-reset-on-mouseleave.ts",
+          "sha256": "f8525750ab4fb506bfd9d122e2091571eb1661e6dc87d24113fbb26f34b35419"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-linkifier-hover-reset-on-write.ts",
+          "sha256": "e2f6900fd8c27d98fca507a8ad6201da6afe008d433fac6451d6dc57e52a762c"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-linkifier-hover-reset.ts",
+          "sha256": "a6701b9068652d7186e9529657fe5b209fad517493b98cb46e92567ec165533a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-output-arrival-observer.ts",
+          "sha256": "af15cbe82c74fcba01bc66509228c5f75156bc5bb27878e68f0793b5192cbd70"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-parsed-dirty-rows.ts",
+          "sha256": "7e3036fb1cef320fe609f5c455e9c96fb454718ba7b0d94824896baca8f57940"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-reflow-scroll-anchor.ts",
+          "sha256": "95fde30c35178fddcca262030e33cd2f12be9c0b0796ba12a362fe87af24183a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-render-pause-release.ts",
+          "sha256": "65e79982f7f3702bc14963576d928027775ca5193585177ccc928c0c24b21582"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-scroll-buffer-snapshot.ts",
+          "sha256": "86d51fc6ae7171536b1e26416bfe8b8f6101da966860f56e30680a2019d873bb"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-scroll-intent-dom-tracking.ts",
+          "sha256": "5aab7ee45370e1648d9389bc45eec106536af25f54f6ed613f7db14f472ff3a1"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-scroll-intent-rebuild.ts",
+          "sha256": "b910b4ec3500fde6eb1911a824fc6c038c2a697880770754854ea436890f3da6"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-scroll-intent-settle.ts",
+          "sha256": "d858f28d4878d68a05ee72dc80a3d8835c950c4a4fa72bb4b8182244214e32a1"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-scroll-intent.test.ts",
+          "sha256": "c4d888f46606e0fedc32de6b5c0c598193ee559094571b73311c2fd3224c4a8a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-scroll-intent.ts",
+          "sha256": "26aaab008b7b8e595084655f7999e4d2ce3273696d1d96143f54a9d5922e28fb"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-scrollback-clear.ts",
+          "sha256": "05e5b73438f07646914ae5f62138218fcda8b2a40918b5a2c1b3d3e610555c17"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-stable-cell-fit-addon.test.ts",
+          "sha256": "99ad71b63127ccb01d4219a3f34747651feea0a04e31a93394a7790212ba5a5c"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-stable-cell-fit-addon.ts",
+          "sha256": "90dcc8cc2d044e412bd9b65a5ddb85a0c15eb69918c1567c92917a5f60d11c35"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-viewport-at-bottom.ts",
+          "sha256": "8316d36c0ecefe27857f0218d7f455c6440abfd0060d55ff3ec154ea5f293f25"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-viewport-scrollbar-sync.ts",
+          "sha256": "7ba783b5b52175dc7a61f06ce37ba5f069f0aee1e565ce1c60335a16033125c4"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-webgl-auto-policy.ts",
+          "sha256": "4719d12617df09888f919293545aa2524183bea566068bc80717fbe03dc9e492"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-webgl-hidden-retention.ts",
+          "sha256": "a3189a3e5fe82c1415652628bb8407fb7ecd3ac5ed4707c3cb59ac27f17e031a"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-windows-ctrl-alt-chord-classification.ts",
+          "sha256": "4ea46c6a87b76ba4a9df80de8672037e368a824a2ac12c42e3ea4bda3aec7178"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-write-pipeline-health.test.ts",
+          "sha256": "7c6bc1d89c524e1c099ca03c70b3dae8305a6f3164d1579eb29ab65427ff5d2f"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/terminal-write-pipeline-health.ts",
+          "sha256": "36c35f2a2b6dc65cc710063b7e0317a5d7ca7167e82ca7ca19c974b6051c637f"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/windows-pty-compatibility.ts",
+          "sha256": "e4abd5f2c7b3381ed89f76344283e41b7085a41128975c976185fceb10720425"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/wsl-unc-path.test.ts",
+          "sha256": "b564c00a40de6fa652b45f163d784747f82dc0b06db654b1348b07e21d2263ee"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/wsl-unc-path.ts",
+          "sha256": "d76a8793cbfb857ffef8f00de405a22c1b98dbebb03ab40f048d7ff6040c2695"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/xterm-parse-barrier.test.ts",
+          "sha256": "b07dbbf6dd5045f1dd0fcbf029f945e2ec71e518d331ba1af5d7779f3e3ed245"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/xterm-parse-barrier.ts",
+          "sha256": "a44a09911a00aa7e9ea3ee49065255a4c345eb765b91359c7fc108fb687dfcda"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/xterm-write-callback-guard.ts",
+          "sha256": "d0ce34a6e192bc8521265f44833625f804d5ae2817b046f2be9c4944db060872"
+        },
+        {
           "path": "packages/terminal/src/safeFind.ts",
           "sha256": "a13c4ce0b53ff7d12814a025d22ea51ab5a79b89d0e71c326e9fd2b51695d4ad"
         },
         {
+          "path": "packages/terminal/src/shared/flatten-retained-slice.ts",
+          "sha256": "ac91afecc7f5e44b43b60162f41708b9551a45e01a9d17b13397244c29bb0ec3"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-scrollback-policy.ts",
+          "sha256": "c01f33c886d17c489001b84c9aff54880797086f7d4f7e05c95144ca59e7435c"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-selection-gutter.test.ts",
+          "sha256": "630a5f9c3d7de9e17643d8c43b20ec0463dccf02ce507e4e25443ac9d67ad8bd"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-selection-gutter.ts",
+          "sha256": "3453be55112ea012768b3997770469254e3189742cadb22661cc3437bf4b012b"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-synchronized-output-scan.ts",
+          "sha256": "ef3d838a841c310087d564800ca78cc77adefdaed89da43e0cec5337418e2abf"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-unicode-provider.ts",
+          "sha256": "d2b5cbdd6d91901d03ef15eb81ba7ec1dc6d69aafe954f911cee6bbb2ee16ed3"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-webgl-diagnostics.ts",
+          "sha256": "b506f8cdfc8386477cf1c4162044d9d9a2157bd6a0079850846ddc976b896422"
+        },
+        {
+          "path": "packages/terminal/src/terminal/terminal-clipboard-selection-text.ts",
+          "sha256": "d5465e1c9f6012f3e19f219981b3ccf5cf91cf485c3a5ac893a95e26d2cbcb42"
+        },
+        {
+          "path": "packages/terminal/src/terminal/terminal-native-copy-gutter.ts",
+          "sha256": "38ea7fe8878ae12b1508dad7c72ecb1acc2ed20d2e357bcfdabee8dccbae9f49"
+        },
+        {
+          "path": "packages/terminal/src/terminal/terminal-wheel-scroll.test.ts",
+          "sha256": "f41002150a374002f2bec16a860a8ada2fad6aad8485a6f71f8a0316009bafea"
+        },
+        {
+          "path": "packages/terminal/src/terminal/terminal-wheel-scroll.ts",
+          "sha256": "c40ca9e298360dac957c526dd3253ff983eeb64c56ffdc55ce293f8dc0c955d6"
+        },
+        {
           "path": "packages/terminal/src/terminal-search.module.css",
           "sha256": "0681435798988aedf19ac19ffb7c975f529a7ef60812ef50af831c38653cd4af"
+        },
+        {
+          "path": "packages/terminal/src/types/tuiAgent.ts",
+          "sha256": "7c470c858ddc10988ea2b7e230d127a8d9bc70acf03e8dc8226d799749ce023b"
         }
       ]
     }

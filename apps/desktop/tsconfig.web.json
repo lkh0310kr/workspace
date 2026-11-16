@@ -33,6 +33,9 @@
       "@workspace/terminal/*": [
         "../../packages/terminal/src/*"
       ],
+      "@xterm/*": [
+        "node_modules/@xterm/*"
+      ],
       "@renderer/*": [
         "src/renderer/src/*"
       ],

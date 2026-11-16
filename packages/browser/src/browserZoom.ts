@@ -1,8 +1,3 @@
-import {
-  getActiveBrowserWebview,
-  getBrowserWebviewByWebContentsId
-} from '../layout/activeBrowserWebview'
-
 /** Ported from ref-proj/orca browser-page-zoom — adapted to setZoomFactor (not zoom level). */
 export const BROWSER_ZOOM_MIN = 0.5
 export const BROWSER_ZOOM_MAX = 3
@@ -27,7 +22,13 @@ export function registerBrowserZoomPersist(
   return () => persistHandlers.delete(tabItemId)
 }
 
-function readZoomFactor(webview: Electron.WebviewTag): number {
+export interface BrowserZoomWebview {
+  dataset: DOMStringMap
+  getZoomFactor(): number
+  setZoomFactor(factor: number): void
+}
+
+function readZoomFactor(webview: BrowserZoomWebview): number {
   try {
     return webview.getZoomFactor()
   } catch {
@@ -36,7 +37,7 @@ function readZoomFactor(webview: Electron.WebviewTag): number {
 }
 
 export function applyBrowserZoomToWebview(
-  webview: Electron.WebviewTag,
+  webview: BrowserZoomWebview,
   direction: BrowserZoomDirection
 ): number | null {
   try {
@@ -52,11 +53,12 @@ export function applyBrowserZoomToWebview(
   }
 }
 
-export function zoomBrowserWebview(direction: BrowserZoomDirection, webContentsId?: number): void {
-  const webview =
-    webContentsId != null
-      ? (getBrowserWebviewByWebContentsId(webContentsId) ?? getActiveBrowserWebview())
-      : getActiveBrowserWebview()
+export function zoomBrowserWebview(
+  direction: BrowserZoomDirection,
+  webContentsId: number | undefined,
+  resolveWebview: (webContentsId?: number) => BrowserZoomWebview | null
+): void {
+  const webview = resolveWebview(webContentsId)
   if (!webview) return
   applyBrowserZoomToWebview(webview, direction)
 }
