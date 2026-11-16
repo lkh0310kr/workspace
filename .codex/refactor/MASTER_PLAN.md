@@ -17,9 +17,9 @@
 | --- | --- | ---: | --- | --- | --- |
 | R-001 | `apps/workspace-app/**` | 766 | coordinator + 읽기 전용 조사 담당 | reviewed; T-026/T-027/T-029/T-030 validated | 하위 5개 영역 정적 검토 완료; 실행·통합 검증 한계와 위험은 별도 기록 |
 | X-002 | `apps/pkms-ios/**` | 141 | — | 제외 | 사용자가 요청한 범위 제외 |
-| R-003 | `apps/pkms-server/**` | 51 | coordinator + read-only agent | reviewed; T-025 validated | literal subtree path 일치 수정; Vault flush 및 MCP OAuth는 계약 테스트 부재로 보류
+| R-003 | `apps/pkms-server/**` | 51 | coordinator + read-only agent | reviewed; T-025 validated | literal subtree path 일치 수정; Vault flush/recovery는 revision·lease 보호를 확인했으나 recovery 특성화 테스트 부재, MCP OAuth는 계약 테스트 부재로 보류
 | R-004 | `apps/pkms-web/**` | 30 | read-only agent + coordinator | reviewed; T-028 validated | workspace 전환 전 기존 문서 sync 및 실패 시 현재 workspace 보존을 helper acceptance로 검증; 실제 OAuth/browser runtime은 미실행
-| R-005 | `apps/workspace-server/**` | 12 | read-only agent | reviewed; candidate deferred | serviceIntegrations 분할은 contract tests 선행 필요; high risk
+| R-005 | `apps/workspace-server/**` | 12 | read-only agent | reviewed; candidate deferred | 인증 state·D1·token lifecycle·provider 오류 격리 테스트 선행 필요; 확정된 결함 없음
 | X-003 | `apps/android-data-node/**` | 15 | — | 제외 | 사용자가 요청한 범위 제외 |
 | R-007 | `packages/editor/**` | 68 | read-only agent | reviewed; candidate deferred | package exports/deep import 경계는 resolver intent 확인 전 보류
 | R-008 | `packages/pkms-client/**` | 42 | read-only agent | reviewed; T-019/T-022 validated |
