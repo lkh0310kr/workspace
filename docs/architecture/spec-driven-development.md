@@ -1,6 +1,6 @@
 # 코드에서 추출한 스펙의 운영 규칙
 
-스펙은 관찰 가능한 사용자 결과와 앱·package 경계를 설명한다. module source와 문서 추적은 [스펙 인덱스](./spec-index.json)가 담당한다. 현재 인덱스는 7개 모듈, 58개 고유 문서, 216개 source digest를 추적한다. 이 수치는 의미 검토나 재생성 검증 완료 수가 아니다.
+스펙은 관찰 가능한 사용자 결과와 앱·package 경계를 설명한다. module source와 문서 추적은 [스펙 인덱스](./spec-index.json)가 담당한다. 현재 인덱스는 7개 모듈, 59개 고유 문서, 228개 source digest를 추적한다. 이 수치는 의미 검토나 재생성 검증 완료 수가 아니다.
 
 ## 기본 원칙
 
@@ -12,12 +12,12 @@
 
 ## 활성 모듈 범위
 
-| 영역 | 문서 | 검증 공백 |
-| --- | --- | --- |
-| Shared Editor | [Editor 기능 문서](./editor/README.md) | 시각 fixture와 모든 Markdown surface의 acceptance |
-| Desktop Editor/provider | [로컬 provider](./workspace/editor/providers.md) | 실제 UI에서 외부 변경·충돌·저장 확인 |
-| Desktop shell/browser/terminal | [Workspace 색인](./workspace/README.md) | native focus, IME와 OS별 동작 |
-| Server | [Server 계약](./server/README.md) | 배포 identity 설정·OAuth·D1 운영 acceptance |
+| 영역                           | 문서                                             | 검증 공백                                         |
+| ------------------------------ | ------------------------------------------------ | ------------------------------------------------- |
+| Shared Editor                  | [Editor 기능 문서](./editor/README.md)           | 시각 fixture와 모든 Markdown surface의 acceptance |
+| Desktop Editor/provider        | [로컬 provider](./workspace/editor/providers.md) | 실제 UI에서 외부 변경·충돌·저장 확인              |
+| Desktop shell/browser/terminal | [Workspace 색인](./workspace/README.md)          | native focus, IME와 OS별 동작                     |
+| Server                         | [Server 계약](./server/README.md)                | 배포 identity 설정·OAuth·D1 운영 acceptance       |
 
 ## 구현과 검증
 

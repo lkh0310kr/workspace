@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react'
-import { registerBrowserOverlaySlotViewport } from '../browser/browserPageViewport'
+import { registerBrowserOverlaySlotViewport } from '../../browser/browserPageViewport'
 
 type Props = {
   paneNodeId: string

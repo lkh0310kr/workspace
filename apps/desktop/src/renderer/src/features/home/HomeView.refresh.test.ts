@@ -2,7 +2,7 @@
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DashboardView } from './DashboardView'
+import { HomeView } from './HomeView'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
@@ -46,7 +46,7 @@ function systemSummary(hostname: string): {
   }
 }
 
-describe('DashboardView refresh lifecycle', () => {
+describe('HomeView refresh lifecycle', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
   let systemCalls: Array<Deferred<ReturnType<typeof systemSummary>>>
@@ -57,9 +57,6 @@ describe('DashboardView refresh lifecycle', () => {
     systemCalls = [deferred(), deferred(), deferred()]
     let systemIndex = 0
     systemSummaryMock = vi.fn(() => systemCalls[systemIndex++].promise)
-    ;(window as unknown as { api: unknown }).api = {
-      system: { summary: systemSummaryMock }
-    }
     container = document.createElement('div')
     document.body.append(container)
     root = createRoot(container)
@@ -70,12 +67,13 @@ describe('DashboardView refresh lifecycle', () => {
     root = null
     container?.remove()
     container = null
-    delete (window as unknown as { api?: unknown }).api
     vi.useRealTimers()
   })
 
   it('coalesces overlapping refreshes, applies the newest response, and stops after unmount', async () => {
-    await act(async () => root?.render(createElement(DashboardView)))
+    await act(async () =>
+      root?.render(createElement(HomeView, { readSystemSummary: systemSummaryMock }))
+    )
     expect(systemSummaryMock).toHaveBeenCalledTimes(1)
 
     const refreshButtons = Array.from(

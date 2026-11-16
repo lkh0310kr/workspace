@@ -20,7 +20,8 @@ import { LoadingWorkspace } from './components/LoadingWorkspace'
 import { QuickOpen } from './components/QuickOpen'
 import { SettingsDialog } from './components/SettingsDialog'
 import { WorkspaceLayoutHost } from './components/WorkspaceLayoutHost'
-import { DashboardView } from './dashboard/DashboardView'
+import { HomeView } from './features/home'
+import type { ReadSystemSummary } from '../../shared/systemSummary'
 import { useAppBootstrap } from './hooks/useAppBootstrap'
 import { useAppShellState } from './hooks/useAppShellState'
 import { useAppShortcuts, useDismissPortalsOnWorkspaceSwitch } from './hooks/useAppShortcuts'
@@ -79,6 +80,8 @@ async function openFileInActivePane(
   setActiveTabInGroup(model, nodeId, id)
   bumpLayout(workspaceTabId)
 }
+
+const readSystemSummary: ReadSystemSummary = () => window.api.system.summary()
 
 export default function App() {
   const workspace = useWorkspace()
@@ -211,7 +214,7 @@ export default function App() {
         layoutRevisions={layoutRevisions}
       />
       <div className="app-shell">
-        {homeActive ? <DashboardView /> : null}
+        {homeActive ? <HomeView readSystemSummary={readSystemSummary} /> : null}
         <WorkspaceLayoutHost
           tabs={workspace.tabs}
           visibleWorkspaceTabId={visibleWorkspaceTabId}

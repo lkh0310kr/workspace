@@ -68,6 +68,17 @@ export interface PaneKindPickerEntry {
   source?: Partial<PaneTabItem>
 }
 
+/** Optional overlay layer for pane kinds whose embedded surface is hosted
+ * beside the normal tab content (for example Electron webview guests). */
+export interface PaneOverlayRenderContext {
+  nodeId: string
+  paneVisible: boolean
+  items: PaneTabItem[]
+  activeItemId: string
+  renderItem: (item: PaneTabItem, active: boolean) => ReactNode
+  onFocusOwningGroup: () => void
+}
+
 export interface PaneKindDefinition {
   kind: TabKind
   /** Pane-node title (flexlayout tab name) when this is the founding tab
@@ -78,6 +89,10 @@ export interface PaneKindDefinition {
    * just the active one; see PaneRenderContext.chipShown), never
    * conditionally mounted/unmounted on tab switch. */
   render: (ctx: PaneRenderContext) => ReactNode
+  /** Renders this kind's shared overlay layer. The shell keeps it mounted
+   * with the pane group; item and visibility changes must not imply guest
+   * destruction. */
+  renderOverlay?: (ctx: PaneOverlayRenderContext) => ReactNode
   /** Base tab-chip label. The dirty "•" prefix is applied generically on
    * top of this by paneTabLabel, not per kind. */
   tabLabel: (item: PaneTabItem) => string

@@ -1,47 +1,37 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { BrowserAddressBar } from '../components/BrowserAddressBar'
-import { BrowserNavButton } from '../components/BrowserNavButton'
-import { BrowserDownloadsBar } from '../components/BrowserDownloadsBar'
-import { normalizeBrowserNavigationUrl } from '../browserUrl'
-import { recordBrowserVisit } from '../browserHistory'
-import { dispatchLocalBrowserZoom, registerBrowserZoomPersist } from '../browser/browserZoom'
-import { browserFocusLog, snapshotBrowserFocusState } from '../browser/browserFocusDebugLog'
-import {
-  releaseTerminalFocusForBrowser,
-  focusBrowserGuestWebview
-} from '../browser/browserGuestFocus'
+import { BrowserAddressBar } from '../../components/BrowserAddressBar'
+import { BrowserNavButton } from '../../components/BrowserNavButton'
+import { BrowserDownloadsBar } from '../../components/BrowserDownloadsBar'
+import { normalizeBrowserNavigationUrl } from '../../browserUrl'
+import { recordBrowserVisit } from '../../browserHistory'
+import { dispatchLocalBrowserZoom, registerBrowserZoomPersist } from '../../browser/browserZoom'
+import { browserFocusLog, snapshotBrowserFocusState } from '../../browser/browserFocusDebugLog'
 import {
   loadBrowserPageWebviewUrl,
   reloadBrowserPageWebview
-} from '../browser/browserPageWebviewActions'
+} from '../../browser/browserPageWebviewActions'
 import {
   applyBrowserPageViewportLayout,
   ensureBrowserPageViewport,
   parkBrowserPageViewport,
   syncBrowserPageChromeInset
-} from '../browser/browserPageViewport'
-import { ensureBrowserPageWebview } from '../browser/ensureBrowserPageWebview'
+} from '../../browser/browserPageViewport'
+import { ensureBrowserPageWebview } from '../../browser/ensureBrowserPageWebview'
 import {
   browserPageGuestNeedsAttach,
   resolveBrowserPageWebview
-} from '../browser/browserPageGuestRecovery'
-import { useBrowserPageSlotViewport } from '../browser/useBrowserPageSlotViewport'
-import { useBrowserChromeFocus } from '../browser/useBrowserChromeFocus'
-import { useBrowserGuestActivationFocus } from '../browser/useBrowserGuestActivationFocus'
-import { readBrowserNavigationState } from '../browser/browserNavigationState'
-import { useWebviewGuestFocus } from '../browser/useWebviewGuestFocus'
-import { onBrowserOpenNewTab } from '../electron'
-import { interactionCoordinator } from '../interaction/InteractionCoordinator'
-import {
-  setActiveBrowserWebview,
-  getActiveBrowserWebview,
-  registerBrowserWebview
-} from '../layout/activeBrowserWebview'
-import { moveFocusToRendererBeforeFocusedWebviewHidden } from '../layout/browserWebviewRegistry'
-import { setBrowserPageWebviewInputLock } from '../browser/ensureBrowserPageWebview'
-import type { PaneTabItem } from '../layout/paneTypes'
+} from '../../browser/browserPageGuestRecovery'
+import { useBrowserPageSlotViewport } from '../../browser/useBrowserPageSlotViewport'
+import { useBrowserChromeFocus } from '../../browser/useBrowserChromeFocus'
+import { useBrowserGuestActivationFocus } from '../../browser/useBrowserGuestActivationFocus'
+import { readBrowserNavigationState } from '../../browser/browserNavigationState'
+import { useWebviewGuestFocus } from '../../browser/useWebviewGuestFocus'
+import { setBrowserPageWebviewInputLock } from '../../browser/ensureBrowserPageWebview'
+import type { PaneTabItem } from '../../layout/paneTypes'
+import type { BrowserPaneHost } from './browserPaneHost'
 
 interface Props {
+  host: BrowserPaneHost
   tabId: number
   paneNodeId: string
   item: PaneTabItem
@@ -62,6 +52,7 @@ function browserPagePaneClassName(isActive: boolean, isPaintable: boolean): stri
 }
 
 export function BrowserContent({
+  host,
   tabId,
   paneNodeId,
   item,
@@ -72,6 +63,10 @@ export function BrowserContent({
   onFocusPaneGroup,
   onSelectPaneTab
 }: Props) {
+  const hostRef = useRef(host)
+  useEffect(() => {
+    hostRef.current = host
+  }, [host])
   const isActive = paneVisible && chipActive
   const isPaintable = paneVisible
   const chipShown = isActive
@@ -186,6 +181,7 @@ export function BrowserContent({
 
   // Orca attachBrowserPageWebview / use-browser-page-webview-lifecycle
   useEffect(() => {
+    const paneHost = hostRef.current
     if (!slotViewport) return
 
     const viewport = ensureBrowserPageViewport(item.id, paneNodeId)
@@ -272,7 +268,7 @@ export function BrowserContent({
         loadBrowserPageWebviewUrl(guest, pending)
       }
       if (chipShownRef.current) {
-        interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, 'dom-ready')
+        paneHost.requestGuestFocus(tabId, item.id, 'dom-ready')
       }
     }
     const onFailLoad = (_e: Electron.DidFailLoadEvent): void => {
@@ -298,13 +294,13 @@ export function BrowserContent({
       }
       if (document.activeElement === addressInputRef.current) return
       browserFocusLog('BrowserContent.viewportPointerDown', 'pointer down on guest container')
-      setActiveBrowserWebview(guest)
-      void focusBrowserGuestWebview(guest, 'viewport-pointerdown')
+      paneHost.setActiveWebview(guest)
+      void paneHost.focusGuest(guest, 'viewport-pointerdown')
     }
     viewport.container.addEventListener('pointerdown', onContainerPointerDown)
 
-    const unregisterWebview = registerBrowserWebview(guest)
-    interactionCoordinator.registerWebview(guest, {
+    const unregisterWebview = paneHost.registerWebviewReference(guest)
+    paneHost.registerWebview(guest, {
       workspaceTabId: tabId,
       paneNodeId,
       paneTabItemId: item.id,
@@ -313,17 +309,17 @@ export function BrowserContent({
     })
 
     const onFocus = (): void => {
-      setActiveBrowserWebview(guest)
+      paneHost.setActiveWebview(guest)
       onFocusPaneGroupRef.current()
       browserFocusLog('BrowserContent.webviewFocus', 'host webview focus')
     }
     const onBlur = (): void => {
-      if (getActiveBrowserWebview() === guest) setActiveBrowserWebview(null)
+      if (paneHost.getActiveWebview() === guest) paneHost.setActiveWebview(null)
     }
     guest.addEventListener('focus', onFocus)
     guest.addEventListener('blur', onBlur)
 
-    const unlistenOpenNewTab = onBrowserOpenNewTab(({ hostWebContentsId, url }) => {
+    const unlistenOpenNewTab = paneHost.onOpenNewTab(({ hostWebContentsId, url }) => {
       let myId: number
       try {
         myId = guest.getWebContentsId()
@@ -350,8 +346,8 @@ export function BrowserContent({
       viewport.container.removeEventListener('pointerdown', onContainerPointerDown)
       guest.removeEventListener('focus', onFocus)
       guest.removeEventListener('blur', onBlur)
-      if (getActiveBrowserWebview() === guest) setActiveBrowserWebview(null)
-      interactionCoordinator.detachBrowserWebview(guest)
+      if (paneHost.getActiveWebview() === guest) paneHost.setActiveWebview(null)
+      paneHost.detachWebview(guest)
       unregisterWebview()
       unlistenOpenNewTab()
       parkBrowserPageViewport(item.id)
@@ -364,7 +360,7 @@ export function BrowserContent({
   useEffect(() => {
     const webview = webviewRef.current
     if (!webview) return
-    interactionCoordinator.updateWebviewPaneNode(webview, paneNodeId)
+    hostRef.current.updateWebviewPaneNode(webview, paneNodeId)
   }, [paneNodeId])
 
   useEffect(() => {
@@ -373,16 +369,16 @@ export function BrowserContent({
 
     applyBrowserPageViewportLayout(item.id, { paintable: isPaintable, active: isActive })
 
-    interactionCoordinator.setBrowserPaneChipState(tabId, item.id, {
+    hostRef.current.setPaneChipState(tabId, item.id, {
       paneVisible,
       chipActive
     })
 
     if (chipShown) {
       setBrowserPageWebviewInputLock(webview, false)
-      setActiveBrowserWebview(webview)
-      releaseTerminalFocusForBrowser()
-      interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, 'chip-shown')
+      hostRef.current.setActiveWebview(webview)
+      hostRef.current.requestKeyboardSurface('browser-chip-shown')
+      hostRef.current.requestGuestFocus(tabId, item.id, 'chip-shown')
       browserFocusLog('BrowserContent.chipShown', 'chip shown', snapshotBrowserFocusState(webview))
     }
     if (!chipShown) {
@@ -393,9 +389,9 @@ export function BrowserContent({
       )
       addressInputRef.current?.blur()
       setBrowserPageWebviewInputLock(webview, true)
-      moveFocusToRendererBeforeFocusedWebviewHidden()
-      if (getActiveBrowserWebview() === webview) {
-        setActiveBrowserWebview(null)
+      hostRef.current.moveFocusToRendererBeforeHide()
+      if (hostRef.current.getActiveWebview() === webview) {
+        hostRef.current.setActiveWebview(null)
       }
     }
   }, [paneVisible, chipActive, chipShown, isPaintable, isActive, tabId, item.id])
@@ -420,8 +416,8 @@ export function BrowserContent({
   }, [chipShown])
 
   const refocusBrowserGuest = useCallback(() => {
-    releaseTerminalFocusForBrowser()
-    interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, 'address-bar-dismiss')
+    hostRef.current.requestKeyboardSurface('browser-address-bar-dismiss')
+    hostRef.current.requestGuestFocus(tabId, item.id, 'address-bar-dismiss')
   }, [tabId, item.id])
 
   const navigate = (url: string): void => {
@@ -435,7 +431,7 @@ export function BrowserContent({
       pendingNavigationRef.current = normalized
     }
     if (chipShown) {
-      interactionCoordinator.requestBrowserGuestFocus(tabId, item.id, 'navigate')
+      hostRef.current.requestGuestFocus(tabId, item.id, 'navigate')
     }
   }
 

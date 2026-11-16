@@ -1,42 +1,41 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import type { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
-import '../assets/terminal-xterm-overrides.css'
-import { getCurrentResolvedTheme, subscribeThemeChange } from '../theme'
-import { XTERM_THEMES } from '../terminalThemes'
-import { TerminalSearch, useTerminalSearchThemeKey } from '../components/TerminalSearch'
-import { createPaneDOM } from '../lib/pane-manager/pane-dom-creation'
-import { buildTerminalPaneOptions } from '../lib/pane-manager/build-terminal-pane-options'
-import { disposePane, openTerminal } from '../lib/pane-manager/pane-lifecycle'
-import type { ManagedPaneInternal } from '../lib/pane-manager/pane-manager-types'
+import '../../assets/terminal-xterm-overrides.css'
+import { getCurrentResolvedTheme, subscribeThemeChange } from '../../theme'
+import { XTERM_THEMES } from '../../terminalThemes'
+import { TerminalSearch, useTerminalSearchThemeKey } from '../../components/TerminalSearch'
+import { createPaneDOM } from '../../lib/pane-manager/pane-dom-creation'
+import { buildTerminalPaneOptions } from '../../lib/pane-manager/build-terminal-pane-options'
+import { disposePane, openTerminal } from '../../lib/pane-manager/pane-lifecycle'
+import type { ManagedPaneInternal } from '../../lib/pane-manager/pane-manager-types'
 import {
   registerTerminalPane,
   unregisterTerminalPane
-} from '../lib/pane-manager/pane-terminal-registry'
+} from '../../lib/pane-manager/pane-terminal-registry'
 import {
   applyTerminalWebglAfterFit,
   refitPaneTerminal
-} from '../lib/pane-manager/pane-terminal-refit'
-import { fitRevealedPane } from '../lib/pane-manager/pane-reveal-fit'
+} from '../../lib/pane-manager/pane-terminal-refit'
+import { fitRevealedPane } from '../../lib/pane-manager/pane-reveal-fit'
 import {
   resumePaneRendering,
   suspendPaneRendering
-} from '../lib/pane-manager/pane-rendering-control'
-import { resolveExplicitTerminalTitleAgentType } from '../../../shared/agent/terminal-title-agent-type'
-import { agentPaneKey, useAgentStatusStore } from '../store/agentStatusStore'
-import { registerTerminalAgentPane } from '../terminal/terminalAgentPaneRegistry'
-import type { TuiAgent } from '../../../shared/agent/tui-agent'
-import { shouldFocusTerminalFromPanePointerDown } from '../lib/pane-manager/pane-pointer-focus'
-import { focusTerminalTextarea } from '../lib/focus-terminal-textarea'
-import { interactionCoordinator } from '../interaction/InteractionCoordinator'
-import { connectPanePty } from '../terminal/connectPanePty'
-import { installTerminalKeyHandler } from '../terminal/installTerminalKeyHandler'
-import { installTerminalPasteHandler } from '../terminal/installTerminalPasteHandler'
-import { installTerminalFileDropHandler } from '../terminal/terminal-file-drop'
-import { termLog } from '../terminal/terminalDebugLog'
-import { writeClipboardText } from '../electron'
+} from '../../lib/pane-manager/pane-rendering-control'
+import { resolveExplicitTerminalTitleAgentType } from '../../../../shared/agent/terminal-title-agent-type'
+import type { TuiAgent } from '../../../../shared/agent/tui-agent'
+import { shouldFocusTerminalFromPanePointerDown } from '../../lib/pane-manager/pane-pointer-focus'
+import { focusTerminalTextarea } from '../../lib/focus-terminal-textarea'
+import { requestKeyboardSurface } from '../../interaction/keyboardSurface'
+import { registerTerminalKeyboardTarget } from '../../terminal/terminalKeyboardSurface'
+import { installTerminalKeyHandler } from '../../terminal/installTerminalKeyHandler'
+import { installTerminalPasteHandler } from '../../terminal/installTerminalPasteHandler'
+import { installTerminalFileDropHandler } from '../../terminal/terminal-file-drop'
+import { termLog } from '../../terminal/terminalDebugLog'
+import type { TerminalPaneHost } from './terminalPaneHost'
 
 interface Props {
+  runtimeHost: TerminalPaneHost
   terminalId: number
   workspaceTabId: number
   paneTabId: string
@@ -59,6 +58,7 @@ function applyTerminalSurfaceBackground(
 }
 
 function TerminalPaneInner({
+  runtimeHost,
   terminalId,
   workspaceTabId,
   paneTabId,
@@ -75,6 +75,10 @@ function TerminalPaneInner({
   const ptyDisposeRef = useRef<(() => void) | null>(null)
   const onTerminalTabUpdateRef = useRef(onTerminalTabUpdate)
   onTerminalTabUpdateRef.current = onTerminalTabUpdate
+  const runtimeHostRef = useRef(runtimeHost)
+  useEffect(() => {
+    runtimeHostRef.current = runtimeHost
+  }, [runtimeHost])
   const terminalAgentRef = useRef(terminalAgent)
   terminalAgentRef.current = terminalAgent
   const searchRef = useRef<SearchAddon | null>(null)
@@ -86,8 +90,9 @@ function TerminalPaneInner({
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
+    const paneRuntimeHost = runtimeHostRef.current
 
-    const platformInfo = window.api.platformInfo.get()
+    const platformInfo = paneRuntimeHost.getPlatformInfo()
 
     const pane = createPaneDOM(terminalId, `terminal-${terminalId}`, {
       terminalGpuAcceleration: 'auto',
@@ -116,16 +121,10 @@ function TerminalPaneInner({
     if (shellRef.current) applyTerminalSurfaceBackground(shellRef.current, resolved)
     applyTerminalSurfaceBackground(host, resolved)
 
-    const paneKey = agentPaneKey(workspaceTabId, paneTabId)
-    registerTerminalAgentPane(terminalId, {
-      workspaceTabId,
-      paneTabId,
-      terminalAgent
-    })
-    window.api.agentStatus.registerTerminalPane(terminalId, paneKey)
-    useAgentStatusStore.getState().registerLiveTerminal(terminalId)
+    paneRuntimeHost.registerAgentPane(terminalId, workspaceTabId, paneTabId, terminalAgent)
+    paneRuntimeHost.registerLiveTerminal(terminalId)
 
-    const { dispose, transport } = connectPanePty(pane, terminalId, {
+    const { dispose, transport } = paneRuntimeHost.connectPty(pane, terminalId, {
       workspaceTabId,
       paneTabId,
       terminalAgent,
@@ -143,7 +142,7 @@ function TerminalPaneInner({
       terminal: pane.terminal,
       transport,
       terminalId,
-      writeClipboardText,
+      writeClipboardText: (text) => runtimeHostRef.current.writeClipboardText(text),
       getTerminalAgent: () => terminalAgentRef.current,
       isFocused: () => {
         const active = document.activeElement
@@ -175,12 +174,16 @@ function TerminalPaneInner({
       getTerminalAgent: () => terminalAgentRef.current
     })
 
+    const unregisterKeyboardTarget = registerTerminalKeyboardTarget(terminalId, () => {
+      pane.terminal.blur()
+    })
+
     const onFocusIn = () => {
       hasFocusRef.current = true
       if (platformInfo.platform === 'win32') {
-        interactionCoordinator.releaseKeyboardFromBrowserGuests('terminal-focusin')
+        requestKeyboardSurface('terminal', 'terminal-focusin')
       }
-      window.api.terminal.setFocused(terminalId)
+      runtimeHostRef.current.setFocusedTerminal(terminalId)
       termLog(
         'terminal:focus',
         'focusin',
@@ -197,7 +200,7 @@ function TerminalPaneInner({
         return
       }
       hasFocusRef.current = false
-      window.api.terminal.setFocused(null)
+      runtimeHostRef.current.setFocusedTerminal(null)
       termLog('terminal:focus', 'focusout', {}, terminalId)
     }
 
@@ -208,7 +211,7 @@ function TerminalPaneInner({
         return
       }
       if (platformInfo.platform === 'win32') {
-        interactionCoordinator.releaseKeyboardFromBrowserGuests('terminal-pointerdown')
+        requestKeyboardSurface('terminal', 'terminal-pointerdown')
       }
       pane.terminal.focus()
     }
@@ -226,11 +229,12 @@ function TerminalPaneInner({
       keyHandlerDispose()
       pasteHandlerDispose()
       fileDropHandlerDispose()
-      window.api.terminal.setFocused(null)
+      unregisterKeyboardTarget()
+      runtimeHostRef.current.setFocusedTerminal(null)
       pane.container.removeEventListener('focusin', onFocusIn)
       pane.container.removeEventListener('focusout', onFocusOut)
       pane.container.removeEventListener('pointerdown', onPointerDown)
-      window.api.agentStatus.unregisterTerminalPane(terminalId)
+      paneRuntimeHost.unregisterAgentPane(terminalId)
       ptyDisposeRef.current?.()
       ptyDisposeRef.current = null
       unregisterTerminalPane(terminalId, pane)
@@ -242,17 +246,7 @@ function TerminalPaneInner({
   }, [terminalId, rootPath, workspaceTabId, paneTabId, terminalAgent])
 
   useEffect(() => {
-    if (!terminalAgent) return
-    const paneKey = agentPaneKey(workspaceTabId, paneTabId)
-    const existing = useAgentStatusStore.getState().agentStatusByPaneKey[paneKey]
-    if (existing?.state === 'working') return
-    useAgentStatusStore
-      .getState()
-      .setAgentStatus(
-        paneKey,
-        { state: 'working', prompt: '', agentType: terminalAgent },
-        { workspaceTabId, titleDerived: true }
-      )
+    runtimeHostRef.current.ensureAgentWorking(workspaceTabId, paneTabId, terminalAgent)
   }, [workspaceTabId, paneTabId, terminalAgent])
 
   useEffect(() => {

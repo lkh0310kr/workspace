@@ -1,4 +1,9 @@
-import { BrowserContent } from '../BrowserContent'
+import { Fragment } from 'react'
+import {
+  BrowserContent,
+  BrowserPaneOverlaySlot,
+  desktopBrowserPaneHost
+} from '../../features/browser'
 import type { PaneKindDefinition } from '../paneKindRegistry'
 
 export const browserPaneKind: PaneKindDefinition = {
@@ -20,6 +25,7 @@ export const browserPaneKind: PaneKindDefinition = {
   render(ctx) {
     return (
       <BrowserContent
+        host={desktopBrowserPaneHost}
         tabId={ctx.workspaceTabId}
         paneNodeId={ctx.nodeId}
         item={ctx.item}
@@ -30,6 +36,21 @@ export const browserPaneKind: PaneKindDefinition = {
         onFocusPaneGroup={ctx.focusPaneGroup}
         onSelectPaneTab={ctx.selectPaneTab}
       />
+    )
+  },
+  renderOverlay(ctx) {
+    return (
+      <BrowserPaneOverlaySlot
+        paneNodeId={ctx.nodeId}
+        paneVisible={ctx.paneVisible}
+        onFocusOwningGroup={ctx.onFocusOwningGroup}
+      >
+        <div className="browser-pane-page-stack">
+          {ctx.items.map((item) => (
+            <Fragment key={item.id}>{ctx.renderItem(item, item.id === ctx.activeItemId)}</Fragment>
+          ))}
+        </div>
+      </BrowserPaneOverlaySlot>
     )
   }
 }

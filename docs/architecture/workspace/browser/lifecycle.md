@@ -1,6 +1,6 @@
 # Guest 수명, viewport, 포커스
 
-근거는 [BrowserContent](../../../../apps/desktop/src/renderer/src/panes/BrowserContent.tsx), [viewport](../../../../apps/desktop/src/renderer/src/browser/browserPageViewport.ts), [registry](../../../../apps/desktop/src/renderer/src/layout/browserWebviewRegistry.ts), [ensure](../../../../apps/desktop/src/renderer/src/browser/ensureBrowserPageWebview.ts)다.
+근거는 [BrowserContent](../../../../apps/desktop/src/renderer/src/features/browser/BrowserContent.tsx), [viewport](../../../../apps/desktop/src/renderer/src/browser/browserPageViewport.ts), [registry](../../../../apps/desktop/src/renderer/src/layout/browserWebviewRegistry.ts), [ensure](../../../../apps/desktop/src/renderer/src/browser/ensureBrowserPageWebview.ts)다.
 
 ## DOM과 연결
 

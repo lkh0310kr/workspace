@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { DashboardWidget } from '../DashboardWidget'
-import { useLatestRefresh } from '../../hooks/useLatestRefresh'
-
-type Summary = Awaited<ReturnType<typeof window.api.system.summary>>
+import { HomeWidget } from '../HomeWidget'
+import type { ReadSystemSummary } from '../../../../../shared/systemSummary'
+import { useLatestRefresh } from '../../../hooks/useLatestRefresh'
+import styles from '../home.module.css'
 
 function formatBytes(value: number): string {
   const gb = value / 1024 ** 3
@@ -21,12 +21,12 @@ function Metric({
   percent: number | null
 }): React.JSX.Element {
   return (
-    <div className="home-system-metric">
-      <div className="home-system-metric-heading">
+    <div className={styles.metric}>
+      <div className={styles.metricHeading}>
         <span>{label}</span>
         <strong>{value}</strong>
       </div>
-      <div className="ops-meter">
+      <div className={styles.meter}>
         <i style={{ width: `${percent ?? 0}%` }} />
       </div>
       <small>{detail}</small>
@@ -34,17 +34,24 @@ function Metric({
   )
 }
 
-export function SystemInformationWidget(): React.JSX.Element {
-  const [summary, setSummary] = useState<Summary | null>(null)
+export function SystemInformationWidget({
+  readSystemSummary
+}: {
+  readSystemSummary: ReadSystemSummary
+}): React.JSX.Element {
+  const [summary, setSummary] = useState<Awaited<ReturnType<ReadSystemSummary>> | null>(null)
   const refresh = useLatestRefresh(
-    useCallback(async (isCurrent) => {
-      try {
-        const nextSummary = await window.api.system.summary()
-        if (isCurrent()) setSummary(nextSummary)
-      } catch {
-        if (isCurrent()) setSummary(null)
-      }
-    }, [])
+    useCallback(
+      async (isCurrent) => {
+        try {
+          const nextSummary = await readSystemSummary()
+          if (isCurrent()) setSummary(nextSummary)
+        } catch {
+          if (isCurrent()) setSummary(null)
+        }
+      },
+      [readSystemSummary]
+    )
   )
 
   useEffect(() => {
@@ -67,14 +74,10 @@ export function SystemInformationWidget(): React.JSX.Element {
     : '불러오는 중'
 
   return (
-    <DashboardWidget
-      className="dashboard-widget--operations home-system-widget"
-      ariaLabel="시스템 정보"
-      onRefresh={refresh}
-    >
-      <div className="home-system-header">
+    <HomeWidget ariaLabel="시스템 정보" onRefresh={refresh}>
+      <div className={styles.systemHeader}>
         <div>
-          <span className="home-system-kicker">이 기기</span>
+          <span className={styles.systemKicker}>이 기기</span>
           <h2>시스템 정보</h2>
         </div>
         <span>
@@ -83,7 +86,7 @@ export function SystemInformationWidget(): React.JSX.Element {
             : '시스템 상태를 불러오는 중'}
         </span>
       </div>
-      <div className="home-system-grid">
+      <div className={styles.systemGrid}>
         <Metric
           label="CPU"
           value={summary?.cpuPercent === null || !summary ? '측정 중' : `${summary.cpuPercent}%`}
@@ -110,7 +113,7 @@ export function SystemInformationWidget(): React.JSX.Element {
           }
           percent={percent(diskUsed, summary?.diskTotal)}
         />
-        <div className="home-system-uptime">
+        <div className={styles.uptime}>
           <span>가동 시간</span>
           <strong>{uptime}</strong>
           <small>
@@ -119,6 +122,6 @@ export function SystemInformationWidget(): React.JSX.Element {
           </small>
         </div>
       </div>
-    </DashboardWidget>
+    </HomeWidget>
   )
 }

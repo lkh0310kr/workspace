@@ -10,6 +10,7 @@
 - [Editor](./editor/README.md)
 - [Server](./server/README.md)
 - [모듈 경계](./08-monorepo-module-boundaries.md)
+- [Pane·기능 모듈화와 동작 보존](./pane-modularization.md)
 - [Desktop 릴리스 원칙](./desktop-release.md)
 
 아직 구현되지 않은 작업은 [백로그](../planning/backlog.md)에서 관리하고, 기능의 현재 상태는 [기능 상태](../planning/feature-status.md)에 기록합니다.

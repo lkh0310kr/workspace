@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron'
 import type { WorkspaceApi } from './index.d'
+import type { SystemSummary } from '../shared/systemSummary'
 
 export const systemApi: Pick<
   WorkspaceApi,
@@ -17,19 +18,7 @@ export const systemApi: Pick<
 > = {
   hostname: (): Promise<string> => ipcRenderer.invoke('hostname'),
   system: {
-    summary: (): Promise<{
-      hostname: string
-      platform: string
-      release: string
-      arch: string
-      cpuPercent: number | null
-      cpuCores: number
-      memoryTotal: number
-      memoryAvailable: number
-      diskTotal: number | null
-      diskAvailable: number | null
-      uptimeSeconds: number
-    }> => ipcRenderer.invoke('system:summary')
+    summary: (): Promise<SystemSummary> => ipcRenderer.invoke('system:summary')
   },
   platform: process.platform as NodeJS.Platform,
   platformInfo: {

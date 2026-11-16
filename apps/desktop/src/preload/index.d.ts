@@ -1,5 +1,6 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { BrowserDownloadEventPayload as SharedBrowserDownloadEventPayload } from '../shared/browserDownloadEvent'
+import type { SystemSummary } from '../shared/systemSummary'
 export interface TabInfo {
   id: number
   title: string
@@ -59,19 +60,7 @@ export interface BrowserDownloadEventPayload extends SharedBrowserDownloadEventP
 export interface WorkspaceApi {
   hostname: () => Promise<string>
   system: {
-    summary: () => Promise<{
-      hostname: string
-      platform: string
-      release: string
-      arch: string
-      cpuPercent: number | null
-      cpuCores: number
-      memoryTotal: number
-      memoryAvailable: number
-      diskTotal: number | null
-      diskAvailable: number | null
-      uptimeSeconds: number
-    }>
+    summary: () => Promise<SystemSummary>
   }
   platform: NodeJS.Platform
   platformInfo: {

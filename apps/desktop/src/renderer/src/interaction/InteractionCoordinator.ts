@@ -12,6 +12,7 @@ import {
   setGuestWebContentsFocus
 } from '../layout/activeBrowserWebview'
 import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from './webviewPolicy'
+import { registerKeyboardSurfaceRelease } from './keyboardSurface'
 
 const WEBVIEW_FOCUS_MAX_FRAMES = 12
 
@@ -498,6 +499,10 @@ export class InteractionCoordinatorImpl {
 }
 
 export const interactionCoordinator = new InteractionCoordinatorImpl()
+
+registerKeyboardSurfaceRelease('browser', ['terminal'], (reason) =>
+  interactionCoordinator.releaseKeyboardFromBrowserGuests(reason)
+)
 
 if (typeof window !== 'undefined') {
   window.addEventListener(

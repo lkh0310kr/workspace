@@ -1,18 +1,10 @@
 import { browserFocusLog, snapshotBrowserFocusState } from './browserFocusDebugLog'
 import { setGuestWebContentsFocus } from '../layout/activeBrowserWebview'
+import { requestKeyboardSurface } from '../interaction/keyboardSurface'
 
-/** Drop terminal keyboard ownership before handing focus to a browser guest. */
-export function releaseTerminalFocusForBrowser(): void {
-  for (const el of document.querySelectorAll('.xterm-helper-textarea')) {
-    if (el instanceof HTMLElement) {
-      el.blur()
-    }
-  }
-  try {
-    window.api.terminal.setFocused(null)
-  } catch {
-    /* preload may be unavailable in tests */
-  }
+/** Request the shared keyboard handoff before Browser takes guest focus. */
+export function requestBrowserKeyboardSurface(reason: string): void {
+  requestKeyboardSurface('browser', reason)
 }
 
 /** Focus the <webview> host and hand keyboard to the guest WebContents. */
@@ -24,7 +16,7 @@ export async function focusBrowserGuestWebviewAsync(
   webview: Electron.WebviewTag,
   reason: string
 ): Promise<boolean> {
-  releaseTerminalFocusForBrowser()
+  requestBrowserKeyboardSurface(`browser-guest:${reason}`)
   try {
     webview.focus()
   } catch {

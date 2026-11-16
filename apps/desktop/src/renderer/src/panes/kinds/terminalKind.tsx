@@ -4,7 +4,7 @@ import {
   normalizeTerminalTitle
 } from '../../../../shared/agent/agent-title-status'
 import { getAgentLabel } from '../../agent/agent-catalog'
-import { TerminalPane } from '../TerminalPane'
+import { TerminalPane, desktopTerminalPaneHost } from '../../features/terminal'
 import type { PaneKindDefinition } from '../paneKindRegistry'
 import type { PaneTabItem } from '../../layout/paneTypes'
 
@@ -30,6 +30,7 @@ export const terminalPaneKind: PaneKindDefinition = {
   render(ctx) {
     return (
       <TerminalPane
+        runtimeHost={desktopTerminalPaneHost}
         terminalId={ctx.item.terminalId ?? 0}
         workspaceTabId={ctx.workspaceTabId}
         paneTabId={ctx.item.id}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { type TabNode } from 'flexlayout-react'
 import { PaneFrame } from '../components/PaneFrame'
 import { PaneTabStrip } from '../components/PaneTabStrip'
@@ -19,7 +19,7 @@ import {
 } from '../layout/layoutSession'
 import type { TabDragPayload } from '../layout/tabDrag'
 import { PaneTabItem, TabKind } from '../layout/paneTypes'
-import { getPaneKind, type PaneRenderContext } from './paneKindRegistry'
+import { allPaneKinds, getPaneKind, type PaneRenderContext } from './paneKindRegistry'
 import { useLayoutRevision, usePaneTabSelectionRevision } from '../hooks/useLayoutRevision'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { countLayoutTabSets } from '../layout/layoutModelParse'
@@ -29,8 +29,6 @@ import { paneChipContentShown, paneChipContentStyle } from '../interaction/embed
 import { usePaneVisibility } from './usePaneVisibility'
 import { usePaneGroupExplorerChrome } from '../hooks/usePaneGroupExplorerChrome'
 import { WorkspaceExplorerSidebar } from '../components/WorkspaceExplorerSidebar'
-import { BrowserPaneOverlaySlot } from './BrowserPaneOverlaySlot'
-import { BrowserContent } from './BrowserContent'
 import { paneGroupBodyAnchorName } from './paneGroupBodyAnchor'
 import { paneGroupHostClassNames, resolvePaneGroupTabSetId } from './paneGroupFocus'
 
@@ -219,8 +217,63 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
     (activeChipHasExplorer(activeItem.kind) ||
       explorerChrome.sidebarMode === 'search' ||
       shortcutExplorerVisible)
-  const hasBrowserTabs = tabs.some((t) => t.kind === 'browser')
-  const browserTabs = hasBrowserTabs ? tabs.filter((t) => t.kind === 'browser') : []
+  const overlayLayers = allPaneKinds().flatMap((definition) => {
+    if (!definition.renderOverlay) return []
+    const items = tabs.filter((item) => item.kind === definition.kind)
+    if (items.length === 0) return []
+    return [
+      <Fragment key={definition.kind}>
+        {definition.renderOverlay({
+          nodeId,
+          paneVisible: visible,
+          items,
+          activeItemId: activeItem.id,
+          renderItem: (item, active) => {
+            const ctx: PaneRenderContext = {
+              workspaceTabId,
+              nodeId,
+              rootPath,
+              model,
+              item,
+              active,
+              groupFocused: isGroupFocused,
+              paneVisible: visible,
+              chipShown: paneChipContentShown(visible, active),
+              zoom,
+              dirty: dirtyByTabId[item.id] ?? false,
+              setDirty: (dirty, viewStateKey) => {
+                if (viewStateKey)
+                  setViewStateKeyByTabId((prev) => ({ ...prev, [item.id]: viewStateKey }))
+                setEditorDocumentDirty(
+                  item.id,
+                  dirty,
+                  item.title ?? item.filePath ?? 'This document',
+                  item.filePath ?? undefined,
+                  viewStateKey ?? viewStateKeyByTabId[item.id]
+                )
+                setDirtyByTabId((prev) => ({ ...prev, [item.id]: dirty }))
+              },
+              jumpToLine: pendingJumpByTabId[item.id],
+              onJumpConsumed: () =>
+                setPendingJumpByTabId((prev) => {
+                  if (!(item.id in prev)) return prev
+                  const next = { ...prev }
+                  delete next[item.id]
+                  return next
+                }),
+              updateItem: (patch) => updateItem(item.id, patch),
+              openOrSwitchToFile,
+              openNewTab: newTab,
+              focusPaneGroup: focusGroup,
+              selectPaneTab: selectTab
+            }
+            return definition.render(ctx)
+          },
+          onFocusOwningGroup: focusGroup
+        })}
+      </Fragment>
+    ]
+  })
   const bodyAnchorStyle = { anchorName: paneGroupBodyAnchorName(nodeId) } as React.CSSProperties
 
   return (
@@ -279,35 +332,9 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
             />
           </div>
           <div className="pane-group-content" style={bodyAnchorStyle}>
-            {hasBrowserTabs ? (
-              <BrowserPaneOverlaySlot
-                paneNodeId={nodeId}
-                paneVisible={visible}
-                onFocusOwningGroup={focusGroup}
-              >
-                <div className="browser-pane-page-stack">
-                  {browserTabs.map((item) => {
-                    const active = item.id === activeItem.id
-                    return (
-                      <BrowserContent
-                        key={item.id}
-                        tabId={workspaceTabId}
-                        paneNodeId={nodeId}
-                        item={item}
-                        paneVisible={visible}
-                        chipActive={active}
-                        onUpdate={(patch) => updateItem(item.id, patch)}
-                        onOpenNewTab={(url) => newTab('browser', { url })}
-                        onFocusPaneGroup={focusGroup}
-                        onSelectPaneTab={selectTab}
-                      />
-                    )
-                  })}
-                </div>
-              </BrowserPaneOverlaySlot>
-            ) : null}
+            {overlayLayers}
             {tabs
-              .filter((item) => item.kind !== 'browser')
+              .filter((item) => !getPaneKind(item.kind).renderOverlay)
               .map((item) => {
                 const active = item.id === activeItem.id
                 const chipShown = paneChipContentShown(visible, active)
