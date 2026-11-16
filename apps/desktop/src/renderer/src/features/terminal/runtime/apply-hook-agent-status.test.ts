@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { useAgentStatusStore } from '../store/agentStatusStore'
+import { useAgentStatusStore } from '../../../store/agentStatusStore'
 import { applyHookAgentStatus, clearHookAgentStatus } from './apply-hook-agent-status'
 
 describe('applyHookAgentStatus', () => {

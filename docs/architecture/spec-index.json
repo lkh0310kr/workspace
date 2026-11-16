@@ -705,7 +705,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/hooks/useAppBootstrap.ts",
-          "sha256": "fce78e009d942031fdc80f729862ba6bab753110e9e260644fac5c5b2868f651"
+          "sha256": "8f2968d72e7a6279d0194abe9f21032f7ef62727dcbc082158b2612fdc984a62"
         },
         {
           "path": "apps/desktop/src/renderer/src/hooks/useLayoutHostCallbacks.tsx",
@@ -794,14 +794,14 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "c2593ad85762f7b3731af1ab38ff1946aa5721f5a92768b530dc817101cfa68c"
+          "sha256": "c161639508b3e19ba1a1f7d9e9389861c774d699f28a0c9c65224969f3c0f1a1"
         },
         {
-          "path": "apps/desktop/src/renderer/src/terminal/ptyDataMultiplexer.ts",
+          "path": "apps/desktop/src/renderer/src/features/terminal/runtime/ptyDataMultiplexer.ts",
           "sha256": "3e57e6dde94d272746bfe993d9b9ca6e71b3920d94fb88f362e3e911c4b38bd3"
         },
         {
-          "path": "apps/desktop/src/renderer/src/terminal/ptyTransport.ts",
+          "path": "apps/desktop/src/renderer/src/features/terminal/runtime/ptyTransport.ts",
           "sha256": "6ec2d83ba54a10a632c1a0f662ba6237c8dc96cf3fc1c0ada17bb6030410437f"
         }
       ]
@@ -923,7 +923,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "7fc6b8f572b960b18a8aa8d3aabdb94a4a01362b31c2cc19bad21df113a08e9a"
+          "sha256": "73f4ed7ee43687ddfbb5a9d03892c2104a34167be7f5f28d2a33567b18abbe25"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx",

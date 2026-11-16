@@ -1,12 +1,12 @@
-import type { AgentStatus } from '../../../shared/agent/agent-title-core'
-import { detectAgentStatusFromTitle } from '../../../shared/agent/agent-title-status'
-import type { TuiAgent } from '../../../shared/agent/tui-agent'
-import type { AgentStatusPayload } from '../../../shared/agent-status-types'
+import type { AgentStatus } from '../../../../../shared/agent/agent-title-core'
+import { detectAgentStatusFromTitle } from '../../../../../shared/agent/agent-title-status'
+import type { TuiAgent } from '../../../../../shared/agent/tui-agent'
+import type { AgentStatusPayload } from '../../../../../shared/agent-status-types'
 import {
   agentPaneKey,
   getFreshHookAgentStatus,
   useAgentStatusStore
-} from '../store/agentStatusStore'
+} from '../../../store/agentStatusStore'
 
 function mapTitleStatusToPayload(
   titleStatus: AgentStatus,

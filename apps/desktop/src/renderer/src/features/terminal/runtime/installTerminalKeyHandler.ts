@@ -2,7 +2,7 @@ import type { Terminal } from '@xterm/xterm'
 import {
   clearSharedOptionKeyTracker,
   getSharedOptionKeyTracker
-} from '../lib/keyboard-layout/shared-option-key-tracker'
+} from '../../../lib/keyboard-layout/shared-option-key-tracker'
 import { releaseTerminalImeTextareaAnchor } from '@workspace/terminal/pane-manager/terminal-ime-candidate-anchor'
 import { sendCapturedTerminalInput, copyTerminalSelection } from '@workspace/terminal'
 import { pasteClipboardIntoTerminal } from './terminal-clipboard-paste'
@@ -51,7 +51,8 @@ export function installTerminalKeyHandler(args: {
   transport: PtyTransport
   terminalId: number
   writeClipboardText: (text: string) => void | Promise<void>
-  getTerminalAgent?: () => import('../../../shared/agent/tui-agent').TuiAgent | null | undefined
+  getTerminalAgent?: () =>
+    import('../../../../../shared/agent/tui-agent').TuiAgent | null | undefined
   isFocused?: () => boolean
 }): () => void {
   const { terminal, transport, terminalId, writeClipboardText } = args

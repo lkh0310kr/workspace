@@ -1,4 +1,4 @@
-import { registerKeyboardSurfaceRelease } from '../interaction/keyboardSurface'
+import { registerKeyboardSurfaceRelease } from '../../../interaction/keyboardSurface'
 
 const releaseTerminalFocus = new Map<number, () => void>()
 

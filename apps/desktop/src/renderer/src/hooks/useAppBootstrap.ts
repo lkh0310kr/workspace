@@ -10,11 +10,13 @@ import {
 } from '../electron'
 import { pastePlainTextInFocusedEditor } from '../activeEditorView'
 import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager/pane-terminal-registry'
-import { pasteClipboardIntoTerminal } from '../terminal/terminal-clipboard-paste'
-import { notifyTerminalKeyboardPasteHandled } from '../terminal/installTerminalPasteHandler'
-import { captureTerminalSessionBuffers } from '../terminal/capture-terminal-session-buffers'
+import {
+  captureTerminalSessionBuffers,
+  notifyTerminalKeyboardPasteHandled,
+  pasteClipboardIntoTerminal
+} from '../features/terminal/runtime'
 import { installGlobalErrorLogging } from '../errorLog'
-import { installTerminalAgentStatusBridge } from '../terminal/installTerminalAgentStatusBridge'
+import { installTerminalAgentStatusBridge } from '../features/terminal/runtime'
 
 /** One-time app-wide side effects (logging, browser embed, downloads). */
 export function useAppBootstrap(): void {

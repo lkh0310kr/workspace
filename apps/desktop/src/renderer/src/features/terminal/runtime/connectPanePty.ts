@@ -6,16 +6,16 @@ import type {
 import { setPaneFitListener } from '@workspace/terminal/pane-manager/pane-fit-resize-observer'
 import { refitPaneTerminal } from '@workspace/terminal/pane-manager/pane-terminal-refit'
 import { writeTerminalOutput } from '@workspace/terminal/pane-manager/pane-terminal-output-scheduler'
-import { ptyResize, writeClipboardText } from '../electron'
+import { ptyResize, writeClipboardText } from '../../../electron'
 import { createElectronPtyTransport, type PtyTransport } from './ptyTransport'
 import { createPtyOutputTitleObserver } from './pty-output-title-observer'
-import type { TuiAgent } from '../../../shared/agent/tui-agent'
+import type { TuiAgent } from '../../../../../shared/agent/tui-agent'
 import {
   applyTitleDerivedAgentStatus,
   applyTitleIdleTransition,
   clearTitleDerivedOnAgentExit
 } from './title-derived-agent-status'
-import { useRuntimeTerminalTitlesStore } from '../store/runtimeTerminalTitlesStore'
+import { useRuntimeTerminalTitlesStore } from '../../../store/runtimeTerminalTitlesStore'
 import {
   markTerminalBracketedPasteInterrupted,
   observeTerminalBracketedPasteModeOutput

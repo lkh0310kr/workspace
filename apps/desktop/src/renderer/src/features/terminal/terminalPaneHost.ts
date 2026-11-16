@@ -1,8 +1,8 @@
 import type { TerminalPaneHost } from '@workspace/terminal'
 import { agentPaneKey, useAgentStatusStore } from '../../store/agentStatusStore'
-import { registerTerminalAgentPane } from '../../terminal/terminalAgentPaneRegistry'
+import { registerTerminalAgentPane } from './runtime/terminalAgentPaneRegistry'
 import { writeClipboardText } from '../../electron'
-import { connectPanePty } from '../../terminal/connectPanePty'
+import { connectPanePty } from './runtime/connectPanePty'
 import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
 import { getCurrentResolvedTheme, subscribeThemeChange } from '../../theme'
 import {
@@ -12,11 +12,11 @@ import {
 } from '@workspace/terminal'
 import { resolveExplicitTerminalTitleAgentType } from '../../../../shared/agent/terminal-title-agent-type'
 import { requestKeyboardSurface } from '../../interaction/keyboardSurface'
-import { registerTerminalKeyboardTarget } from '../../terminal/terminalKeyboardSurface'
-import { installTerminalKeyHandler } from '../../terminal/installTerminalKeyHandler'
-import { installTerminalPasteHandler } from '../../terminal/installTerminalPasteHandler'
+import { registerTerminalKeyboardTarget } from './runtime/terminalKeyboardSurface'
+import { installTerminalKeyHandler } from './runtime/installTerminalKeyHandler'
+import { installTerminalPasteHandler } from './runtime/installTerminalPasteHandler'
 import { installTerminalFileDropHandler } from '@workspace/terminal'
-import { termLog } from '../../terminal/terminalDebugLog'
+import { termLog } from './runtime/terminalDebugLog'
 
 export type { TerminalPaneHost } from '@workspace/terminal'
 

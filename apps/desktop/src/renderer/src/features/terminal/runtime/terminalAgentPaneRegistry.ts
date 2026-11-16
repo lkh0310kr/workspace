@@ -1,4 +1,4 @@
-import type { TuiAgent } from '../../../shared/agent/tui-agent'
+import type { TuiAgent } from '../../../../../shared/agent/tui-agent'
 
 export type TerminalAgentPaneBinding = {
   workspaceTabId: number

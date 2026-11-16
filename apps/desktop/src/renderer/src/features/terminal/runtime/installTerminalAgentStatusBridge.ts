@@ -1,5 +1,5 @@
-import { useAgentStatusStore } from '../store/agentStatusStore'
-import { useRuntimeTerminalTitlesStore } from '../store/runtimeTerminalTitlesStore'
+import { useAgentStatusStore } from '../../../store/agentStatusStore'
+import { useRuntimeTerminalTitlesStore } from '../../../store/runtimeTerminalTitlesStore'
 import { getTerminalAgentPaneBinding } from './terminalAgentPaneRegistry'
 import { applyTitleDerivedAgentStatus } from './title-derived-agent-status'
 import { applyHookAgentStatus, clearHookAgentStatus } from './apply-hook-agent-status'
