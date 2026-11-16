@@ -385,7 +385,9 @@
       "owner": "apps/desktop",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": ["docs/architecture/workspace/editor/providers.md"],
+      "documents": [
+        "docs/architecture/workspace/editor/providers.md"
+      ],
       "sources": [
         {
           "path": "apps/desktop/src/renderer/src/activeEditorView.ts",
@@ -802,7 +804,10 @@
       "owner": "packages/home",
       "specStatus": "drafted",
       "coverage": "Home UI, refresh lifecycle, and summary contract; Desktop owns the OS and IPC adapter.",
-      "documents": ["packages/home/README.md", "docs/architecture/workspace/home/README.md"],
+      "documents": [
+        "packages/home/README.md",
+        "docs/architecture/workspace/home/README.md"
+      ],
       "sources": [
         {
           "path": "packages/home/package.json",
@@ -968,7 +973,10 @@
       "owner": "apps/server",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": ["apps/server/README.md", "docs/architecture/server/README.md"],
+      "documents": [
+        "apps/server/README.md",
+        "docs/architecture/server/README.md"
+      ],
       "sources": [
         {
           "path": "apps/server/src/auth.ts",
@@ -1006,7 +1014,9 @@
       "owner": "packages/browser",
       "specStatus": "drafted",
       "coverage": "Browser pane view, overlay slot, controls, address input, navigation/history/zoom policies, guest recovery policy, guest focus, and viewport management. Electron guest creation, persistent registry lookup, download state, and IPC are Desktop adapters.",
-      "documents": ["packages/browser/README.md"],
+      "documents": [
+        "packages/browser/README.md"
+      ],
       "sources": [
         {
           "path": "packages/browser/package.json",
@@ -1102,11 +1112,11 @@
         },
         {
           "path": "packages/browser/src/browserZoom.ts",
-          "sha256": "ea78b4a160045bc365514b226de0a1f124fe65b227bdf64bedc6db4250638131"
+          "sha256": "cb37bd95f2bba60f46be1a1a2d5e3b154399eff2a6f0a46829e72d0d2a9bac35"
         },
         {
           "path": "packages/browser/src/index.ts",
-          "sha256": "051d2e12a2fe515551b37235ac8b0dd59817af1913083f460589a6c97cba853c"
+          "sha256": "4e322a7a7a74b7c13acddc458a438ebc69ddcf835520bd78c9a87a95faed2724"
         },
         {
           "path": "packages/browser/src/useBrowserPageSlotViewport.ts",
@@ -1617,7 +1627,9 @@
       "owner": "packages/ui",
       "specStatus": "drafted",
       "coverage": "Shared renderer UI primitives with injected host capabilities; currently includes the Popover primitive and portal contract.",
-      "documents": ["packages/ui/README.md"],
+      "documents": [
+        "packages/ui/README.md"
+      ],
       "sources": [
         {
           "path": "packages/ui/package.json",

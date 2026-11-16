@@ -5,7 +5,8 @@ export const BROWSER_ZOOM_STEP = 0.1
 
 export type BrowserZoomDirection = 'in' | 'out'
 
-export const WORKSPACE_BROWSER_ZOOM_EVENT = 'workspace:browser-zoom'
+type BrowserZoomListener = (detail: { direction: BrowserZoomDirection }) => void
+const browserZoomListeners = new Set<BrowserZoomListener>()
 
 function clampZoom(value: number): number {
   return Math.min(BROWSER_ZOOM_MAX, Math.max(BROWSER_ZOOM_MIN, value))
@@ -64,15 +65,13 @@ export function zoomBrowserWebview(
 }
 
 export function dispatchLocalBrowserZoom(direction: BrowserZoomDirection): void {
-  window.dispatchEvent(new CustomEvent(WORKSPACE_BROWSER_ZOOM_EVENT, { detail: { direction } }))
+  for (const listener of [...browserZoomListeners]) {
+    if (!browserZoomListeners.has(listener)) continue
+    listener({ direction })
+  }
 }
 
-export function addBrowserZoomEventListener(
-  callback: (detail: { direction: BrowserZoomDirection }) => void
-): () => void {
-  const listener = (event: Event): void => {
-    callback((event as CustomEvent<{ direction: BrowserZoomDirection }>).detail)
-  }
-  window.addEventListener(WORKSPACE_BROWSER_ZOOM_EVENT, listener)
-  return () => window.removeEventListener(WORKSPACE_BROWSER_ZOOM_EVENT, listener)
+export function addBrowserZoomEventListener(listener: BrowserZoomListener): () => void {
+  browserZoomListeners.add(listener)
+  return () => browserZoomListeners.delete(listener)
 }

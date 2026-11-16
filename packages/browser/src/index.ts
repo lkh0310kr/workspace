@@ -35,8 +35,7 @@ export {
   zoomBrowserWebview,
   BROWSER_ZOOM_MAX,
   BROWSER_ZOOM_MIN,
-  BROWSER_ZOOM_STEP,
-  WORKSPACE_BROWSER_ZOOM_EVENT
+  BROWSER_ZOOM_STEP
 } from './browserZoom'
 export type { BrowserZoomDirection, BrowserZoomWebview } from './browserZoom'
 
