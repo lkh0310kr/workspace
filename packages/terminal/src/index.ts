@@ -11,6 +11,10 @@ export type { ResolvedTheme } from './terminalThemes'
 export { focusTerminalTextarea } from './focusTerminalTextarea'
 export { TerminalPane } from './TerminalPane'
 export {
+  clearSharedOptionKeyTracker,
+  getSharedOptionKeyTracker
+} from './keyboard/shared-option-key-tracker'
+export {
   agentPaneKey,
   getFreshHookAgentStatus,
   useAgentStatusStore

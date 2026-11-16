@@ -2,7 +2,7 @@ import type { Terminal } from '@xterm/xterm'
 import {
   clearSharedOptionKeyTracker,
   getSharedOptionKeyTracker
-} from '../../../lib/keyboard-layout/shared-option-key-tracker'
+} from '@workspace/terminal'
 import { releaseTerminalImeTextareaAnchor } from '@workspace/terminal/pane-manager/terminal-ime-candidate-anchor'
 import { sendCapturedTerminalInput, copyTerminalSelection } from '@workspace/terminal'
 import { pasteClipboardIntoTerminal } from './terminal-clipboard-paste'

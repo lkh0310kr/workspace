@@ -1377,7 +1377,7 @@
         },
         {
           "path": "packages/terminal/src/index.ts",
-          "sha256": "9e0946949760a18e52c0d886ee8c7abdb980561727f5d3dbe022a438b44dc978"
+          "sha256": "ffe6035cbd674b0d500780e63debad57e2498288a9939d77d5f0ceae6292c3f2"
         },
         {
           "path": "packages/terminal/src/monospace-font-family.test.ts",
@@ -1978,6 +1978,14 @@
         {
           "path": "packages/terminal/src/state/runtimeTerminalTitlesStore.ts",
           "sha256": "2d7776b31b3c202d73fdd010df6ad82233f347823d84cb7d0e3e209c5ede7f0a"
+        },
+        {
+          "path": "packages/terminal/src/keyboard/option-key-location-state.ts",
+          "sha256": "3f385a8abc6c21c4c87670353100b98667fcd8fadf4a760a3fddcea9e478b639"
+        },
+        {
+          "path": "packages/terminal/src/keyboard/shared-option-key-tracker.ts",
+          "sha256": "c066f94993be7cbf81c99ca8d71566f29215d033c334fd436fe15c063557d8e8"
         }
       ]
     },
