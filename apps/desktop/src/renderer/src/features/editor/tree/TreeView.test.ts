@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { classifyFile, treeEntryDisplayName } from './TreeView'
 
-// Regression check for the shared/asset.ts extraction — classifyFile
+// Regression check for Editor's file-kind policy — classifyFile
 // used to inline this extension list directly; confirms every extension
 // it originally covered still routes to the exact same pane kind.
 describe('classifyFile', () => {

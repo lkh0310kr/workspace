@@ -8,3 +8,5 @@ export {
   isTypingTarget
 } from './epub/epubKeys'
 export { ebookTurnAfterPage, nextLinearSectionIndex } from './epub/epubPageTurn'
+export { classifyMediaExtension } from './mediaKind'
+export type { MediaKind } from './mediaKind'

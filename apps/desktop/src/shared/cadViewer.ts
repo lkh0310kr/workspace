@@ -1,8 +1,8 @@
 /** CAD Viewer (cadgen viewer) — shared types and URL helpers. */
 
-import { CAD_VIEWER_EXTENSIONS } from './mediaExtensions'
+import { CAD_VIEWER_EXTENSIONS } from '@workspace/editor/assets'
 
-export { CAD_VIEWER_EXTENSIONS } from './mediaExtensions'
+export { CAD_VIEWER_EXTENSIONS } from '@workspace/editor/assets'
 
 export type CadViewerExtension = (typeof CAD_VIEWER_EXTENSIONS)[number]
 

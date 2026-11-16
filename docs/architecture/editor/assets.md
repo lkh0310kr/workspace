@@ -10,7 +10,7 @@ viewer pane item은 id/kind=viewer, 상대 filePath 또는 absolutePath, 선택�
 
 FileViewerContent의 입력은 tabId, filePath, absolutePath, viewerHint, treeOpen/onToggleTree, paneActive와 onAssignAbsolutePath다. 표시 분류는 filePath 우선, 없으면 absolutePath다. viewerHint는 경로 없는 이전 탭의 Browse filter에만 사용한다.
 
-[mediaKind.ts](../../../apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts)의 case-insensitive 확장자 분류:
+[`@workspace/editor/assets`](../../../packages/editor/src/assets/index.ts)의 확장자 분류와 [viewer kind adapter](../../../packages/editor/src/viewers/mediaKind.ts)는 기존 case-insensitive 분류 결과를 유지한다:
 
 | kind       | 확장자                                |
 | ---------- | ------------------------------------- |

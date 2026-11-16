@@ -37,7 +37,7 @@
       "scope": "package",
       "owner": "packages/editor",
       "specStatus": "drafted",
-      "coverage": "Editor package UI and policies, including document surfaces, tree, search, Quick Open, viewer subtitle conversion, EPUB page-turn policies, and provider contracts; Desktop owns local filesystem and workspace/pane integration.",
+      "coverage": "Editor package UI and policies, including document surfaces, tree, search, Quick Open, file-kind and viewer classification, subtitle conversion, EPUB page-turn policies, and provider contracts; Desktop owns local filesystem and workspace/pane integration.",
       "documents": [
         "packages/editor/README.md",
         "docs/architecture/editor/README.md",
@@ -55,7 +55,7 @@
       "sources": [
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "6faa7c134a9749196a9b8643e88fb4af04abba5d76d506ea0461be0a6d274bb5"
+          "sha256": "676c5f62d363ed3344641463339de16e6b90a94feec4211d9160346a5eb3adca"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.tsx",
@@ -91,7 +91,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "540dacab63202df0de0280b7e559064c01a78df6a36209ac9335fdf1a64ada62"
+          "sha256": "fe2087203db164aff4981e36076312aa83aebda388001d1f02ee9fecc860d142"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/CadViewerContent.tsx",
@@ -114,12 +114,12 @@
           "sha256": "e03676280dd417d8158820c1bf394c4d4eddfd64eb193c01786db058d4a44c8a"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
-          "sha256": "b31f874114fdcf93daae9ae43b7f2325bb25c457710cddcf2fed2f53d39471b8"
+          "path": "packages/editor/src/viewers/mediaKind.ts",
+          "sha256": "ac62f738806669dff7c85687bb67cca8922f1dbca3b22a728e4d3faf2b578130"
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "49ad8d968d6a6ff643fc23277d3ca5046fd6ce6edf6c45af444c771fcc6f1f24"
+          "sha256": "419e65f8b4af35ca4ebd4795f25928ded8d9f20e1aeec1f44557baf4df216111"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -427,7 +427,7 @@
         },
         {
           "path": "packages/editor/src/viewers/index.ts",
-          "sha256": "b7f1afaf7069319d0281fbe423bf1f8aacad79c9a0a3a3690f676b5a41c6e8e7"
+          "sha256": "a10419258437a03f47315bcaba469a37abf22f1d51941d455fe32389feba8399"
         },
         {
           "path": "packages/editor/src/viewers/srtToVtt.ts",
@@ -444,6 +444,30 @@
         {
           "path": "packages/editor/src/viewers/epub/epubPageTurn.ts",
           "sha256": "b08e0801024f14b3c673498be8c3149c1a1ac350a6de6f7d4268c8f7a79d7281"
+        },
+        {
+          "path": "packages/editor/src/assets/index.ts",
+          "sha256": "163e6fc602ff90d5a95bcde88a74bef0a3acc93d9fcd12569501bc1d0bfef8a2"
+        },
+        {
+          "path": "packages/editor/src/assets/asset.ts",
+          "sha256": "9282a951b0c62c8958fa92a03ac1f9c40bf3521575dd17e34ce480a2c7f4ea17"
+        },
+        {
+          "path": "packages/editor/src/assets/asset.test.ts",
+          "sha256": "0018288fd8891a02eeb67484a45efa29d6fcfcc6d10e8e594f048cf1bad270d9"
+        },
+        {
+          "path": "packages/editor/src/assets/mediaExtensions.ts",
+          "sha256": "786d1c8983376c6cac75aef0fadcf079be287b0a50c59c7911462fcc62b306cc"
+        },
+        {
+          "path": "packages/editor/src/viewers/mediaKind.ts",
+          "sha256": "ac62f738806669dff7c85687bb67cca8922f1dbca3b22a728e4d3faf2b578130"
+        },
+        {
+          "path": "packages/editor/src/viewers/mediaKind.test.ts",
+          "sha256": "3d69b64b3dc4a18eaa0134c980d98fc0aaaec7545adf2650040edc75d5cf9cd7"
         }
       ]
     },
@@ -535,7 +559,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "6faa7c134a9749196a9b8643e88fb4af04abba5d76d506ea0461be0a6d274bb5"
+          "sha256": "676c5f62d363ed3344641463339de16e6b90a94feec4211d9160346a5eb3adca"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/usePaneGroupEditorSidebarState.ts",
@@ -547,11 +571,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "540dacab63202df0de0280b7e559064c01a78df6a36209ac9335fdf1a64ada62"
+          "sha256": "fe2087203db164aff4981e36076312aa83aebda388001d1f02ee9fecc860d142"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
-          "sha256": "b31f874114fdcf93daae9ae43b7f2325bb25c457710cddcf2fed2f53d39471b8"
+          "path": "packages/editor/src/viewers/mediaKind.ts",
+          "sha256": "ac62f738806669dff7c85687bb67cca8922f1dbca3b22a728e4d3faf2b578130"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/useEditorShortcutBootstrap.ts",
@@ -1279,11 +1303,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "540dacab63202df0de0280b7e559064c01a78df6a36209ac9335fdf1a64ada62"
+          "sha256": "fe2087203db164aff4981e36076312aa83aebda388001d1f02ee9fecc860d142"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
-          "sha256": "b31f874114fdcf93daae9ae43b7f2325bb25c457710cddcf2fed2f53d39471b8"
+          "path": "packages/editor/src/viewers/mediaKind.ts",
+          "sha256": "ac62f738806669dff7c85687bb67cca8922f1dbca3b22a728e4d3faf2b578130"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/runtime/workspaceRootPicker.ts",
@@ -1326,7 +1350,7 @@
           "sha256": "76274f84304e824f18626db9169d191775a0ae47349b27866c934c6a9ab55d02"
         },
         {
-          "path": "apps/desktop/src/shared/mediaExtensions.ts",
+          "path": "packages/editor/src/assets/mediaExtensions.ts",
           "sha256": "786d1c8983376c6cac75aef0fadcf079be287b0a50c59c7911462fcc62b306cc"
         },
         {

@@ -11,9 +11,14 @@ import {
 } from 'react'
 import { getMediaUrl, getMediaUrlAbsolute, pickMediaFileDialog } from '../runtime/editorIpc'
 import { readFileBinaryPreview } from '../runtime/localFileSystem'
-import { cuesToVtt, parseSrt, shiftCues, type SubtitleCue } from '@workspace/editor/viewers'
+import {
+  classifyMediaExtension,
+  cuesToVtt,
+  parseSrt,
+  shiftCues,
+  type SubtitleCue
+} from '@workspace/editor/viewers'
 import './viewers.css'
-import { classifyMediaExtension } from './mediaKind'
 import { EpubReaderContent } from './EpubReaderContent'
 
 const ModelViewerContent = lazy(() =>
