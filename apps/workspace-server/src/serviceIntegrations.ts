@@ -2,6 +2,7 @@ import type { Env, Session } from './env'
 import { decryptSecret, encryptSecret, json, randomToken } from './crypto'
 import { getAccountValue, putAccountValue, removeAccountValue } from './store'
 import { serviceProviderFromPath } from './serviceRoute'
+import { isAllowedOAuthLogin } from './oauthLogin'
 
 type Provider = 'cloudflare' | 'supabase'
 type SavedConnection = {
@@ -190,7 +191,7 @@ export async function handleServiceOAuthCallback(
   if (record) await removeAccountValue(env, record.login, `service-oauth:${state}`)
   if (
     !record ||
-    record.login !== (env.ALLOWED_GITHUB_LOGIN ?? 'lkh0310kr') ||
+    !isAllowedOAuthLogin(record.login, env.ALLOWED_GITHUB_LOGIN ?? 'lkh0310kr') ||
     Date.now() - record.createdAt > 10 * 60_000
   )
     return callbackPage(false, '연결 요청이 만료되었거나 올바르지 않습니다.')

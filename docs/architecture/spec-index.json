@@ -1328,8 +1328,12 @@
           "sha256": "bb703451ebde7ef420ac4853f8ebccf9be60f9d36a00ecbf25d53808dd8b9184"
         },
         {
+          "path": "apps/workspace-server/src/oauthLogin.ts",
+          "sha256": "489c9ec5ccfb5e344346c2413b6cd2422be33ffa79eaa31450810e6f4268865a"
+        },
+        {
           "path": "apps/workspace-server/src/serviceIntegrations.ts",
-          "sha256": "60dc962a61eb9942d031b9b57fb5315071cae16f831571fd71c573f93251e89c"
+          "sha256": "1a3084a347eef42926220afa16c44fcdaf46d1a2e542cfa056530f4c4264a685"
         },
         {
           "path": "apps/workspace-server/src/serviceRoute.ts",

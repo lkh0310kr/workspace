@@ -4,7 +4,7 @@ App scope는 Home provider API·OAuth·D1 저장·token 검증이다. Desktop �
 
 ## Request와 Home auth
 
-[index](../../../apps/workspace-server/src/index.ts)는 공개 GET /api/health → OAuth callback → /api/services/* 인증 → service API 순으로 처리한다. 그 외 path는 404, auth 실패는 401, uncaught 오류는 workspace_home_request_failed 500이다. callback은 bearer 인증 전에 stored OAuth state로 검증한다.
+[index](../../../apps/workspace-server/src/index.ts)는 공개 GET /api/health → OAuth callback → /api/services/* 인증 → service API 순으로 처리한다. 그 외 path는 404, auth 실패는 401, uncaught 오류는 workspace_home_request_failed 500이다. callback은 bearer 인증 전에 stored OAuth state로 검증하며, 상태의 로그인 비교는 인증과 같이 대소문자를 구분하지 않고 다른 계정은 거부한다.
 
 [auth](../../../apps/workspace-server/src/auth.ts)는 Authorization bearer의 ES256·kid·서명, issuer, subject, audience(기본 workspace-home), scope workspace-home, exp/iat를 검사한다. 만료 거부, 미래 iat는 30초 허용, token lifetime은 최대 300초다. 선택적 ALLOWED_GITHUB_LOGIN도 검사한다. JWKS fetch timeout 5초, cache 5분이다. token 검증 실패는 null이며 새로운 key의 즉시 refresh를 항상 보장한다고 가정하지 않는다.
 
