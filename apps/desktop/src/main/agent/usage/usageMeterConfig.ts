@@ -2,8 +2,8 @@ import {
   DEFAULT_USAGE_METER_SETTINGS,
   normalizeUsageMeterSettings,
   type UsageMeterSettings
-} from '../shared/usage-meter-settings'
-import { loadConfig, saveConfig } from './workspace/persistence'
+} from '../../../shared/usage-meter-settings'
+import { loadConfig, saveConfig } from '../../workspace/persistence'
 
 export function loadUsageMeterSettings(): UsageMeterSettings {
   const config = loadConfig()

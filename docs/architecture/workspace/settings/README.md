@@ -20,7 +20,7 @@ Workspace 탭의 root 폴더 선택은 [workspaceRootPicker](../../../../apps/de
 
 ## Usage 수집과 UI
 
-[usage settings](../../../../apps/desktop/src/shared/usage-meter-settings.ts)의 ID는 claude/cursor/codex/gemini/opencode다. 이 enum은 각 provider의 live data adapter가 모두 구현됐다는 의미가 아니다. 실제 Main API는 [usage.ts](../../../../apps/desktop/src/main/usage.ts)의 Claude/Cursor/Codex 수집 경로와 systemCapabilities handler, UI는 [AgentUsageStatusBar](../../../../apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx)를 따른다.
+[usage settings](../../../../apps/desktop/src/shared/usage-meter-settings.ts)의 ID는 claude/cursor/codex/gemini/opencode다. 이 enum은 각 provider의 live data adapter가 모두 구현됐다는 의미가 아니다. 실제 Main API는 [usage.ts](../../../../apps/desktop/src/main/agent/usage/usage.ts)의 Claude/Cursor/Codex 수집 경로와 systemCapabilities handler, UI는 [AgentUsageStatusBar](../../../../apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx)를 따른다.
 
 UI는 60초 poll, countdown 표시를 위한 30초 clock을 사용하고 해제 시 timer를 정리한다. 퍼센트는 유효한 finite number일 때 0~100으로 clamp하고 unknown은 대시다. reset 시각·plan type·provider unavailable과 사용량 0은 구분한다. 각 adapter가 local CLI auth/저장소 또는 remote endpoint를 이용하므로 renderer가 원본 credentials를 받도록 만들지 않는다.
 

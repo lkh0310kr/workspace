@@ -7,14 +7,14 @@ App scope의 J-09다. 터미널 안 agent의 실제 실행과 UI에 관측된 wo
 | owner                                       | 책임                                                                              |
 | ------------------------------------------- | --------------------------------------------------------------------------------- |
 | main workspaceAgentHookServer               | loopback POST 상태 입력, terminalId→paneKey mapping, renderer relay               |
-| main agentHooks / terminal output observers | PTY/title 기반 감지와 spawn/종료 관측                                             |
+| main agent/agentHooks / terminal output observers | PTY/title 기반 감지와 spawn/종료 관측                                             |
 | `@workspace/terminal/agent/*`                | pane identity·상태 타입·title parsing·evidence 시각·freshness·outcome/rollup 순수 규칙 |
 | renderer terminal bridge                    | main event/title evidence를 live terminal pane에 연결                             |
 | `@workspace/terminal/src/state/agentStatusStore` | paneKey별 live entry·retained done·live terminal ID·epoch                         |
 | `features/workspace/status`                 | workspace tab summary·상태 projection                                             |
 | agent status IPC adapter                     | Desktop hook server·preload·renderer bridge payload                              |
 
-[hook server](../../../../apps/desktop/src/main/workspaceAgentHookServer.ts)는 health와 POST 처리, paneKey 또는 terminalId를 요구한다. state는 working/blocked/waiting/done만 수락하며 clear는 별도 지시다. receivedAt/evidenceObservedAt/stateStartedAt와 workspace/pane identity를 분리해 보낸다. secret/표준 API 인증을 갖춘 외부 공개 서비스로 서술하지 않는다.
+[hook server](../../../../apps/desktop/src/main/agent/workspaceAgentHookServer.ts)는 health와 POST 처리, paneKey 또는 terminalId를 요구한다. state는 working/blocked/waiting/done만 수락하며 clear는 별도 지시다. receivedAt/evidenceObservedAt/stateStartedAt와 workspace/pane identity를 분리해 보낸다. secret/표준 API 인증을 갖춘 외부 공개 서비스로 서술하지 않는다.
 
 ## 시간과 상태
 

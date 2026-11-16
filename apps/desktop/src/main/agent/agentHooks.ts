@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { appSupportDir } from './workspace/persistence'
+import { appSupportDir } from '../workspace/persistence'
 
 // Codex CLI and Cursor CLI never put a working/idle spinner in the terminal
 // title (Claude Code does), so title-derived status can't see them. Both

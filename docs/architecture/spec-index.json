@@ -554,7 +554,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "5fc4c5fb4475fee2906a6d8be941008a8898231ec898faa2288d49304a39666c"
+          "sha256": "c24f8772269358b6697af7ad95d0b5a8fef8c641dfca8c38f1657b40ab950994"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -721,7 +721,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "5fc4c5fb4475fee2906a6d8be941008a8898231ec898faa2288d49304a39666c"
+          "sha256": "c24f8772269358b6697af7ad95d0b5a8fef8c641dfca8c38f1657b40ab950994"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
@@ -740,8 +740,8 @@
           "sha256": "b9df04a440d23958e28fb61519438a4caa30fbc01fc4ec0090e1942b13d8b9f8"
         },
         {
-          "path": "apps/desktop/src/main/usageMeterConfig.ts",
-          "sha256": "a9d68bc016a1334febdb2d9ddb01be82ba222a8779e3acd1ac7418aeccbd0fac"
+          "path": "apps/desktop/src/main/agent/usage/usageMeterConfig.ts",
+          "sha256": "d4f8f365680702d7d930edbc31ebc58e04267c7b8dea0b29212d0f90bb2bbf88"
         },
         {
           "path": "apps/desktop/src/main/workspace/workspace.ts",
@@ -1154,23 +1154,23 @@
           "sha256": "c18e9a7f16db16f6afd8a8223b029ceefda57454dd43c892fb2ced6181c66088"
         },
         {
-          "path": "apps/desktop/src/main/usage.ts",
-          "sha256": "77764a61c0c6bc42625a37ab5ec53d0255c4f5f26661743a33bc118eb55a37f2"
+          "path": "apps/desktop/src/main/agent/usage/usage.ts",
+          "sha256": "96360cf94599cfae41103fa8ab910734f51ef99c4dfe449d030be448330b7f63"
         },
         {
           "path": "apps/desktop/src/main/workspace/workspace.agent-hook.test.ts",
           "sha256": "70fa3cf40d4aad1d7c7e73442f742e74cb1b47cf3ecde90c89880f86f0e31d13"
         },
         {
-          "path": "apps/desktop/src/main/workspaceAgentHookServer.ts",
+          "path": "apps/desktop/src/main/agent/workspaceAgentHookServer.ts",
           "sha256": "a04b8924da3d94a3e7f68befbf3f5d936992ba4e2bead3f4846391fbb8559575"
         },
         {
-          "path": "apps/desktop/src/main/workspaceAgentHookStartup.test.ts",
+          "path": "apps/desktop/src/main/agent/workspaceAgentHookStartup.test.ts",
           "sha256": "fc28e4ffc0917ff2e48822e5f3c464aba68b1edcebd73d11326477f6cb356b75"
         },
         {
-          "path": "apps/desktop/src/main/workspaceAgentHookStartup.ts",
+          "path": "apps/desktop/src/main/agent/workspaceAgentHookStartup.ts",
           "sha256": "5a198bb8982b5e41330e4d01ecf76cb391116eb2d156570f8f3bf701b987367f"
         },
         {
