@@ -18,7 +18,7 @@ import {
   reorderTabs
 } from '../../electron'
 import { dismissWorkspacePortals } from '../../workspacePortalDismiss'
-import { switchToHome, switchToWorkspaceTab } from '../../workspaceNavigation'
+import { switchToHome, switchToWorkspaceTab } from './navigationApi'
 import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
 import { WorkspaceTabStatusIndicator } from './WorkspaceTabStatusIndicator'
 import { computeWorkspaceTabActivityStatus } from './useWorkspaceTabActivityStatus'
@@ -328,4 +328,4 @@ export function WorkspaceTabRail({
 }
 
 // Re-export for callers that already import switchToTab from this module.
-export { switchToWorkspaceTab as switchToTab } from '../../workspaceNavigation'
+export { switchToWorkspaceTab as switchToTab } from './navigationApi'

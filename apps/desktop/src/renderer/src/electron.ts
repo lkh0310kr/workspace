@@ -11,9 +11,9 @@ import {
   type UsageMeterSettings
 } from '../../shared/usage-meter-settings'
 
-// Workspace rail tab IPC — see workspaceApi.ts (re-exported here for
+// Workspace rail tab IPC — see Workspace feature runtime (re-exported here for
 // existing `from "../electron"` import sites).
-export type { TabInfo, WorkspaceState } from './workspaceApi'
+export type { TabInfo, WorkspaceState } from './features/workspace/runtime/workspaceApi'
 export {
   getWorkspaceState,
   addTab,
@@ -24,7 +24,7 @@ export {
   setTabLayout,
   setTabRootPath,
   onWorkspaceUpdated
-} from './workspaceApi'
+} from './features/workspace/runtime/workspaceApi'
 
 // File System module — see fileSystem.ts (Phase 1 foundation split; this
 // re-export keeps every existing `from "../electron"` import site

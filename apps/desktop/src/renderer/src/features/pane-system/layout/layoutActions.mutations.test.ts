@@ -11,7 +11,7 @@ import {
 const bumpLayoutRevision = vi.fn()
 const bumpPaneTabSelectionRevision = vi.fn()
 
-vi.mock('@renderer/features/workspace/api', () => ({
+vi.mock('@renderer/features/workspace/stateApi', () => ({
   useWorkspaceStore: {
     getState: () => ({ bumpLayoutRevision, bumpPaneTabSelectionRevision })
   }

@@ -4,7 +4,7 @@ import type { PaneGroupConfig } from './paneTypes'
 
 const bumpLayoutRevision = vi.fn()
 
-vi.mock('@renderer/features/workspace/api', () => ({
+vi.mock('@renderer/features/workspace/stateApi', () => ({
   useWorkspaceStore: {
     getState: () => ({ bumpLayoutRevision })
   }

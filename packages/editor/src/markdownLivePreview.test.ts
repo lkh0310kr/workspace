@@ -3,7 +3,7 @@ import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
 import { describe, expect, it, vi } from 'vitest'
-import { createMarkdownEditorExtensions } from '../../../../../packages/editor/src/markdownEditor'
+import { createMarkdownEditorExtensions } from './markdownEditor'
 
 describe('Markdown table live preview editing', () => {
   it('renders HTML line breaks inside Markdown table cells', () => {

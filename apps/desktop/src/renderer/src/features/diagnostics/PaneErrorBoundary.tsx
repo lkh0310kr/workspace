@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { logError } from '../../errorLog'
+import { logError } from './errorLog'
 
 // Ported from the Tauri app's ui/src/components/ErrorBoundary.tsx (which
 // replaced the *entire* app with a full-screen red error screen), adapted

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Popover } from '../../components/Popover'
 import { ThemePreference } from '../../theme'
-import { getStoredAutoSave, setStoredAutoSave } from '../../autosave'
+import { getStoredAutoSave, setStoredAutoSave } from '@renderer/features/editor/api'
 import {
   USAGE_PROVIDER_IDS,
   USAGE_PROVIDER_LABELS,

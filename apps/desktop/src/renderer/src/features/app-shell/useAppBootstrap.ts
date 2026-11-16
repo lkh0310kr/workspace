@@ -11,14 +11,14 @@ import {
   onPastePlainTextShortcut,
   onTerminalPasteShortcut
 } from '../../electron'
-import { pastePlainTextInFocusedEditor } from '../../activeEditorView'
+import { pastePlainTextInFocusedEditor } from '@renderer/features/editor/api'
 import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager/pane-terminal-registry'
 import {
   captureTerminalSessionBuffers,
   notifyTerminalKeyboardPasteHandled,
   pasteClipboardIntoTerminal
 } from '../terminal/runtime'
-import { installGlobalErrorLogging } from '../../errorLog'
+import { installGlobalErrorLogging } from '@renderer/features/diagnostics'
 import { installTerminalAgentStatusBridge } from '../terminal/runtime'
 
 /** One-time app-wide side effects (logging, browser embed, downloads). */

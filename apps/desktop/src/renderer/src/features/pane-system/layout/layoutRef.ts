@@ -1,7 +1,7 @@
 import type { DragEvent } from 'react'
 import type { ILayoutApi, Model, TabNode } from 'flexlayout-react'
 import { Actions } from 'flexlayout-react'
-import { useWorkspaceStore } from '@renderer/features/workspace/api'
+import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
 import { layoutLog } from './layoutDebugLog'
 import { getTabDrag } from './tabDrag'
 

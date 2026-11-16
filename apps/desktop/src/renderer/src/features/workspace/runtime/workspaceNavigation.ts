@@ -1,12 +1,12 @@
-import { dismissWorkspacePortals } from './workspacePortalDismiss'
+import { dismissWorkspacePortals } from '../../../workspacePortalDismiss'
 import {
   beginOptimisticWorkspaceTabSwitch,
   endOptimisticWorkspaceTabSwitch
-} from './interaction/optimisticWorkspaceTab'
+} from '../../../interaction/optimisticWorkspaceTab'
 import { setHomeViewActive } from '@workspace/home'
-import { syncInteractionCoordinatorWorkspaceTab } from './interaction/syncInteractionCoordinatorWorkspaceTab'
-import { getWorkspaceScope } from './interaction/workspaceScope'
-import { selectTab } from './electron'
+import { syncInteractionCoordinatorWorkspaceTab } from '../../../interaction/syncInteractionCoordinatorWorkspaceTab'
+import { getWorkspaceScope } from '../../../interaction/workspaceScope'
+import { selectTab } from '../../../electron'
 
 let workspaceSwitchEpoch = 0
 

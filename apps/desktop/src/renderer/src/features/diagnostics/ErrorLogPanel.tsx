@@ -5,7 +5,7 @@ import {
   getErrorLog,
   subscribeErrorLog,
   type LoggedError
-} from '../../errorLog'
+} from './errorLog'
 
 // Small badge in the corner that appears only once something's actually
 // gone wrong (uncaught error, unhandled promise rejection, or a pane's

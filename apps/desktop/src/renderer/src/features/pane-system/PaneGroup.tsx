@@ -22,7 +22,7 @@ import {
   useLayoutRevision,
   usePaneTabSelectionRevision
 } from './useLayoutRevision'
-import { useWorkspaceStore } from '@renderer/features/workspace/api'
+import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
 import { countLayoutTabSets } from './layout/layoutModelParse'
 import { focusPaneGroupTabSet } from './layout/layoutRef'
 import { layoutLog } from './layout/layoutDebugLog'

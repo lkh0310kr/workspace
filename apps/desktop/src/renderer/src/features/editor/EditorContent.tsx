@@ -35,10 +35,13 @@ import {
 import { acquireLocalEditorProvider } from './runtime/localEditorProvider'
 import { LanguageDescription, indentUnit } from '@codemirror/language'
 import { languages as languageData } from '@codemirror/language-data'
-import { getStoredAutoSave, subscribeAutoSave } from '../../autosave'
-import { pastePlainTextCommand } from '../../editorPlainPaste'
-import { getFocusedEditorView } from '../../activeEditorView'
-import { clearFocusedEditorView, setFocusedEditorView } from '../../activeEditorView'
+import { getStoredAutoSave, subscribeAutoSave } from './state/autosave'
+import { pastePlainTextCommand } from './runtime/editorPlainPaste'
+import {
+  clearFocusedEditorView,
+  getFocusedEditorView,
+  setFocusedEditorView
+} from './runtime/activeEditorView'
 import { onFindInEditorShortcut } from '../../electron'
 import type { TabKind } from '../pane-system/layout/paneTypes'
 

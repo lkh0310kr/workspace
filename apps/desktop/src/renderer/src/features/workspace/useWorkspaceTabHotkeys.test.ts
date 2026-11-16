@@ -24,7 +24,7 @@ vi.mock('../../electron', () => ({
   }
 }))
 
-vi.mock('../../workspaceNavigation', () => ({
+vi.mock('./navigationApi', () => ({
   switchToWorkspaceTab: hotkeyState.switchToWorkspaceTab
 }))
 
