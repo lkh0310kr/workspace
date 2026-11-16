@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Layout, type Model } from 'flexlayout-react'
 import type { TabInfo } from '../../workspace'
+import '../paneSystem.css'
 import { workspaceTabHostStyle } from '../interaction/embedPolicy'
 import { registerLayoutModel } from '../layout/layoutRef'
 import type { useLayoutHostCallbacks } from './useLayoutHostCallbacks'
