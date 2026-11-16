@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('./wslPaths', () => ({
+vi.mock('../wslPaths', () => ({
   isWsl: vi.fn(() => false),
   isWslWindowsMountPath: vi.fn((p: string) => /^\/mnt\/[a-zA-Z]\//.test(p)),
   parseWslUncPath: vi.fn((p: string) => {
@@ -16,8 +16,8 @@ vi.mock('./wslPaths', () => ({
   })
 }))
 
-import { isWsl, resolveWslLinuxPathFromWindowsRoot } from './wslPaths'
-import * as fallbackChain from './windows/windows-shell-fallback-chain'
+import { isWsl, resolveWslLinuxPathFromWindowsRoot } from '../wslPaths'
+import * as fallbackChain from '../windows/windows-shell-fallback-chain'
 import { resolvePtySpawn, resolvePtySpawnAttempts, resolveWslExecutable } from './ptyShell'
 
 const WINDOWS_POWERSHELL_ATTEMPT = {

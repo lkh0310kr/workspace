@@ -1,8 +1,8 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import type { WebContents } from 'electron'
-import { Pty } from './pty'
-import { PtySession } from './ptySession'
+import { Pty } from './terminal/pty'
+import { PtySession } from './terminal/ptySession'
 import { defaultLayout, extractTerminalIds } from './layout'
 import { salvageLayoutJson } from '../shared/layoutSalvage'
 import {

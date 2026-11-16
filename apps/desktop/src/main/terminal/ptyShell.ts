@@ -5,13 +5,13 @@ import {
   isWslWindowsMountPath,
   parseWslUncPath,
   resolveWslLinuxPathFromWindowsRoot
-} from './wslPaths'
+} from '../wslPaths'
 import {
   getWindowsCmdPath,
   resolveWindowsPowerShellExecutablePath
-} from './windows/windows-powershell-executable'
-import { resolveWindowsShellLaunchArgs } from './windows/windows-shell-args'
-import { buildWindowsPowerShellSpawnAttempts } from './windows/windows-shell-fallback-chain'
+} from '../windows/windows-powershell-executable'
+import { resolveWindowsShellLaunchArgs } from '../windows/windows-shell-args'
+import { buildWindowsPowerShellSpawnAttempts } from '../windows/windows-shell-fallback-chain'
 
 export interface PtySpawnSpec {
   file: string

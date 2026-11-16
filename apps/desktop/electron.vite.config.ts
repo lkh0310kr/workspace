@@ -34,7 +34,7 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve('src/main/index.ts'),
-          ptyHostDaemon: resolve('src/main/ptyHostDaemon.ts')
+          ptyHostDaemon: resolve('src/main/terminal/ptyHostDaemon.ts')
         },
         output: { entryFileNames: '[name].js' }
       }

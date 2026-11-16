@@ -1,4 +1,4 @@
-import { appendNdjsonLog, getLogFilePath } from './debugLogSink'
+import { appendNdjsonLog, getLogFilePath } from '../debugLogSink'
 
 export function getTerminalLogPath(): string {
   return getLogFilePath('terminal.ndjson')

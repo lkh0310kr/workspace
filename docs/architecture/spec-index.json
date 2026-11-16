@@ -529,32 +529,32 @@
       ],
       "sources": [
         {
-          "path": "apps/desktop/src/main/browserDownloads.ts",
+          "path": "apps/desktop/src/main/browser/browserDownloads.ts",
           "sha256": "dc9d5cbdb99af91ec0d5819a6548a563e1fafbcb0f45f596c82dc766caee3a3b"
         },
         {
-          "path": "apps/desktop/src/main/browserGpuEnv.ts",
-          "sha256": "6cd26ae7402ea69bc0c0895fae5213b52ce60e894faba2a4bc47db908c916b63"
+          "path": "apps/desktop/src/main/browser/browserGpuEnv.ts",
+          "sha256": "0a61a72fb055178425eb0c854875c7c7b51e3d5eaae5ec817c97ad1bf908d03d"
         },
         {
-          "path": "apps/desktop/src/main/browserNav.ts",
+          "path": "apps/desktop/src/main/browser/browserNav.ts",
           "sha256": "e6a3946228305ca0aca5e04b3264bb6549eb1593ba43c5e1f402fc1309123eae"
         },
         {
-          "path": "apps/desktop/src/main/browserSession.ts",
+          "path": "apps/desktop/src/main/browser/browserSession.ts",
           "sha256": "ad1715b1aee25e0929076d53420db0effe5f4c051d386b4a199473b95169abd8"
         },
         {
-          "path": "apps/desktop/src/main/browserSessionUA.ts",
+          "path": "apps/desktop/src/main/browser/browserSessionUA.ts",
           "sha256": "e3c7e8f1a6780c80c000fd7052158731ddcf6bccaee41a34f0ad6c3ea6724bef"
         },
         {
-          "path": "apps/desktop/src/main/browserWebauthn.ts",
+          "path": "apps/desktop/src/main/browser/browserWebauthn.ts",
           "sha256": "a701e440783a4b9d2b8d7f6b75366706ce15bb72ec202fd30ade341c27b289a0"
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "96e2c3b2fe209646f0cdc23cf721b21a06c15372f4ab390a1cf7f4538794f421"
+          "sha256": "e349743213b2a592f8071f68a481cc1c8911603f12324dcfb79a7f39ff5a6a0c"
         },
         {
           "path": "apps/desktop/src/main/search.test.ts",
@@ -721,7 +721,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "96e2c3b2fe209646f0cdc23cf721b21a06c15372f4ab390a1cf7f4538794f421"
+          "sha256": "e349743213b2a592f8071f68a481cc1c8911603f12324dcfb79a7f39ff5a6a0c"
         },
         {
           "path": "apps/desktop/src/main/ipc/terminalSessionBuffers.ts",
@@ -745,7 +745,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspace.ts",
-          "sha256": "4e421b371038abe2ca83997780b042d6d8761329fdf42031bf4a034a2d5ee923"
+          "sha256": "fa7a26e20dc9ce07c0916b6ced62da657065adcdc2a9418bb6193c52b19ed79d"
         },
         {
           "path": "apps/desktop/src/preload/api.ts",
@@ -1033,11 +1033,11 @@
       ],
       "sources": [
         {
-          "path": "apps/desktop/src/main/ptyHostDaemon.ts",
+          "path": "apps/desktop/src/main/terminal/ptyHostDaemon.ts",
           "sha256": "dedf70bf80d65484b09f04a2c88bee567bade28585630868fc68825f18ca1a00"
         },
         {
-          "path": "apps/desktop/src/main/ptySession.ts",
+          "path": "apps/desktop/src/main/terminal/ptySession.ts",
           "sha256": "44b3f0a8656bf78ab30a52f8bed7dc4c27393b2f2f2a73e444dd5ef82698d81e"
         },
         {
@@ -1159,7 +1159,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspace.agent-hook.test.ts",
-          "sha256": "c176ff3ddabfb2d1f8017f8abff2eff3215108f02e106acb85de12fb59a454d5"
+          "sha256": "7272ae2c4101a266808f94c60603c6ff7e24103e3e883f23c7e22d7f423d21fa"
         },
         {
           "path": "apps/desktop/src/main/workspaceAgentHookServer.ts",

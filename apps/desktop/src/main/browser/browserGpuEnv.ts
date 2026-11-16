@@ -1,4 +1,4 @@
-import { isWsl } from './wslPaths'
+import { isWsl } from '../wslPaths'
 
 /** WORKSPACE_GL — override Chromium GL backend (must be set before Electron starts). */
 export type GlBackend = 'auto' | 'gpu' | 'd3d11' | 'angle-gl' | 'swiftshader' | 'egl' | 'off'

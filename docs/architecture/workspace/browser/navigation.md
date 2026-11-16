@@ -50,13 +50,13 @@ hostname stem이 ASCII 영숫자/하이픈과 선택적 마지막 점으로 구�
 
 ## Session과 권한
 
-근거: [browserSession](../../../../apps/desktop/src/main/browserSession.ts), [UA](../../../../apps/desktop/src/main/browserSessionUA.ts), [WebAuthn](../../../../apps/desktop/src/main/browserWebauthn.ts).
+근거: [browserSession](../../../../apps/desktop/src/main/browser/browserSession.ts), [UA](../../../../apps/desktop/src/main/browser/browserSessionUA.ts), [WebAuthn](../../../../apps/desktop/src/main/browser/browserWebauthn.ts).
 
 main startup에서 guest 탐색 전 `session.fromPartition('persist:browser')`를 설정한다. 탭들은 cookie/session을 공유한다. UA와 Google 인증 호환, WebAuthn handler를 해당 session에 설치한다. 자동 허용 목록은 fullscreen, clipboard-read, clipboard-sanitized-write, notifications, persistent-storage, pointerLock이다. request handler는 이 목록을 사용하고 check handler는 WebAuthn 예외도 확인한다. 사이트별 permission prompt UI는 없다.
 
 ## IPC 계약
 
-근거: [preload/browserApi.ts](../../../../apps/desktop/src/preload/browserApi.ts), [main/browserNav.ts](../../../../apps/desktop/src/main/browserNav.ts), [main/index.ts](../../../../apps/desktop/src/main/index.ts).
+근거: [preload/browserApi.ts](../../../../apps/desktop/src/preload/browserApi.ts), [main/browserNav.ts](../../../../apps/desktop/src/main/browser/browserNav.ts), [main/index.ts](../../../../apps/desktop/src/main/index.ts).
 
 | 채널                             | payload / 반환                                                                              |
 | -------------------------------- | ------------------------------------------------------------------------------------------- |

@@ -27,33 +27,33 @@ import {
   isWslWindowsMountPath,
   applyWslDpiScaleFix
 } from './wslPaths'
-import { applyBrowserGpuSwitches } from './browserGpuEnv'
+import { applyBrowserGpuSwitches } from './browser/browserGpuEnv'
 import { shouldIgnoreWatcherPath } from './filesystemWatcherIgnore'
 import { revealWslWindow, installWslWindowLifecycle } from './wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook } from './usage'
-import { setupBrowserSession } from './browserSession'
-import { setupBrowserDownloads } from './browserDownloads'
-import { registerBrowserNavIpc } from './browserNav'
+import { setupBrowserSession } from './browser/browserSession'
+import { setupBrowserDownloads } from './browser/browserDownloads'
+import { registerBrowserNavIpc } from './browser/browserNav'
 import { registerWorkspaceIpc } from './ipc/workspace'
 import { registerTerminalIpc } from './ipc/terminal'
 import { registerContentCapabilityIpc } from './ipc/contentCapabilities'
 import { registerSystemCapabilityIpc } from './ipc/systemCapabilities'
 import { registerAgentStatusIpc } from './ipc/agentStatus'
 import { requestTerminalSessionBuffers } from './ipc/terminalSessionBuffers'
-import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
+import { appendTerminalLog, reprTerminalBytesMain } from './terminal/terminalDebugLog'
 import {
   observeTerminalPtyOutput,
   notifyTerminalPtySpawned,
   setTerminalOscTitleBroadcastTarget
-} from './terminalOscTitleBroadcast'
+} from './terminal/terminalOscTitleBroadcast'
 import { installAgentStatusHooks } from './agentHooks'
 import {
   setWorkspaceAgentHookBroadcastTarget,
   startWorkspaceAgentHookServer
 } from './workspaceAgentHookServer'
 import { createWorkspaceAfterAgentHookServer } from './workspaceAgentHookStartup'
-import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
+import { resolveMacOptionTerminalBytes } from './terminal/terminalMacOptionShortcuts'
 import { disposeCadViewers } from './cadViewer'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'

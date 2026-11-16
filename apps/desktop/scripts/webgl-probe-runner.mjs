@@ -1,5 +1,5 @@
 /**
- * Electron main entry for WebGL probe — applies same switches as browserGpuEnv.ts.
+ * Electron main entry for WebGL probe — applies same switches as browser/browserGpuEnv.ts.
  */
 import { app, BrowserWindow } from 'electron'
 import { readFileSync } from 'node:fs'
