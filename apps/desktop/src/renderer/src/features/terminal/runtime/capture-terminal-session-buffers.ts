@@ -1,9 +1,9 @@
 import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from '@workspace/terminal/shared/terminal-scrollback-policy'
-import { serializeWithAbsoluteCursor } from '../../../../../shared/terminal-serialize-absolute-cursor'
+import { serializeWithAbsoluteCursor } from '@workspace/terminal/shared/terminal-serialize-absolute-cursor'
 import {
   trimTerminalSessionBufferToByteLimit,
   type TerminalSessionBuffersFile
-} from '../../../../../shared/terminal-session-buffers'
+} from '@workspace/terminal/shared/terminal-session-buffers'
 import { flushTerminalOutput } from '@workspace/terminal/pane-manager/pane-terminal-output-scheduler'
 import {
   forEachRegisteredTerminalPane,

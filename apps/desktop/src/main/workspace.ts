@@ -8,8 +8,8 @@ import { salvageLayoutJson } from '../shared/layoutSalvage'
 import {
   trimTerminalSessionBufferToByteLimit,
   type TerminalSessionBuffersFile
-} from '../shared/terminal-session-buffers'
-import { prepareTerminalColdRestoreSnapshot } from '../shared/terminal-cold-restore'
+} from '@workspace/terminal/shared/terminal-session-buffers'
+import { prepareTerminalColdRestoreSnapshot } from '@workspace/terminal/shared/terminal-cold-restore'
 import { loadTerminalSessionBuffers } from './persistence'
 import * as files from './files'
 import type { DirEntry } from './files'

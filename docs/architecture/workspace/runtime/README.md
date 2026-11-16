@@ -38,4 +38,4 @@ Main handle dispose와 detached host의 process destroy를 구분한다. 정상 
 
 RUN-01 saved active ID가 삭제됐으면 첫 workspace로 복원한다. RUN-02 손상 layout은 salvage/default 경로로 열린다. RUN-03 macOS window 재생성 후 IPC가 새 webContents에 도착한다. RUN-04 정상 quit의 capture 실패가 quit을 영구 막지 않는다. RUN-05 force kill은 마지막 durable 저장 이후 상태만 복구할 수 있다.
 
-layoutSalvage·terminal-cold-restore·terminal-session-buffers·window/focus 관련 테스트가 일부 순수 규칙을 검증한다. 이번 문서 작업은 installed app의 모든 shutdown/restore 경로를 실행한 증거가 아니다. timeout·race의 세부 capture protocol은 [terminalSessionBuffers IPC](../../../../apps/desktop/src/main/ipc/terminalSessionBuffers.ts)가 기준이다.
+layoutSalvage·Terminal package의 cold-restore/session-buffer·window/focus 관련 테스트가 일부 순수 규칙을 검증한다. 이번 문서 작업은 installed app의 모든 shutdown/restore 경로를 실행한 증거가 아니다. timeout·race의 세부 capture protocol은 [terminalSessionBuffers IPC](../../../../apps/desktop/src/main/ipc/terminalSessionBuffers.ts)가 기준이다.

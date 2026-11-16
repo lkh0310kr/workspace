@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import type { WorkspaceState } from './workspace'
-import type { TerminalSessionBuffersFile } from '../shared/terminal-session-buffers'
+import type { TerminalSessionBuffersFile } from '@workspace/terminal/shared/terminal-session-buffers'
 import type { UsageMeterSettings } from '../shared/usage-meter-settings'
 import { isPackagedApp } from './startupLog'
 

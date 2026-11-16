@@ -701,7 +701,7 @@
         },
         {
           "path": "apps/desktop/src/main/ipc/terminalSessionBuffers.ts",
-          "sha256": "93117bdcf9a572a80675001802339722e35665249be88b4ae24546790647b183"
+          "sha256": "a2c50287f94023b7d2156fcb64f5a4fb02ff732d376d44656e23af311d7429f3"
         },
         {
           "path": "apps/desktop/src/main/ipc/workspaceSearch.ts",
@@ -713,7 +713,7 @@
         },
         {
           "path": "apps/desktop/src/main/persistence.ts",
-          "sha256": "b11dad40b62f4e55beffde96743d6f3bf6c4a98be62c2e28f6cf049e12b73f83"
+          "sha256": "d4593fee5d8158c28f3dd3dc4c146dbbf06c8c87ce33298914371ea2206819e0"
         },
         {
           "path": "apps/desktop/src/main/usageMeterConfig.ts",
@@ -721,7 +721,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspace.ts",
-          "sha256": "68d29ad9531c3619d72c6ee52554653bedc70abf343fec5650d9776cf6594a7b"
+          "sha256": "3b3568b45fc3055f7235b795429f46ccdedf86ea02c8bb035128ad5705280e95"
         },
         {
           "path": "apps/desktop/src/preload/api.ts",
@@ -958,7 +958,7 @@
         },
         {
           "path": "apps/desktop/src/main/ptySession.ts",
-          "sha256": "b4bb90a398c4e5c43befcee795de8d49aad661d13778cc7df29b03150679008b"
+          "sha256": "21af7a17e25c40b6b83cdd9a2832ad1cd20bf72e2dc68f8bb2fb5bdd5ba79d22"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/index.ts",
@@ -1794,6 +1794,38 @@
         {
           "path": "packages/terminal/src/shared/flatten-retained-slice.ts",
           "sha256": "ac91afecc7f5e44b43b60162f41708b9551a45e01a9d17b13397244c29bb0ec3"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-cold-restore.ts",
+          "sha256": "dc82d85f76605c5d67af30563d535ce2ebd02d7a7d2edbb5d337c8390f44da9c"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-cold-restore.test.ts",
+          "sha256": "dda050286c9af354a39212679f47c5e7abcd30d3d4e819fe9d936be80b727179"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-query-reply.ts",
+          "sha256": "a8bad0a14ce6fa8c73d55c385f7a1670fc8f4d8fd2815261e95db717dac5b0db"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-query-reply.test.ts",
+          "sha256": "0695b5cbbf993067c86a2e118ef9c0aaf6a5dd5ca0ab377acff81c7c3280eea6"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-query-reply-echo.ts",
+          "sha256": "bf7d8a18272aee7ed31c75fb70a9cfe7c0e1079595d061dae35d12d6fe90ca72"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-serialize-absolute-cursor.ts",
+          "sha256": "8870e6632217e56dea51a385dd1a0de697f6a07900d77f1629e294a2e74acdf9"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-session-buffers.ts",
+          "sha256": "e6dbdd56065fb661d0d9234425d1862b7a256abf37b879fd6f6bf12afc0da227"
+        },
+        {
+          "path": "packages/terminal/src/shared/terminal-session-buffers.test.ts",
+          "sha256": "c88d3331262c5b9e50c7ad0119171c0827a80b281f2ba5b91c1e4c7a144bb1dd"
         },
         {
           "path": "packages/terminal/src/shared/terminal-scrollback-policy.ts",
