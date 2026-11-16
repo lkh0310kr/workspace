@@ -6,7 +6,7 @@ import {
   isCursorNativeAgentTitle,
   normalizeTerminalTitle,
   shouldSuppressCursorNativeTitle
-} from '@workspace/terminal/agent/agent-detection'
+} from './agent-detection'
 
 const STALE_TITLE_TIMEOUT = 3_000
 
@@ -66,9 +66,7 @@ export function createPtyOutputTitleObserver(options: {
       clearStaleTitleTimer()
       for (const title of titles) {
         if (isCursorNativeAgentTitle(title)) {
-          if (!shouldSuppressCursorNativeTitle(lastEmittedTitle)) {
-            applyObservedTerminalTitle(title)
-          }
+          if (!shouldSuppressCursorNativeTitle(lastEmittedTitle)) applyObservedTerminalTitle(title)
           continue
         }
         applyObservedTerminalTitle(title)

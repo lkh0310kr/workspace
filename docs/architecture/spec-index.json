@@ -1916,6 +1916,10 @@
           "sha256": "b1d519786b07515e6518f8ab9e8bf826fb6879ac4d8866fb54f59918d3098651"
         },
         {
+          "path": "packages/terminal/src/agent/pty-output-title-observer.ts",
+          "sha256": "a44df24860ca1db7268f456986f9f8fdb7eedcb657f110c96dea89c4bd2cd3b8"
+        },
+        {
           "path": "packages/terminal/src/agent/agent-name-token-match.ts",
           "sha256": "27062a92d08e38aa140496d026e3e355cf5ad19f6ccdc18f1c06f4bbb9fef6f8"
         },
