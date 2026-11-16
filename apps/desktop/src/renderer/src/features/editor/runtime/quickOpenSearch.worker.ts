@@ -1,4 +1,4 @@
-import { fuzzyEditorSearch } from '@workspace/editor/fuzzySearch'
+import { fuzzyEditorSearch } from '@workspace/editor/quick-open'
 
 type WorkerRequest =
   | { type: 'set-files'; tabId: number; paths: string[] }

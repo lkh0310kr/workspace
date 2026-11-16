@@ -29,7 +29,7 @@ export { editorSavePhaseLabel } from './editorSaveStatus'
 export { dispatchEditorNotification, EDITOR_NOTIFICATION_EVENT } from './editorNotifications'
 export type { EditorNotificationDetail } from './editorNotifications'
 export { useEditorDocumentSnapshot } from './useEditorDocumentSnapshot'
-export { useEditorQuickOpenSearch } from './useEditorQuickOpenSearch'
+export { useEditorQuickOpenSearch } from './quick-open'
 export { editorDocumentKey } from './documentIdentity'
 export { createEditorView, editorDocumentReplacement, replaceEditorDocument } from './codeMirror'
 export type { CreateEditorViewOptions } from './codeMirror'
@@ -127,8 +127,8 @@ export {
   indentGuides,
   whitespaceGuideDepth
 } from './indentGuides'
-export { EditorQuickOpenDialog } from './EditorQuickOpenDialog'
-export type { EditorQuickOpenItem } from './EditorQuickOpenDialog'
+export { EditorQuickOpenDialog } from './quick-open'
+export type { EditorQuickOpenItem } from './quick-open'
 export {
   flattenEditorTree,
   projectEditorTreeRows,
@@ -145,8 +145,8 @@ export {
   setEditorDocumentDirty
 } from './documentDirtyRegistry'
 export type { EditorConfirm } from './documentDirtyRegistry'
-export { fuzzyEditorSearch } from './fuzzySearch'
-export type { EditorFuzzyMatch } from './fuzzySearch'
+export { fuzzyEditorSearch } from './quick-open'
+export type { EditorFuzzyMatch } from './quick-open'
 export { resolveEditorTreeArrowKey, resolveEditorTreeKeyboardAction } from './treeNavigation'
 export type {
   EditorTreeArrowAction,

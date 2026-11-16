@@ -22,7 +22,7 @@ Quick Open, Find in Files, Editor tree, Editor document search는 Editor pane에
 
 ## Quick Open
 
-근거: [useEditorQuickOpenSearch.ts](../../../packages/editor/src/useEditorQuickOpenSearch.ts), [fuzzySearch.ts](../../../packages/editor/src/fuzzySearch.ts), [EditorQuickOpenDialog.tsx](../../../packages/editor/src/EditorQuickOpenDialog.tsx).
+근거: [useEditorQuickOpenSearch.ts](../../../packages/editor/src/quick-open/useEditorQuickOpenSearch.ts), [fuzzySearch.ts](../../../packages/editor/src/quick-open/fuzzySearch.ts), [EditorQuickOpenDialog.tsx](../../../packages/editor/src/quick-open/EditorQuickOpenDialog.tsx).
 
 provider/enabled/names capability가 있어야 검색한다. query·provider·limit이 바뀔 때 AbortController를 새로 만들고 이전 요청을 취소한다. 옵션은 target=names, caseSensitive=false, regex=false, wholeWord=false, fuzzy=true다. 결과 item 목록을 dialog에 공급한다. 응답이 아직 현재 query와 일치하지 않으면 이전 결과 대신 items=[], loading=true다. 비활성·미지원은 [], false, null. 취소 오류는 표시하지 않고 다른 오류는 message를 표시한다. 이름 검색은 입력 중 renderer의 긴 동기 작업으로 UI 입력을 막지 않아야 한다.
 

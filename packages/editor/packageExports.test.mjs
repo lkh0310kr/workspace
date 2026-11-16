@@ -18,7 +18,7 @@ test('resolves the editor package entrypoint and an existing declared CSS subpat
 test('resolves the fuzzy search and CSS subpaths used by Workspace Desktop', () => {
   assert.equal(
     import.meta.resolve('@workspace/editor/fuzzySearch'),
-    expectedSourceUrl('src/fuzzySearch.ts')
+    expectedSourceUrl('src/quick-open/fuzzySearch.ts')
   )
   assert.equal(
     import.meta.resolve('@workspace/editor/treeView.module.css'),

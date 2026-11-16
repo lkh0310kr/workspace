@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { editorSupportsSearch, type EditorProvider, type EditorTreeItem } from './provider'
+import { editorSupportsSearch, type EditorProvider, type EditorTreeItem } from '../provider'
 
 interface Options {
   provider: EditorProvider | null | undefined

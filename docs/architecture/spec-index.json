@@ -71,7 +71,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/quickOpenSearch.worker.ts",
-          "sha256": "e4f6b15de490c0430af53e7fe25cf16b9ebf63d1788f95d262bbee46509c884e"
+          "sha256": "c8341a1eaca765704ab6413bba05099679dde00fa4b512b8ca41c71007c7464e"
         },
         {
           "path": "packages/editor/src/editorSidebarShortcuts.test.ts",
@@ -119,7 +119,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "ab38e4fef09514b2d1a72df4c0222bdff0a7013caaf3f008c96c1acb7b93efc3"
+          "sha256": "1d0cd99b04f6a306b300b146b29b7f6eedd59de3ec597abd84f38a30aab9d798"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -166,7 +166,7 @@
           "sha256": "b4e5766c6618d41908adabaf239831a81da8a99659328e22307f72d6ed20102a"
         },
         {
-          "path": "packages/editor/src/EditorQuickOpenDialog.tsx",
+          "path": "packages/editor/src/quick-open/EditorQuickOpenDialog.tsx",
           "sha256": "71f7faba5ceffa726edfc431ea79eb20254fa7b19ccef7bc91997d46af2ef8af"
         },
         {
@@ -210,12 +210,12 @@
           "sha256": "04b704cdf3e9f18a6ce41fa30693bacbf403dc3bc516976bc412c79e26626b98"
         },
         {
-          "path": "packages/editor/src/fuzzySearch.ts",
+          "path": "packages/editor/src/quick-open/fuzzySearch.ts",
           "sha256": "dedde557aaf85cf0375efc844fcb02b81282a1082039f81c0c4055c55879192c"
         },
         {
           "path": "packages/editor/src/index.ts",
-          "sha256": "81e17f92ef22ffb8afbe8bd8ab9ca7306aba5f1a9e2dcf7db85315abadbf2c45"
+          "sha256": "6cd7bca8cacf83752ae9e0d85d2c8e5b247aef3e50ed48d806ac031c10e26e6f"
         },
         {
           "path": "packages/editor/src/markdown.css",
@@ -294,8 +294,8 @@
           "sha256": "536369fd383455efc722fbb347d1c8de13a04414ae2f99f5f4b6b0a7e47de47e"
         },
         {
-          "path": "packages/editor/src/useEditorQuickOpenSearch.ts",
-          "sha256": "72970ff713e0d3d879c8dc3e65c3f03efd724784531e3a16d7e11a9b48dc29bb"
+          "path": "packages/editor/src/quick-open/useEditorQuickOpenSearch.ts",
+          "sha256": "f9f71829760f413e88d26d0112d5c73368cf572d598f3e184cdc96116d649688"
         },
         {
           "path": "packages/editor/src/useEditorTreeSelection.ts",
@@ -346,7 +346,7 @@
           "sha256": "da529a75e969630fe55d12b59f0b245ed39ca5ed793c21caad2b471f18119060"
         },
         {
-          "path": "packages/editor/src/EditorQuickOpenDialog.module.css",
+          "path": "packages/editor/src/quick-open/EditorQuickOpenDialog.module.css",
           "sha256": "68324d37fcb21d57485706e628e195fc9c0cb763d205d031b94bac043b443530"
         },
         {
@@ -400,6 +400,10 @@
         {
           "path": "packages/editor/src/editorTreeReload.test.ts",
           "sha256": "11c891f204cf061d1806930f1b12c9945f2a2dc8d127c504846292f221b79319"
+        },
+        {
+          "path": "packages/editor/src/quick-open/index.ts",
+          "sha256": "1bc26d10bf2dcbc2bebeb37a07604e36caabdc72f4e4a05f074d8fdbbec9dc04"
         }
       ]
     },
