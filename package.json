@@ -6,7 +6,8 @@
     "packages/editor",
     "packages/home",
     "packages/browser",
-    "packages/terminal"
+    "packages/terminal",
+    "packages/ui"
   ],
   "scripts": {
     "postinstall": "npm install --prefix apps/desktop",

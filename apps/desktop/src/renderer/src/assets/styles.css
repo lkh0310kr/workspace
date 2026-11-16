@@ -3032,16 +3032,6 @@ input {
   background: var(--bg-active);
 }
 
-.popover {
-  position: fixed;
-  z-index: 100001;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: 8px;
-  box-shadow: var(--shadow-overlay);
-}
-
 .settings-dialog {
   width: 360px;
   padding: 12px;
@@ -3504,8 +3494,7 @@ textarea,
 .context-menu,
 .quick-open-modal,
 .settings-dialog,
-.app-settings-dialog,
-.popover {
+.app-settings-dialog {
   border-color: var(--border-strong);
 }
 

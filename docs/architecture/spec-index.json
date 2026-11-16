@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "60993d430e9554c6bddecb31f3705d2afdb7d95d330d3f666c8bdfb4ab0d99c1"
+          "sha256": "b0d298e865f1149bb7077e07b00a9130d7bcff82c14ddb7f82489f003d914050"
         },
         {
           "path": "apps/desktop/src/renderer/src/editor/localEditorProvider.ts",
@@ -1582,6 +1582,38 @@
         {
           "path": "packages/terminal/src/types/tuiAgent.ts",
           "sha256": "7c470c858ddc10988ea2b7e230d127a8d9bc70acf03e8dc8226d799749ce023b"
+        }
+      ]
+    },
+    {
+      "id": "ui-package",
+      "scope": "package",
+      "owner": "packages/ui",
+      "specStatus": "drafted",
+      "coverage": "Shared renderer UI primitives with injected host capabilities; currently includes the Popover primitive and portal contract.",
+      "documents": [
+        "packages/ui/README.md"
+      ],
+      "sources": [
+        {
+          "path": "packages/ui/package.json",
+          "sha256": "0bcfffeb1f9e1ef2a171aa12663ca7cd2b8b98075ba04ce8a95b6bc9898277e3"
+        },
+        {
+          "path": "packages/ui/src/Popover.tsx",
+          "sha256": "05becea37c04ad83283ac918d195b42fd9d8d7b2f1955ec4ba39e5b3f05b3440"
+        },
+        {
+          "path": "packages/ui/src/Popover.test.ts",
+          "sha256": "99c625c5c24c8db6d42fe3b5c8db46a3a57ee17b38fa847c30c73e7b20ce6352"
+        },
+        {
+          "path": "packages/ui/src/index.ts",
+          "sha256": "b4a24cf769aa76825ac59980065c2e93ce3d952c69214b318ce15fc96515435d"
+        },
+        {
+          "path": "packages/ui/src/popover.css",
+          "sha256": "6d14980322a4c6c123f03aa8c4f472660337246830f05d77072a542d4715fafc"
         }
       ]
     }

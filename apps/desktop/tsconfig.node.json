@@ -9,6 +9,8 @@
       "@workspace/home": ["../../packages/home/src/index.ts"],
       "@workspace/home/*": ["../../packages/home/src/*"],
       "@workspace/terminal/*": ["../../packages/terminal/src/*"],
+      "@workspace/ui": ["../../packages/ui/src/index.ts"],
+      "@workspace/ui/*": ["../../packages/ui/src/*"],
       "@xterm/*": ["node_modules/@xterm/*"]
     }
   }

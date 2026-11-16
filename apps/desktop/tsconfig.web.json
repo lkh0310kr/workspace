@@ -8,7 +8,8 @@
     "src/shared/**/*",
     "../../packages/home/src/**/*",
     "../../packages/browser/src/**/*",
-    "../../packages/terminal/src/**/*"
+    "../../packages/terminal/src/**/*",
+    "../../packages/ui/src/**/*"
   ],
   "compilerOptions": {
     "composite": true,
@@ -32,6 +33,12 @@
       ],
       "@workspace/terminal/*": [
         "../../packages/terminal/src/*"
+      ],
+      "@workspace/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@workspace/ui/*": [
+        "../../packages/ui/src/*"
       ],
       "@xterm/*": [
         "node_modules/@xterm/*"

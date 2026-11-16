@@ -65,6 +65,7 @@ export default defineConfig({
         '@workspace/home': resolve('../../packages/home/src'),
         '@workspace/browser': resolve('../../packages/browser/src'),
         '@workspace/terminal': resolve('../../packages/terminal/src'),
+        '@workspace/ui': resolve('../../packages/ui/src'),
         '@xterm': resolve('node_modules/@xterm')
       }
     },
