@@ -1,20 +1,24 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
-import { Popover, type AnchorRect } from '../../components/Popover'
-import {
-  fetchWebviewNavHistory,
-  goToWebviewHistoryIndex,
-  type BrowserNavHistoryEntry
-} from '../../browserNavHistory'
-import { onWorkspaceDismissPortals } from '../../workspacePortalDismiss'
+import { Popover, type AnchorRect } from '@workspace/ui'
+
+export interface BrowserNavHistoryEntry {
+  url: string
+  title: string
+}
 
 interface Props {
+  registerPortal: (id: string, onDismiss: () => void) => () => void
+  onDismissPortals: (handler: () => void) => () => void
+  fetchHistory: (
+    webContentsId: number
+  ) => Promise<{ entries: BrowserNavHistoryEntry[]; activeIndex: number } | null>
+  goToHistoryIndex: (webContentsId: number, index: number) => Promise<void>
   direction: 'back' | 'forward'
   disabled: boolean
   active: boolean
   webContentsId: number | null
   onNavigate: () => void
-  /** Prefer direct guest navigation when the host still owns the <webview>. */
-  onNavigateAction?: () => void
+  onNavigateAction: () => void
 }
 
 function labelForEntry(url: string, title: string): string {
@@ -28,6 +32,10 @@ function labelForEntry(url: string, title: string): string {
 
 export function BrowserNavButton({
   direction,
+  registerPortal,
+  onDismissPortals,
+  fetchHistory,
+  goToHistoryIndex,
   disabled,
   active,
   webContentsId,
@@ -61,12 +69,12 @@ export function BrowserNavButton({
     if (!active) closeHistory()
   }, [active, closeHistory])
 
-  useEffect(() => onWorkspaceDismissPortals(closeHistory), [closeHistory])
+  useEffect(() => onDismissPortals(closeHistory), [onDismissPortals, closeHistory])
 
   const openHistory = useCallback(
     async (rect: AnchorRect) => {
       if (!webContentsId || disabled) return
-      const history = await fetchWebviewNavHistory(webContentsId)
+      const history = await fetchHistory(webContentsId)
       if (!history || history.entries.length <= 1) return
 
       const { entries, activeIndex } = history
@@ -84,20 +92,14 @@ export function BrowserNavButton({
       setHistoryIndices(indices)
       setAnchor(rect)
     },
-    [webContentsId, disabled, direction]
+    [webContentsId, disabled, direction, fetchHistory]
   )
 
-  const navigate = useCallback(async () => {
-    if (onNavigateAction) {
-      onNavigateAction()
-      onNavigate()
-      return
-    }
-    if (!webContentsId) return
-    if (direction === 'back') await window.api.browser.goBack(webContentsId)
-    else await window.api.browser.goForward(webContentsId)
+  const navigate = useCallback(() => {
+    if (disabled || !webContentsId) return
+    onNavigateAction()
     onNavigate()
-  }, [webContentsId, direction, onNavigate, onNavigateAction])
+  }, [disabled, onNavigate, onNavigateAction, webContentsId])
 
   const handlePointerDown = (e: PointerEvent<HTMLButtonElement>) => {
     if (disabled || !webContentsId) return
@@ -114,7 +116,7 @@ export function BrowserNavButton({
     clearLongPress()
     if (longPressTriggeredRef.current) return
     if (disabled) return
-    if (!onNavigateAction && !webContentsId) return
+    if (!webContentsId) return
     void navigate()
   }
 
@@ -138,7 +140,12 @@ export function BrowserNavButton({
         {direction === 'back' ? '‹' : '›'}
       </button>
       {anchor && historyItems.length > 0 && (
-        <Popover anchorRect={anchor} onClose={closeHistory} className="browser-nav-history-popover">
+        <Popover
+          anchorRect={anchor}
+          onClose={closeHistory}
+          registerPortal={registerPortal}
+          className="browser-nav-history-popover"
+        >
           <div className="browser-nav-history-list">
             {historyItems.map((entry, i) => {
               const index = historyIndices[i]
@@ -148,7 +155,7 @@ export function BrowserNavButton({
                   type="button"
                   className="browser-nav-history-item"
                   onClick={() => {
-                    if (webContentsId) void goToWebviewHistoryIndex(webContentsId, index)
+                    if (webContentsId) void goToHistoryIndex(webContentsId, index)
                     closeHistory()
                     onNavigate()
                   }}

@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
-import {
-  getBrowserDownloadsForWebview,
-  subscribeBrowserDownloads,
-  type BrowserDownloadItem
-} from '../../browserDownloads'
-import { revealItemInDir } from '../../electron'
+export interface BrowserDownloadItem {
+  id: string
+  filename: string
+  path: string
+  receivedBytes: number
+  totalBytes: number
+  state: 'progressing' | 'interrupted' | 'completed' | 'cancelled'
+}
 
 interface Props {
-  webContentsId: number | null
+  items: readonly BrowserDownloadItem[]
+  onReveal: (path: string) => void
 }
 
 function formatBytes(bytes: number): string {
@@ -29,21 +31,7 @@ function statusLabel(item: BrowserDownloadItem): string {
   return formatBytes(item.receivedBytes)
 }
 
-export function BrowserDownloadsBar({ webContentsId }: Props) {
-  const [items, setItems] = useState<BrowserDownloadItem[]>([])
-
-  useEffect(() => {
-    const refresh = () => {
-      if (webContentsId === null) {
-        setItems([])
-        return
-      }
-      setItems(getBrowserDownloadsForWebview(webContentsId))
-    }
-    refresh()
-    return subscribeBrowserDownloads(refresh)
-  }, [webContentsId])
-
+export function BrowserDownloadsBar({ items, onReveal }: Props) {
   if (items.length === 0) return null
 
   return (
@@ -66,7 +54,7 @@ export function BrowserDownloadsBar({ webContentsId }: Props) {
             <button
               type="button"
               className="browser-download-reveal"
-              onClick={() => revealItemInDir(item.path).catch(console.error)}
+              onClick={() => onReveal(item.path)}
             >
               Show in folder
             </button>

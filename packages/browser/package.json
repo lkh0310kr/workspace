@@ -7,6 +7,9 @@
     ".": "./src/index.ts",
     "./browser.module.css": "./src/browser.module.css"
   },
+  "dependencies": {
+    "@workspace/ui": "0.1.0"
+  },
   "peerDependencies": {
     "react": "^19.2.1",
     "react-dom": "^19.2.1"

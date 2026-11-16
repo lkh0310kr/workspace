@@ -39,3 +39,9 @@ export {
   WORKSPACE_BROWSER_ZOOM_EVENT
 } from './browserZoom'
 export type { BrowserZoomDirection, BrowserZoomWebview } from './browserZoom'
+
+export { BrowserNavButton } from './BrowserNavButton'
+export type { BrowserNavHistoryEntry } from './BrowserNavButton'
+export { BrowserDownloadsBar } from './BrowserDownloadsBar'
+export type { BrowserDownloadItem } from './BrowserDownloadsBar'
+export type { BrowserOpenNewTabEvent, BrowserPaneHost } from './BrowserPaneHost'

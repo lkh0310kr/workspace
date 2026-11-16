@@ -12,11 +12,14 @@ import {
   dispatchLocalBrowserZoom,
   registerBrowserZoomPersist,
   loadBrowserPageWebviewUrl,
-  reloadBrowserPageWebview
+  reloadBrowserPageWebview,
+  BrowserNavButton,
+  BrowserDownloadsBar
 } from '@workspace/browser'
-import { BrowserNavButton } from './BrowserNavButton'
-import { BrowserDownloadsBar } from './BrowserDownloadsBar'
 import { browserFocusLog, snapshotBrowserFocusState } from '../../browser/browserFocusDebugLog'
+import { getBrowserDownloadsForWebview, subscribeBrowserDownloads } from '../../browserDownloads'
+import { revealItemInDir } from '../../electron'
+import type { BrowserDownloadItem } from '@workspace/browser'
 import { ensureBrowserPageWebview } from '../../browser/ensureBrowserPageWebview'
 import {
   browserPageGuestNeedsAttach,
@@ -85,6 +88,7 @@ export function BrowserContent({
   const [webContentsId, setWebContentsId] = useState<number | null>(null)
   const [rendererGone, setRendererGone] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [downloadItems, setDownloadItems] = useState<BrowserDownloadItem[]>([])
 
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
@@ -396,6 +400,18 @@ export function BrowserContent({
   }, [paneVisible, chipActive, chipShown, isPaintable, isActive, tabId, item.id])
 
   useEffect(() => {
+    const refresh = (): void => {
+      if (webContentsId === null) {
+        setDownloadItems([])
+        return
+      }
+      setDownloadItems(getBrowserDownloadsForWebview(webContentsId))
+    }
+    refresh()
+    return subscribeBrowserDownloads(refresh)
+  }, [webContentsId])
+
+  useEffect(() => {
     return registerBrowserZoomPersist(item.id, (factor) => {
       onUpdateRef.current({ zoomFactor: factor })
     })
@@ -456,6 +472,10 @@ export function BrowserContent({
         <div className="pane-header pane-header-browser">
           <div className="browser-nav">
             <BrowserNavButton
+              registerPortal={host.registerPortal}
+              onDismissPortals={host.onDismissPortals}
+              fetchHistory={host.fetchNavHistory}
+              goToHistoryIndex={host.goToNavHistoryIndex}
               direction="back"
               disabled={!canGoBack}
               active={chipShown}
@@ -464,6 +484,10 @@ export function BrowserContent({
               onNavigateAction={goBack}
             />
             <BrowserNavButton
+              registerPortal={host.registerPortal}
+              onDismissPortals={host.onDismissPortals}
+              fetchHistory={host.fetchNavHistory}
+              goToHistoryIndex={host.goToNavHistoryIndex}
               direction="forward"
               disabled={!canGoForward}
               active={chipShown}
@@ -516,7 +540,12 @@ export function BrowserContent({
           />
         </div>
         {loading ? <div className="browser-loading-bar" aria-hidden="true" /> : null}
-        <BrowserDownloadsBar webContentsId={webContentsId} />
+        <BrowserDownloadsBar
+          items={downloadItems}
+          onReveal={(path) => {
+            revealItemInDir(path).catch(console.error)
+          }}
+        />
       </div>
       {rendererGone && chipShown && (
         <div className="browser-crash-banner pointer-events-auto">
