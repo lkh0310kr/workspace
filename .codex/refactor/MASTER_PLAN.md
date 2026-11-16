@@ -81,6 +81,7 @@
 | 1 이후 | T-020 | workspace tab shortcut hook이 UI component를 거치지 않고 canonical navigation owner를 직접 사용 | `renderer/src/hooks/useWorkspaceTabHotkeys.ts`, hook contract test | shortcut index·tab ID·empty index·listener cleanup 보존 |
 | 1 이후 | T-021 | agent activity summary freshness cache가 동일 입력에서 만료 전환을 반영 | renderer selector와 focused test | AGENT freshness 예외 보존, fake-time·typecheck |
 | 1 이후 | T-022 | PKMS client path 기반 local item ID 생성을 domain helper로 통일 | domain helper, 세 소비 경로, focused test | UTF-8/base64url ID·exact path semantics 보존 |
+| 1 이후 | T-023 | Home 두 위젯의 refresh를 직렬화하고 HOME-UI-05 stale response/unmount 경계를 지킴 | 공통 refresh hook, 두 위젯, dashboard integration test | 진행 중 추가 호출 coalescing·await·cleanup 보존 |
 | 1 이후 | 검토 후 선정 | 패키지 간 계약 변경을 먼저 확정 | 서로 겹치지 않는 경로로 결정 | 영역별 집중 검사 후 루트 통합 검사 |
 
 ## 완료 조건
@@ -94,10 +95,11 @@
 
 - 마지막 완료 배치: workspace-app에서 Main/renderer/preload/shared의 저위험·경계형 리팩터링 및 ADAPT-03 저장 경합 수정
 - 검토 영역 / 현재 범위: 9 / 9 (정적 검토 완료; runtime·통합 검증 한계와 후속 위험 별도 기록)
-- 채택 작업 검증 완료 / 채택 작업 전체: 26 / 26 (T-001~T-022 완료)
+- 채택 작업 검증 완료 / 채택 작업 전체: 27 / 27 (T-001~T-023 완료)
 - 기존 검증 실패: architecture-spec 링크 검사에서 사용자가 삭제한 `docs/guides/REFACTOR.md` 참조 발견
-- 상태: 전체 범위 정적 검토 완료; 26개 작업 검증 완료; 고위험 경계 변경은 계약 테스트·정책 확인 전 보류
+- 상태: 전체 범위 정적 검토 완료; 27개 작업 검증 완료; 고위험 경계 변경은 계약 테스트·정책 확인 전 보류
 - 추가 검증: T-002c syncBridge 25파일/31테스트 통과; T-003 editor session 4파일/11테스트·typecheck 통과; usage helper 3테스트 통과; OSC reply 6테스트 통과; preload ESLint/typecheck 및 루트 `npm run check` 통과
 - T-018 Google Drive SHA-256 helper 단일화 커밋 `f7cfaf46`; focused 28 tests, `npm run pkms:web:typecheck`, `npm run check` 통과. ESLint의 `workspaceRepository.ts` 반환형 위반 1개는 기준선에도 존재함을 확인했다. T-019 parentPath 중복을 domain helper로 단일화하고 삭제 자손·이웃 보존 및 동일 목록 참조 테스트를 추가, 커밋 `327cc25c`; focused 2 tests, 앱 typecheck 및 root check 통과. T-020 workspace tab hotkey hook을 canonical navigation owner에 직접 연결하고 mapping·범위 밖 index·listener cleanup 테스트를 추가, 커밋 `8b186ac0`; focused 2 tests, app typecheck, root check, changed-file ESLint/Prettier 통과. notarization 및 Linux build gate 불일치는 정책/릴리스 경계라 동작 변경을 보류한다. 사용자의 제외 범위와 기존 사용자 파일은 보존한다.
 - T-021 agent activity summary selector cache의 freshness 만료 재계산을 보장하고 집중 테스트 3개와 앱 typecheck를 통과했다. Selector 재호출 시 신선도를 복구하며, 시간 경과만으로 UI를 자동 갱신하는 동작은 문서 계약에 없어 추가하지 않았다.
 - T-022 PKMS client의 path 기반 synthetic local ID 인코딩을 domain helper로 합쳤다. rename/move, realtime conflict snapshot, subscribeTree fallback이 동일 UTF-8/base64url exact-path ID를 사용한다. focused 5 tests, PKMS web typecheck, root check 통과.
+- T-023 HOME-UI-05를 구현해 Home 두 위젯이 refresh 요청을 1 in-flight + 1 coalesced pending으로 직렬화한다. stale 응답·unmount 이후 적용을 무효화하고, 기존 mutation 흐름의 `await refresh()` 완료 의미를 유지했다. dashboard/hook 2 tests, app typecheck, root check 통과.

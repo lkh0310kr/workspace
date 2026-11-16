@@ -27,6 +27,8 @@ App scope의 J-08이다. [DashboardView](../../../../apps/workspace-app/src/rend
 
 [service widget](../../../../apps/workspace-app/src/renderer/src/dashboard/widgets/ServiceStatusWidget.tsx)은 Main PKMS desktop bridge로 서비스 상태를 가져오고 60초 recovery refresh를 예약한다. connect/disconnect·supplemental token 입력·수동 refresh와 상태 그래프가 UI 책임이다. 로그인 필요·OAuth 미설정·disconnected·provider metric 오류를 한 종류의 빈 데이터로 처리하지 않는다.
 
+두 위젯은 [useLatestRefresh](../../../../apps/workspace-app/src/renderer/src/hooks/useLatestRefresh.ts)로 갱신을 직렬화한다. 진행 중 추가된 interval·수동·변경 후 refresh는 하나의 후속 갱신으로 합치고, 후속 갱신이 대기 중이면 현재 응답을 적용하지 않는다. unmount 시 대기 갱신과 응답 적용을 무효화하고 interval을 정리한다. 이미 Main IPC로 전달한 요청 자체는 취소할 수 없다.
+
 Main [pkms API](../../../../apps/workspace-app/src/main/pkms/api.ts)는 PKMS 세션으로 Home audience token을 얻어 Home server 요청에 붙인다. renderer가 Home bearer나 저장 grant를 직접 읽지 않는다. callback grant 교환과 D1·provider API는 [Home Server](../../workspace-server/README.md)가 소유한다. device-flow 로그인 화면도 server polling pending/expiry를 처리해야 한다.
 
 ## 수락과 운영 경계
