@@ -97,29 +97,6 @@ export function collectLayoutHosts(): Array<Record<string, unknown>> {
   })
 }
 
-export function collectWebviews(): Array<Record<string, unknown>> {
-  return [...document.querySelectorAll('webview')].map((el) => {
-    const wv = el as Electron.WebviewTag
-    const s = window.getComputedStyle(wv)
-    const host = wv.closest('[data-workspace-tab-id]')
-    return {
-      tabItemId: wv.dataset.tabItemId ?? '',
-      workspaceTabId: host?.getAttribute('data-workspace-tab-id') ?? '',
-      inlinePointerEvents: wv.style.pointerEvents,
-      computedPointerEvents: s.pointerEvents,
-      visibility: s.visibility,
-      display: s.display,
-      url: (() => {
-        try {
-          return wv.getURL()
-        } catch {
-          return '?'
-        }
-      })()
-    }
-  })
-}
-
 export function collectBodyPortals(): Array<Record<string, unknown>> {
   const portals: Array<Record<string, unknown>> = []
   for (const el of document.querySelectorAll('body > *')) {
@@ -189,7 +166,6 @@ export function fullInteractionDiagnostic(
       : null,
     pointerChain: summarizePointerEvents(atPoint),
     layoutHosts: collectLayoutHosts(),
-    webviews: collectWebviews(),
     bodyPortals: collectBodyPortals(),
     appShell: collectAppShell(),
     flexlayoutSplitter: [...document.querySelectorAll('.flexlayout__splitter')].map((el) => {

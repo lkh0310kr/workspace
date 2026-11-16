@@ -1,30 +1,25 @@
 import { useEffect } from 'react'
 import {
-  browserCleanupAll,
   installBrowserDownloadRelay,
   installBrowserEmbedSupport,
   reloadFocusedBrowser
-} from '../browser/runtime'
+} from '../../adapters/browser'
 import { installRendererConsoleFileLogging } from '../../debug/consoleFileLog'
 import { onPastePlainTextShortcut } from '../../electron'
-import { onTerminalPasteShortcut } from '../terminal/runtime/terminalIpc'
-import { onBrowserReloadShortcut } from '../browser/runtime/browserIpc'
+import { onTerminalPasteShortcut } from '../../adapters/terminal/runtime/terminalIpc'
+import { onBrowserReloadShortcut } from '../../adapters/browser/runtime/browserIpc'
 import { pastePlainTextInFocusedEditor } from '@renderer/features/editor/api'
 import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager/pane-terminal-registry'
 import {
   captureTerminalSessionBuffers,
   notifyTerminalKeyboardPasteHandled,
   pasteClipboardIntoTerminal
-} from '../terminal/runtime'
+} from '../../adapters/terminal'
 import { installGlobalErrorLogging } from '@renderer/features/diagnostics'
-import { installTerminalAgentStatusBridge } from '../terminal/runtime'
+import { installTerminalAgentStatusBridge } from '../../adapters/terminal'
 
 /** One-time app-wide side effects (logging, browser embed, downloads). */
 export function useAppBootstrap(): void {
-  useEffect(() => {
-    void browserCleanupAll().catch(console.error)
-  }, [])
-
   useEffect(() => installGlobalErrorLogging(), [])
   useEffect(() => {
     installRendererConsoleFileLogging()

@@ -15,7 +15,7 @@ import { EditorToastViewport, QuickOpen } from './features/editor'
 import { LayoutTabDropOverlay, WorkspaceLayoutHost } from './features/pane-system'
 import { SettingsDialog } from './features/workspace'
 import { HomeView } from '@workspace/home'
-import type { ReadSystemSummary } from '@workspace/home'
+import { readSystemSummary } from './adapters/home/systemSummary'
 import {
   useAppBootstrap,
   useAppShellState,
@@ -34,7 +34,7 @@ import {
   useVisibleWorkspaceTab
 } from './features/pane-system'
 import { useWorkspace, useWorkspaceTabHotkeys } from './features/workspace'
-import { useWorkspaceScope } from './interaction/useWorkspaceScope'
+import { useWorkspaceScope } from './features/workspace/useWorkspaceScope'
 import { switchToHome } from '@renderer/features/workspace/navigationApi'
 import { applyThemePreference, setStoredThemePreference } from './theme'
 import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
@@ -43,7 +43,7 @@ import { readPaneGroupConfig, resolveActivePaneTab } from './features/pane-syste
 import { openEditorFileInPaneGroup } from './features/editor'
 import { setActiveTabInGroup } from './features/pane-system/layout/layoutActions'
 import { useEffect, useCallback, useState } from 'react'
-import { syncAgentPaneRegistryFromLayouts } from './features/terminal/runtime'
+import { syncAgentPaneRegistryFromLayouts } from './adapters/terminal'
 import 'flexlayout-react/style/combined.css'
 import './assets/styles.css'
 import '@workspace/editor/tree.css'
@@ -82,7 +82,6 @@ async function openFileInActivePane(
   bumpLayout(workspaceTabId)
 }
 
-const readSystemSummary: ReadSystemSummary = () => window.api.system.summary()
 
 export default function App() {
   const workspace = useWorkspace()

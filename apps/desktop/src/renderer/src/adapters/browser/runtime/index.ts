@@ -1,0 +1,6 @@
+export { closeBrowserTab } from './browserTabLifecycle'
+export { installBrowserDownloadRelay } from './browserDownloads'
+export { installBrowserEmbedSupport, reloadFocusedBrowser } from './browserEmbedSupport'
+export type { BrowserNavHistoryEntry } from './browserNavHistory'
+export { desktopBrowserPaneHost } from './browserPaneHost'
+export type { BrowserPaneHost } from '@workspace/browser'

@@ -2,10 +2,10 @@ import { dismissWorkspacePortals } from '../../../workspacePortalDismiss'
 import {
   beginOptimisticWorkspaceTabSwitch,
   endOptimisticWorkspaceTabSwitch
-} from '../../../interaction/optimisticWorkspaceTab'
+} from '../state/optimisticWorkspaceTab'
 import { setHomeViewActive } from '@workspace/home'
-import { syncInteractionCoordinatorWorkspaceTab } from '../../../interaction/syncInteractionCoordinatorWorkspaceTab'
-import { getWorkspaceScope } from '../../../interaction/workspaceScope'
+import { syncInteractionCoordinatorWorkspaceTab } from './syncInteractionCoordinatorWorkspaceTab'
+import { getWorkspaceScope } from '../useWorkspaceScope'
 import { selectTab } from './workspaceApi'
 
 let workspaceSwitchEpoch = 0

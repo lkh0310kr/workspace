@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { TabNode } from 'flexlayout-react'
 import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
 import { useLayoutRevision } from './useLayoutRevision'
-import { useWorkspaceScope } from '../../interaction/useWorkspaceScope'
+import { useWorkspaceScope } from '../workspace/useWorkspaceScope'
 
 /**
  * Single source of truth for whether a PaneGroup should show live content.

@@ -1,0 +1,44 @@
+import { useEffect, useState } from 'react'
+import {
+  getOptimisticWorkspaceTabId,
+  subscribeOptimisticWorkspaceTab
+} from './state/optimisticWorkspaceTab'
+import { useInteractionCoordinatorActiveTab } from './runtime/useInteractionCoordinatorActiveTab'
+import {
+  getWorkspaceScope,
+  projectVisibleWorkspaceTabId,
+  type WorkspaceScope
+} from './runtime/workspaceScope'
+import { useWorkspaceStore } from './stateApi'
+import { isHomeViewActive, subscribeHomeView } from '@workspace/home'
+
+/** Reactive workspace tab visibility snapshot for React components. */
+export function useWorkspaceScope(): WorkspaceScope {
+  const storeActiveTabId = useWorkspaceStore((s) => s.activeTabId)
+  const tabs = useWorkspaceStore((s) => s.tabs)
+  const coordinatorTabId = useInteractionCoordinatorActiveTab()
+  const [, tick] = useState(0)
+
+  useEffect(() => subscribeOptimisticWorkspaceTab(() => tick((n) => n + 1)), [])
+  useEffect(() => subscribeHomeView(() => tick((n) => n + 1)), [])
+
+  const optimisticTabId = getOptimisticWorkspaceTabId()
+  const visibleWorkspaceTabId = projectVisibleWorkspaceTabId(
+    storeActiveTabId,
+    coordinatorTabId,
+    optimisticTabId,
+    tabs
+  )
+
+  return {
+    storeActiveTabId,
+    coordinatorTabId,
+    optimisticTabId,
+    tabs,
+    homeActive: isHomeViewActive(),
+    visibleWorkspaceTabId
+  }
+}
+
+/** Non-reactive snapshot — prefer useWorkspaceScope in components. */
+export { getWorkspaceScope }

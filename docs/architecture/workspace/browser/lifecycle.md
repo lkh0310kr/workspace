@@ -1,6 +1,6 @@
 # Guest 수명, viewport, 포커스
 
-근거는 [BrowserContent](../../../../packages/browser/src/BrowserContent.tsx), [viewport](../../../../packages/browser/src/browserPageViewport.ts), [registry](../../../../apps/desktop/src/renderer/src/features/browser/runtime/browserWebviewRegistry.ts), [ensure](../../../../apps/desktop/src/renderer/src/features/browser/runtime/ensureBrowserPageWebview.ts)다.
+근거는 [BrowserContent](../../../../packages/browser/src/BrowserContent.tsx), [viewport](../../../../packages/browser/src/browserPageViewport.ts), [registry](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/browserWebviewRegistry.ts), [ensure](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/ensureBrowserPageWebview.ts)다.
 
 ## DOM과 연결
 
@@ -38,7 +38,7 @@ BrowserPaneOverlaySlot 자체도 paneVisible=false면 display:none이다. 예전
 
 chipShown이면 guest input lock 해제, active guest 설정, terminal focus 해제, coordinator에 `chip-shown` focus 요청을 보낸다. 숨기면 address input blur, guest pointer-events:none, guest가 focus를 소유할 때 renderer로 반환, active guest 해제다. guest focus 이벤트는 owning group도 focus한다. chrome pointer 입력과 guest pointer 입력은 구분하고 주소 입력 focus 중 viewport pointer 처리에서 focus를 빼앗지 않는다.
 
-DOM-ready, chip-shown, navigate, address-bar-dismiss 같은 명시 이벤트는 coordinator에 guest focus를 요청한다. 모든 요청이 즉시 native focus를 허용한다는 의미는 아니다. overlay barrier와 현재 workspace·pane·chip 상태가 최종 결정을 한다. [guest focus helper](../../../../apps/desktop/src/renderer/src/features/browser/runtime/browserGuestFocus.ts), package [guest focus hook](../../../../packages/browser/src/useBrowserGuestActivationFocus.ts), 그리고 `BrowserPaneHost` 정책을 함께 적용한다.
+DOM-ready, chip-shown, navigate, address-bar-dismiss 같은 명시 이벤트는 coordinator에 guest focus를 요청한다. 모든 요청이 즉시 native focus를 허용한다는 의미는 아니다. overlay barrier와 현재 workspace·pane·chip 상태가 최종 결정을 한다. [guest focus helper](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/browserGuestFocus.ts), package [guest focus hook](../../../../packages/browser/src/useBrowserGuestActivationFocus.ts), 그리고 `BrowserPaneHost` 정책을 함께 적용한다.
 
 activation hook은 활성화당 한 번 focus 성공을 기록한다. 비활성 전환 또는 guest 준비 false→true에서 기록을 초기화한다. drag passthrough나 주소창 focus 유지 중에는 시도하지 않는다. requestAnimationFrame에서 guest 존재와 coordinator interactive를 확인하며 최대 24회 시도한다. guest native focus 또는 host webview focus를 확인하면 완료하고 effect cleanup에서 예약 frame을 취소한다.
 
