@@ -8,15 +8,14 @@ import {
   type MouseEvent
 } from 'react'
 import type { Model } from 'flexlayout-react'
+import type { TabInfo } from './runtime/workspaceApi'
 import {
-  TabInfo,
   addTab,
   closeTab,
-  onShortcutModifierPressed,
-  onShortcutModifierReleased,
   renameTab,
   reorderTabs
-} from '../../electron'
+} from './runtime/workspaceApi'
+import { onShortcutModifierPressed, onShortcutModifierReleased } from './runtime/workspaceShortcuts'
 import { dismissWorkspacePortals } from '../../workspacePortalDismiss'
 import { switchToHome, switchToWorkspaceTab } from './navigationApi'
 import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'

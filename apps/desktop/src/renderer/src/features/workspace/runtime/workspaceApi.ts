@@ -1,4 +1,4 @@
-// Workspace rail tab IPC — split from electron.ts (Phase 1 foundation).
+// Workspace tab IPC adapter.
 
 export interface TabInfo {
   id: number

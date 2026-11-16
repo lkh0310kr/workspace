@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import type { TabInfo } from '../../electron'
-import { onSwitchWorkspaceTabIndexShortcut } from '../../electron'
+import type { TabInfo } from './runtime/workspaceApi'
+import { onSwitchWorkspaceTabIndexShortcut } from './runtime/workspaceShortcuts'
 import { switchToWorkspaceTab as switchToTab } from './navigationApi'
 
 // StarCraft-style control-group switching: Cmd+1..Cmd+9 jumps straight to

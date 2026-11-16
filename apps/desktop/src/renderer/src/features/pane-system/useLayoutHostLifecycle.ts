@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import type { Model } from 'flexlayout-react'
-import type { TabInfo } from '../../electron'
+import type { TabInfo } from '../workspace'
 import { countLayoutTabs } from './layout/layoutModelParse'
 import { setActiveLayoutTab, redrawAllLayouts } from './layout/layoutRef'
 import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'

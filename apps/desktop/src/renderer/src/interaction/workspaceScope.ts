@@ -1,4 +1,4 @@
-import type { TabInfo } from '../electron'
+import type { TabInfo } from '../features/workspace'
 import { interactionCoordinator } from './InteractionCoordinator'
 import { getOptimisticWorkspaceTabId } from './optimisticWorkspaceTab'
 import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'

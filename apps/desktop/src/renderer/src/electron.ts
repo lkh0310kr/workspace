@@ -1,30 +1,10 @@
-// Renderer-side API shim, deliberately shaped to match the Tauri app's
-// ui/src/tauri.ts export surface (same function names, same snake_case
-// field names on TabInfo/WorkspaceState/DirEntry) even though the IPC
-// layer underneath (window.api, from preload/index.ts) uses camelCase.
-// The point is to let App.tsx/WorkspaceTabRail.tsx/panes/etc. be ported
-// with import-path-only changes instead of a field-name rewrite
-// throughout every consumer.
+// Renderer-side adapters for Electron preload APIs. Feature-specific IPC
+// capabilities live beside their owning feature where that boundary exists.
 
 import {
   normalizeUsageMeterSettings,
   type UsageMeterSettings
 } from '../../shared/usage-meter-settings'
-
-// Workspace rail tab IPC — see Workspace feature runtime (re-exported here for
-// existing `from "../electron"` import sites).
-export type { TabInfo, WorkspaceState } from './features/workspace/runtime/workspaceApi'
-export {
-  getWorkspaceState,
-  addTab,
-  closeTab,
-  selectTab,
-  renameTab,
-  reorderTabs,
-  setTabLayout,
-  setTabRootPath,
-  onWorkspaceUpdated
-} from './features/workspace/runtime/workspaceApi'
 
 export interface PtyOutput {
   id: number
@@ -292,21 +272,6 @@ export function onOpenSettingsShortcut(handler: () => void): () => void {
 /** Cmd+N — same action as WorkspaceTabRail's "+" button. */
 export function onNewWorkspaceTabShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onNewWorkspaceTab(handler)
-}
-
-export function onShortcutModifierReleased(handler: () => void): () => void {
-  return window.api.shortcuts.onShortcutModifierReleased(handler)
-}
-
-export function onShortcutModifierPressed(handler: () => void): () => void {
-  return window.api.shortcuts.onShortcutModifierPressed(handler)
-}
-
-/** Cmd/Ctrl+1..9 — relayed from main so terminal focus cannot swallow the meta chord. */
-export function onSwitchWorkspaceTabIndexShortcut(
-  handler: (payload: { index: number }) => void
-): () => void {
-  return window.api.shortcuts.onSwitchWorkspaceTabIndex(handler)
 }
 
 /** Cmd+Shift+V — paste clipboard as plain text in the focused editor. */

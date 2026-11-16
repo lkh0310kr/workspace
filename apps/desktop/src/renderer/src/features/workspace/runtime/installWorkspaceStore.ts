@@ -1,4 +1,4 @@
-import { getWorkspaceState, onWorkspaceUpdated } from '../../../electron'
+import { getWorkspaceState, onWorkspaceUpdated } from './workspaceApi'
 import { subscribeOptimisticWorkspaceTab } from '../../../interaction/optimisticWorkspaceTab'
 import { syncInteractionCoordinatorWorkspaceTab } from '../../../interaction/syncInteractionCoordinatorWorkspaceTab'
 import { useWorkspaceStore } from '../state/workspaceStore'

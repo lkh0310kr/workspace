@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { Model } from 'flexlayout-react'
-import type { TabInfo, WorkspaceState } from '../../../electron'
-import { setTabLayout } from '../../../electron'
+import type { TabInfo, WorkspaceState } from '../runtime/workspaceApi'
+import { setTabLayout } from '../runtime/workspaceApi'
 import { countLayoutTabs, modelFromLayoutJson } from '../../pane-system/layout/layoutModelParse'
 import { layoutLog, layoutLogModel } from '../../pane-system/layout/layoutDebugLog'
 import {

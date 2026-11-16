@@ -18,6 +18,8 @@ useAppBootstrap은 전역 error/console logging, browser embed/download relay, t
 
 [`useWorkspace`](../../../../apps/desktop/src/renderer/src/features/workspace/useWorkspace.ts) adapter는 Main state와 updated 이벤트를 받아 store를 hydrate한다. live model/activation은 [layout](../layout/README.md), 화면에 보이는 workspace projection과 native guest focus는 [interaction](../interaction/README.md)이 소유한다. pane 오류는 PaneErrorBoundary, 전역 renderer 오류는 error logging 경로로 간다.
 
+Workspace 탭 IPC DTO 변환과 명령은 `features/workspace/runtime/workspaceApi.ts`가 소유하고, tab modifier/index 단축키 relay는 `workspaceShortcuts.ts`에 둔다. App Shell과 Pane System은 필요한 `TabInfo` 타입이나 명령을 Workspace feature의 공개 진입점에서 사용한다.
+
 ## 창 닫기와 앱 종료
 
 | 사건                       | 현재 동작                                                                                                                                                                      |

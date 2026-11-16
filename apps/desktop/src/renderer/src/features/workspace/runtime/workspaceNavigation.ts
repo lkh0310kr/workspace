@@ -6,7 +6,7 @@ import {
 import { setHomeViewActive } from '@workspace/home'
 import { syncInteractionCoordinatorWorkspaceTab } from '../../../interaction/syncInteractionCoordinatorWorkspaceTab'
 import { getWorkspaceScope } from '../../../interaction/workspaceScope'
-import { selectTab } from '../../../electron'
+import { selectTab } from './workspaceApi'
 
 let workspaceSwitchEpoch = 0
 

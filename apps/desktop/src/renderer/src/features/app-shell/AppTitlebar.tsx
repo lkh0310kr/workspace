@@ -1,6 +1,6 @@
 import type { RefObject } from 'react'
 import type { Model } from 'flexlayout-react'
-import type { TabInfo } from '../../electron'
+import type { TabInfo } from '../workspace'
 import { WorkspaceTabRail } from '../workspace/WorkspaceTabRail'
 
 type Props = {

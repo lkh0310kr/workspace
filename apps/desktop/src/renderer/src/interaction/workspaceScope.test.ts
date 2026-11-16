@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { TabInfo } from '../electron'
+import type { TabInfo } from '../features/workspace'
 import { projectVisibleWorkspaceTabId } from './workspaceScope'
 
 const tabs: TabInfo[] = [

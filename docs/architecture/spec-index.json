@@ -741,7 +741,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/electron.ts",
-          "sha256": "4ac2b4b90fd3a0bdd939a22a8d65893bfd05e243e3ff888aa33d4239eb41b6ed"
+          "sha256": "c937a53bd8a90471acf49c351f59bb66a4ff367a9b2b1b8c3c9a2601fa480a35"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts",
@@ -801,7 +801,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/state/workspaceStore.ts",
-          "sha256": "9b6b7a841825f8de3d282eedee561c7fc494d04d63d84900fa115b7c25fdb9a7"
+          "sha256": "c02eb0528f1dc1e091f2179caf7f19b98481e8c3be1b78fd2006ffef347fc2dd"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/stateApi.ts",
@@ -813,15 +813,15 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/runtime/workspaceNavigation.ts",
-          "sha256": "13b84eb2a4313989e52f5170c88a3fbdae5b9bf5ede885ef0585ced477105495"
+          "sha256": "8226564545da074767d68bb04777dcd3d70050adc4218dbcd4b00fa12e998cdf"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/runtime/workspaceApi.ts",
-          "sha256": "bebada7af1b81feae2673d99d3aa10def16547efd24375cb8b118fa66cb9fba4"
+          "sha256": "f7c6c3f831b4c2d162133c54535e8b81615decf13225ed180c306c2d4799c67b"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/runtime/installWorkspaceStore.ts",
-          "sha256": "98bdf09c60f7e70957aead2a2acb21801571f1fe7b071a89df2fd837cb6e1c88"
+          "sha256": "d82052bb10440d37a6dddc14d02f7024356fcee29e94e1172e886ef6bca309fd"
         },
         {
           "path": "apps/desktop/vitest.config.ts",
@@ -922,6 +922,14 @@
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/nativeShell.ts",
           "sha256": "21173636f60869eac5501e258625edc6b8390cbfe987ac2d4a60ff1b1d07e7ba"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/index.ts",
+          "sha256": "780fbb7b0dbfd32f061108e416911968d67d1d389fdbbbc82ce8fba1bc9303ce"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/runtime/workspaceShortcuts.ts",
+          "sha256": "920571388787cc0bee67068dddb175b2e29aac4681c1eb924ca2c62db0dadeeb"
         }
       ]
     },
