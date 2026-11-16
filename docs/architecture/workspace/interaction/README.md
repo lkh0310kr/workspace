@@ -1,6 +1,6 @@
 # 상호작용·포커스·overlay 계약
 
-[InteractionCoordinator](../../../../apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts)는 renderer singleton이다. overlay stack, portal Map, active workspace ID와 feature 변경 알림을 소유한다. Browser guest 등록·pane/chip 상태·표시·focus lifecycle은 [BrowserInteractionController](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/browserInteractionController.ts)가 소유하며 shell snapshot을 구독한다. renderer를 공유하는 embedded surface의 focus 복귀는 [embeddedSurfaceFocus](../../../../apps/desktop/src/renderer/src/interaction/embeddedSurfaceFocus.ts)가 공통 hook으로 조정한다.
+[InteractionCoordinator](../../../../apps/desktop/src/renderer/src/interaction/portals/InteractionCoordinator.ts)는 renderer singleton이다. overlay stack, portal Map, active workspace ID와 feature 변경 알림을 소유한다. Browser guest 등록·pane/chip 상태·표시·focus lifecycle은 [BrowserInteractionController](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/browserInteractionController.ts)가 소유하며 shell snapshot을 구독한다. renderer를 공유하는 embedded surface의 focus 복귀는 [embeddedSurfaceFocus](../../../../apps/desktop/src/renderer/src/interaction/focus/embeddedSurfaceFocus.ts)가 공통 hook으로 조정한다.
 
 ## 표시·입력 결정표
 

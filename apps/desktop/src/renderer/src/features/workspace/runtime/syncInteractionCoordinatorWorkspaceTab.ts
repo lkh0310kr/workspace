@@ -1,4 +1,4 @@
-import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
+import { interactionCoordinator } from '../../../interaction/portals/InteractionCoordinator'
 import { getWorkspaceScope } from './workspaceScope'
 
 /** Keep IC workspace tab aligned with layout-host visibility projection. */

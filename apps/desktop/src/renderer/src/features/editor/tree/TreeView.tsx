@@ -10,13 +10,13 @@ import {
 } from 'react'
 import { revealItemInDir } from '../../../adapters/platform/nativeShell'
 import type { DirEntry } from '../runtime/localFileSystem'
-import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
-import { returnRendererFocusBeforeSurfaceHidden } from '../../../interaction/embeddedSurfaceFocus'
+import { interactionCoordinator } from '../../../interaction/portals/InteractionCoordinator'
+import { returnRendererFocusBeforeSurfaceHidden } from '../../../interaction/focus/embeddedSurfaceFocus'
 import { finishPaneDrag } from '../../pane-system/layout/layoutRef'
 import { classifyAssetType } from '../../../../../shared/asset'
 import { ContextMenu, type ContextMenuItem } from '@renderer/adapters/ui'
 import type { AnchorRect } from '@renderer/adapters/ui'
-import { onWorkspaceDismissPortals } from '../../../interaction/workspacePortalDismiss'
+import { onWorkspaceDismissPortals } from '../../../interaction/portals/workspacePortalDismiss'
 import {
   editorTreeAncestorDirPaths,
   loadEditorTreeState,

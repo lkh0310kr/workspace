@@ -1,5 +1,5 @@
 import { removeBrowserPageViewport } from '@workspace/browser'
-import { registerRendererFocusReturnHandler } from '../../../interaction/embeddedSurfaceFocus'
+import { registerRendererFocusReturnHandler } from '../../../interaction/focus/embeddedSurfaceFocus'
 import {
   acquireWebviewsDragPassthrough,
   isWebviewDragPassthroughActive,

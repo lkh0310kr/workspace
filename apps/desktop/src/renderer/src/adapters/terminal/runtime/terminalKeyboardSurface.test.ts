@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { requestKeyboardSurface } from '../../../interaction/keyboardSurface'
+import { requestKeyboardSurface } from '../../../interaction/focus/keyboardSurface'
 import { registerTerminalKeyboardTarget } from './terminalKeyboardSurface'
 
 // Importing the terminal feature installs its host release adapter.

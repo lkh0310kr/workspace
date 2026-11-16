@@ -3,7 +3,7 @@ import { isDevInstrumentation } from '../../debug/devTools'
 import {
   interactionCoordinator,
   type InteractionSnapshot
-} from '../../interaction/InteractionCoordinator'
+} from '../../interaction/portals/InteractionCoordinator'
 import { fullInteractionDiagnostic, getDebugRing } from './interactionDebugLog'
 import { collectBrowserWebviews } from '@renderer/adapters/browser/runtime/browserInteractionDiagnostics'
 

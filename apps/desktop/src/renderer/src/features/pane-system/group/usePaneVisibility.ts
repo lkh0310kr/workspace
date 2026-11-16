@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { TabNode } from 'flexlayout-react'
-import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
+import { interactionCoordinator } from '../../../interaction/portals/InteractionCoordinator'
 import { useLayoutRevision } from '../host/useLayoutRevision'
 import { useWorkspaceScope } from '../../workspace/useWorkspaceScope'
 

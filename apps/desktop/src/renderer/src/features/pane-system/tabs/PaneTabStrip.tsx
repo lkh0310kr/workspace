@@ -19,7 +19,7 @@ import {
 } from '../registry/paneKindRegistry'
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from '../layout/tabDrag'
 import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from '../interaction/dragSession'
-import { onWorkspaceDismissPortals } from '../../../interaction/workspacePortalDismiss'
+import { onWorkspaceDismissPortals } from '../../../interaction/portals/workspacePortalDismiss'
 import { startPaneDrag, finishPaneDrag } from '../layout/layoutRef'
 import { layoutLog } from '../layout/layoutDebugLog'
 import { WorkbenchIcon, type WorkbenchIconName } from '@renderer/adapters/ui'

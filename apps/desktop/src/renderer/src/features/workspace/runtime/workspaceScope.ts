@@ -1,5 +1,5 @@
 import type { TabInfo } from '../index'
-import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
+import { interactionCoordinator } from '../../../interaction/portals/InteractionCoordinator'
 import { getOptimisticWorkspaceTabId } from '../state/optimisticWorkspaceTab'
 import { useWorkspaceStore } from '../stateApi'
 import { isHomeViewActive } from '@workspace/home'

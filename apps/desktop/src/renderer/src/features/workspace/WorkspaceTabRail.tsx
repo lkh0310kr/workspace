@@ -16,7 +16,7 @@ import {
   reorderTabs
 } from './runtime/workspaceApi'
 import { onShortcutModifierPressed, onShortcutModifierReleased } from './runtime/workspaceShortcuts'
-import { dismissWorkspacePortals } from '../../interaction/workspacePortalDismiss'
+import { dismissWorkspacePortals } from '../../interaction/portals/workspacePortalDismiss'
 import { switchToHome, switchToWorkspaceTab } from './navigationApi'
 import { ContextMenu, type ContextMenuItem } from '@renderer/adapters/ui'
 import { WorkspaceTabStatusIndicator } from './WorkspaceTabStatusIndicator'

@@ -3,7 +3,7 @@ import { agentPaneKey, useAgentStatusStore } from '@workspace/terminal'
 import { registerTerminalAgentPane } from '@workspace/terminal/agent'
 import { writeClipboardText } from '../platform/nativeClipboard'
 import { connectPanePty } from './runtime/connectPanePty'
-import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
+import { interactionCoordinator } from '../../interaction/portals/InteractionCoordinator'
 import { getCurrentResolvedTheme, subscribeThemeChange } from '../../theme'
 import {
   getTerminalSearchDecorations,
@@ -11,7 +11,7 @@ import {
   focusTerminalTextarea
 } from '@workspace/terminal'
 import { resolveExplicitTerminalTitleAgentType } from '@workspace/terminal/agent'
-import { requestKeyboardSurface } from '../../interaction/keyboardSurface'
+import { requestKeyboardSurface } from '../../interaction/focus/keyboardSurface'
 import { registerTerminalKeyboardTarget } from './runtime/terminalKeyboardSurface'
 import { installTerminalKeyHandler } from './runtime/installTerminalKeyHandler'
 import { installTerminalPasteHandler } from './runtime/installTerminalPasteHandler'

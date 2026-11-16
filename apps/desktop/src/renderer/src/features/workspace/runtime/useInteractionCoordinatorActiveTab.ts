@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
+import { interactionCoordinator } from '../../../interaction/portals/InteractionCoordinator'
 
 /** Workspace tab id owned by InteractionCoordinator (optimistic rail clicks). */
 export function useInteractionCoordinatorActiveTab(): number | null {

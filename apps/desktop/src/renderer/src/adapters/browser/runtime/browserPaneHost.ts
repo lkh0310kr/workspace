@@ -1,4 +1,4 @@
-import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
+import { interactionCoordinator } from '../../../interaction/portals/InteractionCoordinator'
 import { browserInteractionController } from './browserInteractionController'
 import { closeBrowserTab } from './browserTabLifecycle'
 import {
@@ -17,7 +17,7 @@ import {
 import { onBrowserOpenNewTab } from './browserIpc'
 import { revealItemInDir } from '../../platform/nativeShell'
 import { fetchWebviewNavHistory, goToWebviewHistoryIndex } from './browserNavHistory'
-import { onWorkspaceDismissPortals } from '../../../interaction/workspacePortalDismiss'
+import { onWorkspaceDismissPortals } from '../../../interaction/portals/workspacePortalDismiss'
 import {
   ensureBrowserPageWebview,
   setBrowserPageWebviewInputLock

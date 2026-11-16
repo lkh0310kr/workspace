@@ -1,4 +1,4 @@
-import { dismissWorkspacePortals } from '../../../interaction/workspacePortalDismiss'
+import { dismissWorkspacePortals } from '../../../interaction/portals/workspacePortalDismiss'
 import {
   beginOptimisticWorkspaceTabSwitch,
   endOptimisticWorkspaceTabSwitch
