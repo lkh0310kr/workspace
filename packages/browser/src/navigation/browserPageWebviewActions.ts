@@ -1,5 +1,5 @@
 /** Ported from ref-proj/orca browser-reload-action.ts */
-import type { BrowserWebviewPort } from '../BrowserWebview'
+import type { BrowserWebviewPort } from '../pane/BrowserWebview'
 
 export type BrowserPageWebviewActionResult = 'ok' | 'guest-missing' | 'not-ready'
 

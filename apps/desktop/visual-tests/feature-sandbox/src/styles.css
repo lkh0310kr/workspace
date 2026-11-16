@@ -1,4 +1,4 @@
-@import '../../../../../packages/browser/src/browser.css';
+@import '../../../../../packages/browser/src/pane/browser.css';
 @import '../../../../../packages/terminal/src/terminal.css';
 @import '../../../../../packages/terminal/src/terminal-xterm-overrides.css';
 

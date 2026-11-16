@@ -5,10 +5,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./browser.module.css": "./src/browser.module.css",
+    "./address-bar": "./src/address-bar/index.ts",
+    "./browser.module.css": "./src/pane/browser.module.css",
     "./browserDownloads": "./src/downloads/browserDownloads.ts",
     "./downloads": "./src/downloads/index.ts",
     "./navigation": "./src/navigation/index.ts",
+    "./pane": "./src/pane/index.ts",
     "./browserSessionPartition": "./src/browserSessionPartition.ts"
   },
   "dependencies": {

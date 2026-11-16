@@ -34,8 +34,13 @@ export type {
   BrowserZoomDirection,
   BrowserZoomWebview
 } from './navigation'
-
+export { BrowserDownloadsBar } from './downloads'
 export {
+  BrowserContent,
+  createBrowserPaneKind,
+  BrowserPaneOverlaySlot,
+  browserPageGuestNeedsAttach,
+  resolveBrowserPageWebview,
   applyBrowserPageViewportLayout,
   ensureBrowserPageViewport,
   getBrowserOverlaySlotViewport,
@@ -45,21 +50,22 @@ export {
   removeBrowserPageViewport,
   resetBrowserPageViewportsForTests,
   subscribeBrowserOverlaySlotViewport,
-  syncBrowserPageChromeInset
-} from './browserPageViewport'
-export type { BrowserPageViewportLayout } from './browserPageViewport'
-export { useBrowserPageSlotViewport } from './useBrowserPageSlotViewport'
-export { BrowserDownloadsBar } from './downloads'
-export type { BrowserOpenNewTabEvent, BrowserPaneHost } from './BrowserPaneHost'
-export type { BrowserWebviewEventMap, BrowserWebviewPort } from './BrowserWebview'
-export { BrowserContent } from './BrowserContent'
-export { createBrowserPaneKind } from './browserPaneKind'
-export type { BrowserPaneItem } from './BrowserPaneHost'
-export { BrowserPaneOverlaySlot } from './BrowserPaneOverlaySlot'
-export { browserPageGuestNeedsAttach, resolveBrowserPageWebview } from './browserPageGuestRecovery'
-export type { GetPersistentBrowserWebview } from './browserPageGuestRecovery'
-export { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from './browserWebviewPolicy'
-export type { WebviewPolicy, WebviewPolicyContext } from './browserWebviewPolicy'
+  syncBrowserPageChromeInset,
+  useBrowserPageSlotViewport,
+  resolveOrphanWebviewPolicy,
+  resolveWebviewPolicy
+} from './pane'
+export type {
+  BrowserOpenNewTabEvent,
+  BrowserPaneHost,
+  BrowserPaneItem,
+  BrowserWebviewEventMap,
+  BrowserWebviewPort,
+  GetPersistentBrowserWebview,
+  BrowserPageViewportLayout,
+  WebviewPolicy,
+  WebviewPolicyContext
+} from './pane'
 
 export {
   applyBrowserDownloadEvent,

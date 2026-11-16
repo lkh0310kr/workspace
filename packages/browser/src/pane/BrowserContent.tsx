@@ -6,7 +6,7 @@ import {
   useState,
   useSyncExternalStore
 } from 'react'
-import { BrowserAddressBar, recordBrowserVisit } from './address-bar'
+import { BrowserAddressBar, recordBrowserVisit } from '../address-bar'
 import {
   applyBrowserPageViewportLayout,
   ensureBrowserPageViewport,
@@ -22,8 +22,8 @@ import {
   readBrowserNavigationState,
   registerBrowserZoomPersist,
   reloadBrowserPageWebview
-} from './navigation'
-import { BrowserDownloadsBar, type BrowserDownloadItem } from './downloads'
+} from '../navigation'
+import { BrowserDownloadsBar, type BrowserDownloadItem } from '../downloads'
 import type { BrowserPaneHost, BrowserPaneItem } from './BrowserPaneHost'
 import type { BrowserWebviewEventMap, BrowserWebviewPort } from './BrowserWebview'
 import { browserPageGuestNeedsAttach, resolveBrowserPageWebview } from './browserPageGuestRecovery'

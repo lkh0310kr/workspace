@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import { BrowserContent } from './BrowserContent'
 import { BrowserPaneOverlaySlot } from './BrowserPaneOverlaySlot'
-import { browserTabUrlForNewTab, getBrowserTabLabel } from './navigation'
+import { browserTabUrlForNewTab, getBrowserTabLabel } from '../navigation'
 import type { BrowserPaneHost, BrowserPaneItem } from './BrowserPaneHost'
 
 interface BrowserPaneRenderContext<TItem extends BrowserPaneItem> {
