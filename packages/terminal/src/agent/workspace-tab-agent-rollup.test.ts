@@ -3,7 +3,7 @@ import {
   resolveTerminalTabAgentStatus,
   rollupWorkspaceTabAgentIndicator
 } from './workspace-tab-agent-rollup'
-import { GEMINI_PERMISSION, GEMINI_WORKING } from './agent/agent-title-core'
+import { GEMINI_PERMISSION, GEMINI_WORKING } from './agent-title-core'
 
 describe('resolveTerminalTabAgentStatus', () => {
   it('prefers live title over persisted status', () => {

@@ -1,6 +1,6 @@
-import type { AgentStatus } from '../../../../../shared/agent/agent-title-core'
-import { detectAgentStatusFromTitle } from '../../../../../shared/agent/agent-title-status'
-import type { TuiAgent } from '../../../../../shared/agent/tui-agent'
+import type { AgentStatus } from '@workspace/terminal/agent/agent-title-core'
+import { detectAgentStatusFromTitle } from '@workspace/terminal/agent/agent-title-status'
+import type { TuiAgent } from '@workspace/terminal/agent/tui-agent'
 import type { AgentStatusPayload } from '../../../../../shared/agent-status-types'
 import {
   agentPaneKey,

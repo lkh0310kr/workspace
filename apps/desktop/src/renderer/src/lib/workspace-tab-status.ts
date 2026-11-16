@@ -1,9 +1,9 @@
 // Port of ref-proj/orca/src/renderer/src/lib/worktree-status.ts (workspace tab chips).
 
-import { containsAgentSpinnerGlyph } from '../../../shared/agent/agent-title-core'
+import { containsAgentSpinnerGlyph } from '@workspace/terminal/agent/agent-title-core'
 import { isSyntheticAgentPermissionTitle } from '../../../shared/synthetic-agent-permission-title'
-import type { TuiAgent } from '../../../shared/agent/tui-agent'
-import { resolveExplicitTerminalTitleAgentType } from '../../../shared/agent/terminal-title-agent-type'
+import type { TuiAgent } from '@workspace/terminal/agent/tui-agent'
+import { resolveExplicitTerminalTitleAgentType } from '@workspace/terminal/agent/terminal-title-agent-type'
 import type { LiveAgentWorkspaceTabStatus } from './workspace-activity-state'
 import { classifyTitleActivity } from './pane-agent-evidence'
 

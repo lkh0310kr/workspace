@@ -9,7 +9,7 @@ import { writeTerminalOutput } from '@workspace/terminal/pane-manager/pane-termi
 import { ptyResize, writeClipboardText } from '../../../electron'
 import { createElectronPtyTransport, type PtyTransport } from './ptyTransport'
 import { createPtyOutputTitleObserver } from './pty-output-title-observer'
-import type { TuiAgent } from '../../../../../shared/agent/tui-agent'
+import type { TuiAgent } from '@workspace/terminal/agent/tui-agent'
 import {
   applyTitleDerivedAgentStatus,
   applyTitleIdleTransition,

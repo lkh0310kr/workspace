@@ -8,6 +8,7 @@
     "./pane-manager/*": "./src/pane-manager/*.ts",
     "./terminal/*": "./src/terminal/*.ts",
     "./transport/*": "./src/transport/*.ts",
+    "./agent/*": "./src/agent/*.ts",
     "./shared/*": "./src/shared/*.ts",
     "./types/*": "./src/types/*.ts"
   },

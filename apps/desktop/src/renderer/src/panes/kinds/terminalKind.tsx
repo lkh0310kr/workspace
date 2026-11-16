@@ -2,7 +2,7 @@ import { spawnTerminal } from '../../electron'
 import {
   detectAgentStatusFromTitle,
   normalizeTerminalTitle
-} from '../../../../shared/agent/agent-title-status'
+} from '@workspace/terminal/agent/agent-title-status'
 import { getAgentLabel } from '../../agent/agent-catalog'
 import { TerminalPane, desktopTerminalPaneHost } from '../../features/terminal'
 import type { PaneKindDefinition } from '../paneKindRegistry'

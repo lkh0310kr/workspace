@@ -745,7 +745,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/layout/paneTypes.ts",
-          "sha256": "c0046c27dedf31b52e3f70e95153f5b7fab378ff372fb839d5c52d7a0913025b"
+          "sha256": "3dddbe699047654e2219a5c963e3bb0b0183994cf79f9ee626b4b47ba392d226"
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/PaneGroup.tsx",
@@ -794,7 +794,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "c161639508b3e19ba1a1f7d9e9389861c774d699f28a0c9c65224969f3c0f1a1"
+          "sha256": "73502f4238e03800a20f31510a56ef691d1b989c8f4b68dd854a5b04a3a1e0f7"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/runtime/ptyDataMultiplexer.ts",
@@ -1157,7 +1157,7 @@
       "scope": "package",
       "owner": "packages/terminal",
       "specStatus": "drafted",
-      "coverage": "Terminal pane view and host contract, renderer engine (pane manager, fit/scroll/WebGL/output scheduler), theme/style, search UI, terminal domain policies, input queue, and selection copy. Desktop retains PTY IPC/process ownership and supplies app adapters.",
+      "coverage": "Terminal pane view and host contract, renderer engine (pane manager, fit/scroll/WebGL/output scheduler), theme/style, search UI, terminal domain and agent/title policies, input queue, and selection copy. Desktop retains PTY IPC/process ownership and supplies app adapters.",
       "documents": [
         "packages/terminal/README.md",
         "docs/architecture/workspace/terminal/README.md"
@@ -1165,7 +1165,7 @@
       "sources": [
         {
           "path": "packages/terminal/package.json",
-          "sha256": "7709139c96c5bfeee4f97a944421d270592326b20e3f3cd37d0e80c5c22c9093"
+          "sha256": "0d1d5267d35daf1b226c4580762c17fe35a6452f477950f2cde02c479f555f51"
         },
         {
           "path": "packages/terminal/src/TerminalPane.tsx",
@@ -1686,6 +1686,70 @@
         {
           "path": "packages/terminal/src/xterm-clipboard-bypass-policy.ts",
           "sha256": "d221ce4483a5cd6f7c7b5246501deeaf099eef1b976fd970dce738c8ea9fffc7"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-detection.ts",
+          "sha256": "b1d519786b07515e6518f8ab9e8bf826fb6879ac4d8866fb54f59918d3098651"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-name-token-match.ts",
+          "sha256": "27062a92d08e38aa140496d026e3e355cf5ad19f6ccdc18f1c06f4bbb9fef6f8"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-title-core.ts",
+          "sha256": "f51f82d7d3ebfe6856e1ba5aad34bcfc9c01c2b199d9217ae1792eae47cfbcc9"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-title-decoration.ts",
+          "sha256": "85cbebb6ca78a7d0a93f247f85da1efbce5584d5ade9154acb4a2b168c782b41"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-title-identity.ts",
+          "sha256": "fa93c3fbb67e02b6b4ad3c6d8deb3ddac86b7c9f0ece27767b36fa19629598d2"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-title-status.ts",
+          "sha256": "4caa4e20f52186cd4c51af69f64b910c0af7983b79dca0951483e7c82abcc422"
+        },
+        {
+          "path": "packages/terminal/src/agent/opencode-terminal-title.ts",
+          "sha256": "2af51932ca77ae4d4b6edcc1d25ab181b3fdf392056f75c9defb6a14a93cc5ec"
+        },
+        {
+          "path": "packages/terminal/src/agent/osc-title-extraction.ts",
+          "sha256": "862f2e9f5d05e3b588143e18752dbffe9b7635174abc31893ba0da4f04c9230a"
+        },
+        {
+          "path": "packages/terminal/src/agent/pi-compatible-synthetic-title.ts",
+          "sha256": "2c43b6aa0b26f328bc7d51bfc8b4f7a8937156f91b430ccedc945827808e188d"
+        },
+        {
+          "path": "packages/terminal/src/agent/shell-process-detection.ts",
+          "sha256": "d80a58eaba385d17ef3af37a8b7c516c86539c494aa38afaef1418b1a2f4f79f"
+        },
+        {
+          "path": "packages/terminal/src/agent/terminal-title-agent-type.test.ts",
+          "sha256": "525c715c8f99eaedf62ad0f98ca797c0c7f0da9491fb714c58a53103b80bf5f5"
+        },
+        {
+          "path": "packages/terminal/src/agent/terminal-title-agent-type.ts",
+          "sha256": "acc8936265f7bf1e4f53c45f27a558269b342f588e5071c72f6a78ed823d575d"
+        },
+        {
+          "path": "packages/terminal/src/agent/terminal-title-wrapper-segments.ts",
+          "sha256": "f2eb6fc485e519263f3e9394a9f3dc7004aa70373e3e36d42eba3ec509e2cb78"
+        },
+        {
+          "path": "packages/terminal/src/agent/tui-agent.ts",
+          "sha256": "31d36649f63aa5308cf371e024981ec640ab2cb449853178c21a46e4c6839c67"
+        },
+        {
+          "path": "packages/terminal/src/agent/workspace-tab-agent-rollup.test.ts",
+          "sha256": "ee2fb73eb8e39738fff9eda3a64ad9a1af1cda54a285ef57718dda48d32f88a4"
+        },
+        {
+          "path": "packages/terminal/src/agent/workspace-tab-agent-rollup.ts",
+          "sha256": "b28a1786a511a184d03f4a5a162e1c1a51a622db5127ee3a562cd2a69434e015"
         }
       ]
     },

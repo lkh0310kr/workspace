@@ -1,5 +1,5 @@
 import type React from 'react'
-import type { TuiAgent } from '../../../shared/agent/tui-agent'
+import type { TuiAgent } from '@workspace/terminal/agent/tui-agent'
 import { ClaudeIcon, DroidIcon, OpenAIIcon } from './agent-status-bar-icons'
 import {
   AgentLetterIcon,

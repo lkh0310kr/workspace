@@ -6,7 +6,7 @@ import {
   isCursorNativeAgentTitle,
   normalizeTerminalTitle,
   shouldSuppressCursorNativeTitle
-} from '../../../../../shared/agent/agent-detection'
+} from '@workspace/terminal/agent/agent-detection'
 
 const STALE_TITLE_TIMEOUT = 3_000
 

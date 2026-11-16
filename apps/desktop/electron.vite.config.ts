@@ -21,6 +21,11 @@ if (process.platform === "linux") {
 
 export default defineConfig({
   main: {
+    resolve: {
+      alias: {
+        '@workspace/terminal': resolve('../../packages/terminal/src')
+      }
+    },
     define: {
       'process.env.GOOGLE_DRIVE_DESKTOP_CLIENT_SECRET': JSON.stringify(desktopOAuthSecret),
       'process.env.GOOGLE_DRIVE_ALLOWED_EMAILS': JSON.stringify(driveAllowedEmails)

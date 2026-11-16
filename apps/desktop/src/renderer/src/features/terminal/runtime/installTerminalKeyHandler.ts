@@ -52,7 +52,7 @@ export function installTerminalKeyHandler(args: {
   terminalId: number
   writeClipboardText: (text: string) => void | Promise<void>
   getTerminalAgent?: () =>
-    import('../../../../../shared/agent/tui-agent').TuiAgent | null | undefined
+    import('@workspace/terminal/agent/tui-agent').TuiAgent | null | undefined
   isFocused?: () => boolean
 }): () => void {
   const { terminal, transport, terminalId, writeClipboardText } = args

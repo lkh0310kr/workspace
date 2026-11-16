@@ -10,7 +10,7 @@ import {
   XTERM_THEMES,
   focusTerminalTextarea
 } from '@workspace/terminal'
-import { resolveExplicitTerminalTitleAgentType } from '../../../../shared/agent/terminal-title-agent-type'
+import { resolveExplicitTerminalTitleAgentType } from '@workspace/terminal/agent/terminal-title-agent-type'
 import { requestKeyboardSurface } from '../../interaction/keyboardSurface'
 import { registerTerminalKeyboardTarget } from './runtime/terminalKeyboardSurface'
 import { installTerminalKeyHandler } from './runtime/installTerminalKeyHandler'

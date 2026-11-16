@@ -1,5 +1,5 @@
-import type { AgentStatus } from './agent/agent-title-core'
-import { detectAgentStatusFromTitle } from './agent/agent-title-status'
+import type { AgentStatus } from './agent-title-core'
+import { detectAgentStatusFromTitle } from './agent-title-status'
 
 /** Highest-priority agent state to show on a workspace tab chip (Orca worktree `status` slot subset). */
 export type WorkspaceTabAgentIndicator = AgentStatus
