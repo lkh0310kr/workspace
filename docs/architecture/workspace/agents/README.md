@@ -21,6 +21,8 @@ App scope의 J-09다. 터미널 안 agent의 실제 실행과 UI에 관측된 wo
 
 [freshness](../../../../apps/workspace-app/src/shared/agent-status-freshness.ts)의 기본 stale 상수는 30분이다. authority 시각은 evidenceObservedAt 또는 updatedAt, mirrored evidence는 별도 시각을 우선할 수 있다. title-derived는 age 한도를 적용한다. explicit 상태는 restoredUnconfirmed면 거부하고 structuredHostOwned는 age와 다른 경로로 fresh가 될 수 있다. 모든 상태를 updatedAt 한 필드로 TTL 처리하지 않는다.
 
+renderer workspace summary 선택자는 입력 객체 참조를 캐시 키로 사용하므로, freshness가 시간에 따라 바뀌는 항목이 있으면 다음 stale 전환 시각에 캐시를 만료한다. 같은 입력으로 선택자를 다시 호출하면 AGENT-03/05 freshness 규칙을 다시 적용한다. 이 캐시 계약은 시간 경과만으로 React UI를 재렌더링하거나 timer를 예약한다는 뜻은 아니다.
+
 main-agent verdict·interrupt·synthetic title·process detection·workspace rollup은 각각 shared helper가 결정한다. 서로 다른 증거를 단순 last-write-wins로 합치면 기존 우선순위가 바뀔 수 있으므로 이 지도와 함께 helper fixture를 기준으로 상세화한다.
 
 ## 수락과 제한
