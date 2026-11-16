@@ -55,7 +55,19 @@ interface SearchHit {
   excerpt: string
 }
 
-export function EpubReaderContent({ tabId, filePath, absolutePath, paneActive = true }: Props) {
+type EpubOpenError = {
+  tabId: number | undefined
+  filePath: string | undefined
+  absolutePath: string | undefined
+  message: string
+}
+
+export function EpubReaderContent({
+  tabId,
+  filePath,
+  absolutePath,
+  paneActive = true
+}: Props): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<FoliateView | null>(null)
   // The TOC tree is imperative DOM built once per book (foliate's
@@ -70,7 +82,7 @@ export function EpubReaderContent({ tabId, filePath, absolutePath, paneActive = 
   // once per section load and would otherwise keep answering with the
   // setting as it stood when that chapter opened.
   const clickToTurnRef = useRef(DEFAULT_EBOOK_STATE.clickToTurn)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<EpubOpenError | null>(null)
   const [title, setTitle] = useState('Loading…')
   const [chapter, setChapter] = useState('')
   const [progress, setProgress] = useState(0)
@@ -125,6 +137,7 @@ export function EpubReaderContent({ tabId, filePath, absolutePath, paneActive = 
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
+    setError(null)
     let cancelled = false
     const view = document.createElement('foliate-view') as FoliateView
     view.style.display = 'block'
@@ -219,7 +232,14 @@ export function EpubReaderContent({ tabId, filePath, absolutePath, paneActive = 
           })
         }
       } catch (reason) {
-        if (!cancelled) setError(reason instanceof Error ? reason.message : 'failed to open EPUB')
+        if (!cancelled) {
+          setError({
+            tabId,
+            filePath,
+            absolutePath,
+            message: reason instanceof Error ? reason.message : 'failed to open EPUB'
+          })
+        }
       }
     })()
 
@@ -316,8 +336,13 @@ export function EpubReaderContent({ tabId, filePath, absolutePath, paneActive = 
     }
   }
 
-  if (error) {
-    return <div className="file-viewer-empty">{error}</div>
+  if (
+    error &&
+    error.tabId === tabId &&
+    error.filePath === filePath &&
+    error.absolutePath === absolutePath
+  ) {
+    return <div className="file-viewer-empty">{error.message}</div>
   }
 
   return (
