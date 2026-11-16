@@ -41,7 +41,7 @@ function layoutJsonEquivalent(saved: string | undefined, incoming: string): bool
   }
 }
 
-let persistTimer: ReturnType<typeof setTimeout> | null = null
+const persistTimers = new Map<number, ReturnType<typeof setTimeout>>()
 
 export type WorkspaceStoreState = {
   hydrated: boolean
@@ -118,6 +118,11 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
           setSavedLayoutJson(tab.id, tab.layout_json)
         }
       }
+      for (const [tabId, timer] of persistTimers) {
+        if (seen.has(tabId)) continue
+        clearTimeout(timer)
+        persistTimers.delete(tabId)
+      }
       for (const id of layoutModelTabIds()) {
         if (!seen.has(id)) {
           deleteLayoutModel(id)
@@ -177,8 +182,11 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
         { jsonLength: json.length },
         tabId
       )
-      if (persistTimer) clearTimeout(persistTimer)
-      persistTimer = setTimeout(() => {
+      const previousTimer = persistTimers.get(tabId)
+      if (previousTimer !== undefined) clearTimeout(previousTimer)
+      const timer = setTimeout(() => {
+        if (persistTimers.get(tabId) !== timer) return
+        persistTimers.delete(tabId)
         layoutLog(
           'workspaceStore.persistLayout',
           'persist flush',
@@ -187,6 +195,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
         )
         setTabLayout(tabId, json).catch(console.error)
       }, 250)
+      persistTimers.set(tabId, timer)
     },
 
     setPendingRebalance(tabId: number, nodeId: string | null) {
