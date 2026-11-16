@@ -2,7 +2,7 @@
 
 ## 주소 정규화
 
-근거: [browserUrl.ts](../../../../apps/desktop/src/renderer/src/browserUrl.ts). normalizeBrowserNavigationUrl(raw,searchFallback)는 string|null을 반환한다. 순서는 trim→blank→local dev→Unix absolute path→명시 URL→https prefix→선택적 검색 fallback이다.
+근거: [browserUrl.ts](../../../../packages/browser/src/browserUrl.ts). normalizeBrowserNavigationUrl(raw,searchFallback)는 string|null을 반환한다. 순서는 trim→blank→local dev→Unix absolute path→명시 URL→https prefix→선택적 검색 fallback이다.
 
 | 입력                                           | 결과                                          |
 | ---------------------------------------------- | --------------------------------------------- |
@@ -35,7 +35,7 @@ BrowserContent.navigate는 정규화 실패면 무시한다. guest 미준비면 
 
 ## 방문 기록과 주소 제안
 
-근거: [history](../../../../apps/desktop/src/renderer/src/browserHistory.ts), [suggestions](../../../../apps/desktop/src/renderer/src/browserAddressBarSuggestions.ts).
+근거: [history](../../../../packages/browser/src/browserHistory.ts), [suggestions](../../../../packages/browser/src/browserAddressBarSuggestions.ts).
 
 방문 기록은 module cache와 localStorage `workspace.browserHistory`를 사용한다. entry는 url/title/lastVisitedAt/visitCount이며 http(s)만 기록한다. 같은 URL은 title/시간/count를 갱신한다. 최대 500개를 넘으면 가장 오래된 것을 제거한다. storage 실패는 탐색을 막지 않는다.
 

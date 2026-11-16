@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "60f7acd65b5d0e2d033af5c2940b547c219789aebf6587609ed86cab6c37694f"
+          "sha256": "9043141112fc3d5cb2c3423109447221a2f6ad62330ec5e3da6e3089ef138fd4"
         },
         {
           "path": "apps/desktop/src/renderer/src/editor/localEditorProvider.ts",
@@ -472,7 +472,8 @@
       "documents": [
         "docs/architecture/workspace/browser/README.md",
         "docs/architecture/workspace/browser/lifecycle.md",
-        "docs/architecture/workspace/browser/navigation.md"
+        "docs/architecture/workspace/browser/navigation.md",
+        "packages/browser/README.md"
       ],
       "sources": [
         {
@@ -557,7 +558,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/browser/ensureBrowserPageWebview.ts",
-          "sha256": "2c448c30f12d05b44758e57b26aa533999efe1905d0c8b4b3c7d676e49520873"
+          "sha256": "20bc4c4289def02eaacff75a05aff39e07479b82c92ac66c99e9989d7518e04a"
         },
         {
           "path": "apps/desktop/src/renderer/src/browser/overlayBarrier.ts",
@@ -584,16 +585,8 @@
           "sha256": "16c84125300ba38ee558be1bfd33e1b1a0e00b341455b0b2daa64f925ec5f23d"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browserAddressBarSuggestions.ts",
-          "sha256": "3301b73c6e62b373e513021b5ff02213631316279141939840926fd7eac5b3cf"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/browserDownloads.ts",
           "sha256": "c33a3073e632556609cb3ee1dddf62aa836e6ffbc706a9b836448c411cd03721"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/browserHistory.ts",
-          "sha256": "8077249c3738fc67cb0f6166c309a981b0064129f4cef1fea69c9c30785537f2"
         },
         {
           "path": "apps/desktop/src/renderer/src/browserNavHistory.ts",
@@ -602,10 +595,6 @@
         {
           "path": "apps/desktop/src/renderer/src/browserSessionPartition.ts",
           "sha256": "c76e54179b7a868b70135825e45f677f3ace4a54a5509839c31ccefae254934e"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/browserUrl.ts",
-          "sha256": "0eb525360316e5eda1eeb6011821d41dd939b2368f6d26092a15feb38b78a65e"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/SearchPanel.focus.test.ts",
@@ -625,7 +614,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/BrowserContent.tsx",
-          "sha256": "f7ddda382a4861130ca62444afe9deaf00b4b0080fc0985fe7178c5feabad04e"
+          "sha256": "f672cdbd7516c170827c2f7f495daaa17d7218dfbd12b1ed7e8e92517491212d"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/BrowserPaneOverlaySlot.tsx",
@@ -633,7 +622,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/browserPaneHost.ts",
-          "sha256": "77ce2b1db9a16655aa1a19df751e7306403548fcd8582c18ab56a8506d72c626"
+          "sha256": "b5339cf9f57719b1798b942fc90e3dd6b66d0bc9d12448f6e227e3672a610155"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/index.ts",
@@ -837,7 +826,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/TerminalPane.tsx",
-          "sha256": "80021829406fb8788fd8488d73cdce93bc6455c9825852324cc077be21a4905f"
+          "sha256": "9edcaed87d123588ecb2ca4be1d4e5b50dd5a49ba4f32c504a85779221411342"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/index.ts",
@@ -845,7 +834,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "8b1d7399aafdcf76c4911a860fba4a92da608e15319a5a4644c9e07e0cb92b47"
+          "sha256": "b56adbb9dc2959857836413d2183da5835c68839d100d1939b89a946a6ce84c6"
         },
         {
           "path": "apps/desktop/src/renderer/src/lib/pane-manager/pane-terminal-output-scheduler-queue-retention.test.ts",
@@ -1072,6 +1061,91 @@
         {
           "path": "apps/server/src/store.ts",
           "sha256": "b962092a77e1431f30e48bed8dbe2a2bc60ec0a2e0430221cff5127692a731ee"
+        }
+      ]
+    },
+    {
+      "id": "browser-package",
+      "scope": "package",
+      "owner": "packages/browser",
+      "specStatus": "drafted",
+      "coverage": "Address input, navigation URL policy, visit history, and ranked suggestions. Electron guest lifecycle and IPC remain Desktop-owned.",
+      "documents": [
+        "packages/browser/README.md"
+      ],
+      "sources": [
+        {
+          "path": "packages/browser/package.json",
+          "sha256": "90bf71d06641f26de9f80a2d96ce4605dce70cfb3be928de307ca560d3725cc4"
+        },
+        {
+          "path": "packages/browser/src/BrowserAddressBar.tsx",
+          "sha256": "a54d30a9705a76f290ed458aaaf6e9b3349c9d36e21b105438bd6f541a3b40e6"
+        },
+        {
+          "path": "packages/browser/src/browser.module.css",
+          "sha256": "67b4e8416c10e44720aba518246d7fc2bb8d431c8709485ee8685755a06f40ed"
+        },
+        {
+          "path": "packages/browser/src/browserAddressBarSuggestions.test.ts",
+          "sha256": "7ca93d74b1b5b6fd6912395f3255a38e2e6b32d689d28049b83613d2dfbca9e2"
+        },
+        {
+          "path": "packages/browser/src/browserAddressBarSuggestions.ts",
+          "sha256": "3301b73c6e62b373e513021b5ff02213631316279141939840926fd7eac5b3cf"
+        },
+        {
+          "path": "packages/browser/src/browserHistory.ts",
+          "sha256": "8077249c3738fc67cb0f6166c309a981b0064129f4cef1fea69c9c30785537f2"
+        },
+        {
+          "path": "packages/browser/src/browserUrl.test.ts",
+          "sha256": "e94a10959defb9215b6768ba45837c5cee9a79cb820dc2ef29f28ba863fb8acf"
+        },
+        {
+          "path": "packages/browser/src/browserUrl.ts",
+          "sha256": "0eb525360316e5eda1eeb6011821d41dd939b2368f6d26092a15feb38b78a65e"
+        },
+        {
+          "path": "packages/browser/src/index.ts",
+          "sha256": "97264563ce3031e7fdcb0de673725a1a21fc64c0622e3b26f5ad5fa40b5359a3"
+        }
+      ]
+    },
+    {
+      "id": "terminal-package",
+      "scope": "package",
+      "owner": "packages/terminal",
+      "specStatus": "drafted",
+      "coverage": "Terminal search UI and search failure policy. Desktop injects xterm search, theme decoration, and portal capabilities; PTY lifecycle stays Desktop-owned.",
+      "documents": [
+        "packages/terminal/README.md",
+        "docs/architecture/workspace/terminal/README.md"
+      ],
+      "sources": [
+        {
+          "path": "packages/terminal/package.json",
+          "sha256": "a115621ab9789a73909c6aa48840404f440ecda1bc8e401d8a2fcd277f499a5d"
+        },
+        {
+          "path": "packages/terminal/README.md",
+          "sha256": "4b48990178cd386e51049e54a66d2ac88e2f1a2e1753ef689bc41bb6d08095c1"
+        },
+        {
+          "path": "packages/terminal/src/index.ts",
+          "sha256": "9988c5efa9a9530a04dd7869b0036d2efb05e2ddb70fa847529bda9b1a033d5e"
+        },
+        {
+          "path": "packages/terminal/src/TerminalSearch.tsx",
+          "sha256": "3affe3bc7373f566f4e882acc4527b2ed962db07218151f0aba5121d39dfb827"
+        },
+        {
+          "path": "packages/terminal/src/safeFind.ts",
+          "sha256": "a13c4ce0b53ff7d12814a025d22ea51ab5a79b89d0e71c326e9fd2b51695d4ad"
+        },
+        {
+          "path": "packages/terminal/src/terminal-search.module.css",
+          "sha256": "0681435798988aedf19ac19ffb7c975f529a7ef60812ef50af831c38653cd4af"
         }
       ]
     }

@@ -4,21 +4,22 @@ Electron webview guest, pane overlay viewport, renderer/main IPC로 구성한다
 
 ## 모듈과 상태 소유권
 
-경로는 `apps/desktop/src` 기준이다.
+경로는 `packages/browser/src` 및 `apps/desktop/src` 기준이다.
 
-| 모듈                                                     | 소유 상태/책임                                                                              |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| renderer/src/features/browser/BrowserContent.tsx         | 주소 입력, URL/loading/error/rendererGone, webContentsId, pending navigation, listener 연결 |
-| renderer/src/features/browser/BrowserPaneOverlaySlot.tsx | paneNodeId→overlay slot root 등록                                                           |
-| renderer/src/features/browser/browserPaneHost.ts         | InteractionCoordinator·active guest registry·focus·open-new-tab을 주입하는 Desktop adapter |
-| renderer/src/panes/kinds/browserKind.tsx                 | Browser pane tab 및 별도 overlay layer 구성                                                 |
-| renderer/src/browser/browserPageViewport.ts              | item ID→shell/chromeInset/container, slot root listeners, chrome 높이                       |
-| renderer/src/browser/ensureBrowserPageWebview.ts         | guest 생성 또는 기존 guest 재부착                                                           |
-| renderer/src/layout/browserWebviewRegistry.ts            | item ID→persistent guest, renderer recovery flag, drag passthrough                          |
-| renderer/src/layout/activeBrowserWebview.ts              | 현재 활성 guest와 webContentsId 조회                                                        |
-| renderer/src/interaction/InteractionCoordinator.ts       | workspace·pane·chip·overlay에 따른 표시/입력/focus 조정                                     |
-| main/browserSession.ts                                   | persist:browser session, 권한, UA와 WebAuthn 초기화                                         |
-| main/browserNav.ts, preload/browserApi.ts                | history/focus 명령, guest/new-tab/download 이벤트 계약                                      |
+| 모듈                                                                                   | 소유 상태/책임                                                                                     |
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| packages/browser/src/BrowserAddressBar.tsx                                             | URL 입력, 방문 기록 제안, 주소창 focus/dismiss host port                                           |
+| packages/browser/src/browserUrl.ts, browserAddressBarSuggestions.ts, browserHistory.ts | URL 정책, 제안 순위, 방문 기록 저장                                                                |
+| renderer/src/features/browser/BrowserContent.tsx                                       | guest lifecycle와 URL/loading/error/rendererGone, webContentsId, pending navigation, listener 연결 |
+| renderer/src/features/browser/browserPaneHost.ts                                       | InteractionCoordinator·active guest registry·focus·open-new-tab을 주입하는 Desktop adapter         |
+| renderer/src/panes/kinds/browserKind.tsx                                               | Browser pane tab 및 별도 overlay layer 구성                                                        |
+| renderer/src/browser/browserPageViewport.ts                                            | item ID→shell/chromeInset/container, slot root listeners, chrome 높이                              |
+| renderer/src/browser/ensureBrowserPageWebview.ts                                       | guest 생성 또는 기존 guest 재부착                                                                  |
+| renderer/src/layout/browserWebviewRegistry.ts                                          | item ID→persistent guest, renderer recovery flag, drag passthrough                                 |
+| renderer/src/layout/activeBrowserWebview.ts                                            | 현재 활성 guest와 webContentsId 조회                                                               |
+| renderer/src/interaction/InteractionCoordinator.ts                                     | workspace·pane·chip·overlay에 따른 표시/입력/focus 조정                                            |
+| main/browserSession.ts                                                                 | persist:browser session, 권한, UA와 WebAuthn 초기화                                                |
+| main/browserNav.ts, preload/browserApi.ts                                              | history/focus 명령, guest/new-tab/download 이벤트 계약                                             |
 
 ## 식별자와 host 계약
 
@@ -26,7 +27,7 @@ workspaceTabId는 workspace, paneNodeId는 layout group, item.id는 browser 탭 
 
 BrowserContent는 item(url/title/favicon/zoomFactor), workspace tabId, paneNodeId, paneVisible/chipActive와 onUpdate/onOpenNewTab/onFocusPaneGroup/onSelectPaneTab을 받는다. URL/title/favicon/zoom 변경은 onUpdate로 layout item에 반영한다. guest 생명주기를 React component mount와 동일시하지 않는다.
 
-PaneGroup은 `PaneKindDefinition.renderOverlay`로 overlay kind를 배치한다. Browser slot은 Browser feature가 만들고, 일반 pane kind와 같은 item render context를 사용한다. `BrowserContent`는 `BrowserPaneHost`로 InteractionCoordinator·active guest registry·keyboard surface·guest focus·open-new-tab capability를 받는다. Desktop kind는 기존 singleton/IPC adapter를 주입한다. tab 선택과 workspace visibility는 계속 표시·입력 신호이며 webview 제거 조건이 아니다.
+PaneGroup은 `PaneKindDefinition.renderOverlay`로 overlay kind를 배치한다. Browser slot은 Browser feature가 만들고, 일반 pane kind와 같은 item render context를 사용한다. `BrowserAddressBar`는 package의 `registerPortal` capability를 사용한다. Desktop이 InteractionCoordinator adapter를 제공한다. `BrowserContent`는 `BrowserPaneHost`로 InteractionCoordinator·active guest registry·keyboard surface·guest focus·open-new-tab capability를 받는다. Desktop kind는 기존 singleton/IPC adapter를 주입한다. tab 선택과 workspace visibility는 계속 표시·입력 신호이며 webview 제거 조건이 아니다.
 
 ## 재구현 순서
 

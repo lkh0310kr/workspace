@@ -1,11 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type RefObject
+} from 'react'
 import { createPortal } from 'react-dom'
-import { getBrowserHistory } from '../browserHistory'
+import { getBrowserHistory } from './browserHistory'
 import {
   buildAddressBarSuggestions,
   type AddressBarSuggestion
-} from '../browserAddressBarSuggestions'
-import { interactionCoordinator } from '../interaction/InteractionCoordinator'
+} from './browserAddressBarSuggestions'
+import styles from './browser.module.css'
 
 // Real-browser-style address bar: history-based autocomplete dropdown,
 // select-all on focus, Escape reverts to the actual current URL, Enter
@@ -25,9 +33,10 @@ interface Props {
   currentUrl: string
   onChange: (value: string) => void
   onNavigate: (url: string) => void
-  inputRef: React.RefObject<HTMLInputElement | null>
+  inputRef: RefObject<HTMLInputElement | null>
   /** After the autocomplete portal closes — return focus to the page guest. */
   onDismiss?: () => void
+  registerPortal: (id: string, onDismiss: () => void) => () => void
 }
 
 export function BrowserAddressBar({
@@ -36,7 +45,8 @@ export function BrowserAddressBar({
   onChange,
   onNavigate,
   inputRef,
-  onDismiss
+  onDismiss,
+  registerPortal
 }: Props) {
   const [open, setOpen] = useState(false)
   const [rect, setRect] = useState<{ left: number; top: number; width: number } | null>(null)
@@ -143,7 +153,7 @@ export function BrowserAddressBar({
   )
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Escape') {
         e.preventDefault()
         revertToCurrentUrl()
@@ -181,17 +191,14 @@ export function BrowserAddressBar({
 
   useEffect(() => {
     if (!open) return
-    return interactionCoordinator.registerPortal(
-      `browser-address-bar:${inputRef.current?.id ?? 'default'}`,
-      close
-    )
-  }, [open, close, inputRef])
+    return registerPortal(`browser-address-bar:${inputRef.current?.id ?? 'default'}`, close)
+  }, [open, close, inputRef, registerPortal])
 
   return (
     <>
       <input
         ref={inputRef}
-        className="browser-url"
+        className={styles.url}
         value={value}
         onChange={(e) => {
           prePreviewValueRef.current = null
@@ -209,13 +216,13 @@ export function BrowserAddressBar({
       {open && suggestions.length > 0 && rect
         ? createPortal(
             <div
-              className="browser-address-suggestions"
+              className={`${styles.suggestions} browser-address-suggestions`}
               style={{ left: rect.left, top: rect.top, width: rect.width }}
             >
               {suggestions.map((suggestion: AddressBarSuggestion, i: number) => (
                 <div
                   key={suggestion.url + i}
-                  className={`browser-address-suggestion${i === selectedIndex ? ' active' : ''}`}
+                  className={`${styles.suggestion}${i === selectedIndex ? ' ' + styles.active : ''}`}
                   onMouseEnter={() => setSelectedIndex(i)}
                   onMouseDown={(e) => {
                     // preventDefault keeps the input focused so `commit`'s
@@ -224,11 +231,9 @@ export function BrowserAddressBar({
                     commit(suggestion.url)
                   }}
                 >
-                  <span className="browser-address-suggestion-title">{suggestion.title}</span>
+                  <span className={styles.suggestionTitle}>{suggestion.title}</span>
                   {suggestion.subtitle && (
-                    <span className="browser-address-suggestion-subtitle">
-                      {suggestion.subtitle}
-                    </span>
+                    <span className={styles.suggestionSubtitle}>{suggestion.subtitle}</span>
                   )}
                 </div>
               ))}

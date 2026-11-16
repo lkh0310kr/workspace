@@ -3,8 +3,10 @@ import type { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
 import '../../assets/terminal-xterm-overrides.css'
 import { getCurrentResolvedTheme, subscribeThemeChange } from '../../theme'
-import { XTERM_THEMES } from '../../terminalThemes'
-import { TerminalSearch, useTerminalSearchThemeKey } from './TerminalSearch'
+import { getTerminalSearchDecorations, XTERM_THEMES } from '../../terminalThemes'
+import { useTerminalSearchThemeKey } from './useTerminalSearchThemeKey'
+import { TerminalSearch, type SearchAddonPort } from '@workspace/terminal'
+import type { RefObject } from 'react'
 import { createPaneDOM } from '../../lib/pane-manager/pane-dom-creation'
 import { buildTerminalPaneOptions } from '../../lib/pane-manager/build-terminal-pane-options'
 import { disposePane, openTerminal } from '../../lib/pane-manager/pane-lifecycle'
@@ -336,8 +338,9 @@ function TerminalPaneInner({
           setSearchOpen(false)
           paneRef.current?.terminal.focus()
         }}
-        searchAddonRef={searchRef}
-        themeKey={searchThemeKey}
+        searchAddonRef={searchRef as RefObject<SearchAddonPort | null>}
+        decorations={getTerminalSearchDecorations(searchThemeKey)}
+        registerPortal={runtimeHost.registerPortal}
       />
       <div className="terminal-pane-host pane-manager-root" ref={hostRef} />
     </div>

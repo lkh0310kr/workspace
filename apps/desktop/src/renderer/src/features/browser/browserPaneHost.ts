@@ -14,6 +14,7 @@ import { onBrowserOpenNewTab } from '../../electron'
 export type BrowserOpenNewTabEvent = { hostWebContentsId: number; url: string }
 
 export interface BrowserPaneHost {
+  registerPortal: (id: string, onDismiss: () => void) => () => void
   registerWebview: (
     webview: Electron.WebviewTag,
     context: {
@@ -44,6 +45,7 @@ export interface BrowserPaneHost {
 /** Desktop adapter for Browser pane capabilities. Tests and other hosts can
  * mount BrowserContent with an in-memory implementation of BrowserPaneHost. */
 export const desktopBrowserPaneHost: BrowserPaneHost = {
+  registerPortal: (id, onDismiss) => interactionCoordinator.registerPortal(id, onDismiss),
   registerWebview: (webview, context) => interactionCoordinator.registerWebview(webview, context),
   detachWebview: (webview) => interactionCoordinator.detachBrowserWebview(webview),
   updateWebviewPaneNode: (webview, paneNodeId) =>

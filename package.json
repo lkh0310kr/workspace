@@ -4,7 +4,9 @@
   "workspaces": [
     "apps/server",
     "packages/editor",
-    "packages/home"
+    "packages/home",
+    "packages/browser",
+    "packages/terminal"
   ],
   "scripts": {
     "postinstall": "npm install --prefix apps/desktop",

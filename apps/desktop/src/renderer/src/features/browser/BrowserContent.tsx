@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { BrowserAddressBar } from '../../components/BrowserAddressBar'
-import { BrowserNavButton } from '../../components/BrowserNavButton'
-import { BrowserDownloadsBar } from '../../components/BrowserDownloadsBar'
-import { normalizeBrowserNavigationUrl } from '../../browserUrl'
-import { recordBrowserVisit } from '../../browserHistory'
+import {
+  BrowserAddressBar,
+  normalizeBrowserNavigationUrl,
+  recordBrowserVisit
+} from '@workspace/browser'
+import { BrowserNavButton } from './BrowserNavButton'
+import { BrowserDownloadsBar } from './BrowserDownloadsBar'
 import { dispatchLocalBrowserZoom, registerBrowserZoomPersist } from '../../browser/browserZoom'
 import { browserFocusLog, snapshotBrowserFocusState } from '../../browser/browserFocusDebugLog'
 import {
@@ -512,6 +514,7 @@ export function BrowserContent({
             onChange={setAddressInput}
             onNavigate={navigate}
             onDismiss={chipShown ? refocusBrowserGuest : undefined}
+            registerPortal={host.registerPortal}
             inputRef={addressInputRef}
           />
         </div>

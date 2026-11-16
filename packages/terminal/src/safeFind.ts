@@ -1,9 +1,6 @@
-import type { SearchAddon } from '@xterm/addon-search'
+type SearchOptions = object
 
-type SearchOptions = Parameters<SearchAddon['findNext']>[1]
-
-// Port of ref-proj/orca/src/renderer/src/components/terminal-search-safe-find.ts —
-// swallows xterm decoration width errors on narrow viewports instead of crashing React.
+// Narrow viewport decoration errors are ignored so searching cannot crash the pane.
 export function safeFind(
   search: (term: string, options?: SearchOptions) => boolean,
   term: string,

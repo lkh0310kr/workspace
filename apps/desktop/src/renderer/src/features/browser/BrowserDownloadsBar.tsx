@@ -3,8 +3,8 @@ import {
   getBrowserDownloadsForWebview,
   subscribeBrowserDownloads,
   type BrowserDownloadItem
-} from '../browserDownloads'
-import { revealItemInDir } from '../electron'
+} from '../../browserDownloads'
+import { revealItemInDir } from '../../electron'
 
 interface Props {
   webContentsId: number | null

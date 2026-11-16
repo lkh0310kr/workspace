@@ -5,8 +5,10 @@ import { writeClipboardText } from '../../electron'
 import { connectPanePty } from '../../terminal/connectPanePty'
 import type { ManagedPane } from '../../lib/pane-manager/pane-manager-types'
 import type { PtyTransport } from '../../terminal/ptyTransport'
+import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
 
 export interface TerminalPaneHost {
+  registerPortal: (id: string, onDismiss: () => void) => () => void
   getPlatformInfo: () => ReturnType<typeof window.api.platformInfo.get>
   setFocusedTerminal: (terminalId: number | null) => void
   registerAgentPane: (
@@ -29,6 +31,7 @@ export interface TerminalPaneHost {
 /** Desktop adapter for the process, agent and clipboard capabilities used by
  * the terminal pane view. The pane can receive an in-memory test host. */
 export const desktopTerminalPaneHost: TerminalPaneHost = {
+  registerPortal: (id, onDismiss) => interactionCoordinator.registerPortal(id, onDismiss),
   getPlatformInfo: () => window.api.platformInfo.get(),
   setFocusedTerminal: (terminalId) => window.api.terminal.setFocused(terminalId),
   registerAgentPane: (terminalId, workspaceTabId, paneTabId, terminalAgent) => {

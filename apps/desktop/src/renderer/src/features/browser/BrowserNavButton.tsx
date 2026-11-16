@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
-import { Popover, type AnchorRect } from './Popover'
+import { Popover, type AnchorRect } from '../../components/Popover'
 import {
   fetchWebviewNavHistory,
   goToWebviewHistoryIndex,
   type BrowserNavHistoryEntry
-} from '../browserNavHistory'
-import { onWorkspaceDismissPortals } from '../workspacePortalDismiss'
+} from '../../browserNavHistory'
+import { onWorkspaceDismissPortals } from '../../workspacePortalDismiss'
 
 interface Props {
   direction: 'back' | 'forward'

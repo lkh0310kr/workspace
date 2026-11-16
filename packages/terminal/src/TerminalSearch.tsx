@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
-import type { SearchAddon } from '@xterm/addon-search'
-import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
-import { getCurrentResolvedTheme, subscribeThemeChange } from '../../theme'
-import { getTerminalSearchDecorations } from '../../terminalThemes'
-import { safeFind } from '../../terminalSearchSafeFind'
+import styles from './terminal-search.module.css'
+import { safeFind } from './safeFind'
 
 const FIND_QUERY_MAX_BYTES = 2 * 1024
 
@@ -13,21 +10,51 @@ function getFindRequestQuery(query: string): string | null {
   return bytes > FIND_QUERY_MAX_BYTES ? null : query
 }
 
-function clearTerminalSearch(searchAddon: SearchAddon | null): void {
+function clearTerminalSearch(searchAddon: SearchAddonPort | null): void {
   if (!searchAddon) return
   searchAddon.clearDecorations()
   searchAddon.clearActiveDecoration()
   searchAddon.findNext('')
 }
 
+export interface SearchAddonPort {
+  clearDecorations(): void
+  clearActiveDecoration(): void
+  findNext(term: string, options?: SearchOptions): boolean
+  findPrevious(term: string, options?: SearchOptions): boolean
+}
+
+type SearchOptions = {
+  caseSensitive?: boolean
+  regex?: boolean
+  incremental?: boolean
+  decorations?: TerminalSearchDecorations
+}
+
+export interface TerminalSearchDecorations {
+  matchBackground: string
+  matchBorder: string
+  matchOverviewRuler: string
+  activeMatchBackground: string
+  activeMatchBorder: string
+  activeMatchColorOverviewRuler: string
+}
+
 type Props = {
   isOpen: boolean
   onClose: () => void
-  searchAddonRef: RefObject<SearchAddon | null>
-  themeKey: 'dark' | 'light'
+  searchAddonRef: RefObject<SearchAddonPort | null>
+  decorations: TerminalSearchDecorations
+  registerPortal: (id: string, onDismiss: () => void) => () => void
 }
 
-export function TerminalSearch({ isOpen, onClose, searchAddonRef, themeKey }: Props) {
+export function TerminalSearch({
+  isOpen,
+  onClose,
+  searchAddonRef,
+  decorations,
+  registerPortal
+}: Props) {
   const [query, setQuery] = useState('')
   const [caseSensitive, setCaseSensitive] = useState(false)
   const [regex, setRegex] = useState(false)
@@ -40,9 +67,9 @@ export function TerminalSearch({ isOpen, onClose, searchAddonRef, themeKey }: Pr
       caseSensitive,
       regex,
       incremental,
-      decorations: getTerminalSearchDecorations(themeKey)
+      decorations
     }),
-    [caseSensitive, regex, themeKey]
+    [caseSensitive, decorations, regex]
   )
 
   const findNext = useCallback(() => {
@@ -94,8 +121,8 @@ export function TerminalSearch({ isOpen, onClose, searchAddonRef, themeKey }: Pr
   // a re-render (see ContextMenu.tsx's fix for the same class of bug).
   useEffect(() => {
     if (!isOpen) return
-    return interactionCoordinator.registerPortal('terminal-search', () => onCloseRef.current())
-  }, [isOpen])
+    return registerPortal('terminal-search', () => onCloseRef.current())
+  }, [isOpen, registerPortal])
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation()
@@ -111,7 +138,7 @@ export function TerminalSearch({ isOpen, onClose, searchAddonRef, themeKey }: Pr
   if (!isOpen) return null
 
   return (
-    <div className="terminal-search-bar" data-terminal-search-root onKeyDown={onKeyDown}>
+    <div className={styles.searchBar} data-terminal-search-root onKeyDown={onKeyDown}>
       <input
         type="text"
         value={query}
@@ -122,7 +149,7 @@ export function TerminalSearch({ isOpen, onClose, searchAddonRef, themeKey }: Pr
 
       <button
         type="button"
-        className={caseSensitive ? 'terminal-search-toggle is-active' : 'terminal-search-toggle'}
+        className={`${styles.searchToggle} ${caseSensitive ? styles.searchToggleActive : ''}`}
         title="Case sensitive"
         onClick={() => setCaseSensitive((v) => !v)}
       >
@@ -131,14 +158,14 @@ export function TerminalSearch({ isOpen, onClose, searchAddonRef, themeKey }: Pr
 
       <button
         type="button"
-        className={regex ? 'terminal-search-toggle is-active' : 'terminal-search-toggle'}
+        className={`${styles.searchToggle} ${regex ? styles.searchToggleActive : ''}`}
         title="Regex"
         onClick={() => setRegex((v) => !v)}
       >
         .*
       </button>
 
-      <span className="terminal-search-divider" />
+      <span className={styles.divider} />
 
       <button type="button" title="Previous match" onClick={findPrevious}>
         ↑
@@ -147,17 +174,11 @@ export function TerminalSearch({ isOpen, onClose, searchAddonRef, themeKey }: Pr
         ↓
       </button>
 
-      <span className="terminal-search-divider" />
+      <span className={styles.divider} />
 
-      <button type="button" title="Close" className="terminal-search-close" onClick={onClose}>
+      <button type="button" title="Close" className={styles.closeButton} onClick={onClose}>
         ×
       </button>
     </div>
   )
-}
-
-export function useTerminalSearchThemeKey(): 'dark' | 'light' {
-  const [themeKey, setThemeKey] = useState<'dark' | 'light'>(() => getCurrentResolvedTheme())
-  useEffect(() => subscribeThemeChange(setThemeKey), [])
-  return themeKey
 }

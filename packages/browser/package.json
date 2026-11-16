@@ -1,0 +1,17 @@
+{
+  "name": "@workspace/browser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser.module.css": "./src/browser.module.css"
+  },
+  "peerDependencies": {
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "scripts": {
+    "test": "npm run test --prefix ../../apps/desktop -- ../../packages/browser/src"
+  }
+}

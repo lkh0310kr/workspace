@@ -1,7 +1,7 @@
 // Orca parity — host-guest/browser-page-webview.ts
 
 import { BROWSER_SESSION_PARTITION } from '../browserSessionPartition'
-import { normalizeBrowserNavigationUrl, BLANK_URL } from '../browserUrl'
+import { normalizeBrowserNavigationUrl, BLANK_URL } from '@workspace/browser'
 import {
   claimParkedBrowserWebview,
   destroyBrowserWebview,
