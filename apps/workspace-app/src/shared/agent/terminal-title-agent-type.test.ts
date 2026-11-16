@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { getAgentLabel as getSharedAgentLabel } from './agent-title-identity'
+import {
+  getAgentLabel as getSharedAgentLabel,
+  isClaudeAgent as isSharedClaudeAgent
+} from './agent-title-identity'
 import { isOpenCodeNativeTitle } from './opencode-terminal-title'
 import {
+  getAgentLabel,
   isClaudeAgent,
   isClaudeIdentityFrameTitle,
   isGrokRotatingWorkingTitle,
@@ -157,9 +161,12 @@ describe('resolveTerminalTitleAgentType', () => {
   })
 })
 
-// Why: this module carries its own isClaudeAgent copy parallel to agent-title-identity.ts;
-// both got the identical isCursorAgentTitle guard, so pin this copy directly to catch drift.
 describe('isClaudeAgent', () => {
+  it('reuses the shared identity implementation through the terminal compatibility module', () => {
+    expect(getAgentLabel).toBe(getSharedAgentLabel)
+    expect(isClaudeAgent).toBe(isSharedClaudeAgent)
+  })
+
   it('excludes real Cursor identity titles, keeps cursor-mentioning Claude braille titles', () => {
     expect(isClaudeAgent('⠋ Cursor Agent')).toBe(false)
     expect(isClaudeAgent('Cursor ready')).toBe(false)
