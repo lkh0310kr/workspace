@@ -1,6 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { randomUUID, createHash } from 'node:crypto'
-import { promises as fs, watch, type FSWatcher } from 'node:fs'
+import { promises as fs, type FSWatcher } from 'node:fs'
 import path from 'node:path'
 import * as Y from 'yjs'
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
@@ -36,6 +36,7 @@ import {
   resetRootScopedState
 } from './syncPolicy'
 import { acquireFolderSyncLock, releaseFolderSyncLock, type FolderSyncLock } from './folderSyncLock'
+import { createSyncBridgeRuntime } from './syncBridgeRuntime'
 
 type PendingDelete = {
   kind: 'markdown' | 'folder'
@@ -89,12 +90,6 @@ const EMPTY: Persisted = {
   itemStates: {},
   assetFingerprints: {}
 }
-// Poll the cloud's revision feed frequently; full disk walks are a recovery path.
-// The revision feed is metadata-only; poll it frequently so edits from web/iOS
-// reach the local source of truth promptly. Full disk walks remain a recovery
-// path because native watcher events cover normal local edits.
-const REMOTE_CHANGE_POLL_INTERVAL_MS = 5_000
-const FULL_LOCAL_SCAN_INTERVAL_MS = 15 * 60_000
 const timers = new Map<string, ReturnType<typeof setTimeout>>()
 const retryTimers = new Map<string, ReturnType<typeof setTimeout>>()
 const retryAttempts = new Map<string, number>()
@@ -115,6 +110,32 @@ const directoryScanRequests = new Set<string>()
 const dirtyLocalPaths = new Map<string, Set<string>>()
 let persisted: Persisted | null = null
 const itemStateSaveTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+const runtime = createSyncBridgeRuntime({
+  timers,
+  retryTimers,
+  retryAttempts,
+  pollers,
+  fullScanners,
+  watchers,
+  running,
+  folderLocks,
+  starting,
+  runtimeGenerations,
+  fullScanRequests,
+  directoryScanRequests,
+  dirtyLocalPaths,
+  load,
+  save,
+  status,
+  setItemState,
+  isReservedSyncPath,
+  notifyLocalTreeChanged,
+  syncOnce,
+  startCloudWakeup: (workspaceId) => void startCloudWakeup(workspaceId),
+  stopCloudWakeup,
+  releaseFolderSyncLock
+})
 
 function notifyLocalTreeChanged(workspaceId: string, relativePath: string | null): void {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -641,9 +662,9 @@ async function startCloudWakeup(workspaceId: string): Promise<void> {
     const channel = client.channel(`pkms:${workspaceId}`, {
       config: { private: true, broadcast: { self: false } }
     })
-    channel.on('broadcast', { event: 'protocol' }, () => schedule(workspaceId))
+    channel.on('broadcast', { event: 'protocol' }, () => runtime.schedule(workspaceId))
     channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') schedule(workspaceId) // cursor catch-up after connect/reconnect
+      if (status === 'SUBSCRIBED') runtime.schedule(workspaceId) // cursor catch-up after connect/reconnect
     })
     const tokenTimer = setInterval(() => {
       void request<{ token: string }>('/api/realtime/token', 'GET')
@@ -651,7 +672,7 @@ async function startCloudWakeup(workspaceId: string): Promise<void> {
           activeToken = token
           return client.realtime.setAuth(token)
         })
-        .catch(() => schedule(workspaceId))
+        .catch(() => runtime.schedule(workspaceId))
     }, 10 * 60_000)
     realtimeChannels.set(workspaceId, { client, channel, tokenTimer })
   } catch {
@@ -2348,7 +2369,7 @@ async function syncOnce(workspaceId: string): Promise<void> {
           workspaceId,
           setTimeout(() => {
             retryTimers.delete(workspaceId)
-            schedule(workspaceId)
+            runtime.schedule(workspaceId)
           }, delay)
         )
       } else {
@@ -2375,147 +2396,11 @@ async function syncOnce(workspaceId: string): Promise<void> {
         dirtyLocalPaths.has(workspaceId)) &&
       !timers.has(workspaceId)
     ) {
-      schedule(workspaceId, fullScanRequests.has(workspaceId))
+      runtime.schedule(workspaceId, fullScanRequests.has(workspaceId))
     }
   })
   running.set(workspaceId, job)
   return job
-}
-
-function schedule(workspaceId: string, fullScan = false, localPath?: string): void {
-  if (fullScan) fullScanRequests.add(workspaceId)
-  if (localPath) {
-    const pending = dirtyLocalPaths.get(workspaceId) ?? new Set<string>()
-    pending.add(localPath)
-    dirtyLocalPaths.set(workspaceId, pending)
-    void load()
-      .then(async (state) => {
-        const queued = new Set(state.pendingPaths[workspaceId] ?? [])
-        queued.add(localPath)
-        state.pendingPaths[workspaceId] = [...queued]
-        await save()
-      })
-      .catch(() => {})
-    if (!isReservedSyncPath(localPath)) setItemState(workspaceId, localPath, 'pending')
-  }
-  if (running.has(workspaceId) || retryTimers.has(workspaceId)) return
-  if (status(workspaceId).state === 'error') return
-  const previous = timers.get(workspaceId)
-  if (previous) clearTimeout(previous)
-  // Coalesce atomic-save event bursts while keeping one file edit under a
-  // second from reaching the cloud.
-  timers.set(
-    workspaceId,
-    setTimeout(() => {
-      timers.delete(workspaceId)
-      void syncOnce(workspaceId)
-    }, 25)
-  )
-}
-async function stopRuntime(
-  workspaceId: string,
-  releaseLock = true,
-  cancelStarting = true
-): Promise<void> {
-  if (cancelStarting)
-    runtimeGenerations.set(workspaceId, (runtimeGenerations.get(workspaceId) ?? 0) + 1)
-  watchers.get(workspaceId)?.close()
-  watchers.delete(workspaceId)
-  const poll = pollers.get(workspaceId)
-  if (poll) clearInterval(poll)
-  pollers.delete(workspaceId)
-  stopCloudWakeup(workspaceId)
-  const fullScan = fullScanners.get(workspaceId)
-  if (fullScan) clearInterval(fullScan)
-  fullScanners.delete(workspaceId)
-  const timer = timers.get(workspaceId)
-  if (timer) clearTimeout(timer)
-  timers.delete(workspaceId)
-  const retryTimer = retryTimers.get(workspaceId)
-  if (retryTimer) clearTimeout(retryTimer)
-  retryTimers.delete(workspaceId)
-  retryAttempts.delete(workspaceId)
-  if (releaseLock) {
-    await running.get(workspaceId)?.catch(() => {})
-    // A sync already in flight may have scheduled its retry timer while the
-    // stop above was waiting for it. Clear again so disconnect/reconfigure
-    // cannot leave a delayed pass behind.
-    const retryAfterRun = retryTimers.get(workspaceId)
-    if (retryAfterRun) clearTimeout(retryAfterRun)
-    retryTimers.delete(workspaceId)
-    retryAttempts.delete(workspaceId)
-    const timerAfterRun = timers.get(workspaceId)
-    if (timerAfterRun) clearTimeout(timerAfterRun)
-    timers.delete(workspaceId)
-    const lock = folderLocks.get(workspaceId)
-    if (lock) {
-      folderLocks.delete(workspaceId)
-      await releaseFolderSyncLock(lock).catch(() => {})
-    }
-  }
-}
-async function startRuntime(workspaceId: string, folderPath: string): Promise<void> {
-  if (starting.has(workspaceId)) return
-  const generation = (runtimeGenerations.get(workspaceId) ?? 0) + 1
-  runtimeGenerations.set(workspaceId, generation)
-  starting.add(workspaceId)
-  try {
-    await stopRuntime(workspaceId, true, false)
-    if (runtimeGenerations.get(workspaceId) !== generation) return
-    fullScanRequests.delete(workspaceId)
-    dirtyLocalPaths.delete(workspaceId)
-    try {
-      const watcher = watch(folderPath, { recursive: true }, (eventType, filename) => {
-        if (filename === null) {
-          directoryScanRequests.add(workspaceId)
-          schedule(workspaceId, true)
-          notifyLocalTreeChanged(workspaceId, null)
-          return
-        }
-        const relative = path.posix.normalize(filename.toString().replaceAll('\\', '/'))
-        if (
-          !relative ||
-          relative === '.' ||
-          relative.startsWith('../') ||
-          relative.startsWith('/')
-        ) {
-          schedule(workspaceId, true)
-          notifyLocalTreeChanged(workspaceId, null)
-          return
-        }
-        if (eventType === 'rename') directoryScanRequests.add(workspaceId)
-        schedule(workspaceId, false, relative)
-        notifyLocalTreeChanged(workspaceId, relative)
-      })
-      watcher.on('error', () => {
-        watcher.close()
-        watchers.delete(workspaceId)
-        directoryScanRequests.add(workspaceId)
-        schedule(workspaceId, true)
-        notifyLocalTreeChanged(workspaceId, null)
-      })
-      watchers.set(workspaceId, watcher)
-    } catch {
-      /* Polling remains available if native recursive watching is unsupported. */
-    }
-    pollers.set(
-      workspaceId,
-      setInterval(() => schedule(workspaceId), REMOTE_CHANGE_POLL_INTERVAL_MS)
-    )
-    void startCloudWakeup(workspaceId)
-    fullScanners.set(
-      workspaceId,
-      setInterval(() => {
-        if (!running.has(workspaceId)) {
-          directoryScanRequests.add(workspaceId)
-          schedule(workspaceId, true)
-        }
-      }, FULL_LOCAL_SCAN_INTERVAL_MS)
-    )
-    schedule(workspaceId, true)
-  } finally {
-    starting.delete(workspaceId)
-  }
 }
 
 export async function configurePkmsSyncBridge(
@@ -2557,11 +2442,11 @@ export async function configurePkmsSyncBridge(
     itemStates: state.itemStates[workspaceId] ?? {},
     error: null
   })
-  await startRuntime(workspaceId, root)
+  await runtime.startRuntime(workspaceId, root)
   return status(workspaceId)
 }
 export async function disconnectPkmsSyncBridge(workspaceId: string): Promise<PkmsSyncBridgeStatus> {
-  await stopRuntime(workspaceId)
+  await runtime.stopRuntime(workspaceId)
   fullScanRequests.delete(workspaceId)
   dirtyLocalPaths.delete(workspaceId)
   const state = await load()
@@ -2587,7 +2472,7 @@ export async function getPkmsSyncBridgeStatus(workspaceId: string): Promise<Pkms
       excludedPaths: config.excludedPaths ?? [],
       state: 'offline'
     })
-    void startRuntime(workspaceId, config.folderPath).catch((error) =>
+    void runtime.startRuntime(workspaceId, config.folderPath).catch((error) =>
       setStatus(workspaceId, {
         state: 'error',
         error: error instanceof Error ? error.message : 'Could not start cloud sync.'
@@ -2646,7 +2531,7 @@ export async function updatePkmsSyncBridgeExclusions(
     .slice(0, 100)
   await save()
   setStatus(workspaceId, { excludedPaths: config.excludedPaths })
-  schedule(workspaceId, true)
+  runtime.schedule(workspaceId, true)
   return status(workspaceId)
 }
 
@@ -2661,7 +2546,7 @@ export async function startConfiguredPkmsSyncBridges(): Promise<void> {
         excludedPaths: value.excludedPaths ?? [],
         state: 'syncing'
       })
-      await startRuntime(workspaceId, value.folderPath)
+      await runtime.startRuntime(workspaceId, value.folderPath)
     } catch {
       setStatus(workspaceId, {
         enabled: true,
@@ -2683,5 +2568,5 @@ export async function stopPkmsSyncBridges(): Promise<void> {
       ...folderLocks.keys()
     ])
   ]
-  await Promise.all(workspaceIds.map((workspaceId) => stopRuntime(workspaceId, false)))
+  await Promise.all(workspaceIds.map((workspaceId) => runtime.stopRuntime(workspaceId, false)))
 }
