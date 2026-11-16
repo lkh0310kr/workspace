@@ -1,16 +1,5 @@
-interface BrowserDownloadEventPayload {
-  id: string
-  hostWebContentsId: number
-  phase: 'started' | 'updated' | 'done'
-  filename?: string
-  url?: string
-  path?: string
-  receivedBytes?: number
-  totalBytes?: number
-  state?: 'progressing' | 'interrupted' | 'completed' | 'cancelled'
-}
-
 import { ipcRenderer } from 'electron'
+import type { BrowserDownloadEventPayload } from '../shared/browserDownloadEvent'
 
 export const browserApi = {
   browser: {

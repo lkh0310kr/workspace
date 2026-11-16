@@ -1,4 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
+import type { BrowserDownloadEventPayload as SharedBrowserDownloadEventPayload } from '../shared/browserDownloadEvent'
 export interface TabInfo {
   id: number
   title: string
@@ -53,17 +54,7 @@ export interface EpubBook {
   sizes: Record<string, number>
 }
 
-export interface BrowserDownloadEventPayload {
-  id: string
-  hostWebContentsId: number
-  phase: 'started' | 'updated' | 'done'
-  filename?: string
-  url?: string
-  path?: string
-  receivedBytes?: number
-  totalBytes?: number
-  state?: 'progressing' | 'interrupted' | 'completed' | 'cancelled'
-}
+export interface BrowserDownloadEventPayload extends SharedBrowserDownloadEventPayload {}
 
 export interface WorkspaceApi {
   hostname: () => Promise<string>
