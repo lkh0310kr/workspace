@@ -15,38 +15,39 @@
 
 | 영역 ID | 실제 경로 | 추적 파일 | 조사 담당 | 검토 상태 | 보류·제외 사유 |
 | --- | --- | ---: | --- | --- | --- |
-| R-001 | `apps/workspace-app/**` | 758 | coordinator + 읽기 전용 조사 담당 | reviewed/classified | 하위 5개 영역 정적 검토 완료; 실행·통합 검증 한계와 위험은 별도 기록 |
+| R-001 | `apps/workspace-app/**` | 764 | coordinator + 읽기 전용 조사 담당 | reviewed; T-026 validated | 하위 5개 영역 정적 검토 완료; 실행·통합 검증 한계와 위험은 별도 기록 |
 | X-002 | `apps/pkms-ios/**` | 141 | — | 제외 | 사용자가 요청한 범위 제외 |
-| R-003 | `apps/pkms-server/**` | 49 | coordinator + read-only agent | reviewed; T-025 validated | literal subtree path 일치 수정; Vault flush 및 MCP OAuth는 계약 테스트 부재로 보류
+| R-003 | `apps/pkms-server/**` | 51 | coordinator + read-only agent | reviewed; T-025 validated | literal subtree path 일치 수정; Vault flush 및 MCP OAuth는 계약 테스트 부재로 보류
 | R-004 | `apps/pkms-web/**` | 28 | read-only agent | reviewed; candidate deferred | Drive route session/orchestration은 lifecycle acceptance 부재로 보류
 | R-005 | `apps/workspace-server/**` | 12 | read-only agent | reviewed; candidate deferred | serviceIntegrations 분할은 contract tests 선행 필요; high risk
 | X-003 | `apps/android-data-node/**` | 15 | — | 제외 | 사용자가 요청한 범위 제외 |
 | R-007 | `packages/editor/**` | 68 | read-only agent | reviewed; candidate deferred | package exports/deep import 경계는 resolver intent 확인 전 보류
-| R-008 | `packages/pkms-client/**` | 40 | read-only agent | reviewed; T-019 validated |
+| R-008 | `packages/pkms-client/**` | 42 | read-only agent | reviewed; T-019/T-022 validated |
 | R-009 | `packages/pkms-core/**` | 11 | read-only agent | reviewed/no-change |
 | R-010 | `packages/pkms-google-drive/**` | 18 | read-only agent | reviewed; T-018 validated |
 | R-011 | `packages/pkms-protocol/**` | 5 | read-only agent | reviewed/no-change |
 | X-004 | `archive/**` | 307 | — | 제외 | 사용자가 요청한 R-012 이후 범위 제외 |
-| X-005 | `docs/**` | 95 | — | 제외 | 사용자가 요청한 R-012 이후 범위 제외 |
+| X-005 | `docs/**` | 96 | — | 제외 | 사용자가 요청한 R-012 이후 범위 제외 |
 | X-006 | `.agents/**`, `.claude/**`, `.cursor/**` | 110 | — | 제외 | 사용자가 요청한 R-012 이후 범위 제외; 기존 미추적 작업 보존 |
 | X-007 | `.github/**` | 6 | — | 제외 | 사용자가 요청한 R-012 이후 범위 제외 |
 | X-008 | `scripts/**` | 6 | — | 제외 | 사용자가 요청한 R-012 이후 범위 제외 |
-| X-009 | 루트 manifest/config/docs | 12 | — | 제외 | 사용자가 요청한 R-012 이후 범위 제외 |
+| X-009 | 루트 manifest/config/docs | 11 | — | 제외 | 사용자가 요청한 R-012 이후 범위 제외 |
+| M-001 | `.codex/refactor/**` | 2 | coordinator | 계획 메타데이터 | 리팩터링 계획·진행표이며 제품 코드 조사 범위에 포함하지 않음 |
 | X-001 | `ref-proj/**` | 1 | — | 제외 | 읽기 전용 참조 체크아웃; 리팩터링 편집 금지 |
 
-인벤토리 합계: 추적 경로 1,682개 = 현재 범위 989개 + 제외 경로 693개. 현재 범위는 R-001~R-011 중 R-002와 R-006을 제외한 9개 영역이다. R-012~X-001은 모두 제외했다. 9개 범위 영역의 정적 검토와 경로 분류를 완료했다. R-001 renderer는 391개 의미 검토, 22개 vendor/정적 자산 분류로 미검토 경로가 없다. R-003은 49개 경로를 검토했고 subtree LIKE wildcard 위험을 literal prefix migration 및 local DB 재현 테스트로 해결했다. Vault/MCP 분리 후보는 계약 테스트 부족으로 보류했다. R-008 parentPath 중복 단일화(T-019)와 R-010 SHA-256 helper 단일화(T-018)를 검증했다. 나머지 영역도 위험·검증 공백이 있는 후보를 별도 기록했다. 2026-11-16 재집계(`git ls-files`) 결과 R-001은 758개다. 초기 계획의 737개는 기준 시점에서 14개 과소 집계였고, T-012/T-014/T-015/T-016/T-017에서 신규 경로 7개를 추가했으며 T-018/T-019에서 테스트/helper 경로 2개를 추가했다. 파일 수는 경로 분류 합계이며 모든 경로가 리팩터링 후보라는 뜻은 아니다.
+인벤토리 합계: 추적 경로 1,694개 = 현재 범위 999개 + 제품 코드 제외 693개 + 계획 메타데이터 2개. 현재 범위는 R-001~R-011 중 R-002와 R-006을 제외한 9개 영역이다. R-012~X-001은 모두 제외했다. 9개 범위 영역의 정적 검토와 경로 분류를 완료했다. R-001 renderer는 397개 의미 검토, 22개 vendor/정적 자산 분류로 미검토 경로가 없다. R-003은 51개 경로를 검토했고 subtree LIKE wildcard 위험을 literal prefix migration 및 local DB 재현 테스트로 해결했다. Vault/MCP 분리 후보는 계약 테스트 부족으로 보류했다. R-008 parentPath 중복 단일화(T-019), local item ID 단일화(T-022), R-010 SHA-256 helper 단일화(T-018)를 검증했다. 나머지 영역도 위험·검증 공백이 있는 후보를 별도 기록했다. 2026-11-16 재집계(`git ls-files -z`) 결과 R-001은 764개, R-003은 51개, R-008은 42개다. 초기 계획의 737개는 기준 시점에서 14개 과소 집계였고, 이후 작업 중 추가된 경로를 재집계에 반영했다. 파일 수는 경로 분류 합계이며 모든 경로가 리팩터링 후보라는 뜻은 아니다.
 
 ### R-001 앱 내부 분할과 조사 체크포인트
 
 | 하위 영역 | 경로 | 추적 파일 | 상태 | 현재 조사 근거 |
 | --- | --- | ---: | --- | --- |
 | R-001a | `apps/workspace-app/src/main/**` | 172 | 검토 완료; 위험 후속 기록 | 코드 경로·설정·테스트 assertion의 정적 검토 완료; OBJ 외부 경로 root 경계, agent-hook lifecycle, 동기 I/O·IME 지연을 별도 위험으로 기록; 테스트와 플랫폼 runtime은 미실행 |
-| R-001b | `apps/workspace-app/src/renderer/**` | 413 | 검토·분류 완료 | 391개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0; 테스트 실행·runtime 검증은 별도 한계 |
+| R-001b | `apps/workspace-app/src/renderer/**` | 419 | 검토·분류 완료 | 397개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0; 테스트 실행·runtime 검증은 별도 한계 |
 | R-001c | `apps/workspace-app/src/preload/**` | 8 | 검토 완료; 계약 위험 기록 | 공개 API·채널·cleanup 경계 확인; 구현 `unknown` 반환과 선언 DTO drift 후보 기록 |
 | R-001d | `apps/workspace-app/src/shared/**` | 89 | 검토 완료; 계약 위험 기록 | agent/usage/layout/media/terminal·PKMS shared 책임 확인; terminal capture timeout listener 정리·correlation 위험 기록 |
 | R-001e | 앱 루트·scripts·resources 등 나머지 | 76 | 검토·분류 완료; 후속 위험 기록 | 텍스트 설정/build/release/workflow 스크립트 검토; notarization·Windows secret workflow·Vitest 인자 전달 차이 기록; vendor patch/바이너리·visual assertion의 일부 상세 내용은 제외/부분 검토로 명시 |
 
-앱 내부 합계: 758개. (172 + 413 + 8 + 89 + 76) 하위 조사 분할은 서로 겹치지 않는다. 다섯 영역 모두 정적 검토 또는 vendor/asset 분류를 마쳤으며 테스트 실행·패키지/실제 OS 런타임 검증은 별도 한계로 남겼다.
+앱 내부 합계: 764개. (172 + 419 + 8 + 89 + 76) 하위 조사 분할은 서로 겹치지 않는다. 다섯 영역 모두 정적 검토 또는 vendor/asset 분류를 마쳤으며 테스트 실행·패키지/실제 OS 런타임 검증은 별도 한계로 남겼다.
 
 공유 수정 소유권: 진행 담당이 루트 manifest/config, `.github/**`, `scripts/**`, 문서와 이 계획을 소유한다. 각 영역 담당은 공유 파일 변경을 제안할 수 있지만 통합은 순차적으로 진행 담당이 맡는다. `ref-proj/**`는 절대 수정하지 않는다.
 
@@ -97,9 +98,9 @@
 
 - 마지막 완료 배치: workspace-app에서 Main/renderer/preload/shared의 저위험·경계형 리팩터링 및 ADAPT-03 저장 경합 수정
 - 검토 영역 / 현재 범위: 9 / 9 (정적 검토 완료; runtime·통합 검증 한계와 후속 위험 별도 기록)
-- 채택 작업 검증 완료 / 채택 작업 전체: 29 / 29 (T-001~T-025 완료)
+- 채택 작업 검증 완료 / 채택 작업 전체: 30 / 30 (T-001~T-026 완료)
 - 기존 검증 실패: architecture-spec 링크 검사에서 사용자가 삭제한 `docs/guides/REFACTOR.md` 참조 발견
-- 상태: 전체 범위 정적 검토 완료; 29개 작업 검증 완료; 고위험 경계 변경은 계약 테스트·정책 확인 전 보류
+- 상태: 전체 범위 정적 검토 완료; 30개 작업 검증 완료; 고위험 경계 변경은 계약 테스트·정책 확인 전 보류
 - 추가 검증: T-002c syncBridge 25파일/31테스트 통과; T-003 editor session 4파일/11테스트·typecheck 통과; usage helper 3테스트 통과; OSC reply 6테스트 통과; preload ESLint/typecheck 및 루트 `npm run check` 통과
 - T-018 Google Drive SHA-256 helper 단일화 커밋 `f7cfaf46`; focused 28 tests, `npm run pkms:web:typecheck`, `npm run check` 통과. ESLint의 `workspaceRepository.ts` 반환형 위반 1개는 기준선에도 존재함을 확인했다. T-019 parentPath 중복을 domain helper로 단일화하고 삭제 자손·이웃 보존 및 동일 목록 참조 테스트를 추가, 커밋 `327cc25c`; focused 2 tests, 앱 typecheck 및 root check 통과. T-020 workspace tab hotkey hook을 canonical navigation owner에 직접 연결하고 mapping·범위 밖 index·listener cleanup 테스트를 추가, 커밋 `8b186ac0`; focused 2 tests, app typecheck, root check, changed-file ESLint/Prettier 통과. notarization 및 Linux build gate 불일치는 정책/릴리스 경계라 동작 변경을 보류한다. 사용자의 제외 범위와 기존 사용자 파일은 보존한다.
 - T-021 agent activity summary selector cache의 freshness 만료 재계산을 보장하고 집중 테스트 3개와 앱 typecheck를 통과했다. Selector 재호출 시 신선도를 복구하며, 시간 경과만으로 UI를 자동 갱신하는 동작은 문서 계약에 없어 추가하지 않았다.
@@ -107,3 +108,4 @@
 - T-023 HOME-UI-05를 구현해 Home 두 위젯이 refresh 요청을 1 in-flight + 1 coalesced pending으로 직렬화한다. stale 응답·unmount 이후 적용을 무효화하고, 기존 mutation 흐름의 `await refresh()` 완료 의미를 유지했다. dashboard/hook 2 tests, app typecheck, root check 통과.
 - T-024 EPUB open error를 현재 tab/path identity에 결합했다. 실패 후 같은 component의 다른 path를 열 수 있고, 이전 source의 늦은 rejection은 새 책에 표시되지 않는다. mocked foliate DOM으로 path-change/cancel 2 tests, app typecheck 통과; 실제 EPUB rendering은 검사하지 않았다.
 - T-025 PKMS 경로 prefix를 `left(path,length(parent)+1)=parent||'/'`로 비교하는 helper를 추가하고 conflict path, operation apply, asset sync의 최종 함수 정의를 갱신했다. `%`/`_` 삭제 가드·삭제 범위·move recursion·create conflict·asset conflict 회귀가 로컬 Postgres에서 재현 후 통과했다. 6개 SQL transaction scripts, PKMS server typecheck, root check 통과.
+- T-026 `objHasExternalResources`에서 MTL 파일 읽기를 제거해 기존 판정값을 유지했고, `resolvePackage`는 canonical 경로가 workspace root 안에 있는 MTL만 읽도록 제한했다. traversal과 root 밖 symlink 회귀를 수정 전 실패/수정 후 통과로 확인했다. Viewer 스펙에 경계를 기록했다.

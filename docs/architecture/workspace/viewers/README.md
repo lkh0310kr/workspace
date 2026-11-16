@@ -18,6 +18,8 @@ App scope의 J-05다. 공유 editor의 asset snapshot과 실제 renderer를 구�
 
 [assetRouter](../../../../apps/workspace-app/src/main/model3d/assetRouter.ts)는 request intent와 package/format을 판단해 import-preview pipeline으로 보낸다. [formatSniffer](../../../../apps/workspace-app/src/main/model3d/formatSniffer.ts), [packageResolver](../../../../apps/workspace-app/src/main/model3d/packageResolver.ts), importerRegistry는 파일 확장자 하나만으로 native parsing 결과를 보장하지 않는다. GLTF/mesh/FBX/STEP importer와 conversion dependency는 각각 다르다.
 
+OBJ package 탐색은 workspace root 안에 canonical 경로가 있는 MTL 파일만 읽어 texture sibling을 확인한다. root 밖으로 나가는 상대 경로나 root 밖을 가리키는 symlink의 MTL 내용은 읽지 않는다. `objHasExternalResources`는 OBJ의 MTL 참조 유무만 판별하며 MTL 내용을 읽지 않는다.
+
 [ImportJobQueue](../../../../apps/workspace-app/src/main/model3d/importJobQueue.ts)는 메모리 Map에 import-N ID를 기록하고 update event를 발생시킨다. enqueue는 queued→sniffing→converting→caching→ready, 오류면 failed/error를 반환한다. **이 이름만으로 제한된 worker pool·durable queue·취소를 구현한 것으로 간주하지 않는다.** 현재 enqueue는 run Promise를 직접 await한다. app main이 update를 model:import-status로 중계한다.
 
 cache는 workspaceRoot/.workspace/model3d-cache 아래 manifest와 파생 GLB를 저장하며 source metadata와 key를 검증한다. renderer는 shared SceneManifest/ImportJob type을 소비한다. 원본 파일과 cache를 구분하고 cache hit/실패/변환 불가/지원 수준을 UI에 반영한다. import job의 ready는 모든 포맷의 시각 fidelity가 검증됐다는 뜻이 아니다.
