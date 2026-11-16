@@ -1,5 +1,5 @@
 import { browserFocusLog } from '@renderer/features/browser/runtime/browserFocusDebugLog'
-import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
+import { browserInteractionController } from './browserInteractionController'
 import { getBrowserWebviewByWebContentsId } from '@renderer/features/browser/runtime/activeBrowserWebview'
 import { focusPaneGroupTabSet } from '../../pane-system/layout/layoutRef'
 
@@ -18,7 +18,7 @@ export function focusPaneGroupForPaneNode(workspaceTabId: number, paneNodeId: st
 }
 
 export function focusPaneGroupForBrowserWebview(webview: Electron.WebviewTag): void {
-  const reg = interactionCoordinator.lookupWebviewRegistration(webview)
+  const reg = browserInteractionController.lookupWebviewRegistration(webview)
   if (!reg) return
   focusPaneGroupForPaneNode(reg.workspaceTabId, reg.paneNodeId)
 }

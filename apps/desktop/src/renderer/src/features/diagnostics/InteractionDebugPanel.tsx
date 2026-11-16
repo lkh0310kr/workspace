@@ -55,7 +55,7 @@ function InteractionDebugPanelInner() {
           </div>
           <div className="interaction-debug-row">
             <span>Registered webviews</span>
-            <strong>{snapshot.registeredWebviewCount}</strong>
+            <strong>{snapshot.featureMetrics['browser.registeredWebviews'] ?? 0}</strong>
           </div>
           <div className="interaction-debug-row">
             <span>Open portals</span>

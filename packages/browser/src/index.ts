@@ -55,6 +55,8 @@ export type { BrowserPaneItem } from './BrowserPaneHost'
 export { BrowserPaneOverlaySlot } from './BrowserPaneOverlaySlot'
 export { browserPageGuestNeedsAttach, resolveBrowserPageWebview } from './browserPageGuestRecovery'
 export type { GetPersistentBrowserWebview } from './browserPageGuestRecovery'
+export { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from './browserWebviewPolicy'
+export type { WebviewPolicy, WebviewPolicyContext } from './browserWebviewPolicy'
 
 export {
   applyBrowserDownloadEvent,

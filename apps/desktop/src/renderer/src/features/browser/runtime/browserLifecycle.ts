@@ -1,5 +1,5 @@
 import { syncInteractionCoordinatorWorkspaceTab } from '../../../interaction/syncInteractionCoordinatorWorkspaceTab'
-import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
+import { browserInteractionController } from './browserInteractionController'
 import {
   destroyBrowserWebview,
   getPersistentBrowserWebview
@@ -21,6 +21,6 @@ export async function browserCleanupAll(): Promise<void> {}
 /** Release a guest only when its owning Browser tab is explicitly closed. */
 export function closeBrowserTab(tabItemId: string): void {
   const webview = getPersistentBrowserWebview(tabItemId)
-  if (webview) interactionCoordinator.unregisterWebview(webview)
+  if (webview) browserInteractionController.unregisterWebview(webview)
   destroyBrowserWebview(tabItemId)
 }

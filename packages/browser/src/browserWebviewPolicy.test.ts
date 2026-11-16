@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from './webviewPolicy'
+import { resolveOrphanWebviewPolicy, resolveWebviewPolicy } from './browserWebviewPolicy'
 
 const base = {
   workspaceTabId: 1,

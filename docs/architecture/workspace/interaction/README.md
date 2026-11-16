@@ -1,10 +1,10 @@
 # 상호작용·포커스·overlay 계약
 
-[InteractionCoordinator](../../../../apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts)는 renderer singleton이다. global 규칙을 구현하는 앱 내부 owner이며 active workspace, guest 등록, pane/chip 상태, overlay stack, portal Map, pending guest focus를 관리한다. Browser guest DOM 수명은 [Browser](../browser/lifecycle.md)가 소유한다. renderer를 공유하는 embedded surface의 focus 복귀는 [embeddedSurfaceFocus](../../../../apps/desktop/src/renderer/src/interaction/embeddedSurfaceFocus.ts)가 공통 hook으로 조정하고 Browser registry가 handler를 등록.
+[InteractionCoordinator](../../../../apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts)는 renderer singleton이다. overlay stack, portal Map, active workspace ID와 feature 변경 알림을 소유한다. Browser guest 등록·pane/chip 상태·표시·focus lifecycle은 [BrowserInteractionController](../../../../apps/desktop/src/renderer/src/features/browser/runtime/browserInteractionController.ts)가 소유하며 shell snapshot을 구독한다. renderer를 공유하는 embedded surface의 focus 복귀는 [embeddedSurfaceFocus](../../../../apps/desktop/src/renderer/src/interaction/embeddedSurfaceFocus.ts)가 공통 hook으로 조정한다.
 
 ## 표시·입력 결정표
 
-[webviewPolicy](../../../../apps/desktop/src/renderer/src/interaction/webviewPolicy.ts)의 입력은 workspaceTabId, activeWorkspaceTabId, paneVisible, chipActive, overlayBlocked, portalsOpen이다. `paneLive = workspace ID 일치 && paneVisible`이다.
+[browserWebviewPolicy](../../../../packages/browser/src/browserWebviewPolicy.ts)의 입력은 workspaceTabId, activeWorkspaceTabId, paneVisible, chipActive, overlayBlocked, portalsOpen이다. `paneLive = workspace ID 일치 && paneVisible`이다.
 
 | 조건                                     | guest visible | guest interactive |
 | ---------------------------------------- | ------------- | ----------------- |
@@ -14,7 +14,7 @@
 | 활성 + overlay/portal 없음               | true          | true              |
 | 미등록 orphan guest                      | false         | false             |
 
-reconcile은 등록 guest에 display:flex/none, pointerEvents:auto/none, inert를 적용한다. orphan은 teardown 중 남은 DOM이어도 숨긴다. viewport shell의 paintable/active 스타일과 guest 정책은 별도 계층이다. 일반 content 스타일은 [embedPolicy](../../../../apps/desktop/src/renderer/src/interaction/embedPolicy.ts)가 visibility와 pointerEvents를 `paneVisible && chipActive`로 결정한다.
+BrowserInteractionController reconcile은 등록 guest에 display:flex/none, pointerEvents:auto/none, inert를 적용한다. orphan은 teardown 중 남은 DOM이어도 숨긴다. viewport shell의 paintable/active 스타일과 guest 정책은 별도 계층이다. 일반 content 스타일은 [embedPolicy](../../../../apps/desktop/src/renderer/src/interaction/embedPolicy.ts)가 visibility와 pointerEvents를 `paneVisible && chipActive`로 결정한다.
 
 ## Overlay·portal 수명
 
@@ -24,11 +24,11 @@ registerPortal(id,dismiss)는 Map에 등록 후 reconcile하고 해제 함수가
 
 ## Workspace·chip과 focus
 
-setActiveWorkspaceTab은 같은 ID면 기본 no-op, force 옵션이면 reconcile한다. 다른 ID 전환 전 embed focus를 renderer로 이동하고 ID를 갱신한다. 전환 전에 embed focus가 있었다면 새 primary browser focus 복귀를 시도한다.
+setActiveWorkspaceTab은 같은 ID면 기본 no-op, force 옵션이면 reconcile한다. BrowserInteractionController는 shell snapshot 변경을 받아 다른 ID 전환 전 guest focus를 renderer로 옮기고 guest 표시 상태를 갱신한다. 전환 전에 guest focus가 있었다면 새 primary browser focus 복귀를 시도한다.
 
-setBrowserPaneChipState는 같은 paneNodeId의 다른 browser chip 활성값을 내리고 대상 paneVisible/chipActive를 함께 반영한다. 보이거나 활성화되는 전이에서 pendingFocus를 설정하고 한 번 reconcile한다. 숨겨지면 해당 guest를 blur한다. explicit requestBrowserGuestFocus는 pending guest를 지정하고 reconcile한다.
+setPaneChipState는 같은 paneNodeId의 다른 browser chip 활성값을 내리고 대상 paneVisible/chipActive를 함께 반영한다. 보이거나 활성화되는 전이에서 pendingFocus를 설정하고 한 번 shell reconcile을 발행한다. 숨겨지면 해당 guest를 blur한다. explicit requestGuestFocus는 pending guest를 지정하고 shell reconcile을 발행한다.
 
-focus schedule은 guest별 epoch로 이전 요청을 무효화하고 animation frame에서 interactive 조건을 재확인한다. detach/unregister·상태 변경으로 불가능해진 guest에 무조건 focus하지 않는다. 실제 webview host/native guest/terminal focus relay는 [browserGuestFocus](../../../../apps/desktop/src/renderer/src/features/browser/runtime/browserGuestFocus.ts)가 조정한다. Terminal 입력 전 releaseKeyboardFromBrowserGuests는 native blur IPC·active guest 해제·renderer focus 복귀를 수행한다.
+focus schedule은 guest별 epoch로 이전 요청을 무효화하고 animation frame에서 interactive 조건을 재확인한다. detach/unregister·상태 변경으로 불가능해진 guest에 무조건 focus하지 않는다. 실제 webview host/native guest/terminal focus relay는 [browserGuestFocus](../../../../apps/desktop/src/renderer/src/features/browser/runtime/browserGuestFocus.ts)가 조정한다. Terminal 입력 전 BrowserInteractionController의 release는 native blur IPC·active guest 해제·renderer focus 복귀를 수행한다.
 
 ## 검색 단축키와 입력 focus
 
@@ -42,8 +42,8 @@ Find in Files를 이미 열어 둔 상태에서 단축키를 다시 누르면 �
 
 ## 관찰과 재구현 시나리오
 
-snapshot은 active workspace·overlay count/sources·guest·portal·최근 reconcile을 제공하고 subscribe는 해제 함수를 반환한다. debug panel은 진단 수단이며 durable 상태 저장소가 아니다.
+snapshot은 active workspace·overlay count/sources·portal·feature metric·최근 reconcile을 제공하고 subscribe는 해제 함수를 반환한다. Browser guest count는 `browser.registeredWebviews` metric으로 Browser feature가 제공한다. debug panel은 진단 수단이며 durable 상태 저장소가 아니다.
 
 INT-01 활성 guest 위 portal을 열면 페이지는 보이되 클릭하지 못한다. INT-02 drag block 해제 직후 reconcile이 입력을 복구한다. INT-03 같은 pane browser chip은 하나만 활성이다. INT-04 orphan guest가 terminal 위에서 입력을 가로채지 않는다. INT-05 workspace 전환 중 renderer/guest focus가 stale ID를 대상으로 삼지 않는다. INT-06 중첩 block은 각 소유자가 같은 source로 해제한다.
 
-자동 근거는 [coordinator 테스트](../../../../apps/desktop/src/renderer/src/interaction/InteractionCoordinator.test.ts), [policy 테스트](../../../../apps/desktop/src/renderer/src/interaction/webviewPolicy.test.ts), embedPolicy·workspaceScope·dragSession 테스트다. OS native focus의 전체 동작은 실제 Electron 환경에서 추가 검증한다.
+shell overlay·workspace snapshot과 Browser guest 상호작용의 자동 근거는 [Browser controller 테스트](../../../../apps/desktop/src/renderer/src/features/browser/runtime/browserInteractionController.test.ts), 표시 결정의 순수 정책은 [Browser policy 테스트](../../../../packages/browser/src/browserWebviewPolicy.test.ts)다. embedPolicy·workspaceScope·dragSession도 별도 테스트한다. OS native focus의 전체 동작은 실제 Electron 환경에서 추가 검증한다.

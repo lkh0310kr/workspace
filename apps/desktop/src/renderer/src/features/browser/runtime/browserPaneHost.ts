@@ -1,4 +1,5 @@
 import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
+import { browserInteractionController } from './browserInteractionController'
 import {
   getActiveBrowserWebview,
   registerBrowserWebview,
@@ -47,15 +48,15 @@ function asBrowserWebview(webview: Electron.WebviewTag): BrowserWebviewPort {
 export const desktopBrowserPaneHost: BrowserPaneHost = {
   registerPortal: (id, onDismiss) => interactionCoordinator.registerPortal(id, onDismiss),
   registerWebview: (webview, context) =>
-    interactionCoordinator.registerWebview(asElectronWebview(webview), context),
+    browserInteractionController.registerWebview(asElectronWebview(webview), context),
   detachWebview: (webview) =>
-    interactionCoordinator.detachBrowserWebview(asElectronWebview(webview)),
+    browserInteractionController.detachWebview(asElectronWebview(webview)),
   updateWebviewPaneNode: (webview, paneNodeId) =>
-    interactionCoordinator.updateWebviewPaneNode(asElectronWebview(webview), paneNodeId),
+    browserInteractionController.updateWebviewPaneNode(asElectronWebview(webview), paneNodeId),
   setPaneChipState: (workspaceTabId, paneTabItemId, state) =>
-    interactionCoordinator.setBrowserPaneChipState(workspaceTabId, paneTabItemId, state),
+    browserInteractionController.setPaneChipState(workspaceTabId, paneTabItemId, state),
   requestGuestFocus: (workspaceTabId, paneTabItemId, reason) =>
-    interactionCoordinator.requestBrowserGuestFocus(workspaceTabId, paneTabItemId, reason),
+    browserInteractionController.requestGuestFocus(workspaceTabId, paneTabItemId, reason),
   registerWebviewReference: (webview) => registerBrowserWebview(asElectronWebview(webview)),
   getActiveWebview: () => {
     const webview = getActiveBrowserWebview()
@@ -86,7 +87,7 @@ export const desktopBrowserPaneHost: BrowserPaneHost = {
     revealItemInDir(path).catch(console.error)
   },
   isGuestInteractive: (webview) =>
-    interactionCoordinator.isGuestInteractive(asElectronWebview(webview)),
+    browserInteractionController.isGuestInteractive(asElectronWebview(webview)),
   isGuestWebContentsFocused: isBrowserGuestWebContentsFocused,
   isWebviewHostFocused: (webview) => isWebviewHostFocused(asElectronWebview(webview)),
   isDragPassthroughActive: isWebviewDragPassthroughActive,
