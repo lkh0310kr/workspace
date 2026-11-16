@@ -1,5 +1,5 @@
 import { isDevInstrumentation } from '../../../debug/devTools'
-import { collectWebviews } from '../../../interaction/interactionDebugLog'
+import { collectBrowserWebviews } from './browserInteractionDiagnostics'
 
 const MAX_RING = 200
 
@@ -102,7 +102,7 @@ export function snapshotBrowserFocusState(
     guestFocusWebContentsId: lastGuestFocusWebContentsId,
     url,
     activeElement: summarizeActiveElement(),
-    webviews: collectWebviews(),
+    webviews: collectBrowserWebviews(),
     viewports: collectViewportShells(),
     hostRect: hostRect ? { w: hostRect.width, h: hostRect.height } : null,
     inline: webview

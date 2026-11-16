@@ -5,6 +5,7 @@ import {
   type InteractionSnapshot
 } from '../../interaction/InteractionCoordinator'
 import { fullInteractionDiagnostic, getDebugRing } from '../../interaction/interactionDebugLog'
+import { collectBrowserWebviews } from '../browser/runtime/browserInteractionDiagnostics'
 
 function InteractionDebugPanelInner() {
   const [expanded, setExpanded] = useState(false)
@@ -28,7 +29,7 @@ function InteractionDebugPanelInner() {
     const payload = {
       snapshot,
       ring: getDebugRing(),
-      diagnostic: fullInteractionDiagnostic()
+      diagnostic: { ...fullInteractionDiagnostic(), webviews: collectBrowserWebviews() }
     }
     console.log('[IC dump]', payload)
     try {

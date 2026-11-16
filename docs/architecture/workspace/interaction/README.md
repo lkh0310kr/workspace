@@ -42,7 +42,7 @@ Find in Files를 이미 열어 둔 상태에서 단축키를 다시 누르면 �
 
 ## 관찰과 재구현 시나리오
 
-snapshot은 active workspace·overlay count/sources·portal·feature metric·최근 reconcile을 제공하고 subscribe는 해제 함수를 반환한다. Browser guest count는 `browser.registeredWebviews` metric으로 Browser feature가 제공한다. debug panel은 진단 수단이며 durable 상태 저장소가 아니다.
+snapshot은 active workspace·overlay count/sources·portal·feature metric·최근 reconcile을 제공하고 subscribe는 해제 함수를 반환한다. Browser guest count는 `browser.registeredWebviews` metric으로 Browser feature가 제공한다. 전역 진단 logger는 shell DOM을 수집하고 Browser guest DOM 정보는 Browser diagnostics adapter가 제공한다. debug panel은 진단 수단이며 durable 상태 저장소가 아니다.
 
 INT-01 활성 guest 위 portal을 열면 페이지는 보이되 클릭하지 못한다. INT-02 drag block 해제 직후 reconcile이 입력을 복구한다. INT-03 같은 pane browser chip은 하나만 활성이다. INT-04 orphan guest가 terminal 위에서 입력을 가로채지 않는다. INT-05 workspace 전환 중 renderer/guest focus가 stale ID를 대상으로 삼지 않는다. INT-06 중첩 block은 각 소유자가 같은 source로 해제한다.
 

@@ -574,7 +574,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserFocusDebugLog.ts",
-          "sha256": "a5a678fd25c1d306b2a25375820f440134a85e11cdd102956ca85bd529961ae5"
+          "sha256": "3a449512c8821f2e55dae9fbfed8e0fb5abd5e7621db9c7df42b1df9146777e2"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserGuestFocus.ts",
@@ -615,6 +615,10 @@
         {
           "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserInteractionController.ts",
           "sha256": "21487806e870b01127cfb930f8153e86c12cf2407da79c824ebe9904ebc6812f"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserInteractionDiagnostics.ts",
+          "sha256": "4de73690fcc156fad8a4156614c1b6eab05f4b8d545affc6c1cfb42fa43d5f1e"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/runtime/browserInteractionController.test.ts",
