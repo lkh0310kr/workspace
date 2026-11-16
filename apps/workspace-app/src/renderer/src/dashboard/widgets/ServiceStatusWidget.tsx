@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { DashboardWidget } from '../DashboardWidget'
+import { useLatestRefresh } from '../../hooks/useLatestRefresh'
 
 type MetricPoint = {
   timestamp: string
@@ -459,33 +460,36 @@ export function ServiceStatusWidget(): React.JSX.Element {
   const [graphRange, setGraphRange] = useState<GraphRange>('24h')
   const [graphMetric, setGraphMetric] = useState<GraphMetric>('requests')
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    const result = await window.workspaceHome
-      .request<StatusResponse>('/api/services/status', { method: 'GET' })
-      .catch(() => ({ status: 0, body: {} as StatusResponse }))
-    if (result.status === 200) {
-      setSummary(result.body.services ?? [])
-      setPlatforms(result.body.platforms ?? [])
-      setUpdatedAt(result.body.updatedAt ? new Date(result.body.updatedAt) : new Date())
-      setAuthenticated(true)
-      setApiError(null)
-    } else {
-      setSummary([])
-      setPlatforms([])
-      setAuthenticated(result.status === 401 ? false : null)
-      setApiError(
-        result.status === 404
-          ? '운영 Worker에 대시보드 API가 배포되지 않았습니다.'
-          : result.status === 0
-            ? 'PKMS API에 연결할 수 없습니다.'
-            : result.status === 401
-              ? null
-              : '상태 정보를 불러오지 못했습니다. (HTTP ' + result.status + ')'
-      )
-    }
-    setLoading(false)
-  }, [])
+  const refresh = useLatestRefresh(
+    useCallback(async (isCurrent) => {
+      setLoading(true)
+      const result = await window.workspaceHome
+        .request<StatusResponse>('/api/services/status', { method: 'GET' })
+        .catch(() => ({ status: 0, body: {} as StatusResponse }))
+      if (!isCurrent()) return
+      if (result.status === 200) {
+        setSummary(result.body.services ?? [])
+        setPlatforms(result.body.platforms ?? [])
+        setUpdatedAt(result.body.updatedAt ? new Date(result.body.updatedAt) : new Date())
+        setAuthenticated(true)
+        setApiError(null)
+      } else {
+        setSummary([])
+        setPlatforms([])
+        setAuthenticated(result.status === 401 ? false : null)
+        setApiError(
+          result.status === 404
+            ? '운영 Worker에 대시보드 API가 배포되지 않았습니다.'
+            : result.status === 0
+              ? 'PKMS API에 연결할 수 없습니다.'
+              : result.status === 401
+                ? null
+                : '상태 정보를 불러오지 못했습니다. (HTTP ' + result.status + ')'
+        )
+      }
+      setLoading(false)
+    }, [])
+  )
 
   const login = async () => {
     setBusy('pkms')

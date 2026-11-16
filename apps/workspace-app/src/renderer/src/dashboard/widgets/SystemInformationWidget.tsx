@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { DashboardWidget } from '../DashboardWidget'
+import { useLatestRefresh } from '../../hooks/useLatestRefresh'
 
 type Summary = Awaited<ReturnType<typeof window.api.system.summary>>
 
@@ -35,12 +36,16 @@ function Metric({
 
 export function SystemInformationWidget(): React.JSX.Element {
   const [summary, setSummary] = useState<Summary | null>(null)
-  const refresh = useCallback(() => {
-    void window.api.system
-      .summary()
-      .then(setSummary)
-      .catch(() => setSummary(null))
-  }, [])
+  const refresh = useLatestRefresh(
+    useCallback(async (isCurrent) => {
+      try {
+        const nextSummary = await window.api.system.summary()
+        if (isCurrent()) setSummary(nextSummary)
+      } catch {
+        if (isCurrent()) setSummary(null)
+      }
+    }, [])
+  )
 
   useEffect(() => {
     refresh()
