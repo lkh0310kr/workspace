@@ -1,7 +1,6 @@
-export interface BrowserNavHistoryEntry {
-  url: string
-  title: string
-}
+import type { BrowserNavHistoryEntry } from '@workspace/browser/navigation'
+
+export type { BrowserNavHistoryEntry } from '@workspace/browser/navigation'
 
 export async function fetchWebviewNavHistory(webContentsId: number): Promise<{
   entries: BrowserNavHistoryEntry[]

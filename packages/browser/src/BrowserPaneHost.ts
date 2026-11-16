@@ -1,4 +1,4 @@
-import type { BrowserNavHistoryEntry } from './BrowserNavButton'
+import type { BrowserNavHistoryEntry } from './navigation'
 import type { BrowserDownloadItem } from './downloads'
 import type { BrowserWebviewPort } from './BrowserWebview'
 

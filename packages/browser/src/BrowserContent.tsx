@@ -7,7 +7,6 @@ import {
   useSyncExternalStore
 } from 'react'
 import { BrowserAddressBar, recordBrowserVisit } from './address-bar'
-import { normalizeBrowserNavigationUrl } from './browserUrl'
 import {
   applyBrowserPageViewportLayout,
   ensureBrowserPageViewport,
@@ -15,10 +14,15 @@ import {
   syncBrowserPageChromeInset
 } from './browserPageViewport'
 import { useBrowserPageSlotViewport } from './useBrowserPageSlotViewport'
-import { readBrowserNavigationState } from './browserNavigationState'
-import { dispatchLocalBrowserZoom, registerBrowserZoomPersist } from './browserZoom'
-import { loadBrowserPageWebviewUrl, reloadBrowserPageWebview } from './browserPageWebviewActions'
-import { BrowserNavButton } from './BrowserNavButton'
+import {
+  BrowserNavButton,
+  dispatchLocalBrowserZoom,
+  loadBrowserPageWebviewUrl,
+  normalizeBrowserNavigationUrl,
+  readBrowserNavigationState,
+  registerBrowserZoomPersist,
+  reloadBrowserPageWebview
+} from './navigation'
 import { BrowserDownloadsBar, type BrowserDownloadItem } from './downloads'
 import type { BrowserPaneHost, BrowserPaneItem } from './BrowserPaneHost'
 import type { BrowserWebviewEventMap, BrowserWebviewPort } from './BrowserWebview'

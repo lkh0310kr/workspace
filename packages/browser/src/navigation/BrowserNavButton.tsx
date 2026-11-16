@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Popover, type AnchorRect } from '@workspace/ui'
-
-export interface BrowserNavHistoryEntry {
-  url: string
-  title: string
-}
+import type { BrowserNavHistoryEntry } from './browserNavigationTypes'
 
 interface Props {
   registerPortal: (id: string, onDismiss: () => void) => () => void

@@ -8,6 +8,7 @@
     "./browser.module.css": "./src/browser.module.css",
     "./browserDownloads": "./src/downloads/browserDownloads.ts",
     "./downloads": "./src/downloads/index.ts",
+    "./navigation": "./src/navigation/index.ts",
     "./browserSessionPartition": "./src/browserSessionPartition.ts"
   },
   "dependencies": {

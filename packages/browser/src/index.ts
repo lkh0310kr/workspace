@@ -5,13 +5,35 @@ export {
   buildAddressBarSuggestions
 } from './address-bar'
 export type { BrowserHistoryEntry, AddressBarSuggestion } from './address-bar'
-export { BLANK_URL, normalizeBrowserNavigationUrl } from './browserUrl'
 export {
+  BrowserNavButton,
+  BLANK_URL,
+  normalizeBrowserNavigationUrl,
   browserTabUrlForNewTab,
   DEFAULT_BROWSER_TAB_URL,
-  getBrowserTabLabel
-} from './browserTabPolicy'
-export type { BrowserTabLabelInput } from './browserTabPolicy'
+  getBrowserTabLabel,
+  readBrowserNavigationState,
+  loadBrowserPageWebviewUrl,
+  reloadBrowserPageWebview,
+  addBrowserZoomEventListener,
+  applyBrowserZoomToWebview,
+  dispatchLocalBrowserZoom,
+  registerBrowserZoomPersist,
+  zoomBrowserWebview,
+  BROWSER_ZOOM_MAX,
+  BROWSER_ZOOM_MIN,
+  BROWSER_ZOOM_STEP
+} from './navigation'
+export type {
+  BrowserNavHistoryEntry,
+  BrowserTabLabelInput,
+  BrowserNavigationState,
+  BrowserNavigationTarget,
+  BrowserPageWebviewActionResult,
+  BrowserPageWebviewActionsPort,
+  BrowserZoomDirection,
+  BrowserZoomWebview
+} from './navigation'
 
 export {
   applyBrowserPageViewportLayout,
@@ -26,29 +48,7 @@ export {
   syncBrowserPageChromeInset
 } from './browserPageViewport'
 export type { BrowserPageViewportLayout } from './browserPageViewport'
-export { readBrowserNavigationState } from './browserNavigationState'
-export type { BrowserNavigationState, BrowserNavigationTarget } from './browserNavigationState'
 export { useBrowserPageSlotViewport } from './useBrowserPageSlotViewport'
-
-export { loadBrowserPageWebviewUrl, reloadBrowserPageWebview } from './browserPageWebviewActions'
-export type {
-  BrowserPageWebviewActionResult,
-  BrowserPageWebviewActionsPort
-} from './browserPageWebviewActions'
-export {
-  addBrowserZoomEventListener,
-  applyBrowserZoomToWebview,
-  dispatchLocalBrowserZoom,
-  registerBrowserZoomPersist,
-  zoomBrowserWebview,
-  BROWSER_ZOOM_MAX,
-  BROWSER_ZOOM_MIN,
-  BROWSER_ZOOM_STEP
-} from './browserZoom'
-export type { BrowserZoomDirection, BrowserZoomWebview } from './browserZoom'
-
-export { BrowserNavButton } from './BrowserNavButton'
-export type { BrowserNavHistoryEntry } from './BrowserNavButton'
 export { BrowserDownloadsBar } from './downloads'
 export type { BrowserOpenNewTabEvent, BrowserPaneHost } from './BrowserPaneHost'
 export type { BrowserWebviewEventMap, BrowserWebviewPort } from './BrowserWebview'

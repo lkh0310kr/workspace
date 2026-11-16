@@ -1,5 +1,5 @@
 /** Ported from ref-proj/orca browser-page-zoom — adapted to setZoomFactor (not zoom level). */
-import type { BrowserWebviewPort } from './BrowserWebview'
+import type { BrowserWebviewPort } from '../BrowserWebview'
 export const BROWSER_ZOOM_MIN = 0.5
 export const BROWSER_ZOOM_MAX = 3
 export const BROWSER_ZOOM_STEP = 0.1

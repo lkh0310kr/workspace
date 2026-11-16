@@ -2,7 +2,7 @@
 
 ## 주소 정규화
 
-근거: [browserUrl.ts](../../../../packages/browser/src/browserUrl.ts). normalizeBrowserNavigationUrl(raw,searchFallback)는 string|null을 반환한다. 순서는 trim→blank→local dev→Unix absolute path→명시 URL→https prefix→선택적 검색 fallback이다.
+근거: [browserUrl.ts](../../../../packages/browser/src/navigation/browserUrl.ts). normalizeBrowserNavigationUrl(raw,searchFallback)는 string|null을 반환한다. 순서는 trim→blank→local dev→Unix absolute path→명시 URL→https prefix→선택적 검색 fallback이다.
 
 | 입력                                           | 결과                                          |
 | ---------------------------------------------- | --------------------------------------------- |
@@ -76,7 +76,7 @@ history 명령은 webContents가 없으면 false/null, 있으면 Electron naviga
 
 ## 확대/축소와 단축키
 
-근거: [browserZoom.ts](../../../../packages/browser/src/browserZoom.ts). zoom factor 범위=0.5~3, step=0.1이다. guest 조회는 전달된 webContentsId 우선, 없거나 미조회면 active guest fallback이다. factor 읽기 실패는 1, 적용 실패는 null. 변경 시 dataset.tabItemId에 등록된 persist handler가 item.zoomFactor를 갱신한다. 최소/최대에서 값이 같으면 재적용하지 않는다.
+근거: [browserZoom.ts](../../../../packages/browser/src/navigation/browserZoom.ts). zoom factor 범위=0.5~3, step=0.1이다. guest 조회는 전달된 webContentsId 우선, 없거나 미조회면 active guest fallback이다. factor 읽기 실패는 1, 적용 실패는 null. 변경 시 dataset.tabItemId에 등록된 persist handler가 item.zoomFactor를 갱신한다. 최소/최대에서 값이 같으면 재적용하지 않는다.
 
 main shortcut relay의 browser-reload는 `{hard:boolean}`, browser-zoom은 `{direction:'in'|'out',webContentsId}`다. 주소창과 renderer keyboard hook에서 생성하는 local zoom 이벤트는 `workspace:browser-zoom`이다. guest별 factor와 앱 전체 UI zoom을 구분한다.
 
