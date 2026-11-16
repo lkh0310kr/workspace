@@ -1,7 +1,7 @@
 // Port of ref-proj/orca StatusIndicator.tsx (workspace tab chip subset).
 
-import type { WorkspaceTabStatus } from '../../lib/workspace-tab-status'
-import { getWorkspaceTabStatusLabel } from '../../lib/workspace-tab-status'
+import type { WorkspaceTabStatus } from './status/workspace-tab-status'
+import { getWorkspaceTabStatusLabel } from './status/workspace-tab-status'
 
 type Props = {
   status: WorkspaceTabStatus

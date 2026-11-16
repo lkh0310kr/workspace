@@ -8,10 +8,11 @@ App scope의 J-09다. 터미널 안 agent의 실제 실행과 UI에 관측된 wo
 | ------------------------------------------- | --------------------------------------------------------------------------------- |
 | main workspaceAgentHookServer               | loopback POST 상태 입력, terminalId→paneKey mapping, renderer relay               |
 | main agentHooks / terminal output observers | PTY/title 기반 감지와 spawn/종료 관측                                             |
-| shared agent-status-_, agent/_              | pane identity·타입·title parsing·evidence 시각·freshness·outcome/rollup 순수 규칙 |
+| `@workspace/terminal/agent/*`                | pane identity·상태 타입·title parsing·evidence 시각·freshness·outcome/rollup 순수 규칙 |
 | renderer terminal bridge                    | main event/title evidence를 live terminal pane에 연결                             |
 | agentStatusStore                            | paneKey별 live entry·retained done·live terminal ID·epoch                         |
-| UI hooks/status bars                        | workspace summary와 아이콘·표시 projection                                        |
+| `features/workspace/status`                 | workspace tab summary·상태 projection                                             |
+| agent status IPC adapter                     | Desktop hook server·preload·renderer bridge payload                              |
 
 [hook server](../../../../apps/desktop/src/main/workspaceAgentHookServer.ts)는 health와 POST 처리, paneKey 또는 terminalId를 요구한다. state는 working/blocked/waiting/done만 수락하며 clear는 별도 지시다. receivedAt/evidenceObservedAt/stateStartedAt와 workspace/pane identity를 분리해 보낸다. secret/표준 API 인증을 갖춘 외부 공개 서비스로 서술하지 않는다.
 
@@ -23,7 +24,7 @@ App scope의 J-09다. 터미널 안 agent의 실제 실행과 UI에 관측된 wo
 
 renderer workspace summary 선택자는 입력 객체 참조를 캐시 키로 사용하므로, freshness가 시간에 따라 바뀌는 항목이 있으면 다음 stale 전환 시각에 캐시를 만료한다. 같은 입력으로 선택자를 다시 호출하면 AGENT-03/05 freshness 규칙을 다시 적용한다. 이 캐시 계약은 시간 경과만으로 React UI를 재렌더링하거나 timer를 예약한다는 뜻은 아니다.
 
-main-agent verdict·interrupt·synthetic title·process detection·workspace rollup은 각각 shared helper가 결정한다. 서로 다른 증거를 단순 last-write-wins로 합치면 기존 우선순위가 바뀔 수 있으므로 이 지도와 함께 helper fixture를 기준으로 상세화한다.
+main-agent verdict·interrupt·synthetic title·process detection·terminal agent rollup은 `@workspace/terminal/agent/*`가 결정한다. Workspace tab별 pane snapshot과 시각 상태 집계는 `features/workspace/status`가 Terminal 도메인과 Workspace layout을 조합한다. 서로 다른 증거를 단순 last-write-wins로 합치면 기존 우선순위가 바뀔 수 있으므로 이 지도와 함께 helper fixture를 기준으로 상세화한다.
 
 ## 수락과 제한
 

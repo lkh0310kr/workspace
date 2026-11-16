@@ -968,6 +968,34 @@
         {
           "path": "apps/desktop/src/shared/usage-meter-settings.ts",
           "sha256": "101ac26364ccc452da051f627c794dbfa87814da3cbe942e2cda1a58cff06733"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/status/agent-pane-activity-flags.ts",
+          "sha256": "c9bde377f093a4bc40a49c13471aacd85ea9af29838a0b1682a5c3fe56ef32a8"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/status/collect-workspace-tab-pane-snapshots.ts",
+          "sha256": "f408088661d232bee1cb839dd8d8c06665fde5aa007e5362a3b63de6de31829c"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/status/pane-agent-evidence.ts",
+          "sha256": "2d564802f3afb7dc65386755e76763199e2ccd1b122f3587768af74527dea64a"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/status/workspace-activity-state.ts",
+          "sha256": "34b94047f1bb78793918952bbde18b4d71d8d7983d034949287cd3070e5c72d6"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/status/workspace-agent-activity-summary.test.ts",
+          "sha256": "a40256e38bafeea2bab86c73651007b4ddc54c3846ede4fa062c88486aadb630"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/status/workspace-agent-activity-summary.ts",
+          "sha256": "5023cd997148bff32384b861a45f41a91493af5e160506b2a2bea167758dba1c"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/workspace/status/workspace-tab-status.ts",
+          "sha256": "d4b4cb262cbd8a1e8bab558f4e41cd7d1f08712e909ec4ad33587a5a5992677e"
         }
       ]
     },
