@@ -1,4 +1,5 @@
 import type { FileRecord } from '../domain/types'
+import { parentPath } from '../domain/fileTree'
 
 const DATABASE_NAME = 'pkms-workspace-cache'
 const DATABASE_VERSION = 3
@@ -230,9 +231,4 @@ export function replaceDirectoryEntries(
   for (const file of incoming) byPath.set(file.path, file)
   const result = [...byPath.values()]
   return sameFileRecords(current, result) ? current : result
-}
-
-function parentPath(path: string): string {
-  const slash = path.lastIndexOf('/')
-  return slash < 0 ? '' : path.slice(0, slash)
 }
