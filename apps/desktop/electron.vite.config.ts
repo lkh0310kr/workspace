@@ -79,6 +79,7 @@ export default defineConfig({
         '@workspace/ui/ContextMenu': resolve('../../packages/ui/src/context-menu/ContextMenu.tsx'),
         '@workspace/ui/MenuList': resolve('../../packages/ui/src/menu-list/MenuList.tsx'),
         '@workspace/ui/context-menu.css': resolve('../../packages/ui/src/context-menu/context-menu.css'),
+        '@workspace/ui/settings.css': resolve('../../packages/ui/src/settings/settings.css'),
         '@workspace/ui': resolve('../../packages/ui/src'),
         '@xterm': resolve('node_modules/@xterm')
       }

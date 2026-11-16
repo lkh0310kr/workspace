@@ -49,6 +49,9 @@
       "@workspace/ui/context-menu.css": [
         "../../packages/ui/src/context-menu/context-menu.css"
       ],
+      "@workspace/ui/settings.css": [
+        "../../packages/ui/src/settings/settings.css"
+      ],
       "@workspace/ui/*": [
         "../../packages/ui/src/*"
       ],

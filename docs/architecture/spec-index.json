@@ -1197,7 +1197,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "057424aa2492e965b495797cd287ea23ed4c5136787ecb16e015b2931eb35eab"
+          "sha256": "8de9d0e90799633483caa75d99a652f0a8e07f15bb1a21467a9fbfe638258116"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/host/WorkspaceLayoutHost.tsx",
@@ -1210,6 +1210,18 @@
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/appShell.css",
           "sha256": "98048607001da0690eddf37197ca91bdf37215dc865c4c352e76069c2ddfa10e"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/App.tsx",
+          "sha256": "4dfd19bb9f274d5431ce365783924a16c25a68f40f68b03bfb1aa06583add1d5"
+        },
+        {
+          "path": "apps/desktop/electron.vite.config.ts",
+          "sha256": "1aa6989969ad7ec3e3ea3b33564736814ab703c508098b75388e390fd3ac9de9"
+        },
+        {
+          "path": "apps/desktop/tsconfig.web.json",
+          "sha256": "0126303f165e4884f1cac8797e5e51ddcc57e7e53b1f1bf4a19eb0812efc9279"
         }
       ]
     },
@@ -1391,7 +1403,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "c591878df5807e6df956735fa1076079b1bdedc946085ad45baa448002baf5f2"
+          "sha256": "4dfd19bb9f274d5431ce365783924a16c25a68f40f68b03bfb1aa06583add1d5"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/AppSettingsDialog.tsx",
@@ -2497,7 +2509,7 @@
       "sources": [
         {
           "path": "packages/ui/package.json",
-          "sha256": "69f7af54d91bfde98af549a1898a67640191e34cac5ec0911c2f6c8df7d002a4"
+          "sha256": "8886b590d1e5e8a6440e2ef9d8baac9802999353bbe5d377f8d7823ecb06d42c"
         },
         {
           "path": "packages/ui/src/context-menu/ContextMenu.tsx",
@@ -2526,6 +2538,10 @@
         {
           "path": "packages/ui/src/popover/popover.css",
           "sha256": "6d14980322a4c6c123f03aa8c4f472660337246830f05d77072a542d4715fafc"
+        },
+        {
+          "path": "packages/ui/src/settings/settings.css",
+          "sha256": "7fdb9b2517777e0b7dc740fecbe4c0c0b006e4cc7cbb12ee4b4969be2be108b3"
         }
       ]
     }

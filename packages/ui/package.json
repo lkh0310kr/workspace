@@ -8,7 +8,8 @@
     "./Popover": "./src/popover/Popover.tsx",
     "./ContextMenu": "./src/context-menu/ContextMenu.tsx",
     "./MenuList": "./src/menu-list/MenuList.tsx",
-    "./context-menu.css": "./src/context-menu/context-menu.css"
+    "./context-menu.css": "./src/context-menu/context-menu.css",
+    "./settings.css": "./src/settings/settings.css"
   },
   "peerDependencies": {
     "react": "^19.2.1",

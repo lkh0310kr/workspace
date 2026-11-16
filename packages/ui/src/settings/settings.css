@@ -1,0 +1,133 @@
+/* —— Settings dialog —— */
+.settings-dialog {
+  width: 360px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.settings-close:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.settings-section-title {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-row-column {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.settings-row-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.settings-path-row {
+  display: flex;
+  gap: 4px;
+}
+
+.settings-path-row input {
+  flex: 1;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+.settings-path-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.settings-path-row button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.settings-path-row button:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.settings-path-row button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.settings-error {
+  font-size: 11px;
+  color: #c85a5a;
+}
+
+.settings-theme-options {
+  display: flex;
+  border: 1px solid var(--border);
+}
+
+.settings-theme-option {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.settings-theme-option:first-child {
+  border-left: none;
+}
+
+.settings-theme-option:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.settings-theme-option.active {
+  background: var(--bg-active);
+  color: var(--text);
+}
