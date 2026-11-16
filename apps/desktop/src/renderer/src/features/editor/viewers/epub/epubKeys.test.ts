@@ -3,9 +3,10 @@ import {
   ebookTurnFromClick,
   ebookTurnFromKey,
   ebookTurnFromPageClick,
+  ebookTurnAfterPage,
+  nextLinearSectionIndex,
   isTypingTarget
-} from './epubKeys'
-import { ebookTurnAfterPage, nextLinearSectionIndex } from './epubPageTurn'
+} from '@workspace/editor/viewers'
 import { ebookReaderCss, formatEbookTitle } from './epubTheme'
 
 describe('ebookTurnFromKey', () => {

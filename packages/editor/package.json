@@ -8,6 +8,7 @@
     "./quick-open": "./src/quick-open/index.ts",
     "./search": "./src/search/index.ts",
     "./tree": "./src/tree/index.ts",
+    "./viewers": "./src/viewers/index.ts",
     "./EditorMarkdownSurface": "./src/EditorMarkdownSurface.tsx",
     "./code-mirror": "./src/codeMirror.ts",
     "./fuzzySearch": "./src/quick-open/fuzzySearch.ts",

@@ -28,7 +28,7 @@ cache는 workspaceRoot/.workspace/model3d-cache 아래 manifest와 파생 GLB를
 
 ## EPUB와 CAD 수명
 
-EPUB는 [epubLoader](../../../../apps/desktop/src/renderer/src/features/editor/viewers/epub/epubLoader.ts)가 책 resource와 paginator를 연다. 읽기 위치·선호는 Main ebook-state와 shared merge 규칙을 거쳐 저장한다. page turn key는 focused control/selection 등을 고려한 [epubKeys](../../../../apps/desktop/src/renderer/src/features/editor/viewers/epub/epubKeys.ts), theme는 epubTheme가 owner다. 열기 오류는 tab/path source identity에 묶여 다른 path의 새 로드를 막지 않으며, 취소된 이전 source의 늦은 결과는 적용하지 않는다. image/PDF의 단일 binary Blob 로딩으로 EPUB zip을 대체하지 않는다.
+EPUB는 [epubLoader](../../../../apps/desktop/src/renderer/src/features/editor/viewers/epub/epubLoader.ts)가 책 resource와 paginator를 연다. 읽기 위치·선호는 Main ebook-state와 shared merge 규칙을 거쳐 저장한다. page turn key와 click 구역·section 이동 정책은 [`@workspace/editor/viewers`](../../../../packages/editor/src/viewers/index.ts)가 소유하고, focused control/selection 처리와 theme 연결은 Desktop의 EpubReaderContent가 맡는다. 열기 오류는 tab/path source identity에 묶여 다른 path의 새 로드를 막지 않으며, 취소된 이전 source의 늦은 결과는 적용하지 않는다. image/PDF의 단일 binary Blob 로딩으로 EPUB zip을 대체하지 않는다.
 
 CAD adapter는 serveRoot별 instances와 pendingLaunches로 동시 시작을 조정하고 실행 환경의 viewer binary 또는 project Python 후보를 탐색한다. 종료 시 disposeCadViewers가 child를 정리한다. Python이 필요한 경로는 프로젝트 `.agents/.venv` 환경과 agents:python setup 명령을 사용하며 system Python fallback을 문서 작업으로 도입하지 않는다. 활성 viewer adapter와 archive CAD 모델은 별개다.
 
@@ -36,4 +36,4 @@ CAD adapter는 serveRoot별 instances와 pendingLaunches로 동시 시작을 조
 
 VIEW-01 media가 full-file base64 경로를 타지 않는다. VIEW-02 Blob·subtitle URL revoke. VIEW-03 import failed가 ready로 숨겨지지 않는다. VIEW-04 cache/source 불일치 재처리. VIEW-05 EPUB location restore·키보드와 선택 충돌. VIEW-06 CAD 중복 launch 조정과 quit cleanup.
 
-mediaRange/mediaKind/srtToVtt, epub/epubLoader/epubKeys, model3d assetRouter/import queue/cache/importer 테스트가 부분 근거다. 포맷별 장면·성능·대형 모델·책·native process의 전체 분기와 시각 fixture는 아직 상세화/acceptance 대상이다. 이 pipeline 지도만으로 모든 viewer를 독립 재생성 완료한 것으로 표시하지 않는다.
+mediaRange/mediaKind, Editor package viewer policy, epub/epubLoader, model3d assetRouter/import queue/cache/importer 테스트가 부분 근거다. 포맷별 장면·성능·대형 모델·책·native process의 전체 분기와 시각 fixture는 아직 상세화/acceptance 대상이다. 이 pipeline 지도만으로 모든 viewer를 독립 재생성 완료한 것으로 표시하지 않는다.

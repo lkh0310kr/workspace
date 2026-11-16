@@ -10,7 +10,7 @@ import {
 } from '../../../../../shared/ebookState'
 import { Popover, type AnchorRect } from '@renderer/adapters/ui'
 import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } from '../../../theme'
-import { ebookTurnFromKey, ebookTurnFromPageClick, isTypingTarget } from './epub/epubKeys'
+import { ebookTurnFromKey, ebookTurnFromPageClick, isTypingTarget } from '@workspace/editor/viewers'
 import { ebookReaderCss, formatEbookTitle, resolveEbookTheme } from './epub/epubTheme'
 import { protocolLoader } from './epub/epubLoader'
 import '../../../vendor/foliate-js/view.js'

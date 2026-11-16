@@ -1,6 +1,6 @@
 # Shared Editor package
 
-이 패키지는 Desktop Editor가 사용하는 공통 Tree pane/frame·row·문서 tab·CodeMirror text/Markdown UI와 provider 계약을 제공한다. Quick Open과 Find in Files UI·검색 lifecycle도 소유한다. Electron, 인증, 동기화, 로컬 파일시스템 구현은 소유하지 않는다. Tree provider 상태와 작업 실행은 host가 담당하고, pane의 header/content/footer 조립과 row presentation은 공유 API를 사용한다. Editor tree의 확장·scroll 상태, sidebar 표시 설정, tree shortcut·keyboard 정책도 이 package가 소유하며 Desktop host가 pane identity와 로컬 파일 provider를 연결한다.
+이 패키지는 Desktop Editor가 사용하는 공통 Tree pane/frame·row·문서 tab·CodeMirror text/Markdown UI와 provider 계약을 제공한다. Quick Open과 Find in Files UI·검색 lifecycle도 소유한다. 자막 변환과 EPUB page-turn 입력 정책은 `@workspace/editor/viewers`에서 제공한다. Electron, 인증, 동기화, 로컬 파일시스템 구현은 소유하지 않는다. Tree provider 상태와 작업 실행은 host가 담당하고, pane의 header/content/footer 조립과 row presentation은 공유 API를 사용한다. Editor tree의 확장·scroll 상태, sidebar 표시 설정, tree shortcut·keyboard 정책도 이 package가 소유하며 Desktop host가 pane identity와 로컬 파일 provider를 연결한다.
 
 [구현 스펙과 읽는 순서](../../docs/architecture/editor/README.md) → [provider](../../docs/architecture/editor/provider.md) → [text surface](../../docs/architecture/editor/code/README.md) → tree/Markdown/search 순으로 읽는다. `EditorMarkdownEditor`는 공통 문서 surface 조립 entrypoint이고, `EditorTreePane`은 tree row를 조립하는 public entrypoint다. Host별 저장·파일 동작은 [루트 docs](../../docs/README.md)에서 해당 기능 문서를 찾는다.
 

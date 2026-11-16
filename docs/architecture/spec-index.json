@@ -37,7 +37,7 @@
       "scope": "package",
       "owner": "packages/editor",
       "specStatus": "drafted",
-      "coverage": "Editor package UI and policies, including document surfaces, tree, search, Quick Open, and provider contracts; Desktop owns local filesystem and workspace/pane integration.",
+      "coverage": "Editor package UI and policies, including document surfaces, tree, search, Quick Open, viewer subtitle conversion, EPUB page-turn policies, and provider contracts; Desktop owns local filesystem and workspace/pane integration.",
       "documents": [
         "packages/editor/README.md",
         "docs/architecture/editor/README.md",
@@ -91,7 +91,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "5c39928aab78642d9e434a7746095a5a9593e890d26b97dfa7dd85a58720111e"
+          "sha256": "540dacab63202df0de0280b7e559064c01a78df6a36209ac9335fdf1a64ada62"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/CadViewerContent.tsx",
@@ -103,7 +103,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/EpubReaderContent.tsx",
-          "sha256": "ad18a43e27659fdb5c8c169d7c0c1263dfc62521066172e8cda2904ad2f9af4d"
+          "sha256": "6fb1d8d18f4fa5a7266519b7aa98a42a9ad5ed98ad6f36aa3231b87d1f5e8805"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorPaneKinds.tsx",
@@ -119,7 +119,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "da1de410d41e83e373c5678b1e7189df05d115b421fa6ee52ae566896c98839c"
+          "sha256": "49ad8d968d6a6ff643fc23277d3ca5046fd6ce6edf6c45af444c771fcc6f1f24"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -424,6 +424,26 @@
         {
           "path": "packages/editor/src/search/index.ts",
           "sha256": "8cdee4715ae0fdd58ba7cf213cd0ae72646737dc4e2e091a0b60ccde9a3211ab"
+        },
+        {
+          "path": "packages/editor/src/viewers/index.ts",
+          "sha256": "b7f1afaf7069319d0281fbe423bf1f8aacad79c9a0a3a3690f676b5a41c6e8e7"
+        },
+        {
+          "path": "packages/editor/src/viewers/srtToVtt.ts",
+          "sha256": "a679f9d0d207ed2a01109bdc19edcb482165b72b48a8e6a905f7d6fa7a8c55ed"
+        },
+        {
+          "path": "packages/editor/src/viewers/srtToVtt.test.ts",
+          "sha256": "b8c63e85fe80a09162c52bb22ed6ee0e70a4a79718b685d03b35c56f0fc8c9aa"
+        },
+        {
+          "path": "packages/editor/src/viewers/epub/epubKeys.ts",
+          "sha256": "eb357591173e1d796f15d422306045d7cb05f244fc1155dcee75eb35830fea4c"
+        },
+        {
+          "path": "packages/editor/src/viewers/epub/epubPageTurn.ts",
+          "sha256": "b08e0801024f14b3c673498be8c3149c1a1ac350a6de6f7d4268c8f7a79d7281"
         }
       ]
     },
@@ -527,7 +547,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "5c39928aab78642d9e434a7746095a5a9593e890d26b97dfa7dd85a58720111e"
+          "sha256": "540dacab63202df0de0280b7e559064c01a78df6a36209ac9335fdf1a64ada62"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
@@ -1250,10 +1270,6 @@
           "sha256": "f879665944535d9767c6b4e32edbcb3383c414aa4feb430d17c10282a5afac82"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/viewers/epub/epubKeys.ts",
-          "sha256": "eb357591173e1d796f15d422306045d7cb05f244fc1155dcee75eb35830fea4c"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/epub/epubLoader.ts",
           "sha256": "47a38b3a97de4c614a8b94b8b707cf4879909f7259cb35656add3ad1b90ab3d7"
         },
@@ -1263,7 +1279,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "5c39928aab78642d9e434a7746095a5a9593e890d26b97dfa7dd85a58720111e"
+          "sha256": "540dacab63202df0de0280b7e559064c01a78df6a36209ac9335fdf1a64ada62"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts",
