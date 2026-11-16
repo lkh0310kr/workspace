@@ -1,5 +1,5 @@
 import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '@workspace/terminal'
-import { getTerminalAgentPaneBinding } from './terminalAgentPaneRegistry'
+import { getTerminalAgentPaneBinding } from '@workspace/terminal/agent/terminal-agent-pane-registry'
 import { applyTitleDerivedAgentStatus } from './title-derived-agent-status'
 import { applyHookAgentStatus, clearHookAgentStatus } from '@workspace/terminal/agent/apply-hook-agent-status'
 

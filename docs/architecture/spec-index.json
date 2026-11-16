@@ -966,7 +966,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "0d1dadf45e6964550b9878463302d54683b6a98e725b0495a8e6c6774b7531e0"
+          "sha256": "c9173e367c9e1d6f4db973d4127e9181838aa63ffe55efe4736d3f644e3c5503"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/runtime/ptyDataMultiplexer.ts",
@@ -1958,6 +1958,10 @@
         {
           "path": "packages/terminal/src/agent/apply-hook-agent-status.test.ts",
           "sha256": "ad0705b7d9bddca0e5979f2b37acee04c3d7a27a62330b784f4e2225aecdf750"
+        },
+        {
+          "path": "packages/terminal/src/agent/terminal-agent-pane-registry.ts",
+          "sha256": "cdb1e3f56fa79c7d578223fc91f1136f7e9ca29cab78f9ecd7515d40c3adaec5"
         },
         {
           "path": "packages/terminal/src/agent/pty-output-title-observer.ts",
