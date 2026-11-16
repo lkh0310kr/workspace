@@ -1,4 +1,4 @@
-import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from '../lib/shared/terminal-scrollback-policy'
+import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from '../../../shared/terminal-scrollback-policy'
 import { serializeWithAbsoluteCursor } from '../../../shared/terminal-serialize-absolute-cursor'
 import {
   trimTerminalSessionBufferToByteLimit,
