@@ -78,8 +78,9 @@ const WEDGED_RELOAD_COOLDOWN_MS = 15_000
 
 // Not an application error: the browser reports this whenever a
 // ResizeObserver callback resizes the very elements it observes, which is
-// exactly how foliate-js's paginator lays out CSS columns (vendor/
-// foliate-js/paginator.js — `new ResizeObserver(() => this.expand())`).
+// exactly how foliate-js's paginator lays out CSS columns
+// (features/editor/viewers/vendor/foliate-js/paginator.js —
+// `new ResizeObserver(() => this.expand())`).
 // The observer settles on the next frame and the reader renders
 // correctly; the notice fires on every EPUB layout pass (open, sidebar
 // toggle, font change), so logging it buries real errors in the panel.

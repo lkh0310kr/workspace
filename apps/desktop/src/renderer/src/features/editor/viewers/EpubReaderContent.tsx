@@ -13,9 +13,9 @@ import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } fro
 import { ebookTurnFromKey, ebookTurnFromPageClick, isTypingTarget } from '@workspace/editor/viewers'
 import { ebookReaderCss, formatEbookTitle, resolveEbookTheme } from './epub/epubTheme'
 import { protocolLoader } from './epub/epubLoader'
-import '../../../vendor/foliate-js/view.js'
-import { EPUB } from '../../../vendor/foliate-js/epub.js'
-import { createTOCView } from '../../../vendor/foliate-js/ui/tree.js'
+import './vendor/foliate-js/view.js'
+import { EPUB } from './vendor/foliate-js/epub.js'
+import { createTOCView } from './vendor/foliate-js/ui/tree.js'
 
 type FoliateView = HTMLElement & {
   book: { dir?: string; toc?: unknown; metadata?: { title?: unknown } }

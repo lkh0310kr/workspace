@@ -8,7 +8,7 @@ App scope의 J-05다. 공유 editor의 asset snapshot과 실제 renderer를 구�
 | --------------- | ------------------------------------------------- | ------------------------------------------------------------------------------- |
 | image/PDF       | readFileBinaryPreview                             | EditorFileViewer의 base64→Blob URL, 교체/unmount revoke                        |
 | audio/video     | mediaProtocol·mediaRange                          | protocol URL의 Range streaming, native media element·SRT→VTT·subtitle offset    |
-| EPUB            | epub/epubInspect/miniEpub + protocolSchemes       | EpubReaderContent→epubLoader→foliate paginator, theme·TOC·page turn·읽기 위치   |
+| EPUB            | epub/epubInspect/miniEpub + protocolSchemes       | EpubReaderContent→epubLoader→features/editor/viewers/vendor/foliate-js paginator, theme·TOC·page turn·읽기 위치   |
 | model3d         | model3d assetRouter/importers/cacheStore/protocol | ModelViewerContent→renderer model3d modules, manifest·loading/error·3D controls |
 | CAD/robot files | [cadViewer](../../../../apps/desktop/src/main/content/cad/cadViewer.ts) local process adapter                   | CadViewerContent의 viewer URL 연결. 서비스 launch/reuse·종료 책임은 Main        |
 

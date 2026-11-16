@@ -102,10 +102,6 @@
           "sha256": "005de55e18c7428154b420b4b556034e8b7f1733630bb94efa326e2e82853de9"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/viewers/EpubReaderContent.tsx",
-          "sha256": "6fb1d8d18f4fa5a7266519b7aa98a42a9ad5ed98ad6f36aa3231b87d1f5e8805"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorPaneKinds.tsx",
           "sha256": "17a0007dfb93a487a51763f52081d84e13db7e9cc14923564015fd117b3b2015"
         },
@@ -596,6 +592,102 @@
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/desktopEditorViewerHost.tsx",
           "sha256": "3da9b33d9aa36899bfc143fcc344e3ab4ec6cf983827c139af108c45d30ae7c6"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/EpubReaderContent.tsx",
+          "sha256": "446aeb0437acd1fc2521225decc99e038fe16cf58f50e8cd71dd6ad0e76f1ed7"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/EpubReaderContent.path-change.test.ts",
+          "sha256": "90451090b8efbc357f502432a898941ae7a18cdc4cf86f1bba3510cb0e795c9f"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/foliate-js.d.ts",
+          "sha256": "5648bd266f5dd00317cd84e2d2acaa1f68e120abd3c52b1dd0c5cb5004731e7d"
+        },
+        {
+          "path": "apps/desktop/src/main/content/epub/epubFoliate.test.ts",
+          "sha256": "66c272a1a6948003f37a9d0b1ac155145ad9422b19a760b8d4ce6bcc85c706bf"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/diagnostics/errorLog.ts",
+          "sha256": "24a7abe436a5c719e19892f2950931a6c83f714d9554a17175fc6f7e0ce4cc41"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/LICENSE",
+          "sha256": "b621ffc351fe263bc9b09dd0bc1c9332fda9c462a3904c1e4f0b4d3236b9c28c"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/NOTICE",
+          "sha256": "fd14320812b370aca30d92f83be0ea94d563cedf975a6e31ad91fa8bd68d7d8b"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/comic-book.js",
+          "sha256": "7f3bf77561ca77300d5244015fcb1f73805787db246928074dc49fb56c88762e"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/epub.js",
+          "sha256": "dfe347495039e9b5991478986ec6b7713cf9efbcd8f475a77ef7b967c5176298"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/epubcfi.js",
+          "sha256": "e1a688ad5c84bf31f33cef467f92c7a6d060a0f17ec37c1d3c048e9c7b1cf645"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/fb2.js",
+          "sha256": "09a7890bf191f1b6c6dd435fae2868b86c75e73e00731b0051c02f2a998a180a"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/fixed-layout.js",
+          "sha256": "7aee1d15d8e0479b8a6c59a20304b250dafc4c7dc158147a2b2c6bed9e180b4c"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/mobi.js",
+          "sha256": "016526df13a9f11ee6671a8c74346e1cf41fe6bdfe50165fdcbf744f015694f3"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/overlayer.js",
+          "sha256": "d3d3396e3083277ccbd4f17c407621159b22a407107e43ce75ca3014578094fb"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/paginator.js",
+          "sha256": "51cec81572d5d182e231fe68ce9c3b5489a0976b36172060516336ba893565ea"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/pdf.js",
+          "sha256": "8de052609f8ee4a3c1fe95e6620fcf421ead15f8014710e5050210909c7984e3"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/progress.js",
+          "sha256": "544f5e90babc0cb31c5caf971a5f06dd6249ec06600cb62f672fa7179811fde1"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/search.js",
+          "sha256": "31e846bdc095a645de0e94f7baa2c9e136561a363a2f774d4032e72cfa1fb0ef"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/text-walker.js",
+          "sha256": "4ad740ab6142b5be428700ef4d270253cef6649cf6e047ae7d2698a7aec65e92"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/tts.js",
+          "sha256": "530d34605b758a5e2260438964a85bb9909bcb49e8848e303fe22cac63859026"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/view.js",
+          "sha256": "e0093af921feb03bb58fb51aeedc321fa108a4158d215f6913ecf7925415c945"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/ui/tree.js",
+          "sha256": "713134d5f242239b094e121912d07eb925d4ae20a9a5c8a7363feb7560ebbd16"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/vendor/fflate.js",
+          "sha256": "e63bcc21f83a43e5f71d5cbefd351ff4d4dbd57bef8b29ad65c8bd65752f6e6b"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/viewers/vendor/foliate-js/vendor/zip.js",
+          "sha256": "2a0d43157e4a447c6e43351225758795b75a33e8dfec10c6767248df2182949a"
         }
       ]
     },
@@ -1384,6 +1476,10 @@
         {
           "path": "apps/desktop/visual-tests/feature-sandbox/src/mockTerminalHost.ts",
           "sha256": "b6d1c1680b90a007e87827b3573f0f37cffe6cea7030eb79377cf1aa3e197a14"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/diagnostics/errorLog.ts",
+          "sha256": "24a7abe436a5c719e19892f2950931a6c83f714d9554a17175fc6f7e0ce4cc41"
         }
       ]
     },

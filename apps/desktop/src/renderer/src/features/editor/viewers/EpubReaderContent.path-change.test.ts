@@ -12,15 +12,15 @@ const electron = vi.hoisted(() => ({
 }))
 
 vi.mock('../../../electron', () => electron)
-vi.mock('../../../vendor/foliate-js/view.js', () => ({}))
-vi.mock('../../../vendor/foliate-js/epub.js', () => ({
+vi.mock('./vendor/foliate-js/view.js', () => ({}))
+vi.mock('./vendor/foliate-js/epub.js', () => ({
   EPUB: class {
     init(): Promise<Record<string, never>> {
       return Promise.resolve({})
     }
   }
 }))
-vi.mock('../../../vendor/foliate-js/ui/tree.js', () => ({ createTOCView: vi.fn() }))
+vi.mock('./vendor/foliate-js/ui/tree.js', () => ({ createTOCView: vi.fn() }))
 
 import { EpubReaderContent } from './EpubReaderContent'
 
