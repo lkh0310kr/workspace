@@ -319,7 +319,7 @@ export class Workspace {
   readFile(tabId: number, rel: string): string | null {
     return files.readFileIfExists(this.tabRoot(tabId), rel)
   }
-  readFileBinaryPreview(tabId: number, rel: string): files.BinaryFilePreview | null {
+  readFileBinaryPreview(tabId: number, rel: string): Promise<files.BinaryFilePreview | null> {
     return files.readFileBinaryPreview(this.tabRoot(tabId), rel)
   }
   writeFile(tabId: number, rel: string, content: string): void {

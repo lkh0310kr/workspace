@@ -2,7 +2,7 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { listDir, readFileBinaryPreview } from './files'
 
 const tempDirs: string[] = []
@@ -25,32 +25,58 @@ afterEach(() => {
 })
 
 describe('readFileBinaryPreview', () => {
-  it('reads glb files', () => {
+  it('reads glb files', async () => {
     const glbHeader = Buffer.from([0x67, 0x6c, 0x54, 0x46, 0x02, 0x00, 0x00, 0x00])
     const root = makeTempRoot({ 'box.glb': glbHeader })
-    const preview = readFileBinaryPreview(root, 'box.glb')
+    const preview = await readFileBinaryPreview(root, 'box.glb')
     expect(preview).not.toBeNull()
     expect(preview?.mimeType).toBe('model/gltf-binary')
     expect(preview?.content.length).toBeGreaterThan(0)
   })
 
-  it('reads obj files', () => {
+  it('reads obj files', async () => {
     const root = makeTempRoot({ 'cube.obj': Buffer.from('o Cube\nv 0 0 0\n') })
-    const preview = readFileBinaryPreview(root, 'cube.obj')
+    const preview = await readFileBinaryPreview(root, 'cube.obj')
     expect(preview).not.toBeNull()
     expect(preview?.mimeType).toBe('model/obj')
   })
 
-  it('reads stl files', () => {
+  it('reads stl files', async () => {
     const root = makeTempRoot({ 'cube.stl': Buffer.from('solid cube\nendsolid cube\n') })
-    const preview = readFileBinaryPreview(root, 'cube.stl')
+    const preview = await readFileBinaryPreview(root, 'cube.stl')
     expect(preview).not.toBeNull()
     expect(preview?.mimeType).toBe('model/stl')
   })
 
-  it('returns null for unknown extensions', () => {
+  it('keeps the main event loop responsive while file bytes are pending', async () => {
+    const root = makeTempRoot({ 'box.glb': Buffer.from('unused') })
+    let finishRead: ((bytes: Buffer) => void) | undefined
+    const readFile = vi.spyOn(fs.promises, 'readFile').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishRead = (bytes) => resolve(bytes as never)
+        })
+    )
+
+    try {
+      const previewPromise = readFileBinaryPreview(root, 'box.glb')
+      expect(readFile).toHaveBeenCalledOnce()
+
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      finishRead?.(Buffer.from('async bytes'))
+
+      await expect(previewPromise).resolves.toEqual({
+        content: Buffer.from('async bytes').toString('base64'),
+        mimeType: 'model/gltf-binary'
+      })
+    } finally {
+      readFile.mockRestore()
+    }
+  })
+
+  it('returns null for unknown extensions', async () => {
     const root = makeTempRoot({ 'readme.txt': Buffer.from('hi') })
-    expect(readFileBinaryPreview(root, 'readme.txt')).toBeNull()
+    await expect(readFileBinaryPreview(root, 'readme.txt')).resolves.toBeNull()
   })
 })
 

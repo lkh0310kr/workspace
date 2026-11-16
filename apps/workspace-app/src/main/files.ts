@@ -148,7 +148,10 @@ export type BinaryFilePreview = { content: string; mimeType: string }
  * Chromium blocks file:// resource loads from a page not itself loaded via
  * file://, which a dev-mode Vite server never is). Goes through the same
  * resolveUnderRoot confinement as every other file op here. */
-export function readFileBinaryPreview(root: string, rel: string): BinaryFilePreview | null {
+export async function readFileBinaryPreview(
+  root: string,
+  rel: string
+): Promise<BinaryFilePreview | null> {
   const target = resolveUnderRoot(root, rel)
   const ext = path.extname(target).toLowerCase()
   const mimeType = BINARY_PREVIEW_MIME_TYPES[ext]
@@ -162,7 +165,7 @@ export function readFileBinaryPreview(root: string, rel: string): BinaryFilePrev
     return null
   }
   try {
-    const content = fs.readFileSync(target).toString('base64')
+    const content = (await fs.promises.readFile(target)).toString('base64')
     const isModel =
       ext === '.glb' ||
       ext === '.gltf' ||
